@@ -1,0 +1,117 @@
+/* DashboardView.swift */
+"Keine Karten" = "No Cards";
+"In Nexus unter Dashboard lassen sich Karten hinzufügen." = "Cards can be added in Nexus under Dashboard.";
+"KW" = "Wk";
+"Kalenderwoche %lld" = "Calendar Week %lld";
+"Arbeitsspeicher" = "Memory";
+"Speicher" = "Storage";
+"läuft seit %@" = "running since %@";
+"%@ %@ %" = "%@ %@%";
+"%@ %@ Prozent" = "%@ %@ percent";
+
+/* MediaView.swift */
+"Medien" = "Media";
+"Unbekannter Künstler" = "Unknown Artist";
+"Nicht verfügbar" = "Not Available";
+"Nichts läuft" = "Nothing Playing";
+"Adapter läuft nicht" = "Adapter Not Running";
+"Spiel etwas ab" = "Play Something";
+"Unbekannte App" = "Unknown App";
+"Medien nicht verfügbar" = "Media Not Available";
+"Der Now-Playing-Adapter läuft nicht." = "The Now Playing adapter isn't running.";
+"Spiel etwas ab, dann erscheint es hier." = "Play something, and it will appear here.";
+"Spielt gerade" = "Playing";
+"Pausiert" = "Paused";
+"%@ abgespielt" = "%@ elapsed";
+"Quelle" = "Source";
+"Vorheriger Titel" = "Previous Track";
+"Nächster Titel" = "Next Track";
+"Spielt in %@" = "Playing in %@";
+"Pause" = "Pause";
+"Wiedergabe" = "Play";
+
+/* PerformanceView.swift */
+"Letzte 30 s" = "Last 30s";
+"Startvolume" = "Startup Volume";
+"Belegt" = "Used";
+"Netzwerk" = "Network";
+"max %@" = "max %@";
+"Download" = "Download";
+"Upload" = "Upload";
+"Gesamt" = "Total";
+"Seit dem ersten Öffnen dieses Reiters" = "Since this tab was first opened";
+"Akku" = "Battery";
+
+/* WeatherView.swift */
+"Ort in Nexus festlegen" = "Set Location in Nexus";
+"Ohne Favoriten gibt es kein Wetter zum Anzeigen." = "Without favorites there's no weather to show.";
+"Nexus öffnen" = "Open Nexus";
+"Wetter für %@" = "Weather for %@";
+"Feuchte" = "Humidity";
+"Aufgang" = "Sunrise";
+"Wind" = "Wind";
+"Untergang" = "Sunset";
+"Keine Wetterdaten" = "No Weather Data";
+"Wird geladen …" = "Loading…";
+"Wetter wird geladen …" = "Loading Weather…";
+
+/* Weather.swift */
+"Klar" = "Clear";
+"Überwiegend klar" = "Mostly Clear";
+"Leicht bewölkt" = "Partly Cloudy";
+"Bedeckt" = "Overcast";
+"Nebel" = "Fog";
+"Leichter Nieselregen" = "Light Drizzle";
+"Nieselregen" = "Drizzle";
+"Starker Nieselregen" = "Heavy Drizzle";
+"Gefrierender Nieselregen" = "Freezing Drizzle";
+"Leichter Regen" = "Light Rain";
+"Regen" = "Rain";
+"Starker Regen" = "Heavy Rain";
+"Gefrierender Regen" = "Freezing Rain";
+"Leichter Schneeregen" = "Light Sleet";
+"Schneeregen" = "Sleet";
+"Leichter Schneefall" = "Light Snow";
+"Schnee" = "Snow";
+"Starker Schneefall" = "Heavy Snow";
+"Schneegriesel" = "Snow Grains";
+"Eiskörner" = "Ice Pellets";
+"Leichte Regenschauer" = "Light Rain Showers";
+"Regenschauer" = "Rain Showers";
+"Heftige Regenschauer" = "Violent Rain Showers";
+"Leichte Schneeregenschauer" = "Light Sleet Showers";
+"Schneeregenschauer" = "Sleet Showers";
+"Leichte Schneeschauer" = "Light Snow Showers";
+"Starke Schneeschauer" = "Heavy Snow Showers";
+"Gewitter" = "Thunderstorm";
+"Gewitter mit Hagel" = "Thunderstorm with Hail";
+"Unbekannt" = "Unknown";
+"Gefühlt %@" = "Feels like %@";
+"H: %@ T: %@" = "H:%@ L:%@";
+"Stand %@" = "As of %@";
+"Jetzt" = "Now";
+"%lld Uhr" = "%lld:00";
+"Heute" = "Today";
+
+/* CalendarMonth.swift */
+"%lld T %lld Std" = "%lldd %lldh";
+"%lld Std %lld Min" = "%lldh %lldm";
+"%lld Min" = "%lldm";
+
+/* Geocoding.swift */
+"N" = "N";
+"S" = "S";
+"O" = "E";
+"W" = "W";
+
+/* PerformanceMath.swift */
+"%@ von %@" = "%@ of %@";
+"Voll in %@" = "Full in %@";
+"Lädt" = "Charging";
+"Geladen" = "Charged";
+"Am Netzteil" = "On Power Adapter";
+"Noch %@" = "%@ Left";
+"Berechne …" = "Calculating…";
+
+/* PerformanceModel.swift */
+"%@ · %lld Kerne" = "%@ · %lld Cores";

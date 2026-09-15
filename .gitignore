@@ -1,0 +1,7 @@
+.build/
+build/
+dist/
+.private/
+.DS_Store
+__pycache__/
+.local.env

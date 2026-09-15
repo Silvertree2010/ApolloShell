@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>io.github.silvertree2010.apolloshell</string>
+    <key>CFBundleName</key>
+    <string>ApolloShell</string>
+    <key>CFBundleExecutable</key>
+    <string>ApolloShell</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>de</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>de</string>
+        <string>en</string>
+    </array>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>© 2026 Silvertree2010 · MIT License</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>26.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>ApolloShell steuert System Events für Abmelden, Neustart und Ausschalten im Sitzungsmenü.</string>
+</dict>
+</plist>
