@@ -23,21 +23,34 @@ extension EnvironmentValues {
     }
 }
 
-/// Die Buehne im Fenster rechts neben der Leiste: ein Glas-Panel, das aus
-/// der Leiste waechst (Caelestia: ClipWrapper + Wrapper + Content).
+/// Die Buehne: ein Glas-Panel, das aus der Leiste herauswaechst
+/// (Caelestia: ClipWrapper + Wrapper + Content).
 ///
-/// - Oeffnen: die Breite waechst von 0 auf voll, bei Caelestia ein Clip
-///   (`offsetScale`), der Inhalt steht dabei still und wird aufgedeckt.
+/// Leiste und Popout liegen im selben Fenster und im selben
+/// `GlassEffectContainer` (`SidebarRoot`). Das Glas des Popouts ragt um
+/// `overlap` in die Leiste hinein; der Container verschmilzt beide zu einer
+/// Glasflaeche, die Leiste woelbt sich aus.
+///
+/// - Geschlossen: ein Glas-Keim, etwa so hoch wie ein Statussymbol, ganz in
+///   der Leiste und auf Hoehe des Symbols - mit ihr verschmolzen, also
+///   unsichtbar.
+/// - Oeffnen: der Keim waechst nach rechts und in die Hoehe bis zum vollen
+///   Popout, der Inhalt blendet ein. So kommt es aus dem Symbol heraus.
 /// - Wechseln: Breite, Hoehe und Lage gleiten zur neuen Groesse, der alte
-///   Inhalt blendet in 200 ms aus, der neue in 300 ms ein, beide mittig.
-/// - Die linken Ecken liegen links ausserhalb des Fensters, also unsichtbar
-///   an der Leiste - wie die anderen Kantenfenster an ihrer Bildschirmkante.
+///   Inhalt blendet in 200 ms aus, der neue in 300 ms ein.
 ///
 /// Alle drei Inhalte sind immer aufgebaut (nur unsichtbar): so ist die
 /// Groesse des naechsten schon gemessen, bevor man wechselt, und die
 /// Groessenbewegung startet sofort am richtigen Ziel.
+///
+/// Koordinaten: die Buehne beginnt `overlap` links der rechten
+/// Leistenkante, oben = Fensteroberkante.
 struct StatusPopoutStage: View {
     static let cornerRadius: CGFloat = 25
+    /// So weit reicht das Glas in die Leiste hinein.
+    static let overlap: CGFloat = cornerRadius
+    /// Hoehe des Keims im geschlossenen Zustand.
+    static let seedHeight: CGFloat = 30
 
     let model: StatusPopoutModel
     /// Mitte des angeklickten Symbols, von der Fensteroberkante gemessen.
@@ -48,16 +61,20 @@ struct StatusPopoutStage: View {
         GeometryReader { geometry in
             let r = Self.cornerRadius
             let size = sizes[model.shown] ?? CGSize(width: StatusPopoutContent.width(model.shown), height: 200)
-            let visibleWidth = model.isOpen ? size.width : 0
-            let top = StatusPopoutPlacement.top(
+            let open = model.isOpen
+            let openTop = StatusPopoutPlacement.top(
                 anchorY: anchorY, height: size.height, containerHeight: geometry.size.height
             )
-            ZStack(alignment: .leading) {
+            let glassTop = open ? openTop : anchorY - Self.seedHeight / 2
+            let glassHeight = open ? size.height : Self.seedHeight
+            let glassWidth = Self.overlap + (open ? size.width : 0)
+            ZStack(alignment: .topLeading) {
                 StatusPopoutGlass(cornerRadius: r)
-                    .frame(width: r + visibleWidth, height: size.height)
+                    .frame(width: glassWidth, height: glassHeight)
+                    .padding(.top, glassTop)
                 ZStack {
                     ForEach(StatusPopoutKind.allCases, id: \.self) { kind in
-                        let active = model.isOpen && model.shown == kind
+                        let active = open && model.shown == kind
                         StatusPopoutContent(model: model, kind: kind)
                             .fixedSize()
                             .onGeometryChange(for: CGSize.self) { $0.size } action: { sizes[kind] = $0 }
@@ -68,14 +85,20 @@ struct StatusPopoutStage: View {
                     }
                 }
                 .frame(width: size.width, height: size.height)
-                .offset(x: r)
+                .padding(.leading, Self.overlap)
+                .padding(.top, openTop)
+                // Der Inhalt steht still und wird vom wachsenden Glas aufgedeckt.
+                .mask(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: r)
+                        .frame(width: glassWidth, height: glassHeight)
+                        .padding(.top, glassTop)
+                }
             }
-            .frame(width: r + visibleWidth, height: size.height, alignment: .leading)
-            .clipShape(.rect(cornerRadius: r))
-            .offset(x: -r, y: top)
-            // Sichtbarer Teil im Fenster, fuer den Klicktest "ausserhalb".
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+            // Sichtbarer Teil ab der rechten Leistenkante, fuer den Klicktest
+            // "ausserhalb".
             .onGeometryChange(for: CGRect.self) { _ in
-                CGRect(x: 0, y: top, width: visibleWidth, height: size.height)
+                CGRect(x: 0, y: glassTop, width: open ? size.width : 0, height: glassHeight)
             } action: { model.panelFrame = $0 }
         }
     }

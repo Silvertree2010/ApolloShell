@@ -1,6 +1,7 @@
 import AppKit
 import ApolloShellCore
 import os
+import SwiftUI
 
 /// Linke Leiste ("neues Dock"), vorerst leer.
 ///
@@ -47,8 +48,10 @@ final class Sidebar {
     private let spaces = SpacesModel()
     private let dock: SidebarDockModel
     private let clock = SidebarClockModel()
-    /// Detailfenster der Statuskapsel (WLAN, Bluetooth, Akku).
+    /// Detailfenster der Statuskapsel (WLAN, Bluetooth, Akku). Liegt im
+    /// Fenster der Leiste und macht es breiter, solange es offen ist.
     private let popout = StatusPopout()
+    private var expanded = false
 
     /// `settings`: welche Bausteine in welcher Reihenfolge (Nexus > Leiste).
     /// SwiftUI beobachtet sie und baut die Leiste bei jeder Aenderung sofort um.
@@ -57,9 +60,6 @@ final class Sidebar {
         dock = SidebarDockModel(settings: settings)
         // Wetteranbieter ebenfalls aus den Einstellungen, wie im Dashboard.
         weather = BarWeatherFeed(settings: settings)
-        let glass = NSGlassEffectView()
-        glass.style = .regular
-        glass.cornerRadius = 0
         let context = BarModuleContext(
             status: status, spaces: spaces, dock: dock, clock: clock, cpu: cpu, weather: weather,
             onDashboard: { [weak self] in self?.onDashboard() },
@@ -69,11 +69,15 @@ final class Sidebar {
             onSelectSpace: { [spaces] in spaces.switchTo($0) },
             onOpenApp: { BarApps.open($0) }
         )
-        // Das Popout-Modell kommt ueber die Umgebung zur Statuskapsel.
-        let hosting = FirstMouseHostingView(rootView: SidebarContent(settings: settings, context: context)
-            .environment(popout.model))
-        glass.contentView = hosting
-        panel.contentView = glass
+        // Glas zeichnet SwiftUI (`SidebarRoot`), nicht mehr NSGlassEffectView:
+        // nur im selben GlassEffectContainer verschmilzt das Popout mit der
+        // Leiste.
+        let hosting = FirstMouseHostingView(
+            rootView: SidebarRoot(settings: settings, context: context, popout: popout.model)
+        )
+        panel.contentView = hosting
+        popout.hostWindow = panel
+        popout.setExpanded = { [weak self] in self?.setExpanded($0) }
         // SwiftUI meldet Symbolrahmen in Koordinaten der Ansicht (oben = 0,
         // NSHostingView ist geflippt); AppKit rechnet sie ueber das Fenster
         // auf den Bildschirm um.
@@ -115,6 +119,14 @@ final class Sidebar {
         panel.orderFrontRegardless()
     }
 
+    /// Popout offen: Fenster breiter, die Leiste bleibt links 44 breit, der
+    /// Rest ist durchsichtig, bis das Glas hineinwaechst.
+    private func setExpanded(_ expanded: Bool) {
+        guard expanded != self.expanded else { return }
+        self.expanded = expanded
+        layout()
+    }
+
     /// Hauptbildschirm (der mit der Menueleiste): unten bis zum Rand, oben bis
     /// zur Unterkante der Menueleiste.
     private func layout() {
@@ -126,13 +138,16 @@ final class Sidebar {
         }
         let frame = screen.frame
         let top = screen.visibleFrame.maxY
-        let rect = NSRect(x: frame.minX, y: frame.minY, width: Self.width, height: top - frame.minY)
+        let width = expanded ? StatusPopout.expandedWidth : Self.width
+        let rect = NSRect(x: frame.minX, y: frame.minY, width: width, height: top - frame.minY)
         lastFrame = rect
         // Mit dem echten Panelrahmen vergleichen, nicht mit `lastFrame`: beim
         // Umstecken verschiebt macOS Fenster auch selbst.
         guard panel.frame != rect else { return }
         panel.setFrame(rect, display: true)
-        log.notice("Sidebar \(Self.width, privacy: .public) x \(rect.height, privacy: .public) pt")
+        if !expanded {
+            log.notice("Sidebar \(Self.width, privacy: .public) x \(rect.height, privacy: .public) pt")
+        }
     }
 
     /// Aufloesung oder Bildschirme geaendert, Aufwachen (ganzer Rechner oder
@@ -173,6 +188,35 @@ final class Sidebar {
                 }
             }
         }
+    }
+}
+
+/// Wurzel des Leistenfensters: Leiste und Statuspopout in einem
+/// `GlassEffectContainer`, damit beide eine einzige Glasflaeche bilden. Das
+/// Popout reicht in die Leiste hinein und verschmilzt dort mit ihr.
+///
+/// Das Popout liegt zuunterst: sein Glas ragt in die Leiste, die Symbole der
+/// Leiste bleiben darueber. Die Leiste ist fest 44 breit und klebt links,
+/// auch wenn das Fenster fuer ein offenes Popout breiter ist.
+struct SidebarRoot: View {
+    let settings: ShellSettingsStore
+    let context: BarModuleContext
+    let popout: StatusPopoutModel
+
+    var body: some View {
+        GlassEffectContainer(spacing: 16) {
+            ZStack(alignment: .topLeading) {
+                StatusPopoutStage(model: popout, anchorY: popout.anchorY)
+                    .padding(.leading, Sidebar.width - StatusPopoutStage.overlap)
+                SidebarContent(settings: settings, context: context)
+                    .frame(width: Sidebar.width)
+                    .frame(maxHeight: .infinity)
+                    .glassEffect(.regular, in: .rect)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        // Das Popout-Modell kommt ueber die Umgebung zur Statuskapsel.
+        .environment(popout)
     }
 }
 

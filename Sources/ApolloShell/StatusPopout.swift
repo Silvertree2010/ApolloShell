@@ -3,21 +3,20 @@ import Carbon.HIToolbox
 import ApolloShellCore
 import SwiftUI
 
-/// Detailfenster fuer WLAN, Bluetooth und Akku direkt rechts neben der
-/// Leiste (Caelestia: modules/bar/popouts).
+/// Detailfenster fuer WLAN, Bluetooth und Akku, das aus der Leiste
+/// herauswaechst (Caelestia: modules/bar/popouts).
 ///
-/// Buendig an der Leiste, ohne Abstand: bei Caelestia sind Leiste und Popout
-/// eine einzige Flaeche (gemeinsamer Rahmen), das Popout waechst aus der
-/// Leiste heraus. Unsere anderen Kantenfenster machen es an der
-/// Bildschirmkante genauso - die Ecken an der Kante liegen ausserhalb.
-/// Ein Abstand wuerde daraus ein schwebendes Menue machen.
+/// Leiste und Popout sind eine einzige Glasflaeche: Das Popout lebt im
+/// Fenster der Leiste, im selben `GlassEffectContainer` (`SidebarRoot`), und
+/// verschmilzt dort mit ihr. Ein eigenes Fenster daneben ginge nicht - Glas
+/// aus zwei Fenstern bleibt zwei Flaechen mit einer Kante dazwischen.
 ///
-/// Das Fenster ist so hoch wie die Leiste und so breit wie das breiteste
-/// Popout. Es bewegt sich nie; nur das Glas darin waechst, gleitet und
-/// wechselt die Groesse (`StatusPopoutStage`). So laeuft jede Bewegung in
-/// SwiftUI, ohne Fensterrahmen, die mitten in der Animation springen.
+/// Beim Oeffnen wird das Leistenfenster breiter (`setExpanded`). Der neue
+/// Platz ist durchsichtig, also springt nichts. Dann waechst das Glas in
+/// SwiftUI heraus (`StatusPopoutStage`). Nach der Schliessbewegung wird das
+/// Fenster wieder so schmal wie die Leiste.
 ///
-/// Fokus: das Panel wird nie Schluesselfenster, die App des Nutzers behaelt
+/// Fokus: das Fenster wird nie Schluesselfenster, die App des Nutzers behaelt
 /// die Tastatur. Deshalb schliessen Klicks ausserhalb ueber Maus-Monitore
 /// (fuer die Maus braucht es keine Freigabe) und Esc ueber einen Carbon-
 /// Hotkey, der nur gilt, solange das Popout offen ist - wie bei einem Menue
@@ -29,22 +28,23 @@ final class StatusPopout {
     /// Rechnet einen Symbolrahmen aus der Leisten-Ansicht (oben = 0) in
     /// Bildschirmkoordinaten um; setzt die Leiste, der die Ansicht gehoert.
     var screenRect: (CGRect) -> NSRect? = { _ in nil }
+    /// Fenster der Leiste, in dem das Popout liegt.
+    weak var hostWindow: NSWindow?
+    /// Leistenfenster verbreitern (`true`) oder wieder schmal machen.
+    var setExpanded: (Bool) -> Void = { _ in }
 
-    private let panel = StatusPopoutPanel()
+    /// Breite des Leistenfensters mit offenem Popout: Leiste, breitestes
+    /// Popout und Luft fuer das Ueberschiessen der Kurve (~1,5 %).
+    static var expandedWidth: CGFloat {
+        Sidebar.width + StatusPopoutKind.allCases.map(StatusPopoutContent.width).max()! + 24
+    }
+
     private let escapeKey = StatusPopoutEscapeKey()
     private var globalMonitor: Any?
     private var localMonitor: Any?
     private var generation = 0
 
-    /// Breitestes Popout plus Luft fuer das Ueberschiessen der Kurve (~1,5 %).
-    private static var windowWidth: CGFloat {
-        StatusPopoutKind.allCases.map(StatusPopoutContent.width).max()! + 24
-    }
-
     init() {
-        let hosting = FirstMouseHostingView(rootView: StatusPopoutRoot(model: model))
-        hosting.sizingOptions = []
-        panel.contentView = hosting
         escapeKey.onPress = { [weak self] in self?.close() }
         model.onIconClick = { [weak self] kind in self?.iconClicked(kind) }
         model.onOpenedSettings = { [weak self] in self?.close() }
@@ -57,7 +57,9 @@ final class StatusPopout {
     /// Gleiches Symbol: zu. Anderes Symbol bei offenem Popout: Inhalt an Ort
     /// und Stelle wechseln. Sonst: oeffnen.
     private func iconClicked(_ kind: StatusPopoutKind) {
-        guard let screen = NSScreen.screens.first, let anchor = anchorY(for: kind, on: screen) else { return }
+        // Symbol und Buehne liegen in derselben Ansicht, oben = 0: die Mitte
+        // des Symbols ist direkt der Anker.
+        guard let anchor = model.iconFrames[kind]?.midY else { return }
         if model.isOpen {
             if model.shown == kind {
                 close()
@@ -66,16 +68,16 @@ final class StatusPopout {
             }
             return
         }
-        open(kind, anchorY: anchor, on: screen)
+        open(kind, anchorY: anchor)
     }
 
-    private func open(_ kind: StatusPopoutKind, anchorY: CGFloat, on screen: NSScreen) {
+    private func open(_ kind: StatusPopoutKind, anchorY: CGFloat) {
         generation += 1
-        panel.setFrame(Self.frame(on: screen), display: false)
+        setExpanded(true)
+        // Keim ohne Bewegung zum angeklickten Symbol, dann herauswachsen.
         var instant = Transaction()
         instant.disablesAnimations = true
         withTransaction(instant) { model.prepare(kind, anchorY: anchorY) }
-        panel.orderFrontRegardless()
         withAnimation(StatusPopoutMotion.spatial) { model.show(kind, anchorY: anchorY) }
         installMonitors()
         escapeKey.register()
@@ -88,26 +90,11 @@ final class StatusPopout {
         withAnimation(StatusPopoutMotion.spatial) { model.hide() }
         removeMonitors()
         escapeKey.unregister()
-        // Erst nach der Schliessbewegung weg; oeffnet man vorher neu, bleibt es.
+        // Erst nach der Schliessbewegung schmal; oeffnet man vorher neu, bleibt es breit.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             guard let self, self.generation == current else { return }
-            self.panel.orderOut(nil)
+            self.setExpanded(false)
         }
-    }
-
-    // MARK: - Geometrie
-
-    /// Rechts an der Leiste, gleiche Hoehe wie sie: unten bis zum Rand,
-    /// oben bis unter die Menueleiste.
-    private static func frame(on screen: NSScreen) -> NSRect {
-        let frame = screen.frame
-        return NSRect(x: frame.minX + Sidebar.width, y: frame.minY,
-                      width: windowWidth, height: screen.visibleFrame.maxY - frame.minY)
-    }
-
-    private func anchorY(for kind: StatusPopoutKind, on screen: NSScreen) -> CGFloat? {
-        guard let icon = model.iconFrames[kind], let rect = screenRect(icon) else { return nil }
-        return Self.frame(on: screen).maxY - rect.midY
     }
 
     // MARK: - Klicks ausserhalb
@@ -135,58 +122,17 @@ final class StatusPopout {
 
     private func localClick(_ event: NSEvent) {
         let point = NSEvent.mouseLocation
-        if event.window === panel {
-            // Im Glas: bleibt offen. Daneben im durchsichtigen Teil (falls der
-            // Klick nicht ohnehin durchfaellt): wie ausserhalb.
-            let frame = panel.frame
-            let inWindow = CGPoint(x: point.x - frame.minX, y: frame.maxY - point.y)
-            if !model.panelFrame.contains(inWindow) { close() }
-            return
+        if let window = hostWindow, event.window === window {
+            // Im Glas des Popouts: bleibt offen. `panelFrame` zaehlt ab der
+            // rechten Leistenkante, oben = 0.
+            let frame = window.frame
+            let inStage = CGPoint(x: point.x - frame.minX - Sidebar.width, y: frame.maxY - point.y)
+            if model.panelFrame.contains(inStage) { return }
         }
         // Auf ein Statussymbol: das erledigt dessen Knopf (zu oder wechseln).
+        // Sonst, auch im durchsichtigen Teil des breiten Fensters: zu.
         let onIcon = model.iconFrames.values.contains { screenRect($0)?.contains(point) == true }
         if !onIcon { close() }
-    }
-}
-
-/// Wurzel der Ansicht im Popout-Fenster.
-struct StatusPopoutRoot: View {
-    let model: StatusPopoutModel
-
-    var body: some View {
-        StatusPopoutStage(model: model, anchorY: model.anchorY)
-    }
-}
-
-/// Randloses Panel, das nie Fokus nimmt. Ebene ueber allem wie die anderen
-/// Kantenfenster; Fensterschatten aus, sonst zweiter Rahmen ums Glas.
-final class StatusPopoutPanel: NSPanel {
-    init() {
-        super.init(
-            contentRect: .zero,
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
-        level = .popUpMenu
-        collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle]
-        isOpaque = false
-        backgroundColor = .clear
-        hasShadow = false
-        hidesOnDeactivate = false
-        canHide = false
-        isMovable = false
-        isReleasedWhenClosed = false
-        becomesKeyOnlyIfNeeded = true
-        animationBehavior = .none
-    }
-
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
-
-    /// Nicht von AppKit unter die Menueleiste o. ae. schieben lassen.
-    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
-        frameRect
     }
 }
 
