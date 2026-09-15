@@ -68,32 +68,29 @@ struct StatusPopoutStage: View {
             let glassTop = open ? openTop : anchorY - Self.seedHeight / 2
             let glassHeight = open ? size.height : Self.seedHeight
             let glassWidth = Self.overlap + (open ? size.width : 0)
-            ZStack(alignment: .topLeading) {
-                StatusPopoutGlass(cornerRadius: r)
-                    .frame(width: glassWidth, height: glassHeight)
-                    .padding(.top, glassTop)
-                ZStack {
-                    ForEach(StatusPopoutKind.allCases, id: \.self) { kind in
-                        let active = open && model.shown == kind
-                        StatusPopoutContent(model: model, kind: kind)
-                            .fixedSize()
-                            .onGeometryChange(for: CGSize.self) { $0.size } action: { sizes[kind] = $0 }
-                            .opacity(active ? 1 : 0)
-                            .animation(active ? StatusPopoutMotion.fadeIn : StatusPopoutMotion.fadeOut, value: active)
-                            .allowsHitTesting(active)
-                            .accessibilityHidden(!active)
-                    }
-                }
-                .frame(width: size.width, height: size.height)
-                .padding(.leading, Self.overlap)
-                .padding(.top, openTop)
-                // Der Inhalt steht still und wird vom wachsenden Glas aufgedeckt.
-                .mask(alignment: .topLeading) {
-                    RoundedRectangle(cornerRadius: r)
-                        .frame(width: glassWidth, height: glassHeight)
-                        .padding(.top, glassTop)
+            // Der Inhalt ist der Inhalt des Glases selbst: nur so zeichnet
+            // SwiftUI ihn ueber dem Glas. Als Geschwister im Container lag er
+            // darunter.
+            ZStack {
+                ForEach(StatusPopoutKind.allCases, id: \.self) { kind in
+                    let active = open && model.shown == kind
+                    StatusPopoutContent(model: model, kind: kind)
+                        .fixedSize()
+                        .onGeometryChange(for: CGSize.self) { $0.size } action: { sizes[kind] = $0 }
+                        .opacity(active ? 1 : 0)
+                        .animation(active ? StatusPopoutMotion.fadeIn : StatusPopoutMotion.fadeOut, value: active)
+                        .allowsHitTesting(active)
+                        .accessibilityHidden(!active)
                 }
             }
+            .frame(width: size.width, height: size.height)
+            // Steht still (auf seiner offenen Lage im Fenster) und wird vom
+            // wachsenden Glas aufgedeckt.
+            .offset(x: Self.overlap, y: openTop - glassTop)
+            .frame(width: glassWidth, height: glassHeight, alignment: .topLeading)
+            .clipShape(.rect(cornerRadius: r))
+            .modifier(StatusPopoutGlass(cornerRadius: r))
+            .padding(.top, glassTop)
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
             // Sichtbarer Teil ab der rechten Leistenkante, fuer den Klicktest
             // "ausserhalb".
@@ -104,18 +101,21 @@ struct StatusPopoutStage: View {
     }
 }
 
-/// Liquid Glass, in Bildproben durch eine feste Flaeche ersetzt.
-private struct StatusPopoutGlass: View {
+/// Liquid Glass hinter dem Inhalt, in Bildproben durch eine feste Flaeche
+/// ersetzt.
+private struct StatusPopoutGlass: ViewModifier {
     let cornerRadius: CGFloat
     @Environment(\.statusPopoutGlassStandIn) private var standIn
     @Environment(\.colorScheme) private var colorScheme
 
-    var body: some View {
+    func body(content: Content) -> some View {
         if standIn {
-            RoundedRectangle(cornerRadius: cornerRadius)
-                .fill(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95))
+            content.background(
+                colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95),
+                in: .rect(cornerRadius: cornerRadius)
+            )
         } else {
-            Color.clear.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+            content.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         }
     }
 }
