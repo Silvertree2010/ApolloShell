@@ -21,8 +21,8 @@ public struct DockClickState: Equatable, Sendable {
     public let minimizedWindows: Int
     /// Ist sie schon vorne und hat hier ein Fenster: liegt mindestens eins
     /// davon unter einem fremden Fenster (`DockWindowCover`)? Nur dann
-    /// blaettert der Klick - sein Wunsch woertlich: nicht blaettern, wenn
-    /// mehrere Fenster nur nebeneinander offen sind.
+    /// blaettert der Klick; mehrere Fenster, die nur nebeneinander offen
+    /// sind, bleiben in Ruhe.
     public let hasCoveredWindow: Bool
     /// ⌘ gedrueckt.
     public let command: Bool

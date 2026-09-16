@@ -43,9 +43,8 @@ public struct DockScreenWindow: Equatable, Sendable {
 
 /// Welches Fenster der Zielapp auf dem aktuellen Bildschirm als naechstes
 /// nach vorne soll, wenn man auf ihr schon vorne stehendes Symbol klickt -
-/// wie bei Apple, nur blaettern, wenn wirklich etwas im Weg liegt. Sein
-/// Wunsch woertlich: "achtung nicht zum naechsten fenster wenn zb mehrere
-/// fenster nebeneinander offen sind".
+/// wie bei Apple, nur blaettern, wenn wirklich etwas im Weg liegt. Liegen
+/// mehrere Fenster frei nebeneinander, bleibt alles, wie es ist.
 public enum DockWindowCover {
     /// Ab so viel verdeckter Flaeche zaehlt ein Fenster als "im Weg": ein
     /// Fenster, das nur am Rand ein paar Pixel unter einem anderen liegt

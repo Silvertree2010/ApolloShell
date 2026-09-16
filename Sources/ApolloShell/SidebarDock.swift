@@ -189,9 +189,9 @@ final class SidebarDockModel {
         let frontmost = app != nil && app?.processIdentifier == previous?.processIdentifier
         // Nur nachsehen, wenn es ueberhaupt zur Frage kommt (eigener
         // Bildschirm-Aufruf): schon vorne, mit mindestens einem Fenster hier.
-        // Sein Wunsch woertlich: beim Klick auf die schon vordere App nur
-        // blaettern, wenn wirklich etwas im Weg liegt, nicht bei mehreren
-        // frei nebeneinander liegenden Fenstern.
+        // Beim Klick auf die schon vordere App nur blaettern, wenn wirklich
+        // etwas im Weg liegt, nicht bei mehreren frei nebeneinander
+        // liegenden Fenstern.
         let coveredWindowID: CGWindowID? = (frontmost && !onActiveSpace.isEmpty)
             ? app.flatMap { DockWindows.coveredWindowID(pid: $0.processIdentifier) }
             : nil
