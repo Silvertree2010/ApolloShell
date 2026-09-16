@@ -1,4 +1,5 @@
 import AppKit
+import ColorSync
 import ApolloShellCore
 
 /// Ein angeschlossener Bildschirm, wie ihn die Shell benutzt: die
@@ -47,6 +48,13 @@ enum ShellScreens {
                 info: ScreenInfo(name: screen.localizedName, frame: screen.frame, isPrimary: screen === primary)
             )
         }
+    }
+
+    /// UUID eines Bildschirms, so wie SkyLight ihn in seiner Space-Liste
+    /// fuehrt ("Display Identifier").
+    static func uuid(of id: CGDirectDisplayID) -> String? {
+        guard let uuid = CGDisplayCreateUUIDFromDisplayID(id)?.takeRetainedValue() else { return nil }
+        return CFUUIDCreateString(nil, uuid) as String?
     }
 
     /// Die Bildschirme, auf denen die Leiste (und mit ihr die

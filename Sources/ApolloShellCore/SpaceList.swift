@@ -29,8 +29,10 @@ public struct SpaceSnapshot: Equatable, Sendable {
 /// Zahl) und "type". Die Liste steht in Mission-Control-Reihenfolge, nicht
 /// nach Kennung sortiert: gemessen kam Space 3 vor Space 1.
 public enum SpaceList {
-    /// Normaler Schreibtisch. 4 ist eine Vollbild-App.
+    /// Normaler Schreibtisch.
     public static let desktopType = 0
+    /// Vollbild-App (auch Split View).
+    public static let fullscreenType = 4
     /// Kennung, wenn sich alle Bildschirme die Spaces teilen.
     public static let sharedDisplayIdentifier = "Main"
 
@@ -56,6 +58,41 @@ public enum SpaceList {
             desktops: desktops,
             activeIndex: current.flatMap { desktops.firstIndex(of: $0) }
         )
+    }
+
+    /// Kennungen (gross geschrieben) der Bildschirme, deren aktiver Space
+    /// eine Vollbild-App zeigt. Dort tritt die Leiste ab.
+    ///
+    /// Gefragt wird der Space selbst, nicht die Vordergrund-App: ein
+    /// Vollbild-Video auf dem einen Bildschirm bleibt Vollbild, auch wenn
+    /// der Fokus auf einem Fenster des anderen liegt.
+    ///
+    /// `nil`, wenn kein Bildschirm lesbar ist; dann bleibt der alte Stand.
+    /// "Main" steht fuer alle Bildschirme (gemeinsame Spaces).
+    public static func fullscreenDisplays(_ displays: [[String: Any]]) -> Set<String>? {
+        var result: Set<String> = []
+        var readable = false
+        for display in displays {
+            guard let identifier = display["Display Identifier"] as? String,
+                  let current = display["Current Space"] as? [String: Any]
+            else { continue }
+            readable = true
+            if spaceType(current, in: display) == fullscreenType {
+                result.insert(identifier.uppercased())
+            }
+        }
+        return readable ? result : nil
+    }
+
+    /// Typ des Space; fehlt er am Eintrag selbst, aus der Liste des
+    /// Bildschirms nach Kennung.
+    static func spaceType(_ space: [String: Any], in display: [String: Any]) -> Int? {
+        if let type = (space["type"] as? NSNumber)?.intValue { return type }
+        guard let id = spaceID(space),
+              let spaces = display["Spaces"] as? [[String: Any]],
+              let match = spaces.first(where: { spaceID($0) == id })
+        else { return nil }
+        return (match["type"] as? NSNumber)?.intValue
     }
 
     /// Der Bildschirm mit der Menueleiste (dort steht die Leiste): nach UUID,

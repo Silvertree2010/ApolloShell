@@ -113,10 +113,10 @@ final class UtilitiesPanel {
         model.shutdown()
     }
 
-    /// Von der Fensterwache: auf diesen Bildschirmen ist Vollbild, dort
+    /// Von `FullscreenMonitor`: auf diesen Bildschirmen ist Vollbild, dort
     /// oeffnet die Maus unten rechts nichts. An den Kanten der uebrigen
     /// Bildschirme bleibt es beim Aufklappen per Maus.
-    func setFullscreen(_ screens: Set<String>) {
+    func setFullscreen(_ screens: Set<CGDirectDisplayID>) {
         drawer.suspendedScreens = screens
     }
 }

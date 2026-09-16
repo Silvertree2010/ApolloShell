@@ -17,10 +17,9 @@ import SwiftUI
 ///
 /// Platz halten wie der Dock macht die Fensterwache (WindowGuard.swift):
 /// macOS hat dafuer keine Schnittstelle, sie schiebt Fenster per
-/// Bedienungshilfen aus dem Streifen. Sie meldet auch, wann die
-/// Vordergrund-App im Vollbild ist; dann tritt die Leiste dieses Bildschirms
-/// ab. Ohne Bedienungshilfen-Freigabe bleiben die Leisten einfach immer
-/// sichtbar und maximierte Fenster laufen darunter durch.
+/// Bedienungshilfen aus dem Streifen; ohne Freigabe laufen maximierte
+/// Fenster darunter durch. Steht auf einem Bildschirm eine Vollbild-App
+/// (`FullscreenMonitor`), tritt die Leiste dieses Bildschirms ab.
 @MainActor
 final class Sidebar {
     static let width: CGFloat = 44
@@ -54,8 +53,8 @@ final class Sidebar {
 
     /// Eine Leiste je Bildschirm, nach Display-Kennung.
     private var bars: [CGDirectDisplayID: SidebarScreen] = [:]
-    /// Schluessel der Bildschirme, deren Vordergrund-App im Vollbild ist.
-    private var fullscreenScreens: Set<String> = []
+    /// Bildschirme, auf denen gerade eine Vollbild-App steht.
+    private var fullscreenScreens: Set<CGDirectDisplayID> = []
     private var context: BarModuleContext!
     private var choiceObservation: Task<Void, Never>?
 
@@ -94,13 +93,15 @@ final class Sidebar {
         bars.values.map(\.info)
     }
 
-    /// Von der Fensterwache: auf diesen Bildschirmen ist die Vordergrund-App
-    /// im Vollbild. Nur deren Leiste tritt ab, die anderen bleiben stehen.
-    func setFullscreenScreens(_ keys: Set<String>) {
-        guard keys != fullscreenScreens else { return }
-        fullscreenScreens = keys
-        for bar in bars.values {
-            bar.setHiddenForFullscreen(keys.contains(bar.info.key))
+    /// Von `FullscreenMonitor`: auf diesen Bildschirmen steht eine
+    /// Vollbild-App. Nur deren Leiste tritt ab, die anderen bleiben stehen.
+    /// Nach Display-Kennung, nicht nach Schluessel: zwei baugleiche
+    /// Bildschirme haben denselben Schluessel.
+    func setFullscreenScreens(_ ids: Set<CGDirectDisplayID>) {
+        guard ids != fullscreenScreens else { return }
+        fullscreenScreens = ids
+        for (id, bar) in bars {
+            bar.setHiddenForFullscreen(ids.contains(id))
         }
         updateModelDemand()
     }
@@ -139,7 +140,7 @@ final class Sidebar {
         }
 
         for screen in wanted {
-            let hidden = fullscreenScreens.contains(screen.info.key)
+            let hidden = fullscreenScreens.contains(screen.displayID)
             if let bar = bars[screen.displayID] {
                 bar.update(screen: screen)
                 bar.setHiddenForFullscreen(hidden)

@@ -74,8 +74,7 @@ final class SpacesModel {
     /// dem Ursprung, also derselbe wie NSScreen.screens.first). Unter dieser
     /// UUID fuehrt SkyLight seine Spaces ("Display Identifier").
     private static func mainDisplayUUID() -> String? {
-        guard let uuid = CGDisplayCreateUUIDFromDisplayID(CGMainDisplayID())?.takeRetainedValue() else { return nil }
-        return CFUUIDCreateString(nil, uuid) as String?
+        ShellScreens.uuid(of: CGMainDisplayID())
     }
 
     /// Lebt so lange wie die Leiste und damit der Prozess; die Beobachter
@@ -113,8 +112,9 @@ final class SpacesModel {
 /// gelinkt: fehlen sie in einer spaeteren macOS-Version, startet der
 /// Launcher trotzdem, nur ohne Spaces-Kapsel. Beide Namen probieren, weil
 /// Apple die CGS-Namen nach und nach durch SLS ersetzt (auf macOS 26.6
-/// gibt es noch die CGS-Namen, gemessen 14.09.).
-private struct SpaceReader {
+/// gibt es noch die CGS-Namen, gemessen 14.09.). Liest auch
+/// `FullscreenMonitor`.
+struct SpaceReader {
     private typealias MainConnection = @convention(c) () -> Int32
     private typealias CopyDisplaySpaces = @convention(c) (Int32) -> Unmanaged<CFArray>?
 

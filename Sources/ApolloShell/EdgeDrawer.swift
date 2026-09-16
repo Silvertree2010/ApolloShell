@@ -58,10 +58,10 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     var opensOnHover = false {
         didSet { updateHoverMonitor() }
     }
-    /// Schluessel der Bildschirme, auf denen die Vordergrund-App im Vollbild
-    /// ist: dort oeffnet die Maus an der Kante nichts (Caelestia ebenso). Auf
-    /// den uebrigen Bildschirmen geht es weiter.
-    var suspendedScreens: Set<String> = []
+    /// Bildschirme, auf denen eine Vollbild-App steht: dort oeffnet die Maus
+    /// an der Kante nichts (Caelestia ebenso). Auf den uebrigen Bildschirmen
+    /// geht es weiter.
+    var suspendedScreens: Set<CGDirectDisplayID> = []
     private var hoverState = EdgeHoverState.hidden
     private var hoverMonitor: Any?
     /// Solange offen: Mausposition selbst nachsehen. Der globale Monitor
@@ -296,7 +296,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         // Zeiger, der hinueberwandert, es sofort wieder zu. Zu: der unter dem
         // Zeiger, damit die Kante jedes Bildschirms oeffnet.
         let target = isOpen ? currentScreen : ShellScreens.underPointer()
-        guard let target, !suspendedScreens.contains(target.info.key),
+        guard let target, !suspendedScreens.contains(target.displayID),
               let area = hoverArea(on: target, open: isOpen)
         else { return }
         let next = hoverState.moved(inArea: area.contains(NSEvent.mouseLocation))

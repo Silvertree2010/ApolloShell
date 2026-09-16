@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var controller: LauncherController?
     private var sidebar: Sidebar?
     private var windowGuard: WindowGuard?
+    private var fullscreenMonitor: FullscreenMonitor?
     private var sessionMenu: SessionMenu?
     private var dashboard: Dashboard?
     private var utilities: UtilitiesPanel?
@@ -137,10 +138,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Frische Installation: die Einfuehrung erklaert die Freigaben und
         // fragt dann selbst - die Fensterwache fragt deshalb nicht zusaetzlich.
         let showOnboarding = OnboardingRule.shouldShow(settings.settings, launcherOnly: false)
-        // Haelt Fenster aus dem Streifen der Leiste und blendet sie bei
-        // Vollbild aus. Ohne Bedienungshilfen-Freigabe tut sie nichts, und
-        // die Leiste verhaelt sich wie bisher.
-        let windowGuard = WindowGuard(reservedWidth: Sidebar.width, askForAccess: !showOnboarding) {
+        // Haelt Fenster aus dem Streifen der Leiste. Ohne
+        // Bedienungshilfen-Freigabe tut sie nichts.
+        let windowGuard = WindowGuard(reservedWidth: Sidebar.width, askForAccess: !showOnboarding)
+        // Blendet die Leiste auf Bildschirmen mit Vollbild-App aus.
+        fullscreenMonitor = FullscreenMonitor {
             [weak sidebar, weak toaster, weak dashboard, weak utilities] fullscreenScreens in
             // Nur die Leiste des Bildschirms tritt ab, auf dem Vollbild ist.
             sidebar?.setFullscreenScreens(fullscreenScreens)

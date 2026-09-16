@@ -4,7 +4,7 @@ import ApolloShellCore
 import os
 
 /// Fensterwache: haelt fremde Fenster aus dem Streifen der linken Leiste
-/// heraus und merkt, wenn die Vordergrund-App im Vollbild ist.
+/// heraus.
 ///
 /// macOS hat keine Schnittstelle, um Bildschirmplatz zu reservieren; der
 /// `visibleFrame` gehoert allein Dock und Menueleiste. Also wie die App
@@ -13,11 +13,7 @@ import os
 /// ragen, nachtraeglich zurechtruecken. Die Rechnung dazu steht in
 /// ApolloShellCore/WindowClamp.swift und ist dort getestet.
 ///
-/// Vollbild: Ein Panel mit `.canJoinAllSpaces` erscheint auf macOS 26 auch
-/// in Vollbild-Spaces (die sind auch nur Spaces), egal ob mit oder ohne
-/// `.fullScreenAuxiliary`. Deshalb wird hier nachgesehen, ob das
-/// Fokus-Fenster der Vordergrund-App `AXFullScreen` ist, und die Leiste
-/// blendet sich dann selbst aus.
+/// Wann die Leiste im Vollbild abtritt, sagt `FullscreenMonitor`.
 ///
 /// Braucht die Freigabe "Bedienungshilfen". Einmal pro Start wird darum
 /// gebeten; ohne Freigabe bleibt alles wie vorher (Leiste immer sichtbar,
@@ -42,18 +38,8 @@ final class WindowGuard {
     /// `askForAccess`: beim Start die Systemfrage zeigen, falls die Freigabe
     /// fehlt. Aus, solange die Einfuehrung laeuft - die erklaert erst, wozu,
     /// und fragt dann selbst.
-    ///
-    /// `onFullscreenChange` meldet die Schluessel der Bildschirme, deren
-    /// Vordergrund-App im Vollbild ist - dort tritt die Leiste ab.
-    init(reservedWidth: CGFloat, askForAccess: Bool = true,
-         onFullscreenChange: @escaping @MainActor @Sendable (Set<String>) -> Void) {
-        worker = WindowGuardWorker(reservedWidth: reservedWidth) { fullscreen in
-            // DispatchQueue statt Task: haelt die Reihenfolge ein, ein
-            // schnelles an-aus kommt nie als aus-an an.
-            DispatchQueue.main.async {
-                MainActor.assumeIsolated { onFullscreenChange(fullscreen) }
-            }
-        }
+    init(reservedWidth: CGFloat, askForAccess: Bool = true) {
+        worker = WindowGuardWorker(reservedWidth: reservedWidth)
 
         // Einmal pro Start fragen (zeigt den Systemdialog nur, solange die
         // Freigabe fehlt). Der Schluessel ist der Wert von
@@ -89,8 +75,7 @@ final class WindowGuard {
             log.notice("Bedienungshilfen freigegeben, Fensterwache startet")
             startWorker()
         } else {
-            // Entzogen: aufhoeren und die Leiste wieder zeigen, sonst bliebe
-            // sie nach einem Vollbild womoeglich fuer immer weg.
+            // Entzogen: aufhoeren, keine Fenster mehr anfassen.
             log.notice("Bedienungshilfen entzogen, Fensterwache haelt an")
             worker.stop()
         }
@@ -99,16 +84,10 @@ final class WindowGuard {
     private func startWorker() {
         worker.start(
             screens: screensForWorker() ?? [],
-            frontmost: Self.regularFrontmostPID(),
             apps: NSWorkspace.shared.runningApplications
                 .filter { $0.activationPolicy == .regular }
                 .map(\.processIdentifier)
         )
-    }
-
-    private static func regularFrontmostPID() -> pid_t? {
-        guard let app = NSWorkspace.shared.frontmostApplication, app.activationPolicy == .regular else { return nil }
-        return app.processIdentifier
     }
 
     /// Auf welchen Bildschirmen eine Leiste steht. Danach richtet sich, wo
@@ -164,8 +143,7 @@ final class WindowGuard {
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
             worker.appActivated(app.processIdentifier, isRegular: app.activationPolicy == .regular)
         }
-        // Space-Wechsel (auch Vollbild an/aus, das ist ein eigener Space) und
-        // Aufwachen: Vollbild neu pruefen, neu sichtbare Fenster aufnehmen.
+        // Space-Wechsel und Aufwachen: neu sichtbare Fenster aufnehmen.
         for name in [
             NSWorkspace.activeSpaceDidChangeNotification,
             NSWorkspace.didWakeNotification,
@@ -190,8 +168,8 @@ final class WindowGuard {
 
 /// Ein Bildschirm, wie ihn die Fensterwache braucht.
 struct GuardScreen: Sendable, Equatable {
-    /// Stabiler Schluessel (Name plus Aufloesung), um den Bildschirm beim
-    /// Vollbild zurueckzumelden.
+    /// Stabiler Schluessel (Name plus Aufloesung), wie ihn der Verwalter
+    /// der Leisten meldet.
     let key: String
     /// Rahmen in Bedienungshilfen-Koordinaten (Ursprung oben links am
     /// Hauptbildschirm, y nach unten).
@@ -222,11 +200,6 @@ final class WindowGuardWorker: @unchecked Sendable {
     /// Wache ein. Kuerzer wirkt es wie ein Ruck mitten in der Animation,
     /// laenger sieht man das Fenster sichtbar unter der Leiste liegen.
     static let settleDelay: TimeInterval = 0.2
-    /// Vollbild an/aus und Space-Wechsel sind animiert; Vordergrund-App und
-    /// `AXFullScreen` stimmen erst danach sicher. Deshalb gleich einmal
-    /// (damit die Leiste moeglichst schnell verschwindet) und zur Sicherheit
-    /// nach der Animation noch einmal.
-    static let fullscreenChecks: [TimeInterval] = [0.05, 0.4, 1.0]
     /// Frisch gestartete Apps antworten oft noch nicht
     /// (kAXErrorCannotComplete). So oft und in diesem Abstand nachfassen.
     static let registerRetries = 10
@@ -238,7 +211,6 @@ final class WindowGuardWorker: @unchecked Sendable {
     private let queue = DispatchQueue(label: AppIdentity.scoped("windowguard"))
     private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "windowguard")
     private let reservedWidth: CGFloat
-    private let onFullscreen: @Sendable (Set<String>) -> Void
     private let ownPID = ProcessInfo.processInfo.processIdentifier
 
     // Nur auf `queue` anfassen.
@@ -254,31 +226,21 @@ final class WindowGuardWorker: @unchecked Sendable {
     private var ledger = ClampLedger<AXUIElement>(maxAttempts: 3, period: 30)
     /// Aus abgelehnten Verkleinerungen gelernte Mindestbreiten.
     private var minWidths: [AXUIElement: CGFloat] = [:]
-    /// Letzte regulaere Vordergrund-App. Hilfs-Apps (Menueleisten-Apps,
-    /// Raycast & Co.) zaehlen nicht: oeffnet so eine ihr Panel ueber einem
-    /// Vollbild, soll die Leiste nicht kurz hereinblitzen.
-    private var frontmostPID: pid_t?
-    /// Schluessel der Bildschirme, deren Vordergrund-App im Vollbild ist.
-    private var fullscreenKeys: Set<String> = []
-    private var fullscreenWork: [DispatchWorkItem] = []
 
-    init(reservedWidth: CGFloat, onFullscreen: @escaping @Sendable (Set<String>) -> Void) {
+    init(reservedWidth: CGFloat) {
         self.reservedWidth = reservedWidth
-        self.onFullscreen = onFullscreen
     }
 
     // MARK: - Von aussen (beliebiger Thread)
 
-    func start(screens: [GuardScreen], frontmost: pid_t?, apps pids: [pid_t]) {
+    func start(screens: [GuardScreen], apps pids: [pid_t]) {
         queue.async { [self] in
             guard !running else { return }
             running = true
             // Gilt fuer alle Bedienungshilfen-Anfragen dieses Prozesses.
             AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), Self.messagingTimeout)
             self.screens = screens
-            frontmostPID = frontmost
             for pid in pids { watchApp(pid, attempt: 0) }
-            scheduleFullscreenChecks()
             log.notice("Fensterwache laeuft, \(self.apps.count, privacy: .public) Apps beobachtet")
         }
     }
@@ -290,11 +252,8 @@ final class WindowGuardWorker: @unchecked Sendable {
             for pid in Array(apps.keys) { unwatchApp(pid) }
             for work in pending.values { work.cancel() }
             pending = [:]
-            for work in fullscreenWork { work.cancel() }
-            fullscreenWork = []
             ledger = ClampLedger(maxAttempts: ledger.maxAttempts, period: ledger.period)
             minWidths = [:]
-            publishFullscreen([])
         }
     }
 
@@ -308,15 +267,12 @@ final class WindowGuardWorker: @unchecked Sendable {
     func appTerminated(_ pid: pid_t) {
         queue.async { [self] in
             unwatchApp(pid)
-            if frontmostPID == pid { frontmostPID = nil }
         }
     }
 
     func appActivated(_ pid: pid_t, isRegular: Bool) {
         queue.async { [self] in
-            guard isRegular, pid != ownPID else { return }
-            frontmostPID = pid
-            guard running else { return }
+            guard isRegular, pid != ownPID, running else { return }
             if apps[pid] == nil {
                 // Apps, die erst spaeter regulaer wurden.
                 watchApp(pid, attempt: 0)
@@ -326,14 +282,12 @@ final class WindowGuardWorker: @unchecked Sendable {
                 watchWindow(window, pid: pid)
                 scheduleClamp(window)
             }
-            scheduleFullscreenChecks()
         }
     }
 
     func spaceChanged() {
         queue.async { [self] in
             guard running else { return }
-            scheduleFullscreenChecks()
             sweepWindows(onlyNew: true)
         }
     }
@@ -345,7 +299,6 @@ final class WindowGuardWorker: @unchecked Sendable {
             // Andere Aufloesung oder Anordnung: jedes Fenster kann jetzt
             // anders zur Leiste liegen.
             sweepWindows(onlyNew: false)
-            scheduleFullscreenChecks()
         }
     }
 
@@ -464,11 +417,8 @@ final class WindowGuardWorker: @unchecked Sendable {
                 watchWindow(window, pid: pid)
                 scheduleClamp(window)
             }
-            if pid == frontmostPID { scheduleFullscreenChecks() }
         case kAXWindowResizedNotification:
             scheduleClamp(element)
-            // Vollbild an/aus veraendert die Groesse des Fensters.
-            if pid == frontmostPID { scheduleFullscreenChecks() }
         case kAXWindowMovedNotification, kAXWindowDeminiaturizedNotification:
             scheduleClamp(element)
         case kAXUIElementDestroyedNotification:
@@ -564,62 +514,6 @@ final class WindowGuardWorker: @unchecked Sendable {
             AX.setSize(window, target.size)
         }
         AX.setPosition(window, target.origin)
-    }
-
-    // MARK: - Vollbild
-
-    private func scheduleFullscreenChecks() {
-        for work in fullscreenWork { work.cancel() }
-        fullscreenWork = Self.fullscreenChecks.map { delay in
-            let work = DispatchWorkItem { [self] in refreshFullscreen() }
-            queue.asyncAfter(deadline: .now() + delay, execute: work)
-            return work
-        }
-    }
-
-    /// Auf welchem Bildschirm ist das Fokus-Fenster der Vordergrund-App im
-    /// Vollbild? Bei Unklarheit den alten Stand behalten statt raten: eine
-    /// kurz nicht antwortende App soll die Leiste nicht aufblitzen lassen.
-    ///
-    /// Gefragt wird nur die Vordergrund-App, denn nur sie sagt etwas darueber,
-    /// was der Nutzer gerade sieht. Liegt auf einem zweiten Bildschirm ein
-    /// Vollbild-Fenster, waehrend vorne eine App auf einem anderen Bildschirm
-    /// steht, gilt dort also kein Vollbild und jene Leiste kommt zurueck.
-    private func refreshFullscreen() {
-        guard running, let pid = frontmostPID else { return }
-        let app = AXUIElementCreateApplication(pid)
-        var value: CFTypeRef?
-        let status = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &value)
-        switch status {
-        case .success:
-            break
-        case .noValue, .attributeUnsupported:
-            // App ohne Fenster (etwa der Finder auf leerem Schreibtisch).
-            publishFullscreen([])
-            return
-        default:
-            return
-        }
-        guard let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { return }
-        let window = unsafeDowncast(value, to: AXUIElement.self)
-
-        guard AX.bool(window, AX.fullScreenAttribute) == true else {
-            publishFullscreen([])
-            return
-        }
-        // Welcher Bildschirm: der, auf dem der groesste Teil des Fensters
-        // liegt. Laesst sich das gerade nicht sagen, bleibt der alte Stand.
-        guard let frame = AX.frame(of: window),
-              let index = WindowClamp.dominantScreen(for: frame, among: screens.map(\.frame))
-        else { return }
-        publishFullscreen([screens[index].key])
-    }
-
-    private func publishFullscreen(_ value: Set<String>) {
-        guard value != fullscreenKeys else { return }
-        fullscreenKeys = value
-        log.notice("Vollbild auf \(value.count, privacy: .public) Bildschirm(en)")
-        onFullscreen(value)
     }
 }
 
