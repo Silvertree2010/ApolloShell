@@ -180,7 +180,7 @@ final class SidebarDockModel {
         // Systems: alle minus die hiesigen minus die abgelegten.
         let minimizedIDs = Set(windows.filter(\.minimized).compactMap(\.windowID))
         let elsewhere = app.map {
-            DockWindows.allWindowIDs(pid: $0.processIdentifier)
+            DockWindows.allWindowIDs(pid: $0.processIdentifier, requireSpace: !$0.isHidden)
                 .subtracting(onScreen)
                 .subtracting(minimizedIDs)
                 .count

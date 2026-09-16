@@ -385,8 +385,12 @@ enum DockWindows {
     /// im Speicher behaelt (gemessen: 3 von 4 bei einem Dateimanager). Die
     /// liegen auf keinem Space und fallen hier weg, sonst oeffnete ein Klick
     /// auf eine App ohne sichtbares Fenster kein neues.
+    ///
+    /// `requireSpace: false` fuer ausgeblendete Apps: ob deren Fenster
+    /// waehrenddessen auf einem Space liegen, ist nicht gemessen. Fielen sie
+    /// weg, oeffnete ein Klick zusaetzlich zum Einblenden ein neues Fenster.
     @MainActor
-    static func allWindowIDs(pid: pid_t) -> Set<CGWindowID> {
+    static func allWindowIDs(pid: pid_t, requireSpace: Bool = true) -> Set<CGWindowID> {
         guard let info = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] else {
             return []
         }
@@ -401,7 +405,7 @@ enum DockWindows {
             else { continue }
             ids.insert(CGWindowID(number))
         }
-        guard let reader = spaceReader else { return ids }
+        guard requireSpace, let reader = spaceReader else { return ids }
         return ids.filter { reader.isOnAnySpace($0) != false }
     }
 
