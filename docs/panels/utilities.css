@@ -1,0 +1,319 @@
+.util {
+  --p:
+    236,
+    232,
+    225;
+  --accent: var(--gold);
+  --on-accent: rgba(0, 0, 0, 0.85);
+  --sec: rgba(var(--p), 0.55);
+  --toggle: cubic-bezier(0.34, 0.8, 0.34, 1);
+  --spatial: cubic-bezier(0.38, 1.21, 0.22, 1);
+  line-height: 1.22;
+  font-size: 13px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.util *,
+.util *::before,
+.util *::after {
+  box-sizing: border-box;
+}
+.util button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.util button:focus-visible,
+.util .slider:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.util .ic {
+  flex: none;
+  display: block;
+  overflow: visible;
+}
+.util .ic-fill {
+  fill: currentColor;
+  stroke: none;
+}
+.util .ic-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.util .sec {
+  color: var(--sec);
+}
+.util .row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.util .col {
+  display: flex;
+  flex-direction: column;
+}
+.util .texts {
+  gap: 2px;
+  min-width: 0;
+}
+.util .texts > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.util-clip {
+  position: absolute;
+  top: -70px;
+  left: -70px;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+.util-slide {
+  position: absolute;
+  top: 70px;
+  left: 70px;
+  width: 430px;
+  height: 426px;
+  opacity: 0;
+  transform: translateY(calc(100% + 5px));
+  transition: transform 500ms var(--spatial), opacity 500ms var(--spatial);
+}
+.util.is-open .util-slide {
+  opacity: 1;
+  transform: none;
+}
+.util-glass {
+  position: absolute;
+  inset: 0 -25px -25px 0;
+  border-radius: 25px;
+}
+.util-cards {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+.u-card {
+  display: flex;
+  align-items: center;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(var(--p), 0.06);
+}
+.ka-chip {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(var(--p), 0.10);
+  color: var(--sec);
+  transition: background-color 200ms var(--toggle), color 200ms var(--toggle);
+}
+.util.ka-on .ka-chip {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.switch {
+  position: relative;
+  flex: none;
+  width: 54px;
+  height: 24px;
+  border-radius: 12px !important;
+  background: rgba(var(--p), 0.10) !important;
+  transition: background-color 200ms var(--toggle);
+}
+.util.ka-on .switch {
+  background: var(--accent) !important;
+}
+.sw-knob {
+  position: absolute;
+  left: 11px;
+  top: 2px;
+  width: 32px;
+  height: 20px;
+  border-radius: 10px;
+  background: rgb(232, 232, 232);
+  box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.18);
+  transform: translateX(-9px);
+  transition: transform 200ms var(--toggle);
+}
+.util.ka-on .sw-knob {
+  transform: translateX(9px);
+}
+.util .level {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.util .tile {
+  position: relative;
+  color: var(--marble) !important;
+  background: rgba(var(--p), 0.10) !important;
+}
+.util .tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgb(var(--p));
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+  pointer-events: none;
+}
+.util .tile:hover::after {
+  opacity: 0.08;
+}
+.util .tile:active::after {
+  opacity: 0.14;
+}
+.util .mute {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50% !important;
+}
+.util .mute-ic {
+  display: grid;
+  place-items: center;
+}
+.util .slider {
+  position: relative;
+  flex: 1;
+  height: 24px;
+  border-radius: 12px;
+  background: rgba(var(--p), 0.10);
+  touch-action: none;
+  cursor: pointer;
+}
+.util .sl-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 12px;
+  background: var(--accent);
+}
+.util .sl-knob {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0.5px 3px rgba(0, 0, 0, 0.25);
+}
+.util .dev {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 10px !important;
+  border-radius: 12px !important;
+  text-align: left;
+}
+.util .dev-ic {
+  width: 18px;
+  display: flex;
+  justify-content: center;
+}
+.util .dev-name {
+  font-size: 12px;
+  font-weight: 500;
+}
+.dev-menu {
+  position: absolute;
+  z-index: 5;
+  min-width: 190px;
+  padding: 5px;
+  border-radius: 12px;
+  background: rgba(38, 37, 35, 0.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: inset 0 0 0 1px rgba(236, 232, 225, 0.12), 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+.util .menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 24px;
+  padding: 0 10px 0 4px;
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: left;
+  color: var(--marble);
+  white-space: nowrap;
+}
+.util .menu-item:focus {
+  outline: none;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.util .menu-item .check {
+  width: 18px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+.qt-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+.util .qt {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 48px;
+  border-radius: 24px !important;
+  background: rgba(var(--p), 0.10) !important;
+  color: var(--sec) !important;
+  transition:
+    border-radius 200ms var(--toggle),
+    background-color 200ms var(--toggle),
+    color 200ms var(--toggle);
+}
+.util .qt.on {
+  border-radius: 12px !important;
+  background: var(--accent) !important;
+  color: var(--on-accent) !important;
+}
+.util .qt:active {
+  border-radius: 8px !important;
+}
+.util .qt::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgb(var(--p));
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+  pointer-events: none;
+}
+.util .qt:hover::after {
+  opacity: 0.08;
+}
+@media (prefers-reduced-motion: reduce) {
+  .util *,
+  .util-slide {
+    transition: none !important;
+    animation: none !important;
+  }
+  .util-slide {
+    transform: none;
+  }
+}

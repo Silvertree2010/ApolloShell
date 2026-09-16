@@ -1,0 +1,49 @@
+.panel-host {
+  position: relative;
+  min-width: 0;
+}
+.panel-host > .panel-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.panel-host[data-origin=right] > .panel-stage {
+  left: auto;
+  right: 0;
+}
+.panel-host[data-origin=center] > .panel-stage {
+  left: 50%;
+  translate: -50% 0;
+}
+.panel-fallback {
+  width: 100%;
+  border-radius: 14px;
+}
+.glass {
+  background: rgba(30, 29, 27, 0.72);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3);
+  backdrop-filter: blur(24px) saturate(1.3);
+  box-shadow:
+    inset 1px 1px 0 rgba(236, 232, 225, 0.14),
+    inset 0 -1px 0 rgba(236, 232, 225, 0.05),
+    0 30px 60px -28px rgba(0, 0, 0, 0.95);
+}
+.glass-card {
+  background: rgba(236, 232, 225, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(236, 232, 225, 0.05);
+}
+.panel-stage {
+  color: var(--marble);
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+.panel-stage button {
+  font: inherit;
+  color: inherit;
+}
