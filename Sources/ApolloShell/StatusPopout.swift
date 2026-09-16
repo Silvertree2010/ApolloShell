@@ -32,6 +32,10 @@ final class StatusPopout {
     weak var hostWindow: NSWindow?
     /// Leistenfenster verbreitern (`true`) oder wieder schmal machen.
     var setExpanded: (Bool) -> Void = { _ in }
+    /// Dieses Popout geht gerade auf. Der Verwalter der Leisten schliesst
+    /// darauf ein Popout, das auf einem anderen Bildschirm noch offen steht -
+    /// es ist immer nur eines offen.
+    var onOpen: () -> Void = {}
 
     /// Breite des Leistenfensters mit offenem Popout: Leiste, breitestes
     /// Popout und Luft fuer das Ueberschiessen der Kurve (~1,5 %).
@@ -73,6 +77,9 @@ final class StatusPopout {
 
     private func open(_ kind: StatusPopoutKind, anchorY: CGFloat) {
         generation += 1
+        // Zuerst: ein offenes Popout auf einer anderen Leiste geht zu, bevor
+        // dieses sein Fenster verbreitert.
+        onOpen()
         setExpanded(true)
         // Keim ohne Bewegung zum angeklickten Symbol, dann herauswachsen.
         var instant = Transaction()

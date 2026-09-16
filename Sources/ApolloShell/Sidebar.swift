@@ -3,33 +3,31 @@ import ApolloShellCore
 import os
 import SwiftUI
 
-/// Linke Leiste ("neues Dock"), vorerst leer.
+/// Verwalter der Leisten: eine Leiste je Bildschirm.
 ///
-/// Liquid-Glass-Streifen direkt am linken Rand: durchgehend von der
-/// Bildschirm-Unterkante bis unter die Menueleiste, ohne Abstand und ohne
-/// runde Ecken (so gestaltet Apple angedockte Flaechen; rund sind nur
-/// schwebende). Die Menueleiste bleibt frei, damit Apple-Menue und
-/// App-Menues oben links erreichbar sind.
+/// Welche Bildschirme eine bekommen, sagt Nexus > Leiste (Alle, nur
+/// Hauptbildschirm, ein einzelner); die Rechnung dazu steht in
+/// ApolloShellCore/ScreenSelection und ist dort getestet.
+///
+/// Die Modelle (Dock, Uhr, Spaces, CPU, Wetter, Status) werden hier EINMAL
+/// gebaut und an alle Leisten weitergereicht. Sie lesen systemweite Werte -
+/// je Bildschirm eigene waeren dieselbe Messung mehrfach und damit mehrfache
+/// Last. Eigen je Leiste ist nur, was zum Fenster gehoert: das Panel und sein
+/// Statuspopout.
 ///
 /// Platz halten wie der Dock macht die Fensterwache (WindowGuard.swift):
 /// macOS hat dafuer keine Schnittstelle, sie schiebt Fenster per
 /// Bedienungshilfen aus dem Streifen. Sie meldet auch, wann die
-/// Vordergrund-App im Vollbild ist; dann tritt die Leiste ab. Ohne
-/// Bedienungshilfen-Freigabe bleibt die Leiste einfach immer sichtbar und
-/// maximierte Fenster laufen darunter durch.
+/// Vordergrund-App im Vollbild ist; dann tritt die Leiste dieses Bildschirms
+/// ab. Ohne Bedienungshilfen-Freigabe bleiben die Leisten einfach immer
+/// sichtbar und maximierte Fenster laufen darunter durch.
 @MainActor
 final class Sidebar {
     static let width: CGFloat = 44
 
-    private let panel = SidebarPanel()
+    private let settings: ShellSettingsStore
     private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "sidebar")
-    /// Letzter gueltiger Rahmen. Verschwinden die Bildschirme kurz (Kabel
-    /// mitten im Umstecken, NSScreen.screens leer), bleibt die Leiste dort
-    /// stehen, statt auf einem Nullrahmen zu landen.
-    private var lastFrame: NSRect?
-    /// Von der Fensterwache: Vordergrund-App ist im Vollbild auf dem
-    /// Hauptbildschirm.
-    private var hiddenForFullscreen = false
+
     /// Klick auf das Ausschalt-Symbol unten (oeffnet das Sitzungsmenue).
     var onPower: () -> Void = {}
     /// Klick auf das Dashboard-Symbol oben.
@@ -38,8 +36,13 @@ final class Sidebar {
     var onUtilities: () -> Void = {}
     /// Klick auf Medien, Wetter, CPU oder Akku: Dashboard beim passenden Reiter.
     var onDashboardTab: (DashboardTab) -> Void = { _ in }
-    /// CPU- und Wetter-Baustein: messen bzw. abrufen nur, solange einer in
-    /// der Leiste steht und sie zu sehen ist.
+    /// Nach jedem Umbau: auf diesen Bildschirmen steht jetzt eine Leiste.
+    /// Die Fensterwache haelt dort den Streifen frei.
+    var onScreensChange: ([ScreenInfo]) -> Void = { _ in }
+
+    /// Geteilte Modelle - einmal fuer alle Leisten.
+    /// CPU und Wetter messen bzw. rufen nur ab, solange mindestens eine
+    /// Leiste zu sehen ist.
     private let cpu = BarCPUModel()
     private let weather: BarWeatherFeed
     /// WLAN, Bluetooth, Akku fuer die Statuskapsel.
@@ -48,19 +51,24 @@ final class Sidebar {
     private let spaces = SpacesModel()
     private let dock: SidebarDockModel
     private let clock = SidebarClockModel()
-    /// Detailfenster der Statuskapsel (WLAN, Bluetooth, Akku). Liegt im
-    /// Fenster der Leiste und macht es breiter, solange es offen ist.
-    private let popout = StatusPopout()
-    private var expanded = false
 
-    /// `settings`: welche Bausteine in welcher Reihenfolge (Nexus > Leiste).
-    /// SwiftUI beobachtet sie und baut die Leiste bei jeder Aenderung sofort um.
+    /// Eine Leiste je Bildschirm, nach Display-Kennung.
+    private var bars: [CGDirectDisplayID: SidebarScreen] = [:]
+    /// Schluessel der Bildschirme, deren Vordergrund-App im Vollbild ist.
+    private var fullscreenScreens: Set<String> = []
+    private var context: BarModuleContext!
+    private var choiceObservation: Task<Void, Never>?
+
+    /// `settings`: welche Bausteine in welcher Reihenfolge und auf welchen
+    /// Bildschirmen (Nexus > Leiste). SwiftUI beobachtet sie und baut die
+    /// Leisten bei jeder Aenderung sofort um.
     init(settings: ShellSettingsStore) {
+        self.settings = settings
         // Der Dateimanager oben kommt aus den Einstellungen (Nexus > Anbieter).
         dock = SidebarDockModel(settings: settings)
         // Wetteranbieter ebenfalls aus den Einstellungen, wie im Dashboard.
         weather = BarWeatherFeed(settings: settings)
-        let context = BarModuleContext(
+        context = BarModuleContext(
             status: status, spaces: spaces, dock: dock, clock: clock, cpu: cpu, weather: weather,
             onDashboard: { [weak self] in self?.onDashboard() },
             onDashboardTab: { [weak self] in self?.onDashboardTab($0) },
@@ -69,7 +77,159 @@ final class Sidebar {
             onSelectSpace: { [spaces] in spaces.switchTo($0) },
             onOpenApp: { BarApps.open($0) }
         )
-        // Glas zeichnet SwiftUI (`SidebarRoot`), nicht mehr NSGlassEffectView:
+
+        rebuild()
+        observeSystemChanges()
+        // Liefert zuerst den aktuellen Wert (nichts zu tun), danach jede
+        // Aenderung der Bildschirm-Einstellung aus Nexus.
+        choiceObservation = Task { [weak self, settings] in
+            for await _ in Observations({ settings.settings.bar.screens }) {
+                self?.rebuild()
+            }
+        }
+    }
+
+    /// Auf welchen Bildschirmen gerade eine Leiste steht.
+    var screens: [ScreenInfo] {
+        bars.values.map(\.info)
+    }
+
+    /// Von der Fensterwache: auf diesen Bildschirmen ist die Vordergrund-App
+    /// im Vollbild. Nur deren Leiste tritt ab, die anderen bleiben stehen.
+    func setFullscreenScreens(_ keys: Set<String>) {
+        guard keys != fullscreenScreens else { return }
+        fullscreenScreens = keys
+        for bar in bars.values {
+            bar.setHiddenForFullscreen(keys.contains(bar.info.key))
+        }
+        updateModelDemand()
+    }
+
+    /// Unsichtbar braucht niemand CPU-Werte oder Wetter: die geteilten
+    /// Modelle ruhen, sobald keine Leiste mehr zu sehen ist.
+    private func updateModelDemand() {
+        let anyVisible = bars.values.contains { !$0.isHiddenForFullscreen }
+        cpu.paused = !anyVisible
+        weather.paused = !anyVisible
+    }
+
+    // MARK: - Leisten verteilen
+
+    /// Leisten anlegen, vermessen und wieder abraeumen, so wie es die
+    /// Einstellung und die angeschlossenen Bildschirme gerade verlangen.
+    ///
+    /// Ohne Bildschirme (Kabel mitten im Umstecken, `NSScreen.screens` leer)
+    /// bleibt alles stehen, statt alles abzureissen und gleich wieder
+    /// aufzubauen. Kommen sie zurueck, meldet sich
+    /// didChangeScreenParametersNotification und es geht hier weiter.
+    private func rebuild() {
+        let all = ShellScreens.current()
+        guard !all.isEmpty else {
+            log.notice("kein Bildschirm, die Leisten bleiben stehen")
+            return
+        }
+        let wanted = ShellScreens.targets(for: settings.settings.bar.screens, among: all)
+        let keep = Set(wanted.map(\.displayID))
+
+        // Bildschirm weg oder abgewaehlt: Leiste abraeumen. Das schliesst
+        // auch ein Popout, das dort noch offen stand.
+        for (id, bar) in bars where !keep.contains(id) {
+            bar.tearDown()
+            bars[id] = nil
+        }
+
+        for screen in wanted {
+            let hidden = fullscreenScreens.contains(screen.info.key)
+            if let bar = bars[screen.displayID] {
+                bar.update(screen: screen)
+                bar.setHiddenForFullscreen(hidden)
+            } else {
+                let bar = SidebarScreen(screen: screen, settings: settings, context: context)
+                bar.onPopoutOpen = { [weak self] id in self?.closePopouts(except: id) }
+                bar.setHiddenForFullscreen(hidden)
+                bars[screen.displayID] = bar
+            }
+        }
+
+        updateModelDemand()
+        log.notice("Leisten auf \(self.bars.count, privacy: .public) von \(all.count, privacy: .public) Bildschirm(en)")
+        onScreensChange(wanted.map(\.info))
+    }
+
+    /// Es ist immer nur ein Statuspopout offen: geht eines auf, schliesst
+    /// das einer anderen Leiste.
+    private func closePopouts(except id: ObjectIdentifier) {
+        for bar in bars.values where ObjectIdentifier(bar) != id {
+            bar.closePopout()
+        }
+    }
+
+    /// Aufloesung oder Bildschirme geaendert, Aufwachen (ganzer Rechner oder
+    /// nur die Bildschirme), Space-Wechsel: neu verteilen, vermessen und,
+    /// falls eine Leiste sichtbar sein soll, aber weg ist, wieder nach vorne
+    /// holen.
+    ///
+    /// Das Einschlafen der Bildschirme braucht keinen eigenen Beobachter:
+    /// solange sie dunkel sind, gibt es nichts zu tun, und das Aufwachen
+    /// deckt `screensDidWakeNotification` ab.
+    ///
+    /// Die Beobachter werden nie entfernt: der Verwalter lebt so lange wie
+    /// der Prozess (AppDelegate haelt ihn), und die Bloecke halten ihn nur
+    /// schwach.
+    private func observeSystemChanges() {
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                // Neue Aufloesung oder Anordnung: Lage und Hoehe eines
+                // offenen Popouts stimmen nicht mehr.
+                for bar in self.bars.values { bar.closePopout() }
+                self.rebuild()
+            }
+        }
+
+        let workspace = NSWorkspace.shared.notificationCenter
+        for name in [
+            NSWorkspace.didWakeNotification,
+            NSWorkspace.screensDidWakeNotification,
+            NSWorkspace.activeSpaceDidChangeNotification,
+        ] {
+            workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.rebuild() }
+            }
+        }
+    }
+}
+
+/// Die Leiste EINES Bildschirms: ihr Fenster, ihre Ansicht und ihr
+/// Statuspopout. Die Modelle darin gehoeren dem Verwalter und sind geteilt.
+@MainActor
+final class SidebarScreen {
+    private let panel = SidebarPanel()
+    private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "sidebar")
+    /// Detailfenster der Statuskapsel (WLAN, Bluetooth, Akku). Liegt im
+    /// Fenster dieser Leiste und macht es breiter, solange es offen ist.
+    private let popout = StatusPopout()
+    /// Welcher Bildschirm das ist - wird bei jedem Umbau aufgefrischt.
+    private(set) var info: ScreenInfo
+    private var frame: NSRect
+    private var visibleTop: CGFloat
+    /// Letzter gueltiger Rahmen. Ohne ihn zeigt sich die Leiste nicht.
+    private var lastFrame: NSRect?
+    private var expanded = false
+    /// Vordergrund-App ist auf DIESEM Bildschirm im Vollbild.
+    private(set) var isHiddenForFullscreen = false
+    /// Dieses Popout geht auf - der Verwalter schliesst die anderen.
+    var onPopoutOpen: (ObjectIdentifier) -> Void = { _ in }
+
+    init(screen: ShellScreen, settings: ShellSettingsStore, context: BarModuleContext) {
+        info = screen.info
+        frame = screen.frame
+        visibleTop = screen.visibleFrame.maxY
+
+        // Glas zeichnet SwiftUI (`SidebarRoot`), nicht NSGlassEffectView:
         // nur im selben GlassEffectContainer verschmilzt das Popout mit der
         // Leiste.
         let hosting = FirstMouseHostingView(
@@ -86,6 +246,10 @@ final class Sidebar {
         panel.contentView = hosting
         popout.hostWindow = panel
         popout.setExpanded = { [weak self] in self?.setExpanded($0) }
+        popout.onOpen = { [weak self] in
+            guard let self else { return }
+            self.onPopoutOpen(ObjectIdentifier(self))
+        }
         // SwiftUI meldet Symbolrahmen in Koordinaten der Ansicht (oben = 0,
         // NSHostingView ist geflippt); AppKit rechnet sie ueber das Fenster
         // auf den Bildschirm um.
@@ -96,18 +260,35 @@ final class Sidebar {
 
         layout()
         showIfNeeded()
-        observeSystemChanges()
+    }
+
+    /// Derselbe Bildschirm, aber vielleicht mit neuen Massen oder an einer
+    /// neuen Stelle.
+    func update(screen: ShellScreen) {
+        info = screen.info
+        frame = screen.frame
+        visibleTop = screen.visibleFrame.maxY
+        layout()
+        showIfNeeded()
+    }
+
+    /// Bildschirm weg oder abgewaehlt: Popout zu, Fenster weg.
+    func tearDown() {
+        popout.close()
+        panel.orderOut(nil)
+        lastFrame = nil
+    }
+
+    func closePopout() {
+        popout.close()
     }
 
     /// Vollbild an: weg. Vollbild aus: wieder her. `.canJoinAllSpaces` holt
     /// das Panel sonst auch in Vollbild-Spaces (siehe `SidebarPanel`).
     func setHiddenForFullscreen(_ hidden: Bool) {
-        guard hidden != hiddenForFullscreen else { return }
-        hiddenForFullscreen = hidden
+        guard hidden != isHiddenForFullscreen else { return }
+        isHiddenForFullscreen = hidden
         log.notice("Sidebar \(hidden ? "weg (Vollbild)" : "wieder da", privacy: .public)")
-        // Unsichtbar braucht niemand CPU-Werte oder Wetter.
-        cpu.paused = hidden
-        weather.paused = hidden
         if hidden {
             // Ohne Leiste haette das Popout nichts, woran es haengt.
             popout.close()
@@ -123,7 +304,7 @@ final class Sidebar {
     /// weil Overlay-Panels nach Space-Wechseln gelegentlich verloren gingen;
     /// geht sie trotz `isVisible` verloren, ist hier die Stelle dafuer.)
     private func showIfNeeded() {
-        guard !hiddenForFullscreen, lastFrame != nil, !panel.isVisible else { return }
+        guard !isHiddenForFullscreen, lastFrame != nil, !panel.isVisible else { return }
         panel.orderFrontRegardless()
     }
 
@@ -135,67 +316,17 @@ final class Sidebar {
         layout()
     }
 
-    /// Hauptbildschirm (der mit der Menueleiste): unten bis zum Rand, oben bis
-    /// zur Unterkante der Menueleiste.
+    /// Am linken Rand dieses Bildschirms: unten bis zum Rand, oben bis zur
+    /// Unterkante der Menueleiste. Bildschirme ohne Menueleiste haben dort
+    /// keinen Abzug, dann reicht die Leiste bis ganz nach oben.
     private func layout() {
-        guard let screen = NSScreen.screens.first else {
-            // Kommt der Bildschirm zurueck, meldet sich
-            // didChangeScreenParametersNotification und es geht hier weiter.
-            log.notice("kein Bildschirm, Sidebar behaelt ihren letzten Rahmen")
-            return
-        }
-        let frame = screen.frame
-        let top = screen.visibleFrame.maxY
-        let width = expanded ? StatusPopout.expandedWidth : Self.width
-        let rect = NSRect(x: frame.minX, y: frame.minY, width: width, height: top - frame.minY)
+        let width = expanded ? StatusPopout.expandedWidth : Sidebar.width
+        let rect = NSRect(x: frame.minX, y: frame.minY, width: width, height: visibleTop - frame.minY)
         lastFrame = rect
         // Mit dem echten Panelrahmen vergleichen, nicht mit `lastFrame`: beim
         // Umstecken verschiebt macOS Fenster auch selbst.
         guard panel.frame != rect else { return }
         panel.setFrame(rect, display: true)
-        if !expanded {
-            log.notice("Sidebar \(Self.width, privacy: .public) x \(rect.height, privacy: .public) pt")
-        }
-    }
-
-    /// Aufloesung oder Bildschirme geaendert, Aufwachen (ganzer Rechner oder
-    /// nur die Bildschirme), Space-Wechsel: neu vermessen und, falls sie
-    /// sichtbar sein soll, aber weg ist, wieder nach vorne holen.
-    ///
-    /// Das Einschlafen der Bildschirme braucht keinen eigenen Beobachter:
-    /// solange sie dunkel sind, gibt es nichts zu tun, und das Aufwachen
-    /// deckt `screensDidWakeNotification` ab.
-    ///
-    /// Die Beobachter werden nie entfernt: die Sidebar lebt so lange wie der
-    /// Prozess (AppDelegate haelt sie), und die Bloecke halten sie nur schwach.
-    private func observeSystemChanges() {
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self else { return }
-                // Neue Aufloesung: Lage und Hoehe des Popouts stimmen nicht mehr.
-                self.popout.close()
-                self.layout()
-                self.showIfNeeded()
-            }
-        }
-
-        let workspace = NSWorkspace.shared.notificationCenter
-        for name in [
-            NSWorkspace.didWakeNotification,
-            NSWorkspace.screensDidWakeNotification,
-            NSWorkspace.activeSpaceDidChangeNotification,
-        ] {
-            workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard let self else { return }
-                    self.layout()
-                    self.showIfNeeded()
-                }
-            }
-        }
     }
 }
 

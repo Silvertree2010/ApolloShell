@@ -142,7 +142,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // die Leiste verhaelt sich wie bisher.
         windowGuard = WindowGuard(reservedWidth: Sidebar.width, askForAccess: !showOnboarding) {
             [weak sidebar, weak toaster, weak dashboard, weak utilities] fullscreen in
-            sidebar?.setHiddenForFullscreen(fullscreen)
+            // Die Fensterwache erkennt Vollbild bisher nur auf dem
+            // Hauptbildschirm - nur dessen Leiste tritt ab, die auf den
+            // anderen Bildschirmen bleibt stehen.
+            sidebar?.setFullscreenScreens(fullscreen ? ShellScreens.primaryKeys() : [])
             toaster?.setHiddenForFullscreen(fullscreen)
             dashboard?.setFullscreen(fullscreen)
             utilities?.setFullscreen(fullscreen)
