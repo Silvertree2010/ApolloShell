@@ -2,7 +2,12 @@ import AppKit
 import ApolloShellCore
 import ApplicationServices
 import CoreGraphics
+import os
 import SwiftUI
+
+/// Fehlersuche im Dock: Spaces und Fensterlisten lassen sich nicht
+/// nachstellen, also protokolliert der Klick, was er sieht und tut.
+private let dockLog = Logger(subsystem: AppIdentity.logSubsystem, category: "dockclick")
 
 extension NSPasteboard.PasteboardType {
     /// Bundle-ID eines Dock-Symbols, das in der Leiste verschoben wird.
@@ -357,10 +362,15 @@ enum DockWindows {
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
         AXUIElementSetMessagingTimeout(axApp, 0.3)
         let frontmost = AXUIElementSetAttributeValue(axApp, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
-        AXUIElementSetAttributeValue(window.element, kAXMainAttribute as CFString, kCFBooleanTrue)
-        AXUIElementPerformAction(window.element, kAXRaiseAction as CFString)
+        let main = AXUIElementSetAttributeValue(window.element, kAXMainAttribute as CFString, kCFBooleanTrue)
+        let raised = AXUIElementPerformAction(window.element, kAXRaiseAction as CFString)
         // Ohne Bedienungshilfen bleibt nur der alte Weg.
         if frontmost != .success { app.activate() }
+        dockLog.notice("""
+            heben id=\(window.windowID ?? 0, privacy: .public) \
+            vorne=\(frontmost.rawValue, privacy: .public) main=\(main.rawValue, privacy: .public) \
+            raise=\(raised.rawValue, privacy: .public) titel=\(window.title, privacy: .public)
+            """)
     }
 
     /// Nummern aller Fenster der App, auch auf anderen Schreibtischen und im
