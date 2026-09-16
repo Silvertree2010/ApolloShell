@@ -66,6 +66,15 @@
 "Nur Hauptbildschirm" = "Main Display Only";
 "%@ (nicht angeschlossen)" = "%@ (not connected)";
 "Auf welchen Bildschirmen die Leiste steht – mit ihr die Schreibtisch-Uhr und der Streifen, den die Fensterwache frei hält. Ein einzelner Bildschirm wird über Name und Auflösung gemerkt; ist er nicht angeschlossen, steht die Leiste auf dem Hauptbildschirm." = "Which screens the bar stands on – and with it the desktop clock and the strip the window guard keeps clear. A single screen is remembered by name and resolution; when it is not connected, the bar stands on the main display.";
+"Material" = "Material";
+"Liquid Glass" = "Liquid Glass";
+"Liquid Glass, getönt" = "Liquid Glass, Tinted";
+"Liquid Glass auf fester Fläche" = "Liquid Glass on a Solid Fill";
+"Systemmaterial mit fester Farbe, wechselt mit Hell/Dunkel – bisheriges Aussehen" = "System material with a fixed color that follows light and dark – how it looks today";
+"Echtes Glas; nimmt Farbe und Helligkeit von dem an, was dahinter liegt" = "Real glass; it takes on the color and brightness of whatever is behind it";
+"Glas in Fensterfarbe getönt; färbt sich weniger stark um, aber nicht gar nicht" = "Glass tinted with the window color; it shifts less, but it still shifts";
+"Klares Glas über einer deckenden Fläche in Fensterfarbe: Glanz bleibt, die Farbe steht fest" = "Clear glass over an opaque fill in the window color: the sheen stays, the color holds still";
+"Liquid Glass richtet sich nach der Helligkeit dessen, was dahinter liegt, und kippt dabei auch zwischen heller und dunkler Erscheinung – die Leiste färbt sich also um, sobald ein Fenster unter sie fährt. Abschalten lässt sich das nicht; wer eine feste Farbe will, nimmt Material oder Glas auf fester Fläche." = "Liquid Glass follows the brightness of whatever is behind it, and it also flips between a light and a dark appearance – so the bar changes color as soon as a window moves underneath it. That cannot be switched off; for a fixed color, pick Material or glass on a solid fill.";
 
 /* NexusDashboardEditor.swift */
 "Reiter" = "Tabs";

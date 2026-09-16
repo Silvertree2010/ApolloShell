@@ -366,7 +366,8 @@ struct SidebarRoot: View {
             )
             ZStack(alignment: .topLeading) {
                 Color.clear
-                    .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: Sidebar.width, bulge: bulge)))
+                    .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: Sidebar.width, bulge: bulge),
+                                           background: settings.settings.bar.background))
                 SidebarContent(settings: settings, context: context)
                     .frame(width: Sidebar.width)
                     .frame(maxHeight: .infinity)
@@ -410,24 +411,46 @@ struct SidebarRoot: View {
     }
 }
 
-/// Liquid Glass in der Form der Leiste, in Bildproben durch eine feste
+/// Hintergrund der Leiste in ihrer Form, in Bildproben durch eine feste
 /// Flaeche ersetzt (Glas zeichnet ausserhalb des Bildschirms nur weiss).
+///
+/// Welcher Hintergrund, sagt Nexus > Leiste > Hintergrund; warum es die Wahl
+/// gibt und was die einzelnen Eintraege sollen, steht bei `BarBackground`.
 private struct SidebarGlass<S: Shape>: ViewModifier {
     let shape: S
+    let background: BarBackground
     @Environment(\.statusPopoutGlassStandIn) private var standIn
     @Environment(\.colorScheme) private var colorScheme
+
+    /// Fensterfarbe, halb deckend: zieht das Glas in Richtung Fensterfarbe,
+    /// laesst es aber noch Glas sein. Ganz aufhalten kann eine Toenung das
+    /// Umfaerben ohnehin nicht (siehe `BarBackground`) - dafuer ist
+    /// `fixedGlass` da.
+    private static var tint: Color { Color(nsColor: .windowBackgroundColor).opacity(0.7) }
 
     func body(content: Content) -> some View {
         if standIn {
             content.background(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95), in: shape)
         } else {
-            // Systemmaterial statt Liquid Glass: Glas nimmt die Farbe dessen
-            // an, was dahinter liegt - die ganze Leiste wechselte die Farbe,
-            // sobald ein Fenster darunter aufging. Auch eine Toenung bis 0.85
-            // hielt das nicht auf. Material bleibt bei einer Farbe je
-            // Erscheinungsbild und wechselt mit Hell/Dunkel wie die anderen
-            // Fenster.
-            content.background(.regularMaterial, in: shape)
+            switch background {
+            case .material:
+                content.background(.regularMaterial, in: shape)
+            case .glass:
+                content.glassEffect(.regular, in: shape)
+            case .tintedGlass:
+                content.glassEffect(.regular.tint(Self.tint), in: shape)
+            case .fixedGlass:
+                // Reihenfolge: erst das Glas hinter den Inhalt, dann die
+                // deckende Flaeche hinter das Glas. Das Glas hat damit
+                // ueberall dieselbe Flaeche vor sich statt des Schreibtischs
+                // und der Fenster, seine Anpassung hat also nichts mehr zum
+                // Anpassen. `clear` statt `regular`, weil nur diese Fassung
+                // laut Apple gar nicht anpasst; die deckende Flaeche ist die
+                // Schicht, die `clear` dafuer braucht.
+                content
+                    .glassEffect(.clear, in: shape)
+                    .background(Color(nsColor: .windowBackgroundColor), in: shape)
+            }
         }
     }
 }

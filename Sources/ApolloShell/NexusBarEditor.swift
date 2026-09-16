@@ -29,6 +29,7 @@ struct NexusBarPage: View {
             NexusPageForm(page: .bar) {
                 entriesSection
                 NexusBarScreensSection(store: store)
+                NexusBarBackgroundSection(store: store)
                 NexusSaveWarning(failed: store.saveFailed)
             }
             Divider()
@@ -158,6 +159,58 @@ private struct NexusBarScreensSection: View {
               !screens.contains(where: { $0.key == key })
         else { return nil }
         return key
+    }
+}
+
+// MARK: - Hintergrund
+
+/// Nexus > Leiste > Hintergrund: womit die Leiste und ihre Beule hinterlegt
+/// sind.
+///
+/// Zur Wahl, weil Liquid Glass sich nach dem richtet, was dahinter liegt, und
+/// sich nicht davon abbringen laesst - die Gruende und die Belege stehen bei
+/// `BarBackground`. Die Eintraege unterscheiden sich sichtbar, damit man sie
+/// am lebenden Schreibtisch vergleichen kann; Vorgabe bleibt Material.
+private struct NexusBarBackgroundSection: View {
+    @Bindable var store: ShellSettingsStore
+
+    var body: some View {
+        Section {
+            ForEach(BarBackground.allCases) { background in
+                NexusChoiceRow(selected: store.settings.bar.background == background) {
+                    store.settings.bar.background = background
+                } label: {
+                    VStack(alignment: .leading, spacing: 1) {
+                        title(background)
+                        subtitle(background)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        } header: {
+            Text("Hintergrund")
+        } footer: {
+            Text("Liquid Glass richtet sich nach der Helligkeit dessen, was dahinter liegt, und kippt dabei auch zwischen heller und dunkler Erscheinung – die Leiste färbt sich also um, sobald ein Fenster unter sie fährt. Abschalten lässt sich das nicht; wer eine feste Farbe will, nimmt Material oder Glas auf fester Fläche.")
+        }
+    }
+
+    private func title(_ background: BarBackground) -> Text {
+        switch background {
+        case .material: Text("Material")
+        case .glass: Text("Liquid Glass")
+        case .tintedGlass: Text("Liquid Glass, getönt")
+        case .fixedGlass: Text("Liquid Glass auf fester Fläche")
+        }
+    }
+
+    private func subtitle(_ background: BarBackground) -> Text {
+        switch background {
+        case .material: Text("Systemmaterial mit fester Farbe, wechselt mit Hell/Dunkel – bisheriges Aussehen")
+        case .glass: Text("Echtes Glas; nimmt Farbe und Helligkeit von dem an, was dahinter liegt")
+        case .tintedGlass: Text("Glas in Fensterfarbe getönt; färbt sich weniger stark um, aber nicht gar nicht")
+        case .fixedGlass: Text("Klares Glas über einer deckenden Fläche in Fensterfarbe: Glanz bleibt, die Farbe steht fest")
+        }
     }
 }
 

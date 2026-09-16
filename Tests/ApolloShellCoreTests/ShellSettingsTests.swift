@@ -60,6 +60,40 @@ struct ShellSettingsTests {
         #expect(text.contains(key))
     }
 
+    // MARK: - Hintergrund der Leiste
+
+    @Test("Hintergrund: schreiben und wieder lesen ergibt dasselbe", arguments: BarBackground.allCases)
+    func backgroundRoundTrip(background: BarBackground) {
+        // In einer Liste statt einzeln: ein einzelner Wert waere ein
+        // JSON-Fragment, in settings.json steht er ohnehin in einem Objekt.
+        let data = try! JSONEncoder().encode([background])
+        #expect(try! JSONDecoder().decode([BarBackground].self, from: data) == [background])
+        let settings = ShellSettings(bar: .init(background: background))
+        #expect(ShellSettings.load(from: settings.encoded()).bar.background == background)
+    }
+
+    @Test("Hintergrund: unbekannter Wert faellt auf die Vorgabe zurueck")
+    func backgroundUnknown() {
+        let json = #"["glass","hologramm","","fixedGlass"]"#
+        let decoded = try! JSONDecoder().decode([BarBackground].self, from: Data(json.utf8))
+        #expect(decoded == [.glass, .material, .material, .fixedGlass])
+        #expect(BarBackground.standard == .material)
+    }
+
+    @Test("Hintergrund: fehlender oder kaputter Schluessel ergibt Material", arguments: [
+        #"{"bar":{"layout":[]}}"#, #"{"bar":{"background":"hologramm"}}"#, #"{"bar":{"background":5}}"#,
+        #"{"bar":{"background":null}}"#, #"{"bar":{"background":{"art":"glas"}}}"#,
+    ])
+    func backgroundLenient(json: String) {
+        #expect(ShellSettings.load(from: Data(json.utf8)).bar.background == .material)
+    }
+
+    @Test("Hintergrund: ohne Zutun bleibt es beim bisherigen Aussehen")
+    func backgroundDefault() {
+        #expect(ShellSettings().bar.background == .material)
+        #expect(ShellSettings.firstLaunch.bar.background == .material)
+    }
+
     @Test("Akku-Ereignisse folgen ihrem Schalter", arguments: [
         (ShellSettings.Toasts(), BatteryToastEvent.chargerConnected, true),
         (ShellSettings.Toasts(chargingChanged: false), BatteryToastEvent.chargerConnected, false),
