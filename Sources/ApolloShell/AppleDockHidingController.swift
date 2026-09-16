@@ -68,7 +68,9 @@ final class AppleDockHidingController {
     private func hide(fileURL: URL) {
         if AppleDockPreferenceValues.load(from: try? Data(contentsOf: fileURL)) == nil {
             let original = AppleDockHiding.originalToSave(current: readCurrent())
-            write(original.encoded(), to: fileURL)
+            // Ohne Sicherung kein Verstecken: sonst fände das Wiederherstellen
+            // nichts, und das Dock bliebe fuer immer weg.
+            guard write(original.encoded(), to: fileURL) else { return }
         }
         writeAndApply(AppleDockHiding.hidden)
         log.notice("Apple-Dock ausgeblendet")
@@ -78,7 +80,11 @@ final class AppleDockHidingController {
     /// loeschen), Datei entfernen. Keine Datei: nichts zu tun (schon
     /// wiederhergestellt oder nie versteckt).
     private func restore(fileURL: URL) {
-        guard let original = AppleDockPreferenceValues.load(from: try? Data(contentsOf: fileURL)) else { return }
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        // Sicherung da, aber unlesbar: auf die Vorgaben von macOS zurueck,
+        // statt das Dock versteckt zu lassen.
+        let original = AppleDockPreferenceValues.load(from: try? Data(contentsOf: fileURL))
+            ?? AppleDockPreferenceValues(autohide: nil, autohideDelay: nil, autohideTimeModifier: nil)
         writeAndApply(original)
         try? FileManager.default.removeItem(at: fileURL)
         log.notice("Apple-Dock wieder eingeblendet")
@@ -116,12 +122,15 @@ final class AppleDockHidingController {
         Self.launch(Self.killall, ["Dock"])
     }
 
-    private func write(_ data: Data, to url: URL) {
+    @discardableResult
+    private func write(_ data: Data, to url: URL) -> Bool {
         do {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try data.write(to: url, options: .atomic)
+            return true
         } catch {
-            log.error("apple-dock.json nicht gespeichert: \(error.localizedDescription, privacy: .public)")
+            log.error("apple-dock.json nicht gespeichert, Dock bleibt sichtbar: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 
