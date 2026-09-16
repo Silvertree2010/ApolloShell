@@ -33,6 +33,10 @@ final class ToastWindow {
     private var pollTimer: Timer?
     private var hideTimer: Timer?
     private var utilitiesOpen = false
+    /// Auf welchem Bildschirm der Stapel steht. Festgelegt, wenn die erste
+    /// Meldung aufgeht - er wandert danach nicht mit dem Zeiger, sonst
+    /// spraenge er beim Lesen davon.
+    private var currentScreen: ShellScreen?
 
     /// Sichtbare Hoehe des Utilities-Panels - so hoch muss das Fenster
     /// zusaetzlich sein, damit der Stapel darueber passt. Folgt dem Panel,
@@ -43,7 +47,7 @@ final class ToastWindow {
         didSet {
             guard utilitiesHeight != oldValue else { return }
             if utilitiesOpen { toaster.lift = utilitiesHeight }
-            if panel.isVisible, let screen = NSScreen.screens.first {
+            if panel.isVisible, let screen = currentScreen {
                 panel.setFrame(frame(on: screen), display: true)
             }
         }
@@ -75,7 +79,9 @@ final class ToastWindow {
         }
         hideTimer?.invalidate()
         hideTimer = nil
-        if !panel.isVisible, let screen = NSScreen.screens.first {
+        // Geht der Stapel neu auf: dort, wo der Zeiger gerade steht.
+        if !panel.isVisible, let screen = ShellScreens.underPointer() {
+            currentScreen = screen
             panel.setFrame(frame(on: screen), display: false)
             panel.ignoresMouseEvents = true
         }
@@ -92,6 +98,8 @@ final class ToastWindow {
         pollTimer = nil
         panel.ignoresMouseEvents = true
         panel.orderOut(nil)
+        // Der naechste Stapel sucht sich seinen Bildschirm neu.
+        currentScreen = nil
     }
 
     // MARK: - Geometrie
@@ -99,7 +107,7 @@ final class ToastWindow {
     /// Rechts und unten 12 vom Bildschirmrand (wie das Utilities-Panel am
     /// ganzen Bildschirm, nicht am sichtbaren Bereich), hoch genug fuer 4
     /// Meldungen ueber dem offenen Panel.
-    private func frame(on screen: NSScreen) -> NSRect {
+    private func frame(on screen: ShellScreen) -> NSRect {
         let s = screen.frame
         let margin = CGFloat(ToastLayout.margin)
         let width = CGFloat(ToastLayout.width)

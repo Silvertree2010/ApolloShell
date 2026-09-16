@@ -113,9 +113,11 @@ final class UtilitiesPanel {
         model.shutdown()
     }
 
-    /// Von der Fensterwache: im Vollbild oeffnet die Maus unten nichts.
-    func setFullscreen(_ fullscreen: Bool) {
-        drawer.hoverSuspended = fullscreen
+    /// Von der Fensterwache: auf diesen Bildschirmen ist Vollbild, dort
+    /// oeffnet die Maus unten rechts nichts. An den Kanten der uebrigen
+    /// Bildschirme bleibt es beim Aufklappen per Maus.
+    func setFullscreen(_ screens: Set<String>) {
+        drawer.suspendedScreens = screens
     }
 }
 

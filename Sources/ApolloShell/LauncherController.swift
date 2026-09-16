@@ -155,7 +155,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
     // MARK: - Fenster
 
     private func targetFrame() -> NSRect {
-        let screen = (NSScreen.main ?? NSScreen.screens.first)?.frame ?? .zero
+        // Dort, wo der Zeiger steht - nicht immer auf dem Hauptbildschirm.
+        let screen = ShellScreens.underPointer()?.frame ?? NSScreen.main?.frame ?? .zero
         let origin = NSPoint(
             x: screen.midX - Self.size.width / 2,
             y: screen.minY - Self.cornerRadius

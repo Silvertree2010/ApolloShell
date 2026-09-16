@@ -18,6 +18,11 @@ enum DrawerEdge {
 /// cubic-bezier(0.38, 1.21, 0.22, 1) mit leichtem Ueberschiessen, dazu
 /// Einblenden. Gemeinsamer Baustein fuer Dashboard, Utilities, OSD.
 ///
+/// Es geht dort auf, wo der Zeiger steht, und die Maus oeffnet es an der
+/// Kante JEDES Bildschirms - nicht nur am Hauptbildschirm. Solange es offen
+/// ist, bleibt es auf seinem Bildschirm stehen, auch wenn der Zeiger
+/// hinueberwandert.
+///
 /// Das Fenster ist um den Eckenradius groesser als sichtbar und ragt damit
 /// ueber die Bildschirmkante(n): so liegen die Glasecken an der Kante
 /// ausserhalb, und das Panel wirkt, als wuechse es aus ihr. Der Inhalt liegt
@@ -53,8 +58,10 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     var opensOnHover = false {
         didSet { updateHoverMonitor() }
     }
-    /// Im Vollbild kein Hover (Caelestia ebenso).
-    var hoverSuspended = false
+    /// Schluessel der Bildschirme, auf denen die Vordergrund-App im Vollbild
+    /// ist: dort oeffnet die Maus an der Kante nichts (Caelestia ebenso). Auf
+    /// den uebrigen Bildschirmen geht es weiter.
+    var suspendedScreens: Set<String> = []
     private var hoverState = EdgeHoverState.hidden
     private var hoverMonitor: Any?
     /// Solange offen: Mausposition selbst nachsehen. Der globale Monitor
@@ -79,10 +86,17 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     private(set) var isOpen = false
     private var generation = 0
 
+    /// Auf welchem Bildschirm das Fenster gerade steht bzw. zuletzt stand.
+    private(set) var currentScreen: ShellScreen?
+
     /// Nur oben: Streifen unter Menueleiste und Kamera-Notch. Das Glas reicht
     /// bis an die Bildschirmkante (wie Utilities unten rechts), der Inhalt
     /// beginnt erst darunter - in der Notch waere er abgeschnitten.
-    private let topInset: CGFloat
+    ///
+    /// Kein fester Wert mehr: nicht jeder Bildschirm hat eine Menueleiste,
+    /// und eine Notch hat ohnehin nur der eingebaute. Beim Oeffnen wird er
+    /// fuer den Zielbildschirm neu bestimmt (`applyGeometry`).
+    private var topInset: CGFloat
 
     init(edge: DrawerEdge, size: NSSize, cornerRadius: CGFloat, takesKeyboard: Bool = true, rootView: Content) {
         self.edge = edge
@@ -96,10 +110,12 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
             size: Self.windowSize(for: edge, size: size, radius: cornerRadius, topInset: topInset)
         ))
         super.init()
+        observeScreenChanges()
     }
 
     /// Hoehe der Menueleiste bzw. der Notch, je nachdem was groesser ist
-    /// (Menueleiste ausgeblendet: dann zaehlt nur die Notch).
+    /// (Menueleiste ausgeblendet: dann zaehlt nur die Notch). Bildschirme
+    /// ohne Menueleiste ergeben 0.
     private static func menuBarInset(_ screen: NSScreen?) -> CGFloat {
         guard let screen else { return 0 }
         return max(screen.frame.maxY - screen.visibleFrame.maxY, screen.safeAreaInsets.top)
@@ -117,10 +133,14 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// Per Maus geoeffnet nimmt es keinen Fokus: die App darunter behaelt die
     /// Tastatur, man faehrt ja nur vorbei.
     private func open(byHover: Bool) {
-        guard !isOpen, let screen = NSScreen.screens.first else { return }
+        // Dort, wo der Zeiger steht.
+        guard !isOpen, let screen = ShellScreens.underPointer() else { return }
         isOpen = true
         generation += 1
         afterClose = nil
+        // Vor dem ersten Zugriff auf `panel`: der baut sein Fenster aus der
+        // Groesse des Containers, und die haengt am Bildschirm.
+        applyGeometry(on: screen)
         if byHover {
             hoverState = EdgeHoverState(visible: true, shortcutActive: false)
         } else {
@@ -190,6 +210,25 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 
     // MARK: - Groesse aendern
 
+    /// Masse fuer diesen Bildschirm uebernehmen. Oben haengt die Fensterhoehe
+    /// an der Menueleiste, und die ist nicht auf jedem Bildschirm gleich hoch
+    /// (ein zweiter Bildschirm hat je nach Einstellung gar keine).
+    private func applyGeometry(on screen: ShellScreen) {
+        currentScreen = screen
+        let inset = edge == .top ? Self.menuBarInset(screen.screen) : 0
+        let wanted = Self.windowSize(for: edge, size: size, radius: cornerRadius, topInset: inset)
+        guard inset != topInset || container.frame.size != wanted else { return }
+        topInset = inset
+        container.setFrameSize(wanted)
+        // Wie in `resize(to:)`: die Inhaltsflaeche ausdruecklich setzen, nicht
+        // per autoresizing.
+        if let glass {
+            glass.frame = container.bounds
+            glass.contentView?.frame = glass.bounds
+        }
+        hosting?.frame = visibleRectInWindow
+    }
+
     /// Neue sichtbare Groesse, sofort und ohne Animation.
     ///
     /// Warum ohne: offen aendert sich im selben Durchgang auch der Inhalt
@@ -205,7 +244,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         size = newSize
         container.setFrameSize(Self.windowSize(for: edge, size: newSize, radius: cornerRadius, topInset: topInset))
         guard let builtPanel else { return }
-        if let screen = NSScreen.screens.first {
+        if let screen = currentScreen ?? ShellScreens.underPointer() {
             builtPanel.setFrame(windowFrame(on: screen), display: builtPanel.isVisible)
         }
         // Das Glas waechst per autoresizing mit dem Container. Seine
@@ -252,8 +291,13 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     }
 
     private func hoverMoved() {
-        guard opensOnHover, !hoverSuspended, let screen = NSScreen.screens.first,
-              let area = hoverArea(on: screen, open: isOpen)
+        guard opensOnHover else { return }
+        // Offen: der Bildschirm, auf dem das Fenster steht - sonst risse ein
+        // Zeiger, der hinueberwandert, es sofort wieder zu. Zu: der unter dem
+        // Zeiger, damit die Kante jedes Bildschirms oeffnet.
+        let target = isOpen ? currentScreen : ShellScreens.underPointer()
+        guard let target, !suspendedScreens.contains(target.info.key),
+              let area = hoverArea(on: target, open: isOpen)
         else { return }
         let next = hoverState.moved(inArea: area.contains(NSEvent.mouseLocation))
         if next.visible && !isOpen {
@@ -265,16 +309,38 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         }
     }
 
-    private func hoverArea(on screen: NSScreen, open: Bool) -> NSRect? {
+    private func hoverArea(on screen: ShellScreen, open: Bool) -> NSRect? {
         switch edge {
         case .top:
-            EdgeHoverArea.top(screen: screen.frame, width: size.width, depth: topInset + size.height,
-                              margin: cornerRadius, open: open)
+            let inset = Self.menuBarInset(screen.screen)
+            return EdgeHoverArea.top(screen: screen.frame, width: size.width, depth: inset + size.height,
+                                     margin: cornerRadius, open: open)
         case .bottomRight:
-            EdgeHoverArea.bottomRight(screen: screen.frame, width: size.width, height: size.height,
-                                      margin: cornerRadius, open: open)
+            return EdgeHoverArea.bottomRight(screen: screen.frame, width: size.width, height: size.height,
+                                             margin: cornerRadius, open: open)
         case .right:
-            nil
+            return nil
+        }
+    }
+
+    // MARK: - Bildschirme wechseln
+
+    /// Umgesteckt oder anders aufgeloest: ist der Bildschirm des offenen
+    /// Fensters weg, geht es zu - sonst stuende es auf einem Rahmen, den es
+    /// nicht mehr gibt. Ist er noch da, wird neu vermessen.
+    private func observeScreenChanges() {
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.isOpen, let current = self.currentScreen else { return }
+                guard let same = ShellScreens.current().first(where: { $0.displayID == current.displayID }) else {
+                    self.close()
+                    return
+                }
+                self.applyGeometry(on: same)
+                self.builtPanel?.setFrame(self.windowFrame(on: same), display: true)
+            }
         }
     }
 
@@ -299,7 +365,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         }
     }
 
-    private func windowFrame(on screen: NSScreen) -> NSRect {
+    private func windowFrame(on screen: ShellScreen) -> NSRect {
         let frame = screen.frame
         let windowSize = container.frame.size
         switch edge {

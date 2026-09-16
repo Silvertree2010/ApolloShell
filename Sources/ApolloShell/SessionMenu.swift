@@ -62,7 +62,9 @@ final class SessionMenu: NSObject, NSWindowDelegate {
     }
 
     func open() {
-        guard !isOpen, let screen = NSScreen.screens.first else { return }
+        // Dort, wo der Zeiger steht: Panel und Abdunkelung auf demselben
+        // Bildschirm.
+        guard !isOpen, let screen = ShellScreens.underPointer() else { return }
         isOpen = true
         generation += 1
         model.reset()
@@ -169,7 +171,7 @@ final class SessionMenu: NSObject, NSWindowDelegate {
     // MARK: - Fenster
 
     /// Rechts mittig; ragt um die Rundung ueber den Bildschirmrand hinaus.
-    private func panelFrame(on screen: NSScreen) -> NSRect {
+    private func panelFrame(on screen: ShellScreen) -> NSRect {
         let frame = screen.frame
         return NSRect(
             x: frame.maxX - Self.visibleWidth,

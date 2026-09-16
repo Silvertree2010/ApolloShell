@@ -144,10 +144,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             [weak sidebar, weak toaster, weak dashboard, weak utilities] fullscreenScreens in
             // Nur die Leiste des Bildschirms tritt ab, auf dem Vollbild ist.
             sidebar?.setFullscreenScreens(fullscreenScreens)
-            let anyFullscreen = !fullscreenScreens.isEmpty
-            toaster?.setHiddenForFullscreen(anyFullscreen)
-            dashboard?.setFullscreen(anyFullscreen)
-            utilities?.setFullscreen(anyFullscreen)
+            // Kantenfenster klappen auf dem Vollbild-Bildschirm nicht mehr
+            // auf, auf den anderen schon. Die Kurzmeldungen kennen keinen
+            // Bildschirm: sie bleiben aus, sobald irgendwo Vollbild ist.
+            dashboard?.setFullscreen(fullscreenScreens)
+            utilities?.setFullscreen(fullscreenScreens)
+            toaster?.setHiddenForFullscreen(!fullscreenScreens.isEmpty)
         }
         self.windowGuard = windowGuard
         // Die Wache haelt den Streifen auf jedem Bildschirm frei, der eine

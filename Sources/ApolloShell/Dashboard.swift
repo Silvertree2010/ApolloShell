@@ -74,9 +74,11 @@ final class Dashboard {
         drawer.open()
     }
 
-    /// Von der Fensterwache: im Vollbild oeffnet die Maus oben nichts.
-    func setFullscreen(_ fullscreen: Bool) {
-        drawer.hoverSuspended = fullscreen
+    /// Von der Fensterwache: auf diesen Bildschirmen ist Vollbild, dort
+    /// oeffnet die Maus oben nichts. An den Kanten der uebrigen Bildschirme
+    /// bleibt es beim Aufklappen per Maus.
+    func setFullscreen(_ screens: Set<String>) {
+        drawer.suspendedScreens = screens
     }
 
     /// Beim Beenden der App: den perl-Prozess des Adapters nicht verwaist
