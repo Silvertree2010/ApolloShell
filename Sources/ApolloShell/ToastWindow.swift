@@ -60,6 +60,30 @@ final class ToastWindow {
         hosting.sizingOptions = []
         panel.contentView = hosting
         toaster.onChange = { [weak self] in self?.update() }
+        observeScreenChanges()
+    }
+
+    /// Umgesteckt oder anders aufgeloest, waehrend Meldungen offen sind:
+    /// neu vermessen. Ist der Bildschirm des Stapels weg, zieht er auf den
+    /// unter dem Zeiger um - sonst stuende er auf einem Rahmen, den es nicht
+    /// mehr gibt. Lebt so lange wie der Prozess, der Beobachter haelt das
+    /// Fenster nur schwach.
+    private func observeScreenChanges() {
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.screensChanged() }
+        }
+    }
+
+    private func screensChanged() {
+        guard panel.isVisible, let current = currentScreen else { return }
+        let all = ShellScreens.current()
+        guard let next = all.first(where: { $0.displayID == current.displayID })
+            ?? ShellScreens.underPointer(among: all) ?? all.first
+        else { return }
+        currentScreen = next
+        panel.setFrame(frame(on: next), display: true)
     }
 
     /// Das Utilities-Panel geht auf oder zu.
