@@ -10,6 +10,16 @@
   every panel is built from blocks.
 </p>
 
+<p align="center">
+  <a href="https://github.com/Silvertree2010/ApolloShell/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Silvertree2010/ApolloShell/ci.yml?branch=main&amp;label=CI" alt="CI"></a>
+  <a href="https://github.com/Silvertree2010/ApolloShell/releases/latest"><img src="https://img.shields.io/github/v/release/Silvertree2010/ApolloShell" alt="Latest release"></a>
+  <a href="https://github.com/Silvertree2010/ApolloShell/releases"><img src="https://img.shields.io/github/downloads/Silvertree2010/ApolloShell/total" alt="Downloads"></a>
+  <a href="https://github.com/Silvertree2010/homebrew-apolloshell"><img src="https://img.shields.io/badge/Homebrew-tap-FBB040?logo=homebrew&amp;logoColor=black" alt="Homebrew tap"></a>
+  <img src="https://img.shields.io/badge/macOS-26%20Tahoe-000000?logo=apple" alt="macOS 26 Tahoe">
+  <img src="https://img.shields.io/badge/Swift-6.2%2B-F05138?logo=swift&amp;logoColor=white" alt="Swift 6.2+">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Silvertree2010/ApolloShell" alt="License: MIT"></a>
+</p>
+
 <p align="center"><a href="README.de.md">Deutsch</a></p>
 
 ![ApolloShell on a desktop: sidebar with dock on the left, dashboard open at the top with the performance tab](docs/images/hero.png)
