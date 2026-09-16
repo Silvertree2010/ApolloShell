@@ -77,13 +77,6 @@ enum ShellScreens {
         at(NSEvent.mouseLocation, among: all)
     }
 
-    /// Schluessel des Hauptbildschirms, als Menge fuer die Vollbild-Meldung.
-    /// Leer, wenn gerade kein Bildschirm da ist.
-    static func primaryKeys(among all: [ShellScreen] = current()) -> Set<String> {
-        guard let primary = ScreenSelection.primary(among: all.map(\.info)) else { return [] }
-        return [primary.key]
-    }
-
     /// `NSScreenNumber` aus der Geraetebeschreibung ist die
     /// CGDirectDisplayID. Fehlt sie (kommt bei einem Bildschirm, der gerade
     /// verschwindet, vor), zaehlt der Bildschirm nicht mit.

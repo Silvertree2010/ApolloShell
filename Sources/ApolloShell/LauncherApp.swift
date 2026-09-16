@@ -140,15 +140,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Haelt Fenster aus dem Streifen der Leiste und blendet sie bei
         // Vollbild aus. Ohne Bedienungshilfen-Freigabe tut sie nichts, und
         // die Leiste verhaelt sich wie bisher.
-        windowGuard = WindowGuard(reservedWidth: Sidebar.width, askForAccess: !showOnboarding) {
-            [weak sidebar, weak toaster, weak dashboard, weak utilities] fullscreen in
-            // Die Fensterwache erkennt Vollbild bisher nur auf dem
-            // Hauptbildschirm - nur dessen Leiste tritt ab, die auf den
-            // anderen Bildschirmen bleibt stehen.
-            sidebar?.setFullscreenScreens(fullscreen ? ShellScreens.primaryKeys() : [])
-            toaster?.setHiddenForFullscreen(fullscreen)
-            dashboard?.setFullscreen(fullscreen)
-            utilities?.setFullscreen(fullscreen)
+        let windowGuard = WindowGuard(reservedWidth: Sidebar.width, askForAccess: !showOnboarding) {
+            [weak sidebar, weak toaster, weak dashboard, weak utilities] fullscreenScreens in
+            // Nur die Leiste des Bildschirms tritt ab, auf dem Vollbild ist.
+            sidebar?.setFullscreenScreens(fullscreenScreens)
+            let anyFullscreen = !fullscreenScreens.isEmpty
+            toaster?.setHiddenForFullscreen(anyFullscreen)
+            dashboard?.setFullscreen(anyFullscreen)
+            utilities?.setFullscreen(anyFullscreen)
+        }
+        self.windowGuard = windowGuard
+        // Die Wache haelt den Streifen auf jedem Bildschirm frei, der eine
+        // Leiste hat - und erfaehrt jede Aenderung daran (Bildschirm dazu,
+        // weg, oder die Einstellung in Nexus geaendert).
+        windowGuard.setBarScreens(Set(sidebar.screens.map(\.key)))
+        sidebar.onScreensChange = { [weak windowGuard] screens in
+            windowGuard?.setBarScreens(Set(screens.map(\.key)))
         }
 
         let onboarding = Onboarding(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions)
