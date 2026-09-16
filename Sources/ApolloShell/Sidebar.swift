@@ -287,7 +287,9 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
     /// Fenster darunter. `windowBackgroundColor` ist dynamisch, hell im
     /// hellen Erscheinungsbild und dunkel im dunklen, wie bei den anderen
     /// Fenstern.
-    private static var tint: Color { Color(nsColor: .windowBackgroundColor).opacity(0.55) }
+    /// 0.85 statt 0.55: Bei 0.55 schlug die Farbe eines Fensters hinter der
+    /// Leiste noch durch, die ganze Leiste wechselte beim Oeffnen die Farbe.
+    private static var tint: Color { Color(nsColor: .windowBackgroundColor).opacity(0.85) }
 
     let shape: S
     @Environment(\.statusPopoutGlassStandIn) private var standIn
