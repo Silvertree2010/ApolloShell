@@ -15,8 +15,10 @@ public enum SingleInstance {
     /// Startargument des Neustarts nach einem Sprachwechsel (`AppRestart`).
     public static let relaunchArgument = "--relaunch"
 
-    /// So lange wartet eine ersetzende Instanz auf das Ende der alten.
-    public static let replaceWait: TimeInterval = 5
+    /// So lange wartet eine ersetzende Instanz auf das Ende der alten. Die
+    /// alte kann beim Beenden auf eine Administrator-Frage warten (Wach
+    /// halten, zugeklappt) - gibt die neue vorher auf, laeuft danach keine.
+    public static let replaceWait: TimeInterval = 60
 
     /// Verteilte Mitteilung an die laufende Instanz: "zeig dich".
     public static let showNotification = AppIdentity.scoped("show")

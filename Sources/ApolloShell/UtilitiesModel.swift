@@ -87,6 +87,9 @@ final class UtilitiesModel {
     /// macOS fragt gerade nach einem Administrator (laeuft als eigener
     /// Prozess). Bis zur Antwort keine zweite Frage; danach wird abgeglichen.
     @ObservationIgnored private var lidPromptRunning = false
+    /// Der osascript-Prozess der offenen Administrator-Frage und wofuer sie
+    /// ist. Beim Beenden der App wird eine Einschalt-Frage abgebrochen.
+    @ObservationIgnored private var lidPrompt: (process: Process, disableSleep: Bool)?
     /// Akku-Schutz, solange Wach halten laeuft: jede Minute nachsehen.
     @ObservationIgnored private var batteryGuard: Timer?
     @ObservationIgnored private var timer: Timer?
@@ -296,13 +299,21 @@ final class UtilitiesModel {
     /// Zuruecksetzen einen Administrator, wird hier auf die Antwort gewartet -
     /// danach lebt die App nicht mehr, um sie abzuholen, und ein zugeklappter
     /// Mac in der Tasche schliefe sonst nie.
+    ///
+    /// Ist gerade eine Administrator-Frage offen, wird nicht gewartet: Eine
+    /// Einschalt-Frage wird abgebrochen, eine Ausschalt-Frage bleibt stehen.
+    /// Der Merker liegt in beiden Faellen schon, der naechste Start gleicht ab.
     func shutdown() {
         guard live else { return }
         assertion = nil
         keepAwakeSince = nil
         batteryGuard?.invalidate()
         batteryGuard = nil
-        guard lidAwakeOwned, !lidPromptRunning else { return }
+        if let prompt = lidPrompt {
+            if prompt.disableSleep { prompt.process.terminate() }
+            return
+        }
+        guard lidAwakeOwned else { return }
         if Self.sudoSleepDisabled(false) || Self.run(LidAwake.osascript, LidAwake.osascriptArguments(disableSleep: false)).status == 0 {
             lidReleased()
         }
@@ -359,6 +370,9 @@ final class UtilitiesModel {
             return
         }
         // Kein passwortloses sudo: macOS fragt nach einem Administrator.
+        // Merker schon vorher: Endet die App, bevor die Antwort kommt, und
+        // wird danach doch zugestimmt, setzt der naechste Start zurueck.
+        Self.writeLidMarker()
         lid = .pending
         askAdmin(disableSleep: true)
     }
@@ -378,18 +392,23 @@ final class UtilitiesModel {
 
     private func askAdmin(disableSleep: Bool) {
         lidPromptRunning = true
-        Self.launch(LidAwake.osascript, LidAwake.osascriptArguments(disableSleep: disableSleep)) { [weak self] status in
+        let process = Self.launch(LidAwake.osascript, LidAwake.osascriptArguments(disableSleep: disableSleep)) {
+            [weak self] status in
             self?.lidPromptFinished(disableSleep: disableSleep, ok: status == 0)
         }
+        lidPrompt = process.map { ($0, disableSleep) }
     }
 
     /// Antwort auf die Administrator-Frage. Abgebrochen gibt osascript einen
     /// Fehler (-128) zurueck; dann bleibt "Wach halten" ohne Deckel-Teil.
     private func lidPromptFinished(disableSleep: Bool, ok: Bool) {
         lidPromptRunning = false
+        lidPrompt = nil
         if disableSleep {
             guard ok else {
                 log.notice("disablesleep 1: Administrator abgelehnt, wach nur aufgeklappt")
+                // Der vorab gelegte Merker gilt nicht mehr.
+                if !lidAwakeOwned { try? FileManager.default.removeItem(at: Self.lidMarker) }
                 lid = lidWanted ? .declined : .off
                 return
             }
@@ -414,7 +433,15 @@ final class UtilitiesModel {
         lidAwakeOwned = true
         lid = .on
         // Merker fuer den Absturzfall, siehe recoverLidAwake().
-        FileManager.default.createFile(atPath: Self.lidMarker.path, contents: Data())
+        Self.writeLidMarker()
+    }
+
+    /// Der Ordner fehlt bei einer frischen Installation womoeglich noch.
+    private static func writeLidMarker() {
+        let url = lidMarker
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                 withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: url.path, contents: Data())
     }
 
     private func lidReleased() {
@@ -648,8 +675,9 @@ final class UtilitiesModel {
 
     /// Startet ein Werkzeug und wartet nicht; `done` bekommt den
     /// Rueckgabewert auf dem Hauptthread (-1: liess sich nicht starten).
+    @discardableResult
     private static func launch(_ path: String, _ arguments: [String],
-                               done: @escaping @MainActor (Int32) -> Void = { _ in }) {
+                               done: @escaping @MainActor (Int32) -> Void = { _ in }) -> Process? {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: path)
         process.arguments = arguments
@@ -661,8 +689,10 @@ final class UtilitiesModel {
         }
         do {
             try process.run()
+            return process
         } catch {
             done(-1)
+            return nil
         }
     }
 

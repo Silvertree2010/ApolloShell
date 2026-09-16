@@ -179,10 +179,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        // Das Dock zuerst: geht schnell, und `utilities.shutdown()` wartet
+        // womoeglich auf eine Administrator-Frage. Bricht launchd das Ende
+        // dabei hart ab, ist das Dock schon wieder da.
+        appleDockHiding?.terminate()
         controller?.close()
         dashboard?.shutdown()
         utilities?.shutdown()
-        appleDockHiding?.terminate()
     }
 
     /// Ignoriert das Standard-SIGTERM (sonst beendet es den Prozess sofort,
