@@ -140,11 +140,12 @@ flag, so this step does not apply.
 ### B) Homebrew (builds from source)
 
 ```sh
+brew trust --tap Silvertree2010/apolloshell   # Homebrew 7 and newer
 brew tap Silvertree2010/apolloshell
 brew install apolloshell
 ```
 
-The formula compiles ApolloShell on your Mac with the Command Line Tools and
+Homebrew 7 loads formulae from third-party taps only after `brew trust`. The formula compiles ApolloShell on your Mac with the Command Line Tools and
 installs `ApolloShell.app` into the Homebrew prefix. `brew info apolloshell` shows
 the caveats: how to link it into `~/Applications`, and how to get a stable
 signature (next section).

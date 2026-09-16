@@ -72,9 +72,12 @@ Beglaubigung („Notarisierung“). Selbst gebaute Apps betrifft das nicht.
 **Homebrew** (baut aus dem Quelltext):
 
 ```sh
+brew trust --tap Silvertree2010/apolloshell   # ab Homebrew 7
 brew tap Silvertree2010/apolloshell
 brew install apolloshell
 ```
+
+Homebrew 7 lädt Formeln aus fremden Taps erst nach `brew trust`.
 
 **Selbst bauen:**
 
