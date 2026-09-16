@@ -225,9 +225,28 @@ struct SidebarRoot: View {
                 width: open ? size.width : 0,
                 height: open ? size.height : StatusPopoutLayout.seedHeight
             )
+            // Band um die Beule: nur dieses Stueck Leiste gehoert zum Glas der
+            // Beule und faerbt sich mit ihr ein. Der Rest der Leiste bleibt,
+            // wie er ist - Glas soll oertlich wirken, nicht die ganze Leiste
+            // auf einmal umfaerben.
+            let band = SidebarGlassBand.around(bulge, joins: StatusPopoutLayout.join, in: geometry.size.height)
             ZStack(alignment: .topLeading) {
-                Color.clear
-                    .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: Sidebar.width, bulge: bulge)))
+                GlassEffectContainer(spacing: StatusPopoutLayout.join) {
+                    ZStack(alignment: .topLeading) {
+                        Color.clear
+                            .modifier(SidebarGlass(shape: SidebarStripShape(barWidth: Sidebar.width, gap: band)))
+                        if band.height > 0.5 {
+                            Color.clear
+                                .frame(width: geometry.size.width, height: band.height)
+                                .offset(y: band.minY)
+                                .modifier(SidebarGlass(shape: SidebarGlassShape(
+                                    barWidth: Sidebar.width,
+                                    bulge: bulge.offsetBy(dx: 0, dy: -band.minY)
+                                )))
+                        }
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+                }
                 SidebarContent(settings: settings, context: context)
                     .frame(width: Sidebar.width)
                     .frame(maxHeight: .infinity)
@@ -273,8 +292,8 @@ struct SidebarRoot: View {
 
 /// Liquid Glass in der Form der Leiste, in Bildproben durch eine feste
 /// Flaeche ersetzt (Glas zeichnet ausserhalb des Bildschirms nur weiss).
-private struct SidebarGlass: ViewModifier {
-    let shape: SidebarGlassShape
+private struct SidebarGlass<S: Shape>: ViewModifier {
+    let shape: S
     @Environment(\.statusPopoutGlassStandIn) private var standIn
     @Environment(\.colorScheme) private var colorScheme
 
@@ -287,7 +306,47 @@ private struct SidebarGlass: ViewModifier {
     }
 }
 
-/// Umriss der Leiste samt Beule: ein durchgehender Pfad, keine zwei
+/// Das Stueck Leiste, das zur Beule gehoert: so hoch wie sie, plus oben und
+/// unten die einwaertsgekruemmten Ecken. Geschlossen ist es leer.
+enum SidebarGlassBand {
+    static func around(_ bulge: CGRect, joins: CGFloat, in height: CGFloat) -> CGRect {
+        guard bulge.width > 0.5, bulge.height > 0.5 else { return .zero }
+        let top = max(0, bulge.minY - joins)
+        let bottom = min(height, bulge.maxY + joins)
+        return CGRect(x: 0, y: top, width: bulge.maxX, height: max(0, bottom - top))
+    }
+}
+
+/// Der Streifen der Leiste mit einer Luecke dort, wo das Glas der Beule
+/// steht: sonst laegen an dieser Stelle zwei Glaeser uebereinander.
+struct SidebarStripShape: Shape {
+    var barWidth: CGFloat
+    var gap: CGRect
+
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(gap.origin.y, gap.size.height) }
+        set { gap = CGRect(x: gap.origin.x, y: newValue.first, width: gap.size.width, height: newValue.second) }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        guard gap.height > 0.5 else {
+            path.addRect(CGRect(x: rect.minX, y: rect.minY, width: barWidth, height: rect.height))
+            return path
+        }
+        let top = max(rect.minY, gap.minY)
+        let bottom = min(rect.maxY, gap.maxY)
+        if top > rect.minY {
+            path.addRect(CGRect(x: rect.minX, y: rect.minY, width: barWidth, height: top - rect.minY))
+        }
+        if bottom < rect.maxY {
+            path.addRect(CGRect(x: rect.minX, y: bottom, width: barWidth, height: rect.maxY - bottom))
+        }
+        return path
+    }
+}
+
+/// Umriss des Bandes samt Beule: ein durchgehender Pfad, keine zwei
 /// uebereinandergelegten Formen (die fuellt SwiftUI je nach Regel mit einem
 /// Loch in der Ueberlappung).
 ///
