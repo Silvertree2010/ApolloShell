@@ -282,15 +282,6 @@ struct SidebarRoot: View {
 /// Liquid Glass in der Form der Leiste, in Bildproben durch eine feste
 /// Flaeche ersetzt (Glas zeichnet ausserhalb des Bildschirms nur weiss).
 private struct SidebarGlass<S: Shape>: ViewModifier {
-    /// Feste Tönung statt reinem Glas: Ohne sie nimmt Liquid Glass die Farbe
-    /// dessen an, was gerade dahinter liegt - die Leiste wechselte je nach
-    /// Fenster darunter. `windowBackgroundColor` ist dynamisch, hell im
-    /// hellen Erscheinungsbild und dunkel im dunklen, wie bei den anderen
-    /// Fenstern.
-    /// 0.85 statt 0.55: Bei 0.55 schlug die Farbe eines Fensters hinter der
-    /// Leiste noch durch, die ganze Leiste wechselte beim Oeffnen die Farbe.
-    private static var tint: Color { Color(nsColor: .windowBackgroundColor).opacity(0.85) }
-
     let shape: S
     @Environment(\.statusPopoutGlassStandIn) private var standIn
     @Environment(\.colorScheme) private var colorScheme
@@ -299,7 +290,13 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
         if standIn {
             content.background(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95), in: shape)
         } else {
-            content.glassEffect(.regular.tint(Self.tint), in: shape)
+            // Systemmaterial statt Liquid Glass: Glas nimmt die Farbe dessen
+            // an, was dahinter liegt - die ganze Leiste wechselte die Farbe,
+            // sobald ein Fenster darunter aufging. Auch eine Toenung bis 0.85
+            // hielt das nicht auf. Material bleibt bei einer Farbe je
+            // Erscheinungsbild und wechselt mit Hell/Dunkel wie die anderen
+            // Fenster.
+            content.background(.regularMaterial, in: shape)
         }
     }
 }
