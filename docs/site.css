@@ -169,18 +169,6 @@ p {
   justify-self: stretch;
   margin-left: var(--gutter);
 }
-.wide {
-  align-self: stretch;
-  padding-inline: var(--gutter);
-}
-.wide > .label {
-  justify-self: end;
-  width: calc((100% - var(--statue)) / 2);
-}
-.wide > .panel-host {
-  width: min(100%, 960px);
-  justify-self: center;
-}
 .intro {
   margin-top: 0;
   min-height: 100svh;
@@ -532,10 +520,6 @@ h1 {
   }
   .gallery .edge-right.right {
     padding-right: 0;
-  }
-  .wide > .label {
-    width: auto;
-    justify-self: stretch;
   }
   .left .plate,
   .right .plate {
