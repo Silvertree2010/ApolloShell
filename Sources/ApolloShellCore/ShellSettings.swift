@@ -94,19 +94,26 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     /// `layout`.
     public struct Bar: Codable, Equatable, Sendable {
         public var layout: BarLayout
+        /// Auf welchen Bildschirmen die Leiste steht (Nexus > Leiste).
+        /// Vorgabe fuer alle - auch fuer vorhandene Installationen: alle.
+        public var screens: ScreenChoice
 
-        public init(layout: BarLayout = BarPreset.caelestia.layout) {
+        public init(layout: BarLayout = BarPreset.caelestia.layout, screens: ScreenChoice = .all) {
             self.layout = layout
+            self.screens = screens
         }
 
         private enum CodingKeys: String, CodingKey {
-            case layout
+            case layout, screens
             // Nur noch gelesen, fuer die Migration.
             case showWorkspaces, showDock, showClock, showStatusIcons, clock
         }
 
         public init(from decoder: any Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
+            // Vor dieser Einstellung gab es den Schluessel nicht; dann alle
+            // Bildschirme. Muss vor dem Ausstieg unten stehen.
+            screens = c.lenient(.screens) ?? .all
             // Auch eine leere Liste ist eine Leiste (alles entfernt) - nur
             // eine fehlende oder unlesbare faellt auf die alten Schalter zurueck.
             if let layout: BarLayout = c.lenient(.layout) {
@@ -125,6 +132,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         public func encode(to encoder: any Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
             try c.encode(layout, forKey: .layout)
+            try c.encode(screens, forKey: .screens)
         }
     }
 
