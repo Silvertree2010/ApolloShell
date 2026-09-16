@@ -30,6 +30,56 @@ struct ThemeLoaderTests {
 
     // MARK: - Aufbau
 
+    @Test("eine verknuepfte .css-Datei ist ein Theme")
+    func symlinkedFile() throws {
+        let root = try tempRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let elsewhere = root.appendingPathComponent("dotfiles")
+        try FileManager.default.createDirectory(at: elsewhere, withIntermediateDirectories: true)
+        let target = try write(":root { --apollo-accent-color: #ff0000; }",
+                               to: elsewhere.appendingPathComponent("Linked.css"))
+        let themes = root.appendingPathComponent("themes")
+        try FileManager.default.createDirectory(at: themes, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: themes.appendingPathComponent("Linked.css"),
+                                                   withDestinationURL: target)
+        let found = ThemeLoader.themes(in: themes)
+        #expect(found.map(\.identifier) == ["Linked"])
+        #expect(found.first?.color(.accent) == ThemeColor(hex: 0xFF0000))
+        #expect(found.first?.issues.isEmpty == true)
+    }
+
+    @Test("ein verknuepfter Theme-Ordner wird gefunden, Bilder darin gelten")
+    func symlinkedFolder() throws {
+        let root = try tempRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let folder = try folderTheme(in: root, named: "Echt", css: """
+        :root { --apollo-background-image: url("bg.png"); }
+        """)
+        try pixel.write(to: folder.appendingPathComponent("bg.png"))
+        let themes = root.appendingPathComponent("themes")
+        try FileManager.default.createDirectory(at: themes, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: themes.appendingPathComponent("Link"),
+                                                   withDestinationURL: folder)
+        let found = ThemeLoader.themes(in: themes)
+        #expect(found.map(\.identifier) == ["Link"])
+        #expect(found.first?.issues.isEmpty == true)
+    }
+
+    @Test("theme.css, die aus dem Ordner hinaus zeigt, gilt nicht")
+    func styleSheetLinkOutsideFolder() throws {
+        let root = try tempRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let outside = try write(":root { --apollo-accent-color: #00ff00; }",
+                                to: root.appendingPathComponent("outside.css"))
+        let folder = root.appendingPathComponent("Fremd")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(
+            at: folder.appendingPathComponent(ThemeLoader.styleSheetName), withDestinationURL: outside)
+        let theme = ThemeLoader.load(at: folder)
+        #expect(theme.color(.accent) != ThemeColor(hex: 0x00FF00))
+        #expect(theme.issues.contains { if case .unreadableFile = $0.kind { true } else { false } })
+    }
+
     @Test("eine einzelne .css-Datei ist ein Theme")
     func singleFile() throws {
         let root = try tempRoot()

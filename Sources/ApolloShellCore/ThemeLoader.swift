@@ -142,7 +142,17 @@ public enum ThemeLoader {
         }
         let sheet = isDirectory.boolValue ? url.appendingPathComponent(styleSheetName) : url
         let assets = isDirectory.boolValue ? ThemeAssetResolver.folder(url, limits: limits) : .none
-        guard let attributes = try? manager.attributesOfItem(atPath: sheet.path),
+        // Verknuepfungen gelten (Themes aus einem Dotfiles-Ordner). Die
+        // theme.css eines Ordners muss danach aber im Ordner liegen, wie
+        // seine Bilder.
+        let resolved = sheet.resolvingSymlinksInPath().standardizedFileURL
+        if isDirectory.boolValue {
+            let root = url.resolvingSymlinksInPath().standardizedFileURL
+            guard resolved.path.hasPrefix(root.path + "/") else {
+                return fallback(.unreadableFile(sheet.lastPathComponent))
+            }
+        }
+        guard let attributes = try? manager.attributesOfItem(atPath: resolved.path),
               (attributes[.type] as? FileAttributeType) == .typeRegular else {
             return fallback(.unreadableFile(sheet.lastPathComponent))
         }
@@ -150,8 +160,16 @@ public enum ThemeLoader {
         guard size <= limits.maxStyleSheetBytes else {
             return fallback(.styleSheetTooLarge(bytes: size, limit: limits.maxStyleSheetBytes))
         }
-        guard let data = try? Data(contentsOf: sheet) else {
+        // Hoechstens eins ueber der Grenze lesen: waechst die Datei zwischen
+        // Messen und Lesen, bleibt die Grenze trotzdem.
+        guard let handle = try? FileHandle(forReadingFrom: resolved),
+              let data = try? handle.read(upToCount: limits.maxStyleSheetBytes + 1) ?? Data()
+        else {
             return fallback(.unreadableFile(sheet.lastPathComponent))
+        }
+        try? handle.close()
+        guard data.count <= limits.maxStyleSheetBytes else {
+            return fallback(.styleSheetTooLarge(bytes: data.count, limit: limits.maxStyleSheetBytes))
         }
         let (text, issue) = decode(data)
         guard let text else {
@@ -177,7 +195,9 @@ public enum ThemeLoader {
         }
         var result: [Theme] = []
         for entry in sorted {
-            let isDirectory = (try? entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+            // Durch Verknuepfungen hindurch: ein verlinkter Ordner ist auch einer.
+            let isDirectory = (try? entry.resolvingSymlinksInPath()
+                .resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             if isDirectory {
                 guard manager.fileExists(atPath: entry.appendingPathComponent(styleSheetName).path) else { continue }
             } else {
