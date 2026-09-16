@@ -1,0 +1,131 @@
+/* Everything - a theme folder with every token in it.
+ *
+ * Each token is set to its built-in value, so this file looks exactly like
+ * ApolloShell without a theme. Copy the folder, change what you like, and
+ * delete the lines you do not need: a token that is not mentioned keeps its
+ * built-in value, in this version and in every later one.
+ *
+ * The two images next to this file are placeholders. Images must live inside
+ * the theme folder; see docs/THEMES.md. */
+
+:root {
+  /* Metadata */
+  --apollo-theme-format: 1;
+  --apollo-theme-name: "Everything";
+  --apollo-theme-author: "Alex";
+  --apollo-theme-description: "Every token at its default value";
+  --apollo-theme-version: "1.0.0";
+  --apollo-theme-homepage: "https://example.com/themes/everything";
+  --apollo-theme-author-image: url("author.png");
+  --apollo-theme-appearance: auto;
+
+  /* Surfaces */
+  --apollo-background-color: #e8e8ed;
+  --apollo-background-image: url("background.png");
+  --apollo-background-image-opacity: 1;
+  --apollo-background-fit: fill;
+  --apollo-surface-color: #ffffff;
+  --apollo-surface-opacity: 1;
+  --apollo-elevated-surface-color: #f5f5f7;
+  --apollo-separator-color: #d8d8dc;
+  --apollo-border-color: #d0d0d4;
+  --apollo-border-width: 1px;
+  --apollo-shadow-opacity: 0.18;
+
+  /* Text */
+  --apollo-text-color: #1c1c1e;
+  --apollo-secondary-text-color: #6b6b70;
+  --apollo-muted-text-color: #8e8e93;
+  --apollo-link-color: #0060df;
+  --apollo-on-accent-color: #ffffff;
+
+  /* Accent and state */
+  --apollo-accent-color: #007aff;
+  --apollo-secondary-accent-color: #5e5ce6;
+  --apollo-selection-color: #d6e4ff;
+  --apollo-hover-color: #00000014;
+  --apollo-success-color: #34c759;
+  --apollo-warning-color: #c77700;
+  --apollo-danger-color: #d70015;
+
+  /* Sidebar */
+  --apollo-bar-color: #f5f5f7;
+  --apollo-bar-opacity: 1;
+  --apollo-bar-text-color: #1c1c1e;
+  --apollo-bar-icon-color: #3c3c43;
+  --apollo-bar-width: 56px;
+  --apollo-bar-radius: 16px;
+  --apollo-bar-padding: 8px;
+  --apollo-bar-item-spacing: 6px;
+  --apollo-bar-blur: 24px;
+
+  /* Dock */
+  --apollo-dock-icon-size: 32px;
+  --apollo-dock-spacing: 6px;
+  --apollo-dock-indicator-color: #8e8e93;
+
+  /* Panels */
+  --apollo-panel-color: #ffffff;
+  --apollo-panel-opacity: 1;
+  --apollo-panel-radius: 20px;
+  --apollo-panel-padding: 16px;
+  --apollo-panel-blur: 24px;
+  --apollo-card-color: #f2f2f7;
+  --apollo-card-radius: 14px;
+
+  /* Launcher */
+  --apollo-launcher-highlight-color: #e5efff;
+  --apollo-launcher-row-height: 40px;
+
+  /* Typography */
+  --apollo-font-family: "";
+  --apollo-monospace-font-family: "";
+  --apollo-font-size: 13px;
+  --apollo-font-weight: 400;
+
+  /* Shape and motion */
+  --apollo-corner-radius: 12px;
+  --apollo-control-radius: 8px;
+  --apollo-spacing: 12px;
+  --apollo-animation-speed: 1;
+  --apollo-animations: true;
+  --apollo-glass: true;
+  --apollo-shadows: true;
+  --apollo-icon-style: auto;
+
+  /* Toasts */
+  --apollo-toast-color: #1c1c1e;
+  --apollo-toast-text-color: #ffffff;
+  --apollo-toast-radius: 14px;
+}
+
+/* Only what differs in dark mode. Everything else is inherited from :root. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --apollo-background-color: #101014;
+    --apollo-surface-color: #1c1c1e;
+    --apollo-elevated-surface-color: #2a2a2d;
+    --apollo-separator-color: #3a3a3d;
+    --apollo-border-color: #3f3f43;
+    --apollo-shadow-opacity: 0.45;
+    --apollo-text-color: #f5f5f7;
+    --apollo-secondary-text-color: #aeaeb2;
+    --apollo-link-color: #6cb6ff;
+    --apollo-accent-color: #0a84ff;
+    --apollo-secondary-accent-color: #7d7aff;
+    --apollo-selection-color: #234a77;
+    --apollo-hover-color: #ffffff1a;
+    --apollo-success-color: #30d158;
+    --apollo-warning-color: #ffd60a;
+    --apollo-danger-color: #ff453a;
+    --apollo-bar-color: #1c1c1e;
+    --apollo-bar-text-color: #f5f5f7;
+    --apollo-bar-icon-color: #e5e5ea;
+    --apollo-dock-indicator-color: #aeaeb2;
+    --apollo-panel-color: #1e1e20;
+    --apollo-card-color: #2a2a2d;
+    --apollo-launcher-highlight-color: #2a3c55;
+    --apollo-toast-color: #f5f5f7;
+    --apollo-toast-text-color: #1c1c1e;
+  }
+}

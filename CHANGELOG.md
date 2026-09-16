@@ -10,6 +10,12 @@ First public release.
 
 ### Added
 
+- **Themes** as CSS files in
+  `~/Library/Application Support/ApolloShell/themes`: a single `.css` or a
+  folder with `theme.css` and images next to it. Tokens for colours, sizes,
+  fonts and metadata, a dark-mode block, and guarantees that keep old themes
+  working - see [docs/THEMES.md](docs/THEMES.md). Reading and checking them is
+  in place; applying them to the interface comes next.
 - **Sidebar** built from blocks:
   - blocks: dashboard button, Spaces, dock, clock, utilities button, status
     icons, power, spacers, gaps, dividers, app buttons, battery, CPU, weather
