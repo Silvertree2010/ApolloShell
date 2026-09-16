@@ -9,7 +9,7 @@
 class Apolloshell < Formula
   desc "Caelestia-inspired desktop shell for macOS: sidebar dock, launcher, dashboard"
   homepage "https://github.com/OWNER/ApolloShell"
-  url "https://github.com/OWNER/ApolloShell/archive/refs/tags/v0.1.0.tar.gz"
+  url "https://github.com/OWNER/ApolloShell/archive/refs/tags/v0.1.1.tar.gz"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   license "MIT"
   head "https://github.com/OWNER/ApolloShell.git", branch: "main"

@@ -28,7 +28,7 @@
 > Caelestia authors. It contains no Caelestia code.
 
 > [!IMPORTANT]
-> Version 0.1.0 is an early release. The interface is in English and German
+> Version 0.1.1 is an early release. The interface is in English and German
 > (see [Language](#language)). ApolloShell relies on private macOS interfaces
 > (see [below](#private-apis)) and may break with macOS updates.
 

@@ -4,18 +4,65 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] - 2026-09-16
+
+### Added
+
+- **A bar on every screen** (Nexus → Bar → Screens: all, main screen only,
+  or one screen). Dashboard, utilities, launcher, session menu and toasts
+  open on the screen the pointer is on.
+- **Bar background** setting (Nexus → Bar): system material (default),
+  Liquid Glass, tinted Liquid Glass, or Liquid Glass on a solid surface.
+- **Status popouts** (Wi-Fi, Bluetooth, battery) grow out of the bar as one
+  surface.
+- **Themes** as CSS files in
+  `~/Library/Application Support/ApolloShell/themes`: a single `.css` or a
+  folder with `theme.css` and images next to it. Tokens for colours, sizes,
+  fonts and metadata, a dark-mode block, and guarantees that keep old themes
+  working - see [docs/THEMES.md](docs/THEMES.md). Symlinked themes work.
+  Reading and checking them is in place; applying them to the interface
+  comes next.
+- **Keep awake with the lid closed** without repeated password prompts: the
+  first administrator prompt adds `/etc/sudoers.d/apolloshell`, which allows
+  only `pmset -a disablesleep 1` and `0`. Nexus → Quick Actions shows the
+  rule and can remove it.
+
+### Changed
+
+- **Dock clicks** follow Apple's Dock: launch, bring forward, restore the
+  last minimized window, or open a new one. A window on the current desktop
+  wins over windows on other desktops, so a click no longer jumps to
+  another desktop. Clicking the app that is already in front only brings
+  up a window that another app covers.
+- **Fullscreen** is detected per screen from its active space, without the
+  Accessibility permission. A fullscreen video stays free of the bar while
+  you work on another screen.
+
+### Fixed
+
+- The bar could disappear from all desktops but one after leaving
+  fullscreen.
+- A theme with a huge number crashed the app.
+- The contrast fix for theme text replaced colours with pure black on
+  mid-light backgrounds.
+- Clicking an app without visible windows could fail to open one when the
+  app kept closed windows in memory.
+- Toasts could end up off-screen after a display was unplugged.
+- Quitting during the lid-closed administrator prompt could leave lid sleep
+  disabled for good.
+- The Apple Dock is no longer hidden when its original settings could not be
+  saved, and it is restored first when ApolloShell quits.
+- Unreadable `settings.json` and `usage.json` files are kept as
+  `*.unreadable` instead of being overwritten.
+- The session menu runs only one command per opening.
+- A relaunch after a language change could end with no ApolloShell running.
+
 ## [0.1.0] - Unreleased
 
 First public release.
 
 ### Added
 
-- **Themes** as CSS files in
-  `~/Library/Application Support/ApolloShell/themes`: a single `.css` or a
-  folder with `theme.css` and images next to it. Tokens for colours, sizes,
-  fonts and metadata, a dark-mode block, and guarantees that keep old themes
-  working - see [docs/THEMES.md](docs/THEMES.md). Reading and checking them is
-  in place; applying them to the interface comes next.
 - **Sidebar** built from blocks:
   - blocks: dashboard button, Spaces, dock, clock, utilities button, status
     icons, power, spacers, gaps, dividers, app buttons, battery, CPU, weather
@@ -78,4 +125,5 @@ First public release.
 - The Intel (x86_64) build has not been tested on Intel hardware.
 - Relies on private macOS interfaces that may change with macOS updates.
 
+[0.1.1]: https://github.com/OWNER/ApolloShell/releases/tag/v0.1.1
 [0.1.0]: https://github.com/OWNER/ApolloShell/releases/tag/v0.1.0

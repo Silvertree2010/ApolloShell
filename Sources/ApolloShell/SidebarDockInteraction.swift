@@ -369,7 +369,7 @@ enum DockWindows {
         dockLog.notice("""
             heben id=\(window.windowID ?? 0, privacy: .public) \
             vorne=\(frontmost.rawValue, privacy: .public) main=\(main.rawValue, privacy: .public) \
-            raise=\(raised.rawValue, privacy: .public) titel=\(window.title, privacy: .public)
+            raise=\(raised.rawValue, privacy: .public) titel=\(window.title, privacy: .private)
             """)
     }
 
