@@ -418,6 +418,38 @@ enum DockWindows {
         }
         return ids
     }
+
+    /// Vorderstes Fenster der App auf dem Bildschirm unter der Maus (dort,
+    /// wo geklickt wurde - so braucht es keine Durchreichung, welcher
+    /// Bildschirm das ist, durch die Ansichten), das dort von einem fremden
+    /// Fenster verdeckt liegt (`DockWindowCover`). `nil`: nichts verdeckt,
+    /// auch bei nur einem Fenster oder mehreren frei nebeneinander.
+    @MainActor
+    static func coveredWindowID(pid: pid_t) -> CGWindowID? {
+        guard let info = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]],
+              let primaryHeight = NSScreen.screens.first?.frame.height,
+              let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }) ?? NSScreen.main
+        else { return nil }
+        let ownPID = Int(ProcessInfo.processInfo.processIdentifier)
+        let windows: [DockScreenWindow] = info.compactMap { entry in
+            guard let ownerPID = entry[kCGWindowOwnerPID as String] as? Int,
+                  let layer = entry[kCGWindowLayer as String] as? Int,
+                  let number = entry[kCGWindowNumber as String] as? Int,
+                  let bounds = entry[kCGWindowBounds as String] as? [String: Any],
+                  let x = bounds["X"] as? Double, let y = bounds["Y"] as? Double,
+                  let width = bounds["Width"] as? Double, let height = bounds["Height"] as? Double
+            else { return nil }
+            // CGWindowListCopyWindowInfo zaehlt von oben links nach unten,
+            // NSScreen von unten links nach oben (Apple-Standard) - nur fuers
+            // Zuordnen zum Bildschirm unter der Maus noetig, die Ueberlappung
+            // selbst rechnet unabhaengig vom Koordinatensystem.
+            let cocoaCenter = CGPoint(x: x + width / 2, y: primaryHeight - y - height / 2)
+            guard screen.frame.contains(cocoaCenter) else { return nil }
+            let owner: DockScreenWindow.Owner = pid_t(ownerPID) == pid ? .target : (ownerPID == ownPID ? .ownShell : .other)
+            return DockScreenWindow(id: number, owner: owner, layer: layer, x: x, y: y, width: width, height: height)
+        }
+        return DockWindowCover.nextCovered(in: windows).map(CGWindowID.init)
+    }
 }
 
 /// Fensternummer (`CGWindowID`) einer Bedienungshilfen-Referenz - private

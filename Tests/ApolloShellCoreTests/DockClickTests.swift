@@ -6,12 +6,13 @@ struct DockClickTests {
     /// Kurzform, damit die Faelle unten lesbar bleiben.
     private static func state(
         running: Bool, launching: Bool = false, frontmost: Bool, hidden: Bool = false,
-        here: Int = 0, elsewhere: Int = 0, minimized: Int = 0, command: Bool = false, option: Bool = false
+        here: Int = 0, elsewhere: Int = 0, minimized: Int = 0, covered: Bool = false,
+        command: Bool = false, option: Bool = false
     ) -> DockClickState {
         DockClickState(
             running: running, launching: launching, frontmost: frontmost, hidden: hidden,
             windowsOnActiveSpace: here, windowsElsewhere: elsewhere, minimizedWindows: minimized,
-            command: command, option: option
+            hasCoveredWindow: covered, command: command, option: option
         )
     }
 
@@ -54,6 +55,18 @@ struct DockClickTests {
     @Test("Schon vorne, Fenster hier und woanders: trotzdem nichts tun (hier reicht)")
     func frontmostHereAndElsewhereDoesNothing() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: true, here: 1, elsewhere: 3))
+        #expect(actions.isEmpty)
+    }
+
+    @Test("Schon vorne, ein Fenster hier ist verdeckt: das vorderste verdeckte nach vorne")
+    func frontmostCoveredWindowRaises() {
+        let actions = DockClick.actions(for: Self.state(running: true, frontmost: true, here: 2, covered: true))
+        #expect(actions == [.raiseCoveredWindow])
+    }
+
+    @Test("Schon vorne, Fenster hier alle frei sichtbar (nebeneinander): nichts tun, kein Blaettern")
+    func frontmostSideBySideDoesNothing() {
+        let actions = DockClick.actions(for: Self.state(running: true, frontmost: true, here: 2, covered: false))
         #expect(actions.isEmpty)
     }
 

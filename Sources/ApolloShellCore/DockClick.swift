@@ -19,6 +19,11 @@ public struct DockClickState: Equatable, Sendable {
     /// Minimierte Fenster (im Dock abgelegt) - Space zaehlt hier nicht,
     /// die liegen ohnehin nirgends sichtbar.
     public let minimizedWindows: Int
+    /// Ist sie schon vorne und hat hier ein Fenster: liegt mindestens eins
+    /// davon unter einem fremden Fenster (`DockWindowCover`)? Nur dann
+    /// blaettert der Klick - sein Wunsch woertlich: nicht blaettern, wenn
+    /// mehrere Fenster nur nebeneinander offen sind.
+    public let hasCoveredWindow: Bool
     /// ⌘ gedrueckt.
     public let command: Bool
     /// ⌥ gedrueckt.
@@ -26,7 +31,8 @@ public struct DockClickState: Equatable, Sendable {
 
     public init(
         running: Bool, launching: Bool = false, frontmost: Bool, hidden: Bool,
-        windowsOnActiveSpace: Int, windowsElsewhere: Int, minimizedWindows: Int, command: Bool, option: Bool
+        windowsOnActiveSpace: Int, windowsElsewhere: Int, minimizedWindows: Int, hasCoveredWindow: Bool = false,
+        command: Bool, option: Bool
     ) {
         self.running = running
         self.launching = launching
@@ -35,6 +41,7 @@ public struct DockClickState: Equatable, Sendable {
         self.windowsOnActiveSpace = windowsOnActiveSpace
         self.windowsElsewhere = windowsElsewhere
         self.minimizedWindows = minimizedWindows
+        self.hasCoveredWindow = hasCoveredWindow
         self.command = command
         self.option = option
     }
@@ -54,6 +61,10 @@ public enum DockClickAction: Equatable, Sendable {
     /// vorne holen (aktiviert die App gleich mit) statt auf den Space eines
     /// anderen Fensters zu wechseln.
     case raiseWindowOnActiveSpace
+    /// Schon vorne, aber eins ihrer Fenster hier liegt unter einem fremden:
+    /// das vorderste verdeckte nach vorne (`DockWindowCover` bestimmt,
+    /// welches - hier steht nur, dass es dazu kommt).
+    case raiseCoveredWindow
     /// Das zuletzt abgelegte Fenster aus dem Dock zurueckholen.
     case unminimizeLast
     /// Kein Fenster offen: ein neues (wie Apples "reopen").
@@ -87,7 +98,10 @@ public enum DockClick {
         if !state.running {
             actions.append(.launch)
         } else if state.frontmost, state.windowsOnActiveSpace > 0 {
-            // Schon vorne und hier ein Fenster: nichts tun (Punkt 3).
+            // Schon vorne und hier ein Fenster: normalerweise nichts (Punkt
+            // 3) - ausser eins davon ist verdeckt, dann holt der Klick
+            // wenigstens das ans Licht statt gar nichts zu tun.
+            if state.hasCoveredWindow { actions.append(.raiseCoveredWindow) }
         } else {
             actions.append(contentsOf: raiseActions(state))
         }

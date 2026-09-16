@@ -1,6 +1,7 @@
 import AppKit
 import ApolloShellCore
 import ApplicationServices
+import CoreGraphics
 import Observation
 import os
 import SwiftUI
@@ -185,14 +186,24 @@ final class SidebarDockModel {
                 .count
         } ?? 0
         let previous = NSWorkspace.shared.frontmostApplication
+        let frontmost = app != nil && app?.processIdentifier == previous?.processIdentifier
+        // Nur nachsehen, wenn es ueberhaupt zur Frage kommt (eigener
+        // Bildschirm-Aufruf): schon vorne, mit mindestens einem Fenster hier.
+        // Sein Wunsch woertlich: beim Klick auf die schon vordere App nur
+        // blaettern, wenn wirklich etwas im Weg liegt, nicht bei mehreren
+        // frei nebeneinander liegenden Fenstern.
+        let coveredWindowID: CGWindowID? = (frontmost && !onActiveSpace.isEmpty)
+            ? app.flatMap { DockWindows.coveredWindowID(pid: $0.processIdentifier) }
+            : nil
         let state = DockClickState(
             running: app != nil,
             launching: launching.contains(entry.bundleID),
-            frontmost: app != nil && app?.processIdentifier == previous?.processIdentifier,
+            frontmost: frontmost,
             hidden: app?.isHidden ?? false,
             windowsOnActiveSpace: onActiveSpace.count,
             windowsElsewhere: elsewhere,
             minimizedWindows: windows.count(where: \.minimized),
+            hasCoveredWindow: coveredWindowID != nil,
             command: command,
             option: option
         )
@@ -204,7 +215,7 @@ final class SidebarDockModel {
             Dock-Klick \(entry.bundleID, privacy: .public): laeuft=\(state.running, privacy: .public) \
             vorne=\(state.frontmost, privacy: .public) hier=\(state.windowsOnActiveSpace, privacy: .public) \
             woanders=\(state.windowsElsewhere, privacy: .public) minimiert=\(state.minimizedWindows, privacy: .public) \
-            -> \(String(describing: actions), privacy: .public)
+            verdeckt=\(state.hasCoveredWindow, privacy: .public) -> \(String(describing: actions), privacy: .public)
             """)
         for action in actions {
             switch action {
@@ -218,6 +229,10 @@ final class SidebarDockModel {
                 // Das vorderste hiesige Fenster: es bringt die App gleich
                 // mit nach vorne, kein zusaetzliches `.activate` noetig.
                 if let app, let window = onActiveSpace.first {
+                    DockWindows.raise(window, of: app)
+                }
+            case .raiseCoveredWindow:
+                if let app, let coveredWindowID, let window = windows.first(where: { $0.windowID == coveredWindowID }) {
                     DockWindows.raise(window, of: app)
                 }
             case .unminimizeLast:
