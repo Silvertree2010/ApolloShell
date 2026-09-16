@@ -1,5 +1,6 @@
 import AppKit
 import ApolloShellCore
+import ApplicationServices
 import Observation
 import os
 import SwiftUI
@@ -154,27 +155,56 @@ final class SidebarDockModel {
     }
 
     /// Klick auf ein Symbol, mit den Modifikatoren von Apples Dock
-    /// (`DockClickAction`).
+    /// (`DockClickAction`). Der Zustand (laeuft, vorne, Fenster) geht in die
+    /// reine Entscheidung `DockClick.actions`, hier wird nur ausgefuehrt.
     func click(_ entry: Entry, modifiers: NSEvent.ModifierFlags) {
         guard live else { return }
-        switch DockClickAction.action(command: modifiers.contains(.command), option: modifiers.contains(.option)) {
-        case .open:
-            if !cycleWindows(of: entry) { open(entry) }
-        case .openHidingPrevious:
-            let previous = NSWorkspace.shared.frontmostApplication
-            open(entry)
-            if let previous, previous.bundleIdentifier != entry.bundleID, previous.bundleIdentifier != ownBundleID {
-                previous.hide()
+        perform(entry, command: modifiers.contains(.command), option: modifiers.contains(.option))
+    }
+
+    /// Baut den Zustand fuer `entry`, laesst `DockClick` entscheiden und
+    /// fuehrt die Aktionen der Reihe nach aus.
+    private func perform(_ entry: Entry, command: Bool, option: Bool) {
+        let app = runningApp(entry.bundleID)
+        let windows = app.map { DockWindows.list(pid: $0.processIdentifier) } ?? []
+        let previous = NSWorkspace.shared.frontmostApplication
+        let state = DockClickState(
+            running: app != nil,
+            launching: launching.contains(entry.bundleID),
+            frontmost: app != nil && app?.processIdentifier == previous?.processIdentifier,
+            hidden: app?.isHidden ?? false,
+            normalWindows: windows.count(where: { !$0.minimized }),
+            minimizedWindows: windows.count(where: \.minimized),
+            command: command,
+            option: option
+        )
+        for action in DockClick.actions(for: state) {
+            switch action {
+            case .launch:
+                open(entry)
+            case .unhide:
+                _ = app?.unhide()
+            case .activate:
+                app?.activate()
+            case .unminimizeLast:
+                // Keine Zeitstempel ueber die Bedienungshilfen: das
+                // vorderste minimierte Fenster in der Liste steht dem
+                // "zuletzt abgelegten" am naechsten (war vor dem Minimieren
+                // vorne).
+                if let last = windows.first(where: \.minimized) {
+                    AXUIElementSetAttributeValue(last.element, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+                }
+            case .newWindow:
+                if let app, let command = DockAppCommands.newItems(pid: app.processIdentifier).first {
+                    DockAppCommands.press(command, of: app)
+                }
+            case .hidePrevious:
+                if let previous, previous.bundleIdentifier != entry.bundleID, previous.bundleIdentifier != ownBundleID {
+                    previous.hide()
+                }
+            case .reveal:
+                reveal(entry)
             }
-        case .openHidingOthers:
-            open(entry)
-            for app in NSWorkspace.shared.runningApplications
-            where app.activationPolicy == .regular
-                && app.bundleIdentifier != entry.bundleID && app.bundleIdentifier != ownBundleID {
-                app.hide()
-            }
-        case .reveal:
-            reveal(entry)
         }
     }
 
@@ -213,7 +243,7 @@ final class SidebarDockModel {
     /// Scrollen nicht (versehentlich beim Vorbeiwischen).
     func scroll(_ entry: Entry) {
         guard live, runningApp(entry.bundleID) != nil else { return }
-        if !cycleWindows(of: entry) { open(entry) }
+        if !cycleWindows(of: entry) { perform(entry, command: false, option: false) }
     }
 
     // MARK: Anheften, Entfernen, Verschieben (schreibt Apples Dock-Liste)
