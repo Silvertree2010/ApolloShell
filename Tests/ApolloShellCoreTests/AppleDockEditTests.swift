@@ -37,7 +37,9 @@ struct AppleDockEditTests {
 
     @Test("neu anheften: Kachel im Format von Apples Dock")
     func add() {
-        let url = URL(fileURLWithPath: "/Applications/WhatsApp.app")
+        // Ein Pfad, den es nicht gibt: das Ergebnis darf nicht davon abhaengen,
+        // was auf diesem Mac installiert ist.
+        let url = URL(fileURLWithPath: "/Applications/Not Installed \(UUID().uuidString).app")
         let result = AppleDockPrefs.placing("net.whatsapp.WhatsApp", at: .before("b"), in: tiles(["a", "b"])) {
             AppleDockPrefs.tile(bundleID: "net.whatsapp.WhatsApp", url: url, label: "WhatsApp", guid: 7)
         }
@@ -48,7 +50,9 @@ struct AppleDockEditTests {
         #expect(tile?["GUID"] as? Int == 7)
         #expect(data?["file-label"] as? String == "WhatsApp")
         #expect(data?["file-type"] as? Int == 41)
-        #expect((data?["file-data"] as? [String: Any])?["_CFURLString"] as? String == "file:///Applications/WhatsApp.app/")
+        let urlString = (data?["file-data"] as? [String: Any])?["_CFURLString"] as? String
+        #expect(urlString?.hasPrefix("file:///Applications/Not%20Installed%20") == true)
+        #expect(urlString?.hasSuffix(".app/") == true)
         // Und die Leiste liest sie wieder richtig.
         #expect(AppleDockPrefs.pinnedBundleIDs(result) == ["com.apple.finder", "a", "net.whatsapp.WhatsApp", "b"])
     }

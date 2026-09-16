@@ -41,14 +41,18 @@ public enum AppleDockPrefs {
     /// (gemessen an vorhandenen Eintraegen: tile-type, tile-data mit Bundle-ID,
     /// Name, file-type 41 = App, URL als Zeichenkette Typ 15, dazu eine GUID).
     public static func tile(bundleID: String, url: URL, label: String, guid: Int) -> [String: Any] {
-        [
+        // Apps sind Ordner, Apples Dock schreibt sie mit "/" am Ende. Ob
+        // `url` das schon hat, haengt sonst davon ab, ob die App gerade auf
+        // der Platte liegt.
+        let appURL = URL(fileURLWithPath: url.path, isDirectory: true)
+        return [
             "GUID": guid,
             "tile-type": "file-tile",
             "tile-data": [
                 "bundle-identifier": bundleID,
                 "file-label": label,
                 "file-type": 41,
-                "file-data": ["_CFURLString": url.absoluteString, "_CFURLStringType": 15],
+                "file-data": ["_CFURLString": appURL.absoluteString, "_CFURLStringType": 15],
             ] as [String: Any],
         ]
     }
