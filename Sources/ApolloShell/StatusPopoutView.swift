@@ -23,101 +23,23 @@ extension EnvironmentValues {
     }
 }
 
-/// Die Buehne: ein Glas-Panel, das aus der Leiste herauswaechst
+/// Masse der Ausbeulung, mit der die Leiste das Popout zeigt
 /// (Caelestia: ClipWrapper + Wrapper + Content).
 ///
-/// Leiste und Popout liegen im selben Fenster und im selben
-/// `GlassEffectContainer` (`SidebarRoot`). Das Glas des Popouts ragt um
-/// `overlap` in die Leiste hinein; der Container verschmilzt beide zu einer
-/// Glasflaeche, die Leiste woelbt sich aus.
-///
-/// - Geschlossen: ein Glas-Keim, etwa so hoch wie ein Statussymbol, ganz in
-///   der Leiste und auf Hoehe des Symbols - mit ihr verschmolzen, also
-///   unsichtbar.
-/// - Oeffnen: der Keim waechst nach rechts und in die Hoehe bis zum vollen
-///   Popout, der Inhalt blendet ein. So kommt es aus dem Symbol heraus.
-/// - Wechseln: Breite, Hoehe und Lage gleiten zur neuen Groesse, der alte
-///   Inhalt blendet in 200 ms aus, der neue in 300 ms ein.
-///
-/// Alle drei Inhalte sind immer aufgebaut (nur unsichtbar): so ist die
-/// Groesse des naechsten schon gemessen, bevor man wechselt, und die
-/// Groessenbewegung startet sofort am richtigen Ziel.
-///
-/// Koordinaten: die Buehne beginnt `overlap` links der rechten
-/// Leistenkante, oben = Fensteroberkante.
-struct StatusPopoutStage: View {
+/// Leiste und Popout sind EINE Glasflaeche (`SidebarGlassShape`): zwei
+/// getrennte Glaeser nebeneinander faerben sich verschieden ein - jedes
+/// nimmt die Farbe dessen an, was hinter ihm liegt - und zeigen an der
+/// Naht eine Kante. Deshalb zeichnet die Leiste ihr Glas als eine Form,
+/// die sich beim Oeffnen auswoelbt.
+enum StatusPopoutLayout {
+    /// Ecken der Ausbeulung.
     static let cornerRadius: CGFloat = 25
-    /// So weit reicht das Glas in die Leiste hinein.
-    static let overlap: CGFloat = cornerRadius
-    /// Hoehe des Keims im geschlossenen Zustand.
+    /// Hoehe der Beule im geschlossenen Zustand: null, sie sitzt in der
+    /// Leiste.
     static let seedHeight: CGFloat = 30
-
-    let model: StatusPopoutModel
-    /// Mitte des angeklickten Symbols, von der Fensteroberkante gemessen.
-    let anchorY: CGFloat
-    @State private var sizes: [StatusPopoutKind: CGSize] = [:]
-
-    var body: some View {
-        GeometryReader { geometry in
-            let r = Self.cornerRadius
-            let size = sizes[model.shown] ?? CGSize(width: StatusPopoutContent.width(model.shown), height: 200)
-            let open = model.isOpen
-            let openTop = StatusPopoutPlacement.top(
-                anchorY: anchorY, height: size.height, containerHeight: geometry.size.height
-            )
-            let glassTop = open ? openTop : anchorY - Self.seedHeight / 2
-            let glassHeight = open ? size.height : Self.seedHeight
-            let glassWidth = Self.overlap + (open ? size.width : 0)
-            // Der Inhalt ist der Inhalt des Glases selbst: nur so zeichnet
-            // SwiftUI ihn ueber dem Glas. Als Geschwister im Container lag er
-            // darunter.
-            ZStack {
-                ForEach(StatusPopoutKind.allCases, id: \.self) { kind in
-                    let active = open && model.shown == kind
-                    StatusPopoutContent(model: model, kind: kind)
-                        .fixedSize()
-                        .onGeometryChange(for: CGSize.self) { $0.size } action: { sizes[kind] = $0 }
-                        .opacity(active ? 1 : 0)
-                        .animation(active ? StatusPopoutMotion.fadeIn : StatusPopoutMotion.fadeOut, value: active)
-                        .allowsHitTesting(active)
-                        .accessibilityHidden(!active)
-                }
-            }
-            .frame(width: size.width, height: size.height)
-            // Steht still (auf seiner offenen Lage im Fenster) und wird vom
-            // wachsenden Glas aufgedeckt.
-            .offset(x: Self.overlap, y: openTop - glassTop)
-            .frame(width: glassWidth, height: glassHeight, alignment: .topLeading)
-            .clipShape(.rect(cornerRadius: r))
-            .modifier(StatusPopoutGlass(cornerRadius: r))
-            .padding(.top, glassTop)
-            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
-            // Sichtbarer Teil ab der rechten Leistenkante, fuer den Klicktest
-            // "ausserhalb".
-            .onGeometryChange(for: CGRect.self) { _ in
-                CGRect(x: 0, y: glassTop, width: open ? size.width : 0, height: glassHeight)
-            } action: { model.panelFrame = $0 }
-        }
-    }
-}
-
-/// Liquid Glass hinter dem Inhalt, in Bildproben durch eine feste Flaeche
-/// ersetzt.
-private struct StatusPopoutGlass: ViewModifier {
-    let cornerRadius: CGFloat
-    @Environment(\.statusPopoutGlassStandIn) private var standIn
-    @Environment(\.colorScheme) private var colorScheme
-
-    func body(content: Content) -> some View {
-        if standIn {
-            content.background(
-                colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95),
-                in: .rect(cornerRadius: cornerRadius)
-            )
-        } else {
-            content.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        }
-    }
+    /// Radius der einwaertsgekruemmten Ecken, mit denen die Beule in die
+    /// Leiste uebergeht.
+    static let join: CGFloat = 14
 }
 
 /// Inhalt eines Detailfensters, fest breit, Hoehe aus dem Inhalt.
