@@ -32,8 +32,15 @@ scripts/make-dmg.sh
 
 - If the build complains about a *precompiled file* and the *module cache
   path*, remove the build folder with `rm -rf .build` and build again.
-- For a stable signature, run `scripts/setup-signing.sh` once. It keeps the
-  Accessibility grant across rebuilds (see the README).
+- For a stable signature, run `scripts/setup-signing.sh` once. macOS ties the
+  Accessibility grant to the code signature, and without this certificate
+  every build gets a new ad-hoc signature, so you would have to grant it again
+  after each build.
+- `./build.sh` quits a running copy and opens the new one. If you start
+  ApolloShell with your own launchd agent, put
+  `APOLLOSHELL_LAUNCHD_LABEL=<label>` into a `.local.env` next to `build.sh`
+  (ignored by git) and it restarts that agent instead.
+- `ARCHS=arm64 scripts/make-dmg.sh` builds an Apple-silicon-only image.
 
 ## Project layout
 

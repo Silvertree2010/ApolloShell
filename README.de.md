@@ -166,7 +166,7 @@ ApolloShell nutzt nicht dokumentierte Schnittstellen von macOS:
   Ausblenden des Docks)
 
 macOS-Updates können einzelne Funktionen stilllegen. Details stehen in der
-[englischen README](README.md#private-apis).
+[englischen README](README.md#good-to-know).
 
 ## Tastenkürzel
 
