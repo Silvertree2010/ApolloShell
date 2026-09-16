@@ -12,7 +12,7 @@
 
 <p align="center"><a href="README.md">English</a> · Die ausführliche Anleitung steht in der englischen README.</p>
 
-![ApolloShell: Leiste links, Dashboard oben, Utilities unten rechts](docs/images/de/hero.png)
+![ApolloShell auf dem Schreibtisch: Leiste mit Dock links, Dashboard oben mit dem Leistungs-Tab](docs/images/de/hero.png)
 
 > [!NOTE]
 > ApolloShell ist **inspiriert von der [Caelestia-Shell][caelestia]** für Hyprland.

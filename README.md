@@ -12,7 +12,7 @@
 
 <p align="center"><a href="README.de.md">Deutsch</a></p>
 
-![ApolloShell on a desktop: sidebar with dock on the left, dashboard at the top, utilities panel at the bottom right](docs/images/hero.png)
+![ApolloShell on a desktop: sidebar with dock on the left, dashboard open at the top with the performance tab](docs/images/hero.png)
 
 > [!NOTE]
 > **ApolloShell is inspired by the [Caelestia shell][caelestia]** for Hyprland on Linux:
