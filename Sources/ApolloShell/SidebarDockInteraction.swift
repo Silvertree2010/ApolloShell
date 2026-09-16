@@ -1,6 +1,7 @@
 import AppKit
 import ApolloShellCore
 import ApplicationServices
+import CoreGraphics
 import SwiftUI
 
 extension NSPasteboard.PasteboardType {
@@ -306,6 +307,12 @@ enum DockWindows {
         let title: String
         let minimized: Bool
         let element: AXUIElement
+        /// Fuer den Abgleich mit `onScreenWindowIDs` (welche Fenster gerade
+        /// auf dem aktuellen Space sichtbar sind). `nil`, wenn die private
+        /// Funktion dahinter fehlt - dann zaehlt das Fenster bei "hier vs.
+        /// woanders" nirgends, und der normale Weg (App aktivieren, macOS
+        /// wechselt selbst) greift.
+        let windowID: CGWindowID?
     }
 
     /// `allSpaces`: auch Fenster auf anderen Schreibtischen (fuers Menue).
@@ -327,7 +334,8 @@ enum DockWindows {
             guard DockAX.string(element, kAXSubroleAttribute) == kAXStandardWindowSubrole as String else { return nil }
             return Window(title: DockAX.string(element, kAXTitleAttribute) ?? "",
                           minimized: (DockAX.value(element, kAXMinimizedAttribute) as? NSNumber)?.boolValue ?? false,
-                          element: element)
+                          element: element,
+                          windowID: AXWindowID.of(element))
         }
     }
 
@@ -343,6 +351,46 @@ enum DockWindows {
         AXUIElementSetAttributeValue(window.element, kAXMainAttribute as CFString, kCFBooleanTrue)
         AXUIElementPerformAction(window.element, kAXRaiseAction as CFString)
         app.activate()
+    }
+
+    /// Fensternummern, die gerade sichtbar sind - nicht minimiert und auf dem
+    /// aktuellen Space (`CGWindowListCopyWindowInfo` liefert nur, was der
+    /// Bildschirm gerade zeigt). Damit unterscheidet der Dock-Klick "Fenster
+    /// hier" von "Fenster woanders" (Nachbesserung 16.09.: sonst sprang ein
+    /// Klick auf den Space eines anderen Fensters, obwohl eins hier lag -
+    /// Apples Dock bleibt in dem Fall da).
+    @MainActor
+    static func onScreenWindowIDs(pid: pid_t) -> Set<CGWindowID> {
+        guard let info = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] else {
+            return []
+        }
+        var ids: Set<CGWindowID> = []
+        for entry in info {
+            guard let owner = entry[kCGWindowOwnerPID as String] as? Int, pid_t(owner) == pid,
+                  let number = entry[kCGWindowNumber as String] as? Int
+            else { continue }
+            ids.insert(CGWindowID(number))
+        }
+        return ids
+    }
+}
+
+/// Fensternummer (`CGWindowID`) einer Bedienungshilfen-Referenz - private
+/// Funktion, wie schon bei `RemoteWindows` fuer den umgekehrten Weg genutzt
+/// (etwa von AltTab, yabai). Damit lassen sich AX-Fenster mit
+/// `CGWindowListCopyWindowInfo` abgleichen, die keine AX-Elemente kennt.
+private enum AXWindowID {
+    private typealias GetWindow = @convention(c) (AXUIElement, UnsafeMutablePointer<CGWindowID>) -> AXError
+    /// RTLD_DEFAULT ist auf macOS der Zeiger -2.
+    private static let getWindow: GetWindow? = {
+        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "_AXUIElementGetWindow") else { return nil }
+        return unsafeBitCast(symbol, to: GetWindow.self)
+    }()
+
+    static func of(_ element: AXUIElement) -> CGWindowID? {
+        guard let getWindow else { return nil }
+        var id: CGWindowID = 0
+        return getWindow(element, &id) == .success ? id : nil
     }
 }
 

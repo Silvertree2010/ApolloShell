@@ -11,9 +11,13 @@ public struct DockClickState: Equatable, Sendable {
     public let frontmost: Bool
     /// Ausgeblendet (⌘H).
     public let hidden: Bool
-    /// Sichtbare (nicht minimierte) Fenster.
-    public let normalWindows: Int
-    /// Minimierte Fenster (im Dock abgelegt).
+    /// Sichtbare (nicht minimierte) Fenster auf dem Space, der gerade zu
+    /// sehen ist.
+    public let windowsOnActiveSpace: Int
+    /// Sichtbare (nicht minimierte) Fenster auf einem anderen Space.
+    public let windowsElsewhere: Int
+    /// Minimierte Fenster (im Dock abgelegt) - Space zaehlt hier nicht,
+    /// die liegen ohnehin nirgends sichtbar.
     public let minimizedWindows: Int
     /// ⌘ gedrueckt.
     public let command: Bool
@@ -22,13 +26,14 @@ public struct DockClickState: Equatable, Sendable {
 
     public init(
         running: Bool, launching: Bool = false, frontmost: Bool, hidden: Bool,
-        normalWindows: Int, minimizedWindows: Int, command: Bool, option: Bool
+        windowsOnActiveSpace: Int, windowsElsewhere: Int, minimizedWindows: Int, command: Bool, option: Bool
     ) {
         self.running = running
         self.launching = launching
         self.frontmost = frontmost
         self.hidden = hidden
-        self.normalWindows = normalWindows
+        self.windowsOnActiveSpace = windowsOnActiveSpace
+        self.windowsElsewhere = windowsElsewhere
         self.minimizedWindows = minimizedWindows
         self.command = command
         self.option = option
@@ -42,8 +47,13 @@ public enum DockClickAction: Equatable, Sendable {
     case launch
     /// War sie ausgeblendet, wieder einblenden.
     case unhide
-    /// Nach vorne (Fenster mit hoch, macOS wechselt dafuer selbst den Space).
+    /// Nach vorne. Nur wenn kein Fenster auf dem aktuellen Space liegt -
+    /// dann wechselt macOS selbst dorthin, wie bei Apple.
     case activate
+    /// Ein Fenster der App liegt schon auf dem aktuellen Space: das nach
+    /// vorne holen (aktiviert die App gleich mit) statt auf den Space eines
+    /// anderen Fensters zu wechseln.
+    case raiseWindowOnActiveSpace
     /// Das zuletzt abgelegte Fenster aus dem Dock zurueckholen.
     case unminimizeLast
     /// Kein Fenster offen: ein neues (wie Apples "reopen").
@@ -56,11 +66,12 @@ public enum DockClickAction: Equatable, Sendable {
 
 /// Was ein Klick auf ein Symbol im Dock der Leiste tut - wie in Apples Dock:
 /// laeuft die App nicht, wird sie gestartet; laeuft sie und steht nicht vorne,
-/// kommt sie (mit allen Fenstern) nach vorne; steht sie schon vorne, passiert
-/// nichts; sind alle Fenster abgelegt, kommt das zuletzt abgelegte zurueck;
-/// hat sie gar keins, oeffnet sie eins ("reopen"). Kein Blaettern durch
-/// Fenster mehr beim Klick - das macht weiterhin nur Scrollen
-/// (`DockWindowCycle`).
+/// kommt sie (mit allen Fenstern) nach vorne; liegt eins ihrer Fenster schon
+/// auf dem aktuellen Space, bleibt der Space dabei (kein Sprung zu einem
+/// anderen); steht sie schon vorne und hat hier ein Fenster, passiert nichts;
+/// sind alle Fenster abgelegt, kommt das zuletzt abgelegte zurueck; hat sie
+/// gar keins, oeffnet sie eins ("reopen"). Kein Blaettern durch Fenster mehr
+/// beim Klick - das macht weiterhin nur Scrollen (`DockWindowCycle`).
 public enum DockClick {
     /// Reine Entscheidung ohne Seiteneffekt: aus dem Zustand eine
     /// Reihenfolge von Aktionen, die die App-Schicht dann ausfuehrt.
@@ -75,36 +86,36 @@ public enum DockClick {
         var actions: [DockClickAction] = []
         if !state.running {
             actions.append(.launch)
-        } else if state.frontmost {
-            actions.append(contentsOf: frontmostActions(state))
+        } else if state.frontmost, state.windowsOnActiveSpace > 0 {
+            // Schon vorne und hier ein Fenster: nichts tun (Punkt 3).
         } else {
-            actions.append(.unhide)
-            actions.append(contentsOf: activationActions(state))
+            actions.append(contentsOf: raiseActions(state))
         }
         if state.option { actions.append(.hidePrevious) }
         return actions
     }
 
-    /// Schon vorne: normalerweise nichts, ausser es gibt gar kein
-    /// sichtbares Fenster - dann gilt dieselbe Logik wie beim Aktivieren
-    /// (Punkt 4/5), nur ohne erneutes Aktivieren-Kommando noetig.
-    private static func frontmostActions(_ state: DockClickState) -> [DockClickAction] {
-        guard state.normalWindows == 0 else { return [] }
-        if state.minimizedWindows > 0 {
-            return [.unminimizeLast, .activate]
-        }
-        return [.activate, .newWindow]
-    }
-
-    /// Nicht vorne: immer aktivieren, dazu je nach Fensterlage abgelegtes
+    /// Nicht vorne, oder vorne ohne Fenster auf dem aktuellen Space (etwa
+    /// von Hand auf einen anderen Space gewechselt, waehrend sie aktiv
+    /// blieb): je nach Fensterlage das hiesige nach vorne, sonst aktivieren
+    /// (und macOS wechselt selbst, wenn es nur woanders eins gibt), abgelegtes
     /// zurueckholen oder ein neues oeffnen.
-    private static func activationActions(_ state: DockClickState) -> [DockClickAction] {
-        if state.normalWindows > 0 {
-            return [.activate]
+    private static func raiseActions(_ state: DockClickState) -> [DockClickAction] {
+        var actions: [DockClickAction] = []
+        // War sie ausgeblendet: einblenden. Schon vorne ist sie nie
+        // ausgeblendet, das lohnt sich nur im anderen Zweig.
+        if !state.frontmost { actions.append(.unhide) }
+        if state.windowsOnActiveSpace > 0 {
+            actions.append(.raiseWindowOnActiveSpace)
+        } else if state.windowsElsewhere > 0 {
+            actions.append(.activate)
+        } else if state.minimizedWindows > 0 {
+            actions.append(.unminimizeLast)
+            actions.append(.activate)
+        } else {
+            actions.append(.activate)
+            actions.append(.newWindow)
         }
-        if state.minimizedWindows > 0 {
-            return [.unminimizeLast, .activate]
-        }
-        return [.activate, .newWindow]
+        return actions
     }
 }

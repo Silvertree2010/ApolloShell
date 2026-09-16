@@ -167,13 +167,21 @@ final class SidebarDockModel {
     private func perform(_ entry: Entry, command: Bool, option: Bool) {
         let app = runningApp(entry.bundleID)
         let windows = app.map { DockWindows.list(pid: $0.processIdentifier) } ?? []
+        let visible = windows.filter { !$0.minimized }
+        // Nur nicht minimierte Fenster koennen "hier" sein: welche davon
+        // gerade auf dem Bildschirm liegen, sagt der aktuelle Space
+        // (`onScreenWindowIDs`), nicht die Bedienungshilfen-Liste - die
+        // kennt keine Spaces.
+        let onScreen = app.map { DockWindows.onScreenWindowIDs(pid: $0.processIdentifier) } ?? []
+        let onActiveSpace = visible.filter { $0.windowID.map(onScreen.contains) ?? false }
         let previous = NSWorkspace.shared.frontmostApplication
         let state = DockClickState(
             running: app != nil,
             launching: launching.contains(entry.bundleID),
             frontmost: app != nil && app?.processIdentifier == previous?.processIdentifier,
             hidden: app?.isHidden ?? false,
-            normalWindows: windows.count(where: { !$0.minimized }),
+            windowsOnActiveSpace: onActiveSpace.count,
+            windowsElsewhere: visible.count - onActiveSpace.count,
             minimizedWindows: windows.count(where: \.minimized),
             command: command,
             option: option
@@ -186,6 +194,12 @@ final class SidebarDockModel {
                 _ = app?.unhide()
             case .activate:
                 app?.activate()
+            case .raiseWindowOnActiveSpace:
+                // Das vorderste hiesige Fenster: es bringt die App gleich
+                // mit nach vorne, kein zusaetzliches `.activate` noetig.
+                if let app, let window = onActiveSpace.first {
+                    DockWindows.raise(window, of: app)
+                }
             case .unminimizeLast:
                 // Keine Zeitstempel ueber die Bedienungshilfen: das
                 // vorderste minimierte Fenster in der Liste steht dem
