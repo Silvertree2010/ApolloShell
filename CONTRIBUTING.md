@@ -4,6 +4,11 @@ Thanks for your interest! Bug reports, ideas and pull requests are welcome.
 Please open an issue before large changes, so we can agree on the direction
 first.
 
+Everyone taking part agrees to the [Code of Conduct](CODE_OF_CONDUCT.md).
+Security problems go through a private report, not an issue - see
+[SECURITY.md](SECURITY.md). Every push and pull request is built and tested on
+Apple silicon and Intel by the CI workflow.
+
 ## Building and testing
 
 You need macOS 26 and the Command Line Tools with the macOS 26 SDK

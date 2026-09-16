@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Apple silicon
+            runner: macos-26
+          - name: Intel
+            runner: macos-26-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Build
+        run: swift build -c release --product ApolloShell
+
+      - name: Test
+        run: swift test
+
+      - name: Assemble and verify the app bundle
+        run: |
+          bin_path="$(swift build -c release --product ApolloShell --show-bin-path)"
+          SIGN_IDENTITY=- scripts/assemble-app.sh "$bin_path/ApolloShell" "$RUNNER_TEMP/ApolloShell.app"
+          codesign --verify --deep --strict "$RUNNER_TEMP/ApolloShell.app"
+
+      - name: Check translations
+        run: python3 scripts/check-l10n.py
