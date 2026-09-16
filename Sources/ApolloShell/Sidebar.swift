@@ -286,6 +286,12 @@ final class SidebarScreen {
 
     /// Vollbild an: weg. Vollbild aus: wieder her. `.canJoinAllSpaces` holt
     /// das Panel sonst auch in Vollbild-Spaces (siehe `SidebarPanel`).
+    ///
+    /// Unsichtbar und klickdurchlaessig statt `orderOut`: Die Meldung "kein
+    /// Vollbild mehr" kommt mitten in der Wisch-Animation zurueck zum
+    /// Schreibtisch. Ein dann wieder eingeblendetes Panel hing gemessen nur
+    /// noch an diesem einen Space und fehlte auf allen anderen. Bleibt es
+    /// eingeblendet, behaelt es alle Spaces.
     func setHiddenForFullscreen(_ hidden: Bool) {
         guard hidden != isHiddenForFullscreen else { return }
         isHiddenForFullscreen = hidden
@@ -293,10 +299,10 @@ final class SidebarScreen {
         if hidden {
             // Ohne Leiste haette das Popout nichts, woran es haengt.
             popout.close()
-            panel.orderOut(nil)
-        } else {
-            showIfNeeded()
         }
+        panel.alphaValue = hidden ? 0 : 1
+        panel.ignoresMouseEvents = hidden
+        if !hidden { showIfNeeded() }
     }
 
     /// Nur nach vorne holen, wenn sie sichtbar sein soll und es gerade nicht
@@ -305,7 +311,7 @@ final class SidebarScreen {
     /// weil Overlay-Panels nach Space-Wechseln gelegentlich verloren gingen;
     /// geht sie trotz `isVisible` verloren, ist hier die Stelle dafuer.)
     private func showIfNeeded() {
-        guard !isHiddenForFullscreen, lastFrame != nil, !panel.isVisible else { return }
+        guard lastFrame != nil, !panel.isVisible else { return }
         panel.orderFrontRegardless()
     }
 
@@ -523,8 +529,9 @@ struct SidebarGlassShape: Shape {
 ///   Cmd+Tab. Ohne `.fullScreenAuxiliary` - das allein haelt sie auf macOS 26
 ///   aber NICHT aus Vollbild-Spaces heraus (ein Vollbild-Space ist auch ein
 ///   Space, `.canJoinAllSpaces` gilt dort mit). Keine Kombination aus Ebene
-///   und collectionBehavior schafft das; deshalb erkennt die Fensterwache
-///   Vollbild selbst und die Leiste tritt per orderOut ab.
+///   und collectionBehavior schafft das; deshalb erkennt `FullscreenMonitor`
+///   Vollbild selbst, und die Leiste wird dort unsichtbar und
+///   klickdurchlaessig (siehe `setHiddenForFullscreen`).
 /// - Kein Fensterschatten: gab beim Launcher einen zweiten, fast eckigen
 ///   Rahmen um das Glas.
 /// - `canHide = false`: "Andere ausblenden" soll sie nicht verschwinden lassen.
