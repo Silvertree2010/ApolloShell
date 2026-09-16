@@ -116,7 +116,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
                         "berechtigung", "system events", "datenschutz"]
         case .hotKeys: ["hotkey", "kürzel", "tastatur", "shortcut", "launcher", "f20", "hyper", "spotlight", "karabiner"]
         case .bar: ["taskbar", "spaces", "dock", "uhr", "datum", "status", "wlan", "akku", "cpu", "wetter",
-                    "medien", "abstand", "vorlage", "baustein", "app"]
+                    "medien", "abstand", "vorlage", "baustein", "app", "bildschirm", "monitor", "anzeige"]
         case .utilities: ["utilities", "schnellschalter", "kontrollzentrum", "karten", "wach halten", "ton", "knopf",
                           "kurzbefehl", "fokus", "link", "app", "bildschirm", "ausblenden", "vorlage"]
         case .launcher: ["apps", "angeheftet", "favoriten", "pinned", "reihenfolge"]

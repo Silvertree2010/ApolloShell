@@ -61,6 +61,11 @@
 "%@ entfernen" = "Remove %@";
 "App suchen" = "Search Apps";
 "Vorschau der Leiste" = "Preview of the Bar";
+"Bildschirme" = "Screens";
+"Alle" = "All";
+"Nur Hauptbildschirm" = "Main Display Only";
+"%@ (nicht angeschlossen)" = "%@ (not connected)";
+"Auf welchen Bildschirmen die Leiste steht – mit ihr die Schreibtisch-Uhr und der Streifen, den die Fensterwache frei hält. Ein einzelner Bildschirm wird über Name und Auflösung gemerkt; ist er nicht angeschlossen, steht die Leiste auf dem Hauptbildschirm." = "Which screens the bar stands on – and with it the desktop clock and the strip the window guard keeps clear. A single screen is remembered by name and resolution; when it is not connected, the bar stands on the main display.";
 
 /* NexusDashboardEditor.swift */
 "Reiter" = "Tabs";

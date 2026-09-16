@@ -28,6 +28,7 @@ struct NexusBarPage: View {
         HStack(spacing: 0) {
             NexusPageForm(page: .bar) {
                 entriesSection
+                NexusBarScreensSection(store: store)
                 NexusSaveWarning(failed: store.saveFailed)
             }
             Divider()
@@ -101,6 +102,62 @@ struct NexusBarPage: View {
     private func apply(_ replacement: NexusBarReplacement) {
         store.settings.bar.layout = replacement.layout
         expanded = []
+    }
+}
+
+// MARK: - Bildschirme
+
+/// Nexus > Leiste > Bildschirme: auf welchen Bildschirmen die Leiste steht.
+///
+/// Ein einzelner Bildschirm wird ueber einen stabilen Schluessel gemerkt
+/// (Name plus Aufloesung, siehe `ScreenInfo.key`) - eine Display-Kennung
+/// vergibt macOS beim Anstecken neu und waere nach dem naechsten Mal ein
+/// anderer Bildschirm. Ist der gemerkte nicht angeschlossen, steht die Leiste
+/// auf dem Hauptbildschirm; in der Liste bleibt er trotzdem stehen, sonst
+/// zeigte die Auswahl auf nichts und sie waere beim naechsten Anstecken weg.
+private struct NexusBarScreensSection: View {
+    @Bindable var store: ShellSettingsStore
+    /// Angeschlossene Bildschirme, beim Erscheinen der Seite gelesen.
+    @State private var screens: [ScreenInfo] = []
+
+    var body: some View {
+        Section {
+            Picker("Bildschirme", selection: $store.settings.bar.screens) {
+                Text("Alle").tag(ScreenChoice.all)
+                Text("Nur Hauptbildschirm").tag(ScreenChoice.primary)
+                if !screens.isEmpty {
+                    Divider()
+                    ForEach(screens) { screen in
+                        Text(screen.name).tag(ScreenChoice.single(screen.key))
+                    }
+                }
+                if let missing {
+                    Divider()
+                    Text("\(missing) (nicht angeschlossen)").tag(ScreenChoice.single(missing))
+                }
+            }
+        } header: {
+            Text("Bildschirme")
+        } footer: {
+            Text("Auf welchen Bildschirmen die Leiste steht – mit ihr die Schreibtisch-Uhr und der Streifen, den die Fensterwache frei hält. Ein einzelner Bildschirm wird über Name und Auflösung gemerkt; ist er nicht angeschlossen, steht die Leiste auf dem Hauptbildschirm.")
+        }
+        .task { reload() }
+    }
+
+    /// Gleiche Schluessel zusammenfassen: zwei baugleiche Bildschirme sind
+    /// fuer die Einstellung nicht zu unterscheiden (dann gilt der erste), und
+    /// zwei Zeilen mit derselben Kennung braechten die Liste durcheinander.
+    private func reload() {
+        var seen: Set<String> = []
+        screens = ShellScreens.current().map(\.info).filter { seen.insert($0.key).inserted }
+    }
+
+    /// Der gemerkte Bildschirm, wenn er gerade nicht angeschlossen ist.
+    private var missing: String? {
+        guard case .single(let key) = store.settings.bar.screens,
+              !screens.contains(where: { $0.key == key })
+        else { return nil }
+        return key
     }
 }
 
