@@ -20,7 +20,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Silvertree2010/ApolloShell" alt="License: MIT"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · Die ausführliche Anleitung steht in der englischen README.</p>
+<p align="center"><a href="https://silvertree2010.github.io/ApolloShell/">Website</a> · <a href="https://apolloshell.hashnode.dev">Blog</a> · <a href="README.md">English</a> · Die ausführliche Anleitung steht in der englischen README.</p>
 
 ![ApolloShell auf dem Schreibtisch: Leiste mit Dock links, Dashboard oben mit dem Leistungs-Tab](docs/images/de/hero.png)
 
@@ -28,6 +28,10 @@
 > ApolloShell ist **inspiriert von der [Caelestia-Shell][caelestia]** für Hyprland.
 > Es ist ein unabhängiges Projekt, **nicht mit Caelestia verbunden** und enthält
 > keinen Code daraus.
+
+Wenn dir ApolloShell gefällt, gib dem Projekt gern einen Stern auf GitHub. So
+finden es auch andere Mac-Nutzer. Hintergründe zur Entwicklung stehen im
+[Blog](https://apolloshell.hashnode.dev) (englisch).
 
 ## Funktionen
 

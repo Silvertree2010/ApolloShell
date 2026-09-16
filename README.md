@@ -20,7 +20,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Silvertree2010/ApolloShell" alt="License: MIT"></a>
 </p>
 
-<p align="center"><a href="README.de.md">Deutsch</a></p>
+<p align="center"><a href="https://silvertree2010.github.io/ApolloShell/">Website</a> · <a href="https://apolloshell.hashnode.dev">Blog</a> · <a href="README.de.md">Deutsch</a></p>
 
 ![ApolloShell on a desktop: sidebar with dock on the left, dashboard open at the top with the performance tab](docs/images/hero.png)
 
@@ -34,6 +34,10 @@
 > Version 0.1.1 is an early release. The interface is in English and German
 > (see [Language](#language)). ApolloShell relies on private macOS interfaces
 > (see [below](#private-apis)) and may break with macOS updates.
+
+If ApolloShell is useful to you, please give it a star on GitHub. It helps
+other Mac users find the project. Behind-the-scenes posts about how it is
+built are on the [blog][blog].
 
 ## Contents
 
@@ -363,6 +367,7 @@ license (see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
 Contributions are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 [releases]: https://github.com/Silvertree2010/ApolloShell/releases/latest
+[blog]: https://apolloshell.hashnode.dev
 [caelestia]: https://github.com/caelestia-dots/shell
 [mra]: https://github.com/ungive/mediaremote-adapter
 [open-meteo]: https://open-meteo.com/
