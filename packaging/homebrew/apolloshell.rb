@@ -1,18 +1,18 @@
-# Homebrew formula template for ApolloShell - builds from source.
+# Homebrew formula for ApolloShell - builds from source.
 #
-# Publish it in a tap repository named "homebrew-apolloshell" (so users can
-# run `brew tap OWNER/apolloshell`). Before publishing, replace OWNER and set
-# sha256 to `shasum -a 256` of the release tarball.
+# Lives in the tap repository Silvertree2010/homebrew-apolloshell, so users
+# run `brew tap Silvertree2010/apolloshell`. For a new release, update url and
+# set sha256 to `shasum -a 256` of the release tarball.
 #
 # Only the Command Line Tools are needed (swift, clang, codesign, iconutil
 # are not even required - the icon is prebuilt). Xcode is NOT required.
 class Apolloshell < Formula
   desc "Caelestia-inspired desktop shell for macOS: sidebar dock, launcher, dashboard"
-  homepage "https://github.com/OWNER/ApolloShell"
-  url "https://github.com/OWNER/ApolloShell/archive/refs/tags/v0.1.1.tar.gz"
+  homepage "https://github.com/Silvertree2010/ApolloShell"
+  url "https://github.com/Silvertree2010/ApolloShell/archive/refs/tags/v0.1.1.tar.gz"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   license "MIT"
-  head "https://github.com/OWNER/ApolloShell.git", branch: "main"
+  head "https://github.com/Silvertree2010/ApolloShell.git", branch: "main"
 
   # Liquid Glass (NSGlassEffectView) exists from macOS 26 Tahoe on.
   depends_on macos: :tahoe

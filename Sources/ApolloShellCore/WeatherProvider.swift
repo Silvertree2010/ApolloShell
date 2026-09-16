@@ -91,11 +91,11 @@ public struct WeatherCapabilities: Equatable, Sendable {
 /// Nutzungsbedingungen (App-Name plus Adresse, sonst 403); die anderen
 /// bekommen sie aus Hoeflichkeit auch.
 public enum WeatherUserAgent {
-    /// Platzhalter, bis das Projekt eine oeffentliche Adresse hat - dann
-    /// hier eintragen. Keine persoenliche Mail: die Kennung geht an Dritte.
-    public static let projectURL = "https://example.org/apolloshell"
+    /// Die oeffentliche Projektseite. Keine persoenliche Mail: die Kennung
+    /// geht an Dritte.
+    public static let projectURL = "https://github.com/Silvertree2010/ApolloShell"
 
-    /// "ApolloShell/0.1 (+https://example.org/apolloshell)". Ohne Version
+    /// "ApolloShell/0.1 (+https://github.com/Silvertree2010/ApolloShell)". Ohne Version
     /// (aus `swift build` gestartet, ohne Info.plist): "dev".
     public static func value(version: String?) -> String {
         let version = version?.trimmingCharacters(in: .whitespaces) ?? ""

@@ -1,10 +1,3 @@
-<!--
-  Before publishing: replace OWNER with the GitHub account that hosts the
-  repository. All links live in the link block at the end of this file,
-  plus the clone command and the Homebrew commands below
-  (`grep -rn OWNER .` finds every place in the repository).
--->
-
 <p align="center">
   <img src="docs/images/icon.png" width="128" alt="ApolloShell app icon">
 </p>
@@ -62,8 +55,8 @@ to the screen edges; it does not replace the window manager.
   on all Spaces, the app's "New …" commands), drag to reorder, drop files on an
   app, scroll to cycle its windows. Pinned apps are kept in sync with Apple's
   Dock.
-- **Window guard**: keeps other apps' windows out of the sidebar's strip and
-  hides the sidebar while an app is full screen.
+- **Window guard**: keeps other apps' windows out of the sidebar's strip. On a
+  screen that shows a full-screen app, the sidebar steps aside.
 - **Launcher**: fuzzy search over installed apps, ranked by how often you
   open them, with pinned apps on top.
 - **Dashboard** sliding down from the top edge, with four tabs:
@@ -147,7 +140,7 @@ flag, so this step does not apply.
 ### B) Homebrew (builds from source)
 
 ```sh
-brew tap OWNER/apolloshell
+brew tap Silvertree2010/apolloshell
 brew install apolloshell
 ```
 
@@ -160,7 +153,7 @@ signature (next section).
 
 ```sh
 xcode-select --install          # once, if the Command Line Tools are missing
-git clone https://github.com/OWNER/ApolloShell.git
+git clone https://github.com/Silvertree2010/ApolloShell.git
 cd ApolloShell
 scripts/setup-signing.sh        # once; optional, but recommended
 ./build.sh
@@ -201,7 +194,7 @@ shows the current status. You can review everything under
 
 | Permission | What ApolloShell uses it for | Without it |
 | --- | --- | --- |
-| **Accessibility** | **Window guard**: moves windows out of the sidebar strip and notices full-screen apps. **Dock window list**: the window menu and scrolling through an app's windows, including windows on other Spaces. **Dock badges**: read from Apple's Dock. **Clicking a Space**: sends the system shortcut ⌃← / ⌃→. **Key actions** in Utilities: show desktop, screenshot toolbar and lock screen trigger the system's own shortcuts. | The sidebar still works, but windows can slide under it and those actions do nothing. |
+| **Accessibility** | **Window guard**: moves windows out of the sidebar strip. **Dock window list**: the window menu and scrolling through an app's windows, including windows on other Spaces. **Dock badges**: read from Apple's Dock. **Clicking a Space**: sends the system shortcut ⌃← / ⌃→. **Key actions** in Utilities: show desktop, screenshot toolbar and lock screen trigger the system's own shortcuts. | The sidebar still works, but windows can slide under it and those actions do nothing. |
 | **Automation → System Events** | **Log out, restart, shut down** from the session menu, the same way the Apple menu does it (apps can still ask to save). It is also the fallback for the dark-mode toggle. | Those buttons fail. |
 
 **Optional:** *Keep awake* holds a normal "prevent idle sleep" assertion, which
@@ -211,10 +204,14 @@ setting (Nexus → Utilities → *Keep awake*, off by default). It runs
 
 - ApolloShell first tries `sudo -n` (only works if `sudoers` allows that
   command without a password).
-- Otherwise macOS asks for an administrator password when you switch keep
-  awake on, and again when it switches off.
+- Otherwise macOS asks once for an administrator password. The same prompt
+  adds `/etc/sudoers.d/apolloshell`, a rule that allows only
+  `pmset -a disablesleep 1` and `pmset -a disablesleep 0` for your user. The
+  rule is checked with `visudo` before it is put in place. After that, nothing
+  asks again, so ApolloShell can also switch lid sleep back on at 10 % battery
+  or when it quits. Nexus → Utilities shows the rule and can remove it.
 - If you cancel, keep awake still works while the lid is open, and the card
-  says so ("nur aufgeklappt").
+  says so.
 
 ApolloShell only resets what it set itself, stops keeping awake on battery at
 10 %, and cleans up after a crash on the next launch.
@@ -253,10 +250,10 @@ or remove them.** This is also why ApolloShell cannot be in the Mac App Store.
 
 | Interface | Used for |
 | --- | --- |
-| **SkyLight** (`CGSCopyManagedDisplaySpaces`, `SLSGet/SetAppearanceThemeLegacy`) | Reading the list of Spaces; toggling dark mode |
+| **SkyLight** (`CGSCopyManagedDisplaySpaces`, `CGSCopySpacesForWindows`, `SLSGet/SetAppearanceThemeLegacy`) | Reading the list of Spaces and which screen shows a full-screen app; telling windows on other Spaces from windows an app only keeps in memory; toggling dark mode |
 | **CoreBrightness** (`CBBlueLightClient`) | Reading and toggling Night Shift |
 | **MediaRemote**, via [mediaremote-adapter][mra] | Now playing. Since macOS 15.4, MediaRemote only answers Apple-signed processes, so the adapter runs inside `/usr/bin/perl` |
-| **`_AXUIElementCreateWithRemoteToken`** (HIServices) | Listing an app's windows on other Spaces |
+| **`_AXUIElementCreateWithRemoteToken`**, **`_AXUIElementGetWindow`** (HIServices) | Listing an app's windows on other Spaces; matching them to the system window list |
 | **Apple's Dock preferences** (`com.apple.dock`, `persistent-apps`) | Reading, and when you change them in the sidebar dock also writing, the pinned apps |
 | **Apple's Dock preferences** (`com.apple.dock`, `autohide` and related keys) | Hiding Apple's own Dock while ApolloShell runs, when turned on in Nexus → General |
 
@@ -354,8 +351,7 @@ license (see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
 
 Contributions are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-<!-- Links. OWNER is a placeholder, see the comment at the top. -->
-[releases]: https://github.com/OWNER/ApolloShell/releases/latest
+[releases]: https://github.com/Silvertree2010/ApolloShell/releases/latest
 [caelestia]: https://github.com/caelestia-dots/shell
 [mra]: https://github.com/ungive/mediaremote-adapter
 [open-meteo]: https://open-meteo.com/

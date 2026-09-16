@@ -87,9 +87,9 @@ struct WeatherProviderCommonTests {
     }
 
     @Test("User-Agent: App, Version, Projektadresse - keine Mail", arguments: [
-        (Optional("0.1"), "ApolloShell/0.1 (+https://example.org/apolloshell)"),
-        (nil, "ApolloShell/dev (+https://example.org/apolloshell)"),
-        (Optional("  "), "ApolloShell/dev (+https://example.org/apolloshell)"),
+        (Optional("0.1"), "ApolloShell/0.1 (+https://github.com/Silvertree2010/ApolloShell)"),
+        (nil, "ApolloShell/dev (+https://github.com/Silvertree2010/ApolloShell)"),
+        (Optional("  "), "ApolloShell/dev (+https://github.com/Silvertree2010/ApolloShell)"),
     ])
     func userAgent(version: String?, value: String) {
         #expect(WeatherUserAgent.value(version: version) == value)

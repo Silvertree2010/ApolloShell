@@ -1,5 +1,3 @@
-<!-- Vor der Veröffentlichung OWNER durch das GitHub-Konto ersetzen (`grep -rn OWNER .`). -->
-
 <p align="center">
   <img src="docs/images/icon.png" width="128" alt="App-Symbol von ApolloShell">
 </p>
@@ -30,8 +28,8 @@
 - **Dock** mit angehefteten und laufenden Apps und Kennzeichen. Klicken, Halten,
   Rechtsklick, Ziehen, Dateien ablegen und Scrollen funktionieren wie bei Apple.
   Die angehefteten Apps bleiben mit Apples Dock abgeglichen.
-- **Fensterwache**: Sie hält fremde Fenster aus dem Streifen der Leiste und
-  blendet die Leiste im Vollbild aus.
+- **Fensterwache**: Sie hält fremde Fenster aus dem Streifen der Leiste. Im
+  Vollbild tritt die Leiste des betroffenen Bildschirms ab.
 - **Launcher** mit unscharfer Suche. Häufig genutzte Apps stehen weiter oben,
   angeheftete ganz oben.
 - **Dashboard** mit den Reitern Dashboard, Medien, Leistung und Wetter.
@@ -74,14 +72,14 @@ Beglaubigung („Notarisierung“). Selbst gebaute Apps betrifft das nicht.
 **Homebrew** (baut aus dem Quelltext):
 
 ```sh
-brew tap OWNER/apolloshell
+brew tap Silvertree2010/apolloshell
 brew install apolloshell
 ```
 
 **Selbst bauen:**
 
 ```sh
-git clone https://github.com/OWNER/ApolloShell.git
+git clone https://github.com/Silvertree2010/ApolloShell.git
 cd ApolloShell
 scripts/setup-signing.sh   # einmalig, empfohlen
 ./build.sh                 # baut, signiert, legt die App nach ~/Applications
@@ -117,8 +115,12 @@ erteilt sind. Später: Nexus > Über > „Einführung zeigen“.
 - **Wach halten bei zugeklapptem Deckel** ist eine eigene Einstellung (Nexus >
   Schnellaktionen, für neue Installationen aus). Sie braucht root für
   `pmset -a disablesleep`. ApolloShell versucht erst `sudo -n`, sonst fragt macOS
-  beim Ein- und Ausschalten nach einem Administrator-Passwort. Wer ablehnt,
-  bekommt Wach halten nur aufgeklappt, und die Karte sagt das.
+  einmal nach einem Administrator-Passwort. Dabei legt ApolloShell
+  `/etc/sudoers.d/apolloshell` an, eine mit `visudo` geprüfte Regel, die nur
+  `pmset -a disablesleep 1` und `0` für deinen Benutzer ohne Passwort erlaubt.
+  Danach fragt nichts mehr, auch nicht beim Akku-Schutz oder Beenden. Nexus >
+  Schnellaktionen zeigt die Regel und kann sie entfernen. Wer ablehnt, bekommt
+  Wach halten nur aufgeklappt, und die Karte sagt das.
 
 **Apple-Dock ausblenden, solange ApolloShell läuft** (Nexus > Allgemein, für
 neue Installationen aus) sichert die bisherigen `autohide`-Werte von
@@ -142,7 +144,7 @@ ApolloShell nutzt nicht dokumentierte Schnittstellen von macOS:
 - SkyLight
 - CoreBrightness
 - MediaRemote über mediaremote-adapter
-- `_AXUIElementCreateWithRemoteToken`
+- `_AXUIElementCreateWithRemoteToken` und `_AXUIElementGetWindow`
 - Apples Dock-Einstellungen (angeheftete Apps, und wenn eingeschaltet auch das
   Ausblenden des Docks)
 
@@ -186,6 +188,6 @@ die Ausgangssprache ist Deutsch.
 Lizenz: [MIT](LICENSE) © 2026 Silvertree2010. Hinweise zu Fremdcode stehen in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-[releases]: https://github.com/OWNER/ApolloShell/releases/latest
+[releases]: https://github.com/Silvertree2010/ApolloShell/releases/latest
 [caelestia]: https://github.com/caelestia-dots/shell
 [mra]: https://github.com/ungive/mediaremote-adapter

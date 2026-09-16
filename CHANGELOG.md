@@ -4,9 +4,11 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased] - 0.1.2
+## [Unreleased]
 
 ## [0.1.1] - 2026-09-16
+
+First public release. It also contains everything listed under 0.1.0.
 
 ### Added
 
@@ -59,9 +61,9 @@ All notable changes to this project are documented here. The format follows
 - The session menu runs only one command per opening.
 - A relaunch after a language change could end with no ApolloShell running.
 
-## [0.1.0] - Unreleased
+## 0.1.0 - 2026-09-15
 
-First public release.
+Not published on its own; it ships as part of 0.1.1.
 
 ### Added
 
@@ -127,5 +129,4 @@ First public release.
 - The Intel (x86_64) build has not been tested on Intel hardware.
 - Relies on private macOS interfaces that may change with macOS updates.
 
-[0.1.1]: https://github.com/OWNER/ApolloShell/releases/tag/v0.1.1
-[0.1.0]: https://github.com/OWNER/ApolloShell/releases/tag/v0.1.0
+[0.1.1]: https://github.com/Silvertree2010/ApolloShell/releases/tag/v0.1.1
