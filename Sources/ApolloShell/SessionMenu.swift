@@ -124,6 +124,9 @@ final class SessionMenu: NSObject, NSWindowDelegate {
     /// Erst das Menue wegfahren lassen, dann ausloesen - sonst friert der
     /// Ruhezustand ein halb offenes Panel ein.
     private func perform(_ action: SessionAction) {
+        // Gedrueckt gehaltenes Enter oder ein zweiter Klick waehrend des
+        // Wegfahrens: nur der erste Befehl zaehlt.
+        guard isOpen else { return }
         log.notice("Sitzung: \(action.rawValue, privacy: .public)")
         close()
         let command = action.command
