@@ -25,19 +25,19 @@ struct DockClickTests {
     @Test("Laeuft, nicht vorne, Fenster hier und woanders: das hiesige nach vorne, kein Space-Wechsel")
     func hereAndElsewhereRaisesHere() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: false, here: 1, elsewhere: 2))
-        #expect(actions == [.unhide, .raiseWindowOnActiveSpace])
+        #expect(actions == [.raiseWindowOnActiveSpace])
     }
 
     @Test("Laeuft, nicht vorne, Fenster nur hier: das hiesige nach vorne")
     func onlyHere() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: false, here: 1, elsewhere: 0))
-        #expect(actions == [.unhide, .raiseWindowOnActiveSpace])
+        #expect(actions == [.raiseWindowOnActiveSpace])
     }
 
     @Test("Laeuft, nicht vorne, Fenster nur woanders: aktivieren, macOS wechselt selbst")
     func onlyElsewhere() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: false, here: 0, elsewhere: 2))
-        #expect(actions == [.unhide, .activate])
+        #expect(actions == [.activate])
     }
 
     @Test("Laeuft, ausgeblendet, Fenster hier: einblenden und das hiesige nach vorne")
@@ -85,7 +85,7 @@ struct DockClickTests {
     @Test("Nicht vorne, alle Fenster minimiert: das letzte zurueckholen")
     func notFrontmostAllMinimized() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: false, here: 0, elsewhere: 0, minimized: 2))
-        #expect(actions == [.unhide, .unminimizeLast, .activate])
+        #expect(actions == [.unminimizeLast, .activate])
     }
 
     @Test("Schon vorne, kein Fenster: neues oeffnen (reopen)")
@@ -97,7 +97,7 @@ struct DockClickTests {
     @Test("Nicht vorne, kein Fenster: aktivieren und neues oeffnen")
     func notFrontmostNoWindow() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: false))
-        #expect(actions == [.unhide, .activate, .newWindow])
+        #expect(actions == [.activate, .newWindow])
     }
 
     @Test("Startet gerade: nichts tun, kein doppelter Start")
@@ -109,13 +109,13 @@ struct DockClickTests {
     @Test("⌥-Klick: aktivieren und danach die vorherige App ausblenden")
     func optionHidesPrevious() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: false, elsewhere: 1, option: true))
-        #expect(actions == [.unhide, .activate, .hidePrevious])
+        #expect(actions == [.activate, .hidePrevious])
     }
 
     @Test("⌥-Klick mit Fenster hier: hiesiges Fenster nach vorne, danach die vorherige App ausblenden")
     func optionHidesPreviousWithWindowHere() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: false, here: 1, option: true))
-        #expect(actions == [.unhide, .raiseWindowOnActiveSpace, .hidePrevious])
+        #expect(actions == [.raiseWindowOnActiveSpace, .hidePrevious])
     }
 
     @Test("⌥-Klick auf nicht laufende App: starten, danach ausblenden")

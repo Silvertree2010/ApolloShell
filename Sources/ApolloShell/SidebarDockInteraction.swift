@@ -353,17 +353,17 @@ enum DockWindows {
         if window.minimized {
             AXUIElementSetAttributeValue(window.element, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
         }
-        // Erst die App nach vorne, dann das Fenster heben - und die App ueber
-        // die Bedienungshilfen, nicht ueber `activate()`. Gemessen 16.09.:
-        // `activate()` holt das zuletzt benutzte Fenster der App nach vorne,
-        // und liegt das auf einem anderen Schreibtisch, springt macOS dorthin,
-        // obwohl hier eins liegt. `kAXFrontmostAttribute` macht die App vorne,
-        // ohne ein Fenster zu waehlen; das Heben danach bestimmt, welches.
+        // Reihenfolge ist entscheidend (gemessen 16.09.): Erst dieses Fenster
+        // zum Hauptfenster machen und heben, DANN die App nach vorne. Andersherum
+        // sucht macOS beim Nachvornholen selbst ein Fenster aus - das zuletzt
+        // benutzte - und wechselt dafuer auf dessen Schreibtisch, obwohl hier
+        // eins liegt. Nach vorne ueber die Bedienungshilfen, nicht ueber
+        // `activate()`: das waehlt ebenfalls selbst aus.
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
         AXUIElementSetMessagingTimeout(axApp, 0.3)
-        let frontmost = AXUIElementSetAttributeValue(axApp, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
         let main = AXUIElementSetAttributeValue(window.element, kAXMainAttribute as CFString, kCFBooleanTrue)
         let raised = AXUIElementPerformAction(window.element, kAXRaiseAction as CFString)
+        let frontmost = AXUIElementSetAttributeValue(axApp, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
         // Ohne Bedienungshilfen bleibt nur der alte Weg.
         if frontmost != .success { app.activate() }
         dockLog.notice("""

@@ -116,9 +116,11 @@ public enum DockClick {
     /// zurueckholen oder ein neues oeffnen.
     private static func raiseActions(_ state: DockClickState) -> [DockClickAction] {
         var actions: [DockClickAction] = []
-        // War sie ausgeblendet: einblenden. Schon vorne ist sie nie
-        // ausgeblendet, das lohnt sich nur im anderen Zweig.
-        if !state.frontmost { actions.append(.unhide) }
+        // Nur einblenden, wenn sie wirklich ausgeblendet ist. Gemessen 16.09.:
+        // `unhide()` auf eine sichtbare App holt deren zuletzt benutztes
+        // Fenster nach vorne - liegt das auf einem anderen Schreibtisch,
+        // springt macOS dorthin, obwohl hier eins liegt.
+        if state.hidden { actions.append(.unhide) }
         if state.windowsOnActiveSpace > 0 {
             actions.append(.raiseWindowOnActiveSpace)
         } else if state.windowsElsewhere > 0 {
