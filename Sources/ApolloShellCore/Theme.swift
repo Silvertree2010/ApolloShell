@@ -268,7 +268,11 @@ public enum ThemeGuards {
             ThemeColor.contrast(candidate.composited(over: base), base)
         }
         guard minimum > 1, ratio(color) < minimum else { return color }
-        let target: ThemeColor = base.luminance >= 0.5 ? .black : .white
+        // Die Richtung, in der ueberhaupt mehr Kontrast zu holen ist. Gleich
+        // viel bringen Schwarz und Weiss erst bei einer Helligkeit um 0.18,
+        // nicht bei 0.5: auf mittelhellem Grund fuehrt nur Schwarz zum Ziel.
+        let target: ThemeColor = ThemeColor.contrast(.black, base) >= ThemeColor.contrast(.white, base)
+            ? .black : .white
         var amount = 0.0
         while amount < 1 {
             amount = min(amount + 0.02, 1)

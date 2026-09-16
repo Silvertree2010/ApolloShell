@@ -136,6 +136,34 @@ struct ThemeResolveTests {
         }))
     }
 
+    @Test("riesige Zahlen werden geklemmt, ohne abzustuerzen")
+    func hugeNumbers() {
+        let digits20 = String(repeating: "9", count: 20)
+        let digits307 = String(repeating: "9", count: 307)
+        for literal in [digits20, digits307, "-" + digits307] {
+            let theme = theme(":root { --apollo-bar-width: \(literal)px; --apollo-theme-format: \(literal); }")
+            let width = theme.number(.barWidth)
+            #expect(width == 160 || width == 36, "\(literal.prefix(3))...")
+            #expect(hasKind(theme, { if case .clamped = $0 { true } else { false } }))
+        }
+    }
+
+    @Test("Zahlen ausserhalb von Int lassen sich schreiben")
+    func cssTextBeyondInt() {
+        #expect(!ThemeUnit.scalar.cssText(1e23).isEmpty)
+        #expect(!ThemeUnit.points.cssText(-1e307).isEmpty)
+        #expect(ThemeUnit.points.cssText(12) == "12px")
+        #expect(ThemeUnit.ratio.cssText(0.5) == "0.5")
+    }
+
+    @Test("Kontrast: auf mittelhellem Grund wird abgedunkelt, nicht durch Schwarz ersetzt")
+    func contrastOnMidBackground() {
+        let background = ThemeColor(hex: 0xAAAAAA)
+        let fixed = ThemeGuards.readable(ThemeColor(hex: 0xB0B0B0), on: background, minimum: 4.5)
+        #expect(ThemeColor.contrast(fixed, background) >= 4.5)
+        #expect(fixed != ThemeColor(hex: 0x000000))
+    }
+
     @Test("Kontrast: gemessen wird auf dem Untergrund, den das Theme setzt")
     func contrastUsesThemeBackground() {
         let theme = theme(":root { --apollo-surface-color: #000000; --apollo-text-color: #111111; }")

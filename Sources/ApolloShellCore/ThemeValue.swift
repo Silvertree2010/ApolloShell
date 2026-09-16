@@ -103,7 +103,12 @@ public enum ThemeUnit: String, Equatable, Hashable, Sendable, CaseIterable {
     /// Wie eine Zahl dieser Einheit geschrieben wird (Doku, Beispiele).
     public func cssText(_ value: Double) -> String {
         let rounded = (value * 1000).rounded() / 1000
-        let digits = rounded == rounded.rounded() ? String(Int(rounded)) : String(rounded)
+        // Ganze Zahlen ohne ".0" - aber nur, solange sie in Int passen. Ein
+        // Theme darf beliebig grosse Zahlen hineinschreiben, und die
+        // landen hier im Hinweis, bevor sie geklemmt werden.
+        let digits = rounded.isFinite && rounded == rounded.rounded() && rounded.magnitude < 1e15
+            ? String(Int(rounded))
+            : String(rounded.isFinite ? rounded : value)
         return self == .points ? digits + "px" : digits
     }
 }
