@@ -12,11 +12,16 @@ final class UsageStore {
 
     init(url: URL = UsageStore.defaultURL) {
         self.url = url
-        if let data = try? Data(contentsOf: url),
-           let decoded = try? JSONDecoder().decode(UsageStats.self, from: data) {
+        let data = try? Data(contentsOf: url)
+        if let data, let decoded = try? JSONDecoder().decode(UsageStats.self, from: data) {
             stats = decoded
         } else {
             stats = UsageStats()
+            // Da, aber unlesbar: aufheben, bevor der naechste Start sie ersetzt.
+            if data != nil {
+                NexusFile.preserveUnreadable(url)
+                log.error("usage.json unlesbar, Kopie als usage.json.unreadable")
+            }
         }
     }
 

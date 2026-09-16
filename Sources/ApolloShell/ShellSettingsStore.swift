@@ -44,6 +44,21 @@ enum NexusFile {
     static func read(_ url: URL?) -> Data? {
         url.flatMap { try? Data(contentsOf: $0) }
     }
+
+    /// Eine Datei, die nicht zu lesen war, neben das Original kopieren
+    /// (`<Name>.unreadable`), bevor das naechste Speichern sie ersetzt. Wer
+    /// sie von Hand kaputt bearbeitet hat, verliert so nichts.
+    static func preserveUnreadable(_ url: URL) {
+        let copy = url.appendingPathExtension("unreadable")
+        try? FileManager.default.removeItem(at: copy)
+        try? FileManager.default.copyItem(at: url, to: copy)
+    }
+
+    /// Ist das ueberhaupt ein JSON-Objekt? Einzelne falsche Werte liest
+    /// ShellSettings nachsichtig; hier geht es um eine ganz kaputte Datei.
+    static func isJSONObject(_ data: Data) -> Bool {
+        (try? JSONSerialization.jsonObject(with: data)) is [String: Any]
+    }
 }
 
 /// Die Einstellungen der Shell, einmal fuer die ganze App (AppDelegate haelt
@@ -74,7 +89,12 @@ final class ShellSettingsStore {
     /// `url == nil`: nur im Speicher, schreibt nie.
     init(url: URL?) {
         self.url = url
-        settings = ShellSettings.load(from: NexusFile.read(url))
+        let data = NexusFile.read(url)
+        if let url, let data, !NexusFile.isJSONObject(data) {
+            NexusFile.preserveUnreadable(url)
+            log.error("settings.json unlesbar, Kopie als settings.json.unreadable")
+        }
+        settings = ShellSettings.load(from: data)
     }
 
     /// Fuer Bildproben: fester Stand, keine Datei.
