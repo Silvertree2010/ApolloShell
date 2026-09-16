@@ -348,9 +348,44 @@ enum DockWindows {
         if window.minimized {
             AXUIElementSetAttributeValue(window.element, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
         }
+        // Erst die App nach vorne, dann das Fenster heben - und die App ueber
+        // die Bedienungshilfen, nicht ueber `activate()`. Gemessen 16.09.:
+        // `activate()` holt das zuletzt benutzte Fenster der App nach vorne,
+        // und liegt das auf einem anderen Schreibtisch, springt macOS dorthin,
+        // obwohl hier eins liegt. `kAXFrontmostAttribute` macht die App vorne,
+        // ohne ein Fenster zu waehlen; das Heben danach bestimmt, welches.
+        let axApp = AXUIElementCreateApplication(app.processIdentifier)
+        AXUIElementSetMessagingTimeout(axApp, 0.3)
+        let frontmost = AXUIElementSetAttributeValue(axApp, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
         AXUIElementSetAttributeValue(window.element, kAXMainAttribute as CFString, kCFBooleanTrue)
         AXUIElementPerformAction(window.element, kAXRaiseAction as CFString)
-        app.activate()
+        // Ohne Bedienungshilfen bleibt nur der alte Weg.
+        if frontmost != .success { app.activate() }
+    }
+
+    /// Nummern aller Fenster der App, auch auf anderen Schreibtischen und im
+    /// Dock abgelegten. `kAXWindowsAttribute` kennt nur den aktuellen
+    /// Schreibtisch (gemessen 16.09.: 2 von 21 Nummern), deshalb kommt die
+    /// Antwort auf "hat sie woanders Fenster?" aus der Fensterliste des
+    /// Systems. Gefiltert auf echte Fenster: Ebene 0 und mindestens
+    /// 100 x 100 Punkte, damit Schatten, Hilfsflaechen und Menues wegfallen.
+    @MainActor
+    static func allWindowIDs(pid: pid_t) -> Set<CGWindowID> {
+        guard let info = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] else {
+            return []
+        }
+        var ids: Set<CGWindowID> = []
+        for entry in info {
+            guard let owner = entry[kCGWindowOwnerPID as String] as? Int, pid_t(owner) == pid,
+                  (entry[kCGWindowLayer as String] as? Int) == 0,
+                  let number = entry[kCGWindowNumber as String] as? Int,
+                  let bounds = entry[kCGWindowBounds as String] as? [String: Any],
+                  let width = bounds["Width"] as? Double, let height = bounds["Height"] as? Double,
+                  width >= 100, height >= 100
+            else { continue }
+            ids.insert(CGWindowID(number))
+        }
+        return ids
     }
 
     /// Fensternummern, die gerade sichtbar sind - nicht minimiert und auf dem

@@ -174,6 +174,16 @@ final class SidebarDockModel {
         // kennt keine Spaces.
         let onScreen = app.map { DockWindows.onScreenWindowIDs(pid: $0.processIdentifier) } ?? []
         let onActiveSpace = visible.filter { $0.windowID.map(onScreen.contains) ?? false }
+        // Fenster auf anderen Schreibtischen kennt die Bedienungshilfen-Liste
+        // nicht (sie zeigt nur den aktuellen), deshalb aus der Fensterliste des
+        // Systems: alle minus die hiesigen minus die abgelegten.
+        let minimizedIDs = Set(windows.filter(\.minimized).compactMap(\.windowID))
+        let elsewhere = app.map {
+            DockWindows.allWindowIDs(pid: $0.processIdentifier)
+                .subtracting(onScreen)
+                .subtracting(minimizedIDs)
+                .count
+        } ?? 0
         let previous = NSWorkspace.shared.frontmostApplication
         let state = DockClickState(
             running: app != nil,
@@ -181,7 +191,7 @@ final class SidebarDockModel {
             frontmost: app != nil && app?.processIdentifier == previous?.processIdentifier,
             hidden: app?.isHidden ?? false,
             windowsOnActiveSpace: onActiveSpace.count,
-            windowsElsewhere: visible.count - onActiveSpace.count,
+            windowsElsewhere: elsewhere,
             minimizedWindows: windows.count(where: \.minimized),
             command: command,
             option: option
