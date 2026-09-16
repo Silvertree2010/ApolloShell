@@ -208,15 +208,6 @@ final class SidebarDockModel {
             option: option
         )
         let actions = DockClick.actions(for: state)
-        // Fehlersuche am lebenden System: Was der Klick sieht und woraus er
-        // sich entscheidet. Ohne das bleibt nur Raten, weil Spaces und
-        // Fensterlisten sich nicht nachstellen lassen.
-        log.notice("""
-            Dock-Klick \(entry.bundleID, privacy: .public): laeuft=\(state.running, privacy: .public) \
-            vorne=\(state.frontmost, privacy: .public) hier=\(state.windowsOnActiveSpace, privacy: .public) \
-            woanders=\(state.windowsElsewhere, privacy: .public) minimiert=\(state.minimizedWindows, privacy: .public) \
-            verdeckt=\(state.hasCoveredWindow, privacy: .public) -> \(String(describing: actions), privacy: .public)
-            """)
         for action in actions {
             switch action {
             case .launch:
