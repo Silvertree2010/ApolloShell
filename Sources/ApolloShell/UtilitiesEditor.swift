@@ -16,6 +16,9 @@ struct UtilitiesEditorPage: View {
     @State private var pending: UtilitiesEditorReplacement?
     /// Gewaehlter Knopf nach Kennung: seine Optionen stehen unter dem Raster.
     @State private var selection: String?
+    /// Liegt die Regel ohne Passwort fuer den Deckel-Teil auf diesem Mac?
+    @State private var lidRuleInstalled = false
+    @State private var removingLidRule = false
 
     /// `selection`: schon gewaehlter Knopf (Bildprobe).
     init(store: ShellSettingsStore, selection: String? = nil) {
@@ -68,18 +71,44 @@ struct UtilitiesEditorPage: View {
         }
     }
 
-    /// Der Deckel-Teil braucht root (pmset disablesleep). Ohne passwortloses
-    /// sudo fragt macOS bei jedem Ein- und Ausschalten nach einem
-    /// Administrator - das soll man vorher lesen koennen.
+    /// Der Deckel-Teil braucht root (pmset disablesleep). Beim ersten
+    /// Einschalten fragt macOS einmal nach einem Administrator und legt dabei
+    /// die Regel ohne Passwort an - das soll man vorher lesen koennen, und
+    /// man soll sie hier wieder loswerden.
     private var keepAwakeSection: some View {
         Section {
             NexusToggle(title: "Auch bei zugeklapptem Deckel",
                         subtitle: "Solange „Wach halten“ läuft, schläft der Mac auch zugeklappt nicht",
                         isOn: $store.settings.keepAwake.lidClosed)
+            if lidRuleInstalled {
+                LabeledContent {
+                    Button("Entfernen …") { removeLidRule() }
+                        .disabled(removingLidRule)
+                } label: {
+                    Text("Regel ohne Passwort")
+                    Text("Erlaubt nur, diesen Ruhezustand ohne Passwort umzuschalten")
+                }
+            }
         } header: {
             Text("Wach halten")
         } footer: {
-            Text("Braucht Administratorrechte: macOS fragt beim Ein- und Ausschalten nach dem Passwort, ausser sudo ist für pmset ohne Passwort erlaubt. Wer ablehnt, bekommt „Wach halten“ nur aufgeklappt. Im Akkubetrieb endet es bei \(LidAwake.batteryFloor) % von selbst.")
+            Text("Braucht einmal Administratorrechte: Beim ersten Einschalten fragt macOS nach dem Passwort, und ApolloShell legt eine Regel an, die nur das Umschalten dieses Ruhezustands ohne Passwort erlaubt. Danach fragt niemand mehr. Wer ablehnt, bekommt „Wach halten“ nur aufgeklappt. Im Akkubetrieb endet es bei \(LidAwake.batteryFloor) % von selbst.")
+        }
+        // Die Regel entsteht im Hintergrund, sobald die Frage beantwortet
+        // ist; solange die Seite offen ist, alle 2 s nachsehen (ein stat).
+        .task {
+            while !Task.isCancelled {
+                lidRuleInstalled = LidAwakeRule.isInstalled
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+    }
+
+    private func removeLidRule() {
+        removingLidRule = true
+        LidAwakeRule.remove { _ in
+            removingLidRule = false
+            lidRuleInstalled = LidAwakeRule.isInstalled
         }
     }
 

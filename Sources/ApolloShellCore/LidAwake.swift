@@ -8,8 +8,11 @@ import Foundation
 /// Amphetamine ("Closed-Display Mode").
 ///
 /// Zuerst `sudo -n` (ohne Rueckfrage, klappt nur mit passwortlosem sudo).
-/// Sonst fragt macOS ueber AppleScript nach einem Administrator - beim
-/// Einschalten und beim Zuruecksetzen. Wer ablehnt, bekommt "Wach halten"
+/// Sonst fragt macOS ueber AppleScript nach einem Administrator. Beim
+/// ersten Einschalten richtet dieselbe Frage eine eng begrenzte sudo-Regel
+/// ein (`sudoersRule`): danach geht beides ohne Passwort, auch das
+/// Zuruecksetzen beim Beenden und beim Akku-Schutz, wenn niemand da ist,
+/// der eine Frage beantworten koennte. Wer ablehnt, bekommt "Wach halten"
 /// ohne den Deckel-Teil.
 public enum LidAwake {
     /// Im Akkubetrieb endet "Wach halten" ab dieser Ladung von selbst: ein
@@ -19,6 +22,10 @@ public enum LidAwake {
     public static let pmset = "/usr/bin/pmset"
     public static let sudo = "/usr/bin/sudo"
     public static let osascript = "/usr/bin/osascript"
+    static let visudo = "/usr/sbin/visudo"
+    /// Die Regel, die ApolloShell einmalig anlegt. macOS liest den Ordner
+    /// ueber `#includedir /private/etc/sudoers.d` in /etc/sudoers.
+    public static let sudoersFile = "/etc/sudoers.d/apolloshell"
 
     /// Wert von "SleepDisabled" aus `pmset -g`; `nil`, wenn die Zeile fehlt.
     public static func sleepDisabled(pmsetOutput: String) -> Bool? {
@@ -42,18 +49,91 @@ public enum LidAwake {
 
     /// Dasselbe mit Administrator-Rueckfrage von macOS. Der Text sagt, wozu -
     /// ein nackter Passwort-Dialog ohne Grund waere verdaechtig.
-    public static func adminScript(disableSleep: Bool) -> String {
+    ///
+    /// `installRuleFor`: beim Einschalten zusaetzlich die Regel ohne Passwort
+    /// fuer diesen Nutzer anlegen. Ein Name, der nicht sicher in eine
+    /// sudoers-Zeile passt, laesst die Regel weg.
+    public static func adminScript(disableSleep: Bool, installRuleFor user: String? = nil) -> String {
+        var command = "\(pmset) -a disablesleep \(disableSleep ? "1" : "0")"
+        let install = disableSleep ? user.flatMap(installRuleCommand(user:)) : nil
+        if let install { command += " && { \(install); true; }" }
         // Wird in macOS' eigenem Passwort-Dialog gezeigt (osascript "with
         // prompt") - kein SwiftUI-Text, deshalb hier schon uebersetzt.
-        let prompt = disableSleep
-            ? String(localized: "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel aussetzen, solange „Wach halten“ läuft.")
-            : String(localized: "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel wieder erlauben.")
-        return "do shell script \"\(pmset) -a disablesleep \(disableSleep ? "1" : "0")\" "
-            + "with prompt \"\(prompt)\" with administrator privileges"
+        let prompt: String
+        if !disableSleep {
+            prompt = String(localized: "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel wieder erlauben.")
+        } else if install != nil {
+            prompt = String(localized: "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel aussetzen, solange „Wach halten“ läuft. Damit das künftig ohne Passwort geht, wird eine Regel angelegt, die nur diesen einen Befehl erlaubt.")
+        } else {
+            prompt = String(localized: "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel aussetzen, solange „Wach halten“ läuft.")
+        }
+        return shellScript(command, prompt: prompt)
     }
 
-    public static func osascriptArguments(disableSleep: Bool) -> [String] {
-        ["-e", adminScript(disableSleep: disableSleep)]
+    public static func osascriptArguments(disableSleep: Bool, installRuleFor user: String? = nil) -> [String] {
+        ["-e", adminScript(disableSleep: disableSleep, installRuleFor: user)]
+    }
+
+    /// Die Regel wieder entfernen (Nexus).
+    public static func removeRuleArguments() -> [String] {
+        let prompt = String(localized: "ApolloShell möchte seine Regel entfernen, die den Ruhezustand bei zugeklapptem Deckel ohne Passwort umschaltet.")
+        return ["-e", shellScript("/bin/rm -f \(sudoersFile)", prompt: prompt)]
+    }
+
+    // MARK: Regel ohne Passwort
+
+    /// Nur gewoehnliche Kurznamen: der Name landet unverändert in einer
+    /// sudoers-Zeile und in einem Shell-Befehl. Alles andere (Leerzeichen,
+    /// Komma, Anfuehrungszeichen, `%gruppe`, Umlaute) laesst die Regel weg.
+    static func isSafeUserName(_ name: String) -> Bool {
+        guard let first = name.unicodeScalars.first, first != "-" else { return false }
+        return name.unicodeScalars.allSatisfy { scalar in
+            scalar.isASCII && (CharacterSet.alphanumerics.contains(scalar) || "._-".unicodeScalars.contains(scalar))
+        }
+    }
+
+    /// Erlaubt genau die zwei Aufrufe aus `sudoArguments`, nur als root und
+    /// nur fuer diesen Nutzer. Keine Anfuehrungszeichen und kein Backslash:
+    /// der Text steht in einfachen Anfuehrungszeichen der Shell und in einem
+    /// AppleScript-String.
+    public static func sudoersRule(user: String) -> String? {
+        guard isSafeUserName(user) else { return nil }
+        let allowed = [true, false]
+            .map { sudoArguments(disableSleep: $0).dropFirst().joined(separator: " ") }
+            .joined(separator: ", ")
+        return """
+        # Written by ApolloShell: lets Keep Awake switch lid sleep without a password.
+        # Allows only the two commands below. Remove it in Nexus or with: sudo rm \(sudoersFile)
+        \(user) ALL=(root) NOPASSWD: \(allowed)
+
+        """
+    }
+
+    /// Laeuft als root: Regel in eine eigene Datei schreiben, mit visudo
+    /// pruefen, Rechte setzen und erst dann an ihren Platz. Eine fehlerhafte
+    /// Regel kommt so nie in den Ordner, den sudo liest.
+    static func installRuleCommand(user: String) -> String? {
+        guard let rule = sudoersRule(user: user) else { return nil }
+        let lines = rule.split(separator: "\n").map { "'\($0)'" }.joined(separator: " ")
+        return [
+            "t=$(/usr/bin/mktemp /private/tmp/apolloshell-sudoers.XXXXXX)",
+            "/usr/bin/printf '%s\\n' \(lines) > \"$t\"",
+            "\(visudo) -cf \"$t\" >/dev/null",
+            "/usr/sbin/chown root:wheel \"$t\"",
+            "/bin/chmod 0440 \"$t\"",
+            "/bin/mv -f \"$t\" \(sudoersFile)",
+        ].joined(separator: " && ") + "; /bin/rm -f \"$t\""
+    }
+
+    /// `do shell script` mit Administrator-Frage; Befehl und Text als
+    /// AppleScript-Strings maskiert.
+    static func shellScript(_ command: String, prompt: String) -> String {
+        "do shell script \"\(appleScriptEscaped(command))\" "
+            + "with prompt \"\(appleScriptEscaped(prompt))\" with administrator privileges"
+    }
+
+    static func appleScriptEscaped(_ text: String) -> String {
+        text.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
     }
 }
 

@@ -392,8 +392,13 @@ final class UtilitiesModel {
 
     private func askAdmin(disableSleep: Bool) {
         lidPromptRunning = true
-        let process = Self.launch(LidAwake.osascript, LidAwake.osascriptArguments(disableSleep: disableSleep)) {
-            [weak self] status in
+        // Beim ersten Einschalten legt dieselbe Frage die Regel ohne Passwort
+        // an; danach klappt schon `sudo -n`, und es fragt niemand mehr.
+        let arguments = LidAwake.osascriptArguments(
+            disableSleep: disableSleep,
+            installRuleFor: disableSleep ? LidAwakeRule.userToInstall : nil
+        )
+        let process = Self.launch(LidAwake.osascript, arguments) { [weak self] status in
             self?.lidPromptFinished(disableSleep: disableSleep, ok: status == 0)
         }
         lidPrompt = process.map { ($0, disableSleep) }

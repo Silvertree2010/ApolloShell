@@ -89,6 +89,8 @@
 /* LidAwake.swift */
 "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel aussetzen, solange „Wach halten“ läuft." = "ApolloShell would like to suspend sleep with the lid closed while “Keep Awake” is on.";
 "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel wieder erlauben." = "ApolloShell would like to allow sleep with the lid closed again.";
+"ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel aussetzen, solange „Wach halten“ läuft. Damit das künftig ohne Passwort geht, wird eine Regel angelegt, die nur diesen einen Befehl erlaubt." = "ApolloShell would like to suspend sleep with the lid closed while “Keep Awake” is on. So this works without a password from now on, it adds a rule that allows only this one command.";
+"ApolloShell möchte seine Regel entfernen, die den Ruhezustand bei zugeklapptem Deckel ohne Passwort umschaltet." = "ApolloShell would like to remove its rule that switches lid-closed sleep without a password.";
 
 /* NexusGeneralPages.swift */
 "Apple-Dock ausblenden, solange ApolloShell läuft" = "Hide Apple's Dock while ApolloShell is running";

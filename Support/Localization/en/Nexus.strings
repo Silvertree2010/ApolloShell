@@ -275,7 +275,9 @@
 "Auch bei zugeklapptem Deckel" = "Also With the Lid Closed";
 "Wach halten" = "Keep Awake";
 "Solange „Wach halten“ läuft, schläft der Mac auch zugeklappt nicht" = "While “Keep Awake” is on, the Mac won't sleep even with the lid closed";
-"Braucht Administratorrechte: macOS fragt beim Ein- und Ausschalten nach dem Passwort, ausser sudo ist für pmset ohne Passwort erlaubt. Wer ablehnt, bekommt „Wach halten“ nur aufgeklappt. Im Akkubetrieb endet es bei %lld % von selbst." = "Needs administrator rights: macOS asks for the password when turning it on or off, unless sudo is allowed for pmset without a password. Declining leaves “Keep Awake” working only with the lid open. On battery it ends on its own at %lld%.";
+"Braucht einmal Administratorrechte: Beim ersten Einschalten fragt macOS nach dem Passwort, und ApolloShell legt eine Regel an, die nur das Umschalten dieses Ruhezustands ohne Passwort erlaubt. Danach fragt niemand mehr. Wer ablehnt, bekommt „Wach halten“ nur aufgeklappt. Im Akkubetrieb endet es bei %lld % von selbst." = "Needs administrator rights once: the first time you turn it on, macOS asks for your password and ApolloShell adds a rule that allows only switching this sleep setting without a password. After that, nothing asks again. Declining leaves “Keep Awake” working only with the lid open. On battery it ends on its own at %lld%.";
+"Regel ohne Passwort" = "Password-Free Rule";
+"Erlaubt nur, diesen Ruhezustand ohne Passwort umzuschalten" = "Allows only switching this sleep setting without a password";
 "Schnellschalter" = "Quick Toggles";
 "Fünf pro Reihe wie im Panel, jede Reihe macht es 56 pt höher. Zum Umsortieren einen Knopf auf einen anderen ziehen; ein Klick wählt ihn zum Einstellen, das Kontextmenü verschiebt oder entfernt." = "Five per row as in the panel, each row makes it 56 pt taller. To reorder, drag one button onto another; a click selects it for editing, the context menu moves or removes it.";
 "Eine Vorlage ersetzt Karten und Schnellschalter. „Standard“ ist das Panel, wie es am Anfang war." = "A preset replaces cards and quick toggles. “Default” is the panel as it was at the start.";
@@ -388,3 +390,4 @@
 "gefühlte Temperatur" = "feels-like temperature";
 "ohne %@" = "without %@";
 "Sonnenzeiten nur für heute" = "sun times for today only";
+"Entfernen …" = "Remove…";

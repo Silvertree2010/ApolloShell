@@ -63,6 +63,55 @@ struct LidAwakeTests {
         #expect(arguments.last?.contains(reason) == true)
     }
 
+    @Test("Regel ohne Passwort: nur die zwei pmset-Befehle, nur fuer diesen Nutzer")
+    func sudoersRule() throws {
+        let rule = try #require(LidAwake.sudoersRule(user: "alex"))
+        let lines = rule.split(separator: "\n").filter { !$0.hasPrefix("#") && !$0.isEmpty }
+        #expect(lines == ["alex ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 1, /usr/bin/pmset -a disablesleep 0"])
+        // Muss genau zu dem passen, was die App mit sudo -n aufruft.
+        #expect(rule.contains(LidAwake.sudoArguments(disableSleep: true).dropFirst().joined(separator: " ")))
+        #expect(rule.contains(LidAwake.sudoArguments(disableSleep: false).dropFirst().joined(separator: " ")))
+        // Landet in einfachen Anfuehrungszeichen der Shell und in einem AppleScript-String.
+        #expect(!rule.contains("'") && !rule.contains("\"") && !rule.contains("\\"))
+    }
+
+    @Test("Nutzernamen, die nicht in eine sudoers-Zeile duerfen", arguments: [
+        "", "root ALL", "a,b", "a\nb", "a'b", "a\"b", "%admin", "-n", "a:b", "a=b", "ä",
+    ])
+    func unsafeUserNames(name: String) {
+        #expect(LidAwake.sudoersRule(user: name) == nil)
+        #expect(LidAwake.osascriptArguments(disableSleep: true, installRuleFor: name)
+            == LidAwake.osascriptArguments(disableSleep: true))
+    }
+
+    @Test("gewoehnliche Kurznamen", arguments: ["alex", "a.b", "a_b", "a-b", "user2", "_www"])
+    func safeUserNames(name: String) {
+        #expect(LidAwake.sudoersRule(user: name) != nil)
+    }
+
+    @Test("Einschalten mit Regel: erst pmset, dann die gepruefte Regel an ihren Platz")
+    func adminScriptWithRule() throws {
+        let script = try #require(LidAwake.osascriptArguments(disableSleep: true, installRuleFor: "alex").last)
+        #expect(script.hasPrefix("do shell script \"/usr/bin/pmset -a disablesleep 1 && "))
+        #expect(script.contains("/usr/sbin/visudo -cf"))
+        #expect(script.contains(LidAwake.sudoersFile))
+        #expect(script.hasSuffix("with administrator privileges"))
+        // Die Regel wird erst nach bestandener Pruefung verschoben.
+        let visudo = try #require(script.range(of: "visudo -cf"))
+        let move = try #require(script.range(of: "/bin/mv -f"))
+        #expect(visudo.lowerBound < move.lowerBound)
+        // Ausschalten richtet nie eine Regel ein.
+        #expect(LidAwake.osascriptArguments(disableSleep: false, installRuleFor: "alex")
+            == LidAwake.osascriptArguments(disableSleep: false))
+    }
+
+    @Test("Regel entfernen")
+    func removeRuleScript() throws {
+        let script = try #require(LidAwake.removeRuleArguments().last)
+        #expect(script.hasPrefix("do shell script \"/bin/rm -f \(LidAwake.sudoersFile)\""))
+        #expect(script.hasSuffix("with administrator privileges"))
+    }
+
     @Test("Untertitel je Stand des Deckel-Teils", arguments: [
         (KeepAwakeLid.off, ""),
         (KeepAwakeLid.on, " · auch zugeklappt"),
