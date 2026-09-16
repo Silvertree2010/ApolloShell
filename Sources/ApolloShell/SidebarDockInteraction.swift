@@ -373,12 +373,18 @@ enum DockWindows {
             """)
     }
 
-    /// Nummern aller Fenster der App, auch auf anderen Schreibtischen und im
-    /// Dock abgelegten. `kAXWindowsAttribute` kennt nur den aktuellen
-    /// Schreibtisch (gemessen 16.09.: 2 von 21 Nummern), deshalb kommt die
-    /// Antwort auf "hat sie woanders Fenster?" aus der Fensterliste des
-    /// Systems. Gefiltert auf echte Fenster: Ebene 0 und mindestens
-    /// 100 x 100 Punkte, damit Schatten, Hilfsflaechen und Menues wegfallen.
+    /// Nummern aller Fenster der App, die auf einem Schreibtisch liegen,
+    /// auch auf anderen, dazu die im Dock abgelegten. `kAXWindowsAttribute`
+    /// kennt nur den aktuellen Schreibtisch (gemessen: 2 von 21 Nummern),
+    /// deshalb kommt die Antwort auf "hat sie woanders Fenster?" aus der
+    /// Fensterliste des Systems. Gefiltert auf echte Fenster: Ebene 0 und
+    /// mindestens 100 x 100 Punkte, damit Schatten, Hilfsflaechen und Menues
+    /// wegfallen.
+    ///
+    /// Die Liste enthaelt auch Fenster, die eine App nach dem Schliessen nur
+    /// im Speicher behaelt (gemessen: 3 von 4 bei einem Dateimanager). Die
+    /// liegen auf keinem Space und fallen hier weg, sonst oeffnete ein Klick
+    /// auf eine App ohne sichtbares Fenster kein neues.
     @MainActor
     static func allWindowIDs(pid: pid_t) -> Set<CGWindowID> {
         guard let info = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] else {
@@ -395,8 +401,11 @@ enum DockWindows {
             else { continue }
             ids.insert(CGWindowID(number))
         }
-        return ids
+        guard let reader = spaceReader else { return ids }
+        return ids.filter { reader.isOnAnySpace($0) != false }
     }
+
+    @MainActor private static let spaceReader = SpaceReader()
 
     /// Fensternummern, die gerade sichtbar sind - nicht minimiert und auf dem
     /// aktuellen Space (`CGWindowListCopyWindowInfo` liefert nur, was der

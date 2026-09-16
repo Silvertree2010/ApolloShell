@@ -117,9 +117,13 @@ final class SpacesModel {
 struct SpaceReader {
     private typealias MainConnection = @convention(c) () -> Int32
     private typealias CopyDisplaySpaces = @convention(c) (Int32) -> Unmanaged<CFArray>?
+    private typealias CopySpacesForWindows = @convention(c) (Int32, Int32, CFArray) -> Unmanaged<CFArray>?
+    /// Alle Arten von Spaces (aktuelle, andere, Vollbild).
+    private static let allSpacesMask: Int32 = 7
 
     private let connection: Int32
     private let copyDisplaySpaces: CopyDisplaySpaces
+    private let copySpacesForWindows: CopySpacesForWindows?
 
     init?() {
         guard let handle = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY),
@@ -128,6 +132,18 @@ struct SpaceReader {
         else { return nil }
         connection = unsafeBitCast(connect, to: MainConnection.self)()
         copyDisplaySpaces = unsafeBitCast(copy, to: CopyDisplaySpaces.self)
+        copySpacesForWindows = Self.symbol(handle, "CGSCopySpacesForWindows", "SLSCopySpacesForWindows")
+            .map { unsafeBitCast($0, to: CopySpacesForWindows.self) }
+    }
+
+    /// Liegt das Fenster auf irgendeinem Space? `nil`, wenn nicht lesbar.
+    /// Fenster, die eine App nur im Speicher haelt, liegen auf keinem.
+    func isOnAnySpace(_ window: CGWindowID) -> Bool? {
+        guard let copySpacesForWindows,
+              let spaces = copySpacesForWindows(connection, Self.allSpacesMask, [window] as CFArray)?
+                  .takeRetainedValue() as? [Any]
+        else { return nil }
+        return !spaces.isEmpty
     }
 
     /// "Copy" im Namen: das Array gehoert uns (retained).
