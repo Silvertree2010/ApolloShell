@@ -35,7 +35,7 @@ enum AppleDockMenu {
     /// Das Menue einer App, wie Apples Dock es zeigt. Leer, wenn es dieses
     /// Symbol dort nicht gibt oder das Menue nicht gelesen werden konnte.
     static func snapshot(bundleID: String) async -> [DockMenuNode] {
-        await Task.detached(priority: .userInitiated) { read(bundleID: bundleID) }.value
+        await onReaderQueue { read(bundleID: bundleID) }
     }
 
     private static func read(bundleID: String) -> [DockMenuNode] {
@@ -60,19 +60,47 @@ enum AppleDockMenu {
 
     /// Fuehrt einen Eintrag aus: Apples Menue noch einmal oeffnen, den Weg
     /// ueber die Titel nachlaufen, druecken.
-    static func press(path: [String], bundleID: String) async -> Bool {
-        await Task.detached(priority: .userInitiated) { perform(path: path, bundleID: bundleID) }.value
+    static func press(path: [DockMenuStep], bundleID: String) async -> Bool {
+        await onReaderQueue { perform(path: path, bundleID: bundleID) }
     }
 
-    private static func perform(path: [String], bundleID: String) -> Bool {
+    /// Ein eigener Faden fuer die Bedienungshilfen.
+    ///
+    /// Nicht `Task.detached`: Die Aufrufe warten (bis zu einer halben
+    /// Sekunde je Aufruf) und warten zwischendurch auf Apples Dock. Auf dem
+    /// gemeinsamen Faden-Vorrat von Swift waere das ein blockierter Faden,
+    /// den andere Arbeit braucht. Serielle Schlange, damit auch zwei schnelle
+    /// Rechtsklicks nacheinander laufen und nicht zwei Menues gleichzeitig
+    /// oeffnen.
+    private static let queue = DispatchQueue(label: "io.github.silvertree2010.apolloshell.dockmenu",
+                                             qos: .userInitiated)
+
+    private static func onReaderQueue<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
+        await withCheckedContinuation { continuation in
+            queue.async { continuation.resume(returning: work()) }
+        }
+    }
+
+    private static func perform(path: [DockMenuStep], bundleID: String) -> Bool {
         guard !path.isEmpty, let item = dockItem(bundleID: bundleID),
-              AXUIElementPerformAction(item, kAXShowMenuAction as CFString) == .success,
-              let menu = openMenu(of: item)
+              AXUIElementPerformAction(item, kAXShowMenuAction as CFString) == .success
         else { return false }
+        // Ab hier steht Apples Menue offen; es darf unter keinen Umstaenden
+        // offen stehen bleiben.
+        guard let menu = openMenu(of: item) else {
+            dismiss(item)
+            return false
+        }
         var current = menu
-        for (index, title) in path.enumerated() {
+        for (index, step) in path.enumerated() {
             let children = DockMenuAX.value(current, kAXChildrenAttribute) as? [AXUIElement] ?? []
-            guard let match = children.first(where: { DockMenuAX.string($0, kAXTitleAttribute) == title }) else {
+            // Erst an der Stelle nachsehen, an der der Eintrag stand, und nur
+            // wenn der Titel dort nicht mehr passt (das Menue hat sich
+            // geaendert) nach dem Titel suchen.
+            let atIndex = children.indices.contains(step.index) ? children[step.index] : nil
+            let match = (atIndex.flatMap { DockMenuAX.string($0, kAXTitleAttribute) == step.title ? $0 : nil })
+                ?? children.first { DockMenuAX.string($0, kAXTitleAttribute) == step.title }
+            guard let match else {
                 dismiss(item)
                 return false
             }
@@ -118,8 +146,8 @@ enum AppleDockMenu {
             if let menu = children.first(where: { DockMenuAX.string($0, kAXRoleAttribute) == kAXMenuRole as String }) {
                 return menu
             }
-            // Kein RunLoop: Das hier laeuft nicht auf dem Hauptthread.
-            usleep(10_000)
+            // Kein RunLoop: Das hier laeuft auf einer eigenen Schlange.
+            Thread.sleep(forTimeInterval: 0.01)
         }
         return nil
     }

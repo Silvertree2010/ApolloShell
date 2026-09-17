@@ -169,8 +169,10 @@ public enum ThemeValueReader {
     private static func stop(_ part: String) -> (ThemeColor, Double?)? {
         let text = part.trimmedText
         // Von hinten trennen: die Farbe kann selbst Leerzeichen enthalten
-        // (`rgb(0 0 0)`), die Stelle steht immer am Ende.
-        if let space = text.lastIndex(of: " "), text.hasSuffix("%") {
+        // (`rgb(0 0 0)`), die Stelle steht immer am Ende. Getrennt wird an
+        // jedem Leerraum, nicht nur am Leerzeichen - ein Tabulator zwischen
+        // Farbe und Stelle ist genauso gemeint.
+        if let space = text.lastIndex(where: \.isWhitespace), text.hasSuffix("%") {
             let tail = String(text[text.index(after: space)...]).trimmedText
             if let (value, unit) = numberAndUnit(tail), unit == "%", value.isFinite,
                let color = self.color(String(text[..<space])) {

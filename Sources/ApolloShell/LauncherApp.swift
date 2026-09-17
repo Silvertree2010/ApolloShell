@@ -101,6 +101,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // sich selbst erneuern darf (DMG, nicht Homebrew).
         let updates = UpdateController(settings: settings)
         self.updates = updates
+        // Die Homebrew-Fassung sucht selbst; Sparkle hat seinen eigenen
+        // Zeitplan. Ohne das hier erfuehre man von einer neuen Fassung erst
+        // beim Oeffnen von Nexus > Updates.
+        updates.checkInBackgroundIfDue()
         let nexus = Nexus(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions,
                           updates: updates, themes: themes)
         self.nexus = nexus

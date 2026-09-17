@@ -41,6 +41,8 @@ final class ThemeStore {
     /// *in* einer Datei sieht man nur an ihr selbst.
     @ObservationIgnored private var fileWatcher: DispatchSourceFileSystemObject?
     @ObservationIgnored private var reloadWork: DispatchWorkItem?
+    /// Inode des beobachteten Ordners, zum Erkennen eines Austauschs.
+    @ObservationIgnored private var watchedInode: Int?
 
     /// Ein Editor schreibt beim Speichern mehrfach; erst danach lesen.
     private static let reloadDelay: DispatchTimeInterval = .milliseconds(250)
@@ -144,10 +146,22 @@ final class ThemeStore {
 
     // MARK: - Beobachten
 
+    /// Zeigt der Beobachter noch auf denselben Ordner? Verglichen wird die
+    /// Inode-Nummer: Ein neu angelegter Ordner gleichen Namens ist ein
+    /// anderer Ordner.
+    private func rearmIfFolderChanged() {
+        let current = (try? FileManager.default.attributesOfItem(atPath: folder.path)[.systemFileNumber] as? Int) ?? nil
+        guard current != watchedInode else { return }
+        watcher?.cancel()
+        watcher = nil
+        watch()
+    }
+
     private func watch() {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let descriptor = open(folder.path, O_EVTONLY)
         guard descriptor >= 0 else { return }
+        watchedInode = (try? FileManager.default.attributesOfItem(atPath: folder.path)[.systemFileNumber] as? Int) ?? nil
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: descriptor,
             eventMask: [.write, .rename, .delete, .extend, .attrib],
@@ -195,7 +209,14 @@ final class ThemeStore {
     private func scheduleReload() {
         reloadWork?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            MainActor.assumeIsolated { self?.reload() }
+            MainActor.assumeIsolated {
+                self?.reload()
+                // Wurde der Ordner geloescht, umbenannt oder ersetzt (ein
+                // Abgleichdienst, ein Griff im Finder), zeigt der alte
+                // Beobachter ins Leere. Dann neu anhaengen, sonst waere das
+                // Live-Neuladen fuer den Rest der Sitzung still tot.
+                self?.rearmIfFolderChanged()
+            }
         }
         reloadWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.reloadDelay, execute: work)

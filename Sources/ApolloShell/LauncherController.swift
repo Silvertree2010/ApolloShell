@@ -133,10 +133,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 nodes = await AppleDockMenu.snapshot(bundleID: bundleID)
             }
             if let bundleID = app.bundleID, !nodes.isEmpty {
-                for item in NativeAppMenu.menu(from: nodes, bundleID: bundleID).items {
-                    // Ein Eintrag gehoert immer nur in ein Menue.
-                    menu.addItem(item.copy() as! NSMenuItem)
-                }
+                NativeAppMenu.append(nodes, to: menu, bundleID: bundleID)
                 menu.addItem(.separator())
             } else if let running = LauncherController.runningApp(app) {
                 // Apples Dock kennt die App nicht: die Befehle aus ihrer

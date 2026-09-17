@@ -17,20 +17,25 @@ public struct UpdateSettings: Codable, Equatable, Sendable {
     public var checkAutomatically: Bool
     /// Gefundene Updates ohne Rueckfrage laden und beim Beenden einspielen.
     public var installAutomatically: Bool
+    /// Wann zuletzt nachgesehen wurde. Nur die Homebrew-Fassung schreibt das
+    /// mit; bei der DMG-Fassung fuehrt Sparkle selbst Buch.
+    public var lastCheck: Date?
 
-    public init(checkAutomatically: Bool = true, installAutomatically: Bool = true) {
+    public init(checkAutomatically: Bool = true, installAutomatically: Bool = true, lastCheck: Date? = nil) {
         self.checkAutomatically = checkAutomatically
         self.installAutomatically = installAutomatically
+        self.lastCheck = lastCheck
     }
 
     private enum CodingKeys: String, CodingKey {
-        case checkAutomatically, installAutomatically
+        case checkAutomatically, installAutomatically, lastCheck
     }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         checkAutomatically = c.lenient(.checkAutomatically) ?? true
         installAutomatically = c.lenient(.installAutomatically) ?? true
+        lastCheck = c.lenient(.lastCheck)
     }
 }
 

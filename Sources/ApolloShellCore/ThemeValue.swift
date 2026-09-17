@@ -167,6 +167,22 @@ public struct ThemeGradient: Equatable, Hashable, Sendable {
     /// Ein Verlauf braucht mindestens zwei Farben; alles andere ist keiner.
     public var isEmpty: Bool { stops.count < 2 }
 
+    /// Anfang und Ende des Verlaufs in Einheitskoordinaten (0,0 = oben
+    /// links, 1,1 = unten rechts) - die Form, die SwiftUI und CoreGraphics
+    /// brauchen.
+    ///
+    /// Der Winkel folgt CSS: 0 Grad zeigt nach oben, 90 Grad nach rechts,
+    /// 180 Grad nach unten. Die erste Farbe steht dort, wo der Verlauf
+    /// beginnt: bei 180 Grad also oben.
+    public var points: (start: (x: Double, y: Double), end: (x: Double, y: Double)) {
+        // Richtung in Bildschirmkoordinaten: y waechst nach unten, deshalb
+        // ist "nach oben" negativ.
+        let radians = (angle - 90) * .pi / 180
+        let dx = cos(radians) / 2
+        let dy = sin(radians) / 2
+        return (start: (x: 0.5 - dx, y: 0.5 - dy), end: (x: 0.5 + dx, y: 0.5 + dy))
+    }
+
     /// `none` oder `linear-gradient(180deg, #111111 0%, #333333 100%)`.
     public var cssText: String {
         guard !isEmpty else { return "none" }

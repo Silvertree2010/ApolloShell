@@ -44,6 +44,12 @@ struct ThemeGradientTests {
         #expect(value.stops.map(\.position) == [0.6, 0.6])
     }
 
+    @Test("zwischen Farbe und Stelle darf auch ein Tabulator stehen")
+    func acceptsAnyWhitespaceBeforeThePosition() throws {
+        let value = try #require(gradient("linear-gradient(#000000\t25%, #ffffff 100%)"))
+        #expect(value.stops.map(\.position) == [0.25, 1])
+    }
+
     @Test("none heisst: kein Verlauf, und das ist kein Fehler")
     func noneIsEmpty() throws {
         let value = try #require(gradient("none"))
@@ -95,5 +101,54 @@ struct ThemeGradientTests {
         let theme = Theme.make(identifier: "kaputt", styleSheet: sheet)
         #expect(theme.gradient(.panel).isEmpty)
         #expect(theme.issues.contains { $0.description.contains("--apollo-panel-gradient") })
+    }
+}
+
+@Suite("Themes: Richtung eines Verlaufs")
+struct ThemeGradientDirectionTests {
+    private func gradient(_ angle: Double) -> ThemeGradient {
+        ThemeGradient(angle: angle, stops: [
+            ThemeGradient.Stop(color: .black, position: 0),
+            ThemeGradient.Stop(color: .white, position: 1),
+        ])
+    }
+
+    private func close(_ value: Double, _ expected: Double) -> Bool {
+        abs(value - expected) < 0.0001
+    }
+
+    @Test("180 Grad laeuft von oben nach unten - die erste Farbe steht oben")
+    func downwards() {
+        let points = gradient(180).points
+        #expect(close(points.start.y, 0) && close(points.start.x, 0.5))
+        #expect(close(points.end.y, 1) && close(points.end.x, 0.5))
+    }
+
+    @Test("0 Grad laeuft nach oben")
+    func upwards() {
+        let points = gradient(0).points
+        #expect(close(points.start.y, 1))
+        #expect(close(points.end.y, 0))
+    }
+
+    @Test("90 Grad laeuft nach rechts")
+    func rightwards() {
+        let points = gradient(90).points
+        #expect(close(points.start.x, 0) && close(points.start.y, 0.5))
+        #expect(close(points.end.x, 1) && close(points.end.y, 0.5))
+    }
+
+    @Test("270 Grad laeuft nach links")
+    func leftwards() {
+        let points = gradient(270).points
+        #expect(close(points.start.x, 1))
+        #expect(close(points.end.x, 0))
+    }
+
+    @Test("135 Grad laeuft nach rechts unten")
+    func diagonally() {
+        let points = gradient(135).points
+        #expect(points.start.x < 0.5 && points.start.y < 0.5, "Anfang oben links")
+        #expect(points.end.x > 0.5 && points.end.y > 0.5, "Ende unten rechts")
     }
 }

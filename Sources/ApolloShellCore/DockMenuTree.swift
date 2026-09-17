@@ -25,6 +25,22 @@ public struct RawMenuItem: Equatable, Sendable {
     }
 }
 
+/// Eine Stufe auf dem Weg zu einem Menueeintrag: der Titel und die Stelle,
+/// an der er in seinem Menue steht.
+///
+/// Die Stelle gehoert dazu, weil Titel sich wiederholen: zwei Fenster
+/// desselben Dokuments, zwei zuletzt benutzte Dateien gleichen Namens. Nur
+/// nach dem Titel zu suchen wuerde dann den falschen Eintrag druecken.
+public struct DockMenuStep: Equatable, Sendable {
+    public let title: String
+    public let index: Int
+
+    public init(title: String, index: Int) {
+        self.title = title
+        self.index = index
+    }
+}
+
 /// Ein fertiger Eintrag fuer unser Menue.
 public struct DockMenuNode: Equatable, Sendable {
     public let title: String
@@ -35,11 +51,11 @@ public struct DockMenuNode: Equatable, Sendable {
     /// Der Weg ueber die Titel bis hierher. Damit wird der Eintrag in Apples
     /// Menue wiedergefunden, wenn es zum Ausfuehren noch einmal geoeffnet
     /// wird - die Elemente selbst gelten nur, solange es offen ist.
-    public let path: [String]
+    public let path: [DockMenuStep]
     public let children: [DockMenuNode]
 
     public init(title: String, enabled: Bool, checked: Bool, separator: Bool,
-                path: [String], children: [DockMenuNode]) {
+                path: [DockMenuStep], children: [DockMenuNode]) {
         self.title = title
         self.enabled = enabled
         self.checked = checked
@@ -55,12 +71,12 @@ public enum DockMenuTree {
     /// Untermenue ("Optionen"); alles darunter waere fremdes Gelaende.
     public static let maximumDepth = 2
 
-    public static func nodes(from items: [RawMenuItem], path: [String] = [], depth: Int = 0) -> [DockMenuNode] {
+    public static func nodes(from items: [RawMenuItem], path: [DockMenuStep] = [], depth: Int = 0) -> [DockMenuNode] {
         guard depth < maximumDepth else { return [] }
-        return items.map { item in
+        return items.enumerated().map { index, item in
             // Apple meldet Trenner als Eintrag ohne Titel und ohne Untermenue.
             let separator = item.title.trimmingCharacters(in: .whitespaces).isEmpty && !item.hasSubmenu
-            let ownPath = path + [item.title]
+            let ownPath = path + [DockMenuStep(title: item.title, index: index)]
             return DockMenuNode(
                 title: item.title,
                 enabled: item.enabled,

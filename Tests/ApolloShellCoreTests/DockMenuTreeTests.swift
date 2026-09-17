@@ -46,11 +46,20 @@ struct DockMenuTreeTests {
         #expect(!options.separator, "ein Eintrag mit Untermenue ist kein Trenner")
     }
 
-    @Test("der Weg zu einem Eintrag steht in seinen Titeln")
+    @Test("der Weg zu einem Eintrag nennt Titel und Stelle")
     func pathsLeadBackToTheItem() {
         let nodes = DockMenuTree.nodes(from: vivaldi)
-        #expect(nodes[2].path == ["New window"])
-        #expect(nodes[5].children[2].path == ["Options", "Show in Finder"])
+        #expect(nodes[2].path == [DockMenuStep(title: "New window", index: 2)])
+        #expect(nodes[5].children[2].path == [DockMenuStep(title: "Options", index: 5),
+                                              DockMenuStep(title: "Show in Finder", index: 2)])
+    }
+
+    @Test("gleichnamige Eintraege bleiben auseinanderzuhalten")
+    func sameTitlesKeepTheirPlace() {
+        let windows = [RawMenuItem(title: "Bericht.pdf"), RawMenuItem(title: "Bericht.pdf")]
+        let nodes = DockMenuTree.nodes(from: windows)
+        #expect(nodes[0].path.map(\.index) == [0])
+        #expect(nodes[1].path.map(\.index) == [1])
     }
 
     @Test("tiefer als eine Ebene Untermenue wird nicht gelesen")

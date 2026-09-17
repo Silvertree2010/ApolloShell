@@ -114,13 +114,12 @@ struct ShellStyle: Equatable {
         let stops = gradient.stops.map {
             Gradient.Stop(color: Color($0.color), location: $0.position)
         }
-        let radians = (gradient.angle - 90) * .pi / 180
-        let dx = cos(radians) / 2
-        let dy = sin(radians) / 2
+        // Die Richtung rechnet der Kern (`ThemeGradient.points`, geprueft).
+        let points = gradient.points
         return LinearGradient(
             stops: stops,
-            startPoint: UnitPoint(x: 0.5 - dx, y: 0.5 + dy),
-            endPoint: UnitPoint(x: 0.5 + dx, y: 0.5 - dy)
+            startPoint: UnitPoint(x: points.start.x, y: points.start.y),
+            endPoint: UnitPoint(x: points.end.x, y: points.end.y)
         )
     }
 

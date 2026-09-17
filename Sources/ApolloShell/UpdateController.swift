@@ -44,6 +44,10 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     }
 
     private(set) var status: Status = .idle
+    /// Wann zuletzt gesucht wurde. Bei der Homebrew-Fassung steht der
+    /// Zeitpunkt in den Einstellungen, damit "hoechstens einmal am Tag" auch
+    /// ueber einen Neustart hinweg gilt; bei der DMG-Fassung fuehrt Sparkle
+    /// selbst Buch.
     private(set) var lastCheck: Date?
     let installKind: InstallKind
 
@@ -61,6 +65,7 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         self.settings = settings
         self.installKind = installKind
         super.init()
+        lastCheck = settings.settings.updates.lastCheck
 
         guard installKind.updatesItself, Self.bundleCanUpdate else {
             status = .unavailable
@@ -101,7 +106,7 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     /// Fenster - hier ausdruecklich gewollt, weil der Benutzer gerade
     /// geklickt hat.
     func checkNow() {
-        lastCheck = Date()
+        rememberCheck(at: Date())
         if let updaterController {
             status = .checking
             updaterController.updater.checkForUpdates()
@@ -132,6 +137,13 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         return false
     }
 
+    /// Zeitpunkt merken - im Speicher und, bei Homebrew, auch auf der Platte.
+    private func rememberCheck(at date: Date) {
+        lastCheck = date
+        guard updaterController == nil else { return }
+        settings.settings.updates.lastCheck = date
+    }
+
     private func checkViaGitHub() {
         checkTask?.cancel()
         status = .checking
@@ -139,7 +151,7 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         checkTask = Task { [weak self] in
             let outcome = await UpdateCheck.live().run(current: current)
             guard !Task.isCancelled else { return }
-            self?.lastCheck = Date()
+            self?.rememberCheck(at: Date())
             switch outcome {
             case .current: self?.status = .upToDate
             case let .newer(release): self?.status = .found(version: release.version.description, page: release.page)
@@ -167,8 +179,13 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
-        // Abbruch durch den Benutzer ist kein Fehler, der auf der Seite stehen muss.
-        guard (error as NSError).code != Int(SUError.installationCanceledError.rawValue) else { return }
+        // Abbruch durch den Benutzer ist kein Fehler, der auf der Seite stehen
+        // muss - aber die Seite darf danach auch nicht ewig "wird geprüft"
+        // zeigen.
+        guard (error as NSError).code != Int(SUError.installationCanceledError.rawValue) else {
+            if case .checking = status { status = .idle }
+            return
+        }
         status = .failed(error.localizedDescription)
     }
 

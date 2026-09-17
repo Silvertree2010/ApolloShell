@@ -15,6 +15,18 @@ enum NativeAppMenu {
                      rebind: (DockMenuNode) -> (state: NSControl.StateValue, enabled: Bool, action: () -> Void)? = { _ in nil }) -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
+        append(nodes, to: menu, bundleID: bundleID, rebind: rebind)
+        return menu
+    }
+
+    /// Dieselben Eintraege an ein vorhandenes Menue haengen - der Launcher
+    /// setzt eigene Zeilen davor und dahinter.
+    ///
+    /// Anhaengen statt kopieren: Ein NSMenuItem gehoert immer nur in ein
+    /// Menue, und `copy()` auf einem `ClosureMenuItem` ginge ueber
+    /// `init(coder:)`, den es nicht gibt.
+    static func append(_ nodes: [DockMenuNode], to menu: NSMenu, bundleID: String,
+                       rebind: (DockMenuNode) -> (state: NSControl.StateValue, enabled: Bool, action: () -> Void)? = { _ in nil }) {
         for node in nodes {
             if node.separator {
                 menu.addItem(.separator())
@@ -42,7 +54,6 @@ enum NativeAppMenu {
             }
             menu.addItem(item)
         }
-        return menu
     }
 
     /// Rechts neben dem Symbol, oben buendig - die Leiste liegt links, und im

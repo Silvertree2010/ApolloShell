@@ -98,6 +98,9 @@ if [ -s "$OUT/sparkle-ed-private.key" ]; then
     echo "EdDSA-Schluessel schon vorhanden: $OUT/sparkle-ed-private.key"
 else
     KEYWORK=$(mktemp -d)
+    # Darin liegt der private Schluessel unverschluesselt: unter allen
+    # Umstaenden wieder loeschen, auch wenn etwas dazwischen scheitert.
+    trap 'rm -rf "${WORK:-}" "$KEYWORK"' EXIT INT TERM
     "$OPENSSL" genpkey -algorithm ed25519 -out "$KEYWORK/ed.pem"
     # Sparkles sign_update erwartet base64 aus 64 Byte: 32 Byte privater
     # Seed, danach die 32 Byte des oeffentlichen Schluessels. Die rohen Bytes

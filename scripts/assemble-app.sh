@@ -48,6 +48,12 @@ fi
 # der Now-Playing-Helfer muessen dieselbe Signatur tragen.
 if [ -n "$IDENTITY" ] && security find-identity -p codesigning 2>/dev/null | grep -q "\"$IDENTITY\""; then
     echo "signing with: $IDENTITY"
+elif [ "${SIGN_IDENTITY+set}" = set ] && [ -n "$SIGN_IDENTITY" ]; then
+    # Ausdruecklich verlangt und nicht da: abbrechen. Still ad-hoc zu
+    # signieren hiesse im Release, dass jede Bedienungshilfen-Freigabe nach
+    # dem Update weg ist - und das faellt erst den Nutzern auf.
+    echo "Signier-Identitaet nicht im Schluesselbund: $SIGN_IDENTITY" >&2
+    exit 1
 else
     echo "note: ad-hoc signature - the Accessibility grant will not survive the next build (scripts/setup-signing.sh)" >&2
     IDENTITY=-
