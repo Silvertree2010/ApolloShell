@@ -72,8 +72,18 @@ jobs:
         env:
           SIGN_IDENTITY: ApolloShell Release Signing
         run: |
+          set -o pipefail
           scripts/make-dmg.sh
           codesign --verify --deep --strict --verbose=2 "build/dist/ApolloShell.app"
+          # Ad-hoc signiert waere die Pruefung oben auch zufrieden, aber dann
+          # waere nach jedem Update jede Bedienungshilfen-Freigabe der Nutzer
+          # weg. Also ausdruecklich nachsehen, wer unterschrieben hat.
+          codesign -dvv "build/dist/ApolloShell.app" 2>&1 | grep -q "Authority=ApolloShell Release Signing"
+          build=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "build/dist/ApolloShell.app/Contents/Info.plist")
+          if [ "$build" -le 1 ]; then
+            echo "CFBundleVersion ist $build - Sparkle koennte kein Update vom naechsten unterscheiden" >&2
+            exit 1
+          fi
 
       - name: Fetch the Sparkle tools
         run: |
