@@ -58,6 +58,11 @@ struct LauncherView: View {
                             model.selectedIndex = index
                             model.launchSelected()
                         }
+                        // Rechtsklick wie im Dock: die Befehle der App und
+                        // der Sprung in den Dateimanager.
+                        .contextMenu {
+                            LauncherRowMenu(model: model, app: app)
+                        }
                     }
                 }
                 .padding(8)
@@ -67,6 +72,27 @@ struct LauncherView: View {
                 proxy.scrollTo(model.results[index].id)
             }
         }
+    }
+}
+
+/// Das Kontextmenue einer Zeile. Die Befehle kommen aus der Menueleiste der
+/// App (`DockAppCommands`) und stehen deshalb nur, solange sie laeuft - wie
+/// im Dock-Menue der Leiste.
+private struct LauncherRowMenu: View {
+    let model: LauncherModel
+    let app: AppEntry
+
+    var body: some View {
+        let commands = model.commands(app)
+        Button("Öffnen") { model.onLaunch(app) }
+        if !commands.isEmpty {
+            Divider()
+            ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
+                Button(command.title) { model.onCommand(app, command.kind) }
+            }
+        }
+        Divider()
+        Button("Im Finder zeigen") { model.onReveal(app) }
     }
 }
 

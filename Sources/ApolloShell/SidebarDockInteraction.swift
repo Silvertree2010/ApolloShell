@@ -256,7 +256,7 @@ enum DockMenu {
             }
             if !windows.isEmpty { menu.addItem(.separator()) }
 
-            let commands = DockAppCommands.newItems(pid: app.processIdentifier)
+            let commands = DockAppCommands.commands(pid: app.processIdentifier)
             for command in commands {
                 menu.addItem(ClosureMenuItem(command.title) { DockAppCommands.press(command, of: app) })
             }
@@ -513,11 +513,19 @@ enum RemoteWindows {
 enum DockAppCommands {
     struct Command {
         let title: String
+        let kind: DockCommandKind
         let element: AXUIElement
     }
 
+    /// Die Befehle der App fuers Dock-Menue: neue Fenster und die
+    /// Einstellungen.
+    ///
+    /// Gelesen werden zwei Menues der Menueleiste - das App-Menue (dort
+    /// stehen die Einstellungen) und das erste danach (File/Ablage, dort die
+    /// neuen Fenster). Was ein Eintrag ist, entscheidet `DockCommandFilter`
+    /// am Tastenkuerzel und erst dann am Text.
     @MainActor
-    static func newItems(pid: pid_t) -> [Command] {
+    static func commands(pid: pid_t) -> [Command] {
         guard AXIsProcessTrusted() else { return [] }
         let app = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(app, 0.3)
@@ -527,16 +535,31 @@ enum DockAppCommands {
         let bar = unsafeDowncast(barValue, to: AXUIElement.self)
         // 0 = Apple-Menue, 1 = App-Menue, 2 = File/Ablage (kitty: Shell).
         let menus = DockAX.value(bar, kAXChildrenAttribute) as? [AXUIElement] ?? []
-        guard menus.count > 2,
-              let menu = (DockAX.value(menus[2], kAXChildrenAttribute) as? [AXUIElement])?.first
-        else { return [] }
-        let items = DockAX.value(menu, kAXChildrenAttribute) as? [AXUIElement] ?? []
-        return items.compactMap { item in
-            guard let title = DockAX.string(item, kAXTitleAttribute), DockCommandFilter.isNewCommand(title),
-                  (DockAX.value(item, kAXEnabledAttribute) as? NSNumber)?.boolValue ?? false
-            else { return nil }
-            return Command(title: title, element: item)
+        var commands: [Command] = []
+        var seen: Set<String> = []
+        for index in [1, 2] where menus.count > index {
+            guard let menu = (DockAX.value(menus[index], kAXChildrenAttribute) as? [AXUIElement])?.first else { continue }
+            let items = DockAX.value(menu, kAXChildrenAttribute) as? [AXUIElement] ?? []
+            for item in items {
+                guard let title = DockAX.string(item, kAXTitleAttribute),
+                      (DockAX.value(item, kAXEnabledAttribute) as? NSNumber)?.boolValue ?? false,
+                      let kind = DockCommandFilter.kind(title: title, shortcut: shortcut(of: item)),
+                      seen.insert(title).inserted
+                else { continue }
+                commands.append(Command(title: title, kind: kind, element: item))
+            }
         }
+        // Erst die neuen Fenster, dann die Einstellungen - wie im Dock-Menue
+        // von Apple, wo die Befehle der App in dieser Reihenfolge stehen.
+        return commands.filter { $0.kind == .newItem } + commands.filter { $0.kind == .settings }
+    }
+
+    /// Das Tastenkuerzel eines Menuepunkts, `nil` wenn er keines hat.
+    @MainActor
+    private static func shortcut(of item: AXUIElement) -> MenuShortcut? {
+        guard let character = DockAX.string(item, kAXMenuItemCmdCharAttribute), !character.isEmpty else { return nil }
+        let modifiers = (DockAX.value(item, kAXMenuItemCmdModifiersAttribute) as? NSNumber)?.intValue ?? 0
+        return MenuShortcut(character: character, modifiers: modifiers)
     }
 
     /// App nach vorne, dann den Menuepunkt auswaehlen - wie ueber ihre

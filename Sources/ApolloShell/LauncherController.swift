@@ -45,6 +45,16 @@ final class LauncherController: NSObject, NSWindowDelegate {
         super.init()
         model.onLaunch = { [weak self] app in self?.launch(app) }
         model.onClose = { [weak self] in self?.close() }
+        model.commands = { app in
+            guard let running = LauncherController.runningApp(app) else { return [] }
+            return DockAppCommands.commands(pid: running.processIdentifier)
+                .map { (title: $0.title, kind: $0.kind) }
+        }
+        model.onCommand = { [weak self] app, kind in self?.run(kind, of: app) }
+        model.onReveal = { [weak self] app in
+            self?.close()
+            NSWorkspace.shared.activateFileViewerSelecting([app.url])
+        }
         observeAppLaunches()
     }
 
@@ -114,6 +124,27 @@ final class LauncherController: NSObject, NSWindowDelegate {
         spring.fromValue = NSValue(caTransform3D: current)
         spring.toValue = NSValue(caTransform3D: target)
         layer.add(spring, forKey: Motion.key)
+    }
+
+    /// Die laufende Instanz zu einem Eintrag, `nil` wenn sie nicht laeuft.
+    private static func runningApp(_ app: AppEntry) -> NSRunningApplication? {
+        guard let bundleID = app.bundleID else { return nil }
+        return NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == bundleID }
+    }
+
+    /// Einen Befehl der App ausfuehren - derselbe Weg wie im Dock-Menue:
+    /// den Menuepunkt ueber die Bedienungshilfen druecken.
+    private func run(_ kind: DockCommandKind, of app: AppEntry) {
+        close()
+        guard let running = LauncherController.runningApp(app),
+              let command = DockAppCommands.commands(pid: running.processIdentifier).first(where: { $0.kind == kind })
+        else {
+            // Laeuft sie doch nicht mehr: dann eben normal starten.
+            launch(app)
+            return
+        }
+        usage.record(app.usageKey)
+        DockAppCommands.press(command, of: running)
     }
 
     private func launch(_ app: AppEntry) {

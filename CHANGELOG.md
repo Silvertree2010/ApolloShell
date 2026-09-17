@@ -8,6 +8,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **App commands in the launcher**: a right click on a row opens the same
+  menu as the dock - the app's own commands (new window, settings), and
+  Show in Finder.
+- **Settings in the dock menu**, and commands are found by their keyboard
+  shortcut (⌘N, ⌘,) rather than by the wording of the menu item, so they
+  also show up in other languages.
+
 - **Themes apply to the shell.** Pick one in Nexus > Themes and the bar,
   the panels, the launcher, the toasts and the accent colour follow the
   file. Editing the file applies at once, without a restart, and the page

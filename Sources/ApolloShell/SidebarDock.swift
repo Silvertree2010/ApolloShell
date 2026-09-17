@@ -235,7 +235,9 @@ final class SidebarDockModel {
                     AXUIElementSetAttributeValue(last.element, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
                 }
             case .newWindow:
-                if let app, let command = DockAppCommands.newItems(pid: app.processIdentifier).first {
+                if let app,
+                   let command = DockAppCommands.commands(pid: app.processIdentifier)
+                       .first(where: { $0.kind == .newItem }) {
                     DockAppCommands.press(command, of: app)
                 }
             case .hidePrevious:

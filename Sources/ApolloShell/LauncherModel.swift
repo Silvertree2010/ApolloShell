@@ -18,6 +18,15 @@ final class LauncherModel {
     /// Wird von aussen gesetzt: App starten bzw. Launcher schliessen.
     @ObservationIgnored var onLaunch: (AppEntry) -> Void = { _ in }
     @ObservationIgnored var onClose: () -> Void = {}
+    /// Einen Befehl der App ausfuehren (Neues Fenster, Einstellungen) -
+    /// dasselbe wie im Dock-Menue der Leiste.
+    @ObservationIgnored var onCommand: (AppEntry, DockCommandKind) -> Void = { _, _ in }
+    /// Im Dateimanager zeigen.
+    @ObservationIgnored var onReveal: (AppEntry) -> Void = { _ in }
+
+    /// Die Befehle, die diese App gerade anbietet - leer, solange sie nicht
+    /// laeuft: die Menueleiste einer nicht laufenden App gibt es nicht.
+    @ObservationIgnored var commands: (AppEntry) -> [(title: String, kind: DockCommandKind)] = { _ in [] }
 
     @ObservationIgnored private var all: [AppEntry] = []
     @ObservationIgnored private var usage = UsageStats()
