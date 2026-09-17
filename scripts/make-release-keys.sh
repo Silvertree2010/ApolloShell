@@ -43,7 +43,6 @@ KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 # Wie in setup-signing.sh: das LibreSSL von macOS, dessen PKCS#12 der
 # Schluesselbund versteht.
 OPENSSL=/usr/bin/openssl
-PLISTBUDDY=/usr/libexec/PlistBuddy
 
 mkdir -p "$OUT"
 chmod 700 "$OUT"
@@ -101,22 +100,20 @@ else
     # Darin liegt der private Schluessel unverschluesselt: unter allen
     # Umstaenden wieder loeschen, auch wenn etwas dazwischen scheitert.
     trap 'rm -rf "${WORK:-}" "$KEYWORK"' EXIT INT TERM
-    "$OPENSSL" genpkey -algorithm ed25519 -out "$KEYWORK/ed.pem"
-    # Sparkles sign_update erwartet base64 aus 64 Byte: 32 Byte privater
-    # Seed, danach die 32 Byte des oeffentlichen Schluessels. Die rohen Bytes
-    # stehen am Ende der DER-Struktur.
-    "$OPENSSL" pkey -in "$KEYWORK/ed.pem" -outform DER -out "$KEYWORK/ed.der"
-    "$OPENSSL" pkey -in "$KEYWORK/ed.pem" -pubout -outform DER -out "$KEYWORK/ed.pub.der"
-    python3 - "$KEYWORK/ed.der" "$KEYWORK/ed.pub.der" "$OUT" <<'PY'
-import base64, pathlib, sys
+    # Ueber CryptoKit statt openssl: Das LibreSSL von macOS kennt
+    # "genpkey -algorithm ed25519" nicht. Sparkle erwartet base64 aus 64 Byte -
+    # 32 Byte privater Schluessel, dahinter die 32 Byte des oeffentlichen.
+    cat > "$KEYWORK/edkey.swift" <<'SWIFT'
+import CryptoKit
+import Foundation
 
-private_der, public_der, out = (pathlib.Path(p) for p in sys.argv[1:4])
-# Ed25519-DER: die letzten 32 Byte sind der jeweilige Schluessel.
-seed = private_der.read_bytes()[-32:]
-public = public_der.read_bytes()[-32:]
-(out / "sparkle-ed-private.key").write_text(base64.b64encode(seed + public).decode() + "\n")
-(out / "sparkle-ed-public.key").write_text(base64.b64encode(public).decode() + "\n")
-PY
+let key = Curve25519.Signing.PrivateKey()
+print((key.rawRepresentation + key.publicKey.rawRepresentation).base64EncodedString())
+print(key.publicKey.rawRepresentation.base64EncodedString())
+SWIFT
+    swift "$KEYWORK/edkey.swift" > "$KEYWORK/keys.txt"
+    head -1 "$KEYWORK/keys.txt" > "$OUT/sparkle-ed-private.key"
+    tail -1 "$KEYWORK/keys.txt" > "$OUT/sparkle-ed-public.key"
     rm -rf "$KEYWORK"
     chmod 600 "$OUT/sparkle-ed-private.key"
     echo "EdDSA-Schluessel erzeugt: $OUT/sparkle-ed-private.key"
@@ -125,7 +122,11 @@ fi
 # --- Oeffentlichen Schluessel ins Bundle eintragen --------------------------
 
 PUBLIC=$(tr -d '\n' < "$OUT/sparkle-ed-public.key")
-"$PLISTBUDDY" -c "Set :SUPublicEDKey $PUBLIC" "$ROOT/Support/Info.plist"
+# Mit sed statt PlistBuddy: PlistBuddy schreibt die ganze Datei neu, sortiert
+# die Schluessel um und wirft die Kommentare weg.
+/usr/bin/sed -i '' -e "/<key>SUPublicEDKey<\/key>/{n;s|<string>.*</string>|<string>$PUBLIC</string>|;}" \
+    "$ROOT/Support/Info.plist"
+plutil -lint "$ROOT/Support/Info.plist" >/dev/null
 echo "SUPublicEDKey in Support/Info.plist gesetzt (committen)"
 
 cat <<EOF
