@@ -51,8 +51,11 @@ enum ToastPalette {
         accent(kind, style).map { AnyShapeStyle($0) } ?? AnyShapeStyle(Color.primary.opacity(0.10))
     }
 
+    /// Ohne Theme weiss auf der farbigen Kachel, wie bisher; mit Theme die
+    /// Schrift auf Akzentflaechen aus dem Theme.
     static func symbol(_ kind: ToastKind, _ style: ShellStyle = .standard) -> AnyShapeStyle {
-        accent(kind, style) == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(style.onAccent)
+        guard accent(kind, style) != nil else { return AnyShapeStyle(.secondary) }
+        return AnyShapeStyle(style.isThemed ? style.onAccent : Color.white)
     }
 
     /// Toenung des Glases.
