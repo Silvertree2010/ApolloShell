@@ -11,12 +11,16 @@ All notable changes to this project are documented here. The format follows
 - **App commands in the launcher**: a right click on a row opens the same
   menu as the dock - the app's own commands (new window, settings), and
   Show in Finder.
-- **Dock menu in Apple's order**: the windows first, with a tick on the
-  front one and a window glyph on each line, then the app's commands, then
-  Options, and after a separator Show All Windows, Hide and Quit.
-- **Settings in the dock menu**, and commands are found by their keyboard
-  shortcut (⌘N, ⌘,) rather than by the wording of the menu item, so they
-  also show up in other languages.
+- **The app's own dock menu**: a right click on a dock icon mirrors the
+  menu Apple's Dock shows for that app, so every app brings whatever it
+  offers - recent documents, its own commands, the Options submenu. Keep in
+  Dock is the one entry bound to this shell's dock instead of Apple's. When
+  Apple's Dock has no icon for the app, the shell falls back to the menu it
+  builds itself, in Apple's order: windows first with a tick on the front
+  one, then the app's commands, then Options, then Show All Windows, Hide
+  and Quit.
+- **Commands are found by their keyboard shortcut** (⌘N, ⌘,) rather than by
+  the wording of the menu item, so they also show up in other languages.
 
 - **Themes apply to the shell.** Pick one in Nexus > Themes and the bar,
   the panels, the launcher, the toasts and the accent colour follow the

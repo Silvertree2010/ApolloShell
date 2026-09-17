@@ -239,13 +239,23 @@ final class DockMouseView: NSView, NSDraggingSource {
 /// kitty, ForkLift): Fenster zuerst, mit Haken am vordersten und einem
 /// Fenstersymbol je Zeile, dann die Befehle der App, dann Optionen, und nach
 /// einem Trenner der Block aus Einblenden, Ausblenden und Beenden.
-/// Einstellungen zeigt Apple dort nicht - das ist unsere Zugabe, weil ein
-/// Sprung in die Einstellungen der App sonst nirgends steht.
+/// Einstellungen zeigt Apple dort nicht, also zeigen wir sie dort auch
+/// nicht (im Launcher schon - dort gibt es kein Vorbild von Apple).
 ///
 /// Beim Oeffnen gebaut, damit Fensterliste, Befehle und Zustand stimmen.
 @MainActor
 enum DockMenu {
     static func show(for entry: SidebarDockModel.Entry, model: SidebarDockModel, at view: NSView) {
+        // Zuerst das echte Menue von Apples Dock: dort stehen die Eintraege,
+        // die die App selbst liefert (zuletzt benutzte Dokumente, eigene
+        // Befehle) - die kann von aussen niemand erraten. Klappt das nicht
+        // (Symbol nicht in Apples Dock, kein Zugriff), bleibt das selbst
+        // gebaute Menue darunter.
+        if let mirrored = mirrorOfApplesMenu(for: entry, model: model) {
+            popUp(mirrored, at: view)
+            return
+        }
+
         let menu = NSMenu()
         menu.autoenablesItems = false
         let app = model.runningApp(entry.bundleID)
@@ -270,7 +280,8 @@ enum DockMenu {
             }
             if !windows.isEmpty { menu.addItem(.separator()) }
 
-            let commands = DockAppCommands.commands(pid: app.processIdentifier)
+            // Nur die Befehle, die Apples Dock auch zeigt.
+            let commands = DockAppCommands.commands(pid: app.processIdentifier).filter { $0.kind == .newItem }
             for command in commands {
                 menu.addItem(ClosureMenuItem(command.title) { DockAppCommands.press(command, of: app) })
             }
@@ -309,9 +320,68 @@ enum DockMenu {
             menu.addItem(force)
         }
 
-        // Rechts neben dem Symbol, oben buendig - die Leiste liegt links.
+        popUp(menu, at: view)
+    }
+
+    /// Rechts neben dem Symbol, oben buendig - die Leiste liegt links.
+    private static func popUp(_ menu: NSMenu, at view: NSView) {
         let top = view.isFlipped ? view.bounds.minY : view.bounds.maxY
         menu.popUp(positioning: nil, at: NSPoint(x: view.bounds.maxX + 6, y: top), in: view)
+    }
+
+    /// Apples Dock-Menue eins zu eins nachgebaut. `nil`, wenn es nichts zu
+    /// spiegeln gibt.
+    ///
+    /// Eine Ausnahme vom Spiegeln: "Im Dock behalten" wuerde sonst in Apples
+    /// Dock anheften, das bei laufender Shell ausgeblendet ist. Dieser eine
+    /// Eintrag zeigt deshalb auf unser Dock.
+    private static func mirrorOfApplesMenu(for entry: SidebarDockModel.Entry,
+                                           model: SidebarDockModel) -> NSMenu? {
+        let items = AppleDockMenu.snapshot(bundleID: entry.bundleID)
+        guard !items.isEmpty else { return nil }
+        return build(items, entry: entry, model: model)
+    }
+
+    private static func build(_ items: [AppleDockMenu.Item], entry: SidebarDockModel.Entry,
+                              model: SidebarDockModel) -> NSMenu {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        for item in items {
+            if item.separator {
+                menu.addItem(.separator())
+                continue
+            }
+            if !item.children.isEmpty {
+                let parent = NSMenuItem(title: item.title, action: nil, keyEquivalent: "")
+                parent.submenu = build(item.children, entry: entry, model: model)
+                parent.isEnabled = item.enabled
+                menu.addItem(parent)
+                continue
+            }
+            let menuItem: NSMenuItem
+            if isKeepInDock(item.title) {
+                menuItem = ClosureMenuItem(item.title) { model.togglePin(entry) }
+                menuItem.state = model.isPinnedInDock(entry) ? .on : .off
+                menuItem.isEnabled = model.canPin(entry)
+            } else {
+                let path = item.path
+                let bundleID = entry.bundleID
+                menuItem = ClosureMenuItem(item.title) {
+                    _ = AppleDockMenu.press(path: path, bundleID: bundleID)
+                }
+                menuItem.state = item.mark.isEmpty ? .off : .on
+                menuItem.isEnabled = item.enabled
+            }
+            menu.addItem(menuItem)
+        }
+        return menu
+    }
+
+    /// Der Eintrag, der in Apples Dock anheftet - in den Sprachen, die die
+    /// Shell selbst spricht. Trifft es nicht zu, bleibt Apples Verhalten.
+    private static func isKeepInDock(_ title: String) -> Bool {
+        let trimmed = title.trimmingCharacters(in: .whitespaces).lowercased()
+        return trimmed == "im dock behalten" || trimmed == "keep in dock"
     }
 }
 

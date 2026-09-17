@@ -45,6 +45,15 @@ final class LauncherController: NSObject, NSWindowDelegate {
         super.init()
         model.onLaunch = { [weak self] app in self?.launch(app) }
         model.onClose = { [weak self] in self?.close() }
+        model.nativeItems = { app in
+            guard let bundleID = app.bundleID else { return [] }
+            return LauncherController.convert(AppleDockMenu.snapshot(bundleID: bundleID))
+        }
+        model.onNativeItem = { [weak self] app, item in
+            guard let bundleID = app.bundleID else { return }
+            self?.close()
+            _ = AppleDockMenu.press(path: item.path, bundleID: bundleID)
+        }
         model.commands = { app in
             guard let running = LauncherController.runningApp(app) else { return [] }
             return DockAppCommands.commands(pid: running.processIdentifier)
@@ -124,6 +133,14 @@ final class LauncherController: NSObject, NSWindowDelegate {
         spring.fromValue = NSValue(caTransform3D: current)
         spring.toValue = NSValue(caTransform3D: target)
         layer.add(spring, forKey: Motion.key)
+    }
+
+    /// Apples Baum in die Form des Launchers bringen.
+    private static func convert(_ items: [AppleDockMenu.Item]) -> [LauncherMenuItem] {
+        items.map {
+            LauncherMenuItem(title: $0.title, enabled: $0.enabled, separator: $0.separator,
+                             path: $0.path, children: convert($0.children))
+        }
     }
 
     /// Die laufende Instanz zu einem Eintrag, `nil` wenn sie nicht laeuft.

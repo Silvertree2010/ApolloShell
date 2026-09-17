@@ -83,16 +83,47 @@ private struct LauncherRowMenu: View {
     let app: AppEntry
 
     var body: some View {
-        let commands = model.commands(app)
+        let native = model.nativeItems(app)
         Button("Öffnen") { model.onLaunch(app) }
-        if !commands.isEmpty {
-            Divider()
-            ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
-                Button(command.title) { model.onCommand(app, command.kind) }
+        if native.isEmpty {
+            // Apples Dock kennt diese App nicht (nicht dort, nicht laufend):
+            // dann die Befehle aus ihrer Menueleiste.
+            let commands = model.commands(app)
+            if !commands.isEmpty {
+                Divider()
+                ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
+                    Button(command.title) { model.onCommand(app, command.kind) }
+                }
             }
+        } else {
+            Divider()
+            LauncherNativeItems(model: model, app: app, items: native)
         }
         Divider()
         Button("Im Finder zeigen") { model.onReveal(app) }
+    }
+}
+
+/// Apples Eintraege, samt Untermenues.
+private struct LauncherNativeItems: View {
+    let model: LauncherModel
+    let app: AppEntry
+    let items: [LauncherMenuItem]
+
+    var body: some View {
+        ForEach(items) { item in
+            if item.separator {
+                Divider()
+            } else if item.children.isEmpty {
+                Button(item.title) { model.onNativeItem(app, item) }
+                    .disabled(!item.enabled)
+            } else {
+                Menu(item.title) {
+                    LauncherNativeItems(model: model, app: app, items: item.children)
+                }
+                .disabled(!item.enabled)
+            }
+        }
     }
 }
 

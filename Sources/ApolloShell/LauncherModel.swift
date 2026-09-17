@@ -2,6 +2,17 @@ import AppKit
 import ApolloShellCore
 import Observation
 
+/// Ein Eintrag aus Apples Dock-Menue, wie ihn der Launcher anbietet.
+struct LauncherMenuItem: Identifiable {
+    let id = UUID()
+    let title: String
+    let enabled: Bool
+    let separator: Bool
+    /// Weg ueber die Titel, zum Wiederfinden beim Ausfuehren.
+    let path: [String]
+    let children: [LauncherMenuItem]
+}
+
 /// Zustand der Liste: Suchtext, sortierte Apps, Auswahl.
 @MainActor
 @Observable
@@ -24,8 +35,15 @@ final class LauncherModel {
     /// Im Dateimanager zeigen.
     @ObservationIgnored var onReveal: (AppEntry) -> Void = { _ in }
 
+    /// Die Eintraege, die Apples Dock fuer diese App zeigt - genau die, die
+    /// die App selbst liefert. Leer, wenn es sie dort nicht gibt.
+    @ObservationIgnored var nativeItems: (AppEntry) -> [LauncherMenuItem] = { _ in [] }
+    /// Einen dieser Eintraege ausfuehren.
+    @ObservationIgnored var onNativeItem: (AppEntry, LauncherMenuItem) -> Void = { _, _ in }
+
     /// Die Befehle, die diese App gerade anbietet - leer, solange sie nicht
     /// laeuft: die Menueleiste einer nicht laufenden App gibt es nicht.
+    /// Nur der Rueckfall, wenn Apples Dock nichts hergibt.
     @ObservationIgnored var commands: (AppEntry) -> [(title: String, kind: DockCommandKind)] = { _ in [] }
 
     @ObservationIgnored private var all: [AppEntry] = []
