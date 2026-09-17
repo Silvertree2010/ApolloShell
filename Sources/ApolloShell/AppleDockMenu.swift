@@ -26,30 +26,11 @@ import os
 /// Traegt es nicht, bleibt das selbst gebaute Menue (`DockMenu`) bestehen.
 @MainActor
 enum AppleDockMenu {
-    /// Ein Eintrag aus Apples Menue.
-    struct Item {
-        let title: String
-        let enabled: Bool
-        /// Das Zeichen, mit dem Apple den Eintrag markiert (Haken beim
-        /// vordersten Fenster); leer, wenn er unmarkiert ist.
-        let mark: String
-        let separator: Bool
-        let children: [Item]
-        /// Der Weg zu diesem Eintrag, ueber die Titel: So wird er beim
-        /// Ausfuehren wiedergefunden, denn die Elemente selbst gelten nur,
-        /// solange Apples Menue offen ist.
-        let path: [String]
-    }
-
     private static let log = Logger(subsystem: AppIdentity.logSubsystem, category: "dockmenu")
-
-    /// Tiefe, bis zu der Untermenues gelesen werden. "Optionen" ist eine
-    /// Ebene, mehr hat Apples Dock-Menue nicht.
-    private static let maximumDepth = 2
 
     /// Das Menue einer App, wie Apples Dock es zeigt. Leer, wenn es dieses
     /// Symbol dort nicht gibt oder das Menue nicht gelesen werden konnte.
-    static func snapshot(bundleID: String) -> [Item] {
+    static func snapshot(bundleID: String) -> [DockMenuNode] {
         guard let item = dockItem(bundleID: bundleID) else {
             log.notice("kein Dock-Symbol fuer \(bundleID, privacy: .public)")
             return []
@@ -63,7 +44,8 @@ enum AppleDockMenu {
             log.notice("kein Menue nach AXShowMenu fuer \(bundleID, privacy: .public)")
             return []
         }
-        let items = read(menu, path: [], depth: 0)
+        // Lesen hier, deuten im Kern (`DockMenuTree`, geprueft).
+        let items = DockMenuTree.nodes(from: read(menu, depth: 0))
         log.notice("Apples Dock-Menue fuer \(bundleID, privacy: .public): \(items.count) Eintraege")
         return items
     }
@@ -100,20 +82,18 @@ enum AppleDockMenu {
 
     // MARK: - Lesen
 
-    private static func read(_ menu: AXUIElement, path: [String], depth: Int) -> [Item] {
-        guard depth < maximumDepth else { return [] }
+    /// Roh lesen, nichts deuten: Was daraus wird, entscheidet `DockMenuTree`.
+    private static func read(_ menu: AXUIElement, depth: Int) -> [RawMenuItem] {
+        guard depth < DockMenuTree.maximumDepth else { return [] }
         let children = DockMenuAX.value(menu, kAXChildrenAttribute) as? [AXUIElement] ?? []
         return children.map { child in
-            let title = DockMenuAX.string(child, kAXTitleAttribute) ?? ""
             let submenu = (DockMenuAX.value(child, kAXChildrenAttribute) as? [AXUIElement])?.first
-            return Item(
-                title: title,
+            return RawMenuItem(
+                title: DockMenuAX.string(child, kAXTitleAttribute) ?? "",
                 enabled: (DockMenuAX.value(child, kAXEnabledAttribute) as? NSNumber)?.boolValue ?? true,
                 mark: DockMenuAX.string(child, kAXMenuItemMarkCharAttribute) ?? "",
-                // Apple meldet Trenner als Eintrag ohne Titel.
-                separator: title.isEmpty && submenu == nil,
-                children: submenu.map { read($0, path: path + [title], depth: depth + 1) } ?? [],
-                path: path + [title]
+                hasSubmenu: submenu != nil,
+                children: submenu.map { read($0, depth: depth + 1) } ?? []
             )
         }
     }

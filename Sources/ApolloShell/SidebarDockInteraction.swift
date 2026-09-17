@@ -342,7 +342,7 @@ enum DockMenu {
         return build(items, entry: entry, model: model)
     }
 
-    private static func build(_ items: [AppleDockMenu.Item], entry: SidebarDockModel.Entry,
+    private static func build(_ items: [DockMenuNode], entry: SidebarDockModel.Entry,
                               model: SidebarDockModel) -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
@@ -359,7 +359,7 @@ enum DockMenu {
                 continue
             }
             let menuItem: NSMenuItem
-            if isKeepInDock(item.title) {
+            if DockMenuTree.isKeepInDock(item.title) {
                 menuItem = ClosureMenuItem(item.title) { model.togglePin(entry) }
                 menuItem.state = model.isPinnedInDock(entry) ? .on : .off
                 menuItem.isEnabled = model.canPin(entry)
@@ -369,19 +369,12 @@ enum DockMenu {
                 menuItem = ClosureMenuItem(item.title) {
                     _ = AppleDockMenu.press(path: path, bundleID: bundleID)
                 }
-                menuItem.state = item.mark.isEmpty ? .off : .on
+                menuItem.state = item.checked ? .on : .off
                 menuItem.isEnabled = item.enabled
             }
             menu.addItem(menuItem)
         }
         return menu
-    }
-
-    /// Der Eintrag, der in Apples Dock anheftet - in den Sprachen, die die
-    /// Shell selbst spricht. Trifft es nicht zu, bleibt Apples Verhalten.
-    private static func isKeepInDock(_ title: String) -> Bool {
-        let trimmed = title.trimmingCharacters(in: .whitespaces).lowercased()
-        return trimmed == "im dock behalten" || trimmed == "keep in dock"
     }
 }
 

@@ -136,7 +136,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     }
 
     /// Apples Baum in die Form des Launchers bringen.
-    private static func convert(_ items: [AppleDockMenu.Item]) -> [LauncherMenuItem] {
+    private static func convert(_ items: [DockMenuNode]) -> [LauncherMenuItem] {
         items.map {
             LauncherMenuItem(title: $0.title, enabled: $0.enabled, separator: $0.separator,
                              path: $0.path, children: convert($0.children))
