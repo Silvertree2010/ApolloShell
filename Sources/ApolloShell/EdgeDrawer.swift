@@ -83,6 +83,8 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// Glas und SwiftUI-Inhalt darin; `resize(to:)` setzt ihre Rahmen neu.
     private var glass: NSGlassEffectView?
     private var hosting: NSView?
+    /// Die eingefaerbte Flaeche unter dem Glas, wenn ein Theme gilt.
+    private var panelLayer: CAGradientLayer?
     private(set) var isOpen = false
     private var generation = 0
 
@@ -122,21 +124,38 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         let style = ThemeStore.shared?.style(dark: dark) ?? .standard
         glass.cornerRadius = style.isThemed ? style.panelRadius(cornerRadius) : cornerRadius
-        // Die Flaeche malt `ShellPanelBackground` in SwiftUI - aber nur so
-        // weit, wie die Ansicht reicht. Der Streifen ueber ihr (Platz fuer
-        // Menueleiste und Notch) gehoert zum Glas, und dort schien sonst der
-        // Schreibtisch durch. Deshalb hier zusaetzlich die Flaeche unter dem
-        // Glas einfaerben: eine Ebenenfarbe gilt sofort, eine Toenung erst
-        // beim naechsten Zeichnen.
-        let content = glass.contentView
-        content?.wantsLayer = true
-        guard style.isThemed else {
-            content?.layer?.backgroundColor = nil
+
+        // Die ganze Flaeche in einem Stueck, unter dem Glas: Die Ansicht
+        // reicht nur bis zu ihrem eigenen Rahmen, darueber liegt der Platz
+        // fuer Menueleiste und Notch. Wuerden beide Teile getrennt gefuellt,
+        // liefe ein Verlauf zweimal und es gaebe eine Naht.
+        //
+        // Als Ebene und nicht als Toenung des Glases, weil eine Ebenenfarbe
+        // sofort gilt und eine Toenung erst beim naechsten Zeichnen.
+        guard let content = glass.contentView else { return }
+        content.wantsLayer = true
+        panelLayer?.removeFromSuperlayer()
+        panelLayer = nil
+        content.layer?.backgroundColor = nil
+        guard style.isThemed else { return }
+
+        let gradient = style.theme.gradient(.panel, dark: dark)
+        guard !gradient.isEmpty else {
+            content.layer?.backgroundColor = NSColor(style.theme.color(.panel, dark: dark))
+                .withAlphaComponent(style.panelOpacity).cgColor
             return
         }
-        let color = NSColor(style.theme.color(.panel, dark: dark))
-            .withAlphaComponent(style.panelOpacity)
-        content?.layer?.backgroundColor = color.cgColor
+        let layer = CAGradientLayer()
+        layer.frame = content.bounds
+        layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+        layer.colors = gradient.stops.map { NSColor($0.color).cgColor }
+        layer.locations = gradient.stops.map { NSNumber(value: $0.position) }
+        let points = gradient.points
+        layer.startPoint = CGPoint(x: points.start.x, y: points.start.y)
+        layer.endPoint = CGPoint(x: points.end.x, y: points.end.y)
+        layer.opacity = Float(style.panelOpacity)
+        content.layer?.insertSublayer(layer, at: 0)
+        panelLayer = layer
     }
 
     /// Hoehe der Menueleiste bzw. der Notch, je nachdem was groesser ist
@@ -460,9 +479,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         glass.cornerRadius = cornerRadius
 
         let content = NSView(frame: container.bounds)
-        // Der Panel-Hintergrund gehoert in die Ansicht, nicht ans Glas:
-        // sonst faerbt er sich erst beim naechsten Zeichnen ein.
-        let hosting = FirstMouseHostingView(rootView: rootView.modifier(ShellPanelBackground()))
+        let hosting = FirstMouseHostingView(rootView: rootView)
         hosting.sizingOptions = []
         hosting.frame = visibleRectInWindow
         content.addSubview(hosting)

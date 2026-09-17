@@ -226,28 +226,6 @@ extension EnvironmentValues {
     }
 }
 
-/// Faerbt die Flaeche eines Kantenfensters (Dashboard, Utilities) nach dem
-/// Theme.
-///
-/// In SwiftUI und nicht ueber die Toenung des AppKit-Glases: Die Toenung kam
-/// erst beim naechsten Zeichnen an, also blieb das Panel bis zum ersten Klick
-/// durchsichtig und zeigte den Schreibtisch (gesehen 17.09. im Dashboard).
-struct ShellPanelBackground: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-
-    func body(content: Content) -> some View {
-        let style = ShellTheme.style(colorScheme)
-        content.background {
-            if style.isThemed {
-                Rectangle()
-                    .fill(style.panelFill)
-                    .opacity(style.panelOpacity)
-                    .ignoresSafeArea()
-            }
-        }
-    }
-}
-
 /// Der Stil der laufenden Shell im gewuenschten Erscheinungsbild.
 ///
 /// Ansichten benutzen das so:
