@@ -33,7 +33,8 @@
 #   RELEASE_CERT_P12       Inhalt von release-cert.p12.base64
 #   RELEASE_CERT_PASSWORD  Inhalt von release-cert-password
 #   SPARKLE_EDDSA_KEY      Inhalt von sparkle-ed-private.key
-#   TAP_TOKEN              Token mit Schreibrecht auf homebrew-apolloshell
+#   TAP_DEPLOY_KEY         privater SSH-Schluessel eines Deploy-Keys mit
+#                          Schreibrecht auf homebrew-apolloshell
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)

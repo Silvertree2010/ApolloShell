@@ -127,7 +127,7 @@ jobs:
 
       - name: Update the Homebrew tap
         env:
-          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+          TAP_DEPLOY_KEY: ${{ secrets.TAP_DEPLOY_KEY }}
         run: |
           set -o pipefail
           version="${GITHUB_REF_NAME#v}"
@@ -139,11 +139,14 @@ jobs:
             echo "keine Pruefsumme fuer $tarball" >&2
             exit 1
           fi
-          # Das Merkmal steht in einer Kopfzeile, nicht in der Adresse: In der
-          # Adresse stuende es in `ps` und bliebe in .git/config liegen.
-          auth=$(printf 'x-access-token:%s' "$TAP_TOKEN" | base64)
-          git -c http.extraHeader="Authorization: Basic $auth" clone --depth 1 \
-            "https://github.com/Silvertree2010/homebrew-apolloshell.git" "$RUNNER_TEMP/tap"
+          # Schreibrecht ueber einen Deploy-Key, der nur fuer das Tap-Repo
+          # gilt - kein Token, das auf alle Repos passt, und nichts, was in
+          # der Adresse oder in .git/config liegen bleibt.
+          mkdir -p "$RUNNER_TEMP/ssh"
+          printf '%s\n' "$TAP_DEPLOY_KEY" > "$RUNNER_TEMP/ssh/id"
+          chmod 600 "$RUNNER_TEMP/ssh/id"
+          export GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/ssh/id -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$RUNNER_TEMP/ssh/known_hosts"
+          git clone --depth 1 git@github.com:Silvertree2010/homebrew-apolloshell.git "$RUNNER_TEMP/tap"
           formula="$RUNNER_TEMP/tap/Formula/apolloshell.rb"
           /usr/bin/sed -i '' -e "s|url \".*\"|url \"$tarball\"|" -e "s|sha256 \".*\"|sha256 \"$sha\"|" "$formula"
           # Steht die Formel schon richtig (erneuter Lauf desselben Tags),
@@ -156,5 +159,4 @@ jobs:
           git -C "$RUNNER_TEMP/tap" -c user.name="ApolloShell Release" \
             -c user.email="noreply@github.com" \
             commit -am "ApolloShell $version"
-          git -C "$RUNNER_TEMP/tap" \
-            -c http.extraHeader="Authorization: Basic $auth" push
+          git -C "$RUNNER_TEMP/tap" push
