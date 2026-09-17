@@ -38,7 +38,11 @@ for arch in $ARCHS; do
     bin="$(swift build "$@" --show-bin-path)/ApolloShell"
     lipo "$bin" -verify_arch "$arch"
     BINARIES="$BINARIES $bin"
+    # Sparkle ist als XCFramework schon universell; eine Kopie genuegt fuer
+    # beide Architekturen.
+    [ -n "${SPARKLE_FRAMEWORK:-}" ] || SPARKLE_FRAMEWORK="$(dirname "$bin")/Sparkle.framework"
 done
+export SPARKLE_FRAMEWORK
 
 # shellcheck disable=SC2086 # word splitting of BINARIES is intended
 lipo -create $BINARIES -output "$OUT/ApolloShell"

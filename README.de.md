@@ -115,6 +115,21 @@ sichtbar unter Systemeinstellungen > Allgemein > Anmeldeobjekte). In
 Entwicklungs-Builds und wenn schon ein eigener launchd-Agent ApolloShell
 startet, bleibt der Schalter gesperrt.
 
+## Updates
+
+Die Fassung aus dem DMG hält sich selbst aktuell: Sie sieht einmal täglich im
+Hintergrund nach, lädt eine neue Fassung, sobald es eine gibt, und spielt sie
+beim nächsten Beenden ein. Weil eine Shell praktisch nie beendet wird, bietet
+Nexus zusätzlich **„Jetzt neu starten“** an, sobald etwas bereitliegt. Beide
+Schalter sind ab Werk an und lassen sich unter **Nexus > Updates** abstellen.
+
+Eine Homebrew-Installation gehört Homebrew. Dort erneuert sich ApolloShell
+nicht selbst, sondern meldet nur, dass es etwas Neues gibt:
+
+```sh
+brew upgrade apolloshell
+```
+
 ## Berechtigungen
 
 Beim ersten Start erklärt eine kurze **Einführung** (vier Schritte,

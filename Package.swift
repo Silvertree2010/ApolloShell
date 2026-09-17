@@ -11,11 +11,20 @@ let package = Package(
     products: [
         .executable(name: "ApolloShell", targets: ["ApolloShell"]),
     ],
+    dependencies: [
+        // Selbstaktualisierung (nur fuer die DMG-Fassung; die
+        // Homebrew-Fassung schaltet sie zur Laufzeit ab). Feste Fassung:
+        // ein Update-Rahmenwerk soll sich nie unbemerkt aendern.
+        .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.0"),
+    ],
     targets: [
-        // Reine Logik ohne Oberflaeche, getestet.
+        // Reine Logik ohne Oberflaeche, getestet. Bleibt ohne Abhaengigkeiten.
         .target(name: "ApolloShellCore"),
         // Die App: Leiste, Launcher, Kantenfenster.
-        .executableTarget(name: "ApolloShell", dependencies: ["ApolloShellCore"]),
+        .executableTarget(name: "ApolloShell", dependencies: [
+            "ApolloShellCore",
+            .product(name: "Sparkle", package: "Sparkle"),
+        ]),
         .testTarget(name: "ApolloShellCoreTests", dependencies: ["ApolloShellCore"]),
     ]
 )

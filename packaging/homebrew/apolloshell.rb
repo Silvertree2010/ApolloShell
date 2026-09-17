@@ -6,6 +6,8 @@
 #
 # Only the Command Line Tools are needed (swift, clang, codesign, iconutil
 # are not even required - the icon is prebuilt). Xcode is NOT required.
+# The build fetches one dependency, Sparkle, over the network; Homebrew
+# allows that during `install`.
 class Apolloshell < Formula
   desc "Caelestia-inspired desktop shell for macOS: sidebar dock, launcher, dashboard"
   homepage "https://github.com/Silvertree2010/ApolloShell"
@@ -30,6 +32,10 @@ class Apolloshell < Formula
     # Signs with the local identity from scripts/setup-signing.sh if the
     # keychain offers it, otherwise ad-hoc (see caveats).
     ENV["BUILD_NUMBER"] = version.to_s
+    # Marks the bundle as a Homebrew build. The app then never replaces
+    # itself - this copy belongs to Homebrew, and `brew upgrade` is the way
+    # to a new version. It still says when a newer one is out.
+    ENV["HOMEBREW_BUILD"] = "1"
     system "scripts/assemble-app.sh", "#{bin_path}/ApolloShell", "#{buildpath}/ApolloShell.app"
     prefix.install "ApolloShell.app"
     pkgshare.install "scripts/setup-signing.sh"
@@ -57,6 +63,10 @@ class Apolloshell < Formula
       (If the Homebrew build cannot reach your keychain, build with
       ./build.sh from a git checkout instead.)
 
+      Updates: this copy belongs to Homebrew, so ApolloShell does not
+      replace itself. It says when a new version is out; install it with
+        brew upgrade apolloshell
+
       Start at login: System Settings > General > Login Items.
     EOS
   end
@@ -65,6 +75,8 @@ class Apolloshell < Formula
     app = prefix/"ApolloShell.app"
     assert_path_exists app/"Contents/MacOS/ApolloShell"
     assert_path_exists app/"Contents/Frameworks/MediaRemoteAdapter.framework"
+    assert_path_exists app/"Contents/Frameworks/Sparkle.framework"
+    assert_path_exists app/"Contents/Resources/installed-by-homebrew"
     system "codesign", "--verify", "--deep", "--strict", app
   end
 end

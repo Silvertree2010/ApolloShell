@@ -1,0 +1,125 @@
+name: Release
+
+# Nur auf Tags. Niemals auf Pull Requests: Der Auftrag braucht die
+# Signaturschluessel, und ein fremder Fork darf nie an sie herankommen.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Werkzeuge von Sparkle (generate_appcast). Feste Fassung mit Pruefsumme -
+  # das Werkzeug signiert Updates, es darf sich nicht unbemerkt aendern.
+  SPARKLE_VERSION: 2.10.0
+  SPARKLE_SHA256: c2bf58aa8387266ac179357b1415d6f2635f044da8be41042af32425dae6da0c
+  REPO_URL: https://github.com/Silvertree2010/ApolloShell
+
+jobs:
+  release:
+    name: Build, sign and publish
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check that the tag matches the bundle version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          plist=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Support/Info.plist)
+          if [ "$tag" != "$plist" ]; then
+            echo "Tag $GITHUB_REF_NAME passt nicht zu CFBundleShortVersionString $plist" >&2
+            exit 1
+          fi
+          key=$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' Support/Info.plist)
+          if [ -z "$key" ]; then
+            echo "SUPublicEDKey fehlt in Support/Info.plist (scripts/make-release-keys.sh)" >&2
+            exit 1
+          fi
+
+      - name: Import the release certificate
+        env:
+          CERT_P12: ${{ secrets.RELEASE_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.RELEASE_CERT_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/release.keychain-db"
+          pass=$(uuidgen)
+          security create-keychain -p "$pass" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$pass" "$keychain"
+          printf '%s' "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/release-cert.p12"
+          security import "$RUNNER_TEMP/release-cert.p12" -k "$keychain" -P "$CERT_PASSWORD" \
+            -T /usr/bin/codesign -A
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$pass" "$keychain" >/dev/null
+          # In die Suchliste, damit `security find-identity` es findet
+          # (scripts/assemble-app.sh fragt genau so).
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/release-cert.p12"
+
+      - name: Build the universal DMG
+        env:
+          SIGN_IDENTITY: ApolloShell Release Signing
+        run: |
+          scripts/make-dmg.sh
+          codesign --verify --deep --strict --verbose=2 "build/dist/ApolloShell.app"
+
+      - name: Fetch the Sparkle tools
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/sparkle.tar.xz" \
+            "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz"
+          echo "$SPARKLE_SHA256  $RUNNER_TEMP/sparkle.tar.xz" | shasum -a 256 -c -
+          mkdir -p "$RUNNER_TEMP/sparkle"
+          tar -xf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle" ./bin/generate_appcast
+
+      - name: Generate and sign the appcast
+        env:
+          SPARKLE_EDDSA_KEY: ${{ secrets.SPARKLE_EDDSA_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Frueheren Appcast dazunehmen, damit die Liste der Fassungen
+          # erhalten bleibt. Beim ersten Release gibt es noch keinen.
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern appcast.xml --dir dist || true
+          printf '%s' "$SPARKLE_EDDSA_KEY" | "$RUNNER_TEMP/sparkle/bin/generate_appcast" \
+            --ed-key-file - \
+            --download-url-prefix "$REPO_URL/releases/download/$GITHUB_REF_NAME/" \
+            --full-release-notes-url "$REPO_URL/blob/main/CHANGELOG.md" \
+            --link "$REPO_URL" \
+            dist
+          test -s dist/appcast.xml
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "ApolloShell $version" \
+            --notes "Siehe [CHANGELOG.md]($REPO_URL/blob/main/CHANGELOG.md)." \
+            "dist/ApolloShell-$version.dmg" \
+            dist/appcast.xml
+
+      - name: Update the Homebrew tap
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          tarball="$REPO_URL/archive/refs/tags/$GITHUB_REF_NAME.tar.gz"
+          # Dasselbe Archiv, das Homebrew spaeter laedt.
+          curl -fsSL -o "$RUNNER_TEMP/source.tar.gz" "$tarball"
+          sha=$(shasum -a 256 "$RUNNER_TEMP/source.tar.gz" | cut -d' ' -f1)
+          git clone --depth 1 \
+            "https://x-access-token:$TAP_TOKEN@github.com/Silvertree2010/homebrew-apolloshell.git" \
+            "$RUNNER_TEMP/tap"
+          formula="$RUNNER_TEMP/tap/Formula/apolloshell.rb"
+          /usr/bin/sed -i '' -e "s|url \".*\"|url \"$tarball\"|" -e "s|sha256 \".*\"|sha256 \"$sha\"|" "$formula"
+          git -C "$RUNNER_TEMP/tap" -c user.name="ApolloShell Release" \
+            -c user.email="noreply@github.com" \
+            commit -am "ApolloShell $version"
+          git -C "$RUNNER_TEMP/tap" push

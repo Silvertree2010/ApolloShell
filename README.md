@@ -87,6 +87,21 @@ scripts/setup-signing.sh   # once, keeps permissions across rebuilds
 
 More about building and testing is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Updates
+
+The `.dmg` build keeps itself up to date: it checks once a day in the
+background, downloads a new version when it finds one, and installs it the
+next time the app quits. Nexus also offers **Restart now** as soon as an
+update is waiting, because a shell rarely quits on its own. Both switches are
+on by default and can be turned off in **Nexus > Updates**.
+
+A Homebrew install belongs to Homebrew, so ApolloShell never replaces itself
+there. It says when a new version is out; you install it with:
+
+```sh
+brew upgrade apolloshell
+```
+
 ## Shortcuts
 
 | Keys | Opens |

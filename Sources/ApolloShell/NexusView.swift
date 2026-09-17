@@ -31,7 +31,7 @@ enum NexusSection: CaseIterable, Identifiable {
 /// Eine Seite von Nexus. Titel und Unterzeile wie Caelestias PageRegistry
 /// (label, description), auf Deutsch.
 enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case general, hotKeys, bar, utilities, launcher, dashboard, desktop, toasts, providers, system, about
+    case general, hotKeys, bar, utilities, launcher, dashboard, desktop, toasts, providers, updates, system, about
 
     var id: Self { self }
 
@@ -46,6 +46,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .desktop: String(localized: "Schreibtisch")
         case .toasts: String(localized: "Kurzmeldungen")
         case .providers: String(localized: "Anbieter")
+        case .updates: String(localized: "Updates")
         case .system: String(localized: "Systemeinstellungen")
         case .about: String(localized: "Über")
         }
@@ -62,6 +63,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .desktop: String(localized: "Die Uhr unten rechts auf dem Schreibtisch.")
         case .toasts: String(localized: "Welche Ereignisse unten rechts eine Kurzmeldung zeigen.")
         case .providers: String(localized: "Woher das Wetter kommt und welcher Dateimanager oben im Dock steht.")
+        case .updates: String(localized: "Wie ApolloShell sich auf dem neuesten Stand hält.")
         case .system: String(localized: "Netzwerk, Bluetooth, Ton, Hintergrund und Sprache regelt macOS.")
         case .about: String(localized: "Version, System und Quelltext.")
         }
@@ -78,6 +80,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .desktop: "clock.fill"
         case .toasts: "bell.badge.fill"
         case .providers: "puzzlepiece.extension.fill"
+        case .updates: "arrow.down.circle.fill"
         case .system: "gearshape.fill"
         case .about: "info"
         }
@@ -95,6 +98,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .desktop: .teal
         case .toasts: .red
         case .providers: .orange
+        case .updates: .indigo
         case .system, .about: .gray
         }
     }
@@ -103,7 +107,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         switch self {
         case .general, .hotKeys: .general
         case .bar, .utilities, .launcher, .dashboard, .desktop: .panels
-        case .toasts, .providers: .services
+        case .toasts, .providers, .updates: .services
         case .system: .system
         case .about: .about
         }
@@ -126,6 +130,8 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .toasts: ["mitteilungen", "toasts", "akku", "ladegerät", "audio"]
         case .providers: ["wetter", "open-meteo", "met norway", "yr", "wttr", "quelle", "dateimanager", "finder",
                           "forklift"]
+        case .updates: ["update", "aktualisierung", "version", "sparkle", "homebrew", "brew", "neustart",
+                        "release"]
         case .system: ["netzwerk", "bluetooth", "ton", "audio", "hintergrund", "sprache", "updates"]
         case .about: ["version", "macos", "laufzeit", "quelltext"]
         }
@@ -178,6 +184,7 @@ struct NexusShellParts {
     let hotKeys: HotKeyCenter
     let autostart: OnboardingAutostartModel
     let permissions: OnboardingPermissions
+    let updates: UpdateController
     var showOnboarding: @MainActor () -> Void = {}
 }
 
@@ -230,6 +237,7 @@ struct NexusDetail: View {
         case .desktop: NexusDesktopPage(store: settings)
         case .toasts: NexusToastsPage(store: settings)
         case .providers: NexusProvidersPage(store: settings, model: providers)
+        case .updates: NexusUpdatesPage(store: settings, updates: shell.updates)
         case .system: NexusSystemPage()
         case .about: NexusAboutPage(system: system, showOnboarding: shell.showOnboarding)
         }

@@ -32,6 +32,10 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     public var onboarding = OnboardingSettings.existingInstall
     /// Apples eigenes Dock ausblenden, solange ApolloShell laeuft.
     public var appleDockHiding = AppleDockHidingSettings.existingInstall
+    /// Selbstaktualisierung (Nexus > Updates).
+    public var updates = UpdateSettings()
+    /// Gewaehltes Theme (Nexus > Themes).
+    public var theme = ThemeSettings()
 
     /// Die Vorgaben der vier Abschnitte fuer die Veroeffentlichung
     /// (hotKeys, keepAwake, onboarding, appleDockHiding) sind hier die fuer
@@ -44,7 +48,9 @@ public struct ShellSettings: Codable, Equatable, Sendable {
                 hotKeys: HotKeySettings = .existingInstall,
                 keepAwake: KeepAwakeSettings = .existingInstall,
                 onboarding: OnboardingSettings = .existingInstall,
-                appleDockHiding: AppleDockHidingSettings = .existingInstall) {
+                appleDockHiding: AppleDockHidingSettings = .existingInstall,
+                updates: UpdateSettings = UpdateSettings(),
+                theme: ThemeSettings = ThemeSettings()) {
         self.bar = bar
         self.toasts = toasts
         self.background = background
@@ -55,6 +61,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         self.keepAwake = keepAwake
         self.onboarding = onboarding
         self.appleDockHiding = appleDockHiding
+        self.updates = updates
+        self.theme = theme
     }
 
     /// Frische Installation (keine settings.json): neue Kuerzel, Deckel-Teil
@@ -248,6 +256,10 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         keepAwake = c.lenient(.keepAwake) ?? .existingInstall
         onboarding = c.lenient(.onboarding) ?? .existingInstall
         appleDockHiding = c.lenient(.appleDockHiding) ?? .existingInstall
+        // Beide Abschnitte gibt es erst ab 0.1.2. Fehlen sie, gelten die
+        // Vorgaben: pruefen und einspielen an, kein eigenes Theme.
+        updates = c.lenient(.updates) ?? UpdateSettings()
+        theme = c.lenient(.theme) ?? ThemeSettings()
     }
 
     /// Inhalt von settings.json.

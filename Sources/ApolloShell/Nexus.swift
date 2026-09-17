@@ -37,11 +37,11 @@ final class Nexus: NSObject, NSWindowDelegate {
     }
 
     init(settings: ShellSettingsStore, hotKeys: HotKeyCenter, autostart: OnboardingAutostartModel,
-         permissions: OnboardingPermissions, paths: NexusPaths = .live) {
+         permissions: OnboardingPermissions, updates: UpdateController, paths: NexusPaths = .live) {
         self.settings = settings
         pinned = NexusPinnedModel(url: paths.pinned)
         weather = NexusWeatherModel(url: paths.weather)
-        shell = NexusShellParts(hotKeys: hotKeys, autostart: autostart, permissions: permissions)
+        shell = NexusShellParts(hotKeys: hotKeys, autostart: autostart, permissions: permissions, updates: updates)
         super.init()
     }
 

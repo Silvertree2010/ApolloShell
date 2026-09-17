@@ -31,5 +31,20 @@
     <true/>
     <key>NSAppleEventsUsageDescription</key>
     <string>ApolloShell steuert System Events für Abmelden, Neustart und Ausschalten im Sitzungsmenü.</string>
+    <!-- Selbstaktualisierung (Sparkle). Gilt nur für die DMG-Fassung; die
+         Homebrew-Fassung schaltet sie zur Laufzeit ab (InstallKind).
+         SUPublicEDKey trägt scripts/make-release-keys.sh ein; ohne den
+         Schlüssel lehnt Sparkle jedes Update ab - das ist die sichere
+         Richtung, aber es heisst auch: vor dem ersten Release ausführen. -->
+    <key>SUFeedURL</key>
+    <string>https://github.com/Silvertree2010/ApolloShell/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string></string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUAutomaticallyUpdate</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>86400</integer>
 </dict>
 </plist>

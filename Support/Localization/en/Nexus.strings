@@ -391,3 +391,35 @@
 "ohne %@" = "without %@";
 "Sonnenzeiten nur für heute" = "sun times for today only";
 "Entfernen …" = "Remove…";
+
+/* NexusUpdatesPage.swift */
+"Updates" = "Updates";
+"Wie ApolloShell sich auf dem neuesten Stand hält." = "How ApolloShell keeps itself up to date.";
+"Stand" = "Status";
+"Installierte Fassung" = "Installed version";
+"Letzte Prüfung" = "Last check";
+"noch nie" = "never";
+"Noch nicht geprüft" = "Not checked yet";
+"Wird geprüft …" = "Checking…";
+"Aktuell" = "Up to date";
+"Neue Fassung" = "New version";
+"Notizen" = "Notes";
+"Bereit" = "Ready";
+"%@ wird beim Beenden eingespielt" = "%@ will be installed when you quit";
+"Fehlgeschlagen" = "Failed";
+"Diese Fassung kann sich nicht selbst erneuern" = "This build cannot update itself";
+"Automatik" = "Automatic";
+"Automatisch nach Updates suchen" = "Check for updates automatically";
+"Einmal täglich im Hintergrund" = "Once a day in the background";
+"Updates automatisch einspielen" = "Install updates automatically";
+"Beim Beenden, also spätestens beim nächsten Abmelden" = "When you quit, so at the latest when you next log out";
+"Beides ist ab Werk an. Ein Update tauscht die ganze Shell aus: Leiste, Dock und Fenster verschwinden kurz und kommen neu." = "Both are on by default. An update replaces the whole shell: the bar, the dock and the windows disappear for a moment and come back.";
+"Homebrew" = "Homebrew";
+"Aktualisieren" = "Upgrade";
+"Kopieren" = "Copy";
+"Diese Installation gehört Homebrew. ApolloShell erneuert sich deshalb nicht selbst, sondern meldet nur, dass es etwas Neues gibt." = "This copy belongs to Homebrew, so ApolloShell does not replace itself. It only says when there is something new.";
+"Jetzt prüfen" = "Check now";
+"Jetzt neu starten" = "Restart now";
+"Alle Fassungen stehen auf der Releases-Seite." = "Every version is on the releases page.";
+"Releases auf GitHub" = "Releases on GitHub";
+"Die Antwort von GitHub war unverständlich." = "The reply from GitHub could not be read.";

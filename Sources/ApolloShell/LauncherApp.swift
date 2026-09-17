@@ -49,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKeys: HotKeyCenter?
     /// Einstellungsfenster (Caelestia: Nexus).
     private var nexus: Nexus?
+    private var updates: UpdateController?
     /// Einfuehrung beim ersten Start.
     private var onboarding: Onboarding?
     /// Apples eigenes Dock ausblenden, solange ApolloShell laeuft.
@@ -93,7 +94,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let autostart = OnboardingAutostartModel()
         let permissions = OnboardingPermissions()
-        let nexus = Nexus(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions)
+        // Selbstaktualisierung: startet Sparkle nur, wenn diese Installation
+        // sich selbst erneuern darf (DMG, nicht Homebrew).
+        let updates = UpdateController(settings: settings)
+        self.updates = updates
+        let nexus = Nexus(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions,
+                          updates: updates)
         self.nexus = nexus
         hotKeys.setHandler(.nexus) { [weak nexus] in nexus?.show() }
         let sidebar = Sidebar(settings: settings)

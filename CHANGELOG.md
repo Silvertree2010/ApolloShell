@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Automatic updates** for the `.dmg` build: a daily check in the
+  background, the download right after, and the install when the app next
+  quits. Nexus > Updates shows the state, has both switches (on by default)
+  and offers **Restart now** while an update waits. A Homebrew install is
+  never replaced by the app itself; it shows `brew upgrade apolloshell`
+  instead. Updates are signed with an EdDSA key and with a fixed release
+  certificate, so the Accessibility grant survives an update.
+
 ## [0.1.1] - 2026-09-16
 
 First public release. It also contains everything listed under 0.1.0.
