@@ -151,12 +151,20 @@ struct SidebarClock: View {
     static let tint = Color(nsColor: .systemPurple)
     private static let locale = Locale(identifier: "de_CH")
 
+    @Environment(\.colorScheme) private var colorScheme
+    private var shellStyle: ShellStyle { ShellTheme.style(colorScheme) }
+
+    /// Mit Theme faerbt `--apollo-bar-text-color` die Uhr: Das feste Violett
+    /// ist auf Glas gut lesbar, neben einem Theme mit eigener Leistenfarbe
+    /// aber ein Fremdkoerper.
+    private var color: Color { shellStyle.isThemed ? shellStyle.barText : Self.tint }
+
     var body: some View {
         let calendar = Calendar.current
         VStack(spacing: 0) {
             if showIcon {
                 Image(systemName: "calendar")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(shellStyle.font(size: 14, weight: .semibold))
                     .padding(.bottom, 3)
             }
             if showDate {
@@ -164,7 +172,7 @@ struct SidebarClock: View {
                     Text(BarClock.weekday(model.now, calendar: calendar))
                     Text(BarClock.day(model.now, calendar: calendar))
                 }
-                .font(.system(size: 11, weight: .semibold))
+                .font(shellStyle.font(size: 11, weight: .semibold))
                 .opacity(0.8)
                 .padding(.bottom, 4)
             }
@@ -172,9 +180,9 @@ struct SidebarClock: View {
             Text(BarClock.minute(model.now, calendar: calendar))
                 .padding(.top, -4)
         }
-        .font(.system(size: 13, weight: .semibold))
+        .font(shellStyle.font(size: 13, weight: .semibold))
         .monospacedDigit()
-        .foregroundStyle(Self.tint)
+        .foregroundStyle(color)
         .frame(width: 32)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(model.now.formatted(.dateTime.hour().minute().locale(Self.locale)))
