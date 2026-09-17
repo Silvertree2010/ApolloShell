@@ -26,6 +26,8 @@
   --apollo-background-fit: fill;
   --apollo-surface-color: #ffffff;
   --apollo-surface-opacity: 1;
+  --apollo-background-gradient: none;
+  --apollo-surface-gradient: none;
   --apollo-elevated-surface-color: #f5f5f7;
   --apollo-separator-color: #d8d8dc;
   --apollo-border-color: #d0d0d4;
@@ -42,6 +44,7 @@
   /* Accent and state */
   --apollo-accent-color: #007aff;
   --apollo-secondary-accent-color: #5e5ce6;
+  --apollo-accent-gradient: none;
   --apollo-selection-color: #d6e4ff;
   --apollo-hover-color: #00000014;
   --apollo-success-color: #34c759;
@@ -50,6 +53,7 @@
 
   /* Sidebar */
   --apollo-bar-color: #f5f5f7;
+  --apollo-bar-gradient: none;
   --apollo-bar-opacity: 1;
   --apollo-bar-text-color: #1c1c1e;
   --apollo-bar-icon-color: #3c3c43;
@@ -71,10 +75,13 @@
   --apollo-panel-padding: 16px;
   --apollo-panel-blur: 24px;
   --apollo-card-color: #f2f2f7;
+  --apollo-panel-gradient: none;
+  --apollo-card-gradient: none;
   --apollo-card-radius: 14px;
 
   /* Launcher */
   --apollo-launcher-highlight-color: #e5efff;
+  --apollo-launcher-highlight-gradient: none;
   --apollo-launcher-row-height: 40px;
 
   /* Typography */
@@ -95,6 +102,7 @@
 
   /* Toasts */
   --apollo-toast-color: #1c1c1e;
+  --apollo-toast-gradient: none;
   --apollo-toast-text-color: #ffffff;
   --apollo-toast-radius: 14px;
 }

@@ -82,6 +82,7 @@ loading.
 | Type | Accepted | Examples |
 | --- | --- | --- |
 | color | `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`, `rgb()`, `rgba()`, `hsl()`, `hsla()`, basic colour names, `transparent` | `#ff6b35`, `rgb(255 107 53 / 80%)`, `hsl(20, 100%, 60%)`, `red` |
+| gradient | `none`, or `linear-gradient(<angle>, <colour> <position>, …)` | `linear-gradient(180deg, #101014, #2a2a33)` |
 | length | a number with `px`, `pt` or no unit; `px` and `pt` are the same here, the shell works in points | `12px`, `12`, `0.5px` |
 | ratio | a number from 0 to 1, or a percentage | `0.5`, `50%` |
 | number | a plain number, no unit | `400` |
@@ -93,6 +94,27 @@ loading.
 Colours are stored with 8 bits per channel, the same precision they are
 written with. Token names are matched case-insensitively, even though CSS
 custom properties are normally case-sensitive.
+
+### Gradients
+
+Every gradient token sits next to a colour token and is `none` by default,
+so a theme that only sets colours looks exactly as it did before. Set the
+gradient and it paints that surface instead of the flat colour; the colour
+still decides how text on it is checked for contrast.
+
+```css
+--apollo-bar-gradient: linear-gradient(180deg, #101014 0%, #2a2a33 100%);
+```
+
+- Only `linear-gradient` exists. `radial-gradient` and friends are not read;
+  a theme that uses one gets a note and the flat colour.
+- The angle follows CSS: `0deg` points up, `90deg` to the right. Words work
+  too - `to bottom`, `to top right`. Leave it out and it runs top to bottom.
+- Between two and eight colour stops. Positions are percentages and may be
+  left out, and the colours are then spread evenly. A position that would
+  step backwards is pulled up to the one before it.
+- A gradient never makes a surface disappear: colours are clamped like every
+  other colour, and `none` is always a valid value.
 
 ## Tokens
 
@@ -126,6 +148,8 @@ Numbers are clamped to the range in the type column.
 | `--apollo-background-fit` | option (fill, fit, stretch, tile, center) | `fill` |  | How the background image is placed |
 | `--apollo-surface-color` | color | `#ffffff` | `#1c1c1e` | Base surface of windows and popovers |
 | `--apollo-surface-opacity` | ratio (0–1) | `1` |  | How opaque surfaces are |
+| `--apollo-background-gradient` | gradient | `none` |  | Gradient behind the shell instead of the flat backdrop colour |
+| `--apollo-surface-gradient` | gradient | `none` |  | Gradient across surfaces instead of the flat surface colour |
 | `--apollo-elevated-surface-color` | color | `#f5f5f7` | `#2a2a2d` | Surface of things that sit on top, such as menus |
 | `--apollo-separator-color` | color | `#d8d8dc` | `#3a3a3d` | Hairlines between rows and sections |
 | `--apollo-border-color` | color | `#d0d0d4` | `#3f3f43` | Outline around surfaces |
@@ -148,6 +172,7 @@ Numbers are clamped to the range in the type column.
 | --- | --- | --- | --- | --- |
 | `--apollo-accent-color` | color | `#007aff` | `#0a84ff` | Colour of selected and active things |
 | `--apollo-secondary-accent-color` | color | `#5e5ce6` | `#7d7aff` | Second accent for charts and badges |
+| `--apollo-accent-gradient` | gradient | `none` |  | Gradient for accent coloured areas instead of the flat accent colour |
 | `--apollo-selection-color` | color | `#d6e4ff` | `#234a77` | Background of a selected row |
 | `--apollo-hover-color` | color | `#00000014` | `#ffffff1a` | Tint under the pointer |
 | `--apollo-success-color` | color | `#34c759` | `#30d158` | Everything is fine |
@@ -159,6 +184,7 @@ Numbers are clamped to the range in the type column.
 | Token | Type | Default | Dark | What it does |
 | --- | --- | --- | --- | --- |
 | `--apollo-bar-color` | color | `#f5f5f7` | `#1c1c1e` | Backing of the sidebar |
+| `--apollo-bar-gradient` | gradient | `none` |  | Gradient along the sidebar instead of the flat bar colour |
 | `--apollo-bar-opacity` | ratio (0–1) | `1` |  | How opaque that backing is |
 | `--apollo-bar-text-color` | color | `#1c1c1e` | `#f5f5f7` | Text in the sidebar, such as the clock |
 | `--apollo-bar-icon-color` | color | `#3c3c43` | `#e5e5ea` | Status glyphs in the sidebar |
@@ -186,6 +212,8 @@ Numbers are clamped to the range in the type column.
 | `--apollo-panel-padding` | length (0px–64px) | `16px` |  | Space inside a panel |
 | `--apollo-panel-blur` | length (0px–64px) | `24px` |  | Blur behind panels |
 | `--apollo-card-color` | color | `#f2f2f7` | `#2a2a2d` | Backing of a card in a panel |
+| `--apollo-panel-gradient` | gradient | `none` |  | Gradient across a panel instead of the flat panel colour |
+| `--apollo-card-gradient` | gradient | `none` |  | Gradient across a card instead of the flat card colour |
 | `--apollo-card-radius` | length (0px–48px) | `14px` |  | Corner radius of a card |
 
 ### Launcher
@@ -193,6 +221,7 @@ Numbers are clamped to the range in the type column.
 | Token | Type | Default | Dark | What it does |
 | --- | --- | --- | --- | --- |
 | `--apollo-launcher-highlight-color` | color | `#e5efff` | `#2a3c55` | Backing of the selected launcher row |
+| `--apollo-launcher-highlight-gradient` | gradient | `none` |  | Gradient behind the selected launcher row instead of the flat colour |
 | `--apollo-launcher-row-height` | length (24px–96px) | `40px` |  | Height of one launcher row |
 
 ### Typography
@@ -222,11 +251,9 @@ Numbers are clamped to the range in the type column.
 | Token | Type | Default | Dark | What it does |
 | --- | --- | --- | --- | --- |
 | `--apollo-toast-color` | color | `#1c1c1e` | `#f5f5f7` | Backing of a toast |
+| `--apollo-toast-gradient` | gradient | `none` |  | Gradient across a toast instead of the flat toast colour |
 | `--apollo-toast-text-color` | color | `#ffffff` | `#1c1c1e` | Text in a toast |
 | `--apollo-toast-radius` | length (0px–48px) | `14px` |  | Corner radius of a toast |
-
-There are no renamed tokens yet. When one is ever renamed, the old name keeps
-working forever and is listed here.
 
 ## The compatibility promise
 

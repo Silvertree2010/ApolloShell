@@ -64,6 +64,12 @@ public struct Theme: Equatable, Sendable {
         value(token.name, dark: dark)?.color ?? token.defaultValue(dark: dark)
     }
 
+    /// Der Verlauf eines Tokens. Leer heisst: keiner gesetzt, dann faerbt
+    /// die Farbe daneben die Flaeche.
+    public func gradient(_ token: ThemeGradientToken, dark: Bool = false) -> ThemeGradient {
+        value(token.name, dark: dark)?.gradient ?? token.defaultValue(dark: dark)
+    }
+
     public func number(_ token: ThemeNumberToken, dark: Bool = false) -> Double {
         value(token.name, dark: dark)?.number ?? token.defaultValue(dark: dark)
     }

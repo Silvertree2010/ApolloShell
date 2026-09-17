@@ -129,9 +129,58 @@ public struct ThemeAsset: Equatable, Hashable, Sendable {
     public static let none = ThemeAsset(reference: "", url: nil)
 }
 
+/// Ein Farbverlauf aus einem Theme.
+///
+/// Ein Verlauf ist immer geradlinig (`linear-gradient`): Das genuegt fuer
+/// Flaechen einer Shell, und was es nicht gibt, kann auch nicht kaputtgehen.
+/// `none` - also kein Verlauf - ist der Normalfall; dann faerbt die
+/// zugehoerige Farbe die Flaeche wie bisher.
+///
+/// Der Winkel folgt CSS: 0 Grad zeigt nach oben, 90 Grad nach rechts.
+public struct ThemeGradient: Equatable, Hashable, Sendable {
+    /// Eine Farbe an einer Stelle des Verlaufs, 0...1.
+    public struct Stop: Equatable, Hashable, Sendable {
+        public let color: ThemeColor
+        public let position: Double
+
+        public init(color: ThemeColor, position: Double) {
+            self.color = color
+            self.position = position.isFinite ? min(max(position, 0), 1) : 0
+        }
+    }
+
+    /// Hoechstens so viele Farbstellen. Mehr braucht keine Flaeche, und die
+    /// Grenze haelt eine Datei davon ab, das Zeichnen lahmzulegen.
+    public static let maximumStops = 8
+
+    public let angle: Double
+    public let stops: [Stop]
+
+    public init(angle: Double = 180, stops: [Stop]) {
+        self.angle = angle.isFinite ? angle.truncatingRemainder(dividingBy: 360) : 180
+        self.stops = Array(stops.prefix(ThemeGradient.maximumStops))
+    }
+
+    /// Kein Verlauf. Dann gilt die Farbe des Tokens daneben.
+    public static let none = ThemeGradient(stops: [])
+
+    /// Ein Verlauf braucht mindestens zwei Farben; alles andere ist keiner.
+    public var isEmpty: Bool { stops.count < 2 }
+
+    /// `none` oder `linear-gradient(180deg, #111111 0%, #333333 100%)`.
+    public var cssText: String {
+        guard !isEmpty else { return "none" }
+        let parts = stops.map { stop in
+            "\(stop.color.cssText) \(Int((stop.position * 100).rounded()))%"
+        }
+        return "linear-gradient(\(ThemeUnit.scalar.cssText(angle))deg, \(parts.joined(separator: ", ")))"
+    }
+}
+
 /// Der Wert eines Tokens, schon geprueft und in der Einheit des Tokens.
 public enum ThemeValue: Equatable, Hashable, Sendable {
     case color(ThemeColor)
+    case gradient(ThemeGradient)
     case number(Double)
     case text(String)
     case file(ThemeAsset)
@@ -139,6 +188,7 @@ public enum ThemeValue: Equatable, Hashable, Sendable {
     case flag(Bool)
 
     public var color: ThemeColor? { if case let .color(value) = self { value } else { nil } }
+    public var gradient: ThemeGradient? { if case let .gradient(value) = self { value } else { nil } }
     public var number: Double? { if case let .number(value) = self { value } else { nil } }
     public var text: String? { if case let .text(value) = self { value } else { nil } }
     public var asset: ThemeAsset? { if case let .file(value) = self { value } else { nil } }

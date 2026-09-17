@@ -12,6 +12,8 @@ public enum ThemeValueReader {
         switch kind {
         case .color:
             return color(text).map(ThemeValue.color)
+        case .gradient:
+            return gradient(text).map(ThemeValue.gradient)
         case let .number(spec):
             guard let value = number(text, unit: spec.unit), value.isFinite else { return nil }
             return .number(value)
@@ -61,6 +63,123 @@ public enum ThemeValueReader {
         case "hsl", "hsla": return hsl(inside)
         default: return nil
         }
+    }
+
+    // MARK: - Verlaeufe
+
+    /// `none` oder `linear-gradient(<winkel>deg, <farbe> <stelle>%, ...)`.
+    ///
+    /// Der Winkel darf fehlen, dann verlaeuft es von oben nach unten (180
+    /// Grad, wie in CSS). Stellen duerfen fehlen, dann werden die Farben
+    /// gleichmaessig verteilt. Weniger als zwei Farben sind kein Verlauf,
+    /// sondern ein Fehler - wer eine Flaeche einfaerben will, nimmt das
+    /// Farb-Token daneben.
+    public static func gradient(_ raw: String) -> ThemeGradient? {
+        let text = raw.trimmedText
+        guard !text.isEmpty else { return nil }
+        // ThemeGradient.none, nicht Optional.none: In einer Funktion, die
+        // `ThemeGradient?` liefert, waere `.none` das leere Optional - also
+        // "unlesbar" statt "kein Verlauf".
+        if text.lowercased() == "none" { return ThemeGradient.none }
+        guard let open = text.firstIndex(of: "("), text.hasSuffix(")") else { return nil }
+        let function = String(text[text.startIndex..<open]).lowercased().trimmedText
+        // Nur geradlinige Verlaeufe. Ein Theme, das `radial-gradient`
+        // schreibt, bekommt einen Hinweis statt einer Naeherung.
+        guard function == "linear-gradient" else { return nil }
+        let inside = String(text[text.index(after: open)..<text.index(before: text.endIndex)])
+        var parts = splitTopLevel(inside)
+        guard !parts.isEmpty else { return nil }
+
+        var angle = 180.0
+        if let first = parts.first, isAngle(first) {
+            guard let value = self.angle(first) else { return nil }
+            angle = value
+            parts.removeFirst()
+        }
+        guard parts.count >= 2, parts.count <= ThemeGradient.maximumStops else { return nil }
+
+        var colors: [ThemeColor] = []
+        var positions: [Double?] = []
+        for part in parts {
+            guard let (color, position) = stop(part) else { return nil }
+            colors.append(color)
+            positions.append(position)
+        }
+        // Fehlende Stellen gleichmaessig verteilen, und nie rueckwaerts: eine
+        // Stelle vor ihrer Vorgaengerin waere in CSS erlaubt (harte Kante),
+        // hier aber wahrscheinlicher ein Versehen.
+        var stops: [ThemeGradient.Stop] = []
+        var previous = 0.0
+        for (index, color) in colors.enumerated() {
+            let even = colors.count == 1 ? 0 : Double(index) / Double(colors.count - 1)
+            let wanted = positions[index] ?? even
+            let position = max(previous, wanted)
+            stops.append(ThemeGradient.Stop(color: color, position: position))
+            previous = position
+        }
+        return ThemeGradient(angle: angle, stops: stops)
+    }
+
+    /// Teilt an Kommas, aber nicht innerhalb von Klammern - `rgb(0, 0, 0)`
+    /// bleibt ein Stueck.
+    private static func splitTopLevel(_ text: String) -> [String] {
+        var parts: [String] = []
+        var current = ""
+        var depth = 0
+        for character in text {
+            switch character {
+            case "(": depth += 1; current.append(character)
+            case ")": depth -= 1; current.append(character)
+            case "," where depth == 0:
+                parts.append(current.trimmedText)
+                current = ""
+            default: current.append(character)
+            }
+        }
+        parts.append(current.trimmedText)
+        return parts.filter { !$0.isEmpty }
+    }
+
+    private static func isAngle(_ part: String) -> Bool {
+        let text = part.lowercased()
+        return text.hasSuffix("deg") || text.hasPrefix("to ")
+    }
+
+    /// `45deg` oder die Woerter von CSS (`to bottom`, `to right` ...).
+    private static func angle(_ part: String) -> Double? {
+        let text = part.lowercased().trimmedText
+        if text.hasPrefix("to ") {
+            switch String(text.dropFirst(3)).trimmedText {
+            case "top": return 0
+            case "right": return 90
+            case "bottom": return 180
+            case "left": return 270
+            case "top right", "right top": return 45
+            case "bottom right", "right bottom": return 135
+            case "bottom left", "left bottom": return 225
+            case "top left", "left top": return 315
+            default: return nil
+            }
+        }
+        guard let (value, unit) = numberAndUnit(text), unit == "deg", value.isFinite else { return nil }
+        return value
+    }
+
+    /// `#112233` oder `#112233 40%`.
+    private static func stop(_ part: String) -> (ThemeColor, Double?)? {
+        let text = part.trimmedText
+        // Von hinten trennen: die Farbe kann selbst Leerzeichen enthalten
+        // (`rgb(0 0 0)`), die Stelle steht immer am Ende.
+        if let space = text.lastIndex(of: " "), text.hasSuffix("%") {
+            let tail = String(text[text.index(after: space)...]).trimmedText
+            if let (value, unit) = numberAndUnit(tail), unit == "%", value.isFinite,
+               let color = self.color(String(text[..<space])) {
+                return (color, value / 100)
+            }
+            return nil
+        }
+        guard let color = self.color(text) else { return nil }
+        return (color, nil)
     }
 
     private static func hex(_ digits: String) -> ThemeColor? {

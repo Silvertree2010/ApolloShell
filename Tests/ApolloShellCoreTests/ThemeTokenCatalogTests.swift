@@ -37,6 +37,10 @@ struct ThemeTokenCatalogTests {
                 switch token.kind {
                 case .color:
                     #expect(value.color != nil, "\(token.name)")
+                case .gradient:
+                    // Ein Verlauf ist nie die Vorgabe: ohne Angabe faerbt die
+                    // Farbe daneben die Flaeche wie bisher.
+                    #expect(value.gradient == ThemeGradient.none, "\(token.name)")
                 case let .number(spec):
                     guard let number = value.number else {
                         #expect(Bool(false), "\(token.name) hat keine Zahl als Vorgabe")
@@ -186,6 +190,7 @@ struct ThemeTokenCatalogTests {
     private func tag(_ kind: ThemeTokenKind?) -> String {
         switch kind {
         case .color: "color"
+        case .gradient: "gradient"
         case .number: "number"
         case .text: "text"
         case .file: "file"
@@ -220,6 +225,11 @@ struct ThemeTokenCatalogTests {
             .fontFamily, .monospaceFontFamily,
         ]
         for token in texts { #expect(tag(token.descriptor?.kind) == "text", "\(token.name)") }
+
+        let gradients: [ThemeGradientToken] = [
+            .background, .surface, .accent, .bar, .panel, .card, .launcherHighlight, .toast,
+        ]
+        for token in gradients { #expect(tag(token.descriptor?.kind) == "gradient", "\(token.name)") }
 
         let files: [ThemeFileToken] = [.authorImage, .backgroundImage]
         for token in files { #expect(tag(token.descriptor?.kind) == "file", "\(token.name)") }

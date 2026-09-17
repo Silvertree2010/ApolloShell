@@ -34,6 +34,8 @@ public struct ThemeNumberSpec: Equatable, Hashable, Sendable {
 /// und was bei Unsinn passiert.
 public enum ThemeTokenKind: Equatable, Hashable, Sendable {
     case color
+    /// Farbverlauf oder `none`; siehe `ThemeGradient`.
+    case gradient
     case number(ThemeNumberSpec)
     case text
     case file
@@ -45,6 +47,7 @@ public enum ThemeTokenKind: Equatable, Hashable, Sendable {
     public var label: String {
         switch self {
         case .color: "color"
+        case .gradient: "gradient"
         case let .number(spec):
             switch spec.unit {
             case .points: "length"
@@ -126,6 +129,7 @@ public struct ThemeTokenDescriptor: Equatable, Hashable, Sendable {
     public func cssText(for value: ThemeValue) -> String {
         switch value {
         case let .color(color): color.cssText
+        case let .gradient(gradient): gradient.cssText
         case let .number(number):
             if case let .number(spec) = kind { spec.unit.cssText(number) } else { String(number) }
         case let .text(text): "\"\(text)\""
@@ -234,6 +238,27 @@ public struct ThemeFlagToken: Equatable, Hashable, Sendable {
     public func defaultValue(dark: Bool = false) -> Bool {
         descriptor?.defaultValue(dark: dark).flag ?? false
     }
+}
+
+/// Ein Verlauf-Token. `none` heisst: die Farbe daneben faerbt die Flaeche.
+public struct ThemeGradientToken: Equatable, Hashable, Sendable {
+    public let name: String
+    public init(_ name: String) { self.name = name }
+    public var descriptor: ThemeTokenDescriptor? { ThemeTokenCatalog.standard.descriptor(named: name) }
+    public func defaultValue(dark: Bool = false) -> ThemeGradient {
+        descriptor?.defaultValue(dark: dark).gradient ?? .none
+    }
+}
+
+public extension ThemeGradientToken {
+    static let background = ThemeGradientToken("--apollo-background-gradient")
+    static let surface = ThemeGradientToken("--apollo-surface-gradient")
+    static let accent = ThemeGradientToken("--apollo-accent-gradient")
+    static let bar = ThemeGradientToken("--apollo-bar-gradient")
+    static let panel = ThemeGradientToken("--apollo-panel-gradient")
+    static let card = ThemeGradientToken("--apollo-card-gradient")
+    static let launcherHighlight = ThemeGradientToken("--apollo-launcher-highlight-gradient")
+    static let toast = ThemeGradientToken("--apollo-toast-gradient")
 }
 
 public extension ThemeColorToken {
@@ -353,6 +378,15 @@ private extension ThemeTokenDescriptor {
         )
     }
 
+    /// Ein Verlauf-Token. Vorgabe ist immer `none`: So sieht ein Theme von
+    /// heute genauso aus wie vorher, und ein Verlauf ist etwas, das jemand
+    /// ausdruecklich will.
+    static func gradient(_ name: String, group: ThemeTokenGroup, _ summary: String,
+                         aliases: [String] = []) -> ThemeTokenDescriptor {
+        ThemeTokenDescriptor(name: name, kind: .gradient, defaultValue: .gradient(.none),
+                             summary: summary, group: group, aliases: aliases)
+    }
+
     static func length(_ name: String, _ value: Double, min minimum: Double = 0, max maximum: Double,
                        group: ThemeTokenGroup, _ summary: String,
                        aliases: [String] = []) -> ThemeTokenDescriptor {
@@ -438,6 +472,10 @@ public extension ThemeTokenCatalog {
         .color("--apollo-surface-color", light: 0xFFFFFF, dark: 0x1C1C1E, group: .surface,
                "Base surface of windows and popovers"),
         .ratio("--apollo-surface-opacity", 1, group: .surface, "How opaque surfaces are"),
+        .gradient("--apollo-background-gradient", group: .surface,
+                  "Gradient behind the shell instead of the flat backdrop colour"),
+        .gradient("--apollo-surface-gradient", group: .surface,
+                  "Gradient across surfaces instead of the flat surface colour"),
         .color("--apollo-elevated-surface-color", light: 0xF5F5F7, dark: 0x2A2A2D, group: .surface,
                "Surface of things that sit on top, such as menus"),
         .color("--apollo-separator-color", light: 0xD8D8DC, dark: 0x3A3A3D, group: .surface,
@@ -466,6 +504,8 @@ public extension ThemeTokenCatalog {
                "Colour of selected and active things"),
         .color("--apollo-secondary-accent-color", light: 0x5E5CE6, dark: 0x7D7AFF, group: .accent,
                "Second accent for charts and badges"),
+        .gradient("--apollo-accent-gradient", group: .accent,
+                  "Gradient for accent coloured areas instead of the flat accent colour"),
         .color("--apollo-selection-color", light: 0xD6E4FF, dark: 0x234A77, group: .accent,
                "Background of a selected row"),
         .color("--apollo-hover-color", light: 0x000000, dark: 0xFFFFFF, alpha: 0.08, darkAlpha: 0.10,
@@ -476,6 +516,8 @@ public extension ThemeTokenCatalog {
 
         // MARK: Sidebar
         .color("--apollo-bar-color", light: 0xF5F5F7, dark: 0x1C1C1E, group: .bar, "Backing of the sidebar"),
+        .gradient("--apollo-bar-gradient", group: .bar,
+                  "Gradient along the sidebar instead of the flat bar colour"),
         .ratio("--apollo-bar-opacity", 1, group: .bar, "How opaque that backing is"),
         .color("--apollo-bar-text-color", light: 0x1C1C1E, dark: 0xF5F5F7, group: .bar,
                "Text in the sidebar, such as the clock", on: "--apollo-bar-color"),
@@ -501,11 +543,17 @@ public extension ThemeTokenCatalog {
         .length("--apollo-panel-padding", 16, max: 64, group: .panel, "Space inside a panel"),
         .length("--apollo-panel-blur", 24, max: 64, group: .panel, "Blur behind panels"),
         .color("--apollo-card-color", light: 0xF2F2F7, dark: 0x2A2A2D, group: .panel, "Backing of a card in a panel"),
+        .gradient("--apollo-panel-gradient", group: .panel,
+                  "Gradient across a panel instead of the flat panel colour"),
+        .gradient("--apollo-card-gradient", group: .panel,
+                  "Gradient across a card instead of the flat card colour"),
         .length("--apollo-card-radius", 14, max: 48, group: .panel, "Corner radius of a card"),
 
         // MARK: Launcher
         .color("--apollo-launcher-highlight-color", light: 0xE5EFFF, dark: 0x2A3C55, group: .launcher,
                "Backing of the selected launcher row"),
+        .gradient("--apollo-launcher-highlight-gradient", group: .launcher,
+                  "Gradient behind the selected launcher row instead of the flat colour"),
         .length("--apollo-launcher-row-height", 40, min: 24, max: 96, group: .launcher, "Height of one launcher row"),
 
         // MARK: Typography
@@ -530,6 +578,8 @@ public extension ThemeTokenCatalog {
 
         // MARK: Toasts
         .color("--apollo-toast-color", light: 0x1C1C1E, dark: 0xF5F5F7, group: .feedback, "Backing of a toast"),
+        .gradient("--apollo-toast-gradient", group: .feedback,
+                  "Gradient across a toast instead of the flat toast colour"),
         .color("--apollo-toast-text-color", light: 0xFFFFFF, dark: 0x1C1C1E, group: .feedback,
                "Text in a toast", on: "--apollo-toast-color"),
         .length("--apollo-toast-radius", 14, max: 48, group: .feedback, "Corner radius of a toast"),
