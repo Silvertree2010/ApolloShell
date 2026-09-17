@@ -173,22 +173,26 @@ private struct StatusCapsule: View {
                 if options.showWifi {
                     let wifi = StatusGlyphs.wifi(powerOn: status.wifiOn, rssi: status.wifiRSSI)
                     popoutIcon(.wifi, help: wifiHelp) {
-                        Image(systemName: wifi.symbol, variableValue: wifi.strength)
+                        // Theme: icons/status-wifi.png bzw. status-wifi-off.png.
+                        ThemedIcon(status.wifiOn == false ? "status-wifi-off" : "status-wifi",
+                                   fallback: wifi.symbol)
                             .font(.system(size: 14, weight: .semibold))
+                            .frame(width: 16, height: 16)
                     }
                 }
                 if options.showBluetooth {
                     popoutIcon(.bluetooth, help: bluetoothHelp) {
-                        BluetoothRune()
-                            .stroke(style: StrokeStyle(lineWidth: 1.7, lineCap: .round, lineJoin: .round))
-                            .frame(width: 10, height: 15)
-                            .opacity(status.bluetoothOn == false ? 0.4 : 1)
+                        // Ohne Theme das gezeichnete Zeichen (SF Symbols hat
+                        // keins fuer Bluetooth), mit Theme dessen Bild.
+                        BluetoothGlyph(on: status.bluetoothOn != false)
                     }
                 }
                 if let battery {
                     popoutIcon(.battery, help: StatusGlyphs.batteryText(status.battery)) {
-                        Image(systemName: battery)
+                        ThemedIcon(status.battery?.charging == true ? "status-battery-charging" : "status-battery",
+                                   fallback: battery)
                             .font(.system(size: 13, weight: .semibold))
+                            .frame(width: 15, height: 15)
                             .rotationEffect(.degrees(-90))
                     }
                 }
@@ -264,6 +268,29 @@ struct SidebarIcon<Content: View>: View {
 
 /// Bluetooth-Rune, selbst gezeichnet: Apple bietet dafuer kein SF Symbol an
 /// (das Logo ist markenrechtlich geschuetzt). Geometrie im 10 x 15-Rahmen.
+/// Bluetooth in der Leiste: mit Theme dessen Bild, sonst das gezeichnete
+/// Zeichen - SF Symbols hat keins dafuer.
+struct BluetoothGlyph: View {
+    let on: Bool
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let style = ShellTheme.style(colorScheme)
+        let id = on ? "status-bluetooth" : "status-bluetooth-off"
+        if style.iconFile(id) != nil {
+            ThemedIcon(id, fallback: "")
+                .frame(width: 15, height: 15)
+                .opacity(on ? 1 : 0.4)
+        } else {
+            BluetoothRune()
+                .stroke(style: StrokeStyle(lineWidth: 1.7, lineCap: .round, lineJoin: .round))
+                .frame(width: 10, height: 15)
+                .opacity(on ? 1 : 0.4)
+        }
+    }
+}
+
 struct BluetoothRune: Shape {
     func path(in rect: CGRect) -> Path {
         let w = rect.width, h = rect.height

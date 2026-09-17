@@ -67,7 +67,9 @@ private struct UtilitiesMuteButton: View {
 
     var body: some View {
         Button(action: model.toggleOutputMute) {
-            Image(systemName: VolumeGlyphs.symbol(volume: model.volume, muted: model.outputMuted))
+            ThemedIcon(model.outputMuted ? "status-volume-muted" : "status-volume",
+                       fallback: VolumeGlyphs.symbol(volume: model.volume, muted: model.outputMuted))
+                .frame(width: 16, height: 16)
                 .font(style.font(size: 13, weight: .semibold))
                 .contentTransition(.symbolEffect(.replace))
                 // Fest, sonst verschoebe ein Symbol mit mehr Wellen den Regler.

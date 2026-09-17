@@ -296,11 +296,10 @@ within the size limit.
 | `session-sleep` | `moon.fill` | Sleep |
 | `session-restart` | `arrow.clockwise` | Restart |
 | `session-shutdown` | `power` | Shut down |
-| `session-lock` | `lock.fill` | Lock the screen |
 | `toast-info` | `info.circle.fill` | A toast that just says something |
 | `toast-success` | `checkmark.circle.fill` | A toast about something that worked |
 | `toast-warning` | `exclamationmark.triangle.fill` | A toast that warns |
-| `toast-error` | `xmark.octagon.fill` | A toast about a failure |
+| `toast-error` | `exclamationmark.circle.fill` | A toast about a failure |
 | `panel-media` | `music.note` | Media, and the placeholder without artwork |
 | `panel-performance` | `speedometer` | The performance tab |
 | `panel-weather` | `cloud.sun.fill` | The weather tab |

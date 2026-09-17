@@ -61,9 +61,13 @@ struct DashboardView: View {
                     withAnimation(Self.motion) { model.tab = tab }
                 } label: {
                     VStack(spacing: 4) {
-                        Image(systemName: tab.symbol)
+                        // Theme: icons/panel-media.png, panel-performance.png,
+                        // panel-weather.png; der Reiter Dashboard nimmt
+                        // bar-dashboard.
+                        ThemedIcon(tab.iconID, fallback: tab.symbol)
                             .font(style.font(size: 16, weight: .medium))
                             .symbolVariant(selected == tab ? .fill : .none)
+                            .frame(width: 18, height: 18)
                         Text(tab.title).font(style.font(size: 12, weight: .medium))
                     }
                     .foregroundStyle(selected == tab ? style.accent : Color.secondary)
@@ -450,15 +454,17 @@ private struct ResourcesCard: View {
     }
 
     @ViewBuilder private var rings: some View {
-        if options.showCPU { Ring(value: model.cpu, symbol: "cpu", help: "CPU") }
-        if options.showMemory { Ring(value: model.memory, symbol: "memorychip", help: String(localized: "Arbeitsspeicher")) }
-        if options.showStorage { Ring(value: model.storage, symbol: "internaldrive", help: String(localized: "Speicher")) }
+        if options.showCPU { Ring(value: model.cpu, symbol: "cpu", iconID: "panel-cpu", help: "CPU") }
+        if options.showMemory { Ring(value: model.memory, symbol: "memorychip", iconID: "panel-memory", help: String(localized: "Arbeitsspeicher")) }
+        if options.showStorage { Ring(value: model.storage, symbol: "internaldrive", iconID: "panel-disk", help: String(localized: "Speicher")) }
     }
 }
 
 private struct Ring: View {
     let value: Double
     let symbol: String
+    /// Kennung fuer den Symbol-Austausch im Theme.
+    var iconID: String = ""
     let help: String
     @Environment(\.colorScheme) private var colorScheme
     private var style: ShellStyle { ShellTheme.style(colorScheme) }
@@ -471,7 +477,9 @@ private struct Ring: View {
                 .stroke(style.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.easeOut(duration: 0.6), value: value)
-            Image(systemName: symbol).font(style.font(size: 14, weight: .medium))
+            ThemedIcon(iconID.isEmpty ? symbol : iconID, fallback: symbol)
+                .font(style.font(size: 14, weight: .medium))
+                .frame(width: 16, height: 16)
         }
         .frame(width: 56, height: 56)
         .help("\(help) \(Int((value * 100).rounded())) %")

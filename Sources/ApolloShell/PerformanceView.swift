@@ -26,7 +26,7 @@ struct PerformanceView: View {
         HStack(spacing: spacing) {
             VStack(spacing: spacing) {
                 HStack(spacing: spacing) {
-                    HeroCard(symbol: "cpu", title: "CPU", subtitle: model.cpuSubtitle,
+                    HeroCard(symbol: "cpu", iconID: "panel-cpu", title: "CPU", subtitle: model.cpuSubtitle,
                              value: model.cpu, history: model.cpuHistory)
                     HeroCard(symbol: "square.stack.3d.up", title: "GPU", subtitle: model.gpuSubtitle,
                              value: model.gpu, history: model.gpuHistory)
@@ -54,6 +54,8 @@ struct PerformanceView: View {
 /// zackiger wird (Caelestia: Cookie < 40 %, Sunny < 80 %, SoftBurst).
 private struct HeroCard: View {
     let symbol: String
+    /// Kennung fuer den Symbol-Austausch im Theme.
+    var iconID: String = ""
     let title: String
     let subtitle: String
     let value: Double?
@@ -65,7 +67,7 @@ private struct HeroCard: View {
         Card(radius: 24) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 12) {
-                    UsageRing(value: value ?? 0, symbol: symbol)
+                    UsageRing(value: value ?? 0, symbol: symbol, iconID: iconID)
                         .frame(width: 46, height: 46)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title)
@@ -104,6 +106,8 @@ private struct HeroCard: View {
 private struct UsageRing: View {
     let value: Double
     let symbol: String
+    /// Kennung fuer den Symbol-Austausch im Theme.
+    var iconID: String = ""
     @Environment(\.colorScheme) private var colorScheme
     private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
@@ -115,7 +119,9 @@ private struct UsageRing: View {
                 .stroke(style.accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(PerformanceView.animation, value: value)
-            Image(systemName: symbol).font(style.font(size: 17, weight: .medium))
+            ThemedIcon(iconID.isEmpty ? symbol : iconID, fallback: symbol)
+                .font(style.font(size: 17, weight: .medium))
+                .frame(width: 19, height: 19)
         }
         .padding(2)
     }
@@ -226,8 +232,9 @@ private struct StorageCard: View {
             VStack(spacing: 6) {
                 ArcGauge(value: usage?.fraction ?? 0, caption: "Belegt") {
                     VStack(spacing: 0) {
-                        Image(systemName: "internaldrive.fill")
+                        ThemedIcon("panel-disk", fallback: "internaldrive.fill")
                             .font(style.font(size: 15, weight: .medium))
+                            .frame(width: 17, height: 17)
                             .foregroundStyle(style.accent)
                         PercentLabel(value: usage?.fraction)
                     }
@@ -255,8 +262,9 @@ private struct MemoryCard: View {
         Card(radius: 10) {
             VStack(spacing: 6) {
                 HStack(spacing: 6) {
-                    Image(systemName: "memorychip.fill")
+                    ThemedIcon("panel-memory", fallback: "memorychip.fill")
                         .font(style.font(size: 13, weight: .semibold))
+                        .frame(width: 15, height: 15)
                         .foregroundStyle(style.accent)
                     Text("Arbeitsspeicher")
                         .font(style.font(size: 13, weight: .semibold))

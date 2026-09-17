@@ -90,7 +90,9 @@ private struct VolumeSlider: View {
                         .font(.system(size: 10, weight: .bold, design: .rounded))
                         .monospacedDigit()
                 } else {
-                    Image(systemName: VolumeGlyphs.symbol(volume: model.volume, muted: model.muted))
+                    ThemedIcon(model.muted ? "status-volume-muted" : "status-volume",
+                               fallback: VolumeGlyphs.symbol(volume: model.volume, muted: model.muted))
+                        .frame(width: 13, height: 13)
                         .font(.system(size: 11, weight: .semibold))
                 }
             }

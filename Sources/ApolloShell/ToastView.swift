@@ -116,8 +116,10 @@ struct ToastCard: View {
     var body: some View {
         let radius = style.toastRadius(Self.radius)
         HStack(spacing: 12) {
-            Image(systemName: entry.symbol)
+            // Theme: icons/toast-info.png und die drei Geschwister.
+            ThemedIcon(entry.kind.iconID, fallback: entry.symbol)
                 .font(style.font(size: 18, weight: .semibold))
+                .frame(width: 20, height: 20)
                 .foregroundStyle(ToastPalette.symbol(entry.kind, style))
                 .frame(width: Self.chip, height: Self.chip)
                 .background(ToastPalette.chip(entry.kind, style),

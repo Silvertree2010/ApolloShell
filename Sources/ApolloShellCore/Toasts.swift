@@ -5,6 +5,16 @@ import Foundation
 public enum ToastKind: Sendable, Equatable {
     case info, success, warning, error
 
+    /// Kennung fuer den Symbol-Austausch im Theme (`icons/<kennung>.png`).
+    public var iconID: String {
+        switch self {
+        case .info: "toast-info"
+        case .success: "toast-success"
+        case .warning: "toast-warning"
+        case .error: "toast-error"
+        }
+    }
+
     /// Caelestia: info, check_circle_unread, warning, error.
     public var defaultSymbol: String {
         switch self {

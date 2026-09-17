@@ -80,13 +80,12 @@ public struct ThemeIconCatalog: Sendable {
         .init(id: "session-sleep", fallback: "moon.fill", summary: "Sleep"),
         .init(id: "session-restart", fallback: "arrow.clockwise", summary: "Restart"),
         .init(id: "session-shutdown", fallback: "power", summary: "Shut down"),
-        .init(id: "session-lock", fallback: "lock.fill", summary: "Lock the screen"),
 
         // MARK: Kurzmeldungen
         .init(id: "toast-info", fallback: "info.circle.fill", summary: "A toast that just says something"),
         .init(id: "toast-success", fallback: "checkmark.circle.fill", summary: "A toast about something that worked"),
         .init(id: "toast-warning", fallback: "exclamationmark.triangle.fill", summary: "A toast that warns"),
-        .init(id: "toast-error", fallback: "xmark.octagon.fill", summary: "A toast about a failure"),
+        .init(id: "toast-error", fallback: "exclamationmark.circle.fill", summary: "A toast about a failure"),
 
         // MARK: Panels
         .init(id: "panel-media", fallback: "music.note", summary: "Media, and the placeholder without artwork"),

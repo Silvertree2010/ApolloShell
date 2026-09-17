@@ -36,6 +36,16 @@ public enum DashboardTab: String, CaseIterable, Codable, Identifiable, Sendable 
         case .weather: "cloud.sun"
         }
     }
+
+    /// Kennung fuer den Symbol-Austausch im Theme (`icons/<kennung>.png`).
+    public var iconID: String {
+        switch self {
+        case .dashboard: "bar-dashboard"
+        case .media: "panel-media"
+        case .performance: "panel-performance"
+        case .weather: "panel-weather"
+        }
+    }
 }
 
 /// Reihenfolge und Sichtbarkeit der Reiter (Caelestia: dashboard.showMedia
