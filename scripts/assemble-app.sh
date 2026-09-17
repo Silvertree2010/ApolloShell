@@ -46,7 +46,10 @@ fi
 
 # Einmal entscheiden, womit alles signiert wird: die App, Sparkles Teile und
 # der Now-Playing-Helfer muessen dieselbe Signatur tragen.
-if [ -n "$IDENTITY" ] && security find-identity -p codesigning 2>/dev/null | grep -q "\"$IDENTITY\""; then
+if [ "$IDENTITY" = "-" ]; then
+    # Ausdruecklich ad-hoc (CI, Bildproben): kein Nachschlagen, kein Fehler.
+    echo "signing ad-hoc (SIGN_IDENTITY=-)"
+elif [ -n "$IDENTITY" ] && security find-identity -p codesigning 2>/dev/null | grep -q "\"$IDENTITY\""; then
     echo "signing with: $IDENTITY"
 elif [ "${SIGN_IDENTITY+set}" = set ] && [ -n "$SIGN_IDENTITY" ]; then
     # Ausdruecklich verlangt und nicht da: abbrechen. Still ad-hoc zu
