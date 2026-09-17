@@ -8,6 +8,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **Themes apply to the shell.** Pick one in Nexus > Themes and the bar,
+  the panels, the launcher, the toasts and the accent colour follow the
+  file. Editing the file applies at once, without a restart, and the page
+  lists what could not be read. Themes can be added from Finder, and the
+  folder opens from the same page.
+- **Gradients in themes**: the backdrop, surfaces, the accent, the bar,
+  panels, cards, the launcher highlight and toasts each have a gradient
+  token next to their colour, `none` by default.
+
 - **Automatic updates** for the `.dmg` build: a daily check in the
   background, the download right after, and the install when the app next
   quits. Nexus > Updates shows the state, has both switches (on by default)

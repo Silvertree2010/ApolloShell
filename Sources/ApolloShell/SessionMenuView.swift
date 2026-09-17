@@ -81,13 +81,15 @@ private struct SessionButton: View {
 private struct SessionButtonStyle: ButtonStyle {
     let selected: Bool
     let hovered: Bool
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     func makeBody(configuration: Configuration) -> some View {
         let radius: CGFloat = configuration.isPressed ? 12 : (selected ? 28 : 20)
         configuration.label
             .foregroundStyle(selected ? Color.white : Color.primary)
             .background(
-                selected ? AnyShapeStyle(Color.accentColor.opacity(0.85)) : AnyShapeStyle(Color.primary.opacity(0.08)),
+                selected ? AnyShapeStyle(style.accent.opacity(0.85)) : AnyShapeStyle(Color.primary.opacity(0.08)),
                 in: .rect(cornerRadius: radius)
             )
             // Hover-Schimmer: 8 % obendrauf, wie Caelestias StateLayer.

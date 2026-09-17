@@ -20,6 +20,8 @@ struct DashboardView: View {
     let media: MediaModel
     let settings: ShellSettingsStore
     @Namespace private var tabIndicator
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     static let padding: CGFloat = 16
     static let spacing = CGFloat(DashboardGeometry.spacing)
@@ -64,14 +66,14 @@ struct DashboardView: View {
                             .symbolVariant(selected == tab ? .fill : .none)
                         Text(tab.title).font(.system(size: 12, weight: .medium))
                     }
-                    .foregroundStyle(selected == tab ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(selected == tab ? style.accent : Color.secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.top, 12)
                     .padding(.bottom, 8)
                     .overlay(alignment: .bottom) {
                         if selected == tab {
                             Capsule()
-                                .fill(Color.accentColor)
+                                .fill(style.accent)
                                 .frame(width: 44, height: 3)
                                 .matchedGeometryEffect(id: "indicator", in: tabIndicator)
                         }
@@ -218,10 +220,22 @@ struct Card<Content: View>: View {
     let radius: CGFloat
     @ViewBuilder let content: () -> Content
 
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+
     var body: some View {
+        // Mit Theme faerbt `--apollo-card-color` (oder der Verlauf daneben)
+        // die Karte, und `--apollo-card-radius` rundet sie.
+        let shape = RoundedRectangle(cornerRadius: style.cardRadius(radius))
         content()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.primary.opacity(0.06), in: .rect(cornerRadius: radius))
+            .background {
+                if style.isThemed {
+                    shape.fill(style.cardFill)
+                } else {
+                    shape.fill(Color.primary.opacity(0.06))
+                }
+            }
     }
 }
 
@@ -233,6 +247,8 @@ private struct UserCard: View {
     let model: DashboardModel
     var options = DashboardUserOptions()
     var vertical = false
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Card(radius: 28) {
@@ -262,9 +278,9 @@ private struct UserCard: View {
     private func avatar(size: CGFloat) -> some View {
         Text(String(model.userName.prefix(1)))
             .font(.system(size: size * 30 / 72, weight: .semibold, design: .rounded))
-            .foregroundStyle(Color.onAccent)
+            .foregroundStyle(style.onAccent)
             .frame(width: size, height: size)
-            .background(Color.accentColor, in: .circle)
+            .background(style.accent, in: .circle)
     }
 
     @ViewBuilder private var badges: some View {
@@ -350,6 +366,8 @@ private struct CalendarCard: View {
     var options = DashboardCalendarOptions()
     /// Ueber die ganze Hoehe (obere Reihe leer): Zeilen weiter auseinander.
     var tall = false
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         let calendar = options.applied(to: model.calendar)
@@ -390,9 +408,9 @@ private struct CalendarCard: View {
                             ForEach(weeks[week], id: \.self) { day in
                                 Text("\(day.day)")
                                     .font(.system(size: 12, weight: day.isToday ? .bold : .regular))
-                                    .foregroundStyle(day.isToday ? Color.onAccent : day.inMonth ? Color.primary : Color.secondary.opacity(0.5))
+                                    .foregroundStyle(day.isToday ? style.onAccent : day.inMonth ? Color.primary : Color.secondary.opacity(0.5))
                                     .frame(width: 26, height: 26)
-                                    .background(day.isToday ? Color.accentColor : Color.clear, in: .circle)
+                                    .background(day.isToday ? style.accent : Color.clear, in: .circle)
                                     .frame(maxWidth: .infinity)
                             }
                         }
@@ -433,13 +451,15 @@ private struct Ring: View {
     let value: Double
     let symbol: String
     let help: String
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         ZStack {
             Circle().stroke(Color.primary.opacity(0.10), lineWidth: 6)
             Circle()
                 .trim(from: 0, to: value)
-                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .stroke(style.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.easeOut(duration: 0.6), value: value)
             Image(systemName: symbol).font(.system(size: 14, weight: .medium))

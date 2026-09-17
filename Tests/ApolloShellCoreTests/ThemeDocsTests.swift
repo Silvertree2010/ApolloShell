@@ -139,8 +139,18 @@ struct ThemeDocsTests {
         #expect(theme.title == "Everything")
     }
 
-    @Test("beide Beispiele liegen im selben Ordner und werden beide gefunden")
-    func bothExamplesAreThemes() {
-        #expect(ThemeLoader.themes(in: Self.examples).map(\.identifier) == ["full", "minimal"])
+    @Test("alle Beispiele liegen im selben Ordner und werden gefunden")
+    func allExamplesAreThemes() {
+        #expect(ThemeLoader.themes(in: Self.examples).map(\.identifier) == ["full", "minimal", "Nightfall"])
+    }
+
+    @Test("das Verlaufs-Beispiel laedt ohne Hinweis und setzt Verlaeufe")
+    func gradientExample() {
+        let theme = ThemeLoader.load(at: Self.examples.appendingPathComponent("Nightfall.css"))
+        #expect(theme.title == "Nightfall")
+        #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
+        #expect(theme.gradient(.bar, dark: true).stops.count == 2)
+        #expect(theme.gradient(.panel).isEmpty, "im hellen Erscheinungsbild ohne Verlauf")
+        #expect(theme.color(.accent) == ThemeColor(hex: 0xFF8A3D))
     }
 }

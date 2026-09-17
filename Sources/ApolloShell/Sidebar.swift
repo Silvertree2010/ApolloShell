@@ -234,7 +234,7 @@ final class SidebarScreen {
         // nur im selben GlassEffectContainer verschmilzt das Popout mit der
         // Leiste.
         let hosting = FirstMouseHostingView(
-            rootView: SidebarRoot(settings: settings, context: context, popout: popout.model)
+            rootView: SidebarRoot(settings: settings, context: context, popout: popout.model).shellTheme()
         )
         // Ohne das bestimmt die Ansicht die Fenstergroesse mit und kaempft mit
         // `layout()`, sobald das Fenster fuer ein Popout breiter wird.
@@ -435,9 +435,24 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
     /// `fixedGlass` da.
     private static var tint: Color { Color(nsColor: .windowBackgroundColor).opacity(0.7) }
 
+    /// Mit Theme faerbt das Theme die Leiste: die Farbe (oder der Verlauf)
+    /// aus `--apollo-bar-color` beziehungsweise `--apollo-bar-gradient`, mit
+    /// `--apollo-bar-opacity`. Die Wahl in Nexus > Leiste bleibt darunter
+    /// sichtbar, solange das Theme durchscheinen laesst und Glas erlaubt -
+    /// sonst waere eine halb deckende Leiste eine Leiste vor dem Schreibtisch.
     func body(content: Content) -> some View {
+        let style = ShellTheme.style(colorScheme)
         if standIn {
             content.background(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95), in: shape)
+        } else if style.isThemed {
+            let opaque = style.barIsOpaque
+            content
+                .background(style.barFill, in: shape)
+                .background {
+                    if !opaque, style.glass {
+                        Color.clear.glassEffect(.regular, in: shape)
+                    }
+                }
         } else {
             switch background {
             case .material:

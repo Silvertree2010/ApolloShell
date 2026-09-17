@@ -168,7 +168,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
         let panel = LauncherPanel(size: Self.windowSize)
         panel.delegate = self
 
-        let hosting = NSHostingView(rootView: LauncherView(model: model))
+        let hosting = NSHostingView(rootView: LauncherView(model: model).shellTheme())
         // Das Panel hat eine feste Groesse; SwiftUI soll sie nicht verstellen.
         hosting.sizingOptions = []
         // Inhalt nur im sichtbaren Teil, ueber dem Streifen unter dem Rand.

@@ -13,7 +13,15 @@ extension View {
     ///
     /// Eigene Datei, damit die Bildprobe sie gegen einen Ersatz tauschen
     /// kann - Glas zeichnet offscreen nur weiss.
-    func toastGlass(tint: Color?, cornerRadius: CGFloat) -> some View {
-        glassEffect(.regular.tint(tint), in: .rect(cornerRadius: cornerRadius))
+    /// `enabled` falsch: gar kein Glas - ein Theme, das `--apollo-glass`
+    /// abschaltet, bekommt eine ruhige Flaeche statt Material.
+    func toastGlass(tint: Color?, cornerRadius: CGFloat, enabled: Bool = true) -> some View {
+        Group {
+            if enabled {
+                glassEffect(.regular.tint(tint), in: .rect(cornerRadius: cornerRadius))
+            } else {
+                self
+            }
+        }
     }
 }

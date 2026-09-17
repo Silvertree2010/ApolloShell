@@ -31,6 +31,8 @@ struct SidebarSpaces: View {
     let model: SpacesModel
     var style: BarWorkspacesOptions.Style = .dots
     var onSelect: (Int) -> Void = { _ in }
+    @Environment(\.colorScheme) private var colorScheme
+    private var shellStyle: ShellStyle { ShellTheme.style(colorScheme) }
 
     private static let slot: CGFloat = 26
     private static let gap: CGFloat = 3
@@ -42,14 +44,14 @@ struct SidebarSpaces: View {
                 dots(count: snapshot.desktops.count, active: active, tint: nil)
                 if let active {
                     Capsule()
-                        .fill(Color.accentColor)
+                        .fill(shellStyle.accent)
                         .frame(width: Self.slot, height: Self.slot)
                         .offset(y: Self.offset(active))
                     // Wie Caelestias Colouriser: was unter der Pille liegt,
                     // in der Schriftfarbe fuer Akzentflaechen. Als Maske,
                     // damit ein halb ueberfahrener Punkt waehrend des
                     // Gleitens halb umgefaerbt ist.
-                    dots(count: snapshot.desktops.count, active: active, tint: .onAccent)
+                    dots(count: snapshot.desktops.count, active: active, tint: shellStyle.onAccent)
                         .mask(alignment: .top) {
                             Capsule()
                                 .frame(width: Self.slot, height: Self.slot)

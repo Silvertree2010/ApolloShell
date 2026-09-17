@@ -21,6 +21,8 @@ struct SmallWeatherCard: View {
     /// Nexus > Dashboard; die Vorgabe zeigt alles wie Caelestia.
     var options = DashboardWeatherOptions()
     var vertical = false
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         TimelineView(.everyMinute) { context in
@@ -81,7 +83,7 @@ struct SmallWeatherCard: View {
                 Button("Ort in Nexus festlegen") { model.onOpenNexus() }
                     .buttonStyle(.plain)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(style.accent)
             }
         } else {
             WeatherSymbol(name: "cloud.sun", size: 40, placeholder: true)
@@ -208,6 +210,8 @@ private struct WeatherPrecipitation: View {
 /// in Akzentfarbe.
 private struct WeatherPlacePicker: View {
     let model: WeatherModel
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         HStack(spacing: 5) {
@@ -220,9 +224,9 @@ private struct WeatherPlacePicker: View {
                         .font(.system(size: 11, weight: .semibold))
                         .padding(.horizontal, 9)
                         .padding(.vertical, 4)
-                        .foregroundStyle(selected ? AnyShapeStyle(Color.onAccent) : AnyShapeStyle(.secondary))
+                        .foregroundStyle(selected ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
                         .background(
-                            selected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Color.primary.opacity(0.08)),
+                            selected ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.08)),
                             in: .capsule
                         )
                         .contentShape(.capsule)
@@ -385,6 +389,8 @@ private struct WeatherDaily: View {
     let days: [DayForecast]
     let now: Date
     let calendar: Calendar
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -394,10 +400,10 @@ private struct WeatherDaily: View {
                     VStack(spacing: 4) {
                         Text(WeatherText.dayLabel(day.date, today: now, calendar: calendar))
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(isToday ? Color.onAccent : Color.primary)
+                            .foregroundStyle(isToday ? style.onAccent : Color.primary)
                             .padding(.horizontal, isToday ? 9 : 0)
                             .frame(height: 20)
-                            .background(isToday ? Color.accentColor : Color.clear, in: .capsule)
+                            .background(isToday ? style.accent : Color.clear, in: .capsule)
                         Text(WeatherText.shortDate(day.date, calendar: calendar))
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)

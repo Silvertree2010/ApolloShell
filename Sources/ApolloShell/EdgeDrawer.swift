@@ -113,6 +113,23 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         observeScreenChanges()
     }
 
+    /// Faerbt das Glas des Kantenfensters nach dem Theme: Panelfarbe als
+    /// Toenung, Panelradius als Ecke. Ohne Theme bleibt alles, wie es war.
+    /// Wird beim Bauen und bei jedem Oeffnen gesetzt, damit ein Wechsel im
+    /// Theme spaetestens beim naechsten Oeffnen ankommt.
+    private func applyTheme() {
+        guard let glass else { return }
+        let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let style = ThemeStore.shared?.style(dark: dark) ?? .standard
+        guard style.isThemed else {
+            glass.tintColor = nil
+            glass.cornerRadius = cornerRadius
+            return
+        }
+        glass.tintColor = NSColor(style.theme.color(.panel, dark: dark))
+        glass.cornerRadius = style.panelRadius(cornerRadius)
+    }
+
     /// Hoehe der Menueleiste bzw. der Notch, je nachdem was groesser ist
     /// (Menueleiste ausgeblendet: dann zaehlt nur die Notch). Bildschirme
     /// ohne Menueleiste ergeben 0.
@@ -135,6 +152,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     private func open(byHover: Bool) {
         // Dort, wo der Zeiger steht.
         guard !isOpen, let screen = ShellScreens.underPointer() else { return }
+        applyTheme()
         isOpen = true
         generation += 1
         afterClose = nil
@@ -439,6 +457,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         content.addSubview(hosting)
         glass.contentView = content
         self.glass = glass
+        applyTheme()
         self.hosting = hosting
 
         container.wantsLayer = true

@@ -6,6 +6,8 @@ import SwiftUI
 struct LauncherView: View {
     @Bindable var model: LauncherModel
     @FocusState private var searchFocused: Bool
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -26,11 +28,11 @@ struct LauncherView: View {
     private var searchField: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 18, weight: .medium))
+                .font(style.font(size: 18, weight: .medium))
                 .foregroundStyle(.secondary)
             TextField("Suchen …", text: $model.query)
                 .textFieldStyle(.plain)
-                .font(.system(size: 20))
+                .font(style.font(size: 20))
                 .focused($searchFocused)
                 .onSubmit { model.launchSelected() }
                 .onKeyPress(.upArrow) { model.moveSelection(by: -1); return .handled }
@@ -73,22 +75,33 @@ private struct AppRow: View {
     let icon: NSImage
     let selected: Bool
 
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+
     var body: some View {
+        let radius = style.controlRadius(10)
         HStack(spacing: 12) {
             Image(nsImage: icon)
                 .resizable()
                 .frame(width: 32, height: 32)
             Text(app.name)
-                .font(.system(size: 15))
+                .font(style.font(size: 15))
                 .lineLimit(1)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(
-            selected ? Color.primary.opacity(0.12) : .clear,
-            in: .rect(cornerRadius: 10)
-        )
+        .background {
+            // Mit Theme faerbt `--apollo-launcher-highlight-color` die
+            // gewaehlte Zeile (oder der Verlauf daneben).
+            if selected {
+                if style.isThemed {
+                    RoundedRectangle(cornerRadius: radius).fill(style.launcherHighlightFill)
+                } else {
+                    RoundedRectangle(cornerRadius: radius).fill(Color.primary.opacity(0.12))
+                }
+            }
+        }
         .contentShape(.rect)
     }
 }

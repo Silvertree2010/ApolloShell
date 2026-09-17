@@ -87,6 +87,16 @@ scripts/setup-signing.sh   # once, keeps permissions across rebuilds
 
 More about building and testing is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Themes
+
+A theme is a CSS file in
+`~/Library/Application Support/ApolloShell/themes`: colours, sizes, fonts and
+gradients as `--apollo-*` tokens, a dark-mode block, and nothing else - no
+scripting, no selectors of your own. Pick one in **Nexus > Themes**. Saving
+the file applies it at once, and anything that could not be read falls back
+to the built-in value and is listed on that page. The format and every token
+are in [docs/THEMES.md](docs/THEMES.md).
+
 ## Updates
 
 The `.dmg` build keeps itself up to date: it checks once a day in the

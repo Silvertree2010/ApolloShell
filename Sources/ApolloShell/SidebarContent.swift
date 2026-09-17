@@ -223,6 +223,8 @@ struct SidebarIcon<Content: View>: View {
     @ViewBuilder let content: () -> Content
     @State private var hovering = false
     @Environment(\.barPreview) private var preview
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     init(help: String, action: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.help = help
@@ -238,7 +240,8 @@ struct SidebarIcon<Content: View>: View {
                 .contentShape(.rect(cornerRadius: 9))
         }
         .buttonStyle(.plain)
-        .foregroundStyle(.primary)
+        // Mit Theme faerbt `--apollo-bar-icon-color` die Zeichen der Leiste.
+        .foregroundStyle(style.isThemed ? AnyShapeStyle(style.barIcon) : AnyShapeStyle(.primary))
         // Nicht `onHover`: die Leiste gehoert einer nie aktiven App, dort blieb
         // der Hover-Effekt stehen, wenn die Maus wegging.
         .background {

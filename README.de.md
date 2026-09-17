@@ -115,6 +115,17 @@ sichtbar unter Systemeinstellungen > Allgemein > Anmeldeobjekte). In
 Entwicklungs-Builds und wenn schon ein eigener launchd-Agent ApolloShell
 startet, bleibt der Schalter gesperrt.
 
+## Themes
+
+Ein Theme ist eine CSS-Datei in
+`~/Library/Application Support/ApolloShell/themes`: Farben, Masse, Schriften
+und Verläufe als `--apollo-*`-Token, dazu ein Block fürs dunkle
+Erscheinungsbild - mehr nicht, kein Skript und keine eigenen Selektoren.
+Gewählt wird unter **Nexus > Themes**. Ein Speichern wirkt sofort, und was
+nicht gelesen werden konnte, fällt auf die eingebaute Vorgabe zurück und
+steht als Hinweis auf derselben Seite. Format und alle Token stehen in
+[docs/THEMES.md](docs/THEMES.md).
+
 ## Updates
 
 Die Fassung aus dem DMG hält sich selbst aktuell: Sie sieht einmal täglich im

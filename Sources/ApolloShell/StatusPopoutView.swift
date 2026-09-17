@@ -132,6 +132,8 @@ private struct StatusPopoutWifiView: View {
 
 private struct StatusPopoutBluetoothView: View {
     let model: StatusPopoutModel
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         let snapshot = model.bluetooth
@@ -139,11 +141,11 @@ private struct StatusPopoutBluetoothView: View {
             // Nur Anzeige: Schalten ginge nur ueber private Schnittstellen.
             Text(snapshot?.powerOn == true ? String(localized: "An") : snapshot?.powerOn == false ? String(localized: "Aus") : "–")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(snapshot?.powerOn == true ? AnyShapeStyle(Color.onAccent) : AnyShapeStyle(.secondary))
+                .foregroundStyle(snapshot?.powerOn == true ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
                 .padding(.horizontal, 10)
                 .frame(height: 22)
                 .background(
-                    snapshot?.powerOn == true ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Color.primary.opacity(0.10)),
+                    snapshot?.powerOn == true ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.10)),
                     in: .capsule
                 )
                 .help("Ein- und ausschalten geht nur in den Systemeinstellungen")
@@ -182,14 +184,16 @@ private struct StatusPopoutBluetoothView: View {
 /// ("AirPo...") waren in der Bildprobe schlechter als eine zweite Zeile.
 private struct StatusPopoutDeviceRow: View {
     let device: StatusPopoutBluetoothDevice
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: device.symbol)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Color.onAccent)
+                .foregroundStyle(style.onAccent)
                 .frame(width: 30, height: 30)
-                .background(Color.accentColor, in: .circle)
+                .background(style.accent, in: .circle)
             VStack(alignment: .leading, spacing: 1) {
                 Text(device.name)
                     .font(.system(size: 13, weight: .medium))
@@ -233,6 +237,8 @@ private struct StatusPopoutBatteryChip: View {
 
 private struct StatusPopoutBatteryView: View {
     let model: StatusPopoutModel
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         if let info = model.battery {
@@ -247,7 +253,7 @@ private struct StatusPopoutBatteryView: View {
                 if let symbol = StatusGlyphs.batterySymbol(info.state) {
                     Image(systemName: symbol)
                         .font(.system(size: 22, weight: .regular))
-                        .foregroundStyle(info.state.charging ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
+                        .foregroundStyle(info.state.charging ? AnyShapeStyle(style.accent) : AnyShapeStyle(.secondary))
                 }
             }
             VStack(alignment: .leading, spacing: 2) {
@@ -300,14 +306,16 @@ private struct StatusPopoutLeadRow: View {
     let active: Bool
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey?
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: symbol, variableValue: variableValue)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(active ? AnyShapeStyle(Color.onAccent) : AnyShapeStyle(.secondary))
+                .foregroundStyle(active ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
                 .frame(width: 30, height: 30)
-                .background(active ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Color.primary.opacity(0.10)), in: .circle)
+                .background(active ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.10)), in: .circle)
             VStack(alignment: .leading, spacing: 1) {
                 Text(title).font(.system(size: 13, weight: .medium))
                 if let subtitle {
@@ -404,6 +412,7 @@ private struct StatusPopoutSettingsButton: View {
 /// Knopf 32 x 20.
 private struct StatusPopoutSwitchStyle: ToggleStyle {
     @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     func makeBody(configuration: Configuration) -> some View {
         let on = configuration.isOn
@@ -411,7 +420,7 @@ private struct StatusPopoutSwitchStyle: ToggleStyle {
             configuration.isOn.toggle()
         } label: {
             Capsule()
-                .fill(on ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Color.primary.opacity(0.10)))
+                .fill(on ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.10)))
                 .frame(width: 54, height: 24)
                 .overlay {
                     Capsule()

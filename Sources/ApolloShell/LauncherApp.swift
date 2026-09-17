@@ -50,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Einstellungsfenster (Caelestia: Nexus).
     private var nexus: Nexus?
     private var updates: UpdateController?
+    private var themes: ThemeStore?
     /// Einfuehrung beim ersten Start.
     private var onboarding: Onboarding?
     /// Apples eigenes Dock ausblenden, solange ApolloShell laeuft.
@@ -73,6 +74,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // dort. Geschrieben wird erst, wenn sich etwas aendert.
         let settings = ShellSettingsStore(url: NexusPaths.live.settings)
         self.settings = settings
+        // Themes: auch im Nur-Launcher-Modus, damit der Launcher mitfaerbt.
+        themes = ThemeStore(settings: settings)
         let hotKeys = HotKeyCenter(store: settings)
         self.hotKeys = hotKeys
         appleDockHiding = AppleDockHidingController(settings: settings)
@@ -99,7 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let updates = UpdateController(settings: settings)
         self.updates = updates
         let nexus = Nexus(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions,
-                          updates: updates)
+                          updates: updates, themes: themes)
         self.nexus = nexus
         hotKeys.setHandler(.nexus) { [weak nexus] in nexus?.show() }
         let sidebar = Sidebar(settings: settings)

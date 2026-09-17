@@ -92,16 +92,18 @@ struct UtilitiesCard<Content: View>: View {
 /// Chip darunter: so bleibt die Karte gleich hoch und das Panel springt nicht.
 private struct KeepAwakeCard: View {
     @Bindable var model: UtilitiesModel
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         UtilitiesCard {
             HStack(spacing: 12) {
                 Image(systemName: "cup.and.saucer.fill")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(model.keepAwake ? AnyShapeStyle(Color.onAccent) : AnyShapeStyle(.secondary))
+                    .foregroundStyle(model.keepAwake ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
                     .frame(width: 40, height: 40)
                     .background(
-                        model.keepAwake ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Color.primary.opacity(0.10)),
+                        model.keepAwake ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.10)),
                         in: .circle
                     )
                     .accessibilityHidden(true)
@@ -180,6 +182,7 @@ private struct UtilitiesEmptyCard: View {
 /// Bahn aus etwa 10 % Vordergrund, Knopf im Dunkeln leicht grau.
 private struct AccentSwitchStyle: ToggleStyle {
     @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     func makeBody(configuration: Configuration) -> some View {
         let on = configuration.isOn
@@ -187,7 +190,7 @@ private struct AccentSwitchStyle: ToggleStyle {
             configuration.isOn.toggle()
         } label: {
             Capsule()
-                .fill(on ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Color.primary.opacity(0.10)))
+                .fill(on ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.10)))
                 .frame(width: 54, height: 24)
                 .overlay {
                     Capsule()
@@ -310,15 +313,17 @@ private struct QuickToggleStyle: ButtonStyle {
     let active: Bool
     let hovered: Bool
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     func makeBody(configuration: Configuration) -> some View {
         let radius = QuickToggles.cornerRadius(
             active: active, pressed: configuration.isPressed, height: QuickToggleButton.height
         )
         configuration.label
-            .foregroundStyle(active ? AnyShapeStyle(Color.onAccent) : AnyShapeStyle(.secondary))
+            .foregroundStyle(active ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
             .background(
-                active ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Color.primary.opacity(0.10)),
+                active ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.10)),
                 in: .rect(cornerRadius: radius)
             )
             // Hover-Schimmer: 8 % obendrauf, wie Caelestias StateLayer.

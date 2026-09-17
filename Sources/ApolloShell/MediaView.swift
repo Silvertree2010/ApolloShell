@@ -407,6 +407,7 @@ private struct MediaSourcePanel: View {
 private struct MediaNothingPlaying: View {
     let isUnavailable: Bool
     @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -414,7 +415,7 @@ private struct MediaNothingPlaying: View {
                 .font(.system(size: 40, weight: .medium))
                 .foregroundStyle(MediaColor.accentText(colorScheme))
                 .frame(width: 96, height: 96)
-                .background(Color.accentColor.opacity(0.16), in: .rect(cornerRadius: 30, style: .continuous))
+                .background(style.accent.opacity(0.16), in: .rect(cornerRadius: 30, style: .continuous))
                 .padding(.bottom, 8)
             Text(isUnavailable ? String(localized: "Medien nicht verfügbar") : String(localized: "Nichts läuft"))
                 .font(.system(size: 22, weight: .semibold))
@@ -523,22 +524,24 @@ private struct MediaAmbient: View {
 private struct MediaArc: View {
     let value: Double
     let lineWidth: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     /// Luecke als Anteil des Umfangs; deckt die runden Enden mit ab.
     private let gap = 0.03
 
     var body: some View {
         let played = 0.5 * min(max(value, 0), 1)
-        let style = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+        let strokeStyle = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
         ZStack {
             Circle()
                 .inset(by: lineWidth / 2)
                 .trim(from: min(played + gap, 0.5), to: 0.5)
-                .stroke(Color.primary.opacity(0.12), style: style)
+                .stroke(Color.primary.opacity(0.12), style: strokeStyle)
             Circle()
                 .inset(by: lineWidth / 2)
                 .trim(from: 0, to: played)
-                .stroke(Color.accentColor, style: style)
+                .stroke(style.accent, style: strokeStyle)
         }
         // Der Kreis beginnt rechts; um 180 Grad gedreht faengt er links an
         // und fuellt ueber oben nach rechts.
@@ -552,6 +555,8 @@ private struct MediaArc: View {
 private struct MediaProgressBar: View {
     let value: Double
     let known: Bool
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         GeometryReader { geometry in
@@ -559,7 +564,7 @@ private struct MediaProgressBar: View {
                 Capsule().fill(Color.primary.opacity(0.12))
                 if known {
                     Capsule()
-                        .fill(Color.accentColor)
+                        .fill(style.accent)
                         .frame(width: max(geometry.size.height, geometry.size.width * min(max(value, 0), 1)))
                 }
             }
@@ -575,6 +580,7 @@ private struct MediaProgressBar: View {
 private struct MediaControls: View {
     let model: MediaModel
     @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
     let height: CGFloat
     let symbolSize: CGFloat
     let spacing: CGFloat
@@ -592,10 +598,10 @@ private struct MediaControls: View {
                 Image(systemName: playing ? "pause.fill" : "play.fill")
                     .font(.system(size: symbolSize + 2, weight: .semibold))
                     .contentTransition(.symbolEffect(.replace))
-                    .foregroundStyle(playing ? Color.onAccent : MediaColor.accentText(colorScheme))
+                    .foregroundStyle(playing ? style.onAccent : MediaColor.accentText(colorScheme))
                     .frame(maxWidth: .infinity)
                     .frame(height: height)
-                    .background(playing ? Color.accentColor : Color.accentColor.opacity(0.16),
+                    .background(playing ? style.accent : style.accent.opacity(0.16),
                                 in: .rect(cornerRadius: playing ? height * 0.32 : height / 2, style: .continuous))
                     .contentShape(.rect)
             }

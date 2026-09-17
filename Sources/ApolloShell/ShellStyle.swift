@@ -1,0 +1,278 @@
+import AppKit
+import ApolloShellCore
+import SwiftUI
+
+/// Die Werte eines Themes, fertig fuer SwiftUI.
+///
+/// Zwei Regeln halten das hier zusammen:
+///
+/// 1. **Ohne Theme aendert sich nichts.** Ist keines gewaehlt (`isThemed`
+///    falsch), liefert jeder Zugriff genau das, was die Shell vorher benutzt
+///    hat: die Systemfarben von macOS, Material, die eingebauten Masse. Die
+///    Vorgaben des Katalogs sind den Systemfarben nur nachempfunden - wer
+///    kein Theme hat, soll aber keinen Unterschied sehen.
+/// 2. **Kein Zugriff kann scheitern.** Der Kern hat jeden Wert schon geprueft
+///    und geklemmt; hier wird nur noch umgerechnet.
+struct ShellStyle: Equatable {
+    let theme: Theme
+    let dark: Bool
+    let isThemed: Bool
+
+    /// Das eingebaute Aussehen: genau die Shell ohne Theme.
+    static let standard = ShellStyle(theme: .standard, dark: false, isThemed: false)
+
+    // MARK: - Farben
+
+    /// Eine Themefarbe, oder die Systemfarbe, solange kein Theme gilt.
+    private func color(_ token: ThemeColorToken, fallback: Color) -> Color {
+        isThemed ? Color(theme.color(token, dark: dark)) : fallback
+    }
+
+    var accent: Color { color(.accent, fallback: .accentColor) }
+    var secondaryAccent: Color { color(.secondaryAccent, fallback: Color(nsColor: .systemIndigo)) }
+    var text: Color { color(.text, fallback: .primary) }
+    var secondaryText: Color { color(.secondaryText, fallback: .secondary) }
+    var mutedText: Color { color(.mutedText, fallback: Color(nsColor: .tertiaryLabelColor)) }
+    var link: Color { color(.link, fallback: .accentColor) }
+    var separator: Color { color(.separator, fallback: Color(nsColor: .separatorColor)) }
+    var border: Color { color(.border, fallback: Color(nsColor: .separatorColor)) }
+    var selection: Color { color(.selection, fallback: .accentColor.opacity(0.18)) }
+    var hover: Color { color(.hover, fallback: Color.primary.opacity(0.08)) }
+    var success: Color { color(.success, fallback: .green) }
+    var warning: Color { color(.warning, fallback: .orange) }
+    var danger: Color { color(.danger, fallback: .red) }
+    var barText: Color { color(.barText, fallback: .primary) }
+    var barIcon: Color { color(.barIcon, fallback: .primary) }
+    var dockIndicator: Color { color(.dockIndicator, fallback: .primary.opacity(0.6)) }
+    var launcherHighlight: Color { color(.launcherHighlight, fallback: .accentColor.opacity(0.18)) }
+    var toastText: Color { color(.toastText, fallback: .primary) }
+    var card: Color { color(.card, fallback: Color(nsColor: .windowBackgroundColor)) }
+    var surface: Color { color(.surface, fallback: Color(nsColor: .windowBackgroundColor)) }
+
+    /// Die Schrift auf Akzentflaechen. Ohne Theme wie bisher berechnet
+    /// (`Color.onAccent`), mit Theme das Token - der Kern haelt es lesbar.
+    var onAccent: Color { isThemed ? Color(theme.color(.onAccent, dark: dark)) : .onAccent }
+
+    // MARK: - Flaechen
+
+    /// Fuellung einer Flaeche: der Verlauf, wenn das Theme einen setzt, sonst
+    /// die Farbe daneben.
+    private func fill(_ colorToken: ThemeColorToken, _ gradientToken: ThemeGradientToken,
+                      fallback: Color) -> AnyShapeStyle {
+        guard isThemed else { return AnyShapeStyle(fallback) }
+        let gradient = theme.gradient(gradientToken, dark: dark)
+        guard !gradient.isEmpty else {
+            return AnyShapeStyle(Color(theme.color(colorToken, dark: dark)))
+        }
+        return AnyShapeStyle(ShellStyle.linear(gradient))
+    }
+
+    /// Hintergrund der Leiste, mit Deckkraft aus dem Theme.
+    var barFill: AnyShapeStyle {
+        guard isThemed else { return AnyShapeStyle(Color.clear) }
+        let opacity = theme.number(.barOpacity, dark: dark)
+        let gradient = theme.gradient(.bar, dark: dark)
+        if gradient.isEmpty {
+            return AnyShapeStyle(Color(theme.color(.bar, dark: dark)).opacity(opacity))
+        }
+        return AnyShapeStyle(ShellStyle.linear(gradient).opacity(opacity))
+    }
+
+    /// Deckt die Leiste vollstaendig? Dann braucht es nichts dahinter.
+    var barIsOpaque: Bool {
+        guard isThemed else { return false }
+        return theme.number(.barOpacity, dark: dark) >= 1
+    }
+
+    var panelFill: AnyShapeStyle {
+        fill(.panel, .panel, fallback: Color(nsColor: .windowBackgroundColor))
+    }
+
+    var cardFill: AnyShapeStyle {
+        fill(.card, .card, fallback: Color(nsColor: .windowBackgroundColor))
+    }
+
+    var accentFill: AnyShapeStyle {
+        fill(.accent, .accent, fallback: .accentColor)
+    }
+
+    var toastFill: AnyShapeStyle {
+        fill(.toast, .toast, fallback: Color(nsColor: .windowBackgroundColor))
+    }
+
+    var launcherHighlightFill: AnyShapeStyle {
+        fill(.launcherHighlight, .launcherHighlight, fallback: .accentColor.opacity(0.18))
+    }
+
+    var backgroundFill: AnyShapeStyle {
+        fill(.background, .background, fallback: Color(nsColor: .windowBackgroundColor))
+    }
+
+    /// Ein Verlauf des Themes als SwiftUI-Verlauf. Der Winkel folgt CSS:
+    /// 0 Grad nach oben, 90 Grad nach rechts.
+    static func linear(_ gradient: ThemeGradient) -> LinearGradient {
+        let stops = gradient.stops.map {
+            Gradient.Stop(color: Color($0.color), location: $0.position)
+        }
+        let radians = (gradient.angle - 90) * .pi / 180
+        let dx = cos(radians) / 2
+        let dy = sin(radians) / 2
+        return LinearGradient(
+            stops: stops,
+            startPoint: UnitPoint(x: 0.5 - dx, y: 0.5 + dy),
+            endPoint: UnitPoint(x: 0.5 + dx, y: 0.5 - dy)
+        )
+    }
+
+    // MARK: - Masse
+
+    /// Eine Laenge des Themes, oder das eingebaute Mass.
+    private func length(_ token: ThemeNumberToken, fallback: CGFloat) -> CGFloat {
+        isThemed ? CGFloat(theme.number(token, dark: dark)) : fallback
+    }
+
+    func cornerRadius(_ fallback: CGFloat) -> CGFloat { length(.cornerRadius, fallback: fallback) }
+    func controlRadius(_ fallback: CGFloat) -> CGFloat { length(.controlRadius, fallback: fallback) }
+    func panelRadius(_ fallback: CGFloat) -> CGFloat { length(.panelRadius, fallback: fallback) }
+    func cardRadius(_ fallback: CGFloat) -> CGFloat { length(.cardRadius, fallback: fallback) }
+    func toastRadius(_ fallback: CGFloat) -> CGFloat { length(.toastRadius, fallback: fallback) }
+    func barRadius(_ fallback: CGFloat) -> CGFloat { length(.barRadius, fallback: fallback) }
+    func barPadding(_ fallback: CGFloat) -> CGFloat { length(.barPadding, fallback: fallback) }
+    func barItemSpacing(_ fallback: CGFloat) -> CGFloat { length(.barItemSpacing, fallback: fallback) }
+    func panelPadding(_ fallback: CGFloat) -> CGFloat { length(.panelPadding, fallback: fallback) }
+    func spacing(_ fallback: CGFloat) -> CGFloat { length(.spacing, fallback: fallback) }
+
+    /// Wie stark Schatten unter Flaechen sind.
+    func shadowOpacity(_ fallback: Double) -> Double {
+        guard isThemed else { return fallback }
+        return theme.flag(.shadows, dark: dark) ? theme.number(.shadowOpacity, dark: dark) : 0
+    }
+
+    // MARK: - Schrift
+
+    /// Schriftart des Themes, sonst die Systemschrift.
+    ///
+    /// Ein Name, den es auf diesem Mac nicht gibt, faellt still auf die
+    /// Systemschrift zurueck - ein Theme aus dem Netz darf die Shell nicht
+    /// unlesbar machen.
+    func font(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        guard isThemed else { return .system(size: size, weight: weight) }
+        let family = theme.text(.fontFamily, dark: dark).trimmingCharacters(in: .whitespacesAndNewlines)
+        let scaled = size * fontScale
+        guard !family.isEmpty, NSFont(name: family, size: scaled) != nil else {
+            return .system(size: scaled, weight: weight)
+        }
+        return .custom(family, fixedSize: scaled).weight(weight)
+    }
+
+    /// Wie stark die Schriftgroessen des Themes von den eingebauten abweichen.
+    /// 13 pt ist die Systemgroesse, an der die Shell gebaut ist.
+    private var fontScale: CGFloat {
+        guard isThemed else { return 1 }
+        let size = theme.number(.fontSize, dark: dark)
+        return size > 0 ? CGFloat(size) / 13 : 1
+    }
+
+    // MARK: - Schalter
+
+    /// Darf sich etwas bewegen? Ein Theme kann Bewegung abstellen; die
+    /// Systemeinstellung "Bewegung reduzieren" hat dennoch Vorrang, die
+    /// fragen die Ansichten selbst ab.
+    var animations: Bool { isThemed ? theme.flag(.animations, dark: dark) : true }
+
+    /// Darf Liquid Glass benutzt werden?
+    var glass: Bool { isThemed ? theme.flag(.glass, dark: dark) : true }
+
+    /// Wie schnell Bewegungen laufen; 1 ist die eingebaute Geschwindigkeit.
+    var animationSpeed: Double { isThemed ? theme.number(.animationSpeed, dark: dark) : 1 }
+
+    /// Eine Dauer, vom Theme gestreckt oder gekuerzt. Ohne Bewegung: 0.
+    func duration(_ seconds: Double) -> Double {
+        guard animations else { return 0 }
+        let speed = animationSpeed
+        return speed > 0 ? seconds / speed : seconds
+    }
+}
+
+extension NSColor {
+    /// Eine Themefarbe als AppKit-Farbe, im festen sRGB-Raum.
+    convenience init(_ color: ThemeColor) {
+        self.init(srgbRed: color.red, green: color.green, blue: color.blue, alpha: color.alpha)
+    }
+}
+
+extension Color {
+    /// Eine Themefarbe als SwiftUI-Farbe, im festen sRGB-Raum - genau die
+    /// Werte, die in der Datei stehen.
+    init(_ color: ThemeColor) {
+        self.init(.sRGB, red: color.red, green: color.green, blue: color.blue, opacity: color.alpha)
+    }
+}
+
+// MARK: - In der Umgebung
+
+private struct ShellStyleKey: EnvironmentKey {
+    static let defaultValue = ShellStyle.standard
+}
+
+extension EnvironmentValues {
+    /// Der Stil des gewaehlten Themes. Vorgabe ist die Shell ohne Theme -
+    /// eine Ansicht ohne `shellTheme` sieht also aus wie immer.
+    var shellStyle: ShellStyle {
+        get { self[ShellStyleKey.self] }
+        set { self[ShellStyleKey.self] = newValue }
+    }
+}
+
+/// Der Stil der laufenden Shell im gewuenschten Erscheinungsbild.
+///
+/// Ansichten benutzen das so:
+/// ```swift
+/// @Environment(\.colorScheme) private var scheme
+/// private var style: ShellStyle { ShellTheme.style(scheme) }
+/// ```
+@MainActor
+enum ShellTheme {
+    static func style(_ scheme: ColorScheme) -> ShellStyle {
+        ThemeStore.shared?.style(dark: scheme == .dark) ?? .standard
+    }
+}
+
+/// Legt den Stil in die Umgebung, im Erscheinungsbild dieses Fensters.
+///
+/// Gehoert an die Wurzel jedes Fensters der Shell. Weil das Erscheinungsbild
+/// (hell/dunkel) erst hier bekannt ist, wird der Stil in einer Ansicht
+/// aufgeloest und nicht im Speicher.
+private struct ShellThemeScope: ViewModifier {
+    let store: ThemeStore
+    @Environment(\.colorScheme) private var scheme
+
+    func body(content: Content) -> some View {
+        let style = store.style(dark: scheme == .dark)
+        content
+            .environment(\.shellStyle, style)
+            // Steuerelemente (Schalter, Schieber, Auswahl) folgen dem Theme,
+            // ohne dass jede Ansicht es selbst setzen muss.
+            .tint(style.accent)
+    }
+}
+
+extension View {
+    /// An die Wurzel eines Fensters: setzt `tint` und den Stil in der Umgebung.
+    func shellTheme(_ store: ThemeStore? = ThemeStore.shared) -> some View {
+        modifier(OptionalShellThemeScope(store: store))
+    }
+}
+
+/// Ohne Speicher (Bildproben, Vorschauen) bleibt alles wie es ist.
+private struct OptionalShellThemeScope: ViewModifier {
+    let store: ThemeStore?
+
+    func body(content: Content) -> some View {
+        if let store {
+            AnyView(content.modifier(ShellThemeScope(store: store)))
+        } else {
+            AnyView(content)
+        }
+    }
+}

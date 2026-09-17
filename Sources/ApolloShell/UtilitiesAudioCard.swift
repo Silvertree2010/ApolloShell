@@ -86,6 +86,8 @@ private struct UtilitiesVolumeSlider: View {
     private static let step: Float = 1.0 / 16
 
     let model: UtilitiesModel
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         GeometryReader { geo in
@@ -100,7 +102,7 @@ private struct UtilitiesVolumeSlider: View {
                 // Ring um den Knopf stehen (Bildprobe 14.09.), und Apple zeigt
                 // bei 0 auch nur die leere Bahn.
                 Capsule()
-                    .fill(Color.accentColor)
+                    .fill(style.accent)
                     .frame(width: fill)
                     .opacity(value > 0 ? 1 : 0)
                 Circle()

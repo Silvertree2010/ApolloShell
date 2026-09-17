@@ -56,7 +56,9 @@ final class ToastWindow {
     init(toaster: Toaster, utilitiesHeight: CGFloat) {
         self.toaster = toaster
         self.utilitiesHeight = utilitiesHeight
-        let hosting = FirstMouseHostingView(rootView: ToastStackView(toaster: toaster, overscan: Self.overscan))
+        let hosting = FirstMouseHostingView(
+            rootView: ToastStackView(toaster: toaster, overscan: Self.overscan).shellTheme()
+        )
         hosting.sizingOptions = []
         panel.contentView = hosting
         toaster.onChange = { [weak self] in self?.update() }

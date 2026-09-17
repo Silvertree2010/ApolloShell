@@ -37,11 +37,13 @@ final class Nexus: NSObject, NSWindowDelegate {
     }
 
     init(settings: ShellSettingsStore, hotKeys: HotKeyCenter, autostart: OnboardingAutostartModel,
-         permissions: OnboardingPermissions, updates: UpdateController, paths: NexusPaths = .live) {
+         permissions: OnboardingPermissions, updates: UpdateController, themes: ThemeStore?,
+         paths: NexusPaths = .live) {
         self.settings = settings
         pinned = NexusPinnedModel(url: paths.pinned)
         weather = NexusWeatherModel(url: paths.weather)
-        shell = NexusShellParts(hotKeys: hotKeys, autostart: autostart, permissions: permissions, updates: updates)
+        shell = NexusShellParts(hotKeys: hotKeys, autostart: autostart, permissions: permissions,
+                                updates: updates, themes: themes)
         super.init()
     }
 
@@ -77,8 +79,10 @@ final class Nexus: NSObject, NSWindowDelegate {
         window.collectionBehavior = [.moveToActiveSpace]
         window.delegate = self
 
+        // `shellTheme` setzt den Farbton der Steuerelemente nach dem Theme.
         let root = NexusView(state: state, settings: settings, pinned: pinned, weather: weather,
                              providers: providers, system: .read(), shell: shell)
+            .shellTheme()
         let hosting = NSHostingController(rootView: root)
         // Titel und Werkzeugleiste der SwiftUI-Seiten ins Fenster, wie bei
         // einer SwiftUI-Szene. Groesse: nur die Mindestgroesse aus dem

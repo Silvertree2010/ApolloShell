@@ -36,31 +36,33 @@ enum ToastMotion {
 /// einen Hauch davon, und "Info" bleibt neutral wie bei Caelestia
 /// (surface, Chip surfaceContainerHigh).
 enum ToastPalette {
-    static func accent(_ kind: ToastKind) -> Color? {
+    /// Die Farben kommen aus dem Theme, wenn eines gilt - sonst wie bisher
+    /// aus den Systemfarben (`ShellStyle` entscheidet das).
+    static func accent(_ kind: ToastKind, _ style: ShellStyle = .standard) -> Color? {
         switch kind {
         case .info: nil
-        case .success: .green
-        case .warning: .orange
-        case .error: .red
+        case .success: style.success
+        case .warning: style.warning
+        case .error: style.danger
         }
     }
 
-    static func chip(_ kind: ToastKind) -> AnyShapeStyle {
-        accent(kind).map { AnyShapeStyle($0) } ?? AnyShapeStyle(Color.primary.opacity(0.10))
+    static func chip(_ kind: ToastKind, _ style: ShellStyle = .standard) -> AnyShapeStyle {
+        accent(kind, style).map { AnyShapeStyle($0) } ?? AnyShapeStyle(Color.primary.opacity(0.10))
     }
 
-    static func symbol(_ kind: ToastKind) -> AnyShapeStyle {
-        accent(kind) == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(Color.white)
+    static func symbol(_ kind: ToastKind, _ style: ShellStyle = .standard) -> AnyShapeStyle {
+        accent(kind, style) == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(style.onAccent)
     }
 
     /// Toenung des Glases.
-    static func tint(_ kind: ToastKind) -> Color? {
-        accent(kind)?.opacity(0.22)
+    static func tint(_ kind: ToastKind, _ style: ShellStyle = .standard) -> Color? {
+        accent(kind, style)?.opacity(0.22)
     }
 
     /// 1 pt Rand in der Farbe der Art, 30 % (Caelestia: `Qt.alpha(..., 0.3)`).
-    static func border(_ kind: ToastKind) -> Color {
-        accent(kind)?.opacity(0.3) ?? Color.primary.opacity(0.08)
+    static func border(_ kind: ToastKind, _ style: ShellStyle = .standard) -> Color {
+        accent(kind, style)?.opacity(0.3) ?? Color.primary.opacity(0.08)
     }
 }
 
@@ -105,36 +107,51 @@ struct ToastCard: View {
 
     let entry: ToastEntry
 
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+
     var body: some View {
+        let radius = style.toastRadius(Self.radius)
         HStack(spacing: 12) {
             Image(systemName: entry.symbol)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(ToastPalette.symbol(entry.kind))
+                .font(style.font(size: 18, weight: .semibold))
+                .foregroundStyle(ToastPalette.symbol(entry.kind, style))
                 .frame(width: Self.chip, height: Self.chip)
-                .background(ToastPalette.chip(entry.kind), in: .rect(cornerRadius: Self.chipRadius))
+                .background(ToastPalette.chip(entry.kind, style),
+                            in: .rect(cornerRadius: style.controlRadius(Self.chipRadius)))
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(entry.title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(style.font(size: 14, weight: .medium))
                 Text(entry.message)
-                    .font(.system(size: 12))
+                    .font(style.font(size: 12))
                     // Caelestia: Nachricht mit 80 % Deckkraft.
                     .opacity(0.8)
             }
             .lineLimit(1)
             .truncationMode(.tail)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .foregroundStyle(style.isThemed ? AnyShapeStyle(style.toastText) : AnyShapeStyle(.primary))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(width: CGFloat(ToastLayout.width), height: CGFloat(ToastLayout.itemHeight))
-        .toastGlass(tint: ToastPalette.tint(entry.kind), cornerRadius: Self.radius)
-        .overlay {
-            RoundedRectangle(cornerRadius: Self.radius)
-                .strokeBorder(ToastPalette.border(entry.kind), lineWidth: 1)
+        // Mit Theme faerbt das Theme die Meldung; Glas nur, wenn das Theme es
+        // erlaubt (`--apollo-glass`).
+        .background {
+            if style.isThemed {
+                RoundedRectangle(cornerRadius: radius).fill(style.toastFill)
+            }
         }
-        .contentShape(.rect(cornerRadius: Self.radius))
+        .toastGlass(tint: ToastPalette.tint(entry.kind, style),
+                    cornerRadius: radius,
+                    enabled: !style.isThemed || style.glass)
+        .overlay {
+            RoundedRectangle(cornerRadius: radius)
+                .strokeBorder(ToastPalette.border(entry.kind, style), lineWidth: 1)
+        }
+        .contentShape(.rect(cornerRadius: radius))
         .accessibilityElement(children: .combine)
         .accessibilityHint("Klicken zum Schliessen")
     }

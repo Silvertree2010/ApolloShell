@@ -194,7 +194,7 @@ final class SessionMenu: NSObject, NSWindowDelegate {
         let panel = SessionPanel(size: container.frame.size)
         panel.delegate = self
 
-        let hosting = NSHostingView(rootView: SessionMenuView(model: model))
+        let hosting = NSHostingView(rootView: SessionMenuView(model: model).shellTheme())
         hosting.sizingOptions = []
         hosting.frame = container.bounds
         hosting.autoresizingMask = [.width, .height]

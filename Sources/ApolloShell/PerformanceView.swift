@@ -58,6 +58,8 @@ private struct HeroCard: View {
     let subtitle: String
     let value: Double?
     let history: SampleHistory
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Card(radius: 24) {
@@ -68,7 +70,7 @@ private struct HeroCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title)
                             .font(.system(size: 19, weight: .semibold))
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(style.accent)
                         Text(subtitle)
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
@@ -83,7 +85,7 @@ private struct HeroCard: View {
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(.tertiary)
                         SparklineArea(values: history.values, capacity: history.capacity, scale: 1,
-                                      color: .accentColor, fillOpacity: 0.18)
+                                      color: style.accent, fillOpacity: 0.18)
                             .frame(height: 40)
                             .background(alignment: .bottom) {
                                 Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1)
@@ -102,13 +104,15 @@ private struct HeroCard: View {
 private struct UsageRing: View {
     let value: Double
     let symbol: String
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         ZStack {
             Circle().stroke(Color.primary.opacity(0.10), lineWidth: 4)
             Circle()
                 .trim(from: 0, to: min(max(value, 0), 1))
-                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .stroke(style.accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(PerformanceView.animation, value: value)
             Image(systemName: symbol).font(.system(size: 17, weight: .medium))
@@ -119,17 +123,19 @@ private struct UsageRing: View {
 
 private struct UsageBadge: View {
     let value: Double?
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         let usage = value ?? 0
         ZStack {
             ScallopShape(lobes: usage >= 0.8 ? 12 : usage >= 0.4 ? 8 : 4,
                          depth: usage >= 0.8 ? 0.11 : usage >= 0.4 ? 0.07 : 0.12)
-                .fill(Color.accentColor)
+                .fill(style.accent)
             Text(PerformanceText.percent(value))
                 .font(.system(size: 24, weight: .semibold, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(Color.onAccent)
+                .foregroundStyle(style.onAccent)
                 .contentTransition(.numericText(value: usage))
                 .animation(PerformanceView.animation, value: usage)
         }
@@ -169,6 +175,8 @@ private struct ArcGauge<Label: View>: View {
     let value: Double
     let caption: LocalizedStringKey
     @ViewBuilder let label: () -> Label
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     private let lineWidth: CGFloat = 8
 
@@ -176,7 +184,7 @@ private struct ArcGauge<Label: View>: View {
         ZStack {
             arc(to: 1).stroke(Color.primary.opacity(0.10), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
             arc(to: value)
-                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(style.accent, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .animation(PerformanceView.animation, value: value)
             label()
             Text(caption)
@@ -210,6 +218,8 @@ private struct PercentLabel: View {
 
 private struct StorageCard: View {
     let usage: ByteUsage?
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Card(radius: 41) {
@@ -218,7 +228,7 @@ private struct StorageCard: View {
                     VStack(spacing: 0) {
                         Image(systemName: "internaldrive.fill")
                             .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(style.accent)
                         PercentLabel(value: usage?.fraction)
                     }
                     .offset(y: -2)
@@ -238,6 +248,8 @@ private struct StorageCard: View {
 
 private struct MemoryCard: View {
     let usage: ByteUsage?
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Card(radius: 10) {
@@ -245,7 +257,7 @@ private struct MemoryCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "memorychip.fill")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(style.accent)
                     Text("Arbeitsspeicher")
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
@@ -270,6 +282,8 @@ private struct MemoryCard: View {
 
 private struct NetworkCard: View {
     let model: PerformanceModel
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     /// Upload in einer zweiten Farbe, damit sich die Linien trennen lassen
     /// (Caelestia: sekundaere und tertiaere Palettenfarbe).
@@ -286,7 +300,7 @@ private struct NetworkCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.up.arrow.down")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(style.accent)
                     Text("Netzwerk").font(.system(size: 15, weight: .semibold))
                     Spacer(minLength: 0)
                     Text("max \(ByteFormat.rate(scale))")
@@ -298,7 +312,7 @@ private struct NetworkCard: View {
                     SparklineArea(values: model.uploadHistory.values, capacity: model.uploadHistory.capacity,
                                   scale: scale, color: uploadColor, fillOpacity: 0.15)
                     SparklineArea(values: model.downloadHistory.values, capacity: model.downloadHistory.capacity,
-                                  scale: scale, color: .accentColor, fillOpacity: 0.2)
+                                  scale: scale, color: style.accent, fillOpacity: 0.2)
                 }
                 .background(alignment: .bottom) {
                     Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1)
@@ -307,7 +321,7 @@ private struct NetworkCard: View {
                 .padding(.top, 10)
                 .padding(.bottom, 8)
                 VStack(spacing: 4) {
-                    RateRow(symbol: "arrow.down", color: .accentColor, title: "Download",
+                    RateRow(symbol: "arrow.down", color: style.accent, title: "Download",
                             value: model.network.map { ByteFormat.rate($0.download) } ?? "–")
                     RateRow(symbol: "arrow.up", color: uploadColor, title: "Upload",
                             value: model.network.map { ByteFormat.rate($0.upload) } ?? "–")
@@ -407,6 +421,8 @@ private struct SparklineShape: Shape {
 private struct BatteryTank: View {
     let state: BatteryState
     let minutes: Int?
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         GeometryReader { geometry in
@@ -414,7 +430,7 @@ private struct BatteryTank: View {
             ZStack(alignment: .bottom) {
                 Color.primary.opacity(0.06)
                 TankContents(state: state, minutes: minutes, inverted: false)
-                Rectangle().fill(Color.accentColor).frame(height: fill)
+                Rectangle().fill(style.accent).frame(height: fill)
                 TankContents(state: state, minutes: minutes, inverted: true)
                     .mask(alignment: .bottom) { Rectangle().frame(height: fill) }
             }
@@ -430,6 +446,8 @@ private struct TankContents: View {
     let state: BatteryState
     let minutes: Int?
     let inverted: Bool
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -438,7 +456,7 @@ private struct TankContents: View {
                     .font(.system(size: 14, weight: .medium))
                 Text("Akku").font(.system(size: 15, weight: .semibold))
             }
-            .foregroundStyle(inverted ? Color.onAccent : Color.accentColor)
+            .foregroundStyle(inverted ? style.onAccent : style.accent)
             Spacer(minLength: 0)
             if state.charging {
                 Image(systemName: "bolt.fill")
@@ -451,11 +469,11 @@ private struct TankContents: View {
                 .contentTransition(.numericText(value: Double(state.level)))
             Text(BatteryTankText.status(state, minutes: minutes))
                 .font(.system(size: 12))
-                .foregroundStyle(inverted ? Color.onAccent.opacity(0.85) : Color.secondary)
+                .foregroundStyle(inverted ? style.onAccent.opacity(0.85) : Color.secondary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .foregroundStyle(inverted ? Color.onAccent : Color.primary)
+        .foregroundStyle(inverted ? style.onAccent : Color.primary)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .padding(14)
     }

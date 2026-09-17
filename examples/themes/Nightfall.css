@@ -1,0 +1,55 @@
+/* Nightfall - one file, a handful of tokens, gradients where they show.
+ *
+ * Everything not mentioned keeps its built-in value, so this stays a short
+ * file. Copy it into ~/Library/Application Support/ApolloShell/themes and
+ * pick it in Nexus > Themes.
+ *
+ * :root is the theme; the @media block below only changes what should look
+ * different in dark mode. */
+
+:root {
+  --apollo-theme-name: "Nightfall";
+  --apollo-theme-author: "ApolloShell";
+  --apollo-theme-description: "Deep blue with a warm accent";
+
+  --apollo-accent-color: #ff8a3d;
+  --apollo-secondary-accent-color: #e8a33d;
+  --apollo-on-accent-color: #1a1006;
+
+  --apollo-bar-color: #f4f6fc;
+  --apollo-bar-gradient: linear-gradient(180deg, #ffffff 0%, #e8ecf8 100%);
+  --apollo-bar-text-color: #1b2233;
+  --apollo-bar-icon-color: #3a4664;
+
+  --apollo-panel-color: #ffffff;
+  --apollo-card-color: #f2f4fb;
+  --apollo-surface-color: #ffffff;
+  --apollo-text-color: #1b2233;
+  --apollo-secondary-text-color: #55628a;
+  --apollo-launcher-highlight-gradient: linear-gradient(90deg, #ffd9be 0%, #ffe9c9 100%);
+
+  --apollo-toast-color: #1b2233;
+  --apollo-corner-radius: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --apollo-bar-color: #1b2233;
+    --apollo-bar-gradient: linear-gradient(180deg, #223049 0%, #141a28 100%);
+    --apollo-bar-text-color: #eef2ff;
+    --apollo-bar-icon-color: #cdd7f0;
+
+    --apollo-panel-color: #1b2233;
+    --apollo-panel-gradient: linear-gradient(160deg, #202a40 0%, #151b29 100%);
+    --apollo-card-color: #232d44;
+    --apollo-card-gradient: linear-gradient(180deg, #27324b 0%, #1d2539 100%);
+
+    --apollo-surface-color: #1b2233;
+    --apollo-text-color: #eef2ff;
+    --apollo-secondary-text-color: #aab6d4;
+    --apollo-launcher-highlight-gradient: linear-gradient(90deg, #ff8a3d 0%, #e8a33d 100%);
+
+    --apollo-toast-color: #141a28;
+    --apollo-toast-text-color: #eef2ff;
+  }
+}

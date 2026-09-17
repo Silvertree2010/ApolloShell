@@ -549,6 +549,8 @@ private struct SidebarDockItem: View {
     @State private var pressed = false
     /// Dateien werden gerade darueber gezogen: wie im Apple-Dock hervorheben.
     @State private var dropTarget = false
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Image(nsImage: entry.icon)
@@ -570,7 +572,7 @@ private struct SidebarDockItem: View {
                         .lineLimit(1)
                         .padding(.horizontal, 4)
                         .frame(minWidth: 15, minHeight: 15)
-                        .background(Color.red, in: .capsule)
+                        .background(style.danger, in: .capsule)
                         .fixedSize()
                         .offset(x: 5, y: -3)
                         .transition(.scale(scale: 0.6).combined(with: .opacity))
@@ -580,7 +582,9 @@ private struct SidebarDockItem: View {
             .overlay(alignment: .leading) {
                 if entry.running {
                     Circle()
-                        .fill(Color.primary.opacity(0.65))
+                        // Mit Theme: `--apollo-dock-indicator-color`.
+                        .fill(style.isThemed ? AnyShapeStyle(style.dockIndicator)
+                                             : AnyShapeStyle(Color.primary.opacity(0.65)))
                         .frame(width: 4, height: 4)
                         .offset(x: -5)
                 }

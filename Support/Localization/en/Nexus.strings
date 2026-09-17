@@ -423,3 +423,27 @@
 "Alle Fassungen stehen auf der Releases-Seite." = "Every version is on the releases page.";
 "Releases auf GitHub" = "Releases on GitHub";
 "Die Antwort von GitHub war unverständlich." = "The reply from GitHub could not be read.";
+
+/* NexusThemesPage.swift */
+"Themes" = "Themes";
+"Das Aussehen der ganzen Shell aus einer CSS-Datei." = "The look of the whole shell, from one CSS file.";
+"Themes stehen in dieser Fassung nicht zur Verfügung." = "Themes are not available in this build.";
+"Import fehlgeschlagen" = "Import failed";
+"Gewähltes Theme" = "Selected theme";
+"Ohne Theme" = "No theme";
+"Die Farben von macOS, wie ohne Datei" = "The colours of macOS, as without a file";
+"Noch kein Theme im Ordner. Jede .css-Datei ist eins, ein Ordner mit theme.css auch – dann dürfen Bilder daneben liegen." = "No theme in the folder yet. Every .css file is one, and so is a folder with a theme.css in it – images may sit next to that one.";
+"Eine Änderung an der Datei wirkt sofort, ohne Neustart." = "A change to the file takes effect at once, without a restart.";
+"Hinweise zum Theme" = "Notes about the theme";
+"Hinweise sind kein Fehler: Was nicht gelesen werden konnte, steht auf der eingebauten Vorgabe." = "Notes are not errors: whatever could not be read stays at its built-in value.";
+"… und %lld weitere" = "… and %lld more";
+"Ordner" = "Folder";
+"Theme hinzufügen …" = "Add theme…";
+"Ordner im Finder zeigen" = "Show folder in Finder";
+"Neu einlesen" = "Read again";
+"Wie ein Theme aufgebaut ist" = "How a theme is put together";
+"Hinzufügen" = "Add";
+"Gewählt" = "Selected";
+"%lld Hinweis(e)" = "%lld note(s)";
+"Das ist kein Theme: erwartet wird eine .css-Datei oder ein Ordner mit theme.css." = "That is not a theme: a .css file or a folder with a theme.css is expected.";
+"In diesem Ordner fehlt theme.css." = "This folder has no theme.css.";
