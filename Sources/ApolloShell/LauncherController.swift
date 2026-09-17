@@ -45,25 +45,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
         super.init()
         model.onLaunch = { [weak self] app in self?.launch(app) }
         model.onClose = { [weak self] in self?.close() }
-        model.nativeItems = { app in
-            guard let bundleID = app.bundleID else { return [] }
-            return LauncherController.convert(AppleDockMenu.snapshot(bundleID: bundleID))
-        }
-        model.onNativeItem = { [weak self] app, item in
-            guard let bundleID = app.bundleID else { return }
-            self?.close()
-            _ = AppleDockMenu.press(path: item.path, bundleID: bundleID)
-        }
-        model.commands = { app in
-            guard let running = LauncherController.runningApp(app) else { return [] }
-            return DockAppCommands.commands(pid: running.processIdentifier)
-                .map { (title: $0.title, kind: $0.kind) }
-        }
-        model.onCommand = { [weak self] app, kind in self?.run(kind, of: app) }
-        model.onReveal = { [weak self] app in
-            self?.close()
-            NSWorkspace.shared.activateFileViewerSelecting([app.url])
-        }
+        model.onRightClick = { [weak self] app, view in self?.showMenu(for: app, at: view) }
         observeAppLaunches()
     }
 
@@ -135,11 +117,44 @@ final class LauncherController: NSObject, NSWindowDelegate {
         layer.add(spring, forKey: Motion.key)
     }
 
-    /// Apples Baum in die Form des Launchers bringen.
-    private static func convert(_ items: [DockMenuNode]) -> [LauncherMenuItem] {
-        items.map {
-            LauncherMenuItem(title: $0.title, enabled: $0.enabled, separator: $0.separator,
-                             path: $0.path, children: convert($0.children))
+    /// Rechtsklick auf eine Zeile: dasselbe Menue wie im Dock der Leiste,
+    /// also das der App selbst, dazu Oeffnen und der Sprung in den
+    /// Dateimanager. Das Lesen dauert einen Moment, deshalb geht das Menue
+    /// erst danach auf.
+    private func showMenu(for app: AppEntry, at view: NSView) {
+        Task { @MainActor in
+            let menu = NSMenu()
+            menu.autoenablesItems = false
+            menu.addItem(ClosureMenuItem(String(localized: "Öffnen")) { [weak self] in self?.launch(app) })
+            menu.addItem(.separator())
+
+            var nodes: [DockMenuNode] = []
+            if let bundleID = app.bundleID {
+                nodes = await AppleDockMenu.snapshot(bundleID: bundleID)
+            }
+            if let bundleID = app.bundleID, !nodes.isEmpty {
+                for item in NativeAppMenu.menu(from: nodes, bundleID: bundleID).items {
+                    // Ein Eintrag gehoert immer nur in ein Menue.
+                    menu.addItem(item.copy() as! NSMenuItem)
+                }
+                menu.addItem(.separator())
+            } else if let running = LauncherController.runningApp(app) {
+                // Apples Dock kennt die App nicht: die Befehle aus ihrer
+                // eigenen Menueleiste.
+                let commands = DockAppCommands.commands(pid: running.processIdentifier)
+                for command in commands {
+                    menu.addItem(ClosureMenuItem(command.title) { [weak self] in
+                        self?.run(command.kind, of: app)
+                    })
+                }
+                if !commands.isEmpty { menu.addItem(.separator()) }
+            }
+
+            menu.addItem(ClosureMenuItem(String(localized: "Im Finder zeigen")) { [weak self] in
+                self?.close()
+                NSWorkspace.shared.activateFileViewerSelecting([app.url])
+            })
+            NativeAppMenu.popUp(menu, at: view)
         }
     }
 

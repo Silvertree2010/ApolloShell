@@ -58,10 +58,14 @@ struct LauncherView: View {
                             model.selectedIndex = index
                             model.launchSelected()
                         }
-                        // Rechtsklick wie im Dock: die Befehle der App und
-                        // der Sprung in den Dateimanager.
-                        .contextMenu {
-                            LauncherRowMenu(model: model, app: app)
+                        // Rechtsklick wie im Dock: das Menue der App selbst.
+                        // Es kommt aus Apples Dock und braucht einen Moment,
+                        // deshalb AppKit statt `contextMenu`.
+                        .overlay {
+                            RightClickCatcher { view in
+                                model.selectedIndex = index
+                                model.onRightClick(app, view)
+                            }
                         }
                     }
                 }
@@ -70,58 +74,6 @@ struct LauncherView: View {
             .onChange(of: model.selectedIndex) { _, index in
                 guard model.results.indices.contains(index) else { return }
                 proxy.scrollTo(model.results[index].id)
-            }
-        }
-    }
-}
-
-/// Das Kontextmenue einer Zeile. Die Befehle kommen aus der Menueleiste der
-/// App (`DockAppCommands`) und stehen deshalb nur, solange sie laeuft - wie
-/// im Dock-Menue der Leiste.
-private struct LauncherRowMenu: View {
-    let model: LauncherModel
-    let app: AppEntry
-
-    var body: some View {
-        let native = model.nativeItems(app)
-        Button("Öffnen") { model.onLaunch(app) }
-        if native.isEmpty {
-            // Apples Dock kennt diese App nicht (nicht dort, nicht laufend):
-            // dann die Befehle aus ihrer Menueleiste.
-            let commands = model.commands(app)
-            if !commands.isEmpty {
-                Divider()
-                ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
-                    Button(command.title) { model.onCommand(app, command.kind) }
-                }
-            }
-        } else {
-            Divider()
-            LauncherNativeItems(model: model, app: app, items: native)
-        }
-        Divider()
-        Button("Im Finder zeigen") { model.onReveal(app) }
-    }
-}
-
-/// Apples Eintraege, samt Untermenues.
-private struct LauncherNativeItems: View {
-    let model: LauncherModel
-    let app: AppEntry
-    let items: [LauncherMenuItem]
-
-    var body: some View {
-        ForEach(items) { item in
-            if item.separator {
-                Divider()
-            } else if item.children.isEmpty {
-                Button(item.title) { model.onNativeItem(app, item) }
-                    .disabled(!item.enabled)
-            } else {
-                Menu(item.title) {
-                    LauncherNativeItems(model: model, app: app, items: item.children)
-                }
-                .disabled(!item.enabled)
             }
         }
     }

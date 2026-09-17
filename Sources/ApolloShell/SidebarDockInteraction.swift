@@ -251,11 +251,32 @@ enum DockMenu {
         // Befehle) - die kann von aussen niemand erraten. Klappt das nicht
         // (Symbol nicht in Apples Dock, kein Zugriff), bleibt das selbst
         // gebaute Menue darunter.
-        if let mirrored = mirrorOfApplesMenu(for: entry, model: model) {
-            popUp(mirrored, at: view)
-            return
+        Task { @MainActor in
+            let nodes = await AppleDockMenu.snapshot(bundleID: entry.bundleID)
+            if !nodes.isEmpty {
+                NativeAppMenu.popUp(mirrored(nodes, entry: entry, model: model), at: view)
+            } else {
+                NativeAppMenu.popUp(ownMenu(for: entry, model: model), at: view)
+            }
         }
+    }
 
+    /// Apples Menue, mit "Im Dock behalten" auf unser Dock umgehaengt: In
+    /// Apples Dock anzuheften waere wirkungslos, es ist ausgeblendet, solange
+    /// die Shell laeuft.
+    private static func mirrored(_ nodes: [DockMenuNode], entry: SidebarDockModel.Entry,
+                                 model: SidebarDockModel) -> NSMenu {
+        NativeAppMenu.menu(from: nodes, bundleID: entry.bundleID) { node in
+            guard DockMenuTree.isKeepInDock(node.title) else { return nil }
+            return (state: model.isPinnedInDock(entry) ? .on : .off,
+                    enabled: model.canPin(entry),
+                    action: { model.togglePin(entry) })
+        }
+    }
+
+    /// Das selbst gebaute Menue - der Rueckfall, wenn Apples Dock diese App
+    /// nicht kennt.
+    private static func ownMenu(for entry: SidebarDockModel.Entry, model: SidebarDockModel) -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
         let app = model.runningApp(entry.bundleID)
@@ -320,60 +341,6 @@ enum DockMenu {
             menu.addItem(force)
         }
 
-        popUp(menu, at: view)
-    }
-
-    /// Rechts neben dem Symbol, oben buendig - die Leiste liegt links.
-    private static func popUp(_ menu: NSMenu, at view: NSView) {
-        let top = view.isFlipped ? view.bounds.minY : view.bounds.maxY
-        menu.popUp(positioning: nil, at: NSPoint(x: view.bounds.maxX + 6, y: top), in: view)
-    }
-
-    /// Apples Dock-Menue eins zu eins nachgebaut. `nil`, wenn es nichts zu
-    /// spiegeln gibt.
-    ///
-    /// Eine Ausnahme vom Spiegeln: "Im Dock behalten" wuerde sonst in Apples
-    /// Dock anheften, das bei laufender Shell ausgeblendet ist. Dieser eine
-    /// Eintrag zeigt deshalb auf unser Dock.
-    private static func mirrorOfApplesMenu(for entry: SidebarDockModel.Entry,
-                                           model: SidebarDockModel) -> NSMenu? {
-        let items = AppleDockMenu.snapshot(bundleID: entry.bundleID)
-        guard !items.isEmpty else { return nil }
-        return build(items, entry: entry, model: model)
-    }
-
-    private static func build(_ items: [DockMenuNode], entry: SidebarDockModel.Entry,
-                              model: SidebarDockModel) -> NSMenu {
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-        for item in items {
-            if item.separator {
-                menu.addItem(.separator())
-                continue
-            }
-            if !item.children.isEmpty {
-                let parent = NSMenuItem(title: item.title, action: nil, keyEquivalent: "")
-                parent.submenu = build(item.children, entry: entry, model: model)
-                parent.isEnabled = item.enabled
-                menu.addItem(parent)
-                continue
-            }
-            let menuItem: NSMenuItem
-            if DockMenuTree.isKeepInDock(item.title) {
-                menuItem = ClosureMenuItem(item.title) { model.togglePin(entry) }
-                menuItem.state = model.isPinnedInDock(entry) ? .on : .off
-                menuItem.isEnabled = model.canPin(entry)
-            } else {
-                let path = item.path
-                let bundleID = entry.bundleID
-                menuItem = ClosureMenuItem(item.title) {
-                    _ = AppleDockMenu.press(path: path, bundleID: bundleID)
-                }
-                menuItem.state = item.checked ? .on : .off
-                menuItem.isEnabled = item.enabled
-            }
-            menu.addItem(menuItem)
-        }
         return menu
     }
 }

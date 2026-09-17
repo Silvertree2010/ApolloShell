@@ -24,13 +24,21 @@ import os
 /// - ob dabei kurz etwas auf dem Bildschirm aufblitzt.
 ///
 /// Traegt es nicht, bleibt das selbst gebaute Menue (`DockMenu`) bestehen.
-@MainActor
+///
+/// Alles hier laeuft **neben** dem Hauptthread: Ein Aufruf an die
+/// Bedienungshilfen wartet auf die andere App, und Apples Dock laesst sich
+/// beim Aufbauen eines Menues Zeit. Auf dem Hauptthread waere das eine
+/// stehende Leiste bei jedem Rechtsklick.
 enum AppleDockMenu {
-    private static let log = Logger(subsystem: AppIdentity.logSubsystem, category: "dockmenu")
+    nonisolated(unsafe) private static let log = Logger(subsystem: AppIdentity.logSubsystem, category: "dockmenu")
 
     /// Das Menue einer App, wie Apples Dock es zeigt. Leer, wenn es dieses
     /// Symbol dort nicht gibt oder das Menue nicht gelesen werden konnte.
-    static func snapshot(bundleID: String) -> [DockMenuNode] {
+    static func snapshot(bundleID: String) async -> [DockMenuNode] {
+        await Task.detached(priority: .userInitiated) { read(bundleID: bundleID) }.value
+    }
+
+    private static func read(bundleID: String) -> [DockMenuNode] {
         guard let item = dockItem(bundleID: bundleID) else {
             log.notice("kein Dock-Symbol fuer \(bundleID, privacy: .public)")
             return []
@@ -52,7 +60,11 @@ enum AppleDockMenu {
 
     /// Fuehrt einen Eintrag aus: Apples Menue noch einmal oeffnen, den Weg
     /// ueber die Titel nachlaufen, druecken.
-    static func press(path: [String], bundleID: String) -> Bool {
+    static func press(path: [String], bundleID: String) async -> Bool {
+        await Task.detached(priority: .userInitiated) { perform(path: path, bundleID: bundleID) }.value
+    }
+
+    private static func perform(path: [String], bundleID: String) -> Bool {
         guard !path.isEmpty, let item = dockItem(bundleID: bundleID),
               AXUIElementPerformAction(item, kAXShowMenuAction as CFString) == .success,
               let menu = openMenu(of: item)
@@ -106,7 +118,8 @@ enum AppleDockMenu {
             if let menu = children.first(where: { DockMenuAX.string($0, kAXRoleAttribute) == kAXMenuRole as String }) {
                 return menu
             }
-            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+            // Kein RunLoop: Das hier laeuft nicht auf dem Hauptthread.
+            usleep(10_000)
         }
         return nil
     }
