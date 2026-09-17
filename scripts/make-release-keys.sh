@@ -11,6 +11,8 @@
 #      kann.
 #   2. Ein EdDSA-Schluesselpaar fuer Sparkle. Damit wird die DMG-Datei
 #      signiert; ohne gueltige Signatur lehnt Sparkle jedes Update ab.
+#      Der private Schluessel ist der 32-Byte-Seed in base64 - genau das,
+#      was Sparkles Werkzeuge lesen.
 #
 # Ergebnis in einem Ordner (Vorgabe: ~/Downloads/apolloshell-release-keys):
 #   release-cert.p12        Zertifikat + privater Schluessel, passwortgeschuetzt
@@ -108,8 +110,12 @@ else
 import CryptoKit
 import Foundation
 
+// Sparkle erwartet genau den 32-Byte-Seed, base64 (common_cli/Secret.swift:
+// 32 Byte = Seed, 96 Byte = altes Format). Die Fehlermeldung von
+// sign_update spricht von "64 bytes or 96 bytes decoded" und meint damit
+// das alte Format aus 64 + 32 - 64 Byte allein werden abgelehnt.
 let key = Curve25519.Signing.PrivateKey()
-print((key.rawRepresentation + key.publicKey.rawRepresentation).base64EncodedString())
+print(key.rawRepresentation.base64EncodedString())
 print(key.publicKey.rawRepresentation.base64EncodedString())
 SWIFT
     swift "$KEYWORK/edkey.swift" > "$KEYWORK/keys.txt"
