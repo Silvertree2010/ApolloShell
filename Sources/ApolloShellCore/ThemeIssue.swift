@@ -16,6 +16,9 @@ public struct ThemeIssue: Equatable, Hashable, Sendable, CustomStringConvertible
         /// aus einer spaeteren Fassung sieht genau so aus - deshalb nur ein
         /// Hinweis.
         case unknownToken(String)
+        /// Eine Datei in `icons/`, deren Name keine Symbol-Kennung dieser
+        /// Fassung ist. Wie bei einem unbekannten Token nur ein Hinweis.
+        case unknownIcon(String)
         /// Der Wert passt nicht zum Typ des Tokens. Es gilt die Vorgabe (oder
         /// der letzte lesbare Wert desselben Tokens).
         case unreadableValue(token: String, value: String)
@@ -68,6 +71,8 @@ public struct ThemeIssue: Equatable, Hashable, Sendable, CustomStringConvertible
         switch kind {
         case let .unknownToken(name):
             "unknown token \(name), ignored"
+        case let .unknownIcon(name):
+            "unknown icon \(name), ignored"
         case let .unreadableValue(token, value):
             "cannot read value \"\(value)\" for \(token), using the default"
         case let .clamped(token, value, used):

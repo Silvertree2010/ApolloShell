@@ -69,10 +69,10 @@ private struct HeroCard: View {
                         .frame(width: 46, height: 46)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title)
-                            .font(.system(size: 19, weight: .semibold))
+                            .font(style.font(size: 19, weight: .semibold))
                             .foregroundStyle(style.accent)
                         Text(subtitle)
-                            .font(.system(size: 12))
+                            .font(style.font(size: 12))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
@@ -82,7 +82,7 @@ private struct HeroCard: View {
                 HStack(alignment: .bottom, spacing: 14) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Letzte 30 s")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(style.font(size: 10, weight: .medium))
                             .foregroundStyle(.tertiary)
                         SparklineArea(values: history.values, capacity: history.capacity, scale: 1,
                                       color: style.accent, fillOpacity: 0.18)
@@ -115,7 +115,7 @@ private struct UsageRing: View {
                 .stroke(style.accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(PerformanceView.animation, value: value)
-            Image(systemName: symbol).font(.system(size: 17, weight: .medium))
+            Image(systemName: symbol).font(style.font(size: 17, weight: .medium))
         }
         .padding(2)
     }
@@ -188,7 +188,7 @@ private struct ArcGauge<Label: View>: View {
                 .animation(PerformanceView.animation, value: value)
             label()
             Text(caption)
-                .font(.system(size: 11, weight: .medium))
+                .font(style.font(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
                 .frame(maxHeight: .infinity, alignment: .bottom)
         }
@@ -227,7 +227,7 @@ private struct StorageCard: View {
                 ArcGauge(value: usage?.fraction ?? 0, caption: "Belegt") {
                     VStack(spacing: 0) {
                         Image(systemName: "internaldrive.fill")
-                            .font(.system(size: 15, weight: .medium))
+                            .font(style.font(size: 15, weight: .medium))
                             .foregroundStyle(style.accent)
                         PercentLabel(value: usage?.fraction)
                     }
@@ -235,7 +235,7 @@ private struct StorageCard: View {
                 }
                 .frame(width: 122, height: 122)
                 Text(usage.map { ByteFormat.usage(used: $0.used, total: $0.total) } ?? "–")
-                    .font(.system(size: 11))
+                    .font(style.font(size: 11))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -256,10 +256,10 @@ private struct MemoryCard: View {
             VStack(spacing: 6) {
                 HStack(spacing: 6) {
                     Image(systemName: "memorychip.fill")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(style.font(size: 13, weight: .semibold))
                         .foregroundStyle(style.accent)
                     Text("Arbeitsspeicher")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(style.font(size: 13, weight: .semibold))
                         .lineLimit(1)
                 }
                 ArcGauge(value: usage?.fraction ?? 0, caption: "Belegt") {
@@ -268,7 +268,7 @@ private struct MemoryCard: View {
                 .frame(width: 110, height: 110)
                 // Binaer wie die Aktivitaetsanzeige: 24 GB RAM bleiben 24 GB.
                 Text(usage.map { ByteFormat.usage(used: $0.used, total: $0.total, binary: true) } ?? "–")
-                    .font(.system(size: 11))
+                    .font(style.font(size: 11))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -299,12 +299,12 @@ private struct NetworkCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.up.arrow.down")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(style.font(size: 13, weight: .semibold))
                         .foregroundStyle(style.accent)
-                    Text("Netzwerk").font(.system(size: 15, weight: .semibold))
+                    Text("Netzwerk").font(style.font(size: 15, weight: .semibold))
                     Spacer(minLength: 0)
                     Text("max \(ByteFormat.rate(scale))")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(style.font(size: 10, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(.tertiary)
                 }
@@ -340,16 +340,18 @@ private struct RateRow: View {
     let color: Color
     let title: LocalizedStringKey
     let value: String
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: symbol)
-                .font(.system(size: 11, weight: .bold))
+                .font(style.font(size: 11, weight: .bold))
                 .foregroundStyle(color)
                 .frame(width: 14)
-            Text(title).font(.system(size: 12)).foregroundStyle(.secondary)
+            Text(title).font(style.font(size: 12)).foregroundStyle(.secondary)
             Spacer(minLength: 8)
-            Text(value).font(.system(size: 12, weight: .medium)).monospacedDigit().lineLimit(1)
+            Text(value).font(style.font(size: 12, weight: .medium)).monospacedDigit().lineLimit(1)
         }
     }
 }
@@ -436,7 +438,7 @@ private struct BatteryTank: View {
             }
             .animation(PerformanceView.animation, value: state.level)
         }
-        .clipShape(.rect(cornerRadius: 14))
+        .clipShape(.rect(cornerRadius: style.cardRadius(14)))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(StatusGlyphs.batteryText(state))
     }
@@ -453,14 +455,14 @@ private struct TankContents: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 Image(systemName: StatusGlyphs.batterySymbol(state) ?? "battery.100percent")
-                    .font(.system(size: 14, weight: .medium))
-                Text("Akku").font(.system(size: 15, weight: .semibold))
+                    .font(style.font(size: 14, weight: .medium))
+                Text("Akku").font(style.font(size: 15, weight: .semibold))
             }
             .foregroundStyle(inverted ? style.onAccent : style.accent)
             Spacer(minLength: 0)
             if state.charging {
                 Image(systemName: "bolt.fill")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(style.font(size: 20, weight: .semibold))
                     .transition(.scale.combined(with: .opacity))
             }
             Text(BatteryTankText.percent(state))
@@ -468,7 +470,7 @@ private struct TankContents: View {
                 .monospacedDigit()
                 .contentTransition(.numericText(value: Double(state.level)))
             Text(BatteryTankText.status(state, minutes: minutes))
-                .font(.system(size: 12))
+                .font(style.font(size: 12))
                 .foregroundStyle(inverted ? style.onAccent.opacity(0.85) : Color.secondary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)

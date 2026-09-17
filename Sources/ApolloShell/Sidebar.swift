@@ -22,7 +22,16 @@ import SwiftUI
 /// (`FullscreenMonitor`), tritt die Leiste dieses Bildschirms ab.
 @MainActor
 final class Sidebar {
-    static let width: CGFloat = 44
+    /// Breite der Leiste. Mit Theme entscheidet `--apollo-bar-width`.
+    ///
+    /// Die Breite steckt nicht nur in der Ansicht, sondern auch im Fenster
+    /// und im Streifen, den die Fensterwache freihaelt - deshalb hier an
+    /// einer Stelle. Eine Aenderung am Theme wirkt beim naechsten Aufbau der
+    /// Fenster (Bildschirmwechsel, Neustart).
+    static var width: CGFloat {
+        let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        return ThemeStore.shared?.style(dark: dark).barWidth(44) ?? 44
+    }
 
     private let settings: ShellSettingsStore
     private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "sidebar")

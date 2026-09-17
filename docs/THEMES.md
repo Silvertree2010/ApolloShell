@@ -255,6 +255,57 @@ Numbers are clamped to the range in the type column.
 | `--apollo-toast-text-color` | color | `#ffffff` | `#1c1c1e` | Text in a toast |
 | `--apollo-toast-radius` | length (0px–48px) | `14px` |  | Corner radius of a toast |
 
+## Icons
+
+A theme folder may carry an `icons/` folder. The file name is the icon it
+replaces, without the extension:
+
+```
+Nightfall/
+├── theme.css
+└── icons/
+    ├── session-shutdown.png
+    └── bar-power.png
+```
+
+What is not in there stays the built-in SF Symbol, so a theme can replace one
+icon or all of them. File names are matched case-insensitively, a name this
+version does not know is ignored and listed in Nexus, and the same rules as
+for every other image apply: inside the theme folder, a supported type, and
+within the size limit.
+
+| File in `icons/` | Replaces | What it is |
+| --- | --- | --- |
+| `bar-dashboard` | `square.grid.2x2.fill` | Opens the dashboard |
+| `bar-utilities` | `slider.horizontal.3` | Opens the control centre |
+| `bar-clock` | `calendar` | Above the clock in the bar |
+| `bar-power` | `power` | Opens the session menu |
+| `bar-launcher` | `magnifyingglass` | Opens the launcher |
+| `status-wifi` | `wifi` | Wi-Fi, when it is connected |
+| `status-wifi-off` | `wifi.slash` | Wi-Fi, when it is off |
+| `status-bluetooth` | `bluetooth` | Bluetooth, when it is on |
+| `status-bluetooth-off` | `bluetooth.slash` | Bluetooth, when it is off |
+| `status-battery` | `battery.100percent` | Battery |
+| `status-battery-charging` | `battery.100percent.bolt` | Battery while charging |
+| `status-volume` | `speaker.wave.2.fill` | Volume |
+| `status-volume-muted` | `speaker.slash.fill` | Volume, when it is muted |
+| `session-emblem` | the drawn emblem | The emblem in the middle of the session menu |
+| `session-logout` | `rectangle.portrait.and.arrow.right` | Log out |
+| `session-sleep` | `moon.fill` | Sleep |
+| `session-restart` | `arrow.clockwise` | Restart |
+| `session-shutdown` | `power` | Shut down |
+| `session-lock` | `lock.fill` | Lock the screen |
+| `toast-info` | `info.circle.fill` | A toast that just says something |
+| `toast-success` | `checkmark.circle.fill` | A toast about something that worked |
+| `toast-warning` | `exclamationmark.triangle.fill` | A toast that warns |
+| `toast-error` | `xmark.octagon.fill` | A toast about a failure |
+| `panel-media` | `music.note` | Media, and the placeholder without artwork |
+| `panel-performance` | `speedometer` | The performance tab |
+| `panel-weather` | `cloud.sun.fill` | The weather tab |
+| `panel-cpu` | `cpu` | Processor load |
+| `panel-memory` | `memorychip` | Memory in use |
+| `panel-disk` | `internaldrive` | Disk in use |
+
 ## The compatibility promise
 
 These are the rules ApolloShell holds itself to. Tests enforce each of them.

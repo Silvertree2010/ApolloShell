@@ -18,9 +18,14 @@ struct SidebarContent: View {
     let settings: ShellSettingsStore
     let context: BarModuleContext
 
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+
     var body: some View {
         let entries = settings.settings.bar.layout.entries
-        BarStack(spacing: 8) {
+        // Mit Theme bestimmen `--apollo-bar-item-spacing` und
+        // `--apollo-bar-padding` den Abstand der Bausteine und den Rand.
+        BarStack(spacing: style.barItemSpacing(8)) {
             ForEach(entries) { entry in
                 BarModuleView(entry: entry, context: context)
             }
@@ -28,7 +33,7 @@ struct SidebarContent: View {
         // Oben und unten 10: vor dem Baukasten sass dieser Rand am
         // Dashboard- und am Ausschalt-Symbol - als Rand der Leiste gilt er
         // fuer jede Anordnung.
-        .padding(.vertical, 10)
+        .padding(.vertical, style.barPadding(10))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Umsortieren in Nexus gleitet sichtbar, statt zu springen.
         .animation(SidebarMotion.spatial, value: entries.map(\.id))
@@ -88,8 +93,9 @@ struct BarModuleView: View {
         switch entry.module {
         case .dashboardButton:
             SidebarIcon(help: String(localized: "Dashboard (SUPER+D)"), action: context.onDashboard) {
-                Image(systemName: "square.grid.2x2")
+                ThemedIcon("bar-dashboard", fallback: "square.grid.2x2")
                     .font(.system(size: 14, weight: .semibold))
+                    .frame(width: 18, height: 18)
             }
         case .workspaces(let options):
             SidebarSpaces(model: context.spaces, style: options.style, onSelect: context.onSelectSpace)
@@ -105,15 +111,18 @@ struct BarModuleView: View {
                 .onTapGesture { context.onDashboard() }
         case .utilitiesButton:
             SidebarIcon(help: String(localized: "Utilities (SUPER+U)"), action: context.onUtilities) {
-                Image(systemName: "slider.horizontal.3")
+                // Mit `icons/bar-utilities.png` im Theme steht dort dieses Bild.
+                ThemedIcon("bar-utilities")
                     .font(.system(size: 14, weight: .semibold))
+                    .frame(width: 18, height: 18)
             }
         case .statusIcons(let options):
             StatusCapsule(status: context.status, options: options)
         case .power:
             SidebarIcon(help: String(localized: "Sitzung"), action: context.onPower) {
-                Image(systemName: "power")
+                ThemedIcon("bar-power")
                     .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 18, height: 18)
             }
         case .spacer:
             Color.clear

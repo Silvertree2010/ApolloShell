@@ -27,6 +27,13 @@ All notable changes to this project are documented here. The format follows
   file. Editing the file applies at once, without a restart, and the page
   lists what could not be read. Themes can be added from Finder, and the
   folder opens from the same page.
+- **Icons from a theme**: a folder `icons/` next to `theme.css`, where the
+  file name is the icon it replaces - the session emblem included. Anything
+  not in there keeps its built-in symbol; see docs/THEMES.md.
+- **Sizes, spacing and borders follow the theme** as well: corner radii,
+  the bar's width, padding and item spacing, the dock's icon size and
+  spacing, the launcher's row height, font family and size, and an optional
+  border around cards.
 - **Gradients in themes**: the backdrop, surfaces, the accent, the bar,
   panels, cards, the launcher highlight and toasts each have a gradient
   token next to their colour, `none` by default.

@@ -53,6 +53,7 @@ struct MediaDashCard: View {
     /// Nexus > Dashboard; die Vorgabe zeigt alles wie bisher.
     var options = DashboardMediaOptions()
     @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     /// Caelestia fuellt die Breite bis auf den Rand; unter den Knoepfen
     /// steht dort die Bongo-Cat. Ohne sie waere unten viel leer - der Bogen
@@ -105,19 +106,19 @@ struct MediaDashCard: View {
         VStack(spacing: 4) {
             if let playing = model.nowPlaying {
                 Text(playing.title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(style.font(size: 14, weight: .semibold))
                     .foregroundStyle(MediaColor.accentText(colorScheme))
                 if options.showAlbum, let album = playing.album {
-                    Text(album).font(.system(size: 12)).foregroundStyle(.tertiary)
+                    Text(album).font(style.font(size: 12)).foregroundStyle(.tertiary)
                 }
                 Text(playing.artist ?? String(localized: "Unbekannter Künstler"))
-                    .font(.system(size: 12))
+                    .font(style.font(size: 12))
                     .foregroundStyle(.secondary)
             } else {
                 Text(model.isUnavailable ? String(localized: "Nicht verfügbar") : String(localized: "Nichts läuft"))
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(style.font(size: 14, weight: .semibold))
                 Text(model.isUnavailable ? String(localized: "Adapter läuft nicht") : String(localized: "Spiel etwas ab"))
-                    .font(.system(size: 12))
+                    .font(style.font(size: 12))
                     .foregroundStyle(.secondary)
             }
         }
@@ -138,6 +139,7 @@ struct MediaStripCard: View {
     /// Hoehe der Karte; das Cover fuellt sie bis auf den Rand.
     let height: CGFloat
     @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     private static let inset: CGFloat = 16
 
@@ -147,7 +149,7 @@ struct MediaStripCard: View {
         MediaSurface(radius: 28) {
             HStack(spacing: 16) {
                 MediaArtwork(image: model.artwork, id: model.artworkID,
-                             shape: RoundedRectangle(cornerRadius: 18, style: .continuous), symbolSize: cover * 0.32)
+                             shape: RoundedRectangle(cornerRadius: style.cardRadius(18), style: .continuous), symbolSize: cover * 0.32)
                     .frame(width: cover, height: cover)
                 VStack(alignment: .leading, spacing: 3) {
                     texts
@@ -175,18 +177,18 @@ struct MediaStripCard: View {
     @ViewBuilder private var texts: some View {
         if let playing = model.nowPlaying {
             Text(playing.title)
-                .font(.system(size: 14, weight: .semibold))
+                .font(style.font(size: 14, weight: .semibold))
                 .foregroundStyle(MediaColor.accentText(colorScheme))
             // Kuenstler und Album in einer Zeile: fuer zwei ist kein Platz.
             Text([playing.artist ?? String(localized: "Unbekannter Künstler"), options.showAlbum ? playing.album : nil]
                     .compactMap { $0 }.joined(separator: " · "))
-                .font(.system(size: 12))
+                .font(style.font(size: 12))
                 .foregroundStyle(.secondary)
         } else {
             Text(model.isUnavailable ? String(localized: "Nicht verfügbar") : String(localized: "Nichts läuft"))
-                .font(.system(size: 14, weight: .semibold))
+                .font(style.font(size: 14, weight: .semibold))
             Text(model.isUnavailable ? String(localized: "Adapter läuft nicht") : String(localized: "Spiel etwas ab"))
-                .font(.system(size: 12))
+                .font(style.font(size: 12))
                 .foregroundStyle(.secondary)
         }
     }
@@ -199,6 +201,7 @@ struct MediaCompactCard: View {
     let model: MediaModel
     var options = DashboardMediaOptions()
     @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     private static let arcSize: CGFloat = 112
     private static let arcLine: CGFloat = 5
@@ -219,16 +222,16 @@ struct MediaCompactCard: View {
                 VStack(spacing: 2) {
                     if let playing = model.nowPlaying {
                         Text(playing.title)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(style.font(size: 13, weight: .semibold))
                             .foregroundStyle(MediaColor.accentText(colorScheme))
                         Text(playing.artist ?? String(localized: "Unbekannter Künstler"))
-                            .font(.system(size: 11))
+                            .font(style.font(size: 11))
                             .foregroundStyle(.secondary)
                     } else {
                         Text(model.isUnavailable ? String(localized: "Nicht verfügbar") : String(localized: "Nichts läuft"))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(style.font(size: 13, weight: .semibold))
                         Text(model.isUnavailable ? String(localized: "Adapter läuft nicht") : String(localized: "Spiel etwas ab"))
-                            .font(.system(size: 11))
+                            .font(style.font(size: 11))
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -258,6 +261,8 @@ struct MediaCompactCard: View {
 /// die gewonnene Hoehe bekommt das Cover (244 statt 200).
 struct MediaTab: View {
     let model: MediaModel
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     private static let coverSection: CGFloat = 252  // 300 x 0,839
     private static let coverSize: CGFloat = 244
@@ -269,7 +274,7 @@ struct MediaTab: View {
     var body: some View {
         HStack(spacing: Self.spacing) {
             MediaArtwork(image: model.artwork, id: model.artworkID,
-                         shape: RoundedRectangle(cornerRadius: 28, style: .continuous), symbolSize: 64)
+                         shape: RoundedRectangle(cornerRadius: style.cardRadius(28), style: .continuous), symbolSize: 64)
                 .frame(width: Self.coverSize, height: Self.coverSize)
                 .shadow(color: .black.opacity(model.artwork == nil ? 0 : 0.3), radius: 18, y: 8)
                 .frame(width: Self.coverSection)
@@ -304,18 +309,19 @@ private struct MediaDetails: View {
     let model: MediaModel
     let playing: MediaNowPlaying
     @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(playing.title)
-                .font(.system(size: 22, weight: .semibold))
+                .font(style.font(size: 22, weight: .semibold))
                 .lineLimit(2)
             Text(playing.artist ?? String(localized: "Unbekannter Künstler"))
-                .font(.system(size: 16, weight: .medium))
+                .font(style.font(size: 16, weight: .medium))
                 .foregroundStyle(.secondary)
             if let album = playing.album {
                 Text(album)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(style.font(size: 16, weight: .medium))
                     .foregroundStyle(MediaColor.accentText(colorScheme))
             }
 
@@ -341,6 +347,8 @@ private struct MediaDetails: View {
 private struct MediaTimeline: View {
     let playing: MediaNowPlaying
     let now: Date
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         let elapsed = playing.elapsed(at: now) ?? 0
@@ -353,7 +361,7 @@ private struct MediaTimeline: View {
                 template: "-" + template
             )
         }
-        .font(.system(size: 12, weight: .medium))
+        .font(style.font(size: 12, weight: .medium))
         .monospacedDigit()
         .foregroundStyle(.secondary)
         .accessibilityElement(children: .ignore)
@@ -378,22 +386,24 @@ private struct MediaTimeLabel: View {
 private struct MediaSourcePanel: View {
     let source: MediaSource?
     let isPlaying: Bool
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Image(systemName: "hifispeaker.fill").font(.system(size: 14))
-                Text("Quelle").font(.system(size: 16, weight: .medium))
+                Image(systemName: "hifispeaker.fill").font(style.font(size: 14))
+                Text("Quelle").font(style.font(size: 16, weight: .medium))
             }
             .padding(.leading, 6)
             MediaSurface(radius: 24) {
                 VStack(spacing: 8) {
                     MediaAppIcon(icon: source?.icon, size: 64)
                     Text(source?.name ?? String(localized: "Unbekannte App"))
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(style.font(size: 15, weight: .semibold))
                         .lineLimit(1)
                     MediaPlayState(isPlaying: isPlaying)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(style.font(size: 12, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
                 .padding(14)
@@ -412,15 +422,15 @@ private struct MediaNothingPlaying: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: isUnavailable ? "exclamationmark.triangle" : "music.note.list")
-                .font(.system(size: 40, weight: .medium))
+                .font(style.font(size: 40, weight: .medium))
                 .foregroundStyle(MediaColor.accentText(colorScheme))
                 .frame(width: 96, height: 96)
-                .background(style.accent.opacity(0.16), in: .rect(cornerRadius: 30, style: .continuous))
+                .background(style.accent.opacity(0.16), in: .rect(cornerRadius: style.cardRadius(30), style: .continuous))
                 .padding(.bottom, 8)
             Text(isUnavailable ? String(localized: "Medien nicht verfügbar") : String(localized: "Nichts läuft"))
-                .font(.system(size: 22, weight: .semibold))
+                .font(style.font(size: 22, weight: .semibold))
             Text(isUnavailable ? String(localized: "Der Now-Playing-Adapter läuft nicht.") : String(localized: "Spiel etwas ab, dann erscheint es hier."))
-                .font(.system(size: 14))
+                .font(style.font(size: 14))
                 .foregroundStyle(.secondary)
         }
     }
@@ -464,6 +474,7 @@ private struct MediaSurface<Content: View>: View {
                     shape.fill(Color.primary.opacity(0.06))
                 }
             }
+            .overlay { style.border(shape) }
     }
 }
 
@@ -510,6 +521,7 @@ private struct MediaAmbient: View {
     let image: NSImage?
     let id: Int
     @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Color.primary.opacity(0.06)
@@ -524,7 +536,7 @@ private struct MediaAmbient: View {
                         .transition(.opacity)
                 }
             }
-            .clipShape(.rect(cornerRadius: 28, style: .continuous))
+            .clipShape(.rect(cornerRadius: style.cardRadius(28), style: .continuous))
             .animation(MediaMotion.slowFade, value: id)
     }
 }
@@ -665,15 +677,17 @@ private struct MediaPressStyle: ButtonStyle {
 private struct MediaSourceChip: View {
     let source: MediaSource
     let isPlaying: Bool
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         HStack(spacing: 6) {
             MediaAppIcon(icon: source.icon, size: 18)
             Text(source.name)
-                .font(.system(size: 11, weight: .medium))
+                .font(style.font(size: 11, weight: .medium))
                 .lineLimit(1)
             MediaPlayState(isPlaying: isPlaying, showsText: false)
-                .font(.system(size: 10, weight: .semibold))
+                .font(style.font(size: 10, weight: .semibold))
         }
         .foregroundStyle(.secondary)
         .padding(.leading, 6)

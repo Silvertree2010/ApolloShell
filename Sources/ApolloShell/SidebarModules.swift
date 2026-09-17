@@ -163,8 +163,9 @@ struct SidebarClock: View {
         let calendar = Calendar.current
         VStack(spacing: 0) {
             if showIcon {
-                Image(systemName: "calendar")
+                ThemedIcon("bar-clock")
                     .font(shellStyle.font(size: 14, weight: .semibold))
+                    .frame(width: 16, height: 16)
                     .padding(.bottom, 3)
             }
             if showDate {

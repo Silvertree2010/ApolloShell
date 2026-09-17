@@ -470,6 +470,8 @@ struct SidebarDock: View {
     /// Vorschau in Nexus: kein Hover, kein Klick, kein Menue, kein Ziehen -
     /// dort soll nichts eine echte App starten, beenden oder anheften.
     @Environment(\.barPreview) private var preview
+    @Environment(\.colorScheme) private var dockColorScheme
+    private var dockStyle: ShellStyle { ShellTheme.style(dockColorScheme) }
 
     private var entries: [SidebarDockModel.Entry] {
         options.showRunning ? model.entries : model.entries.filter(\.pinned)
@@ -498,7 +500,9 @@ struct SidebarDock: View {
     private var column: some View {
         let entries = entries
         let split = entries.firstIndex { !$0.pinned }
-        return VStack(spacing: 4) {
+        // Mit Theme: `--apollo-dock-spacing` zwischen den Symbolen,
+        // `--apollo-dock-icon-size` fuer ihre Groesse.
+        return VStack(spacing: dockStyle.dockSpacing(4)) {
             ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
                 // Strich zwischen angehefteten und nur laufenden, wie im Apple-Dock.
                 if index == split, index > 0 {
@@ -509,7 +513,7 @@ struct SidebarDock: View {
                 }
                 SidebarDockItem(
                     entry: entry,
-                    iconSize: CGFloat(options.iconSize.points),
+                    iconSize: dockStyle.dockIconSize(CGFloat(options.iconSize.points)),
                     interactive: !preview,
                     active: entry.bundleID == model.frontmost,
                     launching: model.launching.contains(entry.bundleID),

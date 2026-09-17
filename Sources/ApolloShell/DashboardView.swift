@@ -62,9 +62,9 @@ struct DashboardView: View {
                 } label: {
                     VStack(spacing: 4) {
                         Image(systemName: tab.symbol)
-                            .font(.system(size: 16, weight: .medium))
+                            .font(style.font(size: 16, weight: .medium))
                             .symbolVariant(selected == tab ? .fill : .none)
-                        Text(tab.title).font(.system(size: 12, weight: .medium))
+                        Text(tab.title).font(style.font(size: 12, weight: .medium))
                     }
                     .foregroundStyle(selected == tab ? style.accent : Color.secondary)
                     .frame(maxWidth: .infinity)
@@ -198,16 +198,19 @@ private struct DashboardCardView: View {
 
 /// Alle Karten entfernt: ein ruhiger Hinweis statt einer leeren Flaeche.
 private struct DashboardEmptyGrid: View {
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+
     var body: some View {
         Card(radius: 28) {
             VStack(spacing: 8) {
                 Image(systemName: "square.grid.2x2")
-                    .font(.system(size: 30, weight: .light))
+                    .font(style.font(size: 30, weight: .light))
                     .foregroundStyle(.tertiary)
                 Text("Keine Karten")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(style.font(size: 15, weight: .semibold))
                 Text("In Nexus unter Dashboard lassen sich Karten hinzufügen.")
-                    .font(.system(size: 12))
+                    .font(style.font(size: 12))
                     .foregroundStyle(.secondary)
             }
         }
@@ -236,6 +239,8 @@ struct Card<Content: View>: View {
                     shape.fill(Color.primary.opacity(0.06))
                 }
             }
+            // Rand nur, wenn das Theme eine Breite nennt.
+            .overlay { style.border(shape) }
     }
 }
 
@@ -256,7 +261,7 @@ private struct UserCard: View {
                 VStack(spacing: 12) {
                     avatar(size: 64)
                     VStack(spacing: 6) {
-                        Text(model.userName).font(.system(size: 16, weight: .semibold)).lineLimit(1)
+                        Text(model.userName).font(style.font(size: 16, weight: .semibold)).lineLimit(1)
                         badges
                     }
                 }
@@ -265,7 +270,7 @@ private struct UserCard: View {
                 HStack(spacing: 14) {
                     avatar(size: 72)
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(model.userName).font(.system(size: 17, weight: .semibold)).lineLimit(1)
+                        Text(model.userName).font(style.font(size: 17, weight: .semibold)).lineLimit(1)
                         badges
                     }
                     Spacer(minLength: 0)
@@ -296,11 +301,13 @@ private struct UserCard: View {
 private struct Badge: View {
     let symbol: String
     let text: String
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         HStack(spacing: 5) {
-            Image(systemName: symbol).font(.system(size: 10, weight: .semibold))
-            Text(text).font(.system(size: 11, weight: .medium)).lineLimit(1)
+            Image(systemName: symbol).font(style.font(size: 10, weight: .semibold))
+            Text(text).font(style.font(size: 11, weight: .medium)).lineLimit(1)
         }
         .foregroundStyle(.secondary)
         .padding(.horizontal, 8)
@@ -315,6 +322,8 @@ private struct DateTimeCard: View {
     let now: Date
     let locale: Locale
     var options = DashboardClockOptions()
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Card(radius: 16) {
@@ -326,9 +335,9 @@ private struct DateTimeCard: View {
                     // - so passt das Datum zu den Wochentagen im Kalender.
                     VStack(spacing: 1) {
                         Text(now.formatted(.dateTime.weekday(.wide).locale(locale)))
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(style.font(size: 12, weight: .semibold))
                         Text(now.formatted(.dateTime.day().month(.abbreviated).locale(locale)))
-                            .font(.system(size: 11, weight: .medium))
+                            .font(style.font(size: 11, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
                     .lineLimit(1)
@@ -343,7 +352,7 @@ private struct DateTimeCard: View {
         case .stacked:
             VStack(spacing: 6) {
                 Text(now, format: .dateTime.hour(.twoDigits(amPM: .omitted)))
-                Text("•••").font(.system(size: 14, weight: .bold)).foregroundStyle(.secondary)
+                Text("•••").font(style.font(size: 14, weight: .bold)).foregroundStyle(.secondary)
                 Text(now, format: .dateTime.minute(.twoDigits))
             }
             .font(.system(size: 30, weight: .semibold, design: .rounded))
@@ -377,7 +386,7 @@ private struct CalendarCard: View {
                     Button { model.showMonth(offset: -1) } label: { Image(systemName: "chevron.left") }
                     Spacer()
                     Text(model.shownMonth, format: .dateTime.month(.wide).year().locale(model.calendar.locale ?? .current))
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(style.font(size: 14, weight: .semibold))
                     Spacer()
                     Button { model.showMonth(offset: 1) } label: { Image(systemName: "chevron.right") }
                 }
@@ -389,10 +398,10 @@ private struct CalendarCard: View {
                 Grid(horizontalSpacing: 4, verticalSpacing: tall ? 14 : 2) {
                     GridRow {
                         if options.showWeekNumbers {
-                            Text("KW").font(.system(size: 9, weight: .semibold)).foregroundStyle(.tertiary)
+                            Text("KW").font(style.font(size: 9, weight: .semibold)).foregroundStyle(.tertiary)
                         }
                         ForEach(CalendarMonth.weekdaySymbols(calendar: calendar), id: \.self) { symbol in
-                            Text(symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                            Text(symbol).font(style.font(size: 11, weight: .semibold)).foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity)
                         }
                     }
@@ -400,14 +409,14 @@ private struct CalendarCard: View {
                         GridRow {
                             if options.showWeekNumbers {
                                 Text("\(numbers[week])")
-                                    .font(.system(size: 10, weight: .medium))
+                                    .font(style.font(size: 10, weight: .medium))
                                     .monospacedDigit()
                                     .foregroundStyle(.tertiary)
                                     .accessibilityLabel("Kalenderwoche \(numbers[week])")
                             }
                             ForEach(weeks[week], id: \.self) { day in
                                 Text("\(day.day)")
-                                    .font(.system(size: 12, weight: day.isToday ? .bold : .regular))
+                                    .font(style.font(size: 12, weight: day.isToday ? .bold : .regular))
                                     .foregroundStyle(day.isToday ? style.onAccent : day.inMonth ? Color.primary : Color.secondary.opacity(0.5))
                                     .frame(width: 26, height: 26)
                                     .background(day.isToday ? style.accent : Color.clear, in: .circle)
@@ -462,7 +471,7 @@ private struct Ring: View {
                 .stroke(style.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.easeOut(duration: 0.6), value: value)
-            Image(systemName: symbol).font(.system(size: 14, weight: .medium))
+            Image(systemName: symbol).font(style.font(size: 14, weight: .medium))
         }
         .frame(width: 56, height: 56)
         .help("\(help) \(Int((value * 100).rounded())) %")

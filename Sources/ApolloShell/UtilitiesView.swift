@@ -77,13 +77,15 @@ extension EnvironmentValues {
 struct UtilitiesCard<Content: View>: View {
     @ViewBuilder let content: Content
     @Environment(\.utilitiesCardHeight) private var height
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         content
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: height)
-            .background(Color.primary.opacity(0.06), in: .rect(cornerRadius: 16))
+            .background(Color.primary.opacity(0.06), in: .rect(cornerRadius: style.cardRadius(16)))
     }
 }
 
@@ -99,7 +101,7 @@ private struct KeepAwakeCard: View {
         UtilitiesCard {
             HStack(spacing: 12) {
                 Image(systemName: "cup.and.saucer.fill")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(style.font(size: 16, weight: .medium))
                     .foregroundStyle(model.keepAwake ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
                     .frame(width: 40, height: 40)
                     .background(
@@ -110,11 +112,11 @@ private struct KeepAwakeCard: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(KeepAwakeText.title)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(style.font(size: 14, weight: .medium))
                     // Jede Minute neu, damit "gestern" nach Mitternacht stimmt.
                     TimelineView(.everyMinute) { context in
                         Text(KeepAwakeText.subtitle(since: model.keepAwakeSince, now: context.date, lid: model.lid))
-                            .font(.system(size: 12))
+                            .font(style.font(size: 12))
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -136,28 +138,30 @@ private struct KeepAwakeCard: View {
 private struct UtilitiesEmptyCard: View {
     let model: UtilitiesModel
     @State private var hovering = false
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         UtilitiesCard {
             HStack(spacing: 12) {
                 Image(systemName: "square.dashed")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(style.font(size: 16, weight: .medium))
                     .foregroundStyle(.secondary)
                     .frame(width: 40, height: 40)
                     .background(Color.primary.opacity(0.10), in: .circle)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Nichts eingeblendet")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(style.font(size: 14, weight: .medium))
                     Text("Karten und Knöpfe wählt man in Nexus")
-                        .font(.system(size: 12))
+                        .font(style.font(size: 12))
                         .foregroundStyle(.secondary)
                 }
                 .lineLimit(1)
                 Spacer(minLength: 8)
                 Button(action: model.openSettings) {
                     Text("Nexus")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(style.font(size: 12, weight: .medium))
                         .padding(.horizontal, 12)
                         .frame(height: 28)
                         .background(Color.primary.opacity(hovering ? 0.18 : 0.10), in: .capsule)
@@ -220,12 +224,14 @@ private struct AccentSwitchStyle: ToggleStyle {
 private struct QuickTogglesCard: View {
     let model: UtilitiesModel
     let rows: [[UtilitiesToggleEntry]]
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         UtilitiesCard {
             VStack(alignment: .leading, spacing: 12) {
                 Text(UtilitiesToggleText.cardTitle)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(style.font(size: 14, weight: .medium))
                     .lineLimit(1)
                 VStack(spacing: 8) {
                     ForEach(Array(rows.enumerated()), id: \.offset) { _, row in

@@ -175,10 +175,14 @@ public enum ThemeLoader {
         guard let text else {
             return fallback(issue ?? .notText)
         }
+        // Symbole gibt es nur in einem Theme-Ordner: eine einzelne .css hat
+        // keinen Platz, an dem Bilder liegen duerften.
+        let icons = isDirectory.boolValue ? ThemeIconSet.read(in: url, limits: limits) : (icons: ThemeIconSet.none, issues: [])
         return Theme.make(identifier: identifier,
                           styleSheet: ThemeStyleSheetParser.parse(text, limits: limits),
                           assets: assets, catalog: catalog, limits: limits,
-                          issues: issue.map { [ThemeIssue($0)] } ?? [])
+                          issues: (issue.map { [ThemeIssue($0)] } ?? []) + icons.issues,
+                          icons: icons.icons)
     }
 
     /// Alle Themes eines Ordners, nach Kennung sortiert. Was kein Theme ist,

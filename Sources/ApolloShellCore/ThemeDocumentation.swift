@@ -40,6 +40,16 @@ public enum ThemeDocumentation {
         }
     }
 
+    /// Die Tabelle der Symbole fuer docs/THEMES.md.
+    public static func iconTable(catalog: ThemeIconCatalog = .standard) -> String {
+        var lines = ["| File in `icons/` | Replaces | What it is |", "| --- | --- | --- |"]
+        for icon in catalog.icons {
+            let fallback = icon.fallback.isEmpty ? "the drawn emblem" : "`\(icon.fallback)`"
+            lines.append("| `\(icon.id)` | \(fallback) | \(icon.summary) |")
+        }
+        return lines.joined(separator: "\n")
+    }
+
     /// Ein Theme, das jedes Token nennt - mit den Vorgaben, also genau dem
     /// eingebauten Aussehen. Grundlage fuer examples/themes/full/theme.css.
     public static func exampleCSS(catalog: ThemeTokenCatalog = .standard) -> String {

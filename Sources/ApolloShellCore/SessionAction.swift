@@ -16,6 +16,16 @@ public enum SessionAction: String, CaseIterable, Sendable {
     /// Ruhezustand, wo Caelestia sein Bild zeigt).
     public static let emblemSlot = 2
 
+    /// Kennung fuer den Symbol-Austausch im Theme (`icons/<kennung>.png`).
+    public var iconID: String {
+        switch self {
+        case .logOut: "session-logout"
+        case .shutDown: "session-shutdown"
+        case .sleep: "session-sleep"
+        case .restart: "session-restart"
+        }
+    }
+
     public var symbolName: String {
         switch self {
         case .logOut: "rectangle.portrait.and.arrow.right"

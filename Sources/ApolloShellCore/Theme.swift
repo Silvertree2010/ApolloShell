@@ -38,9 +38,12 @@ public struct Theme: Equatable, Sendable {
     public let issues: [ThemeIssue]
     public let lightValues: [String: ThemeValue]
     public let darkValues: [String: ThemeValue]
+    /// Die Bilder aus `icons/`, wenn das Theme ein Ordner ist.
+    public let icons: ThemeIconSet
 
     init(identifier: String, formatVersion: Int, issues: [ThemeIssue],
-         lightValues: [String: ThemeValue], darkValues: [String: ThemeValue]) {
+         lightValues: [String: ThemeValue], darkValues: [String: ThemeValue],
+         icons: ThemeIconSet = .none) {
         let name = Theme.cleanIdentifier(identifier)
         self.identifier = name
         slug = Theme.slug(from: name)
@@ -48,6 +51,7 @@ public struct Theme: Equatable, Sendable {
         self.issues = issues
         self.lightValues = lightValues
         self.darkValues = darkValues
+        self.icons = icons
     }
 
     /// Das eingebaute Aussehen: alle Vorgaben, kein einziger Hinweis. Auch
@@ -88,6 +92,12 @@ public struct Theme: Equatable, Sendable {
         asset(token, dark: dark).url
     }
 
+    /// Das Bild, das dieses Theme fuer ein Symbol mitbringt - `nil`, wenn
+    /// keines dabei ist. Dann gilt das eingebaute SF Symbol.
+    public func icon(_ id: String) -> URL? {
+        icons.file(id)
+    }
+
     public func option(_ token: ThemeOptionToken, dark: Bool = false) -> String {
         value(token.name, dark: dark)?.option ?? token.defaultValue(dark: dark)
     }
@@ -118,7 +128,8 @@ public struct Theme: Equatable, Sendable {
                             assets: ThemeAssetResolver = .none,
                             catalog: ThemeTokenCatalog = .standard,
                             limits: ThemeLimits = .standard,
-                            issues: [ThemeIssue] = []) -> Theme {
+                            issues: [ThemeIssue] = [],
+                            icons: ThemeIconSet = .none) -> Theme {
         var log = ThemeIssueLog(limit: limits.maxIssues)
         log.append(contentsOf: issues)
         log.append(contentsOf: styleSheet.issues)
@@ -139,7 +150,7 @@ public struct Theme: Equatable, Sendable {
         }
         return Theme(identifier: identifier, formatVersion: format,
                      issues: withoutDuplicates(log.finished()),
-                     lightValues: lightValues, darkValues: darkValues)
+                     lightValues: lightValues, darkValues: darkValues, icons: icons)
     }
 
     private static func apply(_ declarations: [ThemeDeclaration],

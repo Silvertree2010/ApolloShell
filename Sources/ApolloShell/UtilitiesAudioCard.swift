@@ -16,16 +16,18 @@ import SwiftUI
 /// Standardausgangs, damit auch Geraete ohne Hauptregler gehen.
 struct UtilitiesAudioCard: View {
     let model: UtilitiesModel
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         UtilitiesCard {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(UtilitiesAudioText.title)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(style.font(size: 14, weight: .medium))
                     Spacer(minLength: 8)
                     Text(UtilitiesAudioText.level(volume: model.volume, muted: model.outputMuted))
-                        .font(.system(size: 12))
+                        .font(style.font(size: 12))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                         .contentTransition(.numericText())
@@ -60,11 +62,13 @@ private struct UtilitiesMuteButton: View {
 
     let model: UtilitiesModel
     @State private var hovering = false
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Button(action: model.toggleOutputMute) {
             Image(systemName: VolumeGlyphs.symbol(volume: model.volume, muted: model.outputMuted))
-                .font(.system(size: 13, weight: .semibold))
+                .font(style.font(size: 13, weight: .semibold))
                 .contentTransition(.symbolEffect(.replace))
                 // Fest, sonst verschoebe ein Symbol mit mehr Wellen den Regler.
                 .frame(width: Self.size, height: Self.size)
@@ -97,17 +101,18 @@ private struct UtilitiesVolumeSlider: View {
             let fill = h + value * (w - h)
 
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.10))
+                // Bahn: mit Theme die Flaeche einer Karte, sonst wie bisher.
+                Capsule().fill(style.isThemed ? AnyShapeStyle(style.card) : AnyShapeStyle(Color.primary.opacity(0.10)))
                 // Bei 0 (oder stumm) keine Fuellung: sonst bliebe ein oranger
                 // Ring um den Knopf stehen (Bildprobe 14.09.), und Apple zeigt
                 // bei 0 auch nur die leere Bahn.
                 Capsule()
-                    .fill(style.accent)
+                    .fill(style.accentFill)
                     .frame(width: fill)
                     .opacity(value > 0 ? 1 : 0)
                 Circle()
-                    .fill(Color.white)
-                    .shadow(color: .black.opacity(0.25), radius: 1.5, y: 0.5)
+                    .fill(style.isThemed ? style.onAccent : Color.white)
+                    .shadow(color: .black.opacity(style.shadowOpacity(0.25)), radius: 1.5, y: 0.5)
                     .frame(width: h - 4, height: h - 4)
                     .offset(x: fill - h + 2)
             }
@@ -149,6 +154,8 @@ private struct UtilitiesDeviceButton: View {
     let current: UInt32?
     let select: (UInt32) -> Void
     @State private var hovering = false
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Button {
@@ -156,28 +163,28 @@ private struct UtilitiesDeviceButton: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(style.font(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .frame(width: 18)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(caption)
-                        .font(.system(size: 11))
+                        .font(style.font(size: 11))
                         .foregroundStyle(.secondary)
                     Text(name)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(style.font(size: 12, weight: .medium))
                         .truncationMode(.tail)
                 }
                 .lineLimit(1)
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(style.font(size: 10, weight: .semibold))
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: Self.height)
         }
-        .buttonStyle(UtilitiesTileStyle(shape: .rect(cornerRadius: 12), hovered: hovering))
+        .buttonStyle(UtilitiesTileStyle(shape: .rect(cornerRadius: style.controlRadius(12)), hovered: hovering))
         .background(HoverTracker { hovering = $0 })
         .help("\(caption): \(name)")
         .accessibilityLabel("\(caption): \(name)")

@@ -64,16 +64,16 @@ struct SmallWeatherCard: View {
                     .font(.system(size: 34, weight: .semibold, design: .rounded))
                 if options.showCondition {
                     Text(WeatherCondition.description(code: current.code))
-                        .font(.system(size: 13, weight: .medium))
+                        .font(style.font(size: 13, weight: .medium))
                         .lineLimit(2)
                 }
                 if options.showRange, let today = report.today(now: now) {
                     Text(WeatherText.range(max: today.maxTemperature, min: today.minTemperature))
-                        .font(.system(size: 11))
+                        .font(style.font(size: 11))
                         .foregroundStyle(.secondary)
                 }
                 if let stand = model.standText(now: now) {
-                    Text(stand).font(.system(size: 10)).foregroundStyle(.tertiary)
+                    Text(stand).font(style.font(size: 10)).foregroundStyle(.tertiary)
                 }
             }
             .lineLimit(1)
@@ -82,7 +82,7 @@ struct SmallWeatherCard: View {
             VStack(alignment: alignment, spacing: 2) {
                 Button("Ort in Nexus festlegen") { model.onOpenNexus() }
                     .buttonStyle(.plain)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(style.font(size: 12, weight: .semibold))
                     .foregroundStyle(style.accent)
             }
         } else {
@@ -90,7 +90,7 @@ struct SmallWeatherCard: View {
             VStack(alignment: alignment, spacing: 2) {
                 Text("--°").font(.system(size: 34, weight: .semibold, design: .rounded))
                 Text(model.lastAttemptFailed ? String(localized: "Keine Wetterdaten") : String(localized: "Wird geladen …"))
-                    .font(.system(size: 12))
+                    .font(style.font(size: 12))
                     .foregroundStyle(.secondary)
             }
         }
@@ -103,6 +103,8 @@ struct SmallWeatherCard: View {
 /// unten sieben Tage nebeneinander wie bei Caelestia.
 struct WeatherTab: View {
     let model: WeatherModel
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     private static let spacing: CGFloat = 12
     private static let heroHeight: CGFloat = 116
@@ -122,20 +124,20 @@ struct WeatherTab: View {
                 }
             } else if model.location == nil {
                 VStack(spacing: 10) {
-                    Image(systemName: "location.slash").font(.system(size: 36, weight: .light)).foregroundStyle(.secondary)
+                    Image(systemName: "location.slash").font(style.font(size: 36, weight: .light)).foregroundStyle(.secondary)
                     Text("Ort in Nexus festlegen")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(style.font(size: 15, weight: .semibold))
                     Text("Ohne Favoriten gibt es kein Wetter zum Anzeigen.")
-                        .font(.system(size: 12))
+                        .font(style.font(size: 12))
                         .foregroundStyle(.secondary)
                     Button("Nexus öffnen") { model.onOpenNexus() }
                         .padding(.top, 2)
                 }
             } else {
                 VStack(spacing: 10) {
-                    Image(systemName: "cloud.sun").font(.system(size: 36, weight: .light)).foregroundStyle(.secondary)
+                    Image(systemName: "cloud.sun").font(style.font(size: 36, weight: .light)).foregroundStyle(.secondary)
                     Text(model.lastAttemptFailed ? String(localized: "Keine Wetterdaten") : String(localized: "Wetter wird geladen …"))
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(style.font(size: 15, weight: .semibold))
                     // Auch ohne Daten umschaltbar - vielleicht klappt es woanders.
                     WeatherPlacePicker(model: model)
                         .padding(.top, 4)
@@ -170,6 +172,7 @@ private struct WeatherSurface<Content: View>: View {
                     shape.fill(Color.primary.opacity(0.06))
                 }
             }
+            .overlay { style.border(shape) }
     }
 }
 
@@ -179,10 +182,12 @@ private struct WeatherSymbol: View {
     let name: String
     let size: CGFloat
     var placeholder = false
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Image(systemName: name)
-            .font(.system(size: size))
+            .font(style.font(size: size))
             .symbolRenderingMode(placeholder ? .hierarchical : .multicolor)
             .foregroundStyle(placeholder ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
             .modifier(SymbolContour())
@@ -208,10 +213,11 @@ private struct SymbolContour: ViewModifier {
 private struct WeatherPrecipitation: View {
     let percent: Int?
     @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Text(WeatherText.precipitation(percent) ?? " ")
-            .font(.system(size: 10, weight: .semibold))
+            .font(style.font(size: 10, weight: .semibold))
             .foregroundStyle(colorScheme == .dark ? Color.cyan : Color.blue)
             .frame(height: 12)
     }
@@ -234,7 +240,7 @@ private struct WeatherPlacePicker: View {
                     model.select(place)
                 } label: {
                     Text(place.name)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(style.font(size: 11, weight: .semibold))
                         .padding(.horizontal, 9)
                         .padding(.vertical, 4)
                         .foregroundStyle(selected ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
@@ -258,6 +264,8 @@ private struct WeatherHero: View {
     let model: WeatherModel
     let now: Date
     let stand: String?
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         let current = report.current
@@ -271,14 +279,14 @@ private struct WeatherHero: View {
                     .fixedSize()
                 VStack(alignment: .leading, spacing: 3) {
                     Text(WeatherCondition.description(code: current.code))
-                        .font(.system(size: 19, weight: .semibold))
+                        .font(style.font(size: 19, weight: .semibold))
                     Text(summary(current: current, today: today))
-                        .font(.system(size: 13))
+                        .font(style.font(size: 13))
                         .foregroundStyle(.secondary)
                     WeatherPlacePicker(model: model)
                         .padding(.top, 3)
                     if let stand {
-                        Text(stand).font(.system(size: 11)).foregroundStyle(.tertiary)
+                        Text(stand).font(style.font(size: 11)).foregroundStyle(.tertiary)
                     }
                 }
                 .lineLimit(1)
@@ -328,11 +336,13 @@ private struct WeatherHero: View {
 /// oeffnet die Seite des Anbieters (Lizenzen verlangen Name und Link).
 private struct WeatherAttributionLink: View {
     let attribution: WeatherAttribution
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Link(destination: attribution.url) {
             Text(attribution.text)
-                .font(.system(size: 10))
+                .font(style.font(size: 10))
                 .foregroundStyle(.tertiary)
         }
         .buttonStyle(.plain)
@@ -346,19 +356,21 @@ private struct WeatherStat: View {
     let symbol: String
     let label: LocalizedStringKey
     let value: String
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: symbol)
-                .font(.system(size: 16))
+                .font(style.font(size: 16))
                 .symbolRenderingMode(.multicolor)
                 .foregroundStyle(.secondary)
                 .modifier(SymbolContour())
                 .frame(width: 22)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {
-                Text(label).font(.system(size: 11)).foregroundStyle(.secondary)
-                Text(value).font(.system(size: 14, weight: .semibold)).monospacedDigit()
+                Text(label).font(style.font(size: 11)).foregroundStyle(.secondary)
+                Text(value).font(style.font(size: 14, weight: .semibold)).monospacedDigit()
             }
         }
         .accessibilityElement(children: .combine)
@@ -371,6 +383,8 @@ private struct WeatherStat: View {
 private struct WeatherHourly: View {
     let slots: [HourSlot]
     let calendar: Calendar
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         WeatherSurface(radius:24) {
@@ -378,7 +392,7 @@ private struct WeatherHourly: View {
                 ForEach(slots, id: \.time) { slot in
                     VStack(spacing: 5) {
                         Text(WeatherText.hourLabel(slot.time, isNow: slot.isNow, calendar: calendar))
-                            .font(.system(size: 12, weight: slot.isNow ? .semibold : .medium))
+                            .font(style.font(size: 12, weight: slot.isNow ? .semibold : .medium))
                             .foregroundStyle(slot.isNow ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                         WeatherSymbol(name: WeatherCondition.symbol(code: slot.code, isDay: slot.isDay), size: 20)
                             .frame(height: 26)
@@ -412,13 +426,13 @@ private struct WeatherDaily: View {
                 WeatherSurface(radius:20) {
                     VStack(spacing: 4) {
                         Text(WeatherText.dayLabel(day.date, today: now, calendar: calendar))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(style.font(size: 13, weight: .semibold))
                             .foregroundStyle(isToday ? style.onAccent : Color.primary)
                             .padding(.horizontal, isToday ? 9 : 0)
                             .frame(height: 20)
                             .background(isToday ? style.accent : Color.clear, in: .capsule)
                         Text(WeatherText.shortDate(day.date, calendar: calendar))
-                            .font(.system(size: 11))
+                            .font(style.font(size: 11))
                             .foregroundStyle(.secondary)
                         WeatherSymbol(name: WeatherCondition.symbol(code: day.code, isDay: true), size: 24)
                             .frame(height: 32)

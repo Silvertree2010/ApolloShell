@@ -27,8 +27,9 @@ struct LauncherView: View {
 
     private var searchField: some View {
         HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
+            ThemedIcon("bar-launcher")
                 .font(style.font(size: 18, weight: .medium))
+                .frame(width: 20, height: 20)
                 .foregroundStyle(.secondary)
             TextField("Suchen …", text: $model.query)
                 .textFieldStyle(.plain)
@@ -100,6 +101,9 @@ private struct AppRow: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+        // Mit Theme gibt `--apollo-launcher-row-height` die Zeilenhoehe vor;
+        // ohne Theme bestimmt sie wie bisher der Inhalt.
+        .frame(minHeight: style.isThemed ? style.launcherRowHeight(44) : nil)
         .background {
             // Mit Theme faerbt `--apollo-launcher-highlight-color` die
             // gewaehlte Zeile (oder der Verlauf daneben).

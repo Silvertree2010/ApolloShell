@@ -6,6 +6,12 @@ import SwiftUI
 struct SessionMenuView: View {
     @Bindable var model: SessionMenuModel
     @FocusState private var focused: Bool
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Bringt das Theme ein eigenes Emblem mit?
+    private var emblemFromTheme: Bool {
+        ShellTheme.style(colorScheme).iconFile("session-emblem") != nil
+    }
 
     var body: some View {
         VStack(spacing: SessionMenu.spacing) {
@@ -15,14 +21,22 @@ struct SessionMenuView: View {
                     // neue Identitaet pro Reaktion, die alte blendet in
                     // 0,18 s aus.
                     ZStack {
-                        SessionEmblem(
-                            timeline: model.emblem,
-                            size: SessionMenu.buttonSize,
-                            animating: model.isVisible,
-                            fixedTime: model.fixedTime
-                        )
-                        .id(model.emblem.reaction)
-                        .transition(.opacity.animation(.easeInOut(duration: 0.18)))
+                        // Bringt das Theme `icons/session-emblem.png` mit,
+                        // steht dort dieses Bild statt des gezeichneten
+                        // Planeten - das Maskottchen gehoert damit ins Theme.
+                        if emblemFromTheme {
+                            ThemedIcon("session-emblem")
+                                .frame(width: SessionMenu.buttonSize, height: SessionMenu.buttonSize)
+                        } else {
+                            SessionEmblem(
+                                timeline: model.emblem,
+                                size: SessionMenu.buttonSize,
+                                animating: model.isVisible,
+                                fixedTime: model.fixedTime
+                            )
+                            .id(model.emblem.reaction)
+                            .transition(.opacity.animation(.easeInOut(duration: 0.18)))
+                        }
                     }
                     .frame(width: SessionMenu.buttonSize, height: SessionMenu.buttonSize)
                     .accessibilityHidden(true)
@@ -68,9 +82,12 @@ private struct SessionButton: View {
 
     var body: some View {
         Button(action: perform) {
-            Image(systemName: action.symbolName)
+            // Mit `icons/session-shutdown.png` und den drei Geschwistern
+            // tauscht ein Theme diese Knoepfe aus.
+            ThemedIcon(action.iconID, fallback: action.symbolName)
                 .font(.system(size: 28, weight: .medium))
                 .frame(width: SessionMenu.buttonSize, height: SessionMenu.buttonSize)
+                .padding(SessionMenu.buttonSize / 4)
         }
         .buttonStyle(SessionButtonStyle(selected: selected, hovered: hovered))
         .help(action.title)

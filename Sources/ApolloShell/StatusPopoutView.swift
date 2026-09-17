@@ -140,7 +140,7 @@ private struct StatusPopoutBluetoothView: View {
         StatusPopoutHeader(title: "Bluetooth") {
             // Nur Anzeige: Schalten ginge nur ueber private Schnittstellen.
             Text(snapshot?.powerOn == true ? String(localized: "An") : snapshot?.powerOn == false ? String(localized: "Aus") : "–")
-                .font(.system(size: 12, weight: .semibold))
+                .font(style.font(size: 12, weight: .semibold))
                 .foregroundStyle(snapshot?.powerOn == true ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
                 .padding(.horizontal, 10)
                 .frame(height: 22)
@@ -190,18 +190,18 @@ private struct StatusPopoutDeviceRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: device.symbol)
-                .font(.system(size: 13, weight: .medium))
+                .font(style.font(size: 13, weight: .medium))
                 .foregroundStyle(style.onAccent)
                 .frame(width: 30, height: 30)
                 .background(style.accent, in: .circle)
             VStack(alignment: .leading, spacing: 1) {
                 Text(device.name)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(style.font(size: 13, weight: .medium))
                     .lineLimit(1)
                     .truncationMode(.tail)
                 if device.batteries.isEmpty {
                     Text("Verbunden")
-                        .font(.system(size: 11))
+                        .font(style.font(size: 11))
                         .foregroundStyle(.secondary)
                 } else {
                     HStack(spacing: 8) {
@@ -218,6 +218,8 @@ private struct StatusPopoutDeviceRow: View {
 
 private struct StatusPopoutBatteryChip: View {
     let battery: StatusPopoutBluetoothBattery
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         HStack(spacing: 3) {
@@ -228,7 +230,7 @@ private struct StatusPopoutBatteryChip: View {
                 // Unter 20 % rot wie Caelestia (m3error).
                 .foregroundStyle(battery.percent < 20 ? AnyShapeStyle(Color.red) : AnyShapeStyle(.primary))
         }
-        .font(.system(size: 11, weight: .medium).monospacedDigit())
+        .font(style.font(size: 11, weight: .medium).monospacedDigit())
         .fixedSize()
     }
 }
@@ -252,17 +254,17 @@ private struct StatusPopoutBatteryView: View {
                 Spacer(minLength: 0)
                 if let symbol = StatusGlyphs.batterySymbol(info.state) {
                     Image(systemName: symbol)
-                        .font(.system(size: 22, weight: .regular))
+                        .font(style.font(size: 22, weight: .regular))
                         .foregroundStyle(info.state.charging ? AnyShapeStyle(style.accent) : AnyShapeStyle(.secondary))
                 }
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(StatusPopoutBatteryText.state(info.state))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(style.font(size: 13, weight: .semibold))
                 Text(StatusPopoutBatteryText.time(
                     info.state, minutesToEmpty: info.minutesToEmpty, minutesToFull: info.minutesToFull
                 ))
-                .font(.system(size: 12))
+                .font(style.font(size: 12))
                 .foregroundStyle(.secondary)
             }
             StatusPopoutCard {
@@ -287,10 +289,12 @@ private struct StatusPopoutBatteryView: View {
 private struct StatusPopoutHeader<Trailing: View>: View {
     let title: LocalizedStringKey
     @ViewBuilder let trailing: Trailing
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         HStack {
-            Text(title).font(.system(size: 15, weight: .semibold))
+            Text(title).font(style.font(size: 15, weight: .semibold))
             Spacer(minLength: 8)
             trailing
         }
@@ -312,14 +316,14 @@ private struct StatusPopoutLeadRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: symbol, variableValue: variableValue)
-                .font(.system(size: 14, weight: .semibold))
+                .font(style.font(size: 14, weight: .semibold))
                 .foregroundStyle(active ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
                 .frame(width: 30, height: 30)
                 .background(active ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.10)), in: .circle)
             VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.system(size: 13, weight: .medium))
+                Text(title).font(style.font(size: 13, weight: .medium))
                 if let subtitle {
-                    Text(subtitle).font(.system(size: 11)).foregroundStyle(.secondary)
+                    Text(subtitle).font(style.font(size: 11)).foregroundStyle(.secondary)
                 }
             }
             .lineLimit(1)
@@ -330,6 +334,8 @@ private struct StatusPopoutLeadRow: View {
 /// Leicht abgesetzte Flaeche wie die Karten der Utilities.
 private struct StatusPopoutCard<Content: View>: View {
     @ViewBuilder let content: Content
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         VStack(spacing: 7) {
@@ -338,13 +344,15 @@ private struct StatusPopoutCard<Content: View>: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
-        .background(Color.primary.opacity(0.06), in: .rect(cornerRadius: 12))
+        .background(Color.primary.opacity(0.06), in: .rect(cornerRadius: style.cardRadius(12)))
     }
 }
 
 private struct StatusPopoutValueRow: View {
     let label: LocalizedStringKey
     let value: String
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         HStack {
@@ -352,17 +360,19 @@ private struct StatusPopoutValueRow: View {
             Spacer(minLength: 8)
             Text(value).monospacedDigit()
         }
-        .font(.system(size: 12))
+        .font(style.font(size: 12))
         .lineLimit(1)
     }
 }
 
 private struct StatusPopoutNote: View {
     let text: String
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         Text(text)
-            .font(.system(size: 12))
+            .font(style.font(size: 12))
             .foregroundStyle(.secondary)
     }
 }
@@ -375,6 +385,8 @@ private struct StatusPopoutSettingsButton: View {
     var help: LocalizedStringKey?
     let action: () -> Void
     @State private var hovering = false
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     init(title: LocalizedStringKey, help: LocalizedStringKey? = nil, action: @escaping () -> Void) {
         self.title = title
@@ -388,7 +400,7 @@ private struct StatusPopoutSettingsButton: View {
                 Image(systemName: "gearshape")
                 Text(title)
             }
-            .font(.system(size: 12, weight: .medium))
+            .font(style.font(size: 12, weight: .medium))
             .frame(maxWidth: .infinity)
             .frame(height: 30)
             .background(Color.primary.opacity(hovering ? 0.14 : 0.08), in: .capsule)

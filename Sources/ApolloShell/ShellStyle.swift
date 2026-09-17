@@ -149,6 +149,22 @@ struct ShellStyle: Equatable {
     func barItemSpacing(_ fallback: CGFloat) -> CGFloat { length(.barItemSpacing, fallback: fallback) }
     func panelPadding(_ fallback: CGFloat) -> CGFloat { length(.panelPadding, fallback: fallback) }
     func spacing(_ fallback: CGFloat) -> CGFloat { length(.spacing, fallback: fallback) }
+    func barWidth(_ fallback: CGFloat) -> CGFloat { length(.barWidth, fallback: fallback) }
+    func dockIconSize(_ fallback: CGFloat) -> CGFloat { length(.dockIconSize, fallback: fallback) }
+    func dockSpacing(_ fallback: CGFloat) -> CGFloat { length(.dockSpacing, fallback: fallback) }
+    func launcherRowHeight(_ fallback: CGFloat) -> CGFloat { length(.launcherRowHeight, fallback: fallback) }
+
+    /// Staerke der Umrandung; 0 heisst: keine.
+    func borderWidth(_ fallback: CGFloat) -> CGFloat { length(.borderWidth, fallback: fallback) }
+
+    /// Umrandung einer Flaeche, oder nichts, wenn kein Theme gilt oder das
+    /// Theme die Breite auf 0 stellt.
+    @ViewBuilder
+    func border<S: InsettableShape>(_ shape: S) -> some View {
+        if isThemed, borderWidth(0) > 0 {
+            shape.strokeBorder(border, lineWidth: borderWidth(0))
+        }
+    }
 
     /// Wie stark Schatten unter Flaechen sind.
     func shadowOpacity(_ fallback: Double) -> Double {
@@ -179,6 +195,15 @@ struct ShellStyle: Equatable {
         guard isThemed else { return 1 }
         let size = theme.number(.fontSize, dark: dark)
         return size > 0 ? CGFloat(size) / 13 : 1
+    }
+
+    // MARK: - Symbole
+
+    /// Das Bild, das das Theme fuer dieses Symbol mitbringt - `nil`, wenn
+    /// keines dabei ist.
+    func iconFile(_ id: String) -> URL? {
+        guard isThemed else { return nil }
+        return theme.icon(id)
     }
 
     // MARK: - Schalter
