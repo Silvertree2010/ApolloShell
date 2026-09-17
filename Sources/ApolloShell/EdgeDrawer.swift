@@ -121,8 +121,22 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         guard let glass else { return }
         let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         let style = ThemeStore.shared?.style(dark: dark) ?? .standard
-        // Nur die Ecke: die Flaeche malt `ShellPanelBackground` in SwiftUI.
         glass.cornerRadius = style.isThemed ? style.panelRadius(cornerRadius) : cornerRadius
+        // Die Flaeche malt `ShellPanelBackground` in SwiftUI - aber nur so
+        // weit, wie die Ansicht reicht. Der Streifen ueber ihr (Platz fuer
+        // Menueleiste und Notch) gehoert zum Glas, und dort schien sonst der
+        // Schreibtisch durch. Deshalb hier zusaetzlich die Flaeche unter dem
+        // Glas einfaerben: eine Ebenenfarbe gilt sofort, eine Toenung erst
+        // beim naechsten Zeichnen.
+        let content = glass.contentView
+        content?.wantsLayer = true
+        guard style.isThemed else {
+            content?.layer?.backgroundColor = nil
+            return
+        }
+        let color = NSColor(style.theme.color(.panel, dark: dark))
+            .withAlphaComponent(style.panelOpacity)
+        content?.layer?.backgroundColor = color.cgColor
     }
 
     /// Hoehe der Menueleiste bzw. der Notch, je nachdem was groesser ist
