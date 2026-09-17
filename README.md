@@ -46,9 +46,13 @@ how it's built on the [blog][blog].
   playing.
 - **Control centre** in the bottom-right corner: keep awake, sound, Wi-Fi, dark
   mode, Night Shift, a colour picker and your own buttons.
+- **Themes** as one CSS file: colours, gradients, fonts and sizes for the
+  whole shell, applied the moment you save the file.
 - **Nexus**, the settings app, where every panel can be rearranged.
 - Volume display, notifications for power and audio, a desktop clock and a
   session menu.
+- **Keeps itself up to date** (the `.dmg` build), or says when a new version
+  is out (Homebrew).
 - English and German.
 
 | Dashboard | Control centre | Launcher |

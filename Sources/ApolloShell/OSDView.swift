@@ -44,6 +44,9 @@ struct OSDView: View {
 private struct VolumeSlider: View {
     let model: OSDModel
 
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
@@ -57,7 +60,7 @@ private struct VolumeSlider: View {
             ZStack(alignment: .bottom) {
                 Capsule().fill(Color.primary.opacity(0.10))
                 Capsule()
-                    .fill(Color.accentColor)
+                    .fill(style.accentFill)
                     .frame(height: fill)
                     .animation(fillAnimation, value: fill)
 

@@ -58,6 +58,10 @@ finden es auch andere Mac-Nutzer. Hintergründe zur Entwicklung stehen im
   Zeiger reagiert.
 - **Anbieter wählbar**: Wetter von Open-Meteo, MET Norway oder wttr.in, dazu der
   Dateimanager im Dock.
+- **Themes** als eine CSS-Datei: Farben, Verläufe, Schriften und Masse für die
+  ganze Shell, und sie wirken, sobald die Datei gespeichert ist.
+- **Hält sich selbst aktuell** (Fassung aus dem DMG) oder meldet, dass es eine
+  neue Version gibt (Homebrew).
 
 Die Oberfläche gibt es auf Deutsch und Englisch (siehe [Sprache](#sprache)).
 
