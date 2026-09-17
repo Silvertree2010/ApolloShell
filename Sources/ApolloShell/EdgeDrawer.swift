@@ -121,13 +121,8 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         guard let glass else { return }
         let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         let style = ThemeStore.shared?.style(dark: dark) ?? .standard
-        guard style.isThemed else {
-            glass.tintColor = nil
-            glass.cornerRadius = cornerRadius
-            return
-        }
-        glass.tintColor = NSColor(style.theme.color(.panel, dark: dark))
-        glass.cornerRadius = style.panelRadius(cornerRadius)
+        // Nur die Ecke: die Flaeche malt `ShellPanelBackground` in SwiftUI.
+        glass.cornerRadius = style.isThemed ? style.panelRadius(cornerRadius) : cornerRadius
     }
 
     /// Hoehe der Menueleiste bzw. der Notch, je nachdem was groesser ist
@@ -451,7 +446,9 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         glass.cornerRadius = cornerRadius
 
         let content = NSView(frame: container.bounds)
-        let hosting = FirstMouseHostingView(rootView: rootView)
+        // Der Panel-Hintergrund gehoert in die Ansicht, nicht ans Glas:
+        // sonst faerbt er sich erst beim naechsten Zeichnen ein.
+        let hosting = FirstMouseHostingView(rootView: rootView.modifier(ShellPanelBackground()))
         hosting.sizingOptions = []
         hosting.frame = visibleRectInWindow
         content.addSubview(hosting)

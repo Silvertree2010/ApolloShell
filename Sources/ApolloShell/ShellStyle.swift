@@ -78,6 +78,9 @@ struct ShellStyle: Equatable {
         return AnyShapeStyle(ShellStyle.linear(gradient).opacity(opacity))
     }
 
+    /// Wie deckend ein Panel ist (`--apollo-panel-opacity`).
+    var panelOpacity: Double { isThemed ? theme.number(.panelOpacity, dark: dark) : 1 }
+
     /// Deckt die Leiste vollstaendig? Dann braucht es nichts dahinter.
     var barIsOpaque: Bool {
         guard isThemed else { return false }
@@ -220,6 +223,28 @@ extension EnvironmentValues {
     var shellStyle: ShellStyle {
         get { self[ShellStyleKey.self] }
         set { self[ShellStyleKey.self] = newValue }
+    }
+}
+
+/// Faerbt die Flaeche eines Kantenfensters (Dashboard, Utilities) nach dem
+/// Theme.
+///
+/// In SwiftUI und nicht ueber die Toenung des AppKit-Glases: Die Toenung kam
+/// erst beim naechsten Zeichnen an, also blieb das Panel bis zum ersten Klick
+/// durchsichtig und zeigte den Schreibtisch (gesehen 17.09. im Dashboard).
+struct ShellPanelBackground: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        let style = ShellTheme.style(colorScheme)
+        content.background {
+            if style.isThemed {
+                Rectangle()
+                    .fill(style.panelFill)
+                    .opacity(style.panelOpacity)
+                    .ignoresSafeArea()
+            }
+        }
     }
 }
 
