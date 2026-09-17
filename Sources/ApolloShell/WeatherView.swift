@@ -153,10 +153,23 @@ private struct WeatherSurface<Content: View>: View {
     let radius: CGFloat
     @ViewBuilder let content: () -> Content
 
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+
     var body: some View {
+        // Dieselbe Flaeche wie `Card` im Dashboard, also auch mit Theme
+        // dieselbe: sonst bleibt diese eine Karte hell zwischen lauter
+        // eingefaerbten.
+        let shape = RoundedRectangle(cornerRadius: style.cardRadius(radius))
         content()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.primary.opacity(0.06), in: .rect(cornerRadius: radius))
+            .background {
+                if style.isThemed {
+                    shape.fill(style.cardFill)
+                } else {
+                    shape.fill(Color.primary.opacity(0.06))
+                }
+            }
     }
 }
 

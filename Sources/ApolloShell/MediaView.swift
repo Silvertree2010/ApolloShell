@@ -449,10 +449,21 @@ private struct MediaSurface<Content: View>: View {
     let radius: CGFloat
     @ViewBuilder let content: () -> Content
 
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+
     var body: some View {
+        // Wie `Card` und `WeatherSurface`: mit Theme die Kartenfarbe.
+        let shape = RoundedRectangle(cornerRadius: style.cardRadius(radius), style: .continuous)
         content()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.primary.opacity(0.06), in: .rect(cornerRadius: radius, style: .continuous))
+            .background {
+                if style.isThemed {
+                    shape.fill(style.cardFill)
+                } else {
+                    shape.fill(Color.primary.opacity(0.06))
+                }
+            }
     }
 }
 
