@@ -225,15 +225,22 @@ final class DockMouseView: NSView, NSDraggingSource {
 /// Das Menue eines Dock-Symbols, aufgebaut wie Apples Dock-Menue, damit
 /// die Eintraege dort stehen, wo man sie erwartet:
 ///
-///     Fenster (aller Schreibtische)
+///     ✓ Fenster (aller Schreibtische), das vorderste angehakt
 ///     ─
-///     Befehle der App (Neues Fenster, Neues privates Fenster …)
+///     Befehle der App (Neues Fenster, Neues privates Fenster, Einstellungen)
 ///     ─
 ///     Optionen ▸ Im Dock behalten ✓ · In <Dateimanager> zeigen
-///     Alle Fenster einblenden
 ///     ─
+///     Alle Fenster einblenden
 ///     Ausblenden / Einblenden
 ///     Beenden (⌥: Sofort beenden)
+///
+/// Reihenfolge und Trenner am 17.09. an Apples Dock abgeglichen (Vivaldi,
+/// kitty, ForkLift): Fenster zuerst, mit Haken am vordersten und einem
+/// Fenstersymbol je Zeile, dann die Befehle der App, dann Optionen, und nach
+/// einem Trenner der Block aus Einblenden, Ausblenden und Beenden.
+/// Einstellungen zeigt Apple dort nicht - das ist unsere Zugabe, weil ein
+/// Sprung in die Einstellungen der App sonst nirgends steht.
 ///
 /// Beim Oeffnen gebaut, damit Fensterliste, Befehle und Zustand stimmen.
 @MainActor
@@ -247,11 +254,18 @@ enum DockMenu {
             // Alle Schreibtische: vorher nur der aktuelle, Fenster auf
             // anderen Schreibtischen fehlten dann im Menue.
             let windows = DockWindows.list(pid: app.processIdentifier, allSpaces: true)
-            for window in windows {
+            // Wie bei Apple: Haken am vordersten Fenster (das erste, das
+            // nicht abgelegt ist), Fenstersymbol an jeder Zeile, abgelegte
+            // Fenster mit eigenem Symbol.
+            let front = windows.firstIndex { !$0.minimized }
+            for (index, window) in windows.enumerated() {
                 let item = ClosureMenuItem(window.title.isEmpty ? entry.name : window.title) {
                     DockWindows.raise(window, of: app)
                 }
-                if window.minimized { item.image = NSImage(systemSymbolName: "minus.circle", accessibilityDescription: String(localized: "Im Dock")) }
+                item.state = index == front ? .on : .off
+                item.image = window.minimized
+                    ? NSImage(systemSymbolName: "minus.circle", accessibilityDescription: String(localized: "Im Dock"))
+                    : NSImage(systemSymbolName: "macwindow", accessibilityDescription: String(localized: "Fenster"))
                 menu.addItem(item)
             }
             if !windows.isEmpty { menu.addItem(.separator()) }
@@ -279,8 +293,10 @@ enum DockMenu {
         menu.addItem(options)
 
         if let app {
-            menu.addItem(ClosureMenuItem(String(localized: "Alle Fenster einblenden")) { SpaceSwitcher.showAppWindows(of: app) })
+            // Trenner nach den Optionen, dann der Block wie bei Apple:
+            // Einblenden, Aus-/Einblenden, Beenden - ohne Trenner dazwischen.
             menu.addItem(.separator())
+            menu.addItem(ClosureMenuItem(String(localized: "Alle Fenster einblenden")) { SpaceSwitcher.showAppWindows(of: app) })
             menu.addItem(ClosureMenuItem(app.isHidden ? String(localized: "Einblenden") : String(localized: "Ausblenden")) {
                 // Ergebnis egal: scheitert es, bleibt die App, wie sie war.
                 _ = app.isHidden ? app.unhide() : app.hide()

@@ -11,6 +11,9 @@ All notable changes to this project are documented here. The format follows
 - **App commands in the launcher**: a right click on a row opens the same
   menu as the dock - the app's own commands (new window, settings), and
   Show in Finder.
+- **Dock menu in Apple's order**: the windows first, with a tick on the
+  front one and a window glyph on each line, then the app's commands, then
+  Options, and after a separator Show All Windows, Hide and Quit.
 - **Settings in the dock menu**, and commands are found by their keyboard
   shortcut (⌘N, ⌘,) rather than by the wording of the menu item, so they
   also show up in other languages.
