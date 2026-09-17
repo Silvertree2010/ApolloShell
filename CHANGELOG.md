@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased] - 0.1.2
+## [0.1.2] - 2026-09-17
 
 ### Added
 
@@ -169,4 +169,5 @@ Not published on its own; it ships as part of 0.1.1.
 - The Intel (x86_64) build has not been tested on Intel hardware.
 - Relies on private macOS interfaces that may change with macOS updates.
 
+[0.1.2]: https://github.com/Silvertree2010/ApolloShell/releases/tag/v0.1.2
 [0.1.1]: https://github.com/Silvertree2010/ApolloShell/releases/tag/v0.1.1
