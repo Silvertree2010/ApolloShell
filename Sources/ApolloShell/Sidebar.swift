@@ -453,7 +453,7 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
         let style = ShellTheme.style(colorScheme)
         if standIn {
             content.background(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95), in: shape)
-        } else if style.isThemed {
+        } else if style.paintsBar {
             let opaque = style.barIsOpaque
             content
                 .background(style.barFill, in: shape)

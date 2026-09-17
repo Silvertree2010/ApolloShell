@@ -123,7 +123,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         guard let glass else { return }
         let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         let style = ThemeStore.shared?.style(dark: dark) ?? .standard
-        glass.cornerRadius = style.isThemed ? style.panelRadius(cornerRadius) : cornerRadius
+        glass.cornerRadius = style.panelRadius(cornerRadius)
 
         // Die ganze Flaeche in einem Stueck, unter dem Glas: Die Ansicht
         // reicht nur bis zu ihrem eigenen Rahmen, darueber liegt der Platz
@@ -137,7 +137,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         panelLayer?.removeFromSuperlayer()
         panelLayer = nil
         content.layer?.backgroundColor = nil
-        guard style.isThemed else { return }
+        guard style.paintsPanel else { return }
 
         let gradient = style.theme.gradient(.panel, dark: dark)
         guard !gradient.isEmpty else {

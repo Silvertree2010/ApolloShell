@@ -157,7 +157,7 @@ struct SidebarClock: View {
     /// Mit Theme faerbt `--apollo-bar-text-color` die Uhr: Das feste Violett
     /// ist auf Glas gut lesbar, neben einem Theme mit eigener Leistenfarbe
     /// aber ein Fremdkoerper.
-    private var color: Color { shellStyle.isThemed ? shellStyle.barText : Self.tint }
+    private var color: Color { shellStyle.declaresColor(.barText) ? shellStyle.barText : Self.tint }
 
     var body: some View {
         let calendar = Calendar.current

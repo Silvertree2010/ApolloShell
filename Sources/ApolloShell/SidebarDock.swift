@@ -589,7 +589,7 @@ private struct SidebarDockItem: View {
                 if entry.running {
                     Circle()
                         // Mit Theme: `--apollo-dock-indicator-color`.
-                        .fill(style.isThemed ? AnyShapeStyle(style.dockIndicator)
+                        .fill(style.declaresColor(.dockIndicator) ? AnyShapeStyle(style.dockIndicator)
                                              : AnyShapeStyle(Color.primary.opacity(0.65)))
                         .frame(width: 4, height: 4)
                         .offset(x: -5)

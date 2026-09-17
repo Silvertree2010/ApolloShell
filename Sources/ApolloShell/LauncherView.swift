@@ -103,12 +103,12 @@ private struct AppRow: View {
         .padding(.vertical, 6)
         // Mit Theme gibt `--apollo-launcher-row-height` die Zeilenhoehe vor;
         // ohne Theme bestimmt sie wie bisher der Inhalt.
-        .frame(minHeight: style.isThemed ? style.launcherRowHeight(44) : nil)
+        .frame(minHeight: style.declaresNumber(.launcherRowHeight) ? style.launcherRowHeight(44) : nil)
         .background {
             // Mit Theme faerbt `--apollo-launcher-highlight-color` die
             // gewaehlte Zeile (oder der Verlauf daneben).
             if selected {
-                if style.isThemed {
+                if style.paintsLauncherHighlight {
                     RoundedRectangle(cornerRadius: radius).fill(style.launcherHighlightFill)
                 } else {
                     RoundedRectangle(cornerRadius: radius).fill(Color.primary.opacity(0.12))

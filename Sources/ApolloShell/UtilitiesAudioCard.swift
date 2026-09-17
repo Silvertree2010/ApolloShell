@@ -102,7 +102,7 @@ private struct UtilitiesVolumeSlider: View {
 
             ZStack(alignment: .leading) {
                 // Bahn: mit Theme die Flaeche einer Karte, sonst wie bisher.
-                Capsule().fill(style.isThemed ? AnyShapeStyle(style.card) : AnyShapeStyle(Color.primary.opacity(0.10)))
+                Capsule().fill(style.paintsCard ? AnyShapeStyle(style.card) : AnyShapeStyle(Color.primary.opacity(0.10)))
                 // Bei 0 (oder stumm) keine Fuellung: sonst bliebe ein oranger
                 // Ring um den Knopf stehen (Bildprobe 14.09.), und Apple zeigt
                 // bei 0 auch nur die leere Bahn.

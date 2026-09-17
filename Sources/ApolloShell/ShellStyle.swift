@@ -23,9 +23,18 @@ struct ShellStyle: Equatable {
 
     // MARK: - Farben
 
-    /// Eine Themefarbe, oder die Systemfarbe, solange kein Theme gilt.
+    /// Nennt das gewaehlte Theme dieses Token?
+    ///
+    /// Nur was in der Datei steht, wird uebernommen. Die Vorgaben im
+    /// Verzeichnis sind dem Aussehen der Shell nur nachempfunden - wer sie
+    /// auf ein nicht genanntes Token anwendete, aenderte damit doch etwas.
+    private func declares(_ name: String) -> Bool {
+        isThemed && theme.declares(name)
+    }
+
+    /// Eine Themefarbe, oder die Systemfarbe, solange das Theme sie nicht nennt.
     private func color(_ token: ThemeColorToken, fallback: Color) -> Color {
-        isThemed ? Color(theme.color(token, dark: dark)) : fallback
+        declares(token.name) ? Color(theme.color(token, dark: dark)) : fallback
     }
 
     var accent: Color { color(.accent, fallback: .accentColor) }
@@ -59,18 +68,37 @@ struct ShellStyle: Equatable {
     /// die Farbe daneben.
     private func fill(_ colorToken: ThemeColorToken, _ gradientToken: ThemeGradientToken,
                       fallback: Color) -> AnyShapeStyle {
-        guard isThemed else { return AnyShapeStyle(fallback) }
         let gradient = theme.gradient(gradientToken, dark: dark)
-        guard !gradient.isEmpty else {
-            return AnyShapeStyle(Color(theme.color(colorToken, dark: dark)))
+        if declares(gradientToken.name), !gradient.isEmpty {
+            return AnyShapeStyle(ShellStyle.linear(gradient))
         }
-        return AnyShapeStyle(ShellStyle.linear(gradient))
+        guard declares(colorToken.name) else { return AnyShapeStyle(fallback) }
+        return AnyShapeStyle(Color(theme.color(colorToken, dark: dark)))
     }
+
+    /// Faerbt das Theme diese Flaeche ueberhaupt? Nennt es weder Farbe noch
+    /// Verlauf, bleibt die Flaeche, wie die Shell sie zeichnet - also Glas
+    /// und Material statt einer Ersatzfarbe.
+    private func paints(_ colorToken: ThemeColorToken, _ gradientToken: ThemeGradientToken) -> Bool {
+        declares(colorToken.name) || declares(gradientToken.name)
+    }
+
+    var paintsBar: Bool { paints(.bar, .bar) }
+    var paintsPanel: Bool { paints(.panel, .panel) }
+    var paintsCard: Bool { paints(.card, .card) }
+    var paintsToast: Bool { paints(.toast, .toast) }
+    var paintsSurface: Bool { paints(.surface, .surface) }
+    var paintsLauncherHighlight: Bool { paints(.launcherHighlight, .launcherHighlight) }
+
+    /// Nennt das Theme dieses einzelne Token? Fuer Stellen, die kein
+    /// Flaechenpaar aus Farbe und Verlauf haben (Schriftfarbe, Punkt im Dock).
+    func declaresColor(_ token: ThemeColorToken) -> Bool { declares(token.name) }
+    func declaresNumber(_ token: ThemeNumberToken) -> Bool { declares(token.name) }
 
     /// Hintergrund der Leiste, mit Deckkraft aus dem Theme.
     var barFill: AnyShapeStyle {
         guard isThemed else { return AnyShapeStyle(Color.clear) }
-        let opacity = theme.number(.barOpacity, dark: dark)
+        let opacity = declares(ThemeNumberToken.barOpacity.name) ? theme.number(.barOpacity, dark: dark) : 1
         let gradient = theme.gradient(.bar, dark: dark)
         if gradient.isEmpty {
             return AnyShapeStyle(Color(theme.color(.bar, dark: dark)).opacity(opacity))
@@ -79,12 +107,14 @@ struct ShellStyle: Equatable {
     }
 
     /// Wie deckend ein Panel ist (`--apollo-panel-opacity`).
-    var panelOpacity: Double { isThemed ? theme.number(.panelOpacity, dark: dark) : 1 }
+    var panelOpacity: Double {
+        declares(ThemeNumberToken.panelOpacity.name) ? theme.number(.panelOpacity, dark: dark) : 1
+    }
 
     /// Deckt die Leiste vollstaendig? Dann braucht es nichts dahinter.
     var barIsOpaque: Bool {
         guard isThemed else { return false }
-        return theme.number(.barOpacity, dark: dark) >= 1
+        return !declares(ThemeNumberToken.barOpacity.name) || theme.number(.barOpacity, dark: dark) >= 1
     }
 
     /// Flaeche von Fenstern und Listen (`--apollo-surface-color`, mit
@@ -136,7 +166,7 @@ struct ShellStyle: Equatable {
 
     /// Eine Laenge des Themes, oder das eingebaute Mass.
     private func length(_ token: ThemeNumberToken, fallback: CGFloat) -> CGFloat {
-        isThemed ? CGFloat(theme.number(token, dark: dark)) : fallback
+        declares(token.name) ? CGFloat(theme.number(token, dark: dark)) : fallback
     }
 
     func cornerRadius(_ fallback: CGFloat) -> CGFloat { length(.cornerRadius, fallback: fallback) }
@@ -168,8 +198,9 @@ struct ShellStyle: Equatable {
 
     /// Wie stark Schatten unter Flaechen sind.
     func shadowOpacity(_ fallback: Double) -> Double {
-        guard isThemed else { return fallback }
-        return theme.flag(.shadows, dark: dark) ? theme.number(.shadowOpacity, dark: dark) : 0
+        if declares(ThemeFlagToken.shadows.name), !theme.flag(.shadows, dark: dark) { return 0 }
+        guard declares(ThemeNumberToken.shadowOpacity.name) else { return fallback }
+        return theme.number(.shadowOpacity, dark: dark)
     }
 
     // MARK: - Schrift
@@ -181,7 +212,9 @@ struct ShellStyle: Equatable {
     /// unlesbar machen.
     func font(size: CGFloat, weight: Font.Weight = .regular) -> Font {
         guard isThemed else { return .system(size: size, weight: weight) }
-        let family = theme.text(.fontFamily, dark: dark).trimmingCharacters(in: .whitespacesAndNewlines)
+        let family = declares(ThemeTextToken.fontFamily.name)
+            ? theme.text(.fontFamily, dark: dark).trimmingCharacters(in: .whitespacesAndNewlines)
+            : ""
         let scaled = size * fontScale
         guard !family.isEmpty, NSFont(name: family, size: scaled) != nil else {
             return .system(size: scaled, weight: weight)
@@ -192,7 +225,7 @@ struct ShellStyle: Equatable {
     /// Wie stark die Schriftgroessen des Themes von den eingebauten abweichen.
     /// 13 pt ist die Systemgroesse, an der die Shell gebaut ist.
     private var fontScale: CGFloat {
-        guard isThemed else { return 1 }
+        guard declares(ThemeNumberToken.fontSize.name) else { return 1 }
         let size = theme.number(.fontSize, dark: dark)
         return size > 0 ? CGFloat(size) / 13 : 1
     }
@@ -211,13 +244,15 @@ struct ShellStyle: Equatable {
     /// Darf sich etwas bewegen? Ein Theme kann Bewegung abstellen; die
     /// Systemeinstellung "Bewegung reduzieren" hat dennoch Vorrang, die
     /// fragen die Ansichten selbst ab.
-    var animations: Bool { isThemed ? theme.flag(.animations, dark: dark) : true }
+    var animations: Bool { declares(ThemeFlagToken.animations.name) ? theme.flag(.animations, dark: dark) : true }
 
     /// Darf Liquid Glass benutzt werden?
-    var glass: Bool { isThemed ? theme.flag(.glass, dark: dark) : true }
+    var glass: Bool { declares(ThemeFlagToken.glass.name) ? theme.flag(.glass, dark: dark) : true }
 
     /// Wie schnell Bewegungen laufen; 1 ist die eingebaute Geschwindigkeit.
-    var animationSpeed: Double { isThemed ? theme.number(.animationSpeed, dark: dark) : 1 }
+    var animationSpeed: Double {
+        declares(ThemeNumberToken.animationSpeed.name) ? theme.number(.animationSpeed, dark: dark) : 1
+    }
 
     /// Eine Dauer, vom Theme gestreckt oder gekuerzt. Ohne Bewegung: 0.
     func duration(_ seconds: Double) -> Double {

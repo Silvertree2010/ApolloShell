@@ -249,3 +249,40 @@ struct ThemeResolveTests {
         #expect(theme == Theme.standard)
     }
 }
+
+@Suite("Themes: nur was dasteht, gilt")
+struct ThemeDeclaredTests {
+    private func theme(_ css: String) -> Theme {
+        Theme.make(identifier: "test", styleSheet: ThemeStyleSheetParser.parse(css))
+    }
+
+    @Test("ein Theme nennt genau die Token aus seiner Datei")
+    func declaresWhatItSets() {
+        let value = theme(":root { --apollo-accent-color: #ff0000; }")
+        #expect(value.declares("--apollo-accent-color"))
+        #expect(!value.declares("--apollo-bar-width"))
+        #expect(!value.declares("--apollo-card-color"))
+    }
+
+    @Test("auch ein Token, das nur im dunklen Block steht, zaehlt")
+    func darkOnlyCounts() {
+        let value = theme("""
+        :root { --apollo-accent-color: #ff0000; }
+        @media (prefers-color-scheme: dark) { :root { --apollo-bar-color: #101014; } }
+        """)
+        #expect(value.declares("--apollo-bar-color"))
+    }
+
+    @Test("Gross- und Kleinschreibung ist egal, ein frueherer Name zaehlt mit")
+    func caseAndAliases() {
+        let value = theme(":root { --APOLLO-ACCENT-COLOR: #ff0000; }")
+        #expect(value.declares("--apollo-accent-color"))
+    }
+
+    @Test("ein unlesbarer Wert gilt nicht als genannt")
+    func unreadableValueIsNotDeclared() {
+        let value = theme(":root { --apollo-bar-width: völlig daneben; }")
+        #expect(!value.declares("--apollo-bar-width"))
+        #expect(!value.issues.isEmpty)
+    }
+}

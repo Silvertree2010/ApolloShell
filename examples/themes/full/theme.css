@@ -57,15 +57,15 @@
   --apollo-bar-opacity: 1;
   --apollo-bar-text-color: #1c1c1e;
   --apollo-bar-icon-color: #3c3c43;
-  --apollo-bar-width: 56px;
+  --apollo-bar-width: 44px;
   --apollo-bar-radius: 16px;
-  --apollo-bar-padding: 8px;
-  --apollo-bar-item-spacing: 6px;
+  --apollo-bar-padding: 10px;
+  --apollo-bar-item-spacing: 8px;
   --apollo-bar-blur: 24px;
 
   /* Dock */
-  --apollo-dock-icon-size: 32px;
-  --apollo-dock-spacing: 6px;
+  --apollo-dock-icon-size: 26px;
+  --apollo-dock-spacing: 4px;
   --apollo-dock-indicator-color: #8e8e93;
 
   /* Panels */
@@ -82,7 +82,7 @@
   /* Launcher */
   --apollo-launcher-highlight-color: #e5efff;
   --apollo-launcher-highlight-gradient: none;
-  --apollo-launcher-row-height: 40px;
+  --apollo-launcher-row-height: 44px;
 
   /* Typography */
   --apollo-font-family: "";

@@ -40,10 +40,17 @@ public struct Theme: Equatable, Sendable {
     public let darkValues: [String: ThemeValue]
     /// Die Bilder aus `icons/`, wenn das Theme ein Ordner ist.
     public let icons: ThemeIconSet
+    /// Die Token, die in der Datei wirklich stehen (hell oder dunkel).
+    ///
+    /// Wichtig fuer die Zusage "was du nicht setzt, bleibt wie es ist": Die
+    /// Vorgaben im Verzeichnis sind dem Aussehen der Shell nur nachempfunden.
+    /// Wer sie auf ein nicht genanntes Token anwendete, aenderte damit doch
+    /// etwas - etwa die Breite der Leiste, obwohl das Theme nie davon sprach.
+    public let declared: Set<String>
 
     init(identifier: String, formatVersion: Int, issues: [ThemeIssue],
          lightValues: [String: ThemeValue], darkValues: [String: ThemeValue],
-         icons: ThemeIconSet = .none) {
+         icons: ThemeIconSet = .none, declared: Set<String> = []) {
         let name = Theme.cleanIdentifier(identifier)
         self.identifier = name
         slug = Theme.slug(from: name)
@@ -52,6 +59,7 @@ public struct Theme: Equatable, Sendable {
         self.lightValues = lightValues
         self.darkValues = darkValues
         self.icons = icons
+        self.declared = declared
     }
 
     /// Das eingebaute Aussehen: alle Vorgaben, kein einziger Hinweis. Auch
@@ -90,6 +98,11 @@ public struct Theme: Equatable, Sendable {
     /// benutzt werden darf.
     public func file(_ token: ThemeFileToken, dark: Bool = false) -> URL? {
         asset(token, dark: dark).url
+    }
+
+    /// Nennt das Theme dieses Token ueberhaupt?
+    public func declares(_ name: String) -> Bool {
+        declared.contains(name.lowercased())
     }
 
     /// Das Bild, das dieses Theme fuer ein Symbol mitbringt - `nil`, wenn
@@ -150,7 +163,8 @@ public struct Theme: Equatable, Sendable {
         }
         return Theme(identifier: identifier, formatVersion: format,
                      issues: withoutDuplicates(log.finished()),
-                     lightValues: lightValues, darkValues: darkValues, icons: icons)
+                     lightValues: lightValues, darkValues: darkValues, icons: icons,
+                     declared: Set(light.keys).union(dark.keys))
     }
 
     private static func apply(_ declarations: [ThemeDeclaration],

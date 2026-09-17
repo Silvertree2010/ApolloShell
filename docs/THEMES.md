@@ -118,8 +118,10 @@ still decides how text on it is checked for contrast.
 
 ## Tokens
 
-Every token, its type, and the value that applies when a theme does not
-mention it. *Dark* is the built-in value in dark mode, where it differs.
+Every token and its type. **A token your theme does not mention changes
+nothing** - that part of the shell stays exactly as it looks without a theme,
+including the materials and the sizes you set in Nexus. The *Default* column
+is what that built-in look amounts to, so you can start from it. *Dark* is the built-in value in dark mode, where it differs.
 Numbers are clamped to the range in the type column.
 
 <!-- The tables below are generated from the token catalogue in
@@ -188,18 +190,18 @@ Numbers are clamped to the range in the type column.
 | `--apollo-bar-opacity` | ratio (0–1) | `1` |  | How opaque that backing is |
 | `--apollo-bar-text-color` | color | `#1c1c1e` | `#f5f5f7` | Text in the sidebar, such as the clock |
 | `--apollo-bar-icon-color` | color | `#3c3c43` | `#e5e5ea` | Status glyphs in the sidebar |
-| `--apollo-bar-width` | length (36px–160px) | `56px` |  | Width of the sidebar |
+| `--apollo-bar-width` | length (36px–160px) | `44px` |  | Width of the sidebar |
 | `--apollo-bar-radius` | length (0px–48px) | `16px` |  | Corner radius of the sidebar |
-| `--apollo-bar-padding` | length (0px–48px) | `8px` |  | Space between sidebar edge and its blocks |
-| `--apollo-bar-item-spacing` | length (0px–48px) | `6px` |  | Space between two blocks |
+| `--apollo-bar-padding` | length (0px–48px) | `10px` |  | Space between sidebar edge and its blocks |
+| `--apollo-bar-item-spacing` | length (0px–48px) | `8px` |  | Space between two blocks |
 | `--apollo-bar-blur` | length (0px–64px) | `24px` |  | Blur behind the sidebar |
 
 ### Dock
 
 | Token | Type | Default | Dark | What it does |
 | --- | --- | --- | --- | --- |
-| `--apollo-dock-icon-size` | length (16px–128px) | `32px` |  | Size of the app icons |
-| `--apollo-dock-spacing` | length (0px–48px) | `6px` |  | Space between two app icons |
+| `--apollo-dock-icon-size` | length (16px–128px) | `26px` |  | Size of the app icons |
+| `--apollo-dock-spacing` | length (0px–48px) | `4px` |  | Space between two app icons |
 | `--apollo-dock-indicator-color` | color | `#8e8e93` | `#aeaeb2` | Dot under a running app |
 
 ### Panels
@@ -222,7 +224,7 @@ Numbers are clamped to the range in the type column.
 | --- | --- | --- | --- | --- |
 | `--apollo-launcher-highlight-color` | color | `#e5efff` | `#2a3c55` | Backing of the selected launcher row |
 | `--apollo-launcher-highlight-gradient` | gradient | `none` |  | Gradient behind the selected launcher row instead of the flat colour |
-| `--apollo-launcher-row-height` | length (24px–96px) | `40px` |  | Height of one launcher row |
+| `--apollo-launcher-row-height` | length (24px–96px) | `44px` |  | Height of one launcher row |
 
 ### Typography
 

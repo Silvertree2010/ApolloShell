@@ -55,7 +55,7 @@ enum ToastPalette {
     /// Schrift auf Akzentflaechen aus dem Theme.
     static func symbol(_ kind: ToastKind, _ style: ShellStyle = .standard) -> AnyShapeStyle {
         guard accent(kind, style) != nil else { return AnyShapeStyle(.secondary) }
-        return AnyShapeStyle(style.isThemed ? style.onAccent : Color.white)
+        return AnyShapeStyle(style.declaresColor(.onAccent) ? style.onAccent : Color.white)
     }
 
     /// Toenung des Glases.
@@ -135,7 +135,7 @@ struct ToastCard: View {
             .lineLimit(1)
             .truncationMode(.tail)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .foregroundStyle(style.isThemed ? AnyShapeStyle(style.toastText) : AnyShapeStyle(.primary))
+            .foregroundStyle(style.declaresColor(.toastText) ? AnyShapeStyle(style.toastText) : AnyShapeStyle(.primary))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -143,13 +143,13 @@ struct ToastCard: View {
         // Mit Theme faerbt das Theme die Meldung; Glas nur, wenn das Theme es
         // erlaubt (`--apollo-glass`).
         .background {
-            if style.isThemed {
+            if style.paintsToast {
                 RoundedRectangle(cornerRadius: radius).fill(style.toastFill)
             }
         }
         .toastGlass(tint: ToastPalette.tint(entry.kind, style),
                     cornerRadius: radius,
-                    enabled: !style.isThemed || style.glass)
+                    enabled: style.glass)
         .overlay {
             RoundedRectangle(cornerRadius: radius)
                 .strokeBorder(ToastPalette.border(entry.kind, style), lineWidth: 1)

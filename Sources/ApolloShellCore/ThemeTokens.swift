@@ -523,15 +523,15 @@ public extension ThemeTokenCatalog {
                "Text in the sidebar, such as the clock", on: "--apollo-bar-color"),
         .color("--apollo-bar-icon-color", light: 0x3C3C43, dark: 0xE5E5EA, group: .bar,
                "Status glyphs in the sidebar", on: "--apollo-bar-color", contrast: 3),
-        .length("--apollo-bar-width", 56, min: 36, max: 160, group: .bar, "Width of the sidebar"),
+        .length("--apollo-bar-width", 44, min: 36, max: 160, group: .bar, "Width of the sidebar"),
         .length("--apollo-bar-radius", 16, max: 48, group: .bar, "Corner radius of the sidebar"),
-        .length("--apollo-bar-padding", 8, max: 48, group: .bar, "Space between sidebar edge and its blocks"),
-        .length("--apollo-bar-item-spacing", 6, max: 48, group: .bar, "Space between two blocks"),
+        .length("--apollo-bar-padding", 10, max: 48, group: .bar, "Space between sidebar edge and its blocks"),
+        .length("--apollo-bar-item-spacing", 8, max: 48, group: .bar, "Space between two blocks"),
         .length("--apollo-bar-blur", 24, max: 64, group: .bar, "Blur behind the sidebar"),
 
         // MARK: Dock
-        .length("--apollo-dock-icon-size", 32, min: 16, max: 128, group: .dock, "Size of the app icons"),
-        .length("--apollo-dock-spacing", 6, max: 48, group: .dock, "Space between two app icons"),
+        .length("--apollo-dock-icon-size", 26, min: 16, max: 128, group: .dock, "Size of the app icons"),
+        .length("--apollo-dock-spacing", 4, max: 48, group: .dock, "Space between two app icons"),
         .color("--apollo-dock-indicator-color", light: 0x8E8E93, dark: 0xAEAEB2, group: .dock,
                "Dot under a running app"),
 
@@ -554,7 +554,7 @@ public extension ThemeTokenCatalog {
                "Backing of the selected launcher row"),
         .gradient("--apollo-launcher-highlight-gradient", group: .launcher,
                   "Gradient behind the selected launcher row instead of the flat colour"),
-        .length("--apollo-launcher-row-height", 40, min: 24, max: 96, group: .launcher, "Height of one launcher row"),
+        .length("--apollo-launcher-row-height", 44, min: 24, max: 96, group: .launcher, "Height of one launcher row"),
 
         // MARK: Typography
         .text("--apollo-font-family", group: .typography,

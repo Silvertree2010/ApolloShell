@@ -84,10 +84,13 @@ private struct SessionButton: View {
         Button(action: perform) {
             // Mit `icons/session-shutdown.png` und den drei Geschwistern
             // tauscht ein Theme diese Knoepfe aus.
+            // Das Bild aus dem Theme so gross wie das Zeichen, das es
+            // ersetzt - sonst fuellt es den ganzen Knopf und wirkt neben den
+            // eingebauten Symbolen zu wuchtig.
             ThemedIcon(action.iconID, fallback: action.symbolName)
                 .font(.system(size: 28, weight: .medium))
+                .frame(width: 30, height: 30)
                 .frame(width: SessionMenu.buttonSize, height: SessionMenu.buttonSize)
-                .padding(SessionMenu.buttonSize / 4)
         }
         .buttonStyle(SessionButtonStyle(selected: selected, hovered: hovered))
         .help(action.title)

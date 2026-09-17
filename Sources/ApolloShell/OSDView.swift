@@ -58,7 +58,7 @@ private struct VolumeSlider: View {
             let fillAnimation = Animation.timingCurve(0.2, 0, 0, 1, duration: 0.6)
 
             ZStack(alignment: .bottom) {
-                Capsule().fill(style.isThemed ? AnyShapeStyle(style.card) : AnyShapeStyle(Color.primary.opacity(0.10)))
+                Capsule().fill(style.paintsCard ? AnyShapeStyle(style.card) : AnyShapeStyle(Color.primary.opacity(0.10)))
                 Capsule()
                     .fill(style.accentFill)
                     .frame(height: fill)
@@ -82,7 +82,7 @@ private struct VolumeSlider: View {
     private func handle(diameter: CGFloat) -> some View {
         ZStack {
             Circle()
-                .fill(style.isThemed ? style.onAccent : Color.white)
+                .fill(style.declaresColor(.onAccent) ? style.onAccent : Color.white)
                 .shadow(color: .black.opacity(style.shadowOpacity(0.25)), radius: 1.5, y: 0.5)
             Group {
                 if model.moving {

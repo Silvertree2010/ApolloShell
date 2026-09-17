@@ -166,7 +166,7 @@ private struct WeatherSurface<Content: View>: View {
         content()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {
-                if style.isThemed {
+                if style.paintsCard {
                     shape.fill(style.cardFill)
                 } else {
                     shape.fill(Color.primary.opacity(0.06))
