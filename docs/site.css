@@ -118,7 +118,7 @@ p {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  padding-bottom: clamp(120px, 24svh, 260px);
+  padding-bottom: clamp(56px, 9svh, 120px);
   --side: calc((100% - var(--statue)) / 2 + var(--lean));
 }
 .room {
@@ -145,29 +145,32 @@ p {
 .intro + .left {
   margin-top: clamp(48px, 10svh, 120px);
 }
-.left > :not(.plate, .panel-host) {
+.left > :not(.plate) {
   margin-right: calc(var(--lean) + 1.5vw);
 }
-.right:not(.intro) > :not(.plate, .panel-host) {
+.right:not(.intro) > :not(.plate) {
   margin-left: calc(var(--lean) + 1.5vw);
 }
-.gallery .edge-left {
+.gallery .exhibit.left {
   padding-left: 0;
 }
-.gallery .edge-left .label {
-  padding-left: 0;
-}
-.gallery .edge-right {
-  gap: 0;
+.gallery .exhibit.right {
   padding-right: 0;
 }
-.gallery .edge-right .label {
-  padding-right: var(--gutter);
-  margin-bottom: 28px;
+.exhibit.left > .label {
+  padding-left: var(--gutter);
 }
-.edge-right > .panel-host {
-  justify-self: stretch;
-  margin-left: var(--gutter);
+.exhibit.right > .label {
+  padding-right: var(--gutter);
+}
+.exhibit .plate {
+  width: 100%;
+}
+.exhibit.left .plate {
+  border-radius: 0 14px 14px 0;
+}
+.exhibit.right .plate {
+  border-radius: 14px 0 0 14px;
 }
 .intro {
   margin-top: 0;
@@ -236,6 +239,11 @@ h1 {
   padding: 13px 16px;
   font-size: 13.5px;
   line-height: 1.5;
+}
+.command .line {
+  display: block;
+  padding-left: 2ch;
+  text-indent: -2ch;
 }
 .prompt {
   color: var(--gold);
@@ -311,111 +319,6 @@ h1 {
 .right .plate {
   justify-self: start;
 }
-.split > .panel-host[data-panel=sidebar] {
-  height: min(84svh, 780px);
-}
-.split .panel-fallback {
-  width: auto;
-  height: 100%;
-  border-radius: 0 14px 14px 0;
-}
-.split {
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: end;
-  column-gap: clamp(24px, 3vw, 48px);
-}
-.split .plate {
-  justify-self: start;
-}
-.split .label {
-  padding-bottom: 8px;
-}
-.session {
-  gap: 0;
-  padding-right: 0;
-}
-.gallery .session .label {
-  padding-right: var(--gutter);
-}
-.session-dock {
-  justify-self: end;
-  margin-left: 0 !important;
-  overflow: hidden;
-  padding: 28px 0 60px 48px;
-}
-.session-panel {
-  display: grid;
-  gap: 16px;
-  padding: 16px 6px 16px 16px;
-  border-radius: 25px 0 0 25px;
-  background: rgba(30, 29, 27, 0.72);
-  -webkit-backdrop-filter: blur(24px) saturate(1.3);
-  backdrop-filter: blur(24px) saturate(1.3);
-  box-shadow:
-    inset 1px 1px 0 rgba(236, 232, 225, 0.14),
-    inset 0 -1px 0 rgba(236, 232, 225, 0.05),
-    0 30px 60px -28px rgba(0, 0, 0, 0.95);
-  opacity: 0;
-  transform: translateX(calc(100% + 5px));
-  transition: transform 500ms cubic-bezier(0.38, 1.21, 0.22, 1), opacity 300ms cubic-bezier(0.34, 0.88, 0.34, 1);
-}
-.session-panel.is-open {
-  opacity: 1;
-  transform: none;
-}
-.session-panel button {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 80px;
-  height: 80px;
-  padding: 0;
-  border: 0;
-  border-radius: 20px;
-  background: rgba(236, 232, 225, 0.08);
-  color: var(--marble);
-  cursor: pointer;
-  transition:
-    border-radius 200ms cubic-bezier(0.2, 0, 0, 1),
-    background-color 200ms cubic-bezier(0.2, 0, 0, 1),
-    color 200ms cubic-bezier(0.2, 0, 0, 1);
-}
-.session-panel button::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: rgba(236, 232, 225, 0.08);
-  opacity: 0;
-  transition: opacity 120ms ease-out;
-  pointer-events: none;
-}
-@media (hover: hover) and (pointer: fine) {
-  .session-panel button:hover::after {
-    opacity: 1;
-  }
-}
-.session-panel button[aria-pressed=true] {
-  border-radius: 28px;
-  background: rgba(226, 168, 75, 0.85);
-  color: var(--gold-ink);
-}
-.session-panel button:active {
-  border-radius: 12px;
-}
-.session-panel svg {
-  width: 30px;
-  height: 30px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.session-panel .emblem {
-  width: 80px;
-  height: 80px;
-}
 .close {
   position: relative;
   z-index: 1;
@@ -471,6 +374,9 @@ h1 {
     transform 1100ms var(--ease-out);
   transition-delay: calc(var(--i, 0) * 90ms);
 }
+.js .plate.lit {
+  filter: brightness(0.4);
+}
 .js .lit.is-lit {
   opacity: 1;
   filter: none;
@@ -508,37 +414,26 @@ h1 {
   .get {
     max-width: none;
   }
-  .left > :not(.plate, .panel-host),
-  .right:not(.intro) > :not(.plate, .panel-host) {
+  .left > :not(.plate),
+  .right:not(.intro) > :not(.plate) {
     margin-inline: 0;
-  }
-  .gallery .edge-left {
-    padding-left: 0;
-  }
-  .gallery .edge-left .label {
-    padding-right: 20px;
-  }
-  .gallery .edge-right.right {
-    padding-right: 0;
   }
   .left .plate,
   .right .plate {
     justify-self: stretch;
   }
-  .split .plate {
-    justify-self: start;
+  .gallery .exhibit {
+    padding-inline: 0;
   }
-  .split > .panel-host[data-panel=sidebar] {
-    height: min(70svh, 560px);
+  .exhibit > .label {
+    padding-inline: 20px;
+  }
+  .exhibit.left .plate,
+  .exhibit.right .plate {
+    border-radius: 0;
   }
   .label h2 {
     font-size: clamp(32px, 9vw, 42px);
-  }
-  .gallery .session.right {
-    padding-right: 0;
-  }
-  .gallery .session .label {
-    padding-right: 20px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -547,10 +442,6 @@ h1 {
     filter: none;
     transform: none;
     transition: none;
-  }
-  .session-panel {
-    transition: opacity 300ms ease;
-    transform: none;
   }
   .skip {
     transition: none;

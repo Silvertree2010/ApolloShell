@@ -6,15 +6,21 @@
 <title>ApolloShell, a desktop shell for macOS Tahoe</title>
 <meta name="description" content="Sidebar, dock, launcher, dashboard and control centre for macOS 26 Tahoe. Free, open source, no accounts or tracking.">
 <meta name="theme-color" content="#060606">
+<link rel="canonical" href="https://silvertree2010.github.io/ApolloShell/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ApolloShell">
+<meta property="og:url" content="https://silvertree2010.github.io/ApolloShell/">
+<meta property="og:title" content="ApolloShell, a desktop shell for macOS Tahoe">
+<meta property="og:description" content="Sidebar, dock, launcher, dashboard and control centre for macOS 26 Tahoe. Free, open source, no accounts or tracking.">
+<meta property="og:image" content="https://silvertree2010.github.io/ApolloShell/shots/share.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A Mac desktop running ApolloShell with the sidebar, dashboard and utilities panel open">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="images/icon.png">
 <link rel="preload" href="fonts/alegreya-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="site.css">
-<link rel="stylesheet" href="panels/shared.css">
-<link rel="stylesheet" href="panels/sidebar.css">
-<link rel="stylesheet" href="panels/launcher.css">
-<link rel="stylesheet" href="panels/utilities.css">
-<link rel="stylesheet" href="panels/dashboard.css">
 <script>document.documentElement.classList.add("js")</script>
 </head>
 <body>
@@ -34,71 +40,33 @@
         <span>Download for macOS</span>
         <span class="file">.dmg</span>
       </a>
-      <div class="command" data-copy="brew trust --tap silvertree2010/apolloshell&#10;brew tap silvertree2010/apolloshell&#10;brew install apolloshell">
-        <code><span class="prompt">$</span> brew trust --tap silvertree2010/<wbr>apolloshell<br><span class="prompt">$</span> brew tap silvertree2010/<wbr>apolloshell<br><span class="prompt">$</span> brew install apolloshell</code>
+      <div class="command" data-copy="brew trust --tap Silvertree2010/apolloshell&#10;brew tap Silvertree2010/apolloshell&#10;brew install apolloshell">
+        <code><span class="line"><span class="prompt">$</span> brew trust --tap Silvertree2010/<wbr>apolloshell</span><span class="line"><span class="prompt">$</span> brew tap Silvertree2010/<wbr>apolloshell</span><span class="line"><span class="prompt">$</span> brew install apolloshell</span></code>
         <button type="button">Copy</button>
       </div>
     </div>
   </section>
 
-  <section class="room left split edge-left" aria-labelledby="sidebar-title">
-    <div class="panel-host lit" data-panel="sidebar" role="group" aria-label="Sidebar preview">
-      <img class="panel-fallback" src="shots/sidebar.webp" width="104" height="1964" loading="lazy" decoding="async"
-        alt="The ApolloShell sidebar: dashboard button, Spaces, dock with app icons, clock, status icons and power button">
-    </div>
+  <section class="room left exhibit" aria-labelledby="desktop-title">
+    <figure class="plate lit">
+      <img src="shots/showcase-desktop.webp" width="2000" height="1125" loading="lazy" decoding="async"
+        alt="A Mac desktop running ApolloShell: the sidebar down the left edge, the dashboard with weather, calendar and now playing dropped from the top, and the utilities panel in the bottom right corner">
+    </figure>
     <div class="label lit">
-      <h2 id="sidebar-title">A sidebar down the left edge.</h2>
-      <p>Your dock, Spaces, the clock and status icons, all built from blocks.</p>
+      <h2 id="desktop-title">Panels at the edges, nothing in the way.</h2>
+      <p>A sidebar down the left, a dashboard from the top, a control centre in the corner. Finder, the menu bar and the Dock keep working.</p>
     </div>
   </section>
 
-  <section class="room right session" aria-labelledby="session-title">
+  <section class="room right exhibit" aria-labelledby="stats-title">
     <div class="label lit">
-      <h2 id="session-title">A power menu with a mood.</h2>
-      <p>Hover a button. The little planet dozes off, waves goodbye or stops to think.</p>
+      <h2 id="stats-title">System stats, one click away.</h2>
+      <p>CPU, GPU, memory, network and battery, plus your connected Bluetooth devices.</p>
     </div>
-    <div class="session-dock lit" data-session>
-      <div class="session-panel" role="group" aria-label="Session menu preview">
-        <button type="button" data-action="logOut" aria-label="Log out" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"/><path d="M9 12h12l-3 -3"/><path d="M18 15l3 -3"/></svg></button>
-        <button type="button" data-action="shutDown" aria-label="Shut down" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6a7.75 7.75 0 1 0 10 0"/><path d="M12 4l0 8"/></svg></button>
-        <canvas class="emblem" width="80" height="80" aria-hidden="true"></canvas>
-        <button type="button" data-action="sleep" aria-label="Sleep" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454l0 .008"/></svg></button>
-        <button type="button" data-action="restart" aria-label="Restart" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.05 11a8 8 0 1 1 .5 4m-.5 5v-5h5"/></svg></button>
-      </div>
-    </div>
-  </section>
-
-  <section class="room left" aria-labelledby="launcher-title">
-    <div class="panel-host lit" data-panel="launcher" role="group" aria-label="Launcher preview">
-      <img class="panel-fallback" src="shots/launcher.webp" width="1280" height="1120" loading="lazy" decoding="async"
-        alt="The launcher with a search field and a list of apps">
-    </div>
-    <div class="label lit">
-      <h2 id="launcher-title">Type a name and hit Enter.</h2>
-      <p>It learns which apps you actually use, and puts them first.</p>
-    </div>
-  </section>
-
-  <section class="room right edge-right" aria-labelledby="utilities-title">
-    <div class="label lit">
-      <h2 id="utilities-title">A control centre tucked in the corner.</h2>
-      <p>Keep your Mac awake, adjust sound, flip toggles, all one click away.</p>
-    </div>
-    <div class="panel-host lit" data-panel="utilities" data-origin="right" role="group" aria-label="Utilities preview">
-      <img class="panel-fallback" src="shots/utilities.webp" width="940" height="932" loading="lazy" decoding="async"
-        alt="Utilities panel with keep awake, sound and quick toggles">
-    </div>
-  </section>
-
-  <section class="room left" aria-labelledby="dashboard-title">
-    <div class="panel-host lit" data-panel="dashboard" role="group" aria-label="Dashboard preview">
-      <img class="panel-fallback" src="shots/dashboard.webp" width="1902" height="1110" loading="lazy" decoding="async"
-        alt="Dashboard with weather, user, clock, calendar, resources and now playing">
-    </div>
-    <div class="label lit">
-      <h2 id="dashboard-title">A dashboard that drops from the top.</h2>
-      <p>Weather, your calendar, system resources and whatever's playing, all at a glance.</p>
-    </div>
+    <figure class="plate lit">
+      <img src="shots/showcase-settings.webp" width="2000" height="1125" loading="lazy" decoding="async"
+        alt="The ApolloShell dashboard on its Performance tab, showing CPU and GPU load, disk and memory use, a network graph and battery charge, with the Bluetooth panel open in the bottom left">
+    </figure>
   </section>
 
 </main>
@@ -115,10 +83,5 @@
 
 <script src="vendor/lenis.min.js"></script>
 <script src="hero.js"></script>
-<script type="module" src="session.js"></script>
-<script type="module" src="panels/sidebar.js"></script>
-<script type="module" src="panels/launcher.js"></script>
-<script type="module" src="panels/utilities.js"></script>
-<script type="module" src="panels/dashboard.js"></script>
 </body>
 </html>
