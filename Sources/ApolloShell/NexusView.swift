@@ -170,6 +170,9 @@ struct NexusView: View {
     let system: NexusSystemInfo
     let shell: NexusShellParts
 
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+
     var body: some View {
         NavigationSplitView {
             NexusSidebar(state: state)
@@ -181,6 +184,9 @@ struct NexusView: View {
                         providers: providers, system: system, shell: shell)
         }
         .frame(minWidth: 680, minHeight: 440)
+        // Mit Theme faerbt `--apollo-surface-color` auch das Fenster. Ohne
+        // Theme bleibt es beim Fenster von macOS, samt Glas der Seitenleiste.
+        .themedWindowBackground(style)
     }
 }
 
@@ -199,6 +205,9 @@ struct NexusShellParts {
 /// Suche gefiltert. Eine Gruppe ohne Treffer verschwindet ganz.
 struct NexusSidebar: View {
     @Bindable var state: NexusState
+
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         List(selection: $state.page) {
@@ -220,6 +229,7 @@ struct NexusSidebar: View {
                 }
             }
         }
+        .themedWindowBackground(style)
     }
 }
 
@@ -282,6 +292,9 @@ struct NexusPageForm<Content: View>: View {
     var subtitle: String?
     @ViewBuilder let content: Content
 
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+
     var body: some View {
         Form {
             Section {
@@ -301,6 +314,7 @@ struct NexusPageForm<Content: View>: View {
             content
         }
         .formStyle(.grouped)
+        .themedWindowBackground(style)
         .navigationTitle(page.title)
     }
 }

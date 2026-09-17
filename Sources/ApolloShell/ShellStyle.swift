@@ -87,6 +87,12 @@ struct ShellStyle: Equatable {
         return theme.number(.barOpacity, dark: dark) >= 1
     }
 
+    /// Flaeche von Fenstern und Listen (`--apollo-surface-color`, mit
+    /// `--apollo-surface-gradient`).
+    var surfaceFill: AnyShapeStyle {
+        fill(.surface, .surface, fallback: Color(nsColor: .windowBackgroundColor))
+    }
+
     var panelFill: AnyShapeStyle {
         fill(.panel, .panel, fallback: Color(nsColor: .windowBackgroundColor))
     }
@@ -260,6 +266,21 @@ private struct ShellThemeScope: ViewModifier {
 }
 
 extension View {
+    /// Faerbt den Hintergrund eines Fensters oder einer Liste nach dem Theme.
+    ///
+    /// Ohne Theme bleibt alles, wie macOS es zeichnet - also auch das Glas
+    /// der Seitenleiste von Nexus. Mit Theme wird der eigene Hintergrund der
+    /// Rollflaeche ausgeblendet, sonst laege er darueber.
+    @ViewBuilder
+    func themedWindowBackground(_ style: ShellStyle) -> some View {
+        if style.isThemed {
+            scrollContentBackground(.hidden)
+                .background(style.surfaceFill)
+        } else {
+            self
+        }
+    }
+
     /// An die Wurzel eines Fensters: setzt `tint` und den Stil in der Umgebung.
     func shellTheme(_ store: ThemeStore? = ThemeStore.shared) -> some View {
         modifier(OptionalShellThemeScope(store: store))
