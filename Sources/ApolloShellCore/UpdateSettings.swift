@@ -32,10 +32,11 @@ public struct UpdateSettings: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        checkAutomatically = c.lenient(.checkAutomatically) ?? true
-        installAutomatically = c.lenient(.installAutomatically) ?? true
-        lastCheck = c.lenient(.lastCheck)
+        c.lenient(.checkAutomatically, into: &checkAutomatically)
+        c.lenient(.installAutomatically, into: &installAutomatically)
+        c.lenient(.lastCheck, into: &lastCheck)
     }
 }
 

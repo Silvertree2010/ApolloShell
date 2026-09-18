@@ -87,8 +87,9 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         }
 
         public init(from decoder: any Decoder) throws {
+            self.init()
             let c = try decoder.container(keyedBy: CodingKeys.self)
-            layout = c.lenient(.layout) ?? UtilitiesPreset.standard.layout
+            c.lenient(.layout, into: &layout)
         }
     }
 
@@ -123,13 +124,12 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         }
 
         public init(from decoder: any Decoder) throws {
+            self.init()
             let c = try decoder.container(keyedBy: CodingKeys.self)
-            // Vor dieser Einstellung gab es den Schluessel nicht; dann alle
-            // Bildschirme. Muss vor dem Ausstieg unten stehen.
-            screens = c.lenient(.screens) ?? .all
-            // Dito: vor dieser Einstellung gab es den Schluessel nicht, dann
-            // der Hintergrund von damals (Material).
-            background = c.lenient(.background) ?? .standard
+            // Vor diesen Einstellungen gab es die Schluessel nicht; dann die
+            // Vorgaben (alle Bildschirme, Hintergrund von damals: Material).
+            c.lenient(.screens, into: &screens)
+            c.lenient(.background, into: &background)
             // Auch eine leere Liste ist eine Leiste (alles entfernt) - nur
             // eine fehlende oder unlesbare faellt auf die alten Schalter zurueck.
             if let layout: BarLayout = c.lenient(.layout) {
@@ -172,12 +172,12 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         }
 
         public init(from decoder: any Decoder) throws {
+            self.init()
             let c = try decoder.container(keyedBy: CodingKeys.self)
-            let d = Toasts()
-            chargingChanged = c.lenient(.chargingChanged) ?? d.chargingChanged
-            batteryWarnings = c.lenient(.batteryWarnings) ?? d.batteryWarnings
-            audioOutputChanged = c.lenient(.audioOutputChanged) ?? d.audioOutputChanged
-            audioInputChanged = c.lenient(.audioInputChanged) ?? d.audioInputChanged
+            c.lenient(.chargingChanged, into: &chargingChanged)
+            c.lenient(.batteryWarnings, into: &batteryWarnings)
+            c.lenient(.audioOutputChanged, into: &audioOutputChanged)
+            c.lenient(.audioInputChanged, into: &audioInputChanged)
         }
 
         /// Ob ein Akku-Ereignis gemeldet wird.
@@ -198,8 +198,9 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         }
 
         public init(from decoder: any Decoder) throws {
+            self.init()
             let c = try decoder.container(keyedBy: CodingKeys.self)
-            desktopClock = c.lenient(.desktopClock) ?? Background().desktopClock
+            c.lenient(.desktopClock, into: &desktopClock)
         }
     }
 
