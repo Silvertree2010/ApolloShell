@@ -105,4 +105,25 @@ struct ShellSettingsTests {
     func batteryFilter(toasts: ShellSettings.Toasts, event: BatteryToastEvent, shown: Bool) {
         #expect(toasts.allows(event) == shown)
     }
+
+    // MARK: Seiten des Dashboards (0.2)
+
+    @Test("Seiten und Groesse: fehlen in alten Dateien, Regler begrenzt, alter Abschnitt bleibt")
+    func dashboardPages() throws {
+        let old = ShellSettings.load(from: Data(#"{"dashboard":{"tabs":[{"id":"media","visible":false}]}}"#.utf8))
+        #expect(old.dashboardPages == nil)
+        #expect(old.dashboardScale == 1)
+
+        var settings = old
+        settings.dashboardPages = DashboardPages(pages: DashboardPages.defaultPages(places: .empty, hasBattery: true))
+        settings.dashboardScale = 1.2
+        let reread = ShellSettings.load(from: settings.encoded())
+        #expect(reread.dashboardPages == settings.dashboardPages)
+        #expect(reread.dashboardScale == 1.2)
+        #expect(reread.dashboard == old.dashboard)
+
+        let loud = ShellSettings.load(from: Data(#"{"dashboardScale":9,"dashboardPages":[]}"#.utf8))
+        #expect(loud.dashboardScale == 1.5)
+        #expect(loud.dashboardPages == nil)
+    }
 }

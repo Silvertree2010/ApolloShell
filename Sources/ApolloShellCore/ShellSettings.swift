@@ -24,6 +24,14 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     /// Dashboard (Caelestia: dashboard): Reiter und Karten, siehe
     /// `DashboardLayout`. Fehlt der Abschnitt, gilt Caelestias Dashboard.
     public var dashboard = DashboardLayout()
+    /// Seiten des Bento-Dashboards (0.2). `nil`: noch nie gespeichert oder
+    /// nicht lesbar - die App baut sie dann einmal aus `dashboard`
+    /// (`DashboardPages.migrated`). `dashboard` selbst bleibt unangetastet,
+    /// damit ein Zurueck auf 0.1.x nichts verliert.
+    public var dashboardPages: DashboardPages?
+    /// Groesse des Dashboards zusaetzlich zur Automatik nach Bildschirm
+    /// (Nexus-Regler), `BentoGeometry.userScaleRange`.
+    public var dashboardScale: Double = 1
     /// Globale Tastenkuerzel (Nexus > Tastenkürzel).
     public var hotKeys = HotKeySettings.existingInstall
     /// "Wach halten" auch zugeklappt.
@@ -45,6 +53,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     public init(bar: Bar = Bar(), toasts: Toasts = Toasts(), background: Background = Background(),
                 providers: Providers = Providers(), utilities: Utilities = Utilities(),
                 dashboard: DashboardLayout = DashboardLayout(),
+                dashboardPages: DashboardPages? = nil,
+                dashboardScale: Double = 1,
                 hotKeys: HotKeySettings = .existingInstall,
                 keepAwake: KeepAwakeSettings = .existingInstall,
                 onboarding: OnboardingSettings = .existingInstall,
@@ -57,6 +67,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         self.providers = providers
         self.utilities = utilities
         self.dashboard = dashboard
+        self.dashboardPages = dashboardPages
+        self.dashboardScale = BentoGeometry.clampedUserScale(dashboardScale)
         self.hotKeys = hotKeys
         self.keepAwake = keepAwake
         self.onboarding = onboarding
@@ -251,6 +263,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         providers = c.lenient(.providers) ?? Providers()
         utilities = c.lenient(.utilities) ?? Utilities()
         dashboard = c.lenient(.dashboard) ?? DashboardLayout()
+        dashboardPages = c.lenient(.dashboardPages)
+        dashboardScale = BentoGeometry.clampedUserScale(c.lenient(.dashboardScale) ?? 1)
         // Fehlt ein Abschnitt, stammt die Datei von vor der Veroeffentlichung:
         // wie bisher (alte Kuerzel, zugeklappt wach, keine Einfuehrung).
         hotKeys = c.lenient(.hotKeys) ?? .existingInstall
