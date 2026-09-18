@@ -71,11 +71,7 @@ final class ToastWindow {
     /// mehr gibt. Lebt so lange wie der Prozess, der Beobachter haelt das
     /// Fenster nur schwach.
     private func observeScreenChanges() {
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.screensChanged() }
-        }
+        ShellScreens.onChange { [weak self] in self?.screensChanged() }
     }
 
     private func screensChanged() {

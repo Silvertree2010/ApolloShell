@@ -100,11 +100,7 @@ final class SpacesModel {
                 MainActor.assumeIsolated { self?.refresh() }
             }
         }
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refresh() }
-        }
+        ShellScreens.onChange { [weak self] in self?.refresh() }
     }
 }
 

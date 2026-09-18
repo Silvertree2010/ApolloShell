@@ -482,19 +482,15 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// Fensters weg, geht es zu - sonst stuende es auf einem Rahmen, den es
     /// nicht mehr gibt. Ist er noch da, wird neu vermessen.
     private func observeScreenChanges() {
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self, self.isOpen, let current = self.currentScreen else { return }
-                guard let same = ShellScreens.current().first(where: { $0.displayID == current.displayID }) else {
-                    self.close()
-                    return
-                }
-                self.applyGeometry(on: same)
-                self.builtPanel?.setFrame(self.windowFrame(on: same), display: true)
-                self.builtScrim?.setFrame(same.frame, display: true)
+        ShellScreens.onChange { [weak self] in
+            guard let self, self.isOpen, let current = self.currentScreen else { return }
+            guard let same = ShellScreens.current().first(where: { $0.displayID == current.displayID }) else {
+                self.close()
+                return
             }
+            self.applyGeometry(on: same)
+            self.builtPanel?.setFrame(self.windowFrame(on: same), display: true)
+            self.builtScrim?.setFrame(same.frame, display: true)
         }
     }
 

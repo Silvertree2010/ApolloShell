@@ -61,7 +61,8 @@ final class Sidebar {
     private let clock = SidebarClockModel()
 
     /// Eine Leiste je Bildschirm, nach Display-Kennung.
-    private var bars: [CGDirectDisplayID: SidebarScreen] = [:]
+    private var slots = ScreenSlots<SidebarScreen>()
+    private var bars: [CGDirectDisplayID: SidebarScreen] { slots.items }
     /// Bildschirme, auf denen gerade eine Vollbild-App steht.
     private var fullscreenScreens: Set<CGDirectDisplayID> = []
     private var context: BarModuleContext!
@@ -157,38 +158,32 @@ final class Sidebar {
     /// aufzubauen. Kommen sie zurueck, meldet sich
     /// didChangeScreenParametersNotification und es geht hier weiter.
     private func rebuild() {
-        let all = ShellScreens.current()
-        guard !all.isEmpty else {
-            log.notice("kein Bildschirm, die Leisten bleiben stehen")
-            return
-        }
-        let wanted = ShellScreens.targets(for: settings.settings.bar.screens, among: all)
-        let keep = Set(wanted.map(\.displayID))
-
-        // Bildschirm weg oder abgewaehlt: Leiste abraeumen. Das schliesst
-        // auch ein Popout, das dort noch offen stand.
-        for (id, bar) in bars where !keep.contains(id) {
-            bar.tearDown()
-            bars[id] = nil
-        }
-
-        for screen in wanted {
-            let hidden = fullscreenScreens.contains(screen.displayID)
-            if let bar = bars[screen.displayID] {
-                bar.update(screen: screen)
-                bar.setHiddenForFullscreen(hidden)
-            } else {
+        let settings = settings
+        let context = context!
+        let placed = slots.distribute(
+            on: settings.settings.bar.screens,
+            make: { screen in
                 let bar = SidebarScreen(screen: screen, settings: settings, context: context)
                 bar.onPopoutOpen = { [weak self] id in self?.closePopouts(except: id) }
-                bar.setHiddenForFullscreen(hidden)
-                bars[screen.displayID] = bar
-            }
+                return bar
+            },
+            update: { bar, screen in
+                bar.update(screen: screen)
+                bar.setHiddenForFullscreen(fullscreenScreens.contains(screen.displayID))
+            },
+            // Bildschirm weg oder abgewaehlt. Das schliesst auch ein Popout,
+            // das dort noch offen stand.
+            remove: { $0.tearDown() }
+        )
+        guard let placed else {
+            log.notice("kein Bildschirm, die Leisten bleiben stehen")
+            return
         }
 
         updateModelDemand()
         laidOutWidth = Sidebar.width
-        log.notice("Leisten auf \(self.bars.count, privacy: .public) von \(all.count, privacy: .public) Bildschirm(en)")
-        onScreensChange(wanted.map(\.info))
+        log.notice("Leisten auf \(placed.count, privacy: .public) Bildschirm(en)")
+        onScreensChange(placed.map(\.info))
     }
 
     /// Es ist immer nur ein Statuspopout offen: geht eines auf, schliesst
@@ -212,17 +207,12 @@ final class Sidebar {
     /// der Prozess (AppDelegate haelt ihn), und die Bloecke halten ihn nur
     /// schwach.
     private func observeSystemChanges() {
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self else { return }
-                // Neue Aufloesung oder Anordnung: Lage und Hoehe eines
-                // offenen Popouts stimmen nicht mehr.
-                for bar in self.bars.values { bar.closePopout() }
-                self.rebuild()
-            }
+        ShellScreens.onChange { [weak self] in
+            guard let self else { return }
+            // Neue Aufloesung oder Anordnung: Lage und Hoehe eines offenen
+            // Popouts stimmen nicht mehr.
+            for bar in self.bars.values { bar.closePopout() }
+            self.rebuild()
         }
 
         let workspace = NSWorkspace.shared.notificationCenter

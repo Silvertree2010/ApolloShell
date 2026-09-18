@@ -85,10 +85,64 @@ enum ShellScreens {
         at(NSEvent.mouseLocation, among: all)
     }
 
+    /// Meldet jede Aenderung an den Bildschirmen: angesteckt, abgezogen,
+    /// andere Aufloesung oder Anordnung. Der Beobachter lebt so lange wie der
+    /// Prozess; wer ihn anlegt, haelt sich darin deshalb nur schwach.
+    static func onChange(_ handler: @escaping @MainActor () -> Void) {
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { handler() }
+        }
+    }
+
     /// `NSScreenNumber` aus der Geraetebeschreibung ist die
     /// CGDirectDisplayID. Fehlt sie (kommt bei einem Bildschirm, der gerade
     /// verschwindet, vor), zaehlt der Bildschirm nicht mit.
     private static func displayID(of screen: NSScreen) -> CGDirectDisplayID? {
         (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
+    }
+}
+
+/// Ein Eintrag je Bildschirm, nach Display-Kennung: anlegen, auffrischen,
+/// abraeumen - so, wie die Einstellung und die angeschlossenen Bildschirme
+/// es gerade verlangen. Leiste und Schreibtisch-Uhr verteilen sich so.
+@MainActor
+struct ScreenSlots<Item> {
+    private(set) var items: [CGDirectDisplayID: Item] = [:]
+
+    /// Neu verteilen. `make` legt fuer einen neuen Bildschirm an, `update`
+    /// laeuft danach fuer JEDEN gewuenschten (neu oder schon da), `remove`
+    /// fuer jeden, der weg oder abgewaehlt ist.
+    ///
+    /// Ohne Bildschirme (Kabel mitten im Umstecken, `NSScreen.screens` leer)
+    /// bleibt alles stehen, statt abgerissen und gleich wieder aufgebaut zu
+    /// werden: dann `nil`. Kommen sie zurueck, meldet sich `onChange`.
+    /// Sonst die Bildschirme, auf denen jetzt ein Eintrag steht.
+    @discardableResult
+    mutating func distribute(on choice: ScreenChoice,
+                             make: (ShellScreen) -> Item,
+                             update: (Item, ShellScreen) -> Void,
+                             remove: (Item) -> Void) -> [ShellScreen]? {
+        let all = ShellScreens.current()
+        guard !all.isEmpty else { return nil }
+        let wanted = ShellScreens.targets(for: choice, among: all)
+        let keep = Set(wanted.map(\.displayID))
+        for (id, item) in items where !keep.contains(id) {
+            remove(item)
+            items[id] = nil
+        }
+        for screen in wanted {
+            let item = items[screen.displayID] ?? make(screen)
+            items[screen.displayID] = item
+            update(item, screen)
+        }
+        return wanted
+    }
+
+    /// Alles abraeumen (z. B. ausgeschaltet).
+    mutating func removeAll(_ remove: (Item) -> Void) {
+        for item in items.values { remove(item) }
+        items = [:]
     }
 }

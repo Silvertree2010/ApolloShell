@@ -53,11 +53,7 @@ final class FullscreenMonitor {
                 MainActor.assumeIsolated { self?.scheduleChecks() }
             }
         }
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.scheduleChecks() }
-        }
+        ShellScreens.onChange { [weak self] in self?.scheduleChecks() }
     }
 
     private func scheduleChecks() {

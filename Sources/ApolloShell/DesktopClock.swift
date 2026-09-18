@@ -22,7 +22,7 @@ final class DesktopClock {
     private let model = DesktopClockModel()
     private let settings: ShellSettingsStore
     /// Ein Fenster je Bildschirm, nach Display-Kennung.
-    private var windows: [CGDirectDisplayID: DesktopClockWindow] = [:]
+    private var slots = ScreenSlots<DesktopClockWindow>()
     private var timer: Timer?
     private var enabled = false
     private var observation: Task<Void, Never>?
@@ -56,8 +56,7 @@ final class DesktopClock {
         } else {
             timer?.invalidate()
             timer = nil
-            for window in windows.values { window.tearDown() }
-            windows = [:]
+            slots.removeAll { $0.tearDown() }
         }
     }
 
@@ -66,21 +65,16 @@ final class DesktopClock {
     /// alles stehen (Kabel mitten im Umstecken).
     private func rebuild() {
         guard enabled else { return }
-        let all = ShellScreens.current()
-        guard !all.isEmpty else { return }
-        let wanted = ShellScreens.targets(for: settings.settings.bar.screens, among: all)
-        let keep = Set(wanted.map(\.displayID))
-
-        for (id, window) in windows where !keep.contains(id) {
-            window.tearDown()
-            windows[id] = nil
-        }
-        for screen in wanted {
-            let window = windows[screen.displayID] ?? DesktopClockWindow(model: model)
-            windows[screen.displayID] = window
-            window.layout(on: screen, margin: Self.margin, model: model)
-            window.show()
-        }
+        let model = model
+        slots.distribute(
+            on: settings.settings.bar.screens,
+            make: { _ in DesktopClockWindow(model: model) },
+            update: { window, screen in
+                window.layout(on: screen, margin: Self.margin, model: model)
+                window.show()
+            },
+            remove: { $0.tearDown() }
+        )
     }
 
     /// Nur die Rahmen neu setzen (die Breite aendert sich mit dem Text), ohne
@@ -90,7 +84,7 @@ final class DesktopClock {
         let all = ShellScreens.current()
         guard !all.isEmpty else { return }
         for screen in ShellScreens.targets(for: settings.settings.bar.screens, among: all) {
-            windows[screen.displayID]?.layout(on: screen, margin: Self.margin, model: model)
+            slots.items[screen.displayID]?.layout(on: screen, margin: Self.margin, model: model)
         }
     }
 
@@ -119,11 +113,7 @@ final class DesktopClock {
     /// Nach Aufwachen stimmt die Minute nicht mehr; nach Bildschirmwechsel
     /// die Verteilung und die Position nicht.
     private func observeSystemChanges() {
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.rebuild() }
-        }
+        ShellScreens.onChange { [weak self] in self?.rebuild() }
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
         ) { [weak self] _ in

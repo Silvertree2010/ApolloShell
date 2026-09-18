@@ -158,14 +158,9 @@ final class WindowGuard {
             }
         }
 
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self, let screens = self.screensForWorker() else { return }
-                worker.screensChanged(screens)
-            }
+        ShellScreens.onChange { [weak self] in
+            guard let self, let screens = self.screensForWorker() else { return }
+            worker.screensChanged(screens)
         }
     }
 }
