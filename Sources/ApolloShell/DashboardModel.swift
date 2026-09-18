@@ -48,7 +48,9 @@ final class DashboardModel {
 
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var lastTicks: CPUTicks?
-    @ObservationIgnored private var isOpen = false
+    /// Ob das Fenster gerade offen (oder angepinnt zur Bearbeitung) ist -
+    /// `DashboardView` liest es, um Wetter-Modelle nur dann neu zu starten.
+    @ObservationIgnored private(set) var isOpen = false
     /// Feste Laufzeit fuer Bildproben; `nil` = die echte.
     @ObservationIgnored private var fixedUptime: TimeInterval?
 

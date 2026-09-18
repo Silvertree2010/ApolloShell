@@ -56,10 +56,31 @@ struct DashboardView: View {
             content(pages: pages, selected: selected)
                 .scaleEffect(model.scale, anchor: .topLeading)
         }
-        // Ein Wechsel der Seite (auch aus `Dashboard.show(tab:)`) zieht nach,
-        // ob die Leistungs-Messung laufen soll.
-        .onChange(of: selected.id, initial: true) { _, _ in
-            model.showsPerformance = selected.widgets.contains { $0.kind.isPerformance }
+        // Ein Wechsel der gezeigten Widgets (Seitenwechsel - auch aus
+        // `Dashboard.show(tab:)` oder waehrend einer Bearbeitung -, oder ein
+        // abgelegtes/entferntes Widget auf derselben Seite) zieht nach, ob
+        // die Leistungs-Messung laufen soll, und startet die Wetter-Modelle
+        // der jetzt gezeigten Wetter-Widgets neu, solange offen.
+        .onChange(of: PageWidgetsKey(page: selected), initial: true) { _, key in
+            model.showsPerformance = key.kinds.contains { $0.isPerformance }
+            if model.isOpen {
+                weatherModels.start(for: selected.widgets.filter { $0.kind.usesPlaces })
+            }
+        }
+    }
+
+    /// Vergleichswert fuer `.onChange`: aendert sich bei jedem Wechsel der
+    /// gezeigten Seite und bei jeder Aenderung ihrer Widgets (Art oder
+    /// Kennung) - nicht bei blossen Optionsaenderungen (z. B. Orte).
+    private struct PageWidgetsKey: Equatable {
+        let pageID: DashboardPage.ID
+        let kinds: [WidgetKind]
+        let widgetIDs: [WidgetInstance.ID]
+
+        init(page: DashboardPage) {
+            pageID = page.id
+            kinds = page.widgets.map(\.kind)
+            widgetIDs = page.widgets.map(\.id)
         }
     }
 
