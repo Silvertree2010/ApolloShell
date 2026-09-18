@@ -447,3 +447,24 @@
 "%lld Hinweis(e)" = "%lld note(s)";
 "Das ist kein Theme: erwartet wird eine .css-Datei oder ein Ordner mit theme.css." = "That is not a theme: a .css file or a folder with a theme.css is expected.";
 "In diesem Ordner fehlt theme.css." = "This folder has no theme.css.";
+
+/* NexusDashboardPage.swift */
+"Größe" = "Size";
+"Zusätzlich zur Automatik nach Bildschirmgröße." = "On top of the automatic scaling by screen size.";
+"Bearbeiten …" = "Edit…";
+
+/* NexusDashboardPages.swift */
+"Zum Umsortieren ziehen. Ein Klick auf „Bearbeiten“ öffnet die gewählte Seite als Baukasten." = "Drag to reorder. A click on “Edit” opens the selected page as a kit.";
+"Seite hinzufügen" = "Add Page";
+"Standardseiten wiederherstellen" = "Restore Default Pages";
+"Fehlende mitgelieferte Seiten (Dashboard, Medien, Leistung, Wetter) kommen ans Ende zurück; vorhandene Seiten bleiben unverändert." = "Missing built-in pages (Dashboard, Media, Performance, Weather) come back at the end; existing pages stay unchanged.";
+"Löschen" = "Delete";
+"Ihre Widgets gehen dabei verloren." = "Its widgets are lost with it.";
+
+/* NexusDashboardWidgets.swift */
+"In das Dashboard ziehen." = "Drag onto the dashboard.";
+"Alle Widgets zeigen (erweitert)" = "Show All Widgets (Advanced)";
+
+/* NexusWidgetOptions.swift */
+"Ein Widget im Dashboard anklicken." = "Click a widget in the dashboard.";
+"Für dieses Widget gibt es keine Einstellungen." = "There are no settings for this widget.";

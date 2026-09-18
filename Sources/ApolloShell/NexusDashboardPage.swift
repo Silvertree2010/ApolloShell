@@ -4,12 +4,11 @@ import Observation
 import SwiftUI
 import os
 
-/// Wetter-Favoriten fuer das Dashboard: Ortssuche bei Open-Meteo, gespeichert
-/// in weather.json. `WeatherModel.start()` liest die Datei bei jedem Oeffnen
-/// des Dashboards; eine Aenderung gilt also beim naechsten Oeffnen, und das
-/// alte Wetter wird dort sofort verworfen. Gleichzeitig offen sind Nexus und
-/// Dashboard nie (das Dashboard schliesst, sobald ein anderes Fenster den
-/// Fokus hat) - "sofort" braucht es deshalb nicht.
+/// Wetter-Favoriten fuer ein Widget (0.2: je Wetter-Widget eine eigene
+/// Liste, `WidgetOptions.places`) oder, mit `.file`, fuer die alte,
+/// gemeinsame weather.json (Umzug, Wetter-Reiter vor 0.2). `read`/`write`
+/// sind der Sink: `NexusWidgetPlacesSection` (NexusWidgetOptions.swift)
+/// gibt eigene, die in genau das eine Widget schreiben.
 @MainActor
 @Observable
 final class NexusWeatherModel {
@@ -21,7 +20,7 @@ final class NexusWeatherModel {
         case failed
     }
 
-    private(set) var favorites = WeatherFavorites.empty
+    private(set) var favorites: WeatherFavorites
     var query = "" {
         didSet { if query != oldValue { scheduleSearch() } }
     }
@@ -29,7 +28,8 @@ final class NexusWeatherModel {
     private(set) var state = SearchState.idle
     private(set) var saveFailed = false
 
-    @ObservationIgnored private let url: URL?
+    @ObservationIgnored private let readFavorites: (@MainActor () -> WeatherFavorites)?
+    @ObservationIgnored private let writeFavorites: (@MainActor (WeatherFavorites) -> Bool)?
     @ObservationIgnored private let live: Bool
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private let log = Logger(category: "nexus")
@@ -42,15 +42,38 @@ final class NexusWeatherModel {
         return URLSession(configuration: configuration)
     }()
 
-    /// `url == nil`: nur im Speicher.
-    init(url: URL?) {
-        self.url = url
+    /// Eigener Sink, z. B. das eine Widget einer Bearbeitung
+    /// (`NexusWidgetPlacesSection`). `write` liefert `false`, wenn es nicht
+    /// geschrieben werden konnte (zeigt `NexusSaveWarning`).
+    init(read: @escaping @MainActor () -> WeatherFavorites, write: @escaping @MainActor (WeatherFavorites) -> Bool) {
+        readFavorites = read
+        writeFavorites = write
         live = true
+        favorites = read()
+    }
+
+    /// Die Datei weather.json - vor 0.2 der einzige Ort, heute nur noch fuer
+    /// den Umzug gelesen (`Dashboard.init`, `DashboardPages.migrated`).
+    static func file(url: URL?) -> NexusWeatherModel {
+        NexusWeatherModel(
+            read: { WeatherFavorites.load(from: ShellFiles.read(url)) },
+            write: { new in
+                guard let url else { return true }
+                do {
+                    try ShellFiles.write(new.fileData(), to: url)
+                    return true
+                } catch {
+                    return false
+                }
+            }
+        )
     }
 
     private init(preview: Void) {
-        url = nil
+        readFavorites = nil
+        writeFavorites = nil
         live = false
+        favorites = .empty
     }
 
     /// Fuer Bildproben: fester Stand, fragt nie im Netz.
@@ -64,9 +87,12 @@ final class NexusWeatherModel {
         return model
     }
 
+    /// Frisch vom Sink lesen (Nexus-Fenster oeffnen: die Datei koennte sich
+    /// seither geaendert haben; ein Widget aendert sich nur durch die
+    /// laufende Sitzung selbst, das Neulesen schadet dort aber nicht).
     func reload() {
-        guard live else { return }
-        favorites = WeatherFavorites.load(from: ShellFiles.read(url))
+        guard live, let readFavorites else { return }
+        favorites = readFavorites()
     }
 
     /// Erst nach einer Tipppause fragen (`OpenMeteoGeocoding.debounce`), und
@@ -149,109 +175,122 @@ final class NexusWeatherModel {
 
     private func write(_ new: WeatherFavorites) {
         favorites = new
-        guard let url else { return }
-        do {
-            try ShellFiles.write(new.fileData(), to: url)
-            if saveFailed { saveFailed = false }
-        } catch {
-            saveFailed = true
-            log.error("weather.json nicht gespeichert: \(error.localizedDescription, privacy: .public)")
-        }
+        guard let writeFavorites else { return }
+        saveFailed = !writeFavorites(new)
     }
 }
 
-/// Caelestia: Panels > Dashboard und Language & region > Weather (dort noch
-/// "Location picker coming soon"). Oben der Baukasten (Reiter, Karten,
-/// Vorlagen; NexusDashboardEditor.swift), darunter der Wetterort, unten fest
-/// die Vorschau.
+/// Nexus > Dashboard (Caelestia: Panels > Dashboard). Nicht editierend: die
+/// Seiten verwalten (`NexusDashboardPagesSection`), der Groessenregler und
+/// die Vorschau der gewaehlten Seite. Waehrend `editor.isEditing`: dieselbe
+/// Nexus-Seite zeigt stattdessen den Baukasten der gerade bearbeiteten Seite
+/// (design/2026-09-18-bento-plan-edit.md Task 4).
 struct NexusDashboardPage: View {
     @Bindable var store: ShellSettingsStore
-    @Bindable var model: NexusWeatherModel
-    @State private var showsGallery = false
-    @State private var pending: LayoutPresetReplacement<DashboardPreset>?
-    /// Aufgeklappte Karten: bleiben beim Umsortieren offen.
-    @State private var expanded: Set<DashboardCardKind>
-
-    /// `expanded`: schon aufgeklappte Karten (Bildprobe).
-    init(store: ShellSettingsStore, model: NexusWeatherModel, expanded: Set<DashboardCardKind> = []) {
-        _store = Bindable(store)
-        _model = Bindable(model)
-        _expanded = State(initialValue: expanded)
-    }
+    @Bindable var editor: DashboardEditor
+    let weatherFile: URL?
+    @State private var selectedPageID: DashboardPage.ID?
 
     var body: some View {
         GeometryReader { geometry in
-            VStack(spacing: 0) {
-                NexusPageForm(page: .dashboard) {
-                    NexusDashboardTabsSection(store: store)
-                    NexusDashboardCardSections(store: store, expanded: $expanded,
-                                               onAdd: { showsGallery = true }, onReplace: { pending = $0 })
-                    weatherSections
-                    NexusSaveWarning(failed: store.saveFailed)
-                    NexusSaveWarning(failed: model.saveFailed, file: "weather.json")
+            if editor.isEditing {
+                NexusDashboardEditLayout(store: store, editor: editor, weatherFile: weatherFile)
+            } else {
+                VStack(spacing: 0) {
+                    NexusPageForm(page: .dashboard) {
+                        NexusDashboardPagesSection(
+                            store: store, selection: $selectedPageID,
+                            weatherPlaces: WeatherFavorites.load(from: ShellFiles.read(weatherFile)),
+                            onEdit: beginEditing
+                        )
+                        Section {
+                            sizeSlider
+                        } header: {
+                            Text("Größe")
+                        } footer: {
+                            Text("Zusätzlich zur Automatik nach Bildschirmgröße.")
+                        }
+                        Section {
+                            Button {
+                                beginEditing(selectedPageID ?? store.settings.dashboardPages?.pages.first?.id)
+                            } label: {
+                                Label("Bearbeiten …", systemImage: "pencil")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .controlSize(.large)
+                        }
+                        NexusSaveWarning(failed: store.saveFailed)
+                    }
+                    Divider()
+                    NexusDashboardPreview(store: store, pageID: selectedPageID)
+                        .frame(height: NexusDashboardPreview.height(for: geometry.size.height))
                 }
-                Divider()
-                NexusDashboardPreview(store: store)
-                    .frame(height: NexusDashboardPreview.height(for: geometry.size.height))
             }
         }
-        .sheet(isPresented: $showsGallery) {
-            NexusDashboardGallery(cards: store.settings.dashboard.cards, onAdd: add, onCancel: { showsGallery = false })
-        }
-        .nexusPresetAlert($pending, title: NexusDashboardText.replacementTitle, message: NexusDashboardText.replacementMessage) { layout in
-            store.settings.dashboard = layout
-            expanded = []
+        .onAppear {
+            if selectedPageID == nil { selectedPageID = store.settings.dashboardPages?.pages.first?.id }
         }
     }
 
-    /// Aus der Galerie: an ihren Platz, mit Optionen gleich aufgeklappt.
-    private func add(_ kind: DashboardCardKind) {
-        showsGallery = false
-        if store.settings.dashboard.cards.add(kind) != nil {
-            expanded.insert(kind)
+    private var sizeSlider: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Slider(value: Binding(
+                get: { store.settings.dashboardScale },
+                set: { store.settings.dashboardScale = BentoGeometry.clampedUserScale($0) }
+            ), in: BentoGeometry.userScaleRange)
+            Text("\(Int((store.settings.dashboardScale * 100).rounded())) %")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
-    @ViewBuilder private var weatherSections: some View {
-            Section {
-                if model.favorites.locations.isEmpty {
-                    Text("Noch keine Favoriten – unten einen Ort suchen und hinzufügen.")
-                        .foregroundStyle(.secondary)
-                }
-                ForEach(model.favorites.locations) { place in
-                    NexusWeatherFavoriteRow(model: model, place: place)
-                }
-                .onMove { model.moveFavorites(fromOffsets: $0, toOffset: $1) }
-            } header: {
-                Text("Favoriten")
-            } footer: {
-                Text("Der gewählte Favorit gilt fürs Wetter. Zum Umsortieren ziehen. Das Dashboard zeigt eine Änderung beim nächsten Öffnen.")
-            }
-
-            Section {
-                NexusSearchField(prompt: "Ort suchen", text: $model.query, busy: model.state == .searching)
-                ForEach(model.results) { place in
-                    NexusWeatherSearchRow(model: model, place: place)
-                }
-                switch model.state {
-                case .done where model.results.isEmpty:
-                    Text("Kein Ort gefunden.")
-                        .foregroundStyle(.secondary)
-                case .failed:
-                    Label("Open-Meteo nicht erreichbar.", systemImage: "wifi.exclamationmark")
-                        .foregroundStyle(.secondary)
-                default:
-                    EmptyView()
-                }
-            } header: {
-                Text("Ort suchen")
-            } footer: {
-                Text("Die Suche fragt Open-Meteo erst, wenn du tippst.")
-            }
+    private func beginEditing(_ pageID: DashboardPage.ID?) {
+        guard let pageID, let window = NSApp.keyWindow ?? NSApp.windows.first(where: \.isVisible),
+              let screen = window.screen
+        else { return }
+        editor.begin(pageID: pageID, screen: screen)
     }
 }
 
-private struct NexusWeatherFavoriteRow: View {
+/// Drei Spalten waehrend der Bearbeitung: Seiten (nur waehlen), Widgets zum
+/// Ziehen, Optionen des gewaehlten Widgets - darunter Abbrechen/Fertig.
+struct NexusDashboardEditLayout: View {
+    @Bindable var store: ShellSettingsStore
+    @Bindable var editor: DashboardEditor
+    let weatherFile: URL?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                NexusDashboardEditPagesList(editor: editor)
+                    .frame(width: 160)
+                Divider()
+                Form {
+                    NexusDashboardWidgetsSection()
+                }
+                .formStyle(.grouped)
+                .frame(minWidth: 260)
+                Divider()
+                Form {
+                    NexusDashboardOptionsSection(editor: editor, weatherFile: weatherFile)
+                }
+                .formStyle(.grouped)
+                .frame(minWidth: 260)
+            }
+            Divider()
+            HStack {
+                Spacer()
+                Button("Abbrechen") { editor.cancel() }
+                Button("Fertig") { editor.done() }
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding()
+        }
+        .navigationTitle("Dashboard bearbeiten")
+    }
+}
+
+struct NexusWeatherFavoriteRow: View {
     let model: NexusWeatherModel
     let place: WeatherLocation
 
@@ -293,7 +332,7 @@ private struct NexusWeatherFavoriteRow: View {
     }
 }
 
-private struct NexusWeatherSearchRow: View {
+struct NexusWeatherSearchRow: View {
     let model: NexusWeatherModel
     let place: GeocodingPlace
 

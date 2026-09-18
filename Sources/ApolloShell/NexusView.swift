@@ -169,6 +169,8 @@ struct NexusView: View {
     let providers: NexusProvidersModel
     let system: NexusSystemInfo
     let shell: NexusShellParts
+    let editor: DashboardEditor
+    let weatherFile: URL?
 
     @Environment(\.shellStyle) private var style
 
@@ -180,7 +182,7 @@ struct NexusView: View {
                 .toolbar(removing: .sidebarToggle)
         } detail: {
             NexusDetail(page: state.page ?? .bar, settings: settings, pinned: pinned, weather: weather,
-                        providers: providers, system: system, shell: shell)
+                        providers: providers, system: system, shell: shell, editor: editor, weatherFile: weatherFile)
         }
         .frame(minWidth: 680, minHeight: 440)
         // Mit Theme faerbt `--apollo-surface-color` auch das Fenster. Ohne
@@ -240,6 +242,8 @@ struct NexusDetail: View {
     let providers: NexusProvidersModel
     let system: NexusSystemInfo
     let shell: NexusShellParts
+    let editor: DashboardEditor
+    let weatherFile: URL?
 
     var body: some View {
         switch page {
@@ -248,7 +252,7 @@ struct NexusDetail: View {
         case .bar: NexusBarPage(store: settings)
         case .utilities: UtilitiesEditorPage(store: settings)
         case .launcher: NexusLauncherPage(model: pinned)
-        case .dashboard: NexusDashboardPage(store: settings, model: weather)
+        case .dashboard: NexusDashboardPage(store: settings, editor: editor, weatherFile: weatherFile)
         case .desktop: NexusDesktopPage(store: settings)
         case .toasts: NexusToastsPage(store: settings)
         case .providers: NexusProvidersPage(store: settings, model: providers)

@@ -24,7 +24,9 @@ final class Nexus: NSObject, NSWindowDelegate {
     private let settings: ShellSettingsStore
     private let pinned: NexusPinnedModel
     private let weather: NexusWeatherModel
+    private let weatherFile: URL?
     private let providers = NexusProvidersModel()
+    private let editor: DashboardEditor
     private var shell: NexusShellParts
     private var window: NexusWindow?
     /// Wer vor dem Oeffnen vorne war - bekommt beim Schliessen den Fokus zurueck.
@@ -38,10 +40,12 @@ final class Nexus: NSObject, NSWindowDelegate {
 
     init(settings: ShellSettingsStore, hotKeys: HotKeyCenter, autostart: OnboardingAutostartModel,
          permissions: OnboardingPermissions, updates: UpdateController, themes: ThemeStore?,
-         paths: NexusPaths = .live) {
+         editor: DashboardEditor, paths: NexusPaths = .live) {
         self.settings = settings
+        self.editor = editor
         pinned = NexusPinnedModel(url: paths.pinned)
-        weather = NexusWeatherModel(url: paths.weather)
+        weatherFile = paths.weather
+        weather = NexusWeatherModel.file(url: paths.weather)
         shell = NexusShellParts(hotKeys: hotKeys, autostart: autostart, permissions: permissions,
                                 updates: updates, themes: themes)
         super.init()
@@ -81,7 +85,8 @@ final class Nexus: NSObject, NSWindowDelegate {
 
         // `shellTheme` setzt den Farbton der Steuerelemente nach dem Theme.
         let root = NexusView(state: state, settings: settings, pinned: pinned, weather: weather,
-                             providers: providers, system: .read(), shell: shell)
+                             providers: providers, system: .read(), shell: shell, editor: editor,
+                             weatherFile: weatherFile)
             .shellTheme()
         let hosting = NSHostingController(rootView: root)
         // Titel und Werkzeugleiste der SwiftUI-Seiten ins Fenster, wie bei
@@ -105,6 +110,10 @@ final class Nexus: NSObject, NSWindowDelegate {
         // Nachsehen der Freigabe hier beenden.
         shell.hotKeys.cancelRecording()
         shell.permissions.watch(false, by: NexusGeneralPage.watcher)
+        // Nexus zu waehrend einer Bearbeitung zaehlt wie "Fertig" - sonst
+        // bliebe das Dashboard angepinnt offen, ohne dass man es beenden
+        // kann.
+        if editor.isEditing { editor.done() }
         previousApp?.activate()
         previousApp = nil
     }

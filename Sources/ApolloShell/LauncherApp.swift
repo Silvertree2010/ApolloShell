@@ -114,7 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // beim Oeffnen von Nexus > Updates.
         updates.checkInBackgroundIfDue()
         let nexus = Nexus(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions,
-                          updates: updates, themes: themes)
+                          updates: updates, themes: themes, editor: dashboardEditor)
         self.nexus = nexus
         hotKeys.setHandler(.nexus) { [weak nexus] in nexus?.show() }
         let sidebar = Sidebar(settings: settings)
