@@ -252,7 +252,7 @@ struct NexusDetail: View {
         case .bar: NexusBarPage(store: settings)
         case .utilities: UtilitiesEditorPage(store: settings)
         case .launcher: NexusLauncherPage(model: pinned)
-        case .dashboard: NexusDashboardPage(store: settings, editor: editor, weatherFile: weatherFile)
+        case .dashboard: NexusDashboardPage(store: settings, editor: editor, weather: weather, weatherFile: weatherFile)
         case .desktop: NexusDesktopPage(store: settings)
         case .toasts: NexusToastsPage(store: settings)
         case .providers: NexusProvidersPage(store: settings, model: providers)

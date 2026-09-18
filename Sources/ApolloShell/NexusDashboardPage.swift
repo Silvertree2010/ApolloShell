@@ -188,6 +188,11 @@ final class NexusWeatherModel {
 struct NexusDashboardPage: View {
     @Bindable var store: ShellSettingsStore
     @Bindable var editor: DashboardEditor
+    /// Die globalen Orte (weather.json): fuer das Wetter-Modul der Leiste und
+    /// als Vorgabe fuer neu abgelegte Wetter-Widgets - nicht editierend hier
+    /// bearbeitbar (`NexusDashboardWeatherSection`), waehrend der Bearbeitung
+    /// je Widget (`NexusWidgetPlacesSection`).
+    let weather: NexusWeatherModel
     let weatherFile: URL?
     @State private var selectedPageID: DashboardPage.ID?
 
@@ -219,6 +224,7 @@ struct NexusDashboardPage: View {
                             }
                             .controlSize(.large)
                         }
+                        NexusDashboardWeatherSection(model: weather)
                         NexusSaveWarning(failed: store.saveFailed)
                     }
                     Divider()
@@ -287,6 +293,34 @@ struct NexusDashboardEditLayout: View {
             .padding()
         }
         .navigationTitle("Dashboard bearbeiten")
+    }
+}
+
+/// Die globalen Orte (weather.json), unterhalb der Seitenliste und der
+/// Groesse - nicht waehrend der Bearbeitung (dort hat jedes Wetter-Widget
+/// seine eigenen Orte, `NexusWidgetPlacesSection`). Gelten fuer das
+/// Wetter-Baustein der Leiste und als Vorgabe fuer neu aus Nexus abgelegte
+/// Wetter-Widgets.
+struct NexusDashboardWeatherSection: View {
+    let model: NexusWeatherModel
+
+    var body: some View {
+        Section {
+            if model.favorites.locations.isEmpty {
+                Text("Noch keine Favoriten – unten einen Ort suchen und hinzufügen.")
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(model.favorites.locations) { place in
+                NexusWeatherFavoriteRow(model: model, place: place)
+            }
+            NexusSearchField(prompt: "Ort suchen", text: Binding(get: { model.query }, set: { model.query = $0 }),
+                            busy: model.state == .searching)
+            ForEach(model.results) { place in
+                NexusWeatherSearchRow(model: model, place: place)
+            }
+        } header: {
+            Text("Orte für die Leiste und neue Wetter-Widgets")
+        }
     }
 }
 

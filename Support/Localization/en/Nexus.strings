@@ -141,6 +141,7 @@
 "200 Punkte breit, eine Karte über die ganze Höhe. Ist sie belegt, tauscht eine neue mit ihr den Platz." = "200 points wide, one card spanning the full height. If it's occupied, a new one swaps places with it.";
 
 /* NexusDashboardPage.swift */
+"Orte für die Leiste und neue Wetter-Widgets" = "Places for the bar and new weather widgets";
 "Noch keine Favoriten – unten einen Ort suchen und hinzufügen." = "No favorites yet – search for a place below and add it.";
 "Favoriten" = "Favorites";
 "Der gewählte Favorit gilt fürs Wetter. Zum Umsortieren ziehen. Das Dashboard zeigt eine Änderung beim nächsten Öffnen." = "The selected favorite applies to the weather. Drag to reorder. The Dashboard shows a change the next time it opens.";
