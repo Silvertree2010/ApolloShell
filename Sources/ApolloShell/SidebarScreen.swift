@@ -151,27 +151,10 @@ final class SidebarScreen {
 /// - Kein Fensterschatten: gab beim Launcher einen zweiten, fast eckigen
 ///   Rahmen um das Glas.
 /// - `canHide = false`: "Andere ausblenden" soll sie nicht verschwinden lassen.
-final class SidebarPanel: NSPanel {
+final class SidebarPanel: ShellPanel {
     init() {
-        super.init(
-            contentRect: .zero,
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
-        level = .floating
-        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
-        isOpaque = false
-        backgroundColor = .clear
-        hasShadow = false
-        hidesOnDeactivate = false
+        super.init(level: .floating, behavior: [.canJoinAllSpaces, .stationary, .ignoresCycle], deferred: false)
         canHide = false
-        isMovable = false
-        isReleasedWhenClosed = false
         becomesKeyOnlyIfNeeded = true
-        animationBehavior = .none
     }
-
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
 }

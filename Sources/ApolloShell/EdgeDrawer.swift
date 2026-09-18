@@ -434,7 +434,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     // MARK: - Fenster
 
     private func makePanel() -> DrawerPanel {
-        let panel = DrawerPanel(size: container.frame.size, edge: edge, takesKeyboard: takesKeyboard)
+        let panel = DrawerPanel(size: container.frame.size, level: .popUpMenu, takesKeyboard: takesKeyboard)
         panel.delegate = self
         panel.onEscape = { [weak self] in self?.close() }
 
@@ -466,36 +466,13 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 /// Randloses Panel fuer Kantenfenster. Ebene ueber allem wie das
 /// Sitzungsmenue - oben auch ueber der Menueleiste, damit das Glas bis an
 /// die Kante reicht. Darf ueber den Bildschirmrand ragen.
-final class DrawerPanel: NSPanel {
+final class DrawerPanel: ShellPanel {
     var onEscape: () -> Void = {}
-    private let takesKeyboard: Bool
 
-    init(size: NSSize, edge: DrawerEdge, takesKeyboard: Bool) {
-        self.takesKeyboard = takesKeyboard
-        super.init(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: true
-        )
-        level = .popUpMenu
-        collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary]
-        isOpaque = false
-        backgroundColor = .clear
-        // Kein Fensterschatten: gab beim Launcher einen zweiten Rahmen ums Glas.
-        hasShadow = false
-        hidesOnDeactivate = false
-        isMovable = false
-        isReleasedWhenClosed = false
-        becomesKeyOnlyIfNeeded = false
-        animationBehavior = .none
-    }
-
-    override var canBecomeKey: Bool { takesKeyboard }
-    override var canBecomeMain: Bool { false }
-
-    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
-        frameRect
+    init(size: NSSize, level: NSWindow.Level, takesKeyboard: Bool) {
+        super.init(size: size, level: level,
+                   behavior: [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary],
+                   takesKeyboard: takesKeyboard, mayLeaveScreen: true)
     }
 
     override func cancelOperation(_ sender: Any?) {

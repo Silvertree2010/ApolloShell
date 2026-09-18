@@ -333,36 +333,11 @@ private enum Motion {
 
 /// Randloses, durchsichtiges Panel, das Tastatureingaben annimmt, ohne die
 /// App in den Vordergrund zu holen (wie Spotlight).
-final class LauncherPanel: NSPanel {
-    init(size: NSSize) {
-        super.init(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: true
-        )
-        level = .popUpMenu
-        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
-        isOpaque = false
-        backgroundColor = .clear
-        // Kein Fensterschatten: den berechnet macOS aus der Fensterform, und
-        // weil das Glas vom Fenstermanager selbst gerendert wird, entstand
-        // ein fast eckiger zweiter Rahmen um das runde Glas. Kante und Tiefe
-        // bringt NSGlassEffectView selbst mit.
-        hasShadow = false
-        hidesOnDeactivate = false
-        isMovable = false
-        isReleasedWhenClosed = false
-        becomesKeyOnlyIfNeeded = false
-        // Eigene Animation in LauncherController, keine vom System dazu.
-        animationBehavior = .none
-    }
-
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
-
+final class LauncherPanel: ShellPanel {
     /// Darf unter den Bildschirmrand ragen (die unteren Glasecken).
-    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
-        frameRect
+    init(size: NSSize) {
+        super.init(size: size, level: .popUpMenu,
+                   behavior: [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle],
+                   takesKeyboard: true, mayLeaveScreen: true)
     }
 }

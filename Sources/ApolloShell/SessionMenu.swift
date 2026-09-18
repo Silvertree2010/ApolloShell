@@ -333,29 +333,14 @@ final class SessionMenuModel {
 
 /// Vollbild-Abdunkelung. Liegt ueber Menueleiste und Dock, fing Klicks ab
 /// und schliesst dann das Menue.
-final class ScrimWindow: NSPanel {
+final class ScrimWindow: ShellPanel {
     var onClick: () -> Void = {}
 
     init() {
-        super.init(
-            contentRect: .zero,
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: true
-        )
-        level = .popUpMenu
-        collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary]
+        super.init(level: .popUpMenu, behavior: [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary])
         backgroundColor = .black
-        isOpaque = false
-        hasShadow = false
-        hidesOnDeactivate = false
-        isReleasedWhenClosed = false
-        animationBehavior = .none
         contentView = ClickView { [weak self] in self?.onClick() }
     }
-
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
 }
 
 /// Nimmt schon den ersten Klick an, auch wenn die App nicht aktiv ist.
@@ -375,33 +360,11 @@ private final class ClickView: NSView {
 
 /// Panel ueber der Abdunkelung. Nimmt Tastatur an, ohne die App zu
 /// aktivieren (wie der Launcher), und darf ueber den Bildschirmrand ragen.
-final class SessionPanel: NSPanel {
+final class SessionPanel: ShellPanel {
+    /// Ueber der Abdunkelung; die rechten Ecken liegen ausserhalb.
     init(size: NSSize) {
-        super.init(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: true
-        )
-        level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + 1)
-        collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary]
-        isOpaque = false
-        backgroundColor = .clear
-        // Kein Fensterschatten: gab beim Launcher einen zweiten Rahmen ums Glas.
-        hasShadow = false
-        hidesOnDeactivate = false
-        isMovable = false
-        isReleasedWhenClosed = false
-        becomesKeyOnlyIfNeeded = false
-        animationBehavior = .none
-    }
-
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
-
-    /// macOS schiebt Fenster sonst zurueck auf den Bildschirm; die rechten
-    /// Ecken sollen aber draussen liegen.
-    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
-        frameRect
+        super.init(size: size, level: NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + 1),
+                   behavior: [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary],
+                   takesKeyboard: true, mayLeaveScreen: true)
     }
 }

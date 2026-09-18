@@ -139,28 +139,16 @@ final class DesktopClock {
 /// Das Uhr-Fenster EINES Bildschirms.
 @MainActor
 private final class DesktopClockWindow {
-    private let window: NSPanel
+    private let window: ShellPanel
     private let hosting: NSHostingView<ModifiedContent<DesktopClockView, ShellThemeRoot>>
 
     init(model: DesktopClockModel) {
         hosting = NSHostingView(rootView: DesktopClockView(model: model).shellTheme())
         hosting.sizingOptions = []
-        window = NSPanel(
-            contentRect: .zero,
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
         // Knapp ueber den Schreibtisch-Symbolen, weit unter normalen Fenstern.
-        window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
-        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        window = ShellPanel(level: NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1),
+                            behavior: [.canJoinAllSpaces, .stationary, .ignoresCycle], deferred: false)
         window.ignoresMouseEvents = true
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        window.hasShadow = false
-        window.hidesOnDeactivate = false
-        window.isReleasedWhenClosed = false
-        window.animationBehavior = .none
         window.contentView = hosting
     }
 

@@ -185,32 +185,12 @@ final class ToastWindow {
 /// Kantenfenster, nie Schluesselfenster, kein Fensterschatten (sonst ein
 /// zweiter Rahmen um das Glas). Ohne `.fullScreenAuxiliary`: in
 /// Vollbild-Spaces bleibt es draussen, wie Caelestias Vorgabe "off".
-final class ToastPanel: NSPanel {
-    init() {
-        super.init(
-            contentRect: .zero,
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: true
-        )
-        level = .popUpMenu
-        collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle]
-        isOpaque = false
-        backgroundColor = .clear
-        hasShadow = false
-        hidesOnDeactivate = false
-        isMovable = false
-        isReleasedWhenClosed = false
-        animationBehavior = .none
-        ignoresMouseEvents = true
-    }
-
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
-
+final class ToastPanel: ShellPanel {
     /// Darf ein paar Punkte ueber den Bildschirmrand ragen (Rand fuers
-    /// Ueberschiessen).
-    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
-        frameRect
+    /// Ueberschiessen). Nimmt weder Tastatur noch Maus.
+    init() {
+        super.init(level: .popUpMenu, behavior: [.canJoinAllSpaces, .transient, .ignoresCycle],
+                   mayLeaveScreen: true)
+        ignoresMouseEvents = true
     }
 }
