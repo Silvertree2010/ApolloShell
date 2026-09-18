@@ -64,7 +64,7 @@ final class LauncherController {
     /// Dateimanager. Das Lesen dauert einen Moment, deshalb geht das Menue
     /// erst danach auf.
     private func showMenu(for app: AppEntry, at view: NSView) {
-        Task { @MainActor in
+        Task { @MainActor [weak self] in
             let menu = NSMenu()
             menu.autoenablesItems = false
             menu.addItem(ClosureMenuItem(String(localized: "Öffnen")) { [weak self] in self?.launch(app) })

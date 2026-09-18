@@ -6,9 +6,10 @@ import SwiftUI
 /// bauten. `get`/`set` holen bzw. schreiben den ganzen Baustein (Leiste: nach
 /// Kennung; Dashboard: nach Karten-Art), `read`/`make` greifen dessen
 /// Optionen heraus bzw. bauen ihn mit neuen Optionen neu auf.
+@MainActor
 func nexusOptionsBinding<Module, T: Sendable>(
-    get: @escaping @Sendable () -> Module?,
-    set: @escaping @Sendable (Module) -> Void,
+    get: @escaping @MainActor () -> Module?,
+    set: @escaping @MainActor (Module) -> Void,
     read: @escaping @Sendable (Module) -> T?,
     make: @escaping @Sendable (T) -> Module,
     fallback: T
