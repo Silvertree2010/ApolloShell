@@ -1,4 +1,4 @@
-# Ausnahmen fuer scripts/check-l10n.sh: ein deutsches Literal pro Zeile
+# Ausnahmen fuer scripts/check-l10n.py: ein deutsches Literal pro Zeile
 # (genau wie es im Quellcode steht), das trotz UI-Kontext keinen englischen
 # Eintrag braucht - z. B. Eigennamen oder Platzhalter, die schon als Kommentar
 # oder in einer anderen Datei uebersetzt sind. Zeilen mit # sind Kommentare.

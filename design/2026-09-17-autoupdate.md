@@ -1,6 +1,7 @@
 # Automatic updates (0.1.2)
 
-Status: approved design, not implemented.
+Status: shipped in 0.1.2 on 2026-09-17. Kept as the record of why it is
+built this way; the code is the truth now.
 Date: 2026-09-17.
 
 ## Goal
