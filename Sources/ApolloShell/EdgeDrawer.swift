@@ -438,9 +438,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 
     private func startHoverTimer() {
         guard opensOnHover, hoverTimer == nil else { return }
-        hoverTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.hoverMoved() }
-        }
+        hoverTimer = .repeating(every: 0.05, owner: self) { $0.hoverMoved() }
     }
 
     private func hoverMoved() {

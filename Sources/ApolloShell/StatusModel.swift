@@ -29,12 +29,8 @@ final class StatusModel {
         refreshWifi()
         refreshBattery()
         timers = [
-            Timer.scheduledTimer(withTimeInterval: Self.wifiInterval, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { self?.refreshWifi() }
-            },
-            Timer.scheduledTimer(withTimeInterval: Self.batteryInterval, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { self?.refreshBattery() }
-            },
+            .repeating(every: Self.wifiInterval, owner: self) { $0.refreshWifi() },
+            .repeating(every: Self.batteryInterval, owner: self) { $0.refreshBattery() },
         ]
         observeBatteryChanges()
         bluetooth.start { [weak self] on in

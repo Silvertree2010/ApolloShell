@@ -95,17 +95,12 @@ final class DesktopClock {
         let seconds = Calendar.current.component(.second, from: model.now)
         let untilNextMinute = TimeInterval(60 - seconds) + 0.05
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: untilNextMinute, repeats: false) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self else { return }
-                self.model.now = Date()
-                self.relayout() // Breite kann sich aendern (z. B. "Montag" -> "Donnerstag")
-                self.timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-                    MainActor.assumeIsolated {
-                        self?.model.now = Date()
-                        self?.relayout()
-                    }
-                }
+        timer = .once(after: untilNextMinute, owner: self) { clock in
+            clock.model.now = Date()
+            clock.relayout() // Breite kann sich aendern (z. B. "Montag" -> "Donnerstag")
+            clock.timer = .repeating(every: 60, owner: clock) { clock in
+                clock.model.now = Date()
+                clock.relayout()
             }
         }
     }

@@ -102,11 +102,7 @@ final class SidebarDockModel {
     private func startBadgeTimer() {
         guard badgeTimer == nil else { return }
         pollBadges()
-        let timer = Timer.scheduledTimer(withTimeInterval: Self.badgeInterval, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.pollBadges() }
-        }
-        timer.tolerance = 0.5
-        badgeTimer = timer
+        badgeTimer = .repeating(every: Self.badgeInterval, tolerance: 0.5, owner: self) { $0.pollBadges() }
     }
 
     private func stopBadgeTimer() {
@@ -421,9 +417,7 @@ final class SidebarDockModel {
         if runningApp(entry.bundleID) == nil {
             launching.insert(entry.bundleID)
             let id = entry.bundleID
-            Timer.scheduledTimer(withTimeInterval: 15, repeats: false) { [weak self] _ in
-                MainActor.assumeIsolated { _ = self?.launching.remove(id) }
-            }
+            Timer.once(after: 15, owner: self) { _ = $0.launching.remove(id) }
         }
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.activates = true

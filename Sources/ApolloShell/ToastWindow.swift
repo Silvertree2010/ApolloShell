@@ -94,9 +94,7 @@ final class ToastWindow {
         if toaster.visible.isEmpty {
             // Erst weg, wenn die letzte fertig ausgeblendet ist.
             guard panel.isVisible, hideTimer == nil else { return }
-            hideTimer = Timer.scheduledTimer(withTimeInterval: Self.hideDelay, repeats: false) { [weak self] _ in
-                MainActor.assumeIsolated { self?.hide() }
-            }
+            hideTimer = .once(after: Self.hideDelay, owner: self) { $0.hide() }
             return
         }
         hideTimer?.invalidate()

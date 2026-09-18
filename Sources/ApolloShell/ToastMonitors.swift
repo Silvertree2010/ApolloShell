@@ -35,9 +35,7 @@ final class ToastPowerMonitor {
             tracker = BatteryToastTracker(percent: state.level, onBattery: !state.onAC)
         }
         observe()
-        timer = Timer.scheduledTimer(withTimeInterval: Self.fallbackInterval, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refresh() }
-        }
+        timer = .repeating(every: Self.fallbackInterval, owner: self) { $0.refresh() }
     }
 
     private func refresh() {

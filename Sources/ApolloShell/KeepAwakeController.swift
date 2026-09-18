@@ -59,9 +59,7 @@ final class KeepAwakeController {
                 assertion = try PowerAssertion(reason: "ApolloShell: Wach halten")
                 since = Date()
                 reconcileLid()
-                batteryGuard = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.checkBattery() }
-                }
+                batteryGuard = .repeating(every: 60, owner: self) { $0.checkBattery() }
             } catch {
                 log.error("Wach halten nicht moeglich: IOReturn \(error.code, privacy: .public)")
             }

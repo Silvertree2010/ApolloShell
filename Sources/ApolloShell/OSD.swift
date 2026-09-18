@@ -1,4 +1,5 @@
 import AppKit
+import ApolloShellCore
 import SwiftUI
 
 /// Lautstaerke-Anzeige rechts mittig (Caelestia: OSD). Erscheint, wenn sich
@@ -51,20 +52,16 @@ final class OSD {
         model.muted = muted
         model.moving = true
         movingTimer?.invalidate()
-        movingTimer = Timer.scheduledTimer(withTimeInterval: Self.movingHold, repeats: false) { [weak self] _ in
-            MainActor.assumeIsolated { self?.model.moving = false }
-        }
+        movingTimer = .once(after: Self.movingHold, owner: self) { $0.model.moving = false }
         drawer.open()
         scheduleHide()
     }
 
     private func scheduleHide() {
         hideTimer?.invalidate()
-        hideTimer = Timer.scheduledTimer(withTimeInterval: Self.hideDelay, repeats: false) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self, !self.model.hovered else { return }
-                self.drawer.close()
-            }
+        hideTimer = .once(after: Self.hideDelay, owner: self) { osd in
+            guard !osd.model.hovered else { return }
+            osd.drawer.close()
         }
     }
 }

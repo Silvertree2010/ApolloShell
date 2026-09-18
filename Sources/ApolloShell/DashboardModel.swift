@@ -65,9 +65,7 @@ final class DashboardModel {
         shownMonth = now
         refresh()
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refresh() }
-        }
+        timer = .repeating(every: 1, owner: self) { $0.refresh() }
         syncPerformance()
     }
 

@@ -61,13 +61,10 @@ final class WindowGuard {
 
     /// Die Freigabe kommt (oder geht) waehrend der Laufzeit ueber die
     /// Systemeinstellungen; eine Benachrichtigung dafuer gibt es nicht.
-    /// Der Timer laeuft so lange wie der Prozess, deshalb wird er nie
-    /// invalidiert.
+    /// Der Timer laeuft so lange wie die Fensterwache, deshalb haelt ihn
+    /// niemand fest.
     private func startTrustPolling() {
-        let timer = Timer.scheduledTimer(withTimeInterval: Self.trustPollInterval, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.pollTrust() }
-        }
-        timer.tolerance = 0.5
+        Timer.repeating(every: Self.trustPollInterval, tolerance: 0.5, owner: self) { $0.pollTrust() }
     }
 
     private func pollTrust() {

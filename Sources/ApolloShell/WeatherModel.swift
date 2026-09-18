@@ -132,11 +132,7 @@ final class WeatherModel {
         // Kein Ort: nichts abzurufen - erst ein Favorit macht das Wetter abrufbar.
         if location != nil, providerChanged || WeatherRefresh.needsFetch(fetchedAt: fetchedAt, now: Date()) { fetch() }
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: WeatherRefresh.interval, repeats: true) { [weak self] timer in
-            // Ist das Modell weg, haelt sich der Timer nicht selbst am Leben.
-            guard self != nil else { return timer.invalidate() }
-            MainActor.assumeIsolated { self?.fetch() }
-        }
+        timer = .repeating(every: WeatherRefresh.interval, owner: self) { $0.fetch() }
     }
 
     /// Ein laufender Abruf darf zu Ende laufen: sein Ergebnis ist beim
@@ -265,13 +261,9 @@ final class WeatherModel {
     private func scheduleRetry() {
         guard timer != nil else { return }
         retryTimer?.invalidate()
-        retryTimer = Timer.scheduledTimer(
-            withTimeInterval: WeatherRefresh.retryDelay(afterFailures: failures), repeats: false
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.retryTimer = nil
-                self?.fetch()
-            }
+        retryTimer = .once(after: WeatherRefresh.retryDelay(afterFailures: failures), owner: self) { model in
+            model.retryTimer = nil
+            model.fetch()
         }
     }
 

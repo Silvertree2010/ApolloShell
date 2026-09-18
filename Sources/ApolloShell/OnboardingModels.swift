@@ -42,11 +42,7 @@ final class OnboardingPermissions {
             timer = nil
         } else if timer == nil {
             refresh()
-            let timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { self?.refresh() }
-            }
-            timer.tolerance = 0.2
-            self.timer = timer
+            timer = .repeating(every: 1, tolerance: 0.2, owner: self) { $0.refresh() }
         }
     }
 

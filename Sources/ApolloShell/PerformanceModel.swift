@@ -74,9 +74,7 @@ final class PerformanceModel {
         downloadHistory.removeAll()
         uploadHistory.removeAll()
         refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: Self.interval, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refresh() }
-        }
+        timer = .repeating(every: Self.interval, owner: self) { $0.refresh() }
     }
 
     func stop() {

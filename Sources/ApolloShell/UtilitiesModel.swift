@@ -149,11 +149,7 @@ final class UtilitiesModel {
         startVolume()
         refresh()
         ticks = 0
-        timer = Timer.scheduledTimer(withTimeInterval: Self.interval, repeats: true) { [weak self] timer in
-            // Ist das Modell weg, haelt sich der Timer nicht selbst am Leben.
-            guard self != nil else { return timer.invalidate() }
-            MainActor.assumeIsolated { self?.tick() }
-        }
+        timer = .repeating(every: Self.interval, owner: self) { $0.tick() }
     }
 
     /// Hoert nur mit dem Abfragen auf. "Wach halten" bleibt an - genau dafuer
