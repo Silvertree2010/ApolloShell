@@ -11,14 +11,14 @@ struct ThemeResolveTests {
         theme.issues.contains { match($0.kind) }
     }
 
-    @Test("fehlendes Token: Vorgabe")
+    @Test("fehlendes Token: bleibt leer, die App nimmt dann die Systemwerte")
     func missingToken() {
         let theme = theme(":root { --apollo-accent-color: #ff0000; }")
         #expect(theme.color(.accent) == ThemeColor(hex: 0xFF0000))
-        #expect(theme.number(.barWidth) == ThemeNumberToken.barWidth.defaultValue())
-        #expect(theme.color(.surface) == ThemeColorToken.surface.defaultValue())
-        #expect(theme.flag(.animations) == true)
-        #expect(theme.option(.backgroundFit) == "fill")
+        #expect(theme.number(.barWidth) == nil)
+        #expect(theme.color(.surface) == nil)
+        #expect(theme.flag(.animations) == nil)
+        #expect(theme.option(.backgroundFit) == nil)
         #expect(theme.issues.isEmpty)
     }
 
@@ -33,10 +33,10 @@ struct ThemeResolveTests {
         #expect(theme(":root { --my-blue: #00f; }").issues.isEmpty)
     }
 
-    @Test("unlesbarer Wert: Vorgabe und ein Hinweis mit Zeilennummer")
+    @Test("unlesbarer Wert: kein Wert und ein Hinweis mit Zeilennummer")
     func unreadableValue() {
         let theme = theme(":root {\n  --apollo-accent-color: nonsense;\n}")
-        #expect(theme.color(.accent) == ThemeColorToken.accent.defaultValue())
+        #expect(theme.color(.accent) == nil)
         #expect(theme.issues == [ThemeIssue(.unreadableValue(token: "--apollo-accent-color", value: "nonsense"),
                                             line: 2)])
     }
@@ -70,7 +70,7 @@ struct ThemeResolveTests {
     func textIsCapped() {
         let long = String(repeating: "a", count: 500)
         let theme = theme(":root { --apollo-theme-name: \"\(long)\"; }")
-        #expect(theme.text(.themeName).count == ThemeLimits.standard.maxTextLength)
+        #expect(theme.text(.themeName)?.count == ThemeLimits.standard.maxTextLength)
         #expect(hasKind(theme) { if case .clamped = $0 { true } else { false } })
     }
 
@@ -80,11 +80,17 @@ struct ThemeResolveTests {
         #expect(theme.color(.accent, dark: true) == ThemeColor(hex: 0xFF0000))
     }
 
-    @Test("ohne Angabe gilt im Dunkeln die dunkle Vorgabe")
-    func darkDefaults() {
+    @Test("ohne Angabe bleibt es auch im Dunkeln leer")
+    func darkStaysEmpty() {
         let theme = theme(":root { --apollo-accent-color: #ff0000; }")
-        #expect(theme.color(.surface, dark: true) == ThemeColorToken.surface.defaultValue(dark: true))
-        #expect(theme.color(.surface, dark: true) != theme.color(.surface))
+        #expect(theme.color(.surface, dark: true) == nil)
+    }
+
+    @Test("was nur im dunklen Block steht, fehlt im Hellen")
+    func darkOnlyStaysDark() throws {
+        let theme = theme("@media (prefers-color-scheme: dark) { :root { --apollo-bar-color: #101014; } }")
+        #expect(theme.color(.bar) == nil)
+        #expect(try #require(theme.color(.bar, dark: true)) == ThemeColor(hex: 0x101014))
     }
 
     @Test("der @media-Block gilt nur im Dunkeln")
@@ -100,10 +106,11 @@ struct ThemeResolveTests {
     }
 
     @Test("Kontrast: eine unlesbare Schriftfarbe wird zurechtgerueckt")
-    func contrastGuard() {
+    func contrastGuard() throws {
         let theme = theme(":root { --apollo-text-color: #fbfbfb; }")
-        let text = theme.color(.text)
-        let surface = theme.color(.surface)
+        let text = try #require(theme.color(.text))
+        // Ohne eigenen Untergrund misst die Pruefung am Untergrund der Shell.
+        let surface = ThemeColorToken.surface.defaultValue()
         #expect(text != ThemeColor(hex: 0xFBFBFB))
         #expect(ThemeColor.contrast(text.composited(over: surface), surface) >= 4.5)
         #expect(hasKind(theme) { if case .contrastAdjusted = $0 { true } else { false } })
@@ -124,10 +131,10 @@ struct ThemeResolveTests {
     }
 
     @Test("Kontrast: eine helle Schrift ohne dunkle Abweichung faellt im Dunkeln auf")
-    func contrastReportsTheAppearance() {
+    func contrastReportsTheAppearance() throws {
         let theme = theme(":root { --apollo-text-color: #102030; }")
         #expect(theme.color(.text) == ThemeColor(hex: 0x102030))
-        #expect(theme.color(.text, dark: true) != ThemeColor(hex: 0x102030))
+        #expect(try #require(theme.color(.text, dark: true)) != ThemeColor(hex: 0x102030))
         #expect(theme.issues.contains(where: {
             if case let .contrastAdjusted(_, _, _, dark) = $0.kind { dark } else { false }
         }))
@@ -165,26 +172,26 @@ struct ThemeResolveTests {
     }
 
     @Test("Kontrast: gemessen wird auf dem Untergrund, den das Theme setzt")
-    func contrastUsesThemeBackground() {
+    func contrastUsesThemeBackground() throws {
         let theme = theme(":root { --apollo-surface-color: #000000; --apollo-text-color: #111111; }")
-        let text = theme.color(.text)
+        let text = try #require(theme.color(.text))
         #expect(text.luminance > ThemeColor(hex: 0x111111).luminance)
         #expect(ThemeColor.contrast(text, ThemeColor(hex: 0x000000)) >= 4.5)
     }
 
     @Test("Kontrast: fast durchsichtige Schrift wird notfalls deckend")
-    func contrastWithAlpha() {
+    func contrastWithAlpha() throws {
         let theme = theme(":root { --apollo-text-color: rgba(0, 0, 0, 0.02); }")
-        let text = theme.color(.text)
-        let surface = theme.color(.surface)
+        let text = try #require(theme.color(.text))
+        let surface = ThemeColorToken.surface.defaultValue()
         #expect(ThemeColor.contrast(text.composited(over: surface), surface) >= 4.5)
     }
 
     @Test("Kontrast wird in beiden Erscheinungsbildern erzwungen")
-    func contrastInBothAppearances() {
+    func contrastInBothAppearances() throws {
         let theme = theme("@media (prefers-color-scheme: dark) { :root { --apollo-text-color: #1d1d1d; } }")
-        let text = theme.color(.text, dark: true)
-        let surface = theme.color(.surface, dark: true)
+        let text = try #require(theme.color(.text, dark: true))
+        let surface = ThemeColorToken.surface.defaultValue(dark: true)
         #expect(ThemeColor.contrast(text.composited(over: surface), surface) >= 4.5)
     }
 
@@ -234,13 +241,34 @@ struct ThemeResolveTests {
                                                  line: 1)))
     }
 
-    @Test("nach dem Lesen hat jedes Token einen Wert - hell wie dunkel")
-    func everyTokenHasAValue() {
+    @Test("nach dem Lesen hat nur ein genanntes Token einen Wert - hell wie dunkel")
+    func onlyDeclaredTokensHaveAValue() {
         let theme = theme(":root { --apollo-accent-color: red; }")
         for token in ThemeTokenCatalog.standard.tokens {
-            #expect(theme.value(token.name) != nil, "\(token.name)")
-            #expect(theme.value(token.name, dark: true) != nil, "\(token.name)")
+            let declared = token.name == ThemeColorToken.accent.name
+            #expect((theme.value(token.name) != nil) == declared, "\(token.name)")
+            #expect((theme.value(token.name, dark: true) != nil) == declared, "\(token.name)")
         }
+    }
+
+    @Test("das eingebaute Theme hat keinen einzigen Wert")
+    func standardIsEmpty() {
+        #expect(Theme.standard.lightValues.isEmpty)
+        #expect(Theme.standard.darkValues.isEmpty)
+    }
+
+    @Test("Schrift auf dem Akzent: lesbar gemacht, sobald das Theme den Akzent nennt")
+    func readableOnAccent() throws {
+        // Gelb: weiss darauf waere unlesbar.
+        let yellow = theme(":root { --apollo-accent-color: #ffd60a; }")
+        let onYellow = try #require(yellow.readableColor(.onAccent))
+        #expect(ThemeColor.contrast(onYellow, ThemeColor(hex: 0xFFD60A)) >= 3)
+        #expect(onYellow != ThemeColorToken.onAccent.defaultValue())
+        // Nennt es weder Akzent noch Schrift: nichts, die App bleibt bei macOS.
+        #expect(theme(":root { --apollo-bar-width: 40px; }").readableColor(.onAccent) == nil)
+        // Nennt es die Schrift selbst, gilt genau die.
+        let own = theme(":root { --apollo-accent-color: #000000; --apollo-on-accent-color: #ffffff; }")
+        #expect(own.readableColor(.onAccent) == ThemeColor(hex: 0xFFFFFF))
     }
 
     @Test("ein leeres Blatt ergibt genau das eingebaute Theme")

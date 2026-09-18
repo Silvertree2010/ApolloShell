@@ -84,11 +84,11 @@ struct ThemeGradientTests {
         """)
         let theme = Theme.make(identifier: "verlauf", styleSheet: sheet)
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
-        #expect(theme.gradient(.bar).stops.count == 2)
-        #expect(theme.gradient(.bar).stops.first?.color == ThemeColor(hex: 0x101014))
-        // Was nicht gesetzt ist, bleibt ohne Verlauf - und die Farbe gilt.
-        #expect(theme.gradient(.panel).isEmpty)
-        #expect(theme.color(.bar) == ThemeColorToken.bar.defaultValue())
+        #expect(theme.gradient(.bar)?.stops.count == 2)
+        #expect(theme.gradient(.bar)?.stops.first?.color == ThemeColor(hex: 0x101014))
+        // Was nicht gesetzt ist, bleibt leer - Verlauf wie Farbe.
+        #expect(theme.gradient(.panel) == nil)
+        #expect(theme.color(.bar) == nil)
     }
 
     @Test("unlesbarer Verlauf: Vorgabe und ein Hinweis mit Zeile")
@@ -99,7 +99,7 @@ struct ThemeGradientTests {
         }
         """)
         let theme = Theme.make(identifier: "kaputt", styleSheet: sheet)
-        #expect(theme.gradient(.panel).isEmpty)
+        #expect(theme.gradient(.panel) == nil)
         #expect(theme.issues.contains { $0.description.contains("--apollo-panel-gradient") })
     }
 }

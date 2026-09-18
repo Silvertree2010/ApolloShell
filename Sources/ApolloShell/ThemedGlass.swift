@@ -30,10 +30,10 @@ enum ThemedGlass {
         content.layer?.backgroundColor = nil
         guard style.paintsPanel else { return nil }
 
-        let gradient = style.theme.gradient(.panel, dark: dark)
-        guard !gradient.isEmpty else {
-            content.layer?.backgroundColor = NSColor(style.theme.color(.panel, dark: dark))
-                .withAlphaComponent(style.panelOpacity).cgColor
+        guard let gradient = style.value(ThemeGradientToken.panel), !gradient.isEmpty else {
+            if let color = style.value(ThemeColorToken.panel) {
+                content.layer?.backgroundColor = NSColor(color).withAlphaComponent(style.panelOpacity).cgColor
+            }
             return nil
         }
         let layer = CAGradientLayer()

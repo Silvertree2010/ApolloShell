@@ -122,7 +122,7 @@ struct ThemeLoaderTests {
         let folder = root.appendingPathComponent("Leer")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let theme = ThemeLoader.load(at: folder)
-        #expect(theme.color(.accent) == ThemeColorToken.accent.defaultValue())
+        #expect(theme.color(.accent) == nil)
         #expect(theme.issues.contains(ThemeIssue(.unreadableFile(ThemeLoader.styleSheetName))))
     }
 
@@ -249,7 +249,7 @@ struct ThemeLoaderTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let file = try write("", to: root.appendingPathComponent("Leer.css"))
         let theme = ThemeLoader.load(at: file)
-        #expect(theme.color(.accent) == ThemeColorToken.accent.defaultValue())
+        #expect(theme.color(.accent) == nil)
         #expect(theme.issues.isEmpty)
     }
 
@@ -260,7 +260,7 @@ struct ThemeLoaderTests {
         let file = root.appendingPathComponent("Bild.css")
         try Data((0..<4096).map { UInt8($0 % 256) }).write(to: file)
         let theme = ThemeLoader.load(at: file)
-        #expect(theme.color(.accent) == ThemeColorToken.accent.defaultValue())
+        #expect(theme.color(.accent) == nil)
         #expect(theme.issues.contains(ThemeIssue(.notText)))
     }
 
@@ -298,7 +298,7 @@ struct ThemeLoaderTests {
         let filler = String(repeating: "/* Fuellung, damit es weh tut */\n", count: 20_000)
         try write(":root { --apollo-accent-color: #ff0000; }\n" + filler, to: file)
         let theme = ThemeLoader.load(at: file)
-        #expect(theme.color(.accent) == ThemeColorToken.accent.defaultValue())
+        #expect(theme.color(.accent) == nil)
         #expect(theme.issues.contains { if case .styleSheetTooLarge = $0.kind { true } else { false } })
     }
 

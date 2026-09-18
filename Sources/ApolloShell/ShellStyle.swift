@@ -6,81 +6,85 @@ import SwiftUI
 ///
 /// Zwei Regeln halten das hier zusammen:
 ///
-/// 1. **Ohne Theme aendert sich nichts.** Ist keines gewaehlt (`isThemed`
-///    falsch), liefert jeder Zugriff genau das, was die Shell vorher benutzt
-///    hat: die Systemfarben von macOS, Material, die eingebauten Masse. Die
-///    Vorgaben des Katalogs sind den Systemfarben nur nachempfunden - wer
-///    kein Theme hat, soll aber keinen Unterschied sehen.
+/// 1. **Was das Theme nicht nennt, bleibt, wie macOS es zeichnet.** `Theme`
+///    liefert nur Werte aus der Datei; fehlt einer, gilt hier die Systemfarbe,
+///    Material oder das eingebaute Mass. Ohne Theme (`Theme.standard`) fehlt
+///    alles - die Shell sieht aus wie ohne Themes.
 /// 2. **Kein Zugriff kann scheitern.** Der Kern hat jeden Wert schon geprueft
 ///    und geklemmt; hier wird nur noch umgerechnet.
 struct ShellStyle: Equatable {
     let theme: Theme
     let dark: Bool
-    let isThemed: Bool
 
     /// Das eingebaute Aussehen: genau die Shell ohne Theme.
-    static let standard = ShellStyle(theme: .standard, dark: false, isThemed: false)
+    static let standard = ShellStyle(theme: .standard, dark: false)
+
+    /// Der Wert des Themes in diesem Erscheinungsbild, `nil`, wenn es ihn
+    /// nicht nennt.
+    func value<Kind>(_ token: ThemeToken<Kind>) -> Kind.Value? {
+        theme.value(token, dark: dark)
+    }
 
     // MARK: - Farben
 
-    /// Nennt das gewaehlte Theme dieses Token?
-    ///
-    /// Nur was in der Datei steht, wird uebernommen. Die Vorgaben im
-    /// Verzeichnis sind dem Aussehen der Shell nur nachempfunden - wer sie
-    /// auf ein nicht genanntes Token anwendete, aenderte damit doch etwas.
-    private func declares(_ name: String) -> Bool {
-        isThemed && theme.declares(name)
+    /// Die Farbe des Themes, `nil`, wenn es sie nicht nennt.
+    func color(_ token: ThemeColorToken) -> Color? {
+        value(token).map(Color.init)
     }
 
-    /// Eine Themefarbe, oder die Systemfarbe, solange das Theme sie nicht nennt.
-    private func color(_ token: ThemeColorToken, fallback: Color) -> Color {
-        declares(token.name) ? Color(theme.color(token, dark: dark)) : fallback
+    /// Die Farbe des Themes, sonst `fallback` - auch ein hierarchischer Stil
+    /// wie `.primary`, der auf Glas lebendig bleibt (eine feste Farbe tut
+    /// das nicht).
+    func paint(_ token: ThemeColorToken, or fallback: some ShapeStyle) -> AnyShapeStyle {
+        color(token).map(AnyShapeStyle.init) ?? AnyShapeStyle(fallback)
     }
 
-    var accent: Color { color(.accent, fallback: .accentColor) }
-    var secondaryAccent: Color { color(.secondaryAccent, fallback: Color(nsColor: .systemIndigo)) }
-    var text: Color { color(.text, fallback: .primary) }
-    var secondaryText: Color { color(.secondaryText, fallback: .secondary) }
-    var mutedText: Color { color(.mutedText, fallback: Color(nsColor: .tertiaryLabelColor)) }
-    var link: Color { color(.link, fallback: .accentColor) }
-    var separator: Color { color(.separator, fallback: Color(nsColor: .separatorColor)) }
-    var border: Color { color(.border, fallback: Color(nsColor: .separatorColor)) }
-    var selection: Color { color(.selection, fallback: .accentColor.opacity(0.18)) }
-    var hover: Color { color(.hover, fallback: Color.primary.opacity(0.08)) }
-    var success: Color { color(.success, fallback: .green) }
-    var warning: Color { color(.warning, fallback: .orange) }
-    var danger: Color { color(.danger, fallback: .red) }
-    var barText: Color { color(.barText, fallback: .primary) }
-    var barIcon: Color { color(.barIcon, fallback: .primary) }
-    var dockIndicator: Color { color(.dockIndicator, fallback: .primary.opacity(0.6)) }
-    var launcherHighlight: Color { color(.launcherHighlight, fallback: .accentColor.opacity(0.18)) }
-    var toastText: Color { color(.toastText, fallback: .primary) }
-    var card: Color { color(.card, fallback: Color(nsColor: .windowBackgroundColor)) }
-    var surface: Color { color(.surface, fallback: Color(nsColor: .windowBackgroundColor)) }
+    var accent: Color { color(.accent) ?? .accentColor }
+    var secondaryAccent: Color { color(.secondaryAccent) ?? Color(nsColor: .systemIndigo) }
+    var text: Color { color(.text) ?? .primary }
+    var secondaryText: Color { color(.secondaryText) ?? .secondary }
+    var mutedText: Color { color(.mutedText) ?? Color(nsColor: .tertiaryLabelColor) }
+    var link: Color { color(.link) ?? .accentColor }
+    var separator: Color { color(.separator) ?? Color(nsColor: .separatorColor) }
+    var border: Color { color(.border) ?? Color(nsColor: .separatorColor) }
+    var selection: Color { color(.selection) ?? .accentColor.opacity(0.18) }
+    var hover: Color { color(.hover) ?? Color.primary.opacity(0.08) }
+    var success: Color { color(.success) ?? .green }
+    var warning: Color { color(.warning) ?? .orange }
+    var danger: Color { color(.danger) ?? .red }
+    var barText: Color { color(.barText) ?? .primary }
+    var barIcon: Color { color(.barIcon) ?? .primary }
+    var dockIndicator: Color { color(.dockIndicator) ?? .primary.opacity(0.6) }
+    var launcherHighlight: Color { color(.launcherHighlight) ?? .accentColor.opacity(0.18) }
+    var toastText: Color { color(.toastText) ?? .primary }
+    var card: Color { color(.card) ?? Color(nsColor: .windowBackgroundColor) }
+    var surface: Color { color(.surface) ?? Color(nsColor: .windowBackgroundColor) }
 
-    /// Die Schrift auf Akzentflaechen. Ohne Theme wie bisher berechnet
-    /// (`Color.onAccent`), mit Theme das Token - der Kern haelt es lesbar.
-    var onAccent: Color { isThemed ? Color(theme.color(.onAccent, dark: dark)) : .onAccent }
+    /// Schrift auf Akzentflaechen, wenn das Theme dazu etwas sagt: seine
+    /// eigene, oder die Vorgabe lesbar gemacht auf seinem Akzent. Sonst `nil`.
+    var themeOnAccent: Color? { theme.readableColor(.onAccent, dark: dark).map(Color.init) }
+
+    /// Schrift auf Akzentflaechen; ohne Angabe im Theme wie macOS
+    /// (`Color.onAccent`, passend zum Akzent des Systems).
+    var onAccent: Color { themeOnAccent ?? .onAccent }
 
     // MARK: - Flaechen
 
     /// Fuellung einer Flaeche: der Verlauf, wenn das Theme einen setzt, sonst
-    /// die Farbe daneben.
+    /// die Farbe daneben, sonst `fallback`.
     private func fill(_ colorToken: ThemeColorToken, _ gradientToken: ThemeGradientToken,
-                      fallback: Color) -> AnyShapeStyle {
-        let gradient = theme.gradient(gradientToken, dark: dark)
-        if declares(gradientToken.name), !gradient.isEmpty {
+                      fallback: some ShapeStyle) -> AnyShapeStyle {
+        if let gradient = value(gradientToken), !gradient.isEmpty {
             return AnyShapeStyle(ShellStyle.linear(gradient))
         }
-        guard declares(colorToken.name) else { return AnyShapeStyle(fallback) }
-        return AnyShapeStyle(Color(theme.color(colorToken, dark: dark)))
+        return paint(colorToken, or: fallback)
     }
 
     /// Faerbt das Theme diese Flaeche ueberhaupt? Nennt es weder Farbe noch
     /// Verlauf, bleibt die Flaeche, wie die Shell sie zeichnet - also Glas
     /// und Material statt einer Ersatzfarbe.
     private func paints(_ colorToken: ThemeColorToken, _ gradientToken: ThemeGradientToken) -> Bool {
-        declares(colorToken.name) || declares(gradientToken.name)
+        value(colorToken) != nil || value(gradientToken) != nil
     }
 
     var paintsBar: Bool { paints(.bar, .bar) }
@@ -90,32 +94,21 @@ struct ShellStyle: Equatable {
     var paintsSurface: Bool { paints(.surface, .surface) }
     var paintsLauncherHighlight: Bool { paints(.launcherHighlight, .launcherHighlight) }
 
-    /// Nennt das Theme dieses einzelne Token? Fuer Stellen, die kein
-    /// Flaechenpaar aus Farbe und Verlauf haben (Schriftfarbe, Punkt im Dock).
-    func declaresColor(_ token: ThemeColorToken) -> Bool { declares(token.name) }
-    func declaresNumber(_ token: ThemeNumberToken) -> Bool { declares(token.name) }
-
     /// Hintergrund der Leiste, mit Deckkraft aus dem Theme.
     var barFill: AnyShapeStyle {
-        guard isThemed else { return AnyShapeStyle(Color.clear) }
-        let opacity = declares(ThemeNumberToken.barOpacity.name) ? theme.number(.barOpacity, dark: dark) : 1
-        let gradient = theme.gradient(.bar, dark: dark)
-        if gradient.isEmpty {
-            return AnyShapeStyle(Color(theme.color(.bar, dark: dark)).opacity(opacity))
+        let opacity = value(.barOpacity) ?? 1
+        if let gradient = value(ThemeGradientToken.bar), !gradient.isEmpty {
+            return AnyShapeStyle(ShellStyle.linear(gradient).opacity(opacity))
         }
-        return AnyShapeStyle(ShellStyle.linear(gradient).opacity(opacity))
+        guard let bar = color(.bar) else { return AnyShapeStyle(Color.clear) }
+        return AnyShapeStyle(bar.opacity(opacity))
     }
 
     /// Wie deckend ein Panel ist (`--apollo-panel-opacity`).
-    var panelOpacity: Double {
-        declares(ThemeNumberToken.panelOpacity.name) ? theme.number(.panelOpacity, dark: dark) : 1
-    }
+    var panelOpacity: Double { value(.panelOpacity) ?? 1 }
 
     /// Deckt die Leiste vollstaendig? Dann braucht es nichts dahinter.
-    var barIsOpaque: Bool {
-        guard isThemed else { return false }
-        return !declares(ThemeNumberToken.barOpacity.name) || theme.number(.barOpacity, dark: dark) >= 1
-    }
+    var barIsOpaque: Bool { (value(.barOpacity) ?? 1) >= 1 }
 
     /// Flaeche von Fenstern und Listen (`--apollo-surface-color`, mit
     /// `--apollo-surface-gradient`).
@@ -132,7 +125,7 @@ struct ShellStyle: Equatable {
     }
 
     var accentFill: AnyShapeStyle {
-        fill(.accent, .accent, fallback: .accentColor)
+        fill(.accent, .accent, fallback: Color.accentColor)
     }
 
     var toastFill: AnyShapeStyle {
@@ -140,7 +133,7 @@ struct ShellStyle: Equatable {
     }
 
     var launcherHighlightFill: AnyShapeStyle {
-        fill(.launcherHighlight, .launcherHighlight, fallback: .accentColor.opacity(0.18))
+        fill(.launcherHighlight, .launcherHighlight, fallback: Color.accentColor.opacity(0.18))
     }
 
     var backgroundFill: AnyShapeStyle {
@@ -164,43 +157,42 @@ struct ShellStyle: Equatable {
 
     // MARK: - Masse
 
-    /// Eine Laenge des Themes, oder das eingebaute Mass.
-    private func length(_ token: ThemeNumberToken, fallback: CGFloat) -> CGFloat {
-        declares(token.name) ? CGFloat(theme.number(token, dark: dark)) : fallback
+    /// Eine Laenge des Themes, `nil`, wenn es sie nicht nennt.
+    func length(_ token: ThemeNumberToken) -> CGFloat? {
+        value(token).map { CGFloat($0) }
     }
 
-    func cornerRadius(_ fallback: CGFloat) -> CGFloat { length(.cornerRadius, fallback: fallback) }
-    func controlRadius(_ fallback: CGFloat) -> CGFloat { length(.controlRadius, fallback: fallback) }
-    func panelRadius(_ fallback: CGFloat) -> CGFloat { length(.panelRadius, fallback: fallback) }
-    func cardRadius(_ fallback: CGFloat) -> CGFloat { length(.cardRadius, fallback: fallback) }
-    func toastRadius(_ fallback: CGFloat) -> CGFloat { length(.toastRadius, fallback: fallback) }
-    func barRadius(_ fallback: CGFloat) -> CGFloat { length(.barRadius, fallback: fallback) }
-    func barPadding(_ fallback: CGFloat) -> CGFloat { length(.barPadding, fallback: fallback) }
-    func barItemSpacing(_ fallback: CGFloat) -> CGFloat { length(.barItemSpacing, fallback: fallback) }
-    func panelPadding(_ fallback: CGFloat) -> CGFloat { length(.panelPadding, fallback: fallback) }
-    func spacing(_ fallback: CGFloat) -> CGFloat { length(.spacing, fallback: fallback) }
-    func barWidth(_ fallback: CGFloat) -> CGFloat { length(.barWidth, fallback: fallback) }
-    func dockIconSize(_ fallback: CGFloat) -> CGFloat { length(.dockIconSize, fallback: fallback) }
-    func dockSpacing(_ fallback: CGFloat) -> CGFloat { length(.dockSpacing, fallback: fallback) }
-    func launcherRowHeight(_ fallback: CGFloat) -> CGFloat { length(.launcherRowHeight, fallback: fallback) }
+    func cornerRadius(_ fallback: CGFloat) -> CGFloat { length(.cornerRadius) ?? fallback }
+    func controlRadius(_ fallback: CGFloat) -> CGFloat { length(.controlRadius) ?? fallback }
+    func panelRadius(_ fallback: CGFloat) -> CGFloat { length(.panelRadius) ?? fallback }
+    func cardRadius(_ fallback: CGFloat) -> CGFloat { length(.cardRadius) ?? fallback }
+    func toastRadius(_ fallback: CGFloat) -> CGFloat { length(.toastRadius) ?? fallback }
+    func barRadius(_ fallback: CGFloat) -> CGFloat { length(.barRadius) ?? fallback }
+    func barPadding(_ fallback: CGFloat) -> CGFloat { length(.barPadding) ?? fallback }
+    func barItemSpacing(_ fallback: CGFloat) -> CGFloat { length(.barItemSpacing) ?? fallback }
+    func panelPadding(_ fallback: CGFloat) -> CGFloat { length(.panelPadding) ?? fallback }
+    func spacing(_ fallback: CGFloat) -> CGFloat { length(.spacing) ?? fallback }
+    func barWidth(_ fallback: CGFloat) -> CGFloat { length(.barWidth) ?? fallback }
+    func dockIconSize(_ fallback: CGFloat) -> CGFloat { length(.dockIconSize) ?? fallback }
+    func dockSpacing(_ fallback: CGFloat) -> CGFloat { length(.dockSpacing) ?? fallback }
+    func launcherRowHeight(_ fallback: CGFloat) -> CGFloat { length(.launcherRowHeight) ?? fallback }
 
     /// Staerke der Umrandung; 0 heisst: keine.
-    func borderWidth(_ fallback: CGFloat) -> CGFloat { length(.borderWidth, fallback: fallback) }
+    func borderWidth(_ fallback: CGFloat) -> CGFloat { length(.borderWidth) ?? fallback }
 
-    /// Umrandung einer Flaeche, oder nichts, wenn kein Theme gilt oder das
-    /// Theme die Breite auf 0 stellt.
+    /// Umrandung einer Flaeche, oder nichts, wenn das Theme keine Breite
+    /// nennt oder sie auf 0 stellt.
     @ViewBuilder
     func border<S: InsettableShape>(_ shape: S) -> some View {
-        if isThemed, borderWidth(0) > 0 {
-            shape.strokeBorder(border, lineWidth: borderWidth(0))
+        if let width = length(.borderWidth), width > 0 {
+            shape.strokeBorder(border, lineWidth: width)
         }
     }
 
     /// Wie stark Schatten unter Flaechen sind.
     func shadowOpacity(_ fallback: Double) -> Double {
-        if declares(ThemeFlagToken.shadows.name), !theme.flag(.shadows, dark: dark) { return 0 }
-        guard declares(ThemeNumberToken.shadowOpacity.name) else { return fallback }
-        return theme.number(.shadowOpacity, dark: dark)
+        if value(.shadows) == false { return 0 }
+        return value(.shadowOpacity) ?? fallback
     }
 
     // MARK: - Schrift
@@ -211,10 +203,7 @@ struct ShellStyle: Equatable {
     /// Systemschrift zurueck - ein Theme aus dem Netz darf die Shell nicht
     /// unlesbar machen.
     func font(size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        guard isThemed else { return .system(size: size, weight: weight) }
-        let family = declares(ThemeTextToken.fontFamily.name)
-            ? theme.text(.fontFamily, dark: dark).trimmingCharacters(in: .whitespacesAndNewlines)
-            : ""
+        let family = (value(.fontFamily) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let scaled = size * fontScale
         guard !family.isEmpty, NSFont(name: family, size: scaled) != nil else {
             return .system(size: scaled, weight: weight)
@@ -225,9 +214,8 @@ struct ShellStyle: Equatable {
     /// Wie stark die Schriftgroessen des Themes von den eingebauten abweichen.
     /// 13 pt ist die Systemgroesse, an der die Shell gebaut ist.
     private var fontScale: CGFloat {
-        guard declares(ThemeNumberToken.fontSize.name) else { return 1 }
-        let size = theme.number(.fontSize, dark: dark)
-        return size > 0 ? CGFloat(size) / 13 : 1
+        guard let size = value(.fontSize), size > 0 else { return 1 }
+        return CGFloat(size) / 13
     }
 
     // MARK: - Symbole
@@ -235,8 +223,7 @@ struct ShellStyle: Equatable {
     /// Das Bild, das das Theme fuer dieses Symbol mitbringt - `nil`, wenn
     /// keines dabei ist.
     func iconFile(_ id: String) -> URL? {
-        guard isThemed else { return nil }
-        return theme.icon(id)
+        theme.icon(id)
     }
 
     // MARK: - Schalter
@@ -244,15 +231,13 @@ struct ShellStyle: Equatable {
     /// Darf sich etwas bewegen? Ein Theme kann Bewegung abstellen; die
     /// Systemeinstellung "Bewegung reduzieren" hat dennoch Vorrang, die
     /// fragen die Ansichten selbst ab.
-    var animations: Bool { declares(ThemeFlagToken.animations.name) ? theme.flag(.animations, dark: dark) : true }
+    var animations: Bool { value(.animations) ?? true }
 
     /// Darf Liquid Glass benutzt werden?
-    var glass: Bool { declares(ThemeFlagToken.glass.name) ? theme.flag(.glass, dark: dark) : true }
+    var glass: Bool { value(.glass) ?? true }
 
     /// Wie schnell Bewegungen laufen; 1 ist die eingebaute Geschwindigkeit.
-    var animationSpeed: Double {
-        declares(ThemeNumberToken.animationSpeed.name) ? theme.number(.animationSpeed, dark: dark) : 1
-    }
+    var animationSpeed: Double { value(.animationSpeed) ?? 1 }
 
     /// Eine Dauer, vom Theme gestreckt oder gekuerzt. Ohne Bewegung: 0.
     func duration(_ seconds: Double) -> Double {
@@ -328,12 +313,12 @@ private struct ShellThemeScope: ViewModifier {
 extension View {
     /// Faerbt den Hintergrund eines Fensters oder einer Liste nach dem Theme.
     ///
-    /// Ohne Theme bleibt alles, wie macOS es zeichnet - also auch das Glas
-    /// der Seitenleiste von Nexus. Mit Theme wird der eigene Hintergrund der
-    /// Rollflaeche ausgeblendet, sonst laege er darueber.
+    /// Nennt das Theme keine Flaeche, bleibt alles, wie macOS es zeichnet -
+    /// also auch das Glas der Seitenleiste von Nexus. Sonst wird der eigene
+    /// Hintergrund der Rollflaeche ausgeblendet, er laege darueber.
     @ViewBuilder
     func themedWindowBackground(_ style: ShellStyle) -> some View {
-        if style.isThemed {
+        if style.paintsSurface {
             scrollContentBackground(.hidden)
                 .background(style.surfaceFill)
         } else {

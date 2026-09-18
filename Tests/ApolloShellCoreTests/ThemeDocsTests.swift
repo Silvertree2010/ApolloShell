@@ -94,8 +94,9 @@ struct ThemeDocsTests {
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
         #expect(theme.color(.accent) == ThemeColor(hex: 0xFF6B35))
         #expect(theme.color(.accent, dark: true) == ThemeColor(hex: 0xFF8354))
-        // Was es nicht setzt, ist die Vorgabe - hell wie dunkel.
-        #expect(theme.color(.surface, dark: true) == ThemeColorToken.surface.defaultValue(dark: true))
+        // Was es nicht setzt, bleibt leer - hell wie dunkel.
+        #expect(theme.color(.surface) == nil)
+        #expect(theme.color(.surface, dark: true) == nil)
     }
 
     @Test("das vollstaendige Beispiel nennt jedes Token")
@@ -149,8 +150,8 @@ struct ThemeDocsTests {
         let theme = ThemeLoader.load(at: Self.examples.appendingPathComponent("Nightfall.css"))
         #expect(theme.title == "Nightfall")
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
-        #expect(theme.gradient(.bar, dark: true).stops.count == 2)
-        #expect(theme.gradient(.panel).isEmpty, "im hellen Erscheinungsbild ohne Verlauf")
+        #expect(theme.gradient(.bar, dark: true)?.stops.count == 2)
+        #expect(theme.gradient(.panel)?.isEmpty ?? true, "im hellen Erscheinungsbild ohne Verlauf")
         #expect(theme.color(.accent) == ThemeColor(hex: 0xFF8A3D))
     }
 }

@@ -93,15 +93,16 @@ struct ThemeTokenCatalogTests {
         }
     }
 
-    @Test("das eingebaute Theme meldet nichts und ist in beiden Erscheinungsbildern lesbar")
-    func standardThemeIsClean() {
+    @Test("das eingebaute Theme meldet nichts, die Vorgaben sind in beiden Erscheinungsbildern lesbar")
+    func standardThemeIsClean() throws {
         #expect(Theme.standard.issues.isEmpty)
         #expect(Theme.standard.formatVersion == ThemeFormat.current)
         for dark in [false, true] {
             for token in catalog.tokens {
-                guard let rule = token.contrast,
-                      let color = Theme.standard.value(token.name, dark: dark)?.color,
-                      let background = Theme.standard.value(rule.background, dark: dark)?.color else { continue }
+                guard let rule = token.contrast else { continue }
+                let color = try #require(token.defaultValue(dark: dark).color, "\(token.name)")
+                let background = try #require(catalog.descriptor(named: rule.background)?.defaultValue(dark: dark).color,
+                                              "\(rule.background)")
                 let ratio = ThemeColor.contrast(color.composited(over: background), background)
                 #expect(ratio >= rule.minimum, "\(token.name) dunkel=\(dark): \(ratio)")
             }

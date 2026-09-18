@@ -113,7 +113,7 @@ private struct UtilitiesVolumeSlider: View {
                     .frame(width: fill)
                     .opacity(value > 0 ? 1 : 0)
                 Circle()
-                    .fill(style.isThemed ? style.onAccent : Color.white)
+                    .fill(style.themeOnAccent ?? Color.white)
                     .shadow(color: .black.opacity(style.shadowOpacity(0.25)), radius: 1.5, y: 0.5)
                     .frame(width: h - 4, height: h - 4)
                     .offset(x: fill - h + 2)

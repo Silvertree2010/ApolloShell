@@ -19,11 +19,14 @@ public extension ThemeTokenCatalog {
     static let prefix = "--apollo-"
 }
 
-/// Ein fertig gelesenes Theme: fuer jedes bekannte Token ein Wert, hell und
+/// Ein fertig gelesenes Theme: die Werte, die in der Datei stehen, hell und
 /// dunkel, schon geklemmt und auf Lesbarkeit geprueft.
 ///
-/// Es gibt keinen Weg, an einen ungeprueften Wert zu kommen, und keinen Weg,
-/// dass ein Zugriff scheitert: fehlt etwas, steht dort die Vorgabe.
+/// Es gibt keinen Weg, an einen ungeprueften Wert zu kommen. Was die Datei
+/// nicht nennt, fehlt hier auch (`nil`) - "was du nicht setzt, bleibt wie es
+/// ist": Die Vorgaben im Verzeichnis sind dem Aussehen der Shell nur
+/// nachempfunden, wer sie einsetzte, aenderte doch etwas (etwa die Breite der
+/// Leiste). Den Rueckfall waehlt die App, meist die Systemfarbe von macOS.
 public struct Theme: Equatable, Sendable {
     /// Ordner- oder Dateiname ohne `.css`. Bleibt gleich, solange die Datei
     /// gleich heisst - daran haengen spaeter die Einstellung "welches Theme"
@@ -36,21 +39,16 @@ public struct Theme: Equatable, Sendable {
     /// Alles, was beim Lesen aufgefallen ist. Nie ein Grund, das Theme nicht
     /// zu benutzen.
     public let issues: [ThemeIssue]
+    /// Nur die genannten Token. Hell: was in `:root` steht; dunkel: dazu,
+    /// was der `@media`-Block ueberschreibt oder ergaenzt.
     public let lightValues: [String: ThemeValue]
     public let darkValues: [String: ThemeValue]
     /// Die Bilder aus `icons/`, wenn das Theme ein Ordner ist.
     public let icons: ThemeIconSet
-    /// Die Token, die in der Datei wirklich stehen (hell oder dunkel).
-    ///
-    /// Wichtig fuer die Zusage "was du nicht setzt, bleibt wie es ist": Die
-    /// Vorgaben im Verzeichnis sind dem Aussehen der Shell nur nachempfunden.
-    /// Wer sie auf ein nicht genanntes Token anwendete, aenderte damit doch
-    /// etwas - etwa die Breite der Leiste, obwohl das Theme nie davon sprach.
-    public let declared: Set<String>
 
     init(identifier: String, formatVersion: Int, issues: [ThemeIssue],
          lightValues: [String: ThemeValue], darkValues: [String: ThemeValue],
-         icons: ThemeIconSet = .none, declared: Set<String> = []) {
+         icons: ThemeIconSet = .none) {
         let name = Theme.cleanIdentifier(identifier)
         self.identifier = name
         slug = Theme.slug(from: name)
@@ -59,11 +57,10 @@ public struct Theme: Equatable, Sendable {
         self.lightValues = lightValues
         self.darkValues = darkValues
         self.icons = icons
-        self.declared = declared
     }
 
-    /// Das eingebaute Aussehen: alle Vorgaben, kein einziger Hinweis. Auch
-    /// der Rueckfall, wenn eine Datei unbrauchbar ist.
+    /// Das eingebaute Aussehen: kein Wert, kein Hinweis - die Shell, wie sie
+    /// ohne Theme aussieht. Auch der Rueckfall, wenn eine Datei unbrauchbar ist.
     public static let standard = Theme.make(identifier: "default", styleSheet: ThemeStyleSheet())
 
     // MARK: - Werte lesen
@@ -72,37 +69,33 @@ public struct Theme: Equatable, Sendable {
         (dark ? darkValues : lightValues)[name.lowercased()]
     }
 
-    public func color(_ token: ThemeColorToken, dark: Bool = false) -> ThemeColor {
-        value(token.name, dark: dark)?.color ?? token.defaultValue(dark: dark)
+    /// Der Wert eines Tokens, wie ihn die Datei nennt - `nil`, wenn sie es
+    /// in diesem Erscheinungsbild nicht tut.
+    public func value<Kind>(_ token: ThemeToken<Kind>, dark: Bool = false) -> Kind.Value? {
+        value(token.name, dark: dark).flatMap(Kind.value(from:))
     }
 
-    /// Der Verlauf eines Tokens. Leer heisst: keiner gesetzt, dann faerbt
-    /// die Farbe daneben die Flaeche.
-    public func gradient(_ token: ThemeGradientToken, dark: Bool = false) -> ThemeGradient {
-        value(token.name, dark: dark)?.gradient ?? token.defaultValue(dark: dark)
-    }
-
-    public func number(_ token: ThemeNumberToken, dark: Bool = false) -> Double {
-        value(token.name, dark: dark)?.number ?? token.defaultValue(dark: dark)
-    }
-
-    public func text(_ token: ThemeTextToken, dark: Bool = false) -> String {
-        value(token.name, dark: dark)?.text ?? token.defaultValue(dark: dark)
-    }
-
-    public func asset(_ token: ThemeFileToken, dark: Bool = false) -> ThemeAsset {
-        value(token.name, dark: dark)?.asset ?? token.defaultValue(dark: dark)
+    /// Nennt das Theme dieses Token ueberhaupt (hell oder dunkel)?
+    public func declares(_ name: String) -> Bool {
+        value(name) != nil || value(name, dark: true) != nil
     }
 
     /// Die gepruefte Datei - `nil`, wenn keine angegeben war oder sie nicht
     /// benutzt werden darf.
     public func file(_ token: ThemeFileToken, dark: Bool = false) -> URL? {
-        asset(token, dark: dark).url
+        value(token, dark: dark)?.url
     }
 
-    /// Nennt das Theme dieses Token ueberhaupt?
-    public func declares(_ name: String) -> Bool {
-        declared.contains(name.lowercased())
+    /// Eine Schriftfarbe, auch wenn das Theme nur ihren Untergrund nennt:
+    /// dann die Vorgabe, so weit verschoben, bis sie darauf lesbar ist. Nennt
+    /// es weder die Farbe noch den Untergrund: `nil`, die App bleibt bei der
+    /// Farbe von macOS - die passt dann ja zum Untergrund von macOS.
+    public func readableColor(_ token: ThemeColorToken, dark: Bool = false) -> ThemeColor? {
+        if let color = value(token, dark: dark) { return color }
+        guard let rule = token.descriptor?.contrast,
+              let background = value(rule.background, dark: dark)?.color
+        else { return nil }
+        return ThemeGuards.readable(token.defaultValue(dark: dark), on: background, minimum: rule.minimum)
     }
 
     /// Das Bild, das dieses Theme fuer ein Symbol mitbringt - `nil`, wenn
@@ -111,31 +104,23 @@ public struct Theme: Equatable, Sendable {
         icons.file(id)
     }
 
-    public func option(_ token: ThemeOptionToken, dark: Bool = false) -> String {
-        value(token.name, dark: dark)?.option ?? token.defaultValue(dark: dark)
-    }
-
-    public func flag(_ token: ThemeFlagToken, dark: Bool = false) -> Bool {
-        value(token.name, dark: dark)?.flag ?? token.defaultValue(dark: dark)
-    }
-
     /// Was in der Liste steht: der Name aus dem Theme, sonst die Kennung.
     public var title: String {
-        let name = text(.themeName)
+        let name = value(ThemeTextToken.themeName) ?? ""
         return name.isEmpty ? identifier : name
     }
 
-    public var author: String { text(.author) }
-    public var details: String { text(.themeDescription) }
+    public var author: String { value(ThemeTextToken.author) ?? "" }
+    public var details: String { value(ThemeTextToken.themeDescription) ?? "" }
 
     // MARK: - Bauen
 
     /// Aus gelesenen Angaben ein Theme machen. Kann nicht scheitern.
     ///
     /// Die Angaben aus `:root` gelten in beiden Erscheinungsbildern; der
-    /// `@media`-Block legt sich nur darueber - wie in CSS. Was fehlt, ist die
-    /// Vorgabe des Tokens, und zwar je Erscheinungsbild getrennt: ein Theme,
-    /// das nur die Akzentfarbe setzt, bleibt im Dunkeln dunkel.
+    /// `@media`-Block legt sich nur darueber - wie in CSS. Was fehlt, bleibt
+    /// leer; nur die Kontrastpruefung misst dann am Untergrund aus dem
+    /// Verzeichnis.
     public static func make(identifier: String,
                             styleSheet: ThemeStyleSheet,
                             assets: ThemeAssetResolver = .none,
@@ -151,10 +136,8 @@ public struct Theme: Equatable, Sendable {
                           assets: assets, cache: &cache, log: &log)
         let dark = apply(styleSheet.dark, catalog: catalog, limits: limits,
                          assets: assets, cache: &cache, log: &log)
-        var lightValues = catalog.defaults(dark: false).merging(light) { _, new in new }
-        var darkValues = catalog.defaults(dark: true)
-            .merging(light) { _, new in new }
-            .merging(dark) { _, new in new }
+        var lightValues = light
+        var darkValues = light.merging(dark) { _, new in new }
         ThemeGuards.enforceContrast(in: &lightValues, catalog: catalog, dark: false, log: &log)
         ThemeGuards.enforceContrast(in: &darkValues, catalog: catalog, dark: true, log: &log)
         let format = Int(lightValues[ThemeNumberToken.format.name]?.number ?? Double(ThemeFormat.current))
@@ -163,8 +146,7 @@ public struct Theme: Equatable, Sendable {
         }
         return Theme(identifier: identifier, formatVersion: format,
                      issues: withoutDuplicates(log.finished()),
-                     lightValues: lightValues, darkValues: darkValues, icons: icons,
-                     declared: Set(light.keys).union(dark.keys))
+                     lightValues: lightValues, darkValues: darkValues, icons: icons)
     }
 
     private static func apply(_ declarations: [ThemeDeclaration],
@@ -277,9 +259,13 @@ public enum ThemeGuards {
         // Ueber den Katalog statt ueber das Woerterbuch: die Reihenfolge der
         // Hinweise soll bei gleicher Datei immer dieselbe sein.
         for token in catalog.tokens {
+            // Nennt das Theme den Untergrund nicht, steht die Schrift auf dem
+            // der Shell - dem nachempfunden ist die Vorgabe im Verzeichnis.
             guard let rule = token.contrast,
                   let color = values[token.name]?.color,
-                  let background = values[rule.background]?.color else { continue }
+                  let background = values[rule.background]?.color
+                      ?? catalog.descriptor(named: rule.background)?.defaultValue(dark: dark).color
+            else { continue }
             let fixed = readable(color, on: background, minimum: rule.minimum)
             guard fixed != color else { continue }
             log.add(.contrastAdjusted(token: token.name, requested: color.cssText,

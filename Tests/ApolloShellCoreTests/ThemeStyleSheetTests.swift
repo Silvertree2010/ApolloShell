@@ -144,7 +144,7 @@ struct ThemeStyleSheetTests {
         let sheet = ThemeStyleSheetParser.parse(css)
         let theme = Theme.make(identifier: "kaputt", styleSheet: sheet)
         // Immer ein benutzbares Theme, und die Hinweise bleiben zaehlbar.
-        #expect(theme.color(.accent) == ThemeColorToken.accent.defaultValue())
+        #expect(theme.color(.accent) == nil)
         #expect(theme.issues.count <= ThemeLimits.standard.maxIssues + 1)
     }
 
@@ -159,7 +159,7 @@ struct ThemeStyleSheetTests {
         for _ in 0..<100 {
             let text = String(decoding: (0..<512).map { _ in next() }, as: UTF8.self)
             let theme = Theme.make(identifier: "zufall", styleSheet: ThemeStyleSheetParser.parse(text))
-            #expect(theme.number(.barWidth) == ThemeNumberToken.barWidth.defaultValue())
+            #expect(theme.number(.barWidth) == nil)
         }
     }
 

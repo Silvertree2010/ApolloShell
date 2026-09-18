@@ -20,9 +20,6 @@ final class ThemeStore {
     private(set) var theme: Theme = .standard
     /// Alles, was im Ordner liegt - fuer die Liste in Nexus.
     private(set) var available: [Theme] = []
-    /// Ist ueberhaupt ein Theme gewaehlt? Ohne Theme bleibt die Shell bei den
-    /// Farben von macOS, nicht bei den (aehnlichen) Vorgaben des Katalogs.
-    private(set) var isThemed = false
 
     let folder: URL
 
@@ -66,7 +63,7 @@ final class ThemeStore {
 
     /// Der Stil fuer die Oberfläche, im gewuenschten Erscheinungsbild.
     func style(dark: Bool) -> ShellStyle {
-        ShellStyle(theme: theme, dark: dark, isThemed: isThemed)
+        ShellStyle(theme: theme, dark: dark)
     }
 
     /// Name des gewaehlten Themes (Datei- oder Ordnername), `nil` = keins.
@@ -83,7 +80,6 @@ final class ThemeStore {
         available = ThemeLoader.themes(in: folder)
         guard let name = settings.settings.theme.name else {
             theme = .standard
-            isThemed = false
             stopWatchingFile()
             return
         }
@@ -93,12 +89,10 @@ final class ThemeStore {
         guard let found = available.first(where: { $0.identifier == name }) else {
             log.notice("Theme \(name, privacy: .public) nicht im Ordner - ohne Theme")
             theme = .standard
-            isThemed = false
             stopWatchingFile()
             return
         }
         theme = found
-        isThemed = true
         watchSelectedFile()
         if !found.issues.isEmpty {
             log.notice("Theme \(name, privacy: .public): \(found.issues.count) Hinweis(e)")

@@ -184,181 +184,186 @@ public struct ThemeTokenCatalog: Sendable {
 
 // MARK: - Bequeme, getippte Griffe auf die Token
 
-/// Ein Farb-Token. Die statischen Eintraege sind die Griffe fuer den Rest der
-/// App: `theme.color(.accent)` kann nie den falschen Typ liefern.
-public struct ThemeColorToken: Equatable, Hashable, Sendable {
-    public let name: String
-    public init(_ name: String) { self.name = name }
-    public var descriptor: ThemeTokenDescriptor? { ThemeTokenCatalog.standard.descriptor(named: name) }
-    public func defaultValue(dark: Bool = false) -> ThemeColor {
-        descriptor?.defaultValue(dark: dark).color ?? .black
+/// Welche Art Wert ein Token traegt, als Typ: so kann `theme.value(.accent)`
+/// nie den falschen Typ liefern. Die Arten selbst stehen in `ThemeTokenTypes`.
+public protocol ThemeTokenType: Sendable {
+    associatedtype Value: Equatable & Sendable
+    /// Der Wert, wenn der gelesene Wert von dieser Art ist.
+    static func value(from value: ThemeValue) -> Value?
+    /// Nur falls ein Token im Verzeichnis fehlt (verhindert ein Test).
+    static var fallback: Value { get }
+}
+
+public enum ThemeTokenTypes {
+    public enum Color: ThemeTokenType {
+        public static func value(from value: ThemeValue) -> ThemeColor? { value.color }
+        public static var fallback: ThemeColor { .black }
+    }
+
+    /// `none` heisst: die Farbe daneben faerbt die Flaeche.
+    public enum Gradient: ThemeTokenType {
+        public static func value(from value: ThemeValue) -> ThemeGradient? { value.gradient }
+        public static var fallback: ThemeGradient { .none }
+    }
+
+    public enum Number: ThemeTokenType {
+        public static func value(from value: ThemeValue) -> Double? { value.number }
+        public static var fallback: Double { 0 }
+    }
+
+    public enum Text: ThemeTokenType {
+        public static func value(from value: ThemeValue) -> String? { value.text }
+        public static var fallback: String { "" }
+    }
+
+    public enum File: ThemeTokenType {
+        public static func value(from value: ThemeValue) -> ThemeAsset? { value.asset }
+        public static var fallback: ThemeAsset { .none }
+    }
+
+    public enum Option: ThemeTokenType {
+        public static func value(from value: ThemeValue) -> String? { value.option }
+        public static var fallback: String { "" }
+    }
+
+    public enum Flag: ThemeTokenType {
+        public static func value(from value: ThemeValue) -> Bool? { value.flag }
+        public static var fallback: Bool { false }
     }
 }
 
-public struct ThemeNumberToken: Equatable, Hashable, Sendable {
+/// Griff auf ein Token. Die statischen Eintraege unten sind die Griffe fuer
+/// den Rest der App.
+public struct ThemeToken<Kind: ThemeTokenType>: Equatable, Hashable, Sendable {
     public let name: String
     public init(_ name: String) { self.name = name }
     public var descriptor: ThemeTokenDescriptor? { ThemeTokenCatalog.standard.descriptor(named: name) }
-    public func defaultValue(dark: Bool = false) -> Double {
-        descriptor?.defaultValue(dark: dark).number ?? 0
+
+    /// Die Vorgabe aus dem Verzeichnis. Nur fuer Doku, Beispiele und als
+    /// Untergrund der Kontrastpruefung - die Shell selbst nimmt, was das
+    /// Theme nicht nennt, von macOS (siehe `Theme.value`).
+    public func defaultValue(dark: Bool = false) -> Kind.Value {
+        descriptor.flatMap { Kind.value(from: $0.defaultValue(dark: dark)) } ?? Kind.fallback
     }
 }
 
-public struct ThemeTextToken: Equatable, Hashable, Sendable {
-    public let name: String
-    public init(_ name: String) { self.name = name }
-    public var descriptor: ThemeTokenDescriptor? { ThemeTokenCatalog.standard.descriptor(named: name) }
-    public func defaultValue(dark: Bool = false) -> String {
-        descriptor?.defaultValue(dark: dark).text ?? ""
-    }
+public typealias ThemeColorToken = ThemeToken<ThemeTokenTypes.Color>
+public typealias ThemeGradientToken = ThemeToken<ThemeTokenTypes.Gradient>
+public typealias ThemeNumberToken = ThemeToken<ThemeTokenTypes.Number>
+public typealias ThemeTextToken = ThemeToken<ThemeTokenTypes.Text>
+public typealias ThemeFileToken = ThemeToken<ThemeTokenTypes.File>
+public typealias ThemeOptionToken = ThemeToken<ThemeTokenTypes.Option>
+public typealias ThemeFlagToken = ThemeToken<ThemeTokenTypes.Flag>
+
+public extension ThemeToken where Kind == ThemeTokenTypes.Gradient {
+    static var background: Self { Self("--apollo-background-gradient") }
+    static var surface: Self { Self("--apollo-surface-gradient") }
+    static var accent: Self { Self("--apollo-accent-gradient") }
+    static var bar: Self { Self("--apollo-bar-gradient") }
+    static var panel: Self { Self("--apollo-panel-gradient") }
+    static var card: Self { Self("--apollo-card-gradient") }
+    static var launcherHighlight: Self { Self("--apollo-launcher-highlight-gradient") }
+    static var toast: Self { Self("--apollo-toast-gradient") }
 }
 
-public struct ThemeFileToken: Equatable, Hashable, Sendable {
-    public let name: String
-    public init(_ name: String) { self.name = name }
-    public var descriptor: ThemeTokenDescriptor? { ThemeTokenCatalog.standard.descriptor(named: name) }
-    public func defaultValue(dark: Bool = false) -> ThemeAsset {
-        descriptor?.defaultValue(dark: dark).asset ?? .none
-    }
+public extension ThemeToken where Kind == ThemeTokenTypes.Color {
+    static var background: Self { Self("--apollo-background-color") }
+    static var surface: Self { Self("--apollo-surface-color") }
+    static var elevatedSurface: Self { Self("--apollo-elevated-surface-color") }
+    static var separator: Self { Self("--apollo-separator-color") }
+    static var border: Self { Self("--apollo-border-color") }
+
+    static var text: Self { Self("--apollo-text-color") }
+    static var secondaryText: Self { Self("--apollo-secondary-text-color") }
+    static var mutedText: Self { Self("--apollo-muted-text-color") }
+    static var link: Self { Self("--apollo-link-color") }
+    static var onAccent: Self { Self("--apollo-on-accent-color") }
+
+    static var accent: Self { Self("--apollo-accent-color") }
+    static var secondaryAccent: Self { Self("--apollo-secondary-accent-color") }
+    static var selection: Self { Self("--apollo-selection-color") }
+    static var hover: Self { Self("--apollo-hover-color") }
+    static var success: Self { Self("--apollo-success-color") }
+    static var warning: Self { Self("--apollo-warning-color") }
+    static var danger: Self { Self("--apollo-danger-color") }
+
+    static var bar: Self { Self("--apollo-bar-color") }
+    static var barText: Self { Self("--apollo-bar-text-color") }
+    static var barIcon: Self { Self("--apollo-bar-icon-color") }
+
+    static var dockIndicator: Self { Self("--apollo-dock-indicator-color") }
+
+    static var panel: Self { Self("--apollo-panel-color") }
+    static var card: Self { Self("--apollo-card-color") }
+
+    static var launcherHighlight: Self { Self("--apollo-launcher-highlight-color") }
+
+    static var toast: Self { Self("--apollo-toast-color") }
+    static var toastText: Self { Self("--apollo-toast-text-color") }
 }
 
-public struct ThemeOptionToken: Equatable, Hashable, Sendable {
-    public let name: String
-    public init(_ name: String) { self.name = name }
-    public var descriptor: ThemeTokenDescriptor? { ThemeTokenCatalog.standard.descriptor(named: name) }
-    public func defaultValue(dark: Bool = false) -> String {
-        descriptor?.defaultValue(dark: dark).option ?? ""
-    }
+public extension ThemeToken where Kind == ThemeTokenTypes.Number {
+    static var format: Self { Self("--apollo-theme-format") }
+
+    static var backgroundImageOpacity: Self { Self("--apollo-background-image-opacity") }
+    static var surfaceOpacity: Self { Self("--apollo-surface-opacity") }
+    static var shadowOpacity: Self { Self("--apollo-shadow-opacity") }
+    static var borderWidth: Self { Self("--apollo-border-width") }
+
+    static var barWidth: Self { Self("--apollo-bar-width") }
+    static var barRadius: Self { Self("--apollo-bar-radius") }
+    static var barPadding: Self { Self("--apollo-bar-padding") }
+    static var barItemSpacing: Self { Self("--apollo-bar-item-spacing") }
+    static var barOpacity: Self { Self("--apollo-bar-opacity") }
+    static var barBlur: Self { Self("--apollo-bar-blur") }
+
+    static var dockIconSize: Self { Self("--apollo-dock-icon-size") }
+    static var dockSpacing: Self { Self("--apollo-dock-spacing") }
+
+    static var panelRadius: Self { Self("--apollo-panel-radius") }
+    static var panelPadding: Self { Self("--apollo-panel-padding") }
+    static var panelOpacity: Self { Self("--apollo-panel-opacity") }
+    static var panelBlur: Self { Self("--apollo-panel-blur") }
+    static var cardRadius: Self { Self("--apollo-card-radius") }
+
+    static var launcherRowHeight: Self { Self("--apollo-launcher-row-height") }
+
+    static var fontSize: Self { Self("--apollo-font-size") }
+    static var fontWeight: Self { Self("--apollo-font-weight") }
+
+    static var cornerRadius: Self { Self("--apollo-corner-radius") }
+    static var controlRadius: Self { Self("--apollo-control-radius") }
+    static var spacing: Self { Self("--apollo-spacing") }
+    static var animationSpeed: Self { Self("--apollo-animation-speed") }
+
+    static var toastRadius: Self { Self("--apollo-toast-radius") }
 }
 
-public struct ThemeFlagToken: Equatable, Hashable, Sendable {
-    public let name: String
-    public init(_ name: String) { self.name = name }
-    public var descriptor: ThemeTokenDescriptor? { ThemeTokenCatalog.standard.descriptor(named: name) }
-    public func defaultValue(dark: Bool = false) -> Bool {
-        descriptor?.defaultValue(dark: dark).flag ?? false
-    }
+public extension ThemeToken where Kind == ThemeTokenTypes.Text {
+    static var themeName: Self { Self("--apollo-theme-name") }
+    static var author: Self { Self("--apollo-theme-author") }
+    static var themeDescription: Self { Self("--apollo-theme-description") }
+    static var version: Self { Self("--apollo-theme-version") }
+    static var homepage: Self { Self("--apollo-theme-homepage") }
+    static var fontFamily: Self { Self("--apollo-font-family") }
+    static var monospaceFontFamily: Self { Self("--apollo-monospace-font-family") }
 }
 
-/// Ein Verlauf-Token. `none` heisst: die Farbe daneben faerbt die Flaeche.
-public struct ThemeGradientToken: Equatable, Hashable, Sendable {
-    public let name: String
-    public init(_ name: String) { self.name = name }
-    public var descriptor: ThemeTokenDescriptor? { ThemeTokenCatalog.standard.descriptor(named: name) }
-    public func defaultValue(dark: Bool = false) -> ThemeGradient {
-        descriptor?.defaultValue(dark: dark).gradient ?? .none
-    }
+public extension ThemeToken where Kind == ThemeTokenTypes.File {
+    static var authorImage: Self { Self("--apollo-theme-author-image") }
+    static var backgroundImage: Self { Self("--apollo-background-image") }
 }
 
-public extension ThemeGradientToken {
-    static let background = ThemeGradientToken("--apollo-background-gradient")
-    static let surface = ThemeGradientToken("--apollo-surface-gradient")
-    static let accent = ThemeGradientToken("--apollo-accent-gradient")
-    static let bar = ThemeGradientToken("--apollo-bar-gradient")
-    static let panel = ThemeGradientToken("--apollo-panel-gradient")
-    static let card = ThemeGradientToken("--apollo-card-gradient")
-    static let launcherHighlight = ThemeGradientToken("--apollo-launcher-highlight-gradient")
-    static let toast = ThemeGradientToken("--apollo-toast-gradient")
+public extension ThemeToken where Kind == ThemeTokenTypes.Option {
+    static var appearance: Self { Self("--apollo-theme-appearance") }
+    static var backgroundFit: Self { Self("--apollo-background-fit") }
+    static var iconStyle: Self { Self("--apollo-icon-style") }
 }
 
-public extension ThemeColorToken {
-    static let background = ThemeColorToken("--apollo-background-color")
-    static let surface = ThemeColorToken("--apollo-surface-color")
-    static let elevatedSurface = ThemeColorToken("--apollo-elevated-surface-color")
-    static let separator = ThemeColorToken("--apollo-separator-color")
-    static let border = ThemeColorToken("--apollo-border-color")
-
-    static let text = ThemeColorToken("--apollo-text-color")
-    static let secondaryText = ThemeColorToken("--apollo-secondary-text-color")
-    static let mutedText = ThemeColorToken("--apollo-muted-text-color")
-    static let link = ThemeColorToken("--apollo-link-color")
-    static let onAccent = ThemeColorToken("--apollo-on-accent-color")
-
-    static let accent = ThemeColorToken("--apollo-accent-color")
-    static let secondaryAccent = ThemeColorToken("--apollo-secondary-accent-color")
-    static let selection = ThemeColorToken("--apollo-selection-color")
-    static let hover = ThemeColorToken("--apollo-hover-color")
-    static let success = ThemeColorToken("--apollo-success-color")
-    static let warning = ThemeColorToken("--apollo-warning-color")
-    static let danger = ThemeColorToken("--apollo-danger-color")
-
-    static let bar = ThemeColorToken("--apollo-bar-color")
-    static let barText = ThemeColorToken("--apollo-bar-text-color")
-    static let barIcon = ThemeColorToken("--apollo-bar-icon-color")
-
-    static let dockIndicator = ThemeColorToken("--apollo-dock-indicator-color")
-
-    static let panel = ThemeColorToken("--apollo-panel-color")
-    static let card = ThemeColorToken("--apollo-card-color")
-
-    static let launcherHighlight = ThemeColorToken("--apollo-launcher-highlight-color")
-
-    static let toast = ThemeColorToken("--apollo-toast-color")
-    static let toastText = ThemeColorToken("--apollo-toast-text-color")
-}
-
-public extension ThemeNumberToken {
-    static let format = ThemeNumberToken("--apollo-theme-format")
-
-    static let backgroundImageOpacity = ThemeNumberToken("--apollo-background-image-opacity")
-    static let surfaceOpacity = ThemeNumberToken("--apollo-surface-opacity")
-    static let shadowOpacity = ThemeNumberToken("--apollo-shadow-opacity")
-    static let borderWidth = ThemeNumberToken("--apollo-border-width")
-
-    static let barWidth = ThemeNumberToken("--apollo-bar-width")
-    static let barRadius = ThemeNumberToken("--apollo-bar-radius")
-    static let barPadding = ThemeNumberToken("--apollo-bar-padding")
-    static let barItemSpacing = ThemeNumberToken("--apollo-bar-item-spacing")
-    static let barOpacity = ThemeNumberToken("--apollo-bar-opacity")
-    static let barBlur = ThemeNumberToken("--apollo-bar-blur")
-
-    static let dockIconSize = ThemeNumberToken("--apollo-dock-icon-size")
-    static let dockSpacing = ThemeNumberToken("--apollo-dock-spacing")
-
-    static let panelRadius = ThemeNumberToken("--apollo-panel-radius")
-    static let panelPadding = ThemeNumberToken("--apollo-panel-padding")
-    static let panelOpacity = ThemeNumberToken("--apollo-panel-opacity")
-    static let panelBlur = ThemeNumberToken("--apollo-panel-blur")
-    static let cardRadius = ThemeNumberToken("--apollo-card-radius")
-
-    static let launcherRowHeight = ThemeNumberToken("--apollo-launcher-row-height")
-
-    static let fontSize = ThemeNumberToken("--apollo-font-size")
-    static let fontWeight = ThemeNumberToken("--apollo-font-weight")
-
-    static let cornerRadius = ThemeNumberToken("--apollo-corner-radius")
-    static let controlRadius = ThemeNumberToken("--apollo-control-radius")
-    static let spacing = ThemeNumberToken("--apollo-spacing")
-    static let animationSpeed = ThemeNumberToken("--apollo-animation-speed")
-
-    static let toastRadius = ThemeNumberToken("--apollo-toast-radius")
-}
-
-public extension ThemeTextToken {
-    static let themeName = ThemeTextToken("--apollo-theme-name")
-    static let author = ThemeTextToken("--apollo-theme-author")
-    static let themeDescription = ThemeTextToken("--apollo-theme-description")
-    static let version = ThemeTextToken("--apollo-theme-version")
-    static let homepage = ThemeTextToken("--apollo-theme-homepage")
-    static let fontFamily = ThemeTextToken("--apollo-font-family")
-    static let monospaceFontFamily = ThemeTextToken("--apollo-monospace-font-family")
-}
-
-public extension ThemeFileToken {
-    static let authorImage = ThemeFileToken("--apollo-theme-author-image")
-    static let backgroundImage = ThemeFileToken("--apollo-background-image")
-}
-
-public extension ThemeOptionToken {
-    static let appearance = ThemeOptionToken("--apollo-theme-appearance")
-    static let backgroundFit = ThemeOptionToken("--apollo-background-fit")
-    static let iconStyle = ThemeOptionToken("--apollo-icon-style")
-}
-
-public extension ThemeFlagToken {
-    static let animations = ThemeFlagToken("--apollo-animations")
-    static let glass = ThemeFlagToken("--apollo-glass")
-    static let shadows = ThemeFlagToken("--apollo-shadows")
+public extension ThemeToken where Kind == ThemeTokenTypes.Flag {
+    static var animations: Self { Self("--apollo-animations") }
+    static var glass: Self { Self("--apollo-glass") }
+    static var shadows: Self { Self("--apollo-shadows") }
 }
 
 // MARK: - Das Verzeichnis

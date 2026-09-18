@@ -13,21 +13,20 @@ struct LauncherView: View {
         VStack(spacing: 0) {
             searchField
             // Mit Theme: `--apollo-separator-color` und `--apollo-text-color`.
-            if style.declaresColor(.separator) {
-                Rectangle().fill(style.separator).frame(height: 1)
+            if let separator = style.color(.separator) {
+                Rectangle().fill(separator).frame(height: 1)
             } else {
                 Divider().opacity(0.4)
             }
             if model.results.isEmpty {
                 Text("Keine App gefunden")
-                    .foregroundStyle(style.declaresColor(.secondaryText)
-                                     ? AnyShapeStyle(style.secondaryText) : AnyShapeStyle(.secondary))
+                    .foregroundStyle(style.paint(.secondaryText, or: .secondary))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 list
             }
         }
-        .foregroundStyle(style.declaresColor(.text) ? AnyShapeStyle(style.text) : AnyShapeStyle(.primary))
+        .foregroundStyle(style.paint(.text, or: .primary))
         // Bei jedem Oeffnen sofort lostippen koennen.
         .onChange(of: model.openCount, initial: true) { searchFocused = true }
     }
@@ -37,8 +36,7 @@ struct LauncherView: View {
             ThemedIcon("bar-launcher")
                 .font(style.font(size: 18, weight: .medium))
                 .frame(width: 20, height: 20)
-                .foregroundStyle(style.declaresColor(.secondaryText)
-                                 ? AnyShapeStyle(style.secondaryText) : AnyShapeStyle(.secondary))
+                .foregroundStyle(style.paint(.secondaryText, or: .secondary))
             TextField("Suchen …", text: $model.query)
                 .textFieldStyle(.plain)
                 .font(style.font(size: 20))
@@ -105,14 +103,14 @@ private struct AppRow: View {
             Text(app.name)
                 .font(style.font(size: 15))
                 .lineLimit(1)
-                .foregroundStyle(style.declaresColor(.text) ? AnyShapeStyle(style.text) : AnyShapeStyle(.primary))
+                .foregroundStyle(style.paint(.text, or: .primary))
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         // Mit Theme gibt `--apollo-launcher-row-height` die Zeilenhoehe vor;
         // ohne Theme bestimmt sie wie bisher der Inhalt.
-        .frame(minHeight: style.declaresNumber(.launcherRowHeight) ? style.launcherRowHeight(44) : nil)
+        .frame(minHeight: style.length(.launcherRowHeight))
         .background {
             // Mit Theme faerbt `--apollo-launcher-highlight-color` die
             // gewaehlte Zeile (oder der Verlauf daneben).

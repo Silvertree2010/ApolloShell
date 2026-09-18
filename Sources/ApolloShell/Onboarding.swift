@@ -236,8 +236,8 @@ struct OnboardingCard<Content: View>: View {
         }
         .overlay {
             let shape = RoundedRectangle(cornerRadius: style.cardRadius(12), style: .continuous)
-            if style.declaresColor(.border) {
-                shape.strokeBorder(style.border, lineWidth: style.borderWidth(1))
+            if let border = style.color(.border) {
+                shape.strokeBorder(border, lineWidth: style.borderWidth(1))
             } else {
                 shape.strokeBorder(Color.primary.opacity(0.08))
             }

@@ -254,7 +254,7 @@ struct SidebarIcon<Content: View>: View {
         }
         .buttonStyle(.plain)
         // Mit Theme faerbt `--apollo-bar-icon-color` die Zeichen der Leiste.
-        .foregroundStyle(style.declaresColor(.barIcon) ? AnyShapeStyle(style.barIcon) : AnyShapeStyle(.primary))
+        .foregroundStyle(style.paint(.barIcon, or: .primary))
         // Nicht `onHover`: die Leiste gehoert einer nie aktiven App, dort blieb
         // der Hover-Effekt stehen, wenn die Maus wegging.
         .background {
