@@ -91,12 +91,7 @@ public struct DashboardTabs: Codable, Equatable, Sendable {
     /// Unbekannte, doppelte oder kaputte Eintraege fallen weg; fehlende
     /// Reiter (etwa ein spaeter dazugekommener) kommen sichtbar ans Ende.
     public init(from decoder: any Decoder) throws {
-        var c = try decoder.unkeyedContainer()
-        var items: [Item] = []
-        while !c.isAtEnd {
-            guard let item = try? c.decode(Tolerant<Item>.self) else { break }
-            if let value = item.value { items.append(value) }
-        }
+        let items = try LenientList<Item>(from: decoder).values
         var seen = Set<DashboardTab>()
         let unique = items.filter { seen.insert($0.id).inserted }
         self.init(order: unique.map(\.id), hidden: Set(unique.filter { !$0.visible }.map(\.id)))
@@ -138,7 +133,7 @@ public struct DashboardTabs: Codable, Equatable, Sendable {
 
     /// Wie SwiftUIs `onMove` (Ziel vor dem Verschieben gezaehlt).
     public mutating func move(fromOffsets source: IndexSet, toOffset destination: Int) {
-        order = Reorder.move(order, fromOffsets: source, toOffset: destination)
+        order.move(fromOffsets: source, toOffset: destination)
     }
 
     /// Eine Stelle nach oben (-1) oder unten (+1); am Rand nichts.
@@ -300,9 +295,10 @@ public struct DashboardWeatherOptions: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        showCondition = c.lenient(.showCondition) ?? true
-        showRange = c.lenient(.showRange) ?? true
+        c.lenient(.showCondition, into: &showCondition)
+        c.lenient(.showRange, into: &showRange)
     }
 }
 
@@ -316,9 +312,10 @@ public struct DashboardUserOptions: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        showSystem = c.lenient(.showSystem) ?? true
-        showUptime = c.lenient(.showUptime) ?? true
+        c.lenient(.showSystem, into: &showSystem)
+        c.lenient(.showUptime, into: &showUptime)
     }
 }
 
@@ -337,9 +334,10 @@ public struct DashboardClockOptions: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        style = c.lenient(.style) ?? .stacked
-        showDate = c.lenient(.showDate) ?? false
+        c.lenient(.style, into: &style)
+        c.lenient(.showDate, into: &showDate)
     }
 }
 
@@ -361,9 +359,10 @@ public struct DashboardCalendarOptions: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        firstWeekday = c.lenient(.firstWeekday) ?? .monday
-        showWeekNumbers = c.lenient(.showWeekNumbers) ?? false
+        c.lenient(.firstWeekday, into: &firstWeekday)
+        c.lenient(.showWeekNumbers, into: &showWeekNumbers)
     }
 
     /// Derselbe Kalender (Sprache, Zeitzone), nur mit dem gewaehlten ersten
@@ -391,10 +390,11 @@ public struct DashboardResourcesOptions: Codable, Equatable, Sendable {
     /// Karte ergibt keinen Sinn. Nexus laesst den letzten Ring gar nicht
     /// ausschalten.
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        showCPU = c.lenient(.showCPU) ?? true
-        showMemory = c.lenient(.showMemory) ?? true
-        showStorage = c.lenient(.showStorage) ?? true
+        c.lenient(.showCPU, into: &showCPU)
+        c.lenient(.showMemory, into: &showMemory)
+        c.lenient(.showStorage, into: &showStorage)
         if count == 0 { self = Self() }
     }
 
@@ -413,9 +413,10 @@ public struct DashboardMediaOptions: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        showAlbum = c.lenient(.showAlbum) ?? true
-        showSource = c.lenient(.showSource) ?? true
+        c.lenient(.showAlbum, into: &showAlbum)
+        c.lenient(.showSource, into: &showSource)
     }
 }
 
@@ -425,7 +426,7 @@ public struct DashboardMediaOptions: Codable, Equatable, Sendable {
 /// Optionstyp. Kennung ist die Art selbst - jede Karte gibt es einmal.
 ///
 /// In der Datei: `{"kind": "clock", "options": {...}}`.
-public enum DashboardCard: Codable, Equatable, Identifiable, Sendable {
+public enum DashboardCard: BlockModule, Codable, Equatable, Identifiable, Sendable {
     case weather(DashboardWeatherOptions)
     case user(DashboardUserOptions)
     case clock(DashboardClockOptions)
@@ -434,13 +435,19 @@ public enum DashboardCard: Codable, Equatable, Identifiable, Sendable {
     case media(DashboardMediaOptions)
 
     public init(_ kind: DashboardCardKind) {
+        self.init(kind: kind, options: nil)
+    }
+
+    /// Art und (falls vorhanden) gelesene Optionen - der eine Switch fuer
+    /// beides, wie `BarModule.init(kind:options:)`.
+    fileprivate init(kind: DashboardCardKind, options c: KeyedDecodingContainer<CodingKeys>?) {
         self = switch kind {
-        case .weather: .weather(.init())
-        case .user: .user(.init())
-        case .clock: .clock(.init())
-        case .calendar: .calendar(.init())
-        case .resources: .resources(.init())
-        case .media: .media(.init())
+        case .weather: .weather(Self.decoded(c, forKey: .options, default: .init()))
+        case .user: .user(Self.decoded(c, forKey: .options, default: .init()))
+        case .clock: .clock(Self.decoded(c, forKey: .options, default: .init()))
+        case .calendar: .calendar(Self.decoded(c, forKey: .options, default: .init()))
+        case .resources: .resources(Self.decoded(c, forKey: .options, default: .init()))
+        case .media: .media(Self.decoded(c, forKey: .options, default: .init()))
         }
     }
 
@@ -457,6 +464,19 @@ public enum DashboardCard: Codable, Equatable, Identifiable, Sendable {
 
     public var id: DashboardCardKind { kind }
 
+    /// Optionen dieser Karte - jede Art hat welche, anders als bei
+    /// `BarModule` oder `UtilitiesToggle`.
+    public var options: (any Encodable)? {
+        switch self {
+        case .weather(let o): o
+        case .user(let o): o
+        case .clock(let o): o
+        case .calendar(let o): o
+        case .resources(let o): o
+        case .media(let o): o
+        }
+    }
+
     public var weather: DashboardWeatherOptions? { if case .weather(let o) = self { o } else { nil } }
     public var user: DashboardUserOptions? { if case .user(let o) = self { o } else { nil } }
     public var clock: DashboardClockOptions? { if case .clock(let o) = self { o } else { nil } }
@@ -464,7 +484,7 @@ public enum DashboardCard: Codable, Equatable, Identifiable, Sendable {
     public var resources: DashboardResourcesOptions? { if case .resources(let o) = self { o } else { nil } }
     public var media: DashboardMediaOptions? { if case .media(let o) = self { o } else { nil } }
 
-    private enum CodingKeys: String, CodingKey { case kind, options }
+    public enum CodingKeys: String, CodingKey { case kind, options }
 
     /// Unbekannte Art: Fehler - `DashboardCards` uebergeht die Karte dann.
     /// Kaputte Optionen dagegen nur Vorgaben.
@@ -473,26 +493,14 @@ public enum DashboardCard: Codable, Equatable, Identifiable, Sendable {
         guard let raw: String = c.lenient(.kind), let kind = DashboardCardKind(rawValue: raw) else {
             throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unbekannte Karte")
         }
-        self = switch kind {
-        case .weather: .weather(c.lenient(.options) ?? .init())
-        case .user: .user(c.lenient(.options) ?? .init())
-        case .clock: .clock(c.lenient(.options) ?? .init())
-        case .calendar: .calendar(c.lenient(.options) ?? .init())
-        case .resources: .resources(c.lenient(.options) ?? .init())
-        case .media: .media(c.lenient(.options) ?? .init())
-        }
+        self.init(kind: kind, options: c)
     }
 
     public func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(kind.rawValue, forKey: .kind)
-        switch self {
-        case .weather(let o): try c.encode(o, forKey: .options)
-        case .user(let o): try c.encode(o, forKey: .options)
-        case .clock(let o): try c.encode(o, forKey: .options)
-        case .calendar(let o): try c.encode(o, forKey: .options)
-        case .resources(let o): try c.encode(o, forKey: .options)
-        case .media(let o): try c.encode(o, forKey: .options)
+        if let options {
+            try c.encode(AnyEncodable(value: options), forKey: .options)
         }
     }
 }
@@ -539,7 +547,7 @@ public struct DashboardCards: Codable, Equatable, Sendable {
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         func zone(_ key: CodingKeys, _ fallback: [DashboardCard]) -> [DashboardCard] {
-            guard let list: TolerantList<DashboardCard> = c.lenient(key) else { return fallback }
+            guard let list: LenientList<DashboardCard> = c.lenient(key) else { return fallback }
             return list.values
         }
         let d = Self.caelestia
@@ -629,7 +637,9 @@ public struct DashboardCards: Codable, Equatable, Sendable {
 
     /// Wie SwiftUIs `onMove`, innerhalb eines Platzes.
     public mutating func move(in zone: DashboardZone, fromOffsets source: IndexSet, toOffset destination: Int) {
-        set(zone, Reorder.move(self[zone], fromOffsets: source, toOffset: destination))
+        var cards = self[zone]
+        cards.move(fromOffsets: source, toOffset: destination)
+        set(zone, cards)
     }
 
     /// Eine Stelle nach links (-1) oder rechts (+1) im eigenen Platz.
@@ -882,19 +892,11 @@ public enum DashboardGeometry {
 
 // MARK: - Hilfen
 
-/// Umsortieren wie SwiftUIs `onMove` - dieselbe Regel wie `BarLayout.move`.
+/// Eine Stelle nach vorn oder hinten, dieselbe Regel wie `PinnedList.move(_:by:)`
+/// - anders als `move(fromOffsets:toOffset:)` (siehe `Array.move` in
+/// Reorder.swift) nur an zwei Stellen gebraucht (Reiter, Dashboard-Karte),
+/// darum keine eigene Datei.
 enum Reorder {
-    static func move<T>(_ list: [T], fromOffsets source: IndexSet, toOffset destination: Int) -> [T] {
-        let valid = source.filter { list.indices.contains($0) }
-        guard !valid.isEmpty else { return list }
-        let moving = valid.map { list[$0] }
-        let before = valid.filter { $0 < destination }.count
-        var rest = list.enumerated().filter { !valid.contains($0.offset) }.map(\.element)
-        let target = min(max(destination - before, 0), rest.count)
-        rest.insert(contentsOf: moving, at: target)
-        return rest
-    }
-
     static func move<T: Equatable>(_ list: [T], element: T, by step: Int) -> [T] {
         guard let index = list.firstIndex(of: element) else { return list }
         let target = index + step
@@ -902,37 +904,5 @@ enum Reorder {
         var list = list
         list.swapAt(index, target)
         return list
-    }
-}
-
-/// Liest ein Element und scheitert nie: unlesbar ergibt `nil`. So rueckt der
-/// Zeiger einer Liste immer weiter, und ein kaputter Eintrag nimmt nicht die
-/// ganze Liste mit.
-private struct Tolerant<T: Decodable>: Decodable {
-    let value: T?
-    init(from decoder: any Decoder) {
-        value = try? T(from: decoder)
-    }
-}
-
-/// Eine Liste, aus der unlesbare Eintraege wegfallen. Scheitert nur, wenn
-/// es gar keine Liste ist.
-private struct TolerantList<T: Decodable>: Decodable {
-    let values: [T]
-    init(from decoder: any Decoder) throws {
-        var c = try decoder.unkeyedContainer()
-        var list: [T] = []
-        while !c.isAtEnd {
-            guard let item = try? c.decode(Tolerant<T>.self) else { break }
-            if let value = item.value { list.append(value) }
-        }
-        values = list
-    }
-}
-
-private extension KeyedDecodingContainer {
-    /// Fehlt der Schluessel oder passt der Typ nicht: `nil` statt Fehler.
-    func lenient<T: Decodable>(_ key: Key) -> T? {
-        (try? decodeIfPresent(T.self, forKey: key)) ?? nil
     }
 }
