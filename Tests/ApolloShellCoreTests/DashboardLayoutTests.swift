@@ -432,4 +432,18 @@ struct DashboardLayoutTests {
         #expect(CalendarMonth.weekdaySymbols(calendar: calendar).first == firstSymbol)
         #expect(weeks.first?.first?.day == firstDay)
     }
+
+    // MARK: Uhr-Zeitzone (0.2)
+
+    @Test("Uhr: Zeitzone lesen, unbekannte gilt als System, nil wird nicht geschrieben")
+    func clockTimeZone() throws {
+        let tokyo = try JSONDecoder().decode(DashboardClockOptions.self, from: Data(#"{"timeZone":"Asia/Tokyo"}"#.utf8))
+        #expect(tokyo.timeZone == "Asia/Tokyo")
+        #expect(tokyo.resolvedTimeZone.identifier == "Asia/Tokyo")
+        #expect(DashboardClockOptions(timeZone: "Mars/Olympus").resolvedTimeZone == .current)
+        let none = try JSONDecoder().decode(DashboardClockOptions.self, from: Data(#"{"timeZone":5}"#.utf8))
+        #expect(none.timeZone == nil)
+        let written = String(decoding: try JSONEncoder().encode(DashboardClockOptions()), as: UTF8.self)
+        #expect(!written.contains("timeZone"))
+    }
 }

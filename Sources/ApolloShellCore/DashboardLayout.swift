@@ -327,10 +327,15 @@ public struct DashboardClockOptions: Codable, Equatable, Sendable {
     public var style: Style
     /// Wochentag und Tag unter der Uhrzeit.
     public var showDate: Bool
+    /// Zeitzone als IANA-Kennung ("Asia/Tokyo"), `nil` = die des Systems.
+    /// Gibt es mehrere Uhren (0.2), zeigt so jede eine andere Stadt. Eine
+    /// unbekannte Kennung gilt wie `nil`.
+    public var timeZone: String?
 
-    public init(style: Style = .stacked, showDate: Bool = false) {
+    public init(style: Style = .stacked, showDate: Bool = false, timeZone: String? = nil) {
         self.style = style
         self.showDate = showDate
+        self.timeZone = timeZone
     }
 
     public init(from decoder: any Decoder) throws {
@@ -338,6 +343,11 @@ public struct DashboardClockOptions: Codable, Equatable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         c.lenient(.style, into: &style)
         c.lenient(.showDate, into: &showDate)
+        timeZone = c.lenient(.timeZone)
+    }
+
+    public var resolvedTimeZone: TimeZone {
+        timeZone.flatMap(TimeZone.init(identifier:)) ?? .current
     }
 }
 

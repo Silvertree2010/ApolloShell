@@ -87,6 +87,11 @@ public struct WeatherFavorites: Equatable, Sendable {
     /// Datei, ist sie kaputt oder leer: keine Favoriten.
     public static func load(from data: Data?) -> WeatherFavorites {
         guard let data, let file = try? JSONDecoder().decode(File.self, from: data) else { return .empty }
+        return favorites(from: file)
+    }
+
+    /// Die Regeln von `load(from:)`, auch fuer `Codable` (0.2: Orte je Wetter-Widget).
+    private static func favorites(from file: File) -> WeatherFavorites {
         if let favoriteFiles = file.favorites {
             let locations = favoriteFiles.compactMap(\.location)
             let selectedID = file.selectedID.flatMap { id in locations.contains { $0.id == id } ? id : nil }
@@ -102,13 +107,14 @@ public struct WeatherFavorites: Equatable, Sendable {
         return WeatherFavorites(locations: [location], selectedID: location.id)
     }
 
+    private var file: File {
+        File(favorites: locations.map { File.Location(id: $0.id, name: $0.name, latitude: $0.latitude, longitude: $0.longitude) },
+             selectedID: selectedID, name: nil, latitude: nil, longitude: nil)
+    }
+
     /// Zum Schreiben nach weather.json - sortierte Schluessel, eingerueckt:
     /// von Hand lesbar, und gleiche Favoriten ergeben byte-gleiche Dateien.
     public func fileData() -> Data {
-        let file = File(
-            favorites: locations.map { File.Location(id: $0.id, name: $0.name, latitude: $0.latitude, longitude: $0.longitude) },
-            selectedID: selectedID, name: nil, latitude: nil, longitude: nil
-        )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return (try? encoder.encode(file)) ?? Data()
@@ -137,6 +143,18 @@ public struct WeatherFavorites: Equatable, Sendable {
         let name: String?
         let latitude: Double?
         let longitude: Double?
+    }
+}
+
+/// Dasselbe Format wie weather.json - so tragen Wetter-Widgets ihre eigenen
+/// Orte in settings.json (0.2). Gelesen nach den Regeln von `load(from:)`.
+extension WeatherFavorites: Codable {
+    public init(from decoder: any Decoder) throws {
+        self = Self.favorites(from: try File(from: decoder))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        try file.encode(to: encoder)
     }
 }
 
