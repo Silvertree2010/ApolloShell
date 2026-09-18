@@ -788,6 +788,11 @@ public enum DashboardPreset: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// Fuer `LayoutPreset`: "Caelestia" ist die Vorgabe.
+extension DashboardPreset: LayoutPreset {
+    public static var `default`: DashboardPreset { .caelestia }
+}
+
 // MARK: - Masse
 
 /// Lage einer Karte in der Uebersicht, ab der Oberkante links des Rasters.

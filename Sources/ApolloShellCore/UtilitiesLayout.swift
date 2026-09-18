@@ -665,6 +665,11 @@ public enum UtilitiesPreset: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// Fuer `LayoutPreset`: "Standard" ist die Vorgabe.
+extension UtilitiesPreset: LayoutPreset {
+    public static var `default`: UtilitiesPreset { .standard }
+}
+
 // MARK: - Texte und Aussehen der neuen Knoepfe
 
 public enum UtilitiesToggleText {

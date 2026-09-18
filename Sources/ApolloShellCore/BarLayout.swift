@@ -589,6 +589,11 @@ public enum BarPreset: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// Fuer `LayoutPreset`: "Caelestia" ist die Vorgabe.
+extension BarPreset: LayoutPreset {
+    public static var `default`: BarPreset { .caelestia }
+}
+
 // MARK: - Hoehe verteilen
 
 /// Lage eines Bausteins in der Leiste: Oberkante und Hoehe, ab der
