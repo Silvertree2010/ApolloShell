@@ -34,12 +34,13 @@ enum RenderMode {
         let pages = DashboardPages(pages: DashboardPages.defaultPages(places: places, hasBattery: false))!
         let settings = ShellSettingsStore.preview(ShellSettings(dashboardPages: pages))
         let weatherModels = WeatherModels.preview(fixtures.weather)
+        let editor = DashboardEditor(store: settings)
         for page in pages.pages {
             fixtures.dashboard.pageID = page.id
             for scheme in [ColorScheme.light, .dark] {
                 fixtures.dashboard.scale = 1
                 let view = DashboardView(model: fixtures.dashboard, weatherModels: weatherModels,
-                                         media: fixtures.media, settings: settings)
+                                         media: fixtures.media, settings: settings, editor: editor)
                 try write(view, scheme: scheme, to: folder.appendingPathComponent(name(page.template!.tab.rawValue, scheme)))
             }
         }
@@ -52,9 +53,43 @@ enum RenderMode {
             fixtures.dashboard.pageID = page.id
             fixtures.dashboard.scale = 1.5
             let view = DashboardView(model: fixtures.dashboard, weatherModels: weatherModels,
-                                     media: fixtures.media, settings: settings)
+                                     media: fixtures.media, settings: settings, editor: editor)
             try write(view, scheme: .light, to: scaledFolder.appendingPathComponent(name(page.template!.tab.rawValue, .light)))
         }
+        try renderEdit(into: folder, fixtures: fixtures, settings: settings, weatherModels: weatherModels, pages: pages)
+    }
+
+    /// `--render-dashboard`s `edit/`-Unterordner: die Uebersichtsseite in
+    /// Bearbeitung, ein gewaehltes Widget, eine ungueltige Ablege-Vorschau,
+    /// und dieselbe Ansicht mit `accessibilityReduceMotion`.
+    private static func renderEdit(into folder: URL, fixtures: RenderFixtures, settings: ShellSettingsStore,
+                                    weatherModels: WeatherModels, pages: DashboardPages) throws {
+        let editFolder = folder.appendingPathComponent("edit", isDirectory: true)
+        try FileManager.default.createDirectory(at: editFolder, withIntermediateDirectories: true)
+        let overview = pages.pages[0]
+        let editor = DashboardEditor(store: settings)
+        if let screen = NSScreen.main ?? NSScreen.screens.first {
+            editor.begin(pageID: overview.id, screen: screen)
+        }
+        fixtures.dashboard.pageID = overview.id
+
+        func view(reduceMotion: Bool) -> some View {
+            DashboardView(model: fixtures.dashboard, weatherModels: weatherModels, media: fixtures.media,
+                          settings: settings, editor: editor)
+                .environment(\.dashboardReducesMotionOverride, reduceMotion)
+                // Das Ablegeziel (`.onDrop`) zeichnet `ImageRenderer` offscreen
+                // nicht (siehe `BentoDropTarget`) - fuer die Bildprobe weg.
+                .environment(\.dashboardRendersForScreenshot, true)
+        }
+        try write(view(reduceMotion: false), scheme: .light, to: editFolder.appendingPathComponent("overview-light.png"))
+        editor.selectedWidgetID = editor.page?.widgets.first?.id
+        try write(view(reduceMotion: false), scheme: .light, to: editFolder.appendingPathComponent("selected-widget-light.png"))
+        // Eine ungueltige Ablege-Vorschau (zu nah an einem Widget), so als
+        // zoege man gerade ein zweites "Uhr"-Widget ueber die erste Karte.
+        editor.dropPreview = editor.previewDrop(.clock, x: 60, y: 60).map { (frame: $0.frame, valid: $0.valid) }
+        try write(view(reduceMotion: false), scheme: .light, to: editFolder.appendingPathComponent("invalid-drop-light.png"))
+        editor.dropPreview = nil
+        try write(view(reduceMotion: true), scheme: .light, to: editFolder.appendingPathComponent("reduce-motion-light.png"))
     }
 
     static func name(_ base: String, _ scheme: ColorScheme) -> String {
