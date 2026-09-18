@@ -66,18 +66,11 @@ public struct WeatherFavorites: Equatable, Sendable {
     }
 
     /// Wie SwiftUIs `onMove`: `destination` zaehlt in der Liste VOR dem
-    /// Verschieben ("vor Zeile n einfuegen"). Eigene Fassung, weil
-    /// `move(fromOffsets:toOffset:)` zu SwiftUI gehoert und ApolloShellCore
-    /// ohne Oberflaeche bleibt.
+    /// Verschieben ("vor Zeile n einfuegen"), siehe `Array.move` in
+    /// Reorder.swift - `move(fromOffsets:toOffset:)` selbst gehoert zu
+    /// SwiftUI, und ApolloShellCore bleibt ohne Oberflaeche.
     public mutating func move(fromOffsets source: IndexSet, toOffset destination: Int) {
-        let valid = source.filter { locations.indices.contains($0) }
-        guard !valid.isEmpty else { return }
-        let moving = valid.map { locations[$0] }
-        let before = valid.filter { $0 < destination }.count
-        var rest = locations.enumerated().filter { !valid.contains($0.offset) }.map(\.element)
-        let target = min(max(destination - before, 0), rest.count)
-        rest.insert(contentsOf: moving, at: target)
-        locations = rest
+        locations.move(fromOffsets: source, toOffset: destination)
     }
 
     /// Nur ein vorhandener Favorit laesst sich waehlen.

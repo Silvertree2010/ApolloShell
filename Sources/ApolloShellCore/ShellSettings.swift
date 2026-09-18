@@ -282,10 +282,3 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         return (try? encoder.encode(self)) ?? Data()
     }
 }
-
-private extension KeyedDecodingContainer {
-    /// Fehlt der Schluessel oder passt der Typ nicht: `nil` statt Fehler.
-    func lenient<T: Decodable>(_ key: Key) -> T? {
-        (try? decodeIfPresent(T.self, forKey: key)) ?? nil
-    }
-}

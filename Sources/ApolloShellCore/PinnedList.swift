@@ -37,19 +37,11 @@ public struct PinnedList: Equatable, Sendable {
     }
 
     /// Wie SwiftUIs `onMove`: `destination` zaehlt in der Liste VOR dem
-    /// Verschieben ("vor Zeile n einfuegen"). Eigene Fassung, weil
-    /// `move(fromOffsets:toOffset:)` zu SwiftUI gehoert und ApolloShellCore ohne
-    /// Oberflaeche bleibt.
+    /// Verschieben ("vor Zeile n einfuegen"), siehe `Array.move` in
+    /// Reorder.swift - `move(fromOffsets:toOffset:)` selbst gehoert zu
+    /// SwiftUI, und ApolloShellCore bleibt ohne Oberflaeche.
     public mutating func move(fromOffsets source: IndexSet, toOffset destination: Int) {
-        let valid = source.filter { ids.indices.contains($0) }
-        guard !valid.isEmpty else { return }
-        let moving = valid.map { ids[$0] }
-        // Ziel um die davor herausgenommenen Zeilen verschieben.
-        let before = valid.filter { $0 < destination }.count
-        var rest = ids.enumerated().filter { !valid.contains($0.offset) }.map(\.element)
-        let target = min(max(destination - before, 0), rest.count)
-        rest.insert(contentsOf: moving, at: target)
-        ids = rest
+        ids.move(fromOffsets: source, toOffset: destination)
     }
 
     /// Eine Stelle nach oben (-1) oder unten (+1); am Rand nichts.
