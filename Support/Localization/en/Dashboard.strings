@@ -115,3 +115,8 @@
 
 /* PerformanceModel.swift */
 "%@ · %lld Kerne" = "%@ · %lld Cores";
+
+/* WidgetCatalog.swift */
+"Wetterübersicht" = "Weather overview";
+"Stündlich" = "Hourly";
+"Nächste Tage" = "Next days";
