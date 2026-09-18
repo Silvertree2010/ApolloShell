@@ -17,6 +17,14 @@ import os
 /// im Wetter-Reiter waehlbar. Ohne Favoriten (frische Installation) gibt es
 /// keinen Ort und keinen Abruf. Keine Ortung: CoreLocation wuerde einen
 /// Freigabe-Dialog zeigen.
+/// Woher ein Wetter-Modell seine Orte hat. `.file`: weather.json (Leiste,
+/// Nexus, bisher auch das Dashboard). `.widget`: die Orte eines Wetter-
+/// Widgets (0.2), gelesen und geschrieben ueber die Seite in settings.json.
+enum WeatherPlacesSource {
+    case file
+    case widget(read: @MainActor () -> WeatherFavorites, write: @MainActor (WeatherFavorites) -> Void)
+}
+
 @MainActor
 @Observable
 final class WeatherModel {
@@ -51,6 +59,11 @@ final class WeatherModel {
     @ObservationIgnored private var failures = 0
     @ObservationIgnored private var retryTimer: Timer?
     @ObservationIgnored private let log = Logger(category: "weather")
+    /// Woher Orte kommen und wohin die Wahl geschrieben wird.
+    @ObservationIgnored private let placesSource: WeatherPlacesSource
+    /// Berichte je Anbieter und Ort, geteilt zwischen allen Modellen - zwei
+    /// Widgets fuer denselben Ort fragen so nur einmal.
+    @MainActor private static var reportCache: [String: (report: WeatherReport, fetchedAt: Date)] = [:]
 
     /// Eigene fluechtige Sitzung: kein Platten-Cache (die Daten sollen frisch
     /// sein, und alte haelt das Modell ohnehin), kurze Wartezeit statt der
@@ -69,16 +82,24 @@ final class WeatherModel {
         version: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
     )
 
-    init(settings: ShellSettingsStore) {
+    init(settings: ShellSettingsStore, places: WeatherPlacesSource = .file) {
         live = true
         fixedNow = nil
         self.settings = settings
+        placesSource = places
     }
 
     private init(live: Bool, fixedNow: Date?) {
         self.live = live
         self.fixedNow = fixedNow
         settings = nil
+        placesSource = .file
+    }
+
+    /// Schluessel fuer `reportCache`: Anbieter und Ort, nichts sonst - zwei
+    /// Widgets mit demselben Ort und Anbieter treffen denselben Eintrag.
+    nonisolated private static func cacheKey(provider: WeatherProviderID, location: WeatherLocation) -> String {
+        "\(provider.rawValue)|\(location.latitude)|\(location.longitude)"
     }
 
     /// Modell mit festem Bericht, das nichts abruft - fuer Vorschauen und
@@ -119,7 +140,11 @@ final class WeatherModel {
         guard live else { return }
         // Bei jedem Oeffnen neu gelesen (ein paar Byte): so gilt eine
         // geaenderte weather.json ohne Neustart.
-        let wantedFavorites = WeatherFavorites.load(from: try? Data(contentsOf: ShellFiles.live.weather))
+        let wantedFavorites: WeatherFavorites
+        switch placesSource {
+        case .file: wantedFavorites = WeatherFavorites.load(from: try? Data(contentsOf: ShellFiles.live.weather))
+        case .widget(let read, _): wantedFavorites = read()
+        }
         favorites = wantedFavorites
         let wanted = wantedFavorites.selected
         if wanted != location { switchTo(wanted) }
@@ -130,7 +155,18 @@ final class WeatherModel {
         let providerChanged = wantedProvider != provider
         if providerChanged { switchProvider(to: wantedProvider) }
         // Kein Ort: nichts abzurufen - erst ein Favorit macht das Wetter abrufbar.
-        if location != nil, providerChanged || WeatherRefresh.needsFetch(fetchedAt: fetchedAt, now: Date()) { fetch() }
+        if let location {
+            // Ein anderes Widget fuer denselben Ort hat vielleicht schon
+            // frischer abgerufen - dessen Bericht uebernehmen statt neu zu fragen.
+            let key = Self.cacheKey(provider: provider, location: location)
+            if let cached = Self.reportCache[key], cached.fetchedAt > (fetchedAt ?? .distantPast) {
+                report = cached.report
+                fetchedAt = cached.fetchedAt
+                lastAttemptFailed = false
+                source = provider
+            }
+            if providerChanged || WeatherRefresh.needsFetch(fetchedAt: fetchedAt, now: Date()) { fetch() }
+        }
         timer?.invalidate()
         timer = .repeating(every: WeatherRefresh.interval, owner: self) { $0.fetch() }
     }
@@ -152,10 +188,15 @@ final class WeatherModel {
         favorites.select(id: wanted.id)
         switchTo(wanted)
         fetch()
-        do {
-            try ShellFiles.write(favorites.fileData(), to: ShellFiles.live.weather)
-        } catch {
-            log.error("weather.json nicht gespeichert: \((error as NSError).code, privacy: .public)")
+        switch placesSource {
+        case .file:
+            do {
+                try ShellFiles.write(favorites.fileData(), to: ShellFiles.live.weather)
+            } catch {
+                log.error("weather.json nicht gespeichert: \((error as NSError).code, privacy: .public)")
+            }
+        case .widget(_, let write):
+            write(favorites)
         }
     }
 
@@ -239,6 +280,7 @@ final class WeatherModel {
             fetchedAt = Date()
             lastAttemptFailed = false
             failures = 0
+            Self.reportCache[Self.cacheKey(provider: id, location: requested)] = (report, fetchedAt!)
         case .failure(let error):
             failures += 1
             scheduleRetry()

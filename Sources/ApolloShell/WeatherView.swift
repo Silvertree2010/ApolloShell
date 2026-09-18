@@ -137,7 +137,7 @@ struct WeatherTab: View {
                     Text(model.lastAttemptFailed ? String(localized: "Keine Wetterdaten") : String(localized: "Wetter wird geladen …"))
                         .font(style.font(size: 15, weight: .semibold))
                     // Auch ohne Daten umschaltbar - vielleicht klappt es woanders.
-                    WeatherPlacePicker(model: model)
+                    WeatherPlacePicker(favorites: model.favorites, selected: model.location, select: model.select)
                         .padding(.top, 4)
                 }
             }
@@ -199,23 +199,25 @@ private struct WeatherPrecipitation: View {
 /// Ortswahl als Kapseln, aus den Favoriten (Nexus > Dashboard): der gewaehlte
 /// in Akzentfarbe.
 private struct WeatherPlacePicker: View {
-    let model: WeatherModel
+    let favorites: WeatherFavorites
+    let selected: WeatherLocation?
+    let select: (WeatherLocation) -> Void
     @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack(spacing: 5) {
-            ForEach(model.favorites.locations) { place in
-                let selected = place == model.location
+            ForEach(favorites.locations) { place in
+                let isSelected = place == selected
                 Button {
-                    model.select(place)
+                    select(place)
                 } label: {
                     Text(place.name)
                         .font(style.font(size: 11, weight: .semibold))
                         .padding(.horizontal, 9)
                         .padding(.vertical, 4)
-                        .foregroundStyle(selected ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
+                        .foregroundStyle(isSelected ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
                         .background(
-                            selected ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.08)),
+                            isSelected ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.08)),
                             in: .capsule
                         )
                         .contentShape(.capsule)
@@ -225,7 +227,7 @@ private struct WeatherPlacePicker: View {
             }
         }
         .fixedSize()
-        .animation(.easeOut(duration: 0.15), value: model.location)
+        .animation(.easeOut(duration: 0.15), value: selected)
     }
 }
 
@@ -252,7 +254,7 @@ struct WeatherHero: View {
                     Text(summary(current: current, today: today))
                         .font(style.font(size: 13))
                         .foregroundStyle(.secondary)
-                    WeatherPlacePicker(model: model)
+                    WeatherPlacePicker(favorites: model.favorites, selected: model.location, select: model.select)
                         .padding(.top, 3)
                     if let stand {
                         Text(stand).font(style.font(size: 11)).foregroundStyle(.tertiary)
