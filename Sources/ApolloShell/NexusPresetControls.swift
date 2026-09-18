@@ -9,20 +9,23 @@ import SwiftUI
 // ihre Formulierungen unterscheiden (Leiste/Panel/Dashboard); hier nur die
 // Mechanik.
 
-/// "Vorlage laden ..." und "Zuruecksetzen", nebeneinander wie zuvor. Setzt
-/// nur `pending`; die eigentliche Rueckfrage zeigt `nexusPresetAlert`.
+/// "Vorlage laden ..." und "Zuruecksetzen", nebeneinander wie zuvor. Meldet
+/// die Wahl nur ueber `onSelect` - ob daraus `pending` wird (Rueckfrage per
+/// `nexusPresetAlert`) oder die Wahl gleich weitergereicht wird
+/// (`NexusDashboardCardSections`, die Rueckfrage haelt dort die Seite),
+/// entscheidet der Aufrufer.
 struct NexusPresetControls<P: LayoutPreset>: View {
     let layout: P.Layout
-    @Binding var pending: LayoutPresetReplacement<P>?
+    let onSelect: (LayoutPresetReplacement<P>) -> Void
 
     var body: some View {
         Menu("Vorlage laden …") {
             ForEach(Array(P.allCases)) { preset in
-                Button(preset.title) { pending = .preset(preset) }
+                Button(preset.title) { onSelect(.preset(preset)) }
             }
         }
         .fixedSize()
-        Button("Zurücksetzen") { pending = .reset }
+        Button("Zurücksetzen") { onSelect(.reset) }
             .disabled(layout == P.default.layout)
     }
 }

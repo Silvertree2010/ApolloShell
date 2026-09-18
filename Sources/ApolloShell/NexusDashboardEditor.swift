@@ -93,7 +93,7 @@ struct NexusDashboardCardSections: View {
     @Bindable var store: ShellSettingsStore
     @Binding var expanded: Set<DashboardCardKind>
     let onAdd: () -> Void
-    let onReplace: (NexusDashboardReplacement) -> Void
+    let onReplace: (LayoutPresetReplacement<DashboardPreset>) -> Void
 
     private var layout: DashboardLayout { store.settings.dashboard }
 
@@ -127,14 +127,7 @@ struct NexusDashboardCardSections: View {
                     Label("Hinzufügen …", systemImage: "plus")
                 }
                 Spacer(minLength: 8)
-                Menu("Vorlage laden …") {
-                    ForEach(DashboardPreset.allCases) { preset in
-                        Button(preset.title) { onReplace(.preset(preset)) }
-                    }
-                }
-                .fixedSize()
-                Button("Zurücksetzen") { onReplace(.reset) }
-                    .disabled(layout == DashboardLayout())
+                NexusPresetControls(layout: layout, onSelect: onReplace)
             }
         } footer: {
             Text("Das Dashboard bleibt immer gleich gross. Fehlt eine Karte, nehmen ihre Nachbarn den Platz ein; eine leere Reihe überlässt der anderen die ganze Höhe.")
@@ -317,44 +310,11 @@ private struct NexusDashboardCardOptions: View {
     ) -> Binding<T> {
         let kind = card.kind
         let store = store
-        return Binding(
-            get: { store.settings.dashboard.cards[kind: kind].flatMap(read) ?? fallback },
-            set: { store.settings.dashboard.cards.update(make($0)) }
+        return nexusOptionsBinding(
+            get: { store.settings.dashboard.cards[kind: kind] },
+            set: { store.settings.dashboard.cards.update($0) },
+            read: read, make: make, fallback: fallback
         )
-    }
-}
-
-/// Was nach Rueckfrage das ganze Dashboard ersetzt (Reiter und Karten).
-enum NexusDashboardReplacement {
-    case preset(DashboardPreset)
-    case reset
-
-    var layout: DashboardLayout {
-        switch self {
-        case .preset(let preset): preset.layout
-        case .reset: DashboardLayout()
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .preset(let preset): String(localized: "Vorlage „\(preset.title)“ laden?")
-        case .reset: String(localized: "Dashboard zurücksetzen?")
-        }
-    }
-
-    var message: String {
-        switch self {
-        case .preset(let preset): String(localized: "\(preset.summary) Reiter und Karten werden ersetzt; der Wetterort bleibt.")
-        case .reset: String(localized: "Reiter und Karten wieder wie am Anfang (Vorlage Caelestia). Der Wetterort bleibt.")
-        }
-    }
-
-    var confirm: String {
-        switch self {
-        case .preset: String(localized: "Laden")
-        case .reset: String(localized: "Zurücksetzen")
-        }
     }
 }
 
@@ -368,78 +328,28 @@ struct NexusDashboardGallery: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Karte hinzufügen")
-                    .font(.title3.weight(.semibold))
-                Text("Sie kommt an ihren Platz wie bei Caelestia oder, wenn der voll ist, an den nächsten mit Raum.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(20)
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
-                    ForEach(DashboardCardKind.allCases) { kind in
-                        NexusDashboardGalleryTile(kind: kind, present: cards.contains(kind),
-                                                  target: cards.placement(for: kind)) { onAdd(kind) }
+        NexusGallerySheet(title: String(localized: "Karte hinzufügen"),
+                          subtitle: String(localized: "Sie kommt an ihren Platz wie bei Caelestia oder, wenn der voll ist, an den nächsten mit Raum."),
+                          size: CGSize(width: 560, height: 440), onCancel: onCancel) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+                ForEach(DashboardCardKind.allCases) { kind in
+                    let present = cards.contains(kind)
+                    let target = cards.placement(for: kind)
+                    let available = target != nil
+                    NexusGalleryTile(
+                        title: kind.title, summary: kind.summary,
+                        badge: present ? String(localized: "Schon da") : target?.title ?? String(localized: "Kein Platz frei"),
+                        minHeight: 110, available: available,
+                        help: present ? String(localized: "Jede Karte gibt es einmal")
+                            : available ? String(localized: "\(kind.title) hinzufügen")
+                            : String(localized: "Kein Platz hat mehr Raum dafür – erst eine andere Karte entfernen"),
+                        action: { onAdd(kind) }
+                    ) {
+                        NexusTile(symbol: kind.symbol, tint: kind.tint, size: 30)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
             }
-            Divider()
-            HStack {
-                Spacer()
-                Button("Abbrechen", action: onCancel)
-                    .keyboardShortcut(.cancelAction)
-            }
-            .padding(14)
         }
-        .frame(width: 560, height: 440)
-    }
-}
-
-private struct NexusDashboardGalleryTile: View {
-    let kind: DashboardCardKind
-    let present: Bool
-    /// Wohin sie kaeme; `nil` = schon da oder kein Raum.
-    let target: DashboardZone?
-    let action: () -> Void
-    @State private var hovering = false
-
-    private var available: Bool { target != nil }
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .top) {
-                    NexusTile(symbol: kind.symbol, tint: kind.tint, size: 30)
-                    Spacer(minLength: 4)
-                    Text(present ? String(localized: "Schon da") : target?.title ?? String(localized: "Kein Platz frei"))
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.secondary)
-                }
-                Text(kind.title)
-                    .font(.headline)
-                Text(kind.summary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 110, alignment: .topLeading)
-            .background(Color.primary.opacity(hovering && available ? 0.09 : 0.05),
-                        in: .rect(cornerRadius: 12, style: .continuous))
-            .contentShape(.rect(cornerRadius: 12))
-        }
-        .buttonStyle(.plain)
-        .disabled(!available)
-        .opacity(available ? 1 : 0.45)
-        .onHover { hovering = $0 }
-        .help(present ? "Jede Karte gibt es einmal" : available ? "\(kind.title) hinzufügen"
-              : "Kein Platz hat mehr Raum dafür – erst eine andere Karte entfernen")
     }
 }
 
@@ -459,22 +369,18 @@ struct NexusDashboardPreview: View {
     var body: some View {
         GeometryReader { geometry in
             let size = NexusDashboardPreviewModels.size
-            let scale = min(1, (geometry.size.width - 40) / size.width, (geometry.size.height - 34) / size.height)
+            // Der Rahmen (`frameSize`) folgt dem ungeklemmten Massstab, der
+            // sichtbare Inhalt (`scale`) bleibt bei mindestens 0.1 - sonst
+            // waere er bei ganz kleinem Fenster unleserlich klein statt nur
+            // beschnitten.
+            let rawScale = min(1, (geometry.size.width - 40) / size.width, (geometry.size.height - 34) / size.height)
+            let scale = max(rawScale, 0.1)
             VStack(spacing: 6) {
-                DashboardView(model: NexusDashboardPreviewModels.dashboard, weather: NexusDashboardPreviewModels.weather,
-                              media: NexusDashboardPreviewModels.media, settings: store)
-                    // Ersatz fuer das Glas: eine leicht abgesetzte Flaeche.
-                    .background(Color.primary.opacity(0.07))
-                    .clipShape(.rect(cornerRadius: 25, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 25, style: .continuous)
-                            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1 / max(scale, 0.1))
-                    }
-                    .scaleEffect(max(scale, 0.1), anchor: .top)
-                    .frame(width: size.width * scale, height: size.height * scale, alignment: .top)
-                    .allowsHitTesting(false)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Vorschau des Dashboards")
+                NexusScaledPreview(scale: scale, frameSize: CGSize(width: size.width * rawScale, height: size.height * rawScale),
+                                   cornerRadius: 25, accessibilityLabel: String(localized: "Vorschau des Dashboards")) {
+                    DashboardView(model: NexusDashboardPreviewModels.dashboard, weather: NexusDashboardPreviewModels.weather,
+                                  media: NexusDashboardPreviewModels.media, settings: store)
+                }
                 Text("Vorschau mit Beispieldaten")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -526,6 +432,22 @@ enum NexusDashboardPreviewModels {
 
 @MainActor
 enum NexusDashboardText {
+    /// Titel der Vorlagen-Rueckfrage.
+    static func replacementTitle(_ replacement: LayoutPresetReplacement<DashboardPreset>) -> String {
+        switch replacement {
+        case .preset(let preset): String(localized: "Vorlage „\(preset.title)“ laden?")
+        case .reset: String(localized: "Dashboard zurücksetzen?")
+        }
+    }
+
+    /// Erklaerung der Vorlagen-Rueckfrage.
+    static func replacementMessage(_ replacement: LayoutPresetReplacement<DashboardPreset>) -> String {
+        switch replacement {
+        case .preset(let preset): String(localized: "\(preset.summary) Reiter und Karten werden ersetzt; der Wetterort bleibt.")
+        case .reset: String(localized: "Reiter und Karten wieder wie am Anfang (Vorlage Caelestia). Der Wetterort bleibt.")
+        }
+    }
+
     static func detail(_ tab: DashboardTab) -> String {
         switch tab {
         case .dashboard: String(localized: "Die Karten, die hier darunter stehen")

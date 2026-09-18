@@ -168,7 +168,7 @@ struct NexusDashboardPage: View {
     @Bindable var store: ShellSettingsStore
     @Bindable var model: NexusWeatherModel
     @State private var showsGallery = false
-    @State private var pending: NexusDashboardReplacement?
+    @State private var pending: LayoutPresetReplacement<DashboardPreset>?
     /// Aufgeklappte Karten: bleiben beim Umsortieren offen.
     @State private var expanded: Set<DashboardCardKind>
 
@@ -198,19 +198,10 @@ struct NexusDashboardPage: View {
         .sheet(isPresented: $showsGallery) {
             NexusDashboardGallery(cards: store.settings.dashboard.cards, onAdd: add, onCancel: { showsGallery = false })
         }
-        .alert(pending?.title ?? "", isPresented: confirming, presenting: pending) { replacement in
-            Button(replacement.confirm) {
-                store.settings.dashboard = replacement.layout
-                expanded = []
-            }
-            Button("Abbrechen", role: .cancel) {}
-        } message: { replacement in
-            Text(replacement.message)
+        .nexusPresetAlert($pending, title: NexusDashboardText.replacementTitle, message: NexusDashboardText.replacementMessage) { layout in
+            store.settings.dashboard = layout
+            expanded = []
         }
-    }
-
-    private var confirming: Binding<Bool> {
-        Binding(get: { pending != nil }, set: { if !$0 { pending = nil } })
     }
 
     /// Aus der Galerie: an ihren Platz, mit Optionen gleich aufgeklappt.

@@ -63,7 +63,7 @@ struct NexusBarPage: View {
                     Label("Hinzufügen …", systemImage: "plus")
                 }
                 Spacer(minLength: 8)
-                NexusPresetControls(layout: layout, pending: $pending)
+                NexusPresetControls(layout: layout) { pending = $0 }
             }
         } header: {
             Text("Bausteine")
