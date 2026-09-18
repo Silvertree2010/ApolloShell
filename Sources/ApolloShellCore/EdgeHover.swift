@@ -67,3 +67,28 @@ public enum EdgeHoverArea {
         return CGRect(x: left, y: screen.minY - edgeThickness, width: right - left, height: reach + edgeThickness)
     }
 }
+
+/// Was `EdgeDrawer.close(then:)` mit seiner Aktion tut. Das Panel bleibt
+/// klickbar, solange es ausblendet: Ein zweiter Klick in dieser Zeit (ein
+/// Doppelklick auf Bildschirmfoto) darf die Aktion weder sofort noch ein
+/// zweites Mal ausloesen.
+public enum DrawerCloseStep: Equatable, Sendable {
+    /// Offen: schliessen, die Aktion nach dem Ausblenden.
+    case closeThenRun
+    /// Blendet gerade aus, noch nichts vorgemerkt: nach dem Ausblenden.
+    case runAfterFade
+    /// Blendet aus, eine Aktion ist schon vorgemerkt: die erste gilt.
+    case drop
+    /// Ganz weg: sofort.
+    case runNow
+
+    public init(isOpen: Bool, isVisible: Bool, hasPendingAction: Bool) {
+        if isOpen {
+            self = .closeThenRun
+        } else if isVisible {
+            self = hasPendingAction ? .drop : .runAfterFade
+        } else {
+            self = .runNow
+        }
+    }
+}

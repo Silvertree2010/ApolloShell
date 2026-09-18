@@ -353,10 +353,27 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// uns statt bei der App vorne, und Pipette oder Bildschirmfoto saehen
     /// das halb ausgeblendete Glas. Geht es vorher wieder auf, entfaellt
     /// `then` - man hat es sich anders ueberlegt.
+    ///
+    /// Waehrend des Ausblendens ist das Panel noch klickbar. Ein Klick in
+    /// dieser Zeit wartet ebenfalls, ein zweiter (Doppelklick) entfaellt
+    /// (`DrawerCloseStep`).
     func close(then: @escaping @MainActor () -> Void) {
-        guard isOpen else { return then() }
-        close()
-        afterClose = then
+        let step = DrawerCloseStep(
+            isOpen: isOpen,
+            isVisible: builtPanel?.isVisible ?? false,
+            hasPendingAction: afterClose != nil
+        )
+        switch step {
+        case .closeThenRun:
+            close()
+            afterClose = then
+        case .runAfterFade:
+            afterClose = then
+        case .drop:
+            break
+        case .runNow:
+            then()
+        }
     }
 
     private var afterClose: (@MainActor () -> Void)?
