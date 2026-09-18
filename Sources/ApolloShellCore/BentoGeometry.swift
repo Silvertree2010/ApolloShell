@@ -67,7 +67,12 @@ public enum BentoGeometry {
                                                     others: others.map { (start: $0.x, end: $0.maxX) }))
         frame.y = snap(frame.y, to: startCandidates(length: frame.height, page: pageHeight,
                                                     others: others.map { (start: $0.y, end: $0.maxY) }))
-        return frame.rounded()
+        // Nur die Lage auf ganze Punkte runden - die Breite/Hoehe bleibt, wie
+        // sie hereinkam (manche Groessen der Leistungsseite sind Halbpunkte,
+        // z. B. 413,5; Runden wuerde sie ausserhalb ihrer Spanne schieben).
+        frame.x = frame.x.rounded()
+        frame.y = frame.y.rounded()
+        return frame
     }
 
     /// Groesse ziehen (Griff unten rechts, Ecke oben links bleibt): die Hoehe
@@ -85,8 +90,14 @@ public enum BentoGeometry {
                 candidates += [other.x - spacing - frame.x, other.maxX - frame.x]
             }
             width = snap(width, to: candidates.filter { $0 >= size.minWidth && $0 <= size.maxWidth })
+            // Erst runden, dann wieder in die Spanne der Groesse zwingen -
+            // ein Halbpunkt-Hoechstmass (z. B. 413,5) bleibt so unangetastet,
+            // statt durchs Runden ungueltig zu werden.
+            width = min(max(width.rounded(), size.minWidth), size.maxWidth)
         }
-        return WidgetFrame(x: frame.x, y: frame.y, width: width, height: size.height).rounded()
+        // Eine feste Breite (minWidth == maxWidth) ist bereits der genaue
+        // Katalogwert - nie runden, sonst wird z. B. 169,5 ungueltig.
+        return WidgetFrame(x: frame.x.rounded(), y: frame.y.rounded(), width: width, height: size.height)
     }
 
     /// Neues Widget aus Nexus: kleinste Groesse, mittig unter dem Zeiger

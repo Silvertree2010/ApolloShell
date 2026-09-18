@@ -72,7 +72,28 @@ struct BentoSnapTests {
         let snapped = BentoGeometry.snapMove(proposed, others: [weather])
         #expect(snapped.x == x)
         #expect(snapped.y == y)
-        #expect(snapped.width == proposed.width.rounded())
+        // Breite/Hoehe bleiben unveraendert (nicht gerundet) - manche
+        // Groessen der Leistungsseite sind Halbpunkte (z. B. 413,5).
+        #expect(snapped.width == proposed.width)
+        #expect(snapped.height == proposed.height)
+    }
+
+    @Test("Ziehen: Halbpunkt-Groessen der Leistungsseite bleiben gueltig", arguments: [
+        (true, WidgetKind.performanceStorage),
+        (false, WidgetKind.performanceStorage),
+        (true, WidgetKind.performanceCPU),
+        (false, WidgetKind.performanceCPU),
+    ])
+    func moveHalfPointPerformanceWidgets(hasBattery: Bool, kind: WidgetKind) {
+        // Vorlagen-Rahmen der Leistungsseite (gemessen), Breite ggf. ein
+        // Halbpunkt wie 413,5 oder 169,5.
+        let size = kind.sizes.max { $0.maxWidth < $1.maxWidth }!
+        let width = hasBattery ? size.minWidth : size.maxWidth
+        let frame = WidgetFrame(x: 0, y: 0, width: width, height: size.height)
+        // Ein paar Punkte verschieben, wie beim Ziehen mit der Maus.
+        let proposed = WidgetFrame(x: frame.x + 3, y: frame.y + 4, width: width, height: size.height)
+        let snapped = BentoGeometry.snapMove(proposed, others: [])
+        #expect(BentoGeometry.isValid(snapped, kind: kind, others: []))
     }
 
     @Test("Ziehen: das naechste Ziel gewinnt")
