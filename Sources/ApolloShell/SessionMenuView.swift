@@ -57,9 +57,9 @@ struct SessionMenuView: View {
         }
         .padding(.vertical, SessionMenu.padding)
         .padding(.leading, SessionMenu.padding)
-        // Rechts nur der schmale Kantenabstand, dahinter der Teil des
-        // Fensters, der ueber den Bildschirmrand ragt.
-        .padding(.trailing, SessionMenu.edgePadding + SessionMenu.cornerRadius)
+        // Rechts nur der schmale Kantenabstand; der Teil des Fensters, der
+        // ueber den Bildschirmrand ragt, liegt ausserhalb dieser Ansicht.
+        .padding(.trailing, SessionMenu.edgePadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .focusable()
         .focusEffectDisabled()

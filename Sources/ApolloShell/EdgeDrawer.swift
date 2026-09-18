@@ -11,12 +11,131 @@ enum DrawerEdge {
     case right
     /// Ecke rechts unten (Caelestia: Utilities).
     case bottomRight
+    /// Unten mittig, wo frueher Apples Dock sass (Launcher).
+    case bottom
 }
 
-/// Glas-Panel, das an einer Bildschirmkante klebt und wie bei Caelestia aus
-/// ihr herausgleitet: 500 ms, Caelestias "DefaultSpatial"-Kurve
-/// cubic-bezier(0.38, 1.21, 0.22, 1) mit leichtem Ueberschiessen, dazu
-/// Einblenden. Gemeinsamer Baustein fuer Dashboard, Utilities, OSD.
+/// Wie ein Kantenfenster auf- und zugeht. Bewegt wird der Inhalt ueber die
+/// sublayerTransform des Containers - das rechnet Core Animation auf der
+/// GPU, anders als ein animiertes setFrame, das AppKit Bild fuer Bild auf
+/// dem Hauptthread setzt und das Glas jedes Mal neu rendern laesst. Dazu
+/// blendet das Fenster ein und aus.
+enum DrawerMotion {
+    /// Caelestia: um die eigene Groesse (+5) aus der Kante gleiten, 500 ms
+    /// auf `MotionCurve.spatial` mit leichtem Ueberschiessen, Einblenden auf
+    /// derselben Kurve.
+    case slide
+    /// Launcher: waechst aus der Mitte der Unterkante heraus (etwas kleiner
+    /// und tiefer) und geht denselben Weg zurueck. Federn statt fester Dauer,
+    /// kritisch gedaempft wie bei Apple: schnell los, weich auslaufen, kein
+    /// Nachwippen (das gehoert zu Wisch-Gesten, nicht zu einem Tastendruck).
+    /// Die erste Fassung (28 pt, nur Verschieben) war kaum wahrnehmbar.
+    case grow
+
+    /// Zu-Zustand der sublayerTransform.
+    @MainActor
+    func closedTransform(edge: DrawerEdge, size: NSSize, topInset: CGFloat, container: NSView) -> CATransform3D {
+        switch self {
+        case .slide:
+            switch edge {
+            case .top: CATransform3DMakeTranslation(0, size.height + topInset + 5, 0)
+            case .right: CATransform3DMakeTranslation(size.width + 5, 0, 0)
+            case .bottomRight, .bottom: CATransform3DMakeTranslation(0, -(size.height + 5), 0)
+            }
+        case .grow:
+            Grow.closedTransform(for: container)
+        }
+    }
+
+    /// Die Bewegung der sublayerTransform; `from`/`to` setzt der Aufrufer.
+    func transformAnimation(opening: Bool) -> CABasicAnimation {
+        switch self {
+        case .slide:
+            let animation = CABasicAnimation(keyPath: "sublayerTransform")
+            animation.duration = MotionCurve.spatialDuration
+            animation.timingFunction = .shellSpatial
+            return animation
+        case .grow:
+            return Grow.spring(response: opening ? Grow.openResponse : Grow.closeResponse)
+        }
+    }
+
+    /// Dauer und Kurve des Ein- bzw. Ausblendens. Beim Wachsen kuerzer als
+    /// die Feder, damit das Glas sofort da ist.
+    func fade(opening: Bool) -> (duration: TimeInterval, curve: CAMediaTimingFunction) {
+        switch self {
+        case .slide: (MotionCurve.spatialDuration, .shellSpatial)
+        case .grow: (opening ? Grow.fadeIn : Grow.fadeOut, Grow.easeOut)
+        }
+    }
+
+    private enum Grow {
+        /// Federantwort in Sekunden (Apples "response"): wie schnell das Ziel
+        /// erreicht wird. Oeffnen etwas ruhiger, Schliessen knapper.
+        static let openResponse: CGFloat = 0.42
+        static let closeResponse: CGFloat = 0.28
+        static let fadeIn: TimeInterval = 0.16
+        static let fadeOut: TimeInterval = 0.14
+        /// Zu-Zustand: um `travel` Punkte tiefer und auf `closedScale` verkleinert.
+        static let travel: CGFloat = 40
+        static let closedScale: CGFloat = 0.92
+        static var easeOut: CAMediaTimingFunction { CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1) }
+
+        /// Bei "Bewegung reduzieren" die Identitaet, dann bleibt nur die Blende.
+        ///
+        /// Die sublayerTransform dreht um den anchorPoint des Layers. Offline
+        /// gemessen: bei View-Layern ist der (0,0), also unten links, und y
+        /// zeigt nach oben. Damit das Panel aus dem Dock waechst statt aus der
+        /// Ecke, wird der Drehpunkt auf die Mitte der Unterkante verlegt:
+        /// dorthin schieben, skalieren, zurueckschieben, dann nach unten
+        /// versetzen.
+        @MainActor
+        static func closedTransform(for view: NSView) -> CATransform3D {
+            if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                return CATransform3DIdentity
+            }
+            guard let layer = view.layer else { return CATransform3DIdentity }
+            let size = layer.bounds.size
+            let flipped = layer.isGeometryFlipped
+            let pivot = CGPoint(x: layer.anchorPoint.x * size.width, y: layer.anchorPoint.y * size.height)
+            let bottomCenter = CGPoint(x: size.width / 2, y: flipped ? size.height : 0)
+            let dx = bottomCenter.x - pivot.x
+            let dy = bottomCenter.y - pivot.y
+            let down: CGFloat = flipped ? 1 : -1
+
+            var transform = CATransform3DMakeTranslation(-dx, -dy, 0)
+            transform = CATransform3DConcat(transform, CATransform3DMakeScale(closedScale, closedScale, 1))
+            transform = CATransform3DConcat(transform, CATransform3DMakeTranslation(dx, dy + down * travel, 0))
+            return transform
+        }
+
+        /// Kritisch gedaempfte Feder aus Apples "response" (Masse 1):
+        /// Steifigkeit (2π/response)², Daempfung 4π·ζ/response mit ζ = 1.
+        static func spring(response: CGFloat) -> CASpringAnimation {
+            let spring = CASpringAnimation(keyPath: "sublayerTransform")
+            spring.mass = 1
+            spring.stiffness = pow(2 * .pi / response, 2)
+            spring.damping = 4 * .pi / response
+            spring.initialVelocity = 0
+            spring.duration = spring.settlingDuration
+            return spring
+        }
+    }
+}
+
+/// Abdunkelung des ganzen Bildschirms hinter dem Fenster; ein Klick darauf
+/// schliesst es (Caelestia: Sitzungsmenue).
+struct DrawerScrim {
+    /// Wie dunkel, 0...1.
+    let amount: CGFloat
+    let duration: TimeInterval
+    let curve: CAMediaTimingFunction
+}
+
+/// Glas-Panel, das an einer Bildschirmkante klebt und aus ihr herauskommt
+/// (`DrawerMotion`), auf Wunsch vor abgedunkeltem Bildschirm
+/// (`DrawerScrim`). Gemeinsamer Baustein fuer Dashboard, Utilities, OSD,
+/// Sitzungsmenue und Launcher.
 ///
 /// Es geht dort auf, wo der Zeiger steht, und die Maus oeffnet es an der
 /// Kante JEDES Bildschirms - nicht nur am Hauptbildschirm. Solange es offen
@@ -28,15 +147,11 @@ enum DrawerEdge {
 /// ausserhalb, und das Panel wirkt, als wuechse es aus ihr. Der Inhalt liegt
 /// nur im sichtbaren Teil. Oben liegt das Glas ueber der Menueleiste bis an
 /// die Kante; der Inhalt beginnt unter Menueleiste und Notch.
-///
-/// Das Sitzungsmenue benutzt diesen Baustein (noch) nicht; es war vorher da
-/// und funktioniert.
 @MainActor
 final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
-    private static var slideDuration: TimeInterval { MotionCurve.spatialDuration }
-    private static var slideCurve: CAMediaTimingFunction { .shellSpatial }
-
     let edge: DrawerEdge
+    let motion: DrawerMotion
+    let scrim: DrawerScrim?
     /// Sichtbare Groesse (ohne den Teil, der ueber die Kante ragt). Aendert
     /// sich nur ueber `resize(to:)` (Utilities: Karten an/aus, mehr Reihen).
     private(set) var size: NSSize
@@ -49,6 +164,9 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     let takesKeyboard: Bool
     var onOpen: () -> Void = {}
     var onClose: () -> Void = {}
+    /// Nach der Schliessbewegung, wenn das Fenster weg ist - nicht, wenn es
+    /// vorher wieder aufging.
+    var onHidden: () -> Void = {}
 
     /// Caelestia: erscheint, wenn die Maus an die Kante stoesst, und geht,
     /// wenn sie den Bereich verlaesst (Regeln in ApolloShellCore/EdgeHover).
@@ -78,6 +196,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         return panel
     }
     private let container: NSView
+    private var builtScrim: ScrimWindow?
     /// Glas und SwiftUI-Inhalt darin; `resize(to:)` setzt ihre Rahmen neu.
     private var glass: NSGlassEffectView?
     private var hosting: NSView?
@@ -98,8 +217,11 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// fuer den Zielbildschirm neu bestimmt (`applyGeometry`).
     private var topInset: CGFloat
 
-    init(edge: DrawerEdge, size: NSSize, cornerRadius: CGFloat, takesKeyboard: Bool = true, rootView: Content) {
+    init(edge: DrawerEdge, size: NSSize, cornerRadius: CGFloat, takesKeyboard: Bool = true,
+         motion: DrawerMotion = .slide, scrim: DrawerScrim? = nil, rootView: Content) {
         self.edge = edge
+        self.motion = motion
+        self.scrim = scrim
         self.size = size
         self.cornerRadius = cornerRadius
         self.takesKeyboard = takesKeyboard
@@ -165,15 +287,26 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
             setSlide(closed: true, animated: false)
             panel.alphaValue = 0
         }
+        if let scrim, let scrimWindow = scrimWindow() {
+            scrimWindow.setFrame(screen.frame, display: false)
+            if !scrimWindow.isVisible { scrimWindow.alphaValue = 0 }
+            scrimWindow.orderFrontRegardless()
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = scrim.duration
+                context.timingFunction = scrim.curve
+                scrimWindow.animator().alphaValue = scrim.amount
+            }
+        }
         if takesKeyboard && !byHover {
             panel.makeKeyAndOrderFront(nil)
         } else {
             panel.orderFrontRegardless()
         }
         setSlide(closed: false, animated: true)
+        let fade = motion.fade(opening: true)
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = Self.slideDuration
-            context.timingFunction = Self.slideCurve
+            context.duration = fade.duration
+            context.timingFunction = fade.curve
             panel.animator().alphaValue = 1
         }
     }
@@ -189,14 +322,24 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         onClose()
 
         setSlide(closed: true, animated: true)
+        if let scrim, let scrimWindow = builtScrim {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = scrim.duration
+                context.timingFunction = scrim.curve
+                scrimWindow.animator().alphaValue = 0
+            }
+        }
+        let fade = motion.fade(opening: false)
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = Self.slideDuration
-            context.timingFunction = Self.slideCurve
+            context.duration = fade.duration
+            context.timingFunction = fade.curve
             panel.animator().alphaValue = 0
         }, completionHandler: { [weak self] in
             MainActor.assumeIsolated {
                 guard let self, self.generation == current else { return }
                 self.panel.orderOut(nil)
+                self.builtScrim?.orderOut(nil)
+                self.onHidden()
                 let action = self.afterClose
                 self.afterClose = nil
                 action?()
@@ -328,7 +471,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         case .bottomRight:
             return EdgeHoverArea.bottomRight(screen: screen.frame, width: size.width, height: size.height,
                                              margin: cornerRadius, open: open)
-        case .right:
+        case .right, .bottom:
             return nil
         }
     }
@@ -350,6 +493,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
                 }
                 self.applyGeometry(on: same)
                 self.builtPanel?.setFrame(self.windowFrame(on: same), display: true)
+                self.builtScrim?.setFrame(same.frame, display: true)
             }
         }
     }
@@ -363,6 +507,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         case .top: NSSize(width: size.width, height: size.height + topInset + radius)
         case .right: NSSize(width: size.width + radius, height: size.height)
         case .bottomRight: NSSize(width: size.width + radius, height: size.height + radius)
+        case .bottom: NSSize(width: size.width, height: size.height + radius)
         }
     }
 
@@ -371,7 +516,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         switch edge {
         case .top: NSRect(x: 0, y: 0, width: size.width, height: size.height)
         case .right: NSRect(x: 0, y: 0, width: size.width, height: size.height)
-        case .bottomRight: NSRect(x: 0, y: cornerRadius, width: size.width, height: size.height)
+        case .bottomRight, .bottom: NSRect(x: 0, y: cornerRadius, width: size.width, height: size.height)
         }
     }
 
@@ -393,25 +538,23 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         case .bottomRight:
             return NSRect(x: frame.maxX - size.width, y: frame.minY - cornerRadius,
                           width: windowSize.width, height: windowSize.height)
+        case .bottom:
+            // Buendig an der Unterkante; die unteren Ecken ragen hinaus.
+            return NSRect(x: frame.midX - size.width / 2, y: frame.minY - cornerRadius,
+                          width: windowSize.width, height: windowSize.height)
         }
     }
 
     // MARK: - Bewegung
 
-    /// Geschlossen: um die eigene Groesse (+5, wie Caelestia) in die Kante
-    /// zurueckgeschoben. Ueber die sublayerTransform, also auf der GPU, und
-    /// immer ab dem sichtbaren Wert, damit Umdrehen nicht springt.
-    private var closedTransform: CATransform3D {
-        switch edge {
-        case .top: CATransform3DMakeTranslation(0, size.height + topInset + 5, 0)
-        case .right: CATransform3DMakeTranslation(size.width + 5, 0, 0)
-        case .bottomRight: CATransform3DMakeTranslation(0, -(size.height + 5), 0)
-        }
-    }
-
+    /// Setzt die Inhaltsverschiebung, bewegt oder sofort. Startet immer beim
+    /// sichtbaren Wert, damit ein Umdrehen mitten in der Bewegung nicht
+    /// springt.
     private func setSlide(closed: Bool, animated: Bool) {
         guard let layer = container.layer else { return }
-        let target = closed ? closedTransform : CATransform3DIdentity
+        let target = closed
+            ? motion.closedTransform(edge: edge, size: size, topInset: topInset, container: container)
+            : CATransform3DIdentity
         let current = layer.presentation()?.sublayerTransform ?? layer.sublayerTransform
 
         CATransaction.begin()
@@ -423,18 +566,18 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
             layer.removeAnimation(forKey: "drawer.slide")
             return
         }
-        let animation = CABasicAnimation(keyPath: "sublayerTransform")
+        let animation = motion.transformAnimation(opening: !closed)
         animation.fromValue = NSValue(caTransform3D: current)
         animation.toValue = NSValue(caTransform3D: target)
-        animation.duration = Self.slideDuration
-        animation.timingFunction = Self.slideCurve
         layer.add(animation, forKey: "drawer.slide")
     }
 
     // MARK: - Fenster
 
     private func makePanel() -> DrawerPanel {
-        let panel = DrawerPanel(size: container.frame.size, level: .popUpMenu, takesKeyboard: takesKeyboard)
+        // Mit Abdunkelung eine Ebene darueber.
+        let level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + (scrim == nil ? 0 : 1))
+        let panel = DrawerPanel(size: container.frame.size, level: level, takesKeyboard: takesKeyboard)
         panel.delegate = self
         panel.onEscape = { [weak self] in self?.close() }
 
@@ -458,6 +601,15 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         return panel
     }
 
+    private func scrimWindow() -> ScrimWindow? {
+        guard scrim != nil else { return nil }
+        if let builtScrim { return builtScrim }
+        let window = ScrimWindow()
+        window.onClick = { [weak self] in self?.close() }
+        builtScrim = window
+        return window
+    }
+
     func windowDidResignKey(_ notification: Notification) {
         if closesOnResignKey { close() }
     }
@@ -478,4 +630,31 @@ final class DrawerPanel: ShellPanel {
     override func cancelOperation(_ sender: Any?) {
         onEscape()
     }
+}
+
+/// Vollbild-Abdunkelung hinter einem Kantenfenster (`DrawerScrim`). Liegt
+/// ueber Menueleiste und Dock, faengt Klicks ab und schliesst dann das Fenster.
+final class ScrimWindow: ShellPanel {
+    var onClick: () -> Void = {}
+
+    init() {
+        super.init(level: .popUpMenu, behavior: [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary])
+        backgroundColor = .black
+        contentView = ClickView { [weak self] in self?.onClick() }
+    }
+}
+
+/// Nimmt schon den ersten Klick an, auch wenn die App nicht aktiv ist.
+private final class ClickView: NSView {
+    private let action: () -> Void
+
+    init(action: @escaping () -> Void) {
+        self.action = action
+        super.init(frame: .zero)
+    }
+
+    required init?(coder: NSCoder) { fatalError("nicht benutzt") }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override func mouseDown(with event: NSEvent) { action() }
 }

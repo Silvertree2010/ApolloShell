@@ -10,7 +10,7 @@ import os
 /// Glass, SF Symbols), Aufbau und Bewegung Caelestia - Werte aus dessen
 /// Quellcode (Recherche 13.09.2026).
 @MainActor
-final class SessionMenu: NSObject, NSWindowDelegate {
+final class SessionMenu {
     // Masse aus Caelestia: Knoepfe 80 px, Abstand 16, Innenabstand 16, zur
     // Kante hin nur 6 (padding - borderThickness), Rundung 25.
     static let buttonSize: CGFloat = 80
@@ -19,110 +19,53 @@ final class SessionMenu: NSObject, NSWindowDelegate {
     static let edgePadding: CGFloat = 6
     static let cornerRadius: CGFloat = 25
     /// Sichtbare Breite. Das Fenster ist um `cornerRadius` breiter und ragt
-    /// damit rechts ueber den Bildschirm: so liegen die rechten Glasecken
-    /// ausserhalb, und das Panel wirkt, als wuechse es aus der Kante.
+    /// damit rechts ueber den Bildschirm (`EdgeDrawer`).
     static let visibleWidth = padding + buttonSize + edgePadding
     /// Vier Knoepfe plus das Emblem im selben Raster.
     static let height = 2 * padding + 5 * buttonSize + 4 * spacing
 
     /// Abdunkelung, bewusst leicht (10-20 %), damit der Schreibtisch
-    /// erkennbar bleibt; Caelestia selbst nimmt 50 %.
-    static let dimAmount: CGFloat = 0.15
-
-    // Bewegung aus Caelestia: Panel "DefaultSpatial" 500 ms mit leicht
-    // ueberschiessender Kurve, Abdunkelung "SlowEffects" 300 ms.
-    private static let slideDuration: TimeInterval = MotionCurve.spatialDuration
-    private static var slideCurve: CAMediaTimingFunction { .shellSpatial }
-    private static let dimDuration: TimeInterval = 0.3
-    private static let dimCurve = CAMediaTimingFunction(controlPoints: 0.34, 0.88, 0.34, 1)
-    /// Wie weit das Panel geschlossen nach rechts versetzt ist (Caelestia:
-    /// Breite + 5).
-    private static var slideDistance: CGFloat { visibleWidth + 5 }
+    /// erkennbar bleibt; Caelestia selbst nimmt 50 %. Dazu Caelestias
+    /// "SlowEffects": 300 ms.
+    private static let scrim = DrawerScrim(
+        amount: 0.15, duration: 0.3, curve: CAMediaTimingFunction(controlPoints: 0.34, 0.88, 0.34, 1)
+    )
 
     private let model = SessionMenuModel()
     private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "session")
-    private lazy var scrim = makeScrim()
-    private lazy var panel = makePanel()
-    /// Das Glas des Menues und die eingefaerbte Flaeche darunter (Theme).
-    private var glass: NSGlassEffectView?
-    private var surfaceLayer: CAGradientLayer?
-    private let container = NSView(frame: NSRect(
-        x: 0, y: 0,
-        width: SessionMenu.visibleWidth + SessionMenu.cornerRadius,
-        height: SessionMenu.height
-    ))
-    private(set) var isOpen = false
-    private var generation = 0
+    /// Rechts mittig, gleitet wie die anderen Kantenfenster aus der Kante
+    /// ("DefaultSpatial", 500 ms), vor abgedunkeltem Bildschirm.
+    private let drawer: EdgeDrawer<SessionMenuView>
 
-    override init() {
-        super.init()
+    init() {
+        drawer = EdgeDrawer(
+            edge: .right, size: NSSize(width: Self.visibleWidth, height: Self.height),
+            cornerRadius: Self.cornerRadius, scrim: Self.scrim, rootView: SessionMenuView(model: model)
+        )
+        drawer.onOpen = { [model] in
+            model.reset()
+            model.isVisible = true
+        }
+        // Erst jetzt, damit das Emblem beim Wegfahren weiterlaeuft.
+        drawer.onHidden = { [model] in model.isVisible = false }
         model.onPerform = { [weak self] action in self?.perform(action) }
         model.onClose = { [weak self] in self?.close() }
     }
 
+    var isOpen: Bool { drawer.isOpen }
+
     func toggle() {
-        isOpen ? close() : open()
+        drawer.toggle()
     }
 
+    /// Dort, wo der Zeiger steht: Panel und Abdunkelung auf demselben
+    /// Bildschirm.
     func open() {
-        // Dort, wo der Zeiger steht: Panel und Abdunkelung auf demselben
-        // Bildschirm.
-        guard !isOpen, let screen = ShellScreens.underPointer() else { return }
-        applyTheme()
-        isOpen = true
-        generation += 1
-        model.reset()
-        model.isVisible = true
-
-        scrim.setFrame(screen.frame, display: false)
-        panel.setFrame(panelFrame(on: screen), display: false)
-        if !panel.isVisible {
-            setSlide(closed: true, animated: false)
-            panel.alphaValue = 0
-            scrim.alphaValue = 0
-        }
-
-        scrim.orderFrontRegardless()
-        panel.makeKeyAndOrderFront(nil)
-
-        setSlide(closed: false, animated: true)
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = Self.slideDuration
-            context.timingFunction = Self.slideCurve
-            panel.animator().alphaValue = 1
-        }
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = Self.dimDuration
-            context.timingFunction = Self.dimCurve
-            scrim.animator().alphaValue = Self.dimAmount
-        }
+        drawer.open()
     }
 
     func close() {
-        guard isOpen else { return }
-        isOpen = false
-        generation += 1
-        let current = generation
-
-        setSlide(closed: true, animated: true)
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = Self.dimDuration
-            context.timingFunction = Self.dimCurve
-            scrim.animator().alphaValue = 0
-        }
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = Self.slideDuration
-            context.timingFunction = Self.slideCurve
-            panel.animator().alphaValue = 0
-        }, completionHandler: { [weak self] in
-            MainActor.assumeIsolated {
-                guard let self, self.generation == current else { return }
-                self.panel.orderOut(nil)
-                self.scrim.orderOut(nil)
-                // Erst jetzt, damit das Emblem beim Wegfahren weiterlaeuft.
-                self.model.isVisible = false
-            }
-        })
+        drawer.close()
     }
 
     /// Erst das Menue wegfahren lassen, dann ausloesen - sonst friert der
@@ -134,89 +77,9 @@ final class SessionMenu: NSObject, NSWindowDelegate {
         log.notice("Sitzung: \(action.rawValue, privacy: .public)")
         close()
         let command = action.command
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.dimDuration) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.scrim.duration) {
             MainActor.assumeIsolated { _ = Subprocess.launch(command.executable, command.arguments) }
         }
-    }
-
-    // MARK: - Bewegung
-
-    /// Waagrechte Verschiebung ueber die sublayerTransform (GPU, wie beim
-    /// Launcher). Startet beim sichtbaren Wert, damit ein Umdrehen mitten in
-    /// der Bewegung nicht springt.
-    private func setSlide(closed: Bool, animated: Bool) {
-        guard let layer = container.layer else { return }
-        let target = closed
-            ? CATransform3DMakeTranslation(Self.slideDistance, 0, 0)
-            : CATransform3DIdentity
-        let current = layer.presentation()?.sublayerTransform ?? layer.sublayerTransform
-
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        layer.sublayerTransform = target
-        CATransaction.commit()
-
-        guard animated else {
-            layer.removeAnimation(forKey: "session.slide")
-            return
-        }
-        let animation = CABasicAnimation(keyPath: "sublayerTransform")
-        animation.fromValue = NSValue(caTransform3D: current)
-        animation.toValue = NSValue(caTransform3D: target)
-        animation.duration = Self.slideDuration
-        animation.timingFunction = Self.slideCurve
-        layer.add(animation, forKey: "session.slide")
-    }
-
-    // MARK: - Fenster
-
-    /// Rechts mittig; ragt um die Rundung ueber den Bildschirmrand hinaus.
-    private func panelFrame(on screen: ShellScreen) -> NSRect {
-        let frame = screen.frame
-        return NSRect(
-            x: frame.maxX - Self.visibleWidth,
-            y: frame.midY - Self.height / 2,
-            width: Self.visibleWidth + Self.cornerRadius,
-            height: Self.height
-        )
-    }
-
-    private func makeScrim() -> ScrimWindow {
-        let scrim = ScrimWindow()
-        scrim.onClick = { [weak self] in self?.close() }
-        return scrim
-    }
-
-    private func makePanel() -> SessionPanel {
-        let panel = SessionPanel(size: container.frame.size)
-        panel.delegate = self
-
-        let hosting = NSHostingView(rootView: SessionMenuView(model: model).shellTheme())
-        hosting.sizingOptions = []
-        hosting.frame = container.bounds
-        hosting.autoresizingMask = [.width, .height]
-
-        let glass = NSGlassEffectView(frame: container.bounds)
-        glass.autoresizingMask = [.width, .height]
-        glass.cornerRadius = Self.cornerRadius
-        glass.contentView = hosting
-
-        container.wantsLayer = true
-        container.addSubview(glass)
-        self.glass = glass
-        panel.contentView = container
-        applyTheme()
-        return panel
-    }
-
-    /// Faerbt das Sitzungsmenue nach dem Theme (siehe `ThemedGlass`).
-    private func applyTheme() {
-        surfaceLayer = ThemedGlass.apply(to: glass, fallbackRadius: Self.cornerRadius, previous: surfaceLayer)
-    }
-
-    // Klick in eine andere App schliesst das Menue.
-    func windowDidResignKey(_ notification: Notification) {
-        close()
     }
 }
 
@@ -328,43 +191,5 @@ final class SessionMenuModel {
         guard next != selection else { return }
         selection = next
         updateEmblem()
-    }
-}
-
-/// Vollbild-Abdunkelung. Liegt ueber Menueleiste und Dock, fing Klicks ab
-/// und schliesst dann das Menue.
-final class ScrimWindow: ShellPanel {
-    var onClick: () -> Void = {}
-
-    init() {
-        super.init(level: .popUpMenu, behavior: [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary])
-        backgroundColor = .black
-        contentView = ClickView { [weak self] in self?.onClick() }
-    }
-}
-
-/// Nimmt schon den ersten Klick an, auch wenn die App nicht aktiv ist.
-private final class ClickView: NSView {
-    private let action: () -> Void
-
-    init(action: @escaping () -> Void) {
-        self.action = action
-        super.init(frame: .zero)
-    }
-
-    required init?(coder: NSCoder) { fatalError("nicht benutzt") }
-
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-    override func mouseDown(with event: NSEvent) { action() }
-}
-
-/// Panel ueber der Abdunkelung. Nimmt Tastatur an, ohne die App zu
-/// aktivieren (wie der Launcher), und darf ueber den Bildschirmrand ragen.
-final class SessionPanel: ShellPanel {
-    /// Ueber der Abdunkelung; die rechten Ecken liegen ausserhalb.
-    init(size: NSSize) {
-        super.init(size: size, level: NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + 1),
-                   behavior: [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary],
-                   takesKeyboard: true, mayLeaveScreen: true)
     }
 }
