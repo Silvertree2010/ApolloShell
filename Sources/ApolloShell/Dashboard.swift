@@ -36,7 +36,7 @@ final class Dashboard {
                 from: settings.settings.dashboard, places: places, hasBattery: PerformanceSampler.hasInternalBattery
             )
         }
-        weatherModels = WeatherModels(settings: settings)
+        weatherModels = WeatherModels(settings: settings, editor: editor)
         let view = DashboardView(model: model, weatherModels: weatherModels, media: media, settings: settings, editor: editor)
         // Groesse aus dem Inhalt (feste Karten-Masse) bei Massstab 1, vor dem
         // ersten Oeffnen. Haengt nicht an Seiten und Widgets - das Raster ist
@@ -94,6 +94,10 @@ final class Dashboard {
             // geoeffnetes Dashboard.
             drawer?.isPinned = false
         }
+        // Aendert Nexus waehrend der Bearbeitung die Orte eines Wetter-
+        // Widgets, zeigt es sie erst nach einem Neustart seines Modells
+        // (`start()` liest sie erst dabei neu ein).
+        editor.onOptionsChange = { [weak weatherModels] id in weatherModels?.restart(id) }
     }
 
     /// Die Seite, die beim Oeffnen gezeigt wird: `model.pageID`, falls es sie

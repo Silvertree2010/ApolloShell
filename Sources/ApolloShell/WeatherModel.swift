@@ -39,6 +39,10 @@ final class WeatherModel {
     /// Oeffnet Nexus bei Wetter, wenn es (noch) keinen Ort gibt - vom
     /// Aufrufer gesetzt (siehe `Dashboard`).
     @ObservationIgnored var onOpenNexus: () -> Void = {}
+    /// Nach `select(_:)`: andere Wetter-Widgets derselben Seite mit
+    /// demselben Ort (gleiche Koordinaten) uebernehmen ihn ebenfalls, statt
+    /// auseinanderzulaufen (`WeatherModels.propagateSelection`).
+    @ObservationIgnored var onSelect: (WeatherLocation) -> Void = { _ in }
     /// Von wem `report` stammt. Die Quellenangabe gehoert zu den gezeigten
     /// Daten, nicht zur Einstellung: nach einem Wechsel bleiben die alten
     /// Daten stehen, bis die neuen da sind, und nennen bis dahin ihre Quelle.
@@ -202,6 +206,7 @@ final class WeatherModel {
         case .widget(_, let write):
             write(favorites)
         }
+        onSelect(wanted)
     }
 
     /// Anderer Ort (oder keiner mehr): das alte Wetter gilt nicht mehr, auch

@@ -11,6 +11,11 @@ import Foundation
 final class WeatherModels {
     private var models: [WidgetInstance.ID: WeatherModel] = [:]
     private let settings: ShellSettingsStore
+    /// Waehrend einer Bearbeitung (`editor.isEditing`) gelten die Orte der
+    /// Arbeitskopie (`editor.session`), nicht die gespeicherten - sonst
+    /// zeigten Widgets Orte, die Nexus gerade erst schreibt/liest, verzoegert
+    /// oder gar nicht. `nil` in Bildproben und der Vorschau.
+    private weak var editor: DashboardEditor?
     /// `nil`: echte Modelle (`.widget`-Quelle). Gesetzt: dasselbe feste
     /// Modell fuer jedes Widget (Bildproben, Vorschau in Nexus).
     private let fixed: WeatherModel?
@@ -18,8 +23,9 @@ final class WeatherModels {
     /// weitergereicht (vom Aufrufer gesetzt, siehe `Dashboard`).
     var onOpenNexus: () -> Void = {}
 
-    init(settings: ShellSettingsStore) {
+    init(settings: ShellSettingsStore, editor: DashboardEditor? = nil) {
         self.settings = settings
+        self.editor = editor
         fixed = nil
     }
 
@@ -40,30 +46,76 @@ final class WeatherModels {
         if let existing = models[widget.id] { return existing }
         let id = widget.id
         let source: WeatherPlacesSource = .widget(
-            read: { [weak settings] in
-                guard let settings, let page = Self.page(containing: id, in: settings.settings.dashboardPages) else {
-                    return .empty
-                }
-                return page.widgets.first { $0.id == id }?.options.places ?? .empty
+            read: { [weak self] in
+                guard let self else { return .empty }
+                return self.currentPlaces(for: id)
             },
-            write: { [weak settings] favorites in
-                guard let settings, var pages = settings.settings.dashboardPages,
-                      var page = Self.page(containing: id, in: pages) else { return }
-                var options = page.widgets.first { $0.id == id }?.options ?? .init()
-                options.places = favorites
-                page.setOptions(options, for: id)
-                pages.update(page)
-                settings.settings.dashboardPages = pages
+            write: { [weak self] favorites in
+                self?.writePlaces(favorites, for: id)
             }
         )
         let model = WeatherModel(settings: settings, places: source)
         model.onOpenNexus = { [weak self] in self?.onOpenNexus() }
+        model.onSelect = { [weak self] location in self?.propagateSelection(location, from: id) }
         models[id] = model
         return model
     }
 
+    /// Die Orte, die `widget` gerade zeigen sollte: waehrend einer
+    /// Bearbeitung aus der Arbeitskopie, sonst aus den gespeicherten Seiten.
+    private func currentPlaces(for id: WidgetInstance.ID) -> WeatherFavorites {
+        guard let page = Self.page(containing: id, in: currentPages) else { return .empty }
+        return page.widgets.first { $0.id == id }?.options.places ?? .empty
+    }
+
+    private func writePlaces(_ favorites: WeatherFavorites, for id: WidgetInstance.ID) {
+        if let editor, editor.isEditing {
+            guard let page = Self.page(containing: id, in: editor.session?.pages) else { return }
+            var options = page.widgets.first { $0.id == id }?.options ?? .init()
+            options.places = favorites
+            editor.setOptions(options, for: id)
+            return
+        }
+        guard var pages = settings.settings.dashboardPages,
+              var page = Self.page(containing: id, in: pages) else { return }
+        var options = page.widgets.first { $0.id == id }?.options ?? .init()
+        options.places = favorites
+        page.setOptions(options, for: id)
+        pages.update(page)
+        settings.settings.dashboardPages = pages
+    }
+
+    /// Die gerade geltenden Seiten: Arbeitskopie waehrend einer Bearbeitung,
+    /// sonst die gespeicherten.
+    private var currentPages: DashboardPages? {
+        if let editor, editor.isEditing { return editor.session?.pages }
+        return settings.settings.dashboardPages
+    }
+
     private static func page(containing id: WidgetInstance.ID, in pages: DashboardPages?) -> DashboardPage? {
         pages?.pages.first { page in page.widgets.contains { $0.id == id } }
+    }
+
+    /// Andere Wetter-Widgets auf derselben Seite, die denselben Ort (gleiche
+    /// Koordinaten) unter ihren eigenen Orten haben, uebernehmen ihn
+    /// ebenfalls - sonst laufen Hero, Stunden und Tage derselben Seite
+    /// auseinander (gemessen: Hero-Auswahl aendert die anderen nicht).
+    private func propagateSelection(_ location: WeatherLocation, from id: WidgetInstance.ID) {
+        guard let page = Self.page(containing: id, in: currentPages) else { return }
+        for widget in page.widgets where widget.id != id && widget.kind.usesPlaces {
+            guard let match = (widget.options.places ?? .empty).locations.first(where: {
+                $0.latitude == location.latitude && $0.longitude == location.longitude
+            }) else { continue }
+            model(for: widget).select(match)
+        }
+    }
+
+    /// Ein Widget, dessen Orte sich gerade geaendert haben (Nexus, waehrend
+    /// einer Bearbeitung): sein Modell neu starten, sonst zeigt es weiter die
+    /// Orte von vor der Aenderung (`start()` liest sie erst dabei neu ein).
+    func restart(_ id: WidgetInstance.ID) {
+        guard let model = models[id] else { return }
+        model.start()
     }
 
     /// Startet die Modelle der Widgets auf der offenen Seite, stoppt alle

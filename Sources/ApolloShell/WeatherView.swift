@@ -44,6 +44,19 @@ struct SmallWeatherCard: View {
         // Quelle auch hier, nur als Hinweis: die Karte ist zu klein fuer
         // eine eigene Zeile, der Reiter zeigt sie sichtbar.
         .help(helpText)
+        // Kein eigener Umschalter wie beim Hero: ein Klick springt zum
+        // naechsten Favoriten - nur mit mehreren, sonst bliebe es beim
+        // selben Ort (unveraendertes Bild). Beim Bearbeiten ohne Wirkung:
+        // `EditableWidgetView` schaltet Klicks dort ab (`allowsHitTesting`).
+        .contentShape(Rectangle())
+        .onTapGesture { selectNextPlace() }
+    }
+
+    private func selectNextPlace() {
+        let locations = model.favorites.locations
+        guard locations.count > 1, let current = model.location,
+              let index = locations.firstIndex(of: current) else { return }
+        model.select(locations[(index + 1) % locations.count])
     }
 
     private var helpText: String {

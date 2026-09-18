@@ -22,6 +22,10 @@ final class DashboardEditor {
     /// beginnt dort.
     var onBegin: (NSScreen) -> Void = { _ in }
     var onEnd: () -> Void = {}
+    /// Nach jeder `setOptions` - Dashboard nutzt es, um das Wetter-Modell
+    /// eines Widgets neu zu starten, wenn Nexus waehrend der Bearbeitung
+    /// seine Orte aendert (sonst zeigt es die alten weiter, `WeatherModels`).
+    var onOptionsChange: (WidgetInstance.ID) -> Void = { _ in }
 
     /// Vorschau eines aus Nexus gezogenen Widgets (`BentoDropDelegate`,
     /// `BentoPageView`) - reine UI-Anzeige, nicht Teil der Sitzung.
@@ -116,5 +120,6 @@ final class DashboardEditor {
 
     func setOptions(_ options: WidgetOptions, for id: WidgetInstance.ID) {
         session?.setOptions(options, for: id)
+        onOptionsChange(id)
     }
 }
