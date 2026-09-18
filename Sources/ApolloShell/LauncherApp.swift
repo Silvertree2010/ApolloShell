@@ -10,6 +10,9 @@ enum LauncherApp {
     private static let delegate = AppDelegate()
 
     static func main() {
+        // Bildproben (--render-dashboard): zeichnen und enden, bevor
+        // irgendetwas von der Shell startet.
+        RenderMode.runIfRequested()
         // Nur eine Instanz: eine zweite zeigt die laufende und endet, bevor
         // sie Fenster, Kuerzel oder Apples Dock anfasst (SingleInstance).
         if SingleInstanceGuard.otherInstanceKeepsRunning() {
