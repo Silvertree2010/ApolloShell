@@ -153,49 +153,20 @@ private struct DashboardGrid: View {
         }
     }
 
-    private func card(_ placement: DashboardPlacement) -> DashboardCardView {
-        DashboardCardView(placement: placement, model: model, weather: weather, media: media)
-    }
-}
-
-/// Eine Karte nach ihrer Art - die eine Stelle, an der jede Art ihre Ansicht
-/// bekommt. Die Form folgt der Flaeche, nicht dem Platz: eine gestreckte
-/// Karte in der unteren Reihe ist breit genug, um nebeneinander zu stehen.
-/// Die Groesse selbst setzt `DashboardGrid`.
-private struct DashboardCardView: View {
-    let placement: DashboardPlacement
-    let model: DashboardModel
-    let weather: WeatherModel
-    let media: MediaModel
-
-    var body: some View {
-        let size = CGSize(width: placement.frame.width, height: placement.frame.height)
-        // Hochkant: hoch genug fuer Symbol ueber Text, zu schmal fuer nebeneinander.
-        let upright = size.height >= 200 && size.width < 300
-        Group {
-            switch placement.card {
-            case .weather(let options):
-                SmallWeatherCard(model: weather, options: options, vertical: upright)
-            case .user(let options):
-                UserCard(model: model, options: options, vertical: upright)
-            case .clock(let options):
-                DateTimeCard(now: model.now, locale: model.calendar.locale ?? .current, options: options)
-            case .calendar(let options):
-                CalendarCard(model: model, options: options, tall: size.height > 300)
-            case .resources(let options):
-                ResourcesCard(model: model, options: options, horizontal: size.width > size.height)
-            case .media(let options):
-                // Rechts (200 x 392) Caelestias Karte; flach und breit ein
-                // Streifen; sonst die kleine hochkant.
-                if size.width > size.height * 1.3 {
-                    MediaStripCard(model: media, options: options, height: size.height)
-                } else if size.height >= 330 {
-                    MediaDashCard(model: media, options: options)
-                } else {
-                    MediaCompactCard(model: media, options: options)
-                }
-            }
+    private func card(_ placement: DashboardPlacement) -> WidgetView {
+        let kind = WidgetKind(placement.card.kind)
+        var options = WidgetOptions.defaults(for: kind)
+        switch placement.card {
+        case .weather(let o): options.weather = o
+        case .user(let o): options.user = o
+        case .clock(let o): options.clock = o
+        case .calendar(let o): options.calendar = o
+        case .resources(let o): options.resources = o
+        case .media(let o): options.media = o
         }
+        let widget = WidgetInstance(kind: kind, frame: WidgetFrame(placement.frame), options: options)
+        let context = WidgetContext(dashboard: model, media: media, weather: { _ in weather })
+        return WidgetView(widget: widget, context: context)
     }
 }
 
@@ -223,7 +194,7 @@ private struct DashboardEmptyGrid: View {
 
 /// Initiale, Name und zwei Kapseln. Hochkant (untere Reihe, Spalte) steht
 /// die Initiale ueber dem Namen.
-private struct UserCard: View {
+struct UserCard: View {
     let model: DashboardModel
     var options = DashboardUserOptions()
     var vertical = false
@@ -291,7 +262,7 @@ private struct Badge: View {
 
 /// Uhr wie Caelestia: Stunde, drei Punkte, Minute untereinander - oder
 /// "14:05" in einer Zeile. Das Datum darunter auf Wunsch.
-private struct DateTimeCard: View {
+struct DateTimeCard: View {
     let now: Date
     let locale: Locale
     var options = DashboardClockOptions()
@@ -342,7 +313,7 @@ private struct DateTimeCard: View {
 /// Monat mit heute markiert (Caelestia: DayOfWeekRow + MonthGrid). Erster
 /// Wochentag und Kalenderwochen aus den Optionen; die Sprache bleibt die des
 /// Modells.
-private struct CalendarCard: View {
+struct CalendarCard: View {
     let model: DashboardModel
     var options = DashboardCalendarOptions()
     /// Ueber die ganze Hoehe (obere Reihe leer): Zeilen weiter auseinander.
@@ -405,7 +376,7 @@ private struct CalendarCard: View {
 
 /// Ringe fuer CPU, RAM, Speicher (Caelestia: CircularProgress, Strich 6) -
 /// untereinander in der schmalen Karte, nebeneinander in der oberen Reihe.
-private struct ResourcesCard: View {
+struct ResourcesCard: View {
     let model: DashboardModel
     var options = DashboardResourcesOptions()
     var horizontal = false

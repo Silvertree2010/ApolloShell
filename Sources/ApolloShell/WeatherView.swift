@@ -229,7 +229,7 @@ private struct WeatherPlacePicker: View {
     }
 }
 
-private struct WeatherHero: View {
+struct WeatherHero: View {
     let report: WeatherReport
     let model: WeatherModel
     let now: Date
@@ -347,7 +347,7 @@ private struct WeatherStat: View {
 /// Die naechsten 24 Stunden in 12 Spalten zu 2 Stunden: alle 24 einzeln
 /// waeren je 35 pt breit, zu eng fuer Symbol und Zahl, und Scrollen geht im
 /// nie aktiven Fenster nur per Trackpad.
-private struct WeatherHourly: View {
+struct WeatherHourly: View {
     let slots: [HourSlot]
     let calendar: Calendar
     @Environment(\.shellStyle) private var style
@@ -378,7 +378,7 @@ private struct WeatherHourly: View {
 /// Sieben Tage als eigene Kaertchen nebeneinander (Caelestia:
 /// forecastRepeater). "Heute" als Akzent-Kapsel, damit der Einstieg sofort
 /// auffaellt.
-private struct WeatherDaily: View {
+struct WeatherDaily: View {
     let days: [DayForecast]
     let now: Date
     let calendar: Calendar

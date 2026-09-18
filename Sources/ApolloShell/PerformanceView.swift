@@ -52,7 +52,7 @@ struct PerformanceView: View {
 /// Caelestia HeroCard: Ring mit Symbol, Titel in Akzentfarbe, Untertitel,
 /// rechts unten die Auslastung gross in einer Form, die mit der Last
 /// zackiger wird (Caelestia: Cookie < 40 %, Sunny < 80 %, SoftBurst).
-private struct HeroCard: View {
+struct HeroCard: View {
     let symbol: String
     /// Kennung fuer den Symbol-Austausch im Theme.
     var iconID: String = ""
@@ -218,7 +218,7 @@ private struct PercentLabel: View {
     }
 }
 
-private struct StorageCard: View {
+struct StorageCard: View {
     let usage: ByteUsage?
     @Environment(\.shellStyle) private var style
 
@@ -248,7 +248,7 @@ private struct StorageCard: View {
     }
 }
 
-private struct MemoryCard: View {
+struct MemoryCard: View {
     let usage: ByteUsage?
     @Environment(\.shellStyle) private var style
 
@@ -282,7 +282,7 @@ private struct MemoryCard: View {
 
 // MARK: - Netzwerk
 
-private struct NetworkCard: View {
+struct NetworkCard: View {
     let model: PerformanceModel
     @Environment(\.shellStyle) private var style
 
@@ -420,7 +420,7 @@ private struct SparklineShape: Shape {
 /// Inhalt liegt zweimal da - einmal normal, einmal in umgekehrten Farben
 /// auf die Fuellung maskiert -, so bleibt jede Schrift lesbar, egal wo die
 /// Kante gerade durch sie laeuft.
-private struct BatteryTank: View {
+struct BatteryTank: View {
     let state: BatteryState
     let minutes: Int?
     @Environment(\.shellStyle) private var style
