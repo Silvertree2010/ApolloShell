@@ -55,7 +55,7 @@ enum ToastPalette {
     /// Schrift auf Akzentflaechen aus dem Theme.
     static func symbol(_ kind: ToastKind, _ style: ShellStyle = .standard) -> AnyShapeStyle {
         guard accent(kind, style) != nil else { return AnyShapeStyle(.secondary) }
-        return AnyShapeStyle(style.themeOnAccent ?? Color.white)
+        return AnyShapeStyle(style.color(.onAccent) ?? Color.white)
     }
 
     /// Toenung des Glases.

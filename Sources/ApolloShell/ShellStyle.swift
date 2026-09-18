@@ -82,9 +82,11 @@ struct ShellStyle: Equatable {
 
     /// Faerbt das Theme diese Flaeche ueberhaupt? Nennt es weder Farbe noch
     /// Verlauf, bleibt die Flaeche, wie die Shell sie zeichnet - also Glas
-    /// und Material statt einer Ersatzfarbe.
+    /// und Material statt einer Ersatzfarbe. Ein Verlauf `none` faerbt
+    /// nichts: ohne Farbe daneben bliebe die Flaeche sonst leer (die Leiste
+    /// waere unsichtbar).
     private func paints(_ colorToken: ThemeColorToken, _ gradientToken: ThemeGradientToken) -> Bool {
-        value(colorToken) != nil || value(gradientToken) != nil
+        value(colorToken) != nil || value(gradientToken).map { !$0.isEmpty } == true
     }
 
     var paintsBar: Bool { paints(.bar, .bar) }

@@ -81,7 +81,7 @@ private struct VolumeSlider: View {
     private func handle(diameter: CGFloat) -> some View {
         ZStack {
             Circle()
-                .fill(style.themeOnAccent ?? Color.white)
+                .fill(style.color(.onAccent) ?? Color.white)
                 .shadow(color: .black.opacity(style.shadowOpacity(0.25)), radius: 1.5, y: 0.5)
             Group {
                 if model.moving {
