@@ -19,6 +19,11 @@ struct BentoPageView: View {
     @Environment(\.shellStyle) private var style
     @Environment(\.dashboardRendersForScreenshot) private var rendersForScreenshot
 
+    /// Benanntern Bezugsraum fuer Ziehen/Groesse-aendern (`BentoEditOverlay`):
+    /// die Seite selbst waechst waehrend eines Zugs nicht mit (anders als der
+    /// Rahmen eines einzelnen Widgets), also bleiben Ziehpunkte darin stabil.
+    static let coordinateSpaceName = "bentoPage"
+
     var body: some View {
         if editor.isEditing {
             ZStack(alignment: .topLeading) {
@@ -31,6 +36,7 @@ struct BentoPageView: View {
             }
             .frame(width: CGFloat(DashboardGeometry.width), height: CGFloat(DashboardGeometry.height),
                    alignment: .topLeading)
+            .coordinateSpace(name: Self.coordinateSpaceName)
             .contentShape(Rectangle())
             // `ImageRenderer` (Bildproben) zeichnet das AppKit-hinterlegte
             // Ablegeziel offscreen nicht (rotes Verbotszeichen statt der

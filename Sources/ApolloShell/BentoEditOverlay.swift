@@ -132,6 +132,10 @@ struct EditableWidgetView: View {
             .offset(x: frame.x, y: frame.y)
             .zIndex(isSelected || isTransforming ? 1 : 0)
             .gesture(dragGesture)
+            // Ein Tipp ohne Zug: `DragGesture` erkennt Bewegungen unter
+            // `minimumDistance` gar nicht erst, waehlt also nie aus - ein
+            // eigenes `TapGesture` daneben waehlt ohne zu verschieben.
+            .simultaneousGesture(TapGesture().onEnded { editor.selectedWidgetID = widget.id })
             .onAppear { startWobble() }
             .onChange(of: reduceMotion) { _, _ in startWobble() }
     }
@@ -179,7 +183,11 @@ struct EditableWidgetView: View {
     /// Ziehen des Widgets: `editor.previewMove` live, Loslassen uebernimmt
     /// gueltig oder springt zurueck. Waehlt das Widget in jedem Fall aus.
     private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 2, coordinateSpace: .local)
+        // Benannter Bezugsraum auf der Seite (`BentoPageView`), nicht
+        // `.local`: der eigene Rahmen des Widgets waechst waehrend eines
+        // Zugs mit (Vorschau), `.local`-Werte haetten sich also mitten im
+        // Ziehen verschoben (gemessen: Ruckeln).
+        DragGesture(minimumDistance: 2, coordinateSpace: .named(BentoPageView.coordinateSpaceName))
             .onChanged { value in
                 let proposed = WidgetFrame(x: widget.frame.x + value.translation.width,
                                            y: widget.frame.y + value.translation.height,
@@ -201,7 +209,7 @@ struct EditableWidgetView: View {
     /// Griff unten rechts: `editor.previewResize` live, Loslassen uebernimmt
     /// gueltig oder springt zurueck.
     private var resizeGesture: some Gesture {
-        DragGesture(minimumDistance: 2, coordinateSpace: .local)
+        DragGesture(minimumDistance: 2, coordinateSpace: .named(BentoPageView.coordinateSpaceName))
             .onChanged { value in
                 let proposedWidth = widget.frame.width + value.translation.width
                 let proposedHeight = widget.frame.height + value.translation.height
@@ -258,7 +266,12 @@ struct BentoDropDelegate: DropDelegate {
     let editor: DashboardEditor
 
     func dropEntered(info: DropInfo) {
+        // Zaehler jetzt gemerkt: kommt die Nutzlast erst an, nachdem der Zug
+        // dieses Ziel schon verlassen hat (`dropExited` erhoeht ihn), gilt
+        // das Ergebnis nicht mehr - sonst lebt der Ghost-Umriss wieder auf.
+        let generation = editor.dropGeneration
         loadKind(info) { kind in
+            guard generation == editor.dropGeneration else { return }
             editor.draggedKind = kind
             if let kind { updatePreview(kind, info: info) }
         }
@@ -272,6 +285,7 @@ struct BentoDropDelegate: DropDelegate {
     }
 
     func dropExited(info: DropInfo) {
+        editor.dropGeneration += 1
         editor.dropPreview = nil
         editor.draggedKind = nil
     }
@@ -282,9 +296,11 @@ struct BentoDropDelegate: DropDelegate {
             add(kind, at: location)
             return true
         }
-        // Noch nicht geladen (sehr kurzer Zug): nachreichen.
+        // Noch nicht geladen (sehr kurzer Zug): nachreichen, aber nur, wenn
+        // dieses Ziel inzwischen nicht verlassen wurde.
+        let generation = editor.dropGeneration
         loadKind(info) { [self] kind in
-            guard let kind else { return }
+            guard generation == editor.dropGeneration, let kind else { return }
             add(kind, at: location)
         }
         return true
