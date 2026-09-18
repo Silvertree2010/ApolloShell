@@ -12,7 +12,7 @@ import SwiftUI
 struct NexusBarPage: View {
     @Bindable var store: ShellSettingsStore
     @State private var showsGallery = false
-    @State private var pending: NexusBarReplacement?
+    @State private var pending: LayoutPresetReplacement<BarPreset>?
     /// Aufgeklappte Zeilen nach Kennung: bleiben beim Umsortieren offen.
     @State private var expanded: Set<String> = []
 
@@ -39,11 +39,9 @@ struct NexusBarPage: View {
         .sheet(isPresented: $showsGallery) {
             NexusBarGallery(layout: layout, onAdd: add, onCancel: { showsGallery = false })
         }
-        .alert(pending?.title ?? "", isPresented: confirming, presenting: pending) { replacement in
-            Button(replacement.confirm) { apply(replacement) }
-            Button("Abbrechen", role: .cancel) {}
-        } message: { replacement in
-            Text(replacement.message)
+        .nexusPresetAlert($pending, title: NexusBarText.replacementTitle, message: NexusBarText.replacementMessage) { layout in
+            store.settings.bar.layout = layout
+            expanded = []
         }
     }
 
@@ -65,24 +63,13 @@ struct NexusBarPage: View {
                     Label("Hinzufügen …", systemImage: "plus")
                 }
                 Spacer(minLength: 8)
-                Menu("Vorlage laden …") {
-                    ForEach(BarPreset.allCases) { preset in
-                        Button(preset.title) { pending = .preset(preset) }
-                    }
-                }
-                .fixedSize()
-                Button("Zurücksetzen") { pending = .reset }
-                    .disabled(layout == BarPreset.caelestia.layout)
+                NexusPresetControls(layout: layout, pending: $pending)
             }
         } header: {
             Text("Bausteine")
         } footer: {
             Text("Von oben nach unten wie in der Leiste. Zum Umsortieren ziehen oder das Kontextmenü nehmen. Das Dock und flexible Abstände teilen sich den freien Platz.")
         }
-    }
-
-    private var confirming: Binding<Bool> {
-        Binding(get: { pending != nil }, set: { if !$0 { pending = nil } })
     }
 
     private func expandedBinding(_ id: String) -> Binding<Bool> {
@@ -98,11 +85,6 @@ struct NexusBarPage: View {
         if let id = store.settings.bar.layout.add(kind), BarModule(kind).hasOptions {
             expanded.insert(id)
         }
-    }
-
-    private func apply(_ replacement: NexusBarReplacement) {
-        store.settings.bar.layout = replacement.layout
-        expanded = []
     }
 }
 
@@ -214,40 +196,6 @@ private struct NexusBarBackgroundSection: View {
     }
 }
 
-/// Was nach Rueckfrage die ganze Leiste ersetzt.
-private enum NexusBarReplacement {
-    case preset(BarPreset)
-    case reset
-
-    var layout: BarLayout {
-        switch self {
-        case .preset(let preset): preset.layout
-        case .reset: BarPreset.caelestia.layout
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .preset(let preset): String(localized: "Vorlage „\(preset.title)“ laden?")
-        case .reset: String(localized: "Leiste zurücksetzen?")
-        }
-    }
-
-    var message: String {
-        switch self {
-        case .preset(let preset): String(localized: "\(preset.summary) Die jetzige Anordnung wird ersetzt.")
-        case .reset: String(localized: "Die Leiste sieht wieder aus wie am Anfang (Vorlage Caelestia). Die jetzige Anordnung wird ersetzt.")
-        }
-    }
-
-    var confirm: String {
-        switch self {
-        case .preset: String(localized: "Laden")
-        case .reset: String(localized: "Zurücksetzen")
-        }
-    }
-}
-
 // MARK: - Zeile
 
 /// Kachel, Name, eine Zeile Zusammenfassung, Entfernen, Griff. Mit Optionen
@@ -330,7 +278,6 @@ private struct NexusBarRow: View {
 private struct NexusBarOptions: View {
     @Bindable var store: ShellSettingsStore
     let entry: BarEntry
-    @State private var picksApp = false
 
     var body: some View {
         switch entry.module {
@@ -368,26 +315,8 @@ private struct NexusBarOptions: View {
                 LabeledContent("Höhe", value: "\(Int(options.wrappedValue.height)) pt")
             }
         case .appButton(let app):
-            HStack(spacing: 10) {
-                if let info = BarApps.info(for: app.bundleID) {
-                    Image(nsImage: info.icon)
-                        .resizable()
-                        .interpolation(.high)
-                        .frame(width: 24, height: 24)
-                    Text(info.name)
-                } else {
-                    Text(app.bundleID.isEmpty ? String(localized: "Noch keine App gewählt")
-                         : String(localized: "\(app.bundleID) ist nicht installiert"))
-                        .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 8)
-                Button("App wählen …") { picksApp = true }
-            }
-            .sheet(isPresented: $picksApp) {
-                NexusBarAppPicker(current: app.bundleID, onPick: { id in
-                    store.settings.bar.layout.update(id: entry.id, to: .appButton(.init(bundleID: id)))
-                    picksApp = false
-                }, onCancel: { picksApp = false })
+            NexusAppChoiceRow(bundleID: app.bundleID) { id in
+                store.settings.bar.layout.update(id: entry.id, to: .appButton(.init(bundleID: id)))
             }
         case .battery:
             let options = binding(\.battery, BarModule.battery, fallback: BarBatteryOptions())
@@ -417,9 +346,10 @@ private struct NexusBarOptions: View {
     ) -> Binding<T> {
         let id = entry.id
         let store = store
-        return Binding(
-            get: { store.settings.bar.layout[id: id].flatMap { read($0.module) } ?? fallback },
-            set: { store.settings.bar.layout.update(id: id, to: make($0)) }
+        return nexusOptionsBinding(
+            get: { store.settings.bar.layout[id: id]?.module },
+            set: { store.settings.bar.layout.update(id: id, to: $0) },
+            read: read, make: make, fallback: fallback
         )
     }
 }
@@ -427,6 +357,22 @@ private struct NexusBarOptions: View {
 /// Unterzeilen der Liste: was der Baustein gerade zeigt.
 @MainActor
 enum NexusBarText {
+    /// Titel der Vorlagen-Rueckfrage.
+    static func replacementTitle(_ replacement: LayoutPresetReplacement<BarPreset>) -> String {
+        switch replacement {
+        case .preset(let preset): String(localized: "Vorlage „\(preset.title)“ laden?")
+        case .reset: String(localized: "Leiste zurücksetzen?")
+        }
+    }
+
+    /// Erklaerung der Vorlagen-Rueckfrage.
+    static func replacementMessage(_ replacement: LayoutPresetReplacement<BarPreset>) -> String {
+        switch replacement {
+        case .preset(let preset): String(localized: "\(preset.summary) Die jetzige Anordnung wird ersetzt.")
+        case .reset: String(localized: "Die Leiste sieht wieder aus wie am Anfang (Vorlage Caelestia). Die jetzige Anordnung wird ersetzt.")
+        }
+    }
+
     static func detail(_ module: BarModule) -> String {
         switch module {
         case .workspaces(let o):
@@ -481,158 +427,22 @@ struct NexusBarGallery: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Baustein hinzufügen")
-                    .font(.title3.weight(.semibold))
-                Text("Er kommt unter das Dock bzw. den letzten flexiblen Abstand – danach an die richtige Stelle ziehen.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(20)
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
-                    ForEach(BarModuleKind.allCases) { kind in
-                        NexusBarGalleryTile(kind: kind, available: layout.canAdd(kind)) { onAdd(kind) }
+        NexusGallerySheet(title: String(localized: "Baustein hinzufügen"),
+                          subtitle: String(localized: "Er kommt unter das Dock bzw. den letzten flexiblen Abstand – danach an die richtige Stelle ziehen."),
+                          size: CGSize(width: 560, height: 520), onCancel: onCancel) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+                ForEach(BarModuleKind.allCases) { kind in
+                    let available = layout.canAdd(kind)
+                    NexusGalleryTile(title: kind.title, summary: kind.summary,
+                                     badge: available ? nil : String(localized: "Schon da"), minHeight: 118,
+                                     available: available,
+                                     help: available ? String(localized: "\(kind.title) hinzufügen")
+                                         : String(localized: "Gibt es nur einmal und steht schon in der Leiste"),
+                                     action: { onAdd(kind) }) {
+                        NexusTile(symbol: kind.symbol, tint: kind.tint, size: 30)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
             }
-            Divider()
-            HStack {
-                Spacer()
-                Button("Abbrechen", action: onCancel)
-                    .keyboardShortcut(.cancelAction)
-            }
-            .padding(14)
-        }
-        .frame(width: 560, height: 520)
-    }
-}
-
-private struct NexusBarGalleryTile: View {
-    let kind: BarModuleKind
-    let available: Bool
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .top) {
-                    NexusTile(symbol: kind.symbol, tint: kind.tint, size: 30)
-                    Spacer(minLength: 4)
-                    if !available {
-                        Text("Schon da")
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Text(kind.title)
-                    .font(.headline)
-                Text(kind.summary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 118, alignment: .topLeading)
-            .background(Color.primary.opacity(hovering && available ? 0.09 : 0.05),
-                        in: .rect(cornerRadius: 12, style: .continuous))
-            .contentShape(.rect(cornerRadius: 12))
-        }
-        .buttonStyle(.plain)
-        .disabled(!available)
-        .opacity(available ? 1 : 0.45)
-        // Nexus ist ein normales, aktives Fenster: hier reicht onHover.
-        .onHover { hovering = $0 }
-        .help(available ? "\(kind.title) hinzufügen" : "Gibt es nur einmal und steht schon in der Leiste")
-    }
-}
-
-// MARK: - App waehlen
-
-/// Installierte Apps mit Suche (unscharf wie im Launcher). Gelesen beim
-/// Oeffnen, wie der Launcher es bei jedem Oeffnen tut (einige ms).
-struct NexusBarAppPicker: View {
-    let current: String
-    let onPick: (String) -> Void
-    let onCancel: () -> Void
-    @State private var query = ""
-    @State private var apps: [AppEntry]
-
-    /// `apps` vorgegeben (Bildprobe): kein Einlesen.
-    init(current: String, apps: [AppEntry] = [], onPick: @escaping (String) -> Void, onCancel: @escaping () -> Void) {
-        self.current = current
-        self.onPick = onPick
-        self.onCancel = onCancel
-        _apps = State(initialValue: apps)
-    }
-
-    private var results: [AppEntry] {
-        let q = query.trimmingCharacters(in: .whitespaces)
-        guard !q.isEmpty else { return apps }
-        let matcher = FuzzyMatcher()
-        var scored: [(app: AppEntry, score: Int)] = []
-        for app in apps {
-            if let score = matcher.score(q, in: app.name) { scored.append((app, score)) }
-        }
-        scored.sort { lhs, rhs in
-            if lhs.score != rhs.score { return lhs.score > rhs.score }
-            return lhs.app.name.localizedStandardCompare(rhs.app.name) == .orderedAscending
-        }
-        return scored.map(\.app)
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Text("App wählen")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding([.horizontal, .top], 16)
-                .padding(.bottom, 10)
-            NexusSearchField(prompt: "App suchen", text: $query)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 10)
-            Divider()
-            List(results, id: \.url) { app in
-                Button {
-                    if let id = app.bundleID { onPick(id) }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path))
-                            .resizable()
-                            .interpolation(.high)
-                            .frame(width: 24, height: 24)
-                        Text(app.name)
-                            .lineLimit(1)
-                        Spacer(minLength: 8)
-                        if app.bundleID == current {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(Color.accentColor)
-                        }
-                    }
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-            }
-            Divider()
-            HStack {
-                Spacer()
-                Button("Abbrechen", action: onCancel)
-                    .keyboardShortcut(.cancelAction)
-            }
-            .padding(14)
-        }
-        .frame(width: 380, height: 480)
-        .task {
-            guard apps.isEmpty else { return }
-            apps = AppCatalog().scan()
-                .filter { $0.bundleID != nil }
-                .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         }
     }
 }
@@ -654,21 +464,12 @@ struct NexusBarPreview: View {
                 Text("Vorschau")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
-                SidebarContent(settings: store, context: context)
-                    .environment(\.barPreview, true)
-                    .frame(width: Sidebar.width, height: barHeight)
-                    // Ersatz fuer das Glas: eine leicht abgesetzte Flaeche.
-                    .background(Color.primary.opacity(0.07))
-                    .clipShape(.rect(cornerRadius: 9 / scale, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 9 / scale, style: .continuous)
-                            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1 / scale)
-                    }
-                    .scaleEffect(scale, anchor: .top)
-                    .frame(width: Sidebar.width * scale, height: barHeight * scale, alignment: .top)
-                    .allowsHitTesting(false)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Vorschau der Leiste")
+                NexusScaledPreview(scale: scale, frameSize: CGSize(width: Sidebar.width * scale, height: barHeight * scale),
+                                   cornerRadius: 9 / scale, accessibilityLabel: String(localized: "Vorschau der Leiste")) {
+                    SidebarContent(settings: store, context: context)
+                        .environment(\.barPreview, true)
+                        .frame(width: Sidebar.width, height: barHeight)
+                }
                 Text("Beispieldaten")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
