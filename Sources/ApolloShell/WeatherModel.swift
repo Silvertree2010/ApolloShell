@@ -64,6 +64,10 @@ final class WeatherModel {
     /// Berichte je Anbieter und Ort, geteilt zwischen allen Modellen - zwei
     /// Widgets fuer denselben Ort fragen so nur einmal.
     @MainActor private static var reportCache: [String: (report: WeatherReport, fetchedAt: Date)] = [:]
+    /// Laufende Abrufe je Anbieter und Ort: kommen zwei Modelle im selben
+    /// Zug dran (leerer Cache beim Oeffnen), teilen sie sich den einen
+    /// Netzwerk-Abruf, statt ihn zu verdoppeln.
+    @MainActor private static var inFlightFetches: [String: Task<Result<WeatherReport, any Error>, Never>] = [:]
 
     /// Eigene fluechtige Sitzung: kein Platten-Cache (die Daten sollen frisch
     /// sein, und alte haelt das Modell ohnehin), kurze Wartezeit statt der
@@ -231,29 +235,54 @@ final class WeatherModel {
     }
 
     /// Alle Anfragen des Anbieters nacheinander (hoechstens zwei). Scheitert
-    /// eine optionale (MET: Sonnenzeiten), gilt der Bericht ohne sie.
+    /// eine optionale (MET: Sonnenzeiten), gilt der Bericht ohne sie. Prueft
+    /// den Bericht-Cache selbst (ein anderes Widget hat vielleicht schon
+    /// abgerufen) und teilt einen laufenden Abruf desselben Anbieters/Orts
+    /// mit anderen Modellen, statt ihn zu verdoppeln.
     private func fetch() {
         guard task == nil, let location else { return }
         let id = provider
-        let provider = id.provider()
-        let requests = provider.requests(for: location, now: Date())
-            .map { ($0.optional, $0.urlRequest(userAgent: Self.userAgent)) }
-        task = Task { [weak self, session] in
-            let result: Result<WeatherReport, any Error>
-            do {
-                var bodies: [Data?] = []
-                for (optional, request) in requests {
-                    do {
-                        bodies.append(try await Self.load(request, session: session))
-                    } catch {
-                        guard optional, !Task.isCancelled else { throw error }
-                        bodies.append(nil)
+        let key = Self.cacheKey(provider: id, location: location)
+        if let cached = Self.reportCache[key], !WeatherRefresh.needsFetch(fetchedAt: cached.fetchedAt, now: Date()) {
+            finish(.success(cached.report), for: location, from: id)
+            return
+        }
+        let shared: Task<Result<WeatherReport, any Error>, Never>
+        if let running = Self.inFlightFetches[key] {
+            shared = running
+        } else {
+            let provider = id.provider()
+            let requests = provider.requests(for: location, now: Date())
+                .map { ($0.optional, $0.urlRequest(userAgent: Self.userAgent)) }
+            let newTask = Task<Result<WeatherReport, any Error>, Never> { [session] in
+                let result: Result<WeatherReport, any Error>
+                do {
+                    var bodies: [Data?] = []
+                    for (optional, request) in requests {
+                        do {
+                            bodies.append(try await Self.load(request, session: session))
+                        } catch {
+                            guard optional, !Task.isCancelled else { throw error }
+                            bodies.append(nil)
+                        }
                     }
+                    result = .success(try provider.decode(bodies, now: Date()))
+                } catch {
+                    result = .failure(error)
                 }
-                result = .success(try provider.decode(bodies, now: Date()))
-            } catch {
-                result = .failure(error)
+                return result
             }
+            Self.inFlightFetches[key] = newTask
+            shared = newTask
+            // Nur der Anleger raeumt auf - danach macht ein neuer Abruf
+            // wieder eine eigene Anfrage.
+            Task { [key] in
+                _ = await newTask.value
+                Self.inFlightFetches[key] = nil
+            }
+        }
+        task = Task { [weak self] in
+            let result = await shared.value
             self?.finish(result, for: location, from: id)
         }
     }
