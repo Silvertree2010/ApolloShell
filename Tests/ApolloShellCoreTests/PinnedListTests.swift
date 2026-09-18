@@ -96,4 +96,25 @@ struct PinnedListTests {
         #expect(PinnedList.load(from: list.encoded()) == list)
         #expect(PinnedList.load(from: nil).ids.isEmpty)
     }
+
+    /// Nexus schreibt nach jedem Anheften die ganze Liste. Liest es eine
+    /// kaputte Datei als leer, waeren die alten Pins danach weg - deshalb
+    /// muss sich "kaputt" von "fehlt" und "leer" unterscheiden lassen.
+    @Test("unlesbar: nur eine vorhandene, kaputte Datei", arguments: [
+        ("kaputt", true),
+        (#"{ "pinned": ["a", "b" }"#, true),
+        (#"{"andere":[]}"#, true),
+        ("", true),
+        (#"{ "pinned": ["a"] }"#, false),
+        (#"{ "pinned": [] }"#, false),
+        (#"{"pinned":["a"],"anderes":1}"#, false),
+    ])
+    func unreadable(json: String, expected: Bool) {
+        #expect(PinnedList.isUnreadable(Data(json.utf8)) == expected)
+    }
+
+    @Test("fehlende Datei ist nicht unlesbar")
+    func missingIsNotUnreadable() {
+        #expect(!PinnedList.isUnreadable(nil))
+    }
 }

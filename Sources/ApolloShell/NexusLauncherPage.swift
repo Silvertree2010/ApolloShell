@@ -53,7 +53,14 @@ final class NexusPinnedModel {
     func reload() {
         guard live else { return }
         setApps(AppCatalog().scan())
-        list = PinnedList.load(from: ShellFiles.read(url))
+        let data = ShellFiles.read(url)
+        // Kaputt (von Hand bearbeitet): aufheben, bevor das naechste
+        // Anheften die leere Liste darueber schreibt.
+        if let url, PinnedList.isUnreadable(data) {
+            ShellFiles.preserveUnreadable(url)
+            log.error("pinned.json unlesbar, Kopie als pinned.json.unreadable")
+        }
+        list = PinnedList.load(from: data)
     }
 
     private func setApps(_ scanned: [AppEntry]) {

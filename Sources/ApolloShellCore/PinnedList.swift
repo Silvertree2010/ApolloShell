@@ -65,6 +65,14 @@ public struct PinnedList: Equatable, Sendable {
         return PinnedList(file.pinned)
     }
 
+    /// Da, aber nicht zu lesen. `load` liefert dafuer wie fuer eine fehlende
+    /// Datei eine leere Liste; wer danach speichert, ersetzt die kaputte
+    /// Datei. Nexus hebt sie deshalb vorher auf.
+    public static func isUnreadable(_ data: Data?) -> Bool {
+        guard let data else { return false }
+        return (try? JSONDecoder().decode(File.self, from: data)) == nil
+    }
+
     /// Gleiches Format wie die bisherige Datei, eingerueckt.
     public func encoded() -> Data {
         let encoder = JSONEncoder()
