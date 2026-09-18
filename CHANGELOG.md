@@ -8,23 +8,25 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- **A bento dashboard.** Pages hold widgets at any of their today-sized
-  places instead of four fixed tabs with fixed cards; the same widget can
-  appear more than once, and every page is your own to name and arrange.
-- **An edit mode for the dashboard.** Open it from Nexus: widgets wobble, a
-  `−` badge removes one, a handle resizes it, and new widgets are dragged in
-  from a list in Nexus; the dashboard stays open on screen while you work.
-- **A size per screen, plus a slider.** The dashboard already scaled itself
-  to the screen; Nexus now adds a slider on top of that automatic size.
-- **A weather place per widget.** Each weather widget keeps its own list of
-  places instead of sharing one list for the whole dashboard.
-- **A time zone per clock.** A clock widget can show a city's time instead
-  of the system's.
+- **The dashboard is made of pages of widgets.** Dashboard, Media,
+  Performance and Weather come as ready-made pages that look exactly as
+  before. Add your own pages, rename them, give them a symbol, duplicate or
+  delete them; "Restore default pages" brings back a deleted one.
+- **Widgets can go anywhere on a page**, in the sizes the dashboard already
+  had, and the same widget can appear more than once.
+- **An edit mode.** Start it in Nexus › Dashboard: the dashboard stays open,
+  widgets wobble, `−` removes one, the handle in the corner resizes it, and
+  new ones are dragged in from the list in Nexus. They snap to the page
+  edges and to each other. Done keeps the changes, Cancel drops them.
+- **The dashboard grows with the screen.** It is larger on a large display,
+  and a slider in Nexus makes it larger or smaller everywhere.
+- **Each weather widget has its own places**, and each clock its own time
+  zone.
 
 ### Removed
 
-- **The three dashboard templates** (Media, Performance, Weather) as fixed
-  tabs. Their widgets live on pages now, like everything else.
+- **The three dashboard templates in Nexus** (Caelestia, Compact, Calendar &
+  Weather). Restore and Duplicate take their place.
 
 ## [0.1.2.1] - 2026-09-18
 

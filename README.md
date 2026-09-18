@@ -41,9 +41,9 @@ If you like it, a star on GitHub helps other Mac users find it.
 - **Dock** in the sidebar with your pinned and running apps. Clicks, menus,
   drag and drop and badges work like in Apple's Dock.
 - **Launcher.** Press ⌥Space, type, hit Return. Apps you use often come first.
-- **Dashboard** from the top edge: your own pages of widgets - weather,
-  calendar, system stats, what's playing and more - arranged and sized in an
-  edit mode of their own.
+- **Dashboard** from the top edge: pages of widgets for weather, calendar,
+  system stats and what's playing. Arrange them in edit mode or add pages of
+  your own.
 - **Control centre** in the bottom-right corner: keep awake, sound, Wi-Fi, dark
   mode, Night Shift, a colour picker and your own buttons.
 - **Themes** as one CSS file: colours, gradients, fonts and sizes for the
