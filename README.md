@@ -19,7 +19,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Silvertree2010/ApolloShell" alt="License: MIT"></a>
 </p>
 
-<p align="center"><a href="https://silvertree2010.github.io/ApolloShell/">Website</a> · <a href="https://apolloshell.hashnode.dev">Blog</a> · <a href="README.de.md">Deutsch</a></p>
+<p align="center"><a href="https://silvertree2010.github.io/ApolloShell/">Website</a> · <a href="README.de.md">Deutsch</a></p>
 
 ![ApolloShell on a desktop: sidebar with dock on the left, dashboard open at the top](docs/images/hero.png)
 
@@ -32,8 +32,7 @@ edges of your screen and stays out of the way otherwise.
 > update can break parts of it. The design follows Caelestia, but ApolloShell
 > is an independent project and contains no Caelestia code.
 
-If you like it, a star on GitHub helps other Mac users find it. I write about
-how it's built on the [blog][blog].
+If you like it, a star on GitHub helps other Mac users find it.
 
 ## What's inside
 
@@ -172,7 +171,6 @@ Full notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 [releases]: https://github.com/Silvertree2010/ApolloShell/releases/latest
-[blog]: https://apolloshell.hashnode.dev
 [caelestia]: https://github.com/caelestia-dots/shell
 [mra]: https://github.com/ungive/mediaremote-adapter
 [open-meteo]: https://open-meteo.com/
