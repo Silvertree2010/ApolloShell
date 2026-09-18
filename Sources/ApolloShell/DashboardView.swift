@@ -252,6 +252,10 @@ struct DateTimeCard: View {
     var options = DashboardClockOptions()
     @Environment(\.shellStyle) private var style
 
+    /// Zeitzone aus den Optionen (`nil` = die des Systems) - wirkt auf Uhr
+    /// und Datum, damit eine gewaehlte Stadt auch wirklich deren Zeit zeigt.
+    private var timeZone: TimeZone { options.resolvedTimeZone }
+
     var body: some View {
         Card(radius: 16) {
             VStack(spacing: 12) {
@@ -260,10 +264,12 @@ struct DateTimeCard: View {
                     // Als fertiger Text: `Text(_:format:)` nimmt die Sprache
                     // der Umgebung statt der im Format (Bildprobe: "Monday")
                     // - so passt das Datum zu den Wochentagen im Kalender.
+                    // Zeitzone kommt aus `.environment(\.timeZone, ...)`
+                    // unten (SwiftUI wendet sie auf `Text(_:format:)` an).
                     VStack(spacing: 1) {
-                        Text(now.formatted(.dateTime.weekday(.wide).locale(locale)))
+                        Text(now, format: .dateTime.weekday(.wide).locale(locale))
                             .font(style.font(size: 12, weight: .semibold))
-                        Text(now.formatted(.dateTime.day().month(.abbreviated).locale(locale)))
+                        Text(now, format: .dateTime.day().month(.abbreviated).locale(locale))
                             .font(style.font(size: 11, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
@@ -272,6 +278,7 @@ struct DateTimeCard: View {
                 }
             }
         }
+        .environment(\.timeZone, timeZone)
     }
 
     @ViewBuilder private var clock: some View {
