@@ -53,3 +53,55 @@ struct BentoGeometryTests {
         #expect(abs(value - expected) < 0.0001)
     }
 }
+
+@Suite("Bento-Geometrie: Einrasten")
+struct BentoSnapTests {
+    private func f(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> WidgetFrame {
+        WidgetFrame(x: x, y: y, width: w, height: h)
+    }
+    private let weather = WidgetFrame(x: 0, y: 0, width: 275, height: 130)
+
+    @Test("Ziehen: Seitenrand, Flucht, 12 Punkte daneben, sonst frei", arguments: [
+        (WidgetFrame(x: 5, y: 300, width: 100, height: 50), 0.0, 300.0),     // linker Rand (y frei)
+        (WidgetFrame(x: 636, y: 3, width: 200, height: 130), 639, 0),        // rechter Rand, oberer Rand
+        (WidgetFrame(x: 290, y: 4, width: 200, height: 130), 287, 0),        // 12 neben dem Wetter
+        (WidgetFrame(x: 400.4, y: 250.6, width: 100, height: 50), 400, 251), // kein Ziel: nur gerundet
+        (WidgetFrame(x: 3, y: 146, width: 110, height: 250), 0, 142),        // Flucht links, 12 unter dem Wetter
+    ])
+    func move(proposed: WidgetFrame, x: Double, y: Double) {
+        let snapped = BentoGeometry.snapMove(proposed, others: [weather])
+        #expect(snapped.x == x)
+        #expect(snapped.y == y)
+        #expect(snapped.width == proposed.width.rounded())
+    }
+
+    @Test("Ziehen: das naechste Ziel gewinnt")
+    func nearestWins() {
+        // Rechte Kante buendig mit dem Wetter (x = 175) liegt 2 weg, alles andere weiter.
+        let snapped = BentoGeometry.snapMove(f(177, 300, 100, 50), others: [weather])
+        #expect(snapped.x == 175)
+    }
+
+    @Test("Groesse: Hoehe springt, Breite bleibt in der Spanne und rastet ein")
+    func resize() {
+        let clock = f(0, 142, 110, 250)
+        // Hoehe 260 -> 250, Breite 115 frei (kein Ziel naeher als 8)
+        #expect(BentoGeometry.snapResize(clock, kind: .clock, proposedWidth: 115, proposedHeight: 260, others: []) == f(0, 142, 115, 250))
+        // Hoehe 380 -> 392 passt nicht mehr auf die Seite; die Funktion rastet nur, gueltig prueft isValid
+        #expect(BentoGeometry.snapResize(clock, kind: .clock, proposedWidth: 110, proposedHeight: 380, others: []).height == 392)
+        // Breite unter dem Minimum -> Minimum
+        #expect(BentoGeometry.snapResize(clock, kind: .clock, proposedWidth: 40, proposedHeight: 250, others: []).width == 110)
+        // Breite rastet 12 vor dem Nachbarn ein: Nachbar bei x = 300 -> Breite 288
+        let neighbour = f(300, 142, 110, 250)
+        #expect(BentoGeometry.snapResize(clock, kind: .clock, proposedWidth: 283, proposedHeight: 250, others: [neighbour]).width == 288)
+        // Feste Groesse bleibt fest
+        let network = f(0, 203, 335, 189)
+        #expect(BentoGeometry.snapResize(network, kind: .performanceNetwork, proposedWidth: 400, proposedHeight: 150, others: []) == network)
+    }
+
+    @Test("Ablegen: kleinste Groesse, mittig unter dem Zeiger, eingerastet")
+    func drop() {
+        let frame = BentoGeometry.dropFrame(kind: .clock, x: 60, y: 208, others: [weather])
+        #expect(frame == f(0, 142, 110, 130))   // 60-55 = 5 -> Rand 0; 208-65 = 143 -> 142 (12 unter dem Wetter)
+    }
+}

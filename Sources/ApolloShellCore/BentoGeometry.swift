@@ -54,4 +54,64 @@ public enum BentoGeometry {
         guard contentHeight > 0 else { return wanted }
         return min(wanted, availableHeight / contentHeight)
     }
+
+    // MARK: Einrasten
+
+    /// Ziehen: je Achse springt das Widget aufs naechste Ziel naeher als
+    /// `snapDistance` - Seitenrand, gleiche Flucht wie ein anderes Widget,
+    /// oder genau `spacing` daneben. Ohne Ziel bleibt die Achse. Ergebnis
+    /// auf ganze Punkte gerundet; ob es passt, sagt `isValid`.
+    public static func snapMove(_ proposed: WidgetFrame, others: [WidgetFrame]) -> WidgetFrame {
+        var frame = proposed
+        frame.x = snap(frame.x, to: startCandidates(length: frame.width, page: pageWidth,
+                                                    others: others.map { (start: $0.x, end: $0.maxX) }))
+        frame.y = snap(frame.y, to: startCandidates(length: frame.height, page: pageHeight,
+                                                    others: others.map { (start: $0.y, end: $0.maxY) }))
+        return frame.rounded()
+    }
+
+    /// Groesse ziehen (Griff unten rechts, Ecke oben links bleibt): die Hoehe
+    /// springt auf die naechste erlaubte, die Breite bleibt in der Spanne
+    /// dieser Groesse und rastet bei flexiblen Widgets am Seitenrand und an
+    /// Nachbarn ein (rechte Kanten buendig oder `spacing` vor dem Nachbarn).
+    public static func snapResize(_ frame: WidgetFrame, kind: WidgetKind, proposedWidth: Double,
+                                  proposedHeight: Double, others: [WidgetFrame]) -> WidgetFrame {
+        guard let size = kind.sizes.min(by: { abs($0.height - proposedHeight) < abs($1.height - proposedHeight) })
+        else { return frame }
+        var width = min(max(proposedWidth, size.minWidth), size.maxWidth)
+        if size.isFlexible {
+            var candidates = [pageWidth - frame.x]
+            for other in others {
+                candidates += [other.x - spacing - frame.x, other.maxX - frame.x]
+            }
+            width = snap(width, to: candidates.filter { $0 >= size.minWidth && $0 <= size.maxWidth })
+        }
+        return WidgetFrame(x: frame.x, y: frame.y, width: width, height: size.height).rounded()
+    }
+
+    /// Neues Widget aus Nexus: kleinste Groesse, mittig unter dem Zeiger
+    /// (`x`, `y` in Referenzpunkten), dann eingerastet wie beim Ziehen.
+    public static func dropFrame(kind: WidgetKind, x: Double, y: Double, others: [WidgetFrame]) -> WidgetFrame {
+        let size = kind.smallestSize
+        let proposed = WidgetFrame(x: x - size.minWidth / 2, y: y - size.height / 2,
+                                   width: size.minWidth, height: size.height)
+        return snapMove(proposed, others: others)
+    }
+
+    /// Moegliche Anfaenge auf einer Achse: beide Seitenraender, dieselbe
+    /// Flucht wie ein anderes Widget (Anfang an Anfang, Ende an Ende) und
+    /// genau `spacing` davor oder dahinter.
+    static func startCandidates(length: Double, page: Double, others: [(start: Double, end: Double)]) -> [Double] {
+        var result = [0, page - length]
+        for other in others {
+            result += [other.start, other.end - length, other.end + spacing, other.start - spacing - length]
+        }
+        return result
+    }
+
+    static func snap(_ value: Double, to candidates: [Double]) -> Double {
+        guard let best = candidates.min(by: { abs($0 - value) < abs($1 - value) }),
+              abs(best - value) < snapDistance else { return value }
+        return best
+    }
 }
