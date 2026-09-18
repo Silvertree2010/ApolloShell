@@ -59,27 +59,35 @@ struct WidgetView: View {
                 }
             case .weatherHero:
                 let model = context.weather(widget)
-                if let report = model.report {
-                    WeatherHero(report: report, model: model, now: model.fixedNow ?? Date(),
-                               stand: model.standText(now: model.fixedNow ?? Date()))
-                } else {
-                    WeatherEmptyState(model: model)
+                // "Jetzt" tickt jede Minute mit (Sonnenstand, "Stand HH:MM"),
+                // nicht nur bei neuen Daten.
+                TimelineView(.everyMinute) { context in
+                    let now = model.fixedNow ?? context.date
+                    if let report = model.report {
+                        WeatherHero(report: report, model: model, now: now, stand: model.standText(now: now))
+                    } else {
+                        WeatherEmptyState(model: model)
+                    }
                 }
             case .weatherHourly:
                 let model = context.weather(widget)
-                if let report = model.report {
-                    let now = model.fixedNow ?? Date()
-                    WeatherHourly(slots: report.hourlyStrip(now: now), calendar: report.calendar)
-                } else {
-                    WeatherEmptyState(model: model)
+                TimelineView(.everyMinute) { context in
+                    let now = model.fixedNow ?? context.date
+                    if let report = model.report {
+                        WeatherHourly(slots: report.hourlyStrip(now: now), calendar: report.calendar)
+                    } else {
+                        WeatherEmptyState(model: model)
+                    }
                 }
             case .weatherDaily:
                 let model = context.weather(widget)
-                if let report = model.report {
-                    let now = model.fixedNow ?? Date()
-                    WeatherDaily(days: report.upcomingDays(now: now), now: now, calendar: report.calendar)
-                } else {
-                    WeatherEmptyState(model: model)
+                TimelineView(.everyMinute) { context in
+                    let now = model.fixedNow ?? context.date
+                    if let report = model.report {
+                        WeatherDaily(days: report.upcomingDays(now: now), now: now, calendar: report.calendar)
+                    } else {
+                        WeatherEmptyState(model: model)
+                    }
                 }
             case .mediaPlayer:
                 MediaTab(model: context.media)
