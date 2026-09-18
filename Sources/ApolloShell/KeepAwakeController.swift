@@ -259,10 +259,7 @@ final class KeepAwakeController {
         askAdmin(disableSleep: false)
     }
 
-    private static var lidMarker: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("ApolloShell/lid-awake")
-    }
+    private static var lidMarker: URL { ShellFiles.live.lidAwakeMarker }
 
     // Beide Werkzeuge laufen synchron auf dem Hauptthread: gemessen sind es
     // Millisekunden, und die Zustandsmaschine bleibt ohne Zwischenstaende.

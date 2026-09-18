@@ -48,9 +48,7 @@ final class ThemeStore {
 
     init(settings: ShellSettingsStore, folder: URL? = nil) {
         self.settings = settings
-        self.folder = folder ?? ThemeLoader.folder(
-            inApplicationSupport: PinnedApps.url.deletingLastPathComponent()
-        )
+        self.folder = folder ?? ShellFiles.live.themes
         reload()
         watch()
         ThemeStore.shared = self

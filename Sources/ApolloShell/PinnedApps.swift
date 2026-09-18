@@ -1,4 +1,5 @@
 import Foundation
+import ApolloShellCore
 
 /// Angeheftete Apps: stehen ohne Suchtext immer ganz oben, in fester
 /// Reihenfolge. Liegen als Bundle-IDs in
@@ -13,11 +14,7 @@ enum PinnedApps {
         var pinned: [String]
     }
 
-    static var url: URL {
-        UsageStore.defaultURL.deletingLastPathComponent().appendingPathComponent("pinned.json")
-    }
-
-    static func load() -> [String] {
+    static func load(from url: URL = ShellFiles.live.pinned) -> [String] {
         guard let data = try? Data(contentsOf: url),
               let file = try? JSONDecoder().decode(File.self, from: data)
         else { return [] }

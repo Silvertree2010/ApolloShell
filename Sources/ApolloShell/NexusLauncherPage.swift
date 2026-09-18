@@ -53,7 +53,7 @@ final class NexusPinnedModel {
     func reload() {
         guard live else { return }
         setApps(AppCatalog().scan())
-        list = PinnedList.load(from: NexusFile.read(url))
+        list = PinnedList.load(from: ShellFiles.read(url))
     }
 
     private func setApps(_ scanned: [AppEntry]) {
@@ -117,7 +117,7 @@ final class NexusPinnedModel {
         list = next
         guard let url else { return }
         do {
-            try NexusFile.write(list.encoded(), to: url)
+            try ShellFiles.write(list.encoded(), to: url)
             if saveFailed { saveFailed = false }
         } catch {
             saveFailed = true

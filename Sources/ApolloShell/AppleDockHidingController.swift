@@ -23,7 +23,7 @@ final class AppleDockHidingController {
     private var settingsObservation: Task<Void, Never>?
     private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "appleDockHiding")
 
-    init(settings: ShellSettingsStore, fileURL: URL? = AppleDockHidingController.defaultFileURL) {
+    init(settings: ShellSettingsStore, fileURL: URL? = ShellFiles.live.appleDock) {
         self.fileURL = fileURL
         // Liefert zuerst den aktuellen Wert (das erledigt den Start mit
         // aktiver Einstellung, siehe `hide()`), danach jede Aenderung -
@@ -33,10 +33,6 @@ final class AppleDockHidingController {
                 self?.apply(hide)
             }
         }
-    }
-
-    static var defaultFileURL: URL {
-        UsageStore.defaultURL.deletingLastPathComponent().appendingPathComponent("apple-dock.json")
     }
 
     /// Beim Beenden (applicationWillTerminate, SIGTERM): unabhaengig von der

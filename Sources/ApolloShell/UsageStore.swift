@@ -10,7 +10,7 @@ final class UsageStore {
     private let url: URL
     private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "usage")
 
-    init(url: URL = UsageStore.defaultURL) {
+    init(url: URL = ShellFiles.live.usage) {
         self.url = url
         let data = try? Data(contentsOf: url)
         if let data, let decoded = try? JSONDecoder().decode(UsageStats.self, from: data) {
@@ -19,15 +19,10 @@ final class UsageStore {
             stats = UsageStats()
             // Da, aber unlesbar: aufheben, bevor der naechste Start sie ersetzt.
             if data != nil {
-                NexusFile.preserveUnreadable(url)
+                ShellFiles.preserveUnreadable(url)
                 log.error("usage.json unlesbar, Kopie als usage.json.unreadable")
             }
         }
-    }
-
-    nonisolated static var defaultURL: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("ApolloShell/usage.json")
     }
 
     func record(_ key: String) {
@@ -37,11 +32,7 @@ final class UsageStore {
 
     private func save() {
         do {
-            try FileManager.default.createDirectory(
-                at: url.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-            try JSONEncoder().encode(stats).write(to: url, options: .atomic)
+            try ShellFiles.write(JSONEncoder().encode(stats), to: url)
         } catch {
             log.error("usage.json nicht gespeichert: \(error.localizedDescription, privacy: .public)")
         }

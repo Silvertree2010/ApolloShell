@@ -100,11 +100,6 @@ final class WeatherModel {
         return model
     }
 
-    nonisolated static var locationFileURL: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("ApolloShell/weather.json")
-    }
-
     /// "Wetterdaten: Open-Meteo" samt Link - fuer die angezeigten Daten.
     var attribution: WeatherAttribution {
         source.provider().attribution
@@ -124,7 +119,7 @@ final class WeatherModel {
         guard live else { return }
         // Bei jedem Oeffnen neu gelesen (ein paar Byte): so gilt eine
         // geaenderte weather.json ohne Neustart.
-        let wantedFavorites = WeatherFavorites.load(from: try? Data(contentsOf: Self.locationFileURL))
+        let wantedFavorites = WeatherFavorites.load(from: try? Data(contentsOf: ShellFiles.live.weather))
         favorites = wantedFavorites
         let wanted = wantedFavorites.selected
         if wanted != location { switchTo(wanted) }
@@ -162,7 +157,7 @@ final class WeatherModel {
         switchTo(wanted)
         fetch()
         do {
-            try NexusFile.write(favorites.fileData(), to: Self.locationFileURL)
+            try ShellFiles.write(favorites.fileData(), to: ShellFiles.live.weather)
         } catch {
             log.error("weather.json nicht gespeichert: \((error as NSError).code, privacy: .public)")
         }

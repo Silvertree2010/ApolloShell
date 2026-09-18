@@ -66,7 +66,7 @@ final class NexusWeatherModel {
 
     func reload() {
         guard live else { return }
-        favorites = WeatherFavorites.load(from: NexusFile.read(url))
+        favorites = WeatherFavorites.load(from: ShellFiles.read(url))
     }
 
     /// Erst nach einer Tipppause fragen (`OpenMeteoGeocoding.debounce`), und
@@ -151,7 +151,7 @@ final class NexusWeatherModel {
         favorites = new
         guard let url else { return }
         do {
-            try NexusFile.write(new.fileData(), to: url)
+            try ShellFiles.write(new.fileData(), to: url)
             if saveFailed { saveFailed = false }
         } catch {
             saveFailed = true
