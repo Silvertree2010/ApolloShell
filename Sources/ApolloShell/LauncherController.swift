@@ -29,6 +29,10 @@ final class LauncherController: NSObject, NSWindowDelegate {
     private let usage = UsageStore()
     private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "controller")
     private lazy var panel = makePanel()
+    /// Das Glas des Fensters und die eingefaerbte Flaeche darunter, wenn ein
+    /// Theme gilt (siehe `applyTheme`).
+    private var glass: NSGlassEffectView?
+    private var surfaceLayer: CAGradientLayer?
     /// Traeger der Bewegung. Das Fenster selbst bleibt stehen; verschoben
     /// wird nur der Inhalt ueber die sublayerTransform dieses Views. Das
     /// rechnet Core Animation auf der GPU - anders als ein animiertes
@@ -55,6 +59,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
     func open() {
         guard !isOpen else { return }
+        applyTheme()
         isOpen = true
         animationGeneration += 1
         model.reload(catalog.scan(), usage: usage.stats, pinned: PinnedApps.load())
@@ -244,8 +249,46 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
         container.wantsLayer = true
         container.addSubview(glass)
+        self.glass = glass
         panel.contentView = container
+        applyTheme()
         return panel
+    }
+
+    /// Faerbt den Launcher nach dem Theme: die Panelfarbe (oder deren
+    /// Verlauf) als Flaeche unter dem Glas, der Panelradius als Ecke.
+    ///
+    /// Wie beim Dashboard als Ebene und nicht als Toenung des Glases - eine
+    /// Ebenenfarbe gilt sofort, eine Toenung erst beim naechsten Zeichnen.
+    private func applyTheme() {
+        guard let glass, let content = glass.contentView else { return }
+        let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let style = ThemeStore.shared?.style(dark: dark) ?? .standard
+        glass.cornerRadius = style.panelRadius(Self.cornerRadius)
+
+        content.wantsLayer = true
+        surfaceLayer?.removeFromSuperlayer()
+        surfaceLayer = nil
+        content.layer?.backgroundColor = nil
+        guard style.paintsPanel else { return }
+
+        let gradient = style.theme.gradient(.panel, dark: dark)
+        guard !gradient.isEmpty else {
+            content.layer?.backgroundColor = NSColor(style.theme.color(.panel, dark: dark))
+                .withAlphaComponent(style.panelOpacity).cgColor
+            return
+        }
+        let layer = CAGradientLayer()
+        layer.frame = content.bounds
+        layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+        layer.colors = gradient.stops.map { NSColor($0.color).cgColor }
+        layer.locations = gradient.stops.map { NSNumber(value: $0.position) }
+        let points = gradient.points
+        layer.startPoint = CGPoint(x: points.start.x, y: points.start.y)
+        layer.endPoint = CGPoint(x: points.end.x, y: points.end.y)
+        layer.opacity = Float(style.panelOpacity)
+        content.layer?.insertSublayer(layer, at: 0)
+        surfaceLayer = layer
     }
 
     // Klick daneben schliesst den Launcher.
