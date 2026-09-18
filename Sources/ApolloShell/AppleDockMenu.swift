@@ -93,13 +93,13 @@ enum AppleDockMenu {
         }
         var current = menu
         for (index, step) in path.enumerated() {
-            let children = DockMenuAX.value(current, kAXChildrenAttribute) as? [AXUIElement] ?? []
+            let children = AX.elements(current, kAXChildrenAttribute)
             // Erst an der Stelle nachsehen, an der der Eintrag stand, und nur
             // wenn der Titel dort nicht mehr passt (das Menue hat sich
             // geaendert) nach dem Titel suchen.
             let atIndex = children.indices.contains(step.index) ? children[step.index] : nil
-            let match = (atIndex.flatMap { DockMenuAX.string($0, kAXTitleAttribute) == step.title ? $0 : nil })
-                ?? children.first { DockMenuAX.string($0, kAXTitleAttribute) == step.title }
+            let match = (atIndex.flatMap { AX.string($0, kAXTitleAttribute) == step.title ? $0 : nil })
+                ?? children.first { AX.string($0, kAXTitleAttribute) == step.title }
             guard let match else {
                 dismiss(item)
                 return false
@@ -110,7 +110,7 @@ enum AppleDockMenu {
                 return pressed
             }
             // Untermenue: dessen Menue liegt als Kind des Eintrags.
-            guard let submenu = (DockMenuAX.value(match, kAXChildrenAttribute) as? [AXUIElement])?.first else {
+            guard let submenu = AX.elements(match, kAXChildrenAttribute).first else {
                 dismiss(item)
                 return false
             }
@@ -125,13 +125,13 @@ enum AppleDockMenu {
     /// Roh lesen, nichts deuten: Was daraus wird, entscheidet `DockMenuTree`.
     private static func read(_ menu: AXUIElement, depth: Int) -> [RawMenuItem] {
         guard depth < DockMenuTree.maximumDepth else { return [] }
-        let children = DockMenuAX.value(menu, kAXChildrenAttribute) as? [AXUIElement] ?? []
+        let children = AX.elements(menu, kAXChildrenAttribute)
         return children.map { child in
-            let submenu = (DockMenuAX.value(child, kAXChildrenAttribute) as? [AXUIElement])?.first
+            let submenu = AX.elements(child, kAXChildrenAttribute).first
             return RawMenuItem(
-                title: DockMenuAX.string(child, kAXTitleAttribute) ?? "",
-                enabled: (DockMenuAX.value(child, kAXEnabledAttribute) as? NSNumber)?.boolValue ?? true,
-                mark: DockMenuAX.string(child, kAXMenuItemMarkCharAttribute) ?? "",
+                title: AX.string(child, kAXTitleAttribute) ?? "",
+                enabled: (AX.copy(child, kAXEnabledAttribute) as? NSNumber)?.boolValue ?? true,
+                mark: AX.string(child, kAXMenuItemMarkCharAttribute) ?? "",
                 hasSubmenu: submenu != nil,
                 children: submenu.map { read($0, depth: depth + 1) } ?? []
             )
@@ -142,8 +142,8 @@ enum AppleDockMenu {
     /// baut es nicht sofort auf, deshalb ein paar kurze Versuche.
     private static func openMenu(of item: AXUIElement) -> AXUIElement? {
         for _ in 0..<20 {
-            let children = DockMenuAX.value(item, kAXChildrenAttribute) as? [AXUIElement] ?? []
-            if let menu = children.first(where: { DockMenuAX.string($0, kAXRoleAttribute) == kAXMenuRole as String }) {
+            let children = AX.elements(item, kAXChildrenAttribute)
+            if let menu = children.first(where: { AX.string($0, kAXRoleAttribute) == kAXMenuRole as String }) {
                 return menu
             }
             // Kein RunLoop: Das hier laeuft auf einer eigenen Schlange.
@@ -154,8 +154,8 @@ enum AppleDockMenu {
 
     /// Apples Menue wieder schliessen. Ohne das bliebe es offen stehen.
     private static func dismiss(_ item: AXUIElement) {
-        let children = DockMenuAX.value(item, kAXChildrenAttribute) as? [AXUIElement] ?? []
-        for child in children where DockMenuAX.string(child, kAXRoleAttribute) == kAXMenuRole as String {
+        let children = AX.elements(item, kAXChildrenAttribute)
+        for child in children where AX.string(child, kAXRoleAttribute) == kAXMenuRole as String {
             AXUIElementPerformAction(child, kAXCancelAction as CFString)
         }
     }
@@ -163,32 +163,6 @@ enum AppleDockMenu {
     /// Das Symbol dieser App in Apples Dock - gefunden ueber die AXURL, wie
     /// schon bei den Zaehlern (`DockBadges`).
     private static func dockItem(bundleID: String) -> AXUIElement? {
-        guard AXIsProcessTrusted(),
-              let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first
-        else { return nil }
-        let app = AXUIElementCreateApplication(dock.processIdentifier)
-        AXUIElementSetMessagingTimeout(app, 0.5)
-        let lists = DockMenuAX.value(app, kAXChildrenAttribute) as? [AXUIElement] ?? []
-        guard let list = lists.first(where: { DockMenuAX.string($0, kAXRoleAttribute) == kAXListRole as String }) else { return nil }
-        for item in DockMenuAX.value(list, kAXChildrenAttribute) as? [AXUIElement] ?? [] {
-            guard let url = DockMenuAX.value(item, kAXURLAttribute) as? URL,
-                  Bundle(url: url)?.bundleIdentifier == bundleID
-            else { continue }
-            return item
-        }
-        return nil
-    }
-}
-
-/// Dieselben zwei Lesezugriffe wie in SidebarDockInteraction, hier fuer
-/// Apples Dock. Eigener Name, weil `AX` in WindowGuard schon vergeben ist.
-private enum DockMenuAX {
-    static func value(_ element: AXUIElement, _ attribute: String) -> CFTypeRef? {
-        var value: CFTypeRef?
-        return AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success ? value : nil
-    }
-
-    static func string(_ element: AXUIElement, _ attribute: String) -> String? {
-        value(element, attribute) as? String
+        AppleDockItems.all(timeout: 0.5).first { AppleDockItems.bundleID(of: $0) == bundleID }
     }
 }
