@@ -127,7 +127,8 @@ struct NexusDashboardCardSections: View {
                     Label("Hinzufügen …", systemImage: "plus")
                 }
                 Spacer(minLength: 8)
-                NexusPresetControls(layout: layout, onSelect: onReplace)
+                NexusPresetMenu<DashboardPreset> { onReplace(.preset($0)) }
+                NexusPresetResetButton<DashboardPreset>(layout: layout) { onReplace(.reset) }
             }
         } footer: {
             Text("Das Dashboard bleibt immer gleich gross. Fehlt eine Karte, nehmen ihre Nachbarn den Platz ein; eine leere Reihe überlässt der anderen die ganze Höhe.")

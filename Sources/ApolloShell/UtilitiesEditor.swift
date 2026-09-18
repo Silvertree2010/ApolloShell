@@ -13,7 +13,7 @@ import SwiftUI
 struct UtilitiesEditorPage: View {
     @Bindable var store: ShellSettingsStore
     @State private var showsGallery = false
-    @State private var pending: UtilitiesEditorReplacement?
+    @State private var pending: LayoutPresetReplacement<UtilitiesPreset>?
     /// Gewaehlter Knopf nach Kennung: seine Optionen stehen unter dem Raster.
     @State private var selection: String?
     /// Liegt die Regel ohne Passwort fuer den Deckel-Teil auf diesem Mac?
@@ -49,11 +49,9 @@ struct UtilitiesEditorPage: View {
         .sheet(isPresented: $showsGallery) {
             UtilitiesEditorGallery(layout: layout, onAdd: add, onCancel: { showsGallery = false })
         }
-        .alert(pending?.title ?? "", isPresented: confirming, presenting: pending) { replacement in
-            Button(replacement.confirm) { apply(replacement) }
-            Button("Abbrechen", role: .cancel) {}
-        } message: { replacement in
-            Text(replacement.message)
+        .nexusPresetAlert($pending, title: UtilitiesEditorText.replacementTitle, message: UtilitiesEditorText.replacementMessage) { layout in
+            store.settings.utilities.layout = layout
+            selection = nil
         }
     }
 
@@ -136,15 +134,9 @@ struct UtilitiesEditorPage: View {
     private var presetsSection: some View {
         Section {
             HStack(spacing: 8) {
-                Menu("Vorlage laden …") {
-                    ForEach(UtilitiesPreset.allCases) { preset in
-                        Button(preset.title) { pending = .preset(preset) }
-                    }
-                }
-                .fixedSize()
+                NexusPresetMenu<UtilitiesPreset> { pending = .preset($0) }
                 Spacer(minLength: 8)
-                Button("Zurücksetzen") { pending = .reset }
-                    .disabled(layout == UtilitiesPreset.standard.layout)
+                NexusPresetResetButton<UtilitiesPreset>(layout: layout) { pending = .reset }
             }
         } header: {
             Text("Vorlagen")
@@ -153,55 +145,12 @@ struct UtilitiesEditorPage: View {
         }
     }
 
-    private var confirming: Binding<Bool> {
-        Binding(get: { pending != nil }, set: { if !$0 { pending = nil } })
-    }
-
     /// Aus der Galerie: ans Ende und gleich gewaehlt - bei App, Link und
     /// Kurzbefehl muss man ja noch das Ziel waehlen.
     private func add(_ kind: UtilitiesToggleKind) {
         showsGallery = false
         if let id = store.settings.utilities.layout.add(kind) {
             selection = id
-        }
-    }
-
-    private func apply(_ replacement: UtilitiesEditorReplacement) {
-        store.settings.utilities.layout = replacement.layout
-        selection = nil
-    }
-}
-
-/// Was nach Rueckfrage das ganze Panel ersetzt.
-private enum UtilitiesEditorReplacement {
-    case preset(UtilitiesPreset)
-    case reset
-
-    var layout: UtilitiesLayout {
-        switch self {
-        case .preset(let preset): preset.layout
-        case .reset: UtilitiesPreset.standard.layout
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .preset(let preset): String(localized: "Vorlage „\(preset.title)“ laden?")
-        case .reset: String(localized: "Schnellaktionen zurücksetzen?")
-        }
-    }
-
-    var message: String {
-        switch self {
-        case .preset(let preset): String(localized: "\(preset.summary) Die jetzige Anordnung wird ersetzt.")
-        case .reset: String(localized: "Das Panel sieht wieder aus wie am Anfang (Vorlage Standard). Die jetzige Anordnung wird ersetzt.")
-        }
-    }
-
-    var confirm: String {
-        switch self {
-        case .preset: String(localized: "Laden")
-        case .reset: String(localized: "Zurücksetzen")
         }
     }
 }
@@ -412,7 +361,6 @@ private struct UtilitiesEditorOptions: View {
     @Bindable var store: ShellSettingsStore
     let entry: UtilitiesToggleEntry
     let onDeselect: () -> Void
-    @State private var picksApp = false
     @State private var picksShortcut = false
 
     var body: some View {
@@ -492,26 +440,8 @@ private struct UtilitiesEditorOptions: View {
     }
 
     private func appRow(_ app: UtilitiesAppOptions) -> some View {
-        HStack(spacing: 10) {
-            if let info = BarApps.info(for: app.bundleID) {
-                Image(nsImage: info.icon)
-                    .resizable()
-                    .interpolation(.high)
-                    .frame(width: 24, height: 24)
-                Text(info.name)
-            } else {
-                Text(app.bundleID.isEmpty ? String(localized: "Noch keine App gewählt")
-                     : String(localized: "\(app.bundleID) ist nicht installiert"))
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 8)
-            Button("App wählen …") { picksApp = true }
-        }
-        .sheet(isPresented: $picksApp) {
-            NexusBarAppPicker(current: app.bundleID, onPick: { id in
-                update(.openApp(with(app) { $0.bundleID = id }))
-                picksApp = false
-            }, onCancel: { picksApp = false })
+        NexusAppChoiceRow(bundleID: app.bundleID) { id in
+            update(.openApp(with(app) { $0.bundleID = id }))
         }
     }
 
@@ -721,60 +651,37 @@ struct UtilitiesShortcutPicker: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Kurzbefehl wählen")
-                    .font(.headline)
-                Text("Aus der Kurzbefehle-App. Ausgeführt wird er erst beim Klick im Panel.")
-                    .font(.caption)
+        NexusSearchSheet(title: "Kurzbefehl wählen", subtitle: "Aus der Kurzbefehle-App. Ausgeführt wird er erst beim Klick im Panel.",
+                         searchPrompt: "Kurzbefehl suchen", query: $query, onCancel: onCancel) {
+            if shortcuts == nil {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if results.isEmpty {
+                Text(query.isEmpty ? String(localized: "Keine Kurzbefehle gefunden") : String(localized: "Kein Treffer"))
                     .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding([.horizontal, .top], 16)
-            .padding(.bottom, 10)
-            NexusSearchField(prompt: "Kurzbefehl suchen", text: $query)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 10)
-            Divider()
-            Group {
-                if shortcuts == nil {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if results.isEmpty {
-                    Text(query.isEmpty ? String(localized: "Keine Kurzbefehle gefunden") : String(localized: "Kein Treffer"))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List(results) { shortcut in
-                        Button {
-                            onPick(shortcut)
-                        } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: UtilitiesShortcutOptions.fallbackSymbol)
-                                    .foregroundStyle(.secondary)
-                                Text(shortcut.name)
-                                    .lineLimit(1)
-                                Spacer(minLength: 8)
-                                if isCurrent(shortcut) {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(Color.accentColor)
-                                }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(results) { shortcut in
+                    Button {
+                        onPick(shortcut)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: UtilitiesShortcutOptions.fallbackSymbol)
+                                .foregroundStyle(.secondary)
+                            Text(shortcut.name)
+                                .lineLimit(1)
+                            Spacer(minLength: 8)
+                            if isCurrent(shortcut) {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(Color.accentColor)
                             }
-                            .contentShape(.rect)
                         }
-                        .buttonStyle(.plain)
+                        .contentShape(.rect)
                     }
+                    .buttonStyle(.plain)
                 }
             }
-            Divider()
-            HStack {
-                Spacer()
-                Button("Abbrechen", action: onCancel)
-                    .keyboardShortcut(.cancelAction)
-            }
-            .padding(14)
         }
-        .frame(width: 380, height: 480)
         .task {
             guard shortcuts == nil else { return }
             shortcuts = await UtilitiesShortcutCatalog.load()
@@ -797,88 +704,36 @@ struct UtilitiesEditorGallery: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Knopf hinzufügen")
-                    .font(.title3.weight(.semibold))
-                Text("Er kommt ans Ende des Rasters – danach an die richtige Stelle ziehen.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(20)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    // Eigene Knoepfe zuerst: die gehen immer, die festen
-                    // stehen im Standard-Panel meist schon da.
-                    ForEach([UtilitiesToggleGroup.custom, .actions, .switches]) { group in
-                        Text(group.title)
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                        // Oben ausgerichtet und gleich hoch: sonst stuenden Kacheln
-                        // mit zwei und drei Zeilen Text versetzt (Bildprobe 14.09.).
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10, alignment: .top)],
-                                  spacing: 10) {
-                            ForEach(group.kinds) { kind in
-                                UtilitiesEditorGalleryTile(kind: kind, available: layout.canAdd(kind)) { onAdd(kind) }
+        NexusGallerySheet(title: String(localized: "Knopf hinzufügen"),
+                          subtitle: String(localized: "Er kommt ans Ende des Rasters – danach an die richtige Stelle ziehen."),
+                          size: CGSize(width: 560, height: 600), onCancel: onCancel) {
+            VStack(alignment: .leading, spacing: 14) {
+                // Eigene Knoepfe zuerst: die gehen immer, die festen
+                // stehen im Standard-Panel meist schon da.
+                ForEach([UtilitiesToggleGroup.custom, .actions, .switches]) { group in
+                    Text(group.title)
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                    // Oben ausgerichtet und gleich hoch: sonst stuenden Kacheln
+                    // mit zwei und drei Zeilen Text versetzt (Bildprobe 14.09.).
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10, alignment: .top)],
+                              spacing: 10) {
+                        ForEach(group.kinds) { kind in
+                            let available = layout.canAdd(kind)
+                            NexusGalleryTile(title: kind.title, summary: kind.summary,
+                                             badge: available ? nil : String(localized: "Schon da"), minHeight: 132,
+                                             available: available,
+                                             help: available ? String(localized: "\(kind.title) hinzufügen")
+                                                 : String(localized: "Gibt es nur einmal und steht schon im Panel"),
+                                             action: { onAdd(kind) }) {
+                                UtilitiesEditorGlyphTile(icon: kind.symbol.map(UtilitiesToggleItem.Icon.symbol) ?? .bluetooth,
+                                                         tint: kind.group.tint, size: 30)
                             }
                         }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
             }
-            Divider()
-            HStack {
-                Spacer()
-                Button("Abbrechen", action: onCancel)
-                    .keyboardShortcut(.cancelAction)
-            }
-            .padding(14)
         }
-        .frame(width: 560, height: 600)
-    }
-}
-
-private struct UtilitiesEditorGalleryTile: View {
-    let kind: UtilitiesToggleKind
-    let available: Bool
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .top) {
-                    UtilitiesEditorGlyphTile(icon: kind.symbol.map(UtilitiesToggleItem.Icon.symbol) ?? .bluetooth,
-                                             tint: kind.group.tint, size: 30)
-                    Spacer(minLength: 4)
-                    if !available {
-                        Text("Schon da")
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Text(kind.title)
-                    .font(.headline)
-                Text(kind.summary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 132, alignment: .topLeading)
-            .background(Color.primary.opacity(hovering && available ? 0.09 : 0.05),
-                        in: .rect(cornerRadius: 12, style: .continuous))
-            .contentShape(.rect(cornerRadius: 12))
-        }
-        .buttonStyle(.plain)
-        .disabled(!available)
-        .opacity(available ? 1 : 0.45)
-        // Nexus ist ein normales, aktives Fenster: hier reicht onHover.
-        .onHover { hovering = $0 }
-        .help(available ? "\(kind.title) hinzufügen" : "Gibt es nur einmal und steht schon im Panel")
     }
 }
 
@@ -970,6 +825,22 @@ enum UtilitiesEditorPreviewModel {
 
 @MainActor
 enum UtilitiesEditorText {
+    /// Titel der Vorlagen-Rueckfrage.
+    static func replacementTitle(_ replacement: LayoutPresetReplacement<UtilitiesPreset>) -> String {
+        switch replacement {
+        case .preset(let preset): String(localized: "Vorlage „\(preset.title)“ laden?")
+        case .reset: String(localized: "Schnellaktionen zurücksetzen?")
+        }
+    }
+
+    /// Erklaerung der Vorlagen-Rueckfrage.
+    static func replacementMessage(_ replacement: LayoutPresetReplacement<UtilitiesPreset>) -> String {
+        switch replacement {
+        case .preset(let preset): String(localized: "\(preset.summary) Die jetzige Anordnung wird ersetzt.")
+        case .reset: String(localized: "Das Panel sieht wieder aus wie am Anfang (Vorlage Standard). Die jetzige Anordnung wird ersetzt.")
+        }
+    }
+
     /// Name im Raster: eigener Titel, sonst App-Name, Adresse oder Name des
     /// Kurzbefehls, sonst der Name der Art.
     static func title(_ entry: UtilitiesToggleEntry) -> String {

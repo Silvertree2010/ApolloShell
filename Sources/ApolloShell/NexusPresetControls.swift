@@ -9,23 +9,35 @@ import SwiftUI
 // ihre Formulierungen unterscheiden (Leiste/Panel/Dashboard); hier nur die
 // Mechanik.
 
-/// "Vorlage laden ..." und "Zuruecksetzen", nebeneinander wie zuvor. Meldet
-/// die Wahl nur ueber `onSelect` - ob daraus `pending` wird (Rueckfrage per
-/// `nexusPresetAlert`) oder die Wahl gleich weitergereicht wird
-/// (`NexusDashboardCardSections`, die Rueckfrage haelt dort die Seite),
-/// entscheidet der Aufrufer.
-struct NexusPresetControls<P: LayoutPreset>: View {
-    let layout: P.Layout
-    let onSelect: (LayoutPresetReplacement<P>) -> Void
+// Zwei einzelne Stuecke statt eines Ganzen: die drei Editoren reihen sie
+// unterschiedlich auf (die Leiste und das Dashboard direkt nebeneinander,
+// die Schnellaktionen mit einem Spacer dazwischen) - das bleibt so bei den
+// Aufrufern.
+
+/// "Vorlage laden ...". Meldet die Wahl nur ueber `onSelect` - ob daraus
+/// `pending` wird (Rueckfrage per `nexusPresetAlert`) oder die Wahl gleich
+/// weitergereicht wird (`NexusDashboardCardSections`, die Rueckfrage haelt
+/// dort die Seite), entscheidet der Aufrufer.
+struct NexusPresetMenu<P: LayoutPreset>: View {
+    let onSelect: (P) -> Void
 
     var body: some View {
         Menu("Vorlage laden …") {
             ForEach(Array(P.allCases)) { preset in
-                Button(preset.title) { onSelect(.preset(preset)) }
+                Button(preset.title) { onSelect(preset) }
             }
         }
         .fixedSize()
-        Button("Zurücksetzen") { onSelect(.reset) }
+    }
+}
+
+/// "Zuruecksetzen", grau, wenn die Ebene schon der Vorgabe entspricht.
+struct NexusPresetResetButton<P: LayoutPreset>: View {
+    let layout: P.Layout
+    let action: () -> Void
+
+    var body: some View {
+        Button("Zurücksetzen", action: action)
             .disabled(layout == P.default.layout)
     }
 }
