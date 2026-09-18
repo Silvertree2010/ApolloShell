@@ -4,6 +4,28 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] - 0.2.0
+
+### Added
+
+- **A bento dashboard.** Pages hold widgets at any of their today-sized
+  places instead of four fixed tabs with fixed cards; the same widget can
+  appear more than once, and every page is your own to name and arrange.
+- **An edit mode for the dashboard.** Open it from Nexus: widgets wobble, a
+  `−` badge removes one, a handle resizes it, and new widgets are dragged in
+  from a list in Nexus; the dashboard stays open on screen while you work.
+- **A size per screen, plus a slider.** The dashboard already scaled itself
+  to the screen; Nexus now adds a slider on top of that automatic size.
+- **A weather place per widget.** Each weather widget keeps its own list of
+  places instead of sharing one list for the whole dashboard.
+- **A time zone per clock.** A clock widget can show a city's time instead
+  of the system's.
+
+### Removed
+
+- **The three dashboard templates** (Media, Performance, Weather) as fixed
+  tabs. Their widgets live on pages now, like everything else.
+
 ## [0.1.2.1] - 2026-09-18
 
 A patch on 0.1.2: what a theme reaches, and what the icon list promised.

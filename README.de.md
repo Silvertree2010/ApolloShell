@@ -45,7 +45,9 @@ finden es auch andere Mac-Nutzer.
   Vollbild tritt die Leiste des betroffenen Bildschirms ab.
 - **Launcher** mit unscharfer Suche. Häufig genutzte Apps stehen weiter oben,
   angeheftete ganz oben.
-- **Dashboard** mit den Reitern Dashboard, Medien, Leistung und Wetter.
+- **Dashboard** mit eigenen Seiten voller Widgets - Wetter, Kalender,
+  Systemwerte, Wiedergabe und mehr - in einem eigenen Bearbeitungsmodus
+  angeordnet und in der Größe angepasst.
 - **Utilities** unten rechts:
   - Wach halten
   - Ton mit Ausgabe und Eingang
