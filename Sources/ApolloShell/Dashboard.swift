@@ -34,11 +34,18 @@ final class Dashboard {
         }
         weatherModels = WeatherModels(settings: settings)
         let view = DashboardView(model: model, weatherModels: weatherModels, media: media, settings: settings)
-        // Groesse aus dem Inhalt (feste Karten-Masse), vor dem ersten Oeffnen.
-        // Haengt nicht an Seiten und Widgets - das Raster ist immer 839 x 392.
-        let size = NSHostingView(rootView: view.shellTheme()).fittingSize
-        drawer = EdgeDrawer(edge: .top, size: size, cornerRadius: 25, rootView: view)
+        // Groesse aus dem Inhalt (feste Karten-Masse) bei Massstab 1, vor dem
+        // ersten Oeffnen. Haengt nicht an Seiten und Widgets - das Raster ist
+        // immer 839 x 392; `prepareForScreen` unten skaliert von hier aus.
+        let baseSize = NSHostingView(rootView: view.shellTheme()).fittingSize
+        drawer = EdgeDrawer(edge: .top, size: baseSize, cornerRadius: 25, rootView: view)
         drawer.opensOnHover = true
+        drawer.prepareForScreen = { [model, settings, weak drawer] screen in
+            let scale = BentoGeometry.scale(screenWidth: screen.frame.width, availableHeight: screen.visibleFrame.height,
+                                            contentHeight: baseSize.height, userScale: settings.settings.dashboardScale)
+            model.scale = CGFloat(scale)
+            drawer?.resize(to: NSSize(width: baseSize.width * CGFloat(scale), height: baseSize.height * CGFloat(scale)))
+        }
         drawer.onOpen = { [model, weatherModels, media, settings] in
             let page = Dashboard.resolvedPage(model: model, settings: settings)
             model.pageID = page.id

@@ -37,10 +37,23 @@ enum RenderMode {
         for page in pages.pages {
             fixtures.dashboard.pageID = page.id
             for scheme in [ColorScheme.light, .dark] {
+                fixtures.dashboard.scale = 1
                 let view = DashboardView(model: fixtures.dashboard, weatherModels: weatherModels,
                                          media: fixtures.media, settings: settings)
                 try write(view, scheme: scheme, to: folder.appendingPathComponent(name(page.template!.tab.rawValue, scheme)))
             }
+        }
+        // Massstab 1,5, nur hell: fuer die eigene Pruefung, ob Text scharf
+        // bleibt (kein Vergleich mit der Basisprobe - die kennt keinen
+        // Massstab).
+        let scaledFolder = folder.appendingPathComponent("scaled", isDirectory: true)
+        try FileManager.default.createDirectory(at: scaledFolder, withIntermediateDirectories: true)
+        for page in pages.pages {
+            fixtures.dashboard.pageID = page.id
+            fixtures.dashboard.scale = 1.5
+            let view = DashboardView(model: fixtures.dashboard, weatherModels: weatherModels,
+                                     media: fixtures.media, settings: settings)
+            try write(view, scheme: .light, to: scaledFolder.appendingPathComponent(name(page.template!.tab.rawValue, .light)))
         }
     }
 

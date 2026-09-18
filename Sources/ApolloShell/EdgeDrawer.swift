@@ -164,6 +164,10 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     let takesKeyboard: Bool
     var onOpen: () -> Void = {}
     var onClose: () -> Void = {}
+    /// Vor `applyGeometry`, sobald der Zielbildschirm feststeht - fuer den
+    /// Massstab des Dashboards (`Dashboard.prepareForScreen`). Andere
+    /// Kantenfenster lassen es `nil`.
+    var prepareForScreen: ((NSScreen) -> Void)?
     /// Nach der Schliessbewegung, wenn das Fenster weg ist - nicht, wenn es
     /// vorher wieder aufging.
     var onHidden: () -> Void = {}
@@ -270,6 +274,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         isOpen = true
         generation += 1
         afterClose = nil
+        prepareForScreen?(screen.screen)
         // Vor dem ersten Zugriff auf `panel`: der baut sein Fenster aus der
         // Groesse des Containers, und die haengt am Bildschirm.
         applyGeometry(on: screen)

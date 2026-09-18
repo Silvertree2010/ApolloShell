@@ -19,6 +19,9 @@ final class DashboardModel {
     }
     /// Misst nur bei offenem Dashboard und einer Seite mit Leistungs-Widget.
     let performance = PerformanceModel()
+    /// Massstab fuer den Bildschirm (`Dashboard.prepareForScreen`); 1 ist die
+    /// Referenzgroesse (`BentoGeometry`).
+    var scale: CGFloat = 1
     private(set) var now = Date()
     private(set) var cpu: Double = 0
     private(set) var memory: Double = 0

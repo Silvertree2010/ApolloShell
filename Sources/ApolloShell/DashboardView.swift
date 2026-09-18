@@ -45,6 +45,22 @@ struct DashboardView: View {
     var body: some View {
         let pages = pages
         let selected = model.pageID.flatMap(pages.page(id:)) ?? pages.pages[0]
+        // Skaliert um die obere linke Ecke (Kantenfenster oben) - die
+        // Referenzgroesse (Massstab 1) rechnet `ScaledToFit` selbst aus
+        // `content.fixedSize()`, so bleibt ihr Ergebnis (auch bei
+        // Massstab 1) bitgleich mit `.fixedSize()` allein.
+        ScaledToFit(scale: model.scale) {
+            content(pages: pages, selected: selected)
+                .scaleEffect(model.scale, anchor: .topLeading)
+        }
+        // Ein Wechsel der Seite (auch aus `Dashboard.show(tab:)`) zieht nach,
+        // ob die Leistungs-Messung laufen soll.
+        .onChange(of: selected.id, initial: true) { _, _ in
+            model.showsPerformance = selected.widgets.contains { $0.kind.isPerformance }
+        }
+    }
+
+    private func content(pages: DashboardPages, selected: DashboardPage) -> some View {
         VStack(spacing: 0) {
             pageBar(pages: pages.pages, selected: selected)
             Divider().opacity(0.5)
@@ -54,11 +70,6 @@ struct DashboardView: View {
                 .padding(Self.padding)
         }
         .fixedSize()
-        // Ein Wechsel der Seite (auch aus `Dashboard.show(tab:)`) zieht nach,
-        // ob die Leistungs-Messung laufen soll.
-        .onChange(of: selected.id, initial: true) { _, _ in
-            model.showsPerformance = selected.widgets.contains { $0.kind.isPerformance }
-        }
     }
 
     /// Solange jede Seite mindestens `tabWidth` breit stehen kann, wie
@@ -129,6 +140,30 @@ struct DashboardView: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// Bemisst ihren Inhalt unskaliert (`sizeThatFits(.unspecified)`, dasselbe,
+/// was `.fixedSize()` allein auch tut) und meldet dem Elternelement diese
+/// Groesse mal `scale` - der Inhalt selbst traegt sein eigenes
+/// `.scaleEffect(scale, anchor: .topLeading)`. So bleibt die gemeldete
+/// Flaeche (Kantenfenster, `RenderMode`, Nexus-Vorschau) genau so gross wie
+/// das skaliert gezeichnete Ergebnis, ohne die unskalierte Groesse von
+/// aussen kennen zu muessen - und bei `scale == 1` bitgleich mit
+/// `.fixedSize()` allein.
+private struct ScaledToFit: Layout {
+    let scale: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let subview = subviews.first else { return .zero }
+        let ideal = subview.sizeThatFits(.unspecified)
+        return CGSize(width: ideal.width * scale, height: ideal.height * scale)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let subview = subviews.first else { return }
+        let ideal = subview.sizeThatFits(.unspecified)
+        subview.place(at: bounds.origin, anchor: .topLeading, proposal: ProposedViewSize(ideal))
     }
 }
 
