@@ -50,16 +50,21 @@ exact numbers from today's code (`DashboardCardKind.width(in:)`,
 them in tests; the table is what that code produces today.
 
 Overview widgets. A row is 130 high (top) or 250 high (bottom) when both rows
-exist, and 392 high when it is the only row. The side column is 200 × 392.
+exist, and 392 high when it is the only row; the side column is 200 × 392 and
+a column card alone fills the page. A row without a flexible card was
+stretched in proportion before 0.2, so every overview card can already be
+any width from the smallest width of its places up to the full 839. Per
+height, the minimum is the smallest width among the places that have that
+height.
 
 | ID | Widget | Sizes |
 | --- | --- | --- |
-| `weather` | Weather card | 275 × 130/392 (top row), 200 × 250/392 (bottom row), 200 × 392 (column) |
-| `user` | User | flex 230…839 × 130/392, 200 × 250/392, 200 × 392 |
-| `clock` | Clock | 110 × 130/250/392, 200 × 392 |
-| `calendar` | Calendar | flex 300…839 × 250/392 |
-| `resources` | Resource rings | 230 × 130/392, 90 × 250/392, 200 × 392 |
-| `media` | Media card | flex 300…839 × 130/392 (strip), 200 × 250/392 (compact), 200 × 392 (card) |
+| `weather` | Weather card | flex 275…839 × 130, flex 200…839 × 250, flex 200…839 × 392 |
+| `user` | User | flex 230…839 × 130, flex 200…839 × 250, flex 200…839 × 392 |
+| `clock` | Clock | flex 110…839 × 130/250/392 |
+| `calendar` | Calendar | flex 300…839 × 250, flex 300…839 × 392 |
+| `resources` | Resource rings | flex 230…839 × 130, flex 90…839 × 250, flex 90…839 × 392 |
+| `media` | Media card | flex 300…839 × 130 (strip), flex 200…839 × 250 (compact), flex 200…839 × 392 (card) |
 
 Performance widgets. With a battery the left block is 698 wide, without it
 839; hence the flexible widths.
