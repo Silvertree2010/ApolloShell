@@ -29,6 +29,11 @@ final class DashboardEditor {
     /// Art des gerade gezogenen Widgets, sobald der Nutzlast-String geladen
     /// ist (`NSItemProvider` laedt nur async).
     var draggedKind: WidgetKind?
+    /// Zaehler fuer Ablege-Vorgaenge (`BentoDropDelegate`): erhoeht bei
+    /// `dropExited`, so verwirft ein verspaetet geladener Nutzlast-String
+    /// (async `NSItemProvider`) den Ghost, statt ihn nach dem Verlassen des
+    /// Ziels wieder aufleben zu lassen.
+    var dropGeneration = 0
 
     init(store: ShellSettingsStore) {
         self.store = store
@@ -39,6 +44,9 @@ final class DashboardEditor {
     func begin(pageID: DashboardPage.ID, screen: NSScreen) {
         guard let pages = store.settings.dashboardPages else { return }
         session = BentoEditSession(pages: pages, pageID: pageID)
+        dropPreview = nil
+        draggedKind = nil
+        dropGeneration += 1
         onBegin(screen)
     }
 
@@ -46,12 +54,18 @@ final class DashboardEditor {
         guard let session else { return }
         if session.hasChanges { store.settings.dashboardPages = session.pages }
         self.session = nil
+        dropPreview = nil
+        draggedKind = nil
+        dropGeneration += 1
         onEnd()
     }
 
     func cancel() {
         guard session != nil else { return }
         session = nil
+        dropPreview = nil
+        draggedKind = nil
+        dropGeneration += 1
         onEnd()
     }
 
