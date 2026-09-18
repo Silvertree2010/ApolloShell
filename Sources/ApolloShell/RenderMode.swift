@@ -27,12 +27,19 @@ enum RenderMode {
 
     private static func renderDashboard(into folder: URL) throws {
         let fixtures = RenderFixtures()
-        for tab in DashboardTab.allCases {
-            fixtures.dashboard.tab = tab
+        let place = WeatherLocation(name: "Berlin", latitude: 52.52, longitude: 13.405)
+        let places = WeatherFavorites(locations: [place], selectedID: place.id)
+        // Kein Akku: die Bildproben messen nie wirklich (`performance.battery`
+        // bleibt `nil`), so zeigte auch das alte Dashboard keinen Tank.
+        let pages = DashboardPages(pages: DashboardPages.defaultPages(places: places, hasBattery: false))!
+        let settings = ShellSettingsStore.preview(ShellSettings(dashboardPages: pages))
+        let weatherModels = WeatherModels.preview(fixtures.weather)
+        for page in pages.pages {
+            fixtures.dashboard.pageID = page.id
             for scheme in [ColorScheme.light, .dark] {
-                let view = DashboardView(model: fixtures.dashboard, weather: fixtures.weather,
-                                         media: fixtures.media, settings: .preview())
-                try write(view, scheme: scheme, to: folder.appendingPathComponent(name(tab.rawValue, scheme)))
+                let view = DashboardView(model: fixtures.dashboard, weatherModels: weatherModels,
+                                         media: fixtures.media, settings: settings)
+                try write(view, scheme: scheme, to: folder.appendingPathComponent(name(page.template!.tab.rawValue, scheme)))
             }
         }
     }

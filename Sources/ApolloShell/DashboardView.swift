@@ -1,22 +1,24 @@
 import ApolloShellCore
 import SwiftUI
 
-/// Dashboard wie bei Caelestia (modules/dashboard): Reiterleiste oben,
-/// darunter das Kartenraster. Masse aus dem Caelestia-Quellcode (Recherche
-/// 14.09.): Aussenabstand 16, Kartenabstand 12, Karten Wetter 275 breit
-/// (Radius 42), Benutzer 340 (28), Uhr 110 (16), Kalender (28), Ressourcen
-/// (16), Medien 200 (56). Apple-Optik: SF Symbols, Systemschrift, Glas.
+/// Dashboard wie bei Caelestia (modules/dashboard): Seitenleiste oben,
+/// darunter die gewaehlte Seite. Masse aus dem Caelestia-Quellcode
+/// (Recherche 14.09.): Aussenabstand 16, Kartenabstand 12, Karten Wetter 275
+/// breit (Radius 42), Benutzer 340 (28), Uhr 110 (16), Kalender (28),
+/// Ressourcen (16), Medien 200 (56). Apple-Optik: SF Symbols, Systemschrift,
+/// Glas.
 ///
-/// Welche Reiter und Karten wo stehen, bestimmt Nexus > Dashboard
-/// (settings.dashboard, `DashboardLayout`); die Ansicht liest es live. Die
-/// Flaeche bleibt dabei immer 839 x 392 - die Karten verteilen sich darin
-/// nach `DashboardGeometry`.
+/// Welche Seiten es gibt und was auf ihnen liegt, bestimmt
+/// `settings.dashboardPages` (`DashboardPages`, Nexus > Dashboard); die
+/// Ansicht liest es live. Die Flaeche bleibt dabei immer 839 x 392 - die
+/// Widgets stehen darin an ihren eigenen Rahmen (`BentoPageView`).
 ///
-/// Wetter kommt vom gewaehlten Anbieter (WeatherView.swift), Medien ueber den
-/// mediaremote-adapter (MediaModel.swift, MediaView.swift).
+/// Wetter kommt je Widget aus einem eigenen `WeatherModel`
+/// (`WeatherModels.swift`), Medien ueber den mediaremote-adapter
+/// (MediaModel.swift, MediaView.swift).
 struct DashboardView: View {
     @Bindable var model: DashboardModel
-    let weather: WeatherModel
+    let weatherModels: WeatherModels
     let media: MediaModel
     let settings: ShellSettingsStore
     @Namespace private var tabIndicator
@@ -27,166 +29,106 @@ struct DashboardView: View {
     static let gridWidth = CGFloat(DashboardGeometry.width)
     static let gridHeight = CGFloat(DashboardGeometry.height)
     /// Caelestias Standardkurve: 500 ms, leicht ueberschiessend - fuer den
-    /// Reiter-Indikator und fuer Karten, die in Nexus umziehen.
+    /// Reiter-Indikator und fuer Widgets, die in Nexus umziehen.
     static let motion = Animation.shellSpatial
+    /// Mindestbreite eines Reiters in der scrollenden Leiste (viele Seiten).
+    static let tabWidth: CGFloat = 96
+
+    /// Die Seiten - aus den Einstellungen, sonst (noch nicht migriert, etwa
+    /// in Nexus vor dem ersten Start) die vier mitgelieferten.
+    private var pages: DashboardPages {
+        settings.settings.dashboardPages
+            ?? DashboardPages(pages: DashboardPages.defaultPages(places: .empty,
+                                                                  hasBattery: PerformanceSampler.hasInternalBattery))!
+    }
 
     var body: some View {
-        let layout = settings.settings.dashboard
-        // In Nexus ausgeblendet, waehrend er gewaehlt war: der erste
-        // sichtbare. `Dashboard` zieht `model.tab` beim Oeffnen nach.
-        let tab = layout.tabs.resolved(model.tab)
+        let pages = pages
+        let selected = model.pageID.flatMap(pages.page(id:)) ?? pages.pages[0]
         VStack(spacing: 0) {
-            tabBar(tabs: layout.tabs.visible, selected: tab)
+            pageBar(pages: pages.pages, selected: selected)
             Divider().opacity(0.5)
-            Group {
-                switch tab {
-                case .dashboard: DashboardGrid(cards: layout.cards, model: model, weather: weather, media: media)
-                case .media: MediaTab(model: media)
-                case .performance: PerformanceView(model: model.performance)
-                case .weather: WeatherTab(model: weather)
-                }
-            }
-            .frame(width: Self.gridWidth, height: Self.gridHeight)
-            .padding(Self.padding)
+            BentoPageView(page: selected, context: WidgetContext(dashboard: model, media: media,
+                                                                  weather: weatherModels.model(for:)))
+                .frame(width: Self.gridWidth, height: Self.gridHeight)
+                .padding(Self.padding)
         }
         .fixedSize()
+        // Ein Wechsel der Seite (auch aus `Dashboard.show(tab:)`) zieht nach,
+        // ob die Leistungs-Messung laufen soll.
+        .onChange(of: selected.id, initial: true) { _, _ in
+            model.showsPerformance = selected.widgets.contains { $0.kind.isPerformance }
+        }
     }
 
-    private func tabBar(tabs: [DashboardTab], selected: DashboardTab) -> some View {
-        HStack(spacing: 0) {
-            ForEach(tabs) { tab in
-                Button {
-                    // Caelestia: Indikator 500 ms mit leicht ueberschiessender Kurve.
-                    withAnimation(Self.motion) { model.tab = tab }
-                } label: {
-                    VStack(spacing: 4) {
-                        // Theme: icons/panel-media.png, panel-performance.png,
-                        // panel-weather.png; der Reiter Dashboard nimmt
-                        // bar-dashboard.
-                        ThemedIcon(tab.iconID, fallback: tab.symbol)
-                            .font(style.font(size: 16, weight: .medium))
-                            .symbolVariant(selected == tab ? .fill : .none)
-                            .frame(width: 18, height: 18)
-                        Text(tab.title).font(style.font(size: 12, weight: .medium))
-                    }
-                    .foregroundStyle(selected == tab ? style.accent : Color.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
-                    .overlay(alignment: .bottom) {
-                        if selected == tab {
-                            Capsule()
-                                .fill(style.accent)
-                                .frame(width: 44, height: 3)
-                                .matchedGeometryEffect(id: "indicator", in: tabIndicator)
+    /// Solange jede Seite mindestens `tabWidth` breit stehen kann, wie
+    /// bisher gleichmaessig ueber die ganze Breite verteilt; sonst rollend,
+    /// mit der gewaehlten Seite im Blick.
+    @ViewBuilder
+    private func pageBar(pages: [DashboardPage], selected: DashboardPage) -> some View {
+        if CGFloat(pages.count) * Self.tabWidth <= Self.gridWidth {
+            HStack(spacing: 0) {
+                ForEach(pages) { page in
+                    pageButton(page, selected: selected).frame(maxWidth: .infinity)
+                }
+            }
+            .frame(width: Self.gridWidth)
+            .padding(.horizontal, Self.padding)
+            .animation(Self.motion, value: pages.map(\.id))
+        } else {
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        ForEach(pages) { page in
+                            pageButton(page, selected: selected).frame(width: Self.tabWidth).id(page.id)
                         }
                     }
-                    .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
-            }
-        }
-        .frame(width: Self.gridWidth)
-        .padding(.horizontal, Self.padding)
-        // Ein- und Ausblenden in Nexus gleitet, statt zu springen.
-        .animation(Self.motion, value: tabs)
-    }
-}
-
-// MARK: - Raster
-
-/// Die Karten an ihren Plaetzen. Die Masse rechnet `DashboardGeometry`
-/// (getestet in ApolloShellCore); gesetzt werden sie mit denselben Stapeln
-/// wie vor dem Baukasten: Reihen links untereinander, die Spalte rechts.
-///
-/// Warum Stapel und kein eigenes `Layout`, das jede Karte direkt auf ihren
-/// Rahmen setzt (so war es zuerst): die Karten lagen gleich, aber innen
-/// rechnete SwiftUI anders gerundet - die Kalenderzahl "10" stand bei
-/// x = 332.74999999999994 statt 332.75 (gemessen 14.09.). Genau auf der
-/// Pixelgrenze (2x: 665,5 px) kippt das um einen ganzen Pixel. Mit denselben
-/// Stapeln wie vorher ist Caelestias Anordnung pixelgleich (Bildprobe).
-/// Deshalb bekommt die einzige flexible Karte einer Reihe auch wie frueher
-/// keine Breite: den Rest verteilt der Stapel, er ist gleich dem gerechneten.
-private struct DashboardGrid: View {
-    let cards: DashboardCards
-    let model: DashboardModel
-    let weather: WeatherModel
-    let media: MediaModel
-
-    var body: some View {
-        let placements = DashboardGeometry.placements(for: cards)
-        if placements.isEmpty {
-            DashboardEmptyGrid()
-        } else {
-            let side = placements.filter { $0.zone == .side }
-            HStack(alignment: .top, spacing: DashboardView.spacing) {
-                if placements.contains(where: { $0.zone.isRow }) {
-                    VStack(spacing: DashboardView.spacing) {
-                        row(placements.filter { $0.zone == .top })
-                        row(placements.filter { $0.zone == .bottom })
-                    }
-                }
-                ForEach(side, id: \.card.kind) { placement in
-                    card(placement)
-                        .frame(width: placement.frame.width, height: placement.frame.height)
+                .frame(width: Self.gridWidth)
+                .padding(.horizontal, Self.padding)
+                .onChange(of: selected.id) { _, id in
+                    withAnimation(Self.motion) { proxy.scrollTo(id, anchor: .center) }
                 }
             }
-            // Umordnen in Nexus gleitet sichtbar (in der Vorschau), statt zu springen.
-            .animation(DashboardView.motion, value: placements.map(\.frame))
+            .animation(Self.motion, value: pages.map(\.id))
         }
     }
 
-    @ViewBuilder
-    private func row(_ list: [DashboardPlacement]) -> some View {
-        if let height = list.first?.frame.height {
-            let flexible = list.filter { $0.card.kind.width(in: $0.zone).isFlexible }
-            HStack(spacing: DashboardView.spacing) {
-                ForEach(list, id: \.card.kind) { placement in
-                    if flexible.count == 1, flexible[0].card.kind == placement.card.kind {
-                        card(placement)
+    private func pageButton(_ page: DashboardPage, selected: DashboardPage) -> some View {
+        Button {
+            // Caelestia: Indikator 500 ms mit leicht ueberschiessender Kurve.
+            withAnimation(Self.motion) { model.pageID = page.id }
+        } label: {
+            VStack(spacing: 4) {
+                // Theme: icons/panel-media.png, panel-performance.png,
+                // panel-weather.png; die Seite Dashboard nimmt bar-dashboard.
+                // Eigene Seiten haben keine Theme-Kennung, nur ihr Symbol.
+                Group {
+                    if let template = page.template {
+                        ThemedIcon(template.tab.iconID, fallback: page.symbol)
                     } else {
-                        card(placement).frame(width: placement.frame.width)
+                        Image(systemName: page.symbol)
                     }
                 }
+                .font(style.font(size: 16, weight: .medium))
+                .symbolVariant(page.id == selected.id ? .fill : .none)
+                .frame(width: 18, height: 18)
+                Text(page.name).font(style.font(size: 12, weight: .medium)).lineLimit(1)
             }
-            .frame(height: height)
-        }
-    }
-
-    private func card(_ placement: DashboardPlacement) -> WidgetView {
-        let kind = WidgetKind(placement.card.kind)
-        var options = WidgetOptions.defaults(for: kind)
-        switch placement.card {
-        case .weather(let o): options.weather = o
-        case .user(let o): options.user = o
-        case .clock(let o): options.clock = o
-        case .calendar(let o): options.calendar = o
-        case .resources(let o): options.resources = o
-        case .media(let o): options.media = o
-        }
-        let widget = WidgetInstance(kind: kind, frame: WidgetFrame(placement.frame), options: options)
-        let context = WidgetContext(dashboard: model, media: media, weather: { _ in weather })
-        return WidgetView(widget: widget, context: context)
-    }
-}
-
-/// Alle Karten entfernt: ein ruhiger Hinweis statt einer leeren Flaeche.
-private struct DashboardEmptyGrid: View {
-    @Environment(\.shellStyle) private var style
-
-    var body: some View {
-        Card(radius: 28) {
-            VStack(spacing: 8) {
-                Image(systemName: "square.grid.2x2")
-                    .font(style.font(size: 30, weight: .light))
-                    .foregroundStyle(.tertiary)
-                Text("Keine Karten")
-                    .font(style.font(size: 15, weight: .semibold))
-                Text("In Nexus unter Dashboard lassen sich Karten hinzufügen.")
-                    .font(style.font(size: 12))
-                    .foregroundStyle(.secondary)
+            .foregroundStyle(page.id == selected.id ? style.accent : Color.secondary)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .overlay(alignment: .bottom) {
+                if page.id == selected.id {
+                    Capsule()
+                        .fill(style.accent)
+                        .frame(width: 44, height: 3)
+                        .matchedGeometryEffect(id: "indicator", in: tabIndicator)
+                }
             }
+            .contentShape(.rect)
         }
+        .buttonStyle(.plain)
     }
 }
 

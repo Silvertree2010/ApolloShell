@@ -379,7 +379,8 @@ struct NexusDashboardPreview: View {
             VStack(spacing: 6) {
                 NexusScaledPreview(scale: scale, frameSize: CGSize(width: size.width * rawScale, height: size.height * rawScale),
                                    cornerRadius: 25, accessibilityLabel: String(localized: "Vorschau des Dashboards")) {
-                    DashboardView(model: NexusDashboardPreviewModels.dashboard, weather: NexusDashboardPreviewModels.weather,
+                    DashboardView(model: NexusDashboardPreviewModels.dashboard,
+                                  weatherModels: NexusDashboardPreviewModels.weatherModels,
                                   media: NexusDashboardPreviewModels.media, settings: store)
                 }
                 Text("Vorschau mit Beispieldaten")
@@ -413,6 +414,8 @@ enum NexusDashboardPreviewModels {
         return WeatherModel.preview(report: report, fetchedAt: now, now: now)
     }()
 
+    static let weatherModels = WeatherModels.preview(weather)
+
     static let media: MediaModel = {
         let playing = MediaNowPlaying(title: String(localized: "Beispieltitel"), artist: String(localized: "Beispielband"),
                                       album: String(localized: "Beispielalbum"),
@@ -425,7 +428,7 @@ enum NexusDashboardPreviewModels {
     /// Das ganze Dashboard (Reiter und Raster), einmal gemessen - wie
     /// `Dashboard` es fuer sein Fenster tut. Haengt nicht an der Anordnung.
     static let size: CGSize = NSHostingView(rootView: DashboardView(
-        model: dashboard, weather: weather, media: media, settings: .preview()
+        model: dashboard, weatherModels: weatherModels, media: media, settings: .preview()
     ).shellTheme()).fittingSize
 }
 

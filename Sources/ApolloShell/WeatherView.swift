@@ -96,56 +96,6 @@ struct SmallWeatherCard: View {
     }
 }
 
-/// Reiter "Wetter", fuellt die Inhaltsflaeche des Dashboards (839 x 392):
-/// oben die aktuelle Lage mit den Details (Caelestia: Kopfzeile, grosse
-/// Info-Zeile und DetailCards in einer Karte), darunter die Stundenleiste,
-/// unten sieben Tage nebeneinander wie bei Caelestia.
-struct WeatherTab: View {
-    let model: WeatherModel
-    @Environment(\.shellStyle) private var style
-
-    private static let spacing: CGFloat = 12
-    private static let heroHeight: CGFloat = 116
-    private static let hourlyHeight: CGFloat = 108
-
-    var body: some View {
-        TimelineView(.everyMinute) { context in
-            let now = model.fixedNow ?? context.date
-            if let report = model.report {
-                VStack(spacing: Self.spacing) {
-                    WeatherHero(report: report, model: model, now: now,
-                             stand: model.standText(now: now))
-                        .frame(height: Self.heroHeight)
-                    WeatherHourly(slots: report.hourlyStrip(now: now), calendar: report.calendar)
-                        .frame(height: Self.hourlyHeight)
-                    WeatherDaily(days: report.upcomingDays(now: now), now: now, calendar: report.calendar)
-                }
-            } else if model.location == nil {
-                VStack(spacing: 10) {
-                    Image(systemName: "location.slash").font(style.font(size: 36, weight: .light)).foregroundStyle(.secondary)
-                    Text("Ort in Nexus festlegen")
-                        .font(style.font(size: 15, weight: .semibold))
-                    Text("Ohne Favoriten gibt es kein Wetter zum Anzeigen.")
-                        .font(style.font(size: 12))
-                        .foregroundStyle(.secondary)
-                    Button("Nexus öffnen") { model.onOpenNexus() }
-                        .padding(.top, 2)
-                }
-            } else {
-                VStack(spacing: 10) {
-                    Image(systemName: "cloud.sun").font(style.font(size: 36, weight: .light)).foregroundStyle(.secondary)
-                    Text(model.lastAttemptFailed ? String(localized: "Keine Wetterdaten") : String(localized: "Wetter wird geladen …"))
-                        .font(style.font(size: 15, weight: .semibold))
-                    // Auch ohne Daten umschaltbar - vielleicht klappt es woanders.
-                    WeatherPlacePicker(favorites: model.favorites, selected: model.location, select: model.select)
-                        .padding(.top, 4)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
 // MARK: - Bausteine
 
 /// Wettersymbol in Mehrfarben (Sonne gelb, Regen blau). Der Platzhalter

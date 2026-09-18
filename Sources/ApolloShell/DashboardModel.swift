@@ -10,10 +10,14 @@ import Observation
 @MainActor
 @Observable
 final class DashboardModel {
-    var tab: DashboardTab = .dashboard {
+    /// Die offene Seite; `nil`: die erste (Migration/Vorgabe).
+    var pageID: DashboardPage.ID?
+    /// Ob die offene Seite ein Leistungs-Widget zeigt - `Dashboard` setzt es
+    /// beim Oeffnen und bei jedem Seitenwechsel.
+    var showsPerformance = false {
         didSet { syncPerformance() }
     }
-    /// Reiter "Leistung"; misst nur bei offenem Dashboard und sichtbarem Reiter.
+    /// Misst nur bei offenem Dashboard und einer Seite mit Leistungs-Widget.
     let performance = PerformanceModel()
     private(set) var now = Date()
     private(set) var cpu: Double = 0
@@ -81,7 +85,7 @@ final class DashboardModel {
     /// Modell statt onAppear/onDisappear, weil das Fenster beim Schliessen
     /// nur ausgeblendet wird - die Ansicht verschwindet dabei nicht.
     private func syncPerformance() {
-        if isOpen && tab == .performance {
+        if isOpen && showsPerformance {
             performance.start()
         } else {
             performance.stop()

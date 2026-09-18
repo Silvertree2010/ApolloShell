@@ -1,50 +1,13 @@
 import ApolloShellCore
 import SwiftUI
 
-/// Reiter "Leistung" wie Caelestias Performance-Tab
-/// (modules/dashboard/Performance.qml): links oben CPU und GPU als grosse
-/// Karten, darunter Speicher, Netzwerk, Arbeitsspeicher; rechts der Akku
-/// als Tank ueber die ganze Hoehe.
-///
-/// Caelestias Masse (Heldenkarte 400 breit, Netzwerk 390 x 220, Akku 150)
-/// passen nicht in die 839 Punkte des Dashboards: alles mal 0,858, die
-/// Verhaeltnisse bleiben (2 x 343 + 129 + 2 x 12 = 839). Temperaturen gibt
-/// es auf Apple Silicon nur ueber SMC/private Schnittstellen - wo Caelestia
-/// die Temperatur zeigt, steht hier der Verlauf der letzten 30 Sekunden.
-struct PerformanceView: View {
-    let model: PerformanceModel
-
+/// Die Widgets der Seite "Leistung" (CPU, GPU, Speicher, Netzwerk,
+/// Arbeitsspeicher, Akku) zeichnet `WidgetView` einzeln, an ihren Rahmen aus
+/// `PageTemplate.performance` (`DashboardPagesDefaults.swift`). Hier bleibt
+/// nur die gemeinsame Kurve fuer ihre Animationen.
+enum PerformanceAnimation {
     /// Caelestias Standardkurve: 500 ms, leicht ueberschiessend.
-    static let animation = Animation.shellSpatial
-    static let batteryWidth: CGFloat = 129  // 150 x 0,858
-    static let networkWidth: CGFloat = 335  // 390 x 0,858
-    static let bottomHeight: CGFloat = 189  // 220 x 0,858
-
-    private let spacing = DashboardView.spacing
-
-    var body: some View {
-        HStack(spacing: spacing) {
-            VStack(spacing: spacing) {
-                HStack(spacing: spacing) {
-                    HeroCard(symbol: "cpu", iconID: "panel-cpu", title: "CPU", subtitle: model.cpuSubtitle,
-                             value: model.cpu, history: model.cpuHistory)
-                    HeroCard(symbol: "square.stack.3d.up", title: "GPU", subtitle: model.gpuSubtitle,
-                             value: model.gpu, history: model.gpuHistory)
-                }
-                HStack(spacing: spacing) {
-                    StorageCard(usage: model.storage)
-                    NetworkCard(model: model).frame(width: Self.networkWidth)
-                    MemoryCard(usage: model.memory)
-                }
-                .frame(height: Self.bottomHeight)
-            }
-            if let battery = model.battery {
-                BatteryTank(state: battery, minutes: model.batteryMinutes)
-                    .frame(width: Self.batteryWidth)
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
-            }
-        }
-    }
+    static let value = Animation.shellSpatial
 }
 
 // MARK: - CPU/GPU
@@ -116,7 +79,7 @@ private struct UsageRing: View {
                 .trim(from: 0, to: min(max(value, 0), 1))
                 .stroke(style.accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .animation(PerformanceView.animation, value: value)
+                .animation(PerformanceAnimation.value, value: value)
             ThemedIcon(iconID.isEmpty ? symbol : iconID, fallback: symbol)
                 .font(style.font(size: 17, weight: .medium))
                 .frame(width: 19, height: 19)
@@ -140,7 +103,7 @@ private struct UsageBadge: View {
                 .monospacedDigit()
                 .foregroundStyle(style.onAccent)
                 .contentTransition(.numericText(value: usage))
-                .animation(PerformanceView.animation, value: usage)
+                .animation(PerformanceAnimation.value, value: usage)
         }
         .frame(width: 92, height: 92)
     }
@@ -187,7 +150,7 @@ private struct ArcGauge<Label: View>: View {
             arc(to: 1).stroke(Color.primary.opacity(0.10), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
             arc(to: value)
                 .stroke(style.accent, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                .animation(PerformanceView.animation, value: value)
+                .animation(PerformanceAnimation.value, value: value)
             label()
             Text(caption)
                 .font(style.font(size: 11, weight: .medium))
@@ -214,7 +177,7 @@ private struct PercentLabel: View {
             .font(.system(size: 28, weight: .semibold, design: .rounded))
             .monospacedDigit()
             .contentTransition(.numericText(value: value ?? 0))
-            .animation(PerformanceView.animation, value: value)
+            .animation(PerformanceAnimation.value, value: value)
     }
 }
 
@@ -375,7 +338,7 @@ private struct SparklineArea: View {
         }
         // Der Strich soll oben am Maximum nicht halb abgeschnitten wirken.
         .padding(.top, 1)
-        .animation(PerformanceView.animation, value: scale)
+        .animation(PerformanceAnimation.value, value: scale)
     }
 }
 
@@ -435,7 +398,7 @@ struct BatteryTank: View {
                 TankContents(state: state, minutes: minutes, inverted: true)
                     .mask(alignment: .bottom) { Rectangle().frame(height: fill) }
             }
-            .animation(PerformanceView.animation, value: state.level)
+            .animation(PerformanceAnimation.value, value: state.level)
         }
         .clipShape(.rect(cornerRadius: style.cardRadius(14)))
         .accessibilityElement(children: .ignore)

@@ -12,65 +12,88 @@ import SwiftUI
 @MainActor
 final class Dashboard {
     private let model = DashboardModel()
-    /// Eigenes Modell: laedt nur beim Oeffnen, wenn die Daten aelter als
-    /// 15 min sind, und alle 30 min, solange offen.
-    private let weather: WeatherModel
+    /// Ein `WeatherModel` je Wetter-Widget: laedt nur beim Oeffnen, wenn die
+    /// Daten aelter als 15 min sind, und alle 30 min, solange offen.
+    private let weatherModels: WeatherModels
     /// Now Playing: der Adapter-Prozess laeuft nur, solange offen.
     private let media = MediaModel()
     private let settings: ShellSettingsStore
     private let drawer: EdgeDrawer<DashboardView>
 
-    /// `settings`: Wetteranbieter (Nexus > Anbieter), Reiter und Karten
-    /// (Nexus > Dashboard).
+    /// `settings`: Wetteranbieter (Nexus > Anbieter), Seiten und Widgets
+    /// (Nexus > Dashboard, `settings.dashboardPages`).
     init(settings: ShellSettingsStore) {
         self.settings = settings
-        weather = WeatherModel(settings: settings)
-        let view = DashboardView(model: model, weather: weather, media: media, settings: settings)
+        // Umzug beim allerersten Zugriff auf die Seiten - vor allem, was sie
+        // liest (Groessenmessung gleich darunter eingeschlossen).
+        if settings.settings.dashboardPages == nil {
+            let places = WeatherFavorites.load(from: try? Data(contentsOf: ShellFiles.live.weather))
+            settings.settings.dashboardPages = DashboardPages.migrated(
+                from: settings.settings.dashboard, places: places, hasBattery: PerformanceSampler.hasInternalBattery
+            )
+        }
+        weatherModels = WeatherModels(settings: settings)
+        let view = DashboardView(model: model, weatherModels: weatherModels, media: media, settings: settings)
         // Groesse aus dem Inhalt (feste Karten-Masse), vor dem ersten Oeffnen.
-        // Haengt nicht an Reitern und Karten - das Raster ist immer 839 x 392.
+        // Haengt nicht an Seiten und Widgets - das Raster ist immer 839 x 392.
         let size = NSHostingView(rootView: view.shellTheme()).fittingSize
         drawer = EdgeDrawer(edge: .top, size: size, cornerRadius: 25, rootView: view)
         drawer.opensOnHover = true
-        drawer.onOpen = { [model, weather, media, settings] in
-            let layout = settings.settings.dashboard
-            // Ein inzwischen ausgeblendeter Reiter bleibt nicht gewaehlt.
-            // Nexus und Dashboard sind nie zugleich offen (das Dashboard
-            // schliesst, sobald ein anderes Fenster den Fokus hat) - beim
-            // Oeffnen nachzuziehen genuegt.
-            model.tab = layout.tabs.resolved(model.tab)
+        drawer.onOpen = { [model, weatherModels, media, settings] in
+            let page = Dashboard.resolvedPage(model: model, settings: settings)
+            model.pageID = page.id
+            model.showsPerformance = page.widgets.contains { $0.kind.isPerformance }
             model.start()
-            // Ohne Karte und Reiter kein Abruf und kein Adapter-Prozess.
-            if layout.usesWeather { weather.start() }
-            if layout.usesMedia { media.start() }
+            let pages = settings.settings.dashboardPages
+            // Ohne Widget kein Abruf und kein Adapter-Prozess.
+            if pages?.usesWeather == true { weatherModels.start(for: page.widgets.filter { $0.kind.usesPlaces }) }
+            if pages?.usesMedia == true { media.start() }
         }
-        drawer.onClose = { [model, weather, media] in
+        drawer.onClose = { [model, weatherModels, media] in
             model.stop()
-            weather.stop()
+            weatherModels.stop()
             media.stop()
         }
+    }
+
+    /// Die Seite, die beim Oeffnen gezeigt wird: `model.pageID`, falls es sie
+    /// noch gibt, sonst die erste.
+    private static func resolvedPage(model: DashboardModel, settings: ShellSettingsStore) -> DashboardPage {
+        let pages = settings.settings.dashboardPages
+        return model.pageID.flatMap { pages?.page(id: $0) } ?? pages?.pages.first
+            ?? DashboardPages.defaultPages(places: .empty, hasBattery: PerformanceSampler.hasInternalBattery)[0]
     }
 
     /// Nexus bei Wetter oeffnen, wenn es (noch) keinen Ort gibt - vom
     /// Aufrufer verdrahtet (siehe `AppDelegate`).
     func onOpenNexus(_ action: @escaping () -> Void) {
-        weather.onOpenNexus = action
+        weatherModels.onOpenNexus = action
     }
 
     func toggle() {
         drawer.toggle()
     }
 
-    /// Baustein der Leiste (Medien, Wetter, CPU, Akku): gleich beim
-    /// passenden Reiter - oder, wenn der ausgeblendet ist, beim ersten
-    /// sichtbaren. Ist es dort schon offen, zu - wie beim Dashboard-Symbol
-    /// ein zweiter Klick.
+    /// Baustein der Leiste (Medien, Wetter, CPU, Akku): gleich bei der
+    /// passenden Seite - oder, wenn es keine mehr gibt, bei der ersten mit
+    /// einem passenden Widget, sonst der ersten ueberhaupt. Ist sie schon
+    /// offen, zu - wie beim Dashboard-Symbol ein zweiter Klick.
     func show(tab: DashboardTab) {
-        let tab = settings.settings.dashboard.tabs.resolved(tab)
-        if drawer.isOpen, model.tab == tab {
+        guard let pages = settings.settings.dashboardPages else { return }
+        let kinds: [WidgetKind] = switch tab {
+        case .dashboard: []
+        case .media: [.mediaPlayer, .media]
+        case .performance: [.performanceCPU, .performanceGPU, .performanceStorage, .performanceNetwork,
+                            .performanceMemory, .performanceBattery]
+        case .weather: [.weatherHero, .weatherHourly, .weatherDaily, .weather]
+        }
+        let page = pages.page(for: PageTemplate(tab), showing: kinds)
+        if drawer.isOpen, model.pageID == page.id {
             drawer.close()
             return
         }
-        model.tab = tab
+        model.pageID = page.id
+        model.showsPerformance = page.widgets.contains { $0.kind.isPerformance }
         drawer.open()
     }
 

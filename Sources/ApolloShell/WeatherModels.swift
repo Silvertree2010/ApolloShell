@@ -14,6 +14,9 @@ final class WeatherModels {
     /// `nil`: echte Modelle (`.widget`-Quelle). Gesetzt: dasselbe feste
     /// Modell fuer jedes Widget (Bildproben, Vorschau in Nexus).
     private let fixed: WeatherModel?
+    /// Oeffnet Nexus bei Wetter ohne Ort - an jedes neu angelegte Modell
+    /// weitergereicht (vom Aufrufer gesetzt, siehe `Dashboard`).
+    var onOpenNexus: () -> Void = {}
 
     init(settings: ShellSettingsStore) {
         self.settings = settings
@@ -54,6 +57,7 @@ final class WeatherModels {
             }
         )
         let model = WeatherModel(settings: settings, places: source)
+        model.onOpenNexus = { [weak self] in self?.onOpenNexus() }
         models[id] = model
         return model
     }

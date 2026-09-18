@@ -94,6 +94,18 @@ enum PerformanceSampler {
         return nil
     }
 
+    /// Eingebauter Akku vorhanden oder nicht - fuer die Seite "Leistung"
+    /// (Akku rechts oder nicht) ohne den ganzen Zustand zu lesen.
+    static var hasInternalBattery: Bool {
+        let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let sources = IOPSCopyPowerSourcesList(info).takeRetainedValue() as [CFTypeRef]
+        return sources.contains { source in
+            guard let d = IOPSGetPowerSourceDescription(info, source)?.takeUnretainedValue() as? [String: Any]
+            else { return false }
+            return (d[kIOPSTypeKey] as? String) == kIOPSInternalBatteryType
+        }
+    }
+
     /// Ruft `read` fuer jeden Grafikbeschleuniger auf (Apple Silicon: einer).
     private static func accelerators<T>(_ read: (io_registry_entry_t) -> T?) -> [T] {
         var iterator: io_iterator_t = 0

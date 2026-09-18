@@ -1,6 +1,10 @@
 /* DashboardView.swift */
 "Keine Karten" = "No Cards";
 "In Nexus unter Dashboard lassen sich Karten hinzufügen." = "Cards can be added in Nexus under Dashboard.";
+
+/* BentoPageView.swift */
+"Leere Seite" = "Empty page";
+"In Nexus bearbeiten" = "Edit in Nexus";
 "KW" = "Wk";
 "Kalenderwoche %lld" = "Calendar Week %lld";
 "Arbeitsspeicher" = "Memory";
