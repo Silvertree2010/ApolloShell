@@ -238,6 +238,15 @@ struct ShellStyle: Equatable {
     /// Darf Liquid Glass benutzt werden?
     var glass: Bool { value(.glass) ?? true }
 
+    /// Sollen Bilder, die ein Theme fuer Symbole mitbringt, eingefaerbt
+    /// werden?
+    ///
+    /// `--apollo-icon-style`: `monochrome` faerbt sie wie das Zeichen, das
+    /// sie ersetzen (also nach `--apollo-bar-icon-color` und Verwandten);
+    /// `colorful` und die Vorgabe `auto` zeigen sie so, wie sie gemalt sind.
+    /// Die Vorgabe aendert damit an bestehenden Sets nichts.
+    var tintsThemeIcons: Bool { value(.iconStyle) == "monochrome" }
+
     /// Wie schnell Bewegungen laufen; 1 ist die eingebaute Geschwindigkeit.
     var animationSpeed: Double { value(.animationSpeed) ?? 1 }
 

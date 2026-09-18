@@ -26,7 +26,10 @@ struct ThemedIcon: View {
 
     var body: some View {
         if let url = style.iconFile(id), let image = ThemedIconCache.image(at: url) {
+            // Als Schablone nur, wenn das Theme es verlangt: sonst verloere
+            // ein mehrfarbiges Set seine Farben.
             Image(nsImage: image)
+                .renderingMode(style.tintsThemeIcons ? .template : .original)
                 .resizable()
                 .scaledToFit()
         } else if !fallback.isEmpty {

@@ -271,7 +271,10 @@ Nightfall/
 ```
 
 What is not in there stays the built-in SF Symbol, so a theme can replace one
-icon or all of them. File names are matched case-insensitively, a name this
+icon or all of them. By default an image is shown exactly as it was drawn,
+colours and all. Set `--apollo-icon-style: monochrome` and the images are
+tinted like the symbols they replace instead, which is what a single-colour
+set usually wants; `auto` and `colorful` leave them alone. File names are matched case-insensitively, a name this
 version does not know is ignored and listed in Nexus, and the same rules as
 for every other image apply: inside the theme folder, a supported type, and
 within the size limit.
