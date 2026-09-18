@@ -1,5 +1,4 @@
 import AppKit
-import Carbon.HIToolbox
 import ApolloShellCore
 import SwiftUI
 
@@ -43,13 +42,15 @@ final class StatusPopout {
         Sidebar.width + StatusPopoutKind.allCases.map(StatusPopoutContent.width).max()! + 24
     }
 
-    private let escapeKey = StatusPopoutEscapeKey()
+    /// Esc, solange das Popout offen ist. Jede Anmeldung bekommt in
+    /// `GlobalHotKey` eine eigene Kennung - bei mehreren Leisten landet der
+    /// Druck so beim offenen Popout und nicht bei dem, das zuletzt gebaut wurde.
+    private var escapeKey: GlobalHotKey?
     private var globalMonitor: Any?
     private var localMonitor: Any?
     private var generation = 0
 
     init() {
-        escapeKey.onPress = { [weak self] in self?.close() }
         model.onIconClick = { [weak self] kind in self?.iconClicked(kind) }
         model.onOpenedSettings = { [weak self] in self?.close() }
     }
@@ -87,7 +88,7 @@ final class StatusPopout {
         withTransaction(instant) { model.prepare(kind, anchorY: anchorY) }
         withAnimation(StatusPopoutMotion.spatial) { model.show(kind, anchorY: anchorY) }
         installMonitors()
-        escapeKey.register()
+        registerEscape()
     }
 
     func close() {
@@ -96,11 +97,22 @@ final class StatusPopout {
         let current = generation
         withAnimation(StatusPopoutMotion.spatial) { model.hide() }
         removeMonitors()
-        escapeKey.unregister()
+        escapeKey?.unregister()
+        escapeKey = nil
         // Erst nach der Schliessbewegung schmal; oeffnet man vorher neu, bleibt es breit.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             guard let self, self.generation == current else { return }
             self.setExpanded(false)
+        }
+    }
+
+    /// Esc gehoert dem Popout nur, solange es offen ist - dauerhaft belegt
+    /// wuerde es jeder App fehlen. Hat eine andere App Esc schon global
+    /// belegt, schliessen Klick daneben und das Symbol weiterhin.
+    private func registerEscape() {
+        guard escapeKey == nil else { return }
+        if case .success(let key) = GlobalHotKey.register(HotKey(keyCode: HotKeyKey.escape), action: { [weak self] in self?.close() }) {
+            escapeKey = key
         }
     }
 
@@ -140,58 +152,5 @@ final class StatusPopout {
         // Sonst, auch im durchsichtigen Teil des breiten Fensters: zu.
         let onIcon = model.iconFrames.values.contains { screenRect($0)?.contains(point) == true }
         if !onIcon { close() }
-    }
-}
-
-/// Esc als Carbon-Hotkey, nur solange das Popout offen ist.
-///
-/// Warum nicht `GlobalHotKey`: der meldet sich nie wieder ab, und ein
-/// dauerhaft belegtes Esc wuerde es jeder App wegnehmen. Hier: Handler
-/// einmal, Hotkey bei `register()` an, bei `unregister()` wieder frei.
-/// Braucht wie alle Carbon-Hotkeys keine Bedienungshilfen-Freigabe.
-@MainActor
-final class StatusPopoutEscapeKey {
-    var onPress: () -> Void = {}
-
-    private static let signature = OSType(0x4C_4E_50_4F) // "LNPO"
-    private static let id: UInt32 = 1
-    private var handlerRef: EventHandlerRef?
-    private var hotKeyRef: EventHotKeyRef?
-
-    init() {
-        var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
-        let context = Unmanaged.passUnretained(self).toOpaque()
-        InstallEventHandler(GetApplicationEventTarget(), { _, event, context in
-            guard let event, let context else { return OSStatus(eventNotHandledErr) }
-            var pressed = EventHotKeyID()
-            let status = GetEventParameter(
-                event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID),
-                nil, MemoryLayout<EventHotKeyID>.size, nil, &pressed
-            )
-            guard status == noErr, pressed.signature == StatusPopoutEscapeKey.signature,
-                  pressed.id == StatusPopoutEscapeKey.id
-            else { return OSStatus(eventNotHandledErr) }
-            // Carbon liefert Hotkeys auf dem Main-Thread.
-            let key = Unmanaged<StatusPopoutEscapeKey>.fromOpaque(context).takeUnretainedValue()
-            MainActor.assumeIsolated { key.onPress() }
-            return noErr
-        }, 1, &spec, context, &handlerRef)
-    }
-
-    /// `true`, wenn Esc jetzt belegt ist.
-    @discardableResult
-    func register() -> Bool {
-        guard hotKeyRef == nil else { return true }
-        let status = RegisterEventHotKey(
-            UInt32(kVK_Escape), 0, EventHotKeyID(signature: Self.signature, id: Self.id),
-            GetApplicationEventTarget(), 0, &hotKeyRef
-        )
-        return status == noErr
-    }
-
-    func unregister() {
-        guard let hotKeyRef else { return }
-        UnregisterEventHotKey(hotKeyRef)
-        self.hotKeyRef = nil
     }
 }
