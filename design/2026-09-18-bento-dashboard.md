@@ -1,6 +1,6 @@
 # Bento dashboard (0.2.0)
 
-Status: design agreed with Andrin on 2026-09-18, not built yet.
+Status: design agreed with Andrin on 2026-09-18. Core and rendering built (parts 1 and 2); edit mode and Nexus open.
 Branch: `release/0.2` (local only, never pushed; merged into `main` when 0.2.0
 is done).
 
@@ -71,11 +71,11 @@ Performance widgets. With a battery the left block is 698 wide, without it
 
 | ID | Widget | Sizes |
 | --- | --- | --- |
-| `performance.cpu` | CPU | flex 343…414 × 191 |
-| `performance.gpu` | GPU | flex 343…414 × 191 |
-| `performance.storage` | Storage | flex 169…240 × 189 |
+| `performance.cpu` | CPU | flex 343…413.5 × 191 |
+| `performance.gpu` | GPU | flex 343…413.5 × 191 |
+| `performance.storage` | Storage | flex 169.5…240 × 189 |
 | `performance.network` | Network | 335 × 189 |
-| `performance.memory` | Memory | flex 169…240 × 189 |
+| `performance.memory` | Memory | flex 169.5…240 × 189 |
 | `performance.battery` | Battery | 129 × 392 |
 
 Weather page and media page.
@@ -87,8 +87,10 @@ Weather page and media page.
 | `weather.daily` | Next days | 839 × 144 |
 | `media.player` | Player | 839 × 392 |
 
-All 16 have the home surface `dashboard`. Half-point results (169.5) are
-rounded to whole points; the difference is invisible.
+All 16 have the home surface `dashboard`. Half-point widths (169.5, 413.5)
+stay as they are: rounding them moved a card by one pixel in the render
+comparison, and the presets must be identical. Frames the user makes by
+dragging are whole points.
 
 ## 1. Data model (`ApolloShellCore`)
 
@@ -100,9 +102,11 @@ rounded to whole points; the difference is invisible.
   `DashboardUserOptions`, `DashboardClockOptions`,
   `DashboardCalendarOptions`, `DashboardResourcesOptions`,
   `DashboardMediaOptions`. New fields: clock `timeZone: String?` (nil =
-  system); weather `places: [WeatherLocation]` and `selected: Int`.
-- `WidgetInstance`: `id: UUID`, `kind`, `frame` (x, y, width, height in whole
-  reference points), `options`.
+  system); weather widgets `places: WeatherFavorites` (same shape as
+  weather.json: list plus selected place).
+- `WidgetInstance`: `id: UUID`, `kind`, `frame` (x, y, width, height in
+  reference points; whole points except the half-point preset widths),
+  `options`.
 - `DashboardPage`: `id: UUID`, `name`, `symbol` (SF Symbol name),
   `template: PageTemplate?` (`overview`, `media`, `performance`, `weather`;
   nil for own pages), `widgets: [WidgetInstance]`.
@@ -223,6 +227,13 @@ non-activating dashboard panel, and the dashboard covering the top of Nexus.
   running copy is not disturbed.
 - Live tests only together with Andrin; his running app is never quit without
   his yes.
+- Result of part 2 (2026-09-18): media, performance and weather pages render
+  identical to the 0.1 dashboard in light and dark. The overview differs in
+  two glyphs only ("Th" and "10" in the calendar's Thursday column move one
+  device pixel, half a point): the column's centre is exactly 201.5 pt, a
+  half-pixel boundary, and the old stack layout and the new frames round it
+  to different sides (the effect the old `DashboardGrid` comment describes).
+  Accepted as invisible.
 
 ## Build order
 
