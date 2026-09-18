@@ -26,7 +26,7 @@ final class NexusPinnedModel {
     @ObservationIgnored private var byID: [String: AppEntry] = [:]
     @ObservationIgnored private var icons: [String: NSImage] = [:]
     @ObservationIgnored private let matcher = FuzzyMatcher()
-    @ObservationIgnored private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "nexus")
+    @ObservationIgnored private let log = Logger(category: "nexus")
 
     /// `url == nil`: nur im Speicher.
     init(url: URL?) {

@@ -32,7 +32,7 @@ final class SessionMenu {
     )
 
     private let model = SessionMenuModel()
-    private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "session")
+    private let log = Logger(category: "session")
     /// Rechts mittig, gleitet wie die anderen Kantenfenster aus der Kante
     /// ("DefaultSpatial", 500 ms), vor abgedunkeltem Bildschirm.
     private let drawer: EdgeDrawer<SessionMenuView>

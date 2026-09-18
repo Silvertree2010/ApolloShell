@@ -9,7 +9,7 @@ import os
 /// nachgeschlagen - fehlen sie in einem kuenftigen macOS, bleibt der Knopf
 /// aus, statt dass die App beim Start abstuerzt.
 
-private let systemLog = Logger(subsystem: AppIdentity.logSubsystem, category: "utilities")
+private let systemLog = Logger(category: "utilities")
 
 // MARK: - Dunkelmodus
 

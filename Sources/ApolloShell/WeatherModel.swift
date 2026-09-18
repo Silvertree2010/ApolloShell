@@ -50,7 +50,7 @@ final class WeatherModel {
     /// Fehlschlaege in Folge; bestimmt, wann es nochmal versucht wird.
     @ObservationIgnored private var failures = 0
     @ObservationIgnored private var retryTimer: Timer?
-    @ObservationIgnored private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "weather")
+    @ObservationIgnored private let log = Logger(category: "weather")
 
     /// Eigene fluechtige Sitzung: kein Platten-Cache (die Daten sollen frisch
     /// sein, und alte haelt das Modell ohnehin), kurze Wartezeit statt der

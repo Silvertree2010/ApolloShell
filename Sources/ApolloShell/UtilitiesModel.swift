@@ -87,7 +87,7 @@ final class UtilitiesModel {
     @ObservationIgnored private var nightShiftLookedUp = false
     /// Haelt die Pipette am Leben, bis sie eine Farbe liefert.
     @ObservationIgnored private var colorSampler: NSColorSampler?
-    @ObservationIgnored private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "utilities")
+    @ObservationIgnored private let log = Logger(category: "utilities")
 
     /// Vom Panel: erst zu, dann `then` (siehe `EdgeDrawer.close(then:)`).
     @ObservationIgnored var closePanel: (_ then: @escaping @MainActor () -> Void) -> Void = { $0() }

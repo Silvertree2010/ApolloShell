@@ -33,7 +33,7 @@ final class SpacesModel {
 
     @ObservationIgnored private let reader: SpaceReader?
     @ObservationIgnored private var timer: Timer?
-    @ObservationIgnored private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "spaces")
+    @ObservationIgnored private let log = Logger(category: "spaces")
 
     init() {
         reader = SpaceReader()

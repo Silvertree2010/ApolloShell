@@ -25,7 +25,7 @@ final class FullscreenMonitor {
     private let onChange: (Set<CGDirectDisplayID>) -> Void
     private var fullscreen: Set<CGDirectDisplayID> = []
     private var pending: [DispatchWorkItem] = []
-    private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "fullscreen")
+    private let log = Logger(category: "fullscreen")
 
     /// `onChange` bekommt die Bildschirme, auf denen Vollbild ist - bei
     /// jeder Aenderung, nie doppelt.

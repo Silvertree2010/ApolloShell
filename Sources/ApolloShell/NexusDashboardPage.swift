@@ -32,7 +32,7 @@ final class NexusWeatherModel {
     @ObservationIgnored private let url: URL?
     @ObservationIgnored private let live: Bool
     @ObservationIgnored private var task: Task<Void, Never>?
-    @ObservationIgnored private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "nexus")
+    @ObservationIgnored private let log = Logger(category: "nexus")
     /// Wie beim Wetter: kein Platten-Cache, kurze Wartezeit, ohne Netz sofort Fehler.
     @ObservationIgnored private let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral

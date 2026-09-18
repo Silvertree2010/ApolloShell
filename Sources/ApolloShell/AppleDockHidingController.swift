@@ -21,7 +21,7 @@ final class AppleDockHidingController {
 
     private let fileURL: URL?
     private var settingsObservation: Task<Void, Never>?
-    private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "appleDockHiding")
+    private let log = Logger(category: "appleDockHiding")
 
     init(settings: ShellSettingsStore, fileURL: URL? = ShellFiles.live.appleDock) {
         self.fileURL = fileURL

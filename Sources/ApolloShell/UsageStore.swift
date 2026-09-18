@@ -8,7 +8,7 @@ import os
 final class UsageStore {
     private(set) var stats: UsageStats
     private let url: URL
-    private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "usage")
+    private let log = Logger(category: "usage")
 
     init(url: URL = ShellFiles.live.usage) {
         self.url = url

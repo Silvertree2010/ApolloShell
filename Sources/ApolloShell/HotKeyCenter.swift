@@ -41,7 +41,7 @@ final class HotKeyCenter {
     @ObservationIgnored private var observation: Task<Void, Never>?
     @ObservationIgnored private var monitor: Any?
     @ObservationIgnored private var resignObserver: NSObjectProtocol?
-    @ObservationIgnored private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "ApolloShell", category: "hotkeys")
+    @ObservationIgnored private let log = Logger(category: "hotkeys")
 
     init(store: ShellSettingsStore) {
         self.store = store

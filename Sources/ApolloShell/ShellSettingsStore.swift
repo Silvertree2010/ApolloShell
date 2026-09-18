@@ -55,7 +55,7 @@ final class ShellSettingsStore {
     private(set) var saveFailed = false
 
     @ObservationIgnored private let url: URL?
-    @ObservationIgnored private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "settings")
+    @ObservationIgnored private let log = Logger(category: "settings")
 
     /// `url == nil`: nur im Speicher, schreibt nie.
     init(url: URL?) {

@@ -7,7 +7,7 @@ import os
 /// also bevor Fenster, Tastenkuerzel oder Apples Dock angefasst werden.
 @MainActor
 enum SingleInstanceGuard {
-    private static let log = Logger(subsystem: AppIdentity.logSubsystem, category: "app")
+    private static let log = Logger(category: "app")
 
     /// `true`: Eine andere Instanz laeuft weiter, diese hier soll enden.
     static func otherInstanceKeepsRunning() -> Bool {

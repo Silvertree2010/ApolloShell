@@ -26,7 +26,7 @@ enum LauncherApp {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "ApolloShell", category: "app")
+    private let log = Logger(category: "app")
     private var controller: LauncherController?
     private var sidebar: Sidebar?
     private var windowGuard: WindowGuard?

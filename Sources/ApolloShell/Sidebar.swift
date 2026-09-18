@@ -34,7 +34,7 @@ final class Sidebar {
     }
 
     private let settings: ShellSettingsStore
-    private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "sidebar")
+    private let log = Logger(category: "sidebar")
 
     /// Klick auf das Ausschalt-Symbol unten (oeffnet das Sitzungsmenue).
     var onPower: () -> Void = {}

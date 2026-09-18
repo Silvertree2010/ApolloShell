@@ -14,7 +14,7 @@ enum Subprocess {
         var text: String { String(decoding: output, as: UTF8.self) }
     }
 
-    private static let log = Logger(subsystem: AppIdentity.logSubsystem, category: "subprocess")
+    private static let log = Logger(category: "subprocess")
 
     /// Laufende Prozesse aus `launch` und `stream`, bis sie enden - so muss
     /// sie niemand sonst festhalten.

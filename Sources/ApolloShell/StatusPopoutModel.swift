@@ -79,7 +79,7 @@ final class StatusPopoutModel {
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var ticks = 0
     @ObservationIgnored private let bluetoothReader = BluetoothState()
-    @ObservationIgnored private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "statuspopout")
+    @ObservationIgnored private let log = Logger(category: "statuspopout")
 
     init() {
         live = true

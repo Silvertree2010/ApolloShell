@@ -29,7 +29,7 @@ final class WindowGuard {
     private static let trustPollInterval: TimeInterval = 2
 
     private let worker: WindowGuardWorker
-    private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "windowguard")
+    private let log = Logger(category: "windowguard")
     private var trusted = false
     /// Schluessel der Bildschirme, auf denen eine Leiste steht - nur dort
     /// wird der Streifen freigehalten. Meldet der Verwalter der Leisten.
@@ -205,7 +205,7 @@ final class WindowGuardWorker: @unchecked Sendable {
     static let messagingTimeout: Float = 1
 
     private let queue = DispatchQueue(label: AppIdentity.scoped("windowguard"))
-    private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "windowguard")
+    private let log = Logger(category: "windowguard")
     private let ownPID = ProcessInfo.processInfo.processIdentifier
 
     // Nur auf `queue` anfassen.

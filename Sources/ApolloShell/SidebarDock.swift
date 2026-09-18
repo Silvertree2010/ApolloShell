@@ -60,7 +60,7 @@ final class SidebarDockModel {
     /// Symbole aus dem Dateisystem sind teuer; einmal geladen reicht.
     @ObservationIgnored private var icons: [String: NSImage] = [:]
     @ObservationIgnored private let ownBundleID = Bundle.main.bundleIdentifier
-    @ObservationIgnored private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "dock")
+    @ObservationIgnored private let log = Logger(category: "dock")
 
     init(settings: ShellSettingsStore) {
         live = true

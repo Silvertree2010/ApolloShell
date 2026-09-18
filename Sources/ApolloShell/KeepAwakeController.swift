@@ -37,7 +37,7 @@ final class KeepAwakeController {
     @ObservationIgnored private var lidPrompt: (process: Process, disableSleep: Bool)?
     /// Akku-Schutz, solange Wach halten laeuft: jede Minute nachsehen.
     @ObservationIgnored private var batteryGuard: Timer?
-    @ObservationIgnored private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "utilities")
+    @ObservationIgnored private let log = Logger(category: "utilities")
 
     init(lidAllowed: @escaping @MainActor () -> Bool) {
         live = true

@@ -12,7 +12,7 @@ final class BluetoothState: @unchecked Sendable {
 
     /// Serielle Queue: hier laeuft system_profiler, hier lebt der Timer.
     private let queue = DispatchQueue(label: AppIdentity.scoped("bluetooth"))
-    private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "bluetooth")
+    private let log = Logger(category: "bluetooth")
     /// Nur auf `queue` anfassen.
     private var timer: DispatchSourceTimer?
 

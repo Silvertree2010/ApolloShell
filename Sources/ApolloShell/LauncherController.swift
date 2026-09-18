@@ -26,7 +26,7 @@ final class LauncherController {
     private let model = LauncherModel()
     private let catalog = AppCatalog()
     private let usage = UsageStore()
-    private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "controller")
+    private let log = Logger(category: "controller")
     /// Waechst aus der Mitte der Unterkante heraus (`DrawerMotion.grow`),
     /// dort wo der Zeiger steht.
     private let drawer: EdgeDrawer<LauncherView>

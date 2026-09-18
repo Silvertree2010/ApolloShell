@@ -55,7 +55,7 @@ final class MediaModel {
     @ObservationIgnored private var emptyTask: Task<Void, Never>?
     @ObservationIgnored private var sources: [String: MediaSource] = [:]
     @ObservationIgnored private var loggedMissingAdapter = false
-    @ObservationIgnored private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "media")
+    @ObservationIgnored private let log = Logger(category: "media")
 
     init() {
         live = true

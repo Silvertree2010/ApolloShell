@@ -44,7 +44,7 @@ final class ThemeStore {
     /// Ein Editor schreibt beim Speichern mehrfach; erst danach lesen.
     private static let reloadDelay: DispatchTimeInterval = .milliseconds(250)
 
-    private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "themes")
+    private let log = Logger(category: "themes")
 
     init(settings: ShellSettingsStore, folder: URL? = nil) {
         self.settings = settings

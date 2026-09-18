@@ -8,7 +8,7 @@ import SwiftUI
 @MainActor
 final class SidebarScreen {
     private let panel = SidebarPanel()
-    private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "sidebar")
+    private let log = Logger(category: "sidebar")
     /// Detailfenster der Statuskapsel (WLAN, Bluetooth, Akku). Liegt im
     /// Fenster dieser Leiste und macht es breiter, solange es offen ist.
     private let popout = StatusPopout()

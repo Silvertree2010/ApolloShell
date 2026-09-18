@@ -30,7 +30,7 @@ import os
 /// beim Aufbauen eines Menues Zeit. Auf dem Hauptthread waere das eine
 /// stehende Leiste bei jedem Rechtsklick.
 enum AppleDockMenu {
-    nonisolated(unsafe) private static let log = Logger(subsystem: AppIdentity.logSubsystem, category: "dockmenu")
+    private static let log = Logger(category: "dockmenu")
 
     /// Das Menue einer App, wie Apples Dock es zeigt. Leer, wenn es dieses
     /// Symbol dort nicht gibt oder das Menue nicht gelesen werden konnte.

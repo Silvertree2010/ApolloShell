@@ -188,7 +188,7 @@ enum BarApps {
     }
 
     private static var cache: [String: Info] = [:]
-    private static let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "ApolloShell", category: "bar")
+    private static let log = Logger(category: "bar")
 
     static func info(for bundleID: String) -> Info? {
         guard !bundleID.isEmpty else { return nil }
