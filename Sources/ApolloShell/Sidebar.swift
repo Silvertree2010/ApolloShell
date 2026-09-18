@@ -144,6 +144,7 @@ final class Sidebar {
         let anyVisible = bars.values.contains { !$0.isHiddenForFullscreen }
         cpu.paused = !anyVisible
         weather.paused = !anyVisible
+        dock.badgesPaused = !anyVisible
     }
 
     // MARK: - Leisten verteilen

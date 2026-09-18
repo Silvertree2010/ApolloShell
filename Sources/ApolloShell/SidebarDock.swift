@@ -43,6 +43,16 @@ final class SidebarDockModel {
     /// laesst sich weder entfernen noch verschieben, wie Finder bei Apple.
     @ObservationIgnored private var fileManagerID = AppleDockPrefs.finder
     @ObservationIgnored private var badgeTimer: Timer?
+    /// Ein Lesedurchgang laeuft noch; der naechste Takt faellt aus.
+    @ObservationIgnored private var badgeReading = false
+    /// Keine Leiste zu sehen (Vollbild): Zaehler nicht lesen. Setzt der
+    /// Verwalter der Leisten wie bei CPU und Wetter.
+    var badgesPaused = false {
+        didSet {
+            guard live, badgesPaused != oldValue else { return }
+            if badgesPaused { stopBadgeTimer() } else { startBadgeTimer() }
+        }
+    }
     /// Alle 3 s: Apples Dock meldet Zaehler-Aenderungen nicht, und ein
     /// Lesedurchgang sind ein paar Bedienungshilfen-Aufrufe (~ms).
     private static let badgeInterval: TimeInterval = 3
@@ -77,10 +87,7 @@ final class SidebarDockModel {
             let id = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier
             MainActor.assumeIsolated { self?.activated(id) }
         }
-        pollBadges()
-        badgeTimer = Timer.scheduledTimer(withTimeInterval: Self.badgeInterval, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.pollBadges() }
-        }
+        startBadgeTimer()
     }
 
     /// Fuer die Bildprobe: feste Eintraege, liest und startet nichts.
@@ -92,9 +99,33 @@ final class SidebarDockModel {
         self.badges = badges
     }
 
+    private func startBadgeTimer() {
+        guard badgeTimer == nil else { return }
+        pollBadges()
+        let timer = Timer.scheduledTimer(withTimeInterval: Self.badgeInterval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.pollBadges() }
+        }
+        timer.tolerance = 0.5
+        badgeTimer = timer
+    }
+
+    private func stopBadgeTimer() {
+        badgeTimer?.invalidate()
+        badgeTimer = nil
+    }
+
+    /// Liest neben dem Hauptthread: haengt Apples Dock, warten die
+    /// Bedienungshilfen-Aufrufe bis zum Timeout, und die Leiste soll dabei
+    /// nicht stocken.
     private func pollBadges() {
-        let next = DockBadges.read()
-        if next != badges { badges = next }
+        guard !badgeReading else { return }
+        badgeReading = true
+        Task { [weak self] in
+            let next = await DockBadges.readOffMain()
+            guard let self else { return }
+            self.badgeReading = false
+            if next != self.badges { self.badges = next }
+        }
     }
 
     /// Apples Dock-Einstellung frisch lesen (Synchronize holt Aenderungen,

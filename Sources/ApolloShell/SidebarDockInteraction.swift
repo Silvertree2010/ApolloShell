@@ -622,8 +622,17 @@ enum DockAppCommands {
 /// Symbol. Gemessen 14.09.: eine AXList mit AXApplicationDockItem-Kindern,
 /// jedes mit Titel und AXURL auf die App.
 enum DockBadges {
-    @MainActor
-    static func read() -> [String: String] {
+    /// Eigener Faden, nicht der Faden-Vorrat von Swift: die Aufrufe warten
+    /// auf Apples Dock (siehe `AppleDockMenu.queue`).
+    private static let queue = DispatchQueue(label: AppIdentity.scoped("dockbadges"), qos: .utility)
+
+    static func readOffMain() async -> [String: String] {
+        await withCheckedContinuation { continuation in
+            queue.async { continuation.resume(returning: read()) }
+        }
+    }
+
+    private static func read() -> [String: String] {
         guard AXIsProcessTrusted(),
               let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first
         else { return [:] }
