@@ -4,9 +4,18 @@ import Testing
 
 @Suite("Widget-Katalog: Kennungen und Groessen von vor 0.2")
 struct WidgetCatalogTests {
+    /// Ganze Zahl ohne Nachkommastelle, ein Halbpunkt (Leistung ohne Akku)
+    /// mit genau einer.
+    private func format(_ value: Double) -> String {
+        value == value.rounded() ? "\(Int(value))" : "\(value)"
+    }
+
     private func text(_ sizes: [WidgetSize]) -> String {
-        sizes.map { s in s.isFlexible ? "\(Int(s.minWidth))-\(Int(s.maxWidth))x\(Int(s.height))" : "\(Int(s.minWidth))x\(Int(s.height))" }
-            .joined(separator: " ")
+        sizes.map { s in
+            s.isFlexible ? "\(format(s.minWidth))-\(format(s.maxWidth))x\(format(s.height))"
+                         : "\(format(s.minWidth))x\(format(s.height))"
+        }
+        .joined(separator: " ")
     }
 
     @Test("Kennungen stehen in settings.json und aendern sich nie")
@@ -39,11 +48,11 @@ struct WidgetCatalogTests {
     }
 
     @Test("Groessen der Seiten Leistung, Wetter, Medien", arguments: [
-        (WidgetKind.performanceCPU, "343-414x191"),
-        (.performanceGPU, "343-414x191"),
-        (.performanceStorage, "169-240x189"),
+        (WidgetKind.performanceCPU, "343-413.5x191"),
+        (.performanceGPU, "343-413.5x191"),
+        (.performanceStorage, "169.5-240x189"),
         (.performanceNetwork, "335x189"),
-        (.performanceMemory, "169-240x189"),
+        (.performanceMemory, "169.5-240x189"),
         (.performanceBattery, "129x392"),
         (.weatherHero, "839x116"),
         (.weatherHourly, "839x108"),
@@ -91,8 +100,8 @@ struct WidgetCatalogTests {
     func performanceGeometry() {
         #expect(PerformancePageGeometry.heroHeight == 191)
         #expect(PerformancePageGeometry.heroWidths(hasBattery: true) == [343, 343])
-        #expect(PerformancePageGeometry.heroWidths(hasBattery: false) == [413, 414])
-        #expect(PerformancePageGeometry.sideWidths(hasBattery: true) == [169, 170])
+        #expect(PerformancePageGeometry.heroWidths(hasBattery: false) == [413.5, 413.5])
+        #expect(PerformancePageGeometry.sideWidths(hasBattery: true) == [169.5, 169.5])
         #expect(PerformancePageGeometry.sideWidths(hasBattery: false) == [240, 240])
         #expect(WeatherPageGeometry.dailyHeight == 144)
     }

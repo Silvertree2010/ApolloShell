@@ -190,10 +190,12 @@ public enum PerformancePageGeometry {
         split(leftWidth(hasBattery: hasBattery) - networkWidth - 2 * DashboardGeometry.spacing)
     }
 
-    /// Halbieren wie `DashboardGeometry.widths`: abgerundet, der Rest an den zweiten.
+    /// Genau halbiert. Anders als `DashboardGeometry.widths` (ganze Punkte,
+    /// Rest an die letzte Karte): eine Vorlage darf einen Halbpunkt haben, das
+    /// Runden verschob eine Karte im Bildvergleich um ein Pixel (gemessen).
+    /// Gezogene Rahmen bleiben trotzdem ganze Punkte (`WidgetFrame.rounded()`).
     static func split(_ total: Double) -> [Double] {
-        let first = (total / 2).rounded(.down)
-        return [first, total - first]
+        [total / 2, total / 2]
     }
 }
 

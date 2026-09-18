@@ -7,8 +7,16 @@ struct DashboardMigrationTests {
     private let chur = WeatherLocation(name: "Chur", latitude: 46.85, longitude: 9.53)
     private var places: WeatherFavorites { WeatherFavorites(locations: [chur], selectedID: chur.id) }
 
+    /// Ganze Zahl ohne Nachkommastelle, ein Halbpunkt (Leistung ohne Akku)
+    /// mit genau einer.
+    private func format(_ value: Double) -> String {
+        value == value.rounded() ? "\(Int(value))" : "\(value)"
+    }
+
     private func frames(_ page: DashboardPage) -> [String] {
-        page.widgets.map { "\($0.kind.rawValue) \(Int($0.frame.x)),\(Int($0.frame.y)) \(Int($0.frame.width))x\(Int($0.frame.height))" }
+        page.widgets.map {
+            "\($0.kind.rawValue) \(format($0.frame.x)),\(format($0.frame.y)) \(format($0.frame.width))x\(format($0.frame.height))"
+        }
     }
 
     @Test("Uebersicht: jede Vorlage von vor 0.2 landet punktgenau", arguments: DashboardPreset.allCases)
@@ -51,11 +59,11 @@ struct DashboardMigrationTests {
     func performance() {
         #expect(frames(PageTemplate.performance.defaultPage(places: .empty, hasBattery: true)) == [
             "performance.cpu 0,0 343x191", "performance.gpu 355,0 343x191",
-            "performance.storage 0,203 169x189", "performance.network 181,203 335x189",
-            "performance.memory 528,203 170x189", "performance.battery 710,0 129x392",
+            "performance.storage 0,203 169.5x189", "performance.network 181.5,203 335x189",
+            "performance.memory 528.5,203 169.5x189", "performance.battery 710,0 129x392",
         ])
         #expect(frames(PageTemplate.performance.defaultPage(places: .empty, hasBattery: false)) == [
-            "performance.cpu 0,0 413x191", "performance.gpu 425,0 414x191",
+            "performance.cpu 0,0 413.5x191", "performance.gpu 425.5,0 413.5x191",
             "performance.storage 0,203 240x189", "performance.network 252,203 335x189",
             "performance.memory 599,203 240x189",
         ])
