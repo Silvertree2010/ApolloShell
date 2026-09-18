@@ -94,7 +94,7 @@ public enum UtilitiesToggleGroup: String, CaseIterable, Sendable, Identifiable {
 /// Welche Knoepfe es gibt. Der Rohwert steht in settings.json ("kind") -
 /// nie umbenennen. Unbekannte Arten (neuere Fassung, Tippfehler) fallen
 /// beim Lesen weg, der Rest bleibt.
-public enum UtilitiesToggleKind: String, CaseIterable, Sendable, Identifiable {
+public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Identifiable {
     // Die zehn des bisherigen festen Rasters, in seiner Reihenfolge.
     case wifi, microphone, bluetooth, darkMode, nightShift
     case screenshot, showDesktop, colorPicker, lockScreen, settings
@@ -204,10 +204,11 @@ public struct UtilitiesAppOptions: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        bundleID = c.lenient(.bundleID) ?? ""
-        title = c.lenient(.title) ?? ""
-        symbol = c.lenient(.symbol) ?? ""
+        c.lenient(.bundleID, into: &bundleID)
+        c.lenient(.title, into: &title)
+        c.lenient(.symbol, into: &symbol)
     }
 
     /// Ohne eigenes SF Symbol zeigt der Knopf das App-Symbol.
@@ -229,10 +230,11 @@ public struct UtilitiesLinkOptions: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        url = c.lenient(.url) ?? ""
-        title = c.lenient(.title) ?? ""
-        symbol = c.lenient(.symbol) ?? ""
+        c.lenient(.url, into: &url)
+        c.lenient(.title, into: &title)
+        c.lenient(.symbol, into: &symbol)
     }
 }
 
@@ -255,11 +257,12 @@ public struct UtilitiesShortcutOptions: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        name = c.lenient(.name) ?? ""
-        identifier = c.lenient(.identifier) ?? ""
-        title = c.lenient(.title) ?? ""
-        symbol = c.lenient(.symbol) ?? ""
+        c.lenient(.name, into: &name)
+        c.lenient(.identifier, into: &identifier)
+        c.lenient(.title, into: &title)
+        c.lenient(.symbol, into: &symbol)
     }
 }
 
@@ -270,15 +273,16 @@ public struct UtilitiesHideAppsOptions: Codable, Equatable, Sendable {
     public init(keepFrontmost: Bool = false) { self.keepFrontmost = keepFrontmost }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        keepFrontmost = c.lenient(.keepFrontmost) ?? false
+        c.lenient(.keepFrontmost, into: &keepFrontmost)
     }
 }
 
 // MARK: - Schnellschalter: Knopf
 
 /// Art und Optionen in einem: nur die Arten mit Optionen tragen welche.
-public enum UtilitiesToggle: Equatable, Sendable {
+public enum UtilitiesToggle: BlockModule, Equatable, Sendable {
     case wifi, microphone, bluetooth, darkMode, nightShift
     case screenshot, showDesktop, colorPicker, lockScreen, settings
     case displaySleep
@@ -289,6 +293,12 @@ public enum UtilitiesToggle: Equatable, Sendable {
 
     /// Mit den Vorgaben der Art.
     public init(_ kind: UtilitiesToggleKind) {
+        self.init(kind: kind, options: nil)
+    }
+
+    /// Art und (falls vorhanden) gelesene Optionen - der eine Switch fuer
+    /// beides, wie `BarModule.init(kind:options:)`.
+    fileprivate init(kind: UtilitiesToggleKind, options c: KeyedDecodingContainer<UtilitiesToggleEntry.CodingKeys>?) {
         self = switch kind {
         case .wifi: .wifi
         case .microphone: .microphone
@@ -301,10 +311,10 @@ public enum UtilitiesToggle: Equatable, Sendable {
         case .lockScreen: .lockScreen
         case .settings: .settings
         case .displaySleep: .displaySleep
-        case .hideApps: .hideApps(.init())
-        case .openApp: .openApp(.init())
-        case .openLink: .openLink(.init())
-        case .runShortcut: .runShortcut(.init())
+        case .hideApps: .hideApps(Self.decoded(c, forKey: .options, default: .init()))
+        case .openApp: .openApp(Self.decoded(c, forKey: .options, default: .init()))
+        case .openLink: .openLink(Self.decoded(c, forKey: .options, default: .init()))
+        case .runShortcut: .runShortcut(Self.decoded(c, forKey: .options, default: .init()))
         }
     }
 
@@ -328,11 +338,16 @@ public enum UtilitiesToggle: Equatable, Sendable {
         }
     }
 
-    /// Ob Nexus fuer diesen Knopf Optionen zeigt.
-    public var hasOptions: Bool {
+    /// Optionen dieses Knopfs, `nil` bei einer Art ohne welche. Traegt
+    /// `hasOptions` (siehe `BlockModule`) und das Schreiben in
+    /// `UtilitiesToggleEntry`.
+    public var options: (any Encodable)? {
         switch self {
-        case .hideApps, .openApp, .openLink, .runShortcut: true
-        default: false
+        case .hideApps(let o): o
+        case .openApp(let o): o
+        case .openLink(let o): o
+        case .runShortcut(let o): o
+        default: nil
         }
     }
 
@@ -368,7 +383,9 @@ public struct UtilitiesToggleEntry: Codable, Equatable, Identifiable, Sendable {
         self.init(id: id ?? toggle.kind.rawValue, toggle: toggle)
     }
 
-    private enum CodingKeys: String, CodingKey { case id, kind, options }
+    // `fileprivate`, nicht `private`: `UtilitiesToggle.init(kind:options:)`
+    // braucht denselben Schluesseltyp, um die Optionen zu lesen.
+    fileprivate enum CodingKeys: String, CodingKey { case id, kind, options }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -376,28 +393,21 @@ public struct UtilitiesToggleEntry: Codable, Equatable, Identifiable, Sendable {
             throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unbekannter Schnellschalter")
         }
         id = c.lenient(.id) ?? ""
-        toggle = switch kind {
-        case .hideApps: .hideApps(c.lenient(.options) ?? .init())
-        case .openApp: .openApp(c.lenient(.options) ?? .init())
-        case .openLink: .openLink(c.lenient(.options) ?? .init())
-        case .runShortcut: .runShortcut(c.lenient(.options) ?? .init())
-        default: UtilitiesToggle(kind)
-        }
+        toggle = UtilitiesToggle(kind: kind, options: c)
     }
 
     public func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
         try c.encode(kind.rawValue, forKey: .kind)
-        switch toggle {
-        case .hideApps(let o): try c.encode(o, forKey: .options)
-        case .openApp(let o): try c.encode(o, forKey: .options)
-        case .openLink(let o): try c.encode(o, forKey: .options)
-        case .runShortcut(let o): try c.encode(o, forKey: .options)
-        default: break
+        if let options = toggle.options {
+            try c.encode(AnyEncodable(value: options), forKey: .options)
         }
     }
 }
+
+/// Fuer `BlockList<UtilitiesToggleEntry>`.
+extension UtilitiesToggleEntry: Block {}
 
 // MARK: - Panel
 
@@ -411,27 +421,29 @@ public struct UtilitiesToggleEntry: Codable, Equatable, Identifiable, Sendable {
 /// Eintraege fallen weg, der Rest bleibt.
 public struct UtilitiesLayout: Codable, Equatable, Sendable {
     public private(set) var cards: [UtilitiesCardEntry]
-    public private(set) var toggles: [UtilitiesToggleEntry]
+    private var toggleBlocks: BlockList<UtilitiesToggleEntry>
+
+    public var toggles: [UtilitiesToggleEntry] { toggleBlocks.entries }
 
     public init(cards: [UtilitiesCardEntry] = UtilitiesLayout.standardCards,
                 toggles: [UtilitiesToggleEntry] = UtilitiesLayout.standardToggles) {
         self.cards = Self.normalizedCards(cards)
-        self.toggles = Self.normalizedToggles(toggles)
+        toggleBlocks = BlockList(toggles)
     }
 
     private enum CodingKeys: String, CodingKey { case cards, quickToggles }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        let cards = (try? c.decodeIfPresent(TolerantList<UtilitiesCardEntry>.self, forKey: .cards)) ?? nil
-        let toggles = (try? c.decodeIfPresent(TolerantList<UtilitiesToggleEntry>.self, forKey: .quickToggles)) ?? nil
-        self.init(cards: cards?.items ?? Self.standardCards, toggles: toggles?.items ?? Self.standardToggles)
+        let cards = (try? c.decodeIfPresent(LenientList<UtilitiesCardEntry>.self, forKey: .cards)) ?? nil
+        let toggles = (try? c.decodeIfPresent(BlockList<UtilitiesToggleEntry>.self, forKey: .quickToggles)) ?? nil
+        self.init(cards: cards?.values ?? Self.standardCards, toggles: toggles?.entries ?? Self.standardToggles)
     }
 
     public func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(cards, forKey: .cards)
-        try c.encode(toggles, forKey: .quickToggles)
+        try c.encode(toggleBlocks, forKey: .quickToggles)
     }
 
     /// Das Panel vor dem Baukasten: alle drei Karten in Caelestias Reihenfolge ...
@@ -445,7 +457,7 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
     // MARK: Lesen
 
     public subscript(toggle id: String) -> UtilitiesToggleEntry? {
-        toggles.first { $0.id == id }
+        toggleBlocks[id: id]
     }
 
     public func isEnabled(_ kind: UtilitiesCardKind) -> Bool {
@@ -453,12 +465,12 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
     }
 
     public func contains(_ kind: UtilitiesToggleKind) -> Bool {
-        toggles.contains { $0.kind == kind }
+        toggleBlocks.contains(kind)
     }
 
     /// Fuer die Galerie: ein zweiter WLAN-Schalter nicht.
     public func canAdd(_ kind: UtilitiesToggleKind) -> Bool {
-        !kind.isUnique || !contains(kind)
+        toggleBlocks.canAdd(kind)
     }
 
     /// Was das Panel zeigt, von oben nach unten. Die Schnellschalter-Karte
@@ -496,7 +508,7 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
 
     /// Wie SwiftUIs `onMove` (Ziel vor dem Verschieben gezaehlt).
     public mutating func moveCards(fromOffsets source: IndexSet, toOffset destination: Int) {
-        cards = Self.moved(cards, fromOffsets: source, toOffset: destination)
+        cards.move(fromOffsets: source, toOffset: destination)
     }
 
     /// Eine Stelle nach oben (-1) oder unten (+1); am Rand nichts.
@@ -512,11 +524,7 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
     /// einmal geben darf und er schon da ist.
     @discardableResult
     public mutating func add(_ toggle: UtilitiesToggle, at index: Int? = nil) -> String? {
-        guard canAdd(toggle.kind) else { return nil }
-        let id = Self.uniqueID(for: toggle.kind, taken: Set(toggles.map(\.id)))
-        let position = min(max(index ?? toggles.count, 0), toggles.count)
-        toggles.insert(UtilitiesToggleEntry(id: id, toggle: toggle), at: position)
-        return id
+        toggleBlocks.add(UtilitiesToggleEntry(toggle: toggle), at: index ?? toggles.count)
     }
 
     @discardableResult
@@ -525,35 +533,28 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
     }
 
     public mutating func remove(toggle id: String) {
-        toggles.removeAll { $0.id == id }
+        toggleBlocks.remove(id: id)
     }
 
     /// Andere Optionen fuer einen Knopf; die Art bleibt.
     public mutating func update(toggle id: String, to toggle: UtilitiesToggle) {
-        guard let index = toggles.firstIndex(where: { $0.id == id }), toggles[index].kind == toggle.kind else { return }
-        toggles[index].toggle = toggle
+        toggleBlocks.update(id: id, to: UtilitiesToggleEntry(id: id, toggle: toggle))
     }
 
     public mutating func moveToggles(fromOffsets source: IndexSet, toOffset destination: Int) {
-        toggles = Self.moved(toggles, fromOffsets: source, toOffset: destination)
+        toggleBlocks.move(fromOffsets: source, toOffset: destination)
     }
 
     /// Eine Stelle nach vorne (-1) oder hinten (+1); am Rand nichts.
     public mutating func moveToggle(_ id: String, by step: Int) {
-        guard let index = toggles.firstIndex(where: { $0.id == id }), toggles.indices.contains(index + step) else { return }
-        toggles.swapAt(index, index + step)
+        toggleBlocks.move(id: id, by: step)
     }
 
     /// Beim Ziehen im Raster: der gezogene Knopf nimmt den Platz dessen ein,
     /// ueber dem der Zeiger gerade ist; alles dazwischen rueckt eins weiter.
     /// So wandert er beim Ziehen sichtbar mit.
     public mutating func moveToggle(_ id: String, onto target: String) {
-        guard id != target,
-              let from = toggles.firstIndex(where: { $0.id == id }),
-              let to = toggles.firstIndex(where: { $0.id == target })
-        else { return }
-        let entry = toggles.remove(at: from)
-        toggles.insert(entry, at: to)
+        toggleBlocks.move(id: id, onto: target)
     }
 
     // MARK: Regeln
@@ -568,46 +569,6 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
             result.append(UtilitiesCardEntry(kind))
         }
         return result
-    }
-
-    /// Doppelte feste Knoepfe weg (der erste bleibt), leere oder doppelte
-    /// Kennungen neu - ohne einem spaeteren seine ausdrueckliche Kennung
-    /// wegzunehmen (wie `BarLayout.normalized`).
-    static func normalizedToggles(_ list: [UtilitiesToggleEntry]) -> [UtilitiesToggleEntry] {
-        var kinds = Set<UtilitiesToggleKind>()
-        var used = Set<String>()
-        var taken = Set(list.map(\.id))
-        var result: [UtilitiesToggleEntry] = []
-        for var entry in list {
-            if entry.kind.isUnique, !kinds.insert(entry.kind).inserted { continue }
-            if entry.id.isEmpty || used.contains(entry.id) {
-                entry.id = uniqueID(for: entry.kind, taken: taken)
-                taken.insert(entry.id)
-            }
-            used.insert(entry.id)
-            result.append(entry)
-        }
-        return result
-    }
-
-    /// "openApp", sonst "openApp-2", "openApp-3" ...
-    static func uniqueID(for kind: UtilitiesToggleKind, taken: Set<String>) -> String {
-        if !taken.contains(kind.rawValue) { return kind.rawValue }
-        var n = 2
-        while taken.contains("\(kind.rawValue)-\(n)") { n += 1 }
-        return "\(kind.rawValue)-\(n)"
-    }
-
-    /// Wie `BarLayout.move(fromOffsets:toOffset:)`.
-    private static func moved<T>(_ list: [T], fromOffsets source: IndexSet, toOffset destination: Int) -> [T] {
-        let valid = source.filter { list.indices.contains($0) }
-        guard !valid.isEmpty else { return list }
-        let moving = valid.map { list[$0] }
-        let before = valid.filter { $0 < destination }.count
-        var rest = list.enumerated().filter { !valid.contains($0.offset) }.map(\.element)
-        let target = min(max(destination - before, 0), rest.count)
-        rest.insert(contentsOf: moving, at: target)
-        return rest
     }
 }
 
@@ -903,33 +864,4 @@ public enum UtilitiesSymbols {
 private extension String {
     var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
     var nonEmpty: String? { isEmpty ? nil : self }
-}
-
-/// Liste, die unlesbare Eintraege uebergeht statt ganz zu scheitern.
-private struct TolerantList<Element: Decodable>: Decodable {
-    var items: [Element] = []
-
-    init(from decoder: any Decoder) throws {
-        var c = try decoder.unkeyedContainer()
-        while !c.isAtEnd {
-            // `Tolerant` scheitert nie, der Zeiger rueckt also weiter; falls
-            // doch, abbrechen statt endlos auf derselben Stelle stehen.
-            guard let item = try? c.decode(Tolerant.self) else { break }
-            if let value = item.value { items.append(value) }
-        }
-    }
-
-    private struct Tolerant: Decodable {
-        let value: Element?
-        init(from decoder: any Decoder) {
-            value = try? Element(from: decoder)
-        }
-    }
-}
-
-private extension KeyedDecodingContainer {
-    /// Fehlt der Schluessel oder passt der Typ nicht: `nil` statt Fehler.
-    func lenient<T: Decodable>(_ key: Key) -> T? {
-        (try? decodeIfPresent(T.self, forKey: key)) ?? nil
-    }
 }
