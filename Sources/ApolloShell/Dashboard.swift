@@ -28,7 +28,7 @@ final class Dashboard {
         let view = DashboardView(model: model, weather: weather, media: media, settings: settings)
         // Groesse aus dem Inhalt (feste Karten-Masse), vor dem ersten Oeffnen.
         // Haengt nicht an Reitern und Karten - das Raster ist immer 839 x 392.
-        let size = NSHostingView(rootView: view).fittingSize
+        let size = NSHostingView(rootView: view.shellTheme()).fittingSize
         drawer = EdgeDrawer(edge: .top, size: size, cornerRadius: 25, rootView: view)
         drawer.opensOnHover = true
         drawer.onOpen = { [model, weather, media, settings] in

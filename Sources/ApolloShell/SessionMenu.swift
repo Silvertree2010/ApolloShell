@@ -31,8 +31,8 @@ final class SessionMenu: NSObject, NSWindowDelegate {
 
     // Bewegung aus Caelestia: Panel "DefaultSpatial" 500 ms mit leicht
     // ueberschiessender Kurve, Abdunkelung "SlowEffects" 300 ms.
-    private static let slideDuration: TimeInterval = 0.5
-    private static let slideCurve = CAMediaTimingFunction(controlPoints: 0.38, 1.21, 0.22, 1)
+    private static let slideDuration: TimeInterval = MotionCurve.spatialDuration
+    private static var slideCurve: CAMediaTimingFunction { .shellSpatial }
     private static let dimDuration: TimeInterval = 0.3
     private static let dimCurve = CAMediaTimingFunction(controlPoints: 0.34, 0.88, 0.34, 1)
     /// Wie weit das Panel geschlossen nach rechts versetzt ist (Caelestia:

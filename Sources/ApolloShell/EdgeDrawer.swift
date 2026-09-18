@@ -33,10 +33,8 @@ enum DrawerEdge {
 /// und funktioniert.
 @MainActor
 final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
-    private static var slideDuration: TimeInterval { 0.5 }
-    private static var slideCurve: CAMediaTimingFunction {
-        CAMediaTimingFunction(controlPoints: 0.38, 1.21, 0.22, 1)
-    }
+    private static var slideDuration: TimeInterval { MotionCurve.spatialDuration }
+    private static var slideCurve: CAMediaTimingFunction { .shellSpatial }
 
     let edge: DrawerEdge
     /// Sichtbare Groesse (ohne den Teil, der ueber die Kante ragt). Aendert
@@ -445,7 +443,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         glass.cornerRadius = cornerRadius
 
         let content = NSView(frame: container.bounds)
-        let hosting = FirstMouseHostingView(rootView: rootView)
+        let hosting = FirstMouseHostingView(rootView: rootView.shellTheme())
         hosting.sizingOptions = []
         hosting.frame = visibleRectInWindow
         content.addSubview(hosting)

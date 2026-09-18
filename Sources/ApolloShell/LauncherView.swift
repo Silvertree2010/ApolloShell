@@ -6,8 +6,7 @@ import SwiftUI
 struct LauncherView: View {
     @Bindable var model: LauncherModel
     @FocusState private var searchFocused: Bool
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         VStack(spacing: 0) {
@@ -91,8 +90,7 @@ private struct AppRow: View {
     let icon: NSImage
     let selected: Bool
 
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         let radius = style.controlRadius(10)

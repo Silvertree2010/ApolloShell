@@ -6,7 +6,7 @@ import SwiftUI
 enum SidebarMotion {
     /// expressiveDefaultSpatial: 500 ms, schiesst leicht ueber (y1 = 1,21) -
     /// das "Einrasten" des Space-Anzeigers.
-    static let spatial = Animation.timingCurve(0.38, 1.21, 0.22, 1, duration: 0.5)
+    static let spatial = Animation.shellSpatial
     /// expressiveDefaultEffects: 200 ms, fuer Ueberblenden.
     static let effects = Animation.timingCurve(0.34, 0.8, 0.34, 1, duration: 0.2)
 }
@@ -31,8 +31,7 @@ struct SidebarSpaces: View {
     let model: SpacesModel
     var style: BarWorkspacesOptions.Style = .dots
     var onSelect: (Int) -> Void = { _ in }
-    @Environment(\.colorScheme) private var colorScheme
-    private var shellStyle: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var shellStyle
 
     private static let slot: CGFloat = 26
     private static let gap: CGFloat = 3
@@ -151,8 +150,7 @@ struct SidebarClock: View {
     static let tint = Color(nsColor: .systemPurple)
     private static let locale = Locale(identifier: "de_CH")
 
-    @Environment(\.colorScheme) private var colorScheme
-    private var shellStyle: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var shellStyle
 
     /// Mit Theme faerbt `--apollo-bar-text-color` die Uhr: Das feste Violett
     /// ist auf Glas gut lesbar, neben einem Theme mit eigener Leistenfarbe

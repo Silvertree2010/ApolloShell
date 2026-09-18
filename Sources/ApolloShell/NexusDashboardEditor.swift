@@ -519,7 +519,7 @@ enum NexusDashboardPreviewModels {
     /// `Dashboard` es fuer sein Fenster tut. Haengt nicht an der Anordnung.
     static let size: CGSize = NSHostingView(rootView: DashboardView(
         model: dashboard, weather: weather, media: media, settings: .preview()
-    )).fittingSize
+    ).shellTheme()).fittingSize
 }
 
 // MARK: - Texte und Farben

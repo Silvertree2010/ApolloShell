@@ -6,11 +6,11 @@ import SwiftUI
 struct SessionMenuView: View {
     @Bindable var model: SessionMenuModel
     @FocusState private var focused: Bool
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.shellStyle) private var style
 
     /// Bringt das Theme ein eigenes Emblem mit?
     private var emblemFromTheme: Bool {
-        ShellTheme.style(colorScheme).iconFile("session-emblem") != nil
+        style.iconFile("session-emblem") != nil
     }
 
     var body: some View {
@@ -101,8 +101,7 @@ private struct SessionButton: View {
 private struct SessionButtonStyle: ButtonStyle {
     let selected: Bool
     let hovered: Bool
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     func makeBody(configuration: Configuration) -> some View {
         let radius: CGFloat = configuration.isPressed ? 12 : (selected ? 28 : 20)

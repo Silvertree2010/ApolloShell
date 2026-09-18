@@ -77,15 +77,13 @@ extension EnvironmentValues {
 struct UtilitiesCard<Content: View>: View {
     @ViewBuilder let content: Content
     @Environment(\.utilitiesCardHeight) private var height
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         content
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: height)
-            .background(Color.primary.opacity(0.06), in: .rect(cornerRadius: style.cardRadius(16)))
+            .cardSurface(radius: 16)
     }
 }
 
@@ -94,8 +92,7 @@ struct UtilitiesCard<Content: View>: View {
 /// Chip darunter: so bleibt die Karte gleich hoch und das Panel springt nicht.
 private struct KeepAwakeCard: View {
     @Bindable var model: UtilitiesModel
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         UtilitiesCard {
@@ -138,8 +135,7 @@ private struct KeepAwakeCard: View {
 private struct UtilitiesEmptyCard: View {
     let model: UtilitiesModel
     @State private var hovering = false
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         UtilitiesCard {
@@ -186,7 +182,7 @@ private struct UtilitiesEmptyCard: View {
 /// Bahn aus etwa 10 % Vordergrund, Knopf im Dunkeln leicht grau.
 private struct AccentSwitchStyle: ToggleStyle {
     @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     func makeBody(configuration: Configuration) -> some View {
         let on = configuration.isOn
@@ -224,8 +220,7 @@ private struct AccentSwitchStyle: ToggleStyle {
 private struct QuickTogglesCard: View {
     let model: UtilitiesModel
     let rows: [[UtilitiesToggleEntry]]
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         UtilitiesCard {
@@ -319,8 +314,7 @@ private struct QuickToggleStyle: ButtonStyle {
     let active: Bool
     let hovered: Bool
     @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     func makeBody(configuration: Configuration) -> some View {
         let radius = QuickToggles.cornerRadius(

@@ -277,23 +277,13 @@ extension EnvironmentValues {
     }
 }
 
-/// Der Stil der laufenden Shell im gewuenschten Erscheinungsbild.
-///
-/// Ansichten benutzen das so:
-/// ```swift
-/// @Environment(\.colorScheme) private var scheme
-/// private var style: ShellStyle { ShellTheme.style(scheme) }
-/// ```
-@MainActor
-enum ShellTheme {
-    static func style(_ scheme: ColorScheme) -> ShellStyle {
-        ThemeStore.shared?.style(dark: scheme == .dark) ?? .standard
-    }
-}
-
 /// Legt den Stil in die Umgebung, im Erscheinungsbild dieses Fensters.
 ///
-/// Gehoert an die Wurzel jedes Fensters der Shell. Weil das Erscheinungsbild
+/// Gehoert an die Wurzel jedes Fensters der Shell (`shellTheme()`).
+/// Ansichten lesen ihn so:
+/// ```swift
+/// @Environment(\.shellStyle) private var style
+/// ``` Weil das Erscheinungsbild
 /// (hell/dunkel) erst hier bekannt ist, wird der Stil in einer Ansicht
 /// aufgeloest und nicht im Speicher.
 private struct ShellThemeScope: ViewModifier {
@@ -327,13 +317,17 @@ extension View {
     }
 
     /// An die Wurzel eines Fensters: setzt `tint` und den Stil in der Umgebung.
-    func shellTheme(_ store: ThemeStore? = ThemeStore.shared) -> some View {
-        modifier(OptionalShellThemeScope(store: store))
+    /// Auch vor jedes Messen einer Ansicht (`fittingSize`), sonst misst man
+    /// sie ohne die Schrift und die Masse des Themes.
+    func shellTheme(_ store: ThemeStore? = ThemeStore.shared) -> ModifiedContent<Self, ShellThemeRoot> {
+        modifier(ShellThemeRoot(store: store))
     }
 }
 
-/// Ohne Speicher (Bildproben, Vorschauen) bleibt alles wie es ist.
-private struct OptionalShellThemeScope: ViewModifier {
+/// Die Wurzel aus `shellTheme()`. Benannter Typ, damit Fenster ihn in ihrem
+/// `NSHostingView<...>` fuehren koennen. Ohne Speicher (Bildproben,
+/// Vorschauen) bleibt alles wie es ist.
+struct ShellThemeRoot: ViewModifier {
     let store: ThemeStore?
 
     func body(content: Content) -> some View {

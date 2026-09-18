@@ -5,7 +5,7 @@ import SwiftUI
 enum ToastMotion {
     /// DefaultSpatial: 500 ms, cubic-bezier(0.38, 1.21, 0.22, 1), leicht
     /// ueberschiessend - Aufgehen, Groesse, Nachruecken, Ausweichen.
-    static let spatial = Animation.timingCurve(0.38, 1.21, 0.22, 1, duration: 0.5)
+    static let spatial = Animation.shellSpatial
     /// DefaultEffects: 200 ms, cubic-bezier(0.34, 0.8, 0.34, 1) - Ausblenden.
     static let effects = Animation.timingCurve(0.34, 0.8, 0.34, 1, duration: 0.2)
 
@@ -110,8 +110,7 @@ struct ToastCard: View {
 
     let entry: ToastEntry
 
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         let radius = style.toastRadius(Self.radius)

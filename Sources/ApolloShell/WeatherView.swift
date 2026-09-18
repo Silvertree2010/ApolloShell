@@ -21,13 +21,12 @@ struct SmallWeatherCard: View {
     /// Nexus > Dashboard; die Vorgabe zeigt alles wie Caelestia.
     var options = DashboardWeatherOptions()
     var vertical = false
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         TimelineView(.everyMinute) { context in
             let now = model.fixedNow ?? context.date
-            WeatherSurface(radius:42) {
+            Card(radius:42) {
                 if vertical {
                     VStack(spacing: 8) {
                         content(now: now, alignment: .center)
@@ -103,8 +102,7 @@ struct SmallWeatherCard: View {
 /// unten sieben Tage nebeneinander wie bei Caelestia.
 struct WeatherTab: View {
     let model: WeatherModel
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     private static let spacing: CGFloat = 12
     private static let heroHeight: CGFloat = 116
@@ -150,40 +148,13 @@ struct WeatherTab: View {
 
 // MARK: - Bausteine
 
-/// Karte mit leicht abgesetzter Flaeche auf dem Glas, wie im Dashboard.
-private struct WeatherSurface<Content: View>: View {
-    let radius: CGFloat
-    @ViewBuilder let content: () -> Content
-
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
-
-    var body: some View {
-        // Dieselbe Flaeche wie `Card` im Dashboard, also auch mit Theme
-        // dieselbe: sonst bleibt diese eine Karte hell zwischen lauter
-        // eingefaerbten.
-        let shape = RoundedRectangle(cornerRadius: style.cardRadius(radius))
-        content()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background {
-                if style.paintsCard {
-                    shape.fill(style.cardFill)
-                } else {
-                    shape.fill(Color.primary.opacity(0.06))
-                }
-            }
-            .overlay { style.border(shape) }
-    }
-}
-
 /// Wettersymbol in Mehrfarben (Sonne gelb, Regen blau). Der Platzhalter
 /// bleibt grau, damit "noch nichts da" nicht wie Wetter aussieht.
 private struct WeatherSymbol: View {
     let name: String
     let size: CGFloat
     var placeholder = false
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Image(systemName: name)
@@ -213,7 +184,7 @@ private struct SymbolContour: ViewModifier {
 private struct WeatherPrecipitation: View {
     let percent: Int?
     @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Text(WeatherText.precipitation(percent) ?? " ")
@@ -229,8 +200,7 @@ private struct WeatherPrecipitation: View {
 /// in Akzentfarbe.
 private struct WeatherPlacePicker: View {
     let model: WeatherModel
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack(spacing: 5) {
@@ -264,13 +234,12 @@ private struct WeatherHero: View {
     let model: WeatherModel
     let now: Date
     let stand: String?
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         let current = report.current
         let today = report.today(now: now)
-        WeatherSurface(radius:28) {
+        Card(radius:28) {
             HStack(spacing: 18) {
                 WeatherSymbol(name: WeatherCondition.symbol(code: current.code, isDay: current.isDay), size: 56)
                     .frame(width: 72)
@@ -336,8 +305,7 @@ private struct WeatherHero: View {
 /// oeffnet die Seite des Anbieters (Lizenzen verlangen Name und Link).
 private struct WeatherAttributionLink: View {
     let attribution: WeatherAttribution
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Link(destination: attribution.url) {
@@ -356,8 +324,7 @@ private struct WeatherStat: View {
     let symbol: String
     let label: LocalizedStringKey
     let value: String
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack(spacing: 8) {
@@ -383,11 +350,10 @@ private struct WeatherStat: View {
 private struct WeatherHourly: View {
     let slots: [HourSlot]
     let calendar: Calendar
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
-        WeatherSurface(radius:24) {
+        Card(radius:24) {
             HStack(spacing: 0) {
                 ForEach(slots, id: \.time) { slot in
                     VStack(spacing: 5) {
@@ -416,14 +382,13 @@ private struct WeatherDaily: View {
     let days: [DayForecast]
     let now: Date
     let calendar: Calendar
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack(spacing: 12) {
             ForEach(days, id: \.date) { day in
                 let isToday = calendar.isDate(day.date, inSameDayAs: now)
-                WeatherSurface(radius:20) {
+                Card(radius:20) {
                     VStack(spacing: 4) {
                         Text(WeatherText.dayLabel(day.date, today: now, calendar: calendar))
                             .font(style.font(size: 13, weight: .semibold))

@@ -22,7 +22,7 @@ import SwiftUI
 /// Caelestias Kurven und Dauern (plugin/src/Caelestia/Config/tokens.hpp).
 enum MediaMotion {
     /// expressiveDefaultSpatial, 500 ms: Formwechsel und Druck der Knoepfe.
-    static let spatial = Animation.timingCurve(0.38, 1.21, 0.22, 1, duration: 0.5)
+    static let spatial = Animation.shellSpatial
     /// expressiveDefaultEffects, 200 ms: Texte beim Titelwechsel.
     static let fade = Animation.timingCurve(0.34, 0.8, 0.34, 1, duration: 0.2)
     /// expressiveSlowEffects, 300 ms: "Nichts läuft" und Cover ueberblenden.
@@ -53,7 +53,7 @@ struct MediaDashCard: View {
     /// Nexus > Dashboard; die Vorgabe zeigt alles wie bisher.
     var options = DashboardMediaOptions()
     @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     /// Caelestia fuellt die Breite bis auf den Rand; unter den Knoepfen
     /// steht dort die Bongo-Cat. Ohne sie waere unten viel leer - der Bogen
@@ -64,7 +64,7 @@ struct MediaDashCard: View {
     private static let arcGap: CGFloat = 4
 
     var body: some View {
-        MediaSurface(radius: 56) {
+        Card(radius: 56) {
             VStack(spacing: 0) {
                 MediaClock(model: model) { now in
                     ZStack {
@@ -139,14 +139,14 @@ struct MediaStripCard: View {
     /// Hoehe der Karte; das Cover fuellt sie bis auf den Rand.
     let height: CGFloat
     @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     private static let inset: CGFloat = 16
 
     var body: some View {
         // Hoechstens so gross wie das Cover im Reiter Medien.
         let cover = min(max(height - 2 * Self.inset, 40), 244)
-        MediaSurface(radius: 28) {
+        Card(radius: 28) {
             HStack(spacing: 16) {
                 MediaArtwork(image: model.artwork, id: model.artworkID,
                              shape: RoundedRectangle(cornerRadius: style.cardRadius(18), style: .continuous), symbolSize: cover * 0.32)
@@ -201,14 +201,14 @@ struct MediaCompactCard: View {
     let model: MediaModel
     var options = DashboardMediaOptions()
     @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     private static let arcSize: CGFloat = 112
     private static let arcLine: CGFloat = 5
     private static let arcGap: CGFloat = 4
 
     var body: some View {
-        MediaSurface(radius: 40) {
+        Card(radius: 40) {
             VStack(spacing: 0) {
                 MediaClock(model: model) { now in
                     ZStack {
@@ -261,8 +261,7 @@ struct MediaCompactCard: View {
 /// die gewonnene Hoehe bekommt das Cover (244 statt 200).
 struct MediaTab: View {
     let model: MediaModel
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     private static let coverSection: CGFloat = 252  // 300 x 0,839
     private static let coverSize: CGFloat = 244
@@ -309,7 +308,7 @@ private struct MediaDetails: View {
     let model: MediaModel
     let playing: MediaNowPlaying
     @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -347,8 +346,7 @@ private struct MediaDetails: View {
 private struct MediaTimeline: View {
     let playing: MediaNowPlaying
     let now: Date
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         let elapsed = playing.elapsed(at: now) ?? 0
@@ -386,8 +384,7 @@ private struct MediaTimeLabel: View {
 private struct MediaSourcePanel: View {
     let source: MediaSource?
     let isPlaying: Bool
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -396,7 +393,7 @@ private struct MediaSourcePanel: View {
                 Text("Quelle").font(style.font(size: 16, weight: .medium))
             }
             .padding(.leading, 6)
-            MediaSurface(radius: 24) {
+            Card(radius: 24) {
                 VStack(spacing: 8) {
                     MediaAppIcon(icon: source?.icon, size: 64)
                     Text(source?.name ?? String(localized: "Unbekannte App"))
@@ -417,7 +414,7 @@ private struct MediaSourcePanel: View {
 private struct MediaNothingPlaying: View {
     let isUnavailable: Bool
     @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         VStack(spacing: 8) {
@@ -451,30 +448,6 @@ private struct MediaClock<Content: View>: View {
         TimelineView(.animation(minimumInterval: 0.5, paused: paused)) { context in
             content(model.fixedNow ?? context.date)
         }
-    }
-}
-
-/// Flaeche wie die anderen Dashboard-Karten.
-private struct MediaSurface<Content: View>: View {
-    let radius: CGFloat
-    @ViewBuilder let content: () -> Content
-
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
-
-    var body: some View {
-        // Wie `Card` und `WeatherSurface`: mit Theme die Kartenfarbe.
-        let shape = RoundedRectangle(cornerRadius: style.cardRadius(radius), style: .continuous)
-        content()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background {
-                if style.paintsCard {
-                    shape.fill(style.cardFill)
-                } else {
-                    shape.fill(Color.primary.opacity(0.06))
-                }
-            }
-            .overlay { style.border(shape) }
     }
 }
 
@@ -521,7 +494,7 @@ private struct MediaAmbient: View {
     let image: NSImage?
     let id: Int
     @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Color.primary.opacity(0.06)
@@ -547,8 +520,7 @@ private struct MediaAmbient: View {
 private struct MediaArc: View {
     let value: Double
     let lineWidth: CGFloat
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     /// Luecke als Anteil des Umfangs; deckt die runden Enden mit ab.
     private let gap = 0.03
@@ -578,8 +550,7 @@ private struct MediaArc: View {
 private struct MediaProgressBar: View {
     let value: Double
     let known: Bool
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         GeometryReader { geometry in
@@ -603,7 +574,7 @@ private struct MediaProgressBar: View {
 private struct MediaControls: View {
     let model: MediaModel
     @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
     let height: CGFloat
     let symbolSize: CGFloat
     let spacing: CGFloat
@@ -677,8 +648,7 @@ private struct MediaPressStyle: ButtonStyle {
 private struct MediaSourceChip: View {
     let source: MediaSource
     let isPlaying: Bool
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack(spacing: 6) {

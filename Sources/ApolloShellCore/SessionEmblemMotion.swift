@@ -212,7 +212,8 @@ public struct EmblemPose: Equatable, Sendable {
     /// Die Kurve, mit der das Menue hereinfaehrt: cubic-bezier(0.38, 1.21,
     /// 0.22, 1), leicht ueberschiessend.
     static func menuCurve(_ x: Double) -> Double {
-        cubicBezier(x, 0.38, 1.21, 0.22, 1)
+        let curve = MotionCurve.spatial
+        return cubicBezier(x, curve.x1, curve.y1, curve.x2, curve.y2)
     }
 
     /// y(x) einer CSS-Bezierkurve; x per Newton aus dem Kurvenparameter.

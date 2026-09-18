@@ -217,8 +217,7 @@ struct OnboardingHeader: View {
 struct OnboardingCard<Content: View>: View {
     @ViewBuilder let content: Content
 
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

@@ -17,7 +17,7 @@ struct ThemedIcon: View {
     /// Ansicht ohne Theme-Bild gar nichts (etwa das gezeichnete Emblem).
     var fallback: String
 
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.shellStyle) private var style
 
     init(_ id: String, fallback: String? = nil) {
         self.id = id
@@ -25,7 +25,6 @@ struct ThemedIcon: View {
     }
 
     var body: some View {
-        let style = ShellTheme.style(colorScheme)
         if let url = style.iconFile(id), let image = ThemedIconCache.image(at: url) {
             Image(nsImage: image)
                 .resizable()

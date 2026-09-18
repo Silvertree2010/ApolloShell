@@ -15,7 +15,7 @@ struct PerformanceView: View {
     let model: PerformanceModel
 
     /// Caelestias Standardkurve: 500 ms, leicht ueberschiessend.
-    static let animation = Animation.timingCurve(0.38, 1.21, 0.22, 1, duration: 0.5)
+    static let animation = Animation.shellSpatial
     static let batteryWidth: CGFloat = 129  // 150 x 0,858
     static let networkWidth: CGFloat = 335  // 390 x 0,858
     static let bottomHeight: CGFloat = 189  // 220 x 0,858
@@ -60,8 +60,7 @@ private struct HeroCard: View {
     let subtitle: String
     let value: Double?
     let history: SampleHistory
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Card(radius: 24) {
@@ -108,8 +107,7 @@ private struct UsageRing: View {
     let symbol: String
     /// Kennung fuer den Symbol-Austausch im Theme.
     var iconID: String = ""
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         ZStack {
@@ -129,8 +127,7 @@ private struct UsageRing: View {
 
 private struct UsageBadge: View {
     let value: Double?
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         let usage = value ?? 0
@@ -181,8 +178,7 @@ private struct ArcGauge<Label: View>: View {
     let value: Double
     let caption: LocalizedStringKey
     @ViewBuilder let label: () -> Label
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     private let lineWidth: CGFloat = 8
 
@@ -224,8 +220,7 @@ private struct PercentLabel: View {
 
 private struct StorageCard: View {
     let usage: ByteUsage?
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Card(radius: 41) {
@@ -255,8 +250,7 @@ private struct StorageCard: View {
 
 private struct MemoryCard: View {
     let usage: ByteUsage?
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Card(radius: 10) {
@@ -290,8 +284,7 @@ private struct MemoryCard: View {
 
 private struct NetworkCard: View {
     let model: PerformanceModel
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     /// Upload in einer zweiten Farbe, damit sich die Linien trennen lassen
     /// (Caelestia: sekundaere und tertiaere Palettenfarbe).
@@ -348,8 +341,7 @@ private struct RateRow: View {
     let color: Color
     let title: LocalizedStringKey
     let value: String
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack(spacing: 6) {
@@ -431,8 +423,7 @@ private struct SparklineShape: Shape {
 private struct BatteryTank: View {
     let state: BatteryState
     let minutes: Int?
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         GeometryReader { geometry in
@@ -456,8 +447,7 @@ private struct TankContents: View {
     let state: BatteryState
     let minutes: Int?
     let inverted: Bool
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {

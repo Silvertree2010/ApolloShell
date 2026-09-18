@@ -170,8 +170,7 @@ struct NexusView: View {
     let system: NexusSystemInfo
     let shell: NexusShellParts
 
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         NavigationSplitView {
@@ -206,8 +205,7 @@ struct NexusShellParts {
 struct NexusSidebar: View {
     @Bindable var state: NexusState
 
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         List(selection: $state.page) {
@@ -292,8 +290,7 @@ struct NexusPageForm<Content: View>: View {
     var subtitle: String?
     @ViewBuilder let content: Content
 
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Form {

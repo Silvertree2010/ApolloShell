@@ -24,7 +24,7 @@ final class ThemeStore {
     let folder: URL
 
     /// Der Speicher der laufenden App. Ansichten holen ihren Stil hierueber
-    /// (`ShellTheme.style`), statt ihn durch jedes Fenster zu reichen: Es gibt
+    /// (`shellTheme()` legt ihn an jeder Fensterwurzel in die Umgebung): Es gibt
     /// genau ein Theme fuer die ganze Shell, und Observation sorgt trotzdem
     /// dafuer, dass jede Ansicht neu zeichnet, die einen Wert gelesen hat.
     /// Ohne App (Bildproben, Tests) bleibt er leer, und alles sieht aus wie

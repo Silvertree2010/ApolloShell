@@ -4,7 +4,7 @@ import SwiftUI
 /// Caelestias Kurven (Tokens.anim): Raum 500 ms mit leichtem Ueberschiessen
 /// fuer Groesse und Lage, Effekte 200/300 ms fuer das Ueberblenden.
 enum StatusPopoutMotion {
-    static let spatial = Animation.timingCurve(0.38, 1.21, 0.22, 1, duration: 0.5)
+    static let spatial = Animation.shellSpatial
     static let fadeOut = Animation.timingCurve(0.34, 0.8, 0.34, 1, duration: 0.2)
     static let fadeIn = Animation.timingCurve(0.34, 0.88, 0.34, 1, duration: 0.3)
 }
@@ -132,8 +132,7 @@ private struct StatusPopoutWifiView: View {
 
 private struct StatusPopoutBluetoothView: View {
     let model: StatusPopoutModel
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         let snapshot = model.bluetooth
@@ -184,8 +183,7 @@ private struct StatusPopoutBluetoothView: View {
 /// ("AirPo...") waren in der Bildprobe schlechter als eine zweite Zeile.
 private struct StatusPopoutDeviceRow: View {
     let device: StatusPopoutBluetoothDevice
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack(spacing: 10) {
@@ -218,8 +216,7 @@ private struct StatusPopoutDeviceRow: View {
 
 private struct StatusPopoutBatteryChip: View {
     let battery: StatusPopoutBluetoothBattery
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack(spacing: 3) {
@@ -239,8 +236,7 @@ private struct StatusPopoutBatteryChip: View {
 
 private struct StatusPopoutBatteryView: View {
     let model: StatusPopoutModel
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         if let info = model.battery {
@@ -289,8 +285,7 @@ private struct StatusPopoutBatteryView: View {
 private struct StatusPopoutHeader<Trailing: View>: View {
     let title: LocalizedStringKey
     @ViewBuilder let trailing: Trailing
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack {
@@ -310,8 +305,7 @@ private struct StatusPopoutLeadRow: View {
     let active: Bool
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey?
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack(spacing: 10) {
@@ -334,8 +328,6 @@ private struct StatusPopoutLeadRow: View {
 /// Leicht abgesetzte Flaeche wie die Karten der Utilities.
 private struct StatusPopoutCard<Content: View>: View {
     @ViewBuilder let content: Content
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
 
     var body: some View {
         VStack(spacing: 7) {
@@ -344,15 +336,14 @@ private struct StatusPopoutCard<Content: View>: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
-        .background(Color.primary.opacity(0.06), in: .rect(cornerRadius: style.cardRadius(12)))
+        .cardSurface(radius: 12)
     }
 }
 
 private struct StatusPopoutValueRow: View {
     let label: LocalizedStringKey
     let value: String
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack {
@@ -367,8 +358,7 @@ private struct StatusPopoutValueRow: View {
 
 private struct StatusPopoutNote: View {
     let text: String
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Text(text)
@@ -385,8 +375,7 @@ private struct StatusPopoutSettingsButton: View {
     var help: LocalizedStringKey?
     let action: () -> Void
     @State private var hovering = false
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     init(title: LocalizedStringKey, help: LocalizedStringKey? = nil, action: @escaping () -> Void) {
         self.title = title
@@ -424,7 +413,7 @@ private struct StatusPopoutSettingsButton: View {
 /// Knopf 32 x 20.
 private struct StatusPopoutSwitchStyle: ToggleStyle {
     @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     func makeBody(configuration: Configuration) -> some View {
         let on = configuration.isOn

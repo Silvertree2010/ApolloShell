@@ -501,8 +501,7 @@ struct SidebarDock: View {
     /// Vorschau in Nexus: kein Hover, kein Klick, kein Menue, kein Ziehen -
     /// dort soll nichts eine echte App starten, beenden oder anheften.
     @Environment(\.barPreview) private var preview
-    @Environment(\.colorScheme) private var dockColorScheme
-    private var dockStyle: ShellStyle { ShellTheme.style(dockColorScheme) }
+    @Environment(\.shellStyle) private var dockStyle
 
     private var entries: [SidebarDockModel.Entry] {
         options.showRunning ? model.entries : model.entries.filter(\.pinned)
@@ -586,8 +585,7 @@ private struct SidebarDockItem: View {
     @State private var pressed = false
     /// Dateien werden gerade darueber gezogen: wie im Apple-Dock hervorheben.
     @State private var dropTarget = false
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Image(nsImage: entry.icon)

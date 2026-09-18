@@ -20,8 +20,7 @@ struct DashboardView: View {
     let media: MediaModel
     let settings: ShellSettingsStore
     @Namespace private var tabIndicator
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     static let padding: CGFloat = 16
     static let spacing = CGFloat(DashboardGeometry.spacing)
@@ -29,7 +28,7 @@ struct DashboardView: View {
     static let gridHeight = CGFloat(DashboardGeometry.height)
     /// Caelestias Standardkurve: 500 ms, leicht ueberschiessend - fuer den
     /// Reiter-Indikator und fuer Karten, die in Nexus umziehen.
-    static let motion = Animation.timingCurve(0.38, 1.21, 0.22, 1, duration: 0.5)
+    static let motion = Animation.shellSpatial
 
     var body: some View {
         let layout = settings.settings.dashboard
@@ -202,8 +201,7 @@ private struct DashboardCardView: View {
 
 /// Alle Karten entfernt: ein ruhiger Hinweis statt einer leeren Flaeche.
 private struct DashboardEmptyGrid: View {
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Card(radius: 28) {
@@ -221,33 +219,6 @@ private struct DashboardEmptyGrid: View {
     }
 }
 
-/// Karte mit leicht abgesetzter Flaeche auf dem Glas. Nicht privat: der
-/// Reiter "Leistung" (PerformanceView) nutzt sie auch.
-struct Card<Content: View>: View {
-    let radius: CGFloat
-    @ViewBuilder let content: () -> Content
-
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
-
-    var body: some View {
-        // Mit Theme faerbt `--apollo-card-color` (oder der Verlauf daneben)
-        // die Karte, und `--apollo-card-radius` rundet sie.
-        let shape = RoundedRectangle(cornerRadius: style.cardRadius(radius))
-        content()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background {
-                if style.paintsCard {
-                    shape.fill(style.cardFill)
-                } else {
-                    shape.fill(Color.primary.opacity(0.06))
-                }
-            }
-            // Rand nur, wenn das Theme eine Breite nennt.
-            .overlay { style.border(shape) }
-    }
-}
-
 // MARK: - Karten
 
 /// Initiale, Name und zwei Kapseln. Hochkant (untere Reihe, Spalte) steht
@@ -256,8 +227,7 @@ private struct UserCard: View {
     let model: DashboardModel
     var options = DashboardUserOptions()
     var vertical = false
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Card(radius: 28) {
@@ -305,8 +275,7 @@ private struct UserCard: View {
 private struct Badge: View {
     let symbol: String
     let text: String
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack(spacing: 5) {
@@ -326,8 +295,7 @@ private struct DateTimeCard: View {
     let now: Date
     let locale: Locale
     var options = DashboardClockOptions()
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Card(radius: 16) {
@@ -379,8 +347,7 @@ private struct CalendarCard: View {
     var options = DashboardCalendarOptions()
     /// Ueber die ganze Hoehe (obere Reihe leer): Zeilen weiter auseinander.
     var tall = false
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         let calendar = options.applied(to: model.calendar)
@@ -466,8 +433,7 @@ private struct Ring: View {
     /// Kennung fuer den Symbol-Austausch im Theme.
     var iconID: String = ""
     let help: String
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         ZStack {

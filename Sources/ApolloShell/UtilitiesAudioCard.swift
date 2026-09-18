@@ -16,8 +16,7 @@ import SwiftUI
 /// Standardausgangs, damit auch Geraete ohne Hauptregler gehen.
 struct UtilitiesAudioCard: View {
     let model: UtilitiesModel
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         UtilitiesCard {
@@ -62,8 +61,7 @@ private struct UtilitiesMuteButton: View {
 
     let model: UtilitiesModel
     @State private var hovering = false
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Button(action: model.toggleOutputMute) {
@@ -92,8 +90,7 @@ private struct UtilitiesVolumeSlider: View {
     private static let step: Float = 1.0 / 16
 
     let model: UtilitiesModel
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         GeometryReader { geo in
@@ -156,8 +153,7 @@ private struct UtilitiesDeviceButton: View {
     let current: UInt32?
     let select: (UInt32) -> Void
     @State private var hovering = false
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         Button {

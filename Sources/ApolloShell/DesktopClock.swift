@@ -140,10 +140,10 @@ final class DesktopClock {
 @MainActor
 private final class DesktopClockWindow {
     private let window: NSPanel
-    private let hosting: NSHostingView<DesktopClockView>
+    private let hosting: NSHostingView<ModifiedContent<DesktopClockView, ShellThemeRoot>>
 
     init(model: DesktopClockModel) {
-        hosting = NSHostingView(rootView: DesktopClockView(model: model))
+        hosting = NSHostingView(rootView: DesktopClockView(model: model).shellTheme())
         hosting.sizingOptions = []
         window = NSPanel(
             contentRect: .zero,
@@ -168,7 +168,7 @@ private final class DesktopClockWindow {
         // An einer frischen Ansicht messen: `hosting` hat sizingOptions = []
         // und meldet deshalb keine eigene Groesse (fittingSize war 0 x 0,
         // die Uhr unsichtbar - gemessen 14.09.).
-        let size = NSHostingView(rootView: DesktopClockView(model: model)).fittingSize
+        let size = NSHostingView(rootView: DesktopClockView(model: model).shellTheme()).fittingSize
         let visible = screen.visibleFrame
         // Der View bringt 24 pt Schatten-Rand mit; die 32 pt gelten fuer die Schrift.
         let inset = margin - 24

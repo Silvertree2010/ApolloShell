@@ -44,8 +44,7 @@ struct OSDView: View {
 private struct VolumeSlider: View {
     let model: OSDModel
 
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         GeometryReader { geo in

@@ -18,8 +18,7 @@ struct SidebarContent: View {
     let settings: ShellSettingsStore
     let context: BarModuleContext
 
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         let entries = settings.settings.bar.layout.entries
@@ -236,8 +235,7 @@ struct SidebarIcon<Content: View>: View {
     @ViewBuilder let content: () -> Content
     @State private var hovering = false
     @Environment(\.barPreview) private var preview
-    @Environment(\.colorScheme) private var colorScheme
-    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+    @Environment(\.shellStyle) private var style
 
     init(help: String, action: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.help = help
@@ -273,10 +271,9 @@ struct SidebarIcon<Content: View>: View {
 struct BluetoothGlyph: View {
     let on: Bool
 
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
-        let style = ShellTheme.style(colorScheme)
         let id = on ? "status-bluetooth" : "status-bluetooth-off"
         if style.iconFile(id) != nil {
             ThemedIcon(id, fallback: "")

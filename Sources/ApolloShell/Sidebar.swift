@@ -462,6 +462,7 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
     let background: BarBackground
     @Environment(\.statusPopoutGlassStandIn) private var standIn
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.shellStyle) private var style
 
     /// Fensterfarbe, halb deckend: zieht das Glas in Richtung Fensterfarbe,
     /// laesst es aber noch Glas sein. Ganz aufhalten kann eine Toenung das
@@ -475,7 +476,6 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
     /// sichtbar, solange das Theme durchscheinen laesst und Glas erlaubt -
     /// sonst waere eine halb deckende Leiste eine Leiste vor dem Schreibtisch.
     func body(content: Content) -> some View {
-        let style = ShellTheme.style(colorScheme)
         if standIn {
             content.background(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95), in: shape)
         } else if style.paintsBar {
