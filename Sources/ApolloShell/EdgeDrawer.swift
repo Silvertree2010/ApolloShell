@@ -184,9 +184,17 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     var suspendedScreens: Set<CGDirectDisplayID> = []
     /// Waehrend einer Bearbeitung (Dashboard, Bento-Seiten): haelt das Fenster
     /// offen, egal wo die Maus steht - Hover schliesst nicht, `Esc` schliesst
-    /// nicht, ein Klick in eine andere App (Nexus) schliesst nicht. Entpinnen
-    /// schliesst nicht von selbst, es erlaubt nur wieder das Uebliche.
-    var isPinned = false
+    /// nicht, ein Klick in eine andere App (Nexus) schliesst nicht, und
+    /// `toggle()`/`open()`/`close()` von aussen wirken nicht. Entpinnen
+    /// schliesst von selbst, ausser der Zeiger steht noch im Aufklapp-Bereich
+    /// - dann uebernimmt von dort das uebliche Hover-Verhalten; sonst bliebe
+    /// das Fenster sonst unbegrenzt offen stehen (`unpin()`).
+    var isPinned = false {
+        didSet {
+            guard oldValue, !isPinned else { return }
+            unpin()
+        }
+    }
     private var hoverState = EdgeHoverState.hidden
     private var hoverMonitor: Any?
     /// Solange offen: Mausposition selbst nachsehen. Der globale Monitor
@@ -261,12 +269,16 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         return max(screen.frame.maxY - screen.visibleFrame.maxY, screen.safeAreaInsets.top)
     }
 
+    /// Waehrend einer Bearbeitung (`isPinned`) wirkt weder Symbol noch
+    /// Tastenkombination - das Fenster bleibt, bis die Bearbeitung endet.
     func toggle() {
+        guard !isPinned else { return }
         isOpen ? close() : open()
     }
 
     /// Per Tastenkombination oder Symbol.
     func open() {
+        guard !isPinned else { return }
         guard let screen = ShellScreens.underPointer() else { return }
         open(byHover: false, on: screen)
     }
@@ -473,6 +485,22 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     private func startHoverTimer() {
         guard opensOnHover, hoverTimer == nil else { return }
         hoverTimer = .repeating(every: 0.05, owner: self) { $0.hoverMoved() }
+    }
+
+    /// Entpinnen (Bearbeitung fertig/abgebrochen): ohne das wuerde das
+    /// Fenster unbegrenzt offen bleiben, da `hoverMoved()` waehrend `isPinned`
+    /// nichts pruefte und `hoverState` seither veraltet ist. Steht der Zeiger
+    /// noch im Aufklapp-Bereich, uebernimmt von dort das uebliche
+    /// Hover-Verhalten (offen bleiben, bis er hinausgeht); sonst gleich zu.
+    private func unpin() {
+        guard isOpen else { return }
+        guard opensOnHover, let target = currentScreen, !suspendedScreens.contains(target.displayID),
+              let area = hoverArea(on: target, open: true), area.contains(NSEvent.mouseLocation)
+        else {
+            close()
+            return
+        }
+        hoverState = EdgeHoverState(visible: true, shortcutActive: false)
     }
 
     private func hoverMoved() {

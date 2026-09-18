@@ -127,6 +127,19 @@ final class Dashboard {
                             .performanceMemory, .performanceBattery]
         case .weather: [.weatherHero, .weatherHourly, .weatherDaily, .weather]
         }
+        // Waehrend einer Bearbeitung bleibt das Fenster angepinnt offen -
+        // kein `drawer.close()`/`open()` (die wirken ohnehin nicht mehr,
+        // `EdgeDrawer.isPinned`), nur die Sitzung wechselt die Seite, und nur
+        // wenn sich eine eindeutige (Vorlage oder passendes Widget) findet -
+        // sonst bleibt die Bearbeitung, wo sie ist.
+        if editor.isEditing {
+            if let session = editor.session,
+               let page = session.pages.pages.first(where: { $0.template == PageTemplate(tab) })
+                   ?? session.pages.pages.first(where: { page in kinds.contains(where: page.contains) }) {
+                editor.pageID = page.id
+            }
+            return
+        }
         let page = pages.page(for: PageTemplate(tab), showing: kinds)
         if drawer.isOpen, model.pageID == page.id {
             drawer.close()
