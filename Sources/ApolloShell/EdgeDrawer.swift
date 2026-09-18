@@ -119,43 +119,9 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// Toenung, Panelradius als Ecke. Ohne Theme bleibt alles, wie es war.
     /// Wird beim Bauen und bei jedem Oeffnen gesetzt, damit ein Wechsel im
     /// Theme spaetestens beim naechsten Oeffnen ankommt.
+    /// Faerbt das Kantenfenster nach dem Theme (siehe `ThemedGlass`).
     private func applyTheme() {
-        guard let glass else { return }
-        let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        let style = ThemeStore.shared?.style(dark: dark) ?? .standard
-        glass.cornerRadius = style.panelRadius(cornerRadius)
-
-        // Die ganze Flaeche in einem Stueck, unter dem Glas: Die Ansicht
-        // reicht nur bis zu ihrem eigenen Rahmen, darueber liegt der Platz
-        // fuer Menueleiste und Notch. Wuerden beide Teile getrennt gefuellt,
-        // liefe ein Verlauf zweimal und es gaebe eine Naht.
-        //
-        // Als Ebene und nicht als Toenung des Glases, weil eine Ebenenfarbe
-        // sofort gilt und eine Toenung erst beim naechsten Zeichnen.
-        guard let content = glass.contentView else { return }
-        content.wantsLayer = true
-        panelLayer?.removeFromSuperlayer()
-        panelLayer = nil
-        content.layer?.backgroundColor = nil
-        guard style.paintsPanel else { return }
-
-        let gradient = style.theme.gradient(.panel, dark: dark)
-        guard !gradient.isEmpty else {
-            content.layer?.backgroundColor = NSColor(style.theme.color(.panel, dark: dark))
-                .withAlphaComponent(style.panelOpacity).cgColor
-            return
-        }
-        let layer = CAGradientLayer()
-        layer.frame = content.bounds
-        layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        layer.colors = gradient.stops.map { NSColor($0.color).cgColor }
-        layer.locations = gradient.stops.map { NSNumber(value: $0.position) }
-        let points = gradient.points
-        layer.startPoint = CGPoint(x: points.start.x, y: points.start.y)
-        layer.endPoint = CGPoint(x: points.end.x, y: points.end.y)
-        layer.opacity = Float(style.panelOpacity)
-        content.layer?.insertSublayer(layer, at: 0)
-        panelLayer = layer
+        panelLayer = ThemedGlass.apply(to: glass, fallbackRadius: cornerRadius, previous: panelLayer)
     }
 
     /// Hoehe der Menueleiste bzw. der Notch, je nachdem was groesser ist

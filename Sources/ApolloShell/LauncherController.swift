@@ -255,40 +255,9 @@ final class LauncherController: NSObject, NSWindowDelegate {
         return panel
     }
 
-    /// Faerbt den Launcher nach dem Theme: die Panelfarbe (oder deren
-    /// Verlauf) als Flaeche unter dem Glas, der Panelradius als Ecke.
-    ///
-    /// Wie beim Dashboard als Ebene und nicht als Toenung des Glases - eine
-    /// Ebenenfarbe gilt sofort, eine Toenung erst beim naechsten Zeichnen.
+    /// Faerbt den Launcher nach dem Theme (siehe `ThemedGlass`).
     private func applyTheme() {
-        guard let glass, let content = glass.contentView else { return }
-        let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        let style = ThemeStore.shared?.style(dark: dark) ?? .standard
-        glass.cornerRadius = style.panelRadius(Self.cornerRadius)
-
-        content.wantsLayer = true
-        surfaceLayer?.removeFromSuperlayer()
-        surfaceLayer = nil
-        content.layer?.backgroundColor = nil
-        guard style.paintsPanel else { return }
-
-        let gradient = style.theme.gradient(.panel, dark: dark)
-        guard !gradient.isEmpty else {
-            content.layer?.backgroundColor = NSColor(style.theme.color(.panel, dark: dark))
-                .withAlphaComponent(style.panelOpacity).cgColor
-            return
-        }
-        let layer = CAGradientLayer()
-        layer.frame = content.bounds
-        layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        layer.colors = gradient.stops.map { NSColor($0.color).cgColor }
-        layer.locations = gradient.stops.map { NSNumber(value: $0.position) }
-        let points = gradient.points
-        layer.startPoint = CGPoint(x: points.start.x, y: points.start.y)
-        layer.endPoint = CGPoint(x: points.end.x, y: points.end.y)
-        layer.opacity = Float(style.panelOpacity)
-        content.layer?.insertSublayer(layer, at: 0)
-        surfaceLayer = layer
+        surfaceLayer = ThemedGlass.apply(to: glass, fallbackRadius: Self.cornerRadius, previous: surfaceLayer)
     }
 
     // Klick daneben schliesst den Launcher.

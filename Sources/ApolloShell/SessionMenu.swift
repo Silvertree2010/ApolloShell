@@ -43,6 +43,9 @@ final class SessionMenu: NSObject, NSWindowDelegate {
     private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "session")
     private lazy var scrim = makeScrim()
     private lazy var panel = makePanel()
+    /// Das Glas des Menues und die eingefaerbte Flaeche darunter (Theme).
+    private var glass: NSGlassEffectView?
+    private var surfaceLayer: CAGradientLayer?
     private let container = NSView(frame: NSRect(
         x: 0, y: 0,
         width: SessionMenu.visibleWidth + SessionMenu.cornerRadius,
@@ -65,6 +68,7 @@ final class SessionMenu: NSObject, NSWindowDelegate {
         // Dort, wo der Zeiger steht: Panel und Abdunkelung auf demselben
         // Bildschirm.
         guard !isOpen, let screen = ShellScreens.underPointer() else { return }
+        applyTheme()
         isOpen = true
         generation += 1
         model.reset()
@@ -206,8 +210,15 @@ final class SessionMenu: NSObject, NSWindowDelegate {
 
         container.wantsLayer = true
         container.addSubview(glass)
+        self.glass = glass
         panel.contentView = container
+        applyTheme()
         return panel
+    }
+
+    /// Faerbt das Sitzungsmenue nach dem Theme (siehe `ThemedGlass`).
+    private func applyTheme() {
+        surfaceLayer = ThemedGlass.apply(to: glass, fallbackRadius: Self.cornerRadius, previous: surfaceLayer)
     }
 
     // Klick in eine andere App schliesst das Menue.

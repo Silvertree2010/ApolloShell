@@ -75,7 +75,8 @@ final class Onboarding: NSObject, NSWindowDelegate {
             self?.markCompleted()
             window?.close()
         }
-        window.contentViewController = NSHostingController(rootView: view)
+        // Auch die Einfuehrung folgt dem Theme (Farbton und Flaeche).
+        window.contentViewController = NSHostingController(rootView: view.shellTheme())
         window.setContentSize(Self.size)
         self.window = window
         return window
@@ -216,14 +217,31 @@ struct OnboardingHeader: View {
 struct OnboardingCard<Content: View>: View {
     @ViewBuilder let content: Content
 
+    @Environment(\.colorScheme) private var colorScheme
+    private var style: ShellStyle { ShellTheme.style(colorScheme) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             content
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.primary.opacity(0.045)))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.primary.opacity(0.08)))
+        .background {
+            let shape = RoundedRectangle(cornerRadius: style.cardRadius(12), style: .continuous)
+            if style.paintsCard {
+                shape.fill(style.cardFill)
+            } else {
+                shape.fill(Color.primary.opacity(0.045))
+            }
+        }
+        .overlay {
+            let shape = RoundedRectangle(cornerRadius: style.cardRadius(12), style: .continuous)
+            if style.declaresColor(.border) {
+                shape.strokeBorder(style.border, lineWidth: style.borderWidth(1))
+            } else {
+                shape.strokeBorder(Color.primary.opacity(0.08))
+            }
+        }
     }
 }
 
