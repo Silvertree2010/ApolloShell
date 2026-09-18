@@ -4,6 +4,31 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.2.1] - 2026-09-18
+
+A patch on 0.1.2: what a theme reaches, and what the icon list promised.
+
+### Fixed
+
+- **The launcher, the session menu and the introduction follow the theme.**
+  All three were glass with the colours of macOS, so a theme stopped at
+  their edge.
+- **Every icon name in the documentation works.** The catalog listed the
+  status glyphs, the toasts and the panel icons, but only the bar and the
+  session menu read them.
+- **A theme that only wrote `--apollo-bar-gradient: none` made the sidebar
+  invisible.** A gradient of `none` no longer counts as painting a surface.
+- **Glyphs on accent areas went dark** when a theme did not name its own
+  on-accent colour; they are white again, as before themes existed.
+- **An icon from a theme is drawn at the size of the symbol it replaces**
+  instead of filling the whole button.
+
+### Added
+
+- `--apollo-icon-style: monochrome` tints the images a theme brings along
+  like the symbols they replace. `auto` stays the default and leaves them
+  exactly as they were drawn.
+
 ## [0.1.2] - 2026-09-17
 
 ### Added
@@ -169,5 +194,6 @@ Not published on its own; it ships as part of 0.1.1.
 - The Intel (x86_64) build has not been tested on Intel hardware.
 - Relies on private macOS interfaces that may change with macOS updates.
 
+[0.1.2.1]: https://github.com/Silvertree2010/ApolloShell/releases/tag/v0.1.2.1
 [0.1.2]: https://github.com/Silvertree2010/ApolloShell/releases/tag/v0.1.2
 [0.1.1]: https://github.com/Silvertree2010/ApolloShell/releases/tag/v0.1.1
