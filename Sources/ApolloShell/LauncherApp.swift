@@ -153,7 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let showOnboarding = OnboardingRule.shouldShow(settings.settings, launcherOnly: false)
         // Haelt Fenster aus dem Streifen der Leiste. Ohne
         // Bedienungshilfen-Freigabe tut sie nichts.
-        let windowGuard = WindowGuard(reservedWidth: Sidebar.width, askForAccess: !showOnboarding)
+        let windowGuard = WindowGuard(askForAccess: !showOnboarding)
         // Blendet die Leiste auf Bildschirmen mit Vollbild-App aus.
         fullscreenMonitor = FullscreenMonitor {
             [weak sidebar, weak toaster, weak dashboard, weak utilities] fullscreenScreens in
@@ -169,10 +169,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.windowGuard = windowGuard
         // Die Wache haelt den Streifen auf jedem Bildschirm frei, der eine
         // Leiste hat - und erfaehrt jede Aenderung daran (Bildschirm dazu,
-        // weg, oder die Einstellung in Nexus geaendert).
-        windowGuard.setBarScreens(Set(sidebar.screens.map(\.key)))
+        // weg, die Einstellung in Nexus geaendert oder eine neue Breite aus
+        // dem Theme).
+        windowGuard.setBarScreens(Set(sidebar.screens.map(\.key)), barWidth: Sidebar.width)
         sidebar.onScreensChange = { [weak windowGuard] screens in
-            windowGuard?.setBarScreens(Set(screens.map(\.key)))
+            windowGuard?.setBarScreens(Set(screens.map(\.key)), barWidth: Sidebar.width)
         }
 
         let onboarding = Onboarding(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions)

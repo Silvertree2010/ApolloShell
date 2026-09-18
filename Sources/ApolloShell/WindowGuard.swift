@@ -34,12 +34,15 @@ final class WindowGuard {
     /// Schluessel der Bildschirme, auf denen eine Leiste steht - nur dort
     /// wird der Streifen freigehalten. Meldet der Verwalter der Leisten.
     private var barScreenKeys: Set<String> = []
+    /// So breit ist der Streifen. Das Theme kann die Leiste zur Laufzeit
+    /// breiter oder schmaler machen; der Verwalter meldet es mit.
+    private var barWidth: CGFloat = 0
 
     /// `askForAccess`: beim Start die Systemfrage zeigen, falls die Freigabe
     /// fehlt. Aus, solange die Einfuehrung laeuft - die erklaert erst, wozu,
     /// und fragt dann selbst.
-    init(reservedWidth: CGFloat, askForAccess: Bool = true) {
-        worker = WindowGuardWorker(reservedWidth: reservedWidth)
+    init(askForAccess: Bool = true) {
+        worker = WindowGuardWorker()
 
         // Einmal pro Start fragen (zeigt den Systemdialog nur, solange die
         // Freigabe fehlt). Der Schluessel ist der Wert von
@@ -90,13 +93,14 @@ final class WindowGuard {
         )
     }
 
-    /// Auf welchen Bildschirmen eine Leiste steht. Danach richtet sich, wo
-    /// der Streifen freigehalten wird; der Verwalter der Leisten meldet jede
-    /// Aenderung.
-    func setBarScreens(_ keys: Set<String>) {
-        guard keys != barScreenKeys else { return }
+    /// Auf welchen Bildschirmen eine Leiste steht und wie breit sie ist.
+    /// Danach richtet sich, wo und wie breit der Streifen freigehalten wird;
+    /// der Verwalter der Leisten meldet jede Aenderung.
+    func setBarScreens(_ keys: Set<String>, barWidth: CGFloat) {
+        guard keys != barScreenKeys || barWidth != self.barWidth else { return }
         barScreenKeys = keys
-        log.notice("Streifen freihalten auf \(keys.count, privacy: .public) Bildschirm(en)")
+        self.barWidth = barWidth
+        log.notice("Streifen (\(Int(barWidth), privacy: .public) pt) freihalten auf \(keys.count, privacy: .public) Bildschirm(en)")
         guard let screens = screensForWorker() else { return }
         worker.screensChanged(screens)
     }
@@ -115,7 +119,7 @@ final class WindowGuard {
             GuardScreen(
                 key: screen.info.key,
                 frame: WindowClamp.flipped(screen.frame, primaryHeight: primaryHeight),
-                reserved: barScreenKeys.contains(screen.info.key)
+                reservedWidth: barScreenKeys.contains(screen.info.key) ? barWidth : 0
             )
         }
     }
@@ -174,9 +178,9 @@ struct GuardScreen: Sendable, Equatable {
     /// Rahmen in Bedienungshilfen-Koordinaten (Ursprung oben links am
     /// Hauptbildschirm, y nach unten).
     let frame: CGRect
-    /// Dort steht eine Leiste: den Streifen freihalten. Auf Bildschirmen
-    /// ohne Leiste werden Fenster in Ruhe gelassen.
-    let reserved: Bool
+    /// So breit ist der freizuhaltende Streifen am linken Rand. 0: dort
+    /// steht keine Leiste, Fenster werden in Ruhe gelassen.
+    let reservedWidth: CGFloat
 }
 
 /// Die eigentliche Fensterwache.
@@ -210,7 +214,6 @@ final class WindowGuardWorker: @unchecked Sendable {
 
     private let queue = DispatchQueue(label: AppIdentity.scoped("windowguard"))
     private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "windowguard")
-    private let reservedWidth: CGFloat
     private let ownPID = ProcessInfo.processInfo.processIdentifier
 
     // Nur auf `queue` anfassen.
@@ -226,10 +229,6 @@ final class WindowGuardWorker: @unchecked Sendable {
     private var ledger = ClampLedger<AXUIElement>(maxAttempts: 3, period: 30)
     /// Aus abgelehnten Verkleinerungen gelernte Mindestbreiten.
     private var minWidths: [AXUIElement: CGFloat] = [:]
-
-    init(reservedWidth: CGFloat) {
-        self.reservedWidth = reservedWidth
-    }
 
     // MARK: - Von aussen (beliebiger Thread)
 
@@ -469,10 +468,10 @@ final class WindowGuardWorker: @unchecked Sendable {
               // Das Fenster gehoert dem Bildschirm, auf dem der groesste Teil
               // liegt - und geschoben wird nur dort, wo eine Leiste steht.
               let index = WindowClamp.dominantScreen(for: frame, among: screens.map(\.frame)),
-              screens[index].reserved,
+              screens[index].reservedWidth > 0,
               let target = WindowClamp.clampedFrame(
                   window: frame, screen: screens[index].frame,
-                  reservedWidth: reservedWidth, minWidth: minWidths[window] ?? 0
+                  reservedWidth: screens[index].reservedWidth, minWidth: minWidths[window] ?? 0
               )
         else { return }
 

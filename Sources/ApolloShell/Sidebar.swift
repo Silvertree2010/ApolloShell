@@ -26,8 +26,8 @@ final class Sidebar {
     ///
     /// Die Breite steckt nicht nur in der Ansicht, sondern auch im Fenster
     /// und im Streifen, den die Fensterwache freihaelt - deshalb hier an
-    /// einer Stelle. Eine Aenderung am Theme wirkt beim naechsten Aufbau der
-    /// Fenster (Bildschirmwechsel, Neustart).
+    /// einer Stelle. Aendert sie sich (anderes Theme, Hell/Dunkel), zieht
+    /// `widthChanged()` Fenster und Fensterwache sofort nach.
     static var width: CGFloat {
         let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         return ThemeStore.shared?.style(dark: dark).barWidth(44) ?? 44
@@ -66,6 +66,10 @@ final class Sidebar {
     private var fullscreenScreens: Set<CGDirectDisplayID> = []
     private var context: BarModuleContext!
     private var choiceObservation: Task<Void, Never>?
+    private var widthObservation: Task<Void, Never>?
+    private var appearanceObservation: NSKeyValueObservation?
+    /// Breite beim letzten Vermessen der Fenster.
+    private var laidOutWidth: CGFloat = 0
 
     /// `settings`: welche Bausteine in welcher Reihenfolge und auf welchen
     /// Bildschirmen (Nexus > Leiste). SwiftUI beobachtet sie und baut die
@@ -95,6 +99,25 @@ final class Sidebar {
                 self?.rebuild()
             }
         }
+        // Die Breite haengt am Theme (beobachtbar) und an Hell/Dunkel (nicht
+        // beobachtbar, deshalb per KVO).
+        widthObservation = Task { [weak self] in
+            for await _ in Observations({ Sidebar.width }) {
+                self?.widthChanged()
+            }
+        }
+        appearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
+            Task { @MainActor in self?.widthChanged() }
+        }
+    }
+
+    /// Neue Leistenbreite: Fenster neu vermessen und die Fensterwache den
+    /// Streifen anpassen lassen. Ein offenes Popout geht zu - seine Buehne
+    /// haengt an der alten Breite.
+    private func widthChanged() {
+        guard Sidebar.width != laidOutWidth else { return }
+        for bar in bars.values { bar.closePopout() }
+        rebuild()
     }
 
     /// Auf welchen Bildschirmen gerade eine Leiste steht.
@@ -162,6 +185,7 @@ final class Sidebar {
         }
 
         updateModelDemand()
+        laidOutWidth = Sidebar.width
         log.notice("Leisten auf \(self.bars.count, privacy: .public) von \(all.count, privacy: .public) Bildschirm(en)")
         onScreensChange(wanted.map(\.info))
     }
