@@ -108,7 +108,10 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     func checkNow() {
         rememberCheck(at: Date())
         if let updaterController {
-            status = .checking
+            // Liegt schon ein Update bereit, holt Sparkle nur dieses wieder
+            // hervor (sein Fenster bietet das Einspielen an) - "Jetzt neu
+            // starten" bleibt dabei stehen.
+            if installNow == nil { status = .checking }
             updaterController.updater.checkForUpdates()
             return
         }
@@ -163,6 +166,13 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     // MARK: - SPUUpdaterDelegate
 
     func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        // Ein schon geladenes Update meldet Sparkle beim erneuten Pruefen
+        // noch einmal als gefunden (SPUBasicUpdateDriver nimmt es wieder
+        // auf, statt neu zu suchen). Bereit bleibt bereit.
+        if installNow != nil {
+            status = .ready(version: item.displayVersionString)
+            return
+        }
         status = .found(version: item.displayVersionString, page: item.releaseNotesURL ?? item.infoURL)
     }
 
