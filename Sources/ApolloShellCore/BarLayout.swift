@@ -7,6 +7,10 @@ import Foundation
 // Caelestia fuehrt die Leiste ebenso als Liste (bar.entries mit id und
 // enabled). Hier ohne `enabled`: ein ausgeschalteter Baustein ist einer, der
 // nicht in der Liste steht - ein Zustand weniger, den man verstehen muss.
+//
+// Die eigentliche Listenarbeit (Kennungen vergeben, aufraeumen, verschieben,
+// nachsichtig lesen) traegt `BlockList` (BlockList.swift); hier bleiben nur
+// die Regeln, die eigens zur Leiste gehoeren.
 
 // MARK: - Arten
 
@@ -94,6 +98,10 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
     }
 }
 
+/// Fuer `BlockList`: der Rohwert ist schon `rawValue`, `isUnique` gibt es
+/// schon oben.
+extension BarModuleKind: BlockKind {}
+
 // MARK: - Optionen je Art
 
 // Alle Optionen lesen nachsichtig wie ShellSettings: fehlt ein Schluessel
@@ -106,8 +114,9 @@ public struct BarWorkspacesOptions: Codable, Equatable, Sendable {
     public init(style: Style = .dots) { self.style = style }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        style = c.lenient(.style) ?? .dots
+        c.lenient(.style, into: &style)
     }
 }
 
@@ -136,9 +145,10 @@ public struct BarDockOptions: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        showRunning = c.lenient(.showRunning) ?? true
-        iconSize = c.lenient(.iconSize) ?? .medium
+        c.lenient(.showRunning, into: &showRunning)
+        c.lenient(.iconSize, into: &iconSize)
     }
 }
 
@@ -155,9 +165,10 @@ public struct BarClockOptions: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        showIcon = c.lenient(.showIcon) ?? true
-        showDate = c.lenient(.showDate) ?? false
+        c.lenient(.showIcon, into: &showIcon)
+        c.lenient(.showDate, into: &showDate)
     }
 }
 
@@ -173,10 +184,11 @@ public struct BarStatusIconsOptions: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        showWifi = c.lenient(.showWifi) ?? true
-        showBluetooth = c.lenient(.showBluetooth) ?? true
-        showBattery = c.lenient(.showBattery) ?? true
+        c.lenient(.showWifi, into: &showWifi)
+        c.lenient(.showBluetooth, into: &showBluetooth)
+        c.lenient(.showBattery, into: &showBattery)
     }
 }
 
@@ -199,8 +211,11 @@ public struct BarGapOptions: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        height = Self.clamped(c.lenient(.height) ?? Self.standard)
+        // Nicht `into:`: das schreibt direkt in den Speicher des Feldes und
+        // ueberspringt dabei `didSet`, die Klemmung muss also von Hand sein.
+        if let raw: Double = c.lenient(.height) { height = Self.clamped(raw) }
     }
 
     public static func clamped(_ value: Double) -> Double {
@@ -217,8 +232,9 @@ public struct BarAppButtonOptions: Codable, Equatable, Sendable {
     public init(bundleID: String = "") { self.bundleID = bundleID }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        bundleID = c.lenient(.bundleID) ?? ""
+        c.lenient(.bundleID, into: &bundleID)
     }
 }
 
@@ -229,8 +245,9 @@ public struct BarBatteryOptions: Codable, Equatable, Sendable {
     public init(showIcon: Bool = true) { self.showIcon = showIcon }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        showIcon = c.lenient(.showIcon) ?? true
+        c.lenient(.showIcon, into: &showIcon)
     }
 }
 
@@ -241,8 +258,9 @@ public struct BarCPUOptions: Codable, Equatable, Sendable {
     public init(style: Style = .ring) { self.style = style }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        style = c.lenient(.style) ?? .ring
+        c.lenient(.style, into: &style)
     }
 }
 
@@ -252,8 +270,9 @@ public struct BarWeatherOptions: Codable, Equatable, Sendable {
     public init(showTemperature: Bool = true) { self.showTemperature = showTemperature }
 
     public init(from decoder: any Decoder) throws {
+        self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        showTemperature = c.lenient(.showTemperature) ?? true
+        c.lenient(.showTemperature, into: &showTemperature)
     }
 }
 
@@ -261,7 +280,7 @@ public struct BarWeatherOptions: Codable, Equatable, Sendable {
 
 /// Art und Optionen in einem: jede Art traegt genau ihren Optionstyp, eine
 /// Uhr kann also keine Dock-Optionen haben.
-public enum BarModule: Equatable, Sendable {
+public enum BarModule: BlockModule, Equatable, Sendable {
     case dashboardButton
     case workspaces(BarWorkspacesOptions)
     case dock(BarDockOptions)
@@ -280,21 +299,28 @@ public enum BarModule: Equatable, Sendable {
 
     /// Mit den Vorgaben der Art.
     public init(_ kind: BarModuleKind) {
+        self.init(kind: kind, options: nil)
+    }
+
+    /// Art und (falls vorhanden) gelesene Optionen - der eine Switch fuer
+    /// beides: ohne Container gelten fuer jede Art die Vorgaben, mit
+    /// Container die gelesenen Optionen, kaputte wieder die Vorgaben.
+    fileprivate init(kind: BarModuleKind, options c: KeyedDecodingContainer<BarEntry.CodingKeys>?) {
         self = switch kind {
         case .dashboardButton: .dashboardButton
-        case .workspaces: .workspaces(.init())
-        case .dock: .dock(.init())
-        case .clock: .clock(.init())
+        case .workspaces: .workspaces(Self.decoded(c, forKey: .options, default: .init()))
+        case .dock: .dock(Self.decoded(c, forKey: .options, default: .init()))
+        case .clock: .clock(Self.decoded(c, forKey: .options, default: .init()))
         case .utilitiesButton: .utilitiesButton
-        case .statusIcons: .statusIcons(.init())
+        case .statusIcons: .statusIcons(Self.decoded(c, forKey: .options, default: .init()))
         case .power: .power
         case .spacer: .spacer
-        case .gap: .gap(.init())
+        case .gap: .gap(Self.decoded(c, forKey: .options, default: .init()))
         case .divider: .divider
-        case .appButton: .appButton(.init())
-        case .battery: .battery(.init())
-        case .cpu: .cpu(.init())
-        case .weather: .weather(.init())
+        case .appButton: .appButton(Self.decoded(c, forKey: .options, default: .init()))
+        case .battery: .battery(Self.decoded(c, forKey: .options, default: .init()))
+        case .cpu: .cpu(Self.decoded(c, forKey: .options, default: .init()))
+        case .weather: .weather(Self.decoded(c, forKey: .options, default: .init()))
         case .mediaButton: .mediaButton
         }
     }
@@ -319,11 +345,20 @@ public enum BarModule: Equatable, Sendable {
         }
     }
 
-    /// Ob Nexus fuer diesen Baustein Optionen aufklappen laesst.
-    public var hasOptions: Bool {
+    /// Optionen dieses Bausteins, `nil` bei einer Art ohne welche. Traegt
+    /// `hasOptions` (siehe `BlockModule`) und das Schreiben in `BarEntry`.
+    public var options: (any Encodable)? {
         switch self {
-        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton: false
-        default: true
+        case .workspaces(let o): o
+        case .dock(let o): o
+        case .clock(let o): o
+        case .statusIcons(let o): o
+        case .gap(let o): o
+        case .appButton(let o): o
+        case .battery(let o): o
+        case .cpu(let o): o
+        case .weather(let o): o
+        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton: nil
         }
     }
 
@@ -368,7 +403,9 @@ public struct BarEntry: Codable, Equatable, Identifiable, Sendable {
         self.init(id: id ?? module.kind.rawValue, module: module)
     }
 
-    private enum CodingKeys: String, CodingKey { case id, kind, options }
+    // `fileprivate`, nicht `private`: `BarModule.init(kind:options:)` braucht
+    // denselben Schluesseltyp, um die Optionen zu lesen.
+    fileprivate enum CodingKeys: String, CodingKey { case id, kind, options }
 
     /// Unbekannte oder fehlende Art: Fehler - `BarLayout` uebergeht den
     /// Eintrag dann. Kaputte Optionen dagegen nur Vorgaben.
@@ -379,98 +416,60 @@ public struct BarEntry: Codable, Equatable, Identifiable, Sendable {
         }
         // Fehlt die Kennung, vergibt `BarLayout` eine.
         id = c.lenient(.id) ?? ""
-        module = switch kind {
-        case .dashboardButton: .dashboardButton
-        case .workspaces: .workspaces(c.lenient(.options) ?? .init())
-        case .dock: .dock(c.lenient(.options) ?? .init())
-        case .clock: .clock(c.lenient(.options) ?? .init())
-        case .utilitiesButton: .utilitiesButton
-        case .statusIcons: .statusIcons(c.lenient(.options) ?? .init())
-        case .power: .power
-        case .spacer: .spacer
-        case .gap: .gap(c.lenient(.options) ?? .init())
-        case .divider: .divider
-        case .appButton: .appButton(c.lenient(.options) ?? .init())
-        case .battery: .battery(c.lenient(.options) ?? .init())
-        case .cpu: .cpu(c.lenient(.options) ?? .init())
-        case .weather: .weather(c.lenient(.options) ?? .init())
-        case .mediaButton: .mediaButton
-        }
+        module = BarModule(kind: kind, options: c)
     }
 
     public func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
         try c.encode(kind.rawValue, forKey: .kind)
-        switch module {
-        case .workspaces(let o): try c.encode(o, forKey: .options)
-        case .dock(let o): try c.encode(o, forKey: .options)
-        case .clock(let o): try c.encode(o, forKey: .options)
-        case .statusIcons(let o): try c.encode(o, forKey: .options)
-        case .gap(let o): try c.encode(o, forKey: .options)
-        case .appButton(let o): try c.encode(o, forKey: .options)
-        case .battery(let o): try c.encode(o, forKey: .options)
-        case .cpu(let o): try c.encode(o, forKey: .options)
-        case .weather(let o): try c.encode(o, forKey: .options)
-        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton: break
+        if let options = module.options {
+            try c.encode(AnyEncodable(value: options), forKey: .options)
         }
     }
 }
 
+/// Fuer `BlockList<BarEntry>`.
+extension BarEntry: Block {}
+
 // MARK: - Leiste
 
 /// Die Bausteine von oben nach unten. Immer gueltig: Kennungen eindeutig und
-/// nie leer, Dock und Statussymbole hoechstens einmal - dafuer sorgen der
-/// Initialisierer (auch beim Lesen) und die Aenderungen unten, deshalb ist
-/// `entries` von aussen nur lesbar.
+/// nie leer, Dock und Statussymbole hoechstens einmal - dafuer sorgt
+/// `BlockList`, deshalb ist `entries` von aussen nur lesbar.
 ///
 /// In der Datei eine schlichte Liste. Unlesbare Eintraege (unbekannte Art,
 /// kein Objekt) fallen weg, der Rest bleibt.
 public struct BarLayout: Codable, Equatable, Sendable {
-    public private(set) var entries: [BarEntry]
+    private var blocks: BlockList<BarEntry>
+
+    public var entries: [BarEntry] { blocks.entries }
 
     public init(_ entries: [BarEntry] = []) {
-        self.entries = Self.normalized(entries)
+        blocks = BlockList(entries)
     }
 
     public init(from decoder: any Decoder) throws {
-        var c = try decoder.unkeyedContainer()
-        var list: [BarEntry] = []
-        while !c.isAtEnd {
-            // `Tolerant` scheitert nie, der Zeiger rueckt also immer weiter.
-            // Falls doch (ein Decoder, der das anders haelt): abbrechen statt
-            // endlos auf derselben Stelle stehen.
-            guard let item = try? c.decode(Tolerant.self) else { break }
-            if let entry = item.entry { list.append(entry) }
-        }
-        entries = Self.normalized(list)
+        blocks = try BlockList<BarEntry>(from: decoder)
     }
 
     public func encode(to encoder: any Encoder) throws {
-        var c = encoder.singleValueContainer()
-        try c.encode(entries)
-    }
-
-    private struct Tolerant: Decodable {
-        let entry: BarEntry?
-        init(from decoder: any Decoder) {
-            entry = try? BarEntry(from: decoder)
-        }
+        try blocks.encode(to: encoder)
     }
 
     // MARK: Lesen
 
     public subscript(id id: String) -> BarEntry? {
-        entries.first { $0.id == id }
+        blocks[id: id]
     }
 
     public func contains(_ kind: BarModuleKind) -> Bool {
-        entries.contains { $0.kind == kind }
+        blocks.contains(kind)
     }
 
     /// Fuer die Galerie: ein zweites Dock gibt es nicht.
     public func canAdd(_ kind: BarModuleKind) -> Bool {
-        !kind.isUnique || !contains(kind)
+        blocks.canAdd(kind)
     }
 
     public var flexibleCount: Int {
@@ -494,74 +493,29 @@ public struct BarLayout: Codable, Equatable, Sendable {
     /// einmal vorkommen darf.
     @discardableResult
     public mutating func add(_ kind: BarModuleKind, at index: Int? = nil) -> String? {
-        guard canAdd(kind) else { return nil }
-        let id = Self.uniqueID(for: kind, taken: Set(entries.map(\.id)))
-        let position = min(max(index ?? insertionIndex, 0), entries.count)
-        entries.insert(BarEntry(id: id, module: BarModule(kind)), at: position)
-        return id
+        blocks.add(BarEntry(kind), at: index ?? insertionIndex)
     }
 
     public mutating func remove(id: String) {
-        entries.removeAll { $0.id == id }
+        blocks.remove(id: id)
     }
 
     /// Andere Optionen fuer einen Baustein. Die Art bleibt: aus einer Uhr
     /// wird so kein zweites Dock.
     public mutating func update(id: String, to module: BarModule) {
-        guard let index = entries.firstIndex(where: { $0.id == id }), entries[index].kind == module.kind else { return }
-        entries[index].module = module
+        blocks.update(id: id, to: BarEntry(id: id, module: module))
     }
 
     /// Wie SwiftUIs `onMove`: `destination` zaehlt in der Liste VOR dem
     /// Verschieben ("vor Zeile n einfuegen") - wie `PinnedList.move`.
     public mutating func move(fromOffsets source: IndexSet, toOffset destination: Int) {
-        let valid = source.filter { entries.indices.contains($0) }
-        guard !valid.isEmpty else { return }
-        let moving = valid.map { entries[$0] }
-        let before = valid.filter { $0 < destination }.count
-        var rest = entries.enumerated().filter { !valid.contains($0.offset) }.map(\.element)
-        let target = min(max(destination - before, 0), rest.count)
-        rest.insert(contentsOf: moving, at: target)
-        entries = rest
+        blocks.move(fromOffsets: source, toOffset: destination)
     }
 
     /// Eine Stelle nach oben (-1) oder unten (+1); am Rand nichts. Fuer das
     /// Kontextmenue, damit es auch ohne Ziehen geht.
     public mutating func move(id: String, by step: Int) {
-        guard let index = entries.firstIndex(where: { $0.id == id }) else { return }
-        let target = index + step
-        guard entries.indices.contains(target) else { return }
-        entries.swapAt(index, target)
-    }
-
-    // MARK: Regeln
-
-    /// Doppelte Dock/Statussymbole weg (der erste bleibt), leere oder
-    /// doppelte Kennungen neu - ohne einer spaeteren ihre ausdrueckliche
-    /// Kennung wegzunehmen.
-    static func normalized(_ list: [BarEntry]) -> [BarEntry] {
-        var kinds = Set<BarModuleKind>()
-        var used = Set<String>()
-        var taken = Set(list.map(\.id))
-        var result: [BarEntry] = []
-        for var entry in list {
-            if entry.kind.isUnique, !kinds.insert(entry.kind).inserted { continue }
-            if entry.id.isEmpty || used.contains(entry.id) {
-                entry.id = uniqueID(for: entry.kind, taken: taken)
-                taken.insert(entry.id)
-            }
-            used.insert(entry.id)
-            result.append(entry)
-        }
-        return result
-    }
-
-    /// "clock", sonst "clock-2", "clock-3" ... - lesbar in settings.json.
-    static func uniqueID(for kind: BarModuleKind, taken: Set<String>) -> String {
-        if !taken.contains(kind.rawValue) { return kind.rawValue }
-        var n = 2
-        while taken.contains("\(kind.rawValue)-\(n)") { n += 1 }
-        return "\(kind.rawValue)-\(n)"
+        blocks.move(id: id, by: step)
     }
 
     // MARK: Migration
@@ -671,12 +625,5 @@ public enum BarFlex {
             y += slot.height + spacing
             return slot
         }
-    }
-}
-
-private extension KeyedDecodingContainer {
-    /// Fehlt der Schluessel oder passt der Typ nicht: `nil` statt Fehler.
-    func lenient<T: Decodable>(_ key: Key) -> T? {
-        (try? decodeIfPresent(T.self, forKey: key)) ?? nil
     }
 }
