@@ -52,6 +52,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKeys: HotKeyCenter?
     /// Einstellungsfenster (Caelestia: Nexus).
     private var nexus: Nexus?
+    /// Eine Bearbeitung der Bento-Seiten (Nexus > Dashboard > Bearbeiten),
+    /// geteilt zwischen Nexus und dem Dashboard-Fenster.
+    private var dashboardEditor: DashboardEditor?
     private var updates: UpdateController?
     private var themes: ThemeStore?
     /// Einfuehrung beim ersten Start.
@@ -77,6 +80,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // dort. Geschrieben wird erst, wenn sich etwas aendert.
         let settings = ShellSettingsStore(url: NexusPaths.live.settings)
         self.settings = settings
+        let dashboardEditor = DashboardEditor(store: settings)
+        self.dashboardEditor = dashboardEditor
         // Themes: auch im Nur-Launcher-Modus, damit der Launcher mitfaerbt.
         themes = ThemeStore(settings: settings)
         let hotKeys = HotKeyCenter(store: settings)
@@ -119,7 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sidebar.onPower = { [weak sessionMenu] in sessionMenu?.toggle() }
         osd = OSD()
         desktopClock = DesktopClock(settings: settings)
-        let dashboard = Dashboard(settings: settings)
+        let dashboard = Dashboard(settings: settings, editor: dashboardEditor)
         self.dashboard = dashboard
         sidebar.onDashboard = { [weak dashboard] in dashboard?.toggle() }
         sidebar.onDashboardTab = { [weak dashboard] tab in dashboard?.show(tab: tab) }

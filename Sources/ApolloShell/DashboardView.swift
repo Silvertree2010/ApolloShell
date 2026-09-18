@@ -21,6 +21,7 @@ struct DashboardView: View {
     let weatherModels: WeatherModels
     let media: MediaModel
     let settings: ShellSettingsStore
+    let editor: DashboardEditor
     @Namespace private var tabIndicator
     @Environment(\.shellStyle) private var style
 
@@ -34,17 +35,19 @@ struct DashboardView: View {
     /// Mindestbreite eines Reiters in der scrollenden Leiste (viele Seiten).
     static let tabWidth: CGFloat = 96
 
-    /// Die Seiten - aus den Einstellungen, sonst (noch nicht migriert, etwa
-    /// in Nexus vor dem ersten Start) die vier mitgelieferten.
+    /// Die Seiten - waehrend einer Bearbeitung deren Arbeitskopie, sonst aus
+    /// den Einstellungen, sonst (noch nicht migriert, etwa in Nexus vor dem
+    /// ersten Start) die vier mitgelieferten.
     private var pages: DashboardPages {
-        settings.settings.dashboardPages
+        editor.session?.pages ?? settings.settings.dashboardPages
             ?? DashboardPages(pages: DashboardPages.defaultPages(places: .empty,
                                                                   hasBattery: PerformanceSampler.hasInternalBattery))!
     }
 
     var body: some View {
         let pages = pages
-        let selected = model.pageID.flatMap(pages.page(id:)) ?? pages.pages[0]
+        let selectedID = editor.session?.pageID ?? model.pageID
+        let selected = selectedID.flatMap(pages.page(id:)) ?? pages.pages[0]
         // Skaliert um die obere linke Ecke (Kantenfenster oben) - die
         // Referenzgroesse (Massstab 1) rechnet `ScaledToFit` selbst aus
         // `content.fixedSize()`, so bleibt ihr Ergebnis (auch bei
@@ -65,7 +68,7 @@ struct DashboardView: View {
             pageBar(pages: pages.pages, selected: selected)
             Divider().opacity(0.5)
             BentoPageView(page: selected, context: WidgetContext(dashboard: model, media: media,
-                                                                  weather: weatherModels.model(for:)))
+                                                                  weather: weatherModels.model(for:)), editor: editor)
                 .frame(width: Self.gridWidth, height: Self.gridHeight)
                 .padding(Self.padding)
         }
@@ -108,7 +111,11 @@ struct DashboardView: View {
     private func pageButton(_ page: DashboardPage, selected: DashboardPage) -> some View {
         Button {
             // Caelestia: Indikator 500 ms mit leicht ueberschiessender Kurve.
-            withAnimation(Self.motion) { model.pageID = page.id }
+            // Waehrend einer Bearbeitung wechselt die Sitzung die Seite -
+            // Nexus folgt, weil es dasselbe `editor`-Objekt beobachtet.
+            withAnimation(Self.motion) {
+                if editor.isEditing { editor.pageID = page.id } else { model.pageID = page.id }
+            }
         } label: {
             VStack(spacing: 4) {
                 // Theme: icons/panel-media.png, panel-performance.png,

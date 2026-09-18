@@ -18,12 +18,16 @@ final class Dashboard {
     /// Now Playing: der Adapter-Prozess laeuft nur, solange offen.
     private let media = MediaModel()
     private let settings: ShellSettingsStore
+    private let editor: DashboardEditor
     private let drawer: EdgeDrawer<DashboardView>
 
     /// `settings`: Wetteranbieter (Nexus > Anbieter), Seiten und Widgets
-    /// (Nexus > Dashboard, `settings.dashboardPages`).
-    init(settings: ShellSettingsStore) {
+    /// (Nexus > Dashboard, `settings.dashboardPages`). `editor`: eine
+    /// Bearbeitung, gestartet aus Nexus > Dashboard > Bearbeiten - dasselbe
+    /// Objekt haelt auch Nexus.
+    init(settings: ShellSettingsStore, editor: DashboardEditor) {
         self.settings = settings
+        self.editor = editor
         // Umzug beim allerersten Zugriff auf die Seiten - vor allem, was sie
         // liest (Groessenmessung gleich darunter eingeschlossen).
         if settings.settings.dashboardPages == nil {
@@ -33,7 +37,7 @@ final class Dashboard {
             )
         }
         weatherModels = WeatherModels(settings: settings)
-        let view = DashboardView(model: model, weatherModels: weatherModels, media: media, settings: settings)
+        let view = DashboardView(model: model, weatherModels: weatherModels, media: media, settings: settings, editor: editor)
         // Groesse aus dem Inhalt (feste Karten-Masse) bei Massstab 1, vor dem
         // ersten Oeffnen. Haengt nicht an Seiten und Widgets - das Raster ist
         // immer 839 x 392; `prepareForScreen` unten skaliert von hier aus.
@@ -60,6 +64,35 @@ final class Dashboard {
             model.stop()
             weatherModels.stop()
             media.stop()
+        }
+        // Bearbeiten (Nexus > Dashboard > Bearbeiten): das Fenster bleibt
+        // offen und angepinnt, unabhaengig von der Maus; Wetter, Medien und
+        // Leistung laufen fuer die gerade gezeigte Seite der Sitzung wie
+        // sonst auch.
+        editor.onBegin = { [weak drawer, model, weatherModels, media] screen in
+            guard let drawer else { return }
+            let alreadyOpen = drawer.isOpen
+            drawer.isPinned = true
+            if let page = editor.page {
+                model.pageID = page.id
+                model.showsPerformance = page.widgets.contains { $0.kind.isPerformance }
+            }
+            if alreadyOpen {
+                if let page = editor.page {
+                    if page.widgets.contains(where: { $0.kind.usesPlaces }) {
+                        weatherModels.start(for: page.widgets.filter { $0.kind.usesPlaces })
+                    }
+                    if page.widgets.contains(where: { $0.kind.usesMedia }) { media.start() }
+                }
+            } else {
+                drawer.open(on: screen)
+            }
+        }
+        editor.onEnd = { [weak drawer] in
+            // Entpinnen allein - das Fenster bleibt offen, bis die Maus
+            // hinausgeht oder woanders hingeklickt wird, wie ein normal
+            // geoeffnetes Dashboard.
+            drawer?.isPinned = false
         }
     }
 

@@ -182,6 +182,11 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// an der Kante nichts (Caelestia ebenso). Auf den uebrigen Bildschirmen
     /// geht es weiter.
     var suspendedScreens: Set<CGDirectDisplayID> = []
+    /// Waehrend einer Bearbeitung (Dashboard, Bento-Seiten): haelt das Fenster
+    /// offen, egal wo die Maus steht - Hover schliesst nicht, `Esc` schliesst
+    /// nicht, ein Klick in eine andere App (Nexus) schliesst nicht. Entpinnen
+    /// schliesst nicht von selbst, es erlaubt nur wieder das Uebliche.
+    var isPinned = false
     private var hoverState = EdgeHoverState.hidden
     private var hoverMonitor: Any?
     /// Solange offen: Mausposition selbst nachsehen. Der globale Monitor
@@ -262,14 +267,21 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 
     /// Per Tastenkombination oder Symbol.
     func open() {
-        open(byHover: false)
+        guard let screen = ShellScreens.underPointer() else { return }
+        open(byHover: false, on: screen)
+    }
+
+    /// Auf einem bestimmten Bildschirm statt dem unter dem Zeiger - fuer eine
+    /// Bearbeitung, die von Nexus aus beginnt (`isPinned`).
+    func open(on screen: NSScreen) {
+        guard let target = ShellScreens.current().first(where: { $0.screen == screen }) else { return }
+        open(byHover: false, on: target)
     }
 
     /// Per Maus geoeffnet nimmt es keinen Fokus: die App darunter behaelt die
     /// Tastatur, man faehrt ja nur vorbei.
-    private func open(byHover: Bool) {
-        // Dort, wo der Zeiger steht.
-        guard !isOpen, let screen = ShellScreens.underPointer() else { return }
+    private func open(byHover: Bool, on screen: ShellScreen) {
+        guard !isOpen else { return }
         applyTheme()
         isOpen = true
         generation += 1
@@ -465,6 +477,9 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 
     private func hoverMoved() {
         guard opensOnHover else { return }
+        // Waehrend einer Bearbeitung bleibt es offen auf seinem Bildschirm,
+        // egal wo die Maus steht.
+        if isOpen && isPinned { return }
         // Offen: der Bildschirm, auf dem das Fenster steht - sonst risse ein
         // Zeiger, der hinueberwandert, es sofort wieder zu. Zu: der unter dem
         // Zeiger, damit die Kante jedes Bildschirms oeffnet.
@@ -474,7 +489,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         else { return }
         let next = hoverState.moved(inArea: area.contains(NSEvent.mouseLocation))
         if next.visible && !isOpen {
-            open(byHover: true)
+            open(byHover: true, on: target)
         } else if !next.visible && isOpen {
             close()
         } else {
@@ -595,7 +610,10 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         let level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + (scrim == nil ? 0 : 1))
         let panel = DrawerPanel(size: container.frame.size, level: level, takesKeyboard: takesKeyboard)
         panel.delegate = self
-        panel.onEscape = { [weak self] in self?.close() }
+        panel.onEscape = { [weak self] in
+            guard let self, !self.isPinned else { return }
+            self.close()
+        }
 
         let glass = NSGlassEffectView(frame: container.bounds)
         glass.autoresizingMask = [.width, .height]
@@ -627,7 +645,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     }
 
     func windowDidResignKey(_ notification: Notification) {
-        if closesOnResignKey { close() }
+        if closesOnResignKey && !isPinned { close() }
     }
 }
 
