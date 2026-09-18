@@ -134,15 +134,8 @@ final class SessionMenu: NSObject, NSWindowDelegate {
         log.notice("Sitzung: \(action.rawValue, privacy: .public)")
         close()
         let command = action.command
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.dimDuration) { [log] in
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: command.executable)
-            process.arguments = command.arguments
-            do {
-                try process.run()
-            } catch {
-                log.error("Sitzungsbefehl fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
-            }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.dimDuration) {
+            MainActor.assumeIsolated { _ = Subprocess.launch(command.executable, command.arguments) }
         }
     }
 

@@ -119,7 +119,7 @@ final class AppleDockHidingController {
             }
         }
         CFPreferencesAppSynchronize(Self.domain)
-        Self.launch(Self.killall, ["Dock"])
+        Subprocess.launch(Self.killall, ["Dock"])
     }
 
     @discardableResult
@@ -132,14 +132,5 @@ final class AppleDockHidingController {
             log.error("apple-dock.json nicht gespeichert, Dock bleibt sichtbar: \(error.localizedDescription, privacy: .public)")
             return false
         }
-    }
-
-    private static func launch(_ path: String, _ arguments: [String]) {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: path)
-        process.arguments = arguments
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        try? process.run()
     }
 }

@@ -20,18 +20,9 @@ enum LidAwakeRule {
     /// macOS fragt nach einem Administrator. `done` bekommt, ob die Regel
     /// danach weg ist (abgelehnt: nein).
     static func remove(done: @escaping @MainActor (Bool) -> Void) {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: LidAwake.osascript)
-        process.arguments = LidAwake.removeRuleArguments()
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        process.terminationHandler = { _ in
-            Task { @MainActor in done(!isInstalled) }
+        let started = Subprocess.launch(LidAwake.osascript, LidAwake.removeRuleArguments()) { _ in
+            done(!isInstalled)
         }
-        do {
-            try process.run()
-        } catch {
-            done(false)
-        }
+        if started == nil { done(false) }
     }
 }

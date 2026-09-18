@@ -110,22 +110,9 @@ enum UtilitiesShortcutCatalog {
     /// aber das Werkzeug kann beim ersten Aufruf nach dem Start laenger
     /// brauchen. Fehler: leere Liste.
     static func load() async -> [UtilitiesShortcut] {
-        await Task.detached(priority: .userInitiated) {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: UtilitiesShortcuts.tool)
-            process.arguments = UtilitiesShortcuts.listArguments
-            let pipe = Pipe()
-            process.standardOutput = pipe
-            process.standardError = FileHandle.nullDevice
-            do {
-                try process.run()
-            } catch {
-                return []
-            }
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else { return [] }
-            return UtilitiesShortcuts.parse(String(decoding: data, as: UTF8.self))
-        }.value
+        guard let result = await Subprocess.output(UtilitiesShortcuts.tool, UtilitiesShortcuts.listArguments),
+              result.status == 0
+        else { return [] }
+        return UtilitiesShortcuts.parse(result.text)
     }
 }

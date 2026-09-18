@@ -54,21 +54,9 @@ final class BluetoothState: @unchecked Sendable {
         runProfiler().flatMap(BluetoothStatus.powerOn(fromSystemProfilerJSON:))
     }
 
+    /// Wartet auf das Werkzeug (~165 ms) - laeuft auf `queue`, nie auf dem
+    /// Hauptthread.
     private func runProfiler() -> Data? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
-        process.arguments = ["SPBluetoothDataType", "-json"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        do {
-            try process.run()
-        } catch {
-            log.error("system_profiler nicht startbar: \(error.localizedDescription, privacy: .public)")
-            return nil
-        }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        return data
+        Subprocess.runAndWait("/usr/sbin/system_profiler", ["SPBluetoothDataType", "-json"])?.output
     }
 }

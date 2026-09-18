@@ -85,15 +85,9 @@ final class LanguagePreferenceModel {
         let plan = AppRestart.plan(environment: ProcessInfo.processInfo.environment, bundlePath: Bundle.main.bundlePath)
         switch plan {
         case .launchd(let label):
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/launchctl")
-            process.arguments = AppRestart.launchctlArguments(label: label, uid: Int32(getuid()))
-            try? process.run()
+            Subprocess.launch("/usr/bin/launchctl", AppRestart.launchctlArguments(label: label, uid: Int32(getuid())))
         case .relaunch(let bundlePath):
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/bin/sh")
-            process.arguments = ["-c", AppRestart.relaunchCommand(bundlePath: bundlePath)]
-            try? process.run()
+            Subprocess.launch("/bin/sh", ["-c", AppRestart.relaunchCommand(bundlePath: bundlePath)])
             NSApp.terminate(nil)
         }
     }

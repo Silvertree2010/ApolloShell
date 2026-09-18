@@ -52,16 +52,9 @@ enum UtilitiesAppearance {
         if let skyLight { return skyLight.set(dark) }
         // osascript als eigener Prozess: blockiert den Hauptthread nicht,
         // auch nicht waehrend macOS beim ersten Mal nach der Freigabe fragt.
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = [
+        Subprocess.launch("/usr/bin/osascript", [
             "-e", "tell application \"System Events\" to tell appearance preferences to set dark mode to \(dark)",
-        ]
-        do {
-            try process.run()
-        } catch {
-            systemLog.error("Dunkelmodus ueber System Events fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
-        }
+        ])
     }
 }
 

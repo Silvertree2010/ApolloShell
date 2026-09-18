@@ -53,8 +53,6 @@ final class MediaModel {
     @ObservationIgnored private var failures = 0
     @ObservationIgnored private var restartTask: Task<Void, Never>?
     @ObservationIgnored private var emptyTask: Task<Void, Never>?
-    /// Laufende Steuerbefehle, bis sie fertig sind.
-    @ObservationIgnored private var commands: [ObjectIdentifier: Process] = [:]
     @ObservationIgnored private var sources: [String: MediaSource] = [:]
     @ObservationIgnored private var loggedMissingAdapter = false
     @ObservationIgnored private let log = Logger(subsystem: AppIdentity.logSubsystem, category: "media")
@@ -148,47 +146,28 @@ final class MediaModel {
         // Diffs gelten nur innerhalb eines Prozesses.
         state = MediaStreamState()
 
-        let process = Process()
-        process.executableURL = Self.perl
-        process.arguments = [adapter.script.path, adapter.framework.path] + MediaAdapter.streamArguments
-        process.standardInput = FileHandle.nullDevice
-        // stderr sind laut README nicht-fatale Meldungen. Ungelesen in eine
-        // Pipe koennten sie den Prozess blockieren, sobald sie voll ist.
-        process.standardError = FileHandle.nullDevice
-        let pipe = Pipe()
-        process.standardOutput = pipe
-
+        // stderr sind laut README nicht-fatale Meldungen; `Subprocess` wirft
+        // sie weg, ungelesen liefe die Pipe voll.
         let reader = MediaLineReader()
-        pipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
-            let chunk = handle.availableData
-            guard !chunk.isEmpty else {
-                handle.readabilityHandler = nil
-                return
-            }
-            // JSON hier dekodieren, abseits des Hauptthreads: eine Zeile mit
-            // Cover ist einige hundert KB gross.
-            let messages = reader.messages(from: chunk)
-            guard !messages.isEmpty else { return }
-            DispatchQueue.main.async {
-                MainActor.assumeIsolated { self?.receive(messages, generation: generation) }
-            }
-        }
-        process.terminationHandler = { [weak self] process in
-            let status = process.terminationStatus
-            DispatchQueue.main.async {
-                MainActor.assumeIsolated { self?.streamEnded(status: status, generation: generation) }
-            }
-        }
-
-        do {
-            try process.run()
-            stream = process
-            streamStartedAt = Date()
-        } catch {
-            pipe.fileHandleForReading.readabilityHandler = nil
-            log.error("Adapter nicht gestartet: \(error.localizedDescription, privacy: .public)")
+        let process = Subprocess.stream(
+            Self.perl.path, [adapter.script.path, adapter.framework.path] + MediaAdapter.streamArguments,
+            onData: { [weak self] chunk in
+                // JSON hier dekodieren, abseits des Hauptthreads: eine Zeile
+                // mit Cover ist einige hundert KB gross.
+                let messages = reader.messages(from: chunk)
+                guard !messages.isEmpty else { return }
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated { self?.receive(messages, generation: generation) }
+                }
+            },
+            onExit: { [weak self] status in self?.streamEnded(status: status, generation: generation) }
+        )
+        guard let process else {
             streamEnded(status: -1, generation: generation)
+            return
         }
+        stream = process
+        streamStartedAt = Date()
     }
 
     private func receive(_ messages: [MediaStreamMessage], generation: Int) {
@@ -256,29 +235,12 @@ final class MediaModel {
     /// Eigener kurzer Aufruf (`send N`), der Stream laeuft weiter.
     func send(_ command: MediaCommand) {
         guard live, let adapter = Self.adapter else { return }
-        let process = Process()
-        process.executableURL = Self.perl
-        process.arguments = [adapter.script.path, adapter.framework.path] + command.arguments
-        process.standardInput = FileHandle.nullDevice
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        let id = ObjectIdentifier(process)
-        process.terminationHandler = { [weak self] process in
-            let status = process.terminationStatus
-            DispatchQueue.main.async {
-                MainActor.assumeIsolated { self?.commandEnded(id: id, status: status, command: command) }
-            }
-        }
-        do {
-            try process.run()
-            commands[id] = process
-        } catch {
-            log.error("Befehl \(command.rawValue) nicht gestartet: \(error.localizedDescription, privacy: .public)")
+        Subprocess.launch(Self.perl.path, [adapter.script.path, adapter.framework.path] + command.arguments) {
+            [weak self] status in self?.commandEnded(status: status, command: command)
         }
     }
 
-    private func commandEnded(id: ObjectIdentifier, status: Int32, command: MediaCommand) {
-        commands[id] = nil
+    private func commandEnded(status: Int32, command: MediaCommand) {
         if status != 0 {
             log.error("Befehl \(command.rawValue) fehlgeschlagen, Status \(status)")
         }
