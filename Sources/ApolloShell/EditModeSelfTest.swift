@@ -465,6 +465,12 @@ private final class EditModeSelfTestHarness {
                 check(!grown.intersects(dashboardFrame), "Galerie mit Hinweis bleibt frei vom Dashboard \(r(grown))")
             }
         }
+        // Reiter per Klick: rechte Haelfte der Reiterzeile (16 Rand, 36 hoch).
+        if let gallery = windows.debugGalleryFrame {
+            windows.debugClickGallery(fromTopLeft: NSPoint(x: gallery.width * 0.75, y: 16 + 18))
+            await wait(0.4)
+            check(editor.galleryTab == .controlCentre, "Klick auf den Reiter „Kontrollzentrum“ wechselt")
+        }
         // Reiter Kontrollzentrum: Klick auf „Bildschirm aus“ (14. Kachel, zweite
         // Reihe, sechste Spalte) fuegt den Knopf an.
         editor.galleryTab = .controlCentre
