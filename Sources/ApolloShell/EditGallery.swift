@@ -113,11 +113,15 @@ extension EnvironmentValues {
 /// Breite der Galerie (`EditGalleryView.body`) und ihr Innenmass (Rand
 /// 16 auf jeder Seite) - `GalleryGrid` rechnet direkt damit statt mit einer
 /// aus `proposal` geratenen Breite (siehe dort).
-private let galleryWidth: CGFloat = 560
+// Breit und flach wie Apples Widget-Galerie: sie steht unter dem Dashboard,
+// und dort ist auf 14 Zoll nur gut 300 pt Hoehe frei (vorher 560 breit mit
+// vier Spalten, gut 370 hoch - sie ueberdeckte das Dashboard). 760 laesst
+// rechts Platz fuer das Kontrollzentrum.
+private let galleryWidth: CGFloat = 760
 private let galleryContentWidth: CGFloat = galleryWidth - 2 * 16
 /// Anzahl Spalten des Kachelrasters bei `galleryContentWidth`: so breit wie
 /// eine Kachel (108) plus Abstand passt.
-private let galleryColumns = 4
+private let galleryColumns = 8
 
 /// Reiter „Dashboard“/„Kontrollzentrum“: eigene Kapseln statt
 /// `Picker(.segmented)` - AppKit-hinterlegt, `ImageRenderer` zeichnet ihn
@@ -246,7 +250,7 @@ struct EditGalleryView: View {
                 ScrollView {
                     galleryGrid
                 }
-                .frame(height: 260)
+                .frame(height: 176)
             }
 
             if let notice = editor.galleryNotice {
@@ -349,6 +353,7 @@ private struct EditGalleryTile: View {
             Text(title)
                 .font(.caption.weight(.medium))
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
             if let detail {
                 Text(detail)
                     .font(.caption2)

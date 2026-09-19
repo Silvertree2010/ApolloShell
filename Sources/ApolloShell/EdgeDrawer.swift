@@ -289,6 +289,12 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         isOpen ? close() : open()
     }
 
+    /// Rahmen des Fensters auf dem Bildschirm, solange offen - fuer Fenster,
+    /// die ihm ausweichen muessen (Werkzeugleiste und Galerie des
+    /// Bearbeitungsmodus). Enthaelt den Ueberhang an der Kante; fuer das
+    /// Ausweichen reicht das.
+    var openFrame: NSRect? { isOpen ? builtPanel?.frame : nil }
+
     /// Tastatur holen, solange offen - z. B. fuer das Umbenennen einer Seite
     /// im Bearbeitungsmodus, wenn inzwischen ein anderes Kantenfenster
     /// (Kontrollzentrum) Schluesselfenster ist. Nur fuer Fenster, die

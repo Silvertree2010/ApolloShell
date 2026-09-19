@@ -158,6 +158,11 @@ final class FloatingGlassPanel<Content: View> {
     }
 
     var isVisible: Bool { panel.isVisible }
+    /// Gemessene Groesse des Inhalts (fuer das Platzieren vor dem Zeigen).
+    var size: NSSize {
+        hosting.layoutSubtreeIfNeeded()
+        return hosting.fittingSize
+    }
 }
 
 /// Abdunkelung eines einzelnen Bildschirms waehrend der Bearbeitung: knapp
@@ -251,9 +256,16 @@ final class EditModeWindows {
     private var toolbar: FloatingGlassPanel<EditToolbarView>?
     private var gallery: FloatingGlassPanel<EditGalleryView>?
     private var editScreen: NSScreen?
-    /// Hoehe des Kontrollzentrum-Panels auf dem Bearbeitungs-Bildschirm - die
-    /// Werkzeugleiste weicht ihm nach oben aus (Task 3: "never overlapping").
-    var utilitiesPanelHeight: () -> CGFloat = { 0 }
+    /// Rahmen der angepinnten Panels auf dem Bearbeitungs-Bildschirm (`nil`,
+    /// solange zu). Werkzeugleiste und Galerie richten sich danach: die
+    /// Galerie unter dem Dashboard statt mitten darueber, die Werkzeugleiste
+    /// ueber dem Kontrollzentrum nur, wenn sie es waagrecht wirklich
+    /// ueberdecken wuerde. Vorher: Galerie immer in der Bildschirmmitte (auf
+    /// 14 Zoll ueber dem unteren Drittel des Dashboards) und Werkzeugleiste
+    /// immer um die ganze Panelhoehe hoch (bis an das Dashboard heran),
+    /// obwohl das Kontrollzentrum rechts sitzt.
+    var dashboardFrame: () -> NSRect? = { nil }
+    var utilitiesFrame: () -> NSRect? = { nil }
     private var galleryObservation: Task<Void, Never>?
     /// Werkzeugleiste ("Änderungen verwerfen?" statt der drei Knoepfe) und
     /// Galerie (Hinweis "Kein Platz auf dieser Seite") aendern ihre Groesse,
@@ -322,6 +334,14 @@ final class EditModeWindows {
         }()
         placeToolbar(toolbar, on: screen)
         placeGallery(gallery, on: screen)
+        // Die Hoerer von Dashboard und Kontrollzentrum laufen im selben
+        // `begin` - je nach Reihenfolge erst nach diesem hier. Ihre Rahmen
+        // stehen nach dem Oeffnen sofort fest (die Bewegung ist nur eine
+        // Ebenen-Verschiebung), also einen Umlauf spaeter neu platzieren.
+        DispatchQueue.main.async { [weak self] in
+            self?.repositionToolbar()
+            self?.repositionGallery()
+        }
         if editor.galleryVisible { gallery.show(on: screen, centeredAt: galleryCenter(on: screen)) }
         observeGallery()
         observeToolbarSize()
@@ -386,14 +406,24 @@ final class EditModeWindows {
 
     private func repositionToolbar() {
         guard let screen = editScreen, let toolbar else { return }
-        let raise = utilitiesPanelHeight() + 24
-        let point = NSPoint(x: screen.frame.midX, y: screen.frame.minY + 48)
-        toolbar.reposition(on: screen, centeredAt: point, raise: raise)
+        toolbar.reposition(on: screen, centeredAt: toolbarCenter(on: screen, size: toolbar.size))
     }
 
     private func repositionGallery() {
         guard let screen = editScreen, let gallery else { return }
         gallery.reposition(on: screen, centeredAt: galleryCenter(on: screen))
+    }
+
+    /// Unten mittig; ueberdeckt das Kontrollzentrum sie dort (schmaler
+    /// Bildschirm), dann knapp ueber dessen Oberkante.
+    private func toolbarCenter(on screen: NSScreen, size: NSSize) -> NSPoint {
+        let bottom = screen.visibleFrame.minY + 20
+        var center = NSPoint(x: screen.frame.midX, y: bottom + size.height / 2)
+        let rect = NSRect(x: center.x - size.width / 2, y: bottom, width: size.width, height: size.height)
+        if let utilities = utilitiesFrame(), utilities.intersects(rect.insetBy(dx: -8, dy: -8)) {
+            center.y = utilities.maxY + 16 + size.height / 2
+        }
+        return center
     }
 
     /// Vom Kontrollzentrum-Panel (`UtilitiesPanel.onHeightChange`): waechst
@@ -406,12 +436,7 @@ final class EditModeWindows {
     }
 
     private func placeToolbar(_ toolbar: FloatingGlassPanel<EditToolbarView>, on screen: NSScreen) {
-        // Unten mittig, um `utilitiesPanelHeight()` plus etwas Luft nach
-        // oben verschoben, damit sie nie ueber dem Kontrollzentrum-Panel
-        // liegt (das sitzt unten rechts).
-        let raise = utilitiesPanelHeight() + 24
-        let point = NSPoint(x: screen.frame.midX, y: screen.frame.minY + 48)
-        toolbar.show(on: screen, centeredAt: point, raise: raise)
+        toolbar.show(on: screen, centeredAt: toolbarCenter(on: screen, size: toolbar.size))
     }
 
     /// Nur messen/platzieren, nicht einblenden - das uebernimmt
@@ -420,7 +445,18 @@ final class EditModeWindows {
         gallery.reposition(on: screen, centeredAt: galleryCenter(on: screen))
     }
 
+    /// Mittig zwischen Unterkante des Dashboards und Werkzeugleiste; ohne
+    /// offenes Dashboard in der Bildschirmmitte. Passt sie dort nicht ganz
+    /// hin (kleiner Bildschirm), bleibt sie wenigstens unter dem Dashboard.
     private func galleryCenter(on screen: NSScreen) -> NSPoint {
-        NSPoint(x: screen.frame.midX, y: screen.frame.midY)
+        let visible = screen.visibleFrame
+        guard let dashboard = dashboardFrame(), dashboard.intersects(screen.frame) else {
+            return NSPoint(x: visible.midX, y: visible.midY)
+        }
+        let top = min(dashboard.minY, visible.maxY) - 16
+        let bottom = visible.minY + 20 + (toolbar?.size.height ?? 56) + 16
+        let height = gallery?.size.height ?? 380
+        let centerY = top - height / 2 >= bottom + height / 2 ? (top + bottom) / 2 : top - height / 2
+        return NSPoint(x: visible.midX, y: centerY)
     }
 }

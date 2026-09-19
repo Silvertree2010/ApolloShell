@@ -119,6 +119,10 @@ final class Dashboard {
         drawer.toggle()
     }
 
+    /// Rahmen des offenen Dashboards (Bearbeitungsmodus: die Galerie setzt
+    /// sich darunter statt darueber).
+    var openFrame: NSRect? { drawer.openFrame }
+
     /// Fuer `ShellEditor.dashboardStartPageID`: die Seite, die gerade offen
     /// ist (oder zuletzt war) - der globale Bearbeitungsmodus beginnt dort.
     var currentPageID: DashboardPage.ID? { model.pageID }

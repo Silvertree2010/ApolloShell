@@ -37,6 +37,9 @@ final class UtilitiesPanel {
 
     /// Sichtbare Hoehe des Panels.
     var height: CGFloat { drawer.size.height }
+    /// Rahmen des offenen Panels (Bearbeitungsmodus: Werkzeugleiste und
+    /// Galerie weichen ihm aus, wenn sie es sonst ueberdecken wuerden).
+    var openFrame: NSRect? { drawer.openFrame }
 
     /// `model`: fuer Bildproben ein Vorschau-Modell, das nichts liest und
     /// nichts schaltet; sonst das echte. `editor`: der globale

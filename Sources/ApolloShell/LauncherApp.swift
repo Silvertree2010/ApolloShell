@@ -165,7 +165,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.utilities = utilities
         let editModeWindows = EditModeWindows(editor: shellEditor)
         self.editModeWindows = editModeWindows
-        editModeWindows.utilitiesPanelHeight = { [weak utilities] in utilities?.height ?? 0 }
+        editModeWindows.utilitiesFrame = { [weak utilities] in utilities?.openFrame }
+        editModeWindows.dashboardFrame = { [weak dashboard] in dashboard?.openFrame }
         sidebar.onUtilities = { [weak utilities] in utilities?.toggle() }
         // Caelestia: der Einstellungs-Knopf der Utilities oeffnet Nexus.
         utilities.onOpenSettings = { [weak nexus] in nexus?.show() }
