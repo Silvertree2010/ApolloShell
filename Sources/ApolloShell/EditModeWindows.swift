@@ -235,6 +235,21 @@ final class EditModeScrimPanel {
     var isVisible: Bool { panel.isVisible }
     var level: Int { panel.level.rawValue }
 
+    #if DEBUG
+    /// Selbsttest: Klick in die Mitte des Schleiers.
+    func debugClickCenter() {
+        let location = NSPoint(x: panel.frame.width / 2, y: panel.frame.height / 2)
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            if let e = NSEvent.mouseEvent(with: type, location: location, modifierFlags: [],
+                                          timestamp: ProcessInfo.processInfo.systemUptime,
+                                          windowNumber: panel.windowNumber, context: nil,
+                                          eventNumber: 0, clickCount: 1, pressure: 1) {
+                panel.sendEvent(e)
+            }
+        }
+    }
+    #endif
+
     func show(on screen: NSScreen) {
         generation += 1
         panel.setFrame(screen.frame, display: true)
@@ -483,6 +498,7 @@ final class EditModeWindows {
     var debugGalleryFrame: NSRect? { gallery.flatMap { $0.isVisible ? $0.frame : nil } }
     var debugLevels: (scrim: Int, controls: Int) { (EditModeLevel.scrim.rawValue, EditModeLevel.controls.rawValue) }
     func debugClickToolbar(fromTopLeft point: NSPoint) { toolbar?.debugClick(fromTopLeft: point) }
+    func debugClickScrim() { scrims.values.first(where: \.isVisible)?.debugClickCenter() }
     func debugClickGallery(fromTopLeft point: NSPoint) { gallery?.debugClick(fromTopLeft: point) }
     var debugPanelLevels: [Int] {
         scrims.values.map(\.level) + [toolbar?.level, gallery?.level].compactMap { $0 }

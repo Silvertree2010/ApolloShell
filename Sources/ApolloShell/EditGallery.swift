@@ -176,6 +176,8 @@ private struct GalleryCheckbox: View {
                     .font(.callout)
                     .foregroundStyle(.primary)
             }
+            // Ganze Zeile klickbar, nicht nur Symbol und Buchstaben.
+            .contentShape(.rect)
         }
         .buttonStyle(.plain)
     }

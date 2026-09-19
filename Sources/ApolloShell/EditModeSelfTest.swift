@@ -470,7 +470,19 @@ private final class EditModeSelfTestHarness {
             windows.debugClickGallery(fromTopLeft: NSPoint(x: gallery.width * 0.75, y: 16 + 18))
             await wait(0.4)
             check(editor.galleryTab == .controlCentre, "Klick auf den Reiter „Kontrollzentrum“ wechselt")
+            // Haken „Alle zeigen (erweitert)“ darunter, am linken Rand.
+            let before = editor.showsAllInGallery
+            windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + 60, y: 16 + 36 + 12 + 10))
+            await wait(0.3)
+            check(editor.showsAllInGallery != before, "Klick auf „Alle zeigen“ schaltet um")
+            editor.showsAllInGallery = before
         }
+        // Klick in den Schleier: Auswahl in beiden Panels weg.
+        dashboardEditor.selectedWidgetID = dashboardEditor.page?.widgets.first?.id
+        editor.selectedToggleID = editor.utilities?.layout.toggles.first?.id
+        windows.debugClickScrim()
+        await wait(0.3)
+        check(dashboardEditor.selectedWidgetID == nil && editor.selectedToggleID == nil, "Klick in den Schleier hebt jede Auswahl auf")
         // Reiter Kontrollzentrum: Klick auf „Bildschirm aus“ (14. Kachel, zweite
         // Reihe, sechste Spalte) fuegt den Knopf an.
         editor.galleryTab = .controlCentre
