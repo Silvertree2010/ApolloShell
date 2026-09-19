@@ -167,7 +167,42 @@ struct DashboardView: View {
 
     @FocusState private var renameFieldFocused: Bool
 
+    @ViewBuilder
     private func pageButton(_ page: DashboardPage, selected: DashboardPage) -> some View {
+        if editor.isEditing, editor.renamingPageID == page.id {
+            renameField(page, selected: selected)
+        } else {
+            pageTab(page, selected: selected)
+        }
+    }
+
+    /// Umbenennen: das Feld steht fuer sich statt im Label des Reiter-Knopfs -
+    /// dort bekam der Knopf jeden Klick (Seitenwechsel), das Feld nie den
+    /// Fokus (Live-Test 19.09.).
+    private func renameField(_ page: DashboardPage, selected: DashboardPage) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: page.symbol)
+                .font(style.font(size: 16, weight: .medium))
+                .frame(width: 18, height: 18)
+            TextField("Name", text: Binding(
+                get: { page.name },
+                set: { editor.renamePage(page.id, to: $0) }
+            ))
+            .textFieldStyle(.plain)
+            .font(style.font(size: 12, weight: .medium))
+            .multilineTextAlignment(.center)
+            .focused($renameFieldFocused)
+            .onSubmit { editor.renamingPageID = nil }
+            .onAppear { renameFieldFocused = true }
+            .padding(.horizontal, 6)
+            .background(Color.primary.opacity(0.08), in: .rect(cornerRadius: 5))
+        }
+        .foregroundStyle(style.accent)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+    }
+
+    private func pageTab(_ page: DashboardPage, selected: DashboardPage) -> some View {
         Button {
             // Caelestia: Indikator 500 ms mit leicht ueberschiessender Kurve.
             // Waehrend einer Bearbeitung wechselt die Sitzung die Seite -
@@ -190,20 +225,7 @@ struct DashboardView: View {
                 .font(style.font(size: 16, weight: .medium))
                 .symbolVariant(page.id == selected.id ? .fill : .none)
                 .frame(width: 18, height: 18)
-                if editor.isEditing, editor.renamingPageID == page.id {
-                    TextField("Name", text: Binding(
-                        get: { page.name },
-                        set: { editor.renamePage(page.id, to: $0) }
-                    ))
-                    .textFieldStyle(.plain)
-                    .font(style.font(size: 12, weight: .medium))
-                    .multilineTextAlignment(.center)
-                    .focused($renameFieldFocused)
-                    .onSubmit { editor.renamingPageID = nil }
-                    .onAppear { renameFieldFocused = true }
-                } else {
-                    Text(page.name).font(style.font(size: 12, weight: .medium)).lineLimit(1)
-                }
+                Text(page.name).font(style.font(size: 12, weight: .medium)).lineLimit(1)
             }
             .foregroundStyle(page.id == selected.id ? style.accent : Color.secondary)
             .padding(.top, 12)

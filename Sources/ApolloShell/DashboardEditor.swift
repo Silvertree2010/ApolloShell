@@ -45,7 +45,24 @@ final class DashboardEditor {
     /// Zustand, damit `ShellEditor.handleEscape` (globales Esc, Task 6) das
     /// Textfeld als erstes schliessen kann, bevor Esc die Galerie oder die
     /// Bearbeitung selbst trifft.
-    var renamingPageID: DashboardPage.ID?
+    var renamingPageID: DashboardPage.ID? {
+        didSet {
+            if let old = oldValue, old != renamingPageID { finishRename(old) }
+            if renamingPageID != nil { onNeedsKeyboard() }
+        }
+    }
+    /// Das Dashboard-Fenster holt sich die Tastatur (`EdgeDrawer.takeKeyboard`),
+    /// sobald ein Seitenname bearbeitet wird - sonst landeten die Tasten im
+    /// Kontrollzentrum, das beim Start zuletzt Schluesselfenster wurde.
+    var onNeedsKeyboard: () -> Void = {}
+
+    /// Leerer Name nach dem Umbenennen: zurueck auf „Seite“, statt einen
+    /// Reiter ohne Beschriftung stehen zu lassen.
+    private func finishRename(_ id: DashboardPage.ID) {
+        guard let page = session?.pages.page(id: id),
+              page.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        renamePage(id, to: String(localized: "Seite"))
+    }
 
     init(store: ShellSettingsStore) {
         self.store = store

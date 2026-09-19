@@ -98,6 +98,7 @@ final class Dashboard {
         // Widgets, zeigt es sie erst nach einem Neustart seines Modells
         // (`start()` liest sie erst dabei neu ein).
         editor.onOptionsChange = { [weak weatherModels] id in weatherModels?.restart(id) }
+        editor.onNeedsKeyboard = { [weak drawer] in drawer?.takeKeyboard() }
     }
 
     /// Die Seite, die beim Oeffnen gezeigt wird: `model.pageID`, falls es sie

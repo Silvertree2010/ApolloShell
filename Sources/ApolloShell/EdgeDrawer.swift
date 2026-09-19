@@ -289,6 +289,15 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         isOpen ? close() : open()
     }
 
+    /// Tastatur holen, solange offen - z. B. fuer das Umbenennen einer Seite
+    /// im Bearbeitungsmodus, wenn inzwischen ein anderes Kantenfenster
+    /// (Kontrollzentrum) Schluesselfenster ist. Nur fuer Fenster, die
+    /// ueberhaupt Tastatur annehmen (`takesKeyboard`).
+    func takeKeyboard() {
+        guard isOpen, takesKeyboard else { return }
+        panel.makeKey()
+    }
+
     /// Per Tastenkombination oder Symbol.
     func open() {
         guard !isPinned else { return }
