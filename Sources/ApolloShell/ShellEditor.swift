@@ -33,6 +33,12 @@ final class ShellEditor {
     var galleryVisible = false
     var galleryTab: WidgetSurface = .dashboard
     var showsAllInGallery = false
+    /// Kurzer Hinweis der Galerie (Task 3), z. B. "Kein Platz auf dieser
+    /// Seite" - auf `ShellEditor` statt als View-lokaler Zustand, damit
+    /// `EditModeWindows` das Panel neu vermisst, sobald der Hinweis
+    /// erscheint oder verschwindet (er waechst die Galerie sonst ueber ihren
+    /// Rand hinaus).
+    var galleryNotice: String?
 
     /// Rueckfrage vor dem Verwerfen mit ungesicherten Aenderungen (Esc,
     /// Task 6): `true` laesst die Werkzeugleiste eine kleine Nachfrage
@@ -115,6 +121,7 @@ final class ShellEditor {
         galleryVisible = false
         galleryTab = .dashboard
         showsAllInGallery = false
+        galleryNotice = nil
         pendingCancelConfirmation = false
         // `dashboard.begin` ruft `DashboardEditor.onBegin` (Dashboard-Fenster
         // anpinnen); unser eigenes `onBegin` folgt fuer die uebrigen Panels

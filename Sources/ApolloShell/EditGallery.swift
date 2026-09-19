@@ -223,10 +223,6 @@ private struct GalleryGrid: Layout {
 /// Flaeche ein (Spec: "not optimised" ausserhalb ihrer Heimat).
 struct EditGalleryView: View {
     @Bindable var editor: ShellEditor
-    /// Kurzer Hinweis, wenn ein Klick nichts fand (keine freie Stelle);
-    /// eigenstaendig statt ueber den globalen Toaster - die Galerie ist ein
-    /// eigenes Fenster ohne Zugriff darauf.
-    @State private var notice: String?
     @Environment(\.galleryRendersForScreenshot) private var rendersForScreenshot
 
     var body: some View {
@@ -253,7 +249,7 @@ struct EditGalleryView: View {
                 .frame(height: 260)
             }
 
-            if let notice {
+            if let notice = editor.galleryNotice {
                 Text(notice)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -312,9 +308,9 @@ struct EditGalleryView: View {
     }
 
     private func show(notice text: String) {
-        withAnimation { notice = text }
+        withAnimation { editor.galleryNotice = text }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
-            withAnimation { notice = nil }
+            withAnimation { editor.galleryNotice = nil }
         }
     }
 }
