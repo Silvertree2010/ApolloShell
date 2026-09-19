@@ -250,6 +250,10 @@ final class ShellEditor {
     }
 
     private func registerEscape() {
+        #if DEBUG
+        // Selbsttest: Esc nicht systemweit belegen, neben der echten Shell.
+        if EditModeSelfTest.invisible { return }
+        #endif
         let key = HotKey(keyCode: HotKeyKey.escape)
         if case .success(let hotKey) = GlobalHotKey.register(key, action: { [weak self] in self?.handleEscape() }) {
             escapeHotKey = hotKey

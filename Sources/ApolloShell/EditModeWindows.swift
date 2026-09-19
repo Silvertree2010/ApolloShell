@@ -158,6 +158,9 @@ final class FloatingGlassPanel<Content: View> {
     }
 
     var isVisible: Bool { panel.isVisible }
+    var frame: NSRect { panel.frame }
+    var level: Int { panel.level.rawValue }
+
     /// Gemessene Groesse des Inhalts (fuer das Platzieren vor dem Zeigen).
     var size: NSSize {
         hosting.layoutSubtreeIfNeeded()
@@ -212,6 +215,9 @@ final class EditModeScrimPanel {
         view = EditModeScrimView(frame: .zero)
         panel.contentView = view
     }
+
+    var isVisible: Bool { panel.isVisible }
+    var level: Int { panel.level.rawValue }
 
     func show(on screen: NSScreen) {
         generation += 1
@@ -454,6 +460,17 @@ final class EditModeWindows {
     /// Mittig zwischen Unterkante des Dashboards und Werkzeugleiste; ohne
     /// offenes Dashboard in der Bildschirmmitte. Passt sie dort nicht ganz
     /// hin (kleiner Bildschirm), bleibt sie wenigstens unter dem Dashboard.
+    #if DEBUG
+    /// Fuer `EditModeSelfTest`: was gerade wirklich auf dem Bildschirm steht.
+    var debugVisibleScrims: Int { scrims.values.filter(\.isVisible).count }
+    var debugToolbarFrame: NSRect? { toolbar.flatMap { $0.isVisible ? $0.frame : nil } }
+    var debugGalleryFrame: NSRect? { gallery.flatMap { $0.isVisible ? $0.frame : nil } }
+    var debugLevels: (scrim: Int, controls: Int) { (EditModeLevel.scrim.rawValue, EditModeLevel.controls.rawValue) }
+    var debugPanelLevels: [Int] {
+        scrims.values.map(\.level) + [toolbar?.level, gallery?.level].compactMap { $0 }
+    }
+    #endif
+
     private func galleryCenter(on screen: NSScreen) -> NSPoint {
         let visible = screen.visibleFrame
         guard let dashboard = dashboardFrame(), dashboard.intersects(screen.frame) else {

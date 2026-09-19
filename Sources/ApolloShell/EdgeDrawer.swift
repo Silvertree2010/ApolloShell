@@ -176,7 +176,13 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// wenn sie den Bereich verlaesst (Regeln in ApolloShellCore/EdgeHover).
     /// Oben (Dashboard) und unten rechts (Utilities).
     var opensOnHover = false {
-        didSet { updateHoverMonitor() }
+        didSet {
+            #if DEBUG
+            // Selbsttest: keine Maus-Ueberwachung neben der echten Shell.
+            if EditModeSelfTest.invisible { return }
+            #endif
+            updateHoverMonitor()
+        }
     }
     /// Bildschirme, auf denen eine Vollbild-App steht: dort oeffnet die Maus
     /// an der Kante nichts (Caelestia ebenso). Auf den uebrigen Bildschirmen
@@ -294,6 +300,9 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// Bearbeitungsmodus). Enthaelt den Ueberhang an der Kante; fuer das
     /// Ausweichen reicht das.
     var openFrame: NSRect? { isOpen ? builtPanel?.frame : nil }
+    #if DEBUG
+    var debugLevel: Int? { builtPanel?.level.rawValue }
+    #endif
 
     /// Tastatur holen, solange offen - z. B. fuer das Umbenennen einer Seite
     /// im Bearbeitungsmodus, wenn inzwischen ein anderes Kantenfenster

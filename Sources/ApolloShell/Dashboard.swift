@@ -122,6 +122,10 @@ final class Dashboard {
     /// Rahmen des offenen Dashboards (Bearbeitungsmodus: die Galerie setzt
     /// sich darunter statt darueber).
     var openFrame: NSRect? { drawer.openFrame }
+    #if DEBUG
+    var debugLevel: Int? { drawer.debugLevel }
+    func debugClose() { drawer.close() }
+    #endif
 
     /// Fuer `ShellEditor.dashboardStartPageID`: die Seite, die gerade offen
     /// ist (oder zuletzt war) - der globale Bearbeitungsmodus beginnt dort.

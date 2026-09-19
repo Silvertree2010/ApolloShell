@@ -40,6 +40,10 @@ final class UtilitiesPanel {
     /// Rahmen des offenen Panels (Bearbeitungsmodus: Werkzeugleiste und
     /// Galerie weichen ihm aus, wenn sie es sonst ueberdecken wuerden).
     var openFrame: NSRect? { drawer.openFrame }
+    #if DEBUG
+    var debugLevel: Int? { drawer.debugLevel }
+    func debugClose() { drawer.close() }
+    #endif
 
     /// `model`: fuer Bildproben ein Vorschau-Modell, das nichts liest und
     /// nichts schaltet; sonst das echte. `editor`: der globale

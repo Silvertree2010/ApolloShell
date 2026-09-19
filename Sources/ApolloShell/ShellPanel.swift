@@ -38,7 +38,28 @@ class ShellPanel: NSPanel {
         animationBehavior = .none
     }
 
+    #if DEBUG
+    /// Selbsttest des Bearbeitungsmodus (`--selftest-edit`): jedes Panel der
+    /// Shell bleibt durchsichtig und laesst Klicks durch - der Test laeuft
+    /// neben der echten ApolloShell, ohne auf dem Bildschirm etwas zu zeigen.
+    override var alphaValue: CGFloat {
+        get { super.alphaValue }
+        set { super.alphaValue = EditModeSelfTest.invisible ? 0 : newValue }
+    }
+
+    override var ignoresMouseEvents: Bool {
+        get { EditModeSelfTest.invisible || super.ignoresMouseEvents }
+        set { super.ignoresMouseEvents = newValue }
+    }
+    #endif
+
+    #if DEBUG
+    // Selbsttest: nie Schluesselfenster - sonst landeten Tasten der echten
+    // App im unsichtbaren Panel.
+    override var canBecomeKey: Bool { takesKeyboard && !EditModeSelfTest.invisible }
+    #else
     override var canBecomeKey: Bool { takesKeyboard }
+    #endif
     override var canBecomeMain: Bool { false }
 
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
