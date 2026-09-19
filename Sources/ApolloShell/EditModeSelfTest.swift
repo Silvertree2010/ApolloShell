@@ -128,6 +128,85 @@ private final class EditModeSelfTestHarness {
         panel.orderOut(nil)
     }
 
+    /// Griff, Antippen (Popover am Widget), Minus - bei echtem Massstab.
+    private func widgetHandles(_ id: WidgetInstance.ID) async {
+        guard let page = dashboardEditor.debugPageRectInHost,
+              let frame = dashboardEditor.page?.widgets.first(where: { $0.id == id })?.frame else { return }
+        let scale = dashboard.debugScale
+        func host(_ x: Double, _ y: Double) -> CGPoint {
+            CGPoint(x: page.minX + x * scale, y: page.minY + y * scale)
+        }
+        // Griff unten rechts (Mitte 17 Punkte vor der Ecke) um 100 x 120 ziehen:
+        // Hoehe springt auf 250, Breite 110 + 100 = 210.
+        let handle = host(frame.maxX - 17, frame.maxY - 17)
+        dashboard.debugDrag(from: handle, to: CGPoint(x: handle.x + 100 * scale, y: handle.y + 120 * scale))
+        await wait(0.4)
+        let resized = dashboardEditor.page?.widgets.first(where: { $0.id == id })?.frame
+        check(resized.map { $0.width == frame.width + 100 && $0.height == 250 && $0.x == frame.x } ?? false,
+              "Griff aendert die Groesse (vorher \(Int(frame.width))x\(Int(frame.height)), nachher \(resized.map { "\(Int($0.width))x\(Int($0.height))" } ?? "-"))")
+        guard let current = resized else { return }
+
+        // Antippen: Popover mit den Optionen, und zwar neben diesem Widget.
+        dashboardEditor.optionsWidgetID = nil
+        dashboard.debugClick(at: host(current.x + current.width / 2, current.y + current.height / 2))
+        await wait(0.6)
+        check(dashboardEditor.optionsWidgetID == id, "Antippen oeffnet die Optionen")
+        let popover = NSApp.windows.first { $0.isVisible && String(describing: type(of: $0)).contains("Popover") }
+        let widgetOnScreen = dashboard.debugScreenRect(ofHostRect: CGRect(x: page.minX + current.x * scale, y: page.minY + current.y * scale,
+                                                                             width: current.width * scale, height: current.height * scale))
+        note("Popover \(r(popover?.frame)), Widget auf dem Bildschirm \(r(widgetOnScreen))")
+        if let popover, let widgetOnScreen {
+            let besideRight = abs(popover.frame.minX - widgetOnScreen.maxX) < 40
+            let verticallyNear = popover.frame.minY < widgetOnScreen.maxY && popover.frame.maxY > widgetOnScreen.minY
+            check(besideRight && verticallyNear, "Popover steht rechts neben dem Widget")
+        } else {
+            check(false, "Popover erscheint")
+        }
+        dashboardEditor.optionsWidgetID = nil
+        await wait(0.4)
+
+        // Minus oben links (Mitte genau auf der Ecke).
+        dashboard.debugClick(at: host(current.x, current.y))
+        await wait(0.5)
+        check(!(dashboardEditor.page?.widgets.contains { $0.id == id } ?? true), "Minus entfernt das Widget")
+    }
+
+    /// Esc von innen nach aussen: Auswahl, Umbenennen, Galerie, Rueckfrage,
+    /// erst dann Abbrechen.
+    private func escapeOrder(on screen: NSScreen) async {
+        editor.begin(screen: screen)
+        await wait(0.5)
+        let page = dashboardEditor.page
+        dashboardEditor.selectedWidgetID = page?.widgets.first?.id
+        dashboardEditor.optionsWidgetID = page?.widgets.first?.id
+        editor.galleryVisible = true
+        editor.debugEscape()
+        check(dashboardEditor.selectedWidgetID == nil && dashboardEditor.optionsWidgetID == nil && editor.galleryVisible,
+              "Esc 1: nur Auswahl und Optionen zu, Galerie bleibt")
+        dashboardEditor.renamingPageID = page?.id
+        editor.debugEscape()
+        check(dashboardEditor.renamingPageID == nil && editor.galleryVisible, "Esc 2: Umbenennen zu, Galerie bleibt")
+        editor.debugEscape()
+        check(!editor.galleryVisible && editor.isEditing, "Esc 3: Galerie zu, Modus bleibt")
+        dashboardEditor.addPage()
+        editor.debugEscape()
+        check(editor.pendingCancelConfirmation && editor.isEditing, "Esc 4 mit Aenderungen: Rueckfrage statt Abbruch")
+        editor.debugEscape()
+        check(!editor.pendingCancelConfirmation && editor.isEditing, "Esc 5: Rueckfrage zu, weiter bearbeiten")
+        editor.debugEscape()
+        editor.confirmCancel()
+        check(!editor.isEditing, "Verwerfen beendet den Modus")
+        await wait(0.8)
+        editor.begin(screen: screen)
+        await wait(0.3)
+        editor.debugEscape()
+        check(!editor.isEditing, "Esc ohne Aenderungen bricht sofort ab")
+        await wait(0.8)
+        dashboard.debugClose()
+        utilities.debugClose()
+        await wait(0.5)
+    }
+
     private func scenario() async {
         await probeScaledDrag()
         for screen in NSScreen.screens {
@@ -136,6 +215,7 @@ private final class EditModeSelfTestHarness {
         for screen in NSScreen.screens {
             await pass(on: screen)
         }
+        if let screen = NSScreen.screens.first { await escapeOrder(on: screen) }
     }
 
     /// Ein ganzer Durchgang auf einem Bildschirm.
@@ -218,6 +298,7 @@ private final class EditModeSelfTestHarness {
             let after = dashboardEditor.page?.widgets.first(where: { $0.id == clock })?.frame
             check(after.map { abs($0.x - (before.x + 100)) <= 1 && $0.y == before.y } ?? false,
                   "Ziehen bei Massstab \(String(format: "%.3f", scale)): 100 Punkte werden 100 (vorher x \(Int(before.x)), nachher \(after.map { String(Int($0.x)) } ?? "-"))")
+            await widgetHandles(clock)
         } else {
             check(false, "Ziehen: Seite oder Uhr nicht gefunden")
         }

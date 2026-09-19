@@ -238,6 +238,11 @@ final class ShellEditor {
         }
     }
 
+    #if DEBUG
+    /// Selbsttest: Esc ohne das systemweite Kuerzel.
+    func debugEscape() { handleEscape() }
+    #endif
+
     /// Nachfrage bestaetigt ("Verwerfen"): jetzt wirklich abbrechen.
     func confirmCancel() {
         pendingCancelConfirmation = false

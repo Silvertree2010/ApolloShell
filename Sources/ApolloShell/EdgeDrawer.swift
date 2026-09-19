@@ -322,6 +322,28 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         }
         if let up = event(.leftMouseUp, end) { panel.sendEvent(up) }
     }
+
+    /// Selbsttest: ein Klick an diesem Punkt (Hosting-View, oben links).
+    func debugClick(at point: CGPoint) {
+        guard let panel = builtPanel, let hosting else { return }
+        let location = hosting.convert(NSPoint(x: point.x, y: point.y), to: nil)
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            if let e = NSEvent.mouseEvent(with: type, location: location, modifierFlags: [],
+                                          timestamp: ProcessInfo.processInfo.systemUptime,
+                                          windowNumber: panel.windowNumber, context: nil,
+                                          eventNumber: 0, clickCount: 1, pressure: 1) {
+                panel.sendEvent(e)
+            }
+        }
+    }
+
+    /// Selbsttest: ein Rechteck im Hosting-View (oben links) in
+    /// Bildschirmkoordinaten.
+    func debugScreenRect(ofHostRect rect: CGRect) -> NSRect? {
+        guard let panel = builtPanel, let hosting else { return nil }
+        let inWindow = hosting.convert(rect, to: nil)
+        return panel.convertToScreen(inWindow)
+    }
     #endif
 
     /// Tastatur holen, solange offen - z. B. fuer das Umbenennen einer Seite
