@@ -97,6 +97,14 @@ enum RenderMode {
         try write(view(reduceMotion: false), scheme: .light, to: editFolder.appendingPathComponent("invalid-drop-light.png"))
         editor.dropPreview = nil
         try write(view(reduceMotion: true), scheme: .light, to: editFolder.appendingPathComponent("reduce-motion-light.png"))
+        // Kein Bild fuer den Options-Popover selbst: `.popover` ist ein
+        // eigenes AppKit-Fenster, `ImageRenderer` zeichnet dessen Inhalt
+        // offscreen nicht (ein `Form` mit `WidgetOptionsView` direkt blieb in
+        // der Probe leer, vermutlich derselbe Grund wie bei `.onDrag`/
+        // `.onDrop`). Die Auswahl selbst (blauer Rahmen) zeigt
+        // `selected-widget-light.png`; die Regler in `WidgetOptionsView`
+        // (`NexusWidgetOptions.swift`) sind dieselben wie vor 0.2 im
+        // Nexus-Editor, dort schon im Bild geprueft.
     }
 
     /// `--render-edit <Ordner>`: die Werkzeugleiste und beide Reiter der

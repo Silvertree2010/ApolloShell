@@ -139,6 +139,23 @@ struct EditableWidgetView: View {
             .simultaneousGesture(TapGesture().onEnded { editor.selectedWidgetID = widget.id })
             .onAppear { startWobble() }
             .onChange(of: reduceMotion) { _, _ in startWobble() }
+            // Optionen des gewaehlten Widgets (Task 4): dieselben Regler wie
+            // im alten Nexus-Editor (`WidgetOptionsView`), jetzt direkt neben
+            // dem Widget statt in einer eigenen Spalte. Schliesst sich von
+            // selbst, wenn die Auswahl faellt oder die Seite wechselt - beides
+            // raeumt `editor.selectedWidgetID` auf, und der Popover haengt
+            // nur an `isSelected`.
+            .popover(isPresented: Binding(
+                get: { isSelected },
+                set: { if !$0 { editor.selectedWidgetID = nil } }
+            ), arrowEdge: .trailing) {
+                Form {
+                    WidgetOptionsView(editor: editor, widget: widget, weatherFile: ShellFiles.live.weather)
+                }
+                .formStyle(.grouped)
+                .frame(width: 280)
+                .frame(minHeight: 120, maxHeight: 420)
+            }
     }
 
     /// Caelestia/Apple: leichtes, staendiges Wackeln, solange man nicht

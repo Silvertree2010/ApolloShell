@@ -16,7 +16,7 @@ struct NexusDashboardOptionsSection: View {
     var body: some View {
         Section {
             if let id = editor.selectedWidgetID, let widget = editor.page?.widgets.first(where: { $0.id == id }) {
-                NexusWidgetOptionsForm(editor: editor, widget: widget, weatherFile: weatherFile)
+                WidgetOptionsView(editor: editor, widget: widget, weatherFile: weatherFile)
                     .id(widget.id)
             } else {
                 Text("Ein Widget im Dashboard anklicken.")
@@ -28,7 +28,7 @@ struct NexusDashboardOptionsSection: View {
     }
 }
 
-private struct NexusWidgetOptionsForm: View {
+struct WidgetOptionsView: View {
     @Bindable var editor: DashboardEditor
     let widget: WidgetInstance
     let weatherFile: URL?

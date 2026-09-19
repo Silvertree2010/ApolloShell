@@ -24,6 +24,10 @@ struct DashboardView: View {
     let editor: DashboardEditor
     @Namespace private var tabIndicator
     @Environment(\.shellStyle) private var style
+    /// Seite, deren Name gerade als Textfeld in der Leiste steht
+    /// (Kontextmenue „Umbenennen“, Task 4). Nur waehrend `editor.isEditing`.
+    @State private var renamingPageID: DashboardPage.ID?
+    @State private var pendingDeletePageID: DashboardPage.ID?
 
     static let padding: CGFloat = 16
     static let spacing = CGFloat(DashboardGeometry.spacing)
@@ -61,6 +65,7 @@ struct DashboardView: View {
         // abgelegtes/entferntes Widget auf derselben Seite) zieht nach, ob
         // die Leistungs-Messung laufen soll, und startet die Wetter-Modelle
         // der jetzt gezeigten Wetter-Widgets neu, solange offen.
+        .onChange(of: selected.id) { _, _ in renamingPageID = nil }
         .onChange(of: PageWidgetsKey(page: selected), initial: true) { _, key in
             model.showsPerformance = key.kinds.contains { $0.isPerformance }
             if model.isOpen {
@@ -94,18 +99,33 @@ struct DashboardView: View {
                 .padding(Self.padding)
         }
         .fixedSize()
+        // Loeschen mit Rueckfrage (Kontextmenue eines Seitenreiters, Task 4):
+        // nie die letzte Seite, siehe `canDeletePage`.
+        .alert("Seite löschen?", isPresented: Binding(get: { pendingDeletePageID != nil },
+                                                       set: { if !$0 { pendingDeletePageID = nil } })) {
+            Button("Löschen", role: .destructive) {
+                if let id = pendingDeletePageID { editor.removePage(id) }
+                pendingDeletePageID = nil
+            }
+            Button("Abbrechen", role: .cancel) { pendingDeletePageID = nil }
+        } message: {
+            Text("Ihre Widgets gehen dabei verloren.")
+        }
     }
 
     /// Solange jede Seite mindestens `tabWidth` breit stehen kann, wie
     /// bisher gleichmaessig ueber die ganze Breite verteilt; sonst rollend,
-    /// mit der gewaehlten Seite im Blick.
+    /// mit der gewaehlten Seite im Blick. Waehrend der Bearbeitung (Task 4)
+    /// kommt ein **+** ans Ende, das eine neue Seite anlegt und zeigt.
     @ViewBuilder
     private func pageBar(pages: [DashboardPage], selected: DashboardPage) -> some View {
-        if CGFloat(pages.count) * Self.tabWidth <= Self.gridWidth {
+        let extra: CGFloat = editor.isEditing ? Self.tabWidth : 0
+        if CGFloat(pages.count) * Self.tabWidth + extra <= Self.gridWidth {
             HStack(spacing: 0) {
                 ForEach(pages) { page in
                     pageButton(page, selected: selected).frame(maxWidth: .infinity)
                 }
+                if editor.isEditing { addPageButton.frame(width: Self.tabWidth) }
             }
             .frame(width: Self.gridWidth)
             .padding(.horizontal, Self.padding)
@@ -117,6 +137,7 @@ struct DashboardView: View {
                         ForEach(pages) { page in
                             pageButton(page, selected: selected).frame(width: Self.tabWidth).id(page.id)
                         }
+                        if editor.isEditing { addPageButton.frame(width: Self.tabWidth) }
                     }
                 }
                 .frame(width: Self.gridWidth)
@@ -128,6 +149,28 @@ struct DashboardView: View {
             .animation(Self.motion, value: pages.map(\.id))
         }
     }
+
+    private var addPageButton: some View {
+        Button {
+            withAnimation(Self.motion) { _ = editor.addPage() }
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: "plus")
+                    .font(style.font(size: 16, weight: .medium))
+                    .frame(width: 18, height: 18)
+                Text(" ").font(style.font(size: 12, weight: .medium))
+            }
+            .foregroundStyle(.secondary)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .help("Seite hinzufügen")
+        .accessibilityLabel("Seite hinzufügen")
+    }
+
+    @FocusState private var renameFieldFocused: Bool
 
     private func pageButton(_ page: DashboardPage, selected: DashboardPage) -> some View {
         Button {
@@ -152,7 +195,20 @@ struct DashboardView: View {
                 .font(style.font(size: 16, weight: .medium))
                 .symbolVariant(page.id == selected.id ? .fill : .none)
                 .frame(width: 18, height: 18)
-                Text(page.name).font(style.font(size: 12, weight: .medium)).lineLimit(1)
+                if editor.isEditing, renamingPageID == page.id {
+                    TextField("Name", text: Binding(
+                        get: { page.name },
+                        set: { editor.renamePage(page.id, to: $0) }
+                    ))
+                    .textFieldStyle(.plain)
+                    .font(style.font(size: 12, weight: .medium))
+                    .multilineTextAlignment(.center)
+                    .focused($renameFieldFocused)
+                    .onSubmit { renamingPageID = nil }
+                    .onAppear { renameFieldFocused = true }
+                } else {
+                    Text(page.name).font(style.font(size: 12, weight: .medium)).lineLimit(1)
+                }
             }
             .foregroundStyle(page.id == selected.id ? style.accent : Color.secondary)
             .padding(.top, 12)
@@ -168,6 +224,27 @@ struct DashboardView: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        // Kontextmenue nur beim Bearbeiten (Task 4): Umbenennen, Symbol,
+        // Duplizieren, Loeschen (nie die letzte Seite - `DashboardEditor`
+        // erlaubt es ohnehin nicht, der Knopf bleibt trotzdem sichtbar aus,
+        // damit das Menue nicht bei jeder Seite anders aussieht).
+        .contextMenu {
+            if editor.isEditing {
+                Button("Umbenennen") { renamingPageID = page.id }
+                Menu("Symbol") {
+                    ForEach(nexusPageSymbols, id: \.self) { symbol in
+                        Button {
+                            editor.setSymbol(symbol, forPage: page.id)
+                        } label: {
+                            Label(symbol, systemImage: symbol)
+                        }
+                    }
+                }
+                Button("Duplizieren") { editor.duplicatePage(page.id) }
+                Button("Löschen", role: .destructive) { pendingDeletePageID = page.id }
+                    .disabled((editor.session?.pages.pages.count ?? 0) <= 1)
+            }
+        }
     }
 }
 

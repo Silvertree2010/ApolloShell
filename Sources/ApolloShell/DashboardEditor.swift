@@ -90,6 +90,56 @@ final class DashboardEditor {
         set { session?.selectedWidgetID = newValue }
     }
 
+    // MARK: - Seiten (Seitenleiste beim Bearbeiten, Task 4)
+
+    /// Neue leere Seite ans Ende, "Seite <n>" (die naechste freie Zahl,
+    /// keine Dopplung, falls eine so umbenannt wurde), sofort gezeigt.
+    @discardableResult
+    func addPage() -> DashboardPage.ID? {
+        guard let session else { return nil }
+        let name = Self.nextPageName(existing: session.pages.pages.map(\.name))
+        var updated = session
+        let id = updated.addPage(name: name)
+        self.session = updated
+        return id
+    }
+
+    static func nextPageName(existing: [String]) -> String {
+        var n = existing.count + 1
+        while existing.contains(String(localized: "Seite \(n)")) { n += 1 }
+        return String(localized: "Seite \(n)")
+    }
+
+    @discardableResult
+    func duplicatePage(_ id: DashboardPage.ID) -> DashboardPage.ID? {
+        guard let session, let page = session.pages.page(id: id) else { return nil }
+        let name = page.name + String(localized: " Kopie")
+        var updated = session
+        let newID = updated.duplicatePage(id, name: name)
+        self.session = updated
+        return newID
+    }
+
+    @discardableResult
+    func removePage(_ id: DashboardPage.ID) -> Bool {
+        guard var updated = session else { return false }
+        let removed = updated.removePage(id)
+        session = updated
+        return removed
+    }
+
+    func renamePage(_ id: DashboardPage.ID, to name: String) {
+        guard var updated = session else { return }
+        updated.renamePage(id, to: name)
+        session = updated
+    }
+
+    func setSymbol(_ symbol: String, forPage id: DashboardPage.ID) {
+        guard var updated = session else { return }
+        updated.setSymbol(symbol, forPage: id)
+        session = updated
+    }
+
     // MARK: - Durchreichen an die Sitzung (Views aendern `session` nie selbst)
 
     func previewMove(_ id: WidgetInstance.ID, proposed: WidgetFrame) -> BentoEditSession.Preview? {
