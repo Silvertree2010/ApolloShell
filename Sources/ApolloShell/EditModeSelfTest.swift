@@ -298,6 +298,36 @@ private final class EditModeSelfTestHarness {
         for screen in NSScreen.screens {
             await pass(on: screen)
         }
+        // Stress: zehnmal schnell beginnen und beenden, wechselnde Abstaende.
+        if let screen = NSScreen.screens.first {
+            for round in 0..<10 {
+                editor.begin(screen: screen)
+                await wait([0.02, 0.1, 0.3, 0.05, 0.6][round % 5])
+                if round % 2 == 0 { editor.cancel() } else { editor.done() }
+                await wait([0.03, 0.2, 0.01, 0.4, 0.08][round % 5])
+            }
+            await wait(0.9)
+            check(!editor.isEditing && windows.debugVisibleScrims == 0 && windows.debugToolbarFrame == nil
+                  && windows.debugGalleryFrame == nil, "Stress: nach zehn schnellen Runden nichts haengengeblieben")
+            dashboard.debugClose()
+            utilities.debugClose()
+            await wait(0.6)
+            // Dashboard schon offen, dann bearbeiten: bleibt offen, angepinnt;
+            // nach dem Ende wieder normal.
+            dashboard.toggle()
+            await wait(0.5)
+            editor.begin(screen: screen)
+            await wait(0.6)
+            check(dashboard.debugIsOpen && windows.debugToolbarFrame != nil, "Bearbeiten bei schon offenem Dashboard")
+            dashboard.toggle()
+            await wait(0.4)
+            check(dashboard.debugIsOpen, "Angepinnt: Dashboard-Kuerzel schliesst waehrend des Bearbeitens nicht")
+            editor.cancel()
+            await wait(0.6)
+            dashboard.debugClose()
+            utilities.debugClose()
+            await wait(0.5)
+        }
         // Grenzfall: Regler auf 150 % - das Dashboard fuellt fast die Hoehe.
         if let screen = NSScreen.screens.first {
             store.settings.dashboardScale = 1.5
