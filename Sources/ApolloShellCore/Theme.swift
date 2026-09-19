@@ -302,3 +302,19 @@ public enum ThemeGuards {
         return ThemeColor.contrast(.white, base) >= ThemeColor.contrast(.black, base) ? .white : .black
     }
 }
+
+// MARK: - Erscheinungsbild
+
+/// Fuer welches Erscheinungsbild ein Theme gemacht ist
+/// (`--apollo-theme-appearance`). `light`/`dark` stellen die ganze Shell
+/// darauf ein, unabhaengig von macOS - sonst bekommt ein helles Theme auf
+/// einem dunklen Mac weisse Systemschrift auf hellen Flaechen. `auto` (und
+/// kein oder ein unbekannter Wert) folgt dem System wie bisher.
+public enum ThemeAppearance: String, Sendable {
+    case auto, light, dark
+
+    public init(theme: Theme) {
+        let raw = theme.value(.appearance) ?? theme.value(.appearance, dark: true)
+        self = raw.flatMap { ThemeAppearance(rawValue: $0.lowercased()) } ?? .auto
+    }
+}
