@@ -497,7 +497,12 @@ final class EditModeWindows {
         let top = min(dashboard.minY, visible.maxY) - 16
         let bottom = visible.minY + 20 + (toolbar?.size.height ?? 56) + 16
         let height = gallery?.size.height ?? 380
-        let centerY = top - height / 2 >= bottom + height / 2 ? (top + bottom) / 2 : top - height / 2
+        // Genug Platz unter dem Dashboard: mittig dort. Sonst (grosser
+        // Massstab, gemessen bei 150 %: Galerie rutschte unter den Rand und
+        // ueber die Werkzeugleiste) direkt ueber der Werkzeugleiste - sie
+        // ueberdeckt dann den unteren Teil des Dashboards, das geht bei
+        // dieser Groesse nicht anders; „+“ blendet sie wieder aus.
+        let centerY = top - bottom >= height ? (top + bottom) / 2 : bottom + height / 2
         return NSPoint(x: visible.midX, y: centerY)
     }
 }

@@ -298,6 +298,27 @@ private final class EditModeSelfTestHarness {
         for screen in NSScreen.screens {
             await pass(on: screen)
         }
+        // Grenzfall: Regler auf 150 % - das Dashboard fuellt fast die Hoehe.
+        if let screen = NSScreen.screens.first {
+            store.settings.dashboardScale = 1.5
+            editor.begin(screen: screen)
+            await wait(0.8)
+            editor.galleryVisible = true
+            await wait(0.8)
+            let dashboardFrame = dashboard.openFrame
+            let gallery = windows.debugGalleryFrame
+            let toolbar = windows.debugToolbarFrame
+            note("150 %: Dashboard \(r(dashboardFrame)), Galerie \(r(gallery)), Leiste \(r(toolbar))")
+            check(gallery.map(screen.frame.contains) ?? false, "150 %: Galerie bleibt ganz auf dem Bildschirm")
+            check(toolbar.map(screen.frame.contains) ?? false, "150 %: Werkzeugleiste bleibt ganz auf dem Bildschirm")
+            if let gallery, let toolbar { check(!gallery.intersects(toolbar), "150 %: Galerie frei von der Werkzeugleiste") }
+            editor.cancel()
+            await wait(0.8)
+            dashboard.debugClose()
+            utilities.debugClose()
+            store.settings.dashboardScale = 1
+            await wait(0.5)
+        }
         if let screen = NSScreen.screens.first {
             await escapeOrder(on: screen)
             await controlCentre(on: screen)
