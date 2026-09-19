@@ -61,8 +61,8 @@ struct EditToolbarView: View {
             }
             .buttonStyle(.plain)
             .background(.thinMaterial, in: .circle)
-            .help("Element hinzufügen")
-            .accessibilityLabel("Hinzufügen")
+            .help("Add Element")
+            .accessibilityLabel("Add")
 
             // Groesse des Dashboards (frueher Nexus > Dashboard): das
             // angepinnte Dashboard waechst und schrumpft sofort mit,
@@ -80,16 +80,16 @@ struct EditToolbarView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 44, alignment: .trailing)
             }
-            .help("Größe des Dashboards")
+            .help("Dashboard size")
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Größe des Dashboards")
+            .accessibilityLabel("Dashboard size")
 
-            Button("Abbrechen") {
+            Button("Cancel") {
                 editor.cancel()
             }
             .buttonStyle(.bordered)
 
-            Button("Fertig") {
+            Button("Done") {
                 editor.done()
             }
             .buttonStyle(.borderedProminent)
@@ -102,9 +102,9 @@ struct EditToolbarView: View {
     /// bis man sich entscheidet.
     private var cancelConfirmation: some View {
         HStack(spacing: 14) {
-            Text("Änderungen verwerfen?")
+            Text("Discard changes?")
                 .font(.callout.weight(.medium))
-            Button("Weiter bearbeiten") {
+            Button("Keep Editing") {
                 editor.dismissCancelConfirmation()
             }
             .buttonStyle(.bordered)
@@ -157,7 +157,7 @@ private struct GallerySurfaceTabs: View {
     var body: some View {
         HStack(spacing: 4) {
             tab(.dashboard, title: String(localized: "Dashboard"))
-            tab(.controlCentre, title: String(localized: "Kontrollzentrum"))
+            tab(.controlCentre, title: String(localized: "Control Centre"))
         }
         .padding(3)
         .background(.quaternary.opacity(0.4), in: Capsule())
@@ -260,7 +260,7 @@ struct EditGalleryView: View {
         VStack(spacing: 12) {
             GallerySurfaceTabs(selection: $editor.galleryTab)
 
-            GalleryCheckbox(title: String(localized: "Alle zeigen (erweitert)"), isOn: $editor.showsAllInGallery)
+            GalleryCheckbox(title: String(localized: "Show All (Advanced)"), isOn: $editor.showsAllInGallery)
                 .controlSize(.small)
                 .frame(maxWidth: .infinity, alignment: .leading)
 

@@ -39,10 +39,10 @@ public enum SessionAction: String, CaseIterable, Sendable {
     /// ohne Beschriftung.
     public var title: String {
         switch self {
-        case .logOut: String(localized: "Abmelden")
-        case .shutDown: String(localized: "Ausschalten")
-        case .sleep: String(localized: "Ruhezustand")
-        case .restart: String(localized: "Neustart")
+        case .logOut: String(localized: "Log Out")
+        case .shutDown: String(localized: "Shut Down")
+        case .sleep: String(localized: "Sleep")
+        case .restart: String(localized: "Restart")
         }
     }
 

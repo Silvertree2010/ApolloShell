@@ -19,23 +19,23 @@ struct WidgetOptionsView: View {
         switch widget.kind {
         case .weather:
             let o = binding(\.weather, fallback: DashboardWeatherOptions())
-            NexusToggle(title: "Wetterlage", subtitle: "Zum Beispiel „Leicht bewölkt“", isOn: o.showCondition)
-            NexusToggle(title: "Höchst- und Tiefstwert", subtitle: "Von heute", isOn: o.showRange)
+            NexusToggle(title: "Condition", subtitle: "For example “Partly cloudy”", isOn: o.showCondition)
+            NexusToggle(title: "High and Low", subtitle: "For today", isOn: o.showRange)
             places
         case .weatherHero, .weatherHourly, .weatherDaily:
             places
         case .user:
             let o = binding(\.user, fallback: DashboardUserOptions())
-            NexusToggle(title: "macOS-Version", isOn: o.showSystem)
-            NexusToggle(title: "Laufzeit", subtitle: "Wie lange der Mac seit dem Start läuft", isOn: o.showUptime)
+            NexusToggle(title: "macOS Version", isOn: o.showSystem)
+            NexusToggle(title: "Uptime", subtitle: "How long the Mac has been running since starting up", isOn: o.showUptime)
         case .clock:
             let o = binding(\.clock, fallback: DashboardClockOptions())
-            Picker("Darstellung", selection: o.style) {
-                Text("Untereinander").tag(DashboardClockOptions.Style.stacked)
-                Text("In einer Zeile").tag(DashboardClockOptions.Style.inline)
+            Picker("Style", selection: o.style) {
+                Text("Stacked").tag(DashboardClockOptions.Style.stacked)
+                Text("In One Row").tag(DashboardClockOptions.Style.inline)
             }
             .pickerStyle(.segmented)
-            NexusToggle(title: "Datum", subtitle: "Wochentag und Tag unter der Uhrzeit", isOn: o.showDate)
+            NexusToggle(title: "Date", subtitle: "Weekday and day below the time", isOn: o.showDate)
             LabeledContent("Zeitzone") {
                 Button(NexusTimeZoneText.label(o.wrappedValue.timeZone)) { showsTimeZonePicker = true }
                     .popover(isPresented: $showsTimeZonePicker) {
@@ -47,27 +47,27 @@ struct WidgetOptionsView: View {
             }
         case .calendar:
             let o = binding(\.calendar, fallback: DashboardCalendarOptions())
-            Picker("Woche beginnt am", selection: o.firstWeekday) {
-                Text("Montag").tag(DashboardCalendarOptions.FirstWeekday.monday)
-                Text("Sonntag").tag(DashboardCalendarOptions.FirstWeekday.sunday)
+            Picker("Week Starts On", selection: o.firstWeekday) {
+                Text("Monday").tag(DashboardCalendarOptions.FirstWeekday.monday)
+                Text("Sunday").tag(DashboardCalendarOptions.FirstWeekday.sunday)
             }
             .pickerStyle(.segmented)
-            NexusToggle(title: "Kalenderwochen", subtitle: "Links neben jeder Zeile", isOn: o.showWeekNumbers)
+            NexusToggle(title: "Week Numbers", subtitle: "To the left of each row", isOn: o.showWeekNumbers)
         case .resources:
             let o = binding(\.resources, fallback: DashboardResourcesOptions())
             let current = o.wrappedValue
             let last = [current.showCPU, current.showMemory, current.showStorage].filter { $0 }.count == 1
             NexusToggle(title: "CPU", isOn: o.showCPU).disabled(last && current.showCPU)
-            NexusToggle(title: "Arbeitsspeicher", isOn: o.showMemory).disabled(last && current.showMemory)
-            NexusToggle(title: "Speicher", subtitle: "Belegter Platz auf dem Startvolume", isOn: o.showStorage)
+            NexusToggle(title: "Memory", isOn: o.showMemory).disabled(last && current.showMemory)
+            NexusToggle(title: "Storage", subtitle: "Space used on the startup volume", isOn: o.showStorage)
                 .disabled(last && current.showStorage)
         case .media:
             let o = binding(\.media, fallback: DashboardMediaOptions())
             NexusToggle(title: "Album", subtitle: "Nicht in der kleinen Karte", isOn: o.showAlbum)
-            NexusToggle(title: "Quelle", subtitle: "Welche App spielt", isOn: o.showSource)
+            NexusToggle(title: "Source", subtitle: "Welche App spielt", isOn: o.showSource)
         case .performanceCPU, .performanceGPU, .performanceStorage, .performanceNetwork,
              .performanceMemory, .performanceBattery, .mediaPlayer:
-            Text("Für dieses Widget gibt es keine Einstellungen.")
+            Text("There are no settings for this widget.")
                 .foregroundStyle(.secondary)
         }
     }
@@ -122,13 +122,13 @@ private struct NexusWidgetPlacesSection: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
         if model.favorites.locations.isEmpty {
-            Text("Noch keine Favoriten – unten einen Ort suchen und hinzufügen.")
+            Text("No favorites yet – search for a place below and add it.")
                 .foregroundStyle(.secondary)
         }
         ForEach(model.favorites.locations) { place in
             NexusWeatherFavoriteRow(model: model, place: place)
         }
-        NexusSearchField(prompt: "Ort suchen", text: Binding(get: { model.query }, set: { model.query = $0 }),
+        NexusSearchField(prompt: "Search for a Place", text: Binding(get: { model.query }, set: { model.query = $0 }),
                         busy: model.state == .searching)
         ForEach(model.results) { place in
             NexusWeatherSearchRow(model: model, place: place)

@@ -142,7 +142,7 @@ struct NexusLauncherPage: View {
         NexusPageForm(page: .launcher) {
             Section {
                 if model.list.ids.isEmpty {
-                    Text("Noch keine Apps angeheftet.")
+                    Text("No apps pinned yet.")
                         .foregroundStyle(.secondary)
                 }
                 ForEach(Array(model.list.ids.enumerated()), id: \.element) { index, id in
@@ -151,30 +151,30 @@ struct NexusLauncherPage: View {
                 .onMove { model.move(fromOffsets: $0, toOffset: $1) }
             } header: {
                 HStack {
-                    Text("Angeheftete Apps")
+                    Text("Pinned Apps")
                     Spacer()
                     Text(NexusText.pinnedCount(model.list.ids.count))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                 }
             } footer: {
-                Text("Stehen im Launcher ohne Suchtext in dieser Reihenfolge ganz oben. Zum Umsortieren ziehen oder das Kontextmenü nehmen.")
+                Text("Appear at the top of the launcher without a search text, in this order. Drag to reorder, or use the context menu.")
             }
 
             Section {
-                NexusSearchField(prompt: "App suchen", text: $model.query)
+                NexusSearchField(prompt: "Search Apps", text: $model.query)
                 ForEach(model.results) { app in
                     NexusAddAppRow(model: model, app: app)
                 }
                 if !model.query.trimmingCharacters(in: .whitespaces).isEmpty, model.results.isEmpty {
-                    Text("Keine passende App.")
+                    Text("No matching app.")
                         .foregroundStyle(.secondary)
                 }
             } header: {
-                Text("App hinzufügen")
+                Text("Add App")
             } footer: {
                 if model.list.isFull {
-                    Text("\(PinnedList.limit) Apps sind angeheftet – erst eine entfernen.")
+                    Text("\(PinnedList.limit) apps are pinned – remove one first.")
                 }
             }
             NexusSaveWarning(failed: model.saveFailed, file: "pinned.json")
@@ -206,7 +206,7 @@ private struct NexusPinnedRow: View {
                 if app == nil {
                     // Deinstalliert oder umbenannt: der Launcher uebergeht
                     // sie, entfernen kann man sie trotzdem.
-                    Text("Nicht installiert")
+                    Text("Not Installed")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -220,20 +220,20 @@ private struct NexusPinnedRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Entfernen")
-            .accessibilityLabel("\(app?.name ?? id) entfernen")
+            .help("Remove")
+            .accessibilityLabel("Remove \(app?.name ?? id)")
             Image(systemName: "line.3.horizontal")
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
         }
         .contentShape(.rect)
         .contextMenu {
-            Button("Nach oben") { model.move(id, by: -1) }
+            Button("Move Up") { model.move(id, by: -1) }
                 .disabled(position == 1)
-            Button("Nach unten") { model.move(id, by: 1) }
+            Button("Move Down") { model.move(id, by: 1) }
                 .disabled(position == count)
             Divider()
-            Button("Entfernen", role: .destructive) { model.remove(id) }
+            Button("Remove", role: .destructive) { model.remove(id) }
         }
     }
 }
@@ -260,8 +260,8 @@ private struct NexusAddAppRow: View {
             }
             .buttonStyle(.borderless)
             .disabled(model.list.isFull)
-            .help("Anheften")
-            .accessibilityLabel("\(app.name) anheften")
+            .help("Pin")
+            .accessibilityLabel("Pin \(app.name)")
         }
     }
 }
@@ -290,7 +290,7 @@ struct NexusSearchField: View {
                         .foregroundStyle(.tertiary)
                 }
                 .buttonStyle(.borderless)
-                .help("Suche leeren")
+                .help("Clear Search")
             }
         }
     }

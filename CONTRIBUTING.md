@@ -73,21 +73,6 @@ scripts/make-dmg.sh
 - No personal data in code, tests or screenshots. Use neutral examples such as
   "Berlin" or "Alex".
 
-## Translations
-
-German is the source language. The German text in the code is the key, and
-each translation is a set of `Support/Localization/<language>/*.strings` files
-(`"Deutsch" = "English";`). For a new language:
-
-1. Copy `Support/Localization/en` to your language code, for example `es`.
-2. Translate the right-hand side. Keep placeholders such as `%@` and `%lld`.
-3. Add the code to `CFBundleLocalizations` in `Support/Info.plist` and to the
-   language picker (`AppLanguage.swift`).
-4. Have `scripts/assemble-app.sh` copy the new folder too (`build.sh` uses it).
-
-New UI text needs an English entry. `python3 scripts/check-l10n.py` lists what
-is missing.
-
 ## Pull requests
 
 - Keep each pull request to one topic, with a short description of what

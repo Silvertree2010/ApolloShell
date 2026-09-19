@@ -69,14 +69,14 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         return switch self {
         case .performanceCPU: "CPU"
         case .performanceGPU: "GPU"
-        case .performanceStorage: String(localized: "Speicher")
-        case .performanceNetwork: String(localized: "Netzwerk")
-        case .performanceMemory: String(localized: "Arbeitsspeicher")
-        case .performanceBattery: String(localized: "Akku")
-        case .weatherHero: String(localized: "Wetterübersicht")
-        case .weatherHourly: String(localized: "Stündlich")
-        case .weatherDaily: String(localized: "Nächste Tage")
-        case .mediaPlayer: String(localized: "Wiedergabe")
+        case .performanceStorage: String(localized: "Storage")
+        case .performanceNetwork: String(localized: "Network")
+        case .performanceMemory: String(localized: "Memory")
+        case .performanceBattery: String(localized: "Battery")
+        case .weatherHero: String(localized: "Weather overview")
+        case .weatherHourly: String(localized: "Hourly")
+        case .weatherDaily: String(localized: "Next days")
+        case .mediaPlayer: String(localized: "Play")
         case .weather, .user, .clock, .calendar, .resources, .media: ""
         }
     }

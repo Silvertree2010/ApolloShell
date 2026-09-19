@@ -45,7 +45,7 @@ public struct WeatherAttribution: Equatable, Sendable {
     }
 
     /// "Wetterdaten: MET Norway" - die Zeile im Wetter-Reiter.
-    public var text: String { String(localized: "Wetterdaten: \(name)") }
+    public var text: String { String(localized: "Weather data: \(name)") }
 }
 
 /// Was ein Anbieter liefert. Die Oberflaeche richtet sich nach den Daten
@@ -74,13 +74,13 @@ public struct WeatherCapabilities: Equatable, Sendable {
 
     /// "7 Tage · stündlich" oder "3 Tage · alle 3 Stunden", dazu was fehlt.
     public var summary: String {
-        var parts = [String(localized: "\(days) Tage"),
-                     hourStep == 1 ? String(localized: "stündlich") : String(localized: "alle \(hourStep) Stunden")]
+        var parts = [String(localized: "\(days) days"),
+                     hourStep == 1 ? String(localized: "hourly") : String(localized: "every \(hourStep) hours")]
         var missing: [String] = []
-        if !precipitationProbability { missing.append(String(localized: "Regenwahrscheinlichkeit")) }
-        if !apparentTemperature { missing.append(String(localized: "gefühlte Temperatur")) }
-        if !missing.isEmpty { parts.append(String(localized: "ohne \(missing.joined(separator: " und "))")) }
-        if sunTimes == .todayOnly { parts.append(String(localized: "Sonnenzeiten nur für heute")) }
+        if !precipitationProbability { missing.append(String(localized: "chance of rain")) }
+        if !apparentTemperature { missing.append(String(localized: "feels-like temperature")) }
+        if !missing.isEmpty { parts.append(String(localized: "without \(missing.joined(separator: " und "))")) }
+        if sunTimes == .todayOnly { parts.append(String(localized: "sun times for today only")) }
         return parts.joined(separator: " · ")
     }
 }

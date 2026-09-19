@@ -37,8 +37,8 @@ final class PerformanceModel {
     private(set) var battery: BatteryState?
     private(set) var batteryMinutes: Int?
 
-    let cpuSubtitle = String(localized: "\(PerformanceSampler.chipName) · \(ProcessInfo.processInfo.activeProcessorCount) Kerne")
-    let gpuSubtitle = PerformanceSampler.gpuCores.map { String(localized: "\(PerformanceSampler.chipName) · \($0) Kerne") }
+    let cpuSubtitle = String(localized: "\(PerformanceSampler.chipName) · \(ProcessInfo.processInfo.activeProcessorCount) Cores")
+    let gpuSubtitle = PerformanceSampler.gpuCores.map { String(localized: "\(PerformanceSampler.chipName) · \($0) Cores") }
         ?? PerformanceSampler.chipName
 
     @ObservationIgnored private var timer: Timer?

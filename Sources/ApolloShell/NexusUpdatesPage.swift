@@ -14,37 +14,37 @@ struct NexusUpdatesPage: View {
     var body: some View {
         NexusPageForm(page: .updates) {
             Section {
-                LabeledContent("Installierte Fassung", value: NexusUpdatesPage.installedVersion)
-                LabeledContent("Letzte Prüfung", value: lastCheck)
+                LabeledContent("Installed version", value: NexusUpdatesPage.installedVersion)
+                LabeledContent("Last check", value: lastCheck)
                 NexusUpdateStatusRow(updates: updates)
             } header: {
-                Text("Stand")
+                Text("Status")
             }
 
             if updates.canUpdateItself {
                 Section {
-                    NexusToggle(title: "Automatisch nach Updates suchen",
-                                subtitle: "Einmal täglich im Hintergrund",
+                    NexusToggle(title: "Check for updates automatically",
+                                subtitle: "Once a day in the background",
                                 isOn: $store.settings.updates.checkAutomatically)
-                    NexusToggle(title: "Updates automatisch einspielen",
-                                subtitle: "Beim Beenden, also spätestens beim nächsten Abmelden",
+                    NexusToggle(title: "Install updates automatically",
+                                subtitle: "When you quit, so at the latest when you next log out",
                                 isOn: $store.settings.updates.installAutomatically)
                 } header: {
-                    Text("Automatik")
+                    Text("Automatic")
                 } footer: {
-                    Text("Beides ist ab Werk an. Ein Update tauscht die ganze Shell aus: Leiste, Dock und Fenster verschwinden kurz und kommen neu.")
+                    Text("Both are on by default. An update replaces the whole shell: the bar, the dock and the windows disappear for a moment and come back.")
                 }
             } else {
                 Section {
-                    NexusToggle(title: "Automatisch nach Updates suchen",
-                                subtitle: "Einmal täglich im Hintergrund",
+                    NexusToggle(title: "Check for updates automatically",
+                                subtitle: "Once a day in the background",
                                 isOn: $store.settings.updates.checkAutomatically)
-                    LabeledContent("Aktualisieren") {
+                    LabeledContent("Upgrade") {
                         HStack(spacing: 8) {
                             Text(updates.upgradeCommand)
                                 .font(.system(.body, design: .monospaced))
                                 .textSelection(.enabled)
-                            Button("Kopieren") {
+                            Button("Copy") {
                                 NSPasteboard.general.clearContents()
                                 NSPasteboard.general.setString(updates.upgradeCommand, forType: .string)
                             }
@@ -54,21 +54,21 @@ struct NexusUpdatesPage: View {
                 } header: {
                     Text("Homebrew")
                 } footer: {
-                    Text("Diese Installation gehört Homebrew. ApolloShell erneuert sich deshalb nicht selbst, sondern meldet nur, dass es etwas Neues gibt.")
+                    Text("This copy belongs to Homebrew, so ApolloShell does not replace itself. It only says when there is something new.")
                 }
             }
 
             Section {
-                Button("Jetzt prüfen") { updates.checkNow() }
+                Button("Check now") { updates.checkNow() }
                 if updates.isReadyToInstall {
-                    Button("Jetzt neu starten") { updates.installNowIfReady() }
+                    Button("Restart now") { updates.installNowIfReady() }
                 }
             } footer: {
-                Text("Alle Fassungen stehen auf der Releases-Seite.")
+                Text("Every version is on the releases page.")
             }
 
             Section {
-                Link("Releases auf GitHub",
+                Link("Releases on GitHub",
                      destination: URL(string: "https://github.com/Silvertree2010/ApolloShell/releases")!)
             }
             NexusSaveWarning(failed: store.saveFailed)
@@ -89,7 +89,7 @@ struct NexusUpdatesPage: View {
     }
 
     private var lastCheck: String {
-        guard let date = updates.lastCheck else { return String(localized: "noch nie") }
+        guard let date = updates.lastCheck else { return String(localized: "never") }
         return date.formatted(date: .abbreviated, time: .shortened)
     }
 }
@@ -101,29 +101,29 @@ private struct NexusUpdateStatusRow: View {
     var body: some View {
         switch updates.status {
         case .idle:
-            LabeledContent("Stand", value: String(localized: "Noch nicht geprüft"))
+            LabeledContent("Status", value: String(localized: "Not checked yet"))
         case .checking:
-            LabeledContent("Stand") {
+            LabeledContent("Status") {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
-                    Text("Wird geprüft …")
+                    Text("Checking…")
                 }
             }
         case .upToDate:
-            LabeledContent("Stand", value: String(localized: "Aktuell"))
+            LabeledContent("Status", value: String(localized: "Up to date"))
         case let .found(version, page):
-            LabeledContent(String(localized: "Neue Fassung")) {
+            LabeledContent(String(localized: "New version")) {
                 HStack(spacing: 8) {
                     Text(version)
-                    if let page { Link("Notizen", destination: page).controlSize(.small) }
+                    if let page { Link("Notes", destination: page).controlSize(.small) }
                 }
             }
         case let .ready(version):
-            LabeledContent(String(localized: "Bereit"), value: String(localized: "\(version) wird beim Beenden eingespielt"))
+            LabeledContent(String(localized: "Ready"), value: String(localized: "\(version) will be installed when you quit"))
         case let .failed(message):
-            LabeledContent(String(localized: "Fehlgeschlagen"), value: message)
+            LabeledContent(String(localized: "Failed"), value: message)
         case .unavailable:
-            LabeledContent("Stand", value: String(localized: "Diese Fassung kann sich nicht selbst erneuern"))
+            LabeledContent("Status", value: String(localized: "This build cannot update itself"))
         }
     }
 }

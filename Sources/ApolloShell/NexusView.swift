@@ -21,7 +21,7 @@ enum NexusSection: CaseIterable, Identifiable {
         // Oberste Gruppe ohne Ueberschrift, wie in den Systemeinstellungen.
         case .general: nil
         case .panels: String(localized: "Panels")
-        case .services: String(localized: "Dienste")
+        case .services: String(localized: "Services")
         case .system: String(localized: "macOS")
         case .about: nil
         }
@@ -37,33 +37,33 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
 
     var title: String {
         switch self {
-        case .general: String(localized: "Allgemein")
-        case .hotKeys: String(localized: "Tastenkürzel")
-        case .bar: String(localized: "Leiste")
+        case .general: String(localized: "General")
+        case .hotKeys: String(localized: "Keyboard Shortcuts")
+        case .bar: String(localized: "Bar")
         case .launcher: String(localized: "Launcher")
-        case .desktop: String(localized: "Schreibtisch")
-        case .toasts: String(localized: "Kurzmeldungen")
-        case .providers: String(localized: "Anbieter")
+        case .desktop: String(localized: "Desktop")
+        case .toasts: String(localized: "Toasts")
+        case .providers: String(localized: "Providers")
         case .themes: String(localized: "Themes")
         case .updates: String(localized: "Updates")
-        case .system: String(localized: "Systemeinstellungen")
-        case .about: String(localized: "Über")
+        case .system: String(localized: "System Settings")
+        case .about: String(localized: "About")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .general: String(localized: "Start bei der Anmeldung und die Freigaben, die ApolloShell von macOS braucht.")
-        case .hotKeys: String(localized: "Globale Kürzel für Launcher, Dashboard, Kontrollzentrum und Nexus.")
-        case .bar: String(localized: "Die Bausteine der Leiste links: anordnen, hinzufügen, einstellen.")
-        case .launcher: String(localized: "Die angehefteten Apps, die ohne Suchtext ganz oben stehen.")
-        case .desktop: String(localized: "Die Uhr unten rechts auf dem Schreibtisch.")
-        case .toasts: String(localized: "Welche Ereignisse unten rechts eine Kurzmeldung zeigen.")
-        case .providers: String(localized: "Woher das Wetter kommt und welcher Dateimanager oben im Dock steht.")
-        case .themes: String(localized: "Das Aussehen der ganzen Shell aus einer CSS-Datei.")
-        case .updates: String(localized: "Wie ApolloShell sich auf dem neuesten Stand hält.")
-        case .system: String(localized: "Netzwerk, Bluetooth, Ton, Hintergrund und Sprache regelt macOS.")
-        case .about: String(localized: "Version, System und Quelltext.")
+        case .general: String(localized: "Start at login and the permissions ApolloShell needs from macOS.")
+        case .hotKeys: String(localized: "Global shortcuts for Launcher, Dashboard, Control Centre and Nexus.")
+        case .bar: String(localized: "The building blocks of the bar on the left: arrange, add, configure.")
+        case .launcher: String(localized: "The pinned apps that appear at the top without a search text.")
+        case .desktop: String(localized: "The clock at the bottom right of the desktop.")
+        case .toasts: String(localized: "Which events show a toast at the bottom right.")
+        case .providers: String(localized: "Where the weather comes from and which file manager sits at the top of the Dock.")
+        case .themes: String(localized: "The look of the whole shell, from one CSS file.")
+        case .updates: String(localized: "How ApolloShell keeps itself up to date.")
+        case .system: String(localized: "macOS handles network, Bluetooth, sound, background and language.")
+        case .about: String(localized: "Version, system and source code.")
         }
     }
 
@@ -227,7 +227,7 @@ struct NexusSidebar: View {
             Button {
                 beginEditing()
             } label: {
-                Label("Oberfläche bearbeiten", systemImage: "pencil")
+                Label("Edit Interface", systemImage: "pencil")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
@@ -366,7 +366,7 @@ struct NexusSystemLink: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .help("In den Systemeinstellungen öffnen")
+        .help("Open in System Settings")
     }
 }
 

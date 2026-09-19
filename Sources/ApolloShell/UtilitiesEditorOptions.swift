@@ -59,7 +59,7 @@ struct UtilitiesEditorSymbolRow: View {
     @State private var picking = false
 
     var body: some View {
-        LabeledContent("Symbol") {
+        LabeledContent("Icon") {
             HStack(spacing: 8) {
                 UtilitiesToggleGlyph(icon: fallback, scale: 0.8)
                     .foregroundStyle(.secondary)
@@ -67,7 +67,7 @@ struct UtilitiesEditorSymbolRow: View {
                 Text(current.isEmpty ? automatic : current)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                Button("Wählen …") { picking = true }
+                Button("Choose…") { picking = true }
                     .popover(isPresented: $picking, arrowEdge: .trailing) {
                         UtilitiesSymbolPicker(current: current, automatic: automatic) { symbol in
                             onPick(symbol)

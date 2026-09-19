@@ -61,11 +61,11 @@ public enum LidAwake {
         // prompt") - kein SwiftUI-Text, deshalb hier schon uebersetzt.
         let prompt: String
         if !disableSleep {
-            prompt = String(localized: "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel wieder erlauben.")
+            prompt = String(localized: "ApolloShell would like to allow sleep with the lid closed again.")
         } else if install != nil {
-            prompt = String(localized: "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel aussetzen, solange „Wach halten“ läuft. Damit das künftig ohne Passwort geht, wird eine Regel angelegt, die nur diesen einen Befehl erlaubt.")
+            prompt = String(localized: "ApolloShell would like to suspend sleep with the lid closed while “Keep Awake” is on. So this works without a password from now on, it adds a rule that allows only this one command.")
         } else {
-            prompt = String(localized: "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel aussetzen, solange „Wach halten“ läuft.")
+            prompt = String(localized: "ApolloShell would like to suspend sleep with the lid closed while “Keep Awake” is on.")
         }
         return shellScript(command, prompt: prompt)
     }
@@ -76,7 +76,7 @@ public enum LidAwake {
 
     /// Die Regel wieder entfernen (Nexus).
     public static func removeRuleArguments() -> [String] {
-        let prompt = String(localized: "ApolloShell möchte seine Regel entfernen, die den Ruhezustand bei zugeklapptem Deckel ohne Passwort umschaltet.")
+        let prompt = String(localized: "ApolloShell would like to remove its rule that switches lid-closed sleep without a password.")
         return ["-e", shellScript("/bin/rm -f \(sudoersFile)", prompt: prompt)]
     }
 

@@ -62,7 +62,7 @@ final class Onboarding: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: true
         )
-        window.title = String(localized: "Einführung")
+        window.title = String(localized: "Introduction")
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
@@ -145,13 +145,13 @@ struct OnboardingView: View {
     private var footer: some View {
         HStack(spacing: 10) {
             if !state.step.isLast {
-                Button("Überspringen", action: onFinish)
+                Button("Skip", action: onFinish)
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
             }
             Spacer()
             if let previous = state.step.previous {
-                Button("Zurück") { state.step = previous }
+                Button("Back") { state.step = previous }
                     .controlSize(.large)
             }
             Button {
@@ -262,17 +262,17 @@ struct OnboardingFootnote: View {
 
 struct OnboardingWelcomePage: View {
     private let features: [(symbol: String, tint: Color, title: String, text: String)] = [
-        ("sidebar.left", .blue, String(localized: "Leiste"), String(localized: "Spaces, Dock, Uhr und Status am linken Rand")),
-        ("magnifyingglass", .purple, "Launcher", String(localized: "Apps suchen und öffnen – mit einem Tastenkürzel")),
-        ("square.grid.2x2.fill", .indigo, "Dashboard", String(localized: "Wetter, Kalender, Medien und Leistung")),
-        ("slider.horizontal.3", .green, String(localized: "Kontrollzentrum"), String(localized: "Wach halten, Ton und Schnellschalter unten rechts")),
+        ("sidebar.left", .blue, String(localized: "Bar"), String(localized: "Spaces, Dock, clock and status on the left edge")),
+        ("magnifyingglass", .purple, "Launcher", String(localized: "Search and open apps – with a keyboard shortcut")),
+        ("square.grid.2x2.fill", .indigo, "Dashboard", String(localized: "Weather, calendar, media and performance")),
+        ("slider.horizontal.3", .green, String(localized: "Control Centre"), String(localized: "Keep Awake, sound and quick toggles, bottom right")),
     ]
 
     var body: some View {
         VStack(spacing: 26) {
             OnboardingHeader(
                 symbol: "sidebar.left", tint: .indigo, title: OnboardingStep.welcome.title,
-                text: String(localized: "Eine Desktop-Shell für macOS nach dem Vorbild von Caelestia. Sie ergänzt den Mac, statt ihn zu ersetzen – alles lässt sich in Nexus einstellen.")
+                text: String(localized: "A desktop shell for macOS modelled on Caelestia. It complements the Mac instead of replacing it – everything can be set up in Nexus.")
             )
             VStack(alignment: .leading, spacing: 16) {
                 ForEach(features, id: \.title) { feature in
@@ -303,7 +303,7 @@ struct OnboardingPermissionsPage: View {
         VStack(spacing: 22) {
             OnboardingHeader(
                 symbol: "hand.raised.fill", tint: .blue, title: OnboardingStep.permissions.title,
-                text: String(localized: "Zwei Freigaben von macOS. Beide lassen sich jederzeit unter Datenschutz & Sicherheit widerrufen.")
+                text: String(localized: "Two permissions from macOS. Both can be revoked at any time under Privacy & Security.")
             )
             VStack(spacing: 8) {
                 OnboardingCard {
@@ -311,7 +311,7 @@ struct OnboardingPermissionsPage: View {
                     Divider()
                     OnboardingSystemEventsRow()
                 }
-                OnboardingFootnote(text: String(localized: "Ohne Bedienungshilfen läuft alles andere trotzdem; die Leiste bleibt dann auch im Vollbild sichtbar, und Fenster können unter sie rutschen."))
+                OnboardingFootnote(text: String(localized: "Without Accessibility everything else still works; the bar then also stays visible in full screen, and windows can slide underneath it."))
             }
         }
         .animation(.snappy, value: permissions.accessibility)
@@ -326,7 +326,7 @@ struct OnboardingHotKeysPage: View {
         VStack(spacing: 22) {
             OnboardingHeader(
                 symbol: "command", tint: .purple, title: OnboardingStep.hotKeys.title,
-                text: String(localized: "Der Launcher öffnet mit einem Kürzel, in jeder App. Zum Ändern ins Feld klicken und die neue Kombination drücken.")
+                text: String(localized: "The launcher opens with a shortcut, in any app. To change it, click the field and press the new combination.")
             )
             VStack(spacing: 8) {
                 OnboardingCard {
@@ -343,7 +343,7 @@ struct OnboardingHotKeysPage: View {
                         .font(.callout)
                     }
                 }
-                OnboardingFootnote(text: String(localized: "Spotlight bleibt auf ⌘Space. Alle Kürzel lassen sich in Nexus unter „Tastenkürzel“ ändern oder entfernen."))
+                OnboardingFootnote(text: String(localized: "Spotlight stays on ⌘Space. All shortcuts can be changed or removed in Nexus under “Keyboard Shortcuts”."))
             }
         }
     }
@@ -366,15 +366,15 @@ struct OnboardingFinishPage: View {
                 if let note = autostart.state.note {
                     OnboardingFootnote(text: note)
                 }
-                OnboardingFootnote(text: String(localized: "Diese Einführung ist unter Nexus › Über jederzeit wieder da."))
+                OnboardingFootnote(text: String(localized: "This introduction is always available again under Nexus › About."))
             }
         }
     }
 
     private var settingsHint: String {
         guard let key = store.settings.hotKeys.nexus else {
-            return String(localized: "Einstellungen gibt es in Nexus – über das Zahnrad im Kontrollzentrum.")
+            return String(localized: "Settings live in Nexus – via the gear icon in the Control Centre.")
         }
-        return String(localized: "Einstellungen gibt es in Nexus – mit \(HotKeyKeyboard.display(key)) oder über das Zahnrad im Kontrollzentrum.")
+        return String(localized: "Settings live in Nexus – with \(HotKeyKeyboard.display(key)) or via the gear icon in the Control Centre.")
     }
 }

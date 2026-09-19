@@ -46,5 +46,3 @@ jobs:
           SIGN_IDENTITY=- scripts/assemble-app.sh "$bin_path/ApolloShell" "$RUNNER_TEMP/ApolloShell.app"
           codesign --verify --deep --strict "$RUNNER_TEMP/ApolloShell.app"
 
-      - name: Check translations
-        run: python3 scripts/check-l10n.py

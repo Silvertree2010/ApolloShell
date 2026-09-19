@@ -189,19 +189,19 @@ struct NexusDashboardWeatherSection: View {
     var body: some View {
         Section {
             if model.favorites.locations.isEmpty {
-                Text("Noch keine Favoriten – unten einen Ort suchen und hinzufügen.")
+                Text("No favorites yet – search for a place below and add it.")
                     .foregroundStyle(.secondary)
             }
             ForEach(model.favorites.locations) { place in
                 NexusWeatherFavoriteRow(model: model, place: place)
             }
-            NexusSearchField(prompt: "Ort suchen", text: Binding(get: { model.query }, set: { model.query = $0 }),
+            NexusSearchField(prompt: "Search for a Place", text: Binding(get: { model.query }, set: { model.query = $0 }),
                             busy: model.state == .searching)
             ForEach(model.results) { place in
                 NexusWeatherSearchRow(model: model, place: place)
             }
         } header: {
-            Text("Orte für die Leiste und neue Wetter-Widgets")
+            Text("Places for the bar and new weather widgets")
         }
     }
 }
@@ -221,7 +221,7 @@ struct NexusWeatherFavoriteRow: View {
                     .foregroundStyle(selected ? Color.accentColor : Color.secondary)
             }
             .buttonStyle(.plain)
-            .help(selected ? "Gewählter Ort" : "Als Wetterort wählen")
+            .help(selected ? "Selected Place" : "Set as Weather Location")
             VStack(alignment: .leading, spacing: 1) {
                 Text(place.name)
                 Text(place.coordinateText)
@@ -238,8 +238,8 @@ struct NexusWeatherFavoriteRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Entfernen")
-            .accessibilityLabel("\(place.name) entfernen")
+            .help("Remove")
+            .accessibilityLabel("Remove \(place.name)")
             Image(systemName: "line.3.horizontal")
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
@@ -275,8 +275,8 @@ struct NexusWeatherSearchRow: View {
             }
             .buttonStyle(.borderless)
             .disabled(model.isFavorite(place))
-            .help("Als Favorit hinzufügen")
-            .accessibilityLabel("\(place.name) als Favorit hinzufügen")
+            .help("Add as Favorite")
+            .accessibilityLabel("Add \(place.name) as favorite")
         }
         .contentShape(.rect)
     }

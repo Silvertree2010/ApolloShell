@@ -36,7 +36,7 @@ struct NexusGallerySheet<Content: View>: View {
             Divider()
             HStack {
                 Spacer()
-                Button("Abbrechen", action: onCancel)
+                Button("Cancel", action: onCancel)
                     .keyboardShortcut(.cancelAction)
             }
             .padding(14)

@@ -14,12 +14,12 @@ struct NexusDesktopPage: View {
 
     var body: some View {
         NexusPageForm(page: .desktop) {
-            Section("Uhr") {
-                NexusToggle(title: "Schreibtisch-Uhr", subtitle: "Unten rechts, hinter allen Fenstern",
+            Section("Clock") {
+                NexusToggle(title: "Desktop Clock", subtitle: "Bottom right, behind all windows",
                             isOn: $store.settings.background.desktopClock)
             }
-            Section("Hintergrund") {
-                NexusSystemLink(title: "Hintergrundbild", subtitle: "Systemeinstellungen",
+            Section("Background") {
+                NexusSystemLink(title: "Wallpaper", subtitle: "System Settings",
                                 symbol: "photo.fill", tint: .cyan, pane: .wallpaper)
             }
             NexusSaveWarning(failed: store.saveFailed)
@@ -37,21 +37,21 @@ struct NexusToastsPage: View {
     var body: some View {
         NexusPageForm(page: .toasts) {
             Section {
-                NexusToggle(title: "Ladegerät", subtitle: "Angeschlossen oder getrennt",
+                NexusToggle(title: "Charger", subtitle: "Connected or unplugged",
                             isOn: $store.settings.toasts.chargingChanged)
-                NexusToggle(title: "Akku-Warnungen", subtitle: "Im Akkubetrieb bei 20, 10 und 5 %",
+                NexusToggle(title: "Battery Warnings", subtitle: "On battery, at 20, 10 and 5%",
                             isOn: $store.settings.toasts.batteryWarnings)
-                NexusToggle(title: "Audioausgabe", subtitle: "Anderes Ausgabegerät gewählt",
+                NexusToggle(title: "Audio Output", subtitle: "A different output device is chosen",
                             isOn: $store.settings.toasts.audioOutputChanged)
-                NexusToggle(title: "Audioeingang", subtitle: "Anderes Mikrofon gewählt",
+                NexusToggle(title: "Audio Input", subtitle: "A different microphone is chosen",
                             isOn: $store.settings.toasts.audioInputChanged)
             } header: {
-                Text("Ereignisse")
+                Text("Events")
             } footer: {
-                Text("Kurzmeldungen erscheinen unten rechts, verschwinden nach 5 Sekunden und bleiben im Vollbild aus.")
+                Text("Toasts appear at the bottom right, disappear after 5 seconds, and stay off in full screen.")
             }
             Section {
-                NexusSystemLink(title: "Mitteilungen von Apps", subtitle: "Systemeinstellungen",
+                NexusSystemLink(title: "Notifications from Apps", subtitle: "System Settings",
                                 symbol: "bell.fill", tint: .red, pane: .notifications)
             }
             NexusSaveWarning(failed: store.saveFailed)
@@ -66,26 +66,26 @@ struct NexusToastsPage: View {
 struct NexusSystemPage: View {
     var body: some View {
         NexusPageForm(page: .system) {
-            Section("Darstellung") {
-                NexusSystemLink(title: "Hintergrundbild", symbol: "photo.fill", tint: .cyan, pane: .wallpaper)
-                NexusSystemLink(title: "Erscheinungsbild", subtitle: "Hell, dunkel, Akzentfarbe",
+            Section("Style") {
+                NexusSystemLink(title: "Wallpaper", symbol: "photo.fill", tint: .cyan, pane: .wallpaper)
+                NexusSystemLink(title: "Appearance", subtitle: "Light, dark, accent color",
                                 symbol: "circle.lefthalf.filled", tint: .gray, pane: .appearance)
             }
-            Section("Verbindungen") {
-                NexusSystemLink(title: "Netzwerk", subtitle: "WLAN, Ethernet, VPN",
+            Section("Connectivity") {
+                NexusSystemLink(title: "Network", subtitle: "Wi-Fi, Ethernet, VPN",
                                 symbol: "network", tint: .blue, pane: .network)
-                NexusSystemLink(title: "Verbundene Geräte", subtitle: "Bluetooth, Koppeln",
+                NexusSystemLink(title: "Connected Devices", subtitle: "Bluetooth, pairing",
                                 symbol: "dot.radiowaves.left.and.right", tint: .blue, pane: .bluetooth)
-                NexusSystemLink(title: "Audio", subtitle: "Ausgabe, Eingang, Lautstärke",
+                NexusSystemLink(title: "Sound", subtitle: "Output, input, volume",
                                 symbol: "speaker.wave.2.fill", tint: .pink, pane: .sound)
             }
             Section("System") {
-                NexusSystemLink(title: "Softwareupdate", symbol: "arrow.clockwise", tint: .gray, pane: .softwareUpdate)
-                NexusSystemLink(title: "Sprache & Region", subtitle: "Sprache, Einheiten, Uhrzeitformat",
+                NexusSystemLink(title: "Software Update", symbol: "arrow.clockwise", tint: .gray, pane: .softwareUpdate)
+                NexusSystemLink(title: "Language & Region", subtitle: "Language, units, time format",
                                 symbol: "globe", tint: .blue, pane: .language)
             }
             Section {
-                NexusSystemLink(title: "Systemeinstellungen öffnen", symbol: "gearshape.fill", tint: .gray, pane: nil)
+                NexusSystemLink(title: "Open System Settings", symbol: "gearshape.fill", tint: .gray, pane: nil)
             }
         }
     }
@@ -160,43 +160,43 @@ struct NexusAboutPage: View {
     var body: some View {
         NexusPageForm(page: .about, title: "ApolloShell", subtitle: system.version) {
             Section("System") {
-                LabeledContent("Rechnername", value: system.computerName)
-                LabeledContent("Gerät", value: system.model)
+                LabeledContent("Computer Name", value: system.computerName)
+                LabeledContent("Device", value: system.model)
                 LabeledContent("Chip", value: system.chip)
-                LabeledContent("Betriebssystem", value: system.macOS)
+                LabeledContent("Operating System", value: system.macOS)
                 LabeledContent("Kernel", value: system.kernel)
                 if let boot = system.bootDate {
                     // Jede Minute neu; Sekunden zeigt die Laufzeit nicht.
                     TimelineView(.everyMinute) { context in
-                        LabeledContent("Laufzeit", value: NexusText.uptime(context.date.timeIntervalSince(boot)))
+                        LabeledContent("Uptime", value: NexusText.uptime(context.date.timeIntervalSince(boot)))
                     }
                 }
             }
             // Die Version steht schon in der Kopfkarte, deshalb hier nicht nochmal.
             Section("Software") {
                 if let folder = system.sourceFolder {
-                    LabeledContent("Quelltext") {
+                    LabeledContent("Source Code") {
                         HStack(spacing: 8) {
                             Text((folder.path as NSString).abbreviatingWithTildeInPath)
                                 .textSelection(.enabled)
-                            Button("Im Finder zeigen") {
+                            Button("Show in Finder") {
                                 NSWorkspace.shared.activateFileViewerSelecting([folder])
                             }
                             .controlSize(.small)
                         }
                     }
                 }
-                LabeledContent("Vorbild") {
+                LabeledContent("Based On") {
                     Link("Caelestia Shell", destination: URL(string: "https://github.com/caelestia-dots/shell")!)
                 }
             }
             Section {
-                Button("Einführung zeigen …") { showOnboarding() }
+                Button("Show Introduction…") { showOnboarding() }
             } footer: {
-                Text("Die Schritte vom ersten Start: Freigaben, Launcher-Kürzel, Start bei der Anmeldung.")
+                Text("The steps from the first launch: permissions, launcher shortcut, start at login.")
             }
             Section {
-                NexusSystemLink(title: "Über diesen Mac", subtitle: "Systemeinstellungen",
+                NexusSystemLink(title: "About This Mac", subtitle: "System Settings",
                                 symbol: "laptopcomputer", tint: .gray, pane: .about)
             }
         }
@@ -213,7 +213,7 @@ struct NexusSaveWarning: View {
     var body: some View {
         if failed {
             Section {
-                Label("\(file) konnte nicht gespeichert werden. Die Änderung gilt nur bis zum Neustart.",
+                Label("\(file) could not be saved. The change only applies until the next restart.",
                       systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
             }

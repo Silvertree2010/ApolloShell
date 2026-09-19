@@ -45,7 +45,7 @@ struct HeroCard: View {
                 Spacer(minLength: 8)
                 HStack(alignment: .bottom, spacing: 14) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Letzte 30 s")
+                        Text("Last 30s")
                             .font(style.font(size: 10, weight: .medium))
                             .foregroundStyle(.tertiary)
                         SparklineArea(values: history.values, capacity: history.capacity, scale: 1,
@@ -188,7 +188,7 @@ struct StorageCard: View {
     var body: some View {
         Card(radius: 41) {
             VStack(spacing: 6) {
-                ArcGauge(value: usage?.fraction ?? 0, caption: "Belegt") {
+                ArcGauge(value: usage?.fraction ?? 0, caption: "Used") {
                     VStack(spacing: 0) {
                         ThemedIcon("panel-disk", fallback: "internaldrive.fill")
                             .font(style.font(size: 15, weight: .medium))
@@ -207,7 +207,7 @@ struct StorageCard: View {
             }
             .padding(.horizontal, 12)
         }
-        .help("Startvolume")
+        .help("Startup Volume")
     }
 }
 
@@ -223,11 +223,11 @@ struct MemoryCard: View {
                         .font(style.font(size: 13, weight: .semibold))
                         .frame(width: 15, height: 15)
                         .foregroundStyle(style.accent)
-                    Text("Arbeitsspeicher")
+                    Text("Memory")
                         .font(style.font(size: 13, weight: .semibold))
                         .lineLimit(1)
                 }
-                ArcGauge(value: usage?.fraction ?? 0, caption: "Belegt") {
+                ArcGauge(value: usage?.fraction ?? 0, caption: "Used") {
                     PercentLabel(value: usage?.fraction)
                 }
                 .frame(width: 110, height: 110)
@@ -265,7 +265,7 @@ struct NetworkCard: View {
                     Image(systemName: "arrow.up.arrow.down")
                         .font(style.font(size: 13, weight: .semibold))
                         .foregroundStyle(style.accent)
-                    Text("Netzwerk").font(style.font(size: 15, weight: .semibold))
+                    Text("Network").font(style.font(size: 15, weight: .semibold))
                     Spacer(minLength: 0)
                     Text("max \(ByteFormat.rate(scale))")
                         .font(style.font(size: 10, weight: .medium))
@@ -289,9 +289,9 @@ struct NetworkCard: View {
                             value: model.network.map { ByteFormat.rate($0.download) } ?? "–")
                     RateRow(symbol: "arrow.up", color: uploadColor, title: "Upload",
                             value: model.network.map { ByteFormat.rate($0.upload) } ?? "–")
-                    RateRow(symbol: "clock.arrow.circlepath", color: .secondary, title: "Gesamt",
+                    RateRow(symbol: "clock.arrow.circlepath", color: .secondary, title: "Total",
                             value: "↓ \(ByteFormat.bytes(Double(model.networkTotal.received)))   ↑ \(ByteFormat.bytes(Double(model.networkTotal.sent)))")
-                        .help("Seit dem ersten Öffnen dieses Reiters")
+                        .help("Since this tab was first opened")
                 }
             }
             .padding(14)
@@ -417,7 +417,7 @@ private struct TankContents: View {
             HStack(spacing: 6) {
                 Image(systemName: StatusGlyphs.batterySymbol(state) ?? "battery.100percent")
                     .font(style.font(size: 14, weight: .medium))
-                Text("Akku").font(style.font(size: 15, weight: .semibold))
+                Text("Battery").font(style.font(size: 15, weight: .semibold))
             }
             .foregroundStyle(inverted ? style.onAccent : style.accent)
             Spacer(minLength: 0)

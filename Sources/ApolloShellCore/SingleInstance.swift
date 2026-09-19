@@ -12,7 +12,7 @@ import Foundation
 /// (`relaunchArgument`) und `launchctl kickstart -k` eines launchd-Agents.
 /// Sie wartet deshalb bis `replaceWait`, bevor sie aufgibt.
 public enum SingleInstance {
-    /// Startargument des Neustarts nach einem Sprachwechsel (`AppRestart`).
+    /// Startargument des Neustarts (`AppRestart`).
     public static let relaunchArgument = "--relaunch"
 
     /// So lange wartet eine ersetzende Instanz auf das Ende der alten. Die

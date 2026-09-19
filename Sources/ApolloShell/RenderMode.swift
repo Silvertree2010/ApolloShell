@@ -212,7 +212,7 @@ final class RenderFixtures {
     }()
 
     lazy var media: MediaModel = {
-        let playing = MediaNowPlaying(title: "Beispieltitel", artist: "Beispielband", album: "Beispielalbum",
+        let playing = MediaNowPlaying(title: "Sample Title", artist: "Sample Artist", album: "Sample Album",
                                       isPlaying: false, duration: 240, elapsed: 80, timestamp: now, playbackRate: 0)
         return MediaModel.preview(nowPlaying: playing, source: MediaSource(name: "Musik", icon: nil), now: now)
     }()

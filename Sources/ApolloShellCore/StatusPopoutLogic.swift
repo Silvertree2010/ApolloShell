@@ -27,12 +27,12 @@ public enum StatusPopoutSignal {
 
     /// Kurzurteil neben der dBm-Zahl.
     public static func quality(rssi: Int?) -> String {
-        guard let rssi, rssi != 0 else { return String(localized: "Kein Signal") }
+        guard let rssi, rssi != 0 else { return String(localized: "No Signal") }
         switch rssi {
-        case (-55)...: return String(localized: "Ausgezeichnet")
-        case (-67)...: return String(localized: "Gut")
-        case (-75)...: return String(localized: "Mäßig")
-        default: return String(localized: "Schwach")
+        case (-55)...: return String(localized: "Excellent")
+        case (-67)...: return String(localized: "Good")
+        case (-75)...: return String(localized: "Fair")
+        default: return String(localized: "Weak")
         }
     }
 
@@ -77,9 +77,9 @@ public enum StatusPopoutDuration {
         guard minutes > 0 else { return nil }
         let hours = minutes / 60, rest = minutes % 60
         switch (hours, rest) {
-        case (0, _): return String(localized: "\(rest) Min")
-        case (_, 0): return String(localized: "\(hours) Std")
-        default: return String(localized: "\(hours) Std \(rest) Min")
+        case (0, _): return String(localized: "\(rest)m")
+        case (_, 0): return String(localized: "\(hours)h")
+        default: return String(localized: "\(hours)h \(rest)m")
         }
     }
 }
@@ -88,24 +88,24 @@ public enum StatusPopoutDuration {
 public enum StatusPopoutBatteryText {
     /// Kurzform unter der grossen Prozentzahl.
     public static func state(_ battery: BatteryState) -> String {
-        if battery.charging { return String(localized: "Lädt") }
-        return battery.onAC ? String(localized: "Am Netz") : String(localized: "Akku")
+        if battery.charging { return String(localized: "Charging") }
+        return battery.onAC ? String(localized: "On Power") : String(localized: "Battery")
     }
 
     /// Zweite Zeile wie bei Caelestia: Restlaufzeit auf Akku, Zeit bis voll
     /// beim Laden. Minuten wie von IOKit (-1 = rechnet noch, 0 = keine).
     public static func time(_ battery: BatteryState, minutesToEmpty: Int, minutesToFull: Int) -> String {
         if battery.charging {
-            if let text = StatusPopoutDuration.text(minutes: minutesToFull) { return String(localized: "Voll in \(text)") }
-            return String(localized: "Ladezeit wird berechnet …")
+            if let text = StatusPopoutDuration.text(minutes: minutesToFull) { return String(localized: "Full in \(text)") }
+            return String(localized: "Calculating charge time…")
         }
         if battery.onAC {
             // Am Netz, aber nicht am Laden: voll, oder macOS haelt die
             // Ladung an (optimiertes Laden, Ladegrenze).
-            return battery.level >= 100 ? String(localized: "Vollständig geladen") : String(localized: "Wird gerade nicht geladen")
+            return battery.level >= 100 ? String(localized: "Fully Charged") : String(localized: "Not Charging Right Now")
         }
-        if let text = StatusPopoutDuration.text(minutes: minutesToEmpty) { return String(localized: "Noch \(text)") }
-        return String(localized: "Restlaufzeit wird berechnet …")
+        if let text = StatusPopoutDuration.text(minutes: minutesToEmpty) { return String(localized: "\(text) Left") }
+        return String(localized: "Calculating time remaining…")
     }
 }
 

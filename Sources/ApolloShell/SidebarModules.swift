@@ -66,7 +66,7 @@ struct SidebarSpaces: View {
                             .frame(width: Self.slot, height: Self.slot)
                             .contentShape(.rect)
                             .onTapGesture { onSelect(index) }
-                            .help("Zu Schreibtisch \(index + 1)")
+                            .help("To Desktop \(index + 1)")
                     }
                 }
             }
@@ -99,8 +99,8 @@ struct SidebarSpaces: View {
     }
 
     private static func help(_ snapshot: SpaceSnapshot) -> String {
-        guard let active = snapshot.activeIndex else { return "\(snapshot.desktops.count) Schreibtische" }
-        return "Schreibtisch \(active + 1) von \(snapshot.desktops.count)"
+        guard let active = snapshot.activeIndex else { return "\(snapshot.desktops.count) Desktops" }
+        return "Desktop \(active + 1) of \(snapshot.desktops.count)"
     }
 }
 

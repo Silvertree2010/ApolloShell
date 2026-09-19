@@ -75,7 +75,7 @@ private struct VolumeSlider: View {
             })
         }
         .accessibilityElement()
-        .accessibilityLabel("Lautstärke \(VolumeGlyphs.percent(model.volume)) Prozent")
+        .accessibilityLabel("Volume \(VolumeGlyphs.percent(model.volume)) percent")
     }
 
     private func handle(diameter: CGFloat) -> some View {

@@ -20,22 +20,22 @@ struct NexusKeepAwakeSection: View {
     /// man soll sie hier wieder loswerden.
     var body: some View {
         Section {
-            NexusToggle(title: "Auch bei zugeklapptem Deckel",
-                        subtitle: "Solange „Wach halten“ läuft, schläft der Mac auch zugeklappt nicht",
+            NexusToggle(title: "Also With the Lid Closed",
+                        subtitle: "While “Keep Awake” is on, the Mac won't sleep even with the lid closed",
                         isOn: $store.settings.keepAwake.lidClosed)
             if lidRuleInstalled {
                 LabeledContent {
-                    Button("Entfernen …") { removeLidRule() }
+                    Button("Remove…") { removeLidRule() }
                         .disabled(removingLidRule)
                 } label: {
-                    Text("Regel ohne Passwort")
-                    Text("Erlaubt nur, diesen Ruhezustand ohne Passwort umzuschalten")
+                    Text("Password-Free Rule")
+                    Text("Allows only switching this sleep setting without a password")
                 }
             }
         } header: {
-            Text("Wach halten")
+            Text("Keep Awake")
         } footer: {
-            Text("Braucht einmal Administratorrechte: Beim ersten Einschalten fragt macOS nach dem Passwort, und ApolloShell legt eine Regel an, die nur das Umschalten dieses Ruhezustands ohne Passwort erlaubt. Danach fragt niemand mehr. Wer ablehnt, bekommt „Wach halten“ nur aufgeklappt. Im Akkubetrieb endet es bei \(LidAwake.batteryFloor) % von selbst.")
+            Text("Needs administrator rights once: the first time you turn it on, macOS asks for your password and ApolloShell adds a rule that allows only switching this sleep setting without a password. After that, nothing asks again. Declining leaves “Keep Awake” working only with the lid open. On battery it ends on its own at \(LidAwake.batteryFloor)%.")
         }
         // Die Regel entsteht im Hintergrund, sobald die Frage beantwortet
         // ist; solange die Seite offen ist, alle 2 s nachsehen (ein stat).

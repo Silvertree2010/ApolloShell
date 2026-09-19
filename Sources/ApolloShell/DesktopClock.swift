@@ -97,7 +97,7 @@ final class DesktopClock {
         timer?.invalidate()
         timer = .once(after: untilNextMinute, owner: self) { clock in
             clock.model.now = Date()
-            clock.relayout() // Breite kann sich aendern (z. B. "Montag" -> "Donnerstag")
+            clock.relayout() // Breite kann sich aendern (z. B. "Monday" -> "Donnerstag")
             clock.timer = .repeating(every: 60, owner: clock) { clock in
                 clock.model.now = Date()
                 clock.relayout()

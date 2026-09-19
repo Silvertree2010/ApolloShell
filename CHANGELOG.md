@@ -27,6 +27,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **The interface is written in English.** German was the source language and
+  English a translation of it; now there is only English text, so nothing can
+  fall back to German.
 - **"Quick Actions" is called the control centre** everywhere, as in the
   README.
 - **Nexus keeps settings, not layouts.** Keep Awake with the lid closed moved
@@ -34,6 +37,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Removed
 
+- **The language picker in Nexus > General** and the German interface with
+  it, together with the `.strings` files and the translation check.
 - **Nexus' Dashboard and Quick Actions pages** with their editors and
   templates (dashboard: Caelestia, Compact, Calendar & Weather; control
   centre: Standard, Minimal, Sound & Devices, Everything). The edit mode and

@@ -635,7 +635,7 @@ private struct SidebarDockItem: View {
             .animation(.easeOut(duration: 0.15), value: active)
             .help(entry.name)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(entry.running ? String(localized: "\(entry.name), läuft") : entry.name)
+            .accessibilityLabel(entry.running ? String(localized: "\(entry.name), running") : entry.name)
             .accessibilityAddTraits(.isButton)
     }
 }

@@ -111,8 +111,8 @@ final class KeepAwakeController {
         guard LidAwake.shouldStop(battery: StatusModel.readBattery()) else { return }
         set(false)
         onToast(ToastText.Content(
-            title: String(localized: "Wach halten beendet"),
-            message: String(localized: "Akku bei \(LidAwake.batteryFloor) % – der Mac darf wieder schlafen"),
+            title: String(localized: "Keep Awake Ended"),
+            message: String(localized: "Battery at \(LidAwake.batteryFloor)% – the Mac is allowed to sleep again"),
             symbol: "battery.25percent",
             kind: .warning
         ))
@@ -236,8 +236,8 @@ final class KeepAwakeController {
     }
 
     private static let lidStillDisabledToast = ToastText.Content(
-        title: String(localized: "Zugeklappt noch wach"),
-        message: String(localized: "Ohne Freigabe bleibt der Ruhezustand beim Zuklappen aus – Wach halten ein- und ausschalten versucht es erneut"),
+        title: String(localized: "Still Awake with Lid Closed"),
+        message: String(localized: "Without approval, sleep stays off when closing the lid – turning Keep Awake off and on tries again"),
         symbol: "laptopcomputer",
         kind: .warning
     )

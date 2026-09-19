@@ -119,13 +119,13 @@ public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Iden
 
     public var title: String {
         switch self {
-        case .wifi: "WLAN"
+        case .wifi: "Wi-Fi"
         case .microphone: "Mikrofon"
         case .bluetooth: "Bluetooth"
         case .darkMode: "Dunkelmodus"
         case .nightShift: "Night Shift"
-        case .screenshot: "Bildschirmfoto"
-        case .showDesktop: "Schreibtisch"
+        case .screenshot: "Screenshot"
+        case .showDesktop: "Desktop"
         case .colorPicker: "Farbpipette"
         case .lockScreen: "Sperren"
         case .settings: "Einstellungen"
@@ -133,7 +133,7 @@ public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Iden
         case .hideApps: "Apps ausblenden"
         case .openApp: "App öffnen"
         case .openLink: "Link öffnen"
-        case .runShortcut: "Kurzbefehl"
+        case .runShortcut: "Shortcut"
         }
     }
 
@@ -673,7 +673,7 @@ extension UtilitiesPreset: LayoutPreset {
 // MARK: - Texte und Aussehen der neuen Knoepfe
 
 public enum UtilitiesToggleText {
-    public static let cardTitle = String(localized: "Schnellschalter")
+    public static let cardTitle = String(localized: "Quick Toggles")
     public static let displaySleepSymbol = "moon.zzz.fill"
     public static let hideAppsSymbol = "eye.slash.fill"
 }
@@ -684,42 +684,42 @@ extension QuickToggles {
     public static func openApp(_ options: UtilitiesAppOptions, appName: String?) -> QuickToggleLook {
         let symbol = options.symbol.trimmed.nonEmpty ?? UtilitiesAppOptions.fallbackSymbol
         guard !options.bundleID.trimmed.isEmpty else {
-            return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "Noch keine App gewählt"))
+            return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "No App Chosen Yet"))
         }
         guard let appName else {
-            return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "App nicht installiert"))
+            return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "App Not Installed"))
         }
         let title = options.title.trimmed.nonEmpty ?? appName
-        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "\(title) öffnen"))
+        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "Open \(title)"))
     }
 
     public static func openLink(_ options: UtilitiesLinkOptions) -> QuickToggleLook {
         let symbol = options.symbol.trimmed.nonEmpty ?? UtilitiesLinkOptions.fallbackSymbol
         guard let url = UtilitiesLink.url(from: options.url) else {
-            let help = options.url.trimmed.isEmpty ? String(localized: "Noch kein Link") : String(localized: "Link ungültig")
+            let help = options.url.trimmed.isEmpty ? String(localized: "No Link Yet") : String(localized: "Invalid Link")
             return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: help)
         }
         let title = options.title.trimmed.nonEmpty ?? UtilitiesLink.displayText(url)
-        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "\(title) öffnen"))
+        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "Open \(title)"))
     }
 
     public static func runShortcut(_ options: UtilitiesShortcutOptions) -> QuickToggleLook {
         let symbol = options.symbol.trimmed.nonEmpty ?? UtilitiesShortcutOptions.fallbackSymbol
         guard UtilitiesShortcuts.runArguments(options) != nil else {
-            return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "Noch kein Kurzbefehl gewählt"))
+            return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "No Shortcut Chosen Yet"))
         }
-        let title = options.title.trimmed.nonEmpty ?? options.name.trimmed.nonEmpty ?? String(localized: "Kurzbefehl")
-        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "Kurzbefehl „\(title)“ ausführen"))
+        let title = options.title.trimmed.nonEmpty ?? options.name.trimmed.nonEmpty ?? String(localized: "Shortcut")
+        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "Run Shortcut “\(title)”"))
     }
 
     public static let displaySleep = QuickToggleLook(
         symbol: UtilitiesToggleText.displaySleepSymbol, active: false, enabled: true,
-        help: String(localized: "Bildschirm ausschalten")
+        help: String(localized: "Turn Off Display")
     )
 
     public static func hideApps(_ options: UtilitiesHideAppsOptions) -> QuickToggleLook {
         QuickToggleLook(symbol: UtilitiesToggleText.hideAppsSymbol, active: false, enabled: true,
-                        help: options.keepFrontmost ? String(localized: "Andere Apps ausblenden") : String(localized: "Alle Apps ausblenden"))
+                        help: options.keepFrontmost ? String(localized: "Hide Other Apps") : String(localized: "Hide All Apps"))
     }
 }
 
@@ -829,8 +829,8 @@ public enum UtilitiesShortcuts {
 extension ToastText {
     /// `shortcuts run` endete mit Fehler (Kurzbefehl geloescht, abgebrochen).
     public static func shortcutFailed(_ name: String) -> Content {
-        Content(title: String(localized: "Kurzbefehl fehlgeschlagen"),
-                message: name.trimmed.nonEmpty ?? String(localized: "Unbekannter Kurzbefehl"),
+        Content(title: String(localized: "Shortcut Failed"),
+                message: name.trimmed.nonEmpty ?? String(localized: "Unknown Shortcut"),
                 symbol: UtilitiesShortcutOptions.fallbackSymbol, kind: .warning)
     }
 }

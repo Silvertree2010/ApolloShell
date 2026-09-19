@@ -15,12 +15,7 @@
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleDevelopmentRegion</key>
-    <string>de</string>
-    <key>CFBundleLocalizations</key>
-    <array>
-        <string>de</string>
-        <string>en</string>
-    </array>
+    <string>en</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>NSHumanReadableCopyright</key>

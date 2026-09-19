@@ -1,40 +1,6 @@
 import Foundation
 
-/// Sprache der Oberflaeche (Nexus > Allgemein). Wirkt erst nach einem
-/// Neustart von ApolloShell - SwiftUI und AppKit lesen `AppleLanguages` nur
-/// beim Start.
-public enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
-    case system, german, english
-
-    public var id: Self { self }
-
-    /// Schluessel in der UserDefaults-Domaene der App. Kein `AppleLanguages`
-    /// in `Info.plist` und keine JSON-Einstellung - das ist AppKits eigener
-    /// Mechanismus, gilt also nur fuer diese App.
-    public static let defaultsKey = "AppleLanguages"
-
-    /// Wert fuer `defaultsKey`, oder `nil` fuer "System" (Schluessel entfernen).
-    public var appleLanguages: [String]? {
-        switch self {
-        case .system: nil
-        case .german: ["de"]
-        case .english: ["en"]
-        }
-    }
-
-    /// Aus dem gespeicherten Wert von `defaultsKey` (z. B.
-    /// `UserDefaults.standard.array(forKey:)`). Alles ausser "de" oder "en"
-    /// vorn (leer, mehrsprachig, unbekannt) zaehlt als "System".
-    public init(appleLanguages: [String]?) {
-        switch appleLanguages?.first {
-        case "de": self = .german
-        case "en": self = .english
-        default: self = .system
-        }
-    }
-}
-
-/// Neustart der App, damit eine neue Sprache gilt.
+/// Neustart der App, damit eine neue Einstellung gilt.
 ///
 /// Zwei Wege, je nachdem, wer den Prozess gestartet hat:
 /// - Ein eigener launchd-Agent (macOS setzt dann `XPC_SERVICE_NAME` auf

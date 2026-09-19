@@ -60,8 +60,8 @@ struct SmallWeatherCard: View {
     }
 
     private var helpText: String {
-        guard let location = model.location else { return "Ort in Nexus festlegen" }
-        guard model.report != nil else { return "Wetter in \(location.name)" }
+        guard let location = model.location else { return "Set Location in Nexus" }
+        guard model.report != nil else { return "Weather in \(location.name)" }
         return "Wetter in \(location.name) · \(model.attribution.text)"
     }
 
@@ -92,7 +92,7 @@ struct SmallWeatherCard: View {
         } else if model.location == nil {
             WeatherSymbol(name: "location.slash", size: 40, placeholder: true)
             VStack(alignment: alignment, spacing: 2) {
-                Button("Ort in Nexus festlegen") { model.onOpenNexus() }
+                Button("Set Location in Nexus") { model.onOpenNexus() }
                     .buttonStyle(.plain)
                     .font(style.font(size: 12, weight: .semibold))
                     .foregroundStyle(style.accent)
@@ -101,7 +101,7 @@ struct SmallWeatherCard: View {
             WeatherSymbol(name: "cloud.sun", size: 40, placeholder: true)
             VStack(alignment: alignment, spacing: 2) {
                 Text("--°").font(.system(size: 34, weight: .semibold, design: .rounded))
-                Text(model.lastAttemptFailed ? String(localized: "Keine Wetterdaten") : String(localized: "Wird geladen …"))
+                Text(model.lastAttemptFailed ? String(localized: "No Weather Data") : String(localized: "Loading…"))
                     .font(style.font(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -186,7 +186,7 @@ private struct WeatherPlacePicker: View {
                         .contentShape(.capsule)
                 }
                 .buttonStyle(.plain)
-                .help("Wetter für \(place.name)")
+                .help("Weather for \(place.name)")
             }
         }
         .fixedSize()
@@ -227,15 +227,15 @@ struct WeatherHero: View {
                 Spacer(minLength: 12)
                 Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 12) {
                     GridRow {
-                        WeatherStat(symbol: "humidity.fill", label: "Feuchte",
+                        WeatherStat(symbol: "humidity.fill", label: "Humidity",
                              value: current.humidity.map(WeatherText.humidity) ?? "–")
-                        WeatherStat(symbol: "sunrise.fill", label: "Aufgang",
+                        WeatherStat(symbol: "sunrise.fill", label: "Sunrise",
                              value: today?.sunrise.map { WeatherText.clock($0, calendar: report.calendar) } ?? "–")
                     }
                     GridRow {
                         WeatherStat(symbol: "wind", label: "Wind",
                              value: current.windSpeed.map(WeatherText.wind) ?? "–")
-                        WeatherStat(symbol: "sunset.fill", label: "Untergang",
+                        WeatherStat(symbol: "sunset.fill", label: "Sunset",
                              value: today?.sunset.map { WeatherText.clock($0, calendar: report.calendar) } ?? "–")
                     }
                 }
@@ -259,7 +259,7 @@ struct WeatherHero: View {
     private func summary(current: CurrentWeather, today: DayForecast?) -> String {
         var parts: [String] = []
         if let feels = current.apparentTemperature {
-            parts.append(String(localized: "Gefühlt \(WeatherText.temperature(feels))"))
+            parts.append(String(localized: "Feels like \(WeatherText.temperature(feels))"))
         }
         if let today { parts.append(WeatherText.range(max: today.maxTemperature, min: today.minTemperature)) }
         return parts.joined(separator: " · ")

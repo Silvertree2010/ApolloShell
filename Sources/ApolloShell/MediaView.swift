@@ -96,7 +96,7 @@ struct MediaDashCard: View {
             .animation(MediaMotion.slowFade, value: model.nowPlaying == nil)
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Medien")
+        .accessibilityLabel("Media")
     }
 
     /// Reihenfolge wie Caelestia: Titel (Akzent), Album (blass), Kuenstler.
@@ -111,13 +111,13 @@ struct MediaDashCard: View {
                 if options.showAlbum, let album = playing.album {
                     Text(album).font(style.font(size: 12)).foregroundStyle(.tertiary)
                 }
-                Text(playing.artist ?? String(localized: "Unbekannter Künstler"))
+                Text(playing.artist ?? String(localized: "Unknown Artist"))
                     .font(style.font(size: 12))
                     .foregroundStyle(.secondary)
             } else {
-                Text(model.isUnavailable ? String(localized: "Nicht verfügbar") : String(localized: "Nichts läuft"))
+                Text(model.isUnavailable ? String(localized: "Not Available") : String(localized: "Nothing Playing"))
                     .font(style.font(size: 14, weight: .semibold))
-                Text(model.isUnavailable ? String(localized: "Adapter läuft nicht") : String(localized: "Spiel etwas ab"))
+                Text(model.isUnavailable ? String(localized: "Adapter Not Running") : String(localized: "Play Something"))
                     .font(style.font(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -171,7 +171,7 @@ struct MediaStripCard: View {
         }
         .animation(MediaMotion.slowFade, value: model.nowPlaying == nil)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Medien")
+        .accessibilityLabel("Media")
     }
 
     @ViewBuilder private var texts: some View {
@@ -180,14 +180,14 @@ struct MediaStripCard: View {
                 .font(style.font(size: 14, weight: .semibold))
                 .foregroundStyle(MediaColor.accentText(colorScheme))
             // Kuenstler und Album in einer Zeile: fuer zwei ist kein Platz.
-            Text([playing.artist ?? String(localized: "Unbekannter Künstler"), options.showAlbum ? playing.album : nil]
+            Text([playing.artist ?? String(localized: "Unknown Artist"), options.showAlbum ? playing.album : nil]
                     .compactMap { $0 }.joined(separator: " · "))
                 .font(style.font(size: 12))
                 .foregroundStyle(.secondary)
         } else {
-            Text(model.isUnavailable ? String(localized: "Nicht verfügbar") : String(localized: "Nichts läuft"))
+            Text(model.isUnavailable ? String(localized: "Not Available") : String(localized: "Nothing Playing"))
                 .font(style.font(size: 14, weight: .semibold))
-            Text(model.isUnavailable ? String(localized: "Adapter läuft nicht") : String(localized: "Spiel etwas ab"))
+            Text(model.isUnavailable ? String(localized: "Adapter Not Running") : String(localized: "Play Something"))
                 .font(style.font(size: 12))
                 .foregroundStyle(.secondary)
         }
@@ -224,13 +224,13 @@ struct MediaCompactCard: View {
                         Text(playing.title)
                             .font(style.font(size: 13, weight: .semibold))
                             .foregroundStyle(MediaColor.accentText(colorScheme))
-                        Text(playing.artist ?? String(localized: "Unbekannter Künstler"))
+                        Text(playing.artist ?? String(localized: "Unknown Artist"))
                             .font(style.font(size: 11))
                             .foregroundStyle(.secondary)
                     } else {
-                        Text(model.isUnavailable ? String(localized: "Nicht verfügbar") : String(localized: "Nichts läuft"))
+                        Text(model.isUnavailable ? String(localized: "Not Available") : String(localized: "Nothing Playing"))
                             .font(style.font(size: 13, weight: .semibold))
-                        Text(model.isUnavailable ? String(localized: "Adapter läuft nicht") : String(localized: "Spiel etwas ab"))
+                        Text(model.isUnavailable ? String(localized: "Adapter Not Running") : String(localized: "Play Something"))
                             .font(style.font(size: 11))
                             .foregroundStyle(.secondary)
                     }
@@ -249,7 +249,7 @@ struct MediaCompactCard: View {
         }
         .animation(MediaMotion.slowFade, value: model.nowPlaying == nil)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Medien")
+        .accessibilityLabel("Media")
     }
 }
 
@@ -315,7 +315,7 @@ private struct MediaDetails: View {
             Text(playing.title)
                 .font(style.font(size: 22, weight: .semibold))
                 .lineLimit(2)
-            Text(playing.artist ?? String(localized: "Unbekannter Künstler"))
+            Text(playing.artist ?? String(localized: "Unknown Artist"))
                 .font(style.font(size: 16, weight: .medium))
                 .foregroundStyle(.secondary)
             if let album = playing.album {
@@ -363,7 +363,7 @@ private struct MediaTimeline: View {
         .monospacedDigit()
         .foregroundStyle(.secondary)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(MediaTime.clock(elapsed)) abgespielt")
+        .accessibilityLabel("\(MediaTime.clock(elapsed)) elapsed")
     }
 }
 
@@ -390,13 +390,13 @@ private struct MediaSourcePanel: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "hifispeaker.fill").font(style.font(size: 14))
-                Text("Quelle").font(style.font(size: 16, weight: .medium))
+                Text("Source").font(style.font(size: 16, weight: .medium))
             }
             .padding(.leading, 6)
             Card(radius: 24) {
                 VStack(spacing: 8) {
                     MediaAppIcon(icon: source?.icon, size: 64)
-                    Text(source?.name ?? String(localized: "Unbekannte App"))
+                    Text(source?.name ?? String(localized: "Unknown App"))
                         .font(style.font(size: 15, weight: .semibold))
                         .lineLimit(1)
                     MediaPlayState(isPlaying: isPlaying)
@@ -424,9 +424,9 @@ private struct MediaNothingPlaying: View {
                 .frame(width: 96, height: 96)
                 .background(style.accent.opacity(0.16), in: .rect(cornerRadius: style.cardRadius(30), style: .continuous))
                 .padding(.bottom, 8)
-            Text(isUnavailable ? String(localized: "Medien nicht verfügbar") : String(localized: "Nichts läuft"))
+            Text(isUnavailable ? String(localized: "Media Not Available") : String(localized: "Nothing Playing"))
                 .font(style.font(size: 22, weight: .semibold))
-            Text(isUnavailable ? String(localized: "Der Now-Playing-Adapter läuft nicht.") : String(localized: "Spiel etwas ab, dann erscheint es hier."))
+            Text(isUnavailable ? String(localized: "The Now Playing adapter isn't running.") : String(localized: "Play something, and it will appear here."))
                 .font(style.font(size: 14))
                 .foregroundStyle(.secondary)
         }
@@ -583,7 +583,7 @@ private struct MediaControls: View {
         let playing = model.nowPlaying?.isPlaying ?? false
         let enabled = model.nowPlaying != nil
         HStack(spacing: spacing) {
-            MediaRoundButton(symbol: "backward.fill", label: "Vorheriger Titel", size: height, symbolSize: symbolSize) {
+            MediaRoundButton(symbol: "backward.fill", label: "Previous Track", size: height, symbolSize: symbolSize) {
                 model.send(.previousTrack)
             }
             Button {
@@ -600,9 +600,9 @@ private struct MediaControls: View {
                     .contentShape(.rect)
             }
             .buttonStyle(MediaPressStyle())
-            .help(playing ? "Pause" : "Wiedergabe")
-            .accessibilityLabel(playing ? "Pause" : "Wiedergabe")
-            MediaRoundButton(symbol: "forward.fill", label: "Nächster Titel", size: height, symbolSize: symbolSize) {
+            .help(playing ? "Pause" : "Play")
+            .accessibilityLabel(playing ? "Pause" : "Play")
+            MediaRoundButton(symbol: "forward.fill", label: "Next Track", size: height, symbolSize: symbolSize) {
                 model.send(.nextTrack)
             }
         }
@@ -664,7 +664,7 @@ private struct MediaSourceChip: View {
         .padding(.trailing, 10)
         .padding(.vertical, 5)
         .background(Color.primary.opacity(0.07), in: .capsule)
-        .help("Spielt in \(source.name)")
+        .help("Playing in \(source.name)")
     }
 }
 
@@ -698,7 +698,7 @@ private struct MediaPlayState: View {
                 .symbolEffect(.variableColor.iterative, isActive: isPlaying)
                 .contentTransition(.symbolEffect(.replace))
             if showsText {
-                Text(isPlaying ? String(localized: "Spielt gerade") : String(localized: "Pausiert"))
+                Text(isPlaying ? String(localized: "Playing") : String(localized: "Paused"))
             }
         }
     }

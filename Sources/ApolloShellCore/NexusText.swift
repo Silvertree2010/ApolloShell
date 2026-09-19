@@ -10,11 +10,11 @@ public enum NexusText {
         let days = total / (24 * 60)
         let hours = total / 60 % 24
         let minutes = total % 60
-        if days == 0, hours == 0, minutes == 0 { return String(localized: "unter 1 min") }
+        if days == 0, hours == 0, minutes == 0 { return String(localized: "under 1 min") }
         var parts: [String] = []
-        if days > 0 { parts.append(String(localized: "\(days) T")) }
-        if days > 0 || hours > 0 { parts.append(String(localized: "\(hours) h")) }
-        parts.append(String(localized: "\(minutes) min"))
+        if days > 0 { parts.append(String(localized: "\(days)d")) }
+        if days > 0 || hours > 0 { parts.append(String(localized: "\(hours)h")) }
+        parts.append(String(localized: "\(minutes)min"))
         return parts.joined(separator: " ")
     }
 
@@ -29,7 +29,7 @@ public enum NexusText {
 
     /// "1 von 10" fuer die Kopfzeile der angehefteten Apps.
     public static func pinnedCount(_ count: Int, limit: Int = PinnedList.limit) -> String {
-        String(localized: "\(count) von \(limit)")
+        String(localized: "\(count) of \(limit)")
     }
 }
 

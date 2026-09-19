@@ -135,7 +135,7 @@ private struct EditableUtilitiesCard: View {
         }
         .buttonStyle(.plain)
         .offset(x: -11, y: -11)
-        .help("Ausblenden")
+        .help("Hide")
         .accessibilityLabel("\(kind.title) ausblenden")
     }
 }
@@ -290,8 +290,8 @@ private struct EditableToggleTile: View {
         }
         .buttonStyle(.plain)
         .offset(x: -8, y: -6)
-        .help("Entfernen")
-        .accessibilityLabel("\(entry.kind.title) entfernen")
+        .help("Remove")
+        .accessibilityLabel("Remove \(entry.kind.title)")
     }
 }
 
@@ -346,12 +346,12 @@ struct UtilitiesToggleOptionsView: View {
                     onDeselect()
                     editor.removeToggle(id)
                 } label: {
-                    Label("Entfernen", systemImage: "minus.circle")
+                    Label("Remove", systemImage: "minus.circle")
                 }
             }
             options
         } header: {
-            Text("Knopf „\(UtilitiesEditorText.title(entry))“")
+            Text("Button “\(UtilitiesEditorText.title(entry))”")
         }
     }
 
@@ -360,47 +360,47 @@ struct UtilitiesToggleOptionsView: View {
         switch entry.toggle {
         case .openApp(let app):
             appRow(app)
-            UtilitiesEditorField(title: "Titel",
-                                 prompt: BarApps.info(for: app.bundleID)?.name ?? String(localized: "Name der App"),
+            UtilitiesEditorField(title: "Title",
+                                 prompt: BarApps.info(for: app.bundleID)?.name ?? String(localized: "App Name"),
                                  value: app.title) { title in
                 update(.openApp(with(app) { $0.title = title }))
             }
-            symbolRow(current: app.symbol, automatic: String(localized: "Symbol der App")) { symbol in
+            symbolRow(current: app.symbol, automatic: String(localized: "App Icon")) { symbol in
                 update(.openApp(with(app) { $0.symbol = symbol }))
             }
         case .openLink(let link):
-            UtilitiesEditorField(title: "Adresse", prompt: "example.com", value: link.url) { url in
+            UtilitiesEditorField(title: "Address", prompt: "example.com", value: link.url) { url in
                 update(.openLink(with(link) { $0.url = url }))
             }
             if !link.url.isEmpty, UtilitiesLink.url(from: link.url) == nil {
-                Label("Keine gültige Adresse – der Knopf bleibt grau.", systemImage: "exclamationmark.triangle.fill")
+                Label("Not a valid address – the button stays grey.", systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
                     .font(.callout)
             }
-            UtilitiesEditorField(title: "Titel",
-                                 prompt: UtilitiesLink.url(from: link.url).map(UtilitiesLink.displayText) ?? String(localized: "Adresse"),
+            UtilitiesEditorField(title: "Title",
+                                 prompt: UtilitiesLink.url(from: link.url).map(UtilitiesLink.displayText) ?? String(localized: "Address"),
                                  value: link.title) { title in
                 update(.openLink(with(link) { $0.title = title }))
             }
-            symbolRow(current: link.symbol, automatic: String(localized: "Standard (Link)")) { symbol in
+            symbolRow(current: link.symbol, automatic: String(localized: "Default (Link)")) { symbol in
                 update(.openLink(with(link) { $0.symbol = symbol }))
             }
         case .runShortcut(let shortcut):
             shortcutRow(shortcut)
-            UtilitiesEditorField(title: "Titel",
-                                 prompt: shortcut.name.isEmpty ? String(localized: "Name des Kurzbefehls") : shortcut.name,
+            UtilitiesEditorField(title: "Title",
+                                 prompt: shortcut.name.isEmpty ? String(localized: "Shortcut Name") : shortcut.name,
                                  value: shortcut.title) { title in
                 update(.runShortcut(with(shortcut) { $0.title = title }))
             }
-            symbolRow(current: shortcut.symbol, automatic: String(localized: "Standard (Kurzbefehle)")) { symbol in
+            symbolRow(current: shortcut.symbol, automatic: String(localized: "Default (Shortcuts)")) { symbol in
                 update(.runShortcut(with(shortcut) { $0.symbol = symbol }))
             }
         case .hideApps(let options):
-            NexusToggle(title: "Vordere App stehen lassen", subtitle: "Wie ⌥⌘H: nur die anderen ausblenden",
+            NexusToggle(title: "Leave Frontmost App", subtitle: "Like ⌥⌘H: only hide the others",
                         isOn: Binding(get: { options.keepFrontmost },
                                       set: { on in update(.hideApps(.init(keepFrontmost: on))) }))
         default:
-            Text("Keine Optionen – der Knopf tut immer dasselbe.")
+            Text("No options – the button always does the same thing.")
                 .foregroundStyle(.secondary)
         }
     }
@@ -415,11 +415,11 @@ struct UtilitiesToggleOptionsView: View {
         HStack(spacing: 10) {
             Image(systemName: UtilitiesShortcutOptions.fallbackSymbol)
                 .foregroundStyle(.secondary)
-            Text(shortcut.name.isEmpty ? String(localized: "Noch kein Kurzbefehl gewählt") : shortcut.name)
+            Text(shortcut.name.isEmpty ? String(localized: "No Shortcut Chosen Yet") : shortcut.name)
                 .foregroundStyle(shortcut.name.isEmpty ? .secondary : .primary)
                 .lineLimit(1)
             Spacer(minLength: 8)
-            Button("Kurzbefehl wählen …") { editor.pickingShortcut = true }
+            Button("Choose Shortcut…") { editor.pickingShortcut = true }
         }
     }
 

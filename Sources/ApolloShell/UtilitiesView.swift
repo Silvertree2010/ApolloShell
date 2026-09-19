@@ -151,9 +151,9 @@ struct UtilitiesEmptyCard: View {
                     .background(Color.primary.opacity(0.10), in: .circle)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Nichts eingeblendet")
+                    Text("Nothing Shown")
                         .font(style.font(size: 14, weight: .medium))
-                    Text("Karten und Knöpfe wählt man in Nexus")
+                    Text("Cards and buttons are chosen in Nexus")
                         .font(style.font(size: 12))
                         .foregroundStyle(.secondary)
                 }
@@ -169,7 +169,7 @@ struct UtilitiesEmptyCard: View {
                 }
                 .buttonStyle(.plain)
                 .background(HoverTracker { hovering = $0 })
-                .help("Nexus öffnen")
+                .help("Open Nexus")
             }
         }
     }

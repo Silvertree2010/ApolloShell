@@ -37,7 +37,7 @@ struct NexusPresetResetButton<P: LayoutPreset>: View {
     let action: () -> Void
 
     var body: some View {
-        Button("Zurücksetzen", action: action)
+        Button("Reset", action: action)
             .disabled(layout == P.default.layout)
     }
 }
@@ -59,7 +59,7 @@ extension View {
                 onConfirm(replacement.layout)
                 pending.wrappedValue = nil
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: { replacement in
             Text(message(replacement))
         }

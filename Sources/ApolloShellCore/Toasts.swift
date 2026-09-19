@@ -161,28 +161,28 @@ public enum ToastText {
 
     /// "Charger plugged in" / "Battery is charging".
     public static let chargerConnected = Content(
-        title: String(localized: "Ladegerät angeschlossen"), message: String(localized: "Akku wird geladen"),
+        title: String(localized: "Charger Connected"), message: String(localized: "Battery is charging"),
         symbol: "bolt.fill", kind: .info
     )
 
     /// "Charger unplugged" / "Battery is discharging".
     public static let chargerDisconnected = Content(
-        title: String(localized: "Ladegerät getrennt"), message: String(localized: "Akku wird entladen"),
+        title: String(localized: "Charger Unplugged"), message: String(localized: "Battery is discharging"),
         symbol: "bolt.slash.fill", kind: .info
     )
 
     /// Caelestia: "Unknown device".
-    public static let unknownDevice = String(localized: "Unbekanntes Gerät")
+    public static let unknownDevice = String(localized: "Unknown Device")
 
     /// "Audio output changed" / "Now using: %1".
     public static func audioOutput(_ name: String) -> Content {
-        Content(title: String(localized: "Audioausgabe geändert"), message: String(localized: "Jetzt über \(deviceName(name))"),
+        Content(title: String(localized: "Audio Output Changed"), message: String(localized: "Now using \(deviceName(name))"),
                 symbol: "speaker.wave.2.fill", kind: .info)
     }
 
     /// "Audio input changed" / "Now using: %1".
     public static func audioInput(_ name: String) -> Content {
-        Content(title: String(localized: "Audioeingang geändert"), message: String(localized: "Jetzt über \(deviceName(name))"),
+        Content(title: String(localized: "Audio Input Changed"), message: String(localized: "Now using \(deviceName(name))"),
                 symbol: "mic.fill", kind: .info)
     }
 

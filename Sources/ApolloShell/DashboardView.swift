@@ -143,10 +143,10 @@ struct DashboardView: View {
     /// wenn schon alle vier da sind (`DashboardEditor.isMissingDefaultPages`).
     private var addPageButton: some View {
         Menu {
-            Button("Neue Seite") {
+            Button("New Page") {
                 withAnimation(Self.motion) { _ = editor.addPage() }
             }
-            Button("Standardseiten wiederherstellen") {
+            Button("Restore Default Pages") {
                 withAnimation(Self.motion) { editor.restoreDefaults() }
             }
             .disabled(!editor.isMissingDefaultPages)
@@ -165,8 +165,8 @@ struct DashboardView: View {
         .menuStyle(.button)
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
-        .help("Seite hinzufügen")
-        .accessibilityLabel("Seite hinzufügen")
+        .help("Add Page")
+        .accessibilityLabel("Add Page")
     }
 
     @FocusState private var renameFieldFocused: Bool
@@ -252,7 +252,7 @@ struct DashboardView: View {
         .contextMenu {
             if editor.isEditing {
                 Button("Umbenennen") { editor.renamingPageID = page.id }
-                Menu("Symbol") {
+                Menu("Icon") {
                     ForEach(nexusPageSymbols, id: \.self) { symbol in
                         Button {
                             editor.setSymbol(symbol, forPage: page.id)
@@ -266,7 +266,7 @@ struct DashboardView: View {
                 // Kantenfenster am oberen Bildschirmrand und erschien dort
                 // nicht verlaesslich - und die ganze Bearbeitung laesst sich
                 // mit „Abbrechen“ ohnehin zuruecknehmen.
-                Button("Löschen", role: .destructive) { withAnimation(Self.motion) { _ = editor.removePage(page.id) } }
+                Button("Delete", role: .destructive) { withAnimation(Self.motion) { _ = editor.removePage(page.id) } }
                     .disabled((editor.session?.pages.pages.count ?? 0) <= 1)
             }
         }
@@ -345,7 +345,7 @@ struct UserCard: View {
             Badge(symbol: "apple.logo", text: model.systemVersion)
         }
         if options.showUptime {
-            Badge(symbol: "clock.arrow.circlepath", text: String(localized: "läuft seit \(model.uptime)"))
+            Badge(symbol: "clock.arrow.circlepath", text: String(localized: "running since \(model.uptime)"))
         }
     }
 }
@@ -454,7 +454,7 @@ struct CalendarCard: View {
                 Grid(horizontalSpacing: 4, verticalSpacing: tall ? 14 : 2) {
                     GridRow {
                         if options.showWeekNumbers {
-                            Text("KW").font(style.font(size: 9, weight: .semibold)).foregroundStyle(.tertiary)
+                            Text("Wk").font(style.font(size: 9, weight: .semibold)).foregroundStyle(.tertiary)
                         }
                         ForEach(CalendarMonth.weekdaySymbols(calendar: calendar), id: \.self) { symbol in
                             Text(symbol).font(style.font(size: 11, weight: .semibold)).foregroundStyle(.secondary)
@@ -468,7 +468,7 @@ struct CalendarCard: View {
                                     .font(style.font(size: 10, weight: .medium))
                                     .monospacedDigit()
                                     .foregroundStyle(.tertiary)
-                                    .accessibilityLabel("Kalenderwoche \(numbers[week])")
+                                    .accessibilityLabel("Calendar Week \(numbers[week])")
                             }
                             ForEach(weeks[week], id: \.self) { day in
                                 Text("\(day.day)")
@@ -507,8 +507,8 @@ struct ResourcesCard: View {
 
     @ViewBuilder private var rings: some View {
         if options.showCPU { Ring(value: model.cpu, symbol: "cpu", iconID: "panel-cpu", help: "CPU") }
-        if options.showMemory { Ring(value: model.memory, symbol: "memorychip", iconID: "panel-memory", help: String(localized: "Arbeitsspeicher")) }
-        if options.showStorage { Ring(value: model.storage, symbol: "internaldrive", iconID: "panel-disk", help: String(localized: "Speicher")) }
+        if options.showMemory { Ring(value: model.memory, symbol: "memorychip", iconID: "panel-memory", help: String(localized: "Memory")) }
+        if options.showStorage { Ring(value: model.storage, symbol: "internaldrive", iconID: "panel-disk", help: String(localized: "Storage")) }
     }
 }
 
@@ -533,8 +533,8 @@ private struct Ring: View {
                 .frame(width: 16, height: 16)
         }
         .frame(width: 56, height: 56)
-        .help("\(help) \(Int((value * 100).rounded())) %")
-        .accessibilityLabel("\(help) \(Int((value * 100).rounded())) Prozent")
+        .help("\(help) \(Int((value * 100).rounded()))%")
+        .accessibilityLabel("\(help) \(Int((value * 100).rounded())) percent")
     }
 }
 

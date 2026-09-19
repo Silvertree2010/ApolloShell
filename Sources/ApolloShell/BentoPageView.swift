@@ -90,9 +90,9 @@ struct BentoEmptyPage: View {
                 Image(systemName: "square.grid.2x2")
                     .font(style.font(size: 30, weight: .light))
                     .foregroundStyle(.tertiary)
-                Text("Leere Seite")
+                Text("Empty page")
                     .font(style.font(size: 15, weight: .semibold))
-                Text("Nexus › Oberfläche bearbeiten")
+                Text("Nexus › Edit Interface")
                     .font(style.font(size: 12))
                     .foregroundStyle(.secondary)
             }

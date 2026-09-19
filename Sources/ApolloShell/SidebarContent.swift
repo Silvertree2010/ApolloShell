@@ -118,7 +118,7 @@ struct BarModuleView: View {
         case .statusIcons(let options):
             StatusCapsule(status: context.status, options: options)
         case .power:
-            SidebarIcon(help: String(localized: "Sitzung"), action: context.onPower) {
+            SidebarIcon(help: String(localized: "Session"), action: context.onPower) {
                 ThemedIcon("bar-power")
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 18, height: 18)
@@ -146,7 +146,7 @@ struct BarModuleView: View {
         case .weather(let options):
             BarWeatherModule(feed: context.weather, options: options) { context.onDashboardTab(.weather) }
         case .mediaButton:
-            SidebarIcon(help: String(localized: "Medien"), action: { context.onDashboardTab(.media) }) {
+            SidebarIcon(help: String(localized: "Media"), action: { context.onDashboardTab(.media) }) {
                 Image(systemName: "music.note")
                     .font(.system(size: 15, weight: .semibold))
             }
@@ -213,15 +213,15 @@ private struct StatusCapsule: View {
     }
 
     private var wifiHelp: String {
-        guard status.wifiOn else { return String(localized: "WLAN aus") }
-        guard let rssi = status.wifiRSSI, rssi != 0 else { return String(localized: "WLAN an, nicht verbunden") }
-        return String(localized: "WLAN \(rssi) dBm")
+        guard status.wifiOn else { return String(localized: "Wi-Fi Off") }
+        guard let rssi = status.wifiRSSI, rssi != 0 else { return String(localized: "Wi-Fi On, Not Connected") }
+        return String(localized: "Wi-Fi \(rssi) dBm")
     }
 
     private var bluetoothHelp: String {
         switch status.bluetoothOn {
-        case true?: String(localized: "Bluetooth an")
-        case false?: String(localized: "Bluetooth aus")
+        case true?: String(localized: "Bluetooth On")
+        case false?: String(localized: "Bluetooth Off")
         case nil: "Bluetooth"
         }
     }

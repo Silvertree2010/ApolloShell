@@ -138,9 +138,9 @@ struct NexusProvidersPage: View {
                 .help(chosen.attribution.url.absoluteString)
             }
         } header: {
-            Text("Wetter")
+            Text("Weather")
         } footer: {
-            Text("Alle ohne Konto und Schlüssel. Das Dashboard fragt den Anbieter nur, solange es offen ist, und nimmt die neue Wahl beim nächsten Öffnen. Die Ortssuche bleibt bei Open-Meteo.")
+            Text("All without an account or key. The Dashboard only asks the provider while it's open, and picks up a new choice the next time it opens. The place search stays with Open-Meteo.")
         }
     }
 
@@ -157,8 +157,8 @@ struct NexusProvidersPage: View {
                 HStack(spacing: 10) {
                     NexusTile(symbol: "wand.and.stars", tint: .gray, size: 26)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Automatisch")
-                        Text("ForkLift, wenn installiert, sonst Finder – jetzt \(model.name(for: automatic))")
+                        Text("Automatic")
+                        Text("ForkLift if installed, otherwise Finder – currently \(model.name(for: automatic))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -174,9 +174,9 @@ struct NexusProvidersPage: View {
             }
             otherApps
         } header: {
-            Text("Dateimanager")
+            Text("File Manager")
         } footer: {
-            Text("Steht in der Leiste zuoberst an Finders Platz, immer mit Punkt. Finder verschwindet dort nur, wenn eine andere App ihn ersetzt. „In … zeigen“ im Dock-Menü nimmt diese App; der macOS-Standard für andere Apps bleibt, wie er ist.")
+            Text("Sits at the top of the bar in Finder's place, always with a dot. Finder only disappears there when another app replaces it. “Show in …” in the Dock menu uses this app; the macOS default for other apps stays as it is.")
         }
     }
 
@@ -187,7 +187,7 @@ struct NexusProvidersPage: View {
             withAnimation(.easeOut(duration: 0.15)) { model.showsOtherApps.toggle() }
         } label: {
             HStack {
-                Text("Andere App …")
+                Text("Other App…")
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
@@ -198,7 +198,7 @@ struct NexusProvidersPage: View {
         }
         .buttonStyle(.plain)
         if model.showsOtherApps {
-            NexusSearchField(prompt: "App suchen", text: $model.query)
+            NexusSearchField(prompt: "Search Apps", text: $model.query)
             ForEach(model.results) { app in
                 if let id = app.bundleID {
                     NexusChoiceRow(selected: store.settings.providers.fileManager == id) {
@@ -211,7 +211,7 @@ struct NexusProvidersPage: View {
                 }
             }
             if !model.query.trimmingCharacters(in: .whitespaces).isEmpty, model.results.isEmpty {
-                Text("Keine passende App.")
+                Text("No matching app.")
                     .foregroundStyle(.secondary)
             }
         }

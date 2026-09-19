@@ -127,7 +127,7 @@ private struct UtilitiesVolumeSlider: View {
         .opacity(model.volumeSettable ? 1 : 0.4)
         .allowsHitTesting(model.volumeSettable)
         .accessibilityElement()
-        .accessibilityLabel("Lautstärke")
+        .accessibilityLabel("Volume")
         .accessibilityValue(UtilitiesAudioText.level(volume: model.volume, muted: model.outputMuted))
         .accessibilityAdjustableAction { direction in
             switch direction {

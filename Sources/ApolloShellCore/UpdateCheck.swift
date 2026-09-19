@@ -52,7 +52,7 @@ public struct UpdateCheck: Sendable {
         do {
             let data = try await fetch(url)
             guard let release = Self.release(from: data) else {
-                return .failed(String(localized: "Die Antwort von GitHub war unverständlich."))
+                return .failed(String(localized: "The reply from GitHub could not be read."))
             }
             guard let current else { return .newer(release) }
             return release.version > current ? .newer(release) : .current

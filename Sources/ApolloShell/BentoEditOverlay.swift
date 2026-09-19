@@ -218,8 +218,8 @@ struct EditableWidgetView: View {
         }
         .buttonStyle(.plain)
         .offset(x: -11, y: -11)
-        .help("Entfernen")
-        .accessibilityLabel("\(widget.kind.title) entfernen")
+        .help("Remove")
+        .accessibilityLabel("Remove \(widget.kind.title)")
     }
 
     private var resizeHandle: some View {

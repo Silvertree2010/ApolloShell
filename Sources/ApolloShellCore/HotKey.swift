@@ -102,7 +102,7 @@ public struct HotKey: Codable, Hashable, Sendable {
     /// aktuellen Tastaturbelegung (die App fragt macOS danach) - ohne gilt
     /// die US-Beschriftung aus `HotKeyKey`.
     public func display(keyName: String? = nil) -> String {
-        modifiers.symbols + (keyName ?? HotKeyKey.name(for: keyCode) ?? String(localized: "Taste \(keyCode)"))
+        modifiers.symbols + (keyName ?? HotKeyKey.name(for: keyCode) ?? String(localized: "Key \(keyCode)"))
     }
 }
 
@@ -127,7 +127,7 @@ public enum HotKeyKey {
         0x00: "A", 0x01: "S", 0x02: "D", 0x03: "F", 0x04: "H", 0x05: "G", 0x06: "Z", 0x07: "X",
         0x08: "C", 0x09: "V", 0x0A: "§", 0x0B: "B", 0x0C: "Q", 0x0D: "W", 0x0E: "E", 0x0F: "R",
         0x10: "Y", 0x11: "T", 0x12: "1", 0x13: "2", 0x14: "3", 0x15: "4", 0x16: "6", 0x17: "5",
-        0x18: "=", 0x19: "9", 0x1A: "7", 0x1B: "-", 0x1C: "8", 0x1D: "0", 0x1E: "]", 0x1F: "O",
+        0x18: "=", 0x19: "9", 0x1A: "7", 0x1B: "-", 0x1C: "8", 0x1D: "0", 0x1E: "]", 0x1F: "E",
         0x20: "U", 0x21: "[", 0x22: "I", 0x23: "P", 0x25: "L", 0x26: "J", 0x27: "'", 0x28: "K",
         0x29: ";", 0x2A: "\\", 0x2B: ",", 0x2C: "/", 0x2D: "N", 0x2E: "M", 0x2F: ".", 0x32: "`",
     ]
@@ -177,17 +177,17 @@ public enum HotKeyAction: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .launcher: "Launcher"
         case .dashboard: "Dashboard"
-        case .utilities: String(localized: "Kontrollzentrum")
+        case .utilities: String(localized: "Control Centre")
         case .nexus: "Nexus"
         }
     }
 
     public var subtitle: String {
         switch self {
-        case .launcher: String(localized: "Apps suchen und öffnen")
-        case .dashboard: String(localized: "Wetter, Kalender, Medien, Leistung")
-        case .utilities: String(localized: "Wach halten, Ton und Schnellschalter")
-        case .nexus: String(localized: "Dieses Einstellungsfenster")
+        case .launcher: String(localized: "Search and open apps")
+        case .dashboard: String(localized: "Weather, calendar, media, performance")
+        case .utilities: String(localized: "Keep Awake, sound and quick toggles")
+        case .nexus: String(localized: "This settings window")
         }
     }
 
@@ -362,32 +362,32 @@ public enum HotKeyAdvice {
         // uebersetzt (String, nicht LocalizedStringKey; siehe Vertrag).
         let entries: [(UInt32, HotKeyModifiers, String)] = [
             (HotKeyKey.space, cmd, "Spotlight"),
-            (HotKeyKey.space, [cmd, opt], String(localized: "Finder-Suchfenster")),
-            (HotKeyKey.space, ctrl, String(localized: "Vorherige Eingabequelle")),
-            (HotKeyKey.space, [ctrl, opt], String(localized: "Nächste Eingabequelle")),
-            (HotKeyKey.space, [ctrl, cmd], String(localized: "Emoji & Symbole")),
-            (0x30, cmd, String(localized: "App-Umschalter")),
-            (0x32, cmd, String(localized: "Fenster der App wechseln")),
-            (0x14, [cmd, shift], String(localized: "Bildschirmfoto")),
-            (0x15, [cmd, shift], String(localized: "Bildschirmfoto")),
-            (0x17, [cmd, shift], String(localized: "Bildschirmfoto und Aufnahme")),
-            (0x0C, [ctrl, cmd], String(localized: "Bildschirm sperren")),
-            (HotKeyKey.d, [opt, cmd], String(localized: "Dock ein- und ausblenden")),
-            (HotKeyKey.escape, [opt, cmd], String(localized: "Sofort beenden")),
+            (HotKeyKey.space, [cmd, opt], String(localized: "Finder Search Window")),
+            (HotKeyKey.space, ctrl, String(localized: "Previous Input Source")),
+            (HotKeyKey.space, [ctrl, opt], String(localized: "Next Input Source")),
+            (HotKeyKey.space, [ctrl, cmd], String(localized: "Emoji & Symbols")),
+            (0x30, cmd, String(localized: "App Switcher")),
+            (0x32, cmd, String(localized: "Switch Windows Within the App")),
+            (0x14, [cmd, shift], String(localized: "Screenshot")),
+            (0x15, [cmd, shift], String(localized: "Screenshot")),
+            (0x17, [cmd, shift], String(localized: "Screenshot and Screen Recording")),
+            (0x0C, [ctrl, cmd], String(localized: "Lock Screen")),
+            (HotKeyKey.d, [opt, cmd], String(localized: "Show and Hide the Dock")),
+            (HotKeyKey.escape, [opt, cmd], String(localized: "Force Quit")),
             (0x7E, ctrl, "Mission Control"),
             (0x7D, ctrl, "App-Exposé"),
-            (0x7B, ctrl, String(localized: "Space nach links")),
-            (0x7C, ctrl, String(localized: "Space nach rechts")),
-            (0x0C, cmd, String(localized: "Beenden in jeder App")),
-            (0x0D, cmd, String(localized: "Fenster schliessen in jeder App")),
-            (0x04, cmd, String(localized: "Ausblenden in jeder App")),
-            (0x2E, cmd, String(localized: "Minimieren in jeder App")),
-            (HotKeyKey.comma, cmd, String(localized: "Einstellungen in jeder App")),
-            (0x08, cmd, String(localized: "Kopieren in jeder App")),
-            (0x09, cmd, String(localized: "Einsetzen in jeder App")),
-            (0x07, cmd, String(localized: "Ausschneiden in jeder App")),
-            (0x06, cmd, String(localized: "Widerrufen in jeder App")),
-            (0x00, cmd, String(localized: "Alles auswählen in jeder App")),
+            (0x7B, ctrl, String(localized: "Space to the Left")),
+            (0x7C, ctrl, String(localized: "Space to the Right")),
+            (0x0C, cmd, String(localized: "Quit, in Any App")),
+            (0x0D, cmd, String(localized: "Close Window, in Any App")),
+            (0x04, cmd, String(localized: "Hide, in Any App")),
+            (0x2E, cmd, String(localized: "Minimize, in Any App")),
+            (HotKeyKey.comma, cmd, String(localized: "Settings, in Any App")),
+            (0x08, cmd, String(localized: "Copy, in Any App")),
+            (0x09, cmd, String(localized: "Paste, in Any App")),
+            (0x07, cmd, String(localized: "Cut, in Any App")),
+            (0x06, cmd, String(localized: "Undo, in Any App")),
+            (0x00, cmd, String(localized: "Select All, in Any App")),
         ]
         return Dictionary(entries.map { (HotKey(keyCode: $0.0, modifiers: $0.1), $0.2) }, uniquingKeysWith: { first, _ in first })
     }()
@@ -406,21 +406,21 @@ public enum HotKeyAdvice {
 public enum HotKeyText {
     public static func rejection(_ reason: HotKeyRejection) -> String {
         switch reason {
-        case .needsModifier: String(localized: "Bitte mit ⌘, ⌥ oder ⌃ – sonst fehlte die Taste beim Tippen. Nur F-Tasten gehen allein.")
-        case .shiftOnly: String(localized: "⇧ allein reicht nicht – sonst liessen sich keine Grossbuchstaben mehr tippen.")
+        case .needsModifier: String(localized: "Please use ⌘, ⌥ or ⌃ – otherwise the key would be missing while typing. Only F-keys work alone.")
+        case .shiftOnly: String(localized: "⇧ alone is not enough – otherwise capital letters could no longer be typed.")
         }
     }
 
     public static func taken(by action: HotKeyAction) -> String {
-        String(localized: "Schon für „\(action.title)“ vergeben.")
+        String(localized: "Already assigned to “\(action.title)”.")
     }
 
     public static func warning(_ warning: HotKeyWarning) -> String {
         switch warning {
         case .system(let name):
-            String(localized: "macOS benutzt dieses Kürzel schon: \(name). Nur sinnvoll, wenn es dort ausgeschaltet ist.")
+            String(localized: "macOS already uses this shortcut: \(name). Only useful if it's turned off there.")
         case .typesCharacters:
-            String(localized: "⌥ mit dieser Taste tippt ein Sonderzeichen (je nach Tastatur z. B. Umlaute, « oder ∂). Solange das Kürzel gilt, lässt es sich so nicht mehr eingeben.")
+            String(localized: "⌥ with this key types a special character (depending on the keyboard, e.g. umlauts, « or ∂). As long as the shortcut is active, it can no longer be typed this way.")
         }
     }
 
@@ -428,11 +428,11 @@ public enum HotKeyText {
     /// eventHotKeyExistsErr - eine andere App hat es zuerst registriert.
     public static func registrationFailed(alreadyTaken: Bool, status: Int32) -> String {
         alreadyTaken
-            ? String(localized: "Nicht aktiv: Eine andere App benutzt dieses Kürzel schon.")
-            : String(localized: "Nicht aktiv: macOS hat das Kürzel abgelehnt (Fehler \(status, format: .number.grouping(.never))).")
+            ? String(localized: "Not active: Another app already uses this shortcut.")
+            : String(localized: "Not active: macOS declined the shortcut (error \(status, format: .number.grouping(.never))).")
     }
 
-    public static let recordingPrompt = String(localized: "Kürzel drücken …")
-    public static let recordingHelp = String(localized: "⎋ bricht ab, ⌫ entfernt das Kürzel.")
-    public static let none = String(localized: "Kein Kürzel")
+    public static let recordingPrompt = String(localized: "Press a shortcut…")
+    public static let recordingHelp = String(localized: "⎋ cancels, ⌫ removes the shortcut.")
+    public static let none = String(localized: "No Shortcut")
 }

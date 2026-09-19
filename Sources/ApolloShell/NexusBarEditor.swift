@@ -57,7 +57,7 @@ struct NexusBarPage: View {
     private var entriesSection: some View {
         Section {
             if layout.entries.isEmpty {
-                Text("Die Leiste ist leer. Mit „Hinzufügen“ Bausteine holen oder eine Vorlage laden.")
+                Text("The bar is empty. Use “Add” to get building blocks or load a preset.")
                     .foregroundStyle(.secondary)
             }
             ForEach(Array(layout.entries.enumerated()), id: \.element.id) { index, entry in
@@ -69,16 +69,16 @@ struct NexusBarPage: View {
                 Button {
                     showsGallery = true
                 } label: {
-                    Label("Hinzufügen …", systemImage: "plus")
+                    Label("Add…", systemImage: "plus")
                 }
                 Spacer(minLength: 8)
                 NexusPresetMenu<BarPreset> { pending = .preset($0) }
                 NexusPresetResetButton<BarPreset>(layout: layout) { pending = .reset }
             }
         } header: {
-            Text("Bausteine")
+            Text("Building Blocks")
         } footer: {
-            Text("Von oben nach unten wie in der Leiste. Zum Umsortieren ziehen oder das Kontextmenü nehmen. Das Dock und flexible Abstände teilen sich den freien Platz.")
+            Text("Top to bottom as in the bar. Drag to reorder, or use the context menu. The Dock and flexible spacers share the free space.")
         }
     }
 
@@ -115,9 +115,9 @@ private struct NexusBarScreensSection: View {
 
     var body: some View {
         Section {
-            Picker("Bildschirme", selection: $store.settings.bar.screens) {
-                Text("Alle").tag(ScreenChoice.all)
-                Text("Nur Hauptbildschirm").tag(ScreenChoice.primary)
+            Picker("Screens", selection: $store.settings.bar.screens) {
+                Text("All").tag(ScreenChoice.all)
+                Text("Main Display Only").tag(ScreenChoice.primary)
                 if !screens.isEmpty {
                     Divider()
                     ForEach(screens) { screen in
@@ -126,13 +126,13 @@ private struct NexusBarScreensSection: View {
                 }
                 if let missing {
                     Divider()
-                    Text("\(missing) (nicht angeschlossen)").tag(ScreenChoice.single(missing))
+                    Text("\(missing) (not connected)").tag(ScreenChoice.single(missing))
                 }
             }
         } header: {
-            Text("Bildschirme")
+            Text("Screens")
         } footer: {
-            Text("Auf welchen Bildschirmen die Leiste steht – mit ihr die Schreibtisch-Uhr und der Streifen, den die Fensterwache frei hält. Ein einzelner Bildschirm wird über Name und Auflösung gemerkt; ist er nicht angeschlossen, steht die Leiste auf dem Hauptbildschirm.")
+            Text("Which screens the bar stands on – and with it the desktop clock and the strip the window guard keeps clear. A single screen is remembered by name and resolution; when it is not connected, the bar stands on the main display.")
         }
         .task { reload() }
     }
@@ -181,9 +181,9 @@ private struct NexusBarBackgroundSection: View {
                 }
             }
         } header: {
-            Text("Hintergrund")
+            Text("Background")
         } footer: {
-            Text("Liquid Glass richtet sich nach der Helligkeit dessen, was dahinter liegt, und kippt dabei auch zwischen heller und dunkler Erscheinung – die Leiste färbt sich also um, sobald ein Fenster unter sie fährt. Abschalten lässt sich das nicht; wer eine feste Farbe will, nimmt Material oder Glas auf fester Fläche.")
+            Text("Liquid Glass follows the brightness of whatever is behind it, and it also flips between a light and a dark appearance – so the bar changes color as soon as a window moves underneath it. That cannot be switched off; for a fixed color, pick Material or glass on a solid fill.")
         }
     }
 
@@ -191,17 +191,17 @@ private struct NexusBarBackgroundSection: View {
         switch background {
         case .material: Text("Material")
         case .glass: Text("Liquid Glass")
-        case .tintedGlass: Text("Liquid Glass, getönt")
-        case .fixedGlass: Text("Liquid Glass auf fester Fläche")
+        case .tintedGlass: Text("Liquid Glass, Tinted")
+        case .fixedGlass: Text("Liquid Glass on a Solid Fill")
         }
     }
 
     private func subtitle(_ background: BarBackground) -> Text {
         switch background {
-        case .material: Text("Systemmaterial mit fester Farbe, wechselt mit Hell/Dunkel – bisheriges Aussehen")
-        case .glass: Text("Echtes Glas; nimmt Farbe und Helligkeit von dem an, was dahinter liegt")
-        case .tintedGlass: Text("Glas in Fensterfarbe getönt; färbt sich weniger stark um, aber nicht gar nicht")
-        case .fixedGlass: Text("Klares Glas über einer deckenden Fläche in Fensterfarbe: Glanz bleibt, die Farbe steht fest")
+        case .material: Text("System material with a fixed color that follows light and dark – how it looks today")
+        case .glass: Text("Real glass; it takes on the color and brightness of whatever is behind it")
+        case .tintedGlass: Text("Glass tinted with the window color; it shifts less, but it still shifts")
+        case .fixedGlass: Text("Clear glass over an opaque fill in the window color: the sheen stays, the color holds still")
         }
     }
 }
@@ -237,15 +237,15 @@ private struct NexusBarRow: View {
             }
         }
         .contextMenu {
-            Button("Nach oben") { move(-1) }
+            Button("Move Up") { move(-1) }
                 .disabled(isFirst)
-            Button("Nach unten") { move(1) }
+            Button("Move Down") { move(1) }
                 .disabled(isLast)
             Divider()
-            Button("Entfernen", role: .destructive) { remove() }
+            Button("Remove", role: .destructive) { remove() }
         }
-        .accessibilityAction(named: "Nach oben") { move(-1) }
-        .accessibilityAction(named: "Nach unten") { move(1) }
+        .accessibilityAction(named: "Move Up") { move(-1) }
+        .accessibilityAction(named: "Move Down") { move(1) }
     }
 
     private var label: some View {
@@ -265,8 +265,8 @@ private struct NexusBarRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Entfernen")
-            .accessibilityLabel("\(entry.kind.title) entfernen")
+            .help("Remove")
+            .accessibilityLabel("Remove \(entry.kind.title)")
             Image(systemName: "line.3.horizontal")
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
@@ -293,16 +293,16 @@ private struct NexusBarOptions: View {
         switch entry.module {
         case .workspaces:
             let options = binding(\.workspaces, BarModule.workspaces, fallback: BarWorkspacesOptions())
-            Picker("Darstellung", selection: options.style) {
-                Text("Punkte").tag(BarWorkspacesOptions.Style.dots)
-                Text("Nummern").tag(BarWorkspacesOptions.Style.numbers)
+            Picker("Style", selection: options.style) {
+                Text("Dots").tag(BarWorkspacesOptions.Style.dots)
+                Text("Numbers").tag(BarWorkspacesOptions.Style.numbers)
             }
             .pickerStyle(.segmented)
         case .dock:
             let options = binding(\.dock, BarModule.dock, fallback: BarDockOptions())
-            NexusToggle(title: "Laufende Apps zeigen", subtitle: "Auch nicht angeheftete, unter einem Strich",
+            NexusToggle(title: "Show Running Apps", subtitle: "Also unpinned ones, below a divider",
                         isOn: options.showRunning)
-            Picker("Symbolgrösse", selection: options.iconSize) {
+            Picker("Icon Size", selection: options.iconSize) {
                 ForEach(BarDockOptions.IconSize.allCases, id: \.self) { size in
                     Text(NexusBarText.size(size)).tag(size)
                 }
@@ -310,13 +310,13 @@ private struct NexusBarOptions: View {
             .pickerStyle(.segmented)
         case .clock:
             let options = binding(\.clock, BarModule.clock, fallback: BarClockOptions())
-            NexusToggle(title: "Symbol zeigen", subtitle: "Kalendersymbol über der Uhrzeit", isOn: options.showIcon)
-            NexusToggle(title: "Datum zeigen", subtitle: "Wochentag und Tag über der Uhrzeit", isOn: options.showDate)
+            NexusToggle(title: "Show Icon", subtitle: "Calendar icon above the time", isOn: options.showIcon)
+            NexusToggle(title: "Show Date", subtitle: "Weekday and day above the time", isOn: options.showDate)
         case .statusIcons:
             let options = binding(\.statusIcons, BarModule.statusIcons, fallback: BarStatusIconsOptions())
-            NexusToggle(title: "WLAN", isOn: options.showWifi)
+            NexusToggle(title: "Wi-Fi", isOn: options.showWifi)
             NexusToggle(title: "Bluetooth", isOn: options.showBluetooth)
-            NexusToggle(title: "Akku", subtitle: "Nur auf Macs mit Akku", isOn: options.showBattery)
+            NexusToggle(title: "Battery", subtitle: "Only on Macs with a battery", isOn: options.showBattery)
         case .gap:
             let options = binding(\.gap, BarModule.gap, fallback: BarGapOptions())
             // Stepper statt Schieber: jeder Schritt schreibt settings.json,
@@ -330,17 +330,17 @@ private struct NexusBarOptions: View {
             }
         case .battery:
             let options = binding(\.battery, BarModule.battery, fallback: BarBatteryOptions())
-            NexusToggle(title: "Symbol zeigen", subtitle: "Akkusymbol über der Prozentzahl", isOn: options.showIcon)
+            NexusToggle(title: "Show Icon", subtitle: "Battery icon above the percentage", isOn: options.showIcon)
         case .cpu:
             let options = binding(\.cpu, BarModule.cpu, fallback: BarCPUOptions())
-            Picker("Darstellung", selection: options.style) {
+            Picker("Style", selection: options.style) {
                 Text("Ring").tag(BarCPUOptions.Style.ring)
-                Text("Prozent").tag(BarCPUOptions.Style.percent)
+                Text("Percent").tag(BarCPUOptions.Style.percent)
             }
             .pickerStyle(.segmented)
         case .weather:
             let options = binding(\.weather, BarModule.weather, fallback: BarWeatherOptions())
-            NexusToggle(title: "Temperatur zeigen", subtitle: "Den Ort wählt man auf der Seite Dashboard",
+            NexusToggle(title: "Show Temperature", subtitle: "The location is set on the Dashboard page",
                         isOn: options.showTemperature)
         case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton:
             EmptyView()
@@ -370,42 +370,42 @@ enum NexusBarText {
     /// Titel der Vorlagen-Rueckfrage.
     static func replacementTitle(_ replacement: LayoutPresetReplacement<BarPreset>) -> String {
         switch replacement {
-        case .preset(let preset): String(localized: "Vorlage „\(preset.title)“ laden?")
-        case .reset: String(localized: "Leiste zurücksetzen?")
+        case .preset(let preset): String(localized: "Load preset “\(preset.title)”?")
+        case .reset: String(localized: "Reset the bar?")
         }
     }
 
     /// Erklaerung der Vorlagen-Rueckfrage.
     static func replacementMessage(_ replacement: LayoutPresetReplacement<BarPreset>) -> String {
         switch replacement {
-        case .preset(let preset): String(localized: "\(preset.summary) Die jetzige Anordnung wird ersetzt.")
-        case .reset: String(localized: "Die Leiste sieht wieder aus wie am Anfang (Vorlage Caelestia). Die jetzige Anordnung wird ersetzt.")
+        case .preset(let preset): String(localized: "\(preset.summary) The current arrangement will be replaced.")
+        case .reset: String(localized: "The bar looks like it did at the start again (Caelestia preset). The current arrangement will be replaced.")
         }
     }
 
     static func detail(_ module: BarModule) -> String {
         switch module {
         case .workspaces(let o):
-            o.style == .dots ? String(localized: "Punkte") : String(localized: "Nummern")
+            o.style == .dots ? String(localized: "Dots") : String(localized: "Numbers")
         case .dock(let o):
-            (o.showRunning ? String(localized: "Angeheftete und laufende Apps") : String(localized: "Nur angeheftete Apps"))
+            (o.showRunning ? String(localized: "Pinned and Running Apps") : String(localized: "Pinned Apps Only"))
                 + " · " + size(o.iconSize)
         case .clock(let o):
-            ([String(localized: "Uhrzeit")] + (o.showIcon ? [String(localized: "Symbol")] : [])
-                + (o.showDate ? [String(localized: "Datum")] : [])).joined(separator: " · ")
+            ([String(localized: "Time")] + (o.showIcon ? [String(localized: "Icon")] : [])
+                + (o.showDate ? [String(localized: "Date")] : [])).joined(separator: " · ")
         case .statusIcons(let o):
             statusDetail(o)
         case .gap(let o):
             "\(Int(o.height)) pt"
         case .appButton(let o):
             BarApps.info(for: o.bundleID)?.name
-                ?? (o.bundleID.isEmpty ? String(localized: "Noch keine App gewählt") : String(localized: "Nicht installiert"))
+                ?? (o.bundleID.isEmpty ? String(localized: "No App Chosen Yet") : String(localized: "Not Installed"))
         case .battery(let o):
-            o.showIcon ? String(localized: "Symbol und Prozent") : String(localized: "Nur Prozent")
+            o.showIcon ? String(localized: "Icon and Percent") : String(localized: "Percent Only")
         case .cpu(let o):
-            o.style == .ring ? String(localized: "Ring mit Zahl") : String(localized: "Symbol und Prozent")
+            o.style == .ring ? String(localized: "Ring with Number") : String(localized: "Icon and Percent")
         case .weather(let o):
-            o.showTemperature ? String(localized: "Symbol und Temperatur") : String(localized: "Nur Symbol")
+            o.showTemperature ? String(localized: "Icon and Temperature") : String(localized: "Icon Only")
         case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton:
             module.kind.summary
         }
@@ -413,17 +413,17 @@ enum NexusBarText {
 
     static func size(_ size: BarDockOptions.IconSize) -> String {
         switch size {
-        case .small: String(localized: "Klein")
-        case .medium: String(localized: "Mittel")
-        case .large: String(localized: "Gross")
+        case .small: String(localized: "Small")
+        case .medium: String(localized: "Medium")
+        case .large: String(localized: "Large")
         }
     }
 
     private static func statusDetail(_ o: BarStatusIconsOptions) -> String {
-        let parts = [o.showWifi ? String(localized: "WLAN") : nil, o.showBluetooth ? String(localized: "Bluetooth") : nil,
-                     o.showBattery ? String(localized: "Akku") : nil]
+        let parts = [o.showWifi ? String(localized: "Wi-Fi") : nil, o.showBluetooth ? String(localized: "Bluetooth") : nil,
+                     o.showBattery ? String(localized: "Battery") : nil]
             .compactMap { $0 }
-        return parts.isEmpty ? String(localized: "Keines gewählt – unsichtbar") : parts.joined(separator: " · ")
+        return parts.isEmpty ? String(localized: "None chosen – invisible") : parts.joined(separator: " · ")
     }
 }
 
@@ -437,17 +437,17 @@ struct NexusBarGallery: View {
     let onCancel: () -> Void
 
     var body: some View {
-        NexusGallerySheet(title: String(localized: "Baustein hinzufügen"),
-                          subtitle: String(localized: "Er kommt unter das Dock bzw. den letzten flexiblen Abstand – danach an die richtige Stelle ziehen."),
+        NexusGallerySheet(title: String(localized: "Add Building Block"),
+                          subtitle: String(localized: "It's added below the Dock, or after the last flexible spacer – drag it to the right place afterwards."),
                           size: CGSize(width: 560, height: 520), onCancel: onCancel) {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
                 ForEach(BarModuleKind.allCases) { kind in
                     let available = layout.canAdd(kind)
                     NexusGalleryTile(title: kind.title, summary: kind.summary,
-                                     badge: available ? nil : String(localized: "Schon da"), minHeight: 118,
+                                     badge: available ? nil : String(localized: "Already Added"), minHeight: 118,
                                      available: available,
-                                     help: available ? String(localized: "\(kind.title) hinzufügen")
-                                         : String(localized: "Gibt es nur einmal und steht schon in der Leiste"),
+                                     help: available ? String(localized: "Add \(kind.title)")
+                                         : String(localized: "Only exists once, and it's already in the bar"),
                                      action: { onAdd(kind) }) {
                         NexusTile(symbol: kind.symbol, tint: kind.tint, size: 30)
                     }
@@ -471,16 +471,16 @@ struct NexusBarPreview: View {
         GeometryReader { geometry in
             let scale = min(1, max(geometry.size.height - 62, 80) / barHeight)
             VStack(spacing: 8) {
-                Text("Vorschau")
+                Text("Preview")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 NexusScaledPreview(scale: scale, frameSize: CGSize(width: Sidebar.width * scale, height: barHeight * scale),
-                                   cornerRadius: 9 / scale, accessibilityLabel: String(localized: "Vorschau der Leiste")) {
+                                   cornerRadius: 9 / scale, accessibilityLabel: String(localized: "Preview of the Bar")) {
                     SidebarContent(settings: store, context: context)
                         .environment(\.barPreview, true)
                         .frame(width: Sidebar.width, height: barHeight)
                 }
-                Text("Beispieldaten")
+                Text("Sample Data")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }

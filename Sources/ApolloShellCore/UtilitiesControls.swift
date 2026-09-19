@@ -20,7 +20,7 @@ public enum UtilitiesColorHex {
 extension ToastText {
     /// Nach der Farbpipette: der Wert liegt schon in der Zwischenablage.
     public static func colorCopied(_ hex: String) -> Content {
-        Content(title: String(localized: "Farbe kopiert"), message: hex, symbol: "eyedropper", kind: .info)
+        Content(title: String(localized: "Color Copied"), message: hex, symbol: "eyedropper", kind: .info)
     }
 }
 
@@ -102,20 +102,20 @@ public enum UtilitiesAudioDevices {
 
 /// Texte der Ton-Karte.
 public enum UtilitiesAudioText {
-    public static let title = String(localized: "Ton")
-    public static let output = String(localized: "Ausgabe")
-    public static let input = String(localized: "Eingang")
-    public static let noDevice = String(localized: "Kein Gerät")
-    public static let noDevicesInMenu = String(localized: "Keine Geräte")
+    public static let title = String(localized: "Sound")
+    public static let output = String(localized: "Output")
+    public static let input = String(localized: "Input")
+    public static let noDevice = String(localized: "No Device")
+    public static let noDevicesInMenu = String(localized: "No Devices")
 
     /// "45 %" (Schweizer und deutsche Schreibweise mit Leerschlag), stumm
     /// "Stumm" - eine Null wuerde wie ein Fehler aussehen.
     public static func level(volume: Float, muted: Bool) -> String {
-        muted ? String(localized: "Stumm") : String(localized: "\(VolumeGlyphs.percent(volume)) %")
+        muted ? String(localized: "Muted") : String(localized: "\(VolumeGlyphs.percent(volume)) %")
     }
 
     public static func muteHelp(muted: Bool) -> String {
-        muted ? String(localized: "Ton einschalten") : String(localized: "Ton stummschalten")
+        muted ? String(localized: "Unmute") : String(localized: "Mute")
     }
 }
 

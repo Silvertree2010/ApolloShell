@@ -107,7 +107,7 @@ extension WeatherLocation {
             return "\(text)° \(value < 0 ? negative : positive)"
         }
         let north = String(localized: "N"), south = String(localized: "S")
-        let east = String(localized: "O"), west = String(localized: "W")
+        let east = String(localized: "E"), west = String(localized: "W")
         return part(latitude, north, south) + ", " + part(longitude, east, west)
     }
 }

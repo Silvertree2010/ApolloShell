@@ -19,13 +19,13 @@ struct NexusThemesPage: View {
                 content(themes)
             } else {
                 Section {
-                    Text("Themes stehen in dieser Fassung nicht zur Verfügung.")
+                    Text("Themes are not available in this build.")
                         .foregroundStyle(.secondary)
                 }
             }
             NexusSaveWarning(failed: store.saveFailed)
         }
-        .alert("Import fehlgeschlagen", isPresented: Binding(
+        .alert("Import failed", isPresented: Binding(
             get: { importError != nil },
             set: { if !$0 { importError = nil } }
         )) {
@@ -38,8 +38,8 @@ struct NexusThemesPage: View {
     @ViewBuilder
     private func content(_ themes: ThemeStore) -> some View {
         Section {
-            NexusThemeRow(title: String(localized: "Ohne Theme"),
-                          subtitle: String(localized: "Die Farben von macOS, wie ohne Datei"),
+            NexusThemeRow(title: String(localized: "No theme"),
+                          subtitle: String(localized: "The colours of macOS, as without a file"),
                           selected: themes.selection == nil) {
                 themes.select(nil)
             }
@@ -51,12 +51,12 @@ struct NexusThemesPage: View {
                 }
             }
         } header: {
-            Text("Gewähltes Theme")
+            Text("Selected theme")
         } footer: {
             if themes.available.isEmpty {
-                Text("Noch kein Theme im Ordner. Jede .css-Datei ist eins, ein Ordner mit theme.css auch – dann dürfen Bilder daneben liegen.")
+                Text("No theme in the folder yet. Every .css file is one, and so is a folder with a theme.css in it – images may sit next to that one.")
             } else {
-                Text("Eine Änderung an der Datei wirkt sofort, ohne Neustart.")
+                Text("A change to the file takes effect at once, without a restart.")
             }
         }
 
@@ -69,30 +69,30 @@ struct NexusThemesPage: View {
                         .textSelection(.enabled)
                 }
                 if issues.count > 8 {
-                    Text("… und \(issues.count - 8) weitere")
+                    Text("… and \(issues.count - 8) more")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
             } header: {
-                Text("Hinweise zum Theme")
+                Text("Notes about the theme")
             } footer: {
-                Text("Hinweise sind kein Fehler: Was nicht gelesen werden konnte, steht auf der eingebauten Vorgabe.")
+                Text("Notes are not errors: whatever could not be read stays at its built-in value.")
             }
         }
 
         Section {
-            Button("Theme hinzufügen …") { importTheme(into: themes) }
-            Button("Ordner im Finder zeigen") { themes.revealFolder() }
-            Button("Neu einlesen") { themes.reload() }
+            Button("Add theme…") { importTheme(into: themes) }
+            Button("Show folder in Finder") { themes.revealFolder() }
+            Button("Read again") { themes.reload() }
         } header: {
-            Text("Ordner")
+            Text("Folder")
         } footer: {
             Text(verbatim: (themes.folder.path as NSString).abbreviatingWithTildeInPath)
                 .textSelection(.enabled)
         }
 
         Section {
-            Link("Wie ein Theme aufgebaut ist",
+            Link("How a theme is put together",
                  destination: URL(string: "https://github.com/Silvertree2010/ApolloShell/blob/main/docs/THEMES.md")!)
         }
     }
@@ -101,7 +101,7 @@ struct NexusThemesPage: View {
         var parts: [String] = []
         if !theme.author.isEmpty { parts.append(theme.author) }
         if !theme.details.isEmpty { parts.append(theme.details) }
-        if !theme.issues.isEmpty { parts.append(String(localized: "\(theme.issues.count) Hinweis(e)")) }
+        if !theme.issues.isEmpty { parts.append(String(localized: "\(theme.issues.count) note(s)")) }
         return parts.joined(separator: " · ")
     }
 
@@ -116,7 +116,7 @@ struct NexusThemesPage: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = true
         panel.allowedContentTypes = [UTType(filenameExtension: "css") ?? .plainText, .folder]
-        panel.prompt = String(localized: "Hinzufügen")
+        panel.prompt = String(localized: "Add")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             try themes.importTheme(from: url)
@@ -149,7 +149,7 @@ private struct NexusThemeRow: View {
                 if selected {
                     Image(systemName: "checkmark")
                         .foregroundStyle(.tint)
-                        .accessibilityLabel(Text("Gewählt"))
+                        .accessibilityLabel(Text("Selected"))
                 }
             }
             .contentShape(.rect)

@@ -49,9 +49,9 @@ public enum StatusGlyphs {
 
     /// Kurzbeschreibung fuer Tooltip und VoiceOver.
     public static func batteryText(_ state: BatteryState?) -> String {
-        guard let state else { return String(localized: "Kein Akku") }
-        let base = String(localized: "Akku \(state.level) %")
-        let suffix = state.charging ? String(localized: ", lädt") : state.onAC ? String(localized: ", am Netzteil") : ""
+        guard let state else { return String(localized: "No Battery") }
+        let base = String(localized: "Battery \(state.level)%")
+        let suffix = state.charging ? String(localized: ", charging") : state.onAC ? String(localized: ", on power adapter") : ""
         return base + suffix
     }
 }
