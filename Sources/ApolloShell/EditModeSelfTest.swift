@@ -355,6 +355,35 @@ private final class EditModeSelfTestHarness {
         if let gallery, let utilitiesFrame { check(!gallery.intersects(utilitiesFrame), "Galerie frei vom Kontrollzentrum") }
         if let gallery, let toolbar = windows.debugToolbarFrame { check(!gallery.intersects(toolbar), "Galerie frei von der Werkzeugleiste") }
 
+        // Volle Seite (Uebersicht): Klick auf Uhr in der Galerie -> Hinweis,
+        // Galerie waechst, bleibt aber frei vom Dashboard.
+        if let gallery = windows.debugGalleryFrame, dashboardEditor.page?.template == .overview {
+            let column = (gallery.width - 32 - 7 * 10) / 8
+            let before = dashboardEditor.page?.widgets.count ?? 0
+            windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + column * 2.5 + 20, y: 16 + 36 + 12 + 20 + 12 + 30))
+            await wait(0.4)
+            check(editor.galleryNotice != nil && dashboardEditor.page?.widgets.count == before,
+                  "Volle Seite: Galerie-Klick zeigt „Kein Platz“ statt einzufuegen")
+            if let grown = windows.debugGalleryFrame, let dashboardFrame {
+                check(!grown.intersects(dashboardFrame), "Galerie mit Hinweis bleibt frei vom Dashboard \(r(grown))")
+            }
+        }
+        // Reiter Kontrollzentrum: Klick auf „Bildschirm aus“ (14. Kachel, zweite
+        // Reihe, sechste Spalte) fuegt den Knopf an.
+        editor.galleryTab = .controlCentre
+        await wait(0.4)
+        if let gallery = windows.debugGalleryFrame {
+            let column = (gallery.width - 32 - 7 * 10) / 8
+            let tileHeight: CGFloat = 73
+            windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + 5 * (column + 10) + column / 2,
+                                                           y: 16 + 36 + 12 + 20 + 12 + tileHeight + 10 + tileHeight / 2))
+            await wait(0.4)
+            check(editor.utilities?.layout.toggles.contains { $0.kind == .displaySleep } ?? false,
+                  "Galerie Kontrollzentrum: Klick fuegt „Bildschirm aus“ an")
+        }
+        editor.galleryTab = .dashboard
+        await wait(0.3)
+
         // Aendern und Fertig.
         let pageCount = dashboardEditor.session?.pages.pages.count ?? 0
         let newPage = dashboardEditor.addPage()
