@@ -117,11 +117,23 @@ jobs:
         run: |
           set -o pipefail
           version="${GITHUB_REF_NAME#v}"
+          # Vier Teile heissen "0.1.2 Patch 2", drei bleiben "0.1.2" - so
+          # wie die Releases von Hand benannt waren.
+          case "$version" in
+            *.*.*.*) title="ApolloShell ${version%.*} Patch ${version##*.}" ;;
+            *)       title="ApolloShell $version" ;;
+          esac
+          # Die Notizen sind der Abschnitt der Fassung aus dem Changelog,
+          # nicht nur ein Verweis darauf.
+          notes=$(scripts/release-notes.sh "$version")
+          if [ -z "$notes" ]; then
+            notes="See [CHANGELOG.md]($REPO_URL/blob/main/CHANGELOG.md)."
+          fi
           gh release create "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
-            --title "ApolloShell $version" \
-            --notes "Siehe [CHANGELOG.md]($REPO_URL/blob/main/CHANGELOG.md)." \
+            --title "$title" \
+            --notes "$notes" \
             "dist/ApolloShell-$version.dmg" \
             dist/appcast.xml
 
