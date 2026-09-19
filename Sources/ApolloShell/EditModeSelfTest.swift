@@ -357,7 +357,7 @@ private final class EditModeSelfTestHarness {
 
         // Aendern und Fertig.
         let pageCount = dashboardEditor.session?.pages.pages.count ?? 0
-        dashboardEditor.addPage()
+        let newPage = dashboardEditor.addPage()
         // Klick auf die erste Galerie-Kachel (Wetter): 16 Rand + halbe
         // Spalte, unter Reitern (36) und Haken (≈20) mit 12er Abstaenden.
         if let gallery = windows.debugGalleryFrame {
@@ -405,6 +405,7 @@ private final class EditModeSelfTestHarness {
         check(!editor.isEditing, "Modus endet mit Fertig")
         check(store.settings.dashboardPages?.pages.count == pageCount + 1, "Fertig speichert die neue Seite")
         check(store.settings.utilities.layout.toggles.contains { $0.kind == .openLink }, "Fertig speichert den neuen Knopf")
+        check(dashboard.debugShownPage == newPage, "Nach Fertig bleibt das Dashboard auf der bearbeiteten Seite")
         await wait(0.9)
         check(windows.debugVisibleScrims == 0, "Schleier nach Fertig weg")
         check(windows.debugToolbarFrame == nil, "Werkzeugleiste nach Fertig weg")

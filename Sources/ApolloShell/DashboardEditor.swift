@@ -17,6 +17,9 @@ final class DashboardEditor {
     private let store: ShellSettingsStore
     private(set) var session: BentoEditSession?
     var isEditing: Bool { session != nil }
+    /// Seite, die beim Ende der Bearbeitung gezeigt war - das Dashboard
+    /// bleibt danach dort, statt auf die Seite vom Anfang zurueckzuspringen.
+    private(set) var lastPageID: DashboardPage.ID?
 
     /// Vor `begin`: die Seite, auf der das Dashboard gerade steht - Nexus
     /// beginnt dort.
@@ -83,6 +86,7 @@ final class DashboardEditor {
 
     func done() {
         guard let session else { return }
+        lastPageID = session.pageID
         if session.hasChanges { store.settings.dashboardPages = session.pages }
         self.session = nil
         dropPreview = nil
@@ -94,7 +98,8 @@ final class DashboardEditor {
     }
 
     func cancel() {
-        guard session != nil else { return }
+        guard let current = session else { return }
+        lastPageID = current.pageID
         session = nil
         dropPreview = nil
         draggedKind = nil

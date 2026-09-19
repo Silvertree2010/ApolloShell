@@ -88,7 +88,12 @@ final class Dashboard {
                 drawer.open(on: screen)
             }
         }
-        editor.onEnd = { [weak drawer] in
+        editor.onEnd = { [weak drawer, model, settings, editor] in
+            // Auf der zuletzt bearbeiteten Seite bleiben (gibt es sie nach
+            // „Abbrechen“ nicht mehr, nimmt `resolvedPage` die erste).
+            if let id = editor.lastPageID, settings.settings.dashboardPages?.page(id: id) != nil {
+                model.pageID = id
+            }
             // Entpinnen allein - das Fenster bleibt offen, bis die Maus
             // hinausgeht oder woanders hingeklickt wird, wie ein normal
             // geoeffnetes Dashboard.
