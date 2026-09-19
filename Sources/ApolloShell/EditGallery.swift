@@ -252,7 +252,7 @@ struct EditGalleryView: View {
                 ScrollView {
                     galleryGrid
                 }
-                .frame(height: 176)
+                .frame(height: 200)
             }
 
             if let notice = editor.galleryNotice {
@@ -352,10 +352,16 @@ private struct EditGalleryTile: View {
             Image(systemName: symbol)
                 .font(.system(size: 20, weight: .medium))
                 .frame(height: 24)
+            // Zwei Zeilen statt abgeschnitten: „Apps ausblenden“, „Wetter-
+            // uebersicht“ usw. passen in 8 Spalten nicht auf eine Zeile
+            // (Live-Test 19.09.: Titel stiessen an den Kachelrand). Immer
+            // zwei Zeilen Platz, damit alle Kacheln gleich hoch bleiben.
             Text(title)
                 .font(.caption.weight(.medium))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .multilineTextAlignment(.center)
+                .lineLimit(2, reservesSpace: true)
+                .minimumScaleFactor(0.9)
+                .padding(.horizontal, 5)
             if let detail {
                 Text(detail)
                     .font(.caption2)
