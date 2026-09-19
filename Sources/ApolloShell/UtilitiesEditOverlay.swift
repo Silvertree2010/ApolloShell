@@ -192,6 +192,16 @@ private struct EditableToggleTile: View {
 
     private var phase: Double { Double(abs(entry.id.hashValue) % 260) / 1000 }
     private var isSelected: Bool { editor.selectedToggleID == entry.id }
+    /// Popover nur fuer Knoepfe mit echten Optionen (App, Link, Kurzbefehl,
+    /// Apps ausblenden) - bei WLAN & Co. zeigte es nur Titel und
+    /// Beschreibung und stand bei jedem Klick im Weg (Live-Test 19.09.).
+    private var showsOptions: Bool {
+        guard isSelected, !isDeleting else { return false }
+        switch entry.kind {
+        case .openApp, .openLink, .runShortcut, .hideApps: return true
+        default: return false
+        }
+    }
 
     var body: some View {
         Button {
@@ -235,15 +245,10 @@ private struct EditableToggleTile: View {
         .accessibilityLabel(UtilitiesEditorText.title(entry))
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
         .popover(isPresented: Binding(
-            get: { isSelected },
+            get: { showsOptions },
             set: { if !$0 { editor.selectedToggleID = nil } }
         ), arrowEdge: .trailing) {
-            Form {
-                UtilitiesToggleOptionsView(editor: editor, entry: entry) { editor.selectedToggleID = nil }
-            }
-            .formStyle(.grouped)
-            .frame(width: 280)
-            .frame(minHeight: 120, maxHeight: 420)
+            UtilitiesToggleOptionsView(editor: editor, entry: entry) { editor.selectedToggleID = nil }
         }
     }
 
@@ -261,6 +266,7 @@ private struct EditableToggleTile: View {
     private var minusBadge: some View {
         Button {
             withAnimation(.easeOut(duration: 0.18)) { isDeleting = true }
+            if isSelected { editor.selectedToggleID = nil }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { editor.removeToggle(entry.id) }
         } label: {
             Image(systemName: "minus")
@@ -287,11 +293,29 @@ struct UtilitiesToggleOptionsView: View {
     /// Auf `editor.pickingShortcut` statt View-lokal (Task 6): Esc soll den
     /// Picker als innerstes Element zuerst schliessen koennen, bevor es das
     /// Popover selbst trifft (`ShellEditor.handleEscape`).
-    private var picksShortcut: Binding<Bool> {
-        Binding(get: { editor.pickingShortcut }, set: { editor.pickingShortcut = $0 })
-    }
 
     var body: some View {
+        // Kurzbefehl-Auswahl direkt im Popover statt als `.sheet`: ein Sheet
+        // an einem Popover eines randlosen, nicht aktivierenden Panels
+        // erschien nicht verlaesslich. Esc (`ShellEditor.handleEscape`) und
+        // „Abbrechen“ fuehren zurueck zu den Optionen.
+        if editor.pickingShortcut, case .runShortcut(let shortcut) = entry.toggle {
+            UtilitiesShortcutPicker(current: shortcut, onPick: { picked in
+                update(.runShortcut(with(shortcut) {
+                    $0.name = picked.name
+                    $0.identifier = picked.identifier
+                }))
+                editor.pickingShortcut = false
+            }, onCancel: { editor.pickingShortcut = false })
+        } else {
+            Form { optionsSection }
+                .formStyle(.grouped)
+                .frame(width: 280)
+                .frame(minHeight: 120, maxHeight: 420)
+        }
+    }
+
+    private var optionsSection: some View {
         Section {
             HStack(spacing: 10) {
                 UtilitiesEditorGlyphTile(icon: UtilitiesEditorText.icon(entry), tint: entry.kind.group.tint, size: 30)
@@ -382,15 +406,6 @@ struct UtilitiesToggleOptionsView: View {
                 .lineLimit(1)
             Spacer(minLength: 8)
             Button("Kurzbefehl wählen …") { editor.pickingShortcut = true }
-        }
-        .sheet(isPresented: picksShortcut) {
-            UtilitiesShortcutPicker(current: shortcut, onPick: { picked in
-                update(.runShortcut(with(shortcut) {
-                    $0.name = picked.name
-                    $0.identifier = picked.identifier
-                }))
-                editor.pickingShortcut = false
-            }, onCancel: { editor.pickingShortcut = false })
         }
     }
 
