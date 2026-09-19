@@ -228,6 +228,8 @@ private final class EditModeSelfTestHarness {
               "Rueckfrage: Werkzeugleiste waechst mit und bleibt auf dem Bildschirm")
         editor.debugEscape()
         check(!editor.pendingCancelConfirmation && editor.isEditing, "Esc 5: Rueckfrage zu, weiter bearbeiten")
+        await wait(0.4)
+        check(windows.debugToolbarFrame?.width == plainToolbar?.width, "Werkzeugleiste schrumpft danach wieder")
         editor.debugEscape()
         await wait(0.4)
         // „Verwerfen“ ist der rechte Knopf der Rueckfrage.
