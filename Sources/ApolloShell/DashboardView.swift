@@ -34,6 +34,7 @@ struct DashboardView: View {
     static let motion = Animation.shellSpatial
     /// Mindestbreite eines Reiters in der scrollenden Leiste (viele Seiten).
     static let tabWidth: CGFloat = 96
+    static let rootSpace = "dashboardRoot"
 
     /// Die Seiten - waehrend einer Bearbeitung deren Arbeitskopie, sonst aus
     /// den Einstellungen, sonst (noch nicht migriert, etwa in Nexus vor dem
@@ -56,6 +57,9 @@ struct DashboardView: View {
             content(pages: pages, selected: selected)
                 .scaleEffect(model.scale, anchor: .topLeading)
         }
+        // Bezugsraum der ganzen Ansicht (oben links, skaliert) - nur fuer den
+        // Selbsttest des Bearbeitungsmodus (`debugPageRectInHost`).
+        .coordinateSpace(name: Self.rootSpace)
         // Ein Wechsel der gezeigten Widgets (Seitenwechsel - auch aus
         // `Dashboard.show(tab:)` oder waehrend einer Bearbeitung -, oder ein
         // abgelegtes/entferntes Widget auf derselben Seite) zieht nach, ob
@@ -277,7 +281,7 @@ struct DashboardView: View {
 /// das skaliert gezeichnete Ergebnis, ohne die unskalierte Groesse von
 /// aussen kennen zu muessen - und bei `scale == 1` bitgleich mit
 /// `.fixedSize()` allein.
-private struct ScaledToFit: Layout {
+struct ScaledToFit: Layout {
     let scale: CGFloat
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {

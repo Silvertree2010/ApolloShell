@@ -128,6 +128,10 @@ final class DashboardEditor {
     /// nicht nach dem Ziehen (`EditableWidgetView.showsOptions`). Reine
     /// UI-Anzeige wie `dropPreview`.
     var optionsWidgetID: WidgetInstance.ID?
+    #if DEBUG
+    /// Selbsttest: Rahmen der Seite im Hosting-View (oben links, skaliert).
+    @ObservationIgnored var debugPageRectInHost: CGRect?
+    #endif
 
     // MARK: - Seiten (Seitenleiste beim Bearbeiten, Task 4)
 

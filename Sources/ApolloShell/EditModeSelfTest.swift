@@ -1,6 +1,7 @@
 #if DEBUG
 import AppKit
 import ApolloShellCore
+import SwiftUI
 
 /// Unsichtbarer Selbsttest des globalen Bearbeitungsmodus:
 /// `ApolloShell --selftest-edit <Datei>` baut Dashboard, Kontrollzentrum und
@@ -82,7 +83,53 @@ private final class EditModeSelfTestHarness {
         return "(\(Int(rect.minX)),\(Int(rect.minY)) \(Int(rect.width))x\(Int(rect.height)))"
     }
 
+    /// Messaufbau fuer Gesten unter `scaleEffect`: dieselbe Struktur wie das
+    /// Dashboard (`ScaledToFit` + `scaleEffect` um oben links, benannter
+    /// Bezugsraum innen), Massstab 2, ein Feld an bekannter Stelle. Ein Zug
+    /// ueber 200 Fensterpunkte muss im Bezugsraum 100 ergeben.
+    private func probeScaledDrag() async {
+        var translation: CGSize?
+        var location: CGPoint?
+        let view = ScaledToFit(scale: 2) {
+            ZStack(alignment: .topLeading) {
+                Color.blue.frame(width: 50, height: 50)
+                    .padding(.leading, 20).padding(.top, 20)
+                    .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .named("probe"))
+                        .onEnded { value in
+                            translation = value.translation
+                            location = value.startLocation
+                        })
+            }
+            .frame(width: 200, height: 100, alignment: .topLeading)
+            .coordinateSpace(name: "probe")
+            .scaleEffect(2, anchor: .topLeading)
+        }
+        let hosting = FirstMouseHostingView(rootView: view)
+        let panel = ShellPanel(size: hosting.fittingSize, level: .normal, behavior: [.canJoinAllSpaces])
+        panel.contentView = hosting
+        panel.setFrameOrigin(NSPoint(x: 100, y: 100))
+        panel.orderFrontRegardless()
+        await wait(0.2)
+        note("Messaufbau: Fenster \(r(panel.frame)), Host \(r(hosting.frame))")
+        func send(_ type: NSEvent.EventType, _ p: CGPoint) {
+            let loc = hosting.convert(NSPoint(x: p.x, y: p.y), to: nil)
+            if let e = NSEvent.mouseEvent(with: type, location: loc, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                          windowNumber: panel.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1) {
+                panel.sendEvent(e)
+            }
+        }
+        send(.leftMouseDown, CGPoint(x: 90, y: 90))
+        for step in 1...8 { send(.leftMouseDragged, CGPoint(x: 90 + 25 * CGFloat(step), y: 90)) }
+        send(.leftMouseUp, CGPoint(x: 290, y: 90))
+        await wait(0.2)
+        note("Messaufbau: Zug 200 Fensterpunkte → Uebersetzung \(translation.map { "\($0.width)" } ?? "keine Geste"), Start \(location.map { "\($0)" } ?? "-")")
+        check(translation.map { abs($0.width - 100) < 1 } ?? false,
+              "Gesten unter scaleEffect rechnen im unskalierten Bezugsraum (erwartet 100)")
+        panel.orderOut(nil)
+    }
+
     private func scenario() async {
+        await probeScaledDrag()
         for screen in NSScreen.screens {
             note("Bildschirm \(r(screen.frame)), sichtbar \(r(screen.visibleFrame))")
         }
@@ -111,6 +158,13 @@ private final class EditModeSelfTestHarness {
         }
         if let toolbar, let dashboardFrame {
             check(!toolbar.intersects(dashboardFrame), "Werkzeugleiste frei vom Dashboard")
+        }
+        // Passt der Inhalt des Kontrollzentrums im Bearbeiten ins Panel?
+        if let layout = editor.utilities?.layout {
+            let content = NSHostingView(rootView: EditableUtilitiesView(editor: editor, layout: layout).shellTheme(nil))
+            let needed = content.fittingSize.height
+            check(needed <= utilities.height + 1,
+                  "Kontrollzentrum im Bearbeiten passt ins Panel (Inhalt \(Int(needed)), Panel \(Int(utilities.height)))")
         }
         let levels = windows.debugLevels
         let drawerLevels = [dashboard.debugLevel, utilities.debugLevel].compactMap { $0 }
@@ -149,6 +203,24 @@ private final class EditModeSelfTestHarness {
         }
         let clock = dashboardEditor.addAtFirstFreeSpot(.clock)
         check(clock != nil, "Uhr auf neuer Seite eingefuegt")
+        // Ziehen bei Massstab ≠ 1: die Uhr um 100 Referenzpunkte nach rechts.
+        await wait(0.3)
+        if let clock, let before = dashboardEditor.page?.widgets.first(where: { $0.id == clock })?.frame,
+           let page = dashboardEditor.debugPageRectInHost {
+            let scale = dashboard.debugScale
+            let start = CGPoint(x: page.minX + (before.x + before.width / 2) * scale,
+                                y: page.minY + (before.y + before.height / 2) * scale)
+            note("Seite im Host \(r(page)), Start \(Int(start.x)),\(Int(start.y)), Massstab \(scale)")
+            dashboardEditor.selectedWidgetID = nil
+            dashboard.debugDrag(from: start, to: CGPoint(x: start.x + 100 * scale, y: start.y))
+            await wait(0.4)
+            note("nach dem Zug gewaehlt: \(dashboardEditor.selectedWidgetID == clock ? "die Uhr" : String(describing: dashboardEditor.selectedWidgetID))")
+            let after = dashboardEditor.page?.widgets.first(where: { $0.id == clock })?.frame
+            check(after.map { abs($0.x - (before.x + 100)) <= 1 && $0.y == before.y } ?? false,
+                  "Ziehen bei Massstab \(String(format: "%.3f", scale)): 100 Punkte werden 100 (vorher x \(Int(before.x)), nachher \(after.map { String(Int($0.x)) } ?? "-"))")
+        } else {
+            check(false, "Ziehen: Seite oder Uhr nicht gefunden")
+        }
         let toggle = editor.addToggle(.openLink)
         check(toggle != nil, "Knopf „Link öffnen“ im Kontrollzentrum eingefuegt")
         // „Fertig“ per Klick: rechter Knopf der Werkzeugleiste.

@@ -302,6 +302,26 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     var openFrame: NSRect? { isOpen ? builtPanel?.frame : nil }
     #if DEBUG
     var debugLevel: Int? { builtPanel?.level.rawValue }
+
+    /// Selbsttest: ein Zug mit der linken Taste direkt an dieses Fenster,
+    /// Punkte im Hosting-View von oben links (wie SwiftUIs `.global`).
+    func debugDrag(from start: CGPoint, to end: CGPoint, steps: Int = 8) {
+        guard let panel = builtPanel, let hosting else { return }
+        func event(_ type: NSEvent.EventType, _ point: CGPoint) -> NSEvent? {
+            let location = hosting.convert(NSPoint(x: point.x, y: point.y), to: nil)
+            return NSEvent.mouseEvent(with: type, location: location, modifierFlags: [],
+                                      timestamp: ProcessInfo.processInfo.systemUptime,
+                                      windowNumber: panel.windowNumber, context: nil,
+                                      eventNumber: 0, clickCount: 1, pressure: 1)
+        }
+        if let down = event(.leftMouseDown, start) { panel.sendEvent(down) }
+        for step in 1...steps {
+            let t = CGFloat(step) / CGFloat(steps)
+            let point = CGPoint(x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t)
+            if let drag = event(.leftMouseDragged, point) { panel.sendEvent(drag) }
+        }
+        if let up = event(.leftMouseUp, end) { panel.sendEvent(up) }
+    }
     #endif
 
     /// Tastatur holen, solange offen - z. B. fuer das Umbenennen einer Seite

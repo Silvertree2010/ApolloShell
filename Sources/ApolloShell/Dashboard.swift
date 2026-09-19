@@ -125,6 +125,8 @@ final class Dashboard {
     #if DEBUG
     var debugLevel: Int? { drawer.debugLevel }
     func debugClose() { drawer.close() }
+    var debugScale: CGFloat { model.scale }
+    func debugDrag(from start: CGPoint, to end: CGPoint) { drawer.debugDrag(from: start, to: end) }
     #endif
 
     /// Fuer `ShellEditor.dashboardStartPageID`: die Seite, die gerade offen

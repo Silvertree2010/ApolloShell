@@ -38,6 +38,15 @@ struct BentoPageView: View {
                    alignment: .topLeading)
             .coordinateSpace(name: Self.coordinateSpaceName)
             .contentShape(Rectangle())
+            #if DEBUG
+            .background {
+                GeometryReader { geometry in
+                    Color.clear
+                        .onAppear { editor.debugPageRectInHost = geometry.frame(in: .named(DashboardView.rootSpace)) }
+                        .onChange(of: geometry.frame(in: .named(DashboardView.rootSpace))) { _, rect in editor.debugPageRectInHost = rect }
+                }
+            }
+            #endif
             // `ImageRenderer` (Bildproben) zeichnet das AppKit-hinterlegte
             // Ablegeziel offscreen nicht (rotes Verbotszeichen statt der
             // Seite, gemessen 18.09.) - in `RenderMode` bleibt es darum weg;
