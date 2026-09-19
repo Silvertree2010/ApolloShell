@@ -101,6 +101,13 @@ the file applies it at once, and anything that could not be read falls back
 to the built-in value and is listed on that page. The format and every token
 are in [docs/THEMES.md](docs/THEMES.md).
 
+The same shell, three themes. Colours, fonts, corners, sidebar width and dock
+size all come out of the theme file.
+
+| Afterglow | Marble | Tide |
+| --- | --- | --- |
+| <img src="docs/images/theme-afterglow.jpg" alt="Dark navy theme with coral accents, dashboard and launcher open"> | <img src="docs/images/theme-marble.jpg" alt="Light grey theme with a serif font, dashboard and control centre open"> | <img src="docs/images/theme-tide.jpg" alt="Indigo theme with round corners, weather page open"> |
+
 ## Updates
 
 The `.dmg` build keeps itself up to date: it checks once a day in the
