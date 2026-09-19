@@ -6,7 +6,16 @@ import Foundation
 public struct UtilitiesEditSession: Equatable, Sendable {
     public let original: UtilitiesLayout
     public private(set) var layout: UtilitiesLayout
-    public var selectedToggleID: String?
+    public var selectedToggleID: String? {
+        didSet {
+            guard selectedToggleID != oldValue else { return }
+            pickingShortcut = false
+        }
+    }
+    /// Ob der Kurzbefehl-Picker des gewaehlten Knopfs offen ist (Task 6, Esc
+    /// schliesst ihn zuerst) - reine UI-Anzeige wie `selectedToggleID`, nicht
+    /// Teil der Kontrollzentrum-Arbeitskopie selbst.
+    public var pickingShortcut = false
 
     public init(layout: UtilitiesLayout) {
         original = layout

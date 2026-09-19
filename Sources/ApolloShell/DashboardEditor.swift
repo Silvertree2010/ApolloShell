@@ -39,6 +39,17 @@ final class DashboardEditor {
     /// Ziels wieder aufleben zu lassen.
     var dropGeneration = 0
 
+    /// Seite, deren Name gerade als Textfeld in der Leiste steht
+    /// (Kontextmenue „Umbenennen“, Task 4) - reine UI-Anzeige wie
+    /// `dropPreview`, nicht Teil der Sitzung. Hier statt als View-lokaler
+    /// Zustand, damit `ShellEditor.handleEscape` (globales Esc, Task 6) das
+    /// Textfeld als erstes schliessen kann, bevor Esc die Galerie oder die
+    /// Bearbeitung selbst trifft.
+    var renamingPageID: DashboardPage.ID?
+    /// Seite mit offener Loesch-Rueckfrage (Kontextmenue „Löschen“) - aus
+    /// demselben Grund hier statt View-lokal.
+    var pendingDeletePageID: DashboardPage.ID?
+
     init(store: ShellSettingsStore) {
         self.store = store
     }
@@ -51,6 +62,8 @@ final class DashboardEditor {
         dropPreview = nil
         draggedKind = nil
         dropGeneration += 1
+        renamingPageID = nil
+        pendingDeletePageID = nil
         onBegin(screen)
     }
 
@@ -61,6 +74,8 @@ final class DashboardEditor {
         dropPreview = nil
         draggedKind = nil
         dropGeneration += 1
+        renamingPageID = nil
+        pendingDeletePageID = nil
         onEnd()
     }
 
@@ -70,6 +85,8 @@ final class DashboardEditor {
         dropPreview = nil
         draggedKind = nil
         dropGeneration += 1
+        renamingPageID = nil
+        pendingDeletePageID = nil
         onEnd()
     }
 
@@ -79,6 +96,7 @@ final class DashboardEditor {
         get { session?.pageID }
         set {
             guard let newValue else { return }
+            if newValue != session?.pageID { renamingPageID = nil }
             session?.pageID = newValue
         }
     }

@@ -284,7 +284,12 @@ struct UtilitiesToggleOptionsView: View {
     let editor: ShellEditor
     let entry: UtilitiesToggleEntry
     let onDeselect: () -> Void
-    @State private var picksShortcut = false
+    /// Auf `editor.pickingShortcut` statt View-lokal (Task 6): Esc soll den
+    /// Picker als innerstes Element zuerst schliessen koennen, bevor es das
+    /// Popover selbst trifft (`ShellEditor.handleEscape`).
+    private var picksShortcut: Binding<Bool> {
+        Binding(get: { editor.pickingShortcut }, set: { editor.pickingShortcut = $0 })
+    }
 
     var body: some View {
         Section {
@@ -376,16 +381,16 @@ struct UtilitiesToggleOptionsView: View {
                 .foregroundStyle(shortcut.name.isEmpty ? .secondary : .primary)
                 .lineLimit(1)
             Spacer(minLength: 8)
-            Button("Kurzbefehl wählen …") { picksShortcut = true }
+            Button("Kurzbefehl wählen …") { editor.pickingShortcut = true }
         }
-        .sheet(isPresented: $picksShortcut) {
+        .sheet(isPresented: picksShortcut) {
             UtilitiesShortcutPicker(current: shortcut, onPick: { picked in
                 update(.runShortcut(with(shortcut) {
                     $0.name = picked.name
                     $0.identifier = picked.identifier
                 }))
-                picksShortcut = false
-            }, onCancel: { picksShortcut = false })
+                editor.pickingShortcut = false
+            }, onCancel: { editor.pickingShortcut = false })
         }
     }
 

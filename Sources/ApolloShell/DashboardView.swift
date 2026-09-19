@@ -24,10 +24,6 @@ struct DashboardView: View {
     let editor: DashboardEditor
     @Namespace private var tabIndicator
     @Environment(\.shellStyle) private var style
-    /// Seite, deren Name gerade als Textfeld in der Leiste steht
-    /// (Kontextmenue „Umbenennen“, Task 4). Nur waehrend `editor.isEditing`.
-    @State private var renamingPageID: DashboardPage.ID?
-    @State private var pendingDeletePageID: DashboardPage.ID?
 
     static let padding: CGFloat = 16
     static let spacing = CGFloat(DashboardGeometry.spacing)
@@ -65,7 +61,6 @@ struct DashboardView: View {
         // abgelegtes/entferntes Widget auf derselben Seite) zieht nach, ob
         // die Leistungs-Messung laufen soll, und startet die Wetter-Modelle
         // der jetzt gezeigten Wetter-Widgets neu, solange offen.
-        .onChange(of: selected.id) { _, _ in renamingPageID = nil }
         .onChange(of: PageWidgetsKey(page: selected), initial: true) { _, key in
             model.showsPerformance = key.kinds.contains { $0.isPerformance }
             if model.isOpen {
@@ -101,13 +96,13 @@ struct DashboardView: View {
         .fixedSize()
         // Loeschen mit Rueckfrage (Kontextmenue eines Seitenreiters, Task 4):
         // nie die letzte Seite, siehe `canDeletePage`.
-        .alert("Seite löschen?", isPresented: Binding(get: { pendingDeletePageID != nil },
-                                                       set: { if !$0 { pendingDeletePageID = nil } })) {
+        .alert("Seite löschen?", isPresented: Binding(get: { editor.pendingDeletePageID != nil },
+                                                       set: { if !$0 { editor.pendingDeletePageID = nil } })) {
             Button("Löschen", role: .destructive) {
-                if let id = pendingDeletePageID { editor.removePage(id) }
-                pendingDeletePageID = nil
+                if let id = editor.pendingDeletePageID { editor.removePage(id) }
+                editor.pendingDeletePageID = nil
             }
-            Button("Abbrechen", role: .cancel) { pendingDeletePageID = nil }
+            Button("Abbrechen", role: .cancel) { editor.pendingDeletePageID = nil }
         } message: {
             Text("Ihre Widgets gehen dabei verloren.")
         }
@@ -195,7 +190,7 @@ struct DashboardView: View {
                 .font(style.font(size: 16, weight: .medium))
                 .symbolVariant(page.id == selected.id ? .fill : .none)
                 .frame(width: 18, height: 18)
-                if editor.isEditing, renamingPageID == page.id {
+                if editor.isEditing, editor.renamingPageID == page.id {
                     TextField("Name", text: Binding(
                         get: { page.name },
                         set: { editor.renamePage(page.id, to: $0) }
@@ -204,7 +199,7 @@ struct DashboardView: View {
                     .font(style.font(size: 12, weight: .medium))
                     .multilineTextAlignment(.center)
                     .focused($renameFieldFocused)
-                    .onSubmit { renamingPageID = nil }
+                    .onSubmit { editor.renamingPageID = nil }
                     .onAppear { renameFieldFocused = true }
                 } else {
                     Text(page.name).font(style.font(size: 12, weight: .medium)).lineLimit(1)
@@ -230,7 +225,7 @@ struct DashboardView: View {
         // damit das Menue nicht bei jeder Seite anders aussieht).
         .contextMenu {
             if editor.isEditing {
-                Button("Umbenennen") { renamingPageID = page.id }
+                Button("Umbenennen") { editor.renamingPageID = page.id }
                 Menu("Symbol") {
                     ForEach(nexusPageSymbols, id: \.self) { symbol in
                         Button {
@@ -241,7 +236,7 @@ struct DashboardView: View {
                     }
                 }
                 Button("Duplizieren") { editor.duplicatePage(page.id) }
-                Button("Löschen", role: .destructive) { pendingDeletePageID = page.id }
+                Button("Löschen", role: .destructive) { editor.pendingDeletePageID = page.id }
                     .disabled((editor.session?.pages.pages.count ?? 0) <= 1)
             }
         }

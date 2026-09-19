@@ -171,14 +171,31 @@ final class ShellEditor {
 
     // MARK: - Esc (Task 6)
 
-    /// Galerie offen? die schliessen. Sonst mit Aenderungen erst nachfragen
-    /// (`pendingCancelConfirmation`, die Werkzeugleiste zeigt die Nachfrage),
-    /// ohne welche gleich abbrechen. Ein zweites Esc waehrend der Nachfrage
-    /// verwirft nur die Nachfrage selbst (man kann sich umentscheiden, ohne
-    /// gleich die Maus zu bemuehen).
+    /// Eigenes globales Kuerzel statt eines lokalen `onExitCommand`
+    /// (Kommentar oben bei `escapeHotKey`) - es faengt Esc darum auch dann ab,
+    /// wenn gerade ein Seitenname umbenannt wird, ein Optionen-Popover offen
+    /// ist, der Kurzbefehl-Picker steht oder eine Loesch-Rueckfrage zeigt.
+    /// Ohne diese Prüfungen wuerde Esc dort sofort die Galerie/Bearbeitung
+    /// treffen, statt zuerst das innerste dieser Elemente zu schliessen -
+    /// deshalb zuerst der Reihe nach das Innerste zu (Kurzbefehl-Picker vor
+    /// dem Popover, das ihn zeigt; Umbenennen und Loesch-Rueckfrage
+    /// unabhaengig davon), dann die Galerie, erst danach Rueckfrage/Abbruch
+    /// der ganzen Bearbeitung. Ein zweites Esc waehrend der
+    /// Abbruch-Rueckfrage verwirft nur die Rueckfrage selbst (man kann sich
+    /// umentscheiden, ohne gleich die Maus zu bemuehen).
     private func handleEscape() {
         guard isEditing else { return }
-        if galleryVisible {
+        if pickingShortcut {
+            pickingShortcut = false
+        } else if dashboard.selectedWidgetID != nil {
+            dashboard.selectedWidgetID = nil
+        } else if selectedToggleID != nil {
+            selectedToggleID = nil
+        } else if dashboard.renamingPageID != nil {
+            dashboard.renamingPageID = nil
+        } else if dashboard.pendingDeletePageID != nil {
+            dashboard.pendingDeletePageID = nil
+        } else if galleryVisible {
             galleryVisible = false
         } else if pendingCancelConfirmation {
             pendingCancelConfirmation = false
@@ -242,5 +259,11 @@ final class ShellEditor {
     var selectedToggleID: String? {
         get { utilities?.selectedToggleID }
         set { utilities?.selectedToggleID = newValue }
+    }
+
+    /// Ob der Kurzbefehl-Picker des gewaehlten Knopfs offen ist (Task 6).
+    var pickingShortcut: Bool {
+        get { utilities?.pickingShortcut ?? false }
+        set { utilities?.pickingShortcut = newValue }
     }
 }
