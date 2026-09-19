@@ -11,6 +11,18 @@ struct ThemeResolveTests {
         theme.issues.contains { match($0.kind) }
     }
 
+    @Test("Erscheinungsbild: light/dark aus dem Theme, sonst auto", arguments: [
+        (":root { --apollo-theme-appearance: light; }", ThemeAppearance.light),
+        (":root { --apollo-theme-appearance: dark; }", .dark),
+        (":root { --apollo-theme-appearance: auto; }", .auto),
+        (":root { --apollo-accent-color: #ff0000; }", .auto),
+        (":root { --apollo-theme-appearance: sepia; }", .auto),
+    ])
+    func appearance(css: String, expected: ThemeAppearance) {
+        #expect(ThemeAppearance(theme: theme(css)) == expected)
+        #expect(ThemeAppearance(theme: .standard) == .auto)
+    }
+
     @Test("fehlendes Token: bleibt leer, die App nimmt dann die Systemwerte")
     func missingToken() {
         let theme = theme(":root { --apollo-accent-color: #ff0000; }")

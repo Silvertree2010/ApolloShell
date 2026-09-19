@@ -75,6 +75,7 @@ final class ThemeStore {
 
     /// Liest den Ordner und das gewaehlte Theme neu.
     func reload() {
+        defer { applyAppearance() }
         available = ThemeLoader.themes(in: folder)
         guard let name = settings.settings.theme.name else {
             theme = .standard
@@ -95,6 +96,24 @@ final class ThemeStore {
         if !found.issues.isEmpty {
             log.notice("Theme \(name, privacy: .public): \(found.issues.count) Hinweis(e)")
         }
+    }
+
+    /// `--apollo-theme-appearance`: ein helles oder dunkles Theme stellt die
+    /// ganze Shell darauf ein (`NSApp.appearance`), unabhaengig davon, was
+    /// macOS gerade zeigt. Vorher las die Shell das Token nicht: rund 117
+    /// Stellen nehmen die Systemschrift (.primary/.secondary), und auf einem
+    /// dunklen Mac war die auf den hellen Flaechen von Latte, Dawn oder Paper
+    /// weiss und unlesbar. Glas und Systemfarben folgen dem Erscheinungsbild
+    /// von selbst. `auto` laesst es beim System.
+    private func applyAppearance() {
+        let wanted: NSAppearance? = switch ThemeAppearance(theme: theme) {
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        case .auto: nil
+        }
+        guard NSApp.appearance?.name != wanted?.name else { return }
+        NSApp.appearance = wanted
+        log.notice("Erscheinungsbild aus dem Theme: \(wanted?.name.rawValue ?? "System", privacy: .public)")
     }
 
     /// Kopiert eine .css oder einen Theme-Ordner in den Theme-Ordner und
