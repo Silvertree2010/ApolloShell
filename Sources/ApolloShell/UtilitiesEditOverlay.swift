@@ -504,10 +504,26 @@ private struct UtilitiesCardDropModifier: ViewModifier {
 /// (bleibt an ihrem Platz), von einer anderen Karte ihr Platz - wie
 /// SwiftUIs `onMove` (Ziel vor dem Verschieben gezaehlt, `moveCards`
 /// rechnet genauso).
+///
+/// `validateDrop` nimmt nur reinen Text an (Kacheln und Kacheln-Nutzlasten
+/// sind alle `.plainText`) - eine schaerfere Prüfung nach Karte/Schnellschalter
+/// braucht die geladene Zeichenkette, die `NSItemProvider` erst asynchron
+/// liefert, `validateDrop` aber synchron entscheiden muss. `performDrop`
+/// erkennt darum selbst alle drei Faelle: eine Kachel aus der Galerie, eine
+/// bestehende Karte zum Verschieben - und einen Schnellschalter, der
+/// irgendwo auf einer Karte statt einer eigenen Kachel losgelassen wurde
+/// (`editor.addToggle`, dieselbe Wirkung wie ein Klick in der Galerie).
+/// Vorher gab `performDrop` immer `true` zurueck, auch wenn keiner der ersten
+/// beiden Zweige traf - ein so abgelegter Schnellschalter verschwand darum
+/// wortlos.
 private struct UtilitiesCardDropDelegate: DropDelegate {
     let editor: ShellEditor
     let target: UtilitiesCardKind
     @Binding var targeted: Bool
+
+    func validateDrop(info: DropInfo) -> Bool {
+        info.hasItemsConforming(to: [.plainText])
+    }
 
     func dropEntered(info: DropInfo) { targeted = true }
     func dropExited(info: DropInfo) { targeted = false }
@@ -526,6 +542,11 @@ private struct UtilitiesCardDropDelegate: DropDelegate {
                           let targetIndex = cards.firstIndex(where: { $0.kind == target }) {
                     let destination = sourceIndex < targetIndex ? targetIndex + 1 : targetIndex
                     editor.moveUtilitiesCards(fromOffsets: IndexSet(integer: sourceIndex), toOffset: destination)
+                } else if let kind = UtilitiesToggleDragPayload.kind(from: string) {
+                    // Ein neuer Schnellschalter aus der Galerie, auf einer
+                    // Karte statt einer Kachel abgelegt: dieselbe Wirkung wie
+                    // ein Klick in der Galerie, statt spurlos zu verschwinden.
+                    editor.addToggle(kind)
                 }
             }
         }
