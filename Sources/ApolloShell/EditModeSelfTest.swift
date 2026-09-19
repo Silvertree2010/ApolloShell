@@ -497,6 +497,13 @@ private final class EditModeSelfTestHarness {
             await wait(0.4)
             check(editor.utilities?.layout.toggles.contains { $0.kind == .displaySleep } ?? false,
                   "Galerie Kontrollzentrum: Klick fuegt „Bildschirm aus“ an")
+            // WLAN (4. Kachel, erste Reihe) ist schon da und grau: Klick tut nichts.
+            let wifiCount = editor.utilities?.layout.toggles.filter { $0.kind == .wifi }.count ?? 0
+            windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + 3 * (column + 10) + column / 2,
+                                                           y: 16 + 36 + 12 + 20 + 12 + tileHeight / 2))
+            await wait(0.3)
+            check(editor.utilities?.layout.toggles.filter { $0.kind == .wifi }.count == wifiCount,
+                  "Graue Kachel (WLAN schon da) fuegt nichts ein")
         }
         editor.galleryTab = .dashboard
         await wait(0.3)
