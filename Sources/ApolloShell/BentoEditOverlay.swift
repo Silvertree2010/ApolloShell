@@ -214,6 +214,7 @@ struct EditableWidgetView: View {
                 .font(.system(size: 11, weight: .bold))
                 .frame(width: 22, height: 22)
                 .background(.regularMaterial, in: .circle)
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .offset(x: -11, y: -11)

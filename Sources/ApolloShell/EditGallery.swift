@@ -56,6 +56,8 @@ struct EditToolbarView: View {
                 Image(systemName: "plus")
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 34, height: 34)
+                    // Der ganze Kreis, nicht nur das Pluszeichen.
+                    .contentShape(Circle())
             }
             .buttonStyle(.plain)
             .background(.thinMaterial, in: .circle)
@@ -154,6 +156,9 @@ private struct GallerySurfaceTabs: View {
                 .background {
                     if isSelected { Capsule().fill(style.accent) }
                 }
+                // Ganze Kapsel klickbar, auch beim nicht gewaehlten Reiter
+                // (dort ohne Hintergrund - vorher reagierte nur der Text).
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
     }

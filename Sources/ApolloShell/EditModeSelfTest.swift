@@ -442,9 +442,10 @@ private final class EditModeSelfTestHarness {
         // Klick auf „+“ der Werkzeugleiste (18 Rand + halbe Knopfbreite 17,
         // halbe Hoehe) - kommt er an, geht die Galerie auf.
         if let toolbar = windows.debugToolbarFrame {
-            windows.debugClickToolbar(fromTopLeft: NSPoint(x: 35, y: toolbar.height / 2))
+            // Rand des Kreises (12 Punkte neben der Mitte), nicht das Pluszeichen.
+            windows.debugClickToolbar(fromTopLeft: NSPoint(x: 35 - 12, y: toolbar.height / 2 + 5))
             await wait(0.2)
-            check(editor.galleryVisible, "Klick auf + der Werkzeugleiste kommt an")
+            check(editor.galleryVisible, "Klick auf den Rand des +-Kreises kommt an")
         }
         editor.galleryVisible = true
         await wait(0.9)
@@ -469,9 +470,10 @@ private final class EditModeSelfTestHarness {
         }
         // Reiter per Klick: rechte Haelfte der Reiterzeile (16 Rand, 36 hoch).
         if let gallery = windows.debugGalleryFrame {
-            windows.debugClickGallery(fromTopLeft: NSPoint(x: gallery.width * 0.75, y: 16 + 18))
+            // Weit aussen im Reiter, nicht auf dem Text: die ganze Kapsel zaehlt.
+            windows.debugClickGallery(fromTopLeft: NSPoint(x: gallery.width - 16 - 20, y: 16 + 18))
             await wait(0.4)
-            check(editor.galleryTab == .controlCentre, "Klick auf den Reiter „Kontrollzentrum“ wechselt")
+            check(editor.galleryTab == .controlCentre, "Klick aussen in den Reiter „Kontrollzentrum“ (nicht auf den Text) wechselt")
             // Haken „Alle zeigen (erweitert)“ darunter, am linken Rand.
             let before = editor.showsAllInGallery
             windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + 60, y: 16 + 36 + 12 + 10))

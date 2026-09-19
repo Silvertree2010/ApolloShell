@@ -131,6 +131,7 @@ private struct EditableUtilitiesCard: View {
                 .font(.system(size: 11, weight: .bold))
                 .frame(width: 22, height: 22)
                 .background(.regularMaterial, in: .circle)
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .offset(x: -11, y: -11)
@@ -285,6 +286,7 @@ private struct EditableToggleTile: View {
                 .font(.system(size: 10, weight: .bold))
                 .frame(width: 18, height: 18)
                 .background(.regularMaterial, in: .circle)
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .offset(x: -8, y: -6)

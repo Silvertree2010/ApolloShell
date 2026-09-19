@@ -26,6 +26,8 @@ struct UtilitiesSymbolPicker: View {
                         .opacity(current.isEmpty ? 1 : 0)
                     Text(automatic)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
             }
             .buttonStyle(.plain)
             // `Grid` statt `LazyVGrid`: die faule Fassung schaetzte ihre Hoehe
