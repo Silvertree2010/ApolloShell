@@ -94,18 +94,6 @@ struct DashboardView: View {
                 .padding(Self.padding)
         }
         .fixedSize()
-        // Loeschen mit Rueckfrage (Kontextmenue eines Seitenreiters, Task 4):
-        // nie die letzte Seite, siehe `canDeletePage`.
-        .alert("Seite löschen?", isPresented: Binding(get: { editor.pendingDeletePageID != nil },
-                                                       set: { if !$0 { editor.pendingDeletePageID = nil } })) {
-            Button("Löschen", role: .destructive) {
-                if let id = editor.pendingDeletePageID { editor.removePage(id) }
-                editor.pendingDeletePageID = nil
-            }
-            Button("Abbrechen", role: .cancel) { editor.pendingDeletePageID = nil }
-        } message: {
-            Text("Ihre Widgets gehen dabei verloren.")
-        }
     }
 
     /// Solange jede Seite mindestens `tabWidth` breit stehen kann, wie
@@ -248,7 +236,11 @@ struct DashboardView: View {
                     }
                 }
                 Button("Duplizieren") { editor.duplicatePage(page.id) }
-                Button("Löschen", role: .destructive) { editor.pendingDeletePageID = page.id }
+                // Ohne Rueckfrage: ein `.alert` haengt als Sheet am randlosen
+                // Kantenfenster am oberen Bildschirmrand und erschien dort
+                // nicht verlaesslich - und die ganze Bearbeitung laesst sich
+                // mit „Abbrechen“ ohnehin zuruecknehmen.
+                Button("Löschen", role: .destructive) { withAnimation(Self.motion) { _ = editor.removePage(page.id) } }
                     .disabled((editor.session?.pages.pages.count ?? 0) <= 1)
             }
         }

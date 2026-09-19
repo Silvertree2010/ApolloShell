@@ -82,7 +82,7 @@ class EditModePanel: ShellPanel {
 final class FloatingGlassPanel<Content: View> {
     private let panel: EditModePanel
     private let glass: NSGlassEffectView
-    private let hosting: NSHostingView<AnyView>
+    private let hosting: FirstMouseHostingView<AnyView>
     private var panelLayer: CAGradientLayer?
     /// Wie `EdgeDrawer.generation`: ein schnelles Aus-dann-wieder-Ein (Modus
     /// verlassen, sofort neu begonnen) darf das verspaetete `orderOut` des
@@ -94,7 +94,13 @@ final class FloatingGlassPanel<Content: View> {
         panel = EditModePanel(level: level, takesKeyboard: takesKeyboard)
         let glass = NSGlassEffectView()
         glass.cornerRadius = cornerRadius
-        let hosting = NSHostingView(rootView: AnyView(content().shellTheme()))
+        // `FirstMouseHostingView` wie Leiste, Toasts und Kantenfenster: das
+        // Panel wird nie Schluesselfenster (`takesKeyboard: false`), und ein
+        // normales `NSHostingView` verschluckt dann den ersten Klick - bei
+        // einem Fenster, das nie Schluessel wird, praktisch jeden. Knoepfe
+        // der Werkzeugleiste und das Ziehen aus der Galerie reagierten sonst
+        // nicht (Live-Test 19.09.).
+        let hosting = FirstMouseHostingView(rootView: AnyView(content().shellTheme()))
         hosting.sizingOptions = [.intrinsicContentSize]
         glass.contentView = hosting
         panel.contentView = glass

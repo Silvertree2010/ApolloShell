@@ -46,6 +46,19 @@ extension WidgetKind {
     }
 }
 
+extension WidgetKind {
+    /// Ob das Optionen-Popover etwas zu zeigen hat - Leistungs-Widgets und
+    /// die Wiedergabe haben keine Optionen; ein leeres Popover waere nur im
+    /// Weg (Live-Test 19.09.).
+    var hasEditOptions: Bool {
+        switch self {
+        case .weather, .weatherHero, .weatherHourly, .weatherDaily, .user, .clock, .calendar, .resources, .media: true
+        case .performanceCPU, .performanceGPU, .performanceStorage, .performanceNetwork, .performanceMemory,
+             .performanceBattery, .mediaPlayer: false
+        }
+    }
+}
+
 /// Ueberschreibt `accessibilityReduceMotion` (systemweit, nicht setzbar) fuer
 /// Bildproben (`RenderMode --render-dashboard`, Ordner `edit/`); `nil` laesst
 /// den echten Systemwert gelten.
@@ -95,6 +108,13 @@ struct EditableWidgetView: View {
     @State private var resizeValid = true
     @State private var isDeleting = false
     @State private var wobble: Double = 0
+    /// Optionen offen: nur nach einem Klick (nicht nach jedem Ziehen - das
+    /// oeffnete sie im Live-Test nach jeder Verschiebung), nur bei Arten mit
+    /// Optionen, nie waehrend des Ziehens oder Entfernens.
+    private var showsOptions: Bool {
+        isSelected && editor.optionsWidgetID == widget.id && widget.kind.hasEditOptions
+            && !isTransforming && !isDeleting
+    }
 
     /// Verschiedene Phasen, damit Widgets nicht im Gleichtakt wackeln.
     private var phase: Double {
@@ -130,13 +150,16 @@ struct EditableWidgetView: View {
             .rotationEffect(.degrees(reduceMotion ? 0 : wobble))
             .opacity(isDeleting ? 0 : 1)
             .scaleEffect(isDeleting ? 0.6 : 1)
-            .offset(x: frame.x, y: frame.y)
-            .zIndex(isSelected || isTransforming ? 1 : 0)
             .gesture(dragGesture)
             // Ein Tipp ohne Zug: `DragGesture` erkennt Bewegungen unter
             // `minimumDistance` gar nicht erst, waehlt also nie aus - ein
-            // eigenes `TapGesture` daneben waehlt ohne zu verschieben.
-            .simultaneousGesture(TapGesture().onEnded { editor.selectedWidgetID = widget.id })
+            // eigenes `TapGesture` daneben waehlt ohne zu verschieben und
+            // oeffnet die Optionen.
+            .simultaneousGesture(TapGesture().onEnded {
+                guard !isDeleting else { return }
+                editor.selectedWidgetID = widget.id
+                editor.optionsWidgetID = widget.id
+            })
             .onAppear { startWobble() }
             .onChange(of: reduceMotion) { _, _ in startWobble() }
             // Optionen des gewaehlten Widgets (Task 4): dieselben Regler wie
@@ -146,8 +169,8 @@ struct EditableWidgetView: View {
             // raeumt `editor.selectedWidgetID` auf, und der Popover haengt
             // nur an `isSelected`.
             .popover(isPresented: Binding(
-                get: { isSelected },
-                set: { if !$0 { editor.selectedWidgetID = nil } }
+                get: { showsOptions },
+                set: { if !$0 { editor.optionsWidgetID = nil } }
             ), arrowEdge: .trailing) {
                 Form {
                     WidgetOptionsView(editor: editor, widget: widget, weatherFile: ShellFiles.live.weather)
@@ -156,6 +179,14 @@ struct EditableWidgetView: View {
                 .frame(width: 280)
                 .frame(minHeight: 120, maxHeight: 420)
             }
+            // Ueber das Layout platziert, nicht mit `.offset`: `.offset`
+            // verschiebt nur die Zeichnung, der Layout-Rahmen bleibt oben
+            // links - das Optionen-Popover zeigte dadurch immer auf die Ecke
+            // der Seite statt auf das Widget (Live-Test 19.09.). Im
+            // Bearbeiten zaehlt Pixelgleichheit nicht.
+            .padding(.leading, frame.x)
+            .padding(.top, frame.y)
+            .zIndex(isSelected || isTransforming ? 1 : 0)
     }
 
     /// Caelestia/Apple: leichtes, staendiges Wackeln, solange man nicht
@@ -176,6 +207,7 @@ struct EditableWidgetView: View {
     private var minusBadge: some View {
         Button {
             withAnimation(.easeOut(duration: 0.18)) { isDeleting = true }
+            if editor.optionsWidgetID == widget.id { editor.optionsWidgetID = nil }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { editor.remove(widget.id) }
         } label: {
             Image(systemName: "minus")
@@ -217,6 +249,7 @@ struct EditableWidgetView: View {
             }
             .onEnded { _ in
                 editor.selectedWidgetID = widget.id
+                editor.optionsWidgetID = nil
                 if let dragFrame, dragValid {
                     editor.commit(widget.id, frame: dragFrame)
                 }
@@ -239,6 +272,7 @@ struct EditableWidgetView: View {
             }
             .onEnded { _ in
                 editor.selectedWidgetID = widget.id
+                editor.optionsWidgetID = nil
                 if let resizeFrame, resizeValid {
                     editor.commit(widget.id, frame: resizeFrame)
                 }

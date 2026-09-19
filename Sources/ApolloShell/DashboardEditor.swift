@@ -46,9 +46,6 @@ final class DashboardEditor {
     /// Textfeld als erstes schliessen kann, bevor Esc die Galerie oder die
     /// Bearbeitung selbst trifft.
     var renamingPageID: DashboardPage.ID?
-    /// Seite mit offener Loesch-Rueckfrage (Kontextmenue „Löschen“) - aus
-    /// demselben Grund hier statt View-lokal.
-    var pendingDeletePageID: DashboardPage.ID?
 
     init(store: ShellSettingsStore) {
         self.store = store
@@ -63,7 +60,7 @@ final class DashboardEditor {
         draggedKind = nil
         dropGeneration += 1
         renamingPageID = nil
-        pendingDeletePageID = nil
+        optionsWidgetID = nil
         onBegin(screen)
     }
 
@@ -75,7 +72,7 @@ final class DashboardEditor {
         draggedKind = nil
         dropGeneration += 1
         renamingPageID = nil
-        pendingDeletePageID = nil
+        optionsWidgetID = nil
         onEnd()
     }
 
@@ -86,7 +83,7 @@ final class DashboardEditor {
         draggedKind = nil
         dropGeneration += 1
         renamingPageID = nil
-        pendingDeletePageID = nil
+        optionsWidgetID = nil
         onEnd()
     }
 
@@ -105,8 +102,15 @@ final class DashboardEditor {
 
     var selectedWidgetID: WidgetInstance.ID? {
         get { session?.selectedWidgetID }
-        set { session?.selectedWidgetID = newValue }
+        set {
+            session?.selectedWidgetID = newValue
+            if newValue == nil { optionsWidgetID = nil }
+        }
     }
+    /// Widget, dessen Optionen-Popover offen ist - nur nach einem Klick,
+    /// nicht nach dem Ziehen (`EditableWidgetView.showsOptions`). Reine
+    /// UI-Anzeige wie `dropPreview`.
+    var optionsWidgetID: WidgetInstance.ID?
 
     // MARK: - Seiten (Seitenleiste beim Bearbeiten, Task 4)
 

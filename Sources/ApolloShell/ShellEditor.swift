@@ -227,8 +227,6 @@ final class ShellEditor {
             selectedToggleID = nil
         } else if dashboard.renamingPageID != nil {
             dashboard.renamingPageID = nil
-        } else if dashboard.pendingDeletePageID != nil {
-            dashboard.pendingDeletePageID = nil
         } else if galleryVisible {
             galleryVisible = false
         } else if pendingCancelConfirmation {

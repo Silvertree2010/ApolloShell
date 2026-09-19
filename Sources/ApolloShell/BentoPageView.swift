@@ -65,7 +65,8 @@ struct BentoPageView: View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
             .strokeBorder(preview.valid ? style.accent : Color.red, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
             .frame(width: preview.frame.width, height: preview.frame.height)
-            .offset(x: preview.frame.x, y: preview.frame.y)
+            .padding(.leading, preview.frame.x)
+            .padding(.top, preview.frame.y)
             .allowsHitTesting(false)
     }
 }
@@ -82,7 +83,7 @@ struct BentoEmptyPage: View {
                     .foregroundStyle(.tertiary)
                 Text("Leere Seite")
                     .font(style.font(size: 15, weight: .semibold))
-                Text("In Nexus bearbeiten")
+                Text("Nexus › Oberfläche bearbeiten")
                     .font(style.font(size: 12))
                     .foregroundStyle(.secondary)
             }
