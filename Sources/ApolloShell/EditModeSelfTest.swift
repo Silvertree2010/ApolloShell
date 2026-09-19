@@ -120,6 +120,13 @@ private final class EditModeSelfTestHarness {
         check(windows.debugPanelLevels.allSatisfy { $0 == levels.scrim || $0 == levels.controls },
               "Panels stehen wirklich auf ihrer Ebene \(windows.debugPanelLevels)")
 
+        // Klick auf „+“ der Werkzeugleiste (18 Rand + halbe Knopfbreite 17,
+        // halbe Hoehe) - kommt er an, geht die Galerie auf.
+        if let toolbar = windows.debugToolbarFrame {
+            windows.debugClickToolbar(fromTopLeft: NSPoint(x: 35, y: toolbar.height / 2))
+            await wait(0.2)
+            check(editor.galleryVisible, "Klick auf + der Werkzeugleiste kommt an")
+        }
         editor.galleryVisible = true
         await wait(0.9)
         let gallery = windows.debugGalleryFrame
@@ -131,11 +138,30 @@ private final class EditModeSelfTestHarness {
         // Aendern und Fertig.
         let pageCount = dashboardEditor.session?.pages.pages.count ?? 0
         dashboardEditor.addPage()
+        // Klick auf die erste Galerie-Kachel (Wetter): 16 Rand + halbe
+        // Spalte, unter Reitern (36) und Haken (≈20) mit 12er Abstaenden.
+        if let gallery = windows.debugGalleryFrame {
+            let column = (gallery.width - 32 - 7 * 10) / 8
+            windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + column / 2, y: 16 + 36 + 12 + 20 + 12 + 30))
+            await wait(0.2)
+            check(dashboardEditor.page?.widgets.contains { $0.kind == .weather } ?? false,
+                  "Klick auf eine Galerie-Kachel fuegt das Widget ein")
+        }
         let clock = dashboardEditor.addAtFirstFreeSpot(.clock)
-        check(clock != nil, "Uhr auf neuer leerer Seite eingefuegt")
+        check(clock != nil, "Uhr auf neuer Seite eingefuegt")
         let toggle = editor.addToggle(.openLink)
         check(toggle != nil, "Knopf „Link öffnen“ im Kontrollzentrum eingefuegt")
-        editor.done()
+        // „Fertig“ per Klick: rechter Knopf der Werkzeugleiste.
+        if let toolbar = windows.debugToolbarFrame {
+            windows.debugClickToolbar(fromTopLeft: NSPoint(x: toolbar.width - 18 - 25, y: toolbar.height / 2))
+            await wait(0.2)
+        }
+        if editor.isEditing {
+            check(false, "Klick auf Fertig kommt an")
+            editor.done()
+        } else {
+            check(true, "Klick auf Fertig kommt an")
+        }
         await wait(0.1)
         check(!editor.isEditing, "Modus endet mit Fertig")
         check(store.settings.dashboardPages?.pages.count == pageCount + 1, "Fertig speichert die neue Seite")

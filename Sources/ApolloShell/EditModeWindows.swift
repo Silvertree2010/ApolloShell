@@ -161,6 +161,22 @@ final class FloatingGlassPanel<Content: View> {
     var frame: NSRect { panel.frame }
     var level: Int { panel.level.rawValue }
 
+    #if DEBUG
+    /// Selbsttest: ein Klick (Druecken, Loslassen) direkt an dieses Fenster,
+    /// `point` in Fensterkoordinaten von oben links - nicht ueber das System,
+    /// die echte Maus bleibt unberuehrt.
+    func debugClick(fromTopLeft point: NSPoint) {
+        let location = NSPoint(x: point.x, y: panel.frame.height - point.y)
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            guard let event = NSEvent.mouseEvent(with: type, location: location, modifierFlags: [],
+                                                 timestamp: ProcessInfo.processInfo.systemUptime,
+                                                 windowNumber: panel.windowNumber, context: nil,
+                                                 eventNumber: 0, clickCount: 1, pressure: 1) else { continue }
+            panel.sendEvent(event)
+        }
+    }
+    #endif
+
     /// Gemessene Groesse des Inhalts (fuer das Platzieren vor dem Zeigen).
     var size: NSSize {
         hosting.layoutSubtreeIfNeeded()
@@ -466,6 +482,8 @@ final class EditModeWindows {
     var debugToolbarFrame: NSRect? { toolbar.flatMap { $0.isVisible ? $0.frame : nil } }
     var debugGalleryFrame: NSRect? { gallery.flatMap { $0.isVisible ? $0.frame : nil } }
     var debugLevels: (scrim: Int, controls: Int) { (EditModeLevel.scrim.rawValue, EditModeLevel.controls.rawValue) }
+    func debugClickToolbar(fromTopLeft point: NSPoint) { toolbar?.debugClick(fromTopLeft: point) }
+    func debugClickGallery(fromTopLeft point: NSPoint) { gallery?.debugClick(fromTopLeft: point) }
     var debugPanelLevels: [Int] {
         scrims.values.map(\.level) + [toolbar?.level, gallery?.level].compactMap { $0 }
     }
