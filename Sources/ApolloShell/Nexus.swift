@@ -49,7 +49,14 @@ final class Nexus: NSObject, NSWindowDelegate {
         super.init()
         // Kommt zurueck, sobald der globale Bearbeitungsmodus endet (Fertig,
         // Abbrechen, Esc) - auf derselben Seite, wie sie beim Start stand.
-        shellEditor.addEndHandler { [weak self] in self?.window?.makeKeyAndOrderFront(nil) }
+        // `NSApp.activate()` zuerst: ohne das kam das Fenster nach vorne, aber
+        // ohne Fokus zurueck, wenn zwischendurch eine andere App aktiv wurde
+        // (Scrim/Werkzeugleiste/Galerie nehmen selbst nie die Tastatur an) -
+        // es stand dann sichtbar, aber hinter der wirklich aktiven App.
+        shellEditor.addEndHandler { [weak self] in
+            NSApp.activate()
+            self?.window?.makeKeyAndOrderFront(nil)
+        }
         shell.beginEditing = { [weak self] in self?.beginEditing() }
     }
 
@@ -121,12 +128,15 @@ final class Nexus: NSObject, NSWindowDelegate {
         // Nachsehen der Freigabe hier beenden.
         shell.hotKeys.cancelRecording()
         shell.permissions.watch(false, by: NexusGeneralPage.watcher)
-        // Nexus zu waehrend einer Bearbeitung zaehlt wie "Fertig" - sonst
+        // Nexus zu waehrend einer Bearbeitung zaehlt wie "Abbrechen" - sonst
         // bliebe Dashboard und Kontrollzentrum angepinnt offen, ohne dass man
-        // es beenden kann. In der Praxis kommt das nicht vor: Nexus steht
-        // waehrend der Bearbeitung beiseite (`beginEditing` ordnet es aus),
-        // dieser Pfad faengt nur ab, falls die App mittendrin beendet wird.
-        if shellEditor.isEditing { shellEditor.done() }
+        // es beenden kann. Spec Abschnitt 4: nur der Knopf „Fertig“ schreibt
+        // die Arbeitskopie, jeder andere Ausstieg (Esc, Schliessen) verwirft
+        // sie - `done()` haette hier ungefragt gespeichert. In der Praxis
+        // kommt das kaum vor: Nexus steht waehrend der Bearbeitung beiseite
+        // (`beginEditing` ordnet es aus), dieser Pfad faengt nur ab, falls
+        // das Fenster mittendrin doch noch geschlossen wird.
+        if shellEditor.isEditing { shellEditor.cancel() }
         previousApp?.activate()
         previousApp = nil
     }
