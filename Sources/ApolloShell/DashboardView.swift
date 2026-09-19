@@ -145,9 +145,19 @@ struct DashboardView: View {
         }
     }
 
+    /// Menue statt eines einfachen Knopfs (Task 7): „Neue Seite“ wie bisher,
+    /// dazu „Standardseiten wiederherstellen“ fuer die mitgelieferten Seiten,
+    /// die die alte Nexus-Seitenliste vor Task 7 noch anbot. Deaktiviert,
+    /// wenn schon alle vier da sind (`DashboardEditor.isMissingDefaultPages`).
     private var addPageButton: some View {
-        Button {
-            withAnimation(Self.motion) { _ = editor.addPage() }
+        Menu {
+            Button("Neue Seite") {
+                withAnimation(Self.motion) { _ = editor.addPage() }
+            }
+            Button("Standardseiten wiederherstellen") {
+                withAnimation(Self.motion) { editor.restoreDefaults() }
+            }
+            .disabled(!editor.isMissingDefaultPages)
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: "plus")
@@ -160,7 +170,9 @@ struct DashboardView: View {
             .padding(.bottom, 8)
             .contentShape(.rect)
         }
+        .menuStyle(.button)
         .buttonStyle(.plain)
+        .menuIndicator(.hidden)
         .help("Seite hinzufügen")
         .accessibilityLabel("Seite hinzufügen")
     }

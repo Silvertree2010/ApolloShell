@@ -74,4 +74,19 @@ struct BentoEditSessionPageTests {
         #expect(s.pages.pages[0].name == "B")
         #expect(s.pages.pages[1].name == "Anders")
     }
+
+    @Test("Standardseiten wiederherstellen: haengt nur fehlende Vorlagen an, wechselt nichts")
+    func restoreDefaults() throws {
+        var s = try session()
+        let shownBefore = s.pageID
+        let countBefore = s.pages.pages.count
+        let defaults = DashboardPages.defaultPages(places: .empty, hasBattery: false)
+        s.restoreDefaults(from: defaults)
+        // A und B haben keine Vorlage - alle vier mitgelieferten Seiten fehlen noch.
+        #expect(s.pages.pages.count == countBefore + defaults.count)
+        #expect(s.pageID == shownBefore)
+        // Ein zweiter Aufruf haengt nichts mehr an - alle Vorlagen sind jetzt da.
+        s.restoreDefaults(from: defaults)
+        #expect(s.pages.pages.count == countBefore + defaults.count)
+    }
 }

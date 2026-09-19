@@ -158,6 +158,27 @@ final class DashboardEditor {
         session = updated
     }
 
+    /// Ob mindestens eine mitgelieferte Seite fehlt - fuer den Menuepunkt
+    /// „Standardseiten wiederherstellen“ am **+** der Seitenleiste (deaktiviert,
+    /// wenn schon alle vier da sind).
+    var isMissingDefaultPages: Bool {
+        guard let session else { return false }
+        let present = Set(session.pages.pages.compactMap(\.template))
+        return present.count < PageTemplate.allCases.count
+    }
+
+    /// „Standardseiten wiederherstellen“ (Task 4/7): haengt die mitgelieferten
+    /// Seiten an, deren Vorlage noch fehlt, mit den gerade gespeicherten
+    /// Wetter-Favoriten und Akkuanzeige - wie beim Umzug von vor 0.2, siehe
+    /// `DashboardPages.migrated`. Wechselt die gezeigte Seite nicht.
+    func restoreDefaults() {
+        guard var updated = session else { return }
+        let places = WeatherFavorites.loadLive()
+        let defaults = DashboardPages.defaultPages(places: places, hasBattery: PerformanceSampler.hasInternalBattery)
+        updated.restoreDefaults(from: defaults)
+        session = updated
+    }
+
     // MARK: - Durchreichen an die Sitzung (Views aendern `session` nie selbst)
 
     func previewMove(_ id: WidgetInstance.ID, proposed: WidgetFrame) -> BentoEditSession.Preview? {

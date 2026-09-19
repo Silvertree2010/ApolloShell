@@ -1,6 +1,7 @@
 /* DashboardView.swift */
 "Keine Karten" = "No Cards";
 "In Nexus unter Dashboard lassen sich Karten hinzufügen." = "Cards can be added in Nexus under Dashboard.";
+"Neue Seite" = "New Page";
 
 /* BentoPageView.swift */
 "Leere Seite" = "Empty page";

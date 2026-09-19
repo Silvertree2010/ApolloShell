@@ -136,4 +136,12 @@ public struct BentoEditSession: Equatable, Sendable {
     public mutating func movePages(fromOffsets source: IndexSet, toOffset destination: Int) {
         pages.movePages(fromOffsets: source, toOffset: destination)
     }
+
+    /// „Standardseiten wiederherstellen“ (Seitenleiste beim Bearbeiten,
+    /// mitgeliefertes Menue am **+**): haengt die mitgelieferten Seiten an,
+    /// deren Vorlage fehlt - anders als `addPage`/`duplicatePage` wechselt
+    /// das nicht die gezeigte Seite, es fuegt nur hinzu.
+    public mutating func restoreDefaults(from defaults: [DashboardPage]) {
+        pages.restoreDefaults(from: defaults)
+    }
 }
