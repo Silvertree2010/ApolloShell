@@ -83,4 +83,57 @@ public struct BentoEditSession: Equatable, Sendable {
         page.setOptions(options, for: id)
         pages.update(page)
     }
+
+    /// Neues Widget an der ersten freien Stelle der gezeigten Seite (Klick in
+    /// der Galerie statt Ziehen). `nil`: keine Stelle frei ("Kein Platz auf
+    /// dieser Seite").
+    @discardableResult
+    public mutating func addAtFirstFreeSpot(_ kind: WidgetKind, places: WeatherFavorites = .empty) -> WidgetInstance.ID? {
+        guard let frame = BentoGeometry.firstFreeFrame(kind: kind, others: page.frames()) else { return nil }
+        return add(kind, frame: frame, places: places)
+    }
+
+    // MARK: Seiten
+
+    /// Neue leere Seite ans Ende, sofort gezeigt.
+    @discardableResult
+    public mutating func addPage(name: String, symbol: String = DashboardPage.defaultSymbol) -> DashboardPage.ID {
+        let id = pages.addPage(name: name, symbol: symbol)
+        pageID = id
+        return id
+    }
+
+    /// Kopie direkt hinter dem Original, sofort gezeigt. `nil`: kein solches Original.
+    @discardableResult
+    public mutating func duplicatePage(_ id: DashboardPage.ID, name: String) -> DashboardPage.ID? {
+        guard let newID = pages.duplicatePage(id: id, name: name) else { return nil }
+        pageID = newID
+        return newID
+    }
+
+    /// `false` fuer die letzte Seite. War die entfernte Seite gezeigt, zeigt
+    /// die neue Nachbarin (die an derselben Stelle, sonst die davor).
+    @discardableResult
+    public mutating func removePage(_ id: DashboardPage.ID) -> Bool {
+        guard let index = pages.pages.firstIndex(where: { $0.id == id }) else { return false }
+        let wasShown = pageID == id
+        guard pages.removePage(id: id) else { return false }
+        if wasShown {
+            let neighbourIndex = min(index, pages.pages.count - 1)
+            pageID = pages.pages[neighbourIndex].id
+        }
+        return true
+    }
+
+    public mutating func renamePage(_ id: DashboardPage.ID, to name: String) {
+        pages.renamePage(id: id, to: name)
+    }
+
+    public mutating func setSymbol(_ symbol: String, forPage id: DashboardPage.ID) {
+        pages.setSymbol(symbol, forPage: id)
+    }
+
+    public mutating func movePages(fromOffsets source: IndexSet, toOffset destination: Int) {
+        pages.movePages(fromOffsets: source, toOffset: destination)
+    }
 }

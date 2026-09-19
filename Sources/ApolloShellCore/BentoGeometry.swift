@@ -109,6 +109,28 @@ public enum BentoGeometry {
         return snapMove(proposed, others: others)
     }
 
+    /// Erste freie Stelle fuer die kleinste Groesse einer Art: Zeilen von
+    /// oben nach unten, darin von links nach rechts, ueber die Kandidaten 0
+    /// und "gleich hinter einem anderen Widget" (`maxX`/`maxY` plus
+    /// `spacing`) - so wie die Galerie ein angeklicktes Widget platziert.
+    /// `nil`, wenn keine Stelle passt (Seite voll).
+    public static func firstFreeFrame(kind: WidgetKind, others: [WidgetFrame]) -> WidgetFrame? {
+        let size = kind.smallestSize
+        var xCandidates: Set<Double> = [0]
+        var yCandidates: Set<Double> = [0]
+        for other in others {
+            xCandidates.insert(other.maxX + spacing)
+            yCandidates.insert(other.maxY + spacing)
+        }
+        for y in yCandidates.sorted() {
+            for x in xCandidates.sorted() {
+                let frame = WidgetFrame(x: x, y: y, width: size.minWidth, height: size.height)
+                if isValid(frame, kind: kind, others: others) { return frame }
+            }
+        }
+        return nil
+    }
+
     /// Moegliche Anfaenge auf einer Achse: beide Seitenraender, dieselbe
     /// Flucht wie ein anderes Widget (Anfang an Anfang, Ende an Ende) und
     /// genau `spacing` davor oder dahinter.
