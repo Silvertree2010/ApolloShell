@@ -176,7 +176,7 @@ struct NexusView: View {
 
     var body: some View {
         NavigationSplitView {
-            NexusSidebar(state: state)
+            NexusSidebar(state: state, beginEditing: shell.beginEditing)
                 .searchable(text: $state.search, placement: .sidebar, prompt: "Suchen")
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 300)
                 .toolbar(removing: .sidebarToggle)
@@ -200,12 +200,17 @@ struct NexusShellParts {
     let updates: UpdateController
     let themes: ThemeStore?
     var showOnboarding: @MainActor () -> Void = {}
+    /// Knopf „Oberfläche bearbeiten“, auf jeder Seite (`Nexus.beginEditing`).
+    var beginEditing: @MainActor () -> Void = {}
 }
 
 /// Seitenleiste (Caelestia: NavPane/NavLocations): Seiten nach Gruppen, mit
 /// Suche gefiltert. Eine Gruppe ohne Treffer verschwindet ganz.
 struct NexusSidebar: View {
     @Bindable var state: NexusState
+    /// Knopf im Fuss, auf jeder Seite (Spec Abschnitt 4): startet den
+    /// globalen Bearbeitungsmodus fuer Dashboard und Kontrollzentrum.
+    let beginEditing: @MainActor () -> Void
 
     @Environment(\.shellStyle) private var style
 
@@ -230,6 +235,17 @@ struct NexusSidebar: View {
             }
         }
         .themedWindowBackground(style)
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                beginEditing()
+            } label: {
+                Label("Oberfläche bearbeiten", systemImage: "pencil")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .padding(10)
+        }
     }
 }
 

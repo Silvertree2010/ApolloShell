@@ -27,6 +27,7 @@ final class Nexus: NSObject, NSWindowDelegate {
     private let weatherFile: URL?
     private let providers = NexusProvidersModel()
     private let editor: DashboardEditor
+    private let shellEditor: ShellEditor
     private var shell: NexusShellParts
     private var window: NexusWindow?
     /// Wer vor dem Oeffnen vorne war - bekommt beim Schliessen den Fokus zurueck.
@@ -40,15 +41,30 @@ final class Nexus: NSObject, NSWindowDelegate {
 
     init(settings: ShellSettingsStore, hotKeys: HotKeyCenter, autostart: OnboardingAutostartModel,
          permissions: OnboardingPermissions, updates: UpdateController, themes: ThemeStore?,
-         editor: DashboardEditor, paths: NexusPaths = .live) {
+         editor: DashboardEditor, shellEditor: ShellEditor, paths: NexusPaths = .live) {
         self.settings = settings
         self.editor = editor
+        self.shellEditor = shellEditor
         pinned = NexusPinnedModel(url: paths.pinned)
         weatherFile = paths.weather
         weather = NexusWeatherModel.file(url: paths.weather)
         shell = NexusShellParts(hotKeys: hotKeys, autostart: autostart, permissions: permissions,
                                 updates: updates, themes: themes)
         super.init()
+        // Kommt zurueck, sobald der globale Bearbeitungsmodus endet (Fertig,
+        // Abbrechen, Esc) - auf derselben Seite, wie sie beim Start stand.
+        shellEditor.onEnd = { [weak self] in self?.window?.makeKeyAndOrderFront(nil) }
+        shell.beginEditing = { [weak self] in self?.beginEditing() }
+    }
+
+    /// Knopf „Oberfläche bearbeiten“ (jede Nexus-Seite, Spec Abschnitt 4):
+    /// startet den globalen Bearbeitungsmodus auf dem Bildschirm dieses
+    /// Fensters und tritt selbst ab, bis er endet.
+    func beginEditing() {
+        guard let window, window.isVisible else { return }
+        guard let screen = window.screen ?? NSScreen.main else { return }
+        shellEditor.begin(screen: screen)
+        window.orderOut(nil)
     }
 
     func show(page: NexusPage? = nil) {

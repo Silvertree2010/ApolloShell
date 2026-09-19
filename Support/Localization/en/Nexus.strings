@@ -244,6 +244,7 @@
 "Kurzmeldungen" = "Toasts";
 "Anbieter" = "Providers";
 "Über" = "About";
+"Oberfläche bearbeiten" = "Edit Interface";
 "Start bei der Anmeldung und die Freigaben, die ApolloShell von macOS braucht." = "Start at login and the permissions ApolloShell needs from macOS.";
 "Globale Kürzel für Launcher, Dashboard, Schnellaktionen und Nexus." = "Global shortcuts for Launcher, Dashboard, Quick Actions and Nexus.";
 "Die Bausteine der Leiste links: anordnen, hinzufügen, einstellen." = "The building blocks of the bar on the left: arrange, add, configure.";

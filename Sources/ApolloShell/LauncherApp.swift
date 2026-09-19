@@ -55,6 +55,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Eine Bearbeitung der Bento-Seiten (Nexus > Dashboard > Bearbeiten),
     /// geteilt zwischen Nexus und dem Dashboard-Fenster.
     private var dashboardEditor: DashboardEditor?
+    /// Der globale Bearbeitungsmodus (Nexus > „Oberfläche bearbeiten“, Spec
+    /// Abschnitt 4): Dashboard-Seiten und Kontrollzentrum in einem Zug.
+    private var shellEditor: ShellEditor?
     private var updates: UpdateController?
     private var themes: ThemeStore?
     /// Einfuehrung beim ersten Start.
@@ -82,6 +85,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.settings = settings
         let dashboardEditor = DashboardEditor(store: settings)
         self.dashboardEditor = dashboardEditor
+        let shellEditor = ShellEditor(store: settings, dashboard: dashboardEditor)
+        self.shellEditor = shellEditor
         // Themes: auch im Nur-Launcher-Modus, damit der Launcher mitfaerbt.
         themes = ThemeStore(settings: settings)
         let hotKeys = HotKeyCenter(store: settings)
@@ -114,7 +119,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // beim Oeffnen von Nexus > Updates.
         updates.checkInBackgroundIfDue()
         let nexus = Nexus(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions,
-                          updates: updates, themes: themes, editor: dashboardEditor)
+                          updates: updates, themes: themes, editor: dashboardEditor, shellEditor: shellEditor)
         self.nexus = nexus
         hotKeys.setHandler(.nexus) { [weak nexus] in nexus?.show() }
         let sidebar = Sidebar(settings: settings)
@@ -126,6 +131,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         desktopClock = DesktopClock(settings: settings)
         let dashboard = Dashboard(settings: settings, editor: dashboardEditor)
         self.dashboard = dashboard
+        // Der globale Bearbeitungsmodus beginnt auf der Seite, die das
+        // Dashboard gerade zeigt (oder zuletzt zeigte); vor dem ersten
+        // Oeffnen `nil` - dann nimmt `ShellEditor.begin` die erste Seite.
+        shellEditor.dashboardStartPageID = { [weak dashboard] in dashboard?.currentPageID }
         sidebar.onDashboard = { [weak dashboard] in dashboard?.toggle() }
         sidebar.onDashboardTab = { [weak dashboard] tab in dashboard?.show(tab: tab) }
         hotKeys.setHandler(.dashboard) { [weak dashboard] in dashboard?.toggle() }

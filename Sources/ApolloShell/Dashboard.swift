@@ -118,6 +118,10 @@ final class Dashboard {
         drawer.toggle()
     }
 
+    /// Fuer `ShellEditor.dashboardStartPageID`: die Seite, die gerade offen
+    /// ist (oder zuletzt war) - der globale Bearbeitungsmodus beginnt dort.
+    var currentPageID: DashboardPage.ID? { model.pageID }
+
     /// Baustein der Leiste (Medien, Wetter, CPU, Akku): gleich bei der
     /// passenden Seite - oder, wenn es keine mehr gibt, bei der ersten mit
     /// einem passenden Widget, sonst der ersten ueberhaupt. Ist sie schon
