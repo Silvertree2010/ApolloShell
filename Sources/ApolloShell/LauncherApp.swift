@@ -97,7 +97,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let controller = LauncherController()
         self.controller = controller
-        hotKeys.setHandler(.launcher) { [weak controller] in controller?.toggle() }
+        // Waehrend der globalen Bearbeitung (Task 6) tut das Kuerzel nichts:
+        // der Launcher haette ohnehin keinen Platz neben Scrim und
+        // Werkzeugleiste, und ein Fenster mehr ueber allem stoerte nur.
+        hotKeys.setHandler(.launcher) { [weak controller, weak shellEditor] in
+            guard shellEditor?.isEditing != true else { return }
+            controller?.toggle()
+        }
 
         // Nur-Launcher-Modus: Leiste, Fensterwache, Dashboard, Utilities,
         // OSD, Uhr, Toasts und Einfuehrung entstehen gar nicht - fuer den
@@ -123,12 +129,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let nexus = Nexus(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions,
                           updates: updates, themes: themes, editor: dashboardEditor, shellEditor: shellEditor)
         self.nexus = nexus
-        hotKeys.setHandler(.nexus) { [weak nexus] in nexus?.show() }
+        // Waehrend der Bearbeitung (Task 6) tut das Kuerzel nichts: Nexus
+        // steht ja gerade deshalb beiseite (`ShellEditor.begin` ordnet es
+        // aus), das Kuerzel soll es nicht wieder vorholen.
+        hotKeys.setHandler(.nexus) { [weak nexus, weak shellEditor] in
+            guard shellEditor?.isEditing != true else { return }
+            nexus?.show()
+        }
         let sidebar = Sidebar(settings: settings)
         self.sidebar = sidebar
         let sessionMenu = SessionMenu()
         self.sessionMenu = sessionMenu
-        sidebar.onPower = { [weak sessionMenu] in sessionMenu?.toggle() }
+        // Das Sitzungsmenue kann waehrend der Bearbeitung nicht aufgehen
+        // (Task 6, Spec Abschnitt 4: "the session menu cannot open") - Ab-
+        // und Ausschalten mitten in einer offenen Arbeitskopie waere riskant.
+        sidebar.onPower = { [weak sessionMenu, weak shellEditor] in
+            guard shellEditor?.isEditing != true else { return }
+            sessionMenu?.toggle()
+        }
         osd = OSD()
         desktopClock = DesktopClock(settings: settings)
         let dashboard = Dashboard(settings: settings, editor: dashboardEditor)

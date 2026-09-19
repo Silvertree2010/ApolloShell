@@ -124,6 +124,12 @@ enum RenderMode {
             editor.begin(screen: screen)
         }
         try write(EditToolbarView(editor: editor), scheme: .light, to: editFolder.appendingPathComponent("toolbar-light.png"))
+        // Esc mit Aenderungen (Task 6): die Werkzeugleiste fragt nach, statt
+        // sofort abzubrechen.
+        editor.dashboard.addPage()
+        editor.pendingCancelConfirmation = true
+        try write(EditToolbarView(editor: editor), scheme: .light, to: editFolder.appendingPathComponent("toolbar-confirm-light.png"))
+        editor.pendingCancelConfirmation = false
         editor.galleryTab = .dashboard
         try write(EditGalleryView(editor: editor).environment(\.galleryRendersForScreenshot, true), scheme: .light,
                  to: editFolder.appendingPathComponent("gallery-dashboard-light.png"))

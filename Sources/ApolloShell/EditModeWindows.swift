@@ -1,5 +1,6 @@
 import AppKit
 import ApolloShellCore
+import os
 import SwiftUI
 
 // Die Fenster des globalen Bearbeitungsmodus (design/2026-09-18-bento-
@@ -48,7 +49,21 @@ class EditModePanel: ShellPanel {
         // Fenstermanager tun das), uebergehen es damit zusaetzlich zu Ebene
         // und `collectionBehavior`.
         setAccessibilitySubrole(.unknown)
+        Self.logCreation(level: level, behavior: collectionBehavior, subrole: accessibilitySubrole())
     }
+
+    /// Task 6: fuer den Live-Test mit AeroSpace/yabai/Amethyst - die
+    /// tatsaechlichen Werte, nicht nur die Absicht im Code. Nur DEBUG, nicht
+    /// mitausgeliefertes Verhalten (nur ein Log-Eintrag, `Logger` faellt in
+    /// Release-Bauten ohnehin weg).
+    #if DEBUG
+    private static let log = Logger(category: "edit-mode-windows")
+    private static func logCreation(level: NSWindow.Level, behavior: NSWindow.CollectionBehavior, subrole: NSAccessibility.Subrole?) {
+        log.debug("Fenster des Bearbeitungsmodus: Ebene \(level.rawValue, privacy: .public), Verhalten \(behavior.rawValue, privacy: .public), Subrolle \(subrole?.rawValue ?? "-", privacy: .public)")
+    }
+    #else
+    private static func logCreation(level: NSWindow.Level, behavior: NSWindow.CollectionBehavior, subrole: NSAccessibility.Subrole?) {}
+    #endif
 }
 
 /// Baut ein Glas-Panel mit SwiftUI-Inhalt, mittig ueber einem Punkt auf dem

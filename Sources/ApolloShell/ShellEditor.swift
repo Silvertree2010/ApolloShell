@@ -34,6 +34,16 @@ final class ShellEditor {
     var galleryTab: WidgetSurface = .dashboard
     var showsAllInGallery = false
 
+    /// Rueckfrage vor dem Verwerfen mit ungesicherten Aenderungen (Esc,
+    /// Task 6): `true` laesst die Werkzeugleiste eine kleine Nachfrage
+    /// zeigen ("Änderungen verwerfen?").
+    var pendingCancelConfirmation = false
+
+    /// Esc waehrend der Bearbeitung: eigenes globales Kuerzel (nicht ueber
+    /// `HotKeyCenter`, das gehoert den Nutzer-Kuerzeln aus Nexus), nur
+    /// registriert, waehrend `isEditing` gilt.
+    private var escapeHotKey: GlobalHotKey?
+
     /// Mehrere Hoerer statt eines einzelnen Abschlusses: Kontrollzentrum,
     /// Scrim/Werkzeugleiste/Galerie und Nexus haengen sich unabhaengig
     /// voneinander ein (`addBeginHandler`/`addEndHandler`), keiner ueberschreibt
@@ -55,9 +65,43 @@ final class ShellEditor {
         endHandlers.append(handler)
     }
 
+    /// Beobachter fuer die Ereignisse, die die Bearbeitung sofort ohne
+    /// Rueckfrage beenden (Task 6) - leben so lange wie `ShellEditor` selbst,
+    /// wirken aber nur, waehrend `isEditing` gilt.
+    private var endAsCancelObservers: [any NSObjectProtocol] = []
+
     init(store: ShellSettingsStore, dashboard: DashboardEditor) {
         self.store = store
         self.dashboard = dashboard
+        observeEndAsCancelEvents()
+    }
+
+    /// Ein umgestecker Bildschirm, ein bevorstehender Ruhezustand oder ein
+    /// Wechsel der Sitzung (schneller Benutzerwechsel, Bildschirm gesperrt
+    /// ueber den Login-Bildschirm) raeumen nicht nach dem Nutzer auf, wenn
+    /// sie mitten in der Bearbeitung passieren - die Arbeitskopie verfaellt
+    /// ohne Rueckfrage, wie ein Abbrechen. Eine Rueckfrage waere hier ohnehin
+    /// oft zu spaet (Deckel zu, Bildschirm weg).
+    private func observeEndAsCancelEvents() {
+        let center = NotificationCenter.default
+        let workspace = NSWorkspace.shared.notificationCenter
+        // Drei eigene Abschluesse statt einem geteilten: ein einzeln
+        // deklarierter Abschluss gilt fuer den Compiler nicht als
+        // `@Sendable`, dreimal derselbe Wert an `using:` (das dort einen
+        // `@Sendable`-Abschluss erwartet) waere also eine Warnung wert - so
+        // wie an den anderen Beobachtungsstellen der Shell (z. B.
+        // `WindowGuard.swift`) direkt am Aufruf.
+        endAsCancelObservers = [
+            center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.cancel() }
+            },
+            workspace.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.cancel() }
+            },
+            workspace.addObserver(forName: NSWorkspace.sessionDidResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.cancel() }
+            },
+        ]
     }
 
     var hasChanges: Bool {
@@ -71,11 +115,13 @@ final class ShellEditor {
         galleryVisible = false
         galleryTab = .dashboard
         showsAllInGallery = false
+        pendingCancelConfirmation = false
         // `dashboard.begin` ruft `DashboardEditor.onBegin` (Dashboard-Fenster
         // anpinnen); unser eigenes `onBegin` folgt fuer die uebrigen Panels
         // und Modus-Fenster.
         dashboard.begin(pageID: pageID, screen: screen)
         for handler in beginHandlers { handler(screen) }
+        registerEscape()
     }
 
     /// „Fertig“: beide Arbeitskopien in einer Zuweisung von `store.settings`
@@ -100,17 +146,63 @@ final class ShellEditor {
         // ohne selbst nochmal zu schreiben.
         dashboard.cancel()
         utilities = nil
+        pendingCancelConfirmation = false
+        unregisterEscape()
         for handler in endHandlers { handler() }
     }
 
-    /// „Abbrechen“ bzw. Esc: beide Arbeitskopien verwerfen. `confirmIfChanged`
-    /// ist Sache des Aufrufers (Werkzeugleiste/Esc, Task 6) - hier immer ohne
-    /// Rueckfrage.
+    /// „Abbrechen“ (Werkzeugleiste, immer sofort - ein Klick ist schon die
+    /// Bestaetigung): beide Arbeitskopien verwerfen, ohne Rueckfrage.
     func cancel() {
         guard isEditing else { return }
         dashboard.cancel()
         utilities = nil
+        pendingCancelConfirmation = false
+        unregisterEscape()
         for handler in endHandlers { handler() }
+    }
+
+    // MARK: - Esc (Task 6)
+
+    /// Galerie offen? die schliessen. Sonst mit Aenderungen erst nachfragen
+    /// (`pendingCancelConfirmation`, die Werkzeugleiste zeigt die Nachfrage),
+    /// ohne welche gleich abbrechen. Ein zweites Esc waehrend der Nachfrage
+    /// verwirft nur die Nachfrage selbst (man kann sich umentscheiden, ohne
+    /// gleich die Maus zu bemuehen).
+    private func handleEscape() {
+        guard isEditing else { return }
+        if galleryVisible {
+            galleryVisible = false
+        } else if pendingCancelConfirmation {
+            pendingCancelConfirmation = false
+        } else if hasChanges {
+            pendingCancelConfirmation = true
+        } else {
+            cancel()
+        }
+    }
+
+    /// Nachfrage bestaetigt ("Verwerfen"): jetzt wirklich abbrechen.
+    func confirmCancel() {
+        pendingCancelConfirmation = false
+        cancel()
+    }
+
+    /// Nachfrage abgelehnt ("Weiter bearbeiten").
+    func dismissCancelConfirmation() {
+        pendingCancelConfirmation = false
+    }
+
+    private func registerEscape() {
+        let key = HotKey(keyCode: HotKeyKey.escape)
+        if case .success(let hotKey) = GlobalHotKey.register(key, action: { [weak self] in self?.handleEscape() }) {
+            escapeHotKey = hotKey
+        }
+    }
+
+    private func unregisterEscape() {
+        escapeHotKey?.unregister()
+        escapeHotKey = nil
     }
 
     // MARK: - Kontrollzentrum: Durchreichen an die Sitzung

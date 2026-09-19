@@ -28,12 +28,27 @@ enum UtilitiesCardDragPayload {
 }
 
 /// Werkzeugleiste unten mittig: **+** (Galerie auf/zu), **Abbrechen**,
-/// **Fertig**.
+/// **Fertig**. Mit ungesicherten Aenderungen und Esc (Task 6) tritt an ihre
+/// Stelle kurz eine Nachfrage.
 struct EditToolbarView: View {
-    let editor: ShellEditor
+    @Bindable var editor: ShellEditor
     @Environment(\.shellStyle) private var style
 
     var body: some View {
+        Group {
+            if editor.pendingCancelConfirmation {
+                cancelConfirmation
+            } else {
+                controls
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .fixedSize()
+        .animation(.easeOut(duration: 0.15), value: editor.pendingCancelConfirmation)
+    }
+
+    private var controls: some View {
         HStack(spacing: 14) {
             Button {
                 editor.galleryVisible.toggle()
@@ -58,9 +73,25 @@ struct EditToolbarView: View {
             .buttonStyle(.borderedProminent)
             .tint(style.accent)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 10)
-        .fixedSize()
+    }
+
+    /// „Änderungen verwerfen?“ - Esc mit ungesicherten Aenderungen
+    /// (`ShellEditor.handleEscape`) zeigt das statt der drei Knoepfe oben,
+    /// bis man sich entscheidet.
+    private var cancelConfirmation: some View {
+        HStack(spacing: 14) {
+            Text("Änderungen verwerfen?")
+                .font(.callout.weight(.medium))
+            Button("Weiter bearbeiten") {
+                editor.dismissCancelConfirmation()
+            }
+            .buttonStyle(.bordered)
+            Button("Verwerfen", role: .destructive) {
+                editor.confirmCancel()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.red)
+        }
     }
 }
 
