@@ -138,7 +138,10 @@ struct UtilitiesEditorOptions: View {
 /// Textfeld, das erst beim Bestaetigen (Return) oder beim Verlassen
 /// schreibt - nicht bei jedem Tastendruck settings.json, und das Panel
 /// zeichnet nicht jeden halben Link neu.
-private struct UtilitiesEditorField: View {
+///
+/// Nicht `private`: `UtilitiesToggleOptionsView` (Task 5, Popover im
+/// globalen Bearbeitungsmodus) nutzt dasselbe Feld.
+struct UtilitiesEditorField: View {
     let title: LocalizedStringKey
     let prompt: String
     let value: String
@@ -174,7 +177,9 @@ private struct UtilitiesEditorField: View {
 }
 
 /// "Symbol": das jetzige, daneben "Wählen …" mit der kleinen Auswahl.
-private struct UtilitiesEditorSymbolRow: View {
+///
+/// Nicht `private`: siehe `UtilitiesEditorField`.
+struct UtilitiesEditorSymbolRow: View {
     let current: String
     let automatic: String
     let fallback: UtilitiesToggleItem.Icon

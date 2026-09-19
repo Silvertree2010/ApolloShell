@@ -272,6 +272,17 @@ final class EditModeWindows {
         }
     }
 
+    /// Vom Kontrollzentrum-Panel (`UtilitiesPanel.onHeightChange`): waechst
+    /// oder schrumpft es waehrend der Bearbeitung (Karte aus/an, Knopf
+    /// hinzu/weg), weicht die Werkzeugleiste sofort neu aus statt erst beim
+    /// naechsten Bildschirmwechsel.
+    func utilitiesHeightChanged() {
+        guard editor.isEditing, let screen = editScreen, let toolbar else { return }
+        let raise = utilitiesPanelHeight() + 24
+        let point = NSPoint(x: screen.frame.midX, y: screen.frame.minY + 48)
+        toolbar.reposition(on: screen, centeredAt: point, raise: raise)
+    }
+
     private func placeToolbar(_ toolbar: FloatingGlassPanel<EditToolbarView>, on screen: NSScreen) {
         // Unten mittig, um `utilitiesPanelHeight()` plus etwas Luft nach
         // oben verschoben, damit sie nie ueber dem Kontrollzentrum-Panel

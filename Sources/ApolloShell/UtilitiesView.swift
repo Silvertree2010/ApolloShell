@@ -90,7 +90,9 @@ struct UtilitiesCard<Content: View>: View {
 /// Symbol-Chip links, zwei Zeilen Text, Schalter rechts (Caelestia:
 /// IdleInhibit). Die Uhrzeit steht in der Unterzeile statt in einem eigenen
 /// Chip darunter: so bleibt die Karte gleich hoch und das Panel springt nicht.
-private struct KeepAwakeCard: View {
+/// Nicht `private`: `UtilitiesEditOverlay.swift` zeigt dieselbe Karte
+/// waehrend der Bearbeitung, nur mit abgeschalteter Bedienung.
+struct KeepAwakeCard: View {
     @Bindable var model: UtilitiesModel
     @Environment(\.shellStyle) private var style
 
@@ -132,7 +134,9 @@ private struct KeepAwakeCard: View {
 
 /// Alles ausgeschaltet: statt eines leeren Glases ein Hinweis, wo man es
 /// wieder einschaltet. So hoch wie "Wach halten" (eine Zeile mit Chip).
-private struct UtilitiesEmptyCard: View {
+/// Nicht `private`: auch in der Bearbeitung ohne Karten gezeigt
+/// (`UtilitiesEditOverlay.swift`).
+struct UtilitiesEmptyCard: View {
     let model: UtilitiesModel
     @State private var hovering = false
     @Environment(\.shellStyle) private var style

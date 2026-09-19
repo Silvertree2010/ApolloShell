@@ -143,7 +143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Wetter ohne Ort: der Hinweis im Dashboard oeffnet Nexus direkt bei
         // Wetter (Nexus > Dashboard).
         dashboard.onOpenNexus { [weak nexus] in nexus?.show(page: .dashboard) }
-        let utilities = UtilitiesPanel(settings: settings)
+        let utilities = UtilitiesPanel(settings: settings, editor: shellEditor)
         self.utilities = utilities
         let editModeWindows = EditModeWindows(editor: shellEditor)
         self.editModeWindows = editModeWindows
@@ -164,9 +164,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let toastWindow = ToastWindow(toaster: toaster, utilitiesHeight: utilities.height)
         self.toastWindow = toastWindow
         utilities.onVisibilityChange = { [weak toastWindow] open in toastWindow?.utilitiesChanged(open: open) }
-        // Karten oder Reihen in Nexus geaendert: der Stapel sitzt weiter
-        // genau ueber dem Panel.
-        utilities.onHeightChange = { [weak toastWindow] height in toastWindow?.utilitiesHeight = height }
+        // Karten oder Reihen geaendert (Nexus vor 0.2, oder live waehrend der
+        // Bearbeitung, Task 5): der Stapel sitzt weiter genau ueber dem
+        // Panel, und die Werkzeugleiste des Bearbeitungsmodus weicht ihm
+        // weiter aus.
+        utilities.onHeightChange = { [weak toastWindow, weak editModeWindows] height in
+            toastWindow?.utilitiesHeight = height
+            editModeWindows?.utilitiesHeightChanged()
+        }
         powerToasts = ToastPowerMonitor(toaster: toaster, settings: settings)
         audioToasts = ToastAudioMonitor(toaster: toaster, settings: settings)
 

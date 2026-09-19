@@ -130,6 +130,22 @@ enum RenderMode {
         editor.galleryTab = .controlCentre
         try write(EditGalleryView(editor: editor).environment(\.galleryRendersForScreenshot, true), scheme: .light,
                  to: editFolder.appendingPathComponent("gallery-controlcentre-light.png"))
+        // Kontrollzentrum in der Bearbeitung (Task 5): ein Knopf gewaehlt -
+        // wackeln selbst zeichnet `ImageRenderer` nicht (feste Momentaufnahme
+        // mitten in der Dauerschleife), aber Rahmen, Minus-Abzeichen und
+        // Ziel-Hervorhebung sind ohne Bewegung zu sehen. Lautstaerke-Regler
+        // und Geraete-Knoepfe der Ton-Karte (`UtilitiesAudioCard`) sind
+        // selbst AppKit-hinterlegt (eigene Ziehflaeche, `NSMenu`) - dieselbe
+        // Ursache wie bei `.onDrag`/`.onDrop`: offscreen zeichnet
+        // `ImageRenderer` sie als rotes Verbotszeichen statt ihrer echten
+        // Form. Im echten Fenster (nicht offscreen) sehen sie normal aus,
+        // nur ohne Wirkung (`allowsHitTesting(false)`).
+        if let toggleID = editor.utilities?.layout.toggles.first?.id {
+            editor.selectedToggleID = toggleID
+        }
+        let utilitiesView = EditableUtilitiesView(editor: editor, layout: editor.utilities?.layout ?? UtilitiesLayout())
+            .environment(\.dashboardRendersForScreenshot, true)
+        try write(utilitiesView, scheme: .light, to: editFolder.appendingPathComponent("utilities-selected-light.png"))
     }
 
     static func name(_ base: String, _ scheme: ColorScheme) -> String {

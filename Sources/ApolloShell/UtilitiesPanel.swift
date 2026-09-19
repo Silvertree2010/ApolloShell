@@ -15,10 +15,12 @@ import SwiftUI
 /// `UtilitiesLayout.panelHeight` dafuer rechnet.
 @MainActor
 final class UtilitiesPanel {
+    private let settings: ShellSettingsStore
     private let model: UtilitiesModel
     private let state: UtilitiesLayoutState
     private let drawer: EdgeDrawer<UtilitiesPanelView>
     private var observation: Task<Void, Never>?
+    private var editingObservation: Task<Void, Never>?
     private var lidObservation: Task<Void, Never>?
     /// Auf oder zu - die Kurzmeldungen weichen dann nach oben aus
     /// (Caelestia haengt sie an `utilities.top`).
@@ -37,12 +39,16 @@ final class UtilitiesPanel {
     var height: CGFloat { drawer.size.height }
 
     /// `model`: fuer Bildproben ein Vorschau-Modell, das nichts liest und
-    /// nichts schaltet; sonst das echte.
-    init(settings: ShellSettingsStore, model injected: UtilitiesModel? = nil) {
+    /// nichts schaltet; sonst das echte. `editor`: der globale
+    /// Bearbeitungsmodus (Task 5) - das Panel pinnt sich waehrend einer
+    /// Bearbeitung an und zeigt die Arbeitskopie statt der gespeicherten
+    /// Anordnung.
+    init(settings: ShellSettingsStore, editor: ShellEditor, model injected: UtilitiesModel? = nil) {
+        self.settings = settings
         model = injected ?? UtilitiesModel(lidAllowed: { settings.settings.keepAwake.lidClosed })
         let layout = settings.settings.utilities.layout
         state = UtilitiesLayoutState(layout: layout)
-        let view = UtilitiesPanelView(model: model, state: state)
+        let view = UtilitiesPanelView(model: model, state: state, editor: editor)
         // Hoehe gerechnet, nicht gemessen: jede Karte hat eine feste Hoehe
         // (UtilitiesMetrics), die Ansicht haelt sich daran. Kein Zustand
         // (langer Geraetename, Wach halten an) aendert sie.
@@ -86,6 +92,38 @@ final class UtilitiesPanel {
                 self?.model.lidSettingChanged()
             }
         }
+        // Waehrend einer Bearbeitung (Task 5): jede Aenderung an der
+        // Arbeitskopie (Karte aus/an, Knopf hinzu/weg/verschoben) passt das
+        // Fenstermass sofort an, genau wie oben fuer die gespeicherte
+        // Anordnung. `nil` (Bearbeitung endet) faengt `addEndHandler` unten
+        // synchron ab - dort steht `store.settings` schon auf dem
+        // Endergebnis (siehe `ShellEditor.done()`), hier waere es beim
+        // ersten Bild nach "Fertig" noch nicht.
+        editingObservation = Task { [weak self, editor] in
+            for await layout in Observations({ editor.utilities?.layout }) {
+                guard let layout else { continue }
+                self?.apply(layout)
+            }
+        }
+        // Bearbeitung beginnt: Fenster anpinnen, auf die Arbeitskopie
+        // umschalten (schon in `editor.utilities`, `begin` ruft die Hoerer
+        // erst danach auf), bei Bedarf oeffnen - wie `Dashboard.editor.onBegin`.
+        editor.addBeginHandler { [weak self, editor] screen in
+            guard let self, let layout = editor.utilities?.layout else { return }
+            let alreadyOpen = drawer.isOpen
+            drawer.isPinned = true
+            apply(layout)
+            if !alreadyOpen { drawer.open(on: screen) }
+        }
+        // Bearbeitung endet ("Fertig" oder "Abbrechen"): entpinnen, sofort
+        // auf die (jetzt aktuelle) gespeicherte Anordnung zurueck - nicht auf
+        // die async Beobachtung oben warten, die reagiert erst einen Umlauf
+        // spaeter und liesse das Fenster kurz falsch gross stehen.
+        editor.addEndHandler { [weak self] in
+            guard let self else { return }
+            drawer.isPinned = false
+            apply(settings.settings.utilities.layout)
+        }
     }
 
     static func size(for layout: UtilitiesLayout) -> NSSize {
@@ -94,10 +132,12 @@ final class UtilitiesPanel {
 
     /// Inhalt und Rahmen im selben Durchgang: SwiftUI zeichnet die neue
     /// Anordnung im naechsten Bild, das Fenster hat bis dahin schon die
-    /// passende Groesse - offen springt also nichts halb.
+    /// passende Groesse - offen springt also nichts halb. Prueft die
+    /// Fenstergroesse unabhaengig vom Inhaltsvergleich: waehrend einer
+    /// Bearbeitung kann `drawer.size` groesser sein als `state.layout`, obwohl
+    /// beide gleich blieben (siehe `editingObservation`/`addEndHandler`).
     private func apply(_ layout: UtilitiesLayout) {
-        guard layout != state.layout else { return }
-        state.layout = layout
+        if layout != state.layout { state.layout = layout }
         let size = Self.size(for: layout)
         guard size != drawer.size else { return }
         drawer.resize(to: size)
@@ -134,12 +174,19 @@ final class UtilitiesLayoutState {
     }
 }
 
-/// Wurzel im Kantenfenster: das Panel mit der aktuellen Anordnung.
+/// Wurzel im Kantenfenster: die ruhige Ansicht mit der gespeicherten
+/// Anordnung, waehrend einer Bearbeitung (Task 5) die Arbeitskopie in der
+/// Bearbeitungsflaeche (`EditableUtilitiesView`).
 struct UtilitiesPanelView: View {
     let model: UtilitiesModel
     let state: UtilitiesLayoutState
+    @Bindable var editor: ShellEditor
 
     var body: some View {
-        UtilitiesView(model: model, layout: state.layout)
+        if let layout = editor.utilities?.layout {
+            EditableUtilitiesView(editor: editor, layout: layout)
+        } else {
+            UtilitiesView(model: model, layout: state.layout)
+        }
     }
 }
