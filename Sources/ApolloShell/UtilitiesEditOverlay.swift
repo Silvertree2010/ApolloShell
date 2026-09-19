@@ -69,7 +69,13 @@ private struct EditableUtilitiesCard: View {
 
     var body: some View {
         content
-            .allowsHitTesting(false)
+            // Nur Wach-halten- und Audio-Karte stumm schalten (deren Regler
+            // sollen beim Bearbeiten nichts ausloesen). Die Schnellschalter-
+            // Karte besteht beim Bearbeiten selbst aus bearbeitbaren Kacheln -
+            // vorher galt `allowsHitTesting(false)` auch fuer sie, und keine
+            // Kachel liess sich antippen, entfernen oder verschieben
+            // (Selbsttest 19.09.).
+            .allowsHitTesting(kind == .quickToggles)
             .overlay {
                 let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
                 if targeted {
@@ -84,6 +90,9 @@ private struct EditableUtilitiesCard: View {
             .scaleEffect(isHiding ? 0.94 : 1)
             .onAppear { startWobble() }
             .onChange(of: reduceMotion) { _, _ in startWobble() }
+            #if DEBUG
+            .background { DebugWindowRectReporter { editor.debugUtilitiesRects["card:" + kind.rawValue] = $0 } }
+            #endif
             .modifier(UtilitiesCardDragModifier(kind: kind, active: !rendersForScreenshot))
             .modifier(UtilitiesCardDropModifier(editor: editor, target: kind, targeted: $targeted, active: !rendersForScreenshot))
     }
@@ -240,6 +249,9 @@ private struct EditableToggleTile: View {
         .onAppear { startWobble() }
         .onChange(of: reduceMotion) { _, _ in startWobble() }
         .modifier(UtilitiesToggleDragModifier(entry: entry, active: !rendersForScreenshot))
+        #if DEBUG
+        .background { DebugWindowRectReporter { editor.debugUtilitiesRects[entry.id] = $0 } }
+        #endif
         .help(UtilitiesEditorText.title(entry))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(UtilitiesEditorText.title(entry))

@@ -43,6 +43,12 @@ final class UtilitiesPanel {
     #if DEBUG
     var debugLevel: Int? { drawer.debugLevel }
     func debugClose() { drawer.close() }
+    /// `point` von der Oberkante des Fensters aus gemessen.
+    func debugClick(fromTop point: CGPoint) {
+        let height = drawer.debugWindowHeight
+        drawer.debugClick(atWindowPoint: NSPoint(x: point.x, y: height - point.y))
+    }
+    var debugFrames: String { drawer.debugFrames }
     #endif
 
     /// `model`: fuer Bildproben ein Vorschau-Modell, das nichts liest und
@@ -185,6 +191,8 @@ final class UtilitiesLayoutState {
 /// Anordnung, waehrend einer Bearbeitung (Task 5) die Arbeitskopie in der
 /// Bearbeitungsflaeche (`EditableUtilitiesView`).
 struct UtilitiesPanelView: View {
+    /// Bezugsraum der Bearbeitungsflaeche - nur fuer den Selbsttest.
+    static let rootSpace = "utilitiesRoot"
     let model: UtilitiesModel
     let state: UtilitiesLayoutState
     @Bindable var editor: ShellEditor
@@ -192,6 +200,7 @@ struct UtilitiesPanelView: View {
     var body: some View {
         if let layout = editor.utilities?.layout {
             EditableUtilitiesView(editor: editor, layout: layout)
+                .coordinateSpace(name: Self.rootSpace)
         } else {
             UtilitiesView(model: model, layout: state.layout)
         }

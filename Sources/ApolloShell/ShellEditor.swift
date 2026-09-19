@@ -241,6 +241,9 @@ final class ShellEditor {
     #if DEBUG
     /// Selbsttest: Esc ohne das systemweite Kuerzel.
     func debugEscape() { handleEscape() }
+    /// Selbsttest: Rahmen der Kacheln und Karten des Kontrollzentrums
+    /// (Bezugsraum `UtilitiesPanelView.rootSpace`).
+    @ObservationIgnored var debugUtilitiesRects: [String: CGRect] = [:]
     #endif
 
     /// Nachfrage bestaetigt ("Verwerfen"): jetzt wirklich abbrechen.

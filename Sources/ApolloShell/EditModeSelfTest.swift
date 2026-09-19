@@ -207,6 +207,61 @@ private final class EditModeSelfTestHarness {
         await wait(0.5)
     }
 
+    /// Kontrollzentrum: WLAN antippen (waehlt, kein Popover), Minus an WLAN
+    /// und an einer Karte, danach Link-Knopf antippen (Optionen). Rahmen
+    /// immer frisch: waechst das Panel (neue Reihe), veralten gemeldete
+    /// Fensterkoordinaten.
+    private func controlCentre(on screen: NSScreen) async {
+        editor.begin(screen: screen)
+        await wait(0.8)
+        guard let wifi = editor.utilities?.layout.toggles.first(where: { $0.kind == .wifi }),
+              let wifiRect = editor.debugUtilitiesRects[wifi.id] else {
+            check(false, "WLAN-Kachel im Kontrollzentrum gefunden")
+            editor.cancel()
+            return
+        }
+        editor.selectedToggleID = nil
+        utilities.debugClick(fromTop: CGPoint(x: wifiRect.midX, y: wifiRect.midY))
+        await wait(0.6)
+        let wifiPopover = NSApp.windows.first { $0.isVisible && String(describing: type(of: $0)).contains("Popover") }
+        check(editor.selectedToggleID == wifi.id && wifiPopover == nil, "WLAN antippen waehlt, ohne leeres Popover")
+        editor.selectedToggleID = nil
+        await wait(0.3)
+        // Minus eines Knopfs: Mitte 1 Punkt rechts, 3 unter der Ecke oben links.
+        utilities.debugClick(fromTop: CGPoint(x: wifiRect.minX + 1, y: wifiRect.minY + 3))
+        await wait(0.5)
+        check(!(editor.utilities?.layout.toggles.contains { $0.id == wifi.id } ?? true), "Minus entfernt den WLAN-Knopf")
+        await wait(0.3)
+        if let card = editor.debugUtilitiesRects["card:keepAwake"] {
+            utilities.debugClick(fromTop: CGPoint(x: card.minX + 2, y: card.minY + 2))
+            await wait(0.5)
+            check(editor.utilities?.layout.isEnabled(.keepAwake) == false, "Minus blendet die Karte „Wach halten“ aus")
+        } else {
+            check(false, "Karte „Wach halten“ gefunden")
+        }
+        editor.cancel()
+        await wait(0.8)
+
+        editor.begin(screen: screen)
+        await wait(0.6)
+        guard let link = editor.addToggle(.openLink) else { check(false, "Link-Knopf einfuegen"); return }
+        editor.selectedToggleID = nil
+        await wait(0.8)
+        if let linkRect = editor.debugUtilitiesRects[link] {
+            utilities.debugClick(fromTop: CGPoint(x: linkRect.midX, y: linkRect.midY))
+            await wait(0.6)
+            let popover = NSApp.windows.first { $0.isVisible && String(describing: type(of: $0)).contains("Popover") }
+            check(editor.selectedToggleID == link && popover != nil, "Link-Knopf antippen zeigt seine Optionen")
+        } else {
+            check(false, "Link-Kachel gefunden")
+        }
+        editor.cancel()
+        await wait(0.8)
+        dashboard.debugClose()
+        utilities.debugClose()
+        await wait(0.5)
+    }
+
     private func scenario() async {
         await probeScaledDrag()
         for screen in NSScreen.screens {
@@ -215,7 +270,10 @@ private final class EditModeSelfTestHarness {
         for screen in NSScreen.screens {
             await pass(on: screen)
         }
-        if let screen = NSScreen.screens.first { await escapeOrder(on: screen) }
+        if let screen = NSScreen.screens.first {
+            await escapeOrder(on: screen)
+            await controlCentre(on: screen)
+        }
     }
 
     /// Ein ganzer Durchgang auf einem Bildschirm.
@@ -348,6 +406,38 @@ private final class EditModeSelfTestHarness {
         dashboard.debugClose()
         utilities.debugClose()
         await wait(0.6)
+    }
+}
+
+/// Selbsttest: meldet den eigenen Rahmen in Fensterkoordinaten (AppKit,
+/// unten links) - genauer als SwiftUI-Bezugsraeume, wenn das Hosting-Fenster
+/// anders geschnitten ist als der Inhalt.
+struct DebugWindowRectReporter: NSViewRepresentable {
+    let report: (NSRect) -> Void
+
+    func makeNSView(context: Context) -> ReporterView {
+        let view = ReporterView()
+        view.report = report
+        return view
+    }
+
+    func updateNSView(_ view: ReporterView, context: Context) {
+        view.report = report
+        view.needsLayout = true
+    }
+
+    final class ReporterView: NSView {
+        var report: (NSRect) -> Void = { _ in }
+        override func layout() {
+            super.layout()
+            // Abstand zur Oberkante statt zur Unterkante: waechst das Fenster
+            // nach oben (Kontrollzentrum bekommt eine Reihe), bleibt der
+            // Inhalt oben stehen, ohne dass `layout()` erneut kommt.
+            let rect = convert(bounds, to: nil)
+            let height = window?.frame.height ?? 0
+            report(NSRect(x: rect.minX, y: height - rect.maxY, width: rect.width, height: rect.height))
+        }
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
     }
 }
 #endif

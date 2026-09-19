@@ -323,6 +323,32 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         if let up = event(.leftMouseUp, end) { panel.sendEvent(up) }
     }
 
+    var debugWindowHeight: CGFloat { builtPanel?.frame.height ?? 0 }
+
+    /// Selbsttest: Fenster- und Hosting-Rahmen fuer die Fehlersuche.
+    var debugFrames: String {
+        "Fenster \(builtPanel?.frame ?? .zero), Host \(hosting?.frame ?? .zero), Host im Fenster \(hosting.map { $0.convert($0.bounds, to: nil) } ?? .zero)"
+    }
+
+    /// Selbsttest: ein Klick an diesem Punkt in Fensterkoordinaten.
+    func debugClick(atWindowPoint location: NSPoint) {
+        guard let panel = builtPanel else { return }
+        if let hosting {
+            // Ueber den Hosting-View wie im Dashboard (dort nachweislich wirksam).
+            let host = hosting.convert(location, from: nil)
+            debugClick(at: CGPoint(x: host.x, y: host.y))
+            return
+        }
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            if let e = NSEvent.mouseEvent(with: type, location: location, modifierFlags: [],
+                                          timestamp: ProcessInfo.processInfo.systemUptime,
+                                          windowNumber: panel.windowNumber, context: nil,
+                                          eventNumber: 0, clickCount: 1, pressure: 1) {
+                panel.sendEvent(e)
+            }
+        }
+    }
+
     /// Selbsttest: ein Klick an diesem Punkt (Hosting-View, oben links).
     func debugClick(at point: CGPoint) {
         guard let panel = builtPanel, let hosting else { return }
