@@ -90,6 +90,15 @@ public struct WeatherFavorites: Equatable, Sendable {
         return favorites(from: file)
     }
 
+    /// `load(from:)` aus der echten weather.json (`ShellFiles.live`) -
+    /// gemeinsame Stelle statt derselben drei Zeilen an jedem Ort, der ein
+    /// neues Wetter-Widget mit den vorhandenen Favoriten anlegt (Klick in der
+    /// Galerie des Bearbeitungsmodus, Ablegen auf einer Bento-Seite, Umzug
+    /// alter Einstellungen beim ersten Start).
+    public static func loadLive() -> WeatherFavorites {
+        load(from: ShellFiles.read(ShellFiles.live.weather))
+    }
+
     /// Die Regeln von `load(from:)`, auch fuer `Codable` (0.2: Orte je Wetter-Widget).
     private static func favorites(from file: File) -> WeatherFavorites {
         if let favoriteFiles = file.favorites {

@@ -150,7 +150,7 @@ final class WeatherModel {
         // geaenderte weather.json ohne Neustart.
         let wantedFavorites: WeatherFavorites
         switch placesSource {
-        case .file: wantedFavorites = WeatherFavorites.load(from: try? Data(contentsOf: ShellFiles.live.weather))
+        case .file: wantedFavorites = WeatherFavorites.loadLive()
         case .widget(let read, _): wantedFavorites = read()
         }
         favorites = wantedFavorites

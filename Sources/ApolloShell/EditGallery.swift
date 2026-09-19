@@ -274,7 +274,11 @@ struct EditGalleryView: View {
         ForEach(WidgetKind.allCases.filter { editor.showsAllInGallery || $0.home == .dashboard }) { kind in
             EditGalleryTile(symbol: kind.symbol, title: kind.title, detail: sizesText(kind.sizes.count),
                             tooltip: kind.title, payload: BentoWidgetDragPayload.string(for: kind), isDisabled: false) {
-                if editor.dashboard.addAtFirstFreeSpot(kind) == nil {
+                // Dieselben Favoriten wie beim Ablegen (`BentoDropDelegate.add`)
+                // - sonst startete ein per Klick angelegtes Wetter-Widget ohne
+                // Orte, obwohl es welche gibt (Task 3/5).
+                let places = WeatherFavorites.loadLive()
+                if editor.dashboard.addAtFirstFreeSpot(kind, places: places) == nil {
                     show(notice: String(localized: "Kein Platz auf dieser Seite"))
                 }
             }

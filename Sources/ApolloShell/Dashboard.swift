@@ -31,7 +31,7 @@ final class Dashboard {
         // Umzug beim allerersten Zugriff auf die Seiten - vor allem, was sie
         // liest (Groessenmessung gleich darunter eingeschlossen).
         if settings.settings.dashboardPages == nil {
-            let places = WeatherFavorites.load(from: try? Data(contentsOf: ShellFiles.live.weather))
+            let places = WeatherFavorites.loadLive()
             settings.settings.dashboardPages = DashboardPages.migrated(
                 from: settings.settings.dashboard, places: places, hasBattery: PerformanceSampler.hasInternalBattery
             )

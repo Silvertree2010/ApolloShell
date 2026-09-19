@@ -330,7 +330,7 @@ struct BentoDropDelegate: DropDelegate {
         editor.dropPreview = nil
         editor.draggedKind = nil
         guard let preview, preview.valid else { return }
-        let places = WeatherFavorites.load(from: try? Data(contentsOf: ShellFiles.live.weather))
+        let places = WeatherFavorites.loadLive()
         editor.add(kind, frame: preview.frame, places: places)
     }
 
