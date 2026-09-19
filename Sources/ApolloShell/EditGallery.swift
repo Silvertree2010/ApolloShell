@@ -338,31 +338,36 @@ private struct EditGalleryTile: View {
     @Environment(\.galleryRendersForScreenshot) private var rendersForScreenshot
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: symbol)
-                    .font(.system(size: 20, weight: .medium))
-                    .frame(height: 24)
-                Text(title)
-                    .font(.caption.weight(.medium))
+        // Kein `Button`: der verfolgt die Maus selbst und liess `.onDrag`
+        // unter macOS oft gar nicht erst anfangen - Ziehen aus der Galerie
+        // ging dann nicht (Live-Test 19.09.). Ein Tipp ohne Zug fuegt ein,
+        // ein Zug zieht; beides vertraegt sich mit `onTapGesture`.
+        VStack(spacing: 6) {
+            Image(systemName: symbol)
+                .font(.system(size: 20, weight: .medium))
+                .frame(height: 24)
+            Text(title)
+                .font(.caption.weight(.medium))
+                .lineLimit(1)
+            if let detail {
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
-                if let detail {
-                    Text(detail)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .cardSurface(radius: 14)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .cardSurface(radius: 14)
+        .contentShape(.rect(cornerRadius: 14))
         .opacity(isDisabled ? 0.4 : 1)
-        .disabled(isDisabled)
-        .modifier(GalleryDragModifier(payload: payload, active: !rendersForScreenshot))
+        .onTapGesture { if !isDisabled { action() } }
+        .modifier(GalleryDragModifier(payload: payload, active: !rendersForScreenshot && !isDisabled))
         .help(tooltip)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { if !isDisabled { action() } }
     }
 }
 
