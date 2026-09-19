@@ -99,6 +99,15 @@ enum ShellScreens {
     /// `NSScreenNumber` aus der Geraetebeschreibung ist die
     /// CGDirectDisplayID. Fehlt sie (kommt bei einem Bildschirm, der gerade
     /// verschwindet, vor), zaehlt der Bildschirm nicht mit.
+    /// Der `ShellScreen` zu einem `NSScreen` - ueber die Display-Kennung,
+    /// nicht ueber `==`: AppKit legt `NSScreen`-Objekte bei Aenderungen neu
+    /// an, ein vorher geholtes (etwa `window.screen`) ist dann nicht mehr
+    /// dasselbe Objekt wie in `NSScreen.screens`.
+    static func matching(_ screen: NSScreen) -> ShellScreen? {
+        guard let id = displayID(of: screen) else { return nil }
+        return current().first { $0.displayID == id }
+    }
+
     private static func displayID(of screen: NSScreen) -> CGDirectDisplayID? {
         (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
     }

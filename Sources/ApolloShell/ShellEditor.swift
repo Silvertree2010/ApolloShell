@@ -141,7 +141,7 @@ final class ShellEditor {
         for handler in beginHandlers { handler(screen) }
         registerEscape()
         let current = ShellScreens.current()
-        let editScreen = current.first { $0.screen == screen }
+        let editScreen = ShellScreens.matching(screen)
         screenSnapshot = ScreenSnapshot(displayIDs: Set(current.map(\.displayID)),
                                         editDisplayID: editScreen?.displayID, editFrame: editScreen?.frame)
     }

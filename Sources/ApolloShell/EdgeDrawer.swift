@@ -314,7 +314,10 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// Auf einem bestimmten Bildschirm statt dem unter dem Zeiger - fuer eine
     /// Bearbeitung, die von Nexus aus beginnt (`isPinned`).
     func open(on screen: NSScreen) {
-        guard let target = ShellScreens.current().first(where: { $0.screen == screen }) else { return }
+        // Ueber die Display-Kennung; findet sie nichts (Bildschirm gerade
+        // weg), dann dort, wo der Zeiger steht - ein angepinntes Fenster, das
+        // stumm gar nicht aufgeht, liesse die Bearbeitung ohne Panel stehen.
+        guard let target = ShellScreens.matching(screen) ?? ShellScreens.underPointer() else { return }
         open(byHover: false, on: target)
     }
 

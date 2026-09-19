@@ -312,7 +312,13 @@ final class EditModeWindows {
         for candidate in NSScreen.screens {
             let scrim = scrims[ObjectIdentifier(candidate)] ?? {
                 let panel = EditModeScrimPanel()
-                panel.onClick = { [weak self] in self?.editor.dashboard.selectedWidgetID = nil }
+                panel.onClick = { [weak self] in
+                    // Klick daneben: jede Auswahl (und damit jedes offene
+                    // Optionen-Popover) weg, in beiden Panels.
+                    self?.editor.dashboard.selectedWidgetID = nil
+                    self?.editor.selectedToggleID = nil
+                    self?.editor.dashboard.renamingPageID = nil
+                }
                 scrims[ObjectIdentifier(candidate)] = panel
                 return panel
             }()
