@@ -173,6 +173,33 @@ private final class EditModeSelfTestHarness {
         check(!(dashboardEditor.page?.widgets.contains { $0.id == id } ?? true), "Minus entfernt das Widget")
     }
 
+    /// Seiten in der Leiste: leerer Name faellt auf „Seite“ zurueck,
+    /// Loeschen ohne Rueckfrage, letzte Seite nie.
+    private func pageBar(on screen: NSScreen) async {
+        editor.begin(screen: screen)
+        await wait(0.5)
+        guard let id = dashboardEditor.addPage() else { check(false, "Seite anlegen"); return }
+        dashboardEditor.renamingPageID = id
+        dashboardEditor.renamePage(id, to: "   ")
+        dashboardEditor.renamingPageID = nil
+        check(dashboardEditor.session?.pages.page(id: id)?.name == String(localized: "Seite"),
+              "Leerer Name beim Umbenennen wird „Seite“")
+        let count = dashboardEditor.session?.pages.pages.count ?? 0
+        check(dashboardEditor.removePage(id) && dashboardEditor.session?.pages.pages.count == count - 1,
+              "Seite loeschen geht ohne Rueckfrage")
+        for page in dashboardEditor.session?.pages.pages.dropFirst() ?? [] { _ = dashboardEditor.removePage(page.id) }
+        let last = dashboardEditor.session?.pages.pages.first?.id
+        check(last.map { !dashboardEditor.removePage($0) } ?? false, "Die letzte Seite laesst sich nicht loeschen")
+        dashboardEditor.restoreDefaults()
+        check(Set(dashboardEditor.session?.pages.pages.compactMap(\.template) ?? []).count == PageTemplate.allCases.count,
+              "Standardseiten wiederherstellen bringt alle vier zurueck")
+        editor.cancel()
+        await wait(0.6)
+        dashboard.debugClose()
+        utilities.debugClose()
+        await wait(0.5)
+    }
+
     /// Esc von innen nach aussen: Auswahl, Umbenennen, Galerie, Rueckfrage,
     /// erst dann Abbrechen.
     private func escapeOrder(on screen: NSScreen) async {
@@ -357,6 +384,7 @@ private final class EditModeSelfTestHarness {
         }
         if let screen = NSScreen.screens.first {
             await escapeOrder(on: screen)
+            await pageBar(on: screen)
             await controlCentre(on: screen)
         }
     }
