@@ -76,6 +76,17 @@ final class ShellEditor {
     /// wirken aber nur, waehrend `isEditing` gilt.
     private var endAsCancelObservers: [any NSObjectProtocol] = []
 
+    /// Stand der Bildschirme bei `begin`, fuer
+    /// `didChangeScreenParametersNotification` (siehe dort): die Meldung
+    /// kommt auch, wenn sich gar kein Bildschirm geaendert hat, z. B. beim
+    /// Ein-/Ausblenden von Apples Dock (das die Shell selbst versteckt).
+    private struct ScreenSnapshot: Equatable {
+        let displayIDs: Set<CGDirectDisplayID>
+        let editDisplayID: CGDirectDisplayID?
+        let editFrame: CGRect?
+    }
+    private var screenSnapshot: ScreenSnapshot?
+
     init(store: ShellSettingsStore, dashboard: DashboardEditor) {
         self.store = store
         self.dashboard = dashboard
@@ -99,7 +110,7 @@ final class ShellEditor {
         // `WindowGuard.swift`) direkt am Aufruf.
         endAsCancelObservers = [
             center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.cancel() }
+                MainActor.assumeIsolated { self?.handleScreenParametersChanged() }
             },
             workspace.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.cancel() }
@@ -129,6 +140,27 @@ final class ShellEditor {
         dashboard.begin(pageID: pageID, screen: screen)
         for handler in beginHandlers { handler(screen) }
         registerEscape()
+        let current = ShellScreens.current()
+        let editScreen = current.first { $0.screen == screen }
+        screenSnapshot = ScreenSnapshot(displayIDs: Set(current.map(\.displayID)),
+                                        editDisplayID: editScreen?.displayID, editFrame: editScreen?.frame)
+    }
+
+    /// `didChangeScreenParametersNotification` (Task 6) kommt nicht nur bei
+    /// einem wirklich umgesteckten oder anders aufgeloesten Bildschirm,
+    /// sondern vermutlich auch, wenn Apples Dock oder die Menueleiste ihre
+    /// Groesse aendern - und die Shell blendet Apples Dock selbst aus. Ohne
+    /// diesen Vergleich haette das die Bearbeitung schon beim Oeffnen der
+    /// Galerie (Dock blendet aus) sofort wieder beendet. Nur bei einer
+    /// wirklichen Aenderung - andere Menge an Bildschirmen, oder ein anderer
+    /// Rahmen des Bearbeitungs-Bildschirms - zaehlt es wie ein Abbrechen.
+    private func handleScreenParametersChanged() {
+        guard isEditing, let previous = screenSnapshot else { return }
+        let current = ShellScreens.current()
+        let ids = Set(current.map(\.displayID))
+        let editFrame = previous.editDisplayID.flatMap { id in current.first { $0.displayID == id }?.frame }
+        guard ids != previous.displayIDs || editFrame != previous.editFrame else { return }
+        cancel()
     }
 
     /// „Fertig“: beide Arbeitskopien in einer Zuweisung von `store.settings`
@@ -154,6 +186,7 @@ final class ShellEditor {
         dashboard.cancel()
         utilities = nil
         pendingCancelConfirmation = false
+        screenSnapshot = nil
         unregisterEscape()
         for handler in endHandlers { handler() }
     }
@@ -165,6 +198,7 @@ final class ShellEditor {
         dashboard.cancel()
         utilities = nil
         pendingCancelConfirmation = false
+        screenSnapshot = nil
         unregisterEscape()
         for handler in endHandlers { handler() }
     }
