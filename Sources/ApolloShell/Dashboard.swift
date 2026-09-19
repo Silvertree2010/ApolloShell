@@ -126,6 +126,9 @@ final class Dashboard {
     var debugLevel: Int? { drawer.debugLevel }
     func debugClose() { drawer.close() }
     var debugScale: CGFloat { model.scale }
+    var debugIsOpen: Bool { drawer.isOpen }
+    var debugShownPage: DashboardPage.ID? { model.pageID }
+    var debugShowsPerformance: Bool { model.showsPerformance }
     func debugDrag(from start: CGPoint, to end: CGPoint) { drawer.debugDrag(from: start, to: end) }
     func debugClick(at point: CGPoint) { drawer.debugClick(at: point) }
     func debugScreenRect(ofHostRect rect: CGRect) -> NSRect? { drawer.debugScreenRect(ofHostRect: rect) }

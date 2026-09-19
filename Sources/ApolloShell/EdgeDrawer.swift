@@ -325,6 +325,18 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 
     var debugWindowHeight: CGFloat { builtPanel?.frame.height ?? 0 }
 
+    /// Selbsttest: jede Ansicht im Fenster neu auslegen lassen, damit
+    /// Messansichten ihre Lage nach einer Groessenaenderung neu melden.
+    func debugRelayout() {
+        func mark(_ view: NSView) {
+            view.needsLayout = true
+            view.subviews.forEach(mark)
+        }
+        guard let root = builtPanel?.contentView else { return }
+        mark(root)
+        root.layoutSubtreeIfNeeded()
+    }
+
     /// Selbsttest: Fenster- und Hosting-Rahmen fuer die Fehlersuche.
     var debugFrames: String {
         "Fenster \(builtPanel?.frame ?? .zero), Host \(hosting?.frame ?? .zero), Host im Fenster \(hosting.map { $0.convert($0.bounds, to: nil) } ?? .zero)"

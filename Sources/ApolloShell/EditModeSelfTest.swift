@@ -247,10 +247,14 @@ private final class EditModeSelfTestHarness {
         guard let link = editor.addToggle(.openLink) else { check(false, "Link-Knopf einfuegen"); return }
         editor.selectedToggleID = nil
         await wait(0.8)
+        utilities.debugRelayout()
+        await wait(0.2)
         if let linkRect = editor.debugUtilitiesRects[link] {
             utilities.debugClick(fromTop: CGPoint(x: linkRect.midX, y: linkRect.midY))
             await wait(0.6)
             let popover = NSApp.windows.first { $0.isVisible && String(describing: type(of: $0)).contains("Popover") }
+            note("Link: Rahmen \(r(linkRect)), Fensterhoehe \(Int(utilities.debugWindowHeight)), gewaehlt \(String(describing: editor.selectedToggleID)), Popover \(r(popover?.frame))")
+            note("alle Kacheln: " + (editor.utilities?.layout.toggles.map { "\($0.id)=\(r(editor.debugUtilitiesRects[$0.id]))" }.joined(separator: " ") ?? ""))
             check(editor.selectedToggleID == link && popover != nil, "Link-Knopf antippen zeigt seine Optionen")
         } else {
             check(false, "Link-Kachel gefunden")
@@ -262,7 +266,31 @@ private final class EditModeSelfTestHarness {
         await wait(0.5)
     }
 
+    /// Normaler Betrieb ohne Bearbeiten: Knoepfe der Leiste oeffnen die
+    /// passende Seite, zweiter Klick schliesst, Leistung misst nur auf der
+    /// Leistungs-Seite.
+    private func normalUse() async {
+        guard let pages = store.settings.dashboardPages else { check(false, "Seiten da"); return }
+        for (tab, template) in [(DashboardTab.media, PageTemplate.media), (.performance, .performance), (.weather, .weather), (.dashboard, .overview)] {
+            dashboard.show(tab: tab)
+            await wait(0.5)
+            let expected = pages.pages.first { $0.template == template }?.id
+            check(dashboard.debugIsOpen && dashboard.debugShownPage == expected, "Leistenknopf \(tab.rawValue) oeffnet seine Seite")
+            check(dashboard.debugShowsPerformance == (template == .performance), "Leistungsmessung nur auf der Leistungs-Seite (\(tab.rawValue))")
+            dashboard.show(tab: tab)
+            await wait(0.5)
+            check(!dashboard.debugIsOpen, "Zweiter Klick auf \(tab.rawValue) schliesst")
+        }
+        dashboard.toggle()
+        await wait(0.5)
+        check(dashboard.debugIsOpen, "Dashboard-Kuerzel oeffnet")
+        dashboard.toggle()
+        await wait(0.5)
+        check(!dashboard.debugIsOpen, "Dashboard-Kuerzel schliesst")
+    }
+
     private func scenario() async {
+        await normalUse()
         await probeScaledDrag()
         for screen in NSScreen.screens {
             note("Bildschirm \(r(screen.frame)), sichtbar \(r(screen.visibleFrame))")

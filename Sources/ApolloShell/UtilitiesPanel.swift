@@ -49,6 +49,8 @@ final class UtilitiesPanel {
         drawer.debugClick(atWindowPoint: NSPoint(x: point.x, y: height - point.y))
     }
     var debugFrames: String { drawer.debugFrames }
+    var debugWindowHeight: CGFloat { drawer.debugWindowHeight }
+    func debugRelayout() { drawer.debugRelayout() }
     #endif
 
     /// `model`: fuer Bildproben ein Vorschau-Modell, das nichts liest und
