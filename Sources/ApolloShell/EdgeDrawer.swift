@@ -3,36 +3,36 @@ import ApolloShellCore
 import QuartzCore
 import SwiftUI
 
-/// Wo ein Kantenfenster sitzt.
+/// Where an edge window sits.
 enum DrawerEdge {
-    /// Oben mittig, direkt unter der Menueleiste (Caelestia: Dashboard).
+    /// Top centered, right below the menu bar (Caelestia: Dashboard).
     case top
-    /// Rechts, vertikal mittig (Caelestia: Sitzungsmenue, OSD).
+    /// Right, vertically centered (Caelestia: session menu, OSD).
     case right
-    /// Ecke rechts unten (Caelestia: Utilities).
+    /// Bottom-right corner (Caelestia: Utilities).
     case bottomRight
-    /// Unten mittig, wo frueher Apples Dock sass (Launcher).
+    /// Bottom centered, where Apple's Dock used to sit (Launcher).
     case bottom
 }
 
-/// Wie ein Kantenfenster auf- und zugeht. Bewegt wird der Inhalt ueber die
-/// sublayerTransform des Containers - das rechnet Core Animation auf der
-/// GPU, anders als ein animiertes setFrame, das AppKit Bild fuer Bild auf
-/// dem Hauptthread setzt und das Glas jedes Mal neu rendern laesst. Dazu
-/// blendet das Fenster ein und aus.
+/// How an edge window opens and closes. The content is moved via the
+/// sublayerTransform of the container - Core Animation computes that on the
+/// GPU, unlike an animated setFrame, which has AppKit set the frame bit by
+/// bit on the main thread and re-render the glass every time. On top of
+/// that, the window fades in and out.
 enum DrawerMotion {
-    /// Caelestia: um die eigene Groesse (+5) aus der Kante gleiten, 500 ms
-    /// auf `MotionCurve.spatial` mit leichtem Ueberschiessen, Einblenden auf
-    /// derselben Kurve.
+    /// Caelestia: slides out of the edge by its own size (+5), 500 ms on
+    /// `MotionCurve.spatial` with a slight overshoot, fading in on the same
+    /// curve.
     case slide
-    /// Launcher: waechst aus der Mitte der Unterkante heraus (etwas kleiner
-    /// und tiefer) und geht denselben Weg zurueck. Federn statt fester Dauer,
-    /// kritisch gedaempft wie bei Apple: schnell los, weich auslaufen, kein
-    /// Nachwippen (das gehoert zu Wisch-Gesten, nicht zu einem Tastendruck).
-    /// Die erste Fassung (28 pt, nur Verschieben) war kaum wahrnehmbar.
+    /// Launcher: grows out of the center of the bottom edge (a bit smaller
+    /// and lower) and takes the same path back. Springs instead of a fixed
+    /// duration, critically damped like Apple: fast start, soft settle, no
+    /// bounce-back (that belongs to swipe gestures, not a key press). The
+    /// first version (28 pt, translation only) was barely noticeable.
     case grow
 
-    /// Zu-Zustand der sublayerTransform.
+    /// Closed state of the sublayerTransform.
     @MainActor
     func closedTransform(edge: DrawerEdge, size: NSSize, topInset: CGFloat, container: NSView) -> CATransform3D {
         switch self {
@@ -47,7 +47,7 @@ enum DrawerMotion {
         }
     }
 
-    /// Die Bewegung der sublayerTransform; `from`/`to` setzt der Aufrufer.
+    /// The sublayerTransform motion; `from`/`to` are set by the caller.
     func transformAnimation(opening: Bool) -> CABasicAnimation {
         switch self {
         case .slide:
@@ -60,8 +60,8 @@ enum DrawerMotion {
         }
     }
 
-    /// Dauer und Kurve des Ein- bzw. Ausblendens. Beim Wachsen kuerzer als
-    /// die Feder, damit das Glas sofort da ist.
+    /// Duration and curve of the fade in/out. Shorter than the spring while
+    /// growing, so the glass is there right away.
     func fade(opening: Bool) -> (duration: TimeInterval, curve: CAMediaTimingFunction) {
         switch self {
         case .slide: (MotionCurve.spatialDuration, .shellSpatial)
@@ -70,25 +70,25 @@ enum DrawerMotion {
     }
 
     private enum Grow {
-        /// Federantwort in Sekunden (Apples "response"): wie schnell das Ziel
-        /// erreicht wird. Oeffnen etwas ruhiger, Schliessen knapper.
+        /// Spring response in seconds (Apple's "response"): how fast the
+        /// target is reached. A bit calmer opening, snappier closing.
         static let openResponse: CGFloat = 0.42
         static let closeResponse: CGFloat = 0.28
         static let fadeIn: TimeInterval = 0.16
         static let fadeOut: TimeInterval = 0.14
-        /// Zu-Zustand: um `travel` Punkte tiefer und auf `closedScale` verkleinert.
+        /// Closed state: `travel` points lower and scaled down to `closedScale`.
         static let travel: CGFloat = 40
         static let closedScale: CGFloat = 0.92
         static var easeOut: CAMediaTimingFunction { CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1) }
 
-        /// Bei "Bewegung reduzieren" die Identitaet, dann bleibt nur die Blende.
+        /// Under "reduce motion", the identity, so only the fade remains.
         ///
-        /// Die sublayerTransform dreht um den anchorPoint des Layers. Offline
-        /// gemessen: bei View-Layern ist der (0,0), also unten links, und y
-        /// zeigt nach oben. Damit das Panel aus dem Dock waechst statt aus der
-        /// Ecke, wird der Drehpunkt auf die Mitte der Unterkante verlegt:
-        /// dorthin schieben, skalieren, zurueckschieben, dann nach unten
-        /// versetzen.
+        /// The sublayerTransform rotates around the layer's anchorPoint.
+        /// Measured offline: for view layers that is (0,0), i.e. bottom
+        /// left, and y points up. So the panel grows out of the Dock
+        /// instead of the corner, the pivot is moved to the center of the
+        /// bottom edge: shift there, scale, shift back, then offset
+        /// downward.
         @MainActor
         static func closedTransform(for view: NSView) -> CATransform3D {
             if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
@@ -109,8 +109,8 @@ enum DrawerMotion {
             return transform
         }
 
-        /// Kritisch gedaempfte Feder aus Apples "response" (Masse 1):
-        /// Steifigkeit (2π/response)², Daempfung 4π·ζ/response mit ζ = 1.
+        /// Critically damped spring from Apple's "response" (mass 1):
+        /// stiffness (2*pi/response)^2, damping 4*pi*zeta/response with zeta = 1.
         static func spring(response: CGFloat) -> CASpringAnimation {
             let spring = CASpringAnimation(keyPath: "sublayerTransform")
             spring.mass = 1
@@ -123,89 +123,89 @@ enum DrawerMotion {
     }
 }
 
-/// Abdunkelung des ganzen Bildschirms hinter dem Fenster; ein Klick darauf
-/// schliesst es (Caelestia: Sitzungsmenue).
+/// Dimming of the whole screen behind the window; a click on it closes it
+/// (Caelestia: session menu).
 struct DrawerScrim {
-    /// Wie dunkel, 0...1.
+    /// How dark, 0...1.
     let amount: CGFloat
     let duration: TimeInterval
     let curve: CAMediaTimingFunction
 }
 
-/// Glas-Panel, das an einer Bildschirmkante klebt und aus ihr herauskommt
-/// (`DrawerMotion`), auf Wunsch vor abgedunkeltem Bildschirm
-/// (`DrawerScrim`). Gemeinsamer Baustein fuer Dashboard, Utilities, OSD,
-/// Sitzungsmenue und Launcher.
+/// Glass panel that sticks to a screen edge and comes out of it
+/// (`DrawerMotion`), optionally in front of a dimmed screen (`DrawerScrim`).
+/// Shared building block for Dashboard, Utilities, OSD, session menu and
+/// Launcher.
 ///
-/// Es geht dort auf, wo der Zeiger steht, und die Maus oeffnet es an der
-/// Kante JEDES Bildschirms - nicht nur am Hauptbildschirm. Solange es offen
-/// ist, bleibt es auf seinem Bildschirm stehen, auch wenn der Zeiger
-/// hinueberwandert.
+/// It opens wherever the pointer is, and the mouse opens it at the edge of
+/// EVERY screen - not just the main screen. As long as it is open, it stays
+/// on its screen, even if the pointer wanders over to another one.
 ///
-/// Das Fenster ist um den Eckenradius groesser als sichtbar und ragt damit
-/// ueber die Bildschirmkante(n): so liegen die Glasecken an der Kante
-/// ausserhalb, und das Panel wirkt, als wuechse es aus ihr. Der Inhalt liegt
-/// nur im sichtbaren Teil. Oben liegt das Glas ueber der Menueleiste bis an
-/// die Kante; der Inhalt beginnt unter Menueleiste und Notch.
+/// The window is larger than what is visible by the corner radius and
+/// therefore overhangs the screen edge(s): that way the glass corners sit
+/// outside the edge, and the panel looks as if it were growing out of it.
+/// The content only occupies the visible part. At the top the glass extends
+/// over the menu bar to the edge; the content starts below the menu bar and
+/// the notch.
 @MainActor
 final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     let edge: DrawerEdge
     let motion: DrawerMotion
     let scrim: DrawerScrim?
-    /// Sichtbare Groesse (ohne den Teil, der ueber die Kante ragt). Aendert
-    /// sich nur ueber `resize(to:)` (Utilities: Karten an/aus, mehr Reihen).
+    /// Visible size (excluding the part that overhangs the edge). Only
+    /// changes via `resize(to:)` (Utilities: cards on/off, more rows).
     private(set) var size: NSSize
     let cornerRadius: CGFloat
-    /// Klick in eine andere App schliesst (Standard). Fuer rein anzeigende
-    /// Fenster wie das OSD aus.
+    /// A click into another app closes it (default). Off for purely
+    /// display-only windows like the OSD.
     var closesOnResignKey = true
-    /// Tastatur annehmen (Esc schliesst). Fuer das OSD aus, damit es nie
-    /// Fokus nimmt.
+    /// Accept keyboard input (Esc closes). Off for the OSD, so it never
+    /// takes focus.
     let takesKeyboard: Bool
     var onOpen: () -> Void = {}
     var onClose: () -> Void = {}
-    /// Vor `applyGeometry`, sobald der Zielbildschirm feststeht - fuer den
-    /// Massstab des Dashboards (`Dashboard.prepareForScreen`). Andere
-    /// Kantenfenster lassen es `nil`.
+    /// Before `applyGeometry`, as soon as the target screen is known - for
+    /// the Dashboard's scale (`Dashboard.prepareForScreen`). Other edge
+    /// windows leave it `nil`.
     var prepareForScreen: ((NSScreen) -> Void)?
-    /// Nach der Schliessbewegung, wenn das Fenster weg ist - nicht, wenn es
-    /// vorher wieder aufging.
+    /// After the close animation, once the window is gone - not when it
+    /// reopened before that.
     var onHidden: () -> Void = {}
 
-    /// Caelestia: erscheint, wenn die Maus an die Kante stoesst, und geht,
-    /// wenn sie den Bereich verlaesst (Regeln in ApolloShellCore/EdgeHover).
-    /// Oben (Dashboard) und unten rechts (Utilities).
+    /// Caelestia: appears when the mouse hits the edge, and goes away when
+    /// it leaves the area (rules in ApolloShellCore/EdgeHover). Top
+    /// (Dashboard) and bottom right (Utilities).
     var opensOnHover = false {
         didSet {
             #if DEBUG
-            // Selbsttest: keine Maus-Ueberwachung neben der echten Shell.
+            // Self-test: no mouse monitoring alongside the real shell.
             if EditModeSelfTest.invisible { return }
             #endif
             updateHoverMonitor()
         }
     }
-    /// Bildschirme, auf denen eine Vollbild-App steht: dort oeffnet die Maus
-    /// an der Kante nichts (Caelestia ebenso). Auf den uebrigen Bildschirmen
-    /// geht es weiter.
+    /// Screens with a fullscreen app on them: there the mouse at the edge
+    /// opens nothing (same as Caelestia). It keeps working on the other
+    /// screens.
     var suspendedScreens: Set<CGDirectDisplayID> = []
-    /// Waehrend einer Bearbeitung (Dashboard, Bento-Seiten): haelt das Fenster
-    /// offen, egal wo die Maus steht - Hover schliesst nicht, `Esc` schliesst
-    /// nicht, ein Klick in eine andere App (Nexus) schliesst nicht, und
-    /// `toggle()`/`open()`/`close()` von aussen wirken nicht. Entpinnen
-    /// schliesst von selbst, ausser der Zeiger steht noch im Aufklapp-Bereich
-    /// - dann uebernimmt von dort das uebliche Hover-Verhalten; sonst bliebe
-    /// das Fenster sonst unbegrenzt offen stehen (`unpin()`).
+    /// While editing (Dashboard, Bento pages): keeps the window open no
+    /// matter where the mouse is - hover does not close it, `Esc` does not
+    /// close it, a click into another app (Nexus) does not close it, and
+    /// `toggle()`/`open()`/`close()` from outside have no effect. Unpinning
+    /// closes it on its own, unless the pointer is still in the flyout
+    /// area - then the usual hover behavior takes over from there;
+    /// otherwise the window would stay open indefinitely (`unpin()`).
     ///
-    /// Waehrend `isPinned` gilt zusaetzlich (Spec Abschnitt 4,
-    /// "window-manager-safe"): `.stationary` statt `.transient` (Fenstermanager
-    /// wie AeroSpace/yabai/Amethyst kacheln oder verschieben ein `.transient`-
-    /// Fenster sonst mit, sobald es laenger als einen Wisch offen bleibt),
-    /// nicht-Standard-Bedienungshilfen-Subrolle und aus dem Fenstermenue
-    /// ausgeschlossen - wie `EditModePanel`, aber nur, solange gepinnt (ein
-    /// nicht angepinntes Kantenfenster bleibt `.transient`: es soll ein
-    /// Fenstermanager-Tastenkuerzel weiterhin schliessen duerfen). Der Wert
-    /// wirkt auf `builtPanel`, falls es schon gebaut ist, und auf jedes neu
-    /// gebaute (`makePanel()`).
+    /// While `isPinned` is set, additionally (Spec Section 4,
+    /// "window-manager-safe"): `.stationary` instead of `.transient`
+    /// (window managers like AeroSpace/yabai/Amethyst would otherwise tile
+    /// or move a `.transient` window along once it stays open longer than a
+    /// swipe), a non-standard accessibility subrole and excluded from the
+    /// window menu - like `EditModePanel`, but only as long as pinned (an
+    /// unpinned edge window stays `.transient`: a window manager keyboard
+    /// shortcut should still be able to close it). The value applies to
+    /// `builtPanel`, if it is already built, and to any newly built one
+    /// (`makePanel()`).
     var isPinned = false {
         didSet {
             guard isPinned != oldValue else { return }
@@ -216,14 +216,14 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     }
     private var hoverState = EdgeHoverState.hidden
     private var hoverMonitor: Any?
-    /// Solange offen: Mausposition selbst nachsehen. Der globale Monitor
-    /// sieht keine Bewegungen ueber eigenen Fenstern (Panel, Leiste).
+    /// While open: check the mouse position ourselves. The global monitor
+    /// does not see movements over our own windows (panel, bar).
     private var hoverTimer: Timer?
 
     private let rootView: Content
-    /// Erst beim ersten Oeffnen gebaut. Nicht als `lazy var`: deren
-    /// Initialisierer sieht Swift 6.3.3 nicht als MainActor an und warnt,
-    /// dass die View-Konformanz von `Content` dorthin nicht mitdarf.
+    /// Only built on first open. Not as a `lazy var`: its initializer is
+    /// not recognized as MainActor by Swift 6.3.3 and warns that `Content`'s
+    /// View conformance may not cross over there.
     private var builtPanel: DrawerPanel?
     private var panel: DrawerPanel {
         if let builtPanel { return builtPanel }
@@ -233,24 +233,24 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     }
     private let container: NSView
     private var builtScrim: ScrimWindow?
-    /// Glas und SwiftUI-Inhalt darin; `resize(to:)` setzt ihre Rahmen neu.
+    /// Glass and the SwiftUI content inside it; `resize(to:)` resets their frames.
     private var glass: NSGlassEffectView?
     private var hosting: NSView?
-    /// Die eingefaerbte Flaeche unter dem Glas, wenn ein Theme gilt.
+    /// The tinted area under the glass, when a theme applies.
     private var panelLayer: CAGradientLayer?
     private(set) var isOpen = false
     private var generation = 0
 
-    /// Auf welchem Bildschirm das Fenster gerade steht bzw. zuletzt stand.
+    /// Which screen the window is currently on, or was last on.
     private(set) var currentScreen: ShellScreen?
 
-    /// Nur oben: Streifen unter Menueleiste und Kamera-Notch. Das Glas reicht
-    /// bis an die Bildschirmkante (wie Utilities unten rechts), der Inhalt
-    /// beginnt erst darunter - in der Notch waere er abgeschnitten.
+    /// Top edge only: strip under the menu bar and camera notch. The glass
+    /// reaches to the screen edge (like Utilities at the bottom right), the
+    /// content only starts below that - in the notch it would be cut off.
     ///
-    /// Kein fester Wert mehr: nicht jeder Bildschirm hat eine Menueleiste,
-    /// und eine Notch hat ohnehin nur der eingebaute. Beim Oeffnen wird er
-    /// fuer den Zielbildschirm neu bestimmt (`applyGeometry`).
+    /// No longer a fixed value: not every screen has a menu bar, and only
+    /// the built-in one has a notch anyway. It is redetermined for the
+    /// target screen on open (`applyGeometry`).
     private var topInset: CGFloat
 
     init(edge: DrawerEdge, size: NSSize, cornerRadius: CGFloat, takesKeyboard: Bool = true,
@@ -271,40 +271,39 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         observeScreenChanges()
     }
 
-    /// Faerbt das Glas des Kantenfensters nach dem Theme: Panelfarbe als
-    /// Toenung, Panelradius als Ecke. Ohne Theme bleibt alles, wie es war.
-    /// Wird beim Bauen und bei jedem Oeffnen gesetzt, damit ein Wechsel im
-    /// Theme spaetestens beim naechsten Oeffnen ankommt.
-    /// Faerbt das Kantenfenster nach dem Theme (siehe `ThemedGlass`).
+    /// Tints the edge window's glass according to the theme: panel color as
+    /// tint, panel radius as corner. Without a theme everything stays as it
+    /// was. Set when building and on every open, so a theme change reaches
+    /// it by the next open at the latest.
+    /// Tints the edge window per the theme (see `ThemedGlass`).
     private func applyTheme() {
         panelLayer = ThemedGlass.apply(to: glass, fallbackRadius: cornerRadius, previous: panelLayer)
     }
 
-    /// Hoehe der Menueleiste bzw. der Notch, je nachdem was groesser ist
-    /// (Menueleiste ausgeblendet: dann zaehlt nur die Notch). Bildschirme
-    /// ohne Menueleiste ergeben 0.
+    /// Height of the menu bar or the notch, whichever is larger (menu bar
+    /// hidden: then only the notch counts). Screens without a menu bar
+    /// yield 0.
     private static func menuBarInset(_ screen: NSScreen?) -> CGFloat {
         guard let screen else { return 0 }
         return max(screen.frame.maxY - screen.visibleFrame.maxY, screen.safeAreaInsets.top)
     }
 
-    /// Waehrend einer Bearbeitung (`isPinned`) wirkt weder Symbol noch
-    /// Tastenkombination - das Fenster bleibt, bis die Bearbeitung endet.
+    /// While editing (`isPinned`), neither the icon nor the keyboard
+    /// shortcut has any effect - the window stays until editing ends.
     func toggle() {
         guard !isPinned else { return }
         isOpen ? close() : open()
     }
 
-    /// Rahmen des Fensters auf dem Bildschirm, solange offen - fuer Fenster,
-    /// die ihm ausweichen muessen (Werkzeugleiste und Galerie des
-    /// Bearbeitungsmodus). Enthaelt den Ueberhang an der Kante; fuer das
-    /// Ausweichen reicht das.
+    /// The window's frame on the screen while open - for windows that must
+    /// avoid it (toolbar and gallery of edit mode). Includes the overhang
+    /// at the edge; that is enough for avoiding it.
     var openFrame: NSRect? { isOpen ? builtPanel?.frame : nil }
     #if DEBUG
     var debugLevel: Int? { builtPanel?.level.rawValue }
 
-    /// Selbsttest: ein Zug mit der linken Taste direkt an dieses Fenster,
-    /// Punkte im Hosting-View von oben links (wie SwiftUIs `.global`).
+    /// Self-test: a drag with the left button straight to this window,
+    /// points in the hosting view from the top left (like SwiftUI's `.global`).
     func debugDrag(from start: CGPoint, to end: CGPoint, steps: Int = 8) {
         guard let panel = builtPanel, let hosting else { return }
         func event(_ type: NSEvent.EventType, _ point: CGPoint) -> NSEvent? {
@@ -325,8 +324,8 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 
     var debugWindowHeight: CGFloat { builtPanel?.frame.height ?? 0 }
 
-    /// Selbsttest: jede Ansicht im Fenster neu auslegen lassen, damit
-    /// Messansichten ihre Lage nach einer Groessenaenderung neu melden.
+    /// Self-test: force every view in the window to lay out again, so
+    /// measurement views report their position again after a size change.
     func debugRelayout() {
         func mark(_ view: NSView) {
             view.needsLayout = true
@@ -337,16 +336,16 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         root.layoutSubtreeIfNeeded()
     }
 
-    /// Selbsttest: Fenster- und Hosting-Rahmen fuer die Fehlersuche.
+    /// Self-test: window and hosting frames for debugging.
     var debugFrames: String {
-        "Fenster \(builtPanel?.frame ?? .zero), Host \(hosting?.frame ?? .zero), Host im Fenster \(hosting.map { $0.convert($0.bounds, to: nil) } ?? .zero)"
+        "Window \(builtPanel?.frame ?? .zero), Host \(hosting?.frame ?? .zero), Host in window \(hosting.map { $0.convert($0.bounds, to: nil) } ?? .zero)"
     }
 
-    /// Selbsttest: ein Klick an diesem Punkt in Fensterkoordinaten.
+    /// Self-test: a click at this point in window coordinates.
     func debugClick(atWindowPoint location: NSPoint) {
         guard let panel = builtPanel else { return }
         if let hosting {
-            // Ueber den Hosting-View wie im Dashboard (dort nachweislich wirksam).
+            // Via the hosting view like in the Dashboard (proven effective there).
             let host = hosting.convert(location, from: nil)
             debugClick(at: CGPoint(x: host.x, y: host.y))
             return
@@ -361,7 +360,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         }
     }
 
-    /// Selbsttest: ein Klick an diesem Punkt (Hosting-View, oben links).
+    /// Self-test: a click at this point (hosting view, top left).
     func debugClick(at point: CGPoint) {
         guard let panel = builtPanel, let hosting else { return }
         let location = hosting.convert(NSPoint(x: point.x, y: point.y), to: nil)
@@ -375,8 +374,8 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         }
     }
 
-    /// Selbsttest: ein Rechteck im Hosting-View (oben links) in
-    /// Bildschirmkoordinaten.
+    /// Self-test: a rectangle in the hosting view (top left) in screen
+    /// coordinates.
     func debugScreenRect(ofHostRect rect: CGRect) -> NSRect? {
         guard let panel = builtPanel, let hosting else { return nil }
         let inWindow = hosting.convert(rect, to: nil)
@@ -384,34 +383,34 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     }
     #endif
 
-    /// Tastatur holen, solange offen - z. B. fuer das Umbenennen einer Seite
-    /// im Bearbeitungsmodus, wenn inzwischen ein anderes Kantenfenster
-    /// (Kontrollzentrum) Schluesselfenster ist. Nur fuer Fenster, die
-    /// ueberhaupt Tastatur annehmen (`takesKeyboard`).
+    /// Take keyboard input while open - e.g. for renaming a page in edit
+    /// mode, when another edge window (Control Center) has since become
+    /// the key window. Only for windows that accept keyboard input at all
+    /// (`takesKeyboard`).
     func takeKeyboard() {
         guard isOpen, takesKeyboard else { return }
         panel.makeKey()
     }
 
-    /// Per Tastenkombination oder Symbol.
+    /// Via keyboard shortcut or icon.
     func open() {
         guard !isPinned else { return }
         guard let screen = ShellScreens.underPointer() else { return }
         open(byHover: false, on: screen)
     }
 
-    /// Auf einem bestimmten Bildschirm statt dem unter dem Zeiger - fuer eine
-    /// Bearbeitung, die von Nexus aus beginnt (`isPinned`).
+    /// On a specific screen instead of the one under the pointer - for an
+    /// edit session that starts from Nexus (`isPinned`).
     func open(on screen: NSScreen) {
-        // Ueber die Display-Kennung; findet sie nichts (Bildschirm gerade
-        // weg), dann dort, wo der Zeiger steht - ein angepinntes Fenster, das
-        // stumm gar nicht aufgeht, liesse die Bearbeitung ohne Panel stehen.
+        // Via the display identifier; if that finds nothing (screen just
+        // disappeared), then wherever the pointer is - a pinned window that
+        // silently fails to open would leave the edit session without a panel.
         guard let target = ShellScreens.matching(screen) ?? ShellScreens.underPointer() else { return }
         open(byHover: false, on: target)
     }
 
-    /// Per Maus geoeffnet nimmt es keinen Fokus: die App darunter behaelt die
-    /// Tastatur, man faehrt ja nur vorbei.
+    /// Opened via the mouse, it does not take focus: the app underneath
+    /// keeps the keyboard, since one is only passing by.
     private func open(byHover: Bool, on screen: ShellScreen) {
         guard !isOpen else { return }
         applyTheme()
@@ -419,8 +418,8 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         generation += 1
         afterClose = nil
         prepareForScreen?(screen.screen)
-        // Vor dem ersten Zugriff auf `panel`: der baut sein Fenster aus der
-        // Groesse des Containers, und die haengt am Bildschirm.
+        // Before the first access to `panel`: it builds its window from
+        // the container's size, and that depends on the screen.
         applyGeometry(on: screen)
         if byHover {
             hoverState = EdgeHoverState(visible: true, shortcutActive: false)
@@ -496,15 +495,15 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         })
     }
 
-    /// Schliessen und `then` erst ausfuehren, wenn das Panel ganz vom
-    /// Bildschirm ist. Fuer Aktionen, die sonst mit dem Panel kollidieren:
-    /// Solange es Schluesselfenster ist, landen gepostete Tasten (⌃⌘Q) bei
-    /// uns statt bei der App vorne, und Pipette oder Bildschirmfoto saehen
-    /// das halb ausgeblendete Glas. Geht es vorher wieder auf, entfaellt
-    /// `then` - man hat es sich anders ueberlegt.
+    /// Close and only run `then` once the panel is completely off screen.
+    /// For actions that would otherwise collide with the panel: while it is
+    /// the key window, posted keys (Control-Command-Q) end up with us
+    /// instead of the app in front, and the eyedropper or a screenshot
+    /// would see the half-faded glass. If it opens again before that,
+    /// `then` is dropped - the user changed their mind.
     ///
-    /// Waehrend des Ausblendens ist das Panel noch klickbar. Ein Klick in
-    /// dieser Zeit wartet ebenfalls, ein zweiter (Doppelklick) entfaellt
+    /// While fading out, the panel is still clickable. A click during this
+    /// time waits as well, a second one (double click) is dropped
     /// (`DrawerCloseStep`).
     func close(then: @escaping @MainActor () -> Void) {
         let step = DrawerCloseStep(
@@ -527,11 +526,11 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 
     private var afterClose: (@MainActor () -> Void)?
 
-    // MARK: - Groesse aendern
+    // MARK: - Resizing
 
-    /// Masse fuer diesen Bildschirm uebernehmen. Oben haengt die Fensterhoehe
-    /// an der Menueleiste, und die ist nicht auf jedem Bildschirm gleich hoch
-    /// (ein zweiter Bildschirm hat je nach Einstellung gar keine).
+    /// Adopt the dimensions for this screen. At the top, the window height
+    /// depends on the menu bar, and that is not the same height on every
+    /// screen (a second screen may have none at all, depending on settings).
     private func applyGeometry(on screen: ShellScreen) {
         currentScreen = screen
         let inset = edge == .top ? Self.menuBarInset(screen.screen) : 0
@@ -539,8 +538,8 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         guard inset != topInset || container.frame.size != wanted else { return }
         topInset = inset
         container.setFrameSize(wanted)
-        // Wie in `resize(to:)`: die Inhaltsflaeche ausdruecklich setzen, nicht
-        // per autoresizing.
+        // As in `resize(to:)`: set the content area explicitly, not via
+        // autoresizing.
         if let glass {
             glass.frame = container.bounds
             glass.contentView?.frame = glass.bounds
@@ -548,16 +547,16 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         hosting?.frame = visibleRectInWindow
     }
 
-    /// Neue sichtbare Groesse, sofort und ohne Animation.
+    /// New visible size, immediately and without animation.
     ///
-    /// Warum ohne: offen aendert sich im selben Durchgang auch der Inhalt
-    /// (Karte weg, Reihe dazu) - er springt ohnehin, ein gleitender Rahmen
-    /// liefe ihm nur hinterher und zeigte fuer ein paar Bilder zu wenig oder
-    /// zu viel Glas. Zu merkt man nichts: das Fenster ist nicht auf dem
-    /// Bildschirm, und `open()` schiebt es mit der neuen Groesse aus der Kante.
+    /// Why without: while open, the content also changes in the same pass
+    /// (card removed, row added) - it jumps anyway, an animated frame would
+    /// only lag behind it and show too little or too much glass for a few
+    /// frames. Nothing is noticeable while closed: the window is not on
+    /// screen, and `open()` slides it out of the edge with the new size.
     ///
-    /// Die Kante haelt: unten rechts waechst das Fenster nach oben, oben
-    /// nach unten, rechts in beide Richtungen um die Mitte.
+    /// The edge holds: at the bottom right the window grows upward, at the
+    /// top downward, at the right in both directions around the center.
     func resize(to newSize: NSSize) {
         guard newSize != size else { return }
         size = newSize
@@ -566,11 +565,11 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         if let screen = currentScreen ?? ShellScreens.underPointer() {
             builtPanel.setFrame(windowFrame(on: screen), display: builtPanel.isVisible)
         }
-        // Das Glas waechst per autoresizing mit dem Container. Seine
-        // Inhaltsflaeche NICHT: mit autoresizing kam sie in der Bildprobe
-        // (14.09.) verzerrt heraus (451 -> 162 ergab 10, danach 852) - also
-        // ausdruecklich auf die Glasgroesse. Der SwiftUI-Inhalt liegt nur im
-        // sichtbaren Teil.
+        // The glass grows via autoresizing with the container. Its content
+        // area does NOT: with autoresizing it came out distorted in the
+        // visual test (14.09.: 451 -> 162 gave 10, then 852) - so it is set
+        // explicitly to the glass size. The SwiftUI content only occupies
+        // the visible part.
         if let glass {
             glass.frame = container.bounds
             glass.contentView?.frame = glass.bounds
@@ -578,19 +577,19 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         hosting?.frame = visibleRectInWindow
     }
 
-    /// Fuer Bildproben und Pruefungen: wo Fenster, Glas und Inhalt gerade
-    /// liegen. Baut das Fenster, zeigt es aber nicht.
+    /// For visual tests and checks: where the window, glass and content
+    /// currently sit. Builds the window but does not show it.
     func probeGeometry() -> (window: NSRect, container: NSRect, glass: NSRect, content: NSRect, hosting: NSRect) {
         _ = panel
         return (panel.frame, container.frame, glass?.frame ?? .zero, glass?.contentView?.frame ?? .zero,
                 hosting?.frame ?? .zero)
     }
 
-    // MARK: - Maus an der Kante
+    // MARK: - Mouse at the edge
 
-    /// Globaler Monitor nur fuer Mausbewegung: braucht keine Freigabe (nur
-    /// Tastatur-Monitore brauchen die Bedienungshilfen). Die Pruefung pro
-    /// Bewegung ist ein Rechteck-Vergleich.
+    /// Global monitor for mouse movement only: needs no permission (only
+    /// keyboard monitors need accessibility access). The check per movement
+    /// is a rectangle comparison.
     private func updateHoverMonitor() {
         if opensOnHover, hoverMonitor == nil {
             hoverMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { [weak self] _ in
@@ -607,11 +606,12 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         hoverTimer = .repeating(every: 0.05, owner: self) { $0.hoverMoved() }
     }
 
-    /// Entpinnen (Bearbeitung fertig/abgebrochen): ohne das wuerde das
-    /// Fenster unbegrenzt offen bleiben, da `hoverMoved()` waehrend `isPinned`
-    /// nichts pruefte und `hoverState` seither veraltet ist. Steht der Zeiger
-    /// noch im Aufklapp-Bereich, uebernimmt von dort das uebliche
-    /// Hover-Verhalten (offen bleiben, bis er hinausgeht); sonst gleich zu.
+    /// Unpin (editing finished/cancelled): without this the window would
+    /// stay open indefinitely, since `hoverMoved()` checked nothing while
+    /// `isPinned` and `hoverState` has been stale since then. If the
+    /// pointer is still in the flyout area, the usual hover behavior takes
+    /// over from there (stay open until it leaves); otherwise it closes
+    /// right away.
     private func unpin() {
         guard isOpen else { return }
         guard opensOnHover, let target = currentScreen, !suspendedScreens.contains(target.displayID),
@@ -625,12 +625,12 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 
     private func hoverMoved() {
         guard opensOnHover else { return }
-        // Waehrend einer Bearbeitung bleibt es offen auf seinem Bildschirm,
-        // egal wo die Maus steht.
+        // While editing it stays open on its screen, no matter where the
+        // mouse is.
         if isOpen && isPinned { return }
-        // Offen: der Bildschirm, auf dem das Fenster steht - sonst risse ein
-        // Zeiger, der hinueberwandert, es sofort wieder zu. Zu: der unter dem
-        // Zeiger, damit die Kante jedes Bildschirms oeffnet.
+        // Open: the screen the window is on - otherwise a pointer wandering
+        // over would immediately close it again. Closed: the one under the
+        // pointer, so the edge of every screen opens it.
         let target = isOpen ? currentScreen : ShellScreens.underPointer()
         guard let target, !suspendedScreens.contains(target.displayID),
               let area = hoverArea(on: target, open: isOpen)
@@ -659,11 +659,11 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         }
     }
 
-    // MARK: - Bildschirme wechseln
+    // MARK: - Switching screens
 
-    /// Umgesteckt oder anders aufgeloest: ist der Bildschirm des offenen
-    /// Fensters weg, geht es zu - sonst stuende es auf einem Rahmen, den es
-    /// nicht mehr gibt. Ist er noch da, wird neu vermessen.
+    /// Reconnected or resolution changed: if the open window's screen is
+    /// gone, it closes - otherwise it would sit on a frame that no longer
+    /// exists. If it is still there, it is remeasured.
     private func observeScreenChanges() {
         ShellScreens.onChange { [weak self] in
             guard let self, self.isOpen, let current = self.currentScreen else { return }
@@ -677,10 +677,10 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         }
     }
 
-    // MARK: - Geometrie
+    // MARK: - Geometry
 
-    /// Fenster = sichtbar + Radius an jeder Kante, an der es klebt (oben
-    /// zusaetzlich der Menueleisten-Streifen).
+    /// Window = visible + radius at every edge it sticks to (plus the
+    /// menu-bar strip at the top).
     private static func windowSize(for edge: DrawerEdge, size: NSSize, radius: CGFloat, topInset: CGFloat) -> NSSize {
         switch edge {
         case .top: NSSize(width: size.width, height: size.height + topInset + radius)
@@ -690,7 +690,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         }
     }
 
-    /// Wo der sichtbare Teil im Fenster liegt (AppKit-Koordinaten, y nach oben).
+    /// Where the visible part sits in the window (AppKit coordinates, y up).
     private var visibleRectInWindow: NSRect {
         switch edge {
         case .top: NSRect(x: 0, y: 0, width: size.width, height: size.height)
@@ -704,11 +704,10 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         let windowSize = container.frame.size
         switch edge {
         case .top:
-            // Glas buendig an der Oberkante (ueber der Menueleiste), der
-            // Radius-Streifen ragt ueber den Bildschirm hinaus. Frueher
-            // endete es unter der Menueleiste - mit der durchsichtigen
-            // Menueleiste von macOS 26 sah das aus wie ein schwebendes
-            // Fenster mit Abstand.
+            // Glass flush with the top edge (above the menu bar), the
+            // radius strip overhangs the screen. It used to end below the
+            // menu bar - with macOS 26's translucent menu bar that looked
+            // like a floating window with a gap.
             return NSRect(x: frame.midX - size.width / 2, y: frame.maxY - topInset - size.height,
                           width: windowSize.width, height: windowSize.height)
         case .right:
@@ -718,17 +717,16 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
             return NSRect(x: frame.maxX - size.width, y: frame.minY - cornerRadius,
                           width: windowSize.width, height: windowSize.height)
         case .bottom:
-            // Buendig an der Unterkante; die unteren Ecken ragen hinaus.
+            // Flush with the bottom edge; the bottom corners overhang.
             return NSRect(x: frame.midX - size.width / 2, y: frame.minY - cornerRadius,
                           width: windowSize.width, height: windowSize.height)
         }
     }
 
-    // MARK: - Bewegung
+    // MARK: - Motion
 
-    /// Setzt die Inhaltsverschiebung, bewegt oder sofort. Startet immer beim
-    /// sichtbaren Wert, damit ein Umdrehen mitten in der Bewegung nicht
-    /// springt.
+    /// Sets the content offset, either animated or immediately. Always
+    /// starts from the visible value, so flipping mid-motion does not jump.
     private func setSlide(closed: Bool, animated: Bool) {
         guard let layer = container.layer else { return }
         let target = closed
@@ -751,10 +749,10 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         layer.add(animation, forKey: "drawer.slide")
     }
 
-    // MARK: - Fenster
+    // MARK: - Window
 
     private func makePanel() -> DrawerPanel {
-        // Mit Abdunkelung eine Ebene darueber.
+        // With dimming, one level above.
         let level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + (scrim == nil ? 0 : 1))
         let panel = DrawerPanel(size: container.frame.size, level: level, takesKeyboard: takesKeyboard)
         panel.delegate = self
@@ -798,17 +796,17 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     }
 }
 
-/// Randloses Panel fuer Kantenfenster. Ebene ueber allem wie das
-/// Sitzungsmenue - oben auch ueber der Menueleiste, damit das Glas bis an
-/// die Kante reicht. Darf ueber den Bildschirmrand ragen.
+/// Borderless panel for edge windows. A level above everything, like the
+/// session menu - at the top also above the menu bar, so the glass reaches
+/// to the edge. May overhang the screen border.
 final class DrawerPanel: ShellPanel {
     var onEscape: () -> Void = {}
 
-    /// Verhalten/Subrolle/Fenstermenue ausserhalb einer Bearbeitung - was
-    /// `setPinned(false)` wiederherstellt.
+    /// Behavior/subrole/window menu outside of editing - what
+    /// `setPinned(false)` restores.
     private static let unpinnedBehavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary]
-    /// Waehrend `EdgeDrawer.isPinned` (Spec Abschnitt 4): wie `EditModePanel`,
-    /// aber nur so lange - siehe `isPinned`.
+    /// While `EdgeDrawer.isPinned` (Spec Section 4): like `EditModePanel`,
+    /// but only for that long - see `isPinned`.
     private static let pinnedBehavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
 
     init(size: NSSize, level: NSWindow.Level, takesKeyboard: Bool) {
@@ -821,12 +819,12 @@ final class DrawerPanel: ShellPanel {
         onEscape()
     }
 
-    /// Task 7 (Spec Abschnitt 4, "window-manager-safe"): waehrend einer
-    /// Bearbeitung soll ein Fenstermanager das angepinnte Kantenfenster genau
-    /// so unberuehrt lassen wie die Fenster des Bearbeitungsmodus selbst
-    /// (`EditModePanel`) - `.stationary` statt `.transient`, eine
-    /// Nicht-Standard-Subrolle und raus aus dem Fenstermenue. Entpinnt stellt
-    /// die drei Werte von vorher wieder her.
+    /// Task 7 (Spec Section 4, "window-manager-safe"): while editing, a
+    /// window manager should leave the pinned edge window exactly as
+    /// untouched as the edit mode's own windows (`EditModePanel`) -
+    /// `.stationary` instead of `.transient`, a non-standard subrole and
+    /// out of the window menu. Unpinning restores the three previous
+    /// values.
     func setPinned(_ pinned: Bool) {
         collectionBehavior = pinned ? Self.pinnedBehavior : Self.unpinnedBehavior
         setAccessibilitySubrole(pinned ? .unknown : nil)
@@ -834,8 +832,8 @@ final class DrawerPanel: ShellPanel {
     }
 }
 
-/// Vollbild-Abdunkelung hinter einem Kantenfenster (`DrawerScrim`). Liegt
-/// ueber Menueleiste und Dock, faengt Klicks ab und schliesst dann das Fenster.
+/// Fullscreen dimming behind an edge window (`DrawerScrim`). Sits above the
+/// menu bar and Dock, catches clicks and then closes the window.
 final class ScrimWindow: ShellPanel {
     var onClick: () -> Void = {}
 
@@ -846,7 +844,7 @@ final class ScrimWindow: ShellPanel {
     }
 }
 
-/// Nimmt schon den ersten Klick an, auch wenn die App nicht aktiv ist.
+/// Accepts even the very first click, even if the app is not active.
 private final class ClickView: NSView {
     private let action: () -> Void
 
@@ -855,7 +853,7 @@ private final class ClickView: NSView {
         super.init(frame: .zero)
     }
 
-    required init?(coder: NSCoder) { fatalError("nicht benutzt") }
+    required init?(coder: NSCoder) { fatalError("not used") }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     override func mouseDown(with event: NSEvent) { action() }

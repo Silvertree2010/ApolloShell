@@ -1,20 +1,19 @@
 import Foundation
 
-// Das Utilities-Panel als Baukasten: welche Karten in welcher Reihenfolge,
-// welche Schnellschalter in welcher Reihenfolge. Nexus > Schnellaktionen
-// bearbeitet es (ziehen, +, Vorlagen), das Panel zeichnet es und richtet
-// seine Hoehe danach.
+// The Utilities panel as a building-kit: which cards in which order, which
+// quick toggles in which order. Nexus > Quick Actions edits it (dragging,
+// +, presets), the panel draws it and sizes its height accordingly.
 //
-// Anders als die Leiste (`BarLayout`) stehen die Karten IMMER alle in der
-// Liste, jede mit `enabled`: es sind drei feste, keine kommt doppelt vor, und
-// wer eine ausschaltet, soll sie beim Wiedereinschalten an derselben Stelle
-// finden. Die Schnellschalter dagegen sind wie die Leiste eine offene Liste:
-// ausgeschaltet = nicht drin (Caelestia: utilities.quickToggles).
+// Unlike the bar (`BarLayout`), the cards are ALWAYS all in the list, each
+// with `enabled`: there are three fixed ones, none appears twice, and
+// whoever turns one off should find it in the same spot when turning it
+// back on. The quick toggles, on the other hand, are an open list like the
+// bar: disabled = not present (Caelestia: utilities.quickToggles).
 
-// MARK: - Karten
+// MARK: - Cards
 
-/// Die Karten des Panels. Der Rohwert steht in settings.json - nie
-/// umbenennen, hoechstens neue dazu.
+/// The panel's cards. The raw value is stored in settings.json - never
+/// rename, only add new ones.
 public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifiable {
     case keepAwake, audio, quickToggles
 
@@ -30,9 +29,9 @@ public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifi
 
     public var summary: String {
         switch self {
-        case .keepAwake: "Mac wach halten, auf Wunsch auch zugeklappt."
-        case .audio: "Lautstärke, Stumm, Ausgabe und Eingang."
-        case .quickToggles: "Schalter und Aktionen, fünf pro Reihe."
+        case .keepAwake: "Keep the Mac awake, even with the lid closed if you want."
+        case .audio: "Volume, mute, output and input."
+        case .quickToggles: "Switches and actions, five per row."
         }
     }
 
@@ -45,7 +44,7 @@ public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifi
     }
 }
 
-/// Eine Karte und ob sie zu sehen ist. In der Datei:
+/// A card and whether it is shown. In the file:
 /// `{"kind": "audio", "enabled": true}`.
 public struct UtilitiesCardEntry: Codable, Equatable, Identifiable, Sendable {
     public var kind: UtilitiesCardKind
@@ -58,21 +57,21 @@ public struct UtilitiesCardEntry: Codable, Equatable, Identifiable, Sendable {
         self.enabled = enabled
     }
 
-    /// Unbekannte Art: Fehler, `UtilitiesLayout` uebergeht den Eintrag.
-    /// Fehlt `enabled` oder ist es kein Bool: an.
+    /// Unknown kind: error, `UtilitiesLayout` skips the entry.
+    /// Missing `enabled` or not a Bool: on.
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         guard let raw: String = c.lenient(.kind), let kind = UtilitiesCardKind(rawValue: raw) else {
-            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unbekannte Karte")
+            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unknown card")
         }
         self.kind = kind
         enabled = c.lenient(.enabled) ?? true
     }
 }
 
-// MARK: - Schnellschalter: Arten
+// MARK: - Quick toggles: kinds
 
-/// Wofuer die Galerie die Arten gruppiert.
+/// What the gallery groups the kinds by.
 public enum UtilitiesToggleGroup: String, CaseIterable, Sendable, Identifiable {
     case switches, actions, custom
 
@@ -80,9 +79,9 @@ public enum UtilitiesToggleGroup: String, CaseIterable, Sendable, Identifiable {
 
     public var title: String {
         switch self {
-        case .switches: "Schalter"
-        case .actions: "Aktionen"
-        case .custom: "Eigene Knöpfe"
+        case .switches: "Switches"
+        case .actions: "Actions"
+        case .custom: "Custom Buttons"
         }
     }
 
@@ -91,22 +90,22 @@ public enum UtilitiesToggleGroup: String, CaseIterable, Sendable, Identifiable {
     }
 }
 
-/// Welche Knoepfe es gibt. Der Rohwert steht in settings.json ("kind") -
-/// nie umbenennen. Unbekannte Arten (neuere Fassung, Tippfehler) fallen
-/// beim Lesen weg, der Rest bleibt.
+/// The buttons that exist. The raw value is stored in settings.json
+/// ("kind") - never rename. Unknown kinds (newer version, typo) are
+/// dropped on read, the rest stays.
 public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Identifiable {
-    // Die zehn des bisherigen festen Rasters, in seiner Reihenfolge.
+    // The ten from the previous fixed grid, in its order.
     case wifi, microphone, bluetooth, darkMode, nightShift
     case screenshot, showDesktop, colorPicker, lockScreen, settings
-    // Neu dazu.
+    // Newly added.
     case displaySleep, hideApps
     case openApp, openLink, runShortcut
 
     public var id: Self { self }
 
-    /// Eigene Knoepfe (App, Link, Kurzbefehl) darf es mehrmals geben - jeder
-    /// mit anderem Ziel. Alle anderen hoechstens einmal: zwei WLAN-Schalter
-    /// schalteten dasselbe.
+    /// Custom buttons (app, link, shortcut) may appear more than once -
+    /// each with a different target. All others at most once: two Wi-Fi
+    /// switches would toggle the same thing.
     public var isUnique: Bool { group != .custom }
 
     public var group: UtilitiesToggleGroup {
@@ -120,46 +119,46 @@ public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Iden
     public var title: String {
         switch self {
         case .wifi: "Wi-Fi"
-        case .microphone: "Mikrofon"
+        case .microphone: "Microphone"
         case .bluetooth: "Bluetooth"
-        case .darkMode: "Dunkelmodus"
+        case .darkMode: "Dark Mode"
         case .nightShift: "Night Shift"
         case .screenshot: "Screenshot"
         case .showDesktop: "Desktop"
-        case .colorPicker: "Farbpipette"
-        case .lockScreen: "Sperren"
-        case .settings: "Einstellungen"
-        case .displaySleep: "Bildschirm aus"
-        case .hideApps: "Apps ausblenden"
-        case .openApp: "App öffnen"
-        case .openLink: "Link öffnen"
+        case .colorPicker: "Color Picker"
+        case .lockScreen: "Lock"
+        case .settings: "Settings"
+        case .displaySleep: "Display Off"
+        case .hideApps: "Hide Apps"
+        case .openApp: "Open App"
+        case .openLink: "Open Link"
         case .runShortcut: "Shortcut"
         }
     }
 
-    /// Eine Zeile fuer die Galerie hinter dem +.
+    /// A line for the gallery behind the +.
     public var summary: String {
         switch self {
-        case .wifi: "WLAN ein- und ausschalten."
-        case .microphone: "Standard-Mikrofon stummschalten."
-        case .bluetooth: "Zeigt den Zustand, ein Klick öffnet die Einstellungen."
-        case .darkMode: "Zwischen hell und dunkel wechseln."
-        case .nightShift: "Wärmere Farben am Abend."
-        case .screenshot: "Apples Leiste für Bildschirmfoto und Aufnahme."
-        case .showDesktop: "Alle Fenster zur Seite, der Schreibtisch frei."
-        case .colorPicker: "Farbe vom Bildschirm, Hexwert in die Zwischenablage."
-        case .lockScreen: "Bildschirm sperren."
-        case .settings: "Öffnet Nexus."
-        case .displaySleep: "Schaltet die Bildschirme sofort aus, der Mac läuft weiter."
-        case .hideApps: "Blendet alle Apps aus; auf Wunsch bleibt die vordere."
-        case .openApp: "Startet eine gewählte App oder holt sie nach vorne."
-        case .openLink: "Öffnet eine Adresse im Standardbrowser."
-        case .runShortcut: "Führt einen Kurzbefehl aus, z. B. einen Fokus schalten."
+        case .wifi: "Turn Wi-Fi on and off."
+        case .microphone: "Mute the default microphone."
+        case .bluetooth: "Shows the state, a click opens Settings."
+        case .darkMode: "Switch between light and dark."
+        case .nightShift: "Warmer colors in the evening."
+        case .screenshot: "Apple's bar for screenshot and recording."
+        case .showDesktop: "All windows aside, the desktop clear."
+        case .colorPicker: "Color from the screen, hex value to the clipboard."
+        case .lockScreen: "Lock the screen."
+        case .settings: "Opens Nexus."
+        case .displaySleep: "Turns off the displays immediately, the Mac keeps running."
+        case .hideApps: "Hides all apps; the frontmost one can stay if you want."
+        case .openApp: "Launches a chosen app or brings it to the front."
+        case .openLink: "Opens an address in the default browser."
+        case .runShortcut: "Runs a shortcut, e.g. to toggle a Focus."
         }
     }
 
-    /// SF Symbol fuer Galerie und Standardaussehen. `nil` = Bluetooth-Rune
-    /// (kein SF Symbol, siehe `QuickToggleLook.symbol`).
+    /// SF Symbol for the gallery and default look. `nil` = the Bluetooth
+    /// rune (no SF Symbol, see `QuickToggleLook.symbol`).
     public var symbol: String? {
         switch self {
         case .wifi: "wifi"
@@ -181,20 +180,20 @@ public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Iden
     }
 }
 
-// MARK: - Schnellschalter: Optionen
+// MARK: - Quick toggles: options
 
-// Alle Optionen lesen nachsichtig: fehlt ein Schluessel oder hat er den
-// falschen Typ, gilt fuer genau diesen die Vorgabe. Leere Texte heissen
-// "automatisch" (Name der App, Adresse, Standardsymbol).
+// All options are read leniently: if a key is missing or has the wrong
+// type, the default applies for just that one. Empty strings mean
+// "automatic" (the app's name, address, default symbol).
 
 public struct UtilitiesAppOptions: Codable, Equatable, Sendable {
     public static let fallbackSymbol = "app.fill"
 
-    /// Leer, bis in Nexus eine App gewaehlt ist.
+    /// Empty until an app is chosen in Nexus.
     public var bundleID: String
-    /// Tooltip und VoiceOver; leer = Name der App.
+    /// Tooltip and VoiceOver; empty = the app's name.
     public var title: String
-    /// Leer = das Symbol der App selbst.
+    /// Empty = the app's own icon.
     public var symbol: String
 
     public init(bundleID: String = "", title: String = "", symbol: String = "") {
@@ -211,14 +210,14 @@ public struct UtilitiesAppOptions: Codable, Equatable, Sendable {
         c.lenient(.symbol, into: &symbol)
     }
 
-    /// Ohne eigenes SF Symbol zeigt der Knopf das App-Symbol.
+    /// Without its own SF Symbol, the button shows the app's icon.
     public var usesAppIcon: Bool { symbol.trimmed.isEmpty }
 }
 
 public struct UtilitiesLinkOptions: Codable, Equatable, Sendable {
     public static let fallbackSymbol = "link"
 
-    /// Wie eingegeben; `UtilitiesLink.url(from:)` macht daraus die Adresse.
+    /// As entered; `UtilitiesLink.url(from:)` turns it into the address.
     public var url: String
     public var title: String
     public var symbol: String
@@ -238,9 +237,9 @@ public struct UtilitiesLinkOptions: Codable, Equatable, Sendable {
     }
 }
 
-/// Ein Kurzbefehl aus Apples Kurzbefehle-App. Beide gemerkt: die Kennung
-/// ueberlebt Umbenennen, der Name ist lesbar und der Ersatz, falls die
-/// Kennung (Datei von Hand, anderer Mac) nicht passt.
+/// A shortcut from Apple's Shortcuts app. Both are kept: the identifier
+/// survives renaming, the name is readable and the fallback if the
+/// identifier (hand-edited file, different Mac) does not match.
 public struct UtilitiesShortcutOptions: Codable, Equatable, Sendable {
     public static let fallbackSymbol = "square.2.layers.3d.fill"
 
@@ -267,7 +266,7 @@ public struct UtilitiesShortcutOptions: Codable, Equatable, Sendable {
 }
 
 public struct UtilitiesHideAppsOptions: Codable, Equatable, Sendable {
-    /// Die App vorne bleibt stehen (wie ⌥⌘H "Andere ausblenden").
+    /// The frontmost app stays visible (like Option-Command-H "Hide Others").
     public var keepFrontmost: Bool
 
     public init(keepFrontmost: Bool = false) { self.keepFrontmost = keepFrontmost }
@@ -279,9 +278,9 @@ public struct UtilitiesHideAppsOptions: Codable, Equatable, Sendable {
     }
 }
 
-// MARK: - Schnellschalter: Knopf
+// MARK: - Quick toggles: button
 
-/// Art und Optionen in einem: nur die Arten mit Optionen tragen welche.
+/// Kind and options in one: only the kinds with options carry any.
 public enum UtilitiesToggle: BlockModule, Equatable, Sendable {
     case wifi, microphone, bluetooth, darkMode, nightShift
     case screenshot, showDesktop, colorPicker, lockScreen, settings
@@ -291,13 +290,13 @@ public enum UtilitiesToggle: BlockModule, Equatable, Sendable {
     case openLink(UtilitiesLinkOptions)
     case runShortcut(UtilitiesShortcutOptions)
 
-    /// Mit den Vorgaben der Art.
+    /// With the kind's defaults.
     public init(_ kind: UtilitiesToggleKind) {
         self.init(kind: kind, options: nil)
     }
 
-    /// Art und (falls vorhanden) gelesene Optionen - der eine Switch fuer
-    /// beides, wie `BarModule.init(kind:options:)`.
+    /// Kind and (if present) parsed options - the one switch for both,
+    /// like `BarModule.init(kind:options:)`.
     fileprivate init(kind: UtilitiesToggleKind, options c: KeyedDecodingContainer<UtilitiesToggleEntry.CodingKeys>?) {
         self = switch kind {
         case .wifi: .wifi
@@ -338,8 +337,8 @@ public enum UtilitiesToggle: BlockModule, Equatable, Sendable {
         }
     }
 
-    /// Optionen dieses Knopfs, `nil` bei einer Art ohne welche. Traegt
-    /// `hasOptions` (siehe `BlockModule`) und das Schreiben in
+    /// This button's options, `nil` for a kind without any. Backs
+    /// `hasOptions` (see `BlockModule`) and writing in
     /// `UtilitiesToggleEntry`.
     public var options: (any Encodable)? {
         switch self {
@@ -357,11 +356,11 @@ public enum UtilitiesToggle: BlockModule, Equatable, Sendable {
     public var hideApps: UtilitiesHideAppsOptions? { if case .hideApps(let o) = self { o } else { nil } }
 }
 
-/// Ein Platz im Raster. Die Kennung bleibt beim Umsortieren und Aendern
-/// gleich - SwiftUI haelt daran Animation und Auswahl fest.
+/// A slot in the grid. The identifier stays the same across reordering and
+/// changes - SwiftUI relies on it for animation and selection.
 ///
-/// In der Datei: `{"id": "wifi", "kind": "wifi", "options": {...}}`;
-/// `options` fehlt bei Arten ohne Optionen.
+/// In the file: `{"id": "wifi", "kind": "wifi", "options": {...}}`;
+/// `options` is missing for kinds without options.
 public struct UtilitiesToggleEntry: Codable, Equatable, Identifiable, Sendable {
     public var id: String
     public var toggle: UtilitiesToggle
@@ -373,7 +372,7 @@ public struct UtilitiesToggleEntry: Codable, Equatable, Identifiable, Sendable {
         self.toggle = toggle
     }
 
-    /// Mit Vorgaben; Kennung = Name der Art (eindeutig gemacht von
+    /// With defaults; identifier = the kind's name (made unique by
     /// `UtilitiesLayout`).
     public init(_ kind: UtilitiesToggleKind, id: String? = nil) {
         self.init(id: id ?? kind.rawValue, toggle: UtilitiesToggle(kind))
@@ -383,14 +382,14 @@ public struct UtilitiesToggleEntry: Codable, Equatable, Identifiable, Sendable {
         self.init(id: id ?? toggle.kind.rawValue, toggle: toggle)
     }
 
-    // `fileprivate`, nicht `private`: `UtilitiesToggle.init(kind:options:)`
-    // braucht denselben Schluesseltyp, um die Optionen zu lesen.
+    // `fileprivate`, not `private`: `UtilitiesToggle.init(kind:options:)`
+    // needs the same key type to read the options.
     fileprivate enum CodingKeys: String, CodingKey { case id, kind, options }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         guard let raw: String = c.lenient(.kind), let kind = UtilitiesToggleKind(rawValue: raw) else {
-            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unbekannter Schnellschalter")
+            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unknown quick toggle")
         }
         id = c.lenient(.id) ?? ""
         toggle = UtilitiesToggle(kind: kind, options: c)
@@ -406,19 +405,19 @@ public struct UtilitiesToggleEntry: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
-/// Fuer `BlockList<UtilitiesToggleEntry>`.
+/// For `BlockList<UtilitiesToggleEntry>`.
 extension UtilitiesToggleEntry: Block {}
 
 // MARK: - Panel
 
-/// Karten und Schnellschalter. Immer gueltig: jede Karte genau einmal,
-/// Kennungen der Knoepfe eindeutig und nie leer, feste Knoepfe hoechstens
-/// einmal - dafuer sorgen die Initialisierer (auch beim Lesen) und die
-/// Aenderungen unten, deshalb sind beide Listen von aussen nur lesbar.
+/// Cards and quick toggles. Always valid: every card exactly once,
+/// button identifiers unique and never empty, fixed buttons at most once -
+/// the initializers (including on read) and the mutations below take care
+/// of that, which is why both lists are read-only from outside.
 ///
-/// In der Datei: `{"cards": [...], "quickToggles": [...]}`. Fehlt eine der
-/// beiden Listen (oder ist sie keine), gilt fuer sie die Vorgabe; unlesbare
-/// Eintraege fallen weg, der Rest bleibt.
+/// In the file: `{"cards": [...], "quickToggles": [...]}`. If either list
+/// is missing (or is not one), the default applies to it; unreadable
+/// entries are dropped, the rest stays.
 public struct UtilitiesLayout: Codable, Equatable, Sendable {
     public private(set) var cards: [UtilitiesCardEntry]
     private var toggleBlocks: BlockList<UtilitiesToggleEntry>
@@ -446,15 +445,15 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
         try c.encode(toggleBlocks, forKey: .quickToggles)
     }
 
-    /// Das Panel vor dem Baukasten: alle drei Karten in Caelestias Reihenfolge ...
+    /// The panel before the building-kit: all three cards in Caelestia's order ...
     public static let standardCards: [UtilitiesCardEntry] = UtilitiesCardKind.allCases.map { UtilitiesCardEntry($0) }
-    /// ... und die zehn Knoepfe: oben die Schalter, unten die Aktionen.
+    /// ... and the ten buttons: switches on top, actions below.
     public static let standardToggles: [UtilitiesToggleEntry] = [
         .wifi, .microphone, .bluetooth, .darkMode, .nightShift,
         .screenshot, .showDesktop, .colorPicker, .lockScreen, .settings,
     ].map { UtilitiesToggleEntry($0) }
 
-    // MARK: Lesen
+    // MARK: Reading
 
     public subscript(toggle id: String) -> UtilitiesToggleEntry? {
         toggleBlocks[id: id]
@@ -468,30 +467,30 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
         toggleBlocks.contains(kind)
     }
 
-    /// Fuer die Galerie: ein zweiter WLAN-Schalter nicht.
+    /// For the gallery: not a second Wi-Fi switch.
     public func canAdd(_ kind: UtilitiesToggleKind) -> Bool {
         toggleBlocks.canAdd(kind)
     }
 
-    /// Was das Panel zeigt, von oben nach unten. Die Schnellschalter-Karte
-    /// ohne einen einzigen Knopf faellt weg - eine leere Karte mit
-    /// Ueberschrift saehe aus wie ein Fehler.
+    /// What the panel shows, top to bottom. The quick-toggles card without
+    /// a single button drops out - an empty card with a heading would look
+    /// like a bug.
     public var visibleCards: [UtilitiesCardKind] {
         cards.filter { $0.enabled && ($0.kind != .quickToggles || !toggles.isEmpty) }.map(\.kind)
     }
 
-    /// Die Knoepfe in Reihen zu `QuickToggles.columns`; die letzte darf
-    /// kuerzer sein.
+    /// The buttons in rows of `QuickToggles.columns`; the last one may be
+    /// shorter.
     public var toggleRows: [[UtilitiesToggleEntry]] {
         stride(from: 0, to: toggles.count, by: QuickToggles.columns).map {
             Array(toggles[$0..<min($0 + QuickToggles.columns, toggles.count)])
         }
     }
 
-    /// Hoehe des Panels in Punkten - allein aus der Anordnung gerechnet,
-    /// nicht gemessen. So kann kein Zustand (langer Geraetename, Wach halten
-    /// an) sie aendern, und das Panel kennt seine Groesse, bevor es je
-    /// gezeichnet hat. Die Ansicht haelt jede Karte auf genau diese Hoehe.
+    /// Height of the panel in points - computed purely from the layout, not
+    /// measured. That way no state (a long device name, Keep Awake on) can
+    /// change it, and the panel knows its size before it has ever drawn.
+    /// The view holds every card to exactly this height.
     public var panelHeight: Double {
         let heights = visibleCards.map { UtilitiesMetrics.cardHeight($0, toggleRows: toggleRows.count) }
         guard !heights.isEmpty else { return 2 * UtilitiesMetrics.padding + UtilitiesMetrics.emptyCardHeight }
@@ -499,29 +498,29 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
             + Double(heights.count - 1) * UtilitiesMetrics.spacing
     }
 
-    // MARK: Karten aendern
+    // MARK: Changing cards
 
     public mutating func setCard(_ kind: UtilitiesCardKind, enabled: Bool) {
         guard let index = cards.firstIndex(where: { $0.kind == kind }) else { return }
         cards[index].enabled = enabled
     }
 
-    /// Wie SwiftUIs `onMove` (Ziel vor dem Verschieben gezaehlt).
+    /// Like SwiftUI's `onMove` (destination counted before the move).
     public mutating func moveCards(fromOffsets source: IndexSet, toOffset destination: Int) {
         cards.move(fromOffsets: source, toOffset: destination)
     }
 
-    /// Eine Stelle nach oben (-1) oder unten (+1); am Rand nichts.
+    /// One spot up (-1) or down (+1); nothing at the edge.
     public mutating func moveCard(_ kind: UtilitiesCardKind, by step: Int) {
         guard let index = cards.firstIndex(where: { $0.kind == kind }), cards.indices.contains(index + step) else { return }
         cards.swapAt(index, index + step)
     }
 
-    // MARK: Knoepfe aendern
+    // MARK: Changing buttons
 
-    /// Neuer Knopf, ohne `index` hinten angehaengt (wie in Apples
-    /// Kontrollzentrum). Gibt seine Kennung zurueck; `nil`, wenn es ihn nur
-    /// einmal geben darf und er schon da ist.
+    /// New button, appended at the end without `index` (as in Apple's
+    /// Control Center). Returns its identifier; `nil` if it may only exist
+    /// once and is already there.
     @discardableResult
     public mutating func add(_ toggle: UtilitiesToggle, at index: Int? = nil) -> String? {
         toggleBlocks.add(UtilitiesToggleEntry(toggle: toggle), at: index ?? toggles.count)
@@ -536,7 +535,7 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
         toggleBlocks.remove(id: id)
     }
 
-    /// Andere Optionen fuer einen Knopf; die Art bleibt.
+    /// Different options for a button; the kind stays the same.
     public mutating func update(toggle id: String, to toggle: UtilitiesToggle) {
         toggleBlocks.update(id: id, to: UtilitiesToggleEntry(id: id, toggle: toggle))
     }
@@ -545,23 +544,23 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
         toggleBlocks.move(fromOffsets: source, toOffset: destination)
     }
 
-    /// Eine Stelle nach vorne (-1) oder hinten (+1); am Rand nichts.
+    /// One spot forward (-1) or back (+1); nothing at the edge.
     public mutating func moveToggle(_ id: String, by step: Int) {
         toggleBlocks.move(id: id, by: step)
     }
 
-    /// Beim Ziehen im Raster: der gezogene Knopf nimmt den Platz dessen ein,
-    /// ueber dem der Zeiger gerade ist; alles dazwischen rueckt eins weiter.
-    /// So wandert er beim Ziehen sichtbar mit.
+    /// While dragging in the grid: the dragged button takes the spot of the
+    /// one the pointer is currently over; everything in between shifts by
+    /// one. That way it visibly moves along while dragging.
     public mutating func moveToggle(_ id: String, onto target: String) {
         toggleBlocks.move(id: id, onto: target)
     }
 
-    // MARK: Regeln
+    // MARK: Rules
 
-    /// Jede Karte genau einmal (die erste zaehlt); fehlt eine - Datei aus
-    /// einer aelteren Fassung mit weniger Karten -, kommt sie eingeschaltet
-    /// ans Ende.
+    /// Every card exactly once (the first one counts); if one is missing -
+    /// a file from an older version with fewer cards -, it is appended at
+    /// the end, enabled.
     static func normalizedCards(_ list: [UtilitiesCardEntry]) -> [UtilitiesCardEntry] {
         var seen = Set<UtilitiesCardKind>()
         var result = list.filter { seen.insert($0.kind).inserted }
@@ -572,30 +571,31 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
     }
 }
 
-// MARK: - Masse
+// MARK: - Metrics
 
-/// Die Masse des Panels, am festen Panel vor dem Baukasten abgemessen
-/// (Bildprobe 14.09.: 430 x 426, jede Karte in jedem Zustand gleich hoch).
-/// Die Ansicht setzt jede Karte auf genau diese Hoehe; `panelHeight` rechnet
-/// damit. Aendert man eine Karte, muss die Zahl hier mit.
+/// The panel's dimensions, measured on the fixed panel before the
+/// building-kit (visual test 14.09.: 430 x 426, every card the same height
+/// in every state). The view sets every card to exactly this height;
+/// `panelHeight` computes with it. If a card changes, this number has to
+/// change too.
 public enum UtilitiesMetrics {
-    /// Caelestia: 430 breit, 16 Rand, 12 zwischen den Karten.
+    /// Caelestia: 430 wide, 16 margin, 12 between cards.
     public static let width = 430.0
     public static let padding = 16.0
     public static let spacing = 12.0
-    /// Innenrand jeder Karte.
+    /// Inner margin of every card.
     public static let cardPadding = 14.0
 
-    /// 40er Symbol-Chip plus Innenrand.
+    /// 40pt symbol chip plus inner margin.
     public static let keepAwakeHeight = 68.0
-    /// Ueberschrift 17, 10, Regler-Zeile 32, 10, Geraeteknoepfe 44, plus Innenrand.
+    /// Heading 17, 10, slider row 32, 10, device buttons 44, plus inner margin.
     public static let audioHeight = 141.0
-    /// Ueberschrift "Schnellschalter" (14 pt, eine Zeile).
+    /// Heading "Quick Toggles" (14 pt, one line).
     public static let toggleTitleHeight = 17.0
     public static let toggleTitleSpacing = 12.0
     public static let toggleHeight = 48.0
     public static let toggleRowSpacing = 8.0
-    /// Hinweis, wenn nichts eingeblendet ist: eine Zeile wie "Wach halten".
+    /// Notice when nothing is shown: one line like "Keep Awake".
     public static let emptyCardHeight = 68.0
 
     public static func toggleCardHeight(rows: Int) -> Double {
@@ -613,10 +613,10 @@ public enum UtilitiesMetrics {
     }
 }
 
-// MARK: - Vorlagen
+// MARK: - Presets
 
-/// Fertige Panels zum Laden in Nexus. "Standard" ist die Vorgabe und genau
-/// das Panel vor dem Baukasten.
+/// Ready-made panels to load in Nexus. "Standard" is the default and
+/// exactly the panel before the building-kit.
 public enum UtilitiesPreset: String, CaseIterable, Identifiable, Sendable {
     case standard, minimal, audio, everything
 
@@ -626,17 +626,17 @@ public enum UtilitiesPreset: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .standard: "Standard"
         case .minimal: "Minimal"
-        case .audio: "Ton & Geräte"
-        case .everything: "Alles"
+        case .audio: "Sound & Devices"
+        case .everything: "Everything"
         }
     }
 
     public var summary: String {
         switch self {
-        case .standard: "Die Vorgabe: Wach halten, Ton und zehn Schnellschalter."
-        case .minimal: "Nur eine Reihe Schnellschalter, keine Karten darüber."
-        case .audio: "Ton zuoberst, darunter Mikrofon, Bluetooth und was man beim Hören braucht."
-        case .everything: "Alle Karten und jeder feste Knopf einmal, zum Ausprobieren und Aussortieren."
+        case .standard: "The default: Keep Awake, Sound and ten quick toggles."
+        case .minimal: "Just one row of quick toggles, no cards above."
+        case .audio: "Sound at the top, below that microphone, Bluetooth and what you need while listening."
+        case .everything: "Every card and every fixed button once, for trying out and sorting through."
         }
     }
 
@@ -665,12 +665,12 @@ public enum UtilitiesPreset: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// Fuer `LayoutPreset`: "Standard" ist die Vorgabe.
+/// For `LayoutPreset`: "Standard" is the default.
 extension UtilitiesPreset: LayoutPreset {
     public static var `default`: UtilitiesPreset { .standard }
 }
 
-// MARK: - Texte und Aussehen der neuen Knoepfe
+// MARK: - Text and look of the new buttons
 
 public enum UtilitiesToggleText {
     public static let cardTitle = String(localized: "Quick Toggles")
@@ -679,8 +679,8 @@ public enum UtilitiesToggleText {
 }
 
 extension QuickToggles {
-    /// `appName`: Name der installierten App; `nil` = nicht installiert.
-    /// Ohne gewaehlte oder installierte App nicht klickbar.
+    /// `appName`: name of the installed app; `nil` = not installed.
+    /// Not clickable without a chosen or installed app.
     public static func openApp(_ options: UtilitiesAppOptions, appName: String?) -> QuickToggleLook {
         let symbol = options.symbol.trimmed.nonEmpty ?? UtilitiesAppOptions.fallbackSymbol
         guard !options.bundleID.trimmed.isEmpty else {
@@ -709,7 +709,7 @@ extension QuickToggles {
             return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "No Shortcut Chosen Yet"))
         }
         let title = options.title.trimmed.nonEmpty ?? options.name.trimmed.nonEmpty ?? String(localized: "Shortcut")
-        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "Run Shortcut “\(title)”"))
+        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "Run Shortcut \u{201c}\(title)\u{201d}"))
     }
 
     public static let displaySleep = QuickToggleLook(
@@ -726,12 +726,13 @@ extension QuickToggles {
 // MARK: - Links
 
 public enum UtilitiesLink {
-    /// Aus dem Eingabefeld eine Adresse:
-    /// - mit Schema (https:, mailto:, x-apple.systempreferences: ...) wie
-    ///   eingegeben; http(s) braucht einen Host.
-    /// - ohne Schema, aber mit Punkt oder "localhost" ("example.com",
-    ///   "localhost:8080"): https:// davor - so tippt man Adressen.
-    /// - leer, mit Leerzeichen oder sonst nichts Erkennbares: `nil`.
+    /// From the input field to an address:
+    /// - with a scheme (https:, mailto:, x-apple.systempreferences: ...) as
+    ///   entered; http(s) needs a host.
+    /// - without a scheme, but with a dot or "localhost" ("example.com",
+    ///   "localhost:8080"): https:// prepended - the way one usually types
+    ///   addresses.
+    /// - empty, with whitespace, or otherwise unrecognizable: `nil`.
     public static func url(from input: String) -> URL? {
         let text = input.trimmed
         guard !text.isEmpty, !text.contains(where: \.isWhitespace) else { return nil }
@@ -748,8 +749,8 @@ public enum UtilitiesLink {
         return url
     }
 
-    /// Kurz fuer Tooltips: ohne Schema, ohne "www." und ohne Schraegstrich
-    /// am Ende ("example.com/docs"). Andere Schemata ganz.
+    /// Short form for tooltips: without scheme, without "www." and without
+    /// a trailing slash ("example.com/docs"). Other schemes shown in full.
     public static func displayText(_ url: URL) -> String {
         guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
               var host = url.host()
@@ -759,9 +760,9 @@ public enum UtilitiesLink {
         return path.isEmpty || path == "/" ? host : host + (path.hasSuffix("/") ? String(path.dropLast()) : path)
     }
 
-    /// Schema nach RFC 3986 (Buchstabe, dann Buchstaben, Ziffern, + . -) vor
-    /// dem ersten Doppelpunkt - ausser danach kommen nur Ziffern: das ist
-    /// "host:port" ohne Schema.
+    /// Scheme per RFC 3986 (letter, then letters, digits, + . -) before the
+    /// first colon - unless what follows is digits only: that is
+    /// "host:port" without a scheme.
     private static func scheme(of text: String) -> String? {
         guard let colon = text.firstIndex(of: ":") else { return nil }
         let head = text[..<colon]
@@ -774,9 +775,9 @@ public enum UtilitiesLink {
     }
 }
 
-// MARK: - Kurzbefehle
+// MARK: - Shortcuts
 
-/// Ein Eintrag aus `shortcuts list --show-identifiers`.
+/// An entry from `shortcuts list --show-identifiers`.
 public struct UtilitiesShortcut: Equatable, Sendable, Identifiable {
     public var name: String
     public var identifier: String
@@ -789,17 +790,18 @@ public struct UtilitiesShortcut: Equatable, Sendable, Identifiable {
     }
 }
 
-/// Apples Kurzbefehle ueber das mitgelieferte Werkzeug /usr/bin/shortcuts:
-/// oeffentlich, ohne Freigabe-Dialog, und der einzige Weg, z. B. einen
-/// Fokus ("Nicht stoeren") zu schalten, ohne private Schnittstellen.
+/// Apple's Shortcuts via the bundled tool /usr/bin/shortcuts: public, no
+/// permission dialog, and the only way to e.g. toggle a Focus ("Do Not
+/// Disturb") without private interfaces.
 public enum UtilitiesShortcuts {
     public static let tool = "/usr/bin/shortcuts"
     public static let listArguments = ["list", "--show-identifiers"]
 
-    /// Jede Zeile "Name (KENNUNG)" - die Kennung ist eine UUID in Klammern
-    /// am Zeilenende (gemessen 14.09., macOS 26.6). Namen duerfen selbst
-    /// Klammern enthalten, deshalb von hinten. Zeilen ohne Kennung: nur der
-    /// Name. Sortiert nach Namen wie in der Kurzbefehle-App.
+    /// Every line "Name (IDENTIFIER)" - the identifier is a UUID in
+    /// parentheses at the end of the line (measured 14.09., macOS 26.6).
+    /// Names may themselves contain parentheses, hence read from the back.
+    /// Lines without an identifier: just the name. Sorted by name as in the
+    /// Shortcuts app.
     public static func parse(_ output: String) -> [UtilitiesShortcut] {
         output.split(whereSeparator: \.isNewline).compactMap { raw -> UtilitiesShortcut? in
             let line = String(raw).trimmed
@@ -807,7 +809,7 @@ public enum UtilitiesShortcuts {
             if line.hasSuffix(")"), let open = line.lastIndex(of: "(") {
                 let candidate = String(line[line.index(after: open)..<line.index(before: line.endIndex)])
                 if UUID(uuidString: candidate) != nil {
-                    // Nur eine Kennung ohne Namen: nichts, was man waehlen koennte.
+                    // Just an identifier without a name: nothing one could pick.
                     let name = String(line[..<open]).trimmed
                     return name.isEmpty ? nil : UtilitiesShortcut(name: name, identifier: candidate)
                 }
@@ -817,8 +819,8 @@ public enum UtilitiesShortcuts {
         .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
-    /// Argumente fuer `shortcuts run`: lieber die Kennung (ueberlebt
-    /// Umbenennen), sonst der Name. `nil`: nichts gewaehlt.
+    /// Arguments for `shortcuts run`: prefer the identifier (survives
+    /// renaming), otherwise the name. `nil`: nothing chosen.
     public static func runArguments(_ options: UtilitiesShortcutOptions) -> [String]? {
         if let id = options.identifier.trimmed.nonEmpty { return ["run", id] }
         if let name = options.name.trimmed.nonEmpty { return ["run", name] }
@@ -827,7 +829,7 @@ public enum UtilitiesShortcuts {
 }
 
 extension ToastText {
-    /// `shortcuts run` endete mit Fehler (Kurzbefehl geloescht, abgebrochen).
+    /// `shortcuts run` ended with an error (shortcut deleted, cancelled).
     public static func shortcutFailed(_ name: String) -> Content {
         Content(title: String(localized: "Shortcut Failed"),
                 message: name.trimmed.nonEmpty ?? String(localized: "Unknown Shortcut"),
@@ -835,12 +837,12 @@ extension ToastText {
     }
 }
 
-// MARK: - Apps ausblenden
+// MARK: - Hiding apps
 
 public enum UtilitiesHideApps {
-    /// Welche App ausgeblendet wird: nur normale Apps (mit Dock-Symbol),
-    /// nie die Shell selbst - sonst verschwaenden Leiste und Panels -, und
-    /// bei `keepFrontmost` nicht die vordere.
+    /// Which app gets hidden: only regular apps (with a Dock icon), never
+    /// the shell itself - otherwise the bar and panels would disappear -,
+    /// and not the frontmost one when `keepFrontmost` is set.
     public static func shouldHide(pid: Int32, isRegular: Bool, ownPID: Int32, frontmostPID: Int32?,
                                   keepFrontmost: Bool) -> Bool {
         guard isRegular, pid != ownPID else { return false }
@@ -848,10 +850,10 @@ public enum UtilitiesHideApps {
     }
 }
 
-// MARK: - Symbole
+// MARK: - Symbols
 
-/// Die kleine Auswahl in Nexus fuer eigene Knoepfe. Jedes davon gibt es auf
-/// macOS 26 (Bildprobe prueft es); ein eigener Name geht zusaetzlich.
+/// The small selection in Nexus for custom buttons. Every one of these
+/// exists on macOS 26 (the visual test checks it); a custom name also works.
 public enum UtilitiesSymbols {
     public static let choices: [String] = [
         "app.fill", "link", "globe", "square.2.layers.3d.fill", "star.fill", "heart.fill", "bolt.fill",
@@ -864,7 +866,7 @@ public enum UtilitiesSymbols {
     ]
 }
 
-// MARK: - Hilfen
+// MARK: - Helpers
 
 private extension String {
     var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }

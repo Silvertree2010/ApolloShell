@@ -3,66 +3,64 @@ import ApplicationServices
 import ApolloShellCore
 import os
 
-/// Fensterwache: haelt fremde Fenster aus dem Streifen der linken Leiste
-/// heraus.
+/// Window guard: keeps foreign windows out of the left bar's strip.
 ///
-/// macOS hat keine Schnittstelle, um Bildschirmplatz zu reservieren; der
-/// `visibleFrame` gehoert allein Dock und Menueleiste. Also wie die App
-/// "Sidebar": ueber die Bedienungshilfen (AXUIElement/AXObserver) auf die
-/// Fensterereignisse aller Apps hoeren und Fenster, die unter die Leiste
-/// ragen, nachtraeglich zurechtruecken. Die Rechnung dazu steht in
-/// ApolloShellCore/WindowClamp.swift und ist dort getestet.
+/// macOS has no interface to reserve screen space; `visibleFrame` belongs
+/// solely to the Dock and menu bar. So, like the app "Sidebar": listen to
+/// window events from all apps via accessibility (AXUIElement/AXObserver)
+/// and reposition windows afterward that reach under the bar. The math for
+/// that lives in ApolloShellCore/WindowClamp.swift and is tested there.
 ///
-/// Wann die Leiste im Vollbild abtritt, sagt `FullscreenMonitor`.
+/// When the bar steps aside in fullscreen is decided by `FullscreenMonitor`.
 ///
-/// Braucht die Freigabe "Bedienungshilfen". Einmal pro Start wird darum
-/// gebeten; ohne Freigabe bleibt alles wie vorher (Leiste immer sichtbar,
-/// Fenster laufen darunter durch). Alle 2 s wird nachgesehen, ob sie
-/// inzwischen erteilt oder entzogen wurde - ein Neustart ist nicht noetig.
+/// Needs the "Accessibility" permission. It is requested once per launch;
+/// without the permission everything stays as before (bar always visible,
+/// windows run underneath it). Every 2 s it checks whether it has been
+/// granted or revoked in the meantime - a restart isn't necessary.
 ///
-/// Dieser Teil lebt auf dem Hauptthread und leitet nur weiter; die
-/// eigentliche Arbeit macht `WindowGuardWorker` auf einer eigenen Queue.
+/// This part lives on the main thread and only forwards; the actual work is
+/// done by `WindowGuardWorker` on its own queue.
 @MainActor
 final class WindowGuard {
-    /// AXIsProcessTrusted ist billig; 2 s sind schnell genug, dass die
-    /// Wache kurz nach dem Anhaken in den Systemeinstellungen loslegt.
+    /// AXIsProcessTrusted is cheap; 2 s is fast enough that the guard
+    /// starts working shortly after ticking the checkbox in System
+    /// Settings.
     private static let trustPollInterval: TimeInterval = 2
 
     private let worker: WindowGuardWorker
     private let log = Logger(category: "windowguard")
     private var trusted = false
-    /// Schluessel der Bildschirme, auf denen eine Leiste steht - nur dort
-    /// wird der Streifen freigehalten. Meldet der Verwalter der Leisten.
+    /// Keys of the screens that have a bar - the strip is only kept clear
+    /// there. Reported by the bar manager.
     private var barScreenKeys: Set<String> = []
-    /// So breit ist der Streifen. Das Theme kann die Leiste zur Laufzeit
-    /// breiter oder schmaler machen; der Verwalter meldet es mit.
+    /// How wide the strip is. The theme can make the bar wider or narrower
+    /// at runtime; the manager reports that too.
     private var barWidth: CGFloat = 0
 
-    /// `askForAccess`: beim Start die Systemfrage zeigen, falls die Freigabe
-    /// fehlt. Aus, solange die Einfuehrung laeuft - die erklaert erst, wozu,
-    /// und fragt dann selbst.
+    /// `askForAccess`: show the system prompt at launch if the permission
+    /// is missing. Off while the intro is running - that explains what it's
+    /// for first, and asks itself afterward.
     init(askForAccess: Bool = true) {
         worker = WindowGuardWorker()
 
-        // Einmal pro Start fragen (zeigt den Systemdialog nur, solange die
-        // Freigabe fehlt). Der Schluessel ist der Wert von
-        // kAXTrustedCheckOptionPrompt; die Konstante selbst ist eine globale
-        // `var` und gaebe unter Swift 6 eine Nebenlaeufigkeits-Warnung.
+        // Ask once per launch (only shows the system dialog while the
+        // permission is missing). The key is the value of
+        // kAXTrustedCheckOptionPrompt; the constant itself is a global
+        // `var` and would give a concurrency warning under Swift 6.
         let options = ["AXTrustedCheckOptionPrompt": askForAccess] as CFDictionary
         trusted = AXIsProcessTrustedWithOptions(options)
-        log.notice("Bedienungshilfen \(self.trusted ? "freigegeben" : "nicht freigegeben", privacy: .public)")
+        log.notice("Accessibility \(self.trusted ? "granted" : "not granted", privacy: .public)")
         if trusted { startWorker() }
 
         observeSystem()
         startTrustPolling()
     }
 
-    // MARK: - Freigabe
+    // MARK: - Permission
 
-    /// Die Freigabe kommt (oder geht) waehrend der Laufzeit ueber die
-    /// Systemeinstellungen; eine Benachrichtigung dafuer gibt es nicht.
-    /// Der Timer laeuft so lange wie die Fensterwache, deshalb haelt ihn
-    /// niemand fest.
+    /// The permission is granted (or revoked) at runtime via System
+    /// Settings; there is no notification for that. The timer runs as long
+    /// as the window guard does, so nothing needs to hold onto it.
     private func startTrustPolling() {
         Timer.repeating(every: Self.trustPollInterval, tolerance: 0.5, owner: self) { $0.pollTrust() }
     }
@@ -72,11 +70,11 @@ final class WindowGuard {
         guard now != trusted else { return }
         trusted = now
         if now {
-            log.notice("Bedienungshilfen freigegeben, Fensterwache startet")
+            log.notice("Accessibility granted, window guard starting")
             startWorker()
         } else {
-            // Entzogen: aufhoeren, keine Fenster mehr anfassen.
-            log.notice("Bedienungshilfen entzogen, Fensterwache haelt an")
+            // Revoked: stop, don't touch any more windows.
+            log.notice("Accessibility revoked, window guard stopping")
             worker.stop()
         }
     }
@@ -90,27 +88,27 @@ final class WindowGuard {
         )
     }
 
-    /// Auf welchen Bildschirmen eine Leiste steht und wie breit sie ist.
-    /// Danach richtet sich, wo und wie breit der Streifen freigehalten wird;
-    /// der Verwalter der Leisten meldet jede Aenderung.
+    /// Which screens have a bar and how wide it is. This determines where
+    /// and how wide the strip is kept clear; the bar manager reports every
+    /// change.
     func setBarScreens(_ keys: Set<String>, barWidth: CGFloat) {
         guard keys != barScreenKeys || barWidth != self.barWidth else { return }
         barScreenKeys = keys
         self.barWidth = barWidth
-        log.notice("Streifen (\(Int(barWidth), privacy: .public) pt) freihalten auf \(keys.count, privacy: .public) Bildschirm(en)")
+        log.notice("Keeping strip (\(Int(barWidth), privacy: .public) pt) clear on \(keys.count, privacy: .public) screen(s)")
         guard let screens = screensForWorker() else { return }
         worker.screensChanged(screens)
     }
 
-    /// Bildschirme in Bedienungshilfen-Koordinaten, der mit der Menueleiste
-    /// zuerst, jeder mit seinem Schluessel und der Angabe, ob dort eine
-    /// Leiste steht. `nil`, wenn gerade keiner da ist (Bildschirm mitten im
-    /// Umstecken): dann die alten behalten.
+    /// Screens in accessibility coordinates, the one with the menu bar
+    /// first, each with its key and whether a bar sits on it. `nil` if
+    /// there currently is none (screen mid-reconfiguration): then keep
+    /// the old ones.
     private func screensForWorker() -> [GuardScreen]? {
         let screens = ShellScreens.current()
         guard let primary = screens.first else { return nil }
-        // Ursprung der Bedienungshilfen ist die linke obere Ecke des
-        // Hauptbildschirms, in AppKit dessen maxY.
+        // The origin of accessibility coordinates is the top-left corner
+        // of the main screen, its maxY in AppKit.
         let primaryHeight = primary.frame.maxY
         return screens.map { screen in
             GuardScreen(
@@ -121,11 +119,11 @@ final class WindowGuard {
         }
     }
 
-    // MARK: - Systemereignisse weiterreichen
+    // MARK: - Forwarding system events
 
-    /// Die Wache lebt so lange wie der Prozess (AppDelegate haelt sie), die
-    /// Beobachter muessen deshalb nie entfernt werden. Solange die Freigabe
-    /// fehlt, laufen die Meldungen beim Worker ins Leere.
+    /// The guard lives as long as the process (AppDelegate holds it), so
+    /// the observers never need to be removed. As long as the permission is
+    /// missing, the reports to the worker go nowhere.
     private func observeSystem() {
         let workspace = NSWorkspace.shared.notificationCenter
         let worker = worker
@@ -144,7 +142,7 @@ final class WindowGuard {
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
             worker.appActivated(app.processIdentifier, isRegular: app.activationPolicy == .regular)
         }
-        // Space-Wechsel und Aufwachen: neu sichtbare Fenster aufnehmen.
+        // Space switch and wake: pick up newly visible windows.
         for name in [
             NSWorkspace.activeSpaceDidChangeNotification,
             NSWorkspace.didWakeNotification,
@@ -162,77 +160,76 @@ final class WindowGuard {
     }
 }
 
-/// Ein Bildschirm, wie ihn die Fensterwache braucht.
+/// A screen, as the window guard needs it.
 struct GuardScreen: Sendable, Equatable {
-    /// Stabiler Schluessel (Name plus Aufloesung), wie ihn der Verwalter
-    /// der Leisten meldet.
+    /// Stable key (name plus resolution), as reported by the bar manager.
     let key: String
-    /// Rahmen in Bedienungshilfen-Koordinaten (Ursprung oben links am
-    /// Hauptbildschirm, y nach unten).
+    /// Frame in accessibility coordinates (origin top left on the main
+    /// screen, y downward).
     let frame: CGRect
-    /// So breit ist der freizuhaltende Streifen am linken Rand. 0: dort
-    /// steht keine Leiste, Fenster werden in Ruhe gelassen.
+    /// How wide the strip to keep clear is on the left edge. 0: no bar
+    /// there, windows are left alone.
     let reservedWidth: CGFloat
 }
 
-/// Die eigentliche Fensterwache.
+/// The actual window guard.
 ///
-/// Alles laeuft auf einer seriellen Queue: Bedienungshilfen-Aufrufe sind
-/// synchrone Anfragen an die andere App und warten, bis sie antwortet - bei
-/// einer haengenden App bis zum Timeout. Auf dem Hauptthread wuerde das den
-/// Launcher-Hotkey ausbremsen (dort zaehlen Millisekunden).
+/// Everything runs on a serial queue: accessibility calls are synchronous
+/// requests to the other app and wait until it responds - for a hung app,
+/// until the timeout. On the main thread that would slow down the launcher
+/// hotkey (milliseconds matter there).
 ///
-/// Die Runloop-Quellen der AXObserver haengen trotzdem an der Main-Runloop
-/// (eine Dispatch-Queue hat keine eigene); ihr Callback reicht die Meldung
-/// nur an die Queue weiter und kostet dort praktisch nichts.
+/// The AXObserver run loop sources still hang off the main run loop (a
+/// dispatch queue has none of its own); their callback just forwards the
+/// notification to the queue and costs practically nothing there.
 ///
-/// `@unchecked Sendable`: Der Zustand wird ausschliesslich auf `queue`
-/// angefasst, die oeffentlichen Methoden springen alle zuerst dorthin.
+/// `@unchecked Sendable`: state is touched exclusively on `queue`, all
+/// public methods hop there first.
 final class WindowGuardWorker: @unchecked Sendable {
-    /// So lange muss ein Fenster ruhig sein, bevor es angefasst wird. Beim
-    /// Ziehen, Aufziehen und bei Zoom-/Kachel-Animationen kommen die
-    /// "bewegt"-Meldungen im Abstand von Millisekunden und schieben den
-    /// Termin jedes Mal nach hinten; erst wenn das Fenster steht, greift die
-    /// Wache ein. Kuerzer wirkt es wie ein Ruck mitten in der Animation,
-    /// laenger sieht man das Fenster sichtbar unter der Leiste liegen.
+    /// A window must be still for this long before it's touched. While
+    /// dragging, resizing, or during zoom/tile animations, the "moved"
+    /// notifications arrive milliseconds apart and push the deadline back
+    /// each time; the guard only steps in once the window is at rest.
+    /// Shorter looks like a jolt mid-animation, longer means the window is
+    /// visibly seen sitting under the bar.
     static let settleDelay: TimeInterval = 0.2
-    /// Frisch gestartete Apps antworten oft noch nicht
-    /// (kAXErrorCannotComplete). So oft und in diesem Abstand nachfassen.
+    /// Freshly launched apps often don't respond yet
+    /// (kAXErrorCannotComplete). Retry this often and at this interval.
     static let registerRetries = 10
     static let registerRetryDelay: TimeInterval = 0.5
-    /// Hoechstens so lange auf eine App warten. Vorgabe von macOS sind 6 s,
-    /// so lange stuende die ganze Wache wegen einer haengenden App still.
+    /// Wait for an app at most this long. macOS's default is 6 s, which
+    /// would stall the whole guard because of one hung app.
     static let messagingTimeout: Float = 1
 
     private let queue = DispatchQueue(label: AppIdentity.scoped("windowguard"))
     private let log = Logger(category: "windowguard")
     private let ownPID = ProcessInfo.processInfo.processIdentifier
 
-    // Nur auf `queue` anfassen.
+    // Only touch on `queue`.
     private var running = false
-    /// Bildschirme in Bedienungshilfen-Koordinaten, Hauptbildschirm zuerst.
+    /// Screens in accessibility coordinates, main screen first.
     private var screens: [GuardScreen] = []
     private var apps: [pid_t: ObservedApp] = [:]
-    /// Pro Fenster der naechste geplante Blick (Entprellung).
+    /// The next scheduled look at each window (debouncing).
     private var pending: [AXUIElement: DispatchWorkItem] = [:]
-    /// 3 Eingriffe in 30 s: genug fuer "zweimal hintereinander wieder
-    /// daruntergezogen", aber eine App, die ihr Fenster jedes Mal zurueck-
-    /// legt, zappelt hoechstens alle 30 s kurz statt dauernd.
+    /// 3 interventions in 30 s: enough for "dragged back under twice in a
+    /// row", but an app that puts its window back every time only twitches
+    /// briefly at most every 30 s instead of constantly.
     private var ledger = ClampLedger<AXUIElement>(maxAttempts: 3, period: 30)
-    /// Aus abgelehnten Verkleinerungen gelernte Mindestbreiten.
+    /// Minimum widths learned from rejected shrink attempts.
     private var minWidths: [AXUIElement: CGFloat] = [:]
 
-    // MARK: - Von aussen (beliebiger Thread)
+    // MARK: - From outside (any thread)
 
     func start(screens: [GuardScreen], apps pids: [pid_t]) {
         queue.async { [self] in
             guard !running else { return }
             running = true
-            // Gilt fuer alle Bedienungshilfen-Anfragen dieses Prozesses.
+            // Applies to all accessibility requests from this process.
             AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), Self.messagingTimeout)
             self.screens = screens
             for pid in pids { watchApp(pid, attempt: 0) }
-            log.notice("Fensterwache laeuft, \(self.apps.count, privacy: .public) Apps beobachtet")
+            log.notice("Window guard running, \(self.apps.count, privacy: .public) apps observed")
         }
     }
 
@@ -265,11 +262,12 @@ final class WindowGuardWorker: @unchecked Sendable {
         queue.async { [self] in
             guard isRegular, pid != ownPID, running else { return }
             if apps[pid] == nil {
-                // Apps, die erst spaeter regulaer wurden.
+                // Apps that only became regular later.
                 watchApp(pid, attempt: 0)
             } else if let window = AX.element(AXUIElementCreateApplication(pid), kAXFocusedWindowAttribute) {
-                // Fenster auf anderen Spaces liefert kAXWindowsAttribute nicht;
-                // spaetestens wenn sie in den Vordergrund kommen, sind sie dran.
+                // kAXWindowsAttribute doesn't return windows on other
+                // spaces; at the latest when they come to the front, it's
+                // their turn.
                 watchWindow(window, pid: pid)
                 scheduleClamp(window)
             }
@@ -287,18 +285,18 @@ final class WindowGuardWorker: @unchecked Sendable {
         queue.async { [self] in
             self.screens = screens
             guard running else { return }
-            // Andere Aufloesung oder Anordnung: jedes Fenster kann jetzt
-            // anders zur Leiste liegen.
+            // Different resolution or arrangement: every window can now
+            // sit differently relative to the bar.
             sweepWindows(onlyNew: false)
         }
     }
 
-    /// Vom AXObserver-Callback auf dem Hauptthread.
+    /// From the AXObserver callback on the main thread.
     fileprivate func receive(_ element: AXElementRef, _ notification: String) {
         queue.async { [self] in handle(element.element, notification) }
     }
 
-    // MARK: - Beobachten
+    // MARK: - Observing
 
     private func watchApp(_ pid: pid_t, attempt: Int) {
         guard running, pid > 0, pid != ownPID, apps[pid] == nil else { return }
@@ -310,11 +308,11 @@ final class WindowGuardWorker: @unchecked Sendable {
             worker.receive(AXElementRef(element: element), notification as String)
         }, &created)
         guard status == .success, let observer = created else {
-            log.error("AXObserver fuer pid \(pid, privacy: .public) nicht angelegt: \(status.rawValue, privacy: .public)")
+            log.error("AXObserver for pid \(pid, privacy: .public) not created: \(status.rawValue, privacy: .public)")
             return
         }
 
-        // Der Worker lebt so lange wie der Prozess, unretained genuegt.
+        // The worker lives as long as the process, unretained is enough.
         let refcon = Unmanaged.passUnretained(self).toOpaque()
         let app = AXUIElementCreateApplication(pid)
         let results = [kAXWindowCreatedNotification, kAXFocusedWindowChangedNotification].map {
@@ -326,13 +324,13 @@ final class WindowGuardWorker: @unchecked Sendable {
                     watchApp(pid, attempt: attempt + 1)
                 }
             } else {
-                log.info("pid \(pid, privacy: .public) nicht beobachtbar: \(results.map(\.rawValue), privacy: .public)")
+                log.info("pid \(pid, privacy: .public) not observable: \(results.map(\.rawValue), privacy: .public)")
             }
             return
         }
 
-        // .commonModes: auch waehrend im Hauptthread ein Menue oder ein
-        // Ziehvorgang laeuft (eventTracking), sonst stauen sich die Meldungen.
+        // .commonModes: also while a menu or a drag is running on the main
+        // thread (eventTracking), otherwise notifications pile up.
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
         apps[pid] = ObservedApp(element: app, observer: observer)
 
@@ -354,9 +352,9 @@ final class WindowGuardWorker: @unchecked Sendable {
         minWidths = minWidths.filter { !belongs($0.key) }
     }
 
-    /// "Bewegt" und "Groesse geaendert" kommen pro Fenster, also jedes neue
-    /// Fenster einzeln anmelden. Das Observer-Objekt der App meldet sie ab,
-    /// sobald es freigegeben wird.
+    /// "Moved" and "resized" arrive per window, so every new window is
+    /// registered individually. The app's observer object deregisters
+    /// them once it is released.
     private func watchWindow(_ window: AXUIElement, pid: pid_t) {
         guard let app = apps[pid], !app.windows.contains(window),
               AX.string(window, kAXRoleAttribute) == kAXWindowRole
@@ -373,9 +371,9 @@ final class WindowGuardWorker: @unchecked Sendable {
         app.windows.insert(window)
     }
 
-    /// Fensterliste neu lesen. `onlyNew`: nur Fenster, die noch nicht
-    /// angemeldet sind (nach einem Space-Wechsel die dort neu sichtbaren);
-    /// die bekannten melden sich selbst, wenn sie bewegt werden.
+    /// Re-read the window list. `onlyNew`: only windows not yet registered
+    /// (the ones newly visible after a space switch); the known ones
+    /// report in themselves when moved.
     private func sweepWindows(onlyNew: Bool) {
         for (pid, app) in apps {
             for window in AX.elements(app.element, kAXWindowsAttribute) {
@@ -401,7 +399,7 @@ final class WindowGuardWorker: @unchecked Sendable {
             watchWindow(element, pid: pid)
             scheduleClamp(element)
         case kAXFocusedWindowChangedNotification:
-            // Meist ist das Element das neue Fenster; manche Apps melden die App.
+            // Usually the element is the new window; some apps report the app instead.
             let window = AX.string(element, kAXRoleAttribute) == kAXApplicationRole
                 ? AX.element(element, kAXFocusedWindowAttribute) : element
             if let window {
@@ -419,10 +417,10 @@ final class WindowGuardWorker: @unchecked Sendable {
         }
     }
 
-    // MARK: - Zurechtruecken
+    // MARK: - Repositioning
 
-    /// Entprellt: jede Meldung schiebt den Blick auf das Fenster um
-    /// `settleDelay` nach hinten, eingegriffen wird erst, wenn es ruht.
+    /// Debounced: every notification pushes the look at the window back by
+    /// `settleDelay`; it only steps in once the window is at rest.
     private func scheduleClamp(_ window: AXUIElement) {
         pending[window]?.cancel()
         let ref = AXElementRef(element: window)
@@ -437,28 +435,29 @@ final class WindowGuardWorker: @unchecked Sendable {
     private func clampIfNeeded(_ window: AXUIElement) {
         guard running, !screens.isEmpty else { return }
 
-        // Linke Maustaste noch unten: jemand zieht das Fenster gerade (oder
-        // haelt es nur still). Nicht unter der Hand wegreissen, spaeter
-        // wieder nachsehen - wie der Dock erst nach dem Loslassen.
+        // Left mouse button still down: someone is dragging the window
+        // right now (or just holding it still). Don't rip it out of their
+        // hand, check again later - like the Dock only reacting after
+        // release.
         if CGEventSource.buttonState(.combinedSessionState, button: .left) {
             scheduleClamp(window)
             return
         }
 
         let pid = AX.pid(of: window)
-        // Nur Standardfenster: Sheets, Dialoge, schwebende Paletten und
-        // Popover haben eine andere Rolle oder Subrolle und haengen an ihrem
-        // Elternfenster bzw. gehoeren bewusst dorthin, wo sie sind.
-        // Minimierte und Vollbild-Fenster gehen die Leiste nichts an, und
-        // Fenster auf einem Bildschirm ohne Leiste auch nicht.
+        // Standard windows only: sheets, dialogs, floating palettes and
+        // popovers have a different role or subrole and hang off their
+        // parent window, or belong deliberately wherever they are.
+        // Minimized and fullscreen windows are none of the bar's concern,
+        // nor are windows on a screen without a bar.
         guard pid != ownPID, apps[pid] != nil,
               AX.string(window, kAXRoleAttribute) == kAXWindowRole,
               AX.string(window, kAXSubroleAttribute) == kAXStandardWindowSubrole,
               AX.bool(window, kAXMinimizedAttribute) != true,
               AX.bool(window, AX.fullScreenAttribute) != true,
               let frame = AX.frame(of: window),
-              // Das Fenster gehoert dem Bildschirm, auf dem der groesste Teil
-              // liegt - und geschoben wird nur dort, wo eine Leiste steht.
+              // The window belongs to the screen where the largest part
+              // of it lies - and it's only repositioned where a bar sits.
               let index = WindowClamp.dominantScreen(for: frame, among: screens.map(\.frame)),
               screens[index].reservedWidth > 0,
               let target = WindowClamp.clampedFrame(
@@ -469,16 +468,16 @@ final class WindowGuardWorker: @unchecked Sendable {
 
         let now = ProcessInfo.processInfo.systemUptime
         guard ledger.shouldClamp(window, current: frame, now: now) else {
-            log.debug("pid \(pid, privacy: .public): Fenster eben erst angefasst oder wehrt sich, lasse es")
+            log.debug("pid \(pid, privacy: .public): window just touched or pushing back, leaving it")
             return
         }
         guard AX.isSettable(window, kAXPositionAttribute) else { return }
 
         apply(target, to: window, current: frame, pid: pid)
 
-        // Nachlesen: Was die App daraus gemacht hat, ist der neue Stand. Hat
-        // sie die Verkleinerung abgelehnt, ist das ihre Mindestbreite - dann
-        // beim naechsten Mal gar nicht erst schmaler machen, nur schieben.
+        // Read back: whatever the app made of it is the new state. If it
+        // rejected the shrink, that's its minimum width - then don't try
+        // to make it narrower next time, only move it.
         let result = AX.frame(of: window) ?? target
         if target.width < frame.width - WindowClamp.tolerance,
            result.width > target.width + WindowClamp.tolerance {
@@ -489,18 +488,19 @@ final class WindowGuardWorker: @unchecked Sendable {
     }
 
     private func apply(_ target: CGRect, to window: AXUIElement, current: CGRect, pid: pid_t) {
-        // Chromium, Firefox & Co. schalten "AXEnhancedUserInterface" ein,
-        // sobald Bedienungshilfen-Software laeuft; dann animieren sie jede
-        // Aenderung und uebernehmen Position und Groesse nur teilweise. Fuer
-        // den Eingriff aus, danach wieder wie vorher (so macht es Rectangle).
+        // Chromium, Firefox & co. turn on "AXEnhancedUserInterface" as soon
+        // as accessibility software is running; then they animate every
+        // change and only partially adopt position and size. Turn it off
+        // for the intervention, then back on afterward (this is how
+        // Rectangle does it).
         let app = AXUIElementCreateApplication(pid)
         let enhanced = AX.bool(app, AX.enhancedUserInterfaceAttribute) == true
         if enhanced { AX.setBool(app, AX.enhancedUserInterfaceAttribute, false) }
         defer { if enhanced { AX.setBool(app, AX.enhancedUserInterfaceAttribute, true) } }
 
-        // Erst schmaler, dann schieben: so ragt das Fenster zwischendurch
-        // nie rechts ueber den Bildschirm. Lehnt die App die Groesse ab,
-        // wird es trotzdem verschoben.
+        // Narrow first, then move: this way the window never sticks out
+        // past the right edge in between. If the app rejects the size, it
+        // is still moved.
         if abs(target.width - current.width) > WindowClamp.tolerance {
             AX.setSize(window, target.size)
         }
@@ -508,11 +508,11 @@ final class WindowGuardWorker: @unchecked Sendable {
     }
 }
 
-/// Eine beobachtete App. Lebt nur auf der Queue des Workers.
+/// An observed app. Lives only on the worker's queue.
 private final class ObservedApp {
     let element: AXUIElement
     let observer: AXObserver
-    /// Fenster, fuer die "bewegt"/"Groesse" schon angemeldet sind.
+    /// Windows for which "moved"/"resized" are already registered.
     var windows: Set<AXUIElement> = []
 
     init(element: AXUIElement, observer: AXObserver) {
@@ -521,10 +521,10 @@ private final class ObservedApp {
     }
 }
 
-/// Traeger, um ein AXUIElement vom Callback auf die Queue zu reichen.
-/// Unbedenklich: ein AXUIElement ist ein unveraenderlicher Verweis (Prozess
-/// plus Element-Kennung), die AX-Funktionen darf man von jedem Thread aus
-/// aufrufen. Swift kennt dafuer nur kein `Sendable`.
+/// Carrier to pass an AXUIElement from the callback to the queue.
+/// Harmless: an AXUIElement is an immutable reference (process plus
+/// element ID), and the AX functions may be called from any thread. Swift
+/// just doesn't know `Sendable` for it.
 private struct AXElementRef: @unchecked Sendable {
     let element: AXUIElement
 }

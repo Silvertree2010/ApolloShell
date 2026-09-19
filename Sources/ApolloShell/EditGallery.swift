@@ -1,13 +1,13 @@
 import ApolloShellCore
 import SwiftUI
 
-// Inhalt von Werkzeugleiste und Galerie des globalen Bearbeitungsmodus
-// (Task 3). Reine SwiftUI-Ansichten, gehostet in `FloatingGlassPanel`
-// (`EditModeWindows.swift`) und - fuer die Bildprobe `--render-edit` - direkt
-// in `RenderMode.swift`.
+// Content of the toolbar and gallery of the global edit mode (task 3).
+// Pure SwiftUI views, hosted in `FloatingGlassPanel`
+// (`EditModeWindows.swift`) and - for the `--render-edit` screenshot -
+// directly in `RenderMode.swift`.
 
-/// Nutzlast fuer das Ziehen eines Schnellschalters aus der Galerie ins
-/// Kontrollzentrum-Panel (Ziel folgt in Task 5).
+/// Payload for dragging a quick toggle from the gallery into the control
+/// center panel (target follows in task 5).
 enum UtilitiesToggleDragPayload {
     static let prefix = "apolloshell.toggle:"
     static func string(for kind: UtilitiesToggleKind) -> String { prefix + kind.rawValue }
@@ -17,7 +17,7 @@ enum UtilitiesToggleDragPayload {
     }
 }
 
-/// Nutzlast fuer das Ziehen einer Kontrollzentrum-Karte aus der Galerie.
+/// Payload for dragging a control center card out of the gallery.
 enum UtilitiesCardDragPayload {
     static let prefix = "apolloshell.card:"
     static func string(for kind: UtilitiesCardKind) -> String { prefix + kind.rawValue }
@@ -27,9 +27,9 @@ enum UtilitiesCardDragPayload {
     }
 }
 
-/// Werkzeugleiste unten mittig: **+** (Galerie auf/zu), **Abbrechen**,
-/// **Fertig**. Mit ungesicherten Aenderungen und Esc (Task 6) tritt an ihre
-/// Stelle kurz eine Nachfrage.
+/// Toolbar bottom center: **+** (open/close the gallery), **Cancel**,
+/// **Done**. With unsaved changes and Esc (task 6), a confirmation prompt
+/// briefly takes its place.
 struct EditToolbarView: View {
     @Bindable var editor: ShellEditor
     @Environment(\.shellStyle) private var style
@@ -56,7 +56,7 @@ struct EditToolbarView: View {
                 Image(systemName: "plus")
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 34, height: 34)
-                    // Der ganze Kreis, nicht nur das Pluszeichen.
+                    // The whole circle, not just the plus sign.
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
@@ -64,9 +64,9 @@ struct EditToolbarView: View {
             .help("Add Element")
             .accessibilityLabel("Add")
 
-            // Groesse des Dashboards (frueher Nexus > Dashboard): das
-            // angepinnte Dashboard waechst und schrumpft sofort mit,
-            // gespeichert wird erst mit „Fertig“.
+            // Size of the Dashboard (formerly Nexus > Dashboard): the
+            // pinned Dashboard grows and shrinks along with it right away,
+            // it is only saved with "Done".
             HStack(spacing: 8) {
                 Image(systemName: "square.resize")
                     .foregroundStyle(.secondary)
@@ -97,9 +97,9 @@ struct EditToolbarView: View {
         }
     }
 
-    /// „Änderungen verwerfen?“ - Esc mit ungesicherten Aenderungen
-    /// (`ShellEditor.handleEscape`) zeigt das statt der drei Knoepfe oben,
-    /// bis man sich entscheidet.
+    /// "Discard changes?" - Esc with unsaved changes
+    /// (`ShellEditor.handleEscape`) shows this instead of the three
+    /// buttons above, until a decision is made.
     private var cancelConfirmation: some View {
         HStack(spacing: 14) {
             Text("Discard changes?")
@@ -108,7 +108,7 @@ struct EditToolbarView: View {
                 editor.dismissCancelConfirmation()
             }
             .buttonStyle(.bordered)
-            Button("Verwerfen", role: .destructive) {
+            Button("Discard", role: .destructive) {
                 editor.confirmCancel()
             }
             .buttonStyle(.borderedProminent)
@@ -117,10 +117,11 @@ struct EditToolbarView: View {
     }
 }
 
-/// Nur in `RenderMode --render-edit`: `ImageRenderer` zieht `.onDrag` (fuer
-/// `NSItemProvider`-Ziehsitzungen AppKit-hinterlegt) offscreen als rotes
-/// Verbotszeichen (dieselbe Ursache wie `.onDrop`, siehe
-/// `dashboardRendersForScreenshot`). Fuers echte Fenster bleibt Ziehen immer an.
+/// Only in `RenderMode --render-edit`: `ImageRenderer` draws `.onDrag`
+/// (AppKit-backed for `NSItemProvider` drag sessions) offscreen as a red
+/// no-entry sign (same cause as `.onDrop`, see
+/// `dashboardRendersForScreenshot`). For the real window, dragging always
+/// stays on.
 private struct GalleryRendersForScreenshotKey: EnvironmentKey {
     static let defaultValue = false
 }
@@ -132,24 +133,25 @@ extension EnvironmentValues {
     }
 }
 
-/// Breite der Galerie (`EditGalleryView.body`) und ihr Innenmass (Rand
-/// 16 auf jeder Seite) - `GalleryGrid` rechnet direkt damit statt mit einer
-/// aus `proposal` geratenen Breite (siehe dort).
-// Breit und flach wie Apples Widget-Galerie: sie steht unter dem Dashboard,
-// und dort ist auf 14 Zoll nur gut 300 pt Hoehe frei (vorher 560 breit mit
-// vier Spalten, gut 370 hoch - sie ueberdeckte das Dashboard). 760 laesst
-// rechts Platz fuer das Kontrollzentrum.
+/// Width of the gallery (`EditGalleryView.body`) and its inner size
+/// (16 pt margin on each side) - `GalleryGrid` computes directly with
+/// this instead of a width guessed from `proposal` (see there).
+// Wide and flat like Apple's widget gallery: it sits below the
+// Dashboard, and on a 14-inch screen there is only about 300 pt of
+// height free there (previously 560 wide with four columns, a good
+// 370 tall - it covered the Dashboard). 760 leaves room on the right
+// for the control center.
 private let galleryWidth: CGFloat = 760
 private let galleryContentWidth: CGFloat = galleryWidth - 2 * 16
-/// Anzahl Spalten des Kachelrasters bei `galleryContentWidth`: so breit wie
-/// eine Kachel (108) plus Abstand passt.
+/// Number of columns of the tile grid at `galleryContentWidth`: as wide
+/// as one tile (108) plus spacing fits.
 private let galleryColumns = 8
 
-/// Reiter „Dashboard“/„Kontrollzentrum“: eigene Kapseln statt
-/// `Picker(.segmented)` - AppKit-hinterlegt, `ImageRenderer` zeichnet ihn
-/// offscreen als gelben Balken (dieselbe Ursache wie beim Umschalter unten),
-/// und im Aussehen war er ohnehin ein Fremdkoerper neben dem Rest der Shell
-/// (vergleiche die Seitenreiter des Dashboards, `DashboardView.pageButton`).
+/// "Dashboard"/"Control Centre" tabs: custom capsules instead of
+/// `Picker(.segmented)` - AppKit-backed, `ImageRenderer` draws it
+/// offscreen as a yellow bar (same cause as the switch below), and in
+/// appearance it was a foreign element next to the rest of the shell
+/// anyway (compare the Dashboard's page tabs, `DashboardView.pageButton`).
 private struct GallerySurfaceTabs: View {
     @Binding var selection: WidgetSurface
     @Environment(\.shellStyle) private var style
@@ -176,16 +178,17 @@ private struct GallerySurfaceTabs: View {
                 .background {
                     if isSelected { Capsule().fill(style.accent) }
                 }
-                // Ganze Kapsel klickbar, auch beim nicht gewaehlten Reiter
-                // (dort ohne Hintergrund - vorher reagierte nur der Text).
+                // The whole capsule is clickable, even for the unselected
+                // tab (without a background there - previously only the
+                // text reacted).
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
     }
 }
 
-/// Eigener Umschalter statt `Toggle(.switch)` - derselbe AppKit-Grund wie bei
-/// den Reitern oben.
+/// Custom switch instead of `Toggle(.switch)` - the same AppKit reason as
+/// for the tabs above.
 private struct GalleryCheckbox: View {
     let title: String
     @Binding var isOn: Bool
@@ -201,25 +204,27 @@ private struct GalleryCheckbox: View {
                     .font(.callout)
                     .foregroundStyle(.primary)
             }
-            // Ganze Zeile klickbar, nicht nur Symbol und Buchstaben.
+            // The whole row is clickable, not just the symbol and letters.
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
     }
 }
 
-/// Festes Kachelraster in `columns` Spalten, gleich breiten Zeilen. Kein
-/// `LazyVGrid`: siehe Kommentar bei `EditGalleryView.body` - fuer die feste,
-/// ueberschaubare Anzahl an Kacheln (Widget-Katalog, Karten, Schnellschalter)
-/// kostet das nichts, macht die Galerie aber `ImageRenderer`-tauglich.
+/// Fixed tile grid in `columns` columns, equally wide rows. No
+/// `LazyVGrid`: see the comment at `EditGalleryView.body` - for the
+/// fixed, manageable number of tiles (widget catalog, cards, quick
+/// toggles) this costs nothing, but it makes the gallery
+/// `ImageRenderer`-compatible.
 private struct GalleryGrid: Layout {
     let columns: Int
     let spacing: CGFloat
-    /// Feste Breite statt aus `proposal` geraten: in einer `ScrollView`
-    /// kommt die vorgeschlagene Breite mal `nil`, mal ein Platzhalterwert -
-    /// besonders offscreen bei `ImageRenderer` (Bildproben). Die Galerie hat
-    /// ohnehin eine feste Breite (`EditGalleryView`), das Raster rechnet
-    /// direkt mit deren Innenmass statt zu raten.
+    /// Fixed width instead of guessed from `proposal`: in a `ScrollView`
+    /// the proposed width comes back as `nil` sometimes, and as a
+    /// placeholder value other times - especially offscreen with
+    /// `ImageRenderer` (screenshots). The gallery has a fixed width
+    /// anyway (`EditGalleryView`), the grid computes directly with its
+    /// inner size instead of guessing.
     let width: CGFloat
 
     private func columnWidth() -> CGFloat {
@@ -249,9 +254,9 @@ private struct GalleryGrid: Layout {
     }
 }
 
-/// Galerie: ein Reiter je Flaeche, mit Kacheln zum Ziehen oder Anklicken.
-/// „Alle zeigen (erweitert)“ blendet auch Elemente der jeweils anderen
-/// Flaeche ein (Spec: "not optimised" ausserhalb ihrer Heimat).
+/// Gallery: one tab per surface, with tiles to drag or click. "Show All
+/// (Advanced)" also shows elements of the other surface (spec: "not
+/// optimised" outside their home).
 struct EditGalleryView: View {
     @Bindable var editor: ShellEditor
     @Environment(\.galleryRendersForScreenshot) private var rendersForScreenshot
@@ -264,13 +269,13 @@ struct EditGalleryView: View {
                 .controlSize(.small)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Kein `LazyVGrid`: ein eigenes, festes Raster in Zeilen statt
-            // Spalten zaehlt jede Kachel sicher mit. Die `ScrollView` darueber
-            // zeichnet `ImageRenderer` offscreen leer, wenn ihr Inhalt eine
-            // eigene `Layout`-Kachel ist (Bildprobe `--render-edit`, gemessen
-            // 19.09.) - dort faellt sie weg, das Raster steht ungeschnitten
-            // da. Im echten Fenster bleibt sie: mehr Kacheln als die feste
-            // Hoehe passen sonst nicht hinein.
+            // No `LazyVGrid`: a custom, fixed grid counting rows instead
+            // of columns reliably includes every tile. `ImageRenderer`
+            // draws the `ScrollView` around it as empty offscreen when
+            // its content is a custom `Layout` tile (`--render-edit`
+            // screenshot, measured 09/19) - it is left out there, the
+            // grid stands uncropped. In the real window it stays: more
+            // tiles than the fixed height would not fit otherwise.
             if rendersForScreenshot {
                 galleryGrid
             } else {
@@ -305,12 +310,13 @@ struct EditGalleryView: View {
         ForEach(WidgetKind.allCases.filter { editor.showsAllInGallery || $0.home == .dashboard }) { kind in
             EditGalleryTile(symbol: kind.symbol, title: kind.title, detail: sizesText(kind.sizes.count),
                             tooltip: kind.title, payload: BentoWidgetDragPayload.string(for: kind), isDisabled: false) {
-                // Dieselben Favoriten wie beim Ablegen (`BentoDropDelegate.add`)
-                // - sonst startete ein per Klick angelegtes Wetter-Widget ohne
-                // Orte, obwohl es welche gibt (Task 3/5).
+                // The same favorites as when dropping
+                // (`BentoDropDelegate.add`) - otherwise a weather widget
+                // added by click would start without locations, even
+                // though some exist (task 3/5).
                 let places = WeatherFavorites.loadLive()
                 if editor.dashboard.addAtFirstFreeSpot(kind, places: places) == nil {
-                    show(notice: String(localized: "Kein Platz auf dieser Seite"))
+                    show(notice: String(localized: "No room on this page"))
                 }
             }
         }
@@ -331,7 +337,7 @@ struct EditGalleryView: View {
                 EditGalleryTile(symbol: kind.symbol ?? "circle", title: kind.title, detail: nil, tooltip: kind.summary,
                                 payload: UtilitiesToggleDragPayload.string(for: kind), isDisabled: already) {
                     if editor.addToggle(kind) == nil {
-                        show(notice: String(localized: "Gibt es schon"))
+                        show(notice: String(localized: "Already there"))
                     }
                 }
             }
@@ -339,7 +345,7 @@ struct EditGalleryView: View {
     }
 
     private func sizesText(_ count: Int) -> String {
-        count == 1 ? String(localized: "1 Größe") : String(localized: "\(count) Größen")
+        count == 1 ? String(localized: "1 size") : String(localized: "\(count) sizes")
     }
 
     private func show(notice text: String) {
@@ -350,17 +356,17 @@ struct EditGalleryView: View {
     }
 }
 
-/// Eine Kachel der Galerie: Symbol, Titel, auf Wunsch eine kurze Kennzahl
-/// (Dashboard: Anzahl Groessen). Die volle Beschreibung (Kontrollzentrum:
-/// `UtilitiesCardKind.summary`/`UtilitiesToggleKind.summary`, oft laenger als
-/// eine Zeile) steht nur im Tooltip (`.help`) - als dritte Zeile lief sie in
-/// jeder Kachel ab (Live-Test 19.09.). Ziehen setzt die Textnutzlast
-/// (`apolloshell.widget:`/`.toggle:`/`.card:`), ein Klick landet an der
-/// ersten freien Stelle bzw. am Ende.
+/// A tile in the gallery: symbol, title, optionally a short figure
+/// (Dashboard: number of sizes). The full description (control center:
+/// `UtilitiesCardKind.summary`/`UtilitiesToggleKind.summary`, often
+/// longer than one line) only appears in the tooltip (`.help`) - as a
+/// third line it overflowed every tile (live test 09/19). Dragging sets
+/// the text payload (`apolloshell.widget:`/`.toggle:`/`.card:`), a click
+/// lands at the first free spot or at the end.
 private struct EditGalleryTile: View {
     let symbol: String
     let title: String
-    /// Kurze Kennzahl unter dem Titel; `nil` laesst die Zeile weg.
+    /// Short figure under the title; `nil` leaves the line out.
     let detail: String?
     let tooltip: String
     let payload: String
@@ -369,18 +375,19 @@ private struct EditGalleryTile: View {
     @Environment(\.galleryRendersForScreenshot) private var rendersForScreenshot
 
     var body: some View {
-        // Kein `Button`: der verfolgt die Maus selbst und liess `.onDrag`
-        // unter macOS oft gar nicht erst anfangen - Ziehen aus der Galerie
-        // ging dann nicht (Live-Test 19.09.). Ein Tipp ohne Zug fuegt ein,
-        // ein Zug zieht; beides vertraegt sich mit `onTapGesture`.
+        // No `Button`: it tracks the mouse itself and often would not let
+        // `.onDrag` even start under macOS - dragging out of the gallery
+        // then did not work (live test 09/19). A tap without a drag
+        // inserts it, a drag drags it; both work fine with
+        // `onTapGesture`.
         VStack(spacing: 6) {
             Image(systemName: symbol)
                 .font(.system(size: 20, weight: .medium))
                 .frame(height: 24)
-            // Zwei Zeilen statt abgeschnitten: „Apps ausblenden“, „Wetter-
-            // uebersicht“ usw. passen in 8 Spalten nicht auf eine Zeile
-            // (Live-Test 19.09.: Titel stiessen an den Kachelrand). Immer
-            // zwei Zeilen Platz, damit alle Kacheln gleich hoch bleiben.
+            // Two lines instead of truncated: "Hide Apps", "Weather
+            // Overview" and the like do not fit on one line in 8 columns
+            // (live test 09/19: titles hit the tile edge). Always reserve
+            // two lines of space, so all tiles stay the same height.
             Text(title)
                 .font(.caption.weight(.medium))
                 .multilineTextAlignment(.center)
@@ -409,10 +416,10 @@ private struct EditGalleryTile: View {
     }
 }
 
-/// Haengt `.onDrag` nur ausserhalb von Bildproben an: `ImageRenderer`
-/// zeichnet die AppKit-hinterlegte Ziehsitzung offscreen als rotes
-/// Verbotszeichen (wie `.onDrop`, siehe `BentoDropTarget`). Das echte
-/// Fenster laesst Ziehen immer an.
+/// Attaches `.onDrag` only outside of screenshots: `ImageRenderer` draws
+/// the AppKit-backed drag session offscreen as a red no-entry sign (like
+/// `.onDrop`, see `BentoDropTarget`). The real window always leaves
+/// dragging on.
 private struct GalleryDragModifier: ViewModifier {
     let payload: String
     let active: Bool

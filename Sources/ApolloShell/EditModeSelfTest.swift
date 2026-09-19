@@ -3,14 +3,14 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Unsichtbarer Selbsttest des globalen Bearbeitungsmodus:
-/// `ApolloShell --selftest-edit <Datei>` baut Dashboard, Kontrollzentrum und
-/// die Fenster des Modus mit einer Einstellung nur im Speicher, spielt Beginnen,
-/// Galerie, Hinzufuegen, Fertig, schnellen Neustart und Abbrechen durch und
-/// schreibt, was stimmt und was nicht, in die Datei. Alle Panels bleiben
-/// durchsichtig und klickdurchlaessig (`ShellPanel`), Esc und Maus-
-/// Ueberwachung bleiben aus - so laeuft er neben der echten ApolloShell,
-/// ohne den Bildschirm anzufassen. Nur in Debug-Bauten.
+/// Invisible self-test of global edit mode:
+/// `ApolloShell --selftest-edit <file>` builds the Dashboard, Control Center
+/// and the windows of edit mode with an in-memory-only settings instance,
+/// runs through Begin, Gallery, Add, Done, quick restart and Cancel, and
+/// writes what passed and what failed to the file. All panels stay
+/// transparent and click-through (`ShellPanel`), Esc and mouse monitoring
+/// stay off - so it runs alongside the real ApolloShell without touching
+/// the screen. Debug builds only.
 @MainActor
 enum EditModeSelfTest {
     static var invisible = false
@@ -61,14 +61,14 @@ private final class EditModeSelfTestHarness {
     func run() {
         Task { @MainActor in
             await scenario()
-            lines.append(failures == 0 ? "ALLES OK" : "\(failures) FEHLER")
+            lines.append(failures == 0 ? "ALL OK" : "\(failures) FAILURES")
             try? lines.joined(separator: "\n").write(to: output, atomically: true, encoding: .utf8)
             exit(failures == 0 ? 0 : 1)
         }
     }
 
     private func check(_ ok: Bool, _ what: String) {
-        lines.append((ok ? "ok     " : "FEHLER ") + what)
+        lines.append((ok ? "ok     " : "FAILED ") + what)
         if !ok { failures += 1 }
     }
 
@@ -83,10 +83,11 @@ private final class EditModeSelfTestHarness {
         return "(\(Int(rect.minX)),\(Int(rect.minY)) \(Int(rect.width))x\(Int(rect.height)))"
     }
 
-    /// Messaufbau fuer Gesten unter `scaleEffect`: dieselbe Struktur wie das
-    /// Dashboard (`ScaledToFit` + `scaleEffect` um oben links, benannter
-    /// Bezugsraum innen), Massstab 2, ein Feld an bekannter Stelle. Ein Zug
-    /// ueber 200 Fensterpunkte muss im Bezugsraum 100 ergeben.
+    /// Measurement setup for gestures under `scaleEffect`: same structure as
+    /// the Dashboard (`ScaledToFit` + `scaleEffect` around the top left, a
+    /// named coordinate space inside), scale 2, a field at a known
+    /// location. A drag over 200 window points must yield 100 in the
+    /// coordinate space.
     private func probeScaledDrag() async {
         var translation: CGSize?
         var location: CGPoint?
@@ -110,7 +111,7 @@ private final class EditModeSelfTestHarness {
         panel.setFrameOrigin(NSPoint(x: 100, y: 100))
         panel.orderFrontRegardless()
         await wait(0.2)
-        note("Messaufbau: Fenster \(r(panel.frame)), Host \(r(hosting.frame))")
+        note("Measurement setup: window \(r(panel.frame)), host \(r(hosting.frame))")
         func send(_ type: NSEvent.EventType, _ p: CGPoint) {
             let loc = hosting.convert(NSPoint(x: p.x, y: p.y), to: nil)
             if let e = NSEvent.mouseEvent(with: type, location: loc, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
@@ -122,13 +123,13 @@ private final class EditModeSelfTestHarness {
         for step in 1...8 { send(.leftMouseDragged, CGPoint(x: 90 + 25 * CGFloat(step), y: 90)) }
         send(.leftMouseUp, CGPoint(x: 290, y: 90))
         await wait(0.2)
-        note("Messaufbau: Zug 200 Fensterpunkte → Uebersetzung \(translation.map { "\($0.width)" } ?? "keine Geste"), Start \(location.map { "\($0)" } ?? "-")")
+        note("Measurement setup: drag of 200 window points -> translation \(translation.map { "\($0.width)" } ?? "no gesture"), start \(location.map { "\($0)" } ?? "-")")
         check(translation.map { abs($0.width - 100) < 1 } ?? false,
-              "Gesten unter scaleEffect rechnen im unskalierten Bezugsraum (erwartet 100)")
+              "Gestures under scaleEffect compute in the unscaled coordinate space (expected 100)")
         panel.orderOut(nil)
     }
 
-    /// Griff, Antippen (Popover am Widget), Minus - bei echtem Massstab.
+    /// Handle, tap (popover on the widget), minus - at real scale.
     private func widgetHandles(_ id: WidgetInstance.ID) async {
         guard let page = dashboardEditor.debugPageRectInHost,
               let frame = dashboardEditor.page?.widgets.first(where: { $0.id == id })?.frame else { return }
@@ -136,63 +137,63 @@ private final class EditModeSelfTestHarness {
         func host(_ x: Double, _ y: Double) -> CGPoint {
             CGPoint(x: page.minX + x * scale, y: page.minY + y * scale)
         }
-        // Griff unten rechts (Mitte 17 Punkte vor der Ecke) um 100 x 120 ziehen:
-        // Hoehe springt auf 250, Breite 110 + 100 = 210.
+        // Drag the bottom-right handle (center 17 points before the corner)
+        // by 100 x 120: height jumps to 250, width 110 + 100 = 210.
         let handle = host(frame.maxX - 17, frame.maxY - 17)
         dashboard.debugDrag(from: handle, to: CGPoint(x: handle.x + 100 * scale, y: handle.y + 120 * scale))
         await wait(0.4)
         let resized = dashboardEditor.page?.widgets.first(where: { $0.id == id })?.frame
         check(resized.map { $0.width == frame.width + 100 && $0.height == 250 && $0.x == frame.x } ?? false,
-              "Griff aendert die Groesse (vorher \(Int(frame.width))x\(Int(frame.height)), nachher \(resized.map { "\(Int($0.width))x\(Int($0.height))" } ?? "-"))")
+              "Handle changes the size (before \(Int(frame.width))x\(Int(frame.height)), after \(resized.map { "\(Int($0.width))x\(Int($0.height))" } ?? "-"))")
         guard let current = resized else { return }
 
-        // Antippen: Popover mit den Optionen, und zwar neben diesem Widget.
+        // Tap: popover with the options, positioned next to this widget.
         dashboardEditor.optionsWidgetID = nil
         dashboard.debugClick(at: host(current.x + current.width / 2, current.y + current.height / 2))
         await wait(0.6)
-        check(dashboardEditor.optionsWidgetID == id, "Antippen oeffnet die Optionen")
+        check(dashboardEditor.optionsWidgetID == id, "Tapping opens the options")
         let popover = NSApp.windows.first { $0.isVisible && String(describing: type(of: $0)).contains("Popover") }
         let widgetOnScreen = dashboard.debugScreenRect(ofHostRect: CGRect(x: page.minX + current.x * scale, y: page.minY + current.y * scale,
                                                                              width: current.width * scale, height: current.height * scale))
-        note("Popover \(r(popover?.frame)), Widget auf dem Bildschirm \(r(widgetOnScreen))")
+        note("Popover \(r(popover?.frame)), widget on screen \(r(widgetOnScreen))")
         if let popover, let widgetOnScreen {
             let besideRight = abs(popover.frame.minX - widgetOnScreen.maxX) < 40
             let verticallyNear = popover.frame.minY < widgetOnScreen.maxY && popover.frame.maxY > widgetOnScreen.minY
-            check(besideRight && verticallyNear, "Popover steht rechts neben dem Widget")
+            check(besideRight && verticallyNear, "Popover sits to the right of the widget")
             check(popover.level.rawValue > windows.debugLevels.scrim,
-                  "Popover liegt ueber dem Schleier (Ebene \(popover.level.rawValue), Schleier \(windows.debugLevels.scrim))")
+                  "Popover is above the scrim (level \(popover.level.rawValue), scrim \(windows.debugLevels.scrim))")
         } else {
-            check(false, "Popover erscheint")
+            check(false, "Popover appears")
         }
         dashboardEditor.optionsWidgetID = nil
         await wait(0.4)
 
-        // Minus oben links (Mitte genau auf der Ecke).
+        // Minus at the top left (center exactly on the corner).
         dashboard.debugClick(at: host(current.x, current.y))
         await wait(0.5)
-        check(!(dashboardEditor.page?.widgets.contains { $0.id == id } ?? true), "Minus entfernt das Widget")
+        check(!(dashboardEditor.page?.widgets.contains { $0.id == id } ?? true), "Minus removes the widget")
     }
 
-    /// Seiten in der Leiste: leerer Name faellt auf „Seite“ zurueck,
-    /// Loeschen ohne Rueckfrage, letzte Seite nie.
+    /// Pages in the sidebar: an empty name falls back to "Page", deleting
+    /// happens without confirmation, never the last page.
     private func pageBar(on screen: NSScreen) async {
         editor.begin(screen: screen)
         await wait(0.5)
-        guard let id = dashboardEditor.addPage() else { check(false, "Seite anlegen"); return }
+        guard let id = dashboardEditor.addPage() else { check(false, "Create page"); return }
         dashboardEditor.renamingPageID = id
         dashboardEditor.renamePage(id, to: "   ")
         dashboardEditor.renamingPageID = nil
-        check(dashboardEditor.session?.pages.page(id: id)?.name == String(localized: "Seite"),
-              "Leerer Name beim Umbenennen wird „Seite“")
+        check(dashboardEditor.session?.pages.page(id: id)?.name == String(localized: "Page"),
+              "An empty name when renaming becomes \u{201c}Page\u{201d}")
         let count = dashboardEditor.session?.pages.pages.count ?? 0
         check(dashboardEditor.removePage(id) && dashboardEditor.session?.pages.pages.count == count - 1,
-              "Seite loeschen geht ohne Rueckfrage")
+              "Deleting a page needs no confirmation")
         for page in dashboardEditor.session?.pages.pages.dropFirst() ?? [] { _ = dashboardEditor.removePage(page.id) }
         let last = dashboardEditor.session?.pages.pages.first?.id
-        check(last.map { !dashboardEditor.removePage($0) } ?? false, "Die letzte Seite laesst sich nicht loeschen")
+        check(last.map { !dashboardEditor.removePage($0) } ?? false, "The last page cannot be deleted")
         dashboardEditor.restoreDefaults()
         check(Set(dashboardEditor.session?.pages.pages.compactMap(\.template) ?? []).count == PageTemplate.allCases.count,
-              "Standardseiten wiederherstellen bringt alle vier zurueck")
+              "Restoring defaults brings back all four")
         editor.cancel()
         await wait(0.6)
         dashboard.debugClose()
@@ -200,8 +201,8 @@ private final class EditModeSelfTestHarness {
         await wait(0.5)
     }
 
-    /// Esc von innen nach aussen: Auswahl, Umbenennen, Galerie, Rueckfrage,
-    /// erst dann Abbrechen.
+    /// Esc from the inside out: selection, renaming, gallery, confirmation,
+    /// only then Cancel.
     private func escapeOrder(on screen: NSScreen) async {
         editor.begin(screen: screen)
         await wait(0.5)
@@ -211,55 +212,55 @@ private final class EditModeSelfTestHarness {
         editor.galleryVisible = true
         editor.debugEscape()
         check(dashboardEditor.selectedWidgetID == nil && dashboardEditor.optionsWidgetID == nil && editor.galleryVisible,
-              "Esc 1: nur Auswahl und Optionen zu, Galerie bleibt")
+              "Esc 1: only selection and options close, gallery stays")
         dashboardEditor.renamingPageID = page?.id
         editor.debugEscape()
-        check(dashboardEditor.renamingPageID == nil && editor.galleryVisible, "Esc 2: Umbenennen zu, Galerie bleibt")
+        check(dashboardEditor.renamingPageID == nil && editor.galleryVisible, "Esc 2: renaming closes, gallery stays")
         editor.debugEscape()
-        check(!editor.galleryVisible && editor.isEditing, "Esc 3: Galerie zu, Modus bleibt")
+        check(!editor.galleryVisible && editor.isEditing, "Esc 3: gallery closes, mode stays")
         dashboardEditor.addPage()
         let plainToolbar = windows.debugToolbarFrame
         editor.debugEscape()
-        check(editor.pendingCancelConfirmation && editor.isEditing, "Esc 4 mit Aenderungen: Rueckfrage statt Abbruch")
+        check(editor.pendingCancelConfirmation && editor.isEditing, "Esc 4 with changes: confirmation instead of cancel")
         await wait(0.4)
         let confirmToolbar = windows.debugToolbarFrame
-        note("Werkzeugleiste normal \(r(plainToolbar)), mit Rueckfrage \(r(confirmToolbar))")
+        note("Toolbar normal \(r(plainToolbar)), with confirmation \(r(confirmToolbar))")
         check(confirmToolbar != nil && confirmToolbar?.size != plainToolbar?.size && (confirmToolbar.map(screen.frame.contains) ?? false),
-              "Rueckfrage: Werkzeugleiste passt ihre Groesse an und bleibt auf dem Bildschirm")
+              "Confirmation: toolbar adjusts its size and stays on screen")
         editor.debugEscape()
-        check(!editor.pendingCancelConfirmation && editor.isEditing, "Esc 5: Rueckfrage zu, weiter bearbeiten")
+        check(!editor.pendingCancelConfirmation && editor.isEditing, "Esc 5: confirmation closes, keep editing")
         await wait(0.4)
-        check(windows.debugToolbarFrame?.width == plainToolbar?.width, "Werkzeugleiste schrumpft danach wieder")
+        check(windows.debugToolbarFrame?.width == plainToolbar?.width, "Toolbar shrinks back afterward")
         editor.debugEscape()
         await wait(0.4)
-        // „Verwerfen“ ist der rechte Knopf der Rueckfrage.
+        // "Discard" is the right button of the confirmation.
         if let toolbar = windows.debugToolbarFrame, editor.pendingCancelConfirmation {
             windows.debugClickToolbar(fromTopLeft: NSPoint(x: toolbar.width - 18 - 35, y: toolbar.height / 2))
             await wait(0.3)
         }
-        check(!editor.isEditing, "Klick auf Verwerfen beendet den Modus")
+        check(!editor.isEditing, "Clicking Discard ends the mode")
         if editor.isEditing { editor.confirmCancel() }
         await wait(0.8)
         editor.begin(screen: screen)
         await wait(0.3)
         editor.debugEscape()
-        check(!editor.isEditing, "Esc ohne Aenderungen bricht sofort ab")
+        check(!editor.isEditing, "Esc without changes cancels immediately")
         await wait(0.8)
         dashboard.debugClose()
         utilities.debugClose()
         await wait(0.5)
     }
 
-    /// Kontrollzentrum: WLAN antippen (waehlt, kein Popover), Minus an WLAN
-    /// und an einer Karte, danach Link-Knopf antippen (Optionen). Rahmen
-    /// immer frisch: waechst das Panel (neue Reihe), veralten gemeldete
-    /// Fensterkoordinaten.
+    /// Control Center: tapping Wi-Fi (selects, no popover), minus on Wi-Fi
+    /// and on a card, then tapping the link button (options). Always fresh
+    /// frames: if the panel grows (new row), reported window coordinates
+    /// go stale.
     private func controlCentre(on screen: NSScreen) async {
         editor.begin(screen: screen)
         await wait(0.8)
         guard let wifi = editor.utilities?.layout.toggles.first(where: { $0.kind == .wifi }),
               let wifiRect = editor.debugUtilitiesRects[wifi.id] else {
-            check(false, "WLAN-Kachel im Kontrollzentrum gefunden")
+            check(false, "Found the Wi-Fi tile in Control Center")
             editor.cancel()
             return
         }
@@ -267,27 +268,27 @@ private final class EditModeSelfTestHarness {
         utilities.debugClick(fromTop: CGPoint(x: wifiRect.midX, y: wifiRect.midY))
         await wait(0.6)
         let wifiPopover = NSApp.windows.first { $0.isVisible && String(describing: type(of: $0)).contains("Popover") }
-        check(editor.selectedToggleID == wifi.id && wifiPopover == nil, "WLAN antippen waehlt, ohne leeres Popover")
+        check(editor.selectedToggleID == wifi.id && wifiPopover == nil, "Tapping Wi-Fi selects it, without an empty popover")
         editor.selectedToggleID = nil
         await wait(0.3)
-        // Minus eines Knopfs: Mitte 1 Punkt rechts, 3 unter der Ecke oben links.
+        // Minus on a button: center 1 point right, 3 below the top-left corner.
         utilities.debugClick(fromTop: CGPoint(x: wifiRect.minX + 1, y: wifiRect.minY + 3))
         await wait(0.5)
-        check(!(editor.utilities?.layout.toggles.contains { $0.id == wifi.id } ?? true), "Minus entfernt den WLAN-Knopf")
+        check(!(editor.utilities?.layout.toggles.contains { $0.id == wifi.id } ?? true), "Minus removes the Wi-Fi button")
         await wait(0.3)
         if let card = editor.debugUtilitiesRects["card:keepAwake"] {
             utilities.debugClick(fromTop: CGPoint(x: card.minX + 2, y: card.minY + 2))
             await wait(0.5)
-            check(editor.utilities?.layout.isEnabled(.keepAwake) == false, "Minus blendet die Karte „Wach halten“ aus")
+            check(editor.utilities?.layout.isEnabled(.keepAwake) == false, "Minus hides the \u{201c}Keep Awake\u{201d} card")
         } else {
-            check(false, "Karte „Wach halten“ gefunden")
+            check(false, "Found the \u{201c}Keep Awake\u{201d} card")
         }
         editor.cancel()
         await wait(0.8)
 
         editor.begin(screen: screen)
         await wait(0.6)
-        guard let link = editor.addToggle(.openLink) else { check(false, "Link-Knopf einfuegen"); return }
+        guard let link = editor.addToggle(.openLink) else { check(false, "Insert link button"); return }
         editor.selectedToggleID = nil
         await wait(0.8)
         utilities.debugRelayout()
@@ -296,15 +297,15 @@ private final class EditModeSelfTestHarness {
             utilities.debugClick(fromTop: CGPoint(x: linkRect.midX, y: linkRect.midY))
             await wait(0.6)
             let popover = NSApp.windows.first { $0.isVisible && String(describing: type(of: $0)).contains("Popover") }
-            note("Link: Rahmen \(r(linkRect)), Fensterhoehe \(Int(utilities.debugWindowHeight)), gewaehlt \(String(describing: editor.selectedToggleID)), Popover \(r(popover?.frame))")
-            note("alle Kacheln: " + (editor.utilities?.layout.toggles.map { "\($0.id)=\(r(editor.debugUtilitiesRects[$0.id]))" }.joined(separator: " ") ?? ""))
-            check(editor.selectedToggleID == link && popover != nil, "Link-Knopf antippen zeigt seine Optionen")
+            note("Link: frame \(r(linkRect)), window height \(Int(utilities.debugWindowHeight)), selected \(String(describing: editor.selectedToggleID)), popover \(r(popover?.frame))")
+            note("all tiles: " + (editor.utilities?.layout.toggles.map { "\($0.id)=\(r(editor.debugUtilitiesRects[$0.id]))" }.joined(separator: " ") ?? ""))
+            check(editor.selectedToggleID == link && popover != nil, "Tapping the link button shows its options")
             if let popover {
                 check(popover.level.rawValue > windows.debugLevels.scrim,
-                      "Popover im Kontrollzentrum liegt ueber dem Schleier (Ebene \(popover.level.rawValue))")
+                      "Popover in Control Center is above the scrim (level \(popover.level.rawValue))")
             }
         } else {
-            check(false, "Link-Kachel gefunden")
+            check(false, "Found the link tile")
         }
         editor.cancel()
         await wait(0.8)
@@ -313,40 +314,40 @@ private final class EditModeSelfTestHarness {
         await wait(0.5)
     }
 
-    /// Normaler Betrieb ohne Bearbeiten: Knoepfe der Leiste oeffnen die
-    /// passende Seite, zweiter Klick schliesst, Leistung misst nur auf der
-    /// Leistungs-Seite.
+    /// Normal operation without editing: bar buttons open the matching
+    /// page, a second click closes it, performance is only measured on the
+    /// performance page.
     private func normalUse() async {
-        guard let pages = store.settings.dashboardPages else { check(false, "Seiten da"); return }
+        guard let pages = store.settings.dashboardPages else { check(false, "Pages present"); return }
         for (tab, template) in [(DashboardTab.media, PageTemplate.media), (.performance, .performance), (.weather, .weather), (.dashboard, .overview)] {
             dashboard.show(tab: tab)
             await wait(0.5)
             let expected = pages.pages.first { $0.template == template }?.id
-            check(dashboard.debugIsOpen && dashboard.debugShownPage == expected, "Leistenknopf \(tab.rawValue) oeffnet seine Seite")
-            check(dashboard.debugShowsPerformance == (template == .performance), "Leistungsmessung nur auf der Leistungs-Seite (\(tab.rawValue))")
+            check(dashboard.debugIsOpen && dashboard.debugShownPage == expected, "Bar button \(tab.rawValue) opens its page")
+            check(dashboard.debugShowsPerformance == (template == .performance), "Performance measurement only on the performance page (\(tab.rawValue))")
             dashboard.show(tab: tab)
             await wait(0.5)
-            check(!dashboard.debugIsOpen, "Zweiter Klick auf \(tab.rawValue) schliesst")
+            check(!dashboard.debugIsOpen, "Second click on \(tab.rawValue) closes it")
         }
         dashboard.toggle()
         await wait(0.5)
-        check(dashboard.debugIsOpen, "Dashboard-Kuerzel oeffnet")
+        check(dashboard.debugIsOpen, "Dashboard shortcut opens")
         dashboard.toggle()
         await wait(0.5)
-        check(!dashboard.debugIsOpen, "Dashboard-Kuerzel schliesst")
+        check(!dashboard.debugIsOpen, "Dashboard shortcut closes")
     }
 
     private func scenario() async {
         await normalUse()
         await probeScaledDrag()
         for screen in NSScreen.screens {
-            note("Bildschirm \(r(screen.frame)), sichtbar \(r(screen.visibleFrame))")
+            note("Screen \(r(screen.frame)), visible \(r(screen.visibleFrame))")
         }
         for screen in NSScreen.screens {
             await pass(on: screen)
         }
-        // Groessenregler der Werkzeugleiste: Dashboard folgt live, Abbrechen
-        // setzt zurueck, Fertig speichert.
+        // Toolbar size slider: the Dashboard follows live, Cancel resets it,
+        // Done saves it.
         if let screen = NSScreen.screens.first {
             editor.begin(screen: screen)
             await wait(0.8)
@@ -354,12 +355,12 @@ private final class EditModeSelfTestHarness {
             dashboardEditor.scale = 0.8
             await wait(0.4)
             let smaller = dashboard.openFrame
-            check((smaller?.width ?? 0) < (before?.width ?? 0), "Regler 80 %: Dashboard wird sofort kleiner (\(r(before)) -> \(r(smaller)))")
-            if let gallery = windows.debugGalleryFrame ?? nil, let smaller { check(!gallery.intersects(smaller), "Galerie rutscht mit") }
-            check(editor.hasChanges, "Regler zaehlt als Aenderung")
+            check((smaller?.width ?? 0) < (before?.width ?? 0), "Slider 80%: Dashboard shrinks immediately (\(r(before)) -> \(r(smaller)))")
+            if let gallery = windows.debugGalleryFrame ?? nil, let smaller { check(!gallery.intersects(smaller), "Gallery follows along") }
+            check(editor.hasChanges, "Slider counts as a change")
             editor.cancel()
             await wait(0.6)
-            check(store.settings.dashboardScale == 1, "Abbrechen verwirft die Groesse")
+            check(store.settings.dashboardScale == 1, "Cancel discards the size")
             dashboard.debugClose(); utilities.debugClose()
             await wait(0.5)
             editor.begin(screen: screen)
@@ -367,12 +368,12 @@ private final class EditModeSelfTestHarness {
             dashboardEditor.scale = 1.2
             editor.done()
             await wait(0.4)
-            check(store.settings.dashboardScale == 1.2, "Fertig speichert die Groesse")
+            check(store.settings.dashboardScale == 1.2, "Done saves the size")
             store.settings.dashboardScale = 1
             dashboard.debugClose(); utilities.debugClose()
             await wait(0.5)
         }
-        // Stress: zehnmal schnell beginnen und beenden, wechselnde Abstaende.
+        // Stress: begin and end ten times quickly in a row, with varying delays.
         if let screen = NSScreen.screens.first {
             for round in 0..<10 {
                 editor.begin(screen: screen)
@@ -382,27 +383,27 @@ private final class EditModeSelfTestHarness {
             }
             await wait(0.9)
             check(!editor.isEditing && windows.debugVisibleScrims == 0 && windows.debugToolbarFrame == nil
-                  && windows.debugGalleryFrame == nil, "Stress: nach zehn schnellen Runden nichts haengengeblieben")
+                  && windows.debugGalleryFrame == nil, "Stress: nothing left stuck after ten quick rounds")
             dashboard.debugClose()
             utilities.debugClose()
             await wait(0.6)
-            // Dashboard schon offen, dann bearbeiten: bleibt offen, angepinnt;
-            // nach dem Ende wieder normal.
+            // Dashboard already open, then editing: stays open, pinned;
+            // back to normal once done.
             dashboard.toggle()
             await wait(0.5)
             editor.begin(screen: screen)
             await wait(0.6)
-            check(dashboard.debugIsOpen && windows.debugToolbarFrame != nil, "Bearbeiten bei schon offenem Dashboard")
+            check(dashboard.debugIsOpen && windows.debugToolbarFrame != nil, "Editing while the Dashboard is already open")
             dashboard.toggle()
             await wait(0.4)
-            check(dashboard.debugIsOpen, "Angepinnt: Dashboard-Kuerzel schliesst waehrend des Bearbeitens nicht")
+            check(dashboard.debugIsOpen, "Pinned: Dashboard shortcut does not close during editing")
             editor.cancel()
             await wait(0.6)
             dashboard.debugClose()
             utilities.debugClose()
             await wait(0.5)
         }
-        // Grenzfall: Regler auf 150 % - das Dashboard fuellt fast die Hoehe.
+        // Edge case: slider at 150% - the Dashboard nearly fills the height.
         if let screen = NSScreen.screens.first {
             store.settings.dashboardScale = 1.5
             editor.begin(screen: screen)
@@ -412,10 +413,10 @@ private final class EditModeSelfTestHarness {
             let dashboardFrame = dashboard.openFrame
             let gallery = windows.debugGalleryFrame
             let toolbar = windows.debugToolbarFrame
-            note("150 %: Dashboard \(r(dashboardFrame)), Galerie \(r(gallery)), Leiste \(r(toolbar))")
-            check(gallery.map(screen.frame.contains) ?? false, "150 %: Galerie bleibt ganz auf dem Bildschirm")
-            check(toolbar.map(screen.frame.contains) ?? false, "150 %: Werkzeugleiste bleibt ganz auf dem Bildschirm")
-            if let gallery, let toolbar { check(!gallery.intersects(toolbar), "150 %: Galerie frei von der Werkzeugleiste") }
+            note("150%: Dashboard \(r(dashboardFrame)), gallery \(r(gallery)), toolbar \(r(toolbar))")
+            check(gallery.map(screen.frame.contains) ?? false, "150%: gallery stays entirely on screen")
+            check(toolbar.map(screen.frame.contains) ?? false, "150%: toolbar stays entirely on screen")
+            if let gallery, let toolbar { check(!gallery.intersects(toolbar), "150%: gallery clear of the toolbar") }
             editor.cancel()
             await wait(0.8)
             dashboard.debugClose()
@@ -430,92 +431,92 @@ private final class EditModeSelfTestHarness {
         }
     }
 
-    /// Ein ganzer Durchgang auf einem Bildschirm.
+    /// One full pass on one screen.
     private func pass(on screen: NSScreen) async {
-        note("--- Durchgang auf \(r(screen.frame))")
+        note("--- Pass on \(r(screen.frame))")
         let before = store.settings
         editor.begin(screen: screen)
         await wait(0.9)
-        check(editor.isEditing, "Modus laeuft nach Beginnen")
+        check(editor.isEditing, "Mode running after Begin")
         let dashboardFrame = dashboard.openFrame
         let utilitiesFrame = utilities.openFrame
-        check(dashboardFrame.map(screen.frame.intersects) ?? false, "Dashboard offen auf diesem Bildschirm \(r(dashboardFrame))")
-        check(utilitiesFrame.map(screen.frame.intersects) ?? false, "Kontrollzentrum offen auf diesem Bildschirm \(r(utilitiesFrame))")
+        check(dashboardFrame.map(screen.frame.intersects) ?? false, "Dashboard open on this screen \(r(dashboardFrame))")
+        check(utilitiesFrame.map(screen.frame.intersects) ?? false, "Control Center open on this screen \(r(utilitiesFrame))")
         check(windows.debugVisibleScrims == NSScreen.screens.count,
-              "Schleier auf allen \(NSScreen.screens.count) Bildschirmen (\(windows.debugVisibleScrims))")
+              "Scrim on all \(NSScreen.screens.count) screens (\(windows.debugVisibleScrims))")
         let toolbar = windows.debugToolbarFrame
-        check(toolbar.map(screen.frame.contains) ?? false, "Werkzeugleiste ganz auf dem Bildschirm \(r(toolbar))")
+        check(toolbar.map(screen.frame.contains) ?? false, "Toolbar entirely on screen \(r(toolbar))")
         if let toolbar, let utilitiesFrame {
-            check(!toolbar.intersects(utilitiesFrame), "Werkzeugleiste frei vom Kontrollzentrum")
+            check(!toolbar.intersects(utilitiesFrame), "Toolbar clear of Control Center")
         }
         if let toolbar, let dashboardFrame {
-            check(!toolbar.intersects(dashboardFrame), "Werkzeugleiste frei vom Dashboard")
+            check(!toolbar.intersects(dashboardFrame), "Toolbar clear of the Dashboard")
         }
-        // Passt der Inhalt des Kontrollzentrums im Bearbeiten ins Panel?
+        // Does the Control Center's content fit the panel while editing?
         if let layout = editor.utilities?.layout {
             let content = NSHostingView(rootView: EditableUtilitiesView(editor: editor, layout: layout).shellTheme(nil))
             let needed = content.fittingSize.height
             check(needed <= utilities.height + 1,
-                  "Kontrollzentrum im Bearbeiten passt ins Panel (Inhalt \(Int(needed)), Panel \(Int(utilities.height)))")
+                  "Control Center while editing fits the panel (content \(Int(needed)), panel \(Int(utilities.height)))")
         }
         let levels = windows.debugLevels
         let drawerLevels = [dashboard.debugLevel, utilities.debugLevel].compactMap { $0 }
         check(drawerLevels.allSatisfy { $0 > levels.scrim && $0 < levels.controls },
-              "Ebenen: Schleier \(levels.scrim) < Kantenfenster \(drawerLevels) < Leiste/Galerie \(levels.controls)")
-        check(levels.scrim > NSWindow.Level.mainMenu.rawValue, "Schleier ueber Menueleiste und Dock")
+              "Levels: scrim \(levels.scrim) < edge windows \(drawerLevels) < toolbar/gallery \(levels.controls)")
+        check(levels.scrim > NSWindow.Level.mainMenu.rawValue, "Scrim above menu bar and Dock")
         check(windows.debugPanelLevels.allSatisfy { $0 == levels.scrim || $0 == levels.controls },
-              "Panels stehen wirklich auf ihrer Ebene \(windows.debugPanelLevels)")
+              "Panels really sit on their level \(windows.debugPanelLevels)")
 
-        // Klick auf „+“ der Werkzeugleiste (18 Rand + halbe Knopfbreite 17,
-        // halbe Hoehe) - kommt er an, geht die Galerie auf.
+        // Click on the toolbar's "+" (18 margin + half the button width 17,
+        // half the height) - does it register, does the gallery open.
         if let toolbar = windows.debugToolbarFrame {
-            // Rand des Kreises (12 Punkte neben der Mitte), nicht das Pluszeichen.
+            // Edge of the circle (12 points off center), not the plus sign.
             windows.debugClickToolbar(fromTopLeft: NSPoint(x: 35 - 12, y: toolbar.height / 2 + 5))
             await wait(0.2)
-            check(editor.galleryVisible, "Klick auf den Rand des +-Kreises kommt an")
+            check(editor.galleryVisible, "A click on the edge of the +-circle registers")
         }
         editor.galleryVisible = true
         await wait(0.9)
         let gallery = windows.debugGalleryFrame
-        check(gallery.map(screen.frame.contains) ?? false, "Galerie ganz auf dem Bildschirm \(r(gallery))")
-        if let gallery, let dashboardFrame { check(!gallery.intersects(dashboardFrame), "Galerie frei vom Dashboard") }
-        if let gallery, let utilitiesFrame { check(!gallery.intersects(utilitiesFrame), "Galerie frei vom Kontrollzentrum") }
-        if let gallery, let toolbar = windows.debugToolbarFrame { check(!gallery.intersects(toolbar), "Galerie frei von der Werkzeugleiste") }
+        check(gallery.map(screen.frame.contains) ?? false, "Gallery entirely on screen \(r(gallery))")
+        if let gallery, let dashboardFrame { check(!gallery.intersects(dashboardFrame), "Gallery clear of the Dashboard") }
+        if let gallery, let utilitiesFrame { check(!gallery.intersects(utilitiesFrame), "Gallery clear of Control Center") }
+        if let gallery, let toolbar = windows.debugToolbarFrame { check(!gallery.intersects(toolbar), "Gallery clear of the toolbar") }
 
-        // Volle Seite (Uebersicht): Klick auf Uhr in der Galerie -> Hinweis,
-        // Galerie waechst, bleibt aber frei vom Dashboard.
+        // Full page (Overview): clicking the clock in the gallery -> notice,
+        // gallery grows but stays clear of the Dashboard.
         if let gallery = windows.debugGalleryFrame, dashboardEditor.page?.template == .overview {
             let column = (gallery.width - 32 - 7 * 10) / 8
             let before = dashboardEditor.page?.widgets.count ?? 0
             windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + column * 2.5 + 20, y: 16 + 36 + 12 + 20 + 12 + 30))
             await wait(0.4)
             check(editor.galleryNotice != nil && dashboardEditor.page?.widgets.count == before,
-                  "Volle Seite: Galerie-Klick zeigt „Kein Platz“ statt einzufuegen")
+                  "Full page: gallery click shows \u{201c}No Room\u{201d} instead of inserting")
             if let grown = windows.debugGalleryFrame, let dashboardFrame {
-                check(!grown.intersects(dashboardFrame), "Galerie mit Hinweis bleibt frei vom Dashboard \(r(grown))")
+                check(!grown.intersects(dashboardFrame), "Gallery with notice stays clear of the Dashboard \(r(grown))")
             }
         }
-        // Reiter per Klick: rechte Haelfte der Reiterzeile (16 Rand, 36 hoch).
+        // Tab via click: right half of the tab row (16 margin, 36 high).
         if let gallery = windows.debugGalleryFrame {
-            // Weit aussen im Reiter, nicht auf dem Text: die ganze Kapsel zaehlt.
+            // Far outside on the tab, not on the text: the whole capsule counts.
             windows.debugClickGallery(fromTopLeft: NSPoint(x: gallery.width - 16 - 20, y: 16 + 18))
             await wait(0.4)
-            check(editor.galleryTab == .controlCentre, "Klick aussen in den Reiter „Kontrollzentrum“ (nicht auf den Text) wechselt")
-            // Haken „Alle zeigen (erweitert)“ darunter, am linken Rand.
+            check(editor.galleryTab == .controlCentre, "Clicking outside on the \u{201c}Control Center\u{201d} tab (not on the text) switches")
+            // "Show All (Advanced)" checkbox below that, at the left edge.
             let before = editor.showsAllInGallery
             windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + 60, y: 16 + 36 + 12 + 10))
             await wait(0.3)
-            check(editor.showsAllInGallery != before, "Klick auf „Alle zeigen“ schaltet um")
+            check(editor.showsAllInGallery != before, "Clicking \u{201c}Show All\u{201d} toggles it")
             editor.showsAllInGallery = before
         }
-        // Klick in den Schleier: Auswahl in beiden Panels weg.
+        // Click into the scrim: selection cleared in both panels.
         dashboardEditor.selectedWidgetID = dashboardEditor.page?.widgets.first?.id
         editor.selectedToggleID = editor.utilities?.layout.toggles.first?.id
         windows.debugClickScrim()
         await wait(0.3)
-        check(dashboardEditor.selectedWidgetID == nil && editor.selectedToggleID == nil, "Klick in den Schleier hebt jede Auswahl auf")
-        // Reiter Kontrollzentrum: Klick auf „Bildschirm aus“ (14. Kachel, zweite
-        // Reihe, sechste Spalte) fuegt den Knopf an.
+        check(dashboardEditor.selectedWidgetID == nil && editor.selectedToggleID == nil, "Clicking into the scrim clears every selection")
+        // Control Center tab: clicking "Display Off" (14th tile, second row,
+        // sixth column) adds the button.
         editor.galleryTab = .controlCentre
         await wait(0.4)
         if let gallery = windows.debugGalleryFrame {
@@ -525,94 +526,94 @@ private final class EditModeSelfTestHarness {
                                                            y: 16 + 36 + 12 + 20 + 12 + tileHeight + 10 + tileHeight / 2))
             await wait(0.4)
             check(editor.utilities?.layout.toggles.contains { $0.kind == .displaySleep } ?? false,
-                  "Galerie Kontrollzentrum: Klick fuegt „Bildschirm aus“ an")
-            // WLAN (4. Kachel, erste Reihe) ist schon da und grau: Klick tut nichts.
+                  "Control Center gallery: click adds \u{201c}Display Off\u{201d}")
+            // Wi-Fi (4th tile, first row) is already there and greyed out: click does nothing.
             let wifiCount = editor.utilities?.layout.toggles.filter { $0.kind == .wifi }.count ?? 0
             windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + 3 * (column + 10) + column / 2,
                                                            y: 16 + 36 + 12 + 20 + 12 + tileHeight / 2))
             await wait(0.3)
             check(editor.utilities?.layout.toggles.filter { $0.kind == .wifi }.count == wifiCount,
-                  "Graue Kachel (WLAN schon da) fuegt nichts ein")
+                  "Greyed-out tile (Wi-Fi already present) inserts nothing")
         }
         editor.galleryTab = .dashboard
         await wait(0.3)
 
-        // Aendern und Fertig.
+        // Change and Done.
         let pageCount = dashboardEditor.session?.pages.pages.count ?? 0
         let newPage = dashboardEditor.addPage()
-        // Klick auf die erste Galerie-Kachel (Wetter): 16 Rand + halbe
-        // Spalte, unter Reitern (36) und Haken (≈20) mit 12er Abstaenden.
+        // Click on the first gallery tile (Weather): 16 margin + half a
+        // column, below the tabs (36) and checkbox (~20) with 12-point gaps.
         if let gallery = windows.debugGalleryFrame {
             let column = (gallery.width - 32 - 7 * 10) / 8
             windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + column / 2, y: 16 + 36 + 12 + 20 + 12 + 30))
             await wait(0.2)
             check(dashboardEditor.page?.widgets.contains { $0.kind == .weather } ?? false,
-                  "Klick auf eine Galerie-Kachel fuegt das Widget ein")
+                  "Clicking a gallery tile inserts the widget")
         }
         let clock = dashboardEditor.addAtFirstFreeSpot(.clock)
-        check(clock != nil, "Uhr auf neuer Seite eingefuegt")
-        // Ziehen bei Massstab ≠ 1: die Uhr um 100 Referenzpunkte nach rechts.
+        check(clock != nil, "Clock inserted on the new page")
+        // Dragging at a scale other than 1: the clock 100 reference points to the right.
         await wait(0.3)
         if let clock, let before = dashboardEditor.page?.widgets.first(where: { $0.id == clock })?.frame,
            let page = dashboardEditor.debugPageRectInHost {
             let scale = dashboard.debugScale
             let start = CGPoint(x: page.minX + (before.x + before.width / 2) * scale,
                                 y: page.minY + (before.y + before.height / 2) * scale)
-            note("Seite im Host \(r(page)), Start \(Int(start.x)),\(Int(start.y)), Massstab \(scale)")
+            note("Page in host \(r(page)), start \(Int(start.x)),\(Int(start.y)), scale \(scale)")
             dashboardEditor.selectedWidgetID = nil
             dashboard.debugDrag(from: start, to: CGPoint(x: start.x + 100 * scale, y: start.y))
             await wait(0.4)
-            note("nach dem Zug gewaehlt: \(dashboardEditor.selectedWidgetID == clock ? "die Uhr" : String(describing: dashboardEditor.selectedWidgetID))")
+            note("selected after the drag: \(dashboardEditor.selectedWidgetID == clock ? "the clock" : String(describing: dashboardEditor.selectedWidgetID))")
             let after = dashboardEditor.page?.widgets.first(where: { $0.id == clock })?.frame
             check(after.map { abs($0.x - (before.x + 100)) <= 1 && $0.y == before.y } ?? false,
-                  "Ziehen bei Massstab \(String(format: "%.3f", scale)): 100 Punkte werden 100 (vorher x \(Int(before.x)), nachher \(after.map { String(Int($0.x)) } ?? "-"))")
+                  "Dragging at scale \(String(format: "%.3f", scale)): 100 points become 100 (before x \(Int(before.x)), after \(after.map { String(Int($0.x)) } ?? "-"))")
             await widgetHandles(clock)
         } else {
-            check(false, "Ziehen: Seite oder Uhr nicht gefunden")
+            check(false, "Dragging: page or clock not found")
         }
         let toggle = editor.addToggle(.openLink)
-        check(toggle != nil, "Knopf „Link öffnen“ im Kontrollzentrum eingefuegt")
-        // „Fertig“ per Klick: rechter Knopf der Werkzeugleiste.
+        check(toggle != nil, "\u{201c}Open Link\u{201d} button inserted into Control Center")
+        // "Done" via click: right button of the toolbar.
         if let toolbar = windows.debugToolbarFrame {
             windows.debugClickToolbar(fromTopLeft: NSPoint(x: toolbar.width - 18 - 25, y: toolbar.height / 2))
             await wait(0.2)
         }
         if editor.isEditing {
-            check(false, "Klick auf Fertig kommt an")
+            check(false, "Click on Done registers")
             editor.done()
         } else {
-            check(true, "Klick auf Fertig kommt an")
+            check(true, "Click on Done registers")
         }
         await wait(0.1)
-        check(!editor.isEditing, "Modus endet mit Fertig")
-        check(store.settings.dashboardPages?.pages.count == pageCount + 1, "Fertig speichert die neue Seite")
-        check(store.settings.utilities.layout.toggles.contains { $0.kind == .openLink }, "Fertig speichert den neuen Knopf")
-        check(dashboard.debugShownPage == newPage, "Nach Fertig bleibt das Dashboard auf der bearbeiteten Seite")
+        check(!editor.isEditing, "Mode ends with Done")
+        check(store.settings.dashboardPages?.pages.count == pageCount + 1, "Done saves the new page")
+        check(store.settings.utilities.layout.toggles.contains { $0.kind == .openLink }, "Done saves the new button")
+        check(dashboard.debugShownPage == newPage, "After Done the Dashboard stays on the edited page")
         await wait(0.9)
-        check(windows.debugVisibleScrims == 0, "Schleier nach Fertig weg")
-        check(windows.debugToolbarFrame == nil, "Werkzeugleiste nach Fertig weg")
-        check(windows.debugGalleryFrame == nil, "Galerie nach Fertig weg")
+        check(windows.debugVisibleScrims == 0, "Scrim gone after Done")
+        check(windows.debugToolbarFrame == nil, "Toolbar gone after Done")
+        check(windows.debugGalleryFrame == nil, "Gallery gone after Done")
 
-        // Schneller Neustart: Ende und neuer Beginn kurz hintereinander.
+        // Quick restart: end and begin again in quick succession.
         editor.begin(screen: screen)
         await wait(0.05)
         editor.cancel()
         await wait(0.05)
         editor.begin(screen: screen)
         await wait(0.9)
-        check(windows.debugVisibleScrims == NSScreen.screens.count, "Schleier nach schnellem Neustart da")
-        check(windows.debugToolbarFrame != nil, "Werkzeugleiste nach schnellem Neustart da")
-        check(dashboard.openFrame != nil && utilities.openFrame != nil, "Panels nach schnellem Neustart offen")
+        check(windows.debugVisibleScrims == NSScreen.screens.count, "Scrim present after a quick restart")
+        check(windows.debugToolbarFrame != nil, "Toolbar present after a quick restart")
+        check(dashboard.openFrame != nil && utilities.openFrame != nil, "Panels open after a quick restart")
 
-        // Abbrechen verwirft.
+        // Cancel discards.
         let saved = store.settings
         dashboardEditor.addPage()
         _ = editor.addToggle(.openApp)
         editor.cancel()
         await wait(0.9)
-        check(store.settings == saved, "Abbrechen verwirft beide Arbeitskopien")
-        check(windows.debugVisibleScrims == 0 && windows.debugToolbarFrame == nil, "Modus-Fenster nach Abbrechen weg")
-        note("Dashboard nach Ende \(r(dashboard.openFrame)), Kontrollzentrum \(r(utilities.openFrame)) (zu, ausser der Zeiger steht dort)")
+        check(store.settings == saved, "Cancel discards both working copies")
+        check(windows.debugVisibleScrims == 0 && windows.debugToolbarFrame == nil, "Mode windows gone after Cancel")
+        note("Dashboard after end \(r(dashboard.openFrame)), Control Center \(r(utilities.openFrame)) (closed, unless the pointer is still there)")
         store.settings = before
         dashboard.debugClose()
         utilities.debugClose()
@@ -620,9 +621,9 @@ private final class EditModeSelfTestHarness {
     }
 }
 
-/// Selbsttest: meldet den eigenen Rahmen in Fensterkoordinaten (AppKit,
-/// unten links) - genauer als SwiftUI-Bezugsraeume, wenn das Hosting-Fenster
-/// anders geschnitten ist als der Inhalt.
+/// Self-test: reports its own frame in window coordinates (AppKit,
+/// bottom left) - more precise than SwiftUI coordinate spaces when the
+/// hosting window is clipped differently than the content.
 struct DebugWindowRectReporter: NSViewRepresentable {
     let report: (NSRect) -> Void
 
@@ -641,9 +642,9 @@ struct DebugWindowRectReporter: NSViewRepresentable {
         var report: (NSRect) -> Void = { _ in }
         override func layout() {
             super.layout()
-            // Abstand zur Oberkante statt zur Unterkante: waechst das Fenster
-            // nach oben (Kontrollzentrum bekommt eine Reihe), bleibt der
-            // Inhalt oben stehen, ohne dass `layout()` erneut kommt.
+            // Distance from the top edge instead of the bottom: if the
+            // window grows upward (Control Center gets a new row), the
+            // content stays put at the top without `layout()` firing again.
             let rect = convert(bounds, to: nil)
             let height = window?.frame.height ?? 0
             report(NSRect(x: rect.minX, y: height - rect.maxY, width: rect.width, height: rect.height))

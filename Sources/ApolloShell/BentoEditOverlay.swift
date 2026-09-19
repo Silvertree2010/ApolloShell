@@ -2,14 +2,14 @@ import ApolloShellCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// Bearbeitungs-Oberflaeche fuer eine Bento-Seite (design/2026-09-18-bento-
-// dashboard.md, Abschnitt 5; design/2026-09-18-bento-plan-edit.md Task 3):
-// wackelnde, waehlbare Widgets mit `-`-Knopf und Groessen-Griff, und das
-// Ziel fuer Widgets, die aus Nexus gezogen werden. `BentoPageView.swift`
-// zeigt diese Bausteine nur, waehrend `editor.isEditing` gilt - die ruhige
-// Ansicht bleibt unveraendert (Bildvergleich).
+// Edit surface for a Bento page (design/2026-09-18-bento-
+// dashboard.md, section 5; design/2026-09-18-bento-plan-edit.md task 3):
+// wobbling, selectable widgets with a `-` button and a resize handle, and
+// the drop target for widgets dragged in from Nexus. `BentoPageView.swift`
+// shows these building blocks only while `editor.isEditing` holds - the
+// calm view stays unchanged (screenshot comparison).
 
-/// Nutzlast fuer das Ziehen eines Widgets aus Nexus in die Seite.
+/// Payload for dragging a widget from Nexus onto the page.
 enum BentoWidgetDragPayload {
     static let prefix = "apolloshell.widget:"
 
@@ -21,11 +21,11 @@ enum BentoWidgetDragPayload {
     }
 }
 
-/// Genaeherter Radius der eigenen Karte einer Art, fuer den Auswahlrahmen
-/// beim Bearbeiten (die Karten selbst kennt `BentoEditOverlay` nicht -
-/// `WidgetView.swift` waehlt sie nach Groesse). Wo eine Art mehrere Radien
-/// hat, der haeufigste; ohne eigene Karte 24 (Plan: "radius following the
-/// card radius (use 24 pt if the widget has none)").
+/// Approximate radius of a kind's own card, for the selection outline
+/// while editing (`BentoEditOverlay` does not know the cards themselves -
+/// `WidgetView.swift` picks them by size). Where a kind has several radii,
+/// the most common one; 24 for kinds without their own card (plan: "radius
+/// following the card radius (use 24 pt if the widget has none)").
 extension WidgetKind {
     var editSelectionRadius: CGFloat {
         switch self {
@@ -47,9 +47,9 @@ extension WidgetKind {
 }
 
 extension WidgetKind {
-    /// Ob das Optionen-Popover etwas zu zeigen hat - Leistungs-Widgets und
-    /// die Wiedergabe haben keine Optionen; ein leeres Popover waere nur im
-    /// Weg (Live-Test 19.09.).
+    /// Whether the options popover has anything to show - performance
+    /// widgets and playback have no options; an empty popover would only
+    /// be in the way (live test 09/19).
     var hasEditOptions: Bool {
         switch self {
         case .weather, .weatherHero, .weatherHourly, .weatherDaily, .user, .clock, .calendar, .resources, .media: true
@@ -59,9 +59,9 @@ extension WidgetKind {
     }
 }
 
-/// Ueberschreibt `accessibilityReduceMotion` (systemweit, nicht setzbar) fuer
-/// Bildproben (`RenderMode --render-dashboard`, Ordner `edit/`); `nil` laesst
-/// den echten Systemwert gelten.
+/// Overrides `accessibilityReduceMotion` (system-wide, not settable) for
+/// screenshots (`RenderMode --render-dashboard`, folder `edit/`); `nil`
+/// leaves the real system value in effect.
 private struct DashboardReduceMotionKey: EnvironmentKey {
     static let defaultValue: Bool? = nil
 }
@@ -73,12 +73,12 @@ extension EnvironmentValues {
     }
 }
 
-/// `true` nur in `RenderMode --render-dashboard`s `edit/`-Bildproben:
-/// `ImageRenderer` zeichnet AppKit-hinterlegte Bausteine offscreen nicht
-/// (gemessen 18.09.: `.onDrop` ergab ein rotes Verbotszeichen quer ueber der
-/// ganzen Seite statt des Ziels) - das Ablegeziel bleibt fuer die Bildprobe
-/// darum weg. Das echte Dashboard setzt diesen Schalter nie; `.onDrop`
-/// bleibt dort wie gewohnt aktiv.
+/// `true` only in `RenderMode --render-dashboard`'s `edit/` screenshots:
+/// `ImageRenderer` does not draw AppKit-backed building blocks offscreen
+/// (measured 09/18: `.onDrop` produced a red no-entry sign across the
+/// whole page instead of the target) - the drop target is therefore left
+/// out for the screenshot. The real dashboard never sets this switch;
+/// `.onDrop` stays active there as usual.
 private struct RendersForScreenshotKey: EnvironmentKey {
     static let defaultValue = false
 }
@@ -90,9 +90,9 @@ extension EnvironmentValues {
     }
 }
 
-/// Ein Widget waehrend der Bearbeitung: Inhalt abgeschaltet (keine
-/// Medien-Knoepfe, keine Kalenderpfeile), wackelt, laesst sich waehlen,
-/// ziehen, in der Groesse aendern und entfernen.
+/// A widget during editing: content disabled (no media buttons, no
+/// calendar arrows), wobbles, and can be selected, dragged, resized, and
+/// removed.
 struct EditableWidgetView: View {
     let widget: WidgetInstance
     let context: WidgetContext
@@ -108,15 +108,15 @@ struct EditableWidgetView: View {
     @State private var resizeValid = true
     @State private var isDeleting = false
     @State private var wobble: Double = 0
-    /// Optionen offen: nur nach einem Klick (nicht nach jedem Ziehen - das
-    /// oeffnete sie im Live-Test nach jeder Verschiebung), nur bei Arten mit
-    /// Optionen, nie waehrend des Ziehens oder Entfernens.
+    /// Options open: only after a click (not after every drag - that
+    /// opened them in the live test after every move), only for kinds
+    /// with options, never while dragging or removing.
     private var showsOptions: Bool {
         isSelected && editor.optionsWidgetID == widget.id && widget.kind.hasEditOptions
             && !isTransforming && !isDeleting
     }
 
-    /// Verschiedene Phasen, damit Widgets nicht im Gleichtakt wackeln.
+    /// Different phases so widgets do not wobble in lockstep.
     private var phase: Double {
         Double(abs(widget.id.hashValue) % 260) / 1000
     }
@@ -146,15 +146,15 @@ struct EditableWidgetView: View {
             .contentShape(Rectangle())
             .overlay(alignment: .topLeading) { minusBadge }
             .overlay(alignment: .bottomTrailing) { resizeHandle }
-            // Nach den Overlays: Minus und Griff wackeln mit dem Widget.
+            // After the overlays: the minus and handle wobble with the widget.
             .rotationEffect(.degrees(reduceMotion ? 0 : wobble))
             .opacity(isDeleting ? 0 : 1)
             .scaleEffect(isDeleting ? 0.6 : 1)
             .gesture(dragGesture)
-            // Ein Tipp ohne Zug: `DragGesture` erkennt Bewegungen unter
-            // `minimumDistance` gar nicht erst, waehlt also nie aus - ein
-            // eigenes `TapGesture` daneben waehlt ohne zu verschieben und
-            // oeffnet die Optionen.
+            // A tap without a drag: `DragGesture` does not even recognize
+            // movements below `minimumDistance`, so it never selects - a
+            // separate `TapGesture` alongside it selects without moving
+            // and opens the options.
             .simultaneousGesture(TapGesture().onEnded {
                 guard !isDeleting else { return }
                 editor.selectedWidgetID = widget.id
@@ -162,12 +162,12 @@ struct EditableWidgetView: View {
             })
             .onAppear { startWobble() }
             .onChange(of: reduceMotion) { _, _ in startWobble() }
-            // Optionen des gewaehlten Widgets (Task 4): dieselben Regler wie
-            // im alten Nexus-Editor (`WidgetOptionsView`), jetzt direkt neben
-            // dem Widget statt in einer eigenen Spalte. Schliesst sich von
-            // selbst, wenn die Auswahl faellt oder die Seite wechselt - beides
-            // raeumt `editor.selectedWidgetID` auf, und der Popover haengt
-            // nur an `isSelected`.
+            // Options of the selected widget (task 4): the same controls
+            // as in the old Nexus editor (`WidgetOptionsView`), now right
+            // next to the widget instead of in a separate column. Closes
+            // by itself when the selection drops or the page changes -
+            // both clear `editor.selectedWidgetID`, and the popover only
+            // depends on `isSelected`.
             .popover(isPresented: Binding(
                 get: { showsOptions },
                 set: { if !$0 { editor.optionsWidgetID = nil } }
@@ -179,25 +179,25 @@ struct EditableWidgetView: View {
                 .frame(width: 280)
                 .frame(minHeight: 120, maxHeight: 420)
             }
-            // Ueber das Layout platziert, nicht mit `.offset`: `.offset`
-            // verschiebt nur die Zeichnung, der Layout-Rahmen bleibt oben
-            // links - das Optionen-Popover zeigte dadurch immer auf die Ecke
-            // der Seite statt auf das Widget (Live-Test 19.09.). Im
-            // Bearbeiten zaehlt Pixelgleichheit nicht.
+            // Placed via layout, not with `.offset`: `.offset` only moves
+            // the drawing, the layout frame stays at the top left - the
+            // options popover therefore always pointed at the corner of
+            // the page instead of at the widget (live test 09/19). While
+            // editing, pixel-exactness does not count.
             .padding(.leading, frame.x)
             .padding(.top, frame.y)
             .zIndex(isSelected || isTransforming ? 1 : 0)
     }
 
-    /// Caelestia/Apple: leichtes, staendiges Wackeln, solange man nicht
-    /// gerade zieht. `withAnimation` mit `.repeatForever` und `phase`-Verzug,
-    /// damit nicht alle Widgets im gleichen Takt kippen.
+    /// Caelestia/Apple: a light, constant wobble as long as one is not
+    /// currently dragging. `withAnimation` with `.repeatForever` and a
+    /// `phase` delay, so not all widgets tilt in the same rhythm.
     private func startWobble() {
         guard !reduceMotion else {
             wobble = 0
             return
         }
-        // 0.6 Grad war ihm zu stark (Live-Test 19.09.): halb so viel, etwas ruhiger.
+        // 0.6 degrees was too much for him (live test 09/19): half as much, a bit calmer.
         wobble = -0.3
         withAnimation(.easeInOut(duration: 0.15).repeatForever(autoreverses: true).delay(phase)) {
             wobble = 0.3
@@ -229,16 +229,16 @@ struct EditableWidgetView: View {
             .contentShape(Rectangle())
             .offset(x: -6, y: -6)
             .gesture(resizeGesture)
-            .accessibilityLabel("\(widget.kind.title) Größe ändern")
+            .accessibilityLabel("Resize \(widget.kind.title)")
     }
 
-    /// Ziehen des Widgets: `editor.previewMove` live, Loslassen uebernimmt
-    /// gueltig oder springt zurueck. Waehlt das Widget in jedem Fall aus.
+    /// Dragging the widget: `editor.previewMove` live, releasing commits
+    /// if valid, or springs back. Selects the widget in every case.
     private var dragGesture: some Gesture {
-        // Benannter Bezugsraum auf der Seite (`BentoPageView`), nicht
-        // `.local`: der eigene Rahmen des Widgets waechst waehrend eines
-        // Zugs mit (Vorschau), `.local`-Werte haetten sich also mitten im
-        // Ziehen verschoben (gemessen: Ruckeln).
+        // Named coordinate space on the page (`BentoPageView`), not
+        // `.local`: the widget's own frame grows along with a drag
+        // (preview), so `.local` values would have shifted in the middle
+        // of the drag (measured: jitter).
         DragGesture(minimumDistance: 2, coordinateSpace: .named(BentoPageView.coordinateSpaceName))
             .onChanged { value in
                 let proposed = WidgetFrame(x: widget.frame.x + value.translation.width,
@@ -259,8 +259,8 @@ struct EditableWidgetView: View {
             }
     }
 
-    /// Griff unten rechts: `editor.previewResize` live, Loslassen uebernimmt
-    /// gueltig oder springt zurueck.
+    /// Bottom-right handle: `editor.previewResize` live, releasing
+    /// commits if valid, or springs back.
     private var resizeGesture: some Gesture {
         DragGesture(minimumDistance: 2, coordinateSpace: .named(BentoPageView.coordinateSpaceName))
             .onChanged { value in
@@ -283,8 +283,8 @@ struct EditableWidgetView: View {
     }
 }
 
-/// Viertelkreis-Griff wie bei Apples Widget-Bearbeitung: ein Bogen, der aus
-/// der Ecke unten rechts waechst.
+/// Quarter-circle handle like Apple's widget editing: an arc growing out
+/// of the bottom-right corner.
 private struct ResizeHandleShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
@@ -294,9 +294,9 @@ private struct ResizeHandleShape: Shape {
     }
 }
 
-/// Haengt `.onDrop` nur an, wenn `active` gilt - `RenderMode` laesst es weg
-/// (siehe `EnvironmentValues.dashboardRendersForScreenshot`), das echte
-/// Dashboard gibt immer `true`.
+/// Attaches `.onDrop` only when `active` holds - `RenderMode` leaves it
+/// out (see `EnvironmentValues.dashboardRendersForScreenshot`), the real
+/// dashboard always passes `true`.
 struct BentoDropTarget: ViewModifier {
     let editor: DashboardEditor
     let active: Bool
@@ -310,19 +310,20 @@ struct BentoDropTarget: ViewModifier {
     }
 }
 
-/// Ziel fuer Widgets, die aus der Galerie des Bearbeitungsmodus gezogen
-/// werden (Payload `"apolloshell.widget:<WidgetKind.rawValue>"`,
-/// `NSItemProvider(object:)` bei `.onDrag` in `EditGalleryView`). Laedt die
-/// Nutzlast einmal beim Betreten (async, `NSItemProvider`) und haelt die Art danach
-/// in `editor.draggedKind` fest, damit jede weitere Bewegung sofort eine
-/// Vorschau zeigen kann.
+/// Drop target for widgets dragged out of the edit mode's gallery
+/// (payload `"apolloshell.widget:<WidgetKind.rawValue>"`,
+/// `NSItemProvider(object:)` on `.onDrag` in `EditGalleryView`). Loads the
+/// payload once on entry (async, `NSItemProvider`) and then keeps the kind
+/// in `editor.draggedKind`, so every further movement can immediately show
+/// a preview.
 struct BentoDropDelegate: DropDelegate {
     let editor: DashboardEditor
 
     func dropEntered(info: DropInfo) {
-        // Zaehler jetzt gemerkt: kommt die Nutzlast erst an, nachdem der Zug
-        // dieses Ziel schon verlassen hat (`dropExited` erhoeht ihn), gilt
-        // das Ergebnis nicht mehr - sonst lebt der Ghost-Umriss wieder auf.
+        // Counter recorded now: if the payload only arrives after the drag
+        // has already left this target (`dropExited` increments it), the
+        // result no longer counts - otherwise the ghost outline would
+        // come back to life.
         let generation = editor.dropGeneration
         loadKind(info) { kind in
             guard generation == editor.dropGeneration else { return }
@@ -350,8 +351,8 @@ struct BentoDropDelegate: DropDelegate {
             add(kind, at: location)
             return true
         }
-        // Noch nicht geladen (sehr kurzer Zug): nachreichen, aber nur, wenn
-        // dieses Ziel inzwischen nicht verlassen wurde.
+        // Not loaded yet (a very short drag): deliver it afterwards, but
+        // only if this target has not been left in the meantime.
         let generation = editor.dropGeneration
         loadKind(info) { [self] kind in
             guard generation == editor.dropGeneration, let kind else { return }

@@ -7,49 +7,50 @@ import ApolloShellCore
 import Observation
 import os
 
-/// Zustand und Aktionen des Utilities-Panels: "Wach halten", die Ton-Karte
-/// und die Schnellschalter (WLAN, Mikrofon, Bluetooth, Dunkelmodus, Night
-/// Shift) samt Aktionen (Bildschirmfoto, Schreibtisch, Farbpipette, Sperren,
-/// Einstellungen).
+/// State and actions of the Utilities panel: "Keep Awake", the sound
+/// card, and the quick toggles (Wi-Fi, microphone, Bluetooth, dark mode,
+/// Night Shift) along with actions (screenshot, show desktop, color
+/// picker, lock, settings).
 ///
-/// Alles ohne Freigabe-Dialog: IOKit-Zusicherung, CoreWLAN (an/aus braucht
-/// keine Ortung), CoreAudio-Eigenschaften (nur Aufnehmen braucht die
-/// Mikrofon-Freigabe, Lesen, Stummschalten und Geraetewahl nicht), Bluetooth
-/// ueber system_profiler (siehe `BluetoothState`), SkyLight und
-/// CoreBrightness (siehe UtilitiesSystem), Tastendruecke ueber die schon
-/// erteilte Bedienungshilfen-Freigabe, NSColorSampler.
+/// Everything without a permission dialog: IOKit assertion, CoreWLAN
+/// (on/off needs no location access), CoreAudio properties (only
+/// recording needs microphone permission, reading, muting, and device
+/// selection do not), Bluetooth via system_profiler (see
+/// `BluetoothState`), SkyLight and CoreBrightness (see UtilitiesSystem),
+/// key presses via the already-granted Accessibility permission,
+/// NSColorSampler.
 ///
-/// Kein eigener Dauer-Timer: `start()`/`stop()` rufen die Koordinatoren beim
-/// Oeffnen und Schliessen, abgefragt wird nur, solange man es sieht.
+/// No own recurring timer: `start()`/`stop()` call the coordinators on
+/// open and close, polling only happens while it is visible.
 @MainActor
 @Observable
 final class UtilitiesModel {
-    /// "Wach halten" mit Deckel-Teil - eine eigene Zustandsmaschine.
+    /// "Keep Awake" with a lid part - its own state machine.
     @ObservationIgnored let keepAwakeController: KeepAwakeController
-    /// Seit wann "Wach halten" laeuft; `nil` = aus.
+    /// Since when "Keep Awake" has been running; `nil` = off.
     var keepAwakeSince: Date? { keepAwakeController.since }
-    /// Stand des Deckel-Teils von "Wach halten" (`LidAwake`, pmset disablesleep).
+    /// State of the lid part of "Keep Awake" (`LidAwake`, pmset disablesleep).
     var lid: KeepAwakeLid { keepAwakeController.lid }
-    /// `nil`: kein WLAN-Interface.
+    /// `nil`: no Wi-Fi interface.
     private(set) var wifiOn: Bool?
-    /// Stummschaltung des Standard-Eingangs; `nil`: kein Eingang.
+    /// Mute state of the default input; `nil`: no input.
     private(set) var micMuted: Bool?
     private(set) var micSettable = false
-    /// `nil`: noch nicht gelesen oder nicht lesbar.
+    /// `nil`: not read yet or not readable.
     private(set) var bluetoothOn: Bool?
-    /// `nil`: noch nicht gelesen.
+    /// `nil`: not read yet.
     private(set) var darkMode: Bool?
-    /// `nil`: nicht verfuegbar (oder noch nicht gelesen).
+    /// `nil`: not available (or not read yet).
     private(set) var nightShift: Bool?
-    /// Kurzbefehl "Schreibtisch anzeigen" in Mission Control an.
+    /// "Show Desktop" shortcut enabled in Mission Control.
     private(set) var showDesktopAvailable = true
 
-    // Ton-Karte
+    // Sound card
     private(set) var volume: Float = 0
     private(set) var outputMuted = false
     private(set) var volumeSettable = false
     private(set) var muteSettable = false
-    /// Alle Geraete ungefiltert; die Menues filtern (ApolloShellCore).
+    /// All devices unfiltered; the menus filter (ApolloShellCore).
     private(set) var audioDevices: [UtilitiesAudioDevice] = []
     private(set) var defaultOutput: UInt32?
     private(set) var defaultInput: UInt32?
@@ -59,25 +60,25 @@ final class UtilitiesModel {
     var outputLabel: String { UtilitiesAudioDevices.label(defaultID: defaultOutput, in: audioDevices) }
     var inputLabel: String { UtilitiesAudioDevices.label(defaultID: defaultInput, in: audioDevices) }
 
-    /// Fuer den Schalter der Karte.
+    /// For the card's toggle.
     var keepAwake: Bool {
         get { keepAwakeController.isOn }
         set { keepAwakeController.set(newValue) }
     }
 
-    /// Alle 2 s, solange das Panel offen ist: WLAN (~3 ms), Mikrofon,
-    /// Dunkelmodus, Night Shift und die Audiogeraete sind billig. Bluetooth
-    /// kostet ~165 ms (eigener Prozess, nicht auf dem Hauptthread) - dafuer
-    /// nur jede fuenfte Runde, also alle 10 s. Lautstaerke und Stumm kommen
-    /// ohne Abfrage ueber CoreAudio-Listener (VolumeMonitor).
+    /// Every 2 s, while the panel is open: Wi-Fi (~3 ms), microphone,
+    /// dark mode, Night Shift, and the audio devices are cheap. Bluetooth
+    /// costs ~165 ms (its own process, not on the main thread) - so only
+    /// every fifth round, i.e. every 10 s. Volume and mute come without
+    /// polling via a CoreAudio listener (VolumeMonitor).
     @ObservationIgnored private static let interval: TimeInterval = 2
     @ObservationIgnored private static let bluetoothEvery = 5
-    /// Nach dem Wegblenden des Panels noch so lange warten, bis macOS die
-    /// Tastatur wieder der App vorne gegeben hat - erst dann den Druck posten.
+    /// After the panel fades away, wait this long until macOS has handed
+    /// the keyboard back to the frontmost app - only then post the key press.
     @ObservationIgnored private static let keyHandBack: Duration = .milliseconds(100)
 
-    /// `false` fuer die Vorschau: dann liest und schaltet das Modell nichts,
-    /// egal wer welche Aktion aufruft.
+    /// `false` for the preview: then the model reads and switches
+    /// nothing, no matter which action is called.
     @ObservationIgnored private let live: Bool
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var ticks = 0
@@ -85,17 +86,18 @@ final class UtilitiesModel {
     @ObservationIgnored private var volumeMonitor: VolumeMonitor?
     @ObservationIgnored private var nightShiftClient: UtilitiesNightShiftClient?
     @ObservationIgnored private var nightShiftLookedUp = false
-    /// Haelt die Pipette am Leben, bis sie eine Farbe liefert.
+    /// Keeps the color picker alive until it delivers a color.
     @ObservationIgnored private var colorSampler: NSColorSampler?
     @ObservationIgnored private let log = Logger(category: "utilities")
 
-    /// Vom Panel: erst zu, dann `then` (siehe `EdgeDrawer.close(then:)`).
+    /// From the panel: close first, then `then` (see `EdgeDrawer.close(then:)`).
     @ObservationIgnored var closePanel: (_ then: @escaping @MainActor () -> Void) -> Void = { $0() }
-    /// Vom Panel: eine Kurzmeldung zeigen (Farbpipette).
+    /// From the panel: show a brief message (color picker).
     @ObservationIgnored var onToast: (ToastText.Content) -> Void = { _ in }
 
-    /// `lidAllowed`: ob "Wach halten" auch zugeklappt gelten soll - wird bei
-    /// jedem Einschalten neu gefragt, die Einstellung kann sich ja aendern.
+    /// `lidAllowed`: whether "Keep Awake" should also apply with the lid
+    /// closed - re-asked every time it is turned on, since the setting
+    /// can change.
     init(lidAllowed: @escaping @MainActor () -> Bool) {
         live = true
         keepAwakeController = KeepAwakeController(lidAllowed: lidAllowed)
@@ -107,8 +109,8 @@ final class UtilitiesModel {
         keepAwakeController = KeepAwakeController(preview: keepAwakeSince)
     }
 
-    /// Modell mit festem Zustand, das nichts liest und nichts schaltet - fuer
-    /// Vorschauen und Bildproben.
+    /// Model with fixed state that reads and switches nothing - for
+    /// previews and snapshot tests.
     static func preview(
         keepAwakeSince: Date? = nil,
         wifiOn: Bool? = true,
@@ -142,7 +144,7 @@ final class UtilitiesModel {
         return model
     }
 
-    // MARK: - Abfragen
+    // MARK: - Polling
 
     func start() {
         guard live, timer == nil else { return }
@@ -152,16 +154,16 @@ final class UtilitiesModel {
         timer = .repeating(every: Self.interval, owner: self) { $0.tick() }
     }
 
-    /// Hoert nur mit dem Abfragen auf. "Wach halten" bleibt an - genau dafuer
-    /// ist es da, auch bei geschlossenem Panel. Die Lautstaerke-Listener
-    /// bleiben auch: sie kosten nichts, solange sich nichts aendert.
+    /// Only stops polling. "Keep Awake" stays on - that is exactly what
+    /// it is for, even with the panel closed. The volume listeners also
+    /// stay: they cost nothing as long as nothing changes.
     func stop() {
         timer?.invalidate()
         timer = nil
     }
 
-    /// Alles neu lesen, Bluetooth und den Schreibtisch-Kurzbefehl
-    /// eingeschlossen (der aendert sich nur in den Systemeinstellungen).
+    /// Read everything again, including Bluetooth and the show-desktop
+    /// shortcut (which only changes in System Settings).
     func refresh() {
         guard live else { return }
         readWifi()
@@ -209,8 +211,8 @@ final class UtilitiesModel {
         if dark != darkMode { darkMode = dark }
     }
 
-    /// Den Client erst beim ersten Oeffnen anlegen: CoreBrightness laden
-    /// kostet, und wer das Panel nie oeffnet, braucht es nicht.
+    /// Create the client only on first opening: loading CoreBrightness
+    /// costs something, and whoever never opens the panel does not need it.
     private func readNightShift() {
         if !nightShiftLookedUp {
             nightShiftLookedUp = true
@@ -241,8 +243,8 @@ final class UtilitiesModel {
         if monitor.muteSettable != muteSettable { muteSettable = monitor.muteSettable }
     }
 
-    /// Nur zuweisen, was sich geaendert hat: sonst baut SwiftUI die
-    /// Karte alle 2 s neu, auch wenn alles gleich ist.
+    /// Only assign what actually changed: otherwise SwiftUI rebuilds the
+    /// card every 2 s, even when nothing is different.
     private func readAudioDevices() {
         let devices = UtilitiesAudioHardware.devices()
         if devices != audioDevices { audioDevices = devices }
@@ -252,14 +254,14 @@ final class UtilitiesModel {
         if input != defaultInput { defaultInput = input }
     }
 
-    // MARK: - Aktionen
+    // MARK: - Actions
 
-    /// Beim Beenden der App: nichts wach zuruecklassen.
+    /// When the app quits: leave nothing awake.
     func shutdown() {
         keepAwakeController.shutdown()
     }
 
-    /// Nexus hat "Auch bei zugeklapptem Deckel" umgeschaltet.
+    /// Nexus toggled "Also with the lid closed".
     func lidSettingChanged() {
         keepAwakeController.lidSettingChanged()
     }
@@ -270,7 +272,7 @@ final class UtilitiesModel {
         do {
             try interface.setPower(target)
         } catch {
-            log.error("WLAN schalten fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+            log.error("Failed to toggle Wi-Fi: \(error.localizedDescription, privacy: .public)")
         }
         readWifi()
     }
@@ -282,22 +284,22 @@ final class UtilitiesModel {
         else { return }
         let status = Microphone.setMuted(!state.muted, device: device)
         if status != noErr {
-            log.error("Mikrofon stummschalten fehlgeschlagen: OSStatus \(status, privacy: .public)")
+            log.error("Failed to mute microphone: OSStatus \(status, privacy: .public)")
         }
         readMicrophone()
     }
 
-    /// Bluetooth selbst schalten ginge nur ueber private Schnittstellen; der
-    /// Knopf fuehrt deshalb direkt in die Einstellungen (Bereich gemessen:
-    /// Bluetooth.appex meldet com.apple.BluetoothSettings).
+    /// Toggling Bluetooth itself would only work via private APIs; the
+    /// button therefore leads straight into Settings (pane measured:
+    /// Bluetooth.appex reports com.apple.BluetoothSettings).
     func openBluetoothSettings() {
         guard live, let url = URL(string: "x-apple.systempreferences:com.apple.BluetoothSettings") else { return }
         NSWorkspace.shared.open(url)
     }
 
-    /// Das Panel bleibt offen: es faerbt sich mit um, das ist die
-    /// Bestaetigung. Sofort umschalten (SkyLight meldet nichts zurueck),
-    /// nach einer halben Sekunde den echten Zustand nachlesen.
+    /// The panel stays open: it recolors along with the change, that is
+    /// the confirmation. Switch immediately (SkyLight reports nothing
+    /// back), read the real state again after half a second.
     func toggleDarkMode() {
         guard live, let current = darkMode else { return }
         UtilitiesAppearance.setDark(!current)
@@ -311,14 +313,14 @@ final class UtilitiesModel {
     func toggleNightShift() {
         guard live, let client = nightShiftClient, let current = nightShift else { return }
         if !client.setEnabled(!current) {
-            log.error("Night Shift schalten fehlgeschlagen")
+            log.error("Failed to toggle Night Shift")
         }
         readNightShift()
     }
 
-    /// Apples Leiste fuer Bildschirmfoto und Aufnahme (⌘⇧5, bzw. was
-    /// unter Tastaturkurzbefehle eingestellt ist). Ist der Kurzbefehl aus
-    /// oder fehlt die Freigabe, dieselbe Leiste ueber Screenshot.app.
+    /// Apple's toolbar for screenshots and recording (Cmd-Shift-5, or
+    /// whatever is set under Keyboard Shortcuts). If the shortcut is off
+    /// or the permission is missing, the same toolbar via Screenshot.app.
     func takeScreenshot() {
         guard live else { return }
         let key = UtilitiesKeys.symbolic(id: UtilitiesHotKey.screenshotToolbarID, fallback: .screenshotToolbarDefault)
@@ -335,8 +337,8 @@ final class UtilitiesModel {
         postAfterClose(key)
     }
 
-    /// ⌃⌘Q geht an die App vorne (Apple-Menue) - deshalb muss das Panel
-    /// vorher weg sein, sonst bekaeme es unser Panel.
+    /// Ctrl-Cmd-Q goes to the frontmost app (Apple menu) - so the panel
+    /// must be gone beforehand, otherwise our panel would receive it.
     func lockScreen() {
         guard live else { return }
         postAfterClose(.lockScreen)
@@ -351,8 +353,8 @@ final class UtilitiesModel {
         }
     }
 
-    /// Apples Pipette (NSColorSampler, oeffentlich, keine Freigabe). Erst das
-    /// Panel weg, damit man auch die Stelle darunter treffen kann.
+    /// Apple's color picker (NSColorSampler, public, no permission
+    /// needed). Panel gone first, so the spot underneath can be hit too.
     func pickColor() {
         guard live else { return }
         closePanel { [weak self] in
@@ -360,13 +362,13 @@ final class UtilitiesModel {
             let sampler = NSColorSampler()
             colorSampler = sampler
             sampler.show { color in
-                // In sRGB wie im Web und in Figma; ohne Farbe (Esc) nil.
+                // In sRGB like on the web and in Figma; no color (Esc) is nil.
                 let hex = color?.usingColorSpace(.sRGB).map {
                     UtilitiesColorHex.hex(red: Double($0.redComponent), green: Double($0.greenComponent),
                                           blue: Double($0.blueComponent))
                 }
-                // Stark gehalten, bis gewaehlt ist: das Modell lebt ohnehin
-                // so lange wie die App.
+                // Kept strong until chosen: the model lives as long as the
+                // app anyway.
                 Task { @MainActor in self.colorPicked(hex) }
             }
         }
@@ -381,19 +383,19 @@ final class UtilitiesModel {
         onToast(ToastText.colorCopied(hex))
     }
 
-    // MARK: - Neue Aktionen und eigene Knoepfe
+    // MARK: - New actions and custom buttons
 
-    /// `pmset displaysleepnow`: nur die Bildschirme aus, der Mac laeuft
-    /// weiter (Downloads, Musik). Braucht kein sudo. Erst das Panel weg -
-    /// sonst stuende es beim Aufwachen noch halb da.
+    /// `pmset displaysleepnow`: only turns the screens off, the Mac
+    /// keeps running (downloads, music). Needs no sudo. Panel gone
+    /// first - otherwise it would still be half there when waking up.
     func sleepDisplay() {
         guard live else { return }
         closePanel { Subprocess.launch("/usr/bin/pmset", ["displaysleepnow"]) }
     }
 
-    /// Jede normale App ausblenden (`NSRunningApplication.hide`, oeffentlich,
-    /// ohne Freigabe) - die Shell selbst nie, sonst verschwaenden Leiste und
-    /// Panels. Die Regel steht in `UtilitiesHideApps`.
+    /// Hide every normal app (`NSRunningApplication.hide`, public, no
+    /// permission needed) - never the shell itself, otherwise the bar
+    /// and panels would disappear too. The rule lives in `UtilitiesHideApps`.
     func hideApps(_ options: UtilitiesHideAppsOptions) {
         guard live else { return }
         closePanel {
@@ -408,30 +410,31 @@ final class UtilitiesModel {
         }
     }
 
-    /// Wie ein Klick im Dock (`BarApps.open`). Panel erst zu: die App kommt
-    /// nach vorne, und das Panel soll dann nicht darueber liegen.
+    /// Like a click in the Dock (`BarApps.open`). Panel closed first: the
+    /// app comes to the front, and the panel should not sit on top of it.
     func openApp(_ options: UtilitiesAppOptions) {
         let bundleID = options.bundleID.trimmingCharacters(in: .whitespaces)
         guard live, !bundleID.isEmpty else { return }
         closePanel { BarApps.open(bundleID) }
     }
 
-    /// Im Standardprogramm fuer die Adresse (Browser, Mail, ...).
+    /// In the default app for the address (browser, mail, ...).
     func openLink(_ options: UtilitiesLinkOptions) {
         guard live, let url = UtilitiesLink.url(from: options.url) else { return }
         closePanel { NSWorkspace.shared.open(url) }
     }
 
-    /// `shortcuts run` als eigener Prozess, ohne darauf zu warten: ein
-    /// Kurzbefehl kann Sekunden laufen oder nachfragen. Endet er mit Fehler,
-    /// sagt es eine Kurzmeldung - sonst waere ein Klick ohne Wirkung ein
-    /// Raetsel. So schaltet man z. B. einen Fokus, ohne private Schnittstellen.
+    /// `shortcuts run` as its own process, without waiting for it: a
+    /// shortcut can run for seconds or prompt for input. If it ends with
+    /// an error, a toast reports it - otherwise a click with no effect
+    /// would be a mystery. This is how, for example, a Focus is toggled
+    /// without private APIs.
     func runShortcut(_ options: UtilitiesShortcutOptions) {
         guard live, let arguments = UtilitiesShortcuts.runArguments(options) else { return }
         let name = options.title.isEmpty ? options.name : options.title
         closePanel { [weak self] in
             let failed: @MainActor (Int32) -> Void = { status in
-                self?.log.error("Kurzbefehl fehlgeschlagen: Status \(status, privacy: .public)")
+                self?.log.error("Shortcut failed: status \(status, privacy: .public)")
                 self?.onToast(ToastText.shortcutFailed(name))
             }
             let started = Subprocess.launch(UtilitiesShortcuts.tool, arguments) { status in
@@ -441,10 +444,11 @@ final class UtilitiesModel {
         }
     }
 
-    // MARK: - Ton
+    // MARK: - Sound
 
-    /// Beim Ziehen am Regler. Sofort anzeigen, der Listener bestaetigt.
-    /// Ueber 0 hebt es Stumm auf (VolumeMonitor.setVolume, wie die Tasten).
+    /// While dragging the slider. Show it immediately, the listener
+    /// confirms. Above 0 it lifts mute (VolumeMonitor.setVolume, like
+    /// the keys).
     func setVolume(_ value: Float) {
         guard live, volumeSettable, let monitor = volumeMonitor else { return }
         let clamped = min(max(value, 0), 1)
@@ -463,15 +467,14 @@ final class UtilitiesModel {
         guard live else { return }
         let status = UtilitiesAudioHardware.setDefault(device, scope)
         if status != noErr {
-            log.error("Audiogeraet waehlen fehlgeschlagen: OSStatus \(status, privacy: .public)")
+            log.error("Failed to select audio device: OSStatus \(status, privacy: .public)")
         }
         readAudioDevices()
         readVolume()
     }
 
-    /// Setzt das Panel: oeffnet Nexus (Caelestias Knopf "Settings" oeffnet
-    /// das eigene Einstellungsfenster). Die Systemeinstellungen sind von
-    /// dort eine Zeile entfernt.
+    /// Sets the panel: opens Nexus (Caelestia's "Settings" button opens
+    /// its own settings window). System Settings is one line away from there.
     @ObservationIgnored var onOpenSettings: () -> Void = {}
 
     func openSettings() {
@@ -480,12 +483,12 @@ final class UtilitiesModel {
     }
 }
 
-/// Eine IOKit-Energiezusicherung "kein Ruhezustand bei Untaetigkeit" (wie
-/// `caffeinate -i`: der Mac bleibt wach, der Bildschirm darf ausgehen).
+/// An IOKit power assertion "no idle sleep" (like `caffeinate -i`: the
+/// Mac stays awake, the screen may still turn off).
 ///
-/// Lebt genau so lange wie dieses Objekt. So kann sie nicht haengen bleiben:
-/// Ausschalten, das Modell verschwindet, die App endet - jedes Mal geht sie
-/// mit (beim Beenden raeumt macOS Zusicherungen des Prozesses ohnehin ab).
+/// Lives exactly as long as this object. So it cannot get stuck: turning
+/// it off, the model disappearing, the app quitting - it goes away every
+/// time (when quitting, macOS clears the process's assertions anyway).
 final class PowerAssertion {
     struct Failure: Error {
         let code: IOReturn
@@ -510,13 +513,13 @@ final class PowerAssertion {
     }
 }
 
-/// Stummschaltung des Standard-Eingangs ueber CoreAudio.
+/// Mute state of the default input via CoreAudio.
 ///
-/// Nur Eigenschaften lesen und setzen, kein Ton - deshalb ohne
-/// Mikrofon-Freigabe. Gemessen 14.09.: das eingebaute "MacBook
-/// Pro-Mikrofon" hat die Eigenschaft auf dem Hauptelement und sie ist
-/// schreibbar. Andere Geraete (USB, Bluetooth) koennen sie fehlen lassen;
-/// dann `nil` bzw. nicht schreibbar, und der Knopf ist aus.
+/// Only reads and sets properties, no audio - hence no microphone
+/// permission needed. Measured 09/14: the built-in "MacBook Pro
+/// Microphone" has the property on the main element and it is settable.
+/// Other devices (USB, Bluetooth) may lack it; then `nil` or not
+/// settable, and the button is off.
 enum Microphone {
     static func defaultInput() -> AudioObjectID? {
         var address = AudioObjectPropertyAddress(

@@ -1,19 +1,19 @@
 import Foundation
 
-// Das Dashboard als Baukasten, wie die Leiste (BarLayout.swift): welche
-// Reiter in welcher Reihenfolge, und welche Karten wo in der Uebersicht.
-// Nexus > Dashboard bearbeitet es, das Dashboard zeichnet es live.
+// The dashboard as a building-block system, like the bar (BarLayout.swift):
+// which tabs in which order, and which cards go where in the overview.
+// Nexus > Dashboard edits it, the dashboard renders it live.
 //
-// Das Fenster bleibt dabei gleich gross (Inhalt 839 x 392 wie Caelestia):
-// ein Dashboard, das je nach Karten mal breiter, mal schmaler aufgeht, waere
-// oben am Rand unruhig, und die festen Kartenmasse sind Caelestias Gesicht.
-// Deshalb Plaetze statt freier Anordnung - zwei Reihen und eine Seitenspalte,
-// siehe `DashboardZone` und `DashboardGeometry`.
+// The window stays the same size throughout (content 839 x 392, like
+// Caelestia): a dashboard that grows wider or narrower depending on the
+// cards would look unsettled at the top edge, and the fixed card sizes are
+// Caelestia's face. That's why there are slots instead of free placement -
+// two rows and a side column, see `DashboardZone` and `DashboardGeometry`.
 
-// MARK: - Reiter
+// MARK: - Tabs
 
-/// Reiter des Dashboards, Reihenfolge wie Caelestia. Der Rohwert steht in
-/// settings.json, deshalb nie umbenennen.
+/// Dashboard tabs, in Caelestia's order. The raw value is stored in
+/// settings.json, so never rename it.
 public enum DashboardTab: String, CaseIterable, Codable, Identifiable, Sendable {
     case dashboard, media, performance, weather
 
@@ -37,7 +37,7 @@ public enum DashboardTab: String, CaseIterable, Codable, Identifiable, Sendable 
         }
     }
 
-    /// Kennung fuer den Symbol-Austausch im Theme (`icons/<kennung>.png`).
+    /// Identifier for symbol replacement in the theme (`icons/<id>.png`).
     public var iconID: String {
         switch self {
         case .dashboard: "bar-dashboard"
@@ -48,17 +48,17 @@ public enum DashboardTab: String, CaseIterable, Codable, Identifiable, Sendable 
     }
 }
 
-/// Reihenfolge und Sichtbarkeit der Reiter (Caelestia: dashboard.showMedia
-/// usw., hier dazu umsortierbar).
+/// Order and visibility of the tabs (Caelestia: dashboard.showMedia etc.,
+/// here reorderable in addition).
 ///
-/// Anders als bei den Bausteinen der Leiste bleibt ein ausgeblendeter Reiter
-/// in der Liste: es gibt nur vier, Nexus zeigt alle mit Schalter, und beim
-/// Wiedereinblenden steht er dort, wo man ihn hingezogen hat.
+/// Unlike the bar's building blocks, a hidden tab stays in the list: there
+/// are only four, Nexus shows all of them with a toggle, and when it's shown
+/// again it sits wherever it was dragged to.
 ///
-/// Immer gueltig: jeder Reiter genau einmal in `order`, mindestens einer
-/// sichtbar - ein Dashboard ohne Reiter haette nichts zu zeigen.
+/// Always valid: every tab exactly once in `order`, at least one visible - a
+/// dashboard without tabs would have nothing to show.
 ///
-/// In der Datei: `[{"id": "media", "visible": true}, ...]`.
+/// In the file: `[{"id": "media", "visible": true}, ...]`.
 public struct DashboardTabs: Codable, Equatable, Sendable {
     public private(set) var order: [DashboardTab]
     public private(set) var hidden: Set<DashboardTab>
@@ -81,15 +81,15 @@ public struct DashboardTabs: Codable, Equatable, Sendable {
         init(from decoder: any Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             guard let raw: String = c.lenient(.id), let tab = DashboardTab(rawValue: raw) else {
-                throw DecodingError.dataCorruptedError(forKey: .id, in: c, debugDescription: "unbekannter Reiter")
+                throw DecodingError.dataCorruptedError(forKey: .id, in: c, debugDescription: "unknown tab")
             }
             id = tab
             visible = c.lenient(.visible) ?? true
         }
     }
 
-    /// Unbekannte, doppelte oder kaputte Eintraege fallen weg; fehlende
-    /// Reiter (etwa ein spaeter dazugekommener) kommen sichtbar ans Ende.
+    /// Unknown, duplicate or broken entries are dropped; missing tabs (e.g.
+    /// one added later) end up visible at the end.
     public init(from decoder: any Decoder) throws {
         let items = try LenientList<Item>(from: decoder).values
         var seen = Set<DashboardTab>()
@@ -102,26 +102,25 @@ public struct DashboardTabs: Codable, Equatable, Sendable {
         try c.encode(order.map { Item(id: $0, visible: !hidden.contains($0)) })
     }
 
-    // MARK: Lesen
+    // MARK: Reading
 
     public var visible: [DashboardTab] { order.filter { !hidden.contains($0) } }
 
     public func isVisible(_ tab: DashboardTab) -> Bool { !hidden.contains(tab) }
 
-    /// Der Reiter, der wirklich gezeigt wird: der gewuenschte, oder - wenn
-    /// er ausgeblendet ist - der erste sichtbare. So oeffnet der
-    /// Medien-Baustein der Leiste bei ausgeblendetem Reiter Medien nicht ins
-    /// Leere.
+    /// The tab that is actually shown: the requested one, or - if it is
+    /// hidden - the first visible one. This way the bar's media building
+    /// block doesn't open into nothing when its tab is hidden.
     public func resolved(_ tab: DashboardTab) -> DashboardTab {
         isVisible(tab) ? tab : (visible.first ?? tab)
     }
 
-    /// Der letzte sichtbare laesst sich nicht ausblenden.
+    /// The last visible tab cannot be hidden.
     public func canHide(_ tab: DashboardTab) -> Bool {
         isVisible(tab) && visible.count > 1
     }
 
-    // MARK: Aendern
+    // MARK: Changing
 
     public mutating func setVisible(_ tab: DashboardTab, _ visible: Bool) {
         if visible {
@@ -131,12 +130,12 @@ public struct DashboardTabs: Codable, Equatable, Sendable {
         }
     }
 
-    /// Wie SwiftUIs `onMove` (Ziel vor dem Verschieben gezaehlt).
+    /// Like SwiftUI's `onMove` (target counted before the move).
     public mutating func move(fromOffsets source: IndexSet, toOffset destination: Int) {
         order.move(fromOffsets: source, toOffset: destination)
     }
 
-    /// Eine Stelle nach oben (-1) oder unten (+1); am Rand nichts.
+    /// One spot up (-1) or down (+1); nothing happens at the edge.
     public mutating func move(_ tab: DashboardTab, by step: Int) {
         order = Reorder.move(order, element: tab, by: step)
     }
@@ -151,11 +150,11 @@ public struct DashboardTabs: Codable, Equatable, Sendable {
     }
 }
 
-// MARK: - Plaetze
+// MARK: - Slots
 
-/// Wo eine Karte in der Uebersicht steht. Die beiden Reihen und die Spalte
-/// sind Caelestias Raster: oben Wetter und Benutzer (130 hoch), unten Uhr,
-/// Kalender, Ressourcen (250 hoch), rechts die Medien (200 breit).
+/// Where a card sits in the overview. The two rows and the column are
+/// Caelestia's grid: weather and user on top (130 high), clock, calendar,
+/// resources at the bottom (250 high), media on the right (200 wide).
 public enum DashboardZone: String, CaseIterable, Identifiable, Sendable {
     case top, bottom, side
 
@@ -169,13 +168,13 @@ public enum DashboardZone: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Reihen stellen Karten nebeneinander; die Spalte hat Platz fuer eine.
+    /// Rows place cards side by side; the column has room for one.
     public var isRow: Bool { self != .side }
 }
 
-/// Wie breit eine Karte in einer Reihe ist. Feste Karten haben ihr
-/// Caelestia-Mass; flexible teilen sich den Rest und brauchen mindestens
-/// `minimum`, damit ihr Inhalt nicht abgeschnitten wird.
+/// How wide a card is within a row. Fixed cards have their Caelestia size;
+/// flexible ones share the remainder and need at least `minimum` so their
+/// content isn't cut off.
 public enum DashboardCardWidth: Equatable, Sendable {
     case fixed(Double)
     case flexible(minimum: Double)
@@ -192,10 +191,10 @@ public enum DashboardCardWidth: Equatable, Sendable {
     }
 }
 
-// MARK: - Arten
+// MARK: - Kinds
 
-/// Welche Karten es gibt; jede hoechstens einmal (es gibt ein Wetter, einen
-/// Benutzer, eine Wiedergabe). Rohwert in settings.json ("kind").
+/// Which cards exist; each at most once (there is one weather card, one
+/// user card, one playback card). Raw value in settings.json ("kind").
 public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
     case weather, user, clock, calendar, resources, media
 
@@ -206,13 +205,13 @@ public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
         case .weather: String(localized: "Weather")
         case .user: String(localized: "User")
         case .clock: String(localized: "Clock")
-        case .calendar: String(localized: "Kalender")
+        case .calendar: String(localized: "Calendar")
         case .resources: String(localized: "Resources")
         case .media: String(localized: "Media")
         }
     }
 
-    /// Eine Zeile fuer die Galerie hinter dem +.
+    /// One line for the gallery behind the +.
     public var summary: String {
         switch self {
         case .weather: String(localized: "Temperature and condition for the chosen location.")
@@ -235,7 +234,7 @@ public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Wo die Karte bei Caelestia steht - dorthin kommt sie beim Hinzufuegen.
+    /// Where the card sits in Caelestia - it lands there when added.
     public var home: DashboardZone {
         switch self {
         case .weather, .user: .top
@@ -244,8 +243,9 @@ public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Wo sie hin darf, `home` zuerst. Der Kalender braucht die Hoehe der
-    /// unteren Reihe (sechs Wochen) und mehr Breite als die Spalte hat.
+    /// Where it is allowed to go, `home` first. The calendar needs the
+    /// height of the bottom row (six weeks) and more width than the column
+    /// has.
     public var zones: [DashboardZone] {
         switch self {
         case .calendar: [.bottom]
@@ -257,20 +257,21 @@ public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
 
     public func allows(_ zone: DashboardZone) -> Bool { zones.contains(zone) }
 
-    /// Breite in einer Reihe; in der Spalte fuellt jede Karte die Spalte.
-    /// Absichtlich unabhaengig von den Optionen: sonst koennte ein Schalter
-    /// (drei statt zwei Ringe) eine volle Reihe sprengen.
+    /// Width within a row; in the column every card fills the column.
+    /// Deliberately independent of the options: otherwise a toggle (three
+    /// rings instead of two) could blow up a full row.
     public func width(in zone: DashboardZone) -> DashboardCardWidth {
         switch (self, zone) {
         case (_, .side): .fixed(DashboardGeometry.sideWidth)
-        // Caelestia-Masse der Vorgabe.
+        // Caelestia sizes from the original.
         case (.weather, .top): .fixed(275)
         case (.user, .top): .flexible(minimum: 230)
         case (.clock, _): .fixed(110)
         case (.calendar, _): .flexible(minimum: 300)
         case (.resources, .bottom): .fixed(90)
-        // Neue Plaetze: drei Ringe nebeneinander, Wiedergabe als Streifen,
-        // Wetter, Benutzer und Wiedergabe hochkant in der unteren Reihe.
+        // New slots: three rings side by side, playback as a strip,
+        // weather, user and playback in portrait orientation in the bottom
+        // row.
         case (.resources, _): .fixed(230)
         case (.media, .top): .flexible(minimum: 300)
         case (.weather, _), (.user, _), (.media, _): .fixed(200)
@@ -278,15 +279,15 @@ public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-// MARK: - Optionen je Karte
+// MARK: - Options per card
 
-// Nachsichtig wie ShellSettings: fehlt ein Schluessel oder hat er den
-// falschen Typ, gilt fuer genau diesen die Vorgabe. Vorgabe = Caelestia.
+// Lenient like ShellSettings: if a key is missing or has the wrong type,
+// the default applies to just that one. Default = Caelestia.
 
 public struct DashboardWeatherOptions: Codable, Equatable, Sendable {
-    /// "Teilweise bewölkt" unter der Temperatur.
+    /// "Partly cloudy" under the temperature.
     public var showCondition: Bool
-    /// Hoechst- und Tiefstwert von heute.
+    /// Today's high and low.
     public var showRange: Bool
 
     public init(showCondition: Bool = true, showRange: Bool = true) {
@@ -320,16 +321,16 @@ public struct DashboardUserOptions: Codable, Equatable, Sendable {
 }
 
 public struct DashboardClockOptions: Codable, Equatable, Sendable {
-    /// `stacked`: Stunde, drei Punkte, Minute untereinander (Caelestia).
-    /// `inline`: "14:05" in einer Zeile.
+    /// `stacked`: hour, three dots, minute stacked (Caelestia).
+    /// `inline`: "14:05" on one line.
     public enum Style: String, Codable, CaseIterable, Sendable { case stacked, inline }
 
     public var style: Style
-    /// Wochentag und Tag unter der Uhrzeit.
+    /// Weekday and day under the time.
     public var showDate: Bool
-    /// Zeitzone als IANA-Kennung ("Asia/Tokyo"), `nil` = die des Systems.
-    /// Gibt es mehrere Uhren (0.2), zeigt so jede eine andere Stadt. Eine
-    /// unbekannte Kennung gilt wie `nil`.
+    /// Time zone as an IANA identifier ("Asia/Tokyo"), `nil` = the
+    /// system's. With multiple clocks (0.2), each can thus show a
+    /// different city. An unknown identifier behaves like `nil`.
     public var timeZone: String?
 
     public init(style: Style = .stacked, showDate: Bool = false, timeZone: String? = nil) {
@@ -355,12 +356,12 @@ public struct DashboardCalendarOptions: Codable, Equatable, Sendable {
     public enum FirstWeekday: String, Codable, CaseIterable, Sendable {
         case monday, sunday
 
-        /// Wert fuer `Calendar.firstWeekday` (1 = Sonntag).
+        /// Value for `Calendar.firstWeekday` (1 = Sunday).
         public var calendarValue: Int { self == .monday ? 2 : 1 }
     }
 
     public var firstWeekday: FirstWeekday
-    /// Kalenderwoche links neben jeder Zeile.
+    /// Calendar week to the left of every row.
     public var showWeekNumbers: Bool
 
     public init(firstWeekday: FirstWeekday = .monday, showWeekNumbers: Bool = false) {
@@ -375,9 +376,9 @@ public struct DashboardCalendarOptions: Codable, Equatable, Sendable {
         c.lenient(.showWeekNumbers, into: &showWeekNumbers)
     }
 
-    /// Derselbe Kalender (Sprache, Zeitzone), nur mit dem gewaehlten ersten
-    /// Wochentag. Die Regel fuer die erste Woche (in der Schweiz: vier Tage,
-    /// ISO 8601) bleibt die der Sprache.
+    /// The same calendar (language, time zone), only with the chosen first
+    /// weekday. The rule for the first week (in Switzerland: four days,
+    /// ISO 8601) stays that of the language.
     public func applied(to calendar: Calendar) -> Calendar {
         var calendar = calendar
         calendar.firstWeekday = firstWeekday.calendarValue
@@ -396,9 +397,8 @@ public struct DashboardResourcesOptions: Codable, Equatable, Sendable {
         self.showStorage = showStorage
     }
 
-    /// Alle drei aus (von Hand so geschrieben): wieder alle an - eine leere
-    /// Karte ergibt keinen Sinn. Nexus laesst den letzten Ring gar nicht
-    /// ausschalten.
+    /// All three off (handcrafted like this): all on again - an empty card
+    /// makes no sense. Nexus doesn't even let you turn off the last ring.
     public init(from decoder: any Decoder) throws {
         self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -413,8 +413,8 @@ public struct DashboardResourcesOptions: Codable, Equatable, Sendable {
 
 public struct DashboardMediaOptions: Codable, Equatable, Sendable {
     public var showAlbum: Bool
-    /// App, die gerade spielt, unten in der Karte (nur in der Seitenspalte,
-    /// sonst fehlt der Platz).
+    /// App that is currently playing, at the bottom of the card (only in
+    /// the side column, otherwise there's no room).
     public var showSource: Bool
 
     public init(showAlbum: Bool = true, showSource: Bool = true) {
@@ -430,12 +430,13 @@ public struct DashboardMediaOptions: Codable, Equatable, Sendable {
     }
 }
 
-// MARK: - Karte
+// MARK: - Card
 
-/// Art und Optionen in einem, wie `BarModule`: jede Art traegt genau ihren
-/// Optionstyp. Kennung ist die Art selbst - jede Karte gibt es einmal.
+/// Kind and options combined, like `BarModule`: each kind carries exactly
+/// its own option type. The identifier is the kind itself - each card
+/// exists once.
 ///
-/// In der Datei: `{"kind": "clock", "options": {...}}`.
+/// In the file: `{"kind": "clock", "options": {...}}`.
 public enum DashboardCard: BlockModule, Codable, Equatable, Identifiable, Sendable {
     case weather(DashboardWeatherOptions)
     case user(DashboardUserOptions)
@@ -448,8 +449,8 @@ public enum DashboardCard: BlockModule, Codable, Equatable, Identifiable, Sendab
         self.init(kind: kind, options: nil)
     }
 
-    /// Art und (falls vorhanden) gelesene Optionen - der eine Switch fuer
-    /// beides, wie `BarModule.init(kind:options:)`.
+    /// Kind and (if present) decoded options - the single switch for both,
+    /// like `BarModule.init(kind:options:)`.
     fileprivate init(kind: DashboardCardKind, options c: KeyedDecodingContainer<CodingKeys>?) {
         self = switch kind {
         case .weather: .weather(Self.decoded(c, forKey: .options, default: .init()))
@@ -474,8 +475,8 @@ public enum DashboardCard: BlockModule, Codable, Equatable, Identifiable, Sendab
 
     public var id: DashboardCardKind { kind }
 
-    /// Optionen dieser Karte - jede Art hat welche, anders als bei
-    /// `BarModule` oder `UtilitiesToggle`.
+    /// This card's options - each kind has some, unlike `BarModule` or
+    /// `UtilitiesToggle`.
     public var options: (any Encodable)? {
         switch self {
         case .weather(let o): o
@@ -496,12 +497,12 @@ public enum DashboardCard: BlockModule, Codable, Equatable, Identifiable, Sendab
 
     public enum CodingKeys: String, CodingKey { case kind, options }
 
-    /// Unbekannte Art: Fehler - `DashboardCards` uebergeht die Karte dann.
-    /// Kaputte Optionen dagegen nur Vorgaben.
+    /// Unknown kind: an error - `DashboardCards` then skips the card.
+    /// Broken options, on the other hand, just fall back to defaults.
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         guard let raw: String = c.lenient(.kind), let kind = DashboardCardKind(rawValue: raw) else {
-            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unbekannte Karte")
+            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unknown card")
         }
         self.init(kind: kind, options: c)
     }
@@ -515,24 +516,25 @@ public enum DashboardCard: BlockModule, Codable, Equatable, Identifiable, Sendab
     }
 }
 
-// MARK: - Karten der Uebersicht
+// MARK: - Cards of the overview
 
-/// Welche Karte wo steht, je Platz von links nach rechts. Eine Karte, die
-/// in keinem Platz steht, ist ausgeschaltet (wie bei der Leiste).
+/// Which card sits where, per slot from left to right. A card that is in
+/// no slot is turned off (as with the bar).
 ///
-/// Immer gueltig - dafuer sorgen der Initialisierer (auch beim Lesen) und
-/// die Aenderungen unten, deshalb sind die Listen von aussen nur lesbar:
-/// - jede Art hoechstens einmal,
-/// - nur an erlaubten Plaetzen (`DashboardCardKind.zones`),
-/// - in der Spalte hoechstens eine Karte,
-/// - jede Reihe passt auch neben der Spalte (`DashboardGeometry.rowWidth`):
-///   feste Breiten plus Mindestbreiten plus Abstaende. Gemessen wird immer
-///   mit Spalte, sonst sprengte das Hinzufuegen einer Spaltenkarte spaeter
-///   eine Reihe, die vorher gerade noch passte.
+/// Always valid - the initializer (also when reading) and the changes
+/// below take care of that, which is why the lists are read-only from the
+/// outside:
+/// - each kind at most once,
+/// - only in allowed slots (`DashboardCardKind.zones`),
+/// - at most one card in the column,
+/// - every row also fits next to the column (`DashboardGeometry.rowWidth`):
+///   fixed widths plus minimum widths plus spacing. Always measured with
+///   the column present, otherwise adding a column card later could blow
+///   up a row that used to just fit.
 ///
-/// In der Datei: `{"top": [...], "bottom": [...], "side": [...]}`. Fehlt ein
-/// Platz oder ist er keine Liste, gilt fuer ihn die Vorgabe; eine leere
-/// Liste ist ein leerer Platz.
+/// In the file: `{"top": [...], "bottom": [...], "side": [...]}`. If a slot
+/// is missing or isn't a list, its default applies; an empty list means an
+/// empty slot.
 public struct DashboardCards: Codable, Equatable, Sendable {
     public private(set) var top: [DashboardCard]
     public private(set) var bottom: [DashboardCard]
@@ -542,13 +544,13 @@ public struct DashboardCards: Codable, Equatable, Sendable {
         (self.top, self.bottom, self.side) = Self.normalized(top: top, bottom: bottom, side: side)
     }
 
-    /// Kurzform mit Vorgaben je Art (Vorlagen, Tests).
+    /// Shorthand with defaults per kind (templates, tests).
     public init(top: [DashboardCardKind], bottom: [DashboardCardKind], side: [DashboardCardKind]) {
         self.init(top: top.map(DashboardCard.init), bottom: bottom.map(DashboardCard.init),
                   side: side.map(DashboardCard.init))
     }
 
-    /// Caelestias Raster, die Vorgabe.
+    /// Caelestia's grid, the default.
     public static let caelestia = DashboardCards(top: [.weather, .user], bottom: [.clock, .calendar, .resources],
                                                  side: [.media])
 
@@ -571,7 +573,7 @@ public struct DashboardCards: Codable, Equatable, Sendable {
         try c.encode(side, forKey: .side)
     }
 
-    // MARK: Lesen
+    // MARK: Reading
 
     public subscript(zone: DashboardZone) -> [DashboardCard] {
         switch zone {
@@ -594,7 +596,7 @@ public struct DashboardCards: Codable, Equatable, Sendable {
         all.first { $0.kind == kind }
     }
 
-    /// Passen diese Karten nebeneinander in den Platz?
+    /// Do these cards fit side by side into the slot?
     public static func fits(_ cards: [DashboardCard], in zone: DashboardZone) -> Bool {
         guard zone.isRow else { return cards.count <= 1 }
         let widths = cards.map { $0.kind.width(in: zone).minimum }
@@ -602,8 +604,8 @@ public struct DashboardCards: Codable, Equatable, Sendable {
         return widths.reduce(0, +) + gaps <= DashboardGeometry.rowWidth
     }
 
-    /// Wohin eine ausgeschaltete Karte beim Hinzufuegen kaeme: an ihren
-    /// Caelestia-Platz, sonst an den ersten erlaubten mit genug Raum.
+    /// Where a disabled card would land when added: at its Caelestia slot,
+    /// otherwise at the first allowed one with enough room.
     public func placement(for kind: DashboardCardKind) -> DashboardZone? {
         guard !contains(kind) else { return nil }
         return kind.zones.first { Self.fits(self[$0] + [DashboardCard(kind)], in: $0) }
@@ -611,8 +613,9 @@ public struct DashboardCards: Codable, Equatable, Sendable {
 
     public func canAdd(_ kind: DashboardCardKind) -> Bool { placement(for: kind) != nil }
 
-    /// Darf die Karte an diesen Platz? Bei belegter Spalte heisst das
-    /// tauschen - dann muss die bisherige an den alten Platz der Karte passen.
+    /// Is the card allowed at this slot? If the column is occupied that
+    /// means swapping - then the existing card must fit at the moved
+    /// card's old slot.
     public func canMove(_ kind: DashboardCardKind, to zone: DashboardZone) -> Bool {
         var copy = self
         return copy.move(kind, to: zone)
@@ -623,10 +626,10 @@ public struct DashboardCards: Codable, Equatable, Sendable {
         return copy.swap(a, b)
     }
 
-    // MARK: Aendern
+    // MARK: Changing
 
-    /// Mit Vorgaben an `placement(for:)`, ans Ende. Gibt den Platz zurueck;
-    /// `nil`, wenn die Karte schon da ist oder nirgends Raum hat.
+    /// With defaults from `placement(for:)`, at the end. Returns the slot;
+    /// `nil` if the card is already there or there's no room anywhere.
     @discardableResult
     public mutating func add(_ kind: DashboardCardKind) -> DashboardZone? {
         guard let zone = placement(for: kind) else { return nil }
@@ -638,29 +641,29 @@ public struct DashboardCards: Codable, Equatable, Sendable {
         for zone in DashboardZone.allCases { set(zone, self[zone].filter { $0.kind != kind }) }
     }
 
-    /// Andere Optionen fuer eine Karte, die schon da ist. Platz und
-    /// Reihenfolge bleiben (die Breite haengt nie an den Optionen).
+    /// Different options for a card that's already there. Slot and order
+    /// stay the same (the width never depends on the options).
     public mutating func update(_ card: DashboardCard) {
         guard let zone = zone(of: card.kind) else { return }
         set(zone, self[zone].map { $0.kind == card.kind ? card : $0 })
     }
 
-    /// Wie SwiftUIs `onMove`, innerhalb eines Platzes.
+    /// Like SwiftUI's `onMove`, within one slot.
     public mutating func move(in zone: DashboardZone, fromOffsets source: IndexSet, toOffset destination: Int) {
         var cards = self[zone]
         cards.move(fromOffsets: source, toOffset: destination)
         set(zone, cards)
     }
 
-    /// Eine Stelle nach links (-1) oder rechts (+1) im eigenen Platz.
+    /// One spot left (-1) or right (+1) within its own slot.
     public mutating func move(_ kind: DashboardCardKind, by step: Int) {
         guard let zone = zone(of: kind), let card = self[kind: kind] else { return }
         set(zone, Reorder.move(self[zone], element: card, by: step))
     }
 
-    /// An einen anderen Platz, dort ans Ende. Die Spalte hat nur Raum fuer
-    /// eine Karte: ist sie belegt, tauschen die beiden die Plaetze.
-    /// `false` (und nichts geaendert), wenn es nicht geht.
+    /// To another slot, to the end there. The column only has room for one
+    /// card: if it's occupied, the two swap places. `false` (and nothing
+    /// changed) if it can't be done.
     @discardableResult
     public mutating func move(_ kind: DashboardCardKind, to target: DashboardZone) -> Bool {
         guard let source = zone(of: kind), source != target, kind.allows(target),
@@ -676,9 +679,9 @@ public struct DashboardCards: Codable, Equatable, Sendable {
         return true
     }
 
-    /// Zwei Karten tauschen Platz und Stelle. `false` (und nichts
-    /// geaendert), wenn eine am Platz der anderen nicht stehen darf oder
-    /// eine Reihe danach zu breit waere.
+    /// Two cards swap slot and position. `false` (and nothing changed) if
+    /// one isn't allowed at the other's slot or a row would end up too
+    /// wide.
     @discardableResult
     public mutating func swap(_ a: DashboardCardKind, _ b: DashboardCardKind) -> Bool {
         guard a != b, let za = zone(of: a), let zb = zone(of: b), a.allows(zb), b.allows(za),
@@ -700,10 +703,11 @@ public struct DashboardCards: Codable, Equatable, Sendable {
         }
     }
 
-    // MARK: Regeln
+    // MARK: Rules
 
-    /// Der Reihe nach (oben, unten, Spalte, je von links): was eine Regel
-    /// verletzt, faellt weg, der Rest bleibt. Doppelte Karte: die erste gilt.
+    /// In order (top, bottom, column, each left to right): whatever
+    /// violates a rule is dropped, the rest stays. Duplicate card: the
+    /// first one wins.
     static func normalized(top: [DashboardCard], bottom: [DashboardCard], side: [DashboardCard])
         -> ([DashboardCard], [DashboardCard], [DashboardCard]) {
         var seen = Set<DashboardCardKind>()
@@ -725,9 +729,10 @@ public struct DashboardCards: Codable, Equatable, Sendable {
 
 // MARK: - Dashboard
 
-/// Alles, was Nexus > Dashboard am Aufbau aendert (settings.json: dashboard).
-/// Vorgabe = Caelestia = das Dashboard vor dem Baukasten; wer keine Datei
-/// oder keinen Abschnitt `dashboard` hat, sieht also dasselbe wie vorher.
+/// Everything Nexus > Dashboard changes about the layout (settings.json:
+/// dashboard). Default = Caelestia = the dashboard before the building-
+/// block system; anyone without a file or without a `dashboard` section
+/// therefore sees the same as before.
 public struct DashboardLayout: Codable, Equatable, Sendable {
     public var tabs: DashboardTabs
     public var cards: DashboardCards
@@ -745,10 +750,11 @@ public struct DashboardLayout: Codable, Equatable, Sendable {
         cards = c.lenient(.cards) ?? .caelestia
     }
 
-    /// Ob das offene Dashboard Wetter braucht. Abrufen kostet eine Anfrage
-    /// ins Netz, die Wiedergabe einen perl-Prozess - ohne sichtbare Karte
-    /// und ohne Reiter faengt das Dashboard damit gar nicht erst an. Karten
-    /// zaehlen nur, wenn der Reiter Dashboard (die Uebersicht) sichtbar ist.
+    /// Whether the open dashboard needs weather. Fetching it costs a
+    /// network request, playback costs a perl process - without a visible
+    /// card and without a tab the dashboard doesn't even start these in
+    /// the first place. Cards only count if the Dashboard tab (the
+    /// overview) is visible.
     public var usesWeather: Bool { uses(.weather, tab: .weather) }
     public var usesMedia: Bool { uses(.media, tab: .media) }
 
@@ -757,10 +763,10 @@ public struct DashboardLayout: Codable, Equatable, Sendable {
     }
 }
 
-// MARK: - Vorlagen
+// MARK: - Presets
 
-/// Fertige Dashboards zum Laden in Nexus. Reine Daten; "Caelestia" ist die
-/// Vorgabe und genau das bisherige Dashboard.
+/// Ready-made dashboards to load in Nexus. Pure data; "Caelestia" is the
+/// default and exactly the previous dashboard.
 public enum DashboardPreset: String, CaseIterable, Identifiable, Sendable {
     case caelestia, compact, calendarWeather
 
@@ -798,14 +804,15 @@ public enum DashboardPreset: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// Fuer `LayoutPreset`: "Caelestia" ist die Vorgabe.
+/// For `LayoutPreset`: "Caelestia" is the default.
 extension DashboardPreset: LayoutPreset {
     public static var `default`: DashboardPreset { .caelestia }
 }
 
-// MARK: - Masse
+// MARK: - Measurements
 
-/// Lage einer Karte in der Uebersicht, ab der Oberkante links des Rasters.
+/// Placement of a card in the overview, measured from the top-left corner
+/// of the grid.
 public struct DashboardRect: Equatable, Sendable {
     public var x: Double
     public var y: Double
@@ -826,24 +833,25 @@ public struct DashboardPlacement: Equatable, Sendable {
     public var frame: DashboardRect
 }
 
-/// Wie das Raster seine feste Flaeche verteilt:
+/// How the grid distributes its fixed area:
 ///
-/// - Beide Reihen belegt: oben 130, unten 250 hoch (Caelestia). Ist eine
-///   Reihe leer, bekommt die andere die ganze Hoehe.
-/// - Spalte belegt: 200 breit rechts, die Reihen links daneben. Ist links
-///   alles leer, bekommt die Spaltenkarte die ganze Breite.
-/// - In einer Reihe bekommen feste Karten ihre Breite, flexible teilen sich
-///   den Rest. Ohne flexible werden alle im Verhaeltnis ihrer Breite
-///   gestreckt - leere Plaetze fuellen die Nachbarn, statt Loecher zu lassen.
-/// - Nur ganze Punkte; was beim Teilen uebrig bleibt, bekommt die letzte
-///   Karte. So stehen Kanten scharf auf dem Raster.
+/// - Both rows occupied: top 130, bottom 250 high (Caelestia). If a row is
+///   empty, the other one gets the full height.
+/// - Column occupied: 200 wide on the right, the rows to its left. If
+///   everything to the left is empty, the column card gets the full width.
+/// - Within a row, fixed cards get their width, flexible ones share the
+///   rest. Without any flexible ones, all are stretched in proportion to
+///   their width - empty slots let their neighbors fill in instead of
+///   leaving gaps.
+/// - Only whole points; whatever remains from dividing goes to the last
+///   card. That way edges land sharply on the grid.
 public enum DashboardGeometry {
     public static let width: Double = 839
     public static let height: Double = 392
     public static let spacing: Double = 12
     public static let topHeight: Double = 130
     public static let sideWidth: Double = 200
-    /// Breite der Reihen neben der Spalte (627) - daran misst `DashboardCards.fits`.
+    /// Width of the rows next to the column (627) - what `DashboardCards.fits` measures against.
     public static var rowWidth: Double { width - spacing - sideWidth }
 
     public static func placements(for cards: DashboardCards) -> [DashboardPlacement] {
@@ -878,9 +886,9 @@ public enum DashboardGeometry {
         return result
     }
 
-    /// Breiten einer Reihe, siehe oben. Passt es nicht einmal mit den
-    /// Mindestbreiten (kommt nach `DashboardCards.fits` nicht vor), wird
-    /// alles im Verhaeltnis gestaucht statt ueber den Rand zu laufen.
+    /// Widths of a row, see above. If it doesn't fit even with the minimum
+    /// widths (doesn't happen after `DashboardCards.fits`), everything is
+    /// compressed proportionally instead of running over the edge.
     public static func widths(available: Double, widths: [DashboardCardWidth], spacing: Double) -> [Double] {
         guard !widths.isEmpty else { return [] }
         let room = max(available - Double(widths.count - 1) * spacing, 0)
@@ -897,7 +905,7 @@ public enum DashboardGeometry {
             result[flexible[flexible.count - 1]] += free - share * Double(flexible.count)
             return result
         }
-        // Keine flexible, oder zu eng: im Verhaeltnis der (Mindest-)Breiten.
+        // No flexible ones, or too tight: proportional to the (minimum) widths.
         guard minimumSum > 0 else { return widths.map { _ in 0 } }
         var result = minimums.map { ($0 * room / minimumSum).rounded(.down) }
         result[result.count - 1] += room - result.reduce(0, +)
@@ -905,12 +913,12 @@ public enum DashboardGeometry {
     }
 }
 
-// MARK: - Hilfen
+// MARK: - Helpers
 
-/// Eine Stelle nach vorn oder hinten, dieselbe Regel wie `PinnedList.move(_:by:)`
-/// - anders als `move(fromOffsets:toOffset:)` (siehe `Array.move` in
-/// Reorder.swift) nur an zwei Stellen gebraucht (Reiter, Dashboard-Karte),
-/// darum keine eigene Datei.
+/// One spot forward or back, the same rule as `PinnedList.move(_:by:)` -
+/// unlike `move(fromOffsets:toOffset:)` (see `Array.move` in
+/// Reorder.swift) only used in two places (tab, dashboard card), so no own
+/// file for it.
 enum Reorder {
     static func move<T: Equatable>(_ list: [T], element: T, by step: Int) -> [T] {
         guard let index = list.firstIndex(of: element) else { return list }

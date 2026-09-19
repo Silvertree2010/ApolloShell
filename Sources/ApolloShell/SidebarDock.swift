@@ -7,11 +7,11 @@ import os
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Dock in der Leiste (alle laufenden und angehefteten Apps, an Stelle des
-/// aktiven Fensters) - mit dem Inhalt von Apples Dock: Finder, die dort
-/// angehefteten Apps, nach einem Strich die uebrigen laufenden in
-/// Startreihenfolge. Noch nicht dabei: zuletzt benutzte Apps
-/// (show-recents), Ordner und der Papierkorb.
+/// Dock in the bar (all running and pinned apps, in place of the active
+/// window) - with the same content as Apple's Dock: Finder, the pinned
+/// apps there, then after a divider the remaining running ones in launch
+/// order. Not yet included: recently used apps (show-recents), folders and
+/// the trash.
 @MainActor
 @Observable
 final class SidebarDockModel {
@@ -21,43 +21,43 @@ final class SidebarDockModel {
         let icon: NSImage
         let pinned: Bool
         let running: Bool
-        /// Ausgeblendet (⌘H): halb durchsichtig wie in Apples Dock mit
-        /// "ausgeblendete Apps anzeigen".
+        /// Hidden (Cmd+H): half-transparent like in Apple's Dock with
+        /// "show hidden apps".
         var hidden = false
         var id: String { bundleID }
     }
 
     private(set) var entries: [Entry] = []
-    /// Bundle-ID der App im Vordergrund (leicht hinterlegt).
+    /// Bundle ID of the frontmost app (highlighted slightly).
     private(set) var frontmost: String?
-    /// Gerade gestartet, noch nicht da: das Symbol huepft (Apple-Dock).
+    /// Just launched, not there yet: the icon bounces (Apple Dock).
     private(set) var launching: Set<String> = []
-    /// Zaehler je Bundle-ID aus Apples Dock (`DockBadges`).
+    /// Counter per bundle ID from Apple's Dock (`DockBadges`).
     private(set) var badges: [String: String] = [:]
 
     @ObservationIgnored private let live: Bool
-    /// Welcher Dateimanager oben steht (Nexus > Anbieter); `nil` in Bildproben.
+    /// Which file manager sits at the top (Nexus > Providers); `nil` in previews.
     @ObservationIgnored private let settings: ShellSettingsStore?
     @ObservationIgnored private var settingsObservation: Task<Void, Never>?
-    /// Wer oben an Finders Platz steht (`ProviderFileManager.resolve`):
-    /// laesst sich weder entfernen noch verschieben, wie Finder bei Apple.
+    /// Who sits at Finder's spot (`ProviderFileManager.resolve`): can
+    /// neither be removed nor moved, just like Finder in Apple's Dock.
     @ObservationIgnored private var fileManagerID = AppleDockPrefs.finder
     @ObservationIgnored private var badgeTimer: Timer?
-    /// Ein Lesedurchgang laeuft noch; der naechste Takt faellt aus.
+    /// A read pass is still running; the next tick is skipped.
     @ObservationIgnored private var badgeReading = false
-    /// Keine Leiste zu sehen (Vollbild): Zaehler nicht lesen. Setzt der
-    /// Verwalter der Leisten wie bei CPU und Wetter.
+    /// No bar visible (fullscreen): don't read counters. Set by the bar
+    /// manager, like for CPU and weather.
     var badgesPaused = false {
         didSet {
             guard live, badgesPaused != oldValue else { return }
             if badgesPaused { stopBadgeTimer() } else { startBadgeTimer() }
         }
     }
-    /// Alle 3 s: Apples Dock meldet Zaehler-Aenderungen nicht, und ein
-    /// Lesedurchgang sind ein paar Bedienungshilfen-Aufrufe (~ms).
+    /// Every 3 s: Apple's Dock doesn't report counter changes, and a read
+    /// pass is a handful of accessibility calls (~ms).
     private static let badgeInterval: TimeInterval = 3
     private static let dockDomain = "com.apple.dock" as CFString
-    /// Symbole aus dem Dateisystem sind teuer; einmal geladen reicht.
+    /// Icons from the file system are expensive; loading them once is enough.
     @ObservationIgnored private var icons: [String: NSImage] = [:]
     @ObservationIgnored private let ownBundleID = Bundle.main.bundleIdentifier
     @ObservationIgnored private let log = Logger(category: "dock")
@@ -67,15 +67,15 @@ final class SidebarDockModel {
         self.settings = settings
         frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         refresh()
-        // Anderer Dateimanager in Nexus: gilt sofort. Liefert zuerst den
-        // aktuellen Wert (ein Durchgang mehr, schadet nicht), danach jede
-        // Aenderung; lebt so lange wie die Leiste.
+        // Different file manager in Nexus: applies immediately. First
+        // delivers the current value (one extra pass, doesn't hurt), then
+        // every change; lives as long as the bar.
         settingsObservation = Task { [weak self, settings] in
             for await _ in Observations({ settings.settings.providers.fileManager }) {
                 self?.refresh()
             }
         }
-        // Lebt so lange wie die Leiste und damit der Prozess.
+        // Lives as long as the bar, and thus the process.
         let center = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification,
                      NSWorkspace.didHideApplicationNotification, NSWorkspace.didUnhideApplicationNotification] {
@@ -90,7 +90,7 @@ final class SidebarDockModel {
         startBadgeTimer()
     }
 
-    /// Fuer die Bildprobe: feste Eintraege, liest und startet nichts.
+    /// For the preview: fixed entries, reads and starts nothing.
     init(preview entries: [Entry], frontmost: String?, badges: [String: String] = [:]) {
         live = false
         settings = nil
@@ -110,9 +110,9 @@ final class SidebarDockModel {
         badgeTimer = nil
     }
 
-    /// Liest neben dem Hauptthread: haengt Apples Dock, warten die
-    /// Bedienungshilfen-Aufrufe bis zum Timeout, und die Leiste soll dabei
-    /// nicht stocken.
+    /// Reads off the main thread: accessibility calls into Apple's Dock
+    /// can hang and wait until timeout, and the bar shouldn't stall
+    /// because of that.
     private func pollBadges() {
         guard !badgeReading else { return }
         badgeReading = true
@@ -124,9 +124,9 @@ final class SidebarDockModel {
         }
     }
 
-    /// Apples Dock-Einstellung frisch lesen (Synchronize holt Aenderungen,
-    /// die der Dock-Prozess seit dem letzten Lesen geschrieben hat) und neu
-    /// zusammensetzen.
+    /// Freshly reads Apple's Dock setting (Synchronize picks up changes
+    /// the Dock process has written since the last read) and rebuilds
+    /// everything.
     func refresh() {
         guard live else { return }
         CFPreferencesAppSynchronize("com.apple.dock" as CFString)
@@ -138,15 +138,15 @@ final class SidebarDockModel {
         for app in apps {
             if let id = app.bundleIdentifier, running[id] == nil { running[id] = app }
         }
-        // Oben der Dateimanager aus Nexus > Anbieter, solange installiert,
-        // sonst ForkLift oder Finder. Finder verschwindet nur, wenn ein
-        // anderer ihn ersetzt (er laeuft immer und kaeme sonst unter
-        // "laufend" wieder).
+        // At the top, the file manager from Nexus > Providers, as long as
+        // it's installed, otherwise ForkLift or Finder. Finder only
+        // disappears if something else replaces it (it always runs and
+        // would otherwise reappear under "running" anyway).
         let fileManager = ProviderFileManager.resolve(setting: settings?.settings.providers.fileManager) {
             NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil
         }
         if fileManager != fileManagerID {
-            // Das Ordner-Symbol haengt am Platz, nicht an der App: beide neu.
+            // The folder icon is tied to the slot, not to the app: both need to be redone.
             icons[fileManagerID] = nil
             icons[fileManager] = nil
             fileManagerID = fileManager
@@ -173,7 +173,7 @@ final class SidebarDockModel {
             )
         }
         if next != entries { entries = next }
-        // Fertig gestartet: nicht mehr huepfen.
+        // Finished launching: stop bouncing.
         let started = launching.intersection(running.keys)
         if !started.isEmpty { launching.subtract(started) }
     }
@@ -182,29 +182,31 @@ final class SidebarDockModel {
         NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first
     }
 
-    /// Klick auf ein Symbol, mit den Modifikatoren von Apples Dock
-    /// (`DockClickAction`). Der Zustand (laeuft, vorne, Fenster) geht in die
-    /// reine Entscheidung `DockClick.actions`, hier wird nur ausgefuehrt.
+    /// Click on an icon, with the modifiers of Apple's Dock
+    /// (`DockClickAction`). The state (running, frontmost, windows) goes
+    /// into the pure decision `DockClick.actions`; only execution happens
+    /// here.
     func click(_ entry: Entry, modifiers: NSEvent.ModifierFlags) {
         guard live else { return }
         perform(entry, command: modifiers.contains(.command), option: modifiers.contains(.option))
     }
 
-    /// Baut den Zustand fuer `entry`, laesst `DockClick` entscheiden und
-    /// fuehrt die Aktionen der Reihe nach aus.
+    /// Builds the state for `entry`, lets `DockClick` decide and executes
+    /// the actions in order.
     private func perform(_ entry: Entry, command: Bool, option: Bool) {
         let app = runningApp(entry.bundleID)
         let windows = app.map { DockWindows.list(pid: $0.processIdentifier) } ?? []
         let visible = windows.filter { !$0.minimized }
-        // Nur nicht minimierte Fenster koennen "hier" sein: welche davon
-        // gerade auf dem Bildschirm liegen, sagt der aktuelle Space
-        // (`onScreenWindowIDs`), nicht die Bedienungshilfen-Liste - die
-        // kennt keine Spaces.
+        // Only non-minimized windows can be "here": which of them are
+        // actually on screen right now is decided by the current space
+        // (`onScreenWindowIDs`), not the accessibility list - that
+        // doesn't know about spaces.
         let onScreen = app.map { DockWindows.onScreenWindowIDs(pid: $0.processIdentifier) } ?? []
         let onActiveSpace = visible.filter { $0.windowID.map(onScreen.contains) ?? false }
-        // Fenster auf anderen Schreibtischen kennt die Bedienungshilfen-Liste
-        // nicht (sie zeigt nur den aktuellen), deshalb aus der Fensterliste des
-        // Systems: alle minus die hiesigen minus die abgelegten.
+        // The accessibility list doesn't know about windows on other
+        // desktops (it only shows the current one), so from the system's
+        // window list instead: everything minus the ones here minus the
+        // minimized ones.
         let minimizedIDs = Set(windows.filter(\.minimized).compactMap(\.windowID))
         let elsewhere = app.map {
             DockWindows.allWindowIDs(pid: $0.processIdentifier, requireSpace: !$0.isHidden)
@@ -214,11 +216,11 @@ final class SidebarDockModel {
         } ?? 0
         let previous = NSWorkspace.shared.frontmostApplication
         let frontmost = app != nil && app?.processIdentifier == previous?.processIdentifier
-        // Nur nachsehen, wenn es ueberhaupt zur Frage kommt (eigener
-        // Bildschirm-Aufruf): schon vorne, mit mindestens einem Fenster hier.
-        // Beim Klick auf die schon vordere App nur blaettern, wenn wirklich
-        // etwas im Weg liegt, nicht bei mehreren frei nebeneinander
-        // liegenden Fenstern.
+        // Only check when it actually comes up as a question (an
+        // accessibility call of its own): already frontmost, with at
+        // least one window here. When clicking the already-frontmost app,
+        // only cycle if something is really in the way, not with several
+        // windows freely side by side.
         let coveredWindowID: CGWindowID? = (frontmost && !onActiveSpace.isEmpty)
             ? app.flatMap { DockWindows.coveredWindowID(pid: $0.processIdentifier) }
             : nil
@@ -244,8 +246,8 @@ final class SidebarDockModel {
             case .activate:
                 app?.activate()
             case .raiseWindowOnActiveSpace:
-                // Das vorderste hiesige Fenster: es bringt die App gleich
-                // mit nach vorne, kein zusaetzliches `.activate` noetig.
+                // The frontmost window here: it brings the app forward
+                // along with it, no extra `.activate` needed.
                 if let app, let window = onActiveSpace.first {
                     DockWindows.raise(window, of: app)
                 }
@@ -254,10 +256,10 @@ final class SidebarDockModel {
                     DockWindows.raise(window, of: app)
                 }
             case .unminimizeLast:
-                // Keine Zeitstempel ueber die Bedienungshilfen: das
-                // vorderste minimierte Fenster in der Liste steht dem
-                // "zuletzt abgelegten" am naechsten (war vor dem Minimieren
-                // vorne).
+                // No timestamps via accessibility: the frontmost minimized
+                // window in the list is the closest thing to "most
+                // recently minimized" (it was frontmost right before being
+                // minimized).
                 if let last = windows.first(where: \.minimized) {
                     AXUIElementSetAttributeValue(last.element, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
                 }
@@ -277,12 +279,12 @@ final class SidebarDockModel {
         }
     }
 
-    /// Ist die App schon vorne und hat mehrere Fenster: das naechste nach
-    /// vorne (`DockWindowCycle`). `false` = nichts gewechselt.
+    /// If the app is already frontmost and has several windows: bring the
+    /// next one forward (`DockWindowCycle`). `false` = nothing changed.
     private func cycleWindows(of entry: Entry) -> Bool {
         guard let front = NSWorkspace.shared.frontmostApplication else { return false }
         let isFront = front.bundleIdentifier == entry.bundleID
-        // Fensterliste nur, wenn es ueberhaupt in Frage kommt (AX-Aufruf).
+        // Only fetch the window list if it's actually relevant (AX call).
         let windows = isFront ? DockWindows.list(pid: front.processIdentifier).filter { !$0.minimized } : []
         guard let index = DockWindowCycle.indexToRaise(isFrontmost: isFront, visibleWindows: windows.count) else {
             return false
@@ -291,8 +293,8 @@ final class SidebarDockModel {
         return true
     }
 
-    /// Dateien auf das Symbol gezogen: mit dieser App oeffnen, wie im
-    /// Apple-Dock. Startet sie dafuer, wenn noetig.
+    /// Files dropped on the icon: open with this app, as in Apple's Dock.
+    /// Launches it for that if needed.
     func openFiles(_ urls: [URL], with entry: Entry) {
         let files = urls.filter(\.isFileURL)
         guard live, !files.isEmpty,
@@ -302,27 +304,27 @@ final class SidebarDockModel {
         configuration.activates = true
         NSWorkspace.shared.open(files, withApplicationAt: app, configuration: configuration) { [log] _, error in
             if let error {
-                log.error("Dock: Dateien nicht geoeffnet: \((error as NSError).code, privacy: .public)")
+                log.error("Dock: files not opened: \((error as NSError).code, privacy: .public)")
             }
         }
     }
 
-    /// Scrollen auf dem Symbol: laeuft die App, nach vorne bzw. - ist sie
-    /// schon vorne - ihr naechstes Fenster. Nicht laufende Apps startet
-    /// Scrollen nicht (versehentlich beim Vorbeiwischen).
+    /// Scrolling on the icon: if the app is running, bring it forward, or
+    /// - if it's already frontmost - its next window. Scrolling doesn't
+    /// launch apps that aren't running (accidentally while scrolling past).
     func scroll(_ entry: Entry) {
         guard live, runningApp(entry.bundleID) != nil else { return }
         if !cycleWindows(of: entry) { perform(entry, command: false, option: false) }
     }
 
-    // MARK: Anheften, Entfernen, Verschieben (schreibt Apples Dock-Liste)
+    // MARK: Pinning, removing, moving (writes Apple's Dock list)
 
-    /// In Apples Dock angeheftet - nicht nur oben als Dateimanager.
+    /// Pinned in Apple's Dock - not just at the top as the file manager.
     func isPinnedInDock(_ entry: Entry) -> Bool {
         entry.pinned && entry.bundleID != fileManagerID
     }
 
-    /// Der Dateimanager oben steht fest, wie Finder bei Apple.
+    /// The file manager at the top is fixed, like Finder in Apple's Dock.
     func canPin(_ entry: Entry) -> Bool {
         entry.bundleID != fileManagerID
     }
@@ -336,11 +338,11 @@ final class SidebarDockModel {
         }
     }
 
-    /// Symbol `source` auf `target` gezogen: nimmt dessen Platz ein (nach
-    /// unten gezogen dahinter, nach oben davor - wie beim Umsortieren im
-    /// Apple-Dock). Eine nur laufende App wird dabei angeheftet. Auf den
-    /// Dateimanager oben: an den Anfang; auf eine nur laufende App oder
-    /// `nil`: ans Ende der angehefteten.
+    /// Icon `source` dragged onto `target`: takes its spot (dragged down,
+    /// goes behind it; dragged up, goes before it - like reordering in
+    /// Apple's Dock). A merely-running app gets pinned in the process.
+    /// Onto the file manager at the top: goes to the front; onto a
+    /// merely-running app or `nil`: to the end of the pinned ones.
     func place(_ source: String, onto target: String?) {
         guard live, source != fileManagerID,
               let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: source)
@@ -364,10 +366,10 @@ final class SidebarDockModel {
         }
     }
 
-    /// Aendert "persistent-apps" in Apples Dock-Einstellung ueber
-    /// cfprefsd (nicht an der Datei vorbei, sonst saehe die Leiste den alten
-    /// Stand). Der ausgeblendete Dock selbst liest die Liste erst beim
-    /// naechsten Start (Anmelden) neu; bis dahin zaehlt die Leiste.
+    /// Changes "persistent-apps" in Apple's Dock setting via cfprefsd (not
+    /// bypassing the file, otherwise the bar would see the old state). The
+    /// hidden Dock itself only re-reads the list at the next login; until
+    /// then the bar is authoritative.
     private func writeTiles(_ change: ([Any]) -> [Any]) {
         CFPreferencesAppSynchronize(Self.dockDomain)
         let tiles = CFPreferencesCopyAppValue("persistent-apps" as CFString, Self.dockDomain) as? [Any] ?? []
@@ -377,9 +379,9 @@ final class SidebarDockModel {
         refresh()
     }
 
-    /// "In <Dateimanager> zeigen": markiert, wenn der gewaehlte Dateimanager
-    /// auch der Dateiviewer des Systems ist (NSFileViewer, nur gelesen);
-    /// sonst oeffnet er den enthaltenden Ordner (`ProviderFileManager.reveal`).
+    /// "Show in <file manager>": marked when the chosen file manager is
+    /// also the system's file viewer (NSFileViewer, only read); otherwise
+    /// it opens the containing folder (`ProviderFileManager.reveal`).
     func reveal(_ entry: Entry) {
         guard live, let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: entry.bundleID) else { return }
         let viewer = UserDefaults.standard.string(forKey: "NSFileViewer")
@@ -388,7 +390,7 @@ final class SidebarDockModel {
             NSWorkspace.shared.activateFileViewerSelecting([url])
         case .openFolder(let id):
             guard let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else {
-                // Eben deinstalliert: lieber im Systemviewer als gar nicht.
+                // Just uninstalled: better the system viewer than nothing.
                 NSWorkspace.shared.activateFileViewerSelecting([url])
                 return
             }
@@ -397,21 +399,22 @@ final class SidebarDockModel {
             NSWorkspace.shared.open([url.deletingLastPathComponent()], withApplicationAt: app,
                                     configuration: configuration) { [log] _, error in
                 if let error {
-                    log.error("Dock: Ordner nicht gezeigt: \((error as NSError).code, privacy: .public)")
+                    log.error("Dock: folder not shown: \((error as NSError).code, privacy: .public)")
                 }
             }
         }
     }
 
-    /// Fuer "In … zeigen" im Dock-Menue: der Dateimanager oben.
+    /// For "Show in ..." in the Dock menu: the file manager at the top.
     var fileManagerName: String {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: fileManagerID) else { return "Finder" }
         return FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
     }
 
-    /// Wie ein Klick im Apple-Dock: laeuft sie, nach vorne (ohne Fenster
-    /// macht die App ein neues auf), sonst starten - dann huepft das Symbol,
-    /// bis sie da ist (hoechstens 15 s, falls der Start scheitert).
+    /// Like a click in Apple's Dock: if it's running, bring it forward
+    /// (without a window, the app opens a new one), otherwise launch it -
+    /// then the icon bounces until it's there (at most 15 s, in case the
+    /// launch fails).
     private func open(_ entry: Entry) {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: entry.bundleID) else { return }
         if runningApp(entry.bundleID) == nil {
@@ -423,24 +426,24 @@ final class SidebarDockModel {
         configuration.activates = true
         NSWorkspace.shared.openApplication(at: url, configuration: configuration) { [log] _, error in
             if let error {
-                log.error("Dock: Start fehlgeschlagen: \((error as NSError).code, privacy: .public)")
+                log.error("Dock: launch failed: \((error as NSError).code, privacy: .public)")
             }
         }
     }
 
     private func activated(_ id: String?) {
-        // Nexus holt den Launcher selbst nach vorne; dann gilt weiter die App davor.
+        // Nexus brings the launcher forward itself; then the app before it still counts.
         guard let id, id != ownBundleID, id != frontmost else { return }
         frontmost = id
     }
 
     private func icon(for id: String, app: NSRunningApplication?, url: URL) -> NSImage {
         if let cached = icons[id] { return cached }
-        // Der Dateimanager oben steht fuer "den Dateimanager" und sieht
-        // deshalb aus wie ein gewoehnlicher Ordner - welche App es auch ist,
-        // ausser Finder mit seinem eigenen Gesicht. Nur hier in der Leiste,
-        // die App selbst bleibt unangetastet (sonst bricht ihre Signatur und
-        // das Selbst-Update).
+        // The file manager at the top stands for "the file manager" and
+        // therefore looks like an ordinary folder - whichever app it is,
+        // except Finder with its own face. Only here in the bar, the app
+        // itself stays untouched (otherwise its signature and self-update
+        // would break).
         let icon = id == fileManagerID && id != AppleDockPrefs.finder
             ? DockIconArt.folder
             : app?.icon ?? NSWorkspace.shared.icon(forFile: url.path)
@@ -449,15 +452,15 @@ final class SidebarDockModel {
     }
 }
 
-/// Eigenes Ordner-Symbol fuer den Dateimanager im Stil seiner App-Symbole.
+/// Custom folder icon for the file manager, in the style of its app icons.
 ///
-/// Er hat den Symbolstil "Klar" (hell): macOS rendert App-Symbole dann als
-/// graue Glas-Kachel mit hellem Motiv. Das allgemeine Ordner-Symbol
-/// (`icon(for: .folder)`) bekommt diesen Stil nicht und war gelb - "passt 0 %
-/// zu den restlichen" (14.09.). Deshalb nachgebaut: Werte aus der Bildprobe
-/// der echten Symbole gemessen (Kachel Grau 0,62 oben bis 0,57 unten, Motiv
-/// fast weiss), Kachel wie Apples App-Symbole 82 % der Flaeche mit 22,5 %
-/// Eckenradius. Vektor, also in jeder Aufloesung scharf.
+/// It has the "Clear" (light) icon style: macOS then renders app icons as
+/// a gray glass tile with a light-colored motif. The generic folder icon
+/// (`icon(for: .folder)`) doesn't get this style and was yellow - "0%
+/// match with the rest" (09-14). So it was rebuilt: values measured from a
+/// screenshot of the real icons (tile gray 0.62 at the top down to 0.57 at
+/// the bottom, motif near-white), tile like Apple's app icons at 82% of
+/// the area with a 22.5% corner radius. Vector, so sharp at any resolution.
 @MainActor
 enum DockIconArt {
     static let folder: NSImage = NSImage(size: NSSize(width: 128, height: 128), flipped: false) { rect in
@@ -466,7 +469,7 @@ enum DockIconArt {
         let shape = NSBezierPath(roundedRect: tile, xRadius: side * 0.225, yRadius: side * 0.225)
         NSGradient(starting: NSColor(white: 0.62, alpha: 1), ending: NSColor(white: 0.55, alpha: 1))?
             .draw(in: shape, angle: -90)
-        // Feine helle Kante wie das Glas der echten Kacheln.
+        // Fine light edge like the glass of the real tiles.
         NSColor(white: 1, alpha: 0.18).setStroke()
         shape.lineWidth = rect.width * 0.012
         shape.stroke()
@@ -483,17 +486,18 @@ enum DockIconArt {
     }
 }
 
-/// Die Symbole untereinander, mittig zwischen Spaces und Uhr. Passen nicht
-/// alle, laesst sich die Spalte scrollen (ohne Balken, wie das Apple-Dock
-/// stattdessen verkleinern wuerde - bei 44 pt Breite waere das zu klein).
+/// The icons stacked vertically, centered between spaces and the clock. If
+/// not all fit, the column can be scrolled (without a scrollbar, since
+/// Apple's Dock would instead shrink itself - at 44 pt width that would be
+/// too small).
 ///
-/// Nexus > Leiste > Dock: nur angeheftete zeigen, Symbolgroesse. Das filtert
-/// nur die Ansicht - das Modell liest weiter alles.
+/// Nexus > Bar > Dock: show pinned only, icon size. This only filters the
+/// view - the model still reads everything.
 struct SidebarDock: View {
     let model: SidebarDockModel
     var options = BarDockOptions()
-    /// Vorschau in Nexus: kein Hover, kein Klick, kein Menue, kein Ziehen -
-    /// dort soll nichts eine echte App starten, beenden oder anheften.
+    /// Preview in Nexus: no hover, no click, no menu, no dragging - nothing
+    /// there should really launch, quit or pin an app.
     @Environment(\.barPreview) private var preview
     @Environment(\.shellStyle) private var dockStyle
 
@@ -507,8 +511,8 @@ struct SidebarDock: View {
             ScrollView(.vertical, showsIndicators: false) {
                 column.padding(.vertical, 8)
             }
-            // Oben und unten weich ausblenden statt hart abschneiden
-            // (Apple: Scroll-Kante statt Trennlinie).
+            // Fade out softly at top and bottom instead of a hard cut
+            // (Apple: scroll edge instead of a divider line).
             .mask {
                 LinearGradient(
                     stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.04),
@@ -524,11 +528,11 @@ struct SidebarDock: View {
     private var column: some View {
         let entries = entries
         let split = entries.firstIndex { !$0.pinned }
-        // Mit Theme: `--apollo-dock-spacing` zwischen den Symbolen,
-        // `--apollo-dock-icon-size` fuer ihre Groesse.
+        // With theme: `--apollo-dock-spacing` between the icons,
+        // `--apollo-dock-icon-size` for their size.
         return VStack(spacing: dockStyle.dockSpacing(4)) {
             ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-                // Strich zwischen angehefteten und nur laufenden, wie im Apple-Dock.
+                // Divider between pinned and merely-running, as in Apple's Dock.
                 if index == split, index > 0 {
                     Capsule()
                         .fill(Color.primary.opacity(0.18))
@@ -550,22 +554,22 @@ struct SidebarDock: View {
                 )
             }
         }
-        // Volle Leistenbreite: sonst liegt die Spalte in der ScrollView am
-        // linken Rand, und die Laufend-Punkte (links ausserhalb des Symbols)
-        // werden abgeschnitten - Bildprobe 14.09.
+        // Full bar width: otherwise the column sits at the left edge
+        // within the ScrollView, and the running-indicator dots (outside
+        // the icon on the left) get cut off - screenshot from 09-14.
         .frame(maxWidth: .infinity)
     }
 }
 
-/// Ein App-Symbol: laufend mit Punkt am linken Rand (die Aussenseite, wie
-/// beim Apple-Dock am Bildschirmrand), im Vordergrund leicht hinterlegt,
-/// beim Ueberfahren wie die anderen Symbole der Leiste, gedrueckt dunkler.
-/// Maus-Logik (Klick, Halten, Rechtsklick) in `DockMouseCatcher`.
+/// An app icon: running with a dot on the left edge (the outer side, as in
+/// Apple's Dock at the screen edge), highlighted slightly when frontmost,
+/// hover like the bar's other icons, darker when pressed. Mouse logic
+/// (click, hold, right-click) is in `DockMouseCatcher`.
 private struct SidebarDockItem: View {
     let entry: SidebarDockModel.Entry
-    /// Kantenlaenge des Symbols (Nexus); der Knopf bleibt 32 x 32.
+    /// Edge length of the icon (Nexus); the button stays 32 x 32.
     let iconSize: CGFloat
-    /// Aus: nur Bild, ohne Maus-Ansichten (Vorschau in Nexus).
+    /// Off: image only, no mouse views (preview in Nexus).
     let interactive: Bool
     let active: Bool
     let launching: Bool
@@ -577,7 +581,7 @@ private struct SidebarDockItem: View {
     let onDropApp: (String) -> Void
     @State private var hovering = false
     @State private var pressed = false
-    /// Dateien werden gerade darueber gezogen: wie im Apple-Dock hervorheben.
+    /// Files are currently being dragged over it: highlight like in Apple's Dock.
     @State private var dropTarget = false
     @Environment(\.shellStyle) private var style
 
@@ -591,7 +595,7 @@ private struct SidebarDockItem: View {
             .modifier(DockBounce(active: launching))
             .frame(width: 32, height: 32)
             .background(Color.primary.opacity(hovering || dropTarget ? 0.14 : active ? 0.10 : 0), in: .rect(cornerRadius: 9))
-            // Zaehler wie in Apples Dock: rote Kapsel oben rechts.
+            // Counter like in Apple's Dock: red capsule at the top right.
             .overlay(alignment: .topTrailing) {
                 if let badge {
                     Text(badge)
@@ -611,7 +615,7 @@ private struct SidebarDockItem: View {
             .overlay(alignment: .leading) {
                 if entry.running {
                     Circle()
-                        // Mit Theme: `--apollo-dock-indicator-color`.
+                        // With theme: `--apollo-dock-indicator-color`.
                         .fill(style.paint(.dockIndicator, or: Color.primary.opacity(0.65)))
                         .frame(width: 4, height: 4)
                         .offset(x: -5)
@@ -627,7 +631,7 @@ private struct SidebarDockItem: View {
                     )
                 }
             }
-            // Nicht `onHover`: die Leiste gehoert einer nie aktiven App.
+            // Not `onHover`: the bar belongs to an app that's never active.
             .background {
                 if interactive { HoverTracker { hovering = $0 } }
             }
@@ -640,9 +644,10 @@ private struct SidebarDockItem: View {
     }
 }
 
-/// Huepfen beim Start wie im Apple-Dock - dort weg vom Bildschirmrand, hier
-/// also nach rechts. Nur solange gestartet wird: der Phasen-Animator laeuft
-/// sonst dauernd und kostet Rechenzeit. Hoch abbremsend, runter wie fallend.
+/// Bounces on launch like in Apple's Dock - there, away from the screen
+/// edge, here, so to the right. Only while launching: the phase animator
+/// otherwise keeps running and costs CPU time. Decelerating going up,
+/// like falling going down.
 private struct DockBounce: ViewModifier {
     let active: Bool
 

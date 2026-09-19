@@ -3,111 +3,111 @@ import ApolloShellCore
 import os
 import SwiftUI
 
-// Die Fenster des globalen Bearbeitungsmodus (design/2026-09-18-bento-
-// dashboard.md Abschnitt 4, design/2026-09-19-shell-edit-plan.md Task 3):
-// Scrim ueber jedem Bildschirm, eine schwebende Werkzeugleiste und eine
-// schwebende Galerie auf dem Bildschirm, auf dem der Modus begann. Dashboard
-// und Kontrollzentrum bleiben eigene Kantenfenster (`Dashboard`,
-// `UtilitiesPanel`) und pinnen sich ueber `ShellEditor.addBeginHandler`.
+// The windows of global edit mode (design/2026-09-18-bento-
+// dashboard.md section 4, design/2026-09-19-shell-edit-plan.md task 3):
+// a scrim over every screen, a floating toolbar and a floating gallery on
+// the screen where the mode began. Dashboard and Control Center remain
+// their own edge windows (`Dashboard`, `UtilitiesPanel`) and pin themselves
+// via `ShellEditor.addBeginHandler`.
 
-/// Ebenen der Modus-Fenster relativ zu den angepinnten Kantenfenstern
-/// (`EdgeDrawer` nutzt `.popUpMenu`, mit eigenem Scrim `.popUpMenu + 1` -
-/// nur das Sitzungsmenue hat einen). Der Scrim des Modus liegt knapp
-/// darunter, damit er Dashboard und Kontrollzentrum nicht abdunkelt;
-/// Werkzeugleiste und Galerie liegen darueber, damit sie ueber allem stehen.
+/// Levels of the mode windows relative to the pinned edge windows
+/// (`EdgeDrawer` uses `.popUpMenu`, with its own scrim `.popUpMenu + 1` -
+/// only the session menu has one). The mode's scrim sits just below that,
+/// so it doesn't dim the Dashboard and Control Center; the toolbar and
+/// gallery sit above, so they stand above everything.
 enum EditModeLevel {
     static let scrim = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue - 1)
     static let controls = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + 2)
 }
 
-/// Grundlage jedes Fensters des Bearbeitungsmodus: randlos, nicht
-/// aktivierend, auf allen Spaces, nicht im Fenstermenue, mit einer
-/// Nicht-Standard-Bedienungshilfen-Subrolle - so lassen Fenstermanager wie
-/// AeroSpace, yabai oder Amethyst es unberuehrt (sie kacheln, verschieben
-/// oder verstecken es nicht), siehe Abschnitt "Robustheit" der Spec und
-/// Task 6 (Debug-Log der tatsaechlichen Werte).
+/// Basis of every edit-mode window: borderless, non-activating, on all
+/// spaces, not in the window menu, with a non-standard accessibility
+/// subrole - this way window managers like AeroSpace, yabai or Amethyst
+/// leave it alone (they don't tile, move or hide it), see the "Robustness"
+/// section of the spec and task 6 (debug log of the actual values).
 class EditModePanel: ShellPanel {
     init(size: NSSize = .zero, level: NSWindow.Level, takesKeyboard: Bool = false) {
         super.init(
             size: size, level: level,
-            // Auf jedem Space, auch im Vollbild einer anderen App auf einem
-            // zweiten Bildschirm; `stationary` haelt es beim Wechsel des
-            // Space unter dem Zeiger stehen statt mitzuwandern;
-            // `ignoresCycle` nimmt es aus Cmd+Tab/Cmd+`.
+            // On every space, even in another app's fullscreen on a second
+            // screen; `stationary` keeps it under the pointer during a
+            // space switch instead of moving along; `ignoresCycle` takes it
+            // out of Cmd+Tab/Cmd+`.
             behavior: [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle],
             takesKeyboard: takesKeyboard, mayLeaveScreen: true
         )
-        // "Schwebendes Fenster" statt normales Dokumentfenster: die eigene
-        // Kategorie von Werkzeugpaletten, die die meisten Fenstermanager von
-        // ihrer Fensterverwaltung ausnehmen. AppKit setzt dabei selbst
-        // `self.level = .floating` (gemessen 19.09.: Scrim/Werkzeugleiste/
-        // Galerie landeten dadurch unter Menueleiste, Dock und den
-        // angepinnten Kantenfenstern) - die gewuenschte Ebene darum danach
-        // noch einmal setzen.
+        // "Floating window" instead of a normal document window: the
+        // dedicated category for tool palettes that most window managers
+        // exempt from their window management. AppKit itself sets
+        // `self.level = .floating` in the process (measured 09-19: scrim/
+        // toolbar/gallery ended up below the menu bar, Dock and the pinned
+        // edge windows because of this) - so set the desired level again
+        // afterward.
         isFloatingPanel = true
         self.level = level
-        // Keine Werkzeugpalette im Fenstermenue - dort sollen nur Dokumente
-        // der Nutzer-Apps stehen, nicht die eigene Bearbeitungsflaeche.
+        // No tool palette in the window menu - that should only list
+        // documents of user apps, not the shell's own editing surface.
         isExcludedFromWindowsMenu = true
-        // Nicht-Standard-Subrolle: Skripte/Erweiterungen, die per
-        // Bedienungshilfen nach "normalen" Fenstern suchen (viele
-        // Fenstermanager tun das), uebergehen es damit zusaetzlich zu Ebene
-        // und `collectionBehavior`.
+        // Non-standard subrole: scripts/extensions that search for
+        // "normal" windows via accessibility (many window managers do
+        // this) skip it as an additional safeguard beyond level and
+        // `collectionBehavior`.
         setAccessibilitySubrole(.unknown)
         Self.logCreation(level: self.level, behavior: collectionBehavior, subrole: accessibilitySubrole())
     }
 
-    /// Task 6: fuer den Live-Test mit AeroSpace/yabai/Amethyst - die
-    /// tatsaechlichen Werte, nicht nur die Absicht im Code. Nur DEBUG, nicht
-    /// mitausgeliefertes Verhalten (nur ein Log-Eintrag, `Logger` faellt in
-    /// Release-Bauten ohnehin weg). `level` ist hier immer `self.level` nach
-    /// `isFloatingPanel`, nie der Parameter aus `init` - sonst haette das Log
-    /// den fehlerhaften Stand vor der Korrektur oben gezeigt.
+    /// Task 6: for the live test with AeroSpace/yabai/Amethyst - the actual
+    /// values, not just the intent in the code. DEBUG only, not shipped
+    /// behavior (just one log entry, `Logger` is stripped in release
+    /// builds anyway). `level` here is always `self.level` after
+    /// `isFloatingPanel`, never the parameter from `init` - otherwise the
+    /// log would have shown the broken state before the fix above.
     #if DEBUG
     private static let log = Logger(category: "edit-mode-windows")
     private static func logCreation(level: NSWindow.Level, behavior: NSWindow.CollectionBehavior, subrole: NSAccessibility.Subrole?) {
-        log.debug("Fenster des Bearbeitungsmodus: Ebene \(level.rawValue, privacy: .public), Verhalten \(behavior.rawValue, privacy: .public), Subrolle \(subrole?.rawValue ?? "-", privacy: .public)")
+        log.debug("Edit mode window: level \(level.rawValue, privacy: .public), behavior \(behavior.rawValue, privacy: .public), subrole \(subrole?.rawValue ?? "-", privacy: .public)")
     }
     #else
     private static func logCreation(level: NSWindow.Level, behavior: NSWindow.CollectionBehavior, subrole: NSAccessibility.Subrole?) {}
     #endif
 }
 
-/// Baut ein Glas-Panel mit SwiftUI-Inhalt, mittig ueber einem Punkt auf dem
-/// Bildschirm platziert, und blendet es ein/aus. Gemeinsamer Code fuer
-/// Werkzeugleiste und Galerie - beide sind reine Inhalts-Panels ohne Kante,
-/// anders als `EdgeDrawer` (der klebt an einer Bildschirmkante und hat einen
-/// Radius-Ueberhang).
+/// Builds a glass panel with SwiftUI content, placed centered over a point
+/// on the screen, and fades it in/out. Shared code for the toolbar and the
+/// gallery - both are pure content panels without an edge, unlike
+/// `EdgeDrawer` (which sticks to a screen edge and has a radius overhang).
 @MainActor
 final class FloatingGlassPanel<Content: View> {
     private let panel: EditModePanel
     private let glass: NSGlassEffectView
     private let hosting: FirstMouseHostingView<AnyView>
     private var panelLayer: CAGradientLayer?
-    /// Wie `EdgeDrawer.generation`: ein schnelles Aus-dann-wieder-Ein (Modus
-    /// verlassen, sofort neu begonnen) darf das verspaetete `orderOut` des
-    /// alten `hide()` nicht mehr treffen - sonst verschwindet das gerade neu
-    /// gezeigte Panel wieder, sobald die alte Ausblend-Animation fertig wird.
+    /// Like `EdgeDrawer.generation`: a quick hide-then-show-again (leaving
+    /// the mode, immediately starting it again) must not be hit by the
+    /// delayed `orderOut` of the old `hide()` - otherwise the panel that
+    /// was just shown again disappears once the old fade-out animation
+    /// finishes.
     private var generation = 0
 
     init(cornerRadius: CGFloat, takesKeyboard: Bool, level: NSWindow.Level, @ViewBuilder content: @escaping () -> Content) {
         panel = EditModePanel(level: level, takesKeyboard: takesKeyboard)
         let glass = NSGlassEffectView()
         glass.cornerRadius = cornerRadius
-        // `FirstMouseHostingView` wie Leiste, Toasts und Kantenfenster: das
-        // Panel wird nie Schluesselfenster (`takesKeyboard: false`), und ein
-        // normales `NSHostingView` verschluckt dann den ersten Klick - bei
-        // einem Fenster, das nie Schluessel wird, praktisch jeden. Knoepfe
-        // der Werkzeugleiste und das Ziehen aus der Galerie reagierten sonst
-        // nicht (Live-Test 19.09.).
+        // `FirstMouseHostingView` like the bar, toasts and edge windows:
+        // the panel never becomes the key window (`takesKeyboard: false`),
+        // and a normal `NSHostingView` swallows the first click in that
+        // case - for a window that never becomes key, practically every
+        // click. Toolbar buttons and dragging from the gallery otherwise
+        // didn't react (live test 09-19).
         let hosting = FirstMouseHostingView(rootView: AnyView(content().shellTheme()))
         hosting.sizingOptions = [.intrinsicContentSize]
-        // Hosting in einem eigenen Container, wie bei den Kantenfenstern
-        // (`EdgeDrawer.makePanel`): `ThemedGlass` legt die Theme-Flaeche in
-        // den `contentView` des Glases. War das direkt der Hosting-View, lag
-        // die Farbflaeche in dessen Ebenen UEBER dem SwiftUI-Inhalt -
-        // Werkzeugleiste und Galerie erschienen mit Theme leer (Live-Test
-        // 19.09.; Bildproben und Selbsttest laufen ohne Theme).
+        // Hosting in its own container, as with the edge windows
+        // (`EdgeDrawer.makePanel`): `ThemedGlass` places the theme surface
+        // in the glass's `contentView`. If that were the hosting view
+        // directly, the color surface would sit in its layers ABOVE the
+        // SwiftUI content - toolbar and gallery appeared empty with the
+        // theme applied (live test 09-19; screenshots and the self-test
+        // run without a theme).
         let content = NSView()
         hosting.autoresizingMask = [.width, .height]
         content.addSubview(hosting)
@@ -118,9 +118,9 @@ final class FloatingGlassPanel<Content: View> {
         panelLayer = ThemedGlass.apply(to: glass, fallbackRadius: cornerRadius)
     }
 
-    /// Zeigt das Panel mittig ueber `point` auf `screen` (Fenster-Koordinaten,
-    /// y nach oben), nach oben verschoben um `raise` (die Werkzeugleiste
-    /// weicht so dem Kontrollzentrum-Panel aus).
+    /// Shows the panel centered over `point` on `screen` (window
+    /// coordinates, y upward), shifted up by `raise` (this way the toolbar
+    /// gets out of the way of the Control Center panel).
     func show(on screen: NSScreen, centeredAt point: NSPoint, raise: CGFloat = 0) {
         generation += 1
         panelLayer = ThemedGlass.apply(to: glass, fallbackRadius: panel.contentView == nil ? 0 : glass.cornerRadius, previous: panelLayer)
@@ -140,9 +140,9 @@ final class FloatingGlassPanel<Content: View> {
         }
     }
 
-    /// Erneut messen und platzieren, wenn sich der Inhalt geaendert hat
-    /// (Galerie-Reiter gewechselt, Werkzeugleiste soll dem Kontrollzentrum
-    /// ausweichen) - ohne Ein-/Ausblenden.
+    /// Re-measure and reposition if the content has changed (gallery tab
+    /// switched, toolbar should get out of the way of the Control Center)
+    /// - without fading in/out.
     func reposition(on screen: NSScreen, centeredAt point: NSPoint, raise: CGFloat = 0) {
         guard panel.isVisible else { return }
         hosting.layoutSubtreeIfNeeded()
@@ -173,9 +173,9 @@ final class FloatingGlassPanel<Content: View> {
     var level: Int { panel.level.rawValue }
 
     #if DEBUG
-    /// Selbsttest: ein Klick (Druecken, Loslassen) direkt an dieses Fenster,
-    /// `point` in Fensterkoordinaten von oben links - nicht ueber das System,
-    /// die echte Maus bleibt unberuehrt.
+    /// Self-test: a click (press, release) sent directly to this window,
+    /// `point` in window coordinates from the top left - not routed through
+    /// the system, the real mouse stays untouched.
     func debugClick(fromTopLeft point: NSPoint) {
         let location = NSPoint(x: point.x, y: panel.frame.height - point.y)
         for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
@@ -188,18 +188,18 @@ final class FloatingGlassPanel<Content: View> {
     }
     #endif
 
-    /// Gemessene Groesse des Inhalts (fuer das Platzieren vor dem Zeigen).
+    /// Measured size of the content (for placement before showing).
     var size: NSSize {
         hosting.layoutSubtreeIfNeeded()
         return hosting.fittingSize
     }
 }
 
-/// Abdunkelung eines einzelnen Bildschirms waehrend der Bearbeitung: knapp
-/// 35% Schwarz vor leichter Weichzeichnung (`.hudWindow`, dunkel und dezent
-/// wie macOS' eigene HUD-Paletten). Ein Klick waehlt nur ab - anders als
-/// `ScrimWindow` (Kantenfenster) beendet er den Modus nie, siehe Abschnitt 4:
-/// "clicks on the scrim only clear the selection".
+/// Dimming of a single screen during editing: about 35% black over a
+/// light blur (`.hudWindow`, dark and subdued like macOS's own HUD
+/// palettes). A click only clears the selection - unlike `ScrimWindow`
+/// (edge window) it never ends the mode, see section 4: "clicks on the
+/// scrim only clear the selection".
 final class EditModeScrimView: NSView {
     var onClick: () -> Void = {}
 
@@ -219,7 +219,7 @@ final class EditModeScrimView: NSView {
         addSubview(dim)
     }
 
-    required init?(coder: NSCoder) { fatalError("nicht benutzt") }
+    required init?(coder: NSCoder) { fatalError("not used") }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     override func mouseDown(with event: NSEvent) { onClick() }
@@ -229,7 +229,7 @@ final class EditModeScrimView: NSView {
 final class EditModeScrimPanel {
     private let panel: EditModePanel
     private let view: EditModeScrimView
-    /// Siehe `FloatingGlassPanel.generation`.
+    /// See `FloatingGlassPanel.generation`.
     private var generation = 0
 
     var onClick: () -> Void {
@@ -247,7 +247,7 @@ final class EditModeScrimPanel {
     var level: Int { panel.level.rawValue }
 
     #if DEBUG
-    /// Selbsttest: Klick in die Mitte des Schleiers.
+    /// Self-test: click in the center of the scrim.
     func debugClickCenter() {
         let location = NSPoint(x: panel.frame.width / 2, y: panel.frame.height / 2)
         for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
@@ -292,11 +292,10 @@ final class EditModeScrimPanel {
     }
 }
 
-/// Haelt fuer jeden Bildschirm ein `EditModeScrimPanel`, eine Werkzeugleiste
-/// und eine Galerie auf dem Bildschirm, auf dem der Modus begann. Meldet sich
-/// bei `ShellEditor` an (`addBeginHandler`/`addEndHandler`) und beobachtet
-/// `editor.galleryVisible`, um die Galerie ohne eigenen Rueckruf zu zeigen
-/// oder zu verstecken.
+/// Holds an `EditModeScrimPanel` for every screen, a toolbar and a gallery
+/// on the screen where the mode began. Registers with `ShellEditor`
+/// (`addBeginHandler`/`addEndHandler`) and observes `editor.galleryVisible`
+/// to show or hide the gallery without callers needing their own callback.
 @MainActor
 final class EditModeWindows {
     private let editor: ShellEditor
@@ -304,21 +303,21 @@ final class EditModeWindows {
     private var toolbar: FloatingGlassPanel<EditToolbarView>?
     private var gallery: FloatingGlassPanel<EditGalleryView>?
     private var editScreen: NSScreen?
-    /// Rahmen der angepinnten Panels auf dem Bearbeitungs-Bildschirm (`nil`,
-    /// solange zu). Werkzeugleiste und Galerie richten sich danach: die
-    /// Galerie unter dem Dashboard statt mitten darueber, die Werkzeugleiste
-    /// ueber dem Kontrollzentrum nur, wenn sie es waagrecht wirklich
-    /// ueberdecken wuerde. Vorher: Galerie immer in der Bildschirmmitte (auf
-    /// 14 Zoll ueber dem unteren Drittel des Dashboards) und Werkzeugleiste
-    /// immer um die ganze Panelhoehe hoch (bis an das Dashboard heran),
-    /// obwohl das Kontrollzentrum rechts sitzt.
+    /// Frame of the pinned panels on the editing screen (`nil` while
+    /// closed). The toolbar and gallery orient themselves by it: the
+    /// gallery under the dashboard instead of right on top of it, the
+    /// toolbar above the Control Center only if it would really overlap it
+    /// horizontally. Before: the gallery was always in the screen center
+    /// (on a 14-inch display, over the bottom third of the dashboard) and
+    /// the toolbar was always raised by the full panel height (right up to
+    /// the dashboard), even though the Control Center sits on the right.
     var dashboardFrame: () -> NSRect? = { nil }
     var utilitiesFrame: () -> NSRect? = { nil }
     private var galleryObservation: Task<Void, Never>?
-    /// Werkzeugleiste ("Änderungen verwerfen?" statt der drei Knoepfe) und
-    /// Galerie (Hinweis "Kein Platz auf dieser Seite") aendern ihre Groesse,
-    /// ohne ein-/auszublenden - ohne eigene Neuvermessung blieb der Text
-    /// abgeschnitten (gemessen 19.09.).
+    /// The toolbar ("Discard changes?" instead of the three buttons) and
+    /// gallery (notice "No room on this page") change their size without
+    /// fading in/out - without their own re-measurement the text stayed
+    /// cut off (measured 09-19).
     private var toolbarSizeObservation: Task<Void, Never>?
     private var galleryNoticeObservation: Task<Void, Never>?
 
@@ -328,26 +327,26 @@ final class EditModeWindows {
         editor.addEndHandler { [weak self] in self?.end() }
     }
 
-    /// Task 6: die vorgesehene Reihenfolge der Ebenen als DEBUG-Pruefung, nicht
-    /// nur als Kommentar - normale Fenster < Seitenleiste (`.floating`) <
-    /// Scrim < angepinnte Kantenfenster (`EdgeDrawer`, `.popUpMenu`/+1) <
-    /// Werkzeugleiste/Galerie, und der Scrim ueber Menueleiste und Dock.
-    /// Bricht in Debug-Bauten sofort, statt das erst im Live-Test mit
-    /// AeroSpace/yabai/Amethyst zu bemerken.
+    /// Task 6: the intended order of the levels as a DEBUG check, not just
+    /// a comment - normal windows < sidebar (`.floating`) < scrim <
+    /// pinned edge windows (`EdgeDrawer`, `.popUpMenu`/+1) <
+    /// toolbar/gallery, and the scrim above the menu bar and Dock. Fails
+    /// immediately in debug builds instead of only being noticed later in
+    /// a live test with AeroSpace/yabai/Amethyst.
     #if DEBUG
     private static let stackingLog = Logger(category: "edit-mode-windows")
     private static func assertStackingOrder() {
         assert(EditModeLevel.scrim.rawValue > NSWindow.Level.mainMenu.rawValue,
-               "Scrim muss ueber Menueleiste und Dock liegen")
+               "Scrim must be above the menu bar and Dock")
         assert(EditModeLevel.scrim.rawValue < NSWindow.Level.popUpMenu.rawValue,
-               "Scrim muss unter den angepinnten Kantenfenstern liegen")
+               "Scrim must be below the pinned edge windows")
         assert(EditModeLevel.controls.rawValue > NSWindow.Level.popUpMenu.rawValue + 1,
-               "Werkzeugleiste/Galerie muessen ueber den angepinnten Kantenfenstern liegen")
+               "Toolbar/gallery must be above the pinned edge windows")
         stackingLog.debug("""
-            Ebenen des Bearbeitungsmodus: Seitenleiste \(NSWindow.Level.floating.rawValue, privacy: .public), \
-            Scrim \(EditModeLevel.scrim.rawValue, privacy: .public), \
-            Kantenfenster \(NSWindow.Level.popUpMenu.rawValue, privacy: .public)/+1, \
-            Werkzeugleiste/Galerie \(EditModeLevel.controls.rawValue, privacy: .public)
+            Edit mode levels: sidebar \(NSWindow.Level.floating.rawValue, privacy: .public), \
+            scrim \(EditModeLevel.scrim.rawValue, privacy: .public), \
+            edge windows \(NSWindow.Level.popUpMenu.rawValue, privacy: .public)/+1, \
+            toolbar/gallery \(EditModeLevel.controls.rawValue, privacy: .public)
             """)
     }
     #else
@@ -361,8 +360,8 @@ final class EditModeWindows {
             let scrim = scrims[ObjectIdentifier(candidate)] ?? {
                 let panel = EditModeScrimPanel()
                 panel.onClick = { [weak self] in
-                    // Klick daneben: jede Auswahl (und damit jedes offene
-                    // Optionen-Popover) weg, in beiden Panels.
+                    // Click elsewhere: clear every selection (and thus any
+                    // open options popover), in both panels.
                     self?.editor.dashboard.selectedWidgetID = nil
                     self?.editor.selectedToggleID = nil
                     self?.editor.dashboard.renamingPageID = nil
@@ -388,10 +387,11 @@ final class EditModeWindows {
         }()
         placeToolbar(toolbar, on: screen)
         placeGallery(gallery, on: screen)
-        // Die Hoerer von Dashboard und Kontrollzentrum laufen im selben
-        // `begin` - je nach Reihenfolge erst nach diesem hier. Ihre Rahmen
-        // stehen nach dem Oeffnen sofort fest (die Bewegung ist nur eine
-        // Ebenen-Verschiebung), also einen Umlauf spaeter neu platzieren.
+        // The Dashboard's and Control Center's listeners run in the same
+        // `begin` - depending on order, sometimes only after this one.
+        // Their frames are settled immediately after opening (the
+        // movement is just a level shift), so reposition again one cycle
+        // later.
         DispatchQueue.main.async { [weak self] in
             self?.repositionToolbar()
             self?.repositionGallery()
@@ -418,8 +418,8 @@ final class EditModeWindows {
         editScreen = nil
     }
 
-    /// Reagiert auf `editor.galleryVisible` (Werkzeugleiste, Task 4-Popover-
-    /// Esc), ohne dass jeder Aufrufer die Fenster selbst kennen muss.
+    /// Reacts to `editor.galleryVisible` (toolbar, task 4 popover Esc),
+    /// without every caller needing to know the windows themselves.
     private func observeGallery() {
         galleryObservation?.cancel()
         galleryObservation = Task { [weak self] in
@@ -435,9 +435,9 @@ final class EditModeWindows {
         }
     }
 
-    /// Werkzeugleiste neu vermessen, sobald `editor.pendingCancelConfirmation`
-    /// kippt (Task 6: "Änderungen verwerfen?" statt der drei Knoepfe ist
-    /// breiter/anders hoch).
+    /// Re-measure the toolbar as soon as `editor.pendingCancelConfirmation`
+    /// flips (task 6: "Discard changes?" instead of the three buttons is
+    /// wider/a different height).
     private func observeToolbarSize() {
         toolbarSizeObservation?.cancel()
         toolbarSizeObservation = Task { [weak self] in
@@ -448,9 +448,9 @@ final class EditModeWindows {
         }
     }
 
-    /// Galerie neu vermessen, sobald `editor.galleryNotice` erscheint oder
-    /// verschwindet (Task 3: der Hinweis "Kein Platz auf dieser Seite"
-    /// braucht mehr Hoehe als das Raster allein).
+    /// Re-measure the gallery as soon as `editor.galleryNotice` appears or
+    /// disappears (task 3: the "No room on this page" notice needs more
+    /// height than the grid alone).
     private func observeGalleryNotice() {
         galleryNoticeObservation?.cancel()
         galleryNoticeObservation = Task { [weak self] in
@@ -461,8 +461,8 @@ final class EditModeWindows {
         }
     }
 
-    /// Regler der Werkzeugleiste: das Dashboard aendert seine Groesse, die
-    /// Galerie rutscht einen Umlauf spaeter mit (unter die neue Unterkante).
+    /// Toolbar slider: the dashboard changes its size, the gallery follows
+    /// one cycle later (under the new bottom edge).
     private var dashboardScaleObservation: Task<Void, Never>?
     private func observeDashboardScale() {
         dashboardScaleObservation?.cancel()
@@ -484,8 +484,8 @@ final class EditModeWindows {
         gallery.reposition(on: screen, centeredAt: galleryCenter(on: screen))
     }
 
-    /// Unten mittig; ueberdeckt das Kontrollzentrum sie dort (schmaler
-    /// Bildschirm), dann knapp ueber dessen Oberkante.
+    /// Bottom center; if it would overlap the Control Center there
+    /// (narrow screen), just above its top edge instead.
     private func toolbarCenter(on screen: NSScreen, size: NSSize) -> NSPoint {
         let bottom = screen.visibleFrame.minY + 20
         var center = NSPoint(x: screen.frame.midX, y: bottom + size.height / 2)
@@ -496,10 +496,10 @@ final class EditModeWindows {
         return center
     }
 
-    /// Vom Kontrollzentrum-Panel (`UtilitiesPanel.onHeightChange`): waechst
-    /// oder schrumpft es waehrend der Bearbeitung (Karte aus/an, Knopf
-    /// hinzu/weg), weicht die Werkzeugleiste sofort neu aus statt erst beim
-    /// naechsten Bildschirmwechsel.
+    /// From the Control Center panel (`UtilitiesPanel.onHeightChange`): if
+    /// it grows or shrinks during editing (card off/on, button added/
+    /// removed), the toolbar immediately gets out of the way instead of
+    /// only on the next screen change.
     func utilitiesHeightChanged() {
         guard editor.isEditing else { return }
         repositionToolbar()
@@ -509,17 +509,17 @@ final class EditModeWindows {
         toolbar.show(on: screen, centeredAt: toolbarCenter(on: screen, size: toolbar.size))
     }
 
-    /// Nur messen/platzieren, nicht einblenden - das uebernimmt
-    /// `editor.galleryVisible` ueber `observeGallery()`.
+    /// Only measure/place, don't show it - `editor.galleryVisible` handles
+    /// that via `observeGallery()`.
     private func placeGallery(_ gallery: FloatingGlassPanel<EditGalleryView>, on screen: NSScreen) {
         gallery.reposition(on: screen, centeredAt: galleryCenter(on: screen))
     }
 
-    /// Mittig zwischen Unterkante des Dashboards und Werkzeugleiste; ohne
-    /// offenes Dashboard in der Bildschirmmitte. Passt sie dort nicht ganz
-    /// hin (kleiner Bildschirm), bleibt sie wenigstens unter dem Dashboard.
+    /// Centered between the bottom edge of the dashboard and the toolbar;
+    /// in the screen center if no dashboard is open. If it doesn't quite
+    /// fit there (small screen), it stays at least under the dashboard.
     #if DEBUG
-    /// Fuer `EditModeSelfTest`: was gerade wirklich auf dem Bildschirm steht.
+    /// For `EditModeSelfTest`: what's actually on the screen right now.
     var debugVisibleScrims: Int { scrims.values.filter(\.isVisible).count }
     var debugToolbarFrame: NSRect? { toolbar.flatMap { $0.isVisible ? $0.frame : nil } }
     var debugGalleryFrame: NSRect? { gallery.flatMap { $0.isVisible ? $0.frame : nil } }
@@ -540,11 +540,11 @@ final class EditModeWindows {
         let top = min(dashboard.minY, visible.maxY) - 16
         let bottom = visible.minY + 20 + (toolbar?.size.height ?? 56) + 16
         let height = gallery?.size.height ?? 380
-        // Genug Platz unter dem Dashboard: mittig dort. Sonst (grosser
-        // Massstab, gemessen bei 150 %: Galerie rutschte unter den Rand und
-        // ueber die Werkzeugleiste) direkt ueber der Werkzeugleiste - sie
-        // ueberdeckt dann den unteren Teil des Dashboards, das geht bei
-        // dieser Groesse nicht anders; „+“ blendet sie wieder aus.
+        // Enough room under the dashboard: center it there. Otherwise
+        // (large scale, measured at 150%: the gallery slid under the edge
+        // and over the toolbar) directly above the toolbar - it then
+        // covers the bottom part of the dashboard, which can't be avoided
+        // at that size; "+" hides it again.
         let centerY = top - bottom >= height ? (top + bottom) / 2 : bottom + height / 2
         return NSPoint(x: visible.midX, y: centerY)
     }

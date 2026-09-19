@@ -2,25 +2,25 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-// MARK: - Seite
+// MARK: - Page
 
-/// Nexus > Leiste (Caelestia: Panels > Taskbar): die Leiste als Baukasten.
-/// Links die Bausteine von oben nach unten - ziehen zum Umsortieren,
-/// Optionen zum Aufklappen, "Hinzufuegen" mit Galerie, Vorlagen -, rechts die
-/// echte Leiste (`SidebarContent`) mit Vorschau-Modellen, verkleinert. Jede
-/// Aenderung gilt sofort in der Leiste und landet in settings.json.
+/// Nexus > Bar (Caelestia: Panels > Taskbar): the bar as a building-block
+/// kit. On the left the blocks from top to bottom - drag to reorder, an
+/// options disclosure, "Add" with a gallery, presets -, on the right the
+/// real bar (`SidebarContent`) with preview models, scaled down. Every
+/// change applies to the bar right away and lands in settings.json.
 struct NexusBarPage: View {
     @Bindable var store: ShellSettingsStore
-    /// Orte fuer den Wetter-Baustein der Leiste (weather.json) - seit dem
-    /// globalen Bearbeitungsmodus hier statt auf einer eigenen Dashboard-
-    /// Seite; sie sind zugleich die Vorgabe fuer neue Wetter-Widgets.
+    /// Locations for the bar's weather block (weather.json) - here since
+    /// the global edit mode instead of on its own Dashboard page; they are
+    /// also the default for new weather widgets.
     var weather: NexusWeatherModel?
     @State private var showsGallery = false
     @State private var pending: LayoutPresetReplacement<BarPreset>?
-    /// Aufgeklappte Zeilen nach Kennung: bleiben beim Umsortieren offen.
+    /// Expanded rows by identifier: stay open while reordering.
     @State private var expanded: Set<String> = []
 
-    /// `expanded`: schon aufgeklappte Zeilen (Bildprobe).
+    /// `expanded`: rows already expanded (for screenshots).
     init(store: ShellSettingsStore, weather: NexusWeatherModel? = nil, expanded: Set<String> = []) {
         _store = Bindable(store)
         self.weather = weather
@@ -88,8 +88,8 @@ struct NexusBarPage: View {
         })
     }
 
-    /// Aus der Galerie: an die uebliche Stelle, mit Optionen gleich
-    /// aufgeklappt - beim App-Knopf muss man ja noch die App waehlen.
+    /// From the gallery: to the usual spot, with options already expanded -
+    /// for the app button one still has to choose the app.
     private func add(_ kind: BarModuleKind) {
         showsGallery = false
         if let id = store.settings.bar.layout.add(kind), BarModule(kind).hasOptions {
@@ -98,19 +98,19 @@ struct NexusBarPage: View {
     }
 }
 
-// MARK: - Bildschirme
+// MARK: - Screens
 
-/// Nexus > Leiste > Bildschirme: auf welchen Bildschirmen die Leiste steht.
+/// Nexus > Bar > Screens: which screens the bar stands on.
 ///
-/// Ein einzelner Bildschirm wird ueber einen stabilen Schluessel gemerkt
-/// (Name plus Aufloesung, siehe `ScreenInfo.key`) - eine Display-Kennung
-/// vergibt macOS beim Anstecken neu und waere nach dem naechsten Mal ein
-/// anderer Bildschirm. Ist der gemerkte nicht angeschlossen, steht die Leiste
-/// auf dem Hauptbildschirm; in der Liste bleibt er trotzdem stehen, sonst
-/// zeigte die Auswahl auf nichts und sie waere beim naechsten Anstecken weg.
+/// A single screen is remembered via a stable key (name plus resolution,
+/// see `ScreenInfo.key`) - macOS reassigns a display identifier on every
+/// connect, so it would be a different screen the next time. If the
+/// remembered one is not connected, the bar stands on the main display; it
+/// still stays in the list, otherwise the selection would point at nothing
+/// and would be gone the next time it gets connected.
 private struct NexusBarScreensSection: View {
     @Bindable var store: ShellSettingsStore
-    /// Angeschlossene Bildschirme, beim Erscheinen der Seite gelesen.
+    /// Connected screens, read when the page appears.
     @State private var screens: [ScreenInfo] = []
 
     var body: some View {
@@ -137,15 +137,15 @@ private struct NexusBarScreensSection: View {
         .task { reload() }
     }
 
-    /// Gleiche Schluessel zusammenfassen: zwei baugleiche Bildschirme sind
-    /// fuer die Einstellung nicht zu unterscheiden (dann gilt der erste), und
-    /// zwei Zeilen mit derselben Kennung braechten die Liste durcheinander.
+    /// Merge identical keys: two identical screens cannot be told apart for
+    /// this setting (the first one then applies), and two rows with the
+    /// same identifier would confuse the list.
     private func reload() {
         var seen: Set<String> = []
         screens = ShellScreens.current().map(\.info).filter { seen.insert($0.key).inserted }
     }
 
-    /// Der gemerkte Bildschirm, wenn er gerade nicht angeschlossen ist.
+    /// The remembered screen, if it is currently not connected.
     private var missing: String? {
         guard case .single(let key) = store.settings.bar.screens,
               !screens.contains(where: { $0.key == key })
@@ -154,15 +154,14 @@ private struct NexusBarScreensSection: View {
     }
 }
 
-// MARK: - Hintergrund
+// MARK: - Background
 
-/// Nexus > Leiste > Hintergrund: womit die Leiste und ihre Beule hinterlegt
-/// sind.
+/// Nexus > Bar > Background: what the bar and its notch are backed with.
 ///
-/// Zur Wahl, weil Liquid Glass sich nach dem richtet, was dahinter liegt, und
-/// sich nicht davon abbringen laesst - die Gruende und die Belege stehen bei
-/// `BarBackground`. Die Eintraege unterscheiden sich sichtbar, damit man sie
-/// am lebenden Schreibtisch vergleichen kann; Vorgabe bleibt Material.
+/// Offered as a choice because Liquid Glass follows whatever lies behind it
+/// and cannot be talked out of that - the reasons and the evidence are in
+/// `BarBackground`. The entries differ visibly so they can be compared on a
+/// live desktop; the default stays Material.
 private struct NexusBarBackgroundSection: View {
     @Bindable var store: ShellSettingsStore
 
@@ -206,11 +205,11 @@ private struct NexusBarBackgroundSection: View {
     }
 }
 
-// MARK: - Zeile
+// MARK: - Row
 
-/// Kachel, Name, eine Zeile Zusammenfassung, Entfernen, Griff. Mit Optionen
-/// als aufklappbare Gruppe. Kontextmenue "Nach oben/unten" fuer alle, die
-/// nicht ziehen wollen oder koennen; dasselbe als Bedienungshilfen-Aktion.
+/// Tile, name, a one-line summary, remove, handle. With options as an
+/// expandable group. Context menu "Move Up/Down" for anyone who does not
+/// want to or cannot drag; the same as an accessibility action.
 private struct NexusBarRow: View {
     @Bindable var store: ShellSettingsStore
     let entry: BarEntry
@@ -227,10 +226,10 @@ private struct NexusBarRow: View {
                     label
                 }
             } else {
-                // So weit eingerueckt, wie die Gruppe fuer ihren Pfeil
-                // einrueckt (Bildprobe 14.09., macOS 26: links 11,5 pt,
-                // rechts 4 pt) - sonst stuenden Kacheln und Entfernen-Knoepfe
-                // der Zeilen mit und ohne Optionen versetzt.
+                // Indented as far as the group indents for its arrow
+                // (screenshot 09/14, macOS 26: 11.5 pt left, 4 pt right) -
+                // otherwise the tiles and remove buttons of rows with and
+                // without options would be offset from each other.
                 label
                     .padding(.leading, 11.5)
                     .padding(.trailing, 4)
@@ -283,8 +282,8 @@ private struct NexusBarRow: View {
     }
 }
 
-/// Die Optionen eines Bausteins. Jede Aenderung ersetzt die Optionen dieses
-/// einen Eintrags (`BarLayout.update`) - die Art bleibt dabei dieselbe.
+/// The options of a building block. Every change replaces the options of
+/// this one entry (`BarLayout.update`) - the kind stays the same.
 private struct NexusBarOptions: View {
     @Bindable var store: ShellSettingsStore
     let entry: BarEntry
@@ -319,10 +318,10 @@ private struct NexusBarOptions: View {
             NexusToggle(title: "Battery", subtitle: "Only on Macs with a battery", isOn: options.showBattery)
         case .gap:
             let options = binding(\.gap, BarModule.gap, fallback: BarGapOptions())
-            // Stepper statt Schieber: jeder Schritt schreibt settings.json,
-            // ein Schieber taete das bei jeder Mausbewegung.
+            // Stepper instead of a slider: each step writes settings.json,
+            // a slider would do that on every mouse movement.
             Stepper(value: options.height, in: BarGapOptions.range, step: 4) {
-                LabeledContent("Höhe", value: "\(Int(options.wrappedValue.height)) pt")
+                LabeledContent("Height", value: "\(Int(options.wrappedValue.height)) pt")
             }
         case .appButton(let app):
             NexusAppChoiceRow(bundleID: app.bundleID) { id in
@@ -347,8 +346,8 @@ private struct NexusBarOptions: View {
         }
     }
 
-    /// Bindung an die Optionen dieses Eintrags: lesen ueber den Zugriff der
-    /// Art (`\.clock`), schreiben als neuer Baustein derselben Art.
+    /// Binding to the options of this entry: read via the kind's accessor
+    /// (`\.clock`), write as a new building block of the same kind.
     private func binding<T: Sendable>(
         _ read: @escaping @Sendable (BarModule) -> T?,
         _ make: @escaping @Sendable (T) -> BarModule,
@@ -364,10 +363,10 @@ private struct NexusBarOptions: View {
     }
 }
 
-/// Unterzeilen der Liste: was der Baustein gerade zeigt.
+/// Subtitles of the list: what the building block currently shows.
 @MainActor
 enum NexusBarText {
-    /// Titel der Vorlagen-Rueckfrage.
+    /// Title of the preset confirmation prompt.
     static func replacementTitle(_ replacement: LayoutPresetReplacement<BarPreset>) -> String {
         switch replacement {
         case .preset(let preset): String(localized: "Load preset “\(preset.title)”?")
@@ -375,7 +374,7 @@ enum NexusBarText {
         }
     }
 
-    /// Erklaerung der Vorlagen-Rueckfrage.
+    /// Explanation of the preset confirmation prompt.
     static func replacementMessage(_ replacement: LayoutPresetReplacement<BarPreset>) -> String {
         switch replacement {
         case .preset(let preset): String(localized: "\(preset.summary) The current arrangement will be replaced.")
@@ -427,10 +426,10 @@ enum NexusBarText {
     }
 }
 
-// MARK: - Galerie
+// MARK: - Gallery
 
-/// Hinter "Hinzufuegen": jede Art mit Symbol, Name und einer Zeile. Ein
-/// Klick fuegt sie ein; was es nur einmal gibt und schon da ist, bleibt grau.
+/// Behind "Add": every kind with a symbol, name, and one line. A click adds
+/// it; whatever only exists once and is already there stays gray.
 struct NexusBarGallery: View {
     let layout: BarLayout
     let onAdd: (BarModuleKind) -> Void
@@ -457,11 +456,11 @@ struct NexusBarGallery: View {
     }
 }
 
-// MARK: - Vorschau
+// MARK: - Preview
 
-/// Die echte Leiste mit Vorschau-Modellen, so hoch wie die Leiste auf dem
-/// Hauptbildschirm und auf die Hoehe der Seite verkleinert. Ohne Maus
-/// (`barPreview`): ein Klick hier soll nichts ausloesen.
+/// The real bar with preview models, as tall as the bar on the main
+/// display and scaled down to the page's height. Without mouse input
+/// (`barPreview`): a click here should not trigger anything.
 struct NexusBarPreview: View {
     let store: ShellSettingsStore
     var context = NexusBarPreviewModels.context
@@ -490,13 +489,13 @@ struct NexusBarPreview: View {
     }
 }
 
-/// Feste Modelle fuer die Vorschau: messen, rufen und starten nichts. Die
-/// Apps im Dock sind mitgelieferte Apple-Apps (nur die vorhandenen), der
-/// Akku ist der echte (einmal gelesen), damit ein Mac ohne Akku auch in der
-/// Vorschau keinen zeigt.
+/// Fixed models for the preview: they measure, call, and launch nothing.
+/// The apps in the Dock are bundled Apple apps (only the ones present),
+/// the battery is the real one (read once), so a Mac without a battery
+/// does not show one in the preview either.
 @MainActor
 enum NexusBarPreviewModels {
-    /// Hauptbildschirm bis unter die Menueleiste, wie `Sidebar.layout`.
+    /// Main display down to below the menu bar, like `Sidebar.layout`.
     static var barHeight: CGFloat {
         guard let screen = NSScreen.screens.first else { return 900 }
         return max(screen.visibleFrame.maxY - screen.frame.minY, 400)

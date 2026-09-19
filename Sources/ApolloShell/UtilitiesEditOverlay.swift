@@ -2,19 +2,19 @@ import ApolloShellCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-// Bearbeitungsflaeche des Kontrollzentrums im globalen Bearbeitungsmodus
-// (design/2026-09-18-bento-dashboard.md Abschnitt 5, design/2026-09-19-
-// shell-edit-plan.md Task 5): Karten und Schnellschalter wackeln, lassen sich
-// waehlen, entfernen und ziehen; die Optionen des gewaehlten Knopfs erscheinen
-// im Popover (dieselben Regler wie im alten Nexus-Editor,
-// `UtilitiesEditorOptions.swift`). `UtilitiesPanel.swift` zeigt diese
-// Bausteine nur, waehrend `editor.isEditing` gilt - die ruhige Ansicht
-// (`UtilitiesView`) bleibt unveraendert (Bildvergleich).
+// Edit surface of the control center in the global edit mode
+// (design/2026-09-18-bento-dashboard.md section 5, design/2026-09-19-
+// shell-edit-plan.md task 5): cards and quick toggles wobble, can be
+// selected, removed, and dragged; the options of the selected button
+// appear in a popover (the same controls as in the old Nexus editor,
+// `UtilitiesEditorOptions.swift`). `UtilitiesPanel.swift` shows these
+// building blocks only while `editor.isEditing` holds - the calm view
+// (`UtilitiesView`) stays unchanged (screenshot comparison).
 
-/// Wurzel im Kantenfenster waehrend der Bearbeitung. `layout` ist die
-/// Arbeitskopie (`editor.utilities.layout`) - eigener Parameter statt ueber
-/// `editor` gelesen, damit die Karten unten dieselbe Anordnung sehen wie das
-/// Fenstermass (`UtilitiesPanel.apply`).
+/// Root in the edge window during editing. `layout` is the working copy
+/// (`editor.utilities.layout`) - a separate parameter instead of reading
+/// via `editor`, so the cards below see the same arrangement as the
+/// window size (`UtilitiesPanel.apply`).
 struct EditableUtilitiesView: View {
     let editor: ShellEditor
     let layout: UtilitiesLayout
@@ -40,18 +40,18 @@ struct EditableUtilitiesView: View {
         .padding(UtilitiesView.padding)
         .frame(width: UtilitiesView.width)
         .fixedSize(horizontal: false, vertical: true)
-        // Auffangnetz: ein aus der Galerie gezogener Knopf oder eine Karte,
-        // die nicht genau auf einer Kachel landet (Luecke, leere Karte),
-        // kommt trotzdem an (ans Ende bzw. an).
+        // Safety net: a button dragged out of the gallery, or a card that
+        // does not land exactly on a tile (gap, empty card), still gets
+        // through (to the end, or turned on, respectively).
         .modifier(UtilitiesPanelDropModifier(editor: editor, active: !rendersForScreenshot))
     }
 }
 
-// MARK: - Karte
+// MARK: - Card
 
-/// Eine Karte waehrend der Bearbeitung: Inhalt abgeschaltet (Regler und
-/// Knoepfe darin tun nichts), wackelt, laesst sich ausblenden (Minus) und
-/// vertikal auf eine andere Karte ziehen (`ShellEditor.moveUtilitiesCards`).
+/// A card during editing: content disabled (its controls and buttons do
+/// nothing), wobbles, can be hidden (minus), and can be dragged
+/// vertically onto another card (`ShellEditor.moveUtilitiesCards`).
 private struct EditableUtilitiesCard: View {
     let editor: ShellEditor
     let kind: UtilitiesCardKind
@@ -63,18 +63,17 @@ private struct EditableUtilitiesCard: View {
     @State private var isHiding = false
     @State private var targeted = false
 
-    /// Verschiedene Phasen wie beim Dashboard: die drei Karten wackeln nicht
-    /// im Gleichtakt.
+    /// Different phases like on the Dashboard: the three cards do not
+    /// wobble in lockstep.
     private var phase: Double { Double(abs(kind.hashValue) % 260) / 1000 }
 
     var body: some View {
         content
-            // Nur Wach-halten- und Audio-Karte stumm schalten (deren Regler
-            // sollen beim Bearbeiten nichts ausloesen). Die Schnellschalter-
-            // Karte besteht beim Bearbeiten selbst aus bearbeitbaren Kacheln -
-            // vorher galt `allowsHitTesting(false)` auch fuer sie, und keine
-            // Kachel liess sich antippen, entfernen oder verschieben
-            // (Selbsttest 19.09.).
+            // Only mute the Keep Awake and Audio cards (their controls
+            // should not trigger anything while editing). The quick-toggles
+            // card itself consists of editable tiles while editing -
+            // previously `allowsHitTesting(false)` applied to it too, and
+            // no tile could be tapped, removed, or moved (self-test 09/19).
             .allowsHitTesting(kind == .quickToggles)
             .overlay {
                 let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -106,8 +105,8 @@ private struct EditableUtilitiesCard: View {
         }
     }
 
-    /// Wie `EditableWidgetView.startWobble` (Dashboard): 0.3 Grad, leicht
-    /// phasenversetzt, aus bei Reduce Motion.
+    /// Like `EditableWidgetView.startWobble` (Dashboard): 0.3 degrees,
+    /// slightly phase-shifted, off with Reduce Motion.
     private func startWobble() {
         guard !reduceMotion else {
             wobble = 0
@@ -136,15 +135,15 @@ private struct EditableUtilitiesCard: View {
         .buttonStyle(.plain)
         .offset(x: -11, y: -11)
         .help("Hide")
-        .accessibilityLabel("\(kind.title) ausblenden")
+        .accessibilityLabel("Hide \(kind.title)")
     }
 }
 
-// MARK: - Schnellschalter-Karte
+// MARK: - Quick Toggles Card
 
-/// Wie `QuickTogglesCard` (`UtilitiesView.swift`), aber jede Kachel wackelt,
-/// laesst sich waehlen (Popover mit den Optionen), entfernen und im Raster
-/// verschieben.
+/// Like `QuickTogglesCard` (`UtilitiesView.swift`), but every tile
+/// wobbles and can be selected (popover with the options), removed, and
+/// moved within the grid.
 private struct EditableQuickTogglesCard: View {
     let editor: ShellEditor
     let rows: [[UtilitiesToggleEntry]]
@@ -168,9 +167,8 @@ private struct EditableQuickTogglesCard: View {
                                     .modifier(UtilitiesToggleDropModifier(editor: editor, target: entry.id,
                                                                           targeted: $targeted, active: !rendersForScreenshot))
                             }
-                            // Kurze letzte Reihe: leere Plaetze wie in der
-                            // ruhigen Ansicht, damit die Spalten gleich breit
-                            // bleiben.
+                            // Short last row: empty slots like in the calm
+                            // view, so the columns stay the same width.
                             ForEach(row.count..<QuickToggles.columns, id: \.self) { _ in
                                 Color.clear
                                     .frame(maxWidth: .infinity)
@@ -185,11 +183,11 @@ private struct EditableQuickTogglesCard: View {
     }
 }
 
-/// Eine Kachel waehrend der Bearbeitung: wie `UtilitiesEditorTile` (alter
-/// Nexus-Editor), zusaetzlich wackelnd mit Minus-Knopf. Ein Klick waehlt
-/// (Popover mit den Optionen aus `UtilitiesToggleOptionsView`); Ziehen setzt
-/// die Kennung als Nutzlast (`ShellEditor.moveToggle(_:onto:)` beim Ablegen
-/// auf einer anderen Kachel, siehe `UtilitiesToggleDropDelegate`).
+/// A tile during editing: like `UtilitiesEditorTile` (old Nexus editor),
+/// additionally wobbling with a minus button. A click selects it (popover
+/// with the options from `UtilitiesToggleOptionsView`); dragging sets its
+/// identifier as the payload (`ShellEditor.moveToggle(_:onto:)` when
+/// dropped on another tile, see `UtilitiesToggleDropDelegate`).
 private struct EditableToggleTile: View {
     let editor: ShellEditor
     let entry: UtilitiesToggleEntry
@@ -202,9 +200,9 @@ private struct EditableToggleTile: View {
 
     private var phase: Double { Double(abs(entry.id.hashValue) % 260) / 1000 }
     private var isSelected: Bool { editor.selectedToggleID == entry.id }
-    /// Popover nur fuer Knoepfe mit echten Optionen (App, Link, Kurzbefehl,
-    /// Apps ausblenden) - bei WLAN & Co. zeigte es nur Titel und
-    /// Beschreibung und stand bei jedem Klick im Weg (Live-Test 19.09.).
+    /// Popover only for buttons with real options (app, link, shortcut,
+    /// hide apps) - for Wi-Fi and the like it only showed a title and
+    /// description and was in the way on every click (live test 09/19).
     private var showsOptions: Bool {
         guard isSelected, !isDeleting else { return false }
         switch entry.kind {
@@ -295,24 +293,24 @@ private struct EditableToggleTile: View {
     }
 }
 
-// MARK: - Optionen des gewaehlten Knopfs (Popover)
+// MARK: - Options of the Selected Button (Popover)
 
-/// Dieselben Regler wie `UtilitiesEditorOptions` (Nexus, vor 0.2), jetzt
-/// gegen die Arbeitskopie des globalen Bearbeitungsmodus (`ShellEditor`)
-/// statt direkt gegen `store.settings.utilities.layout`.
+/// The same controls as `UtilitiesEditorOptions` (Nexus, before 0.2), now
+/// against the working copy of the global edit mode (`ShellEditor`)
+/// instead of directly against `store.settings.utilities.layout`.
 struct UtilitiesToggleOptionsView: View {
     let editor: ShellEditor
     let entry: UtilitiesToggleEntry
     let onDeselect: () -> Void
-    /// Auf `editor.pickingShortcut` statt View-lokal (Task 6): Esc soll den
-    /// Picker als innerstes Element zuerst schliessen koennen, bevor es das
-    /// Popover selbst trifft (`ShellEditor.handleEscape`).
+    /// Via `editor.pickingShortcut` instead of view-local (task 6): Esc
+    /// should be able to close the picker as the innermost element first,
+    /// before it hits the popover itself (`ShellEditor.handleEscape`).
 
     var body: some View {
-        // Kurzbefehl-Auswahl direkt im Popover statt als `.sheet`: ein Sheet
-        // an einem Popover eines randlosen, nicht aktivierenden Panels
-        // erschien nicht verlaesslich. Esc (`ShellEditor.handleEscape`) und
-        // „Abbrechen“ fuehren zurueck zu den Optionen.
+        // Shortcut picker directly in the popover instead of as a
+        // `.sheet`: a sheet on a popover of a borderless, non-activating
+        // panel did not appear reliably. Esc (`ShellEditor.handleEscape`)
+        // and "Cancel" lead back to the options.
         if editor.pickingShortcut, case .runShortcut(let shortcut) = entry.toggle {
             UtilitiesShortcutPicker(current: shortcut, onPick: { picked in
                 update(.runShortcut(with(shortcut) {
@@ -439,11 +437,11 @@ struct UtilitiesToggleOptionsView: View {
     }
 }
 
-// MARK: - Ziehen und Ablegen
+// MARK: - Drag and Drop
 
-/// Ziehen einer bestehenden Kachel: die Nutzlast ist ihre Kennung (kein
-/// Praefix, anders als `UtilitiesToggleDragPayload` aus der Galerie - so
-/// unterscheidet der Empfaenger "neuer Knopf" von "bestehender, verschoben").
+/// Dragging an existing tile: the payload is its identifier (no prefix,
+/// unlike `UtilitiesToggleDragPayload` from the gallery - this is how the
+/// receiver tells "new button" apart from "existing, moved").
 private struct UtilitiesToggleDragModifier: ViewModifier {
     let entry: UtilitiesToggleEntry
     let active: Bool
@@ -472,8 +470,8 @@ private struct UtilitiesToggleDropModifier: ViewModifier {
     }
 }
 
-/// Ziel eine Kachel: aus der Galerie ein neuer Knopf (ans Ende, wie ein
-/// Klick), von einer anderen Kachel deren Platz (`moveToggle(_:onto:)`).
+/// Target a tile: from the gallery a new button (to the end, like a
+/// click), from another tile its spot (`moveToggle(_:onto:)`).
 private struct UtilitiesToggleDropDelegate: DropDelegate {
     let editor: ShellEditor
     let target: String
@@ -499,8 +497,8 @@ private struct UtilitiesToggleDropDelegate: DropDelegate {
     }
 }
 
-/// Ziehen einer Karte: Nutzlast ist ihr Rohwert (ebenfalls ohne Praefix,
-/// anders als `UtilitiesCardDragPayload` aus der Galerie).
+/// Dragging a card: the payload is its raw value (likewise without a
+/// prefix, unlike `UtilitiesCardDragPayload` from the gallery).
 private struct UtilitiesCardDragModifier: ViewModifier {
     let kind: UtilitiesCardKind
     let active: Bool
@@ -529,22 +527,21 @@ private struct UtilitiesCardDropModifier: ViewModifier {
     }
 }
 
-/// Ziel eine Karte: aus der Galerie eine ausgeschaltete Karte wieder an
-/// (bleibt an ihrem Platz), von einer anderen Karte ihr Platz - wie
-/// SwiftUIs `onMove` (Ziel vor dem Verschieben gezaehlt, `moveCards`
-/// rechnet genauso).
+/// Target a card: from the gallery, a disabled card turns back on (stays
+/// in its place); from another card, its spot - like SwiftUI's `onMove`
+/// (target counted before the move, `moveCards` computes the same way).
 ///
-/// `validateDrop` nimmt nur reinen Text an (Kacheln und Kacheln-Nutzlasten
-/// sind alle `.plainText`) - eine schaerfere Prüfung nach Karte/Schnellschalter
-/// braucht die geladene Zeichenkette, die `NSItemProvider` erst asynchron
-/// liefert, `validateDrop` aber synchron entscheiden muss. `performDrop`
-/// erkennt darum selbst alle drei Faelle: eine Kachel aus der Galerie, eine
-/// bestehende Karte zum Verschieben - und einen Schnellschalter, der
-/// irgendwo auf einer Karte statt einer eigenen Kachel losgelassen wurde
-/// (`editor.addToggle`, dieselbe Wirkung wie ein Klick in der Galerie).
-/// Vorher gab `performDrop` immer `true` zurueck, auch wenn keiner der ersten
-/// beiden Zweige traf - ein so abgelegter Schnellschalter verschwand darum
-/// wortlos.
+/// `validateDrop` only accepts plain text (tiles and tile payloads are
+/// all `.plainText`) - a sharper check for card vs. quick toggle needs
+/// the loaded string, which `NSItemProvider` only delivers asynchronously,
+/// while `validateDrop` has to decide synchronously. `performDrop`
+/// therefore recognizes all three cases itself: a tile from the gallery,
+/// an existing card to move - and a quick toggle that was dropped
+/// somewhere on a card instead of its own tile (`editor.addToggle`, the
+/// same effect as a click in the gallery). Previously `performDrop`
+/// always returned `true`, even when neither of the first two branches
+/// matched - a quick toggle dropped that way used to vanish without
+/// a trace.
 private struct UtilitiesCardDropDelegate: DropDelegate {
     let editor: ShellEditor
     let target: UtilitiesCardKind
@@ -572,9 +569,9 @@ private struct UtilitiesCardDropDelegate: DropDelegate {
                     let destination = sourceIndex < targetIndex ? targetIndex + 1 : targetIndex
                     editor.moveUtilitiesCards(fromOffsets: IndexSet(integer: sourceIndex), toOffset: destination)
                 } else if let kind = UtilitiesToggleDragPayload.kind(from: string) {
-                    // Ein neuer Schnellschalter aus der Galerie, auf einer
-                    // Karte statt einer Kachel abgelegt: dieselbe Wirkung wie
-                    // ein Klick in der Galerie, statt spurlos zu verschwinden.
+                    // A new quick toggle from the gallery, dropped on a
+                    // card instead of a tile: the same effect as a click
+                    // in the gallery, instead of vanishing without a trace.
                     editor.addToggle(kind)
                 }
             }
@@ -583,11 +580,10 @@ private struct UtilitiesCardDropDelegate: DropDelegate {
     }
 }
 
-/// Auffangnetz auf dem ganzen Panel (Task 5: "Drop target for gallery
-/// payloads"): ein aus der Galerie gezogener Knopf oder eine Karte, die
-/// nicht genau auf einer Kachel landet, kommt trotzdem an. Verschieben
-/// bestehender Kacheln braucht ein genaues Ziel und bleibt den
-/// Kachel-eigenen Zielen vorbehalten.
+/// Safety net across the whole panel (task 5: "Drop target for gallery
+/// payloads"): a button dragged out of the gallery, or a card that does
+/// not land exactly on a tile, still gets through. Moving existing tiles
+/// needs an exact target and stays reserved for the tiles' own targets.
 private struct UtilitiesPanelDropModifier: ViewModifier {
     let editor: ShellEditor
     let active: Bool

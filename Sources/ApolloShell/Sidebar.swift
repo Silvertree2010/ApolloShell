@@ -3,31 +3,32 @@ import ApolloShellCore
 import os
 import SwiftUI
 
-/// Verwalter der Leisten: eine Leiste je Bildschirm.
+/// Manager of the bars: one bar per screen.
 ///
-/// Welche Bildschirme eine bekommen, sagt Nexus > Leiste (Alle, nur
-/// Hauptbildschirm, ein einzelner); die Rechnung dazu steht in
-/// ApolloShellCore/ScreenSelection und ist dort getestet.
+/// Which screens get one is decided by Nexus > Bar (All, main display
+/// only, a single one); the computation for that lives in
+/// ApolloShellCore/ScreenSelection and is tested there.
 ///
-/// Die Modelle (Dock, Uhr, Spaces, CPU, Wetter, Status) werden hier EINMAL
-/// gebaut und an alle Leisten weitergereicht. Sie lesen systemweite Werte -
-/// je Bildschirm eigene waeren dieselbe Messung mehrfach und damit mehrfache
-/// Last. Eigen je Leiste ist nur, was zum Fenster gehoert: das Panel und sein
-/// Statuspopout.
+/// The models (Dock, clock, Spaces, CPU, weather, status) are built ONCE
+/// here and passed on to all bars. They read system-wide values - a
+/// separate one per screen would be the same measurement multiple times
+/// and thus multiple loads. Only what belongs to the window is per bar:
+/// the panel and its status popout.
 ///
-/// Platz halten wie der Dock macht die Fensterwache (WindowGuard.swift):
-/// macOS hat dafuer keine Schnittstelle, sie schiebt Fenster per
-/// Bedienungshilfen aus dem Streifen; ohne Freigabe laufen maximierte
-/// Fenster darunter durch. Steht auf einem Bildschirm eine Vollbild-App
-/// (`FullscreenMonitor`), tritt die Leiste dieses Bildschirms ab.
+/// Keeping space free like the Dock does is the job of the window guard
+/// (WindowGuard.swift): macOS has no interface for that, it pushes
+/// windows out of the strip via accessibility; without permission,
+/// maximized windows run straight through underneath. If a screen shows
+/// a full-screen app (`FullscreenMonitor`), that screen's bar steps aside.
 @MainActor
 final class Sidebar {
-    /// Breite der Leiste. Mit Theme entscheidet `--apollo-bar-width`.
+    /// Width of the bar. With themes, `--apollo-bar-width` decides.
     ///
-    /// Die Breite steckt nicht nur in der Ansicht, sondern auch im Fenster
-    /// und im Streifen, den die Fensterwache freihaelt - deshalb hier an
-    /// einer Stelle. Aendert sie sich (anderes Theme, Hell/Dunkel), zieht
-    /// `widthChanged()` Fenster und Fensterwache sofort nach.
+    /// The width is not only in the view but also in the window and in
+    /// the strip the window guard keeps free - hence a single place for
+    /// it here. If it changes (different theme, light/dark),
+    /// `widthChanged()` immediately follows through in the window and
+    /// the window guard.
     static var width: CGFloat {
         let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         return ThemeStore.shared?.style(dark: dark).barWidth(44) ?? 44
@@ -36,50 +37,51 @@ final class Sidebar {
     private let settings: ShellSettingsStore
     private let log = Logger(category: "sidebar")
 
-    /// Klick auf das Ausschalt-Symbol unten (oeffnet das Sitzungsmenue).
+    /// Click on the power symbol at the bottom (opens the session menu).
     var onPower: () -> Void = {}
-    /// Klick auf das Dashboard-Symbol oben.
+    /// Click on the Dashboard symbol at the top.
     var onDashboard: () -> Void = {}
-    /// Klick auf das Utilities-Symbol ueber der Statuskapsel.
+    /// Click on the Utilities symbol above the status capsule.
     var onUtilities: () -> Void = {}
-    /// Klick auf Medien, Wetter, CPU oder Akku: Dashboard beim passenden Reiter.
+    /// Click on media, weather, CPU, or battery: Dashboard on the
+    /// matching tab.
     var onDashboardTab: (DashboardTab) -> Void = { _ in }
-    /// Nach jedem Umbau: auf diesen Bildschirmen steht jetzt eine Leiste.
-    /// Die Fensterwache haelt dort den Streifen frei.
+    /// After every rebuild: a bar now stands on these screens. The
+    /// window guard keeps the strip free there.
     var onScreensChange: ([ScreenInfo]) -> Void = { _ in }
 
-    /// Geteilte Modelle - einmal fuer alle Leisten.
-    /// CPU und Wetter messen bzw. rufen nur ab, solange mindestens eine
-    /// Leiste zu sehen ist.
+    /// Shared models - once for all bars.
+    /// CPU and weather only measure or fetch as long as at least one bar
+    /// is visible.
     private let cpu = BarCPUModel()
     private let weather: BarWeatherFeed
-    /// WLAN, Bluetooth, Akku fuer die Statuskapsel.
+    /// Wi-Fi, Bluetooth, battery for the status capsule.
     private let status = StatusModel()
-    /// Spaces, Dock und Uhr fuer die Mitte der Leiste.
+    /// Spaces, Dock, and clock for the middle of the bar.
     private let spaces = SpacesModel()
     private let dock: SidebarDockModel
     private let clock = SidebarClockModel()
 
-    /// Eine Leiste je Bildschirm, nach Display-Kennung.
+    /// One bar per screen, by display identifier.
     private var slots = ScreenSlots<SidebarScreen>()
     private var bars: [CGDirectDisplayID: SidebarScreen] { slots.items }
-    /// Bildschirme, auf denen gerade eine Vollbild-App steht.
+    /// Screens on which a full-screen app currently stands.
     private var fullscreenScreens: Set<CGDirectDisplayID> = []
     private var context: BarModuleContext!
     private var choiceObservation: Task<Void, Never>?
     private var widthObservation: Task<Void, Never>?
     private var appearanceObservation: NSKeyValueObservation?
-    /// Breite beim letzten Vermessen der Fenster.
+    /// Width from the last time the windows were measured.
     private var laidOutWidth: CGFloat = 0
 
-    /// `settings`: welche Bausteine in welcher Reihenfolge und auf welchen
-    /// Bildschirmen (Nexus > Leiste). SwiftUI beobachtet sie und baut die
-    /// Leisten bei jeder Aenderung sofort um.
+    /// `settings`: which building blocks in which order and on which
+    /// screens (Nexus > Bar). SwiftUI observes it and rebuilds the bars
+    /// right away on every change.
     init(settings: ShellSettingsStore) {
         self.settings = settings
-        // Der Dateimanager oben kommt aus den Einstellungen (Nexus > Anbieter).
+        // The file manager above comes from the settings (Nexus > Providers).
         dock = SidebarDockModel(settings: settings)
-        // Wetteranbieter ebenfalls aus den Einstellungen, wie im Dashboard.
+        // Weather provider likewise from the settings, as in the Dashboard.
         weather = BarWeatherFeed(settings: settings)
         context = BarModuleContext(
             status: status, spaces: spaces, dock: dock, clock: clock, cpu: cpu, weather: weather,
@@ -93,15 +95,15 @@ final class Sidebar {
 
         rebuild()
         observeSystemChanges()
-        // Liefert zuerst den aktuellen Wert (nichts zu tun), danach jede
-        // Aenderung der Bildschirm-Einstellung aus Nexus.
+        // Delivers the current value first (nothing to do), then every
+        // change of the screen setting from Nexus.
         choiceObservation = Task { [weak self, settings] in
             for await _ in Observations({ settings.settings.bar.screens }) {
                 self?.rebuild()
             }
         }
-        // Die Breite haengt am Theme (beobachtbar) und an Hell/Dunkel (nicht
-        // beobachtbar, deshalb per KVO).
+        // The width depends on the theme (observable) and on light/dark
+        // (not observable, hence via KVO).
         widthObservation = Task { [weak self] in
             for await _ in Observations({ Sidebar.width }) {
                 self?.widthChanged()
@@ -112,24 +114,24 @@ final class Sidebar {
         }
     }
 
-    /// Neue Leistenbreite: Fenster neu vermessen und die Fensterwache den
-    /// Streifen anpassen lassen. Ein offenes Popout geht zu - seine Buehne
-    /// haengt an der alten Breite.
+    /// New bar width: re-measure the windows and let the window guard
+    /// adjust the strip. An open popout closes - its stage depends on the
+    /// old width.
     private func widthChanged() {
         guard Sidebar.width != laidOutWidth else { return }
         for bar in bars.values { bar.closePopout() }
         rebuild()
     }
 
-    /// Auf welchen Bildschirmen gerade eine Leiste steht.
+    /// Which screens a bar currently stands on.
     var screens: [ScreenInfo] {
         bars.values.map(\.info)
     }
 
-    /// Von `FullscreenMonitor`: auf diesen Bildschirmen steht eine
-    /// Vollbild-App. Nur deren Leiste tritt ab, die anderen bleiben stehen.
-    /// Nach Display-Kennung, nicht nach Schluessel: zwei baugleiche
-    /// Bildschirme haben denselben Schluessel.
+    /// From `FullscreenMonitor`: a full-screen app is showing on these
+    /// screens. Only their bar steps aside, the others stay put. By
+    /// display identifier, not by key: two identical screens have the
+    /// same key.
     func setFullscreenScreens(_ ids: Set<CGDirectDisplayID>) {
         guard ids != fullscreenScreens else { return }
         fullscreenScreens = ids
@@ -139,8 +141,8 @@ final class Sidebar {
         updateModelDemand()
     }
 
-    /// Unsichtbar braucht niemand CPU-Werte oder Wetter: die geteilten
-    /// Modelle ruhen, sobald keine Leiste mehr zu sehen ist.
+    /// Nobody needs CPU values or weather while invisible: the shared
+    /// models rest as soon as no bar is visible anymore.
     private func updateModelDemand() {
         let anyVisible = bars.values.contains { !$0.isHiddenForFullscreen }
         cpu.paused = !anyVisible
@@ -148,15 +150,15 @@ final class Sidebar {
         dock.badgesPaused = !anyVisible
     }
 
-    // MARK: - Leisten verteilen
+    // MARK: - Distributing Bars
 
-    /// Leisten anlegen, vermessen und wieder abraeumen, so wie es die
-    /// Einstellung und die angeschlossenen Bildschirme gerade verlangen.
+    /// Create, measure, and tear down bars again, as the setting and the
+    /// connected screens currently require.
     ///
-    /// Ohne Bildschirme (Kabel mitten im Umstecken, `NSScreen.screens` leer)
-    /// bleibt alles stehen, statt alles abzureissen und gleich wieder
-    /// aufzubauen. Kommen sie zurueck, meldet sich
-    /// didChangeScreenParametersNotification und es geht hier weiter.
+    /// Without screens (a cable mid-reconnect, `NSScreen.screens` empty),
+    /// everything stays put instead of tearing everything down and
+    /// building it right back up. When screens come back,
+    /// didChangeScreenParametersNotification fires and it continues here.
     private func rebuild() {
         let settings = settings
         let context = context!
@@ -171,46 +173,45 @@ final class Sidebar {
                 bar.update(screen: screen)
                 bar.setHiddenForFullscreen(fullscreenScreens.contains(screen.displayID))
             },
-            // Bildschirm weg oder abgewaehlt. Das schliesst auch ein Popout,
-            // das dort noch offen stand.
+            // Screen gone or deselected. This also closes a popout that
+            // was still open there.
             remove: { $0.tearDown() }
         )
         guard let placed else {
-            log.notice("kein Bildschirm, die Leisten bleiben stehen")
+            log.notice("no screen, the bars stay put")
             return
         }
 
         updateModelDemand()
         laidOutWidth = Sidebar.width
-        log.notice("Leisten auf \(placed.count, privacy: .public) Bildschirm(en)")
+        log.notice("bars on \(placed.count, privacy: .public) screen(s)")
         onScreensChange(placed.map(\.info))
     }
 
-    /// Es ist immer nur ein Statuspopout offen: geht eines auf, schliesst
-    /// das einer anderen Leiste.
+    /// Only ever one status popout is open: when one opens, it closes
+    /// that of another bar.
     private func closePopouts(except id: ObjectIdentifier) {
         for bar in bars.values where ObjectIdentifier(bar) != id {
             bar.closePopout()
         }
     }
 
-    /// Aufloesung oder Bildschirme geaendert, Aufwachen (ganzer Rechner oder
-    /// nur die Bildschirme), Space-Wechsel: neu verteilen, vermessen und,
-    /// falls eine Leiste sichtbar sein soll, aber weg ist, wieder nach vorne
-    /// holen.
+    /// Resolution or screens changed, wake-up (whole machine or just the
+    /// screens), space switch: redistribute, re-measure, and, if a bar
+    /// should be visible but is gone, bring it back to the front.
     ///
-    /// Das Einschlafen der Bildschirme braucht keinen eigenen Beobachter:
-    /// solange sie dunkel sind, gibt es nichts zu tun, und das Aufwachen
-    /// deckt `screensDidWakeNotification` ab.
+    /// Screens going to sleep needs no dedicated observer: as long as
+    /// they are dark, there is nothing to do, and waking up is covered
+    /// by `screensDidWakeNotification`.
     ///
-    /// Die Beobachter werden nie entfernt: der Verwalter lebt so lange wie
-    /// der Prozess (AppDelegate haelt ihn), und die Bloecke halten ihn nur
-    /// schwach.
+    /// The observers are never removed: the manager lives as long as the
+    /// process (AppDelegate holds it), and the closures only hold it
+    /// weakly.
     private func observeSystemChanges() {
         ShellScreens.onChange { [weak self] in
             guard let self else { return }
-            // Neue Aufloesung oder Anordnung: Lage und Hoehe eines offenen
-            // Popouts stimmen nicht mehr.
+            // New resolution or arrangement: position and height of an
+            // open popout are no longer correct.
             for bar in self.bars.values { bar.closePopout() }
             self.rebuild()
         }

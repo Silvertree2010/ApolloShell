@@ -2,88 +2,90 @@ import AppKit
 import ApolloShellCore
 import Observation
 
-/// Eine Bearbeitung des Dashboards, geteilt zwischen Nexus (Seiten, Widgets,
-/// Optionen) und dem Dashboard-Fenster (Ziehen, Groesse, Ablegen). Haelt die
-/// `BentoEditSession` (Kern, `ApolloShellCore/BentoEditSession.swift`); alle
-/// Aenderungen laufen ueber diese Klasse, nie direkt an `session` vorbei -
-/// so bekommen beide Seiten dieselbe Arbeitskopie zu sehen.
+/// An edit of the Dashboard, shared between Nexus (pages, widgets,
+/// options) and the Dashboard window (dragging, sizing, dropping). Holds
+/// the `BentoEditSession` (core, `ApolloShellCore/BentoEditSession.swift`);
+/// every change goes through this class, never straight past `session` -
+/// this way both sides see the same working copy.
 ///
-/// `begin` ruft `onBegin(screen)` (Dashboard: Kantenfenster anpinnen und auf
-/// diesem Bildschirm oeffnen), `done`/`cancel` rufen `onEnd` (Dashboard:
-/// entpinnen).
+/// `begin` calls `onBegin(screen)` (Dashboard: pin the edge window and
+/// open it on that screen), `done`/`cancel` call `onEnd` (Dashboard:
+/// unpin).
 @MainActor
 @Observable
 final class DashboardEditor {
     private let store: ShellSettingsStore
     private(set) var session: BentoEditSession?
     var isEditing: Bool { session != nil }
-    /// Groesse des Dashboards waehrend der Bearbeitung (Regler in der
-    /// Werkzeugleiste, `BentoGeometry.userScaleRange`) - Arbeitskopie wie die
-    /// Seiten: das Dashboard folgt ihr sofort, gespeichert wird sie erst mit
-    /// „Fertig“ (`ShellEditor.done`), „Abbrechen“ verwirft sie. `nil`
-    /// ausserhalb einer Bearbeitung.
+    /// Size of the Dashboard while editing (slider in the toolbar,
+    /// `BentoGeometry.userScaleRange`) - a working copy like the pages:
+    /// the Dashboard follows it right away, it is only saved with "Done"
+    /// (`ShellEditor.done`), "Cancel" discards it. `nil` outside of an
+    /// edit.
     var scale: Double? {
         didSet { if scale != oldValue { onScaleChange() } }
     }
     private(set) var originalScale: Double = 1
-    /// Das Dashboard rechnet seinen Massstab neu (`Dashboard.applyScale`).
+    /// The Dashboard recomputes its scale (`Dashboard.applyScale`).
     var onScaleChange: () -> Void = {}
-    /// Seite, die beim Ende der Bearbeitung gezeigt war - das Dashboard
-    /// bleibt danach dort, statt auf die Seite vom Anfang zurueckzuspringen.
+    /// Page that was shown when editing ended - the Dashboard stays there
+    /// afterwards instead of jumping back to the page from the start.
     private(set) var lastPageID: DashboardPage.ID?
 
-    /// Vor `begin`: die Seite, auf der das Dashboard gerade steht - Nexus
-    /// beginnt dort.
+    /// Before `begin`: the page the Dashboard is currently showing -
+    /// Nexus starts there.
     var onBegin: (NSScreen) -> Void = { _ in }
     var onEnd: () -> Void = {}
-    /// Nach jeder `setOptions` - Dashboard nutzt es, um das Wetter-Modell
-    /// eines Widgets neu zu starten, wenn Nexus waehrend der Bearbeitung
-    /// seine Orte aendert (sonst zeigt es die alten weiter, `WeatherModels`).
+    /// After every `setOptions` - the Dashboard uses this to restart a
+    /// widget's weather model when Nexus changes its locations during
+    /// editing (otherwise it would keep showing the old ones,
+    /// `WeatherModels`).
     var onOptionsChange: (WidgetInstance.ID) -> Void = { _ in }
 
-    /// Vorschau eines aus Nexus gezogenen Widgets (`BentoDropDelegate`,
-    /// `BentoPageView`) - reine UI-Anzeige, nicht Teil der Sitzung.
+    /// Preview of a widget dragged from Nexus (`BentoDropDelegate`,
+    /// `BentoPageView`) - pure UI display, not part of the session.
     var dropPreview: (frame: WidgetFrame, valid: Bool)?
-    /// Art des gerade gezogenen Widgets, sobald der Nutzlast-String geladen
-    /// ist (`NSItemProvider` laedt nur async).
+    /// Kind of the widget currently being dragged, once the payload
+    /// string is loaded (`NSItemProvider` only loads asynchronously).
     var draggedKind: WidgetKind?
-    /// Zaehler fuer Ablege-Vorgaenge (`BentoDropDelegate`): erhoeht bei
-    /// `dropExited`, so verwirft ein verspaetet geladener Nutzlast-String
-    /// (async `NSItemProvider`) den Ghost, statt ihn nach dem Verlassen des
-    /// Ziels wieder aufleben zu lassen.
+    /// Counter for drop operations (`BentoDropDelegate`): incremented on
+    /// `dropExited`, so a payload string loaded too late (async
+    /// `NSItemProvider`) discards the ghost instead of bringing it back
+    /// to life after leaving the target.
     var dropGeneration = 0
 
-    /// Seite, deren Name gerade als Textfeld in der Leiste steht
-    /// (Kontextmenue „Umbenennen“, Task 4) - reine UI-Anzeige wie
-    /// `dropPreview`, nicht Teil der Sitzung. Hier statt als View-lokaler
-    /// Zustand, damit `ShellEditor.handleEscape` (globales Esc, Task 6) das
-    /// Textfeld als erstes schliessen kann, bevor Esc die Galerie oder die
-    /// Bearbeitung selbst trifft.
+    /// Page whose name is currently shown as a text field in the bar
+    /// (context menu "Rename", task 4) - pure UI display like
+    /// `dropPreview`, not part of the session. Kept here instead of as
+    /// view-local state, so `ShellEditor.handleEscape` (global Esc, task
+    /// 6) can close the text field first, before Esc hits the gallery or
+    /// the edit itself.
     var renamingPageID: DashboardPage.ID? {
         didSet {
             if let old = oldValue, old != renamingPageID { finishRename(old) }
             if renamingPageID != nil { onNeedsKeyboard() }
         }
     }
-    /// Das Dashboard-Fenster holt sich die Tastatur (`EdgeDrawer.takeKeyboard`),
-    /// sobald ein Seitenname bearbeitet wird - sonst landeten die Tasten im
-    /// Kontrollzentrum, das beim Start zuletzt Schluesselfenster wurde.
+    /// The Dashboard window grabs the keyboard
+    /// (`EdgeDrawer.takeKeyboard`) as soon as a page name is being
+    /// edited - otherwise the keystrokes would land in the control
+    /// center, which last became the key window at launch.
     var onNeedsKeyboard: () -> Void = {}
 
-    /// Leerer Name nach dem Umbenennen: zurueck auf „Seite“, statt einen
-    /// Reiter ohne Beschriftung stehen zu lassen.
+    /// Empty name after renaming: back to "Page" instead of leaving a
+    /// tab without a label.
     private func finishRename(_ id: DashboardPage.ID) {
         guard let page = session?.pages.page(id: id),
               page.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        renamePage(id, to: String(localized: "Seite"))
+        renamePage(id, to: String(localized: "Page"))
     }
 
     init(store: ShellSettingsStore) {
         self.store = store
     }
 
-    /// Beginnt auf `pageID` (die in Nexus gewaehlte Seite), auf `screen`
-    /// (der Bildschirm von Nexus' Fenster).
+    /// Begins on `pageID` (the page selected in Nexus), on `screen` (the
+    /// screen of Nexus' window).
     func begin(pageID: DashboardPage.ID, screen: NSScreen) {
         guard let pages = store.settings.dashboardPages else { return }
         session = BentoEditSession(pages: pages, pageID: pageID)
@@ -124,7 +126,7 @@ final class DashboardEditor {
         onEnd()
     }
 
-    // MARK: - Seite
+    // MARK: - Page
 
     var pageID: DashboardPage.ID? {
         get { session?.pageID }
@@ -144,19 +146,21 @@ final class DashboardEditor {
             if newValue == nil { optionsWidgetID = nil }
         }
     }
-    /// Widget, dessen Optionen-Popover offen ist - nur nach einem Klick,
-    /// nicht nach dem Ziehen (`EditableWidgetView.showsOptions`). Reine
-    /// UI-Anzeige wie `dropPreview`.
+    /// Widget whose options popover is open - only after a click, not
+    /// after dragging (`EditableWidgetView.showsOptions`). Pure UI
+    /// display like `dropPreview`.
     var optionsWidgetID: WidgetInstance.ID?
     #if DEBUG
-    /// Selbsttest: Rahmen der Seite im Hosting-View (oben links, skaliert).
+    /// Self-test: frame of the page in the hosting view (top left,
+    /// scaled).
     @ObservationIgnored var debugPageRectInHost: CGRect?
     #endif
 
-    // MARK: - Seiten (Seitenleiste beim Bearbeiten, Task 4)
+    // MARK: - Pages (page sidebar while editing, task 4)
 
-    /// Neue leere Seite ans Ende, "Seite <n>" (die naechste freie Zahl,
-    /// keine Dopplung, falls eine so umbenannt wurde), sofort gezeigt.
+    /// New empty page appended at the end, "Page <n>" (the next free
+    /// number, no duplicate if one was renamed that way), shown right
+    /// away.
     @discardableResult
     func addPage() -> DashboardPage.ID? {
         guard let session else { return nil }
@@ -169,14 +173,14 @@ final class DashboardEditor {
 
     static func nextPageName(existing: [String]) -> String {
         var n = existing.count + 1
-        while existing.contains(String(localized: "Seite \(n)")) { n += 1 }
-        return String(localized: "Seite \(n)")
+        while existing.contains(String(localized: "Page \(n)")) { n += 1 }
+        return String(localized: "Page \(n)")
     }
 
     @discardableResult
     func duplicatePage(_ id: DashboardPage.ID) -> DashboardPage.ID? {
         guard let session, let page = session.pages.page(id: id) else { return nil }
-        let name = page.name + String(localized: " Kopie")
+        let name = page.name + String(localized: " Copy")
         var updated = session
         let newID = updated.duplicatePage(id, name: name)
         self.session = updated
@@ -203,19 +207,20 @@ final class DashboardEditor {
         session = updated
     }
 
-    /// Ob mindestens eine mitgelieferte Seite fehlt - fuer den Menuepunkt
-    /// „Standardseiten wiederherstellen“ am **+** der Seitenleiste (deaktiviert,
-    /// wenn schon alle vier da sind).
+    /// Whether at least one bundled page is missing - for the menu item
+    /// "Restore Default Pages" at the **+** of the page sidebar (disabled
+    /// when all four are already present).
     var isMissingDefaultPages: Bool {
         guard let session else { return false }
         let present = Set(session.pages.pages.compactMap(\.template))
         return present.count < PageTemplate.allCases.count
     }
 
-    /// „Standardseiten wiederherstellen“ (Task 4/7): haengt die mitgelieferten
-    /// Seiten an, deren Vorlage noch fehlt, mit den gerade gespeicherten
-    /// Wetter-Favoriten und Akkuanzeige - wie beim Umzug von vor 0.2, siehe
-    /// `DashboardPages.migrated`. Wechselt die gezeigte Seite nicht.
+    /// "Restore Default Pages" (task 4/7): appends the bundled pages
+    /// whose template is still missing, with the currently saved weather
+    /// favorites and battery display - like the migration from before
+    /// 0.2, see `DashboardPages.migrated`. Does not change the shown
+    /// page.
     func restoreDefaults() {
         guard var updated = session else { return }
         let places = WeatherFavorites.loadLive()
@@ -224,7 +229,7 @@ final class DashboardEditor {
         session = updated
     }
 
-    // MARK: - Durchreichen an die Sitzung (Views aendern `session` nie selbst)
+    // MARK: - Passthrough to the session (views never change `session` themselves)
 
     func previewMove(_ id: WidgetInstance.ID, proposed: WidgetFrame) -> BentoEditSession.Preview? {
         session?.previewMove(id, proposed: proposed)
@@ -248,8 +253,8 @@ final class DashboardEditor {
         session?.add(kind, frame: frame, places: places)
     }
 
-    /// Galerie-Klick (Task 3) statt Ziehen: an der ersten freien Stelle der
-    /// gezeigten Seite. `nil`: keine Stelle frei.
+    /// Gallery click (task 3) instead of dragging: at the first free spot
+    /// on the shown page. `nil`: no spot free.
     @discardableResult
     func addAtFirstFreeSpot(_ kind: WidgetKind, places: WeatherFavorites = .empty) -> WidgetInstance.ID? {
         session?.addAtFirstFreeSpot(kind, places: places)

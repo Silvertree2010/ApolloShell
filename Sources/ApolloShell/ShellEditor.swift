@@ -2,19 +2,18 @@ import AppKit
 import ApolloShellCore
 import Observation
 
-/// Der eine Bearbeitungsmodus der ganzen Shell (Spec Abschnitt 4, revidiert
-/// 2026-09-19): ein Knopf in Nexus startet ihn, Scrim und Fenster liegen ueber
-/// allen Bildschirmen, Dashboard und Kontrollzentrum bleiben auf dem
-/// Bildschirm, auf dem Nexus stand, offen und angepinnt. „Fertig“ schreibt
-/// beide Arbeitskopien in einer Zuweisung von `store.settings`, „Abbrechen“
-/// verwirft beide.
+/// The one edit mode of the whole shell (spec section 4, revised
+/// 2026-09-19): a button in Nexus starts it, scrim and windows lie over
+/// all screens, Dashboard and Control Centre stay open and pinned on the
+/// screen where Nexus was. "Done" writes both working copies in a single
+/// assignment of `store.settings`, "Cancel" discards both.
 ///
-/// Haelt `dashboard` (die bestehende `DashboardEditor`, die weiterhin das
-/// Anpinnen des Dashboard-Kantenfensters uebernimmt) und `utilities` (eine
-/// `UtilitiesEditSession`, neu je Bearbeitung). Die Fenster der Bearbeitung
-/// selbst (Scrim, Werkzeugleiste, Galerie: `EditModeWindows.swift`) und das
-/// Kontrollzentrum-Fenster (`UtilitiesPanel`) hoeren ueber
-/// `addBeginHandler`/`addEndHandler` mit.
+/// Holds `dashboard` (the existing `DashboardEditor`, which continues to
+/// handle pinning the Dashboard edge window) and `utilities` (a
+/// `UtilitiesEditSession`, new for each edit). The edit mode's own
+/// windows (scrim, toolbar, gallery: `EditModeWindows.swift`) and the
+/// Control Centre window (`UtilitiesPanel`) listen in via
+/// `addBeginHandler`/`addEndHandler`.
 @MainActor
 @Observable
 final class ShellEditor {
@@ -24,62 +23,59 @@ final class ShellEditor {
 
     var isEditing: Bool { dashboard.isEditing }
 
-    /// Welche Seite das Dashboard beim Start zeigen soll - vom Dashboard-
-    /// Fenster gesetzt (die gerade offene Seite, oder `nil` vor dem ersten
-    /// Oeffnen: dann die erste Seite).
+    /// Which page the Dashboard should show at start - set by the
+    /// Dashboard window (the currently open page, or `nil` before the
+    /// first opening: then the first page).
     var dashboardStartPageID: () -> DashboardPage.ID? = { nil }
 
-    /// Galerie (Task 3): offen/zu, gewaehlter Reiter, "alle zeigen".
+    /// Gallery (Task 3): open/closed, selected tab, "show all".
     var galleryVisible = false
     var galleryTab: WidgetSurface = .dashboard
     var showsAllInGallery = false
-    /// Kurzer Hinweis der Galerie (Task 3), z. B. "Kein Platz auf dieser
-    /// Seite" - auf `ShellEditor` statt als View-lokaler Zustand, damit
-    /// `EditModeWindows` das Panel neu vermisst, sobald der Hinweis
-    /// erscheint oder verschwindet (er waechst die Galerie sonst ueber ihren
-    /// Rand hinaus).
+    /// Brief notice from the gallery (Task 3), e.g. "No room on this
+    /// page" - kept on `ShellEditor` instead of as view-local state, so
+    /// `EditModeWindows` re-measures the panel as soon as the notice
+    /// appears or disappears (otherwise the gallery grows past its own edge).
     var galleryNotice: String?
 
-    /// Rueckfrage vor dem Verwerfen mit ungesicherten Aenderungen (Esc,
-    /// Task 6): `true` laesst die Werkzeugleiste eine kleine Nachfrage
-    /// zeigen ("Änderungen verwerfen?").
+    /// Confirmation before discarding unsaved changes (Esc, Task 6):
+    /// `true` lets the toolbar show a small prompt ("Discard changes?").
     var pendingCancelConfirmation = false
 
-    /// Esc waehrend der Bearbeitung: eigenes globales Kuerzel (nicht ueber
-    /// `HotKeyCenter`, das gehoert den Nutzer-Kuerzeln aus Nexus), nur
-    /// registriert, waehrend `isEditing` gilt.
+    /// Esc during editing: its own global shortcut (not via
+    /// `HotKeyCenter`, which belongs to the user shortcuts from Nexus),
+    /// registered only while `isEditing` holds.
     private var escapeHotKey: GlobalHotKey?
 
-    /// Mehrere Hoerer statt eines einzelnen Abschlusses: Kontrollzentrum,
-    /// Scrim/Werkzeugleiste/Galerie und Nexus haengen sich unabhaengig
-    /// voneinander ein (`addBeginHandler`/`addEndHandler`), keiner ueberschreibt
-    /// den anderen.
+    /// Multiple listeners instead of a single completion: Control
+    /// Centre, scrim/toolbar/gallery, and Nexus each hook in
+    /// independently (`addBeginHandler`/`addEndHandler`), none overwrites
+    /// the other.
     private var beginHandlers: [(NSScreen) -> Void] = []
     private var endHandlers: [() -> Void] = []
 
-    /// Vor `begin`, mit dem Bildschirm, auf dem Nexus stand: die Panels
-    /// pinnen sich dort an (Dashboard: schon in `dashboard.onBegin`
-    /// verdrahtet; Kontrollzentrum, Scrim, Werkzeugleiste, Galerie hoeren
-    /// hier mit).
+    /// Before `begin`, with the screen Nexus was on: the panels pin
+    /// themselves there (Dashboard: already wired in `dashboard.onBegin`;
+    /// Control Centre, scrim, toolbar, gallery listen in here).
     func addBeginHandler(_ handler: @escaping (NSScreen) -> Void) {
         beginHandlers.append(handler)
     }
 
-    /// Nach „Fertig“ oder „Abbrechen“: Panels entpinnen, Modus-Fenster
-    /// schliessen, Nexus zurueckholen.
+    /// After "Done" or "Cancel": unpin panels, close mode windows,
+    /// bring Nexus back.
     func addEndHandler(_ handler: @escaping () -> Void) {
         endHandlers.append(handler)
     }
 
-    /// Beobachter fuer die Ereignisse, die die Bearbeitung sofort ohne
-    /// Rueckfrage beenden (Task 6) - leben so lange wie `ShellEditor` selbst,
-    /// wirken aber nur, waehrend `isEditing` gilt.
+    /// Observers for the events that end editing immediately without
+    /// confirmation (Task 6) - live as long as `ShellEditor` itself, but
+    /// only take effect while `isEditing` holds.
     private var endAsCancelObservers: [any NSObjectProtocol] = []
 
-    /// Stand der Bildschirme bei `begin`, fuer
-    /// `didChangeScreenParametersNotification` (siehe dort): die Meldung
-    /// kommt auch, wenn sich gar kein Bildschirm geaendert hat, z. B. beim
-    /// Ein-/Ausblenden von Apples Dock (das die Shell selbst versteckt).
+    /// State of the screens at `begin`, for
+    /// `didChangeScreenParametersNotification` (see there): the
+    /// notification also arrives when no screen actually changed, e.g.
+    /// when Apple's Dock shows or hides (which the shell itself hides).
     private struct ScreenSnapshot: Equatable {
         let displayIDs: Set<CGDirectDisplayID>
         let editDisplayID: CGDirectDisplayID?
@@ -93,21 +89,20 @@ final class ShellEditor {
         observeEndAsCancelEvents()
     }
 
-    /// Ein umgestecker Bildschirm, ein bevorstehender Ruhezustand oder ein
-    /// Wechsel der Sitzung (schneller Benutzerwechsel, Bildschirm gesperrt
-    /// ueber den Login-Bildschirm) raeumen nicht nach dem Nutzer auf, wenn
-    /// sie mitten in der Bearbeitung passieren - die Arbeitskopie verfaellt
-    /// ohne Rueckfrage, wie ein Abbrechen. Eine Rueckfrage waere hier ohnehin
-    /// oft zu spaet (Deckel zu, Bildschirm weg).
+    /// A reconnected screen, an upcoming sleep, or a session switch
+    /// (fast user switching, screen locked via the login screen) do not
+    /// clean up after the user if they happen mid-edit - the working
+    /// copy decays without confirmation, like a cancel. A confirmation
+    /// would often be too late here anyway (lid closed, screen gone).
     private func observeEndAsCancelEvents() {
         let center = NotificationCenter.default
         let workspace = NSWorkspace.shared.notificationCenter
-        // Drei eigene Abschluesse statt einem geteilten: ein einzeln
-        // deklarierter Abschluss gilt fuer den Compiler nicht als
-        // `@Sendable`, dreimal derselbe Wert an `using:` (das dort einen
-        // `@Sendable`-Abschluss erwartet) waere also eine Warnung wert - so
-        // wie an den anderen Beobachtungsstellen der Shell (z. B.
-        // `WindowGuard.swift`) direkt am Aufruf.
+        // Three separate closures instead of a shared one: an
+        // individually declared closure does not count as `@Sendable`
+        // for the compiler, so passing the same value three times to
+        // `using:` (which expects a `@Sendable` closure there) would be
+        // worth a warning - just like at the shell's other observation
+        // sites (e.g. `WindowGuard.swift`), directly at the call site.
         endAsCancelObservers = [
             center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.handleScreenParametersChanged() }
@@ -138,9 +133,9 @@ final class ShellEditor {
         showsAllInGallery = false
         galleryNotice = nil
         pendingCancelConfirmation = false
-        // `dashboard.begin` ruft `DashboardEditor.onBegin` (Dashboard-Fenster
-        // anpinnen); unser eigenes `onBegin` folgt fuer die uebrigen Panels
-        // und Modus-Fenster.
+        // `dashboard.begin` calls `DashboardEditor.onBegin` (pinning the
+        // Dashboard window); our own `onBegin` follows for the remaining
+        // panels and mode windows.
         dashboard.begin(pageID: pageID, screen: screen)
         for handler in beginHandlers { handler(screen) }
         registerEscape()
@@ -150,14 +145,14 @@ final class ShellEditor {
                                         editDisplayID: editScreen?.displayID, editFrame: editScreen?.frame)
     }
 
-    /// `didChangeScreenParametersNotification` (Task 6) kommt nicht nur bei
-    /// einem wirklich umgesteckten oder anders aufgeloesten Bildschirm,
-    /// sondern vermutlich auch, wenn Apples Dock oder die Menueleiste ihre
-    /// Groesse aendern - und die Shell blendet Apples Dock selbst aus. Ohne
-    /// diesen Vergleich haette das die Bearbeitung schon beim Oeffnen der
-    /// Galerie (Dock blendet aus) sofort wieder beendet. Nur bei einer
-    /// wirklichen Aenderung - andere Menge an Bildschirmen, oder ein anderer
-    /// Rahmen des Bearbeitungs-Bildschirms - zaehlt es wie ein Abbrechen.
+    /// `didChangeScreenParametersNotification` (Task 6) arrives not only
+    /// for an actually reconnected or differently resolved screen, but
+    /// presumably also when Apple's Dock or the menu bar change size -
+    /// and the shell hides Apple's Dock itself. Without this comparison
+    /// that would immediately end editing again as soon as the gallery
+    /// opens (Dock hides). Only on a real change - a different number of
+    /// screens, or a different frame of the editing screen - does it
+    /// count as a cancel.
     private func handleScreenParametersChanged() {
         guard isEditing, let previous = screenSnapshot else { return }
         let current = ShellScreens.current()
@@ -167,10 +162,10 @@ final class ShellEditor {
         cancel()
     }
 
-    /// „Fertig“: beide Arbeitskopien in einer Zuweisung von `store.settings`
-    /// uebernehmen - so entsteht kein Zwischenstand, in dem nur die eine
-    /// geschrieben ist (Absturz mitten drin liesse die Einstellungen sonst
-    /// halb bearbeitet zurueck).
+    /// "Done": apply both working copies in a single assignment of
+    /// `store.settings` - this way there is no intermediate state where
+    /// only one is written (a crash mid-way would otherwise leave the
+    /// settings half-edited).
     func done() {
         guard isEditing else { return }
         var next = store.settings
@@ -188,9 +183,9 @@ final class ShellEditor {
             changed = true
         }
         if changed { store.settings = next }
-        // Die Aenderung ist schon uebernommen - `dashboard.cancel()` wirft nur
-        // die Arbeitskopie weg und ruft `DashboardEditor.onEnd` (entpinnen),
-        // ohne selbst nochmal zu schreiben.
+        // The change is already applied - `dashboard.cancel()` only
+        // discards the working copy and calls `DashboardEditor.onEnd`
+        // (unpinning), without writing anything again itself.
         dashboard.cancel()
         utilities = nil
         pendingCancelConfirmation = false
@@ -199,8 +194,8 @@ final class ShellEditor {
         for handler in endHandlers { handler() }
     }
 
-    /// „Abbrechen“ (Werkzeugleiste, immer sofort - ein Klick ist schon die
-    /// Bestaetigung): beide Arbeitskopien verwerfen, ohne Rueckfrage.
+    /// "Cancel" (toolbar, always immediate - a click is already the
+    /// confirmation): discard both working copies, without confirmation.
     func cancel() {
         guard isEditing else { return }
         dashboard.cancel()
@@ -213,18 +208,19 @@ final class ShellEditor {
 
     // MARK: - Esc (Task 6)
 
-    /// Eigenes globales Kuerzel statt eines lokalen `onExitCommand`
-    /// (Kommentar oben bei `escapeHotKey`) - es faengt Esc darum auch dann ab,
-    /// wenn gerade ein Seitenname umbenannt wird, ein Optionen-Popover offen
-    /// ist, der Kurzbefehl-Picker steht oder eine Loesch-Rueckfrage zeigt.
-    /// Ohne diese Prüfungen wuerde Esc dort sofort die Galerie/Bearbeitung
-    /// treffen, statt zuerst das innerste dieser Elemente zu schliessen -
-    /// deshalb zuerst der Reihe nach das Innerste zu (Kurzbefehl-Picker vor
-    /// dem Popover, das ihn zeigt; Umbenennen und Loesch-Rueckfrage
-    /// unabhaengig davon), dann die Galerie, erst danach Rueckfrage/Abbruch
-    /// der ganzen Bearbeitung. Ein zweites Esc waehrend der
-    /// Abbruch-Rueckfrage verwirft nur die Rueckfrage selbst (man kann sich
-    /// umentscheiden, ohne gleich die Maus zu bemuehen).
+    /// Its own global shortcut instead of a local `onExitCommand`
+    /// (comment above at `escapeHotKey`) - this way it catches Esc even
+    /// while a page name is being renamed, an options popover is open,
+    /// the shortcut picker is showing, or a delete confirmation is
+    /// shown. Without these checks, Esc would immediately hit the
+    /// gallery/editing there instead of first closing the innermost of
+    /// these elements - hence closing the innermost one first, in order
+    /// (shortcut picker before the popover that shows it; renaming and
+    /// delete confirmation independently of that), then the gallery,
+    /// only after that the confirmation/cancel of the whole edit. A
+    /// second Esc during the cancel confirmation only dismisses the
+    /// confirmation itself (you can change your mind without reaching
+    /// for the mouse).
     private func handleEscape() {
         guard isEditing else { return }
         if pickingShortcut {
@@ -247,27 +243,27 @@ final class ShellEditor {
     }
 
     #if DEBUG
-    /// Selbsttest: Esc ohne das systemweite Kuerzel.
+    /// Self-test: Esc without the system-wide shortcut.
     func debugEscape() { handleEscape() }
-    /// Selbsttest: Rahmen der Kacheln und Karten des Kontrollzentrums
-    /// (Bezugsraum `UtilitiesPanelView.rootSpace`).
+    /// Self-test: frame of the Control Centre's tiles and cards
+    /// (reference space `UtilitiesPanelView.rootSpace`).
     @ObservationIgnored var debugUtilitiesRects: [String: CGRect] = [:]
     #endif
 
-    /// Nachfrage bestaetigt ("Verwerfen"): jetzt wirklich abbrechen.
+    /// Confirmation confirmed ("Discard"): now actually cancel.
     func confirmCancel() {
         pendingCancelConfirmation = false
         cancel()
     }
 
-    /// Nachfrage abgelehnt ("Weiter bearbeiten").
+    /// Confirmation declined ("Keep Editing").
     func dismissCancelConfirmation() {
         pendingCancelConfirmation = false
     }
 
     private func registerEscape() {
         #if DEBUG
-        // Selbsttest: Esc nicht systemweit belegen, neben der echten Shell.
+        // Self-test: do not claim Esc system-wide, alongside the real shell.
         if EditModeSelfTest.invisible { return }
         #endif
         let key = HotKey(keyCode: HotKeyKey.escape)
@@ -281,7 +277,7 @@ final class ShellEditor {
         escapeHotKey = nil
     }
 
-    // MARK: - Kontrollzentrum: Durchreichen an die Sitzung
+    // MARK: - Control Centre: passing through to the session
 
     func setCard(_ kind: UtilitiesCardKind, enabled: Bool) {
         utilities?.setCard(kind, enabled: enabled)
@@ -313,7 +309,7 @@ final class ShellEditor {
         set { utilities?.selectedToggleID = newValue }
     }
 
-    /// Ob der Kurzbefehl-Picker des gewaehlten Knopfs offen ist (Task 6).
+    /// Whether the shortcut picker of the selected button is open (Task 6).
     var pickingShortcut: Bool {
         get { utilities?.pickingShortcut ?? false }
         set { utilities?.pickingShortcut = newValue }

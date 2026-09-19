@@ -176,7 +176,7 @@ The first version edited the dashboard with Nexus open next to it. In the
 live test that felt wrong ("nicht cool"). It is replaced by one edit mode for
 the whole shell:
 
-- **Start:** one button „Oberfläche bearbeiten“ in Nexus (visible on every
+- **Start:** one button "Edit Interface" in Nexus (visible on every
   Nexus page). Nexus hides; a scrim (dark, slightly blurred) covers every
   screen. Other apps are not hidden or touched.
 - **Panels:** on the screen Nexus was on, the dashboard (top) and the control
@@ -185,25 +185,25 @@ the whole shell:
 - **Toolbar:** a small floating bar at the bottom centre with **+**,
   **Abbrechen** and **Fertig**.
 - **Gallery:** **+** opens a floating gallery in the middle of the screen with
-  one tab per surface („Dashboard“, „Kontrollzentrum“). Only elements whose
-  home is that surface are listed; „Alle zeigen (erweitert)“ also lists the
+  one tab per surface ("Dashboard", "Control Centre"). Only elements whose
+  home is that surface are listed; "Show All (Advanced)" also lists the
   others. Drag an element into its panel, or click it: it lands on the first
   free spot (dashboard) or at the end (control centre).
 - **Dashboard while editing:** widgets wobble (±0.3°), `−` removes, the corner
   handle resizes, dragging moves; everything snaps (section 2). Clicking a
   widget opens its options in a popover next to it. Pages are managed in the
   page bar: `+` adds a page, right click on a page offers Umbenennen, Symbol,
-  Duplizieren, Löschen. Switching pages works as usual.
+  Duplicate, Delete. Switching pages works as usual.
 - **Control centre while editing:** cards (Wach halten, Audio,
   Schnellschalter) and toggles wobble and have `−`; cards reorder vertically,
   toggles reorder in their grid by dragging (it is a grid, not free
   placement). Clicking a toggle with options (app, link, shortcut, hide apps)
   opens them in a popover. Removed cards come back from the gallery.
-- **End:** „Fertig“ saves dashboard pages and the control-centre layout;
-  „Abbrechen“ drops both. Esc = Abbrechen; with unsaved changes it asks once
-  („Änderungen verwerfen?“). Nexus comes back afterwards.
+- **End:** "Done" saves dashboard pages and the control-centre layout;
+  "Cancel" drops both. Esc = Cancel; with unsaved changes it asks once
+  ("Discard changes?"). Nexus comes back afterwards.
 
-### Robustness („bombenfest“)
+### Robustness ("rock solid")
 
 People who use a shell like this also run AeroSpace, yabai, Amethyst,
 Rectangle, Stage Manager and more. The edit mode must not fight them:
@@ -215,11 +215,11 @@ Rectangle, Stage Manager and more. The edit mode must not fight them:
   so window managers neither tile, move nor hide it.
 - Esc works even when another app took focus (a global hot key registered
   only while editing).
-- The mode ends as „Abbrechen“ on: screen configuration change, sleep, fast
+- The mode ends as "Cancel" on: screen configuration change, sleep, fast
   user switching. No half-open states.
 - While editing, the shell's other hot keys (launcher, dashboard, control
   centre, power menu) are ignored and the sidebar sits under the scrim.
-- Only „Fertig“ writes settings; a crash leaves settings unchanged, and the
+- Only "Done" writes settings; a crash leaves settings unchanged, and the
   scrim disappears with the process.
 - Live test in a macOS VM with AeroSpace and yabai before release.
 
@@ -227,7 +227,7 @@ Rectangle, Stage Manager and more. The edit mode must not fight them:
 
 - Nexus keeps settings only. The Dashboard and Quick Actions pages are gone
   (2026-09-19): the dashboard size slider lives in the edit mode's toolbar
-  (a working copy like the pages, saved with „Fertig“), the weather places
+  (a working copy like the pages, saved with "Done"), the weather places
   for the bar and for new weather widgets moved to Nexus › Leiste, and
   lid-closed Keep Awake moved to Nexus › Allgemein (not into an edit-mode
   popover: it installs a system rule behind an admin prompt at once, which

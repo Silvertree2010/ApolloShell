@@ -1,38 +1,38 @@
 import Foundation
 
-// Die Leiste als Baukasten: eine geordnete Liste von Bausteinen, jeder mit
-// eigener Kennung und eigenen Optionen. Nexus > Leiste bearbeitet sie
-// (ziehen, +, Vorlagen), die Leiste zeichnet sie der Reihe nach.
+// The bar as a construction kit: an ordered list of modules, each with its
+// own identifier and its own options. Nexus > Bar edits it (drag, +,
+// presets), the bar draws them in order.
 //
-// Caelestia fuehrt die Leiste ebenso als Liste (bar.entries mit id und
-// enabled). Hier ohne `enabled`: ein ausgeschalteter Baustein ist einer, der
-// nicht in der Liste steht - ein Zustand weniger, den man verstehen muss.
+// Caelestia also runs the bar as a list (bar.entries with id and enabled).
+// Here without `enabled`: a disabled module is one that is not in the
+// list - one less state to understand.
 //
-// Die eigentliche Listenarbeit (Kennungen vergeben, aufraeumen, verschieben,
-// nachsichtig lesen) traegt `BlockList` (BlockList.swift); hier bleiben nur
-// die Regeln, die eigens zur Leiste gehoeren.
+// The actual list work (assigning identifiers, cleaning up, moving,
+// lenient reading) is carried by `BlockList` (BlockList.swift); only the
+// rules specific to the bar remain here.
 
-// MARK: - Arten
+// MARK: - Kinds
 
-/// Welche Bausteine es gibt. Der Rohwert steht in settings.json ("kind"),
-/// deshalb nie umbenennen, hoechstens neue dazu. Eine unbekannte Art (Datei
-/// aus einer neueren Fassung, von Hand verschrieben) wird beim Lesen
-/// uebergangen, statt die ganze Leiste zu verwerfen.
+/// Which modules exist. The raw value is stored in settings.json ("kind"),
+/// so never rename it, only add new ones. An unknown kind (file from a
+/// newer version, hand-edited) is skipped when reading instead of
+/// discarding the whole bar.
 public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
-    // Die sieben der bisherigen festen Leiste.
+    // The seven from the previous fixed bar.
     case dashboardButton, workspaces, dock, clock, utilitiesButton, statusIcons, power
-    // Neu dazu, fuer andere Geschmaecker.
+    // Added new, for different tastes.
     case spacer, gap, divider, appButton, battery, cpu, weather, mediaButton
 
     public var id: Self { self }
 
-    /// Teilt sich die freie Hoehe mit den anderen flexiblen (`BarFlex`).
+    /// Shares the free height with the other flexible ones (`BarFlex`).
     public var isFlexible: Bool { self == .dock || self == .spacer }
 
-    /// Hoechstens einmal: das Dock (Ziehen und Ablegen schreibt Apples
-    /// Dock-Liste - zwei Spalten mit demselben Inhalt ergaeben keinen Sinn)
-    /// und die Statussymbole (das Popout haengt an der Lage ihrer Symbole;
-    /// bei zwei Kapseln wuesste es nicht, an welcher).
+    /// At most once: the Dock (dragging and dropping writes Apple's Dock
+    /// list - two columns with the same content would make no sense)
+    /// and the status icons (the popout depends on the position of its
+    /// icons; with two capsules it would not know which one).
     public var isUnique: Bool { self == .dock || self == .statusIcons }
 
     public var title: String {
@@ -55,7 +55,7 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         }
     }
 
-    /// Eine Zeile fuer die Galerie hinter dem +.
+    /// A line for the gallery behind the +.
     public var summary: String {
         switch self {
         case .dashboardButton: String(localized: "Opens the Dashboard with calendar, media and weather.")
@@ -76,7 +76,7 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         }
     }
 
-    /// SF Symbol fuer Liste und Galerie.
+    /// SF Symbol for list and gallery.
     public var symbol: String {
         switch self {
         case .dashboardButton: "square.grid.2x2.fill"
@@ -98,14 +98,14 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
     }
 }
 
-/// Fuer `BlockList`: der Rohwert ist schon `rawValue`, `isUnique` gibt es
-/// schon oben.
+/// For `BlockList`: the raw value is already `rawValue`, `isUnique` already
+/// exists above.
 extension BarModuleKind: BlockKind {}
 
-// MARK: - Optionen je Art
+// MARK: - Options per kind
 
-// Alle Optionen lesen nachsichtig wie ShellSettings: fehlt ein Schluessel
-// oder hat er den falschen Typ, gilt fuer genau diesen die Vorgabe.
+// All options are read leniently like ShellSettings: if a key is missing
+// or has the wrong type, the default applies to just that one.
 
 public struct BarWorkspacesOptions: Codable, Equatable, Sendable {
     public enum Style: String, Codable, CaseIterable, Sendable { case dots, numbers }
@@ -124,8 +124,8 @@ public struct BarDockOptions: Codable, Equatable, Sendable {
     public enum IconSize: String, Codable, CaseIterable, Sendable {
         case small, medium, large
 
-        /// Kantenlaenge des Symbols. Der Rahmen bleibt 32 wie bei allen
-        /// Knoepfen der Leiste; "gross" fuellt ihn fast.
+        /// Edge length of the symbol. The frame stays 32 like all buttons
+        /// in the bar; "large" nearly fills it.
         public var points: Double {
             switch self {
             case .small: 22
@@ -135,7 +135,7 @@ public struct BarDockOptions: Codable, Equatable, Sendable {
         }
     }
 
-    /// Auch Apps, die laufen, aber nicht angeheftet sind (unter dem Strich).
+    /// Also apps that are running but not pinned (below the line).
     public var showRunning: Bool
     public var iconSize: IconSize
 
@@ -152,9 +152,9 @@ public struct BarDockOptions: Codable, Equatable, Sendable {
     }
 }
 
-/// Caelestia: bar.clock. Ohne `showSeconds`: dafuer muesste die Leiste jede
-/// Sekunde neu zeichnen statt jede Minute. Gleiche Schluessel wie das alte
-/// `bar.clock`, damit die Migration es unveraendert lesen kann.
+/// Caelestia: bar.clock. Without `showSeconds`: that would require the bar
+/// to redraw every second instead of every minute. Same keys as the old
+/// `bar.clock`, so migration can read it unchanged.
 public struct BarClockOptions: Codable, Equatable, Sendable {
     public var showIcon: Bool
     public var showDate: Bool
@@ -196,9 +196,9 @@ public struct BarGapOptions: Codable, Equatable, Sendable {
     public static let range: ClosedRange<Double> = 4...96
     public static let standard: Double = 16
 
-    /// Zusaetzlich zum ueblichen Abstand zwischen zwei Bausteinen. Immer im
-    /// Bereich: eine von Hand verschriebene 10000 wuerde sonst die ganze
-    /// Leiste sprengen, und NaN liesse sich nicht einmal speichern.
+    /// In addition to the usual gap between two modules. Always within
+    /// range: a hand-edited 10000 would otherwise blow up the whole bar,
+    /// and NaN could not even be saved.
     public var height: Double {
         didSet {
             let clamped = Self.clamped(height)
@@ -213,8 +213,8 @@ public struct BarGapOptions: Codable, Equatable, Sendable {
     public init(from decoder: any Decoder) throws {
         self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        // Nicht `into:`: das schreibt direkt in den Speicher des Feldes und
-        // ueberspringt dabei `didSet`, die Klemmung muss also von Hand sein.
+        // Not `into:`: that writes directly to the field's storage and
+        // skips `didSet` in the process, so the clamping must be done by hand.
         if let raw: Double = c.lenient(.height) { height = Self.clamped(raw) }
     }
 
@@ -225,8 +225,8 @@ public struct BarGapOptions: Codable, Equatable, Sendable {
 }
 
 public struct BarAppButtonOptions: Codable, Equatable, Sendable {
-    /// Leer, bis in Nexus eine App gewaehlt ist; die Leiste zeigt dann einen
-    /// gestrichelten Platzhalter.
+    /// Empty until an app is chosen in Nexus; the bar then shows a
+    /// dashed placeholder.
     public var bundleID: String
 
     public init(bundleID: String = "") { self.bundleID = bundleID }
@@ -239,7 +239,7 @@ public struct BarAppButtonOptions: Codable, Equatable, Sendable {
 }
 
 public struct BarBatteryOptions: Codable, Equatable, Sendable {
-    /// Akkusymbol ueber der Zahl.
+    /// Battery icon above the number.
     public var showIcon: Bool
 
     public init(showIcon: Bool = true) { self.showIcon = showIcon }
@@ -276,10 +276,10 @@ public struct BarWeatherOptions: Codable, Equatable, Sendable {
     }
 }
 
-// MARK: - Baustein
+// MARK: - Module
 
-/// Art und Optionen in einem: jede Art traegt genau ihren Optionstyp, eine
-/// Uhr kann also keine Dock-Optionen haben.
+/// Kind and options in one: each kind carries exactly its own option
+/// type, so a clock cannot have Dock options.
 public enum BarModule: BlockModule, Equatable, Sendable {
     case dashboardButton
     case workspaces(BarWorkspacesOptions)
@@ -297,14 +297,15 @@ public enum BarModule: BlockModule, Equatable, Sendable {
     case weather(BarWeatherOptions)
     case mediaButton
 
-    /// Mit den Vorgaben der Art.
+    /// With the kind's defaults.
     public init(_ kind: BarModuleKind) {
         self.init(kind: kind, options: nil)
     }
 
-    /// Art und (falls vorhanden) gelesene Optionen - der eine Switch fuer
-    /// beides: ohne Container gelten fuer jede Art die Vorgaben, mit
-    /// Container die gelesenen Optionen, kaputte wieder die Vorgaben.
+    /// Kind and (if present) the options read - a single switch for both:
+    /// without a container the defaults apply to every kind, with a
+    /// container the options that were read, broken ones fall back to
+    /// the defaults again.
     fileprivate init(kind: BarModuleKind, options c: KeyedDecodingContainer<BarEntry.CodingKeys>?) {
         self = switch kind {
         case .dashboardButton: .dashboardButton
@@ -345,8 +346,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         }
     }
 
-    /// Optionen dieses Bausteins, `nil` bei einer Art ohne welche. Traegt
-    /// `hasOptions` (siehe `BlockModule`) und das Schreiben in `BarEntry`.
+    /// Options of this module, `nil` for a kind that has none. Backs
+    /// `hasOptions` (see `BlockModule`) and writing in `BarEntry`.
     public var options: (any Encodable)? {
         switch self {
         case .workspaces(let o): o
@@ -362,7 +363,7 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         }
     }
 
-    // Lesezugriff auf die Optionen einer Art; `nil` bei jeder anderen.
+    // Read access to the options of a kind; `nil` for every other one.
     public var workspaces: BarWorkspacesOptions? { if case .workspaces(let o) = self { o } else { nil } }
     public var dock: BarDockOptions? { if case .dock(let o) = self { o } else { nil } }
     public var clock: BarClockOptions? { if case .clock(let o) = self { o } else { nil } }
@@ -374,12 +375,12 @@ public enum BarModule: BlockModule, Equatable, Sendable {
     public var weather: BarWeatherOptions? { if case .weather(let o) = self { o } else { nil } }
 }
 
-/// Ein Platz in der Leiste. Die Kennung bleibt beim Umsortieren und beim
-/// Aendern der Optionen gleich - SwiftUI haelt daran Zustand und Animation
-/// fest, und Nexus weiss, welche Zeile aufgeklappt ist.
+/// A slot in the bar. The identifier stays the same when reordering and
+/// when changing options - SwiftUI keeps state and animation tied to it,
+/// and Nexus knows which row is expanded.
 ///
-/// In der Datei: `{"id": "clock", "kind": "clock", "options": {...}}`;
-/// `options` fehlt bei Arten ohne Optionen.
+/// In the file: `{"id": "clock", "kind": "clock", "options": {...}}`;
+/// `options` is missing for kinds without options.
 public struct BarEntry: Codable, Equatable, Identifiable, Sendable {
     public var id: String
     public var module: BarModule
@@ -391,30 +392,30 @@ public struct BarEntry: Codable, Equatable, Identifiable, Sendable {
         self.module = module
     }
 
-    /// Mit den Vorgaben; Kennung = Name der Art (in einer Leiste eindeutig
-    /// gemacht von `BarLayout`).
+    /// With the defaults; identifier = name of the kind (made unique
+    /// within a bar by `BarLayout`).
     public init(_ kind: BarModuleKind, id: String? = nil) {
         self.init(id: id ?? kind.rawValue, module: BarModule(kind))
     }
 
-    /// Mit Optionen. Eigene Beschriftung: `.power` gibt es als Art und als
-    /// Baustein, ohne sie waere `BarEntry(.power)` mehrdeutig.
+    /// With options. Separate label: `.power` exists both as a kind and
+    /// as a module, without it `BarEntry(.power)` would be ambiguous.
     public init(module: BarModule, id: String? = nil) {
         self.init(id: id ?? module.kind.rawValue, module: module)
     }
 
-    // `fileprivate`, nicht `private`: `BarModule.init(kind:options:)` braucht
-    // denselben Schluesseltyp, um die Optionen zu lesen.
+    // `fileprivate`, not `private`: `BarModule.init(kind:options:)` needs
+    // the same key type to read the options.
     fileprivate enum CodingKeys: String, CodingKey { case id, kind, options }
 
-    /// Unbekannte oder fehlende Art: Fehler - `BarLayout` uebergeht den
-    /// Eintrag dann. Kaputte Optionen dagegen nur Vorgaben.
+    /// Unknown or missing kind: an error - `BarLayout` then skips the
+    /// entry. Broken options, on the other hand, just fall back to defaults.
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         guard let raw: String = c.lenient(.kind), let kind = BarModuleKind(rawValue: raw) else {
-            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unbekannter Baustein")
+            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unknown module")
         }
-        // Fehlt die Kennung, vergibt `BarLayout` eine.
+        // If the identifier is missing, `BarLayout` assigns one.
         id = c.lenient(.id) ?? ""
         module = BarModule(kind: kind, options: c)
     }
@@ -429,17 +430,17 @@ public struct BarEntry: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
-/// Fuer `BlockList<BarEntry>`.
+/// For `BlockList<BarEntry>`.
 extension BarEntry: Block {}
 
-// MARK: - Leiste
+// MARK: - Bar
 
-/// Die Bausteine von oben nach unten. Immer gueltig: Kennungen eindeutig und
-/// nie leer, Dock und Statussymbole hoechstens einmal - dafuer sorgt
-/// `BlockList`, deshalb ist `entries` von aussen nur lesbar.
+/// The modules from top to bottom. Always valid: identifiers unique and
+/// never empty, Dock and status icons at most once - `BlockList` takes
+/// care of that, which is why `entries` is read-only from the outside.
 ///
-/// In der Datei eine schlichte Liste. Unlesbare Eintraege (unbekannte Art,
-/// kein Objekt) fallen weg, der Rest bleibt.
+/// A plain list in the file. Unreadable entries (unknown kind, not an
+/// object) are dropped, the rest remains.
 public struct BarLayout: Codable, Equatable, Sendable {
     private var blocks: BlockList<BarEntry>
 
@@ -457,7 +458,7 @@ public struct BarLayout: Codable, Equatable, Sendable {
         try blocks.encode(to: encoder)
     }
 
-    // MARK: Lesen
+    // MARK: Reading
 
     public subscript(id id: String) -> BarEntry? {
         blocks[id: id]
@@ -467,7 +468,7 @@ public struct BarLayout: Codable, Equatable, Sendable {
         blocks.contains(kind)
     }
 
-    /// Fuer die Galerie: ein zweites Dock gibt es nicht.
+    /// For the gallery: there is no second Dock.
     public func canAdd(_ kind: BarModuleKind) -> Bool {
         blocks.canAdd(kind)
     }
@@ -476,21 +477,21 @@ public struct BarLayout: Codable, Equatable, Sendable {
         entries.filter { $0.kind.isFlexible }.count
     }
 
-    /// Wo ein neuer Baustein hinkommt: direkt unter den letzten flexiblen
-    /// (Dock, Abstand) - also oben in die untere Gruppe, bei der
-    /// Caelestia-Leiste zwischen Dock und Uhr. Ohne flexiblen vor ein
-    /// abschliessendes Ausschalten, sonst ans Ende.
+    /// Where a new module goes: right below the last flexible one (Dock,
+    /// spacer) - i.e. at the top of the lower group, in the Caelestia bar
+    /// between Dock and clock. Without a flexible one, before a trailing
+    /// Power off, otherwise at the end.
     public var insertionIndex: Int {
         if let last = entries.lastIndex(where: { $0.kind.isFlexible }) { return last + 1 }
         if entries.last?.kind == .power { return entries.count - 1 }
         return entries.count
     }
 
-    // MARK: Aendern
+    // MARK: Changing
 
-    /// Neuer Baustein mit Vorgaben, ohne `index` an der ueblichen Stelle.
-    /// Gibt seine Kennung zurueck; `nil`, wenn die Art schon da ist und nur
-    /// einmal vorkommen darf.
+    /// New module with defaults, without `index` at the usual spot.
+    /// Returns its identifier; `nil` if the kind is already present and
+    /// may only occur once.
     @discardableResult
     public mutating func add(_ kind: BarModuleKind, at index: Int? = nil) -> String? {
         blocks.add(BarEntry(kind), at: index ?? insertionIndex)
@@ -500,29 +501,30 @@ public struct BarLayout: Codable, Equatable, Sendable {
         blocks.remove(id: id)
     }
 
-    /// Andere Optionen fuer einen Baustein. Die Art bleibt: aus einer Uhr
-    /// wird so kein zweites Dock.
+    /// Different options for a module. The kind stays the same: a clock
+    /// cannot turn into a second Dock this way.
     public mutating func update(id: String, to module: BarModule) {
         blocks.update(id: id, to: BarEntry(id: id, module: module))
     }
 
-    /// Wie SwiftUIs `onMove`: `destination` zaehlt in der Liste VOR dem
-    /// Verschieben ("vor Zeile n einfuegen") - wie `PinnedList.move`.
+    /// Like SwiftUI's `onMove`: `destination` counts in the list BEFORE
+    /// the move ("insert before row n") - like `PinnedList.move`.
     public mutating func move(fromOffsets source: IndexSet, toOffset destination: Int) {
         blocks.move(fromOffsets: source, toOffset: destination)
     }
 
-    /// Eine Stelle nach oben (-1) oder unten (+1); am Rand nichts. Fuer das
-    /// Kontextmenue, damit es auch ohne Ziehen geht.
+    /// One spot up (-1) or down (+1); nothing at the edge. For the
+    /// context menu, so it also works without dragging.
     public mutating func move(id: String, by step: Int) {
         blocks.move(id: id, by: step)
     }
 
     // MARK: Migration
 
-    /// Aus den Schaltern vor dem Baukasten (bar.showWorkspaces usw.): genau
-    /// die Leiste, die sie zeigten. Ohne Dock stand dort ein Abstand, der
-    /// die untere Gruppe unten hielt - daher dann `spacer` an seiner Stelle.
+    /// From the switches before the construction kit (bar.showWorkspaces
+    /// etc.): exactly the bar they showed. Without a Dock there was a
+    /// spacer there that kept the lower group at the bottom - hence
+    /// `spacer` in its place.
     public static func migrated(showWorkspaces: Bool = true, showDock: Bool = true, showClock: Bool = true,
                                 showStatusIcons: Bool = true, clock: BarClockOptions = .init()) -> BarLayout {
         var list: [BarEntry] = [BarEntry(.dashboardButton)]
@@ -536,10 +538,10 @@ public struct BarLayout: Codable, Equatable, Sendable {
     }
 }
 
-// MARK: - Vorlagen
+// MARK: - Presets
 
-/// Fertige Leisten zum Laden in Nexus. Reine Daten; "Caelestia" ist die
-/// Vorgabe und genau die bisherige Leiste.
+/// Ready-made bars to load in Nexus. Pure data; "Caelestia" is the
+/// default and exactly the previous bar.
 public enum BarPreset: String, CaseIterable, Identifiable, Sendable {
     case caelestia, minimal, dockOnly, everything
 
@@ -549,17 +551,17 @@ public enum BarPreset: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .caelestia: "Caelestia"
         case .minimal: "Minimal"
-        case .dockOnly: "Nur Dock"
-        case .everything: "Alles"
+        case .dockOnly: "Dock Only"
+        case .everything: "Everything"
         }
     }
 
     public var summary: String {
         switch self {
-        case .caelestia: "Die Vorgabe: Dashboard, Spaces, Dock, Uhr, Utilities, Status, Ausschalten."
-        case .minimal: "Spaces oben, Uhr und Ausschalten unten, sonst nichts."
-        case .dockOnly: "Nur die Apps, über die ganze Höhe."
-        case .everything: "Jeder Baustein einmal, zum Ausprobieren und Aussortieren."
+        case .caelestia: "The default: Dashboard, Spaces, Dock, Clock, Control Centre, Status, Power off."
+        case .minimal: "Spaces at the top, Clock and Power off at the bottom, nothing else."
+        case .dockOnly: "Just the apps, spanning the full height."
+        case .everything: "Every module once, to try out and sort through."
         }
     }
 
@@ -575,9 +577,9 @@ public enum BarPreset: String, CaseIterable, Identifiable, Sendable {
         case .dockOnly:
             BarLayout([BarEntry(.dock)])
         case .everything:
-            // Ohne flexiblen Abstand und festen Abstand: die teilten sich nur
-            // den Platz mit dem Dock. Der Akku steht als eigener Baustein da,
-            // deshalb nicht noch einmal in der Kapsel.
+            // Without a flexible spacer and a fixed spacer: those would
+            // only share the space with the Dock. The battery stands as
+            // its own module here, so it is not shown again in the capsule.
             BarLayout([
                 BarEntry(.dashboardButton), BarEntry(.mediaButton), BarEntry(.workspaces), BarEntry(.divider),
                 BarEntry(.dock), BarEntry(.divider),
@@ -589,15 +591,15 @@ public enum BarPreset: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// Fuer `LayoutPreset`: "Caelestia" ist die Vorgabe.
+/// For `LayoutPreset`: "Caelestia" is the default.
 extension BarPreset: LayoutPreset {
     public static var `default`: BarPreset { .caelestia }
 }
 
-// MARK: - Hoehe verteilen
+// MARK: - Distributing height
 
-/// Lage eines Bausteins in der Leiste: Oberkante und Hoehe, ab der
-/// Oberkante des Inhalts.
+/// Position of a module in the bar: top edge and height, from the top
+/// edge of the content.
 public struct BarSlot: Equatable, Sendable {
     public var y: Double
     public var height: Double
@@ -608,15 +610,16 @@ public struct BarSlot: Equatable, Sendable {
     }
 }
 
-/// Wie die Leiste ihre Hoehe verteilt:
+/// How the bar distributes its height:
 ///
-/// - Feste Bausteine bekommen ihre eigene Hoehe, dazwischen `spacing`.
-/// - Was uebrig bleibt, teilen sich die flexiblen (`nil` in `heights`:
-///   Dock, Abstand) zu gleichen Teilen. So fuellt das Dock allein genau den
-///   Platz zwischen oberer und unterer Gruppe - wie vor dem Baukasten.
-/// - Ohne flexiblen stehen alle oben, der Rest bleibt unten frei.
-/// - Reicht der Platz nicht, bekommen die flexiblen 0 (das Dock scrollt),
-///   nie eine negative Hoehe.
+/// - Fixed modules get their own height, `spacing` between them.
+/// - What remains is shared equally among the flexible ones (`nil` in
+///   `heights`: Dock, spacer). So the Dock alone fills exactly the space
+///   between the upper and lower group - as before the construction kit.
+/// - Without a flexible one, all stand at the top, the rest stays free
+///   at the bottom.
+/// - If there is not enough space, the flexible ones get 0 (the Dock
+///   scrolls), never a negative height.
 public enum BarFlex {
     public static func slots(available: Double, heights: [Double?], spacing: Double) -> [BarSlot] {
         let fixed = heights.compactMap { $0 }
