@@ -218,13 +218,25 @@ private final class EditModeSelfTestHarness {
         editor.debugEscape()
         check(!editor.galleryVisible && editor.isEditing, "Esc 3: Galerie zu, Modus bleibt")
         dashboardEditor.addPage()
+        let plainToolbar = windows.debugToolbarFrame
         editor.debugEscape()
         check(editor.pendingCancelConfirmation && editor.isEditing, "Esc 4 mit Aenderungen: Rueckfrage statt Abbruch")
+        await wait(0.4)
+        let confirmToolbar = windows.debugToolbarFrame
+        note("Werkzeugleiste normal \(r(plainToolbar)), mit Rueckfrage \(r(confirmToolbar))")
+        check((confirmToolbar?.width ?? 0) > (plainToolbar?.width ?? 0) && (confirmToolbar.map(screen.frame.contains) ?? false),
+              "Rueckfrage: Werkzeugleiste waechst mit und bleibt auf dem Bildschirm")
         editor.debugEscape()
         check(!editor.pendingCancelConfirmation && editor.isEditing, "Esc 5: Rueckfrage zu, weiter bearbeiten")
         editor.debugEscape()
-        editor.confirmCancel()
-        check(!editor.isEditing, "Verwerfen beendet den Modus")
+        await wait(0.4)
+        // „Verwerfen“ ist der rechte Knopf der Rueckfrage.
+        if let toolbar = windows.debugToolbarFrame, editor.pendingCancelConfirmation {
+            windows.debugClickToolbar(fromTopLeft: NSPoint(x: toolbar.width - 18 - 35, y: toolbar.height / 2))
+            await wait(0.3)
+        }
+        check(!editor.isEditing, "Klick auf Verwerfen beendet den Modus")
+        if editor.isEditing { editor.confirmCancel() }
         await wait(0.8)
         editor.begin(screen: screen)
         await wait(0.3)
