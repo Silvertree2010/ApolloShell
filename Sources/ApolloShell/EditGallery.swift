@@ -246,7 +246,7 @@ struct EditGalleryView: View {
     private var dashboardTiles: some View {
         ForEach(WidgetKind.allCases.filter { editor.showsAllInGallery || $0.home == .dashboard }) { kind in
             EditGalleryTile(symbol: kind.symbol, title: kind.title, detail: sizesText(kind.sizes.count),
-                            payload: BentoWidgetDragPayload.string(for: kind), isDisabled: false) {
+                            tooltip: kind.title, payload: BentoWidgetDragPayload.string(for: kind), isDisabled: false) {
                 if editor.dashboard.addAtFirstFreeSpot(kind) == nil {
                     show(notice: String(localized: "Kein Platz auf dieser Seite"))
                 }
@@ -258,7 +258,7 @@ struct EditGalleryView: View {
     private var controlCentreTiles: some View {
         ForEach(UtilitiesCardKind.allCases) { kind in
             let already = editor.utilities?.layout.isEnabled(kind) ?? true
-            EditGalleryTile(symbol: kind.symbol, title: kind.title, detail: kind.summary,
+            EditGalleryTile(symbol: kind.symbol, title: kind.title, detail: nil, tooltip: kind.summary,
                             payload: UtilitiesCardDragPayload.string(for: kind), isDisabled: already) {
                 editor.setCard(kind, enabled: true)
             }
@@ -266,7 +266,7 @@ struct EditGalleryView: View {
         ForEach(UtilitiesToggleGroup.allCases) { group in
             ForEach(group.kinds) { kind in
                 let already = editor.utilities.map { !$0.layout.canAdd(kind) } ?? false
-                EditGalleryTile(symbol: kind.symbol ?? "circle", title: kind.title, detail: kind.summary,
+                EditGalleryTile(symbol: kind.symbol ?? "circle", title: kind.title, detail: nil, tooltip: kind.summary,
                                 payload: UtilitiesToggleDragPayload.string(for: kind), isDisabled: already) {
                     if editor.addToggle(kind) == nil {
                         show(notice: String(localized: "Gibt es schon"))
@@ -288,13 +288,19 @@ struct EditGalleryView: View {
     }
 }
 
-/// Eine Kachel der Galerie: Symbol, Titel, Kurzinfo. Ziehen setzt die
-/// Textnutzlast (`apolloshell.widget:`/`.toggle:`/`.card:`), ein Klick landet
-/// an der ersten freien Stelle bzw. am Ende.
+/// Eine Kachel der Galerie: Symbol, Titel, auf Wunsch eine kurze Kennzahl
+/// (Dashboard: Anzahl Groessen). Die volle Beschreibung (Kontrollzentrum:
+/// `UtilitiesCardKind.summary`/`UtilitiesToggleKind.summary`, oft laenger als
+/// eine Zeile) steht nur im Tooltip (`.help`) - als dritte Zeile lief sie in
+/// jeder Kachel ab (Live-Test 19.09.). Ziehen setzt die Textnutzlast
+/// (`apolloshell.widget:`/`.toggle:`/`.card:`), ein Klick landet an der
+/// ersten freien Stelle bzw. am Ende.
 private struct EditGalleryTile: View {
     let symbol: String
     let title: String
-    let detail: String
+    /// Kurze Kennzahl unter dem Titel; `nil` laesst die Zeile weg.
+    let detail: String?
+    let tooltip: String
     let payload: String
     let isDisabled: Bool
     let action: () -> Void
@@ -309,10 +315,12 @@ private struct EditGalleryTile: View {
                 Text(title)
                     .font(.caption.weight(.medium))
                     .lineLimit(1)
-                Text(detail)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                if let detail {
+                    Text(detail)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
@@ -322,6 +330,7 @@ private struct EditGalleryTile: View {
         .opacity(isDisabled ? 0.4 : 1)
         .disabled(isDisabled)
         .modifier(GalleryDragModifier(payload: payload, active: !rendersForScreenshot))
+        .help(tooltip)
         .accessibilityLabel(title)
     }
 }
