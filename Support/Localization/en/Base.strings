@@ -13,8 +13,8 @@
 "Der Launcher öffnet mit einem Kürzel, in jeder App. Zum Ändern ins Feld klicken und die neue Kombination drücken." = "The launcher opens with a shortcut, in any app. To change it, click the field and press the new combination.";
 "Spotlight bleibt auf ⌘Space. Alle Kürzel lassen sich in Nexus unter „Tastenkürzel“ ändern oder entfernen." = "Spotlight stays on ⌘Space. All shortcuts can be changed or removed in Nexus under “Keyboard Shortcuts”.";
 "Diese Einführung ist unter Nexus › Über jederzeit wieder da." = "This introduction is always available again under Nexus › About.";
-"Einstellungen gibt es in Nexus – über das Zahnrad im Panel Schnellaktionen." = "Settings live in Nexus – via the gear icon in the Quick Actions panel.";
-"Einstellungen gibt es in Nexus – mit %@ oder über das Zahnrad im Panel Schnellaktionen." = "Settings live in Nexus – with %@ or via the gear icon in the Quick Actions panel.";
+"Einstellungen gibt es in Nexus – über das Zahnrad im Kontrollzentrum." = "Settings live in Nexus – via the gear icon in the Control Centre.";
+"Einstellungen gibt es in Nexus – mit %@ oder über das Zahnrad im Kontrollzentrum." = "Settings live in Nexus – with %@ or via the gear icon in the Control Centre.";
 
 /* ApolloShell/OnboardingModels.swift */
 "macOS hat abgelehnt: %@" = "macOS declined: %@";
@@ -46,7 +46,7 @@
 "Kürzel entfernen" = "Remove Shortcut";
 
 /* HotKey.swift */
-"Schnellaktionen" = "Quick Actions";
+"Kontrollzentrum" = "Control Centre";
 "Apps suchen und öffnen" = "Search and open apps";
 "Wetter, Kalender, Medien, Leistung" = "Weather, calendar, media, performance";
 "Wach halten, Ton und Schnellschalter" = "Keep Awake, sound and quick toggles";

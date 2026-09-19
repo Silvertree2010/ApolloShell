@@ -169,7 +169,7 @@ struct UtilitiesEmptyCard: View {
                 }
                 .buttonStyle(.plain)
                 .background(HoverTracker { hovering = $0 })
-                .help("Nexus > Schnellaktionen öffnen")
+                .help("Nexus öffnen")
             }
         }
     }

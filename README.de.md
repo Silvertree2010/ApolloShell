@@ -158,17 +158,17 @@ erteilt sind. Später: Nexus > Über > „Einführung zeigen“.
   - die Fensterwache
   - die Fensterliste und Kennzeichen im Dock
   - Klicks auf Spaces
-  - Tastenaktionen in den Utilities
+  - Tastenaktionen im Kontrollzentrum
 - **Automation → System Events** braucht es für Abmelden, Neustart und
   Ausschalten. macOS fragt beim ersten Mal selbst nach.
 - **Wach halten bei zugeklapptem Deckel** ist eine eigene Einstellung (Nexus >
-  Schnellaktionen, für neue Installationen aus). Sie braucht root für
+  Allgemein, für neue Installationen aus). Sie braucht root für
   `pmset -a disablesleep`. ApolloShell versucht erst `sudo -n`, sonst fragt macOS
   einmal nach einem Administrator-Passwort. Dabei legt ApolloShell
   `/etc/sudoers.d/apolloshell` an, eine mit `visudo` geprüfte Regel, die nur
   `pmset -a disablesleep 1` und `0` für deinen Benutzer ohne Passwort erlaubt.
   Danach fragt nichts mehr, auch nicht beim Akku-Schutz oder Beenden. Nexus >
-  Schnellaktionen zeigt die Regel und kann sie entfernen. Wer ablehnt, bekommt
+  Allgemein zeigt die Regel und kann sie entfernen. Wer ablehnt, bekommt
   Wach halten nur aufgeklappt, und die Karte sagt das.
 
 **Apple-Dock ausblenden, solange ApolloShell läuft** (Nexus > Allgemein, für

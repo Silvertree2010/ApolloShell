@@ -237,7 +237,6 @@
 "Allgemein" = "General";
 "Tastenkürzel" = "Keyboard Shortcuts";
 "Leiste" = "Bar";
-"Schnellaktionen" = "Quick Actions";
 "Launcher" = "Launcher";
 "Dashboard" = "Dashboard";
 "Schreibtisch" = "Desktop";
@@ -246,9 +245,8 @@
 "Über" = "About";
 "Oberfläche bearbeiten" = "Edit Interface";
 "Start bei der Anmeldung und die Freigaben, die ApolloShell von macOS braucht." = "Start at login and the permissions ApolloShell needs from macOS.";
-"Globale Kürzel für Launcher, Dashboard, Schnellaktionen und Nexus." = "Global shortcuts for Launcher, Dashboard, Quick Actions and Nexus.";
+"Globale Kürzel für Launcher, Dashboard, Kontrollzentrum und Nexus." = "Global shortcuts for Launcher, Dashboard, Control Centre and Nexus.";
 "Die Bausteine der Leiste links: anordnen, hinzufügen, einstellen." = "The building blocks of the bar on the left: arrange, add, configure.";
-"Karten und Schnellschalter im Utilities-Panel unten rechts." = "Cards and quick toggles in the Quick Actions panel, bottom right.";
 "Die angehefteten Apps, die ohne Suchtext ganz oben stehen." = "The pinned apps that appear at the top without a search text.";
 "Reiter und Karten des Dashboards: anordnen, hinzufügen, einstellen. Dazu der Ort fürs Wetter." = "The Dashboard's tabs and cards: arrange, add, configure. Plus the location for the weather.";
 "Die Uhr unten rechts auf dem Schreibtisch." = "The clock at the bottom right of the desktop.";
@@ -284,7 +282,6 @@
 "Fünf pro Reihe wie im Panel, jede Reihe macht es 56 pt höher. Zum Umsortieren einen Knopf auf einen anderen ziehen; ein Klick wählt ihn zum Einstellen, das Kontextmenü verschiebt oder entfernt." = "Five per row as in the panel, each row makes it 56 pt taller. To reorder, drag one button onto another; a click selects it for editing, the context menu moves or removes it.";
 "Eine Vorlage ersetzt Karten und Schnellschalter. „Standard“ ist das Panel, wie es am Anfang war." = "A preset replaces cards and quick toggles. “Default” is the panel as it was at the start.";
 "Vorlage „%@“ laden?" = "Load preset “%@”?";
-"Schnellaktionen zurücksetzen?" = "Reset Quick Actions?";
 "Das Panel sieht wieder aus wie am Anfang (Vorlage Standard). Die jetzige Anordnung wird ersetzt." = "The panel looks like it did at the start again (Default preset). The current arrangement will be replaced.";
 "Nach vorne" = "Move Forward";
 "Nach hinten" = "Move Backward";
@@ -337,7 +334,6 @@
 "Spaces" = "Spaces";
 "Dock" = "Dock";
 "Uhr" = "Clock";
-"Utilities" = "Utilities";
 "Statussymbole" = "Status Icons";
 "Ausschalten" = "Power";
 "Flexibler Abstand" = "Flexible Spacer";
@@ -352,7 +348,7 @@
 "Ein Punkt oder eine Nummer je Schreibtisch." = "A dot or a number per desktop.";
 "Angeheftete und laufende Apps wie in Apples Dock." = "Pinned and running apps, like Apple's Dock.";
 "Stunde und Minute untereinander, auf Wunsch mit Datum." = "Hour and minute stacked, with an optional date.";
-"Öffnet das Utilities-Panel." = "Opens the Quick Actions panel.";
+"Öffnet das Kontrollzentrum." = "Opens the Control Centre.";
 "WLAN, Bluetooth und Akku; ein Klick zeigt Details." = "Wi-Fi, Bluetooth and battery; a click shows details.";
 "Öffnet das Sitzungsmenü." = "Opens the session menu.";
 "Füllt freien Platz; teilt ihn mit Dock und anderen Abständen." = "Fills free space; shares it with the Dock and other spacers.";
@@ -470,3 +466,4 @@
 /* NexusWidgetOptions.swift */
 "Ein Widget im Dashboard anklicken." = "Click a widget in the dashboard.";
 "Für dieses Widget gibt es keine Einstellungen." = "There are no settings for this widget.";
+"Größe des Dashboards" = "Dashboard size";

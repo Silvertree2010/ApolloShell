@@ -400,6 +400,7 @@ final class EditModeWindows {
         observeGallery()
         observeToolbarSize()
         observeGalleryNotice()
+        observeDashboardScale()
     }
 
     private func end() {
@@ -412,6 +413,8 @@ final class EditModeWindows {
         toolbarSizeObservation = nil
         galleryNoticeObservation?.cancel()
         galleryNoticeObservation = nil
+        dashboardScaleObservation?.cancel()
+        dashboardScaleObservation = nil
         editScreen = nil
     }
 
@@ -454,6 +457,19 @@ final class EditModeWindows {
             guard let self else { return }
             for await _ in Observations({ self.editor.galleryNotice }) {
                 self.repositionGallery()
+            }
+        }
+    }
+
+    /// Regler der Werkzeugleiste: das Dashboard aendert seine Groesse, die
+    /// Galerie rutscht einen Umlauf spaeter mit (unter die neue Unterkante).
+    private var dashboardScaleObservation: Task<Void, Never>?
+    private func observeDashboardScale() {
+        dashboardScaleObservation?.cancel()
+        dashboardScaleObservation = Task { [weak self] in
+            guard let self else { return }
+            for await _ in Observations({ self.editor.dashboard.scale }) {
+                DispatchQueue.main.async { [weak self] in self?.repositionGallery() }
             }
         }
     }

@@ -265,7 +265,7 @@ struct OnboardingWelcomePage: View {
         ("sidebar.left", .blue, String(localized: "Leiste"), String(localized: "Spaces, Dock, Uhr und Status am linken Rand")),
         ("magnifyingglass", .purple, "Launcher", String(localized: "Apps suchen und öffnen – mit einem Tastenkürzel")),
         ("square.grid.2x2.fill", .indigo, "Dashboard", String(localized: "Wetter, Kalender, Medien und Leistung")),
-        ("slider.horizontal.3", .green, String(localized: "Schnellaktionen"), String(localized: "Wach halten, Ton und Schnellschalter unten rechts")),
+        ("slider.horizontal.3", .green, String(localized: "Kontrollzentrum"), String(localized: "Wach halten, Ton und Schnellschalter unten rechts")),
     ]
 
     var body: some View {
@@ -373,8 +373,8 @@ struct OnboardingFinishPage: View {
 
     private var settingsHint: String {
         guard let key = store.settings.hotKeys.nexus else {
-            return String(localized: "Einstellungen gibt es in Nexus – über das Zahnrad im Panel Schnellaktionen.")
+            return String(localized: "Einstellungen gibt es in Nexus – über das Zahnrad im Kontrollzentrum.")
         }
-        return String(localized: "Einstellungen gibt es in Nexus – mit \(HotKeyKeyboard.display(key)) oder über das Zahnrad im Panel Schnellaktionen.")
+        return String(localized: "Einstellungen gibt es in Nexus – mit \(HotKeyKeyboard.display(key)) oder über das Zahnrad im Kontrollzentrum.")
     }
 }

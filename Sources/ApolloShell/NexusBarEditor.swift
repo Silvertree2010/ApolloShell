@@ -11,14 +11,19 @@ import SwiftUI
 /// Aenderung gilt sofort in der Leiste und landet in settings.json.
 struct NexusBarPage: View {
     @Bindable var store: ShellSettingsStore
+    /// Orte fuer den Wetter-Baustein der Leiste (weather.json) - seit dem
+    /// globalen Bearbeitungsmodus hier statt auf einer eigenen Dashboard-
+    /// Seite; sie sind zugleich die Vorgabe fuer neue Wetter-Widgets.
+    var weather: NexusWeatherModel?
     @State private var showsGallery = false
     @State private var pending: LayoutPresetReplacement<BarPreset>?
     /// Aufgeklappte Zeilen nach Kennung: bleiben beim Umsortieren offen.
     @State private var expanded: Set<String> = []
 
     /// `expanded`: schon aufgeklappte Zeilen (Bildprobe).
-    init(store: ShellSettingsStore, expanded: Set<String> = []) {
+    init(store: ShellSettingsStore, weather: NexusWeatherModel? = nil, expanded: Set<String> = []) {
         _store = Bindable(store)
+        self.weather = weather
         _expanded = State(initialValue: expanded)
     }
 
@@ -30,6 +35,10 @@ struct NexusBarPage: View {
                 entriesSection
                 NexusBarScreensSection(store: store)
                 NexusBarBackgroundSection(store: store)
+                if let weather {
+                    NexusDashboardWeatherSection(model: weather)
+                    NexusSaveWarning(failed: weather.saveFailed, file: "weather.json")
+                }
                 NexusSaveWarning(failed: store.saveFailed)
             }
             Divider()

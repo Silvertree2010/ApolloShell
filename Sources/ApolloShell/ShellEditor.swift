@@ -122,7 +122,11 @@ final class ShellEditor {
     }
 
     var hasChanges: Bool {
-        (dashboard.session?.hasChanges ?? false) || (utilities?.hasChanges ?? false)
+        (dashboard.session?.hasChanges ?? false) || (utilities?.hasChanges ?? false) || scaleChanged
+    }
+
+    private var scaleChanged: Bool {
+        dashboard.scale.map { $0 != dashboard.originalScale } ?? false
     }
 
     func begin(screen: NSScreen) {
@@ -177,6 +181,10 @@ final class ShellEditor {
         }
         if let utilities, utilities.hasChanges {
             next.utilities.layout = utilities.layout
+            changed = true
+        }
+        if scaleChanged, let scale = dashboard.scale {
+            next.dashboardScale = BentoGeometry.clampedUserScale(scale)
             changed = true
         }
         if changed { store.settings = next }

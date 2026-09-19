@@ -112,7 +112,7 @@
 /* UtilitiesView.swift */
 "Nichts eingeblendet" = "Nothing Shown";
 "Karten und Knöpfe wählt man in Nexus" = "Cards and buttons are chosen in Nexus";
-"Nexus > Schnellaktionen öffnen" = "Open Nexus > Quick Actions";
+"Nexus öffnen" = "Open Nexus";
 
 /* StatusGlyphs.swift */
 "Kein Akku" = "No Battery";

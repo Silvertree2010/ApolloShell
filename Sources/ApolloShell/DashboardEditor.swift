@@ -17,6 +17,17 @@ final class DashboardEditor {
     private let store: ShellSettingsStore
     private(set) var session: BentoEditSession?
     var isEditing: Bool { session != nil }
+    /// Groesse des Dashboards waehrend der Bearbeitung (Regler in der
+    /// Werkzeugleiste, `BentoGeometry.userScaleRange`) - Arbeitskopie wie die
+    /// Seiten: das Dashboard folgt ihr sofort, gespeichert wird sie erst mit
+    /// „Fertig“ (`ShellEditor.done`), „Abbrechen“ verwirft sie. `nil`
+    /// ausserhalb einer Bearbeitung.
+    var scale: Double? {
+        didSet { if scale != oldValue { onScaleChange() } }
+    }
+    private(set) var originalScale: Double = 1
+    /// Das Dashboard rechnet seinen Massstab neu (`Dashboard.applyScale`).
+    var onScaleChange: () -> Void = {}
     /// Seite, die beim Ende der Bearbeitung gezeigt war - das Dashboard
     /// bleibt danach dort, statt auf die Seite vom Anfang zurueckzuspringen.
     private(set) var lastPageID: DashboardPage.ID?
@@ -76,6 +87,8 @@ final class DashboardEditor {
     func begin(pageID: DashboardPage.ID, screen: NSScreen) {
         guard let pages = store.settings.dashboardPages else { return }
         session = BentoEditSession(pages: pages, pageID: pageID)
+        originalScale = store.settings.dashboardScale
+        scale = originalScale
         dropPreview = nil
         draggedKind = nil
         dropGeneration += 1
@@ -94,6 +107,7 @@ final class DashboardEditor {
         dropGeneration += 1
         renamingPageID = nil
         optionsWidgetID = nil
+        scale = nil
         onEnd()
     }
 
@@ -106,6 +120,7 @@ final class DashboardEditor {
         dropGeneration += 1
         renamingPageID = nil
         optionsWidgetID = nil
+        scale = nil
         onEnd()
     }
 

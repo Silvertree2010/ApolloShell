@@ -164,7 +164,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotKeys.setHandler(.dashboard) { [weak dashboard] in dashboard?.toggle() }
         // Wetter ohne Ort: der Hinweis im Dashboard oeffnet Nexus direkt bei
         // Wetter (Nexus > Dashboard).
-        dashboard.onOpenNexus { [weak nexus] in nexus?.show(page: .dashboard) }
+        dashboard.onOpenNexus { [weak nexus] in nexus?.show(page: .bar) }
         let utilities = UtilitiesPanel(settings: settings, editor: shellEditor)
         self.utilities = utilities
         let editModeWindows = EditModeWindows(editor: shellEditor)

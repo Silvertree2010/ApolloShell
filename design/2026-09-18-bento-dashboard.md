@@ -225,12 +225,15 @@ Rectangle, Stage Manager and more. The edit mode must not fight them:
 
 ## 5. Nexus and edge cases
 
-- Nexus keeps settings only. Nexus › Dashboard: the size slider and „Orte für
-  die Leiste und neue Wetter-Widgets“. Nexus › Schnellaktionen: settings such
-  as lid-closed Keep Awake. The old editors for dashboard pages and for the
-  control-centre layout (cards list, toggle grid, gallery, options) are
-  removed, and with them the control-centre templates, like the dashboard
-  templates.
+- Nexus keeps settings only. The Dashboard and Quick Actions pages are gone
+  (2026-09-19): the dashboard size slider lives in the edit mode's toolbar
+  (a working copy like the pages, saved with „Fertig“), the weather places
+  for the bar and for new weather widgets moved to Nexus › Leiste, and
+  lid-closed Keep Awake moved to Nexus › Allgemein (not into an edit-mode
+  popover: it installs a system rule behind an admin prompt at once, which
+  Cancel could not take back). The old editors and all templates are gone.
+  "Schnellaktionen"/"Quick Actions" is called Kontrollzentrum/Control Centre
+  everywhere.
 - Buttons and shortcuts that open a specific page (media, performance and
   weather modules in the bar) open the page with that template; if it was
   deleted, the first page with a widget of that kind; otherwise the first

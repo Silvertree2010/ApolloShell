@@ -224,8 +224,8 @@ private final class EditModeSelfTestHarness {
         await wait(0.4)
         let confirmToolbar = windows.debugToolbarFrame
         note("Werkzeugleiste normal \(r(plainToolbar)), mit Rueckfrage \(r(confirmToolbar))")
-        check((confirmToolbar?.width ?? 0) > (plainToolbar?.width ?? 0) && (confirmToolbar.map(screen.frame.contains) ?? false),
-              "Rueckfrage: Werkzeugleiste waechst mit und bleibt auf dem Bildschirm")
+        check(confirmToolbar != nil && confirmToolbar?.size != plainToolbar?.size && (confirmToolbar.map(screen.frame.contains) ?? false),
+              "Rueckfrage: Werkzeugleiste passt ihre Groesse an und bleibt auf dem Bildschirm")
         editor.debugEscape()
         check(!editor.pendingCancelConfirmation && editor.isEditing, "Esc 5: Rueckfrage zu, weiter bearbeiten")
         await wait(0.4)
@@ -344,6 +344,33 @@ private final class EditModeSelfTestHarness {
         }
         for screen in NSScreen.screens {
             await pass(on: screen)
+        }
+        // Groessenregler der Werkzeugleiste: Dashboard folgt live, Abbrechen
+        // setzt zurueck, Fertig speichert.
+        if let screen = NSScreen.screens.first {
+            editor.begin(screen: screen)
+            await wait(0.8)
+            let before = dashboard.openFrame
+            dashboardEditor.scale = 0.8
+            await wait(0.4)
+            let smaller = dashboard.openFrame
+            check((smaller?.width ?? 0) < (before?.width ?? 0), "Regler 80 %: Dashboard wird sofort kleiner (\(r(before)) -> \(r(smaller)))")
+            if let gallery = windows.debugGalleryFrame ?? nil, let smaller { check(!gallery.intersects(smaller), "Galerie rutscht mit") }
+            check(editor.hasChanges, "Regler zaehlt als Aenderung")
+            editor.cancel()
+            await wait(0.6)
+            check(store.settings.dashboardScale == 1, "Abbrechen verwirft die Groesse")
+            dashboard.debugClose(); utilities.debugClose()
+            await wait(0.5)
+            editor.begin(screen: screen)
+            await wait(0.6)
+            dashboardEditor.scale = 1.2
+            editor.done()
+            await wait(0.4)
+            check(store.settings.dashboardScale == 1.2, "Fertig speichert die Groesse")
+            store.settings.dashboardScale = 1
+            dashboard.debugClose(); utilities.debugClose()
+            await wait(0.5)
         }
         // Stress: zehnmal schnell beginnen und beenden, wechselnde Abstaende.
         if let screen = NSScreen.screens.first {

@@ -177,7 +177,7 @@ public enum HotKeyAction: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .launcher: "Launcher"
         case .dashboard: "Dashboard"
-        case .utilities: String(localized: "Schnellaktionen")
+        case .utilities: String(localized: "Kontrollzentrum")
         case .nexus: "Nexus"
         }
     }

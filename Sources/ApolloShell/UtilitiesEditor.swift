@@ -1,32 +1,24 @@
 import ApolloShellCore
 import SwiftUI
 
-// MARK: - Seite
+// MARK: - Wach halten (Nexus > Allgemein)
 
-/// Nexus > Schnellaktionen: seit Task 7 nur noch Einstellungen (Spec
-/// Abschnitt 5), wie Nexus > Dashboard. Karten, Schnellschalter und ihre
-/// Optionen ordnet man seither im Kontrollzentrum-Panel selbst, waehrend des
-/// globalen Bearbeitungsmodus (Nexus > „Oberfläche bearbeiten“,
-/// `UtilitiesEditOverlay.swift`) - der alte Baukasten hier (Karten,
-/// Raster, Galerie, Vorlagen, Vorschau) ist damit Geschichte.
-struct UtilitiesSettingsPage: View {
+/// „Wach halten auch zugeklappt“ - frueher auf Nexus > Schnellaktionen, seit
+/// dem globalen Bearbeitungsmodus auf Nexus > Allgemein (die Schnellaktionen-
+/// Seite hatte nur noch diesen Schalter). Bewusst nicht im Popover der Karte
+/// im Bearbeitungsmodus: der Schalter legt sofort eine Systemregel mit
+/// Administrator-Frage an und liesse sich mit „Abbrechen“ nicht zuruecknehmen.
+struct NexusKeepAwakeSection: View {
     @Bindable var store: ShellSettingsStore
     /// Liegt die Regel ohne Passwort fuer den Deckel-Teil auf diesem Mac?
     @State private var lidRuleInstalled = false
     @State private var removingLidRule = false
 
-    var body: some View {
-        NexusPageForm(page: .utilities) {
-            keepAwakeSection
-            NexusSaveWarning(failed: store.saveFailed)
-        }
-    }
-
     /// Der Deckel-Teil braucht root (pmset disablesleep). Beim ersten
     /// Einschalten fragt macOS einmal nach einem Administrator und legt dabei
     /// die Regel ohne Passwort an - das soll man vorher lesen koennen, und
     /// man soll sie hier wieder loswerden.
-    private var keepAwakeSection: some View {
+    var body: some View {
         Section {
             NexusToggle(title: "Auch bei zugeklapptem Deckel",
                         subtitle: "Solange „Wach halten“ läuft, schläft der Mac auch zugeklappt nicht",

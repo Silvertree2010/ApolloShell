@@ -180,49 +180,7 @@ final class NexusWeatherModel {
     }
 }
 
-/// Nexus > Dashboard (Caelestia: Panels > Dashboard) - seit Task 7 nur noch
-/// Einstellungen, wie Spec Abschnitt 5 es vorgibt: der Groessenregler und die
-/// Orte fuer Leiste und neue Wetter-Widgets. Seiten, Widgets und ihre
-/// Optionen bearbeitet man seither im globalen Bearbeitungsmodus
-/// (Nexus > „Oberfläche bearbeiten“, `ShellEditor`) - der alte Baukasten hier
-/// (Seitenliste mit „Bearbeiten“, die editierende Ansicht mit drei Spalten)
-/// ist damit Geschichte.
-struct NexusDashboardPage: View {
-    @Bindable var store: ShellSettingsStore
-    /// Die globalen Orte (weather.json): fuer das Wetter-Modul der Leiste und
-    /// als Vorgabe fuer neu abgelegte Wetter-Widgets - jedes Wetter-Widget
-    /// hat daneben seine eigenen Orte (`WidgetOptionsView`/`NexusWidgetPlacesSection`,
-    /// im Popover des Bearbeitungsmodus).
-    let weather: NexusWeatherModel
-
-    var body: some View {
-        NexusPageForm(page: .dashboard) {
-            Section {
-                sizeSlider
-            } header: {
-                Text("Größe")
-            } footer: {
-                Text("Zusätzlich zur Automatik nach Bildschirmgröße.")
-            }
-            NexusDashboardWeatherSection(model: weather)
-            NexusSaveWarning(failed: store.saveFailed)
-        }
-    }
-
-    private var sizeSlider: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Slider(value: Binding(
-                get: { store.settings.dashboardScale },
-                set: { store.settings.dashboardScale = BentoGeometry.clampedUserScale($0) }
-            ), in: BentoGeometry.userScaleRange)
-            Text("\(Int((store.settings.dashboardScale * 100).rounded())) %")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
-}
-
-/// Die globalen Orte (weather.json), unter dem Groessenregler. Gelten fuer
+/// Die globalen Orte (weather.json), auf Nexus > Leiste. Gelten fuer
 /// das Wetter-Baustein der Leiste und als Vorgabe fuer neu aus der Galerie
 /// abgelegte Wetter-Widgets.
 struct NexusDashboardWeatherSection: View {

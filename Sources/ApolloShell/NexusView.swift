@@ -31,7 +31,7 @@ enum NexusSection: CaseIterable, Identifiable {
 /// Eine Seite von Nexus. Titel und Unterzeile wie Caelestias PageRegistry
 /// (label, description), auf Deutsch.
 enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case general, hotKeys, bar, utilities, launcher, dashboard, desktop, themes, toasts, providers, updates, system, about
+    case general, hotKeys, bar, launcher, desktop, themes, toasts, providers, updates, system, about
 
     var id: Self { self }
 
@@ -40,9 +40,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .general: String(localized: "Allgemein")
         case .hotKeys: String(localized: "Tastenkürzel")
         case .bar: String(localized: "Leiste")
-        case .utilities: String(localized: "Schnellaktionen")
         case .launcher: String(localized: "Launcher")
-        case .dashboard: String(localized: "Dashboard")
         case .desktop: String(localized: "Schreibtisch")
         case .toasts: String(localized: "Kurzmeldungen")
         case .providers: String(localized: "Anbieter")
@@ -56,11 +54,9 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
     var subtitle: String {
         switch self {
         case .general: String(localized: "Start bei der Anmeldung und die Freigaben, die ApolloShell von macOS braucht.")
-        case .hotKeys: String(localized: "Globale Kürzel für Launcher, Dashboard, Schnellaktionen und Nexus.")
+        case .hotKeys: String(localized: "Globale Kürzel für Launcher, Dashboard, Kontrollzentrum und Nexus.")
         case .bar: String(localized: "Die Bausteine der Leiste links: anordnen, hinzufügen, einstellen.")
-        case .utilities: String(localized: "Karten und Schnellschalter im Utilities-Panel unten rechts.")
         case .launcher: String(localized: "Die angehefteten Apps, die ohne Suchtext ganz oben stehen.")
-        case .dashboard: String(localized: "Reiter und Karten des Dashboards: anordnen, hinzufügen, einstellen. Dazu der Ort fürs Wetter.")
         case .desktop: String(localized: "Die Uhr unten rechts auf dem Schreibtisch.")
         case .toasts: String(localized: "Welche Ereignisse unten rechts eine Kurzmeldung zeigen.")
         case .providers: String(localized: "Woher das Wetter kommt und welcher Dateimanager oben im Dock steht.")
@@ -76,9 +72,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .general: "switch.2"
         case .hotKeys: "command"
         case .bar: "sidebar.left"
-        case .utilities: "slider.horizontal.3"
         case .launcher: "magnifyingglass"
-        case .dashboard: "square.grid.2x2.fill"
         case .desktop: "clock.fill"
         case .toasts: "bell.badge.fill"
         case .providers: "puzzlepiece.extension.fill"
@@ -95,9 +89,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .general: .gray
         case .hotKeys: .pink
         case .bar: .blue
-        case .utilities: .green
         case .launcher: .purple
-        case .dashboard: .indigo
         case .desktop: .teal
         case .toasts: .red
         case .providers: .orange
@@ -110,7 +102,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
     var section: NexusSection {
         switch self {
         case .general, .hotKeys: .general
-        case .bar, .utilities, .launcher, .dashboard, .desktop, .themes: .panels
+        case .bar, .launcher, .desktop, .themes: .panels
         case .toasts, .providers, .updates: .services
         case .system: .system
         case .about: .about
@@ -121,15 +113,13 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
     var keywords: [String] {
         switch self {
         case .general: ["autostart", "anmeldung", "anmeldeobjekte", "login", "bedienungshilfen", "freigabe",
-                        "berechtigung", "system events", "datenschutz"]
+                        "berechtigung", "system events", "datenschutz", "wach halten", "deckel", "zugeklappt",
+                        "bearbeiten", "oberfläche", "kontrollzentrum", "dashboard"]
         case .hotKeys: ["hotkey", "kürzel", "tastatur", "shortcut", "launcher", "f20", "hyper", "spotlight", "karabiner"]
         case .bar: ["taskbar", "spaces", "dock", "uhr", "datum", "status", "wlan", "akku", "cpu", "wetter",
-                    "medien", "abstand", "vorlage", "baustein", "app", "bildschirm", "monitor", "anzeige"]
-        case .utilities: ["utilities", "schnellschalter", "kontrollzentrum", "karten", "wach halten", "ton", "knopf",
-                          "kurzbefehl", "fokus", "link", "app", "bildschirm", "ausblenden", "vorlage"]
+                    "medien", "abstand", "vorlage", "baustein", "app", "bildschirm", "monitor", "anzeige",
+                    "ort", "orte", "standort", "favoriten"]
         case .launcher: ["apps", "angeheftet", "favoriten", "pinned", "reihenfolge"]
-        case .dashboard: ["wetter", "ort", "standort", "reiter", "karten", "kalender", "kalenderwoche", "uhr", "medien",
-                          "ressourcen", "benutzer", "leistung", "vorlage"]
         case .desktop: ["uhr", "hintergrund", "desktop"]
         case .toasts: ["mitteilungen", "toasts", "akku", "ladegerät", "audio"]
         case .providers: ["wetter", "open-meteo", "met norway", "yr", "wttr", "quelle", "dateimanager", "finder",
@@ -261,10 +251,8 @@ struct NexusDetail: View {
         switch page {
         case .general: NexusGeneralPage(store: settings, autostart: shell.autostart, permissions: shell.permissions)
         case .hotKeys: NexusHotKeysPage(store: settings, center: shell.hotKeys)
-        case .bar: NexusBarPage(store: settings)
-        case .utilities: UtilitiesSettingsPage(store: settings)
+        case .bar: NexusBarPage(store: settings, weather: weather)
         case .launcher: NexusLauncherPage(model: pinned)
-        case .dashboard: NexusDashboardPage(store: settings, weather: weather)
         case .desktop: NexusDesktopPage(store: settings)
         case .toasts: NexusToastsPage(store: settings)
         case .providers: NexusProvidersPage(store: settings, model: providers)

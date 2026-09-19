@@ -36,6 +36,7 @@ struct NexusGeneralPage: View {
             } footer: {
                 Text("Das eigene Dock der Leiste bleibt davon unberührt. Ein Abbruch per SIGKILL lässt Apples Dock versteckt, bis ApolloShell wieder normal startet und endet.")
             }
+            NexusKeepAwakeSection(store: store)
             Section {
                 OnboardingAccessibilityRow(permissions: permissions)
                 OnboardingSystemEventsRow()

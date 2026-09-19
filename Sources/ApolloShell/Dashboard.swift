@@ -20,6 +20,8 @@ final class Dashboard {
     private let settings: ShellSettingsStore
     private let editor: DashboardEditor
     private let drawer: EdgeDrawer<DashboardView>
+    /// Groesse bei Massstab 1 (aus dem Inhalt gemessen, siehe `init`).
+    private let baseSize: NSSize
 
     /// `settings`: Wetteranbieter (Nexus > Anbieter), Seiten und Widgets
     /// (Nexus > Dashboard, `settings.dashboardPages`). `editor`: eine
@@ -44,11 +46,9 @@ final class Dashboard {
         let baseSize = NSHostingView(rootView: view.shellTheme()).fittingSize
         drawer = EdgeDrawer(edge: .top, size: baseSize, cornerRadius: 25, rootView: view)
         drawer.opensOnHover = true
-        drawer.prepareForScreen = { [model, settings, weak drawer] screen in
-            let scale = BentoGeometry.scale(screenWidth: screen.frame.width, availableHeight: screen.visibleFrame.height,
-                                            contentHeight: baseSize.height, userScale: settings.settings.dashboardScale)
-            model.scale = CGFloat(scale)
-            drawer?.resize(to: NSSize(width: baseSize.width * CGFloat(scale), height: baseSize.height * CGFloat(scale)))
+        self.baseSize = baseSize
+        drawer.prepareForScreen = { [weak self] screen in
+            self?.applyScale(on: screen)
         }
         drawer.onOpen = { [model, weatherModels, media, settings] in
             let page = Dashboard.resolvedPage(model: model, settings: settings)
@@ -88,7 +88,10 @@ final class Dashboard {
                 drawer.open(on: screen)
             }
         }
-        editor.onEnd = { [weak drawer, model, settings, editor] in
+        editor.onEnd = { [weak self, weak drawer, model, settings, editor] in
+            // Massstab zurueck auf den gespeicherten (nach „Fertig“ ist das
+            // der neue, nach „Abbrechen“ der alte).
+            self?.applyScaleWhileOpen()
             // Auf der zuletzt bearbeiteten Seite bleiben (gibt es sie nach
             // „Abbrechen“ nicht mehr, nimmt `resolvedPage` die erste).
             if let id = editor.lastPageID, settings.settings.dashboardPages?.page(id: id) != nil {
@@ -103,7 +106,25 @@ final class Dashboard {
         // Widgets, zeigt es sie erst nach einem Neustart seines Modells
         // (`start()` liest sie erst dabei neu ein).
         editor.onOptionsChange = { [weak weatherModels] id in weatherModels?.restart(id) }
+        // Regler in der Werkzeugleiste: das offene Dashboard folgt sofort.
+        editor.onScaleChange = { [weak self] in self?.applyScaleWhileOpen() }
         editor.onNeedsKeyboard = { [weak drawer] in drawer?.takeKeyboard() }
+    }
+
+    /// Massstab fuer diesen Bildschirm: Automatik nach Breite mal Regler -
+    /// waehrend einer Bearbeitung der Regler der Werkzeugleiste
+    /// (`editor.scale`), sonst der gespeicherte.
+    private func applyScale(on screen: NSScreen) {
+        let user = editor.scale ?? settings.settings.dashboardScale
+        let scale = BentoGeometry.scale(screenWidth: screen.frame.width, availableHeight: screen.visibleFrame.height,
+                                        contentHeight: baseSize.height, userScale: user)
+        model.scale = CGFloat(scale)
+        drawer.resize(to: NSSize(width: baseSize.width * CGFloat(scale), height: baseSize.height * CGFloat(scale)))
+    }
+
+    private func applyScaleWhileOpen() {
+        guard drawer.isOpen, let screen = drawer.currentScreen?.screen else { return }
+        applyScale(on: screen)
     }
 
     /// Die Seite, die beim Oeffnen gezeigt wird: `model.pageID`, falls es sie

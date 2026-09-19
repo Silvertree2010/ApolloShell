@@ -64,6 +64,26 @@ struct EditToolbarView: View {
             .help("Element hinzufügen")
             .accessibilityLabel("Hinzufügen")
 
+            // Groesse des Dashboards (frueher Nexus > Dashboard): das
+            // angepinnte Dashboard waechst und schrumpft sofort mit,
+            // gespeichert wird erst mit „Fertig“.
+            HStack(spacing: 8) {
+                Image(systemName: "square.resize")
+                    .foregroundStyle(.secondary)
+                Slider(value: Binding(
+                    get: { editor.dashboard.scale ?? 1 },
+                    set: { editor.dashboard.scale = BentoGeometry.clampedUserScale($0) }
+                ), in: BentoGeometry.userScaleRange)
+                .frame(width: 120)
+                Text("\(Int(((editor.dashboard.scale ?? 1) * 100).rounded())) %")
+                    .font(.callout.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 44, alignment: .trailing)
+            }
+            .help("Größe des Dashboards")
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Größe des Dashboards")
+
             Button("Abbrechen") {
                 editor.cancel()
             }
