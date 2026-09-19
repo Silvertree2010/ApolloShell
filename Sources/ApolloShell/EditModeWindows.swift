@@ -39,8 +39,13 @@ class EditModePanel: ShellPanel {
         )
         // "Schwebendes Fenster" statt normales Dokumentfenster: die eigene
         // Kategorie von Werkzeugpaletten, die die meisten Fenstermanager von
-        // ihrer Fensterverwaltung ausnehmen.
+        // ihrer Fensterverwaltung ausnehmen. AppKit setzt dabei selbst
+        // `self.level = .floating` (gemessen 19.09.: Scrim/Werkzeugleiste/
+        // Galerie landeten dadurch unter Menueleiste, Dock und den
+        // angepinnten Kantenfenstern) - die gewuenschte Ebene darum danach
+        // noch einmal setzen.
         isFloatingPanel = true
+        self.level = level
         // Keine Werkzeugpalette im Fenstermenue - dort sollen nur Dokumente
         // der Nutzer-Apps stehen, nicht die eigene Bearbeitungsflaeche.
         isExcludedFromWindowsMenu = true
@@ -49,13 +54,15 @@ class EditModePanel: ShellPanel {
         // Fenstermanager tun das), uebergehen es damit zusaetzlich zu Ebene
         // und `collectionBehavior`.
         setAccessibilitySubrole(.unknown)
-        Self.logCreation(level: level, behavior: collectionBehavior, subrole: accessibilitySubrole())
+        Self.logCreation(level: self.level, behavior: collectionBehavior, subrole: accessibilitySubrole())
     }
 
     /// Task 6: fuer den Live-Test mit AeroSpace/yabai/Amethyst - die
     /// tatsaechlichen Werte, nicht nur die Absicht im Code. Nur DEBUG, nicht
     /// mitausgeliefertes Verhalten (nur ein Log-Eintrag, `Logger` faellt in
-    /// Release-Bauten ohnehin weg).
+    /// Release-Bauten ohnehin weg). `level` ist hier immer `self.level` nach
+    /// `isFloatingPanel`, nie der Parameter aus `init` - sonst haette das Log
+    /// den fehlerhaften Stand vor der Korrektur oben gezeigt.
     #if DEBUG
     private static let log = Logger(category: "edit-mode-windows")
     private static func logCreation(level: NSWindow.Level, behavior: NSWindow.CollectionBehavior, subrole: NSAccessibility.Subrole?) {
@@ -77,6 +84,11 @@ final class FloatingGlassPanel<Content: View> {
     private let glass: NSGlassEffectView
     private let hosting: NSHostingView<AnyView>
     private var panelLayer: CAGradientLayer?
+    /// Wie `EdgeDrawer.generation`: ein schnelles Aus-dann-wieder-Ein (Modus
+    /// verlassen, sofort neu begonnen) darf das verspaetete `orderOut` des
+    /// alten `hide()` nicht mehr treffen - sonst verschwindet das gerade neu
+    /// gezeigte Panel wieder, sobald die alte Ausblend-Animation fertig wird.
+    private var generation = 0
 
     init(cornerRadius: CGFloat, takesKeyboard: Bool, level: NSWindow.Level, @ViewBuilder content: @escaping () -> Content) {
         panel = EditModePanel(level: level, takesKeyboard: takesKeyboard)
@@ -95,6 +107,7 @@ final class FloatingGlassPanel<Content: View> {
     /// y nach oben), nach oben verschoben um `raise` (die Werkzeugleiste
     /// weicht so dem Kontrollzentrum-Panel aus).
     func show(on screen: NSScreen, centeredAt point: NSPoint, raise: CGFloat = 0) {
+        generation += 1
         panelLayer = ThemedGlass.apply(to: glass, fallbackRadius: panel.contentView == nil ? 0 : glass.cornerRadius, previous: panelLayer)
         hosting.layoutSubtreeIfNeeded()
         let size = hosting.fittingSize
@@ -124,12 +137,17 @@ final class FloatingGlassPanel<Content: View> {
 
     func hide() {
         guard panel.isVisible else { return }
+        generation += 1
+        let current = generation
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = MotionCurve.spatialDuration
             context.timingFunction = .shellSpatial
             panel.animator().alphaValue = 0
-        }, completionHandler: { [panel] in
-            MainActor.assumeIsolated { panel.orderOut(nil) }
+        }, completionHandler: { [weak self, panel] in
+            MainActor.assumeIsolated {
+                guard let self, self.generation == current else { return }
+                panel.orderOut(nil)
+            }
         })
     }
 
@@ -170,6 +188,8 @@ final class EditModeScrimView: NSView {
 final class EditModeScrimPanel {
     private let panel: EditModePanel
     private let view: EditModeScrimView
+    /// Siehe `FloatingGlassPanel.generation`.
+    private var generation = 0
 
     var onClick: () -> Void {
         get { view.onClick }
@@ -183,6 +203,7 @@ final class EditModeScrimPanel {
     }
 
     func show(on screen: NSScreen) {
+        generation += 1
         panel.setFrame(screen.frame, display: true)
         if !panel.isVisible {
             panel.alphaValue = 0
@@ -197,12 +218,17 @@ final class EditModeScrimPanel {
 
     func hide() {
         guard panel.isVisible else { return }
+        generation += 1
+        let current = generation
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = MotionCurve.spatialDuration
             context.timingFunction = .shellSpatial
             panel.animator().alphaValue = 0
-        }, completionHandler: { [panel] in
-            MainActor.assumeIsolated { panel.orderOut(nil) }
+        }, completionHandler: { [weak self, panel] in
+            MainActor.assumeIsolated {
+                guard let self, self.generation == current else { return }
+                panel.orderOut(nil)
+            }
         })
     }
 }
@@ -223,6 +249,12 @@ final class EditModeWindows {
     /// Werkzeugleiste weicht ihm nach oben aus (Task 3: "never overlapping").
     var utilitiesPanelHeight: () -> CGFloat = { 0 }
     private var galleryObservation: Task<Void, Never>?
+    /// Werkzeugleiste ("Änderungen verwerfen?" statt der drei Knoepfe) und
+    /// Galerie (Hinweis "Kein Platz auf dieser Seite") aendern ihre Groesse,
+    /// ohne ein-/auszublenden - ohne eigene Neuvermessung blieb der Text
+    /// abgeschnitten (gemessen 19.09.).
+    private var toolbarSizeObservation: Task<Void, Never>?
+    private var galleryNoticeObservation: Task<Void, Never>?
 
     init(editor: ShellEditor) {
         self.editor = editor
@@ -230,7 +262,34 @@ final class EditModeWindows {
         editor.addEndHandler { [weak self] in self?.end() }
     }
 
+    /// Task 6: die vorgesehene Reihenfolge der Ebenen als DEBUG-Pruefung, nicht
+    /// nur als Kommentar - normale Fenster < Seitenleiste (`.floating`) <
+    /// Scrim < angepinnte Kantenfenster (`EdgeDrawer`, `.popUpMenu`/+1) <
+    /// Werkzeugleiste/Galerie, und der Scrim ueber Menueleiste und Dock.
+    /// Bricht in Debug-Bauten sofort, statt das erst im Live-Test mit
+    /// AeroSpace/yabai/Amethyst zu bemerken.
+    #if DEBUG
+    private static let stackingLog = Logger(category: "edit-mode-windows")
+    private static func assertStackingOrder() {
+        assert(EditModeLevel.scrim.rawValue > NSWindow.Level.mainMenu.rawValue,
+               "Scrim muss ueber Menueleiste und Dock liegen")
+        assert(EditModeLevel.scrim.rawValue < NSWindow.Level.popUpMenu.rawValue,
+               "Scrim muss unter den angepinnten Kantenfenstern liegen")
+        assert(EditModeLevel.controls.rawValue > NSWindow.Level.popUpMenu.rawValue + 1,
+               "Werkzeugleiste/Galerie muessen ueber den angepinnten Kantenfenstern liegen")
+        stackingLog.debug("""
+            Ebenen des Bearbeitungsmodus: Seitenleiste \(NSWindow.Level.floating.rawValue, privacy: .public), \
+            Scrim \(EditModeLevel.scrim.rawValue, privacy: .public), \
+            Kantenfenster \(NSWindow.Level.popUpMenu.rawValue, privacy: .public)/+1, \
+            Werkzeugleiste/Galerie \(EditModeLevel.controls.rawValue, privacy: .public)
+            """)
+    }
+    #else
+    private static func assertStackingOrder() {}
+    #endif
+
     private func begin(on screen: NSScreen) {
+        Self.assertStackingOrder()
         editScreen = screen
         for candidate in NSScreen.screens {
             let scrim = scrims[ObjectIdentifier(candidate)] ?? {
@@ -259,6 +318,8 @@ final class EditModeWindows {
         placeGallery(gallery, on: screen)
         if editor.galleryVisible { gallery.show(on: screen, centeredAt: galleryCenter(on: screen)) }
         observeGallery()
+        observeToolbarSize()
+        observeGalleryNotice()
     }
 
     private func end() {
@@ -267,6 +328,10 @@ final class EditModeWindows {
         gallery?.hide()
         galleryObservation?.cancel()
         galleryObservation = nil
+        toolbarSizeObservation?.cancel()
+        toolbarSizeObservation = nil
+        galleryNoticeObservation?.cancel()
+        galleryNoticeObservation = nil
         editScreen = nil
     }
 
@@ -287,15 +352,51 @@ final class EditModeWindows {
         }
     }
 
+    /// Werkzeugleiste neu vermessen, sobald `editor.pendingCancelConfirmation`
+    /// kippt (Task 6: "Änderungen verwerfen?" statt der drei Knoepfe ist
+    /// breiter/anders hoch).
+    private func observeToolbarSize() {
+        toolbarSizeObservation?.cancel()
+        toolbarSizeObservation = Task { [weak self] in
+            guard let self else { return }
+            for await _ in Observations({ self.editor.pendingCancelConfirmation }) {
+                self.repositionToolbar()
+            }
+        }
+    }
+
+    /// Galerie neu vermessen, sobald `editor.galleryNotice` erscheint oder
+    /// verschwindet (Task 3: der Hinweis "Kein Platz auf dieser Seite"
+    /// braucht mehr Hoehe als das Raster allein).
+    private func observeGalleryNotice() {
+        galleryNoticeObservation?.cancel()
+        galleryNoticeObservation = Task { [weak self] in
+            guard let self else { return }
+            for await _ in Observations({ self.editor.galleryNotice }) {
+                self.repositionGallery()
+            }
+        }
+    }
+
+    private func repositionToolbar() {
+        guard let screen = editScreen, let toolbar else { return }
+        let raise = utilitiesPanelHeight() + 24
+        let point = NSPoint(x: screen.frame.midX, y: screen.frame.minY + 48)
+        toolbar.reposition(on: screen, centeredAt: point, raise: raise)
+    }
+
+    private func repositionGallery() {
+        guard let screen = editScreen, let gallery else { return }
+        gallery.reposition(on: screen, centeredAt: galleryCenter(on: screen))
+    }
+
     /// Vom Kontrollzentrum-Panel (`UtilitiesPanel.onHeightChange`): waechst
     /// oder schrumpft es waehrend der Bearbeitung (Karte aus/an, Knopf
     /// hinzu/weg), weicht die Werkzeugleiste sofort neu aus statt erst beim
     /// naechsten Bildschirmwechsel.
     func utilitiesHeightChanged() {
-        guard editor.isEditing, let screen = editScreen, let toolbar else { return }
-        let raise = utilitiesPanelHeight() + 24
-        let point = NSPoint(x: screen.frame.midX, y: screen.frame.minY + 48)
-        toolbar.reposition(on: screen, centeredAt: point, raise: raise)
+        guard editor.isEditing else { return }
+        repositionToolbar()
     }
 
     private func placeToolbar(_ toolbar: FloatingGlassPanel<EditToolbarView>, on screen: NSScreen) {
