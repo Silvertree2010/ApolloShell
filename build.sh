@@ -1,16 +1,16 @@
 #!/bin/sh
-# Entwicklungs-Build: baut ApolloShell.app, installiert es nach
-# ~/Applications und startet eine laufende Instanz neu. Kein Xcode noetig.
-# Das Bundle setzt scripts/assemble-app.sh zusammen, dasselbe Skript wie fuer
-# DMG und Homebrew-Formel.
+# Development build: builds ApolloShell.app, installs it into
+# ~/Applications and restarts a running instance. No Xcode needed. The
+# bundle is put together by scripts/assemble-app.sh, the same script the
+# DMG and the Homebrew formula use.
 #
-# Neustart danach:
-# - APOLLOSHELL_LAUNCHD_LABEL gesetzt und dieser launchd-Agent geladen:
-#   `launchctl kickstart -k`. Rechner-eigene Werte stehen in .local.env
-#   (nicht im Repo), z. B. APOLLOSHELL_LAUNCHD_LABEL=org.example.apolloshell
-# - Sonst, wenn ApolloShell laeuft: sauber beenden (SIGTERM, stellt Apples
-#   Dock wieder her) und das installierte Bundle oeffnen.
-# - Laeuft nichts, startet build.sh auch nichts.
+# How it restarts afterwards:
+# - APOLLOSHELL_LAUNCHD_LABEL set and that launchd agent loaded:
+#   `launchctl kickstart -k`. Machine-specific values live in .local.env
+#   (not in the repo), e.g. APOLLOSHELL_LAUNCHD_LABEL=org.example.apolloshell
+# - Otherwise, if ApolloShell is running: quit it cleanly (SIGTERM, which
+#   brings Apple's Dock back) and open the installed bundle.
+# - If nothing is running, build.sh starts nothing either.
 set -eu
 cd "$(dirname "$0")"
 
@@ -18,8 +18,8 @@ if [ -f .local.env ]; then
     . ./.local.env
 fi
 
-# SDK fest auf macOS 26 (Begruendung in test.sh: CLT 26.6 stellt sonst das
-# macOS-27-SDK ein, das nicht zum Compiler passt).
+# SDK pinned to macOS 26 (reason in test.sh: otherwise CLT 26.6 picks the
+# macOS 27 SDK, which does not match the compiler).
 export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk
 
 swift build -c release --product ApolloShell
@@ -31,11 +31,11 @@ DEST="$HOME/Applications/ApolloShell.app"
 mkdir -p "$HOME/Applications"
 rm -rf "$DEST"
 ditto "$APP" "$DEST"
-echo "installiert: $DEST"
+echo "installed: $DEST"
 
 LABEL=${APOLLOSHELL_LAUNCHD_LABEL:-}
 if [ -n "$LABEL" ] && launchctl print "gui/$(id -u)/$LABEL" >/dev/null 2>&1; then
-    launchctl kickstart -k "gui/$(id -u)/$LABEL" && echo "neu gestartet (launchd: $LABEL)"
+    launchctl kickstart -k "gui/$(id -u)/$LABEL" && echo "restarted (launchd: $LABEL)"
 elif pgrep -x ApolloShell >/dev/null; then
     pkill -TERM -x ApolloShell
     i=0
@@ -43,5 +43,5 @@ elif pgrep -x ApolloShell >/dev/null; then
         sleep 0.1
         i=$((i + 1))
     done
-    open "$DEST" && echo "neu gestartet"
+    open "$DEST" && echo "restarted"
 fi

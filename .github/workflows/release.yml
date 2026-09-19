@@ -1,7 +1,7 @@
 name: Release
 
-# Nur auf Tags. Niemals auf Pull Requests: Der Auftrag braucht die
-# Signaturschluessel, und ein fremder Fork darf nie an sie herankommen.
+# Tags only. Never on pull requests: the job needs the signing keys, and a
+# foreign fork must never get near them.
 on:
   push:
     tags: ["v*"]
@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # Werkzeuge von Sparkle (generate_appcast). Feste Fassung mit Pruefsumme -
-  # das Werkzeug signiert Updates, es darf sich nicht unbemerkt aendern.
+  # Sparkle's tools (generate_appcast). Pinned version with a checksum -
+  # the tool signs updates, it must not change unnoticed.
   SPARKLE_VERSION: 2.10.0
   SPARKLE_SHA256: c2bf58aa8387266ac179357b1415d6f2635f044da8be41042af32425dae6da0c
   REPO_URL: https://github.com/Silvertree2010/ApolloShell
@@ -28,10 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Die ganze Vorgeschichte: scripts/assemble-app.sh zaehlt die
-          # Commits fuer CFBundleVersion. Mit der flachen Voreinstellung waere
-          # jede Fassung Build 1 - und Sparkle vergleicht genau diese Zahl,
-          # also waere kein Release je neuer als das vorige.
+          # The whole history: scripts/assemble-app.sh counts the commits
+          # for CFBundleVersion. With the shallow default every version
+          # would be build 1 - and Sparkle compares exactly that number, so
+          # no release would ever be newer than the one before.
           fetch-depth: 0
 
       - name: Check that the tag matches the bundle version
@@ -40,12 +40,12 @@ jobs:
           tag="${GITHUB_REF_NAME#v}"
           plist=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Support/Info.plist)
           if [ "$tag" != "$plist" ]; then
-            echo "Tag $GITHUB_REF_NAME passt nicht zu CFBundleShortVersionString $plist" >&2
+            echo "tag $GITHUB_REF_NAME does not match CFBundleShortVersionString $plist" >&2
             exit 1
           fi
           key=$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' Support/Info.plist)
           if [ -z "$key" ]; then
-            echo "SUPublicEDKey fehlt in Support/Info.plist (scripts/make-release-keys.sh)" >&2
+            echo "SUPublicEDKey missing in Support/Info.plist (scripts/make-release-keys.sh)" >&2
             exit 1
           fi
 
@@ -63,8 +63,8 @@ jobs:
           security import "$RUNNER_TEMP/release-cert.p12" -k "$keychain" -P "$CERT_PASSWORD" \
             -T /usr/bin/codesign -A
           security set-key-partition-list -S apple-tool:,apple: -s -k "$pass" "$keychain" >/dev/null
-          # In die Suchliste, damit `security find-identity` es findet
-          # (scripts/assemble-app.sh fragt genau so).
+          # Into the search list so `security find-identity` finds it
+          # (scripts/assemble-app.sh asks exactly that way).
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
           rm -f "$RUNNER_TEMP/release-cert.p12"
 
@@ -75,13 +75,13 @@ jobs:
           set -o pipefail
           scripts/make-dmg.sh
           codesign --verify --deep --strict --verbose=2 "build/dist/ApolloShell.app"
-          # Ad-hoc signiert waere die Pruefung oben auch zufrieden, aber dann
-          # waere nach jedem Update jede Bedienungshilfen-Freigabe der Nutzer
-          # weg. Also ausdruecklich nachsehen, wer unterschrieben hat.
+          # Signed ad-hoc the check above would be happy too, but then
+          # every user's Accessibility grant would be gone after every
+          # update. So look explicitly at who signed.
           codesign -dvv "build/dist/ApolloShell.app" 2>&1 | grep -q "Authority=ApolloShell Release Signing"
           build=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "build/dist/ApolloShell.app/Contents/Info.plist")
           if [ "$build" -le 1 ]; then
-            echo "CFBundleVersion ist $build - Sparkle koennte kein Update vom naechsten unterscheiden" >&2
+            echo "CFBundleVersion is $build - Sparkle could not tell one update from the next" >&2
             exit 1
           fi
 
@@ -100,8 +100,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -o pipefail
-          # Frueheren Appcast dazunehmen, damit die Liste der Fassungen
-          # erhalten bleibt. Beim ersten Release gibt es noch keinen.
+          # Take the earlier appcast along so the list of versions is
+          # kept. There is none yet for the first release.
           gh release download --repo "$GITHUB_REPOSITORY" --pattern appcast.xml --dir dist || true
           printf '%s' "$SPARKLE_EDDSA_KEY" | "$RUNNER_TEMP/sparkle/bin/generate_appcast" \
             --ed-key-file - \
@@ -117,14 +117,14 @@ jobs:
         run: |
           set -o pipefail
           version="${GITHUB_REF_NAME#v}"
-          # Vier Teile heissen "0.1.2 Patch 2", drei bleiben "0.1.2" - so
-          # wie die Releases von Hand benannt waren.
+          # Four parts read "0.1.2 Patch 2", three stay "0.1.2" - the way
+          # the releases were named by hand.
           case "$version" in
             *.*.*.*) title="ApolloShell ${version%.*} Patch ${version##*.}" ;;
             *)       title="ApolloShell $version" ;;
           esac
-          # Die Notizen sind der Abschnitt der Fassung aus dem Changelog,
-          # nicht nur ein Verweis darauf.
+          # The notes are the version's section from the changelog, not
+          # just a link to it.
           notes=$(scripts/release-notes.sh "$version")
           if [ -z "$notes" ]; then
             notes="See [CHANGELOG.md]($REPO_URL/blob/main/CHANGELOG.md)."
@@ -144,16 +144,16 @@ jobs:
           set -o pipefail
           version="${GITHUB_REF_NAME#v}"
           tarball="$REPO_URL/archive/refs/tags/$GITHUB_REF_NAME.tar.gz"
-          # Dasselbe Archiv, das Homebrew spaeter laedt.
+          # The same archive Homebrew downloads later.
           curl -fsSL -o "$RUNNER_TEMP/source.tar.gz" "$tarball"
           sha=$(shasum -a 256 "$RUNNER_TEMP/source.tar.gz" | cut -d' ' -f1)
           if [ -z "$sha" ]; then
-            echo "keine Pruefsumme fuer $tarball" >&2
+            echo "no checksum for $tarball" >&2
             exit 1
           fi
-          # Schreibrecht ueber einen Deploy-Key, der nur fuer das Tap-Repo
-          # gilt - kein Token, das auf alle Repos passt, und nichts, was in
-          # der Adresse oder in .git/config liegen bleibt.
+          # Write access via a deploy key that is valid for the tap repo
+          # only - no token that fits every repo, and nothing left behind
+          # in the URL or in .git/config.
           mkdir -p "$RUNNER_TEMP/ssh"
           printf '%s\n' "$TAP_DEPLOY_KEY" > "$RUNNER_TEMP/ssh/id"
           chmod 600 "$RUNNER_TEMP/ssh/id"
@@ -161,11 +161,11 @@ jobs:
           git clone --depth 1 git@github.com:Silvertree2010/homebrew-apolloshell.git "$RUNNER_TEMP/tap"
           formula="$RUNNER_TEMP/tap/Formula/apolloshell.rb"
           /usr/bin/sed -i '' -e "s|url \".*\"|url \"$tarball\"|" -e "s|sha256 \".*\"|sha256 \"$sha\"|" "$formula"
-          # Steht die Formel schon richtig (erneuter Lauf desselben Tags),
-          # ist das kein Fehler - das Release ist da, nur die Formel war es
-          # schon.
+          # If the formula is already right (a rerun of the same tag),
+          # that is not an error - the release is there, the formula just
+          # was already.
           if git -C "$RUNNER_TEMP/tap" diff --quiet; then
-            echo "Formel steht schon auf $version"
+            echo "formula already at $version"
             exit 0
           fi
           git -C "$RUNNER_TEMP/tap" -c user.name="ApolloShell Release" \

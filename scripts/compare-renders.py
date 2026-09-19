@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Vergleicht zwei Ordner mit Bildproben (ApolloShell --render-dashboard).
+"""Compares two folders of rendered samples (ApolloShell --render-dashboard).
 
 Aufruf: scripts/compare-renders.py <vorher> <nachher> [<diff-ordner>]
 
-Fuer jede PNG, die in beiden Ordnern liegt: gleiche Groesse? wie viele
-Pixel weichen ab (irgendein Kanal um mehr als 8 von 255)? Mit Diff-Ordner
-wird fuer jede abweichende Datei ein Bild geschrieben, abweichende Pixel rot.
-Endet mit 1, sobald eine Datei abweicht oder fehlt.
+For every PNG present in both folders: same size? how many pixels differ
+(any channel by more than 8 of 255)? With a diff folder, an image is written
+for every file that differs, with the differing pixels in red.
+Exits with 1 as soon as a file differs or is missing.
 """
 import sys
 from pathlib import Path
@@ -23,7 +23,7 @@ def compare(before: Path, after: Path, diff_dir: Path | None) -> bool:
         print(f"{before.name}: Groesse {a.size} -> {b.size}")
         return False
     delta = ImageChops.difference(a, b)
-    # Groesste Abweichung ueber alle Kanaele (auch nur Alpha zaehlt).
+    # Largest difference across all channels (alpha alone counts too).
     channels = delta.split()
     largest = channels[0]
     for channel in channels[1:]:
@@ -31,7 +31,7 @@ def compare(before: Path, after: Path, diff_dir: Path | None) -> bool:
     mask = largest.point(lambda v: 255 if v > TOLERANCE else 0)
     changed = a.size[0] * a.size[1] - mask.histogram()[0]
     if changed == 0:
-        print(f"{before.name}: gleich")
+        print(f"{before.name}: same")
         return True
     print(f"{before.name}: {changed} Pixel abweichend")
     if diff_dir:

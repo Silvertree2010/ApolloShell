@@ -1,29 +1,30 @@
 #!/bin/sh
-# Baut MediaRemoteAdapter.framework aus extras/mediaremote-adapter - ohne
-# cmake, mit clang aus den Command Line Tools.
+# Builds MediaRemoteAdapter.framework from extras/mediaremote-adapter -
+# without cmake, with clang from the Command Line Tools.
 #
-# Warum ueberhaupt: Seit macOS 15.4 liefert MediaRemote Apps ohne
-# Apple-Berechtigung nichts mehr ("Now Playing" bleibt leer). Das Apple-
-# signierte /usr/bin/perl darf es noch; der Adapter laedt dieses Framework in
-# perl und streamt die Daten als JSON-Zeilen. Die App startet also
+# Why at all: since macOS 15.4 MediaRemote gives apps without Apple's
+# entitlement nothing ("Now Playing" stays empty). Apple-signed
+# /usr/bin/perl still may; the adapter loads this framework into perl and
+# streams the data as JSON lines. So the app starts
 #   /usr/bin/perl mediaremote-adapter.pl MediaRemoteAdapter.framework stream
-# und linkt das Framework NICHT - es ist fuer perl bestimmt.
+# and does NOT link the framework - it is meant for perl.
 #
-# Nachgebaut nach der CMakeLists.txt von Tag v0.7.7:
-#   - alle Quellen aus src/adapter, src/private, src/utility als eine
-#     dynamische Bibliothek im Framework-Format (Versions/A, Info.plist,
-#     oeffentlicher Header)
-#   - -fobjc-arc, -fvisibility=default (sonst findet perl die Funktionen
-#     per dlsym nicht), Foundation, AppKit, UniformTypeIdentifiers
-#   - x86_64 und arm64 wie dort (perl ist universell)
-#   - Bundle-ID com.vandenbe.MediaRemoteAdapter, Version 0.1.0
+# Rebuilt after the CMakeLists.txt of tag v0.7.7:
+#   - all sources from src/adapter, src/private, src/utility as one
+#     dynamic library in framework form (Versions/A, Info.plist, public
+#     header)
+#   - -fobjc-arc, -fvisibility=default (otherwise perl does not find the
+#     functions via dlsym), Foundation, AppKit, UniformTypeIdentifiers
+#   - x86_64 and arm64 as there (perl is universal)
+#   - bundle ID com.vandenbe.MediaRemoteAdapter, version 0.1.0
 #
-# Aufruf: scripts/build-mediaremote-adapter.sh ZIEL [IDENTITAET]
-#   legt ZIEL/MediaRemoteAdapter.framework und ZIEL/mediaremote-adapter.pl an.
-#   Mit IDENTITAET wird das Framework damit signiert (wie build.sh), sonst
-#   oder wenn das scheitert ad-hoc wie im Original.
-#   MRA_TEST_CLIENT=1 baut zusaetzlich ZIEL/MediaRemoteAdapterTestClient
-#   (nur fuer den Befehl "test", die App braucht ihn nicht).
+# Usage: scripts/build-mediaremote-adapter.sh TARGET [IDENTITY]
+#   creates TARGET/MediaRemoteAdapter.framework and
+#   TARGET/mediaremote-adapter.pl. With IDENTITY the framework is signed
+#   with it (as build.sh does), otherwise, or if that fails, ad-hoc as in
+#   the original. MRA_TEST_CLIENT=1 also builds
+#   TARGET/MediaRemoteAdapterTestClient (only for the "test" command, the
+#   app does not need it).
 set -eu
 
 if [ $# -lt 1 ]; then
@@ -42,15 +43,15 @@ FW="$OUT/$NAME.framework"
 VERSION=0.1.0
 SHORT_VERSION=0.1
 ARCHS="-arch arm64 -arch x86_64"
-# Wie Package.swift: die App laeuft erst ab macOS 26.
+# As in Package.swift: the app only runs on macOS 26 and later.
 MIN="-mmacosx-version-min=26.0"
 
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
-# Fremder Code, unveraendert: dessen Warnungen (alte Block-Deklarationen
-# ohne Prototyp u. ae.) sind nicht unsere Baustelle und wuerden jede
-# Ausgabe von build.sh zumuellen. Fehler bleiben Fehler.
+# Foreign code, unchanged: its warnings (old block declarations without a
+# prototype and the like) are not our problem and would clutter every
+# output of build.sh. Errors stay errors.
 CFLAGS="$ARCHS $MIN -O2 -fobjc-arc -fvisibility=default -w -I$SRC/include -I$SRC/src"
 
 SOURCES="
@@ -78,10 +79,10 @@ for source in $SOURCES; do
     OBJECTS="$OBJECTS $object"
 done
 
-# Framework-Aufbau wie CMake mit FRAMEWORK TRUE / FRAMEWORK_VERSION A.
+# Framework layout as CMake does it with FRAMEWORK TRUE / FRAMEWORK_VERSION A.
 rm -rf "$FW"
 mkdir -p "$FW/Versions/A/Headers" "$FW/Versions/A/Resources"
-# shellcheck disable=SC2086 # Wortaufteilung von ARCHS/OBJECTS ist gewollt.
+# shellcheck disable=SC2086 # word splitting of ARCHS/OBJECTS is intended.
 /usr/bin/clang $ARCHS $MIN -dynamiclib -fobjc-arc $OBJECTS \
     -framework Foundation -framework AppKit -framework UniformTypeIdentifiers \
     -install_name "@rpath/$NAME.framework/Versions/A/$NAME" \
@@ -127,9 +128,9 @@ if [ "${MRA_TEST_CLIENT:-0}" = 1 ]; then
         -o "$OUT/${NAME}TestClient"
 fi
 
-# Signieren: mit fester Identitaet, wenn es sie gibt und codesign damit
-# klappt - sonst ad-hoc wie die CMake-Vorlage. perl laedt beides; die feste
-# Identitaet haelt nur die Signatur der ganzen App einheitlich.
+# Signing: with the fixed identity if it exists and codesign works with
+# it - otherwise ad-hoc as the CMake template does. perl loads either; the
+# fixed identity only keeps the whole app's signature consistent.
 sign() {
     if [ -n "$IDENTITY" ] &&
         security find-identity -p codesigning 2>/dev/null | grep -q "\"$IDENTITY\"" &&
@@ -142,4 +143,4 @@ sign() {
 sign "$FW"
 if [ -f "$OUT/${NAME}TestClient" ]; then sign "$OUT/${NAME}TestClient"; fi
 
-echo "gebaut: $FW"
+echo "built: $FW"

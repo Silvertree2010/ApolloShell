@@ -44,18 +44,18 @@ else
     IDENTITY="Launcher Local Signing"
 fi
 
-# Einmal entscheiden, womit alles signiert wird: die App, Sparkles Teile und
-# der Now-Playing-Helfer muessen dieselbe Signatur tragen.
+# Decide once what everything is signed with: the app, Sparkle's parts and
+# the Now Playing helper have to carry the same signature.
 if [ "$IDENTITY" = "-" ]; then
-    # Ausdruecklich ad-hoc (CI, Bildproben): kein Nachschlagen, kein Fehler.
+    # Explicitly ad-hoc (CI, rendered samples): no lookup, no error.
     echo "signing ad-hoc (SIGN_IDENTITY=-)"
 elif [ -n "$IDENTITY" ] && security find-identity -p codesigning 2>/dev/null | grep -q "\"$IDENTITY\""; then
     echo "signing with: $IDENTITY"
 elif [ "${SIGN_IDENTITY+set}" = set ] && [ -n "$SIGN_IDENTITY" ]; then
-    # Ausdruecklich verlangt und nicht da: abbrechen. Still ad-hoc zu
-    # signieren hiesse im Release, dass jede Bedienungshilfen-Freigabe nach
-    # dem Update weg ist - und das faellt erst den Nutzern auf.
-    echo "Signier-Identitaet nicht im Schluesselbund: $SIGN_IDENTITY" >&2
+    # Explicitly asked for and not there: stop. Quietly signing ad-hoc
+    # would mean, in a release, that every Accessibility grant is gone
+    # after the update - and only the users would notice.
+    echo "signing identity not in the keychain: $SIGN_IDENTITY" >&2
     exit 1
 else
     echo "note: ad-hoc signature - the Accessibility grant will not survive the next build (scripts/setup-signing.sh)" >&2
@@ -89,30 +89,30 @@ trap 'rm -rf "$WORK"' EXIT INT TERM
 ditto "$WORK/mediaremote-adapter/MediaRemoteAdapter.framework" "$APP/Contents/Frameworks/MediaRemoteAdapter.framework"
 cp "$WORK/mediaremote-adapter/mediaremote-adapter.pl" "$APP/Contents/Resources/mediaremote-adapter.pl"
 
-# Sparkle (Selbstaktualisierung): SwiftPM legt das Rahmenwerk neben das
-# Programm. Es ist bereits universell (arm64 + x86_64), deshalb genuegt eine
-# Kopie, auch fuer das universelle DMG. SPARKLE_FRAMEWORK ueberschreibt den
-# Fundort.
+# Sparkle (self-updating): SwiftPM puts the framework next to the
+# executable. It is universal already (arm64 + x86_64), so one copy is
+# enough, for the universal DMG too. SPARKLE_FRAMEWORK overrides where it
+# is looked for.
 SPARKLE=${SPARKLE_FRAMEWORK:-$(dirname "$BINARY")/Sparkle.framework}
 if [ ! -d "$SPARKLE" ]; then
-    echo "Sparkle.framework fehlt: $SPARKLE (swift build laeuft es mit)" >&2
+    echo "Sparkle.framework missing: $SPARKLE (swift build fetches it)" >&2
     exit 1
 fi
 ditto "$SPARKLE" "$APP/Contents/Frameworks/Sparkle.framework"
-# Ohne Header und Modulkarten laeuft es genauso; die braucht nur der Compiler.
+# It runs the same without headers and module maps; only the compiler needs those.
 rm -rf "$APP/Contents/Frameworks/Sparkle.framework/Versions/B/Headers" \
     "$APP/Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders" \
     "$APP/Contents/Frameworks/Sparkle.framework/Versions/B/Modules" \
     "$APP/Contents/Frameworks/Sparkle.framework/Headers" \
     "$APP/Contents/Frameworks/Sparkle.framework/PrivateHeaders" \
     "$APP/Contents/Frameworks/Sparkle.framework/Modules"
-# SwiftPM baut mit Suchpfaden auf den Bauordner; im Bundle liegt das
-# Rahmenwerk daneben in Frameworks.
+# SwiftPM builds with search paths into the build folder; in the bundle the
+# framework sits next to the executable in Frameworks.
 install_name_tool -add_rpath @executable_path/../Frameworks "$APP/Contents/MacOS/ApolloShell" 2>/dev/null || true
 
-# Sparkle bringt eigene Programme mit (Updater.app, Autoupdate, zwei
-# XPC-Dienste). Verschachtelter Code wird vor dem Aeusseren signiert, sonst
-# passt die Signatur der App nicht mehr zu ihrem Inhalt.
+# Sparkle brings its own programs (Updater.app, Autoupdate, two XPC
+# services). Nested code is signed before the outer code, otherwise the
+# app's signature no longer matches its contents.
 SPARKLE_IN_APP="$APP/Contents/Frameworks/Sparkle.framework/Versions/B"
 for part in \
     "$SPARKLE_IN_APP/XPCServices/Downloader.xpc" \

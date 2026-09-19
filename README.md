@@ -47,7 +47,7 @@ If you like it, a star on GitHub helps other Mac users find it.
   your own.
 - **Control centre** in the bottom-right corner: keep awake, sound, Wi-Fi, dark
   mode, Night Shift, a colour picker and your own buttons. Arranged in the
-  same edit mode as the dashboard (Nexus › "Oberfläche bearbeiten").
+  same edit mode as the dashboard (Nexus > "Edit Interface").
 - **Themes** as one CSS file: colours, gradients, fonts and sizes for the
   whole shell, applied the moment you save the file.
 - **Nexus**, the settings app, where every panel can be rearranged.

@@ -38,8 +38,8 @@ for arch in $ARCHS; do
     bin="$(swift build "$@" --show-bin-path)/ApolloShell"
     lipo "$bin" -verify_arch "$arch"
     BINARIES="$BINARIES $bin"
-    # Sparkle ist als XCFramework schon universell; eine Kopie genuegt fuer
-    # beide Architekturen.
+    # As an XCFramework Sparkle is universal already; one copy is enough
+    # for both architectures.
     [ -n "${SPARKLE_FRAMEWORK:-}" ] || SPARKLE_FRAMEWORK="$(dirname "$bin")/Sparkle.framework"
 done
 export SPARKLE_FRAMEWORK
