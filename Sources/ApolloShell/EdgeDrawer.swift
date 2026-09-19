@@ -189,8 +189,21 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// schliesst von selbst, ausser der Zeiger steht noch im Aufklapp-Bereich
     /// - dann uebernimmt von dort das uebliche Hover-Verhalten; sonst bliebe
     /// das Fenster sonst unbegrenzt offen stehen (`unpin()`).
+    ///
+    /// Waehrend `isPinned` gilt zusaetzlich (Spec Abschnitt 4,
+    /// "window-manager-safe"): `.stationary` statt `.transient` (Fenstermanager
+    /// wie AeroSpace/yabai/Amethyst kacheln oder verschieben ein `.transient`-
+    /// Fenster sonst mit, sobald es laenger als einen Wisch offen bleibt),
+    /// nicht-Standard-Bedienungshilfen-Subrolle und aus dem Fenstermenue
+    /// ausgeschlossen - wie `EditModePanel`, aber nur, solange gepinnt (ein
+    /// nicht angepinntes Kantenfenster bleibt `.transient`: es soll ein
+    /// Fenstermanager-Tastenkuerzel weiterhin schliessen duerfen). Der Wert
+    /// wirkt auf `builtPanel`, falls es schon gebaut ist, und auf jedes neu
+    /// gebaute (`makePanel()`).
     var isPinned = false {
         didSet {
+            guard isPinned != oldValue else { return }
+            builtPanel?.setPinned(isPinned)
             guard oldValue, !isPinned else { return }
             unpin()
         }
@@ -638,6 +651,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         let level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + (scrim == nil ? 0 : 1))
         let panel = DrawerPanel(size: container.frame.size, level: level, takesKeyboard: takesKeyboard)
         panel.delegate = self
+        panel.setPinned(isPinned)
         panel.onEscape = { [weak self] in
             guard let self, !self.isPinned else { return }
             self.close()
@@ -683,14 +697,33 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 final class DrawerPanel: ShellPanel {
     var onEscape: () -> Void = {}
 
+    /// Verhalten/Subrolle/Fenstermenue ausserhalb einer Bearbeitung - was
+    /// `setPinned(false)` wiederherstellt.
+    private static let unpinnedBehavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary]
+    /// Waehrend `EdgeDrawer.isPinned` (Spec Abschnitt 4): wie `EditModePanel`,
+    /// aber nur so lange - siehe `isPinned`.
+    private static let pinnedBehavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+
     init(size: NSSize, level: NSWindow.Level, takesKeyboard: Bool) {
         super.init(size: size, level: level,
-                   behavior: [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary],
+                   behavior: Self.unpinnedBehavior,
                    takesKeyboard: takesKeyboard, mayLeaveScreen: true)
     }
 
     override func cancelOperation(_ sender: Any?) {
         onEscape()
+    }
+
+    /// Task 7 (Spec Abschnitt 4, "window-manager-safe"): waehrend einer
+    /// Bearbeitung soll ein Fenstermanager das angepinnte Kantenfenster genau
+    /// so unberuehrt lassen wie die Fenster des Bearbeitungsmodus selbst
+    /// (`EditModePanel`) - `.stationary` statt `.transient`, eine
+    /// Nicht-Standard-Subrolle und raus aus dem Fenstermenue. Entpinnt stellt
+    /// die drei Werte von vorher wieder her.
+    func setPinned(_ pinned: Bool) {
+        collectionBehavior = pinned ? Self.pinnedBehavior : Self.unpinnedBehavior
+        setAccessibilitySubrole(pinned ? .unknown : nil)
+        isExcludedFromWindowsMenu = pinned
     }
 }
 
