@@ -4,6 +4,31 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.2.2] - 2026-09-20
+
+A patch on 0.1.2.1: a light theme on a dark Mac, and three ways to lose
+work or run an action twice.
+
+### Fixed
+
+- **A light theme lights up the whole shell**, and a dark one darkens it.
+  Around a hundred places take their text colour from macOS, so a light
+  theme on a dark Mac wrote white on its own light surfaces. The token
+  `--apollo-theme-appearance: light` or `dark` now sets the appearance of
+  the app itself; `auto` follows the system as before.
+- **A click on the screenshot, lock or colour picker button runs once.**
+  The control centre stays clickable while it fades out, so a double
+  click ran the action at once, with the glass still on screen, and a
+  second time after the fade.
+- **An unreadable `pinned.json` is kept.** Nexus read a broken file as an
+  empty list and the next pin wrote that empty list over it, so a typo
+  made while editing by hand cost every pinned app. The file is copied to
+  `pinned.json.unreadable` first, as `settings.json` and `usage.json`
+  already were.
+- **"Restart now" stays while an update waits.** Checking again picked the
+  downloaded update up a second time, and Nexus > Updates showed it as
+  found instead of ready, without the button.
+
 ## [0.1.2.1] - 2026-09-18
 
 A patch on 0.1.2: what a theme reaches, and what the icon list promised.
