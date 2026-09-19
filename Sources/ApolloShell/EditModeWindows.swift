@@ -102,7 +102,16 @@ final class FloatingGlassPanel<Content: View> {
         // nicht (Live-Test 19.09.).
         let hosting = FirstMouseHostingView(rootView: AnyView(content().shellTheme()))
         hosting.sizingOptions = [.intrinsicContentSize]
-        glass.contentView = hosting
+        // Hosting in einem eigenen Container, wie bei den Kantenfenstern
+        // (`EdgeDrawer.makePanel`): `ThemedGlass` legt die Theme-Flaeche in
+        // den `contentView` des Glases. War das direkt der Hosting-View, lag
+        // die Farbflaeche in dessen Ebenen UEBER dem SwiftUI-Inhalt -
+        // Werkzeugleiste und Galerie erschienen mit Theme leer (Live-Test
+        // 19.09.; Bildproben und Selbsttest laufen ohne Theme).
+        let content = NSView()
+        hosting.autoresizingMask = [.width, .height]
+        content.addSubview(hosting)
+        glass.contentView = content
         panel.contentView = glass
         self.glass = glass
         self.hosting = hosting
@@ -118,6 +127,7 @@ final class FloatingGlassPanel<Content: View> {
         hosting.layoutSubtreeIfNeeded()
         let size = hosting.fittingSize
         panel.setContentSize(size)
+        hosting.frame = NSRect(origin: .zero, size: size)
         panel.setFrameOrigin(NSPoint(x: point.x - size.width / 2, y: point.y - size.height / 2 + raise))
         if !panel.isVisible {
             panel.alphaValue = 0
@@ -138,6 +148,7 @@ final class FloatingGlassPanel<Content: View> {
         hosting.layoutSubtreeIfNeeded()
         let size = hosting.fittingSize
         panel.setContentSize(size)
+        hosting.frame = NSRect(origin: .zero, size: size)
         panel.setFrameOrigin(NSPoint(x: point.x - size.width / 2, y: point.y - size.height / 2 + raise))
     }
 
