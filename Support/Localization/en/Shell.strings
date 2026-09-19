@@ -183,3 +183,8 @@
 "Ausschalten" = "Shut Down";
 "Ruhezustand" = "Sleep";
 "Neustart" = "Restart";
+
+/* EditGallery.swift */
+"Element hinzufügen" = "Add Element";
+"Fläche" = "Surface";
+"Alle zeigen (erweitert)" = "Show All (Advanced)";

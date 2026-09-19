@@ -114,6 +114,13 @@ final class DashboardEditor {
         session?.add(kind, frame: frame, places: places)
     }
 
+    /// Galerie-Klick (Task 3) statt Ziehen: an der ersten freien Stelle der
+    /// gezeigten Seite. `nil`: keine Stelle frei.
+    @discardableResult
+    func addAtFirstFreeSpot(_ kind: WidgetKind, places: WeatherFavorites = .empty) -> WidgetInstance.ID? {
+        session?.addAtFirstFreeSpot(kind, places: places)
+    }
+
     func remove(_ id: WidgetInstance.ID) {
         session?.remove(id)
     }

@@ -53,7 +53,7 @@ final class Nexus: NSObject, NSWindowDelegate {
         super.init()
         // Kommt zurueck, sobald der globale Bearbeitungsmodus endet (Fertig,
         // Abbrechen, Esc) - auf derselben Seite, wie sie beim Start stand.
-        shellEditor.onEnd = { [weak self] in self?.window?.makeKeyAndOrderFront(nil) }
+        shellEditor.addEndHandler { [weak self] in self?.window?.makeKeyAndOrderFront(nil) }
         shell.beginEditing = { [weak self] in self?.beginEditing() }
     }
 

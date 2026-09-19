@@ -9,15 +9,22 @@ import SwiftUI
 /// Pixelvergleich vor und nach Umbauten, siehe scripts/compare-renders.py.
 @MainActor
 enum RenderMode {
-    /// Endet den Prozess, wenn der Schalter gesetzt ist; sonst kehrt es zurueck.
+    /// Endet den Prozess, wenn ein Schalter gesetzt ist; sonst kehrt es zurueck.
     static func runIfRequested() {
         let args = CommandLine.arguments
-        guard let index = args.firstIndex(of: "--render-dashboard"), index + 1 < args.count else { return }
-        let folder = URL(fileURLWithPath: args[index + 1], isDirectory: true)
+        if let index = args.firstIndex(of: "--render-dashboard"), index + 1 < args.count {
+            run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderDashboard)
+        }
+        if let index = args.firstIndex(of: "--render-edit"), index + 1 < args.count {
+            run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderEditMode)
+        }
+    }
+
+    private static func run(folder: URL, _ body: (URL) throws -> Void) {
         NSApplication.shared.setActivationPolicy(.prohibited)
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try renderDashboard(into: folder)
+            try body(folder)
             exit(0)
         } catch {
             FileHandle.standardError.write(Data("render failed: \(error)\n".utf8))
@@ -90,6 +97,31 @@ enum RenderMode {
         try write(view(reduceMotion: false), scheme: .light, to: editFolder.appendingPathComponent("invalid-drop-light.png"))
         editor.dropPreview = nil
         try write(view(reduceMotion: true), scheme: .light, to: editFolder.appendingPathComponent("reduce-motion-light.png"))
+    }
+
+    /// `--render-edit <Ordner>`: die Werkzeugleiste und beide Reiter der
+    /// Galerie des globalen Bearbeitungsmodus (Task 3), in `<Ordner>/edit/`.
+    /// Reine SwiftUI-Ansichten (kein `NSGlassEffectView`-Panel noetig), damit
+    /// `ImageRenderer` sie offscreen zeichnen kann.
+    private static func renderEditMode(into folder: URL) throws {
+        let editFolder = folder.appendingPathComponent("edit", isDirectory: true)
+        try FileManager.default.createDirectory(at: editFolder, withIntermediateDirectories: true)
+        let place = WeatherLocation(name: "Berlin", latitude: 52.52, longitude: 13.405)
+        let places = WeatherFavorites(locations: [place], selectedID: place.id)
+        let pages = DashboardPages(pages: DashboardPages.defaultPages(places: places, hasBattery: false))!
+        let settings = ShellSettingsStore.preview(ShellSettings(dashboardPages: pages))
+        let dashboardEditor = DashboardEditor(store: settings)
+        let editor = ShellEditor(store: settings, dashboard: dashboardEditor)
+        if let screen = NSScreen.main ?? NSScreen.screens.first {
+            editor.begin(screen: screen)
+        }
+        try write(EditToolbarView(editor: editor), scheme: .light, to: editFolder.appendingPathComponent("toolbar-light.png"))
+        editor.galleryTab = .dashboard
+        try write(EditGalleryView(editor: editor).environment(\.galleryRendersForScreenshot, true), scheme: .light,
+                 to: editFolder.appendingPathComponent("gallery-dashboard-light.png"))
+        editor.galleryTab = .controlCentre
+        try write(EditGalleryView(editor: editor).environment(\.galleryRendersForScreenshot, true), scheme: .light,
+                 to: editFolder.appendingPathComponent("gallery-controlcentre-light.png"))
     }
 
     static func name(_ base: String, _ scheme: ColorScheme) -> String {

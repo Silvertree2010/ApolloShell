@@ -13,7 +13,8 @@ import Observation
 /// Anpinnen des Dashboard-Kantenfensters uebernimmt) und `utilities` (eine
 /// `UtilitiesEditSession`, neu je Bearbeitung). Die Fenster der Bearbeitung
 /// selbst (Scrim, Werkzeugleiste, Galerie: `EditModeWindows.swift`) und das
-/// Kontrollzentrum-Fenster (`UtilitiesPanel`) hoeren auf `onBegin`/`onEnd`.
+/// Kontrollzentrum-Fenster (`UtilitiesPanel`) hoeren ueber
+/// `addBeginHandler`/`addEndHandler` mit.
 @MainActor
 @Observable
 final class ShellEditor {
@@ -33,14 +34,26 @@ final class ShellEditor {
     var galleryTab: WidgetSurface = .dashboard
     var showsAllInGallery = false
 
+    /// Mehrere Hoerer statt eines einzelnen Abschlusses: Kontrollzentrum,
+    /// Scrim/Werkzeugleiste/Galerie und Nexus haengen sich unabhaengig
+    /// voneinander ein (`addBeginHandler`/`addEndHandler`), keiner ueberschreibt
+    /// den anderen.
+    private var beginHandlers: [(NSScreen) -> Void] = []
+    private var endHandlers: [() -> Void] = []
+
     /// Vor `begin`, mit dem Bildschirm, auf dem Nexus stand: die Panels
     /// pinnen sich dort an (Dashboard: schon in `dashboard.onBegin`
     /// verdrahtet; Kontrollzentrum, Scrim, Werkzeugleiste, Galerie hoeren
     /// hier mit).
-    var onBegin: (NSScreen) -> Void = { _ in }
+    func addBeginHandler(_ handler: @escaping (NSScreen) -> Void) {
+        beginHandlers.append(handler)
+    }
+
     /// Nach „Fertig“ oder „Abbrechen“: Panels entpinnen, Modus-Fenster
     /// schliessen, Nexus zurueckholen.
-    var onEnd: () -> Void = {}
+    func addEndHandler(_ handler: @escaping () -> Void) {
+        endHandlers.append(handler)
+    }
 
     init(store: ShellSettingsStore, dashboard: DashboardEditor) {
         self.store = store
@@ -62,7 +75,7 @@ final class ShellEditor {
         // anpinnen); unser eigenes `onBegin` folgt fuer die uebrigen Panels
         // und Modus-Fenster.
         dashboard.begin(pageID: pageID, screen: screen)
-        onBegin(screen)
+        for handler in beginHandlers { handler(screen) }
     }
 
     /// „Fertig“: beide Arbeitskopien in einer Zuweisung von `store.settings`
@@ -87,7 +100,7 @@ final class ShellEditor {
         // ohne selbst nochmal zu schreiben.
         dashboard.cancel()
         utilities = nil
-        onEnd()
+        for handler in endHandlers { handler() }
     }
 
     /// „Abbrechen“ bzw. Esc: beide Arbeitskopien verwerfen. `confirmIfChanged`
@@ -97,7 +110,7 @@ final class ShellEditor {
         guard isEditing else { return }
         dashboard.cancel()
         utilities = nil
-        onEnd()
+        for handler in endHandlers { handler() }
     }
 
     // MARK: - Kontrollzentrum: Durchreichen an die Sitzung

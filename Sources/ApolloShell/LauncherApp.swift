@@ -58,6 +58,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Der globale Bearbeitungsmodus (Nexus > „Oberfläche bearbeiten“, Spec
     /// Abschnitt 4): Dashboard-Seiten und Kontrollzentrum in einem Zug.
     private var shellEditor: ShellEditor?
+    /// Scrim, Werkzeugleiste und Galerie des Bearbeitungsmodus (Task 3).
+    private var editModeWindows: EditModeWindows?
     private var updates: UpdateController?
     private var themes: ThemeStore?
     /// Einfuehrung beim ersten Start.
@@ -143,6 +145,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dashboard.onOpenNexus { [weak nexus] in nexus?.show(page: .dashboard) }
         let utilities = UtilitiesPanel(settings: settings)
         self.utilities = utilities
+        let editModeWindows = EditModeWindows(editor: shellEditor)
+        self.editModeWindows = editModeWindows
+        editModeWindows.utilitiesPanelHeight = { [weak utilities] in utilities?.height ?? 0 }
         sidebar.onUtilities = { [weak utilities] in utilities?.toggle() }
         // Caelestia: der Einstellungs-Knopf der Utilities oeffnet Nexus.
         utilities.onOpenSettings = { [weak nexus] in nexus?.show() }
