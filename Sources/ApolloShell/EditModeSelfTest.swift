@@ -159,6 +159,8 @@ private final class EditModeSelfTestHarness {
             let besideRight = abs(popover.frame.minX - widgetOnScreen.maxX) < 40
             let verticallyNear = popover.frame.minY < widgetOnScreen.maxY && popover.frame.maxY > widgetOnScreen.minY
             check(besideRight && verticallyNear, "Popover steht rechts neben dem Widget")
+            check(popover.level.rawValue > windows.debugLevels.scrim,
+                  "Popover liegt ueber dem Schleier (Ebene \(popover.level.rawValue), Schleier \(windows.debugLevels.scrim))")
         } else {
             check(false, "Popover erscheint")
         }
@@ -256,6 +258,10 @@ private final class EditModeSelfTestHarness {
             note("Link: Rahmen \(r(linkRect)), Fensterhoehe \(Int(utilities.debugWindowHeight)), gewaehlt \(String(describing: editor.selectedToggleID)), Popover \(r(popover?.frame))")
             note("alle Kacheln: " + (editor.utilities?.layout.toggles.map { "\($0.id)=\(r(editor.debugUtilitiesRects[$0.id]))" }.joined(separator: " ") ?? ""))
             check(editor.selectedToggleID == link && popover != nil, "Link-Knopf antippen zeigt seine Optionen")
+            if let popover {
+                check(popover.level.rawValue > windows.debugLevels.scrim,
+                      "Popover im Kontrollzentrum liegt ueber dem Schleier (Ebene \(popover.level.rawValue))")
+            }
         } else {
             check(false, "Link-Kachel gefunden")
         }
