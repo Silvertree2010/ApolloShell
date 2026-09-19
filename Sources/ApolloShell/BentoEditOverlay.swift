@@ -123,10 +123,11 @@ struct EditableWidgetView: View {
                     shape.strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])).foregroundStyle(.secondary)
                 }
             }
-            .rotationEffect(.degrees(reduceMotion ? 0 : wobble))
             .contentShape(Rectangle())
             .overlay(alignment: .topLeading) { minusBadge }
             .overlay(alignment: .bottomTrailing) { resizeHandle }
+            // Nach den Overlays: Minus und Griff wackeln mit dem Widget.
+            .rotationEffect(.degrees(reduceMotion ? 0 : wobble))
             .opacity(isDeleting ? 0 : 1)
             .scaleEffect(isDeleting ? 0.6 : 1)
             .offset(x: frame.x, y: frame.y)
@@ -148,9 +149,10 @@ struct EditableWidgetView: View {
             wobble = 0
             return
         }
-        wobble = -0.6
-        withAnimation(.easeInOut(duration: 0.13).repeatForever(autoreverses: true).delay(phase)) {
-            wobble = 0.6
+        // 0.6 Grad war ihm zu stark (Live-Test 19.09.): halb so viel, etwas ruhiger.
+        wobble = -0.3
+        withAnimation(.easeInOut(duration: 0.15).repeatForever(autoreverses: true).delay(phase)) {
+            wobble = 0.3
         }
     }
 
