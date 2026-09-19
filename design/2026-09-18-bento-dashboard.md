@@ -1,6 +1,6 @@
 # Bento dashboard (0.2.0)
 
-Status: design agreed with Andrin on 2026-09-18. Core and rendering built (parts 1 and 2); edit mode and Nexus open.
+Status: design agreed with Andrin on 2026-09-18, edit mode revised 2026-09-19. Core, rendering and a first edit mode built; global edit mode open.
 Branch: `release/0.2` (local only, never pushed; merged into `main` when 0.2.0
 is done).
 
@@ -33,7 +33,7 @@ pages.
 | Geometry | No cells. A fixed reference page of 839 × 392 pt; frames are stored in reference points; the whole page is scaled by one factor. |
 | Page size | Same aspect ratio for every page. Factor comes from the screen width, times a slider in Nexus. |
 | Placement | Free, no overlap, at least 12 pt apart. Magnetic snapping. Invalid spot: red outline, widget returns. |
-| Editing | Started from Nexus. Dashboard stays open, widgets wobble, `−` deletes, handle bottom right resizes, widgets are dragged in from a list in Nexus. Options of the selected widget show in Nexus. |
+| Editing | One global edit mode for dashboard and control centre, started from Nexus, over a scrim; gallery, popover options, page management in the page bar (section 4, revised 2026-09-19). |
 | Surfaces | Each widget has a home surface (dashboard or control centre). Using a widget outside its home is an advanced option and not optimised. |
 | Weather | Each weather widget has its own list of places and switches between them by click or arrows, like today's place picker. |
 | Clock | New option: time zone (default: system). |
@@ -170,39 +170,67 @@ Persistence and migration:
   tabs and cards.
 - An empty page says "Edit in Nexus".
 
-## 4. Edit mode
+## 4. Edit mode (revised 2026-09-19 after the first live test)
 
-- Nexus → Dashboard → "Edit". The dashboard opens on the screen Nexus is on,
-  showing the page selected in Nexus, and stays open until editing ends.
-  Hover does not close it.
-- Widgets wobble slightly, each with its own phase. With Reduce Motion they do
-  not wobble and get a dashed outline instead.
-- `−` at the top left removes a widget immediately.
-- Click selects a widget (accent outline); Nexus shows its options.
-- The rounded handle at the bottom right resizes; dragging the widget moves
-  it. Both snap as in section 2.
-- Widgets do not react to clicks while editing (no media buttons etc.).
-- Switching pages in the dashboard's page bar also switches Nexus.
-- Nexus shows the page list on the left, the widget list next to it (only
-  dashboard widgets unless "Show all widgets (advanced)" is on), and the
-  selected widget's options on the right. Widgets are dragged from the list
-  into the dashboard.
-- "Done" saves. "Cancel" restores the state from when editing began. Closing
-  Nexus counts as Done.
-- All screens show the same pages; only the scale differs.
+The first version edited the dashboard with Nexus open next to it. In the
+live test that felt wrong ("nicht cool"). It is replaced by one edit mode for
+the whole shell:
 
-Risks to check early: drag and drop from the Nexus window into the
-non-activating dashboard panel, and the dashboard covering the top of Nexus.
+- **Start:** one button „Oberfläche bearbeiten“ in Nexus (visible on every
+  Nexus page). Nexus hides; a scrim (dark, slightly blurred) covers every
+  screen. Other apps are not hidden or touched.
+- **Panels:** on the screen Nexus was on, the dashboard (top) and the control
+  centre (bottom right) open and stay open until the mode ends. The power
+  menu does not take part in 0.2.
+- **Toolbar:** a small floating bar at the bottom centre with **+**,
+  **Abbrechen** and **Fertig**.
+- **Gallery:** **+** opens a floating gallery in the middle of the screen with
+  one tab per surface („Dashboard“, „Kontrollzentrum“). Only elements whose
+  home is that surface are listed; „Alle zeigen (erweitert)“ also lists the
+  others. Drag an element into its panel, or click it: it lands on the first
+  free spot (dashboard) or at the end (control centre).
+- **Dashboard while editing:** widgets wobble (±0.3°), `−` removes, the corner
+  handle resizes, dragging moves; everything snaps (section 2). Clicking a
+  widget opens its options in a popover next to it. Pages are managed in the
+  page bar: `+` adds a page, right click on a page offers Umbenennen, Symbol,
+  Duplizieren, Löschen. Switching pages works as usual.
+- **Control centre while editing:** cards (Wach halten, Audio,
+  Schnellschalter) and toggles wobble and have `−`; cards reorder vertically,
+  toggles reorder in their grid by dragging (it is a grid, not free
+  placement). Clicking a toggle with options (app, link, shortcut, hide apps)
+  opens them in a popover. Removed cards come back from the gallery.
+- **End:** „Fertig“ saves dashboard pages and the control-centre layout;
+  „Abbrechen“ drops both. Esc = Abbrechen; with unsaved changes it asks once
+  („Änderungen verwerfen?“). Nexus comes back afterwards.
 
-## 5. Page management in Nexus and edge cases
+### Robustness („bombenfest“)
 
-- The page list reorders by dragging. `+` adds an empty page ("Page 2", ...)
-  with a symbol chosen from a list. Rename in place. Delete asks once; the last
-  page cannot be deleted. Right click: Duplicate (new IDs, name "… copy").
-- "Restore default pages" appends the missing presets in their Caelestia form
-  and leaves existing pages alone.
-- The size slider lives here. The scaled live preview of the selected page
-  stays.
+People who use a shell like this also run AeroSpace, yabai, Amethyst,
+Rectangle, Stage Manager and more. The edit mode must not fight them:
+
+- Every window of the mode (scrim, toolbar, gallery, pinned panels) is a
+  borderless, non-activating `NSPanel` on its own level, on all Spaces
+  (`canJoinAllSpaces`, `fullScreenAuxiliary`, `stationary`, `ignoresCycle`),
+  not in the Windows menu, and exposes a non-standard accessibility subrole,
+  so window managers neither tile, move nor hide it.
+- Esc works even when another app took focus (a global hot key registered
+  only while editing).
+- The mode ends as „Abbrechen“ on: screen configuration change, sleep, fast
+  user switching. No half-open states.
+- While editing, the shell's other hot keys (launcher, dashboard, control
+  centre, power menu) are ignored and the sidebar sits under the scrim.
+- Only „Fertig“ writes settings; a crash leaves settings unchanged, and the
+  scrim disappears with the process.
+- Live test in a macOS VM with AeroSpace and yabai before release.
+
+## 5. Nexus and edge cases
+
+- Nexus keeps settings only. Nexus › Dashboard: the size slider and „Orte für
+  die Leiste und neue Wetter-Widgets“. Nexus › Schnellaktionen: settings such
+  as lid-closed Keep Awake. The old editors for dashboard pages and for the
+  control-centre layout (cards list, toggle grid, gallery, options) are
+  removed, and with them the control-centre templates, like the dashboard
+  templates.
 - Buttons and shortcuts that open a specific page (media, performance and
   weather modules in the bar) open the page with that template; if it was
   deleted, the first page with a widget of that kind; otherwise the first
