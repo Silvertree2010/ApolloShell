@@ -255,6 +255,14 @@ Rectangle, Stage Manager and more. The edit mode must not fight them:
   running copy is not disturbed.
 - Live tests only together with Andrin; his running app is never quit without
   his yes.
+- Edit mode self-test (DEBUG builds): `ApolloShell --selftest-edit <file>`
+  builds dashboard, control centre and the mode's windows with in-memory
+  settings, keeps every panel transparent, click-through and never key, and
+  drives begin/gallery/add/drag/resize/options/minus/Esc/Done/Cancel with
+  synthetic events sent to its own windows. It runs next to the real shell
+  without touching the screen. It cannot exercise real drag sessions
+  (gallery → panel, reordering), the first click of an inactive app, the
+  global Esc hot key or typing - those stay live-test items.
 - Result of part 2 (2026-09-18): media, performance and weather pages render
   identical to the 0.1 dashboard in light and dark. The overview differs in
   two glyphs only ("Th" and "10" in the calendar's Thursday column move one
