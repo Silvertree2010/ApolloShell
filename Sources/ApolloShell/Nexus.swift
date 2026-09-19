@@ -24,9 +24,7 @@ final class Nexus: NSObject, NSWindowDelegate {
     private let settings: ShellSettingsStore
     private let pinned: NexusPinnedModel
     private let weather: NexusWeatherModel
-    private let weatherFile: URL?
     private let providers = NexusProvidersModel()
-    private let editor: DashboardEditor
     private let shellEditor: ShellEditor
     private var shell: NexusShellParts
     private var window: NexusWindow?
@@ -41,12 +39,10 @@ final class Nexus: NSObject, NSWindowDelegate {
 
     init(settings: ShellSettingsStore, hotKeys: HotKeyCenter, autostart: OnboardingAutostartModel,
          permissions: OnboardingPermissions, updates: UpdateController, themes: ThemeStore?,
-         editor: DashboardEditor, shellEditor: ShellEditor, paths: NexusPaths = .live) {
+         shellEditor: ShellEditor, paths: NexusPaths = .live) {
         self.settings = settings
-        self.editor = editor
         self.shellEditor = shellEditor
         pinned = NexusPinnedModel(url: paths.pinned)
-        weatherFile = paths.weather
         weather = NexusWeatherModel.file(url: paths.weather)
         shell = NexusShellParts(hotKeys: hotKeys, autostart: autostart, permissions: permissions,
                                 updates: updates, themes: themes)
@@ -101,8 +97,7 @@ final class Nexus: NSObject, NSWindowDelegate {
 
         // `shellTheme` setzt den Farbton der Steuerelemente nach dem Theme.
         let root = NexusView(state: state, settings: settings, pinned: pinned, weather: weather,
-                             providers: providers, system: .read(), shell: shell, editor: editor,
-                             weatherFile: weatherFile)
+                             providers: providers, system: .read(), shell: shell)
             .shellTheme()
         let hosting = NSHostingController(rootView: root)
         // Titel und Werkzeugleiste der SwiftUI-Seiten ins Fenster, wie bei
@@ -127,9 +122,11 @@ final class Nexus: NSObject, NSWindowDelegate {
         shell.hotKeys.cancelRecording()
         shell.permissions.watch(false, by: NexusGeneralPage.watcher)
         // Nexus zu waehrend einer Bearbeitung zaehlt wie "Fertig" - sonst
-        // bliebe das Dashboard angepinnt offen, ohne dass man es beenden
-        // kann.
-        if editor.isEditing { editor.done() }
+        // bliebe Dashboard und Kontrollzentrum angepinnt offen, ohne dass man
+        // es beenden kann. In der Praxis kommt das nicht vor: Nexus steht
+        // waehrend der Bearbeitung beiseite (`beginEditing` ordnet es aus),
+        // dieser Pfad faengt nur ab, falls die App mittendrin beendet wird.
+        if shellEditor.isEditing { shellEditor.done() }
         previousApp?.activate()
         previousApp = nil
     }

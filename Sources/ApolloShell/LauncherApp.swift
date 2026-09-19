@@ -127,7 +127,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // beim Oeffnen von Nexus > Updates.
         updates.checkInBackgroundIfDue()
         let nexus = Nexus(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions,
-                          updates: updates, themes: themes, editor: dashboardEditor, shellEditor: shellEditor)
+                          updates: updates, themes: themes, shellEditor: shellEditor)
         self.nexus = nexus
         // Waehrend der Bearbeitung (Task 6) tut das Kuerzel nichts: Nexus
         // steht ja gerade deshalb beiseite (`ShellEditor.begin` ordnet es

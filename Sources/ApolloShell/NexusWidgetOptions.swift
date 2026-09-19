@@ -1,32 +1,13 @@
 import ApolloShellCore
 import SwiftUI
 
-// Nexus > Dashboard, Bearbeiten > "Optionen" (design/2026-09-18-bento-plan-
-// edit.md Task 4, rechte Spalte): die Einstellungen des gewaehlten Widgets -
-// dieselben Schalter wie vor 0.2s Karten-Editor (NexusDashboardCardOptions,
-// jetzt geloescht), gebunden an `editor.setOptions` statt an eine Karte.
-// Neu: Zeitzone je Uhr, Orte je Wetter-Widget (`NexusWeatherModel`, eigener
-// Sink statt weather.json).
-
-/// Abschnitt "Optionen": das gewaehlte Widget, sonst ein Hinweis.
-struct NexusDashboardOptionsSection: View {
-    @Bindable var editor: DashboardEditor
-    let weatherFile: URL?
-
-    var body: some View {
-        Section {
-            if let id = editor.selectedWidgetID, let widget = editor.page?.widgets.first(where: { $0.id == id }) {
-                WidgetOptionsView(editor: editor, widget: widget, weatherFile: weatherFile)
-                    .id(widget.id)
-            } else {
-                Text("Ein Widget im Dashboard anklicken.")
-                    .foregroundStyle(.secondary)
-            }
-        } header: {
-            Text("Optionen")
-        }
-    }
-}
+// Optionen des gewaehlten Widgets im Popover neben ihm (Task 4,
+// `BentoEditOverlay.swift`): dieselben Schalter wie vor 0.2s Karten-Editor
+// (NexusDashboardCardOptions, laengst geloescht) und vor Task 7 auch Nexus'
+// altem 3-Spalten-Baukasten (`NexusDashboardOptionsSection`, entfernt),
+// gebunden an `editor.setOptions` statt an eine Karte. Neu seit 0.2: Zeitzone
+// je Uhr, Orte je Wetter-Widget (`NexusWeatherModel`, eigener Sink statt
+// weather.json).
 
 struct WidgetOptionsView: View {
     @Bindable var editor: DashboardEditor

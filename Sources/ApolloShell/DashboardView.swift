@@ -512,3 +512,14 @@ private struct Ring: View {
         .accessibilityLabel("\(help) \(Int((value * 100).rounded())) Prozent")
     }
 }
+
+/// Etwa 24 SF Symbole zur Auswahl fuer eine Seite (Kontextmenue „Symbol“ oben)
+/// - genug Vielfalt, ohne den Menue-Aufwand eines vollen Symbolpickers. Bis
+/// Task 7 stand dieselbe Liste in Nexus' altem Seiten-Baukasten
+/// (`NexusDashboardPages.swift`, inzwischen entfernt).
+let nexusPageSymbols = [
+    "square.grid.2x2", "star", "house", "briefcase", "bolt", "gamecontroller",
+    "moon.stars", "sun.max", "cloud.sun", "music.note", "film", "book",
+    "paintbrush", "hammer", "wrench.and.screwdriver", "leaf", "pawprint",
+    "airplane", "car", "bicycle", "figure.walk", "heart", "flag", "globe",
+]

@@ -180,61 +180,32 @@ final class NexusWeatherModel {
     }
 }
 
-/// Nexus > Dashboard (Caelestia: Panels > Dashboard). Nicht editierend: die
-/// Seiten verwalten (`NexusDashboardPagesSection`), der Groessenregler und
-/// die Vorschau der gewaehlten Seite. Waehrend `editor.isEditing`: dieselbe
-/// Nexus-Seite zeigt stattdessen den Baukasten der gerade bearbeiteten Seite
-/// (design/2026-09-18-bento-plan-edit.md Task 4).
+/// Nexus > Dashboard (Caelestia: Panels > Dashboard) - seit Task 7 nur noch
+/// Einstellungen, wie Spec Abschnitt 5 es vorgibt: der Groessenregler und die
+/// Orte fuer Leiste und neue Wetter-Widgets. Seiten, Widgets und ihre
+/// Optionen bearbeitet man seither im globalen Bearbeitungsmodus
+/// (Nexus > „Oberfläche bearbeiten“, `ShellEditor`) - der alte Baukasten hier
+/// (Seitenliste mit „Bearbeiten“, die editierende Ansicht mit drei Spalten)
+/// ist damit Geschichte.
 struct NexusDashboardPage: View {
     @Bindable var store: ShellSettingsStore
-    @Bindable var editor: DashboardEditor
     /// Die globalen Orte (weather.json): fuer das Wetter-Modul der Leiste und
-    /// als Vorgabe fuer neu abgelegte Wetter-Widgets - nicht editierend hier
-    /// bearbeitbar (`NexusDashboardWeatherSection`), waehrend der Bearbeitung
-    /// je Widget (`NexusWidgetPlacesSection`).
+    /// als Vorgabe fuer neu abgelegte Wetter-Widgets - jedes Wetter-Widget
+    /// hat daneben seine eigenen Orte (`WidgetOptionsView`/`NexusWidgetPlacesSection`,
+    /// im Popover des Bearbeitungsmodus).
     let weather: NexusWeatherModel
-    let weatherFile: URL?
-    @State private var selectedPageID: DashboardPage.ID?
 
     var body: some View {
-        GeometryReader { geometry in
-            if editor.isEditing {
-                NexusDashboardEditLayout(store: store, editor: editor, weatherFile: weatherFile)
-            } else {
-                VStack(spacing: 0) {
-                    NexusPageForm(page: .dashboard) {
-                        NexusDashboardPagesSection(
-                            store: store, selection: $selectedPageID,
-                            weatherPlaces: WeatherFavorites.load(from: ShellFiles.read(weatherFile)),
-                            onEdit: beginEditing
-                        )
-                        Section {
-                            sizeSlider
-                        } header: {
-                            Text("Größe")
-                        } footer: {
-                            Text("Zusätzlich zur Automatik nach Bildschirmgröße.")
-                        }
-                        Section {
-                            Button {
-                                beginEditing(selectedPageID ?? store.settings.dashboardPages?.pages.first?.id)
-                            } label: {
-                                Label("Bearbeiten …", systemImage: "pencil")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .controlSize(.large)
-                        }
-                        NexusDashboardWeatherSection(model: weather)
-                        NexusSaveWarning(failed: store.saveFailed)
-                    }
-                    Divider()
-                    NexusDashboardPreview(store: store, pageID: selectedPageID)
-                        .frame(height: NexusDashboardPreview.height(for: geometry.size.height))
-                }
+        NexusPageForm(page: .dashboard) {
+            Section {
+                sizeSlider
+            } header: {
+                Text("Größe")
+            } footer: {
+                Text("Zusätzlich zur Automatik nach Bildschirmgröße.")
             }
-        }
-        .onAppear {
-            if selectedPageID == nil { selectedPageID = store.settings.dashboardPages?.pages.first?.id }
+            NexusDashboardWeatherSection(model: weather)
+            NexusSaveWarning(failed: store.saveFailed)
         }
     }
 
@@ -249,58 +220,11 @@ struct NexusDashboardPage: View {
                 .foregroundStyle(.secondary)
         }
     }
-
-    private func beginEditing(_ pageID: DashboardPage.ID?) {
-        guard let pageID, let window = NSApp.keyWindow ?? NSApp.windows.first(where: \.isVisible),
-              let screen = window.screen
-        else { return }
-        editor.begin(pageID: pageID, screen: screen)
-    }
 }
 
-/// Drei Spalten waehrend der Bearbeitung: Seiten (nur waehlen), Widgets zum
-/// Ziehen, Optionen des gewaehlten Widgets - darunter Abbrechen/Fertig.
-struct NexusDashboardEditLayout: View {
-    @Bindable var store: ShellSettingsStore
-    @Bindable var editor: DashboardEditor
-    let weatherFile: URL?
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                NexusDashboardEditPagesList(editor: editor)
-                    .frame(width: 160)
-                Divider()
-                Form {
-                    NexusDashboardWidgetsSection()
-                }
-                .formStyle(.grouped)
-                .frame(minWidth: 260)
-                Divider()
-                Form {
-                    NexusDashboardOptionsSection(editor: editor, weatherFile: weatherFile)
-                }
-                .formStyle(.grouped)
-                .frame(minWidth: 260)
-            }
-            Divider()
-            HStack {
-                Spacer()
-                Button("Abbrechen") { editor.cancel() }
-                Button("Fertig") { editor.done() }
-                    .keyboardShortcut(.defaultAction)
-            }
-            .padding()
-        }
-        .navigationTitle("Dashboard bearbeiten")
-    }
-}
-
-/// Die globalen Orte (weather.json), unterhalb der Seitenliste und der
-/// Groesse - nicht waehrend der Bearbeitung (dort hat jedes Wetter-Widget
-/// seine eigenen Orte, `NexusWidgetPlacesSection`). Gelten fuer das
-/// Wetter-Baustein der Leiste und als Vorgabe fuer neu aus Nexus abgelegte
-/// Wetter-Widgets.
+/// Die globalen Orte (weather.json), unter dem Groessenregler. Gelten fuer
+/// das Wetter-Baustein der Leiste und als Vorgabe fuer neu aus der Galerie
+/// abgelegte Wetter-Widgets.
 struct NexusDashboardWeatherSection: View {
     let model: NexusWeatherModel
 

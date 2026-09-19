@@ -1,16 +1,16 @@
 import SwiftUI
 
-/// Die verkleinerte, lebende Vorschau in Nexus > Leiste/Schnellaktionen/
-/// Dashboard: eine leicht abgesetzte Flaeche als Ersatz fuer das Glas, ein
-/// Rand, skaliert auf `scale`, ohne Maus. Kopf (Ueberschrift "Vorschau") und
-/// Fusszeile (Beispieldaten-Hinweis) bleiben bei den Aufrufern - die
-/// unterscheiden sich (Hoehe der Leiste, Groesse des Panels, des
-/// Dashboards).
+/// Die verkleinerte, lebende Vorschau in Nexus > Leiste: eine leicht
+/// abgesetzte Flaeche als Ersatz fuer das Glas, ein Rand, skaliert auf
+/// `scale`, ohne Maus. Kopf (Ueberschrift "Vorschau") und Fusszeile
+/// (Beispieldaten-Hinweis) bleiben beim Aufrufer. Dashboard und
+/// Schnellaktionen hatten bis Task 7 ihre eigene Vorschau hier mit - seither
+/// bearbeitet man beide im globalen Bearbeitungsmodus, am echten Panel.
 ///
 /// `scale` wirkt auf `scaleEffect` und den Rand (`1 / scale`), `frameSize`
-/// ist die fertige Aussenmasse; getrennt, weil das Dashboard fuer den
-/// sichtbaren Massstab einen nach unten geklemmten Wert nimmt, fuer den
-/// Rahmen aber den ungeklemmten - siehe `NexusDashboardPreview`.
+/// ist die fertige Aussenmasse; getrennt, falls ein Aufrufer fuer den
+/// sichtbaren Massstab einen nach unten geklemmten Wert braucht, fuer den
+/// Rahmen aber den ungeklemmten.
 struct NexusScaledPreview<Content: View>: View {
     let scale: CGFloat
     let frameSize: CGSize

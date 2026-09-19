@@ -48,7 +48,8 @@ finden es auch andere Mac-Nutzer.
 - **Dashboard** mit Seiten voller Widgets für Wetter, Kalender, Systemwerte
   und Wiedergabe. Im Bearbeitungsmodus frei anzuordnen, eigene Seiten
   dazu.
-- **Utilities** unten rechts:
+- **Utilities** unten rechts, im selben Bearbeitungsmodus wie das Dashboard
+  anzuordnen (Nexus › „Oberfläche bearbeiten“):
   - Wach halten
   - Ton mit Ausgabe und Eingang
   - Schnellschalter

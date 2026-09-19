@@ -275,10 +275,10 @@ struct BentoDropTarget: ViewModifier {
     }
 }
 
-/// Ziel fuer Widgets, die aus Nexus' Widget-Liste gezogen werden (Payload
-/// `"apolloshell.widget:<WidgetKind.rawValue>"`, `NSItemProvider(object:)`
-/// bei `.onDrag` in `NexusDashboardWidgetsSection`). Laedt die Nutzlast
-/// einmal beim Betreten (async, `NSItemProvider`) und haelt die Art danach
+/// Ziel fuer Widgets, die aus der Galerie des Bearbeitungsmodus gezogen
+/// werden (Payload `"apolloshell.widget:<WidgetKind.rawValue>"`,
+/// `NSItemProvider(object:)` bei `.onDrag` in `EditGalleryView`). Laedt die
+/// Nutzlast einmal beim Betreten (async, `NSItemProvider`) und haelt die Art danach
 /// in `editor.draggedKind` fest, damit jede weitere Bewegung sofort eine
 /// Vorschau zeigen kann.
 struct BentoDropDelegate: DropDelegate {

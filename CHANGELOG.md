@@ -14,10 +14,19 @@ All notable changes to this project are documented here. The format follows
   delete them; "Restore default pages" brings back a deleted one.
 - **Widgets can go anywhere on a page**, in the sizes the dashboard already
   had, and the same widget can appear more than once.
-- **An edit mode.** Start it in Nexus › Dashboard: the dashboard stays open,
-  widgets wobble, `−` removes one, the handle in the corner resizes it, and
-  new ones are dragged in from the list in Nexus. They snap to the page
-  edges and to each other. Done keeps the changes, Cancel drops them.
+- **One edit mode for the whole shell.** Start it with „Oberfläche
+  bearbeiten“ on any Nexus page: Nexus steps aside, a scrim covers every
+  screen, and the dashboard and control centre stay open, pinned, on the
+  screen Nexus was on. A floating toolbar (+, Cancel, Done) and a floating
+  gallery with a tab per surface replace Nexus as the place to add things;
+  widget and quick-toggle options open in a popover next to what you
+  selected; dashboard pages are managed in the page bar itself (add,
+  rename, change symbol, duplicate, delete). Esc closes the gallery first,
+  the mode second, and asks before discarding changes.
+- **The control centre is edited in place too.** Its cards and quick
+  toggles wobble, get a `−` badge, and reorder by dragging, right there in
+  the control centre panel - the same edit mode as the dashboard, not a
+  separate editor.
 - **The dashboard grows with the screen.** It is larger on a large display,
   and a slider in Nexus makes it larger or smaller everywhere.
 - **Each weather widget has its own places**, and each clock its own time
@@ -27,6 +36,14 @@ All notable changes to this project are documented here. The format follows
 
 - **The three dashboard templates in Nexus** (Caelestia, Compact, Calendar &
   Weather). Restore and Duplicate take their place.
+- **The control-centre templates in Nexus** (Standard, Minimal, Sound &
+  Devices, Everything). Arranging cards and quick toggles in the edit mode
+  takes their place.
+- **Nexus' old editors for dashboard pages and the control-centre layout**
+  (the page list with "Edit", the widget list and options columns, the
+  card list, the quick-toggle grid and its gallery). Nexus keeps only
+  settings: the dashboard size slider and weather places, and lid-closed
+  Keep Awake for the control centre.
 
 ## [0.1.2.1] - 2026-09-18
 

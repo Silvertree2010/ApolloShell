@@ -3,68 +3,22 @@ import SwiftUI
 
 // MARK: - Seite
 
-/// Nexus > Schnellaktionen: das Utilities-Panel als Baukasten, gebaut wie
-/// Nexus > Leiste. Links die Karten (ein/aus, ziehen), das Raster der
-/// Schnellschalter (ziehen, +, Optionen des gewaehlten Knopfs) und die
-/// Vorlagen; rechts das echte Panel (`UtilitiesView`) mit Vorschau-Modell,
-/// verkleinert. Jede Aenderung gilt sofort im Panel und landet in
-/// settings.json.
-struct UtilitiesEditorPage: View {
+/// Nexus > Schnellaktionen: seit Task 7 nur noch Einstellungen (Spec
+/// Abschnitt 5), wie Nexus > Dashboard. Karten, Schnellschalter und ihre
+/// Optionen ordnet man seither im Kontrollzentrum-Panel selbst, waehrend des
+/// globalen Bearbeitungsmodus (Nexus > „Oberfläche bearbeiten“,
+/// `UtilitiesEditOverlay.swift`) - der alte Baukasten hier (Karten,
+/// Raster, Galerie, Vorlagen, Vorschau) ist damit Geschichte.
+struct UtilitiesSettingsPage: View {
     @Bindable var store: ShellSettingsStore
-    @State private var showsGallery = false
-    @State private var pending: LayoutPresetReplacement<UtilitiesPreset>?
-    /// Gewaehlter Knopf nach Kennung: seine Optionen stehen unter dem Raster.
-    @State private var selection: String?
     /// Liegt die Regel ohne Passwort fuer den Deckel-Teil auf diesem Mac?
     @State private var lidRuleInstalled = false
     @State private var removingLidRule = false
 
-    /// `selection`: schon gewaehlter Knopf (Bildprobe).
-    init(store: ShellSettingsStore, selection: String? = nil) {
-        _store = Bindable(store)
-        _selection = State(initialValue: selection)
-    }
-
-    private var layout: UtilitiesLayout { store.settings.utilities.layout }
-
     var body: some View {
-        HStack(spacing: 0) {
-            NexusPageForm(page: .utilities) {
-                cardsSection
-                keepAwakeSection
-                togglesSection
-                if let id = selection, let entry = layout[toggle: id] {
-                    UtilitiesEditorOptions(store: store, entry: entry) { selection = nil }
-                        // Anderer Knopf: frische Textfelder, nicht die Entwuerfe des vorigen.
-                        .id(entry.id)
-                }
-                presetsSection
-                NexusSaveWarning(failed: store.saveFailed)
-            }
-            Divider()
-            UtilitiesEditorPreview(store: store)
-                .frame(width: 236)
-        }
-        .sheet(isPresented: $showsGallery) {
-            UtilitiesEditorGallery(layout: layout, onAdd: add, onCancel: { showsGallery = false })
-        }
-        .nexusPresetAlert($pending, title: UtilitiesEditorText.replacementTitle, message: UtilitiesEditorText.replacementMessage) { layout in
-            store.settings.utilities.layout = layout
-            selection = nil
-        }
-    }
-
-    private var cardsSection: some View {
-        Section {
-            ForEach(Array(layout.cards.enumerated()), id: \.element.id) { index, card in
-                UtilitiesEditorCardRow(store: store, card: card, isFirst: index == 0,
-                                       isLast: index == layout.cards.count - 1)
-            }
-            .onMove { store.settings.utilities.layout.moveCards(fromOffsets: $0, toOffset: $1) }
-        } header: {
-            Text("Karten")
-        } footer: {
-            Text("Von oben nach unten wie im Panel. Zum Umsortieren ziehen. Ausgeschaltete Karten verschwinden, das Panel wird entsprechend niedriger.")
+        NexusPageForm(page: .utilities) {
+            keepAwakeSection
+            NexusSaveWarning(failed: store.saveFailed)
         }
     }
 
@@ -108,96 +62,15 @@ struct UtilitiesEditorPage: View {
             lidRuleInstalled = LidAwakeRule.isInstalled
         }
     }
-
-    private var togglesSection: some View {
-        Section {
-            UtilitiesEditorGrid(store: store, selection: $selection) { showsGallery = true }
-            HStack(spacing: 8) {
-                Button {
-                    showsGallery = true
-                } label: {
-                    Label("Hinzufügen …", systemImage: "plus")
-                }
-                Spacer(minLength: 8)
-                Text(UtilitiesEditorText.count(layout))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-        } header: {
-            Text("Schnellschalter")
-        } footer: {
-            Text("Fünf pro Reihe wie im Panel, jede Reihe macht es 56 pt höher. Zum Umsortieren einen Knopf auf einen anderen ziehen; ein Klick wählt ihn zum Einstellen, das Kontextmenü verschiebt oder entfernt.")
-        }
-    }
-
-    private var presetsSection: some View {
-        Section {
-            HStack(spacing: 8) {
-                NexusPresetMenu<UtilitiesPreset> { pending = .preset($0) }
-                Spacer(minLength: 8)
-                NexusPresetResetButton<UtilitiesPreset>(layout: layout) { pending = .reset }
-            }
-        } header: {
-            Text("Vorlagen")
-        } footer: {
-            Text("Eine Vorlage ersetzt Karten und Schnellschalter. „Standard“ ist das Panel, wie es am Anfang war.")
-        }
-    }
-
-    /// Aus der Galerie: ans Ende und gleich gewaehlt - bei App, Link und
-    /// Kurzbefehl muss man ja noch das Ziel waehlen.
-    private func add(_ kind: UtilitiesToggleKind) {
-        showsGallery = false
-        if let id = store.settings.utilities.layout.add(kind) {
-            selection = id
-        }
-    }
 }
 
-// MARK: - Vorschau
+// MARK: - Vorschau-Modell
 
-/// Das echte Panel mit Vorschau-Modell, auf die Breite der Spalte
-/// verkleinert. Ohne Maus: ein Klick hier soll nichts schalten (das Modell
-/// schaltet ohnehin nichts, siehe `UtilitiesModel.preview`).
-struct UtilitiesEditorPreview: View {
-    let store: ShellSettingsStore
-    var model = UtilitiesEditorPreviewModel.model
-
-    var body: some View {
-        GeometryReader { geometry in
-            let layout = store.settings.utilities.layout
-            let height = CGFloat(layout.panelHeight)
-            let scale = min(1, (geometry.size.width - 24) / UtilitiesView.width, max(geometry.size.height - 70, 80) / height)
-            VStack(spacing: 8) {
-                Text("Vorschau")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                UtilitiesView(model: model, layout: layout)
-                    // Ersatz fuer das Glas: eine leicht abgesetzte Flaeche.
-                    .background(Color.primary.opacity(0.07))
-                    .clipShape(.rect(cornerRadius: 25, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 25, style: .continuous)
-                            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1 / scale)
-                    }
-                    .scaleEffect(scale, anchor: .top)
-                    .frame(width: UtilitiesView.width * scale, height: height * scale, alignment: .top)
-                    .allowsHitTesting(false)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Vorschau des Panels")
-                    .animation(.snappy(duration: 0.25), value: layout)
-                Text("\(Int(height)) pt hoch · Beispieldaten")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding(.top, 14)
-        }
-    }
-}
-
-/// Festes Modell fuer die Vorschau: liest und schaltet nichts. Neutrale
-/// Beispielgeraete.
+/// Festes Modell, das nichts liest und nichts schaltet - bis Task 7 fuer
+/// `UtilitiesEditorPreview` (Nexus, entfernt), seither fuer die Karten
+/// waehrend der Bearbeitung im Kontrollzentrum-Panel selbst
+/// (`UtilitiesEditOverlay.swift`: `KeepAwakeCard`/`UtilitiesAudioCard` mit
+/// abgeschalteter Bedienung). Neutrale Beispielgeraete.
 @MainActor
 enum UtilitiesEditorPreviewModel {
     static let model = UtilitiesModel.preview(
@@ -215,24 +88,12 @@ enum UtilitiesEditorPreviewModel {
 
 // MARK: - Texte und Farben
 
+/// Name, Zeichen und Farbe eines Knopfs - fuer die Galerie
+/// (`EditGallery.swift`) und die Bearbeitungsflaeche des Kontrollzentrums
+/// (`UtilitiesEditOverlay.swift`). Bis Task 7 auch fuer Nexus' alten Baukasten
+/// gebraucht (Raster, Optionen, Vorlagen-Rueckfrage) - der ist seither weg.
 @MainActor
 enum UtilitiesEditorText {
-    /// Titel der Vorlagen-Rueckfrage.
-    static func replacementTitle(_ replacement: LayoutPresetReplacement<UtilitiesPreset>) -> String {
-        switch replacement {
-        case .preset(let preset): String(localized: "Vorlage „\(preset.title)“ laden?")
-        case .reset: String(localized: "Schnellaktionen zurücksetzen?")
-        }
-    }
-
-    /// Erklaerung der Vorlagen-Rueckfrage.
-    static func replacementMessage(_ replacement: LayoutPresetReplacement<UtilitiesPreset>) -> String {
-        switch replacement {
-        case .preset(let preset): String(localized: "\(preset.summary) Die jetzige Anordnung wird ersetzt.")
-        case .reset: String(localized: "Das Panel sieht wieder aus wie am Anfang (Vorlage Standard). Die jetzige Anordnung wird ersetzt.")
-        }
-    }
-
     /// Name im Raster: eigener Titel, sonst App-Name, Adresse oder Name des
     /// Kurzbefehls, sonst der Name der Art.
     static func title(_ entry: UtilitiesToggleEntry) -> String {
@@ -256,36 +117,46 @@ enum UtilitiesEditorText {
         return UtilitiesToggleItem.icon(for: entry.toggle, look: look)
     }
 
-    /// "10 Knöpfe · 2 Reihen".
-    static func count(_ layout: UtilitiesLayout) -> String {
-        let buttons = layout.toggles.count
-        let rows = layout.toggleRows.count
-        return "\(buttons) \(buttons == 1 ? "Knopf" : "Knöpfe") · \(rows) \(rows == 1 ? "Reihe" : "Reihen")"
-    }
-
     private static func nonEmpty(_ text: String) -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
 }
 
-extension UtilitiesCardKind {
-    /// Kachelfarbe in Nexus.
-    var tint: Color {
-        switch self {
-        case .keepAwake: .brown
-        case .audio: .pink
-        case .quickToggles: .blue
-        }
-    }
-}
-
 extension UtilitiesToggleGroup {
+    /// Kachelfarbe in der Galerie und im Options-Popover.
     var tint: Color {
         switch self {
         case .switches: .blue
         case .actions: .indigo
         case .custom: .orange
+        }
+    }
+}
+
+/// Farbige Kachel wie `NexusTile`, aber mit dem Zeichen des Knopfs (auch
+/// der Bluetooth-Rune und dem App-Symbol) - im Options-Popover
+/// (`UtilitiesEditOverlay.swift`). Bis Task 7 auch in Nexus' altem Raster und
+/// seiner Galerie gebraucht.
+struct UtilitiesEditorGlyphTile: View {
+    let icon: UtilitiesToggleItem.Icon
+    let tint: Color
+    var size: CGFloat = 24
+
+    var body: some View {
+        if case .app = icon {
+            UtilitiesToggleGlyph(icon: icon, scale: size / 28)
+                .frame(width: size, height: size)
+                .accessibilityHidden(true)
+        } else {
+            RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
+                .fill(tint.gradient)
+                .frame(width: size, height: size)
+                .overlay {
+                    UtilitiesToggleGlyph(icon: icon, scale: size / 34)
+                        .foregroundStyle(.white)
+                }
+                .accessibilityHidden(true)
         }
     }
 }
