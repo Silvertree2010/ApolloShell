@@ -2,9 +2,9 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Dateimanager oben im Dock")
+@Suite("File manager at the top of the Dock")
 struct ProviderFileManagerTests {
-    @Test("Einstellung, sonst ForkLift, sonst Finder", arguments: [
+    @Test("setting, otherwise ForkLift, otherwise Finder", arguments: [
         (Optional("org.yanex.marta"), ["org.yanex.marta", "com.binarynights.ForkLift"], "org.yanex.marta"),
         (nil, ["com.binarynights.ForkLift"], "com.binarynights.ForkLift"),
         (nil, [], "com.apple.finder"),
@@ -17,14 +17,14 @@ struct ProviderFileManagerTests {
         #expect(ProviderFileManager.resolve(setting: setting) { installed.contains($0) } == expected)
     }
 
-    @Test("Finder nur ausblenden, wenn ein anderer ihn ersetzt")
+    @Test("hide Finder only when another one replaces it")
     func hidden() {
         #expect(ProviderFileManager.hidden(for: "com.apple.finder").isEmpty)
         #expect(ProviderFileManager.hidden(for: "com.binarynights.ForkLift") == ["com.apple.finder"])
         #expect(ProviderFileManager.hidden(for: "org.yanex.marta") == ["com.apple.finder"])
     }
 
-    @Test("Zeigen: markieren nur ueber den Dateiviewer des Systems, sonst Ordner mit der App", arguments: [
+    @Test("reveal: select only via the system's file viewer, otherwise the folder with the app", arguments: [
         ("com.apple.finder", Optional<String>.none, Optional<String>.none),
         ("com.apple.finder", "", nil),
         ("com.apple.finder", "com.binarynights.ForkLift", "com.apple.finder"),
@@ -38,7 +38,7 @@ struct ProviderFileManagerTests {
         #expect(ProviderFileManager.reveal(fileManager: fileManager, systemFileViewer: systemViewer) == expected)
     }
 
-    @Test("Auswahl in Nexus: Finder, installierte bekannte, dann die eigene", arguments: [
+    @Test("choices in Nexus: Finder, installed known ones, then its own", arguments: [
         (Optional<String>.none, ["com.binarynights.ForkLift"], ["com.apple.finder", "com.binarynights.ForkLift"]),
         (nil, [], ["com.apple.finder"]),
         ("com.example.Files", ["org.yanex.marta", "com.cocoatech.PathFinder"],
@@ -50,14 +50,14 @@ struct ProviderFileManagerTests {
         #expect(ProviderFileManager.choices(setting: setting) { installed.contains($0) } == expected)
     }
 
-    @Test("Bekannte Liste: ForkLift zuerst, keine doppelt, Finder nicht darin")
+    @Test("known list: ForkLift first, none duplicated, Finder not in it")
     func known() {
         #expect(ProviderFileManager.known.first == AppleDockPrefs.forkLift)
         #expect(Set(ProviderFileManager.known).count == ProviderFileManager.known.count)
         #expect(!ProviderFileManager.known.contains(ProviderFileManager.finder))
     }
 
-    @Test("Dock mit gewaehlter App: oben mit Punkt, laufender Finder kommt nicht zurueck")
+    @Test("Dock with a chosen app: on top with a dot, running Finder doesn't come back")
     func dockWithChosenApp() {
         let tiles: [Any] = [
             ["tile-data": ["bundle-identifier": "com.apple.finder"]],
@@ -76,7 +76,7 @@ struct ProviderFileManagerTests {
         #expect(!slots[1].running && slots[2].running && !slots[2].pinned)
     }
 
-    @Test("Finder gewaehlt, ForkLift installiert: Finder oben, ForkLift eine gewoehnliche App")
+    @Test("Finder chosen, ForkLift installed: Finder on top, ForkLift an ordinary app")
     func dockWithFinder() {
         let installed: Set = ["com.binarynights.ForkLift"]
         let fileManager = ProviderFileManager.resolve(setting: "com.apple.finder") { installed.contains($0) }

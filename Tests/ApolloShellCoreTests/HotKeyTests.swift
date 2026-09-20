@@ -3,9 +3,9 @@ import Carbon.HIToolbox
 import Foundation
 import Testing
 
-@Suite("Globale Tastenkürzel")
+@Suite("Global keyboard shortcuts")
 struct HotKeyTests {
-    @Test("Sondertasten sind bitgleich mit Carbon", arguments: [
+    @Test("special keys are bit-identical to Carbon", arguments: [
         (HotKeyModifiers.command, cmdKey), (HotKeyModifiers.shift, shiftKey),
         (HotKeyModifiers.option, optionKey), (HotKeyModifiers.control, controlKey),
     ])
@@ -13,7 +13,7 @@ struct HotKeyTests {
         #expect(flag.rawValue == UInt32(carbon))
     }
 
-    @Test("Tastencodes sind Carbons kVK-Werte", arguments: [
+    @Test("key codes are Carbon's kVK values", arguments: [
         (HotKeyKey.space, kVK_Space), (HotKeyKey.escape, kVK_Escape), (HotKeyKey.delete, kVK_Delete),
         (HotKeyKey.forwardDelete, kVK_ForwardDelete), (HotKeyKey.d, kVK_ANSI_D), (HotKeyKey.u, kVK_ANSI_U),
         (HotKeyKey.comma, kVK_ANSI_Comma), (HotKeyKey.f20, kVK_F20),
@@ -22,7 +22,7 @@ struct HotKeyTests {
         #expect(ours == UInt32(carbon))
     }
 
-    @Test("Beschriftung je Tastencode", arguments: [
+    @Test("label per key code", arguments: [
         (kVK_ANSI_D, "D"), (kVK_ANSI_U, "U"), (kVK_ANSI_Z, "Z"), (kVK_ANSI_Y, "Y"), (kVK_ANSI_Comma, ","),
         (kVK_ANSI_0, "0"), (kVK_ANSI_Grave, "`"), (kVK_ISO_Section, "§"), (kVK_Space, "Space"),
         (kVK_Return, "↩"), (kVK_Tab, "⇥"), (kVK_Escape, "⎋"), (kVK_Delete, "⌫"), (kVK_UpArrow, "↑"),
@@ -33,7 +33,7 @@ struct HotKeyTests {
         #expect(HotKeyKey.name(for: UInt32(code)) == name)
     }
 
-    @Test("Zeichentasten fragen die Belegung, andere nicht", arguments: [
+    @Test("character keys ask the layout for their mapping, others don't", arguments: [
         (kVK_ANSI_D, true), (kVK_ANSI_Comma, true), (kVK_ANSI_1, true), (kVK_Space, false),
         (kVK_F20, false), (kVK_Return, false), (kVK_ANSI_Keypad1, false),
     ])
@@ -41,7 +41,7 @@ struct HotKeyTests {
         #expect(HotKeyKey.isCharacterKey(UInt32(code)) == isCharacter)
     }
 
-    @Test("Anzeige wie in Apples Menüs", arguments: [
+    @Test("display like in Apple's menus", arguments: [
         (HotKey(keyCode: HotKeyKey.space, modifiers: .option), "⌥Space"),
         (HotKey(keyCode: HotKeyKey.d, modifiers: .hyper), "⌃⌥⇧⌘D"),
         (HotKey(keyCode: HotKeyKey.f20), "F20"),
@@ -61,7 +61,7 @@ struct HotKeyTests {
         #expect(key.display(keyName: keyName) == text)
     }
 
-    @Test("Vorgaben für frische Installationen", arguments: [
+    @Test("defaults for fresh installations", arguments: [
         (HotKeyAction.launcher, "⌥Space"), (HotKeyAction.dashboard, "⌃⌥D"),
         (HotKeyAction.utilities, "⌃⌥U"), (HotKeyAction.nexus, "⌃⌥,"),
     ])
@@ -69,7 +69,7 @@ struct HotKeyTests {
         #expect(HotKeySettings.firstLaunch[action]?.display() == text)
     }
 
-    @Test("Vorhandene Installation behält F20 und Hyper", arguments: [
+    @Test("existing installation keeps F20 and Hyper", arguments: [
         (HotKeyAction.launcher, "F20"), (HotKeyAction.dashboard, "⌃⌥⇧⌘D"),
         (HotKeyAction.utilities, "⌃⌥⇧⌘U"), (HotKeyAction.nexus, "⌃⌥⇧⌘,"),
     ])
@@ -77,19 +77,19 @@ struct HotKeyTests {
         #expect(HotKeySettings.existingInstall[action]?.display() == text)
     }
 
-    @Test("Neue Vorgaben: keine Doppelten, keine Warnung", arguments: HotKeyAction.allCases)
+    @Test("new defaults: no duplicates, no warning", arguments: HotKeyAction.allCases)
     func firstLaunchConflictFree(action: HotKeyAction) throws {
         let key = try #require(HotKeySettings.firstLaunch[action])
         #expect(HotKeySettings.firstLaunch.action(using: key, except: action) == nil)
         #expect(HotKeyAdvice.warning(for: key) == nil)
     }
 
-    @Test("Migration: welche Kürzel aus welcher Datei", arguments: [
+    @Test("migration: which shortcuts from which file", arguments: [
         (nil, HotKeySettings.firstLaunch),
         ("{}", HotKeySettings.existingInstall),
         (#"{"bar":{"showClock":false},"toasts":{}}"#, HotKeySettings.existingInstall),
-        ("kaputt", HotKeySettings.existingInstall),
-        (#"{"hotKeys":"nein"}"#, HotKeySettings.existingInstall),
+        ("broken", HotKeySettings.existingInstall),
+        (#"{"hotKeys":"no"}"#, HotKeySettings.existingInstall),
         (#"{"hotKeys":{}}"#, HotKeySettings.firstLaunch),
         (#"{"hotKeys":{"launcher":null}}"#,
          HotKeySettings(dashboard: HotKeySettings.firstLaunch.dashboard, utilities: HotKeySettings.firstLaunch.utilities,
@@ -108,7 +108,7 @@ struct HotKeyTests {
         #expect(ShellSettings.load(from: json.map { Data($0.utf8) }).hotKeys == expected)
     }
 
-    @Test("schreiben und lesen, auch ohne Kürzel", arguments: [
+    @Test("writing and reading back, even without a shortcut", arguments: [
         HotKeySettings.firstLaunch, HotKeySettings.existingInstall, HotKeySettings(),
         HotKeySettings(launcher: HotKey(keyCode: HotKeyKey.space, modifiers: [.command, .shift])),
     ])
@@ -118,7 +118,7 @@ struct HotKeyTests {
         #expect(ShellSettings.load(from: settings.encoded()).hotKeys == hotKeys)
     }
 
-    @Test("die Datei nennt Sondertasten beim Namen", arguments: [
+    @Test("the file calls special keys by name", arguments: [
         "\"hotKeys\"", "\"launcher\"", "\"keyCode\"", "\"modifiers\"", "\"option\"", "\"control\"", "\"nexus\" : null",
     ])
     func readableFile(text: String) {
@@ -127,7 +127,7 @@ struct HotKeyTests {
         #expect(String(decoding: settings.encoded(), as: UTF8.self).contains(text))
     }
 
-    @Test("Aufnehmen: was ein Tastendruck bewirkt", arguments: [
+    @Test("recording: what a keystroke does", arguments: [
         (kVK_Space, HotKeyModifiers.option, HotKeyRecording.record(HotKey(keyCode: HotKeyKey.space, modifiers: .option))),
         (kVK_Escape, HotKeyModifiers(), HotKeyRecording.cancel),
         (kVK_Delete, HotKeyModifiers(), HotKeyRecording.clear),
@@ -145,7 +145,7 @@ struct HotKeyTests {
         #expect(HotKeyRecording.evaluate(keyCode: UInt32(code), modifiers: modifiers) == expected)
     }
 
-    @Test("Wer ein Kürzel schon hat", arguments: [
+    @Test("who already has a shortcut", arguments: [
         (HotKey(keyCode: HotKeyKey.d, modifiers: [.control, .option]), HotKeyAction.launcher, HotKeyAction.dashboard),
         (HotKey(keyCode: HotKeyKey.d, modifiers: [.control, .option]), HotKeyAction.dashboard, nil),
         (HotKey(keyCode: HotKeyKey.d, modifiers: .option), HotKeyAction.launcher, nil),

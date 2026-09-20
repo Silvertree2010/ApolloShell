@@ -2,17 +2,17 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Lautstaerke-Anzeige rechts mittig (Caelestia: OSD). Erscheint, wenn sich
-/// Lautstaerke oder Stumm aendern (Tasten, Menueleiste, andere Apps),
-/// verschwindet nach 2 s - ausser die Maus liegt darauf.
+/// Volume indicator centered on the right (Caelestia: OSD). Appears when
+/// volume or mute changes (keys, menu bar, other apps), disappears after
+/// 2 s - unless the mouse is hovering over it.
 ///
-/// macOS zeigt bei den Lautstaerketasten zusaetzlich seine eigene Anzeige;
-/// die laesst sich nicht abschalten, beide erscheinen dann.
+/// macOS also shows its own indicator for the volume keys; that one can't
+/// be turned off, so both appear then.
 @MainActor
 final class OSD {
     /// Caelestia: Config.osd.hideDelay = 2000 ms.
     private static let hideDelay: TimeInterval = 2
-    /// Caelestia: Griff zeigt die Zahl noch 500 ms nach der letzten Aenderung.
+    /// Caelestia: the handle still shows the number 500 ms after the last change.
     private static let movingHold: TimeInterval = 0.5
 
     private let model = OSDModel()
@@ -36,7 +36,7 @@ final class OSD {
             self?.monitor.setVolume(value)
         }
         model.onHoverChanged = { [weak self] hovered in
-            // Maus weg: ab jetzt wieder 2 s bis zum Ausblenden.
+            // Mouse gone: 2 s until hiding again from now.
             if !hovered { self?.scheduleHide() }
         }
         monitor.onChange = { [weak self] volume, muted in

@@ -47,15 +47,15 @@ struct ThemeDocsTests {
         let text = try read(Self.docs)
         let tables = ThemeDocumentation.markdownTables()
         #expect(text.contains(tables), """
-        docs/THEMES.md ist nicht mehr auf dem Stand des Verzeichnisses. \
-        Die erzeugten Tabellen einsetzen (ThemeDocumentation.markdownTables()).
+        docs/THEMES.md is no longer in sync with the catalogue. \
+        Insert the generated tables (ThemeDocumentation.markdownTables()).
         """)
     }
 
     @Test("the docs invent no tokens")
     func docsMentionOnlyRealTokens() throws {
         for name in mentionedTokens(in: try read(Self.docs)) {
-            #expect(ThemeTokenCatalog.standard.contains(name), "\(name) steht in der Doku, aber nicht im Verzeichnis")
+            #expect(ThemeTokenCatalog.standard.contains(name), "\(name) is in the docs but not in the catalogue")
         }
     }
 
@@ -64,7 +64,7 @@ struct ThemeDocsTests {
         let text = try read(Self.docs)
         for token in ThemeTokenCatalog.standard.tokens {
             for alias in token.aliases {
-                #expect(text.contains(alias), "\(alias) fehlt in docs/THEMES.md")
+                #expect(text.contains(alias), "\(alias) is missing from docs/THEMES.md")
             }
         }
     }
@@ -80,7 +80,7 @@ struct ThemeDocsTests {
         #expect(text.contains("\(limits.maxDeclarations) declarations"))
         #expect(text.contains("\(limits.maxTextLength) characters"))
         for extensionName in limits.imageExtensions {
-            #expect(text.contains(extensionName), "\(extensionName) fehlt in docs/THEMES.md")
+            #expect(text.contains(extensionName), "\(extensionName) is missing from docs/THEMES.md")
         }
     }
 
@@ -103,10 +103,10 @@ struct ThemeDocsTests {
     func fullExampleIsComplete() throws {
         let text = try read(Self.examples.appendingPathComponent("full/theme.css"))
         for token in ThemeTokenCatalog.standard.tokens {
-            #expect(text.contains(token.name + ":"), "\(token.name) fehlt in examples/themes/full/theme.css")
+            #expect(text.contains(token.name + ":"), "\(token.name) is missing from examples/themes/full/theme.css")
         }
         for name in mentionedTokens(in: text) {
-            #expect(ThemeTokenCatalog.standard.contains(name), "\(name) gibt es nicht")
+            #expect(ThemeTokenCatalog.standard.contains(name), "\(name) does not exist")
         }
     }
 
@@ -121,8 +121,8 @@ struct ThemeDocsTests {
         // the entries about the theme itself stands at the default again.
         for token in ThemeTokenCatalog.standard.tokens where token.group != .meta {
             if token.name == ThemeFileToken.backgroundImage.name { continue }
-            #expect(theme.value(token.name) == token.defaultValue, "\(token.name) hell")
-            #expect(theme.value(token.name, dark: true) == token.darkDefaultValue, "\(token.name) dunkel")
+            #expect(theme.value(token.name) == token.defaultValue, "\(token.name) light")
+            #expect(theme.value(token.name, dark: true) == token.darkDefaultValue, "\(token.name) dark")
         }
     }
 
@@ -151,7 +151,7 @@ struct ThemeDocsTests {
         #expect(theme.title == "Nightfall")
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
         #expect(theme.gradient(.bar, dark: true)?.stops.count == 2)
-        #expect(theme.gradient(.panel)?.isEmpty ?? true, "im hellen Erscheinungsbild ohne Verlauf")
+        #expect(theme.gradient(.panel)?.isEmpty ?? true, "no gradient in the light appearance")
         #expect(theme.color(.accent) == ThemeColor(hex: 0xFF8A3D))
     }
 }

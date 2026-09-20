@@ -1,6 +1,6 @@
 import Foundation
 
-/// Akkuzustand, wie ihn IOKit (IOPSCopyPowerSourcesInfo) liefert.
+/// Battery state as reported by IOKit (IOPSCopyPowerSourcesInfo).
 public struct BatteryState: Equatable, Sendable {
     public var level: Int
     public var charging: Bool
@@ -13,13 +13,13 @@ public struct BatteryState: Equatable, Sendable {
     }
 }
 
-/// Welches SF Symbol die Statussymbole der Leiste zeigen.
+/// Which SF Symbol the status bar's status icons show.
 ///
-/// Wie bei Caelestia zeigen sie den echten Zustand (WLAN-Staerke, Akkustand,
-/// Laden). Ein Platzhalter-Akku, der "voll" zeigt, waere irrefuehrend.
+/// As with Caelestia, they show the real state (WiFi strength, battery
+/// level, charging). A placeholder battery showing "full" would be misleading.
 public enum StatusGlyphs {
-    /// Akku in Viertelschritten; beim Laden der Blitz. `nil` heisst: kein
-    /// Akku (Desktop-Mac), dann zeigt die Leiste keinen.
+    /// Battery in quarter steps; the bolt while charging. `nil` means: no
+    /// battery (desktop Mac), so the bar shows none.
     public static func batterySymbol(_ state: BatteryState?) -> String? {
         guard let state else { return nil }
         if state.charging { return "battery.100percent.bolt" }
@@ -32,13 +32,13 @@ public enum StatusGlyphs {
         }
     }
 
-    /// WLAN-Symbol und Fuellstand fuer SF Symbols' variableValue (0...1,
-    /// drei Balken). Schwellen in dBm wie ueblich: ab -55 voll, ab -67 zwei
-    /// Drittel, ab -75 ein Drittel, darunter fast leer.
+    /// WiFi symbol and fill level for SF Symbols' variableValue (0...1,
+    /// three bars). Thresholds in dBm as usual: -55 and up full, -67 and up
+    /// two thirds, -75 and up one third, below that nearly empty.
     public static func wifi(powerOn: Bool, rssi: Int?) -> (symbol: String, strength: Double) {
         guard powerOn else { return ("wifi.slash", 1) }
         guard let rssi, rssi != 0 else { return ("wifi", 0) }
-        // Klammern noetig: `-55...` liest Swift als Minus vor `55...`.
+        // Parentheses needed: Swift reads `-55...` as minus before `55...`.
         switch rssi {
         case (-55)...: return ("wifi", 1)
         case (-67)...: return ("wifi", 0.66)
@@ -47,7 +47,7 @@ public enum StatusGlyphs {
         }
     }
 
-    /// Kurzbeschreibung fuer Tooltip und VoiceOver.
+    /// Short description for tooltip and VoiceOver.
     public static func batteryText(_ state: BatteryState?) -> String {
         guard let state else { return String(localized: "No Battery") }
         let base = String(localized: "Battery \(state.level)%")

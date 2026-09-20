@@ -1,18 +1,18 @@
 import ApolloShellCore
 import SwiftUI
 
-// Kleine Bausteine der Optionen eines Knopfs, seit Task 7 nur noch fuer den
-// Options-Popover des globalen Bearbeitungsmodus gebraucht
-// (`UtilitiesToggleOptionsView`, `UtilitiesEditOverlay.swift`). Bis dahin
-// stand hier auch der Rahmen dafuer in Nexus' altem Raster-Editor
-// (UtilitiesEditorGrid.swift, entfernt).
+// Small building blocks for a toggle's options, only needed since Task 7
+// for the options popover of the global edit mode
+// (`UtilitiesToggleOptionsView`, `UtilitiesEditOverlay.swift`). Until then
+// this also held the frame for it in Nexus's old grid editor
+// (UtilitiesEditorGrid.swift, removed).
 
-/// Textfeld, das erst beim Bestaetigen (Return) oder beim Verlassen
-/// schreibt - nicht bei jedem Tastendruck settings.json, und das Panel
-/// zeichnet nicht jeden halben Link neu.
+/// Text field that writes only on commit (Return) or on leaving focus -
+/// not settings.json on every keystroke, and the panel doesn't redraw
+/// every half-typed link.
 ///
-/// Nicht `private`: `UtilitiesToggleOptionsView` (Task 5, Popover im
-/// globalen Bearbeitungsmodus) nutzt dasselbe Feld.
+/// Not `private`: `UtilitiesToggleOptionsView` (Task 5, popover in the
+/// global edit mode) uses the same field.
 struct UtilitiesEditorField: View {
     let title: LocalizedStringKey
     let prompt: String
@@ -48,9 +48,9 @@ struct UtilitiesEditorField: View {
     }
 }
 
-/// "Symbol": das jetzige, daneben "Wählen …" mit der kleinen Auswahl.
+/// "Symbol": the current one, next to it "Choose…" with the small picker.
 ///
-/// Nicht `private`: siehe `UtilitiesEditorField`.
+/// Not `private`: see `UtilitiesEditorField`.
 struct UtilitiesEditorSymbolRow: View {
     let current: String
     let automatic: String

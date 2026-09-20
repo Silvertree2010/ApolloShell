@@ -1,14 +1,14 @@
 import Foundation
 
-/// Liest aus `system_profiler SPBluetoothDataType -json`, ob Bluetooth an ist.
+/// Reads whether Bluetooth is on from `system_profiler SPBluetoothDataType -json`.
 ///
-/// Warum dieser Umweg: IOBluetooth fragt auf aktuellen macOS-Versionen nach
-/// einer Bluetooth-Freigabe (Dialog), und der alte Schluessel
-/// `ControllerPowerState` in /Library/Preferences/com.apple.Bluetooth.plist
-/// existiert auf macOS 26 nicht mehr (gemessen 14.09.). system_profiler
-/// braucht keine Freigabe und antwortet in ~165 ms.
+/// Why this detour: on current macOS versions, IOBluetooth asks for a
+/// Bluetooth permission (dialog), and the old key `ControllerPowerState`
+/// in /Library/Preferences/com.apple.Bluetooth.plist no longer exists on
+/// macOS 26 (measured 14.09.). system_profiler needs no permission and
+/// answers in ~165 ms.
 public enum BluetoothStatus {
-    /// `true` an, `false` aus, `nil` wenn die Ausgabe nicht lesbar ist.
+    /// `true` for on, `false` for off, `nil` if the output isn't readable.
     public static func powerOn(fromSystemProfilerJSON data: Data) -> Bool? {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let entries = root["SPBluetoothDataType"] as? [[String: Any]],

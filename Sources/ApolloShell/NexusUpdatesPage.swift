@@ -2,11 +2,11 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Nexus > Updates: Stand, die beiden Schalter und "Jetzt prüfen".
+/// Nexus > Updates: status, the two switches, and "Check now".
 ///
-/// Die Seite sieht in beiden Faellen gleich aus, zeigt aber je nach Herkunft
-/// der Installation andere Knoepfe: Die DMG-Fassung erneuert sich selbst, die
-/// Homebrew-Fassung bekommt den Befehl zum Kopieren (siehe `InstallKind`).
+/// The page looks the same in both cases, but shows different buttons
+/// depending on the installation's origin: the DMG build updates itself,
+/// the Homebrew build gets the command to copy (see `InstallKind`).
 struct NexusUpdatesPage: View {
     @Bindable var store: ShellSettingsStore
     let updates: UpdateController
@@ -77,7 +77,7 @@ struct NexusUpdatesPage: View {
         .onAppear { updates.checkInBackgroundIfDue() }
     }
 
-    /// "0.1.2 (41)"; ohne Bundle (swift run) ein Gedankenstrich.
+    /// "0.1.2 (41)"; an em dash without a bundle (swift run).
     static var installedVersion: String {
         let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
@@ -94,7 +94,7 @@ struct NexusUpdatesPage: View {
     }
 }
 
-/// Eine Zeile, die den Stand der letzten Pruefung in Worte fasst.
+/// A row that puts the status of the last check into words.
 private struct NexusUpdateStatusRow: View {
     let updates: UpdateController
 

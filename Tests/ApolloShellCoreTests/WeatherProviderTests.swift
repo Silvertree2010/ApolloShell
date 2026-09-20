@@ -184,7 +184,7 @@ struct OpenMeteoProviderTests {
         #expect(requests[0].url.absoluteString.hasPrefix("https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.405&"))
     }
 
-    @Test("Berlin: Zone des Orts, jetzt, Stunden, sieben Tage")
+    @Test("Berlin: the location's zone, now, hours, seven days")
     func decode() throws {
         let r = try OpenMeteoProvider().decode([data(openMeteoBerlin)], now: fetched)
         #expect(r.calendar.timeZone.identifier == "Europe/Berlin")
@@ -198,7 +198,7 @@ struct OpenMeteoProviderTests {
         #expect(r.hourSpacing == 3600)
     }
 
-    @Test("Ohne Antwort: Fehler")
+    @Test("without a response: error")
     func missing() {
         #expect(throws: WeatherProviderError.missingResponse) {
             try OpenMeteoProvider().decode([], now: fetched)

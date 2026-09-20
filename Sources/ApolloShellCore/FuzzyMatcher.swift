@@ -1,15 +1,15 @@
 import Foundation
 
-/// Unscharfe Suche: die Buchstaben der Eingabe muessen in dieser
-/// Reihenfolge im Namen vorkommen, aber nicht direkt hintereinander.
-/// "illu" findet "Adobe Illustrator 2026", "ff" findet "Firefox".
+/// Fuzzy search: the letters of the input must occur in this order in the
+/// name, but not necessarily right after each other.
+/// "illu" finds "Adobe Illustrator 2026", "ff" finds "Firefox".
 ///
-/// Bewertung: Treffer am Namensanfang und an Wortanfaengen zaehlen mehr,
-/// zusammenhaengende Treffer auch. Gross/klein und Akzente sind egal.
+/// Scoring: hits at the start of the name and at word starts count more,
+/// as do consecutive hits. Case and accents don't matter.
 public struct FuzzyMatcher: Sendable {
     public init() {}
 
-    /// `nil`, wenn der Name nicht passt. Hoeher ist besser.
+    /// `nil` if the name doesn't match. Higher is better.
     public func score(_ query: String, in candidate: String) -> Int? {
         let q = Array(Self.normalize(query).filter { !$0.isWhitespace })
         guard !q.isEmpty else { return 0 }
@@ -43,8 +43,8 @@ public struct FuzzyMatcher: Sendable {
         return score
     }
 
-    /// Filtert und sortiert. Leere Eingabe laesst die Reihenfolge, wie sie ist.
-    /// Bei gleicher Bewertung entscheidet der Name alphabetisch.
+    /// Filters and sorts. An empty input leaves the order as-is.
+    /// Ties are broken alphabetically by name.
     public func rank<T>(_ items: [T], query: String, name: (T) -> String) -> [T] {
         guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return items }
         return items

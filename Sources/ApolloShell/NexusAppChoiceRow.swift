@@ -2,12 +2,12 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-// Die gewaehlte App eines Bausteins: in Nexus > Leiste (App-Knopf) und
-// Nexus > Schnellaktionen (Knopf "App oeffnen") dieselbe Zeile und derselbe
-// Auswahl-Dialog.
+// A building block's chosen app: the same row and the same picker dialog
+// in Nexus > Bar (app button) and Nexus > Quick Actions ("Open App"
+// button).
 
-/// Zeile "gewaehlte App bzw. Hinweis, Knopf App waehlen". Oeffnet
-/// `NexusBarAppPicker` und meldet die gewaehlte Bundle-ID zurueck.
+/// Row "chosen app, or a hint, plus a choose-app button". Opens
+/// `NexusBarAppPicker` and reports the chosen bundle ID back.
 struct NexusAppChoiceRow: View {
     let bundleID: String
     let onPick: (String) -> Void
@@ -38,10 +38,10 @@ struct NexusAppChoiceRow: View {
     }
 }
 
-// MARK: - App waehlen
+// MARK: - Choosing an app
 
-/// Installierte Apps mit Suche (unscharf wie im Launcher). Gelesen beim
-/// Oeffnen, wie der Launcher es bei jedem Oeffnen tut (einige ms).
+/// Installed apps with search (fuzzy like in the launcher). Read on open,
+/// the same as the launcher does on every open (a few ms).
 struct NexusBarAppPicker: View {
     let current: String
     let onPick: (String) -> Void
@@ -49,7 +49,7 @@ struct NexusBarAppPicker: View {
     @State private var query = ""
     @State private var apps: [AppEntry]
 
-    /// `apps` vorgegeben (Bildprobe): kein Einlesen.
+    /// `apps` given (screenshot preview): no reading.
     init(current: String, apps: [AppEntry] = [], onPick: @escaping (String) -> Void, onCancel: @escaping () -> Void) {
         self.current = current
         self.onPick = onPick

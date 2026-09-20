@@ -3,12 +3,12 @@ import ApolloShellCore
 import SwiftUI
 
 extension Color {
-    /// Schrift- und Symbolfarbe auf `Color.accentColor`: weiss wie bei macOS,
-    /// ausser der Akzent ist so hell, dass weiss darauf verschwindet (Gelb),
-    /// siehe `AccentContrast`.
+    /// Text and symbol color on `Color.accentColor`: white as in macOS,
+    /// unless the accent is so light that white disappears on it (yellow),
+    /// see `AccentContrast`.
     ///
-    /// Bei jedem Zeichnen neu gelesen; wechselt man den Akzent in den
-    /// Einstellungen, stimmt es spaetestens beim naechsten Oeffnen.
+    /// Re-read on every draw; if the accent is changed in Settings, it's
+    /// correct by the next opening at the latest.
     static var onAccent: Color {
         guard let rgb = NSColor.controlAccentColor.usingColorSpace(.sRGB) else { return .white }
         let dark = AccentContrast.prefersDarkForeground(

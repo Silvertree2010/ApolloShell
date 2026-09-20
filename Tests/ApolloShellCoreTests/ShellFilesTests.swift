@@ -2,18 +2,18 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Dateipfade")
+@Suite("File paths")
 struct ShellFilesTests {
-    @Test("Der echte Ordner liegt unter Application Support/ApolloShell")
+    @Test("the real directory lives under Application Support/ApolloShell")
     func liveDirectory() {
         let directory = ShellFiles.live.directory
         #expect(directory.lastPathComponent == "ApolloShell")
         #expect(directory.deletingLastPathComponent().lastPathComponent == "Application Support")
     }
 
-    // Bestehende Installationen lesen genau diese Namen. Aendert sich hier
-    // etwas, sind Einstellungen, Pins und Wetterorte nach dem Update weg.
-    @Test("Dateinamen bleiben, wie sie veroeffentlicht sind")
+    // Existing installations read exactly these names. If anything changes
+    // here, settings, pins, and weather locations are gone after the update.
+    @Test("file names stay as they were published")
     func fileNames() {
         let files = ShellFiles(directory: URL(fileURLWithPath: "/base", isDirectory: true))
         #expect(files.settings.path == "/base/settings.json")
@@ -25,7 +25,7 @@ struct ShellFilesTests {
         #expect(files.themes.path == "/base/themes")
     }
 
-    @Test("Gleiche Pfade wie die fruehere Herleitung aus usage.json")
+    @Test("same paths as the former derivation from usage.json")
     func matchesOldDerivation() {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let oldUsage = support.appendingPathComponent("ApolloShell/usage.json")
@@ -37,22 +37,22 @@ struct ShellFilesTests {
         #expect(ShellFiles.live.lidAwakeMarker == support.appendingPathComponent("ApolloShell/lid-awake"))
     }
 
-    @Test("Schreiben legt fehlende Ordner an, eine unlesbare Datei bleibt als Kopie")
+    @Test("writing creates missing directories, an unreadable file survives as a copy")
     func writeAndPreserve() throws {
         let base = FileManager.default.temporaryDirectory
             .appendingPathComponent("ShellFilesTests-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: base) }
-        let url = ShellFiles(directory: base.appendingPathComponent("neu", isDirectory: true)).settings
+        let url = ShellFiles(directory: base.appendingPathComponent("new", isDirectory: true)).settings
 
-        try ShellFiles.write(Data("kaputt".utf8), to: url)
-        #expect(ShellFiles.read(url) == Data("kaputt".utf8))
+        try ShellFiles.write(Data("broken".utf8), to: url)
+        #expect(ShellFiles.read(url) == Data("broken".utf8))
         #expect(ShellFiles.read(nil) == nil)
-        #expect(!ShellFiles.isJSONObject(Data("kaputt".utf8)))
+        #expect(!ShellFiles.isJSONObject(Data("broken".utf8)))
         #expect(ShellFiles.isJSONObject(Data("{}".utf8)))
 
         ShellFiles.preserveUnreadable(url)
-        ShellFiles.preserveUnreadable(url) // zweimal: ersetzt die alte Kopie
+        ShellFiles.preserveUnreadable(url) // twice: replaces the old copy
         let copy = url.appendingPathExtension("unreadable")
-        #expect(ShellFiles.read(copy) == Data("kaputt".utf8))
+        #expect(ShellFiles.read(copy) == Data("broken".utf8))
     }
 }

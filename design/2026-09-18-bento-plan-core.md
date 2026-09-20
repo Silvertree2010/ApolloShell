@@ -87,7 +87,7 @@ struct WeatherFavoritesCodableTests {
         #expect(try JSONDecoder().decode(WeatherFavorites.self, from: data) == favorites)
     }
 
-    @Test("Gleiches Format wie weather.json")
+    @Test("same shape as weather.json")
     func sameShapeAsFile() throws {
         let favorites = WeatherFavorites(locations: [zurich], selectedID: zurich.id)
         let encoder = JSONEncoder()
@@ -117,7 +117,7 @@ In `DashboardClockOptions` add the field, the initialiser parameter, the lenient
 ```swift
     /// The time zone as an IANA id ("Asia/Tokyo"), `nil` = the one of the system.
     /// With several clocks (0.2) every one shows a different city that way. One
-    /// unbekannte Kennung gilt wie `nil`.
+    /// unknown identifier counts as `nil`.
     public var timeZone: String?
 
     public init(style: Style = .stacked, showDate: Bool = false, timeZone: String? = nil) {
@@ -300,7 +300,7 @@ struct WidgetCatalogTests {
         }
     }
 
-    @Test("Kleinste Groesse nach Flaeche")
+    @Test("smallest size by area")
     func smallest() {
         #expect(WidgetKind.clock.smallestSize == .flexible(110, 839, 130))
         #expect(WidgetKind.resources.smallestSize == .flexible(90, 839, 250))
@@ -700,7 +700,7 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
     }
 
     /// The defaults of a kind. Weather widgets get `places` (on the migration the
-    /// Favoriten aus weather.json).
+    /// favorites from weather.json).
     public static func defaults(for kind: WidgetKind, places: WeatherFavorites = .empty) -> WidgetOptions {
         var options = WidgetOptions()
         switch kind {
@@ -735,7 +735,7 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
 }
 
 /// One widget on a page. The same kind may appear several times, every one
-/// mit eigenen Optionen (zwei Uhren, zwei Wetter).
+/// with its own options (two clocks, two weather widgets).
 public struct WidgetInstance: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
     public var kind: WidgetKind
@@ -756,10 +756,10 @@ public struct WidgetInstance: Codable, Equatable, Identifiable, Sendable {
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         guard let raw: String = c.lenient(.kind), let kind = WidgetKind(rawValue: raw) else {
-            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unbekanntes Widget")
+            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unknown widget")
         }
         guard let frame: WidgetFrame = c.lenient(.frame) else {
-            throw DecodingError.dataCorruptedError(forKey: .frame, in: c, debugDescription: "Rahmen fehlt")
+            throw DecodingError.dataCorruptedError(forKey: .frame, in: c, debugDescription: "frame missing")
         }
         self.init(id: c.lenient(.id) ?? UUID(), kind: kind, frame: frame, options: c.lenient(.options))
     }
@@ -954,9 +954,9 @@ struct BentoSnapTests {
     private let weather = WidgetFrame(x: 0, y: 0, width: 275, height: 130)
 
     @Test("Dragging: the page edge, the line, 12 points beside it, otherwise free", arguments: [
-        (WidgetFrame(x: 5, y: 300, width: 100, height: 50), 0.0, 300.0),     // linker Rand (y frei)
-        (WidgetFrame(x: 636, y: 3, width: 200, height: 130), 639, 0),        // rechter Rand, oberer Rand
-        (WidgetFrame(x: 290, y: 4, width: 200, height: 130), 287, 0),        // 12 neben dem Wetter
+        (WidgetFrame(x: 5, y: 300, width: 100, height: 50), 0.0, 300.0),     // left edge (y free)
+        (WidgetFrame(x: 636, y: 3, width: 200, height: 130), 639, 0),        // right edge, top edge
+        (WidgetFrame(x: 290, y: 4, width: 200, height: 130), 287, 0),        // 12 beside the weather widget
         (WidgetFrame(x: 400.4, y: 250.6, width: 100, height: 50), 400, 251), // no target: only rounded
         (WidgetFrame(x: 3, y: 146, width: 110, height: 250), 0, 142),        // the line on the left, 12 below the weather
     ])
@@ -1143,16 +1143,16 @@ struct DashboardPagesTests {
         #expect(!pages.removePage(id: first.id))
         let added = pages.addPage(name: "B")
         #expect(pages.pages.map(\.name) == ["A", "B"])
-        let copyID = try #require(pages.duplicatePage(id: first.id, name: "A Kopie"))
-        #expect(pages.pages.map(\.name) == ["A", "A Kopie", "B"])
+        let copyID = try #require(pages.duplicatePage(id: first.id, name: "A Copy"))
+        #expect(pages.pages.map(\.name) == ["A", "A Copy", "B"])
         let copy = try #require(pages.page(id: copyID))
         #expect(copy.template == nil)
         #expect(copy.widgets.count == 1)
         #expect(copy.widgets[0].id != first.widgets[0].id)
-        pages.renamePage(id: added, to: "Neu")
+        pages.renamePage(id: added, to: "New")
         pages.setSymbol("bolt", forPage: added)
         pages.movePages(fromOffsets: IndexSet(integer: 2), toOffset: 0)
-        #expect(pages.pages.map(\.name) == ["Neu", "A", "A Kopie"])
+        #expect(pages.pages.map(\.name) == ["New", "A", "A Copy"])
         #expect(pages.pages[0].symbol == "bolt")
         #expect(pages.removePage(id: added))
     }
@@ -1485,7 +1485,7 @@ struct DashboardMigrationTests {
         #expect(overview.map(frames) == expected)
     }
 
-    @Test("Caelestia-Uebersicht, Zahl fuer Zahl")
+    @Test("Caelestia overview, number by number")
     func caelestiaNumbers() {
         let page = PageTemplate.overview.defaultPage(places: places, hasBattery: true)
         #expect(frames(page) == [
@@ -1674,7 +1674,7 @@ git commit -m "Build the preset pages and migrate the 0.1 dashboard to pages"
 - [ ] **Step 1: Write the failing test** — append inside the suite struct in `ShellSettingsTests.swift`:
 
 ```swift
-    // MARK: Seiten des Dashboards (0.2)
+    // MARK: Dashboard pages (0.2)
 
     @Test("Pages and size: they are missing in old files, the slider limits it, the old section stays")
     func dashboardPages() throws {

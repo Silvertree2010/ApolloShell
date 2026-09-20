@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Karte mit leicht abgesetzter Flaeche auf dem Glas - im Dashboard, im
-/// Reiter "Leistung", beim Wetter und bei den Medien.
+/// A card with a slightly offset surface on the glass - in the dashboard,
+/// on the "Performance" tab, in weather, and in media.
 struct Card<Content: View>: View {
     let radius: CGFloat
     @ViewBuilder let content: () -> Content
@@ -14,10 +14,10 @@ struct Card<Content: View>: View {
 }
 
 extension View {
-    /// Die Flaeche einer Karte. Mit Theme faerbt `--apollo-card-color` (oder
-    /// der Verlauf daneben) sie, `--apollo-card-radius` rundet sie, und einen
-    /// Rand gibt es nur, wenn das Theme eine Breite nennt. Ohne Theme ein
-    /// leichter Schleier, wie ueberall in der Shell.
+    /// A card's surface. With a theme, `--apollo-card-color` (or the
+    /// gradient next to it) colors it, `--apollo-card-radius` rounds it, and
+    /// there's a border only if the theme names a width. Without a theme, a
+    /// light veil, as everywhere in the shell.
     func cardSurface(radius: CGFloat) -> some View {
         modifier(CardSurface(radius: radius))
     }

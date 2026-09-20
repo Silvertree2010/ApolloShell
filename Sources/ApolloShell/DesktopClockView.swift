@@ -1,18 +1,18 @@
 import SwiftUI
 
-/// Aktuelle Zeit fuer die Schreibtisch-Uhr.
+/// Current time for the desktop clock.
 @MainActor
 @Observable
 final class DesktopClockModel {
     var now = Date()
 }
 
-/// Schreibtisch-Uhr wie Caelestia (modules/background/DesktopClock.qml):
-/// links Stunde:Minute gross und fett, ein senkrechter Strich, rechts
-/// untereinander MONAT / TT / Wochentag. Keine Sekunden. Groessen aus dem
-/// Quellcode: Zeit 28 x 3 = 84 pt fett, Doppelpunkt duenner mit 80 %,
-/// Monat 16 fett mit Laufweite 4, Tag 28 mittel (2), Wochentag 16 (2).
-/// Schatten 70 %. Schrift SF Rounded statt Rubik.
+/// Desktop clock like Caelestia (modules/background/DesktopClock.qml): on
+/// the left hour:minute large and bold, a vertical bar, on the right,
+/// stacked, MONTH / DD / weekday. No seconds. Sizes from the source:
+/// time 28 x 3 = 84 pt bold, colon thinner at 80%, month 16 bold with
+/// tracking 4, day 28 medium (2), weekday 16 (2). Shadow 70%. Font SF
+/// Rounded instead of Rubik.
 struct DesktopClockView: View {
     let model: DesktopClockModel
 
@@ -48,6 +48,6 @@ struct DesktopClockView: View {
         .foregroundStyle(.white)
         .shadow(color: .black.opacity(0.7), radius: 10)
         .fixedSize()
-        .padding(24) // Platz fuer den Schatten, sonst wird er abgeschnitten
+        .padding(24) // Room for the shadow, otherwise it gets clipped
     }
 }

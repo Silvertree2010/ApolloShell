@@ -12,7 +12,7 @@ struct ThemeTokenCatalogTests {
             #expect(token.name.hasPrefix(ThemeTokenCatalog.prefix), "\(token.name)")
             #expect(token.name == token.name.lowercased(), "\(token.name)")
             #expect(token.name.allSatisfy({ $0.isLowercase || $0.isNumber || $0 == "-" }), "\(token.name)")
-            #expect(seen.insert(token.name).inserted, "\(token.name) steht doppelt im Verzeichnis")
+            #expect(seen.insert(token.name).inserted, "\(token.name) is duplicated in the catalogue")
         }
     }
 
@@ -23,8 +23,8 @@ struct ThemeTokenCatalogTests {
         for token in catalog.tokens {
             for alias in token.aliases {
                 #expect(alias.hasPrefix(ThemeTokenCatalog.prefix), "\(alias)")
-                #expect(!names.contains(alias), "\(alias) ist schon ein Tokenname")
-                #expect(seen.insert(alias).inserted, "\(alias) steht doppelt")
+                #expect(!names.contains(alias), "\(alias) is already a token name")
+                #expect(seen.insert(alias).inserted, "\(alias) is duplicated")
             }
         }
     }
@@ -43,7 +43,7 @@ struct ThemeTokenCatalogTests {
                     #expect(value.gradient == ThemeGradient.none, "\(token.name)")
                 case let .number(spec):
                     guard let number = value.number else {
-                        #expect(Bool(false), "\(token.name) hat keine Zahl als Vorgabe")
+                        #expect(Bool(false), "\(token.name) has no number as its default")
                         continue
                     }
                     #expect(number >= spec.minimum && number <= spec.maximum, "\(token.name)")
@@ -54,7 +54,7 @@ struct ThemeTokenCatalogTests {
                     #expect(value.asset == ThemeAsset.none, "\(token.name)")
                 case let .option(options):
                     guard let option = value.option else {
-                        #expect(Bool(false), "\(token.name) hat keine Aufzaehlung als Vorgabe")
+                        #expect(Bool(false), "\(token.name) has no option as its default")
                         continue
                     }
                     #expect(options.contains(option), "\(token.name)")
@@ -82,12 +82,12 @@ struct ThemeTokenCatalogTests {
         for token in catalog.tokens {
             guard let rule = token.contrast else { continue }
             guard let partner = catalog.descriptor(named: rule.background) else {
-                #expect(Bool(false), "\(token.name): \(rule.background) gibt es nicht")
+                #expect(Bool(false), "\(token.name): \(rule.background) does not exist")
                 continue
             }
             #expect(partner.kind == .color, "\(token.name)")
 // Otherwise one adjustment could set off the next.
-            #expect(partner.contrast == nil, "\(token.name): \(partner.name) wird selbst angepasst")
+            #expect(partner.contrast == nil, "\(token.name): \(partner.name) is itself adjusted")
             #expect(rule.minimum >= 3, "\(token.name)")
             #expect(token.kind == .color, "\(token.name)")
         }
@@ -128,7 +128,7 @@ struct ThemeTokenCatalogTests {
 @Test("upper and lower case do not matter when looking up")
     func lookupIgnoresCase() {
         #expect(catalog.descriptor(named: "--APOLLO-ACCENT-COLOR")?.name == "--apollo-accent-color")
-        #expect(catalog.descriptor(named: "--apollo-gibt-es-nicht") == nil)
+        #expect(catalog.descriptor(named: "--apollo-does-not-exist") == nil)
     }
 
 // MARK: - The promise for the coming years
@@ -163,7 +163,7 @@ struct ThemeTokenCatalogTests {
 
     @Test("a name that was published once never disappears", arguments: ThemeTokenCatalogTests.version1)
     func publishedNamesStay(name: String) {
-        #expect(catalog.contains(name), "\(name) fehlt im Verzeichnis")
+        #expect(catalog.contains(name), "\(name) is missing from the catalogue")
     }
 
 @Test("version 1 has lost no token")
@@ -197,11 +197,11 @@ struct ThemeTokenCatalogTests {
         case .file: "file"
         case .option: "option"
         case .flag: "flag"
-        case nil: "fehlt"
+        case nil: "missing"
         }
     }
 
-    @Test("jeder Griff im Code zeigt auf ein Token des richtigen Typs")
+    @Test("every handle in the code points at a token of the right type")
     func handlesPointAtTokens() {
         let colors: [ThemeColorToken] = [
             .background, .surface, .elevatedSurface, .separator, .border,

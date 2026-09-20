@@ -9,11 +9,11 @@ struct UtilitiesLayoutTests {
     }
 
     private func toggleKinds(_ layout: UtilitiesLayout?) -> [String] {
-        layout?.toggles.map(\.kind.rawValue) ?? ["<nicht lesbar>"]
+        layout?.toggles.map(\.kind.rawValue) ?? ["<unreadable>"]
     }
 
     private func cards(_ layout: UtilitiesLayout?) -> [String] {
-        layout?.cards.map { "\($0.kind.rawValue)\($0.enabled ? "" : "-aus")" } ?? ["<nicht lesbar>"]
+        layout?.cards.map { "\($0.kind.rawValue)\($0.enabled ? "" : "-off")" } ?? ["<unreadable>"]
     }
 
     private static let standardKinds = ["wifi", "microphone", "bluetooth", "darkMode", "nightShift",
@@ -22,7 +22,7 @@ struct UtilitiesLayoutTests {
     // MARK: Migration and default
 
     @Test("without a section or unreadable: the fixed panel from before", arguments: [
-        "{}", #"{"utilities":5}"#, #"{"utilities":{}}"#, #"{"utilities":{"layout":"kaputt"}}"#, #"{"utilities":{"layout":{}}}"#,
+        "{}", #"{"utilities":5}"#, #"{"utilities":{}}"#, #"{"utilities":{"layout":"broken"}}"#, #"{"utilities":{"layout":{}}}"#,
     ])
     func migration(json: String) {
         let layout = ShellSettings.load(from: Data(json.utf8)).utilities.layout
@@ -54,7 +54,7 @@ struct UtilitiesLayoutTests {
     }
 
     @Test("Cards: unknown ones go, duplicates go, missing ones switched on at the end", arguments: [
-        (#"{"cards":[{"kind":"audio","enabled":false},{"kind":"keepAwake"}]}"#, ["audio-aus", "keepAwake", "quickToggles"]),
+        (#"{"cards":[{"kind":"audio","enabled":false},{"kind":"keepAwake"}]}"#, ["audio-off", "keepAwake", "quickToggles"]),
         (#"{"cards":[{"kind":"quickToggles"},{"kind":"quickToggles","enabled":false},{"kind":"radio"}]}"#,
          ["quickToggles", "keepAwake", "audio"]),
         (#"{"cards":[{"kind":"audio","enabled":"nein"}]}"#, ["audio", "keepAwake", "quickToggles"]),
@@ -121,9 +121,9 @@ struct UtilitiesLayoutTests {
         (UtilitiesPreset.standard, ["keepAwake", "audio", "quickToggles"],
          ["wifi", "microphone", "bluetooth", "darkMode", "nightShift", "screenshot", "showDesktop", "colorPicker",
           "lockScreen", "settings"]),
-        (UtilitiesPreset.minimal, ["quickToggles", "keepAwake-aus", "audio-aus"],
+        (UtilitiesPreset.minimal, ["quickToggles", "keepAwake-off", "audio-off"],
          ["wifi", "bluetooth", "darkMode", "lockScreen", "settings"]),
-        (UtilitiesPreset.audio, ["audio", "quickToggles", "keepAwake-aus"],
+        (UtilitiesPreset.audio, ["audio", "quickToggles", "keepAwake-off"],
          ["microphone", "bluetooth", "wifi", "displaySleep", "settings"]),
         (UtilitiesPreset.everything, ["keepAwake", "audio", "quickToggles"],
          ["wifi", "microphone", "bluetooth", "darkMode", "nightShift", "screenshot", "showDesktop", "colorPicker",
@@ -239,8 +239,8 @@ struct UtilitiesLayoutTests {
     }
 
     @Test("cards on/off and reordering", arguments: [
-        (UtilitiesCardKind.audio, false, [2], 0, ["quickToggles", "keepAwake", "audio-aus"]),
-        (UtilitiesCardKind.keepAwake, false, [0], 3, ["audio", "quickToggles", "keepAwake-aus"]),
+        (UtilitiesCardKind.audio, false, [2], 0, ["quickToggles", "keepAwake", "audio-off"]),
+        (UtilitiesCardKind.keepAwake, false, [0], 3, ["audio", "quickToggles", "keepAwake-off"]),
         (UtilitiesCardKind.quickToggles, true, [1], 0, ["audio", "keepAwake", "quickToggles"]),
     ])
     func cardChanges(kind: UtilitiesCardKind, enabled: Bool, source: [Int], destination: Int, expected: [String]) {
@@ -348,16 +348,16 @@ struct UtilitiesCustomToggleTests {
     @Test("Shortcuts out of shortcuts list --show-identifiers")
     func parseShortcuts() {
         let output = """
-        Timer (kurz) (1B4E28BA-2FA1-11D2-883F-0016D3CCA427)
+        Timer (short) (1B4E28BA-2FA1-11D2-883F-0016D3CCA427)
 
-        Fokus an (6FA459EA-EE8A-3CA4-894E-DB77E160355E)
-        Ohne Kennung
-        Kaputt (keine-uuid)
+        Focus on (6FA459EA-EE8A-3CA4-894E-DB77E160355E)
+        No Identifier
+        Broken (no-uuid)
          (886313E1-3B8A-5372-9B90-0C9AEE199E5D)
         """
         let list = UtilitiesShortcuts.parse(output)
-        #expect(list.map(\.name) == ["Fokus an", "Kaputt (keine-uuid)", "Ohne Kennung", "Timer (kurz)"])
-        #expect(list.map(\.identifier) == ["6FA459EA-EE8A-3CA4-894E-DB77E160355E", "", "", "1B4E28BA-2FA1-11D2-883F-0016D3CCA427"])
+        #expect(list.map(\.name) == ["Broken (no-uuid)", "Focus on", "No Identifier", "Timer (short)"])
+        #expect(list.map(\.identifier) == ["", "6FA459EA-EE8A-3CA4-894E-DB77E160355E", "", "1B4E28BA-2FA1-11D2-883F-0016D3CCA427"])
         #expect(UtilitiesShortcuts.parse("").isEmpty)
     }
 

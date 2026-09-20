@@ -1,24 +1,24 @@
 import AppKit
 import ApolloShellCore
 
-/// Die sudo-Regel fuer "Wach halten, auch zugeklappt"
-/// (`LidAwake.sudoersRule`) auf diesem Mac: ist sie da, und wieder weg damit.
+/// The sudo rule for "Keep Awake" with the lid closed too
+/// (`LidAwake.sudoersRule`) on this Mac: is it there, and getting rid of it.
 @MainActor
 enum LidAwakeRule {
-    /// Der Ordner ist fuer alle lesbar, die Datei selbst nur fuer root - um
-    /// zu sehen, ob es sie gibt, reicht das.
+    /// The directory is readable by everyone, the file itself only by root -
+    /// that's enough to see whether it exists.
     static var isInstalled: Bool {
         FileManager.default.fileExists(atPath: LidAwake.sudoersFile)
     }
 
-    /// Fuer wen die Regel beim Einschalten angelegt werden soll; `nil`, wenn
-    /// sie schon da ist.
+    /// Who to install the rule for when turning it on; `nil` if it's
+    /// already there.
     static var userToInstall: String? {
         isInstalled ? nil : NSUserName()
     }
 
-    /// macOS fragt nach einem Administrator. `done` bekommt, ob die Regel
-    /// danach weg ist (abgelehnt: nein).
+    /// macOS asks for an administrator. `done` gets whether the rule is
+    /// gone afterward (refused: no).
     static func remove(done: @escaping @MainActor (Bool) -> Void) {
         let started = Subprocess.launch(LidAwake.osascript, LidAwake.removeRuleArguments()) { _ in
             done(!isInstalled)

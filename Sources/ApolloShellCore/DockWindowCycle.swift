@@ -1,13 +1,13 @@
 import Foundation
 
-/// Klick auf die App, die schon vorne ist: ihr naechstes Fenster nach vorne,
-/// wie ⌘`. Die Fensterliste kommt von vorne nach hinten
-/// (Bedienungshilfen); das hinterste nach vorne holen laesst bei jedem Klick
-/// ein anderes vorne stehen, bis alle einmal dran waren. Minimierte zaehlen
-/// nicht - die holt man ueber das Menue.
+/// Clicking the app that's already frontmost: bring its next window to the
+/// front, like ⌘`. The window list comes front-to-back
+/// (Accessibility); bringing the backmost one to the front leaves a
+/// different one in front on each click, until all have had their turn.
+/// Minimized ones don't count - those are brought up via the menu.
 public enum DockWindowCycle {
-    /// Index des Fensters, das nach vorne soll; `nil` = nichts zu wechseln
-    /// (App nicht vorne oder nur ein Fenster), dann gilt der normale Klick.
+    /// Index of the window to raise; `nil` = nothing to switch (app not
+    /// frontmost, or only one window), so the normal click applies.
     public static func indexToRaise(isFrontmost: Bool, visibleWindows: Int) -> Int? {
         guard isFrontmost, visibleWindows > 1 else { return nil }
         return visibleWindows - 1

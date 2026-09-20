@@ -24,11 +24,11 @@ struct BentoEditSessionPageTests {
     func duplicatePage() throws {
         var s = try session()
         let originalID = s.pageID
-        let duplicated = s.duplicatePage(originalID, name: "A Kopie")
+        let duplicated = s.duplicatePage(originalID, name: "A Copy")
         let copyID = try #require(duplicated)
         #expect(s.pageID == copyID)
         #expect(s.pages.pages[1].id == copyID)
-        #expect(s.pages.pages[1].name == "A Kopie")
+        #expect(s.pages.pages[1].name == "A Copy")
     }
 
     @Test("Deleting: never the last page")

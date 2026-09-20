@@ -1,8 +1,8 @@
 import ApolloShellCore
 import SwiftUI
 
-/// Suchfeld oben, darunter die scrollbare App-Liste. Der Glas-Hintergrund
-/// kommt vom NSGlassEffectView drumherum (siehe LauncherController).
+/// Search field at the top, the scrollable app list below. The glass
+/// background comes from the surrounding NSGlassEffectView (see LauncherController).
 struct LauncherView: View {
     @Bindable var model: LauncherModel
     @FocusState private var searchFocused: Bool
@@ -11,7 +11,7 @@ struct LauncherView: View {
     var body: some View {
         VStack(spacing: 0) {
             searchField
-            // Mit Theme: `--apollo-separator-color` und `--apollo-text-color`.
+            // With a theme: `--apollo-separator-color` and `--apollo-text-color`.
             if let separator = style.color(.separator) {
                 Rectangle().fill(separator).frame(height: 1)
             } else {
@@ -26,7 +26,7 @@ struct LauncherView: View {
             }
         }
         .foregroundStyle(style.paint(.text, or: .primary))
-        // Bei jedem Oeffnen sofort lostippen koennen.
+        // Able to start typing right away on every open.
         .onChange(of: model.openCount, initial: true) { searchFocused = true }
     }
 
@@ -64,9 +64,9 @@ struct LauncherView: View {
                             model.selectedIndex = index
                             model.launchSelected()
                         }
-                        // Rechtsklick wie im Dock: das Menue der App selbst.
-                        // Es kommt aus Apples Dock und braucht einen Moment,
-                        // deshalb AppKit statt `contextMenu`.
+                        // Right-click as in the Dock: the app's own menu.
+                        // It comes from Apple's Dock and needs a moment,
+                        // hence AppKit instead of `contextMenu`.
                         .overlay {
                             RightClickCatcher { view in
                                 model.selectedIndex = index
@@ -106,12 +106,12 @@ private struct AppRow: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        // Mit Theme gibt `--apollo-launcher-row-height` die Zeilenhoehe vor;
-        // ohne Theme bestimmt sie wie bisher der Inhalt.
+        // With a theme, `--apollo-launcher-row-height` sets the row height;
+        // without a theme, the content determines it as before.
         .frame(minHeight: style.length(.launcherRowHeight))
         .background {
-            // Mit Theme faerbt `--apollo-launcher-highlight-color` die
-            // gewaehlte Zeile (oder der Verlauf daneben).
+            // With a theme, `--apollo-launcher-highlight-color` colors the
+            // selected row (or the gradient next to it).
             if selected {
                 if style.paintsLauncherHighlight {
                     RoundedRectangle(cornerRadius: radius).fill(style.launcherHighlightFill)

@@ -1,8 +1,8 @@
 import Foundation
 
-/// Eine Bearbeitung des Kontrollzentrums (globaler Bearbeitungsmodus,
-/// `ShellEditor`): die Arbeitskopie des Panels, das gewaehlte Element.
-/// "Fertig" uebernimmt `layout`, "Abbrechen" verwirft es (`original`).
+/// An edit of the control center (global edit mode, `ShellEditor`): the
+/// panel's working copy, the selected element. "Done" adopts `layout`,
+/// "Cancel" discards it (`original`).
 public struct UtilitiesEditSession: Equatable, Sendable {
     public let original: UtilitiesLayout
     public private(set) var layout: UtilitiesLayout
@@ -12,9 +12,9 @@ public struct UtilitiesEditSession: Equatable, Sendable {
             pickingShortcut = false
         }
     }
-    /// Ob der Kurzbefehl-Picker des gewaehlten Knopfs offen ist (Task 6, Esc
-    /// schliesst ihn zuerst) - reine UI-Anzeige wie `selectedToggleID`, nicht
-    /// Teil der Kontrollzentrum-Arbeitskopie selbst.
+    /// Whether the selected toggle's shortcut picker is open (Task 6, Esc
+    /// closes it first) - purely UI state like `selectedToggleID`, not part
+    /// of the control center's working copy itself.
     public var pickingShortcut = false
 
     public init(layout: UtilitiesLayout) {
@@ -24,7 +24,7 @@ public struct UtilitiesEditSession: Equatable, Sendable {
 
     public var hasChanges: Bool { layout != original }
 
-    // MARK: Karten
+    // MARK: Cards
 
     public mutating func setCard(_ kind: UtilitiesCardKind, enabled: Bool) {
         layout.setCard(kind, enabled: enabled)
@@ -34,10 +34,10 @@ public struct UtilitiesEditSession: Equatable, Sendable {
         layout.moveCards(fromOffsets: source, toOffset: destination)
     }
 
-    // MARK: Schnellschalter
+    // MARK: Quick toggles
 
-    /// Neuer Knopf, ans Ende; waehlt ihn aus. `nil`: darf es nur einmal geben
-    /// und ist schon da - nichts geaendert, nichts ausgewaehlt.
+    /// New toggle, appended at the end; selects it. `nil`: it may only
+    /// exist once and is already there - nothing changed, nothing selected.
     @discardableResult
     public mutating func add(_ kind: UtilitiesToggleKind) -> String? {
         guard let id = layout.add(kind) else { return nil }

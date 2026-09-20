@@ -2,14 +2,14 @@ import AppKit
 import ApolloShellCore
 import os
 
-/// Laufzeit-Teil von `SingleInstance`: fragt LaunchServices nach anderen
-/// Prozessen mit derselben Bundle-ID. Laeuft vor `NSApplication.run()`,
-/// also bevor Fenster, Tastenkuerzel oder Apples Dock angefasst werden.
+/// Runtime part of `SingleInstance`: asks LaunchServices about other
+/// processes with the same bundle ID. Runs before `NSApplication.run()`,
+/// so before windows, keyboard shortcuts, or Apple's Dock are touched.
 @MainActor
 enum SingleInstanceGuard {
     private static let log = Logger(category: "app")
 
-    /// `true`: Eine andere Instanz laeuft weiter, diese hier soll enden.
+    /// `true`: another instance keeps running, this one should end.
     static func otherInstanceKeepsRunning() -> Bool {
         let replacesOld = SingleInstance.replacesOld(
             arguments: CommandLine.arguments, environment: ProcessInfo.processInfo.environment
@@ -25,15 +25,15 @@ enum SingleInstanceGuard {
             case .wait:
                 Thread.sleep(forTimeInterval: 0.1)
             case .handOver:
-                log.notice("ApolloShell laeuft schon (\(others) Instanz), diese endet")
+                log.notice("ApolloShell is already running (\(others) instance), this one ends")
                 return true
             }
         }
     }
 
-    /// Die laufende Instanz zeigt Nexus (im Nur-Launcher-Modus den Launcher).
-    /// `deliverImmediately`: Sonst haelt macOS die Mitteilung zurueck, bis die
-    /// Hintergrund-App aktiv wird.
+    /// The running instance shows Nexus (the launcher in launcher-only mode).
+    /// `deliverImmediately`: otherwise macOS holds the notification back
+    /// until the background app becomes active.
     static func showRunningInstance() {
         DistributedNotificationCenter.default().postNotificationName(
             Notification.Name(SingleInstance.showNotification), object: nil, userInfo: nil, deliverImmediately: true

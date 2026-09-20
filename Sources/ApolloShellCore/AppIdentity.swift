@@ -1,18 +1,18 @@
 import os
 
-/// Kennung der App an einer Stelle. Gleich der Bundle-ID in
-/// Support/Info.plist (build.sh und scripts/assemble-app.sh signieren damit;
-/// ein Test prueft, dass beide uebereinstimmen). Daraus abgeleitet: das
-/// Log-Subsystem, Queue-Labels und eigene Pasteboard-Typen. Die
-/// Log-Kategorien stehen weiter bei den Aufrufern (`Logger(category:)`).
+/// The app's identity in one place. Matches the bundle ID in
+/// Support/Info.plist (build.sh and scripts/assemble-app.sh sign with it;
+/// a test checks that both agree). Derived from it: the log subsystem,
+/// queue labels, and our own pasteboard types. The log categories still
+/// live with the callers (`Logger(category:)`).
 public enum AppIdentity {
     public static let bundleID = "io.github.silvertree2010.apolloshell"
 
-    /// Fuer `Logger(category:)`, also auch fuer
+    /// For `Logger(category:)`, and thus also for
     /// `log stream --predicate 'subsystem == "…"'`.
     public static let logSubsystem = bundleID
 
-    /// Eine Kennung unterhalb der Bundle-ID, z. B. fuer Queue-Labels:
+    /// An identifier below the bundle ID, e.g. for queue labels:
     /// `scoped("bluetooth")` = "<bundleID>.bluetooth".
     public static func scoped(_ name: String) -> String {
         bundleID + "." + name
@@ -20,10 +20,10 @@ public enum AppIdentity {
 }
 
 public extension Logger {
-    /// Ein Logger unter dem Subsystem der App. Frueher schrieb jede Stelle
-    /// das Subsystem selbst aus, drei davon als
-    /// `Bundle.main.bundleIdentifier ?? "ApolloShell"` - ohne Bundle
-    /// (`swift run`) landeten deren Meldungen unter einem anderen Subsystem.
+    /// A logger under the app's subsystem. Previously every call site wrote
+    /// out the subsystem itself, three of them as
+    /// `Bundle.main.bundleIdentifier ?? "ApolloShell"` - without a bundle
+    /// (`swift run`) their messages ended up under a different subsystem.
     init(category: String) {
         self.init(subsystem: AppIdentity.logSubsystem, category: category)
     }

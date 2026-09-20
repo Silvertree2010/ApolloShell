@@ -1,16 +1,16 @@
 import Foundation
 
-/// Ein Tag im Kalenderraster des Dashboards.
+/// A day in the dashboard's calendar grid.
 public struct CalendarDay: Hashable, Sendable {
     public let date: Date
     public let day: Int
-    /// Gehoert zum angezeigten Monat (sonst Vor-/Folgemonat, blass).
+    /// Belongs to the displayed month (otherwise previous/next month, dimmed).
     public let inMonth: Bool
     public let isToday: Bool
 }
 
-/// Monatsraster wie im Caelestia-Dashboard (DayOfWeekRow + MonthGrid):
-/// ganze Wochen, der erste Wochentag kommt aus dem Kalender (bei uns Montag).
+/// Month grid like the Caelestia dashboard (DayOfWeekRow + MonthGrid):
+/// whole weeks, the first weekday comes from the calendar (Monday for us).
 public enum CalendarMonth {
     public static func weeks(for month: Date, today: Date, calendar: Calendar) -> [[CalendarDay]] {
         guard let interval = calendar.dateInterval(of: .month, for: month),
@@ -35,15 +35,15 @@ public enum CalendarMonth {
         }
     }
 
-    /// Kalenderwoche je Zeile von `weeks(for:)`. Eine Zeile beginnt am ersten
-    /// Wochentag des Kalenders, alle ihre Tage liegen also in derselben
-    /// Woche - der erste genuegt. Mit Montag und der Schweizer Regel (vier
-    /// Tage) ist das die ISO-Woche.
+    /// Calendar week per row from `weeks(for:)`. A row starts on the
+    /// calendar's first weekday, so all its days fall in the same week -
+    /// the first one is enough. With Monday and the Swiss rule (four days)
+    /// this is the ISO week.
     public static func weekNumbers(_ weeks: [[CalendarDay]], calendar: Calendar) -> [Int] {
         weeks.map { week in week.first.map { calendar.component(.weekOfYear, from: $0.date) } ?? 0 }
     }
 
-    /// Zweibuchstabige Wochentage ab dem ersten Wochentag, ohne Punkt
+    /// Two-letter weekdays starting at the first weekday, no period
     /// ("Mo", "Di", ...).
     public static func weekdaySymbols(calendar: Calendar) -> [String] {
         let symbols = calendar.shortStandaloneWeekdaySymbols.map {
@@ -54,7 +54,7 @@ public enum CalendarMonth {
     }
 }
 
-/// Laufzeit als kurzer Text ("2 T 3 Std", "3 Std 12 Min", "12 Min").
+/// Uptime as short text ("2d 3h", "3h 12m", "12m").
 public enum UptimeText {
     public static func format(seconds: TimeInterval) -> String {
         let minutes = Int(seconds) / 60

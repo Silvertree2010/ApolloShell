@@ -2,16 +2,16 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-/// Antwort der Ortssuche fuer "Springfield" (Feld-Struktur wie Open-Meteo,
-/// eigene Testdaten): gleichnamige Orte in verschiedenen Bundesstaaten, wie
-/// bei Buchs AG/SG in der echten Schnittstelle.
+/// Location search response for "Springfield" (field structure like
+/// Open-Meteo, own test data): same-named places in different US states,
+/// like Buchs AG/SG in the real API.
 private let springfield = """
 {"results":[{"id":4926166,"name":"Springfield","latitude":39.78421,"longitude":-89.64371,"elevation":180.0,"feature_code":"PPLA2","country_code":"US","admin1_id":4896861,"admin2_id":4250384,"timezone":"America/Chicago","population":114230,"postcodes":["62701"],"country_id":6252001,"country":"Vereinigte Staaten","admin1":"Illinois","admin2":"Sangamon County"},{"id":4409896,"name":"Springfield","latitude":37.21533,"longitude":-93.29824,"elevation":409.0,"feature_code":"PPLA2","country_code":"US","admin1_id":4398678,"admin2_id":4404128,"timezone":"America/Chicago","population":159498,"postcodes":["65801"],"country_id":6252001,"country":"Vereinigte Staaten","admin1":"Missouri","admin2":"Greene County"},{"id":4951788,"name":"Springfield","latitude":42.10148,"longitude":-72.58981,"elevation":21.0,"feature_code":"PPLA2","country_code":"US","admin1_id":6254926,"admin2_id":4936544,"timezone":"America/New_York","postcodes":["01101"],"country_id":6252001,"country":"Vereinigte Staaten","admin1":"Massachusetts","admin2":"Hampden County"}],"generationtime_ms":0.8020401}
 """
 
-@Suite("Nexus: Ortssuche von Open-Meteo")
+@Suite("Nexus: location search from Open-Meteo")
 struct GeocodingTests {
-    @Test("drei Treffer aus der Antwort, in ihrer Reihenfolge", arguments: [
+    @Test("three hits from the response, in their order", arguments: [
         (0, 4926166, "Springfield", "Illinois, Vereinigte Staaten", 39.78421, -89.64371),
         (1, 4409896, "Springfield", "Missouri, Vereinigte Staaten", 37.21533, -93.29824),
         (2, 4951788, "Springfield", "Massachusetts, Vereinigte Staaten", 42.10148, -72.58981),
@@ -28,14 +28,14 @@ struct GeocodingTests {
         #expect(place.location.longitude == longitude)
     }
 
-    @Test("nichts gefunden: Antwort ohne results ist eine leere Liste", arguments: [
+    @Test("nothing found: a response without results is an empty list", arguments: [
         #"{"generationtime_ms":0.119805336}"#, #"{"results":[]}"#,
     ])
     func noResults(json: String) throws {
         #expect(try OpenMeteoGeocoding.decode(Data(json.utf8)).isEmpty)
     }
 
-    @Test("Treffer ohne Namen oder mit Koordinaten neben der Erde fallen weg", arguments: [
+    @Test("hits without a name or with coordinates off the earth are dropped", arguments: [
         #"{"results":[{"id":1,"latitude":47,"longitude":9},{"id":2,"name":"Oslo","latitude":59.91,"longitude":10.75}]}"#,
         #"{"results":[{"id":1,"name":"X","latitude":123,"longitude":9},{"id":2,"name":"Oslo","latitude":59.91,"longitude":10.75}]}"#,
         #"{"results":[{"id":1,"name":"  ","latitude":1,"longitude":1},{"id":2,"name":"Oslo","latitude":59.91,"longitude":10.75,"admin1":""}]}"#,
@@ -46,15 +46,15 @@ struct GeocodingTests {
         #expect(places.first?.detail.isEmpty == true)
     }
 
-    @Test("kein JSON: Fehler statt leerer Liste", arguments: ["kaputt", ""])
+    @Test("not JSON: error instead of an empty list", arguments: ["broken", ""])
     func brokenThrows(json: String) {
         #expect(throws: (any Error).self) { try OpenMeteoGeocoding.decode(Data(json.utf8)) }
     }
 
-    @Test("Adresse: Suchtext gekuerzt und kodiert, 5 Treffer, deutsch", arguments: [
+    @Test("address: search text trimmed and encoded, 5 hits, German language", arguments: [
         ("Bern", "name=Bern"),
         ("  Oslo \n", "name=Oslo&"),
-        ("Lissabon", "name=Lissabon"),
+        ("Lisbon", "name=Lisbon"),
     ])
     func url(query: String, expectedName: String) throws {
         let url = try #require(OpenMeteoGeocoding.url(for: query))
@@ -66,12 +66,12 @@ struct GeocodingTests {
         #expect(text.contains("language=\(OpenMeteoGeocoding.language)"))
     }
 
-    @Test("zu kurzer Suchtext: gar keine Anfrage", arguments: ["", " ", "C", " C \n"])
+    @Test("search text too short: no request at all", arguments: ["", " ", "C", " C \n"])
     func tooShort(query: String) {
         #expect(OpenMeteoGeocoding.url(for: query) == nil)
     }
 
-    @Test("Favoriten schreiben und wieder lesen", arguments: [
+    @Test("writing and reading favorites back", arguments: [
         WeatherLocation(name: "Berlin", latitude: 52.52, longitude: 13.405),
         WeatherLocation(name: "Wien", latitude: 48.2082, longitude: 16.3738),
         WeatherLocation(name: "Sydney", latitude: -33.8688, longitude: 151.2093),
@@ -98,8 +98,8 @@ struct GeocodingTests {
     func coordinatesEnglish() {
         let text = WeatherLocation(name: "", latitude: 47.00601, longitude: 9.50266)
             .coordinateText(locale: Locale(identifier: "en_US"))
-        // Die Himmelsrichtung uebersetzt erst die App (en.lproj), die Tests
-        // laufen ohne Uebersetzung.
+        // Only the app (en.lproj) translates the cardinal direction; the
+        // tests run without translation.
         #expect(text.hasPrefix("47.01° N, 9.50° "))
     }
 }
