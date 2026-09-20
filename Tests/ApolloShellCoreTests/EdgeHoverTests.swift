@@ -2,7 +2,7 @@ import CoreGraphics
 import ApolloShellCore
 import Testing
 
-@Suite("Kantenfenster per Maus")
+@Suite("Edge windows by mouse")
 struct EdgeHoverTests {
     @Test("Maus-Regel: rein sichtbar, raus weg")
     func hoverRule() {

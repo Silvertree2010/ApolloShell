@@ -1,7 +1,7 @@
 import ApolloShellCore
 import Testing
 
-@Suite("Apples Dock-Menue nachbauen")
+@Suite("Rebuilding Apple's Dock menu")
 struct DockMenuTreeTests {
     /// This is what Apple's menu looks like with Vivaldi (measured 17.09. on
     /// the screen): the front window with a tick, a separator, the commands of

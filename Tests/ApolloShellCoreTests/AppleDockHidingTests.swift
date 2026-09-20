@@ -2,7 +2,7 @@ import ApolloShellCore
 import Foundation
 import Testing
 
-@Suite("Apple-Dock ausblenden, solange ApolloShell läuft")
+@Suite("Hiding Apple's Dock while ApolloShell is running")
 struct AppleDockHidingTests {
     @Test("The hidden values")
     func hiddenValues() {

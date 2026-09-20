@@ -29,7 +29,7 @@ private struct Fruit: Block, Codable, Equatable {
     }
 }
 
-@Suite("Array.move: SwiftUI-onMove-Regel, geteilt von BarLayout, UtilitiesLayout, DashboardLayout, PinnedList, Weather")
+@Suite("Array.move: the SwiftUI onMove rule, shared by BarLayout, UtilitiesLayout, DashboardLayout, PinnedList, Weather")
 struct ArrayMoveTests {
     @Test("The target counts in the list BEFORE the move", arguments: [
         ([0], 2, ["b", "a", "c"]),
