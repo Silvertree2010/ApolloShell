@@ -1,16 +1,16 @@
 import Foundation
 
-// Globale Tastenkuerzel: Modell, Vorgaben, Anzeige und Regeln fuers
-// Aufnehmen. Registriert wird in der App (GlobalHotKey, Carbon); hier steht
-// nur, was sich ohne Oberflaeche pruefen laesst.
+// Global keyboard shortcuts: model, defaults, display and the rules for
+// recording. Registering happens in the app (GlobalHotKey, Carbon); only what
+// can be checked without a user interface stands here.
 
-/// Sondertasten eines Kuerzels. Die Bits sind dieselben wie Carbons
-/// `cmdKey`, `shiftKey`, `optionKey` und `controlKey` (HIToolbox): so geht
-/// der Wert unveraendert an RegisterEventHotKey, und ApolloShellCore braucht
-/// Carbon nicht. Die Tests vergleichen mit den echten Konstanten.
+/// The modifier keys of a shortcut. The bits are the same as Carbon's
+/// `cmdKey`, `shiftKey`, `optionKey` and `controlKey` (HIToolbox): so the
+/// value goes to RegisterEventHotKey unchanged, and ApolloShellCore needs no
+/// Carbon. The tests compare against the real constants.
 ///
-/// In settings.json als Namen ("option", "command" ...), nicht als Zahl -
-/// wer die Datei von Hand liest, soll nicht Bits zaehlen muessen.
+/// In settings.json as names ("option", "command" ...), not as a number -
+/// whoever reads the file by hand should not have to count bits.
 public struct HotKeyModifiers: OptionSet, Hashable, Sendable {
     public let rawValue: UInt32
 
@@ -22,10 +22,10 @@ public struct HotKeyModifiers: OptionSet, Hashable, Sendable {
     public static let shift = HotKeyModifiers(rawValue: 1 << 9)
     public static let option = HotKeyModifiers(rawValue: 1 << 11)
     public static let control = HotKeyModifiers(rawValue: 1 << 12)
-    /// Alle vier zusammen (⌃⌥⇧⌘) - so heisst das bei Karabiner und Co.
+    /// All four together (⌃⌥⇧⌘) - that is what Karabiner and friends call it.
     public static let hyper: HotKeyModifiers = [.control, .option, .shift, .command]
 
-    /// Reihenfolge wie in Apples Menues: ⌃⌥⇧⌘.
+    /// The order as in Apple's menus: ⌃⌥⇧⌘.
     private static let ordered: [(flag: HotKeyModifiers, symbol: String, name: String)] = [
         (.control, "⌃", "control"),
         (.option, "⌥", "option"),
@@ -33,17 +33,17 @@ public struct HotKeyModifiers: OptionSet, Hashable, Sendable {
         (.command, "⌘", "command"),
     ]
 
-    /// "⌃⌥⇧⌘" - nur die gesetzten, in Apples Reihenfolge.
+    /// "⌃⌥⇧⌘" - only the ones that are set, in Apple's order.
     public var symbols: String {
         Self.ordered.filter { contains($0.flag) }.map(\.symbol).joined()
     }
 
-    /// Namen fuer settings.json, in derselben Reihenfolge.
+    /// The names for settings.json, in the same order.
     public var names: [String] {
         Self.ordered.filter { contains($0.flag) }.map(\.name)
     }
 
-    /// Unbekannte Namen (Tippfehler, spaetere Fassung) fallen weg.
+    /// Unknown names (a typo, a later version) fall away.
     public init(names: [String]) {
         var flags: HotKeyModifiers = []
         for name in names {
@@ -65,8 +65,8 @@ extension HotKeyModifiers: Codable {
     }
 }
 
-/// Ein Tastenkuerzel: virtueller Tastencode (Carbon `kVK_…`, die Lage der
-/// Taste, nicht ihr Zeichen) plus Sondertasten.
+/// One keyboard shortcut: the virtual key code (Carbon `kVK_…`, the place of
+/// the key, not its character) plus modifier keys.
 public struct HotKey: Codable, Hashable, Sendable {
     public var keyCode: UInt32
     public var modifiers: HotKeyModifiers
@@ -80,8 +80,8 @@ public struct HotKey: Codable, Hashable, Sendable {
         case keyCode, modifiers
     }
 
-    /// Tastencodes gehen bis 127. Alles andere ist kaputt und zaehlt als
-    /// fehlend - dann gilt fuer diese Aktion die Vorgabe.
+    /// Key codes go up to 127. Anything else is broken and counts as missing
+    /// - then the default holds for this action.
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let code = try c.decode(Int.self, forKey: .keyCode)
@@ -98,21 +98,21 @@ public struct HotKey: Codable, Hashable, Sendable {
         try c.encode(modifiers, forKey: .modifiers)
     }
 
-    /// "⌥Space", "⌃⌥⇧⌘D", "F20". `keyName`: das Zeichen der Taste auf der
-    /// aktuellen Tastaturbelegung (die App fragt macOS danach) - ohne gilt
-    /// die US-Beschriftung aus `HotKeyKey`.
+    /// "⌥Space", "⌃⌥⇧⌘D", "F20". `keyName`: the character of the key on the
+    /// current keyboard layout (the app asks macOS for it) - without it the US
+    /// label out of `HotKeyKey` holds.
     public func display(keyName: String? = nil) -> String {
         modifiers.symbols + (keyName ?? HotKeyKey.name(for: keyCode) ?? String(localized: "Key \(keyCode)"))
     }
 }
 
-/// Virtuelle Tastencodes und ihre Beschriftung. Die Werte sind Carbons
-/// `kVK_…` (Events.h); die Tests pruefen sie gegen die echten Konstanten.
+/// Virtual key codes and their labels. The values are Carbon's `kVK_…`
+/// (Events.h); the tests check them against the real constants.
 ///
-/// Buchstaben, Ziffern und Satzzeichen tragen hier die US-Beschriftung.
-/// Auf anderen Belegungen liegt dort ein anderes Zeichen (Z und Y sind auf
-/// deutschen Tastaturen vertauscht); die App fragt deshalb fuer genau diese
-/// Tasten die aktuelle Belegung (`isCharacterKey`).
+/// Letters, digits and punctuation carry the US label here. On other layouts
+/// a different character lies there (Z and Y are swapped on German
+/// keyboards); so the app asks the current layout for exactly these keys
+/// (`isCharacterKey`).
 public enum HotKeyKey {
     public static let space: UInt32 = 0x31
     public static let escape: UInt32 = 0x35
@@ -132,7 +132,7 @@ public enum HotKeyKey {
         0x29: ";", 0x2A: "\\", 0x2B: ",", 0x2C: "/", 0x2D: "N", 0x2E: "M", 0x2F: ".", 0x32: "`",
     ]
 
-    /// Wie Apple sie in Menues zeigt; die Leertaste als "Space".
+    /// The way Apple shows them in menus; the space bar as "Space".
     private static let special: [UInt32: String] = [
         0x24: "↩", 0x30: "⇥", 0x31: "Space", 0x33: "⌫", 0x35: "⎋", 0x75: "⌦",
         0x73: "↖", 0x77: "↘", 0x74: "⇞", 0x79: "⇟", 0x72: "Hilfe",
@@ -142,9 +142,9 @@ public enum HotKeyKey {
         0x56: "Num 4", 0x57: "Num 5", 0x58: "Num 6", 0x59: "Num 7", 0x5B: "Num 8", 0x5C: "Num 9",
     ]
 
-    /// F1 bis F20. Auf Laptops schicken die obersten Tasten ohne fn
-    /// Helligkeit und Ton statt F-Tasten; Karabiner & Co. legen gern F13-F20
-    /// auf freie Tasten - deshalb duerfen F-Tasten auch ganz allein.
+    /// F1 to F20. On laptops the topmost keys send brightness and sound
+    /// instead of F keys without fn; Karabiner and friends like to put F13-F20
+    /// on free keys - so F keys may stand entirely on their own.
     private static let function: [UInt32: Int] = [
         0x7A: 1, 0x78: 2, 0x63: 3, 0x76: 4, 0x60: 5, 0x61: 6, 0x62: 7, 0x64: 8, 0x65: 9, 0x6D: 10,
         0x67: 11, 0x6F: 12, 0x69: 13, 0x6B: 14, 0x71: 15, 0x6A: 16, 0x40: 17, 0x4F: 18, 0x50: 19, 0x5A: 20,
@@ -155,7 +155,7 @@ public enum HotKeyKey {
         return characters[keyCode] ?? special[keyCode]
     }
 
-    /// Taste mit einem Zeichen, das von der Belegung abhaengt.
+    /// A key with a character that depends on the layout.
     public static func isCharacterKey(_ keyCode: UInt32) -> Bool {
         characters[keyCode] != nil
     }
@@ -165,14 +165,14 @@ public enum HotKeyKey {
     }
 }
 
-/// Was sich per Kuerzel oeffnen laesst.
+/// What can be opened with a shortcut.
 public enum HotKeyAction: String, CaseIterable, Identifiable, Sendable {
     case launcher, dashboard, utilities, nexus
 
     public var id: Self { self }
 
-    /// Als `String`, nicht `LocalizedStringKey`: laeuft durch Variablen bis
-    /// zu `Text(action.title)` (siehe Vertrag) - deshalb hier schon uebersetzt.
+    /// As a `String`, not a `LocalizedStringKey`: it runs through variables all
+    /// the way to `Text(action.title)` (see the contract).
     public var title: String {
         switch self {
         case .launcher: "Launcher"
@@ -201,19 +201,19 @@ public enum HotKeyAction: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// Die vier Kuerzel in settings.json (Abschnitt "hotKeys"). `nil` = kein
-/// Kuerzel (in der Datei `null`): die Aktion geht dann nur ueber die Leiste.
+/// The four shortcuts in settings.json (section "hotKeys"). `nil` = no
+/// shortcut (`null` in the file): the action then only goes through the bar.
 ///
-/// Zwei Vorgaben, weil es zwei Arten Nutzer gibt:
-/// - `firstLaunch` fuer frische Installationen. ⌥Space fuer den Launcher,
-///   wie bei Alfred und Raycast; Spotlight bleibt auf ⌘Space. Die Panels auf
-///   ⌃⌥ statt ⌥ allein: ⌥ mit einer Buchstaben- oder Zeichentaste tippt ein
-///   Zeichen, und ein globales Kuerzel schluckt es. Gemessen mit
-///   UCKeyTranslate (14.09., macOS 26.6): ⌥U ist auf US, ABC, Britisch und
-///   Deutsch die Umlaut-Taste (tote Taste), ⌥, tippt auf Schweizer und
-///   franzoesischen Belegungen «. ⌃⌥ ergibt auf keiner Belegung ein Zeichen.
-/// - `existingInstall`: wer schon eine settings.json ohne diesen Abschnitt
-///   hat, behaelt die Kuerzel von vorher (F20 und Hyper+D/U/,).
+/// Two defaults, because there are two kinds of users:
+/// - `firstLaunch` for fresh installations. ⌥Space for the launcher, as with
+///   Alfred and Raycast; Spotlight stays on ⌘Space. The panels on ⌃⌥ instead
+///   of ⌥ alone: ⌥ with a letter or punctuation key types a character, and a
+///   global shortcut swallows it. Measured with UCKeyTranslate (14.09.,
+///   macOS 26.6): ⌥U is the umlaut key (a dead key) on US, ABC, British and
+///   German, and ⌥, types « on Swiss and French layouts. ⌃⌥ gives a character
+///   on no layout.
+/// - `existingInstall`: whoever has a settings.json without this section
+///   already keeps the shortcuts from before (F20 and Hyper+D/U/,).
 public struct HotKeySettings: Codable, Equatable, Sendable {
     public var launcher: HotKey?
     public var dashboard: HotKey?
@@ -260,7 +260,7 @@ public struct HotKeySettings: Codable, Equatable, Sendable {
         }
     }
 
-    /// Welche andere Aktion dieses Kuerzel schon hat.
+    /// Which other action has this shortcut already.
     public func action(using key: HotKey, except excluded: HotKeyAction? = nil) -> HotKeyAction? {
         HotKeyAction.allCases.first { $0 != excluded && self[$0] == key }
     }
@@ -278,9 +278,9 @@ public struct HotKeySettings: Codable, Equatable, Sendable {
         }
     }
 
-    /// Je Aktion: fehlt der Schluessel oder ist er unlesbar, gilt die
-    /// Vorgabe fuer frische Installationen (der Abschnitt stammt ja schon aus
-    /// dieser Fassung); `null` heisst ausdruecklich "kein Kuerzel".
+    /// Per action: when the key is missing or unreadable, the default for
+    /// fresh installations holds (the section comes out of this version
+    /// anyway); `null` means "no shortcut" on purpose.
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         var result = HotKeySettings()
@@ -297,8 +297,8 @@ public struct HotKeySettings: Codable, Equatable, Sendable {
         self = result
     }
 
-    /// Auch ein fehlendes Kuerzel als `null` schreiben: fehlte der
-    /// Schluessel, gaelte beim naechsten Lesen wieder die Vorgabe.
+    /// Write a missing shortcut as `null` too: if the key were missing, the
+    /// default would hold again on the next read.
     public func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         for key in [CodingKeys.launcher, .dashboard, .utilities, .nexus] {
@@ -311,20 +311,20 @@ public struct HotKeySettings: Codable, Equatable, Sendable {
     }
 }
 
-// MARK: - Aufnehmen
+// MARK: - Recording
 
-/// Was ein Tastendruck im Aufnahmefeld bewirkt.
+/// What a key press in the recording field does.
 public enum HotKeyRecording: Equatable, Sendable {
     case record(HotKey)
-    /// ⎋ ohne Sondertaste: abbrechen, nichts aendern.
+    /// ⎋ without a modifier: cancel, change nothing.
     case cancel
-    /// ⌫ oder ⌦ ohne Sondertaste: Kuerzel entfernen.
+    /// ⌫ or ⌦ without a modifier: remove the shortcut.
     case clear
     case rejected(HotKeyRejection)
 
-    /// Regeln wie in den Systemeinstellungen: ohne Sondertaste nur F-Tasten
-    /// (sonst fehlte die Taste beim Tippen), ⇧ allein reicht nicht (sonst
-    /// keine Grossbuchstaben mehr).
+    /// The rules as in System Settings: without a modifier only F keys
+    /// (otherwise the key would be missing while typing), ⇧ alone is not
+    /// enough (otherwise there would be no capitals any more).
     public static func evaluate(keyCode: UInt32, modifiers: HotKeyModifiers) -> HotKeyRecording {
         if modifiers.isEmpty {
             if keyCode == HotKeyKey.escape { return .cancel }
@@ -341,25 +341,25 @@ public enum HotKeyRejection: Equatable, Sendable {
     case needsModifier, shiftOnly
 }
 
-/// Hinweis zu einem gueltigen, aber heiklen Kuerzel. Es gilt trotzdem - wer
-/// z. B. Spotlight abgeschaltet hat, soll ⌘Space nehmen koennen.
+/// A notice about a valid but tricky shortcut. It holds all the same -
+/// whoever switched Spotlight off, say, should be able to take ⌘Space.
 public enum HotKeyWarning: Equatable, Sendable {
-    /// macOS oder praktisch jede App benutzt es schon.
+    /// macOS or practically every app uses it already.
     case system(String)
-    /// ⌥ (evtl. mit ⇧) und eine Zeichentaste: tippt ein Sonderzeichen.
+    /// ⌥ (maybe with ⇧) and a character key: types a special character.
     case typesCharacters
 }
 
 public enum HotKeyAdvice {
-    /// Die bekannten Kuerzel von macOS (Tastatur > Tastaturkurzbefehle) und
-    /// die, die jede App hat. Kein Anspruch auf Vollstaendigkeit - was eine
-    /// andere App schon registriert hat, meldet die Registrierung selbst.
+    /// The well-known shortcuts of macOS (Keyboard > Keyboard Shortcuts) and
+    /// the ones every app has. No claim to completeness - whatever another app
+    /// has registered already is reported by the registration itself.
     private static let system: [HotKey: String] = {
         let cmd = HotKeyModifiers.command, opt = HotKeyModifiers.option
         let ctrl = HotKeyModifiers.control, shift = HotKeyModifiers.shift
-        // Namen laufen als Daten bis in HotKeyText.warning(_:) - dort werden
-        // sie in einen uebersetzten Satz eingesetzt, deshalb hier schon
-        // uebersetzt (String, nicht LocalizedStringKey; siehe Vertrag).
+        // The names run as data all the way into HotKeyText.warning(_:) -
+        // there they are put into a sentence (String, not
+        // LocalizedStringKey; see the contract).
         let entries: [(UInt32, HotKeyModifiers, String)] = [
             (HotKeyKey.space, cmd, "Spotlight"),
             (HotKeyKey.space, [cmd, opt], String(localized: "Finder Search Window")),
@@ -402,7 +402,7 @@ public enum HotKeyAdvice {
     }
 }
 
-/// Texte rund um die Kuerzel (Nexus und Einfuehrung).
+/// The texts around the shortcuts (Nexus and the introduction).
 public enum HotKeyText {
     public static func rejection(_ reason: HotKeyRejection) -> String {
         switch reason {
@@ -424,8 +424,8 @@ public enum HotKeyText {
         }
     }
 
-    /// Registrierung abgelehnt. `alreadyTaken`: Carbon meldet
-    /// eventHotKeyExistsErr - eine andere App hat es zuerst registriert.
+    /// The registration was turned down. `alreadyTaken`: Carbon reports
+    /// eventHotKeyExistsErr - another app registered it first.
     public static func registrationFailed(alreadyTaken: Bool, status: Int32) -> String {
         alreadyTaken
             ? String(localized: "Not active: Another app already uses this shortcut.")

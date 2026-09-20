@@ -1,20 +1,20 @@
 import AppKit
 import SwiftUI
 
-/// Nexus, das Einstellungsfenster der Shell (Caelestia: modules/nexus).
-/// Oeffnet ueber den Einstellungs-Knopf im Utilities-Panel und SUPER+,.
+/// Nexus, the settings window of the shell (Caelestia: modules/nexus). Opens
+/// through the settings button in the utilities panel and SUPER+,.
 ///
-/// Anders als alle anderen Teile ein ganz normales Fenster: Titelleiste,
-/// schliessen, verkleinern, Groesse aendern - wie die Systemeinstellungen.
-/// Die App ist aber eine Accessory-App (kein Dock-Symbol, nie aktiv). Damit
-/// man in die Suchfelder tippen kann, muss das Fenster Schluesselfenster
-/// werden, und das geht nur, wenn die App aktiv ist: `NSApp.activate()`
-/// beim Zeigen. Beim Schliessen bekommt die vorher vordere App den Fokus
-/// zurueck, sonst stuende man in einer App ohne Fenster.
+/// Unlike every other part, an ordinary window: title bar, close, minimise,
+/// resize - like System Settings. The app is an accessory app though (no Dock
+/// symbol, never active). So that one can type into the search fields, the
+/// window has to become the key window, and that only works while the app is
+/// active: `NSApp.activate()` when showing it. On closing, the app that was
+/// at the front before gets the focus back, otherwise one would stand in an
+/// app without a window.
 ///
-/// Genau ein Fenster: nochmal oeffnen holt das bestehende nach vorne.
-/// Schliessen versteckt es nur (`isReleasedWhenClosed = false`); die App
-/// laeuft weiter, denn eine Accessory-App endet nicht mit ihrem letzten Fenster.
+/// Exactly one window: opening it again brings the existing one forward.
+/// Closing only hides it (`isReleasedWhenClosed = false`); the app goes on
+/// running, since an accessory app does not end with its last window.
 @MainActor
 final class Nexus: NSObject, NSWindowDelegate {
     private static let frameName = "Nexus"
@@ -28,10 +28,10 @@ final class Nexus: NSObject, NSWindowDelegate {
     private let shellEditor: ShellEditor
     private var shell: NexusShellParts
     private var window: NexusWindow?
-    /// Wer vor dem Oeffnen vorne war - bekommt beim Schliessen den Fokus zurueck.
+    /// Who was at the front before the opening - gets the focus back on closing.
     private var previousApp: NSRunningApplication?
 
-    /// "Einführung zeigen" auf der Seite Über. Vor dem ersten Oeffnen setzen.
+    /// "Show Introduction" on the About page. Set it before the first opening.
     var onShowOnboarding: @MainActor () -> Void {
         get { shell.showOnboarding }
         set { shell.showOnboarding = newValue }
@@ -47,12 +47,12 @@ final class Nexus: NSObject, NSWindowDelegate {
         shell = NexusShellParts(hotKeys: hotKeys, autostart: autostart, permissions: permissions,
                                 updates: updates, themes: themes)
         super.init()
-        // Kommt zurueck, sobald der globale Bearbeitungsmodus endet (Fertig,
-        // Abbrechen, Esc) - auf derselben Seite, wie sie beim Start stand.
-        // `NSApp.activate()` zuerst: ohne das kam das Fenster nach vorne, aber
-        // ohne Fokus zurueck, wenn zwischendurch eine andere App aktiv wurde
-        // (Scrim/Werkzeugleiste/Galerie nehmen selbst nie die Tastatur an) -
-        // es stand dann sichtbar, aber hinter der wirklich aktiven App.
+        // Comes back as soon as the global edit mode ends (Done, Cancel, Esc)
+        // - on the same page it stood on at the start. `NSApp.activate()`
+        // first: without it the window came forward but without focus when
+        // another app became active in between (the scrim, the toolbar and the
+        // gallery never take the keyboard themselves) - it then stood visibly,
+        // but behind the app that was really active.
         shellEditor.addEndHandler { [weak self] in
             NSApp.activate()
             self?.window?.makeKeyAndOrderFront(nil)
@@ -60,9 +60,9 @@ final class Nexus: NSObject, NSWindowDelegate {
         shell.beginEditing = { [weak self] in self?.beginEditing() }
     }
 
-    /// Knopf „Oberfläche bearbeiten“ (jede Nexus-Seite, Spec Abschnitt 4):
-    /// startet den globalen Bearbeitungsmodus auf dem Bildschirm dieses
-    /// Fensters und tritt selbst ab, bis er endet.
+    /// The “Edit Interface” button (every Nexus page, spec section 4): starts
+    /// the global edit mode on the screen of this window and steps aside
+    /// itself until it ends.
     func beginEditing() {
         guard let window, window.isVisible else { return }
         guard let screen = window.screen ?? NSScreen.main else { return }
@@ -74,11 +74,11 @@ final class Nexus: NSObject, NSWindowDelegate {
         if let page { state.page = page }
         let window = self.window ?? makeWindow()
         if !window.isVisible {
-            // Frisch lesen: pinned.json und weather.json koennen seit dem
-            // letzten Mal von Hand geaendert worden sein.
+            // Read fresh: pinned.json and weather.json may have been changed
+            // by hand since the last time.
             pinned.reload()
             weather.reload()
-            // Apps fuer "Andere App …" (Dateimanager): neu installierte zaehlen.
+            // Apps for "Other App …" (file manager): newly installed ones count.
             providers.reload()
             let front = NSWorkspace.shared.frontmostApplication
             previousApp = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : front
@@ -97,25 +97,25 @@ final class Nexus: NSObject, NSWindowDelegate {
         window.title = "Nexus"
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
-        // Per SUPER+, aus einem anderen Space: Fenster kommt dorthin, statt
-        // dass macOS zum Space des Fensters springt.
+        // Through SUPER+, out of another space: the window comes there instead
+        // of macOS jumping to the space of the window.
         window.collectionBehavior = [.moveToActiveSpace]
         window.delegate = self
 
-        // `shellTheme` setzt den Farbton der Steuerelemente nach dem Theme.
+        // `shellTheme` sets the tint of the controls by the theme.
         let root = NexusView(state: state, settings: settings, pinned: pinned, weather: weather,
                              providers: providers, system: .read(), shell: shell)
             .shellTheme()
         let hosting = NSHostingController(rootView: root)
-        // Titel und Werkzeugleiste der SwiftUI-Seiten ins Fenster, wie bei
-        // einer SwiftUI-Szene. Groesse: nur die Mindestgroesse aus dem
-        // Inhalt, sonst liesse sich das Fenster nicht frei ziehen.
+        // The title and the toolbar of the SwiftUI pages into the window, as
+        // with a SwiftUI scene. The size: only the minimum size out of the
+        // content, otherwise the window could not be dragged freely.
         hosting.sceneBridgingOptions = [.title, .toolbars]
         hosting.sizingOptions = [.minSize]
         window.contentViewController = hosting
         window.setContentSize(Self.defaultSize)
 
-        // Rahmen merken (UserDefaults der App). Erstes Mal: mittig.
+        // Remember the frame (in the app's UserDefaults). The first time: centred.
         if !window.setFrameUsingName(Self.frameName) { window.center() }
         window.setFrameAutosaveName(Self.frameName)
         self.window = window
@@ -124,32 +124,32 @@ final class Nexus: NSObject, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         weather.cancelSearch()
-        // Versteckte Seiten melden kein onDisappear: Aufnahme und das
-        // Nachsehen der Freigabe hier beenden.
+        // Hidden pages report no onDisappear: end the recording and the
+        // permission check here.
         shell.hotKeys.cancelRecording()
         shell.permissions.watch(false, by: NexusGeneralPage.watcher)
-        // Nexus zu waehrend einer Bearbeitung zaehlt wie "Abbrechen" - sonst
-        // bliebe Dashboard und Kontrollzentrum angepinnt offen, ohne dass man
-        // es beenden kann. Spec Abschnitt 4: nur der Knopf „Fertig“ schreibt
-        // die Arbeitskopie, jeder andere Ausstieg (Esc, Schliessen) verwirft
-        // sie - `done()` haette hier ungefragt gespeichert. In der Praxis
-        // kommt das kaum vor: Nexus steht waehrend der Bearbeitung beiseite
-        // (`beginEditing` ordnet es aus), dieser Pfad faengt nur ab, falls
-        // das Fenster mittendrin doch noch geschlossen wird.
+        // Closing Nexus while editing counts as "Cancel" - otherwise the
+        // dashboard and the control centre would stay pinned open with no way
+        // to end it. Spec section 4: only the “Done” button writes the working
+        // copy, every other way out (Esc, closing) discards it - `done()`
+        // would have saved here unasked. In practice this hardly happens:
+        // Nexus stands aside while editing (`beginEditing` orders it out), and
+        // this path only catches the case that the window is closed in the
+        // middle after all.
         if shellEditor.isEditing { shellEditor.cancel() }
         previousApp?.activate()
         previousApp = nil
     }
 }
 
-/// Normales Fenster, das die ueblichen Bearbeitungs-Kuerzel selbst kennt.
+/// An ordinary window that knows the usual editing shortcuts itself.
 ///
-/// Die App hat keine Menueleiste (Accessory). Cmd+C/V/X/A/Z und Cmd+W laufen
-/// in macOS aber ueber die Menue-Eintraege - ohne Menue taete Cmd+V im
-/// Suchfeld nichts. Statt einem unsichtbaren Hauptmenue fuer die ganze App
-/// (das auch Launcher und Panels betraefe) erledigt das nur dieses Fenster:
-/// dieselben Aktionen die Responder-Kette hinauf. Cmd+Q absichtlich nicht -
-/// das beendete die ganze Shell samt Leiste.
+/// The app has no menu bar (accessory). Cmd+C/V/X/A/Z and Cmd+W run through
+/// the menu entries in macOS though - without a menu, Cmd+V would do nothing
+/// in the search field. Instead of an invisible main menu for the whole app
+/// (which would take in the launcher and the panels too), only this window
+/// does it: the same actions up the responder chain. Cmd+Q on purpose not -
+/// that would end the whole shell, bar and all.
 final class NexusWindow: NSWindow {
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         if super.performKeyEquivalent(with: event) { return true }

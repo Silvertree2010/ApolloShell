@@ -1,7 +1,7 @@
 import Foundation
 
-/// Wozu ein Token gehoert. Nur zum Gruppieren in der Doku und spaeter in
-/// Nexus - die Zugehoerigkeit darf sich aendern, der Name nie.
+/// What a token belongs to. Only for grouping in the docs and later in Nexus
+/// - the membership may change, the name never.
 public enum ThemeTokenGroup: String, Equatable, Hashable, Sendable, CaseIterable {
     case meta = "Metadata"
     case surface = "Surfaces"
@@ -16,8 +16,8 @@ public enum ThemeTokenGroup: String, Equatable, Hashable, Sendable, CaseIterable
     case feedback = "Toasts"
 }
 
-/// Bereich und Einheit einer Zahl. Die Grenzen sind kein Geschmack, sondern
-/// die Zusicherung, dass ein Theme die Shell nicht unbedienbar machen kann.
+/// The range and the unit of a number. The limits are no taste but the
+/// promise that a theme cannot make the shell unusable.
 public struct ThemeNumberSpec: Equatable, Hashable, Sendable {
     public let unit: ThemeUnit
     public let minimum: Double
@@ -30,20 +30,20 @@ public struct ThemeNumberSpec: Equatable, Hashable, Sendable {
     }
 }
 
-/// Welcher Art ein Token ist. Der Typ entscheidet, wie der Wert gelesen wird
-/// und was bei Unsinn passiert.
+/// Which kind a token is. The type decides how the value is read and what
+/// happens with nonsense.
 public enum ThemeTokenKind: Equatable, Hashable, Sendable {
     case color
-    /// Farbverlauf oder `none`; siehe `ThemeGradient`.
+    /// A gradient or `none`; see `ThemeGradient`.
     case gradient
     case number(ThemeNumberSpec)
     case text
     case file
-    /// Aufzaehlung; die Liste steht klein geschrieben darin.
+    /// An enumeration; the list stands in it in lower case.
     case option([String])
     case flag
 
-    /// Name des Typs in der Doku.
+    /// The name of the type in the docs.
     public var label: String {
         switch self {
         case .color: "color"
@@ -62,11 +62,11 @@ public enum ThemeTokenKind: Equatable, Hashable, Sendable {
     }
 }
 
-/// Mindestkontrast einer Schriftfarbe auf einer anderen Tokenfarbe.
+/// The minimum contrast of a text color on another token color.
 public struct ThemeContrastRule: Equatable, Hashable, Sendable {
-    /// Name des Tokens, auf dem diese Farbe steht.
+    /// The name of the token this color stands on.
     public let background: String
-    /// Kontrastverhaeltnis nach WCAG, das mindestens herauskommen muss.
+    /// The contrast ratio per WCAG that has to come out at least.
     public let minimum: Double
 
     public init(background: String, minimum: Double) {
@@ -75,30 +75,30 @@ public struct ThemeContrastRule: Equatable, Hashable, Sendable {
     }
 }
 
-/// Ein Token des Themes - Name, Typ, Vorgabe, Beschreibung, Gruppe.
+/// A token of the theme - name, type, default, description, group.
 ///
-/// Das Verzeichnis dieser Beschreibungen ist die einzige Wahrheit: Parser,
-/// Doku und Beispiele holen alles von hier. Regeln fuer die Zukunft stehen in
-/// docs/THEMES.md und werden von Tests erzwungen:
-/// - Ein veroeffentlichter Name verschwindet nie.
-/// - Umbenennen heisst: neuer Name, alter Name bleibt fuer immer in `aliases`.
-/// - Neue Token duerfen nur dazukommen, immer mit einer Vorgabe, die dem
-///   heutigen Aussehen entspricht - dann sieht ein altes Theme aus wie zuvor.
+/// The catalogue of these descriptions is the single truth: the parser, the
+/// docs and the examples take everything from here. The rules for the future
+/// stand in docs/THEMES.md and are enforced by tests:
+/// - A published name never disappears.
+/// - Renaming means: a new name, and the old one stays in `aliases` forever.
+/// - New tokens may only be added, always with a default that matches how it
+///   looks today - then an old theme looks the way it did.
 public struct ThemeTokenDescriptor: Equatable, Hashable, Sendable {
-    /// `--apollo-…`, klein geschrieben.
+    /// `--apollo-…`, in lower case.
     public let name: String
     public let kind: ThemeTokenKind
-    /// Gilt, wenn das Theme nichts sagt (helles Erscheinungsbild).
+    /// Holds when the theme says nothing (light appearance).
     public let defaultValue: ThemeValue
-    /// Vorgabe im dunklen Erscheinungsbild. Ohne eigene Angabe dieselbe wie
-    /// `defaultValue` - nur Farben unterscheiden sich in der Regel.
+    /// The default in the dark appearance. Without an entry of its own the
+    /// same as `defaultValue` - as a rule only colors differ.
     public let darkDefaultValue: ThemeValue
-    /// Ein englischer Satz ohne Punkt, fuer Doku und Nexus.
+    /// An English sentence without a full stop, for the docs and Nexus.
     public let summary: String
     public let group: ThemeTokenGroup
-    /// Frueher benutzte Namen. Werden weiter gelesen, fuer immer.
+    /// Names used earlier. They go on being read, forever.
     public let aliases: [String]
-    /// Nur fuer Schriftfarben: worauf sie steht und wie lesbar sie sein muss.
+    /// Only for text colors: what it stands on and how readable it has to be.
     public let contrast: ThemeContrastRule?
 
     public init(name: String, kind: ThemeTokenKind, defaultValue: ThemeValue,
@@ -119,13 +119,13 @@ public struct ThemeTokenDescriptor: Equatable, Hashable, Sendable {
         dark ? darkDefaultValue : defaultValue
     }
 
-    /// Die Vorgabe so, wie man sie in eine .css-Datei schreiben wuerde.
+    /// The default the way one would write it into a .css file.
     public func defaultText(dark: Bool = false) -> String {
         cssText(for: defaultValue(dark: dark))
     }
 
-    /// Ein Wert dieses Tokens als CSS - fuer Doku, Beispiele und spaeter fuer
-    /// den Export aus Nexus.
+    /// A value of this token as CSS - for the docs, the examples and later for
+    /// the export out of Nexus.
     public func cssText(for value: ThemeValue) -> String {
         switch value {
         case let .color(color): color.cssText
@@ -140,19 +140,19 @@ public struct ThemeTokenDescriptor: Equatable, Hashable, Sendable {
     }
 }
 
-/// Alle Token dieser Fassung. `standard` ist das Verzeichnis, mit dem die App
-/// arbeitet; eigene Verzeichnisse gibt es nur in Tests.
+/// All tokens of this version. `standard` is the catalogue the app works
+/// with; catalogues of one's own only exist in tests.
 public struct ThemeTokenCatalog: Sendable {
     public let tokens: [ThemeTokenDescriptor]
-    /// Name und Aliasse, klein geschrieben, auf die Stelle in `tokens`.
+    /// The name and the aliases, in lower case, onto the place in `tokens`.
     private let index: [String: Int]
 
     public init(_ tokens: [ThemeTokenDescriptor]) {
         self.tokens = tokens
         var index: [String: Int] = [:]
         for (position, token) in tokens.enumerated() {
-            // Doppelte Namen kann es nicht geben (Test); wenn doch, gewinnt
-            // der erste - lieber ein altes Token als gar keines.
+            // There can be no duplicate names (a test); should there be, the
+            // first one wins - an old token rather than none at all.
             for key in ([token.name] + token.aliases).map({ $0.lowercased() }) where index[key] == nil {
                 index[key] = position
             }
@@ -160,9 +160,9 @@ public struct ThemeTokenCatalog: Sendable {
         self.index = index
     }
 
-    /// CSS unterscheidet bei eigenen Eigenschaften Gross- und Kleinschreibung;
-    /// wir nicht. Ein Theme mit `--Apollo-Accent-Color` soll wirken statt
-    /// stumm zu bleiben.
+    /// CSS tells upper and lower case apart in custom properties; we do not. A
+    /// theme with `--Apollo-Accent-Color` should take hold instead of staying
+    /// silent.
     public func descriptor(named name: String) -> ThemeTokenDescriptor? {
         index[name.lowercased()].map { tokens[$0] }
     }
@@ -171,7 +171,7 @@ public struct ThemeTokenCatalog: Sendable {
         descriptor(named: name) != nil
     }
 
-    /// Vorgaben aller Token als fertige Belegung.
+    /// The defaults of all tokens as a finished set.
     public func defaults(dark: Bool) -> [String: ThemeValue] {
         var values: [String: ThemeValue] = [:]
         values.reserveCapacity(tokens.count)
@@ -182,15 +182,15 @@ public struct ThemeTokenCatalog: Sendable {
     public static let standard = ThemeTokenCatalog(ThemeTokenCatalog.standardTokens)
 }
 
-// MARK: - Bequeme, getippte Griffe auf die Token
+// MARK: - Convenient, typed handles on the tokens
 
-/// Welche Art Wert ein Token traegt, als Typ: so kann `theme.value(.accent)`
-/// nie den falschen Typ liefern. Die Arten selbst stehen in `ThemeTokenTypes`.
+/// Which kind of value a token carries, as a type: that way `theme.value(.accent)`
+/// can never hand back the wrong type. The kinds themselves stand in `ThemeTokenTypes`.
 public protocol ThemeTokenType: Sendable {
     associatedtype Value: Equatable & Sendable
-    /// Der Wert, wenn der gelesene Wert von dieser Art ist.
+    /// The value when the value that was read is of this kind.
     static func value(from value: ThemeValue) -> Value?
-    /// Nur falls ein Token im Verzeichnis fehlt (verhindert ein Test).
+    /// Only in case a token is missing in the catalogue (a test prevents that).
     static var fallback: Value { get }
 }
 
@@ -200,7 +200,7 @@ public enum ThemeTokenTypes {
         public static var fallback: ThemeColor { .black }
     }
 
-    /// `none` heisst: die Farbe daneben faerbt die Flaeche.
+    /// `none` means: the color next to it colors the area.
     public enum Gradient: ThemeTokenType {
         public static func value(from value: ThemeValue) -> ThemeGradient? { value.gradient }
         public static var fallback: ThemeGradient { .none }
@@ -232,16 +232,16 @@ public enum ThemeTokenTypes {
     }
 }
 
-/// Griff auf ein Token. Die statischen Eintraege unten sind die Griffe fuer
-/// den Rest der App.
+/// A handle on a token. The static entries below are the handles for the rest
+/// of the app.
 public struct ThemeToken<Kind: ThemeTokenType>: Equatable, Hashable, Sendable {
     public let name: String
     public init(_ name: String) { self.name = name }
     public var descriptor: ThemeTokenDescriptor? { ThemeTokenCatalog.standard.descriptor(named: name) }
 
-    /// Die Vorgabe aus dem Verzeichnis. Nur fuer Doku, Beispiele und als
-    /// Untergrund der Kontrastpruefung - die Shell selbst nimmt, was das
-    /// Theme nicht nennt, von macOS (siehe `Theme.value`).
+    /// The default out of the catalogue. Only for the docs, the examples and
+    /// as the ground of the contrast check - the shell itself takes what the
+    /// theme does not name from macOS (see `Theme.value`).
     public func defaultValue(dark: Bool = false) -> Kind.Value {
         descriptor.flatMap { Kind.value(from: $0.defaultValue(dark: dark)) } ?? Kind.fallback
     }
@@ -366,7 +366,7 @@ public extension ThemeToken where Kind == ThemeTokenTypes.Flag {
     static var shadows: Self { Self("--apollo-shadows") }
 }
 
-// MARK: - Das Verzeichnis
+// MARK: - The catalogue
 
 private extension ThemeTokenDescriptor {
     static func color(_ name: String, light: UInt32, dark: UInt32? = nil,
@@ -383,9 +383,9 @@ private extension ThemeTokenDescriptor {
         )
     }
 
-    /// Ein Verlauf-Token. Vorgabe ist immer `none`: So sieht ein Theme von
-    /// heute genauso aus wie vorher, und ein Verlauf ist etwas, das jemand
-    /// ausdruecklich will.
+    /// A gradient token. The default is always `none`: that way a theme of
+    /// today looks exactly as it did, and a gradient is something somebody
+    /// asks for on purpose.
     static func gradient(_ name: String, group: ThemeTokenGroup, _ summary: String,
                          aliases: [String] = []) -> ThemeTokenDescriptor {
         ThemeTokenDescriptor(name: name, kind: .gradient, defaultValue: .gradient(.none),
@@ -446,10 +446,10 @@ private extension ThemeTokenDescriptor {
 }
 
 public extension ThemeTokenCatalog {
-    /// Die Vorgaben sind das heutige Aussehen der Shell (macOS-Systemfarben,
-    /// helle und dunkle Fassung). Wer nichts angibt, bekommt genau das -
-    /// deshalb bleibt ein Theme von heute auch dann richtig, wenn spaeter
-    /// zwanzig Token dazukommen.
+    /// The defaults are how the shell looks today (macOS system colors, a
+    /// light and a dark version). Whoever names nothing gets exactly that -
+    /// so a theme of today stays right even when twenty tokens are added
+    /// later.
     static let standardTokens: [ThemeTokenDescriptor] = [
         // MARK: Metadata
         .number("--apollo-theme-format", 1, min: 1, max: 1_000_000, group: .meta,
