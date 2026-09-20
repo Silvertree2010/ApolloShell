@@ -109,27 +109,35 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         }
     }
 
-    /// Extra search words (Caelestia: "Search settings").
+    /// Extra search words (Caelestia: "Search settings"). English first, the
+    /// German terms stay so that a German-speaking user finds the page too.
     var keywords: [String] {
         switch self {
-        case .general: ["autostart", "anmeldung", "anmeldeobjekte", "login", "bedienungshilfen", "freigabe",
-                        "berechtigung", "system events", "datenschutz", "wach halten", "deckel", "zugeklappt",
-                        "bearbeiten", "oberfläche", "kontrollzentrum", "dashboard"]
-        case .hotKeys: ["hotkey", "kürzel", "tastatur", "shortcut", "launcher", "f20", "hyper", "spotlight", "karabiner"]
-        case .bar: ["taskbar", "spaces", "dock", "uhr", "datum", "status", "wlan", "akku", "cpu", "wetter",
-                    "medien", "abstand", "vorlage", "baustein", "app", "bildschirm", "monitor", "anzeige",
-                    "ort", "orte", "standort", "favoriten"]
-        case .launcher: ["apps", "angeheftet", "favoriten", "pinned", "reihenfolge"]
-        case .desktop: ["uhr", "hintergrund", "desktop"]
-        case .toasts: ["mitteilungen", "toasts", "akku", "ladegerät", "audio"]
-        case .providers: ["wetter", "open-meteo", "met norway", "yr", "wttr", "quelle", "dateimanager", "finder",
-                          "forklift"]
-        case .themes: ["theme", "farbe", "farben", "aussehen", "css", "verlauf", "gradient", "schrift",
-                       "dunkel", "hell", "importieren"]
-        case .updates: ["update", "aktualisierung", "version", "sparkle", "homebrew", "brew", "neustart",
-                        "release"]
-        case .system: ["netzwerk", "bluetooth", "ton", "audio", "hintergrund", "sprache", "updates"]
-        case .about: ["version", "macos", "laufzeit", "quelltext"]
+        case .general: ["autostart", "login", "login items", "accessibility", "permission", "privacy",
+                        "system events", "keep awake", "lid", "closed", "edit", "interface", "control centre",
+                        "dashboard", "anmeldung", "anmeldeobjekte", "bedienungshilfen", "freigabe",
+                        "berechtigung", "datenschutz", "wach halten", "deckel", "zugeklappt", "oberfläche"]
+        case .hotKeys: ["hotkey", "shortcut", "keyboard", "launcher", "f20", "hyper", "spotlight", "karabiner",
+                        "kürzel", "tastatur"]
+        case .bar: ["taskbar", "spaces", "dock", "clock", "date", "status", "wi-fi", "battery", "cpu", "weather",
+                    "media", "gap", "template", "block", "app", "screen", "monitor", "display", "place",
+                    "places", "location", "favourites", "uhr", "datum", "wlan", "akku", "wetter", "medien",
+                    "abstand", "vorlage", "baustein", "bildschirm", "anzeige", "ort", "orte", "standort",
+                    "favoriten"]
+        case .launcher: ["apps", "pinned", "favourites", "order", "angeheftet", "favoriten", "reihenfolge"]
+        case .desktop: ["clock", "wallpaper", "desktop", "uhr", "hintergrund"]
+        case .toasts: ["notifications", "toasts", "battery", "charger", "audio", "mitteilungen", "akku",
+                       "ladegerät"]
+        case .providers: ["weather", "open-meteo", "met norway", "yr", "wttr", "source", "file manager",
+                          "finder", "forklift", "wetter", "quelle", "dateimanager"]
+        case .themes: ["theme", "color", "colors", "appearance", "css", "gradient", "font", "dark", "light",
+                       "import", "farbe", "farben", "aussehen", "verlauf", "schrift", "dunkel", "hell",
+                       "importieren"]
+        case .updates: ["update", "version", "sparkle", "homebrew", "brew", "restart", "release",
+                        "aktualisierung", "neustart"]
+        case .system: ["network", "bluetooth", "sound", "audio", "wallpaper", "language", "updates",
+                       "netzwerk", "ton", "hintergrund", "sprache"]
+        case .about: ["version", "macos", "uptime", "source", "laufzeit", "quelltext"]
         }
     }
 
