@@ -409,6 +409,14 @@ private final class EditModeSelfTestHarness {
         // - nobody may turn that down.
         check(home("wifi") == "-", "A bare id belongs to nobody, and is turned down by nobody")
         check(!EditDragPayload.refuses(.dashboard), "Nothing read yet: every target still takes it")
+        // What the last drag left behind must not turn the next one down
+        // in the moments before its own payload has been read.
+        EditDragPayload.debugRemember(BarModuleDragPayload.string(for: .clock))
+        check(EditDragPayload.refuses(.dashboard), "A block over the dashboard is turned down")
+        check(!EditDragPayload.refuses(.bar), "The bar takes its own block")
+        EditDragPayload.debugBeginReading()
+        check(!EditDragPayload.refuses(.dashboard), "A new drag starts without the answer of the last one")
+        EditDragPayload.forget()
     }
 
 

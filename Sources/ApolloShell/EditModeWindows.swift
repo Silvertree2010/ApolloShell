@@ -379,6 +379,10 @@ final class EditModeWindows {
     /// otherwise stand on the old frame and leave a strip undimmed.
     private func placeScrims() {
         let screens = ShellScreens.current()
+        // No screen at all means a cable in the middle of being replugged,
+        // not a Mac without a display (`ShellScreens.current`): leave
+        // standing what stands, the notification comes again.
+        guard !screens.isEmpty else { return }
         // A screen that is gone takes its panel with it, instead of leaving
         // it in the catalogue for the rest of the session.
         let present = Set(screens.map(\.displayID))

@@ -37,7 +37,13 @@ enum EditDragPayload {
 
     /// Reads the payload of this drag once and remembers where it is at
     /// home. Called from `dropEntered`.
+    ///
+    /// Forgets the old answer on the spot, before it reads: what was left
+    /// standing from the last drag belongs to no target of this one, and
+    /// the few milliseconds until the text arrives would otherwise be
+    /// spent turning a drag down that is perfectly fine.
     static func remember(_ info: DropInfo, types: [UTType]) {
+        current = nil
         guard let provider = info.itemProviders(for: types).first else { return }
         provider.loadObject(ofClass: NSString.self) { value, _ in
             guard let text = value as? String else { return }
@@ -46,6 +52,14 @@ enum EditDragPayload {
     }
 
     static func forget() { current = nil }
+
+    #if DEBUG
+    /// Self-test: the two halves of `remember` without a drag session -
+    /// what a payload is sorted as, and that reading a new one forgets the
+    /// old answer first.
+    static func debugRemember(_ text: String) { current = home(of: text) }
+    static func debugBeginReading() { current = nil }
+    #endif
 
     /// True while the payload is known and belongs somewhere else. The
     /// target then proposes `.forbidden` and turns the drop down, so the
