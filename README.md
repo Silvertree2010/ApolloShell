@@ -38,7 +38,7 @@ If you like it, a star on GitHub helps other Mac users find it.
 ## What's inside
 
 - **Sidebar** on the left edge with Spaces, a clock, status icons and a power
-  button. Add, remove and reorder blocks, or start from a preset.
+  button. Add, remove and reorder its blocks in the edit mode.
 - **Dock** in the sidebar with your pinned and running apps. Clicks, menus,
   drag and drop and badges work like in Apple's Dock.
 - **Launcher.** Press ⌥Space, type, hit Return. Apps you use often come first.
@@ -48,11 +48,11 @@ If you like it, a star on GitHub helps other Mac users find it.
   clock its own time zone.
 - **Control centre** in the bottom-right corner: keep awake, sound, Wi-Fi, dark
   mode, Night Shift, a colour picker and your own buttons.
-- **One edit mode for both.** "Edit Interface" in Nexus dims the screen and
-  opens the dashboard and the control centre together: drag a widget or a
-  button where you want it, resize a widget by its corner, pick new ones from
-  the gallery behind `+`. A slider sets how large the dashboard is on this
-  screen. Done keeps the changes, Cancel drops them.
+- **One edit mode for all three.** "Edit Interface" in Nexus dims the screen
+  and opens the dashboard, the control centre and the sidebar together: drag a
+  widget, a button or a bar block where you want it, resize a widget by its
+  corner, pick new ones from the gallery behind `+`. A slider sets how large
+  the dashboard is on this screen. Done keeps the changes, Cancel drops them.
 - **Themes** as one CSS file: colours, gradients, fonts, sizes and even the
   icons for the whole shell, applied the moment you save the file.
 - **Nexus**, the settings app: shortcuts, providers, themes, updates.

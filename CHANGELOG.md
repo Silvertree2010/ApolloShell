@@ -25,6 +25,11 @@ tabs you had into pages, with the cards at the same spots. The old
   resizes a widget, and the gallery behind `+` adds new ones by dragging or
   clicking. Options open in a popover next to what you clicked. Done keeps
   the changes, Cancel drops them.
+- **The sidebar is arranged in the sidebar.** The edit mode opens it along
+  with the dashboard and the control centre: its blocks wobble, `−` removes
+  one, dragging reorders them, and the gallery has a third tab with the
+  blocks that are not in the bar yet. Its options open in a popover next to
+  the block.
 - **The dashboard grows with the screen.** It is larger on a large display;
   the size slider in the edit mode's toolbar makes it larger or smaller.
 - **Each weather widget has its own places**, and each clock its own time
@@ -44,6 +49,9 @@ tabs you had into pages, with the cards at the same spots. The old
 
 - **The language picker in Nexus > General** and the German interface with
   it, together with the `.strings` files and the translation check.
+- **The block list of Nexus > Bar** with its presets. The page keeps what is
+  a setting: which screens the bar stands on, its background and the weather
+  places.
 - **Nexus' Dashboard and Quick Actions pages** with their editors and
   templates (dashboard: Caelestia, Compact, Calendar & Weather; control
   centre: Standard, Minimal, Sound & Devices, Everything). The edit mode and

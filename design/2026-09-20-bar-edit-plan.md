@@ -49,54 +49,54 @@ keeps settings only.
 **Files:** `Sources/ApolloShellCore/BarEditSession.swift`,
 `Tests/ApolloShellCoreTests/BarEditSessionTests.swift`.
 
-- [ ] `BarEditSession`: `init(layout:)`, `hasChanges`, `add(_:at:)` (selects
+- [x] `BarEditSession`: `init(layout:)`, `hasChanges`, `add(_:at:)` (selects
       the new block, `nil` when the kind may exist only once and is there),
       `remove(id:)` (clears the selection when it was that block),
       `update(id:to:)`, `move(fromOffsets:toOffset:)`, `move(id:by:)`.
-- [ ] Tests first, against the behaviour the control centre session shows:
+- [x] Tests first, against the behaviour the control centre session shows:
       a fresh session has no changes, adding selects, removing the selected
       block clears the selection, a refused add changes nothing, and the
       mutations match what `BarLayout` does on its own.
-- [ ] Commit "Hold the sidebar's working copy while editing".
+- [x] Commit "Hold the sidebar's working copy while editing".
 
 ### Task 2: The editor holds it
 
 **Files:** `Sources/ApolloShell/ShellEditor.swift`, `EditGallery.swift`.
 
-- [ ] `ShellEditor.bar: BarEditSession?`, filled in `begin`, written in
+- [x] `ShellEditor.bar: BarEditSession?`, filled in `begin`, written in
       `done` when it has changes, dropped in `cancel`; `hasChanges` counts it.
-- [ ] `galleryTab` becomes `GalleryTab`; the gallery shows three tabs and
+- [x] `galleryTab` becomes `GalleryTab`; the gallery shows three tabs and
       lists the addable bar kinds in the third.
-- [ ] Esc order stays: gallery first, then the selection, then the mode.
-- [ ] Commit "Carry the sidebar through the edit mode".
+- [x] Esc order stays: gallery first, then the selection, then the mode.
+- [x] Commit "Carry the sidebar through the edit mode".
 
 ### Task 3: The overlay in the bar
 
 **Files:** new `Sources/ApolloShell/BarEditOverlay.swift`,
 `SidebarScreen.swift`, `SidebarContent.swift`.
 
-- [ ] While editing, the bar window draws the blocks with the wobble, the `−`
+- [x] While editing, the bar window draws the blocks with the wobble, the `−`
       badge and the selection ring, and takes clicks for selecting instead of
       for their real action.
-- [ ] Dragging a block up or down reorders it live (`move(id:by:)` on the
+- [x] Dragging a block up or down reorders it live (`move(id:by:)` on the
       block under the pointer), dropping a gallery payload
       `apolloshell.bar:<kind>` inserts at that place.
-- [ ] Options popover next to the selected block, with the rows that
+- [x] Options popover next to the selected block, with the rows that
       `NexusBarEditor` shows today (clock, spacer, app button, weather).
-- [ ] Render check: the bar in edit mode into `<dir>/edit/`.
-- [ ] Commit "Edit the sidebar where it stands".
+- [x] Render check: the bar in edit mode into `<dir>/edit/`.
+- [x] Commit "Edit the sidebar where it stands".
 
 ### Task 4: Nexus cleanup and docs
 
 **Files:** `NexusBarEditor.swift`, `NexusPages.swift`, `README.md`,
 `CHANGELOG.md`, `docs/`.
 
-- [ ] Nexus › Bar keeps screens, background and weather places; the list, the
+- [x] Nexus › Bar keeps screens, background and weather places; the list, the
       presets and the option rows go. Delete what nothing calls any more.
-- [ ] README bullet and CHANGELOG entry: the sidebar is arranged in the edit
+- [x] README bullet and CHANGELOG entry: the sidebar is arranged in the edit
       mode too.
-- [ ] Full `./test.sh`, build, render compare against the samples from before.
-- [ ] Commit "Arrange the sidebar in the edit mode, not in Nexus".
+- [x] Full `./test.sh`, build, render compare against the samples from before.
+- [x] Commit "Arrange the sidebar in the edit mode, not in Nexus".
 
 ## Live test for Andrin
 
