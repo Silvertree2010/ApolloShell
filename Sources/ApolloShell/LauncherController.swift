@@ -67,7 +67,7 @@ final class LauncherController {
         Task { @MainActor [weak self] in
             let menu = NSMenu()
             menu.autoenablesItems = false
-            menu.addItem(ClosureMenuItem(String(localized: "Öffnen")) { [weak self] in self?.launch(app) })
+            menu.addItem(ClosureMenuItem(String(localized: "Open")) { [weak self] in self?.launch(app) })
             menu.addItem(.separator())
 
             var nodes: [DockMenuNode] = []
@@ -89,7 +89,7 @@ final class LauncherController {
                 if !commands.isEmpty { menu.addItem(.separator()) }
             }
 
-            menu.addItem(ClosureMenuItem(String(localized: "Im Finder zeigen")) { [weak self] in
+            menu.addItem(ClosureMenuItem(String(localized: "Show in Finder")) { [weak self] in
                 self?.close()
                 NSWorkspace.shared.activateFileViewerSelecting([app.url])
             })

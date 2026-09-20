@@ -137,7 +137,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Start keine - erst Aenderungen danach.
         let toaster = Toaster()
         self.toaster = toaster
-        // Farbpipette der Utilities meldet "Farbe kopiert".
+        // Farbpipette der Utilities meldet "Color Copied".
         utilities.onToast = { [weak toaster] content in toaster?.toast(content) }
         let toastWindow = ToastWindow(toaster: toaster, utilitiesHeight: utilities.height)
         self.toastWindow = toastWindow

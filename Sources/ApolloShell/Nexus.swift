@@ -55,7 +55,7 @@ final class Nexus: NSObject, NSWindowDelegate {
             // letzten Mal von Hand geaendert worden sein.
             pinned.reload()
             weather.reload()
-            // Apps fuer "Andere App …" (Dateimanager): neu installierte zaehlen.
+            // Apps fuer "Other App…" (Dateimanager): neu installierte zaehlen.
             providers.reload()
             let front = NSWorkspace.shared.frontmostApplication
             previousApp = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : front

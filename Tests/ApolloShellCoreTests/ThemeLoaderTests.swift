@@ -2,7 +2,7 @@ import ApolloShellCore
 import Foundation
 import Testing
 
-@Suite("Themes: von der Platte lesen")
+@Suite("Themes: of der Platte lesen")
 struct ThemeLoaderTests {
     /// Reicht als Datei - geprueft wird der Pfad, nicht der Bildinhalt.
     private let pixel = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
@@ -135,7 +135,7 @@ struct ThemeLoaderTests {
         #expect(theme.issues.contains(ThemeIssue(.unreadableFile("weg.css"))))
     }
 
-    @Test("alle Themes eines Ordners, sortiert, ohne Beiwerk")
+    @Test("every Themes eines Ordners, sortiert, ohne Beiwerk")
     func listing() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -143,11 +143,11 @@ struct ThemeLoaderTests {
         try write(":root {}", to: root.appendingPathComponent("a.css"))
         try write("kein Theme", to: root.appendingPathComponent("notizen.txt"))
         try write(":root {}", to: root.appendingPathComponent(".versteckt.css"))
-        try folderTheme(in: root, named: "Ordner", css: ":root {}")
+        try folderTheme(in: root, named: "Folder", css: ":root {}")
         let ohne = root.appendingPathComponent("OhneCSS")
         try FileManager.default.createDirectory(at: ohne, withIntermediateDirectories: true)
 
-        #expect(ThemeLoader.themes(in: root).map(\.identifier) == ["a", "B", "Ordner"])
+        #expect(ThemeLoader.themes(in: root).map(\.identifier) == ["a", "B", "Folder"])
         #expect(ThemeLoader.themes(in: root.appendingPathComponent("gibtesnicht")).isEmpty)
     }
 
@@ -214,10 +214,10 @@ struct ThemeLoaderTests {
     func assetTooLarge() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let folder = try folderTheme(in: root, named: "Gross", css: ":root {}")
+        let folder = try folderTheme(in: root, named: "Large", css: ":root {}")
         try pixel.write(to: folder.appendingPathComponent("bg.png"))
         let limits = ThemeLimits(maxAssetBytes: 4)
-        let theme = Theme.make(identifier: "Gross",
+        let theme = Theme.make(identifier: "Large",
                                styleSheet: ThemeStyleSheetParser.parse(
                                    ":root { --apollo-background-image: url(\"bg.png\"); }"),
                                assets: .folder(folder, limits: limits), limits: limits)

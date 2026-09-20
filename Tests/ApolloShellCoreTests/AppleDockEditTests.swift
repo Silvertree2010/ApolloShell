@@ -35,7 +35,7 @@ struct AppleDockEditTests {
         #expect((moved.first as? [String: Any])?["GUID"] as? Int == 2)
     }
 
-    @Test("neu anheften: Kachel im Format von Apples Dock")
+    @Test("neu anheften: Kachel im Format of Apples Dock")
     func add() {
         // Ein Pfad, den es nicht gibt: das Ergebnis darf nicht davon abhaengen,
         // was auf diesem Mac installiert ist.

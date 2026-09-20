@@ -18,7 +18,7 @@ struct LauncherView: View {
                 Divider().opacity(0.4)
             }
             if model.results.isEmpty {
-                Text("Keine App gefunden")
+                Text("No App Found")
                     .foregroundStyle(style.paint(.secondaryText, or: .secondary))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -36,7 +36,7 @@ struct LauncherView: View {
                 .font(style.font(size: 18, weight: .medium))
                 .frame(width: 20, height: 20)
                 .foregroundStyle(style.paint(.secondaryText, or: .secondary))
-            TextField("Suchen …", text: $model.query)
+            TextField("Search…", text: $model.query)
                 .textFieldStyle(.plain)
                 .font(style.font(size: 20))
                 .focused($searchFocused)

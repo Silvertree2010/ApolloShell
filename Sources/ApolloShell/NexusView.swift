@@ -21,7 +21,7 @@ enum NexusSection: CaseIterable, Identifiable {
         // Oberste Gruppe ohne Ueberschrift, wie in den Systemeinstellungen.
         case .general: nil
         case .panels: String(localized: "Panels")
-        case .services: String(localized: "Dienste")
+        case .services: String(localized: "Services")
         case .system: String(localized: "macOS")
         case .about: nil
         }
@@ -37,37 +37,37 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
 
     var title: String {
         switch self {
-        case .general: String(localized: "Allgemein")
-        case .hotKeys: String(localized: "Tastenkürzel")
-        case .bar: String(localized: "Leiste")
-        case .utilities: String(localized: "Schnellaktionen")
+        case .general: String(localized: "General")
+        case .hotKeys: String(localized: "Keyboard Shortcuts")
+        case .bar: String(localized: "Bar")
+        case .utilities: String(localized: "Quick Actions")
         case .launcher: String(localized: "Launcher")
         case .dashboard: String(localized: "Dashboard")
-        case .desktop: String(localized: "Schreibtisch")
-        case .toasts: String(localized: "Kurzmeldungen")
-        case .providers: String(localized: "Anbieter")
+        case .desktop: String(localized: "Desktop")
+        case .toasts: String(localized: "Toasts")
+        case .providers: String(localized: "Providers")
         case .themes: String(localized: "Themes")
         case .updates: String(localized: "Updates")
-        case .system: String(localized: "Systemeinstellungen")
-        case .about: String(localized: "Über")
+        case .system: String(localized: "System Settings")
+        case .about: String(localized: "About")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .general: String(localized: "Start bei der Anmeldung und die Freigaben, die ApolloShell von macOS braucht.")
-        case .hotKeys: String(localized: "Globale Kürzel für Launcher, Dashboard, Schnellaktionen und Nexus.")
-        case .bar: String(localized: "Die Bausteine der Leiste links: anordnen, hinzufügen, einstellen.")
-        case .utilities: String(localized: "Karten und Schnellschalter im Utilities-Panel unten rechts.")
-        case .launcher: String(localized: "Die angehefteten Apps, die ohne Suchtext ganz oben stehen.")
-        case .dashboard: String(localized: "Reiter und Karten des Dashboards: anordnen, hinzufügen, einstellen. Dazu der Ort fürs Wetter.")
-        case .desktop: String(localized: "Die Uhr unten rechts auf dem Schreibtisch.")
-        case .toasts: String(localized: "Welche Ereignisse unten rechts eine Kurzmeldung zeigen.")
-        case .providers: String(localized: "Woher das Wetter kommt und welcher Dateimanager oben im Dock steht.")
-        case .themes: String(localized: "Das Aussehen der ganzen Shell aus einer CSS-Datei.")
-        case .updates: String(localized: "Wie ApolloShell sich auf dem neuesten Stand hält.")
-        case .system: String(localized: "Netzwerk, Bluetooth, Ton, Hintergrund und Sprache regelt macOS.")
-        case .about: String(localized: "Version, System und Quelltext.")
+        case .general: String(localized: "Start at login and the permissions ApolloShell needs from macOS.")
+        case .hotKeys: String(localized: "Global shortcuts for Launcher, Dashboard, Quick Actions and Nexus.")
+        case .bar: String(localized: "The building blocks of the bar on the left: arrange, add, configure.")
+        case .utilities: String(localized: "Cards and quick toggles in the Quick Actions panel, bottom right.")
+        case .launcher: String(localized: "The pinned apps that appear at the top without a search text.")
+        case .dashboard: String(localized: "The Dashboard's tabs and cards: arrange, add, configure. Plus the location for the weather.")
+        case .desktop: String(localized: "The clock at the bottom right of the desktop.")
+        case .toasts: String(localized: "Which events show a toast at the bottom right.")
+        case .providers: String(localized: "Where the weather comes from and which file manager sits at the top of the Dock.")
+        case .themes: String(localized: "The look of the whole shell, from one CSS file.")
+        case .updates: String(localized: "How ApolloShell keeps itself up to date.")
+        case .system: String(localized: "macOS handles network, Bluetooth, sound, background and language.")
+        case .about: String(localized: "Version, system and source code.")
         }
     }
 
@@ -122,7 +122,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         switch self {
         case .general: ["autostart", "anmeldung", "anmeldeobjekte", "login", "bedienungshilfen", "freigabe",
                         "berechtigung", "system events", "datenschutz"]
-        case .hotKeys: ["hotkey", "kürzel", "tastatur", "shortcut", "launcher", "f20", "hyper", "spotlight", "karabiner"]
+        case .hotKeys: ["hotkey", "shortcut", "keyboard", "keys", "launcher", "f20", "hyper", "spotlight", "karabiner"]
         case .bar: ["taskbar", "spaces", "dock", "uhr", "datum", "status", "wlan", "akku", "cpu", "wetter",
                     "medien", "abstand", "vorlage", "baustein", "app", "bildschirm", "monitor", "anzeige"]
         case .utilities: ["utilities", "schnellschalter", "kontrollzentrum", "karten", "wach halten", "ton", "knopf",
@@ -131,7 +131,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .dashboard: ["wetter", "ort", "standort", "reiter", "karten", "kalender", "kalenderwoche", "uhr", "medien",
                           "ressourcen", "benutzer", "leistung", "vorlage"]
         case .desktop: ["uhr", "hintergrund", "desktop"]
-        case .toasts: ["mitteilungen", "toasts", "akku", "ladegerät", "audio"]
+        case .toasts: ["notifications", "toasts", "battery", "charger", "audio"]
         case .providers: ["wetter", "open-meteo", "met norway", "yr", "wttr", "quelle", "dateimanager", "finder",
                           "forklift"]
         case .themes: ["theme", "farbe", "farben", "aussehen", "css", "verlauf", "gradient", "schrift",
@@ -189,7 +189,7 @@ struct NexusView: View {
     }
 }
 
-/// Was die Seiten "Allgemein", "Tastenkürzel" und "Über" von der Shell
+/// Was die Seiten "General", "Keyboard Shortcuts" und "About" von der Shell
 /// brauchen: Kuerzel, Autostart, Freigaben und den Weg zur Einfuehrung.
 struct NexusShellParts {
     let hotKeys: HotKeyCenter
@@ -362,7 +362,7 @@ struct NexusSystemLink: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .help("In den Systemeinstellungen öffnen")
+        .help("Open in System Settings")
     }
 }
 

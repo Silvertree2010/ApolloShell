@@ -4,7 +4,7 @@ import IOKit
 import IOKit.ps
 import ApolloShellCore
 
-/// Liest fuer den Reiter "Leistung", was SystemSampler nicht hat: GPU,
+/// Liest fuer den Reiter "Performance", was SystemSampler nicht hat: GPU,
 /// Netzwerk, Akku mit Restzeit. Alles oeffentliche Schnittstellen ohne
 /// Freigabe (gemessen 14.09. auf dem M4 Pro). Temperaturen fehlen bewusst:
 /// auf Apple Silicon gibt es sie nur ueber SMC/private Schnittstellen.

@@ -61,8 +61,8 @@ public enum UptimeText {
         let days = minutes / (60 * 24)
         let hours = (minutes / 60) % 24
         let mins = minutes % 60
-        if days > 0 { return String(localized: "\(days) T \(hours) Std") }
-        if hours > 0 { return String(localized: "\(hours) Std \(mins) Min") }
-        return String(localized: "\(mins) Min")
+        if days > 0 { return String(localized: "\(days)d \(hours)h") }
+        if hours > 0 { return String(localized: "\(hours)h \(mins)m") }
+        return String(localized: "\(mins)m")
     }
 }

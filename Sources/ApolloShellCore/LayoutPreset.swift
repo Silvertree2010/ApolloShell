@@ -39,8 +39,8 @@ public enum LayoutPresetReplacement<P: LayoutPreset> {
     /// Beschriftung des Bestaetigen-Knopfs - bei allen dreien gleich.
     public var confirmLabel: String {
         switch self {
-        case .preset: String(localized: "Laden")
-        case .reset: String(localized: "Zurücksetzen")
+        case .preset: String(localized: "Load")
+        case .reset: String(localized: "Reset")
         }
     }
 }

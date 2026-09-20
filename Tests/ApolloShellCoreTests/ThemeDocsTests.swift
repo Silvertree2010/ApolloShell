@@ -140,7 +140,7 @@ struct ThemeDocsTests {
         #expect(theme.title == "Everything")
     }
 
-    @Test("alle Beispiele liegen im selben Ordner und werden gefunden")
+    @Test("every Beispiele liegen im selben Ordner und werden gefunden")
     func allExamplesAreThemes() {
         #expect(ThemeLoader.themes(in: Self.examples).map(\.identifier) == ["full", "minimal", "Nightfall"])
     }

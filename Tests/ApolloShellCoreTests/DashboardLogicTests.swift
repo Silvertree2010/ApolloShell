@@ -71,9 +71,9 @@ struct DashboardLogicTests {
     // Ausgerechnete Werte: mit `3.0 * 3600 + 12 * 60` im Array gibt der
     // Typpruefer auf ("unable to type-check in reasonable time").
     @Test("Laufzeit-Text", arguments: [
-        (TimeInterval(2_700), "45 Min"),        // 45 Minuten
-        (TimeInterval(11_520), "3 Std 12 Min"), // 3 h 12 min
-        (TimeInterval(183_600), "2 T 3 Std"),   // 2 Tage 3 h
+        (TimeInterval(2_700), "45m"),        // 45 Minuten
+        (TimeInterval(11_520), "3h 12m"), // 3 h 12 min
+        (TimeInterval(183_600), "2d 3h"),   // 2 Tage 3 h
     ])
     func uptime(seconds: TimeInterval, text: String) {
         #expect(UptimeText.format(seconds: seconds) == text)

@@ -21,7 +21,7 @@ struct UtilitiesLayoutTests {
 
     // MARK: Migration und Vorgabe
 
-    @Test("ohne Abschnitt oder unlesbar: das feste Panel von vorher", arguments: [
+    @Test("ohne Abschnitt oder unlesbar: das feste Panel of vorher", arguments: [
         "{}", #"{"utilities":5}"#, #"{"utilities":{}}"#, #"{"utilities":{"layout":"kaputt"}}"#, #"{"utilities":{"layout":{}}}"#,
     ])
     func migration(json: String) {
@@ -372,10 +372,10 @@ struct UtilitiesCustomToggleTests {
     }
 
     @Test("App-Knopf: ohne App oder nicht installiert nicht klickbar", arguments: [
-        (UtilitiesAppOptions(), "Editor" as String?, false, "Noch keine App gewählt"),
-        (UtilitiesAppOptions(bundleID: "com.example.app"), nil as String?, false, "App nicht installiert"),
-        (UtilitiesAppOptions(bundleID: "com.example.app"), "Editor" as String?, true, "Editor öffnen"),
-        (UtilitiesAppOptions(bundleID: "com.example.app", title: "Schreiben"), "Editor" as String?, true, "Schreiben öffnen"),
+        (UtilitiesAppOptions(), "Editor" as String?, false, "No App Chosen Yet"),
+        (UtilitiesAppOptions(bundleID: "com.example.app"), nil as String?, false, "App Not Installed"),
+        (UtilitiesAppOptions(bundleID: "com.example.app"), "Editor" as String?, true, "Open Editor"),
+        (UtilitiesAppOptions(bundleID: "com.example.app", title: "Schreiben"), "Editor" as String?, true, "Open Schreiben"),
     ])
     func appLook(options: UtilitiesAppOptions, name: String?, enabled: Bool, help: String) {
         let look = QuickToggles.openApp(options, appName: name)
@@ -390,14 +390,14 @@ struct UtilitiesCustomToggleTests {
     }
 
     @Test("Link- und Kurzbefehl-Knopf", arguments: [
-        (UtilitiesToggle.openLink(.init()), false, "Noch kein Link", "link"),
-        (UtilitiesToggle.openLink(.init(url: "zwei worte")), false, "Link ungültig", "link"),
-        (UtilitiesToggle.openLink(.init(url: "www.example.com")), true, "example.com öffnen", "link"),
-        (UtilitiesToggle.openLink(.init(url: "example.com", title: "Doku", symbol: "book.fill")), true, "Doku öffnen", "book.fill"),
-        (UtilitiesToggle.runShortcut(.init()), false, "Noch kein Kurzbefehl gewählt", "square.2.layers.3d.fill"),
-        (UtilitiesToggle.runShortcut(.init(name: "Fokus")), true, "Kurzbefehl „Fokus“ ausführen", "square.2.layers.3d.fill"),
+        (UtilitiesToggle.openLink(.init()), false, "No Link Yet", "link"),
+        (UtilitiesToggle.openLink(.init(url: "zwei worte")), false, "Invalid Link", "link"),
+        (UtilitiesToggle.openLink(.init(url: "www.example.com")), true, "Open example.com", "link"),
+        (UtilitiesToggle.openLink(.init(url: "example.com", title: "Doku", symbol: "book.fill")), true, "Open Doku", "book.fill"),
+        (UtilitiesToggle.runShortcut(.init()), false, "No Shortcut Chosen Yet", "square.2.layers.3d.fill"),
+        (UtilitiesToggle.runShortcut(.init(name: "Fokus")), true, "Run Shortcut “Fokus”", "square.2.layers.3d.fill"),
         (UtilitiesToggle.runShortcut(.init(name: "Fokus", title: "Ruhe", symbol: "moon.fill")), true,
-         "Kurzbefehl „Ruhe“ ausführen", "moon.fill"),
+         "Run Shortcut “Ruhe”", "moon.fill"),
     ])
     func customLooks(toggle: UtilitiesToggle, enabled: Bool, help: String, symbol: String) {
         let look = switch toggle {
@@ -418,7 +418,7 @@ struct UtilitiesCustomToggleTests {
     func hideFilter(pid: Int32, regular: Bool, frontmost: Int32, keep: Bool, hides: Bool) {
         #expect(UtilitiesHideApps.shouldHide(pid: pid, isRegular: regular, ownPID: 10, frontmostPID: frontmost,
                                              keepFrontmost: keep) == hides)
-        #expect(QuickToggles.hideApps(.init(keepFrontmost: keep)).help == (keep ? "Andere Apps ausblenden" : "Alle Apps ausblenden"))
+        #expect(QuickToggles.hideApps(.init(keepFrontmost: keep)).help == (keep ? "Hide Other Apps" : "Hide All Apps"))
     }
 
     @Test("Symbolauswahl: eindeutig, nicht leer")
@@ -427,7 +427,7 @@ struct UtilitiesCustomToggleTests {
         #expect(Set(UtilitiesSymbols.choices).count == UtilitiesSymbols.choices.count)
     }
 
-    @Test("Kurzmeldung bei Fehlschlag", arguments: [("Fokus", "Fokus"), ("  ", "Unbekannter Kurzbefehl")])
+    @Test("Kurzmeldung bei Fehlschlag", arguments: [("Fokus", "Fokus"), ("  ", "Unknown Shortcut")])
     func failedToast(name: String, message: String) {
         let content = ToastText.shortcutFailed(name)
         #expect(content.message == message && content.kind == .warning)

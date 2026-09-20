@@ -178,7 +178,7 @@ struct DashboardLayoutTests {
 
     // MARK: Einstellungen
 
-    @Test("ohne Abschnitt dashboard: das Dashboard von vorher", arguments: [
+    @Test("ohne Abschnitt dashboard: das Dashboard of vorher", arguments: [
         "{}", #"{"dashboard":5}"#, #"{"dashboard":{}}"#, #"{"bar":{},"dashboard":null}"#,
     ])
     func settingsMigration(json: String) {
@@ -356,7 +356,7 @@ struct DashboardLayoutTests {
         }
     }
 
-    @Test("Caelestia: genau die festen Masse von vorher")
+    @Test("Caelestia: genau die festen Masse of vorher")
     func caelestiaFrames() {
         #expect(DashboardGeometry.rowWidth == 627)
         #expect(frames(.caelestia) == [

@@ -4,7 +4,7 @@ import Foundation
 /// wie "In … zeigen" dort eine Datei zeigt. Die App fragt nur, ob etwas
 /// installiert ist; entschieden wird hier, getestet.
 ///
-/// Der systemweite Standard (`NSFileViewer`, den "Im Finder zeigen" in
+/// Der systemweite Standard (`NSFileViewer`, den "Show in Finder" in
 /// anderen Apps nimmt) wird nur gelesen, nie geaendert: die Auswahl gilt fuer
 /// die Leiste, nicht fuer das System.
 public enum ProviderFileManager {
@@ -12,7 +12,7 @@ public enum ProviderFileManager {
 
     /// Bekannte Dateimanager, in dieser Reihenfolge in Nexus vorgeschlagen,
     /// sofern installiert. Bundle-IDs nachgeschlagen 14.09.2026 (ForkLift an
-    /// einer Installation gemessen); was fehlt, geht ueber "Andere App …".
+    /// einer Installation gemessen); was fehlt, geht ueber "Other App…".
     public static let known: [String] = [
         AppleDockPrefs.forkLift,
         "com.cocoatech.PathFinder",

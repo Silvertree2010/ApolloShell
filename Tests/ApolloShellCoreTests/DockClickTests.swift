@@ -64,7 +64,7 @@ struct DockClickTests {
         #expect(actions == [.raiseCoveredWindow])
     }
 
-    @Test("Schon vorne, Fenster hier alle frei sichtbar (nebeneinander): nichts tun, kein Blaettern")
+    @Test("Schon vorne, Fenster hier every frei sichtbar (nebeneinander): nichts tun, kein Blaettern")
     func frontmostSideBySideDoesNothing() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: true, here: 2, covered: false))
         #expect(actions.isEmpty)
@@ -76,13 +76,13 @@ struct DockClickTests {
         #expect(actions == [.activate])
     }
 
-    @Test("Schon vorne, alle Fenster minimiert: das letzte zurueckholen")
+    @Test("Schon vorne, every Fenster minimiert: das letzte zurueckholen")
     func frontmostAllMinimized() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: true, here: 0, elsewhere: 0, minimized: 3))
         #expect(actions == [.unminimizeLast, .activate])
     }
 
-    @Test("Nicht vorne, alle Fenster minimiert: das letzte zurueckholen")
+    @Test("Nicht vorne, every Fenster minimiert: das letzte zurueckholen")
     func notFrontmostAllMinimized() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: false, here: 0, elsewhere: 0, minimized: 2))
         #expect(actions == [.unminimizeLast, .activate])

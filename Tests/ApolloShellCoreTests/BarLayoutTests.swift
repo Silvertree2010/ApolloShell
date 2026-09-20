@@ -101,7 +101,7 @@ struct BarLayoutTests {
         #expect(layout[id: "clock"]?.module.clock == expected)
     }
 
-    @Test("Vorgabe = Caelestia = alle alten Schalter an")
+    @Test("Vorgabe = Caelestia = every alten Schalter an")
     func defaultIsCaelestia() {
         #expect(ShellSettings().bar.layout == BarPreset.caelestia.layout)
         #expect(ShellSettings.load(from: nil).bar.layout == BarLayout.migrated())

@@ -1,6 +1,6 @@
 import Foundation
 
-/// "Wach halten" auch bei zugeklapptem Deckel.
+/// "Keep Awake" auch bei zugeklapptem Deckel.
 ///
 /// Die Energie-Zusicherung haelt den Mac nur bei Untaetigkeit wach;
 /// Zuklappen schickt ihn trotzdem schlafen. Das verhindert nur
@@ -12,10 +12,10 @@ import Foundation
 /// ersten Einschalten richtet dieselbe Frage eine eng begrenzte sudo-Regel
 /// ein (`sudoersRule`): danach geht beides ohne Passwort, auch das
 /// Zuruecksetzen beim Beenden und beim Akku-Schutz, wenn niemand da ist,
-/// der eine Frage beantworten koennte. Wer ablehnt, bekommt "Wach halten"
+/// der eine Frage beantworten koennte. Wer ablehnt, bekommt "Keep Awake"
 /// ohne den Deckel-Teil.
 public enum LidAwake {
-    /// Im Akkubetrieb endet "Wach halten" ab dieser Ladung von selbst: ein
+    /// Im Akkubetrieb endet "Keep Awake" ab dieser Ladung von selbst: ein
     /// zugeklappter Mac in der Tasche soll nicht leerlaufen oder heiss werden.
     public static let batteryFloor = 10
 
@@ -61,11 +61,11 @@ public enum LidAwake {
         // prompt") - kein SwiftUI-Text, deshalb hier schon uebersetzt.
         let prompt: String
         if !disableSleep {
-            prompt = String(localized: "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel wieder erlauben.")
+            prompt = String(localized: "ApolloShell would like to allow sleep with the lid closed again.")
         } else if install != nil {
-            prompt = String(localized: "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel aussetzen, solange „Wach halten“ läuft. Damit das künftig ohne Passwort geht, wird eine Regel angelegt, die nur diesen einen Befehl erlaubt.")
+            prompt = String(localized: "ApolloShell would like to suspend sleep with the lid closed while “Keep Awake” is on. So this works without a password from now on, it adds a rule that allows only this one command.")
         } else {
-            prompt = String(localized: "ApolloShell möchte den Ruhezustand bei zugeklapptem Deckel aussetzen, solange „Wach halten“ läuft.")
+            prompt = String(localized: "ApolloShell would like to suspend sleep with the lid closed while “Keep Awake” is on.")
         }
         return shellScript(command, prompt: prompt)
     }
@@ -76,7 +76,7 @@ public enum LidAwake {
 
     /// Die Regel wieder entfernen (Nexus).
     public static func removeRuleArguments() -> [String] {
-        let prompt = String(localized: "ApolloShell möchte seine Regel entfernen, die den Ruhezustand bei zugeklapptem Deckel ohne Passwort umschaltet.")
+        let prompt = String(localized: "ApolloShell would like to remove its rule that switches lid-closed sleep without a password.")
         return ["-e", shellScript("/bin/rm -f \(sudoersFile)", prompt: prompt)]
     }
 
@@ -137,7 +137,7 @@ public enum LidAwake {
     }
 }
 
-/// Einstellung zu "Wach halten" (settings.json, Abschnitt "keepAwake").
+/// Einstellung zu "Keep Awake" (settings.json, Abschnitt "keepAwake").
 ///
 /// `lidClosed`: auch zugeklappt. Frische Installationen: aus - es braucht
 /// Administratorrechte und laesst einen Mac in der Tasche wach. Fehlt der
@@ -181,7 +181,7 @@ public struct AppleDockHidingSettings: Codable, Equatable, Sendable {
     }
 }
 
-/// Wie es gerade um den Deckel-Teil von "Wach halten" steht.
+/// Wie es gerade um den Deckel-Teil von "Keep Awake" steht.
 public enum KeepAwakeLid: Equatable, Sendable {
     /// Nicht gewuenscht (Einstellung aus) oder Wach halten aus.
     case off

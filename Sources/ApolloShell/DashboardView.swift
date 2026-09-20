@@ -209,9 +209,9 @@ private struct DashboardEmptyGrid: View {
                 Image(systemName: "square.grid.2x2")
                     .font(style.font(size: 30, weight: .light))
                     .foregroundStyle(.tertiary)
-                Text("Keine Karten")
+                Text("No Cards")
                     .font(style.font(size: 15, weight: .semibold))
-                Text("In Nexus unter Dashboard lassen sich Karten hinzufügen.")
+                Text("Cards can be added in Nexus under Dashboard.")
                     .font(style.font(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -267,7 +267,7 @@ private struct UserCard: View {
             Badge(symbol: "apple.logo", text: model.systemVersion)
         }
         if options.showUptime {
-            Badge(symbol: "clock.arrow.circlepath", text: String(localized: "läuft seit \(model.uptime)"))
+            Badge(symbol: "clock.arrow.circlepath", text: String(localized: "running since \(model.uptime)"))
         }
     }
 }
@@ -369,7 +369,7 @@ private struct CalendarCard: View {
                 Grid(horizontalSpacing: 4, verticalSpacing: tall ? 14 : 2) {
                     GridRow {
                         if options.showWeekNumbers {
-                            Text("KW").font(style.font(size: 9, weight: .semibold)).foregroundStyle(.tertiary)
+                            Text("Wk").font(style.font(size: 9, weight: .semibold)).foregroundStyle(.tertiary)
                         }
                         ForEach(CalendarMonth.weekdaySymbols(calendar: calendar), id: \.self) { symbol in
                             Text(symbol).font(style.font(size: 11, weight: .semibold)).foregroundStyle(.secondary)
@@ -383,7 +383,7 @@ private struct CalendarCard: View {
                                     .font(style.font(size: 10, weight: .medium))
                                     .monospacedDigit()
                                     .foregroundStyle(.tertiary)
-                                    .accessibilityLabel("Kalenderwoche \(numbers[week])")
+                                    .accessibilityLabel("Calendar Week \(numbers[week])")
                             }
                             ForEach(weeks[week], id: \.self) { day in
                                 Text("\(day.day)")
@@ -422,8 +422,8 @@ private struct ResourcesCard: View {
 
     @ViewBuilder private var rings: some View {
         if options.showCPU { Ring(value: model.cpu, symbol: "cpu", iconID: "panel-cpu", help: "CPU") }
-        if options.showMemory { Ring(value: model.memory, symbol: "memorychip", iconID: "panel-memory", help: String(localized: "Arbeitsspeicher")) }
-        if options.showStorage { Ring(value: model.storage, symbol: "internaldrive", iconID: "panel-disk", help: String(localized: "Speicher")) }
+        if options.showMemory { Ring(value: model.memory, symbol: "memorychip", iconID: "panel-memory", help: String(localized: "Memory")) }
+        if options.showStorage { Ring(value: model.storage, symbol: "internaldrive", iconID: "panel-disk", help: String(localized: "Storage")) }
     }
 }
 
@@ -448,7 +448,7 @@ private struct Ring: View {
                 .frame(width: 16, height: 16)
         }
         .frame(width: 56, height: 56)
-        .help("\(help) \(Int((value * 100).rounded())) %")
-        .accessibilityLabel("\(help) \(Int((value * 100).rounded())) Prozent")
+        .help("\(help) \(Int((value * 100).rounded()))%")
+        .accessibilityLabel("\(help) \(Int((value * 100).rounded())) percent")
     }
 }

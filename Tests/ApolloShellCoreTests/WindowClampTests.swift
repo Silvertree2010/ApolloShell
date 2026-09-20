@@ -103,7 +103,7 @@ struct WindowClampTests {
         #expect(WindowClamp.dominantScreen(for: CGRect(x: -900, y: 100, width: 500, height: 500), among: screens) == nil)
     }
 
-    @Test("Zipfel von einem linken Nachbarbildschirm gehoert dem Nachbarn")
+    @Test("Zipfel of einem linken Nachbarbildschirm gehoert dem Nachbarn")
     func leftNeighbourOwnsWindow() {
         let left = CGRect(x: -1920, y: 0, width: 1920, height: 1080)
         let window = CGRect(x: -800, y: 100, width: 830, height: 500) // 30 pt auf dem Hauptbildschirm

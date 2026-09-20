@@ -26,7 +26,7 @@ public enum UpdateCheckOutcome: Equatable, Sendable {
 /// Fragt GitHub nach dem neuesten Release.
 ///
 /// Wird von der Homebrew-Fassung benutzt, die sich nicht selbst erneuern darf
-/// (siehe `InstallKind`), und von der Schaltflaeche "Jetzt prüfen", solange
+/// (siehe `InstallKind`), und von der Schaltflaeche "Check now", solange
 /// Sparkle nicht zustaendig ist. Die DMG-Fassung laesst Sparkle pruefen -
 /// zwei Wege, aber nur einer ist pro Installation aktiv.
 ///
@@ -52,7 +52,7 @@ public struct UpdateCheck: Sendable {
         do {
             let data = try await fetch(url)
             guard let release = Self.release(from: data) else {
-                return .failed(String(localized: "Die Antwort von GitHub war unverständlich."))
+                return .failed(String(localized: "The reply from GitHub could not be read."))
             }
             guard let current else { return .newer(release) }
             return release.version > current ? .newer(release) : .current

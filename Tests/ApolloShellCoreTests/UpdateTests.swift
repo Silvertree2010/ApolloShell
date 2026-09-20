@@ -4,7 +4,7 @@ import Testing
 
 @Suite("Updates: Versionen vergleichen")
 struct AppVersionTests {
-    @Test("Zahlen von links nach rechts")
+    @Test("Zahlen of links nach rechts")
     func ordersNumbers() {
         #expect(AppVersion("0.1.2")! > AppVersion("0.1.1")!)
         #expect(AppVersion("0.2.0")! > AppVersion("0.1.9")!)
@@ -73,7 +73,7 @@ struct InstallKindTests {
     }
 }
 
-@Suite("Updates: Antwort von GitHub lesen")
+@Suite("Updates: Antwort of GitHub lesen")
 struct UpdateCheckTests {
     private func response(tag: String, draft: Bool = false, prerelease: Bool = false) -> Data {
         let json: [String: Any] = [

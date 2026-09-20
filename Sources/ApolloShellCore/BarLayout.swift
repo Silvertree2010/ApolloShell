@@ -40,39 +40,39 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .dashboardButton: String(localized: "Dashboard")
         case .workspaces: String(localized: "Spaces")
         case .dock: String(localized: "Dock")
-        case .clock: String(localized: "Uhr")
+        case .clock: String(localized: "Clock")
         case .utilitiesButton: String(localized: "Utilities")
-        case .statusIcons: String(localized: "Statussymbole")
-        case .power: String(localized: "Ausschalten")
-        case .spacer: String(localized: "Flexibler Abstand")
-        case .gap: String(localized: "Fester Abstand")
-        case .divider: String(localized: "Trennlinie")
+        case .statusIcons: String(localized: "Status Icons")
+        case .power: String(localized: "Power")
+        case .spacer: String(localized: "Flexible Spacer")
+        case .gap: String(localized: "Fixed Spacer")
+        case .divider: String(localized: "Divider")
         case .appButton: String(localized: "App")
-        case .battery: String(localized: "Akku")
+        case .battery: String(localized: "Battery")
         case .cpu: String(localized: "CPU")
-        case .weather: String(localized: "Wetter")
-        case .mediaButton: String(localized: "Medien")
+        case .weather: String(localized: "Weather")
+        case .mediaButton: String(localized: "Media")
         }
     }
 
     /// Eine Zeile fuer die Galerie hinter dem +.
     public var summary: String {
         switch self {
-        case .dashboardButton: String(localized: "Öffnet das Dashboard mit Kalender, Medien und Wetter.")
-        case .workspaces: String(localized: "Ein Punkt oder eine Nummer je Schreibtisch.")
-        case .dock: String(localized: "Angeheftete und laufende Apps wie in Apples Dock.")
-        case .clock: String(localized: "Stunde und Minute untereinander, auf Wunsch mit Datum.")
-        case .utilitiesButton: String(localized: "Öffnet das Utilities-Panel.")
-        case .statusIcons: String(localized: "WLAN, Bluetooth und Akku; ein Klick zeigt Details.")
-        case .power: String(localized: "Öffnet das Sitzungsmenü.")
-        case .spacer: String(localized: "Füllt freien Platz; teilt ihn mit Dock und anderen Abständen.")
-        case .gap: String(localized: "Leerraum mit fester Höhe.")
-        case .divider: String(localized: "Kurzer Strich zwischen zwei Gruppen.")
-        case .appButton: String(localized: "Startet eine gewählte App mit einem Klick.")
-        case .battery: String(localized: "Ladestand in Prozent.")
-        case .cpu: String(localized: "Auslastung als Ring oder Zahl, alle 2 Sekunden.")
-        case .weather: String(localized: "Symbol und Temperatur vom Ort des Dashboards.")
-        case .mediaButton: String(localized: "Öffnet das Dashboard beim Reiter Medien.")
+        case .dashboardButton: String(localized: "Opens the Dashboard with calendar, media and weather.")
+        case .workspaces: String(localized: "A dot or a number per desktop.")
+        case .dock: String(localized: "Pinned and running apps, like Apple's Dock.")
+        case .clock: String(localized: "Hour and minute stacked, with an optional date.")
+        case .utilitiesButton: String(localized: "Opens the Quick Actions panel.")
+        case .statusIcons: String(localized: "Wi-Fi, Bluetooth and battery; a click shows details.")
+        case .power: String(localized: "Opens the session menu.")
+        case .spacer: String(localized: "Fills free space; shares it with the Dock and other spacers.")
+        case .gap: String(localized: "Empty space with a fixed size.")
+        case .divider: String(localized: "A short line between two groups.")
+        case .appButton: String(localized: "Launches a chosen app with a click.")
+        case .battery: String(localized: "Charge level in percent.")
+        case .cpu: String(localized: "Load as a ring or number, every 2 seconds.")
+        case .weather: String(localized: "Icon and temperature for the Dashboard's location.")
+        case .mediaButton: String(localized: "Opens the Dashboard at the Media tab.")
         }
     }
 
@@ -549,17 +549,17 @@ public enum BarPreset: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .caelestia: "Caelestia"
         case .minimal: "Minimal"
-        case .dockOnly: "Nur Dock"
+        case .dockOnly: "Dock Only"
         case .everything: "Alles"
         }
     }
 
     public var summary: String {
         switch self {
-        case .caelestia: "Die Vorgabe: Dashboard, Spaces, Dock, Uhr, Utilities, Status, Ausschalten."
-        case .minimal: "Spaces oben, Uhr und Ausschalten unten, sonst nichts."
-        case .dockOnly: "Nur die Apps, über die ganze Höhe."
-        case .everything: "Jeder Baustein einmal, zum Ausprobieren und Aussortieren."
+        case .caelestia: "The default: Dashboard, Spaces, Dock, Clock, Control Centre, Status, Power off."
+        case .minimal: "Spaces at the top, Clock and Power off at the bottom, nothing else."
+        case .dockOnly: "Just the apps, spanning the full height."
+        case .everything: "Every module once, to try out and sort through."
         }
     }
 

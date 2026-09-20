@@ -1,7 +1,7 @@
 import ApolloShellCore
 import SwiftUI
 
-// Die linke Haelfte von Nexus > Schnellaktionen unterhalb von "Wach halten":
+// Die linke Haelfte von Nexus > Schnellaktionen unterhalb von "Keep Awake":
 // die drei Karten (ein/aus, ziehen) und das Raster der Schnellschalter
 // (ziehen, +, Galerie). Die Optionen des gewaehlten Knopfs stehen in
 // UtilitiesEditorOptions.swift, die Seite selbst in UtilitiesEditor.swift.
@@ -41,13 +41,13 @@ struct UtilitiesEditorCardRow: View {
         .padding(.trailing, 4)
         .contentShape(.rect)
         .contextMenu {
-            Button("Nach oben") { store.settings.utilities.layout.moveCard(card.kind, by: -1) }
+            Button("Move Up") { store.settings.utilities.layout.moveCard(card.kind, by: -1) }
                 .disabled(isFirst)
-            Button("Nach unten") { store.settings.utilities.layout.moveCard(card.kind, by: 1) }
+            Button("Move Down") { store.settings.utilities.layout.moveCard(card.kind, by: 1) }
                 .disabled(isLast)
         }
-        .accessibilityAction(named: "Nach oben") { store.settings.utilities.layout.moveCard(card.kind, by: -1) }
-        .accessibilityAction(named: "Nach unten") { store.settings.utilities.layout.moveCard(card.kind, by: 1) }
+        .accessibilityAction(named: "Move Up") { store.settings.utilities.layout.moveCard(card.kind, by: -1) }
+        .accessibilityAction(named: "Move Down") { store.settings.utilities.layout.moveCard(card.kind, by: 1) }
     }
 
     private var enabled: Binding<Bool> {
@@ -95,20 +95,20 @@ struct UtilitiesEditorGrid: View {
                         targeted = over ? entry.id : (targeted == entry.id ? nil : targeted)
                     }
                     .contextMenu {
-                        Button("Nach vorne") { store.settings.utilities.layout.moveToggle(entry.id, by: -1) }
+                        Button("Move Forward") { store.settings.utilities.layout.moveToggle(entry.id, by: -1) }
                             .disabled(index == 0)
-                        Button("Nach hinten") { store.settings.utilities.layout.moveToggle(entry.id, by: 1) }
+                        Button("Move Backward") { store.settings.utilities.layout.moveToggle(entry.id, by: 1) }
                             .disabled(index == toggles.count - 1)
                         Divider()
-                        Button("Entfernen", role: .destructive) { remove(entry.id) }
+                        Button("Remove", role: .destructive) { remove(entry.id) }
                     }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(UtilitiesEditorText.title(entry))
                     .accessibilityAddTraits(selection == entry.id ? [.isButton, .isSelected] : .isButton)
                     .accessibilityAction { selection = entry.id }
-                    .accessibilityAction(named: "Nach vorne") { store.settings.utilities.layout.moveToggle(entry.id, by: -1) }
-                    .accessibilityAction(named: "Nach hinten") { store.settings.utilities.layout.moveToggle(entry.id, by: 1) }
-                    .accessibilityAction(named: "Entfernen") { remove(entry.id) }
+                    .accessibilityAction(named: "Move Forward") { store.settings.utilities.layout.moveToggle(entry.id, by: -1) }
+                    .accessibilityAction(named: "Move Backward") { store.settings.utilities.layout.moveToggle(entry.id, by: 1) }
+                    .accessibilityAction(named: "Remove") { remove(entry.id) }
             }
             UtilitiesEditorAddTile(targeted: targeted == Self.endTarget, action: onAdd)
                 .dropDestination(for: String.self) { ids, _ in
@@ -191,7 +191,7 @@ private struct UtilitiesEditorAddTile: View {
                             .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
                             .foregroundStyle(targeted ? Color.accentColor : Color.primary.opacity(0.25))
                     }
-                Text("Hinzufügen")
+                Text("Add")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -199,7 +199,7 @@ private struct UtilitiesEditorAddTile: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .help("Knopf hinzufügen")
+        .help("Add Button")
     }
 }
 
@@ -214,8 +214,8 @@ struct UtilitiesEditorGallery: View {
     let onCancel: () -> Void
 
     var body: some View {
-        NexusGallerySheet(title: String(localized: "Knopf hinzufügen"),
-                          subtitle: String(localized: "Er kommt ans Ende des Rasters – danach an die richtige Stelle ziehen."),
+        NexusGallerySheet(title: String(localized: "Add Button"),
+                          subtitle: String(localized: "It's added to the end of the grid – drag it to the right place afterwards."),
                           size: CGSize(width: 560, height: 600), onCancel: onCancel) {
             VStack(alignment: .leading, spacing: 14) {
                 // Eigene Knoepfe zuerst: die gehen immer, die festen
@@ -231,10 +231,10 @@ struct UtilitiesEditorGallery: View {
                         ForEach(group.kinds) { kind in
                             let available = layout.canAdd(kind)
                             NexusGalleryTile(title: kind.title, summary: kind.summary,
-                                             badge: available ? nil : String(localized: "Schon da"), minHeight: 132,
+                                             badge: available ? nil : String(localized: "Already Added"), minHeight: 132,
                                              available: available,
-                                             help: available ? String(localized: "\(kind.title) hinzufügen")
-                                                 : String(localized: "Gibt es nur einmal und steht schon im Panel"),
+                                             help: available ? String(localized: "Add \(kind.title)")
+                                                 : String(localized: "Only exists once, and it's already in the panel"),
                                              action: { onAdd(kind) }) {
                                 UtilitiesEditorGlyphTile(icon: kind.symbol.map(UtilitiesToggleItem.Icon.symbol) ?? .bluetooth,
                                                          tint: kind.group.tint, size: 30)

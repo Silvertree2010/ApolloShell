@@ -179,7 +179,7 @@ public enum ByteFormat {
     public static func usage(used: UInt64, total: UInt64, binary: Bool = false, locale: Locale = .current) -> String {
         let used = bytes(Double(used), binary: binary, locale: locale)
         let total = bytes(Double(total), binary: binary, locale: locale)
-        return String(localized: "\(used) von \(total)")
+        return String(localized: "\(used) of \(total)")
     }
 
     /// Der Wert, wie er nach dem Runden angezeigt wuerde.
@@ -211,8 +211,8 @@ public enum BatteryTankText {
     /// sie meldet. Null oder negativ heisst "wird noch berechnet".
     public static func status(_ state: BatteryState, minutes: Int?) -> String {
         let time = minutes.flatMap { $0 > 0 ? UptimeText.format(seconds: TimeInterval($0) * 60) : nil }
-        if state.charging { return time.map { String(localized: "Voll in \($0)") } ?? String(localized: "Lädt") }
-        if state.onAC { return state.level >= 100 ? String(localized: "Geladen") : String(localized: "Am Netzteil") }
-        return time.map { String(localized: "Noch \($0)") } ?? String(localized: "Berechne …")
+        if state.charging { return time.map { String(localized: "Full in \($0)") } ?? String(localized: "Charging") }
+        if state.onAC { return state.level >= 100 ? String(localized: "Charged") : String(localized: "On Power Adapter") }
+        return time.map { String(localized: "\($0) Left") } ?? String(localized: "Calculating…")
     }
 }

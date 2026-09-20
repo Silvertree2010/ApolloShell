@@ -202,7 +202,7 @@ public enum WttrCode {
         386: 95, 389: 95, 392: 95, 395: 95,
     ]
 
-    /// Unbekannt: `WeatherCondition.unknownCode` ("Unbekannt", Thermometer).
+    /// Unbekannt: `WeatherCondition.unknownCode` ("Unknown", Thermometer).
     public static func wmo(_ code: Int) -> Int {
         table[code] ?? WeatherCondition.unknownCode
     }

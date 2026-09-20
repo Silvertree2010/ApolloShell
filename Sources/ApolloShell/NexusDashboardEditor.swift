@@ -27,9 +27,9 @@ struct NexusDashboardTabsSection: View {
             }
             .onMove { store.settings.dashboard.tabs.move(fromOffsets: $0, toOffset: $1) }
         } header: {
-            Text("Reiter")
+            Text("Tabs")
         } footer: {
-            Text("Von oben nach unten wie im Dashboard von links nach rechts; zum Umsortieren ziehen. Einer bleibt immer sichtbar. Will die Leiste einen ausgeblendeten Reiter öffnen, zeigt das Dashboard den ersten sichtbaren.")
+            Text("Top to bottom as in the Dashboard from left to right; drag to reorder. One always stays visible. If the bar tries to open a hidden tab, the Dashboard shows the first visible one instead.")
         }
     }
 }
@@ -56,7 +56,7 @@ private struct NexusDashboardTabRow: View {
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
-            Toggle("\(tab.title) zeigen", isOn: Binding(
+            Toggle("Show \(tab.title)", isOn: Binding(
                 get: { store.settings.dashboard.tabs.isVisible(tab) },
                 set: { store.settings.dashboard.tabs.setVisible(tab, $0) }
             ))
@@ -69,13 +69,13 @@ private struct NexusDashboardTabRow: View {
         }
         .contentShape(.rect)
         .contextMenu {
-            Button("Nach links") { move(-1) }
+            Button("Move Left") { move(-1) }
                 .disabled(isFirst)
-            Button("Nach rechts") { move(1) }
+            Button("Move Right") { move(1) }
                 .disabled(isLast)
         }
-        .accessibilityAction(named: "Nach links") { move(-1) }
-        .accessibilityAction(named: "Nach rechts") { move(1) }
+        .accessibilityAction(named: "Move Left") { move(-1) }
+        .accessibilityAction(named: "Move Right") { move(1) }
     }
 
     private func move(_ step: Int) {
@@ -101,7 +101,7 @@ struct NexusDashboardCardSections: View {
         ForEach(DashboardZone.allCases) { zone in
             Section {
                 if zone == .top && !layout.tabs.isVisible(.dashboard) {
-                    Label("Der Reiter Dashboard ist ausgeblendet. Die Karten erscheinen erst, wenn er wieder sichtbar ist.",
+                    Label("The Dashboard tab is hidden. The cards only appear once it's visible again.",
                           systemImage: "eye.slash")
                         .foregroundStyle(.secondary)
                 }
@@ -124,14 +124,14 @@ struct NexusDashboardCardSections: View {
         Section {
             HStack(spacing: 8) {
                 Button(action: onAdd) {
-                    Label("Hinzufügen …", systemImage: "plus")
+                    Label("Add…", systemImage: "plus")
                 }
                 Spacer(minLength: 8)
                 NexusPresetMenu<DashboardPreset> { onReplace(.preset($0)) }
                 NexusPresetResetButton<DashboardPreset>(layout: layout) { onReplace(.reset) }
             }
         } footer: {
-            Text("Das Dashboard bleibt immer gleich gross. Fehlt eine Karte, nehmen ihre Nachbarn den Platz ein; eine leere Reihe überlässt der anderen die ganze Höhe.")
+            Text("The Dashboard always stays the same size. If a card is missing, its neighbours take up the space; an empty row leaves its full height to the other.")
         }
     }
 
@@ -163,9 +163,9 @@ private struct NexusDashboardCardRow: View {
         }
         .contextMenu {
             if zone.isRow {
-                Button("Nach links") { step(-1) }
+                Button("Move Left") { step(-1) }
                     .disabled(isFirst)
-                Button("Nach rechts") { step(1) }
+                Button("Move Right") { step(1) }
                     .disabled(isLast)
             }
             Menu("Verschieben nach") {
@@ -175,17 +175,17 @@ private struct NexusDashboardCardRow: View {
                 }
             }
             .disabled(card.kind.zones.count < 2)
-            Menu("Tauschen mit") {
+            Menu("Swap with") {
                 ForEach(cards.all.filter { $0.kind != card.kind }) { other in
                     Button(other.kind.title) { store.settings.dashboard.cards.swap(card.kind, other.kind) }
                         .disabled(!cards.canSwap(card.kind, other.kind))
                 }
             }
             Divider()
-            Button("Entfernen", role: .destructive) { remove() }
+            Button("Remove", role: .destructive) { remove() }
         }
-        .accessibilityAction(named: "Nach links") { step(-1) }
-        .accessibilityAction(named: "Nach rechts") { step(1) }
+        .accessibilityAction(named: "Move Left") { step(-1) }
+        .accessibilityAction(named: "Move Right") { step(1) }
     }
 
     private var label: some View {
@@ -205,8 +205,8 @@ private struct NexusDashboardCardRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Entfernen")
-            .accessibilityLabel("\(card.kind.title) entfernen")
+            .help("Remove")
+            .accessibilityLabel("Remove \(card.kind.title)")
             Image(systemName: "line.3.horizontal")
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
@@ -235,42 +235,42 @@ private struct NexusDashboardCardOptions: View {
         switch card {
         case .weather:
             let o = binding(\.weather, DashboardCard.weather, fallback: DashboardWeatherOptions())
-            NexusToggle(title: "Wetterlage", subtitle: "Zum Beispiel „Leicht bewölkt“", isOn: o.showCondition)
-            NexusToggle(title: "Höchst- und Tiefstwert", subtitle: "Von heute", isOn: o.showRange)
+            NexusToggle(title: "Condition", subtitle: "For example “Partly cloudy”", isOn: o.showCondition)
+            NexusToggle(title: "High and Low", subtitle: "For today", isOn: o.showRange)
         case .user:
             let o = binding(\.user, DashboardCard.user, fallback: DashboardUserOptions())
-            NexusToggle(title: "macOS-Version", isOn: o.showSystem)
-            NexusToggle(title: "Laufzeit", subtitle: "Wie lange der Mac seit dem Start läuft", isOn: o.showUptime)
+            NexusToggle(title: "macOS Version", isOn: o.showSystem)
+            NexusToggle(title: "Uptime", subtitle: "How long the Mac has been running since starting up", isOn: o.showUptime)
         case .clock:
             let o = binding(\.clock, DashboardCard.clock, fallback: DashboardClockOptions())
-            Picker("Darstellung", selection: o.style) {
-                Text("Untereinander").tag(DashboardClockOptions.Style.stacked)
-                Text("In einer Zeile").tag(DashboardClockOptions.Style.inline)
+            Picker("Style", selection: o.style) {
+                Text("Stacked").tag(DashboardClockOptions.Style.stacked)
+                Text("In One Row").tag(DashboardClockOptions.Style.inline)
             }
             .pickerStyle(.segmented)
-            NexusToggle(title: "Datum", subtitle: "Wochentag und Tag unter der Uhrzeit", isOn: o.showDate)
+            NexusToggle(title: "Date", subtitle: "Weekday and day below the time", isOn: o.showDate)
         case .calendar:
             let o = binding(\.calendar, DashboardCard.calendar, fallback: DashboardCalendarOptions())
-            Picker("Woche beginnt am", selection: o.firstWeekday) {
-                Text("Montag").tag(DashboardCalendarOptions.FirstWeekday.monday)
-                Text("Sonntag").tag(DashboardCalendarOptions.FirstWeekday.sunday)
+            Picker("Week Starts On", selection: o.firstWeekday) {
+                Text("Monday").tag(DashboardCalendarOptions.FirstWeekday.monday)
+                Text("Sunday").tag(DashboardCalendarOptions.FirstWeekday.sunday)
             }
             .pickerStyle(.segmented)
-            NexusToggle(title: "Kalenderwochen", subtitle: "Links neben jeder Zeile", isOn: o.showWeekNumbers)
+            NexusToggle(title: "Week Numbers", subtitle: "To the left of each row", isOn: o.showWeekNumbers)
         case .resources(let current):
             let o = binding(\.resources, DashboardCard.resources, fallback: DashboardResourcesOptions())
             // Der letzte Ring bleibt: eine leere Karte ergaebe keinen Sinn.
             let last = current.count == 1
             NexusToggle(title: "CPU", isOn: o.showCPU)
                 .disabled(last && current.showCPU)
-            NexusToggle(title: "Arbeitsspeicher", isOn: o.showMemory)
+            NexusToggle(title: "Memory", isOn: o.showMemory)
                 .disabled(last && current.showMemory)
-            NexusToggle(title: "Speicher", subtitle: "Belegter Platz auf dem Startvolume", isOn: o.showStorage)
+            NexusToggle(title: "Storage", subtitle: "Space used on the startup volume", isOn: o.showStorage)
                 .disabled(last && current.showStorage)
         case .media:
             let o = binding(\.media, DashboardCard.media, fallback: DashboardMediaOptions())
-            NexusToggle(title: "Album", subtitle: "Nicht in der kleinen Karte der unteren Reihe", isOn: o.showAlbum)
-            NexusToggle(title: "Quelle", subtitle: "Welche App spielt; nur in der Seitenspalte", isOn: o.showSource)
+            NexusToggle(title: "Album", subtitle: "Not in the small card in the bottom row", isOn: o.showAlbum)
+            NexusToggle(title: "Source", subtitle: "Which app is playing; side column only", isOn: o.showSource)
         }
         place
     }
@@ -329,8 +329,8 @@ struct NexusDashboardGallery: View {
     let onCancel: () -> Void
 
     var body: some View {
-        NexusGallerySheet(title: String(localized: "Karte hinzufügen"),
-                          subtitle: String(localized: "Sie kommt an ihren Platz wie bei Caelestia oder, wenn der voll ist, an den nächsten mit Raum."),
+        NexusGallerySheet(title: String(localized: "Add Card"),
+                          subtitle: String(localized: "It goes to its spot as in Caelestia or, if that's full, to the next one with room."),
                           size: CGSize(width: 560, height: 440), onCancel: onCancel) {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
                 ForEach(DashboardCardKind.allCases) { kind in
@@ -339,11 +339,11 @@ struct NexusDashboardGallery: View {
                     let available = target != nil
                     NexusGalleryTile(
                         title: kind.title, summary: kind.summary,
-                        badge: present ? String(localized: "Schon da") : target?.title ?? String(localized: "Kein Platz frei"),
+                        badge: present ? String(localized: "Already Added") : target?.title ?? String(localized: "No Room Left"),
                         minHeight: 110, available: available,
-                        help: present ? String(localized: "Jede Karte gibt es einmal")
-                            : available ? String(localized: "\(kind.title) hinzufügen")
-                            : String(localized: "Kein Platz hat mehr Raum dafür – erst eine andere Karte entfernen"),
+                        help: present ? String(localized: "Every card exists once")
+                            : available ? String(localized: "Add \(kind.title)")
+                            : String(localized: "No spot has room for it - remove another card first"),
                         action: { onAdd(kind) }
                     ) {
                         NexusTile(symbol: kind.symbol, tint: kind.tint, size: 30)
@@ -378,11 +378,11 @@ struct NexusDashboardPreview: View {
             let scale = max(rawScale, 0.1)
             VStack(spacing: 6) {
                 NexusScaledPreview(scale: scale, frameSize: CGSize(width: size.width * rawScale, height: size.height * rawScale),
-                                   cornerRadius: 25, accessibilityLabel: String(localized: "Vorschau des Dashboards")) {
+                                   cornerRadius: 25, accessibilityLabel: String(localized: "Preview of the Dashboard")) {
                     DashboardView(model: NexusDashboardPreviewModels.dashboard, weather: NexusDashboardPreviewModels.weather,
                                   media: NexusDashboardPreviewModels.media, settings: store)
                 }
-                Text("Vorschau mit Beispieldaten")
+                Text("Preview with Sample Data")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -414,8 +414,8 @@ enum NexusDashboardPreviewModels {
     }()
 
     static let media: MediaModel = {
-        let playing = MediaNowPlaying(title: String(localized: "Beispieltitel"), artist: String(localized: "Beispielband"),
-                                      album: String(localized: "Beispielalbum"),
+        let playing = MediaNowPlaying(title: String(localized: "Sample Title"), artist: String(localized: "Sample Artist"),
+                                      album: String(localized: "Sample Album"),
                                       isPlaying: false, duration: 240, elapsed: 80, timestamp: now, playbackRate: 0)
         let music = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Music")
         let source = MediaSource(name: "Musik", icon: music.map { NSWorkspace.shared.icon(forFile: $0.path) })
@@ -436,25 +436,25 @@ enum NexusDashboardText {
     /// Titel der Vorlagen-Rueckfrage.
     static func replacementTitle(_ replacement: LayoutPresetReplacement<DashboardPreset>) -> String {
         switch replacement {
-        case .preset(let preset): String(localized: "Vorlage „\(preset.title)“ laden?")
-        case .reset: String(localized: "Dashboard zurücksetzen?")
+        case .preset(let preset): String(localized: "Load preset “\(preset.title)”?")
+        case .reset: String(localized: "Reset the Dashboard?")
         }
     }
 
     /// Erklaerung der Vorlagen-Rueckfrage.
     static func replacementMessage(_ replacement: LayoutPresetReplacement<DashboardPreset>) -> String {
         switch replacement {
-        case .preset(let preset): String(localized: "\(preset.summary) Reiter und Karten werden ersetzt; der Wetterort bleibt.")
-        case .reset: String(localized: "Reiter und Karten wieder wie am Anfang (Vorlage Caelestia). Der Wetterort bleibt.")
+        case .preset(let preset): String(localized: "\(preset.summary) Tabs and cards will be replaced; the weather location stays.")
+        case .reset: String(localized: "Tabs and cards like they were at the start again (Caelestia preset). The weather location stays.")
         }
     }
 
     static func detail(_ tab: DashboardTab) -> String {
         switch tab {
-        case .dashboard: String(localized: "Die Karten, die hier darunter stehen")
-        case .media: String(localized: "Cover, Titel, Zeit und die spielende App")
-        case .performance: String(localized: "CPU, GPU, Speicher, Netzwerk und Akku")
-        case .weather: String(localized: "Jetzt, die nächsten Stunden und sieben Tage")
+        case .dashboard: String(localized: "The cards listed below")
+        case .media: String(localized: "Cover, title, time and the playing app")
+        case .performance: String(localized: "CPU, GPU, storage, network and battery")
+        case .weather: String(localized: "Now, the next hours and seven days")
         }
     }
 
@@ -462,27 +462,27 @@ enum NexusDashboardText {
     static func detail(_ card: DashboardCard, zone: DashboardZone) -> String {
         let parts: [String?] = switch card {
         case .weather(let o):
-            [String(localized: "Temperatur"), o.showCondition ? String(localized: "Wetterlage") : nil,
-             o.showRange ? String(localized: "Höchst/Tiefst") : nil]
+            [String(localized: "Temperature"), o.showCondition ? String(localized: "Condition") : nil,
+             o.showRange ? String(localized: "High/Low") : nil]
         case .user(let o):
             [String(localized: "Name"), o.showSystem ? String(localized: "macOS") : nil,
-             o.showUptime ? String(localized: "Laufzeit") : nil]
+             o.showUptime ? String(localized: "Uptime") : nil]
         case .clock(let o):
-            [o.style == .stacked ? String(localized: "Untereinander") : String(localized: "In einer Zeile"),
-             o.showDate ? String(localized: "Datum") : nil]
+            [o.style == .stacked ? String(localized: "Stacked") : String(localized: "In One Row"),
+             o.showDate ? String(localized: "Date") : nil]
         case .calendar(let o):
-            [o.firstWeekday == .monday ? String(localized: "Ab Montag") : String(localized: "Ab Sonntag"),
-             o.showWeekNumbers ? String(localized: "Kalenderwochen") : nil]
+            [o.firstWeekday == .monday ? String(localized: "From Monday") : String(localized: "From Sunday"),
+             o.showWeekNumbers ? String(localized: "Week Numbers") : nil]
         case .resources(let o):
             [o.showCPU ? String(localized: "CPU") : nil, o.showMemory ? String(localized: "RAM") : nil,
-             o.showStorage ? String(localized: "Speicher") : nil]
+             o.showStorage ? String(localized: "Storage") : nil]
         case .media(let o):
             switch zone {
             case .side:
-                [String(localized: "Cover mit Fortschritt"), o.showAlbum ? String(localized: "Album") : nil,
-                 o.showSource ? String(localized: "Quelle") : nil]
-            case .top: [String(localized: "Als Streifen"), o.showAlbum ? String(localized: "Album") : nil]
-            case .bottom: [String(localized: "Klein, hochkant")]
+                [String(localized: "Cover with Progress"), o.showAlbum ? String(localized: "Album") : nil,
+                 o.showSource ? String(localized: "Source") : nil]
+            case .top: [String(localized: "As a Strip"), o.showAlbum ? String(localized: "Album") : nil]
+            case .bottom: [String(localized: "Small, Portrait")]
             }
         }
         return parts.compactMap { $0 }.joined(separator: " · ")
@@ -490,16 +490,16 @@ enum NexusDashboardText {
 
     static func empty(_ zone: DashboardZone) -> String {
         switch zone {
-        case .top, .bottom: String(localized: "Leer – die andere Reihe bekommt die ganze Höhe.")
-        case .side: String(localized: "Leer – die Reihen gehen über die ganze Breite.")
+        case .top, .bottom: String(localized: "Empty – the other row gets the full height.")
+        case .side: String(localized: "Empty – the rows span the full width.")
         }
     }
 
     static func footer(_ zone: DashboardZone) -> String {
         switch zone {
-        case .top: String(localized: "130 Punkte hoch. Karten mit fester Breite behalten sie, die übrigen teilen sich den Rest.")
-        case .bottom: String(localized: "250 Punkte hoch. Nur hier ist Platz für den Kalender.")
-        case .side: String(localized: "200 Punkte breit, eine Karte über die ganze Höhe. Ist sie belegt, tauscht eine neue mit ihr den Platz.")
+        case .top: String(localized: "130 points tall. Cards with a fixed width keep it, the rest share what's left.")
+        case .bottom: String(localized: "250 points tall. Only here is there room for the calendar.")
+        case .side: String(localized: "200 points wide, one card spanning the full height. If it's occupied, a new one swaps places with it.")
         }
     }
 }

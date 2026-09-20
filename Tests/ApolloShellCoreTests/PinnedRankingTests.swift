@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Angeheftete Apps")
+@Suite("Pinned Apps")
 struct PinnedRankingTests {
     let ranker = AppRanker()
     let now = Date(timeIntervalSinceReferenceDate: 800_000_000)

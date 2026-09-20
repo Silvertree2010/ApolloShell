@@ -7,7 +7,7 @@ import SwiftUI
 /// Klicks gehen durch sie hindurch.
 ///
 /// Auf jedem Bildschirm, der auch eine Leiste hat (Nexus > Leiste,
-/// "Bildschirme") - eine Uhr auf einem Bildschirm ohne Leiste waere ein
+/// "Screens") - eine Uhr auf einem Bildschirm ohne Leiste waere ein
 /// einzelnes schwebendes Stueck Shell.
 ///
 /// Nexus > Schreibtisch schaltet sie ein und aus, sofort: `Observations`
@@ -97,7 +97,7 @@ final class DesktopClock {
         timer?.invalidate()
         timer = .once(after: untilNextMinute, owner: self) { clock in
             clock.model.now = Date()
-            clock.relayout() // Breite kann sich aendern (z. B. "Montag" -> "Donnerstag")
+            clock.relayout() // Breite kann sich aendern (z. B. "Monday" -> "Donnerstag")
             clock.timer = .repeating(every: 60, owner: clock) { clock in
                 clock.model.now = Date()
                 clock.relayout()

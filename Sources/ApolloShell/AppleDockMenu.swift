@@ -15,7 +15,7 @@ import os
 ///
 /// Was aber geht: Apples Dock den Menuebaum aufbauen lassen und ihn ueber die
 /// Bedienungshilfen lesen. Damit bekommt jede App genau ihre eigenen
-/// Eintraege, samt "Optionen" mit allem, was Apple dort hineinlegt.
+/// Eintraege, samt "Options" mit allem, was Apple dort hineinlegt.
 ///
 /// Zwei Dinge sind dabei ungeprueft und werden beim ersten Lauf gemessen
 /// (Protokoll `dockmenu`):

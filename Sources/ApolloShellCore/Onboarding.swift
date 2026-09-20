@@ -43,10 +43,10 @@ public enum OnboardingStep: Int, CaseIterable, Identifiable, Sendable {
     /// (Bundle.main dort) auf denselben deutschen Text zurueck.
     public var title: String {
         switch self {
-        case .welcome: String(localized: "Willkommen bei ApolloShell")
-        case .permissions: String(localized: "Freigaben")
-        case .hotKeys: String(localized: "Tastenkürzel")
-        case .finish: String(localized: "Alles bereit")
+        case .welcome: String(localized: "Welcome to ApolloShell")
+        case .permissions: String(localized: "Permissions")
+        case .hotKeys: String(localized: "Keyboard Shortcuts")
+        case .finish: String(localized: "All Set")
         }
     }
 
@@ -57,9 +57,9 @@ public enum OnboardingStep: Int, CaseIterable, Identifiable, Sendable {
     /// Beschriftung des Hauptknopfs.
     public var primaryButton: String {
         switch self {
-        case .welcome: String(localized: "Los geht’s")
-        case .permissions, .hotKeys: String(localized: "Weiter")
-        case .finish: String(localized: "Fertig")
+        case .welcome: String(localized: "Get Started")
+        case .permissions, .hotKeys: String(localized: "Continue")
+        case .finish: String(localized: "Done")
         }
     }
 }
@@ -133,17 +133,17 @@ public enum OnboardingAutostart {
     public static func state(status: Status, launchdLabel: String?, isAppBundle: Bool) -> State {
         let on = status == .enabled || status == .requiresApproval
         if let launchdLabel {
-            return State(isOn: on, canToggle: on, note: String(localized: "Startet schon über den launchd-Agenten „\(launchdLabel)“. Deshalb bleibt dieser Schalter aus – beides zusammen startete ApolloShell zweimal."))
+            return State(isOn: on, canToggle: on, note: String(localized: "Already starts via the launchd agent “\(launchdLabel)”. This switch therefore stays off – both together would start ApolloShell twice."))
         }
         guard isAppBundle else {
-            return State(isOn: on, canToggle: on, note: String(localized: "Geht nur in der fertigen App (ApolloShell.app), nicht in einem Entwicklungs-Build."))
+            return State(isOn: on, canToggle: on, note: String(localized: "Only works in the finished app (ApolloShell.app), not in a development build."))
         }
         switch status {
         case .enabled:
             return State(isOn: true, canToggle: true)
         case .requiresApproval:
             return State(isOn: true, canToggle: true, needsApproval: true,
-                         note: String(localized: "macOS wartet auf deine Erlaubnis unter Allgemein > Anmeldeobjekte."))
+                         note: String(localized: "macOS is waiting for your approval under General > Login Items."))
         case .notRegistered, .notFound:
             return State(isOn: false, canToggle: true)
         }

@@ -65,7 +65,7 @@ struct WeatherProviderCommonTests {
         let provider = id.provider(timeZone: berlinZone)
         #expect(provider.id == id)
         #expect(provider.attribution.name == name)
-        #expect(provider.attribution.text == "Wetterdaten: \(name)")
+        #expect(provider.attribution.text == "Weather data: \(name)")
         #expect(provider.attribution.url.host == host)
         #expect(provider.attribution.url.scheme == "https")
     }
@@ -77,9 +77,9 @@ struct WeatherProviderCommonTests {
     }
 
     @Test("Faehigkeiten fuer Nexus", arguments: [
-        ("openMeteo", "7 Tage · stündlich"),
-        ("metNorway", "9 Tage · stündlich · ohne Regenwahrscheinlichkeit und gefühlte Temperatur · Sonnenzeiten nur für heute"),
-        ("wttr", "3 Tage · alle 3 Stunden"),
+        ("openMeteo", "7 days · hourly"),
+        ("metNorway", "9 days · hourly · without chance of rain und feels-like temperature · sun times for today only"),
+        ("wttr", "3 days · every 3 hours"),
     ])
     func summary(raw: String, text: String) throws {
         let id = try #require(WeatherProviderID(rawValue: raw))
@@ -147,9 +147,9 @@ struct WeatherProviderCommonTests {
     }
 
     @Test("Neue WMO-Codes der anderen Anbieter", arguments: [
-        (68, "Leichter Schneeregen", "cloud.sleet.fill"), (69, "Schneeregen", "cloud.sleet.fill"),
-        (79, "Eiskörner", "cloud.sleet.fill"), (83, "Leichte Schneeregenschauer", "cloud.sleet.fill"),
-        (84, "Schneeregenschauer", "cloud.sleet.fill"), (-1, "Unbekannt", "thermometer.medium"),
+        (68, "Light Sleet", "cloud.sleet.fill"), (69, "Sleet", "cloud.sleet.fill"),
+        (79, "Ice Pellets", "cloud.sleet.fill"), (83, "Light Sleet Showers", "cloud.sleet.fill"),
+        (84, "Sleet Showers", "cloud.sleet.fill"), (-1, "Unknown", "thermometer.medium"),
     ])
     func extraCodes(code: Int, text: String, symbol: String) {
         #expect(WeatherCondition.description(code: code) == text)
@@ -184,7 +184,7 @@ struct OpenMeteoProviderTests {
         #expect(requests[0].url.absoluteString.hasPrefix("https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.405&"))
     }
 
-    @Test("Berlin: Zone des Orts, jetzt, Stunden, sieben Tage")
+    @Test("Berlin: Zone des Orts, jetzt, hours, sieben days")
     func decode() throws {
         let r = try OpenMeteoProvider().decode([data(openMeteoBerlin)], now: fetched)
         #expect(r.calendar.timeZone.identifier == "Europe/Berlin")
@@ -210,7 +210,7 @@ struct OpenMeteoProviderTests {
 
 @Suite("Wetteranbieter: MET Norway")
 struct MetNorwayProviderTests {
-    @Test("Vorhersage und Sonnenzeiten von heute (optional), vier Stellen")
+    @Test("Vorhersage und Sonnenzeiten of heute (optional), vier Stellen")
     func requests() {
         let requests = MetNorwayProvider(timeZone: berlinZone).requests(for: berlin, now: fetched)
         #expect(requests.map(\.url.absoluteString) == [
@@ -235,7 +235,7 @@ struct MetNorwayProviderTests {
         #expect(r.current.apparentTemperature == nil)
     }
 
-    @Test("Stunden: nur der stuendliche Teil, Tag/Nacht aus dem Symbol")
+    @Test("hours: nur der stuendliche Teil, Tag/Nacht aus dem Symbol")
     func hours() throws {
         let r = try metReport()
         #expect(r.hours.count == 8)
@@ -245,7 +245,7 @@ struct MetNorwayProviderTests {
         #expect(r.hourSpacing == 3600)
     }
 
-    @Test("Tage: Mittagssymbol, Extremwerte des Tages, angebrochener letzter Tag faellt weg")
+    @Test("days: Mittagssymbol, Extremwerte des Tages, angebrochener letzter Tag faellt weg")
     func days() throws {
         let r = try metReport()
         #expect(r.days.map(\.date) == [local(14, 0), local(15, 0), local(17, 0), local(18, 0)])
@@ -266,7 +266,7 @@ struct MetNorwayProviderTests {
         #expect(broken.days[0].sunset == nil)
     }
 
-    @Test("Stundenleiste: Jetzt, dann alle zwei Stunden mit Nacht aus dem Symbol")
+    @Test("Stundenleiste: Jetzt, dann every zwei hours mit Nacht aus dem Symbol")
     func strip() throws {
         let strip = try metReport().hourlyStrip(now: fetched)
         #expect(strip.first?.isNow == true && strip.first?.time == utc(14, 16))
@@ -295,7 +295,7 @@ struct MetNorwayProviderTests {
         #expect(MetNorwaySymbol.condition(name) == MetNorwaySymbol.Condition(code: code, isDay: isDay))
     }
 
-    @Test("Alle 41 Symbolnamen von MET haben Text und Wettersymbol", arguments: [
+    @Test("Alle 41 Symbolnamen of MET haben Text und Wettersymbol", arguments: [
         "clearsky", "fair", "partlycloudy", "cloudy", "fog",
         "lightrainshowers", "rainshowers", "heavyrainshowers",
         "lightrainshowersandthunder", "rainshowersandthunder", "heavyrainshowersandthunder",
@@ -310,7 +310,7 @@ struct MetNorwayProviderTests {
     func allSymbolsCovered(name: String) {
         let code = MetNorwaySymbol.condition(name + "_day").code
         #expect(MetNorwaySymbol.codes.count == 41)
-        #expect(WeatherCondition.description(code: code) != "Unbekannt")
+        #expect(WeatherCondition.description(code: code) != "Unknown")
         #expect(WeatherCondition.symbol(code: code, isDay: false) != "thermometer.medium")
     }
 }
@@ -335,7 +335,7 @@ struct WttrProviderTests {
         #expect(r.current.isDay) // 18:09 Ortszeit, Untergang 19:24
     }
 
-    @Test("Stunden alle drei Stunden, Ortszeit, Regen- oder Schneewahrscheinlichkeit")
+    @Test("hours every drei hours, Ortszeit, Regen- oder Schneewahrscheinlichkeit")
     func hours() throws {
         let r = try wttrReport()
         #expect(r.hours.count == 24)
@@ -344,7 +344,7 @@ struct WttrProviderTests {
         #expect(r.hourSpacing == 3 * 3600)
     }
 
-    @Test("Drei Tage: Lage um 12 Uhr, Sonnenzeiten jeden Tag")
+    @Test("Drei days: Lage um 12 Uhr, Sonnenzeiten jeden Tag")
     func days() throws {
         let r = try wttrReport()
         #expect(r.days.map(\.date) == [local(14, 0), local(15, 0), local(16, 0)])
@@ -357,7 +357,7 @@ struct WttrProviderTests {
         #expect(r.upcomingDays(now: fetched).count == 3)
     }
 
-    @Test("Stundenleiste mit Drei-Stunden-Werten: Jetzt, dann jeder Wert")
+    @Test("Stundenleiste mit Drei-hours-Werten: Jetzt, dann jeder Wert")
     func strip() throws {
         let strip = try wttrReport().hourlyStrip(now: fetched)
         #expect(strip.count == 12)
@@ -384,7 +384,7 @@ struct WttrProviderTests {
         #expect(WttrProvider.observation(text, now: utc(nowDay, nowHour, nowMinute)) == utc(day, hour, minute))
     }
 
-    @Test("12-Stunden-Uhr", arguments: [
+    @Test("12-hours-Uhr", arguments: [
         ("06:39 AM", 6, 39), ("07:24 PM", 19, 24), ("12:05 AM", 0, 5), ("12:30 PM", 12, 30), (" 9:07 pm ", 21, 7),
     ])
     func clock(text: String, hour: Int, minute: Int) throws {
@@ -422,7 +422,7 @@ struct WttrProviderTests {
     func allCodesCovered(wwo: Int) {
         let code = WttrCode.wmo(wwo)
         #expect(WttrCode.table.count == 48)
-        #expect(WeatherCondition.description(code: code) != "Unbekannt")
+        #expect(WeatherCondition.description(code: code) != "Unknown")
         #expect(WeatherCondition.symbol(code: code, isDay: true) != "thermometer.medium")
     }
 }

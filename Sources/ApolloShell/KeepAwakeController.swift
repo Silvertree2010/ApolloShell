@@ -3,7 +3,7 @@ import Foundation
 import Observation
 import os
 
-/// "Wach halten": die IOKit-Zusicherung, der Akku-Schutz und der Deckel-Teil
+/// "Keep Awake": die IOKit-Zusicherung, der Akku-Schutz und der Deckel-Teil
 /// (`pmset disablesleep`, siehe `LidAwake`) samt Administrator-Frage und
 /// Merker fuer den Absturzfall.
 ///
@@ -11,7 +11,7 @@ import os
 @MainActor
 @Observable
 final class KeepAwakeController {
-    /// Seit wann "Wach halten" laeuft; `nil` = aus.
+    /// Seit wann "Keep Awake" laeuft; `nil` = aus.
     private(set) var since: Date?
     /// Stand des Deckel-Teils.
     private(set) var lid: KeepAwakeLid = .off
@@ -28,7 +28,7 @@ final class KeepAwakeController {
     /// zurueck. Stand es schon vorher auf 1 (von jemand anderem), bleibt es,
     /// wie es war.
     @ObservationIgnored private var lidAwakeOwned = false
-    /// Einstellung "Auch bei zugeklapptem Deckel" (settings.json keepAwake).
+    /// Einstellung "Also With the Lid Closed" (settings.json keepAwake).
     /// Wird bei jedem Einschalten neu gefragt, sie kann sich ja aendern.
     @ObservationIgnored private let lidAllowed: @MainActor () -> Bool
     /// Der osascript-Prozess der offenen Administrator-Frage und wofuer sie
@@ -99,8 +99,8 @@ final class KeepAwakeController {
         }
     }
 
-    /// Nexus hat "Auch bei zugeklapptem Deckel" umgeschaltet: gilt sofort,
-    /// auch waehrend "Wach halten" laeuft.
+    /// Nexus hat "Also With the Lid Closed" umgeschaltet: gilt sofort,
+    /// auch waehrend "Keep Awake" laeuft.
     func lidSettingChanged() {
         guard live, isOn else { return }
         reconcileLid()
@@ -111,8 +111,8 @@ final class KeepAwakeController {
         guard LidAwake.shouldStop(battery: StatusModel.readBattery()) else { return }
         set(false)
         onToast(ToastText.Content(
-            title: String(localized: "Wach halten beendet"),
-            message: String(localized: "Akku bei \(LidAwake.batteryFloor) % – der Mac darf wieder schlafen"),
+            title: String(localized: "Keep Awake Ended"),
+            message: String(localized: "Battery at \(LidAwake.batteryFloor)% – the Mac is allowed to sleep again"),
             symbol: "battery.25percent",
             kind: .warning
         ))
@@ -186,7 +186,7 @@ final class KeepAwakeController {
     }
 
     /// Antwort auf die Administrator-Frage. Abgebrochen gibt osascript einen
-    /// Fehler (-128) zurueck; dann bleibt "Wach halten" ohne Deckel-Teil.
+    /// Fehler (-128) zurueck; dann bleibt "Keep Awake" ohne Deckel-Teil.
     private func lidPromptFinished(disableSleep: Bool, ok: Bool) {
         lidPrompt = nil
         if disableSleep {
@@ -236,8 +236,8 @@ final class KeepAwakeController {
     }
 
     private static let lidStillDisabledToast = ToastText.Content(
-        title: String(localized: "Zugeklappt noch wach"),
-        message: String(localized: "Ohne Freigabe bleibt der Ruhezustand beim Zuklappen aus – Wach halten ein- und ausschalten versucht es erneut"),
+        title: String(localized: "Still Awake with Lid Closed"),
+        message: String(localized: "Without approval, sleep stays off when closing the lid – turning Keep Awake off and on tries again"),
         symbol: "laptopcomputer",
         kind: .warning
     )

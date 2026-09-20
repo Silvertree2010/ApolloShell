@@ -22,12 +22,12 @@ struct NexusAppChoiceRow: View {
                     .frame(width: 24, height: 24)
                 Text(info.name)
             } else {
-                Text(bundleID.isEmpty ? String(localized: "Noch keine App gewählt")
-                     : String(localized: "\(bundleID) ist nicht installiert"))
+                Text(bundleID.isEmpty ? String(localized: "No App Chosen Yet")
+                     : String(localized: "\(bundleID) is not installed"))
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
-            Button("App wählen …") { picksApp = true }
+            Button("Choose App…") { picksApp = true }
         }
         .sheet(isPresented: $picksApp) {
             NexusBarAppPicker(current: bundleID, onPick: { id in
@@ -73,7 +73,7 @@ struct NexusBarAppPicker: View {
     }
 
     var body: some View {
-        NexusSearchSheet(title: "App wählen", subtitle: nil, searchPrompt: "App suchen",
+        NexusSearchSheet(title: "Choose App", subtitle: nil, searchPrompt: "Search Apps",
                          query: $query, onCancel: onCancel) {
             List(results, id: \.url) { app in
                 Button {

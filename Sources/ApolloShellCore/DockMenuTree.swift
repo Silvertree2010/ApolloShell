@@ -68,7 +68,7 @@ public struct DockMenuNode: Equatable, Sendable {
 /// Macht aus dem, was in Apples Dock-Menue steht, unseren Menuebaum.
 public enum DockMenuTree {
     /// Tiefer wird nicht gelesen. Apples Dock-Menue hat eine Ebene
-    /// Untermenue ("Optionen"); alles darunter waere fremdes Gelaende.
+    /// Untermenue ("Options"); alles darunter waere fremdes Gelaende.
     public static let maximumDepth = 2
 
     public static func nodes(from items: [RawMenuItem], path: [DockMenuStep] = [], depth: Int = 0) -> [DockMenuNode] {

@@ -167,7 +167,7 @@ struct ThemeResolveTests {
         }
     }
 
-    @Test("Zahlen ausserhalb von Int lassen sich schreiben")
+    @Test("Zahlen ausserhalb of Int lassen sich schreiben")
     func cssTextBeyondInt() {
         #expect(!ThemeUnit.scalar.cssText(1e23).isEmpty)
         #expect(!ThemeUnit.points.cssText(-1e307).isEmpty)

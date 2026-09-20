@@ -28,7 +28,7 @@ final class UtilitiesPanel {
     var onHeightChange: (_ height: CGFloat) -> Void = { _ in }
     /// Einstellungs-Knopf: Nexus oeffnen.
     var onOpenSettings: () -> Void = {}
-    /// Kurzmeldung zeigen (Farbpipette: "Farbe kopiert"). Setzt LauncherApp,
+    /// Kurzmeldung zeigen (Farbpipette: "Color Copied"). Setzt LauncherApp,
     /// sobald es den Toaster gibt - der entsteht erst nach dem Panel, weil
     /// sein Fenster die Panelhoehe braucht.
     var onToast: (ToastText.Content) -> Void = { _ in }
@@ -79,8 +79,8 @@ final class UtilitiesPanel {
                 self?.apply(layout)
             }
         }
-        // "Auch bei zugeklapptem Deckel" in Nexus: gilt sofort, auch mitten
-        // in "Wach halten". Der erste Wert kommt beim Start (dann ist es aus).
+        // "Also With the Lid Closed" in Nexus: gilt sofort, auch mitten
+        // in "Keep Awake". Der erste Wert kommt beim Start (dann ist es aus).
         lidObservation = Task { [weak self, settings] in
             for await _ in Observations({ settings.settings.keepAwake.lidClosed }) {
                 self?.model.lidSettingChanged()

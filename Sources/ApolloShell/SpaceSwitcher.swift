@@ -34,7 +34,7 @@ enum SpaceSwitcher {
         }
     }
 
-    /// "Alle Fenster einblenden" aus Apples Dock-Menue: App-Exposé, also ⌃↓
+    /// "Show All Windows" aus Apples Dock-Menue: App-Exposé, also ⌃↓
     /// (Mission Control "Programmfenster", standardmaessig aktiv - symbolichotkeys 33)
     /// fuer die App, die gerade vorne ist. Deshalb erst die App nach vorne,
     /// kurz warten, dann die Taste.

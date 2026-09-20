@@ -40,7 +40,7 @@ struct PinnedListTests {
         #expect(list.isFull)
     }
 
-    @Test("Entfernen", arguments: [
+    @Test("Remove", arguments: [
         (["a", "b", "c"], "b", ["a", "c"]),
         (["a", "b", "c"], "x", ["a", "b", "c"]),
     ])

@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Inhalt des Utilities-Panels (Caelestia: modules/utilities) in Apple-Optik:
 /// die Karten aus Nexus > Schnellaktionen untereinander. Vorgabe ist
-/// Caelestias Reihenfolge - oben "Wach halten", in der Mitte die Ton-Karte
+/// Caelestias Reihenfolge - oben "Keep Awake", in der Mitte die Ton-Karte
 /// (dort sitzt bei Caelestia die Aufnahme; die macht bei uns Apples Leiste
 /// ueber den Bildschirmfoto-Knopf), unten die Schnellschalter.
 ///
@@ -131,7 +131,7 @@ private struct KeepAwakeCard: View {
 }
 
 /// Alles ausgeschaltet: statt eines leeren Glases ein Hinweis, wo man es
-/// wieder einschaltet. So hoch wie "Wach halten" (eine Zeile mit Chip).
+/// wieder einschaltet. So hoch wie "Keep Awake" (eine Zeile mit Chip).
 private struct UtilitiesEmptyCard: View {
     let model: UtilitiesModel
     @State private var hovering = false
@@ -147,9 +147,9 @@ private struct UtilitiesEmptyCard: View {
                     .background(Color.primary.opacity(0.10), in: .circle)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Nichts eingeblendet")
+                    Text("Nothing Shown")
                         .font(style.font(size: 14, weight: .medium))
-                    Text("Karten und Knöpfe wählt man in Nexus")
+                    Text("Cards and buttons are chosen in Nexus")
                         .font(style.font(size: 12))
                         .foregroundStyle(.secondary)
                 }
@@ -165,7 +165,7 @@ private struct UtilitiesEmptyCard: View {
                 }
                 .buttonStyle(.plain)
                 .background(HoverTracker { hovering = $0 })
-                .help("Nexus > Schnellaktionen öffnen")
+                .help("Open Nexus > Quick Actions")
             }
         }
     }

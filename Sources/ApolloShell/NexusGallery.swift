@@ -36,7 +36,7 @@ struct NexusGallerySheet<Content: View>: View {
             Divider()
             HStack {
                 Spacer()
-                Button("Abbrechen", action: onCancel)
+                Button("Cancel", action: onCancel)
                     .keyboardShortcut(.cancelAction)
             }
             .padding(14)
@@ -46,7 +46,7 @@ struct NexusGallerySheet<Content: View>: View {
 }
 
 /// Eine Kachel der Galerie: Symbol, Name, eine Zeile Zusammenfassung, oben
-/// rechts ein Hinweis (`badge`, z. B. "Schon da"; `nil` = keiner). Grau und
+/// rechts ein Hinweis (`badge`, z. B. "Already Added"; `nil` = keiner). Grau und
 /// ohne Wirkung, wenn `available` falsch ist.
 struct NexusGalleryTile<Icon: View>: View {
     let title: String

@@ -79,9 +79,9 @@ private struct StatusPopoutWifiView: View {
 
     var body: some View {
         let wifi = model.wifi
-        StatusPopoutHeader(title: "WLAN") {
+        StatusPopoutHeader(title: "Wi-Fi") {
             if let wifi {
-                Toggle("WLAN", isOn: Binding(get: { wifi.powerOn }, set: { model.setWifiPower($0) }))
+                Toggle("Wi-Fi", isOn: Binding(get: { wifi.powerOn }, set: { model.setWifiPower($0) }))
                     .toggleStyle(StatusPopoutSwitchStyle())
             }
         }
@@ -89,10 +89,10 @@ private struct StatusPopoutWifiView: View {
             let glyph = StatusGlyphs.wifi(powerOn: true, rssi: wifi.rssi)
             StatusPopoutLeadRow(
                 symbol: glyph.symbol, variableValue: glyph.strength, active: true,
-                title: "Verbunden",
+                title: "Connected",
                 // macOS 14+: der Netzname braucht die Ortungsfreigabe; die
                 // holen wir nicht fuer eine Anzeige.
-                subtitle: "Netzname nur mit Ortungsfreigabe"
+                subtitle: "Network name needs Location Services"
             )
             StatusPopoutCard {
                 StatusPopoutValueRow(
@@ -101,17 +101,17 @@ private struct StatusPopoutWifiView: View {
                 )
                 if let noise = wifi.noise, noise != 0 {
                     let snr = StatusPopoutSignal.signalToNoise(rssi: wifi.rssi, noise: noise).map { " · SNR \($0) dB" } ?? ""
-                    StatusPopoutValueRow(label: "Rauschen", value: "\(noise) dBm\(snr)")
+                    StatusPopoutValueRow(label: "Noise", value: "\(noise) dBm\(snr)")
                 }
                 if let rate = wifi.transmitRate, rate > 0 {
-                    StatusPopoutValueRow(label: "Senderate", value: "\(Int(rate.rounded())) Mbit/s")
+                    StatusPopoutValueRow(label: "Transmit Rate", value: "\(Int(rate.rounded())) Mbit/s")
                 }
                 if let phy = StatusPopoutSignal.phyModeName(rawValue: wifi.phyMode) {
                     StatusPopoutValueRow(label: "Standard", value: phy)
                 }
                 if let channel = wifi.channel {
                     let band = wifi.band.flatMap { StatusPopoutSignal.bandName(rawValue: $0) }.map { " · \($0)" } ?? ""
-                    StatusPopoutValueRow(label: "Kanal", value: "\(channel)\(band)")
+                    StatusPopoutValueRow(label: "Channel", value: "\(channel)\(band)")
                 }
                 if let name = wifi.interfaceName {
                     StatusPopoutValueRow(label: "Interface", value: name)
@@ -120,11 +120,11 @@ private struct StatusPopoutWifiView: View {
         } else {
             StatusPopoutLeadRow(
                 symbol: wifi?.powerOn == true ? "wifi" : "wifi.slash", variableValue: 0, active: false,
-                title: wifi == nil ? "Kein WLAN-Interface" : wifi?.powerOn == true ? "Nicht verbunden" : "WLAN ist aus",
-                subtitle: wifi?.powerOn == true ? "Kein Netz in Reichweite verbunden" : nil
+                title: wifi == nil ? "No Wi-Fi Interface" : wifi?.powerOn == true ? "Not Connected" : "Wi-Fi Is Off",
+                subtitle: wifi?.powerOn == true ? "No Network in Range Connected" : nil
             )
         }
-        StatusPopoutSettingsButton(title: "WLAN-Einstellungen …") { model.openSettings(for: .wifi) }
+        StatusPopoutSettingsButton(title: "Wi-Fi Settings…") { model.openSettings(for: .wifi) }
     }
 }
 
@@ -138,7 +138,7 @@ private struct StatusPopoutBluetoothView: View {
         let snapshot = model.bluetooth
         StatusPopoutHeader(title: "Bluetooth") {
             // Nur Anzeige: Schalten ginge nur ueber private Schnittstellen.
-            Text(snapshot?.powerOn == true ? String(localized: "An") : snapshot?.powerOn == false ? String(localized: "Aus") : "–")
+            Text(snapshot?.powerOn == true ? String(localized: "On") : snapshot?.powerOn == false ? String(localized: "Off") : "–")
                 .font(style.font(size: 12, weight: .semibold))
                 .foregroundStyle(snapshot?.powerOn == true ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
                 .padding(.horizontal, 10)
@@ -147,10 +147,10 @@ private struct StatusPopoutBluetoothView: View {
                     snapshot?.powerOn == true ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.10)),
                     in: .capsule
                 )
-                .help("Ein- und ausschalten geht nur in den Systemeinstellungen")
+                .help("Turning it on or off only works in System Settings")
         }
         if !model.bluetoothRead {
-            StatusPopoutNote(text: String(localized: "Geräte werden gelesen …"))
+            StatusPopoutNote(text: String(localized: "Reading devices…"))
         } else if let snapshot {
             let connected = snapshot.connected
             StatusPopoutNote(text: Self.countText(connected: connected.count, paired: snapshot.pairedCount))
@@ -162,19 +162,19 @@ private struct StatusPopoutBluetoothView: View {
                 }
             }
         } else {
-            StatusPopoutNote(text: String(localized: "Bluetooth-Zustand nicht lesbar"))
+            StatusPopoutNote(text: String(localized: "Bluetooth state unavailable"))
         }
-        StatusPopoutSettingsButton(title: "Bluetooth-Einstellungen …",
-                                   help: "Ein- und ausschalten geht nur dort") {
+        StatusPopoutSettingsButton(title: "Bluetooth Settings…",
+                                   help: "Turning it on or off only works there") {
             model.openSettings(for: .bluetooth)
         }
     }
 
     /// Caelestia: "%n devices available (%1 connected)".
     private static func countText(connected: Int, paired: Int) -> String {
-        let pairedText = paired == 1 ? String(localized: "1 gekoppeltes Gerät") : String(localized: "\(paired) gekoppelte Geräte")
-        guard paired > 0 else { return String(localized: "Keine gekoppelten Geräte") }
-        return connected == 0 ? String(localized: "\(pairedText), keins verbunden") : String(localized: "\(pairedText), \(connected) verbunden")
+        let pairedText = paired == 1 ? String(localized: "1 paired device") : String(localized: "\(paired) paired devices")
+        guard paired > 0 else { return String(localized: "No paired devices") }
+        return connected == 0 ? String(localized: "\(pairedText), none connected") : String(localized: "\(pairedText), \(connected) verbunden")
     }
 }
 
@@ -198,7 +198,7 @@ private struct StatusPopoutDeviceRow: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 if device.batteries.isEmpty {
-                    Text("Verbunden")
+                    Text("Connected")
                         .font(style.font(size: 11))
                         .foregroundStyle(.secondary)
                 } else {
@@ -264,15 +264,15 @@ private struct StatusPopoutBatteryView: View {
                 .foregroundStyle(.secondary)
             }
             StatusPopoutCard {
-                StatusPopoutValueRow(label: "Stromsparmodus", value: info.lowPowerMode ? String(localized: "An") : String(localized: "Aus"))
+                StatusPopoutValueRow(label: "Low Power Mode", value: info.lowPowerMode ? String(localized: "On") : String(localized: "Off"))
                 if let health = info.healthPercent {
-                    StatusPopoutValueRow(label: "Maximale Kapazität", value: "\(health) %")
+                    StatusPopoutValueRow(label: "Maximum Capacity", value: "\(health) %")
                 }
                 if let cycles = info.cycleCount {
-                    StatusPopoutValueRow(label: "Ladezyklen", value: "\(cycles)")
+                    StatusPopoutValueRow(label: "Charge Cycles", value: "\(cycles)")
                 }
             }
-            StatusPopoutSettingsButton(title: "Batterie-Einstellungen …") { model.openSettings(for: .battery) }
+            StatusPopoutSettingsButton(title: "Battery Settings…") { model.openSettings(for: .battery) }
         }
     }
 }

@@ -26,7 +26,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     public var dashboard = DashboardLayout()
     /// Globale Tastenkuerzel (Nexus > Tastenkürzel).
     public var hotKeys = HotKeySettings.existingInstall
-    /// "Wach halten" auch zugeklappt.
+    /// "Keep Awake" auch zugeklappt.
     public var keepAwake = KeepAwakeSettings.existingInstall
     /// Einfuehrung beim ersten Start schon durch?
     public var onboarding = OnboardingSettings.existingInstall

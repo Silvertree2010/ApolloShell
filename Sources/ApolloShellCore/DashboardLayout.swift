@@ -22,9 +22,9 @@ public enum DashboardTab: String, CaseIterable, Codable, Identifiable, Sendable 
     public var title: String {
         switch self {
         case .dashboard: "Dashboard"
-        case .media: String(localized: "Medien")
-        case .performance: String(localized: "Leistung")
-        case .weather: String(localized: "Wetter")
+        case .media: String(localized: "Media")
+        case .performance: String(localized: "Performance")
+        case .weather: String(localized: "Weather")
         }
     }
 
@@ -163,9 +163,9 @@ public enum DashboardZone: String, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
-        case .top: String(localized: "Obere Reihe")
-        case .bottom: String(localized: "Untere Reihe")
-        case .side: String(localized: "Seitenspalte")
+        case .top: String(localized: "Top Row")
+        case .bottom: String(localized: "Bottom Row")
+        case .side: String(localized: "Side Column")
         }
     }
 
@@ -203,24 +203,24 @@ public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
-        case .weather: String(localized: "Wetter")
-        case .user: String(localized: "Benutzer")
-        case .clock: String(localized: "Uhr")
+        case .weather: String(localized: "Weather")
+        case .user: String(localized: "User")
+        case .clock: String(localized: "Clock")
         case .calendar: String(localized: "Kalender")
-        case .resources: String(localized: "Ressourcen")
-        case .media: String(localized: "Medien")
+        case .resources: String(localized: "Resources")
+        case .media: String(localized: "Media")
         }
     }
 
     /// Eine Zeile fuer die Galerie hinter dem +.
     public var summary: String {
         switch self {
-        case .weather: String(localized: "Temperatur und Wetterlage am gewählten Ort.")
-        case .user: String(localized: "Name, macOS-Version und wie lange der Mac läuft.")
-        case .clock: String(localized: "Stunde und Minute, auf Wunsch mit Datum.")
-        case .calendar: String(localized: "Der Monat mit heute markiert, zum Blättern.")
-        case .resources: String(localized: "CPU, Arbeitsspeicher und Speicher als Ringe.")
-        case .media: String(localized: "Was gerade läuft, mit Cover und Knöpfen.")
+        case .weather: String(localized: "Temperature and condition for the chosen location.")
+        case .user: String(localized: "Name, macOS version and how long the Mac has been running.")
+        case .clock: String(localized: "Hour and minute, with an optional date.")
+        case .calendar: String(localized: "The month with today marked, to page through.")
+        case .resources: String(localized: "CPU, memory and storage as rings.")
+        case .media: String(localized: "What's currently playing, with cover art and buttons.")
         }
     }
 
@@ -759,16 +759,16 @@ public enum DashboardPreset: String, CaseIterable, Identifiable, Sendable {
     public var title: String {
         switch self {
         case .caelestia: "Caelestia"
-        case .compact: String(localized: "Kompakt")
-        case .calendarWeather: String(localized: "Kalender & Wetter")
+        case .compact: String(localized: "Compact")
+        case .calendarWeather: String(localized: "Calendar & Weather")
         }
     }
 
     public var summary: String {
         switch self {
-        case .caelestia: String(localized: "Die Vorgabe: Wetter und Benutzer oben, Uhr, Kalender und Ressourcen unten, Medien rechts.")
-        case .compact: String(localized: "Ohne Seitenspalte: die Wiedergabe als Streifen neben dem Wetter, darunter Uhr, Kalender und Ressourcen.")
-        case .calendarWeather: String(localized: "Nur Kalender, Uhr und Wetter, dazu die Reiter Dashboard und Wetter. Ruhig, ohne Messwerte.")
+        case .caelestia: String(localized: "The default: weather and user on top, clock, calendar and resources below, media on the right.")
+        case .compact: String(localized: "Without a side column: playback as a strip next to the weather, with clock, calendar and resources below.")
+        case .calendarWeather: String(localized: "Only calendar, clock and weather, plus the Dashboard and Weather tabs. Calm, without readouts.")
         }
     }
 

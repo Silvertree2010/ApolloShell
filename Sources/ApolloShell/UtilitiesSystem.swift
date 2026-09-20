@@ -110,7 +110,7 @@ final class UtilitiesNightShiftClient {
 /// Bedienungshilfen-Freigabe (hat der Launcher); ohne sie passiert nichts.
 ///
 /// Warum Tasten statt eigener Umsetzung: Bildschirmfoto-Leiste,
-/// "Schreibtisch anzeigen" und "Bildschirm sperren" sind Systemfunktionen,
+/// "Show Desktop" und "Lock Screen" sind Systemfunktionen,
 /// die macOS nur ueber ihre Kurzbefehle anbietet. Der Druck loest genau das
 /// aus, was er selbst mit der Tastatur ausloesen wuerde - unsere App braucht
 /// dafuer keine Bildschirmaufnahme-Freigabe.

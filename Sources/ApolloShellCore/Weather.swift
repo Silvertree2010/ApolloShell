@@ -218,7 +218,7 @@ public struct HourSlot: Equatable, Sendable {
     public var code: Int
     public var isDay: Bool
     public var precipitationProbability: Int?
-    /// Die laufende Stunde ("Jetzt").
+    /// Die laufende Stunde ("Now").
     public var isNow: Bool
 }
 
@@ -226,12 +226,12 @@ public struct WeatherReport: Equatable, Sendable {
     public var current: CurrentWeather
     public var hours: [HourForecast]
     public var days: [DayForecast]
-    /// Deutsche Wochentage, Montag zuerst, Zeitzone des Orts: "Heute" und
+    /// Deutsche Wochentage, Montag zuerst, Zeitzone des Orts: "Today" und
     /// "14 Uhr" gelten dort, wo das Wetter ist.
     public let calendar: Calendar
 
     /// `locale`: Standard `.current` - folgt der Sprachwahl in Nexus >
-    /// Allgemein (Wochentage, Monatsnamen in "Heute"/Langdatum). Frueher fest
+    /// Allgemein (Wochentage, Monatsnamen in "Today"/Langdatum). Frueher fest
     /// `de_CH`; Woche beginnt trotzdem am Montag (`firstWeekday`), das ist
     /// eine Einstellung, keine Sprachfrage.
     public init(current: CurrentWeather, hours: [HourForecast], days: [DayForecast], timeZone: TimeZone,
@@ -258,7 +258,7 @@ public struct WeatherReport: Equatable, Sendable {
     /// Werten alle drei Stunden (wttr.in) also jeder Wert.
     ///
     /// Die erste Spalte zeigt die aktuellen Werte, sofern sie aus demselben
-    /// Abschnitt stammen - sonst sagte "Jetzt" etwas anderes als die grosse
+    /// Abschnitt stammen - sonst sagte "Now" etwas anderes als die grosse
     /// Zahl daneben. Sind die Daten alt (Abruf fehlgeschlagen), rueckt die
     /// Leiste trotzdem mit der Uhr weiter und nimmt die Vorhersage.
     public func hourlyStrip(now: Date, count: Int = 12, step: Int = 2) -> [HourSlot] {
@@ -484,10 +484,10 @@ public enum OpenMeteo {
 
 /// WMO-Wettercode (Open-Meteo `weather_code`) als SF Symbol und deutscher
 /// Text. Gruppen wie Caelestia (Icons.weatherIcons, getWeatherCondition),
-/// Texte feiner abgestuft, weil "Regen" und "Starker Regen" etwas anderes
+/// Texte feiner abgestuft, weil "Rain" und "Heavy Rain" etwas anderes
 /// bedeuten, wenn man rausgeht.
 public enum WeatherCondition {
-    /// Fuer Codes anderer Anbieter, die keine Entsprechung haben: "Unbekannt"
+    /// Fuer Codes anderer Anbieter, die keine Entsprechung haben: "Unknown"
     /// mit Thermometer. Negativ, damit er nie ein echter WMO-Code ist.
     public static let unknownCode = -1
 
@@ -517,36 +517,36 @@ public enum WeatherCondition {
 
     public static func description(code: Int) -> String {
         switch code {
-        case 0: String(localized: "Klar")
-        case 1: String(localized: "Überwiegend klar")
-        case 2: String(localized: "Leicht bewölkt")
-        case 3: String(localized: "Bedeckt")
-        case 45, 48: String(localized: "Nebel")
-        case 51: String(localized: "Leichter Nieselregen")
-        case 53: String(localized: "Nieselregen")
-        case 55: String(localized: "Starker Nieselregen")
-        case 56, 57: String(localized: "Gefrierender Nieselregen")
-        case 61: String(localized: "Leichter Regen")
-        case 63: String(localized: "Regen")
-        case 65: String(localized: "Starker Regen")
-        case 66, 67: String(localized: "Gefrierender Regen")
-        case 68: String(localized: "Leichter Schneeregen")
-        case 69: String(localized: "Schneeregen")
-        case 71: String(localized: "Leichter Schneefall")
-        case 73: String(localized: "Schnee")
-        case 75: String(localized: "Starker Schneefall")
-        case 77: String(localized: "Schneegriesel")
-        case 79: String(localized: "Eiskörner")
-        case 80: String(localized: "Leichte Regenschauer")
-        case 81: String(localized: "Regenschauer")
-        case 82: String(localized: "Heftige Regenschauer")
-        case 83: String(localized: "Leichte Schneeregenschauer")
-        case 84: String(localized: "Schneeregenschauer")
-        case 85: String(localized: "Leichte Schneeschauer")
-        case 86: String(localized: "Starke Schneeschauer")
-        case 95: String(localized: "Gewitter")
-        case 96, 99: String(localized: "Gewitter mit Hagel")
-        default: String(localized: "Unbekannt")
+        case 0: String(localized: "Clear")
+        case 1: String(localized: "Mostly Clear")
+        case 2: String(localized: "Partly Cloudy")
+        case 3: String(localized: "Overcast")
+        case 45, 48: String(localized: "Fog")
+        case 51: String(localized: "Light Drizzle")
+        case 53: String(localized: "Drizzle")
+        case 55: String(localized: "Heavy Drizzle")
+        case 56, 57: String(localized: "Freezing Drizzle")
+        case 61: String(localized: "Light Rain")
+        case 63: String(localized: "Rain")
+        case 65: String(localized: "Heavy Rain")
+        case 66, 67: String(localized: "Freezing Rain")
+        case 68: String(localized: "Light Sleet")
+        case 69: String(localized: "Sleet")
+        case 71: String(localized: "Light Snow")
+        case 73: String(localized: "Snow")
+        case 75: String(localized: "Heavy Snow")
+        case 77: String(localized: "Snow Grains")
+        case 79: String(localized: "Ice Pellets")
+        case 80: String(localized: "Light Rain Showers")
+        case 81: String(localized: "Rain Showers")
+        case 82: String(localized: "Violent Rain Showers")
+        case 83: String(localized: "Light Sleet Showers")
+        case 84: String(localized: "Sleet Showers")
+        case 85: String(localized: "Light Snow Showers")
+        case 86: String(localized: "Heavy Snow Showers")
+        case 95: String(localized: "Thunderstorm")
+        case 96, 99: String(localized: "Thunderstorm with Hail")
+        default: String(localized: "Unknown")
         }
     }
 }
@@ -564,7 +564,7 @@ public enum WeatherText {
     /// "H: 22° T: 14°" wie Apple Wetter auf Deutsch ("H:22° L:14°" auf
     /// Englisch - Apple nennt den Tiefstwert dort "Low", nicht "Tief").
     public static func range(max: Double, min: Double) -> String {
-        String(localized: "H: \(temperature(max)) T: \(temperature(min))")
+        String(localized: "H:\(temperature(max)) L:\(temperature(min))")
     }
 
     public static func wind(_ kmh: Double) -> String {
@@ -589,17 +589,17 @@ public enum WeatherText {
 
     /// Zeigt an, von wann die angezeigten Daten sind, wenn sie nicht frisch sind.
     public static func stand(_ date: Date, calendar: Calendar) -> String {
-        String(localized: "Stand \(clock(date, calendar: calendar))")
+        String(localized: "As of \(clock(date, calendar: calendar))")
     }
 
-    /// "Jetzt" oder "14 Uhr".
+    /// "Now" oder "14 Uhr".
     public static func hourLabel(_ date: Date, isNow: Bool, calendar: Calendar) -> String {
-        isNow ? String(localized: "Jetzt") : String(localized: "\(calendar.component(.hour, from: date)) Uhr")
+        isNow ? String(localized: "Now") : String(localized: "\(calendar.component(.hour, from: date)):00")
     }
 
-    /// "Heute", sonst zwei Buchstaben wie im Kalender ("Mo", "Di").
+    /// "Today", sonst zwei Buchstaben wie im Kalender ("Mo", "Di").
     public static func dayLabel(_ date: Date, today: Date, calendar: Calendar) -> String {
-        if calendar.isDate(date, inSameDayAs: today) { return String(localized: "Heute") }
+        if calendar.isDate(date, inSameDayAs: today) { return String(localized: "Today") }
         let symbol = calendar.shortStandaloneWeekdaySymbols[calendar.component(.weekday, from: date) - 1]
         return String(symbol.replacingOccurrences(of: ".", with: "").prefix(2))
     }

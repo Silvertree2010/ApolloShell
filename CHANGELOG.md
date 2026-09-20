@@ -4,6 +4,37 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.3] - 2026-09-21
+
+The interface is in English, all of it.
+
+Until now the shell was bilingual: the text in the code was German, and an
+English translation sat beside it in `Support/Localization`. That worked for
+the strings the check knew about, and quietly did not for the rest - a
+handful of labels in the control centre and in Nexus were German whatever
+language you had picked ("Mikrofon", "Dunkelmodus", "Bildschirmfoto"). One
+language, written where it is used, cannot drift like that.
+
+German is gone with it, and that is a loss for the people who used it. It
+comes back when there is a way to keep translations honest; for now every
+string is in English, in the code, where a change to it is a change to the
+thing itself.
+
+### Changed
+
+- **The interface is written in English**, directly in the source. The
+  translation layer (`Support/Localization`, `scripts/check-l10n.py`) is
+  gone.
+- **Nexus has no language picker any more.** The setting it wrote is not
+  read; macOS' own language setting has no effect on the shell either.
+
+### Fixed
+
+- **Labels that were German in every language**: the quick toggles
+  ("Microphone", "Dark Mode", "Screenshot", "Color Picker", "Desktop"), the
+  cards of the control centre, the block names of the bar and the lines that
+  describe them in Nexus.
+
 ## [0.1.2.2] - 2026-09-20
 
 A patch on 0.1.2.1: a light theme on a dark Mac, and three ways to lose

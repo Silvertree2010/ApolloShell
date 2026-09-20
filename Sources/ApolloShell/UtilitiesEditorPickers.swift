@@ -42,9 +42,9 @@ struct UtilitiesSymbolPicker: View {
                 }
             }
             HStack(spacing: 6) {
-                TextField("Eigenes Symbol", text: $custom, prompt: Text("SF-Symbol-Name"))
+                TextField("Eigenes Symbol", text: $custom, prompt: Text("SF Symbol Name"))
                     .onSubmit(takeCustom)
-                Button("Übernehmen", action: takeCustom)
+                Button("Apply", action: takeCustom)
                     .disabled(!UtilitiesSymbolCheck.exists(custom.trimmingCharacters(in: .whitespaces)))
             }
         }
@@ -108,8 +108,8 @@ struct UtilitiesShortcutPicker: View {
     }
 
     var body: some View {
-        NexusSearchSheet(title: "Kurzbefehl wählen", subtitle: "Aus der Kurzbefehle-App. Ausgeführt wird er erst beim Klick im Panel.",
-                         searchPrompt: "Kurzbefehl suchen", query: $query, onCancel: onCancel) {
+        NexusSearchSheet(title: "Choose Shortcut", subtitle: "From the Shortcuts app. It only runs when clicked in the panel.",
+                         searchPrompt: "Search Shortcuts", query: $query, onCancel: onCancel) {
             if shortcuts == nil {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

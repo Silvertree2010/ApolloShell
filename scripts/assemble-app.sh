@@ -110,22 +110,8 @@ rm -rf "$APP/Contents/Frameworks/Sparkle.framework/Versions/B/Headers" \
 # Rahmenwerk daneben in Frameworks.
 install_name_tool -add_rpath @executable_path/../Frameworks "$APP/Contents/MacOS/ApolloShell" 2>/dev/null || true
 
-# Lokalisierung: de.lproj bleibt leer (Deutsch ist der Code selbst - die
-# String-Literale brauchen keine Uebersetzungstabelle), en.lproj bekommt alle
-# Support/Localization/en/*.strings zusammengefuegt.
-mkdir -p "$APP/Contents/Resources/de.lproj" "$APP/Contents/Resources/en.lproj"
-: > "$APP/Contents/Resources/de.lproj/Localizable.strings"
-EN_STRINGS="$APP/Contents/Resources/en.lproj/Localizable.strings"
-: > "$EN_STRINGS"
-for f in "$ROOT"/Support/Localization/en/*.strings; do
-    [ -e "$f" ] || continue
-    cat "$f" >> "$EN_STRINGS"
-    printf '\n' >> "$EN_STRINGS"
-done
-if ! plutil -lint "$EN_STRINGS" >/dev/null; then
-    echo "fehlerhafte Lokalisierung: $EN_STRINGS" >&2
-    exit 1
-fi
+# One language: the interface is written in English, there is no
+# translation table to merge in any more (0.1.3).
 
 # Sparkle bringt eigene Programme mit (Updater.app, Autoupdate, zwei
 # XPC-Dienste). Verschachtelter Code wird vor dem Aeusseren signiert, sonst

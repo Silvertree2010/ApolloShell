@@ -152,7 +152,7 @@ struct ScreenSelectionTests {
         #expect(try! JSONDecoder().decode(ScreenChoice.self, from: data) == choice)
     }
 
-    @Test("kaputte oder unbekannte Angabe: alle Bildschirme", arguments: [
+    @Test("kaputte oder unbekannte Angabe: every Bildschirme", arguments: [
         "{}", #"{"mode":"hologramm"}"#, #"{"mode":null}"#, #"{"mode":"single"}"#,
         #"{"mode":"single","screen":null}"#, #"{"mode":"single","screen":"  "}"#, #"{"screen":"A 1x1"}"#,
     ])

@@ -2,22 +2,22 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Nexus: Texte")
+@Suite("Nexus: texts")
 struct NexusTextTests {
-    @Test("Laufzeit", arguments: [
-        (0.0, "unter 1 min"),
-        (59.9, "unter 1 min"),
-        (60.0, "1 min"),
-        (3_900.0, "1 h 5 min"),
-        (86_430.0, "1 T 0 h 0 min"),
-        (274_320.0, "3 T 4 h 12 min"),
-        (-5.0, "unter 1 min"),
+    @Test("Uptime", arguments: [
+        (0.0, "under 1 min"),
+        (59.9, "under 1 min"),
+        (60.0, "1min"),
+        (3_900.0, "1h 5min"),
+        (86_430.0, "1d 0h 0min"),
+        (274_320.0, "3d 4h 12min"),
+        (-5.0, "under 1 min"),
     ])
     func uptime(seconds: Double, expected: String) {
         #expect(NexusText.uptime(seconds) == expected)
     }
 
-    @Test("Version aus dem Bundle", arguments: [
+    @Test("Version out of the bundle", arguments: [
         ("0.1", "1", "Version 0.1 (1)"),
         ("0.1", nil, "Version 0.1"),
         (nil, "1", "Version –"),
@@ -27,12 +27,12 @@ struct NexusTextTests {
         #expect(NexusText.version(short: short, build: build) == expected)
     }
 
-    @Test("Zaehler der angehefteten Apps", arguments: [(0, "0 von 10"), (10, "10 von 10")])
+    @Test("Counter of the pinned apps", arguments: [(0, "0 of 10"), (10, "10 of 10")])
     func pinnedCount(count: Int, expected: String) {
         #expect(NexusText.pinnedCount(count) == expected)
     }
 
-    @Test("Datum der Leistenuhr: Wochentag kurz, Tag ohne Null", arguments: [
+    @Test("Date of the bar clock: short weekday, day without a leading zero", arguments: [
         (13, "So", "13"), (14, "Mo", "14"), (17, "Do", "17"), (19, "Sa", "19"), (1, "Di", "1"),
     ])
     func barDate(day: Int, weekday: String, dayText: String) throws {

@@ -273,8 +273,8 @@ struct HotKeyRecorder: View {
                     .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .help(recording ? HotKeyText.recordingHelp : String(localized: "Klicken und die neue Kombination drücken"))
-            .accessibilityLabel("Kürzel für \(action.title)")
+            .help(recording ? HotKeyText.recordingHelp : String(localized: "Click and press the new combination"))
+            .accessibilityLabel("Shortcut for \(action.title)")
             .accessibilityValue(key.map(HotKeyKeyboard.display) ?? HotKeyText.none)
 
             // Platz halten, damit das Feld beim Aufnehmen nicht springt.
@@ -285,7 +285,7 @@ struct HotKeyRecorder: View {
                     .foregroundStyle(.tertiary)
             }
             .buttonStyle(.borderless)
-            .help("Kürzel entfernen")
+            .help("Remove Shortcut")
             .opacity(key != nil && !recording ? 1 : 0)
             .disabled(key == nil || recording)
         }

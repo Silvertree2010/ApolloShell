@@ -43,7 +43,7 @@ enum DockMenu {
         }
     }
 
-    /// Apples Menue, mit "Im Dock behalten" auf unser Dock umgehaengt: In
+    /// Apples Menue, mit "Keep in Dock" auf unser Dock umgehaengt: In
     /// Apples Dock anzuheften waere wirkungslos, es ist ausgeblendet, solange
     /// die Shell laeuft.
     private static func mirrored(_ nodes: [DockMenuNode], entry: SidebarDockModel.Entry,
@@ -77,8 +77,8 @@ enum DockMenu {
                 }
                 item.state = index == front ? .on : .off
                 item.image = window.minimized
-                    ? NSImage(systemSymbolName: "minus.circle", accessibilityDescription: String(localized: "Im Dock"))
-                    : NSImage(systemSymbolName: "macwindow", accessibilityDescription: String(localized: "Fenster"))
+                    ? NSImage(systemSymbolName: "minus.circle", accessibilityDescription: String(localized: "In the Dock"))
+                    : NSImage(systemSymbolName: "macwindow", accessibilityDescription: String(localized: "Window"))
                 menu.addItem(item)
             }
             if !windows.isEmpty { menu.addItem(.separator()) }
@@ -90,19 +90,19 @@ enum DockMenu {
             }
             if !commands.isEmpty { menu.addItem(.separator()) }
         } else {
-            menu.addItem(ClosureMenuItem(String(localized: "Öffnen")) { model.click(entry, modifiers: []) })
+            menu.addItem(ClosureMenuItem(String(localized: "Open")) { model.click(entry, modifiers: []) })
             menu.addItem(.separator())
         }
 
-        let options = NSMenuItem(title: String(localized: "Optionen"), action: nil, keyEquivalent: "")
+        let options = NSMenuItem(title: String(localized: "Options"), action: nil, keyEquivalent: "")
         let optionsMenu = NSMenu()
         optionsMenu.autoenablesItems = false
         if model.canPin(entry) {
-            let keep = ClosureMenuItem(String(localized: "Im Dock behalten")) { model.togglePin(entry) }
+            let keep = ClosureMenuItem(String(localized: "Keep in Dock")) { model.togglePin(entry) }
             keep.state = model.isPinnedInDock(entry) ? .on : .off
             optionsMenu.addItem(keep)
         }
-        optionsMenu.addItem(ClosureMenuItem(String(localized: "In \(model.fileManagerName) zeigen")) { model.reveal(entry) })
+        optionsMenu.addItem(ClosureMenuItem(String(localized: "Show in \(model.fileManagerName)")) { model.reveal(entry) })
         options.submenu = optionsMenu
         menu.addItem(options)
 
@@ -110,14 +110,14 @@ enum DockMenu {
             // Trenner nach den Optionen, dann der Block wie bei Apple:
             // Einblenden, Aus-/Einblenden, Beenden - ohne Trenner dazwischen.
             menu.addItem(.separator())
-            menu.addItem(ClosureMenuItem(String(localized: "Alle Fenster einblenden")) { SpaceSwitcher.showAppWindows(of: app) })
-            menu.addItem(ClosureMenuItem(app.isHidden ? String(localized: "Einblenden") : String(localized: "Ausblenden")) {
+            menu.addItem(ClosureMenuItem(String(localized: "Show All Windows")) { SpaceSwitcher.showAppWindows(of: app) })
+            menu.addItem(ClosureMenuItem(app.isHidden ? String(localized: "Show") : String(localized: "Hide")) {
                 // Ergebnis egal: scheitert es, bleibt die App, wie sie war.
                 _ = app.isHidden ? app.unhide() : app.hide()
             })
-            menu.addItem(ClosureMenuItem(String(localized: "Beenden")) { app.terminate() })
-            // Wie bei Apple: mit gedrueckter ⌥-Taste wird daraus "Sofort beenden".
-            let force = ClosureMenuItem(String(localized: "Sofort beenden")) { app.forceTerminate() }
+            menu.addItem(ClosureMenuItem(String(localized: "Quit")) { app.terminate() })
+            // Wie bei Apple: mit gedrueckter ⌥-Taste wird daraus "Force Quit".
+            let force = ClosureMenuItem(String(localized: "Force Quit")) { app.forceTerminate() }
             force.isAlternate = true
             force.keyEquivalentModifierMask = .option
             menu.addItem(force)

@@ -97,7 +97,7 @@ public enum OpenMeteoGeocoding {
 extension WeatherLocation {
     /// "47,01° N, 9,50° O" auf Deutsch, "47.01° N, 9.50° E" auf Englisch:
     /// Das Dezimaltrennzeichen kommt aus der Locale, die Himmelsrichtung ist
-    /// ein Uebersetzungsschluessel (Ost heisst auf Englisch "E", nicht "O").
+    /// ein Uebersetzungsschluessel (Ost heisst auf Englisch "E", nicht "E").
     public var coordinateText: String { coordinateText(locale: .current) }
 
     public func coordinateText(locale: Locale) -> String {
@@ -107,7 +107,7 @@ extension WeatherLocation {
             return "\(text)° \(value < 0 ? negative : positive)"
         }
         let north = String(localized: "N"), south = String(localized: "S")
-        let east = String(localized: "O"), west = String(localized: "W")
+        let east = String(localized: "E"), west = String(localized: "W")
         return part(latitude, north, south) + ", " + part(longitude, east, west)
     }
 }

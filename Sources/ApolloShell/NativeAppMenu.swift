@@ -9,7 +9,7 @@ import SwiftUI
 @MainActor
 enum NativeAppMenu {
     /// - Parameter rebind: Bekommt den Titel eines Eintrags und darf ihn
-    ///   uebernehmen (etwa "Im Dock behalten", das auf unser Dock zeigen
+    ///   uebernehmen (etwa "Keep in Dock", das auf unser Dock zeigen
     ///   soll statt auf Apples). `nil` heisst: so lassen, wie Apple es meint.
     static func menu(from nodes: [DockMenuNode], bundleID: String,
                      rebind: (DockMenuNode) -> (state: NSControl.StateValue, enabled: Bool, action: () -> Void)? = { _ in nil }) -> NSMenu {

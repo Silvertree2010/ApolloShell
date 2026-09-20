@@ -124,7 +124,7 @@ struct PerformanceMathTests {
     func bytesEnglish() {
         let en = Locale(identifier: "en_US")
         #expect(ByteFormat.bytes(1_234_567, locale: en) == "1.2 MB")
-        #expect(ByteFormat.usage(used: 9_800_000_000, total: 16 << 30, binary: true, locale: en) == "9.1 GB von 16 GB")
+        #expect(ByteFormat.usage(used: 9_800_000_000, total: 16 << 30, binary: true, locale: en) == "9.1 GB of 16 GB")
     }
 
     @Test("Raten")
@@ -139,8 +139,8 @@ struct PerformanceMathTests {
     @Test("Arbeitsspeicher binaer: 24 GB bleiben 24 GB")
     func binaryUsage() {
         let gib: UInt64 = 1 << 30
-        #expect(ByteFormat.usage(used: 18 * gib, total: 24 * gib, binary: true) == "18 GB von 24 GB")
-        #expect(ByteFormat.usage(used: 412_000_000_000, total: 994_000_000_000) == "412 GB von 994 GB")
+        #expect(ByteFormat.usage(used: 18 * gib, total: 24 * gib, binary: true) == "18 GB of 24 GB")
+        #expect(ByteFormat.usage(used: 412_000_000_000, total: 994_000_000_000) == "412 GB of 994 GB")
     }
 
     @Test("Prozent mit Strich ohne Messwert")
@@ -156,16 +156,16 @@ struct PerformanceMathTests {
         let onBattery = BatteryState(level: 80, charging: false, onAC: false)
         #expect(BatteryTankText.fill(onBattery) == 0.8)
         #expect(BatteryTankText.percent(onBattery) == "80 %")
-        #expect(BatteryTankText.status(onBattery, minutes: 452) == "Noch 7 Std 32 Min")
-        #expect(BatteryTankText.status(onBattery, minutes: -1) == "Berechne …")
-        #expect(BatteryTankText.status(onBattery, minutes: nil) == "Berechne …")
+        #expect(BatteryTankText.status(onBattery, minutes: 452) == "7h 32m Left")
+        #expect(BatteryTankText.status(onBattery, minutes: -1) == "Calculating…")
+        #expect(BatteryTankText.status(onBattery, minutes: nil) == "Calculating…")
 
         let charging = BatteryState(level: 35, charging: true, onAC: true)
-        #expect(BatteryTankText.status(charging, minutes: 45) == "Voll in 45 Min")
-        #expect(BatteryTankText.status(charging, minutes: 0) == "Lädt")
+        #expect(BatteryTankText.status(charging, minutes: 45) == "Full in 45m")
+        #expect(BatteryTankText.status(charging, minutes: 0) == "Charging")
 
-        #expect(BatteryTankText.status(BatteryState(level: 80, charging: false, onAC: true), minutes: 0) == "Am Netzteil")
-        #expect(BatteryTankText.status(BatteryState(level: 100, charging: false, onAC: true), minutes: 0) == "Geladen")
+        #expect(BatteryTankText.status(BatteryState(level: 80, charging: false, onAC: true), minutes: 0) == "On Power Adapter")
+        #expect(BatteryTankText.status(BatteryState(level: 100, charging: false, onAC: true), minutes: 0) == "Charged")
         #expect(BatteryTankText.fill(BatteryState(level: 120, charging: false, onAC: true)) == 1)
     }
 }

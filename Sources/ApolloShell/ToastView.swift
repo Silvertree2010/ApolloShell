@@ -157,6 +157,6 @@ struct ToastCard: View {
         }
         .contentShape(.rect(cornerRadius: radius))
         .accessibilityElement(children: .combine)
-        .accessibilityHint("Klicken zum Schliessen")
+        .accessibilityHint("Click to Dismiss")
     }
 }

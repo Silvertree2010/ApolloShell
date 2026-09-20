@@ -51,7 +51,7 @@ struct ShellSettingsTests {
         #expect(ShellSettings.load(from: settings.encoded()) == settings)
     }
 
-    @Test("die Datei nennt jeden Schluessel (von Hand lesbar)", arguments: [
+    @Test("die Datei nennt jeden Schluessel (of Hand lesbar)", arguments: [
         "\"bar\"", "\"layout\"", "\"id\"", "\"kind\"", "\"options\"", "\"clock\"", "\"showDate\"",
         "\"toasts\"", "\"chargingChanged\"", "\"batteryWarnings\"", "\"audioOutputChanged\"", "\"background\"", "\"desktopClock\"",
     ])

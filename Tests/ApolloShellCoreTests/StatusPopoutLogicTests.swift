@@ -4,8 +4,8 @@ import Testing
 @Suite("Detailfenster: WLAN-Signal")
 struct StatusPopoutSignalTests {
     @Test("Balken und Urteil nach dBm, gleiche Schwellen wie das Leistensymbol", arguments: [
-        (-40, 3, "Ausgezeichnet"), (-55, 3, "Ausgezeichnet"), (-56, 2, "Gut"), (-67, 2, "Gut"),
-        (-70, 1, "Mäßig"), (-75, 1, "Mäßig"), (-76, 0, "Schwach"), (-90, 0, "Schwach"),
+        (-40, 3, "Excellent"), (-55, 3, "Excellent"), (-56, 2, "Good"), (-67, 2, "Good"),
+        (-70, 1, "Fair"), (-75, 1, "Fair"), (-76, 0, "Weak"), (-90, 0, "Weak"),
     ])
     func barsAndQuality(rssi: Int, bars: Int, quality: String) {
         #expect(StatusPopoutSignal.bars(rssi: rssi) == bars)
@@ -15,7 +15,7 @@ struct StatusPopoutSignalTests {
     @Test("nicht verbunden (0 oder nil): keine Balken, kein Signal", arguments: [Int?.none, 0])
     func noSignal(rssi: Int?) {
         #expect(StatusPopoutSignal.bars(rssi: rssi) == 0)
-        #expect(StatusPopoutSignal.quality(rssi: rssi) == "Kein Signal")
+        #expect(StatusPopoutSignal.quality(rssi: rssi) == "No Signal")
     }
 
     @Test("Signal-Rauschabstand, fehlende Werte ergeben nil", arguments: [
@@ -45,28 +45,28 @@ struct StatusPopoutSignalTests {
 
 @Suite("Detailfenster: Akku")
 struct StatusPopoutBatteryTests {
-    @Test("Dauer in Stunden und Minuten", arguments: [
-        (135, String?.some("2 Std 15 Min")), (60, String?.some("1 Std")), (45, String?.some("45 Min")),
-        (1, String?.some("1 Min")), (600, String?.some("10 Std")), (0, String?.none), (-1, String?.none),
+    @Test("Dauer in hours und Minuten", arguments: [
+        (135, String?.some("2h 15m")), (60, String?.some("1h")), (45, String?.some("45m")),
+        (1, String?.some("1m")), (600, String?.some("10h")), (0, String?.none), (-1, String?.none),
     ])
     func duration(minutes: Int, text: String?) {
         #expect(StatusPopoutDuration.text(minutes: minutes) == text)
     }
 
     @Test("Zustand in Worten", arguments: [
-        (true, true, "Lädt"), (false, true, "Am Netz"), (false, false, "Akku"),
+        (true, true, "Charging"), (false, true, "On Power"), (false, false, "Battery"),
     ])
     func state(charging: Bool, onAC: Bool, text: String) {
         #expect(StatusPopoutBatteryText.state(BatteryState(level: 50, charging: charging, onAC: onAC)) == text)
     }
 
     @Test("Zeitzeile je nach Zustand", arguments: [
-        (40, true, true, 0, 83, "Voll in 1 Std 23 Min"),
-        (40, true, true, 0, -1, "Ladezeit wird berechnet …"),
-        (100, false, true, 0, 0, "Vollständig geladen"),
-        (80, false, true, 0, 0, "Wird gerade nicht geladen"),
-        (70, false, false, 135, 0, "Noch 2 Std 15 Min"),
-        (70, false, false, -1, 0, "Restlaufzeit wird berechnet …"),
+        (40, true, true, 0, 83, "Full in 1h 23m"),
+        (40, true, true, 0, -1, "Calculating charge time…"),
+        (100, false, true, 0, 0, "Fully Charged"),
+        (80, false, true, 0, 0, "Not Charging Right Now"),
+        (70, false, false, 135, 0, "2h 15m Left"),
+        (70, false, false, -1, 0, "Calculating time remaining…"),
     ])
     func timeLine(level: Int, charging: Bool, onAC: Bool, toEmpty: Int, toFull: Int, text: String) {
         let battery = BatteryState(level: level, charging: charging, onAC: onAC)

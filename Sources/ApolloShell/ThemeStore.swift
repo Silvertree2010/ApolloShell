@@ -242,9 +242,9 @@ enum ThemeImportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notATheme:
-            String(localized: "Das ist kein Theme: erwartet wird eine .css-Datei oder ein Ordner mit theme.css.")
+            String(localized: "That is not a theme: a .css file or a folder with a theme.css is expected.")
         case .folderWithoutStyleSheet:
-            String(localized: "In diesem Ordner fehlt theme.css.")
+            String(localized: "This folder has no theme.css.")
         }
     }
 }

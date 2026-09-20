@@ -15,7 +15,7 @@ import os
 ///
 /// Wann die Leiste im Vollbild abtritt, sagt `FullscreenMonitor`.
 ///
-/// Braucht die Freigabe "Bedienungshilfen". Einmal pro Start wird darum
+/// Braucht die Freigabe "Accessibility". Einmal pro Start wird darum
 /// gebeten; ohne Freigabe bleibt alles wie vorher (Leiste immer sichtbar,
 /// Fenster laufen darunter durch). Alle 2 s wird nachgesehen, ob sie
 /// inzwischen erteilt oder entzogen wurde - ein Neustart ist nicht noetig.

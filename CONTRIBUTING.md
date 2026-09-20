@@ -59,11 +59,10 @@ scripts/make-dmg.sh
 - Swift 6 language mode with strict concurrency. UI code runs on the main
   actor.
 - Put logic into `ApolloShellCore` and test it there. Keep views thin.
+- **UI text is written in English**, directly in the code. There is no
+  translation table any more.
 - **Code comments are in German** for now; English comments are welcome in new
   code. Comments explain *why*, not *what*.
-- **UI text is written in German in the code** and translated through
-  `Support/Localization` (see [Translations](#translations)). Every new UI
-  string needs an English entry.
 - Load private macOS interfaces with `dlopen`/`dlsym`, check that they exist,
   and fall back or switch the feature off when they are missing. Never crash
   because Apple changed something.
@@ -72,21 +71,6 @@ scripts/make-dmg.sh
   app. Green tests alone don't prove a view looks right.
 - No personal data in code, tests or screenshots. Use neutral examples such as
   "Berlin" or "Alex".
-
-## Translations
-
-German is the source language. The German text in the code is the key, and
-each translation is a set of `Support/Localization/<language>/*.strings` files
-(`"Deutsch" = "English";`). For a new language:
-
-1. Copy `Support/Localization/en` to your language code, for example `es`.
-2. Translate the right-hand side. Keep placeholders such as `%@` and `%lld`.
-3. Add the code to `CFBundleLocalizations` in `Support/Info.plist` and to the
-   language picker (`AppLanguage.swift`).
-4. Have `scripts/assemble-app.sh` copy the new folder too (`build.sh` uses it).
-
-New UI text needs an English entry. `python3 scripts/check-l10n.py` lists what
-is missing.
 
 ## Pull requests
 

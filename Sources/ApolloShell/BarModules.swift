@@ -258,7 +258,7 @@ struct BarAppButton: View {
 
     var body: some View {
         let info = BarApps.info(for: bundleID)
-        SidebarIcon(help: info.map { String(localized: "\($0.name) öffnen") } ?? String(localized: "Keine App gewählt (Nexus > Leiste)"),
+        SidebarIcon(help: info.map { String(localized: "Open \($0.name)") } ?? String(localized: "No app chosen (Nexus > Bar)"),
                     action: { if info != nil { onOpen(bundleID) } }) {
             if let info {
                 Image(nsImage: info.icon)
@@ -276,7 +276,7 @@ struct BarAppButton: View {
 
 /// Ladestand als Zahl, darueber auf Wunsch das Symbol. Ohne Akku
 /// (Desktop-Mac): nichts - wie der Akku in der Statuskapsel. Klick oeffnet
-/// den Reiter "Leistung" mit dem Akku-Tank und der Restzeit.
+/// den Reiter "Performance" mit dem Akku-Tank und der Restzeit.
 struct BarBatteryModule: View {
     let status: StatusModel
     let options: BarBatteryOptions
@@ -314,7 +314,7 @@ struct BarCPUModule: View {
 
     var body: some View {
         let percent = model.usage.map { Int(($0 * 100).rounded()) }
-        BarTile(help: percent.map { String(localized: "CPU \($0) %") } ?? "CPU", action: onOpen) {
+        BarTile(help: percent.map { String(localized: "CPU \($0)%") } ?? "CPU", action: onOpen) {
             switch options.style {
             case .ring:
                 ZStack {
@@ -361,8 +361,8 @@ struct BarWeatherModule: View {
         let current = model.report?.current
         BarTile(help: model.location.map { location in
                     current.map { String(localized: "\(WeatherCondition.description(code: $0.code)) in \(location.name)") }
-                        ?? String(localized: "Wetter in \(location.name)")
-                } ?? String(localized: "Ort in Nexus festlegen"),
+                        ?? String(localized: "Weather in \(location.name)")
+                } ?? String(localized: "Set Location in Nexus"),
                 action: onOpen) {
             VStack(spacing: 2) {
                 if let current {

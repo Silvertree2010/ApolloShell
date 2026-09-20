@@ -62,9 +62,9 @@ struct UtilitiesEditorPage: View {
             }
             .onMove { store.settings.utilities.layout.moveCards(fromOffsets: $0, toOffset: $1) }
         } header: {
-            Text("Karten")
+            Text("Cards")
         } footer: {
-            Text("Von oben nach unten wie im Panel. Zum Umsortieren ziehen. Ausgeschaltete Karten verschwinden, das Panel wird entsprechend niedriger.")
+            Text("Top to bottom as in the panel. Drag to reorder. Turned-off cards disappear, and the panel gets shorter accordingly.")
         }
     }
 
@@ -74,22 +74,22 @@ struct UtilitiesEditorPage: View {
     /// man soll sie hier wieder loswerden.
     private var keepAwakeSection: some View {
         Section {
-            NexusToggle(title: "Auch bei zugeklapptem Deckel",
-                        subtitle: "Solange „Wach halten“ läuft, schläft der Mac auch zugeklappt nicht",
+            NexusToggle(title: "Also With the Lid Closed",
+                        subtitle: "While “Keep Awake” is on, the Mac won't sleep even with the lid closed",
                         isOn: $store.settings.keepAwake.lidClosed)
             if lidRuleInstalled {
                 LabeledContent {
-                    Button("Entfernen …") { removeLidRule() }
+                    Button("Remove…") { removeLidRule() }
                         .disabled(removingLidRule)
                 } label: {
-                    Text("Regel ohne Passwort")
-                    Text("Erlaubt nur, diesen Ruhezustand ohne Passwort umzuschalten")
+                    Text("Password-Free Rule")
+                    Text("Allows only switching this sleep setting without a password")
                 }
             }
         } header: {
-            Text("Wach halten")
+            Text("Keep Awake")
         } footer: {
-            Text("Braucht einmal Administratorrechte: Beim ersten Einschalten fragt macOS nach dem Passwort, und ApolloShell legt eine Regel an, die nur das Umschalten dieses Ruhezustands ohne Passwort erlaubt. Danach fragt niemand mehr. Wer ablehnt, bekommt „Wach halten“ nur aufgeklappt. Im Akkubetrieb endet es bei \(LidAwake.batteryFloor) % von selbst.")
+            Text("Needs administrator rights once: the first time you turn it on, macOS asks for your password and ApolloShell adds a rule that allows only switching this sleep setting without a password. After that, nothing asks again. Declining leaves “Keep Awake” working only with the lid open. On battery it ends on its own at \(LidAwake.batteryFloor)%.")
         }
         // Die Regel entsteht im Hintergrund, sobald die Frage beantwortet
         // ist; solange die Seite offen ist, alle 2 s nachsehen (ein stat).
@@ -116,7 +116,7 @@ struct UtilitiesEditorPage: View {
                 Button {
                     showsGallery = true
                 } label: {
-                    Label("Hinzufügen …", systemImage: "plus")
+                    Label("Add…", systemImage: "plus")
                 }
                 Spacer(minLength: 8)
                 Text(UtilitiesEditorText.count(layout))
@@ -124,9 +124,9 @@ struct UtilitiesEditorPage: View {
                     .foregroundStyle(.secondary)
             }
         } header: {
-            Text("Schnellschalter")
+            Text("Quick Toggles")
         } footer: {
-            Text("Fünf pro Reihe wie im Panel, jede Reihe macht es 56 pt höher. Zum Umsortieren einen Knopf auf einen anderen ziehen; ein Klick wählt ihn zum Einstellen, das Kontextmenü verschiebt oder entfernt.")
+            Text("Five per row as in the panel, each row makes it 56 pt taller. To reorder, drag one button onto another; a click selects it for editing, the context menu moves or removes it.")
         }
     }
 
@@ -138,9 +138,9 @@ struct UtilitiesEditorPage: View {
                 NexusPresetResetButton<UtilitiesPreset>(layout: layout) { pending = .reset }
             }
         } header: {
-            Text("Vorlagen")
+            Text("Presets")
         } footer: {
-            Text("Eine Vorlage ersetzt Karten und Schnellschalter. „Standard“ ist das Panel, wie es am Anfang war.")
+            Text("A preset replaces cards and quick toggles. “Default” is the panel as it was at the start.")
         }
     }
 
@@ -169,7 +169,7 @@ struct UtilitiesEditorPreview: View {
             let height = CGFloat(layout.panelHeight)
             let scale = min(1, (geometry.size.width - 24) / UtilitiesView.width, max(geometry.size.height - 70, 80) / height)
             VStack(spacing: 8) {
-                Text("Vorschau")
+                Text("Preview")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 UtilitiesView(model: model, layout: layout)
@@ -184,9 +184,9 @@ struct UtilitiesEditorPreview: View {
                     .frame(width: UtilitiesView.width * scale, height: height * scale, alignment: .top)
                     .allowsHitTesting(false)
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Vorschau des Panels")
+                    .accessibilityLabel("Preview of the Panel")
                     .animation(.snappy(duration: 0.25), value: layout)
-                Text("\(Int(height)) pt hoch · Beispieldaten")
+                Text("\(Int(height)) pt tall · Sample Data")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -220,16 +220,16 @@ enum UtilitiesEditorText {
     /// Titel der Vorlagen-Rueckfrage.
     static func replacementTitle(_ replacement: LayoutPresetReplacement<UtilitiesPreset>) -> String {
         switch replacement {
-        case .preset(let preset): String(localized: "Vorlage „\(preset.title)“ laden?")
-        case .reset: String(localized: "Schnellaktionen zurücksetzen?")
+        case .preset(let preset): String(localized: "Load preset “\(preset.title)”?")
+        case .reset: String(localized: "Reset Quick Actions?")
         }
     }
 
     /// Erklaerung der Vorlagen-Rueckfrage.
     static func replacementMessage(_ replacement: LayoutPresetReplacement<UtilitiesPreset>) -> String {
         switch replacement {
-        case .preset(let preset): String(localized: "\(preset.summary) Die jetzige Anordnung wird ersetzt.")
-        case .reset: String(localized: "Das Panel sieht wieder aus wie am Anfang (Vorlage Standard). Die jetzige Anordnung wird ersetzt.")
+        case .preset(let preset): String(localized: "\(preset.summary) The current arrangement will be replaced.")
+        case .reset: String(localized: "The panel looks like it did at the start again (Default preset). The current arrangement will be replaced.")
         }
     }
 
@@ -260,7 +260,7 @@ enum UtilitiesEditorText {
     static func count(_ layout: UtilitiesLayout) -> String {
         let buttons = layout.toggles.count
         let rows = layout.toggleRows.count
-        return "\(buttons) \(buttons == 1 ? "Knopf" : "Knöpfe") · \(rows) \(rows == 1 ? "Reihe" : "Reihen")"
+        return "\(buttons) \(buttons == 1 ? "button" : "buttons") · \(rows) \(rows == 1 ? "row" : "rows")"
     }
 
     private static func nonEmpty(_ text: String) -> String? {

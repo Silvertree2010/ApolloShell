@@ -451,7 +451,7 @@ final class SidebarDockModel {
 
 /// Eigenes Ordner-Symbol fuer den Dateimanager im Stil seiner App-Symbole.
 ///
-/// Er hat den Symbolstil "Klar" (hell): macOS rendert App-Symbole dann als
+/// Er hat den Symbolstil "Clear" (hell): macOS rendert App-Symbole dann als
 /// graue Glas-Kachel mit hellem Motiv. Das allgemeine Ordner-Symbol
 /// (`icon(for: .folder)`) bekommt diesen Stil nicht und war gelb - "passt 0 %
 /// zu den restlichen" (14.09.). Deshalb nachgebaut: Werte aus der Bildprobe
@@ -635,7 +635,7 @@ private struct SidebarDockItem: View {
             .animation(.easeOut(duration: 0.15), value: active)
             .help(entry.name)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(entry.running ? String(localized: "\(entry.name), läuft") : entry.name)
+            .accessibilityLabel(entry.running ? String(localized: "\(entry.name), running") : entry.name)
             .accessibilityAddTraits(.isButton)
     }
 }

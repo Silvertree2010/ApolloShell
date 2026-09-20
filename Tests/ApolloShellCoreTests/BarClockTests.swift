@@ -16,7 +16,7 @@ private func utc(_ hour: Int, _ minute: Int, _ second: Double = 0) -> Date {
 
 @Suite("Uhr in der Leiste")
 struct BarClockTests {
-    @Test("24 Stunden, zweistellig", arguments: [
+    @Test("24 hours, zweistellig", arguments: [
         (14, 5, "14", "05"), (0, 0, "00", "00"), (9, 59, "09", "59"), (23, 7, "23", "07"),
     ])
     func twoDigits(hour: Int, minute: Int, hourText: String, minuteText: String) {

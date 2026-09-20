@@ -17,23 +17,23 @@ struct KeepAwakeTextTests {
 
     @Test("aus: normaler Energiesparmodus")
     func inactive() {
-        #expect(KeepAwakeText.subtitle(since: nil, now: date(14, 12, 0), calendar: calendar) == "Mac schläft normal")
+        #expect(KeepAwakeText.subtitle(since: nil, now: date(14, 12, 0), calendar: calendar) == "Mac sleeps normally")
     }
 
     @Test("heute: nur die Uhrzeit, zweistellig")
     func today() {
-        #expect(KeepAwakeText.subtitle(since: date(14, 14, 30), now: date(14, 15, 0), calendar: calendar) == "Aktiv seit 14:30")
-        #expect(KeepAwakeText.subtitle(since: date(14, 0, 5), now: date(14, 9, 0), calendar: calendar) == "Aktiv seit 00:05")
+        #expect(KeepAwakeText.subtitle(since: date(14, 14, 30), now: date(14, 15, 0), calendar: calendar) == "Active since 14:30")
+        #expect(KeepAwakeText.subtitle(since: date(14, 0, 5), now: date(14, 9, 0), calendar: calendar) == "Active since 00:05")
     }
 
     @Test("ueber Mitternacht: gestern")
     func yesterday() {
-        #expect(KeepAwakeText.subtitle(since: date(13, 23, 10), now: date(14, 7, 0), calendar: calendar) == "Aktiv seit gestern, 23:10")
+        #expect(KeepAwakeText.subtitle(since: date(13, 23, 10), now: date(14, 7, 0), calendar: calendar) == "Active since yesterday, 23:10")
     }
 
     @Test("aelter: mit Datum")
     func older() {
-        #expect(KeepAwakeText.subtitle(since: date(9, 8, 4), now: date(14, 7, 0), calendar: calendar) == "Aktiv seit 09.09., 08:04")
+        #expect(KeepAwakeText.subtitle(since: date(9, 8, 4), now: date(14, 7, 0), calendar: calendar) == "Active since 09.09., 08:04")
     }
 }
 
@@ -41,7 +41,7 @@ struct KeepAwakeTextTests {
 struct QuickTogglesTests {
     @Test("WLAN: an leuchtet, aus nicht, ohne Interface nicht klickbar")
     func wifi() {
-        #expect(QuickToggles.wifi(powerOn: true) == QuickToggleLook(symbol: "wifi", active: true, enabled: true, help: "WLAN an"))
+        #expect(QuickToggles.wifi(powerOn: true) == QuickToggleLook(symbol: "wifi", active: true, enabled: true, help: "Wi-Fi On"))
         #expect(QuickToggles.wifi(powerOn: false).active == false)
         #expect(QuickToggles.wifi(powerOn: false).symbol == "wifi.slash")
         #expect(QuickToggles.wifi(powerOn: nil).enabled == false)
@@ -52,13 +52,13 @@ struct QuickTogglesTests {
         let live = QuickToggles.microphone(muted: false, settable: true)
         #expect(live.active && live.enabled && live.symbol == "mic.fill")
         let muted = QuickToggles.microphone(muted: true, settable: true)
-        #expect(!muted.active && muted.symbol == "mic.slash.fill" && muted.help == "Mikrofon stumm")
+        #expect(!muted.active && muted.symbol == "mic.slash.fill" && muted.help == "Microphone Muted")
     }
 
     @Test("Mikrofon ohne schreibbare Stummschaltung oder ohne Geraet: nicht klickbar")
     func microphoneDisabled() {
         let fixed = QuickToggles.microphone(muted: false, settable: false)
-        #expect(!fixed.enabled && fixed.help == "Mikrofon an (nicht schaltbar)")
+        #expect(!fixed.enabled && fixed.help == "Microphone On (not switchable)")
         #expect(QuickToggles.microphone(muted: nil, settable: true).enabled == false)
     }
 

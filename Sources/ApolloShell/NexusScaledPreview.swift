@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Die verkleinerte, lebende Vorschau in Nexus > Leiste/Schnellaktionen/
 /// Dashboard: eine leicht abgesetzte Flaeche als Ersatz fuer das Glas, ein
-/// Rand, skaliert auf `scale`, ohne Maus. Kopf (Ueberschrift "Vorschau") und
+/// Rand, skaliert auf `scale`, ohne Maus. Kopf (Ueberschrift "Preview") und
 /// Fusszeile (Beispieldaten-Hinweis) bleiben bei den Aufrufern - die
 /// unterscheiden sich (Hoehe der Leiste, Groesse des Panels, des
 /// Dashboards).

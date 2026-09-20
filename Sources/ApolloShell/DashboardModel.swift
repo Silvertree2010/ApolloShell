@@ -13,7 +13,7 @@ final class DashboardModel {
     var tab: DashboardTab = .dashboard {
         didSet { syncPerformance() }
     }
-    /// Reiter "Leistung"; misst nur bei offenem Dashboard und sichtbarem Reiter.
+    /// Reiter "Performance"; misst nur bei offenem Dashboard und sichtbarem Reiter.
     let performance = PerformanceModel()
     private(set) var now = Date()
     private(set) var cpu: Double = 0
@@ -77,7 +77,7 @@ final class DashboardModel {
     }
 
     /// Die Leistungs-Messung (GPU, Netzwerk, Verlaeufe) laeuft nur, wenn man
-    /// sie sieht: Dashboard offen und Reiter "Leistung" gewaehlt. Ueber das
+    /// sie sieht: Dashboard offen und Reiter "Performance" gewaehlt. Ueber das
     /// Modell statt onAppear/onDisappear, weil das Fenster beim Schliessen
     /// nur ausgeblendet wird - die Ansicht verschwindet dabei nicht.
     private func syncPerformance() {

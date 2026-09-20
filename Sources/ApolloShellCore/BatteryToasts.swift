@@ -24,14 +24,14 @@ public struct BatteryWarningLevel: Equatable, Sendable {
     /// nicht: macOS schlaeft bei leerem Akku selbst, der Launcher loest nie
     /// eine Sitzungsaktion aus.
     public static let caelestiaDefaults: [BatteryWarningLevel] = [
-        BatteryWarningLevel(level: 20, title: String(localized: "Akku schwach"),
-                            message: String(localized: "Du solltest bald ein Ladegerät anschliessen"),
+        BatteryWarningLevel(level: 20, title: String(localized: "Low Battery"),
+                            message: String(localized: "You should plug in a charger soon"),
                             symbol: "battery.25percent"),
-        BatteryWarningLevel(level: 10, title: String(localized: "Hast du die letzte Meldung gesehen?"),
-                            message: String(localized: "Schliess jetzt besser ein Ladegerät an"),
+        BatteryWarningLevel(level: 10, title: String(localized: "Did you see the last alert?"),
+                            message: String(localized: "You'd better plug in a charger now"),
                             symbol: "battery.0percent"),
-        BatteryWarningLevel(level: 5, title: String(localized: "Akku fast leer"),
-                            message: String(localized: "SCHLIESS SOFORT DAS LADEGERÄT AN!!"),
+        BatteryWarningLevel(level: 5, title: String(localized: "Battery Almost Empty"),
+                            message: String(localized: "PLUG IN THE CHARGER NOW!!"),
                             // Caelestia: battery_android_alert (Akku mit "!").
                             symbol: "minus.plus.batteryblock.exclamationmark.fill", critical: true),
     ]

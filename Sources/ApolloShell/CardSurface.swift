@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Karte mit leicht abgesetzter Flaeche auf dem Glas - im Dashboard, im
-/// Reiter "Leistung", beim Wetter und bei den Medien.
+/// Reiter "Performance", beim Wetter und bei den Medien.
 struct Card<Content: View>: View {
     let radius: CGFloat
     @ViewBuilder let content: () -> Content

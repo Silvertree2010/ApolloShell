@@ -180,18 +180,18 @@ struct ToastQueueTests {
 struct ToastTextTests {
     @Test("Ladegeraet an und ab")
     func charger() {
-        #expect(ToastText.chargerConnected.title == "Ladegerät angeschlossen")
-        #expect(ToastText.chargerConnected.message == "Akku wird geladen")
-        #expect(ToastText.chargerDisconnected.title == "Ladegerät getrennt")
-        #expect(ToastText.chargerDisconnected.message == "Akku wird entladen")
+        #expect(ToastText.chargerConnected.title == "Charger Connected")
+        #expect(ToastText.chargerConnected.message == "Battery is charging")
+        #expect(ToastText.chargerDisconnected.title == "Charger Unplugged")
+        #expect(ToastText.chargerDisconnected.message == "Battery is discharging")
     }
 
     @Test("Audio: Geraetename in der Nachricht, leer = unbekannt")
     func audio() {
-        #expect(ToastText.audioOutput("AirPods Pro").message == "Jetzt über AirPods Pro")
+        #expect(ToastText.audioOutput("AirPods Pro").message == "Now using AirPods Pro")
         #expect(ToastText.audioOutput("AirPods Pro").symbol == "speaker.wave.2.fill")
-        #expect(ToastText.audioInput("  ").message == "Jetzt über Unbekanntes Gerät")
-        #expect(ToastText.audioInput("X").title == "Audioeingang geändert")
+        #expect(ToastText.audioInput("  ").message == "Now using Unknown Device")
+        #expect(ToastText.audioInput("X").title == "Audio Input Changed")
     }
 
     @Test("Akku-Ereignisse werden zu Texten, Stufe 5 als Fehler")
@@ -199,7 +199,7 @@ struct ToastTextTests {
         #expect(ToastText.battery(.chargerConnected) == ToastText.chargerConnected)
         let critical = BatteryWarningLevel.caelestiaDefaults[2]
         let content = ToastText.battery(.warning(critical))
-        #expect(content.title == "Akku fast leer" && content.kind == .error)
+        #expect(content.title == "Battery Almost Empty" && content.kind == .error)
         #expect(ToastText.battery(.warning(BatteryWarningLevel.caelestiaDefaults[0])).kind == .warning)
     }
 

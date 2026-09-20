@@ -7,7 +7,7 @@ import ApolloShellCore
 import Observation
 import os
 
-/// Zustand und Aktionen des Utilities-Panels: "Wach halten", die Ton-Karte
+/// Zustand und Aktionen des Utilities-Panels: "Keep Awake", die Ton-Karte
 /// und die Schnellschalter (WLAN, Mikrofon, Bluetooth, Dunkelmodus, Night
 /// Shift) samt Aktionen (Bildschirmfoto, Schreibtisch, Farbpipette, Sperren,
 /// Einstellungen).
@@ -24,11 +24,11 @@ import os
 @MainActor
 @Observable
 final class UtilitiesModel {
-    /// "Wach halten" mit Deckel-Teil - eine eigene Zustandsmaschine.
+    /// "Keep Awake" mit Deckel-Teil - eine eigene Zustandsmaschine.
     @ObservationIgnored let keepAwakeController: KeepAwakeController
-    /// Seit wann "Wach halten" laeuft; `nil` = aus.
+    /// Seit wann "Keep Awake" laeuft; `nil` = aus.
     var keepAwakeSince: Date? { keepAwakeController.since }
-    /// Stand des Deckel-Teils von "Wach halten" (`LidAwake`, pmset disablesleep).
+    /// Stand des Deckel-Teils von "Keep Awake" (`LidAwake`, pmset disablesleep).
     var lid: KeepAwakeLid { keepAwakeController.lid }
     /// `nil`: kein WLAN-Interface.
     private(set) var wifiOn: Bool?
@@ -41,7 +41,7 @@ final class UtilitiesModel {
     private(set) var darkMode: Bool?
     /// `nil`: nicht verfuegbar (oder noch nicht gelesen).
     private(set) var nightShift: Bool?
-    /// Kurzbefehl "Schreibtisch anzeigen" in Mission Control an.
+    /// Kurzbefehl "Show Desktop" in Mission Control an.
     private(set) var showDesktopAvailable = true
 
     // Ton-Karte
@@ -94,7 +94,7 @@ final class UtilitiesModel {
     /// Vom Panel: eine Kurzmeldung zeigen (Farbpipette).
     @ObservationIgnored var onToast: (ToastText.Content) -> Void = { _ in }
 
-    /// `lidAllowed`: ob "Wach halten" auch zugeklappt gelten soll - wird bei
+    /// `lidAllowed`: ob "Keep Awake" auch zugeklappt gelten soll - wird bei
     /// jedem Einschalten neu gefragt, die Einstellung kann sich ja aendern.
     init(lidAllowed: @escaping @MainActor () -> Bool) {
         live = true
@@ -152,7 +152,7 @@ final class UtilitiesModel {
         timer = .repeating(every: Self.interval, owner: self) { $0.tick() }
     }
 
-    /// Hoert nur mit dem Abfragen auf. "Wach halten" bleibt an - genau dafuer
+    /// Hoert nur mit dem Abfragen auf. "Keep Awake" bleibt an - genau dafuer
     /// ist es da, auch bei geschlossenem Panel. Die Lautstaerke-Listener
     /// bleiben auch: sie kosten nichts, solange sich nichts aendert.
     func stop() {
@@ -259,7 +259,7 @@ final class UtilitiesModel {
         keepAwakeController.shutdown()
     }
 
-    /// Nexus hat "Auch bei zugeklapptem Deckel" umgeschaltet.
+    /// Nexus hat "Also With the Lid Closed" umgeschaltet.
     func lidSettingChanged() {
         keepAwakeController.lidSettingChanged()
     }

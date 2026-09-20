@@ -20,7 +20,7 @@
   <a href="https://www.producthunt.com/products/apolloshell"><img src="https://img.shields.io/badge/Product%20Hunt-ApolloShell-DA552F?logo=producthunt&amp;logoColor=white" alt="ApolloShell on Product Hunt"></a>
 </p>
 
-<p align="center"><a href="https://silvertree2010.github.io/ApolloShell/">Website</a> · <a href="README.de.md">Deutsch</a></p>
+<p align="center"><a href="https://silvertree2010.github.io/ApolloShell/">Website</a></p>
 
 ![ApolloShell on a desktop: sidebar with dock on the left, dashboard open at the top](docs/images/hero.png)
 
@@ -53,7 +53,6 @@ If you like it, a star on GitHub helps other Mac users find it.
   session menu.
 - **Keeps itself up to date** (the `.dmg` build), or says when a new version
   is out (Homebrew).
-- English and German.
 
 | Dashboard | Control centre | Launcher |
 | --- | --- | --- |

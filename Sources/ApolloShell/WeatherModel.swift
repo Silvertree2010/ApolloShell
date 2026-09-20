@@ -160,7 +160,7 @@ final class WeatherModel {
     }
 
     /// Anderer Ort (oder keiner mehr): das alte Wetter gilt nicht mehr, auch
-    /// nicht als "Stand". Ein laufender Abruf fuer den alten Ort wird
+    /// nicht als "Status". Ein laufender Abruf fuer den alten Ort wird
     /// abgebrochen - sonst blockierte er den neuen (`fetch()` startet nur,
     /// wenn keiner laeuft).
     private func switchTo(_ wanted: WeatherLocation?) {

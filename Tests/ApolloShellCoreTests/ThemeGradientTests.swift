@@ -117,7 +117,7 @@ struct ThemeGradientDirectionTests {
         abs(value - expected) < 0.0001
     }
 
-    @Test("180 Grad laeuft von oben nach unten - die erste Farbe steht oben")
+    @Test("180 Grad laeuft of oben nach unten - die erste Farbe steht oben")
     func downwards() {
         let points = gradient(180).points
         #expect(close(points.start.y, 0) && close(points.start.x, 0.5))

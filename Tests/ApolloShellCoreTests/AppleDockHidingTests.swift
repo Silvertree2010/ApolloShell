@@ -2,7 +2,7 @@ import ApolloShellCore
 import Foundation
 import Testing
 
-@Suite("Apple-Dock ausblenden, solange ApolloShell läuft")
+@Suite("Hide Apple's Dock while ApolloShell is running")
 struct AppleDockHidingTests {
     @Test("Versteckte Werte")
     func hiddenValues() {
@@ -51,7 +51,7 @@ struct AppleDockHidingTests {
         ])
     }
 
-    @Test("Verstecken: alle drei Schlüssel gesetzt")
+    @Test("Verstecken: every drei Schlüssel gesetzt")
     func actionsForHiding() {
         #expect(AppleDockHiding.actions(toReach: AppleDockHiding.hidden) == [
             .setBool(key: AppleDockHiding.autohideKey, value: true),
@@ -60,7 +60,7 @@ struct AppleDockHidingTests {
         ])
     }
 
-    @Test("Wiederherstellen macOS-Vorgabe: alle drei Schlüssel löschen")
+    @Test("Wiederherstellen macOS-Vorgabe: every drei Schlüssel löschen")
     func actionsForDefault() {
         #expect(AppleDockHiding.actions(toReach: AppleDockPreferenceValues()) == [
             .remove(key: AppleDockHiding.autohideKey),

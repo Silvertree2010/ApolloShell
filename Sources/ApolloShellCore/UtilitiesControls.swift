@@ -20,7 +20,7 @@ public enum UtilitiesColorHex {
 extension ToastText {
     /// Nach der Farbpipette: der Wert liegt schon in der Zwischenablage.
     public static func colorCopied(_ hex: String) -> Content {
-        Content(title: String(localized: "Farbe kopiert"), message: hex, symbol: "eyedropper", kind: .info)
+        Content(title: String(localized: "Color Copied"), message: hex, symbol: "eyedropper", kind: .info)
     }
 }
 
@@ -86,7 +86,7 @@ public enum UtilitiesAudioDevices {
     /// Name des Standardgeraets fuer die Knopfbeschriftung. Gesucht in
     /// allen Geraeten, nicht nur den gefilterten: ist ein verstecktes Geraet
     /// Standard (kommt bei Konferenz-Apps vor), soll trotzdem sein Name dort
-    /// stehen, nicht "Kein Gerät".
+    /// stehen, nicht "No Device".
     public static func label(defaultID: UInt32?, in all: [UtilitiesAudioDevice]) -> String {
         guard let defaultID, let device = all.first(where: { $0.id == defaultID }) else {
             return UtilitiesAudioText.noDevice
@@ -94,7 +94,7 @@ public enum UtilitiesAudioDevices {
         return displayName(device.name)
     }
 
-    /// Menuezeile: leerer Name wie bei den Kurzmeldungen "Unbekanntes Gerät".
+    /// Menuezeile: leerer Name wie bei den Kurzmeldungen "Unknown Device".
     public static func displayName(_ name: String) -> String {
         ToastText.deviceName(name)
     }
@@ -102,20 +102,20 @@ public enum UtilitiesAudioDevices {
 
 /// Texte der Ton-Karte.
 public enum UtilitiesAudioText {
-    public static let title = String(localized: "Ton")
-    public static let output = String(localized: "Ausgabe")
-    public static let input = String(localized: "Eingang")
-    public static let noDevice = String(localized: "Kein Gerät")
-    public static let noDevicesInMenu = String(localized: "Keine Geräte")
+    public static let title = String(localized: "Sound")
+    public static let output = String(localized: "Output")
+    public static let input = String(localized: "Input")
+    public static let noDevice = String(localized: "No Device")
+    public static let noDevicesInMenu = String(localized: "No Devices")
 
     /// "45 %" (Schweizer und deutsche Schreibweise mit Leerschlag), stumm
-    /// "Stumm" - eine Null wuerde wie ein Fehler aussehen.
+    /// "Muted" - eine Null wuerde wie ein Fehler aussehen.
     public static func level(volume: Float, muted: Bool) -> String {
-        muted ? String(localized: "Stumm") : String(localized: "\(VolumeGlyphs.percent(volume)) %")
+        muted ? String(localized: "Muted") : String(localized: "\(VolumeGlyphs.percent(volume)) %")
     }
 
     public static func muteHelp(muted: Bool) -> String {
-        muted ? String(localized: "Ton einschalten") : String(localized: "Ton stummschalten")
+        muted ? String(localized: "Unmute") : String(localized: "Mute")
     }
 }
 
@@ -127,7 +127,7 @@ public enum UtilitiesAudioText {
 /// Die Maske benutzt dieselben Bits wie `CGEventFlags` (⇧ 0x20000,
 /// ⌃ 0x40000, ⌥ 0x80000, ⌘ 0x100000, Fn 0x800000) - die App kann sie also
 /// unveraendert an den Tastendruck haengen. Genau so posten, wie es dort
-/// steht: "Schreibtisch anzeigen" ist dort F11 OHNE Fn-Bit (gemessen
+/// steht: "Show Desktop" ist dort F11 OHNE Fn-Bit (gemessen
 /// 14.09.: 65535, 103, 0), die Pfeile fuer die Spaces dagegen MIT.
 public struct UtilitiesHotKey: Equatable, Sendable {
     public var keyCode: UInt16
@@ -144,7 +144,7 @@ public struct UtilitiesHotKey: Equatable, Sendable {
         self.modifiers = modifiers
     }
 
-    /// Mission Control "Schreibtisch anzeigen".
+    /// Mission Control "Show Desktop".
     public static let showDesktopID = 36
     /// "Bildschirmfoto- und Aufnahmeoptionen" (⌘⇧5).
     public static let screenshotToolbarID = 184
@@ -154,7 +154,7 @@ public struct UtilitiesHotKey: Equatable, Sendable {
     public static let showDesktopDefault = UtilitiesHotKey(keyCode: 103, modifiers: 0)
     public static let screenshotToolbarDefault = UtilitiesHotKey(keyCode: 23, modifiers: 0x12_0000)
 
-    /// "Bildschirm sperren" im Apple-Menue, ⌃⌘Q. Kein symbolischer
+    /// "Lock Screen" im Apple-Menue, ⌃⌘Q. Kein symbolischer
     /// Hotkey, sondern ein Menuebefehl - steht deshalb fest.
     public static let lockScreen = UtilitiesHotKey(keyCode: 12, modifiers: 0x14_0000)
 

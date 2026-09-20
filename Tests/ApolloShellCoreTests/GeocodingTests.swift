@@ -9,7 +9,7 @@ private let springfield = """
 {"results":[{"id":4926166,"name":"Springfield","latitude":39.78421,"longitude":-89.64371,"elevation":180.0,"feature_code":"PPLA2","country_code":"US","admin1_id":4896861,"admin2_id":4250384,"timezone":"America/Chicago","population":114230,"postcodes":["62701"],"country_id":6252001,"country":"Vereinigte Staaten","admin1":"Illinois","admin2":"Sangamon County"},{"id":4409896,"name":"Springfield","latitude":37.21533,"longitude":-93.29824,"elevation":409.0,"feature_code":"PPLA2","country_code":"US","admin1_id":4398678,"admin2_id":4404128,"timezone":"America/Chicago","population":159498,"postcodes":["65801"],"country_id":6252001,"country":"Vereinigte Staaten","admin1":"Missouri","admin2":"Greene County"},{"id":4951788,"name":"Springfield","latitude":42.10148,"longitude":-72.58981,"elevation":21.0,"feature_code":"PPLA2","country_code":"US","admin1_id":6254926,"admin2_id":4936544,"timezone":"America/New_York","postcodes":["01101"],"country_id":6252001,"country":"Vereinigte Staaten","admin1":"Massachusetts","admin2":"Hampden County"}],"generationtime_ms":0.8020401}
 """
 
-@Suite("Nexus: Ortssuche von Open-Meteo")
+@Suite("Nexus: Ortssuche of Open-Meteo")
 struct GeocodingTests {
     @Test("drei Treffer aus der Antwort, in ihrer Reihenfolge", arguments: [
         (0, 4926166, "Springfield", "Illinois, Vereinigte Staaten", 39.78421, -89.64371),
@@ -85,8 +85,8 @@ struct GeocodingTests {
     }
 
     @Test("Koordinaten deutsch mit Himmelsrichtung", arguments: [
-        (47.00601, 9.50266, "47,01° N, 9,50° O"),
-        (-33.8688, 151.2093, "33,87° S, 151,21° O"),
+        (47.00601, 9.50266, "47,01° N, 9,50° E"),
+        (-33.8688, 151.2093, "33,87° S, 151,21° E"),
         (40.7128, -74.006, "40,71° N, 74,01° W"),
     ])
     func coordinates(latitude: Double, longitude: Double, expected: String) {

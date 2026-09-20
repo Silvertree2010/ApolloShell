@@ -2,7 +2,7 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Ton-Karte im Utilities-Panel, gebaut wie Apples Kontrollzentrum "Ton":
+/// Ton-Karte im Utilities-Panel, gebaut wie Apples Kontrollzentrum "Sound":
 /// Ueberschrift mit Pegel, darunter Stumm-Knopf und Regler, darunter
 /// Ausgabe und Eingang als zwei kompakte Menue-Knoepfe nebeneinander.
 ///
@@ -127,7 +127,7 @@ private struct UtilitiesVolumeSlider: View {
         .opacity(model.volumeSettable ? 1 : 0.4)
         .allowsHitTesting(model.volumeSettable)
         .accessibilityElement()
-        .accessibilityLabel("Lautstärke")
+        .accessibilityLabel("Volume")
         .accessibilityValue(UtilitiesAudioText.level(volume: model.volume, muted: model.outputMuted))
         .accessibilityAdjustableAction { direction in
             switch direction {
@@ -139,7 +139,7 @@ private struct UtilitiesVolumeSlider: View {
     }
 }
 
-/// Kachel fuer ein Geraetemenue: Symbol, darueber klein "Ausgabe", darunter
+/// Kachel fuer ein Geraetemenue: Symbol, darueber klein "Output", darunter
 /// der Geraetename (eine Zeile, abgeschnitten), rechts der Pfeil wie bei
 /// Apples Aufklappmenues. Klick oeffnet das Menue mit der aktuellen Wahl
 /// unter dem Zeiger.

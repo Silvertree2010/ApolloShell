@@ -30,9 +30,9 @@ public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifi
 
     public var summary: String {
         switch self {
-        case .keepAwake: "Mac wach halten, auf Wunsch auch zugeklappt."
-        case .audio: "Lautstärke, Stumm, Ausgabe und Eingang."
-        case .quickToggles: "Schalter und Aktionen, fünf pro Reihe."
+        case .keepAwake: "Keep the Mac awake, even with the lid closed if you want."
+        case .audio: "Volume, mute, output and input."
+        case .quickToggles: "Switches and actions, five per row."
         }
     }
 
@@ -82,7 +82,7 @@ public enum UtilitiesToggleGroup: String, CaseIterable, Sendable, Identifiable {
         switch self {
         case .switches: "Schalter"
         case .actions: "Aktionen"
-        case .custom: "Eigene Knöpfe"
+        case .custom: "Custom Buttons"
         }
     }
 
@@ -119,42 +119,42 @@ public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Iden
 
     public var title: String {
         switch self {
-        case .wifi: "WLAN"
-        case .microphone: "Mikrofon"
+        case .wifi: "Wi-Fi"
+        case .microphone: "Microphone"
         case .bluetooth: "Bluetooth"
-        case .darkMode: "Dunkelmodus"
+        case .darkMode: "Dark Mode"
         case .nightShift: "Night Shift"
-        case .screenshot: "Bildschirmfoto"
-        case .showDesktop: "Schreibtisch"
-        case .colorPicker: "Farbpipette"
+        case .screenshot: "Screenshot"
+        case .showDesktop: "Desktop"
+        case .colorPicker: "Color Picker"
         case .lockScreen: "Sperren"
         case .settings: "Einstellungen"
-        case .displaySleep: "Bildschirm aus"
-        case .hideApps: "Apps ausblenden"
-        case .openApp: "App öffnen"
-        case .openLink: "Link öffnen"
-        case .runShortcut: "Kurzbefehl"
+        case .displaySleep: "Display Off"
+        case .hideApps: "Hide Apps"
+        case .openApp: "Open App"
+        case .openLink: "Open Link"
+        case .runShortcut: "Shortcut"
         }
     }
 
     /// Eine Zeile fuer die Galerie hinter dem +.
     public var summary: String {
         switch self {
-        case .wifi: "WLAN ein- und ausschalten."
-        case .microphone: "Standard-Mikrofon stummschalten."
-        case .bluetooth: "Zeigt den Zustand, ein Klick öffnet die Einstellungen."
-        case .darkMode: "Zwischen hell und dunkel wechseln."
-        case .nightShift: "Wärmere Farben am Abend."
-        case .screenshot: "Apples Leiste für Bildschirmfoto und Aufnahme."
-        case .showDesktop: "Alle Fenster zur Seite, der Schreibtisch frei."
-        case .colorPicker: "Farbe vom Bildschirm, Hexwert in die Zwischenablage."
-        case .lockScreen: "Bildschirm sperren."
-        case .settings: "Öffnet Nexus."
-        case .displaySleep: "Schaltet die Bildschirme sofort aus, der Mac läuft weiter."
-        case .hideApps: "Blendet alle Apps aus; auf Wunsch bleibt die vordere."
-        case .openApp: "Startet eine gewählte App oder holt sie nach vorne."
-        case .openLink: "Öffnet eine Adresse im Standardbrowser."
-        case .runShortcut: "Führt einen Kurzbefehl aus, z. B. einen Fokus schalten."
+        case .wifi: "Turn Wi-Fi on and off."
+        case .microphone: "Mute the default microphone."
+        case .bluetooth: "Shows the state, a click opens Settings."
+        case .darkMode: "Switch between light and dark."
+        case .nightShift: "Warmer colors in the evening."
+        case .screenshot: "Apple's bar for screenshot and recording."
+        case .showDesktop: "All windows aside, the desktop clear."
+        case .colorPicker: "Color from the screen, hex value to the clipboard."
+        case .lockScreen: "Lock the screen."
+        case .settings: "Opens Nexus."
+        case .displaySleep: "Turns off the displays immediately, the Mac keeps running."
+        case .hideApps: "Hides all apps; the frontmost one can stay if you want."
+        case .openApp: "Launches a chosen app or brings it to the front."
+        case .openLink: "Opens an address in the default browser."
+        case .runShortcut: "Runs a shortcut, e.g. to toggle a Focus."
         }
     }
 
@@ -590,12 +590,12 @@ public enum UtilitiesMetrics {
     public static let keepAwakeHeight = 68.0
     /// Ueberschrift 17, 10, Regler-Zeile 32, 10, Geraeteknoepfe 44, plus Innenrand.
     public static let audioHeight = 141.0
-    /// Ueberschrift "Schnellschalter" (14 pt, eine Zeile).
+    /// Ueberschrift "Quick Toggles" (14 pt, eine Zeile).
     public static let toggleTitleHeight = 17.0
     public static let toggleTitleSpacing = 12.0
     public static let toggleHeight = 48.0
     public static let toggleRowSpacing = 8.0
-    /// Hinweis, wenn nichts eingeblendet ist: eine Zeile wie "Wach halten".
+    /// Hinweis, wenn nichts eingeblendet ist: eine Zeile wie "Keep Awake".
     public static let emptyCardHeight = 68.0
 
     public static func toggleCardHeight(rows: Int) -> Double {
@@ -626,17 +626,17 @@ public enum UtilitiesPreset: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .standard: "Standard"
         case .minimal: "Minimal"
-        case .audio: "Ton & Geräte"
+        case .audio: "Sound & Devices"
         case .everything: "Alles"
         }
     }
 
     public var summary: String {
         switch self {
-        case .standard: "Die Vorgabe: Wach halten, Ton und zehn Schnellschalter."
-        case .minimal: "Nur eine Reihe Schnellschalter, keine Karten darüber."
-        case .audio: "Ton zuoberst, darunter Mikrofon, Bluetooth und was man beim Hören braucht."
-        case .everything: "Alle Karten und jeder feste Knopf einmal, zum Ausprobieren und Aussortieren."
+        case .standard: "The default: Keep Awake, Sound and ten quick toggles."
+        case .minimal: "Just one row of quick toggles, no cards above."
+        case .audio: "Sound at the top, below that microphone, Bluetooth and what you need while listening."
+        case .everything: "Every card and every fixed button once, for trying out and sorting through."
         }
     }
 
@@ -673,7 +673,7 @@ extension UtilitiesPreset: LayoutPreset {
 // MARK: - Texte und Aussehen der neuen Knoepfe
 
 public enum UtilitiesToggleText {
-    public static let cardTitle = String(localized: "Schnellschalter")
+    public static let cardTitle = String(localized: "Quick Toggles")
     public static let displaySleepSymbol = "moon.zzz.fill"
     public static let hideAppsSymbol = "eye.slash.fill"
 }
@@ -684,42 +684,42 @@ extension QuickToggles {
     public static func openApp(_ options: UtilitiesAppOptions, appName: String?) -> QuickToggleLook {
         let symbol = options.symbol.trimmed.nonEmpty ?? UtilitiesAppOptions.fallbackSymbol
         guard !options.bundleID.trimmed.isEmpty else {
-            return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "Noch keine App gewählt"))
+            return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "No App Chosen Yet"))
         }
         guard let appName else {
-            return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "App nicht installiert"))
+            return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "App Not Installed"))
         }
         let title = options.title.trimmed.nonEmpty ?? appName
-        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "\(title) öffnen"))
+        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "Open \(title)"))
     }
 
     public static func openLink(_ options: UtilitiesLinkOptions) -> QuickToggleLook {
         let symbol = options.symbol.trimmed.nonEmpty ?? UtilitiesLinkOptions.fallbackSymbol
         guard let url = UtilitiesLink.url(from: options.url) else {
-            let help = options.url.trimmed.isEmpty ? String(localized: "Noch kein Link") : String(localized: "Link ungültig")
+            let help = options.url.trimmed.isEmpty ? String(localized: "No Link Yet") : String(localized: "Invalid Link")
             return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: help)
         }
         let title = options.title.trimmed.nonEmpty ?? UtilitiesLink.displayText(url)
-        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "\(title) öffnen"))
+        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "Open \(title)"))
     }
 
     public static func runShortcut(_ options: UtilitiesShortcutOptions) -> QuickToggleLook {
         let symbol = options.symbol.trimmed.nonEmpty ?? UtilitiesShortcutOptions.fallbackSymbol
         guard UtilitiesShortcuts.runArguments(options) != nil else {
-            return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "Noch kein Kurzbefehl gewählt"))
+            return QuickToggleLook(symbol: symbol, active: false, enabled: false, help: String(localized: "No Shortcut Chosen Yet"))
         }
-        let title = options.title.trimmed.nonEmpty ?? options.name.trimmed.nonEmpty ?? String(localized: "Kurzbefehl")
-        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "Kurzbefehl „\(title)“ ausführen"))
+        let title = options.title.trimmed.nonEmpty ?? options.name.trimmed.nonEmpty ?? String(localized: "Shortcut")
+        return QuickToggleLook(symbol: symbol, active: false, enabled: true, help: String(localized: "Run Shortcut “\(title)”"))
     }
 
     public static let displaySleep = QuickToggleLook(
         symbol: UtilitiesToggleText.displaySleepSymbol, active: false, enabled: true,
-        help: String(localized: "Bildschirm ausschalten")
+        help: String(localized: "Turn Off Display")
     )
 
     public static func hideApps(_ options: UtilitiesHideAppsOptions) -> QuickToggleLook {
         QuickToggleLook(symbol: UtilitiesToggleText.hideAppsSymbol, active: false, enabled: true,
-                        help: options.keepFrontmost ? String(localized: "Andere Apps ausblenden") : String(localized: "Alle Apps ausblenden"))
+                        help: options.keepFrontmost ? String(localized: "Hide Other Apps") : String(localized: "Hide All Apps"))
     }
 }
 
@@ -829,8 +829,8 @@ public enum UtilitiesShortcuts {
 extension ToastText {
     /// `shortcuts run` endete mit Fehler (Kurzbefehl geloescht, abgebrochen).
     public static func shortcutFailed(_ name: String) -> Content {
-        Content(title: String(localized: "Kurzbefehl fehlgeschlagen"),
-                message: name.trimmed.nonEmpty ?? String(localized: "Unbekannter Kurzbefehl"),
+        Content(title: String(localized: "Shortcut Failed"),
+                message: name.trimmed.nonEmpty ?? String(localized: "Unknown Shortcut"),
                 symbol: UtilitiesShortcutOptions.fallbackSymbol, kind: .warning)
     }
 }

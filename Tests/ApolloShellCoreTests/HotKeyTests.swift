@@ -47,7 +47,7 @@ struct HotKeyTests {
         (HotKey(keyCode: HotKeyKey.f20), "F20"),
         (HotKey(keyCode: HotKeyKey.comma, modifiers: [.command, .shift]), "⇧⌘,"),
         (HotKey(keyCode: HotKeyKey.u, modifiers: [.command, .control]), "⌃⌘U"),
-        (HotKey(keyCode: 0x7F, modifiers: .command), "⌘Taste 127"),
+        (HotKey(keyCode: 0x7F, modifiers: .command), "⌘Key 127"),
     ])
     func display(key: HotKey, text: String) {
         #expect(key.display() == text)
@@ -156,8 +156,8 @@ struct HotKeyTests {
 
     @Test("Hinweise zu heiklen Kürzeln", arguments: [
         (HotKey(keyCode: HotKeyKey.space, modifiers: .command), HotKeyWarning.system("Spotlight")),
-        (HotKey(keyCode: HotKeyKey.d, modifiers: [.option, .command]), HotKeyWarning.system("Dock ein- und ausblenden")),
-        (HotKey(keyCode: HotKeyKey.comma, modifiers: .command), HotKeyWarning.system("Einstellungen in jeder App")),
+        (HotKey(keyCode: HotKeyKey.d, modifiers: [.option, .command]), HotKeyWarning.system("Show and Hide the Dock")),
+        (HotKey(keyCode: HotKeyKey.comma, modifiers: .command), HotKeyWarning.system("Settings, in Any App")),
         (HotKey(keyCode: HotKeyKey.u, modifiers: .option), HotKeyWarning.typesCharacters),
         (HotKey(keyCode: HotKeyKey.comma, modifiers: [.option, .shift]), HotKeyWarning.typesCharacters),
         (HotKey(keyCode: HotKeyKey.space, modifiers: .option), nil),
@@ -170,8 +170,8 @@ struct HotKeyTests {
     }
 
     @Test("Registrierung gescheitert: sagt, woran", arguments: [
-        (true, eventHotKeyExistsErr, "andere App"),
-        (false, eventHotKeyInvalidErr, "Fehler -9879"),
+        (true, eventHotKeyExistsErr, "Another app"),
+        (false, eventHotKeyInvalidErr, "error -9879"),
     ])
     func registrationText(taken: Bool, status: Int, fragment: String) {
         #expect(HotKeyText.registrationFailed(alreadyTaken: taken, status: Int32(status)).contains(fragment))

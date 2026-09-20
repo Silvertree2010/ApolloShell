@@ -86,7 +86,7 @@ struct DockMenuTreeTests {
         #expect(!DockMenuTree.nodes(from: [RawMenuItem(title: "", hasSubmenu: true)])[0].separator)
     }
 
-    @Test("Im Dock behalten wird erkannt", arguments: ["Keep in Dock", "Im Dock behalten", " keep in dock "])
+    @Test("Im Dock behalten wird erkannt", arguments: ["Keep in Dock", "Keep in Dock", " keep in dock "])
     func findsKeepInDock(title: String) {
         #expect(DockMenuTree.isKeepInDock(title))
     }

@@ -20,7 +20,7 @@ import SwiftUI
 /// (`standardUserDriverShouldHandleShowingScheduledUpdate` = `false`): In
 /// einer Hintergrund-App (`LSUIElement`) waere ein Fenster, das sich
 /// unaufgefordert nach vorne schiebt, ein Uebergriff. Der Hinweis steht in
-/// Nexus, und nur "Jetzt prüfen" oeffnet Sparkles Fenster ausdruecklich.
+/// Nexus, und nur "Check now" oeffnet Sparkles Fenster ausdruecklich.
 @MainActor
 @Observable
 final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDelegate {
@@ -102,7 +102,7 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         updater.updateCheckInterval = Self.checkInterval
     }
 
-    /// "Jetzt prüfen". Bei der DMG-Fassung uebernimmt Sparkle mit seinem
+    /// "Check now". Bei der DMG-Fassung uebernimmt Sparkle mit seinem
     /// Fenster - hier ausdruecklich gewollt, weil der Benutzer gerade
     /// geklickt hat.
     func checkNow() {

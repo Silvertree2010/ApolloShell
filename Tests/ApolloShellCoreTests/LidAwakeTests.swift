@@ -52,8 +52,8 @@ struct LidAwakeTests {
     }
 
     @Test("Administrator-Rückfrage über AppleScript", arguments: [
-        (true, "do shell script \"/usr/bin/pmset -a disablesleep 1\"", "aussetzen"),
-        (false, "do shell script \"/usr/bin/pmset -a disablesleep 0\"", "wieder erlauben"),
+        (true, "do shell script \"/usr/bin/pmset -a disablesleep 1\"", "suspend sleep"),
+        (false, "do shell script \"/usr/bin/pmset -a disablesleep 0\"", "allow sleep"),
     ])
     func adminScript(on: Bool, command: String, reason: String) {
         let arguments = LidAwake.osascriptArguments(disableSleep: on)
@@ -114,9 +114,9 @@ struct LidAwakeTests {
 
     @Test("Untertitel je Stand des Deckel-Teils", arguments: [
         (KeepAwakeLid.off, ""),
-        (KeepAwakeLid.on, " · auch zugeklappt"),
-        (KeepAwakeLid.pending, " · wartet auf Freigabe"),
-        (KeepAwakeLid.declined, " · nur aufgeklappt"),
+        (KeepAwakeLid.on, " · also with lid closed"),
+        (KeepAwakeLid.pending, " · waiting for approval"),
+        (KeepAwakeLid.declined, " · only with lid open"),
     ])
     func lidSubtitle(lid: KeepAwakeLid, suffix: String) {
         let now = Date()
@@ -132,7 +132,7 @@ struct LidAwakeTests {
         let since = calendar.date(from: DateComponents(year: 2026, month: 9, day: 14, hour: 14, minute: 30))!
         let now = since.addingTimeInterval(600)
         #expect(KeepAwakeText.subtitle(since: since, now: now, lidClosed: true, calendar: calendar)
-            == "Aktiv seit 14:30 · auch zugeklappt")
-        #expect(KeepAwakeText.subtitle(since: since, now: now, calendar: calendar) == "Aktiv seit 14:30")
+            == "Active since 14:30 · also with lid closed")
+        #expect(KeepAwakeText.subtitle(since: since, now: now, calendar: calendar) == "Active since 14:30")
     }
 }

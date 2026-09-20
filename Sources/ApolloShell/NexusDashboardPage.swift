@@ -215,7 +215,7 @@ struct NexusDashboardPage: View {
     @ViewBuilder private var weatherSections: some View {
             Section {
                 if model.favorites.locations.isEmpty {
-                    Text("Noch keine Favoriten – unten einen Ort suchen und hinzufügen.")
+                    Text("No favorites yet – search for a place below and add it.")
                         .foregroundStyle(.secondary)
                 }
                 ForEach(model.favorites.locations) { place in
@@ -223,30 +223,30 @@ struct NexusDashboardPage: View {
                 }
                 .onMove { model.moveFavorites(fromOffsets: $0, toOffset: $1) }
             } header: {
-                Text("Favoriten")
+                Text("Favorites")
             } footer: {
-                Text("Der gewählte Favorit gilt fürs Wetter. Zum Umsortieren ziehen. Das Dashboard zeigt eine Änderung beim nächsten Öffnen.")
+                Text("The selected favorite applies to the weather. Drag to reorder. The Dashboard shows a change the next time it opens.")
             }
 
             Section {
-                NexusSearchField(prompt: "Ort suchen", text: $model.query, busy: model.state == .searching)
+                NexusSearchField(prompt: "Search for a Place", text: $model.query, busy: model.state == .searching)
                 ForEach(model.results) { place in
                     NexusWeatherSearchRow(model: model, place: place)
                 }
                 switch model.state {
                 case .done where model.results.isEmpty:
-                    Text("Kein Ort gefunden.")
+                    Text("No place found.")
                         .foregroundStyle(.secondary)
                 case .failed:
-                    Label("Open-Meteo nicht erreichbar.", systemImage: "wifi.exclamationmark")
+                    Label("Open-Meteo unreachable.", systemImage: "wifi.exclamationmark")
                         .foregroundStyle(.secondary)
                 default:
                     EmptyView()
                 }
             } header: {
-                Text("Ort suchen")
+                Text("Search for a Place")
             } footer: {
-                Text("Die Suche fragt Open-Meteo erst, wenn du tippst.")
+                Text("The search only asks Open-Meteo once you type.")
             }
     }
 }
@@ -266,7 +266,7 @@ private struct NexusWeatherFavoriteRow: View {
                     .foregroundStyle(selected ? Color.accentColor : Color.secondary)
             }
             .buttonStyle(.plain)
-            .help(selected ? "Gewählter Ort" : "Als Wetterort wählen")
+            .help(selected ? "Selected Place" : "Set as Weather Location")
             VStack(alignment: .leading, spacing: 1) {
                 Text(place.name)
                 Text(place.coordinateText)
@@ -283,8 +283,8 @@ private struct NexusWeatherFavoriteRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Entfernen")
-            .accessibilityLabel("\(place.name) entfernen")
+            .help("Remove")
+            .accessibilityLabel("Remove \(place.name)")
             Image(systemName: "line.3.horizontal")
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
@@ -320,8 +320,8 @@ private struct NexusWeatherSearchRow: View {
             }
             .buttonStyle(.borderless)
             .disabled(model.isFavorite(place))
-            .help("Als Favorit hinzufügen")
-            .accessibilityLabel("\(place.name) als Favorit hinzufügen")
+            .help("Add as Favorite")
+            .accessibilityLabel("Add \(place.name) as favorite")
         }
         .contentShape(.rect)
     }

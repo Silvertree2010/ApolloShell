@@ -10,7 +10,7 @@ struct ByteUsage: Equatable {
     var fraction: Double { ResourceMath.fraction(used: used, total: total) }
 }
 
-/// Messwerte fuer den Reiter "Leistung" (Caelestia: Performance).
+/// Messwerte fuer den Reiter "Performance" (Caelestia: Performance).
 ///
 /// Misst im Sekundentakt, aber nur, solange das Dashboard offen UND dieser
 /// Reiter sichtbar ist (`DashboardModel` schaltet `start`/`stop`) - die

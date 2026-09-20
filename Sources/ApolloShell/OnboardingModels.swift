@@ -123,7 +123,7 @@ final class OnboardingAutostartModel {
             }
             error = nil
         } catch {
-            self.error = String(localized: "macOS hat abgelehnt: \(error.localizedDescription)")
+            self.error = String(localized: "macOS declined: \(error.localizedDescription)")
         }
         refresh()
     }
@@ -146,7 +146,7 @@ final class OnboardingAutostartModel {
 
 // MARK: - Bausteine fuer Einfuehrung und Nexus
 
-/// Schalter "Bei der Anmeldung starten" samt Hinweisen.
+/// Schalter "Start at Login" samt Hinweisen.
 struct OnboardingAutostartToggle: View {
     let model: OnboardingAutostartModel
 
@@ -156,19 +156,19 @@ struct OnboardingAutostartToggle: View {
         // saesse der Schalter sonst direkt am Text statt am rechten Rand.
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Bei der Anmeldung starten")
-                Text("ApolloShell startet nach dem Anmelden von selbst")
+                Text("Start at Login")
+                Text("ApolloShell starts on its own after login")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 12)
-            Toggle("Bei der Anmeldung starten", isOn: Binding(get: { state.isOn }, set: { model.setEnabled($0) }))
+            Toggle("Start at Login", isOn: Binding(get: { state.isOn }, set: { model.setEnabled($0) }))
                 .toggleStyle(.switch)
                 .labelsHidden()
         }
         .disabled(!state.canToggle)
         if state.needsApproval {
-            Button("Anmeldeobjekte öffnen …") { model.openLoginItems() }
+            Button("Open Login Items…") { model.openLoginItems() }
         }
         if let error = model.error {
             Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -184,8 +184,8 @@ struct OnboardingAccessibilityRow: View {
 
     var body: some View {
         OnboardingPermissionRow(
-            symbol: "accessibility", tint: .blue, title: String(localized: "Bedienungshilfen"),
-            text: String(localized: "Damit Fenster nicht unter die Leiste rutschen, die Leiste im Vollbild Platz macht und das Dock die Fenster einer App kennt.")
+            symbol: "accessibility", tint: .blue, title: String(localized: "Accessibility"),
+            text: String(localized: "So windows don't slide under the bar, the bar makes room in full screen, and the Dock knows an app's windows.")
         ) {
             if permissions.accessibility {
                 Label("Erteilt", systemImage: "checkmark.circle.fill")
@@ -193,8 +193,8 @@ struct OnboardingAccessibilityRow: View {
                     .fontWeight(.medium)
                     .transition(.scale.combined(with: .opacity))
             } else {
-                Button("Freigeben …") { permissions.openAccessibilitySettings() }
-                    .help("Öffnet Datenschutz & Sicherheit > Bedienungshilfen")
+                Button("Grant…") { permissions.openAccessibilitySettings() }
+                    .help("Opens Privacy & Security > Accessibility")
             }
         }
     }
@@ -207,9 +207,9 @@ struct OnboardingSystemEventsRow: View {
     var body: some View {
         OnboardingPermissionRow(
             symbol: "gearshape.2.fill", tint: .gray, title: "System Events",
-            text: String(localized: "Für Abmelden, Neustart und Ausschalten im Sitzungsmenü. macOS fragt beim ersten Mal selbst nach – jetzt ist nichts zu tun.")
+            text: String(localized: "For Log Out, Restart and Shut Down in the session menu. macOS asks by itself the first time – nothing to do now.")
         ) {
-            Label("Beim ersten Mal", systemImage: "clock")
+            Label("The first time", systemImage: "clock")
                 .foregroundStyle(.secondary)
         }
     }

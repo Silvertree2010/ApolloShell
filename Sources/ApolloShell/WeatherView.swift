@@ -5,8 +5,8 @@ import SwiftUI
 // und modules/dashboard/WeatherTab.qml) in Apple-Optik: SF Symbols in
 // Mehrfarben statt Material-Icons, SF Rounded fuer die grossen Zahlen.
 //
-// Beide Ansichten laufen in einer TimelineView pro Minute: "Jetzt" in der
-// Stundenleiste, "Heute" und "Stand" haengen an der Uhr, nicht nur an neuen
+// Beide Ansichten laufen in einer TimelineView pro Minute: "Now" in der
+// Stundenleiste, "Today" und "Status" haengen an der Uhr, nicht nur an neuen
 // Daten.
 
 /// Karte im Dashboard-Raster (Caelestia: Slot 275 x 130, Radius 42): Symbol
@@ -47,8 +47,8 @@ struct SmallWeatherCard: View {
     }
 
     private var helpText: String {
-        guard let location = model.location else { return "Ort in Nexus festlegen" }
-        guard model.report != nil else { return "Wetter in \(location.name)" }
+        guard let location = model.location else { return "Set Location in Nexus" }
+        guard model.report != nil else { return "Weather in \(location.name)" }
         return "Wetter in \(location.name) · \(model.attribution.text)"
     }
 
@@ -79,7 +79,7 @@ struct SmallWeatherCard: View {
         } else if model.location == nil {
             WeatherSymbol(name: "location.slash", size: 40, placeholder: true)
             VStack(alignment: alignment, spacing: 2) {
-                Button("Ort in Nexus festlegen") { model.onOpenNexus() }
+                Button("Set Location in Nexus") { model.onOpenNexus() }
                     .buttonStyle(.plain)
                     .font(style.font(size: 12, weight: .semibold))
                     .foregroundStyle(style.accent)
@@ -88,7 +88,7 @@ struct SmallWeatherCard: View {
             WeatherSymbol(name: "cloud.sun", size: 40, placeholder: true)
             VStack(alignment: alignment, spacing: 2) {
                 Text("--°").font(.system(size: 34, weight: .semibold, design: .rounded))
-                Text(model.lastAttemptFailed ? String(localized: "Keine Wetterdaten") : String(localized: "Wird geladen …"))
+                Text(model.lastAttemptFailed ? String(localized: "No Weather Data") : String(localized: "Loading…"))
                     .font(style.font(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -96,7 +96,7 @@ struct SmallWeatherCard: View {
     }
 }
 
-/// Reiter "Wetter", fuellt die Inhaltsflaeche des Dashboards (839 x 392):
+/// Reiter "Weather", fuellt die Inhaltsflaeche des Dashboards (839 x 392):
 /// oben die aktuelle Lage mit den Details (Caelestia: Kopfzeile, grosse
 /// Info-Zeile und DetailCards in einer Karte), darunter die Stundenleiste,
 /// unten sieben Tage nebeneinander wie bei Caelestia.
@@ -123,18 +123,18 @@ struct WeatherTab: View {
             } else if model.location == nil {
                 VStack(spacing: 10) {
                     Image(systemName: "location.slash").font(style.font(size: 36, weight: .light)).foregroundStyle(.secondary)
-                    Text("Ort in Nexus festlegen")
+                    Text("Set Location in Nexus")
                         .font(style.font(size: 15, weight: .semibold))
-                    Text("Ohne Favoriten gibt es kein Wetter zum Anzeigen.")
+                    Text("Without favorites there's no weather to show.")
                         .font(style.font(size: 12))
                         .foregroundStyle(.secondary)
-                    Button("Nexus öffnen") { model.onOpenNexus() }
+                    Button("Open Nexus") { model.onOpenNexus() }
                         .padding(.top, 2)
                 }
             } else {
                 VStack(spacing: 10) {
                     Image(systemName: "cloud.sun").font(style.font(size: 36, weight: .light)).foregroundStyle(.secondary)
-                    Text(model.lastAttemptFailed ? String(localized: "Keine Wetterdaten") : String(localized: "Wetter wird geladen …"))
+                    Text(model.lastAttemptFailed ? String(localized: "No Weather Data") : String(localized: "Loading Weather…"))
                         .font(style.font(size: 15, weight: .semibold))
                     // Auch ohne Daten umschaltbar - vielleicht klappt es woanders.
                     WeatherPlacePicker(model: model)
@@ -221,7 +221,7 @@ private struct WeatherPlacePicker: View {
                         .contentShape(.capsule)
                 }
                 .buttonStyle(.plain)
-                .help("Wetter für \(place.name)")
+                .help("Weather for \(place.name)")
             }
         }
         .fixedSize()
@@ -262,20 +262,20 @@ private struct WeatherHero: View {
                 Spacer(minLength: 12)
                 Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 12) {
                     GridRow {
-                        WeatherStat(symbol: "humidity.fill", label: "Feuchte",
+                        WeatherStat(symbol: "humidity.fill", label: "Humidity",
                              value: current.humidity.map(WeatherText.humidity) ?? "–")
-                        WeatherStat(symbol: "sunrise.fill", label: "Aufgang",
+                        WeatherStat(symbol: "sunrise.fill", label: "Sunrise",
                              value: today?.sunrise.map { WeatherText.clock($0, calendar: report.calendar) } ?? "–")
                     }
                     GridRow {
                         WeatherStat(symbol: "wind", label: "Wind",
                              value: current.windSpeed.map(WeatherText.wind) ?? "–")
-                        WeatherStat(symbol: "sunset.fill", label: "Untergang",
+                        WeatherStat(symbol: "sunset.fill", label: "Sunset",
                              value: today?.sunset.map { WeatherText.clock($0, calendar: report.calendar) } ?? "–")
                     }
                 }
                 // Etwas hoeher als die Mitte: darunter steht die Quellenangabe,
-                // sonst klebte sie an "Untergang" (Bildprobe 14.09.).
+                // sonst klebte sie an "Sunset" (Bildprobe 14.09.).
                 .padding(.bottom, 10)
             }
             .padding(.leading, 22)
@@ -294,7 +294,7 @@ private struct WeatherHero: View {
     private func summary(current: CurrentWeather, today: DayForecast?) -> String {
         var parts: [String] = []
         if let feels = current.apparentTemperature {
-            parts.append(String(localized: "Gefühlt \(WeatherText.temperature(feels))"))
+            parts.append(String(localized: "Feels like \(WeatherText.temperature(feels))"))
         }
         if let today { parts.append(WeatherText.range(max: today.maxTemperature, min: today.minTemperature)) }
         return parts.joined(separator: " · ")
@@ -376,7 +376,7 @@ private struct WeatherHourly: View {
 }
 
 /// Sieben Tage als eigene Kaertchen nebeneinander (Caelestia:
-/// forecastRepeater). "Heute" als Akzent-Kapsel, damit der Einstieg sofort
+/// forecastRepeater). "Today" als Akzent-Kapsel, damit der Einstieg sofort
 /// auffaellt.
 private struct WeatherDaily: View {
     let days: [DayForecast]
