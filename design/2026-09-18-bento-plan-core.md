@@ -52,9 +52,9 @@
 Append inside `struct DashboardLayoutTests` in `DashboardLayoutTests.swift`:
 
 ```swift
-    // MARK: Uhr-Zeitzone (0.2)
+    // MARK: Clock time zone (0.2)
 
-    @Test("Uhr: Zeitzone lesen, unbekannte gilt als System, nil wird nicht geschrieben")
+    @Test("Clock: read the time zone, an unknown one counts as the system, nil is not written")
     func clockTimeZone() throws {
         let tokyo = try JSONDecoder().decode(DashboardClockOptions.self, from: Data(#"{"timeZone":"Asia/Tokyo"}"#.utf8))
         #expect(tokyo.timeZone == "Asia/Tokyo")
@@ -116,8 +116,8 @@ Expected: compile errors (`timeZone` unknown, `WeatherFavorites` not `Decodable`
 In `DashboardClockOptions` add the field, the initialiser parameter, the lenient read and the resolver:
 
 ```swift
-    /// Zeitzone als IANA-Kennung ("Asia/Tokyo"), `nil` = die des Systems.
-    /// Gibt es mehrere Uhren (0.2), zeigt so jede eine andere Stadt. Eine
+    /// The time zone as an IANA id ("Asia/Tokyo"), `nil` = the one of the system.
+    /// With several clocks (0.2) every one shows a different city that way. One
     /// unbekannte Kennung gilt wie `nil`.
     public var timeZone: String?
 
@@ -150,7 +150,7 @@ In `Weather.swift`, split `load(from:)` and `fileData()` so the file format is r
         return favorites(from: file)
     }
 
-    /// Die Regeln von `load(from:)`, auch fuer `Codable` (0.2: Orte je Wetter-Widget).
+    /// The rules of `load(from:)`, for `Codable` too (0.2: the places per weather widget).
     private static func favorites(from file: File) -> WeatherFavorites {
         if let favoriteFiles = file.favorites {
             let locations = favoriteFiles.compactMap(\.location)
@@ -158,7 +158,7 @@ In `Weather.swift`, split `load(from:)` and `fileData()` so the file format is r
                 ?? locations.first?.id
             return WeatherFavorites(locations: locations, selectedID: selectedID)
         }
-        // Migration: alte Datei mit genau einem Ort, ohne "favorites".
+        // Migration: an old file with exactly one place, without "favorites".
         guard let latitude = file.latitude, let longitude = file.longitude,
               (-90...90).contains(latitude), (-180...180).contains(longitude)
         else { return .empty }
@@ -182,8 +182,8 @@ In `Weather.swift`, split `load(from:)` and `fileData()` so the file format is r
 Keep the existing doc comments above `load` and `fileData`. Then add, in the same file right after the struct (same file so it can use the private members):
 
 ```swift
-/// Dasselbe Format wie weather.json - so tragen Wetter-Widgets ihre eigenen
-/// Orte in settings.json (0.2). Gelesen nach den Regeln von `load(from:)`.
+/// The same format as weather.json - that way weather widgets carry their own
+/// places in settings.json (0.2). Read by the rules of `load(from:)`.
 extension WeatherFavorites: Codable {
     public init(from decoder: any Decoder) throws {
         self = Self.favorites(from: try File(from: decoder))
@@ -232,14 +232,14 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Widget-Katalog: Kennungen und Groessen von vor 0.2")
+@Suite("Widget catalogue: ids and sizes from before 0.2")
 struct WidgetCatalogTests {
     private func text(_ sizes: [WidgetSize]) -> String {
         sizes.map { s in s.isFlexible ? "\(Int(s.minWidth))-\(Int(s.maxWidth))x\(Int(s.height))" : "\(Int(s.minWidth))x\(Int(s.height))" }
             .joined(separator: " ")
     }
 
-    @Test("Kennungen stehen in settings.json und aendern sich nie")
+    @Test("The ids stand in settings.json and never change")
     func rawValues() {
         #expect(WidgetKind.allCases.map(\.rawValue) == [
             "weather", "user", "clock", "calendar", "resources", "media",
@@ -249,7 +249,7 @@ struct WidgetCatalogTests {
         ])
     }
 
-    @Test("Jede Karte der Uebersicht ist ein Widget mit derselben Kennung")
+    @Test("Every card of the overview is a widget with the same id")
     func cardsMap() {
         for card in DashboardCardKind.allCases {
             #expect(WidgetKind(card).overviewCard == card)
@@ -284,7 +284,7 @@ struct WidgetCatalogTests {
         #expect(text(kind.sizes) == expected)
     }
 
-    @Test("Jede Karte jeder Vorlage und jedes Rasters von vor 0.2 hat eine erlaubte Groesse")
+    @Test("Every card of every template and every grid from before 0.2 has an allowed size")
     func placementsAreAllowed() {
         var layouts = DashboardPreset.allCases.map(\.layout.cards)
         layouts += [
@@ -317,7 +317,7 @@ struct WidgetCatalogTests {
         #expect(WidgetKind.allCases.filter(\.isPerformance).count == 6)
     }
 
-    @Test("Masse der Seite Leistung: mit Akku schmaler")
+    @Test("The measurements of the performance page: narrower with a battery")
     func performanceGeometry() {
         #expect(PerformancePageGeometry.heroHeight == 191)
         #expect(PerformancePageGeometry.heroWidths(hasBattery: true) == [343, 343])
@@ -341,19 +341,19 @@ Expected: compile error, `WidgetKind` unknown.
 ```swift
 import Foundation
 
-// Katalog der Widgets fuer das Bento-Dashboard (0.2, siehe
-// design/2026-09-18-bento-dashboard.md). Jedes Widget ist hier einmal
-// beschrieben: Kennung, Name, Symbol, Heimat, erlaubte Groessen. Die Groessen
-// sind genau die, die das Dashboard vor 0.2 zeichnen konnte.
+// The catalogue of the widgets for the bento dashboard (0.2, see
+// design/2026-09-18-bento-dashboard.md). Every widget is described here once:
+// id, name, symbol, home, allowed sizes. The sizes are exactly the ones the
+// dashboard could draw before 0.2.
 
-/// Wo ein Widget zuhause ist. Ausserhalb der Heimat nur als erweiterte
-/// Option in Nexus, dort nicht optimiert.
+/// Where a widget is at home. Outside its home only as an advanced option in
+/// Nexus, and not optimised there.
 public enum WidgetSurface: String, Codable, CaseIterable, Sendable {
     case dashboard, controlCentre
 }
 
-/// Eine erlaubte Groesse in Referenzpunkten (Seite 839 x 392). Feste Breite:
-/// `minWidth == maxWidth`. Die Hoehe ist immer fest.
+/// One allowed size in reference points (a page of 839 x 392). A fixed width:
+/// `minWidth == maxWidth`. The height is always fixed.
 public struct WidgetSize: Equatable, Hashable, Sendable {
     public var minWidth: Double
     public var maxWidth: Double
@@ -380,8 +380,8 @@ public struct WidgetSize: Equatable, Hashable, Sendable {
     }
 }
 
-/// Alle Widgets. Rohwert steht in settings.json - nie umbenennen. Die sechs
-/// Karten der Uebersicht behalten die Kennungen von `DashboardCardKind`.
+/// All widgets. The raw value stands in settings.json - never rename it. The
+/// six cards of the overview keep the ids of `DashboardCardKind`.
 public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
     case weather, user, clock, calendar, resources, media
     case performanceCPU = "performance.cpu"
@@ -398,11 +398,11 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
     public var id: Self { self }
 
     public init(_ card: DashboardCardKind) {
-        // Gleiche Rohwerte, der Test `cardsMap` haelt das fest.
+        // The same raw values, the test `cardsMap` pins that down.
         self = WidgetKind(rawValue: card.rawValue)!
     }
 
-    /// Die Karte von vor 0.2, falls das Widget eine ist.
+    /// The card from before 0.2, when the widget is one.
     public var overviewCard: DashboardCardKind? { DashboardCardKind(rawValue: rawValue) }
 
     public var title: String {
@@ -439,11 +439,11 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         }
     }
 
-    /// Alle heutigen Widgets gehoeren ins Dashboard; das Control Centre
-    /// bekommt seine eigenen erst mit dem Editor fuer alle Flaechen.
+    /// All of today's widgets belong in the dashboard; the control centre gets
+    /// its own only with the editor for all surfaces.
     public var home: WidgetSurface { .dashboard }
 
-    /// Wetter-Widgets tragen ihre eigene Liste an Orten (`WidgetOptions.places`).
+    /// Weather widgets carry their own list of places (`WidgetOptions.places`).
     public var usesPlaces: Bool {
         switch self {
         case .weather, .weatherHero, .weatherHourly, .weatherDaily: true
@@ -474,8 +474,8 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         }
     }
 
-    /// Kleinste Groesse nach Flaeche (Mindestbreite x Hoehe) - so kommt ein
-    /// neues Widget aus Nexus auf die Seite.
+    /// The smallest size by area (minimum width x height) - that is how a new
+    /// widget out of Nexus lands on the page.
     public var smallestSize: WidgetSize {
         sizes.min { $0.minWidth * $0.height < $1.minWidth * $1.height }!
     }
@@ -484,11 +484,11 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         sizes.contains { $0.allows(width: width, height: height) }
     }
 
-    /// Karten der Uebersicht: jede Breite von der kleinsten ihrer Plaetze bis
-    /// zur ganzen Seite - eine Reihe ohne flexible Karte wurde vor 0.2 im
-    /// Verhaeltnis gestreckt, eine Spaltenkarte allein fuellte die Seite. Die
-    /// Hoehen sind die ihrer Plaetze: obere Reihe 130, untere 250, eine Reihe
-    /// allein oder die Spalte 392.
+    /// The cards of the overview: every width from the smallest of their places
+    /// up to the whole page - a row without a flexible card was stretched in
+    /// proportion before 0.2, and a column card on its own filled the page. The
+    /// heights are those of their places: the top row 130, the bottom one 250,
+    /// a row on its own or the column 392.
     static func overviewSizes(_ card: DashboardCardKind) -> [WidgetSize] {
         let g = DashboardGeometry.self
         let bottomHeight = g.height - g.topHeight - g.spacing
@@ -508,37 +508,37 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
     }
 }
 
-/// Masse der Seite Leistung, Caelestias Werte x 0,858 (vor 0.2 fest in
-/// PerformanceView). Links CPU und GPU ueber Speicher, Netzwerk,
-/// Arbeitsspeicher, rechts der Akku - ohne Akku wird links alles breiter.
+/// The measurements of the performance page, Caelestia's values x 0.858
+/// (fixed in PerformanceView before 0.2). On the left CPU and GPU above
+/// storage, network and memory, on the right the battery.
 public enum PerformancePageGeometry {
-    public static let batteryWidth: Double = 129   // 150 x 0,858
-    public static let networkWidth: Double = 335   // 390 x 0,858
-    public static let bottomHeight: Double = 189   // 220 x 0,858
+    public static let batteryWidth: Double = 129   // 150 x 0.858
+    public static let networkWidth: Double = 335   // 390 x 0.858
+    public static let bottomHeight: Double = 189   // 220 x 0.858
     public static var heroHeight: Double { DashboardGeometry.height - bottomHeight - DashboardGeometry.spacing }
 
     public static func leftWidth(hasBattery: Bool) -> Double {
         hasBattery ? DashboardGeometry.width - DashboardGeometry.spacing - batteryWidth : DashboardGeometry.width
     }
 
-    /// CPU und GPU nebeneinander.
+    /// CPU and GPU side by side.
     public static func heroWidths(hasBattery: Bool) -> [Double] {
         split(leftWidth(hasBattery: hasBattery) - DashboardGeometry.spacing)
     }
 
-    /// Speicher und Arbeitsspeicher links und rechts vom Netzwerk.
+    /// Storage and memory to the left and the right of the network.
     public static func sideWidths(hasBattery: Bool) -> [Double] {
         split(leftWidth(hasBattery: hasBattery) - networkWidth - 2 * DashboardGeometry.spacing)
     }
 
-    /// Halbieren wie `DashboardGeometry.widths`: abgerundet, der Rest an den zweiten.
+    /// Halving like `DashboardGeometry.widths`: rounded down, the rest to the second.
     static func split(_ total: Double) -> [Double] {
         let first = (total / 2).rounded(.down)
         return [first, total - first]
     }
 }
 
-/// Masse der Seite Wetter (vor 0.2 fest in WeatherTab).
+/// The measurements of the weather page (fixed in WeatherTab before 0.2).
 public enum WeatherPageGeometry {
     public static let heroHeight: Double = 116
     public static let hourlyHeight: Double = 108
@@ -589,13 +589,13 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Widget auf einer Seite: Rahmen, Optionen, nachsichtiges Lesen")
+@Suite("A widget on a page: the frame, the options, lenient reading")
 struct WidgetInstanceTests {
     private func decode(_ json: String) -> WidgetInstance? {
         try? JSONDecoder().decode(WidgetInstance.self, from: Data(json.utf8))
     }
 
-    @Test("Vorgaben je Art: nur das eigene Feld, Wetter mit Orten")
+    @Test("The defaults per kind: only its own field, the weather with places")
     func defaults() {
         let place = WeatherLocation(name: "Chur", latitude: 46.85, longitude: 9.53)
         let places = WeatherFavorites(locations: [place], selectedID: place.id)
@@ -617,14 +617,14 @@ struct WidgetInstanceTests {
         #expect(!String(decoding: data, as: UTF8.self).contains("\"weather\""))
     }
 
-    @Test("Unbekannte Art oder fehlender Rahmen: nicht lesbar")
+    @Test("An unknown kind or a missing frame: not readable")
     func rejects() {
         #expect(decode(#"{"kind":"toaster","frame":{"x":0,"y":0,"width":90,"height":250}}"#) == nil)
         #expect(decode(#"{"kind":"clock"}"#) == nil)
         #expect(decode(#"{"kind":"clock","frame":{"x":0,"y":0}}"#) == nil)
     }
 
-    @Test("Fehlende Kennung wird neu, kaputte Optionen werden Vorgaben")
+    @Test("A missing id becomes a new one, broken options become the defaults")
     func lenient() {
         let widget = decode(#"{"kind":"clock","frame":{"x":0,"y":0,"width":110,"height":250},"options":7}"#)
         #expect(widget?.kind == .clock)
@@ -651,7 +651,7 @@ Expected: compile error, `WidgetInstance` unknown.
 ```swift
 import Foundation
 
-/// Rahmen eines Widgets auf der Seite, in Referenzpunkten ab der Ecke oben
+/// The frame of a widget on the page, in reference points from the top left
 /// links (Seite 839 x 392, `DashboardGeometry`). Gespeichert als ganze Punkte.
 public struct WidgetFrame: Codable, Equatable, Hashable, Sendable {
     public var x: Double
@@ -673,15 +673,15 @@ public struct WidgetFrame: Codable, Equatable, Hashable, Sendable {
     public var maxX: Double { x + width }
     public var maxY: Double { y + height }
 
-    /// Ziehen liefert Bruchteile; gespeichert wird in ganzen Punkten.
+    /// Dragging delivers fractions; it is stored in whole points.
     public func rounded() -> WidgetFrame {
         WidgetFrame(x: x.rounded(), y: y.rounded(), width: width.rounded(), height: height.rounded())
     }
 }
 
-/// Optionen eines Widgets. Jede Art liest nur ihr eigenes Feld (die Uhr
-/// `clock`, ...), die uebrigen bleiben `nil` und stehen nicht in der Datei.
-/// Fehlt das Feld der eigenen Art, gelten deren Vorgaben (`?? .init()` in
+/// The options of a widget. Every kind reads only its own field (the clock
+/// `clock`, ...), the others stay `nil` and do not stand in the file.
+/// When the field of its own kind is missing, its defaults hold (`?? .init()` in
 /// der Ansicht).
 public struct WidgetOptions: Codable, Equatable, Sendable {
     public var weather: DashboardWeatherOptions?
@@ -690,7 +690,7 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
     public var calendar: DashboardCalendarOptions?
     public var resources: DashboardResourcesOptions?
     public var media: DashboardMediaOptions?
-    /// Orte der Wetter-Widgets, je Widget eine eigene Liste.
+    /// The places of the weather widgets, one list per widget.
     public var places: WeatherFavorites?
 
     public init(weather: DashboardWeatherOptions? = nil, user: DashboardUserOptions? = nil,
@@ -706,7 +706,7 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
         self.places = places
     }
 
-    /// Vorgaben einer Art. Wetter-Widgets bekommen `places` (beim Umzug die
+    /// The defaults of a kind. Weather widgets get `places` (on the migration the
     /// Favoriten aus weather.json).
     public static func defaults(for kind: WidgetKind, places: WeatherFavorites = .empty) -> WidgetOptions {
         var options = WidgetOptions()
@@ -741,7 +741,7 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
     }
 }
 
-/// Ein Widget auf einer Seite. Dieselbe Art darf mehrfach vorkommen, jede
+/// One widget on a page. The same kind may appear several times, every one
 /// mit eigenen Optionen (zwei Uhren, zwei Wetter).
 public struct WidgetInstance: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
@@ -758,8 +758,8 @@ public struct WidgetInstance: Codable, Equatable, Identifiable, Sendable {
 
     private enum CodingKeys: String, CodingKey { case id, kind, frame, options }
 
-    /// Unbekannte Art oder fehlender Rahmen: Fehler - die Seite uebergeht das
-    /// Widget dann. Fehlende Kennung: eine neue; kaputte Optionen: Vorgaben.
+    /// An unknown kind or a missing frame: an error - the page then passes the
+    /// widget over. A missing id: a new one; broken options: the defaults.
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         guard let raw: String = c.lenient(.kind), let kind = WidgetKind(rawValue: raw) else {
@@ -804,13 +804,13 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Bento-Geometrie: gueltige Lage und Massstab")
+@Suite("Bento geometry: a valid place and the scale")
 struct BentoGeometryTests {
     private func f(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> WidgetFrame {
         WidgetFrame(x: x, y: y, width: w, height: h)
     }
 
-    @Test("Auf der Seite")
+    @Test("On the page")
     func inside() {
         #expect(BentoGeometry.isInside(f(0, 0, 839, 392)))
         #expect(!BentoGeometry.isInside(f(-1, 0, 100, 130)))
@@ -818,7 +818,7 @@ struct BentoGeometryTests {
         #expect(!BentoGeometry.isInside(f(0, 263, 110, 130)))
     }
 
-    @Test("Genau 12 Punkte Abstand ist erlaubt, 11 nicht, schraeg versetzt zaehlt nicht")
+    @Test("Exactly 12 points apart is allowed, 11 is not, a diagonal offset does not count")
     func spacing() {
         let weather = f(0, 0, 275, 130)
         #expect(!BentoGeometry.tooClose(weather, f(287, 0, 340, 130)))
@@ -830,16 +830,16 @@ struct BentoGeometryTests {
         #expect(BentoGeometry.tooClose(weather, f(100, 50, 50, 50)))               // ueberlappt
     }
 
-    @Test("Gueltig: auf der Seite, erlaubte Groesse, Abstand")
+    @Test("Valid: on the page, an allowed size, the gap")
     func valid() {
         let others = [f(0, 0, 275, 130)]
         #expect(BentoGeometry.isValid(f(0, 142, 110, 250), kind: .clock, others: others))
         #expect(!BentoGeometry.isValid(f(0, 142, 100, 250), kind: .clock, others: others))   // zu schmal
-        #expect(!BentoGeometry.isValid(f(0, 142, 110, 200), kind: .clock, others: others))   // Hoehe gibt es nicht
+        #expect(!BentoGeometry.isValid(f(0, 142, 110, 200), kind: .clock, others: others))   // no such height
         #expect(!BentoGeometry.isValid(f(0, 130, 110, 250), kind: .clock, others: others))   // zu nah
     }
 
-    @Test("Massstab: Automatik nach Breite, Regler, Hoehe begrenzt", arguments: [
+    @Test("The scale: automatic by width, the slider, the height limits it", arguments: [
         (1512.0, 2000.0, 1.0, 1.0),
         (2560, 2000, 1.0, 1.5),
         (1280, 2000, 1.0, 0.85),
@@ -867,27 +867,27 @@ Expected: compile error, `BentoGeometry` unknown.
 ```swift
 import Foundation
 
-/// Geometrie der Bento-Seiten: gueltige Lage, Einrasten, Massstab. Reine
-/// Funktionen in Referenzpunkten (Seite 839 x 392, `DashboardGeometry`).
-/// Keine Zellen: Caelestias Masse (130, 250, 275, 110 ...) passen in kein
-/// gleichmaessiges Raster, Ordnung kommt vom Einrasten.
+/// The geometry of the bento pages: a valid place, snapping, the scale. Plain
+/// functions in reference points (a page of 839 x 392, `DashboardGeometry`).
+/// No cells: Caelestia's measurements (130, 250, 275, 110 ...) fit into no
+/// even grid, and the order comes from the snapping.
 public enum BentoGeometry {
     public static let pageWidth = DashboardGeometry.width
     public static let pageHeight = DashboardGeometry.height
-    /// Mindestabstand zweier Widgets, Caelestias Rasterabstand.
+    /// The minimum gap between two widgets, Caelestia's grid gap.
     public static let spacing = DashboardGeometry.spacing
-    /// Naeher als das: das Widget springt aufs Ziel.
+    /// Closer than this: the widget jumps onto the target.
     public static let snapDistance: Double = 8
 
-    // MARK: Gueltig
+    // MARK: Valid
 
     public static func isInside(_ frame: WidgetFrame) -> Bool {
         frame.x >= 0 && frame.y >= 0 && frame.maxX <= pageWidth && frame.maxY <= pageHeight
     }
 
-    /// Naeher als `spacing` in beiden Achsen, Ueberlappung eingeschlossen.
-    /// Genau `spacing` Abstand ist erlaubt; schraeg versetzt zaehlt nur, wenn
-    /// beide Achsen zu nah sind.
+    /// Closer than `spacing` on both axes, an overlap included. Exactly
+    /// `spacing` apart is allowed; a diagonal offset only counts when both
+    /// axes are too close.
     public static func tooClose(_ a: WidgetFrame, _ b: WidgetFrame) -> Bool {
         a.x < b.maxX + spacing && b.x < a.maxX + spacing
             && a.y < b.maxY + spacing && b.y < a.maxY + spacing
@@ -898,12 +898,12 @@ public enum BentoGeometry {
             && !others.contains { tooClose(frame, $0) }
     }
 
-    // MARK: Massstab
+    // MARK: Scale
 
-    /// Breite des 14-Zoll-MacBooks: dort Faktor 1, alles wie vor 0.2.
+    /// The width of the 14-inch MacBook: factor 1 there, everything as before 0.2.
     public static let referenceScreenWidth: Double = 1512
     public static let automaticRange: ClosedRange<Double> = 0.85...1.5
-    /// Der Regler in Nexus.
+    /// The slider in Nexus.
     public static let userScaleRange: ClosedRange<Double> = 0.7...1.5
 
     public static func clampedUserScale(_ value: Double) -> Double {
@@ -911,9 +911,9 @@ public enum BentoGeometry {
         return min(max(value, userScaleRange.lowerBound), userScaleRange.upperBound)
     }
 
-    /// Massstab fuer einen Bildschirm: Automatik nach Breite mal Regler,
-    /// hoechstens so gross, dass `contentHeight` (das ganze Dashboard in
-    /// Referenzgroesse, mit Seitenleiste oben) in `availableHeight` passt.
+    /// The scale for a screen: the automatic one by width times the slider, at
+    /// most as big as lets `contentHeight` (the whole dashboard at reference
+    /// size, with the page bar on top) fit into `availableHeight`.
     public static func scale(screenWidth: Double, availableHeight: Double, contentHeight: Double,
                              userScale: Double) -> Double {
         let automatic = min(max(screenWidth / referenceScreenWidth, automaticRange.lowerBound), automaticRange.upperBound)
@@ -953,19 +953,19 @@ git commit -m "Add bento geometry: valid frames and the dashboard scale"
 Append to `BentoGeometryTests.swift`:
 
 ```swift
-@Suite("Bento-Geometrie: Einrasten")
+@Suite("Bento geometry: snapping")
 struct BentoSnapTests {
     private func f(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> WidgetFrame {
         WidgetFrame(x: x, y: y, width: w, height: h)
     }
     private let weather = WidgetFrame(x: 0, y: 0, width: 275, height: 130)
 
-    @Test("Ziehen: Seitenrand, Flucht, 12 Punkte daneben, sonst frei", arguments: [
+    @Test("Dragging: the page edge, the line, 12 points beside it, otherwise free", arguments: [
         (WidgetFrame(x: 5, y: 300, width: 100, height: 50), 0.0, 300.0),     // linker Rand (y frei)
         (WidgetFrame(x: 636, y: 3, width: 200, height: 130), 639, 0),        // rechter Rand, oberer Rand
         (WidgetFrame(x: 290, y: 4, width: 200, height: 130), 287, 0),        // 12 neben dem Wetter
-        (WidgetFrame(x: 400.4, y: 250.6, width: 100, height: 50), 400, 251), // kein Ziel: nur gerundet
-        (WidgetFrame(x: 3, y: 146, width: 110, height: 250), 0, 142),        // Flucht links, 12 unter dem Wetter
+        (WidgetFrame(x: 400.4, y: 250.6, width: 100, height: 50), 400, 251), // no target: only rounded
+        (WidgetFrame(x: 3, y: 146, width: 110, height: 250), 0, 142),        // the line on the left, 12 below the weather
     ])
     func move(proposed: WidgetFrame, x: Double, y: Double) {
         let snapped = BentoGeometry.snapMove(proposed, others: [weather])
@@ -974,34 +974,34 @@ struct BentoSnapTests {
         #expect(snapped.width == proposed.width.rounded())
     }
 
-    @Test("Ziehen: das naechste Ziel gewinnt")
+    @Test("Dragging: the nearest target wins")
     func nearestWins() {
-        // Rechte Kante buendig mit dem Wetter (x = 175) liegt 2 weg, alles andere weiter.
+        // The right edge flush with the weather (x = 175) lies 2 away, everything else further.
         let snapped = BentoGeometry.snapMove(f(177, 300, 100, 50), others: [weather])
         #expect(snapped.x == 175)
     }
 
-    @Test("Groesse: Hoehe springt, Breite bleibt in der Spanne und rastet ein")
+    @Test("Size: the height jumps, the width stays in range and snaps")
     func resize() {
         let clock = f(0, 142, 110, 250)
-        // Hoehe 260 -> 250, Breite 115 frei (kein Ziel naeher als 8)
+        // Height 260 -> 250, width 115 free (no target closer than 8)
         #expect(BentoGeometry.snapResize(clock, kind: .clock, proposedWidth: 115, proposedHeight: 260, others: []) == f(0, 142, 115, 250))
-        // Hoehe 380 -> 392 passt nicht mehr auf die Seite; die Funktion rastet nur, gueltig prueft isValid
+        // Height 380 -> 392 no longer fits on the page; the function only snaps, isValid checks validity
         #expect(BentoGeometry.snapResize(clock, kind: .clock, proposedWidth: 110, proposedHeight: 380, others: []).height == 392)
-        // Breite unter dem Minimum -> Minimum
+        // A width below the minimum -> the minimum
         #expect(BentoGeometry.snapResize(clock, kind: .clock, proposedWidth: 40, proposedHeight: 250, others: []).width == 110)
-        // Breite rastet 12 vor dem Nachbarn ein: Nachbar bei x = 300 -> Breite 288
+        // The width snaps 12 before the neighbour: a neighbour at x = 300 -> width 288
         let neighbour = f(300, 142, 110, 250)
         #expect(BentoGeometry.snapResize(clock, kind: .clock, proposedWidth: 283, proposedHeight: 250, others: [neighbour]).width == 288)
-        // Feste Groesse bleibt fest
+        // A fixed size stays fixed
         let network = f(0, 203, 335, 189)
         #expect(BentoGeometry.snapResize(network, kind: .performanceNetwork, proposedWidth: 400, proposedHeight: 150, others: []) == network)
     }
 
-    @Test("Ablegen: kleinste Groesse, mittig unter dem Zeiger, eingerastet")
+    @Test("Dropping: the smallest size, centred under the pointer, snapped")
     func drop() {
         let frame = BentoGeometry.dropFrame(kind: .clock, x: 60, y: 208, others: [weather])
-        #expect(frame == f(0, 142, 110, 130))   // 60-55 = 5 -> Rand 0; 208-65 = 143 -> 142 (12 unter dem Wetter)
+        #expect(frame == f(0, 142, 110, 130))   // 60-55 = 5 -> edge 0; 208-65 = 143 -> 142 (12 below the weather)
     }
 }
 ```
@@ -1014,12 +1014,12 @@ Expected: compile error, `snapMove` unknown.
 - [ ] **Step 3: Implement** — append inside `enum BentoGeometry`:
 
 ```swift
-    // MARK: Einrasten
+    // MARK: Snapping
 
-    /// Ziehen: je Achse springt das Widget aufs naechste Ziel naeher als
-    /// `snapDistance` - Seitenrand, gleiche Flucht wie ein anderes Widget,
-    /// oder genau `spacing` daneben. Ohne Ziel bleibt die Achse. Ergebnis
-    /// auf ganze Punkte gerundet; ob es passt, sagt `isValid`.
+    /// Dragging: per axis the widget jumps onto the nearest target closer than
+    /// `snapDistance` - the page edge, the same line as another widget, or
+    /// exactly `spacing` next to it. Without a target the axis stays. The
+    /// result is rounded to whole points; whether it fits is said by `isValid`.
     public static func snapMove(_ proposed: WidgetFrame, others: [WidgetFrame]) -> WidgetFrame {
         var frame = proposed
         frame.x = snap(frame.x, to: startCandidates(length: frame.width, page: pageWidth,
@@ -1029,10 +1029,10 @@ Expected: compile error, `snapMove` unknown.
         return frame.rounded()
     }
 
-    /// Groesse ziehen (Griff unten rechts, Ecke oben links bleibt): die Hoehe
-    /// springt auf die naechste erlaubte, die Breite bleibt in der Spanne
-    /// dieser Groesse und rastet bei flexiblen Widgets am Seitenrand und an
-    /// Nachbarn ein (rechte Kanten buendig oder `spacing` vor dem Nachbarn).
+    /// Dragging the size (the handle at the bottom right, the top left corner
+    /// stays): the height jumps to the next allowed one, the width stays in
+    /// the range of that size and snaps at the page edge and at neighbours
+    /// with flexible widgets (right edges flush or `spacing` before the neighbour).
     public static func snapResize(_ frame: WidgetFrame, kind: WidgetKind, proposedWidth: Double,
                                   proposedHeight: Double, others: [WidgetFrame]) -> WidgetFrame {
         guard let size = kind.sizes.min(by: { abs($0.height - proposedHeight) < abs($1.height - proposedHeight) })
@@ -1048,8 +1048,8 @@ Expected: compile error, `snapMove` unknown.
         return WidgetFrame(x: frame.x, y: frame.y, width: width, height: size.height).rounded()
     }
 
-    /// Neues Widget aus Nexus: kleinste Groesse, mittig unter dem Zeiger
-    /// (`x`, `y` in Referenzpunkten), dann eingerastet wie beim Ziehen.
+    /// A new widget out of Nexus: the smallest size, centred under the pointer
+    /// (`x`, `y` in reference points), then snapped as when dragging.
     public static func dropFrame(kind: WidgetKind, x: Double, y: Double, others: [WidgetFrame]) -> WidgetFrame {
         let size = kind.smallestSize
         let proposed = WidgetFrame(x: x - size.minWidth / 2, y: y - size.height / 2,
@@ -1057,9 +1057,9 @@ Expected: compile error, `snapMove` unknown.
         return snapMove(proposed, others: others)
     }
 
-    /// Moegliche Anfaenge auf einer Achse: beide Seitenraender, dieselbe
-    /// Flucht wie ein anderes Widget (Anfang an Anfang, Ende an Ende) und
-    /// genau `spacing` davor oder dahinter.
+    /// The possible starts on one axis: both page edges, the same line as
+    /// another widget (start at start, end at end) and exactly `spacing`
+    /// before or behind it.
     static func startCandidates(length: Double, page: Double, others: [(start: Double, end: Double)]) -> [Double] {
         var result = [0, page - length]
         for other in others {
@@ -1109,7 +1109,7 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Dashboard-Seiten: Widgets auf der Seite, Seitenverwaltung, Lesen")
+@Suite("Dashboard pages: widgets on the page, managing the pages, reading")
 struct DashboardPagesTests {
     private func f(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> WidgetFrame {
         WidgetFrame(x: x, y: y, width: w, height: h)
@@ -1142,7 +1142,7 @@ struct DashboardPagesTests {
         #expect(page.widgets.isEmpty)
     }
 
-    @Test("Seiten: nie leer, letzte nicht loeschbar, Kopie hinter das Original mit neuen Kennungen")
+    @Test("Pages: never empty, the last one cannot be deleted, a copy behind the original with new ids")
     func pageEdits() throws {
         let first = DashboardPage(name: "A", symbol: "star", template: .overview, widgets: [clock(f(0, 0, 110, 130))])
         #expect(DashboardPages(pages: []) == nil)
@@ -1164,7 +1164,7 @@ struct DashboardPagesTests {
         #expect(pages.removePage(id: added))
     }
 
-    @Test("Wiederherstellen haengt nur fehlende Vorlagen an")
+    @Test("Restoring only appends the templates that are missing")
     func restore() throws {
         let overview = DashboardPage(name: "Mein Dashboard", symbol: "star", template: .overview)
         var pages = try #require(DashboardPages(pages: [overview]))
@@ -1173,7 +1173,7 @@ struct DashboardPagesTests {
         #expect(pages.pages.map(\.name) == ["Mein Dashboard", "media", "performance", "weather"])
     }
 
-    @Test("Knopf fuer eine Seite: Vorlage, sonst erstes passendes Widget, sonst erste Seite")
+    @Test("The button for a page: the template, otherwise the first matching widget, otherwise the first page")
     func resolve() throws {
         let own = DashboardPage(name: "Eigene", symbol: "star")
         var withMedia = DashboardPage(name: "Musik", symbol: "star")
@@ -1188,7 +1188,7 @@ struct DashboardPagesTests {
         #expect(!noTemplate.usesWeather)
     }
 
-    @Test("Lesen: kaputte Seiten und Widgets fallen weg, leere Liste ist nicht lesbar")
+    @Test("Reading: broken pages and widgets fall away, an empty list is not readable")
     func decoding() throws {
         let json = #"""
         [{"id":"00000000-0000-0000-0000-00000000000A","name":"A","template":"overview",
@@ -1218,10 +1218,10 @@ Expected: compile error, `DashboardPage` unknown.
 ```swift
 import Foundation
 
-/// Vorlage einer mitgelieferten Seite - die vier Reiter von vor 0.2. Ueber
-/// die Vorlage finden "Standardseiten wiederherstellen" und die Knoepfe,
-/// die eine bestimmte Seite oeffnen (Medien in der Leiste), ihre Seite.
-/// Rohwert steht in settings.json - nie umbenennen.
+/// The template of a page that ships with the app - the four tabs from before
+/// 0.2. Through the template, "Restore Default Pages" and the buttons that
+/// open one particular page (media in the bar) find their page. The raw value
+/// stands in settings.json - never rename it.
 public enum PageTemplate: String, Codable, CaseIterable, Sendable {
     case overview, media, performance, weather
 
@@ -1244,14 +1244,14 @@ public enum PageTemplate: String, Codable, CaseIterable, Sendable {
     }
 }
 
-/// Eine Seite des Dashboards: Name, Symbol, Widgets an freien Plaetzen.
-/// Immer gueltig: jedes Widget liegt auf der Seite, hat eine erlaubte
-/// Groesse und haelt `BentoGeometry.spacing` Abstand zu den anderen.
+/// One page of the dashboard: name, symbol, widgets at free places. Always
+/// valid: every widget lies on the page, has an allowed size and keeps
+/// `BentoGeometry.spacing` away from the others.
 public struct DashboardPage: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
     public var name: String
     public var symbol: String
-    /// Mitgelieferte Seite (`nil` fuer eigene und Kopien).
+    /// A page that ships with the app (`nil` for one's own and for copies).
     public var template: PageTemplate?
     public private(set) var widgets: [WidgetInstance]
 
@@ -1266,8 +1266,8 @@ public struct DashboardPage: Codable, Equatable, Identifiable, Sendable {
         self.widgets = Self.normalized(widgets)
     }
 
-    /// Nur gueltige Widgets, in ihrer Reihenfolge; bei zu nahen gewinnt das
-    /// fruehere, bei doppelter Kennung ebenso.
+    /// Only valid widgets, in their order; when two are too close the earlier
+    /// one wins, and with a duplicate id the same.
     static func normalized(_ widgets: [WidgetInstance]) -> [WidgetInstance] {
         var kept: [WidgetInstance] = []
         for widget in widgets where !kept.contains(where: { $0.id == widget.id })
@@ -1285,7 +1285,7 @@ public struct DashboardPage: Codable, Equatable, Identifiable, Sendable {
 
     public func contains(_ kind: WidgetKind) -> Bool { widgets.contains { $0.kind == kind } }
 
-    /// Fuegt hinzu, wenn der Rahmen gueltig ist. `false`: nichts geaendert.
+    /// Adds it when the frame is valid. `false`: nothing changed.
     @discardableResult
     public mutating func add(_ widget: WidgetInstance) -> Bool {
         guard !widgets.contains(where: { $0.id == widget.id }),
@@ -1294,7 +1294,7 @@ public struct DashboardPage: Codable, Equatable, Identifiable, Sendable {
         return true
     }
 
-    /// Neuer Rahmen (Ziehen, Groesse). Ungueltig: `false`, der alte bleibt.
+    /// A new frame (dragging, size). Invalid: `false`, the old one stays.
     @discardableResult
     public mutating func setFrame(_ frame: WidgetFrame, for id: WidgetInstance.ID) -> Bool {
         guard let index = widgets.firstIndex(where: { $0.id == id }),
@@ -1313,19 +1313,19 @@ public struct DashboardPage: Codable, Equatable, Identifiable, Sendable {
         widgets.removeAll { $0.id == id }
     }
 
-    /// Kopie mit neuen Kennungen fuer Seite und Widgets, ohne Vorlage - sonst
-    /// gaebe es zwei Seiten fuer dieselbe Vorlage.
+    /// A copy with new ids for the page and the widgets, without a template -
+    /// otherwise there would be two pages for the same template.
     public func duplicated(name: String) -> DashboardPage {
         DashboardPage(name: name, symbol: symbol,
                       widgets: widgets.map { WidgetInstance(kind: $0.kind, frame: $0.frame, options: $0.options) })
     }
 
-    // MARK: Datei
+    // MARK: File
 
     private enum CodingKeys: String, CodingKey { case id, name, symbol, template, widgets }
 
-    /// Nachsichtig: fehlende Kennung wird neu, unbekannte Vorlage `nil`,
-    /// unlesbare oder ungueltige Widgets fallen weg.
+    /// Lenient: a missing id becomes a new one, an unknown template `nil`, and
+    /// unreadable or invalid widgets fall away.
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let list: LenientList<WidgetInstance>? = c.lenient(.widgets)
@@ -1337,15 +1337,15 @@ public struct DashboardPage: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
-/// Alle Seiten in ihrer Reihenfolge. Nie leer: die letzte Seite laesst sich
-/// nicht loeschen, und eine Datei ohne lesbare Seite gilt als nicht lesbar
-/// (die App baut die Seiten dann neu, siehe `DashboardPages.migrated`).
+/// All pages in their order. Never empty: the last page cannot be deleted, and
+/// a file without a readable page counts as unreadable (the app then builds
+/// the pages anew, see `DashboardPages.migrated`).
 ///
-/// In der Datei: `[{"id": ..., "name": ..., "symbol": ..., "template": ..., "widgets": [...]}, ...]`.
+/// In the file: `[{"id": ..., "name": ..., "symbol": ..., "template": ..., "widgets": [...]}, ...]`.
 public struct DashboardPages: Codable, Equatable, Sendable {
     public private(set) var pages: [DashboardPage]
 
-    /// `nil` fuer eine leere Liste. Doppelte Kennungen: die spaetere faellt weg.
+    /// `nil` for an empty list. Duplicate ids: the later one falls away.
     public init?(pages: [DashboardPage]) {
         var seen = Set<UUID>()
         let unique = pages.filter { seen.insert($0.id).inserted }
@@ -1366,33 +1366,33 @@ public struct DashboardPages: Codable, Equatable, Sendable {
         try c.encode(pages)
     }
 
-    // MARK: Lesen
+    // MARK: Reading
 
     public func page(id: DashboardPage.ID) -> DashboardPage? { pages.first { $0.id == id } }
 
-    /// Fuer Knoepfe, die frueher einen Reiter oeffneten (Medien, Leistung,
-    /// Wetter in der Leiste): die Seite mit der Vorlage, sonst die erste mit
-    /// einem Widget aus `kinds`, sonst die erste ueberhaupt.
+    /// For buttons that used to open a tab (media, performance, weather in the
+    /// bar): the page with the template, otherwise the first one with a widget
+    /// out of `kinds`, otherwise the first one at all.
     public func page(for template: PageTemplate, showing kinds: [WidgetKind]) -> DashboardPage {
         pages.first { $0.template == template }
             ?? pages.first { page in kinds.contains(where: page.contains) }
             ?? pages[0]
     }
 
-    /// Wetter abrufen kostet eine Anfrage, die Wiedergabe einen perl-Prozess:
-    /// nur, wenn eine Seite ein solches Widget hat.
+    /// Fetching the weather costs a request, the playback a perl process: only
+    /// when a page has such a widget.
     public var usesWeather: Bool { pages.contains { $0.widgets.contains { $0.kind.usesPlaces } } }
     public var usesMedia: Bool { pages.contains { $0.widgets.contains { $0.kind.usesMedia } } }
 
-    // MARK: Aendern
+    // MARK: Changing
 
-    /// Ersetzt die Seite mit derselben Kennung (Bearbeiten).
+    /// Replaces the page with the same id (editing).
     public mutating func update(_ page: DashboardPage) {
         guard let index = pages.firstIndex(where: { $0.id == page.id }) else { return }
         pages[index] = page
     }
 
-    /// Leere Seite ans Ende.
+    /// An empty page at the end.
     @discardableResult
     public mutating func addPage(name: String, symbol: String = DashboardPage.defaultSymbol) -> DashboardPage.ID {
         let page = DashboardPage(name: name, symbol: symbol)
@@ -1400,7 +1400,7 @@ public struct DashboardPages: Codable, Equatable, Sendable {
         return page.id
     }
 
-    /// Kopie direkt hinter das Original. `nil`: kein solches Original.
+    /// A copy right behind the original. `nil`: no such original.
     @discardableResult
     public mutating func duplicatePage(id: DashboardPage.ID, name: String) -> DashboardPage.ID? {
         guard let index = pages.firstIndex(where: { $0.id == id }) else { return nil }
@@ -1409,7 +1409,7 @@ public struct DashboardPages: Codable, Equatable, Sendable {
         return copy.id
     }
 
-    /// `false` fuer die letzte Seite oder eine unbekannte Kennung.
+    /// `false` for the last page or an unknown id.
     @discardableResult
     public mutating func removePage(id: DashboardPage.ID) -> Bool {
         guard pages.count > 1, let index = pages.firstIndex(where: { $0.id == id }) else { return false }
@@ -1427,13 +1427,13 @@ public struct DashboardPages: Codable, Equatable, Sendable {
         pages[index].symbol = symbol
     }
 
-    /// Wie SwiftUIs `onMove` (Ziel vor dem Verschieben gezaehlt).
+    /// Like SwiftUI's `onMove` (the target counted before the move).
     public mutating func movePages(fromOffsets source: IndexSet, toOffset destination: Int) {
         pages.move(fromOffsets: source, toOffset: destination)
     }
 
-    /// Haengt die mitgelieferten Seiten an, deren Vorlage fehlt. Vorhandene
-    /// Seiten bleiben, wie sie sind. `defaults`: `DashboardPages.defaultPages(...)`.
+    /// Appends the pages that ship with the app whose template is missing.
+    /// Existing pages stay as they are. `defaults`: `DashboardPages.defaultPages(...)`.
     public mutating func restoreDefaults(from defaults: [DashboardPage]) {
         let present = Set(pages.compactMap(\.template))
         pages += defaults.filter { page in page.template.map { !present.contains($0) } ?? false }
@@ -1481,7 +1481,7 @@ struct DashboardMigrationTests {
         page.widgets.map { "\($0.kind.rawValue) \(Int($0.frame.x)),\(Int($0.frame.y)) \(Int($0.frame.width))x\(Int($0.frame.height))" }
     }
 
-    @Test("Uebersicht: jede Vorlage von vor 0.2 landet punktgenau", arguments: DashboardPreset.allCases)
+    @Test("The overview: every template from before 0.2 lands point for point", arguments: DashboardPreset.allCases)
     func overviewExact(preset: DashboardPreset) {
         let layout = preset.layout
         let pages = DashboardPages.migrated(from: layout, places: places, hasBattery: true)
@@ -1502,7 +1502,7 @@ struct DashboardMigrationTests {
         ])
     }
 
-    @Test("Reihenfolge und Sichtbarkeit der Reiter, Optionen der Karten, Orte")
+    @Test("The order and the visibility of the tabs, the options of the cards, the places")
     func tabsAndOptions() {
         var cards = DashboardCards.caelestia
         cards.update(.clock(DashboardClockOptions(style: .inline, showDate: true)))
@@ -1517,7 +1517,7 @@ struct DashboardMigrationTests {
         #expect(pages.pages[0].widgets.allSatisfy { $0.options.places == places })
     }
 
-    @Test("Seite Leistung mit und ohne Akku")
+    @Test("The performance page with and without a battery")
     func performance() {
         #expect(frames(PageTemplate.performance.defaultPage(places: .empty, hasBattery: true)) == [
             "performance.cpu 0,0 343x191", "performance.gpu 355,0 343x191",
@@ -1539,7 +1539,7 @@ struct DashboardMigrationTests {
         #expect(frames(PageTemplate.media.defaultPage(places: places, hasBattery: true)) == ["media.player 0,0 839x392"])
     }
 
-    @Test("Vorgaben: vier Seiten in der Reihenfolge von vor 0.2, mit Namen und Symbolen der Reiter")
+    @Test("The defaults: four pages in the order from before 0.2, with the names and symbols of the tabs")
     func defaults() {
         let pages = DashboardPages.defaultPages(places: places, hasBattery: true)
         #expect(pages.map(\.template) == [.overview, .media, .performance, .weather])
@@ -1558,13 +1558,13 @@ Expected: compile error, `migrated` unknown.
 ```swift
 import Foundation
 
-// Die mitgelieferten Seiten (die vier Reiter von vor 0.2, punktgenau) und
-// der einmalige Umzug der Einstellungen von 0.1.x.
+// The pages that ship with the app (the four tabs from before 0.2, point for
+// point) and the one-off migration of the settings from 0.1.x.
 
 public extension PageTemplate {
-    /// Die mitgelieferte Seite in der Form von vor 0.2. `places`: Orte der
-    /// Wetter-Widgets (beim Umzug die Favoriten aus weather.json);
-    /// `hasBattery`: Seite Leistung mit Akku rechts oder ohne.
+    /// The page that ships with the app in the shape from before 0.2. `places`:
+    /// the places of the weather widgets (on the migration the favourites out of
+    /// weather.json); `hasBattery`: the performance page with the battery or without.
     func defaultPage(places: WeatherFavorites, hasBattery: Bool) -> DashboardPage {
         DashboardPage(name: tab.title, symbol: tab.symbol, template: self,
                       widgets: defaultWidgets(places: places, hasBattery: hasBattery))
@@ -1614,14 +1614,14 @@ public extension PageTemplate {
 }
 
 public extension DashboardPages {
-    /// Die vier mitgelieferten Seiten in der Reihenfolge der Reiter von vor 0.2.
+    /// The four pages that ship with the app in the order of the tabs from before 0.2.
     static func defaultPages(places: WeatherFavorites, hasBattery: Bool) -> [DashboardPage] {
         PageTemplate.allCases.map { $0.defaultPage(places: places, hasBattery: hasBattery) }
     }
 
-    /// Umzug beim ersten Start von 0.2: die sichtbaren Reiter in ihrer
-    /// Reihenfolge, die Uebersicht mit genau ihren Karten und Optionen an
-    /// genau ihren Plaetzen. Ausgeblendete Reiter kommen nicht mit
+    /// The migration on the first start of 0.2: the visible tabs in their order,
+    /// the overview with exactly their cards and options at exactly their
+    /// places. Hidden tabs do not come along
     /// ("Standardseiten wiederherstellen" holt sie zurueck).
     static func migrated(from layout: DashboardLayout, places: WeatherFavorites, hasBattery: Bool) -> DashboardPages {
         let pages = layout.tabs.visible.map { tab -> DashboardPage in
@@ -1630,12 +1630,12 @@ public extension DashboardPages {
             return DashboardPage(name: tab.title, symbol: tab.symbol, template: .overview,
                                  widgets: overviewWidgets(layout.cards, places: places))
         }
-        // `visible` ist nie leer (DashboardTabs); zur Sicherheit trotzdem die Vorgaben.
+        // `visible` is never empty (DashboardTabs); the defaults for safety all the same.
         return DashboardPages(pages: pages) ?? DashboardPages(pages: defaultPages(places: places, hasBattery: hasBattery))!
     }
 
-    /// Karten der Uebersicht als Widgets, an den Rahmen von
-    /// `DashboardGeometry.placements` und mit ihren Optionen.
+    /// The cards of the overview as widgets, at the frames of
+    /// `DashboardGeometry.placements` and with their options.
     internal static func overviewWidgets(_ cards: DashboardCards, places: WeatherFavorites) -> [WidgetInstance] {
         DashboardGeometry.placements(for: cards).map { placement in
             let kind = WidgetKind(placement.card.kind)
@@ -1683,7 +1683,7 @@ git commit -m "Build the preset pages and migrate the 0.1 dashboard to pages"
 ```swift
     // MARK: Seiten des Dashboards (0.2)
 
-    @Test("Seiten und Groesse: fehlen in alten Dateien, Regler begrenzt, alter Abschnitt bleibt")
+    @Test("Pages and size: they are missing in old files, the slider limits it, the old section stays")
     func dashboardPages() throws {
         let old = ShellSettings.load(from: Data(#"{"dashboard":{"tabs":[{"id":"media","visible":false}]}}"#.utf8))
         #expect(old.dashboardPages == nil)
@@ -1713,13 +1713,13 @@ Expected: compile error, `dashboardPages` unknown.
 Add after `public var dashboard = DashboardLayout()`:
 
 ```swift
-    /// Seiten des Bento-Dashboards (0.2). `nil`: noch nie gespeichert oder
-    /// nicht lesbar - die App baut sie dann einmal aus `dashboard`
-    /// (`DashboardPages.migrated`). `dashboard` selbst bleibt unangetastet,
-    /// damit ein Zurueck auf 0.1.x nichts verliert.
+    /// Pages of the bento dashboard (0.2). `nil`: never saved yet or not
+    /// readable - the app then builds them once out of `dashboard`
+    /// (`DashboardPages.migrated`). `dashboard` itself stays untouched, so a
+    /// step back to 0.1.x loses nothing.
     public var dashboardPages: DashboardPages?
-    /// Groesse des Dashboards zusaetzlich zur Automatik nach Bildschirm
-    /// (Nexus-Regler), `BentoGeometry.userScaleRange`.
+    /// Size of the dashboard on top of the automatic one per screen (the
+    /// Nexus slider), `BentoGeometry.userScaleRange`.
     public var dashboardScale: Double = 1
 ```
 
