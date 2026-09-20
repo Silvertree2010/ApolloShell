@@ -181,6 +181,11 @@ final class ShellEditor {
     /// settings half-edited).
     func done() {
         guard isEditing else { return }
+        // A name field still open counts as finished, before anything is
+        // written: `renamingPageID` puts an empty name back to "Page" on
+        // its way to `nil`, and only while the session still stands
+        // (20.09.: Done while renaming saved a page without a name).
+        dashboard.renamingPageID = nil
         var next = store.settings
         var changed = false
         if let session = dashboard.session, session.hasChanges {

@@ -3,7 +3,7 @@ import ApolloShellCore
 import SwiftUI
 
 // A building block's chosen app: the same row and the same picker dialog
-// in Nexus > Bar (app button) and Nexus > Quick Actions ("Open App"
+// in Nexus > Bar (app button) and the control centre ("Open App"
 // button).
 
 /// Row "chosen app, or a hint, plus a choose-app button". Opens

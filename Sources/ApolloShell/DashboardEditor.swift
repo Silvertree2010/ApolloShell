@@ -100,6 +100,13 @@ final class DashboardEditor {
     }
 
     func done() {
+        guard self.session != nil else { return }
+        // An open name field counts as finished here: `renamingPageID`
+        // repairs an empty name on its way to `nil`, and it has to do that
+        // while the session still stands - afterwards there is nothing
+        // left to repair, and the page would have been written without a
+        // name (20.09.).
+        renamingPageID = nil
         guard let session else { return }
         lastPageID = session.pageID
         if session.hasChanges { store.settings.dashboardPages = session.pages }
@@ -107,7 +114,6 @@ final class DashboardEditor {
         dropPreview = nil
         draggedKind = nil
         dropGeneration += 1
-        renamingPageID = nil
         optionsWidgetID = nil
         scale = nil
         onEnd()
@@ -176,6 +182,12 @@ final class DashboardEditor {
     /// away.
     @discardableResult
     func addPage() -> DashboardPage.ID? {
+        guard self.session != nil else { return nil }
+        // The session switches the shown page itself down there, past the
+        // `pageID` setter - so the two things that setter would let go of
+        // are let go of here: a name field left open on the page one is
+        // leaving, and the options of a widget standing on it.
+        leaveShownPage()
         guard let session else { return nil }
         let name = Self.nextPageName(existing: session.pages.pages.map(\.name))
         var updated = session
@@ -192,6 +204,8 @@ final class DashboardEditor {
 
     @discardableResult
     func duplicatePage(_ id: DashboardPage.ID) -> DashboardPage.ID? {
+        guard self.session != nil else { return nil }
+        leaveShownPage()
         guard let session, let page = session.pages.page(id: id) else { return nil }
         let name = page.name + String(localized: " Copy")
         var updated = session
@@ -200,11 +214,22 @@ final class DashboardEditor {
         return newID
     }
 
+    /// What the `pageID` setter does when the shown page changes - for the
+    /// three places that change it through the session instead.
+    private func leaveShownPage() {
+        renamingPageID = nil
+        optionsWidgetID = nil
+    }
+
     @discardableResult
     func removePage(_ id: DashboardPage.ID) -> Bool {
+        guard self.session != nil else { return false }
+        if renamingPageID == id { renamingPageID = nil }
         guard var updated = session else { return false }
+        let wasShown = updated.pageID == id
         let removed = updated.removePage(id)
         session = updated
+        if removed, wasShown { leaveShownPage() }
         return removed
     }
 

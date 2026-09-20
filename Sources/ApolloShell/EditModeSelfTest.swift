@@ -188,6 +188,26 @@ private final class EditModeSelfTestHarness {
         dashboardEditor.renamingPageID = nil
         check(dashboardEditor.session?.pages.page(id: id)?.name == String(localized: "Page"),
               "An empty name when renaming becomes “Page”")
+        // The same while the name field is still open and Done is clicked:
+        // the empty name used to be written just as it stood (20.09.).
+        if let second = dashboardEditor.addPage() {
+            dashboardEditor.renamingPageID = second
+            dashboardEditor.renamePage(second, to: "  ")
+            editor.done()
+            await wait(0.4)
+            let saved = store.settings.dashboardPages?.page(id: second)?.name
+            check(saved == String(localized: "Page"), "Done while renaming does not save an empty name (\(saved ?? "-"))")
+            editor.begin(screen: screen)
+            await wait(0.5)
+            _ = dashboardEditor.removePage(second)
+        }
+        // Adding a page leaves the one being renamed - the text field of
+        // the old page used to stay open on a page nobody sees any more.
+        if let third = dashboardEditor.addPage() {
+            dashboardEditor.renamingPageID = third
+            _ = dashboardEditor.addPage()
+            check(dashboardEditor.renamingPageID == nil, "A new page closes the name field of the old one")
+        }
         let count = dashboardEditor.session?.pages.pages.count ?? 0
         check(dashboardEditor.removePage(id) && dashboardEditor.session?.pages.pages.count == count - 1,
               "Deleting a page takes no confirmation")

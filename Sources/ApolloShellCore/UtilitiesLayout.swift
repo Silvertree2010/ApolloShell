@@ -1,7 +1,7 @@
 import Foundation
 
 // The Utilities panel as a building-kit: which cards in which order, which
-// quick toggles in which order. Nexus > Quick Actions edits it (dragging,
+// quick toggles in which order. The edit mode of the shell arranges it
 // +, presets), the panel draws it and sizes its height accordingly.
 //
 // Unlike the bar (`BarLayout`), the cards are ALWAYS all in the list, each

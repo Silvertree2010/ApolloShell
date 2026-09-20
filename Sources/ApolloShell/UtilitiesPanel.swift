@@ -9,7 +9,7 @@ import SwiftUI
 /// only not right in the corner, which macOS takes as a hot corner for the
 /// quick note out of the box (`EdgeHoverArea.cornerGap`).
 ///
-/// Cards and quick toggles come out of Nexus > Quick Actions
+/// Cards and quick toggles come out of the control centre's arrangement
 /// (settings.utilities.layout). Every change takes hold right away: the panel
 /// draws the new arrangement and takes the height `UtilitiesLayout.panelHeight`
 /// works out for it.

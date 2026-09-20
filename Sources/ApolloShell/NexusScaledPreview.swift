@@ -3,7 +3,8 @@ import SwiftUI
 /// The scaled-down, live preview in Nexus > Bar: a slightly offset surface
 /// standing in for the glass, a border, scaled to `scale`, no mouse. Header
 /// (title "Preview") and footer (sample-data note) stay with the caller.
-/// Dashboard and Quick Actions had their own preview here too until Task 7 -
+/// The dashboard and the control centre had their own preview here too
+/// until Task 7 -
 /// since then both are edited in the global edit mode, on the real panel.
 ///
 /// `scale` affects `scaleEffect` and the border (`1 / scale`); `frameSize`

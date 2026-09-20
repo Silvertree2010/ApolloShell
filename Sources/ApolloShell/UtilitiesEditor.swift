@@ -3,7 +3,8 @@ import SwiftUI
 
 // MARK: - Keep Awake (Nexus > General)
 
-/// “Keep Awake with the lid closed” - earlier on Nexus > Quick Actions, since
+/// “Keep Awake with the lid closed” - earlier on Nexus > Quick Actions (the
+/// control centre since 0.2), since
 /// the global edit mode on Nexus > General (the quick actions page had only
 /// this switch left). Deliberately not in the popover of the card in the edit
 /// mode: the switch puts down a system rule with an administrator prompt right

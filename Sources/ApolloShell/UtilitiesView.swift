@@ -2,7 +2,7 @@ import ApolloShellCore
 import SwiftUI
 
 /// The content of the utilities panel (Caelestia: modules/utilities) in an
-/// Apple look: the cards out of Nexus > Quick Actions below each other. The
+/// Apple look: the cards of the control centre below each other. The
 /// default is Caelestia's order - "Keep Awake" at the top, the sound card in
 /// the middle (where Caelestia has the recording; ours is done by Apple's bar
 /// through the screenshot button), the quick toggles at the bottom.
