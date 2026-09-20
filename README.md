@@ -161,6 +161,14 @@ everything.
 **Apple's Dock.** Nexus → General can hide it while ApolloShell runs. It comes
 back when ApolloShell quits.
 
+**Tiling window managers.** None of ApolloShell's windows is a standard
+window: they carry a subrole of their own, sit on their own window level and
+cannot be moved by another app. AeroSpace, yabai and Amethyst each skip
+windows like that by their own rules, so they do not get tiled, and Rectangle
+only ever touches the focused window, which these never are. The other way
+round, the strip ApolloShell keeps clear for its sidebar only moves standard
+windows, so it leaves another bar alone.
+
 **Private interfaces.** Spaces, fullscreen detection, Night Shift, dark mode,
 window lists and "now playing" use undocumented macOS APIs (SkyLight,
 CoreBrightness, HIServices, MediaRemote through [mediaremote-adapter][mra]).
