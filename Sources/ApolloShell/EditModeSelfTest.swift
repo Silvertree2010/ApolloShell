@@ -387,6 +387,31 @@ private final class EditModeSelfTestHarness {
 
     private func windows_ofTheMode() -> [(String, NSWindow)] { windows.debugWindows }
 
+    /// Which surface a drag payload belongs to (`EditDragPayload`). The
+    /// drop targets read it to turn down what is not theirs; the drag
+    /// itself is a live-test item (`NSItemProvider` sessions do not run
+    /// here), the sorting is not.
+    private func dragPayloads() {
+        func home(_ text: String) -> String {
+            switch EditDragPayload.home(of: text) {
+            case .dashboard: "dashboard"
+            case .controlCentre: "control centre"
+            case .bar: "bar"
+            case nil: "-"
+            }
+        }
+        check(home(BentoWidgetDragPayload.string(for: .clock)) == "dashboard", "A widget from the gallery belongs to the dashboard")
+        check(home(UtilitiesToggleDragPayload.string(for: .wifi)) == "control centre", "A quick toggle belongs to the control centre")
+        check(home(UtilitiesCardDragPayload.string(for: .audio)) == "control centre", "A card belongs to the control centre")
+        check(home(BarModuleDragPayload.string(for: .clock)) == "bar", "A block kind belongs to the bar")
+        check(home(BarEntryDragPayload.string(for: "abc")) == "bar", "A block that is already in the bar belongs to the bar")
+        // A tile being moved inside the control centre carries its bare id
+        // - nobody may turn that down.
+        check(home("wifi") == "-", "A bare id belongs to nobody, and is turned down by nobody")
+        check(!EditDragPayload.refuses(.dashboard), "Nothing read yet: every target still takes it")
+    }
+
+
     private func checkWindowManagerFlags(of list: [(String, NSWindow)]) {
         for (name, window) in list {
             let subrole = window.accessibilitySubrole()?.rawValue ?? "-"
@@ -410,6 +435,7 @@ private final class EditModeSelfTestHarness {
         await normalUse()
         await probeScaledDrag()
         await sidebar()
+        dragPayloads()
         await windowManagerSafety()
         for screen in NSScreen.screens {
             note("Screen \(r(screen.frame)), visible \(r(screen.visibleFrame))")

@@ -308,6 +308,7 @@ struct BentoDropDelegate: DropDelegate {
         // result no longer counts - otherwise the ghost outline would
         // come back to life.
         let generation = editor.dropGeneration
+        EditDragPayload.remember(info, types: [.plainText])
         loadKind(info) { kind in
             guard generation == editor.dropGeneration else { return }
             editor.draggedKind = kind
@@ -316,6 +317,9 @@ struct BentoDropDelegate: DropDelegate {
     }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
+        // A quick toggle or a sidebar block over the page: no, and the
+        // pointer says so, instead of swallowing it at the drop.
+        if EditDragPayload.refuses(.dashboard) { return DropProposal(operation: .forbidden) }
         if let kind = editor.draggedKind {
             updatePreview(kind, info: info)
         }
@@ -326,9 +330,11 @@ struct BentoDropDelegate: DropDelegate {
         editor.dropGeneration += 1
         editor.dropPreview = nil
         editor.draggedKind = nil
+        EditDragPayload.forget()
     }
 
     func performDrop(info: DropInfo) -> Bool {
+        if EditDragPayload.refuses(.dashboard) { return false }
         let location = info.location
         if let kind = editor.draggedKind {
             add(kind, at: location)

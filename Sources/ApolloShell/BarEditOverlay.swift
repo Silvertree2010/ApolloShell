@@ -324,11 +324,23 @@ private struct BarEntryDropDelegate: DropDelegate {
     let entry: BarEntry
     @Binding var targeted: Bool
 
-    func dropEntered(info: DropInfo) { targeted = true }
-    func dropExited(info: DropInfo) { targeted = false }
+    func dropEntered(info: DropInfo) {
+        targeted = true
+        EditDragPayload.remember(info, types: [.text])
+    }
+
+    func dropExited(info: DropInfo) {
+        targeted = false
+        EditDragPayload.forget()
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        EditDragPayload.refuses(.bar) ? DropProposal(operation: .forbidden) : DropProposal(operation: .copy)
+    }
 
     func performDrop(info: DropInfo) -> Bool {
         targeted = false
+        if EditDragPayload.refuses(.bar) { return false }
         guard let provider = info.itemProviders(for: [.text]).first else { return false }
         let index = editor.bar?.layout.entries.firstIndex { $0.id == entry.id }
         provider.loadObject(ofClass: NSString.self) { text, _ in
@@ -353,17 +365,34 @@ private struct BarAppendDropModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         if active {
-            content.onDrop(of: [.text], isTargeted: nil) { providers in
-                guard let provider = providers.first else { return false }
-                provider.loadObject(ofClass: NSString.self) { text, _ in
-                    guard let text = text as? String,
-                          let kind = BarModuleDragPayload.kind(from: text) else { return }
-                    DispatchQueue.main.async { editor.addBarModule(kind) }
-                }
-                return true
-            }
+            content.onDrop(of: [.text], delegate: BarAppendDropDelegate(editor: editor))
         } else {
             content
         }
+    }
+}
+
+/// The net itself. A delegate rather than the short closure form: only
+/// this way can it say no to a payload of another surface while it is
+/// still being dragged, instead of swallowing it at the drop.
+private struct BarAppendDropDelegate: DropDelegate {
+    let editor: ShellEditor
+
+    func dropEntered(info: DropInfo) { EditDragPayload.remember(info, types: [.text]) }
+    func dropExited(info: DropInfo) { EditDragPayload.forget() }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        EditDragPayload.refuses(.bar) ? DropProposal(operation: .forbidden) : DropProposal(operation: .copy)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        if EditDragPayload.refuses(.bar) { return false }
+        guard let provider = info.itemProviders(for: [.text]).first else { return false }
+        provider.loadObject(ofClass: NSString.self) { text, _ in
+            guard let text = text as? String,
+                  let kind = BarModuleDragPayload.kind(from: text) else { return }
+            DispatchQueue.main.async { editor.addBarModule(kind) }
+        }
+        return true
     }
 }

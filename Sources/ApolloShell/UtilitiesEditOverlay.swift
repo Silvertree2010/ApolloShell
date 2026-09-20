@@ -454,11 +454,23 @@ private struct UtilitiesToggleDropDelegate: DropDelegate {
     let target: String
     @Binding var targeted: String?
 
-    func dropEntered(info: DropInfo) { targeted = target }
-    func dropExited(info: DropInfo) { if targeted == target { targeted = nil } }
+    func dropEntered(info: DropInfo) {
+        targeted = target
+        EditDragPayload.remember(info, types: [.plainText])
+    }
+
+    func dropExited(info: DropInfo) {
+        if targeted == target { targeted = nil }
+        EditDragPayload.forget()
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        EditDragPayload.refuses(.controlCentre) ? DropProposal(operation: .forbidden) : DropProposal(operation: .copy)
+    }
 
     func performDrop(info: DropInfo) -> Bool {
         targeted = nil
+        if EditDragPayload.refuses(.controlCentre) { return false }
         guard let provider = info.itemProviders(for: [.plainText]).first else { return false }
         provider.loadObject(ofClass: NSString.self) { value, _ in
             guard let string = value as? String else { return }
@@ -528,11 +540,23 @@ private struct UtilitiesCardDropDelegate: DropDelegate {
         info.hasItemsConforming(to: [.plainText])
     }
 
-    func dropEntered(info: DropInfo) { targeted = true }
-    func dropExited(info: DropInfo) { targeted = false }
+    func dropEntered(info: DropInfo) {
+        targeted = true
+        EditDragPayload.remember(info, types: [.plainText])
+    }
+
+    func dropExited(info: DropInfo) {
+        targeted = false
+        EditDragPayload.forget()
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        EditDragPayload.refuses(.controlCentre) ? DropProposal(operation: .forbidden) : DropProposal(operation: .copy)
+    }
 
     func performDrop(info: DropInfo) -> Bool {
         targeted = false
+        if EditDragPayload.refuses(.controlCentre) { return false }
         guard let provider = info.itemProviders(for: [.plainText]).first else { return false }
         provider.loadObject(ofClass: NSString.self) { value, _ in
             guard let string = value as? String else { return }
@@ -577,7 +601,15 @@ private struct UtilitiesPanelDropModifier: ViewModifier {
 private struct UtilitiesPanelDropDelegate: DropDelegate {
     let editor: ShellEditor
 
+    func dropEntered(info: DropInfo) { EditDragPayload.remember(info, types: [.plainText]) }
+    func dropExited(info: DropInfo) { EditDragPayload.forget() }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        EditDragPayload.refuses(.controlCentre) ? DropProposal(operation: .forbidden) : DropProposal(operation: .copy)
+    }
+
     func performDrop(info: DropInfo) -> Bool {
+        if EditDragPayload.refuses(.controlCentre) { return false }
         guard let provider = info.itemProviders(for: [.plainText]).first else { return false }
         provider.loadObject(ofClass: NSString.self) { value, _ in
             guard let string = value as? String else { return }
