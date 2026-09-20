@@ -2,11 +2,11 @@ import ApolloShellCore
 import Foundation
 import os
 
-/// Werkzeuge der Systeme (pmset, osascript, shortcuts ...) als eigene
-/// Prozesse - an einer Stelle statt in jeder Datei von Hand.
+/// The tools of the system (pmset, osascript, shortcuts ...) as processes of
+/// their own - in one place instead of by hand in every file.
 ///
-/// Was niemand liest, geht nach /dev/null: eine ungelesene Pipe liefe voll
-/// und hielte den Prozess an.
+/// What nobody reads goes to /dev/null: an unread pipe would fill up and stop
+/// the process.
 enum Subprocess {
     struct Result: Sendable {
         let status: Int32
@@ -16,13 +16,13 @@ enum Subprocess {
 
     private static let log = Logger(category: "subprocess")
 
-    /// Laufende Prozesse aus `launch` und `stream`, bis sie enden - so muss
-    /// sie niemand sonst festhalten.
+    /// The running processes out of `launch` and `stream`, until they end - so
+    /// that nobody else has to hold on to them.
     @MainActor private static var alive: [ObjectIdentifier: Process] = [:]
 
-    /// Starten, nicht warten. `onExit` bekommt den Rueckgabewert auf dem
-    /// Hauptthread. `nil`: liess sich nicht starten (steht im Log), dann
-    /// kommt auch kein `onExit`.
+    /// Start, do not wait. `onExit` gets the return value on the main thread.
+    /// `nil`: it could not be started (which stands in the log), and then no
+    /// `onExit` comes either.
     @MainActor
     @discardableResult
     static func launch(_ path: String, _ arguments: [String] = [],
@@ -32,8 +32,8 @@ enum Subprocess {
         return start(process, onExit: onExit)
     }
 
-    /// Ein Werkzeug, das laufend Ausgabe liefert. `onData` bekommt jeden
-    /// Brocken abseits des Hauptthreads, sobald er da ist.
+    /// A tool that delivers output as it runs. `onData` gets every chunk off
+    /// the main thread as soon as it is there.
     @MainActor
     static func stream(_ path: String, _ arguments: [String],
                        onData: @escaping @Sendable (Data) -> Void,
@@ -56,8 +56,8 @@ enum Subprocess {
         return started
     }
 
-    /// Laufen lassen und die Ausgabe abholen, ohne einen Faden zu
-    /// blockieren. `nil`: liess sich nicht starten.
+    /// Run it and fetch the output without blocking a thread. `nil`: it could
+    /// not be started.
     static func output(_ path: String, _ arguments: [String]) async -> Result? {
         await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
@@ -66,9 +66,9 @@ enum Subprocess {
         }
     }
 
-    /// Laufen lassen und darauf warten. Nur, wo Warten nichts kostet: auf
-    /// einem eigenen Faden, beim Beenden der App, oder fuer Werkzeuge, die
-    /// gemessen nach Millisekunden fertig sind.
+    /// Run it and wait for it. Only where waiting costs nothing: on a thread of
+    /// its own, when the app quits, or for tools that are measured to be done
+    /// in milliseconds.
     static func runAndWait(_ path: String, _ arguments: [String]) -> Result? {
         let process = make(path, arguments)
         let pipe = Pipe()
@@ -98,8 +98,8 @@ enum Subprocess {
         let id = ObjectIdentifier(process)
         process.terminationHandler = { finished in
             let status = finished.terminationStatus
-            // Laeuft nach dem Eintrag unten: beides auf dem Hauptthread, und
-            // `start` gibt ihn erst danach frei.
+            // Runs after the entry below: both on the main thread, and `start`
+            // only releases it afterwards.
             Task { @MainActor in
                 alive[id] = nil
                 onExit?(status)

@@ -2,17 +2,17 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Ein Knopf aus der Anordnung, fertig fuer das Raster: was er zeigt, wie er
-/// aussieht und was ein Klick tut. Die eine Stelle, an der jede Art ihren
-/// Zustand und ihre Aktion bekommt - eine neue Art braucht hier einen Fall
-/// (der Compiler verlangt ihn), in ApolloShellCore ihre Optionen und in
+/// One button out of the arrangement, ready for the grid: what it shows, how
+/// it looks and what a click does. The one place where every kind gets its
+/// state and its action - a new kind needs a case here (the compiler asks for
+/// it), its options in ApolloShellCore and its editor in Nexus.
 /// Nexus deren Editor.
 @MainActor
 struct UtilitiesToggleItem {
     enum Icon: Equatable {
         case symbol(String)
         case bluetooth
-        /// Symbol der App mit dieser Bundle-ID.
+        /// The symbol of the app with this bundle ID.
         case app(String)
     }
 
@@ -74,10 +74,10 @@ struct UtilitiesToggleItem {
         icon = Self.icon(for: entry.toggle, look: look)
     }
 
-    /// App-Knopf ohne eigenes Symbol: das App-Symbol (fehlt die App, das
-    /// Ersatzsymbol). Ein eigenes Symbol, das es nicht gibt (Tippfehler in
-    /// Nexus oder settings.json), zeigt das der Art - ein leerer Knopf
-    /// saehe kaputt aus.
+    /// An app button without a symbol of its own: the app symbol (when the app
+    /// is missing, the stand-in). A symbol of its own that does not exist (a
+    /// typo in Nexus or settings.json) shows the one of the kind - an empty
+    /// button would look broken.
     static func icon(for toggle: UtilitiesToggle, look: QuickToggleLook) -> Icon {
         if let app = toggle.app, app.usesAppIcon, BarApps.info(for: app.bundleID) != nil {
             return .app(app.bundleID)
@@ -88,8 +88,8 @@ struct UtilitiesToggleItem {
     }
 }
 
-/// Gibt es dieses SF Symbol? Gemerkt, weil das Raster bei jedem Zeichnen
-/// fragt.
+/// Does this SF Symbol exist? Remembered, because the grid asks on every
+/// drawing.
 @MainActor
 enum UtilitiesSymbolCheck {
     private static var cache: [String: Bool] = [:]
@@ -102,13 +102,13 @@ enum UtilitiesSymbolCheck {
     }
 }
 
-/// Die Kurzbefehle des Benutzers fuer Nexus. Liest NUR die Liste
-/// (`shortcuts list`), fuehrt nichts aus - ausgefuehrt wird erst beim Klick
-/// im Panel (`UtilitiesModel.runShortcut`).
+/// The shortcuts of the user for Nexus. Reads ONLY the list
+/// (`shortcuts list`), runs nothing - running only happens on a click in the
+/// panel (`UtilitiesModel.runShortcut`).
 enum UtilitiesShortcutCatalog {
-    /// Eigener Prozess, nicht auf dem Hauptthread: meist nur Millisekunden,
-    /// aber das Werkzeug kann beim ersten Aufruf nach dem Start laenger
-    /// brauchen. Fehler: leere Liste.
+    /// A process of its own, not on the main thread: usually only
+    /// milliseconds, but the tool can take longer on the first call after the
+    /// start. An error: an empty list.
     static func load() async -> [UtilitiesShortcut] {
         guard let result = await Subprocess.output(UtilitiesShortcuts.tool, UtilitiesShortcuts.listArguments),
               result.status == 0

@@ -2,23 +2,23 @@ import AudioToolbox
 import CoreAudio
 import Foundation
 
-/// Lautstaerke und Stumm des Standard-Ausgabegeraets, live ueber
-/// CoreAudio-Listener. Wechselt das Ausgabegeraet (Kopfhoerer rein, AirPods
-/// verbunden), haengt es sich an das neue Geraet.
+/// The volume and the mute of the default output device, live through a
+/// CoreAudio listener. When the output device changes (headphones plugged in,
+/// AirPods connected), it hangs itself on the new device.
 ///
-/// Keine Freigabe noetig. Setzt Lautstaerke und Stumm nur auf ausdruecklichen
-/// Wunsch (OSD-Regler, Ton-Karte der Utilities), sonst liest es nur.
-/// Nutzt die "virtuelle Hauptlautstaerke": viele Geraete haben keinen
-/// Hauptregler, nur einen pro Kanal - die virtuelle deckt beides ab.
+/// No permission needed. It sets the volume and the mute only on an explicit
+/// wish (the OSD slider, the sound card of the utilities), otherwise it only
+/// reads. It uses the "virtual main volume": many devices have no main
+/// control, only one per channel - the virtual one covers both.
 @MainActor
 final class VolumeMonitor {
     private(set) var volume: Float = 0
     private(set) var muted = false
-    /// Manche Ausgaben (HDMI, digitale Wandler) haben keinen Regler bzw.
-    /// keine Stummschaltung; dann bleibt das Bedienelement aus.
+    /// Some outputs (HDMI, digital converters) have no control or no mute; then
+    /// the control stays off.
     private(set) var volumeSettable = false
     private(set) var muteSettable = false
-    /// Nur bei echten Aenderungen nach `start()`, nicht beim ersten Lesen.
+    /// Only on real changes after `start()`, not on the first reading.
     var onChange: (_ volume: Float, _ muted: Bool) -> Void = { _, _ in }
 
     private var device = AudioObjectID(kAudioObjectUnknown)
@@ -59,7 +59,7 @@ final class VolumeMonitor {
         attachToDefaultDevice(notify: false)
     }
 
-    /// Listener vom alten Geraet loesen, ans aktuelle Standardgeraet haengen.
+    /// Let go of the listener on the old device, hang it on the current default.
     private func attachToDefaultDevice(notify: Bool) {
         if let listener = valueListener, device != kAudioObjectUnknown {
             var volume = Self.volumeAddress
@@ -83,8 +83,8 @@ final class VolumeMonitor {
         refresh(notify: notify)
     }
 
-    /// Nur auf ausdruecklichen Wunsch: Ziehen am OSD-Regler. Hebt Stumm auf,
-    /// sobald ein Wert ueber 0 gesetzt wird (wie die Lautstaerketasten).
+    /// Only on an explicit wish: dragging the OSD slider. It lifts the mute as
+    /// soon as a value above 0 is set (like the volume keys).
     func setVolume(_ newValue: Float) {
         guard device != kAudioObjectUnknown else { return }
         var address = Self.volumeAddress
@@ -103,7 +103,7 @@ final class VolumeMonitor {
         }
     }
 
-    /// Nur auf ausdruecklichen Wunsch: Stumm-Knopf der Ton-Karte.
+    /// Only on an explicit wish: the mute button of the sound card.
     func setMuted(_ newValue: Bool) {
         guard device != kAudioObjectUnknown, Self.settable(device, Self.muteAddress) else { return }
         var address = Self.muteAddress
@@ -119,7 +119,7 @@ final class VolumeMonitor {
     }
 
     private func refresh(notify: Bool) {
-        // Bei jedem Lesen: nach einem Geraetewechsel kann es anders sein.
+        // On every reading: after a device change it can be different.
         volumeSettable = Self.settable(device, Self.volumeAddress)
         muteSettable = Self.settable(device, Self.muteAddress)
         let newVolume: Float = Self.read(device, Self.volumeAddress, initial: Float(0)) ?? volume
@@ -130,9 +130,9 @@ final class VolumeMonitor {
         if notify && changed { onChange(volume, muted) }
     }
 
-    /// Eine Eigenschaft lesen; `nil`, wenn das Geraet sie nicht hat.
-    /// `BitwiseCopyable`: CoreAudio schreibt rohe Bytes in `value` - das ist
-    /// nur fuer reine Datentypen (Float, UInt32, AudioObjectID) sicher.
+    /// Read one property; `nil` when the device does not have it.
+    /// `BitwiseCopyable`: CoreAudio writes raw bytes into `value` - that is
+    /// only safe for plain data types (Float, UInt32, AudioObjectID).
     private static func read<T: BitwiseCopyable>(_ object: AudioObjectID, _ address: AudioObjectPropertyAddress, initial: T) -> T? {
         var address = address
         guard AudioObjectHasProperty(object, &address) else { return nil }

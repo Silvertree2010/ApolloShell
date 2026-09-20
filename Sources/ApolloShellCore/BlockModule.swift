@@ -1,34 +1,34 @@
 import Foundation
 
-// Art und Optionen in einem, wie es BarModule, UtilitiesToggle und
-// DashboardCard je fuer sich sind: nur Arten mit Optionen tragen welche.
-// Das Protokoll haelt fest, was ein Entry (`BarEntry`, `UtilitiesToggleEntry`,
-// `DashboardCard`) davon braucht, damit `hasOptions` zu `options != nil`
-// wird und der Encode-Switch entfaellt.
+// The kind and the options in one, the way BarModule, UtilitiesToggle and
+// DashboardCard each are on their own: only kinds with options carry any.
+// The protocol pins down what an entry (`BarEntry`, `UtilitiesToggleEntry`,
+// `DashboardCard`) needs of it, so that `hasOptions` becomes `options != nil`
+// and the encode switch falls away.
 //
-// Den Decode-Switch teilen sich die drei NICHT woertlich: ihre CodingKeys
-// (mit/ohne eigene `id`) und Optionstypen unterscheiden sich, ein generischer
-// Decoder ueber alle drei haette mehr Umweg gekostet als er Zeilen spart. Je
-// Datei bleibt darum ein eigenes, aber nur noch EIN Switch (statt zwei: einer
-// fuer die Vorgaben, einer fuers Lesen) - siehe `make(_:default:wrap:)`.
+// The three do NOT share the decode switch word for word: their CodingKeys
+// (with or without an `id` of their own) and option types differ, and a
+// generic decoder over all three would have cost more detour than it saves in
+// lines. So one of its own stays per file, but only ONE switch (instead of
+// two: one for the defaults, one for the reading) - see `make(_:default:wrap:)`.
 public protocol BlockModule: Equatable, Sendable {
     associatedtype Kind: Hashable, Sendable
 
-    /// Mit den Vorgaben der Art.
+    /// With the defaults of the kind.
     init(_ kind: Kind)
 
     var kind: Kind { get }
 
-    /// `nil` bei einer Art ohne Optionen.
+    /// `nil` with a kind without options.
     var options: (any Encodable)? { get }
 }
 
 public extension BlockModule {
-    /// Ob eine Oberflaeche fuer diesen Baustein Optionen aufklappen laesst.
+    /// Whether a user interface lets options unfold for this block.
     var hasOptions: Bool { options != nil }
 
-    /// Optionen aus der Datei, sonst die Vorgabe - fuer den einen Switch, der
-    /// `init(_:)` und das Lesen gemeinsam traegt.
+    /// The options out of the file, otherwise the default - for the one switch
+    /// that carries `init(_:)` and the reading together.
     static func decoded<O: Codable, Key: CodingKey>(_ c: KeyedDecodingContainer<Key>?, forKey key: Key, default def: O) -> O {
         c?.lenient(key) ?? def
     }

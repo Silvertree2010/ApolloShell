@@ -3,24 +3,24 @@ import ApolloShellCore
 import Observation
 import SwiftUI
 
-/// Was die Seite "Anbieter" zum Anzeigen braucht: installierte Apps fuer
-/// "Andere App …", ihre Namen und Symbole. Die Einstellungen selbst liegen in
-/// settings.json (`ShellSettingsStore`) und gelten sofort - die Leiste
-/// beobachtet den Dateimanager, das Wetter liest den Anbieter beim naechsten
-/// Oeffnen des Dashboards.
+/// What the "Providers" page needs for the display: the installed apps for
+/// "Other App …", their names and symbols. The settings themselves lie in
+/// settings.json (`ShellSettingsStore`) and hold right away - the bar watches
+/// the file manager, and the weather reads the provider the next time the
+/// dashboard opens.
 @MainActor
 @Observable
 final class NexusProvidersModel {
-    /// Installierte Apps mit Bundle-ID - nur solche lassen sich waehlen.
+    /// The installed apps with a bundle ID - only those can be chosen.
     private(set) var apps: [AppEntry] = []
     var query = ""
-    /// "Andere App …" aufgeklappt.
+    /// "Other App …" unfolded.
     var showsOtherApps = false
 
-    /// Hoechstens so viele Treffer, wie bei den angehefteten Apps.
+    /// At most as many hits as with the pinned apps.
     @ObservationIgnored private static let maxResults = 8
     @ObservationIgnored private let live: Bool
-    /// Bildproben: welche Apps als installiert gelten (Finder immer).
+    /// Image samples: which apps count as installed (the Finder always).
     @ObservationIgnored private var previewInstalled: Set<String> = []
     @ObservationIgnored private var byID: [String: AppEntry] = [:]
     @ObservationIgnored private var icons: [String: NSImage] = [:]
@@ -36,7 +36,7 @@ final class NexusProvidersModel {
         setApps(apps)
     }
 
-    /// Fuer Bildproben: feste Apps, liest nichts ausser Symbolen.
+    /// For image samples: fixed apps, reads nothing but symbols.
     static func preview(apps: [AppEntry], installed: Set<String>, query: String = "",
                         showsOtherApps: Bool = false) -> NexusProvidersModel {
         let model = NexusProvidersModel(preview: apps, installed: installed)
@@ -45,7 +45,7 @@ final class NexusProvidersModel {
         return model
     }
 
-    /// Beim Oeffnen von Nexus: Apps suchen (einige ms, wie der Launcher).
+    /// When Nexus opens: search for apps (a few ms, like the launcher).
     func reload() {
         guard live else { return }
         setApps(AppCatalog().scan())
@@ -62,8 +62,8 @@ final class NexusProvidersModel {
         return NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) != nil
     }
 
-    /// Anzeigename; Finder liegt nicht in den durchsuchten Ordnern, also
-    /// ueber LaunchServices. Unbekannt: die Bundle-ID.
+    /// The display name; the Finder does not lie in the searched folders, so
+    /// through LaunchServices. Unknown: the bundle ID.
     func name(for id: String) -> String {
         if let app = byID[id] { return app.name }
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else { return id }
@@ -78,7 +78,7 @@ final class NexusProvidersModel {
         return image
     }
 
-    /// Unscharf wie im Launcher.
+    /// Fuzzy as in the launcher.
     var results: [AppEntry] {
         let q = query.trimmingCharacters(in: .whitespaces)
         guard !q.isEmpty else { return [] }
@@ -94,9 +94,9 @@ final class NexusProvidersModel {
     }
 }
 
-/// Anbieter: woher das Wetter kommt und welcher Dateimanager oben im Dock
-/// steht. Caelestia kennt keine Auswahl (fest Open-Meteo bzw. frueher
-/// wttr.in); hier ist beides waehlbar, alles ohne Konto.
+/// Providers: where the weather comes from and which file manager stands at
+/// the top of the Dock. Caelestia knows no choice (fixed Open-Meteo, or wttr.in
+/// earlier); here both can be chosen, all of it without an account.
 struct NexusProvidersPage: View {
     @Bindable var store: ShellSettingsStore
     @Bindable var model: NexusProvidersModel
@@ -109,7 +109,7 @@ struct NexusProvidersPage: View {
         }
     }
 
-    // MARK: Wetter
+    // MARK: Weather
 
     private var weather: some View {
         let chosen = store.settings.providers.weather.provider()
@@ -144,7 +144,7 @@ struct NexusProvidersPage: View {
         }
     }
 
-    // MARK: Dateimanager
+    // MARK: File manager
 
     private var fileManager: some View {
         let setting = store.settings.providers.fileManager
@@ -180,8 +180,8 @@ struct NexusProvidersPage: View {
         }
     }
 
-    /// Aufklappbar: die meisten brauchen es nie, und die Liste aller Apps
-    /// wuerde die Seite sprengen.
+    /// Unfoldable: most people never need it, and the list of all apps would
+    /// burst the page.
     @ViewBuilder private var otherApps: some View {
         Button {
             withAnimation(.easeOut(duration: 0.15)) { model.showsOtherApps.toggle() }
@@ -218,7 +218,7 @@ struct NexusProvidersPage: View {
     }
 }
 
-/// App-Symbol und Name, darunter bei Bedarf ein grauer Hinweis.
+/// The app symbol and the name, below it a grey note when needed.
 private struct NexusAppLabel: View {
     let model: NexusProvidersModel
     let id: String
@@ -244,8 +244,8 @@ private struct NexusAppLabel: View {
     }
 }
 
-/// Auswahlzeile mit Haekchen rechts, wie die Listen der Systemeinstellungen
-/// (dort ebenfalls ohne Radio-Knoepfe, die ganze Zeile ist klickbar).
+/// A choice row with a tick on the right, like the lists of System Settings
+/// (which have no radio buttons either, and the whole row is clickable).
 struct NexusChoiceRow<Label: View>: View {
     let selected: Bool
     let action: () -> Void
