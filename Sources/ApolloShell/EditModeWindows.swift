@@ -449,15 +449,29 @@ final class EditModeWindows {
         }
     }
 
-    /// Re-measure the gallery as soon as `editor.galleryNotice` appears or
-    /// disappears (task 3: the "No room on this page" notice needs more
-    /// height than the grid alone).
+    /// Everything that changes the gallery's height: the notice (task 3:
+    /// "No room on this page" needs more height than the grid alone), the
+    /// tab (every surface brings its own number of tiles) and "Show all"
+    /// (more kinds on the dashboard tab). Without this the panel keeps the
+    /// height it was opened with and cuts off the last row.
+    private struct GallerySize: Equatable, Sendable {
+        let notice: String?
+        let tab: GalleryTab
+        let showsAll: Bool
+    }
+
     private func observeGalleryNotice() {
         galleryNoticeObservation?.cancel()
         galleryNoticeObservation = Task { [weak self] in
             guard let self else { return }
-            for await _ in Observations({ self.editor.galleryNotice }) {
-                self.repositionGallery()
+            for await _ in Observations({
+                GallerySize(notice: self.editor.galleryNotice, tab: self.editor.galleryTab,
+                            showsAll: self.editor.showsAllInGallery)
+            }) {
+                // One cycle later, like the scale observer below: SwiftUI
+                // only lays the new tiles out after this turn, and
+                // `reposition` measures the hosting view as it stands.
+                DispatchQueue.main.async { [weak self] in self?.repositionGallery() }
             }
         }
     }

@@ -290,9 +290,15 @@ struct EditGalleryView: View {
         VStack(spacing: 12) {
             GallerySurfaceTabs(selection: $editor.galleryTab)
 
-            GalleryCheckbox(title: String(localized: "Show All (Advanced)"), isOn: $editor.showsAllInGallery)
-                .controlSize(.small)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            // Only on the dashboard tab: it is the one list that hides
+            // something (widgets that are at home somewhere else). The
+            // control centre and the sidebar show every kind they have, so
+            // the box sat there without an effect (20.09.).
+            if editor.galleryTab == .dashboard {
+                GalleryCheckbox(title: String(localized: "Show All (Advanced)"), isOn: $editor.showsAllInGallery)
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
             // No `LazyVGrid`: a custom, fixed grid counting rows instead
             // of columns reliably includes every tile. `ImageRenderer`

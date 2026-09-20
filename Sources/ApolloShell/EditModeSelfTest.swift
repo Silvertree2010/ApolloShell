@@ -53,8 +53,7 @@ private final class EditModeSelfTestHarness {
         dashboard = Dashboard(settings: store, editor: dashboardEditor)
         utilities = UtilitiesPanel(settings: store, editor: editor)
         windows = EditModeWindows(editor: editor)
-        sidebar = Sidebar(settings: store)
-        sidebar.editor = editor
+        sidebar = Sidebar(settings: store, editor: editor)
         editor.addBeginHandler { [weak sidebar] _ in sidebar?.setEditing(true) }
         editor.addEndHandler { [weak sidebar] in sidebar?.setEditing(false) }
         editor.dashboardStartPageID = { [weak dashboard] in dashboard?.currentPageID }
@@ -458,11 +457,25 @@ private final class EditModeSelfTestHarness {
         let scrim = windows.debugLevels.scrim
         let barLevel = sidebar.debugLevels.first ?? 0
         check(barLevel > scrim, "The bar stands above the scrim while editing (bar \(barLevel), scrim \(scrim))")
+        // A bar is handed the editor when it is built, and shows no edit
+        // surface at all without one - on 20.09. the manager was given it
+        // only after its bars stood, and the blocks stayed calm while the
+        // rest of the shell was being edited.
+        check(sidebar.debugBarsKnowEditor, "Every bar that stands knows the edit mode")
         check(barLevel < windows.debugLevels.controls, "Toolbar and gallery stay above the bar")
 
         let clock = session.layout.entries.first { $0.kind == .clock }?.id
+        dashboardEditor.selectedWidgetID = dashboardEditor.page?.widgets.first?.id
+        editor.selectedToggleID = editor.utilities?.layout.toggles.first?.id
         editor.selectedBarEntryID = clock
         check(editor.selectedBarEntryID == clock, "A click on a block selects it")
+        // One selection in the whole shell: otherwise a widget, a tile and
+        // a block stand selected at once, with three options popovers open.
+        check(dashboardEditor.selectedWidgetID == nil && editor.selectedToggleID == nil,
+              "Selecting a block lets the other two surfaces go")
+        dashboardEditor.selectedWidgetID = dashboardEditor.page?.widgets.first?.id
+        check(editor.selectedBarEntryID == nil, "Selecting a widget lets the block go")
+        editor.selectedBarEntryID = clock
 
         let addedID = editor.addBarModule(.battery)
         check(addedID != nil, "The gallery adds a block")
@@ -576,26 +589,48 @@ private final class EditModeSelfTestHarness {
         // sidebar, and the middle third the control centre.
         if let gallery = windows.debugGalleryFrame {
             let row = gallery.width - 32
+            let dashboardTabHeight = gallery.height
             // Far out in the tab, not on the text: the whole capsule counts.
             windows.debugClickGallery(fromTopLeft: NSPoint(x: gallery.width - 16 - 20, y: 16 + 18))
             await wait(0.4)
             check(editor.galleryTab == .bar, "A click far out in the “Sidebar” tab (not on the text) switches")
+            // Every tab brings its own number of tiles, so the panel has to
+            // measure itself again - otherwise it keeps the height of the
+            // tab it was opened on and cuts the last row off (20.09.).
+            if let onBar = windows.debugGalleryFrame {
+                note("Gallery dashboard \(Int(dashboardTabHeight)) high, sidebar \(Int(onBar.height))")
+                check(onBar.height != dashboardTabHeight, "The gallery measures itself again on a tab switch")
+                check(NSScreen.screens.first.map { $0.visibleFrame.contains(onBar) } ?? false,
+                      "The sidebar tab stays fully on the screen \(r(onBar))")
+            }
             windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + row * 2 / 3 - 8, y: 16 + 18))
             await wait(0.4)
             check(editor.galleryTab == .controlCentre, "A click at the edge of the middle tab switches to the control centre")
-            // The “Show all (advanced)” checkbox below it, at the left margin.
+            // “Show all (advanced)” only hides something on the dashboard
+            // tab, and stands only there - so back to it first.
+            windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + 20, y: 16 + 18))
+            await wait(0.4)
+            check(editor.galleryTab == .dashboard, "A click on the left tab goes back to the dashboard")
+            // The checkbox below the tab row, at the left margin.
             let before = editor.showsAllInGallery
             windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + 60, y: 16 + 36 + 12 + 10))
-            await wait(0.3)
+            await wait(0.4)
             check(editor.showsAllInGallery != before, "A click on “Show all” toggles it")
+            if let wide = windows.debugGalleryFrame {
+                check(NSScreen.screens.first.map { $0.visibleFrame.contains(wide) } ?? false,
+                      "With “Show all” the gallery stays fully on the screen \(r(wide))")
+            }
             editor.showsAllInGallery = before
+            await wait(0.3)
         }
         // Click into the scrim: the selection goes in both panels.
         dashboardEditor.selectedWidgetID = dashboardEditor.page?.widgets.first?.id
         editor.selectedToggleID = editor.utilities?.layout.toggles.first?.id
+        editor.selectedBarEntryID = editor.bar?.layout.entries.first?.id
         windows.debugClickScrim()
         await wait(0.3)
-        check(dashboardEditor.selectedWidgetID == nil && editor.selectedToggleID == nil, "A click into the scrim clears every selection")
+        check(dashboardEditor.selectedWidgetID == nil && editor.selectedToggleID == nil
+              && editor.selectedBarEntryID == nil, "A click into the scrim clears every selection")
         // Control centre tab: a click on “Display Off” (14th tile, second
         // row, sixth column) adds the button.
         editor.galleryTab = .controlCentre
