@@ -330,7 +330,6 @@ struct BentoDropDelegate: DropDelegate {
         editor.dropGeneration += 1
         editor.dropPreview = nil
         editor.draggedKind = nil
-        EditDragPayload.forget()
     }
 
     func performDrop(info: DropInfo) -> Bool {

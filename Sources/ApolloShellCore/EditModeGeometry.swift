@@ -11,9 +11,13 @@ public enum EditModeGeometry {
     /// Bottom centre, 20 pt above the lower edge; if the control centre
     /// stands in the way there, above its top edge instead - but never so
     /// high that the toolbar leaves the screen.
-    public static func toolbarCenter(visible: CGRect, size: CGSize, utilities: CGRect?) -> CGPoint {
+    ///
+    /// The middle is the middle of the screen, not of the free area: with
+    /// Apple's Dock at the left or right edge the two differ, and the
+    /// toolbar has stood in the middle of the screen since 0.2.
+    public static func toolbarCenter(screen: CGRect, visible: CGRect, size: CGSize, utilities: CGRect?) -> CGPoint {
         let bottom = visible.minY + 20
-        var center = CGPoint(x: visible.midX, y: bottom + size.height / 2)
+        var center = CGPoint(x: screen.midX, y: bottom + size.height / 2)
         let rect = CGRect(x: center.x - size.width / 2, y: bottom, width: size.width, height: size.height)
         if let utilities, utilities.intersects(rect.insetBy(dx: -8, dy: -8)) {
             center.y = utilities.maxY + 16 + size.height / 2

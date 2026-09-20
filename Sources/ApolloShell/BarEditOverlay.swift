@@ -331,7 +331,6 @@ private struct BarEntryDropDelegate: DropDelegate {
 
     func dropExited(info: DropInfo) {
         targeted = false
-        EditDragPayload.forget()
     }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
@@ -379,7 +378,6 @@ private struct BarAppendDropDelegate: DropDelegate {
     let editor: ShellEditor
 
     func dropEntered(info: DropInfo) { EditDragPayload.remember(info, types: [.text]) }
-    func dropExited(info: DropInfo) { EditDragPayload.forget() }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
         EditDragPayload.refuses(.bar) ? DropProposal(operation: .forbidden) : DropProposal(operation: .copy)

@@ -461,7 +461,6 @@ private struct UtilitiesToggleDropDelegate: DropDelegate {
 
     func dropExited(info: DropInfo) {
         if targeted == target { targeted = nil }
-        EditDragPayload.forget()
     }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
@@ -547,7 +546,6 @@ private struct UtilitiesCardDropDelegate: DropDelegate {
 
     func dropExited(info: DropInfo) {
         targeted = false
-        EditDragPayload.forget()
     }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
@@ -602,7 +600,6 @@ private struct UtilitiesPanelDropDelegate: DropDelegate {
     let editor: ShellEditor
 
     func dropEntered(info: DropInfo) { EditDragPayload.remember(info, types: [.plainText]) }
-    func dropExited(info: DropInfo) { EditDragPayload.forget() }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
         EditDragPayload.refuses(.controlCentre) ? DropProposal(operation: .forbidden) : DropProposal(operation: .copy)

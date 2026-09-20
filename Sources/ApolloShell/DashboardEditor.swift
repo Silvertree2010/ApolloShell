@@ -207,9 +207,9 @@ final class DashboardEditor {
 
     @discardableResult
     func duplicatePage(_ id: DashboardPage.ID) -> DashboardPage.ID? {
-        guard self.session != nil else { return nil }
-        leaveShownPage()
         guard let session, let page = session.pages.page(id: id) else { return nil }
+        leaveShownPage()
+        guard let session = self.session else { return nil }
         let name = page.name + String(localized: " Copy")
         var updated = session
         let newID = updated.duplicatePage(id, name: name)
@@ -226,14 +226,16 @@ final class DashboardEditor {
 
     @discardableResult
     func removePage(_ id: DashboardPage.ID) -> Bool {
-        guard self.session != nil else { return false }
-        if renamingPageID == id { renamingPageID = nil }
         guard var updated = session else { return false }
         let wasShown = updated.pageID == id
         let removed = updated.removePage(id)
+        // Nothing removed (the last page cannot go): then the name field
+        // stays open too, it is still the page it belongs to.
+        guard removed else { return false }
+        if renamingPageID == id { renamingPageID = nil }
         session = updated
-        if removed, wasShown { leaveShownPage() }
-        return removed
+        if wasShown { leaveShownPage() }
+        return true
     }
 
     func renamePage(_ id: DashboardPage.ID, to name: String) {
@@ -291,14 +293,20 @@ final class DashboardEditor {
 
     @discardableResult
     func add(_ kind: WidgetKind, frame: WidgetFrame, places: WeatherFavorites = .empty) -> WidgetInstance.ID? {
-        session?.add(kind, frame: frame, places: places)
+        guard let id = session?.add(kind, frame: frame, places: places) else { return nil }
+        onSelectWidget()
+        return id
     }
 
     /// Gallery click (task 3) instead of dragging: at the first free spot
     /// on the shown page. `nil`: no spot free.
     @discardableResult
     func addAtFirstFreeSpot(_ kind: WidgetKind, places: WeatherFavorites = .empty) -> WidgetInstance.ID? {
-        session?.addAtFirstFreeSpot(kind, places: places)
+        guard let id = session?.addAtFirstFreeSpot(kind, places: places) else { return nil }
+        // The session selects what it adds, on the struct and past the
+        // setter - the other surfaces are told here instead.
+        onSelectWidget()
+        return id
     }
 
     func remove(_ id: WidgetInstance.ID) {

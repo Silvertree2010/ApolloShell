@@ -313,9 +313,15 @@ final class ShellEditor {
         utilities?.moveCards(fromOffsets: source, toOffset: destination)
     }
 
+    /// The sessions select what they add themselves, on the struct, past
+    /// the setters below - so the rule that only one thing in the shell is
+    /// selected is kept here, at the three places that add.
     @discardableResult
     func addToggle(_ kind: UtilitiesToggleKind) -> String? {
-        utilities?.add(kind)
+        guard let id = utilities?.add(kind) else { return nil }
+        bar?.selectedEntryID = nil
+        dashboard.selectedWidgetID = nil
+        return id
     }
 
     func removeToggle(_ id: String) {
@@ -348,7 +354,10 @@ final class ShellEditor {
 
     @discardableResult
     func addBarModule(_ kind: BarModuleKind, at index: Int? = nil) -> String? {
-        bar?.add(kind, at: index)
+        guard let id = bar?.add(kind, at: index) else { return nil }
+        utilities?.selectedToggleID = nil
+        dashboard.selectedWidgetID = nil
+        return id
     }
 
     func removeBarModule(_ id: String) {

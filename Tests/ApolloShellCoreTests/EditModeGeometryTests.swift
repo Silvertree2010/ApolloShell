@@ -17,9 +17,19 @@ struct EditModeGeometryTests {
         CGRect(x: screen.maxX - 430, y: screen.minY - 25, width: 430, height: height)
     }
 
+    @Test("Toolbar: the middle of the screen, not of the free area")
+    func toolbarUsesScreenMiddle() {
+        // Apple's Dock at the left edge: the free area starts further
+        // right, the toolbar stays in the middle of the screen all the
+        // same.
+        let dockLeft = CGRect(x: 100, y: 0, width: 1628, height: 1084)
+        let center = EditModeGeometry.toolbarCenter(screen: wide, visible: dockLeft, size: toolbar, utilities: nil)
+        #expect(center.x == wide.midX)
+    }
+
     @Test("Toolbar: bottom centre while nothing stands there")
     func toolbarPlain() {
-        let center = EditModeGeometry.toolbarCenter(visible: wide, size: toolbar, utilities: nil)
+        let center = EditModeGeometry.toolbarCenter(screen: wide, visible: wide, size: toolbar, utilities: nil)
         #expect(center.x == wide.midX)
         #expect(center.y == wide.minY + 20 + toolbar.height / 2)
     }
@@ -28,16 +38,16 @@ struct EditModeGeometryTests {
     func toolbarAvoids() {
         // On the wide screen the two never meet: the toolbar is 429 pt in
         // the middle, the panel 430 pt at the right edge.
-        let apart = EditModeGeometry.toolbarCenter(visible: wide, size: toolbar, utilities: utilities(on: wide, height: 451))
+        let apart = EditModeGeometry.toolbarCenter(screen: wide, visible: wide, size: toolbar, utilities: utilities(on: wide, height: 451))
         #expect(apart.y == wide.minY + 20 + toolbar.height / 2)
         // An old 1280 pt screen is narrow enough for them to overlap.
         let small = CGRect(x: 0, y: 0, width: 1280, height: 780)
-        let low = EditModeGeometry.toolbarCenter(visible: small, size: toolbar, utilities: utilities(on: small, height: 451))
+        let low = EditModeGeometry.toolbarCenter(screen: small, visible: small, size: toolbar, utilities: utilities(on: small, height: 451))
         #expect(low.y > small.minY + 20 + toolbar.height / 2)
         #expect(low.y + toolbar.height / 2 <= small.maxY)
         // A control centre nearly as tall as the screen used to push the
         // toolbar out through the top edge.
-        let tall = EditModeGeometry.toolbarCenter(visible: small, size: toolbar, utilities: utilities(on: small, height: 760))
+        let tall = EditModeGeometry.toolbarCenter(screen: small, visible: small, size: toolbar, utilities: utilities(on: small, height: 760))
         #expect(tall.y + toolbar.height / 2 <= small.maxY)
     }
 

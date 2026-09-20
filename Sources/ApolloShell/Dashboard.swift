@@ -102,7 +102,8 @@ final class Dashboard {
             // the edit and taken back again by Cancel. The models read
             // them live, but what they fetched last stands on the screen
             // until they are started again (20.09.).
-            if let self, let id = model.pageID, let page = settings.settings.dashboardPages?.page(id: id) {
+            if drawer?.isOpen == true, let self, let id = model.pageID,
+               let page = settings.settings.dashboardPages?.page(id: id) {
                 let weather = page.widgets.filter { $0.kind.usesPlaces }
                 if !weather.isEmpty { self.weatherModels.start(for: weather) }
             }

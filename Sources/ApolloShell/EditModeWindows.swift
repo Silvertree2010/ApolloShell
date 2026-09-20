@@ -320,6 +320,8 @@ final class EditModeWindows {
     private var toolbar: FloatingGlassPanel<EditToolbarView>?
     private var gallery: FloatingGlassPanel<EditGalleryView>?
     private var editScreen: NSScreen?
+    /// Which screen that is, in a way that survives a changed arrangement.
+    private var editDisplayID: CGDirectDisplayID?
     /// Frame of the pinned panels on the editing screen (`nil` while
     /// closed). The toolbar and gallery orient themselves by it: the
     /// gallery under the dashboard instead of right on top of it, the
@@ -415,6 +417,13 @@ final class EditModeWindows {
     /// where they now belong.
     private func screensChanged() {
         guard editor.isEditing else { return }
+        // The `NSScreen` from `begin` may be a dead object by now - AppKit
+        // hands out new ones on every change of the arrangement. Fetch the
+        // editing screen again by its display identifier before anything
+        // is measured against it.
+        if let id = editDisplayID, let fresh = ShellScreens.current().first(where: { $0.displayID == id }) {
+            editScreen = fresh.screen
+        }
         placeScrims()
         repositionToolbar()
         repositionGallery()
@@ -428,6 +437,7 @@ final class EditModeWindows {
     private func begin(on screen: NSScreen) {
         Self.assertStackingOrder()
         editScreen = screen
+        editDisplayID = ShellScreens.matching(screen)?.displayID
         placeScrims()
         if screenObserver == nil {
             screenObserver = NotificationCenter.default.addObserver(
@@ -469,6 +479,8 @@ final class EditModeWindows {
     }
 
     private func end() {
+        // No drag outlives the mode.
+        EditDragPayload.forget()
         if let screenObserver {
             NotificationCenter.default.removeObserver(screenObserver)
             self.screenObserver = nil
@@ -485,6 +497,7 @@ final class EditModeWindows {
         dashboardScaleObservation?.cancel()
         dashboardScaleObservation = nil
         editScreen = nil
+        editDisplayID = nil
     }
 
     /// Reacts to `editor.galleryVisible` (toolbar, task 4 popover Esc),
@@ -572,7 +585,8 @@ final class EditModeWindows {
     /// lives in `EditModeGeometry`, where it can be checked against
     /// screens nobody here has.
     private func toolbarCenter(on screen: NSScreen, size: NSSize) -> NSPoint {
-        EditModeGeometry.toolbarCenter(visible: screen.visibleFrame, size: size, utilities: utilitiesFrame())
+        EditModeGeometry.toolbarCenter(screen: screen.frame, visible: screen.visibleFrame,
+                                       size: size, utilities: utilitiesFrame())
     }
 
     /// From the Control Center panel (`UtilitiesPanel.onHeightChange`): if

@@ -213,7 +213,12 @@ private final class EditModeSelfTestHarness {
               "Deleting a page takes no confirmation")
         for page in dashboardEditor.session?.pages.pages.dropFirst() ?? [] { _ = dashboardEditor.removePage(page.id) }
         let last = dashboardEditor.session?.pages.pages.first?.id
+        // The refusal leaves the name field of that page alone: it is
+        // still the page it belongs to.
+        dashboardEditor.renamingPageID = last
         check(last.map { !dashboardEditor.removePage($0) } ?? false, "The last page cannot be deleted")
+        check(dashboardEditor.renamingPageID == last, "A refused deletion leaves the name field open")
+        dashboardEditor.renamingPageID = nil
         dashboardEditor.restoreDefaults()
         check(Set(dashboardEditor.session?.pages.pages.compactMap(\.template) ?? []).count == PageTemplate.allCases.count,
               "Restoring the default pages brings all four back")

@@ -34,31 +34,54 @@ enum EditDragPayload {
     }
 
     private(set) static var current: Home?
+    /// Which payload the answer belongs to, and at the same time the
+    /// counter for the reads still running: only the newest one may write.
+    private static var reading: ObjectIdentifier?
 
-    /// Reads the payload of this drag once and remembers where it is at
-    /// home. Called from `dropEntered`.
+    /// Reads the payload of this drag and remembers where it is at home.
+    /// Called from `dropEntered`.
     ///
-    /// Forgets the old answer on the spot, before it reads: what was left
-    /// standing from the last drag belongs to no target of this one, and
-    /// the few milliseconds until the text arrives would otherwise be
-    /// spent turning a drag down that is perfectly fine.
+    /// The targets are nested - the panel is a target of its own behind
+    /// every card and every tile - so the pointer crosses several of them
+    /// in one drag. As long as the payload is the same one, the answer
+    /// found first stands: reading it again would leave the target without
+    /// an answer for as long as the reading takes, and in that gap exactly
+    /// the drag it is meant to turn down would go through.
+    ///
+    /// A different payload forgets the old answer on the spot: what was
+    /// left standing from the last drag belongs to no target of this one.
     static func remember(_ info: DropInfo, types: [UTType]) {
-        current = nil
         guard let provider = info.itemProviders(for: types).first else { return }
+        let key = ObjectIdentifier(provider)
+        guard key != reading else { return }
+        reading = key
+        current = nil
         provider.loadObject(ofClass: NSString.self) { value, _ in
             guard let text = value as? String else { return }
-            DispatchQueue.main.async { current = home(of: text) }
+            DispatchQueue.main.async {
+                // A read of an earlier drag that only comes back now must
+                // not answer for this one.
+                guard reading == key else { return }
+                current = home(of: text)
+            }
         }
     }
 
-    static func forget() { current = nil }
+    /// The mode is over, or the self-test wants a clean slate. Not called
+    /// on `dropExited`: the outer target is left behind every time the
+    /// pointer moves onto an inner one, and that used to wipe the answer
+    /// the inner one was about to go by.
+    static func forget() {
+        current = nil
+        reading = nil
+    }
 
     #if DEBUG
     /// Self-test: the two halves of `remember` without a drag session -
     /// what a payload is sorted as, and that reading a new one forgets the
     /// old answer first.
     static func debugRemember(_ text: String) { current = home(of: text) }
-    static func debugBeginReading() { current = nil }
+    static func debugBeginReading() { current = nil; reading = nil }
     #endif
 
     /// True while the payload is known and belongs somewhere else. The
