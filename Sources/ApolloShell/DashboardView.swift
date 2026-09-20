@@ -223,7 +223,12 @@ struct DashboardView: View {
                 // panel-weather.png; the Dashboard page uses bar-dashboard.
                 // Custom pages have no theme identifier, only their symbol.
                 Group {
-                    if let template = page.template {
+                    // A theme brings its own picture for the four bundled
+                    // pages - unless the symbol has been picked by hand
+                    // since (Icon in the page's menu). Then that one wins,
+                    // otherwise the menu looked as if it did nothing on
+                    // exactly those four pages (20.09.).
+                    if let template = page.template, page.symbol == template.tab.symbol {
                         ThemedIcon(template.tab.iconID, fallback: page.symbol)
                     } else {
                         Image(systemName: page.symbol)
