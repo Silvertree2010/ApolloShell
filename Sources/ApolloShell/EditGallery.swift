@@ -6,6 +6,32 @@ import SwiftUI
 // (`EditModeWindows.swift`) and - for the `--render-edit` screenshot -
 // directly in `RenderMode.swift`.
 
+/// Which tab the gallery shows. Not `WidgetSurface`: that says where a
+/// widget is at home, and no widget is at home in the sidebar.
+enum GalleryTab: String, CaseIterable, Identifiable {
+    case dashboard, controlCentre, bar
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .dashboard: String(localized: "Dashboard")
+        case .controlCentre: String(localized: "Control Centre")
+        case .bar: String(localized: "Sidebar")
+        }
+    }
+}
+
+/// Payload for dragging a sidebar block out of the gallery.
+enum BarModuleDragPayload {
+    static let prefix = "apolloshell.bar:"
+    static func string(for kind: BarModuleKind) -> String { prefix + kind.rawValue }
+    static func kind(from string: String) -> BarModuleKind? {
+        guard string.hasPrefix(prefix) else { return nil }
+        return BarModuleKind(rawValue: String(string.dropFirst(prefix.count)))
+    }
+}
+
 /// Payload for dragging a quick toggle from the gallery into the control
 /// center panel (target follows in task 5).
 enum UtilitiesToggleDragPayload {
@@ -153,24 +179,23 @@ private let galleryColumns = 8
 /// appearance it was a foreign element next to the rest of the shell
 /// anyway (compare the Dashboard's page tabs, `DashboardView.pageButton`).
 private struct GallerySurfaceTabs: View {
-    @Binding var selection: WidgetSurface
+    @Binding var selection: GalleryTab
     @Environment(\.shellStyle) private var style
 
     var body: some View {
         HStack(spacing: 4) {
-            tab(.dashboard, title: String(localized: "Dashboard"))
-            tab(.controlCentre, title: String(localized: "Control Centre"))
+            ForEach(GalleryTab.allCases) { one in tab(one) }
         }
         .padding(3)
         .background(.quaternary.opacity(0.4), in: Capsule())
     }
 
-    private func tab(_ surface: WidgetSurface, title: String) -> some View {
-        let isSelected = selection == surface
+    private func tab(_ tab: GalleryTab) -> some View {
+        let isSelected = selection == tab
         return Button {
-            selection = surface
+            selection = tab
         } label: {
-            Text(title)
+            Text(tab.title)
                 .font(.callout.weight(.medium))
                 .foregroundStyle(isSelected ? Color.white : Color.primary)
                 .frame(maxWidth: .infinity)
@@ -301,6 +326,7 @@ struct EditGalleryView: View {
             switch editor.galleryTab {
             case .dashboard: dashboardTiles
             case .controlCentre: controlCentreTiles
+            case .bar: barTiles
             }
         }
         .padding(.vertical, 4)
@@ -339,6 +365,20 @@ struct EditGalleryView: View {
                     if editor.addToggle(kind) == nil {
                         show(notice: String(localized: "Already there"))
                     }
+                }
+            }
+        }
+    }
+
+    /// Every block of the sidebar. A kind that may exist only once and is
+    /// already in the bar stays greyed out, like a card that is on.
+    private var barTiles: some View {
+        ForEach(BarModuleKind.allCases) { kind in
+            let already = editor.bar.map { !$0.layout.canAdd(kind) } ?? false
+            EditGalleryTile(symbol: kind.symbol, title: kind.title, detail: nil, tooltip: kind.summary,
+                            payload: BarModuleDragPayload.string(for: kind), isDisabled: already) {
+                if editor.addBarModule(kind) == nil {
+                    show(notice: String(localized: "Already there"))
                 }
             }
         }

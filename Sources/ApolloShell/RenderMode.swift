@@ -136,6 +136,9 @@ enum RenderMode {
         editor.galleryTab = .controlCentre
         try write(EditGalleryView(editor: editor).environment(\.galleryRendersForScreenshot, true), scheme: .light,
                  to: editFolder.appendingPathComponent("gallery-controlcentre-light.png"))
+        editor.galleryTab = .bar
+        try write(EditGalleryView(editor: editor).environment(\.galleryRendersForScreenshot, true), scheme: .light,
+                 to: editFolder.appendingPathComponent("gallery-bar-light.png"))
         // The control centre while editing (task 5): one button selected -
         // `ImageRenderer` does not draw the wobble itself (a fixed snapshot
         // in the middle of the endless loop), but the frame, the minus badge

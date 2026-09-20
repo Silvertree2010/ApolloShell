@@ -20,6 +20,8 @@ final class ShellEditor {
     private let store: ShellSettingsStore
     let dashboard: DashboardEditor
     private(set) var utilities: UtilitiesEditSession?
+    /// The sidebar's working copy; `nil` while the mode is not running.
+    private(set) var bar: BarEditSession?
 
     var isEditing: Bool { dashboard.isEditing }
 
@@ -30,7 +32,7 @@ final class ShellEditor {
 
     /// Gallery (Task 3): open/closed, selected tab, "show all".
     var galleryVisible = false
-    var galleryTab: WidgetSurface = .dashboard
+    var galleryTab: GalleryTab = .dashboard
     var showsAllInGallery = false
     /// Brief notice from the gallery (Task 3), e.g. "No room on this
     /// page" - kept on `ShellEditor` instead of as view-local state, so
@@ -117,7 +119,8 @@ final class ShellEditor {
     }
 
     var hasChanges: Bool {
-        (dashboard.session?.hasChanges ?? false) || (utilities?.hasChanges ?? false) || scaleChanged
+        (dashboard.session?.hasChanges ?? false) || (utilities?.hasChanges ?? false)
+            || (bar?.hasChanges ?? false) || scaleChanged
     }
 
     private var scaleChanged: Bool {
@@ -128,6 +131,7 @@ final class ShellEditor {
         guard !isEditing, let pages = store.settings.dashboardPages else { return }
         let pageID = dashboardStartPageID() ?? pages.pages[0].id
         utilities = UtilitiesEditSession(layout: store.settings.utilities.layout)
+        bar = BarEditSession(layout: store.settings.bar.layout)
         galleryVisible = false
         galleryTab = .dashboard
         showsAllInGallery = false
@@ -178,6 +182,10 @@ final class ShellEditor {
             next.utilities.layout = utilities.layout
             changed = true
         }
+        if let bar, bar.hasChanges {
+            next.bar.layout = bar.layout
+            changed = true
+        }
         if scaleChanged, let scale = dashboard.scale {
             next.dashboardScale = BentoGeometry.clampedUserScale(scale)
             changed = true
@@ -188,6 +196,7 @@ final class ShellEditor {
         // (unpinning), without writing anything again itself.
         dashboard.cancel()
         utilities = nil
+        bar = nil
         pendingCancelConfirmation = false
         screenSnapshot = nil
         unregisterEscape()
@@ -200,6 +209,7 @@ final class ShellEditor {
         guard isEditing else { return }
         dashboard.cancel()
         utilities = nil
+        bar = nil
         pendingCancelConfirmation = false
         screenSnapshot = nil
         unregisterEscape()
@@ -307,6 +317,30 @@ final class ShellEditor {
     var selectedToggleID: String? {
         get { utilities?.selectedToggleID }
         set { utilities?.selectedToggleID = newValue }
+    }
+
+    // MARK: - Sidebar: passing through to the session
+
+    @discardableResult
+    func addBarModule(_ kind: BarModuleKind, at index: Int? = nil) -> String? {
+        bar?.add(kind, at: index)
+    }
+
+    func removeBarModule(_ id: String) {
+        bar?.remove(id: id)
+    }
+
+    func updateBarModule(_ id: String, to module: BarModule) {
+        bar?.update(id: id, to: module)
+    }
+
+    func moveBarModule(_ id: String, by step: Int) {
+        bar?.move(id: id, by: step)
+    }
+
+    var selectedBarEntryID: String? {
+        get { bar?.selectedEntryID }
+        set { bar?.selectedEntryID = newValue }
     }
 
     /// Whether the shortcut picker of the selected button is open (Task 6).
