@@ -252,6 +252,12 @@ final class EditModeScrimPanel {
     var debugWindow: NSWindow { panel }
     #endif
 
+    /// The screen is gone: away with the window, right away and without the
+    /// fade of `hide()` - there is nothing left to fade on.
+    func tearDown() {
+        panel.orderOut(nil)
+    }
+
     #if DEBUG
     /// Self-test: click in the center of the scrim.
     func debugClickCenter() {
@@ -305,7 +311,12 @@ final class EditModeScrimPanel {
 @MainActor
 final class EditModeWindows {
     private let editor: ShellEditor
-    private var scrims: [ObjectIdentifier: EditModeScrimPanel] = [:]
+    /// One dimming panel per screen, kept by display identifier - not by
+    /// the `NSScreen` object: AppKit hands out new ones on every change of
+    /// the arrangement (`ShellScreens.swift`), so an object-keyed catalogue
+    /// grew by one dead panel per replug, and a reused address could have
+    /// pointed two screens at the same panel.
+    private var scrims: [CGDirectDisplayID: EditModeScrimPanel] = [:]
     private var toolbar: FloatingGlassPanel<EditToolbarView>?
     private var gallery: FloatingGlassPanel<EditGalleryView>?
     private var editScreen: NSScreen?
@@ -362,8 +373,16 @@ final class EditModeWindows {
     private func begin(on screen: NSScreen) {
         Self.assertStackingOrder()
         editScreen = screen
-        for candidate in NSScreen.screens {
-            let scrim = scrims[ObjectIdentifier(candidate)] ?? {
+        let screens = ShellScreens.current()
+        // A screen that is gone takes its panel with it, instead of leaving
+        // it in the catalogue for the rest of the session.
+        let present = Set(screens.map(\.displayID))
+        for (id, scrim) in scrims where !present.contains(id) {
+            scrim.tearDown()
+            scrims[id] = nil
+        }
+        for candidate in screens {
+            let scrim = scrims[candidate.displayID] ?? {
                 let panel = EditModeScrimPanel()
                 panel.onClick = { [weak self] in
                     // Click elsewhere: clear every selection (and thus any
@@ -373,10 +392,10 @@ final class EditModeWindows {
                     self?.editor.selectedBarEntryID = nil
                     self?.editor.dashboard.renamingPageID = nil
                 }
-                scrims[ObjectIdentifier(candidate)] = panel
+                scrims[candidate.displayID] = panel
                 return panel
             }()
-            scrim.show(on: candidate)
+            scrim.show(on: candidate.screen)
         }
         let toolbar = self.toolbar ?? {
             let panel = FloatingGlassPanel(cornerRadius: 26, takesKeyboard: false, level: EditModeLevel.controls) {
