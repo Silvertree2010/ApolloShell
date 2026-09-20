@@ -2,7 +2,7 @@ import Foundation
 import ApolloShellCore
 import Observation
 
-/// Belegt/gesamt in Byte (Arbeitsspeicher, Festplatte).
+/// Used/total in bytes (memory, disk).
 struct ByteUsage: Equatable {
     var used: UInt64
     var total: UInt64
@@ -10,19 +10,19 @@ struct ByteUsage: Equatable {
     var fraction: Double { ResourceMath.fraction(used: used, total: total) }
 }
 
-/// Messwerte fuer den Reiter "Leistung" (Caelestia: Performance).
+/// The readings for the "Performance" tab (Caelestia: Performance).
 ///
-/// Misst im Sekundentakt, aber nur, solange das Dashboard offen UND dieser
-/// Reiter sichtbar ist (`DashboardModel` schaltet `start`/`stop`) - die
-/// restliche Zeit kostet er nichts.
+/// It measures every second, but only while the dashboard is open AND this tab
+/// is visible (`DashboardModel` switches `start`/`stop`) - the rest of the time
+/// it costs nothing.
 @MainActor
 @Observable
 final class PerformanceModel {
-    /// Caelestia: Verlauf der letzten 30 Messungen, eine pro Sekunde.
+    /// Caelestia: the history of the last 30 readings, one per second.
     static let historyLength = 30
     static let interval: TimeInterval = 1
 
-    /// Ohne Wert (`nil`) zeigen die Karten einen Strich statt einer falschen Null.
+    /// Without a value (`nil`) the cards show a dash instead of a wrong zero.
     private(set) var cpu: Double?
     private(set) var gpu: Double?
     private(set) var memory: ByteUsage?
@@ -33,7 +33,7 @@ final class PerformanceModel {
     private(set) var gpuHistory = SampleHistory(capacity: PerformanceModel.historyLength)
     private(set) var downloadHistory = SampleHistory(capacity: PerformanceModel.historyLength)
     private(set) var uploadHistory = SampleHistory(capacity: PerformanceModel.historyLength)
-    /// `nil` auf Macs ohne Akku: dann faellt der Tank weg.
+    /// `nil` on Macs without a battery: then the gauge falls away.
     private(set) var battery: BatteryState?
     private(set) var batteryMinutes: Int?
 
@@ -45,8 +45,8 @@ final class PerformanceModel {
     @ObservationIgnored private var lastTicks: CPUTicks?
     @ObservationIgnored private var meter = NetworkMeter()
 
-    /// Eine Messung, getrennt vom Lesen: so bekommt die Ansicht im
-    /// Render-Test feste Beispielwerte statt der echten.
+    /// One reading, apart from the reading out: that way the view gets fixed
+    /// sample values instead of the real ones in the render test.
     struct Sample {
         var time: TimeInterval
         var cpuTicks: CPUTicks?
@@ -58,13 +58,13 @@ final class PerformanceModel {
         var batteryMinutes: Int?
     }
 
-    /// Laeuft die Sekundenmessung gerade?
+    /// Is the per-second measuring running right now?
     var isSampling: Bool { timer != nil }
 
     func start() {
         guard timer == nil else { return }
-        // Neu anfangen: CPU- und Netzwerkraten ueber die Pause gemittelt
-        // waeren falsch, und die Linien sollen lueckenlose Sekunden zeigen.
+        // Start over: CPU and network rates averaged across the pause would be
+        // wrong, and the lines should show seconds without gaps.
         lastTicks = nil
         cpu = nil
         network = nil
@@ -92,7 +92,7 @@ final class PerformanceModel {
         }
         gpu = sample.gpu
         if let gpu = sample.gpu { gpuHistory.append(gpu) }
-        // Schlaegt eine Abfrage einmal fehl, bleibt der letzte Wert stehen.
+        // When a query fails once, the last value stays standing.
         if let memory = sample.memory { self.memory = memory }
         if let storage = sample.storage { self.storage = storage }
         if let counters = sample.network {
@@ -104,7 +104,7 @@ final class PerformanceModel {
                 uploadHistory.append(rate.upload)
             }
         }
-        // Nur bei Aenderung setzen: sonst zeichnet der Tank jede Sekunde neu.
+        // Only set on a change: otherwise the gauge would redraw every second.
         if sample.battery != battery { battery = sample.battery }
         if sample.batteryMinutes != batteryMinutes { batteryMinutes = sample.batteryMinutes }
     }

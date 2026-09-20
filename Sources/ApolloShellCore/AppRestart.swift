@@ -1,23 +1,23 @@
 import Foundation
 
-/// Neustart der App, damit eine neue Einstellung gilt.
+/// A restart of the app, so that a new setting holds.
 ///
-/// Zwei Wege, je nachdem, wer den Prozess gestartet hat:
-/// - Ein eigener launchd-Agent (macOS setzt dann `XPC_SERVICE_NAME` auf
-///   dessen Label): `launchctl kickstart -k` startet ihn neu.
-/// - Sonst (Finder, `open`, Entwicklungsbuild): ein Hilfsprozess wartet
-///   kurz, damit die alte Instanz Zeit zum Beenden hat, und oeffnet das
-///   Bundle neu - die App muss sich danach selbst beenden.
+/// Two ways, depending on who started the process:
+/// - A launchd agent of our own (macOS then sets `XPC_SERVICE_NAME` to its
+///   label): `launchctl kickstart -k` starts it again.
+/// - Otherwise (Finder, `open`, a development build): a helper process waits
+///   briefly, so that the old instance has time to quit, and opens the bundle
+///   anew - the app has to quit itself afterwards.
 public enum AppRestart {
     public enum Plan: Equatable, Sendable {
         case launchd(label: String)
         case relaunch(bundlePath: String)
     }
 
-    /// Label des eigenen launchd-Agents, der diesen Prozess gestartet hat.
-    /// Dieselbe Regel wie beim Autostart: "application.…" setzt
-    /// LaunchServices bei jedem Oeffnen aus Finder, Dock oder `open`, das ist
-    /// kein kickstart-faehiges Label.
+    /// The label of our own launchd agent that started this process. The same
+    /// rule as with the autostart: "application.…" is what LaunchServices sets
+    /// on every opening out of the Finder, the Dock or `open`, and that is no
+    /// label kickstart can use.
     public static func launchdLabel(environment: [String: String]) -> String? {
         OnboardingAutostart.launchdLabel(environment: environment)
     }
@@ -27,14 +27,14 @@ public enum AppRestart {
         return .relaunch(bundlePath: bundlePath)
     }
 
-    /// Argumente fuer `/usr/bin/launchctl`.
+    /// The arguments for `/usr/bin/launchctl`.
     public static func launchctlArguments(label: String, uid: Int32) -> [String] {
         ["kickstart", "-k", "gui/\(uid)/\(label)"]
     }
 
-    /// Befehl fuer `/bin/sh -c`: kurz warten, dann das Bundle neu oeffnen.
-    /// `--relaunch` laesst die neue Instanz auf das Ende der alten warten,
-    /// statt ihr als zweite Instanz Platz zu machen (`SingleInstance`).
+    /// The command for `/bin/sh -c`: wait briefly, then open the bundle anew.
+    /// `--relaunch` makes the new instance wait for the end of the old one
+    /// instead of making room for it as a second instance (`SingleInstance`).
     public static func relaunchCommand(bundlePath: String) -> String {
         "sleep 1; open -n \"\(bundlePath)\" --args \(SingleInstance.relaunchArgument)"
     }

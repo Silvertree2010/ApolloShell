@@ -1,29 +1,29 @@
 import AppKit
 import CoreGraphics
 
-/// Wechselt Schreibtische wie ⌃← / ⌃→ (Mission Control "Einen Space nach
-/// links/rechts", standardmaessig aktiv - gemessen 14.09. in
+/// Switches desktops like ⌃← / ⌃→ (Mission Control "Move left/right a space",
+/// on by default - measured 14.09. in com.apple.symbolichotkeys 79/81).
 /// com.apple.symbolichotkeys 79/81).
+/// macOS has no public interface for that; the private one
+/// (CGSManagedDisplaySetCurrentSpace) only switches the display, not the
+/// windows. The key press is exactly what Mission Control expects: ⌃ plus an
+/// arrow, with the Fn flag real arrow keys carry (the key binding stands there
+/// as 0x840000 = ⌃ | Fn). Posting key presses needs the accessibility
+/// permission, which the launcher has. Karabiner does not see them (it sits in
+/// front of the system, not behind it).
 ///
-/// macOS hat dafuer keine oeffentliche Schnittstelle; die private
-/// (CGSManagedDisplaySetCurrentSpace) schaltet nur die Anzeige um, nicht die
-/// Fenster. Der Tastendruck ist genau das, was Mission Control erwartet:
-/// ⌃ plus Pfeil, mit dem Fn-Flag, das echte Pfeiltasten tragen (die
-/// Tastenbelegung steht dort als 0x840000 = ⌃ | Fn). Tastendruecke posten
-/// braucht die Bedienungshilfen-Freigabe, die der Launcher hat. Karabiner
-/// sieht sie nicht (er sitzt vor dem System, nicht dahinter).
 ///
-/// Die Punkte zaehlen nur Schreibtische. Liegen Vollbild-Spaces dazwischen,
-/// zaehlt ⌃→ sie mit, und ein Sprung landet zu kurz - dann nochmal klicken.
+/// The dots only count desktops. When full-screen spaces lie in between, ⌃→
+/// counts them in and a jump lands short - then click again.
 @MainActor
 enum SpaceSwitcher {
     private static let left: CGKeyCode = 123
     private static let right: CGKeyCode = 124
-    /// Abstand zwischen mehreren Schritten: jeder startet seine eigene
-    /// Wisch-Animation; zu dicht hintereinander verschluckt macOS welche.
+    /// The gap between several steps: every one starts its own swipe
+    /// animation; too close together and macOS swallows some.
     private static let stepDelay: TimeInterval = 0.12
 
-    /// `delta` Schreibtische weiter (negativ = nach links).
+    /// `delta` desktops further (negative = to the left).
     static func step(_ delta: Int) {
         guard delta != 0, AXIsProcessTrusted() else { return }
         let key = delta > 0 ? right : left
@@ -34,10 +34,10 @@ enum SpaceSwitcher {
         }
     }
 
-    /// "Alle Fenster einblenden" aus Apples Dock-Menue: App-Exposé, also ⌃↓
-    /// (Mission Control "Programmfenster", standardmaessig aktiv - symbolichotkeys 33)
-    /// fuer die App, die gerade vorne ist. Deshalb erst die App nach vorne,
-    /// kurz warten, dann die Taste.
+    /// "Show All Windows" out of Apple's Dock menu: App Exposé, so ⌃↓
+    /// (Mission Control "Application windows", on by default - symbolichotkeys
+    /// 33) for the app that is at the front right now. So the app forward
+    /// first, a short wait, then the key.
     static func showAppWindows(of app: NSRunningApplication) {
         guard AXIsProcessTrusted() else { return }
         app.activate()

@@ -1,14 +1,14 @@
 import Foundation
 
-// Was `BarPreset`, `UtilitiesPreset` und `DashboardPreset` gemeinsam haben:
-// eine feste Liste fertiger Ebenen, jede mit Titel, Zusammenfassung und der
-// Ebene, die sie erzeugt - dazu eine Vorgabe, auf die "Zuruecksetzen" fuehrt.
-// Nexus baut darauf die Rueckfrage vors Ersetzen (siehe NexusPresetControls
-// im App-Ziel); die drei Vorlagen-Enums selbst bleiben, wo sie stehen (bei
-// ihrer Ebene), nur ihre Konformitaet steht hier daneben.
+// What `BarPreset`, `UtilitiesPreset` and `DashboardPreset` have in common: a
+// fixed list of finished levels, each with a title, a summary and the level it
+// creates - plus a default that "Reset" leads to. Nexus builds the prompt
+// before the replacement on it (see NexusPresetControls in the app target);
+// the three template enums themselves stay where they are (with their level),
+// only their conformance stands here beside them.
 
-/// Eine Vorlage fuer eine Ebene (Leiste, Panel oder Dashboard): Titel und
-/// Zusammenfassung fuer Menue und Rueckfrage, `layout` die fertige Ebene.
+/// One template for a level (the bar, the panel or the dashboard): the title
+/// and the summary for the menu and the prompt, `layout` the finished level.
 public protocol LayoutPreset: CaseIterable, Identifiable, Sendable where AllCases: RandomAccessCollection {
     associatedtype Layout: Equatable, Sendable
 
@@ -16,15 +16,15 @@ public protocol LayoutPreset: CaseIterable, Identifiable, Sendable where AllCase
     var summary: String { get }
     var layout: Layout { get }
 
-    /// Worauf "Zuruecksetzen" fuehrt - bei allen dreien die erste, "Caelestia"
-    /// bzw. "Standard" genannte Vorlage.
+    /// What "Reset" leads to - with all three the first template, called
+    /// "Caelestia" or "Standard".
     static var `default`: Self { get }
 }
 
-/// Was eine Rueckfrage in Nexus am Ende ersetzt: eine gewaehlte Vorlage oder
-/// die Vorgabe. Die Texte der Rueckfrage bleiben bei den Editoren, weil sich
-/// ihre Formulierungen unterscheiden (Leiste/Panel/Dashboard) - hier nur, was
-/// beiden Faellen gemeinsam ist.
+/// What a prompt in Nexus replaces in the end: a chosen template or the
+/// default. The texts of the prompt stay with the editors, because their
+/// wording differs (bar/panel/dashboard) - only what the two cases have in
+/// common is here.
 public enum LayoutPresetReplacement<P: LayoutPreset> {
     case preset(P)
     case reset
@@ -36,7 +36,7 @@ public enum LayoutPresetReplacement<P: LayoutPreset> {
         }
     }
 
-    /// Beschriftung des Bestaetigen-Knopfs - bei allen dreien gleich.
+    /// The label of the confirm button - the same with all three.
     public var confirmLabel: String {
         switch self {
         case .preset: String(localized: "Load")

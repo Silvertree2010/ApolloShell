@@ -2,22 +2,22 @@ import Foundation
 import ApolloShellCore
 import os
 
-/// Fragt alle 30 s im Hintergrund ab, ob Bluetooth an ist (ueber
-/// system_profiler, siehe `BluetoothStatus` - ohne Freigabe-Dialog).
+/// Asks every 30 s in the background whether Bluetooth is on (through
+/// system_profiler, see `BluetoothStatus` - without a permission dialog).
 ///
-/// Bluetooth wird selten umgeschaltet; 30 s Verzoegerung beim Anzeigen sind
-/// vertretbar, und der ~165 ms teure Aufruf laeuft nie auf dem Hauptthread.
+/// Bluetooth is switched rarely; 30 s of delay in the display is bearable, and
+/// the ~165 ms call never runs on the main thread.
 final class BluetoothState: @unchecked Sendable {
     private static let interval: TimeInterval = 30
 
-    /// Serielle Queue: hier laeuft system_profiler, hier lebt der Timer.
+    /// A serial queue: system_profiler runs here, the timer lives here.
     private let queue = DispatchQueue(label: AppIdentity.scoped("bluetooth"))
     private let log = Logger(category: "bluetooth")
-    /// Nur auf `queue` anfassen.
+    /// Only touch on `queue`.
     private var timer: DispatchSourceTimer?
 
-    /// `update` wird auf dem Hauptthread aufgerufen, auch mit `nil`, wenn der
-    /// Zustand nicht lesbar war.
+    /// `update` is called on the main thread, with `nil` too when the state
+    /// could not be read.
     func start(update: @escaping @MainActor (Bool?) -> Void) {
         queue.async { [self] in
             let timer = DispatchSource.makeTimerSource(queue: queue)
@@ -31,9 +31,9 @@ final class BluetoothState: @unchecked Sendable {
         }
     }
 
-    /// Einmal lesen, ohne Timer - fuer das Utilities-Panel, das beim Oeffnen
-    /// sofort den aktuellen Stand will. Laeuft auf derselben Queue, also nie
-    /// zwei system_profiler gleichzeitig.
+    /// Read once, without a timer - for the utilities panel, which wants the
+    /// current state right away on opening. Runs on the same queue, so never
+    /// two system_profiler at once.
     func readOnce(update: @escaping @MainActor (Bool?) -> Void) {
         queue.async { [self] in
             let state = readState()
@@ -41,8 +41,8 @@ final class BluetoothState: @unchecked Sendable {
         }
     }
 
-    /// Einmal lesen, mit Geraeteliste - fuer das Bluetooth-Detailfenster
-    /// neben der Leiste. Gleicher Aufruf, nur mehr aus derselben Ausgabe.
+    /// Read once, with the device list - for the Bluetooth detail window next
+    /// to the bar. The same call, only more out of the same output.
     func readSnapshotOnce(update: @escaping @MainActor (StatusPopoutBluetoothSnapshot?) -> Void) {
         queue.async { [self] in
             let snapshot = runProfiler().flatMap(StatusPopoutBluetoothParser.snapshot(fromSystemProfilerJSON:))
@@ -54,8 +54,8 @@ final class BluetoothState: @unchecked Sendable {
         runProfiler().flatMap(BluetoothStatus.powerOn(fromSystemProfilerJSON:))
     }
 
-    /// Wartet auf das Werkzeug (~165 ms) - laeuft auf `queue`, nie auf dem
-    /// Hauptthread.
+    /// Waits for the tool (~165 ms) - runs on `queue`, never on the main
+    /// thread.
     private func runProfiler() -> Data? {
         Subprocess.runAndWait("/usr/sbin/system_profiler", ["SPBluetoothDataType", "-json"])?.output
     }
