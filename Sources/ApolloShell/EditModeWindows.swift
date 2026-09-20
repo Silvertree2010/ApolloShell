@@ -525,15 +525,11 @@ final class EditModeWindows {
     }
 
     /// Bottom center; if it would overlap the Control Center there
-    /// (narrow screen), just above its top edge instead.
+    /// (narrow screen), just above its top edge instead. The arithmetic
+    /// lives in `EditModeGeometry`, where it can be checked against
+    /// screens nobody here has.
     private func toolbarCenter(on screen: NSScreen, size: NSSize) -> NSPoint {
-        let bottom = screen.visibleFrame.minY + 20
-        var center = NSPoint(x: screen.frame.midX, y: bottom + size.height / 2)
-        let rect = NSRect(x: center.x - size.width / 2, y: bottom, width: size.width, height: size.height)
-        if let utilities = utilitiesFrame(), utilities.intersects(rect.insetBy(dx: -8, dy: -8)) {
-            center.y = utilities.maxY + 16 + size.height / 2
-        }
-        return center
+        EditModeGeometry.toolbarCenter(visible: screen.visibleFrame, size: size, utilities: utilitiesFrame())
     }
 
     /// From the Control Center panel (`UtilitiesPanel.onHeightChange`): if
@@ -580,19 +576,10 @@ final class EditModeWindows {
     #endif
 
     private func galleryCenter(on screen: NSScreen) -> NSPoint {
-        let visible = screen.visibleFrame
-        guard let dashboard = dashboardFrame(), dashboard.intersects(screen.frame) else {
-            return NSPoint(x: visible.midX, y: visible.midY)
-        }
-        let top = min(dashboard.minY, visible.maxY) - 16
-        let bottom = visible.minY + 20 + (toolbar?.size.height ?? 56) + 16
-        let height = gallery?.size.height ?? 380
-        // Enough room under the dashboard: center it there. Otherwise
-        // (large scale, measured at 150%: the gallery slid under the edge
-        // and over the toolbar) directly above the toolbar - it then
-        // covers the bottom part of the dashboard, which can't be avoided
-        // at that size; "+" hides it again.
-        let centerY = top - bottom >= height ? (top + bottom) / 2 : bottom + height / 2
-        return NSPoint(x: visible.midX, y: centerY)
+        EditModeGeometry.galleryCenter(visible: screen.visibleFrame,
+                                       gallery: gallery?.size ?? NSSize(width: 760, height: 380),
+                                       dashboard: dashboardFrame().flatMap { $0.intersects(screen.frame) ? $0 : nil },
+                                       utilities: utilitiesFrame(),
+                                       toolbarHeight: toolbar?.size.height ?? 56)
     }
 }
