@@ -68,13 +68,13 @@ struct DashboardLogicTests {
         #expect(ResourceMath.fraction(used: 1, total: 0) == 0)
     }
 
-    // Ausgerechnete Werte: mit `3.0 * 3600 + 12 * 60` im Array gibt der
     // Values worked out by hand: with `3.0 * 3600 + 12 * 60` in the array the
     // type checker gives up ("unable to type-check in reasonable time").
     @Test("Uptime text", arguments: [
         (TimeInterval(2_700), "45m"),      // 45 minutes
         (TimeInterval(11_520), "3h 12m"),  // 3 h 12 min
         (TimeInterval(183_600), "2d 3h"),  // 2 days 3 h
+    ])
     func uptime(seconds: TimeInterval, text: String) {
         #expect(UptimeText.format(seconds: seconds) == text)
     }

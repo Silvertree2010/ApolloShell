@@ -51,9 +51,9 @@ struct LidAwakeTests {
         #expect(LidAwake.sudoArguments(disableSleep: on) == expected)
     }
 
-    @Test("Administrator-Rückfrage über AppleScript", arguments: [
-        (true, "do shell script \"/usr/bin/pmset -a disablesleep 1\"", "aussetzen"),
-        (false, "do shell script \"/usr/bin/pmset -a disablesleep 0\"", "wieder erlauben"),
+    @Test("Administrator prompt through AppleScript", arguments: [
+        (true, "do shell script \"/usr/bin/pmset -a disablesleep 1\"", "suspend sleep"),
+        (false, "do shell script \"/usr/bin/pmset -a disablesleep 0\"", "allow sleep"),
     ])
     func adminScript(on: Bool, command: String, reason: String) {
         let arguments = LidAwake.osascriptArguments(disableSleep: on)

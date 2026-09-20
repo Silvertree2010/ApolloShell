@@ -381,23 +381,23 @@ struct UtilitiesCustomToggleTests {
         let look = QuickToggles.openApp(options, appName: name)
         #expect(look.enabled == enabled && look.help == help && !look.active)
     }
+
     @Test("The app button shows the app icon when it has no symbol of its own", arguments: [
-    @Test("App-Knopf zeigt ohne eigenes Symbol das App-Symbol", arguments: [
         ("", true), ("  ", true), ("star.fill", false),
     ])
     func appIcon(symbol: String, usesAppIcon: Bool) {
         #expect(UtilitiesAppOptions(bundleID: "com.example.app", symbol: symbol).usesAppIcon == usesAppIcon)
     }
 
-    @Test("Link- und Kurzbefehl-Knopf", arguments: [
-        (UtilitiesToggle.openLink(.init()), false, "Noch kein Link", "link"),
-        (UtilitiesToggle.openLink(.init(url: "zwei worte")), false, "Link ungültig", "link"),
-        (UtilitiesToggle.openLink(.init(url: "www.example.com")), true, "example.com öffnen", "link"),
-        (UtilitiesToggle.openLink(.init(url: "example.com", title: "Doku", symbol: "book.fill")), true, "Doku öffnen", "book.fill"),
-        (UtilitiesToggle.runShortcut(.init()), false, "Noch kein Kurzbefehl gewählt", "square.2.layers.3d.fill"),
-        (UtilitiesToggle.runShortcut(.init(name: "Fokus")), true, "Kurzbefehl „Fokus“ ausführen", "square.2.layers.3d.fill"),
-        (UtilitiesToggle.runShortcut(.init(name: "Fokus", title: "Ruhe", symbol: "moon.fill")), true,
-         "Kurzbefehl „Ruhe“ ausführen", "moon.fill"),
+    @Test("Link and shortcut button", arguments: [
+        (UtilitiesToggle.openLink(.init()), false, "No Link Yet", "link"),
+        (UtilitiesToggle.openLink(.init(url: "two words")), false, "Invalid Link", "link"),
+        (UtilitiesToggle.openLink(.init(url: "www.example.com")), true, "Open example.com", "link"),
+        (UtilitiesToggle.openLink(.init(url: "example.com", title: "Docs", symbol: "book.fill")), true, "Open Docs", "book.fill"),
+        (UtilitiesToggle.runShortcut(.init()), false, "No Shortcut Chosen Yet", "square.2.layers.3d.fill"),
+        (UtilitiesToggle.runShortcut(.init(name: "Focus")), true, "Run Shortcut “Focus”", "square.2.layers.3d.fill"),
+        (UtilitiesToggle.runShortcut(.init(name: "Focus", title: "Quiet", symbol: "moon.fill")), true,
+         "Run Shortcut “Quiet”", "moon.fill"),
     ])
     func customLooks(toggle: UtilitiesToggle, enabled: Bool, help: String, symbol: String) {
         let look = switch toggle {

@@ -91,10 +91,10 @@ struct GeocodingTests {
     ])
     func coordinates(latitude: Double, longitude: Double, expected: String) {
         let location = WeatherLocation(name: "", latitude: latitude, longitude: longitude)
-    @Test("Coordinates in English with a decimal point")
+        #expect(location.coordinateText(locale: Locale(identifier: "de_DE")) == expected)
     }
 
-    @Test("Koordinaten englisch mit Dezimalpunkt")
+    @Test("Coordinates in English with a decimal point")
     func coordinatesEnglish() {
         let text = WeatherLocation(name: "", latitude: 47.00601, longitude: 9.50266)
             .coordinateText(locale: Locale(identifier: "en_US"))

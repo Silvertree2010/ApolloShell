@@ -85,8 +85,8 @@ struct WeatherProviderCommonTests {
         let id = try #require(WeatherProviderID(rawValue: raw))
         #expect(id.provider().capabilities.summary == text)
     }
+
     @Test("User agent: app, version, project address - no mail", arguments: [
-    @Test("User-Agent: App, Version, Projektadresse - keine Mail", arguments: [
         (Optional("0.1"), "ApolloShell/0.1 (+https://github.com/Silvertree2010/ApolloShell)"),
         (nil, "ApolloShell/dev (+https://github.com/Silvertree2010/ApolloShell)"),
         (Optional("  "), "ApolloShell/dev (+https://github.com/Silvertree2010/ApolloShell)"),
