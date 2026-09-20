@@ -1,6 +1,6 @@
 import Foundation
 
-/// CPU-Ticks aus host_statistics(HOST_CPU_LOAD_INFO), summiert ueber alle Kerne.
+/// CPU ticks from host_statistics(HOST_CPU_LOAD_INFO), summed across all cores.
 public struct CPUTicks: Equatable, Sendable {
     public var user: UInt64
     public var system: UInt64
@@ -15,11 +15,11 @@ public struct CPUTicks: Equatable, Sendable {
     }
 }
 
-/// Rechnungen fuer die Ressourcen-Ringe des Dashboards (CPU, RAM, Speicher).
+/// Calculations for the resource rings of the dashboard (CPU, RAM, storage).
 public enum ResourceMath {
-    /// Auslastung zwischen zwei Messungen (0...1). Die Ticks zaehlen seit
-    /// dem Start hoch, aussagekraeftig ist nur die Differenz. `nil`, wenn
-    /// dazwischen nichts gezaehlt wurde (oder die Zaehler zurueckliefen).
+    /// Usage between two measurements (0...1). The ticks count up since
+    /// startup, only the difference is meaningful. `nil` if
+    /// nothing was counted in between (or the counters wrapped around).
     public static func cpuUsage(from old: CPUTicks, to new: CPUTicks) -> Double? {
         guard new.user >= old.user, new.system >= old.system,
               new.idle >= old.idle, new.nice >= old.nice
@@ -30,7 +30,7 @@ public enum ResourceMath {
         return Double(busy) / Double(total)
     }
 
-    /// Anteil belegt, auf 0...1 begrenzt.
+    /// Fraction used, clamped to 0...1.
     public static func fraction(used: UInt64, total: UInt64) -> Double {
         guard total > 0 else { return 0 }
         return min(max(Double(used) / Double(total), 0), 1)

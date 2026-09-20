@@ -1,9 +1,9 @@
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Lautstaerke-Anzeige")
+@Suite("Volume display")
 struct VolumeGlyphsTests {
-    @Test("Symbol nach Lautstaerke", arguments: [
+    @Test("Symbol by volume", arguments: [
         (Float(0), "speaker.slash.fill"), (Float(0.2), "speaker.wave.1.fill"),
         (Float(0.5), "speaker.wave.2.fill"), (Float(0.9), "speaker.wave.3.fill"),
     ])
@@ -11,12 +11,12 @@ struct VolumeGlyphsTests {
         #expect(VolumeGlyphs.symbol(volume: volume, muted: false) == expected)
     }
 
-    @Test("stumm ist immer durchgestrichen, auch bei voller Lautstaerke")
+    @Test("muted is always slashed, even at full volume")
     func mutedAlwaysSlash() {
         #expect(VolumeGlyphs.symbol(volume: 1, muted: true) == "speaker.slash.fill")
     }
 
-    @Test("Prozent gerundet und begrenzt")
+    @Test("percent rounded and clamped")
     func percent() {
         #expect(VolumeGlyphs.percent(0.456) == 46)
         #expect(VolumeGlyphs.percent(1.4) == 100)

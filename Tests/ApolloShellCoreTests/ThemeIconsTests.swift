@@ -24,9 +24,9 @@ struct ThemeIconsTests {
     func catalogIsClean() {
         var seen: Set<String> = []
         for icon in ThemeIconCatalog.standard.icons {
-            #expect(icon.id == icon.id.lowercased(), "\(icon.id) ist nicht klein geschrieben")
-            #expect(!icon.id.contains(" "), "\(icon.id) enthaelt ein Leerzeichen")
-            #expect(seen.insert(icon.id).inserted, "\(icon.id) steht doppelt im Verzeichnis")
+            #expect(icon.id == icon.id.lowercased(), "\(icon.id) is not lowercase")
+            #expect(!icon.id.contains(" "), "\(icon.id) contains a space")
+            #expect(seen.insert(icon.id).inserted, "\(icon.id) is listed twice in the catalogue")
         }
     }
 
@@ -35,7 +35,7 @@ struct ThemeIconsTests {
         let folder = try themeFolder(["session-shutdown.png"])
         let theme = ThemeLoader.load(at: folder)
         #expect(theme.icon("session-shutdown")?.lastPathComponent == "session-shutdown.png")
-        #expect(theme.icon("session-restart") == nil, "was nicht dabei ist, bleibt das eingebaute Symbol")
+        #expect(theme.icon("session-restart") == nil, "whatever is not there keeps the built-in symbol")
     }
 
     @Test("upper and lower case in the file name do not matter")
@@ -46,10 +46,10 @@ struct ThemeIconsTests {
 
     @Test("an unknown file name is reported, not taken over")
     func unknownNameIsReported() throws {
-        let folder = try themeFolder(["rakete.png"])
+        let folder = try themeFolder(["rocket.png"])
         let theme = ThemeLoader.load(at: folder)
         #expect(theme.icons.isEmpty)
-        #expect(theme.issues.contains { $0.description.contains("rakete.png") })
+        #expect(theme.issues.contains { $0.description.contains("rocket.png") })
     }
 
     @Test("a foreign extension does not get through")
@@ -64,7 +64,7 @@ struct ThemeIconsTests {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("apolloshell-icons-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        let file = root.appendingPathComponent("Flach.css")
+        let file = root.appendingPathComponent("Flat.css")
         try Data(":root { --apollo-accent-color: #ff0000; }".utf8).write(to: file)
         #expect(ThemeLoader.load(at: file).icons.isEmpty)
     }
@@ -73,9 +73,9 @@ struct ThemeIconsTests {
     func withoutFolderNothingHappens() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("apolloshell-icons-\(UUID().uuidString)")
-        let folder = root.appendingPathComponent("Ohne")
+        let folder = root.appendingPathComponent("None")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        try Data(":root { --apollo-theme-name: \"Ohne\"; }".utf8).write(to: folder.appendingPathComponent("theme.css"))
+        try Data(":root { --apollo-theme-name: \"None\"; }".utf8).write(to: folder.appendingPathComponent("theme.css"))
         let theme = ThemeLoader.load(at: folder)
         #expect(theme.icons.isEmpty)
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
@@ -84,7 +84,7 @@ struct ThemeIconsTests {
     @Test("every symbol has a built-in SF Symbol - except the emblem")
     func everyIconHasAFallback() {
         for icon in ThemeIconCatalog.standard.icons where icon.id != "session-emblem" {
-            #expect(!icon.fallback.isEmpty, "\(icon.id) hat kein eingebautes Symbol")
+            #expect(!icon.fallback.isEmpty, "\(icon.id) has no built-in symbol")
         }
     }
 

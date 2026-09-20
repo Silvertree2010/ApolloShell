@@ -1,11 +1,11 @@
 import Foundation
 
-/// Findet alle Apps in den ueblichen Ordnern.
+/// Finds all apps in the usual folders.
 ///
-/// Sucht zwei Ebenen tief, weil manche Hersteller ihre App in einen
-/// eigenen Ordner legen (z.B. "/Applications/Adobe Illustrator 2026/...").
-/// In ein .app-Bundle selbst wird nie hineingesucht: darin liegen oft
-/// Hilfs-Apps, die man nicht direkt starten soll.
+/// Searches two levels deep, because some vendors put their app in its
+/// own folder (e.g. "/Applications/Adobe Illustrator 2026/...").
+/// Never searches inside an .app bundle itself: those often contain
+/// helper apps that should not be launched directly.
 public struct AppCatalog: Sendable {
     public static let defaultRoots: [URL] = [
         URL(fileURLWithPath: "/Applications"),
@@ -21,7 +21,7 @@ public struct AppCatalog: Sendable {
         self.maxDepth = maxDepth
     }
 
-    /// Alphabetisch sortiert, jede App nur einmal (nach Bundle-ID).
+    /// Sorted alphabetically, each app only once (by bundle ID).
     public func scan() -> [AppEntry] {
         var found: [AppEntry] = []
         for root in roots {

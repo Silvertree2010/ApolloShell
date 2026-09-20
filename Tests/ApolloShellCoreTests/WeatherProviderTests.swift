@@ -332,7 +332,7 @@ struct WttrProviderTests {
         #expect(r.current.temperature == 20 && r.current.apparentTemperature == 17)
         #expect(r.current.humidity == 38 && r.current.windSpeed == 10)
         #expect(r.current.code == 3)
-        #expect(r.current.isDay) // 18:09 Ortszeit, Untergang 19:24
+        #expect(r.current.isDay) // 18:09 local time, sunset 19:24
     }
 
     @Test("Hours every three hours, local time, the chance of rain or snow")

@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// Rahmen eines Auswahl-Fensters mit Suche: Titel (mit optionalem Satz
-/// darunter), Suchfeld, Trennlinie, `content` (Liste oder Platzhalter),
-/// Trennlinie, Abbrechen - wie `NexusBarAppPicker` (App waehlen) und
-/// `UtilitiesShortcutPicker` (Kurzbefehl waehlen) es beide brauchen. Immer
-/// 380x480, wie beide es vor der Zusammenlegung schon waren.
+/// Frame of a picker window with search: title (with an optional sentence
+/// underneath), search field, divider, `content` (list or placeholder),
+/// divider, cancel - as both `NexusBarAppPicker` (pick app) and
+/// `UtilitiesShortcutPicker` (pick shortcut) need it. Always
+/// 380x480, as both already were before the merge.
 struct NexusSearchSheet<Content: View>: View {
     let title: LocalizedStringKey
-    /// Zusaetzlicher Satz unter dem Titel; `nil` = keiner (App waehlen).
+    /// Extra sentence under the title; `nil` = none (pick app).
     let subtitle: LocalizedStringKey?
     let searchPrompt: LocalizedStringKey
     @Binding var query: String

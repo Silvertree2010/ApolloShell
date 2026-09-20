@@ -2,30 +2,30 @@ import Foundation
 import ApolloShellCore
 import Observation
 
-/// Kurzmeldungen unten rechts (Caelestia: Toaster). Jeder Teil der App ruft
-/// `toast(...)`; anzeigen tut sie `ToastWindow`, die Regeln (hoechstens 4,
-/// 5 s, neueste unten) stehen in `ToastQueue`.
+/// Toasts at the bottom right (Caelestia: Toaster). Every part of the app
+/// calls `toast(...)`; `ToastWindow` does the showing, the rules (at most 4,
+/// 5 s, newest at the bottom) live in `ToastQueue`.
 @MainActor
 @Observable
 final class Toaster {
     private(set) var queue = ToastQueue()
-    /// Vollbild: nichts zeigen (Caelestia: `utilities.toasts.fullscreen` =
-    /// "off"). Die Meldungen laufen trotzdem ab.
+    /// Fullscreen: show nothing (Caelestia: `utilities.toasts.fullscreen` =
+    /// "off"). The toasts still run their course regardless.
     private(set) var hiddenForFullscreen = false
-    /// Wie weit der Stapel ueber seiner Grundlinie schwebt: 0, oder die Hoehe
-    /// des offenen Utilities-Panels (Caelestia: `anchors.bottom: utilities.top`).
+    /// How far the stack floats above its baseline: 0, or the height
+    /// of the open utilities panel (Caelestia: `anchors.bottom: utilities.top`).
     var lift: CGFloat = 0
 
-    /// Nach jeder Aenderung an dem, was zu sehen ist - fuers Fenster.
+    /// After every change to what is visible - for the window.
     @ObservationIgnored var onChange: () -> Void = {}
-    /// Genau ein Timer, gestellt auf die naechste Ablaufzeit.
+    /// Exactly one timer, set to the next expiry time.
     @ObservationIgnored private var expiryTimer: Timer?
 
     var visible: [ToastEntry] {
         queue.visible(fullscreen: hiddenForFullscreen)
     }
 
-    /// `symbol == nil`: das Symbol der Art (Caelestia: info, warning, ...).
+    /// `symbol == nil`: the symbol of the kind (Caelestia: info, warning, ...).
     func toast(title: String, message: String, symbol: String? = nil, kind: ToastKind = .info) {
         queue.push(title: title, message: message, symbol: symbol, kind: kind, now: Date())
         changed()
@@ -35,7 +35,7 @@ final class Toaster {
         toast(title: content.title, message: content.message, symbol: content.symbol, kind: content.kind)
     }
 
-    /// Klick auf die Meldung (Caelestia: jede Maustaste schliesst).
+    /// Click on the toast (Caelestia: any mouse button closes it).
     func dismiss(_ id: Int) {
         if queue.dismiss(id: id) { changed() }
     }
@@ -58,7 +58,7 @@ final class Toaster {
         let timer = Timer(fire: deadline, interval: 0, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.expire() }
         }
-        // .common: laeuft auch, waehrend irgendwo ein Menue offen ist.
+        // .common: keeps running even while some menu is open.
         RunLoop.main.add(timer, forMode: .common)
         expiryTimer = timer
     }

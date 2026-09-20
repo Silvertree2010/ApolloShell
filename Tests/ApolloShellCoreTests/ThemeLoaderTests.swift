@@ -52,7 +52,7 @@ struct ThemeLoaderTests {
     func symlinkedFolder() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let folder = try folderTheme(in: root, named: "Echt", css: """
+        let folder = try folderTheme(in: root, named: "Real", css: """
         :root { --apollo-background-image: url("bg.png"); }
         """)
         try pixel.write(to: folder.appendingPathComponent("bg.png"))
@@ -71,7 +71,7 @@ struct ThemeLoaderTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let outside = try write(":root { --apollo-accent-color: #00ff00; }",
                                 to: root.appendingPathComponent("outside.css"))
-        let folder = root.appendingPathComponent("Fremd")
+        let folder = root.appendingPathComponent("Foreign")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try FileManager.default.createSymbolicLink(
             at: folder.appendingPathComponent(ThemeLoader.styleSheetName), withDestinationURL: outside)
@@ -97,21 +97,21 @@ struct ThemeLoaderTests {
     func folderWithImage() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let folder = try folderTheme(in: root, named: "Abend", css: """
+        let folder = try folderTheme(in: root, named: "Evening", css: """
         :root {
           --apollo-background-image: url("bg.png");
-          --apollo-theme-author-image: url("bilder/autor.png");
+          --apollo-theme-author-image: url("images/author.png");
         }
         """)
         try pixel.write(to: folder.appendingPathComponent("bg.png"))
-        try FileManager.default.createDirectory(at: folder.appendingPathComponent("bilder"),
+        try FileManager.default.createDirectory(at: folder.appendingPathComponent("images"),
                                                 withIntermediateDirectories: true)
-        try pixel.write(to: folder.appendingPathComponent("bilder/autor.png"))
+        try pixel.write(to: folder.appendingPathComponent("images/author.png"))
 
         let theme = ThemeLoader.load(at: folder)
-        #expect(theme.identifier == "Abend")
+        #expect(theme.identifier == "Evening")
         #expect(theme.file(.backgroundImage)?.lastPathComponent == "bg.png")
-        #expect(theme.file(.authorImage)?.lastPathComponent == "autor.png")
+        #expect(theme.file(.authorImage)?.lastPathComponent == "author.png")
         #expect(theme.issues.isEmpty)
     }
 
@@ -119,7 +119,7 @@ struct ThemeLoaderTests {
     func folderWithoutStyleSheet() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let folder = root.appendingPathComponent("Leer")
+        let folder = root.appendingPathComponent("Empty")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let theme = ThemeLoader.load(at: folder)
         #expect(theme.color(.accent) == nil)
@@ -130,9 +130,9 @@ struct ThemeLoaderTests {
     func missingFile() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let theme = ThemeLoader.load(at: root.appendingPathComponent("weg.css"))
-        #expect(theme.identifier == "weg")
-        #expect(theme.issues.contains(ThemeIssue(.unreadableFile("weg.css"))))
+        let theme = ThemeLoader.load(at: root.appendingPathComponent("gone.css"))
+        #expect(theme.identifier == "gone")
+        #expect(theme.issues.contains(ThemeIssue(.unreadableFile("gone.css"))))
     }
 
     @Test("all themes of a folder, sorted, without the trimmings")
@@ -141,14 +141,14 @@ struct ThemeLoaderTests {
         defer { try? FileManager.default.removeItem(at: root) }
         try write(":root {}", to: root.appendingPathComponent("B.css"))
         try write(":root {}", to: root.appendingPathComponent("a.css"))
-        try write("kein Theme", to: root.appendingPathComponent("notizen.txt"))
-        try write(":root {}", to: root.appendingPathComponent(".versteckt.css"))
-        try folderTheme(in: root, named: "Ordner", css: ":root {}")
-        let ohne = root.appendingPathComponent("OhneCSS")
-        try FileManager.default.createDirectory(at: ohne, withIntermediateDirectories: true)
+        try write("not a theme", to: root.appendingPathComponent("notes.txt"))
+        try write(":root {}", to: root.appendingPathComponent(".hidden.css"))
+        try folderTheme(in: root, named: "Folder", css: ":root {}")
+        let without = root.appendingPathComponent("WithoutCSS")
+        try FileManager.default.createDirectory(at: without, withIntermediateDirectories: true)
 
-        #expect(ThemeLoader.themes(in: root).map(\.identifier) == ["a", "B", "Ordner"])
-        #expect(ThemeLoader.themes(in: root.appendingPathComponent("gibtesnicht")).isEmpty)
+        #expect(ThemeLoader.themes(in: root).map(\.identifier) == ["a", "B", "Folder"])
+        #expect(ThemeLoader.themes(in: root.appendingPathComponent("doesnotexist")).isEmpty)
     }
 
     @Test("the themes folder lies next to settings.json")
@@ -166,12 +166,12 @@ struct ThemeLoaderTests {
         // Something a malicious theme would like to have.
         let secret = root.appendingPathComponent("secret.png")
         try pixel.write(to: secret)
-        let folder = try folderTheme(in: root, named: "Angriff", css: ":root {}")
+        let folder = try folderTheme(in: root, named: "Attack", css: ":root {}")
         try pixel.write(to: folder.appendingPathComponent("ok.png"))
-        try write("nur Text", to: folder.appendingPathComponent("notizen.txt"))
+        try write("just text", to: folder.appendingPathComponent("notes.txt"))
         try FileManager.default.createSymbolicLink(at: folder.appendingPathComponent("link.png"),
                                                    withDestinationURL: secret)
-        try FileManager.default.createSymbolicLink(at: folder.appendingPathComponent("hinaus"),
+        try FileManager.default.createSymbolicLink(at: folder.appendingPathComponent("outside"),
                                                    withDestinationURL: root)
 
         let attacks: [(String, ThemeAssetRejection)] = [
@@ -187,22 +187,22 @@ struct ThemeLoaderTests {
             ("file:///etc/hosts.png", .notALocalPath),
             ("data:image/png;base64,AAAA", .notALocalPath),
             ("link.png", .outsideThemeFolder),
-            ("hinaus/secret.png", .outsideThemeFolder),
-            ("notizen.txt", .unsupportedType("txt")),
-            ("fehlt.png", .missing),
+            ("outside/secret.png", .outsideThemeFolder),
+            ("notes.txt", .unsupportedType("txt")),
+            ("missing.png", .missing),
         ]
         for (reference, expected) in attacks {
             let css = ":root { --apollo-background-image: url(\"\(reference)\"); }"
-            let theme = Theme.make(identifier: "Angriff",
+            let theme = Theme.make(identifier: "Attack",
                                    styleSheet: ThemeStyleSheetParser.parse(css),
                                    assets: .folder(folder))
-            #expect(theme.file(.backgroundImage) == nil, "\(reference) haette abgelehnt werden muessen")
+            #expect(theme.file(.backgroundImage) == nil, "\(reference) should have been rejected")
             #expect(theme.issues.contains(where: { $0.kind == .rejectedAsset(reference: reference, reason: expected) }),
                     "\(reference): \(theme.issues.map(\.description))")
         }
 
         // And what is allowed really works.
-        let good = Theme.make(identifier: "Angriff",
+        let good = Theme.make(identifier: "Attack",
                               styleSheet: ThemeStyleSheetParser.parse(
                                   ":root { --apollo-background-image: url(\"ok.png\"); }"),
                               assets: .folder(folder))
@@ -214,10 +214,10 @@ struct ThemeLoaderTests {
     func assetTooLarge() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let folder = try folderTheme(in: root, named: "Gross", css: ":root {}")
+        let folder = try folderTheme(in: root, named: "Big", css: ":root {}")
         try pixel.write(to: folder.appendingPathComponent("bg.png"))
         let limits = ThemeLimits(maxAssetBytes: 4)
-        let theme = Theme.make(identifier: "Gross",
+        let theme = Theme.make(identifier: "Big",
                                styleSheet: ThemeStyleSheetParser.parse(
                                    ":root { --apollo-background-image: url(\"bg.png\"); }"),
                                assets: .folder(folder, limits: limits), limits: limits)
@@ -231,13 +231,13 @@ struct ThemeLoaderTests {
     func singleFileHasNoAssets() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        try pixel.write(to: root.appendingPathComponent("fremd.png"))
-        let file = try write(":root { --apollo-background-image: url(\"fremd.png\"); }",
-                             to: root.appendingPathComponent("Neugierig.css"))
+        try pixel.write(to: root.appendingPathComponent("foreign.png"))
+        let file = try write(":root { --apollo-background-image: url(\"foreign.png\"); }",
+                             to: root.appendingPathComponent("Curious.css"))
         let theme = ThemeLoader.load(at: file)
         #expect(theme.file(.backgroundImage) == nil)
         #expect(theme.issues.contains {
-            $0.kind == .rejectedAsset(reference: "fremd.png", reason: .needsThemeFolder)
+            $0.kind == .rejectedAsset(reference: "foreign.png", reason: .needsThemeFolder)
         })
     }
 
@@ -247,7 +247,7 @@ struct ThemeLoaderTests {
     func emptyFile() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let file = try write("", to: root.appendingPathComponent("Leer.css"))
+        let file = try write("", to: root.appendingPathComponent("Empty.css"))
         let theme = ThemeLoader.load(at: file)
         #expect(theme.color(.accent) == nil)
         #expect(theme.issues.isEmpty)
@@ -294,8 +294,8 @@ struct ThemeLoaderTests {
     func styleSheetTooLarge() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let file = root.appendingPathComponent("Riesig.css")
-        let filler = String(repeating: "/* Fuellung, damit es weh tut */\n", count: 20_000)
+        let file = root.appendingPathComponent("Huge.css")
+        let filler = String(repeating: "/* Filler, to make it hurt */\n", count: 20_000)
         try write(":root { --apollo-accent-color: #ff0000; }\n" + filler, to: file)
         let theme = ThemeLoader.load(at: file)
         #expect(theme.color(.accent) == nil)
@@ -306,8 +306,8 @@ struct ThemeLoaderTests {
     func largeButAllowed() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let file = root.appendingPathComponent("Gross.css")
-        let filler = String(repeating: "/* Kommentar */\n", count: 20_000) // rund 320 KB
+        let file = root.appendingPathComponent("Big.css")
+        let filler = String(repeating: "/* Comment */\n", count: 20_000) // about 320 KB
         try write(filler + ":root { --apollo-accent-color: #ff0000; }\n", to: file)
         let theme = ThemeLoader.load(at: file)
         #expect(theme.color(.accent) == ThemeColor(hex: 0xFF0000))

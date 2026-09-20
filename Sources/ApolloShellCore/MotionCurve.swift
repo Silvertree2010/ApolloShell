@@ -1,6 +1,6 @@
 import Foundation
 
-/// Kontrollpunkte einer CSS-Bezierkurve, `cubic-bezier(x1, y1, x2, y2)`.
+/// Control points of a CSS Bezier curve, `cubic-bezier(x1, y1, x2, y2)`.
 public struct MotionCurve: Equatable, Sendable {
     public let x1: Double
     public let y1: Double
@@ -14,11 +14,11 @@ public struct MotionCurve: Equatable, Sendable {
         self.y2 = y2
     }
 
-    /// Caelestias expressiveDefaultSpatial (plugin/src/Caelestia/Config/
-    /// tokens.hpp): schiesst leicht ueber (y1 = 1,21) und rastet ein. Die
-    /// Standardbewegung der Shell fuer Groesse und Lage - Panels, Popout,
-    /// Kurzmeldungen, Anzeiger.
+    /// Caelestia's expressiveDefaultSpatial (plugin/src/Caelestia/Config/
+    /// tokens.hpp): slightly overshoots (y1 = 1.21) and settles in. The
+    /// shell's default motion for size and position - panels, popout,
+    /// toasts, indicators.
     public static let spatial = MotionCurve(0.38, 1.21, 0.22, 1)
-    /// Dauer, die Caelestia dazu nimmt.
+    /// Duration Caelestia uses for it.
     public static let spatialDuration: Double = 0.5
 }

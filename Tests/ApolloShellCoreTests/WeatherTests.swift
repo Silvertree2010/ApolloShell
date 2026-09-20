@@ -85,7 +85,7 @@ struct OpenMeteoDecodingTests {
         #expect(r.days[0].sunrise == nil)
         #expect(r.days[0].precipitationProbability == nil)
         #expect(r.current.humidity == nil)
-        #expect(r.current.isDay) // ohne Angabe lieber Tag als Nacht
+        #expect(r.current.isDay) // without info, prefer day over night
     }
 
     @Test("Without a zone name: the offset out of utc_offset_seconds")
@@ -250,7 +250,7 @@ struct WeatherReportTests {
         let strip = try report().hourlyStrip(now: zurich(14, 2, 10))
         #expect(strip.map(\.time) == [zurich(14, 2), zurich(14, 4), zurich(14, 6)])
         #expect(strip[0].isNow)
-        #expect(strip[0].temperature == 16.8) // Vorhersage 02:00, nicht "aktuell" von 01:00
+        #expect(strip[0].temperature == 16.8) // forecast for 02:00, not "current" from 01:00
     }
 
     @Test("Before the first hour no Now, after the last one nothing")

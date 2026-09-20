@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// Bindung an die Optionen eines Eintrags: lesen ueber den Zugriff der Art
-/// (z. B. `\.clock`), schreiben als neuer Baustein derselben Art - wie
-/// `NexusBarOptions.binding` und `NexusDashboardCardOptions.binding` es beide
-/// bauten. `get`/`set` holen bzw. schreiben den ganzen Baustein (Leiste: nach
-/// Kennung; Dashboard: nach Karten-Art), `read`/`make` greifen dessen
-/// Optionen heraus bzw. bauen ihn mit neuen Optionen neu auf.
+/// Binding to the options of an entry: read via the access of the kind
+/// (e.g. `\.clock`), write as a new widget of the same kind - as
+/// `NexusBarOptions.binding` and `NexusDashboardCardOptions.binding` both
+/// built it. `get`/`set` fetch resp. write the whole widget (bar: by
+/// identifier; dashboard: by card kind), `read`/`make` pull its
+/// options out resp. rebuild it with new options.
 @MainActor
 func nexusOptionsBinding<Module, T: Sendable>(
     get: @escaping @MainActor () -> Module?,

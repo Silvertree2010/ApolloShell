@@ -60,12 +60,12 @@ struct ThemeGradientTests {
     @Test("what cannot be read safely gives nothing")
     func rejectsUnreadable() {
         #expect(gradient("") == nil)
-        #expect(gradient("linear-gradient(#000)") == nil, "eine Farbe ist kein Verlauf")
-        #expect(gradient("radial-gradient(#000, #fff)") == nil, "nur geradlinig")
+        #expect(gradient("linear-gradient(#000)") == nil, "a color is not a gradient")
+        #expect(gradient("radial-gradient(#000, #fff)") == nil, "linear only")
         #expect(gradient("linear-gradient(#000, #nonsense)") == nil)
-        #expect(gradient("#ff0000") == nil, "eine Farbe ist kein Verlauf")
+        #expect(gradient("#ff0000") == nil, "a color is not a gradient")
         #expect(gradient("linear-gradient(#111, #222, #333, #444, #555, #666, #777, #888, #999)") == nil,
-                "mehr als \(ThemeGradient.maximumStops) Farbstellen")
+                "more than \(ThemeGradient.maximumStops) color stops")
     }
 
     @Test("written and read back gives the same gradient")
@@ -98,7 +98,7 @@ struct ThemeGradientTests {
           --apollo-panel-gradient: radial-gradient(#000, #fff);
         }
         """)
-        let theme = Theme.make(identifier: "kaputt", styleSheet: sheet)
+        let theme = Theme.make(identifier: "broken", styleSheet: sheet)
         #expect(theme.gradient(.panel) == nil)
         #expect(theme.issues.contains { $0.description.contains("--apollo-panel-gradient") })
     }

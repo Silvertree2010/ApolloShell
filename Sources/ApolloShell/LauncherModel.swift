@@ -2,7 +2,7 @@ import AppKit
 import ApolloShellCore
 import Observation
 
-/// Zustand der Liste: Suchtext, sortierte Apps, Auswahl.
+/// State of the list: search text, sorted apps, selection.
 @MainActor
 @Observable
 final class LauncherModel {
@@ -11,15 +11,15 @@ final class LauncherModel {
     }
     private(set) var results: [AppEntry] = []
     var selectedIndex = 0
-    /// Zaehlt hoch bei jedem Oeffnen, damit die Ansicht das Suchfeld
-    /// neu fokussiert (onAppear laeuft nur einmal, das Panel bleibt bestehen).
+    /// Counts up on every opening, so the view refocuses the search field
+    /// (onAppear only runs once, the panel stays alive).
     private(set) var openCount = 0
 
-    /// Wird von aussen gesetzt: App starten bzw. Launcher schliessen.
+    /// Set from outside: launch app or close the launcher.
     @ObservationIgnored var onLaunch: (AppEntry) -> Void = { _ in }
     @ObservationIgnored var onClose: () -> Void = {}
-    /// Rechtsklick auf eine Zeile: Der Controller baut das Menue (das der App
-    /// selbst, siehe `AppleDockMenu`) und oeffnet es an dieser Ansicht.
+    /// Right-click on a row: the controller builds the menu (the app's own,
+    /// see `AppleDockMenu`) and opens it at this view.
     @ObservationIgnored var onRightClick: (AppEntry, NSView) -> Void = { _, _ in }
 
     @ObservationIgnored private var all: [AppEntry] = []

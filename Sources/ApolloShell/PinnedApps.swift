@@ -1,14 +1,14 @@
 import Foundation
 import ApolloShellCore
 
-/// Angeheftete Apps: stehen ohne Suchtext immer ganz oben, in fester
-/// Reihenfolge. Liegen als Bundle-IDs in
+/// Pinned apps: always stay on top without search text, in a fixed
+/// order. Kept as bundle IDs in
 /// ~/Library/Application Support/ApolloShell/pinned.json:
 ///
 ///     { "pinned": ["com.vivaldi.Vivaldi", "net.kovidgoyal.kitty", ...] }
 ///
-/// Wird bei jedem Oeffnen neu gelesen, Aenderungen gelten also sofort.
-/// Fehlt die Datei oder ist sie kaputt, gibt es einfach keine Pins.
+/// Reread on every opening, so changes take effect immediately.
+/// If the file is missing or broken, there simply are no pins.
 enum PinnedApps {
     private struct File: Decodable {
         var pinned: [String]

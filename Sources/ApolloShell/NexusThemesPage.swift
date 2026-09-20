@@ -3,11 +3,11 @@ import ApolloShellCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Nexus > Themes: welches Theme gilt, was im Ordner liegt, was daran auffiel.
+/// Nexus > Themes: which theme applies, what is in the folder, what stood out.
 ///
-/// Gewaehlt wird sofort - die ganze Shell faerbt um, ohne Neustart. Der
-/// Ordner wird beobachtet (`ThemeStore`), wer also eine .css speichert, sieht
-/// das Ergebnis im selben Moment.
+/// Chosen takes effect at once - the whole shell recolors, without a restart.
+/// The folder is watched (`ThemeStore`), so whoever saves a .css sees
+/// the result at the very same moment.
 struct NexusThemesPage: View {
     @Bindable var store: ShellSettingsStore
     let themes: ThemeStore?
@@ -126,7 +126,7 @@ struct NexusThemesPage: View {
     }
 }
 
-/// Eine Zeile der Theme-Liste: Name, Unterzeile, Haken beim gewaehlten.
+/// A row of the theme list: name, subtitle, checkmark on the selected one.
 private struct NexusThemeRow: View {
     let title: String
     let subtitle: String

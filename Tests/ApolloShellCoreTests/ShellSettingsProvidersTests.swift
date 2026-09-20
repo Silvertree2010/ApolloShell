@@ -2,18 +2,18 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Nexus: Anbieter in settings.json")
+@Suite("Nexus: providers in settings.json")
 struct ShellSettingsProvidersTests {
-    @Test("ohne Abschnitt: Open-Meteo und automatischer Dateimanager")
+    @Test("without a section: Open-Meteo and automatic file manager")
     func missing() {
         let settings = ShellSettings.load(from: Data(#"{"bar":{"showClock":false}}"#.utf8))
         #expect(settings.providers == ShellSettings.Providers())
         #expect(settings.providers.weather == .openMeteo && settings.providers.fileManager == nil)
-        // Der alte Schalter wandert in die Leiste (BarLayout.migrated): ohne Uhr.
+        // The old switch moves into the bar (BarLayout.migrated): without a clock.
         #expect(!settings.bar.layout.contains(.clock))
     }
 
-    @Test("gueltig, unbekannt, falscher Typ, leer", arguments: [
+    @Test("valid, unknown, wrong type, empty", arguments: [
         (#"{"providers":{"weather":"metNorway"}}"#, "metNorway", Optional<String>.none),
         (#"{"providers":{"weather":"wttr","fileManager":"org.yanex.marta"}}"#, "wttr", "org.yanex.marta"),
         (#"{"providers":{"weather":"darksky","fileManager":"com.apple.finder"}}"#, "openMeteo", "com.apple.finder"),
@@ -21,7 +21,7 @@ struct ShellSettingsProvidersTests {
         (#"{"providers":{"fileManager":"   "}}"#, "openMeteo", nil),
         (#"{"providers":{"fileManager":" com.cocoatech.PathFinder "}}"#, "openMeteo", "com.cocoatech.PathFinder"),
         (#"{"providers":{"fileManager":null}}"#, "openMeteo", nil),
-        (#"{"providers":"kaputt"}"#, "openMeteo", nil),
+        (#"{"providers":"broken"}"#, "openMeteo", nil),
         (#"{"providers":[]}"#, "openMeteo", nil),
     ])
     func decoding(json: String, weather: String, fileManager: String?) {
@@ -30,13 +30,13 @@ struct ShellSettingsProvidersTests {
         #expect(providers.fileManager == fileManager)
     }
 
-    @Test("kaputter Abschnitt laesst die anderen stehen")
+    @Test("a broken section leaves the others intact")
     func isolated() {
         let settings = ShellSettings.load(from: Data(#"{"providers":{"weather":"wttr"},"toasts":{"batteryWarnings":false}}"#.utf8))
         #expect(settings == ShellSettings(toasts: .init(batteryWarnings: false), providers: .init(weather: .wttr)))
     }
 
-    @Test("schreiben und wieder lesen", arguments: [
+    @Test("write and read back", arguments: [
         ("openMeteo", Optional<String>.none), ("metNorway", "com.apple.finder"), ("wttr", "org.yanex.marta"),
     ])
     func roundTrip(weather: String, fileManager: String?) throws {
@@ -45,7 +45,7 @@ struct ShellSettingsProvidersTests {
         #expect(ShellSettings.load(from: settings.encoded()) == settings)
     }
 
-    @Test("die Datei nennt die Schluessel, fileManager auch leer", arguments: [
+    @Test("the file names the keys, fileManager too when empty", arguments: [
         "\"providers\"", "\"weather\" : \"openMeteo\"", "\"fileManager\" : null",
     ])
     func keysWritten(text: String) {

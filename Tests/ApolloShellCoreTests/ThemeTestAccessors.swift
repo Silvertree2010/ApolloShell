@@ -1,7 +1,7 @@
 import ApolloShellCore
 
-// Kurze, getippte Griffe fuer die Tests. `.accent` gibt es als Farbe und als
-// Verlauf; hier ist klar, welches gemeint ist. Die App liest ueber
+// Short, typed handles for the tests. `.accent` exists as a color and as
+// a gradient; here it is clear which one is meant. The app reads via
 // `ShellStyle`.
 extension Theme {
     func color(_ token: ThemeColorToken, dark: Bool = false) -> ThemeColor? { value(token, dark: dark) }

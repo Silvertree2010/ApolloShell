@@ -36,8 +36,8 @@ struct ThemeResolveTests {
 
     @Test("an unknown token: ignore it, but report it - with a line number")
     func unknownToken() {
-        let theme = theme(":root {\n  --apollo-gibt-es-nicht: red;\n}")
-        #expect(theme.issues == [ThemeIssue(.unknownToken("--apollo-gibt-es-nicht"), line: 2)])
+        let theme = theme(":root {\n  --apollo-does-not-exist: red;\n}")
+        #expect(theme.issues == [ThemeIssue(.unknownToken("--apollo-does-not-exist"), line: 2)])
     }
 
     @Test("another namespace stays silent")
@@ -55,7 +55,7 @@ struct ThemeResolveTests {
 
     @Test("one unreadable value does not topple the readable one before it")
     func lastReadableWins() {
-        let theme = theme(":root { --apollo-bar-width: 40px; --apollo-bar-width: keine-ahnung; }")
+        let theme = theme(":root { --apollo-bar-width: 40px; --apollo-bar-width: no-idea; }")
         #expect(theme.number(.barWidth) == 40)
     }
 

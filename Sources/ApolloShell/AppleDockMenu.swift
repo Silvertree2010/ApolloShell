@@ -11,7 +11,7 @@ import os
 /// "New Private Window", whatever it offers. This way is open to Apple's Dock
 /// only; from outside there is no interface for it. Entries guessed out of the
 /// menu bar are therefore always an approximation.
-/// eine Naeherung.
+///
 /// What does work: let Apple's Dock build the menu tree and read it through
 /// the accessibility API. That way every app gets exactly its own entries,
 /// including "Options" with everything Apple puts in there.
@@ -40,21 +40,21 @@ enum AppleDockMenu {
 
     private static func read(bundleID: String) -> [DockMenuNode] {
         guard let item = dockItem(bundleID: bundleID) else {
-            log.notice("kein Dock-Symbol fuer \(bundleID, privacy: .public)")
+            log.notice("no Dock icon for \(bundleID, privacy: .public)")
             return []
         }
         guard AXUIElementPerformAction(item, kAXShowMenuAction as CFString) == .success else {
-            log.notice("AXShowMenu abgelehnt fuer \(bundleID, privacy: .public)")
+            log.notice("AXShowMenu rejected for \(bundleID, privacy: .public)")
             return []
         }
         defer { dismiss(item) }
         guard let menu = openMenu(of: item) else {
-            log.notice("kein Menue nach AXShowMenu fuer \(bundleID, privacy: .public)")
+            log.notice("no menu after AXShowMenu for \(bundleID, privacy: .public)")
             return []
         }
         // Read here, interpret in the core (`DockMenuTree`, checked).
         let items = DockMenuTree.nodes(from: read(menu, depth: 0))
-        log.notice("Apples Dock-Menue fuer \(bundleID, privacy: .public): \(items.count) Eintraege")
+        log.notice("Apple's Dock menu for \(bundleID, privacy: .public): \(items.count) entries")
         return items
     }
 
@@ -96,7 +96,7 @@ enum AppleDockMenu {
             let children = AX.elements(current, kAXChildrenAttribute)
             // Look at the place the entry stood first, and only search by title
             // when the title there no longer fits (the menu has changed).
-            // geaendert) nach dem Titel suchen.
+            //
             let atIndex = children.indices.contains(step.index) ? children[step.index] : nil
             let match = (atIndex.flatMap { AX.string($0, kAXTitleAttribute) == step.title ? $0 : nil })
                 ?? children.first { AX.string($0, kAXTitleAttribute) == step.title }

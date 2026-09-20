@@ -1,20 +1,20 @@
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Sitzungsmenue")
+@Suite("Session menu")
 struct SessionActionTests {
-    @Test("Reihenfolge wie Caelestia, Emblem zwischen Ausschalten und Ruhezustand")
+    @Test("Order like Caelestia, emblem between shut down and sleep")
     func orderMatchesCaelestia() {
         #expect(SessionAction.menuOrder == [.logOut, .shutDown, .sleep, .restart])
         #expect(SessionAction.menuOrder[SessionAction.emblemSlot] == .sleep)
     }
 
-    @Test("keine Vorauswahl beim Oeffnen")
+    @Test("no preselection on open")
     func noSelectionInitially() {
         #expect(SessionSelection().action == nil)
     }
 
-    @Test("erster Pfeil: runter markiert den obersten, hoch den untersten Knopf")
+    @Test("first arrow: down highlights the top button, up the bottom one")
     func firstArrowStartsAtAnEnd() {
         var down = SessionSelection()
         down.move(by: 1)
@@ -24,7 +24,7 @@ struct SessionActionTests {
         #expect(up.action == .restart)
     }
 
-    @Test("Pfeile bewegen die Auswahl ohne Umlauf")
+    @Test("Arrows move the selection without wraparound")
     func moveClampsWithoutWrap() {
         var selection = SessionSelection()
         selection.move(by: 1)
@@ -38,14 +38,14 @@ struct SessionActionTests {
         #expect(selection.action == .restart)
     }
 
-    @Test("Direkte Auswahl per Maus")
+    @Test("Direct selection by mouse")
     func selectByAction() {
         var selection = SessionSelection()
         selection.select(.sleep)
         #expect(selection.action == .sleep)
     }
 
-    @Test("Befehle hinter den Knoepfen", arguments: [
+    @Test("Commands behind the buttons", arguments: [
         (SessionAction.sleep, "/usr/bin/pmset", ["sleepnow"]),
         (SessionAction.restart, "/usr/bin/osascript", ["-e", "tell application \"System Events\" to restart"]),
         (SessionAction.shutDown, "/usr/bin/osascript", ["-e", "tell application \"System Events\" to shut down"]),

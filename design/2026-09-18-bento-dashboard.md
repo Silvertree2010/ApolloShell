@@ -183,7 +183,7 @@ the whole shell:
   centre (bottom right) open and stay open until the mode ends. The power
   menu does not take part in 0.2.
 - **Toolbar:** a small floating bar at the bottom centre with **+**,
-  **Abbrechen** and **Fertig**.
+  **Cancel** and **Done**.
 - **Gallery:** **+** opens a floating gallery in the middle of the screen with
   one tab per surface (“Dashboard”, “Control Centre”). Only elements whose
   home is that surface are listed; “Show all (advanced)” also lists the
@@ -192,10 +192,10 @@ the whole shell:
 - **Dashboard while editing:** widgets wobble (±0.3°), `−` removes, the corner
   handle resizes, dragging moves; everything snaps (section 2). Clicking a
   widget opens its options in a popover next to it. Pages are managed in the
-  page bar: `+` adds a page, right click on a page offers Umbenennen, Symbol,
+  page bar: `+` adds a page, right click on a page offers Rename, Icon,
   Duplicate, Delete. Switching pages works as usual.
-- **Control centre while editing:** cards (Wach halten, Audio,
-  Schnellschalter) and toggles wobble and have `−`; cards reorder vertically,
+- **Control centre while editing:** cards (Keep Awake, Audio,
+  Quick Toggles) and toggles wobble and have `−`; cards reorder vertically,
   toggles reorder in their grid by dragging (it is a grid, not free
   placement). Clicking a toggle with options (app, link, shortcut, hide apps)
   opens them in a popover. Removed cards come back from the gallery.

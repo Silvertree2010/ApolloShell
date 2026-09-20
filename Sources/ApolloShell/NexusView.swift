@@ -165,7 +165,7 @@ struct NexusView: View {
     var body: some View {
         NavigationSplitView {
             NexusSidebar(state: state, beginEditing: shell.beginEditing)
-                .searchable(text: $state.search, placement: .sidebar, prompt: "Suchen")
+                .searchable(text: $state.search, placement: .sidebar, prompt: "Search")
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 300)
                 .toolbar(removing: .sidebarToggle)
         } detail: {

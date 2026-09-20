@@ -1,10 +1,10 @@
 import Foundation
 
-/// Eine startbare App, so wie sie in der Liste erscheint.
+/// A launchable app, as it appears in the list.
 public struct AppEntry: Hashable, Sendable, Identifiable {
     public var id: URL { url }
 
-    /// Schluessel fuer die Nutzungsstatistik: Bundle-ID, sonst der Pfad.
+    /// Key for the usage statistics: bundle ID, otherwise the path.
     public var usageKey: String { bundleID ?? url.path }
 
     public let name: String

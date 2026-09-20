@@ -2,10 +2,10 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-// Die Seiten "Allgemein" und "Tastenkürzel" - was jemand einstellen muss,
-// der die Shell zum ersten Mal auf seinem Mac hat.
+// The "General" and "Hotkeys" pages - what someone has to set up
+// the first time they run the shell on their Mac.
 
-/// Allgemein: Start bei der Anmeldung und die Freigaben.
+/// General: launch at login and permissions.
 struct NexusGeneralPage: View {
     static let watcher = "nexus"
 
@@ -47,7 +47,7 @@ struct NexusGeneralPage: View {
     }
 }
 
-/// Tastenkürzel: die vier globalen Kuerzel mit Aufnahmefeld, dazu Vorlagen.
+/// Hotkeys: the four global shortcuts with a recorder field, plus defaults.
 struct NexusHotKeysPage: View {
     @Bindable var store: ShellSettingsStore
     let center: HotKeyCenter

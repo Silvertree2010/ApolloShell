@@ -7,11 +7,11 @@ private final class Counter {
     var count = 0
 }
 
-@Suite("Timer auf dem Hauptthread")
+@Suite("Timer on the main thread")
 @MainActor
 struct MainTimerTests {
-    /// Laesst die RunLoop des Hauptthreads laufen, bis `done` gilt oder die
-    /// Zeit um ist.
+    /// Runs the main thread's RunLoop until `done` is true or the
+    /// time is up.
     private func spin(for seconds: TimeInterval, until done: () -> Bool = { false }) {
         let end = Date().addingTimeInterval(seconds)
         while !done(), Date() < end {
@@ -19,7 +19,7 @@ struct MainTimerTests {
         }
     }
 
-    @Test("Wiederholt, solange der Besitzer lebt")
+    @Test("Repeats as long as the owner lives")
     func repeats() {
         let counter = Counter()
         let timer = Timer.repeating(every: 0.01, tolerance: 0.005, owner: counter) { $0.count += 1 }
@@ -29,7 +29,7 @@ struct MainTimerTests {
         #expect(counter.count >= 3)
     }
 
-    @Test("Ohne Besitzer beendet sich ein wiederholender Timer selbst")
+    @Test("A repeating timer stops itself without an owner")
     func stopsWithoutOwner() {
         var counter: Counter? = Counter()
         let timer = Timer.repeating(every: 0.01, owner: counter!) { $0.count += 1 }
@@ -38,12 +38,12 @@ struct MainTimerTests {
         #expect(!timer.isValid)
     }
 
-    @Test("Einmal: feuert einmal, ohne Besitzer gar nicht")
+    @Test("Once: fires once, not at all without an owner")
     func once() {
         let counter = Counter()
         Timer.once(after: 0.01, owner: counter) { $0.count += 1 }
         var gone: Counter? = Counter()
-        let ignored = Timer.once(after: 0.01, owner: gone!) { _ in Issue.record("Besitzer ist weg") }
+        let ignored = Timer.once(after: 0.01, owner: gone!) { _ in Issue.record("owner is gone") }
         gone = nil
         spin(for: 2) { counter.count == 1 && !ignored.isValid }
         spin(for: 0.05)

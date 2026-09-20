@@ -53,7 +53,7 @@ struct UtilitiesAudioDevicesTests {
               canBeDefaultOutput: true, canBeDefaultInput: false, hidden: false),
         .init(id: 200, name: "CADefaultDeviceAggregate", outputStreams: 2, inputStreams: 1,
               canBeDefaultOutput: true, canBeDefaultInput: true, hidden: true),
-        .init(id: 201, name: "Nur Ausgang, nicht waehlbar", outputStreams: 1, inputStreams: 0,
+        .init(id: 201, name: "Output only, not selectable", outputStreams: 1, inputStreams: 0,
               canBeDefaultOutput: false, canBeDefaultInput: false, hidden: false),
     ]
 
@@ -103,10 +103,10 @@ struct UtilitiesAudioDevicesTests {
 @Suite("The utilities panel: keyboard shortcuts out of symbolichotkeys")
 struct UtilitiesHotKeyTests {
     @Test("The key code and the mask as stored; the mask only modifier bits", arguments: [
-        ([65535, 103, 0], 103, 0),                      // Schreibtisch anzeigen, gemessen: F11 ohne Fn
+        ([65535, 103, 0], 103, 0),                      // Show Desktop, measured: F11 without Fn
         ([53, 23, 1_179_648], 23, 0x12_0000),           // ⌘⇧5
-        ([65535, 125, 0x84_0000], 125, 0x84_0000),      // ⌃↓ mit Fn, wie echte Pfeiltasten
-        ([113, 12, 0x114_0000], 12, 0x14_0000),         // Bit ausserhalb der Maske faellt weg
+        ([65535, 125, 0x84_0000], 125, 0x84_0000),      // ⌃↓ with Fn, like real arrow keys
+        ([113, 12, 0x114_0000], 12, 0x14_0000),         // bit outside the mask is dropped
     ])
     func resolved(parameters: [Int], keyCode: Int, modifiers: Int) {
         let key = UtilitiesHotKey.resolve(enabled: true, parameters: parameters, fallback: .showDesktopDefault)
