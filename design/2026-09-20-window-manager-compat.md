@@ -63,14 +63,54 @@ and it is the first thing the VM test has to try.
    above whom, does the sidebar overlap it?
 5. Stage Manager on, and a full-screen app on a second space.
 
-### How to set it up
+## The VM test, run on 20.09.2026
 
-Room is there since the evening of 20.09.2026 (207 GB free). What is left is
-the part a person has to do, because none of it can be driven without a
-screen: macOS' Setup Assistant, and granting Accessibility to a window
-manager. Both are GUI, and the guest's window would be on the host's screen.
+Guest: macOS 26.6.2 in a tart VM (`ghcr.io/cirruslabs/macos-tahoe-base`),
+1024 x 768 pt, ApolloShell 0.2.0 (build 286) out of `build/ApolloShell.app`,
+next to yabai, AeroSpace, Amethyst, Rectangle and SketchyBar.
 
-The shortest path:
+1. **The strip and a tiling manager do not fight.** yabai in `bsp` tiles its
+   windows to `x = 0`, under the bar. `WindowGuard` pushes a window out of
+   the strip within about half a second when nothing else moves it (measured:
+   `0,100` becomes `44,100`), but against yabai it gives up: the ledger in
+   `WindowClamp` allows three attempts in five seconds and then keeps quiet
+   (`ClampLedger(maxAttempts: 3, period: 5)`). Ten seconds of sampling show
+   no oscillation, and both processes stay at 0.0 % CPU.
+
+   What is left over is the other half of it: with a tiling manager the
+   windows stand **under** the bar, and 44 pt of them are covered. That is
+   not a fight, it is a setting the person has to make - yabai
+   `left_padding 44`, AeroSpace `outer.left = 44`. It belongs in the readme,
+   not in the code.
+2. **The edit mode holds up under a window manager.** Scrim over the whole
+   screen, dashboard, control centre, toolbar and the bar all in place, the
+   bar with its `-` badges. Esc closes the gallery first, the second Esc
+   ends the mode and brings Nexus back. Nothing of the mode was tiled,
+   moved or hidden.
+3. **Rectangle's shortcut does not reach it.** With the mode running,
+   ctrl-alt-left moved nothing of the shell: its panels never become the
+   focused window, which is the only thing Rectangle acts on.
+4. **SketchyBar alongside** changes nothing about the mode; it draws where
+   it draws, below the scrim.
+5. **On a 1024 pt screen the gallery cannot keep clear of the control
+   centre.** It steps as far left as it can and then stands over the panel:
+   760 pt of gallery do not fit beside 430 pt of panel on 1024 pt of
+   screen. Staying on the screen wins, which is what
+   `EditModeGeometry.galleryCenter` decides. A gallery that shrinks on a
+   narrow screen would be the real answer - an open question, not a bug.
+
+Not tried: Amethyst (installed, not driven), Stage Manager, a second space
+in full screen.
+
+### How the VM was set up
+
+The prebuilt image turned out to have SIP switched off, which settled the
+part that looked like it needed a pair of hands: the Accessibility grants
+went into the guest's TCC database directly, and the guest's own screen was
+driven over SSH with `osascript` and read back with `screencapture` - the
+host's screen was never touched.
+
+The path:
 
 1. `brew install cirruslabs/cli/tart`
 2. `tart clone ghcr.io/cirruslabs/macos-sequoia-base:latest compat` - a

@@ -169,6 +169,12 @@ only ever touches the focused window, which these never are. The other way
 round, the strip ApolloShell keeps clear for its sidebar only moves standard
 windows, so it leaves another bar alone.
 
+Give your window manager a gap of the bar's width, though. ApolloShell tries
+to push a window out of the strip, but it gives up after a few attempts
+rather than fight your tiler over the same window - so without a gap, tiled
+windows end up 44 pt underneath the bar. In yabai that is
+`yabai -m config left_padding 44`, in AeroSpace `outer.left = 44`.
+
 **Private interfaces.** Spaces, fullscreen detection, Night Shift, dark mode,
 window lists and "now playing" use undocumented macOS APIs (SkyLight,
 CoreBrightness, HIServices, MediaRemote through [mediaremote-adapter][mra]).
