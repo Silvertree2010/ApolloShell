@@ -2,15 +2,15 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Gruppen der Seitenleiste, nach Caelestias Kategorien (PageRegistry:
+/// The groups of the sidebar, after Caelestia's categories (PageRegistry:
 /// appearance, connectivity, system, shell, about).
 ///
-/// Caelestia verschachtelt: "Panels" ist eine Seite mit Unterseiten
-/// (Dashboard, Taskbar, Launcher, ...). Die Systemeinstellungen von macOS
-/// haben eine flache Seitenleiste; deshalb stehen die Unterseiten hier
-/// direkt unter der Ueberschrift "Panels". Was macOS selbst regelt (Netzwerk,
-/// Bluetooth, Ton, Hintergrund, Sprache - bei Caelestia eigene Seiten), ist
-/// eine Seite mit Spruengen in die Systemeinstellungen, keine Nachbildung.
+/// Caelestia nests: "Panels" is one page with subpages (Dashboard, Taskbar,
+/// Launcher, ...). The System Settings of macOS have a flat sidebar; so the
+/// subpages stand right under the heading "Panels" here. What macOS handles
+/// itself (network, Bluetooth, sound, background, language - pages of their
+/// own in Caelestia) is one page with jumps into System Settings, not a
+/// rebuild.
 enum NexusSection: CaseIterable, Identifiable {
     case general, panels, services, system, about
 
@@ -18,7 +18,7 @@ enum NexusSection: CaseIterable, Identifiable {
 
     var title: String? {
         switch self {
-        // Oberste Gruppe ohne Ueberschrift, wie in den Systemeinstellungen.
+        // The topmost group without a heading, as in System Settings.
         case .general: nil
         case .panels: String(localized: "Panels")
         case .services: String(localized: "Services")
@@ -28,8 +28,8 @@ enum NexusSection: CaseIterable, Identifiable {
     }
 }
 
-/// Eine Seite von Nexus. Titel und Unterzeile wie Caelestias PageRegistry
-/// (label, description), auf Deutsch.
+/// One page of Nexus. The title and the subtitle as in Caelestia's
+/// PageRegistry (label, description).
 enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
     case general, hotKeys, bar, launcher, desktop, themes, toasts, providers, updates, system, about
 
@@ -83,7 +83,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         }
     }
 
-    /// Kachelfarbe wie in den Systemeinstellungen: jede Seite ihre eigene.
+    /// The tile color as in System Settings: every page its own.
     var tint: Color {
         switch self {
         case .general: .gray
@@ -109,7 +109,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         }
     }
 
-    /// Zusaetzliche Suchwoerter (Caelestia: "Search settings").
+    /// Extra search words (Caelestia: "Search settings").
     var keywords: [String] {
         switch self {
         case .general: ["autostart", "anmeldung", "anmeldeobjekte", "login", "bedienungshilfen", "freigabe",
@@ -140,7 +140,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
     }
 }
 
-/// Welche Seite offen ist und was in der Suche steht (Caelestia: NexusState).
+/// Which page is open and what stands in the search (Caelestia: NexusState).
 @MainActor
 @Observable
 final class NexusState {
@@ -148,9 +148,9 @@ final class NexusState {
     var search = ""
 }
 
-/// Das Fenster: Seitenleiste links, Seite rechts - aufgebaut wie die
-/// Systemeinstellungen (NavigationSplitView, gruppierte Formulare). Das
-/// Liquid-Glass der Seitenleiste bringt macOS 26 selbst mit.
+/// The window: the sidebar on the left, the page on the right - built like
+/// System Settings (NavigationSplitView, grouped forms). The Liquid Glass of
+/// the sidebar comes with macOS 26 itself.
 struct NexusView: View {
     @Bindable var state: NexusState
     let settings: ShellSettingsStore
@@ -173,14 +173,14 @@ struct NexusView: View {
                         providers: providers, system: system, shell: shell)
         }
         .frame(minWidth: 680, minHeight: 440)
-        // Mit Theme faerbt `--apollo-surface-color` auch das Fenster. Ohne
-        // Theme bleibt es beim Fenster von macOS, samt Glas der Seitenleiste.
+        // With a theme, `--apollo-surface-color` colors the window too.
+        // Without a theme it stays the macOS window, glass sidebar and all.
         .themedWindowBackground(style)
     }
 }
 
-/// Was die Seiten "Allgemein", "Tastenkürzel" und "Über" von der Shell
-/// brauchen: Kuerzel, Autostart, Freigaben und den Weg zur Einfuehrung.
+/// What the pages "General", "Shortcuts" and "About" need from the shell:
+/// the shortcuts, autostart, the permissions and the way to the introduction.
 struct NexusShellParts {
     let hotKeys: HotKeyCenter
     let autostart: OnboardingAutostartModel
@@ -188,16 +188,16 @@ struct NexusShellParts {
     let updates: UpdateController
     let themes: ThemeStore?
     var showOnboarding: @MainActor () -> Void = {}
-    /// Knopf „Oberfläche bearbeiten“, auf jeder Seite (`Nexus.beginEditing`).
+    /// The “Edit Interface” button, on every page (`Nexus.beginEditing`).
     var beginEditing: @MainActor () -> Void = {}
 }
 
-/// Seitenleiste (Caelestia: NavPane/NavLocations): Seiten nach Gruppen, mit
-/// Suche gefiltert. Eine Gruppe ohne Treffer verschwindet ganz.
+/// The sidebar (Caelestia: NavPane/NavLocations): the pages by group,
+/// filtered by the search. A group without a hit disappears entirely.
 struct NexusSidebar: View {
     @Bindable var state: NexusState
-    /// Knopf im Fuss, auf jeder Seite (Spec Abschnitt 4): startet den
-    /// globalen Bearbeitungsmodus fuer Dashboard und Kontrollzentrum.
+    /// The button in the footer, on every page (spec section 4): starts the
+    /// global edit mode for the dashboard and the control centre.
     let beginEditing: @MainActor () -> Void
 
     @Environment(\.shellStyle) private var style
@@ -237,7 +237,7 @@ struct NexusSidebar: View {
     }
 }
 
-/// Rechte Seite fuer die gewaehlte Seite.
+/// The right-hand side for the chosen page.
 struct NexusDetail: View {
     let page: NexusPage
     let settings: ShellSettingsStore
@@ -264,10 +264,10 @@ struct NexusDetail: View {
     }
 }
 
-// MARK: - Bausteine
+// MARK: - Building blocks
 
-/// Farbige Kachel mit weissem Symbol, wie die Seitensymbole der
-/// Systemeinstellungen.
+/// A colored tile with a white symbol, like the page symbols of System
+/// Settings.
 struct NexusTile: View {
     let symbol: String
     let tint: Color
@@ -286,8 +286,8 @@ struct NexusTile: View {
     }
 }
 
-/// Gruppiertes Formular mit der Kopfkarte oben (grosse Kachel, Titel,
-/// Beschreibung) - so beginnen die Seiten der Systemeinstellungen.
+/// A grouped form with the header card at the top (a big tile, a title, a
+/// description) - that is how the pages of System Settings begin.
 struct NexusPageForm<Content: View>: View {
     let page: NexusPage
     var title: String?
@@ -320,8 +320,8 @@ struct NexusPageForm<Content: View>: View {
     }
 }
 
-/// Schalter mit Titel und grauer Unterzeile (Caelestia: ToggleRow mit
-/// text/subtext). Immer als Schalter, nicht als Kaestchen.
+/// A switch with a title and a grey subtitle (Caelestia: ToggleRow with
+/// text/subtext). Always as a switch, never as a checkbox.
 struct NexusToggle: View {
     let title: LocalizedStringKey
     var subtitle: LocalizedStringKey?
@@ -336,13 +336,13 @@ struct NexusToggle: View {
     }
 }
 
-/// Zeile, die einen Bereich der Systemeinstellungen oeffnet.
+/// A row that opens an area of System Settings.
 struct NexusSystemLink: View {
     let title: LocalizedStringKey
     var subtitle: LocalizedStringKey?
     let symbol: String
     let tint: Color
-    /// `nil`: die Systemeinstellungen ohne Bereich.
+    /// `nil`: System Settings without an area.
     let pane: NexusSystemSettings.Pane?
 
     var body: some View {
@@ -370,12 +370,12 @@ struct NexusSystemLink: View {
     }
 }
 
-/// Spruenge in die Systemeinstellungen.
+/// Jumps into System Settings.
 ///
-/// Die Bereichs-Kennungen sind die Bundle-IDs der Einstellungs-Erweiterungen
-/// in /System/Library/ExtensionKit/Extensions (gemessen 14.09., macOS 26.6).
-/// Ohne Bereich wird die App ueber ihre Bundle-ID geoeffnet: das klappt
-/// sicher, egal wie sie nach Updates heisst oder wo sie liegt.
+/// The area ids are the bundle IDs of the settings extensions in
+/// /System/Library/ExtensionKit/Extensions (measured 14.09., macOS 26.6).
+/// Without an area the app is opened through its bundle ID: that works for
+/// sure, no matter what it is called after updates or where it lies.
 enum NexusSystemSettings {
     enum Pane: String {
         case wallpaper = "com.apple.Wallpaper-Settings.extension"
@@ -387,8 +387,8 @@ enum NexusSystemSettings {
         case softwareUpdate = "com.apple.Software-Update-Settings.extension"
         case language = "com.apple.Localization-Settings.extension"
         case about = "com.apple.SystemProfiler.AboutExtension"
-        /// Datenschutz & Sicherheit > Bedienungshilfen (Anker aus den
-        /// Suchbegriffen der Erweiterung, gemessen 14.09., macOS 26.6).
+        /// Privacy & Security > Accessibility (the anchor out of the search
+        /// terms of the extension, measured 14.09., macOS 26.6).
         case accessibility = "com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility"
     }
 

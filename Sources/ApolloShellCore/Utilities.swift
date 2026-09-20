@@ -1,24 +1,24 @@
 import Foundation
 
-/// Texte der Karte "Wach halten" im Utilities-Panel (Caelestia: IdleInhibit).
+/// The texts of the "Keep Awake" card in the utilities panel (Caelestia: IdleInhibit).
 public enum KeepAwakeText {
     public static let title = String(localized: "Keep Awake")
     public static let inactive = String(localized: "Mac sleeps normally")
 
-    /// "Aktiv seit 14:30". Laeuft es seit gestern oder laenger, gehoert der
-    /// Tag dazu - sonst liest man am Morgen "seit 23:10" als "heute Abend".
+    /// "Active since 14:30". When it has been running since yesterday or
+    /// longer, the day belongs with it - otherwise one reads "since 23:10" in
+    /// the morning as "this evening".
     ///
-    /// Feste 24-Stunden-Schreibweise statt DateFormatter mit Locale: auf
-    /// Deutsch ohnehin ueblich, und so ist das Ergebnis testbar gleich.
-    /// `lidClosed`: gilt auch bei zugeklapptem Deckel (`LidAwake`) - das soll
-    /// man sehen, weil es den Mac in der Tasche wach laesst.
+    /// A fixed 24-hour spelling instead of a DateFormatter with a locale, so
+    /// the result is testably the same. `lidClosed`: it holds with the lid
+    /// closed too (`LidAwake`) - one should see that, because it leaves the Mac awake.
     public static func subtitle(since: Date?, now: Date, lidClosed: Bool = false, calendar: Calendar = .current) -> String {
         subtitle(since: since, now: now, lid: lidClosed ? .on : .off, calendar: calendar)
     }
 
-    /// Mit dem Stand des Deckel-Teils: auch sagen, wenn er fehlt, obwohl er
-    /// eingestellt ist (Administrator abgelehnt) - sonst klappte man den Mac
-    /// im Glauben zu, er bleibe wach.
+    /// With the state of the lid part: also say when it is missing although it
+    /// is set (the administrator refused) - otherwise one would close the Mac
+    /// believing it stays awake.
     public static func subtitle(since: Date?, now: Date, lid: KeepAwakeLid, calendar: Calendar = .current) -> String {
         guard let since else { return inactive }
         let base = plainSubtitle(since: since, now: now, calendar: calendar)
@@ -44,11 +44,11 @@ public enum KeepAwakeText {
     }
 }
 
-/// Was ein Schnellschalter zeigt: Symbol, ob er leuchtet (Akzentfarbe),
-/// ob er klickbar ist, und der Text fuer Tooltip und VoiceOver.
+/// What a quick toggle shows: the symbol, whether it lights up (accent
+/// color), whether it is clickable, and the text for the tooltip and VoiceOver.
 public struct QuickToggleLook: Equatable, Sendable {
-    /// SF Symbol. `nil` heisst Bluetooth-Rune: dafuer gibt es kein SF Symbol,
-    /// die Oberflaeche zeichnet sie selbst.
+    /// An SF Symbol. `nil` means the Bluetooth rune: there is no SF Symbol for
+    /// it, and the user interface draws it itself.
     public var symbol: String?
     public var active: Bool
     public var enabled: Bool
@@ -62,12 +62,12 @@ public struct QuickToggleLook: Equatable, Sendable {
     }
 }
 
-/// Die Schnellschalter des Utilities-Panels (Caelestia: Toggles) und ihre
-/// Form. "Leuchtet" heisst wie bei Caelestia immer "ist an" - beim Mikrofon
-/// also "nicht stumm" (Caelestia: `checked: !Audio.sourceMuted`), damit die
-/// ganze Reihe gleich zu lesen ist.
+/// The quick toggles of the utilities panel (Caelestia: Toggles) and their
+/// shape. "Lights up" always means "is on", as in Caelestia - so with the
+/// microphone "not muted" (Caelestia: `checked: !Audio.sourceMuted`), so that
+/// the whole row reads the same way.
 public enum QuickToggles {
-    /// `nil`: kein WLAN-Interface gefunden, dann gibt es nichts zu schalten.
+    /// `nil`: no Wi-Fi interface found, and then there is nothing to switch.
     public static func wifi(powerOn: Bool?) -> QuickToggleLook {
         switch powerOn {
         case true?: QuickToggleLook(symbol: "wifi", active: true, enabled: true, help: String(localized: "Wi-Fi On"))
@@ -76,8 +76,8 @@ public enum QuickToggles {
         }
     }
 
-    /// `muted == nil`: kein Eingangsgeraet. `settable == false`: das Geraet
-    /// kennt keine (schreibbare) Stummschaltung - anzeigen ja, klicken nein.
+    /// `muted == nil`: no input device. `settable == false`: the device knows
+    /// no (writable) mute - showing yes, clicking no.
     public static func microphone(muted: Bool?, settable: Bool) -> QuickToggleLook {
         guard let muted else {
             return QuickToggleLook(symbol: "mic.slash", active: false, enabled: false, help: String(localized: "No Microphone"))
@@ -91,8 +91,8 @@ public enum QuickToggles {
         )
     }
 
-    /// Bluetooth zeigt nur an; Schalten geht ohne private Schnittstellen
-    /// nicht, deshalb oeffnet der Klick die Bluetooth-Einstellungen.
+    /// Bluetooth only shows the state; switching does not work without private
+    /// interfaces, so the click opens the Bluetooth settings.
     public static func bluetooth(powerOn: Bool?) -> QuickToggleLook {
         let state = switch powerOn {
         case true?: String(localized: "Bluetooth On")
@@ -103,21 +103,21 @@ public enum QuickToggles {
                                help: state + String(localized: " – Open Settings"))
     }
 
-    /// Kein Schalter, nur ein Knopf: leuchtet nie. Oeffnet wie bei Caelestia
-    /// das eigene Einstellungsfenster (Nexus), nicht die Systemeinstellungen -
-    /// die sind von Nexus aus eine Zeile entfernt.
+    /// No switch, only a button: never lights up. Opens our own settings
+    /// window (Nexus) as in Caelestia, not System Settings - those are one
+    /// line away from Nexus.
     public static let settings = QuickToggleLook(
         symbol: "gearshape.fill", active: false, enabled: true, help: String(localized: "Settings (SUPER+,)")
     )
 
-    /// Knoepfe pro Reihe. Vorgabe sind zwei Reihen zu fuenf: oben die
-    /// Schalter mit Zustand, unten die Aktionen - so liest man die Reihen wie
-    /// bei Apples Kontrollzentrum. Wie viele Reihen es werden, bestimmt die
-    /// Anordnung in Nexus (`UtilitiesLayout.toggleRows`).
+    /// Buttons per row. The default is two rows of five: the switches with a
+    /// state at the top, the actions at the bottom - that way one reads the
+    /// rows like Apple's Control Centre. How many rows it becomes is decided
+    /// by the arrangement in Nexus (`UtilitiesLayout.toggleRows`).
     public static let columns = 5
 
-    /// Leuchtet im Dunkelmodus. `nil`: Zustand nicht lesbar (weder SkyLight
-    /// noch die Voreinstellung) - dann nicht klickbar.
+    /// Lights up in dark mode. `nil`: the state cannot be read (neither
+    /// SkyLight nor the preference) - then it is not clickable.
     public static func darkMode(on: Bool?) -> QuickToggleLook {
         switch on {
         case true?: QuickToggleLook(symbol: "circle.lefthalf.filled", active: true, enabled: true, help: String(localized: "Dark Mode On"))
@@ -127,9 +127,9 @@ public enum QuickToggles {
         }
     }
 
-    /// `nil`: dieser Mac bzw. Bildschirm kann kein Night Shift, oder
-    /// CoreBrightness antwortet nicht. Der Knopf bleibt dann sichtbar, aber
-    /// aus - das Raster behaelt so seine feste Form.
+    /// `nil`: this Mac or screen cannot do Night Shift, or CoreBrightness does
+    /// not answer. The button then stays visible but off - that way the grid
+    /// keeps its fixed shape.
     public static func nightShift(enabled: Bool?) -> QuickToggleLook {
         switch enabled {
         case true?: QuickToggleLook(symbol: "sunset.fill", active: true, enabled: true, help: String(localized: "Night Shift On"))
@@ -138,15 +138,15 @@ public enum QuickToggles {
         }
     }
 
-    /// Aktionen leuchten nie, sie haben keinen Zustand.
+    /// Actions never light up, they have no state.
     public static let screenshot = QuickToggleLook(
         symbol: "camera.viewfinder", active: false, enabled: true, help: String(localized: "Screenshot or Recording (⌘⇧5)")
     )
 
-    /// `available == false`: der Kurzbefehl ist in Mission Control
-    /// abgeschaltet - ohne ihn gibt es keinen Weg, also nicht klickbar.
-    /// Symbol: Bildschirm mit leerem Schreibtisch. "menubar.dock.rectangle"
-    /// las sich in der Bildprobe 14.09. wie eine Kreditkarte.
+    /// `available == false`: the shortcut is switched off in Mission Control -
+    /// without it there is no way, so it is not clickable.
+    /// The symbol: a screen with an empty desktop. "menubar.dock.rectangle"
+    /// read like a credit card in the image sample of 14.09.
     public static func showDesktop(available: Bool) -> QuickToggleLook {
         QuickToggleLook(
             symbol: "desktopcomputer", active: false, enabled: available,
@@ -162,8 +162,8 @@ public enum QuickToggles {
         symbol: "lock.fill", active: false, enabled: true, help: String(localized: "Lock Screen (⌃⌘Q)")
     )
 
-    /// Eckenradius wie Caelestias IconButton mit `shapeMorph`: aus ganz rund
-    /// (halbe Hoehe), an ein abgerundetes Rechteck mit 12, gedrueckt 8.
+    /// The corner radius as in Caelestia's IconButton with `shapeMorph`: off
+    /// fully round (half the height), on a rounded rectangle with 12, pressed 8.
     public static func cornerRadius(active: Bool, pressed: Bool, height: Double) -> Double {
         if pressed { return 8 }
         return active ? 12 : height / 2

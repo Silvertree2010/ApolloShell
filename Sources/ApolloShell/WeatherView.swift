@@ -1,24 +1,24 @@
 import ApolloShellCore
 import SwiftUI
 
-// Wetter im Dashboard, nach Caelestia (modules/dashboard/dash/SmallWeather.qml
-// und modules/dashboard/WeatherTab.qml) in Apple-Optik: SF Symbols in
-// Mehrfarben statt Material-Icons, SF Rounded fuer die grossen Zahlen.
+// The weather in the dashboard, after Caelestia
+// (modules/dashboard/dash/SmallWeather.qml and
+// modules/dashboard/WeatherTab.qml) in an Apple look: SF Symbols in multicolor
+// instead of Material icons, SF Rounded for the big numbers.
 //
-// Beide Ansichten laufen in einer TimelineView pro Minute: "Jetzt" in der
-// Stundenleiste, "Heute" und "Stand" haengen an der Uhr, nicht nur an neuen
-// Daten.
+// Both views run in a TimelineView once a minute: "Now" in the hour row,
+// "Today" and "As of" hang on the clock, not only on new data.
 
-/// Karte im Dashboard-Raster (Caelestia: Slot 275 x 130, Radius 42): Symbol
-/// links, daneben Temperatur und Wetterlage, als Gruppe mittig wie bei
-/// Caelestia. Hochkant (untere Reihe, Seitenspalte) steht das Symbol ueber
-/// den Zahlen - nebeneinander passte es in 200 Punkte Breite nicht.
-///
-/// Nicht `WeatherCard`: so heisst der Platzhalter in DashboardView.swift, und
-/// gleichnamige Typen im Modul sind ein Fehler, auch wenn einer privat ist.
+/// The card in the dashboard grid (Caelestia: a 275 x 130 slot, radius 42):
+/// the symbol on the left, next to it the temperature and the condition, as a
+/// group in the middle as in Caelestia. In portrait (the bottom row, the side
+/// column) the symbol stands above the numbers - side by side it did not fit
+/// into 200 points of width.
+/// Not `WeatherCard`: that is the name of the placeholder in
+/// DashboardView.swift, and two types of one name in the module are a mistake.
 struct SmallWeatherCard: View {
     let model: WeatherModel
-    /// Nexus > Dashboard; die Vorgabe zeigt alles wie Caelestia.
+    /// Nexus > Dashboard; the default shows everything as in Caelestia.
     var options = DashboardWeatherOptions()
     var vertical = false
     @Environment(\.shellStyle) private var style
@@ -41,13 +41,13 @@ struct SmallWeatherCard: View {
                 }
             }
         }
-        // Quelle auch hier, nur als Hinweis: die Karte ist zu klein fuer
-        // eine eigene Zeile, der Reiter zeigt sie sichtbar.
+        // The source here too, only as a note: the card is too small for a
+        // line of its own, and the tab shows it visibly.
         .help(helpText)
-        // Kein eigener Umschalter wie beim Hero: ein Klick springt zum
-        // naechsten Favoriten - nur mit mehreren, sonst bliebe es beim
-        // selben Ort (unveraendertes Bild). Beim Bearbeiten ohne Wirkung:
-        // `EditableWidgetView` schaltet Klicks dort ab (`allowsHitTesting`).
+        // No switcher of its own as with the hero: a click jumps to the next
+        // favourite - only with several, otherwise it would stay on the same
+        // place (an unchanged image). Without effect while editing:
+        // `EditableWidgetView` switches clicks off there (`allowsHitTesting`).
         .contentShape(Rectangle())
         .onTapGesture { selectNextPlace() }
     }
@@ -65,7 +65,7 @@ struct SmallWeatherCard: View {
         return "Wetter in \(location.name) · \(model.attribution.text)"
     }
 
-    /// Symbol und Zahlen; neben- oder untereinander bestimmt der Aufrufer.
+    /// The symbol and the numbers; the caller decides side by side or stacked.
     @ViewBuilder
     private func content(now: Date, alignment: HorizontalAlignment) -> some View {
         if let report = model.report {
@@ -109,10 +109,10 @@ struct SmallWeatherCard: View {
     }
 }
 
-// MARK: - Bausteine
+// MARK: - Building blocks
 
-/// Wettersymbol in Mehrfarben (Sonne gelb, Regen blau). Der Platzhalter
-/// bleibt grau, damit "noch nichts da" nicht wie Wetter aussieht.
+/// The weather symbol in multicolor (the sun yellow, the rain blue). The
+/// placeholder stays grey, so "nothing there yet" does not look like weather.
 private struct WeatherSymbol: View {
     let name: String
     let size: CGFloat
@@ -129,10 +129,10 @@ private struct WeatherSymbol: View {
     }
 }
 
-/// Mehrfarbige Wettersymbole haben weisse Wolken, Schneeflocken und
-/// Horizontlinien - auf der hellen Karte fast unsichtbar (Bildprobe 14.09.).
-/// Im Hellen deshalb ein feiner Schatten als Kontur; im Dunkeln stehen sie
-/// von selbst.
+/// Multicolor weather symbols have white clouds, snowflakes and horizon lines
+/// - almost invisible on the light card (image sample 14.09.). In the light
+/// they therefore get a fine shadow as an outline; in the dark they stand on
+/// their own.
 private struct SymbolContour: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -141,9 +141,9 @@ private struct SymbolContour: ViewModifier {
     }
 }
 
-/// Regenwahrscheinlichkeit in Blau wie bei Apple Wetter; im Hellen dunkler,
-/// sonst verschwindet Cyan auf der hellen Karte. Unter 20 % bleibt die
-/// Zeile leer, behaelt aber ihre Hoehe, damit die Spalten buendig bleiben.
+/// The chance of rain in blue as in Apple Weather; darker in the light,
+/// otherwise cyan disappears on the light card. Below 20 % the line stays
+/// empty but keeps its height, so that the columns stay flush.
 private struct WeatherPrecipitation: View {
     let percent: Int?
     @Environment(\.colorScheme) private var colorScheme
@@ -157,10 +157,10 @@ private struct WeatherPrecipitation: View {
     }
 }
 
-// MARK: - Reiter
+// MARK: - Tab
 
-/// Ortswahl als Kapseln, aus den Favoriten (Nexus > Dashboard): der gewaehlte
-/// in Akzentfarbe.
+/// The place choice as capsules, out of the favourites (Nexus > Dashboard):
+/// the chosen one in the accent color.
 private struct WeatherPlacePicker: View {
     let favorites: WeatherFavorites
     let selected: WeatherLocation?
@@ -239,15 +239,15 @@ struct WeatherHero: View {
                              value: today?.sunset.map { WeatherText.clock($0, calendar: report.calendar) } ?? "–")
                     }
                 }
-                // Etwas hoeher als die Mitte: darunter steht die Quellenangabe,
-                // sonst klebte sie an "Untergang" (Bildprobe 14.09.).
+                // A little above the middle: the source note stands below it,
+                // otherwise it would stick to "Sunset" (image sample 14.09.).
                 .padding(.bottom, 10)
             }
             .padding(.leading, 22)
             .padding(.trailing, 28)
         }
-        // Quellenangabe (Lizenz von Open-Meteo und MET Norway): unten rechts
-        // unter den Details, wo die Kopfkarte ohnehin Luft hat.
+        // The source note (the licence of Open-Meteo and MET Norway): at the
+        // bottom right below the details, where the header card has room anyway.
         .overlay(alignment: .bottomTrailing) {
             WeatherAttributionLink(attribution: model.attribution)
                 .padding(.trailing, 18)
@@ -255,7 +255,7 @@ struct WeatherHero: View {
         }
     }
 
-    /// "Gefühlt 17° · H: 22° T: 15°" - was man zur grossen Zahl noch wissen will.
+    /// "Feels like 17° · H: 22° L: 15°" - what one wants next to the big number.
     private func summary(current: CurrentWeather, today: DayForecast?) -> String {
         var parts: [String] = []
         if let feels = current.apparentTemperature {
@@ -266,8 +266,8 @@ struct WeatherHero: View {
     }
 }
 
-/// "Wetterdaten: MET Norway" - klein und leise, aber lesbar. Ein Klick
-/// oeffnet die Seite des Anbieters (Lizenzen verlangen Name und Link).
+/// "Weather data: MET Norway" - small and quiet, but readable. A click opens
+/// the page of the provider (the licences ask for a name and a link).
 private struct WeatherAttributionLink: View {
     let attribution: WeatherAttribution
     @Environment(\.shellStyle) private var style
@@ -283,8 +283,8 @@ private struct WeatherAttributionLink: View {
     }
 }
 
-/// Ein Detail: Symbol, darunter klein die Bezeichnung und fett der Wert
-/// (Caelestia: DetailCard/WeatherStat, hier ohne eigene Karte).
+/// One detail: a symbol, below it the label in small and the value in bold
+/// (Caelestia: DetailCard/WeatherStat, here without a card of its own).
 private struct WeatherStat: View {
     let symbol: String
     let label: LocalizedStringKey
@@ -309,9 +309,9 @@ private struct WeatherStat: View {
     }
 }
 
-/// Die naechsten 24 Stunden in 12 Spalten zu 2 Stunden: alle 24 einzeln
-/// waeren je 35 pt breit, zu eng fuer Symbol und Zahl, und Scrollen geht im
-/// nie aktiven Fenster nur per Trackpad.
+/// The next 24 hours in 12 columns of 2 hours: all 24 on their own would be
+/// 35 pt wide each, too tight for a symbol and a number, and scrolling in a
+/// window that is never active only works with a trackpad.
 struct WeatherHourly: View {
     let slots: [HourSlot]
     let calendar: Calendar
@@ -340,8 +340,8 @@ struct WeatherHourly: View {
     }
 }
 
-/// Sieben Tage als eigene Kaertchen nebeneinander (Caelestia:
-/// forecastRepeater). "Heute" als Akzent-Kapsel, damit der Einstieg sofort
+/// Seven days as small cards side by side (Caelestia: forecastRepeater).
+/// "Today" as an accent capsule, so that the start stands out right away.
 /// auffaellt.
 struct WeatherDaily: View {
     let days: [DayForecast]

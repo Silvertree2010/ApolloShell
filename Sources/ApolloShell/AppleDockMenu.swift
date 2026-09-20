@@ -3,37 +3,37 @@ import ApolloShellCore
 import ApplicationServices
 import os
 
-/// Liest das Dock-Menue, das **Apples** Dock fuer eine App zeigt, und gibt es
-/// als Baum zurueck.
+/// Reads the Dock menu **Apple's** Dock shows for an app and hands it back as
+/// a tree.
 ///
-/// Warum dieser Umweg: Was in diesem Menue steht, liefert die App selbst an
-/// das Dock (`applicationDockMenu(_:)`, NSDockTilePlugIn) - zuletzt benutzte
-/// Dokumente, "Neues privates Fenster", was auch immer sie anbietet. Dieser
-/// Weg steht nur Apples Dock offen; von aussen gibt es keine Schnittstelle
-/// dafuer. Selbst geratene Eintraege aus der Menueleiste sind deshalb immer
+/// Why this detour: what stands in that menu is delivered by the app itself to
+/// the Dock (`applicationDockMenu(_:)`, NSDockTilePlugIn) - recent documents,
+/// "New Private Window", whatever it offers. This way is open to Apple's Dock
+/// only; from outside there is no interface for it. Entries guessed out of the
+/// menu bar are therefore always an approximation.
 /// eine Naeherung.
+/// What does work: let Apple's Dock build the menu tree and read it through
+/// the accessibility API. That way every app gets exactly its own entries,
+/// including "Options" with everything Apple puts in there.
 ///
-/// Was aber geht: Apples Dock den Menuebaum aufbauen lassen und ihn ueber die
-/// Bedienungshilfen lesen. Damit bekommt jede App genau ihre eigenen
-/// Eintraege, samt "Optionen" mit allem, was Apple dort hineinlegt.
 ///
-/// Zwei Dinge sind dabei ungeprueft und werden beim ersten Lauf gemessen
-/// (Protokoll `dockmenu`):
-/// - ob `AXShowMenu` auch dann traegt, wenn Apples Dock ausgeblendet ist
-///   (ApolloShell blendet es aus, solange es laeuft),
-/// - ob dabei kurz etwas auf dem Bildschirm aufblitzt.
+/// Two things are unchecked and are measured on the first run (the log
+/// `dockmenu`):
+/// - whether `AXShowMenu` carries even when Apple's Dock is hidden
+///   (ApolloShell hides it while it runs),
+/// - whether something flashes on the screen while it does.
 ///
-/// Traegt es nicht, bleibt das selbst gebaute Menue (`DockMenu`) bestehen.
+/// If it does not carry, the menu we build ourselves (`DockMenu`) stays.
 ///
-/// Alles hier laeuft **neben** dem Hauptthread: Ein Aufruf an die
-/// Bedienungshilfen wartet auf die andere App, und Apples Dock laesst sich
-/// beim Aufbauen eines Menues Zeit. Auf dem Hauptthread waere das eine
-/// stehende Leiste bei jedem Rechtsklick.
+/// Everything here runs **off** the main thread: a call to the accessibility
+/// API waits for the other app, and Apple's Dock takes its time building a
+/// menu. On the main thread that would be a bar standing still on every right
+/// click.
 enum AppleDockMenu {
     private static let log = Logger(category: "dockmenu")
 
-    /// Das Menue einer App, wie Apples Dock es zeigt. Leer, wenn es dieses
-    /// Symbol dort nicht gibt oder das Menue nicht gelesen werden konnte.
+    /// The menu of an app the way Apple's Dock shows it. Empty when there is
+    /// no such symbol there or the menu could not be read.
     static func snapshot(bundleID: String) async -> [DockMenuNode] {
         await onReaderQueue { read(bundleID: bundleID) }
     }
@@ -52,25 +52,25 @@ enum AppleDockMenu {
             log.notice("kein Menue nach AXShowMenu fuer \(bundleID, privacy: .public)")
             return []
         }
-        // Lesen hier, deuten im Kern (`DockMenuTree`, geprueft).
+        // Read here, interpret in the core (`DockMenuTree`, checked).
         let items = DockMenuTree.nodes(from: read(menu, depth: 0))
         log.notice("Apples Dock-Menue fuer \(bundleID, privacy: .public): \(items.count) Eintraege")
         return items
     }
 
-    /// Fuehrt einen Eintrag aus: Apples Menue noch einmal oeffnen, den Weg
-    /// ueber die Titel nachlaufen, druecken.
+    /// Carries out an entry: open Apple's menu once more, walk the way through
+    /// the titles, press.
     static func press(path: [DockMenuStep], bundleID: String) async -> Bool {
         await onReaderQueue { perform(path: path, bundleID: bundleID) }
     }
 
-    /// Ein eigener Faden fuer die Bedienungshilfen.
+    /// A thread of its own for the accessibility API.
     ///
-    /// Nicht `Task.detached`: Die Aufrufe warten (bis zu einer halben
-    /// Sekunde je Aufruf) und warten zwischendurch auf Apples Dock. Auf dem
-    /// gemeinsamen Faden-Vorrat von Swift waere das ein blockierter Faden,
-    /// den andere Arbeit braucht. Serielle Schlange, damit auch zwei schnelle
-    /// Rechtsklicks nacheinander laufen und nicht zwei Menues gleichzeitig
+    /// Not `Task.detached`: the calls wait (up to half a second each) and wait
+    /// for Apple's Dock in between. On Swift's shared thread pool that would be
+    /// a blocked thread other work needs. A serial queue, so that two quick
+    /// right clicks run one after another and do not open two menus at once.
+    ///
     /// oeffnen.
     private static let queue = DispatchQueue(label: "io.github.silvertree2010.apolloshell.dockmenu",
                                              qos: .userInitiated)
@@ -85,8 +85,8 @@ enum AppleDockMenu {
         guard !path.isEmpty, let item = dockItem(bundleID: bundleID),
               AXUIElementPerformAction(item, kAXShowMenuAction as CFString) == .success
         else { return false }
-        // Ab hier steht Apples Menue offen; es darf unter keinen Umstaenden
-        // offen stehen bleiben.
+        // From here on Apple's menu stands open; under no circumstances may it
+        // be left standing open.
         guard let menu = openMenu(of: item) else {
             dismiss(item)
             return false
@@ -94,8 +94,8 @@ enum AppleDockMenu {
         var current = menu
         for (index, step) in path.enumerated() {
             let children = AX.elements(current, kAXChildrenAttribute)
-            // Erst an der Stelle nachsehen, an der der Eintrag stand, und nur
-            // wenn der Titel dort nicht mehr passt (das Menue hat sich
+            // Look at the place the entry stood first, and only search by title
+            // when the title there no longer fits (the menu has changed).
             // geaendert) nach dem Titel suchen.
             let atIndex = children.indices.contains(step.index) ? children[step.index] : nil
             let match = (atIndex.flatMap { AX.string($0, kAXTitleAttribute) == step.title ? $0 : nil })
@@ -109,7 +109,7 @@ enum AppleDockMenu {
                 if !pressed { dismiss(item) }
                 return pressed
             }
-            // Untermenue: dessen Menue liegt als Kind des Eintrags.
+            // A submenu: its menu hangs as a child of the entry.
             guard let submenu = AX.elements(match, kAXChildrenAttribute).first else {
                 dismiss(item)
                 return false
@@ -120,9 +120,9 @@ enum AppleDockMenu {
         return false
     }
 
-    // MARK: - Lesen
+    // MARK: - Reading
 
-    /// Roh lesen, nichts deuten: Was daraus wird, entscheidet `DockMenuTree`.
+    /// Read raw, interpret nothing: what becomes of it is decided by `DockMenuTree`.
     private static func read(_ menu: AXUIElement, depth: Int) -> [RawMenuItem] {
         guard depth < DockMenuTree.maximumDepth else { return [] }
         let children = AX.elements(menu, kAXChildrenAttribute)
@@ -138,21 +138,21 @@ enum AppleDockMenu {
         }
     }
 
-    /// Das Menue, das nach `AXShowMenu` als Kind des Symbols haengt. Der Dock
-    /// baut es nicht sofort auf, deshalb ein paar kurze Versuche.
+    /// The menu that hangs as a child of the symbol after `AXShowMenu`. The
+    /// Dock does not build it right away, hence a few short attempts.
     private static func openMenu(of item: AXUIElement) -> AXUIElement? {
         for _ in 0..<20 {
             let children = AX.elements(item, kAXChildrenAttribute)
             if let menu = children.first(where: { AX.string($0, kAXRoleAttribute) == kAXMenuRole as String }) {
                 return menu
             }
-            // Kein RunLoop: Das hier laeuft auf einer eigenen Schlange.
+            // No RunLoop: this runs on a queue of its own.
             Thread.sleep(forTimeInterval: 0.01)
         }
         return nil
     }
 
-    /// Apples Menue wieder schliessen. Ohne das bliebe es offen stehen.
+    /// Close Apple's menu again. Without that it would be left standing open.
     private static func dismiss(_ item: AXUIElement) {
         let children = AX.elements(item, kAXChildrenAttribute)
         for child in children where AX.string(child, kAXRoleAttribute) == kAXMenuRole as String {
@@ -160,8 +160,8 @@ enum AppleDockMenu {
         }
     }
 
-    /// Das Symbol dieser App in Apples Dock - gefunden ueber die AXURL, wie
-    /// schon bei den Zaehlern (`DockBadges`).
+    /// The symbol of this app in Apple's Dock - found through the AXURL, as
+    /// with the badges (`DockBadges`).
     private static func dockItem(bundleID: String) -> AXUIElement? {
         AppleDockItems.all(timeout: 0.5).first { AppleDockItems.bundleID(of: $0) == bundleID }
     }
