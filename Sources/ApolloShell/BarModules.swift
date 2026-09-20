@@ -4,31 +4,31 @@ import Observation
 import os
 import SwiftUI
 
-// Was die Bausteine der Leiste brauchen (Modelle, Aktionen) und die
-// Bausteine, die mit dem Baukasten dazukamen: App, Akku, CPU, Wetter. Die
-// sieben der bisherigen Leiste stehen weiter in SidebarContent.swift,
-// SidebarModules.swift und SidebarDock.swift; welche Art wie gezeichnet wird,
-// entscheidet `BarModuleView`.
+// What the building blocks of the bar need (models, actions) and the blocks
+// that came with the kit: app, battery, CPU, weather. The seven of the
+// earlier bar still stand in SidebarContent.swift, SidebarModules.swift and
+// SidebarDock.swift; which kind is drawn how is decided by
+// `BarModuleView`.
 
-/// Klassischer Umgebungsschluessel statt `@Entry`: das Makro braucht das
-/// SwiftUI-Makro-Plugin, und das bringen die Command Line Tools nicht mit.
+/// A classic environment key instead of `@Entry`: the macro needs the SwiftUI
+/// macro plugin, and the Command Line Tools do not ship it.
 private struct BarPreviewKey: EnvironmentKey {
     static let defaultValue = false
 }
 
 extension EnvironmentValues {
-    /// In der Vorschau von Nexus: keine Maus-Ansichten (Hover, Dock-Klicks,
-    /// Ziehen). Die Vorschau ist verkleinert, AppKit-Ansichten machen das
-    /// nicht mit - ihre Flaechen laegen neben den Symbolen und reagierten
-    /// ueber dem Formular. Und ein Klick soll dort keine echte App starten.
+    /// In the preview of Nexus: no mouse views (hover, Dock clicks,
+    /// dragging). The preview is scaled down, and AppKit views do not go
+    /// along with that - their areas would lie next to the symbols and react
+    /// over the form. And a click should start no real app there.
     var barPreview: Bool {
         get { self[BarPreviewKey.self] }
         set { self[BarPreviewKey.self] = newValue }
     }
 }
 
-/// Modelle und Aktionen fuer alle Bausteine. Die Leiste gibt die echten,
-/// die Vorschau in Nexus feste Vorschau-Modelle ohne Aktionen.
+/// Models and actions for all building blocks. The bar hands over the real
+/// ones, the preview in Nexus fixed preview models without actions.
 @MainActor
 struct BarModuleContext {
     var status: StatusModel
@@ -38,7 +38,7 @@ struct BarModuleContext {
     var cpu: BarCPUModel
     var weather: BarWeatherFeed
     var onDashboard: @MainActor () -> Void = {}
-    /// Medien, Wetter, CPU, Akku: gleich beim passenden Reiter.
+    /// Media, weather, CPU, battery: straight to the matching tab.
     var onDashboardTab: @MainActor (DashboardTab) -> Void = { _ in }
     var onUtilities: @MainActor () -> Void = {}
     var onPower: @MainActor () -> Void = {}
@@ -46,12 +46,12 @@ struct BarModuleContext {
     var onOpenApp: @MainActor (String) -> Void = { _ in }
 }
 
-// MARK: - Bedarf
+// MARK: - Demand
 
-/// Wie viele sichtbare Bausteine ein Modell gerade brauchen. Gemessen oder
-/// abgerufen wird nur, solange mindestens einer in der Leiste steht UND die
-/// Leiste zu sehen ist (`paused` = im Vollbild abgetreten). Ohne CPU- oder
-/// Wetter-Baustein kosten die Modelle also nichts.
+/// How many visible building blocks need a model right now. Measuring or
+/// fetching only happens while at least one of them stands in the bar AND the
+/// bar can be seen (`paused` = stepped aside in full screen). Without a CPU
+/// or weather block the models cost nothing.
 struct BarDemand {
     private(set) var users = 0
     var paused = false
@@ -60,20 +60,20 @@ struct BarDemand {
 
     mutating func acquire() { users += 1 }
 
-    /// Nie unter 0: kaeme ein onDisappear ohne onAppear, soll der naechste
-    /// Baustein trotzdem wieder messen.
+    /// Never below 0: should an onDisappear arrive without an onAppear, the
+    /// next block should measure again all the same.
     mutating func release() { users = max(users - 1, 0) }
 }
 
-/// CPU-Auslastung fuer den CPU-Baustein. Alle 2 s (die Ringe des Dashboards
-/// messen jede Sekunde, aber nur, solange es offen ist - die Leiste ist
-/// immer da, also halb so oft) und nur bei Bedarf, siehe `BarDemand`. Eine
-/// Messung sind zwei Mach-Aufrufe, Mikrosekunden.
+/// CPU load for the CPU block. Every 2 s (the rings of the dashboard measure
+/// every second, but only while it is open - the bar is always there, so half
+/// as often) and only on demand, see `BarDemand`. One measurement is two Mach
+/// calls, microseconds.
 @MainActor
 @Observable
 final class BarCPUModel {
-    /// 0...1, auf ganze Prozent gerundet: so zeichnet die Leiste nur neu,
-    /// wenn sich die angezeigte Zahl aendert. `nil` bis zur zweiten Messung.
+    /// 0...1, rounded to whole percent: that way the bar only redraws when
+    /// the shown number changes. `nil` until the second measurement.
     private(set) var usage: Double?
 
     static let interval: TimeInterval = 2
@@ -87,7 +87,7 @@ final class BarCPUModel {
         live = true
     }
 
-    /// Fuer Vorschau und Bildprobe: fester Wert, misst nie.
+    /// For the preview and the image sample: a fixed value, never measures.
     init(preview usage: Double?) {
         live = false
         self.usage = usage
@@ -110,14 +110,14 @@ final class BarCPUModel {
             let timer = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.sample() }
             }
-            // Darf etwas spaeter kommen: macOS legt Timer dann zusammen.
+            // May come a little later: macOS then puts timers together.
             timer.tolerance = 0.5
             RunLoop.main.add(timer, forMode: .common)
             self.timer = timer
         } else if !demand.isActive, let timer {
             timer.invalidate()
             self.timer = nil
-            // Nach der Pause neu anfangen: ueber die Pause gemittelt waere falsch.
+            // Start over after the pause: averaging across it would be wrong.
             lastTicks = nil
         }
     }
@@ -131,14 +131,14 @@ final class BarCPUModel {
     }
 }
 
-/// Wetter fuer den Wetter-Baustein: ein eigenes `WeatherModel`, das nur
-/// abruft, solange der Baustein zu sehen ist (beim Erscheinen, wenn die
-/// Daten aelter als 15 min sind, dann alle 30 min - die Regeln des Modells).
+/// Weather for the weather block: a `WeatherModel` of its own that only
+/// fetches while the block can be seen (when it appears, when the data is
+/// older than 15 min, then every 30 min - the rules of the model).
 ///
-/// Eigenes statt das des Dashboards: das startet und stoppt seines beim
-/// Oeffnen und Schliessen; ein geteiltes wuerde die Leiste mit dem Schliessen
-/// des Dashboards anhalten. Preis: mit beiden sichtbar hoechstens ein
-/// zusaetzlicher Abruf je halbe Stunde.
+/// Its own instead of the dashboard's: that one starts and stops its model on
+/// opening and closing; a shared one would stop the bar when the dashboard
+/// closes. The price: with both visible, at most one extra fetch every half
+/// hour.
 @MainActor
 final class BarWeatherFeed {
     let model: WeatherModel
@@ -146,13 +146,13 @@ final class BarWeatherFeed {
     private var demand = BarDemand()
     private var running = false
 
-    /// `settings`: welcher Wetteranbieter (Nexus > Anbieter), wie im Dashboard.
+    /// `settings`: which weather provider (Nexus > Providers), as in the dashboard.
     init(settings: ShellSettingsStore) {
         model = WeatherModel(settings: settings)
         live = true
     }
 
-    /// Fuer Vorschau und Bildprobe: festes Modell, ruft nie ab.
+    /// For the preview and the image sample: a fixed model, never fetches.
     init(preview model: WeatherModel) {
         self.model = model
         live = false
@@ -177,9 +177,9 @@ final class BarWeatherFeed {
     }
 }
 
-/// Name und Symbol einer App fuer den App-Baustein und Nexus, einmal
-/// gelesen. Nicht installierte werden nicht gemerkt: kommt die App spaeter
-/// dazu, erscheint sie beim naechsten Zeichnen.
+/// Name and symbol of an app for the app block and Nexus, read once. Apps
+/// that are not installed are not remembered: if the app turns up later, it
+/// appears on the next drawing.
 @MainActor
 enum BarApps {
     struct Info {
@@ -200,7 +200,7 @@ enum BarApps {
         return info
     }
 
-    /// Wie ein Klick im Dock: laeuft sie, nach vorne, sonst starten.
+    /// Like a click in the Dock: if it runs, to the front, otherwise start it.
     static func open(_ bundleID: String) {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
         let configuration = NSWorkspace.OpenConfiguration()
@@ -213,10 +213,10 @@ enum BarApps {
     }
 }
 
-// MARK: - Ansichten
+// MARK: - Views
 
-/// Knopf der Leiste fuer Bausteine mit Text (Akku, CPU, Wetter): 32 breit,
-/// mindestens 32 hoch, sonst wie `SidebarIcon` (Hover, Tooltip).
+/// Button of the bar for blocks with text (battery, CPU, weather): 32 wide,
+/// at least 32 high, otherwise like `SidebarIcon` (hover, tooltip).
 struct BarTile<Content: View>: View {
     let help: String
     var action: (() -> Void)?
@@ -250,8 +250,8 @@ struct BarTile<Content: View>: View {
     }
 }
 
-/// Startet eine gewaehlte App. Ohne App (frisch hinzugefuegt) oder nicht
-/// mehr installiert: gestrichelter Platzhalter, der nichts tut.
+/// Starts a chosen app. Without an app (freshly added) or when it is no
+/// longer installed: a dashed placeholder that does nothing.
 struct BarAppButton: View {
     let bundleID: String
     let onOpen: @MainActor (String) -> Void
@@ -274,9 +274,9 @@ struct BarAppButton: View {
     }
 }
 
-/// Ladestand als Zahl, darueber auf Wunsch das Symbol. Ohne Akku
-/// (Desktop-Mac): nichts - wie der Akku in der Statuskapsel. Klick oeffnet
-/// den Reiter "Leistung" mit dem Akku-Tank und der Restzeit.
+/// The charge as a number, above it the symbol on request. Without a battery
+/// (a desktop Mac): nothing - like the battery in the status capsule. A click
+/// opens the "Performance" tab with the battery gauge and the time left.
 struct BarBatteryModule: View {
     let status: StatusModel
     let options: BarBatteryOptions
@@ -284,7 +284,7 @@ struct BarBatteryModule: View {
 
     var body: some View {
         if let battery = status.battery, let symbol = StatusGlyphs.batterySymbol(battery) {
-            // Rot wie Apples Akkusymbol, sobald die letzte Warnstufe erreicht ist.
+            // Red like Apple's battery symbol as soon as the last warning level is reached.
             let low = battery.level <= 10 && !battery.charging && !battery.onAC
             BarTile(help: StatusGlyphs.batteryText(battery), action: onOpen) {
                 VStack(spacing: 3) {
@@ -304,9 +304,9 @@ struct BarBatteryModule: View {
     }
 }
 
-/// CPU als Ring mit Zahl (wie die Ringe im Dashboard) oder als Symbol mit
-/// Prozent. Meldet sich beim Modell an und ab - so misst es nur, solange
-/// der Baustein in der Leiste steht.
+/// CPU as a ring with a number (like the rings in the dashboard) or as a
+/// symbol with percent. Registers with the model and signs off again - that
+/// way it only measures while the block stands in the bar.
 struct BarCPUModule: View {
     let model: BarCPUModel
     let options: BarCPUOptions
@@ -348,8 +348,8 @@ struct BarCPUModule: View {
     }
 }
 
-/// Wettersymbol in Mehrfarben (wie im Dashboard), darunter auf Wunsch die
-/// Temperatur. Ort und Daten wie im Dashboard (weather.json, Open-Meteo).
+/// The weather symbol in multicolor (as in the dashboard), below it the
+/// temperature on request. Place and data as in the dashboard (Open-Meteo).
 struct BarWeatherModule: View {
     let feed: BarWeatherFeed
     let options: BarWeatherOptions
@@ -369,8 +369,8 @@ struct BarWeatherModule: View {
                     Image(systemName: WeatherCondition.symbol(code: current.code, isDay: current.isDay))
                         .symbolRenderingMode(.multicolor)
                         .font(.system(size: 15))
-                        // Weisse Wolken verschwinden sonst im hellen Glas
-                        // (derselbe Befund wie im Dashboard, WeatherView.swift).
+                        // White clouds would otherwise vanish in the light glass
+                        // (the same finding as in the dashboard, WeatherView.swift).
                         .shadow(color: .black.opacity(colorScheme == .light ? 0.35 : 0), radius: 0.6)
                     if options.showTemperature {
                         Text(WeatherText.temperature(current.temperature))
@@ -396,11 +396,11 @@ struct BarWeatherModule: View {
     }
 }
 
-// MARK: - Farben
+// MARK: - Colors
 
 extension BarModuleKind {
-    /// Kachelfarbe in Nexus, wie die Seitensymbole der Systemeinstellungen.
-    /// Die Helfer fuer die Anordnung (Abstaende, Strich) bleiben grau.
+    /// Tile color in Nexus, like the page symbols of System Settings. The
+    /// helpers for the arrangement (gaps, rule) stay grey.
     var tint: Color {
         switch self {
         case .dashboardButton: .indigo

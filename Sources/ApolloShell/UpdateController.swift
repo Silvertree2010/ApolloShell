@@ -3,61 +3,61 @@ import ApolloShellCore
 import Sparkle
 import SwiftUI
 
-/// Selbstaktualisierung der Shell (Nexus > Updates).
+/// Self-updating of the shell (Nexus > Updates).
 ///
-/// Zwei Wege, je nach Herkunft der Installation (`InstallKind`):
+/// Two ways, depending on where the installation came from (`InstallKind`):
 ///
-/// - Aus dem DMG: Sparkle prueft taeglich, laedt im Hintergrund und spielt
-///   beim Beenden ein. Weil eine Shell praktisch nie beendet wird, faengt
-///   diese Klasse das Einspielen ab (`willInstallUpdateOnQuit`) und haelt den
-///   Block fest: Nexus zeigt "Jetzt neu starten", und wer nicht klickt,
-///   bekommt das Update beim naechsten Abmelden.
-/// - Von Homebrew: Dort gehoert die App Homebrew. Sie erneuert sich nicht
-///   selbst, sondern fragt GitHub nach der neuesten Fassung und nennt
+/// - Out of the DMG: Sparkle checks daily, downloads in the background and
+///   installs on quit. Because a shell is practically never quit, this class
+///   catches the installing (`willInstallUpdateOnQuit`) and holds on to the
+///   block: Nexus shows "Restart now", and whoever does not click gets the
+///   update at the next logout.
+/// - From Homebrew: there the app belongs to Homebrew. It does not renew
+///   itself but asks GitHub for the newest version and names
 ///   `brew upgrade apolloshell`.
 ///
-/// Sparkles Fenster erscheinen nie von selbst
-/// (`standardUserDriverShouldHandleShowingScheduledUpdate` = `false`): In
-/// einer Hintergrund-App (`LSUIElement`) waere ein Fenster, das sich
-/// unaufgefordert nach vorne schiebt, ein Uebergriff. Der Hinweis steht in
-/// Nexus, und nur "Jetzt prüfen" oeffnet Sparkles Fenster ausdruecklich.
+/// Sparkle's windows never appear by themselves
+/// (`standardUserDriverShouldHandleShowingScheduledUpdate` = `false`): in a
+/// background app (`LSUIElement`) a window that pushes itself to the front
+/// unasked would be an overreach. The notice stands in Nexus, and only
+/// "Check now" opens Sparkle's window on purpose.
 @MainActor
 @Observable
 final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDelegate {
-    /// Was der Benutzer auf der Seite sieht.
+    /// What the user sees on the page.
     enum Status: Equatable {
-        /// Noch nichts getan.
+        /// Nothing done yet.
         case idle
-        /// Laeuft gerade.
+        /// Running right now.
         case checking
-        /// Nichts Neues.
+        /// Nothing new.
         case upToDate
-        /// Gefunden und wird geladen (DMG) beziehungsweise nur gemeldet (Homebrew).
+        /// Found, and downloading (DMG) or merely reported (Homebrew).
         case found(version: String, page: URL?)
-        /// Geladen, wartet aufs Einspielen.
+        /// Downloaded, waiting to be installed.
         case ready(version: String)
-        /// Fehlgeschlagen; Text von Sparkle oder vom Netz.
+        /// Failed; the text comes from Sparkle or from the network.
         case failed(String)
-        /// Kein Update moeglich: kein Bundle (`swift run`) oder kein
-        /// oeffentlicher Schluessel im Bundle.
+        /// No update possible: no bundle (`swift run`) or no public key in
+        /// the bundle.
         case unavailable
     }
 
     private(set) var status: Status = .idle
-    /// Wann zuletzt gesucht wurde. Bei der Homebrew-Fassung steht der
-    /// Zeitpunkt in den Einstellungen, damit "hoechstens einmal am Tag" auch
-    /// ueber einen Neustart hinweg gilt; bei der DMG-Fassung fuehrt Sparkle
-    /// selbst Buch.
+    /// When it last looked. In the Homebrew build the time stands in the
+    /// settings, so that "at most once a day" holds across a restart too;
+    /// in the DMG build Sparkle keeps the books itself.
+    ///
     private(set) var lastCheck: Date?
     let installKind: InstallKind
 
     private let settings: ShellSettingsStore
     private var updaterController: SPUStandardUpdaterController?
-    /// Von Sparkle gereicht, sobald ein geladenes Update aufs Beenden wartet.
+    /// Handed over by Sparkle as soon as a downloaded update waits for the quit.
     private var installNow: (() -> Void)?
     private var checkTask: Task<Void, Never>?
 
-    /// Prueft die Homebrew-Fassung hoechstens einmal pro Tag von selbst.
+    /// Checks the Homebrew build at most once a day by itself.
     private static let checkInterval: TimeInterval = 86400
 
     init(settings: ShellSettingsStore,
@@ -78,23 +78,23 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         lastCheck = controller.updater.lastUpdateCheckDate
     }
 
-    /// Sparkle braucht ein Bundle mit Info.plist und einen oeffentlichen
-    /// Schluessel. Fehlt der Schluessel (noch nicht erzeugt, siehe
-    /// scripts/make-release-keys.sh), lehnt Sparkle jedes Update ohnehin ab -
-    /// dann gar nicht erst starten, statt taeglich zu scheitern.
+    /// Sparkle needs a bundle with an Info.plist and a public key. Without the
+    /// key (not generated yet, see scripts/make-release-keys.sh) Sparkle turns
+    /// down every update anyway - then do not even start it, instead of
+    /// failing daily.
     private static var bundleCanUpdate: Bool {
         guard Bundle.main.bundleIdentifier != nil else { return false }
         let key = Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") as? String
         return !(key ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    /// Kann diese Installation ueberhaupt selbst aktualisieren?
+    /// Can this installation update itself at all?
     var canUpdateItself: Bool { updaterController != nil }
 
-    /// Der Befehl fuer die Homebrew-Fassung.
+    /// The command for the Homebrew build.
     var upgradeCommand: String { InstallKind.homebrewUpgradeCommand }
 
-    /// Uebernimmt die beiden Schalter aus Nexus. Nach jeder Aenderung rufen.
+    /// Takes over the two switches from Nexus. Call after every change.
     func applySettings() {
         guard let updater = updaterController?.updater else { return }
         updater.automaticallyChecksForUpdates = settings.settings.updates.checkAutomatically
@@ -102,15 +102,15 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         updater.updateCheckInterval = Self.checkInterval
     }
 
-    /// "Jetzt prüfen". Bei der DMG-Fassung uebernimmt Sparkle mit seinem
-    /// Fenster - hier ausdruecklich gewollt, weil der Benutzer gerade
-    /// geklickt hat.
+    /// "Check now". In the DMG build Sparkle takes over with its window -
+    /// on purpose here, because the user has just clicked.
+    ///
     func checkNow() {
         rememberCheck(at: Date())
         if let updaterController {
-            // Liegt schon ein Update bereit, holt Sparkle nur dieses wieder
-            // hervor (sein Fenster bietet das Einspielen an) - "Jetzt neu
-            // starten" bleibt dabei stehen.
+            // When an update lies ready already, Sparkle only brings that one
+            // back up (its window offers the install) - "Restart now" keeps
+            // standing while it does.
             if installNow == nil { status = .checking }
             updaterController.updater.checkForUpdates()
             return
@@ -118,8 +118,8 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         checkViaGitHub()
     }
 
-    /// Hintergrundpruefung beim Start, nur fuer die Homebrew-Fassung und nur
-    /// wenn der Schalter an ist. Sparkle bringt seinen eigenen Zeitplan mit.
+    /// Background check on the start, only for the Homebrew build and only
+    /// when the switch is on. Sparkle brings a schedule of its own.
     func checkInBackgroundIfDue() {
         guard updaterController == nil, installKind == .homebrew else { return }
         guard settings.settings.updates.checkAutomatically else { return }
@@ -127,8 +127,8 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         checkViaGitHub()
     }
 
-    /// "Jetzt neu starten": spielt das geladene Update sofort ein. Sparkle
-    /// beendet die App dabei und startet sie neu.
+    /// "Restart now": installs the downloaded update right away. Sparkle quits
+    /// the app for that and starts it again.
     func installNowIfReady() {
         guard let installNow else { return }
         self.installNow = nil
@@ -140,7 +140,7 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         return false
     }
 
-    /// Zeitpunkt merken - im Speicher und, bei Homebrew, auch auf der Platte.
+    /// Remember the time - in memory and, with Homebrew, on the disk too.
     private func rememberCheck(at date: Date) {
         lastCheck = date
         guard updaterController == nil else { return }
@@ -166,9 +166,9 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     // MARK: - SPUUpdaterDelegate
 
     func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
-        // Ein schon geladenes Update meldet Sparkle beim erneuten Pruefen
-        // noch einmal als gefunden (SPUBasicUpdateDriver nimmt es wieder
-        // auf, statt neu zu suchen). Bereit bleibt bereit.
+        // Sparkle reports an update it has downloaded already as found again
+        // on the next check (SPUBasicUpdateDriver picks it up instead of
+        // looking anew). Ready stays ready.
         if installNow != nil {
             status = .ready(version: item.displayVersionString)
             return
@@ -189,9 +189,9 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
-        // Abbruch durch den Benutzer ist kein Fehler, der auf der Seite stehen
-        // muss - aber die Seite darf danach auch nicht ewig "wird geprüft"
-        // zeigen.
+        // A cancel by the user is no error that has to stand on the page -
+        // but the page must not go on showing "checking" forever after it
+        // either.
         guard (error as NSError).code != Int(SUError.installationCanceledError.rawValue) else {
             if case .checking = status { status = .idle }
             return
@@ -204,9 +204,9 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         if case .checking = status, error == nil { status = .upToDate }
     }
 
-    /// Sparkle will beim Beenden einspielen. Wir sagen zu ("ja, wir kuemmern
-    /// uns") und heben den Block auf, damit "Jetzt neu starten" ihn ausloesen
-    /// kann. Ohne Klick spielt Sparkle beim naechsten Beenden ein.
+    /// Sparkle wants to install on quit. We say yes ("yes, we take care of
+    /// it") and lift the block, so "Restart now" can set it off. Without a
+    /// click Sparkle installs on the next quit.
     func updater(_ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem,
                  immediateInstallationBlock immediateInstallHandler: @escaping () -> Void) -> Bool {
         installNow = immediateInstallHandler
@@ -216,11 +216,11 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
 
     // MARK: - SPUStandardUserDriverDelegate
 
-    /// Ja: Wir zeigen den Hinweis selbst (Nexus), Sparkle draengt sich nicht vor.
+    /// Yes: we show the notice ourselves (Nexus), Sparkle does not push in.
     ///
-    /// `nonisolated`, weil Sparkle dieses Protokoll (anders als
-    /// `SPUUpdaterDelegate`) nicht dem Hauptakteur zuordnet. Beide Antworten
-    /// sind feste Werte und lesen keinen Zustand, also ist das gefahrlos.
+    /// `nonisolated`, because Sparkle does not put this protocol on the main
+    /// actor (unlike `SPUUpdaterDelegate`). Both answers are fixed values and
+    /// read no state, so that is safe.
     nonisolated var supportsGentleScheduledUpdateReminders: Bool { true }
 
     nonisolated func standardUserDriverShouldHandleShowingScheduledUpdate(_ update: SUAppcastItem,

@@ -3,45 +3,45 @@ import ApolloShellCore
 import SwiftUI
 import os
 
-/// Haelt das gewaehlte Theme und den Inhalt des Theme-Ordners.
+/// Holds the chosen theme and the content of the theme folder.
 ///
-/// Lesen, Pruefen und Klemmen macht der Kern (`ThemeLoader`, `Theme`); hier
-/// steht nur, welches Theme gilt, was im Ordner liegt und wann neu gelesen
-/// wird.
+/// Reading, checking and clamping is the core's job (`ThemeLoader`, `Theme`);
+/// only which theme applies, what lies in the folder and when it is read
+/// again stands here.
 ///
-/// Live: Der Ordner wird beobachtet. Wer eine .css speichert, sieht die
-/// Aenderung sofort - so arbeitet man an einem Theme, ohne die Shell neu zu
-/// starten. Gesammelt wird kurz (`reloadDelay`), weil ein Editor beim
-/// Speichern mehrere Ereignisse ausloest.
+/// Live: the folder is watched. Whoever saves a .css sees the change right
+/// away - that is how one works on a theme without restarting the shell. The
+/// events are gathered briefly (`reloadDelay`), because an editor sets off
+/// several of them when saving.
 @MainActor
 @Observable
 final class ThemeStore {
-    /// Das gewaehlte Theme, fertig geprueft. Ohne Wahl: die Vorgaben.
+    /// The chosen theme, fully checked. Without a choice: the defaults.
     private(set) var theme: Theme = .standard
-    /// Alles, was im Ordner liegt - fuer die Liste in Nexus.
+    /// Everything that lies in the folder - for the list in Nexus.
     private(set) var available: [Theme] = []
 
     let folder: URL
 
-    /// Der Speicher der laufenden App. Ansichten holen ihren Stil hierueber
-    /// (`shellTheme()` legt ihn an jeder Fensterwurzel in die Umgebung): Es gibt
-    /// genau ein Theme fuer die ganze Shell, und Observation sorgt trotzdem
-    /// dafuer, dass jede Ansicht neu zeichnet, die einen Wert gelesen hat.
-    /// Ohne App (Bildproben, Tests) bleibt er leer, und alles sieht aus wie
-    /// ohne Theme.
+    /// The store of the running app. Views get their style through it
+    /// (`shellTheme()` puts it into the environment at every window root):
+    /// there is exactly one theme for the whole shell, and Observation still
+    /// sees to it that every view which read a value redraws.
+    /// Without an app (image samples, tests) it stays empty, and everything
+    /// looks the way it does without a theme.
     private(set) static var shared: ThemeStore?
 
     @ObservationIgnored private let settings: ShellSettingsStore
     @ObservationIgnored private var watcher: DispatchSourceFileSystemObject?
-    /// Zweiter Beobachter auf die Datei des gewaehlten Themes: Der Ordner
-    /// meldet nur, wenn etwas dazukommt oder verschwindet - eine Aenderung
-    /// *in* einer Datei sieht man nur an ihr selbst.
+    /// A second watcher on the file of the chosen theme: the folder only
+    /// reports when something is added or disappears - a change *inside* a
+    /// file only shows on the file itself.
     @ObservationIgnored private var fileWatcher: DispatchSourceFileSystemObject?
     @ObservationIgnored private var reloadWork: DispatchWorkItem?
-    /// Inode des beobachteten Ordners, zum Erkennen eines Austauschs.
+    /// Inode of the watched folder, to notice a swap.
     @ObservationIgnored private var watchedInode: Int?
 
-    /// Ein Editor schreibt beim Speichern mehrfach; erst danach lesen.
+    /// An editor writes several times when saving; only read afterwards.
     private static let reloadDelay: DispatchTimeInterval = .milliseconds(250)
 
     private let log = Logger(category: "themes")
@@ -59,21 +59,21 @@ final class ThemeStore {
         fileWatcher?.cancel()
     }
 
-    /// Der Stil fuer die Oberfläche, im gewuenschten Erscheinungsbild.
+    /// The style for the user interface, in the wanted appearance.
     func style(dark: Bool) -> ShellStyle {
         ShellStyle(theme: theme, dark: dark)
     }
 
-    /// Name des gewaehlten Themes (Datei- oder Ordnername), `nil` = keins.
+    /// Name of the chosen theme (file or folder name), `nil` = none.
     var selection: String? { settings.settings.theme.name }
 
-    /// Waehlt ein Theme oder keines. Wirkt sofort.
+    /// Chooses a theme or none. Takes hold right away.
     func select(_ name: String?) {
         settings.settings.theme.name = name
         reload()
     }
 
-    /// Liest den Ordner und das gewaehlte Theme neu.
+    /// Reads the folder and the chosen theme again.
     func reload() {
         defer { applyAppearance() }
         available = ThemeLoader.themes(in: folder)
@@ -82,11 +82,11 @@ final class ThemeStore {
             stopWatchingFile()
             return
         }
-        // Nur aus dem Ordner: Der Name aus den Einstellungen ist nie ein Pfad
-        // (ShellSettings prueft das), und gefunden wird er in der Liste, nicht
-        // durch Zusammensetzen eines Pfades.
+        // Only out of the folder: the name in the settings is never a path
+        // (ShellSettings checks that), and it is found in the list, not by
+        // putting a path together.
         guard let found = available.first(where: { $0.identifier == name }) else {
-            log.notice("Theme \(name, privacy: .public) nicht im Ordner - ohne Theme")
+            log.notice("Theme \(name, privacy: .public) is not in the folder - without a theme")
             theme = .standard
             stopWatchingFile()
             return
@@ -98,13 +98,13 @@ final class ThemeStore {
         }
     }
 
-    /// `--apollo-theme-appearance`: ein helles oder dunkles Theme stellt die
-    /// ganze Shell darauf ein (`NSApp.appearance`), unabhaengig davon, was
-    /// macOS gerade zeigt. Vorher las die Shell das Token nicht: rund 117
-    /// Stellen nehmen die Systemschrift (.primary/.secondary), und auf einem
-    /// dunklen Mac war die auf den hellen Flaechen von Latte, Dawn oder Paper
-    /// weiss und unlesbar. Glas und Systemfarben folgen dem Erscheinungsbild
-    /// von selbst. `auto` laesst es beim System.
+    /// `--apollo-theme-appearance`: a light or dark theme sets the whole shell
+    /// to it (`NSApp.appearance`), no matter what macOS shows right now.
+    /// Before, the shell did not read the token: around 117 places take the
+    /// system text color (.primary/.secondary), and on a dark Mac that was
+    /// white and unreadable on the light areas of Latte, Dawn or Paper. Glass
+    /// and system colors follow the appearance by themselves. `auto` leaves it
+    /// to the system.
     private func applyAppearance() {
         let wanted: NSAppearance? = switch ThemeAppearance(theme: theme) {
         case .light: NSAppearance(named: .aqua)
@@ -113,11 +113,11 @@ final class ThemeStore {
         }
         guard NSApp.appearance?.name != wanted?.name else { return }
         NSApp.appearance = wanted
-        log.notice("Erscheinungsbild aus dem Theme: \(wanted?.name.rawValue ?? "System", privacy: .public)")
+        log.notice("Appearance out of the theme: \(wanted?.name.rawValue ?? "System", privacy: .public)")
     }
 
-    /// Kopiert eine .css oder einen Theme-Ordner in den Theme-Ordner und
-    /// waehlt sie aus. Gibt den Namen zurueck, unter dem sie jetzt liegt.
+    /// Copies a .css or a theme folder into the theme folder and picks it.
+    /// Hands back the name it lies under now.
     @discardableResult
     func importTheme(from source: URL) throws -> String {
         let manager = FileManager.default
@@ -134,7 +134,7 @@ final class ThemeStore {
             throw ThemeImportError.notATheme
         }
 
-        // Nicht ueberschreiben: "Mitternacht 2", wenn es "Mitternacht" schon gibt.
+        // Do not overwrite: "Midnight 2" when "Midnight" exists already.
         let base = isDirectory.boolValue ? source.lastPathComponent : source.deletingPathExtension().lastPathComponent
         let suffix = isDirectory.boolValue ? "" : ".css"
         var name = base + suffix
@@ -149,17 +149,17 @@ final class ThemeStore {
         return name
     }
 
-    /// Zeigt den Theme-Ordner im Finder; legt ihn an, falls es ihn noch nicht gibt.
+    /// Shows the theme folder in the Finder; creates it when it is not there yet.
     func revealFolder() {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         NSWorkspace.shared.activateFileViewerSelecting([folder])
     }
 
-    // MARK: - Beobachten
+    // MARK: - Watching
 
-    /// Zeigt der Beobachter noch auf denselben Ordner? Verglichen wird die
-    /// Inode-Nummer: Ein neu angelegter Ordner gleichen Namens ist ein
-    /// anderer Ordner.
+    /// Does the watcher still point at the same folder? What is compared is
+    /// the inode number: a freshly created folder of the same name is a
+    /// different folder.
     private func rearmIfFolderChanged() {
         let current = (try? FileManager.default.attributesOfItem(atPath: folder.path)[.systemFileNumber] as? Int) ?? nil
         guard current != watchedInode else { return }
@@ -186,8 +186,8 @@ final class ThemeStore {
         watcher = source
     }
 
-    /// Beobachtet die Datei des gewaehlten Themes. Ein Editor, der in die
-    /// Datei schreibt statt sie zu ersetzen, loest sonst kein Ereignis aus.
+    /// Watches the file of the chosen theme. An editor that writes into the
+    /// file instead of replacing it would otherwise set off no event.
     private func watchSelectedFile() {
         stopWatchingFile()
         let manager = FileManager.default
@@ -222,10 +222,10 @@ final class ThemeStore {
         let work = DispatchWorkItem { [weak self] in
             MainActor.assumeIsolated {
                 self?.reload()
-                // Wurde der Ordner geloescht, umbenannt oder ersetzt (ein
-                // Abgleichdienst, ein Griff im Finder), zeigt der alte
-                // Beobachter ins Leere. Dann neu anhaengen, sonst waere das
-                // Live-Neuladen fuer den Rest der Sitzung still tot.
+                // If the folder was deleted, renamed or replaced (a syncing
+                // service, a grab in the Finder), the old watcher points into
+                // the void. Then hook it up again, otherwise live reloading
+                // would be quietly dead for the rest of the session.
                 self?.rearmIfFolderChanged()
             }
         }
@@ -234,7 +234,7 @@ final class ThemeStore {
     }
 }
 
-/// Warum ein Import nicht ging. Kurz und in Worten, die auf einer Seite stehen können.
+/// Why an import did not work. Short, and in words that fit on one page.
 enum ThemeImportError: LocalizedError {
     case notATheme
     case folderWithoutStyleSheet

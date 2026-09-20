@@ -1,19 +1,19 @@
 import CoreGraphics
 import Foundation
 
-/// Ein Bildschirm, so wie ihn die Auswahl sieht: Name, Rahmen, und ob er der
-/// Hauptbildschirm ist (der mit der Menueleiste).
+/// A screen the way the selection sees it: name, frame, and whether it is the
+/// main screen (the one with the menu bar).
 ///
-/// Bewusst ohne AppKit: die ganze Auswahl ist reine Rechnung und laesst sich
-/// damit ohne Fenster und ohne angestecktes Kabel pruefen. Die App baut die
-/// Liste aus `NSScreen.screens`.
+/// Without AppKit on purpose: the whole selection is plain arithmetic and can
+/// be checked without windows and without a cable plugged in. The app builds
+/// the list out of `NSScreen.screens`.
 public struct ScreenInfo: Equatable, Sendable, Identifiable {
     public var name: String
-    /// Ganzer Rahmen in AppKit-Koordinaten (Ursprung unten links am
-    /// Hauptbildschirm, y nach oben).
+    /// The whole frame in AppKit coordinates (origin at the bottom left of the
+    /// main screen, y upwards).
     public var frame: CGRect
-    /// Der Bildschirm mit der Menueleiste. In `NSScreen.screens` ist das der
-    /// erste; bei mehreren gilt trotzdem nur einer als Hauptbildschirm.
+    /// The screen with the menu bar. In `NSScreen.screens` that is the first
+    /// one; with several, only one counts as the main screen all the same.
     public var isPrimary: Bool
 
     public init(name: String, frame: CGRect, isPrimary: Bool) {
@@ -22,36 +22,36 @@ public struct ScreenInfo: Equatable, Sendable, Identifiable {
         self.isPrimary = isPrimary
     }
 
-    /// Stabiler Schluessel, unter dem eine Einstellung sich einen einzelnen
-    /// Bildschirm merkt: Name plus Aufloesung.
+    /// A stable key a setting remembers a single screen under: the name plus
+    /// the resolution.
     ///
-    /// Warum nicht die Display-ID: die vergibt macOS beim Anstecken neu, ein
-    /// gemerkter Bildschirm waere nach jedem Umstecken ein anderer. Name und
-    /// Aufloesung ueberleben das.
+    /// Why not the display ID: macOS hands that out anew when a screen is
+    /// plugged in, and a remembered screen would be a different one after
+    /// every replug. Name and resolution survive that.
     ///
-    /// Preis: zwei baugleiche Bildschirme mit derselben Aufloesung haben
-    /// denselben Schluessel und sind fuer die Einstellung nicht zu
-    /// unterscheiden - dann gilt der erste (siehe `ScreenSelection.targets`).
+    /// The price: two identical screens with the same resolution have the same
+    /// key and cannot be told apart by the setting - then the first one counts
+    /// (see `ScreenSelection.targets`).
     public var key: String { ScreenInfo.key(name: name, frame: frame) }
 
     public var id: String { key }
 
-    /// Auf ganze Punkte gerundet: eine Aufloesung mit Nachkommastellen
-    /// (skalierte Modi) ergaebe sonst bei jedem Aufwachen einen anderen
-    /// Schluessel.
+    /// Rounded to whole points: a resolution with decimals (scaled modes)
+    /// would otherwise give a different key on every wake-up of the
+    /// machine.
     public static func key(name: String, frame: CGRect) -> String {
         "\(name) \(Int(frame.width.rounded()))x\(Int(frame.height.rounded()))"
     }
 }
 
-/// Auf welchen Bildschirmen die Leiste steht (Nexus > Leiste).
+/// Which screens the bar stands on (Nexus > Bar).
 public enum ScreenChoice: Equatable, Hashable, Sendable {
-    /// Auf jedem angeschlossenen Bildschirm. Vorgabe.
+    /// On every connected screen. The default.
     case all
-    /// Nur auf dem Bildschirm mit der Menueleiste.
+    /// Only on the screen with the menu bar.
     case primary
-    /// Nur auf einem bestimmten, gemerkt ueber `ScreenInfo.key`. Ist er nicht
-    /// da, faellt es auf den Hauptbildschirm zurueck.
+    /// Only on one particular screen, remembered through `ScreenInfo.key`.
+    /// When it is not there, it falls back to the main screen.
     case single(String)
 }
 
@@ -72,8 +72,8 @@ extension ScreenChoice: Codable {
         }
     }
 
-    /// Nur bei `.single` ein Schluessel, sonst `null` - so steht er in der
-    /// Datei und wer sie von Hand bearbeitet, findet ihn.
+    /// A key only with `.single`, otherwise `null` - that way it stands in the
+    /// file and whoever edits it by hand finds it.
     private var screenKey: String? {
         switch self {
         case .single(let key): key
@@ -81,9 +81,9 @@ extension ScreenChoice: Codable {
         }
     }
 
-    /// Nachsichtig wie der Rest von settings.json: unbekannte oder fehlende
-    /// Angaben ergeben die Vorgabe. `single` ohne brauchbaren Schluessel ist
-    /// keine Auswahl, sondern eine kaputte Zeile - also ebenfalls die Vorgabe.
+    /// Lenient like the rest of settings.json: unknown or missing entries give
+    /// the default. `single` without a usable key is no selection but a broken
+    /// line - so the default as well.
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let mode = (try? c.decodeIfPresent(Mode.self, forKey: .mode)) ?? nil
@@ -110,17 +110,17 @@ extension ScreenChoice: Codable {
     }
 }
 
-/// Welche Bildschirme etwas bekommen und welcher unter dem Zeiger liegt.
+/// Which screens get something and which one lies under the pointer.
 ///
-/// Die ganze Bildschirm-Entscheidung der Shell steht hier, damit sie ohne
-/// Fenster pruefbar ist: die App baut nur noch Fenster an die Rahmen, die
-/// hier herauskommen.
+/// The whole screen decision of the shell stands here, so that it is testable
+/// without windows: the app only builds windows around the frames that come
+/// out of it.
 public enum ScreenSelection {
-    /// Die Bildschirme, auf denen die Leiste stehen soll.
+    /// The screens the bar should stand on.
     ///
-    /// Leere Liste (Kabel mitten im Umstecken, alle Bildschirme schlafen):
-    /// leeres Ergebnis. Die App laesst dann stehen, was steht, statt alles
-    /// abzureissen und gleich wieder aufzubauen.
+    /// An empty list (a cable in the middle of being replugged, all screens
+    /// asleep): an empty result. The app then leaves standing what stands,
+    /// instead of tearing everything down and building it up again at once.
     public static func targets(among screens: [ScreenInfo], choice: ScreenChoice) -> [ScreenInfo] {
         guard !screens.isEmpty else { return [] }
         switch choice {
@@ -129,39 +129,39 @@ public enum ScreenSelection {
         case .primary:
             return primary(among: screens).map { [$0] } ?? []
         case .single(let key):
-            // Bei zwei baugleichen Bildschirmen (gleicher Schluessel) der
-            // erste - "ein einzelner Bildschirm" soll einer bleiben.
+            // With two identical screens (the same key) the first one -
+            // "a single screen" should stay one.
             if let hit = screens.first(where: { $0.key == key }) { return [hit] }
-            // Gemerkter Bildschirm ist nicht da: Hauptbildschirm.
+            // The remembered screen is not there: the main screen.
             return primary(among: screens).map { [$0] } ?? []
         }
     }
 
-    /// Der Bildschirm mit der Menueleiste; ohne Kennzeichnung der erste.
+    /// The screen with the menu bar; without a mark, the first one.
     public static func primary(among screens: [ScreenInfo]) -> ScreenInfo? {
         screens.first { $0.isPrimary } ?? screens.first
     }
 
-    /// Der Bildschirm unter dem Zeiger.
+    /// The screen under the pointer.
     ///
-    /// Genau auf der Kante zwischen zwei Bildschirmen gewinnt der, dessen
-    /// Rahmen den Punkt enthaelt: `CGRect.contains` zaehlt die linke und
-    /// untere Kante dazu, die rechte und obere nicht. Zwei Bildschirme
-    /// nebeneinander teilen sich also keinen Punkt, und die Antwort ist
-    /// eindeutig statt von der Reihenfolge abhaengig.
+    /// Exactly on the edge between two screens, the one whose frame holds
+    /// the point wins: `CGRect.contains` counts the left and the bottom edge
+    /// in, the right and the top one not. So two screens side by side share
+    /// no point, and the answer is unambiguous instead of depending on the
+    /// order.
     ///
-    /// Liegt der Punkt auf keinem Bildschirm (ganz oben an der Kante, oder in
-    /// einer Luecke zwischen versetzt angeordneten Bildschirmen), gilt der
-    /// naechstgelegene - der Zeiger ist ja sichtbar irgendwo.
+    /// When the point lies on no screen (right at the top edge, or in a gap
+    /// between screens arranged with an offset), the nearest one counts - the
+    /// pointer is visibly somewhere, after all.
     public static func screen(at point: CGPoint, among screens: [ScreenInfo]) -> ScreenInfo? {
         guard !screens.isEmpty else { return nil }
         if let hit = screens.first(where: { $0.frame.contains(point) }) { return hit }
         return screens.min { distance(from: point, to: $0.frame) < distance(from: point, to: $1.frame) }
     }
 
-    /// Quadratischer Abstand vom Punkt zum naechsten Punkt des Rahmens (0,
-    /// wenn er darin liegt). Quadratisch genuegt fuer den Vergleich und
-    /// spart die Wurzel.
+    /// The squared distance from the point to the nearest point of the frame
+    /// (0 when it lies inside). Squared is enough for the comparison and saves
+    /// the square root.
     private static func distance(from point: CGPoint, to rect: CGRect) -> CGFloat {
         let dx = max(rect.minX - point.x, 0, point.x - rect.maxX)
         let dy = max(rect.minY - point.y, 0, point.y - rect.maxY)

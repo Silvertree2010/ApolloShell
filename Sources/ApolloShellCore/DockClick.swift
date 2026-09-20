@@ -1,32 +1,32 @@
 import Foundation
 
-/// Beschreibender Zustand einer App im Moment des Klicks - alles, was die
-/// Entscheidung braucht, ohne selbst etwas zu tun oder zu lesen.
+/// The descriptive state of an app at the moment of the click - everything
+/// the decision needs, without doing or reading anything itself.
 public struct DockClickState: Equatable, Sendable {
-    /// Laeuft ueberhaupt ein Prozess der App.
+    /// Whether a process of the app runs at all.
     public let running: Bool
-    /// Gerade erst gestartet, der Prozess ist noch nicht da (Symbol huepft).
+    /// Just started, the process is not there yet (the icon bounces).
     public let launching: Bool
-    /// Ist sie die vorderste App.
+    /// Whether it is the frontmost app.
     public let frontmost: Bool
-    /// Ausgeblendet (⌘H).
+    /// Hidden (⌘H).
     public let hidden: Bool
-    /// Sichtbare (nicht minimierte) Fenster auf dem Space, der gerade zu
-    /// sehen ist.
+    /// Visible (not minimised) windows on the space that can be seen right
+    /// now.
     public let windowsOnActiveSpace: Int
-    /// Sichtbare (nicht minimierte) Fenster auf einem anderen Space.
+    /// Visible (not minimised) windows on another space.
     public let windowsElsewhere: Int
-    /// Minimierte Fenster (im Dock abgelegt) - Space zaehlt hier nicht,
-    /// die liegen ohnehin nirgends sichtbar.
+    /// Minimised windows (put away in the Dock) - the space does not count
+    /// here, they lie nowhere visible anyway.
     public let minimizedWindows: Int
-    /// Ist sie schon vorne und hat hier ein Fenster: liegt mindestens eins
-    /// davon unter einem fremden Fenster (`DockWindowCover`)? Nur dann
-    /// blaettert der Klick; mehrere Fenster, die nur nebeneinander offen
-    /// sind, bleiben in Ruhe.
+    /// If it is at the front already and has a window here: does at least one
+    /// of them lie under another app's window (`DockWindowCover`)? Only then
+    /// does the click page through; several windows that are merely open side
+    /// by side are left in peace.
     public let hasCoveredWindow: Bool
-    /// ⌘ gedrueckt.
+    /// ⌘ held down.
     public let command: Bool
-    /// ⌥ gedrueckt.
+    /// ⌥ held down.
     public let option: Bool
 
     public init(
@@ -47,60 +47,60 @@ public struct DockClickState: Equatable, Sendable {
     }
 }
 
-/// Einzelne Aktion, die ein Klick im Dock der Leiste ausloesen kann. Mehrere
-/// zusammen ergeben die Reihenfolge, die `DockClick.actions` liefert.
+/// A single action a click in the Dock of the bar can set off. Several of
+/// them together give the order `DockClick.actions` hands back.
 public enum DockClickAction: Equatable, Sendable {
-    /// Nicht da: neu starten.
+    /// Not there: start it.
     case launch
-    /// War sie ausgeblendet, wieder einblenden.
+    /// If it was hidden, unhide it.
     case unhide
-    /// Nach vorne. Nur wenn kein Fenster auf dem aktuellen Space liegt -
-    /// dann wechselt macOS selbst dorthin, wie bei Apple.
+    /// To the front. Only when no window lies on the current space - then
+    /// macOS switches there by itself, as with Apple.
     case activate
-    /// Ein Fenster der App liegt schon auf dem aktuellen Space: das nach
-    /// vorne holen (aktiviert die App gleich mit) statt auf den Space eines
-    /// anderen Fensters zu wechseln.
+    /// A window of the app lies on the current space already: bring that one
+    /// to the front (which activates the app along with it) instead of
+    /// switching to the space of another window.
     case raiseWindowOnActiveSpace
-    /// Schon vorne, aber eins ihrer Fenster hier liegt unter einem fremden:
-    /// das vorderste verdeckte nach vorne (`DockWindowCover` bestimmt,
-    /// welches - hier steht nur, dass es dazu kommt).
+    /// At the front already, but one of its windows here lies under another
+    /// app's: bring the frontmost covered one forward (`DockWindowCover`
+    /// decides which - only that it happens stands here).
     case raiseCoveredWindow
-    /// Das zuletzt abgelegte Fenster aus dem Dock zurueckholen.
+    /// Bring the window put away last back out of the Dock.
     case unminimizeLast
-    /// Kein Fenster offen: ein neues (wie Apples "reopen").
+    /// No window open: a new one (like Apple's "reopen").
     case newWindow
-    /// ⌥-Klick: die vorher aktive App danach ausblenden.
+    /// ⌥ click: hide the app that was active before afterwards.
     case hidePrevious
-    /// ⌘-Klick: im Dateimanager zeigen statt zu wechseln.
+    /// ⌘ click: show it in the file manager instead of switching.
     case reveal
 }
 
-/// Was ein Klick auf ein Symbol im Dock der Leiste tut - wie in Apples Dock:
-/// laeuft die App nicht, wird sie gestartet; laeuft sie und steht nicht vorne,
-/// kommt sie (mit allen Fenstern) nach vorne; liegt eins ihrer Fenster schon
-/// auf dem aktuellen Space, bleibt der Space dabei (kein Sprung zu einem
-/// anderen); steht sie schon vorne und hat hier ein Fenster, passiert nichts;
-/// sind alle Fenster abgelegt, kommt das zuletzt abgelegte zurueck; hat sie
-/// gar keins, oeffnet sie eins ("reopen"). Kein Blaettern durch Fenster mehr
-/// beim Klick - das macht weiterhin nur Scrollen (`DockWindowCycle`).
+/// What a click on a symbol in the Dock of the bar does - as in Apple's Dock:
+/// when the app does not run, it is started; when it runs and is not at the
+/// front, it comes forward (with all its windows); when one of its windows
+/// lies on the current space already, the space stays (no jump to another
+/// one); when it is at the front already and has a window here, nothing
+/// happens; when all windows are put away, the one put away last comes back;
+/// when it has none at all, it opens one ("reopen"). No more paging through
+/// windows on a click - only scrolling still does that (`DockWindowCycle`).
 public enum DockClick {
-    /// Reine Entscheidung ohne Seiteneffekt: aus dem Zustand eine
-    /// Reihenfolge von Aktionen, die die App-Schicht dann ausfuehrt.
+    /// A plain decision without a side effect: out of the state, an order of
+    /// actions the app layer then carries out.
     public static func actions(for state: DockClickState) -> [DockClickAction] {
-        // ⌘ zeigt nur im Dateimanager, wie bei Apple unabhaengig von allem
-        // anderen (auch nicht laufend oder gerade startend).
+        // ⌘ only shows it in the file manager, as with Apple regardless of
+        // everything else (not running or just starting included).
         if state.command { return [.reveal] }
-        // Startet sie gerade: nichts doppeln, der naechste Klick greift, wenn
-        // sie da ist.
+        // While it is starting: do not double up, the next click takes hold
+        // once it is there.
         if state.launching { return [] }
 
         var actions: [DockClickAction] = []
         if !state.running {
             actions.append(.launch)
         } else if state.frontmost, state.windowsOnActiveSpace > 0 {
-            // Schon vorne und hier ein Fenster: normalerweise nichts (Punkt
-            // 3) - ausser eins davon ist verdeckt, dann holt der Klick
-            // wenigstens das ans Licht statt gar nichts zu tun.
+            // At the front already and a window here: normally nothing (point
+            // 3) - unless one of them is covered, then the click at least
+            // brings that one to light instead of doing nothing.
             if state.hasCoveredWindow { actions.append(.raiseCoveredWindow) }
         } else {
             actions.append(contentsOf: raiseActions(state))
@@ -109,17 +109,17 @@ public enum DockClick {
         return actions
     }
 
-    /// Nicht vorne, oder vorne ohne Fenster auf dem aktuellen Space (etwa
-    /// von Hand auf einen anderen Space gewechselt, waehrend sie aktiv
-    /// blieb): je nach Fensterlage das hiesige nach vorne, sonst aktivieren
-    /// (und macOS wechselt selbst, wenn es nur woanders eins gibt), abgelegtes
-    /// zurueckholen oder ein neues oeffnen.
+    /// Not at the front, or at the front without a window on the current space
+    /// (switched to another space by hand while it stayed active, say):
+    /// depending on where the windows lie, bring the one here forward,
+    /// otherwise activate it (and macOS switches by itself when there is only
+    /// one elsewhere), fetch a put-away one back or open a new one.
     private static func raiseActions(_ state: DockClickState) -> [DockClickAction] {
         var actions: [DockClickAction] = []
-        // Nur einblenden, wenn sie wirklich ausgeblendet ist. Gemessen 16.09.:
-        // `unhide()` auf eine sichtbare App holt deren zuletzt benutztes
-        // Fenster nach vorne - liegt das auf einem anderen Schreibtisch,
-        // springt macOS dorthin, obwohl hier eins liegt.
+        // Only unhide when it really is hidden. Measured 16.09.: `unhide()`
+        // on a visible app brings its last used window to the front - when
+        // that lies on another desktop, macOS jumps there although one lies
+        // here.
         if state.hidden { actions.append(.unhide) }
         if state.windowsOnActiveSpace > 0 {
             actions.append(.raiseWindowOnActiveSpace)
