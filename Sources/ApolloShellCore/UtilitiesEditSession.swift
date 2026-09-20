@@ -26,8 +26,16 @@ public struct UtilitiesEditSession: Equatable, Sendable {
 
     // MARK: Cards
 
+    /// Hiding the quick-toggles card takes its tiles off the screen with
+    /// it, so a selected tile has to let go too - otherwise Esc runs into
+    /// a tile that is not there (and swallows the keypress), and the
+    /// options popover jumps open again as soon as the card comes back.
     public mutating func setCard(_ kind: UtilitiesCardKind, enabled: Bool) {
         layout.setCard(kind, enabled: enabled)
+        if kind == .quickToggles, !enabled {
+            selectedToggleID = nil
+            pickingShortcut = false
+        }
     }
 
     public mutating func moveCards(fromOffsets source: IndexSet, toOffset destination: Int) {

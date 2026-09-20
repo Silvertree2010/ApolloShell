@@ -74,6 +74,11 @@ private struct EditableUtilitiesCard: View {
             // previously `allowsHitTesting(false)` applied to it too, and
             // no tile could be tapped, removed, or moved (self-test 09/19).
             .allowsHitTesting(kind == .quickToggles)
+            // The muted cards keep a hit area of their own all the same:
+            // without it only the minus badge is left to grab, and the card
+            // cannot be dragged into a new order (20.09.). The tiles of the
+            // quick-toggles card keep hit-testing first, as before.
+            .contentShape(Rectangle())
             .overlay {
                 let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
                 if targeted {
