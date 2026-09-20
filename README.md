@@ -50,12 +50,11 @@ If you like it, a star on GitHub helps other Mac users find it.
   same edit mode as the dashboard (Nexus > "Edit Interface").
 - **Themes** as one CSS file: colours, gradients, fonts and sizes for the
   whole shell, applied the moment you save the file.
-- **Nexus**, the settings app, where every panel can be rearranged.
+- **Nexus**, the settings app: shortcuts, providers, themes, updates.
 - Volume display, notifications for power and audio, a desktop clock and a
   session menu.
 - **Keeps itself up to date** (the `.dmg` build), or says when a new version
   is out (Homebrew).
-- English and German.
 
 | Dashboard | Control centre | Launcher |
 | --- | --- | --- |

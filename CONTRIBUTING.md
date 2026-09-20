@@ -59,11 +59,9 @@ scripts/make-dmg.sh
 - Swift 6 language mode with strict concurrency. UI code runs on the main
   actor.
 - Put logic into `ApolloShellCore` and test it there. Keep views thin.
-- **Code comments are in German** for now; English comments are welcome in new
-  code. Comments explain *why*, not *what*.
-- **UI text is written in German in the code** and translated through
-  `Support/Localization` (see [Translations](#translations)). Every new UI
-  string needs an English entry.
+- **Code comments and UI text are in English.** Comments explain *why*, not
+  *what*. There is no translation layer: what stands in the code is what the
+  user sees.
 - Load private macOS interfaces with `dlopen`/`dlsym`, check that they exist,
   and fall back or switch the feature off when they are missing. Never crash
   because Apple changed something.
