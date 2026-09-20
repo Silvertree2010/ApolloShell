@@ -187,7 +187,7 @@ struct BarBlockOptionsView: View {
                 .dock(.init(showRunning: options.showRunning, iconSize: $0))
             }) {
                 ForEach(BarDockOptions.IconSize.allCases, id: \.self) { size in
-                    Text(NexusBarText.size(size)).tag(size)
+                    Text(BarEditText.size(size)).tag(size)
                 }
             }
             .pickerStyle(.segmented)
@@ -245,6 +245,18 @@ struct BarBlockOptionsView: View {
     /// goes back through the editor as a whole module.
     private func binding<Value>(_ value: Value, _ make: @escaping (Value) -> BarModule) -> Binding<Value> {
         Binding(get: { value }, set: { editor.updateBarModule(entry.id, to: make($0)) })
+    }
+}
+
+/// The words for choices that have none of their own in the core.
+@MainActor
+enum BarEditText {
+    static func size(_ size: BarDockOptions.IconSize) -> String {
+        switch size {
+        case .small: String(localized: "Small")
+        case .medium: String(localized: "Medium")
+        case .large: String(localized: "Large")
+        }
     }
 }
 
