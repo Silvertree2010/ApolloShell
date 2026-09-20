@@ -1,7 +1,7 @@
 import ApolloShellCore
 import Testing
 
-@Suite("Themes: Werte zusammenfuehren")
+@Suite("Themes: bringing the values together")
 struct ThemeResolveTests {
     private func theme(_ css: String, identifier: String = "test") -> Theme {
         Theme.make(identifier: identifier, styleSheet: ThemeStyleSheetParser.parse(css))
@@ -11,7 +11,7 @@ struct ThemeResolveTests {
         theme.issues.contains { match($0.kind) }
     }
 
-    @Test("Erscheinungsbild: light/dark aus dem Theme, sonst auto", arguments: [
+    @Test("Appearance: light/dark out of the theme, otherwise auto", arguments: [
         (":root { --apollo-theme-appearance: light; }", ThemeAppearance.light),
         (":root { --apollo-theme-appearance: dark; }", .dark),
         (":root { --apollo-theme-appearance: auto; }", .auto),
@@ -23,7 +23,7 @@ struct ThemeResolveTests {
         #expect(ThemeAppearance(theme: .standard) == .auto)
     }
 
-    @Test("fehlendes Token: bleibt leer, die App nimmt dann die Systemwerte")
+    @Test("a missing token: stays empty, and the app then takes the system values")
     func missingToken() {
         let theme = theme(":root { --apollo-accent-color: #ff0000; }")
         #expect(theme.color(.accent) == ThemeColor(hex: 0xFF0000))
@@ -34,18 +34,18 @@ struct ThemeResolveTests {
         #expect(theme.issues.isEmpty)
     }
 
-    @Test("unbekanntes Token: ignorieren, aber melden - mit Zeilennummer")
+    @Test("an unknown token: ignore it, but report it - with a line number")
     func unknownToken() {
         let theme = theme(":root {\n  --apollo-gibt-es-nicht: red;\n}")
         #expect(theme.issues == [ThemeIssue(.unknownToken("--apollo-gibt-es-nicht"), line: 2)])
     }
 
-    @Test("ein fremder Namensraum bleibt still")
+    @Test("another namespace stays silent")
     func foreignNamespace() {
         #expect(theme(":root { --my-blue: #00f; }").issues.isEmpty)
     }
 
-    @Test("unlesbarer Wert: kein Wert und ein Hinweis mit Zeilennummer")
+    @Test("an unreadable value: no value and a notice with a line number")
     func unreadableValue() {
         let theme = theme(":root {\n  --apollo-accent-color: nonsense;\n}")
         #expect(theme.color(.accent) == nil)
@@ -53,13 +53,13 @@ struct ThemeResolveTests {
                                             line: 2)])
     }
 
-    @Test("ein unlesbarer Wert kippt den lesbaren davor nicht um")
+    @Test("one unreadable value does not topple the readable one before it")
     func lastReadableWins() {
         let theme = theme(":root { --apollo-bar-width: 40px; --apollo-bar-width: keine-ahnung; }")
         #expect(theme.number(.barWidth) == 40)
     }
 
-    @Test("Zahlen ausserhalb des Bereichs werden geklemmt und gemeldet")
+    @Test("numbers outside the range are clamped and reported")
     func clamping() {
         let cases: [(String, ThemeNumberToken, Double)] = [
             ("--apollo-bar-width: 4000px", .barWidth, 160),
@@ -78,7 +78,7 @@ struct ThemeResolveTests {
         }
     }
 
-    @Test("zu langer Text wird gekuerzt")
+    @Test("text that is too long is shortened")
     func textIsCapped() {
         let long = String(repeating: "a", count: 500)
         let theme = theme(":root { --apollo-theme-name: \"\(long)\"; }")
@@ -86,26 +86,26 @@ struct ThemeResolveTests {
         #expect(hasKind(theme) { if case .clamped = $0 { true } else { false } })
     }
 
-    @Test("dunkel erbt, was in :root steht")
+    @Test("dark inherits what stands in :root")
     func darkInheritsLight() {
         let theme = theme(":root { --apollo-accent-color: #ff0000; }")
         #expect(theme.color(.accent, dark: true) == ThemeColor(hex: 0xFF0000))
     }
 
-    @Test("ohne Angabe bleibt es auch im Dunkeln leer")
+    @Test("without an entry it stays empty in the dark too")
     func darkStaysEmpty() {
         let theme = theme(":root { --apollo-accent-color: #ff0000; }")
         #expect(theme.color(.surface, dark: true) == nil)
     }
 
-    @Test("was nur im dunklen Block steht, fehlt im Hellen")
+    @Test("what stands only in the dark block is missing in the light")
     func darkOnlyStaysDark() throws {
         let theme = theme("@media (prefers-color-scheme: dark) { :root { --apollo-bar-color: #101014; } }")
         #expect(theme.color(.bar) == nil)
         #expect(try #require(theme.color(.bar, dark: true)) == ThemeColor(hex: 0x101014))
     }
 
-    @Test("der @media-Block gilt nur im Dunkeln")
+    @Test("the @media block only holds in the dark")
     func darkOverride() {
         let theme = theme("""
         :root { --apollo-accent-color: #ff0000; --apollo-bar-width: 40px; }
@@ -117,22 +117,22 @@ struct ThemeResolveTests {
         #expect(theme.issues.isEmpty)
     }
 
-    @Test("Kontrast: eine unlesbare Schriftfarbe wird zurechtgerueckt")
+    @Test("contrast: an unreadable text color is nudged into place")
     func contrastGuard() throws {
         let theme = theme(":root { --apollo-text-color: #fbfbfb; }")
         let text = try #require(theme.color(.text))
-        // Ohne eigenen Untergrund misst die Pruefung am Untergrund der Shell.
+        // Without a ground of its own the check measures on the ground of the shell.
         let surface = ThemeColorToken.surface.defaultValue()
         #expect(text != ThemeColor(hex: 0xFBFBFB))
         #expect(ThemeColor.contrast(text.composited(over: surface), surface) >= 4.5)
         #expect(hasKind(theme) { if case .contrastAdjusted = $0 { true } else { false } })
     }
 
-    @Test("Kontrast: lesbare Farben bleiben genau, wie sie sind")
+    @Test("contrast: readable colors stay exactly as they are")
     func contrastLeavesGoodColorsAlone() {
-        // Mit dunkler Abweichung, sonst stuende die dunkle Schrift im
-        // dunklen Erscheinungsbild auf dunklem Grund - und genau das wuerde
-        // die Kontrastgrenze (zu Recht) anfassen.
+        // With a dark variant, otherwise the dark text would stand on a dark
+        // ground in the dark appearance - and that is exactly what the contrast
+        // limit would (rightly) touch.
         let theme = theme("""
         :root { --apollo-text-color: #102030; }
         @media (prefers-color-scheme: dark) { :root { --apollo-text-color: #e8e8ea; } }
@@ -142,7 +142,7 @@ struct ThemeResolveTests {
         #expect(theme.issues.isEmpty)
     }
 
-    @Test("Kontrast: eine helle Schrift ohne dunkle Abweichung faellt im Dunkeln auf")
+    @Test("contrast: a light text without a dark variant stands out in the dark")
     func contrastReportsTheAppearance() throws {
         let theme = theme(":root { --apollo-text-color: #102030; }")
         #expect(theme.color(.text) == ThemeColor(hex: 0x102030))
@@ -155,7 +155,7 @@ struct ThemeResolveTests {
         }))
     }
 
-    @Test("riesige Zahlen werden geklemmt, ohne abzustuerzen")
+    @Test("huge numbers are clamped without crashing")
     func hugeNumbers() {
         let digits20 = String(repeating: "9", count: 20)
         let digits307 = String(repeating: "9", count: 307)
@@ -167,7 +167,7 @@ struct ThemeResolveTests {
         }
     }
 
-    @Test("Zahlen ausserhalb von Int lassen sich schreiben")
+    @Test("numbers outside Int can be written")
     func cssTextBeyondInt() {
         #expect(!ThemeUnit.scalar.cssText(1e23).isEmpty)
         #expect(!ThemeUnit.points.cssText(-1e307).isEmpty)
@@ -175,7 +175,7 @@ struct ThemeResolveTests {
         #expect(ThemeUnit.ratio.cssText(0.5) == "0.5")
     }
 
-    @Test("Kontrast: auf mittelhellem Grund wird abgedunkelt, nicht durch Schwarz ersetzt")
+    @Test("contrast: on a medium-light ground it is darkened, not replaced by black")
     func contrastOnMidBackground() {
         let background = ThemeColor(hex: 0xAAAAAA)
         let fixed = ThemeGuards.readable(ThemeColor(hex: 0xB0B0B0), on: background, minimum: 4.5)
@@ -183,7 +183,7 @@ struct ThemeResolveTests {
         #expect(fixed != ThemeColor(hex: 0x000000))
     }
 
-    @Test("Kontrast: gemessen wird auf dem Untergrund, den das Theme setzt")
+    @Test("contrast: it is measured on the ground the theme sets")
     func contrastUsesThemeBackground() throws {
         let theme = theme(":root { --apollo-surface-color: #000000; --apollo-text-color: #111111; }")
         let text = try #require(theme.color(.text))
@@ -191,7 +191,7 @@ struct ThemeResolveTests {
         #expect(ThemeColor.contrast(text, ThemeColor(hex: 0x000000)) >= 4.5)
     }
 
-    @Test("Kontrast: fast durchsichtige Schrift wird notfalls deckend")
+    @Test("contrast: almost transparent text becomes opaque if need be")
     func contrastWithAlpha() throws {
         let theme = theme(":root { --apollo-text-color: rgba(0, 0, 0, 0.02); }")
         let text = try #require(theme.color(.text))
@@ -199,7 +199,7 @@ struct ThemeResolveTests {
         #expect(ThemeColor.contrast(text.composited(over: surface), surface) >= 4.5)
     }
 
-    @Test("Kontrast wird in beiden Erscheinungsbildern erzwungen")
+    @Test("contrast is enforced in both appearances")
     func contrastInBothAppearances() throws {
         let theme = theme("@media (prefers-color-scheme: dark) { :root { --apollo-text-color: #1d1d1d; } }")
         let text = try #require(theme.color(.text, dark: true))
@@ -207,7 +207,7 @@ struct ThemeResolveTests {
         #expect(ThemeColor.contrast(text.composited(over: surface), surface) >= 4.5)
     }
 
-    @Test("hoehere Formatnummer: lesen, Unbekanntes ueberspringen, Hinweis zeigen")
+    @Test("a higher format number: read it, skip the unknown, show a notice")
     func newerFormat() {
         let theme = theme("""
         :root {
@@ -222,14 +222,14 @@ struct ThemeResolveTests {
         #expect(theme.issues.contains(ThemeIssue(.unknownToken("--apollo-kommt-erst-spaeter"), line: 4)))
     }
 
-    @Test("ohne Angabe ist die Formatnummer die dieser Fassung")
+    @Test("without an entry the format number is the one of this version")
     func defaultFormat() {
         #expect(theme("").formatVersion == ThemeFormat.current)
         #expect(theme(":root { --apollo-theme-format: 0; }").formatVersion == 1)
         #expect(theme(":root { --apollo-theme-format: abc; }").formatVersion == 1)
     }
 
-    @Test("Kennung und Kurzname")
+    @Test("identifier and short name")
     func identifiers() {
         #expect(Theme.make(identifier: "My Theme", styleSheet: ThemeStyleSheet()).slug == "my-theme")
         #expect(Theme.make(identifier: "  ", styleSheet: ThemeStyleSheet()).identifier == "theme")
@@ -237,7 +237,7 @@ struct ThemeResolveTests {
         #expect(Theme.make(identifier: "Grün & Blau!", styleSheet: ThemeStyleSheet()).slug == "gr-n-blau")
     }
 
-    @Test("Titel: der Name aus dem Theme, sonst die Kennung")
+    @Test("title: the name out of the theme, otherwise the identifier")
     func title() {
         #expect(Theme.make(identifier: "Sunset", styleSheet: ThemeStyleSheet()).title == "Sunset")
         let named = theme(":root { --apollo-theme-name: \"Abendrot\"; }", identifier: "Sunset")
@@ -245,7 +245,7 @@ struct ThemeResolveTests {
         #expect(named.identifier == "Sunset")
     }
 
-    @Test("Bilder ohne Theme-Ordner: kein Bild, aber ein Hinweis")
+    @Test("images without a theme folder: no image, but a notice")
     func assetsNeedFolder() {
         let theme = theme(":root { --apollo-background-image: url(\"bg.png\"); }")
         #expect(theme.file(.backgroundImage) == nil)
