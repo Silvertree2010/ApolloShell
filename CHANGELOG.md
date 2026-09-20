@@ -34,6 +34,10 @@ tabs you had into pages, with the cards at the same spots. The old
   the size slider in the edit mode's toolbar makes it larger or smaller.
 - **Each weather widget has its own places**, and each clock its own time
   zone.
+- **The edit mode keeps out of a tiling window manager's way.** Its scrim,
+  toolbar, gallery and the pinned panels are no standard windows, sit on
+  their own level and cannot be moved by another app, which is what
+  AeroSpace, yabai and Amethyst go by when they decide what to tile.
 
 ### Changed
 
