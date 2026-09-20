@@ -107,6 +107,20 @@ struct BarEditSessionTests {
         #expect(s.layout.entries.map(\.kind) == plain.entries.map(\.kind))
     }
 
+    @Test("Dragging one block onto another takes its place")
+    func moveOnto() {
+        let start = BarLayout([BarEntry(.dashboardButton), BarEntry(.clock), BarEntry(.power)])
+        var s = BarEditSession(layout: start)
+        var plain = start
+        let ids = s.layout.entries.map(\.id)
+
+        s.move(id: ids[2], onto: ids[0])
+        plain.move(id: ids[2], onto: ids[0])
+        #expect(s.layout.entries.map(\.id) == plain.entries.map(\.id))
+        #expect(s.layout.entries[0].kind == .power)
+        #expect(s.hasChanges)
+    }
+
     @Test("Moving a block back and forth is no change at all")
     func moveBackIsNoChange() {
         var s = BarEditSession(layout: standard)
