@@ -8,13 +8,13 @@ private func calendar(_ zone: String) -> Calendar {
     return calendar
 }
 
-/// 14.09.2026 in UTC, auf die Sekunde (mit Bruchteil).
+/// 14.09.2026 in UTC, to the second (with a fraction).
 private func utc(_ hour: Int, _ minute: Int, _ second: Double = 0) -> Date {
     let base = calendar("UTC").date(from: DateComponents(year: 2026, month: 9, day: 14, hour: hour, minute: minute))!
     return base.addingTimeInterval(second)
 }
 
-@Suite("Uhr in der Leiste")
+@Suite("The clock in the bar")
 struct BarClockTests {
     @Test("24 Stunden, zweistellig", arguments: [
         (14, 5, "14", "05"), (0, 0, "00", "00"), (9, 59, "09", "59"), (23, 7, "23", "07"),
@@ -25,20 +25,20 @@ struct BarClockTests {
         #expect(BarClock.minute(date, calendar: calendar("UTC")) == minuteText)
     }
 
-    @Test("Ortszeit aus dem Kalender: 12:05 UTC ist in Mitteleuropa 14:05 (Sommerzeit)")
+    @Test("Local time out of the calendar: 12:05 UTC is 14:05 in Central Europe (summer time)")
     func timeZone() {
         let date = utc(12, 5)
         #expect(BarClock.hour(date, calendar: calendar("Europe/Zurich")) == "14")
         #expect(BarClock.minute(date, calendar: calendar("Europe/Zurich")) == "05")
     }
 
-    @Test("naechste volle Minute, auch mit Sekundenbruchteil")
+    @Test("the next full minute, with a fraction of a second too")
     func nextMinuteMidway() {
         #expect(BarClock.nextMinute(after: utc(14, 5, 30.5), calendar: calendar("UTC")) == utc(14, 6))
         #expect(BarClock.nextMinute(after: utc(14, 5, 59.99), calendar: calendar("UTC")) == utc(14, 6))
     }
 
-    @Test("genau auf der Grenze: die Minute danach, nicht dieselbe")
+    @Test("exactly on the boundary: the minute after it, not the same one")
     func nextMinuteOnBoundary() {
         #expect(BarClock.nextMinute(after: utc(14, 6), calendar: calendar("UTC")) == utc(14, 7))
         #expect(BarClock.nextMinute(after: utc(23, 59, 59), calendar: calendar("UTC")) == utc(0, 0).addingTimeInterval(86_400))

@@ -1,11 +1,11 @@
 import ApolloShellCore
 import Testing
 
-@Suite("Dock in der Leiste")
+@Suite("The Dock in the bar")
 struct DockLayoutTests {
     private let all: (String) -> Bool = { _ in true }
 
-    @Test("erst angeheftete in ihrer Reihenfolge, dann die uebrigen laufenden")
+    @Test("the pinned ones in their order first, then the other running ones")
     func order() {
         let slots = DockLayout.slots(pinned: ["kitty", "vivaldi", "spotify"], running: ["finder", "vivaldi", "mail"], isAvailable: all)
         #expect(slots.map(\.bundleID) == ["kitty", "vivaldi", "spotify", "finder", "mail"])
@@ -13,33 +13,33 @@ struct DockLayoutTests {
         #expect(slots.map(\.running) == [false, true, false, true, true])
     }
 
-    @Test("jede App nur einmal")
+    @Test("every app only once")
     func unique() {
         let slots = DockLayout.slots(pinned: ["kitty", "kitty"], running: ["mail", "mail", "kitty"], isAvailable: all)
         #expect(slots.map(\.bundleID) == ["kitty", "mail"])
     }
 
-    @Test("angeheftet, aber nicht mehr installiert: faellt weg")
+    @Test("pinned but no longer installed: it falls away")
     func missingPinned() {
         let slots = DockLayout.slots(pinned: ["weg", "kitty"], running: [], isAvailable: { $0 != "weg" })
         #expect(slots.map(\.bundleID) == ["kitty"])
     }
 
-    @Test("versteckte App erscheint nie, auch wenn sie laeuft oder angeheftet ist")
+    @Test("a hidden app never appears, even when it runs or is pinned")
     func hidden() {
         let slots = DockLayout.slots(pinned: ["forklift", "finder"], running: ["finder", "mail"],
                                      hidden: ["finder"], isAvailable: all)
         #expect(slots.map(\.bundleID) == ["forklift", "mail"])
     }
 
-    @Test("Dateimanager hat immer einen Punkt, auch wenn er nicht laeuft")
+    @Test("the file manager always has a dot, even when it does not run")
     func alwaysRunning() {
         let slots = DockLayout.slots(pinned: ["forklift", "kitty"], running: [], alwaysRunning: ["forklift"],
                                      isAvailable: all)
         #expect(slots.map(\.running) == [true, false])
     }
 
-    @Test("nichts angeheftet: nur die laufenden")
+    @Test("nothing pinned: only the running ones")
     func onlyRunning() {
         let slots = DockLayout.slots(pinned: [], running: ["finder"], isAvailable: all)
         #expect(slots == [DockSlot(bundleID: "finder", pinned: false, running: true)])

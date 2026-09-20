@@ -1,41 +1,41 @@
 import ApolloShellCore
 import Testing
 
-@Suite("Befehle der App im Dock-Menue")
+@Suite("The commands of the app in the Dock menu")
 struct DockCommandsTests {
-    @Test("Neu-Befehle kommen mit", arguments: ["New Window", "New Private Window", "New OS Window", "Neues Fenster", "Neuer Tab"])
+    @Test("New commands come along", arguments: ["New Window", "New Private Window", "New OS Window", "Neues Fenster", "Neuer Tab"])
     func newCommands(title: String) {
         #expect(DockCommandFilter.isNewCommand(title))
     }
 
-    @Test("alles andere nicht", arguments: ["Newsletter", "Open…", "Close Window", "Renew", ""])
+    @Test("nothing else does", arguments: ["Newsletter", "Open…", "Close Window", "Renew", ""])
     func others(title: String) {
         #expect(!DockCommandFilter.isNewCommand(title))
     }
 
-    // MARK: - Nach Tastenkuerzel statt nach Text
+    // MARK: - By the keyboard shortcut instead of by the text
 
-    @Test("Befehl-N ist ein neues Fenster, in jeder Sprache")
+    @Test("Command-N is a new window, in every language")
     func commandNIsNew() {
         let shortcut = MenuShortcut(character: "n", modifiers: 0)
         #expect(DockCommandFilter.kind(title: "Nouvelle fenêtre", shortcut: shortcut) == .newItem)
         #expect(DockCommandFilter.kind(title: "新規ウインドウ", shortcut: shortcut) == .newItem)
     }
 
-    @Test("Umschalt-Befehl-N zaehlt auch, etwa fuer ein privates Fenster")
+    @Test("Shift-Command-N counts too, for a private window say")
     func shiftCommandNIsNew() {
         #expect(DockCommandFilter.kind(title: "Nouvelle fenêtre privée",
                                        shortcut: MenuShortcut(character: "N", modifiers: 1)) == .newItem)
     }
 
-    @Test("Befehl-Komma sind die Einstellungen, in jeder Sprache")
+    @Test("Command-comma is the settings, in every language")
     func commandCommaIsSettings() {
         let shortcut = MenuShortcut(character: ",", modifiers: 0)
         #expect(DockCommandFilter.kind(title: "Réglages…", shortcut: shortcut) == .settings)
         #expect(DockCommandFilter.kind(title: "Einstellungen …", shortcut: shortcut) == .settings)
     }
 
-    @Test("ohne Kuerzel entscheidet der Text", arguments: [
+    @Test("without a shortcut the text decides", arguments: [
         ("Einstellungen …", DockCommandKind.settings),
         ("Settings…", DockCommandKind.settings),
         ("Preferences…", DockCommandKind.settings),
@@ -46,28 +46,28 @@ struct DockCommandsTests {
         #expect(DockCommandFilter.kind(title: title, shortcut: nil) == kind)
     }
 
-    @Test("was weder passt noch heisst, kommt nicht ins Menue", arguments: [
+    @Test("what neither matches nor is named that way does not come into the menu", arguments: [
         "Open…", "Close Window", "Newsletter", "Print…", "",
     ])
     func unrelatedStaysOut(title: String) {
         #expect(DockCommandFilter.kind(title: title, shortcut: nil) == nil)
     }
 
-    @Test("ein Kuerzel ohne Befehlstaste zaehlt nicht")
+    @Test("a shortcut without the command key does not count")
     func withoutCommandKeyItIsNoShortcut() {
-        // Bit 3 der Bedienungshilfen heisst: kein ⌘ in diesem Kuerzel.
+        // Bit 3 of the accessibility API means: no ⌘ in this shortcut.
         let shortcut = MenuShortcut(character: "n", modifiers: 8)
         #expect(!shortcut.hasCommand)
         #expect(DockCommandFilter.kind(title: "Nouvelle fenêtre", shortcut: shortcut) == nil)
     }
 
-    @Test("Strg-Befehl-N ist kein einfaches neues Fenster")
+    @Test("Control-Command-N is no plain new window")
     func controlCommandIsNotNew() {
         #expect(DockCommandFilter.kind(title: "Etwas anderes",
                                        shortcut: MenuShortcut(character: "n", modifiers: 4)) == nil)
     }
 
-    @Test("Kuerzel schlaegt Text: Befehl-N heisst neues Fenster, auch wenn der Text nach Einstellungen klingt")
+    @Test("The shortcut beats the text: Command-N means a new window, even when the text sounds like settings")
     func shortcutWinsOverTitle() {
         #expect(DockCommandFilter.kind(title: "Settings Window",
                                        shortcut: MenuShortcut(character: "n", modifiers: 0)) == .newItem)

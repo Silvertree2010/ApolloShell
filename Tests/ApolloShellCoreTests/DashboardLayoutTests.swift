@@ -14,7 +14,7 @@ struct DashboardLayoutTests {
 
     /// "top|bottom|side" with the kinds per place, for comparing.
     private func text(_ cards: DashboardCards?) -> String {
-        guard let cards else { return "<nicht lesbar>" }
+        guard let cards else { return "<not readable>" }
         return DashboardZone.allCases.map { cards[$0].map(\.kind.rawValue).joined(separator: ",") }.joined(separator: "|")
     }
 
@@ -243,7 +243,7 @@ struct DashboardLayoutTests {
         #expect(text(cards) == expected)
     }
 
-    @Test("hinzufuegen geht nicht: schon da, oder nirgends Raum", arguments: [
+    @Test("adding does not work: it is there already, or there is no room anywhere", arguments: [
         ("weather,user|clock,calendar,resources|media", DashboardCardKind.clock),
         // The bottom 200 + 200 + 110 + 24 = 534; with the calendar (300) too wide.
         ("|weather,user,clock|media", DashboardCardKind.calendar),

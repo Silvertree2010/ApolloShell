@@ -26,7 +26,7 @@ struct DashboardLogicTests {
         #expect(weeks[4][6].day == 4 && !weeks[4][6].inMonth)
     }
 
-    @Test("Heute ist genau ein Tag markiert, am richtigen Platz")
+    @Test("Today exactly one day is marked, at the right place")
     func todayMarkedOnce() {
         let weeks = CalendarMonth.weeks(for: date(2026, 9, 14), today: date(2026, 9, 14), calendar: calendar)
         let today = weeks.flatMap { $0 }.filter(\.isToday)
@@ -34,7 +34,7 @@ struct DashboardLogicTests {
         #expect(weeks[2][0].isToday) // Montag der dritten Zeile
     }
 
-    @Test("Monat mit 6 Wochen (Maerz 2026 beginnt am Sonntag)")
+    @Test("A month with 6 weeks (March 2026 begins on a Sunday)")
     func sixWeekMonth() {
         let weeks = CalendarMonth.weeks(for: date(2026, 3, 10), today: date(2026, 9, 14), calendar: calendar)
         #expect(weeks.count == 6)
@@ -46,7 +46,7 @@ struct DashboardLogicTests {
         #expect(CalendarMonth.weekdaySymbols(calendar: calendar) == ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"])
     }
 
-    @Test("CPU-Auslastung aus der Tick-Differenz")
+    @Test("The CPU load out of the tick difference")
     func cpuUsage() {
         let old = CPUTicks(user: 100, system: 50, idle: 800, nice: 0)
         let new = CPUTicks(user: 130, system: 60, idle: 860, nice: 0)
@@ -54,14 +54,14 @@ struct DashboardLogicTests {
         #expect(ResourceMath.cpuUsage(from: old, to: new) == 0.4)
     }
 
-    @Test("CPU ohne Veraenderung oder mit zuruecklaufenden Zaehlern: nil")
+    @Test("The CPU without a change or with counters running backwards: nil")
     func cpuUsageDegenerate() {
         let ticks = CPUTicks(user: 1, system: 1, idle: 1, nice: 0)
         #expect(ResourceMath.cpuUsage(from: ticks, to: ticks) == nil)
         #expect(ResourceMath.cpuUsage(from: ticks, to: CPUTicks(user: 0, system: 1, idle: 1, nice: 0)) == nil)
     }
 
-    @Test("Anteile werden begrenzt")
+    @Test("Shares are limited")
     func fractionClamped() {
         #expect(ResourceMath.fraction(used: 50, total: 200) == 0.25)
         #expect(ResourceMath.fraction(used: 300, total: 200) == 1)

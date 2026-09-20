@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Bearbeiten: Arbeitskopie, Vorschau beim Ziehen, Abbrechen")
+@Suite("Editing: the working copy, the preview while dragging, cancel")
 struct BentoEditSessionTests {
     private func f(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> WidgetFrame {
         WidgetFrame(x: x, y: y, width: w, height: h)
@@ -15,7 +15,7 @@ struct BentoEditSessionTests {
         return (BentoEditSession(pages: pages, pageID: page.id), clock.id)
     }
 
-    @Test("Ziehen: Vorschau rastet ein und sagt, ob es passt; erst Loslassen aendert")
+    @Test("Dragging: the preview snaps and says whether it fits; only the drop changes anything")
     func move() throws {
         var (s, id) = try session()
         let ok = s.previewMove(id, proposed: f(4, 146, 110, 130))
@@ -31,7 +31,7 @@ struct BentoEditSessionTests {
         #expect(!committedOutside)
     }
 
-    @Test("Groesse: Vorschau nach den Groessen der Art")
+    @Test("Size: the preview follows the sizes of the kind")
     func resize() throws {
         let (s, id) = try session()
         let r = s.previewResize(id, proposedWidth: 300, proposedHeight: 240)
@@ -39,7 +39,7 @@ struct BentoEditSessionTests {
         #expect(r.valid)
     }
 
-    @Test("Ablegen aus Nexus: kleinste Groesse, ungueltig wenn zu nah")
+    @Test("Dropping out of Nexus: the smallest size, invalid when too close")
     func drop() throws {
         var (s, _) = try session()
         let near = s.previewDrop(.clock, x: 60, y: 60)
@@ -52,7 +52,7 @@ struct BentoEditSessionTests {
         #expect(s.selectedWidgetID == added)
     }
 
-    @Test("Entfernen, Optionen, Auswahl faellt mit dem Widget")
+    @Test("Removing, the options, the selection goes with the widget")
     func removeAndOptions() throws {
         var (s, id) = try session()
         s.selectedWidgetID = id
@@ -63,7 +63,7 @@ struct BentoEditSessionTests {
         #expect(s.selectedWidgetID == nil)
     }
 
-    @Test("Aenderungen erkennen; Seite wechseln waehlt ab")
+    @Test("Recognising changes; switching the page deselects")
     func changes() throws {
         var (s, id) = try session()
         #expect(!s.hasChanges)

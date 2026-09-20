@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Bluetooth-Zustand aus system_profiler")
+@Suite("The Bluetooth state out of system_profiler")
 struct BluetoothStatusTests {
     private func json(_ state: String) -> Data {
         Data("""
@@ -15,15 +15,15 @@ struct BluetoothStatusTests {
         #expect(BluetoothStatus.powerOn(fromSystemProfilerJSON: json("attrib_on")) == true)
     }
 
-    @Test("aus")
+    @Test("off")
     func off() {
         #expect(BluetoothStatus.powerOn(fromSystemProfilerJSON: json("attrib_off")) == false)
     }
 
-    @Test("unbekannter Wert oder kaputte Ausgabe: nil statt Raten")
+    @Test("an unknown value or broken output: nil instead of guessing")
     func unknown() {
         #expect(BluetoothStatus.powerOn(fromSystemProfilerJSON: json("attrib_weird")) == nil)
-        #expect(BluetoothStatus.powerOn(fromSystemProfilerJSON: Data("kein json".utf8)) == nil)
+        #expect(BluetoothStatus.powerOn(fromSystemProfilerJSON: Data("no json".utf8)) == nil)
         #expect(BluetoothStatus.powerOn(fromSystemProfilerJSON: Data("{}".utf8)) == nil)
     }
 }

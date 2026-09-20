@@ -9,7 +9,7 @@ struct AccentContrastTests {
         #expect(AccentContrast.prefersDarkForeground(red: 1, green: 0.839, blue: 0.039))
     }
 
-    @Test("Blau, Gruen, Orange, Rot, Graphit bleiben weiss beschriftet")
+    @Test("Blue, green, orange, red and graphite keep white text")
     func otherAccentsAreLight() {
         #expect(!AccentContrast.prefersDarkForeground(red: 0, green: 0.478, blue: 1))
         #expect(!AccentContrast.prefersDarkForeground(red: 0.204, green: 0.780, blue: 0.349))

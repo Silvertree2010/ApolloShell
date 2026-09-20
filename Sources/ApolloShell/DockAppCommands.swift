@@ -4,7 +4,7 @@ import ApplicationServices
 import CoreGraphics
 import SwiftUI
 
-/// Befehle der App aus ihrer Menueleiste, siehe `DockCommandFilter`.
+/// The app's commands from its menu bar, see `DockCommandFilter`.
 enum DockAppCommands {
     struct Command {
         let title: String
@@ -12,13 +12,13 @@ enum DockAppCommands {
         let element: AXUIElement
     }
 
-    /// Die Befehle der App fuers Dock-Menue: neue Fenster und die
-    /// Einstellungen.
+    /// The app's commands for the Dock menu: new windows and the
+    /// settings.
     ///
-    /// Gelesen werden zwei Menues der Menueleiste - das App-Menue (dort
-    /// stehen die Einstellungen) und das erste danach (File/Ablage, dort die
-    /// neuen Fenster). Was ein Eintrag ist, entscheidet `DockCommandFilter`
-    /// am Tastenkuerzel und erst dann am Text.
+    /// Two menus of the menu bar are read - the app menu (where the
+    /// settings live) and the first one after it (File, where the
+    /// new windows are). What counts as an entry is decided by `DockCommandFilter`
+    /// by keyboard shortcut, and only then by text.
     @MainActor
     static func commands(pid: pid_t) -> [Command] {
         guard AXIsProcessTrusted() else { return [] }
@@ -28,7 +28,7 @@ enum DockAppCommands {
               CFGetTypeID(barValue) == AXUIElementGetTypeID()
         else { return [] }
         let bar = unsafeDowncast(barValue, to: AXUIElement.self)
-        // 0 = Apple-Menue, 1 = App-Menue, 2 = File/Ablage (kitty: Shell).
+        // 0 = Apple menu, 1 = app menu, 2 = File (kitty: Shell).
         let menus = AX.elements(bar, kAXChildrenAttribute)
         var commands: [Command] = []
         var seen: Set<String> = []
@@ -44,12 +44,12 @@ enum DockAppCommands {
                 commands.append(Command(title: title, kind: kind, element: item))
             }
         }
-        // Erst die neuen Fenster, dann die Einstellungen - wie im Dock-Menue
-        // von Apple, wo die Befehle der App in dieser Reihenfolge stehen.
+        // New windows first, then settings - like in Apple's Dock menu,
+        // where the app's commands appear in this order.
         return commands.filter { $0.kind == .newItem } + commands.filter { $0.kind == .settings }
     }
 
-    /// Das Tastenkuerzel eines Menuepunkts, `nil` wenn er keines hat.
+    /// The keyboard shortcut of a menu item, `nil` if it has none.
     @MainActor
     private static func shortcut(of item: AXUIElement) -> MenuShortcut? {
         guard let character = AX.string(item, kAXMenuItemCmdCharAttribute), !character.isEmpty else { return nil }
@@ -57,8 +57,8 @@ enum DockAppCommands {
         return MenuShortcut(character: character, modifiers: modifiers)
     }
 
-    /// App nach vorne, dann den Menuepunkt auswaehlen - wie ueber ihre
-    /// Menueleiste, das neue Fenster kommt also auf dem aktuellen Schreibtisch.
+    /// App to the front, then select the menu item - like through its
+    /// menu bar, so the new window ends up on the current desktop.
     @MainActor
     static func press(_ command: Command, of app: NSRunningApplication) {
         app.activate()

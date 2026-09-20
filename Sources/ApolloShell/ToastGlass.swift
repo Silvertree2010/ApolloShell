@@ -1,20 +1,20 @@
 import SwiftUI
 
 extension View {
-    /// Liquid Glass hinter einer Kurzmeldung, auf Wunsch leicht getoent.
+    /// Liquid Glass behind a toast, lightly tinted on request.
     ///
-    /// Hier SwiftUIs `glassEffect` statt eines NSGlassEffectView wie bei den
-    /// Kantenfenstern: dort ist das Glas das ganze Fenster, hier hat jede
-    /// Meldung ihr eigenes, und das muss beim Auf- und Ausblenden mit
-    /// Deckkraft und Groesse mitgehen. Ein eingebettetes AppKit-Glas folgt
-    /// SwiftUIs Uebergaengen nicht sicher; das SwiftUI-Glas ist dasselbe
-    /// Material und gehoert zum Uebergang. Ohne GlassEffectContainer, damit
-    /// benachbarte Meldungen nicht ineinanderfliessen.
+    /// Here SwiftUI's `glassEffect` instead of an NSGlassEffectView like the
+    /// edge windows use: there the glass is the whole window, here each
+    /// toast has its own, and that has to move with opacity and size
+    /// during fade in/out. An embedded AppKit glass does not reliably follow
+    /// SwiftUI's transitions; the SwiftUI glass is the same
+    /// material and belongs to the transition. Without GlassEffectContainer, so that
+    /// neighboring toasts don't flow into each other.
     ///
-    /// Eigene Datei, damit die Bildprobe sie gegen einen Ersatz tauschen
-    /// kann - Glas zeichnet offscreen nur weiss.
-    /// `enabled` falsch: gar kein Glas - ein Theme, das `--apollo-glass`
-    /// abschaltet, bekommt eine ruhige Flaeche statt Material.
+    /// Own file so the screenshot test can swap it for a stand-in -
+    /// glass draws only white when rendered offscreen.
+    /// `enabled` false: no glass at all - a theme that turns off
+    /// `--apollo-glass` gets a flat surface instead of material.
     func toastGlass(tint: Color?, cornerRadius: CGFloat, enabled: Bool = true) -> some View {
         Group {
             if enabled {

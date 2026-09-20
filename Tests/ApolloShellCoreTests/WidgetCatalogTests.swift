@@ -2,10 +2,10 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Widget-Katalog: Kennungen und Groessen von vor 0.2")
+@Suite("Widget catalog: identifiers and sizes from before 0.2")
 struct WidgetCatalogTests {
-    /// Ganze Zahl ohne Nachkommastelle, ein Halbpunkt (Leistung ohne Akku)
-    /// mit genau einer.
+    /// Whole number without decimal, a half point (performance without battery)
+    /// with exactly one.
     private func format(_ value: Double) -> String {
         value == value.rounded() ? "\(Int(value))" : "\(value)"
     }
@@ -18,7 +18,7 @@ struct WidgetCatalogTests {
         .joined(separator: " ")
     }
 
-    @Test("Kennungen stehen in settings.json und aendern sich nie")
+    @Test("identifiers live in settings.json and never change")
     func rawValues() {
         #expect(WidgetKind.allCases.map(\.rawValue) == [
             "weather", "user", "clock", "calendar", "resources", "media",
@@ -28,14 +28,14 @@ struct WidgetCatalogTests {
         ])
     }
 
-    @Test("Jede Karte der Uebersicht ist ein Widget mit derselben Kennung")
+    @Test("Every overview card is a widget with the same identifier")
     func cardsMap() {
         for card in DashboardCardKind.allCases {
             #expect(WidgetKind(card).overviewCard == card)
         }
     }
 
-    @Test("Groessen der Uebersicht", arguments: [
+    @Test("Overview sizes", arguments: [
         (WidgetKind.weather, "275-839x130 200-839x250 200-839x392"),
         (.user, "230-839x130 200-839x250 200-839x392"),
         (.clock, "110-839x130 110-839x250 110-839x392"),
@@ -47,7 +47,7 @@ struct WidgetCatalogTests {
         #expect(text(kind.sizes) == expected)
     }
 
-    @Test("Groessen der Seiten Leistung, Wetter, Medien", arguments: [
+    @Test("Sizes of the performance, weather, and media pages", arguments: [
         (WidgetKind.performanceCPU, "343-413.5x191"),
         (.performanceGPU, "343-413.5x191"),
         (.performanceStorage, "169.5-240x189"),
@@ -63,7 +63,7 @@ struct WidgetCatalogTests {
         #expect(text(kind.sizes) == expected)
     }
 
-    @Test("Jede Karte jeder Vorlage und jedes Rasters von vor 0.2 hat eine erlaubte Groesse")
+    @Test("Every card of every template and every grid from before 0.2 has an allowed size")
     func placementsAreAllowed() {
         var layouts = DashboardPreset.allCases.map(\.layout.cards)
         layouts += [
@@ -81,14 +81,14 @@ struct WidgetCatalogTests {
         }
     }
 
-    @Test("Kleinste Groesse nach Flaeche")
+    @Test("Smallest size by area")
     func smallest() {
         #expect(WidgetKind.clock.smallestSize == .flexible(110, 839, 130))
         #expect(WidgetKind.resources.smallestSize == .flexible(90, 839, 250))
         #expect(WidgetKind.mediaPlayer.smallestSize == .fixed(839, 392))
     }
 
-    @Test("Heimat, Orte, Medien")
+    @Test("Home, places, media")
     func flags() {
         #expect(WidgetKind.allCases.allSatisfy { $0.home == .dashboard })
         #expect(WidgetKind.allCases.filter(\.usesPlaces) == [.weather, .weatherHero, .weatherHourly, .weatherDaily])
@@ -96,7 +96,7 @@ struct WidgetCatalogTests {
         #expect(WidgetKind.allCases.filter(\.isPerformance).count == 6)
     }
 
-    @Test("Masse der Seite Leistung: mit Akku schmaler")
+    @Test("Dimensions of the performance page: narrower with a battery")
     func performanceGeometry() {
         #expect(PerformancePageGeometry.heroHeight == 191)
         #expect(PerformancePageGeometry.heroWidths(hasBattery: true) == [343, 343])

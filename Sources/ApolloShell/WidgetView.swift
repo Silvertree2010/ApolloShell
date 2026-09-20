@@ -1,16 +1,16 @@
 import ApolloShellCore
 import SwiftUI
 
-/// Ein Widget in seinem Rahmen - die eine Stelle, an der jede Art ihre
-/// Ansicht bekommt. Die Groesse setzt die Seite (`BentoPageView`); die
-/// Form folgt der Flaeche wie vor 0.2 (hochkant, hoch, breit).
+/// A widget in its frame - the one place where every kind gets its
+/// view. Size is set by the page (`BentoPageView`); the
+/// shape follows the area like before 0.2 (portrait, tall, wide).
 struct WidgetView: View {
     let widget: WidgetInstance
     let context: WidgetContext
 
     var body: some View {
         let size = CGSize(width: widget.frame.width, height: widget.frame.height)
-        // Hochkant: hoch genug fuer Symbol ueber Text, zu schmal fuer nebeneinander.
+        // Portrait: tall enough for symbol above text, too narrow for side by side.
         let upright = size.height >= 200 && size.width < 300
         Group {
             switch widget.kind {
@@ -30,8 +30,8 @@ struct WidgetView: View {
                               horizontal: size.width > size.height)
             case .media:
                 let options = widget.options.media ?? .init()
-                // Rechts (200 x 392) Caelestias Karte; flach und breit ein
-                // Streifen; sonst die kleine hochkant.
+                // Right (200 x 392) Caelestia's card; flat and wide a
+                // strip; otherwise the small portrait one.
                 if size.width > size.height * 1.3 {
                     MediaStripCard(model: context.media, options: options, height: size.height)
                 } else if size.height >= 330 {
@@ -59,8 +59,8 @@ struct WidgetView: View {
                 }
             case .weatherHero:
                 let model = context.weather(widget)
-                // "Jetzt" tickt jede Minute mit (Sonnenstand, "Stand HH:MM"),
-                // nicht nur bei neuen Daten.
+                // "Now" ticks along every minute (sun position, "As of HH:MM"),
+                // not only on new data.
                 TimelineView(.everyMinute) { context in
                     let now = model.fixedNow ?? context.date
                     if let report = model.report {
@@ -96,8 +96,8 @@ struct WidgetView: View {
     }
 }
 
-/// Kleine Ersatzanzeige fuer ein Wetter-Widget ohne Bericht (kein Ort oder
-/// noch keine Daten) - dieselben Zustaende wie `WeatherTab`, nur je Widget.
+/// Small stand-in display for a weather widget without a report (no location or
+/// no data yet) - the same states as `WeatherTab`, just per widget.
 private struct WeatherEmptyState: View {
     let model: WeatherModel
     @Environment(\.shellStyle) private var style
@@ -118,8 +118,8 @@ private struct WeatherEmptyState: View {
     }
 }
 
-/// Was Widgets zum Zeichnen brauchen. Wetter kommt je Widget
-/// (`weather(for:)`), weil jedes Wetter-Widget eigene Orte hat.
+/// What widgets need to draw. Weather comes per widget
+/// (`weather(for:)`), because every weather widget has its own locations.
 @MainActor
 struct WidgetContext {
     let dashboard: DashboardModel

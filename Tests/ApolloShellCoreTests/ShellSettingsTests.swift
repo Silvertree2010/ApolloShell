@@ -2,9 +2,9 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Nexus: settings.json lesen und schreiben")
+@Suite("Nexus: reading and writing settings.json")
 struct ShellSettingsTests {
-    @Test("fehlende Datei: frische Installation, sonst Vorgaben = bisheriges Verhalten")
+    @Test("missing file: fresh install, otherwise defaults = previous behavior")
     func missingFile() {
         let settings = ShellSettings.load(from: nil)
         #expect(settings == ShellSettings.firstLaunch)
@@ -17,14 +17,14 @@ struct ShellSettingsTests {
         #expect(settings.toasts.chargingChanged && settings.background.desktopClock)
     }
 
-    @Test("kaputt, leer, falscher Typ oder unbekannt: Vorgaben", arguments: [
+    @Test("broken, empty, wrong type, or unknown: defaults", arguments: [
         "", "kaputt", "[]", "{}", #"{"bar":5,"toasts":"nein","background":null}"#, #"{"unbekannt":true}"#,
     ])
     func brokenGivesDefaults(json: String) {
         #expect(ShellSettings.load(from: Data(json.utf8)) == ShellSettings())
     }
 
-    @Test("einzelne Schluessel: nur dieser weicht ab, der Rest bleibt Vorgabe", arguments: [
+    @Test("individual keys: only that one differs, the rest stays default", arguments: [
         (#"{"bar":{"showClock":false}}"#, ShellSettings(bar: .init(layout: .migrated(showClock: false)))),
         (#"{"bar":{"clock":{"showDate":true}}}"#, ShellSettings(bar: .init(layout: .migrated(clock: .init(showDate: true))))),
         (#"{"bar":{"layout":[{"kind":"hologram"}]},"toasts":{"batteryWarnings":false}}"#,
@@ -38,7 +38,7 @@ struct ShellSettingsTests {
         #expect(ShellSettings.load(from: Data(json.utf8)) == expected)
     }
 
-    @Test("schreiben und wieder lesen ergibt dasselbe", arguments: [
+    @Test("writing and reading again gives the same result", arguments: [
         ShellSettings(),
         ShellSettings.firstLaunch,
         ShellSettings(
@@ -51,7 +51,7 @@ struct ShellSettingsTests {
         #expect(ShellSettings.load(from: settings.encoded()) == settings)
     }
 
-    @Test("die Datei nennt jeden Schluessel (von Hand lesbar)", arguments: [
+    @Test("the file names every key (readable by hand)", arguments: [
         "\"bar\"", "\"layout\"", "\"id\"", "\"kind\"", "\"options\"", "\"clock\"", "\"showDate\"",
         "\"toasts\"", "\"chargingChanged\"", "\"batteryWarnings\"", "\"audioOutputChanged\"", "\"background\"", "\"desktopClock\"",
     ])
@@ -60,19 +60,19 @@ struct ShellSettingsTests {
         #expect(text.contains(key))
     }
 
-    // MARK: - Hintergrund der Leiste
+    // MARK: - Bar background
 
-    @Test("Hintergrund: schreiben und wieder lesen ergibt dasselbe", arguments: BarBackground.allCases)
+    @Test("Background: writing and reading again gives the same result", arguments: BarBackground.allCases)
     func backgroundRoundTrip(background: BarBackground) {
-        // In einer Liste statt einzeln: ein einzelner Wert waere ein
-        // JSON-Fragment, in settings.json steht er ohnehin in einem Objekt.
+        // In a list instead of individually: a single value would be a
+        // JSON fragment, whereas in settings.json it's inside an object anyway.
         let data = try! JSONEncoder().encode([background])
         #expect(try! JSONDecoder().decode([BarBackground].self, from: data) == [background])
         let settings = ShellSettings(bar: .init(background: background))
         #expect(ShellSettings.load(from: settings.encoded()).bar.background == background)
     }
 
-    @Test("Hintergrund: unbekannter Wert faellt auf die Vorgabe zurueck")
+    @Test("Background: unknown value falls back to the default")
     func backgroundUnknown() {
         let json = #"["glass","hologramm","","fixedGlass"]"#
         let decoded = try! JSONDecoder().decode([BarBackground].self, from: Data(json.utf8))
@@ -80,7 +80,7 @@ struct ShellSettingsTests {
         #expect(BarBackground.standard == .material)
     }
 
-    @Test("Hintergrund: fehlender oder kaputter Schluessel ergibt Material", arguments: [
+    @Test("Background: missing or broken key gives Material", arguments: [
         #"{"bar":{"layout":[]}}"#, #"{"bar":{"background":"hologramm"}}"#, #"{"bar":{"background":5}}"#,
         #"{"bar":{"background":null}}"#, #"{"bar":{"background":{"art":"glas"}}}"#,
     ])
@@ -88,13 +88,13 @@ struct ShellSettingsTests {
         #expect(ShellSettings.load(from: Data(json.utf8)).bar.background == .material)
     }
 
-    @Test("Hintergrund: ohne Zutun bleibt es beim bisherigen Aussehen")
+    @Test("Background: unchanged, it stays with the previous look")
     func backgroundDefault() {
         #expect(ShellSettings().bar.background == .material)
         #expect(ShellSettings.firstLaunch.bar.background == .material)
     }
 
-    @Test("Akku-Ereignisse folgen ihrem Schalter", arguments: [
+    @Test("Battery events follow their switch", arguments: [
         (ShellSettings.Toasts(), BatteryToastEvent.chargerConnected, true),
         (ShellSettings.Toasts(chargingChanged: false), BatteryToastEvent.chargerConnected, false),
         (ShellSettings.Toasts(chargingChanged: false), BatteryToastEvent.chargerDisconnected, false),
@@ -106,9 +106,9 @@ struct ShellSettingsTests {
         #expect(toasts.allows(event) == shown)
     }
 
-    // MARK: Seiten des Dashboards (0.2)
+    // MARK: Dashboard pages (0.2)
 
-    @Test("Seiten und Groesse: fehlen in alten Dateien, Regler begrenzt, alter Abschnitt bleibt")
+    @Test("Pages and size: missing in old files, slider clamped, old section stays")
     func dashboardPages() throws {
         let old = ShellSettings.load(from: Data(#"{"dashboard":{"tabs":[{"id":"media","visible":false}]}}"#.utf8))
         #expect(old.dashboardPages == nil)

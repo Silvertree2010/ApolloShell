@@ -13,7 +13,7 @@ struct BarLayoutTests {
     }
 
     private func kinds(_ layout: BarLayout?) -> [String] {
-        layout?.entries.map(\.kind.rawValue) ?? ["<nicht lesbar>"]
+        layout?.entries.map(\.kind.rawValue) ?? ["<not readable>"]
     }
 
     // MARK: Reading and writing

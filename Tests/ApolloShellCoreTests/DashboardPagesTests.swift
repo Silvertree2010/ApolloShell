@@ -2,14 +2,14 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Dashboard-Seiten: Widgets auf der Seite, Seitenverwaltung, Lesen")
+@Suite("Dashboard pages: widgets on the page, managing the pages, reading")
 struct DashboardPagesTests {
     private func f(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> WidgetFrame {
         WidgetFrame(x: x, y: y, width: w, height: h)
     }
     private func clock(_ frame: WidgetFrame) -> WidgetInstance { WidgetInstance(kind: .clock, frame: frame) }
 
-    @Test("Seite behaelt nur gueltige Widgets, in Reihenfolge")
+    @Test("A page keeps only valid widgets, in order")
     func normalizes() {
         let a = clock(f(0, 0, 110, 130))
         let tooClose = clock(f(115, 0, 110, 130))
@@ -20,7 +20,7 @@ struct DashboardPagesTests {
         #expect(page.widgets.map(\.id) == [a.id, b.id])
     }
 
-    @Test("Widget hinzufuegen, verschieben, entfernen: Ungueltiges aendert nichts")
+    @Test("Adding, moving, removing a widget: the invalid changes nothing")
     func widgetEdits() {
         var page = DashboardPage(name: "X", symbol: "star")
         let a = clock(f(0, 0, 110, 130))
@@ -35,7 +35,7 @@ struct DashboardPagesTests {
         #expect(page.widgets.isEmpty)
     }
 
-    @Test("Seiten: nie leer, letzte nicht loeschbar, Kopie hinter das Original mit neuen Kennungen")
+    @Test("Pages: never empty, the last one cannot be deleted, a copy behind the original with new ids")
     func pageEdits() throws {
         let first = DashboardPage(name: "A", symbol: "star", template: .overview, widgets: [clock(f(0, 0, 110, 130))])
         #expect(DashboardPages(pages: []) == nil)
@@ -43,46 +43,46 @@ struct DashboardPagesTests {
         #expect(pages.removePage(id: first.id) == false)
         let added = pages.addPage(name: "B")
         #expect(pages.pages.map(\.name) == ["A", "B"])
-        let duplicated = pages.duplicatePage(id: first.id, name: "A Kopie")
+        let duplicated = pages.duplicatePage(id: first.id, name: "A Copy")
         let copyID = try #require(duplicated)
-        #expect(pages.pages.map(\.name) == ["A", "A Kopie", "B"])
+        #expect(pages.pages.map(\.name) == ["A", "A Copy", "B"])
         let copy = try #require(pages.page(id: copyID))
         #expect(copy.template == nil)
         #expect(copy.widgets.count == 1)
         #expect(copy.widgets[0].id != first.widgets[0].id)
-        pages.renamePage(id: added, to: "Neu")
+        pages.renamePage(id: added, to: "New")
         pages.setSymbol("bolt", forPage: added)
         pages.movePages(fromOffsets: IndexSet(integer: 2), toOffset: 0)
-        #expect(pages.pages.map(\.name) == ["Neu", "A", "A Kopie"])
+        #expect(pages.pages.map(\.name) == ["New", "A", "A Copy"])
         #expect(pages.pages[0].symbol == "bolt")
         #expect(pages.removePage(id: added) == true)
     }
 
-    @Test("Wiederherstellen haengt nur fehlende Vorlagen an")
+    @Test("Restoring only appends the templates that are missing")
     func restore() throws {
-        let overview = DashboardPage(name: "Mein Dashboard", symbol: "star", template: .overview)
+        let overview = DashboardPage(name: "My Dashboard", symbol: "star", template: .overview)
         var pages = try #require(DashboardPages(pages: [overview]))
         let defaults = PageTemplate.allCases.map { DashboardPage(name: $0.rawValue, symbol: "x", template: $0) }
         pages.restoreDefaults(from: defaults)
-        #expect(pages.pages.map(\.name) == ["Mein Dashboard", "media", "performance", "weather"])
+        #expect(pages.pages.map(\.name) == ["My Dashboard", "media", "performance", "weather"])
     }
 
-    @Test("Knopf fuer eine Seite: Vorlage, sonst erstes passendes Widget, sonst erste Seite")
+    @Test("The button for a page: the template, otherwise the first matching widget, otherwise the first page")
     func resolve() throws {
-        let own = DashboardPage(name: "Eigene", symbol: "star")
-        var withMedia = DashboardPage(name: "Musik", symbol: "star")
+        let own = DashboardPage(name: "Custom", symbol: "star")
+        var withMedia = DashboardPage(name: "Music", symbol: "star")
         #expect(withMedia.add(WidgetInstance(kind: .media, frame: f(0, 0, 300, 130))) == true)
-        let mediaPage = DashboardPage(name: "Medien", symbol: "x", template: .media)
+        let mediaPage = DashboardPage(name: "Media", symbol: "x", template: .media)
         let all = try #require(DashboardPages(pages: [own, withMedia, mediaPage]))
-        #expect(all.page(for: .media, showing: [.media, .mediaPlayer]).name == "Medien")
+        #expect(all.page(for: .media, showing: [.media, .mediaPlayer]).name == "Media")
         let noTemplate = try #require(DashboardPages(pages: [own, withMedia]))
-        #expect(noTemplate.page(for: .media, showing: [.media, .mediaPlayer]).name == "Musik")
-        #expect(noTemplate.page(for: .weather, showing: [.weatherHero]).name == "Eigene")
+        #expect(noTemplate.page(for: .media, showing: [.media, .mediaPlayer]).name == "Music")
+        #expect(noTemplate.page(for: .weather, showing: [.weatherHero]).name == "Custom")
         #expect(noTemplate.usesMedia)
         #expect(!noTemplate.usesWeather)
     }
 
-    @Test("Lesen: kaputte Seiten und Widgets fallen weg, leere Liste ist nicht lesbar")
+    @Test("Reading: broken pages and widgets fall away, an empty list is not readable")
     func decoding() throws {
         let json = #"""
         [{"id":"00000000-0000-0000-0000-00000000000A","name":"A","template":"overview",

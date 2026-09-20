@@ -1,15 +1,15 @@
 import Foundation
 
-// Timer auf dem Hauptthread, die ihren Besitzer nur schwach halten. Bisher
-// stand an rund 20 Stellen dieselbe Form: `[weak self]`, dann
-// `MainActor.assumeIsolated { self?.… }`, teils mit `invalidate()`, sobald
-// der Besitzer weg ist, teils ohne. Jetzt einmal, und immer mit: ein Timer,
-// dessen Besitzer weg ist, beendet sich selbst statt ins Leere zu feuern.
+// Timers on the main thread that hold their owner only weakly. So far
+// the same pattern showed up in about 20 places: `[weak self]`, then
+// `MainActor.assumeIsolated { self?.… }`, sometimes with `invalidate()` once
+// the owner is gone, sometimes without. Now once, and always with: a timer
+// whose owner is gone stops itself instead of firing into the void.
 
 @MainActor
 public extension Timer {
-    /// Ruft `action` alle `interval` Sekunden mit dem Besitzer auf, solange
-    /// es ihn gibt. Laeuft auf der RunLoop des Hauptthreads, wie
+    /// Calls `action` every `interval` seconds with the owner, as long
+    /// as it still exists. Runs on the RunLoop of the main thread, like
     /// `scheduledTimer`.
     @discardableResult
     static func repeating<Owner: AnyObject & Sendable>(
@@ -26,8 +26,8 @@ public extension Timer {
         return timer
     }
 
-    /// Ruft `action` einmal nach `delay` Sekunden auf, falls es den Besitzer
-    /// dann noch gibt.
+    /// Calls `action` once after `delay` seconds, if the owner
+    /// still exists by then.
     @discardableResult
     static func once<Owner: AnyObject & Sendable>(
         after delay: TimeInterval,

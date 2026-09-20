@@ -2,10 +2,10 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-/// Form wie `system_profiler SPBluetoothDataType -json` auf macOS 26
-/// (gemessen 14.09.), Werte erfunden - keine echten Adressen oder
-/// Seriennummern. Das getrennte "Kopfhoerer Max" traegt wie in echt einen
-/// alten Akkuwert, der nicht angezeigt werden darf.
+/// Shape like `system_profiler SPBluetoothDataType -json` on macOS 26
+/// (measured 14.09.), values made up - no real addresses or
+/// serial numbers. The disconnected "Headphone Max" carries, just like in reality, an
+/// old battery value that must not be shown.
 private let fixture = Data("""
 {
   "SPBluetoothDataType" : [
@@ -28,7 +28,7 @@ private let fixture = Data("""
             "device_batteryLevelMain" : "42%",
             "device_minorType" : "Keyboard"
         } },
-        { "Test Maus" : {
+        { "Test Mouse" : {
             "device_address" : "00:00:00:00:00:03",
             "device_minorType" : "Mouse"
         } }
@@ -48,13 +48,13 @@ private let fixture = Data("""
 }
 """.utf8)
 
-@Suite("Detailfenster: Bluetooth-Geraete aus system_profiler")
+@Suite("Detail window: Bluetooth devices from system_profiler")
 struct StatusPopoutBluetoothTests {
     private var snapshot: StatusPopoutBluetoothSnapshot? {
         StatusPopoutBluetoothParser.snapshot(fromSystemProfilerJSON: fixture)
     }
 
-    @Test("Zustand und Anzahl: 3 verbunden, 5 gekoppelt", arguments: [(true, 3, 5)])
+    @Test("State and count: 3 connected, 5 paired", arguments: [(true, 3, 5)])
     func counts(powerOn: Bool, connected: Int, paired: Int) throws {
         let snapshot = try #require(snapshot)
         #expect(snapshot.powerOn == powerOn)
@@ -62,17 +62,17 @@ struct StatusPopoutBluetoothTests {
         #expect(snapshot.pairedCount == paired)
     }
 
-    @Test("verbundene zuerst, dann getrennte, je in Originalreihenfolge", arguments: [
-        ["Test AirPods Pro", "Test Keyboard", "Test Maus", "Test AirPods Max", "Test iPhone"],
+    @Test("connected first, then disconnected, each in original order", arguments: [
+        ["Test AirPods Pro", "Test Keyboard", "Test Mouse", "Test AirPods Max", "Test iPhone"],
     ])
     func order(names: [String]) throws {
         #expect(try #require(snapshot).devices.map(\.name) == names)
     }
 
-    @Test("Akkuwerte je Geraet, getrennte ohne alten Wert", arguments: [
+    @Test("Battery values per device, disconnected ones without a stale value", arguments: [
         ("Test AirPods Pro", ["L 85", "R 90", "Case 60"]),
         ("Test Keyboard", ["42"]),
-        ("Test Maus", []),
+        ("Test Mouse", []),
         ("Test AirPods Max", []),
     ])
     func batteries(name: String, expected: [String]) throws {
@@ -81,32 +81,32 @@ struct StatusPopoutBluetoothTests {
         #expect(texts == expected)
     }
 
-    @Test("Symbol nach Name und Geraeteart", arguments: [
+    @Test("Symbol by name and device type", arguments: [
         ("Test AirPods Pro", "airpodspro"), ("Test AirPods Max", "airpodsmax"),
-        ("Test Keyboard", "keyboard"), ("Test Maus", "computermouse"), ("Test iPhone", "iphone"),
+        ("Test Keyboard", "keyboard"), ("Test Mouse", "computermouse"), ("Test iPhone", "iphone"),
     ])
     func symbol(name: String, symbol: String) throws {
         #expect(try #require(snapshot?.devices.first { $0.name == name }).symbol == symbol)
     }
 
-    @Test("Prozent als Text", arguments: [
-        ("85%", Int?.some(85)), (" 7 %", Int?.some(7)), ("voll", Int?.none), ("140%", Int?.none),
+    @Test("Percent as text", arguments: [
+        ("85%", Int?.some(85)), (" 7 %", Int?.some(7)), ("full", Int?.none), ("140%", Int?.none),
     ])
     func percentText(value: String, expected: Int?) {
         #expect(StatusPopoutBluetoothParser.percent(value) == expected)
     }
 
-    @Test("Prozent als Zahl", arguments: [(50, Int?.some(50)), (-3, Int?.none)])
+    @Test("Percent as number", arguments: [(50, Int?.some(50)), (-3, Int?.none)])
     func percentNumber(value: Int, expected: Int?) {
         #expect(StatusPopoutBluetoothParser.percent(value) == expected)
     }
 
-    @Test("fehlender Wert: nil")
+    @Test("Missing value: nil")
     func percentMissing() {
         #expect(StatusPopoutBluetoothParser.percent(nil) == nil)
     }
 
-    @Test("kaputte oder leere Ausgabe: nil bzw. keine Geraete", arguments: ["kein json", "{}"])
+    @Test("broken or empty output: nil or no devices", arguments: ["not json", "{}"])
     func broken(text: String) {
         #expect(StatusPopoutBluetoothParser.snapshot(fromSystemProfilerJSON: Data(text.utf8)) == nil)
     }

@@ -11,26 +11,26 @@ struct EdgeHoverTests {
         #expect(shown.moved(inArea: false) == .hidden)
     }
 
-    @Test("per Tastenkombination offen: Maus ausserhalb schliesst nicht")
+    @Test("opened by a shortcut: the mouse outside does not close it")
     func shortcutStaysOpen() {
         let opened = EdgeHoverState.openedByShortcut(mouseInArea: false)
         #expect(opened == EdgeHoverState(visible: true, shortcutActive: true))
         #expect(opened.moved(inArea: false) == opened)
     }
 
-    @Test("Shortcut-Modus: einmal hineinfahren, dann gilt die Maus-Regel")
+    @Test("Shortcut mode: move in once, then the mouse rule holds")
     func shortcutTurnsIntoHover() {
         let entered = EdgeHoverState.openedByShortcut(mouseInArea: false).moved(inArea: true)
         #expect(entered == EdgeHoverState(visible: true, shortcutActive: false))
         #expect(entered.moved(inArea: false) == .hidden)
     }
 
-    @Test("Maus beim Oeffnen schon im Bereich: gleich Maus-Regel")
+    @Test("The mouse in the area at the opening already: the mouse rule right away")
     func shortcutWithMouseInside() {
         #expect(EdgeHoverState.openedByShortcut(mouseInArea: true) == EdgeHoverState(visible: true, shortcutActive: false))
     }
 
-    @Test("Bereich oben: zu nur die Kante, offen das ganze Fenster")
+    @Test("The area at the top: closed only the edge, open the whole window")
     func topArea() {
         let screen = CGRect(x: 0, y: 0, width: 1728, height: 1117)
         let closed = EdgeHoverArea.top(screen: screen, width: 871, depth: 516, margin: 25, open: false)
@@ -45,7 +45,7 @@ struct EdgeHoverTests {
         #expect(!open.contains(CGPoint(x: 864, y: 500)))
     }
 
-    @Test("Bereich unten rechts: Rand ja, Ecke fuer die Schnellnotiz frei")
+    @Test("The area at the bottom right: the edge yes, the corner free for the quick note")
     func bottomRightArea() {
         let screen = CGRect(x: 0, y: 0, width: 1728, height: 1117)
         let closed = EdgeHoverArea.bottomRight(screen: screen, width: 430, height: 217, margin: 25, open: false)
@@ -61,10 +61,10 @@ struct EdgeHoverTests {
         #expect(!open.contains(CGPoint(x: 1500, y: 230)))
     }
 
-    /// Das Panel bleibt klickbar, solange es ausblendet. Ein Doppelklick auf
-    /// Bildschirmfoto oder Sperren lief deshalb einmal sofort (Glas noch zu
-    /// sehen) und einmal nach dem Ausblenden.
-    @Test("Schliessen mit Aktion: nie vor dem Ausblenden, nie doppelt", arguments: [
+    /// The panel stays clickable while it fades out. A double click on the
+    /// screenshot or the lock therefore ran once right away (with the glass
+    /// still visible) and once after the fade-out.
+    @Test("Closing with an action: never before the fade-out, never twice", arguments: [
         (true, false, false, DrawerCloseStep.closeThenRun),
         (true, true, false, DrawerCloseStep.closeThenRun),
         (false, true, false, DrawerCloseStep.runAfterFade),

@@ -1,14 +1,14 @@
 import AppKit
 import SwiftUI
 
-/// Meldet zuverlaessig, ob die Maus ueber einer Ansicht ist.
+/// Reliably reports whether the mouse is over a view.
 ///
-/// SwiftUIs `onHover` haengt an Tracking-Areas, die bei Fenstern einer nie
-/// aktiven App (Leiste, Menues des Launchers) nicht immer ein "Maus weg"
-/// melden - der Hover-Effekt blieb dann stehen. Diese Tracking-Area gilt
-/// immer (`.activeAlways`), egal welches Fenster gerade aktiv ist.
+/// SwiftUI's `onHover` relies on tracking areas which, for windows of a never-
+/// active app (bar, launcher menus), don't always report a "mouse left"
+/// event - the hover effect then stayed stuck. This tracking area applies
+/// always (`.activeAlways`), regardless of which window is currently active.
 ///
-/// Klicks gehen durch sie hindurch an den Knopf darunter.
+/// Clicks pass through it to the button underneath.
 struct HoverTracker: NSViewRepresentable {
     let onChange: (Bool) -> Void
 
@@ -28,7 +28,7 @@ struct HoverTracker: NSViewRepresentable {
             super.init(frame: .zero)
         }
 
-        required init?(coder: NSCoder) { fatalError("nicht benutzt") }
+        required init?(coder: NSCoder) { fatalError("not used") }
 
         override func updateTrackingAreas() {
             super.updateTrackingAreas()
@@ -43,8 +43,8 @@ struct HoverTracker: NSViewRepresentable {
         override func mouseEntered(with event: NSEvent) { onChange(true) }
         override func mouseExited(with event: NSEvent) { onChange(false) }
 
-        /// Verschwindet das Fenster, waehrend die Maus drauf ist, kommt kein
-        /// mouseExited mehr - dann hier den Hover beenden.
+        /// If the window disappears while the mouse is on it, no
+        /// mouseExited arrives anymore - so end the hover here instead.
         override func viewWillMove(toWindow newWindow: NSWindow?) {
             super.viewWillMove(toWindow: newWindow)
             if newWindow == nil { onChange(false) }

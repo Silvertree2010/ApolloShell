@@ -1,7 +1,7 @@
 import Foundation
 
-/// Rahmen eines Widgets auf der Seite, in Referenzpunkten ab der Ecke oben
-/// links (Seite 839 x 392, `DashboardGeometry`). Gespeichert als ganze Punkte.
+/// Frame of a widget on the page, in reference points from the top left
+/// corner (page 839 x 392, `DashboardGeometry`). Stored as whole points.
 public struct WidgetFrame: Codable, Equatable, Hashable, Sendable {
     public var x: Double
     public var y: Double
@@ -22,16 +22,16 @@ public struct WidgetFrame: Codable, Equatable, Hashable, Sendable {
     public var maxX: Double { x + width }
     public var maxY: Double { y + height }
 
-    /// Ziehen liefert Bruchteile; gespeichert wird in ganzen Punkten.
+    /// Dragging yields fractions; storage is in whole points.
     public func rounded() -> WidgetFrame {
         WidgetFrame(x: x.rounded(), y: y.rounded(), width: width.rounded(), height: height.rounded())
     }
 }
 
-/// Optionen eines Widgets. Jede Art liest nur ihr eigenes Feld (die Uhr
-/// `clock`, ...), die uebrigen bleiben `nil` und stehen nicht in der Datei.
-/// Fehlt das Feld der eigenen Art, gelten deren Vorgaben (`?? .init()` in
-/// der Ansicht).
+/// Options of a widget. Each kind reads only its own field (the clock's
+/// `clock`, ...), the rest stay `nil` and don't appear in the file.
+/// If the field for its own kind is missing, its defaults apply (`?? .init()` in
+/// the view).
 public struct WidgetOptions: Codable, Equatable, Sendable {
     public var weather: DashboardWeatherOptions?
     public var user: DashboardUserOptions?
@@ -39,7 +39,7 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
     public var calendar: DashboardCalendarOptions?
     public var resources: DashboardResourcesOptions?
     public var media: DashboardMediaOptions?
-    /// Orte der Wetter-Widgets, je Widget eine eigene Liste.
+    /// Locations of the weather widgets, one list per widget.
     public var places: WeatherFavorites?
 
     public init(weather: DashboardWeatherOptions? = nil, user: DashboardUserOptions? = nil,
@@ -55,8 +55,8 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
         self.places = places
     }
 
-    /// Vorgaben einer Art. Wetter-Widgets bekommen `places` (beim Umzug die
-    /// Favoriten aus weather.json).
+    /// Defaults of a kind. Weather widgets get `places` (during migration, the
+    /// favorites from weather.json).
     public static func defaults(for kind: WidgetKind, places: WeatherFavorites = .empty) -> WidgetOptions {
         var options = WidgetOptions()
         switch kind {
@@ -90,8 +90,8 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
     }
 }
 
-/// Ein Widget auf einer Seite. Dieselbe Art darf mehrfach vorkommen, jede
-/// mit eigenen Optionen (zwei Uhren, zwei Wetter).
+/// A widget on a page. The same kind may occur more than once, each
+/// with its own options (two clocks, two weather widgets).
 public struct WidgetInstance: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
     public var kind: WidgetKind
@@ -107,15 +107,15 @@ public struct WidgetInstance: Codable, Equatable, Identifiable, Sendable {
 
     private enum CodingKeys: String, CodingKey { case id, kind, frame, options }
 
-    /// Unbekannte Art oder fehlender Rahmen: Fehler - die Seite uebergeht das
-    /// Widget dann. Fehlende Kennung: eine neue; kaputte Optionen: Vorgaben.
+    /// Unknown kind or missing frame: error - the page then skips the
+    /// widget. Missing identifier: a new one; broken options: defaults.
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         guard let raw: String = c.lenient(.kind), let kind = WidgetKind(rawValue: raw) else {
-            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unbekanntes Widget")
+            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unknown widget")
         }
         guard let frame: WidgetFrame = c.lenient(.frame) else {
-            throw DecodingError.dataCorruptedError(forKey: .frame, in: c, debugDescription: "Rahmen fehlt")
+            throw DecodingError.dataCorruptedError(forKey: .frame, in: c, debugDescription: "frame missing")
         }
         self.init(id: c.lenient(.id) ?? UUID(), kind: kind, frame: frame, options: c.lenient(.options))
     }

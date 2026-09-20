@@ -2,11 +2,11 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-// Die geteilten Bausteine hinter BarLayout, UtilitiesLayout und
+// The shared building blocks behind BarLayout, UtilitiesLayout and
 // DashboardLayout: Umsortieren (`Array.move`), Kennungsvergabe/Aufraeumen
-// (`BlockList`) und nachsichtiges Listenlesen (`LenientList`). Die
-// layout-eigenen Regeln (Vorlagen, Plaetze) bleiben in den jeweiligen
-// Testdateien; hier nur die gemeinsame Mechanik, an einem kleinen
+// (`BlockList`) and lenient list reading (`LenientList`). The rules of a
+// layout's own (templates, places) stay in their own test files; only the
+// shared mechanics are here, on a small
 // Test-Baustein statt an BarEntry & Co.
 
 private enum FruitKind: String, BlockKind, Codable {
@@ -31,7 +31,7 @@ private struct Fruit: Block, Codable, Equatable {
 
 @Suite("Array.move: SwiftUI-onMove-Regel, geteilt von BarLayout, UtilitiesLayout, DashboardLayout, PinnedList, Weather")
 struct ArrayMoveTests {
-    @Test("Ziel zaehlt in der Liste VOR dem Verschieben", arguments: [
+    @Test("The target counts in the list BEFORE the move", arguments: [
         ([0], 2, ["b", "a", "c"]),
         ([2], 0, ["c", "a", "b"]),
         ([0, 2], 1, ["a", "c", "b"]),
@@ -43,7 +43,7 @@ struct ArrayMoveTests {
         #expect(list == expected)
     }
 
-    @Test("ungueltige oder leere Quelle: nichts passiert")
+    @Test("an invalid or empty source: nothing happens")
     func invalidSource() {
         var list = ["a", "b", "c"]
         list.move(fromOffsets: IndexSet([9]), toOffset: 1)
@@ -53,9 +53,9 @@ struct ArrayMoveTests {
     }
 }
 
-@Suite("BlockList: Kennungen, hoechstens-einmal-Arten, Verschieben, nachsichtiges Lesen")
+@Suite("BlockList: ids, at-most-once kinds, moving, lenient reading")
 struct BlockListTests {
-    @Test("gleiche Art mehrmals: eigene Kennungen, erste ohne Zahl")
+    @Test("the same kind several times: ids of their own, the first without a number")
     func uniqueIDs() {
         var list = BlockList<Fruit>()
         #expect(list.add(Fruit(.custom)) == "custom")
@@ -64,7 +64,7 @@ struct BlockListTests {
         #expect(list.entries.map(\.id) == ["custom", "custom-2", "custom-3"])
     }
 
-    @Test("hoechstens-einmal-Art: zweite kommt nicht dazu, die erste bleibt")
+    @Test("an at-most-once kind: the second does not come in, the first stays")
     func uniqueKind() {
         var list = BlockList<Fruit>([Fruit(.apple)])
         #expect(list.canAdd(.apple) == false)
@@ -72,7 +72,7 @@ struct BlockListTests {
         #expect(list.entries.count == 1)
     }
 
-    @Test("beim Einlesen: doppelte hoechstens-einmal-Art weg, leere/doppelte Kennungen neu")
+    @Test("when reading: a duplicate at-most-once kind goes, empty/duplicate ids become new")
     func normalizedOnInit() {
         let list = BlockList([
             Fruit(id: "", kind: .custom),
@@ -80,23 +80,23 @@ struct BlockListTests {
             Fruit(id: "x", kind: .pear),
             Fruit(id: "y", kind: .apple),
         ])
-        // Die zweite `apple` (Kennung "y") faellt weg; "custom" ohne Kennung
-        // und "pear" mit der schon vergebenen Kennung "x" bekommen neue -
-        // "pear" selbst ist noch frei, "pear-2" waere hier nicht noetig.
+        // The second `apple` (the id "y") falls away; "custom" without an id
+        // and "pear" with the id "x" that is taken already get new ones -
+        // "pear" itself is still free, and "pear-2" would not be needed here.
         #expect(list.entries.map(\.id) == ["custom", "x", "pear"])
         #expect(list.entries.map(\.kind) == [.custom, .apple, .pear])
     }
 
-    @Test("entfernen und andern nur bei gleicher Art")
+    @Test("removing and changing only with the same kind")
     func removeAndUpdate() {
         var list = BlockList([Fruit(.apple), Fruit(.pear)])
         list.update(id: "apple", to: Fruit(id: "apple", kind: .pear))
-        #expect(list[id: "apple"]?.kind == .apple, "Art muss gleich bleiben, sonst keine Aenderung")
+        #expect(list[id: "apple"]?.kind == .apple, "the kind has to stay the same, otherwise no change")
         list.remove(id: "apple")
         #expect(list.entries.map(\.id) == ["pear"])
     }
 
-    @Test("verschieben: fromOffsets/toOffset und an die Stelle eines anderen")
+    @Test("moving: fromOffsets/toOffset and to the place of another one")
     func moving() {
         var list = BlockList([Fruit(.apple), Fruit(.pear), Fruit(id: "c1", kind: .custom)])
         list.move(fromOffsets: IndexSet([2]), toOffset: 0)
@@ -109,16 +109,16 @@ struct BlockListTests {
 
 }
 
-@Suite("LenientList: unlesbare Eintraege fallen weg, der Rest bleibt")
+@Suite("LenientList: unreadable entries fall away, the rest stays")
 struct LenientListTests {
-    @Test("Nicht-Objekte und kaputte Eintraege fallen weg")
+    @Test("Non-objects and broken entries fall away")
     func skipsUnreadable() throws {
         let json = #"[{"kind":"clock"},5,null,{"kind":"power"},{"kind":"hologram"}]"#
         let list = try JSONDecoder().decode(LenientList<BarEntry>.self, from: Data(json.utf8))
         #expect(list.values.map(\.kind) == [.clock, .power])
     }
 
-    @Test("gar keine Liste: wirft (BlockList/Layout fangen das per lenient(_:) ab)")
+    @Test("no list at all: it throws (BlockList/Layout catch that through lenient(_:))")
     func failsOnNonArray() {
         let json = #"{"nope": true}"#
         #expect(throws: (any Error).self) {

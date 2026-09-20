@@ -1,15 +1,15 @@
 import Foundation
 
-/// Schreibt das Token-Verzeichnis auf - als Tabelle fuer docs/THEMES.md und
-/// als vollstaendiges Beispiel-Theme.
+/// Writes out the token directory - as a table for docs/THEMES.md and
+/// as a complete example theme.
 ///
-/// Warum im Kern und nicht von Hand: eine Doku, die jemand abtippt, stimmt
-/// nach dem dritten neuen Token nicht mehr. So kommt beides aus derselben
-/// Quelle, und ein Test vergleicht das Ergebnis mit den Dateien im Verzeichnis
-/// - wer ein Token hinzufuegt, ohne die Doku nachzuziehen, sieht einen roten
-/// Test statt einer stillen Luecke.
+/// Why in the core and not by hand: docs that someone types out by hand stop
+/// matching after the third new token. This way both come from the same
+/// source, and a test compares the result with the files in the repo
+/// - whoever adds a token without updating the docs sees a red
+/// test instead of a silent gap.
 public enum ThemeDocumentation {
-    /// Die Tabellen fuer docs/THEMES.md, eine je Gruppe.
+    /// The tables for docs/THEMES.md, one per group.
     public static func markdownTables(catalog: ThemeTokenCatalog = .standard) -> String {
         var blocks: [String] = []
         for group in ThemeTokenGroup.allCases {
@@ -27,8 +27,8 @@ public enum ThemeDocumentation {
         return blocks.joined(separator: "\n\n")
     }
 
-    /// Wie ein Typ in der Doku heisst - samt der Grenzen, an denen geklemmt
-    /// wird, und den erlaubten Woertern einer Aufzaehlung.
+    /// What a type is called in the docs - including the bounds it is clamped
+    /// to, and the allowed words of an enumeration.
     public static func typeText(_ kind: ThemeTokenKind) -> String {
         switch kind {
         case let .number(spec):
@@ -40,7 +40,7 @@ public enum ThemeDocumentation {
         }
     }
 
-    /// Die Tabelle der Symbole fuer docs/THEMES.md.
+    /// The table of symbols for docs/THEMES.md.
     public static func iconTable(catalog: ThemeIconCatalog = .standard) -> String {
         var lines = ["| File in `icons/` | Replaces | What it is |", "| --- | --- | --- |"]
         for icon in catalog.icons {
@@ -50,8 +50,8 @@ public enum ThemeDocumentation {
         return lines.joined(separator: "\n")
     }
 
-    /// Ein Theme, das jedes Token nennt - mit den Vorgaben, also genau dem
-    /// eingebauten Aussehen. Grundlage fuer examples/themes/full/theme.css.
+    /// A theme that names every token - with the defaults, i.e. exactly the
+    /// built-in look. Basis for examples/themes/full/theme.css.
     public static func exampleCSS(catalog: ThemeTokenCatalog = .standard) -> String {
         var lines: [String] = [":root {"]
         var group: ThemeTokenGroup?

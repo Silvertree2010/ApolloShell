@@ -1,15 +1,15 @@
 import ApolloShellCore
 import SwiftUI
 
-// Die zwei kleinen Ausw-Dialoge hinter den Optionen eines Knopfs
-// (UtilitiesEditorOptions.swift): das Symbol und der Kurzbefehl.
+// The two small pick dialogs behind a button's options
+// (UtilitiesEditorOptions.swift): the symbol and the shortcut.
 
-// MARK: - Symbol waehlen
+// MARK: - Choose symbol
 
-/// Die kleine Symbolauswahl: "automatisch", die Liste aus
-/// `UtilitiesSymbols` (nur die, die es auf diesem macOS gibt) und ein Feld
-/// fuer jeden anderen SF-Symbol-Namen - der wird erst angenommen, wenn es
-/// ihn gibt.
+/// The small symbol picker: "automatic", the list from
+/// `UtilitiesSymbols` (only the ones that exist on this macOS) and a field
+/// for any other SF Symbol name - which is only accepted once it
+/// actually exists.
 struct UtilitiesSymbolPicker: View {
     let current: String
     let automatic: String
@@ -30,9 +30,9 @@ struct UtilitiesSymbolPicker: View {
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            // `Grid` statt `LazyVGrid`: die faule Fassung schaetzte ihre Hoehe
-            // auf ueber 1000 pt (Bildprobe 14.09.) - das Popover waere so
-            // hoch geworden. 48 Symbole zeichnet man auch ohne Faulheit.
+            // `Grid` instead of `LazyVGrid`: the lazy version estimated its height
+            // at over 1000 pt (screenshot 14.09.) - the popover would have gotten
+            // that tall. 48 symbols can be drawn without laziness too.
             let symbols = UtilitiesSymbols.choices.filter(UtilitiesSymbolCheck.exists)
             Grid(horizontalSpacing: 6, verticalSpacing: 6) {
                 ForEach(Array(stride(from: 0, to: symbols.count, by: Self.columns)), id: \.self) { start in
@@ -44,7 +44,7 @@ struct UtilitiesSymbolPicker: View {
                 }
             }
             HStack(spacing: 6) {
-                TextField("Eigenes Symbol", text: $custom, prompt: Text("SF Symbol Name"))
+                TextField("Custom Symbol", text: $custom, prompt: Text("SF Symbol Name"))
                     .onSubmit(takeCustom)
                 Button("Apply", action: takeCustom)
                     .disabled(!UtilitiesSymbolCheck.exists(custom.trimmingCharacters(in: .whitespaces)))
@@ -78,19 +78,19 @@ struct UtilitiesSymbolPicker: View {
     }
 }
 
-// MARK: - Kurzbefehl waehlen
+// MARK: - Choose shortcut
 
-/// Die Kurzbefehle des Benutzers mit Suche. Liest beim Oeffnen nur die Liste
-/// (`UtilitiesShortcutCatalog`); ausgefuehrt wird hier nichts.
+/// The user's shortcuts with search. Reads only the list on open
+/// (`UtilitiesShortcutCatalog`); nothing here actually runs.
 struct UtilitiesShortcutPicker: View {
     let current: UtilitiesShortcutOptions
     let onPick: (UtilitiesShortcut) -> Void
     let onCancel: () -> Void
     @State private var query = ""
-    /// `nil`: wird noch gelesen.
+    /// `nil`: still being read.
     @State private var shortcuts: [UtilitiesShortcut]?
 
-    /// `shortcuts` vorgegeben (Bildprobe): kein Einlesen.
+    /// `shortcuts` given (screenshot test): no loading.
     init(current: UtilitiesShortcutOptions, shortcuts: [UtilitiesShortcut]? = nil,
          onPick: @escaping (UtilitiesShortcut) -> Void, onCancel: @escaping () -> Void) {
         self.current = current
@@ -116,7 +116,7 @@ struct UtilitiesShortcutPicker: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if results.isEmpty {
-                Text(query.isEmpty ? String(localized: "Keine Kurzbefehle gefunden") : String(localized: "Kein Treffer"))
+                Text(query.isEmpty ? String(localized: "No Shortcuts Found") : String(localized: "No Match"))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {

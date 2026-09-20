@@ -1,10 +1,10 @@
 import Foundation
 
-/// Texte fuer Nexus (Einstellungsfenster) und die Datumszeile der Leiste.
+/// Texts for Nexus (settings window) and the bar's date row.
 public enum NexusText {
-    /// Laufzeit seit dem Start: "3 T 4 h 12 min", "4 h 5 min", "12 min",
-    /// "unter 1 min". Tage nur, wenn es welche gibt; Sekunden nie - die Seite
-    /// zeichnet nicht jede Sekunde neu.
+    /// Runtime since launch: "3d 4h 12min", "4h 5min", "12min",
+    /// "under 1 min". Days only if there are any; seconds never - the page
+    /// doesn't redraw every second.
     public static func uptime(_ seconds: TimeInterval) -> String {
         let total = max(0, Int(seconds)) / 60
         let days = total / (24 * 60)
@@ -18,7 +18,7 @@ public enum NexusText {
         return parts.joined(separator: " ")
     }
 
-    /// "Version 0.1 (1)"; ohne Bundle (swift run) ein Gedankenstrich.
+    /// "Version 0.1 (1)"; without a bundle (swift run) an em dash.
     public static func version(short: String?, build: String?) -> String {
         switch (short, build) {
         case let (short?, build?): String(localized: "Version \(short) (\(build))")
@@ -27,16 +27,16 @@ public enum NexusText {
         }
     }
 
-    /// "1 von 10" fuer die Kopfzeile der angehefteten Apps.
+    /// "1 of 10" for the header of pinned apps.
     public static func pinnedCount(_ count: Int, limit: Int = PinnedList.limit) -> String {
         String(localized: "\(count) of \(limit)")
     }
 }
 
 extension BarClock {
-    /// Wochentag kurz ("Mo"/"Mon", je nach Sprache) - Caelestia zeigt mit
-    /// showDate "ddd" ueber dem Tag. `locale`: Standard `.current` - folgt
-    /// also der Sprachwahl in Nexus > Allgemein, nicht der Systemregion.
+    /// Short weekday ("Mo"/"Mon", depending on language) - Caelestia shows
+    /// "ddd" above the day with showDate. `locale`: default `.current` - so it
+    /// follows the language choice in Nexus > General, not the system region.
     public static func weekday(_ date: Date, calendar: Calendar, locale: Locale = .current) -> String {
         let formatter = DateFormatter()
         formatter.locale = locale
@@ -46,7 +46,7 @@ extension BarClock {
         return symbols.indices.contains(index) ? symbols[index] : ""
     }
 
-    /// Tag des Monats ohne fuehrende Null (Caelestia: "d").
+    /// Day of the month without a leading zero (Caelestia: "d").
     public static func day(_ date: Date, calendar: Calendar) -> String {
         String(calendar.component(.day, from: date))
     }

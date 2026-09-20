@@ -2,13 +2,13 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Umzug von 0.1.x und mitgelieferte Seiten")
+@Suite("The migration from 0.1.x and the pages that ship with the app")
 struct DashboardMigrationTests {
     private let chur = WeatherLocation(name: "Chur", latitude: 46.85, longitude: 9.53)
     private var places: WeatherFavorites { WeatherFavorites(locations: [chur], selectedID: chur.id) }
 
-    /// Ganze Zahl ohne Nachkommastelle, ein Halbpunkt (Leistung ohne Akku)
-    /// mit genau einer.
+    /// A whole number without a decimal, a half point (performance without a
+    /// battery) with exactly one.
     private func format(_ value: Double) -> String {
         value == value.rounded() ? "\(Int(value))" : "\(value)"
     }
@@ -19,7 +19,7 @@ struct DashboardMigrationTests {
         }
     }
 
-    @Test("Uebersicht: jede Vorlage von vor 0.2 landet punktgenau", arguments: DashboardPreset.allCases)
+    @Test("The overview: every template from before 0.2 lands point for point", arguments: DashboardPreset.allCases)
     func overviewExact(preset: DashboardPreset) {
         let layout = preset.layout
         let pages = DashboardPages.migrated(from: layout, places: places, hasBattery: true)
@@ -30,7 +30,7 @@ struct DashboardMigrationTests {
         #expect(overview.map(frames) == expected)
     }
 
-    @Test("Caelestia-Uebersicht, Zahl fuer Zahl")
+    @Test("The Caelestia overview, number for number")
     func caelestiaNumbers() {
         let page = PageTemplate.overview.defaultPage(places: places, hasBattery: true)
         #expect(frames(page) == [
@@ -40,7 +40,7 @@ struct DashboardMigrationTests {
         ])
     }
 
-    @Test("Reihenfolge und Sichtbarkeit der Reiter, Optionen der Karten, Orte")
+    @Test("The order and the visibility of the tabs, the options of the cards, the places")
     func tabsAndOptions() {
         var cards = DashboardCards.caelestia
         cards.update(.clock(DashboardClockOptions(style: .inline, showDate: true)))
@@ -55,7 +55,7 @@ struct DashboardMigrationTests {
         #expect(pages.pages[0].widgets.allSatisfy { $0.options.places == places })
     }
 
-    @Test("Seite Leistung mit und ohne Akku")
+    @Test("The performance page with and without a battery")
     func performance() {
         #expect(frames(PageTemplate.performance.defaultPage(places: .empty, hasBattery: true)) == [
             "performance.cpu 0,0 343x191", "performance.gpu 355,0 343x191",
@@ -69,7 +69,7 @@ struct DashboardMigrationTests {
         ])
     }
 
-    @Test("Seiten Wetter und Medien")
+    @Test("The weather and media pages")
     func weatherAndMedia() {
         #expect(frames(PageTemplate.weather.defaultPage(places: places, hasBattery: true)) == [
             "weather.hero 0,0 839x116", "weather.hourly 0,128 839x108", "weather.daily 0,248 839x144",
@@ -77,7 +77,7 @@ struct DashboardMigrationTests {
         #expect(frames(PageTemplate.media.defaultPage(places: places, hasBattery: true)) == ["media.player 0,0 839x392"])
     }
 
-    @Test("Vorgaben: vier Seiten in der Reihenfolge von vor 0.2, mit Namen und Symbolen der Reiter")
+    @Test("The defaults: four pages in the order from before 0.2, with the names and symbols of the tabs")
     func defaults() {
         let pages = DashboardPages.defaultPages(places: places, hasBattery: true)
         #expect(pages.map(\.template) == [.overview, .media, .performance, .weather])

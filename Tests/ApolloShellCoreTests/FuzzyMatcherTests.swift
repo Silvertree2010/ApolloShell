@@ -5,7 +5,7 @@ import Testing
 struct FuzzyMatcherTests {
     let matcher = FuzzyMatcher()
 
-    @Test("findet Buchstaben in Reihenfolge, auch mit Luecken",
+    @Test("finds letters in order, with gaps too",
           arguments: [("illu", "Adobe Illustrator 2026"),
                       ("ff", "Firefox"),
                       ("vsc", "Visual Studio Code"),
@@ -14,7 +14,7 @@ struct FuzzyMatcherTests {
         #expect(matcher.score(query, in: name) != nil)
     }
 
-    @Test("kein Treffer, wenn die Reihenfolge nicht stimmt oder Buchstaben fehlen",
+    @Test("no hit when the order is wrong or letters are missing",
           arguments: [("xf", "Firefox"), ("zz", "Blender"), ("oof", "Firefox")])
     func rejectsNonMatches(query: String, name: String) {
         #expect(matcher.score(query, in: name) == nil)

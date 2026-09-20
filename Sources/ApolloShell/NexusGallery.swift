@@ -1,15 +1,15 @@
 import SwiftUI
 
-// Die Galerie hinter "Hinzufuegen": in der Leiste, im Utilities-Panel und im
-// Dashboard dieselbe Umrahmung (Titel, Absatz, Raster in einem ScrollView,
-// Abbrechen) um eine je eigene Kachel. Nur das Utilities-Panel gruppiert
-// seine Kacheln nach Art (Schalter/Aktionen/Eigene) - dafuer bleibt der
-// Inhalt der Umrahmung ein Platzhalter.
+// The gallery behind "Add": the bar, the utilities panel and the
+// dashboard share the same frame (title, paragraph, grid in a ScrollView,
+// Cancel) around a tile that's each their own. Only the utilities panel groups
+// its tiles by kind (toggles/actions/custom) - for that the
+// content of the frame stays a placeholder.
 
-/// Rahmen einer Galerie-Seite: Titel, ein Satz Erklaerung, das Raster
-/// (`content`) in einem ScrollView, unten Abbrechen. Fuer Leiste und
-/// Dashboard `content` direkt ein `LazyVGrid`; das Utilities-Panel gruppiert
-/// mehrere Raster mit eigenen Ueberschriften darin.
+/// Frame of a gallery page: title, a sentence of explanation, the grid
+/// (`content`) in a ScrollView, Cancel at the bottom. For the bar and
+/// dashboard `content` is a `LazyVGrid` directly; the utilities panel groups
+/// several grids with their own headings inside.
 struct NexusGallerySheet<Content: View>: View {
     let title: String
     let subtitle: String
@@ -45,9 +45,9 @@ struct NexusGallerySheet<Content: View>: View {
     }
 }
 
-/// Eine Kachel der Galerie: Symbol, Name, eine Zeile Zusammenfassung, oben
-/// rechts ein Hinweis (`badge`, z. B. "Schon da"; `nil` = keiner). Grau und
-/// ohne Wirkung, wenn `available` falsch ist.
+/// A tile of the gallery: symbol, name, one line of summary, at the top
+/// right a hint (`badge`, e.g. "Already there"; `nil` = none). Grayed out and
+/// without effect when `available` is false.
 struct NexusGalleryTile<Icon: View>: View {
     let title: String
     let summary: String
@@ -88,7 +88,7 @@ struct NexusGalleryTile<Icon: View>: View {
         .buttonStyle(.plain)
         .disabled(!available)
         .opacity(available ? 1 : 0.45)
-        // Nexus ist ein normales, aktives Fenster: hier reicht onHover.
+        // Nexus is a normal, active window: onHover is enough here.
         .onHover { hovering = $0 }
         .help(help)
     }

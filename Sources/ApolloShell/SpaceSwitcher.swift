@@ -12,7 +12,6 @@ import CoreGraphics
 /// permission, which the launcher has. Karabiner does not see them (it sits in
 /// front of the system, not behind it).
 ///
-///
 /// The dots only count desktops. When full-screen spaces lie in between, ⌃→
 /// counts them in and a jump lands short - then click again.
 @MainActor

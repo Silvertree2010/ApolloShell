@@ -1,10 +1,10 @@
 import Foundation
 
-/// Texte und Takt der Uhr in der Leiste (Caelestia: bar/components/Clock.qml,
-/// Stunde und Minute untereinander, ohne Sekunden).
+/// Texts and cadence of the clock in the bar (Caelestia: bar/components/Clock.qml,
+/// hour and minute stacked, without seconds).
 public enum BarClock {
-    /// Immer 24 Stunden, zweistellig - unabhaengig von der Region, sonst
-    /// stuende bei englischer Einstellung "2" statt "14" in der Leiste.
+    /// Always 24 hours, two digits - regardless of the region, otherwise
+    /// an English setting would show "2" instead of "14" in the bar.
     public static func hour(_ date: Date, calendar: Calendar) -> String {
         twoDigits(calendar.component(.hour, from: date))
     }
@@ -13,9 +13,9 @@ public enum BarClock {
         twoDigits(calendar.component(.minute, from: date))
     }
 
-    /// Beginn der naechsten Minute. Genau auf einer Minutengrenze ist das die
-    /// danach - so plant ein Timer, der puenktlich feuert, nicht dieselbe
-    /// Minute noch einmal.
+    /// Start of the next minute. Right on a minute boundary that is the one
+    /// after it - so a timer that fires exactly on time doesn't plan the same
+    /// minute again.
     public static func nextMinute(after date: Date, calendar: Calendar) -> Date {
         calendar.dateInterval(of: .minute, for: date)?.end ?? date.addingTimeInterval(60)
     }

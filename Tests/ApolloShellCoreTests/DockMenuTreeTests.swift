@@ -3,9 +3,9 @@ import Testing
 
 @Suite("Apples Dock-Menue nachbauen")
 struct DockMenuTreeTests {
-    /// So sieht Apples Menue bei Vivaldi aus (gemessen 17.09. am Bildschirm):
-    /// das vordere Fenster mit Haken, ein Trenner, die Befehle der App, ein
-    /// Trenner, "Options" mit Untermenue, ein Trenner, der Schlussblock.
+    /// This is what Apple's menu looks like with Vivaldi (measured 17.09. on
+    /// the screen): the front window with a tick, a separator, the commands of
+    /// the app, a separator, "Options" with a submenu, a separator, the end block.
     private var vivaldi: [RawMenuItem] {
         [
             RawMenuItem(title: "ApolloShell, a desktop shell for macOS Tahoe - Vivaldi", mark: "✓"),
@@ -25,28 +25,28 @@ struct DockMenuTreeTests {
         ]
     }
 
-    @Test("Reihenfolge und Trenner bleiben, wie Apple sie liefert")
+    @Test("The order and the separators stay the way Apple delivers them")
     func keepsOrderAndSeparators() {
         let nodes = DockMenuTree.nodes(from: vivaldi)
         #expect(nodes.count == vivaldi.count)
         #expect(nodes.map(\.separator) == [false, true, false, false, true, false, true, false, false, false])
     }
 
-    @Test("der Haken am vordersten Fenster kommt mit")
+    @Test("The tick on the frontmost window comes along")
     func marksBecomeCheckmarks() {
         let nodes = DockMenuTree.nodes(from: vivaldi)
         #expect(nodes[0].checked)
         #expect(!nodes[2].checked)
     }
 
-    @Test("ein Untermenue wird mitgelesen")
+    @Test("A submenu is read along")
     func readsSubmenus() {
         let options = DockMenuTree.nodes(from: vivaldi)[5]
         #expect(options.children.map(\.title) == ["Keep in Dock", "Open at Login", "Show in Finder"])
-        #expect(!options.separator, "ein Eintrag mit Untermenue ist kein Trenner")
+        #expect(!options.separator, "an entry with a submenu is no separator")
     }
 
-    @Test("der Weg zu einem Eintrag nennt Titel und Stelle")
+    @Test("The way to an entry names the title and the place")
     func pathsLeadBackToTheItem() {
         let nodes = DockMenuTree.nodes(from: vivaldi)
         #expect(nodes[2].path == [DockMenuStep(title: "New window", index: 2)])
@@ -54,7 +54,7 @@ struct DockMenuTreeTests {
                                               DockMenuStep(title: "Show in Finder", index: 2)])
     }
 
-    @Test("gleichnamige Eintraege bleiben auseinanderzuhalten")
+    @Test("Entries of the same name can still be told apart")
     func sameTitlesKeepTheirPlace() {
         let windows = [RawMenuItem(title: "Bericht.pdf"), RawMenuItem(title: "Bericht.pdf")]
         let nodes = DockMenuTree.nodes(from: windows)
@@ -62,7 +62,7 @@ struct DockMenuTreeTests {
         #expect(nodes[1].path.map(\.index) == [1])
     }
 
-    @Test("tiefer als eine Ebene Untermenue wird nicht gelesen")
+    @Test("Deeper than one level of submenu is not read")
     func stopsAtTheDepthLimit() {
         let deep = [
             RawMenuItem(title: "A", hasSubmenu: true, children: [
@@ -74,24 +74,24 @@ struct DockMenuTreeTests {
         #expect(nodes[0].children[0].children.isEmpty)
     }
 
-    @Test("ausgegraute Eintraege bleiben ausgegraut")
+    @Test("Greyed-out entries stay greyed out")
     func keepsDisabledItems() {
         let nodes = DockMenuTree.nodes(from: [RawMenuItem(title: "Show All Windows", enabled: false)])
         #expect(!nodes[0].enabled)
     }
 
-    @Test("ein Eintrag aus Leerzeichen ist ein Trenner, einer mit Untermenue nie")
+    @Test("An entry of spaces is a separator, one with a submenu never is")
     func separatorDetection() {
         #expect(DockMenuTree.nodes(from: [RawMenuItem(title: "   ")])[0].separator)
         #expect(!DockMenuTree.nodes(from: [RawMenuItem(title: "", hasSubmenu: true)])[0].separator)
     }
 
-    @Test("Im Dock behalten wird erkannt", arguments: ["Keep in Dock", "Im Dock behalten", " keep in dock "])
+    @Test("Keep in Dock is recognised", arguments: ["Keep in Dock", "Im Dock behalten", " keep in dock "])
     func findsKeepInDock(title: String) {
         #expect(DockMenuTree.isKeepInDock(title))
     }
 
-    @Test("und nichts anderes", arguments: ["Show in Finder", "Open at Login", "Dock", ""])
+    @Test("and nothing else is", arguments: ["Show in Finder", "Open at Login", "Dock", ""])
     func othersAreNotKeepInDock(title: String) {
         #expect(!DockMenuTree.isKeepInDock(title))
     }

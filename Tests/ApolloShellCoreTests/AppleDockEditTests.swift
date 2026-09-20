@@ -2,7 +2,7 @@ import Foundation
 import ApolloShellCore
 import Testing
 
-@Suite("Apples Dock-Liste aendern")
+@Suite("Changing Apple's Dock list")
 struct AppleDockEditTests {
     private func tiles(_ ids: [String]) -> [Any] {
         ids.map { ["tile-data": ["bundle-identifier": $0], "GUID": $0.count] as [String: Any] }
@@ -14,13 +14,13 @@ struct AppleDockEditTests {
 
     private let unused: () -> [String: Any] = { [:] }
 
-    @Test("entfernen")
+    @Test("removing")
     func remove() {
         #expect(ids(AppleDockPrefs.removing("b", from: tiles(["a", "b", "c"]))) == ["a", "c"])
         #expect(ids(AppleDockPrefs.removing("x", from: tiles(["a"]))) == ["a"])
     }
 
-    @Test("verschieben: vor, nach, Anfang, Ende")
+    @Test("moving: before, after, the start, the end")
     func move() {
         let list = tiles(["a", "b", "c", "d"])
         #expect(ids(AppleDockPrefs.placing("d", at: .before("b"), in: list, newTile: unused)) == ["a", "d", "b", "c"])
@@ -29,16 +29,16 @@ struct AppleDockEditTests {
         #expect(ids(AppleDockPrefs.placing("a", at: .end, in: list, newTile: unused)) == ["b", "c", "d", "a"])
     }
 
-    @Test("verschobene Kachel bleibt dieselbe (GUID erhalten)")
+    @Test("a moved tile stays the same (the GUID is kept)")
     func keepsTile() {
         let moved = AppleDockPrefs.placing("bb", at: .start, in: tiles(["a", "bb"]), newTile: unused)
         #expect((moved.first as? [String: Any])?["GUID"] as? Int == 2)
     }
 
-    @Test("neu anheften: Kachel im Format von Apples Dock")
+    @Test("pinning anew: a tile in the format of Apple's Dock")
     func add() {
-        // Ein Pfad, den es nicht gibt: das Ergebnis darf nicht davon abhaengen,
-        // was auf diesem Mac installiert ist.
+        // A path that does not exist: the result must not depend on what is
+        // installed on this Mac.
         let url = URL(fileURLWithPath: "/Applications/Not Installed \(UUID().uuidString).app")
         let result = AppleDockPrefs.placing("net.whatsapp.WhatsApp", at: .before("b"), in: tiles(["a", "b"])) {
             AppleDockPrefs.tile(bundleID: "net.whatsapp.WhatsApp", url: url, label: "WhatsApp", guid: 7)
@@ -53,11 +53,11 @@ struct AppleDockEditTests {
         let urlString = (data?["file-data"] as? [String: Any])?["_CFURLString"] as? String
         #expect(urlString?.hasPrefix("file:///Applications/Not%20Installed%20") == true)
         #expect(urlString?.hasSuffix(".app/") == true)
-        // Und die Leiste liest sie wieder richtig.
+        // And the bar reads them back correctly.
         #expect(AppleDockPrefs.pinnedBundleIDs(result) == ["com.apple.finder", "a", "net.whatsapp.WhatsApp", "b"])
     }
 
-    @Test("unbekanntes Ziel: ans Ende")
+    @Test("an unknown target: at the end")
     func unknownTarget() {
         #expect(ids(AppleDockPrefs.placing("a", at: .before("zz"), in: tiles(["a", "b"]), newTile: unused)) == ["b", "a"])
     }

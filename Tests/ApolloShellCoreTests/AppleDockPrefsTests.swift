@@ -1,9 +1,9 @@
 import ApolloShellCore
 import Testing
 
-@Suite("Apples Dock-Einstellung lesen")
+@Suite("Reading Apple's Dock setting")
 struct AppleDockPrefsTests {
-    @Test("Finder zuerst, dann die Kacheln in ihrer Reihenfolge")
+    @Test("The Finder first, then the tiles in their order")
     func order() {
         let tiles: [Any] = [
             ["tile-data": ["bundle-identifier": "net.kovidgoyal.kitty", "file-label": "kitty"]],
@@ -12,7 +12,7 @@ struct AppleDockPrefsTests {
         #expect(AppleDockPrefs.pinnedBundleIDs(tiles) == ["com.apple.finder", "net.kovidgoyal.kitty", "com.vivaldi.Vivaldi"])
     }
 
-    @Test("Kacheln ohne Bundle-ID oder kaputt: fallen weg, Finder nur einmal")
+    @Test("Tiles without a bundle ID or broken: they fall away, the Finder only once")
     func robust() {
         let tiles: [Any] = [
             ["tile-data": ["file-label": "loses Programm"]],
@@ -23,7 +23,7 @@ struct AppleDockPrefsTests {
         #expect(AppleDockPrefs.pinnedBundleIDs(tiles) == ["com.apple.finder", "md.obsidian"])
     }
 
-    @Test("ForkLift an Finders Platz, Finder faellt aus den Pins")
+    @Test("ForkLift at the Finder's place, the Finder falls out of the pins")
     func fileManager() {
         let tiles: [Any] = [
             ["tile-data": ["bundle-identifier": "com.apple.finder"]],
@@ -34,7 +34,7 @@ struct AppleDockPrefsTests {
             == ["com.binarynights.ForkLift", "net.kovidgoyal.kitty"])
     }
 
-    @Test("leer: nur Finder")
+    @Test("empty: only the Finder")
     func empty() {
         #expect(AppleDockPrefs.pinnedBundleIDs([]) == ["com.apple.finder"])
     }

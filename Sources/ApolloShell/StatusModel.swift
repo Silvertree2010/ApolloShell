@@ -4,11 +4,11 @@ import IOKit.ps
 import ApolloShellCore
 import Observation
 
-/// Live-Zustand fuer die Statussymbole der Leiste: WLAN, Bluetooth, Akku.
+/// Live state for the bar's status icons: Wi-Fi, Bluetooth, battery.
 ///
-/// Alles ohne zusaetzliche Freigabe (gemessen 14.09.): CoreWLAN liefert
-/// "an" und Signalstaerke ohne Ortung (nur den Netznamen nicht, den brauchen
-/// wir nicht), IOKit den Akku. Bluetooth kommt aus `BluetoothState`.
+/// All without extra permission (measured 14.09.): CoreWLAN provides
+/// on/off and signal strength without location access (just not the network name,
+/// which we don't need), IOKit provides the battery. Bluetooth comes from `BluetoothState`.
 @MainActor
 @Observable
 final class StatusModel {
@@ -17,9 +17,9 @@ final class StatusModel {
     private(set) var battery: BatteryState?
     private(set) var bluetoothOn: Bool?
 
-    /// WLAN aendert sich laufend, die Abfrage kostet gemessen ~9 ms: alle 5 s.
+    /// Wi-Fi changes constantly, the query costs measured ~9 ms: every 5 s.
     @ObservationIgnored private static let wifiInterval: TimeInterval = 5
-    /// Akku als Rueckfall, falls die IOKit-Meldung ausbleibt.
+    /// Battery as a fallback, in case the IOKit notification stays silent.
     @ObservationIgnored private static let batteryInterval: TimeInterval = 60
     @ObservationIgnored private var timers: [Timer] = []
     @ObservationIgnored private var batterySource: CFRunLoopSource?
@@ -38,7 +38,7 @@ final class StatusModel {
         }
     }
 
-    /// Fuer die Bildprobe: feste Werte, keine Abfragen, keine Timer.
+    /// For the screenshot test: fixed values, no queries, no timers.
     init(previewWifiRSSI rssi: Int?, battery: BatteryState?, bluetoothOn: Bool?) {
         wifiOn = true
         wifiRSSI = rssi
@@ -59,7 +59,7 @@ final class StatusModel {
         if next != battery { battery = next }
     }
 
-    /// Auch fuer `ToastPowerMonitor` (Kurzmeldungen) - einmal richtig lesen.
+    /// Also used by `ToastPowerMonitor` (toasts) - read it properly once.
     static func readBattery() -> BatteryState? {
         let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources = IOPSCopyPowerSourcesList(info).takeRetainedValue() as [CFTypeRef]
@@ -78,14 +78,14 @@ final class StatusModel {
         return nil
     }
 
-    /// Netzteil ein/aus meldet IOKit sofort; so springt der Blitz ohne die
-    /// 60 s Rueckfall-Wartezeit.
+    /// IOKit reports the power adapter on/off immediately; that's how the bolt jumps without the
+    /// 60 s fallback wait.
     private func observeBatteryChanges() {
         let context = Unmanaged.passUnretained(self).toOpaque()
         guard let source = IOPSNotificationCreateRunLoopSource({ context in
             guard let context else { return }
             let model = Unmanaged<StatusModel>.fromOpaque(context).takeUnretainedValue()
-            // Die Quelle haengt am Main-Runloop, der Aufruf kommt also dort an.
+            // The source is tied to the main run loop, so the call arrives there.
             MainActor.assumeIsolated { model.refreshBattery() }
         }, context)?.takeRetainedValue() else { return }
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)

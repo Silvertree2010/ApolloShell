@@ -253,7 +253,7 @@ struct ThemeResolveTests {
                                                  line: 1)))
     }
 
-    @Test("nach dem Lesen hat nur ein genanntes Token einen Wert - hell wie dunkel")
+    @Test("after reading, only a named token has a value - light as well as dark")
     func onlyDeclaredTokensHaveAValue() {
         let theme = theme(":root { --apollo-accent-color: red; }")
         for token in ThemeTokenCatalog.standard.tokens {
@@ -263,40 +263,40 @@ struct ThemeResolveTests {
         }
     }
 
-    @Test("das eingebaute Theme hat keinen einzigen Wert")
+    @Test("the built-in theme does not have a single value")
     func standardIsEmpty() {
         #expect(Theme.standard.lightValues.isEmpty)
         #expect(Theme.standard.darkValues.isEmpty)
     }
 
-    @Test("Schrift auf dem Akzent: lesbar gemacht, sobald das Theme den Akzent nennt")
+    @Test("text on the accent: made readable as soon as the theme names the accent")
     func readableOnAccent() throws {
-        // Gelb: weiss darauf waere unlesbar.
+        // Yellow: white on it would be unreadable.
         let yellow = theme(":root { --apollo-accent-color: #ffd60a; }")
         let onYellow = try #require(yellow.readableColor(.onAccent))
         #expect(ThemeColor.contrast(onYellow, ThemeColor(hex: 0xFFD60A)) >= 3)
         #expect(onYellow != ThemeColorToken.onAccent.defaultValue())
-        // Nennt es weder Akzent noch Schrift: nichts, die App bleibt bei macOS.
+        // Names neither accent nor text: nothing, the app stays with macOS.
         #expect(theme(":root { --apollo-bar-width: 40px; }").readableColor(.onAccent) == nil)
-        // Nennt es die Schrift selbst, gilt genau die.
+        // Names the text itself: exactly that applies.
         let own = theme(":root { --apollo-accent-color: #000000; --apollo-on-accent-color: #ffffff; }")
         #expect(own.readableColor(.onAccent) == ThemeColor(hex: 0xFFFFFF))
     }
 
-    @Test("ein leeres Blatt ergibt genau das eingebaute Theme")
+    @Test("an empty sheet yields exactly the built-in theme")
     func emptySheetEqualsStandard() {
         let theme = Theme.make(identifier: "default", styleSheet: ThemeStyleSheet())
         #expect(theme == Theme.standard)
     }
 }
 
-@Suite("Themes: nur was dasteht, gilt")
+@Suite("Themes: only what's stated applies")
 struct ThemeDeclaredTests {
     private func theme(_ css: String) -> Theme {
         Theme.make(identifier: "test", styleSheet: ThemeStyleSheetParser.parse(css))
     }
 
-    @Test("ein Theme nennt genau die Token aus seiner Datei")
+    @Test("a theme names exactly the tokens from its file")
     func declaresWhatItSets() {
         let value = theme(":root { --apollo-accent-color: #ff0000; }")
         #expect(value.declares("--apollo-accent-color"))
@@ -304,7 +304,7 @@ struct ThemeDeclaredTests {
         #expect(!value.declares("--apollo-card-color"))
     }
 
-    @Test("auch ein Token, das nur im dunklen Block steht, zaehlt")
+    @Test("a token that stands only in the dark block also counts")
     func darkOnlyCounts() {
         let value = theme("""
         :root { --apollo-accent-color: #ff0000; }
@@ -313,15 +313,15 @@ struct ThemeDeclaredTests {
         #expect(value.declares("--apollo-bar-color"))
     }
 
-    @Test("Gross- und Kleinschreibung ist egal, ein frueherer Name zaehlt mit")
+    @Test("case does not matter, an earlier name counts too")
     func caseAndAliases() {
         let value = theme(":root { --APOLLO-ACCENT-COLOR: #ff0000; }")
         #expect(value.declares("--apollo-accent-color"))
     }
 
-    @Test("ein unlesbarer Wert gilt nicht als genannt")
+    @Test("an unreadable value does not count as named")
     func unreadableValueIsNotDeclared() {
-        let value = theme(":root { --apollo-bar-width: völlig daneben; }")
+        let value = theme(":root { --apollo-bar-width: totally wrong; }")
         #expect(!value.declares("--apollo-bar-width"))
         #expect(!value.issues.isEmpty)
     }

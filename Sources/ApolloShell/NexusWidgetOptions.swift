@@ -1,12 +1,12 @@
 import ApolloShellCore
 import SwiftUI
 
-// Optionen des gewaehlten Widgets im Popover neben ihm (Task 4,
-// `BentoEditOverlay.swift`): dieselben Schalter wie vor 0.2s Karten-Editor
-// (NexusDashboardCardOptions, laengst geloescht) und vor Task 7 auch Nexus'
-// altem 3-Spalten-Baukasten (`NexusDashboardOptionsSection`, entfernt),
-// gebunden an `editor.setOptions` statt an eine Karte. Neu seit 0.2: Zeitzone
-// je Uhr, Orte je Wetter-Widget (`NexusWeatherModel`, eigener Sink statt
+// Options of the selected widget in the popover next to it (Task 4,
+// `BentoEditOverlay.swift`): the same switches as before 0.2's card editor
+// (NexusDashboardCardOptions, deleted long ago) and, before Task 7, also Nexus'
+// old 3-column kit (`NexusDashboardOptionsSection`, removed),
+// bound to `editor.setOptions` instead of a card. New since 0.2: time zone
+// per clock, places per weather widget (`NexusWeatherModel`, its own sink instead of
 // weather.json).
 
 struct WidgetOptionsView: View {
@@ -36,7 +36,7 @@ struct WidgetOptionsView: View {
             }
             .pickerStyle(.segmented)
             NexusToggle(title: "Date", subtitle: "Weekday and day below the time", isOn: o.showDate)
-            LabeledContent("Zeitzone") {
+            LabeledContent("Time Zone") {
                 Button(NexusTimeZoneText.label(o.wrappedValue.timeZone)) { showsTimeZonePicker = true }
                     .popover(isPresented: $showsTimeZonePicker) {
                         NexusTimeZonePicker(selection: Binding(
@@ -63,8 +63,8 @@ struct WidgetOptionsView: View {
                 .disabled(last && current.showStorage)
         case .media:
             let o = binding(\.media, fallback: DashboardMediaOptions())
-            NexusToggle(title: "Album", subtitle: "Nicht in der kleinen Karte", isOn: o.showAlbum)
-            NexusToggle(title: "Source", subtitle: "Welche App spielt", isOn: o.showSource)
+            NexusToggle(title: "Album", subtitle: "Not shown in the small card", isOn: o.showAlbum)
+            NexusToggle(title: "Source", subtitle: "Which app is playing", isOn: o.showSource)
         case .performanceCPU, .performanceGPU, .performanceStorage, .performanceNetwork,
              .performanceMemory, .performanceBattery, .mediaPlayer:
             Text("There are no settings for this widget.")
@@ -76,9 +76,9 @@ struct WidgetOptionsView: View {
         NexusWidgetPlacesSection(editor: editor, widget: widget, weatherFile: weatherFile)
     }
 
-    /// Bindung an ein Feld der Widget-Optionen: liest den aktuellen Stand,
-    /// schreibt ueber `editor.setOptions` - andere Felder bleiben, wie sie
-    /// sind (anders als vor 0.2, wo eine neue Karte die alte ganz ersetzte).
+    /// Binding to a field of the widget options: reads the current state,
+    /// writes via `editor.setOptions` - other fields stay as they
+    /// are (unlike before 0.2, where a new card replaced the old one entirely).
     private func binding<T: Sendable>(_ path: WritableKeyPath<WidgetOptions, T?>, fallback: T) -> Binding<T> {
         Binding(
             get: { widget.options[keyPath: path] ?? fallback },
@@ -91,9 +91,9 @@ struct WidgetOptionsView: View {
     }
 }
 
-/// Orte eines Wetter-Widgets: dieselben Zeilen wie vor 0.2 (Favoriten, Ort
-/// suchen), aber je Widget statt gemeinsam in weather.json - der Sink von
-/// `NexusWeatherModel` schreibt in `widget.options.places`.
+/// Places of a weather widget: the same rows as before 0.2 (favorites, search
+/// for a place), but per widget instead of shared in weather.json - the sink of
+/// `NexusWeatherModel` writes to `widget.options.places`.
 private struct NexusWidgetPlacesSection: View {
     let editor: DashboardEditor
     let widget: WidgetInstance
@@ -118,7 +118,7 @@ private struct NexusWidgetPlacesSection: View {
 
     var body: some View {
         Divider()
-        Text("Orte")
+        Text("Places")
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
         if model.favorites.locations.isEmpty {
@@ -152,8 +152,8 @@ enum NexusTimeZoneText {
     }
 }
 
-/// "System" plus eine durchsuchbare Liste aller IANA-Zeitzonen, Stadtteil
-/// zuerst (z. B. "Tokyo (Asia)").
+/// "System" plus a searchable list of all IANA time zones, city
+/// first (e.g. "Tokyo (Asia)").
 private struct NexusTimeZonePicker: View {
     @Binding var selection: String?
     @State private var query = ""
@@ -167,7 +167,7 @@ private struct NexusTimeZonePicker: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            NexusSearchField(prompt: "Zeitzone suchen", text: $query, busy: false)
+            NexusSearchField(prompt: "Search Time Zone", text: $query, busy: false)
                 .padding(8)
             Divider()
             List {

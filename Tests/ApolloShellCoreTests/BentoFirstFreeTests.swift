@@ -2,26 +2,26 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Bento-Geometrie: erste freie Stelle (Galerie-Klick)")
+@Suite("Bento geometry: the first free place (a gallery click)")
 struct BentoFirstFreeTests {
     private func f(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> WidgetFrame {
         WidgetFrame(x: x, y: y, width: w, height: h)
     }
 
-    @Test("Leere Seite: oben links")
+    @Test("An empty page: at the top left")
     func emptyPage() {
         let frame = BentoGeometry.firstFreeFrame(kind: .clock, others: [])
         #expect(frame == f(0, 0, 110, 130))
     }
 
-    @Test("Mit einer Uhr bei (0,0): rechts daneben")
+    @Test("With a clock at (0,0): to the right of it")
     func nextToExisting() {
         let others = [f(0, 0, 110, 130)]
         let frame = BentoGeometry.firstFreeFrame(kind: .clock, others: others)
         #expect(frame == f(122, 0, 110, 130))
     }
 
-    @Test("Volle Caelestia-Uebersicht: keine Stelle fuer eine weitere Uhr")
+    @Test("A full Caelestia overview: no place for another clock")
     func fullOverviewPage() {
         let page = DashboardPages.defaultPages(places: .empty, hasBattery: true)[0]
         #expect(page.template == .overview)
@@ -30,9 +30,9 @@ struct BentoFirstFreeTests {
     }
 }
 
-@Suite("Bearbeiten: an der ersten freien Stelle hinzufuegen")
+@Suite("Editing: adding at the first free place")
 struct BentoEditSessionFirstFreeTests {
-    @Test("Landet an der ersten freien Stelle und waehlt sich aus")
+    @Test("It lands at the first free place and selects itself")
     func addAtFirstFreeSpot() throws {
         let page = DashboardPage(name: "A", symbol: "star")
         let pages = try #require(DashboardPages(pages: [page]))
@@ -44,7 +44,7 @@ struct BentoEditSessionFirstFreeTests {
         #expect(s.selectedWidgetID == id)
     }
 
-    @Test("Volle Seite: nil, nichts geaendert")
+    @Test("A full page: nil, nothing changed")
     func noSpace() throws {
         let full = DashboardPages.defaultPages(places: .empty, hasBattery: true)[0]
         let pages = try #require(DashboardPages(pages: [full]))

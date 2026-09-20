@@ -1,12 +1,12 @@
 import Foundation
 
-// Die mitgelieferten Seiten (die vier Reiter von vor 0.2, punktgenau) und
-// der einmalige Umzug der Einstellungen von 0.1.x.
+// The bundled pages (the four tabs from before 0.2, exactly) and
+// the one-time migration of settings from 0.1.x.
 
 public extension PageTemplate {
-    /// Die mitgelieferte Seite in der Form von vor 0.2. `places`: Orte der
-    /// Wetter-Widgets (beim Umzug die Favoriten aus weather.json);
-    /// `hasBattery`: Seite Leistung mit Akku rechts oder ohne.
+    /// The bundled page in the shape it had before 0.2. `places`: locations of
+    /// the weather widgets (during migration, the favorites from weather.json);
+    /// `hasBattery`: performance page with battery on the right, or without.
     func defaultPage(places: WeatherFavorites, hasBattery: Bool) -> DashboardPage {
         DashboardPage(name: tab.title, symbol: tab.symbol, template: self,
                       widgets: defaultWidgets(places: places, hasBattery: hasBattery))
@@ -56,15 +56,15 @@ public extension PageTemplate {
 }
 
 public extension DashboardPages {
-    /// Die vier mitgelieferten Seiten in der Reihenfolge der Reiter von vor 0.2.
+    /// The four bundled pages in the order of the tabs from before 0.2.
     static func defaultPages(places: WeatherFavorites, hasBattery: Bool) -> [DashboardPage] {
         PageTemplate.allCases.map { $0.defaultPage(places: places, hasBattery: hasBattery) }
     }
 
-    /// Umzug beim ersten Start von 0.2: die sichtbaren Reiter in ihrer
-    /// Reihenfolge, die Uebersicht mit genau ihren Karten und Optionen an
-    /// genau ihren Plaetzen. Ausgeblendete Reiter kommen nicht mit
-    /// ("Standardseiten wiederherstellen" holt sie zurueck).
+    /// Migration on the first launch of 0.2: the visible tabs in their
+    /// order, the overview with exactly its cards and options at
+    /// exactly their places. Hidden tabs don't come along
+    /// ("Restore Default Pages" brings them back).
     static func migrated(from layout: DashboardLayout, places: WeatherFavorites, hasBattery: Bool) -> DashboardPages {
         let pages = layout.tabs.visible.map { tab -> DashboardPage in
             let template = PageTemplate(tab)
@@ -72,12 +72,12 @@ public extension DashboardPages {
             return DashboardPage(name: tab.title, symbol: tab.symbol, template: .overview,
                                  widgets: overviewWidgets(layout.cards, places: places))
         }
-        // `visible` ist nie leer (DashboardTabs); zur Sicherheit trotzdem die Vorgaben.
+        // `visible` is never empty (DashboardTabs); the defaults as a safety net anyway.
         return DashboardPages(pages: pages) ?? DashboardPages(pages: defaultPages(places: places, hasBattery: hasBattery))!
     }
 
-    /// Karten der Uebersicht als Widgets, an den Rahmen von
-    /// `DashboardGeometry.placements` und mit ihren Optionen.
+    /// Cards of the overview as widgets, at the frames from
+    /// `DashboardGeometry.placements` and with their options.
     internal static func overviewWidgets(_ cards: DashboardCards, places: WeatherFavorites) -> [WidgetInstance] {
         DashboardGeometry.placements(for: cards).map { placement in
             let kind = WidgetKind(placement.card.kind)

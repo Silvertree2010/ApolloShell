@@ -2,9 +2,9 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("App-Suche auf der Platte")
+@Suite("The app search on the disk")
 struct AppCatalogTests {
-    /// Legt ein falsches .app-Bundle mit Info.plist an.
+    /// Creates a fake .app bundle with an Info.plist.
     private func makeApp(_ path: String, in root: URL, bundleID: String) throws {
         let contents = root.appendingPathComponent(path).appendingPathComponent("Contents")
         try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)
@@ -20,7 +20,7 @@ struct AppCatalogTests {
         return url
     }
 
-    @Test("findet Apps direkt und eine Ordnerebene tiefer, alphabetisch")
+    @Test("finds apps directly and one folder level deeper, alphabetically")
     func findsTopLevelAndNested() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -32,7 +32,7 @@ struct AppCatalogTests {
         #expect(names == ["Adobe Illustrator", "Blender", "Zed"])
     }
 
-    @Test("sucht nicht in .app-Bundles hinein")
+    @Test("does not search inside .app bundles")
     func skipsHelpersInsideBundles() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -43,7 +43,7 @@ struct AppCatalogTests {
         #expect(names == ["Main"])
     }
 
-    @Test("geht nicht tiefer als erlaubt")
+    @Test("does not go deeper than allowed")
     func respectsMaxDepth() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -53,7 +53,7 @@ struct AppCatalogTests {
         #expect(AppCatalog(roots: [root], maxDepth: 3).scan().map(\.name) == ["Deep"])
     }
 
-    @Test("gleiche Bundle-ID in zwei Ordnern erscheint nur einmal")
+    @Test("the same bundle ID in two folders appears only once")
     func deduplicatesByBundleID() throws {
         let first = try tempRoot()
         let second = try tempRoot()
@@ -67,9 +67,9 @@ struct AppCatalogTests {
         #expect(AppCatalog(roots: [first, second]).scan().count == 1)
     }
 
-    @Test("fehlender Ordner ist kein Fehler")
+    @Test("a missing folder is no error")
     func missingRootIsEmpty() {
-        let missing = URL(fileURLWithPath: "/gibt/es/nicht-\(UUID().uuidString)")
+        let missing = URL(fileURLWithPath: "/does/not/exist-\(UUID().uuidString)")
         #expect(AppCatalog(roots: [missing]).scan().isEmpty)
     }
 }

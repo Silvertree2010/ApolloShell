@@ -2,9 +2,9 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Nexus: angeheftete Apps bearbeiten")
+@Suite("Nexus: editing pinned apps")
 struct PinnedListTests {
-    @Test("Doppelte und leere IDs fallen beim Lesen weg, erste Stelle gewinnt", arguments: [
+    @Test("Duplicate and empty IDs are dropped when reading, first spot wins", arguments: [
         (["a", "b", "a", "", "c", "b"], ["a", "b", "c"]),
         ([String](), [String]()),
     ])
@@ -12,7 +12,7 @@ struct PinnedListTests {
         #expect(PinnedList(input).ids == expected)
     }
 
-    @Test("Hinzufuegen: hinten an, nie doppelt, nie leer", arguments: [
+    @Test("Adding: appended at the end, never duplicated, never empty", arguments: [
         (["a", "b"], "c", true, ["a", "b", "c"]),
         (["a", "b"], "a", false, ["a", "b"]),
         (["a", "b"], "", false, ["a", "b"]),
@@ -24,23 +24,23 @@ struct PinnedListTests {
         #expect(list.ids == expected)
     }
 
-    @Test("volle Liste nimmt nichts mehr", arguments: [PinnedList.limit])
+    @Test("a full list takes nothing more", arguments: [PinnedList.limit])
     func fullRejects(limit: Int) {
         var list = PinnedList((0..<limit).map(String.init))
         #expect(list.isFull)
-        let result = list.add("neu")
+        let result = list.add("new")
         #expect(!result)
         #expect(list.ids.count == limit)
     }
 
-    @Test("zu lange Datei wird nicht gekuerzt", arguments: [PinnedList.limit + 2])
+    @Test("an overlong file is not truncated", arguments: [PinnedList.limit + 2])
     func longFileKept(count: Int) {
         let list = PinnedList((0..<count).map(String.init))
         #expect(list.ids.count == count)
         #expect(list.isFull)
     }
 
-    @Test("Entfernen", arguments: [
+    @Test("Removing", arguments: [
         (["a", "b", "c"], "b", ["a", "c"]),
         (["a", "b", "c"], "x", ["a", "b", "c"]),
     ])
@@ -50,7 +50,7 @@ struct PinnedListTests {
         #expect(list.ids == expected)
     }
 
-    @Test("Verschieben wie SwiftUIs onMove", arguments: [
+    @Test("Moving like SwiftUI's onMove", arguments: [
         ([0], 2, ["b", "a", "c", "d"]),
         ([3], 0, ["d", "a", "b", "c"]),
         ([0], 4, ["b", "c", "d", "a"]),
@@ -65,7 +65,7 @@ struct PinnedListTests {
         #expect(list.ids == expected)
     }
 
-    @Test("eine Stelle hoch oder runter, am Rand nichts", arguments: [
+    @Test("one step up or down, nothing at the edge", arguments: [
         ("b", -1, ["b", "a", "c"]),
         ("b", 1, ["a", "c", "b"]),
         ("a", -1, ["a", "b", "c"]),
@@ -78,17 +78,17 @@ struct PinnedListTests {
         #expect(list.ids == expected)
     }
 
-    @Test("liest das bisherige Dateiformat", arguments: [
+    @Test("reads the previous file format", arguments: [
         (#"{ "pinned": ["net.kovidgoyal.kitty", "com.vivaldi.Vivaldi"] }"#, ["net.kovidgoyal.kitty", "com.vivaldi.Vivaldi"]),
         (#"{"pinned":["a","a"],"anderes":1}"#, ["a"]),
-        ("kaputt", [String]()),
+        ("broken", [String]()),
         (#"{"andere":[]}"#, [String]()),
     ])
     func load(json: String, expected: [String]) {
         #expect(PinnedList.load(from: Data(json.utf8)).ids == expected)
     }
 
-    @Test("schreiben und wieder lesen ergibt dieselbe Reihenfolge", arguments: [
+    @Test("writing and reading again yields the same order", arguments: [
         ["com.apple.systempreferences", "md.obsidian", "net.whatsapp.WhatsApp"],
     ])
     func roundTrip(ids: [String]) {
@@ -97,11 +97,11 @@ struct PinnedListTests {
         #expect(PinnedList.load(from: nil).ids.isEmpty)
     }
 
-    /// Nexus schreibt nach jedem Anheften die ganze Liste. Liest es eine
-    /// kaputte Datei als leer, waeren die alten Pins danach weg - deshalb
-    /// muss sich "kaputt" von "fehlt" und "leer" unterscheiden lassen.
-    @Test("unlesbar: nur eine vorhandene, kaputte Datei", arguments: [
-        ("kaputt", true),
+    /// Nexus writes the whole list after every pin. If it reads a
+    /// broken file as empty, the old pins would be gone afterwards - so
+    /// "broken" must be distinguishable from "missing" and "empty".
+    @Test("unreadable: only an existing, broken file", arguments: [
+        ("broken", true),
         (#"{ "pinned": ["a", "b" }"#, true),
         (#"{"andere":[]}"#, true),
         ("", true),
@@ -113,7 +113,7 @@ struct PinnedListTests {
         #expect(PinnedList.isUnreadable(Data(json.utf8)) == expected)
     }
 
-    @Test("fehlende Datei ist nicht unlesbar")
+    @Test("missing file is not unreadable")
     func missingIsNotUnreadable() {
         #expect(!PinnedList.isUnreadable(nil))
     }

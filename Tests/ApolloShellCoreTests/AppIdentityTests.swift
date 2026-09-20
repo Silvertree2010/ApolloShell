@@ -2,9 +2,9 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("App-Kennung")
+@Suite("The app id")
 struct AppIdentityTests {
-    @Test("Bundle-ID in Support/Info.plist ist dieselbe wie im Code")
+    @Test("The bundle ID in Support/Info.plist is the same as in the code")
     func matchesInfoPlist() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent() // ApolloShellCoreTests
@@ -15,7 +15,7 @@ struct AppIdentityTests {
         #expect(plist["CFBundleIdentifier"] as? String == AppIdentity.bundleID)
     }
 
-    @Test("Log-Subsystem und abgeleitete Kennungen haengen an der Bundle-ID")
+    @Test("The log subsystem and the derived ids hang on the bundle ID")
     func derived() {
         #expect(AppIdentity.logSubsystem == AppIdentity.bundleID)
         #expect(AppIdentity.scoped("bluetooth") == AppIdentity.bundleID + ".bluetooth")
