@@ -67,6 +67,10 @@ final class Nexus: NSObject, NSWindowDelegate {
         guard let window, window.isVisible else { return }
         guard let screen = window.screen ?? NSScreen.main else { return }
         shellEditor.begin(screen: screen)
+        // Only step aside once the mode really runs: `begin` turns down a
+        // second start, and Nexus that hid anyway would be gone with
+        // nothing to bring it back (`onEnd` never comes).
+        guard shellEditor.isEditing else { return }
         window.orderOut(nil)
     }
 
