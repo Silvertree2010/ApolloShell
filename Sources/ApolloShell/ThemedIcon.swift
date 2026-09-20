@@ -2,19 +2,19 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Ein Symbol der Shell: das Bild aus dem Theme, sonst das eingebaute
+/// One symbol of the shell: the image out of the theme, otherwise the built-in
 /// SF Symbol.
 ///
-/// Jede Stelle, die ein Symbol zeigt, nennt dessen Kennung aus
-/// `ThemeIconCatalog`. Bringt das Theme `icons/<kennung>.png` mit, steht dort
-/// das Bild; sonst aendert sich nichts.
+/// Every place that shows a symbol names its id out of `ThemeIconCatalog`.
+/// When the theme brings `icons/<id>.png`, that image stands there; otherwise
+/// nothing changes.
 ///
-/// Bilder werden einmal geladen und gemerkt (`ThemedIconCache`), damit die
-/// Leiste nicht bei jedem Neuzeichnen von der Platte liest.
+/// Images are loaded once and remembered (`ThemedIconCache`), so that the bar
+/// does not read off the disk on every redraw.
 struct ThemedIcon: View {
     let id: String
-    /// Das SF Symbol, wenn das Theme nichts mitbringt. Leer: dann zeigt die
-    /// Ansicht ohne Theme-Bild gar nichts (etwa das gezeichnete Emblem).
+    /// The SF Symbol when the theme brings none. Empty: then the view shows
+    /// nothing at all without a theme image (the drawn emblem, say).
     var fallback: String
 
     @Environment(\.shellStyle) private var style
@@ -26,8 +26,8 @@ struct ThemedIcon: View {
 
     var body: some View {
         if let url = style.iconFile(id), let image = ThemedIconCache.image(at: url) {
-            // Als Schablone nur, wenn das Theme es verlangt: sonst verloere
-            // ein mehrfarbiges Set seine Farben.
+            // As a template only when the theme asks for it: otherwise a
+            // multicolor set would lose its colors.
             Image(nsImage: image)
                 .renderingMode(style.tintsThemeIcons ? .template : .original)
                 .resizable()
@@ -38,10 +38,10 @@ struct ThemedIcon: View {
     }
 }
 
-/// Geladene Theme-Bilder, nach Datei und Aenderungszeit.
+/// The loaded theme images, by file and modification time.
 ///
-/// Die Aenderungszeit gehoert zum Schluessel, damit ein Theme, an dem gerade
-/// gearbeitet wird, beim Speichern auch wirklich neu erscheint.
+/// The modification time belongs to the key, so that a theme somebody is
+/// working on really does appear anew when it is saved.
 @MainActor
 enum ThemedIconCache {
     private static var images: [String: NSImage] = [:]
@@ -51,7 +51,7 @@ enum ThemedIconCache {
         let key = "\(url.path)|\(modified?.timeIntervalSince1970 ?? 0)"
         if let image = images[key] { return image }
         guard let image = NSImage(contentsOf: url) else { return nil }
-        // Mehr als ein paar Symbole hat ein Theme nicht; die Liste bleibt klein.
+        // A theme has no more than a few symbols; the list stays small.
         if images.count > ThemeIconCatalog.standard.icons.count * 2 { images.removeAll() }
         images[key] = image
         return image

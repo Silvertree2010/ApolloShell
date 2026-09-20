@@ -1,14 +1,14 @@
 import Foundation
 
-/// Eine Bearbeitung des Dashboards (Nexus > Dashboard > Bearbeiten): die
-/// Arbeitskopie aller Seiten, die gezeigte Seite, das gewaehlte Widget.
-/// "Fertig" uebernimmt `pages`, "Abbrechen" verwirft sie (`original`).
-/// Waehrend gezogen wird, aendert sich nichts - `preview...` sagt nur, wo
-/// es landen wuerde und ob es dort passt; erst `commit`/`add` aendert.
+/// One editing session of the dashboard (Nexus > Dashboard > Edit): the
+/// working copy of all pages, the shown page, the selected widget.
+/// "Done" takes `pages` over, "Cancel" discards them (`original`).
+/// While dragging, nothing changes - `preview...` only says where it would
+/// land and whether it fits there; only `commit`/`add` changes anything.
 public struct BentoEditSession: Equatable, Sendable {
     public let original: DashboardPages
     public private(set) var pages: DashboardPages
-    /// Gezeigte Seite. Wechsel waehlt ab.
+    /// The shown page. Switching deselects.
     public var pageID: DashboardPage.ID {
         didSet { if pageID != oldValue { selectedWidgetID = nil } }
     }
@@ -59,8 +59,8 @@ public struct BentoEditSession: Equatable, Sendable {
         return true
     }
 
-    /// Neues Widget mit Vorgaben (Wetter: die Orte aus `places`). Liefert
-    /// seine Kennung und waehlt es aus; `nil`, wenn der Rahmen nicht passt.
+    /// A new widget with the defaults (weather: the places out of `places`).
+    /// Hands back its id and selects it; `nil` when the frame does not fit.
     @discardableResult
     public mutating func add(_ kind: WidgetKind, frame: WidgetFrame, places: WeatherFavorites = .empty) -> WidgetInstance.ID? {
         var page = page
@@ -84,18 +84,18 @@ public struct BentoEditSession: Equatable, Sendable {
         pages.update(page)
     }
 
-    /// Neues Widget an der ersten freien Stelle der gezeigten Seite (Klick in
-    /// der Galerie statt Ziehen). `nil`: keine Stelle frei ("Kein Platz auf
-    /// dieser Seite").
+    /// A new widget at the first free place of the shown page (a click in the
+    /// gallery instead of dragging). `nil`: no free place ("No room on this
+    /// page").
     @discardableResult
     public mutating func addAtFirstFreeSpot(_ kind: WidgetKind, places: WeatherFavorites = .empty) -> WidgetInstance.ID? {
         guard let frame = BentoGeometry.firstFreeFrame(kind: kind, others: page.frames()) else { return nil }
         return add(kind, frame: frame, places: places)
     }
 
-    // MARK: Seiten
+    // MARK: Pages
 
-    /// Neue leere Seite ans Ende, sofort gezeigt.
+    /// A new empty page at the end, shown right away.
     @discardableResult
     public mutating func addPage(name: String, symbol: String = DashboardPage.defaultSymbol) -> DashboardPage.ID {
         let id = pages.addPage(name: name, symbol: symbol)
@@ -103,7 +103,7 @@ public struct BentoEditSession: Equatable, Sendable {
         return id
     }
 
-    /// Kopie direkt hinter dem Original, sofort gezeigt. `nil`: kein solches Original.
+    /// A copy right behind the original, shown right away. `nil`: no such original.
     @discardableResult
     public mutating func duplicatePage(_ id: DashboardPage.ID, name: String) -> DashboardPage.ID? {
         guard let newID = pages.duplicatePage(id: id, name: name) else { return nil }
@@ -111,8 +111,8 @@ public struct BentoEditSession: Equatable, Sendable {
         return newID
     }
 
-    /// `false` fuer die letzte Seite. War die entfernte Seite gezeigt, zeigt
-    /// die neue Nachbarin (die an derselben Stelle, sonst die davor).
+    /// `false` for the last page. When the page that was removed was shown,
+    /// its new neighbour is shown (at the same place, otherwise the one before).
     @discardableResult
     public mutating func removePage(_ id: DashboardPage.ID) -> Bool {
         guard let index = pages.pages.firstIndex(where: { $0.id == id }) else { return false }
@@ -137,10 +137,10 @@ public struct BentoEditSession: Equatable, Sendable {
         pages.movePages(fromOffsets: source, toOffset: destination)
     }
 
-    /// „Standardseiten wiederherstellen“ (Seitenleiste beim Bearbeiten,
-    /// mitgeliefertes Menue am **+**): haengt die mitgelieferten Seiten an,
-    /// deren Vorlage fehlt - anders als `addPage`/`duplicatePage` wechselt
-    /// das nicht die gezeigte Seite, es fuegt nur hinzu.
+    /// “Restore Default Pages” (the sidebar while editing, the menu that ships
+    /// with the app at the **+**): appends the pages that ship with the app
+    /// whose template is missing - unlike `addPage`/`duplicatePage` this does
+    /// not change the shown page, it only adds.
     public mutating func restoreDefaults(from defaults: [DashboardPage]) {
         pages.restoreDefaults(from: defaults)
     }

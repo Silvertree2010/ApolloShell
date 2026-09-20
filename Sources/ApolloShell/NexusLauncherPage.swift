@@ -4,21 +4,21 @@ import Observation
 import SwiftUI
 import os
 
-/// Die angehefteten Apps zum Bearbeiten (pinned.json). Jede Aenderung wird
-/// sofort atomar geschrieben; der Launcher liest die Datei bei jedem Oeffnen
-/// neu und zeigt die neue Reihenfolge also beim naechsten fn.
+/// The pinned apps for editing (pinned.json). Every change is written
+/// atomically right away; the launcher reads the file anew on every opening
+/// and therefore shows the new order on the next fn.
 @MainActor
 @Observable
 final class NexusPinnedModel {
     private(set) var list = PinnedList()
-    /// Installierte Apps mit Bundle-ID - nur solche lassen sich anheften
-    /// (pinned.json fuehrt Bundle-IDs).
+    /// The installed apps with a bundle ID - only those can be pinned
+    /// (pinned.json carries bundle IDs).
     private(set) var apps: [AppEntry] = []
     var query = ""
     private(set) var saveFailed = false
 
-    /// Hoechstens so viele Suchtreffer: mehr passt nicht ohne Scrollen, und
-    /// wer mehr braucht, tippt einen Buchstaben mehr.
+    /// At most this many search hits: more does not fit without scrolling, and
+    /// whoever needs more types one more letter.
     @ObservationIgnored private static let maxResults = 8
 
     @ObservationIgnored private let url: URL?
@@ -28,7 +28,7 @@ final class NexusPinnedModel {
     @ObservationIgnored private let matcher = FuzzyMatcher()
     @ObservationIgnored private let log = Logger(category: "nexus")
 
-    /// `url == nil`: nur im Speicher.
+    /// `url == nil`: only in memory.
     init(url: URL?) {
         self.url = url
         live = true
@@ -41,21 +41,21 @@ final class NexusPinnedModel {
         setApps(apps)
     }
 
-    /// Fuer Bildproben: feste Liste und Apps, liest und schreibt nichts.
+    /// For image samples: a fixed list and fixed apps, reads and writes nothing.
     static func preview(pinned: [String], apps: [AppEntry], query: String = "") -> NexusPinnedModel {
         let model = NexusPinnedModel(preview: PinnedList(pinned), apps: apps)
         model.query = query
         return model
     }
 
-    /// Apps suchen (wie der Launcher bei jedem Oeffnen, einige ms) und
-    /// pinned.json lesen.
+    /// Search for apps (as the launcher does on every opening, a few ms) and
+    /// read pinned.json.
     func reload() {
         guard live else { return }
         setApps(AppCatalog().scan())
         let data = ShellFiles.read(url)
-        // Kaputt (von Hand bearbeitet): aufheben, bevor das naechste
-        // Anheften die leere Liste darueber schreibt.
+        // Broken (edited by hand): keep it before the next pin writes the empty
+        // list over it.
         if let url, PinnedList.isUnreadable(data) {
             ShellFiles.preserveUnreadable(url)
             log.error("pinned.json unlesbar, Kopie als pinned.json.unreadable")
@@ -70,11 +70,11 @@ final class NexusPinnedModel {
 
     func app(for id: String) -> AppEntry? { byID[id] }
 
-    /// Unscharf wie im Launcher, schon angeheftete fallen weg.
+    /// Fuzzy as in the launcher, the ones already pinned fall away.
     var results: [AppEntry] {
         let q = query.trimmingCharacters(in: .whitespaces)
         guard !q.isEmpty else { return [] }
-        // In Schritten mit festen Typen: als eine Kette brauchte der
+        // In steps with fixed types: as one chain the type checker took too long.
         // Typpruefer zu lange.
         var scored: [(app: AppEntry, score: Int)] = []
         for app in apps where !list.contains(app.bundleID ?? "") {
@@ -133,8 +133,8 @@ final class NexusPinnedModel {
     }
 }
 
-/// Caelestia: Panels > Launcher und Apps > Favoriten - bei uns die festen
-/// Top 10 des Launchers.
+/// Caelestia: Panels > Launcher and Apps > Favourites - with us the fixed top
+/// 10 of the launcher.
 struct NexusLauncherPage: View {
     @Bindable var model: NexusPinnedModel
 
@@ -204,8 +204,8 @@ private struct NexusPinnedRow: View {
                 Text(app?.name ?? id)
                     .lineLimit(1)
                 if app == nil {
-                    // Deinstalliert oder umbenannt: der Launcher uebergeht
-                    // sie, entfernen kann man sie trotzdem.
+                    // Uninstalled or renamed: the launcher passes them over,
+                    // but they can still be removed.
                     Text("Not Installed")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -266,7 +266,7 @@ private struct NexusAddAppRow: View {
     }
 }
 
-/// Suchzeile im Formular: Lupe, schlichtes Feld, Loeschen-Knopf.
+/// A search row in the form: a magnifier, a plain field, a clear button.
 struct NexusSearchField: View {
     let prompt: LocalizedStringKey
     @Binding var text: String

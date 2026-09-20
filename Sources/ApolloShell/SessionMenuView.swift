@@ -1,14 +1,14 @@
 import ApolloShellCore
 import SwiftUI
 
-/// Knopfspalte des Sitzungsmenues: Abmelden, Ausschalten, Emblem,
-/// Ruhezustand, Neustart - wie Caelestia, in Apple-Optik.
+/// The button column of the session menu: log out, shut down, the emblem,
+/// sleep, restart - as in Caelestia, in an Apple look.
 struct SessionMenuView: View {
     @Bindable var model: SessionMenuModel
     @FocusState private var focused: Bool
     @Environment(\.shellStyle) private var style
 
-    /// Bringt das Theme ein eigenes Emblem mit?
+    /// Does the theme bring an emblem of its own?
     private var emblemFromTheme: Bool {
         style.iconFile("session-emblem") != nil
     }
@@ -17,13 +17,13 @@ struct SessionMenuView: View {
         VStack(spacing: SessionMenu.spacing) {
             ForEach(Array(SessionAction.menuOrder.enumerated()), id: \.element) { index, action in
                 if index == SessionAction.emblemSlot {
-                    // Weicher Uebergang statt Sprung in die neue Bewegung:
-                    // neue Identitaet pro Reaktion, die alte blendet in
-                    // 0,18 s aus.
+                    // A soft transition instead of a jump into the new motion:
+                    // a new identity per reaction, and the old one fades out in
+                    // 0.18 s.
                     ZStack {
-                        // Bringt das Theme `icons/session-emblem.png` mit,
-                        // steht dort dieses Bild statt des gezeichneten
-                        // Planeten - das Maskottchen gehoert damit ins Theme.
+                        // When the theme brings `icons/session-emblem.png`,
+                        // that image stands there instead of the drawn planet -
+                        // so the mascot belongs in the theme.
                         if emblemFromTheme {
                             ThemedIcon("session-emblem")
                                 .frame(width: SessionMenu.buttonSize, height: SessionMenu.buttonSize)
@@ -41,10 +41,10 @@ struct SessionMenuView: View {
                     .frame(width: SessionMenu.buttonSize, height: SessionMenu.buttonSize)
                     .accessibilityHidden(true)
                 }
-                // Ueberfahren ist NICHT Auswaehlen: nur ein kurzer Schimmer,
-                // solange die Maus drauf ist (wie Caelestias StateLayer). Die
-                // farbige Auswahl gehoert der Tastatur. Die erste Fassung
-                // waehlte beim Ueberfahren aus, und die Fuellung blieb stehen.
+                // Hovering is NOT selecting: only a short shimmer while the
+                // mouse is on it (like Caelestia's StateLayer). The colored
+                // selection belongs to the keyboard. The first version selected
+                // on hover, and the fill stayed standing.
                 SessionButton(
                     action: action,
                     selected: model.selection.action == action,
@@ -57,8 +57,8 @@ struct SessionMenuView: View {
         }
         .padding(.vertical, SessionMenu.padding)
         .padding(.leading, SessionMenu.padding)
-        // Rechts nur der schmale Kantenabstand; der Teil des Fensters, der
-        // ueber den Bildschirmrand ragt, liegt ausserhalb dieser Ansicht.
+        // On the right only the narrow edge gap; the part of the window that
+        // sticks out over the screen edge lies outside this view.
         .padding(.trailing, SessionMenu.edgePadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .focusable()
@@ -72,8 +72,8 @@ struct SessionMenuView: View {
     }
 }
 
-/// Ein Knopf: 80 x 80, Ecken wie bei Caelestia 20 normal, 28 ausgewaehlt,
-/// 12 gedrueckt, Wechsel in 200 ms.
+/// One button: 80 x 80, the corners as in Caelestia 20 normally, 28 when
+/// selected, 12 when pressed, the change in 200 ms.
 private struct SessionButton: View {
     let action: SessionAction
     let selected: Bool
@@ -82,11 +82,11 @@ private struct SessionButton: View {
 
     var body: some View {
         Button(action: perform) {
-            // Mit `icons/session-shutdown.png` und den drei Geschwistern
-            // tauscht ein Theme diese Knoepfe aus.
-            // Das Bild aus dem Theme so gross wie das Zeichen, das es
-            // ersetzt - sonst fuellt es den ganzen Knopf und wirkt neben den
-            // eingebauten Symbolen zu wuchtig.
+            // With `icons/session-shutdown.png` and its three siblings a theme
+            // swaps these buttons out.
+            // The image out of the theme as big as the glyph it replaces -
+            // otherwise it fills the whole button and looks too bulky next to
+            // the built-in symbols.
             ThemedIcon(action.iconID, fallback: action.symbolName)
                 .font(.system(size: 28, weight: .medium))
                 .frame(width: 30, height: 30)
@@ -111,10 +111,10 @@ private struct SessionButtonStyle: ButtonStyle {
                 selected ? AnyShapeStyle(style.accent.opacity(0.85)) : AnyShapeStyle(Color.primary.opacity(0.08)),
                 in: .rect(cornerRadius: radius)
             )
-            // Hover-Schimmer: 8 % obendrauf, wie Caelestias StateLayer.
+            // The hover shimmer: 8 % on top, like Caelestia's StateLayer.
             .overlay(Color.primary.opacity(hovered ? 0.08 : 0), in: .rect(cornerRadius: radius))
             .contentShape(.rect(cornerRadius: radius))
-            // Caelestia: Standardkurve cubic-bezier(0.2, 0, 0, 1), 200 ms.
+            // Caelestia: the standard curve cubic-bezier(0.2, 0, 0, 1), 200 ms.
             .animation(.timingCurve(0.2, 0, 0, 1, duration: 0.2), value: radius)
             .animation(.timingCurve(0.2, 0, 0, 1, duration: 0.2), value: selected)
             .animation(.easeOut(duration: 0.12), value: hovered)

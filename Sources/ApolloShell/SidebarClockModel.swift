@@ -2,19 +2,19 @@ import AppKit
 import ApolloShellCore
 import Observation
 
-/// Uhrzeit fuer die Uhr in der Leiste.
+/// The time for the clock in the bar.
 ///
-/// Caelestia zeigt dort keine Sekunden; ein Sekundentakt waere 59 von 60 Mal
-/// umsonst. Also genau zur vollen Minute weiterschalten, und zwar jedes Mal
-/// neu bis zur naechsten Minute gerechnet statt einmal ausgerichtet und
-/// dann alle 60 s: so kann die Uhr nicht davonlaufen.
+/// Caelestia shows no seconds there; a beat every second would be wasted 59
+/// times out of 60. So it moves on exactly at the full minute, and the time to
+/// the next minute is worked out anew every time instead of being lined up
+/// once and then every 60 s: that way the clock cannot run away.
 @MainActor
 @Observable
 final class SidebarClockModel {
     private(set) var now: Date
 
-    /// Knapp nach der Minutengrenze feuern, nie knapp davor (sonst stuende
-    /// noch die alte Minute da und der naechste Takt kaeme erst in 60 s).
+    /// Fire just after the minute boundary, never just before it (otherwise the
+    /// old minute would still stand there and the next beat would only come in 60 s).
     private static let slack: TimeInterval = 0.05
 
     @ObservationIgnored private var timer: Timer?
@@ -25,7 +25,7 @@ final class SidebarClockModel {
         observeSystemChanges()
     }
 
-    /// Fuer die Bildprobe: feste Zeit, kein Timer.
+    /// For the image sample: a fixed time, no timer.
     init(preview date: Date) {
         now = date
     }
@@ -38,15 +38,15 @@ final class SidebarClockModel {
         let timer = Timer(timeInterval: next.timeIntervalSince(current) + Self.slack, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.scheduleTick() }
         }
-        // .common: auch waehrend ein Menue offen ist, sonst bliebe die Minute
-        // stehen, bis es zu ist.
+        // .common: while a menu is open too, otherwise the minute would stand
+        // still until it closes.
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
     }
 
-    /// Im Ruhezustand laeuft der Timer nicht weiter (er zaehlt Wachzeit);
-    /// nach dem Aufwachen, nach Uhr stellen und Zeitzonenwechsel neu
-    /// ausrichten. Die Beobachter leben so lange wie der Prozess.
+    /// In sleep the timer does not go on running (it counts waking time); line
+    /// it up anew after the wake-up, after setting the clock and after a time
+    /// zone change. The observers live as long as the process.
     private func observeSystemChanges() {
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
