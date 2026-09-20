@@ -132,8 +132,14 @@ struct DashboardView: View {
                 // `initial: true`: with more than eight pages the bar
                 // scrolls, and the page one is on has to be in view the
                 // moment the bar appears - not only after the next switch.
-                .onChange(of: selected.id, initial: true) { _, id in
-                    withAnimation(Self.motion) { proxy.scrollTo(id, anchor: .center) }
+                // That first one without the animation: there is nothing
+                // to animate from, it would look like a jump.
+                .onChange(of: selected.id, initial: true) { old, id in
+                    if old == id {
+                        proxy.scrollTo(id, anchor: .center)
+                    } else {
+                        withAnimation(Self.motion) { proxy.scrollTo(id, anchor: .center) }
+                    }
                 }
             }
             .animation(Self.motion, value: pages.map(\.id))
