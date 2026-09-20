@@ -2,24 +2,24 @@ import AppKit
 import ColorSync
 import ApolloShellCore
 
-/// Ein angeschlossener Bildschirm, wie ihn die Shell benutzt: die
-/// Beschreibung fuer die Auswahl (ApolloShellCore/ScreenSelection), das
-/// NSScreen dazu und die Display-Kennung.
+/// A connected screen the way the shell uses it: the description for the
+/// selection (ApolloShellCore/ScreenSelection), the NSScreen that goes with
+/// it and the display id.
 ///
-/// Zwei Schluessel, die man nicht verwechseln darf:
-/// - `info.key` (Name plus Aufloesung) merkt sich eine EINSTELLUNG einen
-///   Bildschirm ueber das Abstecken hinweg. Zwei baugleiche Bildschirme
-///   haben denselben.
-/// - `displayID` sagt, welcher Bildschirm JETZT gemeint ist. Eindeutig,
-///   aber macOS vergibt sie beim Anstecken neu - nichts, was man in eine
-///   Datei schreibt.
+/// Two keys that must not be mixed up:
+/// - `info.key` (name plus resolution) is what a SETTING remembers a screen
+///   by across replugging. Two identical screens have the same one.
+/// - `displayID` says which screen is meant RIGHT NOW. Unambiguous, but macOS
+///   hands it out anew when something is plugged in - not something one writes
+///   into a file.
 ///
-/// Die Fenster der Shell liegen deshalb nach `displayID` im Verzeichnis, die
-/// Einstellung spricht ueber `info.key`.
+///
+/// So the windows of the shell sit in the catalogue by `displayID`, while the
+/// setting talks in terms of `info.key`.
 struct ShellScreen: Identifiable {
     let displayID: CGDirectDisplayID
-    /// Frisch bei jedem Durchgang geholt: ein NSScreen von vorhin kann nach
-    /// einem Umstecken veraltete Masse melden.
+    /// Fetched fresh on every pass: an NSScreen from earlier can report stale
+    /// measurements after a replug.
     let screen: NSScreen
     let info: ScreenInfo
 
@@ -28,15 +28,15 @@ struct ShellScreen: Identifiable {
     var visibleFrame: NSRect { screen.visibleFrame }
 }
 
-/// Die Bildschirme von AppKit holen und die Auswahl aus ApolloShellCore
-/// darauf anwenden.
+/// Fetch the screens from AppKit and apply the selection out of
+/// ApolloShellCore to them.
 @MainActor
 enum ShellScreens {
-    /// Alle angeschlossenen Bildschirme, Hauptbildschirm (der mit der
-    /// Menueleiste) zuerst - das ist die Reihenfolge von `NSScreen.screens`.
+    /// All connected screens, the main screen (the one with the menu bar)
+    /// first - that is the order of `NSScreen.screens`.
     ///
-    /// Leer, wenn gerade keiner da ist (Kabel mitten im Umstecken): die
-    /// Aufrufer lassen dann stehen, was steht.
+    /// Empty when none is there right now (a cable in the middle of being
+    /// replugged): the callers then leave standing what stands.
     static func current() -> [ShellScreen] {
         let screens = NSScreen.screens
         guard let primary = screens.first else { return [] }
@@ -50,20 +50,20 @@ enum ShellScreens {
         }
     }
 
-    /// UUID eines Bildschirms, so wie SkyLight ihn in seiner Space-Liste
-    /// fuehrt ("Display Identifier").
+    /// The UUID of a screen the way SkyLight keeps it in its space list
+    /// ("Display Identifier").
     static func uuid(of id: CGDirectDisplayID) -> String? {
         guard let uuid = CGDisplayCreateUUIDFromDisplayID(id)?.takeRetainedValue() else { return nil }
         return CFUUIDCreateString(nil, uuid) as String?
     }
 
-    /// Die Bildschirme, auf denen die Leiste (und mit ihr die
-    /// Schreibtisch-Uhr und der freigehaltene Streifen) stehen soll.
+    /// The screens the bar (and with it the desktop clock and the strip kept
+    /// free) should stand on.
     static func targets(for choice: ScreenChoice, among all: [ShellScreen] = current()) -> [ShellScreen] {
         let chosen = ScreenSelection.targets(among: all.map(\.info), choice: choice)
-        // Ueber die Stelle in der Liste zurueckrechnen, nicht ueber den
-        // Schluessel: zwei baugleiche Bildschirme haben denselben Schluessel,
-        // und in Spiegelung sogar denselben Rahmen.
+        // Work back through the place in the list, not through the key: two
+        // identical screens have the same key, and in mirroring even the same
+        // frame.
         var remaining = all
         var result: [ShellScreen] = []
         for info in chosen {
@@ -73,21 +73,21 @@ enum ShellScreens {
         return result
     }
 
-    /// Der Bildschirm unter einem Punkt in Bildschirmkoordinaten.
+    /// The screen under a point in screen coordinates.
     static func at(_ point: NSPoint, among all: [ShellScreen] = current()) -> ShellScreen? {
         guard let info = ScreenSelection.screen(at: point, among: all.map(\.info)) else { return nil }
         return all.first { $0.info == info } ?? all.first
     }
 
-    /// Der Bildschirm, auf dem der Zeiger gerade steht. Dort gehen Launcher,
-    /// Dashboard, Utilities, Sitzungsmenue und Kurzmeldungen auf.
+    /// The screen the pointer stands on right now. That is where the launcher,
+    /// the dashboard, the utilities, the session menu and the toasts open.
     static func underPointer(among all: [ShellScreen] = current()) -> ShellScreen? {
         at(NSEvent.mouseLocation, among: all)
     }
 
-    /// Meldet jede Aenderung an den Bildschirmen: angesteckt, abgezogen,
-    /// andere Aufloesung oder Anordnung. Der Beobachter lebt so lange wie der
-    /// Prozess; wer ihn anlegt, haelt sich darin deshalb nur schwach.
+    /// Reports every change to the screens: plugged in, unplugged, a different
+    /// resolution or arrangement. The observer lives as long as the process;
+    /// whoever creates it therefore only holds it weakly.
     static func onChange(_ handler: @escaping @MainActor () -> Void) {
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
@@ -96,13 +96,13 @@ enum ShellScreens {
         }
     }
 
-    /// `NSScreenNumber` aus der Geraetebeschreibung ist die
-    /// CGDirectDisplayID. Fehlt sie (kommt bei einem Bildschirm, der gerade
-    /// verschwindet, vor), zaehlt der Bildschirm nicht mit.
-    /// Der `ShellScreen` zu einem `NSScreen` - ueber die Display-Kennung,
-    /// nicht ueber `==`: AppKit legt `NSScreen`-Objekte bei Aenderungen neu
-    /// an, ein vorher geholtes (etwa `window.screen`) ist dann nicht mehr
-    /// dasselbe Objekt wie in `NSScreen.screens`.
+    /// `NSScreenNumber` out of the device description is the CGDirectDisplayID.
+    /// When it is missing (which happens with a screen that is just
+    /// disappearing), the screen does not count.
+    /// The `ShellScreen` for an `NSScreen` - through the display id, not
+    /// through `==`: AppKit creates `NSScreen` objects anew on changes, and one
+    /// fetched earlier (`window.screen`, say) is then no longer the same object
+    /// as in `NSScreen.screens`.
     static func matching(_ screen: NSScreen) -> ShellScreen? {
         guard let id = displayID(of: screen) else { return nil }
         return current().first { $0.displayID == id }
@@ -113,21 +113,21 @@ enum ShellScreens {
     }
 }
 
-/// Ein Eintrag je Bildschirm, nach Display-Kennung: anlegen, auffrischen,
-/// abraeumen - so, wie die Einstellung und die angeschlossenen Bildschirme
-/// es gerade verlangen. Leiste und Schreibtisch-Uhr verteilen sich so.
+/// One entry per screen, by display id: create, refresh, clear away - the way
+/// the setting and the connected screens ask for right now. The bar and the
+/// desktop clock spread themselves out with it.
 @MainActor
 struct ScreenSlots<Item> {
     private(set) var items: [CGDirectDisplayID: Item] = [:]
 
-    /// Neu verteilen. `make` legt fuer einen neuen Bildschirm an, `update`
-    /// laeuft danach fuer JEDEN gewuenschten (neu oder schon da), `remove`
-    /// fuer jeden, der weg oder abgewaehlt ist.
+    /// Spread them anew. `make` creates one for a new screen, `update` runs
+    /// afterwards for EVERY wanted one (new or there already), `remove` for
+    /// every one that is gone or deselected.
     ///
-    /// Ohne Bildschirme (Kabel mitten im Umstecken, `NSScreen.screens` leer)
-    /// bleibt alles stehen, statt abgerissen und gleich wieder aufgebaut zu
-    /// werden: dann `nil`. Kommen sie zurueck, meldet sich `onChange`.
-    /// Sonst die Bildschirme, auf denen jetzt ein Eintrag steht.
+    /// Without screens (a cable in the middle of being replugged,
+    /// `NSScreen.screens` empty) everything stays standing instead of being
+    /// torn down and built up again at once: then `nil`. When they come back,
+    /// `onChange` reports it. Otherwise the screens that have an entry now.
     @discardableResult
     mutating func distribute(on choice: ScreenChoice,
                              make: (ShellScreen) -> Item,
@@ -149,7 +149,7 @@ struct ScreenSlots<Item> {
         return wanted
     }
 
-    /// Alles abraeumen (z. B. ausgeschaltet).
+    /// Clear everything away (switched off, say).
     mutating func removeAll(_ remove: (Item) -> Void) {
         for item in items.values { remove(item) }
         items = [:]

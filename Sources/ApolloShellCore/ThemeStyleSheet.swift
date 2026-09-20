@@ -1,12 +1,12 @@
 import Foundation
 
-/// Eine Zeile `--name: wert;` aus einer Theme-Datei, noch ungeprueft.
+/// One line `--name: value;` out of a theme file, not checked yet.
 public struct ThemeDeclaration: Equatable, Hashable, Sendable {
-    /// Klein geschrieben, mit den zwei Bindestrichen.
+    /// In lower case, with the two hyphens.
     public let name: String
-    /// Roher Text nach dem Doppelpunkt, getrimmt.
+    /// The raw text after the colon, trimmed.
     public let value: String
-    /// Zeile in der Datei, 1-basiert.
+    /// The line in the file, 1-based.
     public let line: Int
 
     public init(name: String, value: String, line: Int) {
@@ -16,8 +16,8 @@ public struct ThemeDeclaration: Equatable, Hashable, Sendable {
     }
 }
 
-/// Was in einer Theme-Datei stand: die Angaben aus `:root` und die
-/// Abweichungen fuer das dunkle Erscheinungsbild.
+/// What stood in a theme file: the entries out of `:root` and the variants
+/// for the dark appearance.
 public struct ThemeStyleSheet: Equatable, Sendable {
     public var light: [ThemeDeclaration]
     public var dark: [ThemeDeclaration]
@@ -31,18 +31,18 @@ public struct ThemeStyleSheet: Equatable, Sendable {
     }
 }
 
-/// Liest die CSS-Teilmenge, die ein Theme ausmacht. Ohne WebKit, ohne
-/// Netzwerk, ohne Ausnahmen nach aussen.
+/// Reads the CSS subset that makes up a theme. Without WebKit, without the
+/// network, without exceptions to the outside.
 ///
-/// Verstanden wird:
-/// - `:root { --apollo-…: wert; }`
-/// - `@media (prefers-color-scheme: dark) { :root { … } }` fuer Abweichungen
-/// - Kommentare `/* … */`
+/// Understood are:
+/// - `:root { --apollo-…: value; }`
+/// - `@media (prefers-color-scheme: dark) { :root { … } }` for the variants
+/// - comments `/* … */`
 ///
-/// Alles andere wird uebersprungen und als Hinweis vermerkt: fremde
-/// Selektoren, andere At-Regeln, `@import`, verschachtelte Bloecke. Damit
-/// bleibt eine Datei lesbar, die spaeter einmal mehr enthaelt, als diese
-/// Fassung kennt - der Kern nimmt sich nur, was er versteht.
+/// Everything else is skipped and noted as a notice: foreign selectors, other
+/// at-rules, `@import`, nested blocks. That keeps a file readable which one
+/// day holds more than this version knows - the core takes only what it
+/// understands.
 public enum ThemeStyleSheetParser {
     public static func parse(_ text: String, limits: ThemeLimits = .standard) -> ThemeStyleSheet {
         var parser = Parser(text: text, limits: limits)
@@ -50,16 +50,16 @@ public enum ThemeStyleSheetParser {
         return ThemeStyleSheet(light: parser.light, dark: parser.dark, issues: parser.log.finished())
     }
 
-    /// Nur die Angabe, die im dunklen Erscheinungsbild gilt. `@media` schlaegt
-    /// `:root`, sonst zaehlt die letzte Zeile - wie in CSS.
+    /// Only the entry that holds in the dark appearance. `@media` beats
+    /// `:root`, otherwise the last line counts - as in CSS.
     public static func effectiveDark(_ sheet: ThemeStyleSheet) -> [ThemeDeclaration] {
         sheet.light + sheet.dark
     }
 }
 
-/// Der Scanner. Absichtlich ueber `[Character]` mit ganzzahligem Index: so
-/// kostet jeder Schritt gleich viel, auch bei einer halben Megabyte grossen
-/// Datei, und Unicode in Namen und Texten bleibt heil.
+/// The scanner. Over `[Character]` with an integer index on purpose: that way
+/// every step costs the same, even with a file half a megabyte big, and
+/// Unicode in names and texts stays whole.
 private struct Parser {
     private let chars: [Character]
     private var index: Int
@@ -84,15 +84,15 @@ private struct Parser {
     private var isAtEnd: Bool { index >= end }
 
     private mutating func advance() {
-        // `isNewline` statt `== "\n"`: Swift fasst CRLF zu einem einzigen
-        // Character zusammen, eine Datei von Windows wuerde sonst durchweg
-        // falsche Zeilennummern melden.
+        // `isNewline` instead of `== "\n"`: Swift takes CRLF as a single
+        // Character, and a file from Windows would otherwise report wrong line
+        // numbers throughout.
         if chars[index].isNewline { line += 1 }
         index += 1
     }
 
-    /// Ein Kommentar oder eine Zeichenkette an dieser Stelle - beides darf
-    /// nirgends mitzaehlen, wenn Klammern gepaart werden.
+    /// A comment or a string at this place - neither may count anywhere when
+    /// brackets are paired.
     private mutating func skipCommentOrString() -> Bool {
         guard !isAtEnd else { return false }
         let c = chars[index]
@@ -116,7 +116,7 @@ private struct Parser {
             advance()
             while !isAtEnd {
                 let current = chars[index]
-                // Ein Zeilenumbruch beendet in CSS eine kaputte Zeichenkette.
+                // A line break ends a broken string in CSS.
                 if current.isNewline {
                     log.add(.ignoredRule("unterminated string"), line: startLine)
                     return true
@@ -149,8 +149,8 @@ private struct Parser {
         }
     }
 
-    /// Ab `{` bis hinter die zugehoerige `}`. Steht dort kein `{`, passiert
-    /// nichts.
+    /// From `{` to past the matching `}`. When no `{` stands there, nothing
+    /// happens.
     private mutating func skipBlock() {
         guard !isAtEnd, chars[index] == "{" else { return }
         var depth = 0
@@ -175,7 +175,7 @@ private struct Parser {
             if isAtEnd { return }
             let c = chars[index]
             if c == "}" || c == ";" {
-                // Streuzeichen aus einer kaputten Datei.
+                // Stray characters out of a broken file.
                 advance()
                 continue
             }
@@ -187,8 +187,8 @@ private struct Parser {
         }
     }
 
-    /// Liest bis `{` oder `;` (was zuerst kommt) und gibt den Text davor
-    /// zurueck; der Index steht danach auf dem Zeichen selbst oder am Ende.
+    /// Reads up to `{` or `;` (whichever comes first) and hands back the text
+    /// before it; the index then stands on that character itself or at the end.
     private mutating func readPrelude() -> String {
         var text = ""
         while !isAtEnd {
@@ -220,8 +220,8 @@ private struct Parser {
             return
         }
         if chars[index] == ";" {
-            // @import und Verwandte: ueberspringen. Ein Theme laedt nie eine
-            // zweite Datei - das waere ein Weg nach draussen.
+                // @import and relatives: skip. A theme never loads a second
+                // file - that would be a way out.
             advance()
             log.add(.ignoredRule(rule.trimmedText), line: startLine)
             return
@@ -232,8 +232,8 @@ private struct Parser {
             skipBlock()
             return
         }
-        // Den Block einmal abstecken und dann darin dasselbe tun wie oben -
-        // hoechstens eine Ebene tief, verschachtelte @media zaehlen nicht.
+                // Mark the block out once and then do the same in it as above
+                // - one level deep at most, nested @media does not count.
         let open = index
         skipBlock()
         let close = index
@@ -298,8 +298,8 @@ private struct Parser {
                 advance()
             }
             guard sawColon else {
-                // Kein Doppelpunkt: entweder Unsinn oder ein verschachtelter
-                // Block. Beides ueberspringen.
+                // No colon: either nonsense or a nested block. Skip both.
+                //
                 if !isAtEnd, chars[index] == "{" {
                     log.add(.ignoredRule("nested block"), line: startLine)
                     skipBlock()
@@ -318,8 +318,8 @@ private struct Parser {
             }
             let value = readValue()
             let key = name.trimmedText.lowercased()
-            // Nur eigene Eigenschaften interessieren. `color: red` in :root
-            // ist gueltiges CSS fuer eine Webseite und hier bedeutungslos.
+            // Only custom properties are of interest. `color: red` in :root is
+            // valid CSS for a web page and meaningless here.
             guard key.hasPrefix("--") else { continue }
             guard light.count + self.dark.count < limits.maxDeclarations else {
                 log.add(.tooManyDeclarations(limit: limits.maxDeclarations), line: startLine)
@@ -332,8 +332,8 @@ private struct Parser {
         }
     }
 
-    /// Wert bis `;` oder bis zur schliessenden `}` der Regel. Klammern,
-    /// Zeichenketten und Kommentare zaehlen mit, damit `url("a;b")` heil
+    /// The value up to `;` or up to the closing `}` of the rule. Brackets,
+    /// strings and comments count in, so that `url("a;b")` stays whole.
     /// bleibt.
     private mutating func readValue() -> String {
         var text = ""
@@ -341,8 +341,8 @@ private struct Parser {
         while !isAtEnd {
             let before = index
             if skipCommentOrString() {
-                // Kommentar oder Zeichenkette: beim Wert bleibt der Text
-                // erhalten, ein Kommentar faellt weg.
+                // A comment or a string: in the value the text is kept, a
+                // comment falls away.
                 let chunk = String(chars[before..<index])
                 if chunk.hasPrefix("/*") { text += " " } else { text += chunk }
                 continue
@@ -355,10 +355,10 @@ private struct Parser {
                 return text
             }
             if depth == 0, c == "}" {
-                // Die letzte Angabe eines Blocks darf das Semikolon weglassen.
-                // Die Klammer selbst bleibt stehen: sie schliesst den Block,
-                // und wer sie hier verschluckt, liest den Rest der Datei als
-                // Fortsetzung von `:root`.
+                // The last entry of a block may leave out the semicolon. The
+                // bracket itself stays standing: it closes the block, and
+                // whoever swallows it here reads the rest of the file as a
+                // continuation of `:root`.
                 return text
             }
             text.append(c)
@@ -371,8 +371,8 @@ private struct Parser {
 extension String {
     var trimmedText: String { trimmingCharacters(in: .whitespacesAndNewlines) }
 
-    /// Klein geschrieben und ohne jeden Leerraum - fuer den Vergleich von
-    /// Selektoren und Bedingungen.
+    /// In lower case and without any whitespace - for comparing selectors and
+    /// conditions.
     var condensed: String {
         lowercased().filter { !$0.isWhitespace }
     }

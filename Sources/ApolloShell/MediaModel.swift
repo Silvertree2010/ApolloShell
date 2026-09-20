@@ -4,50 +4,50 @@ import ApolloShellCore
 import Observation
 import os
 
-/// App, die gerade abspielt: Name und Symbol fuer die Anzeige.
+/// The app that is playing right now: name and symbol for the display.
 struct MediaSource: Equatable {
     let name: String
     let icon: NSImage?
 }
 
-/// "Now Playing" fuer die Medien-Karte und den Reiter Medien.
+/// "Now Playing" for the media card and the media tab.
 ///
-/// MediaRemote liefert Apps ohne Apple-Berechtigung seit macOS 15.4 nichts
-/// mehr. Der mediaremote-adapter (extras/mediaremote-adapter) umgeht das
-/// ohne Dialog: er laedt sein Framework in das Apple-signierte
-/// /usr/bin/perl, das noch darf, und streamt JSON-Zeilen (Logik in
-/// ApolloShellCore/MediaNowPlaying.swift).
+/// MediaRemote has delivered nothing to apps without an Apple entitlement
+/// since macOS 15.4. The mediaremote-adapter (extras/mediaremote-adapter)
+/// gets around that without a dialog: it loads its framework into the
+/// Apple-signed /usr/bin/perl, which is still allowed to, and streams JSON
+/// lines (the logic sits in ApolloShellCore/MediaNowPlaying.swift).
 ///
-/// Der Stream laeuft nur, solange das Dashboard offen ist: `start` beim
-/// Oeffnen, `stop` beim Schliessen und beim Beenden der App. Stirbt er
-/// unterwegs, startet er mit wachsenden Pausen neu (`MediaRestart`).
-/// Steuerbefehle gehen als eigene kurze Aufrufe raus; die Anzeige folgt
-/// danach aus dem Stream, nicht aus einer Vermutung.
+/// The stream only runs while the dashboard is open: `start` on opening,
+/// `stop` on closing and when the app ends. If it dies along the way, it
+/// starts again with growing pauses (`MediaRestart`). Control commands go out
+/// as short calls of their own; the display follows from the stream
+/// afterwards, not from a guess.
 @MainActor
 @Observable
 final class MediaModel {
     private(set) var nowPlaying: MediaNowPlaying?
     private(set) var artwork: NSImage?
-    /// Das Cover klein und weichgezeichnet, als Hintergrund des Reiters.
+    /// The cover small and blurred, as the background of the tab.
     private(set) var ambient: NSImage?
-    /// Zaehlt Coverwechsel - die Ansicht blendet damit ueber.
+    /// Counts cover changes - the view cross-fades with it.
     private(set) var artworkID = 0
     private(set) var source: MediaSource?
-    /// Adapter fehlt im Bundle (z. B. `swift run`) oder ist mehrmals
-    /// hintereinander gestorben.
+    /// The adapter is missing from the bundle (`swift run`, say) or has died
+    /// several times in a row.
     private(set) var isUnavailable = false
 
-    /// Feste Uhr fuer Bildproben; `nil` = echte Zeit.
+    /// A fixed clock for image samples; `nil` = the real time.
     @ObservationIgnored let fixedNow: Date?
-    /// `false` fuer Bildproben: dann startet das Modell keinen Prozess.
+    /// `false` for image samples: then the model starts no process.
     @ObservationIgnored private let live: Bool
 
     @ObservationIgnored private var state = MediaStreamState()
     @ObservationIgnored private var shownArtworkRevision = 0
     @ObservationIgnored private var stream: Process?
     @ObservationIgnored private var streamStartedAt = Date()
-    /// Jeder Stream-Prozess bekommt eine Nummer; spaete Zeilen oder ein
-    /// spaetes Ende eines alten Prozesses werden daran erkannt und verworfen.
+    /// Every stream process gets a number; late lines or a late end of an old
+    /// process are recognised by it and thrown away.
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var wantsStream = false
     @ObservationIgnored private var failures = 0
@@ -67,7 +67,7 @@ final class MediaModel {
         self.fixedNow = fixedNow
     }
 
-    /// Modell mit festem Inhalt, das nichts startet - fuer Bildproben.
+    /// A model with fixed content that starts nothing - for image samples.
     static func preview(
         nowPlaying: MediaNowPlaying?,
         artwork: NSImage? = nil,
@@ -84,15 +84,15 @@ final class MediaModel {
         return model
     }
 
-    // MARK: - Adapter im Bundle
+    // MARK: - The adapter in the bundle
 
     private struct AdapterFiles {
         let script: URL
         let framework: URL
     }
 
-    /// build.sh legt das Framework nach Contents/Frameworks (verschachtelter
-    /// Code gehoert fuer codesign dorthin) und das Skript nach Resources.
+    /// build.sh puts the framework into Contents/Frameworks (nested code
+    /// belongs there for codesign) and the script into Resources.
     private static let adapter: AdapterFiles? = {
         guard let script = Bundle.main.url(forResource: "mediaremote-adapter", withExtension: "pl"),
               let framework = Bundle.main.privateFrameworksURL?.appendingPathComponent("MediaRemoteAdapter.framework"),
@@ -101,8 +101,8 @@ final class MediaModel {
         return AdapterFiles(script: script, framework: framework)
     }()
 
-    /// Das Apple-signierte perl ist der Kern des Tricks: nur ihm gibt
-    /// MediaRemote noch Auskunft. Nie ein perl aus nix oder Homebrew.
+    /// The Apple-signed perl is the heart of the trick: only it still gets an
+    /// answer out of MediaRemote. Never a perl out of nix or Homebrew.
     private static let perl = URL(fileURLWithPath: "/usr/bin/perl")
 
     // MARK: - Stream
@@ -110,7 +110,7 @@ final class MediaModel {
     func start() {
         guard live else { return }
         wantsStream = true
-        // Jedes Oeffnen ist ein neuer Anlauf, auch nach "gibt auf".
+        // Every opening is a new attempt, even after "gives up".
         failures = 0
         isUnavailable = false
         if stream == nil && restartTask == nil { launchStream() }
@@ -123,12 +123,12 @@ final class MediaModel {
         restartTask = nil
         emptyTask?.cancel()
         emptyTask = nil
-        // SIGTERM: der Adapter faengt es ab und beendet seine Run-Loop sauber
-        // (gemessen: Exit-Status 0).
+        // SIGTERM: the adapter catches it and ends its run loop cleanly
+        // (measured: exit status 0).
         stream?.terminate()
         stream = nil
-        // Was jetzt noch vom alten Prozess kommt, gilt nicht mehr. Der
-        // letzte Stand bleibt stehen, bis der naechste Stream ihn ersetzt.
+        // Whatever still comes from the old process no longer counts. The last
+        // state stays standing until the next stream replaces it.
         generation += 1
     }
 
@@ -143,17 +143,17 @@ final class MediaModel {
         }
         generation += 1
         let generation = generation
-        // Diffs gelten nur innerhalb eines Prozesses.
+        // Diffs only hold inside one process.
         state = MediaStreamState()
 
-        // stderr sind laut README nicht-fatale Meldungen; `Subprocess` wirft
-        // sie weg, ungelesen liefe die Pipe voll.
+        // According to the README, stderr holds non-fatal messages;
+        // `Subprocess` throws them away, and unread the pipe would fill up.
         let reader = MediaLineReader()
         let process = Subprocess.stream(
             Self.perl.path, [adapter.script.path, adapter.framework.path] + MediaAdapter.streamArguments,
             onData: { [weak self] chunk in
-                // JSON hier dekodieren, abseits des Hauptthreads: eine Zeile
-                // mit Cover ist einige hundert KB gross.
+                // Decode the JSON here, off the main thread: one line with a
+                // cover is a few hundred KB.
                 let messages = reader.messages(from: chunk)
                 guard !messages.isEmpty else { return }
                 DispatchQueue.main.async {
@@ -174,11 +174,11 @@ final class MediaModel {
         guard generation == self.generation else { return }
         for message in messages { state.apply(message) }
         if state.nowPlaying == nil && nowPlaying != nil {
-            // Beim Start schreibt der Adapter zuerst eine leere Zeile, bevor
-            // seine Abfragen zurueck sind (gemessen: `{}` und Millisekunden
-            // spaeter die Daten), und zwischen zwei Titeln kann es kurz leer
-            // sein. Sofort "Nichts laeuft" zu zeigen, wuerde bei jedem Oeffnen
-            // flackern - also kurz abwarten, ob noch etwas kommt.
+            // On the start the adapter writes an empty line first, before its
+            // queries are back (measured: `{}` and milliseconds later the
+            // data), and between two tracks it can be empty for a moment.
+            // Showing "Nothing is playing" right away would flicker on every
+            // opening - so wait briefly to see whether something else comes.
             guard emptyTask == nil else { return }
             emptyTask = Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(600))
@@ -193,8 +193,8 @@ final class MediaModel {
         publish()
     }
 
-    /// Zustand auf die beobachteten Eigenschaften uebertragen - nur was sich
-    /// aendert, damit SwiftUI nicht bei jedem Diff alles neu zeichnet.
+    /// Carry the state over to the observed properties - only what changes, so
+    /// that SwiftUI does not redraw everything on every diff.
     private func publish() {
         let next = state.nowPlaying
         if next != nowPlaying { nowPlaying = next }
@@ -215,7 +215,7 @@ final class MediaModel {
         failures = MediaRestart.failures(previous: failures, runtime: Date().timeIntervalSince(streamStartedAt))
         guard let delay = MediaRestart.delay(afterFailures: failures) else {
             log.error("Adapter gibt auf: \(self.failures) fruehe Abbrueche, zuletzt Status \(status)")
-            // Alte Daten wuerden jetzt nie mehr aktualisiert - lieber ehrlich leer.
+            // Old data would never be updated again - better honestly empty.
             state = MediaStreamState()
             publish()
             isUnavailable = true
@@ -230,9 +230,9 @@ final class MediaModel {
         }
     }
 
-    // MARK: - Steuern
+    // MARK: - Controlling
 
-    /// Eigener kurzer Aufruf (`send N`), der Stream laeuft weiter.
+    /// A short call of its own (`send N`), the stream goes on running.
     func send(_ command: MediaCommand) {
         guard live, let adapter = Self.adapter else { return }
         Subprocess.launch(Self.perl.path, [adapter.script.path, adapter.framework.path] + command.arguments) {
@@ -246,7 +246,7 @@ final class MediaModel {
         }
     }
 
-    // MARK: - Quelle
+    // MARK: - Source
 
     private func source(for bundleIdentifier: String) -> MediaSource {
         if let cached = sources[bundleIdentifier] { return cached }
@@ -263,9 +263,9 @@ final class MediaModel {
     }
 }
 
-/// Hintergrund aus dem Cover, einmal pro Cover gerechnet: klein skaliert
-/// und weichgezeichnet. Ein SwiftUI-`.blur` mit grossem Radius wuerde bei
-/// jedem Neuzeichnen des Reiters mitlaufen.
+/// The background out of the cover, worked out once per cover: scaled down
+/// and blurred. A SwiftUI `.blur` with a large radius would run along on
+/// every redraw of the tab.
 @MainActor
 enum MediaBlur {
     private static let context = CIContext()
@@ -275,20 +275,20 @@ enum MediaBlur {
         let input = CIImage(cgImage: cgImage)
         let longest = max(input.extent.width, input.extent.height)
         guard longest > 0 else { return nil }
-        // 96 px reichen fuer einen weichen Hintergrund und halten den Blur billig.
+        // 96 px is enough for a soft background and keeps the blur cheap.
         let scale = 96 / longest
         let small = input.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-        // Rand fortsetzen, sonst zieht der Blur von aussen Transparenz herein.
+        // Continue the edge, otherwise the blur pulls transparency in from outside.
         let blurred = small.clampedToExtent().applyingGaussianBlur(sigma: 8).cropped(to: small.extent)
         guard let output = context.createCGImage(blurred, from: small.extent) else { return nil }
         return NSImage(cgImage: output, size: NSSize(width: output.width, height: output.height))
     }
 }
 
-/// Zeilenpuffer fuer den Lese-Handler der Pipe. Der Handler laeuft auf
-/// einer Hintergrund-Queue; die Sperre macht den Zugriff ausdruecklich
-/// sicher, statt sich darauf zu verlassen, dass die Aufrufe nacheinander
-/// kommen.
+/// A line buffer for the read handler of the pipe. The handler runs on a
+/// background queue; the lock makes the access safe on purpose, instead of
+/// relying on the calls arriving one after another, which is not
+/// guaranteed.
 private final class MediaLineReader: Sendable {
     private let buffer = OSAllocatedUnfairLock(initialState: MediaLineBuffer())
 

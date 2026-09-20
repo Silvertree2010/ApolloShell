@@ -1,11 +1,11 @@
 import Foundation
 
-/// Liest einen einzelnen Wert aus einer Theme-Datei - die CSS-Teilmenge, auf
-/// die sich das Format festlegt.
+/// Reads a single value out of a theme file - the CSS subset the format
+/// commits to.
 ///
-/// Was hier nicht sicher gelesen werden kann, ist `nil`; der Aufrufer nimmt
-/// dann die Vorgabe und meldet einen Hinweis mit Zeilennummer. Nichts wird
-/// geraten: ein halb verstandener Wert waere schlimmer als die Vorgabe.
+/// Whatever cannot be read safely here is `nil`; the caller then takes the
+/// default and reports a notice with a line number. Nothing is guessed: a
+/// half-understood value would be worse than the default.
 public enum ThemeValueReader {
     public static func read(_ raw: String, kind: ThemeTokenKind) -> ThemeValue? {
         guard let text = prepared(raw) else { return nil }
@@ -30,9 +30,9 @@ public enum ThemeValueReader {
         }
     }
 
-    /// Getrimmt, ohne `!important`, ohne Steuerzeichen. `nil`, wenn nichts
-    /// uebrig bleibt oder etwas darin steht, das diese Fassung ausdruecklich
-    /// nicht versteht.
+    /// Trimmed, without `!important`, without control characters. `nil` when
+    /// nothing is left or something stands in it that this version explicitly
+    /// does not understand.
     private static func prepared(_ raw: String) -> String? {
         var text = raw.trimmedText
         if let range = text.range(of: "!important", options: [.caseInsensitive, .backwards]),
@@ -40,14 +40,14 @@ public enum ThemeValueReader {
             text = String(text[..<range.lowerBound]).trimmedText
         }
         guard !text.isEmpty else { return nil }
-        // `var(--x)` gibt es nicht: ohne Nachschlagekette bleibt das Format
-        // ueberschaubar, und niemand baut auf ein Verhalten, das wir spaeter
+        // There is no `var(--x)`: without a lookup chain the format stays
+        // manageable, and nobody builds on behavior we could not keep later.
         // nicht halten koennen.
         guard !text.lowercased().contains("var(") else { return nil }
         return text
     }
 
-    // MARK: - Farben
+    // MARK: - Colors
 
     public static func color(_ raw: String) -> ThemeColor? {
         let text = raw.trimmedText
@@ -65,26 +65,26 @@ public enum ThemeValueReader {
         }
     }
 
-    // MARK: - Verlaeufe
+    // MARK: - Gradients
 
-    /// `none` oder `linear-gradient(<winkel>deg, <farbe> <stelle>%, ...)`.
+    /// `none` or `linear-gradient(<angle>deg, <color> <position>%, ...)`.
     ///
-    /// Der Winkel darf fehlen, dann verlaeuft es von oben nach unten (180
-    /// Grad, wie in CSS). Stellen duerfen fehlen, dann werden die Farben
-    /// gleichmaessig verteilt. Weniger als zwei Farben sind kein Verlauf,
-    /// sondern ein Fehler - wer eine Flaeche einfaerben will, nimmt das
-    /// Farb-Token daneben.
+    /// The angle may be missing, and then it runs from top to bottom (180
+    /// degrees, as in CSS). Positions may be missing, and then the colors are
+    /// spread evenly. Fewer than two colors is no gradient but an error -
+    /// whoever wants to color an area takes the color token next to it.
+    ///
     public static func gradient(_ raw: String) -> ThemeGradient? {
         let text = raw.trimmedText
         guard !text.isEmpty else { return nil }
-        // ThemeGradient.none, nicht Optional.none: In einer Funktion, die
-        // `ThemeGradient?` liefert, waere `.none` das leere Optional - also
-        // "unlesbar" statt "kein Verlauf".
+        // ThemeGradient.none, not Optional.none: in a function that hands back
+        // `ThemeGradient?`, `.none` would be the empty optional - so
+        // "unreadable" instead of "no gradient".
         if text.lowercased() == "none" { return ThemeGradient.none }
         guard let open = text.firstIndex(of: "("), text.hasSuffix(")") else { return nil }
         let function = String(text[text.startIndex..<open]).lowercased().trimmedText
-        // Nur geradlinige Verlaeufe. Ein Theme, das `radial-gradient`
-        // schreibt, bekommt einen Hinweis statt einer Naeherung.
+        // Straight gradients only. A theme that writes `radial-gradient` gets
+        // a notice instead of an approximation.
         guard function == "linear-gradient" else { return nil }
         let inside = String(text[text.index(after: open)..<text.index(before: text.endIndex)])
         var parts = splitTopLevel(inside)
@@ -105,9 +105,9 @@ public enum ThemeValueReader {
             colors.append(color)
             positions.append(position)
         }
-        // Fehlende Stellen gleichmaessig verteilen, und nie rueckwaerts: eine
-        // Stelle vor ihrer Vorgaengerin waere in CSS erlaubt (harte Kante),
-        // hier aber wahrscheinlicher ein Versehen.
+        // Spread missing positions evenly, and never backwards: a position
+        // before its predecessor would be allowed in CSS (a hard edge), but
+        // here it is more likely a slip.
         var stops: [ThemeGradient.Stop] = []
         var previous = 0.0
         for (index, color) in colors.enumerated() {
@@ -120,8 +120,8 @@ public enum ThemeValueReader {
         return ThemeGradient(angle: angle, stops: stops)
     }
 
-    /// Teilt an Kommas, aber nicht innerhalb von Klammern - `rgb(0, 0, 0)`
-    /// bleibt ein Stueck.
+    /// Splits at commas, but not inside brackets - `rgb(0, 0, 0)` stays one
+    /// piece.
     private static func splitTopLevel(_ text: String) -> [String] {
         var parts: [String] = []
         var current = ""
@@ -145,7 +145,7 @@ public enum ThemeValueReader {
         return text.hasSuffix("deg") || text.hasPrefix("to ")
     }
 
-    /// `45deg` oder die Woerter von CSS (`to bottom`, `to right` ...).
+    /// `45deg` or the words of CSS (`to bottom`, `to right` ...).
     private static func angle(_ part: String) -> Double? {
         let text = part.lowercased().trimmedText
         if text.hasPrefix("to ") {
@@ -165,13 +165,13 @@ public enum ThemeValueReader {
         return value
     }
 
-    /// `#112233` oder `#112233 40%`.
+    /// `#112233` or `#112233 40%`.
     private static func stop(_ part: String) -> (ThemeColor, Double?)? {
         let text = part.trimmedText
-        // Von hinten trennen: die Farbe kann selbst Leerzeichen enthalten
-        // (`rgb(0 0 0)`), die Stelle steht immer am Ende. Getrennt wird an
-        // jedem Leerraum, nicht nur am Leerzeichen - ein Tabulator zwischen
-        // Farbe und Stelle ist genauso gemeint.
+        // Split from the back: the color can hold spaces itself
+        // (`rgb(0 0 0)`), the position always stands at the end. It is split
+        // at any whitespace, not only at a space - a tab between the color and
+        // the position means the same thing.
         if let space = text.lastIndex(where: \.isWhitespace), text.hasSuffix("%") {
             let tail = String(text[text.index(after: space)...]).trimmedText
             if let (value, unit) = numberAndUnit(tail), unit == "%", value.isFinite,
@@ -208,8 +208,8 @@ public enum ThemeValueReader {
         }
     }
 
-    /// Kommas, Leerzeichen und der Schraegstrich vor der Deckkraft sind alle
-    /// erlaubt - beide Schreibweisen von CSS.
+    /// Commas, spaces and the slash before the opacity are all allowed - both
+    /// spellings of CSS.
     private static func arguments(_ inside: String) -> [String] {
         inside
             .replacingOccurrences(of: ",", with: " ")
@@ -279,9 +279,9 @@ public enum ThemeValueReader {
         }
     }
 
-    /// Die Grundfarbnamen. Absichtlich nicht die ganze Liste von CSS: was
-    /// hier steht, gilt fuer immer, und eine kurze Liste ist leichter zu
-    /// halten als 148 Namen.
+    /// The basic color names. Not the whole CSS list on purpose: what stands
+    /// here holds forever, and a short list is easier to keep than 148 names.
+    ///
     private static let named: [String: ThemeColor] = [
         "transparent": .clear,
         "black": ThemeColor(hex: 0x000000),
@@ -306,13 +306,13 @@ public enum ThemeValueReader {
         "orange": ThemeColor(hex: 0xFFA500),
     ]
 
-    // MARK: - Zahlen
+    // MARK: - Numbers
 
     public static func number(_ raw: String, unit: ThemeUnit) -> Double? {
         guard let (value, suffix) = numberAndUnit(raw.trimmedText) else { return nil }
         switch unit {
         case .points:
-            // px und pt sind dasselbe: die Shell rechnet in Punkten.
+            // px and pt are the same: the shell works in points.
             return suffix == "" || suffix == "px" || suffix == "pt" ? value : nil
         case .ratio:
             if suffix == "" { return value }
@@ -322,9 +322,9 @@ public enum ThemeValueReader {
         }
     }
 
-    /// Zahl und Einheit, streng von Hand: `Double("nan")`, `Double("inf")`
-    /// und `Double("0x1p2")` waeren gueltig und haetten in einer Farbe oder
-    /// einer Fensterbreite nichts zu suchen.
+    /// The number and the unit, strictly by hand: `Double("nan")`,
+    /// `Double("inf")` and `Double("0x1p2")` would be valid and have no
+    /// business in a color or a window width.
     private static func numberAndUnit(_ text: String) -> (Double, String)? {
         var digits = ""
         var index = text.startIndex
@@ -353,16 +353,16 @@ public enum ThemeValueReader {
         return (value, unit)
     }
 
-    // MARK: - Text, Dateien, Ja/Nein
+    // MARK: - Text, files, yes/no
 
-    /// Entweder eine Zeichenkette in Anfuehrungszeichen (dann ohne sie) oder
-    /// der Text, wie er dasteht - Schriftfamilien schreibt man oft ohne.
+    /// Either a string in quotes (then without them) or the text as it stands
+    /// - font families are often written without them.
     public static func plainText(_ raw: String) -> String {
         let text = quoted(raw) ?? raw.trimmedText
         var result = ""
         var lastWasSpace = false
         for character in text {
-            // Steuerzeichen und Umbrueche wuerden Beschriftungen zerreissen.
+            // Control characters and breaks would tear labels apart.
             let isSpace = character.isWhitespace || character.isNewline
             if character.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }), !isSpace {
                 continue
@@ -386,8 +386,8 @@ public enum ThemeValueReader {
             if inside.isEmpty { return "" }
             return quoted(inside) ?? inside
         }
-        // Eine blosse Zeichenkette gilt auch - `url()` ist nur die
-        // ausfuehrliche Schreibweise.
+        // A plain string counts too - `url()` is only the long-winded
+        // spelling.
         return quoted(text)
     }
 
@@ -399,8 +399,8 @@ public enum ThemeValueReader {
         }
     }
 
-    /// Der Inhalt, wenn der ganze Text eine einzige Zeichenkette in
-    /// Anfuehrungszeichen ist - sonst `nil`.
+    /// The content when the whole text is a single string in quotes -
+    /// otherwise `nil`.
     private static func quoted(_ raw: String) -> String? {
         let text = raw.trimmedText
         guard let first = text.first, first == "\"" || first == "'", text.count >= 2 else { return nil }
@@ -416,8 +416,8 @@ public enum ThemeValueReader {
                 continue
             }
             if character == first {
-                // Nur wenn danach nichts mehr kommt, war es eine einzige
-                // Zeichenkette. `"a", "b"` ist eine Liste und bleibt roh.
+                // Only when nothing comes after it was it a single string.
+                // `"a", "b"` is a list and stays raw.
                 return text.index(after: index) == text.endIndex ? result : nil
             }
             result.append(character)

@@ -3,24 +3,24 @@ import ApolloShellCore
 import os
 import SwiftUI
 
-/// Wurzel des Leistenfensters: EIN Glas, darauf die Leiste und der Inhalt
-/// des Statuspopouts.
+/// The root of the bar window: ONE piece of glass, and on it the bar and the
+/// content of the status popout.
 ///
-/// Das Glas ist eine einzige Form (`SidebarGlassShape`): der Streifen der
-/// Leiste plus die Beule des offenen Popouts. Zwei getrennte Glaeser
-/// nebeneinander faerben sich verschieden ein und zeigen an der Naht eine
-/// Kante; eine Form hat ueberall dieselbe Farbe und keinen Uebergang.
+/// The glass is a single shape (`SidebarGlassShape`): the strip of the bar
+/// plus the bulge of the open popout. Two separate pieces of glass side by
+/// side take on different colors and show an edge at the seam; one shape has
+/// the same color everywhere and no transition.
 ///
-/// Beim Oeffnen waechst die Beule aus der Hoehe des angeklickten Symbols
-/// heraus. Der Inhalt steht dabei still und wird von ihr aufgedeckt
+/// When it opens, the bulge grows out of the height of the symbol that was
+/// clicked. The content stands still while it does and is uncovered by it
 /// (Caelestia: ClipWrapper + Wrapper + Content).
 struct SidebarRoot: View {
     let settings: ShellSettingsStore
     let context: BarModuleContext
     let popout: StatusPopoutModel
-    /// Gemessene Groesse jedes Inhalts: so steht die Zielgroesse schon fest,
-    /// bevor die Beule losgeht, und ein spaeter geladener Inhalt (Bluetooth
-    /// liest erst nach dem Oeffnen) gleitet auf seine neue Hoehe.
+    /// The measured size of every content: that way the target size stands
+    /// before the bulge sets off, and a content loaded later (Bluetooth only
+    /// reads after the opening) glides to its new height.
     @State private var sizes: [StatusPopoutKind: CGSize] = [:]
 
     var body: some View {
@@ -30,7 +30,7 @@ struct SidebarRoot: View {
             let top = StatusPopoutPlacement.top(
                 anchorY: popout.anchorY, height: size.height, containerHeight: geometry.size.height
             )
-            // Geschlossen: Breite 0 auf Hoehe des Symbols, also nur Leiste.
+            // Closed: width 0 at the height of the symbol, so only the bar.
             let bulge = CGRect(
                 x: Sidebar.width,
                 y: open ? top : popout.anchorY - StatusPopoutLayout.seedHeight / 2,
@@ -48,19 +48,19 @@ struct SidebarRoot: View {
             }
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
             .animation(StatusPopoutMotion.spatial, value: size)
-            // Sichtbarer Teil der Beule ab der rechten Leistenkante, fuer den
-            // Klicktest "ausserhalb" in `StatusPopout`.
+            // The visible part of the bulge from the right bar edge on, for
+            // the "outside" click test in `StatusPopout`.
             .onGeometryChange(for: CGRect.self) { _ in
                 CGRect(x: 0, y: bulge.minY, width: bulge.width, height: bulge.height)
             } action: { popout.panelFrame = $0 }
         }
-        // Das Popout-Modell kommt ueber die Umgebung zur Statuskapsel.
+        // The popout model reaches the status capsule through the environment.
         .environment(popout)
     }
 
-    /// Alle drei Inhalte sind immer aufgebaut (nur unsichtbar): so ist die
-    /// Groesse des naechsten schon gemessen, bevor man wechselt. Sichtbar ist
-    /// nur, was die Beule freigibt.
+    /// All three contents are always built (only invisible): that way the size
+    /// of the next one is measured before one switches. Visible is only what
+    /// the bulge lets through.
     private func popoutContent(size: CGSize, top: CGFloat, bulge: CGRect, open: Bool) -> some View {
         ZStack(alignment: .topLeading) {
             ForEach(StatusPopoutKind.allCases, id: \.self) { kind in
@@ -84,11 +84,11 @@ struct SidebarRoot: View {
     }
 }
 
-/// Hintergrund der Leiste in ihrer Form, in Bildproben durch eine feste
-/// Flaeche ersetzt (Glas zeichnet ausserhalb des Bildschirms nur weiss).
+/// The background of the bar in its shape, replaced by a fixed area in image
+/// samples (glass draws only white offscreen).
 ///
-/// Welcher Hintergrund, sagt Nexus > Leiste > Hintergrund; warum es die Wahl
-/// gibt und was die einzelnen Eintraege sollen, steht bei `BarBackground`.
+/// Which background is decided in Nexus > Bar > Background; why there is a
+/// choice and what the entries are for stands at `BarBackground`.
 private struct SidebarGlass<S: Shape>: ViewModifier {
     let shape: S
     let background: BarBackground
@@ -96,17 +96,17 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shellStyle) private var style
 
-    /// Fensterfarbe, halb deckend: zieht das Glas in Richtung Fensterfarbe,
-    /// laesst es aber noch Glas sein. Ganz aufhalten kann eine Toenung das
-    /// Umfaerben ohnehin nicht (siehe `BarBackground`) - dafuer ist
+    /// The window color, half opaque: it pulls the glass towards the window
+    /// color but lets it stay glass. A tint cannot stop the recoloring
+    /// entirely anyway (see `BarBackground`) - `fixedGlass` is there for that.
     /// `fixedGlass` da.
     private static var tint: Color { Color(nsColor: .windowBackgroundColor).opacity(0.7) }
 
-    /// Mit Theme faerbt das Theme die Leiste: die Farbe (oder der Verlauf)
-    /// aus `--apollo-bar-color` beziehungsweise `--apollo-bar-gradient`, mit
-    /// `--apollo-bar-opacity`. Die Wahl in Nexus > Leiste bleibt darunter
-    /// sichtbar, solange das Theme durchscheinen laesst und Glas erlaubt -
-    /// sonst waere eine halb deckende Leiste eine Leiste vor dem Schreibtisch.
+    /// With a theme, the theme colors the bar: the color (or the gradient) out
+    /// of `--apollo-bar-color` or `--apollo-bar-gradient`, with
+    /// `--apollo-bar-opacity`. The choice in Nexus > Bar stays visible below it
+    /// as long as the theme lets light through and allows glass - otherwise a
+    /// half-opaque bar would be a bar in front of the desktop.
     func body(content: Content) -> some View {
         if standIn {
             content.background(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95), in: shape)
@@ -128,13 +128,13 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
             case .tintedGlass:
                 content.glassEffect(.regular.tint(Self.tint), in: shape)
             case .fixedGlass:
-                // Reihenfolge: erst das Glas hinter den Inhalt, dann die
-                // deckende Flaeche hinter das Glas. Das Glas hat damit
-                // ueberall dieselbe Flaeche vor sich statt des Schreibtischs
-                // und der Fenster, seine Anpassung hat also nichts mehr zum
-                // Anpassen. `clear` statt `regular`, weil nur diese Fassung
-                // laut Apple gar nicht anpasst; die deckende Flaeche ist die
-                // Schicht, die `clear` dafuer braucht.
+                // The order: the glass behind the content first, then the
+                // opaque area behind the glass. The glass then has the same
+                // area in front of it everywhere instead of the desktop and
+                // the windows, so its adaptation has nothing left to adapt to.
+                // `clear` instead of `regular`, because only that version does
+                // not adapt at all according to Apple; the opaque area is the
+                // layer `clear` needs for that.
                 content
                     .glassEffect(.clear, in: shape)
                     .background(Color(nsColor: .windowBackgroundColor), in: shape)
@@ -143,18 +143,18 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
     }
 }
 
-/// Umriss der Leiste samt Beule: ein durchgehender Pfad, keine zwei
-/// uebereinandergelegten Formen (die fuellt SwiftUI je nach Regel mit einem
-/// Loch in der Ueberlappung).
+/// The outline of the bar including the bulge: one continuous path, not two
+/// shapes laid over each other (SwiftUI fills those with a hole in the
+/// overlap, depending on the rule).
 ///
-/// Am Uebergang zur Beule zwei einwaertsgekruemmte Ecken, damit sie aus der
-/// Leiste zu wachsen scheint statt angeklebt zu wirken.
+/// At the transition to the bulge, two inward-curved corners, so that it
+/// seems to grow out of the bar instead of looking glued on.
 struct SidebarGlassShape: Shape {
     var barWidth: CGFloat
     var bulge: CGRect
 
-    /// Lage und Groesse der Beule animieren: so gleitet die Form beim
-    /// Oeffnen, Wechseln und Schliessen.
+    /// Animate the place and the size of the bulge: that way the shape glides
+    /// on opening, switching and closing.
     var animatableData: AnimatablePair<AnimatablePair<CGFloat, CGFloat>, AnimatablePair<CGFloat, CGFloat>> {
         get {
             AnimatablePair(AnimatablePair(bulge.origin.x, bulge.origin.y),
@@ -182,8 +182,8 @@ struct SidebarGlassShape: Shape {
 
         path.move(to: CGPoint(x: x, y: rect.minY))
         path.addLine(to: CGPoint(x: edge, y: rect.minY))
-        // Rechte Leistenkante hinunter bis zur Beule, dann einwaerts gekruemmt
-        // hinein.
+        // Down the right bar edge to the bulge, then curved inwards into it.
+        //
         path.addLine(to: CGPoint(x: edge, y: top - j))
         path.addQuadCurve(to: CGPoint(x: edge + j, y: top),
                           control: CGPoint(x: edge, y: top))
@@ -193,7 +193,7 @@ struct SidebarGlassShape: Shape {
         path.addQuadCurve(to: CGPoint(x: right - r, y: bottom), control: CGPoint(x: right, y: bottom))
         path.addLine(to: CGPoint(x: edge + j, y: bottom))
         path.addQuadCurve(to: CGPoint(x: edge, y: bottom + j), control: CGPoint(x: edge, y: bottom))
-        // Weiter die Leistenkante hinunter und um die Leiste herum zurueck.
+        // On down the bar edge and around the bar back again.
         path.addLine(to: CGPoint(x: edge, y: rect.maxY))
         path.addLine(to: CGPoint(x: x, y: rect.maxY))
         path.closeSubpath()
