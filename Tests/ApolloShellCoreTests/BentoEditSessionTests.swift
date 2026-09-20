@@ -63,6 +63,21 @@ struct BentoEditSessionTests {
         #expect(s.selectedWidgetID == nil)
     }
 
+    @Test("The minus finds its widget even after a page switch")
+    func removeAfterPageSwitch() throws {
+        var (s, id) = try session()
+        // The minus badge lets the widget fade out for 0.18 s and only then
+        // removes it. Whoever switches pages in that moment used to lose
+        // the removal: it went to the page shown by then.
+        var pages = s.pages
+        let other = pages.addPage(name: "B")
+        s = BentoEditSession(pages: pages, pageID: s.pageID)
+        s.pageID = other
+        s.remove(id)
+        #expect(s.pages.pages[0].widgets.isEmpty)
+        #expect(s.hasChanges)
+    }
+
     @Test("Recognising changes; switching the page deselects")
     func changes() throws {
         var (s, id) = try session()

@@ -71,10 +71,14 @@ public struct BentoEditSession: Equatable, Sendable {
         return widget.id
     }
 
+    /// Removes the widget wherever it stands, not only on the shown page:
+    /// the minus badge lets its widget fade out for 0.18 s before it calls
+    /// here, and a page switch inside that moment used to send the removal
+    /// to the new page, where the widget is not - it was silently lost.
     public mutating func remove(_ id: WidgetInstance.ID) {
-        var page = page
-        page.removeWidget(id: id)
-        pages.update(page)
+        guard var target = pages.pages.first(where: { page in page.widgets.contains { $0.id == id } }) else { return }
+        target.removeWidget(id: id)
+        pages.update(target)
         if selectedWidgetID == id { selectedWidgetID = nil }
     }
 
