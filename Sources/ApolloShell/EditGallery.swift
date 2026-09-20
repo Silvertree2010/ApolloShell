@@ -167,11 +167,20 @@ extension EnvironmentValues {
 // height free there (previously 560 wide with four columns, a good
 // 370 tall - it covered the Dashboard). 760 leaves room on the right
 // for the control center.
-private let galleryWidth: CGFloat = 760
-private let galleryContentWidth: CGFloat = galleryWidth - 2 * 16
-/// Number of columns of the tile grid at `galleryContentWidth`: as wide
-/// as one tile (108) plus spacing fits.
-private let galleryColumns = 8
+let galleryWidth: CGFloat = 760
+let galleryMargin: CGFloat = 16
+let gallerySpacing: CGFloat = 10
+/// What a tile is wide at the full width with all eight columns
+/// ((760 - 32 - 7 * 10) / 8). The column count of a narrower gallery is
+/// worked out with it, so the tiles never come out smaller than they are
+/// today, only fewer per row.
+let galleryTileWidth: CGFloat = 82
+/// Most columns the grid ever has - the number that fits at the full
+/// width.
+let galleryMaximumColumns = 8
+/// How narrow it may get before standing over the control centre is the
+/// better of two bad options: four tiles wide.
+let galleryMinimumWidth: CGFloat = 4 * galleryTileWidth + 3 * gallerySpacing + 2 * galleryMargin
 
 /// "Dashboard"/"Control Centre" tabs: custom capsules instead of
 /// `Picker(.segmented)` - AppKit-backed, `ImageRenderer` draws it
@@ -324,11 +333,14 @@ struct EditGalleryView: View {
             }
         }
         .padding(16)
-        .frame(width: galleryWidth)
+        .frame(width: editor.galleryPanelWidth)
     }
 
     private var galleryGrid: some View {
-        GalleryGrid(columns: galleryColumns, spacing: 10, width: galleryContentWidth) {
+        GalleryGrid(columns: EditModeGeometry.galleryColumns(width: editor.galleryPanelWidth,
+                                                             margin: galleryMargin, tile: galleryTileWidth,
+                                                             spacing: gallerySpacing, maximum: galleryMaximumColumns),
+                    spacing: gallerySpacing, width: editor.galleryPanelWidth - 2 * galleryMargin) {
             switch editor.galleryTab {
             case .dashboard: dashboardTiles
             case .controlCentre: controlCentreTiles

@@ -85,6 +85,36 @@ struct EditModeGeometryTests {
         #expect(wideCenter.x == wide.midX)
     }
 
+    @Test("Gallery: narrower beside the control centre instead of over it")
+    func galleryShrinks() {
+        let panel = utilities(on: narrow, height: 451)
+        let width = EditModeGeometry.galleryWidth(visible: narrow, utilities: panel, preferred: 760, minimum: 390)
+        // 1512 - 430 of panel - 32 of air = 1050, so it keeps its own width.
+        #expect(width == 760)
+        // A 1024 pt screen leaves 594 - 32 = 562 free: narrower it is.
+        let small = CGRect(x: 0, y: 0, width: 1024, height: 768)
+        let onSmall = EditModeGeometry.galleryWidth(visible: small, utilities: utilities(on: small, height: 451),
+                                                    preferred: 760, minimum: 390)
+        #expect(onSmall == 562)
+        let rect = CGRect(x: 0, y: 0, width: onSmall, height: 300)
+        #expect(!rect.intersects(utilities(on: small, height: 451)))
+        // Even narrower it stops at the minimum rather than becoming a
+        // column of one.
+        let tiny = CGRect(x: 0, y: 0, width: 800, height: 600)
+        #expect(EditModeGeometry.galleryWidth(visible: tiny, utilities: utilities(on: tiny, height: 451),
+                                              preferred: 760, minimum: 390) == 390)
+        // Without a control centre it always keeps its own width.
+        #expect(EditModeGeometry.galleryWidth(visible: small, utilities: nil, preferred: 760, minimum: 390) == 760)
+    }
+
+    @Test("Gallery: the columns follow the width", arguments: [
+        (760.0, 8), (562.0, 5), (390.0, 4), (200.0, 1),
+    ])
+    func galleryColumns(width: Double, expected: Int) {
+        #expect(EditModeGeometry.galleryColumns(width: width, margin: 16, tile: 82,
+                                                spacing: 10, maximum: 8) == expected)
+    }
+
     @Test("Gallery: a closed control centre takes no room")
     func galleryIgnoresClosedPanel() {
         let closed = CGRect(x: narrow.maxX - 430, y: narrow.minY, width: 430, height: 0)

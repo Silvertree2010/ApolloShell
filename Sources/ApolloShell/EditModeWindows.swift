@@ -471,7 +471,10 @@ final class EditModeWindows {
             self?.repositionToolbar()
             self?.repositionGallery()
         }
-        if editor.galleryVisible { gallery.show(on: screen, centeredAt: galleryCenter(on: screen)) }
+        if editor.galleryVisible {
+            applyGalleryWidth(on: screen)
+            gallery.show(on: screen, centeredAt: galleryCenter(on: screen))
+        }
         observeGallery()
         observeToolbarSize()
         observeGalleryNotice()
@@ -509,6 +512,7 @@ final class EditModeWindows {
             for await visible in Observations({ self.editor.galleryVisible }) {
                 guard let screen = self.editScreen, let gallery = self.gallery else { continue }
                 if visible {
+                    self.applyGalleryWidth(on: screen)
                     gallery.show(on: screen, centeredAt: self.galleryCenter(on: screen))
                 } else {
                     gallery.hide()
@@ -577,7 +581,17 @@ final class EditModeWindows {
 
     private func repositionGallery() {
         guard let screen = editScreen, let gallery else { return }
+        applyGalleryWidth(on: screen)
         gallery.reposition(on: screen, centeredAt: galleryCenter(on: screen))
+    }
+
+    /// The gallery's width before it is measured: as wide as it likes
+    /// where there is room, narrower beside a control centre it would
+    /// otherwise stand over.
+    private func applyGalleryWidth(on screen: NSScreen) {
+        let width = EditModeGeometry.galleryWidth(visible: screen.visibleFrame, utilities: utilitiesFrame(),
+                                                  preferred: galleryWidth, minimum: galleryMinimumWidth)
+        if editor.galleryPanelWidth != width { editor.galleryPanelWidth = width }
     }
 
     /// Bottom center; if it would overlap the Control Center there

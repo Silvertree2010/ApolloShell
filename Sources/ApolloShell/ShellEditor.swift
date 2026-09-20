@@ -38,6 +38,12 @@ final class ShellEditor {
     /// page" - kept on `ShellEditor` instead of as view-local state, so
     /// `EditModeWindows` re-measures the panel as soon as the notice
     /// appears or disappears (otherwise the gallery grows past its own edge).
+    /// How wide the gallery panel stands right now. Set by
+    /// `EditModeWindows` from the screen and the control centre (which
+    /// stands at the right edge): on a narrow screen the gallery gets
+    /// narrower instead of standing over the panel it is filling.
+    var galleryPanelWidth: CGFloat = galleryWidth
+
     var galleryNotice: String?
     /// Counted up with every notice: the timer that clears one after 1.6 s
     /// only clears its own. Two notices in quick succession (two clicks on

@@ -27,6 +27,30 @@ public enum EditModeGeometry {
         return center
     }
 
+    /// How wide the gallery may be on this screen: its own width where
+    /// there is room, otherwise narrow enough to stand beside the control
+    /// centre instead of over it - but never below `minimum`, where the
+    /// grid would have too few columns left to be a grid.
+    ///
+    /// The panel stands at the right edge, so what is free is everything
+    /// left of it, less the same 16 pt of air the dashboard keeps.
+    public static func galleryWidth(visible: CGRect, utilities: CGRect?, preferred: CGFloat,
+                                    minimum: CGFloat) -> CGFloat {
+        guard let utilities, utilities.height > 0 else { return min(preferred, visible.width) }
+        let free = utilities.minX - visible.minX - 2 * 16
+        return max(min(preferred, free), min(minimum, visible.width))
+    }
+
+    /// How many tiles of `tile` points fit side by side into a gallery of
+    /// this width, at most `maximum` and at least one.
+    public static func galleryColumns(width: CGFloat, margin: CGFloat, tile: CGFloat,
+                                      spacing: CGFloat, maximum: Int) -> Int {
+        let content = width - 2 * margin
+        guard content > 0 else { return 1 }
+        let fits = Int(((content + spacing) / (tile + spacing)).rounded(.down))
+        return min(max(fits, 1), maximum)
+    }
+
     /// Centred between the lower edge of the dashboard and the toolbar; in
     /// the middle of the screen while no dashboard is open. Too little room
     /// there (a large scale): directly above the toolbar. Sideways it keeps
