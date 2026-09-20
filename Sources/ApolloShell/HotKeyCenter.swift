@@ -5,36 +5,36 @@ import Observation
 import os
 import SwiftUI
 
-/// Die globalen Tastenkuerzel der Shell: registriert, was in settings.json
-/// steht (`hotKeys`), und gleicht bei jeder Aenderung ab - ein neues Kuerzel
-/// in Nexus gilt sofort, ohne Neustart.
+/// The global keyboard shortcuts of the shell: registers what stands in
+/// settings.json (`hotKeys`) and matches up on every change - a new shortcut
+/// in Nexus holds right away, without a restart.
 ///
-/// Nimmt auch neue Kuerzel auf. Solange aufgenommen wird, sind ALLE
-/// Kuerzel abgemeldet: Carbon faengt ein registriertes Kuerzel ab, bevor die
-/// App den Tastendruck sieht - man koennte das bisherige sonst nie noch
-/// einmal eingeben oder zwei Aktionen tauschen.
+/// Records new shortcuts too. While recording runs, ALL shortcuts are
+/// unregistered: Carbon catches a registered shortcut before the app sees the
+/// key press - one could otherwise never enter the current one again or swap
+/// two actions.
 @MainActor
 @Observable
 final class HotKeyCenter {
     enum Status: Equatable {
-        /// Kein Kuerzel eingestellt.
+        /// No shortcut set.
         case none
         case active
         case failed(String)
-        /// Gerade abgemeldet, weil aufgenommen wird.
+        /// Unregistered right now, because recording is running.
         case paused
     }
 
-    /// Welche Aktion gerade ein neues Kuerzel aufnimmt.
+    /// Which action is recording a new shortcut right now.
     private(set) var recording: HotKeyAction?
-    /// Waehrend der Aufnahme schon gedrueckte Sondertasten ("⌥⌘ …").
+    /// The modifier keys already held during the recording ("⌥⌘ …").
     private(set) var liveModifiers: HotKeyModifiers = []
-    /// Letzte Rueckmeldung beim Aufnehmen (abgelehnt, schon vergeben).
+    /// The last feedback while recording (refused, taken already).
     private(set) var feedback: [HotKeyAction: String] = [:]
     private(set) var failures: [HotKeyAction: HotKeyRegistrationError] = [:]
 
     @ObservationIgnored private let store: ShellSettingsStore
-    /// `false` fuer Bildproben: registriert und belauscht nie etwas.
+    /// `false` for image samples: never registers and never listens.
     @ObservationIgnored private let live: Bool
     @ObservationIgnored private var handlers: [HotKeyAction: @MainActor () -> Void] = [:]
     @ObservationIgnored private var registered: [HotKeyAction: (key: HotKey, hotKey: GlobalHotKey)] = [:]
@@ -53,7 +53,7 @@ final class HotKeyCenter {
         live = false
     }
 
-    /// Fuer Bildproben: fester Stand, keine Registrierung.
+    /// For image samples: a fixed state, no registration.
     static func preview(store: ShellSettingsStore, failures: [HotKeyAction: HotKeyRegistrationError] = [:],
                         recording: HotKeyAction? = nil, liveModifiers: HotKeyModifiers = [],
                         feedback: [HotKeyAction: String] = [:]) -> HotKeyCenter {
@@ -65,14 +65,14 @@ final class HotKeyCenter {
         return center
     }
 
-    /// Was ein Kuerzel ausloest. Aktionen ohne Handler (Nur-Launcher-Modus:
-    /// alles ausser dem Launcher) werden nicht registriert.
+    /// What a shortcut sets off. Actions without a handler (launcher-only
+    /// mode: everything but the launcher) are not registered.
     func setHandler(_ action: HotKeyAction, _ handler: @escaping @MainActor () -> Void) {
         handlers[action] = handler
     }
 
-    /// Einmal nach dem Setzen der Handler. Liefert zuerst den aktuellen
-    /// Stand, danach jede Aenderung aus Nexus; lebt so lange wie die App.
+    /// Once after the handlers are set. Delivers the current state first, then
+    /// every change out of Nexus; lives as long as the app.
     func start() {
         guard live, observation == nil else { return }
         apply()
@@ -90,12 +90,12 @@ final class HotKeyCenter {
         return .active
     }
 
-    /// Registrierte Kuerzel mit den Einstellungen abgleichen.
+    /// Match the registered shortcuts up with the settings.
     private func apply() {
         guard live, recording == nil else { return }
         let wanted = store.settings.hotKeys
-        // Erst alle abmelden, die sich aendern: sonst scheiterte ein Tausch
-        // zweier Kuerzel daran, dass das andere noch registriert ist.
+        // Unregister everything that changes first: otherwise swapping two
+        // shortcuts would fail because the other one is still registered.
         for (action, entry) in registered where wanted[action] != entry.key || handlers[action] == nil {
             entry.hotKey.unregister()
             registered[action] = nil
@@ -119,7 +119,7 @@ final class HotKeyCenter {
         registered = [:]
     }
 
-    // MARK: - Aufnehmen
+    // MARK: - Recording
 
     func startRecording(_ action: HotKeyAction) {
         if recording != nil { stopRecording() }
@@ -137,8 +137,8 @@ final class HotKeyCenter {
             }
             return consumed ? nil : event
         }
-        // Wechselt man die App, kommen keine Tasten mehr an - dann nicht
-        // mit abgemeldeten Kuerzeln haengen bleiben.
+        // When one switches apps, no more keys arrive - then do not get stuck
+        // with unregistered shortcuts.
         resignObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didResignActiveNotification, object: nil, queue: .main
         ) { [weak self] _ in
@@ -146,7 +146,7 @@ final class HotKeyCenter {
         }
     }
 
-    /// Abbrechen, ohne etwas zu aendern (⎋, Fenster zu, andere App).
+    /// Cancel without changing anything (⎋, the window closes, another app).
     func cancelRecording() {
         guard recording != nil else { return }
         stopRecording()
@@ -162,7 +162,7 @@ final class HotKeyCenter {
         apply()
     }
 
-    /// `true`: Tastendruck verbraucht (geht an kein Feld und kein Menue).
+    /// `true`: the key press is used up (it goes to no field and no menu).
     private func handle(type: NSEvent.EventType, keyCode: UInt16, flags: NSEvent.ModifierFlags) -> Bool {
         guard let action = recording else { return false }
         let modifiers = Self.modifiers(from: flags)
@@ -177,7 +177,7 @@ final class HotKeyCenter {
             store.settings.hotKeys[action] = nil
             stopRecording()
         case .rejected(let reason):
-            // Weiter aufnehmen: gleich die naechste Kombination probieren.
+            // Go on recording: try the next combination right away.
             feedback[action] = HotKeyText.rejection(reason)
         case .record(let key):
             if let owner = store.settings.hotKeys.action(using: key, except: action) {
@@ -190,8 +190,8 @@ final class HotKeyCenter {
         return true
     }
 
-    /// Nur die vier, die ein Kuerzel ausmachen; Feststell-, fn- und
-    /// Ziffernblock-Merker (kommen bei F- und Pfeiltasten mit) fallen weg.
+    /// Only the four that make up a shortcut; the caps lock, fn and numeric
+    /// keypad flags (which come along with F and arrow keys) fall away.
     static func modifiers(from flags: NSEvent.ModifierFlags) -> HotKeyModifiers {
         var result: HotKeyModifiers = []
         if flags.contains(.command) { result.insert(.command) }
@@ -202,10 +202,10 @@ final class HotKeyCenter {
     }
 }
 
-/// Beschriftung einer Taste auf der aktuellen Tastaturbelegung. Carbon
-/// kennt nur die Lage der Taste (kVK_ANSI_Z ist auf einer deutschen Tastatur
-/// das Y) - fuer Buchstaben und Satzzeichen fragt die Anzeige deshalb macOS
-/// (UCKeyTranslate, ohne Sondertasten). Alles andere steht in `HotKeyKey`.
+/// The label of a key on the current keyboard layout. Carbon only knows the
+/// place of the key (kVK_ANSI_Z is the Y on a German keyboard) - so for
+/// letters and punctuation the display asks macOS (UCKeyTranslate, without
+/// modifiers). Everything else stands in `HotKeyKey`.
 enum HotKeyKeyboard {
     static func display(_ key: HotKey) -> String {
         key.display(keyName: keyName(for: key.keyCode))
@@ -222,7 +222,7 @@ enum HotKeyKeyboard {
             var deadKeys: UInt32 = 0
             var chars = [UniChar](repeating: 0, count: 4)
             var length = 0
-            // Tote Tasten (´ ^ `) als ihr eigenes Zeichen, nicht als "nichts".
+            // Dead keys (´ ^ `) as their own character, not as "nothing".
             let status = UCKeyTranslate(
                 layout, UInt16(keyCode), UInt16(kUCKeyActionDisplay), 0, UInt32(LMGetKbdType()),
                 OptionBits(1 << kUCKeyTranslateNoDeadKeysBit), &deadKeys, chars.count, &length, &chars
@@ -231,16 +231,16 @@ enum HotKeyKeyboard {
         }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines.union(.controlCharacters))
         guard !trimmed.isEmpty else { return nil }
-        // "ß" wuerde gross zu "SS" - dann lieber klein lassen.
+        // "ß" would become "SS" in capitals - better leave it small.
         let upper = trimmed.uppercased()
         return upper.count == trimmed.count ? upper : trimmed
     }
 }
 
-// MARK: - Oberflaeche
+// MARK: - User interface
 
-/// Feld, das ein Kuerzel zeigt und per Klick ein neues aufnimmt - wie die
-/// Kuerzel-Felder in den Systemeinstellungen (Tastatur > Tastaturkurzbefehle).
+/// A field that shows a shortcut and records a new one on a click - like the
+/// shortcut fields in System Settings (Keyboard > Keyboard Shortcuts).
 struct HotKeyRecorder: View {
     let center: HotKeyCenter
     let store: ShellSettingsStore
@@ -277,7 +277,7 @@ struct HotKeyRecorder: View {
             .accessibilityLabel("Kürzel für \(action.title)")
             .accessibilityValue(key.map(HotKeyKeyboard.display) ?? HotKeyText.none)
 
-            // Platz halten, damit das Feld beim Aufnehmen nicht springt.
+            // Keep the room, so the field does not jump while recording.
             Button {
                 store.settings.hotKeys[action] = nil
             } label: {
@@ -299,8 +299,8 @@ struct HotKeyRecorder: View {
     }
 }
 
-/// Eine Zeile: Kachel, Aktion, Aufnahmefeld - darunter, falls noetig, warum
-/// es nicht geht oder was daran heikel ist.
+/// One row: tile, action, recording field - below it, if need be, why it does
+/// not work or what is tricky about it.
 struct HotKeyRow: View {
     let center: HotKeyCenter
     let store: ShellSettingsStore

@@ -1,9 +1,9 @@
 import Foundation
 
-/// Vorlage einer mitgelieferten Seite - die vier Reiter von vor 0.2. Ueber
-/// die Vorlage finden "Standardseiten wiederherstellen" und die Knoepfe,
-/// die eine bestimmte Seite oeffnen (Medien in der Leiste), ihre Seite.
-/// Rohwert steht in settings.json - nie umbenennen.
+/// The template of a page that ships with the app - the four tabs from before
+/// 0.2. Through the template, "Restore Default Pages" and the buttons that
+/// open one particular page (media in the bar) find their page. The raw value
+/// stands in settings.json - never rename it.
 public enum PageTemplate: String, Codable, CaseIterable, Sendable {
     case overview, media, performance, weather
 
@@ -26,14 +26,14 @@ public enum PageTemplate: String, Codable, CaseIterable, Sendable {
     }
 }
 
-/// Eine Seite des Dashboards: Name, Symbol, Widgets an freien Plaetzen.
-/// Immer gueltig: jedes Widget liegt auf der Seite, hat eine erlaubte
-/// Groesse und haelt `BentoGeometry.spacing` Abstand zu den anderen.
+/// One page of the dashboard: name, symbol, widgets at free places. Always
+/// valid: every widget lies on the page, has an allowed size and keeps
+/// `BentoGeometry.spacing` away from the others.
 public struct DashboardPage: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
     public var name: String
     public var symbol: String
-    /// Mitgelieferte Seite (`nil` fuer eigene und Kopien).
+    /// A page that ships with the app (`nil` for one's own and for copies).
     public var template: PageTemplate?
     public private(set) var widgets: [WidgetInstance]
 
@@ -48,8 +48,8 @@ public struct DashboardPage: Codable, Equatable, Identifiable, Sendable {
         self.widgets = Self.normalized(widgets)
     }
 
-    /// Nur gueltige Widgets, in ihrer Reihenfolge; bei zu nahen gewinnt das
-    /// fruehere, bei doppelter Kennung ebenso.
+    /// Only valid widgets, in their order; when two are too close the earlier
+    /// one wins, and with a duplicate id the same.
     static func normalized(_ widgets: [WidgetInstance]) -> [WidgetInstance] {
         var kept: [WidgetInstance] = []
         for widget in widgets where !kept.contains(where: { $0.id == widget.id })
@@ -67,7 +67,7 @@ public struct DashboardPage: Codable, Equatable, Identifiable, Sendable {
 
     public func contains(_ kind: WidgetKind) -> Bool { widgets.contains { $0.kind == kind } }
 
-    /// Fuegt hinzu, wenn der Rahmen gueltig ist. `false`: nichts geaendert.
+    /// Adds it when the frame is valid. `false`: nothing changed.
     @discardableResult
     public mutating func add(_ widget: WidgetInstance) -> Bool {
         guard !widgets.contains(where: { $0.id == widget.id }),
@@ -76,7 +76,7 @@ public struct DashboardPage: Codable, Equatable, Identifiable, Sendable {
         return true
     }
 
-    /// Neuer Rahmen (Ziehen, Groesse). Ungueltig: `false`, der alte bleibt.
+    /// A new frame (dragging, size). Invalid: `false`, the old one stays.
     @discardableResult
     public mutating func setFrame(_ frame: WidgetFrame, for id: WidgetInstance.ID) -> Bool {
         guard let index = widgets.firstIndex(where: { $0.id == id }),
@@ -95,19 +95,19 @@ public struct DashboardPage: Codable, Equatable, Identifiable, Sendable {
         widgets.removeAll { $0.id == id }
     }
 
-    /// Kopie mit neuen Kennungen fuer Seite und Widgets, ohne Vorlage - sonst
-    /// gaebe es zwei Seiten fuer dieselbe Vorlage.
+    /// A copy with new ids for the page and the widgets, without a template -
+    /// otherwise there would be two pages for the same template.
     public func duplicated(name: String) -> DashboardPage {
         DashboardPage(name: name, symbol: symbol,
                       widgets: widgets.map { WidgetInstance(kind: $0.kind, frame: $0.frame, options: $0.options) })
     }
 
-    // MARK: Datei
+    // MARK: File
 
     private enum CodingKeys: String, CodingKey { case id, name, symbol, template, widgets }
 
-    /// Nachsichtig: fehlende Kennung wird neu, unbekannte Vorlage `nil`,
-    /// unlesbare oder ungueltige Widgets fallen weg.
+    /// Lenient: a missing id becomes a new one, an unknown template `nil`, and
+    /// unreadable or invalid widgets fall away.
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let list: LenientList<WidgetInstance>? = c.lenient(.widgets)
@@ -119,15 +119,15 @@ public struct DashboardPage: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
-/// Alle Seiten in ihrer Reihenfolge. Nie leer: die letzte Seite laesst sich
-/// nicht loeschen, und eine Datei ohne lesbare Seite gilt als nicht lesbar
-/// (die App baut die Seiten dann neu, siehe `DashboardPages.migrated`).
+/// All pages in their order. Never empty: the last page cannot be deleted, and
+/// a file without a readable page counts as unreadable (the app then builds
+/// the pages anew, see `DashboardPages.migrated`).
 ///
-/// In der Datei: `[{"id": ..., "name": ..., "symbol": ..., "template": ..., "widgets": [...]}, ...]`.
+/// In the file: `[{"id": ..., "name": ..., "symbol": ..., "template": ..., "widgets": [...]}, ...]`.
 public struct DashboardPages: Codable, Equatable, Sendable {
     public private(set) var pages: [DashboardPage]
 
-    /// `nil` fuer eine leere Liste. Doppelte Kennungen: die spaetere faellt weg.
+    /// `nil` for an empty list. Duplicate ids: the later one falls away.
     public init?(pages: [DashboardPage]) {
         var seen = Set<UUID>()
         let unique = pages.filter { seen.insert($0.id).inserted }
@@ -148,33 +148,33 @@ public struct DashboardPages: Codable, Equatable, Sendable {
         try c.encode(pages)
     }
 
-    // MARK: Lesen
+    // MARK: Reading
 
     public func page(id: DashboardPage.ID) -> DashboardPage? { pages.first { $0.id == id } }
 
-    /// Fuer Knoepfe, die frueher einen Reiter oeffneten (Medien, Leistung,
-    /// Wetter in der Leiste): die Seite mit der Vorlage, sonst die erste mit
-    /// einem Widget aus `kinds`, sonst die erste ueberhaupt.
+    /// For buttons that used to open a tab (media, performance, weather in the
+    /// bar): the page with the template, otherwise the first one with a widget
+    /// out of `kinds`, otherwise the first one at all.
     public func page(for template: PageTemplate, showing kinds: [WidgetKind]) -> DashboardPage {
         pages.first { $0.template == template }
             ?? pages.first { page in kinds.contains(where: page.contains) }
             ?? pages[0]
     }
 
-    /// Wetter abrufen kostet eine Anfrage, die Wiedergabe einen perl-Prozess:
-    /// nur, wenn eine Seite ein solches Widget hat.
+    /// Fetching the weather costs a request, the playback a perl process: only
+    /// when a page has such a widget.
     public var usesWeather: Bool { pages.contains { $0.widgets.contains { $0.kind.usesPlaces } } }
     public var usesMedia: Bool { pages.contains { $0.widgets.contains { $0.kind.usesMedia } } }
 
-    // MARK: Aendern
+    // MARK: Changing
 
-    /// Ersetzt die Seite mit derselben Kennung (Bearbeiten).
+    /// Replaces the page with the same id (editing).
     public mutating func update(_ page: DashboardPage) {
         guard let index = pages.firstIndex(where: { $0.id == page.id }) else { return }
         pages[index] = page
     }
 
-    /// Leere Seite ans Ende.
+    /// An empty page at the end.
     @discardableResult
     public mutating func addPage(name: String, symbol: String = DashboardPage.defaultSymbol) -> DashboardPage.ID {
         let page = DashboardPage(name: name, symbol: symbol)
@@ -182,7 +182,7 @@ public struct DashboardPages: Codable, Equatable, Sendable {
         return page.id
     }
 
-    /// Kopie direkt hinter das Original. `nil`: kein solches Original.
+    /// A copy right behind the original. `nil`: no such original.
     @discardableResult
     public mutating func duplicatePage(id: DashboardPage.ID, name: String) -> DashboardPage.ID? {
         guard let index = pages.firstIndex(where: { $0.id == id }) else { return nil }
@@ -191,7 +191,7 @@ public struct DashboardPages: Codable, Equatable, Sendable {
         return copy.id
     }
 
-    /// `false` fuer die letzte Seite oder eine unbekannte Kennung.
+    /// `false` for the last page or an unknown id.
     @discardableResult
     public mutating func removePage(id: DashboardPage.ID) -> Bool {
         guard pages.count > 1, let index = pages.firstIndex(where: { $0.id == id }) else { return false }
@@ -209,13 +209,13 @@ public struct DashboardPages: Codable, Equatable, Sendable {
         pages[index].symbol = symbol
     }
 
-    /// Wie SwiftUIs `onMove` (Ziel vor dem Verschieben gezaehlt).
+    /// Like SwiftUI's `onMove` (the target counted before the move).
     public mutating func movePages(fromOffsets source: IndexSet, toOffset destination: Int) {
         pages.move(fromOffsets: source, toOffset: destination)
     }
 
-    /// Haengt die mitgelieferten Seiten an, deren Vorlage fehlt. Vorhandene
-    /// Seiten bleiben, wie sie sind. `defaults`: `DashboardPages.defaultPages(...)`.
+    /// Appends the pages that ship with the app whose template is missing.
+    /// Existing pages stay as they are. `defaults`: `DashboardPages.defaultPages(...)`.
     public mutating func restoreDefaults(from defaults: [DashboardPage]) {
         let present = Set(pages.compactMap(\.template))
         pages += defaults.filter { page in page.template.map { !present.contains($0) } ?? false }

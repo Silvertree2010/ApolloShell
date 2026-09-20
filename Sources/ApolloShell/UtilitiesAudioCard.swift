@@ -2,18 +2,18 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Ton-Karte im Utilities-Panel, gebaut wie Apples Kontrollzentrum "Ton":
-/// Ueberschrift mit Pegel, darunter Stumm-Knopf und Regler, darunter
-/// Ausgabe und Eingang als zwei kompakte Menue-Knoepfe nebeneinander.
+/// The sound card in the utilities panel, built like Apple's Control Centre
+/// "Sound": a heading with the level, below it the mute button and the slider,
+/// below that output and input as two compact menu buttons side by side.
 ///
-/// Warum Menues statt Listen wie bei Apple: die Hoehe der Karte steht fest
-/// (`UtilitiesMetrics.audioHeight`), das Panel rechnet damit. Eine Liste
-/// waechst mit jedem AirPods-Paar; ein Menue ist immer eine Zeile hoch. Warum NSMenu statt SwiftUI-`Menu`: auf macOS
-/// zeichnet `Menu` seine Beschriftung selbst (nur Text und Symbol) - die
-/// zweizeilige Kachel ginge damit nicht.
+/// Why menus instead of lists as with Apple: the height of the card is fixed
+/// (`UtilitiesMetrics.audioHeight`) and the panel works with it. A list grows
+/// with every pair of AirPods; a menu is always one line high. Why NSMenu instead of a SwiftUI `Menu`: on macOS
+/// `Menu` draws its label itself (text and symbol only) - the two-line tile
+/// would not work that way.
 ///
-/// Lautstaerke wie VolumeMonitor: virtuelle Hauptlautstaerke des
-/// Standardausgangs, damit auch Geraete ohne Hauptregler gehen.
+/// The volume as in VolumeMonitor: the virtual main volume of the default
+/// output, so that devices without a main control work too.
 struct UtilitiesAudioCard: View {
     let model: UtilitiesModel
     @Environment(\.shellStyle) private var style
@@ -53,9 +53,9 @@ struct UtilitiesAudioCard: View {
     }
 }
 
-/// Runder Knopf links vom Regler: Symbol zeigt Stufe bzw. Stumm (dieselben
-/// Symbole wie das OSD). Bleibt neutral grau - der Regler daneben leuchtet
-/// schon in Akzentfarbe, zwei orange Flaechen nebeneinander waeren zu laut.
+/// The round button left of the slider: the symbol shows the level or mute
+/// (the same symbols as the OSD). It stays a neutral grey - the slider next
+/// to it already glows in the accent color, and two orange areas would clash.
 private struct UtilitiesMuteButton: View {
     static let size: CGFloat = 32
 
@@ -70,7 +70,7 @@ private struct UtilitiesMuteButton: View {
                 .frame(width: 16, height: 16)
                 .font(style.font(size: 13, weight: .semibold))
                 .contentTransition(.symbolEffect(.replace))
-                // Fest, sonst verschoebe ein Symbol mit mehr Wellen den Regler.
+                // Fixed, otherwise a symbol with more waves would shift the slider.
                 .frame(width: Self.size, height: Self.size)
         }
         .buttonStyle(UtilitiesTileStyle(shape: .circle, hovered: hovering))
@@ -81,12 +81,12 @@ private struct UtilitiesMuteButton: View {
     }
 }
 
-/// Waagrechter Regler wie das OSD, nur quer: Bahn 10 % Vordergrund, Fuellung
-/// in Akzentfarbe, weisser Knopf am Ende der Fuellung. Der Knopf laeuft
-/// innerhalb der Bahn (nie halb draussen), deshalb die Rechnung mit `w - h`.
+/// A horizontal slider like the OSD, only sideways: the track 10 % foreground,
+/// the fill in the accent color, a white knob at the end of the fill. The knob
+/// runs inside the track (never half outside), hence the `w - h` arithmetic.
 private struct UtilitiesVolumeSlider: View {
     static let height: CGFloat = 24
-    /// Schritt fuer VoiceOver und Pfeiltasten: 1/16 wie die Lautstaerketasten.
+    /// The step for VoiceOver and the arrow keys: 1/16, like the volume keys.
     private static let step: Float = 1.0 / 16
 
     let model: UtilitiesModel
@@ -100,11 +100,11 @@ private struct UtilitiesVolumeSlider: View {
             let fill = h + value * (w - h)
 
             ZStack(alignment: .leading) {
-                // Bahn: mit Theme die Flaeche einer Karte, sonst wie bisher.
+                // The track: with a theme the area of a card, otherwise as before.
                 Capsule().fill(style.paintsCard ? AnyShapeStyle(style.card) : AnyShapeStyle(Color.primary.opacity(0.10)))
-                // Bei 0 (oder stumm) keine Fuellung: sonst bliebe ein oranger
-                // Ring um den Knopf stehen (Bildprobe 14.09.), und Apple zeigt
-                // bei 0 auch nur die leere Bahn.
+                // At 0 (or muted) no fill: otherwise an orange ring would be
+                // left around the knob (image sample 14.09.), and Apple shows
+                // only the empty track at 0 too.
                 Capsule()
                     .fill(style.accentFill)
                     .frame(width: fill)
@@ -116,8 +116,8 @@ private struct UtilitiesVolumeSlider: View {
                     .offset(x: fill - h + 2)
             }
             .contentShape(.capsule)
-            // Ziehen und Tippen setzen die Lautstaerke; die Mitte des Knopfs
-            // folgt dem Zeiger.
+            // Dragging and tapping set the volume; the middle of the knob
+            // follows the pointer.
             .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
                 let position = (drag.location.x - h / 2) / max(w - h, 1)
                 model.setVolume(Float(min(max(position, 0), 1)))
@@ -139,10 +139,10 @@ private struct UtilitiesVolumeSlider: View {
     }
 }
 
-/// Kachel fuer ein Geraetemenue: Symbol, darueber klein "Ausgabe", darunter
-/// der Geraetename (eine Zeile, abgeschnitten), rechts der Pfeil wie bei
-/// Apples Aufklappmenues. Klick oeffnet das Menue mit der aktuellen Wahl
-/// unter dem Zeiger.
+/// A tile for a device menu: the symbol, above it "Output" in small, below it
+/// the device name (one line, cut off), on the right the arrow as with Apple's
+/// pop-up menus. A click opens the menu with the current choice under the
+/// pointer.
 private struct UtilitiesDeviceButton: View {
     static let height: CGFloat = 44
 
@@ -189,8 +189,8 @@ private struct UtilitiesDeviceButton: View {
     }
 }
 
-/// Neutrale Flaeche wie ein ausgeschalteter Schnellschalter (10 %
-/// Vordergrund), Hover 8 % obendrauf, gedrueckt noch etwas mehr.
+/// A neutral area like a switched-off quick toggle (10 % foreground), hover
+/// 8 % on top, pressed a little more.
 private struct UtilitiesTileStyle<S: Shape>: ButtonStyle {
     let shape: S
     let hovered: Bool
@@ -208,8 +208,8 @@ private struct UtilitiesTileStyle<S: Shape>: ButtonStyle {
     }
 }
 
-/// Das Aufklappmenue der Geraete. Beim Oeffnen gebaut, damit die Liste
-/// stimmt (AirPods verbunden, iPhone in der Naehe).
+/// The pop-up menu of the devices. Built on opening, so that the list is right
+/// (AirPods connected, an iPhone nearby).
 @MainActor
 enum UtilitiesDeviceMenu {
     static func show(devices: [UtilitiesAudioDevice], current: UInt32?, select: @escaping (UInt32) -> Void) {
@@ -230,8 +230,8 @@ enum UtilitiesDeviceMenu {
             empty.isEnabled = false
             menu.addItem(empty)
         }
-        // Ohne Ansicht in Bildschirmkoordinaten: die aktuelle Wahl liegt
-        // unter dem Zeiger, wie bei einem Aufklappmenue von Apple.
+        // Without a view, in screen coordinates: the current choice lies under
+        // the pointer, as with a pop-up menu from Apple.
         menu.popUp(positioning: selected, at: NSEvent.mouseLocation, in: nil)
     }
 }

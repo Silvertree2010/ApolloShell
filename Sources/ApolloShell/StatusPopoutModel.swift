@@ -7,33 +7,33 @@ import ApolloShellCore
 import Observation
 import os
 
-/// WLAN-Details, alle ohne Ortungsfreigabe lesbar (gemessen 14.09.):
-/// Interface, an/aus, RSSI, Rauschen, Senderate, PHY-Modus, Kanal. Der
-/// Netzname (SSID) und die BSSID kommen ohne Ortung als nil zurueck - danach
-/// fragen wir bewusst nicht.
+/// The Wi-Fi details, all readable without the location permission (measured
+/// 14.09.): the interface, on/off, RSSI, noise, transmit rate, PHY mode,
+/// channel. The network name (SSID) and the BSSID come back as nil without
+/// location - we do not ask for that on purpose.
 struct StatusPopoutWifiInfo: Equatable {
     var powerOn: Bool
     var interfaceName: String?
-    /// 0 oder nil: nicht verbunden.
+    /// 0 or nil: not connected.
     var rssi: Int?
     var noise: Int?
     /// Mbit/s.
     var transmitRate: Double?
-    /// Rohwert von `CWPHYMode`.
+    /// The raw value of `CWPHYMode`.
     var phyMode: Int
     var channel: Int?
-    /// Rohwert von `CWChannelBand`.
+    /// The raw value of `CWChannelBand`.
     var band: Int?
 
     var connected: Bool { powerOn && (rssi ?? 0) != 0 }
 }
 
-/// Akku-Details: IOPowerSources fuer Stand und Zeiten, IORegistry
-/// (AppleSmartBattery) fuer Ladezyklen und Kapazitaet, ProcessInfo fuer den
-/// Stromsparmodus. Alles ohne Freigabe.
+/// The battery details: IOPowerSources for the level and the times, the
+/// IORegistry (AppleSmartBattery) for the cycles and the capacity,
+/// ProcessInfo for Low Power Mode. All without a permission.
 struct StatusPopoutBatteryInfo: Equatable {
     var state: BatteryState
-    /// Minuten wie IOKit sie meldet: -1 rechnet noch, 0 keine Angabe.
+    /// Minutes the way IOKit reports them: -1 is still working it out, 0 no entry.
     var minutesToEmpty: Int
     var minutesToFull: Int
     var cycleCount: Int?
@@ -41,36 +41,36 @@ struct StatusPopoutBatteryInfo: Equatable {
     var lowPowerMode: Bool
 }
 
-/// Zustand der Detailfenster neben der Statuskapsel: welches offen ist und
-/// was darin steht.
+/// The state of the detail windows next to the status capsule: which one is
+/// open and what stands in it.
 ///
-/// Gelesen wird nur, solange ein Fenster offen ist, und nur, was es zeigt
-/// (Caelestia laedt den Inhalt auch erst beim Oeffnen): WLAN und Akku alle
-/// 2 s (je wenige Millisekunden), Bluetooth nur jede fuenfte Runde, denn
-/// system_profiler kostet ~165 ms in einem eigenen Prozess.
+/// It is only read while a window is open, and only what that window shows
+/// (Caelestia loads the content on opening too): Wi-Fi and battery every 2 s
+/// (a few milliseconds each), Bluetooth only every fifth round, because
+/// system_profiler costs ~165 ms in a process of its own.
 @MainActor
 @Observable
 final class StatusPopoutModel {
-    /// Zuletzt gezeigter Inhalt. Bleibt beim Schliessen stehen, damit der
-    /// Inhalt waehrend der Schliessbewegung nicht verschwindet.
+    /// The content that was shown last. It stays on closing, so that the
+    /// content does not disappear during the closing motion.
     private(set) var shown: StatusPopoutKind = .wifi
     private(set) var isOpen = false
-    /// `nil`: kein WLAN-Interface.
+    /// `nil`: no Wi-Fi interface.
     private(set) var wifi: StatusPopoutWifiInfo?
-    /// `nil`: noch nicht gelesen (erstes system_profiler laeuft) oder nicht lesbar.
+    /// `nil`: not read yet (the first system_profiler runs) or not readable.
     private(set) var bluetooth: StatusPopoutBluetoothSnapshot?
     private(set) var bluetoothRead = false
-    /// `nil`: kein Akku.
+    /// `nil`: no battery.
     private(set) var battery: StatusPopoutBatteryInfo?
 
-    /// Wo die drei Symbole in der Leiste liegen, in Koordinaten der
-    /// Leisten-Ansicht (oben = 0). Nicht beobachtet: aendert sich bei jedem
-    /// Layout und soll keine Neuzeichnung ausloesen.
+    /// Where the three symbols lie in the bar, in coordinates of the bar view
+    /// (top = 0). Not observed: it changes on every layout and should set off
+    /// no redraw.
     @ObservationIgnored var iconFrames: [StatusPopoutKind: CGRect] = [:]
-    /// Klick auf ein Statussymbol; setzt `StatusPopout`.
+    /// A click on a status symbol; set by `StatusPopout`.
     @ObservationIgnored var onIconClick: (StatusPopoutKind) -> Void = { _ in }
-    /// Nach "...-Einstellungen": das Fenster schliesst (Caelestia loest das
-    /// Popout dann ebenfalls ab).
+    /// After "... Settings": the window closes (Caelestia lets go of the
+    /// popout then too).
     @ObservationIgnored var onOpenedSettings: () -> Void = {}
 
     @ObservationIgnored private static let interval: TimeInterval = 2
@@ -89,8 +89,8 @@ final class StatusPopoutModel {
         self.live = live
     }
 
-    /// Modell mit festen Werten, das nichts liest und nichts schaltet - fuer
-    /// Bildproben.
+    /// A model with fixed values that reads nothing and switches nothing - for
+    /// image samples.
     static func preview(
         shown: StatusPopoutKind,
         wifi: StatusPopoutWifiInfo?,
@@ -107,24 +107,24 @@ final class StatusPopoutModel {
         return model
     }
 
-    /// Mitte des angeklickten Symbols, von der Oberkante des Popout-Fensters
-    /// aus gemessen.
+    /// The middle of the clicked symbol, measured from the top edge of the
+    /// popout window.
     private(set) var anchorY: CGFloat = 0
-    /// Wo das Glas gerade im Fenster steht (oben = 0) - fuer den Klicktest
-    /// "ausserhalb". Nicht beobachtet, wie `iconFrames`.
+    /// Where the glass stands in the window right now (top = 0) - for the
+    /// "outside" click test. Not observed, like `iconFrames`.
     @ObservationIgnored var panelFrame: CGRect = .zero
 
-    // MARK: - Oeffnen, wechseln, schliessen
+    // MARK: - Opening, switching, closing
 
-    /// Inhalt und Lage setzen, ohne zu oeffnen - vor dem Oeffnen aus dem
-    /// geschlossenen Zustand, damit die Lage springt statt zu gleiten
-    /// (Caelestia: y animiert nur, solange das Popout offen ist).
+    /// Set the content and the place without opening - before opening out of
+    /// the closed state, so that the place jumps instead of gliding
+    /// (Caelestia: y only animates while the popout is open).
     func prepare(_ kind: StatusPopoutKind, anchorY: CGFloat) {
         shown = kind
         self.anchorY = anchorY
     }
 
-    /// Oeffnen oder in-place wechseln: sofort lesen, dann alle 2 s.
+    /// Open or switch in place: read right away, then every 2 s.
     func show(_ kind: StatusPopoutKind, anchorY: CGFloat) {
         shown = kind
         self.anchorY = anchorY
@@ -157,7 +157,7 @@ final class StatusPopoutModel {
         }
     }
 
-    // MARK: - Lesen
+    // MARK: - Reading
 
     private func readWifi() {
         let next = CWWiFiClient.shared().interface().map { iface in
@@ -191,8 +191,8 @@ final class StatusPopoutModel {
         }
     }
 
-    /// Stand und Laden wie die Statuskapsel (`StatusModel.readBattery`),
-    /// dazu Zeiten, Zyklen, Kapazitaet.
+    /// The level and the charging as in the status capsule
+    /// (`StatusModel.readBattery`), plus the times, cycles and capacity.
     private static func readBatteryInfo() -> StatusPopoutBatteryInfo? {
         guard let state = StatusModel.readBattery() else { return nil }
         var toEmpty = 0, toFull = 0
@@ -204,8 +204,8 @@ final class StatusPopoutModel {
             toEmpty = d[kIOPSTimeToEmptyKey] as? Int ?? 0
             toFull = d[kIOPSTimeToFullChargeKey] as? Int ?? 0
         }
-        // Einzelne Schluessel statt der ganzen Eigenschaftsliste: die enthaelt
-        // BatteryData mit Dutzenden Messreihen. Gemessen ~0,14 ms fuer vier.
+        // Single keys instead of the whole property list: that one holds
+        // BatteryData with dozens of measurement series. Measured ~0.14 ms for four.
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
         defer { if service != 0 { IOObjectRelease(service) } }
         func int(_ key: String) -> Int? {
@@ -225,9 +225,9 @@ final class StatusPopoutModel {
         )
     }
 
-    // MARK: - Aktionen
+    // MARK: - Actions
 
-    /// Nur auf Klick des Nutzers auf den Schalter. Braucht keine Freigabe.
+    /// Only on a click of the user on the switch. Needs no permission.
     func setWifiPower(_ on: Bool) {
         guard live, let iface = CWWiFiClient.shared().interface(), iface.powerOn() != on else { return }
         do {
@@ -238,8 +238,8 @@ final class StatusPopoutModel {
         readWifi()
     }
 
-    /// Bereiche gemessen 14.09. aus den Info.plist der Einstellungs-
-    /// Erweiterungen (Wi-Fi.appex, Bluetooth.appex, PowerPreferences.appex).
+    /// The areas measured 14.09. out of the Info.plist of the settings
+    /// extensions (Wi-Fi.appex, Bluetooth.appex, PowerPreferences.appex).
     func openSettings(for kind: StatusPopoutKind) {
         guard live else { return }
         let pane = switch kind {

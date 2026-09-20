@@ -1,17 +1,17 @@
 import ApolloShellCore
 import SwiftUI
 
-/// Caelestias Kurven (Tokens.anim): Raum 500 ms mit leichtem Ueberschiessen
-/// fuer Groesse und Lage, Effekte 200/300 ms fuer das Ueberblenden.
+/// Caelestia's curves (Tokens.anim): space 500 ms with a slight overshoot for
+/// size and place, effects 200/300 ms for the cross-fade.
 enum StatusPopoutMotion {
     static let spatial = Animation.shellSpatial
     static let fadeOut = Animation.timingCurve(0.34, 0.8, 0.34, 1, duration: 0.2)
     static let fadeIn = Animation.timingCurve(0.34, 0.88, 0.34, 1, duration: 0.3)
 }
 
-/// Nur fuer Bildproben: statt Glas eine feste Flaeche, denn Glas zeichnet
-/// ausserhalb des Bildschirms nur weiss. Klassischer Schluessel statt
-/// `@Entry`: ohne Xcode fehlt SwiftPM das SwiftUI-Makro-Plugin.
+/// Only for image samples: a fixed area instead of glass, because glass draws
+/// only white offscreen. A classic key instead of `@Entry`: without Xcode
+/// SwiftPM has no SwiftUI macro plugin.
 private struct StatusPopoutGlassStandInKey: EnvironmentKey {
     static let defaultValue = false
 }
@@ -23,34 +23,34 @@ extension EnvironmentValues {
     }
 }
 
-/// Masse der Ausbeulung, mit der die Leiste das Popout zeigt
+/// The measurements of the bulge the bar shows the popout with
 /// (Caelestia: ClipWrapper + Wrapper + Content).
 ///
-/// Leiste und Popout sind EINE Glasflaeche (`SidebarGlassShape`): zwei
-/// getrennte Glaeser nebeneinander faerben sich verschieden ein - jedes
-/// nimmt die Farbe dessen an, was hinter ihm liegt - und zeigen an der
-/// Naht eine Kante. Deshalb zeichnet die Leiste ihr Glas als eine Form,
-/// die sich beim Oeffnen auswoelbt.
+/// The bar and the popout are ONE glass area (`SidebarGlassShape`): two
+/// separate pieces of glass side by side take on different colors - each one
+/// takes the color of what lies behind it - and show an edge at the seam. So
+/// the bar draws its glass as one shape that bulges out on opening.
+///
 enum StatusPopoutLayout {
-    /// Ecken der Ausbeulung.
+    /// The corners of the bulge.
     static let cornerRadius: CGFloat = 25
-    /// Hoehe der Beule im geschlossenen Zustand: null, sie sitzt in der
-    /// Leiste.
+    /// The height of the bulge when closed: zero, it sits in the bar.
+    ///
     static let seedHeight: CGFloat = 30
-    /// Radius der einwaertsgekruemmten Ecken, mit denen die Beule in die
-    /// Leiste uebergeht.
+    /// The radius of the inward-curved corners the bulge goes over into the
+    /// bar with.
     static let join: CGFloat = 14
 }
 
-/// Inhalt eines Detailfensters, fest breit, Hoehe aus dem Inhalt.
-/// Rand 16 wie Caelestia (Tokens.padding.large).
+/// The content of a detail window, fixed width, the height out of the content.
+/// A margin of 16 as in Caelestia (Tokens.padding.large).
 struct StatusPopoutContent: View {
     let model: StatusPopoutModel
     let kind: StatusPopoutKind
 
-    /// Caelestia: Netzwerk 320, Bluetooth 300, Akku 250 (ohne Rand). Etwas
-    /// schmaler, damit es neben der schmalen Leiste nicht wuchtig wirkt;
-    /// die Werte-Zeilen passen trotzdem einzeilig.
+    /// Caelestia: network 320, Bluetooth 300, battery 250 (without the
+    /// margin). A little narrower, so that it does not look bulky next to the
+    /// narrow bar; the value lines still fit on one line.
     static func width(_ kind: StatusPopoutKind) -> CGFloat {
         switch kind {
         case .wifi: 300
@@ -72,7 +72,7 @@ struct StatusPopoutContent: View {
     }
 }
 
-// MARK: - WLAN
+// MARK: - Wi-Fi
 
 private struct StatusPopoutWifiView: View {
     let model: StatusPopoutModel
@@ -90,8 +90,8 @@ private struct StatusPopoutWifiView: View {
             StatusPopoutLeadRow(
                 symbol: glyph.symbol, variableValue: glyph.strength, active: true,
                 title: "Connected",
-                // macOS 14+: der Netzname braucht die Ortungsfreigabe; die
-                // holen wir nicht fuer eine Anzeige.
+                // macOS 14+: the network name needs the location permission;
+                // we do not fetch that for a display.
                 subtitle: "Network name needs Location Services"
             )
             StatusPopoutCard {
@@ -137,7 +137,7 @@ private struct StatusPopoutBluetoothView: View {
     var body: some View {
         let snapshot = model.bluetooth
         StatusPopoutHeader(title: "Bluetooth") {
-            // Nur Anzeige: Schalten ginge nur ueber private Schnittstellen.
+            // Display only: switching would only work through private interfaces.
             Text(snapshot?.powerOn == true ? String(localized: "On") : snapshot?.powerOn == false ? String(localized: "Off") : "–")
                 .font(style.font(size: 12, weight: .semibold))
                 .foregroundStyle(snapshot?.powerOn == true ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
@@ -178,9 +178,9 @@ private struct StatusPopoutBluetoothView: View {
     }
 }
 
-/// Symbol im Kreis, Name, darunter die Akkuwerte (L/R/Case bei AirPods).
-/// Zweizeilig wie im Kontrollzentrum: rechts daneben gekuerzte Namen
-/// ("AirPo...") waren in der Bildprobe schlechter als eine zweite Zeile.
+/// A symbol in a circle, the name, below it the battery values (L/R/case with
+/// AirPods). Two lines as in the Control Centre: shortened names to the right
+/// ("AirPo...") were worse in the image sample than a second line.
 private struct StatusPopoutDeviceRow: View {
     let device: StatusPopoutBluetoothDevice
     @Environment(\.shellStyle) private var style
@@ -224,7 +224,7 @@ private struct StatusPopoutBatteryChip: View {
                 Text(label).foregroundStyle(.secondary)
             }
             Text("\(battery.percent) %")
-                // Unter 20 % rot wie Caelestia (m3error).
+                // Below 20 % red as in Caelestia (m3error).
                 .foregroundStyle(battery.percent < 20 ? AnyShapeStyle(Color.red) : AnyShapeStyle(.primary))
         }
         .font(style.font(size: 11, weight: .medium).monospacedDigit())
@@ -232,7 +232,7 @@ private struct StatusPopoutBatteryChip: View {
     }
 }
 
-// MARK: - Akku
+// MARK: - Battery
 
 private struct StatusPopoutBatteryView: View {
     let model: StatusPopoutModel
@@ -277,11 +277,11 @@ private struct StatusPopoutBatteryView: View {
     }
 }
 
-// MARK: - Bausteine
+// MARK: - Building blocks
 
-/// Titelzeile: Name links, Schalter oder Zustand rechts (Caelestia:
-/// fette Ueberschrift, darunter "Enabled" mit Schalter - bei Apple steht
-/// der Schalter in der Titelzeile).
+/// The title line: the name on the left, the switch or the state on the right
+/// (Caelestia: a bold heading, below it "Enabled" with a switch - at Apple the
+/// switch stands in the title line).
 private struct StatusPopoutHeader<Trailing: View>: View {
     let title: LocalizedStringKey
     @ViewBuilder let trailing: Trailing
@@ -297,8 +297,8 @@ private struct StatusPopoutHeader<Trailing: View>: View {
     }
 }
 
-/// Grosses Symbol im Kreis mit zwei Zeilen - wie Apples Netzzeile im
-/// Kontrollzentrum. Aktiv: Akzentkreis.
+/// A big symbol in a circle with two lines - like Apple's network row in the
+/// Control Centre. Active: an accent circle.
 private struct StatusPopoutLeadRow: View {
     let symbol: String
     let variableValue: Double
@@ -325,7 +325,7 @@ private struct StatusPopoutLeadRow: View {
     }
 }
 
-/// Leicht abgesetzte Flaeche wie die Karten der Utilities.
+/// A slightly set-off area like the cards of the utilities.
 private struct StatusPopoutCard<Content: View>: View {
     @ViewBuilder let content: Content
 
@@ -367,9 +367,9 @@ private struct StatusPopoutNote: View {
     }
 }
 
-/// Knopf unten ueber die ganze Breite (Caelestia: "Open settings",
-/// IconTextButton in primaryContainer). Leicht getoent statt voll Akzent:
-/// es ist eine Nebenaktion.
+/// A button at the bottom across the whole width (Caelestia: "Open settings",
+/// IconTextButton in primaryContainer). Slightly tinted instead of full
+/// accent: it is a side action.
 private struct StatusPopoutSettingsButton: View {
     let title: LocalizedStringKey
     var help: LocalizedStringKey?
@@ -396,8 +396,8 @@ private struct StatusPopoutSettingsButton: View {
             .contentShape(.capsule)
         }
         .buttonStyle(.plain)
-        // Nicht `onHover`: das Fenster gehoert einer nie aktiven App (siehe
-        // HoverTracker).
+        // Not `onHover`: the window belongs to an app that is never active
+        // (see HoverTracker).
         .background(HoverTracker { hovering = $0 })
         .animation(StatusPopoutMotion.fadeOut, value: hovering)
         .help(help ?? title)
@@ -405,12 +405,12 @@ private struct StatusPopoutSettingsButton: View {
     }
 }
 
-/// Schalter im macOS-26-Aussehen, "an" immer in Akzentfarbe.
+/// A switch in the macOS 26 look, "on" always in the accent color.
 ///
-/// Warum nicht `.toggleStyle(.switch)`: AppKit zeichnet den eingeschalteten
-/// Schalter grau, solange die App nicht aktiv ist - und der Launcher wird nie
-/// aktiv (Bildprobe der Utilities 14.09.). Masse wie dort: Bahn 54 x 24,
-/// Knopf 32 x 20.
+/// Why not `.toggleStyle(.switch)`: AppKit draws the switched-on switch grey
+/// while the app is not active - and the launcher never becomes active (image
+/// sample of the utilities, 14.09.). The measurements as there: track 54 x 24,
+/// knob 32 x 20.
 private struct StatusPopoutSwitchStyle: ToggleStyle {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shellStyle) private var style

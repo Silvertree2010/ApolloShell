@@ -4,31 +4,31 @@ import ApolloShellCore
 import Observation
 import os
 
-/// Spaces des Hauptbildschirms fuer die Kapsel oben in der Leiste
+/// The spaces of the main screen for the capsule at the top of the bar
 /// (Caelestia: Workspaces).
 ///
-/// macOS hat dafuer keine oeffentliche Schnittstelle. Gelesen wird ueber
-/// SkyLights `CGSCopyManagedDisplaySpaces` - privat, aber nur lesend und
-/// ohne Freigabe; gemessen 0,16 ms pro Aufruf (14.09.). Umschalten koennte
-/// man nur per simuliertem Tastendruck, deshalb tut ein Klick auf die
-/// Kapsel nichts.
+/// macOS has no public interface for that. It is read through SkyLight's
+/// `CGSCopyManagedDisplaySpaces` - private, but read-only and without a
+/// permission; measured at 0.16 ms per call (14.09.). Switching would only be
+/// possible through a simulated key press, so a click on the capsule does
+/// nothing.
 ///
-/// Belegt/leer unterscheidet die Kapsel nicht (Caelestia: groessere Punkte
-/// fuer Spaces mit Fenstern): dafuer braeuchte es eine zweite private
-/// Funktion (Fenster je Space), deren Verhalten hier nicht gemessen ist.
-/// Lieber alle inaktiven Punkte gleich als falsche Angaben.
+/// The capsule does not tell occupied from empty (Caelestia: bigger dots for
+/// spaces with windows): that would need a second private function (windows
+/// per space) whose behavior is not measured here. All inactive dots the same
+/// rather than wrong entries.
 @MainActor
 @Observable
 final class SpacesModel {
-    /// `nil`: nicht lesbar - dann zeigt die Leiste keine Kapsel.
+    /// `nil`: not readable - then the bar shows no capsule.
     private(set) var snapshot: SpaceSnapshot?
 
-    /// Neue Spaces entstehen in Mission Control, dafuer gibt es keine
-    /// Meldung. Alle 5 s nachsehen kostet bei 0,16 ms praktisch nichts.
+    /// New spaces come about in Mission Control, and there is no notification
+    /// for that. Looking every 5 s costs practically nothing at 0.16 ms.
     private static let pollInterval: TimeInterval = 5
-    /// Nach einem Space-Wechsel noch einmal nachsehen: die Meldung kommt
-    /// waehrend der Wisch-Animation (so auch bei der Fensterwache); ob
-    /// "Current Space" dann schon stimmt, ist nicht gemessen.
+    /// Look again after a space change: the notification comes during the
+    /// swipe animation (as with the window watch); whether "Current Space" is
+    /// right by then is not measured.
     private static let settleDelay: TimeInterval = 0.5
 
     @ObservationIgnored private let reader: SpaceReader?
@@ -51,14 +51,14 @@ final class SpacesModel {
         self.timer = timer
     }
 
-    /// Fuer die Bildprobe: feste Werte, ruft nie SkyLight auf.
+    /// For the image sample: fixed values, never calls SkyLight.
     init(preview snapshot: SpaceSnapshot?) {
         reader = nil
         self.snapshot = snapshot
     }
 
-    /// Klick auf den Punkt `index`: so viele Schreibtische weiter, wie er vom
-    /// aktiven entfernt ist. Ohne bekannten aktiven (Vollbild) nichts.
+    /// A click on the dot `index`: as many desktops further as it is away from
+    /// the active one. Without a known active one (full screen) nothing.
     func switchTo(_ index: Int) {
         guard let active = snapshot?.activeIndex else { return }
         SpaceSwitcher.step(index - active)
@@ -70,15 +70,15 @@ final class SpacesModel {
         if next != snapshot { snapshot = next }
     }
 
-    /// UUID des Bildschirms mit der Menueleiste (CGMainDisplayID ist der mit
-    /// dem Ursprung, also derselbe wie NSScreen.screens.first). Unter dieser
-    /// UUID fuehrt SkyLight seine Spaces ("Display Identifier").
+    /// The UUID of the screen with the menu bar (CGMainDisplayID is the one
+    /// with the origin, so the same as NSScreen.screens.first). SkyLight keeps
+    /// its spaces under this UUID ("Display Identifier").
     private static func mainDisplayUUID() -> String? {
         ShellScreens.uuid(of: CGMainDisplayID())
     }
 
-    /// Lebt so lange wie die Leiste und damit der Prozess; die Beobachter
-    /// halten das Modell nur schwach und werden nie entfernt.
+    /// Lives as long as the bar and with it the process; the observers hold
+    /// the model only weakly and are never removed.
     private func observeSystemChanges() {
         let workspace = NSWorkspace.shared.notificationCenter
         workspace.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
@@ -89,8 +89,8 @@ final class SpacesModel {
                 }
             }
         }
-        // App-Wechsel sind haeufig und der Aufruf billig: faengt neue Spaces
-        // meist schneller als der 5-s-Takt.
+        // App switches are frequent and the call is cheap: it usually catches
+        // new spaces faster than the 5 s beat.
         for name in [
             NSWorkspace.didActivateApplicationNotification,
             NSWorkspace.didWakeNotification,
@@ -104,17 +104,17 @@ final class SpacesModel {
     }
 }
 
-/// Duenne Huelle um die zwei privaten SkyLight-Funktionen. Per dlsym statt
-/// gelinkt: fehlen sie in einer spaeteren macOS-Version, startet der
-/// Launcher trotzdem, nur ohne Spaces-Kapsel. Beide Namen probieren, weil
-/// Apple die CGS-Namen nach und nach durch SLS ersetzt (auf macOS 26.6
-/// gibt es noch die CGS-Namen, gemessen 14.09.). Liest auch
-/// `FullscreenMonitor`.
+/// A thin shell around the two private SkyLight functions. Through dlsym
+/// instead of linked: when they are missing in a later macOS version, the
+/// launcher still starts, only without the spaces capsule. Both names are
+/// tried, because Apple is replacing the CGS names with SLS ones step by step
+/// (on macOS 26.6 the CGS names are still there, measured 14.09.).
+/// `FullscreenMonitor` reads it too.
 struct SpaceReader {
     private typealias MainConnection = @convention(c) () -> Int32
     private typealias CopyDisplaySpaces = @convention(c) (Int32) -> Unmanaged<CFArray>?
     private typealias CopySpacesForWindows = @convention(c) (Int32, Int32, CFArray) -> Unmanaged<CFArray>?
-    /// Alle Arten von Spaces (aktuelle, andere, Vollbild).
+    /// All kinds of spaces (current, other, full screen).
     private static let allSpacesMask: Int32 = 7
 
     private let connection: Int32
@@ -132,8 +132,8 @@ struct SpaceReader {
             .map { unsafeBitCast($0, to: CopySpacesForWindows.self) }
     }
 
-    /// Liegt das Fenster auf irgendeinem Space? `nil`, wenn nicht lesbar.
-    /// Fenster, die eine App nur im Speicher haelt, liegen auf keinem.
+    /// Does the window lie on any space? `nil` when it cannot be read.
+    /// Windows an app only keeps in memory lie on none.
     func isOnAnySpace(_ window: CGWindowID) -> Bool? {
         guard let copySpacesForWindows,
               let spaces = copySpacesForWindows(connection, Self.allSpacesMask, [window] as CFArray)?
@@ -142,7 +142,7 @@ struct SpaceReader {
         return !spaces.isEmpty
     }
 
-    /// "Copy" im Namen: das Array gehoert uns (retained).
+    /// "Copy" in the name: the array belongs to us (retained).
     func displays() -> [[String: Any]] {
         (copyDisplaySpaces(connection)?.takeRetainedValue() as? [[String: Any]]) ?? []
     }
