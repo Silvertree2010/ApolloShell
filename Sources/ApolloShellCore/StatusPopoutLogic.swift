@@ -1,22 +1,22 @@
 import Foundation
 
-/// Welches Detailfenster neben der Leiste offen ist (Caelestia:
-/// modules/bar/popouts, Namen "network", "bluetooth", "battery").
+/// Which detail window next to the bar is open (Caelestia:
+/// modules/bar/popouts, the names "network", "bluetooth", "battery").
 public enum StatusPopoutKind: String, CaseIterable, Sendable {
     case wifi
     case bluetooth
     case battery
 }
 
-/// WLAN-Signal in Worte und Balken fassen.
+/// Puts the Wi-Fi signal into words and bars.
 ///
-/// Dieselben Schwellen wie das Symbol in der Leiste (`StatusGlyphs.wifi`),
-/// damit Kapsel und Detailfenster nie Verschiedenes behaupten.
+/// The same thresholds as the symbol in the bar (`StatusGlyphs.wifi`), so that
+/// the capsule and the detail window never claim different things.
 public enum StatusPopoutSignal {
-    /// Gefuellte Balken von drei. 0 heisst: kein Signal bzw. nicht verbunden.
+    /// Filled bars out of three. 0 means: no signal or not connected.
     public static func bars(rssi: Int?) -> Int {
         guard let rssi, rssi != 0 else { return 0 }
-        // Klammern noetig: `-55...` liest Swift als Minus vor `55...`.
+        // The brackets are needed: Swift reads `-55...` as a minus before `55...`.
         switch rssi {
         case (-55)...: return 3
         case (-67)...: return 2
@@ -25,7 +25,7 @@ public enum StatusPopoutSignal {
         }
     }
 
-    /// Kurzurteil neben der dBm-Zahl.
+    /// A short verdict next to the dBm number.
     public static func quality(rssi: Int?) -> String {
         guard let rssi, rssi != 0 else { return String(localized: "No Signal") }
         switch rssi {
@@ -36,15 +36,15 @@ public enum StatusPopoutSignal {
         }
     }
 
-    /// Abstand Signal zu Rauschen in dB - sagt mehr ueber die Verbindung als
-    /// das Signal allein. `nil`, wenn einer der Werte fehlt (0 = unbekannt).
+    /// The distance from signal to noise in dB - it says more about the
+    /// connection than the signal alone. `nil` when a value is missing.
     public static func signalToNoise(rssi: Int?, noise: Int?) -> Int? {
         guard let rssi, let noise, rssi != 0, noise != 0 else { return nil }
         return rssi - noise
     }
 
-    /// CoreWLANs `CWPHYMode` (Rohwert) als Standardname. Rohwerte statt der
-    /// Aufzaehlung, damit das hier ohne CoreWLAN testbar bleibt.
+    /// CoreWLAN's `CWPHYMode` (the raw value) as a standard name. Raw values
+    /// instead of the enumeration, so that this stays testable without CoreWLAN.
     public static func phyModeName(rawValue: Int) -> String? {
         switch rawValue {
         case 1: "802.11a"
@@ -58,7 +58,7 @@ public enum StatusPopoutSignal {
         }
     }
 
-    /// CoreWLANs `CWChannelBand` (Rohwert) als Frequenz.
+    /// CoreWLAN's `CWChannelBand` (the raw value) as a frequency.
     public static func bandName(rawValue: Int) -> String? {
         switch rawValue {
         case 1: "2.4 GHz"
@@ -69,10 +69,10 @@ public enum StatusPopoutSignal {
     }
 }
 
-/// Dauer fuer den Akku: "2 Std 15 Min", "45 Min", "1 Std".
+/// The duration for the battery: "2h 15m", "45m", "1h".
 public enum StatusPopoutDuration {
-    /// `nil` fuer 0 oder negative Werte - IOKit meldet -1, solange es noch
-    /// rechnet; dann soll "wird berechnet" stehen, nicht "0 Min".
+    /// `nil` for 0 or negative values - IOKit reports -1 while it is still
+    /// working it out; then "calculating" should stand there, not "0m".
     public static func text(minutes: Int) -> String? {
         guard minutes > 0 else { return nil }
         let hours = minutes / 60, rest = minutes % 60
@@ -84,24 +84,24 @@ public enum StatusPopoutDuration {
     }
 }
 
-/// Akkuzustand in Worten fuer das Detailfenster.
+/// The battery state in words for the detail window.
 public enum StatusPopoutBatteryText {
-    /// Kurzform unter der grossen Prozentzahl.
+    /// The short form under the big percentage.
     public static func state(_ battery: BatteryState) -> String {
         if battery.charging { return String(localized: "Charging") }
         return battery.onAC ? String(localized: "On Power") : String(localized: "Battery")
     }
 
-    /// Zweite Zeile wie bei Caelestia: Restlaufzeit auf Akku, Zeit bis voll
-    /// beim Laden. Minuten wie von IOKit (-1 = rechnet noch, 0 = keine).
+    /// The second line as in Caelestia: the time left on battery, the time
+    /// to full while charging. Minutes as from IOKit (-1 = still working).
     public static func time(_ battery: BatteryState, minutesToEmpty: Int, minutesToFull: Int) -> String {
         if battery.charging {
             if let text = StatusPopoutDuration.text(minutes: minutesToFull) { return String(localized: "Full in \(text)") }
             return String(localized: "Calculating charge time…")
         }
         if battery.onAC {
-            // Am Netz, aber nicht am Laden: voll, oder macOS haelt die
-            // Ladung an (optimiertes Laden, Ladegrenze).
+            // On power, but not charging: full, or macOS is holding the charge
+            // (optimised charging, a charge limit).
             return battery.level >= 100 ? String(localized: "Fully Charged") : String(localized: "Not Charging Right Now")
         }
         if let text = StatusPopoutDuration.text(minutes: minutesToEmpty) { return String(localized: "\(text) Left") }
@@ -109,14 +109,14 @@ public enum StatusPopoutBatteryText {
     }
 }
 
-/// Maximale Kapazitaet des Akkus in Prozent der Werkskapazitaet.
+/// The maximum capacity of the battery in percent of the factory capacity.
 public enum StatusPopoutBatteryHealth {
-    /// Aus der IORegistry (AppleSmartBattery), alles in mAh:
-    /// `AppleRawMaxCapacity` zuerst, sonst `NominalChargeCapacity`.
+    /// Out of the IORegistry (AppleSmartBattery), everything in mAh:
+    /// `AppleRawMaxCapacity` first, otherwise `NominalChargeCapacity`.
     ///
-    /// Gedeckelt bei 100: ein junger Akku liegt oft darueber (gemessen 14.09.:
-    /// 8694 von 8579 mAh = 101 %), und Apple zeigt dann "Maximale Kapazitaet
-    /// 100 %" (system_profiler SPPowerDataType). So stimmen beide ueberein.
+    /// Capped at 100: a young battery often lies above it (measured 14.09.:
+    /// 8694 of 8579 mAh = 101 %), and Apple then shows "Maximum Capacity
+    /// 100 %" (system_profiler SPPowerDataType). So the two agree.
     public static func percent(rawMax: Int?, nominal: Int?, design: Int?) -> Int? {
         guard let design, design > 0, let full = [rawMax, nominal].compactMap({ $0 }).first(where: { $0 > 0 })
         else { return nil }
@@ -124,11 +124,11 @@ public enum StatusPopoutBatteryHealth {
     }
 }
 
-/// Wo das Detailfenster senkrecht steht (Caelestia: ClipWrapper.y).
+/// Where the detail window stands vertically (Caelestia: ClipWrapper.y).
 public enum StatusPopoutPlacement {
-    /// Oberkante in einem nach unten zaehlenden Bereich der Hoehe
-    /// `containerHeight`: mittig auf `anchorY`, aber ganz im Bereich.
-    /// Ist das Fenster hoeher als der Bereich, gilt die Oberkante.
+    /// The top edge in an area of the height `containerHeight` counted
+    /// downwards: centred on `anchorY`, but fully inside the area. When the
+    /// window is taller than the area, the top edge holds.
     public static func top(anchorY: Double, height: Double, containerHeight: Double) -> Double {
         let wanted = anchorY - height / 2
         return max(0, min(wanted, containerHeight - height))

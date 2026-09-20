@@ -1,23 +1,23 @@
 import ApolloShellCore
 import SwiftUI
 
-// MARK: - Wach halten (Nexus > Allgemein)
+// MARK: - Keep Awake (Nexus > General)
 
-/// „Wach halten auch zugeklappt“ - frueher auf Nexus > Schnellaktionen, seit
-/// dem globalen Bearbeitungsmodus auf Nexus > Allgemein (die Schnellaktionen-
-/// Seite hatte nur noch diesen Schalter). Bewusst nicht im Popover der Karte
-/// im Bearbeitungsmodus: der Schalter legt sofort eine Systemregel mit
-/// Administrator-Frage an und liesse sich mit „Abbrechen“ nicht zuruecknehmen.
+/// “Keep Awake with the lid closed” - earlier on Nexus > Quick Actions, since
+/// the global edit mode on Nexus > General (the quick actions page had only
+/// this switch left). Deliberately not in the popover of the card in the edit
+/// mode: the switch puts down a system rule with an administrator prompt right
+/// away and could not be taken back with “Cancel”.
 struct NexusKeepAwakeSection: View {
     @Bindable var store: ShellSettingsStore
-    /// Liegt die Regel ohne Passwort fuer den Deckel-Teil auf diesem Mac?
+    /// Does the rule without a password for the lid part lie on this Mac?
     @State private var lidRuleInstalled = false
     @State private var removingLidRule = false
 
-    /// Der Deckel-Teil braucht root (pmset disablesleep). Beim ersten
-    /// Einschalten fragt macOS einmal nach einem Administrator und legt dabei
-    /// die Regel ohne Passwort an - das soll man vorher lesen koennen, und
-    /// man soll sie hier wieder loswerden.
+    /// The lid part needs root (pmset disablesleep). On the first switch-on
+    /// macOS asks once for an administrator and puts down the rule without a
+    /// password while doing so - one should be able to read that beforehand,
+    /// and one should be able to get rid of it here again.
     var body: some View {
         Section {
             NexusToggle(title: "Also With the Lid Closed",
@@ -37,8 +37,8 @@ struct NexusKeepAwakeSection: View {
         } footer: {
             Text("Needs administrator rights once: the first time you turn it on, macOS asks for your password and ApolloShell adds a rule that allows only switching this sleep setting without a password. After that, nothing asks again. Declining leaves “Keep Awake” working only with the lid open. On battery it ends on its own at \(LidAwake.batteryFloor)%.")
         }
-        // Die Regel entsteht im Hintergrund, sobald die Frage beantwortet
-        // ist; solange die Seite offen ist, alle 2 s nachsehen (ein stat).
+        // The rule comes about in the background as soon as the prompt is
+        // answered; while the page is open, look every 2 s (one stat).
         .task {
             while !Task.isCancelled {
                 lidRuleInstalled = LidAwakeRule.isInstalled
@@ -56,13 +56,13 @@ struct NexusKeepAwakeSection: View {
     }
 }
 
-// MARK: - Vorschau-Modell
+// MARK: - Preview model
 
-/// Festes Modell, das nichts liest und nichts schaltet - bis Task 7 fuer
-/// `UtilitiesEditorPreview` (Nexus, entfernt), seither fuer die Karten
-/// waehrend der Bearbeitung im Kontrollzentrum-Panel selbst
-/// (`UtilitiesEditOverlay.swift`: `KeepAwakeCard`/`UtilitiesAudioCard` mit
-/// abgeschalteter Bedienung). Neutrale Beispielgeraete.
+/// A fixed model that reads nothing and switches nothing - up to task 7 for
+/// `UtilitiesEditorPreview` (Nexus, removed), since then for the cards while
+/// editing in the control centre panel itself (`UtilitiesEditOverlay.swift`:
+/// `KeepAwakeCard`/`UtilitiesAudioCard` with the controls switched off).
+/// Neutral sample devices.
 @MainActor
 enum UtilitiesEditorPreviewModel {
     static let model = UtilitiesModel.preview(
@@ -78,16 +78,16 @@ enum UtilitiesEditorPreviewModel {
     )
 }
 
-// MARK: - Texte und Farben
+// MARK: - Texts and colors
 
-/// Name, Zeichen und Farbe eines Knopfs - fuer die Galerie
-/// (`EditGallery.swift`) und die Bearbeitungsflaeche des Kontrollzentrums
-/// (`UtilitiesEditOverlay.swift`). Bis Task 7 auch fuer Nexus' alten Baukasten
-/// gebraucht (Raster, Optionen, Vorlagen-Rueckfrage) - der ist seither weg.
+/// The name, the glyph and the color of a button - for the gallery
+/// (`EditGallery.swift`) and the editing area of the control centre
+/// (`UtilitiesEditOverlay.swift`). Up to task 7 it was needed for Nexus' old
+/// kit as well (the grid, the options, the template prompt) - that is gone now.
 @MainActor
 enum UtilitiesEditorText {
-    /// Name im Raster: eigener Titel, sonst App-Name, Adresse oder Name des
-    /// Kurzbefehls, sonst der Name der Art.
+    /// The name in the grid: its own title, otherwise the app name, the address
+    /// or the name of the shortcut, otherwise the name of the kind.
     static func title(_ entry: UtilitiesToggleEntry) -> String {
         let own: String? = switch entry.toggle {
         case .openApp(let o): nonEmpty(o.title) ?? BarApps.info(for: o.bundleID)?.name
@@ -98,7 +98,7 @@ enum UtilitiesEditorText {
         return own ?? entry.kind.title
     }
 
-    /// Dasselbe Zeichen wie im Panel, ohne Zustand (WLAN immer "wifi").
+    /// The same glyph as in the panel, without a state (Wi-Fi always "wifi").
     static func icon(_ entry: UtilitiesToggleEntry) -> UtilitiesToggleItem.Icon {
         let look: QuickToggleLook = switch entry.toggle {
         case .openApp(let o): QuickToggles.openApp(o, appName: BarApps.info(for: o.bundleID)?.name)
@@ -116,7 +116,7 @@ enum UtilitiesEditorText {
 }
 
 extension UtilitiesToggleGroup {
-    /// Kachelfarbe in der Galerie und im Options-Popover.
+    /// The tile color in the gallery and in the options popover.
     var tint: Color {
         switch self {
         case .switches: .blue
@@ -126,10 +126,10 @@ extension UtilitiesToggleGroup {
     }
 }
 
-/// Farbige Kachel wie `NexusTile`, aber mit dem Zeichen des Knopfs (auch
-/// der Bluetooth-Rune und dem App-Symbol) - im Options-Popover
-/// (`UtilitiesEditOverlay.swift`). Bis Task 7 auch in Nexus' altem Raster und
-/// seiner Galerie gebraucht.
+/// A colored tile like `NexusTile`, but with the glyph of the button (the
+/// Bluetooth rune and the app symbol too) - in the options popover
+/// (`UtilitiesEditOverlay.swift`). Up to task 7 it was needed in Nexus' old
+/// grid and its gallery as well.
 struct UtilitiesEditorGlyphTile: View {
     let icon: UtilitiesToggleItem.Icon
     let tint: Color

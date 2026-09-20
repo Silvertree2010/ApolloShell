@@ -1,11 +1,11 @@
 import Foundation
 
-/// Das Tastenkuerzel eines Menuepunkts, so wie die Bedienungshilfen es
-/// melden: ein Zeichen und eine Bitmaske fuer die Zusatztasten.
+/// The keyboard shortcut of a menu item the way the accessibility API reports
+/// it: a character and a bit mask for the modifier keys.
 ///
-/// Die Maske ist die von `kAXMenuItemCmdModifiers`: Bit 0 Umschalt, Bit 1
-/// Wahl, Bit 2 Steuerung - und Bit 3 heisst, dass **keine** Befehlstaste
-/// dazugehoert. 0 ist also das blosse ⌘.
+/// The mask is the one of `kAXMenuItemCmdModifiers`: bit 0 shift, bit 1
+/// option, bit 2 control - and bit 3 means that **no** command key belongs to
+/// it. So 0 is the plain ⌘.
 public struct MenuShortcut: Equatable, Hashable, Sendable {
     public let character: String
     public let modifiers: Int
@@ -20,53 +20,53 @@ public struct MenuShortcut: Equatable, Hashable, Sendable {
     public var hasOption: Bool { modifiers & 2 != 0 }
     public var hasControl: Bool { modifiers & 4 != 0 }
 
-    /// Dasselbe Zeichen, Gross- und Kleinschreibung egal.
+    /// The same character, upper and lower case do not matter.
     public func matches(_ character: String) -> Bool {
         self.character.lowercased() == character.lowercased()
     }
 }
 
-/// Welche Art Befehl ein Menuepunkt ist, wenn er ins Dock-Menue gehoert.
+/// Which kind of command a menu item is when it belongs in the Dock menu.
 public enum DockCommandKind: Equatable, Sendable {
-    /// "Neues Fenster", "Neues privates Fenster", "Neuer Tab" …
+    /// "New Window", "New Private Window", "New Tab" …
     case newItem
-    /// "Einstellungen …"
+    /// "Settings …"
     case settings
 }
 
-/// Welche Menuepunkte einer App ins Dock-Menue der Leiste kommen.
+/// Which menu items of an app come into the Dock menu of the bar.
 ///
-/// Apples Dock zeigt dort, was die App selbst anbietet (bei Vivaldi "Neues
-/// Fenster", "Neues privates Fenster", "Einstellungen"). Dieses Dock-Menue
-/// der App liegt nur Apples Dock offen. Dieselben Befehle stehen aber in
-/// ihrer Menueleiste, im App-Menue und im ersten Menue danach (File/Ablage,
-/// bei kitty "Shell") - gemessen 14.09. bei Vivaldi, kitty, ForkLift.
+/// Apple's Dock shows what the app offers itself there (with Vivaldi “New
+/// Window”, “New Private Window”, “Settings”). That Dock menu of the app is
+/// open to Apple's Dock alone. The same commands stand in its menu bar though,
+/// in the app menu and in the first menu after it (File, with kitty “Shell”) -
+/// measured 14.09. with Vivaldi, kitty, ForkLift.
 ///
-/// Erkannt wird zuerst am Tastenkuerzel und erst dann am Text: ⌘N ist in
-/// jeder Sprache ein neues Fenster, ⌘, sind die Einstellungen. Der Text
-/// bleibt der zweite Weg, fuer Eintraege ohne Kuerzel ("Neues privates
-/// Fenster" hat bei manchen Apps keins).
+/// They are recognised by the shortcut first and only then by the text: ⌘N is
+/// a new window in every language, ⌘, is the settings. The text stays the
+/// second way, for entries without a shortcut (“New Private Window” has none
+/// in some apps).
 public enum DockCommandFilter {
     public static func isNewCommand(_ title: String) -> Bool {
         let trimmed = title.trimmingCharacters(in: .whitespaces)
         return trimmed.hasPrefix("New ") || trimmed.hasPrefix("Neu")
     }
 
-    /// Woerter fuer die Einstellungen in den Sprachen, die die Shell selbst
-    /// spricht. Alles andere findet das Kuerzel ⌘,.
+    /// The words for the settings in the languages the shell speaks itself.
+    /// Everything else is found by the shortcut ⌘,.
     public static func isSettingsCommand(_ title: String) -> Bool {
         let trimmed = title.trimmingCharacters(in: .whitespaces).lowercased()
         return trimmed.hasPrefix("einstellungen") || trimmed.hasPrefix("settings")
             || trimmed.hasPrefix("preferences")
     }
 
-    /// Gehoert dieser Menuepunkt ins Dock-Menue, und als was?
+    /// Does this menu item belong in the Dock menu, and as what?
     ///
-    /// `shortcut` ist das Kuerzel des Punktes, `nil` wenn er keines hat.
+    /// `shortcut` is the shortcut of the item, `nil` when it has none.
     public static func kind(title: String, shortcut: MenuShortcut?) -> DockCommandKind? {
         if let shortcut, shortcut.hasCommand, !shortcut.hasControl, !shortcut.hasOption {
-            // ⌘, sind ueberall die Einstellungen, ⌘N und ⇧⌘N ein neues
-            // Fenster - unabhaengig davon, wie der Eintrag heisst.
+            // ⌘, is the settings everywhere, ⌘N and ⇧⌘N a new window -
+            // no matter what the entry is called.
             if shortcut.matches(",") { return .settings }
             if shortcut.matches("n") { return .newItem }
         }
