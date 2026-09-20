@@ -63,8 +63,31 @@ and it is the first thing the VM test has to try.
    above whom, does the sidebar overlap it?
 5. Stage Manager on, and a full-screen app on a second space.
 
-### Prerequisites, not met yet (20.09.2026)
+### How to set it up
 
-UTM is installed, no VM exists. A macOS 26 guest needs roughly 17 GB for the
-IPSW plus 40 GB for its disk; the machine has 42 GB free in total. So the
-test waits for about 60 GB of room (or an external disk).
+Room is there since the evening of 20.09.2026 (207 GB free). What is left is
+the part a person has to do, because none of it can be driven without a
+screen: macOS' Setup Assistant, and granting Accessibility to a window
+manager. Both are GUI, and the guest's window would be on the host's screen.
+
+The shortest path:
+
+1. `brew install cirruslabs/cli/tart`
+2. `tart clone ghcr.io/cirruslabs/macos-sequoia-base:latest compat` - a
+   prebuilt guest with SSH already on, so the Setup Assistant is done. (An
+   `tart create --from-ipsw` guest is Apple's own image, but then step 1 of
+   the assistant has to be clicked through by hand.)
+3. `tart run compat` once, then `ssh admin@$(tart ip compat)` for everything
+   after that.
+4. In the guest: `brew install --cask nikitabobko/tap/aerospace amethyst
+   rectangle`, `brew install koekeishiya/formulae/yabai FelixKratz/formulae/sketchybar`.
+   yabai tiles without disabling SIP; only its scripting addition needs
+   that, and the tests below do not.
+5. Accessibility for AeroSpace, Amethyst and Rectangle: System Settings in
+   the guest, by hand. There is no way around it with SIP on.
+6. Copy ApolloShell in (`scp -r "build/ApolloShell.app" admin@…:~/Applications/`)
+   and start it.
+
+Then work through the five points above. The first one is the one worth the
+whole setup: turn the bar on, let yabai tile a window into the strip, and
+watch whether it ends up moved back and forth.
