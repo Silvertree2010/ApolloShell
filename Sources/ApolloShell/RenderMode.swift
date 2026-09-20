@@ -2,14 +2,14 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Bildproben ohne laufende Shell: `ApolloShell --render-dashboard <Ordner>`
-/// zeichnet das Dashboard mit festen Beispieldaten als PNG (2x, hell und
-/// dunkel) und endet. Fasst weder Fenster, Kuerzel noch Dateien der Shell
-/// an und laeuft deshalb auch neben einer laufenden ApolloShell. Zum
-/// Pixelvergleich vor und nach Umbauten, siehe scripts/compare-renders.py.
+/// Image samples without a running shell: `ApolloShell --render-dashboard <folder>`
+/// draws the dashboard with fixed sample data as a PNG (2x, light and
+/// dark) and ends. It touches neither windows, shortcuts nor files of the
+/// shell and therefore also runs next to a running ApolloShell. For pixel
+/// comparisons before and after rebuilds, see scripts/compare-renders.py.
 @MainActor
 enum RenderMode {
-    /// Endet den Prozess, wenn ein Schalter gesetzt ist; sonst kehrt es zurueck.
+    /// Ends the process when a switch is set; otherwise it returns.
     static func runIfRequested() {
         let args = CommandLine.arguments
         if let index = args.firstIndex(of: "--render-dashboard"), index + 1 < args.count {
@@ -36,8 +36,8 @@ enum RenderMode {
         let fixtures = RenderFixtures()
         let place = WeatherLocation(name: "Berlin", latitude: 52.52, longitude: 13.405)
         let places = WeatherFavorites(locations: [place], selectedID: place.id)
-        // Kein Akku: die Bildproben messen nie wirklich (`performance.battery`
-        // bleibt `nil`), so zeigte auch das alte Dashboard keinen Tank.
+        // No battery: the image samples never really measure (`performance.battery`
+        // stays `nil`), so the old dashboard showed no gauge either.
         let pages = DashboardPages(pages: DashboardPages.defaultPages(places: places, hasBattery: false))!
         let settings = ShellSettingsStore.preview(ShellSettings(dashboardPages: pages))
         let weatherModels = WeatherModels.preview(fixtures.weather)
@@ -51,9 +51,9 @@ enum RenderMode {
                 try write(view, scheme: scheme, to: folder.appendingPathComponent(name(page.template!.tab.rawValue, scheme)))
             }
         }
-        // Massstab 1,5, nur hell: fuer die eigene Pruefung, ob Text scharf
-        // bleibt (kein Vergleich mit der Basisprobe - die kennt keinen
-        // Massstab).
+        // Scale 1.5, light only: for our own check whether the text stays
+        // sharp (no comparison with the base sample - that one knows no
+        // scale).
         let scaledFolder = folder.appendingPathComponent("scaled", isDirectory: true)
         try FileManager.default.createDirectory(at: scaledFolder, withIntermediateDirectories: true)
         for page in pages.pages {
@@ -66,9 +66,9 @@ enum RenderMode {
         try renderEdit(into: folder, fixtures: fixtures, settings: settings, weatherModels: weatherModels, pages: pages)
     }
 
-    /// `--render-dashboard`s `edit/`-Unterordner: die Uebersichtsseite in
-    /// Bearbeitung, ein gewaehltes Widget, eine ungueltige Ablege-Vorschau,
-    /// und dieselbe Ansicht mit `accessibilityReduceMotion`.
+    /// The `edit/` subfolder of `--render-dashboard`: the overview page while
+    /// editing, one selected widget, an invalid drop preview, and the same
+    /// view with `accessibilityReduceMotion`.
     private static func renderEdit(into folder: URL, fixtures: RenderFixtures, settings: ShellSettingsStore,
                                     weatherModels: WeatherModels, pages: DashboardPages) throws {
         let editFolder = folder.appendingPathComponent("edit", isDirectory: true)
@@ -84,33 +84,33 @@ enum RenderMode {
             DashboardView(model: fixtures.dashboard, weatherModels: weatherModels, media: fixtures.media,
                           settings: settings, editor: editor)
                 .environment(\.dashboardReducesMotionOverride, reduceMotion)
-                // Das Ablegeziel (`.onDrop`) zeichnet `ImageRenderer` offscreen
-                // nicht (siehe `BentoDropTarget`) - fuer die Bildprobe weg.
+                // `ImageRenderer` does not draw the drop target (`.onDrop`)
+                // offscreen (see `BentoDropTarget`) - out for the image sample.
                 .environment(\.dashboardRendersForScreenshot, true)
         }
         try write(view(reduceMotion: false), scheme: .light, to: editFolder.appendingPathComponent("overview-light.png"))
         editor.selectedWidgetID = editor.page?.widgets.first?.id
         try write(view(reduceMotion: false), scheme: .light, to: editFolder.appendingPathComponent("selected-widget-light.png"))
-        // Eine ungueltige Ablege-Vorschau (zu nah an einem Widget), so als
-        // zoege man gerade ein zweites "Uhr"-Widget ueber die erste Karte.
+        // An invalid drop preview (too close to a widget), as if a second
+        // "clock" widget were being dragged over the first card right now.
         editor.dropPreview = editor.previewDrop(.clock, x: 60, y: 60).map { (frame: $0.frame, valid: $0.valid) }
         try write(view(reduceMotion: false), scheme: .light, to: editFolder.appendingPathComponent("invalid-drop-light.png"))
         editor.dropPreview = nil
         try write(view(reduceMotion: true), scheme: .light, to: editFolder.appendingPathComponent("reduce-motion-light.png"))
-        // Kein Bild fuer den Options-Popover selbst: `.popover` ist ein
-        // eigenes AppKit-Fenster, `ImageRenderer` zeichnet dessen Inhalt
-        // offscreen nicht (ein `Form` mit `WidgetOptionsView` direkt blieb in
-        // der Probe leer, vermutlich derselbe Grund wie bei `.onDrag`/
-        // `.onDrop`). Die Auswahl selbst (blauer Rahmen) zeigt
-        // `selected-widget-light.png`; die Regler in `WidgetOptionsView`
-        // (`NexusWidgetOptions.swift`) sind dieselben wie vor 0.2 im
-        // Nexus-Editor, dort schon im Bild geprueft.
+        // No image of the options popover itself: `.popover` is an AppKit
+        // window of its own, and `ImageRenderer` does not draw its content
+        // offscreen (a `Form` with `WidgetOptionsView` straight in it stayed
+        // empty in the sample, probably for the same reason as `.onDrag`/
+        // `.onDrop`). The selection itself (the blue frame) is what
+        // `selected-widget-light.png` shows; the sliders in `WidgetOptionsView`
+        // (`NexusWidgetOptions.swift`) are the same ones as before 0.2 in the
+        // Nexus editor, and were checked in the image there already.
     }
 
-    /// `--render-edit <Ordner>`: die Werkzeugleiste und beide Reiter der
-    /// Galerie des globalen Bearbeitungsmodus (Task 3), in `<Ordner>/edit/`.
-    /// Reine SwiftUI-Ansichten (kein `NSGlassEffectView`-Panel noetig), damit
-    /// `ImageRenderer` sie offscreen zeichnen kann.
+    /// `--render-edit <folder>`: the toolbar and both gallery tabs of the
+    /// global edit mode (task 3), in `<folder>/edit/`. Plain SwiftUI views
+    /// (no `NSGlassEffectView` panel needed), so `ImageRenderer` can draw
+    /// them offscreen.
     private static func renderEditMode(into folder: URL) throws {
         let editFolder = folder.appendingPathComponent("edit", isDirectory: true)
         try FileManager.default.createDirectory(at: editFolder, withIntermediateDirectories: true)
@@ -124,8 +124,8 @@ enum RenderMode {
             editor.begin(screen: screen)
         }
         try write(EditToolbarView(editor: editor), scheme: .light, to: editFolder.appendingPathComponent("toolbar-light.png"))
-        // Esc mit Aenderungen (Task 6): die Werkzeugleiste fragt nach, statt
-        // sofort abzubrechen.
+        // Esc with changes (task 6): the toolbar asks back instead of
+        // cancelling right away.
         editor.dashboard.addPage()
         editor.pendingCancelConfirmation = true
         try write(EditToolbarView(editor: editor), scheme: .light, to: editFolder.appendingPathComponent("toolbar-confirm-light.png"))
@@ -136,16 +136,16 @@ enum RenderMode {
         editor.galleryTab = .controlCentre
         try write(EditGalleryView(editor: editor).environment(\.galleryRendersForScreenshot, true), scheme: .light,
                  to: editFolder.appendingPathComponent("gallery-controlcentre-light.png"))
-        // Kontrollzentrum in der Bearbeitung (Task 5): ein Knopf gewaehlt -
-        // wackeln selbst zeichnet `ImageRenderer` nicht (feste Momentaufnahme
-        // mitten in der Dauerschleife), aber Rahmen, Minus-Abzeichen und
-        // Ziel-Hervorhebung sind ohne Bewegung zu sehen. Lautstaerke-Regler
-        // und Geraete-Knoepfe der Ton-Karte (`UtilitiesAudioCard`) sind
-        // selbst AppKit-hinterlegt (eigene Ziehflaeche, `NSMenu`) - dieselbe
-        // Ursache wie bei `.onDrag`/`.onDrop`: offscreen zeichnet
-        // `ImageRenderer` sie als rotes Verbotszeichen statt ihrer echten
-        // Form. Im echten Fenster (nicht offscreen) sehen sie normal aus,
-        // nur ohne Wirkung (`allowsHitTesting(false)`).
+        // The control centre while editing (task 5): one button selected -
+        // `ImageRenderer` does not draw the wobble itself (a fixed snapshot
+        // in the middle of the endless loop), but the frame, the minus badge
+        // and the target highlight are visible without motion. The volume
+        // slider and the device buttons of the sound card (`UtilitiesAudioCard`)
+        // are backed by AppKit themselves (their own drag area, `NSMenu`) -
+        // the same cause as with `.onDrag`/`.onDrop`: offscreen,
+        // `ImageRenderer` draws them as a red no-entry sign instead of their
+        // real shape. In the real window (not offscreen) they look normal,
+        // only without effect (`allowsHitTesting(false)`).
         if let toggleID = editor.utilities?.layout.toggles.first?.id {
             editor.selectedToggleID = toggleID
         }
@@ -158,9 +158,9 @@ enum RenderMode {
         "\(base)-\(scheme == .dark ? "dark" : "light").png"
     }
 
-    /// Ohne Theme-Speicher (`shellTheme(nil)`): immer die Vorgaben, egal
-    /// welches Theme der Nutzer gewaehlt hat. Deckender Hintergrund, weil
-    /// Glas offscreen nicht gezeichnet wird.
+    /// Without a theme store (`shellTheme(nil)`): always the defaults, no
+    /// matter which theme the user picked. An opaque background, because
+    /// glass is not drawn offscreen.
     static func write(_ view: some View, scheme: ColorScheme, to url: URL) throws {
         let content = view
             .shellTheme(nil)
@@ -177,11 +177,11 @@ enum RenderMode {
     enum RenderError: Error { case noImage(String) }
 }
 
-/// Feste Beispieldaten fuer Bildproben: fester Zeitpunkt, feste Werte,
-/// nichts misst und nichts ruft ins Netz.
+/// Fixed sample data for image samples: a fixed point in time, fixed values,
+/// nothing measures and nothing calls out to the network.
 @MainActor
 final class RenderFixtures {
-    /// Freitag, 18.09.2026, 14:05 in der Zeitzone des Rechners.
+    /// Friday, 18.09.2026, 14:05 in the time zone of the machine.
     let now: Date = {
         var components = DateComponents(year: 2026, month: 9, day: 18, hour: 14, minute: 5)
         components.calendar = Calendar(identifier: .gregorian)
@@ -189,7 +189,7 @@ final class RenderFixtures {
     }()
 
     lazy var dashboard = DashboardModel.preview(now: now, cpu: 0.23, memory: 0.58, storage: 0.46,
-                                                userName: "Alex Beispiel", uptime: 11_520)
+                                                userName: "Alex Example", uptime: 11_520)
 
     lazy var weather: WeatherModel = {
         let calendar = Calendar(identifier: .gregorian)
@@ -212,8 +212,8 @@ final class RenderFixtures {
     }()
 
     lazy var media: MediaModel = {
-        let playing = MediaNowPlaying(title: "Sample Title", artist: "Sample Artist", album: "Sample Album",
+        let playing = MediaNowPlaying(title: "Sample Track", artist: "Sample Band", album: "Sample Album",
                                       isPlaying: false, duration: 240, elapsed: 80, timestamp: now, playbackRate: 0)
-        return MediaModel.preview(nowPlaying: playing, source: MediaSource(name: "Musik", icon: nil), now: now)
+        return MediaModel.preview(nowPlaying: playing, source: MediaSource(name: "Music", icon: nil), now: now)
     }()
 }

@@ -2,39 +2,40 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Die Werte eines Themes, fertig fuer SwiftUI.
+/// The values of a theme, ready for SwiftUI.
 ///
-/// Zwei Regeln halten das hier zusammen:
+/// Two rules hold this together:
 ///
-/// 1. **Was das Theme nicht nennt, bleibt, wie macOS es zeichnet.** `Theme`
-///    liefert nur Werte aus der Datei; fehlt einer, gilt hier die Systemfarbe,
-///    Material oder das eingebaute Mass. Ohne Theme (`Theme.standard`) fehlt
-///    alles - die Shell sieht aus wie ohne Themes.
-/// 2. **Kein Zugriff kann scheitern.** Der Kern hat jeden Wert schon geprueft
-///    und geklemmt; hier wird nur noch umgerechnet.
+/// 1. **What the theme does not name stays as macOS draws it.** `Theme`
+///    only supplies values from the file; if one is missing, the system
+///    color, material, or built-in measurement applies here. Without a
+///    theme (`Theme.standard`) everything is missing - the shell looks as
+///    if there were no themes.
+/// 2. **No access can fail.** The core has already validated and clamped
+///    every value; here it is only converted.
 struct ShellStyle: Equatable {
     let theme: Theme
     let dark: Bool
 
-    /// Das eingebaute Aussehen: genau die Shell ohne Theme.
+    /// The built-in look: exactly the shell without a theme.
     static let standard = ShellStyle(theme: .standard, dark: false)
 
-    /// Der Wert des Themes in diesem Erscheinungsbild, `nil`, wenn es ihn
-    /// nicht nennt.
+    /// The value of the theme in this appearance, `nil` if it does not
+    /// name it.
     func value<Kind>(_ token: ThemeToken<Kind>) -> Kind.Value? {
         theme.value(token, dark: dark)
     }
 
-    // MARK: - Farben
+    // MARK: - Colors
 
-    /// Die Farbe des Themes, `nil`, wenn es sie nicht nennt.
+    /// The color of the theme, `nil` if it does not name it.
     func color(_ token: ThemeColorToken) -> Color? {
         value(token).map(Color.init)
     }
 
-    /// Die Farbe des Themes, sonst `fallback` - auch ein hierarchischer Stil
-    /// wie `.primary`, der auf Glas lebendig bleibt (eine feste Farbe tut
-    /// das nicht).
+    /// The color of the theme, otherwise `fallback` - also a hierarchical
+    /// style like `.primary`, which stays alive on glass (a fixed color
+    /// does not).
     func paint(_ token: ThemeColorToken, or fallback: some ShapeStyle) -> AnyShapeStyle {
         color(token).map(AnyShapeStyle.init) ?? AnyShapeStyle(fallback)
     }
@@ -60,18 +61,19 @@ struct ShellStyle: Equatable {
     var card: Color { color(.card) ?? Color(nsColor: .windowBackgroundColor) }
     var surface: Color { color(.surface) ?? Color(nsColor: .windowBackgroundColor) }
 
-    /// Schrift auf Akzentflaechen, wenn das Theme dazu etwas sagt: seine
-    /// eigene, oder die Vorgabe lesbar gemacht auf seinem Akzent. Sonst `nil`.
+    /// Text color on accent areas, if the theme says something about it:
+    /// its own, or the default made readable on its accent. Otherwise
+    /// `nil`.
     var themeOnAccent: Color? { theme.readableColor(.onAccent, dark: dark).map(Color.init) }
 
-    /// Schrift auf Akzentflaechen; ohne Angabe im Theme wie macOS
-    /// (`Color.onAccent`, passend zum Akzent des Systems).
+    /// Text color on accent areas; without a theme value, like macOS
+    /// (`Color.onAccent`, matching the system accent).
     var onAccent: Color { themeOnAccent ?? .onAccent }
 
-    // MARK: - Flaechen
+    // MARK: - Surfaces
 
-    /// Fuellung einer Flaeche: der Verlauf, wenn das Theme einen setzt, sonst
-    /// die Farbe daneben, sonst `fallback`.
+    /// Fill of a surface: the gradient, if the theme sets one, otherwise
+    /// the color next to it, otherwise `fallback`.
     private func fill(_ colorToken: ThemeColorToken, _ gradientToken: ThemeGradientToken,
                       fallback: some ShapeStyle) -> AnyShapeStyle {
         if let gradient = value(gradientToken), !gradient.isEmpty {
@@ -80,11 +82,11 @@ struct ShellStyle: Equatable {
         return paint(colorToken, or: fallback)
     }
 
-    /// Faerbt das Theme diese Flaeche ueberhaupt? Nennt es weder Farbe noch
-    /// Verlauf, bleibt die Flaeche, wie die Shell sie zeichnet - also Glas
-    /// und Material statt einer Ersatzfarbe. Ein Verlauf `none` faerbt
-    /// nichts: ohne Farbe daneben bliebe die Flaeche sonst leer (die Leiste
-    /// waere unsichtbar).
+    /// Does the theme color this surface at all? If it names neither a
+    /// color nor a gradient, the surface stays as the shell draws it -
+    /// that is, glass and material instead of a substitute color. A
+    /// gradient of `none` colors nothing: without a color next to it the
+    /// surface would otherwise stay empty (the bar would be invisible).
     private func paints(_ colorToken: ThemeColorToken, _ gradientToken: ThemeGradientToken) -> Bool {
         value(colorToken) != nil || value(gradientToken).map { !$0.isEmpty } == true
     }
@@ -96,7 +98,7 @@ struct ShellStyle: Equatable {
     var paintsSurface: Bool { paints(.surface, .surface) }
     var paintsLauncherHighlight: Bool { paints(.launcherHighlight, .launcherHighlight) }
 
-    /// Hintergrund der Leiste, mit Deckkraft aus dem Theme.
+    /// Background of the bar, with opacity from the theme.
     var barFill: AnyShapeStyle {
         let opacity = value(.barOpacity) ?? 1
         if let gradient = value(ThemeGradientToken.bar), !gradient.isEmpty {
@@ -106,13 +108,13 @@ struct ShellStyle: Equatable {
         return AnyShapeStyle(bar.opacity(opacity))
     }
 
-    /// Wie deckend ein Panel ist (`--apollo-panel-opacity`).
+    /// How opaque a panel is (`--apollo-panel-opacity`).
     var panelOpacity: Double { value(.panelOpacity) ?? 1 }
 
-    /// Deckt die Leiste vollstaendig? Dann braucht es nichts dahinter.
+    /// Does the bar cover completely? Then nothing is needed behind it.
     var barIsOpaque: Bool { (value(.barOpacity) ?? 1) >= 1 }
 
-    /// Flaeche von Fenstern und Listen (`--apollo-surface-color`, mit
+    /// Surface of windows and lists (`--apollo-surface-color`, with
     /// `--apollo-surface-gradient`).
     var surfaceFill: AnyShapeStyle {
         fill(.surface, .surface, fallback: Color(nsColor: .windowBackgroundColor))
@@ -142,13 +144,13 @@ struct ShellStyle: Equatable {
         fill(.background, .background, fallback: Color(nsColor: .windowBackgroundColor))
     }
 
-    /// Ein Verlauf des Themes als SwiftUI-Verlauf. Der Winkel folgt CSS:
-    /// 0 Grad nach oben, 90 Grad nach rechts.
+    /// A gradient of the theme as a SwiftUI gradient. The angle follows
+    /// CSS: 0 degrees upward, 90 degrees to the right.
     static func linear(_ gradient: ThemeGradient) -> LinearGradient {
         let stops = gradient.stops.map {
             Gradient.Stop(color: Color($0.color), location: $0.position)
         }
-        // Die Richtung rechnet der Kern (`ThemeGradient.points`, geprueft).
+        // The core computes the direction (`ThemeGradient.points`, validated).
         let points = gradient.points
         return LinearGradient(
             stops: stops,
@@ -157,9 +159,9 @@ struct ShellStyle: Equatable {
         )
     }
 
-    // MARK: - Masse
+    // MARK: - Measurements
 
-    /// Eine Laenge des Themes, `nil`, wenn es sie nicht nennt.
+    /// A length of the theme, `nil` if it does not name it.
     func length(_ token: ThemeNumberToken) -> CGFloat? {
         value(token).map { CGFloat($0) }
     }
@@ -179,11 +181,11 @@ struct ShellStyle: Equatable {
     func dockSpacing(_ fallback: CGFloat) -> CGFloat { length(.dockSpacing) ?? fallback }
     func launcherRowHeight(_ fallback: CGFloat) -> CGFloat { length(.launcherRowHeight) ?? fallback }
 
-    /// Staerke der Umrandung; 0 heisst: keine.
+    /// Border width; 0 means: none.
     func borderWidth(_ fallback: CGFloat) -> CGFloat { length(.borderWidth) ?? fallback }
 
-    /// Umrandung einer Flaeche, oder nichts, wenn das Theme keine Breite
-    /// nennt oder sie auf 0 stellt.
+    /// Border of a surface, or nothing if the theme names no width or
+    /// sets it to 0.
     @ViewBuilder
     func border<S: InsettableShape>(_ shape: S) -> some View {
         if let width = length(.borderWidth), width > 0 {
@@ -191,19 +193,19 @@ struct ShellStyle: Equatable {
         }
     }
 
-    /// Wie stark Schatten unter Flaechen sind.
+    /// How strong shadows under surfaces are.
     func shadowOpacity(_ fallback: Double) -> Double {
         if value(.shadows) == false { return 0 }
         return value(.shadowOpacity) ?? fallback
     }
 
-    // MARK: - Schrift
+    // MARK: - Typography
 
-    /// Schriftart des Themes, sonst die Systemschrift.
+    /// Font of the theme, otherwise the system font.
     ///
-    /// Ein Name, den es auf diesem Mac nicht gibt, faellt still auf die
-    /// Systemschrift zurueck - ein Theme aus dem Netz darf die Shell nicht
-    /// unlesbar machen.
+    /// A name that does not exist on this Mac silently falls back to the
+    /// system font - a theme from the internet must not make the shell
+    /// unreadable.
     func font(size: CGFloat, weight: Font.Weight = .regular) -> Font {
         let family = (value(.fontFamily) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let scaled = size * fontScale
@@ -213,44 +215,43 @@ struct ShellStyle: Equatable {
         return .custom(family, fixedSize: scaled).weight(weight)
     }
 
-    /// Wie stark die Schriftgroessen des Themes von den eingebauten abweichen.
-    /// 13 pt ist die Systemgroesse, an der die Shell gebaut ist.
+    /// How much the theme's font sizes deviate from the built-in ones.
+    /// 13 pt is the system size the shell is built around.
     private var fontScale: CGFloat {
         guard let size = value(.fontSize), size > 0 else { return 1 }
         return CGFloat(size) / 13
     }
 
-    // MARK: - Symbole
+    // MARK: - Symbols
 
-    /// Das Bild, das das Theme fuer dieses Symbol mitbringt - `nil`, wenn
-    /// keines dabei ist.
+    /// The image the theme brings for this symbol - `nil` if none is
+    /// included.
     func iconFile(_ id: String) -> URL? {
         theme.icon(id)
     }
 
-    // MARK: - Schalter
+    // MARK: - Switches
 
-    /// Darf sich etwas bewegen? Ein Theme kann Bewegung abstellen; die
-    /// Systemeinstellung "Bewegung reduzieren" hat dennoch Vorrang, die
-    /// fragen die Ansichten selbst ab.
+    /// May something move? A theme can turn off motion; the system
+    /// setting "Reduce Motion" still takes precedence, the views query
+    /// it themselves.
     var animations: Bool { value(.animations) ?? true }
 
-    /// Darf Liquid Glass benutzt werden?
+    /// May Liquid Glass be used?
     var glass: Bool { value(.glass) ?? true }
 
-    /// Sollen Bilder, die ein Theme fuer Symbole mitbringt, eingefaerbt
-    /// werden?
+    /// Should images a theme brings for symbols be tinted?
     ///
-    /// `--apollo-icon-style`: `monochrome` faerbt sie wie das Zeichen, das
-    /// sie ersetzen (also nach `--apollo-bar-icon-color` und Verwandten);
-    /// `colorful` und die Vorgabe `auto` zeigen sie so, wie sie gemalt sind.
-    /// Die Vorgabe aendert damit an bestehenden Sets nichts.
+    /// `--apollo-icon-style`: `monochrome` tints them like the glyph they
+    /// replace (that is, following `--apollo-bar-icon-color` and
+    /// relatives); `colorful` and the default `auto` show them as they
+    /// are painted. The default thus changes nothing for existing sets.
     var tintsThemeIcons: Bool { value(.iconStyle) == "monochrome" }
 
-    /// Wie schnell Bewegungen laufen; 1 ist die eingebaute Geschwindigkeit.
+    /// How fast animations run; 1 is the built-in speed.
     var animationSpeed: Double { value(.animationSpeed) ?? 1 }
 
-    /// Eine Dauer, vom Theme gestreckt oder gekuerzt. Ohne Bewegung: 0.
+    /// A duration, stretched or shortened by the theme. Without motion: 0.
     func duration(_ seconds: Double) -> Double {
         guard animations else { return 0 }
         let speed = animationSpeed
@@ -259,44 +260,44 @@ struct ShellStyle: Equatable {
 }
 
 extension NSColor {
-    /// Eine Themefarbe als AppKit-Farbe, im festen sRGB-Raum.
+    /// A theme color as an AppKit color, in the fixed sRGB space.
     convenience init(_ color: ThemeColor) {
         self.init(srgbRed: color.red, green: color.green, blue: color.blue, alpha: color.alpha)
     }
 }
 
 extension Color {
-    /// Eine Themefarbe als SwiftUI-Farbe, im festen sRGB-Raum - genau die
-    /// Werte, die in der Datei stehen.
+    /// A theme color as a SwiftUI color, in the fixed sRGB space - exactly
+    /// the values that are in the file.
     init(_ color: ThemeColor) {
         self.init(.sRGB, red: color.red, green: color.green, blue: color.blue, opacity: color.alpha)
     }
 }
 
-// MARK: - In der Umgebung
+// MARK: - In the environment
 
 private struct ShellStyleKey: EnvironmentKey {
     static let defaultValue = ShellStyle.standard
 }
 
 extension EnvironmentValues {
-    /// Der Stil des gewaehlten Themes. Vorgabe ist die Shell ohne Theme -
-    /// eine Ansicht ohne `shellTheme` sieht also aus wie immer.
+    /// The style of the chosen theme. Default is the shell without a
+    /// theme - a view without `shellTheme` thus looks as it always did.
     var shellStyle: ShellStyle {
         get { self[ShellStyleKey.self] }
         set { self[ShellStyleKey.self] = newValue }
     }
 }
 
-/// Legt den Stil in die Umgebung, im Erscheinungsbild dieses Fensters.
+/// Puts the style into the environment, in this window's appearance.
 ///
-/// Gehoert an die Wurzel jedes Fensters der Shell (`shellTheme()`).
-/// Ansichten lesen ihn so:
+/// Belongs at the root of every window of the shell (`shellTheme()`).
+/// Views read it like this:
 /// ```swift
 /// @Environment(\.shellStyle) private var style
-/// ``` Weil das Erscheinungsbild
-/// (hell/dunkel) erst hier bekannt ist, wird der Stil in einer Ansicht
-/// aufgeloest und nicht im Speicher.
+/// ``` Because the appearance
+/// (light/dark) is only known here, the style is resolved in a view and
+/// not stored.
 private struct ShellThemeScope: ViewModifier {
     let store: ThemeStore
     @Environment(\.colorScheme) private var scheme
@@ -305,18 +306,18 @@ private struct ShellThemeScope: ViewModifier {
         let style = store.style(dark: scheme == .dark)
         content
             .environment(\.shellStyle, style)
-            // Steuerelemente (Schalter, Schieber, Auswahl) folgen dem Theme,
-            // ohne dass jede Ansicht es selbst setzen muss.
+            // Controls (toggles, sliders, pickers) follow the theme,
+            // without every view having to set it itself.
             .tint(style.accent)
     }
 }
 
 extension View {
-    /// Faerbt den Hintergrund eines Fensters oder einer Liste nach dem Theme.
+    /// Colors the background of a window or a list according to the theme.
     ///
-    /// Nennt das Theme keine Flaeche, bleibt alles, wie macOS es zeichnet -
-    /// also auch das Glas der Seitenleiste von Nexus. Sonst wird der eigene
-    /// Hintergrund der Rollflaeche ausgeblendet, er laege darueber.
+    /// If the theme names no surface, everything stays as macOS draws it
+    /// - including the glass of Nexus's sidebar. Otherwise the scroll
+    /// area's own background is hidden, it would sit above it.
     @ViewBuilder
     func themedWindowBackground(_ style: ShellStyle) -> some View {
         if style.paintsSurface {
@@ -327,17 +328,18 @@ extension View {
         }
     }
 
-    /// An die Wurzel eines Fensters: setzt `tint` und den Stil in der Umgebung.
-    /// Auch vor jedes Messen einer Ansicht (`fittingSize`), sonst misst man
-    /// sie ohne die Schrift und die Masse des Themes.
+    /// At the root of a window: sets `tint` and the style in the
+    /// environment. Also before every measurement of a view
+    /// (`fittingSize`), otherwise it is measured without the theme's font
+    /// and measurements.
     func shellTheme(_ store: ThemeStore? = ThemeStore.shared) -> ModifiedContent<Self, ShellThemeRoot> {
         modifier(ShellThemeRoot(store: store))
     }
 }
 
-/// Die Wurzel aus `shellTheme()`. Benannter Typ, damit Fenster ihn in ihrem
-/// `NSHostingView<...>` fuehren koennen. Ohne Speicher (Bildproben,
-/// Vorschauen) bleibt alles wie es ist.
+/// The root from `shellTheme()`. Named type so windows can carry it in
+/// their `NSHostingView<...>`. Without storage (image samples, previews)
+/// everything stays as it is.
 struct ShellThemeRoot: ViewModifier {
     let store: ThemeStore?
 

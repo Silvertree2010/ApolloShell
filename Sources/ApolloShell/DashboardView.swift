@@ -1,20 +1,20 @@
 import ApolloShellCore
 import SwiftUI
 
-/// Dashboard wie bei Caelestia (modules/dashboard): Seitenleiste oben,
-/// darunter die gewaehlte Seite. Masse aus dem Caelestia-Quellcode
-/// (Recherche 14.09.): Aussenabstand 16, Kartenabstand 12, Karten Wetter 275
-/// breit (Radius 42), Benutzer 340 (28), Uhr 110 (16), Kalender (28),
-/// Ressourcen (16), Medien 200 (56). Apple-Optik: SF Symbols, Systemschrift,
-/// Glas.
+/// Dashboard like Caelestia's (modules/dashboard): tab bar on top, the
+/// selected page below it. Measurements from the Caelestia source code
+/// (research 09/14): outer padding 16, card spacing 12, weather card 275
+/// wide (radius 42), user 340 (28), clock 110 (16), calendar (28),
+/// resources (16), media 200 (56). Apple look: SF Symbols, system font,
+/// glass.
 ///
-/// Welche Seiten es gibt und was auf ihnen liegt, bestimmt
-/// `settings.dashboardPages` (`DashboardPages`, Nexus > Dashboard); die
-/// Ansicht liest es live. Die Flaeche bleibt dabei immer 839 x 392 - die
-/// Widgets stehen darin an ihren eigenen Rahmen (`BentoPageView`).
+/// Which pages exist and what lies on them is determined by
+/// `settings.dashboardPages` (`DashboardPages`, Nexus > Dashboard); the
+/// view reads it live. The area itself always stays 839 x 392 - the
+/// widgets sit inside it at their own frames (`BentoPageView`).
 ///
-/// Wetter kommt je Widget aus einem eigenen `WeatherModel`
-/// (`WeatherModels.swift`), Medien ueber den mediaremote-adapter
+/// Weather comes per widget from its own `WeatherModel`
+/// (`WeatherModels.swift`), media via the mediaremote-adapter
 /// (MediaModel.swift, MediaView.swift).
 struct DashboardView: View {
     @Bindable var model: DashboardModel
@@ -29,16 +29,16 @@ struct DashboardView: View {
     static let spacing = CGFloat(DashboardGeometry.spacing)
     static let gridWidth = CGFloat(DashboardGeometry.width)
     static let gridHeight = CGFloat(DashboardGeometry.height)
-    /// Caelestias Standardkurve: 500 ms, leicht ueberschiessend - fuer den
-    /// Reiter-Indikator und fuer Widgets, die in Nexus umziehen.
+    /// Caelestia's standard curve: 500 ms, slightly overshooting - for the
+    /// tab indicator and for widgets moving into Nexus.
     static let motion = Animation.shellSpatial
-    /// Mindestbreite eines Reiters in der scrollenden Leiste (viele Seiten).
+    /// Minimum width of a tab in the scrolling bar (many pages).
     static let tabWidth: CGFloat = 96
     static let rootSpace = "dashboardRoot"
 
-    /// Die Seiten - waehrend einer Bearbeitung deren Arbeitskopie, sonst aus
-    /// den Einstellungen, sonst (noch nicht migriert, etwa in Nexus vor dem
-    /// ersten Start) die vier mitgelieferten.
+    /// The pages - during an edit their working copy, otherwise from the
+    /// settings, otherwise (not yet migrated, e.g. in Nexus before the
+    /// first launch) the four bundled ones.
     private var pages: DashboardPages {
         editor.session?.pages ?? settings.settings.dashboardPages
             ?? DashboardPages(pages: DashboardPages.defaultPages(places: .empty,
@@ -49,22 +49,22 @@ struct DashboardView: View {
         let pages = pages
         let selectedID = editor.session?.pageID ?? model.pageID
         let selected = selectedID.flatMap(pages.page(id:)) ?? pages.pages[0]
-        // Skaliert um die obere linke Ecke (Kantenfenster oben) - die
-        // Referenzgroesse (Massstab 1) rechnet `ScaledToFit` selbst aus
-        // `content.fixedSize()`, so bleibt ihr Ergebnis (auch bei
-        // Massstab 1) bitgleich mit `.fixedSize()` allein.
+        // Scaled around the top-left corner (edge window on top) - the
+        // reference size (scale 1) is computed by `ScaledToFit` itself
+        // from `content.fixedSize()`, so its result (even at scale 1)
+        // stays bit-identical with `.fixedSize()` alone.
         ScaledToFit(scale: model.scale) {
             content(pages: pages, selected: selected)
                 .scaleEffect(model.scale, anchor: .topLeading)
         }
-        // Bezugsraum der ganzen Ansicht (oben links, skaliert) - nur fuer den
-        // Selbsttest des Bearbeitungsmodus (`debugPageRectInHost`).
+        // Coordinate space of the whole view (top left, scaled) - only
+        // for the self-test of edit mode (`debugPageRectInHost`).
         .coordinateSpace(name: Self.rootSpace)
-        // Ein Wechsel der gezeigten Widgets (Seitenwechsel - auch aus
-        // `Dashboard.show(tab:)` oder waehrend einer Bearbeitung -, oder ein
-        // abgelegtes/entferntes Widget auf derselben Seite) zieht nach, ob
-        // die Leistungs-Messung laufen soll, und startet die Wetter-Modelle
-        // der jetzt gezeigten Wetter-Widgets neu, solange offen.
+        // A change in the shown widgets (page change - also from
+        // `Dashboard.show(tab:)` or during an edit -, or a widget dropped
+        // on/removed from the same page) re-checks whether the
+        // performance measurement should run, and restarts the weather
+        // models of the now-shown weather widgets, as long as open.
         .onChange(of: PageWidgetsKey(page: selected), initial: true) { _, key in
             model.showsPerformance = key.kinds.contains { $0.isPerformance }
             if model.isOpen {
@@ -73,9 +73,9 @@ struct DashboardView: View {
         }
     }
 
-    /// Vergleichswert fuer `.onChange`: aendert sich bei jedem Wechsel der
-    /// gezeigten Seite und bei jeder Aenderung ihrer Widgets (Art oder
-    /// Kennung) - nicht bei blossen Optionsaenderungen (z. B. Orte).
+    /// Comparison value for `.onChange`: changes on every switch of the
+    /// shown page and on every change of its widgets (kind or identifier)
+    /// - not on mere option changes (e.g. locations).
     private struct PageWidgetsKey: Equatable {
         let pageID: DashboardPage.ID
         let kinds: [WidgetKind]
@@ -100,10 +100,10 @@ struct DashboardView: View {
         .fixedSize()
     }
 
-    /// Solange jede Seite mindestens `tabWidth` breit stehen kann, wie
-    /// bisher gleichmaessig ueber die ganze Breite verteilt; sonst rollend,
-    /// mit der gewaehlten Seite im Blick. Waehrend der Bearbeitung (Task 4)
-    /// kommt ein **+** ans Ende, das eine neue Seite anlegt und zeigt.
+    /// As long as every page can stand at least `tabWidth` wide, spread
+    /// evenly across the full width as before; otherwise scrolling, with
+    /// the selected page in view. During editing (task 4) a **+** is
+    /// added at the end, which creates and shows a new page.
     @ViewBuilder
     private func pageBar(pages: [DashboardPage], selected: DashboardPage) -> some View {
         let extra: CGFloat = editor.isEditing ? Self.tabWidth : 0
@@ -137,10 +137,10 @@ struct DashboardView: View {
         }
     }
 
-    /// Menue statt eines einfachen Knopfs (Task 7): „Neue Seite“ wie bisher,
-    /// dazu „Standardseiten wiederherstellen“ fuer die mitgelieferten Seiten,
-    /// die die alte Nexus-Seitenliste vor Task 7 noch anbot. Deaktiviert,
-    /// wenn schon alle vier da sind (`DashboardEditor.isMissingDefaultPages`).
+    /// Menu instead of a plain button (task 7): "New Page" as before,
+    /// plus "Restore Default Pages" for the bundled pages that the old
+    /// Nexus page list still offered before task 7. Disabled once all
+    /// four already exist (`DashboardEditor.isMissingDefaultPages`).
     private var addPageButton: some View {
         Menu {
             Button("New Page") {
@@ -180,9 +180,9 @@ struct DashboardView: View {
         }
     }
 
-    /// Umbenennen: das Feld steht fuer sich statt im Label des Reiter-Knopfs -
-    /// dort bekam der Knopf jeden Klick (Seitenwechsel), das Feld nie den
-    /// Fokus (Live-Test 19.09.).
+    /// Renaming: the field stands on its own instead of inside the tab
+    /// button's label - there, the button got every click (page switch),
+    /// the field never got focus (live test 09/19).
     private func renameField(_ page: DashboardPage, selected: DashboardPage) -> some View {
         VStack(spacing: 4) {
             Image(systemName: page.symbol)
@@ -208,17 +208,17 @@ struct DashboardView: View {
 
     private func pageTab(_ page: DashboardPage, selected: DashboardPage) -> some View {
         Button {
-            // Caelestia: Indikator 500 ms mit leicht ueberschiessender Kurve.
-            // Waehrend einer Bearbeitung wechselt die Sitzung die Seite -
-            // Nexus folgt, weil es dasselbe `editor`-Objekt beobachtet.
+            // Caelestia: indicator 500 ms with a slightly overshooting
+            // curve. During an edit, the session switches the page -
+            // Nexus follows, because it observes the same `editor` object.
             withAnimation(Self.motion) {
                 if editor.isEditing { editor.pageID = page.id } else { model.pageID = page.id }
             }
         } label: {
             VStack(spacing: 4) {
                 // Theme: icons/panel-media.png, panel-performance.png,
-                // panel-weather.png; die Seite Dashboard nimmt bar-dashboard.
-                // Eigene Seiten haben keine Theme-Kennung, nur ihr Symbol.
+                // panel-weather.png; the Dashboard page uses bar-dashboard.
+                // Custom pages have no theme identifier, only their symbol.
                 Group {
                     if let template = page.template {
                         ThemedIcon(template.tab.iconID, fallback: page.symbol)
@@ -245,13 +245,13 @@ struct DashboardView: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        // Kontextmenue nur beim Bearbeiten (Task 4): Umbenennen, Symbol,
-        // Duplizieren, Loeschen (nie die letzte Seite - `DashboardEditor`
-        // erlaubt es ohnehin nicht, der Knopf bleibt trotzdem sichtbar aus,
-        // damit das Menue nicht bei jeder Seite anders aussieht).
+        // Context menu only while editing (task 4): rename, icon,
+        // duplicate, delete (never the last page - `DashboardEditor`
+        // does not allow it anyway, the button still stays visible so the
+        // menu does not look different for every page).
         .contextMenu {
             if editor.isEditing {
-                Button("Umbenennen") { editor.renamingPageID = page.id }
+                Button("Rename") { editor.renamingPageID = page.id }
                 Menu("Icon") {
                     ForEach(nexusPageSymbols, id: \.self) { symbol in
                         Button {
@@ -261,11 +261,11 @@ struct DashboardView: View {
                         }
                     }
                 }
-                Button("Duplizieren") { editor.duplicatePage(page.id) }
-                // Ohne Rueckfrage: ein `.alert` haengt als Sheet am randlosen
-                // Kantenfenster am oberen Bildschirmrand und erschien dort
-                // nicht verlaesslich - und die ganze Bearbeitung laesst sich
-                // mit „Abbrechen“ ohnehin zuruecknehmen.
+                Button("Duplicate") { editor.duplicatePage(page.id) }
+                // Without confirmation: a `.alert` hangs as a sheet off
+                // the borderless edge window at the top of the screen and
+                // did not appear reliably there - and the whole edit can
+                // be undone with "Cancel" anyway.
                 Button("Delete", role: .destructive) { withAnimation(Self.motion) { _ = editor.removePage(page.id) } }
                     .disabled((editor.session?.pages.pages.count ?? 0) <= 1)
             }
@@ -273,14 +273,14 @@ struct DashboardView: View {
     }
 }
 
-/// Bemisst ihren Inhalt unskaliert (`sizeThatFits(.unspecified)`, dasselbe,
-/// was `.fixedSize()` allein auch tut) und meldet dem Elternelement diese
-/// Groesse mal `scale` - der Inhalt selbst traegt sein eigenes
-/// `.scaleEffect(scale, anchor: .topLeading)`. So bleibt die gemeldete
-/// Flaeche (Kantenfenster, `RenderMode`, Nexus-Vorschau) genau so gross wie
-/// das skaliert gezeichnete Ergebnis, ohne die unskalierte Groesse von
-/// aussen kennen zu muessen - und bei `scale == 1` bitgleich mit
-/// `.fixedSize()` allein.
+/// Measures its content unscaled (`sizeThatFits(.unspecified)`, the same
+/// thing `.fixedSize()` alone also does) and reports this size times
+/// `scale` to the parent - the content itself carries its own
+/// `.scaleEffect(scale, anchor: .topLeading)`. This way the reported area
+/// (edge window, `RenderMode`, Nexus preview) stays exactly as large as
+/// the scaled, drawn result, without needing to know the unscaled size
+/// from outside - and at `scale == 1` bit-identical with `.fixedSize()`
+/// alone.
 struct ScaledToFit: Layout {
     let scale: CGFloat
 
@@ -297,10 +297,10 @@ struct ScaledToFit: Layout {
     }
 }
 
-// MARK: - Karten
+// MARK: - Cards
 
-/// Initiale, Name und zwei Kapseln. Hochkant (untere Reihe, Spalte) steht
-/// die Initiale ueber dem Namen.
+/// Initial, name, and two badges. Portrait (bottom row, column): the
+/// initial sits above the name.
 struct UserCard: View {
     let model: DashboardModel
     var options = DashboardUserOptions()
@@ -367,16 +367,16 @@ private struct Badge: View {
     }
 }
 
-/// Uhr wie Caelestia: Stunde, drei Punkte, Minute untereinander - oder
-/// "14:05" in einer Zeile. Das Datum darunter auf Wunsch.
+/// Clock like Caelestia: hour, three dots, minute stacked - or "14:05" on
+/// one line. The date below it on request.
 struct DateTimeCard: View {
     let now: Date
     let locale: Locale
     var options = DashboardClockOptions()
     @Environment(\.shellStyle) private var style
 
-    /// Zeitzone aus den Optionen (`nil` = die des Systems) - wirkt auf Uhr
-    /// und Datum, damit eine gewaehlte Stadt auch wirklich deren Zeit zeigt.
+    /// Time zone from the options (`nil` = the system's) - affects both
+    /// clock and date, so a chosen city really shows its own time.
     private var timeZone: TimeZone { options.resolvedTimeZone }
 
     var body: some View {
@@ -384,11 +384,12 @@ struct DateTimeCard: View {
             VStack(spacing: 12) {
                 clock
                 if options.showDate {
-                    // Als fertiger Text: `Text(_:format:)` nimmt die Sprache
-                    // der Umgebung statt der im Format (Bildprobe: "Monday")
-                    // - so passt das Datum zu den Wochentagen im Kalender.
-                    // Zeitzone kommt aus `.environment(\.timeZone, ...)`
-                    // unten (SwiftUI wendet sie auf `Text(_:format:)` an).
+                    // As finished text: `Text(_:format:)` uses the
+                    // environment's language instead of the one in the
+                    // format (image sample: "Monday") - so the date
+                    // matches the weekdays in the calendar. Time zone
+                    // comes from `.environment(\.timeZone, ...)` below
+                    // (SwiftUI applies it to `Text(_:format:)`).
                     VStack(spacing: 1) {
                         Text(now, format: .dateTime.weekday(.wide).locale(locale))
                             .font(style.font(size: 12, weight: .semibold))
@@ -424,13 +425,13 @@ struct DateTimeCard: View {
     }
 }
 
-/// Monat mit heute markiert (Caelestia: DayOfWeekRow + MonthGrid). Erster
-/// Wochentag und Kalenderwochen aus den Optionen; die Sprache bleibt die des
-/// Modells.
+/// Month with today marked (Caelestia: DayOfWeekRow + MonthGrid). First
+/// weekday and week numbers from the options; the language stays that of
+/// the model.
 struct CalendarCard: View {
     let model: DashboardModel
     var options = DashboardCalendarOptions()
-    /// Ueber die ganze Hoehe (obere Reihe leer): Zeilen weiter auseinander.
+    /// Over the full height (top row empty): rows spaced further apart.
     var tall = false
     @Environment(\.shellStyle) private var style
 
@@ -488,8 +489,8 @@ struct CalendarCard: View {
     }
 }
 
-/// Ringe fuer CPU, RAM, Speicher (Caelestia: CircularProgress, Strich 6) -
-/// untereinander in der schmalen Karte, nebeneinander in der oberen Reihe.
+/// Rings for CPU, RAM, storage (Caelestia: CircularProgress, stroke 6) -
+/// stacked in the narrow card, side by side in the top row.
 struct ResourcesCard: View {
     let model: DashboardModel
     var options = DashboardResourcesOptions()
@@ -515,7 +516,7 @@ struct ResourcesCard: View {
 private struct Ring: View {
     let value: Double
     let symbol: String
-    /// Kennung fuer den Symbol-Austausch im Theme.
+    /// Identifier for the symbol replacement in the theme.
     var iconID: String = ""
     let help: String
     @Environment(\.shellStyle) private var style
@@ -538,10 +539,10 @@ private struct Ring: View {
     }
 }
 
-/// Etwa 24 SF Symbole zur Auswahl fuer eine Seite (Kontextmenue „Symbol“ oben)
-/// - genug Vielfalt, ohne den Menue-Aufwand eines vollen Symbolpickers. Bis
-/// Task 7 stand dieselbe Liste in Nexus' altem Seiten-Baukasten
-/// (`NexusDashboardPages.swift`, inzwischen entfernt).
+/// About 24 SF Symbols to choose from for a page (context menu "Icon"
+/// above) - enough variety without the menu overhead of a full symbol
+/// picker. Until task 7 the same list lived in Nexus's old page builder
+/// (`NexusDashboardPages.swift`, since removed).
 let nexusPageSymbols = [
     "square.grid.2x2", "star", "house", "briefcase", "bolt", "gamecontroller",
     "moon.stars", "sun.max", "cloud.sun", "music.note", "film", "book",

@@ -1,35 +1,35 @@
 import Foundation
 
-// "Now Playing" aus dem mediaremote-adapter (extras/mediaremote-adapter).
-// Der Adapter laeuft als `/usr/bin/perl ... stream` und schreibt pro
-// Aenderung eine JSON-Zeile:
+// "Now Playing" from the mediaremote-adapter (extras/mediaremote-adapter).
+// The adapter runs as `/usr/bin/perl ... stream` and writes one JSON line
+// per change:
 //
 //   {"type":"data","diff":false,"payload":{"title":"…","playing":true,…}}
 //
-// `diff: false` ist der ganze Zustand, `diff: true` nur die geaenderten
-// Felder; ein Feld mit `null` ist weggefallen. Leere Nutzlast = nichts
-// laeuft. Hier steht nur die reine Logik (Zeilen zerlegen, Diffs
-// zusammenfuehren, Zeit hochrechnen, Zeit formatieren); Prozess und
-// Oberflaeche liegen in der App (MediaModel.swift).
+// `diff: false` is the whole state, `diff: true` only the changed fields;
+// a field with `null` is gone. An empty payload means nothing is playing.
+// Only the pure logic lives here (splitting lines, merging diffs,
+// extrapolating time, formatting time); the process and the UI live in
+// the app (MediaModel.swift).
 
-// MARK: - JSON-Werte
+// MARK: - JSON values
 
-/// Ein Wert aus der Nutzlast. Eigener kleiner Typ statt `[String: Any]`:
-/// der ist nicht Sendable, und die Zeilen werden abseits des Hauptthreads
-/// dekodiert.
+/// A value from the payload. A small dedicated type instead of
+/// `[String: Any]`: that isn't Sendable, and the lines are decoded off
+/// the main thread.
 public enum MediaValue: Sendable, Equatable, Decodable {
     case string(String)
     case number(Double)
     case bool(Bool)
     case null
-    /// Listen und Objekte: kommen im Adapter nicht vor, sollen eine Zeile
-    /// aber nicht unlesbar machen.
+    /// Lists and objects: don't occur in the adapter, but shouldn't make
+    /// a line unreadable.
     case other
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
-        // Bool vor Double: JSONDecoder liest `true` nicht als Zahl und `1`
-        // nicht als Bool, die Reihenfolge trennt die beiden also sauber.
+        // Bool before Double: JSONDecoder doesn't read `true` as a number
+        // and `1` not as a bool, so the order cleanly separates the two.
         if container.decodeNil() {
             self = .null
         } else if let value = try? container.decode(Bool.self) {
@@ -60,7 +60,7 @@ public enum MediaValue: Sendable, Equatable, Decodable {
     }
 }
 
-/// Schluessel der Nutzlast (README des Adapters, Befehl `get`).
+/// Payload keys (adapter README, `get` command).
 enum MediaKey {
     static let title = "title"
     static let artist = "artist"
@@ -70,20 +70,20 @@ enum MediaKey {
     static let playing = "playing"
     static let playbackRate = "playbackRate"
     static let artworkData = "artworkData"
-    // Mit --micros (so startet die App den Adapter): ganze Mikrosekunden.
+    // With --micros (how the app starts the adapter): whole microseconds.
     static let durationMicros = "durationMicros"
     static let elapsedMicros = "elapsedTimeMicros"
     static let timestampMicros = "timestampEpochMicros"
-    // Ohne --micros: Sekunden, der Zeitstempel als ISO-Text - auf die
-    // Sekunde gerundet, deshalb nur Rueckfall.
+    // Without --micros: seconds, the timestamp as ISO text - rounded to
+    // the second, so only a fallback.
     static let duration = "duration"
     static let elapsed = "elapsedTime"
     static let timestamp = "timestamp"
 }
 
-// MARK: - Zeilen
+// MARK: - Lines
 
-/// Eine Datenzeile des Streams.
+/// One data line of the stream.
 public struct MediaStreamMessage: Sendable, Equatable, Decodable {
     public var diff: Bool
     public var payload: [String: MediaValue]
@@ -99,18 +99,18 @@ public struct MediaStreamMessage: Sendable, Equatable, Decodable {
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        // Heute gibt es nur "data"; kaeme ein neuer Typ dazu, darf er nicht
-        // als Zustand missverstanden werden.
+        // Today there is only "data"; if a new type were added, it must
+        // not be mistaken for state.
         let type = try container.decode(String.self, forKey: .type)
         guard type == "data" else {
-            throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Typ \(type)")
+            throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Type \(type)")
         }
         diff = try container.decodeIfPresent(Bool.self, forKey: .diff) ?? false
         payload = try container.decodeIfPresent([String: MediaValue].self, forKey: .payload) ?? [:]
     }
 
-    /// `nil` fuer alles, was keine gueltige Datenzeile ist - eine kaputte
-    /// Zeile soll den Stream nicht anhalten.
+    /// `nil` for anything that isn't a valid data line - a broken line
+    /// shouldn't stop the stream.
     public static func parse(_ line: Data) -> MediaStreamMessage? {
         try? JSONDecoder().decode(MediaStreamMessage.self, from: line)
     }
@@ -120,17 +120,18 @@ public struct MediaStreamMessage: Sendable, Equatable, Decodable {
     }
 }
 
-/// Zerlegt die Ausgabe der Pipe in Zeilen. Eine Zeile mit Cover ist einige
-/// hundert KB gross und kommt in mehreren Stuecken an; was nach dem letzten
-/// Zeilenumbruch steht, wartet auf den Rest.
+/// Splits the pipe's output into lines. A line with a cover is a few
+/// hundred KB and arrives in several chunks; whatever comes after the
+/// last line break waits for the rest.
 public struct MediaLineBuffer: Sendable {
-    /// Ohne Zeilenumbruch so viel gelesen: das ist kein Adapter-Output mehr,
-    /// verwerfen statt endlos puffern.
+    /// This much read without a line break: that's no longer adapter
+    /// output, discard it instead of buffering forever.
     public static let maximumLineLength = 32 << 20
 
     private var pending = Data()
-    /// Bis hierhin ist `pending` schon nach Umbruechen abgesucht - sonst
-    /// wuerde eine grosse Zeile bei jedem Stueck von vorn durchsucht.
+    /// Up to here, `pending` has already been searched for line breaks -
+    /// otherwise a large line would be searched from the start on every
+    /// chunk.
     private var searched = 0
 
     public init() {}
@@ -141,7 +142,7 @@ public struct MediaLineBuffer: Sendable {
         var lineStart = pending.startIndex
         var searchFrom = pending.startIndex + searched
         while let newline = pending[searchFrom...].firstIndex(of: 0x0A) {
-            // Leere Zeilen gibt der Adapter nicht aus; falls doch, stoeren sie nicht.
+            // The adapter doesn't emit empty lines; if it did, they wouldn't hurt.
             if newline > lineStart { lines.append(pending.subdata(in: lineStart..<newline)) }
             lineStart = newline + 1
             searchFrom = lineStart
@@ -158,18 +159,18 @@ public struct MediaLineBuffer: Sendable {
     }
 }
 
-// MARK: - Zustand
+// MARK: - State
 
-/// Der zusammengefuehrte Zustand eines Stream-Prozesses. Jeder neue Prozess
-/// beginnt mit einem neuen Zustand: Diffs beziehen sich nur auf die letzte
-/// volle Zeile desselben Prozesses.
+/// The merged state of a stream process. Every new process starts with a
+/// fresh state: diffs only relate to the last full line of the same
+/// process.
 public struct MediaStreamState: Sendable {
     public private(set) var fields: [String: MediaValue] = [:]
-    /// Cover als Bilddaten (im Stream Base64). Getrennt von `fields`, damit
-    /// es nur einmal dekodiert wird und nicht doppelt im Speicher liegt.
+    /// Cover as image data (base64 in the stream). Separate from `fields`
+    /// so it's only decoded once and doesn't sit in memory twice.
     public private(set) var artwork: Data?
-    /// Zaehlt jede Aenderung am Cover - die Oberflaeche baut das Bild nur
-    /// dann neu, statt bei jedem Diff grosse Daten zu vergleichen.
+    /// Counts every change to the cover - the UI only rebuilds the image
+    /// then, instead of comparing large data on every diff.
     public private(set) var artworkRevision = 0
 
     public init() {}
@@ -177,16 +178,16 @@ public struct MediaStreamState: Sendable {
     public mutating func apply(_ message: MediaStreamMessage) {
         if !message.diff { fields.removeAll() }
         for (key, value) in message.payload where key != MediaKey.artworkData {
-            // null heisst im Diff "weggefallen"; in einer vollen Zeile meldet
-            // der Player das Feld leer - beides bedeutet: nicht da.
+            // null means "removed" in a diff; in a full line the player
+            // reports the field as empty - both mean: not present.
             if value == .null {
                 fields.removeValue(forKey: key)
             } else {
                 fields[key] = value
             }
         }
-        // Eine volle Zeile ohne Cover heisst: kein Cover. Ein Diff ohne den
-        // Schluessel laesst es stehen.
+        // A full line without a cover means: no cover. A diff without the
+        // key leaves it as is.
         if !message.diff || message.payload[MediaKey.artworkData] != nil {
             let data = message.payload[MediaKey.artworkData]?.string.flatMap { Data(base64Encoded: $0) }
             if data != artwork {
@@ -201,18 +202,18 @@ public struct MediaStreamState: Sendable {
     }
 }
 
-/// Was gerade laeuft, fertig fuer die Oberflaeche.
+/// What's currently playing, ready for the UI.
 public struct MediaNowPlaying: Sendable, Equatable {
     public var title: String
     public var artist: String?
     public var album: String?
     public var bundleIdentifier: String?
-    /// Z. B. der Browser, wenn ein Hilfsprozess von ihm die Wiedergabe meldet.
+    /// E.g. the browser, if one of its helper processes reports playback.
     public var parentBundleIdentifier: String?
     public var isPlaying: Bool
-    /// `nil` = unbekannt (Livestream) - dann keine Restzeit.
+    /// `nil` = unknown (livestream) - then no remaining time.
     public var duration: TimeInterval?
-    /// Abgespielte Zeit zum Zeitpunkt `timestamp`, nicht jetzt.
+    /// Elapsed time at the point `timestamp`, not now.
     public var elapsed: TimeInterval?
     public var timestamp: Date?
     public var playbackRate: Double?
@@ -241,13 +242,13 @@ public struct MediaNowPlaying: Sendable, Equatable {
         self.playbackRate = playbackRate
     }
 
-    /// `nil` ohne Titel: der Adapter gibt dann ohnehin nichts aus, und ohne
-    /// Titel gibt es nichts Sinnvolles zu zeigen.
+    /// `nil` without a title: the adapter doesn't emit anything then
+    /// anyway, and without a title there's nothing useful to show.
     public init?(fields: [String: MediaValue]) {
         guard let title = Self.text(fields[MediaKey.title]) else { return nil }
         self.title = title
-        // Browser melden bei Videos oft "" als Album (gemessen: YouTube in
-        // Vivaldi) - leer zaehlt als nicht da.
+        // Browsers often report "" as album for videos (measured: YouTube
+        // in Vivaldi) - empty counts as not present.
         artist = Self.text(fields[MediaKey.artist])
         album = Self.text(fields[MediaKey.album])
         bundleIdentifier = Self.text(fields[MediaKey.bundleIdentifier])
@@ -272,44 +273,44 @@ public struct MediaNowPlaying: Sendable, Equatable {
         return text
     }
 
-    /// Welche App als Quelle gezeigt wird: die uebergeordnete, wenn es sie
-    /// gibt (Browser statt seines Hilfsprozesses).
+    /// Which app is shown as the source: the parent one, if there is one
+    /// (browser instead of its helper process).
     public var sourceBundleIdentifier: String? {
         parentBundleIdentifier ?? bundleIdentifier
     }
 
-    /// Abgespielte Zeit jetzt. Der Adapter meldet nur bei Aenderungen
-    /// (Pause, Sprung, neuer Titel), dazwischen wird hochgerechnet: Stand zum
-    /// Zeitstempel plus vergangene Zeit mal Tempo. Pausiert oder Tempo 0
-    /// (Puffern) bleibt die Zeit stehen. Begrenzt auf 0 bis Laenge, damit
-    /// ein verspaeteter Titelwechsel nicht ueber das Ende hinauszaehlt.
+    /// Elapsed time right now. The adapter only reports on changes
+    /// (pause, seek, new title), extrapolated in between: the value at
+    /// `timestamp` plus elapsed time times rate. Paused or rate 0
+    /// (buffering) leaves the time standing still. Clamped to 0 through
+    /// duration, so a delayed title change doesn't count past the end.
     public func elapsed(at now: Date) -> TimeInterval? {
         guard let elapsed, elapsed.isFinite else { return nil }
         var value = elapsed
         let rate = isPlaying ? (playbackRate ?? 1) : 0
         if rate > 0, let timestamp {
-            // Zeitstempel in der Zukunft (Uhr des Players voraus): nicht zurueck.
+            // Timestamp in the future (player's clock ahead): don't go back.
             value += max(0, now.timeIntervalSince(timestamp)) * rate
         }
         return min(max(value, 0), duration ?? .infinity)
     }
 
-    /// Anteil 0...1 fuer Balken und Bogen; 0, wenn die Laenge unbekannt ist.
+    /// Fraction 0...1 for the bar and arc; 0 if the length is unknown.
     public func progress(at now: Date) -> Double {
         guard let duration, let elapsed = elapsed(at: now) else { return 0 }
         return min(max(elapsed / duration, 0), 1)
     }
 }
 
-// MARK: - Zeit
+// MARK: - Time
 
-/// Zeiten wie in Apple Music: "1:05", ab einer Stunde "1:02:03", Restzeit
-/// mit Minus davor.
+/// Times like in Apple Music: "1:05", from one hour on "1:02:03",
+/// remaining time with a minus in front.
 public enum MediaTime {
-    /// Anzeige, wenn die Laenge unbekannt ist (Caelestia: "--:--").
+    /// Display when the length is unknown (Caelestia: "--:--").
     public static let unknown = "--:--"
 
-    /// Abgespielte Zeit, abgerundet: "0:59" bis die volle Sekunde erreicht ist.
+    /// Elapsed time, rounded down: "0:59" until the full second is reached.
     public static func clock(_ seconds: TimeInterval) -> String {
         guard seconds.isFinite, seconds > 0 else { return "0:00" }
         let total = Int(seconds.rounded(.down))
@@ -324,51 +325,52 @@ public enum MediaTime {
         return "\(minutes):\(paddedSeconds)"
     }
 
-    /// Restzeit, aufgerundet - so ergeben beide Anzeigen zusammen immer die
-    /// Laenge (0:34 und -2:31 bei 3:05).
+    /// Remaining time, rounded up - so both displays together always add
+    /// up to the length (0:34 and -2:31 at 3:05).
     public static func remaining(elapsed: TimeInterval, duration: TimeInterval) -> String {
         let rest = max(0, duration - max(0, elapsed))
         return "-" + clock(rest.rounded(.up))
     }
 }
 
-// MARK: - Adapter-Aufrufe
+// MARK: - Adapter calls
 
-/// Steuerbefehle fuer `send` (README des Adapters, Tabelle "send COMMAND").
+/// Control commands for `send` (adapter README, "send COMMAND" table).
 public enum MediaCommand: Int, Sendable, CaseIterable {
     case togglePlayPause = 2
     case nextTrack = 4
     case previousTrack = 5
 
-    /// Argumente nach Skript und Framework, z. B. `send 2`.
+    /// Arguments per script and framework, e.g. `send 2`.
     public var arguments: [String] {
         ["send", String(rawValue)]
     }
 }
 
 public enum MediaAdapter {
-    /// `--micros`: Zeitstempel auf die Mikrosekunde statt als auf Sekunden
-    /// gerundeter Text. `--debounce=100`: ein Titelwechsel kommt sonst als
-    /// Salve kleiner Zeilen (Titel, dann Kuenstler, dann Cover).
-    /// Diff bleibt an: sonst kaeme das Cover bei jeder Pause erneut mit.
+    /// `--micros`: timestamp down to the microsecond instead of text
+    /// rounded to the second. `--debounce=100`: otherwise a title change
+    /// arrives as a burst of small lines (title, then artist, then cover).
+    /// Diff stays on: otherwise the cover would come along again on every
+    /// pause.
     public static let streamArguments = ["stream", "--micros", "--debounce=100"]
 }
 
-/// Neustart, wenn der Stream-Prozess stirbt, obwohl das Dashboard offen
-/// ist. Der Adapter raet, nach einem fatalen Fehler nicht endlos neu zu
-/// starten - deshalb wachsende Pausen und nach fuenf fruehen Toden Schluss
-/// (bis zum naechsten Oeffnen).
+/// Restart when the stream process dies while the dashboard is open. The
+/// adapter advises against restarting endlessly after a fatal error -
+/// hence growing pauses and giving up after five early deaths (until the
+/// next time it's opened).
 public enum MediaRestart {
-    /// So lange gelaufen: das war kein Startfehler, der Zaehler beginnt neu.
+    /// Ran this long: that wasn't a startup error, the counter resets.
     public static let stableRuntime: TimeInterval = 30
     public static let maximumAttempts = 5
 
-    /// Zaehlerstand nach einem Tod nach `runtime` Sekunden.
+    /// Counter value after a death following `runtime` seconds.
     public static func failures(previous: Int, runtime: TimeInterval) -> Int {
         runtime >= stableRuntime ? 1 : previous + 1
     }
 
-    /// Wartezeit vor dem naechsten Versuch: 2, 4, 8, 16, 32 s; danach `nil`.
+    /// Wait time before the next attempt: 2, 4, 8, 16, 32 s; `nil` after that.
     public static func delay(afterFailures failures: Int) -> TimeInterval? {
         guard failures >= 1, failures <= maximumAttempts else { return nil }
         return TimeInterval(1 << failures)

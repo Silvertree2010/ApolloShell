@@ -30,7 +30,7 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Bearbeiten: Arbeitskopie, Vorschau beim Ziehen, Abbrechen")
+@Suite("Editing: working copy, preview while dragging, cancel")
 struct BentoEditSessionTests {
     private func f(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> WidgetFrame {
         WidgetFrame(x: x, y: y, width: w, height: h)
@@ -43,11 +43,11 @@ struct BentoEditSessionTests {
         return (BentoEditSession(pages: pages, pageID: page.id), clock.id)
     }
 
-    @Test("Ziehen: Vorschau rastet ein und sagt, ob es passt; erst Loslassen aendert")
+    @Test("Dragging: the preview snaps and says whether it fits; only the drop changes anything")
     func move() throws {
         var (s, id) = try session()
         let ok = s.previewMove(id, proposed: f(4, 146, 110, 130))
-        #expect(ok.frame == f(0, 146, 110, 130))   // x rastet am Rand ein, y hat kein Ziel
+        #expect(ok.frame == f(0, 146, 110, 130))   // x snaps at the edge, y has no target
         #expect(ok.valid)
         #expect(s.page.widgets[0].frame == f(0, 0, 110, 130))
         #expect(s.commit(id, frame: ok.frame))
@@ -57,7 +57,7 @@ struct BentoEditSessionTests {
         #expect(!s.commit(id, frame: outside.frame))
     }
 
-    @Test("Groesse: Vorschau nach den Groessen der Art")
+    @Test("Size: the preview follows the sizes of the kind")
     func resize() throws {
         let (s, id) = try session()
         let r = s.previewResize(id, proposedWidth: 300, proposedHeight: 240)
@@ -65,7 +65,7 @@ struct BentoEditSessionTests {
         #expect(r.valid)
     }
 
-    @Test("Ablegen aus Nexus: kleinste Groesse, ungueltig wenn zu nah")
+    @Test("Drop from Nexus: smallest size, invalid when too close")
     func drop() throws {
         var (s, _) = try session()
         let near = s.previewDrop(.clock, x: 60, y: 60)
@@ -77,7 +77,7 @@ struct BentoEditSessionTests {
         #expect(s.selectedWidgetID == added)
     }
 
-    @Test("Entfernen, Optionen, Auswahl faellt mit dem Widget")
+    @Test("Remove, options, the selection goes with the widget")
     func removeAndOptions() throws {
         var (s, id) = try session()
         s.selectedWidgetID = id
@@ -110,11 +110,11 @@ struct BentoEditSessionTests {
 ```swift
 import Foundation
 
-/// Eine Bearbeitung des Dashboards (Nexus > Dashboard > Bearbeiten): die
-/// Arbeitskopie aller Seiten, die gezeigte Seite, das gewaehlte Widget.
+/// One editing session of the dashboard (Nexus > Dashboard > Edit): the
+/// working copy of all pages, the shown page, the selected widget.
 /// "Fertig" uebernimmt `pages`, "Abbrechen" verwirft sie (`original`).
-/// Waehrend gezogen wird, aendert sich nichts - `preview...` sagt nur, wo
-/// es landen wuerde und ob es dort passt; erst `commit`/`add` aendert.
+/// While dragging, nothing changes - `preview...` only says where it would
+/// land and whether it fits there; only `commit`/`add` changes anything.
 public struct BentoEditSession: Equatable, Sendable {
     public let original: DashboardPages
     public private(set) var pages: DashboardPages
@@ -169,8 +169,8 @@ public struct BentoEditSession: Equatable, Sendable {
         return true
     }
 
-    /// Neues Widget mit Vorgaben (Wetter: die Orte aus `places`). Liefert
-    /// seine Kennung und waehlt es aus; `nil`, wenn der Rahmen nicht passt.
+    /// A new widget with defaults (weather: the places out of `places`).
+    /// Returns its id and selects it; `nil` when the frame does not fit.
     @discardableResult
     public mutating func add(_ kind: WidgetKind, frame: WidgetFrame, places: WeatherFavorites = .empty) -> WidgetInstance.ID? {
         var page = page
@@ -229,15 +229,15 @@ public struct BentoEditSession: Equatable, Sendable {
 **Files:** `NexusDashboardPage.swift`, `NexusDashboardEditor.swift` (mostly deleted/replaced), `NexusDashboardPreview` (keep, show the selected page), `NexusWeatherModel` (places sink), maybe new `NexusDashboardPages.swift` and `NexusWidgetOptions.swift`.
 
 Not editing (normal Nexus page):
-- [ ] Section **Pages**: list of pages (symbol + name), reorder by dragging (`onMove` → `movePages`), name editable in place (`TextField`), symbol via a `Menu` of ~24 SF Symbols (grid-ish), context menu **Duplicate** (name "<Name> Copy") and **Delete** (confirmation alert; disabled for the last page). Buttons **+** (empty page "Page <n>", n = count+1) and **Restore default pages** (`restoreDefaults(from: DashboardPages.defaultPages(places: weather.json favourites, hasBattery: <shared helper from part 2>))`, disabled when nothing is missing).
-- [ ] Section **Size**: slider 70…150 % bound to `settings.dashboardScale`, value shown as "100 %"; footer "On top of the automatic size that follows the screen."
+- [ ] Section **Pages**: list of pages (symbol + name), reorder by dragging (`onMove` → `movePages`), name editable in place (`TextField`), symbol via a `Menu` of ~24 SF Symbols (grid-ish), context menu **Duplicate** (name “<name> Copy”) and **Delete** (confirmation alert; disabled for the last page). Buttons **+** (empty page “Page <n>”, n = count+1) and **Restore Default Pages** (`restoreDefaults(from: DashboardPages.defaultPages(places: weather.json favourites, hasBattery: <shared helper from part 2>))`, disabled when nothing is missing).
+- [ ] Section **Size**: slider 70…150 % bound to `settings.dashboardScale`, value shown as “100 %”; footer “On top of the automatic size per screen.”
 - [ ] Prominent button **Bearbeiten** → `editor.begin(pageID: selected page in the list, screen: Nexus window's screen)`.
 - [ ] Bottom preview: the selected page (as today's preview, sample data).
 
 Editing (the same Nexus page switches its content while `editor.isEditing`):
 - [ ] Left: the page list, selection only (reorder/add/delete disabled); selecting a page switches the dashboard (`editor` page).
-- [ ] Middle: **Widgets**: every `WidgetKind` whose `home == .dashboard` (toggle **Show all widgets (advanced)** also shows other surfaces; today there are none, keep the toggle), row = symbol + title + one line of sizes (e.g. "3 sizes"); each row is `.onDrag { NSItemProvider(object: "apolloshell.widget:\(kind.rawValue)" as NSString) }`. Hint above: "Drag into the dashboard."
-- [ ] Right: **Options** of the selected widget (none selected: "Click a widget in the dashboard."). Move the per-kind option controls from today's `NexusDashboardCardOptions` over, bound to `editor.setOptions` instead of `settings.dashboard.cards`; drop the "Place" menu (placement is by dragging now). New for clock: **Time zone** — "System" plus a searchable list of `TimeZone.knownTimeZoneIdentifiers` (city part shown, e.g. "Tokyo (Asia)") in a popover. New for weather widgets (`kind.usesPlaces`): the places list and place search from today's weather sections, writing into the widget's `options.places` instead of weather.json — give `NexusWeatherModel` a sink (`read`/`write` closures, default weather.json) rather than copying it.
+- [ ] Middle: **Widgets**: every `WidgetKind` whose `home == .dashboard` (toggle **Show all widgets (advanced)** also shows other surfaces; today there are none, keep the toggle), row = symbol + title + one line of sizes (e.g. “3 sizes”); each row is `.onDrag { NSItemProvider(object: "apolloshell.widget:\(kind.rawValue)" as NSString) }`. Hint above: “Drag into the dashboard.”
+- [ ] Right: **Options** of the selected widget (none selected: “Click a widget in the dashboard.”). Move the per-kind option controls from today's `NexusDashboardCardOptions` over, bound to `editor.setOptions` instead of `settings.dashboard.cards`; drop the “Place” menu (placement is by dragging now). New for clock: **Time Zone** — “System” plus a searchable list of `TimeZone.knownTimeZoneIdentifiers` (city part shown, e.g. “Tokyo (Asia)”) in a popover. New for weather widgets (`kind.usesPlaces`): the places list and place search from today's weather sections, writing into the widget's `options.places` instead of weather.json — give `NexusWeatherModel` a sink (`read`/`write` closures, default weather.json) rather than copying it.
 - [ ] Bottom bar: **Abbrechen** and **Fertig** (default action). Closing Nexus while editing = Fertig (`windowWillClose`).
 - [ ] Delete the old editor pieces: `NexusDashboardTabsSection`, `NexusDashboardCardSections`, `NexusDashboardCardRow`, `NexusDashboardCardOptions` (after moving the controls), `NexusDashboardGallery`, the template/reset alert and `NexusDashboardText` parts that only served them. Keep core `DashboardPreset` (migration tests use it).
 - [ ] Build, commit "Manage and edit dashboard pages in Nexus".

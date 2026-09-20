@@ -3,23 +3,23 @@ import ApolloShellCore
 import Observation
 import os
 
-/// Wetter fuer Dashboard-Karte und Wetter-Reiter (Caelestia:
-/// services/Weather.qml), Daten vom Anbieter aus Nexus > Anbieter (Vorgabe
-/// Open-Meteo; siehe WeatherProvider.swift).
+/// Weather for the dashboard card and the weather tab (Caelestia:
+/// services/Weather.qml), data from the provider chosen in Nexus >
+/// Providers (default Open-Meteo; see WeatherProvider.swift).
 ///
-/// Abgerufen wird nur, solange das Dashboard offen ist: beim Oeffnen, wenn
-/// die Daten aelter als 15 Minuten sind, danach alle 30 Minuten. Der letzte
-/// Bericht bleibt im Speicher. Schlaegt ein Abruf fehl, bleibt er stehen und
-/// die Oberflaeche zeigt dezent "Stand HH:MM" statt einer Fehlermeldung -
-/// ein Bericht von vor einer Stunde ist immer noch nuetzlich.
+/// Only fetched while the dashboard is open: on opening, if the data is
+/// older than 15 minutes, then every 30 minutes after that. The last
+/// report stays in memory. If a fetch fails, it stays as is and the
+/// interface subtly shows "As of HH:MM" instead of an error message - a
+/// report from an hour ago is still useful.
 ///
-/// Ort und Favoriten kommen aus weather.json (siehe `WeatherFavorites.load`),
-/// im Wetter-Reiter waehlbar. Ohne Favoriten (frische Installation) gibt es
-/// keinen Ort und keinen Abruf. Keine Ortung: CoreLocation wuerde einen
-/// Freigabe-Dialog zeigen.
-/// Woher ein Wetter-Modell seine Orte hat. `.file`: weather.json (Leiste,
-/// Nexus, bisher auch das Dashboard). `.widget`: die Orte eines Wetter-
-/// Widgets (0.2), gelesen und geschrieben ueber die Seite in settings.json.
+/// Location and favorites come from weather.json (see
+/// `WeatherFavorites.load`), selectable in the weather tab. Without
+/// favorites (fresh install) there is no location and no fetch. No
+/// geolocation: CoreLocation would show a permission dialog.
+/// Where a weather model gets its locations from. `.file`: weather.json
+/// (bar, Nexus, so far also the dashboard). `.widget`: the locations of a
+/// weather widget (0.2), read and written via the page in settings.json.
 enum WeatherPlacesSource {
     case file
     case widget(read: @MainActor () -> WeatherFavorites, write: @MainActor (WeatherFavorites) -> Void)
@@ -29,53 +29,56 @@ enum WeatherPlacesSource {
 @Observable
 final class WeatherModel {
     private(set) var report: WeatherReport?
-    /// Zeitpunkt des letzten erfolgreichen Abrufs.
+    /// Timestamp of the last successful fetch.
     private(set) var fetchedAt: Date?
     private(set) var lastAttemptFailed = false
-    /// `nil`: keine Favoriten oder keiner gewaehlt - dann wird nichts abgerufen.
+    /// `nil`: no favorites or none selected - then nothing is fetched.
     private(set) var location: WeatherLocation?
-    /// Fuer die Kapseln im Wetter-Reiter.
+    /// For the capsules in the weather tab.
     private(set) var favorites = WeatherFavorites.empty
-    /// Oeffnet Nexus bei Wetter, wenn es (noch) keinen Ort gibt - vom
-    /// Aufrufer gesetzt (siehe `Dashboard`).
+    /// Opens Nexus at Weather if there is (still) no location - set by
+    /// the caller (see `Dashboard`).
     @ObservationIgnored var onOpenNexus: () -> Void = {}
-    /// Nach `select(_:)`: andere Wetter-Widgets derselben Seite mit
-    /// demselben Ort (gleiche Koordinaten) uebernehmen ihn ebenfalls, statt
-    /// auseinanderzulaufen (`WeatherModels.propagateSelection`).
+    /// After `select(_:)`: other weather widgets on the same page with
+    /// the same location (same coordinates) adopt it as well, instead of
+    /// drifting apart (`WeatherModels.propagateSelection`).
     @ObservationIgnored var onSelect: (WeatherLocation) -> Void = { _ in }
-    /// Von wem `report` stammt. Die Quellenangabe gehoert zu den gezeigten
-    /// Daten, nicht zur Einstellung: nach einem Wechsel bleiben die alten
-    /// Daten stehen, bis die neuen da sind, und nennen bis dahin ihre Quelle.
+    /// Who `report` came from. The source attribution belongs to the
+    /// shown data, not to the setting: after a change the old data stays
+    /// on screen until the new data arrives, and names its source until
+    /// then.
     private(set) var source = WeatherProviderID.standard
 
-    /// Feste Uhr fuer Bildproben; `nil` = echte Zeit.
+    /// Fixed clock for image samples; `nil` = real time.
     @ObservationIgnored let fixedNow: Date?
 
-    /// `false` fuer Bildproben: dann ruft das Modell nichts ab.
+    /// `false` for image samples: then the model does not fetch anything.
     @ObservationIgnored private let live: Bool
-    /// Welcher Anbieter gefragt wird (Nexus > Anbieter); `nil` in Bildproben.
+    /// Which provider is being asked (Nexus > Providers); `nil` in image
+    /// samples.
     @ObservationIgnored private let settings: ShellSettingsStore?
-    /// Der Anbieter, bei dem gerade gefragt wird.
+    /// The provider currently being asked.
     @ObservationIgnored private var provider = WeatherProviderID.standard
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var task: Task<Void, Never>?
-    /// Fehlschlaege in Folge; bestimmt, wann es nochmal versucht wird.
+    /// Consecutive failures; determines when it is retried.
     @ObservationIgnored private var failures = 0
     @ObservationIgnored private var retryTimer: Timer?
     @ObservationIgnored private let log = Logger(category: "weather")
-    /// Woher Orte kommen und wohin die Wahl geschrieben wird.
+    /// Where locations come from and where the selection is written.
     @ObservationIgnored private let placesSource: WeatherPlacesSource
-    /// Berichte je Anbieter und Ort, geteilt zwischen allen Modellen - zwei
-    /// Widgets fuer denselben Ort fragen so nur einmal.
+    /// Reports per provider and location, shared between all models - two
+    /// widgets for the same location thus only ask once.
     @MainActor private static var reportCache: [String: (report: WeatherReport, fetchedAt: Date)] = [:]
-    /// Laufende Abrufe je Anbieter und Ort: kommen zwei Modelle im selben
-    /// Zug dran (leerer Cache beim Oeffnen), teilen sie sich den einen
-    /// Netzwerk-Abruf, statt ihn zu verdoppeln.
+    /// Running fetches per provider and location: if two models come up
+    /// in the same run (empty cache on opening), they share the one
+    /// network fetch instead of duplicating it.
     @MainActor private static var inFlightFetches: [String: Task<Result<WeatherReport, any Error>, Never>] = [:]
 
-    /// Eigene fluechtige Sitzung: kein Platten-Cache (die Daten sollen frisch
-    /// sein, und alte haelt das Modell ohnehin), kurze Wartezeit statt der
-    /// Standard-60 s, und ohne Netz sofort ein Fehler statt Warten.
+    /// Its own ephemeral session: no disk cache (the data should be
+    /// fresh, and the model holds on to old data anyway), a short timeout
+    /// instead of the default 60 s, and an immediate error instead of
+    /// waiting without a network.
     @ObservationIgnored private let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 15
@@ -85,7 +88,7 @@ final class WeatherModel {
         return URLSession(configuration: configuration)
     }()
 
-    /// Kennung fuer alle Anfragen (MET Norway verlangt sie), einmal gebaut.
+    /// Identifier for all requests (MET Norway requires it), built once.
     private static let userAgent = WeatherUserAgent.value(
         version: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
     )
@@ -104,14 +107,14 @@ final class WeatherModel {
         placesSource = .file
     }
 
-    /// Schluessel fuer `reportCache`: Anbieter und Ort, nichts sonst - zwei
-    /// Widgets mit demselben Ort und Anbieter treffen denselben Eintrag.
+    /// Key for `reportCache`: provider and location, nothing else - two
+    /// widgets with the same location and provider hit the same entry.
     nonisolated private static func cacheKey(provider: WeatherProviderID, location: WeatherLocation) -> String {
         "\(provider.rawValue)|\(location.latitude)|\(location.longitude)"
     }
 
-    /// Modell mit festem Bericht, das nichts abruft - fuer Vorschauen und
-    /// Bildproben.
+    /// Model with a fixed report that fetches nothing - for previews and
+    /// image samples.
     static func preview(
         report: WeatherReport?,
         location: WeatherLocation? = WeatherLocation(name: "Berlin", latitude: 52.52, longitude: 13.405),
@@ -129,12 +132,13 @@ final class WeatherModel {
         return model
     }
 
-    /// "Wetterdaten: Open-Meteo" samt Link - fuer die angezeigten Daten.
+    /// "Weather data: Open-Meteo" including a link - for the displayed
+    /// data.
     var attribution: WeatherAttribution {
         source.provider().attribution
     }
 
-    /// "Stand HH:MM", falls die Daten nicht frisch sind, sonst `nil`.
+    /// "As of HH:MM", if the data is not fresh, otherwise `nil`.
     func standText(now: Date) -> String? {
         guard let report, let fetchedAt,
               WeatherRefresh.showsStand(fetchedAt: fetchedAt, lastAttemptFailed: lastAttemptFailed, now: now)
@@ -142,12 +146,12 @@ final class WeatherModel {
         return WeatherText.stand(fetchedAt, calendar: report.calendar)
     }
 
-    // MARK: - Abrufen
+    // MARK: - Fetching
 
     func start() {
         guard live else { return }
-        // Bei jedem Oeffnen neu gelesen (ein paar Byte): so gilt eine
-        // geaenderte weather.json ohne Neustart.
+        // Re-read on every opening (a few bytes): so a changed
+        // weather.json applies without a restart.
         let wantedFavorites: WeatherFavorites
         switch placesSource {
         case .file: wantedFavorites = WeatherFavorites.loadLive()
@@ -156,16 +160,19 @@ final class WeatherModel {
         favorites = wantedFavorites
         let wanted = wantedFavorites.selected
         if wanted != location { switchTo(wanted) }
-        // Der Anbieter ebenso beim Oeffnen: Nexus und Dashboard sind nie
-        // gleichzeitig offen (das Dashboard schliesst, sobald ein anderes
-        // Fenster den Fokus hat), eine Wahl in Nexus gilt also ab hier.
+        // The provider likewise on opening: Nexus and the dashboard are
+        // never open at the same time (the dashboard closes as soon as
+        // another window gets focus), a choice in Nexus thus applies from
+        // here on.
         let wantedProvider = settings?.settings.providers.weather ?? .standard
         let providerChanged = wantedProvider != provider
         if providerChanged { switchProvider(to: wantedProvider) }
-        // Kein Ort: nichts abzurufen - erst ein Favorit macht das Wetter abrufbar.
+        // No location: nothing to fetch - only a favorite makes the
+        // weather fetchable.
         if let location {
-            // Ein anderes Widget fuer denselben Ort hat vielleicht schon
-            // frischer abgerufen - dessen Bericht uebernehmen statt neu zu fragen.
+            // Another widget for the same location may have already
+            // fetched more recently - adopt its report instead of asking
+            // again.
             let key = Self.cacheKey(provider: provider, location: location)
             if let cached = Self.reportCache[key], cached.fetchedAt > (fetchedAt ?? .distantPast) {
                 report = cached.report
@@ -179,8 +186,8 @@ final class WeatherModel {
         timer = .repeating(every: WeatherRefresh.interval, owner: self) { $0.fetch() }
     }
 
-    /// Ein laufender Abruf darf zu Ende laufen: sein Ergebnis ist beim
-    /// naechsten Oeffnen willkommen.
+    /// A running fetch is allowed to finish: its result is welcome the
+    /// next time it opens.
     func stop() {
         timer?.invalidate()
         timer = nil
@@ -188,9 +195,10 @@ final class WeatherModel {
         retryTimer = nil
     }
 
-    /// Auswahl im Wetter-Reiter, einer der Favoriten: sofort umschalten und
-    /// abrufen, und in weather.json merken - dieselbe Datei, die Nexus
-    /// schreibt und `start()` liest, damit alle drei denselben Ort meinen.
+    /// Selection in the weather tab, one of the favorites: switch and
+    /// fetch immediately, and remember it in weather.json - the same file
+    /// Nexus writes and `start()` reads, so all three mean the same
+    /// location.
     func select(_ wanted: WeatherLocation) {
         guard live, wanted != location else { return }
         favorites.select(id: wanted.id)
@@ -201,7 +209,7 @@ final class WeatherModel {
             do {
                 try ShellFiles.write(favorites.fileData(), to: ShellFiles.live.weather)
             } catch {
-                log.error("weather.json nicht gespeichert: \((error as NSError).code, privacy: .public)")
+                log.error("weather.json not saved: \((error as NSError).code, privacy: .public)")
             }
         case .widget(_, let write):
             write(favorites)
@@ -209,10 +217,10 @@ final class WeatherModel {
         onSelect(wanted)
     }
 
-    /// Anderer Ort (oder keiner mehr): das alte Wetter gilt nicht mehr, auch
-    /// nicht als "Stand". Ein laufender Abruf fuer den alten Ort wird
-    /// abgebrochen - sonst blockierte er den neuen (`fetch()` startet nur,
-    /// wenn keiner laeuft).
+    /// Different location (or none anymore): the old weather no longer
+    /// applies, not even as "as of". A running fetch for the old location
+    /// is cancelled - otherwise it would block the new one (`fetch()`
+    /// only starts if none is running).
     private func switchTo(_ wanted: WeatherLocation?) {
         location = wanted
         report = nil
@@ -222,9 +230,10 @@ final class WeatherModel {
         cancelFetch()
     }
 
-    /// Anderer Anbieter: gleich fragen, auch wenn die Daten frisch sind. Das
-    /// Wetter gilt weiter fuer denselben Ort und bleibt bis dahin stehen
-    /// (mit seiner eigenen Quellenangabe). Fehlschlaege zaehlen neu.
+    /// Different provider: ask right away, even if the data is fresh. The
+    /// weather still applies to the same location and stays on screen
+    /// until then (with its own source attribution). Failures count
+    /// again from zero.
     private func switchProvider(to id: WeatherProviderID) {
         provider = id
         lastAttemptFailed = false
@@ -239,11 +248,11 @@ final class WeatherModel {
         retryTimer = nil
     }
 
-    /// Alle Anfragen des Anbieters nacheinander (hoechstens zwei). Scheitert
-    /// eine optionale (MET: Sonnenzeiten), gilt der Bericht ohne sie. Prueft
-    /// den Bericht-Cache selbst (ein anderes Widget hat vielleicht schon
-    /// abgerufen) und teilt einen laufenden Abruf desselben Anbieters/Orts
-    /// mit anderen Modellen, statt ihn zu verdoppeln.
+    /// All of the provider's requests, one after another (at most two).
+    /// If an optional one fails (MET: sun times), the report applies
+    /// without it. Checks the report cache itself (another widget may
+    /// have already fetched) and shares a running fetch of the same
+    /// provider/location with other models instead of duplicating it.
     private func fetch() {
         guard task == nil, let location else { return }
         let id = provider
@@ -279,8 +288,8 @@ final class WeatherModel {
             }
             Self.inFlightFetches[key] = newTask
             shared = newTask
-            // Nur der Anleger raeumt auf - danach macht ein neuer Abruf
-            // wieder eine eigene Anfrage.
+            // Only the one who created it cleans up - after that a new
+            // fetch makes its own request again.
             Task { [key] in
                 _ = await newTask.value
                 Self.inFlightFetches[key] = nil
@@ -292,8 +301,8 @@ final class WeatherModel {
         }
     }
 
-    /// 200, dazu 203: so meldet MET Norway eine veraltete Schnittstellen-
-    /// Fassung - die Daten gelten trotzdem.
+    /// 200, plus 203: this is how MET Norway reports an outdated API
+    /// version - the data is still valid.
     nonisolated private static func load(_ request: URLRequest, session: URLSession) async throws -> Data {
         let (data, response) = try await session.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
@@ -303,8 +312,8 @@ final class WeatherModel {
 
     private func finish(_ result: Result<WeatherReport, any Error>, for requested: WeatherLocation,
                         from id: WeatherProviderID) {
-        // Ort oder Anbieter waehrend des Abrufs gewechselt: Ergebnis gehoert
-        // nicht hierher, und `task` ist schon der neue Abruf.
+        // Location or provider changed during the fetch: the result does
+        // not belong here, and `task` is already the new fetch.
         guard requested == location, id == provider else { return }
         task = nil
         switch result {
@@ -318,22 +327,24 @@ final class WeatherModel {
         case .failure(let error):
             failures += 1
             scheduleRetry()
-            // Nur der erste Fehler einer Serie ins Log: ohne Netz scheitert
-            // jeder Versuch gleich, das braucht nicht jede halbe Stunde eine Zeile.
+            // Only the first failure of a series goes into the log:
+            // without a network every attempt fails the same way, that
+            // does not need a line every half hour.
             if !lastAttemptFailed {
-                // Nur Anbieter, Domaene und Code: die Beschreibung eines
-                // URLError enthaelt die Adresse samt Koordinaten, also den
-                // Wohnort - der gehoert nicht ins Systemprotokoll.
+                // Only provider, domain, and code: the description of a
+                // URLError contains the address including coordinates,
+                // i.e. the home location - that does not belong in the
+                // system log.
                 let nsError = error as NSError
                 let status = (error as? HTTPStatus)?.code ?? nsError.code
-                log.error("Wetter nicht abgerufen: \(id.rawValue, privacy: .public) \(nsError.domain, privacy: .public) \(status, privacy: .public)")
+                log.error("Weather not fetched: \(id.rawValue, privacy: .public) \(nsError.domain, privacy: .public) \(status, privacy: .public)")
             }
             lastAttemptFailed = true
         }
     }
 
-    /// Nur solange offen (`timer` laeuft): zu, braucht niemand das Wetter;
-    /// beim naechsten Oeffnen ruft `start()` ohnehin neu ab.
+    /// Only while open (`timer` is running): closed, nobody needs the
+    /// weather; on the next opening `start()` fetches again anyway.
     private func scheduleRetry() {
         guard timer != nil else { return }
         retryTimer?.invalidate()

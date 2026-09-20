@@ -35,7 +35,7 @@
 
 - [ ] `@MainActor @Observable final class ShellEditor`: `isEditing`, `dashboard: DashboardEditor` (existing), `utilities: UtilitiesEditSession?`, `galleryVisible`, `galleryTab: WidgetSurface`, `showsAllInGallery`, `begin(screen: NSScreen)`, `done()`, `cancel(confirmIfChanged: Bool)`, `hasChanges`. `done()` writes `settings.dashboardPages` and `settings.utilities.layout` (only what changed) in one assignment of `store.settings`. `cancel` drops both.
 - [ ] Callbacks for the owners: `onBegin(screen)`, `onEnd` (Dashboard, UtilitiesPanel, the new windows, Nexus).
-- [ ] Nexus: one button "Edit Interface" visible on every Nexus page (sidebar footer or window toolbar — pick what fits NexusView's layout), calls `begin(screen: window.screen)`, then Nexus orders out; on `onEnd` Nexus comes back (makeKeyAndOrderFront) on the same page.
+- [ ] Nexus: one button “Edit Interface” visible on every Nexus page (sidebar footer or window toolbar — pick what fits NexusView's layout), calls `begin(screen: window.screen)`, then Nexus orders out; on `onEnd` Nexus comes back (makeKeyAndOrderFront) on the same page.
 - [ ] Build, commit "Add one edit mode object for the whole shell".
 
 ### Task 3: Windows of the mode: scrim, toolbar, gallery
@@ -44,8 +44,8 @@
 
 - [ ] One helper that builds a mode panel: `NSPanel(styleMask: [.borderless, .nonactivatingPanel])`, `isFloatingPanel = true`, `hidesOnDeactivate = false`, `collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]`, `isExcludedFromWindowsMenu = true`, `setAccessibilitySubrole(.unknown)` (non-standard, so AeroSpace/yabai/Amethyst treat it as a popup), `level` chosen relative to the drawers (EdgeDrawer uses `.popUpMenu` / `+1` with scrim): scrim just below the pinned drawers, toolbar and gallery above them. Write the reason for each flag in a comment.
 - [ ] Scrim: one panel per `NSScreen`, black at ~0.35 + a light blur (`NSVisualEffectView` `.hudWindow`/`.fullScreenUI` material, or plain dim if blur costs too much), fades in/out with the drawers' curve; clicks on the scrim only clear the selection (never end the mode).
-- [ ] Toolbar: bottom centre of the edit screen, capsule glass (`ThemedGlass`/`cardSurface` like the rest), buttons "+" (toggles gallery), "Cancel", "Done" (default action styling). Stays above the control centre panel, never overlapping it (move up if needed).
-- [ ] Gallery: centred on the edit screen, ~560×380 pt, glass, segmented tabs "Dashboard" / "Control Centre", toggle "Show All (Advanced)". Dashboard tab: every `WidgetKind` with `home == .dashboard` as a tile (symbol, title, sizes count); drag = existing `NSItemProvider` payload `apolloshell.widget:<kind>`; click = `addAtFirstFreeSpot` on the shown page (if `nil`: short shake + "No room on this page"). Control centre tab: the three cards (only those currently disabled are addable) and every toggle kind (unique ones greyed when present); drag payload `apolloshell.toggle:<kind>` / `apolloshell.card:<kind>`; click = add at end / enable card. Esc closes the gallery first, the mode second.
+- [ ] Toolbar: bottom centre of the edit screen, capsule glass (`ThemedGlass`/`cardSurface` like the rest), buttons “+” (toggles gallery), “Cancel”, “Done” (default action styling). Stays above the control centre panel, never overlapping it (move up if needed).
+- [ ] Gallery: centred on the edit screen, ~560×380 pt, glass, segmented tabs “Dashboard” / “Control Centre”, toggle “Show all (advanced)”. Dashboard tab: every `WidgetKind` with `home == .dashboard` as a tile (symbol, title, sizes count); drag = existing `NSItemProvider` payload `apolloshell.widget:<kind>`; click = `addAtFirstFreeSpot` on the shown page (if `nil`: short shake + “No room on this page”). Control centre tab: the three cards (only those currently disabled are addable) and every toggle kind (unique ones greyed when present); drag payload `apolloshell.toggle:<kind>` / `apolloshell.card:<kind>`; click = add at end / enable card. Esc closes the gallery first, the mode second.
 - [ ] Render mode: `--render-edit` additionally renders toolbar and gallery (both tabs) into `<dir>/edit/`. Look at them yourself.
 - [ ] Commit "Add scrim, toolbar and gallery for the edit mode".
 
@@ -53,8 +53,8 @@
 
 - [ ] `Dashboard`: on `onBegin(screen)` pin and open on that screen (already exists for the old flow), on `onEnd` unpin (existing `unpin()` behaviour).
 - [ ] Options popover: clicking a widget selects it and shows a `.popover` anchored at the widget with the options now in `NexusWidgetOptions` (move the controls into a reusable `WidgetOptionsView`; clock time zone list and weather places included). Popover closes on deselect/page switch.
-- [ ] Page bar while editing: a `+` at the end (new page "Page <n>", switches to it), right click on a page: Rename (inline text field in the tab), Symbol (menu of the same ~24 symbols Nexus used), Duplicate, Delete (confirmation; disabled for the last page). Drag to reorder pages is optional — skip if it costs more than a few turns and say so.
-- [ ] Remove the old start path (Nexus page-list "Edit", the Nexus widget list/options while editing).
+- [ ] Page bar while editing: a `+` at the end (new page “Page <n>”, switches to it), right click on a page: Rename (inline text field in the tab), Symbol (menu of the same ~24 symbols Nexus used), Duplicate, Delete (confirmation; disabled for the last page). Drag to reorder pages is optional — skip if it costs more than a few turns and say so.
+- [ ] Remove the old start path (the Nexus page list “Edit”, the Nexus widget list/options while editing).
 - [ ] Commit "Edit dashboard pages and widget options in the dashboard".
 
 ### Task 5: Control centre in the global mode
@@ -69,7 +69,7 @@
 
 ### Task 6: Robustness
 
-- [ ] Esc: while editing register a `GlobalHotKey` for Esc (unregister at end) → gallery open? close gallery : cancel(confirmIfChanged: true). The confirmation is a small alert on the toolbar panel ("Discard changes?" Discard / Keep Editing).
+- [ ] Esc: while editing register a `GlobalHotKey` for Esc (unregister at end) → gallery open? close gallery : cancel(confirmIfChanged: true). The confirmation is a small alert on the toolbar panel (“Discard changes?” Discard / Keep editing).
 - [ ] End as cancel (no confirmation) on `NSApplication.didChangeScreenParametersNotification`, `NSWorkspace.willSleepNotification`, `NSWorkspace.sessionDidResignActiveNotification`.
 - [ ] While editing ignore the shell hot keys (launcher, dashboard, utilities, power menu, Nexus) and the edge-hover opening of other drawers; the session menu cannot open.
 - [ ] Fullscreen app on the edit screen: `open(on:)` must not be blocked by `suspendedScreens`.
@@ -79,6 +79,6 @@
 ### Task 7: Nexus cleanup, docs, full check
 
 - [ ] Nexus › Dashboard: keep only the size slider and the weather places section. Nexus › Schnellaktionen: keep only settings (lid-closed rule etc.); remove the card list, toggle grid, gallery, options and the control-centre templates (`UtilitiesPreset` UI; keep the core type only if tests still need it, otherwise remove it with its tests). Remove dead Nexus files/types.
-- [ ] CHANGELOG `[Unreleased] - 0.2.0`: rewrite the edit-mode bullet for the global mode; add "The control centre is edited in place too"; under Removed add the control-centre templates and the Nexus editors. README: one sentence that arranging happens in the edit mode (Nexus > Edit Interface).
+- [ ] CHANGELOG `[Unreleased] - 0.2.0`: rewrite the edit-mode bullet for the global mode; add “The control centre is edited in place too”; under Removed add the control-centre templates and the Nexus editors. README/README.de: one sentence each that arranging happens in the edit mode (Nexus › Edit Interface).
 - [ ] Full `./test.sh`, `check-l10n`, build, non-edit render compare.
 - [ ] Report (max 30 lines): commits, test count, l10n, compare result, what the edit renders show (toolbar, gallery tabs, popover, control centre), decisions the plan left open, and a live-test checklist for Andrin (including AeroSpace/yabai in a VM).

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Compares two folders of rendered samples (ApolloShell --render-dashboard).
+"""Compares two folders of image samples (ApolloShell --render-dashboard).
 
-Aufruf: scripts/compare-renders.py <vorher> <nachher> [<diff-ordner>]
+Call: scripts/compare-renders.py <before> <after> [<diff folder>]
 
-For every PNG present in both folders: same size? how many pixels differ
-(any channel by more than 8 of 255)? With a diff folder, an image is written
-for every file that differs, with the differing pixels in red.
-Exits with 1 as soon as a file differs or is missing.
+For every PNG that lies in both folders: the same size? how many pixels
+differ (any channel by more than 8 of 255)? With a diff folder, an image is
+written for every file that differs, with the differing pixels in red.
+Ends with 1 as soon as one file differs or is missing.
 """
 import sys
 from pathlib import Path
@@ -20,10 +20,10 @@ def compare(before: Path, after: Path, diff_dir: Path | None) -> bool:
     a = Image.open(before).convert("RGBA")
     b = Image.open(after).convert("RGBA")
     if a.size != b.size:
-        print(f"{before.name}: Groesse {a.size} -> {b.size}")
+        print(f"{before.name}: size {a.size} -> {b.size}")
         return False
     delta = ImageChops.difference(a, b)
-    # Largest difference across all channels (alpha alone counts too).
+    # The largest deviation over all channels (alpha alone counts too).
     channels = delta.split()
     largest = channels[0]
     for channel in channels[1:]:
@@ -33,7 +33,7 @@ def compare(before: Path, after: Path, diff_dir: Path | None) -> bool:
     if changed == 0:
         print(f"{before.name}: same")
         return True
-    print(f"{before.name}: {changed} Pixel abweichend")
+        print(f"{before.name}: {changed} pixels differ")
     if diff_dir:
         diff_dir.mkdir(parents=True, exist_ok=True)
         red = Image.new("RGBA", a.size, (255, 0, 0, 255))
@@ -51,7 +51,7 @@ def main() -> int:
     for before in sorted(before_dir.glob("*.png")):
         after = after_dir / before.name
         if not after.exists():
-            print(f"{before.name}: fehlt nachher")
+            print(f"{before.name}: missing afterwards")
             ok = False
             continue
         ok = compare(before, after, diff_dir) and ok

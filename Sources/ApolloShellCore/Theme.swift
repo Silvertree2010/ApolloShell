@@ -1,49 +1,50 @@
 import Foundation
 
-/// Die Formatnummer, die diese Fassung der App kennt.
+/// The format number this version of the app understands.
 ///
-/// Ein Theme nennt sie in `--apollo-theme-format`. Nennt es eine hoehere,
-/// wird es trotzdem geladen: gelesen wird, was diese Fassung versteht,
-/// unbekannte Token werden uebersprungen und als Hinweis gemeldet. Abgelehnt
-/// wird nie - sonst waere ein Theme aus der Zukunft unbrauchbar, statt nur
-/// anders auszusehen. Die Nummer steigt nur, wenn sich die Bedeutung eines
-/// vorhandenen Tokens aendert; dazukommende Token aendern sie nicht.
+/// A theme names it in `--apollo-theme-format`. If it names a higher one,
+/// it is still loaded: what this version understands is read, unknown
+/// tokens are skipped and reported as a hint. It is never rejected -
+/// otherwise a theme from the future would be unusable instead of merely
+/// looking different. The number only increases when the meaning of an
+/// existing token changes; tokens being added does not change it.
 public enum ThemeFormat {
     public static let current = 1
 }
 
 public extension ThemeTokenCatalog {
-    /// Nur Namen mit diesem Anfang gehoeren uns. Alles andere (`--my-blue`)
-    /// ist der Namensraum dessen, der das Theme schreibt, und wird stumm
-    /// uebergangen.
+    /// Only names with this prefix belong to us. Everything else
+    /// (`--my-blue`) is the namespace of whoever writes the theme, and is
+    /// silently passed over.
     static let prefix = "--apollo-"
 }
 
-/// Ein fertig gelesenes Theme: die Werte, die in der Datei stehen, hell und
-/// dunkel, schon geklemmt und auf Lesbarkeit geprueft.
+/// A fully read theme: the values in the file, light and dark, already
+/// clamped and checked for readability.
 ///
-/// Es gibt keinen Weg, an einen ungeprueften Wert zu kommen. Was die Datei
-/// nicht nennt, fehlt hier auch (`nil`) - "was du nicht setzt, bleibt wie es
-/// ist": Die Vorgaben im Verzeichnis sind dem Aussehen der Shell nur
-/// nachempfunden, wer sie einsetzte, aenderte doch etwas (etwa die Breite der
-/// Leiste). Den Rueckfall waehlt die App, meist die Systemfarbe von macOS.
+/// There is no way to get an unchecked value. What the file does not name
+/// is also missing here (`nil`) - "what you don't set stays as it is":
+/// the defaults in the directory only approximate the shell's look,
+/// anyone who applied one did in fact change something (say, the width of
+/// the bar). The app chooses the fallback, usually the system color of
+/// macOS.
 public struct Theme: Equatable, Sendable {
-    /// Ordner- oder Dateiname ohne `.css`. Bleibt gleich, solange die Datei
-    /// gleich heisst - daran haengen spaeter die Einstellung "welches Theme"
-    /// und der Eintrag auf der Webseite.
+    /// Folder or file name without `.css`. Stays the same as long as the
+    /// file is named the same - the "which theme" setting and the entry
+    /// on the website will later depend on it.
     public let identifier: String
-    /// Kleingeschriebene Fassung der Kennung fuer Adressen und Dateinamen.
+    /// Lowercased version of the identifier for URLs and file names.
     public let slug: String
-    /// Was in `--apollo-theme-format` stand.
+    /// What was stated in `--apollo-theme-format`.
     public let formatVersion: Int
-    /// Alles, was beim Lesen aufgefallen ist. Nie ein Grund, das Theme nicht
-    /// zu benutzen.
+    /// Everything noticed while reading. Never a reason not to use the
+    /// theme.
     public let issues: [ThemeIssue]
-    /// Nur die genannten Token. Hell: was in `:root` steht; dunkel: dazu,
-    /// was der `@media`-Block ueberschreibt oder ergaenzt.
+    /// Only the named tokens. Light: what is in `:root`; dark: plus what
+    /// the `@media` block overrides or adds.
     public let lightValues: [String: ThemeValue]
     public let darkValues: [String: ThemeValue]
-    /// Die Bilder aus `icons/`, wenn das Theme ein Ordner ist.
+    /// The images from `icons/`, if the theme is a folder.
     public let icons: ThemeIconSet
 
     init(identifier: String, formatVersion: Int, issues: [ThemeIssue],
@@ -59,37 +60,38 @@ public struct Theme: Equatable, Sendable {
         self.icons = icons
     }
 
-    /// Das eingebaute Aussehen: kein Wert, kein Hinweis - die Shell, wie sie
-    /// ohne Theme aussieht. Auch der Rueckfall, wenn eine Datei unbrauchbar ist.
+    /// The built-in look: no value, no hint - the shell as it looks
+    /// without a theme. Also the fallback when a file is unusable.
     public static let standard = Theme.make(identifier: "default", styleSheet: ThemeStyleSheet())
 
-    // MARK: - Werte lesen
+    // MARK: - Reading values
 
     public func value(_ name: String, dark: Bool = false) -> ThemeValue? {
         (dark ? darkValues : lightValues)[name.lowercased()]
     }
 
-    /// Der Wert eines Tokens, wie ihn die Datei nennt - `nil`, wenn sie es
-    /// in diesem Erscheinungsbild nicht tut.
+    /// The value of a token as the file names it - `nil` if it does not
+    /// name it in this appearance.
     public func value<Kind>(_ token: ThemeToken<Kind>, dark: Bool = false) -> Kind.Value? {
         value(token.name, dark: dark).flatMap(Kind.value(from:))
     }
 
-    /// Nennt das Theme dieses Token ueberhaupt (hell oder dunkel)?
+    /// Does the theme name this token at all (light or dark)?
     public func declares(_ name: String) -> Bool {
         value(name) != nil || value(name, dark: true) != nil
     }
 
-    /// Die gepruefte Datei - `nil`, wenn keine angegeben war oder sie nicht
-    /// benutzt werden darf.
+    /// The validated file - `nil` if none was specified or it may not be
+    /// used.
     public func file(_ token: ThemeFileToken, dark: Bool = false) -> URL? {
         value(token, dark: dark)?.url
     }
 
-    /// Eine Schriftfarbe, auch wenn das Theme nur ihren Untergrund nennt:
-    /// dann die Vorgabe, so weit verschoben, bis sie darauf lesbar ist. Nennt
-    /// es weder die Farbe noch den Untergrund: `nil`, die App bleibt bei der
-    /// Farbe von macOS - die passt dann ja zum Untergrund von macOS.
+    /// A text color, even if the theme only names its background: then
+    /// the default, shifted as far as necessary to be readable on it. If
+    /// it names neither the color nor the background: `nil`, the app
+    /// stays with the macOS color - which then matches macOS's
+    /// background anyway.
     public func readableColor(_ token: ThemeColorToken, dark: Bool = false) -> ThemeColor? {
         if let color = value(token, dark: dark) { return color }
         guard let rule = token.descriptor?.contrast,
@@ -98,13 +100,14 @@ public struct Theme: Equatable, Sendable {
         return ThemeGuards.readable(token.defaultValue(dark: dark), on: background, minimum: rule.minimum)
     }
 
-    /// Das Bild, das dieses Theme fuer ein Symbol mitbringt - `nil`, wenn
-    /// keines dabei ist. Dann gilt das eingebaute SF Symbol.
+    /// The image this theme brings for a symbol - `nil` if none is
+    /// included. Then the built-in SF Symbol applies.
     public func icon(_ id: String) -> URL? {
         icons.file(id)
     }
 
-    /// Was in der Liste steht: der Name aus dem Theme, sonst die Kennung.
+    /// What appears in the list: the name from the theme, otherwise the
+    /// identifier.
     public var title: String {
         let name = value(ThemeTextToken.themeName) ?? ""
         return name.isEmpty ? identifier : name
@@ -113,14 +116,14 @@ public struct Theme: Equatable, Sendable {
     public var author: String { value(ThemeTextToken.author) ?? "" }
     public var details: String { value(ThemeTextToken.themeDescription) ?? "" }
 
-    // MARK: - Bauen
+    // MARK: - Building
 
-    /// Aus gelesenen Angaben ein Theme machen. Kann nicht scheitern.
+    /// Build a theme from parsed declarations. Cannot fail.
     ///
-    /// Die Angaben aus `:root` gelten in beiden Erscheinungsbildern; der
-    /// `@media`-Block legt sich nur darueber - wie in CSS. Was fehlt, bleibt
-    /// leer; nur die Kontrastpruefung misst dann am Untergrund aus dem
-    /// Verzeichnis.
+    /// The declarations from `:root` apply in both appearances; the
+    /// `@media` block only layers on top - as in CSS. What is missing
+    /// stays empty; only the contrast check then measures against the
+    /// background from the directory.
     public static func make(identifier: String,
                             styleSheet: ThemeStyleSheet,
                             assets: ThemeAssetResolver = .none,
@@ -158,8 +161,8 @@ public struct Theme: Equatable, Sendable {
         var values: [String: ThemeValue] = [:]
         for declaration in declarations {
             guard let token = catalog.descriptor(named: declaration.name) else {
-                // Unbekannt heisst meistens: das Theme ist neuer als die App,
-                // oder jemand hat sich vertippt. Beides nur ein Hinweis.
+                // Unknown usually means: the theme is newer than the app,
+                // or someone made a typo. Either way just a hint.
                 if declaration.name.hasPrefix(ThemeTokenCatalog.prefix) {
                     log.add(.unknownToken(declaration.name), line: declaration.line)
                 }
@@ -208,8 +211,7 @@ public struct Theme: Equatable, Sendable {
         return values
     }
 
-    /// Ein Hinweis, der Text aus der Datei zitiert, darf die Anzeige nicht
-    /// sprengen.
+    /// A hint that quotes text from the file must not blow up the display.
     private static func shortened(_ text: String) -> String {
         text.count <= 60 ? text : String(text.prefix(60)) + "…"
     }
@@ -226,9 +228,8 @@ public struct Theme: Equatable, Sendable {
         return name.isEmpty ? "theme" : name
     }
 
-    /// Nur ASCII: der Kurzname soll spaeter in einer Adresse und in einem
-    /// Dateinamen stehen koennen, ohne dass jemand ueber die Kodierung
-    /// nachdenken muss.
+    /// ASCII only: the short name should later be able to appear in a URL
+    /// and in a file name without anyone having to think about encoding.
     private static func slug(from name: String) -> String {
         var result = ""
         for character in name.lowercased() {
@@ -244,23 +245,24 @@ public struct Theme: Equatable, Sendable {
     }
 }
 
-/// Die Grenzen, die ein Theme nicht ueberschreiten kann.
+/// The limits a theme cannot exceed.
 ///
-/// Zahlen klemmt schon `Theme.apply` am Bereich des Tokens. Hier steht das,
-/// was sich erst aus dem Zusammenspiel ergibt: eine Schriftfarbe, die auf
-/// ihrem Untergrund nicht zu lesen waere, wird so weit aufgehellt oder
-/// abgedunkelt, bis sie es ist. Ein Theme kann die Shell also nicht blind
-/// machen - weder aus Versehen noch mit Absicht.
+/// Numbers are already clamped to the token's range by `Theme.apply`.
+/// What is here is what only emerges from the interplay: a text color
+/// that would not be readable on its background is lightened or darkened
+/// until it is. A theme therefore cannot blind the shell - neither by
+/// accident nor on purpose.
 public enum ThemeGuards {
     static func enforceContrast(in values: inout [String: ThemeValue],
                                 catalog: ThemeTokenCatalog,
                                 dark: Bool,
                                 log: inout ThemeIssueLog) {
-        // Ueber den Katalog statt ueber das Woerterbuch: die Reihenfolge der
-        // Hinweise soll bei gleicher Datei immer dieselbe sein.
+        // Via the catalog instead of via the dictionary: the order of
+        // hints should always be the same for the same file.
         for token in catalog.tokens {
-            // Nennt das Theme den Untergrund nicht, steht die Schrift auf dem
-            // der Shell - dem nachempfunden ist die Vorgabe im Verzeichnis.
+            // If the theme does not name the background, the text sits on
+            // the shell's - which the default in the directory
+            // approximates.
             guard let rule = token.contrast,
                   let color = values[token.name]?.color,
                   let background = values[rule.background]?.color
@@ -274,20 +276,21 @@ public enum ThemeGuards {
         }
     }
 
-    /// `color` so weit Richtung Schwarz oder Weiss geschoben, bis der
-    /// Kontrast zu `background` reicht. Schon lesbare Farben bleiben genau,
-    /// wie sie sind.
+    /// `color` shifted toward black or white until the contrast against
+    /// `background` is sufficient. Colors that are already readable stay
+    /// exactly as they are.
     public static func readable(_ color: ThemeColor, on background: ThemeColor, minimum: Double) -> ThemeColor {
-        // Die Deckkraft des Untergrunds ist hier ohne Belang: was dahinter
-        // liegt, weiss das Theme nicht.
+        // The background's opacity does not matter here: what lies behind
+        // it, the theme does not know.
         let base = background.alpha < 1 ? background.withAlpha(1) : background
         func ratio(_ candidate: ThemeColor) -> Double {
             ThemeColor.contrast(candidate.composited(over: base), base)
         }
         guard minimum > 1, ratio(color) < minimum else { return color }
-        // Die Richtung, in der ueberhaupt mehr Kontrast zu holen ist. Gleich
-        // viel bringen Schwarz und Weiss erst bei einer Helligkeit um 0.18,
-        // nicht bei 0.5: auf mittelhellem Grund fuehrt nur Schwarz zum Ziel.
+        // The direction in which more contrast can even be gained. Black
+        // and white gain the same only around a brightness of 0.18, not
+        // at 0.5: on a medium-bright background only black reaches the
+        // target.
         let target: ThemeColor = ThemeColor.contrast(.black, base) >= ThemeColor.contrast(.white, base)
             ? .black : .white
         var amount = 0.0
@@ -296,20 +299,20 @@ public enum ThemeGuards {
             let candidate = color.blended(with: target, amount: amount)
             if ratio(candidate) >= minimum { return candidate }
         }
-        // Selbst reines Schwarz oder Weiss reicht nicht (mittelgrauer
-        // Untergrund oder durchsichtige Schrift): dann deckend und in die
-        // Richtung, die mehr bringt.
+        // Even pure black or white is not enough (medium-gray background
+        // or transparent text): then opaque and in the direction that
+        // gains more.
         return ThemeColor.contrast(.white, base) >= ThemeColor.contrast(.black, base) ? .white : .black
     }
 }
 
-// MARK: - Erscheinungsbild
+// MARK: - Appearance
 
-/// Fuer welches Erscheinungsbild ein Theme gemacht ist
-/// (`--apollo-theme-appearance`). `light`/`dark` stellen die ganze Shell
-/// darauf ein, unabhaengig von macOS - sonst bekommt ein helles Theme auf
-/// einem dunklen Mac weisse Systemschrift auf hellen Flaechen. `auto` (und
-/// kein oder ein unbekannter Wert) folgt dem System wie bisher.
+/// Which appearance a theme is made for (`--apollo-theme-appearance`).
+/// `light`/`dark` set the whole shell to it, independent of macOS -
+/// otherwise a light theme on a dark Mac would get white system text on
+/// light surfaces. `auto` (and none or an unknown value) follows the
+/// system as before.
 public enum ThemeAppearance: String, Sendable {
     case auto, light, dark
 

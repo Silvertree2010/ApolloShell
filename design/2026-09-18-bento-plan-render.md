@@ -28,17 +28,17 @@
 - [ ] Create `WidgetView.swift`: one view that draws one `WidgetInstance` at a given size. For the six overview kinds move the body of `DashboardCardView` (DashboardView.swift ~line 165) here unchanged, reading options from `instance.options` (`options.clock ?? .init()` etc.) instead of the `DashboardCard` payload; the size logic (`upright`, `tall`, `horizontal`, the three media shapes) stays exactly as it is. For the performance kinds use the same views and arguments `PerformanceView.body` passes today. For `weatherHero/Hourly/Daily` use the same views and arguments `WeatherTab.body` passes (including its empty states when there is no report or no place). For `mediaPlayer` use `MediaTab(model:)`.
 
 ```swift
-/// Ein Widget in seinem Rahmen - die eine Stelle, an der jede Art ihre
-/// Ansicht bekommt. Die Groesse setzt die Seite (`BentoPageView`); die
-/// Form folgt der Flaeche wie vor 0.2 (hochkant, hoch, breit).
+/// A widget in its frame - the one place where every kind gets its view.
+/// The size is set by the page (`BentoPageView`); the shape follows the
+/// area like before 0.2 (portrait, tall, wide).
 struct WidgetView: View {
     let widget: WidgetInstance
     let context: WidgetContext
     var body: some View { ... }
 }
 
-/// Was Widgets zum Zeichnen brauchen. Wetter kommt je Widget
-/// (`weather(for:)`), weil jedes Wetter-Widget eigene Orte hat.
+/// What widgets need for drawing. Weather comes per widget
+/// (`weather(for:)`), because every weather widget has places of its own.
 @MainActor
 struct WidgetContext {
     let dashboard: DashboardModel
@@ -60,8 +60,8 @@ Today one `WeatherModel` reads the favourites from weather.json in `start()` and
 
 ```swift
 /// Woher ein Wetter-Modell seine Orte hat. `.file`: weather.json (Leiste,
-/// Nexus, bisher auch das Dashboard). `.widget`: die Orte eines Wetter-
-/// Widgets (0.2), gelesen und geschrieben ueber die Seite in settings.json.
+/// Nexus, so far the dashboard too). `.widget`: the places of one weather
+/// widget (0.2), read and written through the page in settings.json.
 enum WeatherPlacesSource {
     case file
     case widget(read: @MainActor () -> WeatherFavorites, write: @MainActor (WeatherFavorites) -> Void)
@@ -83,10 +83,10 @@ enum WeatherPlacesSource {
 - [ ] `BentoPageView.swift`:
 
 ```swift
-/// Eine Seite: jedes Widget an seinem Rahmen (Referenzpunkte). Gesetzt
-/// ueber Rahmen und Versatz in ganzen Punkten statt ueber ein eigenes
-/// `Layout` - siehe den Kommentar ueber `DashboardGrid`: ein eigenes Layout
-/// rundete innen anders und verschob Text um einen Pixel.
+/// One page: every widget at its frame (reference points). Set through
+/// frames and offsets in whole points instead of through a `Layout` of its
+/// own - see the comment above `DashboardGrid`: a layout of its own rounded
+/// differently inside and shifted text by a pixel.
 struct BentoPageView: View {
     let page: DashboardPage
     let context: WidgetContext
@@ -109,7 +109,7 @@ struct BentoPageView: View {
 }
 ```
 
-  `BentoEmptyPage` = today's `DashboardEmptyGrid` with the text "Empty page" / "Edit in Nexus" (add English lines "Empty page" / "Edit in Nexus").
+  `BentoEmptyPage` = today's `DashboardEmptyGrid` with the text “Empty page” / “Edit in Nexus”.
 - [ ] `DashboardView`: the page bar lists `pages.pages` (title = `page.name`, icon = `ThemedIcon(page.template.tab.iconID, fallback: page.symbol)` for presets, `Image(systemName: page.symbol)` for own pages), same look, indicator and animation as today's tab bar. While all pages fit at ≥ 96 pt each, distribute them exactly as today (`frame(maxWidth: .infinity)` across `gridWidth`); otherwise wrap the bar in a horizontal `ScrollView` with 96 pt per page and scroll the selected one into view. Below the bar draw `BentoPageView` for the selected page (resolved: `pageID` if it exists, else the first page). Delete `DashboardGrid`; `MediaTab`, `PerformanceView` and `WeatherTab` stay only if something else still uses them.
 - [ ] `Dashboard`: `onOpen` resolves the page, sets `model.showsPerformance = page.widgets.contains { $0.kind.isPerformance }` (and again whenever `pageID` changes, e.g. via `onChange` in the view or a `didSet` hook), starts `WeatherModels` for the page's weather widgets only if `pages.usesWeather`, media only if `pages.usesMedia`. `show(tab:)` maps to `pages.page(for: PageTemplate(tab), showing: kinds)` with kinds: `.media` → `[.mediaPlayer, .media]`, `.performance` → the six performance kinds, `.weather` → `[.weatherHero, .weatherHourly, .weatherDaily, .weather]`, `.dashboard` → `[]`; a second click on an open page closes it, as today.
 - [ ] `RenderMode.renderDashboard`: render the pages of `DashboardPages(pages: DashboardPages.defaultPages(places: <one place, "Berlin" 52.52/13.405>, hasBattery: fixtures.dashboard.performance.battery != nil))!` through the real `DashboardView` (store `.preview(settings)` with those pages, `WeatherModels.preview(fixtures.weather)`), selecting each page in turn; file name = `page.template!.tab.rawValue` so the names match the baseline.

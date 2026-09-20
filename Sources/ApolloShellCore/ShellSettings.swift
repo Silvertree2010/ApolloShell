@@ -1,55 +1,55 @@
 import Foundation
 
-/// Einstellungen der Shell, die Nexus (das Einstellungsfenster) aendert und
-/// Leiste, Kurzmeldungen und Schreibtisch-Uhr live lesen. Liegen als
+/// Shell settings that Nexus (the settings window) changes, and that the
+/// bar, toasts and desktop clock read live. Stored as
 /// ~/Library/Application Support/ApolloShell/settings.json.
 ///
-/// Die Namen folgen Caelestias Konfiguration (bar, utilities.toasts,
-/// background), damit man beim Vergleich mit dem Original nicht raten muss.
+/// The names follow Caelestia's configuration (bar, utilities.toasts,
+/// background), so comparing with the original doesn't require guessing.
 ///
-/// Vorgaben = das Verhalten vor Nexus: alles an, Uhr mit Symbol, ohne Datum.
-/// Ausnahme frische Installation (gar keine Datei): `firstLaunch` mit den
-/// Kuerzeln, dem Deckel-Teil und der Einfuehrung fuer neue Nutzer.
+/// Defaults = the behavior before Nexus: everything on, clock with icon,
+/// no date. Exception for a fresh install (no file at all): `firstLaunch`
+/// with the new shortcuts, the lid part, and the introduction for new users.
 ///
-/// Nachsichtig beim Lesen: fehlt ein Schluessel oder hat er den falschen Typ,
-/// gilt fuer genau diesen die Vorgabe - nicht fuer die ganze Datei. So
-/// bleiben die uebrigen Einstellungen erhalten, wenn eine spaetere Fassung
-/// Schluessel dazu nimmt oder jemand die Datei von Hand verschreibt.
+/// Lenient when reading: if a key is missing or has the wrong type, the
+/// default applies to just that one - not to the whole file. This way the
+/// remaining settings survive when a later version adds keys or someone
+/// hand-edits the file incorrectly.
 public struct ShellSettings: Codable, Equatable, Sendable {
     public var bar = Bar()
     public var toasts = Toasts()
     public var background = Background()
     public var providers = Providers()
     public var utilities = Utilities()
-    /// Dashboard (Caelestia: dashboard): Reiter und Karten, siehe
-    /// `DashboardLayout`. Fehlt der Abschnitt, gilt Caelestias Dashboard.
+    /// Dashboard (Caelestia: dashboard): tabs and cards, see
+    /// `DashboardLayout`. Without the section, Caelestia's dashboard applies.
     public var dashboard = DashboardLayout()
-    /// Seiten des Bento-Dashboards (0.2). `nil`: noch nie gespeichert oder
-    /// nicht lesbar - die App baut sie dann einmal aus `dashboard`
-    /// (`DashboardPages.migrated`). `dashboard` selbst bleibt unangetastet,
-    /// damit ein Zurueck auf 0.1.x nichts verliert.
+    /// Pages of the bento dashboard (0.2). `nil`: never saved yet or not
+    /// readable - the app then builds them once out of `dashboard`
+    /// (`DashboardPages.migrated`). `dashboard` itself stays untouched, so a
+    /// step back to 0.1.x loses nothing.
     public var dashboardPages: DashboardPages?
-    /// Groesse des Dashboards zusaetzlich zur Automatik nach Bildschirm
-    /// (Nexus-Regler), `BentoGeometry.userScaleRange`.
+    /// Size of the dashboard on top of the automatic one per screen (the
+    /// Nexus slider), `BentoGeometry.userScaleRange`.
     public var dashboardScale: Double = 1
-    /// Globale Tastenkuerzel (Nexus > Tastenkürzel).
+    /// Global keyboard shortcuts (Nexus > Shortcuts).
     public var hotKeys = HotKeySettings.existingInstall
-    /// "Wach halten" auch zugeklappt.
+    /// "Keep Awake" with the lid closed as well.
     public var keepAwake = KeepAwakeSettings.existingInstall
-    /// Einfuehrung beim ersten Start schon durch?
+    /// Has the introduction on the first start been through already?
     public var onboarding = OnboardingSettings.existingInstall
-    /// Apples eigenes Dock ausblenden, solange ApolloShell laeuft.
+    /// Hide Apple's own Dock while ApolloShell runs.
     public var appleDockHiding = AppleDockHidingSettings.existingInstall
-    /// Selbstaktualisierung (Nexus > Updates).
+    /// Self-updating (Nexus > Updates).
     public var updates = UpdateSettings()
-    /// Gewaehltes Theme (Nexus > Themes).
+    /// The chosen theme (Nexus > Themes).
     public var theme = ThemeSettings()
 
-    /// Die Vorgaben der vier Abschnitte fuer die Veroeffentlichung
-    /// (hotKeys, keepAwake, onboarding, appleDockHiding) sind hier die fuer
-    /// eine VORHANDENE Installation: so liest sich jede Datei ohne diese
-    /// Abschnitte, und `ShellSettings()` bleibt das Verhalten von vorher.
-    /// Wer noch gar keine Datei hat, bekommt `firstLaunch`.
+    /// The defaults of the four sections for the release (hotKeys, keepAwake,
+    /// onboarding, appleDockHiding) are the ones for an EXISTING installation
+    /// here: that way every file without these sections reads the same, and
+    /// `ShellSettings()` stays the behavior from before.
+    /// Whoever has no file at all gets `firstLaunch`.
     public init(bar: Bar = Bar(), toasts: Toasts = Toasts(), background: Background = Background(),
                 providers: Providers = Providers(), utilities: Utilities = Utilities(),
                 dashboard: DashboardLayout = DashboardLayout(),
@@ -77,20 +77,20 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         self.theme = theme
     }
 
-    /// Frische Installation (keine settings.json): neue Kuerzel, Deckel-Teil
-    /// aus, Einfuehrung offen, Apple-Dock nicht ausgeblendet. Alles andere
-    /// wie `ShellSettings()`. Der erste Schreibvorgang legt alle Abschnitte
-    /// ausdruecklich an - danach liest sich die Datei wieder als genau
-    /// dieser Stand.
+    /// A fresh installation (no settings.json): new shortcuts, the lid part
+    /// off, the introduction open, Apple's Dock not hidden. Everything else
+    /// like `ShellSettings()`. The first write puts down all sections
+    /// explicitly - after that the file reads as exactly this state
+    /// again.
     public static var firstLaunch: ShellSettings {
         ShellSettings(hotKeys: .firstLaunch, keepAwake: .firstLaunch, onboarding: .firstLaunch,
                       appleDockHiding: .firstLaunch)
     }
 
-    /// Utilities-Panel unten rechts (Caelestia: utilities.quickToggles):
-    /// Karten und Schnellschalter, siehe `UtilitiesLayout`. Fehlt der
-    /// Abschnitt (Datei von vor dem Baukasten) oder ist er unlesbar: das
-    /// Panel, wie es vorher fest war (Vorlage "Standard").
+    /// Utilities panel at the bottom right (Caelestia: utilities.quickToggles):
+    /// cards and quick toggles, see `UtilitiesLayout`. Without the section (a
+    /// file from before the kit) or when it is unreadable: the panel the way
+    /// it was fixed before (the "Standard" template).
     public struct Utilities: Codable, Equatable, Sendable {
         public var layout: UtilitiesLayout
 
@@ -105,21 +105,21 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         }
     }
 
-    /// Leiste (Caelestia: bar.entries): die Bausteine als geordnete Liste,
-    /// siehe `BarLayout`.
+    /// Bar (Caelestia: bar.entries): the building blocks as an ordered list,
+    /// see `BarLayout`.
     ///
-    /// Vor dem Baukasten standen hier feste Schalter (showWorkspaces,
-    /// showDock, showClock, showStatusIcons, clock). Fehlt `layout` in der
-    /// Datei, wird die Leiste aus diesen gebaut - wer schon eine Datei hat,
-    /// sieht also dieselbe Leiste wie vorher. Geschrieben wird nur noch
-    /// `layout`.
+    /// Before the kit there were fixed switches here (showWorkspaces,
+    /// showDock, showClock, showStatusIcons, clock). Without `layout` in the
+    /// file, the bar is built out of those - so whoever has a file already
+    /// sees the same bar as before. From now on only `layout` is
+    /// written.
     public struct Bar: Codable, Equatable, Sendable {
         public var layout: BarLayout
-        /// Auf welchen Bildschirmen die Leiste steht (Nexus > Leiste).
-        /// Vorgabe fuer alle - auch fuer vorhandene Installationen: alle.
+        /// Which screens the bar stands on (Nexus > Bar).
+        /// The default for all of them - existing installations included: all.
         public var screens: ScreenChoice
-        /// Womit die Leiste hinterlegt ist (Nexus > Leiste), siehe
-        /// `BarBackground`. Vorgabe: Material, der Stand vor dieser Wahl.
+        /// What the bar is backed with (Nexus > Bar), see `BarBackground`.
+        /// Default: material, the state before this choice existed.
         public var background: BarBackground
 
         public init(layout: BarLayout = BarPreset.caelestia.layout, screens: ScreenChoice = .all,
@@ -131,19 +131,19 @@ public struct ShellSettings: Codable, Equatable, Sendable {
 
         private enum CodingKeys: String, CodingKey {
             case layout, screens, background
-            // Nur noch gelesen, fuer die Migration.
+            // Only read from now on, for the migration.
             case showWorkspaces, showDock, showClock, showStatusIcons, clock
         }
 
         public init(from decoder: any Decoder) throws {
             self.init()
             let c = try decoder.container(keyedBy: CodingKeys.self)
-            // Vor diesen Einstellungen gab es die Schluessel nicht; dann die
-            // Vorgaben (alle Bildschirme, Hintergrund von damals: Material).
+            // Before these settings the keys did not exist; then the defaults
+            // apply (all screens, the background of back then: material).
             c.lenient(.screens, into: &screens)
             c.lenient(.background, into: &background)
-            // Auch eine leere Liste ist eine Leiste (alles entfernt) - nur
-            // eine fehlende oder unlesbare faellt auf die alten Schalter zurueck.
+            // An empty list is a bar too (everything removed) - only a missing
+            // or unreadable one falls back to the old switches.
             if let layout: BarLayout = c.lenient(.layout) {
                 self.layout = layout
                 return
@@ -165,10 +165,10 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         }
     }
 
-    /// Welche Ereignisse eine Kurzmeldung ausloesen (Caelestia:
-    /// utilities.toasts). Caelestia kennt keine eigene Einstellung fuer die
-    /// Akku-Warnungen (die haengen an general.battery.warnLevels); hier ein
-    /// Schalter, weil unsere Stufen fest sind.
+    /// Which events set off a toast (Caelestia: utilities.toasts). Caelestia
+    /// knows no setting of its own for the battery warnings (those hang on
+    /// general.battery.warnLevels); here a switch, because our levels are
+    /// fixed.
     public struct Toasts: Codable, Equatable, Sendable {
         public var chargingChanged = true
         public var batteryWarnings = true
@@ -192,7 +192,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
             c.lenient(.audioInputChanged, into: &audioInputChanged)
         }
 
-        /// Ob ein Akku-Ereignis gemeldet wird.
+        /// Whether a battery event is reported.
         public func allows(_ event: BatteryToastEvent) -> Bool {
             switch event {
             case .chargerConnected, .chargerDisconnected: chargingChanged
@@ -201,7 +201,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         }
     }
 
-    /// Schreibtisch (Caelestia: background).
+    /// Desktop (Caelestia: background).
     public struct Background: Codable, Equatable, Sendable {
         public var desktopClock = true
 
@@ -216,17 +216,17 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         }
     }
 
-    /// Woher Daten kommen und welche App was uebernimmt (Nexus > Anbieter).
-    /// Vorgaben = das Verhalten vor dieser Einstellung: Open-Meteo, und oben
-    /// im Dock ForkLift, wenn installiert, sonst Finder.
+    /// Where data comes from and which app takes over what (Nexus > Providers).
+    /// Defaults = the behavior before this setting: Open-Meteo, and at the top
+    /// of the Dock ForkLift when installed, otherwise Finder.
     public struct Providers: Codable, Equatable, Sendable {
         public var weather = WeatherProviderID.standard
-        /// Bundle-ID des Dateimanagers oben im Dock; `nil` = automatisch
+        /// Bundle ID of the file manager at the top of the Dock; `nil` = automatic
         /// (`ProviderFileManager.automatic`).
         public var fileManager: String?
 
-        /// Von Hand: mit eigenem `encode(to:)` legt Swift keine an, und ohne
-        /// sie griffe der Name auf die Schluessel von ShellSettings.
+        /// By hand: with an `encode(to:)` of its own Swift puts down none, and
+        /// without them the name would reach for the keys of ShellSettings.
         enum CodingKeys: String, CodingKey {
             case weather, fileManager
         }
@@ -236,8 +236,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
             self.fileManager = fileManager
         }
 
-        /// Unbekannter Anbieter (Tippfehler, spaetere Fassung): Vorgabe.
-        /// Leere Bundle-ID: automatisch.
+        /// An unknown provider (a typo, a later version): the default.
+        /// An empty bundle ID: automatic.
         public init(from decoder: any Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             weather = c.lenient(.weather) ?? .standard
@@ -246,8 +246,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
             fileManager = trimmed.isEmpty ? nil : trimmed
         }
 
-        /// `fileManager` auch ohne Wert als `null` schreiben: so steht der
-        /// Schluessel in der Datei, und wer sie von Hand bearbeitet, findet ihn.
+        /// Write `fileManager` as `null` even without a value: that way the key
+        /// stands in the file, and whoever edits it by hand finds it.
         public func encode(to encoder: any Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
             try c.encode(weather, forKey: .weather)
@@ -265,35 +265,35 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         dashboard = c.lenient(.dashboard) ?? DashboardLayout()
         dashboardPages = c.lenient(.dashboardPages)
         dashboardScale = BentoGeometry.clampedUserScale(c.lenient(.dashboardScale) ?? 1)
-        // Fehlt ein Abschnitt, stammt die Datei von vor der Veroeffentlichung:
-        // wie bisher (alte Kuerzel, zugeklappt wach, keine Einfuehrung).
+        // Without a section the file comes from before the release: as before
+        // (old shortcuts, awake with the lid closed, no introduction).
         hotKeys = c.lenient(.hotKeys) ?? .existingInstall
         keepAwake = c.lenient(.keepAwake) ?? .existingInstall
         onboarding = c.lenient(.onboarding) ?? .existingInstall
         appleDockHiding = c.lenient(.appleDockHiding) ?? .existingInstall
-        // Beide Abschnitte gibt es erst ab 0.1.2. Fehlen sie, gelten die
-        // Vorgaben: pruefen und einspielen an, kein eigenes Theme.
+        // Both sections only exist from 0.1.2 on. Without them the defaults
+        // apply: checking and installing on, no theme of its own.
         updates = c.lenient(.updates) ?? UpdateSettings()
         theme = c.lenient(.theme) ?? ThemeSettings()
     }
 
-    /// Inhalt von settings.json.
-    /// - Keine Datei (`nil`): frische Installation, `firstLaunch`.
-    /// - Datei da, aber gar kein JSON-Objekt: die Vorgaben einer vorhandenen
-    ///   Installation - wer eine Datei hat, hat die Shell schon benutzt, auch
-    ///   wenn sie inzwischen kaputt ist.
+    /// The content of settings.json.
+    /// - No file (`nil`): a fresh installation, `firstLaunch`.
+    /// - A file, but no JSON object at all: the defaults of an existing
+    ///   installation - whoever has a file has used the shell already, even
+    ///   when it is broken by now.
     public static func load(from data: Data?) -> ShellSettings {
         guard let data else { return .firstLaunch }
         return (try? JSONDecoder().decode(ShellSettings.self, from: data)) ?? ShellSettings()
     }
 
-    /// Sortierte Schluessel und eingerueckt: die Datei bleibt von Hand lesbar,
-    /// und gleiche Einstellungen ergeben byte-gleiche Dateien.
+    /// Sorted keys and indented: the file stays readable by hand, and the same
+    /// settings give byte-identical files.
     public func encoded() -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        // Nur Bool, String und endliche Zahlen (BarGapOptions begrenzt die
-        // Hoehe, NaN kommt nicht hinein): kann nicht scheitern.
+        // Only Bool, String and finite numbers (BarGapOptions limits the
+        // height, NaN never gets in): cannot fail.
         return (try? encoder.encode(self)) ?? Data()
     }
 }
