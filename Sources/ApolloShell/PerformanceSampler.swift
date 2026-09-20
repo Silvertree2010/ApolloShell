@@ -4,12 +4,12 @@ import IOKit
 import IOKit.ps
 import ApolloShellCore
 
-/// Liest fuer den Reiter "Leistung", was SystemSampler nicht hat: GPU,
-/// Netzwerk, Akku mit Restzeit. Alles oeffentliche Schnittstellen ohne
-/// Freigabe (gemessen 14.09. auf dem M4 Pro). Temperaturen fehlen bewusst:
-/// auf Apple Silicon gibt es sie nur ueber SMC/private Schnittstellen.
+/// Reads for the "Performance" tab what SystemSampler does not have: the GPU,
+/// the network, the battery with the time left. All public interfaces without
+/// a permission (measured 14.09. on the M4 Pro). Temperatures are missing on
+/// purpose: on Apple Silicon they only exist through SMC/private interfaces.
 enum PerformanceSampler {
-    /// Chipname fuer die Untertitel, z. B. "Apple M4 Pro".
+    /// The chip name for the subtitles, "Apple M4 Pro" for instance.
     static let chipName: String = {
         var size = 0
         guard sysctlbyname("machdep.cpu.brand_string", nil, &size, nil, 0) == 0, size > 0 else { return "Mac" }
@@ -18,15 +18,15 @@ enum PerformanceSampler {
         return String(decoding: buffer.prefix { $0 != 0 }, as: UTF8.self)
     }()
 
-    /// Anzahl GPU-Kerne aus der IORegistry ("gpu-core-count", M4 Pro: 20).
+    /// The number of GPU cores out of the IORegistry ("gpu-core-count", M4 Pro: 20).
     static let gpuCores: Int? = accelerators { entry in
         IORegistryEntryCreateCFProperty(entry, "gpu-core-count" as CFString, kCFAllocatorDefault, 0)?
             .takeRetainedValue() as? Int
     }.first
 
-    /// GPU-Auslastung 0...1, wie der Treiber sie in "PerformanceStatistics"
-    /// meldet. Nur diese eine Eigenschaft lesen: alle Eigenschaften des
-    /// Beschleunigers kosten gemessen 1,2 ms, die eine 0,02 ms.
+    /// The GPU load 0...1, the way the driver reports it in "PerformanceStatistics".
+    /// Read only this one property: all the properties of the accelerator cost
+    /// a measured 1.2 ms, this one 0.02 ms.
     static func gpuUsage() -> Double? {
         let values = accelerators { entry -> Int? in
             guard let stats = IORegistryEntryCreateCFProperty(
@@ -38,14 +38,14 @@ enum PerformanceSampler {
         return min(max(Double(busiest) / 100, 0), 1)
     }
 
-    /// Summe der 64-Bit-Byte-Zaehler (if_data64) ueber die gezaehlten
-    /// Schnittstellen, siehe `NetworkMath.counts`. Gemessen 0,03 ms.
+    /// The sum of the 64-bit byte counters (if_data64) over the counted
+    /// interfaces, see `NetworkMath.counts`. Measured 0.03 ms.
     static func networkCounters() -> NetCounters? {
         var mib: [Int32] = [CTL_NET, PF_ROUTE, 0, 0, NET_RT_IFLIST2, 0]
         var length = 0
         guard sysctl(&mib, u_int(mib.count), nil, &length, nil, 0) == 0, length > 0 else { return nil }
-        // Etwas Reserve: kommt zwischen den beiden Aufrufen eine Schnittstelle
-        // dazu, schlaegt der zweite sonst mit ENOMEM fehl.
+        // Some reserve: when an interface is added between the two calls, the
+        // second one would otherwise fail with ENOMEM.
         var buffer = [UInt8](repeating: 0, count: length + 2048)
         length = buffer.count
         guard sysctl(&mib, u_int(mib.count), &buffer, &length, nil, 0) == 0 else { return nil }
@@ -71,9 +71,9 @@ enum PerformanceSampler {
         return total
     }
 
-    /// Eingebauter Akku mit Restzeit in Minuten (beim Laden bis voll, sonst
-    /// bis leer; IOKit meldet -1, solange es noch rechnet). `nil` auf
-    /// Macs ohne Akku.
+    /// The built-in battery with the time left in minutes (to full while
+    /// charging, otherwise to empty; IOKit reports -1 while it is still working
+    /// it out). `nil` on Macs without a battery.
     static func battery() -> (state: BatteryState, minutes: Int?)? {
         let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources = IOPSCopyPowerSourcesList(info).takeRetainedValue() as [CFTypeRef]
@@ -94,8 +94,8 @@ enum PerformanceSampler {
         return nil
     }
 
-    /// Eingebauter Akku vorhanden oder nicht - fuer die Seite "Leistung"
-    /// (Akku rechts oder nicht) ohne den ganzen Zustand zu lesen.
+    /// A built-in battery there or not - for the "Performance" page (the
+    /// battery on the right or not) without reading the whole state.
     static var hasInternalBattery: Bool {
         let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources = IOPSCopyPowerSourcesList(info).takeRetainedValue() as [CFTypeRef]
@@ -106,7 +106,7 @@ enum PerformanceSampler {
         }
     }
 
-    /// Ruft `read` fuer jeden Grafikbeschleuniger auf (Apple Silicon: einer).
+    /// Calls `read` for every graphics accelerator (Apple Silicon: one).
     private static func accelerators<T>(_ read: (io_registry_entry_t) -> T?) -> [T] {
         var iterator: io_iterator_t = 0
         guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &iterator) == KERN_SUCCESS

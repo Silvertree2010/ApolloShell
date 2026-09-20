@@ -1,15 +1,14 @@
 import Foundation
 
-/// Wie oft und wie kuerzlich eine App benutzt wurde ("Frecency").
+/// How often and how recently an app was used ("frecency").
 ///
-/// Jede Nutzung zaehlt 1 Punkt, und jeder Punkt verliert mit der Zeit an
-/// Gewicht: nach `halfLife` ist er nur noch halb so viel wert. Eine App, die
-/// du letzte Woche zehnmal geoeffnet hast, steht damit vor einer, die du vor
+/// Every use counts 1 point, and every point loses weight over time: after
+/// `halfLife` it is only worth half as much. An app you opened ten times last
+/// week therefore stands before one you opened twenty times a month ago.
 /// einem Monat zwanzigmal geoeffnet hast.
 ///
-/// Pro App werden nur zwei Werte gespeichert, Punktestand und Zeitpunkt.
-/// Der Zerfall wird beim Lesen nachgerechnet, die Datei waechst also nicht
-/// mit jeder Nutzung.
+/// Only two values are stored per app, the score and the time. The decay is
+/// worked out when reading, so the file does not grow with every use.
 public struct UsageStats: Codable, Sendable, Equatable {
     public static let defaultHalfLife: TimeInterval = 7 * 24 * 60 * 60
 
@@ -25,14 +24,13 @@ public struct UsageStats: Codable, Sendable, Equatable {
         self.halfLife = halfLife
     }
 
-    /// Eine Nutzung verbuchen: bisheriges Gewicht bis jetzt abklingen
-    /// lassen, dann einen Punkt dazu.
+    /// Book a use: let the weight so far decay up to now, then add a point.
     public mutating func record(_ key: String, at date: Date = Date()) {
         let current = weight(for: key, at: date)
         entries[key] = Entry(score: current + 1, updated: date)
     }
 
-    /// Aktuelles Gewicht, 0 fuer nie benutzte Apps.
+    /// The current weight, 0 for apps that were never used.
     public func weight(for key: String, at date: Date = Date()) -> Double {
         guard let entry = entries[key] else { return 0 }
         let age = max(0, date.timeIntervalSince(entry.updated))

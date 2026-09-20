@@ -3,14 +3,14 @@ import ApolloShellCore
 import Observation
 import os
 
-/// Wo Nexus liest und schreibt. Einspritzbar, damit Bildproben und
-/// Entwicklung nie die echten Dateien anfassen: `nil` heisst "nur im Speicher".
+/// Where Nexus reads and writes. Injectable, so that image samples and
+/// development never touch the real files: `nil` means "in memory only".
 struct NexusPaths: Sendable {
     var settings: URL?
     var pinned: URL?
     var weather: URL?
 
-    /// Die Dateien in `files`, mit denselben Namen wie die echten.
+    /// The files in `files`, with the same names as the real ones.
     init(_ files: ShellFiles) {
         self.init(settings: files.settings, pinned: files.pinned, weather: files.weather)
     }
@@ -21,10 +21,10 @@ struct NexusPaths: Sendable {
         self.weather = weather
     }
 
-    /// Die echten Dateien - dieselben, die Launcher und Wetter lesen.
+    /// The real files - the same ones the launcher and the weather read.
     static var live: NexusPaths { NexusPaths(.live) }
 
-    /// Alles in einem eigenen Ordner (Bildproben, Versuche).
+    /// Everything in a folder of its own (image samples, experiments).
     static func directory(_ url: URL) -> NexusPaths {
         NexusPaths(ShellFiles(directory: url))
     }
@@ -32,32 +32,32 @@ struct NexusPaths: Sendable {
     static let inMemory = NexusPaths(settings: nil, pinned: nil, weather: nil)
 }
 
-/// Die Einstellungen der Shell, einmal fuer die ganze App (AppDelegate haelt
-/// sie). Leiste und Nexus lesen `settings` in SwiftUI - die Beobachtung
-/// zeichnet sie bei jeder Aenderung neu; Kurzmeldungen fragen im Moment des
-/// Ereignisses; die Schreibtisch-Uhr beobachtet mit `Observations`. So gilt
-/// jeder Schalter sofort, ohne Neustart und ohne eigenen Benachrichtigungsweg.
+/// The settings of the shell, once for the whole app (AppDelegate holds them).
+/// The bar and Nexus read `settings` in SwiftUI - the observation redraws them
+/// on every change; toasts ask at the moment of the event; the desktop clock
+/// watches with `Observations`. That way every switch holds right away,
+/// without a restart and without a notification path of its own.
 ///
-/// Gelesen wird einmal beim Start. Wer settings.json von Hand aendert,
-/// braucht einen Neustart - bearbeitet wird sie ueber Nexus.
+/// It is read once on the start. Whoever changes settings.json by hand needs a
+/// restart - it is edited through Nexus.
 @MainActor
 @Observable
 final class ShellSettingsStore {
     var settings: ShellSettings {
         didSet {
-            // Gleich geblieben (z. B. Schalter zurueck auf den alten Wert
-            // in derselben Runde): nichts schreiben.
+            // Stayed the same (a switch back to the old value in the same
+            // round, say): write nothing.
             if settings != oldValue { save() }
         }
     }
 
-    /// Letzter Schreibversuch gescheitert - Nexus zeigt es an.
+    /// The last write attempt failed - Nexus shows it.
     private(set) var saveFailed = false
 
     @ObservationIgnored private let url: URL?
     @ObservationIgnored private let log = Logger(category: "settings")
 
-    /// `url == nil`: nur im Speicher, schreibt nie.
+    /// `url == nil`: in memory only, never writes.
     init(url: URL?) {
         self.url = url
         let data = ShellFiles.read(url)
@@ -68,7 +68,7 @@ final class ShellSettingsStore {
         settings = ShellSettings.load(from: data)
     }
 
-    /// Fuer Bildproben: fester Stand, keine Datei.
+    /// For image samples: a fixed state, no file.
     static func preview(_ settings: ShellSettings = ShellSettings()) -> ShellSettingsStore {
         let store = ShellSettingsStore(url: nil)
         store.settings = settings

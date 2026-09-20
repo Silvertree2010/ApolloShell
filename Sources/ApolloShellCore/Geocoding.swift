@@ -1,14 +1,14 @@
 import Foundation
 
-/// Ein Treffer der Ortssuche von Open-Meteo.
+/// One hit of the place search of Open-Meteo.
 public struct GeocodingPlace: Equatable, Sendable, Identifiable {
-    /// GeoNames-Kennung; bei gleichnamigen Orten (Springfield IL, Springfield
-    /// MO) die einzige sichere Unterscheidung.
+    /// The GeoNames id; with places of the same name (Springfield IL,
+    /// Springfield MO) the only sure way to tell them apart.
     public let id: Int
     public let name: String
     public let latitude: Double
     public let longitude: Double
-    /// Region, z. B. "Land Berlin".
+    /// The region, "Land Berlin" for instance.
     public let admin1: String?
     public let country: String?
 
@@ -21,7 +21,7 @@ public struct GeocodingPlace: Equatable, Sendable, Identifiable {
         self.country = country
     }
 
-    /// Zweite Zeile: "Land Berlin, Deutschland". Leere Teile fallen weg.
+    /// The second line: "Land Berlin, Germany". Empty parts fall away.
     public var detail: String {
         [admin1, country]
             .compactMap { $0?.trimmingCharacters(in: .whitespaces) }
@@ -29,26 +29,26 @@ public struct GeocodingPlace: Equatable, Sendable, Identifiable {
             .joined(separator: ", ")
     }
 
-    /// Fuer weather.json.
+    /// For weather.json.
     public var location: WeatherLocation {
         WeatherLocation(name: name, latitude: latitude, longitude: longitude)
     }
 }
 
-/// Ortssuche ueber https://geocoding-api.open-meteo.com (kein Schluessel,
-/// dieselbe Quelle wie das Wetter).
+/// The place search through https://geocoding-api.open-meteo.com (no key, the
+/// same source as the weather).
 public enum OpenMeteoGeocoding {
-    /// Wie viele Treffer, und in welcher Sprache die Namen kommen.
+    /// How many hits, and in which language the names come.
     public static let count = 5
     public static let language = "de"
-    /// Unter zwei Zeichen liefert die Schnittstelle nichts Brauchbares
-    /// (dokumentiert: 1 Zeichen = leere Liste, 2 = exakte Treffer).
+    /// Below two characters the interface delivers nothing usable (documented:
+    /// 1 character = an empty list, 2 = exact hits).
     public static let minimumQueryLength = 2
-    /// So lange nach dem letzten Tastendruck warten, bevor gesucht wird -
-    /// sonst ginge fuer "Oslo" vier Mal eine Anfrage raus.
+    /// Wait this long after the last key press before searching - otherwise
+    /// four requests would go out for "Oslo".
     public static let debounce: Duration = .milliseconds(400)
 
-    /// `nil`, wenn der Suchtext zu kurz ist - dann gar nicht fragen.
+    /// `nil` when the search text is too short - then do not ask at all.
     public static func url(for query: String) -> URL? {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= minimumQueryLength else { return nil }
@@ -65,9 +65,9 @@ public enum OpenMeteoGeocoding {
         return components.url
     }
 
-    /// Findet die Schnittstelle nichts, fehlt `results` ganz (gemessen
-    /// 14.09.: nur `generationtime_ms`) - das ist eine leere Liste, kein
-    /// Fehler. Treffer ohne Namen oder mit Koordinaten neben der Erde fallen weg.
+    /// When the interface finds nothing, `results` is missing entirely
+    /// (measured 14.09.: only `generationtime_ms`) - that is an empty list, not
+    /// an error. Hits without a name or with coordinates off the Earth fall away.
     public static func decode(_ data: Data) throws -> [GeocodingPlace] {
         struct Raw: Decodable {
             struct Result: Decodable {
@@ -86,8 +86,8 @@ public enum OpenMeteoGeocoding {
                   let latitude = r.latitude, let longitude = r.longitude,
                   (-90...90).contains(latitude), (-180...180).contains(longitude)
             else { return nil }
-            // Ohne Kennung: die Position in der Antwort, negativ, damit sie
-            // nie mit einer echten GeoNames-Kennung zusammenfaellt.
+            // Without an id: the position in the answer, negative, so that it
+            // never coincides with a real GeoNames id.
             return GeocodingPlace(id: r.id ?? -(index + 1), name: name, latitude: latitude,
                                   longitude: longitude, admin1: r.admin1, country: r.country)
         }
@@ -95,9 +95,9 @@ public enum OpenMeteoGeocoding {
 }
 
 extension WeatherLocation {
-    /// "47,01° N, 9,50° O" auf Deutsch, "47.01° N, 9.50° E" auf Englisch:
-    /// Das Dezimaltrennzeichen kommt aus der Locale, die Himmelsrichtung ist
-    /// ein Uebersetzungsschluessel (Ost heisst auf Englisch "E", nicht "O").
+    /// "47,01° N, 9,50° E" in German, "47.01° N, 9.50° E" in English: the
+    /// decimal separator comes out of the locale, the direction is a
+    /// translation key.
     public var coordinateText: String { coordinateText(locale: .current) }
 
     public func coordinateText(locale: Locale) -> String {

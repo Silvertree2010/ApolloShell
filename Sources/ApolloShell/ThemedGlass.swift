@@ -1,22 +1,22 @@
 import AppKit
 import ApolloShellCore
 
-/// Faerbt ein `NSGlassEffectView` nach dem Theme.
+/// Colors an `NSGlassEffectView` by the theme.
 ///
-/// Drei Fenster der Shell liegen in so einem Glas: die Kantenfenster
-/// (Dashboard, Utilities), der Launcher und das Sitzungsmenue. Ohne Theme
-/// bleibt es das Glas von macOS; mit Theme liegt die Panelfarbe darunter.
+/// Three windows of the shell lie in such glass: the edge windows (dashboard,
+/// utilities), the launcher and the session menu. Without a theme it stays the
+/// glass of macOS; with a theme the panel color lies below it.
 ///
-/// Als Ebene und nicht als Toenung des Glases: Eine Ebenenfarbe gilt sofort,
-/// eine Toenung erst beim naechsten Zeichnen - gesehen am Dashboard, das bis
-/// zum ersten Klick durchsichtig blieb. Die Ebene liegt unter dem ganzen
-/// Glas, nicht nur unter der Ansicht, sonst bliebe der Streifen daneben
-/// (Platz fuer Menueleiste und Notch) frei und es gaebe eine Naht.
+/// As a layer and not as a tint of the glass: a layer color holds right away,
+/// a tint only on the next drawing - seen on the dashboard, which stayed
+/// transparent until the first click. The layer lies under the whole glass,
+/// not only under the view, otherwise the strip beside it (room for the menu
+/// bar and the notch) would stay free and there would be a seam.
 @MainActor
 enum ThemedGlass {
-    /// Setzt Ecke und Flaeche. Gibt die angelegte Verlaufsebene zurueck, die
-    /// der Aufrufer beim naechsten Mal wieder mitgibt, damit sie ersetzt und
-    /// nicht gestapelt wird.
+    /// Sets the corner and the area. Hands back the gradient layer it created,
+    /// which the caller brings along next time, so that it is replaced and not
+    /// stacked.
     @discardableResult
     static func apply(to glass: NSGlassEffectView?, fallbackRadius: CGFloat,
                       previous: CAGradientLayer? = nil) -> CAGradientLayer? {
