@@ -98,6 +98,14 @@ final class Dashboard {
             if let id = editor.lastPageID, settings.settings.dashboardPages?.page(id: id) != nil {
                 model.pageID = id
             }
+            // The places of a weather widget can have been changed during
+            // the edit and taken back again by Cancel. The models read
+            // them live, but what they fetched last stands on the screen
+            // until they are started again (20.09.).
+            if let self, let id = model.pageID, let page = settings.settings.dashboardPages?.page(id: id) {
+                let weather = page.widgets.filter { $0.kind.usesPlaces }
+                if !weather.isEmpty { self.weatherModels.start(for: weather) }
+            }
             // Unpinning alone - the window stays open until the mouse
             // leaves or a click happens elsewhere, like a normally
             // opened Dashboard.
