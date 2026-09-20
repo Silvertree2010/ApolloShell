@@ -196,8 +196,11 @@ final class DashboardEditor {
         return id
     }
 
+    /// The smallest free number, not "one more than there are": with the
+    /// four bundled pages the first page of one's own used to be called
+    /// "Page 5", and after deleting a few the numbers jumped.
     static func nextPageName(existing: [String]) -> String {
-        var n = existing.count + 1
+        var n = 1
         while existing.contains(String(localized: "Page \(n)")) { n += 1 }
         return String(localized: "Page \(n)")
     }

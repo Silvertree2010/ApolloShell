@@ -129,7 +129,10 @@ struct DashboardView: View {
                 }
                 .frame(width: Self.gridWidth)
                 .padding(.horizontal, Self.padding)
-                .onChange(of: selected.id) { _, id in
+                // `initial: true`: with more than eight pages the bar
+                // scrolls, and the page one is on has to be in view the
+                // moment the bar appears - not only after the next switch.
+                .onChange(of: selected.id, initial: true) { _, id in
                     withAnimation(Self.motion) { proxy.scrollTo(id, anchor: .center) }
                 }
             }

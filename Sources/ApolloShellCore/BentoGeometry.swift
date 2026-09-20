@@ -44,15 +44,22 @@ public enum BentoGeometry {
         return min(max(value, userScaleRange.lowerBound), userScaleRange.upperBound)
     }
 
-    /// The scale for a screen: the automatic one by width times the slider, at
-    /// most as big as lets `contentHeight` (the whole dashboard at reference
-    /// size, with the page bar on top) fit into `availableHeight`.
+    /// The scale for a screen: the automatic one by width times the slider,
+    /// at most as big as lets the dashboard at reference size fit on the
+    /// screen - `contentHeight` (with the page bar on top) into
+    /// `availableHeight`, and `contentWidth` into the width of the screen.
+    ///
+    /// The width used not to count, because the automatic factor comes from
+    /// the width anyway - but it has a floor of 0.85, and the slider
+    /// multiplies on top of it: on a screen of 1110 pt at 1.5 the dashboard
+    /// grew wider than the screen it stands on.
     public static func scale(screenWidth: Double, availableHeight: Double, contentHeight: Double,
-                             userScale: Double) -> Double {
+                             contentWidth: Double = 0, userScale: Double) -> Double {
         let automatic = min(max(screenWidth / referenceScreenWidth, automaticRange.lowerBound), automaticRange.upperBound)
-        let wanted = automatic * clampedUserScale(userScale)
-        guard contentHeight > 0 else { return wanted }
-        return min(wanted, availableHeight / contentHeight)
+        var wanted = automatic * clampedUserScale(userScale)
+        if contentHeight > 0 { wanted = min(wanted, availableHeight / contentHeight) }
+        if contentWidth > 0 { wanted = min(wanted, screenWidth / contentWidth) }
+        return wanted
     }
 
     // MARK: Snapping

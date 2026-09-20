@@ -52,6 +52,19 @@ struct BentoGeometryTests {
                                         contentHeight: 460, userScale: user)
         #expect(abs(value - expected) < 0.0001)
     }
+
+    /// The dashboard is 871 pt wide at reference size. The automatic factor
+    /// has a floor of 0.85 and the slider multiplies on top of it, so
+    /// without the width limit it grew past the edge of a small screen.
+    @Test("The scale: the dashboard never grows wider than the screen", arguments: [
+        (1100.0, 1.5), (1280.0, 1.5), (1024.0, 1.2), (1512.0, 1.5), (2560.0, 1.5),
+    ])
+    func scaleFitsWidth(screenWidth: Double, user: Double) {
+        let contentWidth = 871.0
+        let value = BentoGeometry.scale(screenWidth: screenWidth, availableHeight: 2000,
+                                        contentHeight: 460, contentWidth: contentWidth, userScale: user)
+        #expect(contentWidth * value <= screenWidth + 0.0001)
+    }
 }
 
 @Suite("Bento geometry: snapping")
