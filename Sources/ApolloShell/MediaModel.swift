@@ -137,7 +137,7 @@ final class MediaModel {
             isUnavailable = true
             if !loggedMissingAdapter {
                 loggedMissingAdapter = true
-                log.error("mediaremote-adapter fehlt im Bundle - build.sh baut ihn mit")
+                log.error("mediaremote-adapter missing from the bundle - build.sh builds it in")
             }
             return
         }
@@ -214,14 +214,14 @@ final class MediaModel {
         guard wantsStream else { return }
         failures = MediaRestart.failures(previous: failures, runtime: Date().timeIntervalSince(streamStartedAt))
         guard let delay = MediaRestart.delay(afterFailures: failures) else {
-            log.error("Adapter gibt auf: \(self.failures) fruehe Abbrueche, zuletzt Status \(status)")
+            log.error("Adapter gives up: \(self.failures) early aborts, last status \(status)")
             // Old data would never be updated again - better honestly empty.
             state = MediaStreamState()
             publish()
             isUnavailable = true
             return
         }
-        log.notice("Adapter beendet (Status \(status)), neuer Versuch in \(delay, format: .fixed(precision: 0)) s")
+        log.notice("Adapter ended (status \(status)), next attempt in \(delay, format: .fixed(precision: 0)) s")
         restartTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(delay))
             guard !Task.isCancelled, let self else { return }
@@ -242,7 +242,7 @@ final class MediaModel {
 
     private func commandEnded(status: Int32, command: MediaCommand) {
         if status != 0 {
-            log.error("Befehl \(command.rawValue) fehlgeschlagen, Status \(status)")
+            log.error("Command \(command.rawValue) failed, status \(status)")
         }
     }
 

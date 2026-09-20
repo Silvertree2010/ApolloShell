@@ -1,9 +1,9 @@
 import ApolloShellCore
 import Testing
 
-@Suite("Nur eine Instanz")
+@Suite("Only one instance")
 struct SingleInstanceTests {
-    @Test("Entscheidung", arguments: [
+    @Test("Decision", arguments: [
         (0, false, false, SingleInstance.Decision.run),
         (0, true, false, .run),
         (1, false, false, .handOver),
@@ -15,11 +15,11 @@ struct SingleInstanceTests {
         #expect(SingleInstance.decide(otherInstances: others, replacesOld: replacesOld, waitedLongEnough: waited) == expected)
     }
 
-    @Test("Ersetzt eine alte Instanz", arguments: [
+    @Test("Replaces an old instance", arguments: [
         ([], [:], false),
         (["ApolloShell", "--relaunch"], [:], true),
         ([], ["XPC_SERVICE_NAME": "org.example.apolloshell"], true),
-        // Finder, Dock, `open`: LaunchServices setzt "application.…".
+        // Finder, Dock, `open`: LaunchServices sets "application.…".
         ([], ["XPC_SERVICE_NAME": "application.io.github.example.123.456"], false),
         ([], ["XPC_SERVICE_NAME": "0"], false),
     ] as [([String], [String: String], Bool)])

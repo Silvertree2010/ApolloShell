@@ -175,7 +175,7 @@ struct ThemeStyleSheetTests {
     func issueLimit() {
         let many = (0..<50).map { "h\($0) { color: red; }" }.joined(separator: "\n")
         let sheet = ThemeStyleSheetParser.parse(many, limits: ThemeLimits(maxIssues: 5))
-        #expect(sheet.issues.count == 6) // fuenf Hinweise und der Vermerk
+        #expect(sheet.issues.count == 6) // five notices and the remark
         #expect(sheet.issues.last.map { if case .moreIssues = $0.kind { true } else { false } } == true)
     }
 }

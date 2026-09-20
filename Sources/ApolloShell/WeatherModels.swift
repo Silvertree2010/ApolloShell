@@ -6,7 +6,7 @@ import Foundation
 /// widgets show the same place (the fetching is shared through `WeatherModel`'s
 /// report cache). The places of a widget stand in its options
 /// (`WidgetOptions.places`), read and written through the page it lies on.
-/// Seite, auf der es liegt.
+///
 @MainActor
 final class WeatherModels {
     private var models: [WidgetInstance.ID: WeatherModel] = [:]

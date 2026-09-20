@@ -1,9 +1,9 @@
 import ApolloShellCore
 import Testing
 
-@Suite("Schrift auf Akzentfarbe")
+@Suite("Text on the accent color")
 struct AccentContrastTests {
-    @Test("Gelb bekommt dunkle Schrift")
+    @Test("Yellow gets dark text")
     func yellowIsDark() {
         #expect(AccentContrast.prefersDarkForeground(red: 1, green: 0.773, blue: 0))
         #expect(AccentContrast.prefersDarkForeground(red: 1, green: 0.839, blue: 0.039))
@@ -18,7 +18,7 @@ struct AccentContrastTests {
         #expect(!AccentContrast.prefersDarkForeground(red: 0.557, green: 0.557, blue: 0.576))
     }
 
-    @Test("Randwerte")
+    @Test("Edge values")
     func extremes() {
         #expect(AccentContrast.luminance(red: 0, green: 0, blue: 0) == 0)
         #expect(abs(AccentContrast.luminance(red: 1, green: 1, blue: 1) - 1) < 1e-9)

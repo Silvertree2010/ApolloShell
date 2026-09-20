@@ -19,7 +19,7 @@ struct BentoEditSessionTests {
     func move() throws {
         var (s, id) = try session()
         let ok = s.previewMove(id, proposed: f(4, 146, 110, 130))
-        #expect(ok.frame == f(0, 146, 110, 130))   // x rastet am Rand ein, y hat kein Ziel
+        #expect(ok.frame == f(0, 146, 110, 130))   // x snaps to the edge, y has no target
         #expect(ok.valid)
         #expect(s.page.widgets[0].frame == f(0, 0, 110, 130))
         let committed = s.commit(id, frame: ok.frame)

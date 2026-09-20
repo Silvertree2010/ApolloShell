@@ -127,7 +127,7 @@ struct NexusProvidersPage: View {
                     }
                 }
             }
-            LabeledContent("Quellenangabe") {
+            LabeledContent("Attribution") {
                 Link(destination: chosen.attribution.url) {
                     HStack(spacing: 4) {
                         Text(chosen.attribution.text)
@@ -169,7 +169,7 @@ struct NexusProvidersPage: View {
                     store.settings.providers.fileManager = id
                 } label: {
                     NexusAppLabel(model: model, id: id,
-                                  note: model.isInstalled(id) ? nil : "Nicht installiert – oben steht \(model.name(for: active))")
+                                  note: model.isInstalled(id) ? nil : "Not installed – \(model.name(for: active)) is used above")
                 }
             }
             otherApps

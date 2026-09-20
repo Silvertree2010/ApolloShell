@@ -100,7 +100,7 @@ public struct SampleHistory: Equatable, Sendable {
     public private(set) var values: [Double] = []
 
     public init(capacity: Int) {
-        precondition(capacity > 0, "Verlauf braucht Platz fuer mindestens einen Wert")
+        precondition(capacity > 0, "History needs room for at least one value")
         self.capacity = capacity
     }
 

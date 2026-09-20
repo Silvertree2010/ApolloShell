@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ## Weather data
 
 ApolloShell requests forecasts from the one provider you choose in Nexus. The
-dashboard names the source ("Wetterdaten: …") under the data it shows. Every
+dashboard names the source ("Weather data: …") under the data it shows. Every
 request carries the User-Agent `ApolloShell/<version> (+<project URL>)`.
 
 ### Open-Meteo (default)

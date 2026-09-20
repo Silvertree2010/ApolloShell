@@ -76,7 +76,7 @@ enum Subprocess {
         do {
             try process.run()
         } catch {
-            log.error("\(path, privacy: .public) nicht startbar: \(error.localizedDescription, privacy: .public)")
+            log.error("\(path, privacy: .public) not startable: \(error.localizedDescription, privacy: .public)")
             return nil
         }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
@@ -109,7 +109,7 @@ enum Subprocess {
             try process.run()
         } catch {
             let path = process.executableURL?.path ?? "?"
-            log.error("\(path, privacy: .public) nicht startbar: \(error.localizedDescription, privacy: .public)")
+            log.error("\(path, privacy: .public) not startable: \(error.localizedDescription, privacy: .public)")
             return nil
         }
         alive[id] = process

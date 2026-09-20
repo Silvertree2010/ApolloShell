@@ -13,7 +13,7 @@ import Foundation
 /// (`sudoersRule`): after that both work without a password, the reset on quit
 /// and on the battery guard included, when nobody is there to answer a
 /// prompt. Whoever refuses gets "Keep Awake" without the lid part.
-/// ohne den Deckel-Teil.
+///
 public enum LidAwake {
     /// On battery, "Keep Awake" ends by itself from this charge on: a closed
     /// Mac in a bag should not run empty or get hot.

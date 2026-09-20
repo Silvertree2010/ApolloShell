@@ -138,7 +138,7 @@ public struct DashboardPages: Codable, Equatable, Sendable {
     public init(from decoder: any Decoder) throws {
         let list = try LenientList<DashboardPage>(from: decoder)
         guard let value = DashboardPages(pages: list.values) else {
-            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "keine Seite"))
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "no page"))
         }
         self = value
     }

@@ -33,7 +33,7 @@ enum UtilitiesAppearance {
               let get = dlsym(handle, "SLSGetAppearanceThemeLegacy"),
               let set = dlsym(handle, "SLSSetAppearanceThemeLegacy")
         else {
-            systemLog.notice("SkyLight-Dunkelmodus fehlt, Ersatzweg System Events")
+        systemLog.notice("Dark mode via SkyLight missing, falling back to System Events")
             return nil
         }
         return (unsafeBitCast(get, to: Getter.self), unsafeBitCast(set, to: Setter.self))
@@ -133,7 +133,7 @@ enum UtilitiesKeys {
     @discardableResult
     static func post(_ key: UtilitiesHotKey) -> Bool {
         guard AXIsProcessTrusted() else {
-            systemLog.error("Tastendruck ohne Bedienungshilfen-Freigabe nicht moeglich")
+            systemLog.error("Key press not possible without the Accessibility permission")
             return false
         }
         let source = CGEventSource(stateID: .hidSystemState)

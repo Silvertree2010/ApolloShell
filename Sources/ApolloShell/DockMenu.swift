@@ -138,7 +138,7 @@ final class ClosureMenuItem: NSMenuItem {
     }
 
     required init(coder: NSCoder) {
-        fatalError("nicht aus Nib")
+        fatalError("not from a nib")
     }
 
     @objc private func run() {

@@ -108,7 +108,7 @@ final class HotKeyCenter {
                 registered[action] = (key, hotKey)
             case .failure(let error):
                 failed[action] = error
-                log.error("\(action.rawValue, privacy: .public): \(key.display(), privacy: .public) nicht registriert (OSStatus \(error.status, privacy: .public))")
+                log.error("\(action.rawValue, privacy: .public): \(key.display(), privacy: .public) not registered (OSStatus \(error.status, privacy: .public))")
             }
         }
         if failed != failures { failures = failed }
@@ -274,7 +274,7 @@ struct HotKeyRecorder: View {
             }
             .buttonStyle(.plain)
             .help(recording ? HotKeyText.recordingHelp : String(localized: "Click and press the new combination"))
-            .accessibilityLabel("Kürzel für \(action.title)")
+            .accessibilityLabel("Shortcut for \(action.title)")
             .accessibilityValue(key.map(HotKeyKeyboard.display) ?? HotKeyText.none)
 
             // Keep the room, so the field does not jump while recording.

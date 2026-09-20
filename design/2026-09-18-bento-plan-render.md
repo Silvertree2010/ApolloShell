@@ -48,7 +48,7 @@ struct WidgetContext {
 ```
 
 - [ ] Let `DashboardGrid` build a `WidgetInstance` per placement (`WidgetKind(placement.card.kind)`, frame from the placement, options from the card) and draw `WidgetView` instead of `DashboardCardView`; delete `DashboardCardView`. The other three tabs stay as they are for now.
-- [ ] Build, render into `…/renders/t1`, compare with the baseline: **must be identical** (`gleich` for all 8). Commit "Draw dashboard cards through one widget view".
+- [ ] Build, render into `…/renders/t1`, compare with the baseline: **must be identical** (`same` for all 8). Commit "Draw dashboard cards through one widget view".
 
 ### Task 2: Weather per widget
 
@@ -59,7 +59,7 @@ Today one `WeatherModel` reads the favourites from weather.json in `start()` and
 - [ ] Give `WeatherModel` a source for its places, default = today's behaviour:
 
 ```swift
-/// Woher ein Wetter-Modell seine Orte hat. `.file`: weather.json (Leiste,
+/// Where a weather model gets its places from. `.file`: weather.json (bar,
 /// Nexus, so far the dashboard too). `.widget`: the places of one weather
 /// widget (0.2), read and written through the page in settings.json.
 enum WeatherPlacesSource {

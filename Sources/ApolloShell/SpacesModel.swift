@@ -38,7 +38,7 @@ final class SpacesModel {
     init() {
         reader = SpaceReader()
         if reader == nil {
-            log.error("SkyLight-Funktionen fuer Spaces fehlen, Kapsel bleibt aus")
+            log.error("SkyLight functions for Spaces missing, capsule stays off")
             return
         }
         refresh()

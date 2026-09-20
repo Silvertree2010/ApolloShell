@@ -87,7 +87,7 @@ final class DockMouseView: NSView, NSDraggingSource {
     }
 
     required init?(coder: NSCoder) {
-        fatalError("nicht aus Nib")
+        fatalError("not from a nib")
     }
 
     /// The bar belongs to an app that is never at the front; the first click

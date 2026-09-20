@@ -1,8 +1,8 @@
 import Foundation
 
-/// Symbol und Prozentzahl fuer die Lautstaerke-Anzeige (OSD).
+/// Symbol and percentage for the volume display (OSD).
 public enum VolumeGlyphs {
-    /// Stumm oder 0 -> durchgestrichen, sonst ein bis drei Wellen.
+    /// Muted or 0 -> struck through, otherwise one to three waves.
     public static func symbol(volume: Float, muted: Bool) -> String {
         if muted || volume <= 0.001 { return "speaker.slash.fill" }
         switch volume {
@@ -12,7 +12,7 @@ public enum VolumeGlyphs {
         }
     }
 
-    /// Ganze Prozent, auf 0...100 begrenzt.
+    /// Whole percent, clamped to 0...100.
     public static func percent(_ volume: Float) -> Int {
         Int((min(max(volume, 0), 1) * 100).rounded())
     }

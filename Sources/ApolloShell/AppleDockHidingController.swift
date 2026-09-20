@@ -13,7 +13,7 @@ import os
 /// switched off -> restore right away. `terminate()` for
 /// applicationWillTerminate and SIGTERM restores on quit too, whatever the
 /// setting says - ApolloShell should never leave the Dock hidden.
-/// nie versteckt zuruecklassen.
+///
 @MainActor
 final class AppleDockHidingController {
     static let killall = "/usr/bin/killall"
@@ -69,7 +69,7 @@ final class AppleDockHidingController {
             guard write(original.encoded(), to: fileURL) else { return }
         }
         writeAndApply(AppleDockHiding.hidden)
-        log.notice("Apple-Dock ausgeblendet")
+        log.notice("Apple Dock hidden")
     }
 
     /// Write the saved original back (deleting missing keys), remove the file.
@@ -83,7 +83,7 @@ final class AppleDockHidingController {
             ?? AppleDockPreferenceValues(autohide: nil, autohideDelay: nil, autohideTimeModifier: nil)
         writeAndApply(original)
         try? FileManager.default.removeItem(at: fileURL)
-        log.notice("Apple-Dock wieder eingeblendet")
+        log.notice("Apple Dock shown again")
     }
 
     private func readCurrent() -> AppleDockPreferenceValues {
@@ -125,7 +125,7 @@ final class AppleDockHidingController {
             try data.write(to: url, options: .atomic)
             return true
         } catch {
-            log.error("apple-dock.json nicht gespeichert, Dock bleibt sichtbar: \(error.localizedDescription, privacy: .public)")
+            log.error("apple-dock.json not saved, Dock stays visible: \(error.localizedDescription, privacy: .public)")
             return false
         }
     }

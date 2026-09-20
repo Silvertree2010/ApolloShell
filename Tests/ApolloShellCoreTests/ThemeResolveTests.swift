@@ -213,13 +213,13 @@ struct ThemeResolveTests {
         :root {
           --apollo-theme-format: 7;
           --apollo-accent-color: #ff0000;
-          --apollo-kommt-erst-spaeter: 12px;
+          --apollo-comes-later: 12px;
         }
         """)
         #expect(theme.formatVersion == 7)
         #expect(theme.color(.accent) == ThemeColor(hex: 0xFF0000))
         #expect(theme.issues.contains(ThemeIssue(.newerFormat(found: 7, known: ThemeFormat.current))))
-        #expect(theme.issues.contains(ThemeIssue(.unknownToken("--apollo-kommt-erst-spaeter"), line: 4)))
+        #expect(theme.issues.contains(ThemeIssue(.unknownToken("--apollo-comes-later"), line: 4)))
     }
 
     @Test("without an entry the format number is the one of this version")

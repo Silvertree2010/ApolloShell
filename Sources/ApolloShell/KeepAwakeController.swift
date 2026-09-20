@@ -56,12 +56,12 @@ final class KeepAwakeController {
         guard live, on != isOn else { return }
         if on {
             do {
-                assertion = try PowerAssertion(reason: "ApolloShell: Wach halten")
+                assertion = try PowerAssertion(reason: "ApolloShell: Keep Awake")
                 since = Date()
                 reconcileLid()
                 batteryGuard = .repeating(every: 60, owner: self) { $0.checkBattery() }
             } catch {
-                log.error("Wach halten nicht moeglich: IOReturn \(error.code, privacy: .public)")
+                log.error("Keep Awake not possible: IOReturn \(error.code, privacy: .public)")
             }
         } else {
             // Letting go = the object is gone, see PowerAssertion.deinit.
@@ -191,7 +191,7 @@ final class KeepAwakeController {
         lidPrompt = nil
         if disableSleep {
             guard ok else {
-                log.notice("disablesleep 1: Administrator abgelehnt, wach nur aufgeklappt")
+                log.notice("disablesleep 1: administrator refused, awake only with the lid open")
                 // The marker put down beforehand no longer holds.
                 if !lidAwakeOwned { try? FileManager.default.removeItem(at: Self.lidMarker) }
                 lid = lidWanted ? .declined : .off
@@ -204,7 +204,7 @@ final class KeepAwakeController {
             guard ok else {
                 // The marker stays: the next start (or the next off) tries
                 // again. And say that the Mac stays awake for now.
-                log.error("disablesleep 0: Administrator abgelehnt")
+                log.error("disablesleep 0: administrator refused")
                 lid = lidWanted ? .on : .off
                 if !lidWanted { onToast(Self.lidStillDisabledToast) }
                 return

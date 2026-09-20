@@ -32,7 +32,7 @@ final class FullscreenMonitor {
     init(onChange: @escaping (Set<CGDirectDisplayID>) -> Void) {
         self.onChange = onChange
         guard reader != nil else {
-            log.error("SkyLight-Funktionen fuer Spaces fehlen, Leiste bleibt im Vollbild stehen")
+            log.error("SkyLight functions for Spaces missing, bar stays visible in full screen")
             return
         }
         observeSystem()
@@ -86,7 +86,7 @@ final class FullscreenMonitor {
         }
         guard next != fullscreen else { return }
         fullscreen = next
-        log.notice("Vollbild auf \(next.count, privacy: .public) Bildschirm(en)")
+        log.notice("Full screen on \(next.count, privacy: .public) screen(s)")
         onChange(next)
     }
 }

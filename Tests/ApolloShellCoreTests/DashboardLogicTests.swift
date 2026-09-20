@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Dashboard-Logik")
+@Suite("Dashboard logic")
 struct DashboardLogicTests {
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
@@ -16,7 +16,7 @@ struct DashboardLogicTests {
         calendar.date(from: DateComponents(year: y, month: m, day: d, hour: 12))!
     }
 
-    @Test("September 2026: faengt am Montag 31. August an, 5 Wochen")
+    @Test("September 2026: starts on Monday, August 31st, 5 weeks")
     func september2026Grid() {
         let weeks = CalendarMonth.weeks(for: date(2026, 9, 14), today: date(2026, 9, 14), calendar: calendar)
         #expect(weeks.count == 5)
@@ -31,7 +31,7 @@ struct DashboardLogicTests {
         let weeks = CalendarMonth.weeks(for: date(2026, 9, 14), today: date(2026, 9, 14), calendar: calendar)
         let today = weeks.flatMap { $0 }.filter(\.isToday)
         #expect(today.count == 1)
-        #expect(weeks[2][0].isToday) // Montag der dritten Zeile
+        #expect(weeks[2][0].isToday) // Monday of the third row
     }
 
     @Test("A month with 6 weeks (March 2026 begins on a Sunday)")
@@ -41,7 +41,7 @@ struct DashboardLogicTests {
         #expect(weeks.flatMap { $0 }.filter(\.isToday).isEmpty)
     }
 
-    @Test("Wochentage ab Montag, zweibuchstabig")
+    @Test("Weekdays from Monday, two letters")
     func weekdaySymbols() {
         #expect(CalendarMonth.weekdaySymbols(calendar: calendar) == ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"])
     }
