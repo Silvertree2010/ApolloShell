@@ -43,13 +43,18 @@ If you like it, a star on GitHub helps other Mac users find it.
   drag and drop and badges work like in Apple's Dock.
 - **Launcher.** Press ⌥Space, type, hit Return. Apps you use often come first.
 - **Dashboard** from the top edge: pages of widgets for weather, calendar,
-  system stats and what's playing. Arrange them in edit mode or add pages of
-  your own.
+  system stats and what's playing. Add pages of your own, or put the same
+  widget on a page twice. Every weather widget keeps its own places, every
+  clock its own time zone.
 - **Control centre** in the bottom-right corner: keep awake, sound, Wi-Fi, dark
-  mode, Night Shift, a colour picker and your own buttons. Arranged in the
-  same edit mode as the dashboard (Nexus > "Edit Interface").
-- **Themes** as one CSS file: colours, gradients, fonts and sizes for the
-  whole shell, applied the moment you save the file.
+  mode, Night Shift, a colour picker and your own buttons.
+- **One edit mode for both.** "Edit Interface" in Nexus dims the screen and
+  opens the dashboard and the control centre together: drag a widget or a
+  button where you want it, resize a widget by its corner, pick new ones from
+  the gallery behind `+`. A slider sets how large the dashboard is on this
+  screen. Done keeps the changes, Cancel drops them.
+- **Themes** as one CSS file: colours, gradients, fonts, sizes and even the
+  icons for the whole shell, applied the moment you save the file.
 - **Nexus**, the settings app: shortcuts, providers, themes, updates.
 - Volume display, notifications for power and audio, a desktop clock and a
   session menu.
@@ -97,7 +102,8 @@ More about building and testing is in [CONTRIBUTING.md](CONTRIBUTING.md).
 A theme is a CSS file in
 `~/Library/Application Support/ApolloShell/themes`: colours, sizes, fonts and
 gradients as `--apollo-*` tokens, a dark-mode block, and nothing else - no
-scripting, no selectors of your own. Pick one in **Nexus > Themes**. Saving
+scripting, no selectors of your own. A theme folder can bring an `icons/`
+folder along and swap the shell's symbols for its own images. Pick one in **Nexus > Themes**. Saving
 the file applies it at once, and anything that could not be read falls back
 to the built-in value and is listed on that page. The format and every token
 are in [docs/THEMES.md](docs/THEMES.md).

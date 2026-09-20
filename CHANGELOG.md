@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased] - 0.2.0
 
+Your dashboard and control centre carry over: the first start of 0.2 turns the
+tabs you had into pages, with the cards at the same spots. The old
+`dashboard` section in `settings.json` stays untouched, so going back to
+0.1.x costs nothing.
+
 ### Added
 
 - **The dashboard is made of pages of widgets.** Dashboard, Media,
