@@ -1,18 +1,18 @@
 import Foundation
 
-/// Ein Symbol, das ein Theme austauschen darf.
+/// A symbol a theme may swap out.
 ///
-/// Die Kennung ist der Dateiname im Ordner `icons/` eines Themes, ohne
-/// Endung: `icons/session-shutdown.png` ersetzt das Symbol `session-shutdown`.
-/// Was nicht dort liegt, bleibt das eingebaute SF Symbol.
+/// The id is the file name in the `icons/` folder of a theme, without the
+/// extension: `icons/session-shutdown.png` replaces the symbol
+/// `session-shutdown`. What does not lie there stays the built-in SF Symbol.
 public struct ThemeIconDescriptor: Equatable, Hashable, Sendable {
-    /// Kleingeschrieben, mit Bindestrichen.
+    /// In lower case, with hyphens.
     public let id: String
-    /// Das SF Symbol, das gilt, solange das Theme nichts mitbringt.
+    /// The SF Symbol that holds while the theme brings none.
     public let fallback: String
-    /// Ein englischer Satz ohne Punkt, fuer die Doku.
+    /// An English sentence without a full stop, for the docs.
     public let summary: String
-    /// Frueher benutzte Kennungen. Werden weiter gelesen, fuer immer.
+    /// Ids used earlier. They go on being read, forever.
     public let aliases: [String]
 
     public init(id: String, fallback: String, summary: String, aliases: [String] = []) {
@@ -23,12 +23,12 @@ public struct ThemeIconDescriptor: Equatable, Hashable, Sendable {
     }
 }
 
-/// Alle Symbole, die ein Theme austauschen kann.
+/// All symbols a theme can swap out.
 ///
-/// Dieselbe Zusage wie beim Token-Verzeichnis: Eine veroeffentlichte Kennung
-/// verschwindet nie, sie bekommt hoechstens einen Alias. Ein Theme, das
-/// heute Symbole mitbringt, zeigt sie deshalb auch in einem Jahr noch - und
-/// eine Datei, deren Namen diese Fassung nicht kennt, wird uebergangen und
+/// The same promise as with the token catalogue: a published id never
+/// disappears, it gets an alias at most. A theme that brings symbols today
+/// therefore still shows them in a year - and a file whose name this version
+/// does not know is passed over and reported, not turned down.
 /// gemeldet, nicht abgelehnt.
 public struct ThemeIconCatalog: Sendable {
     public let icons: [ThemeIconDescriptor]
@@ -51,20 +51,20 @@ public struct ThemeIconCatalog: Sendable {
 
     public func contains(_ id: String) -> Bool { descriptor(for: id) != nil }
 
-    /// Der Ordner im Theme, in dem die Bilder liegen.
+    /// The folder in the theme the images lie in.
     public static let folderName = "icons"
 
     public static let standard = ThemeIconCatalog(ThemeIconCatalog.standardIcons)
 
     static let standardIcons: [ThemeIconDescriptor] = [
-        // MARK: Leiste
+        // MARK: Bar
         .init(id: "bar-dashboard", fallback: "square.grid.2x2.fill", summary: "Opens the dashboard"),
         .init(id: "bar-utilities", fallback: "slider.horizontal.3", summary: "Opens the control centre"),
         .init(id: "bar-clock", fallback: "calendar", summary: "Above the clock in the bar"),
         .init(id: "bar-power", fallback: "power", summary: "Opens the session menu"),
         .init(id: "bar-launcher", fallback: "magnifyingglass", summary: "Opens the launcher"),
 
-        // MARK: Zustand
+        // MARK: State
         .init(id: "status-wifi", fallback: "wifi", summary: "Wi-Fi, when it is connected"),
         .init(id: "status-wifi-off", fallback: "wifi.slash", summary: "Wi-Fi, when it is off"),
         .init(id: "status-bluetooth", fallback: "bluetooth", summary: "Bluetooth, when it is on"),
@@ -74,14 +74,14 @@ public struct ThemeIconCatalog: Sendable {
         .init(id: "status-volume", fallback: "speaker.wave.2.fill", summary: "Volume"),
         .init(id: "status-volume-muted", fallback: "speaker.slash.fill", summary: "Volume, when it is muted"),
 
-        // MARK: Sitzungsmenue
+        // MARK: Session menu
         .init(id: "session-emblem", fallback: "", summary: "The emblem in the middle of the session menu"),
         .init(id: "session-logout", fallback: "rectangle.portrait.and.arrow.right", summary: "Log out"),
         .init(id: "session-sleep", fallback: "moon.fill", summary: "Sleep"),
         .init(id: "session-restart", fallback: "arrow.clockwise", summary: "Restart"),
         .init(id: "session-shutdown", fallback: "power", summary: "Shut down"),
 
-        // MARK: Kurzmeldungen
+        // MARK: Toasts
         .init(id: "toast-info", fallback: "info.circle.fill", summary: "A toast that just says something"),
         .init(id: "toast-success", fallback: "checkmark.circle.fill", summary: "A toast about something that worked"),
         .init(id: "toast-warning", fallback: "exclamationmark.triangle.fill", summary: "A toast that warns"),
@@ -97,13 +97,13 @@ public struct ThemeIconCatalog: Sendable {
     ]
 }
 
-/// Die Bilder, die ein Theme fuer Symbole mitbringt.
+/// The images a theme brings for symbols.
 ///
-/// Gelesen wird nur aus dem Ordner `icons/` des Themes, und nur Dateien, die
-/// `ThemeAssetResolver.folder` durchlaesst - also keine Verknuepfung nach
-/// draussen, keine fremde Endung, nichts Uebergrosses.
+/// Only the `icons/` folder of the theme is read, and only files
+/// `ThemeAssetResolver.folder` lets through - so no link pointing outside, no
+/// foreign extension, nothing oversized.
 public struct ThemeIconSet: Equatable, Sendable {
-    /// Kennung auf Datei. Leer heisst: das Theme bringt keine Symbole mit.
+    /// The id onto the file. Empty means: the theme brings no symbols.
     public let files: [String: URL]
 
     public init(files: [String: URL] = [:]) {
@@ -114,10 +114,10 @@ public struct ThemeIconSet: Equatable, Sendable {
 
     public var isEmpty: Bool { files.isEmpty }
 
-    /// Die Datei fuer diese Kennung, `nil` wenn das Theme keine mitbringt.
+    /// The file for this id, `nil` when the theme brings none.
     public func file(_ id: String, catalog: ThemeIconCatalog = .standard) -> URL? {
         if let url = files[id.lowercased()] { return url }
-        // Ueber einen frueheren Namen gefunden: dann gilt er weiter.
+        // Found through an earlier name: then that one goes on holding.
         guard let descriptor = catalog.descriptor(for: id) else { return nil }
         for key in [descriptor.id] + descriptor.aliases {
             if let url = files[key.lowercased()] { return url }
@@ -125,10 +125,10 @@ public struct ThemeIconSet: Equatable, Sendable {
         return nil
     }
 
-    /// Liest den Ordner `icons/` eines Themes.
+    /// Reads the `icons/` folder of a theme.
     ///
-    /// Unbekannte Dateinamen kommen als Hinweis zurueck, nicht als Fehler:
-    /// Ein Theme aus einer spaeteren Fassung bringt vielleicht Symbole mit,
+    /// Unknown file names come back as a notice, not as an error: a theme out
+    /// of a later version may bring symbols that do not exist here yet.
     /// die es hier noch nicht gibt.
     public static func read(in folder: URL,
                             limits: ThemeLimits = .standard,
@@ -155,8 +155,8 @@ public struct ThemeIconSet: Equatable, Sendable {
             let reference = "\(ThemeIconCatalog.folderName)/\(entry.lastPathComponent)"
             switch resolver(reference) {
             case let .success(url):
-                // Zwei Dateien gleicher Kennung (icon.png und icon.jpg): die
-                // erste gewinnt, damit dasselbe Theme immer gleich aussieht.
+                // Two files of the same id (icon.png and icon.jpg): the first
+                // one wins, so that the same theme always looks the same.
                 if files[id] == nil { files[id] = url }
             case let .failure(reason):
                 issues.append(ThemeIssue(.rejectedAsset(reference: reference, reason: reason)))

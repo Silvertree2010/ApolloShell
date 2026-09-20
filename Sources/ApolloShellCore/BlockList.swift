@@ -1,20 +1,20 @@
 import Foundation
 
-// Eine offene Liste von Bausteinen, wie sie BarLayout (Leiste) und
-// UtilitiesLayout (Schnellschalter) je fuer sich hatten: eindeutige, nie
-// leere Kennungen, Arten die nur einmal vorkommen duerfen hoechstens einmal,
-// nachsichtiges Lesen aus der Datei. Layout-eigene Regeln (z. B. wo ein
-// neuer Baustein in der Leiste einsortiert wird, Vorlagen, Kartenplaetze im
-// Dashboard) bleiben in den jeweiligen Dateien und bauen auf `BlockList` auf.
+// An open list of building blocks, the way BarLayout (the bar) and
+// UtilitiesLayout (the quick toggles) each had one of their own: unique ids
+// that are never empty, kinds that may only appear once at most once, lenient
+// reading out of the file. Rules of a layout's own (where a new block is
+// sorted into the bar, templates, card places in the dashboard) stay in their
+// files and build on `BlockList`.
 
-/// Eine Art von Baustein: der Rohwert steht in settings.json (`kind`),
-/// `isUnique` sagt, ob es sie hoechstens einmal geben darf.
+/// A kind of building block: the raw value stands in settings.json (`kind`),
+/// and `isUnique` says whether there may be at most one of it.
 public protocol BlockKind: RawRepresentable, Hashable, Sendable where RawValue == String {
     var isUnique: Bool { get }
 }
 
-/// Ein Platz in einer `BlockList`: Kennung plus Art. Die Kennung ist
-/// veraenderlich, weil `BlockList` sie beim Aufraeumen und Hinzufuegen neu
+/// A place in a `BlockList`: the id plus the kind. The id can change, because
+/// `BlockList` hands out new ones when clearing up and adding.
 /// vergibt.
 public protocol Block: Codable, Equatable, Identifiable, Sendable where ID == String {
     associatedtype Kind: BlockKind
@@ -22,12 +22,12 @@ public protocol Block: Codable, Equatable, Identifiable, Sendable where ID == St
     var kind: Kind { get }
 }
 
-/// Immer gueltig: Kennungen eindeutig und nie leer, Arten mit `isUnique`
-/// hoechstens einmal - dafuer sorgen Initialisierer und Aenderungen hier,
-/// deshalb ist `entries` von aussen nur lesbar.
+/// Always valid: the ids unique and never empty, kinds with `isUnique` at most
+/// once - the initialiser and the changes here see to that, which is why
+/// `entries` is only readable from outside.
 ///
-/// In der Datei eine schlichte Liste. Unlesbare Eintraege fallen weg, der
-/// Rest bleibt.
+/// In the file a plain list. Unreadable entries fall away, the rest stays.
+///
 public struct BlockList<B: Block>: Codable, Equatable, Sendable {
     public private(set) var entries: [B]
 
@@ -44,7 +44,7 @@ public struct BlockList<B: Block>: Codable, Equatable, Sendable {
         try c.encode(entries)
     }
 
-    // MARK: Lesen
+    // MARK: Reading
 
     public subscript(id id: String) -> B? {
         entries.first { $0.id == id }
@@ -54,17 +54,17 @@ public struct BlockList<B: Block>: Codable, Equatable, Sendable {
         entries.contains { $0.kind == kind }
     }
 
-    /// Fuer die Galerie: eine hoechstens-einmal-Art, die schon da ist, laesst
-    /// sich nicht noch einmal hinzufuegen.
+    /// For the gallery: an at-most-once kind that is there already cannot be
+    /// added again.
     public func canAdd(_ kind: B.Kind) -> Bool {
         !kind.isUnique || !contains(kind)
     }
 
-    // MARK: Aendern
+    // MARK: Changing
 
-    /// Neuer Baustein, ohne `index` hinten angehaengt. Gibt seine (moeglich
-    /// neu vergebene) Kennung zurueck; `nil`, wenn die Art schon da ist und
-    /// nur einmal vorkommen darf.
+    /// A new block, appended at the end without an `index`. Hands back its
+    /// (possibly newly given) id; `nil` when the kind is there already and may
+    /// only appear once.
     @discardableResult
     public mutating func add(_ entry: B, at index: Int? = nil) -> String? {
         guard canAdd(entry.kind) else { return nil }
@@ -79,8 +79,8 @@ public struct BlockList<B: Block>: Codable, Equatable, Sendable {
         entries.removeAll { $0.id == id }
     }
 
-    /// Anderer Baustein an derselben Stelle. Die Art bleibt: aus einer Uhr
-    /// wird so kein zweites Dock.
+    /// A different block in the same place. The kind stays: a clock does not
+    /// become a second Dock that way.
     public mutating func update(id: String, to entry: B) {
         guard let index = entries.firstIndex(where: { $0.id == id }), entries[index].kind == entry.kind else { return }
         entries[index] = entry
@@ -90,7 +90,7 @@ public struct BlockList<B: Block>: Codable, Equatable, Sendable {
         entries.move(fromOffsets: source, toOffset: destination)
     }
 
-    /// Eine Stelle nach vorne (-1) oder hinten (+1); am Rand nichts.
+    /// One place forward (-1) or back (+1); nothing at the edge.
     public mutating func move(id: String, by step: Int) {
         guard let index = entries.firstIndex(where: { $0.id == id }) else { return }
         let target = index + step
@@ -98,9 +98,9 @@ public struct BlockList<B: Block>: Codable, Equatable, Sendable {
         entries.swapAt(index, target)
     }
 
-    /// An die Stelle eines anderen Bausteins - alles dazwischen rueckt ein
-    /// Stueck weiter. Fuer das Ziehen im Raster (`UtilitiesLayout`), wo der
-    /// gezogene Knopf sichtbar mitwandert.
+    /// To the place of another block - everything in between moves along a
+    /// step. For dragging in the grid (`UtilitiesLayout`), where the dragged
+    /// button visibly travels along.
     public mutating func move(id: String, onto target: String) {
         guard id != target,
               let from = entries.firstIndex(where: { $0.id == id }),
@@ -110,11 +110,11 @@ public struct BlockList<B: Block>: Codable, Equatable, Sendable {
         entries.insert(entry, at: to)
     }
 
-    // MARK: Regeln
+    // MARK: Rules
 
-    /// Doppelte hoechstens-einmal-Arten weg (die erste bleibt), leere oder
-    /// doppelte Kennungen neu - ohne einer spaeteren ihre ausdrueckliche
-    /// Kennung wegzunehmen.
+    /// Duplicate at-most-once kinds go (the first one stays), empty or
+    /// duplicate ids become new ones - without taking an explicit id away from
+    /// a later one.
     static func normalized(_ list: [B]) -> [B] {
         var kinds = Set<B.Kind>()
         var used = Set<String>()
@@ -132,7 +132,7 @@ public struct BlockList<B: Block>: Codable, Equatable, Sendable {
         return result
     }
 
-    /// "clock", sonst "clock-2", "clock-3" ... - lesbar in settings.json.
+    /// "clock", otherwise "clock-2", "clock-3" ... - readable in settings.json.
     static func uniqueID(for kind: B.Kind, taken: Set<String>) -> String {
         if !taken.contains(kind.rawValue) { return kind.rawValue }
         var n = 2

@@ -4,16 +4,16 @@ import Observation
 import SwiftUI
 import os
 
-/// Wetter-Favoriten fuer ein Widget (0.2: je Wetter-Widget eine eigene
-/// Liste, `WidgetOptions.places`) oder, mit `.file`, fuer die alte,
-/// gemeinsame weather.json (Umzug, Wetter-Reiter vor 0.2). `read`/`write`
-/// sind der Sink: `NexusWidgetPlacesSection` (NexusWidgetOptions.swift)
-/// gibt eigene, die in genau das eine Widget schreiben.
+/// The weather favourites for one widget (0.2: a list of its own per weather
+/// widget, `WidgetOptions.places`) or, with `.file`, for the old shared
+/// weather.json (the migration, the weather tab before 0.2). `read`/`write`
+/// are the sink: `NexusWidgetPlacesSection` (NexusWidgetOptions.swift) brings
+/// its own, which write into exactly that one widget.
 @MainActor
 @Observable
 final class NexusWeatherModel {
     enum SearchState: Equatable {
-        /// Kein Suchtext oder zu kurz - es wird nicht gefragt.
+        /// No search text or too short - nothing is asked.
         case idle
         case searching
         case done
@@ -33,7 +33,7 @@ final class NexusWeatherModel {
     @ObservationIgnored private let live: Bool
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private let log = Logger(category: "nexus")
-    /// Wie beim Wetter: kein Platten-Cache, kurze Wartezeit, ohne Netz sofort Fehler.
+    /// As with the weather: no disk cache, a short wait, an error right away without a network.
     @ObservationIgnored private let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 10
@@ -42,9 +42,9 @@ final class NexusWeatherModel {
         return URLSession(configuration: configuration)
     }()
 
-    /// Eigener Sink, z. B. das eine Widget einer Bearbeitung
-    /// (`NexusWidgetPlacesSection`). `write` liefert `false`, wenn es nicht
-    /// geschrieben werden konnte (zeigt `NexusSaveWarning`).
+    /// A sink of its own, the one widget of an editing session, say
+    /// (`NexusWidgetPlacesSection`). `write` hands back `false` when it could
+    /// not be written (which shows `NexusSaveWarning`).
     init(read: @escaping @MainActor () -> WeatherFavorites, write: @escaping @MainActor (WeatherFavorites) -> Bool) {
         readFavorites = read
         writeFavorites = write
@@ -52,8 +52,8 @@ final class NexusWeatherModel {
         favorites = read()
     }
 
-    /// Die Datei weather.json - vor 0.2 der einzige Ort, heute nur noch fuer
-    /// den Umzug gelesen (`Dashboard.init`, `DashboardPages.migrated`).
+    /// The file weather.json - before 0.2 the only place, today only read for
+    /// the migration (`Dashboard.init`, `DashboardPages.migrated`).
     static func file(url: URL?) -> NexusWeatherModel {
         NexusWeatherModel(
             read: { WeatherFavorites.load(from: ShellFiles.read(url)) },
@@ -76,7 +76,7 @@ final class NexusWeatherModel {
         favorites = .empty
     }
 
-    /// Fuer Bildproben: fester Stand, fragt nie im Netz.
+    /// For image samples: a fixed state, never asks the network.
     static func preview(favorites: WeatherFavorites, query: String,
                         results: [GeocodingPlace], state: SearchState) -> NexusWeatherModel {
         let model = NexusWeatherModel(preview: ())
@@ -87,17 +87,17 @@ final class NexusWeatherModel {
         return model
     }
 
-    /// Frisch vom Sink lesen (Nexus-Fenster oeffnen: die Datei koennte sich
-    /// seither geaendert haben; ein Widget aendert sich nur durch die
-    /// laufende Sitzung selbst, das Neulesen schadet dort aber nicht).
+    /// Read fresh from the sink (opening the Nexus window: the file could have
+    /// changed since; a widget only changes through the running session itself,
+    /// but reading again does no harm there).
     func reload() {
         guard live, let readFavorites else { return }
         favorites = readFavorites()
     }
 
-    /// Erst nach einer Tipppause fragen (`OpenMeteoGeocoding.debounce`), und
-    /// nur wenn der Text lang genug ist. Jeder Tastendruck bricht die
-    /// vorige Suche ab; so kommt nie eine alte Antwort nach einer neuen an.
+    /// Only ask after a pause in the typing (`OpenMeteoGeocoding.debounce`),
+    /// and only when the text is long enough. Every key press cancels the
+    /// previous search; so an old answer never arrives after a new one.
     private func scheduleSearch() {
         task?.cancel()
         task = nil
@@ -128,8 +128,8 @@ final class NexusWeatherModel {
                 self.results = places
                 self.state = .done
             case .failure(let error):
-                // Nur Domaene und Code: die Adresse enthaelt den Suchtext,
-                // also moeglicherweise den Wohnort.
+                // Only the domain and the code: the address holds the search
+                // text, so possibly where the user lives.
                 let nsError = error as NSError
                 self.log.error("Ortssuche fehlgeschlagen: \(nsError.domain, privacy: .public) \(nsError.code, privacy: .public)")
                 self.results = []
@@ -143,8 +143,8 @@ final class NexusWeatherModel {
         task = nil
     }
 
-    /// Treffer der Suche als neuen Favoriten anhaengen (Plus). War er schon
-    /// Favorit, aendert sich nichts - kein zweiter Eintrag fuer denselben Ort.
+    /// Append a hit of the search as a new favourite (plus). When it was a
+    /// favourite already, nothing changes - no second entry for the same place.
     func addFavorite(_ place: GeocodingPlace) {
         var updated = favorites
         updated.add(place.location)
@@ -180,9 +180,9 @@ final class NexusWeatherModel {
     }
 }
 
-/// Die globalen Orte (weather.json), auf Nexus > Leiste. Gelten fuer
-/// das Wetter-Baustein der Leiste und als Vorgabe fuer neu aus der Galerie
-/// abgelegte Wetter-Widgets.
+/// The global places (weather.json), on Nexus > Bar. They hold for the weather
+/// block of the bar and as the default for weather widgets newly dropped out
+/// of the gallery.
 struct NexusDashboardWeatherSection: View {
     let model: NexusWeatherModel
 

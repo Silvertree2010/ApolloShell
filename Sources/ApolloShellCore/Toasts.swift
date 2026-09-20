@@ -1,11 +1,11 @@
 import Foundation
 
-/// Art einer Kurzmeldung (Caelestia: Toast.Type). Bestimmt Farbe und das
-/// Symbol, falls der Aufrufer keins mitgibt.
+/// The kind of a toast (Caelestia: Toast.Type). Decides the color and the
+/// symbol when the caller brings none.
 public enum ToastKind: Sendable, Equatable {
     case info, success, warning, error
 
-    /// Kennung fuer den Symbol-Austausch im Theme (`icons/<kennung>.png`).
+    /// The id for the symbol swap in the theme (`icons/<id>.png`).
     public var iconID: String {
         switch self {
         case .info: "toast-info"
@@ -26,18 +26,18 @@ public enum ToastKind: Sendable, Equatable {
     }
 }
 
-/// Eine Kurzmeldung in der Warteschlange.
+/// One toast in the queue.
 public struct ToastEntry: Identifiable, Equatable, Sendable {
     public let id: Int
     public let title: String
     public let message: String
     public let symbol: String
     public let kind: ToastKind
-    /// Ab hier schliesst sie sich selbst.
+    /// From here on it closes itself.
     public let deadline: Date
-    /// War schon einmal wegen Ueberzahl ausgeblendet. Rueckt sie spaeter
-    /// nach, blendet sie wie bei Caelestia nur ein (0.7 -> 1) statt aus dem
-    /// Nichts aufzugehen - daran haengt der Uebergang der Oberflaeche.
+    /// It was hidden once because there were too many. When it moves up later,
+    /// it only fades in (0.7 -> 1) as in Caelestia instead of coming out of
+    /// nothing - the transition of the user interface hangs on that.
     public internal(set) var hasBeenHidden: Bool
 
     public init(id: Int, title: String, message: String, symbol: String, kind: ToastKind,
@@ -52,24 +52,24 @@ public struct ToastEntry: Identifiable, Equatable, Sendable {
     }
 }
 
-/// Warteschlange der Kurzmeldungen (Caelestia: Toaster + Toasts.qml).
+/// The queue of the toasts (Caelestia: Toaster + Toasts.qml).
 ///
-/// Regeln wie im Original:
-/// - Neue kommen vorne dazu (`push_front`) und stehen unten, aeltere
-///   rutschen nach oben.
-/// - Sichtbar sind die ersten `maxVisible` (Caelestia `maxToasts` = 4). Die
-///   aelteren bleiben in der Liste, ausgeblendet, und laufen trotzdem ab -
-///   geht eine sichtbare, rueckt die naechste nach.
-/// - Jede lebt 5 s. Caelestia hat zwar 7 s fuer Warnung und 10 s fuer
-///   Fehler, aber nur fuer `timeout <= 0`; `Toaster.toast` hat 5000 als
-///   Vorgabewert, und kein Aufrufer gibt etwas anderes mit. Gemessen am
-///   Quelltext: diese Zweige laufen nie.
-/// - Klick schliesst sofort.
+/// The rules as in the original:
+/// - New ones come in at the front (`push_front`) and stand at the bottom,
+///   older ones slide up.
+/// - Visible are the first `maxVisible` (Caelestia `maxToasts` = 4). The older
+///   ones stay in the list, hidden, and run out all the same - when a visible
+///   one goes, the next one moves up.
+/// - Every one lives 5 s. Caelestia does have 7 s for a warning and 10 s for
+///   an error, but only for `timeout <= 0`; `Toaster.toast` has 5000 as its
+///   default value, and no caller brings anything else. Measured against the
+///   source: those branches never run.
+/// - A click closes it right away.
 public struct ToastQueue: Sendable {
     public static let maxVisible = 4
     public static let timeout: TimeInterval = 5
 
-    /// Neueste zuerst.
+    /// The newest first.
     public private(set) var entries: [ToastEntry] = []
     private var nextID = 0
 
@@ -87,14 +87,14 @@ public struct ToastQueue: Sendable {
         )
         nextID += 1
         entries.insert(entry, at: 0)
-        // Wer jetzt aus dem sichtbaren Bereich faellt, merkt sich das.
+        // Whoever falls out of the visible area now remembers that.
         for index in entries.indices.dropFirst(Self.maxVisible) {
             entries[index].hasBeenHidden = true
         }
         return entry
     }
 
-    /// Klick: sofort weg. `false`, wenn es sie nicht (mehr) gibt.
+    /// A click: away right away. `false` when it does not (or no longer) exist.
     @discardableResult
     public mutating func dismiss(id: Int) -> Bool {
         guard let index = entries.firstIndex(where: { $0.id == id }) else { return false }
@@ -102,7 +102,7 @@ public struct ToastQueue: Sendable {
         return true
     }
 
-    /// Alle abgelaufenen entfernen. `true`, wenn sich etwas geaendert hat.
+    /// Remove everything that has run out. `true` when something changed.
     @discardableResult
     public mutating func expire(now: Date) -> Bool {
         let before = entries.count
@@ -110,40 +110,40 @@ public struct ToastQueue: Sendable {
         return entries.count != before
     }
 
-    /// Wann die naechste ablaeuft - dafuer braucht es genau einen Timer.
+    /// When the next one runs out - exactly one timer is needed for that.
     public var nextDeadline: Date? {
         entries.map(\.deadline).min()
     }
 
-    /// Was zu sehen ist, neueste zuerst. Bei Vollbild nichts (Caelestia:
+    /// What can be seen, the newest first. In full screen nothing (Caelestia:
     /// `utilities.toasts.fullscreen` = "off").
     public func visible(fullscreen: Bool = false) -> [ToastEntry] {
         fullscreen ? [] : Array(entries.prefix(Self.maxVisible))
     }
 }
 
-/// Masse des Stapels (Caelestia: Toasts.qml, ToastItem.qml, Tokens).
+/// The measurements of the stack (Caelestia: Toasts.qml, ToastItem.qml, Tokens).
 public enum ToastLayout {
     /// Caelestia: toastWidth 430 minus 2 x padding.medium.
     public static let width: Double = 406
     /// Caelestia: spacing.small.
     public static let spacing: Double = 8
-    /// Caelestia: padding.medium zum Rand bzw. zum Utilities-Panel.
+    /// Caelestia: padding.medium to the edge or to the utilities panel.
     public static let margin: Double = 12
-    /// Chip 40 + 2 x padding.small, siehe ToastCard.
+    /// The chip 40 + 2 x padding.small, see ToastCard.
     public static let itemHeight: Double = 56
 
-    /// Hoehe von `count` Meldungen samt Abstaenden (Caelestia: implicitHeight
-    /// startet bei -spacing).
+    /// The height of `count` toasts including the gaps (Caelestia:
+    /// implicitHeight starts at -spacing).
     public static func stackHeight(count: Int, itemHeight: Double = itemHeight, spacing: Double = spacing) -> Double {
         guard count > 0 else { return 0 }
         return Double(count) * itemHeight + Double(count - 1) * spacing
     }
 }
 
-/// Die Texte der Kurzmeldungen, auf Deutsch (Caelestia-Originale im
-/// Kommentar). Laufen als `String` bis zu `Text(entry.title)` im
-/// Toast-Stapel (siehe Vertrag) - deshalb hier schon uebersetzt.
+/// The texts of the toasts (the Caelestia originals in the comment). They run
+/// as a `String` all the way to `Text(entry.title)` in the toast stack (see
+/// the contract).
 public enum ToastText {
     public struct Content: Equatable, Sendable {
         public let title: String
@@ -192,10 +192,10 @@ public enum ToastText {
     }
 }
 
-/// Meldet, wenn ein Standardgeraet (Ausgabe oder Eingang) wechselt
-/// (Caelestia: services/Audio.qml). Wie dort nur, wenn es vorher schon einen
-/// Namen gab und der neue anders heisst - der erste Wert beim Start zaehlt
-/// nicht.
+/// Reports when a default device (output or input) changes (Caelestia:
+/// services/Audio.qml). As there, only when there was a name before and the
+/// new one is different - the first value on the start does not count.
+///
 public struct ToastDeviceTracker: Sendable {
     public private(set) var name: String?
 
@@ -203,7 +203,7 @@ public struct ToastDeviceTracker: Sendable {
         self.name = name
     }
 
-    /// `true`: Kurzmeldung zeigen.
+    /// `true`: show a toast.
     public mutating func update(name newName: String) -> Bool {
         let resolved = ToastText.deviceName(newName)
         defer { name = resolved }

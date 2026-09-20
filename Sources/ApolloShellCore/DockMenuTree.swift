@@ -1,16 +1,16 @@
 import Foundation
 
-/// Ein Menueeintrag, so wie ihn die Bedienungshilfen melden - roh, ohne
-/// Deutung.
+/// A menu entry the way the accessibility API reports it - raw, without
+/// interpretation.
 ///
-/// Die Oberflaechen-Schicht liest diese Angaben aus Apples Dock; was daraus
-/// wird, entscheidet `DockMenuTree` hier im Kern, damit es geprueft werden
-/// kann, ohne ein Menue zu oeffnen.
+/// The user interface layer reads these entries out of Apple's Dock; what
+/// becomes of them is decided by `DockMenuTree` here in the core, so that it
+/// can be checked without opening a menu.
 public struct RawMenuItem: Equatable, Sendable {
     public let title: String
     public let enabled: Bool
-    /// Das Zeichen, mit dem der Eintrag markiert ist (Apple setzt einen Haken
-    /// an das vorderste Fenster); leer, wenn er unmarkiert ist.
+    /// The mark the entry carries (Apple puts a tick on the frontmost window);
+    /// empty when it is unmarked.
     public let mark: String
     public let hasSubmenu: Bool
     public let children: [RawMenuItem]
@@ -25,12 +25,12 @@ public struct RawMenuItem: Equatable, Sendable {
     }
 }
 
-/// Eine Stufe auf dem Weg zu einem Menueeintrag: der Titel und die Stelle,
-/// an der er in seinem Menue steht.
+/// One step on the way to a menu entry: the title and the place it stands at
+/// in its menu.
 ///
-/// Die Stelle gehoert dazu, weil Titel sich wiederholen: zwei Fenster
-/// desselben Dokuments, zwei zuletzt benutzte Dateien gleichen Namens. Nur
-/// nach dem Titel zu suchen wuerde dann den falschen Eintrag druecken.
+/// The place belongs with it because titles repeat: two windows of the same
+/// document, two recent files of the same name. Searching by the title alone
+/// would then press the wrong entry.
 public struct DockMenuStep: Equatable, Sendable {
     public let title: String
     public let index: Int
@@ -41,16 +41,16 @@ public struct DockMenuStep: Equatable, Sendable {
     }
 }
 
-/// Ein fertiger Eintrag fuer unser Menue.
+/// A finished entry for our menu.
 public struct DockMenuNode: Equatable, Sendable {
     public let title: String
     public let enabled: Bool
-    /// Mit Haken anzeigen.
+    /// Show it with a tick.
     public let checked: Bool
     public let separator: Bool
-    /// Der Weg ueber die Titel bis hierher. Damit wird der Eintrag in Apples
-    /// Menue wiedergefunden, wenn es zum Ausfuehren noch einmal geoeffnet
-    /// wird - die Elemente selbst gelten nur, solange es offen ist.
+    /// The way through the titles up to here. With it the entry is found again
+    /// in Apple's menu when that is opened once more to carry it out - the
+    /// elements themselves only hold while it is open.
     public let path: [DockMenuStep]
     public let children: [DockMenuNode]
 
@@ -65,16 +65,16 @@ public struct DockMenuNode: Equatable, Sendable {
     }
 }
 
-/// Macht aus dem, was in Apples Dock-Menue steht, unseren Menuebaum.
+/// Makes our menu tree out of what stands in Apple's Dock menu.
 public enum DockMenuTree {
-    /// Tiefer wird nicht gelesen. Apples Dock-Menue hat eine Ebene
-    /// Untermenue ("Optionen"); alles darunter waere fremdes Gelaende.
+    /// It is not read deeper than this. Apple's Dock menu has one level of
+    /// submenu ("Options"); everything below that would be foreign ground.
     public static let maximumDepth = 2
 
     public static func nodes(from items: [RawMenuItem], path: [DockMenuStep] = [], depth: Int = 0) -> [DockMenuNode] {
         guard depth < maximumDepth else { return [] }
         return items.enumerated().map { index, item in
-            // Apple meldet Trenner als Eintrag ohne Titel und ohne Untermenue.
+            // Apple reports separators as an entry without a title and without a submenu.
             let separator = item.title.trimmingCharacters(in: .whitespaces).isEmpty && !item.hasSubmenu
             let ownPath = path + [DockMenuStep(title: item.title, index: index)]
             return DockMenuNode(
@@ -88,14 +88,14 @@ public enum DockMenuTree {
         }
     }
 
-    /// Der Eintrag, der in Apples Dock anheftet - in den Sprachen, die die
-    /// Shell selbst spricht.
+    /// The entry that pins in Apple's Dock - in the languages the shell speaks
+    /// itself.
     ///
-    /// Warum er eine Sonderrolle hat: Er wuerde in **Apples** Dock anheften,
-    /// das ausgeblendet ist, solange die Shell laeuft. Unser Menue haengt ihn
-    /// deshalb an unser eigenes Dock. Trifft keiner der Namen zu, bleibt
-    /// Apples Verhalten - lieber ein Eintrag, der etwas anderes tut als
-    /// gedacht, als ein Menue, in dem er fehlt.
+    /// Why it has a special role: it would pin in **Apple's** Dock, which is
+    /// hidden while the shell runs. Our menu therefore hooks it over to our own
+    /// Dock. When none of the names fits, Apple's behavior stays - an entry
+    /// that does something other than expected rather than a menu it is missing
+    /// from.
     public static func isKeepInDock(_ title: String) -> Bool {
         let trimmed = title.trimmingCharacters(in: .whitespaces).lowercased()
         return trimmed == "im dock behalten" || trimmed == "keep in dock"

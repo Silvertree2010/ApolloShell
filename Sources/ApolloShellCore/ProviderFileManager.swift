@@ -1,18 +1,18 @@
 import Foundation
 
-/// Welcher Dateimanager oben im Dock der Leiste steht (Finders Platz), und
-/// wie "In … zeigen" dort eine Datei zeigt. Die App fragt nur, ob etwas
-/// installiert ist; entschieden wird hier, getestet.
+/// Which file manager stands at the top of the Dock of the bar (the Finder's
+/// place), and how "Show in …" shows a file there. The app only asks whether
+/// something is installed; the decision is made here, and tested.
 ///
-/// Der systemweite Standard (`NSFileViewer`, den "Im Finder zeigen" in
-/// anderen Apps nimmt) wird nur gelesen, nie geaendert: die Auswahl gilt fuer
-/// die Leiste, nicht fuer das System.
+/// The system-wide default (`NSFileViewer`, which "Show in Finder" in other
+/// apps takes) is only read, never changed: the choice holds for the bar, not
+/// for the system.
 public enum ProviderFileManager {
     public static let finder = AppleDockPrefs.finder
 
-    /// Bekannte Dateimanager, in dieser Reihenfolge in Nexus vorgeschlagen,
-    /// sofern installiert. Bundle-IDs nachgeschlagen 14.09.2026 (ForkLift an
-    /// einer Installation gemessen); was fehlt, geht ueber "Andere App …".
+    /// The known file managers, suggested in Nexus in this order when they are
+    /// installed. The bundle IDs looked up 14.09.2026 (ForkLift measured on an
+    /// installation); what is missing goes through "Other App …".
     public static let known: [String] = [
         AppleDockPrefs.forkLift,
         "com.cocoatech.PathFinder",
@@ -24,41 +24,41 @@ public enum ProviderFileManager {
         "com.jinghaoshe.qspace.pro",    // QSpace Pro
     ]
 
-    /// Ohne Einstellung: ForkLift, wenn installiert, sonst Finder - das
-    /// Verhalten, bevor es die Auswahl gab.
+    /// Without a setting: ForkLift when it is installed, otherwise the Finder -
+    /// the behavior before the choice existed.
     public static func automatic(isInstalled: (String) -> Bool) -> String {
         isInstalled(AppleDockPrefs.forkLift) ? AppleDockPrefs.forkLift : finder
     }
 
-    /// Die gewaehlte App, solange es sie gibt. Deinstalliert: automatisch,
-    /// statt dass oben ein leerer Platz bliebe. Die Einstellung selbst bleibt
-    /// stehen - kommt die App zurueck, gilt sie wieder.
+    /// The chosen app as long as it exists. Uninstalled: automatic, instead of
+    /// an empty place staying at the top. The setting itself stays - when the
+    /// app comes back, it holds again.
     public static func resolve(setting: String?, isInstalled: (String) -> Bool) -> String {
         if let setting, setting == finder || isInstalled(setting) { return setting }
         return automatic(isInstalled: isInstalled)
     }
 
-    /// In der Leiste nie zeigen: Finder, wenn ein anderer ihn ersetzt (er
-    /// laeuft immer und kaeme sonst unter "laufend" wieder). Steht Finder
-    /// selbst oben, bleibt alles sichtbar.
+    /// Never show it in the bar: the Finder, when another one replaces it (it
+    /// always runs and would otherwise come back under "running"). When the
+    /// Finder stands at the top itself, everything stays visible.
     public static func hidden(for fileManager: String) -> Set<String> {
         fileManager == finder ? [] : [finder]
     }
 
     public enum Reveal: Equatable, Sendable {
-        /// `activateFileViewerSelecting`: zeigt die Datei markiert - im
-        /// Dateiviewer des Systems.
+        /// `activateFileViewerSelecting`: shows the file selected - in the file
+        /// viewer of the system.
         case selectInFileViewer
-        /// Den enthaltenden Ordner mit dieser App oeffnen (ohne Markierung;
-        /// mehr bietet NSWorkspace fuer fremde Apps nicht).
+        /// Open the enclosing folder with this app (without a selection;
+        /// NSWorkspace offers no more for other apps).
         case openFolder(bundleID: String)
     }
 
-    /// Markieren geht nur ueber den Dateiviewer des Systems. Ist das der
-    /// gewaehlte Dateimanager (ohne Einstellung: Finder), also so; sonst
-    /// oeffnete `activateFileViewerSelecting` eine andere App, als das Menue
-    /// verspricht ("In Finder zeigen" oeffnete ForkLift) - dann den Ordner
-    /// ausdruecklich mit der gewaehlten App.
+    /// Selecting only works through the file viewer of the system. When that is
+    /// the chosen file manager (without a setting: the Finder), then that way;
+    /// otherwise `activateFileViewerSelecting` would open a different app than
+    /// the menu promises ("Show in Finder" opened ForkLift) - then open the
+    /// folder with the chosen app on purpose.
     public static func reveal(fileManager: String, systemFileViewer: String?) -> Reveal {
         let viewer = systemFileViewer?.trimmingCharacters(in: .whitespaces) ?? ""
         let system = viewer.isEmpty ? finder : viewer
@@ -67,9 +67,9 @@ public enum ProviderFileManager {
             : .openFolder(bundleID: fileManager)
     }
 
-    /// Auswahl in Nexus: Finder, dann die installierten bekannten, dann eine
-    /// von Hand gewaehlte andere App (auch wenn sie inzwischen fehlt - sonst
-    /// saehe man nicht, was eingestellt ist).
+    /// The choice in Nexus: the Finder, then the known installed ones, then an
+    /// other app chosen by hand (even when it is missing by now - otherwise one
+    /// would not see what is set).
     public static func choices(setting: String?, isInstalled: (String) -> Bool) -> [String] {
         var result = [finder] + known.filter(isInstalled)
         if let setting, !result.contains(setting) { result.append(setting) }

@@ -1,18 +1,18 @@
 import ApolloShellCore
 import SwiftUI
 
-/// Das Emblem in der Mitte des Sitzungsmenues: ein Planet in der
-/// Akzentfarbe, um den ein Mond auf einer geneigten Bahn kreist ("Apollo").
-/// Die Bewegung kommt als reine Zahlen aus `EmblemPose` (ApolloShellCore);
-/// hier wird nur gezeichnet.
+/// The emblem in the middle of the session menu: a planet in the accent color
+/// with a moon circling it on a tilted orbit ("Apollo"). The motion comes as
+/// plain numbers out of `EmblemPose` (ApolloShellCore); only the drawing
+/// happens here.
 ///
-/// Die Uhr tickt nur, solange `animating` gilt (Menue sichtbar). Mit
-/// "Bewegung reduzieren" steht das Emblem in einer festen Pose je Reaktion.
+/// The clock only ticks while `animating` holds (the menu is visible). With
+/// "reduce motion" the emblem stands in a fixed pose per reaction.
 struct SessionEmblem: View {
     let timeline: EmblemTimeline
     var size: CGFloat = SessionMenu.buttonSize
     var animating = true
-    /// Fester Zeitpunkt fuer Bildproben; `nil` = echte Uhr.
+    /// A fixed point in time for image samples; `nil` = the real clock.
     var fixedTime: TimeInterval?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -33,30 +33,30 @@ struct SessionEmblem: View {
     }
 }
 
-/// Zeichnet eine Pose. Masse im 80er-Raster des Knopfs, skaliert auf die
-/// tatsaechliche Groesse.
+/// Draws one pose. The measurements in the 80 grid of the button, scaled to
+/// the real size.
 private struct EmblemCanvas: View {
     let pose: EmblemPose
     @Environment(\.colorScheme) private var scheme
 
-    // Geometrie im 80er-Raster.
+    // The geometry in the 80 grid.
     private static let planetRadius = 16.5
     private static let orbitRadii = CGSize(width: 33, height: 10.5)
     private static let orbitBaseTilt = -16.0
     private static let moonRadius = 3.6
-    /// Luft zwischen Mond und Planet, wenn der Mond vor ihm steht.
+    /// The air between the moon and the planet when the moon stands in front of it.
     private static let moonGap = 1.3
     private static let lineWidth = 1.25
-    /// Sterne: Mitte und Radius, frei von Planet und Bahn.
+    /// The stars: the centre and the radius, clear of the planet and the orbit.
     private static let stars: [(x: Double, y: Double, r: Double)] = [
         (15, 17, 3.4), (62, 13, 2.4), (66, 64, 2.9),
     ]
 
     var body: some View {
-        // Einmal pro Zeichnung gelesen, siehe `Color.onAccent`.
+        // Read once per drawing, see `Color.onAccent`.
         let onAccent = Color.onAccent
-        // Der Mond ist neutral; hell etwas zurueckgenommen, sonst wirkt er
-        // neben dem Planeten schwer.
+        // The moon is neutral; pulled back a little in the light, otherwise it
+        // looks heavy next to the planet.
         let moon = Color.primary.opacity(scheme == .dark ? 0.9 : 0.62)
         Canvas { context, canvas in
             draw(in: &context, size: canvas, onAccent: onAccent, moon: moon)
@@ -76,7 +76,7 @@ private struct EmblemCanvas: View {
         let a = Self.orbitRadii.width * k
         let b = Self.orbitRadii.height * k
 
-        /// Punkt auf der geneigten Bahn.
+        /// A point on the tilted orbit.
         func orbitPoint(_ theta: Double) -> CGPoint {
             let x = a * cos(theta)
             let y = b * sin(theta)
@@ -97,15 +97,15 @@ private struct EmblemCanvas: View {
         func circle(_ c: CGPoint, _ r: Double) -> Path {
             Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r))
         }
-        /// Vorne etwas groesser, hinten kleiner: ein Hauch Tiefe.
+        /// A little bigger in front, smaller behind: a breath of depth.
         func moonRadius(_ dot: Dot) -> Double {
             dot.radius * k * (1 + 0.12 * sin(dot.theta))
         }
 
         let radius = Self.planetRadius * k * pose.planetScale
         let planet = circle(center, radius)
-        // Beleuchteter Teil: ein Schattenkreis wandert von oben links herein,
-        // bis nur eine Sichel unten rechts bleibt.
+        // The lit part: a shadow circle moves in from the top left until only
+        // a crescent is left at the bottom right.
         var lit = planet
         if pose.night > 0.001 {
             let offset = radius * (2.2 - 1.6 * pose.night)
@@ -115,8 +115,8 @@ private struct EmblemCanvas: View {
         let neutral = Color.primary
         let line = StrokeStyle(lineWidth: Self.lineWidth * k, lineCap: .round)
 
-        // Mond samt Spur; die Spur erscheint erst ab doppelter
-        // Ruhegeschwindigkeit und ist ab der achtfachen voll da.
+        // The moon with its trail; the trail only appears from twice the
+        // resting speed on and is fully there from eight times on.
         let moonDot = Dot(theta: pose.moonAngle, radius: Self.moonRadius, opacity: 1)
         var trail: [Dot] = []
         let strength = min(max(
@@ -142,12 +142,12 @@ private struct EmblemCanvas: View {
             }
         }
 
-        // 1. Hintere Bahnhaelfte und was dort vom Mond zu sehen ist.
+        // 1. The back half of the orbit and what can be seen of the moon there.
         context.stroke(arc(from: .pi, to: 2 * .pi), with: .color(neutral.opacity(0.2 * pose.orbitOpacity)), style: line)
         fill((trail.reversed() + [moonDot]).filter { sin($0.theta) < 0 })
 
-        // 2. Schein, dann der Planet. Die Nachtseite ist neutral, nur der
-        //    beleuchtete Teil traegt den Akzent.
+        // 2. The glow, then the planet. The night side is neutral, only the
+        //    lit part carries the accent.
         if pose.glow > 0.01 {
             context.drawLayer { layer in
                 layer.addFilter(.shadow(color: Color.accentColor.opacity(pose.glow), radius: 9 * k))
@@ -167,14 +167,14 @@ private struct EmblemCanvas: View {
             startPoint: CGPoint(x: box.minX + box.width * 0.2, y: box.minY),
             endPoint: CGPoint(x: box.maxX - box.width * 0.2, y: box.maxY)
         ))
-        // Denk-Punkte mitten auf dem Planeten, in der Farbe fuer Akzentflaechen.
+        // The thinking dots in the middle of the planet, in the color for accent areas.
         for (i, opacity) in pose.dots.enumerated() where opacity > 0.01 {
             let x = center.x + Double(i - 1) * 6.2 * k
             context.fill(circle(CGPoint(x: x, y: center.y - 1.5 * k), 2.1 * k), with: .color(onAccent.opacity(opacity)))
         }
 
-        // 3. Vordere Bahnhaelfte: auf dem Planeten in der Farbe fuer
-        //    Akzentflaechen, daneben neutral.
+        // 3. The front half of the orbit: on the planet in the color for
+        //    accent areas, next to it neutral.
         let front = arc(from: 0, to: .pi)
         context.drawLayer { layer in
             layer.clip(to: planet, options: .inverse)
@@ -185,13 +185,13 @@ private struct EmblemCanvas: View {
             layer.stroke(front, with: .color(onAccent.opacity(0.5 * pose.orbitOpacity)), style: line)
         }
 
-        // 4. Vorderer Mond. Steht er vor dem Planeten, stanzt er eine schmale
-        //    Luecke hinein (wie Badges bei SF Symbols) und bleibt einfarbig.
+        // 4. The front moon. When it stands in front of the planet, it punches
+        //    a narrow gap into it (like badges with SF Symbols) and stays one color.
         if sin(moonDot.theta) >= 0, pose.moonOpacity > 0.01 {
             var cut = context
             cut.clip(to: planet)
-            // destinationOut statt clear: beachtet die Deckkraft, damit die
-            // Luecke mit dem Mond ein- und ausblendet.
+            // destinationOut instead of clear: it respects the opacity, so
+            // that the gap fades in and out with the moon.
             cut.blendMode = .destinationOut
             cut.fill(
                 circle(orbitPoint(moonDot.theta), moonRadius(moonDot) + Self.moonGap * k),
@@ -200,14 +200,14 @@ private struct EmblemCanvas: View {
         }
         fill((trail.reversed() + [moonDot]).filter { sin($0.theta) >= 0 })
 
-        // 5. Sterne (nur im Ruhezustand).
+        // 5. The stars (only in sleep).
         for (star, brightness) in zip(Self.stars, pose.stars) where brightness > 0.01 {
             let point = CGPoint(x: star.x * k, y: star.y * k)
             context.fill(sparkle(at: point, radius: star.r * k), with: .color(neutral.opacity(0.75 * brightness)))
         }
     }
 
-    /// Vierzackiger Stern mit eingezogenen Flanken.
+    /// A four-pointed star with drawn-in flanks.
     private func sparkle(at c: CGPoint, radius r: Double) -> Path {
         Path { path in
             let waist = r * 0.16
