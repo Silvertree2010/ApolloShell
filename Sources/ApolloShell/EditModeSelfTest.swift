@@ -724,6 +724,16 @@ private final class EditModeSelfTestHarness {
         await wait(0.3)
         check(dashboardEditor.selectedWidgetID == nil && editor.selectedToggleID == nil
               && editor.selectedBarEntryID == nil, "A click into the scrim clears every selection")
+        // A changed arrangement that does not end the mode (another screen
+        // at a new resolution) has to put the windows where they now
+        // belong - the scrim used to stand on the old frame.
+        windows.debugScreensChanged()
+        await wait(0.3)
+        check(windows.debugVisibleScrims == NSScreen.screens.count,
+              "After a screen change every screen is dimmed again (\(windows.debugVisibleScrims))")
+        if let toolbar = windows.debugToolbarFrame, let screen = NSScreen.screens.first {
+            check(screen.visibleFrame.contains(toolbar), "After a screen change the toolbar still stands on the screen \(r(toolbar))")
+        }
         // Control centre tab: a click on “Display Off” (14th tile, second
         // row, sixth column) adds the button.
         editor.galleryTab = .controlCentre

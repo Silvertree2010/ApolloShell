@@ -331,6 +331,9 @@ final class EditModeWindows {
     var dashboardFrame: () -> NSRect? = { nil }
     var utilitiesFrame: () -> NSRect? = { nil }
     private var galleryObservation: Task<Void, Never>?
+    /// Lives as long as the mode does: the windows follow a changed
+    /// arrangement (see `screensChanged`).
+    private var screenObserver: (any NSObjectProtocol)?
     /// The toolbar ("Discard changes?" instead of the three buttons) and
     /// gallery (notice "No room on this page") change their size without
     /// fading in/out - without their own re-measurement the text stayed
@@ -370,9 +373,11 @@ final class EditModeWindows {
     private static func assertStackingOrder() {}
     #endif
 
-    private func begin(on screen: NSScreen) {
-        Self.assertStackingOrder()
-        editScreen = screen
+    /// One dimming panel per screen, each on that screen's frame. Called
+    /// on `begin` and again whenever the arrangement changes: a screen
+    /// that only changed its resolution keeps its panel, which would
+    /// otherwise stand on the old frame and leave a strip undimmed.
+    private func placeScrims() {
         let screens = ShellScreens.current()
         // A screen that is gone takes its panel with it, instead of leaving
         // it in the catalogue for the rest of the session.
@@ -396,6 +401,36 @@ final class EditModeWindows {
                 return panel
             }()
             scrim.show(on: candidate.screen)
+        }
+    }
+
+    /// The arrangement changed while editing. `ShellEditor` decides whether
+    /// that ends the mode (a screen gone, the editing screen resized); what
+    /// is left over here is every other case - another screen at a new
+    /// resolution, a screen added - where the windows just have to be put
+    /// where they now belong.
+    private func screensChanged() {
+        guard editor.isEditing else { return }
+        placeScrims()
+        repositionToolbar()
+        repositionGallery()
+    }
+
+    #if DEBUG
+    /// Self-test: the same pass the screen notification triggers.
+    func debugScreensChanged() { screensChanged() }
+    #endif
+
+    private func begin(on screen: NSScreen) {
+        Self.assertStackingOrder()
+        editScreen = screen
+        placeScrims()
+        if screenObserver == nil {
+            screenObserver = NotificationCenter.default.addObserver(
+                forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.screensChanged() }
+            }
         }
         let toolbar = self.toolbar ?? {
             let panel = FloatingGlassPanel(cornerRadius: 26, takesKeyboard: false, level: EditModeLevel.controls) {
@@ -430,6 +465,10 @@ final class EditModeWindows {
     }
 
     private func end() {
+        if let screenObserver {
+            NotificationCenter.default.removeObserver(screenObserver)
+            self.screenObserver = nil
+        }
         for scrim in scrims.values { scrim.hide() }
         toolbar?.hide()
         gallery?.hide()
