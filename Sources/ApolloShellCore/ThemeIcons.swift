@@ -29,7 +29,6 @@ public struct ThemeIconDescriptor: Equatable, Hashable, Sendable {
 /// disappears, it gets an alias at most. A theme that brings symbols today
 /// therefore still shows them in a year - and a file whose name this version
 /// does not know is passed over and reported, not turned down.
-///
 public struct ThemeIconCatalog: Sendable {
     public let icons: [ThemeIconDescriptor]
     private let index: [String: Int]
@@ -129,7 +128,6 @@ public struct ThemeIconSet: Equatable, Sendable {
     ///
     /// Unknown file names come back as a notice, not as an error: a theme out
     /// of a later version may bring symbols that do not exist here yet.
-    ///
     public static func read(in folder: URL,
                             limits: ThemeLimits = .standard,
                             catalog: ThemeIconCatalog = .standard) -> (icons: ThemeIconSet, issues: [ThemeIssue]) {

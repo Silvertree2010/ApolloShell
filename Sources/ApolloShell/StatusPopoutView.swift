@@ -30,12 +30,10 @@ extension EnvironmentValues {
 /// separate pieces of glass side by side take on different colors - each one
 /// takes the color of what lies behind it - and show an edge at the seam. So
 /// the bar draws its glass as one shape that bulges out on opening.
-///
 enum StatusPopoutLayout {
     /// The corners of the bulge.
     static let cornerRadius: CGFloat = 25
     /// The height of the bulge when closed: zero, it sits in the bar.
-    ///
     static let seedHeight: CGFloat = 30
     /// The radius of the inward-curved corners the bulge goes over into the
     /// bar with.

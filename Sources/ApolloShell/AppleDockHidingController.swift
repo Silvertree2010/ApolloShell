@@ -13,7 +13,6 @@ import os
 /// switched off -> restore right away. `terminate()` for
 /// applicationWillTerminate and SIGTERM restores on quit too, whatever the
 /// setting says - ApolloShell should never leave the Dock hidden.
-///
 @MainActor
 final class AppleDockHidingController {
     static let killall = "/usr/bin/killall"
@@ -39,7 +38,6 @@ final class AppleDockHidingController {
     /// setting says, when it is hidden right now (the file is there). No
     /// interruption decides whether ApolloShell really quits cleanly - only a
     /// SIGKILL leaves the Dock hidden until the next normal start and quit.
-    ///
     func terminate() {
         settingsObservation?.cancel()
         guard let fileURL, FileManager.default.fileExists(atPath: fileURL.path) else { return }
@@ -60,7 +58,6 @@ final class AppleDockHidingController {
     /// setting on again, say) changes nothing about the saved original.
     /// Otherwise read the current state and save the original. After that,
     /// write the hidden values in any case.
-    ///
     private func hide(fileURL: URL) {
         if AppleDockPreferenceValues.load(from: try? Data(contentsOf: fileURL)) == nil {
             let original = AppleDockHiding.originalToSave(current: readCurrent())
@@ -74,7 +71,6 @@ final class AppleDockHidingController {
 
     /// Write the saved original back (deleting missing keys), remove the file.
     /// No file: nothing to do (restored already or never hidden).
-    ///
     private func restore(fileURL: URL) {
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
         // A backup that is there but unreadable: back to the defaults of macOS,

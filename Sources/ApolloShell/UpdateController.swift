@@ -47,7 +47,6 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     /// When it last looked. In the Homebrew build the time stands in the
     /// settings, so that "at most once a day" holds across a restart too;
     /// in the DMG build Sparkle keeps the books itself.
-    ///
     private(set) var lastCheck: Date?
     let installKind: InstallKind
 
@@ -104,7 +103,6 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
 
     /// "Check now". In the DMG build Sparkle takes over with its window -
     /// on purpose here, because the user has just clicked.
-    ///
     func checkNow() {
         rememberCheck(at: Date())
         if let updaterController {

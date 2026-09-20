@@ -13,7 +13,6 @@ import Foundation
 /// (`sudoersRule`): after that both work without a password, the reset on quit
 /// and on the battery guard included, when nobody is there to answer a
 /// prompt. Whoever refuses gets "Keep Awake" without the lid part.
-///
 public enum LidAwake {
     /// On battery, "Keep Awake" ends by itself from this charge on: a closed
     /// Mac in a bag should not run empty or get hot.
@@ -95,7 +94,6 @@ public enum LidAwake {
     /// Allows exactly the two calls out of `sudoArguments`, only as root and
     /// only for this user. No quotes and no backslash: the text stands in
     /// single quotes of the shell and in an AppleScript string.
-    ///
     public static func sudoersRule(user: String) -> String? {
         guard isSafeUserName(user) else { return nil }
         let allowed = [true, false]

@@ -113,7 +113,6 @@ final class UtilitiesNightShiftClient {
 /// and “Lock Screen” are system functions macOS only offers through their
 /// shortcuts. The press sets off exactly what it would set off from the
 /// keyboard - and our app needs no screen recording permission for that.
-///
 enum UtilitiesKeys {
     /// Read the shortcut the way it is set in Mission Control or under
     /// Keyboard > Keyboard Shortcuts - do not assume it.

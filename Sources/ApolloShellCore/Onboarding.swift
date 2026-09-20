@@ -40,7 +40,6 @@ public enum OnboardingStep: Int, CaseIterable, Identifiable, Sendable {
     /// As a `String`, not a `LocalizedStringKey`: `Text(step.title)` in
     /// `Onboarding.swift` would otherwise not translate (a String through a
     /// variable - see the contract).
-    ///
     public var title: String {
         switch self {
         case .welcome: String(localized: "Welcome to ApolloShell")

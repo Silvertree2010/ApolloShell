@@ -9,7 +9,6 @@ import Foundation
 /// Data on purpose, never a finished sentence: the user interface words
 /// it itself. `description` is English and meant for logs and tests, not
 /// for the window.
-///
 public struct ThemeIssue: Equatable, Hashable, Sendable, CustomStringConvertible {
     public enum Kind: Equatable, Hashable, Sendable {
         /// `--apollo-…`, but no token this version knows. A theme out of a

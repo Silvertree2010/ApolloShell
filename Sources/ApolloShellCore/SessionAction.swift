@@ -51,7 +51,6 @@ public enum SessionAction: String, CaseIterable, Sendable {
     /// Events as in the Apple menu: apps with unsaved documents ask by
     /// themselves and can cancel. Needs the automation permission for System
     /// Events; macOS asks for it the first time.
-    ///
     public var command: (executable: String, arguments: [String]) {
         switch self {
         case .sleep:

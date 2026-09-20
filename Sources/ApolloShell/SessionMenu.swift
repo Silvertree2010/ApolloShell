@@ -59,7 +59,6 @@ final class SessionMenu {
     }
 
     /// Where the pointer stands: the panel and the dimming on the same screen.
-    ///
     func open() {
         drawer.open()
     }

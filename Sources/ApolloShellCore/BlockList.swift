@@ -27,7 +27,6 @@ public protocol Block: Codable, Equatable, Identifiable, Sendable where ID == St
 /// `entries` is only readable from outside.
 ///
 /// In the file a plain list. Unreadable entries fall away, the rest stays.
-///
 public struct BlockList<B: Block>: Codable, Equatable, Sendable {
     public private(set) var entries: [B]
 

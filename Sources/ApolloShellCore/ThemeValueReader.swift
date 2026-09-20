@@ -73,7 +73,6 @@ public enum ThemeValueReader {
     /// degrees, as in CSS). Positions may be missing, and then the colors are
     /// spread evenly. Fewer than two colors is no gradient but an error -
     /// whoever wants to color an area takes the color token next to it.
-    ///
     public static func gradient(_ raw: String) -> ThemeGradient? {
         let text = raw.trimmedText
         guard !text.isEmpty else { return nil }
@@ -281,7 +280,6 @@ public enum ThemeValueReader {
 
     /// The basic color names. Not the whole CSS list on purpose: what stands
     /// here holds forever, and a short list is easier to keep than 148 names.
-    ///
     private static let named: [String: ThemeColor] = [
         "transparent": .clear,
         "black": ThemeColor(hex: 0x000000),

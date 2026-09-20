@@ -195,7 +195,6 @@ public enum ToastText {
 /// Reports when a default device (output or input) changes (Caelestia:
 /// services/Audio.qml). As there, only when there was a name before and the
 /// new one is different - the first value on the start does not count.
-///
 public struct ToastDeviceTracker: Sendable {
     public private(set) var name: String?
 

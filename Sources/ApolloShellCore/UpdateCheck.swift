@@ -31,7 +31,6 @@ public enum UpdateCheckOutcome: Equatable, Sendable {
 ///
 /// The network access sits behind `Fetch`, so that the evaluation can be
 /// checked without a network.
-///
 public struct UpdateCheck: Sendable {
     /// Loads the answer for an address.
     public typealias Fetch = @Sendable (URL) async throws -> Data
@@ -64,7 +63,6 @@ public struct UpdateCheck: Sendable {
     /// Reads `tag_name` and `html_url` out of the answer of the GitHub API.
     /// Drafts and prereleases are passed over: GitHub delivers only finished
     /// ones under `releases/latest` anyway, but we do not want to rely on that.
-    ///
     public static func release(from data: Data) -> ReleaseInfo? {
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
         if object["draft"] as? Bool == true || object["prerelease"] as? Bool == true { return nil }

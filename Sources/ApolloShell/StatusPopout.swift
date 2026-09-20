@@ -33,7 +33,6 @@ final class StatusPopout {
     var setExpanded: (Bool) -> Void = { _ in }
     /// This popout is opening. The manager of the bars then closes a popout
     /// that still stands open on another screen - only ever one is open.
-    ///
     var onOpen: () -> Void = {}
 
     /// The width of the bar window with the popout open: the bar, the widest
