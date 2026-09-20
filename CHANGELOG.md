@@ -42,6 +42,9 @@ tabs you had into pages, with the cards at the same spots. The old
   fall back to German.
 - **"Quick Actions" is called the control centre** everywhere, as in the
   README.
+- **The dashboard asks the disk every 20 seconds, not every second.** Reading
+  the boot volume is a synchronous trip to the file system, and it was the
+  most expensive thing in the per-second refresh.
 - **Nexus keeps settings, not layouts.** Keep Awake with the lid closed moved
   to General, the weather places for the bar moved to Bar.
 

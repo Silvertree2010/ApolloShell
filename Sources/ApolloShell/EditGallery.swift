@@ -431,9 +431,14 @@ private struct EditGalleryTile: View {
             Text(title)
                 .font(.caption.weight(.medium))
                 .multilineTextAlignment(.center)
-                .lineLimit(2, reservesSpace: true)
+                .lineLimit(2)
                 .minimumScaleFactor(0.9)
                 .padding(.horizontal, 5)
+                // A fixed two-line box instead of `reservesSpace`: with the
+                // latter a one-line title still sat higher than a two-line
+                // one, so "1 size" under "Weather overview" hung below the
+                // rest of its row (his screenshot, 20.09.).
+                .frame(height: 30, alignment: .top)
             if let detail {
                 Text(detail)
                     .font(.caption2)
