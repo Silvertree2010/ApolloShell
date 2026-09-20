@@ -1,27 +1,27 @@
 import Foundation
 
-/// Ein Fenster auf dem Bildschirm, auf dem geklickt wurde - nur das Noetige
-/// fuer die Verdeckt-Frage (`DockWindowCover`). `id` ist die Fensternummer
-/// aus `CGWindowListCopyWindowInfo`, die Koordinaten deren Rechteck; welches
-/// System (Cocoa oder Quartz) ist egal, solange alle Fenster im selben
-/// Aufruf dasselbe benutzen - die Ueberlappung rechnet nur mit Abstaenden.
+/// A window on the screen that was clicked on - only what the covered question
+/// (`DockWindowCover`) needs. `id` is the window number out of
+/// `CGWindowListCopyWindowInfo`, the coordinates its rectangle; which system
+/// (Cocoa or Quartz) does not matter as long as all windows in the same call
+/// use the same one - the overlap only works with distances.
 public struct DockScreenWindow: Equatable, Sendable {
     public enum Owner: Equatable, Sendable {
-        /// Die App, auf deren Symbol geklickt wurde.
+        /// The app whose symbol was clicked.
         case target
-        /// Irgendeine andere App - kann ein Zielfenster verdecken.
+        /// Some other app - it can cover a target window.
         case other
-        /// ApolloShells eigene Leisten/Panels: zaehlen nie als Verdecker,
-        /// sonst wuerde die eigene Leiste am Bildschirmrand staendig als
-        /// "verdeckt" durchgehen.
+        /// ApolloShell's own bars and panels: they never count as covering,
+        /// otherwise our own bar at the screen edge would constantly pass as
+        /// "covering".
         case ownShell
     }
 
     public let id: Int
     public let owner: Owner
-    /// Fensterebene aus `kCGWindowLayer`; nur Ebene 0 (normale Fenster) kann
-    /// verdecken - Menueleiste, Dock, Status-Icons liegen hoeher und sind
-    /// schmaler als jedes Fenster, wuerden also falsch als Verdecker zaehlen.
+    /// The window level out of `kCGWindowLayer`; only level 0 (normal windows)
+    /// can cover - the menu bar, the Dock and status icons lie higher and are
+    /// narrower than any window, so they would count as covering wrongly.
     public let layer: Int
     public let x: Double
     public let y: Double
@@ -41,27 +41,27 @@ public struct DockScreenWindow: Equatable, Sendable {
     var area: Double { width * height }
 }
 
-/// Welches Fenster der Zielapp auf dem aktuellen Bildschirm als naechstes
-/// nach vorne soll, wenn man auf ihr schon vorne stehendes Symbol klickt -
-/// wie bei Apple, nur blaettern, wenn wirklich etwas im Weg liegt. Liegen
-/// mehrere Fenster frei nebeneinander, bleibt alles, wie es ist.
+/// Which window of the target app on the current screen should come forward
+/// next when one clicks on its symbol that is at the front already - as with
+/// Apple, paging only when something really is in the way. When several
+/// windows lie freely side by side, everything stays as it is.
 public enum DockWindowCover {
-    /// Ab so viel verdeckter Flaeche zaehlt ein Fenster als "im Weg": ein
-    /// Fenster, das nur am Rand ein paar Pixel unter einem anderen liegt
-    /// (Schatten, knappes Nebeneinander), soll nicht bloss deshalb ganz nach
-    /// vorne springen - man sieht es ja noch vollstaendig genug, um
-    /// weiterzuarbeiten. Erst ab einem nennenswerten Teil der Flaeche stoert
-    /// es wirklich. 10 % ist grosszuegig genug, um Zufalls-Ueberlappungen
-    /// beim knappen Andocken zweier Fenster zu ignorieren, aber klein genug,
+    /// From this much covered area on, a window counts as "in the way": a
+    /// window that lies a few pixels under another one only at the edge (a
+    /// shadow, a tight fit side by side) should not jump to the front just
+    /// because of that - one still sees enough of it to go on working. Only
+    /// from a noticeable part of the area on is it really in the way. 10 % is
+    /// generous enough to ignore accidental overlaps when two windows dock
+    /// tightly, but small enough to recognise a noticeably covered window.
     /// um ein spuerbar verdecktes Fenster zu erkennen.
     public static let coverThreshold = 0.1
 
-    /// `windows` von vorne nach hinten sortiert (wie `CGWindowListCopyWindowInfo`
-    /// mit `.optionOnScreenOnly` liefert), schon auf den einen Bildschirm
-    /// eingegrenzt. Liefert die `id` des vordersten verdeckten Fensters der
-    /// Zielapp (das naechste, das ein Klick nach vorne holen soll), `nil`
-    /// wenn keins verdeckt ist - auch wenn es nur ein einziges Fenster gibt
-    /// oder alle frei nebeneinander liegen.
+    /// `windows` sorted front to back (the way `CGWindowListCopyWindowInfo`
+    /// with `.optionOnScreenOnly` delivers it), narrowed to the one screen
+    /// already. Hands back the `id` of the frontmost covered window of the
+    /// target app (the next one a click should bring forward), `nil` when none
+    /// is covered - with a single window or with all of them lying freely side
+    /// by side as well.
     public static func nextCovered(in windows: [DockScreenWindow]) -> Int? {
         for (index, window) in windows.enumerated() where window.owner == .target {
             let inFront = windows[..<index].filter { $0.owner == .other && $0.layer == 0 }
@@ -72,7 +72,7 @@ public enum DockWindowCover {
         return nil
     }
 
-    /// Anteil der Flaeche von `window`, den `other` verdeckt (0 bis 1).
+    /// The share of the area of `window` that `other` covers (0 to 1).
     static func overlapFraction(of window: DockScreenWindow, coveredBy other: DockScreenWindow) -> Double {
         guard window.area > 0 else { return 0 }
         let x = max(window.x, other.x)

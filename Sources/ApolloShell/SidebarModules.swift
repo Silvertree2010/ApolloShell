@@ -2,31 +2,31 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Kurven und Zeiten von Caelestia (plugin/src/Caelestia/Config/tokens.hpp).
+/// The curves and times out of Caelestia (plugin/src/Caelestia/Config/tokens.hpp).
 enum SidebarMotion {
-    /// expressiveDefaultSpatial: 500 ms, schiesst leicht ueber (y1 = 1,21) -
-    /// das "Einrasten" des Space-Anzeigers.
+    /// expressiveDefaultSpatial: 500 ms, overshoots slightly (y1 = 1.21) - the
+    /// "snap" of the space indicator.
     static let spatial = Animation.shellSpatial
-    /// expressiveDefaultEffects: 200 ms, fuer Ueberblenden.
+    /// expressiveDefaultEffects: 200 ms, for cross-fading.
     static let effects = Animation.timingCurve(0.34, 0.8, 0.34, 1, duration: 0.2)
 }
 
 // MARK: - Spaces
 
-/// Ein Punkt je Schreibtisch, darueber eine Akzent-Pille, die zum aktiven
-/// gleitet (Caelestia: Workspaces, Workspace, ActiveIndicator).
+/// One dot per desktop, above it an accent pill that glides to the active one
+/// (Caelestia: Workspaces, Workspace, ActiveIndicator).
 ///
-/// Masse: Caelestias Leiste ist innen 40 breit, ein Platz 32 (40 - 8), der
-/// Abstand 4. Unsere Kapsel ist 32 breit, also alles mal 0,8: Platz 26,
-/// Abstand und Rand 3. Punktgroessen wie dort: leer 1/4 des Platzes, aktiv
-/// 2/3. Caelestia wuerfelt fuer den aktiven eine Material-Form; hier ein
-/// abgerundetes Quadrat, das aus dem Kreis heraus waechst.
+/// The measurements: Caelestia's bar is 40 wide inside, a place 32 (40 - 8),
+/// the gap 4. Our capsule is 32 wide, so everything times 0.8: a place 26, the
+/// gap and the margin 3. The dot sizes as there: empty 1/4 of the place,
+/// active 2/3. Caelestia rolls a Material shape for the active one; here a
+/// rounded square that grows out of the circle.
 ///
-/// Klick auf einen Punkt wechselt zu diesem Schreibtisch, per ⌃←/⌃→, siehe
+/// A click on a dot switches to that desktop, through ⌃←/⌃→, see
 /// `SpaceSwitcher`.
 ///
-/// Nexus > Leiste > Spaces: statt Punkten die Nummern der Schreibtische
-/// (gleiche Pille, gleiches Umfaerben darunter).
+/// Nexus > Bar > Spaces: the numbers of the desktops instead of dots (the same
+/// pill, the same recoloring below it).
 struct SidebarSpaces: View {
     let model: SpacesModel
     var style: BarWorkspacesOptions.Style = .dots
@@ -46,10 +46,10 @@ struct SidebarSpaces: View {
                         .fill(shellStyle.accent)
                         .frame(width: Self.slot, height: Self.slot)
                         .offset(y: Self.offset(active))
-                    // Wie Caelestias Colouriser: was unter der Pille liegt,
-                    // in der Schriftfarbe fuer Akzentflaechen. Als Maske,
-                    // damit ein halb ueberfahrener Punkt waehrend des
-                    // Gleitens halb umgefaerbt ist.
+                    // Like Caelestia's Colouriser: whatever lies under the
+                    // pill, in the text color for accent areas. As a mask, so
+                    // that a dot half covered during the glide is half
+                    // recolored.
                     dots(count: snapshot.desktops.count, active: active, tint: shellStyle.onAccent)
                         .mask(alignment: .top) {
                             Capsule()
@@ -58,7 +58,7 @@ struct SidebarSpaces: View {
                         }
                 }
             }
-            // Klickflaeche je Platz, ueber Punkten, Pille und Maske.
+            // A click area per place, above the dots, the pill and the mask.
             .overlay(alignment: .top) {
                 VStack(spacing: Self.gap) {
                     ForEach(0..<snapshot.desktops.count, id: \.self) { index in
@@ -85,10 +85,10 @@ struct SidebarSpaces: View {
             ForEach(0..<count, id: \.self) { index in
                 let isActive = index == active
                 SidebarSpaceDot(active: isActive, slot: Self.slot, number: style == .numbers ? index + 1 : nil)
-                    // Inaktive gedaempft wie Caelestias outlineVariant; der
-                    // aktive voll (sichtbar nur, solange die Pille gleitet).
-                    // Ziffern etwas kraeftiger: duenne Striche verblassen
-                    // bei 0,4 staerker als ein voller Punkt.
+                    // The inactive ones muted like Caelestia's outlineVariant;
+                    // the active one full (visible only while the pill
+                    // glides). The digits a little stronger: thin strokes fade
+                    // more at 0.4 than a full dot.
                     .foregroundStyle(tint ?? Color.primary.opacity(isActive ? 1 : style == .numbers ? 0.6 : 0.4))
             }
         }
@@ -107,7 +107,7 @@ struct SidebarSpaces: View {
 private struct SidebarSpaceDot: View {
     let active: Bool
     let slot: CGFloat
-    /// Gesetzt: Ziffer statt Punkt.
+    /// Set: a digit instead of a dot.
     var number: Int?
 
     var body: some View {
@@ -118,8 +118,8 @@ private struct SidebarSpaceDot: View {
                 .frame(width: slot, height: slot)
         } else {
             let size = active ? slot * 2 / 3 : slot / 4
-            // Radius halb so gross wie die Seite = Kreis; so geht die Form beim
-            // Wechsel stufenlos vom Punkt ins abgerundete Quadrat ueber.
+            // A radius half the side = a circle; that way the shape goes over
+            // from the dot into the rounded square smoothly on a change.
             RoundedRectangle(cornerRadius: active ? size * 0.3 : size / 2, style: .continuous)
                 .frame(width: size, height: size)
                 .frame(width: slot, height: slot)
@@ -127,21 +127,21 @@ private struct SidebarSpaceDot: View {
     }
 }
 
-// MARK: - Uhr
+// MARK: - Clock
 
-/// Kalendersymbol, darunter Stunde und Minute eng untereinander, 24 Stunden
-/// - Caelestia: Clock mit den Vorgaben (Symbol an, ohne Datum, ohne
-/// Sekunden, ohne Hintergrund). Schrift "body small x 1,1" = 13 pt, Ziffern
-/// gleich breit, damit die Uhr beim Umspringen nicht wackelt. Die Minute
-/// sitzt 4 pt hoeher als ueblich (Caelestia: topMargin -spacing - 4).
+/// A calendar symbol, below it the hour and the minute close together, 24
+/// hours - Caelestia: Clock with the defaults (the symbol on, without the
+/// date, without seconds, without a background). The font "body small x 1.1" =
+/// 13 pt, with digits of equal width, so that the clock does not wobble when
+/// it ticks over. The minute sits 4 pt higher than usual (Caelestia:
+/// topMargin -spacing - 4).
 ///
-/// Farbe: Caelestia nimmt die dritte Akzentfarbe (tertiary). Apple kennt
-/// keine; systemPurple ist in hellem und dunklem Glas gut lesbar und
-/// setzt sich von der Akzentfarbe (Pille, Titel) ab - siehe Bildprobe.
+/// The color: Caelestia takes the third accent color (tertiary). Apple knows
+/// none; systemPurple reads well in light and dark glass and sets itself apart
+/// from the accent color (the pill, the titles) - see the image sample.
 ///
-/// Nexus > Leiste > Uhr: Symbol weglassen, Datum zeigen (Caelestia: showIcon,
-/// showDate - Wochentag kurz und Tag ueber der Uhrzeit, etwas kleiner). Das
-/// Datum braucht keinen eigenen Takt: es wechselt zur vollen Minute mit.
+/// Nexus > Bar > Clock: leave the symbol out, show the date (Caelestia:
+/// showIcon, showDate). It changes with the full minute, so no beat of its own.
 struct SidebarClock: View {
     let model: SidebarClockModel
     var showIcon = true
@@ -152,9 +152,9 @@ struct SidebarClock: View {
 
     @Environment(\.shellStyle) private var shellStyle
 
-    /// Mit Theme faerbt `--apollo-bar-text-color` die Uhr: Das feste Violett
-    /// ist auf Glas gut lesbar, neben einem Theme mit eigener Leistenfarbe
-    /// aber ein Fremdkoerper.
+    /// With a theme, `--apollo-bar-text-color` colors the clock: the fixed
+    /// purple reads well on glass, but next to a theme with a bar color of its
+    /// own it is a foreign body.
     private var color: Color { shellStyle.color(.barText) ?? Self.tint }
 
     var body: some View {
