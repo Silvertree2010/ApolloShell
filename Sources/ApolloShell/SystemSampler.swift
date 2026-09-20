@@ -48,9 +48,26 @@ enum SystemSampler {
         return (used, ProcessInfo.processInfo.physicalMemory)
     }
 
+    /// How long a reading of the boot volume is reused. Asking the file
+    /// system costs a synchronous round trip on the main thread (measured
+    /// 20.09.: the single most expensive thing in the dashboard's per-second
+    /// refresh), and a disk does not fill up within a second.
+    private static let storageMaxAge: TimeInterval = 20
+    private nonisolated(unsafe) static var storageCache: (value: (used: UInt64, total: UInt64), read: Date)?
+
     /// Boot volume: used = total - available for important usage (this counts
-    /// deletable caches as free too, just like Finder does).
+    /// deletable caches as free too, just like Finder does). Cached for
+    /// `storageMaxAge`.
     static func storage() -> (used: UInt64, total: UInt64)? {
+        if let cache = storageCache, Date().timeIntervalSince(cache.read) < storageMaxAge {
+            return cache.value
+        }
+        let fresh = readStorage()
+        if let fresh { storageCache = (fresh, Date()) }
+        return fresh
+    }
+
+    private static func readStorage() -> (used: UInt64, total: UInt64)? {
         let keys: Set<URLResourceKey> = [.volumeTotalCapacityKey, .volumeAvailableCapacityForImportantUsageKey]
         guard let values = try? URL(fileURLWithPath: "/").resourceValues(forKeys: keys),
               let total = values.volumeTotalCapacity,

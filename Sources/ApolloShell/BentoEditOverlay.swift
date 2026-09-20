@@ -107,7 +107,6 @@ struct EditableWidgetView: View {
     @State private var resizeFrame: WidgetFrame?
     @State private var resizeValid = true
     @State private var isDeleting = false
-    @State private var wobble: Double = 0
     /// Options open: only after a click (not after every drag - that
     /// opened them in the live test after every move), only for kinds
     /// with options, never while dragging or removing.
@@ -147,7 +146,7 @@ struct EditableWidgetView: View {
             .overlay(alignment: .topLeading) { minusBadge }
             .overlay(alignment: .bottomTrailing) { resizeHandle }
             // After the overlays: the minus and handle wobble with the widget.
-            .rotationEffect(.degrees(reduceMotion ? 0 : wobble))
+            .editWobble(phase: phase, active: !reduceMotion)
             .opacity(isDeleting ? 0 : 1)
             .scaleEffect(isDeleting ? 0.6 : 1)
             .gesture(dragGesture)
@@ -160,8 +159,6 @@ struct EditableWidgetView: View {
                 editor.selectedWidgetID = widget.id
                 editor.optionsWidgetID = widget.id
             })
-            .onAppear { startWobble() }
-            .onChange(of: reduceMotion) { _, _ in startWobble() }
             // Options of the selected widget (task 4): the same controls
             // as in the old Nexus editor (`WidgetOptionsView`), now right
             // next to the widget instead of in a separate column. Closes
@@ -189,20 +186,6 @@ struct EditableWidgetView: View {
             .zIndex(isSelected || isTransforming ? 1 : 0)
     }
 
-    /// Caelestia/Apple: a light, constant wobble as long as one is not
-    /// currently dragging. `withAnimation` with `.repeatForever` and a
-    /// `phase` delay, so not all widgets tilt in the same rhythm.
-    private func startWobble() {
-        guard !reduceMotion else {
-            wobble = 0
-            return
-        }
-        // 0.6 degrees was too much for him (live test 09/19): half as much, a bit calmer.
-        wobble = -0.3
-        withAnimation(.easeInOut(duration: 0.15).repeatForever(autoreverses: true).delay(phase)) {
-            wobble = 0.3
-        }
-    }
 
     private var minusBadge: some View {
         Button {
@@ -213,7 +196,7 @@ struct EditableWidgetView: View {
             Image(systemName: "minus")
                 .font(.system(size: 11, weight: .bold))
                 .frame(width: 22, height: 22)
-                .background(.regularMaterial, in: .circle)
+                .background(EditBadge.background, in: .circle)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)

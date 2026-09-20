@@ -59,7 +59,6 @@ private struct EditableBarBlock: View {
     let reduceMotion: Bool
     let dragging: Bool
     @Environment(\.shellStyle) private var style
-    @State private var wobble: Double = 0
     @State private var isDeleting = false
     @State private var targeted = false
 
@@ -93,11 +92,9 @@ private struct EditableBarBlock: View {
             }
         }
         .overlay(alignment: .topLeading) { minusBadge }
-        .rotationEffect(.degrees(reduceMotion ? 0 : wobble))
+        .editWobble(phase: phase, active: !reduceMotion)
         .opacity(isDeleting ? 0 : 1)
         .scaleEffect(isDeleting ? 0.6 : 1)
-        .onAppear { startWobble() }
-        .onChange(of: reduceMotion) { _, _ in startWobble() }
         .modifier(BarEntryDragModifier(entry: entry, active: dragging))
         .modifier(BarEntryDropModifier(editor: editor, entry: entry, targeted: $targeted, active: dragging))
         .help(entry.kind.title)
@@ -112,16 +109,6 @@ private struct EditableBarBlock: View {
         }
     }
 
-    private func startWobble() {
-        guard !reduceMotion else {
-            wobble = 0
-            return
-        }
-        wobble = -0.3
-        withAnimation(.easeInOut(duration: 0.15).repeatForever(autoreverses: true).delay(phase)) {
-            wobble = 0.3
-        }
-    }
 
     private var minusBadge: some View {
         Button {
@@ -132,7 +119,7 @@ private struct EditableBarBlock: View {
             Image(systemName: "minus")
                 .font(.system(size: 10, weight: .bold))
                 .frame(width: 18, height: 18)
-                .background(.regularMaterial, in: .circle)
+                .background(EditBadge.background, in: .circle)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -142,6 +129,43 @@ private struct EditableBarBlock: View {
         .offset(x: 1, y: -4)
         .help("Remove")
         .accessibilityLabel("Remove \(entry.kind.title)")
+    }
+}
+
+/// The disc behind the `−` badge of the edit mode.
+///
+/// A plain fill, not `.regularMaterial`: a material is a live blur, and with
+/// one badge per block there were around 28 of them on screen at once.
+/// Measured on 20.09. they were the biggest single item in the mode's GPU
+/// bill. At 18 pt nobody can tell the difference.
+enum EditBadge {
+    static let background = Color(nsColor: .windowBackgroundColor).opacity(0.85)
+}
+
+/// The wobble of the edit mode, in one place for all three surfaces.
+///
+/// It used to be a `withAnimation(.repeatForever)` started in `onAppear`.
+/// SwiftUI drops such an animation as soon as the subtree redraws without
+/// an animated transaction, so only the surface that was just touched kept
+/// wobbling (his live test, 20.09.). `phaseAnimator` is held by SwiftUI
+/// itself and survives every redraw.
+///
+/// The old rate was 0.15 s per half turn - nearly 7 Hz on every block of
+/// three surfaces at once, which cost half the GPU power of the whole mode
+/// (measured 20.09.: 1280 mW with, 650 mW without). 0.45 s reads the same
+/// and costs a third.
+extension View {
+    @ViewBuilder
+    func editWobble(phase: Double, active: Bool) -> some View {
+        if active {
+            phaseAnimator([-0.3, 0.3], trigger: false) { view, angle in
+                view.rotationEffect(.degrees(angle))
+            } animation: { _ in
+                .easeInOut(duration: 0.45).delay(phase)
+            }
+        } else {
+            self
+        }
     }
 }
 

@@ -59,7 +59,6 @@ private struct EditableUtilitiesCard: View {
     let reduceMotion: Bool
     @Environment(\.shellStyle) private var style
     @Environment(\.dashboardRendersForScreenshot) private var rendersForScreenshot
-    @State private var wobble: Double = 0
     @State private var isHiding = false
     @State private var targeted = false
 
@@ -84,11 +83,9 @@ private struct EditableUtilitiesCard: View {
                 }
             }
             .overlay(alignment: .topLeading) { minusBadge }
-            .rotationEffect(.degrees(reduceMotion ? 0 : wobble))
+            .editWobble(phase: phase, active: !reduceMotion)
             .opacity(isHiding ? 0 : 1)
             .scaleEffect(isHiding ? 0.94 : 1)
-            .onAppear { startWobble() }
-            .onChange(of: reduceMotion) { _, _ in startWobble() }
             #if DEBUG
             .background { DebugWindowRectReporter { editor.debugUtilitiesRects["card:" + kind.rawValue] = $0 } }
             #endif
@@ -105,18 +102,6 @@ private struct EditableUtilitiesCard: View {
         }
     }
 
-    /// Like `EditableWidgetView.startWobble` (Dashboard): 0.3 degrees,
-    /// slightly phase-shifted, off with Reduce Motion.
-    private func startWobble() {
-        guard !reduceMotion else {
-            wobble = 0
-            return
-        }
-        wobble = -0.3
-        withAnimation(.easeInOut(duration: 0.15).repeatForever(autoreverses: true).delay(phase)) {
-            wobble = 0.3
-        }
-    }
 
     private var minusBadge: some View {
         Button {
@@ -129,7 +114,7 @@ private struct EditableUtilitiesCard: View {
             Image(systemName: "minus")
                 .font(.system(size: 11, weight: .bold))
                 .frame(width: 22, height: 22)
-                .background(.regularMaterial, in: .circle)
+                .background(EditBadge.background, in: .circle)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -195,7 +180,6 @@ private struct EditableToggleTile: View {
     let targeted: Bool
     @Environment(\.shellStyle) private var style
     @Environment(\.dashboardRendersForScreenshot) private var rendersForScreenshot
-    @State private var wobble: Double = 0
     @State private var isDeleting = false
 
     private var phase: Double { Double(abs(entry.id.hashValue) % 260) / 1000 }
@@ -242,11 +226,9 @@ private struct EditableToggleTile: View {
             }
         }
         .overlay(alignment: .topLeading) { minusBadge }
-        .rotationEffect(.degrees(reduceMotion ? 0 : wobble))
+        .editWobble(phase: phase, active: !reduceMotion)
         .opacity(isDeleting ? 0 : 1)
         .scaleEffect(isDeleting ? 0.6 : 1)
-        .onAppear { startWobble() }
-        .onChange(of: reduceMotion) { _, _ in startWobble() }
         .modifier(UtilitiesToggleDragModifier(entry: entry, active: !rendersForScreenshot))
         #if DEBUG
         .background { DebugWindowRectReporter { editor.debugUtilitiesRects[entry.id] = $0 } }
@@ -263,16 +245,6 @@ private struct EditableToggleTile: View {
         }
     }
 
-    private func startWobble() {
-        guard !reduceMotion else {
-            wobble = 0
-            return
-        }
-        wobble = -0.3
-        withAnimation(.easeInOut(duration: 0.15).repeatForever(autoreverses: true).delay(phase)) {
-            wobble = 0.3
-        }
-    }
 
     private var minusBadge: some View {
         Button {
@@ -283,7 +255,7 @@ private struct EditableToggleTile: View {
             Image(systemName: "minus")
                 .font(.system(size: 10, weight: .bold))
                 .frame(width: 18, height: 18)
-                .background(.regularMaterial, in: .circle)
+                .background(EditBadge.background, in: .circle)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)

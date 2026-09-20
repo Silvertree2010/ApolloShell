@@ -17,6 +17,10 @@ enum LauncherApp {
         // Invisible self-test of the edit mode (--selftest-edit).
         EditModeSelfTest.runIfRequested()
         #endif
+        #if DEBUG || PERF_RIG
+        // Measuring rig for what the shell costs while drawing (--perf-edit).
+        if PerfRig.runIfAsked() { return }
+        #endif
         // Only one instance: a second one shows the running one and ends
         // before it touches windows, shortcuts or Apple's Dock (SingleInstance).
         if SingleInstanceGuard.otherInstanceKeepsRunning() {
