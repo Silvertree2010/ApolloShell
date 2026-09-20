@@ -2,9 +2,9 @@ import ApolloShellCore
 import Foundation
 import Testing
 
-@Suite("Themes: von der Platte lesen")
+@Suite("Themes: reading off the disk")
 struct ThemeLoaderTests {
-    /// Reicht als Datei - geprueft wird der Pfad, nicht der Bildinhalt.
+    /// Enough as a file - what is checked is the path, not the image content.
     private let pixel = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
 
     private func tempRoot() throws -> URL {
@@ -28,9 +28,9 @@ struct ThemeLoaderTests {
         return folder
     }
 
-    // MARK: - Aufbau
+    // MARK: - Structure
 
-    @Test("eine verknuepfte .css-Datei ist ein Theme")
+    @Test("a linked .css file is a theme")
     func symlinkedFile() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -48,7 +48,7 @@ struct ThemeLoaderTests {
         #expect(found.first?.issues.isEmpty == true)
     }
 
-    @Test("ein verknuepfter Theme-Ordner wird gefunden, Bilder darin gelten")
+    @Test("a linked theme folder is found, and images in it count")
     func symlinkedFolder() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -65,7 +65,7 @@ struct ThemeLoaderTests {
         #expect(found.first?.issues.isEmpty == true)
     }
 
-    @Test("theme.css, die aus dem Ordner hinaus zeigt, gilt nicht")
+    @Test("a theme.css that points out of the folder does not count")
     func styleSheetLinkOutsideFolder() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -80,7 +80,7 @@ struct ThemeLoaderTests {
         #expect(theme.issues.contains { if case .unreadableFile = $0.kind { true } else { false } })
     }
 
-    @Test("eine einzelne .css-Datei ist ein Theme")
+    @Test("a single .css file is a theme")
     func singleFile() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -93,7 +93,7 @@ struct ThemeLoaderTests {
         #expect(theme.issues.isEmpty)
     }
 
-    @Test("ein Ordner mit theme.css ist ein Theme, Bilder daneben gelten")
+    @Test("a folder with a theme.css is a theme, images next to it count")
     func folderWithImage() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -115,7 +115,7 @@ struct ThemeLoaderTests {
         #expect(theme.issues.isEmpty)
     }
 
-    @Test("ein Ordner ohne theme.css ist kein Theme")
+    @Test("a folder without a theme.css is no theme")
     func folderWithoutStyleSheet() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -126,7 +126,7 @@ struct ThemeLoaderTests {
         #expect(theme.issues.contains(ThemeIssue(.unreadableFile(ThemeLoader.styleSheetName))))
     }
 
-    @Test("was es nicht gibt, ergibt die Vorgaben und einen Hinweis")
+    @Test("what does not exist gives the defaults and a notice")
     func missingFile() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -135,7 +135,7 @@ struct ThemeLoaderTests {
         #expect(theme.issues.contains(ThemeIssue(.unreadableFile("weg.css"))))
     }
 
-    @Test("alle Themes eines Ordners, sortiert, ohne Beiwerk")
+    @Test("all themes of a folder, sorted, without the trimmings")
     func listing() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -151,19 +151,19 @@ struct ThemeLoaderTests {
         #expect(ThemeLoader.themes(in: root.appendingPathComponent("gibtesnicht")).isEmpty)
     }
 
-    @Test("der Themes-Ordner liegt neben settings.json")
+    @Test("the themes folder lies next to settings.json")
     func folderPath() {
         let support = URL(fileURLWithPath: "/Beispiel/Application Support/ApolloShell")
         #expect(ThemeLoader.folder(inApplicationSupport: support).lastPathComponent == "themes")
     }
 
-    // MARK: - Sicherheit
+    // MARK: - Security
 
-    @Test("ein Theme kommt nicht aus seinem Ordner heraus")
+    @Test("a theme does not get out of its folder")
     func assetsStayInsideTheFolder() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        // Etwas, das ein boesartiges Theme gerne haette.
+        // Something a malicious theme would like to have.
         let secret = root.appendingPathComponent("secret.png")
         try pixel.write(to: secret)
         let folder = try folderTheme(in: root, named: "Angriff", css: ":root {}")
@@ -201,7 +201,7 @@ struct ThemeLoaderTests {
                     "\(reference): \(theme.issues.map(\.description))")
         }
 
-        // Und was erlaubt ist, geht auch wirklich.
+        // And what is allowed really works.
         let good = Theme.make(identifier: "Angriff",
                               styleSheet: ThemeStyleSheetParser.parse(
                                   ":root { --apollo-background-image: url(\"ok.png\"); }"),
@@ -210,7 +210,7 @@ struct ThemeLoaderTests {
         #expect(good.issues.isEmpty)
     }
 
-    @Test("ein Bild, das zu gross ist, wird nicht benutzt")
+    @Test("an image that is too big is not used")
     func assetTooLarge() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -227,7 +227,7 @@ struct ThemeLoaderTests {
         })
     }
 
-    @Test("eine einzelne .css-Datei bekommt keine Bilder aus dem Themes-Ordner")
+    @Test("a single .css file gets no images out of the themes folder")
     func singleFileHasNoAssets() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -241,9 +241,9 @@ struct ThemeLoaderTests {
         })
     }
 
-    // MARK: - Kaputte Dateien
+    // MARK: - Broken files
 
-    @Test("leere Datei: die Vorgaben, ohne Aufhebens")
+    @Test("an empty file: the defaults, without any fuss")
     func emptyFile() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -253,7 +253,7 @@ struct ThemeLoaderTests {
         #expect(theme.issues.isEmpty)
     }
 
-    @Test("Binaerdaten: kein Absturz, die Vorgaben, ein Hinweis")
+    @Test("binary data: no crash, the defaults, a notice")
     func binaryFile() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -264,7 +264,7 @@ struct ThemeLoaderTests {
         #expect(theme.issues.contains(ThemeIssue(.notText)))
     }
 
-    @Test("falsche Kodierung: als Latin-1 gelesen, mit Hinweis")
+    @Test("the wrong encoding: read as Latin-1, with a notice")
     func latin1File() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -277,7 +277,7 @@ struct ThemeLoaderTests {
         #expect(theme.issues.contains(ThemeIssue(.notUTF8)))
     }
 
-    @Test("Byte-Reihenfolge-Marke stoert nicht")
+    @Test("a byte order mark does not get in the way")
     func byteOrderMark() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -290,7 +290,7 @@ struct ThemeLoaderTests {
         #expect(theme.issues.isEmpty)
     }
 
-    @Test("zu grosse Datei wird gar nicht erst gelesen")
+    @Test("a file that is too big is not read at all")
     func styleSheetTooLarge() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -302,7 +302,7 @@ struct ThemeLoaderTests {
         #expect(theme.issues.contains { if case .styleSheetTooLarge = $0.kind { true } else { false } })
     }
 
-    @Test("eine grosse, aber erlaubte Datei wird noch gelesen")
+    @Test("a big but allowed file is still read")
     func largeButAllowed() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -313,7 +313,7 @@ struct ThemeLoaderTests {
         #expect(theme.color(.accent) == ThemeColor(hex: 0xFF0000))
     }
 
-    @Test("Kodierung erkennen", arguments: [
+    @Test("recognising the encoding", arguments: [
         (Data(), true), (Data([0x00, 0x01]), false), (Data("/* ok */".utf8), true),
     ])
     func decoding(data: Data, readable: Bool) {

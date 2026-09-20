@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Dashboard als Baukasten: Reiter, Karten, Vorlagen, Masse")
+@Suite("The dashboard as a kit: tabs, cards, templates, measurements")
 struct DashboardLayoutTests {
     private func tabs(_ json: String) -> DashboardTabs? {
         try? JSONDecoder().decode(DashboardTabs.self, from: Data(json.utf8))
@@ -12,7 +12,7 @@ struct DashboardLayoutTests {
         try? JSONDecoder().decode(DashboardCards.self, from: Data(json.utf8))
     }
 
-    /// "oben|unten|seite" mit Arten je Platz, zum Vergleichen.
+    /// "top|bottom|side" with the kinds per place, for comparing.
     private func text(_ cards: DashboardCards?) -> String {
         guard let cards else { return "<nicht lesbar>" }
         return DashboardZone.allCases.map { cards[$0].map(\.kind.rawValue).joined(separator: ",") }.joined(separator: "|")
@@ -25,9 +25,9 @@ struct DashboardLayoutTests {
         return DashboardCards(top: zones[0], bottom: zones[1], side: zones[2])
     }
 
-    // MARK: Reiter
+    // MARK: Tabs
 
-    @Test("Reiter lesen: Unbekanntes und Doppeltes weg, Fehlendes sichtbar ans Ende", arguments: [
+    @Test("Reading tabs: the unknown and the duplicate go, the missing become visible at the end", arguments: [
         (#"[{"id":"weather","visible":false},{"id":"media"},{"id":"x"},5,{"id":"weather"}]"#,
          ["weather", "media", "dashboard", "performance"], ["weather"]),
         (#"[]"#, ["dashboard", "media", "performance", "weather"], []),
@@ -41,25 +41,25 @@ struct DashboardLayoutTests {
         #expect(tabs.map { $0.hidden.map(\.rawValue).sorted() } == hidden.sorted())
     }
 
-    @Test("kein Reiter-Array: Vorgabe", arguments: [#"{"tabs":5}"#, #"{"tabs":{"a":1}}"#, "{}"])
+    @Test("no tab array: the default", arguments: [#"{"tabs":5}"#, #"{"tabs":{"a":1}}"#, "{}"])
     func tabsFallback(json: String) throws {
         let layout = try JSONDecoder().decode(DashboardLayout.self, from: Data(json.utf8))
         #expect(layout.tabs == DashboardTabs())
     }
 
-    @Test("ausgeblendeter Reiter: der erste sichtbare springt ein", arguments: [
+    @Test("a hidden tab: the first visible one steps in", arguments: [
         (DashboardTab.media, DashboardTab.dashboard), (DashboardTab.weather, DashboardTab.weather),
         (DashboardTab.performance, DashboardTab.dashboard),
     ])
     func tabsResolved(wanted: DashboardTab, shown: DashboardTab) {
         let tabs = DashboardTabs(hidden: [.media, .performance])
         #expect(tabs.resolved(wanted) == shown)
-        // Mit anderer Reihenfolge ist "der erste" ein anderer.
+        // With another order "the first one" is a different one.
         let reordered = DashboardTabs(order: [.weather, .dashboard, .media, .performance], hidden: [.media])
         #expect(reordered.resolved(.media) == .weather)
     }
 
-    @Test("der letzte sichtbare Reiter bleibt")
+    @Test("the last visible tab stays")
     func tabsKeepOne() {
         var tabs = DashboardTabs()
         tabs.setVisible(.media, false)
@@ -73,7 +73,7 @@ struct DashboardLayoutTests {
         #expect(tabs.canHide(.dashboard))
     }
 
-    @Test("Reiter ziehen und schieben", arguments: [
+    @Test("dragging and pushing tabs", arguments: [
         ([3], 0, ["weather", "dashboard", "media", "performance"]),
         ([0], 4, ["media", "performance", "weather", "dashboard"]),
         ([7], 0, ["dashboard", "media", "performance", "weather"]),
@@ -84,7 +84,7 @@ struct DashboardLayoutTests {
         #expect(tabs.order.map(\.rawValue) == expected)
     }
 
-    @Test("Reiter eine Stelle, am Rand nichts", arguments: [
+    @Test("a tab one place, nothing at the edge", arguments: [
         (DashboardTab.media, -1, ["media", "dashboard", "performance", "weather"]),
         (DashboardTab.weather, 1, ["dashboard", "media", "performance", "weather"]),
     ])
@@ -94,9 +94,9 @@ struct DashboardLayoutTests {
         #expect(tabs.order.map(\.rawValue) == expected)
     }
 
-    // MARK: Karten lesen
+    // MARK: Reading cards
 
-    @Test("Karten lesen: fehlender Platz = Vorgabe, leere Liste = leer", arguments: [
+    @Test("Reading cards: a missing place = the default, an empty list = empty", arguments: [
         ("{}", "weather,user|clock,calendar,resources|media"),
         (#"{"top":[]}"#, "|clock,calendar,resources|media"),
         (#"{"top":5,"side":[]}"#, "weather,user|clock,calendar,resources|"),
@@ -106,23 +106,23 @@ struct DashboardLayoutTests {
         #expect(text(cards(json)) == expected)
     }
 
-    @Test("Karten lesen: jede Regel verwirft nur, was sie verletzt", arguments: [
-        // Unbekannt und kein Objekt
+    @Test("Reading cards: every rule only throws away what it breaks", arguments: [
+        // Unknown and no object
         (#"{"top":[{"kind":"hologram"},7,{"kind":"weather"}],"bottom":[],"side":[]}"#, "weather||"),
-        // Doppelt: die erste gilt (oben vor unten vor Spalte)
+        // Duplicate: the first one counts (top before bottom before column)
         (#"{"top":[{"kind":"media"}],"bottom":[{"kind":"media"},{"kind":"clock"}]}"#, "media|clock|"),
-        // Kalender nur unten
+        // The calendar only at the bottom
         (#"{"top":[{"kind":"calendar"}],"bottom":[],"side":[{"kind":"calendar"}]}"#, "||"),
-        // Spalte: eine Karte
+        // The column: one card
         (#"{"top":[],"bottom":[],"side":[{"kind":"user"},{"kind":"clock"}]}"#, "||user"),
-        // Reihe zu breit: 275 + 230 + 12 passt, dazu 300 + 12 nicht mehr
+        // The row too wide: 275 + 230 + 12 fits, plus 300 + 12 no longer
         (#"{"top":[{"kind":"weather"},{"kind":"user"},{"kind":"media"},{"kind":"clock"}],"bottom":[],"side":[]}"#, "weather,user||"),
     ])
     func cardsRules(json: String, expected: String) {
         #expect(text(cards(json)) == expected)
     }
 
-    @Test("kaputte Optionen: Vorgaben, lesbare Felder bleiben", arguments: [
+    @Test("broken options: the defaults, readable fields stay", arguments: [
         (#"{"top":[{"kind":"weather","options":{"showRange":false,"future":1}}]}"#, DashboardCard.weather(.init(showRange: false))),
         (#"{"top":[{"kind":"user","options":[]}]}"#, DashboardCard.user(.init())),
         (#"{"top":[{"kind":"clock","options":{"style":"analog","showDate":true}}]}"#, DashboardCard.clock(.init(showDate: true))),
@@ -135,7 +135,7 @@ struct DashboardLayoutTests {
         #expect(cards(json)?.top.first == expected)
     }
 
-    @Test("Kalender-Optionen lesen", arguments: [
+    @Test("Reading calendar options", arguments: [
         (#"{"bottom":[{"kind":"calendar","options":{"firstWeekday":"sunday","showWeekNumbers":true}}]}"#,
          DashboardCalendarOptions(firstWeekday: .sunday, showWeekNumbers: true)),
         (#"{"bottom":[{"kind":"calendar","options":{"firstWeekday":"friday"}}]}"#, DashboardCalendarOptions()),
@@ -144,7 +144,7 @@ struct DashboardLayoutTests {
         #expect(cards(json)?.bottom.first?.calendar == expected)
     }
 
-    @Test("jede Karte an jedem erlaubten Platz uebersteht Schreiben und Lesen", arguments: DashboardCardKind.allCases)
+    @Test("every card at every allowed place survives writing and reading", arguments: DashboardCardKind.allCases)
     func roundTripEveryZone(kind: DashboardCardKind) throws {
         for zone in kind.zones {
             let cards = DashboardCards(top: zone == .top ? [kind] : [], bottom: zone == .bottom ? [kind] : [],
@@ -155,7 +155,7 @@ struct DashboardLayoutTests {
         }
     }
 
-    @Test("Art, Name, Beschreibung, Symbol und Plaetze sind vollstaendig", arguments: DashboardCardKind.allCases)
+    @Test("kind, name, description, symbol and places are complete", arguments: DashboardCardKind.allCases)
     func kindMetadata(kind: DashboardCardKind) {
         #expect(DashboardCard(kind).kind == kind)
         #expect(!kind.title.isEmpty && !kind.summary.isEmpty && !kind.symbol.isEmpty)
@@ -163,10 +163,10 @@ struct DashboardLayoutTests {
         #expect(Set(kind.zones).count == kind.zones.count)
     }
 
-    @Test("Wetter und Wiedergabe nur abfragen, wenn Karte oder Reiter zu sehen sind", arguments: [
+    @Test("only ask for weather and playback when a card or a tab can be seen", arguments: [
         (DashboardPreset.caelestia.layout, true, true),
         (DashboardPreset.calendarWeather.layout, true, false),
-        // Karte da, aber der Reiter Dashboard ausgeblendet: zaehlt nicht.
+        // The card is there, but the dashboard tab is hidden: does not count.
         (DashboardLayout(tabs: DashboardTabs(hidden: [.dashboard, .weather])), false, true),
         (DashboardLayout(tabs: DashboardTabs(hidden: [.media, .weather]), cards: DashboardCards(top: [], bottom: [.calendar], side: [])),
          false, false),
@@ -176,9 +176,9 @@ struct DashboardLayoutTests {
         #expect(layout.usesMedia == media)
     }
 
-    // MARK: Einstellungen
+    // MARK: Settings
 
-    @Test("ohne Abschnitt dashboard: das Dashboard von vorher", arguments: [
+    @Test("without a dashboard section: the dashboard from before", arguments: [
         "{}", #"{"dashboard":5}"#, #"{"dashboard":{}}"#, #"{"bar":{},"dashboard":null}"#,
     ])
     func settingsMigration(json: String) {
@@ -188,7 +188,7 @@ struct DashboardLayoutTests {
         #expect(settings.dashboard.cards == .caelestia)
     }
 
-    @Test("Abschnitt dashboard: nur er weicht ab, Leiste bleibt Vorgabe")
+    @Test("the dashboard section: only it differs, the bar stays the default")
     func settingsPartial() {
         let json = #"{"dashboard":{"tabs":[{"id":"media","visible":false}],"cards":{"side":[]}}}"#
         let settings = ShellSettings.load(from: Data(json.utf8))
@@ -197,7 +197,7 @@ struct DashboardLayoutTests {
         #expect(text(settings.dashboard.cards) == "weather,user|clock,calendar,resources|")
     }
 
-    @Test("settings.json mit Dashboard uebersteht Schreiben und Lesen", arguments: DashboardPreset.allCases)
+    @Test("settings.json with a dashboard survives writing and reading", arguments: DashboardPreset.allCases)
     func settingsRoundTrip(preset: DashboardPreset) {
         let settings = ShellSettings(dashboard: preset.layout)
         #expect(ShellSettings.load(from: settings.encoded()) == settings)
@@ -207,9 +207,9 @@ struct DashboardLayoutTests {
         }
     }
 
-    // MARK: Vorlagen
+    // MARK: Templates
 
-    @Test("Vorlagen sind Daten", arguments: [
+    @Test("templates are data", arguments: [
         (DashboardPreset.caelestia, "weather,user|clock,calendar,resources|media", ["dashboard", "media", "performance", "weather"]),
         (DashboardPreset.compact, "weather,media|clock,calendar,resources|", ["dashboard", "media", "performance", "weather"]),
         (DashboardPreset.calendarWeather, "|clock,calendar|weather", ["dashboard", "weather"]),
@@ -219,7 +219,7 @@ struct DashboardLayoutTests {
         #expect(preset.layout.tabs.visible.map(\.rawValue) == visibleTabs)
     }
 
-    @Test("Vorlagen sind gueltig und schon in Normalform", arguments: DashboardPreset.allCases)
+    @Test("templates are valid and already in normal form", arguments: DashboardPreset.allCases)
     func presetValid(preset: DashboardPreset) throws {
         let layout = preset.layout
         #expect(!preset.title.isEmpty && !preset.summary.isEmpty && !layout.cards.isEmpty)
@@ -228,9 +228,9 @@ struct DashboardLayoutTests {
         #expect(try JSONDecoder().decode(DashboardLayout.self, from: JSONEncoder().encode(layout)) == layout)
     }
 
-    // MARK: Karten aendern
+    // MARK: Changing cards
 
-    @Test("hinzufuegen: an den Caelestia-Platz, sonst an den ersten mit Raum", arguments: [
+    @Test("adding: to the Caelestia place, otherwise to the first one with room", arguments: [
         ("|clock,calendar|", DashboardCardKind.resources, "|clock,calendar,resources|"),
         ("user|clock,calendar,resources|weather", DashboardCardKind.media, "user,media|clock,calendar,resources|weather"),
         ("weather,user|clock,calendar,resources|", DashboardCardKind.media, "weather,user|clock,calendar,resources|media"),
@@ -245,7 +245,7 @@ struct DashboardLayoutTests {
 
     @Test("hinzufuegen geht nicht: schon da, oder nirgends Raum", arguments: [
         ("weather,user|clock,calendar,resources|media", DashboardCardKind.clock),
-        // Unten 200 + 200 + 110 + 24 = 534; mit dem Kalender (300) zu breit.
+        // The bottom 200 + 200 + 110 + 24 = 534; with the calendar (300) too wide.
         ("|weather,user,clock|media", DashboardCardKind.calendar),
     ])
     func addRefused(start: String, kind: DashboardCardKind) {
@@ -255,7 +255,7 @@ struct DashboardLayoutTests {
         #expect(cards == grid(start))
     }
 
-    @Test("entfernen, danach wieder hinzufuegbar")
+    @Test("removing, and adding it again afterwards")
     func remove() {
         var cards = DashboardCards.caelestia
         cards.remove(.calendar)
@@ -265,7 +265,7 @@ struct DashboardLayoutTests {
         #expect(text(cards) == "weather,user|clock,resources|media")
     }
 
-    @Test("ziehen innerhalb eines Platzes", arguments: [
+    @Test("dragging within one place", arguments: [
         (DashboardZone.bottom, [2], 0, "weather,user|resources,clock,calendar|media"),
         (DashboardZone.top, [0], 2, "user,weather|clock,calendar,resources|media"),
         (DashboardZone.side, [0], 1, "weather,user|clock,calendar,resources|media"),
@@ -276,7 +276,7 @@ struct DashboardLayoutTests {
         #expect(text(cards) == expected)
     }
 
-    @Test("eine Stelle nach links oder rechts, am Rand nichts", arguments: [
+    @Test("one place left or right, nothing at the edge", arguments: [
         (DashboardCardKind.clock, 1, "weather,user|calendar,clock,resources|media"),
         (DashboardCardKind.user, -1, "user,weather|clock,calendar,resources|media"),
         (DashboardCardKind.resources, 1, "weather,user|clock,calendar,resources|media"),
@@ -288,28 +288,28 @@ struct DashboardLayoutTests {
         #expect(text(cards) == expected)
     }
 
-    @Test("an einen anderen Platz; belegte Spalte tauscht", arguments: [
-        // Wetter in die Spalte: Medien kommen an die Stelle des Wetters.
+    @Test("to another place; an occupied column swaps", arguments: [
+        // The weather into the column: the media take the place of the weather.
         ("weather,user|clock,calendar,resources|media", DashboardCardKind.weather, DashboardZone.side, true,
          "media,user|clock,calendar,resources|weather"),
-        // Uhr nach oben: 275 + 230 + 110 + 24 = 639 > 627.
+        // The clock to the top: 275 + 230 + 110 + 24 = 639 > 627.
         ("weather,user|clock,calendar,resources|media", DashboardCardKind.clock, DashboardZone.top, false,
          "weather,user|clock,calendar,resources|media"),
         ("weather|clock,calendar,resources|media", DashboardCardKind.resources, DashboardZone.top, true,
          "weather,resources|clock,calendar|media"),
-        // Kalender darf nur unten stehen.
+        // The calendar may only stand at the bottom.
         ("weather|clock,calendar|", DashboardCardKind.calendar, DashboardZone.top, false, "weather|clock,calendar|"),
-        // Medien in die Reihe unten: 110 + 300 + 90 + 200 + 36 = 736, zu breit.
+        // The media into the bottom row: 110 + 300 + 90 + 200 + 36 = 736, too wide.
         ("weather,user|clock,calendar,resources|media", DashboardCardKind.media, DashboardZone.bottom, false,
          "weather,user|clock,calendar,resources|media"),
-        // Ohne Uhr passt es: 300 + 200 + 12 = 512.
+        // Without the clock it fits: 300 + 200 + 12 = 512.
         ("weather,user|calendar|media", DashboardCardKind.media, DashboardZone.bottom, true,
          "weather,user|calendar,media|"),
-        // Tausch, nach dem die Spaltenkarte am alten Platz zu breit waere:
-        // unten 110 + 300 + 200 + 24 = 634 > 627 - nein.
+        // A swap after which the column card would be too wide at the old
+        // place: the bottom 110 + 300 + 200 + 24 = 634 > 627 - no.
         ("weather,user|clock,calendar,resources|media", DashboardCardKind.resources, DashboardZone.side, false,
          "weather,user|clock,calendar,resources|media"),
-        // Schon dort: nichts.
+        // There already: nothing.
         ("weather,user|clock,calendar,resources|media", DashboardCardKind.user, DashboardZone.top, false,
          "weather,user|clock,calendar,resources|media"),
     ])
@@ -320,10 +320,10 @@ struct DashboardLayoutTests {
         #expect(text(cards) == expected)
     }
 
-    @Test("tauschen", arguments: [
+    @Test("swapping", arguments: [
         (DashboardCardKind.clock, DashboardCardKind.resources, true, "weather,user|resources,calendar,clock|media"),
         (DashboardCardKind.weather, DashboardCardKind.user, true, "user,weather|clock,calendar,resources|media"),
-        // Wetter unten statt Uhr: 200 + 300 + 90 + 24 = 614 passt; Uhr oben neben Benutzer auch.
+        // The weather at the bottom instead of the clock: 200 + 300 + 90 + 24 = 614 fits; the clock at the top next to the user too.
         (DashboardCardKind.weather, DashboardCardKind.clock, true, "clock,user|weather,calendar,resources|media"),
         (DashboardCardKind.calendar, DashboardCardKind.weather, false, "weather,user|clock,calendar,resources|media"),
         (DashboardCardKind.media, DashboardCardKind.clock, true, "weather,user|media,calendar,resources|clock"),
@@ -336,19 +336,19 @@ struct DashboardLayoutTests {
         #expect(text(cards) == expected)
     }
 
-    @Test("Optionen aendern: Platz und Reihenfolge bleiben")
+    @Test("changing options: the place and the order stay")
     func update() {
         var cards = DashboardCards.caelestia
         cards.update(.clock(.init(style: .inline, showDate: true)))
         #expect(cards[kind: .clock] == .clock(.init(style: .inline, showDate: true)))
         #expect(text(cards) == text(.caelestia))
-        // Nicht vorhandene Karte: nichts.
+        // A card that is not there: nothing.
         cards.remove(.user)
         cards.update(.user(.init(showUptime: false)))
         #expect(!cards.contains(.user))
     }
 
-    // MARK: Masse
+    // MARK: Measurements
 
     private func frames(_ cards: DashboardCards) -> [String] {
         DashboardGeometry.placements(for: cards).map {
@@ -356,7 +356,7 @@ struct DashboardLayoutTests {
         }
     }
 
-    @Test("Caelestia: genau die festen Masse von vorher")
+    @Test("Caelestia: exactly the fixed measurements from before")
     func caelestiaFrames() {
         #expect(DashboardGeometry.rowWidth == 627)
         #expect(frames(.caelestia) == [
@@ -366,16 +366,16 @@ struct DashboardLayoutTests {
         ])
     }
 
-    @Test("leere Plaetze fuellen die Nachbarn", arguments: [
-        // Ohne Spalte: die Reihen gehen ueber die ganze Breite.
+    @Test("empty places fill the neighbours", arguments: [
+        // Without the column: the rows go across the whole width.
         ("weather,media|clock,calendar,resources|",
          ["weather 0 0 275 130", "media 287 0 552 130", "clock 0 142 110 250", "calendar 122 142 615 250",
           "resources 749 142 90 250"]),
-        // Ohne obere Reihe: die untere bekommt die ganze Hoehe.
+        // Without the top row: the bottom one gets the whole height.
         ("|clock,calendar|weather", ["clock 0 0 110 392", "calendar 122 0 505 392", "weather 639 0 200 392"]),
-        // Nur feste Karten: im Verhaeltnis gestreckt, Rest an die letzte.
+        // Only fixed cards: stretched in proportion, the rest to the last one.
         ("|clock,resources|media", ["clock 0 0 338 392", "resources 350 0 277 392", "media 639 0 200 392"]),
-        // Nur die Spalte: sie bekommt alles.
+        // Only the column: it gets everything.
         ("||media", ["media 0 0 839 392"]),
         ("||", []),
     ])
@@ -383,11 +383,11 @@ struct DashboardLayoutTests {
         #expect(frames(grid(start)) == expected)
     }
 
-    @Test("Breiten einer Reihe", arguments: [
+    @Test("the widths of a row", arguments: [
         ([DashboardCardWidth.fixed(275), .flexible(minimum: 230)], 627.0, [275.0, 340.0]),
         ([DashboardCardWidth.flexible(minimum: 300), .flexible(minimum: 230)], 627.0, [307.0, 308.0]),
         ([DashboardCardWidth.fixed(110), .fixed(90)], 627.0, [338.0, 277.0]),
-        // Zu eng (kommt nach `fits` nicht vor): gestaucht statt ueber den Rand.
+        // Too tight (does not come up after `fits`): squeezed instead of over the edge.
         ([DashboardCardWidth.fixed(300), .fixed(300), .flexible(minimum: 100)], 524.0, [214.0, 214.0, 72.0]),
         ([DashboardCardWidth.fixed(200)], 839.0, [839.0]),
         ([] as [DashboardCardWidth], 627.0, [] as [Double]),
@@ -400,7 +400,7 @@ struct DashboardLayoutTests {
         }
     }
 
-    @Test("jede erlaubte Anordnung aus einer Vorlage passt in die Flaeche", arguments: DashboardPreset.allCases)
+    @Test("every allowed arrangement out of a template fits into the area", arguments: DashboardPreset.allCases)
     func placementsInside(preset: DashboardPreset) {
         for placement in DashboardGeometry.placements(for: preset.layout.cards) {
             let f = placement.frame
@@ -410,7 +410,7 @@ struct DashboardLayoutTests {
         }
     }
 
-    // MARK: Kalender
+    // MARK: Calendar
 
     private func calendar(_ weekday: DashboardCalendarOptions.FirstWeekday) -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
@@ -420,7 +420,7 @@ struct DashboardLayoutTests {
         return DashboardCalendarOptions(firstWeekday: weekday).applied(to: calendar)
     }
 
-    @Test("Kalenderwochen und Wochentage je erstem Wochentag", arguments: [
+    @Test("calendar weeks and weekdays per first weekday", arguments: [
         (DashboardCalendarOptions.FirstWeekday.monday, [36, 37, 38, 39, 40], "Mo", 31),
         (DashboardCalendarOptions.FirstWeekday.sunday, [35, 36, 37, 38, 39], "So", 30),
     ])
@@ -433,9 +433,9 @@ struct DashboardLayoutTests {
         #expect(weeks.first?.first?.day == firstDay)
     }
 
-    // MARK: Uhr-Zeitzone (0.2)
+    // MARK: Clock time zone (0.2)
 
-    @Test("Uhr: Zeitzone lesen, unbekannte gilt als System, nil wird nicht geschrieben")
+    @Test("Clock: read the time zone, an unknown one counts as the system, nil is not written")
     func clockTimeZone() throws {
         let tokyo = try JSONDecoder().decode(DashboardClockOptions.self, from: Data(#"{"timeZone":"Asia/Tokyo"}"#.utf8))
         #expect(tokyo.timeZone == "Asia/Tokyo")

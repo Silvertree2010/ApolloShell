@@ -2,9 +2,9 @@ import CoreGraphics
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Fenster vor der linken Leiste zurechtruecken")
+@Suite("Nudging windows in front of the left bar")
 struct WindowClampTests {
-    /// MacBook-Bildschirm in Bedienungshilfen-Koordinaten, Menueleiste 30 pt.
+    /// The MacBook screen in accessibility coordinates, the menu bar 30 pt.
     let screen = CGRect(x: 0, y: 0, width: 1512, height: 982)
     let bar: CGFloat = 44
 
@@ -12,59 +12,59 @@ struct WindowClampTests {
         WindowClamp.clampedFrame(window: window, screen: screen, reservedWidth: bar, minWidth: minWidth)
     }
 
-    @Test("Fenster rechts der Leiste bleibt, wie es ist")
+    @Test("a window to the right of the bar stays as it is")
     func outsideIsUntouched() {
         #expect(clamp(CGRect(x: 200, y: 100, width: 800, height: 600)) == nil)
     }
 
-    @Test("genau an der Leiste anliegend ist nichts zu tun")
+    @Test("lying exactly against the bar there is nothing to do")
     func touchingIsUntouched() {
         #expect(clamp(CGRect(x: 44, y: 30, width: 1468, height: 952)) == nil)
     }
 
-    @Test("Rundungsreste unter einem halben Punkt werden ignoriert")
+    @Test("rounding remainders below half a point are ignored")
     func toleranceIgnored() {
         #expect(clamp(CGRect(x: 43.6, y: 30, width: 500, height: 400)) == nil)
         #expect(clamp(CGRect(x: 43.4, y: 30, width: 500, height: 400)) != nil)
     }
 
-    @Test("gefuelltes Fenster wird schmaler, rechte Kante bleibt")
+    @Test("a filled window becomes narrower, the right edge stays")
     func filledWindowShrinks() {
         let filled = CGRect(x: 0, y: 30, width: 1512, height: 952)
         #expect(clamp(filled) == CGRect(x: 44, y: 30, width: 1468, height: 952))
     }
 
-    @Test("linke Kachel waechst nicht in die rechte hinein")
+    @Test("a left tile does not grow into the right one")
     func leftTileKeepsRightEdge() {
         let leftHalf = CGRect(x: 0, y: 30, width: 756, height: 952)
         #expect(clamp(leftHalf) == CGRect(x: 44, y: 30, width: 712, height: 952))
     }
 
-    @Test("halb daruntergezogenes Fenster wird verschoben, Groesse bleibt")
+    @Test("a window dragged halfway under it is moved, the size stays")
     func draggedWindowMoves() {
         let dragged = CGRect(x: 10, y: 200, width: 600, height: 400)
         #expect(clamp(dragged) == CGRect(x: 44, y: 200, width: 600, height: 400))
     }
 
-    @Test("links ueber den Rand haengendes Fenster kommt ganz hervor")
+    @Test("a window hanging over the left edge comes fully into view")
     func hangingWindowMoves() {
         let hanging = CGRect(x: -200, y: 200, width: 600, height: 400)
         #expect(clamp(hanging) == CGRect(x: 44, y: 200, width: 600, height: 400))
     }
 
-    @Test("beim Verschieben nicht rechts ueber den Bildschirm hinaus")
+    @Test("while moving, not past the screen on the right")
     func moveStopsAtRightEdge() {
         let wide = CGRect(x: -20, y: 30, width: 1520, height: 900)
         #expect(clamp(wide) == CGRect(x: 44, y: 30, width: 1468, height: 900))
     }
 
-    @Test("reichte es schon rechts hinaus, darf es dort bleiben")
+    @Test("if it reached past on the right already, it may stay there")
     func alreadyBeyondRightEdgeKeepsIt() {
         let beyond = CGRect(x: -10, y: 30, width: 1622, height: 900) // bis 1612
         #expect(clamp(beyond) == CGRect(x: 44, y: 30, width: 1568, height: 900))
     }
 
-    @Test("nie schmaler als die App erlaubt, dann nur verschieben")
+    @Test("never narrower than the app allows, then only move it")
     func respectsMinimumWidth() {
         let filled = CGRect(x: 0, y: 30, width: 400, height: 500)
         #expect(clamp(filled, minWidth: 380) == CGRect(x: 44, y: 30, width: 380, height: 500))
@@ -72,13 +72,13 @@ struct WindowClampTests {
         #expect(clamp(dragged, minWidth: 1550) == CGRect(x: 44, y: 30, width: 1550, height: 500))
     }
 
-    @Test("winziges Fenster ganz im Streifen wird nur verschoben")
+    @Test("a tiny window fully inside the strip is only moved")
     func tinyWindowInsideStrip() {
         let tiny = CGRect(x: 0, y: 300, width: 30, height: 30)
         #expect(clamp(tiny) == CGRect(x: 44, y: 300, width: 30, height: 30))
     }
 
-    @Test("Bildschirm nicht bei x = 0: Leiste zaehlt ab seinem linken Rand")
+    @Test("a screen not at x = 0: the bar counts from its left edge")
     func offsetScreen() {
         let other = CGRect(x: 1512, y: 0, width: 1920, height: 1080)
         let window = CGRect(x: 1512, y: 25, width: 1920, height: 1055)
@@ -86,14 +86,14 @@ struct WindowClampTests {
         #expect(result == CGRect(x: 1556, y: 25, width: 1876, height: 1055))
     }
 
-    @Test("ohne Leiste oder bei leerem Fenster nichts tun")
+    @Test("without a bar or with an empty window do nothing")
     func degenerateInput() {
         #expect(WindowClamp.clampedFrame(window: CGRect(x: 0, y: 0, width: 500, height: 500),
                                          screen: screen, reservedWidth: 0) == nil)
         #expect(clamp(CGRect(x: 0, y: 0, width: 0, height: 500)) == nil)
     }
 
-    @Test("Bildschirm mit dem groessten Anteil gewinnt")
+    @Test("the screen with the largest share wins")
     func dominantScreen() {
         let right = CGRect(x: 1512, y: 0, width: 1920, height: 1080)
         let screens = [screen, right]
@@ -103,39 +103,39 @@ struct WindowClampTests {
         #expect(WindowClamp.dominantScreen(for: CGRect(x: -900, y: 100, width: 500, height: 500), among: screens) == nil)
     }
 
-    @Test("Zipfel von einem linken Nachbarbildschirm gehoert dem Nachbarn")
+    @Test("a corner from a neighbouring screen on the left belongs to the neighbour")
     func leftNeighbourOwnsWindow() {
         let left = CGRect(x: -1920, y: 0, width: 1920, height: 1080)
         let window = CGRect(x: -800, y: 100, width: 830, height: 500) // 30 pt auf dem Hauptbildschirm
         #expect(WindowClamp.dominantScreen(for: window, among: [screen, left]) == 1)
     }
 
-    @Test("AppKit und Bedienungshilfen: y gespiegelt, hin und zurueck identisch")
+    @Test("AppKit and accessibility: y mirrored, there and back identical")
     func flip() {
         let menuBarStrip = CGRect(x: 0, y: 952, width: 1512, height: 30) // AppKit, oben
         let ax = WindowClamp.flipped(menuBarStrip, primaryHeight: 982)
         #expect(ax == CGRect(x: 0, y: 0, width: 1512, height: 30))
         #expect(WindowClamp.flipped(ax, primaryHeight: 982) == menuBarStrip)
-        // Bildschirm unterhalb des Hauptbildschirms: in AppKit negatives y.
+        // A screen below the main screen: a negative y in AppKit.
         let below = CGRect(x: 0, y: -1080, width: 1920, height: 1080)
         #expect(WindowClamp.flipped(below, primaryHeight: 982) == CGRect(x: 0, y: 982, width: 1920, height: 1080))
     }
 }
 
-@Suite("Keine Schleifen beim Zurechtruecken")
+@Suite("No loops while nudging")
 struct ClampLedgerTests {
     let frame = CGRect(x: 44, y: 30, width: 800, height: 600)
 
-    // #expect darf nichts Mutierendes aufrufen, deshalb erst in eine Konstante.
+    // #expect may call nothing that mutates, hence a constant first.
 
-    @Test("unbekanntes Fenster darf angefasst werden")
+    @Test("an unknown window may be touched")
     func freshWindow() {
         var ledger = ClampLedger<Int>()
         let allowed = ledger.shouldClamp(1, current: frame, now: 0)
         #expect(allowed)
     }
 
-    @Test("eigenes Echo: steht es noch da, wo es nach dem Eingriff stand, nichts tun")
+    @Test("our own echo: when it still stands where it stood after the intervention, do nothing")
     func ignoresOwnEcho() {
         var ledger = ClampLedger<Int>()
         ledger.record(1, result: frame, now: 0)
@@ -147,7 +147,7 @@ struct ClampLedgerTests {
         #expect(movedAgain)
     }
 
-    @Test("wehrt sich die App, nach drei Versuchen Ruhe bis die Frist um ist")
+    @Test("when the app resists, quiet after three attempts until the deadline is up")
     func givesUpOnFightingApp() {
         var ledger = ClampLedger<Int>(maxAttempts: 3, period: 5)
         let snappedBack = CGRect(x: 0, y: 30, width: 800, height: 600)
@@ -162,7 +162,7 @@ struct ClampLedgerTests {
         #expect(afterPeriod)
     }
 
-    @Test("Fenster sind voneinander unabhaengig, vergessen raeumt auf")
+    @Test("windows are independent of each other, and forgetting clears up")
     func perWindowAndForget() {
         var ledger = ClampLedger<Int>(maxAttempts: 1, period: 5)
         ledger.record(1, result: frame, now: 0)

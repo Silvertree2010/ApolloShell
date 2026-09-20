@@ -3,8 +3,8 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-/// Masse wie an einem echten Aufbau: MacBook-Bildschirm als Hauptbildschirm,
-/// daneben rechts ein groesserer externer.
+/// The measurements as on a real setup: the MacBook screen as the main
+/// screen, a bigger external one to the right of it.
 private enum Screens {
     static let builtIn = ScreenInfo(
         name: "Built-in Retina Display",
@@ -19,49 +19,49 @@ private enum Screens {
     static let both = [builtIn, external]
 }
 
-@Suite("Bildschirme auswaehlen")
+@Suite("Choosing screens")
 struct ScreenSelectionTests {
-    // MARK: - Zielbildschirme
+    // MARK: - Target screens
 
-    @Test("Alle: jeder angeschlossene Bildschirm, in der gegebenen Reihenfolge")
+    @Test("All: every connected screen, in the given order")
     func targetsAll() {
         #expect(ScreenSelection.targets(among: Screens.both, choice: .all) == Screens.both)
     }
 
-    @Test("Nur Hauptbildschirm: der mit der Menueleiste, egal wo er in der Liste steht")
+    @Test("Main screen only: the one with the menu bar, wherever it stands in the list")
     func targetsPrimary() {
         #expect(ScreenSelection.targets(among: Screens.both, choice: .primary) == [Screens.builtIn])
-        // Auch wenn der Hauptbildschirm nicht zuerst kommt.
+        // Even when the main screen does not come first.
         let reversed = [Screens.external, Screens.builtIn]
         #expect(ScreenSelection.targets(among: reversed, choice: .primary) == [Screens.builtIn])
     }
 
-    @Test("Ohne gekennzeichneten Hauptbildschirm gilt der erste")
+    @Test("Without a marked main screen the first one counts")
     func targetsPrimaryWithoutFlag() {
         let nameless = ScreenInfo(name: "A", frame: CGRect(x: 0, y: 0, width: 800, height: 600), isPrimary: false)
         #expect(ScreenSelection.targets(among: [nameless], choice: .primary) == [nameless])
     }
 
-    @Test("Einzelner Bildschirm ueber seinen Schluessel")
+    @Test("A single screen through its key")
     func targetsSingle() {
         let choice = ScreenChoice.single(Screens.external.key)
         #expect(ScreenSelection.targets(among: Screens.both, choice: choice) == [Screens.external])
     }
 
-    @Test("Gemerkter Bildschirm abgesteckt: faellt auf den Hauptbildschirm zurueck")
+    @Test("The remembered screen unplugged: falls back to the main screen")
     func targetsSingleGone() {
         let choice = ScreenChoice.single(Screens.external.key)
         #expect(ScreenSelection.targets(among: [Screens.builtIn], choice: choice) == [Screens.builtIn])
     }
 
-    @Test("Leere Liste: nichts, bei jeder Einstellung", arguments: [
+    @Test("An empty list: nothing, with every setting", arguments: [
         ScreenChoice.all, .primary, .single("Built-in Retina Display 1728x1117"),
     ])
     func targetsWithoutScreens(choice: ScreenChoice) {
         #expect(ScreenSelection.targets(among: [], choice: choice).isEmpty)
     }
 
-    @Test("Zwei baugleiche Bildschirme teilen den Schluessel: es bleibt bei einem")
+    @Test("Two identical screens share the key: it stays at one")
     func targetsDuplicateKey() {
         let left = ScreenInfo(name: "DELL U2723QE", frame: CGRect(x: 0, y: 0, width: 2560, height: 1440), isPrimary: true)
         let right = ScreenInfo(name: "DELL U2723QE", frame: CGRect(x: 2560, y: 0, width: 2560, height: 1440), isPrimary: false)
@@ -69,16 +69,16 @@ struct ScreenSelectionTests {
         #expect(ScreenSelection.targets(among: [left, right], choice: .single(left.key)) == [left])
     }
 
-    // MARK: - Schluessel
+    // MARK: - Keys
 
-    @Test("Schluessel ist Name plus Aufloesung, auf ganze Punkte gerundet")
+    @Test("The key is the name plus the resolution, rounded to whole points")
     func keyIsNameAndSize() {
         #expect(Screens.builtIn.key == "Built-in Retina Display 1728x1117")
         let scaled = ScreenInfo(name: "A", frame: CGRect(x: 0, y: 0, width: 1512.4, height: 982.6), isPrimary: true)
         #expect(scaled.key == "A 1512x983")
     }
 
-    @Test("Verschobener Bildschirm behaelt seinen Schluessel, ein anderer Modus nicht")
+    @Test("A moved screen keeps its key, a different mode does not")
     func keyIgnoresPosition() {
         var moved = Screens.external
         moved.frame.origin = CGPoint(x: -2560, y: 300)
@@ -89,62 +89,62 @@ struct ScreenSelectionTests {
         #expect(lowRes.key != Screens.external.key)
     }
 
-    // MARK: - Bildschirm unter dem Zeiger
+    // MARK: - The screen under the pointer
 
-    @Test("Zeiger mitten auf einem Bildschirm")
+    @Test("The pointer in the middle of a screen")
     func pointerInside() {
         #expect(ScreenSelection.screen(at: CGPoint(x: 800, y: 500), among: Screens.both) == Screens.builtIn)
         #expect(ScreenSelection.screen(at: CGPoint(x: 3000, y: 500), among: Screens.both) == Screens.external)
     }
 
-    @Test("Zeiger genau auf der Kante zwischen beiden: eindeutig der rechte")
+    @Test("The pointer exactly on the edge between the two: clearly the right one")
     func pointerOnSharedEdge() {
-        // 1728 ist zugleich die rechte Kante des einen und die linke des
-        // anderen. Genau ein Bildschirm darf ihn beanspruchen.
+        // 1728 is the right edge of the one and the left edge of the other at
+        // the same time. Exactly one screen may claim it.
         let point = CGPoint(x: 1728, y: 500)
         #expect(Screens.builtIn.frame.contains(point) == false)
         #expect(Screens.external.frame.contains(point))
         #expect(ScreenSelection.screen(at: point, among: Screens.both) == Screens.external)
-        // Die Antwort haengt nicht an der Reihenfolge der Liste.
+        // The answer does not hang on the order of the list.
         #expect(ScreenSelection.screen(at: point, among: [Screens.external, Screens.builtIn]) == Screens.external)
-        // Einen Punkt weiter links gehoert er noch dem linken.
+        // One point further left it still belongs to the left one.
         #expect(ScreenSelection.screen(at: CGPoint(x: 1727, y: 500), among: Screens.both) == Screens.builtIn)
     }
 
-    @Test("Zeiger auf der Oberkante: gehoert dem Bildschirm darunter")
+    @Test("The pointer on the top edge: belongs to the screen below it")
     func pointerOnTopEdge() {
-        // y = maxY liegt in keinem Rahmen (contains zaehlt die Oberkante
-        // nicht mit) - der naechstgelegene muss einspringen.
+        // y = maxY lies in no frame (contains does not count the top edge in)
+        // - the nearest one has to step in.
         let point = CGPoint(x: 800, y: 1117)
         #expect(Screens.builtIn.frame.contains(point) == false)
         #expect(ScreenSelection.screen(at: point, among: Screens.both) == Screens.builtIn)
     }
 
-    @Test("Zeiger ausserhalb aller Bildschirme: der naechstgelegene")
+    @Test("The pointer outside all screens: the nearest one")
     func pointerOutside() {
         #expect(ScreenSelection.screen(at: CGPoint(x: -100, y: 500), among: Screens.both) == Screens.builtIn)
         #expect(ScreenSelection.screen(at: CGPoint(x: 5000, y: 500), among: Screens.both) == Screens.external)
-        // Knapp ueber dem Hauptbildschirm und waagrecht ueber ihm: er ist
-        // naeher als der hoehere Nachbar rechts. Weit genug oben kippt das,
-        // weil der Nachbar hoeher hinaufreicht - der Abstand entscheidet,
-        // nicht die Reihenfolge.
+        // Just above the main screen and horizontally over it: it is nearer
+        // than the taller neighbour on the right. Far enough up that tips,
+        // because the neighbour reaches higher - the distance decides, not the
+        // order.
         #expect(ScreenSelection.screen(at: CGPoint(x: 200, y: 1500), among: Screens.both) == Screens.builtIn)
     }
 
-    @Test("Leere Liste: kein Bildschirm unter dem Zeiger")
+    @Test("An empty list: no screen under the pointer")
     func pointerWithoutScreens() {
         #expect(ScreenSelection.screen(at: CGPoint(x: 800, y: 500), among: []) == nil)
     }
 
-    @Test("Ein einziger Bildschirm faengt den Zeiger immer")
+    @Test("A single screen always catches the pointer")
     func pointerSingleScreen() {
         let only = [Screens.builtIn]
         #expect(ScreenSelection.screen(at: CGPoint(x: 9999, y: -9999), among: only) == Screens.builtIn)
     }
 
-    // MARK: - Einstellung lesen und schreiben
+    // MARK: - Reading and writing the setting
 
-    @Test("schreiben und wieder lesen ergibt dasselbe", arguments: [
+    @Test("writing and reading back gives the same", arguments: [
         ScreenChoice.all, .primary, .single("Built-in Retina Display 1728x1117"),
     ])
     func choiceRoundTrip(choice: ScreenChoice) {
@@ -152,7 +152,7 @@ struct ScreenSelectionTests {
         #expect(try! JSONDecoder().decode(ScreenChoice.self, from: data) == choice)
     }
 
-    @Test("kaputte oder unbekannte Angabe: alle Bildschirme", arguments: [
+    @Test("a broken or unknown entry: all screens", arguments: [
         "{}", #"{"mode":"hologramm"}"#, #"{"mode":null}"#, #"{"mode":"single"}"#,
         #"{"mode":"single","screen":null}"#, #"{"mode":"single","screen":"  "}"#, #"{"screen":"A 1x1"}"#,
     ])
@@ -160,14 +160,14 @@ struct ScreenSelectionTests {
         #expect(try! JSONDecoder().decode(ScreenChoice.self, from: Data(json.utf8)) == .all)
     }
 
-    @Test("Die Leiste steht ohne Schluessel in der Datei auf allen Bildschirmen")
+    @Test("Without a key in the file the bar stands on all screens")
     func settingsDefault() {
         #expect(ShellSettings().bar.screens == .all)
         #expect(ShellSettings.load(from: Data(#"{"bar":{"layout":[]}}"#.utf8)).bar.screens == .all)
         #expect(ShellSettings.load(from: Data(#"{"bar":{"screens":5}}"#.utf8)).bar.screens == .all)
     }
 
-    @Test("Die Einstellung steht in settings.json und ueberlebt das Schreiben")
+    @Test("The setting stands in settings.json and survives the writing")
     func settingsRoundTrip() {
         var settings = ShellSettings()
         settings.bar.screens = .single("DELL U2723QE 2560x1440")

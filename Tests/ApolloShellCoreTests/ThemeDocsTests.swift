@@ -2,15 +2,15 @@ import ApolloShellCore
 import Foundation
 import Testing
 
-/// Haelt docs/THEMES.md und die Beispiele am Verzeichnis fest.
+/// Pins docs/THEMES.md and the examples to the catalogue.
 ///
-/// Eine Doku, die von Hand nachgezogen wird, stimmt nach dem dritten neuen
-/// Token nicht mehr - und eine falsche Doku ist schlimmer als keine, weil
-/// jemand danach ein Theme schreibt. Deshalb erzeugt der Kern die Tabellen,
-/// und diese Tests bestehen darauf, dass genau sie in der Datei stehen.
-@Suite("Themes: Doku und Beispiele")
+/// Documentation that is kept up by hand is no longer right after the third
+/// new token - and wrong documentation is worse than none, because somebody
+/// writes a theme by it. So the core generates the tables, and these tests
+/// insist that exactly those stand in the file.
+@Suite("Themes: docs and examples")
 struct ThemeDocsTests {
-    /// Das Wurzelverzeichnis des Projekts, von dieser Datei aus gerechnet:
+    /// The root folder of the project, worked out from this file:
     /// Tests/ApolloShellCoreTests/ThemeDocsTests.swift
     private static let root = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
@@ -24,7 +24,7 @@ struct ThemeDocsTests {
         String(decoding: try Data(contentsOf: url), as: UTF8.self)
     }
 
-    /// Jeder Tokenname, der in einem Text vorkommt.
+    /// Every token name that turns up in a text.
     private func mentionedTokens(in text: String) -> Set<String> {
         var found: Set<String> = []
         var rest = Substring(text)
@@ -34,7 +34,7 @@ struct ThemeDocsTests {
                 end = rest.index(after: end)
             }
             var name = String(rest[start.lowerBound..<end])
-            // `--apollo-…` in einem Satz ist kein Tokenname.
+            // `--apollo-…` in a sentence is no token name.
             while name.hasSuffix("-") { name.removeLast() }
             found.insert(name)
             rest = rest[end...]
@@ -42,7 +42,7 @@ struct ThemeDocsTests {
         return found.filter { $0.count > ThemeTokenCatalog.prefix.count }
     }
 
-    @Test("die Token-Tabellen in docs/THEMES.md stammen aus dem Verzeichnis")
+    @Test("the token tables in docs/THEMES.md come out of the catalogue")
     func tablesMatchCatalog() throws {
         let text = try read(Self.docs)
         let tables = ThemeDocumentation.markdownTables()
@@ -52,14 +52,14 @@ struct ThemeDocsTests {
         """)
     }
 
-    @Test("die Doku erfindet keine Token")
+    @Test("the docs invent no tokens")
     func docsMentionOnlyRealTokens() throws {
         for name in mentionedTokens(in: try read(Self.docs)) {
             #expect(ThemeTokenCatalog.standard.contains(name), "\(name) steht in der Doku, aber nicht im Verzeichnis")
         }
     }
 
-    @Test("jeder frueher benutzte Name steht in der Doku")
+    @Test("every name used earlier stands in the docs")
     func aliasesAreDocumented() throws {
         let text = try read(Self.docs)
         for token in ThemeTokenCatalog.standard.tokens {
@@ -69,7 +69,7 @@ struct ThemeDocsTests {
         }
     }
 
-    @Test("jede Grenze aus ThemeLimits steht in der Doku")
+    @Test("every limit out of ThemeLimits stands in the docs")
     func limitsAreDocumented() throws {
         let text = try read(Self.docs)
         let limits = ThemeLimits.standard
@@ -84,9 +84,9 @@ struct ThemeDocsTests {
         }
     }
 
-    // MARK: - Die Beispiele
+    // MARK: - The examples
 
-    @Test("das kleine Beispiel laedt ohne einen einzigen Hinweis")
+    @Test("the small example loads without a single notice")
     func minimalExample() {
         let theme = ThemeLoader.load(at: Self.examples.appendingPathComponent("minimal.css"))
         #expect(theme.identifier == "minimal")
@@ -94,12 +94,12 @@ struct ThemeDocsTests {
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
         #expect(theme.color(.accent) == ThemeColor(hex: 0xFF6B35))
         #expect(theme.color(.accent, dark: true) == ThemeColor(hex: 0xFF8354))
-        // Was es nicht setzt, bleibt leer - hell wie dunkel.
+        // What it does not set stays empty - light as well as dark.
         #expect(theme.color(.surface) == nil)
         #expect(theme.color(.surface, dark: true) == nil)
     }
 
-    @Test("das vollstaendige Beispiel nennt jedes Token")
+    @Test("the full example names every token")
     func fullExampleIsComplete() throws {
         let text = try read(Self.examples.appendingPathComponent("full/theme.css"))
         for token in ThemeTokenCatalog.standard.tokens {
@@ -110,15 +110,15 @@ struct ThemeDocsTests {
         }
     }
 
-    @Test("das vollstaendige Beispiel laedt ohne Hinweis und ergibt genau die Vorgaben")
+    @Test("the full example loads without a notice and gives exactly the defaults")
     func fullExampleMatchesDefaults() {
         let theme = ThemeLoader.load(at: Self.examples.appendingPathComponent("full"))
         #expect(theme.identifier == "full")
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
         #expect(theme.formatVersion == ThemeFormat.current)
 
-        // Der Beweis, dass Schreiben und Lesen dasselbe meinen: jedes Token
-        // ausser den Angaben zum Theme selbst steht wieder auf der Vorgabe.
+        // The proof that writing and reading mean the same: every token but
+        // the entries about the theme itself stands at the default again.
         for token in ThemeTokenCatalog.standard.tokens where token.group != .meta {
             if token.name == ThemeFileToken.backgroundImage.name { continue }
             #expect(theme.value(token.name) == token.defaultValue, "\(token.name) hell")
@@ -126,13 +126,13 @@ struct ThemeDocsTests {
         }
     }
 
-    @Test("das vollstaendige Beispiel bringt seine Bilder mit")
+    @Test("the full example brings its images with it")
     func fullExampleHasImages() {
         let folder = Self.examples.appendingPathComponent("full")
         let theme = ThemeLoader.load(at: folder)
         #expect(theme.file(.backgroundImage)?.lastPathComponent == "background.png")
         #expect(theme.file(.authorImage)?.lastPathComponent == "author.png")
-        // Und zwar aus dem eigenen Ordner, nicht von irgendwoher.
+        // And out of its own folder at that, not from anywhere.
         for url in [theme.file(.backgroundImage), theme.file(.authorImage)] {
             #expect(url?.path.hasPrefix(folder.resolvingSymlinksInPath().path) == true)
         }
@@ -140,12 +140,12 @@ struct ThemeDocsTests {
         #expect(theme.title == "Everything")
     }
 
-    @Test("alle Beispiele liegen im selben Ordner und werden gefunden")
+    @Test("all examples lie in the same folder and are found")
     func allExamplesAreThemes() {
         #expect(ThemeLoader.themes(in: Self.examples).map(\.identifier) == ["full", "minimal", "Nightfall"])
     }
 
-    @Test("das Verlaufs-Beispiel laedt ohne Hinweis und setzt Verlaeufe")
+    @Test("the gradient example loads without a notice and sets gradients")
     func gradientExample() {
         let theme = ThemeLoader.load(at: Self.examples.appendingPathComponent("Nightfall.css"))
         #expect(theme.title == "Nightfall")
