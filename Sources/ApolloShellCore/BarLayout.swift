@@ -550,7 +550,7 @@ public enum BarPreset: String, CaseIterable, Identifiable, Sendable {
         case .caelestia: "Caelestia"
         case .minimal: "Minimal"
         case .dockOnly: "Dock Only"
-        case .everything: "Alles"
+        case .everything: "Everything"
         }
     }
 

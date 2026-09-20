@@ -627,7 +627,7 @@ public enum UtilitiesPreset: String, CaseIterable, Identifiable, Sendable {
         case .standard: "Standard"
         case .minimal: "Minimal"
         case .audio: "Sound & Devices"
-        case .everything: "Alles"
+        case .everything: "Everything"
         }
     }
 
