@@ -146,7 +146,7 @@ struct WeatherLocationTests {
     @Test("Ohne Namen: Koordinaten gelten, Name 'Standort'")
     func unnamed() {
         let data = Data(#"{"latitude":48.2082,"longitude":16.3738}"#.utf8)
-        #expect(WeatherFavorites.load(from: data).selected?.name == "Standort")
+        #expect(WeatherFavorites.load(from: data).selected?.name == "Location")
     }
 }
 
@@ -164,20 +164,20 @@ struct WeatherConditionTests {
         #expect(WeatherCondition.symbol(code: code, isDay: isDay) == symbol)
     }
 
-    @Test("Deutsche Beschreibung", arguments: [
-        (0, "Klar"), (1, "Überwiegend klar"), (2, "Leicht bewölkt"), (3, "Bedeckt"), (45, "Nebel"),
-        (48, "Nebel"), (53, "Nieselregen"), (63, "Regen"), (65, "Starker Regen"), (73, "Schnee"),
-        (81, "Regenschauer"), (95, "Gewitter"), (96, "Gewitter mit Hagel"), (4, "Unbekannt"),
+    @Test("Description", arguments: [
+        (0, "Clear"), (1, "Mostly Clear"), (2, "Partly Cloudy"), (3, "Overcast"), (45, "Fog"),
+        (48, "Fog"), (53, "Drizzle"), (63, "Rain"), (65, "Heavy Rain"), (73, "Snow"),
+        (81, "Rain Showers"), (95, "Thunderstorm"), (96, "Thunderstorm with Hail"), (4, "Unknown"),
     ])
     func description(code: Int, text: String) {
         #expect(WeatherCondition.description(code: code) == text)
     }
 
-    @Test("Jeder WMO-Code, den Open-Meteo liefert, hat Text und Wettersymbol", arguments: [
+    @Test("Every WMO code Open-Meteo delivers has a text and a weather symbol", arguments: [
         0, 1, 2, 3, 45, 48, 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99,
     ])
     func allCodesCovered(code: Int) {
-        #expect(WeatherCondition.description(code: code) != "Unbekannt")
+        #expect(WeatherCondition.description(code: code) != "Unknown")
         #expect(WeatherCondition.symbol(code: code, isDay: true) != "thermometer.medium")
         #expect(WeatherCondition.symbol(code: code, isDay: false) != "thermometer.medium")
     }
@@ -197,7 +197,7 @@ struct WeatherTextTests {
         #expect(WeatherText.wind(1.5) == "2 km/h")
         #expect(WeatherText.wind(12.3) == "12 km/h")
         #expect(WeatherText.humidity(85) == "85 %")
-        #expect(WeatherText.range(max: 22.4, min: 14.7) == "H: 22° T: 15°")
+        #expect(WeatherText.range(max: 22.4, min: 14.7) == "H:22° L:15°")
     }
 
     @Test("Regenwahrscheinlichkeit erst ab 20 %", arguments: [
@@ -210,16 +210,16 @@ struct WeatherTextTests {
     @Test("Uhrzeiten zweistellig, Stundenleiste in Uhr")
     func clock() {
         #expect(WeatherText.clock(zurich(14, 6, 58), calendar: zurichCalendar) == "06:58")
-        #expect(WeatherText.stand(zurich(14, 1, 15), calendar: zurichCalendar) == "Stand 01:15")
-        #expect(WeatherText.hourLabel(zurich(14, 14), isNow: false, calendar: zurichCalendar) == "14 Uhr")
-        #expect(WeatherText.hourLabel(zurich(15, 0), isNow: false, calendar: zurichCalendar) == "0 Uhr")
-        #expect(WeatherText.hourLabel(zurich(14, 14), isNow: true, calendar: zurichCalendar) == "Jetzt")
+        #expect(WeatherText.stand(zurich(14, 1, 15), calendar: zurichCalendar) == "As of 01:15")
+        #expect(WeatherText.hourLabel(zurich(14, 14), isNow: false, calendar: zurichCalendar) == "14:00")
+        #expect(WeatherText.hourLabel(zurich(15, 0), isNow: false, calendar: zurichCalendar) == "0:00")
+        #expect(WeatherText.hourLabel(zurich(14, 14), isNow: true, calendar: zurichCalendar) == "Now")
     }
 
     @Test("Wochentage: Heute, dann zwei Buchstaben")
     func dayLabels() {
         let today = zurich(14, 9) // Montag
-        #expect(WeatherText.dayLabel(zurich(14, 0), today: today, calendar: zurichCalendar) == "Heute")
+        #expect(WeatherText.dayLabel(zurich(14, 0), today: today, calendar: zurichCalendar) == "Today")
         #expect(WeatherText.dayLabel(zurich(15, 0), today: today, calendar: zurichCalendar) == "Di")
         #expect(WeatherText.dayLabel(zurich(20, 0), today: today, calendar: zurichCalendar) == "So")
         #expect(WeatherText.dayLabel(zurich(21, 0), today: today, calendar: zurichCalendar) == "Mo")
@@ -229,7 +229,7 @@ struct WeatherTextTests {
     func dates() {
         #expect(WeatherText.shortDate(zurich(15, 0), calendar: zurichCalendar, locale: Locale(identifier: "de_CH")) == "15.9.")
         #expect(WeatherText.shortDate(zurich(15, 0), calendar: zurichCalendar, locale: Locale(identifier: "en_US")) == "9/15")
-        #expect(WeatherText.longDate(zurich(14, 9), calendar: zurichCalendar) == "Montag, 14. September")
+        #expect(WeatherText.longDate(zurich(14, 9), calendar: zurichCalendar) == "Montag, September 14")
     }
 }
 

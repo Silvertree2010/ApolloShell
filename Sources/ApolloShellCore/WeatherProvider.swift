@@ -79,7 +79,7 @@ public struct WeatherCapabilities: Equatable, Sendable {
         var missing: [String] = []
         if !precipitationProbability { missing.append(String(localized: "chance of rain")) }
         if !apparentTemperature { missing.append(String(localized: "feels-like temperature")) }
-        if !missing.isEmpty { parts.append(String(localized: "without \(missing.joined(separator: " und "))")) }
+        if !missing.isEmpty { parts.append(String(localized: "without \(missing.joined(separator: " and "))")) }
         if sunTimes == .todayOnly { parts.append(String(localized: "sun times for today only")) }
         return parts.joined(separator: " · ")
     }

@@ -65,27 +65,27 @@ struct WeatherProviderCommonTests {
         let provider = id.provider(timeZone: berlinZone)
         #expect(provider.id == id)
         #expect(provider.attribution.name == name)
-        #expect(provider.attribution.text == "Wetterdaten: \(name)")
+        #expect(provider.attribution.text == "Weather data: \(name)")
         #expect(provider.attribution.url.host == host)
         #expect(provider.attribution.url.scheme == "https")
     }
 
-    @Test("Vorgabe ist Open-Meteo")
+    @Test("The default is Open-Meteo")
     func standard() {
         #expect(WeatherProviderID.standard == .openMeteo)
         #expect(WeatherProviderID.allCases.count == 3)
     }
 
-    @Test("Faehigkeiten fuer Nexus", arguments: [
-        ("openMeteo", "7 Tage · stündlich"),
-        ("metNorway", "9 Tage · stündlich · ohne Regenwahrscheinlichkeit und gefühlte Temperatur · Sonnenzeiten nur für heute"),
-        ("wttr", "3 Tage · alle 3 Stunden"),
+    @Test("Capabilities for Nexus", arguments: [
+        ("openMeteo", "7 days · hourly"),
+        ("metNorway", "9 days · hourly · without chance of rain and feels-like temperature · sun times for today only"),
+        ("wttr", "3 days · every 3 hours"),
     ])
     func summary(raw: String, text: String) throws {
         let id = try #require(WeatherProviderID(rawValue: raw))
         #expect(id.provider().capabilities.summary == text)
     }
-
+    @Test("User agent: app, version, project address - no mail", arguments: [
     @Test("User-Agent: App, Version, Projektadresse - keine Mail", arguments: [
         (Optional("0.1"), "ApolloShell/0.1 (+https://github.com/Silvertree2010/ApolloShell)"),
         (nil, "ApolloShell/dev (+https://github.com/Silvertree2010/ApolloShell)"),
@@ -139,17 +139,17 @@ struct WeatherProviderCommonTests {
         #expect(WeatherTime.isoDate(text) == utc(day, hour, minute))
     }
 
-    @Test("ISO-Zeit ohne Zone oder kaputt: nil", arguments: [
-        "2026-09-14T06:38", "2026-09-14", "kaputt", "2026-09-14T06:38+2", "",
+    @Test("ISO time without a zone or broken: nil", arguments: [
+        "2026-09-14T06:38", "2026-09-14", "broken", "2026-09-14T06:38+2", "",
     ])
     func isoDateInvalid(text: String) {
         #expect(WeatherTime.isoDate(text) == nil)
     }
 
-    @Test("Neue WMO-Codes der anderen Anbieter", arguments: [
-        (68, "Leichter Schneeregen", "cloud.sleet.fill"), (69, "Schneeregen", "cloud.sleet.fill"),
-        (79, "Eiskörner", "cloud.sleet.fill"), (83, "Leichte Schneeregenschauer", "cloud.sleet.fill"),
-        (84, "Schneeregenschauer", "cloud.sleet.fill"), (-1, "Unbekannt", "thermometer.medium"),
+    @Test("New WMO codes of the other providers", arguments: [
+        (68, "Light Sleet", "cloud.sleet.fill"), (69, "Sleet", "cloud.sleet.fill"),
+        (79, "Ice Pellets", "cloud.sleet.fill"), (83, "Light Sleet Showers", "cloud.sleet.fill"),
+        (84, "Sleet Showers", "cloud.sleet.fill"), (-1, "Unknown", "thermometer.medium"),
     ])
     func extraCodes(code: Int, text: String, symbol: String) {
         #expect(WeatherCondition.description(code: code) == text)

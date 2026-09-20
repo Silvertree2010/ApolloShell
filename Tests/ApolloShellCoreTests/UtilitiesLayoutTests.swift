@@ -371,17 +371,17 @@ struct UtilitiesCustomToggleTests {
         #expect(UtilitiesShortcuts.runArguments(options) ?? [] == expected)
     }
 
-    @Test("App-Knopf: ohne App oder nicht installiert nicht klickbar", arguments: [
-        (UtilitiesAppOptions(), "Editor" as String?, false, "Noch keine App gewählt"),
-        (UtilitiesAppOptions(bundleID: "com.example.app"), nil as String?, false, "App nicht installiert"),
-        (UtilitiesAppOptions(bundleID: "com.example.app"), "Editor" as String?, true, "Editor öffnen"),
-        (UtilitiesAppOptions(bundleID: "com.example.app", title: "Schreiben"), "Editor" as String?, true, "Schreiben öffnen"),
+    @Test("App button: without an app or when not installed it is not clickable", arguments: [
+        (UtilitiesAppOptions(), "Editor" as String?, false, "No App Chosen Yet"),
+        (UtilitiesAppOptions(bundleID: "com.example.app"), nil as String?, false, "App Not Installed"),
+        (UtilitiesAppOptions(bundleID: "com.example.app"), "Editor" as String?, true, "Open Editor"),
+        (UtilitiesAppOptions(bundleID: "com.example.app", title: "Writing"), "Editor" as String?, true, "Open Writing"),
     ])
     func appLook(options: UtilitiesAppOptions, name: String?, enabled: Bool, help: String) {
         let look = QuickToggles.openApp(options, appName: name)
         #expect(look.enabled == enabled && look.help == help && !look.active)
     }
-
+    @Test("The app button shows the app icon when it has no symbol of its own", arguments: [
     @Test("App-Knopf zeigt ohne eigenes Symbol das App-Symbol", arguments: [
         ("", true), ("  ", true), ("star.fill", false),
     ])
@@ -408,7 +408,7 @@ struct UtilitiesCustomToggleTests {
         #expect(look.enabled == enabled && look.help == help && look.symbol == symbol)
     }
 
-    @Test("Apps ausblenden: nie die Shell, nur normale Apps, vordere auf Wunsch", arguments: [
+    @Test("Hide apps: never the shell, only regular apps, the frontmost one on request", arguments: [
         (Int32(10), true, Int32(10), false, false),
         (Int32(11), false, Int32(12), false, false),
         (Int32(11), true, Int32(12), false, true),
@@ -418,16 +418,16 @@ struct UtilitiesCustomToggleTests {
     func hideFilter(pid: Int32, regular: Bool, frontmost: Int32, keep: Bool, hides: Bool) {
         #expect(UtilitiesHideApps.shouldHide(pid: pid, isRegular: regular, ownPID: 10, frontmostPID: frontmost,
                                              keepFrontmost: keep) == hides)
-        #expect(QuickToggles.hideApps(.init(keepFrontmost: keep)).help == (keep ? "Andere Apps ausblenden" : "Alle Apps ausblenden"))
+        #expect(QuickToggles.hideApps(.init(keepFrontmost: keep)).help == (keep ? "Hide Other Apps" : "Hide All Apps"))
     }
 
-    @Test("Symbolauswahl: eindeutig, nicht leer")
+    @Test("Symbol choice: unique, not empty")
     func symbolChoices() {
         #expect(!UtilitiesSymbols.choices.isEmpty)
         #expect(Set(UtilitiesSymbols.choices).count == UtilitiesSymbols.choices.count)
     }
 
-    @Test("Kurzmeldung bei Fehlschlag", arguments: [("Fokus", "Fokus"), ("  ", "Unbekannter Kurzbefehl")])
+    @Test("Toast on failure", arguments: [("Focus", "Focus"), ("  ", "Unknown Shortcut")])
     func failedToast(name: String, message: String) {
         let content = ToastText.shortcutFailed(name)
         #expect(content.message == message && content.kind == .warning)

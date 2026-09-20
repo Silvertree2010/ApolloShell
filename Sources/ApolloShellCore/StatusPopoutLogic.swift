@@ -61,7 +61,7 @@ public enum StatusPopoutSignal {
     /// CoreWLANs `CWChannelBand` (Rohwert) als Frequenz.
     public static func bandName(rawValue: Int) -> String? {
         switch rawValue {
-        case 1: "2,4 GHz"
+        case 1: "2.4 GHz"
         case 2: "5 GHz"
         case 3: "6 GHz"
         default: nil

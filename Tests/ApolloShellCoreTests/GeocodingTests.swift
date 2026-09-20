@@ -84,14 +84,14 @@ struct GeocodingTests {
         #expect(loaded.selected == location)
     }
 
-    @Test("Koordinaten deutsch mit Himmelsrichtung", arguments: [
-        (47.00601, 9.50266, "47,01° N, 9,50° O"),
-        (-33.8688, 151.2093, "33,87° S, 151,21° O"),
+    @Test("Coordinates in a German locale keep the decimal comma", arguments: [
+        (47.00601, 9.50266, "47,01° N, 9,50° E"),
+        (-33.8688, 151.2093, "33,87° S, 151,21° E"),
         (40.7128, -74.006, "40,71° N, 74,01° W"),
     ])
     func coordinates(latitude: Double, longitude: Double, expected: String) {
         let location = WeatherLocation(name: "", latitude: latitude, longitude: longitude)
-        #expect(location.coordinateText(locale: Locale(identifier: "de_DE")) == expected)
+    @Test("Coordinates in English with a decimal point")
     }
 
     @Test("Koordinaten englisch mit Dezimalpunkt")

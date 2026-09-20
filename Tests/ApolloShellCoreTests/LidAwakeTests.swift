@@ -63,7 +63,7 @@ struct LidAwakeTests {
         #expect(arguments.last?.contains(reason) == true)
     }
 
-    @Test("Regel ohne Passwort: nur die zwei pmset-Befehle, nur fuer diesen Nutzer")
+    @Test("Rule without a password: only the two pmset commands, only for this user")
     func sudoersRule() throws {
         let rule = try #require(LidAwake.sudoersRule(user: "alex"))
         let lines = rule.split(separator: "\n").filter { !$0.hasPrefix("#") && !$0.isEmpty }
@@ -114,9 +114,9 @@ struct LidAwakeTests {
 
     @Test("Untertitel je Stand des Deckel-Teils", arguments: [
         (KeepAwakeLid.off, ""),
-        (KeepAwakeLid.on, " · auch zugeklappt"),
-        (KeepAwakeLid.pending, " · wartet auf Freigabe"),
-        (KeepAwakeLid.declined, " · nur aufgeklappt"),
+        (KeepAwakeLid.on, " · also with lid closed"),
+        (KeepAwakeLid.pending, " · waiting for approval"),
+        (KeepAwakeLid.declined, " · only with lid open"),
     ])
     func lidSubtitle(lid: KeepAwakeLid, suffix: String) {
         let now = Date()
@@ -125,14 +125,14 @@ struct LidAwakeTests {
         #expect(KeepAwakeText.subtitle(since: nil, now: now, lid: lid) == KeepAwakeText.inactive)
     }
 
-    @Test("Untertitel sagt, dass es auch zugeklappt gilt")
+    @Test("The subtitle says that it holds with the lid closed too")
     func subtitle() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Europe/Zurich")!
         let since = calendar.date(from: DateComponents(year: 2026, month: 9, day: 14, hour: 14, minute: 30))!
         let now = since.addingTimeInterval(600)
         #expect(KeepAwakeText.subtitle(since: since, now: now, lidClosed: true, calendar: calendar)
-            == "Aktiv seit 14:30 · auch zugeklappt")
-        #expect(KeepAwakeText.subtitle(since: since, now: now, calendar: calendar) == "Aktiv seit 14:30")
+            == "Active since 14:30 · also with lid closed")
+        #expect(KeepAwakeText.subtitle(since: since, now: now, calendar: calendar) == "Active since 14:30")
     }
 }

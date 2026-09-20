@@ -30,7 +30,7 @@ struct UtilitiesColorHexTests {
     @Test("Kurzmeldung: Titel fest, Hexwert als Text")
     func toast() {
         let content = ToastText.colorCopied("#FF9500")
-        #expect(content.title == "Farbe kopiert" && content.message == "#FF9500" && content.symbol == "eyedropper")
+        #expect(content.title == "Color Copied" && content.message == "#FF9500" && content.symbol == "eyedropper")
     }
 }
 
@@ -75,23 +75,23 @@ struct UtilitiesAudioDevicesTests {
     @Test("Beschriftung: Name des Standardgeraets, auch wenn es versteckt ist", arguments: [
         (107 as UInt32?, "AirPods Pro"),
         (200 as UInt32?, "CADefaultDeviceAggregate"),
-        (999 as UInt32?, "Kein Gerät"),
-        (nil as UInt32?, "Kein Gerät"),
+        (999 as UInt32?, "No Device"),
+        (nil as UInt32?, "No Device"),
     ])
     func label(id: UInt32?, expected: String) {
         #expect(UtilitiesAudioDevices.label(defaultID: id, in: Self.measured) == expected)
     }
 
-    @Test("leerer Name: wie bei den Kurzmeldungen 'Unbekanntes Gerät'")
+    @Test("empty name: as with the toasts, 'Unknown Device'")
     func emptyName() {
         let blank = UtilitiesAudioDevice(id: 1, name: "  ", outputStreams: 1, inputStreams: 0,
                                          canBeDefaultOutput: true, canBeDefaultInput: false, hidden: false)
-        #expect(UtilitiesAudioDevices.label(defaultID: 1, in: [blank]) == "Unbekanntes Gerät")
+        #expect(UtilitiesAudioDevices.label(defaultID: 1, in: [blank]) == "Unknown Device")
     }
 
-    @Test("Pegeltext: Prozent mit Leerschlag, stumm als Wort", arguments: [
+    @Test("Level text: percent with a space, muted as a word", arguments: [
         (Float(0.45), false, "45 %"),
-        (Float(0.45), true, "Stumm"),
+        (Float(0.45), true, "Muted"),
         (Float(1.2), false, "100 %"),
         (Float(0), false, "0 %"),
     ])
@@ -185,7 +185,7 @@ struct UtilitiesQuickToggleLookTests {
     func unknown() {
         #expect(!QuickToggles.darkMode(on: nil).enabled && !QuickToggles.darkMode(on: nil).active)
         #expect(!QuickToggles.nightShift(enabled: nil).enabled)
-        #expect(QuickToggles.nightShift(enabled: nil).help == "Night Shift nicht verfügbar")
+        #expect(QuickToggles.nightShift(enabled: nil).help == "Night Shift Not Available")
     }
 
     @Test("Aktionen leuchten nie und sind klickbar")

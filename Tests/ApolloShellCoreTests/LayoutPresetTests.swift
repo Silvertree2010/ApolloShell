@@ -26,7 +26,7 @@ struct LayoutPresetTests {
     func presetReplacement() {
         let replacement = LayoutPresetReplacement<FruitBasket>.preset(.full)
         #expect(replacement.layout == 3)
-        #expect(replacement.confirmLabel == String(localized: "Laden"))
+        #expect(replacement.confirmLabel == String(localized: "Load"))
     }
 
     @Test("Zuruecksetzen ersetzt mit der Vorgabe")
@@ -34,7 +34,7 @@ struct LayoutPresetTests {
         let replacement = LayoutPresetReplacement<FruitBasket>.reset
         #expect(replacement.layout == FruitBasket.default.layout)
         #expect(replacement.layout == 0)
-        #expect(replacement.confirmLabel == String(localized: "Zurücksetzen"))
+        #expect(replacement.confirmLabel == String(localized: "Reset"))
     }
 
     @Test("BarPreset: Caelestia ist die Vorgabe")

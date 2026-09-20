@@ -47,13 +47,13 @@ struct HotKeyTests {
         (HotKey(keyCode: HotKeyKey.f20), "F20"),
         (HotKey(keyCode: HotKeyKey.comma, modifiers: [.command, .shift]), "⇧⌘,"),
         (HotKey(keyCode: HotKeyKey.u, modifiers: [.command, .control]), "⌃⌘U"),
-        (HotKey(keyCode: 0x7F, modifiers: .command), "⌘Taste 127"),
+        (HotKey(keyCode: 0x7F, modifiers: .command), "⌘Key 127"),
     ])
     func display(key: HotKey, text: String) {
         #expect(key.display() == text)
     }
 
-    @Test("Zeichen der aktuellen Belegung ersetzt die US-Beschriftung", arguments: [
+    @Test("The character of the current layout replaces the US label", arguments: [
         (HotKey(keyCode: UInt32(kVK_ANSI_Z), modifiers: .command), "Y", "⌘Y"),
         (HotKey(keyCode: UInt32(kVK_ANSI_Semicolon), modifiers: [.control, .option]), "Ö", "⌃⌥Ö"),
     ])
@@ -166,7 +166,7 @@ struct HotKeyTests {
         (HotKey(keyCode: HotKeyKey.f20), nil),
     ] as [(HotKey, HotKeyWarning?)])
     func advice(key: HotKey, warning: HotKeyWarning?) {
-        #expect(HotKeyAdvice.warning(for: key) == warning)
+        (HotKey(keyCode: HotKeyKey.comma, modifiers: .command), HotKeyWarning.system("Settings, in Any App")),
     }
 
     @Test("Registrierung gescheitert: sagt, woran", arguments: [
@@ -174,6 +174,6 @@ struct HotKeyTests {
         (false, eventHotKeyInvalidErr, "Fehler -9879"),
     ])
     func registrationText(taken: Bool, status: Int, fragment: String) {
-        #expect(HotKeyText.registrationFailed(alreadyTaken: taken, status: Int32(status)).contains(fragment))
-    }
-}
+    @Test("Registration failed: says why", arguments: [
+        (true, eventHotKeyExistsErr, "Another app"),
+        (false, eventHotKeyInvalidErr, "error -9879"),

@@ -1,24 +1,24 @@
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Detailfenster: WLAN-Signal")
+@Suite("Detail window: Wi-Fi signal")
 struct StatusPopoutSignalTests {
-    @Test("Balken und Urteil nach dBm, gleiche Schwellen wie das Leistensymbol", arguments: [
-        (-40, 3, "Ausgezeichnet"), (-55, 3, "Ausgezeichnet"), (-56, 2, "Gut"), (-67, 2, "Gut"),
-        (-70, 1, "Mäßig"), (-75, 1, "Mäßig"), (-76, 0, "Schwach"), (-90, 0, "Schwach"),
+    @Test("Bars and verdict by dBm, the same thresholds as the bar symbol", arguments: [
+        (-40, 3, "Excellent"), (-55, 3, "Excellent"), (-56, 2, "Good"), (-67, 2, "Good"),
+        (-70, 1, "Fair"), (-75, 1, "Fair"), (-76, 0, "Weak"), (-90, 0, "Weak"),
     ])
     func barsAndQuality(rssi: Int, bars: Int, quality: String) {
         #expect(StatusPopoutSignal.bars(rssi: rssi) == bars)
         #expect(StatusPopoutSignal.quality(rssi: rssi) == quality)
     }
 
-    @Test("nicht verbunden (0 oder nil): keine Balken, kein Signal", arguments: [Int?.none, 0])
+    @Test("not connected (0 or nil): no bars, no signal", arguments: [Int?.none, 0])
     func noSignal(rssi: Int?) {
         #expect(StatusPopoutSignal.bars(rssi: rssi) == 0)
-        #expect(StatusPopoutSignal.quality(rssi: rssi) == "Kein Signal")
+        #expect(StatusPopoutSignal.quality(rssi: rssi) == "No Signal")
     }
 
-    @Test("Signal-Rauschabstand, fehlende Werte ergeben nil", arguments: [
+    @Test("Signal-to-noise ratio, missing values give nil", arguments: [
         (Int?.some(-50), Int?.some(-95), Int?.some(45)),
         (Int?.some(-50), Int?.some(0), Int?.none),
         (Int?.none, Int?.some(-95), Int?.none),
@@ -27,7 +27,7 @@ struct StatusPopoutSignalTests {
         #expect(StatusPopoutSignal.signalToNoise(rssi: rssi, noise: noise) == expected)
     }
 
-    @Test("PHY-Modus aus CoreWLANs Rohwert", arguments: [
+    @Test("PHY mode out of CoreWLAN's raw value", arguments: [
         (6, String?.some("Wi-Fi 6 (802.11ax)")), (5, String?.some("Wi-Fi 5 (802.11ac)")),
         (0, String?.none), (99, String?.none),
     ])
@@ -35,45 +35,45 @@ struct StatusPopoutSignalTests {
         #expect(StatusPopoutSignal.phyModeName(rawValue: raw) == name)
     }
 
-    @Test("Band aus CoreWLANs Rohwert", arguments: [
-        (1, String?.some("2,4 GHz")), (2, String?.some("5 GHz")), (3, String?.some("6 GHz")), (0, String?.none),
+    @Test("Band out of CoreWLAN's raw value", arguments: [
+        (1, String?.some("2.4 GHz")), (2, String?.some("5 GHz")), (3, String?.some("6 GHz")), (0, String?.none),
     ])
     func band(raw: Int, name: String?) {
         #expect(StatusPopoutSignal.bandName(rawValue: raw) == name)
     }
 }
 
-@Suite("Detailfenster: Akku")
+@Suite("Detail window: battery")
 struct StatusPopoutBatteryTests {
-    @Test("Dauer in Stunden und Minuten", arguments: [
-        (135, String?.some("2 Std 15 Min")), (60, String?.some("1 Std")), (45, String?.some("45 Min")),
-        (1, String?.some("1 Min")), (600, String?.some("10 Std")), (0, String?.none), (-1, String?.none),
+    @Test("Duration in hours and minutes", arguments: [
+        (135, String?.some("2h 15m")), (60, String?.some("1h")), (45, String?.some("45m")),
+        (1, String?.some("1m")), (600, String?.some("10h")), (0, String?.none), (-1, String?.none),
     ])
     func duration(minutes: Int, text: String?) {
         #expect(StatusPopoutDuration.text(minutes: minutes) == text)
     }
 
-    @Test("Zustand in Worten", arguments: [
-        (true, true, "Lädt"), (false, true, "Am Netz"), (false, false, "Akku"),
+    @Test("State in words", arguments: [
+        (true, true, "Charging"), (false, true, "On Power"), (false, false, "Battery"),
     ])
     func state(charging: Bool, onAC: Bool, text: String) {
         #expect(StatusPopoutBatteryText.state(BatteryState(level: 50, charging: charging, onAC: onAC)) == text)
     }
 
-    @Test("Zeitzeile je nach Zustand", arguments: [
-        (40, true, true, 0, 83, "Voll in 1 Std 23 Min"),
-        (40, true, true, 0, -1, "Ladezeit wird berechnet …"),
-        (100, false, true, 0, 0, "Vollständig geladen"),
-        (80, false, true, 0, 0, "Wird gerade nicht geladen"),
-        (70, false, false, 135, 0, "Noch 2 Std 15 Min"),
-        (70, false, false, -1, 0, "Restlaufzeit wird berechnet …"),
+    @Test("Time line by state", arguments: [
+        (40, true, true, 0, 83, "Full in 1h 23m"),
+        (40, true, true, 0, -1, "Calculating charge time…"),
+        (100, false, true, 0, 0, "Fully Charged"),
+        (80, false, true, 0, 0, "Not Charging Right Now"),
+        (70, false, false, 135, 0, "2h 15m Left"),
+        (70, false, false, -1, 0, "Calculating time remaining…"),
     ])
     func timeLine(level: Int, charging: Bool, onAC: Bool, toEmpty: Int, toFull: Int, text: String) {
         let battery = BatteryState(level: level, charging: charging, onAC: onAC)
         #expect(StatusPopoutBatteryText.time(battery, minutesToEmpty: toEmpty, minutesToFull: toFull) == text)
     }
 
-    @Test("Maximale Kapazitaet: roh vor nominal, bei 100 gedeckelt", arguments: [
+    @Test("Maximum capacity: raw before nominal, capped at 100", arguments: [
         (Int?.some(8694), Int?.some(8938), Int?.some(8579), Int?.some(100)),
         (Int?.some(7000), Int?.some(7200), Int?.some(8000), Int?.some(88)),
         (Int?.none, Int?.some(6000), Int?.some(8000), Int?.some(75)),
@@ -86,9 +86,9 @@ struct StatusPopoutBatteryTests {
     }
 }
 
-@Suite("Detailfenster: Lage neben dem Symbol")
+@Suite("Detail window: placement next to the symbol")
 struct StatusPopoutPlacementTests {
-    @Test("mittig auf dem Symbol, aber immer ganz im Bereich", arguments: [
+    @Test("centred on the symbol, but always fully inside the area", arguments: [
         (500.0, 200.0, 1000.0, 400.0),
         (50.0, 200.0, 1000.0, 0.0),
         (980.0, 200.0, 1000.0, 800.0),

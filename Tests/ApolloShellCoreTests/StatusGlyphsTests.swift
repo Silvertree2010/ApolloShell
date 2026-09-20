@@ -42,7 +42,7 @@ struct StatusGlyphsTests {
 
     @Test("Akkutext")
     func batteryText() {
-        #expect(StatusGlyphs.batteryText(BatteryState(level: 77, charging: true, onAC: true)) == "Akku 77 %, lädt")
-        #expect(StatusGlyphs.batteryText(BatteryState(level: 50, charging: false, onAC: false)) == "Akku 50 %")
+        #expect(StatusGlyphs.batteryText(BatteryState(level: 77, charging: true, onAC: true)) == "Battery 77%, charging")
+        #expect(StatusGlyphs.batteryText(BatteryState(level: 50, charging: false, onAC: false)) == "Battery 50%")
     }
 }
