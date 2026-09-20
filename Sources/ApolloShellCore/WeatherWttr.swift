@@ -1,14 +1,14 @@
 import Foundation
 
-/// wttr.in im JSON-Format (`format=j1`) - die Quelle, die Caelestia frueher
-/// nahm. Die Daten dahinter sind von World Weather Online: drei Tage, je acht
-/// Werte alle drei Stunden, Zahlen als Text ("17").
+/// wttr.in in the JSON format (`format=j1`) - the source Caelestia used to
+/// take. The data behind it is from World Weather Online: three days, eight
+/// values each every three hours, the numbers as text ("17").
 ///
-/// Zeiten: Stunden ("0", "300" … "2100") und Sonnenzeiten ("06:39 AM") sind
-/// Ortszeit ohne Zone, `observation_time` ist UTC ohne Datum (gemessen 14.09.:
-/// Abruf 16:21 UTC, Beobachtung "04:09 PM", Stunden und Sonnenaufgang in
-/// Berliner Sommerzeit). Deshalb wie bei MET Norway `timeZone` = die Zone des
-/// Macs.
+/// Times: the hours ("0", "300" … "2100") and the sun times ("06:39 AM") are
+/// local time without a zone, `observation_time` is UTC without a date
+/// (measured 14.09.: fetched 16:21 UTC, the observation "04:09 PM", the hours
+/// and the sunrise in Berlin summer time). So `timeZone` = the zone of the Mac
+/// as with MET Norway.
 public struct WttrProvider: WeatherProvider {
     public let timeZone: TimeZone
 
@@ -56,7 +56,7 @@ public struct WttrProvider: WeatherProvider {
                                              precipitationProbability: Self.chance(hour)))
             }
             hours += dayHours
-            // Tageslage: der Wert um 12 Uhr, wie wttr.in selbst "Mittag" zeigt.
+            // The condition of the day: the value at 12 o'clock, the way wttr.in shows "noon" itself.
             let noon = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: date) ?? date
             guard let max = day.maxtempC?.value, let min = day.mintempC?.value,
                   let middle = dayHours.min(by: { abs($0.time.timeIntervalSince(noon)) < abs($1.time.timeIntervalSince(noon)) })
@@ -83,26 +83,26 @@ public struct WttrProvider: WeatherProvider {
             ),
             hours: hours, days: days, timeZone: timeZone
         )
-        // WWO-Codes kennen kein Tag/Nacht: nach den Sonnenzeiten des Tages.
+        // WWO codes know no day/night: by the sun times of the day.
         report.current.isDay = report.isDay(at: report.current.time)
         return report
     }
 
-    /// Regen- oder Schneewahrscheinlichkeit, die hoehere - "Niederschlag"
-    /// wie bei Open-Meteo.
+    /// The chance of rain or snow, the higher one - "precipitation" as with
+    /// Open-Meteo.
     private static func chance(_ hour: Raw.Hour) -> Int? {
         let values = [hour.chanceofrain?.value, hour.chanceofsnow?.value].compactMap { $0 }
         return values.max().map { Int($0.rounded()) }
     }
 
-    /// "06:39 AM" am Tag `date` (Ortszeit). "No sunrise" im Polarsommer: nil.
+    /// "06:39 AM" on the day `date` (local time). "No sunrise" in the polar summer: nil.
     static func time(_ text: String, on date: Date, calendar: Calendar) -> Date? {
         guard let (hour, minute) = clock12(text) else { return nil }
         return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date)
     }
 
-    /// `observation_time` ist UTC ohne Datum: der juengste solche Zeitpunkt
-    /// bis kurz nach `now` (eine Stunde Spielraum fuer schiefe Uhren).
+    /// `observation_time` is UTC without a date: the latest such point up to
+    /// just after `now` (an hour of leeway for clocks that are off).
     static func observation(_ text: String, now: Date) -> Date? {
         guard let (hour, minute) = clock12(text) else { return nil }
         var utc = Calendar(identifier: .gregorian)
@@ -120,8 +120,8 @@ public struct WttrProvider: WeatherProvider {
         return (clock[0] % 12 + (parts[1] == "PM" ? 12 : 0), clock[1])
     }
 
-    /// wttr.in liefert Zahlen als Text; nimmt zur Sicherheit auch echte
-    /// Zahlen. Unlesbar: nil statt Fehler fuer die ganze Antwort.
+    /// wttr.in delivers numbers as text; it takes real numbers too, for safety.
+    /// Unreadable: nil instead of an error for the whole answer.
     struct Number: Decodable {
         let value: Double?
 
@@ -185,10 +185,10 @@ public struct WttrProvider: WeatherProvider {
     }
 }
 
-/// Wettercodes von World Weather Online (wttr.in `weatherCode`) als WMO-Code.
-/// Liste: die 48 Codes von WWO (113 "Sunny" bis 395 "Moderate or heavy snow
-/// with thunder"). "Patchy … possible/nearby" ist bei WWO ein Schauer-Wetter,
-/// deshalb Schauer (80, 85, 83).
+/// The weather codes of World Weather Online (wttr.in `weatherCode`) as WMO
+/// codes. The list: the 48 codes of WWO (113 "Sunny" to 395 "Moderate or heavy
+/// snow with thunder"). "Patchy … possible/nearby" is a shower in WWO, so
+/// showers (80, 85, 83).
 public enum WttrCode {
     public static let table: [Int: Int] = [
         113: 0, 116: 2, 119: 3, 122: 3, 143: 45, 248: 45, 260: 48,
@@ -202,7 +202,7 @@ public enum WttrCode {
         386: 95, 389: 95, 392: 95, 395: 95,
     ]
 
-    /// Unbekannt: `WeatherCondition.unknownCode` ("Unbekannt", Thermometer).
+    /// Unknown: `WeatherCondition.unknownCode` ("Unknown", a thermometer).
     public static func wmo(_ code: Int) -> Int {
         table[code] ?? WeatherCondition.unknownCode
     }

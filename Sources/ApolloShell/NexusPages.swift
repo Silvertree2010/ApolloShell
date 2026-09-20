@@ -3,12 +3,12 @@ import ApolloShellCore
 import SwiftUI
 import SystemConfiguration
 
-// Die Seite "Leiste" (Baukasten) steht in NexusBarEditor.swift.
+// The "Bar" page (the kit) stands in NexusBarEditor.swift.
 
-// MARK: - Schreibtisch
+// MARK: - Desktop
 
-/// Caelestia: background.desktopClock (in Nexus unter "Wallpaper & style").
-/// Das Hintergrundbild selbst regelt macOS.
+/// Caelestia: background.desktopClock (in Nexus under "Wallpaper & style").
+/// The wallpaper itself is handled by macOS.
 struct NexusDesktopPage: View {
     @Bindable var store: ShellSettingsStore
 
@@ -27,10 +27,10 @@ struct NexusDesktopPage: View {
     }
 }
 
-// MARK: - Kurzmeldungen
+// MARK: - Toasts
 
-/// Caelestia: Services > Notifications > "Toast events". Nur die
-/// Ereignisse, die unsere Shell kennt; Mitteilungen von Apps sind Sache von macOS.
+/// Caelestia: Services > Notifications > "Toast events". Only the events our
+/// shell knows; notifications from apps are the business of macOS.
 struct NexusToastsPage: View {
     @Bindable var store: ShellSettingsStore
 
@@ -59,10 +59,10 @@ struct NexusToastsPage: View {
     }
 }
 
-// MARK: - Systemeinstellungen
+// MARK: - System Settings
 
-/// Caelestias Seiten, die auf macOS das System uebernimmt, als Spruenge -
-/// gruppiert wie dort (appearance, connectivity, system).
+/// Caelestia's pages that macOS takes over, as jumps - grouped as there
+/// (appearance, connectivity, system).
 struct NexusSystemPage: View {
     var body: some View {
         NexusPageForm(page: .system) {
@@ -91,10 +91,10 @@ struct NexusSystemPage: View {
     }
 }
 
-// MARK: - Ueber
+// MARK: - About
 
-/// Was Nexus ueber das System weiss. Einmal beim Oeffnen gelesen (sysctl,
-/// Bruchteile einer Millisekunde); nur die Laufzeit tickt.
+/// What Nexus knows about the system. Read once on opening (sysctl, fractions
+/// of a millisecond); only the uptime ticks.
 struct NexusSystemInfo: Sendable {
     var computerName: String
     var model: String
@@ -103,8 +103,8 @@ struct NexusSystemInfo: Sendable {
     var kernel: String
     var bootDate: Date?
     var version: String
-    /// Quelltext-Ordner, beim Bauen festgehalten (`#filePath`); `nil`, wenn
-    /// es ihn auf diesem Mac nicht (mehr) gibt.
+    /// The source folder, pinned down while building (`#filePath`); `nil` when
+    /// it does not (or no longer) exist on this Mac.
     var sourceFolder: URL?
 
     static func read() -> NexusSystemInfo {
@@ -113,7 +113,7 @@ struct NexusSystemInfo: Sendable {
         var macOS = "macOS \(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
         if let build = sysctlString("kern.osversion") { macOS += " (\(build))" }
         return NexusSystemInfo(
-            // Nicht ProcessInfo.hostName: das kann auf eine DNS-Antwort warten.
+            // Not ProcessInfo.hostName: that can wait on a DNS answer.
             computerName: (SCDynamicStoreCopyComputerName(nil, nil) as String?) ?? "–",
             model: sysctlString("hw.model") ?? "–",
             chip: sysctlString("machdep.cpu.brand_string") ?? "–",
@@ -135,8 +135,8 @@ struct NexusSystemInfo: Sendable {
         return text.isEmpty ? nil : text
     }
 
-    /// Wie `uptime`: seit dem Einschalten, Ruhezustand eingerechnet
-    /// (`ProcessInfo.systemUptime` zaehlt den nicht mit).
+    /// Like `uptime`: since the switch-on, sleep counted in
+    /// (`ProcessInfo.systemUptime` does not count it).
     private static func bootDate() -> Date? {
         var time = timeval()
         var size = MemoryLayout<timeval>.size
@@ -144,7 +144,7 @@ struct NexusSystemInfo: Sendable {
         return Date(timeIntervalSince1970: TimeInterval(time.tv_sec) + TimeInterval(time.tv_usec) / 1_000_000)
     }
 
-    /// Sources/Launcher/NexusPages.swift -> drei Ebenen hoch.
+    /// Sources/Launcher/NexusPages.swift -> three levels up.
     private static func sourceFolder(file: String = #filePath) -> URL? {
         let url = URL(fileURLWithPath: file)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -152,7 +152,7 @@ struct NexusSystemInfo: Sendable {
     }
 }
 
-/// Caelestia: AboutPage (Logo und Version, "System", "Software").
+/// Caelestia: AboutPage (the logo and the version, "System", "Software").
 struct NexusAboutPage: View {
     let system: NexusSystemInfo
     var showOnboarding: @MainActor () -> Void = {}
@@ -166,13 +166,13 @@ struct NexusAboutPage: View {
                 LabeledContent("Operating System", value: system.macOS)
                 LabeledContent("Kernel", value: system.kernel)
                 if let boot = system.bootDate {
-                    // Jede Minute neu; Sekunden zeigt die Laufzeit nicht.
+                    // Anew every minute; the uptime shows no seconds.
                     TimelineView(.everyMinute) { context in
                         LabeledContent("Uptime", value: NexusText.uptime(context.date.timeIntervalSince(boot)))
                     }
                 }
             }
-            // Die Version steht schon in der Kopfkarte, deshalb hier nicht nochmal.
+            // The version stands in the header card already, so not again here.
             Section("Software") {
                 if let folder = system.sourceFolder {
                     LabeledContent("Source Code") {
@@ -203,8 +203,8 @@ struct NexusAboutPage: View {
     }
 }
 
-/// Dezente Zeile, falls eine Datei nicht geschrieben werden konnte - sonst
-/// saehe der Schalter aus, als haette er gewirkt, und nach dem Neustart
+/// A quiet line when a file could not be written - otherwise the switch would
+/// look as though it had worked, and after the restart it would be back.
 /// waere er wieder zurueck.
 struct NexusSaveWarning: View {
     let failed: Bool

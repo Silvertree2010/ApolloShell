@@ -1,22 +1,22 @@
 import Foundation
 
-/// Die vier Aktionen des Sitzungsmenues.
+/// The four actions of the session menu.
 ///
-/// Aufbau wie im Sitzungsmenue von Caelestia (modules/session/Content.qml):
-/// von oben nach unten Abmelden, Ausschalten, dann das Emblem, dann
-/// Ruhezustand und Neustart. Caelestia hat dort Hibernate; das gibt es auf
-/// dem Mac so nicht, deshalb Ruhezustand.
+/// Built like the session menu of Caelestia (modules/session/Content.qml):
+/// from top to bottom log out, shut down, then the emblem, then sleep and
+/// restart. Caelestia has Hibernate there; that does not exist on the Mac in
+/// that form, so sleep.
 public enum SessionAction: String, CaseIterable, Sendable {
     case logOut, shutDown, sleep, restart
 
-    /// Reihenfolge der Knoepfe von oben nach unten.
+    /// The order of the buttons from top to bottom.
     public static let menuOrder: [SessionAction] = [.logOut, .shutDown, .sleep, .restart]
 
-    /// Vor diesem Knopf-Index sitzt das Emblem (zwischen Ausschalten und
-    /// Ruhezustand, wo Caelestia sein Bild zeigt).
+    /// The emblem sits before this button index (between shut down and sleep,
+    /// where Caelestia shows its image).
     public static let emblemSlot = 2
 
-    /// Kennung fuer den Symbol-Austausch im Theme (`icons/<kennung>.png`).
+    /// The id for the symbol swap in the theme (`icons/<id>.png`).
     public var iconID: String {
         switch self {
         case .logOut: "session-logout"
@@ -35,8 +35,8 @@ public enum SessionAction: String, CaseIterable, Sendable {
         }
     }
 
-    /// Fuer Tooltip und VoiceOver; die Knoepfe selbst sind wie bei Caelestia
-    /// ohne Beschriftung.
+    /// For the tooltip and VoiceOver; the buttons themselves carry no label, as
+    /// in Caelestia.
     public var title: String {
         switch self {
         case .logOut: String(localized: "Log Out")
@@ -46,12 +46,12 @@ public enum SessionAction: String, CaseIterable, Sendable {
         }
     }
 
-    /// Der Befehl dahinter. Keine Rueckfrage, wie bei Caelestia: das Menue
-    /// ist selbst die Bestaetigung. Neustart, Ausschalten und Abmelden gehen
-    /// ueber System Events wie im Apple-Menue: Apps mit ungesicherten
-    /// Dokumenten fragen selbst nach und koennen abbrechen. Braucht die
-    /// Automation-Freigabe fuer System Events; macOS fragt beim ersten
-    /// Mal danach.
+    /// The command behind it. No confirmation, as in Caelestia: the menu is the
+    /// confirmation itself. Restart, shut down and log out go through System
+    /// Events as in the Apple menu: apps with unsaved documents ask by
+    /// themselves and can cancel. Needs the automation permission for System
+    /// Events; macOS asks for it the first time.
+    ///
     public var command: (executable: String, arguments: [String]) {
         switch self {
         case .sleep:
@@ -66,13 +66,13 @@ public enum SessionAction: String, CaseIterable, Sendable {
     }
 }
 
-/// Tastatur-Auswahl im Sitzungsmenue, ↑↓ bewegen ohne Umlauf.
+/// The keyboard selection in the session menu, ↑↓ move without wrapping.
 ///
-/// Bewusst OHNE Vorauswahl, anders als Caelestia (dort ist Abmelden
-/// vorausgewaehlt): ein dauerhaft markierter Knopf wirkt wie ein
-/// haengender Hover-Effekt. Der erste Druck auf ↓ markiert den obersten, ↑ den
-/// untersten Knopf. Enter ohne Auswahl tut nichts - ein versehentliches Enter
-/// meldet also niemanden ab.
+/// Deliberately WITHOUT a preselection, unlike Caelestia (where log out is
+/// preselected): a button that stays marked looks like a hover effect that got
+/// stuck. The first press on ↓ marks the topmost button, ↑ the bottom one.
+/// Enter without a selection does nothing - so an accidental Enter logs nobody
+/// out.
 public struct SessionSelection: Equatable, Sendable {
     public private(set) var index: Int?
 

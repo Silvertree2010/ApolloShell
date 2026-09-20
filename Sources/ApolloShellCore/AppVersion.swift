@@ -1,26 +1,26 @@
 import Foundation
 
-/// Eine Version der App, wie sie in `CFBundleShortVersionString` steht
-/// ("0.1.2") oder als Git-Tag ("v0.1.2").
+/// A version of the app the way it stands in `CFBundleShortVersionString`
+/// ("0.1.2") or as a Git tag ("v0.1.2").
 ///
-/// Nur so viel Semver, wie die Shell braucht: Zahlen werden von links nach
-/// rechts verglichen, fehlende Stellen zaehlen als 0 ("0.1" == "0.1.0").
-/// Ein Zusatz hinter einem Bindestrich ("0.2.0-beta.1") gilt als Vorabfassung
-/// und ist AELTER als dieselbe Version ohne Zusatz - so wie es Semver
-/// vorschreibt und wie Sparkle es auch handhabt.
+/// Only as much semver as the shell needs: the numbers are compared from left
+/// to right, and missing places count as 0 ("0.1" == "0.1.0"). An addition
+/// behind a hyphen ("0.2.0-beta.1") counts as a prerelease and is OLDER than
+/// the same version without it - the way semver prescribes it and Sparkle
+/// handles it too.
 ///
-/// Unbekanntes wird nicht geraten: Steht dort gar keine Zahl, gibt es keine
-/// Version, und der Aufrufer meldet lieber nichts als etwas Falsches.
+/// The unknown is not guessed: when no number stands there, there is no
+/// version, and the caller reports nothing rather than something wrong.
 public struct AppVersion: Equatable, Hashable, Sendable, Comparable, CustomStringConvertible {
-    /// Die Zahlen vor einem eventuellen Zusatz, mindestens eine.
+    /// The numbers before a possible addition, at least one.
     public let numbers: [Int]
-    /// Der Zusatz hinter dem ersten Bindestrich, ohne diesen; sonst leer.
+    /// The addition behind the first hyphen, without it; otherwise empty.
     public let prerelease: String
 
     public init?(_ text: String) {
         var body = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if body.first == "v" || body.first == "V" { body.removeFirst() }
-        // Baumetadaten ("+35") spielen fuer die Reihenfolge keine Rolle.
+        // Build metadata ("+35") plays no part in the order.
         if let plus = body.firstIndex(of: "+") { body = String(body[body.startIndex..<plus]) }
         let head: Substring
         if let dash = body.firstIndex(of: "-") {
@@ -45,9 +45,9 @@ public struct AppVersion: Equatable, Hashable, Sendable, Comparable, CustomStrin
         return prerelease.isEmpty ? head : "\(head)-\(prerelease)"
     }
 
-    /// Gleich heisst: gleiche Reihenfolge. "0.1" und "0.1.0" sind dieselbe
-    /// Fassung - waere das nur beim Vergleichen so und beim Gleichsetzen
-    /// nicht, widerspraechen sich die beiden.
+    /// Equal means: the same order. "0.1" and "0.1.0" are the same version -
+    /// were that only so when comparing and not when equating, the two would
+    /// contradict each other.
     public static func == (lhs: AppVersion, rhs: AppVersion) -> Bool {
         lhs.padded(to: rhs) == rhs.padded(to: lhs) && lhs.prerelease == rhs.prerelease
     }
@@ -72,7 +72,7 @@ public struct AppVersion: Equatable, Hashable, Sendable, Comparable, CustomStrin
         }
         switch (lhs.prerelease.isEmpty, rhs.prerelease.isEmpty) {
         case (true, true): return false
-        // Ohne Zusatz ist die fertige Fassung, die steht hinter der Vorabfassung.
+        // Without an addition it is the finished version, which stands behind the prerelease.
         case (true, false): return false
         case (false, true): return true
         case (false, false): return lhs.prerelease.compare(rhs.prerelease, options: .numeric) == .orderedAscending

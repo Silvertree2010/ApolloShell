@@ -1,21 +1,21 @@
 import AppKit
 
-/// Grundeinstellung aller Fenster der Shell: randlos und durchsichtig, holt
-/// die App nicht nach vorne, bleibt stehen, wenn eine andere App aktiv wird,
-/// animiert nicht von selbst (die Bewegungen macht die Shell) und hat keinen
-/// Fensterschatten - den berechnet macOS aus der Fensterform, und weil das
-/// Glas vom Fenstermanager selbst gerendert wird, entstand ein fast eckiger
-/// zweiter Rahmen um das runde Glas. Kante und Tiefe bringt das Glas mit.
+/// The basic setting of all windows of the shell: borderless and transparent,
+/// does not bring the app forward, stays put when another app becomes active,
+/// animates nothing by itself (the shell does the motion) and has no window
+/// shadow - macOS works that out from the window shape, and because the glass
+/// is rendered by the window manager itself, an almost square second frame
+/// came about around the round glass. The edge and the depth come with the glass.
 ///
-/// Was sich unterscheidet, sagt jede Stelle selbst: Ebene, Verhalten auf
-/// Spaces, ob es Tastatur annimmt und ob es ueber den Bildschirmrand ragen
-/// darf.
+/// What differs is said by every place itself: the level, the behavior on
+/// spaces, whether it takes the keyboard and whether it may stick out over the
+/// screen edge.
 class ShellPanel: NSPanel {
     private let takesKeyboard: Bool
     private let mayLeaveScreen: Bool
 
-    /// `mayLeaveScreen`: macOS schiebt Fenster sonst zurueck auf den
-    /// Bildschirm - Kantenfenster sollen ihre Glasecken aber draussen haben.
+    /// `mayLeaveScreen`: macOS otherwise pushes windows back onto the screen -
+    /// but edge windows should have their glass corners outside.
     init(size: NSSize = .zero, level: NSWindow.Level, behavior: NSWindow.CollectionBehavior,
          takesKeyboard: Bool = false, mayLeaveScreen: Bool = false, deferred: Bool = true) {
         self.takesKeyboard = takesKeyboard
@@ -39,9 +39,9 @@ class ShellPanel: NSPanel {
     }
 
     #if DEBUG
-    /// Selbsttest des Bearbeitungsmodus (`--selftest-edit`): jedes Panel der
-    /// Shell bleibt durchsichtig und laesst Klicks durch - der Test laeuft
-    /// neben der echten ApolloShell, ohne auf dem Bildschirm etwas zu zeigen.
+    /// The self-test of the edit mode (`--selftest-edit`): every panel of the
+    /// shell stays transparent and lets clicks through - the test runs next to
+    /// the real ApolloShell without showing anything on the screen.
     override var alphaValue: CGFloat {
         get { super.alphaValue }
         set { super.alphaValue = EditModeSelfTest.invisible ? 0 : newValue }
@@ -54,8 +54,8 @@ class ShellPanel: NSPanel {
     #endif
 
     #if DEBUG
-    // Selbsttest: nie Schluesselfenster - sonst landeten Tasten der echten
-    // App im unsichtbaren Panel.
+    // The self-test: never the key window - otherwise keys of the real app
+    // would land in the invisible panel.
     override var canBecomeKey: Bool { takesKeyboard && !EditModeSelfTest.invisible }
     #else
     override var canBecomeKey: Bool { takesKeyboard }
