@@ -1,11 +1,11 @@
 import ApolloShellCore
 import Testing
 
-@Suite("Themes: Token-Verzeichnis")
+@Suite("Themes: the token catalogue")
 struct ThemeTokenCatalogTests {
     let catalog = ThemeTokenCatalog.standard
 
-    @Test("Namen sind eindeutig, klein geschrieben und beginnen mit --apollo-")
+@Test("Names are unique, in lower case and begin with --apollo-")
     func names() {
         var seen: Set<String> = []
         for token in catalog.tokens {
@@ -16,7 +16,7 @@ struct ThemeTokenCatalogTests {
         }
     }
 
-    @Test("Aliasse sind eindeutig und kein Alias ist zugleich ein Name")
+@Test("Aliases are unique and no alias is a name at the same time")
     func aliases() {
         let names = Set(catalog.tokens.map(\.name))
         var seen: Set<String> = []
@@ -29,7 +29,7 @@ struct ThemeTokenCatalogTests {
         }
     }
 
-    @Test("jede Vorgabe passt zum Typ und liegt im erlaubten Bereich")
+@Test("every default fits the type and lies in the allowed range")
     func defaultsMatchKind() {
         for token in catalog.tokens {
             for dark in [false, true] {
@@ -38,8 +38,8 @@ struct ThemeTokenCatalogTests {
                 case .color:
                     #expect(value.color != nil, "\(token.name)")
                 case .gradient:
-                    // Ein Verlauf ist nie die Vorgabe: ohne Angabe faerbt die
-                    // Farbe daneben die Flaeche wie bisher.
+// A gradient is never the default: without an entry the color next to it
+// colors the area as before.
                     #expect(value.gradient == ThemeGradient.none, "\(token.name)")
                 case let .number(spec):
                     guard let number = value.number else {
@@ -50,7 +50,7 @@ struct ThemeTokenCatalogTests {
                 case .text:
                     #expect(value.text != nil, "\(token.name)")
                 case .file:
-                    // Kein Theme, keine Bilder: Vorgabe ist immer "nichts".
+// No theme, no images: the default is always "nothing".
                     #expect(value.asset == ThemeAsset.none, "\(token.name)")
                 case let .option(options):
                     guard let option = value.option else {
@@ -66,7 +66,7 @@ struct ThemeTokenCatalogTests {
         }
     }
 
-    @Test("jede Vorgabe laesst sich schreiben und genau so wieder lesen")
+@Test("every default can be written and read back exactly")
     func defaultsRoundTrip() {
         for token in catalog.tokens {
             for dark in [false, true] {
@@ -77,7 +77,7 @@ struct ThemeTokenCatalogTests {
         }
     }
 
-    @Test("Kontrastregeln zeigen auf eine Farbe, die selbst keine Regel hat")
+@Test("contrast rules point at a color that has no rule itself")
     func contrastPartners() {
         for token in catalog.tokens {
             guard let rule = token.contrast else { continue }
@@ -86,14 +86,14 @@ struct ThemeTokenCatalogTests {
                 continue
             }
             #expect(partner.kind == .color, "\(token.name)")
-            // Sonst koennte eine Anpassung die naechste ausloesen.
+// Otherwise one adjustment could set off the next.
             #expect(partner.contrast == nil, "\(token.name): \(partner.name) wird selbst angepasst")
             #expect(rule.minimum >= 3, "\(token.name)")
             #expect(token.kind == .color, "\(token.name)")
         }
     }
 
-    @Test("das eingebaute Theme meldet nichts, die Vorgaben sind in beiden Erscheinungsbildern lesbar")
+@Test("the built-in theme reports nothing, and the defaults hold in both appearances")
     func standardThemeIsClean() throws {
         #expect(Theme.standard.issues.isEmpty)
         #expect(Theme.standard.formatVersion == ThemeFormat.current)
@@ -109,33 +109,33 @@ struct ThemeTokenCatalogTests {
         }
     }
 
-    @Test("Kurzbeschreibungen taugen fuer die Doku")
+@Test("the short descriptions are fit for the docs")
     func summaries() {
         for token in catalog.tokens {
             #expect(!token.summary.isEmpty, "\(token.name)")
-            // Ein senkrechter Strich wuerde die Markdown-Tabelle zerreissen.
+// A vertical bar would tear the Markdown table apart.
             #expect(!token.summary.contains("|"), "\(token.name)")
             #expect(!token.summary.contains("\n"), "\(token.name)")
             #expect(token.summary.allSatisfy({ $0.isASCII }), "\(token.name)")
         }
     }
 
-    @Test("jede Gruppe hat mindestens ein Token", arguments: ThemeTokenGroup.allCases)
+    @Test("every group has at least one token", arguments: ThemeTokenGroup.allCases)
     func groupsAreUsed(group: ThemeTokenGroup) {
         #expect(catalog.tokens.contains { $0.group == group })
     }
 
-    @Test("Gross- und Kleinschreibung ist beim Nachschlagen egal")
+@Test("upper and lower case do not matter when looking up")
     func lookupIgnoresCase() {
         #expect(catalog.descriptor(named: "--APOLLO-ACCENT-COLOR")?.name == "--apollo-accent-color")
         #expect(catalog.descriptor(named: "--apollo-gibt-es-nicht") == nil)
     }
 
-    // MARK: - Die Zusicherung fuer die naechsten Jahre
+// MARK: - The promise for the coming years
 
-    /// Jeder Name, den Fassung 1 veroeffentlicht hat. Diese Liste waechst nur;
-    /// wird ein Token umbenannt, bleibt der alte Name als Alias bestehen und
-    /// dieser Test gruen. Wer hier etwas streicht, macht fremde Themes kaputt.
+/// Every name version 1 published. This list only grows; when a token is
+/// renamed, the old name stays as an alias and this test stays green.
+/// Whoever strikes something here breaks other people's themes.
     static let version1: [String] = [
         "--apollo-theme-format", "--apollo-theme-name", "--apollo-theme-author",
         "--apollo-theme-description", "--apollo-theme-version", "--apollo-theme-homepage",
@@ -161,20 +161,20 @@ struct ThemeTokenCatalogTests {
         "--apollo-toast-color", "--apollo-toast-text-color", "--apollo-toast-radius",
     ]
 
-    @Test("ein einmal veroeffentlichter Name verschwindet nie", arguments: ThemeTokenCatalogTests.version1)
+    @Test("a name that was published once never disappears", arguments: ThemeTokenCatalogTests.version1)
     func publishedNamesStay(name: String) {
         #expect(catalog.contains(name), "\(name) fehlt im Verzeichnis")
     }
 
-    @Test("Fassung 1 hat kein Token verloren")
+@Test("version 1 has lost no token")
     func noneLost() {
         #expect(catalog.tokens.count >= ThemeTokenCatalogTests.version1.count)
     }
 
-    @Test("umbenennen heisst: der alte Name gilt weiter")
+@Test("renaming means: the old name goes on holding")
     func renamedTokenKeepsOldName() {
-        // Kein echtes Token wurde bisher umbenannt; geprueft wird der Weg
-        // dorthin, damit er beim ersten Mal funktioniert.
+// No real token has been renamed so far; what is checked is the way there,
+// so that it works the first time.
         let renamed = ThemeTokenDescriptor(
             name: "--apollo-new-color", kind: .color, defaultValue: .color(.black),
             summary: "Test", group: .accent, aliases: ["--apollo-old-color"]
@@ -186,7 +186,7 @@ struct ThemeTokenCatalogTests {
         #expect(theme.issues.isEmpty)
     }
 
-    // MARK: - Die getippten Griffe
+// MARK: - The typed handles
 
     private func tag(_ kind: ThemeTokenKind?) -> String {
         switch kind {
