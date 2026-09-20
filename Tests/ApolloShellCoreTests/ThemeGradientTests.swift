@@ -2,13 +2,13 @@ import ApolloShellCore
 import Foundation
 import Testing
 
-@Suite("Themes: Verläufe lesen")
+@Suite("Themes: reading gradients")
 struct ThemeGradientTests {
     private func gradient(_ text: String) -> ThemeGradient? {
         ThemeValueReader.gradient(text)
     }
 
-    @Test("zwei Farben, ohne Winkel und ohne Stellen")
+    @Test("two colors, without an angle and without positions")
     func simpleGradient() throws {
         let value = try #require(gradient("linear-gradient(#000000, #ffffff)"))
         #expect(value.angle == 180)
@@ -17,7 +17,7 @@ struct ThemeGradientTests {
         #expect(!value.isEmpty)
     }
 
-    @Test("Winkel in Grad und in Worten")
+    @Test("the angle in degrees and in words")
     func angles() throws {
         #expect(try #require(gradient("linear-gradient(45deg, #000, #fff)")).angle == 45)
         #expect(try #require(gradient("linear-gradient(to right, #000, #fff)")).angle == 90)
@@ -25,39 +25,39 @@ struct ThemeGradientTests {
         #expect(gradient("linear-gradient(to nowhere, #000, #fff)") == nil)
     }
 
-    @Test("eigene Stellen in Prozent")
+    @Test("positions of one's own in percent")
     func explicitStops() throws {
         let value = try #require(gradient("linear-gradient(90deg, #ff0000 10%, #00ff00 40%, #0000ff 100%)"))
         #expect(value.stops.map(\.position) == [0.1, 0.4, 1])
         #expect(value.stops.map(\.color) == [ThemeColor(hex: 0xFF0000), ThemeColor(hex: 0x00FF00), ThemeColor(hex: 0x0000FF)])
     }
 
-    @Test("Farben mit Klammern bleiben ein Stueck")
+    @Test("colors with brackets stay one piece")
     func functionColors() throws {
         let value = try #require(gradient("linear-gradient(rgb(255, 0, 0), hsl(120, 100%, 50%))"))
         #expect(value.stops.map(\.color) == [ThemeColor(hex: 0xFF0000), ThemeColor(hex: 0x00FF00)])
     }
 
-    @Test("eine Stelle vor ihrer Vorgaengerin wird nach vorne gezogen")
+    @Test("a position before its predecessor is pulled forward")
     func positionsNeverGoBackwards() throws {
         let value = try #require(gradient("linear-gradient(#000 60%, #fff 20%)"))
         #expect(value.stops.map(\.position) == [0.6, 0.6])
     }
 
-    @Test("zwischen Farbe und Stelle darf auch ein Tabulator stehen")
+    @Test("a tab may stand between the color and the position too")
     func acceptsAnyWhitespaceBeforeThePosition() throws {
         let value = try #require(gradient("linear-gradient(#000000\t25%, #ffffff 100%)"))
         #expect(value.stops.map(\.position) == [0.25, 1])
     }
 
-    @Test("none heisst: kein Verlauf, und das ist kein Fehler")
+    @Test("none means: no gradient, and that is no error")
     func noneIsEmpty() throws {
         let value = try #require(gradient("none"))
         #expect(value.isEmpty)
         #expect(value == ThemeGradient.none)
     }
 
-    @Test("was nicht sicher zu lesen ist, ergibt nichts")
+    @Test("what cannot be read safely gives nothing")
     func rejectsUnreadable() {
         #expect(gradient("") == nil)
         #expect(gradient("linear-gradient(#000)") == nil, "eine Farbe ist kein Verlauf")
@@ -68,14 +68,14 @@ struct ThemeGradientTests {
                 "mehr als \(ThemeGradient.maximumStops) Farbstellen")
     }
 
-    @Test("geschrieben und wieder gelesen ergibt denselben Verlauf")
+    @Test("written and read back gives the same gradient")
     func roundTrips() throws {
         let original = try #require(gradient("linear-gradient(30deg, #112233 0%, #445566 50%, #778899 100%)"))
         let again = try #require(gradient(original.cssText))
         #expect(again == original)
     }
 
-    @Test("ein Theme setzt einen Verlauf, der Rest bleibt Vorgabe")
+    @Test("a theme sets a gradient, the rest stays the default")
     func themeReadsGradients() {
         let sheet = ThemeStyleSheetParser.parse("""
         :root {
@@ -86,12 +86,12 @@ struct ThemeGradientTests {
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
         #expect(theme.gradient(.bar)?.stops.count == 2)
         #expect(theme.gradient(.bar)?.stops.first?.color == ThemeColor(hex: 0x101014))
-        // Was nicht gesetzt ist, bleibt leer - Verlauf wie Farbe.
+        // What is not set stays empty - the gradient like the color.
         #expect(theme.gradient(.panel) == nil)
         #expect(theme.color(.bar) == nil)
     }
 
-    @Test("unlesbarer Verlauf: Vorgabe und ein Hinweis mit Zeile")
+    @Test("an unreadable gradient: the default and a notice with a line")
     func unreadableGradientIsReported() {
         let sheet = ThemeStyleSheetParser.parse("""
         :root {
@@ -104,7 +104,7 @@ struct ThemeGradientTests {
     }
 }
 
-@Suite("Themes: Richtung eines Verlaufs")
+@Suite("Themes: the direction of a gradient")
 struct ThemeGradientDirectionTests {
     private func gradient(_ angle: Double) -> ThemeGradient {
         ThemeGradient(angle: angle, stops: [
@@ -117,35 +117,35 @@ struct ThemeGradientDirectionTests {
         abs(value - expected) < 0.0001
     }
 
-    @Test("180 Grad laeuft von oben nach unten - die erste Farbe steht oben")
+    @Test("180 degrees runs from top to bottom - the first color stands at the top")
     func downwards() {
         let points = gradient(180).points
         #expect(close(points.start.y, 0) && close(points.start.x, 0.5))
         #expect(close(points.end.y, 1) && close(points.end.x, 0.5))
     }
 
-    @Test("0 Grad laeuft nach oben")
+    @Test("0 degrees runs upwards")
     func upwards() {
         let points = gradient(0).points
         #expect(close(points.start.y, 1))
         #expect(close(points.end.y, 0))
     }
 
-    @Test("90 Grad laeuft nach rechts")
+    @Test("90 degrees runs to the right")
     func rightwards() {
         let points = gradient(90).points
         #expect(close(points.start.x, 0) && close(points.start.y, 0.5))
         #expect(close(points.end.x, 1) && close(points.end.y, 0.5))
     }
 
-    @Test("270 Grad laeuft nach links")
+    @Test("270 degrees runs to the left")
     func leftwards() {
         let points = gradient(270).points
         #expect(close(points.start.x, 1))
         #expect(close(points.end.x, 0))
     }
 
-    @Test("135 Grad laeuft nach rechts unten")
+    @Test("135 degrees runs to the bottom right")
     func diagonally() {
         let points = gradient(135).points
         #expect(points.start.x < 0.5 && points.start.y < 0.5, "Anfang oben links")

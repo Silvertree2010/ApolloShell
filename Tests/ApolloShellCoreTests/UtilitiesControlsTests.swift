@@ -2,9 +2,9 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Utilities-Panel: Farbpipette")
+@Suite("The utilities panel: the color picker")
 struct UtilitiesColorHexTests {
-    @Test("sRGB-Anteile zu #RRGGBB, gerundet, Grossbuchstaben", arguments: [
+    @Test("sRGB parts to #RRGGBB, rounded, in capitals", arguments: [
         (1.0, 0.584, 0.0, "#FF9500"),
         (0.0, 0.0, 0.0, "#000000"),
         (1.0, 1.0, 1.0, "#FFFFFF"),
@@ -14,7 +14,7 @@ struct UtilitiesColorHexTests {
         #expect(UtilitiesColorHex.hex(red: red, green: green, blue: blue) == expected)
     }
 
-    @Test("ausserhalb 0...1 (erweitertes sRGB) wird abgeschnitten", arguments: [
+    @Test("outside 0...1 (extended sRGB) it is cut off", arguments: [
         (1.2, -0.1, 0.5, "#FF0080"),
         (-3.0, 7.0, 1.0001, "#00FFFF"),
     ])
@@ -22,22 +22,22 @@ struct UtilitiesColorHexTests {
         #expect(UtilitiesColorHex.hex(red: red, green: green, blue: blue) == expected)
     }
 
-    @Test("keine Zahl: 00 statt Absturz")
+    @Test("no number: 00 instead of a crash")
     func notANumber() {
         #expect(UtilitiesColorHex.hex(red: .nan, green: .infinity, blue: 1) == "#0000FF")
     }
 
-    @Test("Kurzmeldung: Titel fest, Hexwert als Text")
+    @Test("The toast: a fixed title, the hex value as the text")
     func toast() {
         let content = ToastText.colorCopied("#FF9500")
         #expect(content.title == "Color Copied" && content.message == "#FF9500" && content.symbol == "eyedropper")
     }
 }
 
-@Suite("Utilities-Panel: Audiogeraete")
+@Suite("The utilities panel: audio devices")
 struct UtilitiesAudioDevicesTests {
-    /// Die Geraete, wie sie am 14.09. auf einem MacBook gelesen wurden,
-    /// plus ein verstecktes Aggregat und ein Geraet ohne Standard-Recht.
+    /// The devices the way they were read on a MacBook on 14.09., plus a hidden
+    /// aggregate and a device without the default right.
     static let measured: [UtilitiesAudioDevice] = [
         .init(id: 105, name: "iPhone Mikrofon", outputStreams: 0, inputStreams: 1,
               canBeDefaultOutput: false, canBeDefaultInput: true, hidden: false),
@@ -57,7 +57,7 @@ struct UtilitiesAudioDevicesTests {
               canBeDefaultOutput: false, canBeDefaultInput: false, hidden: false),
     ]
 
-    @Test("Ausgaenge: nur mit Ausgabestrom, waehlbar, nicht versteckt - nach Namen", arguments: [
+    @Test("Outputs: only with an output stream, selectable, not hidden - by name", arguments: [
         (UtilitiesAudioScope.output, [107 as UInt32, 61, 93]),
         (UtilitiesAudioScope.input, [113 as UInt32, 61, 105, 100]),
     ])
@@ -65,14 +65,14 @@ struct UtilitiesAudioDevicesTests {
         #expect(UtilitiesAudioDevices.devices(Self.measured, for: scope).map(\.id) == ids)
     }
 
-    @Test("gleiche Namen (AirPods) trennt die Stromzahl, nicht der Name")
+    @Test("The same names (AirPods) are told apart by the stream count, not by the name")
     func airPodsSplit() {
         let outputs = UtilitiesAudioDevices.devices(Self.measured, for: .output).filter { $0.name == "AirPods Pro" }
         let inputs = UtilitiesAudioDevices.devices(Self.measured, for: .input).filter { $0.name == "AirPods Pro" }
         #expect(outputs.map(\.id) == [107] && inputs.map(\.id) == [113])
     }
 
-    @Test("Beschriftung: Name des Standardgeraets, auch wenn es versteckt ist", arguments: [
+    @Test("The label: the name of the default device, even when it is hidden", arguments: [
         (107 as UInt32?, "AirPods Pro"),
         (200 as UInt32?, "CADefaultDeviceAggregate"),
         (999 as UInt32?, "No Device"),
@@ -100,9 +100,9 @@ struct UtilitiesAudioDevicesTests {
     }
 }
 
-@Suite("Utilities-Panel: Tastenkuerzel aus symbolichotkeys")
+@Suite("The utilities panel: keyboard shortcuts out of symbolichotkeys")
 struct UtilitiesHotKeyTests {
-    @Test("Tastencode und Maske wie gespeichert; Maske nur Modifier-Bits", arguments: [
+    @Test("The key code and the mask as stored; the mask only modifier bits", arguments: [
         ([65535, 103, 0], 103, 0),                      // Schreibtisch anzeigen, gemessen: F11 ohne Fn
         ([53, 23, 1_179_648], 23, 0x12_0000),           // ⌘⇧5
         ([65535, 125, 0x84_0000], 125, 0x84_0000),      // ⌃↓ mit Fn, wie echte Pfeiltasten
@@ -113,7 +113,7 @@ struct UtilitiesHotKeyTests {
         #expect(key == UtilitiesHotKey(keyCode: UInt16(keyCode), modifiers: UInt64(modifiers)))
     }
 
-    @Test("abgeschaltet oder ohne Taste: nichts zu druecken", arguments: [
+    @Test("switched off or without a key: nothing to press", arguments: [
         (false, [65535, 103, 0]),
         (true, [65535, 65535, 0]),
         (true, [65535, -1, 0]),
@@ -122,13 +122,13 @@ struct UtilitiesHotKeyTests {
         #expect(UtilitiesHotKey.resolve(enabled: enabled, parameters: parameters, fallback: .showDesktopDefault) == nil)
     }
 
-    @Test("Eintrag fehlt oder ist unvollstaendig: macOS-Standard")
+    @Test("the entry is missing or incomplete: the macOS default")
     func fallback() {
         #expect(UtilitiesHotKey.resolve(enabled: nil, parameters: nil, fallback: .screenshotToolbarDefault) == .screenshotToolbarDefault)
         #expect(UtilitiesHotKey.resolve(enabled: true, parameters: [65535, 103], fallback: .showDesktopDefault) == .showDesktopDefault)
     }
 
-    @Test("Standards: F11, ⌘⇧5, ⌃⌘Q")
+    @Test("The defaults: F11, ⌘⇧5, ⌃⌘Q")
     func defaults() {
         #expect(UtilitiesHotKey.showDesktopDefault == UtilitiesHotKey(keyCode: 103, modifiers: 0))
         #expect(UtilitiesHotKey.screenshotToolbarDefault == UtilitiesHotKey(keyCode: 23, modifiers: 0x02_0000 | 0x10_0000))
@@ -136,27 +136,27 @@ struct UtilitiesHotKeyTests {
     }
 }
 
-@Suite("Utilities-Panel: Night Shift")
+@Suite("The utilities panel: Night Shift")
 struct UtilitiesNightShiftStatusTests {
-    /// Am 14.09. um 16 Uhr gelesen: aus, Zeitplan 22-7 gespeichert, verfuegbar.
+    /// Read on 14.09. at 16:00: off, a 22-7 schedule saved, available.
     static let measuredOff: [UInt8] = [
         1, 0, 0, 0, 0, 0, 0, 0, 22, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
     ]
 
-    @Test("gemessen: aus, obwohl Byte 0 gesetzt ist")
+    @Test("measured: off, although byte 0 is set")
     func measured() {
         #expect(UtilitiesNightShiftStatus.enabled(fromStatus: Self.measuredOff) == false)
     }
 
-    @Test("Byte 1 gesetzt: an")
+    @Test("byte 1 set: on")
     func on() {
         var bytes = Self.measuredOff
         bytes[1] = 1
         #expect(UtilitiesNightShiftStatus.enabled(fromStatus: bytes) == true)
     }
 
-    @Test("nicht verfuegbar oder Puffer zu kurz: nil")
+    @Test("not available or the buffer too short: nil")
     func unavailable() {
         var bytes = Self.measuredOff
         bytes[32] = 0
@@ -164,15 +164,15 @@ struct UtilitiesNightShiftStatusTests {
         #expect(UtilitiesNightShiftStatus.enabled(fromStatus: Array(Self.measuredOff.prefix(32))) == nil)
     }
 
-    @Test("Puffer groesser als das Struct")
+    @Test("a buffer bigger than the struct")
     func buffer() {
         #expect(UtilitiesNightShiftStatus.bufferSize >= 40)
     }
 }
 
-@Suite("Utilities-Panel: neue Schnellschalter")
+@Suite("The utilities panel: the new quick toggles")
 struct UtilitiesQuickToggleLookTests {
-    @Test("Dunkelmodus und Night Shift leuchten, wenn an", arguments: [
+    @Test("Dark mode and Night Shift light up when they are on", arguments: [
         (true, true),
         (false, false),
     ])
@@ -181,21 +181,21 @@ struct UtilitiesQuickToggleLookTests {
         #expect(QuickToggles.nightShift(enabled: on).active == active && QuickToggles.nightShift(enabled: on).enabled)
     }
 
-    @Test("unbekannter Zustand: sichtbar, aber nicht klickbar")
+    @Test("an unknown state: visible, but not clickable")
     func unknown() {
         #expect(!QuickToggles.darkMode(on: nil).enabled && !QuickToggles.darkMode(on: nil).active)
         #expect(!QuickToggles.nightShift(enabled: nil).enabled)
         #expect(QuickToggles.nightShift(enabled: nil).help == "Night Shift Not Available")
     }
 
-    @Test("Aktionen leuchten nie und sind klickbar")
+    @Test("Actions never light up and are clickable")
     func actions() {
         for look in [QuickToggles.screenshot, QuickToggles.colorPicker, QuickToggles.lockScreen, QuickToggles.settings] {
             #expect(!look.active && look.enabled && look.symbol != nil)
         }
     }
 
-    @Test("Schreibtisch: ohne Kurzbefehl nicht klickbar", arguments: [
+    @Test("Desktop: without a shortcut not clickable", arguments: [
         (true, true),
         (false, false),
     ])
@@ -204,7 +204,7 @@ struct UtilitiesQuickToggleLookTests {
         #expect(!QuickToggles.showDesktop(available: available).active)
     }
 
-    @Test("zwei volle Reihen: zehn Knoepfe")
+    @Test("two full rows: ten buttons")
     func grid() {
         #expect(QuickToggles.columns == 5)
     }

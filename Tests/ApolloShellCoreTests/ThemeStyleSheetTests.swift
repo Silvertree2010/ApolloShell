@@ -1,14 +1,14 @@
 import ApolloShellCore
 import Testing
 
-@Suite("Themes: CSS-Teilmenge lesen")
+@Suite("Themes: reading the CSS subset")
 struct ThemeStyleSheetTests {
     private func isIgnoredRule(_ issue: ThemeIssue) -> Bool {
         if case .ignoredRule = issue.kind { return true }
         return false
     }
 
-    @Test("eine Angabe in :root")
+    @Test("one entry in :root")
     func single() {
         let sheet = ThemeStyleSheetParser.parse(":root { --apollo-accent-color: #ff0000; }")
         #expect(sheet.light == [ThemeDeclaration(name: "--apollo-accent-color", value: "#ff0000", line: 1)])
@@ -16,7 +16,7 @@ struct ThemeStyleSheetTests {
         #expect(sheet.issues.isEmpty)
     }
 
-    @Test("Zeilennummern zaehlen Kommentare und Umbrueche mit")
+    @Test("line numbers count comments and breaks in")
     func lineNumbers() {
         let css = """
         /* Ein Kommentar
@@ -32,14 +32,14 @@ struct ThemeStyleSheetTests {
         #expect(sheet.issues.isEmpty)
     }
 
-    @Test("Zeilenenden nach Windows-Art zaehlen gleich")
+    @Test("Windows-style line endings count the same")
     func carriageReturns() {
         let sheet = ThemeStyleSheetParser.parse(":root {\r\n  --apollo-bar-width: 40px;\r\n}\r\n")
         #expect(sheet.light.map(\.line) == [2])
         #expect(sheet.light.first?.value == "40px")
     }
 
-    @Test("dunkle Abweichung aus dem @media-Block")
+    @Test("the dark variant out of the @media block")
     func darkBlock() {
         let css = """
         :root { --apollo-accent-color: red; }
@@ -53,7 +53,7 @@ struct ThemeStyleSheetTests {
         #expect(sheet.issues.isEmpty)
     }
 
-    @Test("Schreibweise der Bedingung ist egal")
+    @Test("the spelling of the condition does not matter")
     func darkConditionSpelling() {
         let sheet = ThemeStyleSheetParser.parse(
             "@media(prefers-color-scheme:dark){:root{--apollo-accent-color:red}}"
@@ -62,13 +62,13 @@ struct ThemeStyleSheetTests {
         #expect(sheet.issues.isEmpty)
     }
 
-    @Test("Namen werden klein geschrieben abgelegt")
+    @Test("names are stored in lower case")
     func lowercasesNames() {
         let sheet = ThemeStyleSheetParser.parse(":root { --APOLLO-Accent-Color: red; }")
         #expect(sheet.light.first?.name == "--apollo-accent-color")
     }
 
-    @Test("was nicht zur Teilmenge gehoert, wird uebersprungen und gemeldet", arguments: [
+    @Test("what does not belong to the subset is skipped and reported", arguments: [
         "@import url(\"other.css\");\n:root { --apollo-bar-width: 40px; }",
         "h1 { color: red; }\n:root { --apollo-bar-width: 40px; }",
         "@media (prefers-color-scheme: light) { :root { --apollo-accent-color: red; } }\n:root { --apollo-bar-width: 40px; }",
@@ -78,46 +78,46 @@ struct ThemeStyleSheetTests {
     ])
     func skipsForeignRules(css: String) {
         let sheet = ThemeStyleSheetParser.parse(css)
-        // Die eine erlaubte Zeile kommt an, der Rest nicht - und man erfaehrt es.
+        // The one allowed line arrives, the rest does not - and one learns of it.
         #expect(sheet.light == [ThemeDeclaration(name: "--apollo-bar-width", value: "40px", line: 2)])
         #expect(sheet.dark.isEmpty)
         #expect(sheet.issues.contains(where: isIgnoredRule))
     }
 
-    @Test("gewoehnliche Eigenschaften in :root stoeren nicht und melden nichts")
+    @Test("ordinary properties in :root do not get in the way and report nothing")
     func plainProperties() {
         let sheet = ThemeStyleSheetParser.parse(":root { color: red; margin: 0; --apollo-bar-width: 40px; }")
         #expect(sheet.light.map(\.name) == ["--apollo-bar-width"])
         #expect(sheet.issues.isEmpty)
     }
 
-    @Test("fremde eigene Eigenschaften bleiben erhalten, stoeren aber nicht")
+    @Test("foreign custom properties are kept but do not get in the way")
     func foreignCustomProperties() {
         let sheet = ThemeStyleSheetParser.parse(":root { --my-blue: #00f; --apollo-bar-width: 40px; }")
         #expect(sheet.light.map(\.name) == ["--my-blue", "--apollo-bar-width"])
         #expect(sheet.issues.isEmpty)
     }
 
-    @Test("die letzte Angabe darf das Semikolon weglassen, ohne den Rest zu verschlucken")
+    @Test("the last entry may leave out the semicolon without swallowing the rest")
     func lastDeclarationWithoutSemicolon() {
         let sheet = ThemeStyleSheetParser.parse(":root { --apollo-bar-width: 40px }\nh1 { color: red }")
         #expect(sheet.light == [ThemeDeclaration(name: "--apollo-bar-width", value: "40px", line: 1)])
         #expect(sheet.issues.contains(where: isIgnoredRule))
     }
 
-    @Test("Semikolon und Klammer in einer Zeichenkette zaehlen nicht")
+    @Test("a semicolon and a bracket in a string do not count")
     func punctuationInStrings() {
         let sheet = ThemeStyleSheetParser.parse(#":root { --apollo-background-image: url("a;b}c.png"); --apollo-bar-width: 40px; }"#)
         #expect(sheet.light.map(\.value) == [#"url("a;b}c.png")"#, "40px"])
     }
 
-    @Test("Kommentar mitten im Wert faellt weg")
+    @Test("a comment in the middle of the value falls away")
     func commentInsideValue() {
         let sheet = ThemeStyleSheetParser.parse(":root { --apollo-bar-width: /* nanu */ 40px; }")
         #expect(sheet.light.first?.value == "40px")
     }
 
-    @Test("dieselbe Angabe zweimal: die letzte gewinnt")
+    @Test("the same entry twice: the last one wins")
     func lastWins() {
         let sheet = ThemeStyleSheetParser.parse(":root { --apollo-bar-width: 40px; --apollo-bar-width: 50px; }")
         #expect(sheet.light.map(\.value) == ["40px", "50px"])
@@ -125,14 +125,14 @@ struct ThemeStyleSheetTests {
         #expect(theme.number(.barWidth) == 50)
     }
 
-    @Test("zwei :root-Bloecke ergaenzen sich")
+    @Test("two :root blocks add up")
     func twoRootBlocks() {
         let sheet = ThemeStyleSheetParser.parse(":root { --apollo-bar-width: 40px; }\n:root { --apollo-bar-radius: 4px; }")
         #expect(sheet.light.count == 2)
         #expect(sheet.issues.isEmpty)
     }
 
-    @Test("kaputte Dateien ergeben nie einen Absturz", arguments: [
+    @Test("broken files never give a crash", arguments: [
         "", " ", "{", "}", "}}}}{{{{", ":::", "@", "@media", "/*", "\"", "'abc",
         ":root {", ":root { --apollo-bar-width", ":root { --apollo-bar-width:",
         ":root { --apollo-background-image: url(\"unfertig",
@@ -143,14 +143,14 @@ struct ThemeStyleSheetTests {
     func brokenInputNeverCrashes(css: String) {
         let sheet = ThemeStyleSheetParser.parse(css)
         let theme = Theme.make(identifier: "kaputt", styleSheet: sheet)
-        // Immer ein benutzbares Theme, und die Hinweise bleiben zaehlbar.
+        // Always a usable theme, and the notices stay countable.
         #expect(theme.color(.accent) == nil)
         #expect(theme.issues.count <= ThemeLimits.standard.maxIssues + 1)
     }
 
-    @Test("Zufallsbytes ergeben ein Theme mit den Vorgaben")
+    @Test("random bytes give a theme with the defaults")
     func randomBytes() {
-        // Fester Startwert: derselbe Lauf ergibt dieselben Zeichen.
+        // A fixed seed: the same run gives the same characters.
         var state: UInt64 = 0x2545_F491_4F6C_DD1D
         func next() -> UInt8 {
             state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
@@ -163,7 +163,7 @@ struct ThemeStyleSheetTests {
         }
     }
 
-    @Test("Obergrenze fuer die Zahl der Angaben")
+    @Test("an upper limit for the number of entries")
     func declarationLimit() {
         let many = (0..<50).map { "--apollo-x\($0): red;" }.joined()
         let sheet = ThemeStyleSheetParser.parse(":root {" + many + "}", limits: ThemeLimits(maxDeclarations: 10))
@@ -171,7 +171,7 @@ struct ThemeStyleSheetTests {
         #expect(sheet.issues.contains { if case .tooManyDeclarations = $0.kind { true } else { false } })
     }
 
-    @Test("Obergrenze fuer die Zahl der Hinweise")
+    @Test("an upper limit for the number of notices")
     func issueLimit() {
         let many = (0..<50).map { "h\($0) { color: red; }" }.joined(separator: "\n")
         let sheet = ThemeStyleSheetParser.parse(many, limits: ThemeLimits(maxIssues: 5))
