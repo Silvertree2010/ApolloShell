@@ -6,26 +6,26 @@ import os
 @main
 @MainActor
 enum LauncherApp {
-    // Statisch gehalten: NSApplication.delegate ist weak.
+    // Kept static: NSApplication.delegate is weak.
     private static let delegate = AppDelegate()
 
     static func main() {
-        // Bildproben (--render-dashboard): zeichnen und enden, bevor
-        // irgendetwas von der Shell startet.
+        // Image samples (--render-dashboard): draw and end before anything
+        // of the shell starts.
         RenderMode.runIfRequested()
         #if DEBUG
-        // Unsichtbarer Selbsttest des Bearbeitungsmodus (--selftest-edit).
+        // Invisible self-test of the edit mode (--selftest-edit).
         EditModeSelfTest.runIfRequested()
         #endif
-        // Nur eine Instanz: eine zweite zeigt die laufende und endet, bevor
-        // sie Fenster, Kuerzel oder Apples Dock anfasst (SingleInstance).
+        // Only one instance: a second one shows the running one and ends
+        // before it touches windows, shortcuts or Apple's Dock (SingleInstance).
         if SingleInstanceGuard.otherInstanceKeepsRunning() {
             SingleInstanceGuard.showRunningInstance()
             exit(0)
         }
         let app = NSApplication.shared
         app.delegate = delegate
-        // Kein Dock-Icon, keine eigene Menueleiste.
+        // No Dock icon, no menu bar of its own.
         app.setActivationPolicy(.accessory)
         app.run()
     }
@@ -41,41 +41,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var sessionMenu: SessionMenu?
     private var dashboard: Dashboard?
     private var utilities: UtilitiesPanel?
-    /// Lautstaerke-Anzeige; lebt fuer sich (reagiert auf Aenderungen).
+    /// Volume display; lives on its own (reacts to changes).
     private var osd: OSD?
     private var desktopClock: DesktopClock?
-    /// Kurzmeldungen unten rechts und wer sie ausloest.
+    /// Toasts at the bottom right and whoever sets them off.
     private var toaster: Toaster?
     private var toastWindow: ToastWindow?
     private var powerToasts: ToastPowerMonitor?
     private var audioToasts: ToastAudioMonitor?
-    /// Einstellungen der Shell (settings.json) - eine Instanz fuer alle, damit
-    /// ein Schalter in Nexus ueberall sofort gilt.
+    /// Settings of the shell (settings.json) - one instance for all, so a
+    /// switch in Nexus takes hold everywhere right away.
     private var settings: ShellSettingsStore?
-    /// Globale Tastenkuerzel aus settings.json (Nexus > Tastenkürzel).
+    /// Global keyboard shortcuts out of settings.json (Nexus > Shortcuts).
     private var hotKeys: HotKeyCenter?
-    /// Einstellungsfenster (Caelestia: Nexus).
+    /// Settings window (Caelestia: Nexus).
     private var nexus: Nexus?
-    /// Eine Bearbeitung der Bento-Seiten (Nexus > Dashboard > Bearbeiten),
-    /// geteilt zwischen Nexus und dem Dashboard-Fenster.
+    /// One editing session of the bento pages (Nexus > Dashboard > Edit),
+    /// shared between Nexus and the dashboard window.
     private var dashboardEditor: DashboardEditor?
-    /// Der globale Bearbeitungsmodus (Nexus > „Oberfläche bearbeiten“, Spec
-    /// Abschnitt 4): Dashboard-Seiten und Kontrollzentrum in einem Zug.
+    /// The global edit mode (Nexus > “Edit Interface”, spec section 4):
+    /// dashboard pages and the control centre in one go.
     private var shellEditor: ShellEditor?
-    /// Scrim, Werkzeugleiste und Galerie des Bearbeitungsmodus (Task 3).
+    /// Scrim, toolbar and gallery of the edit mode (task 3).
     private var editModeWindows: EditModeWindows?
     private var updates: UpdateController?
     private var themes: ThemeStore?
-    /// Einfuehrung beim ersten Start.
+    /// Introduction on the first start.
     private var onboarding: Onboarding?
-    /// Apples eigenes Dock ausblenden, solange ApolloShell laeuft.
+    /// Hide Apple's own Dock while ApolloShell runs.
     private var appleDockHiding: AppleDockHidingController?
-    /// Faengt SIGTERM ab (z. B. `launchctl stop`), damit `terminate()` das
-    /// Dock wiederherstellt statt es versteckt zurueckzulassen - der
-    /// Standard-Handler von SIGTERM raeumt nicht auf.
+    /// Catches SIGTERM (`launchctl stop`, say), so `terminate()` restores the
+    /// Dock instead of leaving it hidden - the default SIGTERM handler does
+    /// not clean up.
     private var sigterm: DispatchSourceSignal?
-    /// Zweiter Start (Finder, Launchpad): Die neue Instanz endet sofort und
-    /// meldet sich hier, siehe `SingleInstanceGuard`.
+    /// A second start (Finder, Launchpad): the new instance ends right away
+    /// and reports here, see `SingleInstanceGuard`.
     private var secondLaunchObserver: (any NSObjectProtocol)?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -85,15 +85,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.showAfterSecondLaunch() }
         }
-        // Auch im Nur-Launcher-Modus gelesen: das Launcher-Kuerzel steht
-        // dort. Geschrieben wird erst, wenn sich etwas aendert.
+        // Read in launcher-only mode as well: the launcher shortcut lives
+        // there. Nothing is written until something changes.
         let settings = ShellSettingsStore(url: NexusPaths.live.settings)
         self.settings = settings
         let dashboardEditor = DashboardEditor(store: settings)
         self.dashboardEditor = dashboardEditor
         let shellEditor = ShellEditor(store: settings, dashboard: dashboardEditor)
         self.shellEditor = shellEditor
-        // Themes: auch im Nur-Launcher-Modus, damit der Launcher mitfaerbt.
+        // Themes: in launcher-only mode too, so the launcher takes the colors.
         themes = ThemeStore(settings: settings)
         let hotKeys = HotKeyCenter(store: settings)
         self.hotKeys = hotKeys
@@ -101,41 +101,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let controller = LauncherController()
         self.controller = controller
-        // Waehrend der globalen Bearbeitung (Task 6) tut das Kuerzel nichts:
-        // der Launcher haette ohnehin keinen Platz neben Scrim und
-        // Werkzeugleiste, und ein Fenster mehr ueber allem stoerte nur.
+        // While the global editing runs (task 6) the shortcut does nothing:
+        // the launcher would have no room next to the scrim and the toolbar
+        // anyway, and one more window above everything would only get in the way.
         hotKeys.setHandler(.launcher) { [weak controller, weak shellEditor] in
             guard shellEditor?.isEditing != true else { return }
             controller?.toggle()
         }
 
-        // Nur-Launcher-Modus: Leiste, Fensterwache, Dashboard, Utilities,
-        // OSD, Uhr, Toasts und Einfuehrung entstehen gar nicht - fuer den
-        // Fall, dass jemand nur den Launcher will oder ein Teil der Shell
-        // stoert. Ein: `defaults write <Bundle-ID> launcherOnly -bool true`,
-        // dann neu starten. Der fruehere Schluessel `nurLauncher` gilt weiter.
+        // Launcher-only mode: bar, window watch, dashboard, utilities, OSD,
+        // clock, toasts and introduction never come about - for the case that
+        // someone wants only the launcher or one part of the shell gets in
+        // the way. On: `defaults write <bundle ID> launcherOnly -bool true`,
+        // then restart. The earlier key `nurLauncher` still counts.
         if LauncherOnlyFlag.isOn({ UserDefaults.standard.object(forKey: $0) }) {
-            log.notice("Nur-Launcher-Modus: Shell-Teile aus")
+            log.notice("Launcher-only mode: shell parts off")
             hotKeys.start()
             return
         }
 
         let autostart = OnboardingAutostartModel()
         let permissions = OnboardingPermissions()
-        // Selbstaktualisierung: startet Sparkle nur, wenn diese Installation
-        // sich selbst erneuern darf (DMG, nicht Homebrew).
+        // Self-updating: starts Sparkle only when this installation may
+        // renew itself (DMG, not Homebrew).
         let updates = UpdateController(settings: settings)
         self.updates = updates
-        // Die Homebrew-Fassung sucht selbst; Sparkle hat seinen eigenen
-        // Zeitplan. Ohne das hier erfuehre man von einer neuen Fassung erst
-        // beim Oeffnen von Nexus > Updates.
+        // The Homebrew build looks by itself; Sparkle has a schedule of its
+        // own. Without this one would only learn of a new version when
+        // opening Nexus > Updates.
         updates.checkInBackgroundIfDue()
         let nexus = Nexus(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions,
                           updates: updates, themes: themes, shellEditor: shellEditor)
         self.nexus = nexus
-        // Waehrend der Bearbeitung (Task 6) tut das Kuerzel nichts: Nexus
-        // steht ja gerade deshalb beiseite (`ShellEditor.begin` ordnet es
-        // aus), das Kuerzel soll es nicht wieder vorholen.
+        // While editing (task 6) the shortcut does nothing: Nexus stands
+        // aside for exactly that reason (`ShellEditor.begin` orders it out),
+        // and the shortcut should not fetch it back.
         hotKeys.setHandler(.nexus) { [weak nexus, weak shellEditor] in
             guard shellEditor?.isEditing != true else { return }
             nexus?.show()
@@ -144,9 +144,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.sidebar = sidebar
         let sessionMenu = SessionMenu()
         self.sessionMenu = sessionMenu
-        // Das Sitzungsmenue kann waehrend der Bearbeitung nicht aufgehen
-        // (Task 6, Spec Abschnitt 4: "the session menu cannot open") - Ab-
-        // und Ausschalten mitten in einer offenen Arbeitskopie waere riskant.
+        // The session menu cannot open while editing (task 6, spec section 4:
+        // "the session menu cannot open") - logging out or shutting down in
+        // the middle of an open working copy would be risky.
         sidebar.onPower = { [weak sessionMenu, weak shellEditor] in
             guard shellEditor?.isEditing != true else { return }
             sessionMenu?.toggle()
@@ -155,15 +155,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         desktopClock = DesktopClock(settings: settings)
         let dashboard = Dashboard(settings: settings, editor: dashboardEditor)
         self.dashboard = dashboard
-        // Der globale Bearbeitungsmodus beginnt auf der Seite, die das
-        // Dashboard gerade zeigt (oder zuletzt zeigte); vor dem ersten
-        // Oeffnen `nil` - dann nimmt `ShellEditor.begin` die erste Seite.
+        // The global edit mode starts on the page the dashboard shows right
+        // now (or showed last); before the first opening `nil` - then
+        // `ShellEditor.begin` takes the first page.
         shellEditor.dashboardStartPageID = { [weak dashboard] in dashboard?.currentPageID }
         sidebar.onDashboard = { [weak dashboard] in dashboard?.toggle() }
         sidebar.onDashboardTab = { [weak dashboard] tab in dashboard?.show(tab: tab) }
         hotKeys.setHandler(.dashboard) { [weak dashboard] in dashboard?.toggle() }
-        // Wetter ohne Ort: der Hinweis im Dashboard oeffnet Nexus direkt bei
-        // Wetter (Nexus > Dashboard).
+        // Weather without a place: the note in the dashboard opens Nexus
+        // right at weather (Nexus > Dashboard).
         dashboard.onOpenNexus { [weak nexus] in nexus?.show(page: .bar) }
         let utilities = UtilitiesPanel(settings: settings, editor: shellEditor)
         self.utilities = utilities
@@ -172,25 +172,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         editModeWindows.utilitiesFrame = { [weak utilities] in utilities?.openFrame }
         editModeWindows.dashboardFrame = { [weak dashboard] in dashboard?.openFrame }
         sidebar.onUtilities = { [weak utilities] in utilities?.toggle() }
-        // Caelestia: der Einstellungs-Knopf der Utilities oeffnet Nexus.
+        // Caelestia: the settings button of the utilities opens Nexus.
         utilities.onOpenSettings = { [weak nexus] in nexus?.show() }
         hotKeys.setHandler(.utilities) { [weak utilities] in utilities?.toggle() }
-        // Alle Handler gesetzt: jetzt registrieren (und bei Aenderungen in
-        // Nexus neu abgleichen).
+        // All handlers set: register now (and match up again on changes in
+        // Nexus).
         hotKeys.start()
-        // Kurzmeldungen: Ladegeraet, Akku-Warnstufen, Audiogeraete. Beim
-        // Start keine - erst Aenderungen danach.
+        // Toasts: charger, battery warning levels, audio devices. None on
+        // the start - only changes after it.
         let toaster = Toaster()
         self.toaster = toaster
-        // Farbpipette der Utilities meldet "Farbe kopiert".
+        // The color picker of the utilities reports "Color Copied".
         utilities.onToast = { [weak toaster] content in toaster?.toast(content) }
         let toastWindow = ToastWindow(toaster: toaster, utilitiesHeight: utilities.height)
         self.toastWindow = toastWindow
         utilities.onVisibilityChange = { [weak toastWindow] open in toastWindow?.utilitiesChanged(open: open) }
-        // Karten oder Reihen geaendert (Nexus vor 0.2, oder live waehrend der
-        // Bearbeitung, Task 5): der Stapel sitzt weiter genau ueber dem
-        // Panel, und die Werkzeugleiste des Bearbeitungsmodus weicht ihm
-        // weiter aus.
+        // Cards or rows changed (Nexus before 0.2, or live while editing,
+        // task 5): the stack goes on sitting exactly above the panel, and
+        // the toolbar of the edit mode goes on getting out of the panel's
+        // way.
         utilities.onHeightChange = { [weak toastWindow, weak editModeWindows] height in
             toastWindow?.utilitiesHeight = height
             editModeWindows?.utilitiesHeightChanged()
@@ -198,28 +198,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         powerToasts = ToastPowerMonitor(toaster: toaster, settings: settings)
         audioToasts = ToastAudioMonitor(toaster: toaster, settings: settings)
 
-        // Frische Installation: die Einfuehrung erklaert die Freigaben und
-        // fragt dann selbst - die Fensterwache fragt deshalb nicht zusaetzlich.
+        // A fresh installation: the introduction explains the permissions and
+        // then asks by itself - so the window watch does not ask on top.
         let showOnboarding = OnboardingRule.shouldShow(settings.settings, launcherOnly: false)
-        // Haelt Fenster aus dem Streifen der Leiste. Ohne
-        // Bedienungshilfen-Freigabe tut sie nichts.
+        // Keeps windows out of the strip of the bar. Without the
+        // accessibility permission it does nothing.
         let windowGuard = WindowGuard(askForAccess: !showOnboarding)
-        // Blendet die Leiste auf Bildschirmen mit Vollbild-App aus.
+        // Hides the bar on screens with a full-screen app.
         fullscreenMonitor = FullscreenMonitor {
             [weak sidebar, weak toaster, weak dashboard, weak utilities] fullscreenScreens in
-            // Nur die Leiste des Bildschirms tritt ab, auf dem Vollbild ist.
+            // Only the bar of the screen that is in full screen steps aside.
             sidebar?.setFullscreenScreens(fullscreenScreens)
-            // Kantenfenster klappen auf dem Vollbild-Bildschirm nicht mehr
-            // auf, auf den anderen schon. Die Kurzmeldungen kennen keinen
-            // Bildschirm: sie bleiben aus, sobald irgendwo Vollbild ist.
+            // The edge windows no longer open on the full-screen screen, on
+            // the others they do. The toasts know no screen: they stay off as
+            // soon as something is full screen anywhere.
             dashboard?.setFullscreen(fullscreenScreens)
             utilities?.setFullscreen(fullscreenScreens)
             toaster?.setHiddenForFullscreen(!fullscreenScreens.isEmpty)
         }
         self.windowGuard = windowGuard
-        // Die Wache haelt den Streifen auf jedem Bildschirm frei, der eine
-        // Leiste hat - und erfaehrt jede Aenderung daran (Bildschirm dazu,
-        // weg, die Einstellung in Nexus geaendert oder eine neue Breite aus
+        // The watch keeps the strip free on every screen that has a bar - and
+        // learns of every change to that (a screen added, removed, the setting
+        // in Nexus changed or a new width out of the theme).
         // dem Theme).
         windowGuard.setBarScreens(Set(sidebar.screens.map(\.key)), barWidth: Sidebar.width)
         sidebar.onScreensChange = { [weak windowGuard] screens in
@@ -232,8 +232,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if showOnboarding { onboarding.show() }
     }
 
-    /// ApolloShell ein zweites Mal geoeffnet: Nexus zeigen, im
-    /// Nur-Launcher-Modus (kein Nexus) den Launcher.
+    /// ApolloShell opened a second time: show Nexus, or the launcher in
+    /// launcher-only mode (no Nexus).
     private func showAfterSecondLaunch() {
         if let nexus {
             nexus.show()
@@ -243,19 +243,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        // Das Dock zuerst: geht schnell, und `utilities.shutdown()` wartet
-        // womoeglich auf eine Administrator-Frage. Bricht launchd das Ende
-        // dabei hart ab, ist das Dock schon wieder da.
+        // The Dock first: it is quick, and `utilities.shutdown()` may well
+        // wait on an administrator prompt. If launchd cuts the end short,
+        // the Dock is already back.
         appleDockHiding?.terminate()
         controller?.close()
         dashboard?.shutdown()
         utilities?.shutdown()
     }
 
-    /// Ignoriert das Standard-SIGTERM (sonst beendet es den Prozess sofort,
-    /// ohne `applicationWillTerminate`) und leitet stattdessen auf dem
-    /// Hauptthread an `NSApp.terminate(nil)` weiter - der normale, saubere
-    /// Weg, ueber den auch ein Quit aus dem Menue laeuft.
+    /// Ignores the default SIGTERM (which would otherwise end the process
+    /// right away, without `applicationWillTerminate`) and hands over to
+    /// `NSApp.terminate(nil)` on the main thread instead - the normal, clean
+    /// way a Quit from the menu takes too.
     private func installSigtermHandling() {
         signal(SIGTERM, SIG_IGN)
         let source = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)

@@ -1,60 +1,60 @@
 import Foundation
 
-/// Was beim Lesen eines Themes aufgefallen ist.
+/// What stood out while a theme was read.
 ///
-/// Ein Hinweis ist nie ein Fehler: das Theme laedt immer, notfalls mit
-/// Vorgaben. Die Hinweise sind fuer den, der das Theme schreibt - Nexus zeigt
-/// sie spaeter an.
+/// A notice is never an error: the theme always loads, with the defaults if
+/// need be. The notices are for whoever writes the theme - Nexus shows them
+/// later.
 ///
-/// Absichtlich nur Daten, kein fertiger Satz: die Oberflaeche uebersetzt
-/// selbst (UI-Text steht in dieser Anwendung auf Deutsch im Code und geht
-/// durch Support/Localization). `description` ist englisch und fuer Protokolle
-/// und Tests gedacht, nicht fuer das Fenster.
+/// Data on purpose, never a finished sentence: the user interface words
+/// it itself. `description` is English and meant for logs and tests, not
+/// for the window.
+///
 public struct ThemeIssue: Equatable, Hashable, Sendable, CustomStringConvertible {
     public enum Kind: Equatable, Hashable, Sendable {
-        /// `--apollo-…`, aber kein Token, das diese Fassung kennt. Ein Theme
-        /// aus einer spaeteren Fassung sieht genau so aus - deshalb nur ein
-        /// Hinweis.
+        /// `--apollo-…`, but no token this version knows. A theme out of a
+        /// later version looks exactly like this - so this is only a notice,
+        /// never an error.
         case unknownToken(String)
-        /// Eine Datei in `icons/`, deren Name keine Symbol-Kennung dieser
-        /// Fassung ist. Wie bei einem unbekannten Token nur ein Hinweis.
+        /// A file in `icons/` whose name is no symbol id of this version.
+        /// Only a notice, as with an unknown token.
         case unknownIcon(String)
-        /// Der Wert passt nicht zum Typ des Tokens. Es gilt die Vorgabe (oder
-        /// der letzte lesbare Wert desselben Tokens).
+        /// The value does not fit the type of the token. The default applies
+        /// (or the last readable value of the same token).
         case unreadableValue(token: String, value: String)
-        /// Der Wert lag ausserhalb des erlaubten Bereichs und wurde geklemmt.
+        /// The value lay outside the allowed range and was clamped.
         case clamped(token: String, value: String, used: String)
-        /// Die Schriftfarbe war auf ihrem Untergrund nicht zu lesen und wurde
-        /// aufgehellt oder abgedunkelt. `dark` sagt, in welchem
-        /// Erscheinungsbild - eine helle Schriftfarbe ohne dunkle Abweichung
-        /// faellt nur dort auf.
+        /// The text color was unreadable on its background and was lightened
+        /// or darkened. `dark` says in which appearance - a light text color
+        /// without a dark variant of its own only stands out in the dark
+        /// one.
         case contrastAdjusted(token: String, requested: String, used: String, dark: Bool)
-        /// Eine Zeile, die nicht zur unterstuetzten CSS-Teilmenge gehoert.
+        /// A line that does not belong to the supported CSS subset.
         case ignoredRule(String)
-        /// Datei, die nicht benutzt werden darf (Pfad zeigt hinaus, zu gross,
-        /// fehlt, falsche Art).
+        /// A file that may not be used (the path leads outside, too big,
+        /// missing, the wrong kind).
         case rejectedAsset(reference: String, reason: ThemeAssetRejection)
-        /// Das Theme nennt eine hoehere Formatnummer, als diese Fassung kennt.
+        /// The theme names a higher format number than this version knows.
         case newerFormat(found: Int, known: Int)
-        /// Die Datei ist groesser als erlaubt und wurde gar nicht gelesen.
+        /// The file is bigger than allowed and was not read at all.
         case styleSheetTooLarge(bytes: Int, limit: Int)
-        /// Kein Text (Nullbytes) - vermutlich versehentlich eine Bilddatei.
+        /// No text (null bytes) - probably an image file by mistake.
         case notText
-        /// Kein gueltiges UTF-8; als Latin-1 gelesen, damit wenigstens die
-        /// ASCII-Zeilen ankommen.
+        /// No valid UTF-8; read as Latin-1, so that at least the ASCII lines
+        /// arrive.
         case notUTF8
-        /// Datei oder Ordner liess sich nicht lesen.
+        /// The file or folder could not be read.
         case unreadableFile(String)
-        /// Mehr Zeilen, als eine Formatvorlage haben darf; der Rest wurde
-        /// uebersprungen.
+        /// More lines than a style sheet may have; the rest of them was
+        /// skipped.
         case tooManyDeclarations(limit: Int)
-        /// Es gab noch mehr Hinweise; gesammelt wird nur bis zur Obergrenze.
+        /// There were more notices; they are only collected up to the limit.
         case moreIssues(dropped: Int)
     }
 
     public let kind: Kind
-    /// Zeile in der CSS-Datei, 1-basiert. `nil`, wenn es keine Zeile gibt
-    /// (Datei zu gross, Ordner unlesbar).
+    /// The line in the CSS file, 1-based. `nil` when there is no line (the
+    /// file is too big, the folder unreadable).
     public let line: Int?
 
     public init(_ kind: Kind, line: Int? = nil) {
@@ -102,23 +102,23 @@ public struct ThemeIssue: Equatable, Hashable, Sendable, CustomStringConvertible
     }
 }
 
-/// Warum eine Datei aus einem Theme nicht benutzt wird. Die ersten vier
-/// Gruende sind Sicherheit: ein Theme darf nur aus dem eigenen Ordner lesen.
+/// Why a file out of a theme is not used. The first four reasons are
+/// security: a theme may only read out of its own folder.
 public enum ThemeAssetRejection: Error, Equatable, Hashable, Sendable, CustomStringConvertible {
-    /// `..`, ein absoluter Pfad oder `~` - zeigt aus dem Ordner hinaus.
+    /// `..`, an absolute path or `~` - points out of the folder.
     case escapesFolder
-    /// `http:`, `file:`, `data:` und alles andere mit Schema.
+    /// `http:`, `file:`, `data:` and everything else with a scheme.
     case notALocalPath
-    /// Nach dem Aufloesen von Verknuepfungen liegt die Datei ausserhalb.
+    /// After resolving links the file lies outside.
     case outsideThemeFolder
-    /// Ein einzelnes .css-Theme hat keinen eigenen Ordner und damit keine
-    /// Dateien - wer Bilder will, macht einen Ordner mit theme.css.
+    /// A single-file .css theme has no folder of its own and therefore no
+    /// files - whoever wants images makes a folder with theme.css in it.
     case needsThemeFolder
-    /// Gibt es nicht oder ist keine gewoehnliche Datei.
+    /// Does not exist or is no ordinary file.
     case missing
-    /// Groesser als erlaubt.
+    /// Bigger than allowed.
     case tooLarge(bytes: Int, limit: Int)
-    /// Keine der erlaubten Bildendungen.
+    /// None of the allowed image extensions.
     case unsupportedType(String)
 
     public var description: String {
@@ -134,8 +134,8 @@ public enum ThemeAssetRejection: Error, Equatable, Hashable, Sendable, CustomStr
     }
 }
 
-/// Sammelt Hinweise und hoert bei einer Obergrenze auf - eine Datei aus
-/// Zufallsbytes soll nicht Tausende Hinweise in den Speicher schreiben.
+/// Collects notices and stops at a limit - a file of random bytes should not
+/// write thousands of notices into memory.
 struct ThemeIssueLog {
     private(set) var issues: [ThemeIssue] = []
     private var dropped = 0
@@ -163,8 +163,8 @@ struct ThemeIssueLog {
         }
     }
 
-    /// Am Ende: die gesammelten Hinweise, notfalls mit dem Vermerk, wie viele
-    /// fehlen.
+    /// At the end: the collected notices, with a note of how many are
+    /// missing if need be.
     func finished() -> [ThemeIssue] {
         dropped == 0 ? issues : issues + [ThemeIssue(.moreIssues(dropped: dropped))]
     }

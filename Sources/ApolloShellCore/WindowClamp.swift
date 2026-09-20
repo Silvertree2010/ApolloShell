@@ -1,40 +1,39 @@
 import CoreGraphics
 
-/// Geometrie fuer die Fensterwache: fremde Fenster sollen nicht unter die
-/// linke Leiste laufen, so wie sie auch nicht unter den Dock laufen.
+/// Geometry for the window watch: other apps' windows should not run under
+/// the left bar, just as they do not run under the Dock.
 ///
-/// macOS kennt keine Schnittstelle, um Bildschirmplatz zu reservieren (der
-/// `visibleFrame` gehoert allein Dock und Menueleiste). Die App schiebt
-/// Fenster deshalb nachtraeglich per Bedienungshilfen zur Seite; hier steht
-/// nur die reine Rechnung, damit sie ohne Fenster testbar ist.
+/// macOS knows no interface for reserving screen space (`visibleFrame`
+/// belongs to the Dock and the menu bar alone). The app therefore pushes
+/// windows aside afterwards through the accessibility API; only the plain
+/// arithmetic lives here, so it is testable without windows.
 ///
-/// Alle Rechtecke in EINEM Koordinatensystem. Die App rechnet in
-/// Bedienungshilfen-Koordinaten (Ursprung oben links am Hauptbildschirm, y
-/// nach unten), weil Fensterposition und -groesse dort so ankommen. Fuer das
-/// Zurechtruecken selbst spielt die Richtung von y keine Rolle: es aendert
-/// nur x und Breite.
+/// All rectangles in ONE coordinate system. The app works in accessibility
+/// coordinates (origin at the top left of the main screen, y downwards),
+/// because window position and size arrive that way. For the nudging itself
+/// the direction of y does not matter: it only changes x and the width.
 public enum WindowClamp {
-    /// Bruchteile eines Punkts ignorieren: Apps runden Positionen gern auf
-    /// ganze Punkte, sonst wuerde ein Fenster bei x = 43.5 ewig nachgeschoben.
+    /// Ignore fractions of a point: apps like to round positions to whole
+    /// points, otherwise a window at x = 43.5 would be pushed forever.
     public static let tolerance: CGFloat = 0.5
 
-    /// Neuer Rahmen fuer ein Fenster, das in den reservierten Streifen am
-    /// linken Rand von `screen` ragt, oder `nil`, wenn nichts zu tun ist.
+    /// A new frame for a window that reaches into the reserved strip at the
+    /// left edge of `screen`, or `nil` when there is nothing to do.
     ///
-    /// Zwei Faelle, weil sie verschieden entstanden sind:
-    /// - Linke Kante genau am Bildschirmrand: das hat das System oder die App
-    ///   so gelegt (Zoomen, "Fuellen", Kacheln links, Maximieren). Dann bleibt
-    ///   die rechte Kante stehen und das Fenster wird schmaler - so wie diese
-    ///   Befehle mit einem links angedockten Dock rechnen. Sonst wuerde eine
-    ///   linke Kachel in die rechte hineingeschoben.
-    /// - Sonst (von Hand halb daruntergezogen, links ueber den Rand
-    ///   haengend): verschieben und die Groesse behalten. Nur wenn es dabei
-    ///   rechts ueber den Bildschirm hinauslaufen wuerde, schmaler machen -
-    ///   aber nie weiter nach rechts reichen lassen, als es schon reichte.
+    /// Two cases, because they came about differently:
+    /// - The left edge exactly at the screen edge: the system or the app put
+    ///   it there (zoom, "fill", tile left, maximise). Then the right edge
+    ///   stays put and the window gets narrower - the way those commands
+    ///   reckon with a Dock docked on the left. Otherwise a left tile would
+    ///   be pushed into the right one.
+    /// - Otherwise (dragged halfway under it by hand, hanging over the left
+    ///   edge): move it and keep the size. Only when it would then run past
+    ///   the screen on the right, make it narrower - but never let it reach
+    ///   further right than it already did.
     ///
-    /// `minWidth` ist die kleinste Breite, die die App zulaesst (gelernt aus
-    /// einer abgelehnten Verkleinerung, sonst 0). Schmaler wird es nie; dann
-    /// wird eben nur verschoben und das Fenster reicht weiter nach rechts.
+    /// `minWidth` is the smallest width the app allows (learned from a
+    /// refused shrink, otherwise 0). It never gets narrower than that; then
+    /// it is only moved and the window reaches further right.
     public static func clampedFrame(
         window: CGRect,
         screen: CGRect,
@@ -58,10 +57,10 @@ public enum WindowClamp {
         return result
     }
 
-    /// Index des Bildschirms, auf dem der groesste Teil des Fensters liegt,
-    /// oder `nil`, wenn es auf keinem liegt. Nur Fenster des Hauptbildschirms
-    /// werden zurechtgerueckt; eines, das nur mit einem Zipfel von einem
-    /// Bildschirm links daneben herueberragt, gehoert zu jenem.
+    /// Index of the screen that holds the largest part of the window, or
+    /// `nil` when it lies on none. Only windows of the main screen are
+    /// nudged; one that reaches over with just a corner from a screen to the
+    /// left belongs to that one.
     public static func dominantScreen(for window: CGRect, among screens: [CGRect]) -> Int? {
         var best: (index: Int, area: CGFloat)?
         for (index, screen) in screens.enumerated() {
@@ -75,32 +74,32 @@ public enum WindowClamp {
         return best?.index
     }
 
-    /// AppKit (Ursprung unten links, y nach oben) <-> Bedienungshilfen
-    /// (Ursprung oben links am Hauptbildschirm, y nach unten). Die Abbildung
-    /// ist ihre eigene Umkehrung, deshalb eine Funktion fuer beide Richtungen.
-    /// `primaryHeight` ist die Hoehe des Bildschirms mit der Menueleiste.
+    /// AppKit (origin at the bottom left, y upwards) <-> accessibility
+    /// (origin at the top left of the main screen, y downwards). The mapping
+    /// is its own inverse, hence one function for both directions.
+    /// `primaryHeight` is the height of the screen with the menu bar.
     public static func flipped(_ rect: CGRect, primaryHeight: CGFloat) -> CGRect {
         CGRect(x: rect.minX, y: primaryHeight - rect.maxY, width: rect.width, height: rect.height)
     }
 
-    /// Gleich bis auf Rundung.
+    /// Equal but for rounding.
     public static func isSameFrame(_ a: CGRect, _ b: CGRect) -> Bool {
         abs(a.minX - b.minX) <= tolerance && abs(a.minY - b.minY) <= tolerance
             && abs(a.width - b.width) <= tolerance && abs(a.height - b.height) <= tolerance
     }
 }
 
-/// Merkt sich pro Fenster, was die Wache zuletzt getan hat, damit sie sich
-/// nicht mit einer App oder mit sich selbst in eine Schleife verbeisst.
+/// Remembers per window what the watch did last, so it does not lock itself
+/// into a loop with an app or with itself.
 ///
-/// - Echo: Das eigene Verschieben loest wieder "bewegt"-Meldungen aus. Steht
-///   das Fenster noch genau dort, wo es nach dem letzten Eingriff stand, hat
-///   es niemand bewegt - nichts tun. Gespeichert wird der danach GELESENE
-///   Rahmen, nicht der gewuenschte: eine App, die nur halb nachgibt (z.B.
-///   Mindestbreite), soll nicht immer wieder angestossen werden.
-/// - Gegenwehr: Manche Apps legen ihr Fenster sofort zurueck. Mehr als
-///   `maxAttempts` Eingriffe innerhalb von `period` Sekunden, dann Ruhe, bis
-///   die Frist abgelaufen ist.
+/// - Echo: our own move sets off "moved" notifications again. When the window
+///   still stands exactly where it stood after the last intervention, nobody
+///   moved it - do nothing. What is stored is the frame READ afterwards, not
+///   the wanted one: an app that only half gives in (a minimum width, say)
+///   should not be nudged over and over.
+/// - Resistance: some apps put their window straight back. More than
+///   `maxAttempts` interventions within `period` seconds, then quiet until
+///   the deadline has passed.
 public struct ClampLedger<Key: Hashable> {
     public var maxAttempts: Int
     public var period: Double
@@ -113,26 +112,26 @@ public struct ClampLedger<Key: Hashable> {
         self.period = period
     }
 
-    /// Darf das Fenster (mit diesem aktuellen Rahmen) jetzt angefasst werden?
-    /// `now` in Sekunden auf einer beliebigen, monoton steigenden Uhr.
+    /// May the window (with this current frame) be touched right now?
+    /// `now` in seconds on any monotonically rising clock.
     public mutating func shouldClamp(_ key: Key, current: CGRect, now: Double) -> Bool {
         if let last = lastFrames[key], WindowClamp.isSameFrame(last, current) {
             return false
         }
-        // Abgelaufene Versuche wegwerfen; leere Eintraege gar nicht erst
-        // speichern, sonst waechst das Buch mit jedem je gesehenen Fenster.
+        // Throw away expired attempts; do not store empty entries in the
+        // first place, otherwise the book grows with every window ever seen.
         let recent = (attempts[key] ?? []).filter { now - $0 < period }
         attempts[key] = recent.isEmpty ? nil : recent
         return recent.count < maxAttempts
     }
 
-    /// Nach einem Eingriff: den danach gelesenen Rahmen merken.
+    /// After an intervention: remember the frame read afterwards.
     public mutating func record(_ key: Key, result: CGRect, now: Double) {
         lastFrames[key] = result
         attempts[key, default: []].append(now)
     }
 
-    /// Fenster geschlossen oder App beendet.
+    /// Window closed or app ended.
     public mutating func forget(_ key: Key) {
         lastFrames[key] = nil
         attempts[key] = nil
@@ -143,6 +142,6 @@ public struct ClampLedger<Key: Hashable> {
         for key in attempts.keys where predicate(key) { attempts[key] = nil }
     }
 
-    /// Wie viele Fenster gerade gemerkt sind (fuer Tests und das Log).
+    /// How many windows are remembered right now (for tests and the log).
     public var count: Int { Set(lastFrames.keys).union(attempts.keys).count }
 }
