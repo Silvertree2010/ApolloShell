@@ -171,6 +171,9 @@ final class FloatingGlassPanel<Content: View> {
     var isVisible: Bool { panel.isVisible }
     var frame: NSRect { panel.frame }
     var level: Int { panel.level.rawValue }
+    #if DEBUG
+    var debugWindow: NSWindow { panel }
+    #endif
 
     #if DEBUG
     /// Self-test: a click (press, release) sent directly to this window,
@@ -245,6 +248,9 @@ final class EditModeScrimPanel {
 
     var isVisible: Bool { panel.isVisible }
     var level: Int { panel.level.rawValue }
+    #if DEBUG
+    var debugWindow: NSWindow { panel }
+    #endif
 
     #if DEBUG
     /// Self-test: click in the center of the scrim.
@@ -542,6 +548,13 @@ final class EditModeWindows {
     func debugClickToolbar(fromTopLeft point: NSPoint) { toolbar?.debugClick(fromTopLeft: point) }
     func debugClickScrim() { scrims.values.first(where: \.isVisible)?.debugClickCenter() }
     func debugClickGallery(fromTopLeft point: NSPoint) { gallery?.debugClick(fromTopLeft: point) }
+    /// For the window-manager check of the self-test: every window of the
+    /// mode with a name, in the order they are stacked.
+    var debugWindows: [(String, NSWindow)] {
+        scrims.values.enumerated().map { ("scrim \($0.offset + 1)", $0.element.debugWindow) }
+            + [toolbar.map { ("toolbar", $0.debugWindow) }, gallery.map { ("gallery", $0.debugWindow) }].compactMap { $0 }
+    }
+
     var debugPanelLevels: [Int] {
         scrims.values.map(\.level) + [toolbar?.level, gallery?.level].compactMap { $0 }
     }

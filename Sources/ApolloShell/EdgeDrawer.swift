@@ -301,6 +301,9 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     var openFrame: NSRect? { isOpen ? builtPanel?.frame : nil }
     #if DEBUG
     var debugLevel: Int? { builtPanel?.level.rawValue }
+    /// For the window-manager check of the self-test: the window as it
+    /// stands, built if it does not exist yet.
+    var debugWindow: NSWindow { panel }
 
     /// Self-test: a drag with the left button straight to this window,
     /// points in the hosting view from the top left (like SwiftUI's `.global`).
@@ -825,9 +828,14 @@ final class DrawerPanel: ShellPanel {
     /// `.stationary` instead of `.transient`, a non-standard subrole and
     /// out of the window menu. Unpinning restores the three previous
     /// values.
+    /// Unpinned it says `.systemDialog` instead of nothing: that is what
+    /// AppKit hands out for a panel like this anyway (measured on the bar,
+    /// which sets nothing), and a value that is written down is one the
+    /// self-test can read. Both values are non-standard, so yabai and
+    /// Amethyst leave the window alone either way.
     func setPinned(_ pinned: Bool) {
         collectionBehavior = pinned ? Self.pinnedBehavior : Self.unpinnedBehavior
-        setAccessibilitySubrole(pinned ? .unknown : nil)
+        setAccessibilitySubrole(pinned ? .unknown : .systemDialog)
         isExcludedFromWindowsMenu = pinned
     }
 }

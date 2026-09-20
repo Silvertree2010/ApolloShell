@@ -151,6 +151,7 @@ final class Dashboard {
     var openFrame: NSRect? { drawer.openFrame }
     #if DEBUG
     var debugLevel: Int? { drawer.debugLevel }
+    var debugWindow: NSWindow { drawer.debugWindow }
     func debugClose() { drawer.close() }
     var debugScale: CGFloat { model.scale }
     var debugIsOpen: Bool { drawer.isOpen }

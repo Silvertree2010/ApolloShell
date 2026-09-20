@@ -78,6 +78,7 @@ final class SidebarScreen {
     #if DEBUG
     /// For the invisible self-test: the level the bar window stands at.
     var debugLevel: Int { panel.level.rawValue }
+    var debugWindow: NSWindow { panel }
     /// For the invisible self-test: whether this bar was built with the
     /// edit mode's editor. The view it hosts is handed the editor once, at
     /// build time - without one the blocks stay calm however long the mode

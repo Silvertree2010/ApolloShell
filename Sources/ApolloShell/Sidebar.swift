@@ -141,6 +141,7 @@ final class Sidebar {
     #if DEBUG
     /// For the invisible self-test: the levels of the bars that stand now.
     var debugLevels: [Int] { bars.values.map(\.debugLevel) }
+    var debugWindows: [NSWindow] { bars.values.map(\.debugWindow) }
     /// For the invisible self-test: every bar that stands knows the editor.
     var debugBarsKnowEditor: Bool { !bars.isEmpty && bars.values.allSatisfy(\.debugHasEditor) }
     #endif

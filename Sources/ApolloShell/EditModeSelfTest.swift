@@ -340,10 +340,77 @@ private final class EditModeSelfTestHarness {
         check(!dashboard.debugIsOpen, "The dashboard shortcut closes it")
     }
 
+    /// Window managers and bars (spec section 4, "bombenfest"): the shell's
+    /// own windows must not be tiled, moved or hidden by AeroSpace, yabai,
+    /// Amethyst or Rectangle. What they actually look at, from their source:
+    ///
+    /// - yabai (`src/window.c`): manages a window only when its role is
+    ///   `AXWindow` **and** its subrole `AXStandardWindow`, on the normal
+    ///   window layer. `AXUnknown` counts as "unknown" and is skipped.
+    /// - Amethyst (`Window.swift`, `shouldBeManaged`): needs a movable
+    ///   window **and** the subrole `AXStandardWindow`.
+    /// - AeroSpace (`MacWindow.swift`): sorts each window into
+    ///   popup/dialog/window by `getAxUiElementWindowType(windowId,
+    ///   windowLevel, …)`; anything on a level of its own lands in the
+    ///   popup container and is never tiled.
+    /// - Rectangle only acts on the focused window, and none of these
+    ///   panels can become key (`ShellPanel.canBecomeKey`).
+    ///
+    /// So the measurement below is: no window of the shell reports the
+    /// standard subrole, none is movable, none sits on the normal level.
+    /// A bar (SketchyBar, Übersicht) is just another window - it cannot
+    /// reach these either, it can only stack above or below them, which
+    /// the level check covers.
+    private func windowManagerSafety() async {
+        guard let screen = NSScreen.screens.first else { return }
+        editor.begin(screen: screen)
+        await wait(0.8)
+        var windows: [(String, NSWindow)] = windows_ofTheMode()
+        windows.append(("dashboard (pinned)", dashboard.debugWindow))
+        windows.append(("control centre (pinned)", utilities.debugWindow))
+        for (index, bar) in sidebar.debugWindows.enumerated() {
+            windows.append(("bar \(index + 1) (editing)", bar))
+        }
+        checkWindowManagerFlags(of: windows)
+        editor.cancel()
+        await wait(0.6)
+        // Outside the mode the drawers give their subrole back
+        // (`DrawerPanel.setPinned(false)`) - measure that too, a shell that
+        // is not being edited stands on the screen far longer.
+        var calm: [(String, NSWindow)] = [("dashboard (calm)", dashboard.debugWindow),
+                                          ("control centre (calm)", utilities.debugWindow)]
+        for (index, bar) in sidebar.debugWindows.enumerated() {
+            calm.append(("bar \(index + 1) (calm)", bar))
+        }
+        checkWindowManagerFlags(of: calm)
+    }
+
+    private func windows_ofTheMode() -> [(String, NSWindow)] { windows.debugWindows }
+
+    private func checkWindowManagerFlags(of list: [(String, NSWindow)]) {
+        for (name, window) in list {
+            let subrole = window.accessibilitySubrole()?.rawValue ?? "-"
+            let role = window.accessibilityRole()?.rawValue ?? "-"
+            let level = window.level.rawValue
+            note("\(name): role \(role), subrole \(subrole), level \(level), "
+                 + "movable \(window.isMovable), window menu \(!window.isExcludedFromWindowsMenu)")
+            // A window without a subrole of its own would leave AppKit's
+            // default to be guessed at - and the guess is what the two
+            // tilers read. So it has to say something, and not "standard".
+            check(subrole != "-" && subrole != "AXStandardWindow",
+                  "\(name): says a subrole of its own, and not the standard one (yabai, Amethyst tile only those)")
+            check(!window.isMovable, "\(name): not movable (Amethyst needs movable)")
+            check(level != NSWindow.Level.normal.rawValue, "\(name): on a level of its own (AeroSpace sorts it as a popup)")
+            check(!window.canBecomeKey || window.isExcludedFromWindowsMenu,
+                  "\(name): out of the window menu, or it cannot take the keyboard anyway")
+        }
+    }
+
     private func scenario() async {
         await normalUse()
         await probeScaledDrag()
         await sidebar()
+        await windowManagerSafety()
         for screen in NSScreen.screens {
             note("Screen \(r(screen.frame)), visible \(r(screen.visibleFrame))")
         }

@@ -42,6 +42,7 @@ final class UtilitiesPanel {
     var openFrame: NSRect? { drawer.openFrame }
     #if DEBUG
     var debugLevel: Int? { drawer.debugLevel }
+    var debugWindow: NSWindow { drawer.debugWindow }
     func debugClose() { drawer.close() }
     /// `point` measured from the top edge of the window.
     func debugClick(fromTop point: CGPoint) {
