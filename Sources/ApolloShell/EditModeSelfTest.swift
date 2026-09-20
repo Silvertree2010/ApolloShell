@@ -339,6 +339,7 @@ private final class EditModeSelfTestHarness {
     private func scenario() async {
         await normalUse()
         await probeScaledDrag()
+        await sidebar()
         for screen in NSScreen.screens {
             note("Screen \(r(screen.frame)), visible \(r(screen.visibleFrame))")
         }
@@ -430,6 +431,66 @@ private final class EditModeSelfTestHarness {
         }
     }
 
+    /// The sidebar in the mode (bar plan, task 3): selecting, adding out of
+    /// the gallery, a kind that may exist only once, reordering, removing -
+    /// and what Cancel and Done do with all of it. The blocks themselves
+    /// are drawn in the bar window, which this test does not build; what is
+    /// checked here is the working copy behind them.
+    private func sidebar() async {
+        guard let screen = NSScreen.screens.first else { return }
+        let before = store.settings.bar.layout.entries.map(\.kind)
+        editor.begin(screen: screen)
+        await wait(0.6)
+        guard let session = editor.bar else {
+            check(false, "The mode opens a working copy of the bar")
+            editor.cancel()
+            return
+        }
+        check(session.layout.entries.map(\.kind) == before, "The working copy starts as the bar stands")
+
+        let clock = session.layout.entries.first { $0.kind == .clock }?.id
+        editor.selectedBarEntryID = clock
+        check(editor.selectedBarEntryID == clock, "A click on a block selects it")
+
+        let addedID = editor.addBarModule(.battery)
+        check(addedID != nil, "The gallery adds a block")
+        check(editor.selectedBarEntryID == addedID, "A new block is selected right away")
+        check(editor.bar?.layout.entries.contains { $0.kind == .battery } == true, "The battery stands in the working copy")
+        check(editor.addBarModule(.dock) == nil, "A second Dock is refused")
+
+        if let addedID, let first = editor.bar?.layout.entries.first?.id {
+            editor.moveBarModule(addedID, onto: first)
+            check(editor.bar?.layout.entries.first?.id == addedID, "Dragging a block to the top moves it there")
+        }
+        check(editor.hasChanges, "The bar counts as a change of the mode")
+        check(store.settings.bar.layout.entries.map(\.kind) == before, "Nothing is written while editing")
+
+        editor.cancel()
+        await wait(0.5)
+        check(store.settings.bar.layout.entries.map(\.kind) == before, "Cancel leaves the bar as it was")
+        check(editor.bar == nil, "The working copy is gone after the cancel")
+
+        // The same once more, this time kept.
+        editor.begin(screen: screen)
+        await wait(0.6)
+        let removable = editor.bar?.layout.entries.first { $0.kind == .clock }?.id
+        if let removable {
+            editor.selectedBarEntryID = removable
+            editor.removeBarModule(removable)
+            check(editor.selectedBarEntryID == nil, "Minus on the selected block clears the selection")
+        }
+        editor.addBarModule(.cpu)
+        editor.done()
+        await wait(0.6)
+        let after = store.settings.bar.layout.entries.map(\.kind)
+        check(!after.contains(.clock), "Done keeps the removal")
+        check(after.contains(.cpu), "Done keeps the new block")
+        check(editor.bar == nil, "The working copy is gone after Done")
+        note("bar after Done: \(after.map(\.rawValue).joined(separator: ", "))")
+        dashboard.debugClose(); utilities.debugClose()
+        await wait(0.4)
+    }
+
     /// One whole pass on one screen.
     private func pass(on screen: NSScreen) async {
         note("--- pass on \(r(screen.frame))")
@@ -495,12 +556,18 @@ private final class EditModeSelfTestHarness {
                 check(!grown.intersects(dashboardFrame), "The gallery with the note keeps clear of the dashboard \(r(grown))")
             }
         }
-        // Tabs by click: the right half of the tab row (16 margin, 36 high).
+        // Tabs by click: the tab row (16 margin, 36 high) holds three equal
+        // capsules since the sidebar joined - so the far right is the
+        // sidebar, and the middle third the control centre.
         if let gallery = windows.debugGalleryFrame {
+            let row = gallery.width - 32
             // Far out in the tab, not on the text: the whole capsule counts.
             windows.debugClickGallery(fromTopLeft: NSPoint(x: gallery.width - 16 - 20, y: 16 + 18))
             await wait(0.4)
-            check(editor.galleryTab == .controlCentre, "A click far out in the “Control Centre” tab (not on the text) switches")
+            check(editor.galleryTab == .bar, "A click far out in the “Sidebar” tab (not on the text) switches")
+            windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + row * 2 / 3 - 8, y: 16 + 18))
+            await wait(0.4)
+            check(editor.galleryTab == .controlCentre, "A click at the edge of the middle tab switches to the control centre")
             // The “Show all (advanced)” checkbox below it, at the left margin.
             let before = editor.showsAllInGallery
             windows.debugClickGallery(fromTopLeft: NSPoint(x: 16 + 60, y: 16 + 36 + 12 + 10))
