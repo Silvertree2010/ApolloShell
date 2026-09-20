@@ -144,11 +144,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard shellEditor?.isEditing != true else { return }
             nexus?.show()
         }
-        let sidebar = Sidebar(settings: settings)
-        self.sidebar = sidebar
         // The bars draw their edit surface while the global mode runs, and
-        // stand above its scrim for as long as it lasts.
-        sidebar.editor = shellEditor
+        // stand above its scrim for as long as it lasts. The editor goes in
+        // on the way in: `Sidebar.init` builds the bars right away.
+        let sidebar = Sidebar(settings: settings, editor: shellEditor)
+        self.sidebar = sidebar
         shellEditor.addBeginHandler { [weak sidebar] _ in sidebar?.setEditing(true) }
         shellEditor.addEndHandler { [weak sidebar] in sidebar?.setEditing(false) }
         let sessionMenu = SessionMenu()

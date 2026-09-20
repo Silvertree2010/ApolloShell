@@ -25,6 +25,9 @@ final class SidebarScreen {
     var onPopoutOpen: (ObjectIdentifier) -> Void = { _ in }
 
     init(screen: ShellScreen, settings: ShellSettingsStore, context: BarModuleContext, editor: ShellEditor? = nil) {
+        #if DEBUG
+        debugHasEditor = editor != nil
+        #endif
         info = screen.info
         frame = screen.frame
         visibleTop = screen.visibleFrame.maxY
@@ -75,6 +78,11 @@ final class SidebarScreen {
     #if DEBUG
     /// For the invisible self-test: the level the bar window stands at.
     var debugLevel: Int { panel.level.rawValue }
+    /// For the invisible self-test: whether this bar was built with the
+    /// edit mode's editor. The view it hosts is handed the editor once, at
+    /// build time - without one the blocks stay calm however long the mode
+    /// runs (20.09.).
+    private(set) var debugHasEditor = false
     #endif
 
     /// While the global edit mode runs, the bar has to stand above its

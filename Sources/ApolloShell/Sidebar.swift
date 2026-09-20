@@ -79,11 +79,16 @@ final class Sidebar {
     /// right away on every change.
     /// The global edit mode, so the bars can show their edit surface.
     /// `nil` in previews and image samples: then they only ever draw the
-    /// calm bar.
-    weak var editor: ShellEditor?
+    /// calm bar. Handed over in `init`, not set afterwards: the bars are
+    /// built right there, and each one hands its editor to the view it
+    /// hosts once - a bar built without one never shows an edit surface,
+    /// however late the editor arrives (20.09.: that was why the blocks
+    /// stayed calm while the rest of the shell was being edited).
+    private(set) weak var editor: ShellEditor?
 
-    init(settings: ShellSettingsStore) {
+    init(settings: ShellSettingsStore, editor: ShellEditor? = nil) {
         self.settings = settings
+        self.editor = editor
         // The file manager above comes from the settings (Nexus > Providers).
         dock = SidebarDockModel(settings: settings)
         // Weather provider likewise from the settings, as in the Dashboard.
@@ -136,6 +141,8 @@ final class Sidebar {
     #if DEBUG
     /// For the invisible self-test: the levels of the bars that stand now.
     var debugLevels: [Int] { bars.values.map(\.debugLevel) }
+    /// For the invisible self-test: every bar that stands knows the editor.
+    var debugBarsKnowEditor: Bool { !bars.isEmpty && bars.values.allSatisfy(\.debugHasEditor) }
     #endif
 
     func setEditing(_ editing: Bool) {

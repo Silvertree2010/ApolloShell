@@ -53,8 +53,7 @@ private final class PerfRigHarness {
         dashboard = Dashboard(settings: store, editor: dashboardEditor)
         utilities = UtilitiesPanel(settings: store, editor: editor)
         windows = EditModeWindows(editor: editor)
-        sidebar = Sidebar(settings: store)
-        sidebar.editor = editor
+        sidebar = Sidebar(settings: store, editor: editor)
         editor.addBeginHandler { [weak sidebar] _ in sidebar?.setEditing(true) }
         editor.addEndHandler { [weak sidebar] in sidebar?.setEditing(false) }
         editor.dashboardStartPageID = { [weak dashboard] in dashboard?.currentPageID }
