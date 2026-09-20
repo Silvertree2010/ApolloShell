@@ -239,6 +239,8 @@ final class ShellEditor {
             dashboard.selectedWidgetID = nil
         } else if selectedToggleID != nil {
             selectedToggleID = nil
+        } else if selectedBarEntryID != nil {
+            selectedBarEntryID = nil
         } else if dashboard.renamingPageID != nil {
             dashboard.renamingPageID = nil
         } else if galleryVisible {
@@ -336,6 +338,10 @@ final class ShellEditor {
 
     func moveBarModule(_ id: String, by step: Int) {
         bar?.move(id: id, by: step)
+    }
+
+    func moveBarModule(_ id: String, onto target: String) {
+        bar?.move(id: id, onto: target)
     }
 
     var selectedBarEntryID: String? {

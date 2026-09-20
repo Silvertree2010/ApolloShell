@@ -142,6 +142,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let sidebar = Sidebar(settings: settings)
         self.sidebar = sidebar
+        // The bars draw their edit surface while the global mode runs, and
+        // rebuild themselves when it begins and ends (below).
+        sidebar.editor = shellEditor
         let sessionMenu = SessionMenu()
         self.sessionMenu = sessionMenu
         // The session menu cannot open while editing (task 6, spec section 4:

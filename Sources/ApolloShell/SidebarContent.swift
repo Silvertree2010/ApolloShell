@@ -17,10 +17,26 @@ import SwiftUI
 struct SidebarContent: View {
     let settings: ShellSettingsStore
     let context: BarModuleContext
+    /// The global edit mode; `nil` in previews and image samples. While it
+    /// edits, the bar draws the edit surface (`BarEditOverlay.swift`)
+    /// instead of these blocks - the calm bar below stays untouched.
+    var editor: ShellEditor?
 
     @Environment(\.shellStyle) private var style
 
     var body: some View {
+        if let editor, editor.isEditing, let session = editor.bar {
+            EditableBarContent(editor: editor, layout: session.layout, context: context,
+                               spacing: style.barItemSpacing(8))
+                .padding(.vertical, style.barPadding(10))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            calmBar
+        }
+    }
+
+    @ViewBuilder
+    private var calmBar: some View {
         let entries = settings.settings.bar.layout.entries
         // With a theme, `--apollo-bar-item-spacing` and `--apollo-bar-padding`
         // set the gap between the blocks and the margin.

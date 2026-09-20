@@ -139,6 +139,17 @@ enum RenderMode {
         editor.galleryTab = .bar
         try write(EditGalleryView(editor: editor).environment(\.galleryRendersForScreenshot, true), scheme: .light,
                  to: editFolder.appendingPathComponent("gallery-bar-light.png"))
+        // The sidebar while editing (task 3 of the bar plan): a block
+        // selected, the minus badges visible. The wobble itself is not in
+        // the sample - `ImageRenderer` draws one fixed moment.
+        editor.selectedBarEntryID = editor.bar?.layout.entries.first { $0.kind == .clock }?.id
+        let barView = EditableBarContent(editor: editor, layout: editor.bar?.layout ?? BarLayout(),
+                                         context: NexusBarPreviewModels.context, spacing: 8)
+            .environment(\.barPreview, true)
+            .environment(\.dashboardRendersForScreenshot, true)
+            .padding(.vertical, 10)
+            .frame(width: Sidebar.width, height: 520)
+        try write(barView, scheme: .light, to: editFolder.appendingPathComponent("bar-editing-light.png"))
         // The control centre while editing (task 5): one button selected -
         // `ImageRenderer` does not draw the wobble itself (a fixed snapshot
         // in the middle of the endless loop), but the frame, the minus badge

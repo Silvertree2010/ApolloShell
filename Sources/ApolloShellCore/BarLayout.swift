@@ -519,6 +519,13 @@ public struct BarLayout: Codable, Equatable, Sendable {
         blocks.move(id: id, by: step)
     }
 
+    /// To the place of another block - everything in between moves along a
+    /// step. For dragging in the bar, where the dragged block travels along
+    /// visibly.
+    public mutating func move(id: String, onto target: String) {
+        blocks.move(id: id, onto: target)
+    }
+
     // MARK: Migration
 
     /// From the switches before the construction kit (bar.showWorkspaces

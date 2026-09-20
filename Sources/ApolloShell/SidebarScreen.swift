@@ -24,7 +24,7 @@ final class SidebarScreen {
     /// This popout opens - the manager closes the others.
     var onPopoutOpen: (ObjectIdentifier) -> Void = { _ in }
 
-    init(screen: ShellScreen, settings: ShellSettingsStore, context: BarModuleContext) {
+    init(screen: ShellScreen, settings: ShellSettingsStore, context: BarModuleContext, editor: ShellEditor? = nil) {
         info = screen.info
         frame = screen.frame
         visibleTop = screen.visibleFrame.maxY
@@ -33,7 +33,7 @@ final class SidebarScreen {
         // in the same GlassEffectContainer does the popout merge with the
         // bar.
         let hosting = FirstMouseHostingView(
-            rootView: SidebarRoot(settings: settings, context: context, popout: popout.model).shellTheme()
+            rootView: SidebarRoot(settings: settings, context: context, popout: popout.model, editor: editor).shellTheme()
         )
         // Without this the view has a say in the window size and fights with
         // `layout()` as soon as the window grows wider for a popout.

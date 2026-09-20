@@ -18,6 +18,8 @@ struct SidebarRoot: View {
     let settings: ShellSettingsStore
     let context: BarModuleContext
     let popout: StatusPopoutModel
+    /// The global edit mode; `nil` in previews and image samples.
+    var editor: ShellEditor?
     /// The measured size of every content: that way the target size stands
     /// before the bulge sets off, and a content loaded later (Bluetooth only
     /// reads after the opening) glides to its new height.
@@ -41,7 +43,7 @@ struct SidebarRoot: View {
                 Color.clear
                     .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: Sidebar.width, bulge: bulge),
                                            background: settings.settings.bar.background))
-                SidebarContent(settings: settings, context: context)
+                SidebarContent(settings: settings, context: context, editor: editor)
                     .frame(width: Sidebar.width)
                     .frame(maxHeight: .infinity)
                 popoutContent(size: size, top: top, bulge: bulge, open: open)

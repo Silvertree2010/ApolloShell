@@ -77,6 +77,11 @@ final class Sidebar {
     /// `settings`: which building blocks in which order and on which
     /// screens (Nexus > Bar). SwiftUI observes it and rebuilds the bars
     /// right away on every change.
+    /// The global edit mode, so the bars can show their edit surface.
+    /// `nil` in previews and image samples: then they only ever draw the
+    /// calm bar.
+    weak var editor: ShellEditor?
+
     init(settings: ShellSettingsStore) {
         self.settings = settings
         // The file manager above comes from the settings (Nexus > Providers).
@@ -165,7 +170,7 @@ final class Sidebar {
         let placed = slots.distribute(
             on: settings.settings.bar.screens,
             make: { screen in
-                let bar = SidebarScreen(screen: screen, settings: settings, context: context)
+                let bar = SidebarScreen(screen: screen, settings: settings, context: context, editor: editor)
                 bar.onPopoutOpen = { [weak self] id in self?.closePopouts(except: id) }
                 return bar
             },

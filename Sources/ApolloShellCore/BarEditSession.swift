@@ -51,4 +51,9 @@ public struct BarEditSession: Equatable, Sendable {
     public mutating func move(id: String, by step: Int) {
         layout.move(id: id, by: step)
     }
+
+    /// To the place of another block, for dragging in the bar.
+    public mutating func move(id: String, onto target: String) {
+        layout.move(id: id, onto: target)
+    }
 }
