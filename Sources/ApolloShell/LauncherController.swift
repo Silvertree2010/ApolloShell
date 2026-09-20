@@ -4,31 +4,31 @@ import QuartzCore
 import SwiftUI
 import os
 
-/// Oeffnet und schliesst den Launcher: Panel unten mittig, dort wo frueher
-/// der Dock sass. Apples Dock laesst der Launcher in Ruhe: frueher liess er
-/// ihn beim Oeffnen wegfahren - einen dauerhaft ausgeblendeten Dock wuerde
-/// das beim Schliessen wieder hervorholen.
+/// Opens and closes the launcher: a panel at the bottom centre, where the Dock
+/// used to sit. The launcher leaves Apple's Dock in peace: it used to make it
+/// slide away on opening - which would have fetched a permanently hidden Dock
+/// back out on closing.
 @MainActor
 final class LauncherController {
-    /// Sichtbare Groesse.
+    /// The visible size.
     static let size = NSSize(width: 560, height: 520)
-    /// Buendig an der Unterkante wie die Kantenfenster (frueher schwebte er
-    /// 12 pt ueber dem Rand - ohne sichtbaren Apple-Dock wirkte das
-    /// losgeloest): das Fenster ragt um den Eckenradius unter den Bildschirm
-    /// - die unteren Ecken liegen ausserhalb (`EdgeDrawer`, Kante unten).
+    /// Flush with the bottom edge like the edge windows (it used to float 12 pt
+    /// above the edge - without a visible Apple Dock that looked detached): the
+    /// window sticks out below the screen by the corner radius - the bottom
+    /// corners lie outside (`EdgeDrawer`, the bottom edge).
     static let cornerRadius: CGFloat = 26
 
-    /// Startet der Launcher selbst eine App, meldet macOS das kurz danach
-    /// noch einmal als Programmstart. Innerhalb dieses Fensters nicht doppelt
-    /// zaehlen.
+    /// When the launcher starts an app itself, macOS reports that shortly
+    /// afterwards as an app launch once more. Do not count it twice within this
+    /// window.
     private static let ownLaunchWindow: TimeInterval = 10
 
     private let model = LauncherModel()
     private let catalog = AppCatalog()
     private let usage = UsageStore()
     private let log = Logger(category: "controller")
-    /// Waechst aus der Mitte der Unterkante heraus (`DrawerMotion.grow`),
-    /// dort wo der Zeiger steht.
+    /// Grows out of the middle of the bottom edge (`DrawerMotion.grow`), where
+    /// the pointer stands.
     private let drawer: EdgeDrawer<LauncherView>
     private var ownLaunches: [String: Date] = [:]
 
@@ -59,9 +59,9 @@ final class LauncherController {
         drawer.close()
     }
 
-    /// Rechtsklick auf eine Zeile: dasselbe Menue wie im Dock der Leiste,
-    /// also das der App selbst, dazu Oeffnen und der Sprung in den
-    /// Dateimanager. Das Lesen dauert einen Moment, deshalb geht das Menue
+    /// A right click on a row: the same menu as in the Dock of the bar, so the
+    /// one of the app itself, plus Open and the jump into the file manager. The
+    /// reading takes a moment, so the menu only opens afterwards.
     /// erst danach auf.
     private func showMenu(for app: AppEntry, at view: NSView) {
         Task { @MainActor [weak self] in
@@ -78,8 +78,8 @@ final class LauncherController {
                 NativeAppMenu.append(nodes, to: menu, bundleID: bundleID)
                 menu.addItem(.separator())
             } else if let running = LauncherController.runningApp(app) {
-                // Apples Dock kennt die App nicht: die Befehle aus ihrer
-                // eigenen Menueleiste.
+                // Apple's Dock does not know the app: the commands out of its
+                // own menu bar.
                 let commands = DockAppCommands.commands(pid: running.processIdentifier)
                 for command in commands {
                     menu.addItem(ClosureMenuItem(command.title) { [weak self] in
@@ -97,20 +97,20 @@ final class LauncherController {
         }
     }
 
-    /// Die laufende Instanz zu einem Eintrag, `nil` wenn sie nicht laeuft.
+    /// The running instance for an entry, `nil` when it is not running.
     private static func runningApp(_ app: AppEntry) -> NSRunningApplication? {
         guard let bundleID = app.bundleID else { return nil }
         return NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == bundleID }
     }
 
-    /// Einen Befehl der App ausfuehren - derselbe Weg wie im Dock-Menue:
-    /// den Menuepunkt ueber die Bedienungshilfen druecken.
+    /// Carry out a command of the app - the same way as in the Dock menu: press
+    /// the menu item through the accessibility API.
     private func run(_ kind: DockCommandKind, of app: AppEntry) {
         close()
         guard let running = LauncherController.runningApp(app),
               let command = DockAppCommands.commands(pid: running.processIdentifier).first(where: { $0.kind == kind })
         else {
-            // Laeuft sie doch nicht mehr: dann eben normal starten.
+            // It is not running after all: then start it normally.
             launch(app)
             return
         }
@@ -129,10 +129,10 @@ final class LauncherController {
         }
     }
 
-    // MARK: - Nutzung auch ausserhalb des Launchers zaehlen
+    // MARK: - Counting use outside the launcher too
 
-    /// Starts ueber Dock, Finder oder Spotlight zaehlen fuer die Sortierung
-    /// genauso. Nur echte Apps mit Fenster, keine Hintergrunddienste.
+    /// Launches through the Dock, the Finder or Spotlight count for the order
+    /// just the same. Only real apps with a window, no background services.
     private func observeAppLaunches() {
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didLaunchApplicationNotification,

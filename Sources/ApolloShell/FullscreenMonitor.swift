@@ -2,23 +2,23 @@ import AppKit
 import ApolloShellCore
 import os
 
-/// Merkt, auf welchen Bildschirmen gerade eine Vollbild-App steht. Dort
-/// tritt die Leiste ab, und die Kanten oeffnen nichts.
+/// Notices which screens have a full-screen app on them right now. The bar
+/// steps aside there, and the edges open nothing.
 ///
-/// Ein Panel mit `.canJoinAllSpaces` erscheint auf macOS 26 auch in
-/// Vollbild-Spaces (die sind auch nur Spaces), egal ob mit oder ohne
-/// `.fullScreenAuxiliary`. Deshalb wird je Bildschirm nachgesehen, ob sein
-/// aktiver Space eine Vollbild-App ist (`SpaceList.fullscreenDisplays`).
+/// A panel with `.canJoinAllSpaces` appears in full-screen spaces on macOS 26
+/// too (those are spaces as well), with or without `.fullScreenAuxiliary`. So
+/// it is looked up per screen whether its active space is a full-screen app
+/// (`SpaceList.fullscreenDisplays`).
 ///
-/// Gefragt wird der Space, nicht die Vordergrund-App: ein Vollbild-Video
-/// auf dem einen Bildschirm bleibt Vollbild, waehrend auf dem anderen ein
-/// Fenster den Fokus hat. Braucht keine Freigabe.
+/// What is asked is the space, not the foreground app: a full-screen video on
+/// one screen stays full screen while a window has the focus on the other.
+/// Needs no permission.
 @MainActor
 final class FullscreenMonitor {
-    /// Vollbild an/aus und Space-Wechsel sind animiert; der aktive Space
-    /// stimmt womoeglich erst danach. Deshalb gleich einmal (damit die
-    /// Leiste moeglichst schnell verschwindet) und nach der Animation noch
-    /// einmal.
+    /// Full screen on and off and space changes are animated; the active space
+    /// may only be right afterwards. So it looks once right away (so that the
+    /// bar disappears as quickly as possible) and once more after the
+    /// animation.
     static let checks: [TimeInterval] = [0.05, 0.4, 1.0]
 
     private let reader = SpaceReader()
@@ -27,8 +27,8 @@ final class FullscreenMonitor {
     private var pending: [DispatchWorkItem] = []
     private let log = Logger(category: "fullscreen")
 
-    /// `onChange` bekommt die Bildschirme, auf denen Vollbild ist - bei
-    /// jeder Aenderung, nie doppelt.
+    /// `onChange` gets the screens that are in full screen - on every change,
+    /// never twice.
     init(onChange: @escaping (Set<CGDirectDisplayID>) -> Void) {
         self.onChange = onChange
         guard reader != nil else {
@@ -39,8 +39,8 @@ final class FullscreenMonitor {
         scheduleChecks()
     }
 
-    /// Lebt so lange wie der Prozess (AppDelegate haelt ihn); die
-    /// Beobachter halten ihn nur schwach und werden nie entfernt.
+    /// Lives as long as the process (AppDelegate holds it); the observers hold
+    /// it only weakly and are never removed.
     private func observeSystem() {
         let workspace = NSWorkspace.shared.notificationCenter
         for name in [
@@ -67,14 +67,14 @@ final class FullscreenMonitor {
         }
     }
 
-    /// Nicht lesbar oder gerade kein Bildschirm da: der alte Stand bleibt.
+    /// Not readable or no screen there right now: the old state stays.
     private func refresh() {
         guard let reader, let identifiers = SpaceList.fullscreenDisplays(reader.displays()) else { return }
         let screens = ShellScreens.current()
         guard !screens.isEmpty else { return }
         let next: Set<CGDirectDisplayID>
         if identifiers.contains(SpaceList.sharedDisplayIdentifier.uppercased()) {
-            // Gemeinsame Spaces: ein Vollbild-Space gilt fuer alle.
+            // Shared spaces: one full-screen space holds for all of them.
             next = Set(screens.map(\.displayID))
         } else {
             next = Set(screens.compactMap { screen in

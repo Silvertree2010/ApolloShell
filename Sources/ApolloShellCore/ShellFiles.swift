@@ -1,44 +1,44 @@
 import Foundation
 
-/// Wo ApolloShell seine Dateien ablegt, an einer Stelle:
-/// ~/Library/Application Support/ApolloShell/. Bisher leitete jede Datei den
-/// Ordner selbst her, teils ueber eine andere (`PinnedApps.url` aus
+/// Where ApolloShell puts its files, in one place:
+/// ~/Library/Application Support/ApolloShell/. Until now every file worked the
+/// folder out itself, partly through another one (`PinnedApps.url` out of
 /// `UsageStore.defaultURL`).
 ///
-/// Die Namen sind Teil des Formats: bestehende Installationen lesen genau
-/// diese Dateien, ein Test haelt sie fest. Nie umbenennen.
+/// The names are part of the format: existing installations read exactly these
+/// files, and a test pins them down. Never rename them.
 public struct ShellFiles: Sendable {
-    /// Der Ordner, in dem alle Dateien liegen.
+    /// The folder all the files lie in.
     public let directory: URL
 
-    /// Ein eigener Ordner, z. B. fuer Bildproben und Tests.
+    /// A folder of one's own, for image samples and tests, say.
     public init(directory: URL) {
         self.directory = directory
     }
 
-    /// Name des Ordners unter Application Support.
+    /// The name of the folder under Application Support.
     public static let folderName = "ApolloShell"
 
-    /// Der echte Ordner des angemeldeten Benutzers.
+    /// The real folder of the logged-in user.
     public static var live: ShellFiles {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return ShellFiles(directory: support.appendingPathComponent(folderName, isDirectory: true))
     }
 
-    /// Einstellungen (Nexus), siehe `ShellSettings`.
+    /// The settings (Nexus), see `ShellSettings`.
     public var settings: URL { file("settings.json") }
-    /// Angeheftete Apps des Launchers.
+    /// The pinned apps of the launcher.
     public var pinned: URL { file("pinned.json") }
-    /// Nutzungsstatistik fuer die Reihenfolge im Launcher.
+    /// The usage statistics for the order in the launcher.
     public var usage: URL { file("usage.json") }
-    /// Wetterorte und Favoriten.
+    /// The weather places and favourites.
     public var weather: URL { file("weather.json") }
-    /// Gesicherte Werte von Apples Dock, solange es versteckt ist.
+    /// The saved values of Apple's Dock while it is hidden.
     public var appleDock: URL { file("apple-dock.json") }
-    /// Merker: ApolloShell hat den Ruhezustand bei zugeklapptem Deckel
-    /// abgeschaltet und muss ihn wieder einschalten.
+    /// The marker: ApolloShell switched sleep with the lid closed off and has
+    /// to switch it back on.
     public var lidAwakeMarker: URL { file("lid-awake") }
-    /// Ordner mit den Themes, siehe `ThemeLoader`.
+    /// The folder with the themes, see `ThemeLoader`.
     public var themes: URL { ThemeLoader.folder(inApplicationSupport: directory) }
 
     private func file(_ name: String) -> URL {
@@ -46,14 +46,14 @@ public struct ShellFiles: Sendable {
     }
 }
 
-// MARK: - Lesen und Schreiben
+// MARK: - Reading and writing
 
-/// Schreiben ohne halbe Dateien. Hiess `NexusFile`, schreibt aber auch fuer
-/// Launcher und Wetter.
+/// Writing without half files. It was called `NexusFile`, but it writes for
+/// the launcher and the weather too.
 public extension ShellFiles {
-    /// `.atomic`: erst in eine Nachbardatei, dann umbenennen. Launcher und
-    /// Wetter lesen ihre Datei bei jedem Oeffnen - sie sehen die alte oder
-    /// die neue, nie eine halb geschriebene.
+    /// `.atomic`: into a neighbouring file first, then rename. The launcher and
+    /// the weather read their file on every opening - they see the old one or
+    /// the new one, never a half-written one.
     static func write(_ data: Data, to url: URL) throws {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try data.write(to: url, options: .atomic)
@@ -63,17 +63,17 @@ public extension ShellFiles {
         url.flatMap { try? Data(contentsOf: $0) }
     }
 
-    /// Eine Datei, die nicht zu lesen war, neben das Original kopieren
-    /// (`<Name>.unreadable`), bevor das naechste Speichern sie ersetzt. Wer
-    /// sie von Hand kaputt bearbeitet hat, verliert so nichts.
+    /// Copy a file that could not be read next to the original
+    /// (`<name>.unreadable`) before the next save replaces it. Whoever edited
+    /// it broken by hand loses nothing that way.
     static func preserveUnreadable(_ url: URL) {
         let copy = url.appendingPathExtension("unreadable")
         try? FileManager.default.removeItem(at: copy)
         try? FileManager.default.copyItem(at: url, to: copy)
     }
 
-    /// Ist das ueberhaupt ein JSON-Objekt? Einzelne falsche Werte liest
-    /// ShellSettings nachsichtig; hier geht es um eine ganz kaputte Datei.
+    /// Is this a JSON object at all? Single wrong values are read leniently by
+    /// ShellSettings; this is about a file that is broken entirely.
     static func isJSONObject(_ data: Data) -> Bool {
         (try? JSONSerialization.jsonObject(with: data)) is [String: Any]
     }
