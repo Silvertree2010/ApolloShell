@@ -13,7 +13,7 @@
 - Repo `~/projects/private/apolloshell-0.2`, branch `release/0.2`. Never push, never `./build.sh`, never start the app normally, never touch `~/Applications` or `~/Library/Application Support/ApolloShell`. Visual checks only through the render mode (`.build/debug/ApolloShell --render-dashboard <dir>`), renders under `/private/tmp/claude-501/-Users-andrin/682a6faf-d551-4585-9c5b-045f6c3eb083/scratchpad/renders/`.
 - The render comparison must stay as it is now for the normal (non-edit) pages: `python3 scripts/compare-renders.py <baseline> <new>` → 6 files `gleich`, the two `dashboard-*` files at 555/565 px (known calendar rounding, see spec "Testing"). Check this after Tasks 3 and 5.
 - Build `SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk swift build --product ApolloShell`; tests `./test.sh --filter <Suite>`, full run once at the end.
-- Comments German with ASCII spelling; UI strings German with umlauts plus English lines in `Support/Localization/en/Nexus.strings` or `Dashboard.strings`; `python3 scripts/check-l10n.py` clean.
+- Comments and UI strings in English; there is no strings file to keep up any more.
 - Commit per task, one English imperative line, no Co-Authored-By. Only `git add` files you changed.
 - Motion: reuse the shell's curves (`Animation.shellSpatial` etc. in `ShellMotion.swift`), respect `accessibilityReduceMotion`.
 

@@ -14,7 +14,7 @@
 - Build: `SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk swift build --product ApolloShell`. Render: `.build/debug/ApolloShell --render-dashboard <dir>`.
 - Baseline renders of the 0.1 dashboard: `/private/tmp/claude-501/-Users-andrin/682a6faf-d551-4585-9c5b-045f6c3eb083/scratchpad/renders/baseline` (8 PNGs: `dashboard|media|performance|weather` × `light|dark`). If missing, recreate them from commit `68dc3c2` in a temporary `git worktree` (build + render there), never by editing current code back.
 - Tests: `./test.sh --filter <Suite>`; full `./test.sh` once at the end.
-- Comments German with ASCII spelling, UI strings German with umlauts plus English lines in `Support/Localization/en/*.strings`; `python3 scripts/check-l10n.py` must stay clean.
+- Comments and UI strings in English; there is no strings file to keep up any more.
 - Commit per task, one English imperative line, no Co-Authored-By.
 - Nexus keeps compiling but is not reworked here (part 4). The old Nexus dashboard editor may temporarily edit `settings.dashboard` without effect on the dashboard; that is accepted on this branch.
 

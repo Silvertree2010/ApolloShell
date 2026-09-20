@@ -16,7 +16,7 @@
 - Run tests with `./test.sh` (plain `swift test` fails with the Command Line Tools). Targeted: `./test.sh --filter <SuiteTypeName>`. Full run only at the end of a task group, not after every step (the suite has ~760 tests and loads the CPU).
 - Reference page: 839 × 392 points, spacing 12 (`DashboardGeometry.width/height/spacing`). Never hard-code these three numbers; use the constants.
 - Stable IDs written to `settings.json` are never renamed: widget IDs `weather user clock calendar resources media performance.cpu performance.gpu performance.storage performance.network performance.memory performance.battery weather.hero weather.hourly weather.daily media.player`; template IDs `overview media performance weather`.
-- Code comments in German with ASCII spelling (ue, ae, oe, ss), like the rest of the code. UI strings in German with real umlauts; every new `String(localized:)` string needs an English line in `Support/Localization/en/Dashboard.strings`.
+- Code comments and UI strings in English, like the rest of the code. There is no strings file to keep up any more (the German translation layer went with 0.2).
 - Decoding is lenient everywhere (`c.lenient(...)`, `LenientList`): a broken entry falls back or drops out, it never fails the whole file.
 - Commit after every task. Message style like the repo: one English imperative line ("Add the widget catalog"). No `Co-Authored-By` trailer, no session IDs.
 
@@ -32,7 +32,6 @@
 | `Sources/ApolloShellCore/DashboardPages.swift` (create) | `PageTemplate`, `DashboardPage`, `DashboardPages` |
 | `Sources/ApolloShellCore/DashboardPagesDefaults.swift` (create) | preset pages, migration from `DashboardLayout` |
 | `Sources/ApolloShellCore/ShellSettings.swift` (modify) | `dashboardPages`, `dashboardScale` |
-| `Support/Localization/en/Dashboard.strings` (modify) | new widget titles |
 | `Tests/ApolloShellCoreTests/…` | one test file per new source file, plus additions |
 
 ---
@@ -77,11 +76,11 @@ import Testing
 @Suite("Wetter-Orte als Teil von settings.json (0.2)")
 struct WeatherFavoritesCodableTests {
     private let zurich = WeatherLocation(id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
-                                         name: "Zürich", latitude: 47.37, longitude: 8.54)
+                                         name: "Zurich", latitude: 47.37, longitude: 8.54)
     private let chur = WeatherLocation(id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
                                        name: "Chur", latitude: 46.85, longitude: 9.53)
 
-    @Test("Hin und zurueck: gleiche Orte, gleicher gewaehlter")
+    @Test("There and back: the same places, the same chosen one")
     func roundTrip() throws {
         let favorites = WeatherFavorites(locations: [zurich, chur], selectedID: chur.id)
         let data = try JSONEncoder().encode(favorites)
@@ -96,7 +95,7 @@ struct WeatherFavoritesCodableTests {
         #expect(try encoder.encode(favorites) == favorites.fileData())
     }
 
-    @Test("Nachsichtig: Ort ausserhalb der Erde faellt weg, fehlende Wahl = erster")
+    @Test("Lenient: a place off the Earth falls away, a missing choice = the first")
     func lenient() throws {
         let json = #"{"favorites":[{"name":"X","latitude":95,"longitude":0},{"id":"00000000-0000-0000-0000-000000000002","name":"Chur","latitude":46.85,"longitude":9.53}]}"#
         let favorites = try JSONDecoder().decode(WeatherFavorites.self, from: Data(json.utf8))
@@ -213,7 +212,6 @@ git commit -m "Give the clock a time zone and make weather places codable"
 
 **Files:**
 - Create: `Sources/ApolloShellCore/WidgetCatalog.swift`
-- Modify: `Support/Localization/en/Dashboard.strings`
 - Test: `Tests/ApolloShellCoreTests/WidgetCatalogTests.swift`
 
 **Interfaces:**
@@ -256,7 +254,7 @@ struct WidgetCatalogTests {
         }
     }
 
-    @Test("Groessen der Uebersicht", arguments: [
+    @Test("The sizes of the overview", arguments: [
         (WidgetKind.weather, "275-839x130 200-839x250 200-839x392"),
         (.user, "230-839x130 200-839x250 200-839x392"),
         (.clock, "110-839x130 110-839x250 110-839x392"),
@@ -268,7 +266,7 @@ struct WidgetCatalogTests {
         #expect(text(kind.sizes) == expected)
     }
 
-    @Test("Groessen der Seiten Leistung, Wetter, Medien", arguments: [
+    @Test("The sizes of the performance, weather and media pages", arguments: [
         (WidgetKind.performanceCPU, "343-414x191"),
         (.performanceGPU, "343-414x191"),
         (.performanceStorage, "169-240x189"),
@@ -410,14 +408,14 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         return switch self {
         case .performanceCPU: "CPU"
         case .performanceGPU: "GPU"
-        case .performanceStorage: String(localized: "Speicher")
-        case .performanceNetwork: String(localized: "Netzwerk")
-        case .performanceMemory: String(localized: "Arbeitsspeicher")
-        case .performanceBattery: String(localized: "Akku")
-        case .weatherHero: String(localized: "Wetterübersicht")
-        case .weatherHourly: String(localized: "Stündlich")
-        case .weatherDaily: String(localized: "Nächste Tage")
-        case .mediaPlayer: String(localized: "Wiedergabe")
+        case .performanceStorage: String(localized: "Storage")
+        case .performanceNetwork: String(localized: "Network")
+        case .performanceMemory: String(localized: "Memory")
+        case .performanceBattery: String(localized: "Battery")
+        case .weatherHero: String(localized: "Weather overview")
+        case .weatherHourly: String(localized: "Hourly")
+        case .weatherDaily: String(localized: "Next days")
+        case .mediaPlayer: String(localized: "Play")
         case .weather, .user, .clock, .calendar, .resources, .media: ""
         }
     }
@@ -547,13 +545,8 @@ public enum WeatherPageGeometry {
 }
 ```
 
-Append to `Support/Localization/en/Dashboard.strings` only the keys that are not in that file yet (check with `grep '^"Speicher"' Support/Localization/en/Dashboard.strings` etc.). Expected new lines:
-
-```
-"Wetterübersicht" = "Weather overview";
-"Stündlich" = "Hourly";
-"Nächste Tage" = "Next days";
-```
+The widget titles stand in English in the code; there is no strings file to
+keep up any more (the German translation layer went with 0.2).
 
 - [ ] **Step 4: Run to see it pass**
 
@@ -563,7 +556,7 @@ Expected: PASS. If `placementsAreAllowed` fails, print the failing frame; the ru
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/ApolloShellCore/WidgetCatalog.swift Tests/ApolloShellCoreTests/WidgetCatalogTests.swift Support/Localization/en/Dashboard.strings
+git add Sources/ApolloShellCore/WidgetCatalog.swift Tests/ApolloShellCoreTests/WidgetCatalogTests.swift
 git commit -m "Add the widget catalog with the sizes the dashboard has today"
 ```
 
@@ -608,7 +601,7 @@ struct WidgetInstanceTests {
         #expect(WidgetOptions.defaults(for: .performanceCPU) == WidgetOptions())
     }
 
-    @Test("Hin und zurueck")
+    @Test("There and back")
     func roundTrip() throws {
         let widget = WidgetInstance(kind: .clock, frame: WidgetFrame(x: 0, y: 142, width: 110, height: 250),
                                     options: WidgetOptions(clock: DashboardClockOptions(timeZone: "Asia/Tokyo")))
@@ -652,7 +645,7 @@ Expected: compile error, `WidgetInstance` unknown.
 import Foundation
 
 /// The frame of a widget on the page, in reference points from the top left
-/// links (Seite 839 x 392, `DashboardGeometry`). Gespeichert als ganze Punkte.
+/// left (a page of 839 x 392, `DashboardGeometry`). Stored as whole points.
 public struct WidgetFrame: Codable, Equatable, Hashable, Sendable {
     public var x: Double
     public var y: Double
@@ -682,7 +675,7 @@ public struct WidgetFrame: Codable, Equatable, Hashable, Sendable {
 /// The options of a widget. Every kind reads only its own field (the clock
 /// `clock`, ...), the others stay `nil` and do not stand in the file.
 /// When the field of its own kind is missing, its defaults hold (`?? .init()` in
-/// der Ansicht).
+/// the view).
 public struct WidgetOptions: Codable, Equatable, Sendable {
     public var weather: DashboardWeatherOptions?
     public var user: DashboardUserOptions?
@@ -1116,7 +1109,7 @@ struct DashboardPagesTests {
     }
     private func clock(_ frame: WidgetFrame) -> WidgetInstance { WidgetInstance(kind: .clock, frame: frame) }
 
-    @Test("Seite behaelt nur gueltige Widgets, in Reihenfolge")
+    @Test("A page keeps only valid widgets, in order")
     func normalizes() {
         let a = clock(f(0, 0, 110, 130))
         let tooClose = clock(f(115, 0, 110, 130))
@@ -1356,7 +1349,7 @@ public struct DashboardPages: Codable, Equatable, Sendable {
     public init(from decoder: any Decoder) throws {
         let list = try LenientList<DashboardPage>(from: decoder)
         guard let value = DashboardPages(pages: list.values) else {
-            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "keine Seite"))
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "no page"))
         }
         self = value
     }
@@ -1472,7 +1465,7 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Umzug von 0.1.x und mitgelieferte Seiten")
+@Suite("The migration from 0.1.x and the pages that ship with the app")
 struct DashboardMigrationTests {
     private let chur = WeatherLocation(name: "Chur", latitude: 46.85, longitude: 9.53)
     private var places: WeatherFavorites { WeatherFavorites(locations: [chur], selectedID: chur.id) }
@@ -1531,7 +1524,7 @@ struct DashboardMigrationTests {
         ])
     }
 
-    @Test("Seiten Wetter und Medien")
+    @Test("The weather and media pages")
     func weatherAndMedia() {
         #expect(frames(PageTemplate.weather.defaultPage(places: places, hasBattery: true)) == [
             "weather.hero 0,0 839x116", "weather.hourly 0,128 839x108", "weather.daily 0,248 839x144",

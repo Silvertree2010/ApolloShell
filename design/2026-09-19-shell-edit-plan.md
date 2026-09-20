@@ -15,7 +15,7 @@
 - Repo `~/projects/private/apolloshell-0.2`, branch `release/0.2`. Never push, never `./build.sh`, never start the app normally, never touch `~/Applications` or `~/Library/Application Support/ApolloShell`. Visual checks only via render mode into `/private/tmp/claude-501/-Users-andrin/682a6faf-d551-4585-9c5b-045f6c3eb083/scratchpad/renders/`.
 - Non-edit dashboard renders must keep today's comparison against `renders/baseline` (6 `gleich`, dashboard-* 555/565 px).
 - Build `SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk swift build --product ApolloShell`; tests `./test.sh --filter <Suite>`; full `./test.sh` once at the end.
-- German ASCII comments; UI strings German + English line in `Support/Localization/en/*.strings`; `python3 scripts/check-l10n.py` clean.
+- Comments and UI strings in English; there is no strings file to keep up any more.
 - Commit per task, one English imperative line, no Co-Authored-By, only `git add` your files.
 - Reuse existing motion curves and `ShellStyle`; respect Reduce Motion (dashed outline instead of wobble).
 
