@@ -3,21 +3,21 @@ import ApolloShellCore
 import Observation
 import SwiftUI
 
-/// Einfuehrung beim ersten Start: was ApolloShell ist, die Freigaben, das
-/// Launcher-Kuerzel, Autostart. Erscheint von selbst nur bei frischen
-/// Installationen (`OnboardingRule`), sonst ueber Nexus > Über.
+/// The introduction on the first start: what ApolloShell is, the permissions,
+/// the launcher shortcut, autostart. It appears by itself only on fresh
+/// installations (`OnboardingRule`), otherwise through Nexus > About.
 ///
-/// Ein normales Fenster in der Bildschirmmitte, wie Nexus: Die App ist eine
-/// Accessory-App und nie aktiv - ohne `NSApp.activate()` bekaeme das Fenster
-/// keine Tastatur (Aufnahmefeld, Enter fuer "Weiter"). Beim Schliessen
-/// bekommt die vorher vordere App den Fokus zurueck.
+/// An ordinary window in the middle of the screen, like Nexus: the app is an
+/// accessory app and never active - without `NSApp.activate()` the window
+/// would get no keyboard (the recording field, Enter for "Next"). On closing,
+/// the app that was at the front before gets the focus back.
 ///
-/// Schliessen (Knopf, ⌘W), "Überspringen" und "Fertig" zaehlen gleich:
-/// erledigt. Wer sie wieder will, findet sie in Nexus. Beenden der App zaehlt
-/// NICHT - wer mittendrin beendet, sieht sie beim naechsten Start wieder
-/// (sonst fragte danach nur noch macOS' nackte Bedienungshilfen-Abfrage).
-/// Deshalb markiert `windowShouldClose` (nur bei Schliessen durch den Nutzer)
-/// und nicht `windowWillClose` (kommt auch beim Beenden).
+/// Closing (the button, ⌘W), "Skip" and "Done" all count the same: through.
+/// Whoever wants it again finds it in Nexus. Quitting the app does NOT count -
+/// whoever quits in the middle sees it again on the next start (otherwise only
+/// the bare accessibility prompt of macOS would follow). So
+/// `windowShouldClose` marks it (only when the user closes it) and not
+/// `windowWillClose` (which comes on quitting too).
 @MainActor
 final class Onboarding: NSObject, NSWindowDelegate {
     static let size = NSSize(width: 620, height: 560)
@@ -55,7 +55,7 @@ final class Onboarding: NSObject, NSWindowDelegate {
     }
 
     private func makeWindow() -> NSWindow {
-        // NexusWindow: kennt ⌘W und die Bearbeitungs-Kuerzel ohne Menueleiste.
+        // NexusWindow: knows ⌘W and the editing shortcuts without a menu bar.
         let window = NexusWindow(
             contentRect: NSRect(origin: .zero, size: Self.size),
             styleMask: [.titled, .closable, .fullSizeContentView],
@@ -75,15 +75,15 @@ final class Onboarding: NSObject, NSWindowDelegate {
             self?.markCompleted()
             window?.close()
         }
-        // Auch die Einfuehrung folgt dem Theme (Farbton und Flaeche).
+        // The introduction follows the theme too (the tint and the surface).
         window.contentViewController = NSHostingController(rootView: view.shellTheme())
         window.setContentSize(Self.size)
         self.window = window
         return window
     }
 
-    /// Nur wenn der Nutzer schliesst (Knopf, ⌘W ueber performClose), nicht
-    /// bei `close()` oder beim Beenden der App.
+    /// Only when the user closes it (the button, ⌘W through performClose), not
+    /// on `close()` or when the app quits.
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         markCompleted()
         return true
@@ -107,8 +107,8 @@ final class OnboardingState {
     var step: OnboardingStep = .welcome
 }
 
-/// Die Einfuehrung selbst: ein Schritt pro Seite, unten Überspringen, Punkte,
-/// Zurück und Weiter - ruhig wie der Einrichtungsassistent von macOS.
+/// The introduction itself: one step per page, at the bottom Skip, the dots,
+/// Back and Next - as calm as the setup assistant of macOS.
 struct OnboardingView: View {
     @Bindable var state: OnboardingState
     let store: ShellSettingsStore
@@ -161,8 +161,8 @@ struct OnboardingView: View {
                     .frame(minWidth: 72)
             }
             .controlSize(.large)
-            // Ausdruecklich hervorgehoben: der Standardknopf bekaeme die
-            // Akzentfarbe sonst nur, solange das Fenster Schluesselfenster ist.
+            // Highlighted on purpose: the default button would otherwise only
+            // get the accent color while the window is the key window.
             .buttonStyle(.borderedProminent)
             .keyboardShortcut(.defaultAction)
         }
@@ -172,7 +172,7 @@ struct OnboardingView: View {
     }
 }
 
-/// Punkte fuer die Schritte, der aktuelle kraeftiger.
+/// The dots for the steps, the current one stronger.
 struct OnboardingDots: View {
     let current: OnboardingStep
 
@@ -189,7 +189,7 @@ struct OnboardingDots: View {
     }
 }
 
-/// Kopf jeder Seite: Kachel, Titel, ein bis zwei Saetze.
+/// The head of every page: the tile, the title, one or two sentences.
 struct OnboardingHeader: View {
     let symbol: String
     let tint: Color
@@ -213,7 +213,7 @@ struct OnboardingHeader: View {
     }
 }
 
-/// Gruppierte Flaeche wie ein Abschnitt der Systemeinstellungen.
+/// A grouped area like a section of System Settings.
 struct OnboardingCard<Content: View>: View {
     @ViewBuilder let content: Content
 
@@ -244,7 +244,7 @@ struct OnboardingCard<Content: View>: View {
     }
 }
 
-/// Graue Fussnote unter einer Karte.
+/// A grey footnote under a card.
 struct OnboardingFootnote: View {
     let text: String
 
@@ -258,7 +258,7 @@ struct OnboardingFootnote: View {
     }
 }
 
-// MARK: - Seiten
+// MARK: - Pages
 
 struct OnboardingWelcomePage: View {
     private let features: [(symbol: String, tint: Color, title: String, text: String)] = [

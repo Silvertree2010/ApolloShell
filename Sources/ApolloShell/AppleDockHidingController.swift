@@ -3,16 +3,16 @@ import Foundation
 import Observation
 import os
 
-/// Seiteneffekte um `AppleDockHiding` (ApolloShellCore, rein) herum: liest
-/// und schreibt `com.apple.dock` ueber cfprefsd wie `SidebarDock.writeTiles`,
-/// danach `killall Dock` - aber nur, wenn sich dabei wirklich etwas aendert.
-/// Das gesicherte Original liegt in
+/// The side effects around `AppleDockHiding` (ApolloShellCore, pure): reads
+/// and writes `com.apple.dock` through cfprefsd like `SidebarDock.writeTiles`,
+/// then `killall Dock` - but only when something really changes. The saved
+/// original lies in
 /// ~/Library/Application Support/ApolloShell/apple-dock.json.
 ///
-/// Folgt der Einstellung (Nexus > Allgemein): eingeschaltet -> sofort
-/// verstecken, ausgeschaltet -> sofort wiederherstellen. `terminate()` fuer
-/// applicationWillTerminate und SIGTERM stellt beim Beenden ebenfalls wieder
-/// her, egal wie die Einstellung gerade steht - ApolloShell soll das Dock
+/// Follows the setting (Nexus > General): switched on -> hide right away,
+/// switched off -> restore right away. `terminate()` for
+/// applicationWillTerminate and SIGTERM restores on quit too, whatever the
+/// setting says - ApolloShell should never leave the Dock hidden.
 /// nie versteckt zuruecklassen.
 @MainActor
 final class AppleDockHidingController {
@@ -25,9 +25,9 @@ final class AppleDockHidingController {
 
     init(settings: ShellSettingsStore, fileURL: URL? = ShellFiles.live.appleDock) {
         self.fileURL = fileURL
-        // Liefert zuerst den aktuellen Wert (das erledigt den Start mit
-        // aktiver Einstellung, siehe `hide()`), danach jede Aenderung -
-        // wie `SidebarDockModel`s Beobachtung von Nexus.
+        // Delivers the current value first (which takes care of the start with
+        // the setting on, see `hide()`), then every change - like
+        // `SidebarDockModel`'s observation of Nexus.
         settingsObservation = Task { [weak self, settings] in
             for await hide in Observations({ settings.settings.appleDockHiding.hideWhileRunning }) {
                 self?.apply(hide)
@@ -35,11 +35,11 @@ final class AppleDockHidingController {
         }
     }
 
-    /// Beim Beenden (applicationWillTerminate, SIGTERM): unabhaengig von der
-    /// Einstellung wiederherstellen, falls gerade versteckt (Datei da).
-    /// Kein Abbruch stellt fest, ob ApolloShell wirklich sauber beendet -
-    /// nur ein SIGKILL laesst das Dock bis zum naechsten normalen Start und
-    /// Ende versteckt.
+    /// On quit (applicationWillTerminate, SIGTERM): restore whatever the
+    /// setting says, when it is hidden right now (the file is there). No
+    /// interruption decides whether ApolloShell really quits cleanly - only a
+    /// SIGKILL leaves the Dock hidden until the next normal start and quit.
+    ///
     func terminate() {
         settingsObservation?.cancel()
         guard let fileURL, FileManager.default.fileExists(atPath: fileURL.path) else { return }
@@ -55,30 +55,30 @@ final class AppleDockHidingController {
         }
     }
 
-    /// Existiert schon eine gesicherte apple-dock.json, bleibt sie -
-    /// entweder von einem frueheren Absturz waehrend versteckt, oder weil
-    /// ein zweiter "Start" (z. B. erneutes Einschalten der Einstellung)
-    /// nichts am gesicherten Original aendert. Sonst Ist-Zustand lesen,
-    /// Original sichern. Danach in jedem Fall die versteckten Werte
-    /// schreiben.
+    /// When a saved apple-dock.json exists already, it stays - either from an
+    /// earlier crash while hidden, or because a second "start" (switching the
+    /// setting on again, say) changes nothing about the saved original.
+    /// Otherwise read the current state and save the original. After that,
+    /// write the hidden values in any case.
+    ///
     private func hide(fileURL: URL) {
         if AppleDockPreferenceValues.load(from: try? Data(contentsOf: fileURL)) == nil {
             let original = AppleDockHiding.originalToSave(current: readCurrent())
-            // Ohne Sicherung kein Verstecken: sonst fände das Wiederherstellen
-            // nichts, und das Dock bliebe fuer immer weg.
+            // Without a backup no hiding: otherwise the restore would find
+            // nothing and the Dock would stay away forever.
             guard write(original.encoded(), to: fileURL) else { return }
         }
         writeAndApply(AppleDockHiding.hidden)
         log.notice("Apple-Dock ausgeblendet")
     }
 
-    /// Das gesicherte Original zurueckschreiben (fehlende Schluessel
-    /// loeschen), Datei entfernen. Keine Datei: nichts zu tun (schon
-    /// wiederhergestellt oder nie versteckt).
+    /// Write the saved original back (deleting missing keys), remove the file.
+    /// No file: nothing to do (restored already or never hidden).
+    ///
     private func restore(fileURL: URL) {
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
-        // Sicherung da, aber unlesbar: auf die Vorgaben von macOS zurueck,
-        // statt das Dock versteckt zu lassen.
+        // A backup that is there but unreadable: back to the defaults of macOS,
+        // instead of leaving the Dock hidden.
         let original = AppleDockPreferenceValues.load(from: try? Data(contentsOf: fileURL))
             ?? AppleDockPreferenceValues(autohide: nil, autohideDelay: nil, autohideTimeModifier: nil)
         writeAndApply(original)
@@ -99,9 +99,9 @@ final class AppleDockHidingController {
         )
     }
 
-    /// Schreibt `target` nur, wenn sich gegenueber dem Ist-Zustand wirklich
-    /// etwas aendert - erst dann `killall Dock` (Apples Dock liest seine
-    /// Einstellung nur beim eigenen Start neu).
+    /// Writes `target` only when something really changes against the current
+    /// state - and only then `killall Dock` (Apple's Dock reads its settings
+    /// anew only on its own start).
     private func writeAndApply(_ target: AppleDockPreferenceValues) {
         guard readCurrent() != target else { return }
         for action in AppleDockHiding.actions(toReach: target) {

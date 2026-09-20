@@ -1,18 +1,18 @@
 import Foundation
 
-// Katalog der Widgets fuer das Bento-Dashboard (0.2, siehe
-// design/2026-09-18-bento-dashboard.md). Jedes Widget ist hier einmal
-// beschrieben: Kennung, Name, Symbol, Heimat, erlaubte Groessen. Die Groessen
-// sind genau die, die das Dashboard vor 0.2 zeichnen konnte.
+// The catalogue of the widgets for the bento dashboard (0.2, see
+// design/2026-09-18-bento-dashboard.md). Every widget is described here once:
+// id, name, symbol, home, allowed sizes. The sizes are exactly the ones the
+// dashboard could draw before 0.2.
 
-/// Wo ein Widget zuhause ist. Ausserhalb der Heimat nur als erweiterte
-/// Option in Nexus, dort nicht optimiert.
+/// Where a widget is at home. Outside its home only as an advanced option in
+/// Nexus, and not optimised there.
 public enum WidgetSurface: String, Codable, CaseIterable, Sendable {
     case dashboard, controlCentre
 }
 
-/// Eine erlaubte Groesse in Referenzpunkten (Seite 839 x 392). Feste Breite:
-/// `minWidth == maxWidth`. Die Hoehe ist immer fest.
+/// One allowed size in reference points (a page of 839 x 392). A fixed width:
+/// `minWidth == maxWidth`. The height is always fixed.
 public struct WidgetSize: Equatable, Hashable, Sendable {
     public var minWidth: Double
     public var maxWidth: Double
@@ -39,8 +39,8 @@ public struct WidgetSize: Equatable, Hashable, Sendable {
     }
 }
 
-/// Alle Widgets. Rohwert steht in settings.json - nie umbenennen. Die sechs
-/// Karten der Uebersicht behalten die Kennungen von `DashboardCardKind`.
+/// All widgets. The raw value stands in settings.json - never rename it. The
+/// six cards of the overview keep the ids of `DashboardCardKind`.
 public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
     case weather, user, clock, calendar, resources, media
     case performanceCPU = "performance.cpu"
@@ -57,11 +57,11 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
     public var id: Self { self }
 
     public init(_ card: DashboardCardKind) {
-        // Gleiche Rohwerte, der Test `cardsMap` haelt das fest.
+        // The same raw values, the test `cardsMap` pins that down.
         self = WidgetKind(rawValue: card.rawValue)!
     }
 
-    /// Die Karte von vor 0.2, falls das Widget eine ist.
+    /// The card from before 0.2, when the widget is one.
     public var overviewCard: DashboardCardKind? { DashboardCardKind(rawValue: rawValue) }
 
     public var title: String {
@@ -98,11 +98,11 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         }
     }
 
-    /// Alle heutigen Widgets gehoeren ins Dashboard; das Control Centre
-    /// bekommt seine eigenen erst mit dem Editor fuer alle Flaechen.
+    /// All of today's widgets belong in the dashboard; the control centre gets
+    /// its own only with the editor for all surfaces.
     public var home: WidgetSurface { .dashboard }
 
-    /// Wetter-Widgets tragen ihre eigene Liste an Orten (`WidgetOptions.places`).
+    /// Weather widgets carry their own list of places (`WidgetOptions.places`).
     public var usesPlaces: Bool {
         switch self {
         case .weather, .weatherHero, .weatherHourly, .weatherDaily: true
@@ -133,8 +133,8 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         }
     }
 
-    /// Kleinste Groesse nach Flaeche (Mindestbreite x Hoehe) - so kommt ein
-    /// neues Widget aus Nexus auf die Seite.
+    /// The smallest size by area (minimum width x height) - that is how a new
+    /// widget out of Nexus lands on the page.
     public var smallestSize: WidgetSize {
         sizes.min { $0.minWidth * $0.height < $1.minWidth * $1.height }!
     }
@@ -143,11 +143,11 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         sizes.contains { $0.allows(width: width, height: height) }
     }
 
-    /// Karten der Uebersicht: jede Breite von der kleinsten ihrer Plaetze bis
-    /// zur ganzen Seite - eine Reihe ohne flexible Karte wurde vor 0.2 im
-    /// Verhaeltnis gestreckt, eine Spaltenkarte allein fuellte die Seite. Die
-    /// Hoehen sind die ihrer Plaetze: obere Reihe 130, untere 250, eine Reihe
-    /// allein oder die Spalte 392.
+    /// The cards of the overview: every width from the smallest of their places
+    /// up to the whole page - a row without a flexible card was stretched in
+    /// proportion before 0.2, and a column card on its own filled the page. The
+    /// heights are those of their places: the top row 130, the bottom one 250,
+    /// a row on its own or the column 392.
     static func overviewSizes(_ card: DashboardCardKind) -> [WidgetSize] {
         let g = DashboardGeometry.self
         let bottomHeight = g.height - g.topHeight - g.spacing
@@ -167,39 +167,39 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
     }
 }
 
-/// Masse der Seite Leistung, Caelestias Werte x 0,858 (vor 0.2 fest in
-/// PerformanceView). Links CPU und GPU ueber Speicher, Netzwerk,
-/// Arbeitsspeicher, rechts der Akku - ohne Akku wird links alles breiter.
+/// The measurements of the performance page, Caelestia's values x 0.858
+/// (fixed in PerformanceView before 0.2). On the left CPU and GPU above
+/// storage, network and memory, on the right the battery.
 public enum PerformancePageGeometry {
-    public static let batteryWidth: Double = 129   // 150 x 0,858
-    public static let networkWidth: Double = 335   // 390 x 0,858
-    public static let bottomHeight: Double = 189   // 220 x 0,858
+    public static let batteryWidth: Double = 129   // 150 x 0.858
+    public static let networkWidth: Double = 335   // 390 x 0.858
+    public static let bottomHeight: Double = 189   // 220 x 0.858
     public static var heroHeight: Double { DashboardGeometry.height - bottomHeight - DashboardGeometry.spacing }
 
     public static func leftWidth(hasBattery: Bool) -> Double {
         hasBattery ? DashboardGeometry.width - DashboardGeometry.spacing - batteryWidth : DashboardGeometry.width
     }
 
-    /// CPU und GPU nebeneinander.
+    /// CPU and GPU side by side.
     public static func heroWidths(hasBattery: Bool) -> [Double] {
         split(leftWidth(hasBattery: hasBattery) - DashboardGeometry.spacing)
     }
 
-    /// Speicher und Arbeitsspeicher links und rechts vom Netzwerk.
+    /// Storage and memory to the left and the right of the network.
     public static func sideWidths(hasBattery: Bool) -> [Double] {
         split(leftWidth(hasBattery: hasBattery) - networkWidth - 2 * DashboardGeometry.spacing)
     }
 
-    /// Genau halbiert. Anders als `DashboardGeometry.widths` (ganze Punkte,
-    /// Rest an die letzte Karte): eine Vorlage darf einen Halbpunkt haben, das
-    /// Runden verschob eine Karte im Bildvergleich um ein Pixel (gemessen).
-    /// Gezogene Rahmen bleiben trotzdem ganze Punkte (`WidgetFrame.rounded()`).
+    /// Exactly halved. Unlike `DashboardGeometry.widths` (whole points, the
+    /// rest to the last card): a template may have a half point, and the
+    /// rounding shifted a card by one pixel in the image comparison (measured).
+    /// Dragged frames still stay whole points (`WidgetFrame.rounded()`).
     static func split(_ total: Double) -> [Double] {
         [total / 2, total / 2]
     }
 }
 
-/// Masse der Seite Wetter (vor 0.2 fest in WeatherTab).
+/// The measurements of the weather page (fixed in WeatherTab before 0.2).
 public enum WeatherPageGeometry {
     public static let heroHeight: Double = 116
     public static let hourlyHeight: Double = 108

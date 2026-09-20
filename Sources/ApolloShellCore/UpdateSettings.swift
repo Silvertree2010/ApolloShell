@@ -1,24 +1,24 @@
 import Foundation
 
-/// Selbstaktualisierung (Nexus > Updates).
+/// Self-updating (Nexus > Updates).
 ///
-/// Die Vorgaben sind bewusst beide an: Wer die App laedt, soll die naechste
-/// Fassung bekommen, ohne etwas zu tun. Sparkle fragt deshalb beim ersten
-/// Start auch nicht nach - die Wahl steht stattdessen sichtbar in Nexus, und
-/// README und Einfuehrung sagen es.
+/// Both defaults are on on purpose: whoever downloads the app should get the
+/// next version without doing anything. So Sparkle does not ask on the first
+/// start either - the choice stands visibly in Nexus instead, and the README
+/// and the introduction say so.
 ///
-/// Eingespielt wird beim Beenden. Weil die Shell praktisch nie beendet wird,
-/// zeigt Nexus zusaetzlich "Jetzt neu starten", sobald etwas bereitliegt.
+/// It is installed on quit. Because the shell is practically never quit, Nexus
+/// also shows "Restart now" as soon as something lies ready.
 ///
-/// Fuer eine Homebrew-Installation gelten beide Schalter nicht (siehe
-/// `InstallKind`); dort wird nur gemeldet.
+/// For a Homebrew installation neither switch holds (see `InstallKind`); there
+/// it only reports.
 public struct UpdateSettings: Codable, Equatable, Sendable {
-    /// Taeglich im Hintergrund nachsehen, ob es etwas Neues gibt.
+    /// Look in the background every day whether there is something new.
     public var checkAutomatically: Bool
-    /// Gefundene Updates ohne Rueckfrage laden und beim Beenden einspielen.
+    /// Download found updates without asking and install them on quit.
     public var installAutomatically: Bool
-    /// Wann zuletzt nachgesehen wurde. Nur die Homebrew-Fassung schreibt das
-    /// mit; bei der DMG-Fassung fuehrt Sparkle selbst Buch.
+    /// When it last looked. Only the Homebrew build writes that down; with the
+    /// DMG build Sparkle keeps the books itself.
     public var lastCheck: Date?
 
     public init(checkAutomatically: Bool = true, installAutomatically: Bool = true, lastCheck: Date? = nil) {
@@ -40,14 +40,14 @@ public struct UpdateSettings: Codable, Equatable, Sendable {
     }
 }
 
-/// Gewaehltes Theme (Nexus > Themes).
+/// The chosen theme (Nexus > Themes).
 ///
-/// Gespeichert wird nur der Dateiname im Theme-Ordner ("Mitternacht.css"
-/// oder "Mitternacht" als Ordner), nicht der ganze Pfad: So bleibt die
-/// Einstellung gueltig, wenn der Ordner umzieht, und niemand kann ueber die
-/// Datei auf einen Pfad ausserhalb des Theme-Ordners zeigen.
+/// Only the file name in the theme folder is stored ("Midnight.css" or
+/// "Midnight" as a folder), not the whole path: that way the setting stays
+/// valid when the folder moves, and nobody can point at a path outside the
+/// theme folder through the file.
 public struct ThemeSettings: Codable, Equatable, Sendable {
-    /// Name im Theme-Ordner; `nil` = keins, die Shell sieht aus wie ohne Theme.
+    /// The name in the theme folder; `nil` = none, and it looks untouched.
     public var name: String?
 
     public init(name: String? = nil) {
@@ -62,11 +62,11 @@ public struct ThemeSettings: Codable, Equatable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let stored: String? = c.lenient(.name)
         let trimmed = stored?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        // Ein Pfadanteil waere ein Weg aus dem Ordner heraus; dann lieber keins.
+        // A path part would be a way out of the folder; then rather none.
         name = (trimmed.isEmpty || trimmed.contains("/") || trimmed.hasPrefix(".")) ? nil : trimmed
     }
 
-    /// `name` auch ohne Wert als `null` schreiben, wie bei `providers`.
+    /// Write `name` as `null` even without a value, as with `providers`.
     public func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(name, forKey: .name)
