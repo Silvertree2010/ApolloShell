@@ -1,22 +1,22 @@
 import ApolloShellCore
 import SwiftUI
 
-/// Inhalt des Utilities-Panels (Caelestia: modules/utilities) in Apple-Optik:
-/// die Karten aus Nexus > Schnellaktionen untereinander. Vorgabe ist
-/// Caelestias Reihenfolge - oben "Wach halten", in der Mitte die Ton-Karte
-/// (dort sitzt bei Caelestia die Aufnahme; die macht bei uns Apples Leiste
-/// ueber den Bildschirmfoto-Knopf), unten die Schnellschalter.
+/// The content of the utilities panel (Caelestia: modules/utilities) in an
+/// Apple look: the cards out of Nexus > Quick Actions below each other. The
+/// default is Caelestia's order - "Keep Awake" at the top, the sound card in
+/// the middle (where Caelestia has the recording; ours is done by Apple's bar
+/// through the screenshot button), the quick toggles at the bottom.
 ///
-/// Durchsichtig: das Glas darunter liefert der Kantenfenster-Baustein.
-/// Breite fest, Hoehe aus der Anordnung (`UtilitiesLayout.panelHeight`) -
-/// jede Karte bekommt genau ihre Hoehe aus `UtilitiesMetrics`. Deshalb hat
-/// jede Zeile eine feste Hoehe und jeder Text genau eine Zeile: kein Zustand
-/// (langer Geraetename, fehlendes Geraet, Wach halten an) darf die Hoehe
-/// aendern, sonst stimmte sie nicht mehr mit dem Fenster ueberein.
+/// Transparent: the glass below it comes from the edge-window block. The
+/// width is fixed, the height comes out of the arrangement
+/// (`UtilitiesLayout.panelHeight`) - every card gets exactly its height out of
+/// `UtilitiesMetrics`. That is why every row has a fixed height and every text
+/// exactly one line: no state (a long device name, a missing device, Keep
+/// Awake on) may change the height, otherwise it no longer matches the window.
 struct UtilitiesView: View {
-    /// Masse aus Caelestia: 430 breit, 16 Rand, 12 zwischen den Karten.
-    /// 430 reicht fuer fuenf Knoepfe pro Reihe (je ~68 breit) und zwei
-    /// Geraetemenues nebeneinander; breiter wuerde nur leerer.
+    /// The measurements out of Caelestia: 430 wide, 16 margin, 12 between the
+    /// cards. 430 is enough for five buttons per row (about 68 wide each) and
+    /// two device menus side by side; wider would only be emptier.
     static let width = CGFloat(UtilitiesMetrics.width)
     static let padding = CGFloat(UtilitiesMetrics.padding)
     static let spacing = CGFloat(UtilitiesMetrics.spacing)
@@ -53,13 +53,13 @@ struct UtilitiesView: View {
 }
 
 enum UtilitiesMotion {
-    /// Caelestias Bewegungskurve fuer Knoepfe und Chips: 200 ms, leicht
-    /// nachfedernd auslaufend.
+    /// Caelestia's motion curve for buttons and chips: 200 ms, coming to rest
+    /// with a slight bounce.
     static let toggle = Animation.timingCurve(0.34, 0.8, 0.34, 1, duration: 0.2)
 }
 
-/// Feste Hoehe der Karte, die `UtilitiesView` gerade zeichnet. Klassischer
-/// Umgebungsschluessel statt `@Entry`: ohne Xcode fehlt das Makro-Plugin.
+/// The fixed height of the card `UtilitiesView` is drawing right now. A
+/// classic environment key instead of `@Entry`: the macro plugin is missing.
 private struct UtilitiesCardHeightKey: EnvironmentKey {
     static let defaultValue: CGFloat? = nil
 }
@@ -71,9 +71,9 @@ extension EnvironmentValues {
     }
 }
 
-/// Karte: leicht abgesetzte Flaeche auf dem Glas, Radius 16 wie Caelestia.
-/// Genau so hoch, wie `UtilitiesMetrics` es fuer sie rechnet - die Flaeche
-/// fuellt die Hoehe auch, falls der Inhalt einmal knapper ausfiele.
+/// A card: a slightly set-off area on the glass, radius 16 as in Caelestia.
+/// Exactly as high as `UtilitiesMetrics` works out for it - the area fills
+/// the height even if the content turned out shorter one day.
 struct UtilitiesCard<Content: View>: View {
     @ViewBuilder let content: Content
     @Environment(\.utilitiesCardHeight) private var height
@@ -87,11 +87,11 @@ struct UtilitiesCard<Content: View>: View {
     }
 }
 
-/// Symbol-Chip links, zwei Zeilen Text, Schalter rechts (Caelestia:
-/// IdleInhibit). Die Uhrzeit steht in der Unterzeile statt in einem eigenen
-/// Chip darunter: so bleibt die Karte gleich hoch und das Panel springt nicht.
-/// Nicht `private`: `UtilitiesEditOverlay.swift` zeigt dieselbe Karte
-/// waehrend der Bearbeitung, nur mit abgeschalteter Bedienung.
+/// A symbol chip on the left, two lines of text, a switch on the right
+/// (Caelestia: IdleInhibit). The time stands in the lower line instead of in a
+/// chip of its own below: that way the card stays the same height and the
+/// panel does not jump. Not `private`: `UtilitiesEditOverlay.swift` shows the
+/// same card while editing, only with the controls switched off.
 struct KeepAwakeCard: View {
     @Bindable var model: UtilitiesModel
     @Environment(\.shellStyle) private var style
@@ -112,7 +112,7 @@ struct KeepAwakeCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(KeepAwakeText.title)
                         .font(style.font(size: 14, weight: .medium))
-                    // Jede Minute neu, damit "gestern" nach Mitternacht stimmt.
+                    // Anew every minute, so that "yesterday" is right after midnight.
                     TimelineView(.everyMinute) { context in
                         Text(KeepAwakeText.subtitle(since: model.keepAwakeSince, now: context.date, lid: model.lid))
                             .font(style.font(size: 12))
@@ -132,9 +132,9 @@ struct KeepAwakeCard: View {
     }
 }
 
-/// Alles ausgeschaltet: statt eines leeren Glases ein Hinweis, wo man es
-/// wieder einschaltet. So hoch wie "Wach halten" (eine Zeile mit Chip).
-/// Nicht `private`: auch in der Bearbeitung ohne Karten gezeigt
+/// Everything switched off: instead of empty glass, a note on where to switch
+/// it on again. As high as "Keep Awake" (one line with a chip). Not
+/// `private`: shown while editing without cards as well
 /// (`UtilitiesEditOverlay.swift`).
 struct UtilitiesEmptyCard: View {
     let model: UtilitiesModel
@@ -175,15 +175,15 @@ struct UtilitiesEmptyCard: View {
     }
 }
 
-/// Schalter im Aussehen des macOS-26-Schalters, aber "an" immer in
-/// Akzentfarbe.
+/// A switch in the look of the macOS 26 switch, but "on" always in the accent
+/// color.
 ///
-/// Warum nicht `.toggleStyle(.switch)`: AppKit zeichnet den eingeschalteten
-/// Schalter grau, solange die App nicht aktiv ist - und der Launcher wird nie
-/// aktiv. Bildprobe 14.09.: grau sogar in einem Fenster, das sich als
-/// Schluesselfenster meldet; `controlActiveState` aendert daran nichts.
-/// Masse am echten Schalter abgemessen: Bahn 54 x 24, Knopf 32 x 20, Rand 2,
-/// Bahn aus etwa 10 % Vordergrund, Knopf im Dunkeln leicht grau.
+/// Why not `.toggleStyle(.switch)`: AppKit draws the switched-on switch grey
+/// while the app is not active - and the launcher never becomes active. Image
+/// sample 14.09.: grey even in a window that reports itself as the key window;
+/// `controlActiveState` changes nothing about it. The measurements were taken
+/// off the real switch: track 54 x 24, knob 32 x 20, margin 2, the track out
+/// of about 10 % foreground, the knob slightly grey in the dark.
 private struct AccentSwitchStyle: ToggleStyle {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shellStyle) private var style
@@ -201,7 +201,7 @@ private struct AccentSwitchStyle: ToggleStyle {
                         .fill(colorScheme == .dark ? Color(white: 0.91) : Color.white)
                         .shadow(color: .black.opacity(0.18), radius: 1, y: 0.5)
                         .frame(width: 32, height: 20)
-                        // 18 Weg zwischen den Anschlaegen, also +-9 um die Mitte.
+                        // 18 of travel between the stops, so +-9 around the middle.
                         .offset(x: on ? 9 : -9)
                 }
                 .contentShape(.capsule)
@@ -209,18 +209,18 @@ private struct AccentSwitchStyle: ToggleStyle {
         .buttonStyle(.plain)
         .animation(UtilitiesMotion.toggle, value: on)
         .accessibilityAddTraits(.isToggle)
-        .accessibilityValue(on ? "an" : "aus")
+        .accessibilityValue(on ? "on" : "off")
     }
 }
 
-/// Ueberschrift und die Knoepfe aus Nexus in Reihen zu fuenf gleich breiten
-/// (Caelestia: Toggles, dort ab sieben Eintraegen ebenfalls zweireihig).
-/// Vorgabe: oben die Schalter mit Zustand, unten die Aktionen - wie Apples
-/// Kontrollzentrum Schalter und Knoepfe trennt.
+/// A heading and the buttons out of Nexus in rows of five equally wide ones
+/// (Caelestia: Toggles, which also goes to two rows from seven entries on).
+/// The default: the switches with a state at the top, the actions at the
+/// bottom - the way Apple's Control Centre separates switches and buttons.
 ///
-/// Auch ein Schalter ohne Funktion (Night Shift auf einem Bildschirm ohne)
-/// bleibt als ausgegrauter Knopf stehen. So aendert sich das Raster nur,
-/// wenn man es in Nexus aendert, und die Panelhoehe stimmt.
+/// A switch without a function (Night Shift on a screen without it) stays
+/// standing as a greyed-out button too. That way the grid only changes when
+/// one changes it in Nexus, and the panel height is right.
 private struct QuickTogglesCard: View {
     let model: UtilitiesModel
     let rows: [[UtilitiesToggleEntry]]
@@ -239,8 +239,8 @@ private struct QuickTogglesCard: View {
                                 let item = UtilitiesToggleItem(entry: entry, model: model)
                                 QuickToggleButton(icon: item.icon, look: item.look, action: item.action)
                             }
-                            // Kurze letzte Reihe: leere Plaetze, damit jede
-                            // Spalte so breit bleibt wie in den vollen Reihen.
+                            // A short last row: empty places, so that every
+                            // column stays as wide as in the full rows.
                             ForEach(row.count..<QuickToggles.columns, id: \.self) { _ in
                                 Color.clear
                                     .frame(maxWidth: .infinity)
@@ -255,7 +255,7 @@ private struct QuickTogglesCard: View {
     }
 }
 
-/// Ein Schnellschalter, 48 hoch, Breite geteilt.
+/// One quick toggle, 48 high, the width shared.
 struct QuickToggleButton: View {
     static let height: CGFloat = 48
 
@@ -272,7 +272,7 @@ struct QuickToggleButton: View {
         }
         .buttonStyle(QuickToggleStyle(active: look.active, hovered: hovering))
         .disabled(!look.enabled)
-        // Nicht `onHover`: das Panel gehoert einer nie aktiven App, siehe
+        // Not `onHover`: the panel belongs to an app that is never active, see
         // HoverTracker.
         .background(HoverTracker { hovering = $0 })
         .help(look.help)
@@ -280,9 +280,9 @@ struct QuickToggleButton: View {
     }
 }
 
-/// Was im Knopf steht: SF Symbol, Bluetooth-Rune oder App-Symbol. Auch
-/// Nexus zeichnet damit Raster und Galerie - so sieht man dort genau den
-/// Knopf, der im Panel erscheint.
+/// What stands in the button: an SF Symbol, the Bluetooth rune or an app
+/// symbol. Nexus draws the grid and the gallery with it too - so one sees
+/// exactly the button that appears in the panel.
 struct UtilitiesToggleGlyph: View {
     let icon: UtilitiesToggleItem.Icon
     var scale: CGFloat = 1
@@ -293,7 +293,7 @@ struct UtilitiesToggleGlyph: View {
             Image(systemName: name)
                 .font(.system(size: 17 * scale, weight: .semibold))
         case .bluetooth:
-            // Kein SF Symbol fuer Bluetooth, siehe BluetoothRune.
+            // No SF Symbol for Bluetooth, see BluetoothRune.
             BluetoothRune()
                 .stroke(style: StrokeStyle(lineWidth: 1.9 * scale, lineCap: .round, lineJoin: .round))
                 .frame(width: 11 * scale, height: 17 * scale)
@@ -311,9 +311,9 @@ struct UtilitiesToggleGlyph: View {
     }
 }
 
-/// Caelestias IconButton in Apple-Farben: aus eine runde, dezente Flaeche mit
-/// grauem Symbol; an ein Rechteck mit Radius 12 in Akzentfarbe, Symbol
-/// weiss (auf Gelb dunkel, siehe `Color.onAccent`); gedrueckt Radius 8. Form und Farbe gleiten in 200 ms.
+/// Caelestia's IconButton in Apple colors: off is a round, quiet area with a
+/// grey symbol; on is a rectangle with radius 12 in the accent color, the
+/// symbol white (dark on yellow, see `Color.onAccent`); pressed radius 8. Shape and color glide in 200 ms.
 private struct QuickToggleStyle: ButtonStyle {
     let active: Bool
     let hovered: Bool
@@ -330,7 +330,7 @@ private struct QuickToggleStyle: ButtonStyle {
                 active ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.10)),
                 in: .rect(cornerRadius: radius)
             )
-            // Hover-Schimmer: 8 % obendrauf, wie Caelestias StateLayer.
+            // The hover shimmer: 8 % on top, like Caelestia's StateLayer.
             .overlay(Color.primary.opacity(hovered && isEnabled ? 0.08 : 0), in: .rect(cornerRadius: radius))
             .contentShape(.rect(cornerRadius: radius))
             .opacity(isEnabled ? 1 : 0.4)

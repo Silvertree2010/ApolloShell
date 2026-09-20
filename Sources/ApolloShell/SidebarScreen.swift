@@ -3,25 +3,25 @@ import ApolloShellCore
 import os
 import SwiftUI
 
-/// Die Leiste EINES Bildschirms: ihr Fenster, ihre Ansicht und ihr
-/// Statuspopout. Die Modelle darin gehoeren dem Verwalter und sind geteilt.
+/// The bar of ONE screen: its window, its view and its status popout. The
+/// models in it belong to the manager and are shared.
 @MainActor
 final class SidebarScreen {
     private let panel = SidebarPanel()
     private let log = Logger(category: "sidebar")
-    /// Detailfenster der Statuskapsel (WLAN, Bluetooth, Akku). Liegt im
-    /// Fenster dieser Leiste und macht es breiter, solange es offen ist.
+    /// The detail window of the status capsule (Wi-Fi, Bluetooth, battery). It
+    /// lies in the window of this bar and makes it wider while it is open.
     private let popout = StatusPopout()
-    /// Welcher Bildschirm das ist - wird bei jedem Umbau aufgefrischt.
+    /// Which screen this is - refreshed on every rebuild.
     private(set) var info: ScreenInfo
     private var frame: NSRect
     private var visibleTop: CGFloat
-    /// Letzter gueltiger Rahmen. Ohne ihn zeigt sich die Leiste nicht.
+    /// The last valid frame. Without it the bar does not show itself.
     private var lastFrame: NSRect?
     private var expanded = false
-    /// Vordergrund-App ist auf DIESEM Bildschirm im Vollbild.
+    /// The foreground app is in full screen on THIS screen.
     private(set) var isHiddenForFullscreen = false
-    /// Dieses Popout geht auf - der Verwalter schliesst die anderen.
+    /// This popout opens - the manager closes the others.
     var onPopoutOpen: (ObjectIdentifier) -> Void = { _ in }
 
     init(screen: ShellScreen, settings: ShellSettingsStore, context: BarModuleContext) {
@@ -29,17 +29,17 @@ final class SidebarScreen {
         frame = screen.frame
         visibleTop = screen.visibleFrame.maxY
 
-        // Glas zeichnet SwiftUI (`SidebarRoot`), nicht NSGlassEffectView:
-        // nur im selben GlassEffectContainer verschmilzt das Popout mit der
-        // Leiste.
+        // SwiftUI draws the glass (`SidebarRoot`), not NSGlassEffectView: only
+        // in the same GlassEffectContainer does the popout merge with the
+        // bar.
         let hosting = FirstMouseHostingView(
             rootView: SidebarRoot(settings: settings, context: context, popout: popout.model).shellTheme()
         )
-        // Ohne das bestimmt die Ansicht die Fenstergroesse mit und kaempft mit
-        // `layout()`, sobald das Fenster fuer ein Popout breiter wird.
+        // Without this the view has a say in the window size and fights with
+        // `layout()` as soon as the window grows wider for a popout.
         hosting.sizingOptions = []
-        // Der durchsichtige Teil des breiten Fensters muss geleert werden,
-        // sonst bleibt dort stehen, was vorher auf dem Bildschirm war.
+        // The transparent part of the wide window has to be cleared, otherwise
+        // whatever was on the screen before keeps standing there.
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor.clear.cgColor
         hosting.layer?.isOpaque = false
@@ -50,9 +50,9 @@ final class SidebarScreen {
             guard let self else { return }
             self.onPopoutOpen(ObjectIdentifier(self))
         }
-        // SwiftUI meldet Symbolrahmen in Koordinaten der Ansicht (oben = 0,
-        // NSHostingView ist geflippt); AppKit rechnet sie ueber das Fenster
-        // auf den Bildschirm um.
+        // SwiftUI reports symbol frames in view coordinates (top = 0,
+        // NSHostingView is flipped); AppKit converts them through the window
+        // onto the screen.
         popout.screenRect = { [weak hosting] rect in
             guard let hosting, let window = hosting.window else { return nil }
             return window.convertToScreen(hosting.convert(rect, to: nil))
@@ -62,8 +62,8 @@ final class SidebarScreen {
         showIfNeeded()
     }
 
-    /// Derselbe Bildschirm, aber vielleicht mit neuen Massen oder an einer
-    /// neuen Stelle.
+    /// The same screen, but maybe with new measurements or in a new
+    /// place.
     func update(screen: ShellScreen) {
         info = screen.info
         frame = screen.frame
@@ -72,7 +72,7 @@ final class SidebarScreen {
         showIfNeeded()
     }
 
-    /// Bildschirm weg oder abgewaehlt: Popout zu, Fenster weg.
+    /// The screen is gone or deselected: close the popout, remove the window.
     func tearDown() {
         popout.close()
         panel.orderOut(nil)
@@ -83,20 +83,20 @@ final class SidebarScreen {
         popout.close()
     }
 
-    /// Vollbild an: weg. Vollbild aus: wieder her. `.canJoinAllSpaces` holt
-    /// das Panel sonst auch in Vollbild-Spaces (siehe `SidebarPanel`).
+    /// Full screen on: away. Full screen off: back again. `.canJoinAllSpaces`
+    /// would otherwise fetch the panel into full-screen spaces too (see `SidebarPanel`).
     ///
-    /// Unsichtbar und klickdurchlaessig statt `orderOut`: Die Meldung "kein
-    /// Vollbild mehr" kommt mitten in der Wisch-Animation zurueck zum
-    /// Schreibtisch. Ein dann wieder eingeblendetes Panel hing gemessen nur
-    /// noch an diesem einen Space und fehlte auf allen anderen. Bleibt es
-    /// eingeblendet, behaelt es alle Spaces.
+    /// Invisible and click-through instead of `orderOut`: the message "no
+    /// more full screen" comes back in the middle of the swipe animation to
+    /// the desktop. A panel shown again at that point hung, measured, on
+    /// this one space only and was missing on all the others. When it stays
+    /// shown, it keeps all spaces.
     func setHiddenForFullscreen(_ hidden: Bool) {
         guard hidden != isHiddenForFullscreen else { return }
         isHiddenForFullscreen = hidden
         log.notice("Sidebar \(hidden ? "weg (Vollbild)" : "wieder da", privacy: .public)")
         if hidden {
-            // Ohne Leiste haette das Popout nichts, woran es haengt.
+            // Without a bar the popout would have nothing to hang on.
             popout.close()
         }
         panel.alphaValue = hidden ? 0 : 1
@@ -104,53 +104,53 @@ final class SidebarScreen {
         if !hidden { showIfNeeded() }
     }
 
-    /// Nur nach vorne holen, wenn sie sichtbar sein soll und es gerade nicht
-    /// ist. Ein bedingungsloses orderFrontRegardless bei jedem Space-Wechsel
-    /// kann waehrend Mission Control flackern. (Die erste Fassung tat das,
-    /// weil Overlay-Panels nach Space-Wechseln gelegentlich verloren gingen;
-    /// geht sie trotz `isVisible` verloren, ist hier die Stelle dafuer.)
+    /// Only bring it forward when it should be visible and is not right now.
+    /// An unconditional orderFrontRegardless on every space change can flicker
+    /// during Mission Control. (The first version did that, because overlay
+    /// panels went missing after space changes now and then; if it goes
+    /// missing despite `isVisible`, this is the place for it.)
     private func showIfNeeded() {
         guard lastFrame != nil, !panel.isVisible else { return }
         panel.orderFrontRegardless()
     }
 
-    /// Popout offen: Fenster breiter, die Leiste bleibt links 44 breit, der
-    /// Rest ist durchsichtig, bis das Glas hineinwaechst.
+    /// With the popout open: a wider window, the bar stays 44 wide on the
+    /// left, the rest is transparent until the glass grows into it.
     private func setExpanded(_ expanded: Bool) {
         guard expanded != self.expanded else { return }
         self.expanded = expanded
         layout()
     }
 
-    /// Am linken Rand dieses Bildschirms: unten bis zum Rand, oben bis zur
-    /// Unterkante der Menueleiste. Bildschirme ohne Menueleiste haben dort
-    /// keinen Abzug, dann reicht die Leiste bis ganz nach oben.
+    /// At the left edge of this screen: down to the edge, up to the bottom
+    /// edge of the menu bar. Screens without a menu bar have no deduction
+    /// there, and then the bar reaches all the way to the top.
     private func layout() {
         let width = expanded ? StatusPopout.expandedWidth : Sidebar.width
         let rect = NSRect(x: frame.minX, y: frame.minY, width: width, height: visibleTop - frame.minY)
         lastFrame = rect
-        // Mit dem echten Panelrahmen vergleichen, nicht mit `lastFrame`: beim
-        // Umstecken verschiebt macOS Fenster auch selbst.
+        // Compare with the real panel frame, not with `lastFrame`: macOS moves
+        // windows by itself when a screen is replugged.
         guard panel.frame != rect else { return }
         panel.setFrame(rect, display: true)
     }
 }
 
-/// Randloses Panel, das nie Fokus nimmt.
+/// A borderless panel that never takes focus.
 ///
-/// - Ebene `.floating`: ueber normalen Fenstern, unter Dock (20) und
-///   Menueleiste (24). Weil die Leiste unter der Menueleiste endet, kommen
-///   sich die beiden nicht in die Quere.
-/// - Auf allen Spaces, bleibt beim Wischen zwischen Spaces stehen, nicht in
-///   Cmd+Tab. Ohne `.fullScreenAuxiliary` - das allein haelt sie auf macOS 26
-///   aber NICHT aus Vollbild-Spaces heraus (ein Vollbild-Space ist auch ein
-///   Space, `.canJoinAllSpaces` gilt dort mit). Keine Kombination aus Ebene
-///   und collectionBehavior schafft das; deshalb erkennt `FullscreenMonitor`
-///   Vollbild selbst, und die Leiste wird dort unsichtbar und
-///   klickdurchlaessig (siehe `setHiddenForFullscreen`).
-/// - Kein Fensterschatten: gab beim Launcher einen zweiten, fast eckigen
-///   Rahmen um das Glas.
-/// - `canHide = false`: "Andere ausblenden" soll sie nicht verschwinden lassen.
+/// - Level `.floating`: above normal windows, below the Dock (20) and the
+///   menu bar (24). Because the bar ends below the menu bar, the two never
+///   get in each other's way.
+/// - On all spaces, stays put when swiping between spaces, not in Cmd+Tab.
+///   Without `.fullScreenAuxiliary` - which on its own does NOT keep it out
+///   of full-screen spaces on macOS 26(a full-screen space is a space too,
+///   and `.canJoinAllSpaces` counts there). No combination of level and
+///   collectionBehavior manages that; so `FullscreenMonitor` recognises full
+///   screen itself, and the bar becomes invisible and click-through there
+///   (see `setHiddenForFullscreen`).
+/// - No window shadow: on the launcher that gave a second, almost square
+///   frame around the glass.
+/// - `canHide = false`: "Hide Others" should not make it disappear.
 final class SidebarPanel: ShellPanel {
     init() {
         super.init(level: .floating, behavior: [.canJoinAllSpaces, .stationary, .ignoresCycle], deferred: false)

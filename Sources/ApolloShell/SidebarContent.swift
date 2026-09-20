@@ -2,18 +2,18 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Inhalt der linken Leiste: die Bausteine aus Nexus > Leiste
-/// (settings.bar.layout) von oben nach unten, jeder ueber `BarModuleView`.
+/// The content of the left bar: the building blocks out of Nexus > Bar
+/// (settings.bar.layout) from top to bottom, each one through `BarModuleView`.
 ///
-/// Die Vorgabe (Vorlage "Caelestia") ist Caelestias Leiste (logo,
+/// The default (the "Caelestia" template) is Caelestia's bar (logo,
 /// workspaces, spacer, activeWindow, spacer, tray, clock, statusIcons,
-/// power): Dashboard, Spaces, Dock, Uhr, Utilities, Statuskapsel,
-/// Ausschalten. Das Dock steht dort, wo bei Caelestia das aktive Fenster
-/// steht; einen Tray gibt es nicht, an seiner Stelle sitzt Utilities.
+/// power): dashboard, spaces, Dock, clock, utilities, status capsule, power.
+/// The Dock stands where the active window stands in Caelestia; there is no
+/// tray, and utilities sits in its place.
 ///
-/// Die Modelle der sieben alten Bausteine laufen immer (so ist ein wieder
-/// hinzugefuegter sofort aktuell); CPU und Wetter messen nur, solange ihr
-/// Baustein zu sehen ist.
+/// The models of the seven old blocks always run (so one that is added again
+/// is up to date right away); CPU and weather only measure while their block
+/// can be seen.
 struct SidebarContent: View {
     let settings: ShellSettingsStore
     let context: BarModuleContext
@@ -22,37 +22,37 @@ struct SidebarContent: View {
 
     var body: some View {
         let entries = settings.settings.bar.layout.entries
-        // Mit Theme bestimmen `--apollo-bar-item-spacing` und
-        // `--apollo-bar-padding` den Abstand der Bausteine und den Rand.
+        // With a theme, `--apollo-bar-item-spacing` and `--apollo-bar-padding`
+        // set the gap between the blocks and the margin.
         BarStack(spacing: style.barItemSpacing(8)) {
             ForEach(entries) { entry in
                 BarModuleView(entry: entry, context: context)
             }
         }
-        // Oben und unten 10: vor dem Baukasten sass dieser Rand am
-        // Dashboard- und am Ausschalt-Symbol - als Rand der Leiste gilt er
-        // fuer jede Anordnung.
+        // 10 at the top and the bottom: before the kit this margin sat on the
+        // dashboard and the power symbol - as a margin of the bar it counts
+        // for every arrangement.
         .padding(.vertical, style.barPadding(10))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Umsortieren in Nexus gleitet sichtbar, statt zu springen.
+        // Reordering in Nexus glides visibly instead of jumping.
         .animation(SidebarMotion.spatial, value: entries.map(\.id))
     }
 }
 
-/// Die Bausteine untereinander, 8 auseinander. Feste bekommen ihre Hoehe,
-/// den Rest teilen sich die flexiblen (Dock, Abstand) zu gleichen Teilen -
-/// Regeln und Tests in `BarFlex`. Eigenes Layout statt VStack: dort haengt
-/// die Verteilung unter mehreren flexiblen von deren Mindest- und
-/// Idealgroessen ab (ein Dock mit Scrollliste gegen einen leeren Abstand);
-/// hier ist sie festgelegt. Mit genau einem flexiblen ist es dasselbe wie
-/// der VStack vor dem Baukasten (Bildprobe: pixelgleich).
+/// The blocks below each other, 8 apart. Fixed ones get their height, the
+/// flexible ones (Dock, spacer) share the rest in equal parts - the rules and
+/// the tests are in `BarFlex`. A layout of its own instead of a VStack: there
+/// the split between several flexible ones hangs on their minimum and ideal
+/// sizes (a Dock with a scrolling list against an empty spacer); here it is
+/// set. With exactly one flexible one it is the same as the VStack before the
+/// kit (image sample: pixel for pixel).
 struct BarStack: Layout {
     var spacing: CGFloat = 8
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width ?? subviews.map { $0.sizeThatFits(.unspecified).width }.max() ?? 0
         if let height = proposal.height { return CGSize(width: width, height: height) }
-        // Ideal: nur die festen, flexible zaehlen 0.
+        // Ideal: only the fixed ones, flexible ones count 0.
         let fixed = subviews.filter { !$0[BarFlexible.self] }
             .map { $0.sizeThatFits(ProposedViewSize(width: width, height: nil)).height }
         return CGSize(width: width, height: fixed.reduce(0, +) + CGFloat(max(subviews.count - 1, 0)) * spacing)
@@ -72,18 +72,18 @@ struct BarStack: Layout {
     }
 }
 
-/// Markiert einen Baustein als flexibel fuer `BarStack`.
+/// Marks a building block as flexible for `BarStack`.
 struct BarFlexible: LayoutValueKey {
     static let defaultValue = false
 }
 
-/// Ein Baustein nach seiner Art - die eine Stelle, an der jede Art ihre
-/// Ansicht bekommt. Eine neue Art braucht hier einen Fall (der Compiler
-/// verlangt ihn), in ApolloShellCore ihre Optionen und in Nexus deren Editor.
+/// A building block by its kind - the one place where every kind gets its
+/// view. A new kind needs a case here (the compiler asks for it), its options
+/// in ApolloShellCore and its editor in Nexus.
 ///
-/// Bausteine, die nichts zeigen koennen (Spaces ohne Schreibtisch-Liste,
-/// Akku am Desktop-Mac), zeichnen nichts und bekommen dann auch keinen
-/// Abstand - wie im VStack vorher.
+/// Blocks that can show nothing (spaces without a desktop list, the battery
+/// on a desktop Mac) draw nothing and then get no gap either - as in the
+/// VStack before.
 struct BarModuleView: View {
     let entry: BarEntry
     let context: BarModuleContext
@@ -99,18 +99,18 @@ struct BarModuleView: View {
         case .workspaces(let options):
             SidebarSpaces(model: context.spaces, style: options.style, onSelect: context.onSelectSpace)
         case .dock(let options):
-            // Fuellt die Hoehe zwischen oberer und unterer Gruppe und steht
-            // dort mittig - die zwei Spacer von Caelestia.
+            // Fills the height between the upper and the lower group and
+            // stands there in the middle - Caelestia's two spacers.
             SidebarDock(model: context.dock, options: options)
                 .layoutValue(key: BarFlexible.self, value: true)
         case .clock(let options):
             SidebarClock(model: context.clock, showIcon: options.showIcon, showDate: options.showDate)
-                // Klick oeffnet das Dashboard mit dem Kalender.
+                // A click opens the dashboard with the calendar.
                 .contentShape(.rect)
                 .onTapGesture { context.onDashboard() }
         case .utilitiesButton:
             SidebarIcon(help: String(localized: "Utilities (SUPER+U)"), action: context.onUtilities) {
-                // Mit `icons/bar-utilities.png` im Theme steht dort dieses Bild.
+                // With `icons/bar-utilities.png` in the theme, that image stands there.
                 ThemedIcon("bar-utilities")
                     .font(.system(size: 14, weight: .semibold))
                     .frame(width: 18, height: 18)
@@ -132,7 +132,7 @@ struct BarModuleView: View {
                 .frame(width: 1, height: options.height)
                 .accessibilityHidden(true)
         case .divider:
-            // Wie der Strich im Dock zwischen angehefteten und laufenden.
+            // Like the rule in the Dock between pinned and running ones.
             Capsule()
                 .fill(Color.primary.opacity(0.18))
                 .frame(width: 20, height: 2)
@@ -154,12 +154,12 @@ struct BarModuleView: View {
     }
 }
 
-/// Die Statussymbole untereinander in einer Kapsel mit leicht abgesetztem
-/// Hintergrund (Caelestia: StatusIcons, radius "full"). Welche, bestimmt
-/// Nexus; ist keins uebrig, faellt die Kapsel ganz weg.
-/// Ein Klick oeffnet das Detailfenster daneben (`StatusPopout`); das
-/// Symbol des offenen bleibt hinterlegt. Das Modell kommt aus der Umgebung -
-/// fehlt es (Vorschau, Bildproben), sind die Symbole nur Anzeige.
+/// The status symbols below each other in a capsule with a slightly set-off
+/// background (Caelestia: StatusIcons, radius "full"). Which ones is decided
+/// by Nexus; when none is left, the capsule falls away entirely.
+/// A click opens the detail window next to it (`StatusPopout`); the symbol of
+/// the open one stays backed. The model comes out of the environment - when
+/// it is missing (preview, image samples), the symbols are display only.
 private struct StatusCapsule: View {
     let status: StatusModel
     var options = BarStatusIconsOptions()
@@ -172,7 +172,7 @@ private struct StatusCapsule: View {
                 if options.showWifi {
                     let wifi = StatusGlyphs.wifi(powerOn: status.wifiOn, rssi: status.wifiRSSI)
                     popoutIcon(.wifi, help: wifiHelp) {
-                        // Theme: icons/status-wifi.png bzw. status-wifi-off.png.
+                        // Theme: icons/status-wifi.png or status-wifi-off.png.
                         ThemedIcon(status.wifiOn == false ? "status-wifi-off" : "status-wifi",
                                    fallback: wifi.symbol)
                             .font(.system(size: 14, weight: .semibold))
@@ -181,8 +181,8 @@ private struct StatusCapsule: View {
                 }
                 if options.showBluetooth {
                     popoutIcon(.bluetooth, help: bluetoothHelp) {
-                        // Ohne Theme das gezeichnete Zeichen (SF Symbols hat
-                        // keins fuer Bluetooth), mit Theme dessen Bild.
+                        // Without a theme the drawn glyph (SF Symbols has none
+                        // for Bluetooth), with a theme its image.
                         BluetoothGlyph(on: status.bluetoothOn != false)
                     }
                 }
@@ -201,7 +201,7 @@ private struct StatusCapsule: View {
         }
     }
 
-    /// Symbolknopf, der seinen Rahmen fuer die Lage des Popouts meldet.
+    /// A symbol button that reports its frame for the placement of the popout.
     private func popoutIcon<Glyph: View>(
         _ kind: StatusPopoutKind, help: String, @ViewBuilder glyph: @escaping () -> Glyph
     ) -> some View {
@@ -227,8 +227,8 @@ private struct StatusCapsule: View {
     }
 }
 
-/// Symbolknopf der Leiste: 32 x 32, beim Ueberfahren leicht hinterlegt.
-/// Ohne Aktion (Statussymbole) ist er nur Anzeige, schimmert aber trotzdem.
+/// Symbol button of the bar: 32 x 32, slightly backed on hover. Without an
+/// action (status symbols) it is display only, but it still shimmers.
 struct SidebarIcon<Content: View>: View {
     let help: String
     var action: (() -> Void)?
@@ -251,10 +251,10 @@ struct SidebarIcon<Content: View>: View {
                 .contentShape(.rect(cornerRadius: 9))
         }
         .buttonStyle(.plain)
-        // Mit Theme faerbt `--apollo-bar-icon-color` die Zeichen der Leiste.
+        // With a theme, `--apollo-bar-icon-color` colors the glyphs of the bar.
         .foregroundStyle(style.paint(.barIcon, or: .primary))
-        // Nicht `onHover`: die Leiste gehoert einer nie aktiven App, dort blieb
-        // der Hover-Effekt stehen, wenn die Maus wegging.
+        // Not `onHover`: the bar belongs to an app that is never active, and
+        // the hover effect stayed put there when the mouse left.
         .background {
             if !preview { HoverTracker { hovering = $0 } }
         }
@@ -264,10 +264,10 @@ struct SidebarIcon<Content: View>: View {
     }
 }
 
-/// Bluetooth-Rune, selbst gezeichnet: Apple bietet dafuer kein SF Symbol an
-/// (das Logo ist markenrechtlich geschuetzt). Geometrie im 10 x 15-Rahmen.
-/// Bluetooth in der Leiste: mit Theme dessen Bild, sonst das gezeichnete
-/// Zeichen - SF Symbols hat keins dafuer.
+/// The Bluetooth rune, drawn by hand: Apple offers no SF Symbol for it (the
+/// logo is a trademark). The geometry in a 10 x 15 frame.
+/// Bluetooth in the bar: with a theme its image, otherwise the drawn glyph -
+/// SF Symbols has none for it.
 struct BluetoothGlyph: View {
     let on: Bool
 
@@ -294,8 +294,8 @@ struct BluetoothRune: Shape {
         let x0 = rect.minX, y0 = rect.minY
         func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x0 + x * w, y: y0 + y * h) }
         var path = Path()
-        // Links oben diagonal nach rechts unten, zur Spitze unten, senkrecht
-        // hoch, zur Spitze rechts oben, diagonal nach links unten.
+        // From the top left diagonally to the bottom right, to the tip at the
+        // bottom, straight up, to the tip at the top right, diagonally down left.
         path.move(to: p(0, 0.27))
         path.addLine(to: p(1, 0.73))
         path.addLine(to: p(0.5, 1))
@@ -306,9 +306,9 @@ struct BluetoothRune: Shape {
     }
 }
 
-/// Die Leiste gehoert zu einer App, die nie im Vordergrund ist. Normale
-/// Ansichten verschlucken dann den ersten Klick (er holt nur das Fenster
-/// nach vorne); diese nimmt ihn direkt an.
+/// The bar belongs to an app that is never in the foreground. Normal views
+/// then swallow the first click (it only brings the window forward); this one
+/// takes it straight away.
 final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
