@@ -1,23 +1,23 @@
 import ApolloShellCore
 import SwiftUI
 
-// Die Vorlagen-Rueckfrage, wie sie Nexus > Leiste, Nexus > Schnellaktionen
-// und Nexus > Dashboard je fuer sich hatten: ein Menue "Vorlage laden ...",
-// ein "Zuruecksetzen"-Knopf (grau, wenn die Ebene schon der Vorgabe
-// entspricht) und ein Alert, der noch einmal fragt, bevor die jetzige Ebene
-// verschwindet. Die Texte der Rueckfrage bleiben bei den Aufrufern, weil sich
-// ihre Formulierungen unterscheiden (Leiste/Panel/Dashboard); hier nur die
-// Mechanik.
+// The template prompt the way Nexus > Bar, Nexus > Quick Actions and
+// Nexus > Dashboard each had it on their own: a menu "Load template ...", a
+// "Reset" button (grey when the level matches the default already) and an
+// alert that asks once more before the current level disappears. The texts of
+// the prompt stay with the callers, because their wording differs
+// (bar/panel/dashboard); only the mechanics are here.
+//
 
-// Zwei einzelne Stuecke statt eines Ganzen: die drei Editoren reihen sie
-// unterschiedlich auf (die Leiste und das Dashboard direkt nebeneinander,
-// die Schnellaktionen mit einem Spacer dazwischen) - das bleibt so bei den
+// Two separate pieces instead of one whole: the three editors line them up
+// differently (the bar and the dashboard right next to each other, the quick
+// actions with a spacer in between) - that stays with the callers.
 // Aufrufern.
 
-/// "Vorlage laden ...". Meldet die Wahl nur ueber `onSelect` - ob daraus
-/// `pending` wird (Rueckfrage per `nexusPresetAlert`) oder die Wahl gleich
-/// weitergereicht wird (`NexusDashboardCardSections`, die Rueckfrage haelt
-/// dort die Seite), entscheidet der Aufrufer.
+/// "Load template ...". Reports the choice only through `onSelect` - whether
+/// `pending` comes of it (the prompt through `nexusPresetAlert`) or the choice
+/// is handed on right away (`NexusDashboardCardSections`, where the page holds
+/// the prompt) is decided by the caller.
 struct NexusPresetMenu<P: LayoutPreset>: View {
     let onSelect: (P) -> Void
 
@@ -31,7 +31,7 @@ struct NexusPresetMenu<P: LayoutPreset>: View {
     }
 }
 
-/// "Zuruecksetzen", grau, wenn die Ebene schon der Vorgabe entspricht.
+/// "Reset", grey when the level matches the default already.
 struct NexusPresetResetButton<P: LayoutPreset>: View {
     let layout: P.Layout
     let action: () -> Void
@@ -43,10 +43,10 @@ struct NexusPresetResetButton<P: LayoutPreset>: View {
 }
 
 extension View {
-    /// Die Rueckfrage selbst: "Vorlage X laden?" bzw. "... zuruecksetzen?",
-    /// mit Laden/Zuruecksetzen und Abbrechen. `title`/`message` liefert der
-    /// Aufrufer, weil der Wortlaut sich je Ebene unterscheidet; `onConfirm`
-    /// bekommt die fertige Ebene.
+    /// The prompt itself: "Load template X?" or "... reset?", with
+    /// Load/Reset and Cancel. `title`/`message` is delivered by the caller,
+    /// because the wording differs per level; `onConfirm` gets the finished
+    /// level.
     func nexusPresetAlert<P: LayoutPreset>(
         _ pending: Binding<LayoutPresetReplacement<P>?>,
         title: (LayoutPresetReplacement<P>) -> String,

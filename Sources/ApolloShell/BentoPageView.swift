@@ -1,17 +1,17 @@
 import ApolloShellCore
 import SwiftUI
 
-/// Eine Seite: jedes Widget an seinem Rahmen (Referenzpunkte). Gesetzt
-/// ueber Rahmen und Versatz in ganzen Punkten statt ueber ein eigenes
-/// `Layout` - siehe den Kommentar ueber `DashboardGrid`: ein eigenes Layout
-/// rundete innen anders und verschob Text um einen Pixel.
+/// One page: every widget at its frame (reference points). Set through frames
+/// and offsets in whole points instead of through a `Layout` of its own - see
+/// the comment above `DashboardGrid`: a layout of its own rounded differently
+/// inside and shifted text by a pixel.
 ///
-/// Bearbeitet `editor` gerade diese Seite (`editor.isEditing`), zeichnet sie
-/// statt der ruhigen Ansicht die Bearbeitungs-Oberflaeche aus
-/// `BentoEditOverlay.swift`: wackelnde, waehlbare Widgets mit Entfernen- und
-/// Groessen-Griff, und ein Ziel fuer Widgets, die aus Nexus gezogen werden.
-/// Nicht editierend bleibt der Baum genau wie vor der Bearbeitung (wichtig
-/// fuer den Bildvergleich, siehe design/2026-09-18-bento-plan-edit.md).
+/// When `editor` is editing this page right now (`editor.isEditing`), it draws
+/// the editing surface out of `BentoEditOverlay.swift` instead of the quiet
+/// view: wobbling, selectable widgets with a remove and a size handle, and a
+/// target for widgets dragged out of Nexus. When not editing, the tree stays
+/// exactly as it was before the editing (which matters for the image
+/// comparison, see design/2026-09-18-bento-plan-edit.md).
 struct BentoPageView: View {
     let page: DashboardPage
     let context: WidgetContext
@@ -19,9 +19,9 @@ struct BentoPageView: View {
     @Environment(\.shellStyle) private var style
     @Environment(\.dashboardRendersForScreenshot) private var rendersForScreenshot
 
-    /// Benanntern Bezugsraum fuer Ziehen/Groesse-aendern (`BentoEditOverlay`):
-    /// die Seite selbst waechst waehrend eines Zugs nicht mit (anders als der
-    /// Rahmen eines einzelnen Widgets), also bleiben Ziehpunkte darin stabil.
+    /// A named coordinate space for dragging and resizing (`BentoEditOverlay`):
+    /// the page itself does not grow during a drag (unlike the frame of a
+    /// single widget), so drag points in it stay stable.
     static let coordinateSpaceName = "bentoPage"
 
     var body: some View {
@@ -47,10 +47,10 @@ struct BentoPageView: View {
                 }
             }
             #endif
-            // `ImageRenderer` (Bildproben) zeichnet das AppKit-hinterlegte
-            // Ablegeziel offscreen nicht (rotes Verbotszeichen statt der
-            // Seite, gemessen 18.09.) - in `RenderMode` bleibt es darum weg;
-            // das echte Dashboard behaelt es immer.
+            // `ImageRenderer` (image samples) does not draw the AppKit-backed
+            // drop target offscreen (a red no-entry sign instead of the page,
+            // measured 18.09.) - so it stays out in `RenderMode`; the real
+            // dashboard always keeps it.
             .modifier(BentoDropTarget(editor: editor, active: !rendersForScreenshot))
         } else if page.widgets.isEmpty {
             BentoEmptyPage()
@@ -67,8 +67,8 @@ struct BentoPageView: View {
         }
     }
 
-    /// Vorschau beim Ziehen aus Nexus: gestrichelter Umriss, rot wenn er dort
-    /// nicht passt.
+    /// The preview while dragging out of Nexus: a dashed outline, red when it
+    /// does not fit there.
     @ViewBuilder
     private func dropGhost(_ preview: (frame: WidgetFrame, valid: Bool)) -> some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -80,7 +80,7 @@ struct BentoPageView: View {
     }
 }
 
-/// Eine Seite ohne Widgets: ein ruhiger Hinweis statt einer leeren Flaeche.
+/// A page without widgets: a quiet note instead of an empty area.
 struct BentoEmptyPage: View {
     @Environment(\.shellStyle) private var style
 

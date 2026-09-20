@@ -2,31 +2,31 @@ import Foundation
 import ApolloShellCore
 import Observation
 
-// Die Reiter (`DashboardTab`) stehen in ApolloShellCore/DashboardLayout.swift:
-// Nexus ordnet und blendet sie, settings.json nennt sie beim Namen.
+// The tabs (`DashboardTab`) stand in ApolloShellCore/DashboardLayout.swift:
+// Nexus orders and hides them, settings.json names them.
 
-/// Zustand des Dashboards: Reiter, Uhr, Kalendermonat, Ressourcen.
-/// Misst nur, solange es offen ist (`start`/`stop`).
+/// The state of the dashboard: the tabs, the clock, the calendar month, the
+/// resources. It only measures while it is open (`start`/`stop`).
 @MainActor
 @Observable
 final class DashboardModel {
-    /// Die offene Seite; `nil`: die erste (Migration/Vorgabe).
+    /// The open page; `nil`: the first one (migration/default).
     var pageID: DashboardPage.ID?
-    /// Ob die offene Seite ein Leistungs-Widget zeigt - `Dashboard` setzt es
-    /// beim Oeffnen und bei jedem Seitenwechsel.
+    /// Whether the open page shows a performance widget - `Dashboard` sets it
+    /// on opening and on every page change.
     var showsPerformance = false {
         didSet { syncPerformance() }
     }
-    /// Misst nur bei offenem Dashboard und einer Seite mit Leistungs-Widget.
+    /// Measures only with the dashboard open and a page with a performance widget.
     let performance = PerformanceModel()
-    /// Massstab fuer den Bildschirm (`Dashboard.prepareForScreen`); 1 ist die
-    /// Referenzgroesse (`BentoGeometry`).
+    /// The scale for the screen (`Dashboard.prepareForScreen`); 1 is the
+    /// reference size (`BentoGeometry`).
     var scale: CGFloat = 1
     private(set) var now = Date()
     private(set) var cpu: Double = 0
     private(set) var memory: Double = 0
     private(set) var storage: Double = 0
-    /// Welcher Monat im Kalender angezeigt wird (Pfeile blaettern).
+    /// Which month is shown in the calendar (the arrows page through).
     private(set) var shownMonth = Date()
 
     private(set) var userName = NSFullUserName()
@@ -36,7 +36,7 @@ final class DashboardModel {
     }()
     let machineName = Host.current().localizedName ?? "Mac"
 
-    /// Montag zuerst; Wochentage in der gewaehlten Sprache (Nexus > Allgemein).
+    /// Monday first; the weekdays in the chosen language (Nexus > General).
     let calendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = .current
@@ -48,14 +48,14 @@ final class DashboardModel {
 
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var lastTicks: CPUTicks?
-    /// Ob das Fenster gerade offen (oder angepinnt zur Bearbeitung) ist -
-    /// `DashboardView` liest es, um Wetter-Modelle nur dann neu zu starten.
+    /// Whether the window is open right now (or pinned for editing) -
+    /// `DashboardView` reads it to restart weather models only then.
     @ObservationIgnored private(set) var isOpen = false
-    /// Feste Laufzeit fuer Bildproben; `nil` = die echte.
+    /// A fixed uptime for image samples; `nil` = the real one.
     @ObservationIgnored private var fixedUptime: TimeInterval?
 
-    /// Feste Werte fuer Bildproben und die Vorschau in Nexus. Misst nichts,
-    /// solange niemand `start` ruft - und das tut nur das echte Dashboard.
+    /// Fixed values for image samples and the preview in Nexus. It measures
+    /// nothing while nobody calls `start` - and only the real dashboard does that.
     static func preview(now: Date, cpu: Double, memory: Double, storage: Double,
                         userName: String, uptime: TimeInterval) -> DashboardModel {
         let model = DashboardModel()
@@ -85,10 +85,10 @@ final class DashboardModel {
         syncPerformance()
     }
 
-    /// Die Leistungs-Messung (GPU, Netzwerk, Verlaeufe) laeuft nur, wenn man
-    /// sie sieht: Dashboard offen und Reiter "Leistung" gewaehlt. Ueber das
-    /// Modell statt onAppear/onDisappear, weil das Fenster beim Schliessen
-    /// nur ausgeblendet wird - die Ansicht verschwindet dabei nicht.
+    /// The performance measuring (GPU, network, the histories) only runs when
+    /// one sees it: the dashboard open and the "Performance" tab chosen.
+    /// Through the model instead of onAppear/onDisappear, because the window is
+    /// only hidden on closing - the view does not disappear with it.
     private func syncPerformance() {
         if isOpen && showsPerformance {
             performance.start()

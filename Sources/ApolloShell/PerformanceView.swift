@@ -1,23 +1,23 @@
 import ApolloShellCore
 import SwiftUI
 
-/// Die Widgets der Seite "Leistung" (CPU, GPU, Speicher, Netzwerk,
-/// Arbeitsspeicher, Akku) zeichnet `WidgetView` einzeln, an ihren Rahmen aus
-/// `PageTemplate.performance` (`DashboardPagesDefaults.swift`). Hier bleibt
-/// nur die gemeinsame Kurve fuer ihre Animationen.
+/// The widgets of the "Performance" page (CPU, GPU, storage, network, memory,
+/// battery) are drawn one by one by `WidgetView`, at their frames out of
+/// `PageTemplate.performance` (`DashboardPagesDefaults.swift`). Only the shared
+/// curve for their animations stays here.
 enum PerformanceAnimation {
-    /// Caelestias Standardkurve: 500 ms, leicht ueberschiessend.
+    /// Caelestia's standard curve: 500 ms, slightly overshooting.
     static let value = Animation.shellSpatial
 }
 
 // MARK: - CPU/GPU
 
-/// Caelestia HeroCard: Ring mit Symbol, Titel in Akzentfarbe, Untertitel,
-/// rechts unten die Auslastung gross in einer Form, die mit der Last
-/// zackiger wird (Caelestia: Cookie < 40 %, Sunny < 80 %, SoftBurst).
+/// Caelestia HeroCard: a ring with a symbol, the title in the accent color, a
+/// subtitle, at the bottom right the load in big, in a shape that gets more
+/// jagged with the load (Caelestia: Cookie < 40 %, Sunny < 80 %, SoftBurst).
 struct HeroCard: View {
     let symbol: String
-    /// Kennung fuer den Symbol-Austausch im Theme.
+    /// The id for the symbol swap in the theme.
     var iconID: String = ""
     let title: String
     let subtitle: String
@@ -68,7 +68,7 @@ struct HeroCard: View {
 private struct UsageRing: View {
     let value: Double
     let symbol: String
-    /// Kennung fuer den Symbol-Austausch im Theme.
+    /// The id for the symbol swap in the theme.
     var iconID: String = ""
     @Environment(\.shellStyle) private var style
 
@@ -109,8 +109,8 @@ private struct UsageBadge: View {
     }
 }
 
-/// Kreis mit gewellter Kante - Ersatz fuer Caelestias Material-Formen
-/// (Cookie/Sunny/SoftBurst), die es in SwiftUI nicht gibt.
+/// A circle with a wavy edge - a stand-in for Caelestia's Material shapes
+/// (Cookie/Sunny/SoftBurst), which do not exist in SwiftUI.
 private struct ScallopShape: Shape {
     let lobes: Int
     let depth: CGFloat
@@ -122,7 +122,7 @@ private struct ScallopShape: Shape {
         let steps = 180
         for step in 0...steps {
             let angle = Double(step) / Double(steps) * 2 * .pi
-            // Radius schwingt zwischen aussen und (1 - depth) * aussen.
+            // The radius swings between the outside and (1 - depth) * outside.
             let radius = outer * (1 - depth * (1 - cos(Double(lobes) * angle)) / 2)
             let point = CGPoint(x: center.x + radius * cos(angle - .pi / 2),
                                 y: center.y + radius * sin(angle - .pi / 2))
@@ -133,10 +133,10 @@ private struct ScallopShape: Shape {
     }
 }
 
-// MARK: - Speicher
+// MARK: - Storage
 
-/// Caelestia-Tacho: 270 Grad, Luecke unten (Start -225 Grad), dort steht
-/// die Beschriftung.
+/// Caelestia's gauge: 270 degrees, the gap at the bottom (starting at -225
+/// degrees), where the label stands.
 private struct ArcGauge<Label: View>: View {
     let value: Double
     let caption: LocalizedStringKey
@@ -159,8 +159,8 @@ private struct ArcGauge<Label: View>: View {
         }
     }
 
-    /// SwiftUIs Kreis beginnt rechts (3 Uhr) im Uhrzeigersinn; um 135 Grad
-    /// gedreht beginnt er links unten - das ist Caelestias -225 Grad.
+    /// SwiftUI's circle begins on the right (3 o'clock) clockwise; turned by
+    /// 135 degrees it begins at the bottom left - that is Caelestia's -225 degrees.
     private func arc(to fraction: Double) -> some Shape {
         Circle()
             .inset(by: lineWidth / 2)
@@ -231,7 +231,7 @@ struct MemoryCard: View {
                     PercentLabel(value: usage?.fraction)
                 }
                 .frame(width: 110, height: 110)
-                // Binaer wie die Aktivitaetsanzeige: 24 GB RAM bleiben 24 GB.
+                // Binary like Activity Monitor: 24 GB of RAM stay 24 GB.
                 Text(usage.map { ByteFormat.usage(used: $0.used, total: $0.total, binary: true) } ?? "–")
                     .font(style.font(size: 11))
                     .foregroundStyle(.secondary)
@@ -243,18 +243,18 @@ struct MemoryCard: View {
     }
 }
 
-// MARK: - Netzwerk
+// MARK: - Network
 
 struct NetworkCard: View {
     let model: PerformanceModel
     @Environment(\.shellStyle) private var style
 
-    /// Upload in einer zweiten Farbe, damit sich die Linien trennen lassen
-    /// (Caelestia: sekundaere und tertiaere Palettenfarbe).
+    /// The upload in a second color, so that the lines can be told apart
+    /// (Caelestia: the secondary and tertiary palette color).
     private let uploadColor = Color.orange
 
     var body: some View {
-        // Beide Linien auf derselben Skala, sonst waeren sie nicht vergleichbar.
+        // Both lines on the same scale, otherwise they could not be compared.
         let scale = Sparkline.scale(
             peak: max(model.downloadHistory.peak, model.uploadHistory.peak),
             floor: 10_000
@@ -319,9 +319,9 @@ private struct RateRow: View {
     }
 }
 
-// MARK: - Verlaufslinie
+// MARK: - History line
 
-/// Linie mit leicht gefuellter Flaeche darunter (Caelestia: 15-20 % Deckkraft).
+/// A line with a lightly filled area below it (Caelestia: 15-20 % opacity).
 private struct SparklineArea: View {
     let values: [Double]
     let capacity: Int
@@ -336,13 +336,13 @@ private struct SparklineArea: View {
             SparklineShape(values: values, capacity: capacity, scale: scale, closed: false)
                 .stroke(color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
         }
-        // Der Strich soll oben am Maximum nicht halb abgeschnitten wirken.
+        // The stroke should not look half cut off at the maximum at the top.
         .padding(.top, 1)
         .animation(PerformanceAnimation.value, value: scale)
     }
 }
 
-/// Die Skala ist animierbar: springt das Maximum, gleitet die y-Achse mit.
+/// The scale can be animated: when the maximum jumps, the y axis glides along.
 private struct SparklineShape: Shape {
     let values: [Double]
     let capacity: Int
@@ -361,7 +361,7 @@ private struct SparklineShape: Shape {
         guard let first = points.first, let last = points.last, points.count > 1 else { return Path() }
         var path = Path()
         path.move(to: first)
-        // Weich ueber die Mittelpunkte, damit die Zacken nicht hart knicken.
+        // Softly over the midpoints, so that the peaks do not kink hard.
         for index in 1..<points.count {
             let previous = points[index - 1]
             let mid = CGPoint(x: (previous.x + points[index].x) / 2, y: (previous.y + points[index].y) / 2)
@@ -377,12 +377,12 @@ private struct SparklineShape: Shape {
     }
 }
 
-// MARK: - Akku
+// MARK: - Battery
 
-/// Caelestia BatteryTank: fuellt sich von unten wie Fluessigkeit. Der
-/// Inhalt liegt zweimal da - einmal normal, einmal in umgekehrten Farben
-/// auf die Fuellung maskiert -, so bleibt jede Schrift lesbar, egal wo die
-/// Kante gerade durch sie laeuft.
+/// Caelestia BatteryTank: it fills from below like a liquid. The content lies
+/// there twice - once normally, once in inverted colors masked onto the fill -
+/// so that every bit of text stays readable, wherever the edge runs through it
+/// right now.
 struct BatteryTank: View {
     let state: BatteryState
     let minutes: Int?
