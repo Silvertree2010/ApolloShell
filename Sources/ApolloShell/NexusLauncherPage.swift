@@ -128,7 +128,7 @@ final class NexusPinnedModel {
             if saveFailed { saveFailed = false }
         } catch {
             saveFailed = true
-            log.error("pinned.json nicht gespeichert: \(error.localizedDescription, privacy: .public)")
+            log.error("pinned.json not saved: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

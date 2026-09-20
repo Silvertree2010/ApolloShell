@@ -9,7 +9,6 @@ import Foundation
 /// usage only gives a capped bonus. With hits of similar quality the app that
 /// is used often moves up, but it does not beat a clearly better hit: "fi"
 /// finds Firefox first, even when Affinity is used far more often.
-/// viel oefter benutzt wird.
 public struct AppRanker: Sendable {
     /// From this weight on an app counts as used. A single use falls below it
     /// after a good four half-lives (about a month).

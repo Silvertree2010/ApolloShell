@@ -42,7 +42,6 @@ public enum ThemeValueReader {
         guard !text.isEmpty else { return nil }
         // There is no `var(--x)`: without a lookup chain the format stays
         // manageable, and nobody builds on behavior we could not keep later.
-        // nicht halten koennen.
         guard !text.lowercased().contains("var(") else { return nil }
         return text
     }

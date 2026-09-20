@@ -183,7 +183,7 @@ public struct ThemeGradient: Equatable, Hashable, Sendable {
         return (start: (x: 0.5 - dx, y: 0.5 - dy), end: (x: 0.5 + dx, y: 0.5 + dy))
     }
 
-    /// `none` oder `linear-gradient(180deg, #111111 0%, #333333 100%)`.
+    /// `none` or `linear-gradient(180deg, #111111 0%, #333333 100%)`.
     public var cssText: String {
         guard !isEmpty else { return "none" }
         let parts = stops.map { stop in

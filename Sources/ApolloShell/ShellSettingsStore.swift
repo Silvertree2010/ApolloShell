@@ -82,7 +82,7 @@ final class ShellSettingsStore {
             if saveFailed { saveFailed = false }
         } catch {
             saveFailed = true
-            log.error("settings.json nicht gespeichert: \(error.localizedDescription, privacy: .public)")
+            log.error("settings.json not saved: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

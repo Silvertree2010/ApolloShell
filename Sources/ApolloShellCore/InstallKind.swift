@@ -1,7 +1,6 @@
 import Foundation
 
 /// Where this installation came from. How an update is installed hangs on it.
-/// eingespielt wird.
 /// - `.disk`: out of the DMG (or a build of one's own). The app may renew
 ///   itself, and Sparkle takes care of that.
 ///

@@ -117,7 +117,7 @@ final class SidebarScreen {
     func setHiddenForFullscreen(_ hidden: Bool) {
         guard hidden != isHiddenForFullscreen else { return }
         isHiddenForFullscreen = hidden
-        log.notice("Sidebar \(hidden ? "weg (Vollbild)" : "wieder da", privacy: .public)")
+        log.notice("Sidebar \(hidden ? "away (full screen)" : "back", privacy: .public)")
         if hidden {
             // Without a bar the popout would have nothing to hang on.
             popout.close()
