@@ -2,18 +2,18 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Schreibtisch-Uhr: liegt hinter allen Fenstern auf dem Schreibtisch, unten
-/// rechts (Caelestias Standardposition) mit 32 pt Abstand, ueber dem Dock.
-/// Klicks gehen durch sie hindurch.
+/// The desktop clock: lies behind all windows on the desktop, at the bottom
+/// right (Caelestia's default position) with a 32 pt gap, above the Dock.
+/// Clicks go straight through it.
 ///
-/// Auf jedem Bildschirm, der auch eine Leiste hat (Nexus > Leiste,
-/// "Bildschirme") - eine Uhr auf einem Bildschirm ohne Leiste waere ein
-/// einzelnes schwebendes Stueck Shell.
+/// On every screen that has a bar too (Nexus > Bar, “Screens”) - a clock on a
+/// screen without a bar would be a single floating piece of shell.
 ///
-/// Nexus > Schreibtisch schaltet sie ein und aus, sofort: `Observations`
-/// meldet jede Aenderung der Einstellung. Aus heisst Fenster weg UND Timer
-/// aus - eine unsichtbare Uhr soll nicht jede Minute neu rechnen. Die Uhrzeit
-/// selbst ist ein geteiltes Modell mit einem Timer fuer alle Bildschirme.
+///
+/// Nexus > Desktop switches it on and off, right away: `Observations` reports
+/// every change of the setting. Off means the window goes AND the timer stops
+/// - an invisible clock should not work something out every minute. The time
+/// itself is a shared model with one timer for all screens.
 @MainActor
 final class DesktopClock {
     /// Caelestia: Tokens.padding.extraLargeIncreased.
@@ -21,7 +21,7 @@ final class DesktopClock {
 
     private let model = DesktopClockModel()
     private let settings: ShellSettingsStore
-    /// Ein Fenster je Bildschirm, nach Display-Kennung.
+    /// One window per screen, by display id.
     private var slots = ScreenSlots<DesktopClockWindow>()
     private var timer: Timer?
     private var enabled = false
@@ -32,14 +32,14 @@ final class DesktopClock {
         self.settings = settings
         setEnabled(settings.settings.background.desktopClock)
         observeSystemChanges()
-        // Liefert zuerst den aktuellen Wert, danach jede Aenderung. Die
-        // Schleifen leben so lange wie die App (AppDelegate haelt die Uhr).
+        // Delivers the current value first, then every change. The loops live
+        // as long as the app (AppDelegate holds the clock).
         observation = Task { [weak self, settings] in
             for await on in Observations({ settings.settings.background.desktopClock }) {
                 self?.setEnabled(on)
             }
         }
-        // Die Uhr folgt der Bildschirm-Einstellung der Leiste.
+        // The clock follows the screen setting of the bar.
         choiceObservation = Task { [weak self, settings] in
             for await _ in Observations({ settings.settings.bar.screens }) {
                 self?.rebuild()
@@ -60,9 +60,9 @@ final class DesktopClock {
         }
     }
 
-    /// Uhren anlegen, vermessen und abraeumen, so wie es die Einstellung und
-    /// die angeschlossenen Bildschirme verlangen. Ohne Bildschirme bleibt
-    /// alles stehen (Kabel mitten im Umstecken).
+    /// Create, measure and clear away the clocks the way the setting and the
+    /// connected screens ask for. Without screens everything stays standing (a
+    /// cable in the middle of being replugged).
     private func rebuild() {
         guard enabled else { return }
         let model = model
@@ -77,8 +77,8 @@ final class DesktopClock {
         )
     }
 
-    /// Nur die Rahmen neu setzen (die Breite aendert sich mit dem Text), ohne
-    /// die Fenster neu zu verteilen.
+    /// Only set the frames anew (the width changes with the text), without
+    /// spreading the windows again.
     private func relayout() {
         guard enabled else { return }
         let all = ShellScreens.current()
@@ -88,8 +88,8 @@ final class DesktopClock {
         }
     }
 
-    /// Zur naechsten vollen Minute weiterschalten, dann jede Minute. Ein
-    /// Timer fuer alle Bildschirme.
+    /// Move on to the next full minute, then every minute. One timer for all
+    /// screens.
     private func scheduleTick() {
         model.now = Date()
         let seconds = Calendar.current.component(.second, from: model.now)
@@ -105,15 +105,15 @@ final class DesktopClock {
         }
     }
 
-    /// Nach Aufwachen stimmt die Minute nicht mehr; nach Bildschirmwechsel
-    /// die Verteilung und die Position nicht.
+    /// After a wake-up the minute is no longer right; after a screen change
+    /// the spread and the position are not.
     private func observeSystemChanges() {
         ShellScreens.onChange { [weak self] in self?.rebuild() }
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                // Ausgeschaltet: keinen Timer wieder anwerfen.
+                // Switched off: do not start a timer again.
                 guard let self, self.enabled else { return }
                 self.scheduleTick()
             }
@@ -121,7 +121,7 @@ final class DesktopClock {
     }
 }
 
-/// Das Uhr-Fenster EINES Bildschirms.
+/// The clock window of ONE screen.
 @MainActor
 private final class DesktopClockWindow {
     private let window: ShellPanel
@@ -130,7 +130,7 @@ private final class DesktopClockWindow {
     init(model: DesktopClockModel) {
         hosting = NSHostingView(rootView: DesktopClockView(model: model).shellTheme())
         hosting.sizingOptions = []
-        // Knapp ueber den Schreibtisch-Symbolen, weit unter normalen Fenstern.
+        // Just above the desktop icons, far below normal windows.
         window = ShellPanel(level: NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1),
                             behavior: [.canJoinAllSpaces, .stationary, .ignoresCycle], deferred: false)
         window.ignoresMouseEvents = true
@@ -138,12 +138,12 @@ private final class DesktopClockWindow {
     }
 
     func layout(on screen: ShellScreen, margin: CGFloat, model: DesktopClockModel) {
-        // An einer frischen Ansicht messen: `hosting` hat sizingOptions = []
-        // und meldet deshalb keine eigene Groesse (fittingSize war 0 x 0,
-        // die Uhr unsichtbar - gemessen 14.09.).
+        // Measure on a fresh view: `hosting` has sizingOptions = [] and
+        // therefore reports no size of its own (fittingSize was 0 x 0 and the
+        // clock invisible - measured 14.09.).
         let size = NSHostingView(rootView: DesktopClockView(model: model).shellTheme()).fittingSize
         let visible = screen.visibleFrame
-        // Der View bringt 24 pt Schatten-Rand mit; die 32 pt gelten fuer die Schrift.
+        // The view brings a 24 pt shadow margin; the 32 pt hold for the text.
         let inset = margin - 24
         window.setFrame(NSRect(
             x: visible.maxX - size.width - inset,

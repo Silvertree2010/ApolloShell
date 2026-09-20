@@ -1,26 +1,26 @@
 import Foundation
 
-/// Geometrie der Bento-Seiten: gueltige Lage, Einrasten, Massstab. Reine
-/// Funktionen in Referenzpunkten (Seite 839 x 392, `DashboardGeometry`).
-/// Keine Zellen: Caelestias Masse (130, 250, 275, 110 ...) passen in kein
-/// gleichmaessiges Raster, Ordnung kommt vom Einrasten.
+/// The geometry of the bento pages: a valid place, snapping, the scale. Plain
+/// functions in reference points (a page of 839 x 392, `DashboardGeometry`).
+/// No cells: Caelestia's measurements (130, 250, 275, 110 ...) fit into no
+/// even grid, and the order comes from the snapping.
 public enum BentoGeometry {
     public static let pageWidth = DashboardGeometry.width
     public static let pageHeight = DashboardGeometry.height
-    /// Mindestabstand zweier Widgets, Caelestias Rasterabstand.
+    /// The minimum gap between two widgets, Caelestia's grid gap.
     public static let spacing = DashboardGeometry.spacing
-    /// Naeher als das: das Widget springt aufs Ziel.
+    /// Closer than this: the widget jumps onto the target.
     public static let snapDistance: Double = 8
 
-    // MARK: Gueltig
+    // MARK: Valid
 
     public static func isInside(_ frame: WidgetFrame) -> Bool {
         frame.x >= 0 && frame.y >= 0 && frame.maxX <= pageWidth && frame.maxY <= pageHeight
     }
 
-    /// Naeher als `spacing` in beiden Achsen, Ueberlappung eingeschlossen.
-    /// Genau `spacing` Abstand ist erlaubt; schraeg versetzt zaehlt nur, wenn
-    /// beide Achsen zu nah sind.
+    /// Closer than `spacing` on both axes, an overlap included. Exactly
+    /// `spacing` apart is allowed; a diagonal offset only counts when both
+    /// axes are too close.
     public static func tooClose(_ a: WidgetFrame, _ b: WidgetFrame) -> Bool {
         a.x < b.maxX + spacing && b.x < a.maxX + spacing
             && a.y < b.maxY + spacing && b.y < a.maxY + spacing
@@ -31,12 +31,12 @@ public enum BentoGeometry {
             && !others.contains { tooClose(frame, $0) }
     }
 
-    // MARK: Massstab
+    // MARK: Scale
 
-    /// Breite des 14-Zoll-MacBooks: dort Faktor 1, alles wie vor 0.2.
+    /// The width of the 14-inch MacBook: factor 1 there, everything as before 0.2.
     public static let referenceScreenWidth: Double = 1512
     public static let automaticRange: ClosedRange<Double> = 0.85...1.5
-    /// Der Regler in Nexus.
+    /// The slider in Nexus.
     public static let userScaleRange: ClosedRange<Double> = 0.7...1.5
 
     public static func clampedUserScale(_ value: Double) -> Double {
@@ -44,9 +44,9 @@ public enum BentoGeometry {
         return min(max(value, userScaleRange.lowerBound), userScaleRange.upperBound)
     }
 
-    /// Massstab fuer einen Bildschirm: Automatik nach Breite mal Regler,
-    /// hoechstens so gross, dass `contentHeight` (das ganze Dashboard in
-    /// Referenzgroesse, mit Seitenleiste oben) in `availableHeight` passt.
+    /// The scale for a screen: the automatic one by width times the slider, at
+    /// most as big as lets `contentHeight` (the whole dashboard at reference
+    /// size, with the page bar on top) fit into `availableHeight`.
     public static func scale(screenWidth: Double, availableHeight: Double, contentHeight: Double,
                              userScale: Double) -> Double {
         let automatic = min(max(screenWidth / referenceScreenWidth, automaticRange.lowerBound), automaticRange.upperBound)
@@ -55,30 +55,30 @@ public enum BentoGeometry {
         return min(wanted, availableHeight / contentHeight)
     }
 
-    // MARK: Einrasten
+    // MARK: Snapping
 
-    /// Ziehen: je Achse springt das Widget aufs naechste Ziel naeher als
-    /// `snapDistance` - Seitenrand, gleiche Flucht wie ein anderes Widget,
-    /// oder genau `spacing` daneben. Ohne Ziel bleibt die Achse. Ergebnis
-    /// auf ganze Punkte gerundet; ob es passt, sagt `isValid`.
+    /// Dragging: per axis the widget jumps onto the nearest target closer than
+    /// `snapDistance` - the page edge, the same line as another widget, or
+    /// exactly `spacing` next to it. Without a target the axis stays. The
+    /// result is rounded to whole points; whether it fits is said by `isValid`.
     public static func snapMove(_ proposed: WidgetFrame, others: [WidgetFrame]) -> WidgetFrame {
         var frame = proposed
         frame.x = snap(frame.x, to: startCandidates(length: frame.width, page: pageWidth,
                                                     others: others.map { (start: $0.x, end: $0.maxX) }))
         frame.y = snap(frame.y, to: startCandidates(length: frame.height, page: pageHeight,
                                                     others: others.map { (start: $0.y, end: $0.maxY) }))
-        // Nur die Lage auf ganze Punkte runden - die Breite/Hoehe bleibt, wie
-        // sie hereinkam (manche Groessen der Leistungsseite sind Halbpunkte,
-        // z. B. 413,5; Runden wuerde sie ausserhalb ihrer Spanne schieben).
+        // Round only the place to whole points - the width and height stay as
+        // they came in (some sizes of the performance page are half points,
+        // 413.5 for instance; rounding would push them outside their range).
         frame.x = frame.x.rounded()
         frame.y = frame.y.rounded()
         return frame
     }
 
-    /// Groesse ziehen (Griff unten rechts, Ecke oben links bleibt): die Hoehe
-    /// springt auf die naechste erlaubte, die Breite bleibt in der Spanne
-    /// dieser Groesse und rastet bei flexiblen Widgets am Seitenrand und an
-    /// Nachbarn ein (rechte Kanten buendig oder `spacing` vor dem Nachbarn).
+    /// Dragging the size (the handle at the bottom right, the top left corner
+    /// stays): the height jumps to the next allowed one, the width stays in
+    /// the range of that size and snaps at the page edge and at neighbours
+    /// with flexible widgets (right edges flush or `spacing` before the neighbour).
     public static func snapResize(_ frame: WidgetFrame, kind: WidgetKind, proposedWidth: Double,
                                   proposedHeight: Double, others: [WidgetFrame]) -> WidgetFrame {
         guard let size = kind.sizes.min(by: { abs($0.height - proposedHeight) < abs($1.height - proposedHeight) })
@@ -90,18 +90,18 @@ public enum BentoGeometry {
                 candidates += [other.x - spacing - frame.x, other.maxX - frame.x]
             }
             width = snap(width, to: candidates.filter { $0 >= size.minWidth && $0 <= size.maxWidth })
-            // Erst runden, dann wieder in die Spanne der Groesse zwingen -
-            // ein Halbpunkt-Hoechstmass (z. B. 413,5) bleibt so unangetastet,
-            // statt durchs Runden ungueltig zu werden.
+            // Round first, then force it back into the range of the size - a
+            // half-point maximum (413.5, say) stays untouched that way instead
+            // of becoming invalid through the rounding.
             width = min(max(width.rounded(), size.minWidth), size.maxWidth)
         }
-        // Eine feste Breite (minWidth == maxWidth) ist bereits der genaue
-        // Katalogwert - nie runden, sonst wird z. B. 169,5 ungueltig.
+        // A fixed width (minWidth == maxWidth) is the exact catalogue value
+        // already - never round, otherwise 169.5 becomes invalid.
         return WidgetFrame(x: frame.x.rounded(), y: frame.y.rounded(), width: width, height: size.height)
     }
 
-    /// Neues Widget aus Nexus: kleinste Groesse, mittig unter dem Zeiger
-    /// (`x`, `y` in Referenzpunkten), dann eingerastet wie beim Ziehen.
+    /// A new widget out of Nexus: the smallest size, centred under the pointer
+    /// (`x`, `y` in reference points), then snapped as when dragging.
     public static func dropFrame(kind: WidgetKind, x: Double, y: Double, others: [WidgetFrame]) -> WidgetFrame {
         let size = kind.smallestSize
         let proposed = WidgetFrame(x: x - size.minWidth / 2, y: y - size.height / 2,
@@ -109,11 +109,11 @@ public enum BentoGeometry {
         return snapMove(proposed, others: others)
     }
 
-    /// Erste freie Stelle fuer die kleinste Groesse einer Art: Zeilen von
-    /// oben nach unten, darin von links nach rechts, ueber die Kandidaten 0
-    /// und "gleich hinter einem anderen Widget" (`maxX`/`maxY` plus
-    /// `spacing`) - so wie die Galerie ein angeklicktes Widget platziert.
-    /// `nil`, wenn keine Stelle passt (Seite voll).
+    /// The first free place for the smallest size of a kind: rows from top to
+    /// bottom, in them from left to right, over the candidates 0 and “right
+    /// behind another widget" (`maxX`/`maxY` plus `spacing`) - the way the
+    /// gallery places a widget that was clicked. `nil` when no place fits (the
+    /// page is full).
     public static func firstFreeFrame(kind: WidgetKind, others: [WidgetFrame]) -> WidgetFrame? {
         let size = kind.smallestSize
         var xCandidates: Set<Double> = [0]
@@ -131,9 +131,9 @@ public enum BentoGeometry {
         return nil
     }
 
-    /// Moegliche Anfaenge auf einer Achse: beide Seitenraender, dieselbe
-    /// Flucht wie ein anderes Widget (Anfang an Anfang, Ende an Ende) und
-    /// genau `spacing` davor oder dahinter.
+    /// The possible starts on one axis: both page edges, the same line as
+    /// another widget (start at start, end at end) and exactly `spacing`
+    /// before or behind it.
     static func startCandidates(length: Double, page: Double, others: [(start: Double, end: Double)]) -> [Double] {
         var result = [0, page - length]
         for other in others {

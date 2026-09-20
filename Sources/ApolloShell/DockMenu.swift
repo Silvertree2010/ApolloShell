@@ -4,35 +4,35 @@ import ApplicationServices
 import CoreGraphics
 import SwiftUI
 
-/// Das Menue eines Dock-Symbols, aufgebaut wie Apples Dock-Menue, damit
-/// die Eintraege dort stehen, wo man sie erwartet:
+/// The menu of a Dock symbol, built like Apple's Dock menu, so that the
+/// entries stand where one expects them:
 ///
-///     ✓ Fenster (aller Schreibtische), das vorderste angehakt
+///     ✓ windows (of all desktops), the frontmost one ticked
 ///     ─
-///     Befehle der App (Neues Fenster, Neues privates Fenster, Einstellungen)
+///     commands of the app (New Window, New Private Window, Settings)
 ///     ─
-///     Optionen ▸ Im Dock behalten ✓ · In <Dateimanager> zeigen
+///     Options ▸ Keep in Dock ✓ · Show in <file manager>
 ///     ─
-///     Alle Fenster einblenden
-///     Ausblenden / Einblenden
-///     Beenden (⌥: Sofort beenden)
+///     Show All Windows
+///     Hide / Show
+///     Quit (⌥: Force Quit)
 ///
-/// Reihenfolge und Trenner am 17.09. an Apples Dock abgeglichen (Vivaldi,
-/// kitty, ForkLift): Fenster zuerst, mit Haken am vordersten und einem
-/// Fenstersymbol je Zeile, dann die Befehle der App, dann Optionen, und nach
-/// einem Trenner der Block aus Einblenden, Ausblenden und Beenden.
-/// Einstellungen zeigt Apple dort nicht, also zeigen wir sie dort auch
-/// nicht (im Launcher schon - dort gibt es kein Vorbild von Apple).
+/// The order and the separators were matched against Apple's Dock on 17.09.
+/// (Vivaldi, kitty, ForkLift): the windows first, with a tick on the frontmost
+/// one and a window symbol on every line, then the commands of the app, then
+/// the options, and after a separator the block of show, hide and quit. Apple
+/// does not show Settings there, so we do not show it there either (in the
+/// launcher we do - there is no model from Apple for that).
 ///
-/// Beim Oeffnen gebaut, damit Fensterliste, Befehle und Zustand stimmen.
+/// Built on opening, so that the window list, the commands and the state are right.
 @MainActor
 enum DockMenu {
     static func show(for entry: SidebarDockModel.Entry, model: SidebarDockModel, at view: NSView) {
-        // Zuerst das echte Menue von Apples Dock: dort stehen die Eintraege,
-        // die die App selbst liefert (zuletzt benutzte Dokumente, eigene
-        // Befehle) - die kann von aussen niemand erraten. Klappt das nicht
-        // (Symbol nicht in Apples Dock, kein Zugriff), bleibt das selbst
-        // gebaute Menue darunter.
+        // The real menu of Apple's Dock first: that is where the entries the
+        // app delivers itself stand (recent documents, commands of its own) -
+        // nobody can guess those from outside. When that does not work (the
+        // symbol is not in Apple's Dock, no access), the menu we build
+        // ourselves stays below.
         Task { @MainActor in
             let nodes = await AppleDockMenu.snapshot(bundleID: entry.bundleID)
             if !nodes.isEmpty {
@@ -43,9 +43,9 @@ enum DockMenu {
         }
     }
 
-    /// Apples Menue, mit "Im Dock behalten" auf unser Dock umgehaengt: In
-    /// Apples Dock anzuheften waere wirkungslos, es ist ausgeblendet, solange
-    /// die Shell laeuft.
+    /// Apple's menu, with "Keep in Dock" hooked over to our Dock: pinning in
+    /// Apple's Dock would have no effect, since it is hidden while the shell
+    /// runs.
     private static func mirrored(_ nodes: [DockMenuNode], entry: SidebarDockModel.Entry,
                                  model: SidebarDockModel) -> NSMenu {
         NativeAppMenu.menu(from: nodes, bundleID: entry.bundleID) { node in
@@ -56,20 +56,20 @@ enum DockMenu {
         }
     }
 
-    /// Das selbst gebaute Menue - der Rueckfall, wenn Apples Dock diese App
-    /// nicht kennt.
+    /// The menu we build ourselves - the fallback when Apple's Dock does not
+    /// know this app.
     private static func ownMenu(for entry: SidebarDockModel.Entry, model: SidebarDockModel) -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
         let app = model.runningApp(entry.bundleID)
 
         if let app {
-            // Alle Schreibtische: vorher nur der aktuelle, Fenster auf
-            // anderen Schreibtischen fehlten dann im Menue.
+            // All desktops: before, only the current one, and windows on other
+            // desktops were then missing from the menu.
             let windows = DockWindows.list(pid: app.processIdentifier, allSpaces: true)
-            // Wie bei Apple: Haken am vordersten Fenster (das erste, das
-            // nicht abgelegt ist), Fenstersymbol an jeder Zeile, abgelegte
-            // Fenster mit eigenem Symbol.
+            // As with Apple: a tick on the frontmost window (the first one
+            // that is not put away), a window symbol on every line, and put-away
+            // windows with a symbol of their own.
             let front = windows.firstIndex { !$0.minimized }
             for (index, window) in windows.enumerated() {
                 let item = ClosureMenuItem(window.title.isEmpty ? entry.name : window.title) {
@@ -83,7 +83,7 @@ enum DockMenu {
             }
             if !windows.isEmpty { menu.addItem(.separator()) }
 
-            // Nur die Befehle, die Apples Dock auch zeigt.
+            // Only the commands Apple's Dock shows too.
             let commands = DockAppCommands.commands(pid: app.processIdentifier).filter { $0.kind == .newItem }
             for command in commands {
                 menu.addItem(ClosureMenuItem(command.title) { DockAppCommands.press(command, of: app) })
@@ -107,16 +107,16 @@ enum DockMenu {
         menu.addItem(options)
 
         if let app {
-            // Trenner nach den Optionen, dann der Block wie bei Apple:
-            // Einblenden, Aus-/Einblenden, Beenden - ohne Trenner dazwischen.
+            // A separator after the options, then the block as with Apple:
+            // show, hide/show, quit - without a separator in between.
             menu.addItem(.separator())
             menu.addItem(ClosureMenuItem(String(localized: "Show All Windows")) { SpaceSwitcher.showAppWindows(of: app) })
             menu.addItem(ClosureMenuItem(app.isHidden ? String(localized: "Show") : String(localized: "Hide")) {
-                // Ergebnis egal: scheitert es, bleibt die App, wie sie war.
+                // The result does not matter: if it fails, the app stays as it was.
                 _ = app.isHidden ? app.unhide() : app.hide()
             })
             menu.addItem(ClosureMenuItem(String(localized: "Quit")) { app.terminate() })
-            // Wie bei Apple: mit gedrueckter ⌥-Taste wird daraus "Sofort beenden".
+            // As with Apple: with ⌥ held down it becomes "Force Quit".
             let force = ClosureMenuItem(String(localized: "Force Quit")) { app.forceTerminate() }
             force.isAlternate = true
             force.keyEquivalentModifierMask = .option
@@ -127,7 +127,7 @@ enum DockMenu {
     }
 }
 
-/// Menuepunkt mit Block statt Ziel/Aktion.
+/// A menu item with a block instead of a target/action.
 final class ClosureMenuItem: NSMenuItem {
     private let handler: () -> Void
 
