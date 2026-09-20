@@ -5,20 +5,20 @@ import CoreGraphics
 import SwiftUI
 
 extension NSPasteboard.PasteboardType {
-    /// Bundle-ID eines Dock-Symbols, das in der Leiste verschoben wird.
+    /// The bundle ID of a Dock symbol that is being moved in the bar.
     static let dockApp = NSPasteboard.PasteboardType(AppIdentity.scoped("dock-app"))
 }
 
-/// Maus auf einem Dock-Symbol, wie in Apples Dock: kurzer Klick loest aus
-/// (mit Modifikatoren, beim Loslassen und nur ueber dem Symbol - Wegziehen
-/// bricht ab), halten ab 0,5 s, Rechtsklick oder ⌃-Klick oeffnen das Menue,
-/// Ziehen verschiebt das Symbol, Dateien darauf ziehen oeffnet sie mit der
-/// App, Scrollen wechselt ihre Fenster.
+/// The mouse on a Dock symbol, as in Apple's Dock: a short click sets it off
+/// (with modifiers, on release and only over the symbol - dragging away
+/// cancels), holding from 0.5 s on, a right click or a ⌃ click opens the menu,
+/// dragging moves the symbol, dragging files onto it opens them with the app,
+/// and scrolling switches its windows.
 ///
-/// Als AppKit-Ansicht statt SwiftUI-Button: SwiftUI kennt auf dem Mac weder
-/// "halten" neben einem Klick noch den Rechtsklick sauber, das Menue braucht
-/// eine Ansicht, an der es aufgeht, und Ziehen und Ablegen laeuft so an einer
-/// Stelle statt verteilt auf zwei Welten.
+/// As an AppKit view instead of a SwiftUI button: on the Mac, SwiftUI knows
+/// neither "holding" next to a click nor the right click cleanly, the menu
+/// needs a view to open at, and dragging and dropping runs in one place that
+/// way instead of being spread over two worlds.
 struct DockMouseCatcher: NSViewRepresentable {
     let bundleID: String
     let dragImage: NSImage
@@ -54,12 +54,12 @@ struct DockMouseCatcher: NSViewRepresentable {
 }
 
 final class DockMouseView: NSView, NSDraggingSource {
-    /// Apple-Dock: so lange halten, bis das Menue kommt.
+    /// The Apple Dock: hold this long until the menu comes.
     private static let holdDelay: TimeInterval = 0.5
-    /// Ab so viel Bewegung ist es Ziehen statt Klicken.
+    /// From this much movement on it is dragging instead of clicking.
     private static let dragThreshold: CGFloat = 4
-    /// Trackpads liefern viele kleine Schritte: so viel aufsummieren, und
-    /// hoechstens so oft wechseln, sonst rast man durch alle Fenster.
+    /// Trackpads deliver many small steps: sum up this much, and switch at most
+    /// this often, otherwise one races through all the windows.
     private static let scrollStep: CGFloat = 30
     private static let scrollCooldown: TimeInterval = 0.3
 
@@ -74,7 +74,7 @@ final class DockMouseView: NSView, NSDraggingSource {
     var onDropTarget: (Bool) -> Void = { _ in }
 
     private var holdTimer: Timer?
-    /// Menue kam durch Halten: das Loslassen danach ist kein Klick.
+    /// The menu came through holding: the release afterwards is no click.
     private var menuShown = false
     private var downPoint: NSPoint?
     private var dragging = false
@@ -90,11 +90,11 @@ final class DockMouseView: NSView, NSDraggingSource {
         fatalError("nicht aus Nib")
     }
 
-    /// Die Leiste gehoert einer App, die nie vorne ist; der erste Klick soll
-    /// trotzdem gleich wirken.
+    /// The bar belongs to an app that is never at the front; the first click
+    /// should take effect right away all the same.
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
-    // MARK: Klicken und Halten
+    // MARK: Clicking and holding
 
     override func mouseDown(with event: NSEvent) {
         if event.modifierFlags.contains(.control) {
@@ -113,7 +113,7 @@ final class DockMouseView: NSView, NSDraggingSource {
                 self.onMenu(self)
             }
         }
-        // .common: laeuft auch, waehrend AppKit die Maus verfolgt.
+        // .common: runs while AppKit tracks the mouse too.
         RunLoop.main.add(timer, forMode: .common)
         holdTimer = timer
     }
@@ -152,15 +152,15 @@ final class DockMouseView: NSView, NSDraggingSource {
         onMenu(self)
     }
 
-    // MARK: Ziehen (Quelle)
+    // MARK: Dragging (the source)
 
-    /// Nur innerhalb der Leiste verschieben; ausserhalb abgelegt passiert
-    /// nichts (kein "Wegziehen zum Entfernen" - dafuer gibt es das Menue).
+    /// Only moving within the bar; dropped outside, nothing happens (no
+    /// "drag away to remove" - the menu is there for that).
     func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
         context == .withinApplication ? .move : []
     }
 
-    // MARK: Ablegen (Ziel)
+    // MARK: Dropping (the target)
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         let operation = operation(for: sender)
@@ -202,12 +202,12 @@ final class DockMouseView: NSView, NSDraggingSource {
         return pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) ? .copy : []
     }
 
-    // MARK: Scrollen
+    // MARK: Scrolling
 
     override func scrollWheel(with event: NSEvent) {
-        // Laeuft die Spalte gerade als Scrollliste (zu viele Apps), gehoert
-        // das Scrollen ihr - sonst liesse sie sich ueber den Symbolen nicht
-        // mehr bewegen.
+        // When the column runs as a scrolling list right now (too many apps),
+        // the scrolling belongs to it - otherwise it could no longer be moved
+        // over the symbols.
         if let scrollView = enclosingScrollView, let document = scrollView.documentView,
            document.frame.height > scrollView.contentView.bounds.height + 1 {
             super.scrollWheel(with: event)

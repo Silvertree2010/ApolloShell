@@ -32,7 +32,6 @@ public enum BarBackground: String, Codable, CaseIterable, Sendable, Identifiable
     /// with light/dark like an ordinary window. The default.
     case material
     /// Liquid Glass, the `regular` version - adapts to what lies behind it.
-    ///
     case glass
     /// Liquid Glass, the `regular` version, tinted in the window color.
     case tintedGlass

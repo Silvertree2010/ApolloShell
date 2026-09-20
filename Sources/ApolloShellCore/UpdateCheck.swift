@@ -1,9 +1,9 @@
 import Foundation
 
-/// Das neueste Release, wie GitHub es meldet.
+/// The newest release the way GitHub reports it.
 public struct ReleaseInfo: Equatable, Sendable {
     public let version: AppVersion
-    /// Seite des Releases mit den Notizen.
+    /// The page of the release with the notes.
     public let page: URL
 
     public init(version: AppVersion, page: URL) {
@@ -12,28 +12,28 @@ public struct ReleaseInfo: Equatable, Sendable {
     }
 }
 
-/// Was eine Pruefung ergeben hat.
+/// What a check came up with.
 public enum UpdateCheckOutcome: Equatable, Sendable {
-    /// Die laufende Fassung ist die neueste (oder sogar neuer).
+    /// The running version is the newest one (or even newer).
     case current
-    /// Es gibt eine neuere Fassung.
+    /// There is a newer version.
     case newer(ReleaseInfo)
-    /// Die Pruefung ist nicht durchgekommen. Der Text ist fuer die Anzeige,
-    /// nicht fuer Entscheidungen.
+    /// The check did not get through. The text is for the display, not for
+    /// decisions.
     case failed(String)
 }
 
-/// Fragt GitHub nach dem neuesten Release.
+/// Asks GitHub for the newest release.
 ///
-/// Wird von der Homebrew-Fassung benutzt, die sich nicht selbst erneuern darf
-/// (siehe `InstallKind`), und von der Schaltflaeche "Jetzt prüfen", solange
-/// Sparkle nicht zustaendig ist. Die DMG-Fassung laesst Sparkle pruefen -
+/// Used by the Homebrew build, which may not renew itself (see `InstallKind`),
+/// and by the "Check now" button while Sparkle is not in charge. The DMG build
+/// lets Sparkle check - two ways, but only one is active per installation.
 /// zwei Wege, aber nur einer ist pro Installation aktiv.
+/// The network access sits behind `Fetch`, so that the evaluation can be
+/// checked without a network.
 ///
-/// Der Netzzugriff steckt hinter `Fetch`, damit die Auswertung ohne Netz
-/// geprueft werden kann.
 public struct UpdateCheck: Sendable {
-    /// Laedt die Antwort zu einer Adresse.
+    /// Loads the answer for an address.
     public typealias Fetch = @Sendable (URL) async throws -> Data
 
     public static let latestReleaseURL =
@@ -47,7 +47,7 @@ public struct UpdateCheck: Sendable {
         self.fetch = fetch
     }
 
-    /// Fragt nach und vergleicht mit `current`.
+    /// Asks and compares with `current`.
     public func run(current: AppVersion?) async -> UpdateCheckOutcome {
         do {
             let data = try await fetch(url)
@@ -61,9 +61,9 @@ public struct UpdateCheck: Sendable {
         }
     }
 
-    /// Liest `tag_name` und `html_url` aus der Antwort der GitHub-API.
-    /// Entwuerfe und Vorabfassungen werden uebergangen: GitHub liefert unter
-    /// `releases/latest` ohnehin nur fertige, aber verlassen wollen wir uns
+    /// Reads `tag_name` and `html_url` out of the answer of the GitHub API.
+    /// Drafts and prereleases are passed over: GitHub delivers only finished
+    /// ones under `releases/latest` anyway, but we do not want to rely on that.
     /// darauf nicht.
     public static func release(from data: Data) -> ReleaseInfo? {
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
@@ -74,7 +74,7 @@ public struct UpdateCheck: Sendable {
         return ReleaseInfo(version: version, page: page)
     }
 
-    /// Die Vorgabe: echter Netzzugriff, mit Kennung und kurzem Zeitlimit.
+    /// The default: real network access, with the identifier and a short time limit.
     public static func live(session: URLSession = .shared) -> UpdateCheck {
         UpdateCheck { url in
             var request = URLRequest(url: url, timeoutInterval: 15)

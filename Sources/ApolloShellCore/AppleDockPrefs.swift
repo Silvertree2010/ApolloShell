@@ -1,20 +1,20 @@
 import Foundation
 
-/// Angeheftete Apps aus Apples Dock-Einstellung (com.apple.dock,
-/// "persistent-apps") - damit das Dock der Leiste genau zeigt, was Apples
-/// Dock zeigt, auch wenn der selbst ausgeblendet ist.
+/// The pinned apps out of Apple's Dock setting (com.apple.dock,
+/// "persistent-apps") - so that the Dock of the bar shows exactly what Apple's
+/// Dock shows, even while that one is hidden.
 public enum AppleDockPrefs {
-    /// Steht in Apples Dock immer zuoberst, fehlt aber in persistent-apps.
+    /// Always stands at the very top in Apple's Dock, but is missing from persistent-apps.
     public static let finder = "com.apple.finder"
-    /// Dateimanager, der Finder ersetzen kann: steht im Dock der Leiste an
-    /// Finders Platz, Finder selbst verschwindet dort ganz - zwei
-    /// Dateimanager-Symbole uebereinander waeren doppelt.
+    /// A file manager that can replace the Finder: it stands in the Dock of the
+    /// bar at the Finder's place, and the Finder itself disappears from there
+    /// entirely - two file manager symbols above each other would be double.
     public static let forkLift = "com.binarynights.ForkLift"
 
-    /// `persistentApps`: der Wert von "persistent-apps", eine Liste von
-    /// Kacheln `{"tile-data": {"bundle-identifier": ...}}`. Kacheln ohne
-    /// Bundle-ID (lose Programme) fallen weg. `fileManager` steht zuoberst,
-    /// wo Apple den Finder zeigt.
+    /// `persistentApps`: the value of "persistent-apps", a list of tiles
+    /// `{"tile-data": {"bundle-identifier": ...}}`. Tiles without a bundle ID
+    /// (loose programs) fall away. `fileManager` stands at the very top, where
+    /// Apple shows the Finder.
     public static func pinnedBundleIDs(_ persistentApps: [Any], fileManager: String = finder) -> [String] {
         let ids = persistentApps.compactMap { item -> String? in
             guard let tile = (item as? [String: Any])?["tile-data"] as? [String: Any] else { return nil }
@@ -23,9 +23,9 @@ public enum AppleDockPrefs {
         return [fileManager] + ids.filter { $0 != finder && $0 != fileManager }
     }
 
-    // MARK: - Aendern (Anheften, Entfernen, Verschieben aus der Leiste)
+    // MARK: - Changing (pinning, removing, moving out of the bar)
 
-    /// Wohin eine App in der Liste soll.
+    /// Where an app should go in the list.
     public enum Position: Equatable, Sendable {
         case start
         case end
@@ -37,13 +37,13 @@ public enum AppleDockPrefs {
         ((tile as? [String: Any])?["tile-data"] as? [String: Any])?["bundle-identifier"] as? String
     }
 
-    /// Eine neue Kachel im Format, das Apples Dock selbst schreibt
-    /// (gemessen an vorhandenen Eintraegen: tile-type, tile-data mit Bundle-ID,
-    /// Name, file-type 41 = App, URL als Zeichenkette Typ 15, dazu eine GUID).
+    /// A new tile in the format Apple's Dock writes itself (measured against
+    /// existing entries: tile-type, tile-data with the bundle ID, the name,
+    /// file-type 41 = app, the URL as a string of type 15, plus a GUID).
     public static func tile(bundleID: String, url: URL, label: String, guid: Int) -> [String: Any] {
-        // Apps sind Ordner, Apples Dock schreibt sie mit "/" am Ende. Ob
-        // `url` das schon hat, haengt sonst davon ab, ob die App gerade auf
-        // der Platte liegt.
+        // Apps are folders, and Apple's Dock writes them with a "/" at the end.
+        // Whether `url` has that already would otherwise depend on whether the
+        // app lies on the disk right now.
         let appURL = URL(fileURLWithPath: url.path, isDirectory: true)
         return [
             "GUID": guid,
@@ -61,9 +61,9 @@ public enum AppleDockPrefs {
         tiles.filter { bundleID(ofTile: $0) != id }
     }
 
-    /// Setzt `id` an `position`. Steht sie schon in der Liste, wird ihre
-    /// Kachel verschoben (bleibt also unveraendert erhalten), sonst kommt
-    /// `newTile` hinzu. Unbekanntes Ziel: ans Ende.
+    /// Puts `id` at `position`. When it stands in the list already, its tile is
+    /// moved (so it is kept unchanged), otherwise `newTile` is added. An
+    /// unknown target: at the end.
     public static func placing(_ id: String, at position: Position, in tiles: [Any],
                                newTile: () -> [String: Any]) -> [Any] {
         let existing = tiles.first { bundleID(ofTile: $0) == id }
