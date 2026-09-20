@@ -139,11 +139,17 @@ final class DashboardEditor {
 
     var page: DashboardPage? { session?.page }
 
+    /// Someone selected a widget: the other two surfaces of the global
+    /// mode let go of theirs (`ShellEditor.begin`). Without it a widget, a
+    /// quick toggle and a bar block could be selected at once, with three
+    /// options popovers open and three presses of Esc to be rid of them.
+    var onSelectWidget: () -> Void = {}
+
     var selectedWidgetID: WidgetInstance.ID? {
         get { session?.selectedWidgetID }
         set {
             session?.selectedWidgetID = newValue
-            if newValue == nil { optionsWidgetID = nil }
+            if newValue == nil { optionsWidgetID = nil } else { onSelectWidget() }
         }
     }
     /// Widget whose options popover is open - only after a click, not

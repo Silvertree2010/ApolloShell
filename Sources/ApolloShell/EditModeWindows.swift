@@ -364,6 +364,7 @@ final class EditModeWindows {
                     // open options popover), in both panels.
                     self?.editor.dashboard.selectedWidgetID = nil
                     self?.editor.selectedToggleID = nil
+                    self?.editor.selectedBarEntryID = nil
                     self?.editor.dashboard.renamingPageID = nil
                 }
                 scrims[ObjectIdentifier(candidate)] = panel

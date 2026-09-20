@@ -140,6 +140,10 @@ final class ShellEditor {
         // `dashboard.begin` calls `DashboardEditor.onBegin` (pinning the
         // Dashboard window); our own `onBegin` follows for the remaining
         // panels and mode windows.
+        dashboard.onSelectWidget = { [weak self] in
+            self?.utilities?.selectedToggleID = nil
+            self?.bar?.selectedEntryID = nil
+        }
         dashboard.begin(pageID: pageID, screen: screen)
         for handler in beginHandlers { handler(screen) }
         registerEscape()
@@ -316,9 +320,18 @@ final class ShellEditor {
         utilities?.moveToggle(id, onto: target)
     }
 
+    /// Selecting in one surface lets the other two go: only one thing in
+    /// the shell is selected at a time, and only one options popover
+    /// stands open.
     var selectedToggleID: String? {
         get { utilities?.selectedToggleID }
-        set { utilities?.selectedToggleID = newValue }
+        set {
+            utilities?.selectedToggleID = newValue
+            if newValue != nil {
+                bar?.selectedEntryID = nil
+                dashboard.selectedWidgetID = nil
+            }
+        }
     }
 
     // MARK: - Sidebar: passing through to the session
@@ -346,7 +359,13 @@ final class ShellEditor {
 
     var selectedBarEntryID: String? {
         get { bar?.selectedEntryID }
-        set { bar?.selectedEntryID = newValue }
+        set {
+            bar?.selectedEntryID = newValue
+            if newValue != nil {
+                utilities?.selectedToggleID = nil
+                dashboard.selectedWidgetID = nil
+            }
+        }
     }
 
     /// Whether the shortcut picker of the selected button is open (Task 6).
