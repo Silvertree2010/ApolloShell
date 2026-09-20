@@ -2,6 +2,12 @@
 
 > **For agentic workers:** Execute task by task. Steps use checkbox (`- [ ]`) syntax.
 
+> **Done (20.09.2026).** Everything in this plan is in `release/0.2`; the
+> boxes below were not ticked off as the work went in. What the shell
+> does today is `CHANGELOG.md` and the spec
+> (`design/2026-09-18-bento-dashboard.md`), not the state of these
+> checkboxes.
+
 **Goal:** The dashboard shows `DashboardPages` instead of tabs and cards: a page bar, every page laid out from widget frames, weather per widget, scaling per screen. The four preset pages render pixel-identical to the 0.1 dashboard.
 
 **Architecture:** Part 1 (core) is done: `WidgetKind`, `WidgetInstance`, `DashboardPage(s)`, `PageTemplate.defaultPage`, `DashboardPages.migrated`, `BentoGeometry`, `ShellSettings.dashboardPages/dashboardScale` (all in `Sources/ApolloShellCore`, read them). This part changes only the app target. Today's card and page views are reused, not rewritten. Correctness of the look is measured, not judged: `ApolloShell --render-dashboard <dir>` renders offscreen with fixed sample data, `scripts/compare-renders.py <before> <after> <diffdir>` counts differing pixels.

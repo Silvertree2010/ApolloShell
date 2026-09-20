@@ -218,7 +218,9 @@ Rectangle, Stage Manager and more. The edit mode must not fight them:
 - The mode ends as “Cancel” on: screen configuration change, sleep, fast
   user switching. No half-open states.
 - While editing, the shell's other hot keys (launcher, dashboard, control
-  centre, power menu) are ignored and the sidebar sits under the scrim.
+  centre, power menu) are ignored. The sidebar was meant to sit under the
+  scrim; since 20.09.2026 it stands above it, because it is arranged there
+  too (`design/2026-09-20-bar-edit-plan.md`).
 - Only “Done” writes settings; a crash leaves settings unchanged, and the
   scrim disappears with the process.
 - Live test in a macOS VM with AeroSpace and yabai before release.
@@ -242,7 +244,9 @@ Rectangle, Stage Manager and more. The edit mode must not fight them:
   today. Preset pages keep their theme icon IDs (`bar-dashboard`,
   `panel-media`, `panel-performance`, `panel-weather`); own pages use their
   SF Symbol.
-- All new text in German and English, checked with `scripts/check-l10n.py`.
+- ~~All new text in German and English, checked with `scripts/check-l10n.py`.~~
+  Overtaken on 19.09.2026: 0.2 has an English interface only, the script
+  and the German README are gone.
 - README, README.de and CHANGELOG get the 0.2.0 section.
 
 ## Testing

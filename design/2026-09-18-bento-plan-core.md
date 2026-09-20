@@ -2,6 +2,12 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Done (20.09.2026).** Everything in this plan is in `release/0.2`; the
+> boxes below were not ticked off as the work went in. What the shell
+> does today is `CHANGELOG.md` and the spec
+> (`design/2026-09-18-bento-dashboard.md`), not the state of these
+> checkboxes.
+
 **Goal:** Build the UI-free core of the bento dashboard: widget catalog, pages, migration from the 0.1.x dashboard, settings fields, geometry (validity, snapping, scale).
 
 **Architecture:** Everything lives in `Sources/ApolloShellCore` as plain value types and pure functions with Swift Testing tests. Nothing in the app target changes in this part; the app keeps using `DashboardLayout` until part 2 (rendering) switches it over.

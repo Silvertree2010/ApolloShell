@@ -2,6 +2,12 @@
 
 > **For agentic workers:** Execute task by task. Steps use checkbox (`- [ ]`) syntax.
 
+> **Done (20.09.2026).** Everything in this plan is in `release/0.2`; the
+> boxes below were not ticked off as the work went in. What the shell
+> does today is `CHANGELOG.md` and the spec
+> (`design/2026-09-18-bento-dashboard.md`), not the state of these
+> checkboxes.
+
 **Goal:** Pages are edited as the spec describes: Nexus starts edit mode, the dashboard stays open, widgets wobble, `−` deletes, a handle resizes, widgets are dragged in from a list in Nexus, the selected widget's options show in Nexus, Done/Cancel. Nexus manages pages (list, +, rename, symbol, duplicate, delete, restore, size slider). The old card editor and the three templates go away.
 
 **Architecture:** One core value type `BentoEditSession` holds the working copy and answers every "where would this land, is it valid" question with `BentoGeometry` (tested). The app wraps it in an `@Observable` `DashboardEditor` shared by Nexus and the dashboard. While a session is active the dashboard draws the session's pages instead of the settings; Done writes them to `settings.dashboardPages`, Cancel drops them.

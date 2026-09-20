@@ -2,6 +2,12 @@
 
 > **For agentic workers:** Execute task by task. Steps use checkbox (`- [ ]`) syntax.
 
+> **Done (20.09.2026).** Everything in this plan is in `release/0.2`; the
+> boxes below were not ticked off as the work went in. What the shell
+> does today is `CHANGELOG.md` and the spec
+> (`design/2026-09-18-bento-dashboard.md`), not the state of these
+> checkboxes.
+
 **Goal:** Replace "edit the dashboard with Nexus beside it" by one edit mode for the whole shell, as the spec's revised section 4 describes: button in Nexus → Nexus hides, scrim over all screens, dashboard and control centre pinned open, floating toolbar (+ / Abbrechen / Fertig), floating gallery with a tab per surface, options in popovers, page management in the dashboard's page bar, control centre editable in its panel. Robust next to window managers.
 
 **Spec:** `design/2026-09-18-bento-dashboard.md`, sections 4 (revised) and 5. Read it first.
