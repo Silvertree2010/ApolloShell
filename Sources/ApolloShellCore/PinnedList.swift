@@ -1,15 +1,15 @@
 import Foundation
 
-/// Die angehefteten Apps des Launchers (pinned.json, `{"pinned": [...]}`),
-/// wie Nexus sie bearbeitet: umsortieren, entfernen, hinzufuegen.
+/// The pinned apps of the launcher (pinned.json, `{"pinned": [...]}`), the way
+/// Nexus edits them: reorder, remove, add.
 ///
-/// Jede Bundle-ID hoechstens einmal - der Launcher nimmt bei Doppelten zwar
-/// die erste Stelle (AppRanker), aber in der Liste zum Bearbeiten waere ein
-/// zweiter Eintrag eine Zeile, die nichts tut.
+/// Every bundle ID at most once - the launcher does take the first place with
+/// duplicates (AppRanker), but in the list for editing a second entry would be
+/// a row that does nothing.
 ///
-/// Hoechstens `limit` Eintraege ("die festen Top 10"). Eine von Hand
-/// laengere Datei wird beim Lesen NICHT gekuerzt - Nexus loescht nichts, was
-/// es nicht selbst angelegt hat; es nimmt nur nichts mehr dazu.
+/// At most `limit` entries ("the fixed top 10"). A file that is longer by hand
+/// is NOT shortened when read - Nexus deletes nothing it did not put there
+/// itself; it only adds nothing more.
 public struct PinnedList: Equatable, Sendable {
     public static let limit = 10
 
@@ -24,7 +24,7 @@ public struct PinnedList: Equatable, Sendable {
 
     public func contains(_ id: String) -> Bool { ids.contains(id) }
 
-    /// Hinten anhaengen. `false`, wenn schon drin, leer oder die Liste voll ist.
+    /// Append at the end. `false` when it is in already, empty or the list is full.
     @discardableResult
     public mutating func add(_ id: String) -> Bool {
         guard !id.isEmpty, !isFull, !contains(id) else { return false }
@@ -36,15 +36,15 @@ public struct PinnedList: Equatable, Sendable {
         ids.removeAll { $0 == id }
     }
 
-    /// Wie SwiftUIs `onMove`: `destination` zaehlt in der Liste VOR dem
-    /// Verschieben ("vor Zeile n einfuegen"), siehe `Array.move` in
-    /// Reorder.swift - `move(fromOffsets:toOffset:)` selbst gehoert zu
-    /// SwiftUI, und ApolloShellCore bleibt ohne Oberflaeche.
+    /// Like SwiftUI's `onMove`: `destination` counts in the list BEFORE the
+    /// move ("insert before row n"), see `Array.move` in Reorder.swift -
+    /// `move(fromOffsets:toOffset:)` itself belongs to SwiftUI, and
+    /// ApolloShellCore stays without a user interface.
     public mutating func move(fromOffsets source: IndexSet, toOffset destination: Int) {
         ids.move(fromOffsets: source, toOffset: destination)
     }
 
-    /// Eine Stelle nach oben (-1) oder unten (+1); am Rand nichts.
+    /// One place up (-1) or down (+1); nothing at the edge.
     public mutating func move(_ id: String, by step: Int) {
         guard let index = ids.firstIndex(of: id) else { return }
         let target = index + step
@@ -56,8 +56,8 @@ public struct PinnedList: Equatable, Sendable {
         var pinned: [String]
     }
 
-    /// Inhalt von pinned.json. Fehlt die Datei oder ist sie kaputt: leer -
-    /// genau wie der Launcher sie liest (PinnedApps.load).
+    /// The content of pinned.json. When the file is missing or broken: empty -
+    /// exactly as the launcher reads it (PinnedApps.load).
     public static func load(from data: Data?) -> PinnedList {
         guard let data, let file = try? JSONDecoder().decode(File.self, from: data) else {
             return PinnedList()
@@ -65,15 +65,15 @@ public struct PinnedList: Equatable, Sendable {
         return PinnedList(file.pinned)
     }
 
-    /// Da, aber nicht zu lesen. `load` liefert dafuer wie fuer eine fehlende
-    /// Datei eine leere Liste; wer danach speichert, ersetzt die kaputte
-    /// Datei. Nexus hebt sie deshalb vorher auf.
+    /// There, but not readable. `load` hands back an empty list for that as for
+    /// a missing file; whoever saves afterwards replaces the broken file. So
+    /// Nexus keeps it beforehand.
     public static func isUnreadable(_ data: Data?) -> Bool {
         guard let data else { return false }
         return (try? JSONDecoder().decode(File.self, from: data)) == nil
     }
 
-    /// Gleiches Format wie die bisherige Datei, eingerueckt.
+    /// The same format as the file so far, indented.
     public func encoded() -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]

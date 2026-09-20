@@ -2,15 +2,15 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Baut aus dem gespiegelten Dock-Menue einer App ein NSMenu.
+/// Builds an NSMenu out of the mirrored Dock menu of an app.
 ///
-/// Gemeinsam genutzt von der Leiste (Dock) und vom Launcher, damit ein
-/// Rechtsklick an beiden Stellen dasselbe zeigt.
+/// Shared by the bar (the Dock) and the launcher, so that a right click shows
+/// the same in both places.
 @MainActor
 enum NativeAppMenu {
-    /// - Parameter rebind: Bekommt den Titel eines Eintrags und darf ihn
-    ///   uebernehmen (etwa "Im Dock behalten", das auf unser Dock zeigen
-    ///   soll statt auf Apples). `nil` heisst: so lassen, wie Apple es meint.
+    /// - Parameter rebind: gets the title of an entry and may take it over
+    ///   ("Keep in Dock", say, which should point at our Dock instead of
+    ///   Apple's). `nil` means: leave it the way Apple means it.
     static func menu(from nodes: [DockMenuNode], bundleID: String,
                      rebind: (DockMenuNode) -> (state: NSControl.StateValue, enabled: Bool, action: () -> Void)? = { _ in nil }) -> NSMenu {
         let menu = NSMenu()
@@ -19,12 +19,12 @@ enum NativeAppMenu {
         return menu
     }
 
-    /// Dieselben Eintraege an ein vorhandenes Menue haengen - der Launcher
-    /// setzt eigene Zeilen davor und dahinter.
+    /// Hang the same entries on an existing menu - the launcher puts rows of
+    /// its own before and after them.
     ///
-    /// Anhaengen statt kopieren: Ein NSMenuItem gehoert immer nur in ein
-    /// Menue, und `copy()` auf einem `ClosureMenuItem` ginge ueber
-    /// `init(coder:)`, den es nicht gibt.
+    /// Appending instead of copying: an NSMenuItem always belongs in only one
+    /// menu, and `copy()` on a `ClosureMenuItem` would go through
+    /// `init(coder:)`, which does not exist.
     static func append(_ nodes: [DockMenuNode], to menu: NSMenu, bundleID: String,
                        rebind: (DockMenuNode) -> (state: NSControl.StateValue, enabled: Bool, action: () -> Void)? = { _ in nil }) {
         for node in nodes {
@@ -56,20 +56,20 @@ enum NativeAppMenu {
         }
     }
 
-    /// Rechts neben dem Symbol, oben buendig - die Leiste liegt links, und im
-    /// Launcher steht das Menue so neben der Zeile.
+    /// To the right of the symbol, flush at the top - the bar lies on the left,
+    /// and in the launcher the menu then stands next to the row.
     static func popUp(_ menu: NSMenu, at view: NSView) {
         let top = view.isFlipped ? view.bounds.minY : view.bounds.maxY
         menu.popUp(positioning: nil, at: NSPoint(x: view.bounds.maxX + 6, y: top), in: view)
     }
 }
 
-/// Faengt den Rechtsklick auf eine SwiftUI-Zeile ab und gibt die Ansicht
-/// weiter, an der das Menue aufgehen soll.
+/// Catches the right click on a SwiftUI row and hands on the view the menu
+/// should open at.
 ///
-/// Warum nicht `contextMenu`: Dessen Inhalt muss sofort feststehen. Das
-/// Menue der App kommt aber von Apples Dock und braucht einen Moment - der
-/// Rechtsklick muss also erst warten und das Menue dann selbst oeffnen.
+/// Why not `contextMenu`: its content has to stand right away. The menu of the
+/// app comes out of Apple's Dock though and takes a moment - so the right
+/// click has to wait first and then open the menu itself.
 struct RightClickCatcher: NSViewRepresentable {
     let onRightClick: @MainActor (NSView) -> Void
 
@@ -90,7 +90,7 @@ struct RightClickCatcher: NSViewRepresentable {
             onRightClick?(self)
         }
 
-        // Die Zeile darunter bleibt anklickbar; nur der Rechtsklick landet hier.
+        // The row below it stays clickable; only the right click lands here.
         override func hitTest(_ point: NSPoint) -> NSView? {
             guard let event = NSApp.currentEvent else { return nil }
             switch event.type {

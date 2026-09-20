@@ -1,11 +1,11 @@
 import CoreGraphics
 
-/// Wann ein Kantenfenster per Maus erscheint und wieder geht - Regeln aus
+/// When an edge window appears by mouse and goes again - the rules out of
 /// Caelestia (modules/drawers/Interactions.qml):
-/// - Maus im Bereich: sichtbar, Maus raus: weg.
-/// - Per Tastenkombination oder Symbol geoeffnet ("Shortcut-Modus"): bleibt
-///   offen, egal wo die Maus ist - bis sie einmal hineinfaehrt; ab dann gilt
-///   wieder die Maus-Regel.
+/// - The mouse in the area: visible, the mouse out: away.
+/// - Opened by a shortcut or a symbol ("shortcut mode"): it stays open,
+///   wherever the mouse is - until it moves in once; from then on the mouse
+///   rule holds again.
 public struct EdgeHoverState: Equatable, Sendable {
     public var visible: Bool
     public var shortcutActive: Bool
@@ -23,24 +23,24 @@ public struct EdgeHoverState: Equatable, Sendable {
         return self
     }
 
-    /// Caelestia: liegt die Maus beim Oeffnen schon im Bereich, gilt gleich
-    /// die Maus-Regel.
+    /// Caelestia: when the mouse lies in the area at the opening, the mouse
+    /// rule holds right away.
     public static func openedByShortcut(mouseInArea: Bool) -> EdgeHoverState {
         EdgeHoverState(visible: true, shortcutActive: !mouseInArea)
     }
 }
 
-/// Der Bereich, in dem die Maus ein Kantenfenster oeffnet bzw. offen haelt
-/// (AppKit-Koordinaten, y nach oben).
+/// The area in which the mouse opens an edge window or keeps it open (AppKit
+/// coordinates, y upwards).
 public enum EdgeHoverArea {
-    /// Caelestia: border.minThickness - so dick ist der Ausloese-Streifen an
-    /// der Kante, solange das Fenster zu ist.
+    /// Caelestia: border.minThickness - this is how thick the trigger strip at
+    /// the edge is while the window is closed.
     public static let edgeThickness: CGFloat = 2
 
-    /// Oben mittig. Zu: nur der Streifen an der Oberkante, so breit wie das
-    /// Fenster plus Rundung. Offen: das ganze Fenster (`depth` ab der
-    /// Oberkante). Ragt etwas ueber den Rand, damit die oberste Pixelzeile
-    /// sicher dazugehoert.
+    /// Top centre. Closed: only the strip at the top edge, as wide as the
+    /// window plus the corner. Open: the whole window (`depth` from the top
+    /// edge). It sticks out over the edge a little, so that the topmost row of
+    /// pixels surely belongs to it.
     public static func top(screen: CGRect, width: CGFloat, depth: CGFloat, margin: CGFloat, open: Bool) -> CGRect {
         let reach = open ? depth : edgeThickness
         return CGRect(
@@ -51,15 +51,15 @@ public enum EdgeHoverArea {
         )
     }
 
-    /// Die heisse Ecke unten rechts belegt macOS von Haus aus mit der
-    /// Schnellnotiz. Die letzten
-    /// Punkte vor der Ecke loesen deshalb nichts aus: faehrt man ganz in die
-    /// Ecke, kommt die Schnellnotiz, knapp daneben am Rand das Panel.
+    /// The hot corner at the bottom right is taken by macOS out of the box for
+    /// the quick note. The last points before the corner therefore set nothing
+    /// off: driving right into the corner brings the quick note, just beside it
+    /// at the edge the panel.
     public static let cornerGap: CGFloat = 12
 
-    /// Unten rechts (Utilities). Zu: Streifen am unteren Rand, von der
-    /// linken Panelkante (minus Rundung) bis kurz vor die Ecke. Offen: das
-    /// ganze Panel bis an den rechten Rand.
+    /// Bottom right (utilities). Closed: a strip at the bottom edge, from the
+    /// left panel edge (minus the corner) to just before the corner. Open: the
+    /// whole panel up to the right edge.
     public static func bottomRight(screen: CGRect, width: CGFloat, height: CGFloat, margin: CGFloat, open: Bool) -> CGRect {
         let left = screen.maxX - width - margin
         let right = open ? screen.maxX + edgeThickness : screen.maxX - cornerGap
@@ -68,18 +68,18 @@ public enum EdgeHoverArea {
     }
 }
 
-/// Was `EdgeDrawer.close(then:)` mit seiner Aktion tut. Das Panel bleibt
-/// klickbar, solange es ausblendet: Ein zweiter Klick in dieser Zeit (ein
-/// Doppelklick auf Bildschirmfoto) darf die Aktion weder sofort noch ein
-/// zweites Mal ausloesen.
+/// What `EdgeDrawer.close(then:)` does with its action. The panel stays
+/// clickable while it fades out: a second click in that time (a double click
+/// on the screenshot) may set the action off neither right away nor a second
+/// time.
 public enum DrawerCloseStep: Equatable, Sendable {
-    /// Offen: schliessen, die Aktion nach dem Ausblenden.
+    /// Open: close, and the action after the fade-out.
     case closeThenRun
-    /// Blendet gerade aus, noch nichts vorgemerkt: nach dem Ausblenden.
+    /// Fading out right now, nothing noted yet: after the fade-out.
     case runAfterFade
-    /// Blendet aus, eine Aktion ist schon vorgemerkt: die erste gilt.
+    /// Fading out, an action noted already: the first one holds.
     case drop
-    /// Ganz weg: sofort.
+    /// Fully gone: right away.
     case runNow
 
     public init(isOpen: Bool, isVisible: Bool, hasPendingAction: Bool) {
