@@ -128,6 +128,21 @@ final class Sidebar {
         rebuild()
     }
 
+    /// The global edit mode began or ended: every bar follows (level, see
+    /// `SidebarScreen.setEditing`). Remembered, so a bar built while the
+    /// mode runs (a screen reconnected) starts at the right level.
+    private var isEditing = false
+
+    #if DEBUG
+    /// For the invisible self-test: the levels of the bars that stand now.
+    var debugLevels: [Int] { bars.values.map(\.debugLevel) }
+    #endif
+
+    func setEditing(_ editing: Bool) {
+        isEditing = editing
+        for bar in bars.values { bar.setEditing(editing) }
+    }
+
     /// Which screens a bar currently stands on.
     var screens: [ScreenInfo] {
         bars.values.map(\.info)
@@ -171,6 +186,7 @@ final class Sidebar {
             on: settings.settings.bar.screens,
             make: { screen in
                 let bar = SidebarScreen(screen: screen, settings: settings, context: context, editor: editor)
+                bar.setEditing(isEditing)
                 bar.onPopoutOpen = { [weak self] id in self?.closePopouts(except: id) }
                 return bar
             },

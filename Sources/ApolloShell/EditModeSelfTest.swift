@@ -40,6 +40,7 @@ private final class EditModeSelfTestHarness {
     private let dashboard: Dashboard
     private let utilities: UtilitiesPanel
     private let windows: EditModeWindows
+    private let sidebar: Sidebar
 
     init(output: URL) {
         self.output = output
@@ -52,6 +53,10 @@ private final class EditModeSelfTestHarness {
         dashboard = Dashboard(settings: store, editor: dashboardEditor)
         utilities = UtilitiesPanel(settings: store, editor: editor)
         windows = EditModeWindows(editor: editor)
+        sidebar = Sidebar(settings: store)
+        sidebar.editor = editor
+        editor.addBeginHandler { [weak sidebar] _ in sidebar?.setEditing(true) }
+        editor.addEndHandler { [weak sidebar] in sidebar?.setEditing(false) }
         editor.dashboardStartPageID = { [weak dashboard] in dashboard?.currentPageID }
         windows.utilitiesFrame = { [weak utilities] in utilities?.openFrame }
         windows.dashboardFrame = { [weak dashboard] in dashboard?.openFrame }
@@ -447,6 +452,13 @@ private final class EditModeSelfTestHarness {
             return
         }
         check(session.layout.entries.map(\.kind) == before, "The working copy starts as the bar stands")
+        // The bar is edited where it stands, so it has to be visible: above
+        // the scrim, below toolbar and gallery (the screenshot of 20.09.
+        // showed it swallowed by the scrim).
+        let scrim = windows.debugLevels.scrim
+        let barLevel = sidebar.debugLevels.first ?? 0
+        check(barLevel > scrim, "The bar stands above the scrim while editing (bar \(barLevel), scrim \(scrim))")
+        check(barLevel < windows.debugLevels.controls, "Toolbar and gallery stay above the bar")
 
         let clock = session.layout.entries.first { $0.kind == .clock }?.id
         editor.selectedBarEntryID = clock
@@ -468,6 +480,9 @@ private final class EditModeSelfTestHarness {
         editor.cancel()
         await wait(0.5)
         check(store.settings.bar.layout.entries.map(\.kind) == before, "Cancel leaves the bar as it was")
+        let afterCancel = sidebar.debugLevels.first ?? 0
+        check(afterCancel == Int(NSWindow.Level.floating.rawValue),
+              "After the cancel the bar is back at its own level (\(afterCancel))")
         check(editor.bar == nil, "The working copy is gone after the cancel")
 
         // The same once more, this time kept.

@@ -72,6 +72,20 @@ final class SidebarScreen {
         showIfNeeded()
     }
 
+    #if DEBUG
+    /// For the invisible self-test: the level the bar window stands at.
+    var debugLevel: Int { panel.level.rawValue }
+    #endif
+
+    /// While the global edit mode runs, the bar has to stand above its
+    /// scrim - otherwise the mode dims the very bar it is editing, and the
+    /// clicks land in the scrim instead of in a block. Same level as the
+    /// pinned edge windows (`EdgeDrawer`), so the toolbar and the gallery
+    /// still stand above it.
+    func setEditing(_ editing: Bool) {
+        panel.level = editing ? .popUpMenu : .floating
+    }
+
     /// The screen is gone or deselected: close the popout, remove the window.
     func tearDown() {
         popout.close()
