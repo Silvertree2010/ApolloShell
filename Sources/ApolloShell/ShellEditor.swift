@@ -39,6 +39,11 @@ final class ShellEditor {
     /// `EditModeWindows` re-measures the panel as soon as the notice
     /// appears or disappears (otherwise the gallery grows past its own edge).
     var galleryNotice: String?
+    /// Counted up with every notice: the timer that clears one after 1.6 s
+    /// only clears its own. Two notices in quick succession (two clicks on
+    /// full tiles) used to leave the first timer wiping the second one
+    /// away early.
+    @ObservationIgnored var galleryNoticeGeneration = 0
 
     /// Confirmation before discarding unsaved changes (Esc, Task 6):
     /// `true` lets the toolbar show a small prompt ("Discard changes?").

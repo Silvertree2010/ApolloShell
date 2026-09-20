@@ -132,7 +132,14 @@ final class DashboardEditor {
         get { session?.pageID }
         set {
             guard let newValue else { return }
-            if newValue != session?.pageID { renamingPageID = nil }
+            if newValue != session?.pageID {
+                renamingPageID = nil
+                // The session clears the selection itself on a switch, but
+                // not this: it would have stood on a widget of the page
+                // left behind, and the options popover sprang open again
+                // by itself the next time that widget was selected.
+                optionsWidgetID = nil
+            }
             session?.pageID = newValue
         }
     }

@@ -395,8 +395,11 @@ struct EditGalleryView: View {
     }
 
     private func show(notice text: String) {
+        editor.galleryNoticeGeneration += 1
+        let generation = editor.galleryNoticeGeneration
         withAnimation { editor.galleryNotice = text }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+            guard editor.galleryNoticeGeneration == generation else { return }
             withAnimation { editor.galleryNotice = nil }
         }
     }
