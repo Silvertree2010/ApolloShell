@@ -2,11 +2,11 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-/// Zeilen im Format des mediaremote-adapters (README "stream", Aufruf mit
-/// --micros). Aufbau abgeschaut an echter Ausgabe vom 14.09. (pausiertes
-/// Video im Browser); Inhalte erfunden.
+/// Lines in the format of the mediaremote-adapter (README "stream", called
+/// with --micros). The shape taken from real output of 14.09. (a paused video
+/// in the browser); the contents made up.
 private enum Fixture {
-    /// Spielt seit 34 s, 3:05 lang, Zeitstempel 2026-09-14 10:00:00 UTC.
+    /// Playing for 34 s, 3:05 long, the timestamp 2026-09-14 10:00:00 UTC.
     static let full = """
     {"type":"data","diff":false,"payload":{"playbackRate":1,"timestampEpochMicros":1789380000000000,\
     "album":"Nachtfahrt","elapsedTimeMicros":34000000,"playing":true,"bundleIdentifier":"com.spotify.client",\
@@ -32,9 +32,9 @@ private enum Fixture {
     }
 }
 
-@Suite("Now Playing: Stream lesen")
+@Suite("Now Playing: reading the stream")
 struct MediaStreamTests {
-    @Test("Volle Zeile ergibt den ganzen Zustand")
+    @Test("A full line gives the whole state")
     func fullLine() throws {
         let playing = try #require(Fixture.state(Fixture.full).nowPlaying)
         #expect(playing.title == "Bergwind")
@@ -48,7 +48,7 @@ struct MediaStreamTests {
         #expect(playing.timestamp == Fixture.referenceDate)
     }
 
-    @Test("Cover wird aus Base64 dekodiert (JSON-Escapes inklusive)")
+    @Test("The cover is decoded out of Base64 (JSON escapes included)")
     func artwork() throws {
         let state = Fixture.state(Fixture.full)
         let artwork = try #require(state.artwork)
@@ -58,7 +58,7 @@ struct MediaStreamTests {
         #expect(state.fields["artworkMimeType"] == .string("image/png"))
     }
 
-    @Test("Bool und Zahl bleiben getrennt")
+    @Test("Bool and number stay apart")
     func boolVersusNumber() {
         let state = Fixture.state(Fixture.full)
         #expect(state.fields["playing"] == .bool(true))
@@ -66,14 +66,14 @@ struct MediaStreamTests {
         #expect(state.fields["processIdentifier"] == .number(4242))
     }
 
-    @Test("Leere Nutzlast: nichts laeuft")
+    @Test("An empty payload: nothing is playing")
     func emptyPayload() {
         #expect(Fixture.state(Fixture.empty).nowPlaying == nil)
         #expect(Fixture.state(Fixture.full, Fixture.empty).nowPlaying == nil)
         #expect(Fixture.state(Fixture.full, Fixture.empty).artwork == nil)
     }
 
-    @Test("Diff wird in den Zustand gemischt, der Rest bleibt")
+    @Test("A diff is mixed into the state, the rest stays")
     func diffMerges() throws {
         let state = Fixture.state(Fixture.full, Fixture.paused)
         let playing = try #require(state.nowPlaying)
@@ -83,12 +83,12 @@ struct MediaStreamTests {
         #expect(playing.title == "Bergwind")
         #expect(playing.album == "Nachtfahrt")
         #expect(playing.duration == 185)
-        // Ein Diff ohne Cover laesst das Cover stehen und baut es nicht neu.
+        // A diff without a cover leaves the cover standing and does not rebuild it.
         #expect(state.artwork != nil)
         #expect(state.artworkRevision == 1)
     }
 
-    @Test("null im Diff entfernt das Feld")
+    @Test("null in the diff removes the field")
     func diffNullRemoves() throws {
         let line = #"{"type":"data","diff":true,"payload":{"album":null,"artworkData":null,"artworkMimeType":null}}"#
         let state = Fixture.state(Fixture.full, line)
@@ -100,7 +100,7 @@ struct MediaStreamTests {
         #expect(state.fields["artworkMimeType"] == nil)
     }
 
-    @Test("Neue volle Zeile ersetzt alles, auch das Cover")
+    @Test("A new full line replaces everything, the cover included")
     func fullReplaces() throws {
         let next = #"{"type":"data","diff":false,"payload":{"title":"Föhn","playing":true,"processIdentifier":4242}}"#
         let state = Fixture.state(Fixture.full, next)
@@ -111,7 +111,7 @@ struct MediaStreamTests {
         #expect(state.artwork == nil)
     }
 
-    @Test("Ungueltige Zeilen werden verworfen", arguments: [
+    @Test("Invalid lines are thrown away", arguments: [
         "",
         "kein json",
         #"{"type":"error","payload":{}}"#,
@@ -122,7 +122,7 @@ struct MediaStreamTests {
         #expect(MediaStreamMessage.parse(line) == nil)
     }
 
-    @Test("Ohne Titel oder mit leerem Titel: nichts zu zeigen", arguments: [
+    @Test("Without a title or with an empty title: nothing to show", arguments: [
         #"{"type":"data","diff":false,"payload":{"playing":true,"artist":"X"}}"#,
         #"{"type":"data","diff":false,"payload":{"playing":true,"title":""}}"#,
         #"{"type":"data","diff":false,"payload":{"playing":true,"title":"   "}}"#,
@@ -131,7 +131,7 @@ struct MediaStreamTests {
         #expect(Fixture.state(line).nowPlaying == nil)
     }
 
-    @Test("Leeres Album (Browser-Video) zaehlt als nicht da")
+    @Test("An empty album (a browser video) counts as not there")
     func emptyAlbum() throws {
         let line = #"{"type":"data","diff":false,"payload":{"title":"Video","album":"","artist":"Kanal","playing":false}}"#
         let playing = try #require(Fixture.state(line).nowPlaying)
@@ -139,7 +139,7 @@ struct MediaStreamTests {
         #expect(playing.artist == "Kanal")
     }
 
-    @Test("Ohne --micros: Sekunden und ISO-Zeitstempel")
+    @Test("Without --micros: seconds and an ISO timestamp")
     func secondsFormat() throws {
         let line = """
         {"type":"data","diff":false,"payload":{"title":"A","playing":true,"duration":185.5,\
@@ -151,13 +151,13 @@ struct MediaStreamTests {
         #expect(playing.timestamp == Fixture.referenceDate)
     }
 
-    @Test("Laenge 0 heisst unbekannt")
+    @Test("A length of 0 means unknown")
     func zeroDuration() throws {
         let line = #"{"type":"data","diff":false,"payload":{"title":"Live","playing":true,"durationMicros":0}}"#
         #expect(try #require(Fixture.state(line).nowPlaying).duration == nil)
     }
 
-    @Test("Quelle: uebergeordnete App vor dem Hilfsprozess")
+    @Test("The source: the parent app before the helper process")
     func sourceApp() {
         var playing = MediaNowPlaying(title: "A", bundleIdentifier: "com.apple.WebKit.GPU", isPlaying: true)
         #expect(playing.sourceBundleIdentifier == "com.apple.WebKit.GPU")
@@ -166,9 +166,9 @@ struct MediaStreamTests {
     }
 }
 
-@Suite("Now Playing: Zeilen puffern")
+@Suite("Now Playing: buffering lines")
 struct MediaLineBufferTests {
-    /// Jedes Stueck einzeln anhaengen, Ergebnis als Texte.
+    /// Append every chunk one by one, the result as texts.
     private func feed(_ chunks: [String]) -> [[String]] {
         var buffer = MediaLineBuffer()
         var result: [[String]] = []
@@ -179,18 +179,18 @@ struct MediaLineBufferTests {
         return result
     }
 
-    @Test("Zeile ueber mehrere Stuecke, mehrere Zeilen in einem Stueck")
+    @Test("A line over several chunks, several lines in one chunk")
     func splitsAcrossChunks() {
         let result = feed(["{\"a\":", "1}\n{\"b\"", ":2}\n\n{\"c\":3}\n{\"d", "\":4}\n"])
         #expect(result == [[], ["{\"a\":1}"], ["{\"b\":2}", "{\"c\":3}"], ["{\"d\":4}"]])
     }
 
-    @Test("Ohne Umbruch bleibt alles im Puffer")
+    @Test("Without a break everything stays in the buffer")
     func keepsPartial() {
         #expect(feed(["abc", "def", "\n"]) == [[], [], ["abcdef"]])
     }
 
-    @Test("Grosse Zeile in vielen Stuecken bleibt heil")
+    @Test("A big line in many chunks stays whole")
     func largeLine() {
         let payload = String(repeating: "x", count: 200_000)
         var chunks: [String] = []
@@ -203,14 +203,14 @@ struct MediaLineBufferTests {
     }
 }
 
-@Suite("Now Playing: Zeit")
+@Suite("Now Playing: time")
 struct MediaTimeTests {
     private func playing(elapsed: TimeInterval, rate: Double?, isPlaying: Bool) -> MediaNowPlaying {
         MediaNowPlaying(title: "A", isPlaying: isPlaying, duration: 185, elapsed: elapsed,
                         timestamp: Fixture.referenceDate, playbackRate: rate)
     }
 
-    @Test("Hochrechnen aus Zeitstempel und Tempo", arguments: [
+    @Test("Working it out from the timestamp and the rate", arguments: [
         (10.0, Double?.some(1), true, 5.0, 15.0),     // normal
         (10.0, Double?.some(2), true, 5.0, 20.0),     // doppeltes Tempo
         (10.0, Double?.none, true, 5.0, 15.0),        // Tempo fehlt: 1
@@ -224,7 +224,7 @@ struct MediaTimeTests {
         #expect(playing(elapsed: elapsed, rate: rate, isPlaying: isPlaying).elapsed(at: now) == expected)
     }
 
-    @Test("Ohne Zeitstempel oder Stand")
+    @Test("Without a timestamp or a position")
     func extrapolationMissing() {
         let now = Fixture.referenceDate.addingTimeInterval(5)
         let noTimestamp = MediaNowPlaying(title: "A", isPlaying: true, duration: 185, elapsed: 10)
@@ -234,7 +234,7 @@ struct MediaTimeTests {
         #expect(noElapsed.progress(at: now) == 0)
     }
 
-    @Test("Fortschritt als Anteil, begrenzt")
+    @Test("The progress as a share, limited")
     func progress() {
         let now = Fixture.referenceDate.addingTimeInterval(27)
         #expect(playing(elapsed: 10, rate: 1, isPlaying: true).progress(at: now) == 37.0 / 185.0)
@@ -242,7 +242,7 @@ struct MediaTimeTests {
         #expect(live.progress(at: now) == 0)
     }
 
-    @Test("Abgespielte Zeit", arguments: [
+    @Test("The time played", arguments: [
         (0.0, "0:00"),
         (5.0, "0:05"),
         (65.0, "1:05"),
@@ -255,13 +255,13 @@ struct MediaTimeTests {
         #expect(MediaTime.clock(seconds) == text)
     }
 
-    @Test("Unendlich und NaN werden 0:00")
+    @Test("Infinity and NaN become 0:00")
     func clockDegenerate() {
         #expect(MediaTime.clock(.nan) == "0:00")
         #expect(MediaTime.clock(.infinity) == "0:00")
     }
 
-    @Test("Restzeit", arguments: [
+    @Test("The time left", arguments: [
         (34.0, 185.0, "-2:31"),
         (34.4, 185.0, "-2:31"),
         (0.0, 185.0, "-3:05"),
@@ -274,9 +274,9 @@ struct MediaTimeTests {
     }
 }
 
-@Suite("Now Playing: Adapter-Aufrufe")
+@Suite("Now Playing: adapter calls")
 struct MediaAdapterTests {
-    @Test("Steuerbefehle nach der README-Tabelle", arguments: [
+    @Test("The control commands by the README table", arguments: [
         (2, "2"),
         (4, "4"),
         (5, "5"),
@@ -286,17 +286,17 @@ struct MediaAdapterTests {
         #expect(command.arguments == ["send", argument])
     }
 
-    @Test("Nur Wiedergabe, weiter, zurueck - nichts, was abspielt ohne Klick")
+    @Test("Only play, next, previous - nothing that plays without a click")
     func commandSet() {
         #expect(MediaCommand.allCases.map(\.rawValue) == [2, 4, 5])
     }
 
-    @Test("Stream mit Mikrosekunden und Entprellung, Diff an")
+    @Test("The stream with microseconds and debouncing, diffs on")
     func streamArguments() {
         #expect(MediaAdapter.streamArguments == ["stream", "--micros", "--debounce=100"])
     }
 
-    @Test("Neustart-Pausen wachsen, dann ist Schluss", arguments: [
+    @Test("The restart pauses grow, then it is over", arguments: [
         (1, TimeInterval?.some(2)),
         (2, TimeInterval?.some(4)),
         (5, TimeInterval?.some(32)),
@@ -307,7 +307,7 @@ struct MediaAdapterTests {
         #expect(MediaRestart.delay(afterFailures: failures) == delay)
     }
 
-    @Test("Lange gelaufen: Zaehler beginnt neu", arguments: [
+    @Test("Running for a long time: the counter starts anew", arguments: [
         (4, 2.0, 5),
         (4, 30.0, 1),
         (0, 0.5, 1),

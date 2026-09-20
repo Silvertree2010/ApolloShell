@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Utilities-Panel als Baukasten: lesen, Vorlagen, Aendern, Hoehe")
+@Suite("The utilities panel as a kit: reading, templates, changing, height")
 struct UtilitiesLayoutTests {
     private func layout(_ json: String) -> UtilitiesLayout? {
         try? JSONDecoder().decode(UtilitiesLayout.self, from: Data(json.utf8))
@@ -19,9 +19,9 @@ struct UtilitiesLayoutTests {
     private static let standardKinds = ["wifi", "microphone", "bluetooth", "darkMode", "nightShift",
                                         "screenshot", "showDesktop", "colorPicker", "lockScreen", "settings"]
 
-    // MARK: Migration und Vorgabe
+    // MARK: Migration and default
 
-    @Test("ohne Abschnitt oder unlesbar: das feste Panel von vorher", arguments: [
+    @Test("without a section or unreadable: the fixed panel from before", arguments: [
         "{}", #"{"utilities":5}"#, #"{"utilities":{}}"#, #"{"utilities":{"layout":"kaputt"}}"#, #"{"utilities":{"layout":{}}}"#,
     ])
     func migration(json: String) {
@@ -32,16 +32,16 @@ struct UtilitiesLayoutTests {
         #expect(layout.toggles.map(\.id) == Self.standardKinds)
     }
 
-    @Test("Vorgabe = Standard = feste Hoehe 426 wie vorher gemessen")
+    @Test("the default = Standard = the fixed height 426 as measured before")
     func standardIsToday() {
         #expect(ShellSettings().utilities.layout == UtilitiesLayout())
         #expect(UtilitiesLayout().panelHeight == 426)
         #expect(UtilitiesLayout().toggleRows.map(\.count) == [5, 5])
     }
 
-    // MARK: Lesen
+    // MARK: Reading
 
-    @Test("unbekannte Eintraege fallen weg, der Rest bleibt", arguments: [
+    @Test("unknown entries fall away, the rest stays", arguments: [
         (#"{"quickToggles":[{"kind":"wifi"},{"kind":"hologram"},{"kind":"lockScreen"}]}"#, ["wifi", "lockScreen"]),
         (#"{"quickToggles":[5, null, "wifi", {"kind":"settings"}]}"#, ["settings"]),
         (#"{"quickToggles":[{"kind":"Wifi"},{},{"id":"x"}]}"#, []),
@@ -53,7 +53,7 @@ struct UtilitiesLayoutTests {
         #expect(toggleKinds(layout(json)) == expected)
     }
 
-    @Test("Karten: unbekannte weg, doppelte weg, fehlende eingeschaltet ans Ende", arguments: [
+    @Test("Cards: unknown ones go, duplicates go, missing ones switched on at the end", arguments: [
         (#"{"cards":[{"kind":"audio","enabled":false},{"kind":"keepAwake"}]}"#, ["audio-aus", "keepAwake", "quickToggles"]),
         (#"{"cards":[{"kind":"quickToggles"},{"kind":"quickToggles","enabled":false},{"kind":"radio"}]}"#,
          ["quickToggles", "keepAwake", "audio"]),
@@ -65,7 +65,7 @@ struct UtilitiesLayoutTests {
         #expect(cards(layout(json)) == expected)
     }
 
-    @Test("kaputte Optionen: Vorgaben, lesbare Felder bleiben", arguments: [
+    @Test("broken options: the defaults, readable fields stay", arguments: [
         (#"{"quickToggles":[{"kind":"openApp","options":{"bundleID":"com.example.editor","title":5}}]}"#,
          UtilitiesToggle.openApp(.init(bundleID: "com.example.editor"))),
         (#"{"quickToggles":[{"kind":"openLink","options":[]}]}"#, UtilitiesToggle.openLink(.init())),
@@ -81,7 +81,7 @@ struct UtilitiesLayoutTests {
         #expect(layout(json)?.toggles.first?.toggle == expected)
     }
 
-    @Test("Kennungen eindeutig, feste Knoepfe hoechstens einmal", arguments: [
+    @Test("ids unique, fixed buttons at most once", arguments: [
         (#"{"quickToggles":[{"kind":"wifi"},{"kind":"wifi"},{"kind":"settings"}]}"#, ["wifi", "settings"]),
         (#"{"quickToggles":[{"kind":"openApp"},{"kind":"openApp"},{"id":"openApp-2","kind":"openApp"}]}"#,
          ["openApp", "openApp-3", "openApp-2"]),
@@ -92,7 +92,7 @@ struct UtilitiesLayoutTests {
         #expect(layout(json)?.toggles.map(\.id) == expected)
     }
 
-    @Test("jede Art mit Vorgaben uebersteht Schreiben und Lesen", arguments: UtilitiesToggleKind.allCases)
+    @Test("every kind with its defaults survives writing and reading", arguments: UtilitiesToggleKind.allCases)
     func kindRoundTrip(kind: UtilitiesToggleKind) throws {
         let layout = UtilitiesLayout(toggles: [UtilitiesToggleEntry(kind)])
         let data = try JSONEncoder().encode(layout)
@@ -100,24 +100,24 @@ struct UtilitiesLayoutTests {
         #expect(String(decoding: data, as: UTF8.self).contains("\"options\"") == UtilitiesToggle(kind).hasOptions)
     }
 
-    @Test("Art, Name, Beschreibung, Gruppe sind vollstaendig", arguments: UtilitiesToggleKind.allCases)
+    @Test("kind, name, description, group are complete", arguments: UtilitiesToggleKind.allCases)
     func kindMetadata(kind: UtilitiesToggleKind) {
         #expect(UtilitiesToggle(kind).kind == kind)
         #expect(!kind.title.isEmpty && !kind.summary.isEmpty)
-        // Nur Bluetooth zeichnet seine Rune selbst.
+        // Only Bluetooth draws its rune itself.
         #expect((kind.symbol == nil) == (kind == .bluetooth))
         #expect(kind.group.kinds.contains(kind))
         #expect(kind.isUnique == (kind.group != .custom))
     }
 
-    @Test("Karten: Name, Beschreibung, Symbol", arguments: UtilitiesCardKind.allCases)
+    @Test("Cards: name, description, symbol", arguments: UtilitiesCardKind.allCases)
     func cardMetadata(kind: UtilitiesCardKind) {
         #expect(!kind.title.isEmpty && !kind.summary.isEmpty && !kind.symbol.isEmpty)
     }
 
-    // MARK: Vorlagen
+    // MARK: Templates
 
-    @Test("Vorlagen sind Daten mit fester Reihenfolge", arguments: [
+    @Test("templates are data with a fixed order", arguments: [
         (UtilitiesPreset.standard, ["keepAwake", "audio", "quickToggles"],
          ["wifi", "microphone", "bluetooth", "darkMode", "nightShift", "screenshot", "showDesktop", "colorPicker",
           "lockScreen", "settings"]),
@@ -134,7 +134,7 @@ struct UtilitiesLayoutTests {
         #expect(toggleKinds(preset.layout) == expectedToggles)
     }
 
-    @Test("Vorlagen sind gueltig und ueberstehen Schreiben und Lesen", arguments: UtilitiesPreset.allCases)
+    @Test("templates are valid and survive writing and reading", arguments: UtilitiesPreset.allCases)
     func presetValid(preset: UtilitiesPreset) throws {
         let layout = preset.layout
         #expect(!preset.title.isEmpty && !preset.summary.isEmpty)
@@ -145,15 +145,15 @@ struct UtilitiesLayoutTests {
         #expect(try JSONDecoder().decode(UtilitiesLayout.self, from: data) == layout)
     }
 
-    @Test("Alles: jeder feste Knopf genau einmal")
+    @Test("Everything: every fixed button exactly once")
     func everythingHasAllFixed() {
         let kinds = Set(UtilitiesPreset.everything.layout.toggles.map(\.kind))
         #expect(kinds == Set(UtilitiesToggleKind.allCases.filter(\.isUnique)))
     }
 
-    // MARK: Aendern
+    // MARK: Changing
 
-    @Test("hinzufuegen: hinten, an einer Stelle begrenzt", arguments: [
+    @Test("adding: at the end, limited at a place", arguments: [
         (UtilitiesToggleKind.displaySleep, nil as Int?, ["wifi", "lockScreen", "displaySleep"]),
         (UtilitiesToggleKind.hideApps, 0 as Int?, ["hideApps", "wifi", "lockScreen"]),
         (UtilitiesToggleKind.openLink, 1 as Int?, ["wifi", "openLink", "lockScreen"]),
@@ -166,7 +166,7 @@ struct UtilitiesLayoutTests {
         #expect(toggleKinds(layout) == expected)
     }
 
-    @Test("feste Knoepfe gibt es nur einmal", arguments: [
+    @Test("fixed buttons exist only once", arguments: [
         UtilitiesToggleKind.wifi, UtilitiesToggleKind.settings, UtilitiesToggleKind.bluetooth,
     ])
     func addUniqueRefused(kind: UtilitiesToggleKind) {
@@ -176,7 +176,7 @@ struct UtilitiesLayoutTests {
         #expect(layout == UtilitiesLayout())
     }
 
-    @Test("eigene Knoepfe mehrmals: eigene Kennungen", arguments: [
+    @Test("custom buttons several times: ids of their own", arguments: [
         (UtilitiesToggleKind.openApp, ["openApp", "openApp-2", "openApp-3"]),
         (UtilitiesToggleKind.runShortcut, ["runShortcut", "runShortcut-2", "runShortcut-3"]),
     ])
@@ -185,7 +185,7 @@ struct UtilitiesLayoutTests {
         #expect((0..<3).compactMap { _ in layout.add(kind) } == expected)
     }
 
-    @Test("entfernen, danach wieder hinzufuegbar", arguments: [
+    @Test("removing, and adding it again afterwards", arguments: [
         ("nightShift", ["wifi", "microphone", "bluetooth", "darkMode", "screenshot", "showDesktop", "colorPicker",
                         "lockScreen", "settings"]),
         ("gibtsnicht", ["wifi", "microphone", "bluetooth", "darkMode", "nightShift", "screenshot", "showDesktop",
@@ -198,7 +198,7 @@ struct UtilitiesLayoutTests {
         #expect(layout.canAdd(.nightShift) == !layout.contains(.nightShift))
     }
 
-    @Test("Optionen aendern nur bei gleicher Art", arguments: [
+    @Test("changing options only with the same kind", arguments: [
         (UtilitiesToggle.openLink(.init(url: "example.org")), UtilitiesToggle.openLink(.init(url: "example.org"))),
         (UtilitiesToggle.openApp(.init(bundleID: "com.example.app")), UtilitiesToggle.openLink(.init(url: "example.com"))),
         (UtilitiesToggle.wifi, UtilitiesToggle.openLink(.init(url: "example.com"))),
@@ -209,7 +209,7 @@ struct UtilitiesLayoutTests {
         #expect(layout[toggle: "l"]?.toggle == expected)
     }
 
-    @Test("ziehen wie onMove (Ziel vor dem Verschieben gezaehlt)", arguments: [
+    @Test("dragging like onMove (the target counted before the move)", arguments: [
         ([0], 3, ["b", "c", "a", "d"]), ([3], 0, ["d", "a", "b", "c"]), ([1, 2], 4, ["a", "d", "b", "c"]),
         ([9], 0, ["a", "b", "c", "d"]),
     ])
@@ -219,7 +219,7 @@ struct UtilitiesLayoutTests {
         #expect(layout.toggles.map(\.id) == expected)
     }
 
-    @Test("im Raster ziehen: nimmt den Platz des Ziels ein", arguments: [
+    @Test("dragging in the grid: it takes the place of the target", arguments: [
         ("a", "c", ["b", "c", "a", "d"]), ("d", "b", ["a", "d", "b", "c"]), ("b", "b", ["a", "b", "c", "d"]),
         ("a", "x", ["a", "b", "c", "d"]), ("c", "d", ["a", "b", "d", "c"]),
     ])
@@ -229,7 +229,7 @@ struct UtilitiesLayoutTests {
         #expect(layout.toggles.map(\.id) == expected)
     }
 
-    @Test("nach vorne und hinten, am Rand nichts", arguments: [
+    @Test("forward and back, nothing at the edge", arguments: [
         ("b", -1, ["b", "a", "c"]), ("b", 1, ["a", "c", "b"]), ("a", -1, ["a", "b", "c"]), ("c", 1, ["a", "b", "c"]),
     ])
     func moveStep(id: String, step: Int, expected: [String]) {
@@ -238,7 +238,7 @@ struct UtilitiesLayoutTests {
         #expect(layout.toggles.map(\.id) == expected)
     }
 
-    @Test("Karten ein/aus und umsortieren", arguments: [
+    @Test("cards on/off and reordering", arguments: [
         (UtilitiesCardKind.audio, false, [2], 0, ["quickToggles", "keepAwake", "audio-aus"]),
         (UtilitiesCardKind.keepAwake, false, [0], 3, ["audio", "quickToggles", "keepAwake-aus"]),
         (UtilitiesCardKind.quickToggles, true, [1], 0, ["audio", "keepAwake", "quickToggles"]),
@@ -251,7 +251,7 @@ struct UtilitiesLayoutTests {
         #expect(layout.isEnabled(kind) == enabled)
     }
 
-    @Test("Karte eine Stelle verschieben", arguments: [
+    @Test("moving a card one place", arguments: [
         (UtilitiesCardKind.audio, -1, ["audio", "keepAwake", "quickToggles"]),
         (UtilitiesCardKind.quickToggles, 1, ["keepAwake", "audio", "quickToggles"]),
     ])
@@ -261,9 +261,9 @@ struct UtilitiesLayoutTests {
         #expect(cards(layout) == expected)
     }
 
-    // MARK: Hoehe
+    // MARK: Height
 
-    @Test("Hoehe je Vorlage aus den Massen", arguments: [
+    @Test("the height per template out of the measurements", arguments: [
         (UtilitiesPreset.standard, 426.0), (UtilitiesPreset.minimal, 137.0), (UtilitiesPreset.audio, 290.0),
         (UtilitiesPreset.everything, 482.0),
     ])
@@ -271,10 +271,10 @@ struct UtilitiesLayoutTests {
         #expect(preset.layout.panelHeight == height)
     }
 
-    @Test("Hoehe folgt Karten und Reihen", arguments: [
-        // Nichts an: nur der Hinweis.
+    @Test("the height follows the cards and the rows", arguments: [
+        // Nothing on: only the note.
         (#"{"cards":[{"kind":"keepAwake","enabled":false},{"kind":"audio","enabled":false},{"kind":"quickToggles","enabled":false}]}"#, 100.0),
-        // Schnellschalter-Karte an, aber leer: faellt weg.
+        // The quick toggle card on, but empty: it falls away.
         (#"{"quickToggles":[]}"#, 253.0),
         (#"{"cards":[{"kind":"audio","enabled":false},{"kind":"keepAwake","enabled":false}],"quickToggles":[]}"#, 100.0),
         (#"{"cards":[{"kind":"keepAwake"},{"kind":"audio","enabled":false},{"kind":"quickToggles","enabled":false}]}"#, 100.0),
@@ -286,7 +286,7 @@ struct UtilitiesLayoutTests {
         #expect(layout(json)?.panelHeight == expected)
     }
 
-    @Test("Reihen zu fuenf, die letzte darf kuerzer sein", arguments: [
+    @Test("rows of five, the last one may be shorter", arguments: [
         (0, [Int]()), (1, [1]), (5, [5]), (6, [5, 1]), (11, [5, 5, 1]), (15, [5, 5, 5]),
     ])
     func rows(count: Int, expected: [Int]) {
@@ -295,9 +295,9 @@ struct UtilitiesLayoutTests {
         #expect(layout.toggles.count == count)
     }
 
-    // MARK: Einstellungen
+    // MARK: Settings
 
-    @Test("settings.json: Abschnitt schreiben und wieder lesen")
+    @Test("settings.json: write the section and read it back")
     func settingsRoundTrip() {
         var layout = UtilitiesPreset.everything.layout
         layout.add(.openApp(.init(bundleID: "com.example.app", title: "Editor", symbol: "")))
@@ -311,7 +311,7 @@ struct UtilitiesLayoutTests {
         }
     }
 
-    @Test("ein kaputter utilities-Abschnitt laesst den Rest stehen")
+    @Test("a broken utilities section leaves the rest standing")
     func otherSectionsSurvive() {
         let json = #"{"utilities":{"layout":{"cards":5,"quickToggles":[{"kind":"wifi"}]}},"toasts":{"batteryWarnings":false}}"#
         let settings = ShellSettings.load(from: Data(json.utf8))
@@ -321,9 +321,9 @@ struct UtilitiesLayoutTests {
     }
 }
 
-@Suite("Utilities-Panel: eigene Knoepfe")
+@Suite("The utilities panel: custom buttons")
 struct UtilitiesCustomToggleTests {
-    @Test("Link aus der Eingabe", arguments: [
+    @Test("A link out of the input", arguments: [
         ("example.com", "https://example.com"),
         ("  https://example.com/docs?x=1  ", "https://example.com/docs?x=1"),
         ("http://example.com", "http://example.com"),
@@ -337,7 +337,7 @@ struct UtilitiesCustomToggleTests {
         #expect(UtilitiesLink.url(from: input)?.absoluteString ?? "-" == expected)
     }
 
-    @Test("Link kurz fuer den Tooltip", arguments: [
+    @Test("A link shortened for the tooltip", arguments: [
         ("https://www.example.com/", "example.com"), ("https://example.com/docs/", "example.com/docs"),
         ("mailto:someone@example.com", "mailto:someone@example.com"),
     ])
@@ -345,7 +345,7 @@ struct UtilitiesCustomToggleTests {
         #expect(UtilitiesLink.displayText(URL(string: url)!) == expected)
     }
 
-    @Test("Kurzbefehle aus shortcuts list --show-identifiers")
+    @Test("Shortcuts out of shortcuts list --show-identifiers")
     func parseShortcuts() {
         let output = """
         Timer (kurz) (1B4E28BA-2FA1-11D2-883F-0016D3CCA427)
@@ -361,7 +361,7 @@ struct UtilitiesCustomToggleTests {
         #expect(UtilitiesShortcuts.parse("").isEmpty)
     }
 
-    @Test("Ausfuehren: lieber Kennung, sonst Name, sonst nichts", arguments: [
+    @Test("Running it: the id if possible, otherwise the name, otherwise nothing", arguments: [
         (UtilitiesShortcutOptions(name: "Fokus", identifier: "1B4E28BA-2FA1-11D2-883F-0016D3CCA427"),
          ["run", "1B4E28BA-2FA1-11D2-883F-0016D3CCA427"]),
         (UtilitiesShortcutOptions(name: "Fokus", identifier: "  "), ["run", "Fokus"]),
