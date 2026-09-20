@@ -600,6 +600,10 @@ final class EditModeWindows {
     #if DEBUG
     /// For `EditModeSelfTest`: what's actually on the screen right now.
     var debugVisibleScrims: Int { scrims.values.filter(\.isVisible).count }
+    /// Every dimming panel the mode keeps, shown or not: one per screen,
+    /// never more (they used to be kept by `NSScreen` object identity, and
+    /// AppKit hands out new objects on every change).
+    var debugScrimCount: Int { scrims.count }
     var debugToolbarFrame: NSRect? { toolbar.flatMap { $0.isVisible ? $0.frame : nil } }
     var debugGalleryFrame: NSRect? { gallery.flatMap { $0.isVisible ? $0.frame : nil } }
     var debugLevels: (scrim: Int, controls: Int) { (EditModeLevel.scrim.rawValue, EditModeLevel.controls.rawValue) }

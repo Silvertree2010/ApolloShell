@@ -509,6 +509,8 @@ private final class EditModeSelfTestHarness {
             await wait(0.9)
             check(!editor.isEditing && windows.debugVisibleScrims == 0 && windows.debugToolbarFrame == nil
                   && windows.debugGalleryFrame == nil, "Stress: nothing is left hanging after ten quick rounds")
+            check(windows.debugScrimCount == NSScreen.screens.count,
+                  "Stress: one dimming panel per screen, not more (\(windows.debugScrimCount))")
             dashboard.debugClose()
             utilities.debugClose()
             await wait(0.6)
