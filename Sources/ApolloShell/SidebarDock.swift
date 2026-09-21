@@ -243,6 +243,15 @@ final class SidebarDockModel {
                 _ = app?.unhide()
             case .activate:
                 app?.activate()
+            case .raiseWindowElsewhere:
+                // Nur ueber das Fenster selbst wechselt macOS den
+                // Schreibtisch (gemessen 20.09.: `activate()` holt keines).
+                // Ohne Remote-Fenster bleibt der alte Weg, besser als nichts.
+                if let app, let window = windowElsewhere(of: app, onScreen: onScreen) {
+                    DockWindows.raise(window, of: app)
+                } else {
+                    app?.activate()
+                }
             case .raiseWindowOnActiveSpace:
                 // Das vorderste hiesige Fenster: es bringt die App gleich
                 // mit nach vorne, kein zusaetzliches `.activate` noetig.
@@ -257,9 +266,11 @@ final class SidebarDockModel {
                 // Keine Zeitstempel ueber die Bedienungshilfen: das
                 // vorderste minimierte Fenster in der Liste steht dem
                 // "zuletzt abgelegten" am naechsten (war vor dem Minimieren
-                // vorne).
-                if let last = windows.first(where: \.minimized) {
-                    AXUIElementSetAttributeValue(last.element, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+                // vorne). `raise` holt es aus dem Dock, hebt es und bringt
+                // die App mit - auch wenn es auf einem anderen Schreibtisch
+                // abgelegt wurde.
+                if let app, let last = windows.first(where: \.minimized) {
+                    DockWindows.raise(last, of: app)
                 }
             case .newWindow:
                 if let app,
@@ -274,6 +285,17 @@ final class SidebarDockModel {
             case .reveal:
                 reveal(entry)
             }
+        }
+    }
+
+    /// Ein Fenster der App auf einem anderen Schreibtisch.
+    /// `kAXWindowsAttribute` kennt nur den aktuellen, deshalb die Liste ueber
+    /// alle Spaces (Remote-Token); was gerade auf dem Bildschirm liegt,
+    /// faellt weg. Erst hier geholt, nicht schon fuer den Zustand: der
+    /// Aufruf kostet Millisekunden und wird nur fuer diesen Fall gebraucht.
+    private func windowElsewhere(of app: NSRunningApplication, onScreen: Set<CGWindowID>) -> DockWindows.Window? {
+        DockWindows.list(pid: app.processIdentifier, allSpaces: true).first { window in
+            !window.minimized && !(window.windowID.map(onScreen.contains) ?? false)
         }
     }
 

@@ -34,10 +34,12 @@ struct DockClickTests {
         #expect(actions == [.raiseWindowOnActiveSpace])
     }
 
-    @Test("Laeuft, nicht vorne, Fenster nur woanders: aktivieren, macOS wechselt selbst")
+    /// `activate()` allein reicht nicht: gemessen 20.09. wird die App damit
+    /// zwar zur vordersten, das Fenster bleibt aber auf seinem Schreibtisch.
+    @Test("Laeuft, nicht vorne, Fenster nur woanders: das dortige Fenster nach vorne")
     func onlyElsewhere() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: false, here: 0, elsewhere: 2))
-        #expect(actions == [.activate])
+        #expect(actions == [.raiseWindowElsewhere])
     }
 
     @Test("Laeuft, ausgeblendet, Fenster hier: einblenden und das hiesige nach vorne")
@@ -70,22 +72,22 @@ struct DockClickTests {
         #expect(actions.isEmpty)
     }
 
-    @Test("Vorne, aber kein Fenster hier, nur woanders: aktivieren (Rand: aktiv auf falschem Space gelandet)")
+    @Test("Vorne, aber kein Fenster hier, nur woanders: dorthin (Rand: aktiv auf falschem Space gelandet)")
     func frontmostOnlyElsewhere() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: true, here: 0, elsewhere: 1))
-        #expect(actions == [.activate])
+        #expect(actions == [.raiseWindowElsewhere])
     }
 
     @Test("Schon vorne, every Fenster minimiert: das letzte zurueckholen")
     func frontmostAllMinimized() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: true, here: 0, elsewhere: 0, minimized: 3))
-        #expect(actions == [.unminimizeLast, .activate])
+        #expect(actions == [.unminimizeLast])
     }
 
     @Test("Nicht vorne, every Fenster minimiert: das letzte zurueckholen")
     func notFrontmostAllMinimized() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: false, here: 0, elsewhere: 0, minimized: 2))
-        #expect(actions == [.unminimizeLast, .activate])
+        #expect(actions == [.unminimizeLast])
     }
 
     @Test("Schon vorne, kein Fenster: neues oeffnen (reopen)")
@@ -106,10 +108,10 @@ struct DockClickTests {
         #expect(actions.isEmpty)
     }
 
-    @Test("⌥-Klick: aktivieren und danach die vorherige App ausblenden")
+    @Test("⌥-Klick: hinueberwechseln und danach die vorherige App ausblenden")
     func optionHidesPrevious() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: false, elsewhere: 1, option: true))
-        #expect(actions == [.activate, .hidePrevious])
+        #expect(actions == [.raiseWindowElsewhere, .hidePrevious])
     }
 
     @Test("⌥-Klick mit Fenster hier: hiesiges Fenster nach vorne, danach die vorherige App ausblenden")

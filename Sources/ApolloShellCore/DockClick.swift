@@ -54,9 +54,17 @@ public enum DockClickAction: Equatable, Sendable {
     case launch
     /// War sie ausgeblendet, wieder einblenden.
     case unhide
-    /// Nach vorne. Nur wenn kein Fenster auf dem aktuellen Space liegt -
-    /// dann wechselt macOS selbst dorthin, wie bei Apple.
+    /// Nach vorne. Nur noch, wenn es gar kein Fenster zu heben gibt -
+    /// `activate()` holt keines (siehe `raiseWindowElsewhere`).
     case activate
+    /// Kein Fenster auf dem aktuellen Space, aber eins auf einem anderen:
+    /// genau das nach vorne holen. macOS wechselt dabei auf dessen
+    /// Schreibtisch. Gemessen 20.09.: `activate()` macht die App zwar zur
+    /// vordersten (Menueleiste wechselt), holt aber kein Fenster und
+    /// wechselt keinen Space - auch nicht als
+    /// `activate(from:options: .activateAllWindows)`, das `true` liefert und
+    /// trotzdem nichts bewegt. Nur der Weg ueber das Fenster wirkt.
+    case raiseWindowElsewhere
     /// Ein Fenster der App liegt schon auf dem aktuellen Space: das nach
     /// vorne holen (aktiviert die App gleich mit) statt auf den Space eines
     /// anderen Fensters zu wechseln.
@@ -77,9 +85,9 @@ public enum DockClickAction: Equatable, Sendable {
 
 /// Was ein Klick auf ein Symbol im Dock der Leiste tut - wie in Apples Dock:
 /// laeuft die App nicht, wird sie gestartet; laeuft sie und steht nicht vorne,
-/// kommt sie (mit allen Fenstern) nach vorne; liegt eins ihrer Fenster schon
-/// auf dem aktuellen Space, bleibt der Space dabei (kein Sprung zu einem
-/// anderen); steht sie schon vorne und hat hier ein Fenster, passiert nichts;
+/// kommt eines ihrer Fenster nach vorne (und mit ihm die App); liegt eins
+/// davon schon auf dem aktuellen Space, bleibt der Space dabei (kein Sprung
+/// zu einem anderen), sonst wechselt macOS zum Fenster; steht sie schon vorne und hat hier ein Fenster, passiert nichts;
 /// sind alle Fenster abgelegt, kommt das zuletzt abgelegte zurueck; hat sie
 /// gar keins, oeffnet sie eins ("reopen"). Kein Blaettern durch Fenster mehr
 /// beim Klick - das macht weiterhin nur Scrollen (`DockWindowCycle`).
@@ -111,8 +119,8 @@ public enum DockClick {
 
     /// Nicht vorne, oder vorne ohne Fenster auf dem aktuellen Space (etwa
     /// von Hand auf einen anderen Space gewechselt, waehrend sie aktiv
-    /// blieb): je nach Fensterlage das hiesige nach vorne, sonst aktivieren
-    /// (und macOS wechselt selbst, wenn es nur woanders eins gibt), abgelegtes
+    /// blieb): je nach Fensterlage das hiesige nach vorne, das auf einem
+    /// anderen Schreibtisch nach vorne (samt Space-Wechsel), ein abgelegtes
     /// zurueckholen oder ein neues oeffnen.
     private static func raiseActions(_ state: DockClickState) -> [DockClickAction] {
         var actions: [DockClickAction] = []
@@ -124,10 +132,12 @@ public enum DockClick {
         if state.windowsOnActiveSpace > 0 {
             actions.append(.raiseWindowOnActiveSpace)
         } else if state.windowsElsewhere > 0 {
-            actions.append(.activate)
+            actions.append(.raiseWindowElsewhere)
         } else if state.minimizedWindows > 0 {
+            // Das Zurueckholen hebt das Fenster gleich mit und bringt die App
+            // nach vorne - ein zusaetzliches `activate` wuerde nur dieselbe
+            // Aufgabe schlechter erledigen (siehe `raiseWindowElsewhere`).
             actions.append(.unminimizeLast)
-            actions.append(.activate)
         } else {
             actions.append(.activate)
             actions.append(.newWindow)
