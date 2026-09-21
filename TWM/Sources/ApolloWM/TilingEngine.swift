@@ -1094,6 +1094,10 @@ public final class TilingEngine {
                         self.proxies.remove(id)
                         continue
                     }
+                    // Size and position again: Chromium-based apps (Vivaldi)
+                    // ignore a resize while their window is off screen, so
+                    // the size written while parked may not have landed.
+                    self.windows[id]?.invalidateCache()
                     // The snapshot goes once the app has the window in place,
                     // plus one beat so it is on screen.
                     self.write(id, target) { [weak self] in
