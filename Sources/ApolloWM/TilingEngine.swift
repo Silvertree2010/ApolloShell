@@ -16,7 +16,7 @@ public final class TilingEngine {
         public var frameRate: Double = 120
         /// Resize on every frame (smooth but apps redraw constantly) or only
         /// at the start/end of a glide (cheap).
-        public var resizeEveryFrame = false
+        public var resizeEveryFrame = true
         /// Screen space the host keeps for itself, e.g. ApolloShell's 44 pt
         /// sidebar on the left. Tiles never go there.
         public var reserved = NSEdgeInsets()
@@ -42,8 +42,15 @@ public final class TilingEngine {
     public private(set) var space: SpaceID = 0
     public private(set) var windows: [CGWindowID: AXWindow] = [:]
     public private(set) var dragging: CGWindowID?
-    /// Sizes windows refused to go below, learned by measuring after each glide.
+    /// Sizes windows refused to go below or above, learned by measuring
+    /// after each glide.
     public private(set) var minimums: [CGWindowID: CGSize] = [:]
+    public private(set) var maximums: [CGWindowID: CGSize] = [:]
+
+    /// When the shown desktop last changed. Windows ignore moves while macOS
+    /// animates a desktop switch, so nothing is learned right after one.
+    private var lastSpaceSwitch: CFTimeInterval = 0
+    private var fitCheck: DispatchWorkItem?
 
     /// Layout of the shown desktop.
     public var tree: DwindleTree<CGWindowID> { layouts[space] }
@@ -86,7 +93,7 @@ public final class TilingEngine {
         let target = target ?? space
         layouts.assign(id, to: target) { tree in
             if let point, target == space {
-                tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums)
+                tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
             } else {
                 tree.insert(id)
             }
@@ -100,6 +107,7 @@ public final class TilingEngine {
         if dragging == id { dragging = nil }
         windows[id] = nil
         minimums[id] = nil
+        maximums[id] = nil
         layouts.remove(id)
         relayout()
     }
@@ -117,6 +125,7 @@ public final class TilingEngine {
         guard target != space else { return }
         log("desktop \(space) -> \(target)")
         space = target
+        lastSpaceSwitch = CACurrentMediaTime()
         // A drag cannot survive a desktop switch; the window stays where it is.
         if let id = dragging {
             dragging = nil
@@ -130,7 +139,7 @@ public final class TilingEngine {
     /// Recomputes the layout and lets every window glide to its new tile.
     /// Windows not on the shown desktop are left alone.
     public func relayout() {
-        let frames = tree.layout(in: area, gaps: options.gaps, minimums: minimums)
+        let frames = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
         for id in springs.keys where frames[id] == nil { springs[id] = nil }
         for (id, rect) in frames {
             springs[id, default: AnimatedRect(windows[id]?.frame ?? rect)].target = rect
@@ -147,7 +156,7 @@ public final class TilingEngine {
     }
 
     public func window(at point: CGPoint) -> CGWindowID? {
-        tree.id(at: point, in: area, gaps: options.gaps, minimums: minimums)
+        tree.id(at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
     }
 
     /// Where the engine last put the window (nil while dragged or unknown).
@@ -156,7 +165,7 @@ public final class TilingEngine {
     }
 
     public func targetFrames() -> [CGWindowID: CGRect] {
-        tree.layout(in: area, gaps: options.gaps, minimums: minimums)
+        tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
     }
 
     // MARK: Drag and drop
@@ -177,7 +186,7 @@ public final class TilingEngine {
         guard let id = dragging else { return }
         dragging = nil
         layouts.assign(id, to: space) { tree in
-            tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums)
+            tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
         }
         if let window = windows[id] {
             window.invalidateCache()
@@ -239,31 +248,76 @@ public final class TilingEngine {
             timer?.invalidate()
             timer = nil
             onSettled?()
-            if learnMinimums() { relayout() }
+            scheduleFitCheck(retry: true)
         }
     }
 
-    /// Compares where windows ended up with their tiles. A window that stayed
-    /// bigger refused the size; remember that as its minimum.
-    /// Returns true when a minimum grew, so the layout must be redone.
-    private func learnMinimums() -> Bool {
+    /// After a glide, compare where windows really are with their tiles.
+    /// A window that does not fit gets its frame written once more first
+    /// (it may have missed a write); only a second refusal is learned as a
+    /// minimum or maximum. Learned limits also heal: a window seen smaller
+    /// than its minimum or bigger than its maximum loosens that limit.
+    private func scheduleFitCheck(retry: Bool) {
+        fitCheck?.cancel()
+        let sinceSwitch = CACurrentMediaTime() - lastSpaceSwitch
+        let delay = max(0.15, 0.8 - sinceSwitch)
+        let work = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated { self?.checkFit(retry: retry) }
+        }
+        fitCheck = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+
+    private func checkFit(retry: Bool) {
+        guard !isAnimating, dragging == nil else { return }
+        let targets = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        var misfits: [CGWindowID] = []
         var changed = false
-        for (id, target) in tree.layout(in: area, gaps: options.gaps, minimums: minimums) {
-            guard id != dragging, let actual = windows[id]?.frame else { continue }
+        for (id, target) in targets {
+            guard let window = windows[id], let actual = window.frame else { continue }
             var minimum = minimums[id] ?? .zero
-            if actual.width > target.width + 4, actual.width > minimum.width + 1 {
-                minimum.width = actual.width
+            var maximum = maximums[id] ?? .infinite
+            // Heal limits the window no longer honors.
+            if actual.width < minimum.width - 4 { minimum.width = actual.width }
+            if actual.height < minimum.height - 4 { minimum.height = actual.height }
+            if actual.width > maximum.width + 4 { maximum.width = .infinity }
+            if actual.height > maximum.height + 4 { maximum.height = .infinity }
+
+            let tooBig = actual.width > target.width + 4 || actual.height > target.height + 4
+            // Small shortfalls are apps snapping to character cells, not a real limit.
+            let tooSmall = actual.width < target.width - 20 || actual.height < target.height - 20
+            if tooBig || tooSmall {
+                if retry {
+                    misfits.append(id)
+                    continue
+                }
+                if actual.width > target.width + 4 { minimum.width = max(minimum.width, actual.width) }
+                if actual.height > target.height + 4 { minimum.height = max(minimum.height, actual.height) }
+                if actual.width < target.width - 20 { maximum.width = min(maximum.width, actual.width) }
+                if actual.height < target.height - 20 { maximum.height = min(maximum.height, actual.height) }
             }
-            if actual.height > target.height + 4, actual.height > minimum.height + 1 {
-                minimum.height = actual.height
-            }
-            if minimum != (minimums[id] ?? .zero) {
-                log("minimum for \(windows[id]?.title ?? "\(id)"): \(Int(minimum.width))x\(Int(minimum.height))")
-                minimums[id] = minimum
+
+            if minimum != (minimums[id] ?? .zero) || maximum != (maximums[id] ?? .infinite) {
+                log("limits for \(window.title.isEmpty ? "\(id)" : window.title): min \(Self.describe(minimum)) max \(Self.describe(maximum))")
+                minimums[id] = minimum == .zero ? nil : minimum
+                maximums[id] = maximum == .infinite ? nil : maximum
                 changed = true
             }
         }
-        return changed
+        if !misfits.isEmpty {
+            for id in misfits {
+                guard let window = windows[id], let target = targets[id] else { continue }
+                window.invalidateCache()
+                window.setFrame(target)
+            }
+            scheduleFitCheck(retry: false)
+        }
+        if changed { relayout() }
+    }
+
+    private static func describe(_ size: CGSize) -> String {
+        func side(_ v: CGFloat) -> String { v.isFinite ? "\(Int(v))" : "-" }
+        return "\(side(size.width))x\(side(size.height))"
     }
 
     /// Writes frames; returns windows that no longer exist.

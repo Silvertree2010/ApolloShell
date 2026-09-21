@@ -67,8 +67,8 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
     /// split, and the half of that tile the point lies in decides the side.
     /// A point outside every tile falls back to splitting the last tile.
     public mutating func insert(_ id: ID, at point: CGPoint, in area: CGRect, gaps: Gaps = .none,
-                                minimums: [ID: CGSize] = [:]) {
-        let frames = layout(in: area, gaps: gaps, minimums: minimums)
+                                minimums: [ID: CGSize] = [:], maximums: [ID: CGSize] = [:]) {
+        let frames = layout(in: area, gaps: gaps, minimums: minimums, maximums: maximums)
         guard let target = frames.first(where: { $0.value.contains(point) }) else {
             insert(id)
             return
@@ -87,20 +87,23 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
 
     /// The window whose tile contains `point`, if any.
     public func id(at point: CGPoint, in area: CGRect, gaps: Gaps = .none,
-                   minimums: [ID: CGSize] = [:]) -> ID? {
-        layout(in: area, gaps: gaps, minimums: minimums).first(where: { $0.value.contains(point) })?.key
+                   minimums: [ID: CGSize] = [:], maximums: [ID: CGSize] = [:]) -> ID? {
+        layout(in: area, gaps: gaps, minimums: minimums, maximums: maximums).first(where: { $0.value.contains(point) })?.key
     }
 
     /// Target frame for every window.
     ///
-    /// `minimums` are sizes windows refuse to go below (learned by the
-    /// engine). A split then moves so each side gets at least its minimum;
-    /// the neighbor shrinks instead. When both sides together cannot fit,
-    /// the space is shared in proportion to their minimums.
+    /// `minimums` and `maximums` are sizes windows refuse to go below or
+    /// above (learned by the engine). A split moves so each side stays within
+    /// its limits: a side that cannot grow hands the rest to its neighbor, so
+    /// no hole appears; a side that cannot shrink takes space from it.
+    /// Minimums win over maximums. When both minimums together cannot fit,
+    /// the space is shared in proportion to them.
     ///
-    /// Split directions always come from the layout without minimums, so a
+    /// Split directions always come from the plain layout (no limits), so a
     /// shifted split never flips a neighbor from stacked to side by side.
-    public func layout(in area: CGRect, gaps: Gaps = .none, minimums: [ID: CGSize] = [:]) -> [ID: CGRect] {
+    public func layout(in area: CGRect, gaps: Gaps = .none,
+                       minimums: [ID: CGSize] = [:], maximums: [ID: CGSize] = [:]) -> [ID: CGRect] {
         var frames: [ID: CGRect] = [:]
         func place(_ node: Node, in rect: CGRect, plain: CGRect) {
             switch node {
@@ -109,12 +112,16 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
             case .split(let a, let b, let ratio):
                 let sideBySide = plain.width >= plain.height
                 let (pa, pb) = Self.divide(plain, ratio: ratio, gap: gaps.inner, sideBySide: sideBySide)
-                let minA = Self.minimum(of: a, plain: pa, gap: gaps.inner, minimums: minimums)
-                let minB = Self.minimum(of: b, plain: pb, gap: gaps.inner, minimums: minimums)
-                let available = (sideBySide ? rect.width : rect.height) - gaps.inner
-                let needA = sideBySide ? minA.width : minA.height
-                let needB = sideBySide ? minB.width : minB.height
+                let minA = Self.limit(of: a, plain: pa, gap: gaps.inner, sizes: minimums, missing: .zero, cross: max)
+                let minB = Self.limit(of: b, plain: pb, gap: gaps.inner, sizes: minimums, missing: .zero, cross: max)
+                let maxA = Self.limit(of: a, plain: pa, gap: gaps.inner, sizes: maximums, missing: .infinite, cross: max)
+                let maxB = Self.limit(of: b, plain: pb, gap: gaps.inner, sizes: maximums, missing: .infinite, cross: max)
+                func along(_ size: CGSize) -> CGFloat { sideBySide ? size.width : size.height }
+                let available = along(rect.size) - gaps.inner
                 var length = available * ratio
+                length = min(length, along(maxA))
+                length = max(length, available - along(maxB))
+                let needA = along(minA), needB = along(minB)
                 if needA + needB > available {
                     if needA + needB > 0 { length = available * needA / (needA + needB) }
                 } else {
@@ -133,20 +140,21 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         return frames
     }
 
-    /// Smallest size a subtree can take, using the split directions of its
-    /// plain (minimum-free) layout.
-    static func minimum(of node: Node, plain: CGRect, gap: CGFloat, minimums: [ID: CGSize]) -> CGSize {
+    /// Combined limit of a subtree: along a split the children's limits add
+    /// up; across it the larger one counts. Uses the plain layout's directions.
+    static func limit(of node: Node, plain: CGRect, gap: CGFloat, sizes: [ID: CGSize],
+                      missing: CGSize, cross: (CGFloat, CGFloat) -> CGFloat) -> CGSize {
         switch node {
         case .leaf(let id):
-            return minimums[id] ?? .zero
+            return sizes[id] ?? missing
         case .split(let a, let b, let ratio):
             let sideBySide = plain.width >= plain.height
             let (pa, pb) = divide(plain, ratio: ratio, gap: gap, sideBySide: sideBySide)
-            let ma = minimum(of: a, plain: pa, gap: gap, minimums: minimums)
-            let mb = minimum(of: b, plain: pb, gap: gap, minimums: minimums)
+            let la = limit(of: a, plain: pa, gap: gap, sizes: sizes, missing: missing, cross: cross)
+            let lb = limit(of: b, plain: pb, gap: gap, sizes: sizes, missing: missing, cross: cross)
             return sideBySide
-                ? CGSize(width: ma.width + gap + mb.width, height: max(ma.height, mb.height))
-                : CGSize(width: max(ma.width, mb.width), height: ma.height + gap + mb.height)
+                ? CGSize(width: la.width + gap + lb.width, height: cross(la.height, lb.height))
+                : CGSize(width: cross(la.width, lb.width), height: la.height + gap + lb.height)
         }
     }
 
@@ -192,4 +200,8 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
             }
         }
     }
+}
+
+extension CGSize {
+    public static let infinite = CGSize(width: CGFloat.infinity, height: CGFloat.infinity)
 }

@@ -161,6 +161,43 @@ struct DwindleTreeTests {
         #expect(f[2] == CGRect(x: 810, y: 0, width: 190, height: 600))
     }
 
+    @Test func maximumHandsRestToNeighbor() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        let f = tree.layout(in: area, maximums: [1: CGSize(width: 300, height: CGFloat.infinity)])
+        #expect(f[1] == CGRect(x: 0, y: 0, width: 300, height: 600))
+        #expect(f[2] == CGRect(x: 300, y: 0, width: 700, height: 600))
+    }
+
+    @Test func maximumOfSecondSideWorksToo() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        let f = tree.layout(in: area, maximums: [2: CGSize(width: 200, height: CGFloat.infinity)])
+        #expect(f[1]?.width == 800)
+        #expect(f[2] == CGRect(x: 800, y: 0, width: 200, height: 600))
+    }
+
+    @Test func minimumBeatsMaximum() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        let f = tree.layout(in: area, minimums: [2: CGSize(width: 900, height: 0)],
+                            maximums: [1: CGSize(width: 800, height: CGFloat.infinity)])
+        #expect(f[2]?.width == 900)
+    }
+
+    @Test func maximumInsideStackLimitsOnlyAlongStack() {
+        var tree = DwindleTree<Int>()
+        [1, 2, 3].forEach { tree.insert($0) }
+        // 2 and 3 are stacked; 2 cannot be taller than 200, 3 takes the rest.
+        let f = tree.layout(in: area, maximums: [2: CGSize(width: CGFloat.infinity, height: 200)])
+        #expect(f[2] == CGRect(x: 500, y: 0, width: 500, height: 200))
+        #expect(f[3] == CGRect(x: 500, y: 200, width: 500, height: 400))
+        #expect(f[1]?.width == 500)
+    }
+
     @Test func hitTestFindsTile() {
         var tree = DwindleTree<Int>()
         [1, 2, 3].forEach { tree.insert($0) }
