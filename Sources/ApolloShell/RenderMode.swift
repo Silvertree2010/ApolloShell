@@ -205,6 +205,17 @@ enum RenderMode {
         let speed = String(format: "moon step min %.2f max %.2f ratio %.3f\n",
                            moves.min()!, moves.max()!, moves.min()! / moves.max()!)
         try Data(speed.utf8).write(to: folder.appendingPathComponent("moon-speed.txt"))
+        // The menu bar item, at 18 pt on a light and a dark strip.
+        let menuBar = HStack(spacing: 0) {
+            ForEach([Color(white: 0.92), Color(white: 0.16)], id: \.self) { background in
+                Image(nsImage: ApolloMarkGeometry.menuBarImage(side: 18))
+                    .renderingMode(.template)
+                    .foregroundStyle(background == Color(white: 0.92) ? Color.black : Color.white)
+                    .frame(width: 40, height: 24)
+                    .background(background)
+            }
+        }
+        try write(menuBar, scheme: .light, to: folder.appendingPathComponent("menubar.png"))
         try write(ApolloMark().frame(width: 600, height: 600), scheme: .light,
                   to: folder.appendingPathComponent("mark-large-light.png"))
 

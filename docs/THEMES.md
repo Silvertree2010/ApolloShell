@@ -286,7 +286,7 @@ within the size limit.
 | `bar-clock` | `calendar` | Above the clock in the bar |
 | `bar-power` | `power` | Opens the session menu |
 | `bar-launcher` | `magnifyingglass` | Opens the launcher |
-| `menubar-nexus` | `circle.hexagongrid` | The Nexus item in the menu bar |
+| `menubar-nexus` | `circle.hexagongrid` | The Nexus item in the menu bar (without it: the ApolloShell mark) |
 | `status-wifi` | `wifi` | Wi-Fi, when it is connected |
 | `status-wifi-off` | `wifi.slash` | Wi-Fi, when it is off |
 | `status-bluetooth` | `bluetooth` | Bluetooth, when it is on |

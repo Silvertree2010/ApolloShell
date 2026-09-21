@@ -38,14 +38,7 @@ private struct ApolloMarkShape: Shape {
     }
 
     func path(in rect: CGRect) -> Path {
-        let moon = ApolloMarkGeometry.moon(at: orbit)
-        let circle = ApolloMarkGeometry.circle(moon.center, moon.radius)
-        let gap = ApolloMarkGeometry.circle(moon.center, moon.radius + ApolloMarkGeometry.moonGap)
-        // The gap around the moon travels with it: cut out of the ring
-        // always, out of the A only while the moon is in front of it.
-        let rings = ApolloMarkGeometry.ringBack.union(ApolloMarkGeometry.ringFront).subtracting(gap)
-        let letter = moon.inFront ? ApolloMarkGeometry.letter.subtracting(gap) : ApolloMarkGeometry.letter
-        return letter.union(rings).union(circle).applying(ApolloMarkGeometry.transform(into: rect))
+        ApolloMarkGeometry.outline(orbit: orbit).applying(ApolloMarkGeometry.transform(into: rect))
     }
 }
 
@@ -96,6 +89,40 @@ enum ApolloMarkGeometry {
     /// The air around the moon, towards the ring and (in front) the A - as
     /// wide as the gaps the logo leaves where the ring crosses the A.
     static let moonGap: CGFloat = 16
+
+    /// The whole mark as one outline, in the logo's coordinates, with the
+    /// moon at `orbit` (0 = where the logo has it). The gap around the moon
+    /// travels with it: cut out of the ring always, out of the A only while
+    /// the moon is in front of it.
+    static func outline(orbit: Double = 0) -> Path {
+        let moon = moon(at: orbit)
+        let gap = circle(moon.center, moon.radius + moonGap)
+        let rings = ringBack.union(ringFront).subtracting(gap)
+        let a = moon.inFront ? letter.subtracting(gap) : letter
+        return a.union(rings).union(circle(moon.center, moon.radius))
+    }
+
+    /// The resting mark as a template image for the menu bar: fitted to the
+    /// artwork itself (not the roomier view box, the moon does not move
+    /// there), so it is as large as the bar allows.
+    static func menuBarImage(side: CGFloat) -> NSImage {
+        let path = outline()
+        let bounds = path.boundingRect
+        let image = NSImage(size: NSSize(width: side, height: side), flipped: true) { rect in
+            guard let context = NSGraphicsContext.current?.cgContext else { return false }
+            let scale = min(rect.width / bounds.width, rect.height / bounds.height)
+            context.translateBy(x: (rect.width - bounds.width * scale) / 2, y: (rect.height - bounds.height * scale) / 2)
+            context.scaleBy(x: scale, y: scale)
+            context.translateBy(x: -bounds.minX, y: -bounds.minY)
+            context.addPath(path.cgPath)
+            context.setFillColor(NSColor.black.cgColor)
+            context.fillPath()
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = "Nexus"
+        return image
+    }
 
     static func circle(_ c: CGPoint, _ r: CGFloat) -> Path {
         Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r))

@@ -104,8 +104,7 @@ final class NexusMenu: NSObject {
 
     // MARK: - Icon
 
-    /// The theme's image when it brings one, otherwise the SF Symbol from the
-    /// catalogue. The theme image is a template only when the theme asks for
+    /// The theme's image when it brings one, otherwise the ApolloShell mark. The theme image is a template only when the theme asks for
     /// monochrome icons, as everywhere else (`ThemedIcon`).
     private func updateIcon() {
         item.button?.image = Self.icon(theme: themes?.theme)
@@ -118,11 +117,8 @@ final class NexusMenu: NSObject {
             image.isTemplate = ShellStyle(theme: theme ?? .standard, dark: false).tintsThemeIcons
             return image
         }
-        let fallback = ThemeIconCatalog.standard.descriptor(for: iconID)?.fallback ?? "circle.hexagongrid"
-        let image = NSImage(systemSymbolName: fallback, accessibilityDescription: "Nexus")?
-            .withSymbolConfiguration(.init(pointSize: 15, weight: .regular))
-        image?.isTemplate = true
-        return image
+        // Without a theme image: the ApolloShell mark (0.2 logo).
+        return ApolloMarkGeometry.menuBarImage(side: iconSize.width)
     }
 
     /// Keeps the proportions of a theme image inside 18 x 18 pt.
