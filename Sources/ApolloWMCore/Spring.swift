@@ -69,4 +69,26 @@ public struct AnimatedRect: Sendable, Equatable {
         width.step(dt, response: response)
         height.step(dt, response: response)
     }
+
+    /// Glide the position, resize only twice: a shrinking side snaps at the
+    /// start, a growing side snaps once the position has arrived. Apps then
+    /// redraw their content once instead of on every frame.
+    public mutating func stepResizingOnce(_ dt: CGFloat, response: CGFloat) {
+        if width.target < width.value { width.snap() }
+        if height.target < height.value { height.snap() }
+        x.step(dt, response: response)
+        y.step(dt, response: response)
+        if x.isSettled && y.isSettled {
+            width.snap()
+            height.snap()
+        }
+    }
+}
+
+extension Spring {
+    /// Jump to the target and stop.
+    public mutating func snap() {
+        value = target
+        velocity = 0
+    }
 }

@@ -14,6 +14,9 @@ public final class TilingEngine {
         /// Write frames of different windows concurrently.
         public var parallel = true
         public var frameRate: Double = 120
+        /// Resize on every frame (smooth but apps redraw constantly) or only
+        /// at the start/end of a glide (cheap).
+        public var resizeEveryFrame = false
         /// Screen space the host keeps for itself, e.g. ApolloShell's 44 pt
         /// sidebar on the left. Tiles never go there.
         public var reserved = NSEdgeInsets()
@@ -216,7 +219,11 @@ public final class TilingEngine {
 
         var work: [(CGWindowID, AXWindow, CGRect)] = []
         for (id, var spring) in springs where !spring.isSettled {
-            spring.step(dt, response: options.response)
+            if options.resizeEveryFrame {
+                spring.step(dt, response: options.response)
+            } else {
+                spring.stepResizingOnce(dt, response: options.response)
+            }
             springs[id] = spring
             if let window = windows[id] { work.append((id, window, spring.current)) }
         }

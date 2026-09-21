@@ -214,6 +214,38 @@ struct SpringTests {
     }
 }
 
+@Suite("Resize once: glide position, redraw content rarely")
+struct ResizeOnceTests {
+    @Test func shrinkingSnapsImmediately() {
+        var r = AnimatedRect(CGRect(x: 0, y: 0, width: 800, height: 600))
+        r.target = CGRect(x: 100, y: 0, width: 400, height: 600)
+        r.stepResizingOnce(1.0 / 120, response: 0.3)
+        #expect(r.current.width == 400)
+        #expect(r.current.minX > 0 && r.current.minX < 100)
+    }
+
+    @Test func growingWaitsForPosition() {
+        var r = AnimatedRect(CGRect(x: 500, y: 0, width: 400, height: 600))
+        r.target = CGRect(x: 0, y: 0, width: 800, height: 600)
+        r.stepResizingOnce(1.0 / 120, response: 0.3)
+        #expect(r.current.width == 400)
+        for _ in 0..<240 { r.stepResizingOnce(1.0 / 120, response: 0.3) }
+        #expect(r.isSettled)
+        #expect(r.current == CGRect(x: 0, y: 0, width: 800, height: 600))
+    }
+
+    @Test func sizeChangesAtMostTwice() {
+        var r = AnimatedRect(CGRect(x: 500, y: 0, width: 400, height: 300))
+        r.target = CGRect(x: 0, y: 0, width: 800, height: 200)
+        var sizes: [CGSize] = [r.current.size]
+        while !r.isSettled {
+            r.stepResizingOnce(1.0 / 120, response: 0.3)
+            if sizes.last != r.current.size { sizes.append(r.current.size) }
+        }
+        #expect(sizes.count <= 3)
+    }
+}
+
 @Suite("Duration stats")
 struct DurationsTests {
     @Test func percentiles() {
