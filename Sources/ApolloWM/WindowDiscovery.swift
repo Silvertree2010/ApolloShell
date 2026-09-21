@@ -9,8 +9,8 @@ public enum WindowDiscovery {
         return AXIsProcessTrustedWithOptions([key: prompt] as CFDictionary)
     }
 
-    /// The window that has keyboard focus, if any.
-    public static func focusedWindowID() -> CGWindowID? {
+    /// The window that has keyboard focus, if any, managed or not.
+    public static func focusedWindow() -> AXWindow? {
         let system = AXUIElementCreateSystemWide()
         guard let app = system.value(kAXFocusedApplicationAttribute),
               CFGetTypeID(app) == AXUIElementGetTypeID(),
@@ -18,8 +18,10 @@ public enum WindowDiscovery {
               CFGetTypeID(window) == AXUIElementGetTypeID() else { return nil }
         var pid: pid_t = 0
         AXUIElementGetPid(window as! AXUIElement, &pid)
-        return AXWindow(element: window as! AXUIElement, pid: pid)?.windowID
+        return AXWindow(element: window as! AXUIElement, pid: pid)
     }
+
+    public static func focusedWindowID() -> CGWindowID? { focusedWindow()?.windowID }
 
     /// Stage Manager shrinks inactive apps' windows to thumbnails at the
     /// screen edge and moves them on every app switch. It fights any tiling

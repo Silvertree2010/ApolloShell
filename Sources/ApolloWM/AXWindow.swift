@@ -116,6 +116,15 @@ public final class AXWindow: @unchecked Sendable {
         AXUIElementPerformAction(element, kAXRaiseAction as CFString)
     }
 
+    /// Closes the window like its red button does (the app may still ask to
+    /// save). Returns false when the window has no close button.
+    @discardableResult
+    public func close() -> Bool {
+        guard let button = element.value(kAXCloseButtonAttribute),
+              CFGetTypeID(button) == AXUIElementGetTypeID() else { return false }
+        return AXUIElementPerformAction(button as! AXUIElement, kAXPressAction as CFString) == .success
+    }
+
     /// Forget the cached frame, e.g. after the user moved the window by hand.
     public func invalidateCache() { lastWritten = nil }
 }

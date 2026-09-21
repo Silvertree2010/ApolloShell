@@ -9,6 +9,8 @@ public final class KeyBindings {
     public enum Action: Sendable, Equatable {
         case toggleFloating
         case toggleFullscreen
+        /// Close the focused window (like its red button; the app keeps running).
+        case closeWindow
         /// Show workspace n. While a window is held with the mouse, it comes along.
         case workspace(Int)
     }
@@ -25,6 +27,7 @@ public final class KeyBindings {
         var map: [Int64: Action] = [
             Int64(kVK_Space): .toggleFloating,
             Int64(kVK_ANSI_F): .toggleFullscreen,
+            Int64(kVK_ANSI_Q): .closeWindow,
         ]
         let digits = [kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5,
                       kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9]
@@ -59,6 +62,12 @@ public final class KeyBindings {
             engine.switchWorkspace(to: number)
             return
         }
+        if action == .closeWindow {
+            // Any focused window, managed or not.
+            guard let window = WindowDiscovery.focusedWindow() else { return }
+            if !window.close() { log("close: \(window.title) has no close button") }
+            return
+        }
         guard let id = WindowDiscovery.focusedWindowID(), engine.windows[id] != nil else {
             log("\(action): focused window is not managed")
             return
@@ -66,7 +75,7 @@ public final class KeyBindings {
         switch action {
         case .toggleFloating: engine.toggleFloating(id)
         case .toggleFullscreen: engine.toggleFullscreen(id)
-        case .workspace: break
+        case .workspace, .closeWindow: break
         }
     }
 
