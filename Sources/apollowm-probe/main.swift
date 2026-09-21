@@ -7,6 +7,9 @@ import ApolloWM
 //       Tiles the windows on the main display, animates big layout changes,
 //       prints frame rate and write cost, checks where windows really ended up,
 //       then puts every window back where it was.
+//   apollowm-probe selftest [--seed N] [--steps N]
+//       For the test VM only: random steps with TextEdit windows, checking
+//       after each that windows sit on their tiles and never overlap.
 //   apollowm-probe spaces
 //       Read-only: prints the shown desktop and the desktop of every window.
 //   apollowm-probe run [--max N]
@@ -20,8 +23,8 @@ func option(_ name: String) -> String? {
     args.firstIndex(of: name).flatMap { args.indices.contains($0 + 1) ? args[$0 + 1] : nil }
 }
 
-guard ["bench", "run", "spaces"].contains(mode) else {
-    print("usage: apollowm-probe bench|run|spaces [--max N] [--resize proxy|smooth|snap] [--no-focus-follows-mouse] [--reserve-left PT]")
+guard ["bench", "run", "spaces", "selftest"].contains(mode) else {
+    print("usage: apollowm-probe bench|run|spaces|selftest [--max N] [--seed N] [--steps N] [--resize proxy|smooth|snap] [--no-focus-follows-mouse] [--reserve-left PT]")
     exit(2)
 }
 
@@ -47,6 +50,22 @@ if WindowDiscovery.isStageManagerOn {
     print("warning: Stage Manager is on. It moves windows on every app switch and fights tiling.")
 }
 
+// Trace: a background thread pings the main thread every 5 ms and reports
+// when it answers late, to tell a blocked main thread from a slow ticker.
+if ProcessInfo.processInfo.environment["APOLLOWM_TRACE"] == "1" {
+    Thread.detachNewThread {
+        while true {
+            let sent = CACurrentMediaTime()
+            let answered = DispatchSemaphore(value: 0)
+            DispatchQueue.main.async { answered.signal() }
+            answered.wait()
+            let late = (CACurrentMediaTime() - sent) * 1000
+            if late > 25 { FileHandle.standardError.write(Data(String(format: "main thread blocked %.0f ms\n", late).utf8)) }
+            Thread.sleep(forTimeInterval: 0.005)
+        }
+    }
+}
+
 let app = NSApplication.shared
 // Accessory, not prohibited: proxy glides show our own snapshot windows.
 app.setActivationPolicy(.accessory)
@@ -55,7 +74,7 @@ guard let area = WindowDiscovery.mainArea() else { print("no display"); exit(1) 
 var found = WindowDiscovery.tileableWindows(in: area)
 if let max = option("--max").flatMap(Int.init) { found = Array(found.prefix(max)) }
 // Bench needs windows; run mode starts empty and picks windows up as they appear.
-guard !found.isEmpty || mode == "run" else { print("no windows to tile on the main display"); exit(1) }
+guard !found.isEmpty || mode == "run" || mode == "selftest" else { print("no windows to tile on the main display"); exit(1) }
 
 print("area \(area)")
 for w in found {
@@ -170,6 +189,16 @@ case "bench":
             restoreAndExit(1)
         }
     }
+
+case "selftest":
+    engine.adopt(found)
+    let watcher = WindowWatcher(engine: engine)
+    watcher.start()
+    let test = SelfTest(engine: engine, watcher: watcher,
+                        seed: option("--seed").flatMap(UInt64.init) ?? UInt64(Date().timeIntervalSince1970),
+                        steps: option("--steps").flatMap(Int.init) ?? 60)
+    test.run()
+    withExtendedLifetime((watcher, test, signalSources)) { app.run() }
 
 default:
     let tracker = DragTracker(engine: engine)
