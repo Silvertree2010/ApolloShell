@@ -198,6 +198,31 @@ struct DwindleTreeTests {
         #expect(f[1]?.width == 500)
     }
 
+    @Test func windowThatCannotFillSitsCentered() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        let f = tree.layout(in: area, maximums: [1: CGSize(width: 400, height: 300)])
+        #expect(f[1] == CGRect(x: 300, y: 150, width: 400, height: 300))
+    }
+
+    @Test func centeringOnlyAcrossTheSplit() {
+        var tree = DwindleTree<Int>()
+        [1, 2, 3].forEach { tree.insert($0) }
+        // 2 sits in a 500 wide column but cannot be wider than 300.
+        let f = tree.layout(in: area, maximums: [2: CGSize(width: 300, height: CGFloat.infinity)])
+        #expect(f[2] == CGRect(x: 600, y: 0, width: 300, height: 300))
+        #expect(f[3] == CGRect(x: 500, y: 300, width: 500, height: 300))
+    }
+
+    @Test func marginAroundCenteredWindowStillHitsIt() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        let maxes = [1: CGSize(width: 200, height: 200)]
+        // 1 gives the rest to 2 along the split; across it, 1 is centered.
+        #expect(tree.id(at: CGPoint(x: 100, y: 20), in: area, maximums: maxes) == 1)
+    }
+
     @Test func hitTestFindsTile() {
         var tree = DwindleTree<Int>()
         [1, 2, 3].forEach { tree.insert($0) }

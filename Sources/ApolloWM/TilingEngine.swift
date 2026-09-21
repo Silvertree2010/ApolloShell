@@ -199,6 +199,9 @@ public final class TilingEngine {
     public func endDrag(at point: CGPoint) {
         guard let id = dragging else { return }
         dragging = nil
+        // A centered window is never asked to grow again, so a wrong maximum
+        // would stick. Dropping it gives it a fresh chance.
+        maximums[id] = nil
         layouts.assign(id, to: space) { tree in
             tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
         }

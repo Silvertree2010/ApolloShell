@@ -68,7 +68,7 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
     /// A point outside every tile falls back to splitting the last tile.
     public mutating func insert(_ id: ID, at point: CGPoint, in area: CGRect, gaps: Gaps = .none,
                                 minimums: [ID: CGSize] = [:], maximums: [ID: CGSize] = [:]) {
-        let frames = layout(in: area, gaps: gaps, minimums: minimums, maximums: maximums)
+        let frames = tiles(in: area, gaps: gaps, minimums: minimums, maximums: maximums)
         guard let target = frames.first(where: { $0.value.contains(point) }) else {
             insert(id)
             return
@@ -88,7 +88,7 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
     /// The window whose tile contains `point`, if any.
     public func id(at point: CGPoint, in area: CGRect, gaps: Gaps = .none,
                    minimums: [ID: CGSize] = [:], maximums: [ID: CGSize] = [:]) -> ID? {
-        layout(in: area, gaps: gaps, minimums: minimums, maximums: maximums).first(where: { $0.value.contains(point) })?.key
+        tiles(in: area, gaps: gaps, minimums: minimums, maximums: maximums).first(where: { $0.value.contains(point) })?.key
     }
 
     /// Target frame for every window.
@@ -104,6 +104,33 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
     /// shifted split never flips a neighbor from stacked to side by side.
     public func layout(in area: CGRect, gaps: Gaps = .none,
                        minimums: [ID: CGSize] = [:], maximums: [ID: CGSize] = [:]) -> [ID: CGRect] {
+        tiles(in: area, gaps: gaps, minimums: minimums, maximums: maximums)
+            .reduce(into: [ID: CGRect]()) { frames, entry in
+                frames[entry.key] = Self.centered(entry.value, maximum: maximums[entry.key])
+            }
+    }
+
+    /// A window that cannot fill its tile sits in the middle of it, so the
+    /// leftover space reads as margin rather than a hole.
+    static func centered(_ tile: CGRect, maximum: CGSize?) -> CGRect {
+        guard let maximum else { return tile }
+        var frame = tile
+        if maximum.width < tile.width {
+            frame.origin.x += (tile.width - maximum.width) / 2
+            frame.size.width = maximum.width
+        }
+        if maximum.height < tile.height {
+            frame.origin.y += (tile.height - maximum.height) / 2
+            frame.size.height = maximum.height
+        }
+        return frame
+    }
+
+    /// Each window's whole tile, before centering windows that cannot fill
+    /// it. Hit-testing uses tiles, so the margin around such a window still
+    /// counts as its spot.
+    public func tiles(in area: CGRect, gaps: Gaps = .none,
+                      minimums: [ID: CGSize] = [:], maximums: [ID: CGSize] = [:]) -> [ID: CGRect] {
         var frames: [ID: CGRect] = [:]
         func place(_ node: Node, in rect: CGRect, plain: CGRect) {
             switch node {
