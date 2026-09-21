@@ -39,9 +39,13 @@ private struct ApolloMarkShape: Shape {
 
     func path(in rect: CGRect) -> Path {
         let moon = ApolloMarkGeometry.moon(at: orbit)
-        let circle = Path(ellipseIn: CGRect(x: moon.center.x - moon.radius, y: moon.center.y - moon.radius,
-                                            width: 2 * moon.radius, height: 2 * moon.radius))
-        return ApolloMarkGeometry.whole.union(circle).applying(ApolloMarkGeometry.transform(into: rect))
+        let circle = ApolloMarkGeometry.circle(moon.center, moon.radius)
+        let gap = ApolloMarkGeometry.circle(moon.center, moon.radius + ApolloMarkGeometry.moonGap)
+        // The gap around the moon travels with it: cut out of the ring
+        // always, out of the A only while the moon is in front of it.
+        let rings = ApolloMarkGeometry.ringBack.union(ApolloMarkGeometry.ringFront).subtracting(gap)
+        let letter = moon.inFront ? ApolloMarkGeometry.letter.subtracting(gap) : ApolloMarkGeometry.letter
+        return letter.union(rings).union(circle).applying(ApolloMarkGeometry.transform(into: rect))
     }
 }
 
@@ -89,8 +93,13 @@ enum ApolloMarkGeometry {
     private static let bridgeCut = band(from: bridgeStart, to: bridgeEnd, startWidth: 200, endWidth: 200)
     static let ringBack = Path(svg: SVG.ringBack).subtracting(bridgeCut)
     static let ringFront = Path(svg: SVG.ringFront).subtracting(bridgeCut).union(bridge)
-    /// The A and both arcs as one outline, for drawing in a single colour.
-    static let whole = letter.union(ringBack).union(ringFront)
+    /// The air around the moon, towards the ring and (in front) the A - as
+    /// wide as the gaps the logo leaves where the ring crosses the A.
+    static let moonGap: CGFloat = 16
+
+    static func circle(_ c: CGPoint, _ r: CGFloat) -> Path {
+        Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r))
+    }
 
     /// The ring's middle line in the logo is not quite the fitted ellipse:
     /// these are the distances from the ellipse to it, along its normal,

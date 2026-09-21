@@ -47,9 +47,6 @@ private struct EmblemCanvas: View {
     /// The moon in the logo sits here on its orbit; the emblem's clock
     /// starts at `EmblemTimeline.restAngle`, so this offset lines the two up.
     private static let angleOffset = ApolloMarkGeometry.restAngle - EmblemTimeline.restAngle
-    /// The air between the moon and the A when the moon is in front of it,
-    /// in the logo's units.
-    private static let moonGap = 14.0
     /// The stars in the 80 grid of the button: clear of the mark.
     private static let stars: [(x: Double, y: Double, r: Double)] = [
         (12, 14, 3.4), (66, 11, 2.4), (68, 66, 2.9),
@@ -133,21 +130,17 @@ private struct EmblemCanvas: View {
         }
         let ring = neutral.opacity(pose.orbitOpacity)
 
-        // The moon itself joins the ring arc of its half in one fill: both
-        // are the same translucent colour, and two fills darkened the
-        // overlap. The trail keeps its own, fading fills.
-        let moonCircle = circle(point(moonDot.theta), moonRadius(moonDot))
-        let moonVisible = pose.moonOpacity > 0.01
-        func arc(_ path: Path, withMoon: Bool) -> Path {
-            withMoon && moonVisible && pose.moonOpacity >= pose.orbitOpacity - 0.01 ? path.union(moonCircle) : path
-        }
-        let moonJoins = moonVisible && pose.moonOpacity >= pose.orbitOpacity - 0.01
+        // The gap around the moon travels with it: cut out of both ring
+        // arcs (and, in front, out of the A below), so ring and moon never
+        // touch - and never overlap, which darkened the translucent colour.
+        let gap = circle(point(moonDot.theta), moonRadius(moonDot) + ApolloMarkGeometry.moonGap)
         let moonBehind = !inFront(moonDot.theta)
+        func cut(_ arc: Path) -> Path { pose.moonOpacity > 0.01 ? arc.subtracting(gap) : arc }
 
         // 1. The back arc of the ring and what can be seen of the moon there.
         fill(trail.reversed().filter { !inFront($0.theta) })
-        mark.fill(arc(ApolloMarkGeometry.ringBack, withMoon: moonBehind), with: .color(ring))
-        if moonBehind, !moonJoins { fill([moonDot]) }
+        mark.fill(cut(ApolloMarkGeometry.ringBack), with: .color(ring))
+        if moonBehind { fill([moonDot]) }
 
         // 2. The glow, then the A. The night side is neutral, only the lit
         //    part carries the accent.
@@ -182,17 +175,16 @@ private struct EmblemCanvas: View {
         // 5. The front moon. In front of the A it punches a narrow gap into
         //    it (like badges with SF Symbols) and stays one colour.
         if inFront(moonDot.theta), pose.moonOpacity > 0.01 {
-            var cut = mark
-            cut.clip(to: letter)
+            var punch = mark
+            punch.clip(to: letter)
             // destinationOut instead of clear: it respects the opacity, so
             // that the gap fades in and out with the moon.
-            cut.blendMode = .destinationOut
-            cut.fill(circle(point(moonDot.theta), moonRadius(moonDot) + Self.moonGap),
-                     with: .color(.black.opacity(pose.moonOpacity)))
+            punch.blendMode = .destinationOut
+            punch.fill(gap, with: .color(.black.opacity(pose.moonOpacity)))
         }
         fill(trail.reversed().filter { inFront($0.theta) })
-        mark.fill(arc(ApolloMarkGeometry.ringFront, withMoon: !moonBehind), with: .color(ring))
-        if !moonBehind, !moonJoins { fill([moonDot]) }
+        mark.fill(cut(ApolloMarkGeometry.ringFront), with: .color(ring))
+        if !moonBehind { fill([moonDot]) }
 
         // 6. The stars (only in sleep), in the button's own grid.
         for (star, brightness) in zip(Self.stars, pose.stars) where brightness > 0.01 {
