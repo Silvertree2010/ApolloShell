@@ -1,19 +1,18 @@
 import AppKit
 import os
 
-/// Ein eigener, immer sichtbarer Space fuer die Leisten, damit sie beim
-/// Wechsel zwischen Schreibtischen stehen bleiben.
+/// A space of its own, always shown, for the bars, so they stay put while
+/// switching desktops.
 ///
-/// `.canJoinAllSpaces` + `.stationary` reicht dafuer nicht: gemessen 21.09.
-/// (Video in der VM, 20 Bilder/s) verschwindet die Leiste beim Wisch fuer
-/// ein paar Bilder und taucht erst nach der Animation wieder auf. So macht es
-/// SketchyBar (`window.c`, Einstellung `sticky`): ein Space ueber
-/// `SLSSpaceCreate`, auf Ebene 0, eingeblendet, und die Fenster dorthin
-/// verschoben. Dieser Space nimmt am Wisch nicht teil.
+/// `.canJoinAllSpaces` + `.stationary` is not enough for that: measured
+/// 21.09. (a video in the VM, 20 frames a second), the bar vanishes for a few
+/// frames during the swipe and only comes back after the animation. This is
+/// how SketchyBar does it (`window.c`, setting `sticky`): a space through
+/// `SLSSpaceCreate`, on level 0, shown, and the windows moved into it. That
+/// space takes no part in the swipe.
 ///
-/// Private Schnittstelle aus SkyLight, ueber `dlsym`: fehlt ein Symbol (ein
-/// kuenftiges macOS), passiert nichts, und die Leiste verhaelt sich wie
-/// vorher.
+/// Private interface out of SkyLight, through `dlsym`: when a symbol is
+/// missing (a future macOS), nothing happens and the bar behaves as before.
 @MainActor
 enum StickySpace {
     private typealias MainConnection = @convention(c) () -> Int32
@@ -32,27 +31,27 @@ enum StickySpace {
               let show = dlsym(handle, "SLSShowSpaces"),
               let add = dlsym(handle, "SLSSpaceAddWindowsAndRemoveFromSpaces")
         else {
-            log.notice("SkyLight-Spaces fehlen, Leisten wischen mit")
+            log.notice("SkyLight spaces missing, bars swipe along")
             return nil
         }
         let connection = unsafeBitCast(main, to: MainConnection.self)()
         let space = unsafeBitCast(create, to: SpaceCreate.self)(connection, 1, nil)
         guard space != 0 else {
-            log.notice("SLSSpaceCreate lieferte keinen Space")
+            log.notice("SLSSpaceCreate returned no space")
             return nil
         }
         _ = unsafeBitCast(level, to: SetAbsoluteLevel.self)(connection, space, 0)
         _ = unsafeBitCast(show, to: ShowSpaces.self)(connection, [NSNumber(value: space)] as CFArray)
-        log.notice("eigener Space \(space, privacy: .public) fuer die Leisten")
+        log.notice("own space \(space, privacy: .public) for the bars")
         return (connection, unsafeBitCast(add, to: AddWindows.self), space)
     }()
 
-    /// Das Fenster in den eigenen Space. Erst aufrufen, wenn es eine
-    /// Fensternummer hat (nach dem ersten `orderFront`).
+    /// Moves the window into the own space. Call only once it has a window
+    /// number (after the first `orderFront`).
     static func pin(_ window: NSWindow) {
         guard let api, window.windowNumber > 0 else { return }
         let windows = [NSNumber(value: window.windowNumber)] as CFArray
-        // 0x7 wie bei SketchyBar: aus allen bisherigen Spaces heraus.
+        // 0x7 as with SketchyBar: out of every space it was in so far.
         _ = api.add(api.connection, api.space, windows, 0x7)
     }
 }

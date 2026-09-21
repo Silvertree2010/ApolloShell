@@ -135,7 +135,7 @@ final class SidebarScreen {
     private func showIfNeeded() {
         guard lastFrame != nil, !panel.isVisible else { return }
         panel.orderFrontRegardless()
-        // Eigener Space: steht beim Schreibtischwechsel still (`StickySpace`).
+        // A space of its own: stays still while switching desktops (`StickySpace`).
         StickySpace.pin(panel)
     }
 
