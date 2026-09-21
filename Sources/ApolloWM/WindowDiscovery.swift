@@ -21,8 +21,9 @@ public enum WindowDiscovery {
                       height: visible.height)
     }
 
-    /// Normal, visible windows on the current Space whose center lies in
-    /// `area`, sorted left to right so the first tiling keeps their rough order.
+    /// Normal, visible windows on the current Space whose center (as the
+    /// window server sees it) lies in `area`, sorted left to right so the
+    /// first tiling keeps their rough order.
     public static func tileableWindows(in area: CGRect) -> [AXWindow] {
         let own = getpid()
         let infos = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
@@ -48,7 +49,10 @@ public enum WindowDiscovery {
                       element.bool("AXFullScreen") != true,
                       let window = AXWindow(element: element, pid: pid),
                       onScreen.contains(window.windowID),
-                      let frame = window.frame,
+                      // The window server's frame decides, not the app's: windows
+                      // parked past the screen edge (ApolloShell edge windows)
+                      // still report an on-screen position through the app.
+                      let frame = window.serverFrame,
                       area.contains(CGPoint(x: frame.midX, y: frame.midY)) else { continue }
                 result.append(window)
             }
