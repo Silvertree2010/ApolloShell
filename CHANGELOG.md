@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **The session menu's emblem is the new ApolloShell mark**: the A in the
+  accent colour, glowing, with its moon going round the logo's orbit and
+  behind the A on the far side. The reactions stay: a fast lap before
+  shutting down or restarting, the night side and stars for sleep, the
+  thinking dots for logging out. A theme's `icons/session-emblem.png` still
+  replaces it.
+
 ## [0.1.3.1] - 2026-09-21
 
 A patch on 0.1.3: the bar and its Dock across desktops.
