@@ -249,9 +249,9 @@ public struct MarketplaceClient: Sendable {
 /// the token can read the public profile and nothing else. It goes to the
 /// Marketplace once and is then thrown away.
 public struct GitHubDeviceFlow: Sendable {
-    /// The OAuth app's client id. Public by design; empty until the OAuth
-    /// app exists.
-    public static let clientID = ""
+    /// The client id of the "ApolloShell Marketplace" OAuth app. Public by
+    /// design: the device flow has no secret.
+    public static let clientID = "Ov23liuDNoG1U7DcGF5q"
 
     public struct Code: Equatable, Sendable {
         public let deviceCode: String
