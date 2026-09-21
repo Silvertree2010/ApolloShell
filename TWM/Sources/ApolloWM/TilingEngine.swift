@@ -1016,6 +1016,13 @@ public final class TilingEngine {
         }
         log("resize end: \(windows[id]?.title ?? "\(id)")")
         relayout()
+        // Apps may apply the drag's last size a moment after the mouse is
+        // up; look again once they had the time.
+        for delay in [0.1, 0.35, 0.8] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                MainActor.assumeIsolated { self?.resyncFromServer() }
+            }
+        }
     }
 
     // MARK: Proxy glides
@@ -1230,16 +1237,21 @@ public final class TilingEngine {
 
     private func checkFit(retry: Bool) {
         guard !isAnimating, dragging == nil, resizing == nil else { return }
-        // Tiles only: a fullscreen window is bigger than its tile on purpose.
         // Tiled and grouped windows (a group's sit below its tab bar); not a
         // fullscreen window, which is bigger than its tile on purpose.
         let grouped = Set(groups.flatMap(\.members))
         var targets = frames(on: desk).filter { tree.contains($0.key) || grouped.contains($0.key) }
         if let id = fullscreen[desk] { targets[id] = nil }
         var misfits: [CGWindowID] = []
+        var moved: [CGWindowID] = []
         var changed = false
         for (id, target) in targets {
             guard let window = windows[id], let actual = window.serverFrame else { continue }
+            // Somebody moved it (an app applying a late resize, say) while
+            // the engine thought it was in place: put it back.
+            if abs(actual.minX - target.minX) > 2 || abs(actual.minY - target.minY) > 2 {
+                moved.append(id)
+            }
             var minimum = minimums[id] ?? .zero
             var maximum = maximums[id] ?? .infinite
             // Heal limits the window no longer honors.
@@ -1277,7 +1289,37 @@ public final class TilingEngine {
             }
             scheduleFitCheck(retry: false)
         }
+        if !moved.isEmpty {
+            log("put back \(moved.count) window(s) that were moved behind the engine's back")
+            for id in moved where !misfits.contains(id) {
+                guard let window = windows[id], let actual = window.serverFrame else { continue }
+                window.invalidateCache()
+                springs[id] = AnimatedRect(actual)
+            }
+            changed = true
+        }
         if changed { relayout() }
+    }
+
+    /// Measures where the shown desktop's windows really are and glides any
+    /// that are not where the engine believes back to their place. The
+    /// engine's springs only know where it sent a window; an app that moves
+    /// or resizes a window later (kitty applying the last size of an edge
+    /// drag after the mouse is up) would otherwise stay wrong until the next
+    /// desktop switch.
+    public func resyncFromServer() {
+        guard dragging == nil, resizing == nil else { return }
+        var drifted = false
+        for (id, target) in targetFrames() where !proxied.contains(id) {
+            guard let window = windows[id], let actual = window.serverFrame else { continue }
+            let off = max(abs(actual.minX - target.minX), abs(actual.minY - target.minY),
+                          abs(actual.width - target.width), abs(actual.height - target.height))
+            guard off > 2 else { continue }
+            window.invalidateCache()
+            springs[id] = AnimatedRect(actual)
+            drifted = true
+        }
+        if drifted { relayout() }
     }
 
     private static func describe(_ size: CGSize) -> String {
