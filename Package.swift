@@ -16,6 +16,9 @@ let package = Package(
         // disables it at runtime). Pinned version: an update framework
         // should never change unnoticed.
         .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.0"),
+        // ApolloShell-TWM: the tiling window manager, a package of its own
+        // in TWM/ (merged with its history via git subtree).
+        .package(path: "TWM"),
     ],
     targets: [
         // Pure logic without UI, tested. Stays free of dependencies.
@@ -24,6 +27,7 @@ let package = Package(
         .executableTarget(name: "ApolloShell", dependencies: [
             "ApolloShellCore",
             .product(name: "Sparkle", package: "Sparkle"),
+            .product(name: "ApolloWM", package: "TWM"),
         ]),
         .testTarget(name: "ApolloShellCoreTests", dependencies: ["ApolloShellCore"]),
     ]
