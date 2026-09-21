@@ -41,9 +41,6 @@ tabs you had into pages, with the cards at the same spots. The old
 
 ### Changed
 
-- **The interface is written in English.** German was the source language and
-  English a translation of it; now there is only English text, so nothing can
-  fall back to German.
 - **"Quick Actions" is called the control centre** everywhere, as in the
   README.
 - **The dashboard asks the disk every 20 seconds, not every second.** Reading
@@ -54,8 +51,6 @@ tabs you had into pages, with the cards at the same spots. The old
 
 ### Removed
 
-- **The language picker in Nexus > General** and the German interface with
-  it, together with the `.strings` files and the translation check.
 - **The block list of Nexus > Bar** with its presets. The page keeps what is
   a setting: which screens the bar stands on, its background and the weather
   places.
@@ -63,6 +58,37 @@ tabs you had into pages, with the cards at the same spots. The old
   templates (dashboard: Caelestia, Compact, Calendar & Weather; control
   centre: Standard, Minimal, Sound & Devices, Everything). The edit mode and
   "Restore default pages" take their place.
+
+## [0.1.3] - 2026-09-21
+
+The interface is in English, all of it.
+
+Until now the shell was bilingual: the text in the code was German, and an
+English translation sat beside it in `Support/Localization`. That worked for
+the strings the check knew about, and quietly did not for the rest - a
+handful of labels in the control centre and in Nexus were German whatever
+language you had picked ("Mikrofon", "Dunkelmodus", "Bildschirmfoto"). One
+language, written where it is used, cannot drift like that.
+
+German is gone with it, and that is a loss for the people who used it. It
+comes back when there is a way to keep translations honest; for now every
+string is in English, in the code, where a change to it is a change to the
+thing itself.
+
+### Changed
+
+- **The interface is written in English**, directly in the source. The
+  translation layer (`Support/Localization`, `scripts/check-l10n.py`) is
+  gone.
+- **Nexus has no language picker any more.** The setting it wrote is not
+  read; macOS' own language setting has no effect on the shell either.
+
+### Fixed
+
+- **Labels that were German in every language**: the quick toggles
+  ("Microphone", "Dark Mode", "Screenshot", "Color Picker", "Desktop"), the
+  cards of the control centre, the block names of the bar and the lines that
+  describe them in Nexus.
 
 ## [0.1.2.2] - 2026-09-20
 

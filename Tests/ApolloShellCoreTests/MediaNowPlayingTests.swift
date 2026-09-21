@@ -133,10 +133,10 @@ struct MediaStreamTests {
 
     @Test("An empty album (a browser video) counts as not there")
     func emptyAlbum() throws {
-        let line = #"{"type":"data","diff":false,"payload":{"title":"Video","album":"","artist":"Kanal","playing":false}}"#
+        let line = #"{"type":"data","diff":false,"payload":{"title":"Video","album":"","artist":"Channel","playing":false}}"#
         let playing = try #require(Fixture.state(line).nowPlaying)
         #expect(playing.album == nil)
-        #expect(playing.artist == "Kanal")
+        #expect(playing.artist == "Channel")
     }
 
     @Test("Without --micros: seconds and an ISO timestamp")
