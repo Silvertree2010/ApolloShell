@@ -7,7 +7,8 @@ import AppKit
 /// left corner, like an app's content during a native live resize; space it
 /// does not cover takes the window's background color, and a shrinking frame
 /// crops it. Meanwhile the real window is resized off screen, captured at its
-/// new size and cross-faded in, so the glide ends on the right content.
+/// new size and shown once it has finished drawing, so the glide ends on
+/// the right content.
 ///
 /// The first snapshot is taken ahead of time (after each glide and every few
 /// seconds while idle), because a capture costs ~35 ms plus ~27 ms for the
@@ -119,7 +120,7 @@ final class WindowProxies {
     func isReady(_ id: CGWindowID) -> Bool { ready.contains(id) }
 
     /// Waits until the real window (resized off screen) has finished drawing
-    /// at its new size, then fades that image in. Apps like Spotify redraw
+    /// at its new size, then shows that image. Apps like Spotify redraw
     /// piece by piece; a capture taken too early showed half-drawn content
     /// filling in from the bottom right. "Finished" means two captures
     /// 50 ms apart look the same. Gives up after `limit` and uses the last.
@@ -145,14 +146,14 @@ final class WindowProxies {
             guard let self, self.generation[id] == token, let overlay = self.overlays[id],
                   let image = settled ?? previous else { return }
             self.snapshots[id] = Snapshot(image: image, taken: CACurrentMediaTime())
+            // A plain cut: cross-fading reflowed text showed both versions
+            // on top of each other (seen in a screen recording).
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
             overlay.new.contentsScale = overlay.old.contentsScale
             overlay.new.contents = image
-            let fade = CABasicAnimation(keyPath: "opacity")
-            fade.fromValue = 0
-            fade.toValue = 1
-            fade.duration = 0.12
             overlay.new.opacity = 1
-            overlay.new.add(fade, forKey: "fade")
+            CATransaction.commit()
             self.ready.insert(id)
         }
     }

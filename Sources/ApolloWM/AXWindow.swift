@@ -1,5 +1,6 @@
 import ApplicationServices
 import CoreGraphics
+import QuartzCore
 
 @_silgen_name("_AXUIElementGetWindow")
 private func _AXUIElementGetWindow(_ element: AXUIElement, _ id: UnsafeMutablePointer<CGWindowID>) -> AXError
@@ -20,6 +21,16 @@ public final class AXWindow: @unchecked Sendable {
 
     /// Last frame we wrote, used to skip calls that would change nothing.
     private var lastWritten: CGRect?
+
+    /// How long the app took for its recent size changes, in seconds.
+    /// Slow apps (they re-layout a web page on every size) glide as a
+    /// snapshot instead.
+    public private(set) var resizeCosts: [Double] = []
+
+    public var medianResizeCost: Double? {
+        guard resizeCosts.count >= 5 else { return nil }
+        return resizeCosts.sorted()[resizeCosts.count / 2]
+    }
 
     init?(element: AXUIElement, pid: pid_t) {
         var id: CGWindowID = 0
@@ -80,7 +91,10 @@ public final class AXWindow: @unchecked Sendable {
         var ok = true
         func size() {
             guard resized else { return }
+            let start = CACurrentMediaTime()
             if element.set(kAXSizeAttribute, size: rect.size) { written.size = rect.size } else { ok = false }
+            resizeCosts.append(CACurrentMediaTime() - start)
+            if resizeCosts.count > 30 { resizeCosts.removeFirst(resizeCosts.count - 30) }
         }
         func position() {
             guard moved else { return }

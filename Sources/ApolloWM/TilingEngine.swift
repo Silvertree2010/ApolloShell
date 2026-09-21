@@ -24,10 +24,11 @@ public enum ResizeAnimation: String, Sendable, CaseIterable {
     /// Only the position glides; a shrinking side snaps at the start, a
     /// growing side at the end. Cheap, but the jump is visible.
     case snap
-    /// Hyprland style: a snapshot of the window glides and stretches, the
-    /// app resizes once, off screen, and takes its place at the end. Smooth
-    /// for slow apps (Spotify, browsers) and cheap. Needs Screen Recording;
-    /// without it, or before a window's first snapshot, it acts like smooth.
+    /// Like smooth, except for apps measured to be slow at resizing
+    /// (Spotify, browsers): their windows glide as an unscaled snapshot while
+    /// the app resizes once, off screen, and takes its place at the end.
+    /// Fast apps (kitty) keep gliding for real, so blur and transparency stay
+    /// live. Needs Screen Recording; without it this acts like smooth.
     case proxy
 }
 
@@ -130,6 +131,11 @@ public final class TilingEngine {
     /// Windows shown as a snapshot right now; the real one waits off screen.
     private var proxied: Set<CGWindowID> = []
     private var proxyFinish: DispatchWorkItem?
+    /// Apps whose size changes took longer than a frame (median of recent
+    /// ones). Only their windows glide as snapshots.
+    public private(set) var slowApps: Set<pid_t> = []
+    /// Slower than this per size change counts as slow: one frame at 120 Hz.
+    public var slowResizeThreshold: Double = 0.008
     /// The size each proxied window was resized to off screen.
     private var preparedSize: [CGWindowID: CGSize] = [:]
     private var snapshotTimer: Timer?
@@ -579,6 +585,7 @@ public final class TilingEngine {
             return
         }
         for (id, spring) in springs where !proxied.contains(id) && id != dragging && id != resizing {
+            guard let pid = windows[id]?.pid, slowApps.contains(pid) else { continue }
             let current = spring.current, target = spring.target
             guard abs(current.width - target.width) > 2 || abs(current.height - target.height) > 2,
                   let window = windows[id], proxies.show(id, at: current) else { continue }
@@ -643,6 +650,23 @@ public final class TilingEngine {
         }
         proxyFinish = work
         DispatchQueue.main.asyncAfter(deadline: .now() + (allReady ? 0 : step), execute: work)
+    }
+
+    /// Sorts apps into slow and fast by their measured resize cost.
+    private func updateSlowApps() {
+        var costs: [pid_t: [Double]] = [:]
+        for window in windows.values {
+            if let cost = window.medianResizeCost { costs[window.pid, default: []].append(cost) }
+        }
+        for (pid, values) in costs {
+            let slow = values.max()! > slowResizeThreshold
+            if slow, !slowApps.contains(pid) {
+                log("slow at resizing, will glide as snapshot: pid \(pid) (\(Int(values.max()! * 1000)) ms)")
+                slowApps.insert(pid)
+            } else if !slow, slowApps.contains(pid) {
+                slowApps.remove(pid)
+            }
+        }
     }
 
     /// A proxied window the user grabs becomes real again at once.
@@ -723,6 +747,7 @@ public final class TilingEngine {
         if springs.values.allSatisfy(\.isSettled) {
             timer?.invalidate()
             timer = nil
+            updateSlowApps()
             finishProxies { [weak self] in
                 guard let self else { return }
                 self.onSettled?()
