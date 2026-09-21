@@ -147,9 +147,21 @@ struct DwindleTreeTests {
         var tree = DwindleTree<Int>()
         tree.insert(1)
         tree.insert(2)
-        let f = tree.layout(in: area, minimums: [1: CGSize(width: 900, height: 0), 2: CGSize(width: 300, height: 0)])
-        #expect(f[1]?.width == 750)
-        #expect(f[2]?.width == 250)
+        let tiles = tree.tiles(in: area, minimums: [1: CGSize(width: 900, height: 0), 2: CGSize(width: 300, height: 0)])
+        #expect(tiles[1]?.width == 750)
+        #expect(tiles[2]?.width == 250)
+    }
+
+    @Test func tooWideWindowStaysOnScreen() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        // 970 + 800 do not fit into 1000: both keep their minimum, the
+        // right one moves in so it does not hang off the screen.
+        let f = tree.layout(in: area, minimums: [1: CGSize(width: 970, height: 0), 2: CGSize(width: 800, height: 0)])
+        #expect(f[1] == CGRect(x: 0, y: 0, width: 970, height: 600))
+        #expect(f[2] == CGRect(x: 200, y: 0, width: 800, height: 600))
+        #expect(f.values.allSatisfy { area.contains($0) })
     }
 
     @Test func minimumsRespectInnerGap() {

@@ -111,10 +111,30 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
     /// shifted split never flips a neighbor from stacked to side by side.
     public func layout(in area: CGRect, gaps: Gaps = .none,
                        minimums: [ID: CGSize] = [:], maximums: [ID: CGSize] = [:]) -> [ID: CGRect] {
-        tiles(in: area, gaps: gaps, minimums: minimums, maximums: maximums)
+        let inner = area.insetBy(dx: gaps.outer, dy: gaps.outer)
+        return tiles(in: area, gaps: gaps, minimums: minimums, maximums: maximums)
             .reduce(into: [ID: CGRect]()) { frames, entry in
-                frames[entry.key] = Self.centered(entry.value, maximum: maximums[entry.key])
+                let frame = Self.centered(entry.value, maximum: maximums[entry.key])
+                frames[entry.key] = Self.keptInside(frame, minimum: minimums[entry.key], area: inner)
             }
+    }
+
+    /// When the windows' minimums together do not fit, a window gets a tile
+    /// smaller than it can be. It then keeps its minimum size and is moved
+    /// just far enough to stay fully inside the area: overlapping a
+    /// neighbor, but never hanging off the screen.
+    static func keptInside(_ frame: CGRect, minimum: CGSize?, area: CGRect) -> CGRect {
+        guard let minimum else { return frame }
+        var frame = frame
+        if minimum.width > frame.width {
+            frame.size.width = min(minimum.width, area.width)
+            frame.origin.x = min(max(frame.minX, area.minX), area.maxX - frame.width)
+        }
+        if minimum.height > frame.height {
+            frame.size.height = min(minimum.height, area.height)
+            frame.origin.y = min(max(frame.minY, area.minY), area.maxY - frame.height)
+        }
+        return frame
     }
 
     /// A window that cannot fill its tile sits in the middle of it, so the
