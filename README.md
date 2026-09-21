@@ -25,13 +25,15 @@ Needs Accessibility access for the terminal it runs in.
     .build/debug/apollowm-probe run     # live: drag windows, Ctrl+C restores
 
 `APOLLOWM_TRACE=1` prints every drag decision to stderr.
-`--resize smooth|snap` picks how sizes animate (default `smooth`).
+`--resize proxy|smooth|snap` picks how sizes animate (default `proxy`).
 
 ## Host settings
 
 `TilingEngine.options` can change at runtime, e.g. from a settings UI:
 
-- `resize` — `.smooth` (size glides, apps redraw every frame, more GPU) or
-  `.snap` (only position glides, size jumps once, cheap).
+- `resize` — `.proxy` (a snapshot glides and stretches, the app resizes once
+  off screen; smooth and cheap, needs Screen Recording), `.smooth` (size
+  glides, apps redraw every frame, more GPU) or `.snap` (only position
+  glides, size jumps once).
 - `reserved` — screen edges the host keeps free (ApolloShell sidebar: left 44).
 - `gaps`, `response` — spacing and glide duration.

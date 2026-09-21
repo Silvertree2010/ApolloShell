@@ -24,6 +24,11 @@ public enum ResizeAnimation: String, Sendable, CaseIterable {
     /// Only the position glides; a shrinking side snaps at the start, a
     /// growing side at the end. Cheap, but the jump is visible.
     case snap
+    /// Hyprland style: a snapshot of the window glides and stretches, the
+    /// app resizes once, off screen, and takes its place at the end. Smooth
+    /// for slow apps (Spotify, browsers) and cheap. Needs Screen Recording;
+    /// without it, or before a window's first snapshot, it acts like smooth.
+    case proxy
 }
 
 /// Owns the tiled windows, their layout tree and the animation loop.
@@ -119,6 +124,13 @@ public final class TilingEngine {
     public var log: (String) -> Void = { print($0) }
 
     private var springs: [CGWindowID: AnimatedRect] = [:]
+
+    // Proxy glides (see ResizeAnimation.proxy).
+    private let proxies = WindowProxies()
+    /// Windows shown as a snapshot right now; the real one waits off screen.
+    private var proxied: Set<CGWindowID> = []
+    private var proxyFinish: DispatchWorkItem?
+    private var snapshotTimer: Timer?
     private var timer: Timer?
     private var lastStep: CFTimeInterval = 0
 
@@ -176,6 +188,8 @@ public final class TilingEngine {
         lastFloatFrame[id] = nil
         parked[id] = nil
         originalFrames[id] = nil
+        proxied.remove(id)
+        proxies.forget(id)
         fullscreen = fullscreen.filter { $0.value != id }
         layouts.remove(id)
         relayout()
@@ -267,6 +281,7 @@ public final class TilingEngine {
         for (id, rect) in frames where !held.contains(id) {
             springs[id, default: AnimatedRect(windows[id]?.frame ?? rect)].target = rect
         }
+        startProxies()
         startLoop()
     }
 
@@ -388,6 +403,9 @@ public final class TilingEngine {
     public func restoreAll() {
         timer?.invalidate()
         timer = nil
+        proxyFinish?.cancel()
+        proxied.removeAll()
+        proxies.removeAll()
         for (id, window) in windows {
             window.invalidateCache()
             if let frame = originalFrames[id] {
@@ -453,6 +471,7 @@ public final class TilingEngine {
     /// The user picked up `id`: it leaves the layout and the rest closes the gap.
     public func beginDrag(_ id: CGWindowID) {
         guard dragging == nil else { return }
+        dropProxy(id)
         if floating[id] != nil {
             // Floating windows just move; nothing else changes.
             dragging = id
@@ -500,6 +519,7 @@ public final class TilingEngine {
     /// mouse (macOS resizes it) and its neighbors follow the window.
     public func beginResize(_ id: CGWindowID) {
         guard dragging == nil, resizing == nil, tree.contains(id) || floating[id] != nil else { return }
+        dropProxy(id)
         if fullscreen[desk] == id { fullscreen[desk] = nil }
         resizing = id
         log("resize start: \(windows[id]?.title ?? "\(id)")")
@@ -535,6 +555,87 @@ public final class TilingEngine {
         relayout()
     }
 
+    // MARK: Proxy glides
+
+    /// Windows whose size is about to change glide as a snapshot. The real
+    /// window moves just off screen, keeping its size until the end.
+    private func startProxies() {
+        proxyFinish?.cancel()
+        proxyFinish = nil
+        guard options.resize == .proxy, proxies.isAvailable else { return }
+        for (id, spring) in springs where !proxied.contains(id) && id != dragging && id != resizing {
+            let current = spring.current, target = spring.target
+            guard abs(current.width - target.width) > 2 || abs(current.height - target.height) > 2,
+                  let window = windows[id], proxies.show(id, at: current) else { continue }
+            proxied.insert(id)
+            proxyGlides += 1
+            window.setFrame(CGRect(origin: parkedOrigin(for: current), size: current.size))
+        }
+    }
+
+    /// How many window glides used a snapshot (for the probe).
+    public private(set) var proxyGlides = 0
+
+    /// Just past the right screen edge, same height on screen.
+    private func parkedOrigin(for frame: CGRect) -> CGPoint {
+        CGPoint(x: screenArea.maxX - 1, y: frame.minY)
+    }
+
+    /// The glide is over: resize the real windows off screen, give the apps
+    /// a moment to redraw, then swap them in for their snapshots.
+    private func finishProxies(then done: @escaping () -> Void) {
+        guard !proxied.isEmpty else { done(); return }
+        for id in proxied {
+            guard let window = windows[id], let target = springs[id]?.target else { continue }
+            window.setFrame(CGRect(origin: parkedOrigin(for: target), size: target.size))
+        }
+        let work = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                for id in self.proxied {
+                    if let window = self.windows[id], let target = self.springs[id]?.target {
+                        window.setFrame(target)
+                    }
+                }
+                let swapped = self.proxied
+                self.proxied.removeAll()
+                // One more beat so the moved windows are on screen before
+                // their snapshots disappear.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
+                    MainActor.assumeIsolated {
+                        for id in swapped where !self.proxied.contains(id) { self.proxies.remove(id) }
+                    }
+                }
+                done()
+            }
+        }
+        proxyFinish = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
+    }
+
+    /// A proxied window the user grabs becomes real again at once.
+    private func dropProxy(_ id: CGWindowID) {
+        guard proxied.remove(id) != nil else { return }
+        if let window = windows[id], let frame = springs[id]?.current { window.setFrame(frame) }
+        proxies.remove(id)
+    }
+
+    /// Keeps snapshots of the shown windows fresh while nothing moves.
+    public func startSnapshots(every interval: TimeInterval = 3) {
+        guard options.resize == .proxy, snapshotTimer == nil else { return }
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshSnapshots() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        snapshotTimer = timer
+        refreshSnapshots()
+    }
+
+    private func refreshSnapshots() {
+        guard options.resize == .proxy, !isAnimating, proxied.isEmpty, dragging == nil else { return }
+        proxies.refresh(tree.ids + floating.filter { $0.value.desk == desk }.map(\.key))
+    }
+
     // MARK: Animation loop
 
     public func resetStats() {
@@ -567,13 +668,17 @@ public final class TilingEngine {
 
         var work: [(CGWindowID, AXWindow, CGRect)] = []
         for (id, var spring) in springs where !spring.isSettled {
-            if options.resize == .smooth {
+            if options.resize != .snap {
                 spring.step(dt, response: options.response)
             } else {
                 spring.stepResizingOnce(dt, response: options.response)
             }
             springs[id] = spring
-            if let window = windows[id] { work.append((id, window, spring.current)) }
+            if proxied.contains(id) {
+                proxies.move(id, to: spring.current)
+            } else if let window = windows[id] {
+                work.append((id, window, spring.current))
+            }
         }
 
         if !work.isEmpty {
@@ -586,8 +691,12 @@ public final class TilingEngine {
         if springs.values.allSatisfy(\.isSettled) {
             timer?.invalidate()
             timer = nil
-            onSettled?()
-            scheduleFitCheck(retry: true)
+            finishProxies { [weak self] in
+                guard let self else { return }
+                self.onSettled?()
+                self.scheduleFitCheck(retry: true)
+                self.refreshSnapshots()
+            }
         }
     }
 

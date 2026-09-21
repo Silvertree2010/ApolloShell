@@ -21,7 +21,7 @@ func option(_ name: String) -> String? {
 }
 
 guard ["bench", "run", "spaces"].contains(mode) else {
-    print("usage: apollowm-probe bench|run|spaces [--max N] [--serial] [--resize smooth|snap] [--no-focus-follows-mouse] [--reserve-left PT]")
+    print("usage: apollowm-probe bench|run|spaces [--max N] [--serial] [--resize proxy|smooth|snap] [--no-focus-follows-mouse] [--reserve-left PT]")
     exit(2)
 }
 
@@ -48,7 +48,8 @@ if WindowDiscovery.isStageManagerOn {
 }
 
 let app = NSApplication.shared
-app.setActivationPolicy(.prohibited)
+// Accessory, not prohibited: proxy glides show our own snapshot windows.
+app.setActivationPolicy(.accessory)
 
 guard let area = WindowDiscovery.mainArea() else { print("no display"); exit(1) }
 var found = WindowDiscovery.tileableWindows(in: area)
@@ -88,7 +89,11 @@ let signalSources = [SIGINT, SIGTERM].map { sig in
 
 var options = TilingEngine.Options()
 options.parallel = !args.contains("--serial")
-options.resize = option("--resize").flatMap(ResizeAnimation.init(rawValue:)) ?? .smooth
+options.resize = option("--resize").flatMap(ResizeAnimation.init(rawValue:)) ?? .proxy
+if options.resize == .proxy && !CGPreflightScreenCaptureAccess() {
+    print("Screen Recording not allowed: proxy glides fall back to smooth. Asking macOS for it.")
+    CGRequestScreenCaptureAccess()
+}
 // ApolloShell's sidebar sits on the left edge, 44 pt wide.
 options.reserved.left = option("--reserve-left").flatMap(Double.init).map { CGFloat($0) } ?? 44
 let engine = TilingEngine(area: area, options: options)
@@ -119,7 +124,7 @@ if let space = Spaces.current() {
 
 @MainActor func report(_ label: String) {
     let fps = engine.stepIntervals.median.map { String(format: "%.0f fps", 1 / $0) } ?? "-"
-    print("\(label): \(fps) | step interval \(engine.stepIntervals.summary) | frame writes \(engine.applyTimes.summary)")
+    print("\(label): \(fps) | proxies \(engine.proxyGlides) | step interval \(engine.stepIntervals.summary) | frame writes \(engine.applyTimes.summary)")
     engine.resetStats()
 }
 
@@ -158,6 +163,7 @@ case "bench":
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { MainActor.assumeIsolated { next.1() } }
     }
     engine.adopt(found)
+    engine.startSnapshots(every: 0.5)
     DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
         MainActor.assumeIsolated {
             print("bench did not finish in 30s")
@@ -176,6 +182,7 @@ default:
         saveLayout()
     }
     engine.adopt(found)
+    engine.startSnapshots()
     let watcher = WindowWatcher(engine: engine)
     watcher.start()
     let keys = KeyBindings(engine: engine)
