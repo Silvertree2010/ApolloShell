@@ -5,7 +5,7 @@ import AppKit
 ///
 /// macOS moves the window itself while the user drags; we only notice that
 /// the window left the spot we put it in, with its size unchanged. A drag
-/// that changes the size is an edge resize and is ignored for now.
+/// that changes the size is an edge resize: the neighbors follow live.
 @MainActor
 public final class DragTracker {
     private let engine: TilingEngine
@@ -55,6 +55,10 @@ public final class DragTracker {
             note("down \(Int(point.x)),\(Int(point.y)) candidate \(candidate.map(String.init) ?? "none")")
 
         case .leftMouseDragged:
+            if let id = engine.resizing {
+                if let frame = engine.windows[id]?.serverFrame { engine.updateResize(to: frame) }
+                return
+            }
             guard let id = candidate else { return }
             guard let downPoint else { return }
             guard let window = engine.windows[id], let start = startFrame else {
@@ -71,8 +75,10 @@ public final class DragTracker {
             let resized = abs(actual.width - start.width) > 2 || abs(actual.height - start.height) > 2
             note("drag \(Int(point.x)),\(Int(point.y)) now \(Int(actual.minX)),\(Int(actual.minY)) \(Int(actual.width))x\(Int(actual.height)) app \(window.frame.map { "\(Int($0.minX)),\(Int($0.minY))" } ?? "-") at down \(Int(start.minX)),\(Int(start.minY)) \(Int(start.width))x\(Int(start.height))")
             if resized {
-                note("  -> resize, ignored")
+                note("  -> resize")
                 candidate = nil
+                engine.beginResize(id)
+                engine.updateResize(to: actual)
             } else if moved {
                 candidate = nil
                 note("  -> pick up")
@@ -86,6 +92,7 @@ public final class DragTracker {
         case .leftMouseUp:
             note("up \(Int(point.x)),\(Int(point.y)) dragging \(engine.dragging.map(String.init) ?? "none")")
             if engine.dragging != nil { engine.endDrag(at: point) }
+            if engine.resizing != nil { engine.endResize() }
             downPoint = nil
             candidate = nil
             startFrame = nil

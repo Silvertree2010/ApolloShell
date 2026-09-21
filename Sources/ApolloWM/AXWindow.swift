@@ -71,6 +71,31 @@ public final class AXWindow: @unchecked Sendable {
         return ok
     }
 
+    /// Asks the app for its size limits before the window is tiled, so it can
+    /// glide to the right spot on the first try: request a tiny size, then
+    /// `largest` at `origin`, read back what the app accepted, and restore the
+    /// frame, all before the window server shows a new frame. Nil when the
+    /// app did not react (it applies sizes later); limits are then learned
+    /// after the first glide instead.
+    public func measureLimits(largest: CGRect) -> (minimum: CGSize, maximum: CGSize)? {
+        guard let original = frame else { return nil }
+        defer {
+            _ = element.set(kAXSizeAttribute, size: original.size)
+            _ = element.set(kAXPositionAttribute, point: original.origin)
+            lastWritten = nil
+        }
+        guard element.set(kAXSizeAttribute, size: CGSize(width: 1, height: 1)),
+              let small = element.size(kAXSizeAttribute) else { return nil }
+        _ = element.set(kAXPositionAttribute, point: largest.origin)
+        guard element.set(kAXSizeAttribute, size: largest.size),
+              let big = element.size(kAXSizeAttribute) else { return nil }
+        if small == original.size && big == original.size { return nil }
+        // Small shortfalls are apps snapping to character cells, not a limit.
+        let maximum = CGSize(width: big.width < largest.width - 20 ? big.width : .infinity,
+                             height: big.height < largest.height - 20 ? big.height : .infinity)
+        return (small, maximum)
+    }
+
     /// Forget the cached frame, e.g. after the user moved the window by hand.
     public func invalidateCache() { lastWritten = nil }
 }

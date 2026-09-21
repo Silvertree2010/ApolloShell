@@ -52,6 +52,9 @@ public final class TilingEngine {
     public private(set) var space: SpaceID = 0
     public private(set) var windows: [CGWindowID: AXWindow] = [:]
     public private(set) var dragging: CGWindowID?
+    /// Window whose edge the user is dragging; it follows the mouse, the
+    /// others follow it.
+    public private(set) var resizing: CGWindowID?
     /// Sizes windows refused to go below or above, learned by measuring
     /// after each glide.
     public private(set) var minimums: [CGWindowID: CGSize] = [:]
@@ -92,6 +95,7 @@ public final class TilingEngine {
         for window in newWindows where windows[window.windowID] == nil {
             let id = window.windowID
             windows[id] = window
+            measureLimits(of: window)
             layouts.assign(id, to: space) { $0.insert(id) }
         }
         relayout()
@@ -104,6 +108,7 @@ public final class TilingEngine {
         let id = window.windowID
         guard windows[id] == nil else { return }
         windows[id] = window
+        measureLimits(of: window)
         let target = target ?? space
         layouts.assign(id, to: target) { tree in
             if let point, target == space {
@@ -124,6 +129,18 @@ public final class TilingEngine {
         maximums[id] = nil
         layouts.remove(id)
         relayout()
+    }
+
+    /// Learns a new window's size limits up front (see `AXWindow.measureLimits`).
+    private func measureLimits(of window: AXWindow) {
+        guard let limits = window.measureLimits(largest: area.insetBy(dx: options.gaps.outer, dy: options.gaps.outer)) else {
+            log("limits for \(window.title.isEmpty ? "\(window.windowID)" : window.title): app did not answer, learning later")
+            return
+        }
+        let id = window.windowID
+        minimums[id] = limits.minimum == .zero ? nil : limits.minimum
+        maximums[id] = limits.maximum == .infinite ? nil : limits.maximum
+        log("limits for \(window.title.isEmpty ? "\(id)" : window.title): min \(Self.describe(limits.minimum)) max \(Self.describe(limits.maximum)) (asked)")
     }
 
     /// The window now lives on another desktop (the user moved it there).
@@ -153,9 +170,10 @@ public final class TilingEngine {
     /// Recomputes the layout and lets every window glide to its new tile.
     /// Windows not on the shown desktop are left alone.
     public func relayout() {
+        layouts[space].freezeDirections(in: area, gaps: options.gaps)
         let frames = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
-        for id in springs.keys where frames[id] == nil { springs[id] = nil }
-        for (id, rect) in frames {
+        for id in springs.keys where frames[id] == nil || id == resizing { springs[id] = nil }
+        for (id, rect) in frames where id != resizing {
             springs[id, default: AnimatedRect(windows[id]?.frame ?? rect)].target = rect
         }
         startLoop()
@@ -210,6 +228,35 @@ public final class TilingEngine {
             springs[id] = AnimatedRect(window.frame ?? area)
         }
         log("drop: \(windows[id]?.title ?? "\(id)") at \(Int(point.x)),\(Int(point.y))")
+        relayout()
+    }
+
+    // MARK: Resize by mouse
+
+    /// The user grabbed an edge of `id`. From now on the window follows the
+    /// mouse (macOS resizes it) and its neighbors follow the window.
+    public func beginResize(_ id: CGWindowID) {
+        guard dragging == nil, resizing == nil, tree.contains(id) else { return }
+        resizing = id
+        log("resize start: \(windows[id]?.title ?? "\(id)")")
+    }
+
+    /// Called while the edge moves, with the window's current frame.
+    public func updateResize(to frame: CGRect) {
+        guard let id = resizing else { return }
+        layouts[space].resize(id, to: frame, in: area, gaps: options.gaps)
+        relayout()
+    }
+
+    /// The user let go: the window settles into its (new) tile.
+    public func endResize() {
+        guard let id = resizing else { return }
+        resizing = nil
+        if let window = windows[id] {
+            window.invalidateCache()
+            springs[id] = AnimatedRect(window.frame ?? area)
+        }
+        log("resize end: \(windows[id]?.title ?? "\(id)")")
         relayout()
     }
 
@@ -286,7 +333,7 @@ public final class TilingEngine {
     }
 
     private func checkFit(retry: Bool) {
-        guard !isAnimating, dragging == nil else { return }
+        guard !isAnimating, dragging == nil, resizing == nil else { return }
         let targets = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
         var misfits: [CGWindowID] = []
         var changed = false

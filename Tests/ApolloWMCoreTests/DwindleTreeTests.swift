@@ -223,6 +223,69 @@ struct DwindleTreeTests {
         #expect(tree.id(at: CGPoint(x: 100, y: 20), in: area, maximums: maxes) == 1)
     }
 
+    @Test func draggingRightEdgeMovesSplit() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        tree.resize(1, to: CGRect(x: 0, y: 0, width: 700, height: 600), in: area)
+        let f = tree.layout(in: area)
+        #expect(f[1] == CGRect(x: 0, y: 0, width: 700, height: 600))
+        #expect(f[2] == CGRect(x: 700, y: 0, width: 300, height: 600))
+    }
+
+    @Test func draggingLeftEdgeOfSecondMovesSplit() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        tree.resize(2, to: CGRect(x: 200, y: 0, width: 800, height: 600), in: area, gaps: Gaps(outer: 0, inner: 10))
+        let f = tree.layout(in: area, gaps: Gaps(outer: 0, inner: 10))
+        #expect(f[1]?.width == 190)
+        #expect(f[2] == CGRect(x: 200, y: 0, width: 800, height: 600))
+    }
+
+    @Test func draggingBottomEdgeMovesNearestStackedSplit() {
+        var tree = DwindleTree<Int>()
+        [1, 2, 3].forEach { tree.insert($0) }
+        tree.freezeDirections(in: area)
+        tree.resize(2, to: CGRect(x: 500, y: 0, width: 500, height: 450), in: area)
+        let f = tree.layout(in: area)
+        #expect(f[2] == CGRect(x: 500, y: 0, width: 500, height: 450))
+        #expect(f[3] == CGRect(x: 500, y: 450, width: 500, height: 150))
+        #expect(f[1]?.width == 500)
+    }
+
+    @Test func cornerDragMovesBothSplits() {
+        var tree = DwindleTree<Int>()
+        [1, 2, 3].forEach { tree.insert($0) }
+        tree.freezeDirections(in: area)
+        // 2's bottom-left corner: left edge to 400, bottom edge to 200.
+        tree.resize(2, to: CGRect(x: 400, y: 0, width: 600, height: 200), in: area)
+        let f = tree.layout(in: area)
+        #expect(f[1]?.width == 400)
+        #expect(f[2] == CGRect(x: 400, y: 0, width: 600, height: 200))
+        #expect(f[3] == CGRect(x: 400, y: 200, width: 600, height: 400))
+    }
+
+    @Test func frozenDirectionSurvivesResize() {
+        var tree = DwindleTree<Int>()
+        [1, 2, 3].forEach { tree.insert($0) }
+        tree.freezeDirections(in: area)
+        // Shrinking the right column to 300 wide would make it taller than
+        // wide; frozen, 2 and 3 stay stacked.
+        tree.resize(1, to: CGRect(x: 0, y: 0, width: 900, height: 600), in: area)
+        let f = tree.layout(in: area)
+        #expect(f[2] == CGRect(x: 900, y: 0, width: 100, height: 300))
+        #expect(f[3] == CGRect(x: 900, y: 300, width: 100, height: 300))
+    }
+
+    @Test func resizeClampsRatio() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        tree.resize(1, to: CGRect(x: 0, y: 0, width: 5000, height: 600), in: area)
+        #expect(tree.layout(in: area)[2]?.width == 50)
+    }
+
     @Test func hitTestFindsTile() {
         var tree = DwindleTree<Int>()
         [1, 2, 3].forEach { tree.insert($0) }
