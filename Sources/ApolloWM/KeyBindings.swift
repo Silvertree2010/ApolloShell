@@ -37,10 +37,11 @@ public final class KeyBindings {
 
     public var log: (String) -> Void = { print($0) }
 
-    /// Super+1..9 shows Apple desktop 1-9 (our own workspaces stay unused).
-    /// Needs "Switch to Desktop N" (ctrl+N) on in Keyboard Shortcuts >
-    /// Mission Control; the only way to switch desktops without turning SIP off.
+    /// Super+1..9 shows Apple desktop 1-9 (our own workspaces stay unused)
+    /// by pressing Apple's "Switch to Desktop N" shortcut, which start()
+    /// turns on if needed (see DesktopShortcuts).
     public var useAppleDesktops = true
+    private var desktopShortcuts: [Int: DesktopShortcuts.Shortcut] = [:]
 
     public init(engine: TilingEngine) {
         self.engine = engine
@@ -48,6 +49,11 @@ public final class KeyBindings {
 
     /// Returns false when the event tap cannot be created (missing permission).
     public func start() -> Bool {
+        if useAppleDesktops {
+            let (shortcuts, changed) = DesktopShortcuts.ensure()
+            desktopShortcuts = shortcuts
+            if changed { log("turned on Apple's Switch to Desktop 1-9 shortcuts (control + number)") }
+        }
         let mask = CGEventMask(1 << CGEventType.keyDown.rawValue) | CGEventMask(1 << CGEventType.keyUp.rawValue)
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap,
                                           place: .headInsertEventTap,
@@ -65,7 +71,7 @@ public final class KeyBindings {
     public func perform(_ action: Action) {
         if case .workspace(let number) = action {
             if useAppleDesktops {
-                Self.pressSwitchToDesktop(number)
+                if let shortcut = desktopShortcuts[number] { DesktopShortcuts.press(shortcut) }
             } else {
                 engine.switchWorkspace(to: number)
             }
@@ -85,21 +91,6 @@ public final class KeyBindings {
         case .toggleFloating: engine.toggleFloating(id)
         case .toggleFullscreen: engine.toggleFullscreen(id)
         case .workspace, .closeWindow: break
-        }
-    }
-
-    /// Presses ctrl+N, Apple's "Switch to Desktop N" shortcut.
-    static func pressSwitchToDesktop(_ number: Int) {
-        let digits = [kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5,
-                      kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9]
-        guard (1...9).contains(number) else { return }
-        let key = CGKeyCode(digits[number - 1])
-        let source = CGEventSource(stateID: .hidSystemState)
-        for down in [true, false] {
-            let event = CGEvent(keyboardEventSource: source, virtualKey: key, keyDown: down)
-            // Only control: the Super modifiers still held must not leak in.
-            event?.flags = .maskControl
-            event?.post(tap: .cghidEventTap)
         }
     }
 
