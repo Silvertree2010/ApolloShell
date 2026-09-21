@@ -4,8 +4,8 @@ import AppKit
 /// when the mouse rests over a managed window for `delay`, that window is
 /// raised and its app activated.
 ///
-/// Never while a button is held, a window is dragged or resized, or the
-/// disable key (control) is down, and never when something else lies on
+/// Never while a button is held, a window is dragged or resized, or a
+/// disable key (none by default) is down, and never when something else lies on
 /// top at that spot (a menu, a popup, a panel of the host).
 @MainActor
 public final class FocusFollowsMouse {
@@ -17,8 +17,9 @@ public final class FocusFollowsMouse {
     public var isEnabled = true
     /// How long the mouse must rest over a window. AutoRaise: 50 ms.
     public var delay: TimeInterval = 0.05
-    /// Holding these suspends focus following.
-    public var disableFlags: CGEventFlags = [.maskControl]
+    /// Holding these suspends focus following. None by default: the user
+    /// did not want control to switch it off (AutoRaise's habit).
+    public var disableFlags: CGEventFlags = []
 
     public var log: (String) -> Void = { print($0) }
 
