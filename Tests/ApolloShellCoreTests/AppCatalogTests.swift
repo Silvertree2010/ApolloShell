@@ -72,4 +72,11 @@ struct AppCatalogTests {
         let missing = URL(fileURLWithPath: "/does/not/exist-\(UUID().uuidString)")
         #expect(AppCatalog(roots: [missing]).scan().isEmpty)
     }
+
+    @Test("Safari is found, although /Applications only has a hidden symlink to it")
+    func findsSafari() throws {
+        let cryptex = "/System/Cryptexes/App/System/Applications/Safari.app"
+        try #require(FileManager.default.fileExists(atPath: cryptex), "this Mac has no Safari in the cryptex")
+        #expect(AppCatalog().scan().contains { $0.bundleID == "com.apple.Safari" })
+    }
 }

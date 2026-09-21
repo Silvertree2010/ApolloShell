@@ -10,6 +10,10 @@ public struct AppCatalog: Sendable {
     public static let defaultRoots: [URL] = [
         URL(fileURLWithPath: "/Applications"),
         URL(fileURLWithPath: "/System/Applications"),
+        // Safari lives here. /Applications only holds a symlink to it, and
+        // that one carries the hidden flag, so `.skipsHiddenFiles` passed it
+        // by: Safari was missing from the launcher (measured 21.09.).
+        URL(fileURLWithPath: "/System/Cryptexes/App/System/Applications"),
         URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Applications"),
     ]
 

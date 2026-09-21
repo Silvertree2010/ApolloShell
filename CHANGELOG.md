@@ -77,6 +77,12 @@ tabs you had into pages, with the cards at the same spots. The old
 - **"Set Location"** in a weather widget without a place starts the edit
   mode, where the widget's popover holds its places.
 
+### Fixed
+
+- **Safari shows up in the launcher.** /Applications only holds a hidden
+  symlink to it, which the search skipped; the launcher now also looks where
+  Safari really lives.
+
 ### License
 
 - **ApolloShell is now under the Mozilla Public License 2.0** instead of MIT.
