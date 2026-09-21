@@ -606,11 +606,7 @@ public final class TilingEngine {
     /// Raises and focuses a window (its app comes forward with only it).
     public func focus(_ id: CGWindowID) {
         guard let window = windows[id] else { return }
-        let pid = window.pid
-        raise(id) {
-            _ = window.element.set(kAXMainAttribute, bool: true)
-            NSRunningApplication(processIdentifier: pid)?.activate()
-        }
+        worker(for: window.pid).run { WindowFocus.focus(window) }
     }
 
     /// The managed window next to `id` on screen in `direction`, on the
