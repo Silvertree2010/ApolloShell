@@ -61,56 +61,6 @@ private struct ApolloMarkMoon: Shape {
     }
 }
 
-/// The session button of the bar: the mark, whose moon goes once around
-/// its orbit when the pointer comes onto the button. A theme's
-/// `icons/bar-power.png` still takes its place, as for every bar symbol.
-struct BarPowerIcon: View {
-    @Environment(\.shellStyle) private var style
-    @Environment(\.sidebarIconHovering) private var hovering
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var orbit: Double = 0
-    @State private var orbiting = false
-
-    var body: some View {
-        if style.iconFile("bar-power") != nil {
-            ThemedIcon("bar-power")
-                .font(.system(size: 15, weight: .semibold))
-                .frame(width: 18, height: 18)
-        } else {
-            ApolloMark(orbit: orbit)
-                .frame(width: 22, height: 22)
-                .onChange(of: hovering) { _, now in
-                    guard now, !orbiting, !reduceMotion else { return }
-                    orbiting = true
-                    withAnimation(.timingCurve(0.45, 0, 0.25, 1, duration: 1.3)) {
-                        orbit = 1
-                    } completion: {
-                        // 1 is the logo again: back to 0 without a jump.
-                        var instant = Transaction()
-                        instant.disablesAnimations = true
-                        withTransaction(instant) { orbit = 0 }
-                        orbiting = false
-                    }
-                }
-        }
-    }
-}
-
-/// A classic key: `@Entry` needs the SwiftUI macro plugin, which the
-/// Command Line Tools do not ship.
-private struct SidebarIconHoveringKey: EnvironmentKey {
-    static let defaultValue = false
-}
-
-extension EnvironmentValues {
-    /// The pointer is on this bar button (`SidebarIcon` sets it for its
-    /// content, which can then react, as the session mark does).
-    var sidebarIconHovering: Bool {
-        get { self[SidebarIconHoveringKey.self] }
-        set { self[SidebarIconHoveringKey.self] = newValue }
-    }
-}
-
 enum ApolloMarkGeometry {
     /// The artwork's bounding box is x 90...926, y 180...818 of its
     /// 1000 x 1000 canvas; this square leaves room for the moon at the far
@@ -135,15 +85,26 @@ enum ApolloMarkGeometry {
     static let ringBack = Path(svg: SVG.ringBack)
 
     // The orbit.
-    private static let center = CGPoint(x: 501.4, y: 497.8)
+    static let center = CGPoint(x: 501.4, y: 497.8)
     /// Along the long axis (to the upper right) and the short one (down).
     private static let major = CGVector(dx: 0.9488, dy: -0.3159)
     private static let minor = CGVector(dx: 0.3159, dy: 0.9488)
     private static let a: CGFloat = 400.4
     private static let b: CGFloat = 87.3
     /// Where the logo has the moon: cx 779.19, cy 472.95, r 51.29.
-    private static let restAngle = atan2(0.735, 0.678)
-    private static let radius: CGFloat = 51.29
+    static let restAngle = atan2(0.735, 0.678)
+    static let radius: CGFloat = 51.29
+
+    /// A point on the orbit. The near half (in front of the A) is where
+    /// `sin(angle) > 0`, as with the old emblem's orbit.
+    static func orbitPoint(_ angle: Double) -> CGPoint {
+        let (c, s) = (CGFloat(cos(angle)), CGFloat(sin(angle)))
+        return CGPoint(x: center.x + a * c * major.dx + b * s * minor.dx,
+                       y: center.y + a * c * major.dy + b * s * minor.dy)
+    }
+
+    /// The triangle inside the A, above the ring: room for the thinking dots.
+    static let counter = CGPoint(x: 492, y: 505)
 
     /// Position, size and layer of the moon at `orbit` 0...1. In front while
     /// on the near half of the ring (the lower one); a touch smaller at the
@@ -153,9 +114,8 @@ enum ApolloMarkGeometry {
             return (CGPoint(x: 779.19, y: 472.95), radius, true)
         }
         let angle = restAngle + 2 * .pi * orbit
-        let (c, s) = (CGFloat(cos(angle)), CGFloat(sin(angle)))
-        let point = CGPoint(x: center.x + a * c * major.dx + b * s * minor.dx,
-                            y: center.y + a * c * major.dy + b * s * minor.dy)
+        let s = CGFloat(sin(angle))
+        let point = orbitPoint(angle)
         let depth = (s + 1) / 2
         let rest = (CGFloat(0.735) + 1) / 2
         let size = radius * (0.84 + 0.16 * depth) / (0.84 + 0.16 * rest)

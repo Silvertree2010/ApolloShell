@@ -1,8 +1,9 @@
 import ApolloShellCore
 import SwiftUI
 
-/// The emblem in the middle of the session menu: a planet in the accent color
-/// with a moon circling it on a tilted orbit ("Apollo"). The motion comes as
+/// The emblem in the middle of the session menu: the ApolloShell mark, the A
+/// in the accent colour with its moon circling on the logo's orbit. The
+/// motion comes as
 /// plain numbers out of `EmblemPose` (ApolloShellCore); only the drawing
 /// happens here.
 ///
@@ -33,33 +34,35 @@ struct SessionEmblem: View {
     }
 }
 
-/// Draws one pose. The measurements in the 80 grid of the button, scaled to
-/// the real size.
+/// Draws one pose: the ApolloShell mark (0.2 logo, `ApolloMarkGeometry`)
+/// with the old emblem's motion. The A takes the planet's part - the
+/// accent colour, the glow, the night side while sleeping - and the moon
+/// goes round the logo's orbit, behind the A on the far half.
 private struct EmblemCanvas: View {
     let pose: EmblemPose
     @Environment(\.colorScheme) private var scheme
 
-    // The geometry in the 80 grid.
-    private static let planetRadius = 16.5
-    private static let orbitRadii = CGSize(width: 33, height: 10.5)
-    private static let orbitBaseTilt = -16.0
-    private static let moonRadius = 3.6
-    /// The air between the moon and the planet when the moon stands in front of it.
-    private static let moonGap = 1.3
-    private static let lineWidth = 1.25
-    /// The stars: the centre and the radius, clear of the planet and the orbit.
+    /// How much of the button the mark fills.
+    private static let fill = 0.92
+    /// The moon in the logo sits here on its orbit; the emblem's clock
+    /// starts at `EmblemTimeline.restAngle`, so this offset lines the two up.
+    private static let angleOffset = ApolloMarkGeometry.restAngle - EmblemTimeline.restAngle
+    /// The air between the moon and the A when the moon is in front of it,
+    /// in the logo's units.
+    private static let moonGap = 14.0
+    /// The stars in the 80 grid of the button: clear of the mark.
     private static let stars: [(x: Double, y: Double, r: Double)] = [
-        (15, 17, 3.4), (62, 13, 2.4), (66, 64, 2.9),
+        (12, 14, 3.4), (66, 11, 2.4), (68, 66, 2.9),
     ]
 
     var body: some View {
         // Read once per drawing, see `Color.onAccent`.
         let onAccent = Color.onAccent
-        // The moon is neutral; pulled back a little in the light, otherwise it
-        // looks heavy next to the planet.
-        let moon = Color.primary.opacity(scheme == .dark ? 0.9 : 0.62)
+        // The moon and the ring are neutral; pulled back a little in the
+        // light, otherwise they look heavy next to the A.
+        let neutral = Color.primary.opacity(scheme == .dark ? 0.9 : 0.62)
         Canvas { context, canvas in
-            draw(in: &context, size: canvas, onAccent: onAccent, moon: moon)
+            draw(in: &context, size: canvas, onAccent: onAccent, neutral: neutral)
         }
     }
 
@@ -69,55 +72,44 @@ private struct EmblemCanvas: View {
         let opacity: Double
     }
 
-    private func draw(in context: inout GraphicsContext, size: CGSize, onAccent: Color, moon: Color) {
+    private func draw(in context: inout GraphicsContext, size: CGSize, onAccent: Color, neutral: Color) {
         let k = size.width / 80
-        let center = CGPoint(x: size.width / 2, y: size.height / 2)
-        let tilt = (Self.orbitBaseTilt + pose.orbitTilt) * .pi / 180
-        let a = Self.orbitRadii.width * k
-        let b = Self.orbitRadii.height * k
+        let box = ApolloMarkGeometry.viewBox
+        let scale = size.width * Self.fill / box.width
+        // Into the logo's coordinates: centred, scaled by the pose (greet,
+        // farewell), tilted by the pose (the thinking wobble).
+        var mark = context
+        mark.translateBy(x: size.width / 2, y: size.height / 2)
+        mark.rotate(by: .degrees(pose.orbitTilt))
+        mark.scaleBy(x: scale * pose.planetScale, y: scale * pose.planetScale)
+        mark.translateBy(x: -box.midX, y: -box.midY)
 
-        /// A point on the tilted orbit.
-        func orbitPoint(_ theta: Double) -> CGPoint {
-            let x = a * cos(theta)
-            let y = b * sin(theta)
-            return CGPoint(
-                x: center.x + x * cos(tilt) - y * sin(tilt),
-                y: center.y + x * sin(tilt) + y * cos(tilt)
-            )
-        }
-        func arc(from start: Double, to end: Double) -> Path {
-            Path { path in
-                let steps = 48
-                for i in 0...steps {
-                    let point = orbitPoint(start + (end - start) * Double(i) / Double(steps))
-                    i == 0 ? path.move(to: point) : path.addLine(to: point)
-                }
-            }
-        }
         func circle(_ c: CGPoint, _ r: Double) -> Path {
             Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r))
         }
+        func point(_ theta: Double) -> CGPoint {
+            ApolloMarkGeometry.orbitPoint(theta + Self.angleOffset)
+        }
         /// A little bigger in front, smaller behind: a breath of depth.
         func moonRadius(_ dot: Dot) -> Double {
-            dot.radius * k * (1 + 0.12 * sin(dot.theta))
+            dot.radius * (1 + 0.12 * sin(dot.theta + Self.angleOffset))
         }
+        func inFront(_ theta: Double) -> Bool { sin(theta + Self.angleOffset) >= 0 }
 
-        let radius = Self.planetRadius * k * pose.planetScale
-        let planet = circle(center, radius)
+        let letter = ApolloMarkGeometry.letter
         // The lit part: a shadow circle moves in from the top left until only
         // a crescent is left at the bottom right.
-        var lit = planet
+        var lit = letter
         if pose.night > 0.001 {
-            let offset = radius * (2.2 - 1.6 * pose.night)
-            let shadow = circle(CGPoint(x: center.x - offset * 0.72, y: center.y - offset * 0.7), radius)
-            lit = planet.subtracting(shadow)
+            let r = 330.0
+            let offset = r * (2.2 - 1.6 * pose.night)
+            let c = ApolloMarkGeometry.center
+            lit = letter.subtracting(circle(CGPoint(x: c.x - offset * 0.72, y: c.y - offset * 0.7), r))
         }
-        let neutral = Color.primary
-        let line = StrokeStyle(lineWidth: Self.lineWidth * k, lineCap: .round)
 
         // The moon with its trail; the trail only appears from twice the
         // resting speed on and is fully there from eight times on.
-        let moonDot = Dot(theta: pose.moonAngle, radius: Self.moonRadius, opacity: 1)
+        let moonDot = Dot(theta: pose.moonAngle, radius: ApolloMarkGeometry.radius, opacity: 1)
         var trail: [Dot] = []
         let strength = min(max(
             (abs(pose.moonSpeed) - 2 * EmblemPose.idleSpeed) / (6 * EmblemPose.idleSpeed), 0
@@ -128,82 +120,71 @@ private struct EmblemCanvas: View {
                 let fade = 1 - Double(i) / 6
                 trail.append(Dot(
                     theta: pose.moonAngle - spacing * Double(i),
-                    radius: Self.moonRadius * (0.55 + 0.4 * fade),
+                    radius: ApolloMarkGeometry.radius * (0.55 + 0.4 * fade),
                     opacity: 0.5 * fade * strength
                 ))
             }
         }
         func fill(_ dots: [Dot]) {
             for dot in dots {
-                context.fill(
-                    circle(orbitPoint(dot.theta), moonRadius(dot)),
-                    with: .color(moon.opacity(pose.moonOpacity * dot.opacity))
-                )
+                mark.fill(circle(point(dot.theta), moonRadius(dot)),
+                          with: .color(neutral.opacity(pose.moonOpacity * dot.opacity)))
             }
         }
+        let ring = neutral.opacity(pose.orbitOpacity)
 
-        // 1. The back half of the orbit and what can be seen of the moon there.
-        context.stroke(arc(from: .pi, to: 2 * .pi), with: .color(neutral.opacity(0.2 * pose.orbitOpacity)), style: line)
-        fill((trail.reversed() + [moonDot]).filter { sin($0.theta) < 0 })
+        // 1. The back arc of the ring and what can be seen of the moon there.
+        mark.fill(ApolloMarkGeometry.ringBack, with: .color(ring))
+        fill((trail.reversed() + [moonDot]).filter { !inFront($0.theta) })
 
-        // 2. The glow, then the planet. The night side is neutral, only the
-        //    lit part carries the accent.
+        // 2. The glow, then the A. The night side is neutral, only the lit
+        //    part carries the accent.
         if pose.glow > 0.01 {
-            context.drawLayer { layer in
-                layer.addFilter(.shadow(color: Color.accentColor.opacity(pose.glow), radius: 9 * k))
+            mark.drawLayer { layer in
+                layer.addFilter(.shadow(color: Color.accentColor.opacity(pose.glow), radius: 9 * k / scale))
                 layer.fill(lit, with: .color(.accentColor))
             }
         }
         if pose.night > 0.001 {
-            context.fill(planet, with: .color(neutral.opacity(0.14)))
+            mark.fill(letter, with: .color(Color.primary.opacity(0.14)))
         }
-        let box = planet.boundingRect
-        context.fill(lit, with: .linearGradient(
+        let bounds = letter.boundingRect
+        mark.fill(lit, with: .linearGradient(
             Gradient(colors: [
                 Color.accentColor.mix(with: .white, by: 0.28),
                 Color.accentColor,
                 Color.accentColor.mix(with: .black, by: 0.18),
             ]),
-            startPoint: CGPoint(x: box.minX + box.width * 0.2, y: box.minY),
-            endPoint: CGPoint(x: box.maxX - box.width * 0.2, y: box.maxY)
+            startPoint: CGPoint(x: bounds.minX + bounds.width * 0.2, y: bounds.minY),
+            endPoint: CGPoint(x: bounds.maxX - bounds.width * 0.2, y: bounds.maxY)
         ))
-        // The thinking dots in the middle of the planet, in the color for accent areas.
+
+        // 3. The front arc of the ring.
+        mark.fill(ApolloMarkGeometry.ringFront, with: .color(ring))
+
+        // 4. The thinking dots, in the triangle inside the A.
         for (i, opacity) in pose.dots.enumerated() where opacity > 0.01 {
-            let x = center.x + Double(i - 1) * 6.2 * k
-            context.fill(circle(CGPoint(x: x, y: center.y - 1.5 * k), 2.1 * k), with: .color(onAccent.opacity(opacity)))
+            let c = ApolloMarkGeometry.counter
+            mark.fill(circle(CGPoint(x: c.x + Double(i - 1) * 44, y: c.y), 17), with: .color(neutral.opacity(opacity)))
         }
 
-        // 3. The front half of the orbit: on the planet in the color for
-        //    accent areas, next to it neutral.
-        let front = arc(from: 0, to: .pi)
-        context.drawLayer { layer in
-            layer.clip(to: planet, options: .inverse)
-            layer.stroke(front, with: .color(neutral.opacity(0.32 * pose.orbitOpacity)), style: line)
-        }
-        context.drawLayer { layer in
-            layer.clip(to: planet)
-            layer.stroke(front, with: .color(onAccent.opacity(0.5 * pose.orbitOpacity)), style: line)
-        }
-
-        // 4. The front moon. When it stands in front of the planet, it punches
-        //    a narrow gap into it (like badges with SF Symbols) and stays one color.
-        if sin(moonDot.theta) >= 0, pose.moonOpacity > 0.01 {
-            var cut = context
-            cut.clip(to: planet)
+        // 5. The front moon. In front of the A it punches a narrow gap into
+        //    it (like badges with SF Symbols) and stays one colour.
+        if inFront(moonDot.theta), pose.moonOpacity > 0.01 {
+            var cut = mark
+            cut.clip(to: letter)
             // destinationOut instead of clear: it respects the opacity, so
             // that the gap fades in and out with the moon.
             cut.blendMode = .destinationOut
-            cut.fill(
-                circle(orbitPoint(moonDot.theta), moonRadius(moonDot) + Self.moonGap * k),
-                with: .color(.black.opacity(pose.moonOpacity))
-            )
+            cut.fill(circle(point(moonDot.theta), moonRadius(moonDot) + Self.moonGap),
+                     with: .color(.black.opacity(pose.moonOpacity)))
         }
-        fill((trail.reversed() + [moonDot]).filter { sin($0.theta) >= 0 })
+        fill((trail.reversed() + [moonDot]).filter { inFront($0.theta) })
 
-        // 5. The stars (only in sleep).
+        // 6. The stars (only in sleep), in the button's own grid.
         for (star, brightness) in zip(Self.stars, pose.stars) where brightness > 0.01 {
-            let point = CGPoint(x: star.x * k, y: star.y * k)
-            context.fill(sparkle(at: point, radius: star.r * k), with: .color(neutral.opacity(0.75 * brightness)))
+            let c = CGPoint(x: star.x * k, y: star.y * k)
+            context.fill(sparkle(at: c, radius: star.r * k), with: .color(Color.primary.opacity(0.75 * brightness)))
         }
     }
 

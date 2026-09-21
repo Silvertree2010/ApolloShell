@@ -198,6 +198,21 @@ enum RenderMode {
         }
         .padding(8)
         try write(small, scheme: .dark, to: folder.appendingPathComponent("mark-sizes-dark.png"))
+
+        // The session emblem in each reaction, a few moments apart.
+        let poses: [(EmblemReaction, Double)] = [
+            (.idle, 0), (.idle, 1.5), (.greet, 0.3), (.greet, 0.9), (.farewell, 0.5),
+            (.sleep, 0.8), (.sleep, 4), (.think, 1), (.think, 2.2),
+        ]
+        for scheme in [ColorScheme.light, .dark] {
+            let emblems = HStack(spacing: 10) {
+                ForEach(Array(poses.enumerated()), id: \.offset) { _, entry in
+                    SessionEmblem(timeline: EmblemTimeline(entry.0, at: 0), size: 120, fixedTime: entry.1)
+                }
+            }
+            .padding(12)
+            try write(emblems, scheme: scheme, to: folder.appendingPathComponent(name("emblem", scheme)))
+        }
     }
 
     private static func renderToasts(into folder: URL, theme: Theme) throws {

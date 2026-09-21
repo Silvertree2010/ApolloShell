@@ -145,7 +145,9 @@ struct BarModuleView: View {
             StatusCapsule(status: context.status, options: options)
         case .power:
             SidebarIcon(help: String(localized: "Session"), action: context.onPower) {
-                BarPowerIcon()
+                ThemedIcon("bar-power")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 18, height: 18)
             }
         case .spacer:
             Color.clear
@@ -270,7 +272,6 @@ struct SidebarIcon<Content: View>: View {
     var body: some View {
         Button(action: { action?() }) {
             content()
-                .environment(\.sidebarIconHovering, hovering)
                 .frame(width: 32, height: 32)
                 .background(Color.primary.opacity(hovering ? 0.14 : 0), in: .rect(cornerRadius: 9))
                 .contentShape(.rect(cornerRadius: 9))
