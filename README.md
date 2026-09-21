@@ -42,5 +42,5 @@ Needs Accessibility access for the terminal it runs in.
 
 - `isEnabled` — on or off.
 - `delay` — how long the mouse must rest over a window first
-  (default 0.05 s; probe: `--focus-delay MS`).
+  (default 0.025 s; probe: `--focus-delay MS`).
 - `disableFlags` — modifier keys that suspend it while held (default none).

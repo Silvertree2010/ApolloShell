@@ -15,8 +15,9 @@ public final class FocusFollowsMouse {
     private var lastFocused: CGWindowID?
 
     public var isEnabled = true
-    /// How long the mouse must rest over a window. AutoRaise: 50 ms.
-    public var delay: TimeInterval = 0.05
+    /// How long the mouse must rest over a window (AutoRaise used 50 ms;
+    /// the user settled on 25 ms).
+    public var delay: TimeInterval = 0.025
     /// Holding these suspends focus following. None by default: the user
     /// did not want control to switch it off (AutoRaise's habit).
     public var disableFlags: CGEventFlags = []
