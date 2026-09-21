@@ -1099,6 +1099,12 @@ public final class TilingEngine {
         proxies.remove(id)
     }
 
+    /// Stops the snapshot refresh timer.
+    public func stopSnapshots() {
+        snapshotTimer?.invalidate()
+        snapshotTimer = nil
+    }
+
     /// Keeps snapshots of the shown windows fresh while nothing moves.
     public func startSnapshots(every interval: TimeInterval = 3) {
         guard options.resize == .proxy, snapshotTimer == nil else { return }

@@ -77,6 +77,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var onboarding: Onboarding?
     /// Hide Apple's own Dock while ApolloShell runs.
     private var appleDockHiding: AppleDockHidingController?
+    /// The tiling window manager (Nexus > TWM).
+    private var twm: TWMController?
     /// Catches SIGTERM (`launchctl stop`, say), so `terminate()` restores the
     /// Dock instead of leaving it hidden - the default SIGTERM handler does
     /// not clean up.
@@ -127,6 +129,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             hotKeys.start()
             return
         }
+
+        // Not in launcher-only mode: tiling is part of the shell.
+        twm = TWMController(settings: settings)
 
         let autostart = OnboardingAutostartModel()
         let permissions = OnboardingPermissions()
@@ -282,6 +287,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // wait on an administrator prompt. If launchd cuts the end short,
         // the Dock is already back.
         appleDockHiding?.terminate()
+        twm?.terminate()
         controller?.close()
         dashboard?.shutdown()
         utilities?.shutdown()

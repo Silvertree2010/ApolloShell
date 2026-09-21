@@ -69,6 +69,18 @@ public final class FocusFollowsMouse {
         return true
     }
 
+    /// Removes the event tap and the activation observer.
+    public func stop() {
+        pending?.cancel()
+        if let tap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            CFMachPortInvalidate(tap)
+        }
+        tap = nil
+        if let activationObserver { NSWorkspace.shared.notificationCenter.removeObserver(activationObserver) }
+        activationObserver = nil
+    }
+
     private func appActivated(_ pid: pid_t?) {
         if let pid, pid == ourActivation {
             ourActivation = nil

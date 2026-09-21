@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 /// The pages of the Nexus panel, as tabs of symbols along the top (modelled
 /// on Vorssaint's menu bar panel, which Andrin showed on 21.09.).
 enum NexusTab: String, CaseIterable, Identifiable {
-    case bar, themes, toasts, providers, system, updates
+    case bar, themes, toasts, providers, twm, system, updates
 
     var id: Self { self }
 
@@ -16,6 +16,7 @@ enum NexusTab: String, CaseIterable, Identifiable {
         case .themes: String(localized: "Themes")
         case .toasts: String(localized: "Toasts")
         case .providers: String(localized: "Providers")
+        case .twm: String(localized: "TWM")
         case .system: String(localized: "System")
         case .updates: String(localized: "Updates")
         }
@@ -27,6 +28,7 @@ enum NexusTab: String, CaseIterable, Identifiable {
         case .themes: "paintpalette"
         case .toasts: "bell.badge"
         case .providers: "cloud.sun"
+        case .twm: "rectangle.split.3x1"
         case .system: "gearshape"
         case .updates: "arrow.triangle.2.circlepath"
         }
@@ -232,6 +234,7 @@ struct NexusPanelView: View {
         case .themes: NexusThemesPage(model: model)
         case .toasts: NexusToastsPage(model: model)
         case .providers: NexusProvidersPage(model: model)
+        case .twm: NexusTWMPage(model: model)
         case .system: NexusSystemPage(model: model)
         case .updates: NexusUpdatesPage(model: model)
         }

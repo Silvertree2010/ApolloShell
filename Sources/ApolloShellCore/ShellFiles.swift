@@ -33,6 +33,8 @@ public struct ShellFiles: Sendable {
     public var usage: URL { file("usage.json") }
     /// The weather places and favourites.
     public var weather: URL { file("weather.json") }
+    /// The tiling window manager's arrangement, so it survives restarts.
+    public var twmLayout: URL { file("twm-layout.json") }
     /// The saved values of Apple's Dock while it is hidden.
     public var appleDock: URL { file("apple-dock.json") }
     /// The marker: ApolloShell switched sleep with the lid closed off and has

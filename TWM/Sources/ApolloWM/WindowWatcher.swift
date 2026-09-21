@@ -73,6 +73,19 @@ public final class WindowWatcher {
         reconcile()
     }
 
+    /// Stops watching: timers, workspace observers and app observers.
+    public func stop() {
+        safetyTimer?.invalidate()
+        safetyTimer = nil
+        for token in workspaceTokens { NSWorkspace.shared.notificationCenter.removeObserver(token) }
+        workspaceTokens = []
+        for observer in observers.values {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
+        }
+        observers = [:]
+        watchedWindows = []
+    }
+
     // MARK: Notifications
 
     private func observe(_ pid: pid_t) {

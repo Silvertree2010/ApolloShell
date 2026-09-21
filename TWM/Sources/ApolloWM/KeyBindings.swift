@@ -95,6 +95,15 @@ public final class KeyBindings {
         return true
     }
 
+    /// Removes the event tap; start() can be called again later.
+    public func stop() {
+        if let tap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            CFMachPortInvalidate(tap)
+        }
+        tap = nil
+    }
+
     /// Terminal opened by Super+Return (bundle ids, first installed wins).
     public var terminals = ["net.kovidgoyal.kitty", "com.mitchellh.ghostty", "com.apple.Terminal"]
 

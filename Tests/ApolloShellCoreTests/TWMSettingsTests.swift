@@ -1,0 +1,45 @@
+import Foundation
+import Testing
+@testable import ApolloShellCore
+
+@Suite("Nexus > TWM: tiling window manager settings")
+struct TWMSettingsTests {
+    @Test("off by default, also for files from before the TWM")
+    func offByDefault() {
+        #expect(!ShellSettings.load(from: nil).twm.enabled)
+        #expect(ShellSettings.load(from: Data("{}".utf8)).twm == TWMSettings())
+    }
+
+    @Test("one key read, the rest default; wrong types ignored", arguments: [
+        (#"{"twm":{"enabled":true}}"#, { var s = TWMSettings(); s.enabled = true; return s }()),
+        (#"{"twm":{"resize":"snap","innerGap":"wide"}}"#, { var s = TWMSettings(); s.resize = .snap; return s }()),
+        (#"{"twm":{"resize":"wobbly"}}"#, TWMSettings()),
+        (#"{"twm":5}"#, TWMSettings()),
+    ])
+    func partial(json: String, expected: TWMSettings) {
+        #expect(ShellSettings.load(from: Data(json.utf8)).twm == expected)
+    }
+
+    @Test("out-of-range values are clamped")
+    func clamped() {
+        let json = #"{"twm":{"focusDelayMilliseconds":9000,"innerGap":-4,"outerGap":100,"glideDuration":0}}"#
+        let twm = ShellSettings.load(from: Data(json.utf8)).twm
+        #expect(twm.focusDelayMilliseconds == 500)
+        #expect(twm.innerGap == 0)
+        #expect(twm.outerGap == 40)
+        #expect(twm.glideDuration == 0.1)
+    }
+
+    @Test("round trip and readable keys")
+    func roundTrip() {
+        var settings = ShellSettings()
+        settings.twm.enabled = true
+        settings.twm.resize = .smooth
+        settings.twm.focusDelayMilliseconds = 80
+        #expect(ShellSettings.load(from: settings.encoded()) == settings)
+        let text = String(decoding: settings.encoded(), as: UTF8.self)
+        for key in ["\"twm\"", "\"enabled\"", "\"focusFollowsMouse\"", "\"focusDelayMilliseconds\"", "\"resize\""] {
+            #expect(text.contains(key))
+        }
+    }
+}

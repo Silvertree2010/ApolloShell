@@ -65,6 +65,15 @@ public final class DragTracker {
         return true
     }
 
+    /// Removes the event tap; start() can be called again later.
+    public func stop() {
+        if let tap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            CFMachPortInvalidate(tap)
+        }
+        tap = nil
+    }
+
     private func isSuper(_ flags: CGEventFlags) -> Bool {
         flags.intersection(superFlags) == superFlags
     }
