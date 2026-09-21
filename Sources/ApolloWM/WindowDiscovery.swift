@@ -9,6 +9,13 @@ public enum WindowDiscovery {
         return AXIsProcessTrustedWithOptions([key: prompt] as CFDictionary)
     }
 
+    /// Stage Manager shrinks inactive apps' windows to thumbnails at the
+    /// screen edge and moves them on every app switch. It fights any tiling
+    /// window manager, so hosts should warn when it is on.
+    public static var isStageManagerOn: Bool {
+        UserDefaults(suiteName: "com.apple.WindowManager")?.bool(forKey: "GloballyEnabled") ?? false
+    }
+
     /// Usable area of the main display (menu bar and Dock excluded),
     /// in global top-left coordinates.
     @MainActor

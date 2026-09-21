@@ -15,6 +15,11 @@ public final class WindowWatcher {
     private var watchedWindows: Set<CGWindowID> = []
     private var workspaceTokens: [NSObjectProtocol] = []
     private var safetyTimer: Timer?
+    /// When a window was first seen invisible. It loses its tile only after
+    /// staying invisible for a while, so brief moments (Mission Control,
+    /// Show Desktop) do not shuffle the layout.
+    private var invisibleSince: [CGWindowID: CFTimeInterval] = [:]
+    private let invisibleGrace: CFTimeInterval = 1.5
 
     public var log: (String) -> Void = { print($0) }
 
@@ -140,15 +145,28 @@ public final class WindowWatcher {
             } else if AXUIElementCreateApplication(window.pid).bool(kAXHiddenAttribute) == true {
                 reason = "app hidden"
             } else if !elsewhere && !engine.isSwitchingSpace {
-                reason = "not visible"
+                let since = invisibleSince[id] ?? CACurrentMediaTime()
+                invisibleSince[id] = since
+                if CACurrentMediaTime() - since >= invisibleGrace {
+                    reason = "not visible"
+                } else {
+                    // Look again once the grace period is over.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + invisibleGrace) { [weak self] in
+                        MainActor.assumeIsolated { self?.reconcile() }
+                    }
+                    reason = nil
+                }
             } else {
                 reason = nil
             }
             if let reason {
+                invisibleSince[id] = nil
                 log("\(reason): \(window.title.isEmpty ? "\(id)" : window.title)")
                 engine.remove(id)
             }
         }
+
+        for id in foundIDs { invisibleSince[id] = nil }
 
         let mouse = CGEvent(source: nil)?.location
         for window in found where engine.windows[window.windowID] == nil {

@@ -43,6 +43,10 @@ guard WindowDiscovery.isTrusted(prompt: true) else {
     exit(1)
 }
 
+if WindowDiscovery.isStageManagerOn {
+    print("warning: Stage Manager is on. It moves windows on every app switch and fights tiling.")
+}
+
 let app = NSApplication.shared
 app.setActivationPolicy(.prohibited)
 
