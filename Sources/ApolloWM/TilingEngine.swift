@@ -2,6 +2,16 @@ import ApolloWMCore
 import AppKit
 import Synchronization
 
+/// How window sizes animate during a glide.
+public enum ResizeAnimation: String, Sendable, CaseIterable {
+    /// The size glides along with the position. Looks best, but apps redraw
+    /// their content on every frame (measured: GPU ~36% vs ~20%).
+    case smooth
+    /// Only the position glides; a shrinking side snaps at the start, a
+    /// growing side at the end. Cheap, but the jump is visible.
+    case snap
+}
+
 /// Owns the tiled windows, their layout tree and the animation loop.
 /// Every layout change only sets new spring targets; the loop then glides
 /// each window there. Retargeting mid-flight keeps momentum.
@@ -14,9 +24,9 @@ public final class TilingEngine {
         /// Write frames of different windows concurrently.
         public var parallel = true
         public var frameRate: Double = 120
-        /// Resize on every frame (smooth but apps redraw constantly) or only
-        /// at the start/end of a glide (cheap).
-        public var resizeEveryFrame = true
+        /// How window sizes animate. Hosts can change it at any time, e.g.
+        /// from a settings toggle; it applies from the next frame on.
+        public var resize: ResizeAnimation = .smooth
         /// Screen space the host keeps for itself, e.g. ApolloShell's 44 pt
         /// sidebar on the left. Tiles never go there.
         public var reserved = NSEdgeInsets()
@@ -232,7 +242,7 @@ public final class TilingEngine {
 
         var work: [(CGWindowID, AXWindow, CGRect)] = []
         for (id, var spring) in springs where !spring.isSettled {
-            if options.resizeEveryFrame {
+            if options.resize == .smooth {
                 spring.step(dt, response: options.response)
             } else {
                 spring.stepResizingOnce(dt, response: options.response)
