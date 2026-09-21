@@ -601,6 +601,74 @@ public final class TilingEngine {
         }
     }
 
+    // MARK: Keyboard
+
+    /// Raises and focuses a window (its app comes forward with only it).
+    public func focus(_ id: CGWindowID) {
+        guard let window = windows[id] else { return }
+        let pid = window.pid
+        raise(id) {
+            _ = window.element.set(kAXMainAttribute, bool: true)
+            NSRunningApplication(processIdentifier: pid)?.activate()
+        }
+    }
+
+    /// The managed window next to `id` on screen in `direction`, on the
+    /// shown desktop (tiles and floating windows).
+    public func neighbor(of id: CGWindowID, _ direction: Direction) -> CGWindowID? {
+        let frames = frames(on: desk).filter { windows[$0.key] != nil }
+        return Neighbors.neighbor(of: id, direction, in: frames)
+    }
+
+    /// Focus the next window in reading order (tiles, then floating ones).
+    public func cycleFocus(from id: CGWindowID?) {
+        let order = tree.ids + floating.filter { $0.value.desk == desk }.map(\.key).sorted()
+        guard !order.isEmpty else { return }
+        let next = id.flatMap { order.firstIndex(of: $0) }.map { (order.index(after: $0)) % order.count } ?? 0
+        focus(order[next])
+    }
+
+    /// Swaps a tiled window with its tiled neighbor in `direction`.
+    public func swap(_ id: CGWindowID, _ direction: Direction) {
+        guard tree.contains(id) else { return }
+        let tiles = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        guard let other = Neighbors.neighbor(of: id, direction, in: tiles) else { return }
+        log("swap \(windows[id]?.title ?? "\(id)") with \(windows[other]?.title ?? "\(other)")")
+        layouts[desk].swap(id, other)
+        relayout()
+    }
+
+    /// Turns the split that holds `id` (side by side ↔ stacked).
+    public func toggleSplit(of id: CGWindowID) {
+        guard tree.contains(id) else { return }
+        layouts[desk].toggleSplit(of: id)
+        relayout()
+    }
+
+    /// Every split on the shown desktop back to half and half.
+    public func equalize() {
+        layouts[desk].equalize()
+        relayout()
+    }
+
+    /// Makes a tiled window wider (positive) or narrower by `fraction` of
+    /// the area's width, moving the edge that has a neighbor.
+    public func growWidth(of id: CGWindowID, by fraction: CGFloat) {
+        let tiles = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        guard var frame = tiles[id] else { return }
+        let delta = area.width * fraction
+        if Neighbors.neighbor(of: id, .right, in: tiles) != nil {
+            frame.size.width += delta
+        } else if Neighbors.neighbor(of: id, .left, in: tiles) != nil {
+            frame.origin.x -= delta
+            frame.size.width += delta
+        } else {
+            return
+        }
+        layouts[desk].resize(id, to: frame, in: area, gaps: options.gaps)
+        relayout()
+    }
+
     // MARK: Floating and fullscreen
 
     /// Takes a tiled window out of the layout (it glides to a centered

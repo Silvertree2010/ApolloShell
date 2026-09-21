@@ -7,6 +7,14 @@ import Carbon.HIToolbox
 @MainActor
 public final class KeyBindings {
     public enum Action: Sendable, Equatable {
+        case focus(Direction)
+        case swap(Direction)
+        case cycleFocus
+        case toggleSplit
+        case equalize
+        /// Wider (positive) or narrower by this fraction of the area.
+        case growWidth(CGFloat)
+        case newTerminal
         case toggleFloating
         case toggleFullscreen
         /// Close the focused window (like its red button; the app keeps running).
@@ -28,6 +36,20 @@ public final class KeyBindings {
             Int64(kVK_Space): .toggleFloating,
             Int64(kVK_ANSI_F): .toggleFullscreen,
             Int64(kVK_ANSI_Q): .closeWindow,
+            Int64(kVK_LeftArrow): .focus(.left),
+            Int64(kVK_RightArrow): .focus(.right),
+            Int64(kVK_UpArrow): .focus(.up),
+            Int64(kVK_DownArrow): .focus(.down),
+            Int64(kVK_ANSI_H): .swap(.left),
+            Int64(kVK_ANSI_J): .swap(.down),
+            Int64(kVK_ANSI_K): .swap(.up),
+            Int64(kVK_ANSI_L): .swap(.right),
+            Int64(kVK_Tab): .cycleFocus,
+            Int64(kVK_ANSI_T): .toggleSplit,
+            Int64(kVK_ANSI_E): .equalize,
+            Int64(kVK_ANSI_Minus): .growWidth(-0.05),
+            Int64(kVK_ANSI_Equal): .growWidth(0.05),
+            Int64(kVK_Return): .newTerminal,
         ]
         let digits = [kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5,
                       kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9]
@@ -66,28 +88,69 @@ public final class KeyBindings {
         return true
     }
 
+    /// Terminal opened by Super+Return (bundle ids, first installed wins).
+    public var terminals = ["net.kovidgoyal.kitty", "com.mitchellh.ghostty", "com.apple.Terminal"]
+
     public func perform(_ action: Action) {
-        if case .workspace(let number) = action {
-            if !useAppleDesktops {
-                engine.switchWorkspace(to: number)
-            }
+        switch action {
+        case .workspace(let number):
+            if !useAppleDesktops { engine.switchWorkspace(to: number) }
             return
+        case .equalize:
+            engine.equalize()
+            return
+        case .newTerminal:
+            openTerminal()
+            return
+        default:
+            break
         }
+        // The rest acts on the focused window. Asking which one that is is a
+        // round trip into the focused app, so it runs off the main thread.
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let focused = WindowDiscovery.focusedWindow()
+            await MainActor.run { self?.perform(action, on: focused) }
+        }
+    }
+
+    private func perform(_ action: Action, on focused: AXWindow?) {
         if action == .closeWindow {
             // Any focused window, managed or not.
-            guard let window = WindowDiscovery.focusedWindow() else { return }
-            if !window.close() { log("close: \(window.title) has no close button") }
+            guard let focused else { return }
+            if !focused.close() { log("close: \(focused.title) has no close button") }
             return
         }
-        guard let id = WindowDiscovery.focusedWindowID(), engine.windows[id] != nil else {
+        let id = focused.map(\.windowID).flatMap { engine.windows[$0] != nil ? $0 : nil }
+        switch action {
+        case .cycleFocus:
+            engine.cycleFocus(from: id)
+            return
+        default:
+            break
+        }
+        guard let id else {
             log("\(action): focused window is not managed")
             return
         }
         switch action {
+        case .focus(let direction):
+            if let other = engine.neighbor(of: id, direction) { engine.focus(other) }
+        case .swap(let direction): engine.swap(id, direction)
+        case .toggleSplit: engine.toggleSplit(of: id)
+        case .growWidth(let fraction): engine.growWidth(of: id, by: fraction)
         case .toggleFloating: engine.toggleFloating(id)
         case .toggleFullscreen: engine.toggleFullscreen(id)
-        case .workspace, .closeWindow: break
+        case .workspace, .equalize, .newTerminal, .closeWindow, .cycleFocus: break
         }
+    }
+
+    private func openTerminal() {
+        guard let url = terminals.lazy.compactMap({
+            NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0)
+        }).first else { return }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.createsNewApplicationInstance = url.lastPathComponent != "Terminal.app"
+        NSWorkspace.shared.openApplication(at: url, configuration: configuration) { _, _ in }
     }
 
     /// Returns true when the event is ours and must not reach the app.

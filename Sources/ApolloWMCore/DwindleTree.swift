@@ -192,6 +192,47 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         }
     }
 
+    /// Exchanges two windows' places; the tiles stay where they are.
+    public mutating func swap(_ a: ID, _ b: ID) {
+        guard a != b, contains(a), contains(b), let root else { return }
+        func swapped(_ node: Node) -> Node {
+            switch node {
+            case .leaf(let id):
+                return .leaf(id == a ? b : id == b ? a : id)
+            case .split(let first, let second, let ratio, let frozen):
+                return .split(first: swapped(first), second: swapped(second), ratio: ratio, sideBySide: frozen)
+            }
+        }
+        self.root = swapped(root)
+    }
+
+    /// Turns the split holding `id` (side by side ↔ stacked). Needs frozen
+    /// directions (see freezeDirections), which the engine keeps.
+    public mutating func toggleSplit(of id: ID) {
+        guard let root else { return }
+        func toggled(_ node: Node) -> Node {
+            guard case .split(let a, let b, let ratio, let frozen) = node else { return node }
+            if case .leaf(let leaf) = a, leaf == id {
+                return .split(first: a, second: b, ratio: ratio, sideBySide: frozen.map { !$0 })
+            }
+            if case .leaf(let leaf) = b, leaf == id {
+                return .split(first: a, second: b, ratio: ratio, sideBySide: frozen.map { !$0 })
+            }
+            return .split(first: toggled(a), second: toggled(b), ratio: ratio, sideBySide: frozen)
+        }
+        self.root = toggled(root)
+    }
+
+    /// Every split back to half and half.
+    public mutating func equalize() {
+        guard let root else { return }
+        func even(_ node: Node) -> Node {
+            guard case .split(let a, let b, _, let frozen) = node else { return node }
+            return .split(first: even(a), second: even(b), ratio: 0.5, sideBySide: frozen)
+        }
+        self.root = even(root)
+    }
+
     /// Fixes every undecided split direction to what the current layout
     /// shows. Call after each change, so later resizes never flip a split.
     public mutating func freezeDirections(in area: CGRect, gaps: Gaps = .none) {

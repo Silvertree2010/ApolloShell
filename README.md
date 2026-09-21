@@ -44,3 +44,23 @@ Needs Accessibility access for the terminal it runs in.
 - `delay` — how long the mouse must rest over a window first
   (default 0.025 s; probe: `--focus-delay MS`).
 - `disableFlags` — modifier keys that suspend it while held (default none).
+
+## Keys (Super = fn held, which Karabiner sends as cmd+ctrl+opt+shift)
+
+| Keys | Action |
+|---|---|
+| Super + arrows | focus the neighbor window in that direction |
+| Super + H / J / K / L | swap with the neighbor left / down / up / right |
+| Super + Tab | focus the next window |
+| Super + T | turn the split (side by side / stacked) |
+| Super + - / = | narrower / wider by 5 % |
+| Super + E | all splits back to half and half |
+| Super + Return | new terminal window (kitty, Ghostty or Terminal) |
+| Super + Space | float / tile |
+| Super + F | fill the area (not macOS fullscreen) |
+| Super + Q | close the window |
+| Super + 1-9 | Apple desktop 1-9 |
+| Super + left drag | move a window from anywhere |
+| Super + right drag | resize from the nearest corner |
+
+All bindings live in `KeyBindings.bindings` and can be changed by the host.
