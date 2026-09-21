@@ -130,3 +130,31 @@ for (const box of document.querySelectorAll("[data-copy]")) {
     }, 1600);
   });
 }
+(async () => {
+  const stars = document.querySelector(".repo .stars");
+  if (!stars) return;
+  const key = "apolloshell-stars";
+  let count = null;
+  try {
+    count = sessionStorage.getItem(key);
+  } catch {
+  }
+  if (count === null) {
+    try {
+      const response = await fetch("https://api.github.com/repos/Silvertree2010/ApolloShell");
+      if (!response.ok) return;
+      count = String((await response.json()).stargazers_count);
+      try {
+        sessionStorage.setItem(key, count);
+      } catch {
+      }
+    } catch {
+      return;
+    }
+  }
+  const n = Number(count);
+  if (!Number.isFinite(n)) return;
+  stars.querySelector(".count").textContent = n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1).replace(/\.0$/, "")}k` : String(n);
+  stars.hidden = false;
+  stars.closest(".repo").setAttribute("aria-label", `ApolloShell on GitHub, ${n} stars`);
+})();

@@ -107,6 +107,21 @@ tabs you had into pages, with the cards at the same spots. The old
   centre: Standard, Minimal, Sound & Devices, Everything). The edit mode and
   "Restore default pages" take their place.
 
+## [0.1.3.1] - 2026-09-21
+
+A patch on 0.1.3: the bar and its Dock across desktops.
+
+### Fixed
+
+- **The bar stays put when you switch desktops.** It used to vanish for
+  the length of the swipe and come back after it. It now sits in a space
+  of its own that does not take part in the swipe, the way SketchyBar keeps
+  its bar still.
+- **Clicking an app in the Dock takes you to it**, also when its windows
+  are on another desktop. The click used to make the app active without
+  showing anything: the menu bar changed, the desktop stayed. Now one of
+  its windows comes forward and macOS switches to that desktop.
+
 ## [0.1.3] - 2026-09-21
 
 The interface is in English, all of it.

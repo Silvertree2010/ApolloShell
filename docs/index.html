@@ -25,6 +25,10 @@
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
+<a class="repo" href="https://github.com/Silvertree2010/ApolloShell" aria-label="ApolloShell on GitHub">
+  <svg class="mark" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+  <span class="stars" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 .25a.75.75 0 01.67.42l1.88 3.8 4.2.61a.75.75 0 01.41 1.28l-3.04 2.96.72 4.18a.75.75 0 01-1.09.79L8 12.31l-3.75 1.98a.75.75 0 01-1.09-.79l.72-4.18L.84 6.36a.75.75 0 01.41-1.28l4.2-.61L7.33.67A.75.75 0 018 .25z"/></svg><span class="count"></span></span>
+</a>
 
 <div class="statue" aria-hidden="true">
   <canvas data-frames="97" data-ext="webp"></canvas>
@@ -34,7 +38,7 @@
 
   <section class="room right intro" aria-labelledby="title">
     <h1 id="title" class="lit">ApolloShell</h1>
-    <p class="lede lit">A desktop shell for macOS Tahoe: sidebar, dock, launcher and dashboard, built from blocks you arrange yourself.</p>
+    <p class="lede lit">A clean, minimalist desktop shell featuring a sidebar, app launcher, dashboard, and control center, inspired by Caelestia Dots.</p>
     <div class="get lit">
       <a class="button" href="https://github.com/Silvertree2010/ApolloShell/releases/latest">
         <span>Download for macOS</span>
@@ -49,25 +53,27 @@
 
   <section class="room left exhibit" aria-labelledby="desktop-title">
     <figure class="plate lit">
-      <img src="shots/showcase-desktop.webp" width="2000" height="1125" loading="lazy" decoding="async"
-        alt="A Mac desktop running ApolloShell: the sidebar down the left edge, the dashboard with weather, calendar and now playing dropped from the top, and the utilities panel in the bottom right corner">
+      <video src="shots/showcase-desktop.mp4" poster="shots/showcase-desktop-poster.webp" width="1728" height="1116"
+        autoplay muted loop playsinline disablepictureinpicture preload="metadata"
+        aria-label="A Mac desktop running ApolloShell: the sidebar down the left edge, the dashboard with weather, calendar and now playing dropped from the top, and the utilities panel in the bottom right corner"></video>
     </figure>
     <div class="label lit">
-      <h2 id="desktop-title">Panels at the edges, nothing in the way.</h2>
-      <p>A sidebar down the left, a dashboard from the top, a control centre in the corner. Finder, the menu bar and the Dock keep working.</p>
+      <h2 id="desktop-title">Everything where you need it.</h2>
+      <p>Quickly launch apps, check your calendar, control media, monitor system performance, and access essential controls without leaving what you're doing.</p>
     </div>
   </section>
 
   <section class="room right exhibit" aria-labelledby="stats-title">
     <div class="label lit">
-      <h2 id="stats-title">System stats, one click away.</h2>
-      <p>CPU, GPU, memory, network and battery, plus your connected Bluetooth devices.</p>
+      <h2 id="stats-title">Build it your way.</h2>
+      <p>Arrange your panels with the Bento Box editor, then make them yours with simple CSS. Change colours, spacing, shapes, icons, and more without digging through complicated configuration files.</p>
     </div>
     <figure class="plate lit">
       <img src="shots/showcase-settings.webp" width="2000" height="1125" loading="lazy" decoding="async"
         alt="The ApolloShell dashboard on its Performance tab, showing CPU and GPU load, disk and memory use, a network graph and battery charge, with the Bluetooth panel open in the bottom left">
     </figure>
   </section>
+
 
 </main>
 
@@ -77,8 +83,13 @@
   <nav class="links" aria-label="Project">
     <a href="https://github.com/Silvertree2010/ApolloShell">Source</a>
     <a href="https://github.com/Silvertree2010/ApolloShell/releases">Releases</a>
+    <a href="mailto:andrin.zimmermann@proton.me">Contact</a>
   </nav>
-  <p class="legal">Mozilla Public License 2.0. Inspired by the Caelestia shell; not affiliated with its authors or with Apple.</p>
+  <nav class="links policies" aria-label="Policies">
+    <a href="privacy.html">Privacy</a>
+    <a href="terms.html">Terms</a>
+  </nav>
+  <p class="legal">© 2026 Andrin Zimmermann. Mozilla Public License 2.0. Inspired by the Caelestia shell; not affiliated with its authors or with Apple.</p>
 </footer>
 
 <script src="vendor/lenis.min.js"></script>

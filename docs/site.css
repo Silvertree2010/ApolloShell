@@ -100,6 +100,52 @@ p {
 .skip:focus-visible {
   transform: none;
 }
+.repo {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  left: var(--gutter);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: rgba(6, 6, 6, 0.72);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--marble);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+.repo:hover {
+  border-color: rgba(226, 168, 75, 0.5);
+}
+.repo:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.repo svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.repo .stars {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--marble-dim);
+}
+.repo .stars[hidden] {
+  display: none;
+}
+.repo .stars svg {
+  width: 14px;
+  height: 14px;
+  color: var(--gold);
+}
 .statue {
   position: fixed;
   inset: 0;
@@ -165,6 +211,15 @@ p {
 }
 .exhibit .plate {
   width: 100%;
+}
+.exhibit .plate:has(video) {
+  width: calc(100% * 9 / 16 * 1728 / 1116);
+}
+.exhibit.left .plate:has(video) {
+  justify-self: start;
+}
+.exhibit.right .plate:has(video) {
+  justify-self: end;
 }
 .exhibit.left .plate {
   border-radius: 0 14px 14px 0;
@@ -295,8 +350,11 @@ h1 {
     0 40px 80px -30px rgba(0, 0, 0, 0.95),
     0 18px 36px -24px rgba(0, 0, 0, 0.9);
 }
-.plate img {
+.plate img,
+.plate video {
+  display: block;
   width: 100%;
+  height: auto;
   border-radius: inherit;
 }
 .plate::after {
@@ -358,6 +416,16 @@ h1 {
   color: var(--marble-dim);
 }
 .links a:hover {
+  color: var(--gold-bright);
+}
+.links.policies {
+  margin-top: -14px;
+  font-size: 16px;
+}
+.links.policies a {
+  color: var(--marble-faint);
+}
+.links.policies a:hover {
   color: var(--gold-bright);
 }
 .legal {
@@ -446,4 +514,52 @@ h1 {
   .skip {
     transition: none;
   }
+}
+.doc-page {
+  max-width: 38rem;
+  margin: 0 auto;
+  padding: clamp(48px, 10svh, 112px) var(--gutter) 96px;
+}
+.doc-back {
+  display: inline-block;
+  margin-bottom: 40px;
+  color: var(--marble-dim);
+  font-size: 17px;
+  text-decoration: none;
+}
+.doc-back::before {
+  content: "← ";
+}
+.doc-page h1 {
+  font-size: clamp(40px, 6vw, 60px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.doc-page h2 {
+  margin-top: 44px;
+  font-size: 26px;
+  line-height: 1.2;
+}
+.doc-page p,
+.doc-page ul {
+  margin-top: 14px;
+  color: var(--marble-dim);
+}
+.doc-page ul {
+  padding-left: 1.2em;
+}
+.doc-page li + li {
+  margin-top: 8px;
+}
+.doc-page strong {
+  color: var(--marble);
+  font-weight: 600;
+}
+.doc-page code {
+  font-size: 0.8em;
+}
+.doc-page .doc-date {
+  margin-top: 12px;
+  color: var(--marble-faint);
+  font-size: 16px;
 }
