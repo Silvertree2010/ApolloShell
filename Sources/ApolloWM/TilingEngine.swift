@@ -558,7 +558,8 @@ public final class TilingEngine {
     // MARK: Proxy glides
 
     /// Windows whose size is about to change glide as a snapshot. The real
-    /// window moves just off screen, keeping its size until the end.
+    /// window goes just off screen and takes its new size there right away,
+    /// so the app has the whole glide to redraw; its new look fades in.
     private func startProxies() {
         proxyFinish?.cancel()
         proxyFinish = nil
@@ -569,7 +570,15 @@ public final class TilingEngine {
                   let window = windows[id], proxies.show(id, at: current) else { continue }
             proxied.insert(id)
             proxyGlides += 1
-            window.setFrame(CGRect(origin: parkedOrigin(for: current), size: current.size))
+            window.setFrame(CGRect(origin: parkedOrigin(for: target), size: target.size))
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                MainActor.assumeIsolated { self?.proxies.fadeInCurrent(id) }
+            }
+        }
+        // Proxied windows whose target changed mid-glide: new size off screen.
+        for id in proxied {
+            guard let window = windows[id], let target = springs[id]?.target else { continue }
+            window.setFrame(CGRect(origin: parkedOrigin(for: target), size: target.size))
         }
     }
 
@@ -585,10 +594,7 @@ public final class TilingEngine {
     /// a moment to redraw, then swap them in for their snapshots.
     private func finishProxies(then done: @escaping () -> Void) {
         guard !proxied.isEmpty else { done(); return }
-        for id in proxied {
-            guard let window = windows[id], let target = springs[id]?.target else { continue }
-            window.setFrame(CGRect(origin: parkedOrigin(for: target), size: target.size))
-        }
+        // Already at their final size off screen since the glide started.
         let work = DispatchWorkItem { [weak self] in
             MainActor.assumeIsolated {
                 guard let self else { return }
@@ -610,7 +616,7 @@ public final class TilingEngine {
             }
         }
         proxyFinish = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02, execute: work)
     }
 
     /// A proxied window the user grabs becomes real again at once.
