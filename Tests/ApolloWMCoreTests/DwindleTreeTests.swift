@@ -1,0 +1,178 @@
+import CoreGraphics
+import Testing
+@testable import ApolloWMCore
+
+@Suite("Dwindle layout: split, remove, drop by mouse")
+struct DwindleTreeTests {
+    let area = CGRect(x: 0, y: 0, width: 1000, height: 600)
+
+    @Test func singleWindowFillsArea() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        #expect(tree.layout(in: area) == [1: area])
+    }
+
+    @Test func outerGapInsetsArea() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        #expect(tree.layout(in: area, gaps: Gaps(outer: 10, inner: 0))[1] == CGRect(x: 10, y: 10, width: 980, height: 580))
+    }
+
+    @Test func secondWindowSplitsSideBySideOnWideArea() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        let f = tree.layout(in: area)
+        #expect(f[1] == CGRect(x: 0, y: 0, width: 500, height: 600))
+        #expect(f[2] == CGRect(x: 500, y: 0, width: 500, height: 600))
+    }
+
+    @Test func thirdWindowStacksInTallHalf() {
+        var tree = DwindleTree<Int>()
+        [1, 2, 3].forEach { tree.insert($0) }
+        let f = tree.layout(in: area)
+        #expect(f[1] == CGRect(x: 0, y: 0, width: 500, height: 600))
+        #expect(f[2] == CGRect(x: 500, y: 0, width: 500, height: 300))
+        #expect(f[3] == CGRect(x: 500, y: 300, width: 500, height: 300))
+    }
+
+    @Test func innerGapSeparatesTiles() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        let f = tree.layout(in: area, gaps: Gaps(outer: 0, inner: 10))
+        #expect(f[1] == CGRect(x: 0, y: 0, width: 495, height: 600))
+        #expect(f[2] == CGRect(x: 505, y: 0, width: 495, height: 600))
+    }
+
+    @Test func removeGivesSpaceToSibling() {
+        var tree = DwindleTree<Int>()
+        [1, 2, 3].forEach { tree.insert($0) }
+        tree.remove(2)
+        let f = tree.layout(in: area)
+        #expect(f[1] == CGRect(x: 0, y: 0, width: 500, height: 600))
+        #expect(f[3] == CGRect(x: 500, y: 0, width: 500, height: 600))
+        #expect(tree.ids == [1, 3])
+    }
+
+    @Test func removeLastEmptiesTree() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.remove(1)
+        #expect(tree.isEmpty)
+    }
+
+    @Test func duplicateInsertIsIgnored() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(1)
+        #expect(tree.ids == [1])
+    }
+
+    @Test func dropOnLeftHalfOfTileGoesLeft() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(3, at: CGPoint(x: 100, y: 300), in: area)
+        #expect(tree.ids == [3, 1])
+    }
+
+    @Test func dropOnRightHalfOfTileGoesRight() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(3, at: CGPoint(x: 900, y: 300), in: area)
+        #expect(tree.ids == [1, 3])
+    }
+
+    @Test func dropSplitsTheTileUnderTheMouse() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        // Top of window 1's tall tile: 1 is split top/bottom, 3 on top.
+        tree.insert(3, at: CGPoint(x: 250, y: 50), in: area)
+        let f = tree.layout(in: area)
+        #expect(f[3] == CGRect(x: 0, y: 0, width: 500, height: 300))
+        #expect(f[1] == CGRect(x: 0, y: 300, width: 500, height: 300))
+        #expect(f[2] == CGRect(x: 500, y: 0, width: 500, height: 600))
+    }
+
+    @Test func dropOutsideAllTilesSplitsLast() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        tree.insert(3, at: CGPoint(x: -50, y: -50), in: area)
+        #expect(tree.ids == [1, 2, 3])
+    }
+
+    @Test func dropIntoEmptyTreeFillsArea() {
+        var tree = DwindleTree<Int>()
+        tree.insert(7, at: CGPoint(x: 1, y: 1), in: area)
+        #expect(tree.layout(in: area) == [7: area])
+    }
+
+    @Test func hitTestFindsTile() {
+        var tree = DwindleTree<Int>()
+        [1, 2, 3].forEach { tree.insert($0) }
+        #expect(tree.id(at: CGPoint(x: 700, y: 500), in: area) == 3)
+        #expect(tree.id(at: CGPoint(x: 2000, y: 0), in: area) == nil)
+    }
+}
+
+@Suite("Springs: settle, no overshoot, keep velocity on retarget")
+struct SpringTests {
+    @Test func settlesOnTarget() {
+        var s = Spring(0)
+        s.target = 100
+        for _ in 0..<120 { s.step(1.0 / 60, response: 0.3) }
+        #expect(s.isSettled)
+        #expect(s.value == 100)
+    }
+
+    @Test func neverOvershootsFromRest() {
+        var s = Spring(0)
+        s.target = 100
+        for _ in 0..<240 {
+            s.step(1.0 / 120, response: 0.3)
+            #expect(s.value <= 100)
+        }
+    }
+
+    @Test func retargetKeepsVelocity() {
+        var s = Spring(0)
+        s.target = 100
+        for _ in 0..<5 { s.step(1.0 / 60, response: 0.3) }
+        let v = s.velocity
+        s.target = -100
+        #expect(s.velocity == v)
+        #expect(v > 0)
+    }
+
+    @Test func largeStepStaysStable() {
+        var s = Spring(0)
+        s.target = 100
+        s.step(5, response: 0.3)
+        #expect(s.value == 100)
+    }
+
+    @Test func animatedRectReportsTarget() {
+        var r = AnimatedRect(CGRect(x: 0, y: 0, width: 10, height: 10))
+        r.target = CGRect(x: 50, y: 60, width: 70, height: 80)
+        #expect(!r.isSettled)
+        for _ in 0..<200 { r.step(1.0 / 60, response: 0.3) }
+        #expect(r.current == CGRect(x: 50, y: 60, width: 70, height: 80))
+    }
+}
+
+@Suite("Duration stats")
+struct DurationsTests {
+    @Test func percentiles() {
+        var d = Durations()
+        (1...100).forEach { d.add(Double($0)) }
+        #expect(d.median == 50)
+        #expect(d.percentile(0.95) == 95)
+        #expect(d.max == 100)
+    }
+
+    @Test func emptySummary() {
+        #expect(Durations().summary == "n=0")
+    }
+}
