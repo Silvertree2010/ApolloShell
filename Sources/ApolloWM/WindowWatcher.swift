@@ -130,6 +130,12 @@ public final class WindowWatcher {
             }
         }
 
+        // Everything on this desktop gone at once means Show Desktop or
+        // Mission Control pushed the windows aside; they come back, so they
+        // keep their tiles.
+        let shown = engine.tree.ids
+        let allAside = !shown.isEmpty && shown.allSatisfy { !foundIDs.contains($0) }
+
         for (id, window) in engine.windows where !foundIDs.contains(id) && id != engine.dragging {
             // Not on screen. It keeps its tile only while it lives on another
             // desktop. Apps like WhatsApp or System Settings keep closed
@@ -144,7 +150,7 @@ public final class WindowWatcher {
                 reason = "minimized"
             } else if AXUIElementCreateApplication(window.pid).bool(kAXHiddenAttribute) == true {
                 reason = "app hidden"
-            } else if !elsewhere && !engine.isSwitchingSpace {
+            } else if !elsewhere && !engine.isSwitchingSpace && !allAside {
                 let since = invisibleSince[id] ?? CACurrentMediaTime()
                 invisibleSince[id] = since
                 if CACurrentMediaTime() - since >= invisibleGrace {
