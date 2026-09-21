@@ -73,6 +73,7 @@ struct LauncherView: View {
                                 model.onRightClick(app, view)
                             }
                         }
+                        .modifier(PinDragging(model: model, app: app))
                     }
                 }
                 .padding(8)
@@ -81,6 +82,29 @@ struct LauncherView: View {
                 guard model.results.indices.contains(index) else { return }
                 proxy.scrollTo(model.results[index].id)
             }
+        }
+    }
+}
+
+/// Pinned rows can be dragged within the pinned block (the bundle ID as
+/// text); every other row neither drags nor takes a drop.
+private struct PinDragging: ViewModifier {
+    let model: LauncherModel
+    let app: AppEntry
+
+    func body(content: Content) -> some View {
+        if model.canDragPin(app), let id = app.bundleID {
+            content
+                .draggable(id)
+                .dropDestination(for: String.self) { items, _ in
+                    // Only a pin of this list; text dragged in from elsewhere
+                    // is not ours.
+                    guard let moved = items.first, moved != id, model.pinned.contains(moved) else { return false }
+                    model.onMovePin(moved, id)
+                    return true
+                }
+        } else {
+            content
         }
     }
 }

@@ -21,10 +21,12 @@ final class LauncherModel {
     /// Right-click on a row: the controller builds the menu (the app's own,
     /// see `AppleDockMenu`) and opens it at this view.
     @ObservationIgnored var onRightClick: (AppEntry, NSView) -> Void = { _, _ in }
+    /// A pinned row dropped onto another pinned row (bundle IDs).
+    @ObservationIgnored var onMovePin: (String, String) -> Void = { _, _ in }
 
     @ObservationIgnored private var all: [AppEntry] = []
     @ObservationIgnored private var usage = UsageStats()
-    @ObservationIgnored private var pinned: [String] = []
+    private(set) var pinned: [String] = []
     @ObservationIgnored private let ranker = AppRanker()
     @ObservationIgnored private var iconCache: [URL: NSImage] = [:]
 
@@ -39,6 +41,25 @@ final class LauncherModel {
         query = ""
         applyFilter()
         openCount += 1
+    }
+
+    /// The pins changed (right click, dragging): sort anew, but keep the
+    /// search text and the selected app.
+    func setPinned(_ ids: [String]) {
+        let selectedID = selected?.id
+        pinned = ids
+        results = ranker.rank(all, query: query, usage: usage, pinned: pinned)
+        selectedIndex = results.firstIndex { $0.id == selectedID } ?? 0
+    }
+
+    func isPinned(_ app: AppEntry) -> Bool {
+        app.bundleID.map(pinned.contains) ?? false
+    }
+
+    /// Pins can only be dragged while they stand on top as a block - with
+    /// search text the order is the one of the hits.
+    func canDragPin(_ app: AppEntry) -> Bool {
+        query.trimmingCharacters(in: .whitespaces).isEmpty && isPinned(app)
     }
 
     func moveSelection(by delta: Int) {

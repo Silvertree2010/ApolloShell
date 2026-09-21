@@ -65,6 +65,20 @@ struct PinnedListTests {
         #expect(list.ids == expected)
     }
 
+    @Test("dropped onto another pin, it takes that place", arguments: [
+        ("a", "c", ["b", "c", "a", "d"]),
+        ("d", "b", ["a", "d", "b", "c"]),
+        ("b", "a", ["b", "a", "c", "d"]),
+        ("b", "b", ["a", "b", "c", "d"]),
+        ("x", "b", ["a", "b", "c", "d"]),
+        ("b", "x", ["a", "b", "c", "d"]),
+    ])
+    func dropOnto(id: String, target: String, expected: [String]) {
+        var list = PinnedList(["a", "b", "c", "d"])
+        list.move(id, onto: target)
+        #expect(list.ids == expected)
+    }
+
     @Test("one step up or down, nothing at the edge", arguments: [
         ("b", -1, ["b", "a", "c"]),
         ("b", 1, ["a", "c", "b"]),

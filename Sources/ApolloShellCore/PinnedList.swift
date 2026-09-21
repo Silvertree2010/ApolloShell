@@ -44,6 +44,16 @@ public struct PinnedList: Equatable, Sendable {
         ids.move(fromOffsets: source, toOffset: destination)
     }
 
+    /// Dropped onto another pinned app: it takes that app's place, the ones
+    /// in between close up (dragged down it lands after it, dragged up
+    /// before it - as a drag in a list reads). Nothing when either is not
+    /// in the list.
+    public mutating func move(_ id: String, onto target: String) {
+        guard id != target, let from = ids.firstIndex(of: id), let to = ids.firstIndex(of: target) else { return }
+        ids.remove(at: from)
+        ids.insert(id, at: to)
+    }
+
     /// One place up (-1) or down (+1); nothing at the edge.
     public mutating func move(_ id: String, by step: Int) {
         guard let index = ids.firstIndex(of: id) else { return }

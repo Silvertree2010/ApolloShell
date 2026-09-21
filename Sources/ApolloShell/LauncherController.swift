@@ -42,6 +42,7 @@ final class LauncherController {
         model.onLaunch = { [weak self] app in self?.launch(app) }
         model.onClose = { [weak self] in self?.close() }
         model.onRightClick = { [weak self] app, view in self?.showMenu(for: app, at: view) }
+        model.onMovePin = { [weak self] id, target in self?.changePins { $0.move(id, onto: target) } }
         observeAppLaunches()
     }
 
@@ -89,12 +90,36 @@ final class LauncherController {
                 if !commands.isEmpty { menu.addItem(.separator()) }
             }
 
+            for item in self?.pinItems(for: app) ?? [] { menu.addItem(item) }
             menu.addItem(ClosureMenuItem(String(localized: "Show in Finder")) { [weak self] in
                 self?.close()
                 NSWorkspace.shared.activateFileViewerSelecting([app.url])
             })
             NativeAppMenu.popUp(menu, at: view)
         }
+    }
+
+    /// Pinning where the app stands (design/2026-09-21-menubar-nexus.md,
+    /// task 4). Needs no accessibility: only pinned.json changes.
+    private func pinItems(for app: AppEntry) -> [NSMenuItem] {
+        guard let id = app.bundleID else { return [] }
+        if model.isPinned(app) {
+            return [ClosureMenuItem(String(localized: "Unpin")) { [weak self] in
+                self?.changePins { $0.remove(id) }
+            }]
+        }
+        let pinned = PinnedList(model.pinned)
+        let item = ClosureMenuItem(pinned.isFull ? String(localized: "Pin (\(PinnedList.limit) pinned already)")
+                                                 : String(localized: "Pin")) { [weak self] in
+            self?.changePins { $0.add(id) }
+        }
+        item.isEnabled = !pinned.isFull
+        return [item]
+    }
+
+    private func changePins(_ change: (inout PinnedList) -> Void) {
+        guard let ids = PinnedApps.update(change) else { return }
+        model.setPinned(ids)
     }
 
     /// The running instance for an entry, `nil` when it is not running.
