@@ -10,6 +10,9 @@ private func CGSMainConnectionID() -> Int32
 @_silgen_name("CGSManagedDisplayGetCurrentSpace")
 private func CGSManagedDisplayGetCurrentSpace(_ cid: Int32, _ display: CFString) -> SpaceID
 
+@_silgen_name("CGSCopyManagedDisplaySpaces")
+private func CGSCopyManagedDisplaySpaces(_ cid: Int32) -> Unmanaged<CFArray>?
+
 @_silgen_name("CGSCopySpacesForWindows")
 private func CGSCopySpacesForWindows(_ cid: Int32, _ mask: Int32, _ windows: CFArray) -> Unmanaged<CFArray>?
 
@@ -25,6 +28,20 @@ public enum Spaces {
               let name = CFUUIDCreateString(nil, uuid) else { return nil }
         let space = CGSManagedDisplayGetCurrentSpace(CGSMainConnectionID(), name)
         return space == 0 ? nil : space
+    }
+
+    /// The main display's desktops in the order Mission Control shows them
+    /// (full-screen apps left out).
+    public static func ordered() -> [SpaceID] {
+        guard let displays = CGSCopyManagedDisplaySpaces(CGSMainConnectionID())?.takeRetainedValue()
+                as? [[String: Any]] else { return [] }
+        let main = current()
+        let display = displays.first { ($0["Spaces"] as? [[String: Any]])?.contains {
+            ($0["id64"] as? NSNumber)?.uint64Value == main } ?? false } ?? displays.first
+        let spaces = display?["Spaces"] as? [[String: Any]] ?? []
+        // Type 0 is a normal desktop; 4 is a full-screen app.
+        return spaces.filter { ($0["type"] as? Int) == 0 }
+            .compactMap { ($0["id64"] as? NSNumber)?.uint64Value }
     }
 
     /// The Space a window lives on. Nil for unknown windows and for windows

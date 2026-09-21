@@ -64,6 +64,27 @@ struct SpaceLayoutsTests {
         #expect(layouts.space(of: 2) == nil)
     }
 
+    @Test func movingWholeLayoutKeepsArrangement() {
+        var layouts = SpaceLayouts<Int, Int>()
+        layouts.assign(1, to: 10) { $0.insert(1) }
+        layouts.assign(2, to: 10) { $0.insert(2) }
+        layouts[10].resize(1, to: CGRect(x: 0, y: 0, width: 700, height: 600), in: area)
+        let before = layouts[10].layout(in: area)
+        layouts.move(10, to: 30)
+        #expect(layouts[30].layout(in: area) == before)
+        #expect(layouts[10].isEmpty)
+        #expect(layouts.space(of: 1) == 30)
+    }
+
+    @Test func movingOntoUsedLayoutAddsWindows() {
+        var layouts = SpaceLayouts<Int, Int>()
+        layouts.assign(1, to: 10) { $0.insert(1) }
+        layouts.assign(2, to: 30) { $0.insert(2) }
+        layouts.move(10, to: 30)
+        #expect(Set(layouts[30].ids) == [1, 2])
+        #expect(layouts.space(of: 1) == 30)
+    }
+
     @Test func unknownDesktopIsEmpty() {
         #expect(SpaceLayouts<Int, Int>()[99].isEmpty)
     }

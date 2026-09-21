@@ -30,7 +30,7 @@ guard ["bench", "run", "spaces", "selftest"].contains(mode) else {
 
 // Read-only: which desktop is shown and where every normal window lives.
 if mode == "spaces" {
-    print("shown desktop: \(Spaces.current().map(String.init) ?? "unknown")")
+    print("shown desktop: \(Spaces.current().map(String.init) ?? "unknown"), order: \(Spaces.ordered())")
     let infos = CGWindowListCopyWindowInfo([.excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
     for info in infos where (info[kCGWindowLayer as String] as? Int) == 0 {
         guard let id = info[kCGWindowNumber as String] as? CGWindowID,

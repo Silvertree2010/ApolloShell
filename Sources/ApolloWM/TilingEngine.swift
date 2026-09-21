@@ -276,6 +276,30 @@ public final class TilingEngine {
         relayout()
     }
 
+    /// The desktops in Mission Control order, as last seen.
+    public private(set) var knownSpaceOrder: [SpaceID] = []
+
+    public func noteSpaceOrder(_ order: [SpaceID]) {
+        if !order.isEmpty { knownSpaceOrder = order }
+    }
+
+    /// A desktop was closed in Mission Control and macOS moved its windows
+    /// onto `target`. They keep their arrangement and land on our workspace
+    /// numbered after the closed desktop's place (third desktop: workspace 3).
+    public func absorbVanishedSpace(_ vanished: SpaceID, into target: SpaceID) {
+        let place = (knownSpaceOrder.firstIndex(of: vanished) ?? 0) + 1
+        let desks = Set(layouts.spaceOf.values.filter { $0.space == vanished })
+            .union(floating.values.map(\.desk).filter { $0.space == vanished })
+        for old in desks.sorted(by: { $0.workspace < $1.workspace }) {
+            let new = Desk(space: target, workspace: min(9, place + old.workspace - 1))
+            log("desktop \(vanished) closed: its workspace \(old.workspace) becomes workspace \(new.workspace)")
+            layouts.move(old, to: new)
+            for (id, state) in floating where state.desk == old { floating[id]?.desk = new }
+            if let id = fullscreen.removeValue(forKey: old) { fullscreen[new] = id }
+        }
+        relayout()
+    }
+
     /// The user switched desktops: arrange the windows shown there.
     public func switchSpace(to target: SpaceID) {
         guard target != space else { return }
@@ -373,13 +397,7 @@ public final class TilingEngine {
     /// Where every window on the shown desktop should be: tiles, then a
     /// fullscreen window over its tile, then floating windows.
     public func targetFrames() -> [CGWindowID: CGRect] {
-        var frames = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
-        if let id = fullscreen[desk], frames[id] != nil {
-            frames[id] = DwindleTree<CGWindowID>.centered(fullArea, maximum: maximums[id])
-        }
-        for (id, state) in floating where state.desk == desk {
-            frames[id] = state.frame
-        }
+        var frames = frames(on: desk)
         // Windows of this desktop's other workspaces go (or stay) aside.
         var aside: [CGWindowID: Int] = [:]
         for (id, home) in layouts.spaceOf where home.space == space && home.workspace != workspace {
@@ -426,6 +444,19 @@ public final class TilingEngine {
         originalFrames = snapshot.originalFrames.filter { alive($0.key) }
         desk.workspace = activeWorkspace[space] ?? 1
         log("restored layout: \(layouts.spaceOf.count) tiled, \(floating.count) floating")
+    }
+
+    /// Where the windows of `desk` go when it is shown: tiles, a fullscreen
+    /// window over its tile, floating windows.
+    public func frames(on desk: Desk) -> [CGWindowID: CGRect] {
+        var frames = layouts[desk].layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        if let id = fullscreen[desk], frames[id] != nil {
+            frames[id] = DwindleTree<CGWindowID>.centered(fullArea, maximum: maximums[id])
+        }
+        for (id, state) in floating where state.desk == desk {
+            frames[id] = state.frame
+        }
+        return frames
     }
 
     // MARK: Workspaces

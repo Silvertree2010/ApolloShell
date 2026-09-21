@@ -25,6 +25,22 @@ public struct SpaceLayouts<Space: Hashable & Sendable, ID: Hashable & Sendable>:
         spaceOf[id] = space
     }
 
+    /// Moves a whole layout to another key, keeping its arrangement. When
+    /// the target already has windows, the moved ones are added one by one.
+    public mutating func move(_ from: Space, to target: Space) {
+        guard from != target, let tree = trees[from] else { return }
+        trees[from] = nil
+        if self[target].isEmpty {
+            trees[target] = tree
+            for id in tree.ids { spaceOf[id] = target }
+        } else {
+            for id in tree.ids {
+                spaceOf[id] = nil
+                assign(id, to: target) { $0.insert(id) }
+            }
+        }
+    }
+
     /// Forgets every window `keep` rejects, e.g. windows that no longer exist.
     public mutating func retain(where keep: (ID) -> Bool) {
         for id in spaceOf.keys where !keep(id) { remove(id) }
