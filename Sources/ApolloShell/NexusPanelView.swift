@@ -267,7 +267,11 @@ private struct NexusThemesPage: View {
             VStack(spacing: 8) {
                 NexusChoiceCard(symbol: "paintpalette", title: "Theme",
                                 subtitle: "A change to the file takes effect at once.",
-                                options: options, selected: themes.selection) { themes.select($0) }
+                                options: options, selected: themes.selection) { name in
+                    // Closes first: the panel's glass and colours were set
+                    // for the old theme; the next opening takes the new one.
+                    model.run { themes.select(name) }
+                }
                 NexusCard(symbol: "folder", title: "Theme Folder",
                           subtitle: LocalizedStringKey((themes.folder.path as NSString).abbreviatingWithTildeInPath)) {
                     EmptyView()
