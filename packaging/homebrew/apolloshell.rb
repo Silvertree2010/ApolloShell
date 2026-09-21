@@ -13,7 +13,7 @@ class Apolloshell < Formula
   homepage "https://github.com/Silvertree2010/ApolloShell"
   url "https://github.com/Silvertree2010/ApolloShell/archive/refs/tags/v0.1.1.tar.gz"
   sha256 "4cf968cd4fb59c0c2e6e802685cfa04405f0d551a457e96fd62085a01e42999d"
-  license "MIT"
+  license "MPL-2.0"
   head "https://github.com/Silvertree2010/ApolloShell.git", branch: "main"
 
   # Liquid Glass (NSGlassEffectView) exists from macOS 26 Tahoe on.

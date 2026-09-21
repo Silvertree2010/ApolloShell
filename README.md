@@ -16,7 +16,7 @@
   <a href="https://github.com/Silvertree2010/homebrew-apolloshell"><img src="https://img.shields.io/badge/Homebrew-tap-FBB040?logo=homebrew&amp;logoColor=black" alt="Homebrew tap"></a>
   <img src="https://img.shields.io/badge/macOS-26%20Tahoe-000000?logo=apple" alt="macOS 26 Tahoe">
   <img src="https://img.shields.io/badge/Swift-6.2%2B-F05138?logo=swift&amp;logoColor=white" alt="Swift 6.2+">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Silvertree2010/ApolloShell" alt="License: MIT"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Silvertree2010/ApolloShell" alt="License: MPL 2.0"></a>
   <a href="https://www.producthunt.com/products/apolloshell"><img src="https://img.shields.io/badge/Product%20Hunt-ApolloShell-DA552F?logo=producthunt&amp;logoColor=white" alt="ApolloShell on Product Hunt"></a>
 </p>
 
@@ -205,8 +205,11 @@ Full notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## License
 
-[MIT](LICENSE) © 2026 Silvertree2010. Contributions are welcome, see
-[CONTRIBUTING.md](CONTRIBUTING.md).
+[Mozilla Public License 2.0](LICENSE) © 2026 Silvertree2010. You can use
+ApolloShell in your own work, open or closed; changes to its own files stay
+under the MPL and have to be shared when you distribute them. Versions up to
+0.1.3.1 were released under MIT and stay under MIT. Contributions are
+welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 [releases]: https://github.com/Silvertree2010/ApolloShell/releases/latest
 [caelestia]: https://github.com/caelestia-dots/shell

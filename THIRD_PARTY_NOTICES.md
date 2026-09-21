@@ -1,6 +1,7 @@
 # Third-party notices
 
-ApolloShell itself is MIT-licensed (see [LICENSE](LICENSE)). This file lists
+ApolloShell itself is licensed under the Mozilla Public License 2.0 (see
+[LICENSE](LICENSE)). This file lists
 bundled third-party code, the services it talks to, and design credits.
 
 ## mediaremote-adapter (bundled code)

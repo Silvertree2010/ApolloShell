@@ -19,7 +19,7 @@
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>NSHumanReadableCopyright</key>
-    <string>© 2026 Silvertree2010 · MIT License</string>
+    <string>© 2026 Silvertree2010 · Mozilla Public License 2.0</string>
     <key>LSMinimumSystemVersion</key>
     <string>26.0</string>
     <key>LSUIElement</key>

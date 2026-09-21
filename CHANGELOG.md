@@ -77,6 +77,13 @@ tabs you had into pages, with the cards at the same spots. The old
 - **"Set Location"** in a weather widget without a place starts the edit
   mode, where the widget's popover holds its places.
 
+### License
+
+- **ApolloShell is now under the Mozilla Public License 2.0** instead of MIT.
+  It can still be used in any project, open or closed; changes to
+  ApolloShell's own files have to stay open when they are passed on.
+  0.1.3.1 and everything before it remain available under MIT.
+
 ### Removed
 
 - **The Nexus window.** Its settings are in the menu bar item, the shortcuts
