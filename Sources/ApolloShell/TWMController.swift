@@ -24,6 +24,13 @@ final class TWMController {
     private var focus: FocusFollowsMouse?
     private var tabBars: TWMTabBars?
 
+    /// Called with true while tiling runs: the window guard (which pushes
+    /// windows out of the sidebar's strip) must pause then, or both would
+    /// move the same windows. Set by the AppDelegate.
+    var onRunningChange: (Bool) -> Void = { _ in } {
+        didSet { onRunningChange(engine != nil) }
+    }
+
     init(settings: ShellSettingsStore, layoutFile: URL = ShellFiles.live.twmLayout) {
         self.settings = settings
         self.layoutFile = layoutFile
@@ -105,6 +112,7 @@ final class TWMController {
         self.keys = keys
         _ = focus.start()
         tabBars = TWMTabBars(engine: engine)
+        onRunningChange(true)
         log.notice("TWM started")
     }
 
@@ -124,6 +132,7 @@ final class TWMController {
         drags = nil
         watcher = nil
         self.engine = nil
+        onRunningChange(false)
         log.notice("TWM stopped")
     }
 

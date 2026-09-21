@@ -247,6 +247,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             toaster?.setHiddenForFullscreen(!fullscreenScreens.isEmpty)
         }
         self.windowGuard = windowGuard
+        // While the TWM tiles, it keeps the sidebar's strip free itself.
+        twm?.onRunningChange = { [weak windowGuard] running in windowGuard?.setSuspended(running) }
         // The watch keeps the strip free on every screen that has a bar - and
         // learns of every change to that (a screen added, removed, the setting
         // in Nexus changed or a new width out of the theme).
