@@ -564,6 +564,13 @@ public final class TilingEngine {
         proxyFinish?.cancel()
         proxyFinish = nil
         guard options.resize == .proxy, proxies.isAvailable else { return }
+        // While the user drags an edge, neighbors follow live: a frozen
+        // snapshot would look wrong for the whole drag, and resizing parked
+        // windows on every mouse event made the drag lag.
+        guard resizing == nil else {
+            for id in proxied { dropProxy(id) }
+            return
+        }
         for (id, spring) in springs where !proxied.contains(id) && id != dragging && id != resizing {
             let current = spring.current, target = spring.target
             guard abs(current.width - target.width) > 2 || abs(current.height - target.height) > 2,
