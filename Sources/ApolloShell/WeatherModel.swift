@@ -38,7 +38,7 @@ final class WeatherModel {
     private(set) var favorites = WeatherFavorites.empty
     /// Opens Nexus at Weather if there is (still) no location - set by
     /// the caller (see `Dashboard`).
-    @ObservationIgnored var onOpenNexus: () -> Void = {}
+    @ObservationIgnored var onSetLocation: () -> Void = {}
     /// After `select(_:)`: other weather widgets on the same page with
     /// the same location (same coordinates) adopt it as well, instead of
     /// drifting apart (`WeatherModels.propagateSelection`).

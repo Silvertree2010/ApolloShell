@@ -20,7 +20,7 @@ final class WeatherModels {
     private let fixed: WeatherModel?
     /// Opens Nexus at the weather without a place - handed on to every newly
     /// created model (set by the caller, see `Dashboard`).
-    var onOpenNexus: () -> Void = {}
+    var onSetLocation: () -> Void = {}
 
     init(settings: ShellSettingsStore, editor: DashboardEditor? = nil) {
         self.settings = settings
@@ -54,7 +54,7 @@ final class WeatherModels {
             }
         )
         let model = WeatherModel(settings: settings, places: source)
-        model.onOpenNexus = { [weak self] in self?.onOpenNexus() }
+        model.onSetLocation = { [weak self] in self?.onSetLocation() }
         model.onSelect = { [weak self] location in self?.propagateSelection(location, from: id) }
         models[id] = model
         return model

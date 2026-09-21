@@ -187,7 +187,7 @@ public enum HotKeyAction: String, CaseIterable, Identifiable, Sendable {
         case .launcher: String(localized: "Search and open apps")
         case .dashboard: String(localized: "Weather, calendar, media, performance")
         case .utilities: String(localized: "Keep Awake, sound and quick toggles")
-        case .nexus: String(localized: "This settings window")
+        case .nexus: String(localized: "The menu with every setting")
         }
     }
 

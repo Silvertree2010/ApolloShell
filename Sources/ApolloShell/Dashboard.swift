@@ -147,8 +147,8 @@ final class Dashboard {
 
     /// Open Nexus at Weather when there is (still) no location - wired
     /// by the caller (see `AppDelegate`).
-    func onOpenNexus(_ action: @escaping () -> Void) {
-        weatherModels.onOpenNexus = action
+    func onSetLocation(_ action: @escaping () -> Void) {
+        weatherModels.onSetLocation = action
     }
 
     func toggle() {

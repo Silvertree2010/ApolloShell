@@ -21,7 +21,6 @@ final class NexusMenu: NSObject, NSMenuDelegate {
         var utilities: @MainActor () -> Void = {}
         var launcher: @MainActor () -> Void = {}
         var editInterface: @MainActor () -> Void = {}
-        var settings: @MainActor () -> Void = {}
         var introduction: @MainActor () -> Void = {}
         var shortcuts: @MainActor () -> Void = {}
         /// While the global edit mode runs the openers stay greyed out, like
@@ -76,6 +75,21 @@ final class NexusMenu: NSObject, NSMenuDelegate {
     deinit {
         shownObservation?.cancel()
         themeObservation?.cancel()
+    }
+
+    /// Opens the menu: under the item when it stands in the menu bar,
+    /// otherwise at the pointer (hidden, or pushed behind the notch - the
+    /// menu itself does not depend on the item). For the Nexus shortcut, the
+    /// settings button of the control centre and a second launch.
+    func open() {
+        if item.isVisible, let button = item.button, button.window?.isVisible == true,
+           button.window?.screen != nil {
+            button.performClick(nil)
+            return
+        }
+        guard let menu = item.menu else { return }
+        menuNeedsUpdate(menu)
+        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
     }
 
     /// Shows the item again - the way back for whoever hid it and opens the
@@ -136,12 +150,9 @@ final class NexusMenu: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         settingsMenu.append(to: menu)
         menu.addItem(.separator())
-        let settingsItem = ClosureMenuItem(String(localized: "Settings…")) { [actions] in actions.settings() }
-        settingsItem.isEnabled = !editing
-        menu.addItem(settingsItem)
         menu.addItem(ClosureMenuItem(String(localized: "Shortcuts…")) { [actions] in actions.shortcuts() })
         menu.addItem(ClosureMenuItem(String(localized: "Introduction…")) { [actions] in actions.introduction() })
-        menu.addItem(ClosureMenuItem(String(localized: "Open System Settings")) { NexusSystemSettings.open(nil) })
+        menu.addItem(ClosureMenuItem(String(localized: "Open System Settings")) { SystemSettings.open(nil) })
         menu.addItem(ClosureMenuItem(String(localized: "About ApolloShell")) {
             NSApp.activate()
             NSApp.orderFrontStandardAboutPanel(nil)

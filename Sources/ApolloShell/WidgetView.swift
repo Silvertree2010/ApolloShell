@@ -108,7 +108,7 @@ private struct WeatherEmptyState: View {
                 .font(style.font(size: 28, weight: .light))
                 .foregroundStyle(.secondary)
             if model.location == nil {
-                Text("Set Location in Nexus").font(style.font(size: 13, weight: .semibold))
+                Text("Set a Location under Edit Interface").font(style.font(size: 13, weight: .semibold))
             } else {
                 Text(model.lastAttemptFailed ? String(localized: "No Weather Data") : String(localized: "Loading Weather…"))
                     .font(style.font(size: 13, weight: .semibold))

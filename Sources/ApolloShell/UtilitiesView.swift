@@ -153,7 +153,7 @@ struct UtilitiesEmptyCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Nothing Shown")
                         .font(style.font(size: 14, weight: .medium))
-                    Text("Cards and buttons are chosen in Nexus")
+                    Text("Cards and buttons are chosen under Edit Interface")
                         .font(style.font(size: 12))
                         .foregroundStyle(.secondary)
                 }
@@ -169,7 +169,7 @@ struct UtilitiesEmptyCard: View {
                 }
                 .buttonStyle(.plain)
                 .background(HoverTracker { hovering = $0 })
-                .help("Open Nexus")
+                .help("Open the Nexus Menu")
             }
         }
     }

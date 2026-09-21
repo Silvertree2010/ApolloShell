@@ -110,7 +110,7 @@ struct UtilitiesShortcutPicker: View {
     }
 
     var body: some View {
-        NexusSearchSheet(title: "Choose Shortcut", subtitle: "From the Shortcuts app. It only runs when clicked in the panel.",
+        SearchSheet(title: "Choose Shortcut", subtitle: "From the Shortcuts app. It only runs when clicked in the panel.",
                          searchPrompt: "Search Shortcuts", query: $query, onCancel: onCancel) {
             if shortcuts == nil {
                 ProgressView()

@@ -6,7 +6,7 @@ import SwiftUI
 // (NexusDashboardCardOptions, deleted long ago) and, before Task 7, also Nexus'
 // old 3-column kit (`NexusDashboardOptionsSection`, removed),
 // bound to `editor.setOptions` instead of a card. New since 0.2: time zone
-// per clock, places per weather widget (`NexusWeatherModel`, its own sink instead of
+// per clock, places per weather widget (`WeatherPlacesModel`, its own sink instead of
 // weather.json).
 
 struct WidgetOptionsView: View {
@@ -19,15 +19,15 @@ struct WidgetOptionsView: View {
         switch widget.kind {
         case .weather:
             let o = binding(\.weather, fallback: DashboardWeatherOptions())
-            NexusToggle(title: "Condition", subtitle: "For example “Partly cloudy”", isOn: o.showCondition)
-            NexusToggle(title: "High and Low", subtitle: "For today", isOn: o.showRange)
+            SettingToggle(title: "Condition", subtitle: "For example “Partly cloudy”", isOn: o.showCondition)
+            SettingToggle(title: "High and Low", subtitle: "For today", isOn: o.showRange)
             places
         case .weatherHero, .weatherHourly, .weatherDaily:
             places
         case .user:
             let o = binding(\.user, fallback: DashboardUserOptions())
-            NexusToggle(title: "macOS Version", isOn: o.showSystem)
-            NexusToggle(title: "Uptime", subtitle: "How long the Mac has been running since starting up", isOn: o.showUptime)
+            SettingToggle(title: "macOS Version", isOn: o.showSystem)
+            SettingToggle(title: "Uptime", subtitle: "How long the Mac has been running since starting up", isOn: o.showUptime)
         case .clock:
             let o = binding(\.clock, fallback: DashboardClockOptions())
             Picker("Style", selection: o.style) {
@@ -35,7 +35,7 @@ struct WidgetOptionsView: View {
                 Text("In One Row").tag(DashboardClockOptions.Style.inline)
             }
             .pickerStyle(.segmented)
-            NexusToggle(title: "Date", subtitle: "Weekday and day below the time", isOn: o.showDate)
+            SettingToggle(title: "Date", subtitle: "Weekday and day below the time", isOn: o.showDate)
             LabeledContent("Time Zone") {
                 Button(NexusTimeZoneText.label(o.wrappedValue.timeZone)) { showsTimeZonePicker = true }
                     .popover(isPresented: $showsTimeZonePicker) {
@@ -52,19 +52,19 @@ struct WidgetOptionsView: View {
                 Text("Sunday").tag(DashboardCalendarOptions.FirstWeekday.sunday)
             }
             .pickerStyle(.segmented)
-            NexusToggle(title: "Week Numbers", subtitle: "To the left of each row", isOn: o.showWeekNumbers)
+            SettingToggle(title: "Week Numbers", subtitle: "To the left of each row", isOn: o.showWeekNumbers)
         case .resources:
             let o = binding(\.resources, fallback: DashboardResourcesOptions())
             let current = o.wrappedValue
             let last = [current.showCPU, current.showMemory, current.showStorage].filter { $0 }.count == 1
-            NexusToggle(title: "CPU", isOn: o.showCPU).disabled(last && current.showCPU)
-            NexusToggle(title: "Memory", isOn: o.showMemory).disabled(last && current.showMemory)
-            NexusToggle(title: "Storage", subtitle: "Space used on the startup volume", isOn: o.showStorage)
+            SettingToggle(title: "CPU", isOn: o.showCPU).disabled(last && current.showCPU)
+            SettingToggle(title: "Memory", isOn: o.showMemory).disabled(last && current.showMemory)
+            SettingToggle(title: "Storage", subtitle: "Space used on the startup volume", isOn: o.showStorage)
                 .disabled(last && current.showStorage)
         case .media:
             let o = binding(\.media, fallback: DashboardMediaOptions())
-            NexusToggle(title: "Album", subtitle: "Not shown in the small card", isOn: o.showAlbum)
-            NexusToggle(title: "Source", subtitle: "Which app is playing", isOn: o.showSource)
+            SettingToggle(title: "Album", subtitle: "Not shown in the small card", isOn: o.showAlbum)
+            SettingToggle(title: "Source", subtitle: "Which app is playing", isOn: o.showSource)
         case .performanceCPU, .performanceGPU, .performanceStorage, .performanceNetwork,
              .performanceMemory, .performanceBattery, .mediaPlayer:
             Text("There are no settings for this widget.")
@@ -93,19 +93,19 @@ struct WidgetOptionsView: View {
 
 /// Places of a weather widget: the same rows as before 0.2 (favorites, search
 /// for a place), but per widget instead of shared in weather.json - the sink of
-/// `NexusWeatherModel` writes to `widget.options.places`.
+/// `WeatherPlacesModel` writes to `widget.options.places`.
 private struct NexusWidgetPlacesSection: View {
     let editor: DashboardEditor
     let widget: WidgetInstance
     let weatherFile: URL?
-    @State private var model: NexusWeatherModel
+    @State private var model: WeatherPlacesModel
 
     init(editor: DashboardEditor, widget: WidgetInstance, weatherFile: URL?) {
         self.editor = editor
         self.widget = widget
         self.weatherFile = weatherFile
         let id = widget.id
-        _model = State(initialValue: NexusWeatherModel(
+        _model = State(initialValue: WeatherPlacesModel(
             read: { editor.page?.widgets.first(where: { $0.id == id })?.options.places ?? .empty },
             write: { new in
                 guard var options = editor.page?.widgets.first(where: { $0.id == id })?.options else { return false }
@@ -117,22 +117,7 @@ private struct NexusWidgetPlacesSection: View {
     }
 
     var body: some View {
-        Divider()
-        Text("Places")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-        if model.favorites.locations.isEmpty {
-            Text("No favorites yet – search for a place below and add it.")
-                .foregroundStyle(.secondary)
-        }
-        ForEach(model.favorites.locations) { place in
-            NexusWeatherFavoriteRow(model: model, place: place)
-        }
-        NexusSearchField(prompt: "Search for a Place", text: Binding(get: { model.query }, set: { model.query = $0 }),
-                        busy: model.state == .searching)
-        ForEach(model.results) { place in
-            NexusWeatherSearchRow(model: model, place: place)
-        }
+        WeatherPlacesSection(model: model)
     }
 }
 
@@ -167,7 +152,7 @@ private struct NexusTimeZonePicker: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            NexusSearchField(prompt: "Search Time Zone", text: $query, busy: false)
+            PlainSearchField(prompt: "Search Time Zone", text: $query, busy: false)
                 .padding(8)
             Divider()
             List {

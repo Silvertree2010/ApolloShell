@@ -56,8 +56,8 @@ final class Onboarding: NSObject, NSWindowDelegate {
     }
 
     private func makeWindow() -> NSWindow {
-        // NexusWindow: knows ⌘W and the editing shortcuts without a menu bar.
-        let window = NexusWindow(
+        // ShellWindow: knows ⌘W and the editing shortcuts without a menu bar.
+        let window = ShellWindow(
             contentRect: NSRect(origin: .zero, size: Self.size),
             styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered,
@@ -199,7 +199,7 @@ struct OnboardingHeader: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            NexusTile(symbol: symbol, tint: tint, size: 60)
+            SymbolTile(symbol: symbol, tint: tint, size: 60)
                 .padding(.bottom, 4)
             Text(title)
                 .font(.title.weight(.bold))

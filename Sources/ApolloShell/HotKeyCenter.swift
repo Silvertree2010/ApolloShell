@@ -310,7 +310,7 @@ struct HotKeyRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
-                NexusTile(symbol: action.symbol, tint: tint, size: 24)
+                SymbolTile(symbol: action.symbol, tint: tint, size: 24)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(action.title)
                     Text(action.subtitle)

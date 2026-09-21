@@ -41,21 +41,23 @@ If you like it, a star on GitHub helps other Mac users find it.
   button. Add, remove and reorder its blocks in the edit mode.
 - **Dock** in the sidebar with your pinned and running apps. Clicks, menus,
   drag and drop and badges work like in Apple's Dock.
-- **Launcher.** Press ⌥Space, type, hit Return. Apps you use often come first.
+- **Launcher.** Press your key, type, hit Return. Apps you use often come
+  first; right-click one to pin it to the top.
 - **Dashboard** from the top edge: pages of widgets for weather, calendar,
   system stats and what's playing. Add pages of your own, or put the same
   widget on a page twice. Every weather widget keeps its own places, every
   clock its own time zone.
 - **Control centre** in the bottom-right corner: keep awake, sound, Wi-Fi, dark
   mode, Night Shift, a colour picker and your own buttons.
-- **One edit mode for all three.** "Edit Interface" in Nexus dims the screen
+- **One edit mode for all three.** "Edit Interface" in the menu bar dims the screen
   and opens the dashboard, the control centre and the sidebar together: drag a
   widget, a button or a bar block where you want it, resize a widget by its
   corner, pick new ones from the gallery behind `+`. A slider sets how large
   the dashboard is on this screen. Done keeps the changes, Cancel drops them.
 - **Themes** as one CSS file: colours, gradients, fonts, sizes and even the
   icons for the whole shell, applied the moment you save the file.
-- **Nexus**, the settings app: shortcuts, providers, themes, updates.
+- **Nexus**, the menu bar item: opens everything and holds every setting,
+  with the keyboard shortcuts in a small window of their own.
 - Volume display, notifications for power and audio, a desktop clock and a
   session menu.
 - **Keeps itself up to date** (the `.dmg` build), or says when a new version
@@ -103,9 +105,9 @@ A theme is a CSS file in
 `~/Library/Application Support/ApolloShell/themes`: colours, sizes, fonts and
 gradients as `--apollo-*` tokens, a dark-mode block, and nothing else - no
 scripting, no selectors of your own. A theme folder can bring an `icons/`
-folder along and swap the shell's symbols for its own images. Pick one in **Nexus > Themes**. Saving
+folder along and swap the shell's symbols for its own images. Pick one in the menu bar under **Themes**. Saving
 the file applies it at once, and anything that could not be read falls back
-to the built-in value and is listed on that page. The format and every token
+to the built-in value; hover the theme in that menu to see what. The format and every token
 are in [docs/THEMES.md](docs/THEMES.md).
 
 The same shell, three themes. Colours, fonts, corners, sidebar width and dock
@@ -119,9 +121,10 @@ size all come out of the theme file.
 
 The `.dmg` build keeps itself up to date: it checks once a day in the
 background, downloads a new version when it finds one, and installs it the
-next time the app quits. Nexus also offers **Restart now** as soon as an
-update is waiting, because a shell rarely quits on its own. Both switches are
-on by default and can be turned off in **Nexus > Updates**.
+next time the app quits. The menu bar item also offers **Restart to Update**
+as soon as an update is waiting, because a shell rarely quits on its own.
+Both switches are on by default and can be turned off under **Updates** in
+that menu.
 
 A Homebrew install belongs to Homebrew, so ApolloShell never replaces itself
 there. It says when a new version is out; you install it with:
@@ -132,14 +135,19 @@ brew upgrade apolloshell
 
 ## Shortcuts
 
-| Keys | Opens |
-| --- | --- |
-| ⌥Space | Launcher |
-| ⌃⌥D | Dashboard |
-| ⌃⌥U | Control centre |
-| ⌃⌥, | Nexus |
+Nothing is on a key out of the box: ApolloShell takes no keystrokes until you
+give it some. The introduction offers the launcher one, and **Shortcuts…** in
+the menu bar item sets the rest. It has two presets:
 
-You can change them in Nexus → Keyboard Shortcuts.
+| Opens | Control and Option | Launcher on fn |
+| --- | --- | --- |
+| Launcher | ⌥Space | F20 |
+| Dashboard | ⌃⌥D | ⌃⌥⇧⌘D |
+| Control centre | ⌃⌥U | ⌃⌥⇧⌘U |
+| Nexus menu | ⌃⌥, | ⌃⌥⇧⌘, |
+
+"Launcher on fn" fits Karabiner-Elements turning a tapped fn into F20 and a
+held key into ⌃⌥⇧⌘. Installs from before 0.2 keep the shortcuts they had.
 
 ## Good to know
 
@@ -151,15 +159,15 @@ You can change them in Nexus → Keyboard Shortcuts.
 - *Automation → System Events* is only used to log out, restart and shut down.
 - *Keep awake with the lid closed* needs admin rights once. ApolloShell then
   adds a rule to `/etc/sudoers.d/apolloshell` that allows only
-  `pmset -a disablesleep 1` and `0`. You can remove it in Nexus.
+  `pmset -a disablesleep 1` and `0`. You can remove it from the menu bar item.
 
 **Privacy.** No telemetry, no accounts. The only network traffic is weather:
 the place you picked goes to Open-Meteo, MET Norway or wttr.in. Settings live
 in `~/Library/Application Support/ApolloShell/`. Delete that folder to reset
 everything.
 
-**Apple's Dock.** Nexus → General can hide it while ApolloShell runs. It comes
-back when ApolloShell quits.
+**Apple's Dock.** "Hide Apple's Dock" in the menu bar item hides it while
+ApolloShell runs. It comes back when ApolloShell quits.
 
 **Tiling window managers.** None of ApolloShell's windows is a standard
 window: they carry a subrole of their own, sit on their own window level and

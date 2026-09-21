@@ -61,11 +61,11 @@ repository), the release notes panel (a link to the releases page).
 
 **Files:** new `Sources/ApolloShell/NexusMenu.swift`, `LauncherApp.swift`.
 
-- [ ] `NSStatusItem` with the theme's icon (`ThemedIcon`, fallback an SF
+- [x] `NSStatusItem` with the theme's icon (`ThemedIcon`, fallback an SF
       symbol), built at start, removed again when the setting says so.
-- [ ] The four openers and Quit, wired to the same calls the bar buttons
+- [x] The four openers and Quit, wired to the same calls the bar buttons
       use. No new logic behind them.
-- [ ] Robustness, the way Vorssaint's changelog shows it hurts: the item
+- [x] Robustness, the way Vorssaint's changelog shows it hurts: the item
       keeps its place across restarts (AppKit does that by autosave name),
       it is found again when the menu bar hides itself, and the app never
       ends up with no way in - without the item and without shortcuts,
@@ -75,59 +75,59 @@ repository), the release notes panel (a link to the releases page).
 - [ ] Live on the MacBook: with a full menu bar macOS hides items behind
       the notch. Check that case by hand; it is exactly the one where the
       app would be unreachable.
-- [ ] Setting `menuBar.shown` (default on), in the menu itself.
-- [ ] Commit "Open the shell from the menu bar".
+- [x] Setting `menuBar.shown` (default on), in the menu itself.
+- [x] Commit "Open the shell from the menu bar".
 
 ### Task 2: The settings in the menu
 
 **Files:** `NexusMenu.swift`, `ShellSettingsStore.swift`.
 
-- [ ] The submenus listed above, each reading and writing the same
+- [x] The submenus listed above, each reading and writing the same
       settings the Nexus pages wrote. Check marks follow the store.
-- [ ] Themes: list from `ThemeStore`, "Add theme…" with `NSOpenPanel`,
+- [x] Themes: list from `ThemeStore`, "Add theme…" with `NSOpenPanel`,
       errors as a toast instead of an alert.
-- [ ] Updates: the three items around `UpdateController`; notes open the
+- [x] Updates: the three items around `UpdateController`; notes open the
       releases page in the browser.
-- [ ] Commit "Put the settings of Nexus into its menu".
+- [x] Commit "Put the settings of Nexus into its menu".
 
 ### Task 3: The shortcuts window
 
 **Files:** new `ShortcutsWindow.swift`, `NexusGeneralPages.swift` (the
 recorder moves out of it), `HotKey.swift`.
 
-- [ ] One window, the four recorders, the note about Esc and backspace,
+- [x] One window, the four recorders, the note about Esc and backspace,
       and the two presets - now called what they are: "Launcher on fn"
       and "Control and Option".
-- [ ] `HotKeySettings.firstLaunch` becomes empty; the old set stays as
+- [x] `HotKeySettings.firstLaunch` becomes empty; the old set stays as
       `HotKeySettings.suggested` for the onboarding and the preset menu.
-- [ ] No migration code needed: `ShellSettings` already hands out
+- [x] No migration code needed: `ShellSettings` already hands out
       `.firstLaunch` only when there is no settings file at all, and
       `.existingInstall` otherwise (`c.lenient(.hotKeys) ?? .existingInstall`).
       A test pins that down: a file without `hotKeys` keeps the old four.
-- [ ] Commit "Give the shortcuts a window of their own".
+- [x] Commit "Give the shortcuts a window of their own".
 
 ### Task 4: Pins move into the launcher
 
 **Files:** `LauncherView.swift`, `LauncherModel.swift`, `PinnedList.swift`,
 `NexusLauncherPage.swift` (goes).
 
-- [ ] Right click on an app row: "Pin", "Unpin". The launcher already has
+- [x] Right click on an app row: "Pin", "Unpin". The launcher already has
       that menu (`LauncherController.showMenu`: "Open", then Apple's Dock
       menu or the app's own commands); the two items go into it, they need
       no Accessibility. Pinned rows can be dragged within the pinned block.
-- [ ] Tests for the list operations in Core, as far as they are not there
+- [x] Tests for the list operations in Core, as far as they are not there
       already.
-- [ ] Commit "Pin an app where it stands".
+- [x] Commit "Pin an app where it stands".
 
 ### Task 5: The onboarding offers a shortcut
 
 **Files:** `Onboarding.swift`, `OnboardingModels.swift`.
 
-- [ ] A step after the permissions: "Open the launcher with a key?" with
+- [x] A step after the permissions: "Open the launcher with a key?" with
       the suggestion, a recorder and "Not now". Skipping leaves everything
       empty.
-- [ ] The step says where the shell lives without one: the menu bar item.
-- [ ] Commit "Offer a launcher key instead of taking one".
+- [x] The step says where the shell lives without one: the menu bar item.
+- [x] Commit "Offer a launcher key instead of taking one".
 
 ### Task 6: Nexus goes
 
@@ -138,10 +138,10 @@ recorder moves out of it), `HotKey.swift`.
 `NexusAppChoiceRow.swift`, `NexusOptionsBinding.swift`, `NexusGallery.swift`,
 `NexusBarEditor.swift`, `NexusDashboardPage.swift`, README, CHANGELOG.
 
-- [ ] Delete what nothing calls any more. `NexusGallery.swift` is already
+- [x] Delete what nothing calls any more. `NexusGallery.swift` is already
       dead today (nothing uses `NexusGallerySheet` or `NexusGalleryTile`)
       and can go at any time.
-- [ ] Keep what the edit mode and the render tests still use, moved out of
+- [x] Keep what the edit mode and the render tests still use, moved out of
       the Nexus files and renamed without the prefix:
       - `NexusWidgetOptions.swift`: the edit mode's popovers.
       - From `NexusDashboardPage.swift`: `NexusWeatherModel`,
@@ -151,14 +151,14 @@ recorder moves out of it), `HotKey.swift`.
       - From `NexusBarEditor.swift`: `NexusBarPreview` and
         `NexusBarPreviewModels`, which `RenderMode.swift` renders for the
         image comparison. The page (`NexusBarPage` and its sections) goes.
-- [ ] Before deleting a file: `grep` every type in it across `Sources`
+- [x] Before deleting a file: `grep` every type in it across `Sources`
       and `Tests`; the build alone does not catch a render case that
       quietly drops out.
-- [ ] The hotkey for Nexus becomes the one that opens the menu.
-- [ ] README and CHANGELOG: the settings are in the menu bar, nothing is
+- [x] The hotkey for Nexus becomes the one that opens the menu.
+- [x] README and CHANGELOG: the settings are in the menu bar, nothing is
       on a key out of the box.
-- [ ] Full `./test.sh`, the self-test, render comparison.
-- [ ] Commit "Take Nexus out of the window".
+- [x] Full `./test.sh`, the self-test, render comparison.
+- [x] Commit "Take Nexus out of the window".
 
 ## Live test for Andrin
 
@@ -172,3 +172,32 @@ showed.
 `NexusGeneralPages.swift:68` still has a German "Vorlage laden …" in the
 interface, in a build that says it is English only. It disappears with the
 page, or earlier.
+
+## Done 2026-09-21
+
+Tasks 1-6 built in one go (commits "Open the shell from the menu bar" to
+"Take Nexus out of the window"). What differed from the plan:
+
+- **Weather places for the bar.** The premise "edited in the block's popover
+  since 0.2" was wrong: the bar weather block's popover only had "Show
+  Temperature", weather.json was only editable on the Nexus bar page. The
+  places moved into that popover (`BarWeatherPlacesSection`), written right
+  away as before, not part of the edit mode's working copy.
+- **A second launch** opens the menu (at the pointer when the item is hidden
+  or not on screen) and brings a hidden item back, instead of a shortcuts
+  window with a note. `NexusMenu.open()` also serves the Nexus shortcut and
+  the control centre's settings button.
+- **Toasts** have four events, not five.
+- **Start at Login** went into the menu too (it lived on Nexus > General).
+- **Kept and renamed:** `ShellWindow`, `SymbolTile`, `SettingToggle`,
+  `SystemSettings`, `PlainSearchField` (ShellControls.swift),
+  `WeatherPlacesModel` and its rows (WeatherPlaces.swift), `SearchSheet`,
+  `AppChoiceRow`/`AppPicker`, `BarPreviewModels`. `NexusKeepAwakeSection`
+  went (the menu has the toggle and the rule removal).
+- **Checks:** 848 unit tests green; 23 render samples identical to 6910303;
+  self-test in the VM: the same 7 layout failures as before (1024x768),
+  "A click on Show all toggles it" flaky in the old build too (3 of 4 runs);
+  menu, Bar submenu and Dashboard opener checked in a VM screenshot.
+- **Open:** the notch case on the MacBook (above), drag and drop of pins
+  (synthetic clicks cannot start a drag session), `NexusText` in Core is
+  now only used by its tests.

@@ -144,7 +144,7 @@ enum RenderMode {
         // the sample - `ImageRenderer` draws one fixed moment.
         editor.selectedBarEntryID = editor.bar?.layout.entries.first { $0.kind == .clock }?.id
         let barView = EditableBarContent(editor: editor, layout: editor.bar?.layout ?? BarLayout(),
-                                         context: NexusBarPreviewModels.context, spacing: 8)
+                                         context: BarPreviewModels.context, spacing: 8)
             .environment(\.barPreview, true)
             .environment(\.dashboardRendersForScreenshot, true)
             .padding(.vertical, 10)

@@ -7,11 +7,11 @@ import os
 /// The weather favourites for one widget (0.2: a list of its own per weather
 /// widget, `WidgetOptions.places`) or, with `.file`, for the old shared
 /// weather.json (the migration, the weather tab before 0.2). `read`/`write`
-/// are the sink: `NexusWidgetPlacesSection` (NexusWidgetOptions.swift) brings
-/// its own, which write into exactly that one widget.
+/// are the sink: `WeatherPlacesSection` users bring
+/// their own, which write into exactly that one widget.
 @MainActor
 @Observable
-final class NexusWeatherModel {
+final class WeatherPlacesModel {
     enum SearchState: Equatable {
         /// No search text or too short - nothing is asked.
         case idle
@@ -44,7 +44,7 @@ final class NexusWeatherModel {
 
     /// A sink of its own, the one widget of an editing session, say
     /// (`NexusWidgetPlacesSection`). `write` hands back `false` when it could
-    /// not be written (which shows `NexusSaveWarning`).
+    /// not be written (`saveFailed`).
     init(read: @escaping @MainActor () -> WeatherFavorites, write: @escaping @MainActor (WeatherFavorites) -> Bool) {
         readFavorites = read
         writeFavorites = write
@@ -52,10 +52,10 @@ final class NexusWeatherModel {
         favorites = read()
     }
 
-    /// The file weather.json - before 0.2 the only place, today only read for
-    /// the migration (`Dashboard.init`, `DashboardPages.migrated`).
-    static func file(url: URL?) -> NexusWeatherModel {
-        NexusWeatherModel(
+    /// The file weather.json: the places of the bar's weather block, and the
+    /// seed for weather widgets newly dropped out of the gallery.
+    static func file(url: URL?) -> WeatherPlacesModel {
+        WeatherPlacesModel(
             read: { WeatherFavorites.load(from: ShellFiles.read(url)) },
             write: { new in
                 guard let url else { return true }
@@ -78,8 +78,8 @@ final class NexusWeatherModel {
 
     /// For image samples: a fixed state, never asks the network.
     static func preview(favorites: WeatherFavorites, query: String,
-                        results: [GeocodingPlace], state: SearchState) -> NexusWeatherModel {
-        let model = NexusWeatherModel(preview: ())
+                        results: [GeocodingPlace], state: SearchState) -> WeatherPlacesModel {
+        let model = WeatherPlacesModel(preview: ())
         model.favorites = favorites
         model.query = query
         model.results = results
@@ -87,9 +87,9 @@ final class NexusWeatherModel {
         return model
     }
 
-    /// Read fresh from the sink (opening the Nexus window: the file could have
-    /// changed since; a widget only changes through the running session itself,
-    /// but reading again does no harm there).
+    /// Read fresh from the sink (the file could have changed since; a widget
+    /// only changes through the running session itself, but reading again
+    /// does no harm there).
     func reload() {
         guard live, let readFavorites else { return }
         favorites = readFavorites()
@@ -180,34 +180,8 @@ final class NexusWeatherModel {
     }
 }
 
-/// The global places (weather.json), on Nexus > Bar. They hold for the weather
-/// block of the bar and as the default for weather widgets newly dropped out
-/// of the gallery.
-struct NexusDashboardWeatherSection: View {
-    let model: NexusWeatherModel
-
-    var body: some View {
-        Section {
-            if model.favorites.locations.isEmpty {
-                Text("No favorites yet – search for a place below and add it.")
-                    .foregroundStyle(.secondary)
-            }
-            ForEach(model.favorites.locations) { place in
-                NexusWeatherFavoriteRow(model: model, place: place)
-            }
-            NexusSearchField(prompt: "Search for a Place", text: Binding(get: { model.query }, set: { model.query = $0 }),
-                            busy: model.state == .searching)
-            ForEach(model.results) { place in
-                NexusWeatherSearchRow(model: model, place: place)
-            }
-        } header: {
-            Text("Places for the bar and new weather widgets")
-        }
-    }
-}
-
-struct NexusWeatherFavoriteRow: View {
-    let model: NexusWeatherModel
+struct WeatherFavoriteRow: View {
+    let model: WeatherPlacesModel
     let place: WeatherLocation
 
     var body: some View {
@@ -248,8 +222,8 @@ struct NexusWeatherFavoriteRow: View {
     }
 }
 
-struct NexusWeatherSearchRow: View {
-    let model: NexusWeatherModel
+struct WeatherSearchRow: View {
+    let model: WeatherPlacesModel
     let place: GeocodingPlace
 
     var body: some View {
@@ -279,5 +253,45 @@ struct NexusWeatherSearchRow: View {
             .accessibilityLabel("Add \(place.name) as favorite")
         }
         .contentShape(.rect)
+    }
+}
+
+/// The places of one weather source as rows: the favourites, the search
+/// field, the hits. Shared by a dashboard weather widget (its own places)
+/// and the weather block of the bar (weather.json, which also seeds new
+/// weather widgets) - both in the edit mode's popovers.
+struct WeatherPlacesSection: View {
+    let model: WeatherPlacesModel
+    var title: LocalizedStringKey = "Places"
+
+    var body: some View {
+        Divider()
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+        if model.favorites.locations.isEmpty {
+            Text("No favorites yet – search for a place below and add it.")
+                .foregroundStyle(.secondary)
+        }
+        ForEach(model.favorites.locations) { place in
+            WeatherFavoriteRow(model: model, place: place)
+        }
+        PlainSearchField(prompt: "Search for a Place", text: Binding(get: { model.query }, set: { model.query = $0 }),
+                         busy: model.state == .searching)
+        ForEach(model.results) { place in
+            WeatherSearchRow(model: model, place: place)
+        }
+    }
+}
+
+/// The places of the bar's weather block: weather.json, written right away
+/// like before 0.2 on the Nexus bar page - not part of the edit mode's
+/// working copy, so Cancel does not take them back.
+struct BarWeatherPlacesSection: View {
+    @State private var model = WeatherPlacesModel.file(url: ShellFiles.live.weather)
+
+    var body: some View {
+        WeatherPlacesSection(model: model, title: "Places for the Bar and New Weather Widgets")
+            .onDisappear { model.cancelSearch() }
     }
 }

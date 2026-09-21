@@ -58,9 +58,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settings: ShellSettingsStore?
     /// Global keyboard shortcuts out of settings.json (Nexus > Shortcuts).
     private var hotKeys: HotKeyCenter?
-    /// Settings window (Caelestia: Nexus).
-    private var nexus: Nexus?
-    /// Nexus in the menu bar.
+    /// Nexus: the settings and openers in the menu bar (the window of
+    /// the same name before 0.2).
     private var nexusMenu: NexusMenu?
     /// The keyboard shortcuts, the one setting a menu cannot hold.
     private var shortcutsWindow: ShortcutsWindow?
@@ -136,18 +135,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.updates = updates
         // The Homebrew build looks by itself; Sparkle has a schedule of its
         // own. Without this one would only learn of a new version when
-        // opening Nexus > Updates.
+        // opening the Updates menu.
         updates.checkInBackgroundIfDue()
-        let nexus = Nexus(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions,
-                          updates: updates, themes: themes, shellEditor: shellEditor)
-        self.nexus = nexus
-        // While editing (task 6) the shortcut does nothing: Nexus stands
-        // aside for exactly that reason (`ShellEditor.begin` orders it out),
-        // and the shortcut should not fetch it back.
-        hotKeys.setHandler(.nexus) { [weak nexus, weak shellEditor] in
-            guard shellEditor?.isEditing != true else { return }
-            nexus?.show()
-        }
         // The bars draw their edit surface while the global mode runs, and
         // stand above its scrim for as long as it lasts. The editor goes in
         // on the way in: `Sidebar.init` builds the bars right away.
@@ -175,9 +164,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sidebar.onDashboard = { [weak dashboard] in dashboard?.toggle() }
         sidebar.onDashboardTab = { [weak dashboard] tab in dashboard?.show(tab: tab) }
         hotKeys.setHandler(.dashboard) { [weak dashboard] in dashboard?.toggle() }
-        // Weather without a place: the note in the dashboard opens Nexus
-        // right at weather (Nexus > Dashboard).
-        dashboard.onOpenNexus { [weak nexus] in nexus?.show(page: .bar) }
+        // Weather without a place: the note in the dashboard starts the
+        // edit mode, where the weather widget's popover holds its places.
+        dashboard.onSetLocation { [weak self] in self?.beginEditing() }
         let utilities = UtilitiesPanel(settings: settings, editor: shellEditor)
         self.utilities = utilities
         let editModeWindows = EditModeWindows(editor: shellEditor)
@@ -185,11 +174,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         editModeWindows.utilitiesFrame = { [weak utilities] in utilities?.openFrame }
         editModeWindows.dashboardFrame = { [weak dashboard] in dashboard?.openFrame }
         sidebar.onUtilities = { [weak utilities] in utilities?.toggle() }
-        // Caelestia: the settings button of the utilities opens Nexus.
-        utilities.onOpenSettings = { [weak nexus] in nexus?.show() }
+        // Caelestia: the settings button of the utilities opens Nexus - the
+        // menu, since 0.2.
+        utilities.onOpenSettings = { [weak self] in self?.nexusMenu?.open() }
         hotKeys.setHandler(.utilities) { [weak utilities] in utilities?.toggle() }
-        // All handlers set: register now (and match up again on changes in
-        // Nexus).
+        shortcutsWindow = ShortcutsWindow(settings: settings, hotKeys: hotKeys)
+        // The menu bar item calls the same parts the bar buttons call.
+        let nexusMenu = NexusMenu(settings: settings, themes: themes, actions: NexusMenu.Actions(
+            dashboard: { [weak dashboard] in dashboard?.toggle() },
+            utilities: { [weak utilities] in utilities?.toggle() },
+            launcher: { [weak controller] in controller?.toggle() },
+            editInterface: { [weak self] in self?.beginEditing() },
+            shortcuts: { [weak self] in self?.shortcutsWindow?.show() },
+            isEditing: { [weak shellEditor] in shellEditor?.isEditing ?? false }
+        ), settingsMenu: NexusMenuSettings(settings: settings, themes: themes, updates: updates, autostart: autostart) {
+            [weak self] title, message in self?.toaster?.toast(title: title, message: message, kind: .error)
+        })
+        self.nexusMenu = nexusMenu
+        // The Nexus shortcut opens the menu. While editing it does nothing,
+        // like the openers in the menu stay greyed out then.
+        hotKeys.setHandler(.nexus) { [weak nexusMenu, weak shellEditor] in
+            guard shellEditor?.isEditing != true else { return }
+            nexusMenu?.open()
+        }
+        // All handlers set: register now (and match up again on every
+        // change to the shortcuts).
         hotKeys.start()
         // Toasts: charger, battery warning levels, audio devices. None on
         // the start - only changes after it.
@@ -208,26 +217,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             toastWindow?.utilitiesHeight = height
             editModeWindows?.utilitiesHeightChanged()
         }
-        shortcutsWindow = ShortcutsWindow(settings: settings, hotKeys: hotKeys)
-        // The menu bar item calls the same parts the bar buttons call.
-        nexusMenu = NexusMenu(settings: settings, themes: themes, actions: NexusMenu.Actions(
-            dashboard: { [weak dashboard] in dashboard?.toggle() },
-            utilities: { [weak utilities] in utilities?.toggle() },
-            launcher: { [weak controller] in controller?.toggle() },
-            editInterface: { [weak nexus, weak shellEditor] in
-                // An open Nexus steps aside itself and comes back after.
-                if let nexus, nexus.isVisible {
-                    nexus.beginEditing()
-                } else if let screen = ShellScreens.underPointer()?.screen ?? NSScreen.main {
-                    shellEditor?.begin(screen: screen)
-                }
-            },
-            settings: { [weak nexus] in nexus?.show() },
-            shortcuts: { [weak self] in self?.shortcutsWindow?.show() },
-            isEditing: { [weak shellEditor] in shellEditor?.isEditing ?? false }
-        ), settingsMenu: NexusMenuSettings(settings: settings, themes: themes, updates: updates, autostart: autostart) {
-            [weak toaster] title, message in toaster?.toast(title: title, message: message, kind: .error)
-        })
         powerToasts = ToastPowerMonitor(toaster: toaster, settings: settings)
         audioToasts = ToastAudioMonitor(toaster: toaster, settings: settings)
 
@@ -261,21 +250,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let onboarding = Onboarding(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions)
         self.onboarding = onboarding
-        nexus.onShowOnboarding = { [weak onboarding] in onboarding?.show() }
-        nexusMenu?.actions.introduction = { [weak onboarding] in onboarding?.show() }
+        nexusMenu.actions.introduction = { [weak onboarding] in onboarding?.show() }
         if showOnboarding { onboarding.show() }
     }
 
-    /// ApolloShell opened a second time: show Nexus (and the menu bar item,
-    /// if it was hidden), or the launcher in launcher-only mode (no Nexus).
+    /// ApolloShell opened a second time: the menu bar item comes back if it
+    /// was hidden, and its menu opens - the way in for whoever has neither
+    /// the item nor a shortcut. In launcher-only mode (no menu) the launcher.
     private func showAfterSecondLaunch() {
-        // Whoever hid the menu bar item gets it back this way.
-        nexusMenu?.reveal()
-        if let nexus {
-            nexus.show()
+        if let nexusMenu {
+            nexusMenu.reveal()
+            nexusMenu.open()
         } else {
             controller?.toggle()
         }
+    }
+
+    /// "Edit Interface" from the menu, and "Set Location" in a dashboard
+    /// weather without a place: the global edit mode on the screen under
+    /// the pointer.
+    private func beginEditing() {
+        guard let shellEditor, let screen = ShellScreens.underPointer()?.screen ?? NSScreen.main else { return }
+        shellEditor.begin(screen: screen)
     }
 
     func applicationWillTerminate(_ notification: Notification) {

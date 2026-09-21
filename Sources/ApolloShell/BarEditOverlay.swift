@@ -243,7 +243,7 @@ struct BarBlockOptionsView: View {
                 LabeledContent("Height", value: "\(Int(options.height)) pt")
             }
         case .appButton(let options):
-            NexusAppChoiceRow(bundleID: options.bundleID) { id in
+            AppChoiceRow(bundleID: options.bundleID) { id in
                 editor.updateBarModule(entry.id, to: .appButton(.init(bundleID: id)))
             }
         case .battery(let options):
@@ -258,6 +258,7 @@ struct BarBlockOptionsView: View {
             Toggle("Show Temperature", isOn: binding(options.showTemperature) {
                 .weather(.init(showTemperature: $0))
             })
+            BarWeatherPlacesSection()
         case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton:
             Text("Nothing to set.")
                 .font(.callout)

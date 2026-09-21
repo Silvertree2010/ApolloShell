@@ -60,7 +60,7 @@ struct SmallWeatherCard: View {
     }
 
     private var helpText: String {
-        guard let location = model.location else { return "Set Location in Nexus" }
+        guard let location = model.location else { return "Set a Location under Edit Interface" }
         guard model.report != nil else { return "Weather in \(location.name)" }
         return "Wetter in \(location.name) · \(model.attribution.text)"
     }
@@ -92,7 +92,7 @@ struct SmallWeatherCard: View {
         } else if model.location == nil {
             WeatherSymbol(name: "location.slash", size: 40, placeholder: true)
             VStack(alignment: alignment, spacing: 2) {
-                Button("Set Location in Nexus") { model.onOpenNexus() }
+                Button("Set Location…") { model.onSetLocation() }
                     .buttonStyle(.plain)
                     .font(style.font(size: 12, weight: .semibold))
                     .foregroundStyle(style.accent)

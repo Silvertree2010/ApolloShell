@@ -36,8 +36,8 @@ final class ShortcutsWindow: NSObject, NSWindowDelegate {
     }
 
     private func makeWindow() -> NSWindow {
-        // NexusWindow: knows ⌘W without a menu bar.
-        let window = NexusWindow(
+        // ShellWindow: knows ⌘W without a menu bar.
+        let window = ShellWindow(
             contentRect: NSRect(origin: .zero, size: Self.size),
             styleMask: [.titled, .closable],
             backing: .buffered,

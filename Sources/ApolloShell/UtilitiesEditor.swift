@@ -1,62 +1,6 @@
 import ApolloShellCore
 import SwiftUI
 
-// MARK: - Keep Awake (Nexus > General)
-
-/// “Keep Awake with the lid closed” - earlier on Nexus > Quick Actions (the
-/// control centre since 0.2), since
-/// the global edit mode on Nexus > General (the quick actions page had only
-/// this switch left). Deliberately not in the popover of the card in the edit
-/// mode: the switch puts down a system rule with an administrator prompt right
-/// away and could not be taken back with “Cancel”.
-struct NexusKeepAwakeSection: View {
-    @Bindable var store: ShellSettingsStore
-    /// Does the rule without a password for the lid part lie on this Mac?
-    @State private var lidRuleInstalled = false
-    @State private var removingLidRule = false
-
-    /// The lid part needs root (pmset disablesleep). On the first switch-on
-    /// macOS asks once for an administrator and puts down the rule without a
-    /// password while doing so - one should be able to read that beforehand,
-    /// and one should be able to get rid of it here again.
-    var body: some View {
-        Section {
-            NexusToggle(title: "Also With the Lid Closed",
-                        subtitle: "While “Keep Awake” is on, the Mac won't sleep even with the lid closed",
-                        isOn: $store.settings.keepAwake.lidClosed)
-            if lidRuleInstalled {
-                LabeledContent {
-                    Button("Remove…") { removeLidRule() }
-                        .disabled(removingLidRule)
-                } label: {
-                    Text("Password-Free Rule")
-                    Text("Allows only switching this sleep setting without a password")
-                }
-            }
-        } header: {
-            Text("Keep Awake")
-        } footer: {
-            Text("Needs administrator rights once: the first time you turn it on, macOS asks for your password and ApolloShell adds a rule that allows only switching this sleep setting without a password. After that, nothing asks again. Declining leaves “Keep Awake” working only with the lid open. On battery it ends on its own at \(LidAwake.batteryFloor)%.")
-        }
-        // The rule comes about in the background as soon as the prompt is
-        // answered; while the page is open, look every 2 s (one stat).
-        .task {
-            while !Task.isCancelled {
-                lidRuleInstalled = LidAwakeRule.isInstalled
-                try? await Task.sleep(for: .seconds(2))
-            }
-        }
-    }
-
-    private func removeLidRule() {
-        removingLidRule = true
-        LidAwakeRule.remove { _ in
-            removingLidRule = false
-            lidRuleInstalled = LidAwakeRule.isInstalled
-        }
-    }
-}
-
 // MARK: - Preview model
 
 /// A fixed model that reads nothing and switches nothing - up to task 7 for
@@ -127,7 +71,7 @@ extension UtilitiesToggleGroup {
     }
 }
 
-/// A colored tile like `NexusTile`, but with the glyph of the button (the
+/// A colored tile like `SymbolTile`, but with the glyph of the button (the
 /// Bluetooth rune and the app symbol too) - in the options popover
 /// (`UtilitiesEditOverlay.swift`). Up to task 7 it was needed in Nexus' old
 /// grid and its gallery as well.

@@ -371,7 +371,7 @@ struct UtilitiesToggleOptionsView: View {
                 update(.runShortcut(with(shortcut) { $0.symbol = symbol }))
             }
         case .hideApps(let options):
-            NexusToggle(title: "Leave Frontmost App", subtitle: "Like ⌥⌘H: only hide the others",
+            SettingToggle(title: "Leave Frontmost App", subtitle: "Like ⌥⌘H: only hide the others",
                         isOn: Binding(get: { options.keepFrontmost },
                                       set: { on in update(.hideApps(.init(keepFrontmost: on))) }))
         default:
@@ -381,7 +381,7 @@ struct UtilitiesToggleOptionsView: View {
     }
 
     private func appRow(_ app: UtilitiesAppOptions) -> some View {
-        NexusAppChoiceRow(bundleID: app.bundleID) { id in
+        AppChoiceRow(bundleID: app.bundleID) { id in
             update(.openApp(with(app) { $0.bundleID = id }))
         }
     }

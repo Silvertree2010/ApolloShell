@@ -3,7 +3,8 @@ import Foundation
 // Reorder a list like SwiftUI's `onMove`: `destination` counts in the
 // list BEFORE the move ("insert before row n"). So far six times
 // verbatim (BarLayout, DashboardLayout, UtilitiesLayout, PinnedList,
-// Weather, NexusLauncherPage) - now one version for every list.
+// Weather, the pinned apps page of the former Nexus window) - now one
+// version for every list.
 public extension Array {
     mutating func move(fromOffsets source: IndexSet, toOffset destination: Int) {
         let valid = source.filter { indices.contains($0) }

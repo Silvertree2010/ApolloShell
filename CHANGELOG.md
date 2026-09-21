@@ -19,6 +19,18 @@ tabs you had into pages, with the cards at the same spots. The old
   delete them; "Restore default pages" brings back a deleted one.
 - **Widgets can go anywhere on a page**, in the sizes the dashboard already
   had, and the same widget can appear more than once.
+- **Nexus lives in the menu bar.** Its icon opens the dashboard, the control
+  centre, the launcher and the edit mode, and holds every setting as a
+  submenu: bar screens and background, themes, toasts, weather provider,
+  file manager, desktop clock, hiding Apple's Dock, Keep Awake with the lid
+  closed, start at login and updates. It works in full screen and on a
+  screen without a bar. Hide it from its own menu; opening ApolloShell again
+  brings it back.
+- **Shortcuts get a window of their own** (Shortcuts… in the menu), with two
+  presets: Control and Option (⌥Space, ⌃⌥D, ⌃⌥U, ⌃⌥,) and Launcher on fn
+  (F20 and Hyper).
+- **Pin an app where it stands.** Right-click a row in the launcher to pin or
+  unpin it; drag pinned rows to reorder them.
 - **One edit mode for the whole shell.** "Edit Interface" in Nexus dims
   every screen and opens the dashboard and the control centre for editing.
   Widgets and quick toggles wobble, `−` removes one, the corner handle
@@ -46,14 +58,22 @@ tabs you had into pages, with the cards at the same spots. The old
 - **The dashboard asks the disk every 20 seconds, not every second.** Reading
   the boot volume is a synchronous trip to the file system, and it was the
   most expensive thing in the per-second refresh.
-- **Nexus keeps settings, not layouts.** Keep Awake with the lid closed moved
-  to General, the weather places for the bar moved to Bar.
+- **Nothing is on a shortcut out of the box.** A fresh install binds no keys;
+  the introduction offers the launcher one, and everything else is set in
+  the shortcuts window. Installs that already have shortcuts keep them.
+- **The weather places for the bar** are edited in the weather block's
+  popover in the edit mode.
+- **"Set Location"** in a weather widget without a place starts the edit
+  mode, where the widget's popover holds its places.
 
 ### Removed
 
-- **The block list of Nexus > Bar** with its presets. The page keeps what is
-  a setting: which screens the bar stands on, its background and the weather
-  places.
+- **The Nexus window.** Its settings are in the menu bar item, the shortcuts
+  in their own window, the pinned apps in the launcher. The System page (links
+  into System Settings, chip, OS, uptime) and the About page go without
+  replacement; "Open System Settings" and "About ApolloShell" stay in the
+  menu.
+- **The block list of Nexus > Bar** with its presets.
 - **Nexus' Dashboard and Quick Actions pages** with their editors and
   templates (dashboard: Caelestia, Compact, Calendar & Weather; control
   centre: Standard, Minimal, Sound & Devices, Everything). The edit mode and

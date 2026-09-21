@@ -258,7 +258,7 @@ struct BarAppButton: View {
 
     var body: some View {
         let info = BarApps.info(for: bundleID)
-        SidebarIcon(help: info.map { String(localized: "Open \($0.name)") } ?? String(localized: "No app chosen (Nexus > Bar)"),
+        SidebarIcon(help: info.map { String(localized: "Open \($0.name)") } ?? String(localized: "No app chosen (Edit Interface)"),
                     action: { if info != nil { onOpen(bundleID) } }) {
             if let info {
                 Image(nsImage: info.icon)
@@ -362,7 +362,7 @@ struct BarWeatherModule: View {
         BarTile(help: model.location.map { location in
                     current.map { String(localized: "\(WeatherCondition.description(code: $0.code)) in \(location.name)") }
                         ?? String(localized: "Weather in \(location.name)")
-                } ?? String(localized: "Set Location in Nexus"),
+                } ?? String(localized: "Set a Location under Edit Interface"),
                 action: onOpen) {
             VStack(spacing: 2) {
                 if let current {

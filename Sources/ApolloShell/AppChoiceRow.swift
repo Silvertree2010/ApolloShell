@@ -7,8 +7,8 @@ import SwiftUI
 // button).
 
 /// Row "chosen app, or a hint, plus a choose-app button". Opens
-/// `NexusBarAppPicker` and reports the chosen bundle ID back.
-struct NexusAppChoiceRow: View {
+/// `AppPicker` and reports the chosen bundle ID back.
+struct AppChoiceRow: View {
     let bundleID: String
     let onPick: (String) -> Void
     @State private var picksApp = false
@@ -30,7 +30,7 @@ struct NexusAppChoiceRow: View {
             Button("Choose App…") { picksApp = true }
         }
         .sheet(isPresented: $picksApp) {
-            NexusBarAppPicker(current: bundleID, onPick: { id in
+            AppPicker(current: bundleID, onPick: { id in
                 onPick(id)
                 picksApp = false
             }, onCancel: { picksApp = false })
@@ -42,7 +42,7 @@ struct NexusAppChoiceRow: View {
 
 /// Installed apps with search (fuzzy like in the launcher). Read on open,
 /// the same as the launcher does on every open (a few ms).
-struct NexusBarAppPicker: View {
+struct AppPicker: View {
     let current: String
     let onPick: (String) -> Void
     let onCancel: () -> Void
@@ -73,7 +73,7 @@ struct NexusBarAppPicker: View {
     }
 
     var body: some View {
-        NexusSearchSheet(title: "Choose App", subtitle: nil, searchPrompt: "Search Apps",
+        SearchSheet(title: "Choose App", subtitle: nil, searchPrompt: "Search Apps",
                          query: $query, onCancel: onCancel) {
             List(results, id: \.url) { app in
                 Button {

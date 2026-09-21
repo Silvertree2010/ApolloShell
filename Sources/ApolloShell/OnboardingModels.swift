@@ -63,7 +63,7 @@ final class OnboardingPermissions {
             // The value of kAXTrustedCheckOptionPrompt (see WindowGuard).
             _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
         }
-        NexusSystemSettings.open(.accessibility)
+        SystemSettings.open(.accessibility)
     }
 }
 
@@ -152,7 +152,7 @@ struct OnboardingAutostartToggle: View {
 
     var body: some View {
         let state = model.state
-        // A row of its own instead of NexusToggle: outside a Form (the
+        // A row of its own instead of SettingToggle: outside a Form (the
         // introduction) the switch would sit right at the text, not at the edge.
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
@@ -224,7 +224,7 @@ struct OnboardingPermissionRow<Status: View>: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            NexusTile(symbol: symbol, tint: tint, size: 28)
+            SymbolTile(symbol: symbol, tint: tint, size: 28)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .fontWeight(.medium)
