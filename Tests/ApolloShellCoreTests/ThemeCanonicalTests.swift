@@ -65,6 +65,20 @@ struct ThemeCanonicalTests {
             == ":root {\n  --apollo-theme-name: \"Say hi\";\n}\n")
     }
 
+    @Test("CSS inside a text stays text, also after a round trip")
+    func textCannotInject() throws {
+        let hostile = "a; --apollo-accent-color: #000000; } /* x"
+        let css = try #require(canonical(":root { --apollo-theme-name: \"\(hostile)\"; }"))
+        let again = Theme.make(identifier: "t", styleSheet: ThemeStyleSheetParser.parse(css))
+        #expect(again.title == hostile)
+        #expect(again.value(ThemeColorToken.accent) == nil)
+    }
+
+    @Test("format characters such as a right-to-left override are dropped")
+    func dropsFormatCharacters() {
+        #expect(ThemeCanonical.cleanText("abc\u{202E}def\u{200B}") == "abcdef")
+    }
+
     @Test("a theme with files is refused, one without tokens too")
     func refusals() {
         // A folder theme: its files resolve.
