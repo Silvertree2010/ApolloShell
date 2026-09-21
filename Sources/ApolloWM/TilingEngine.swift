@@ -50,6 +50,10 @@ public final class TilingEngine {
     /// When the shown desktop last changed. Windows ignore moves while macOS
     /// animates a desktop switch, so nothing is learned right after one.
     private var lastSpaceSwitch: CFTimeInterval = 0
+
+    /// True for a moment after a desktop switch, while macOS still animates
+    /// it and the new desktop's windows may not be on screen yet.
+    public var isSwitchingSpace: Bool { CACurrentMediaTime() - lastSpaceSwitch < 1 }
     private var fitCheck: DispatchWorkItem?
 
     /// Layout of the shown desktop.

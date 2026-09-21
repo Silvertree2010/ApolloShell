@@ -105,7 +105,7 @@ public final class WindowWatcher {
     }
 
     private func reconcileSoon() {
-        for delay in [0.05, 0.25, 0.8] {
+        for delay in [0.05, 0.25, 0.8, 1.2] {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 MainActor.assumeIsolated { self?.reconcile() }
             }
@@ -125,15 +125,27 @@ public final class WindowWatcher {
             }
         }
 
-        for (id, window) in engine.windows where !foundIDs.contains(id) {
-            // Not on screen right now. Only drop it when it is really gone;
-            // a window on another desktop stays valid and keeps its tile there.
+        for (id, window) in engine.windows where !foundIDs.contains(id) && id != engine.dragging {
+            // Not on screen. It keeps its tile only while it lives on another
+            // desktop. Apps like WhatsApp or System Settings keep closed
+            // windows alive but invisible; those must not hold a tile.
+            let space = Spaces.of(id)
+            let elsewhere = space != nil && space != engine.space
             let element = window.element
-            let gone = window.position == nil
-                || element.bool(kAXMinimizedAttribute) == true
-                || AXUIElementCreateApplication(window.pid).bool(kAXHiddenAttribute) == true
-            if gone {
-                log("closed: \(window.title.isEmpty ? "\(id)" : window.title)")
+            let reason: String?
+            if window.position == nil {
+                reason = "closed"
+            } else if element.bool(kAXMinimizedAttribute) == true {
+                reason = "minimized"
+            } else if AXUIElementCreateApplication(window.pid).bool(kAXHiddenAttribute) == true {
+                reason = "app hidden"
+            } else if !elsewhere && !engine.isSwitchingSpace {
+                reason = "not visible"
+            } else {
+                reason = nil
+            }
+            if let reason {
+                log("\(reason): \(window.title.isEmpty ? "\(id)" : window.title)")
                 engine.remove(id)
             }
         }
