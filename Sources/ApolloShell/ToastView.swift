@@ -47,14 +47,23 @@ enum ToastPalette {
         }
     }
 
+    /// The neutral tile ("Info") takes the toast's text colour when the
+    /// theme sets one: a theme may make the toast light on a dark Mac (Clay
+    /// does), and `.primary`/`.secondary` would still follow the system -
+    /// white on the light toast, gone (21.09.).
     static func chip(_ kind: ToastKind, _ style: ShellStyle = .standard) -> AnyShapeStyle {
-        accent(kind, style).map { AnyShapeStyle($0) } ?? AnyShapeStyle(Color.primary.opacity(0.10))
+        if let accent = accent(kind, style) { return AnyShapeStyle(accent) }
+        return AnyShapeStyle((style.color(.toastText) ?? Color.primary).opacity(0.10))
     }
 
     /// Without a theme white on the colored tile, as before; with a theme the
-    /// text color on accent areas out of the theme.
+    /// text color on accent areas out of the theme. The neutral one: the
+    /// toast's text colour, softened, for the same reason as `chip`.
     static func symbol(_ kind: ToastKind, _ style: ShellStyle = .standard) -> AnyShapeStyle {
-        guard accent(kind, style) != nil else { return AnyShapeStyle(.secondary) }
+        guard accent(kind, style) != nil else {
+            if let text = style.color(.toastText) { return AnyShapeStyle(text.opacity(0.7)) }
+            return AnyShapeStyle(.secondary)
+        }
         return AnyShapeStyle(style.color(.onAccent) ?? Color.white)
     }
 
@@ -65,7 +74,7 @@ enum ToastPalette {
 
     /// A 1 pt border in the color of the kind, 30 % (Caelestia: `Qt.alpha(..., 0.3)`).
     static func border(_ kind: ToastKind, _ style: ShellStyle = .standard) -> Color {
-        accent(kind, style)?.opacity(0.3) ?? Color.primary.opacity(0.08)
+        accent(kind, style)?.opacity(0.3) ?? (style.color(.toastText) ?? Color.primary).opacity(0.08)
     }
 }
 
