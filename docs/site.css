@@ -418,6 +418,16 @@ h1 {
 .links a:hover {
   color: var(--gold-bright);
 }
+.links.policies {
+  margin-top: -14px;
+  font-size: 16px;
+}
+.links.policies a {
+  color: var(--marble-faint);
+}
+.links.policies a:hover {
+  color: var(--gold-bright);
+}
 .legal {
   color: var(--marble-faint);
   font-size: 15px;
@@ -504,4 +514,52 @@ h1 {
   .skip {
     transition: none;
   }
+}
+.doc-page {
+  max-width: 38rem;
+  margin: 0 auto;
+  padding: clamp(48px, 10svh, 112px) var(--gutter) 96px;
+}
+.doc-back {
+  display: inline-block;
+  margin-bottom: 40px;
+  color: var(--marble-dim);
+  font-size: 17px;
+  text-decoration: none;
+}
+.doc-back::before {
+  content: "← ";
+}
+.doc-page h1 {
+  font-size: clamp(40px, 6vw, 60px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.doc-page h2 {
+  margin-top: 44px;
+  font-size: 26px;
+  line-height: 1.2;
+}
+.doc-page p,
+.doc-page ul {
+  margin-top: 14px;
+  color: var(--marble-dim);
+}
+.doc-page ul {
+  padding-left: 1.2em;
+}
+.doc-page li + li {
+  margin-top: 8px;
+}
+.doc-page strong {
+  color: var(--marble);
+  font-weight: 600;
+}
+.doc-page code {
+  font-size: 0.8em;
+}
+.doc-page .doc-date {
+  margin-top: 12px;
+  color: var(--marble-faint);
+  font-size: 16px;
 }
