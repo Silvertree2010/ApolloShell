@@ -16,6 +16,7 @@ final class MarketplaceStore {
     /// Where the device flow stands while signing in.
     enum SignIn: Equatable {
         case idle
+        case starting
         case waiting(GitHubDeviceFlow.Code)
         case failed(String)
     }
@@ -139,15 +140,24 @@ final class MarketplaceStore {
     // MARK: Account
 
     func startSignIn() {
+        // One sign-in at a time; a second click while waiting changes nothing.
+        switch signIn {
+        case .starting, .waiting: return
+        case .idle, .failed: break
+        }
         signInTask?.cancel()
+        signIn = .starting
         signInTask = Task { [weak self] in
             guard let self else { return }
             do {
                 let code = try await flow.start()
+                guard !Task.isCancelled else { return }
                 signIn = .waiting(code)
                 NSWorkspace.shared.open(code.verificationURL)
                 await poll(code)
             } catch {
+                // A cancelled attempt must not overwrite the one after it.
+                guard !Task.isCancelled else { return }
                 signIn = .failed(error.localizedDescription)
             }
         }
@@ -177,6 +187,7 @@ final class MarketplaceStore {
                 signIn = .failed(String(localized: "Sign-in was cancelled on GitHub."))
                 return
             case let .failed(message):
+                if Task.isCancelled { return }
                 signIn = .failed(message)
                 return
             }
@@ -185,6 +196,7 @@ final class MarketplaceStore {
     }
 
     private func finishSignIn(gitHubToken: String) async {
+        signIn = .starting
         do {
             let result = try await client.signIn(gitHubToken: gitHubToken)
             MarketplaceKeychain.save(result.session)

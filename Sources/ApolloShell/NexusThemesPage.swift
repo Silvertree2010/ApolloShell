@@ -12,8 +12,6 @@ struct NexusThemesPage: View {
     @Bindable var store: ShellSettingsStore
     let themes: ThemeStore?
     @State private var importError: String?
-    @State private var marketplace: MarketplaceStore?
-    @State private var showsMarketplace = false
 
     var body: some View {
         NexusPageForm(page: .themes) {
@@ -83,19 +81,11 @@ struct NexusThemesPage: View {
         }
 
         Section {
-            Button("Open Marketplace…") {
-                if marketplace == nil { marketplace = MarketplaceStore(themeStore: themes) }
-                showsMarketplace = true
-            }
+            Button("Open Marketplace…") { MarketplaceWindow.shared.show(themes: themes) }
         } header: {
             Text("Marketplace")
         } footer: {
             Text("Themes made by others, ready to use. Share your own there too.")
-        }
-        .sheet(isPresented: $showsMarketplace) {
-            if let marketplace {
-                MarketplaceView(store: marketplace, themes: themes)
-            }
         }
 
         Section {

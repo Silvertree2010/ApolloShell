@@ -1,12 +1,12 @@
 import ApolloShellCore
 import SwiftUI
 
-/// The Marketplace sheet behind Nexus > Themes: browse and install themes,
+/// The Marketplace window behind Nexus > Themes: browse and install themes,
 /// sign in with GitHub, submit your own, and - for the admin - review.
 struct MarketplaceView: View {
-    @State var store: MarketplaceStore
+    let store: MarketplaceStore
     let themes: ThemeStore
-    @Environment(\.dismiss) private var dismiss
+    let close: () -> Void
     @Environment(\.colorScheme) private var colorScheme
 
     enum Tab: Hashable { case browse, mine, review }
@@ -28,7 +28,7 @@ struct MarketplaceView: View {
             Divider()
             footer
         }
-        .frame(width: 760, height: 580)
+        .frame(minWidth: 640, minHeight: 480)
         .task { await store.refresh() }
         .sheet(item: $detail) { theme in
             MarketplaceDetailView(store: store, theme: theme)
@@ -73,7 +73,7 @@ struct MarketplaceView: View {
             Link("Terms", destination: URL(string: "https://silvertree2010.github.io/ApolloShell/terms.html")!)
             Link("Privacy", destination: URL(string: "https://silvertree2010.github.io/ApolloShell/privacy.html")!)
             Spacer()
-            Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
+            Button("Done", action: close).keyboardShortcut(.defaultAction)
         }
         .font(.callout)
         .padding(12)
@@ -250,6 +250,11 @@ struct MarketplaceSignInButton: View {
             Button("Sign in with GitHub") { store.startSignIn() }
                 .disabled(!store.signInAvailable)
                 .help(store.signInAvailable ? "" : "Sign-in is not set up in this build yet.")
+        case .starting:
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Connecting to GitHub…").foregroundStyle(.secondary)
+            }
         case let .waiting(code):
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
@@ -263,7 +268,7 @@ struct MarketplaceSignInButton: View {
             }
         case let .failed(message):
             HStack(spacing: 8) {
-                Text(message).foregroundStyle(.secondary).lineLimit(1)
+                Text(message).foregroundStyle(.secondary).lineLimit(2).frame(maxWidth: 320)
                 Button("Try again") { store.startSignIn() }
             }
         }
@@ -444,7 +449,9 @@ private struct MarketplaceReviewView: View {
                                 Button("Reject…") { ask(item, .reject) }
                                 Button("Hide…") { ask(item, .hide) }
                             }
-                            Button("Ban author…", role: .destructive) { ask(item, .ban) }
+                            if item.ownerID != store.user?.id {
+                                Button("Ban author…", role: .destructive) { ask(item, .ban) }
+                            }
                         }
                         .padding(.top, 4)
                     }

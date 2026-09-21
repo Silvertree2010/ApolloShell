@@ -199,6 +199,9 @@ public struct MarketplaceClient: Sendable {
     public func request(_ method: String, _ path: String, body: [String: String]? = nil) -> URLRequest {
         var request = URLRequest(url: baseURL.appendingPathComponent("api/v1/" + path), timeoutInterval: 20)
         request.httpMethod = method
+        // The edge caches the public list; the app always asks fresh, or
+        // an approved or updated theme would stay invisible for a minute.
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("ApolloShell", forHTTPHeaderField: "User-Agent")
         if let session { request.setValue("Bearer \(session)", forHTTPHeaderField: "Authorization") }

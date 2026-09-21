@@ -35,6 +35,7 @@ struct MarketplaceClientTests {
         #expect(themes.map(\.name) == ["Dusk"])
         #expect(server.requests.first?.url?.absoluteString == "https://market.test/api/v1/themes")
         #expect(server.requests.first?.value(forHTTPHeaderField: "Authorization") == nil)
+        #expect(server.requests.first?.cachePolicy == .reloadIgnoringLocalCacheData)
     }
 
     @Test("sends the session as a bearer token and the css as JSON")
