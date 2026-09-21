@@ -54,7 +54,8 @@ app.setActivationPolicy(.accessory)
 guard let area = WindowDiscovery.mainArea() else { print("no display"); exit(1) }
 var found = WindowDiscovery.tileableWindows(in: area)
 if let max = option("--max").flatMap(Int.init) { found = Array(found.prefix(max)) }
-guard !found.isEmpty else { print("no windows to tile on the main display"); exit(1) }
+// Bench needs windows; run mode starts empty and picks windows up as they appear.
+guard !found.isEmpty || mode == "run" else { print("no windows to tile on the main display"); exit(1) }
 
 print("area \(area)")
 for w in found {
