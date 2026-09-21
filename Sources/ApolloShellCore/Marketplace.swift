@@ -76,6 +76,8 @@ public struct MarketReport: Codable, Equatable, Sendable {
 
 public struct MarketQueueItem: Codable, Equatable, Identifiable, Sendable {
     public let theme: MarketOwnTheme
+    /// GitHub id of the author, for banning.
+    public let ownerID: String?
     public let reports: [MarketReport]
     public let previousCSS: String?
     public var id: String { "\(theme.id)-\(theme.version)" }
@@ -342,6 +344,11 @@ public struct MarketInstallIndex: Codable, Equatable, Sendable {
     public struct Entry: Codable, Equatable, Sendable {
         public var fileName: String
         public var version: Int
+
+        public init(fileName: String, version: Int) {
+            self.fileName = fileName
+            self.version = version
+        }
     }
 
     public var entries: [String: Entry] = [:]
