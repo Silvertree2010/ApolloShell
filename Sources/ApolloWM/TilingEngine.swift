@@ -277,8 +277,13 @@ public final class TilingEngine {
         layouts[desk].freezeDirections(in: area, gaps: options.gaps)
         let frames = targetFrames()
         let held = [dragging, resizing]
-        for id in springs.keys where frames[id] == nil || held.contains(id) { springs[id] = nil }
-        for (id, rect) in frames where !held.contains(id) {
+        // Windows of a restored layout that were not seen yet (their desktop
+        // was never shown) get no spring: a spring made up at the target
+        // would never move the real window there.
+        for id in springs.keys where frames[id] == nil || held.contains(id) || windows[id] == nil {
+            springs[id] = nil
+        }
+        for (id, rect) in frames where !held.contains(id) && windows[id] != nil {
             springs[id, default: AnimatedRect(windows[id]?.frame ?? rect)].target = rect
         }
         startProxies()
