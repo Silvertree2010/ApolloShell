@@ -69,7 +69,12 @@ repository), the release notes panel (a link to the releases page).
       keeps its place across restarts (AppKit does that by autosave name),
       it is found again when the menu bar hides itself, and the app never
       ends up with no way in - without the item and without shortcuts,
-      opening the app again shows it.
+      opening the app again (Finder, Spotlight, `open -a`) brings up the
+      shortcuts window with a note on how to show the item again. A menu
+      cannot be hung on an item that is not there.
+- [ ] Live on the MacBook: with a full menu bar macOS hides items behind
+      the notch. Check that case by hand; it is exactly the one where the
+      app would be unreachable.
 - [ ] Setting `menuBar.shown` (default on), in the menu itself.
 - [ ] Commit "Open the shell from the menu bar".
 
@@ -95,7 +100,10 @@ recorder moves out of it), `HotKey.swift`.
       and "Control and Option".
 - [ ] `HotKeySettings.firstLaunch` becomes empty; the old set stays as
       `HotKeySettings.suggested` for the onboarding and the preset menu.
-- [ ] Migration: settings that already hold shortcuts are not touched.
+- [ ] No migration code needed: `ShellSettings` already hands out
+      `.firstLaunch` only when there is no settings file at all, and
+      `.existingInstall` otherwise (`c.lenient(.hotKeys) ?? .existingInstall`).
+      A test pins that down: a file without `hotKeys` keeps the old four.
 - [ ] Commit "Give the shortcuts a window of their own".
 
 ### Task 4: Pins move into the launcher
@@ -103,8 +111,10 @@ recorder moves out of it), `HotKey.swift`.
 **Files:** `LauncherView.swift`, `LauncherModel.swift`, `PinnedList.swift`,
 `NexusLauncherPage.swift` (goes).
 
-- [ ] Right click on an app row: "Pin", "Unpin". Pinned rows can be
-      dragged within the pinned block.
+- [ ] Right click on an app row: "Pin", "Unpin". The launcher already has
+      that menu (`LauncherController.showMenu`: "Open", then Apple's Dock
+      menu or the app's own commands); the two items go into it, they need
+      no Accessibility. Pinned rows can be dragged within the pinned block.
 - [ ] Tests for the list operations in Core, as far as they are not there
       already.
 - [ ] Commit "Pin an app where it stands".
@@ -125,10 +135,25 @@ recorder moves out of it), `HotKey.swift`.
 `NexusGeneralPages.swift`, `NexusThemesPage.swift`, `NexusUpdatesPage.swift`,
 `NexusProvidersPage.swift`, `NexusLauncherPage.swift`,
 `NexusScaledPreview.swift`, `NexusSearchSheet.swift`,
-`NexusAppChoiceRow.swift`, `NexusOptionsBinding.swift`, README, CHANGELOG.
+`NexusAppChoiceRow.swift`, `NexusOptionsBinding.swift`, `NexusGallery.swift`,
+`NexusBarEditor.swift`, `NexusDashboardPage.swift`, README, CHANGELOG.
 
-- [ ] Delete what nothing calls any more. `NexusWidgetOptions.swift` stays:
-      the edit mode's popovers use it.
+- [ ] Delete what nothing calls any more. `NexusGallery.swift` is already
+      dead today (nothing uses `NexusGallerySheet` or `NexusGalleryTile`)
+      and can go at any time.
+- [ ] Keep what the edit mode and the render tests still use, moved out of
+      the Nexus files and renamed without the prefix:
+      - `NexusWidgetOptions.swift`: the edit mode's popovers.
+      - From `NexusDashboardPage.swift`: `NexusWeatherModel`,
+        `NexusWeatherFavoriteRow`, `NexusWeatherSearchRow` (the weather
+        block's popover uses them through `NexusWidgetOptions`). The page
+        itself (`NexusDashboardWeatherSection`) goes.
+      - From `NexusBarEditor.swift`: `NexusBarPreview` and
+        `NexusBarPreviewModels`, which `RenderMode.swift` renders for the
+        image comparison. The page (`NexusBarPage` and its sections) goes.
+- [ ] Before deleting a file: `grep` every type in it across `Sources`
+      and `Tests`; the build alone does not catch a render case that
+      quietly drops out.
 - [ ] The hotkey for Nexus becomes the one that opens the menu.
 - [ ] README and CHANGELOG: the settings are in the menu bar, nothing is
       on a key out of the box.
