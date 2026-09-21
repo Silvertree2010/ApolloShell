@@ -61,12 +61,18 @@ struct HotKeyTests {
         #expect(key.display(keyName: keyName) == text)
     }
 
-    @Test("defaults for fresh installations", arguments: [
+    @Test("a fresh installation binds no keys", arguments: HotKeyAction.allCases)
+    func firstLaunchIsEmpty(action: HotKeyAction) {
+        #expect(HotKeySettings.firstLaunch[action] == nil)
+        #expect(ShellSettings.load(from: nil).hotKeys[action] == nil)
+    }
+
+    @Test("the suggested set the introduction offers", arguments: [
         (HotKeyAction.launcher, "⌥Space"), (HotKeyAction.dashboard, "⌃⌥D"),
         (HotKeyAction.utilities, "⌃⌥U"), (HotKeyAction.nexus, "⌃⌥,"),
     ])
-    func firstLaunchDefaults(action: HotKeyAction, text: String) {
-        #expect(HotKeySettings.firstLaunch[action]?.display() == text)
+    func suggestedDefaults(action: HotKeyAction, text: String) {
+        #expect(HotKeySettings.suggested[action]?.display() == text)
     }
 
     @Test("existing installation keeps F20 and Hyper", arguments: [
@@ -77,10 +83,10 @@ struct HotKeyTests {
         #expect(HotKeySettings.existingInstall[action]?.display() == text)
     }
 
-    @Test("new defaults: no duplicates, no warning", arguments: HotKeyAction.allCases)
-    func firstLaunchConflictFree(action: HotKeyAction) throws {
-        let key = try #require(HotKeySettings.firstLaunch[action])
-        #expect(HotKeySettings.firstLaunch.action(using: key, except: action) == nil)
+    @Test("suggested set: no duplicates, no warning", arguments: HotKeyAction.allCases)
+    func suggestedConflictFree(action: HotKeyAction) throws {
+        let key = try #require(HotKeySettings.suggested[action])
+        #expect(HotKeySettings.suggested.action(using: key, except: action) == nil)
         #expect(HotKeyAdvice.warning(for: key) == nil)
     }
 
@@ -90,18 +96,18 @@ struct HotKeyTests {
         (#"{"bar":{"showClock":false},"toasts":{}}"#, HotKeySettings.existingInstall),
         ("broken", HotKeySettings.existingInstall),
         (#"{"hotKeys":"no"}"#, HotKeySettings.existingInstall),
-        (#"{"hotKeys":{}}"#, HotKeySettings.firstLaunch),
+        (#"{"hotKeys":{}}"#, HotKeySettings.suggested),
         (#"{"hotKeys":{"launcher":null}}"#,
-         HotKeySettings(dashboard: HotKeySettings.firstLaunch.dashboard, utilities: HotKeySettings.firstLaunch.utilities,
-                        nexus: HotKeySettings.firstLaunch.nexus)),
+         HotKeySettings(dashboard: HotKeySettings.suggested.dashboard, utilities: HotKeySettings.suggested.utilities,
+                        nexus: HotKeySettings.suggested.nexus)),
         (#"{"hotKeys":{"launcher":{"keyCode":90,"modifiers":[]}}}"#,
-         HotKeySettings(launcher: HotKey(keyCode: HotKeyKey.f20), dashboard: HotKeySettings.firstLaunch.dashboard,
-                        utilities: HotKeySettings.firstLaunch.utilities, nexus: HotKeySettings.firstLaunch.nexus)),
-        (#"{"hotKeys":{"launcher":{"keyCode":999}}}"#, HotKeySettings.firstLaunch),
-        (#"{"hotKeys":{"launcher":{"keyCode":"D"}}}"#, HotKeySettings.firstLaunch),
+         HotKeySettings(launcher: HotKey(keyCode: HotKeyKey.f20), dashboard: HotKeySettings.suggested.dashboard,
+                        utilities: HotKeySettings.suggested.utilities, nexus: HotKeySettings.suggested.nexus)),
+        (#"{"hotKeys":{"launcher":{"keyCode":999}}}"#, HotKeySettings.suggested),
+        (#"{"hotKeys":{"launcher":{"keyCode":"D"}}}"#, HotKeySettings.suggested),
         (#"{"hotKeys":{"nexus":{"keyCode":43,"modifiers":["command","hyper"]}}}"#,
-         HotKeySettings(launcher: HotKeySettings.firstLaunch.launcher, dashboard: HotKeySettings.firstLaunch.dashboard,
-                        utilities: HotKeySettings.firstLaunch.utilities,
+         HotKeySettings(launcher: HotKeySettings.suggested.launcher, dashboard: HotKeySettings.suggested.dashboard,
+                        utilities: HotKeySettings.suggested.utilities,
                         nexus: HotKey(keyCode: HotKeyKey.comma, modifiers: .command))),
     ] as [(String?, HotKeySettings)])
     func migration(json: String?, expected: HotKeySettings) {
@@ -123,6 +129,7 @@ struct HotKeyTests {
     ])
     func readableFile(text: String) {
         var settings = ShellSettings.firstLaunch
+        settings.hotKeys = .suggested
         settings.hotKeys.nexus = nil
         #expect(String(decoding: settings.encoded(), as: UTF8.self).contains(text))
     }
@@ -151,7 +158,7 @@ struct HotKeyTests {
         (HotKey(keyCode: HotKeyKey.d, modifiers: .option), HotKeyAction.launcher, nil),
     ] as [(HotKey, HotKeyAction, HotKeyAction?)])
     func owner(key: HotKey, recordingFor: HotKeyAction, owner: HotKeyAction?) {
-        #expect(HotKeySettings.firstLaunch.action(using: key, except: recordingFor) == owner)
+        #expect(HotKeySettings.suggested.action(using: key, except: recordingFor) == owner)
     }
 
     @Test("Advice on tricky shortcuts", arguments: [

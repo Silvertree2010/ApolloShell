@@ -204,8 +204,13 @@ public enum HotKeyAction: String, CaseIterable, Identifiable, Sendable {
 /// The four shortcuts in settings.json (section "hotKeys"). `nil` = no
 /// shortcut (`null` in the file): the action then only goes through the bar.
 ///
-/// Two defaults, because there are two kinds of users:
-/// - `firstLaunch` for fresh installations. ⌥Space for the launcher, as with
+/// Three sets, because there are two kinds of users and one offer:
+/// - `firstLaunch` for fresh installations: nothing. An app that takes
+///   keystrokes away before being asked is a nuisance; the introduction
+///   offers the launcher key instead, and the menu bar item is the way in
+///   without one (design/2026-09-21-menubar-nexus.md).
+/// - `suggested`, what the introduction and the presets offer ("Control and
+///   Option"). ⌥Space for the launcher, as with
 ///   Alfred and Raycast; Spotlight stays on ⌘Space. The panels on ⌃⌥ instead
 ///   of ⌥ alone: ⌥ with a letter or punctuation key types a character, and a
 ///   global shortcut swallows it. Measured with UCKeyTranslate (14.09.,
@@ -213,7 +218,9 @@ public enum HotKeyAction: String, CaseIterable, Identifiable, Sendable {
 ///   German, and ⌥, types « on Swiss and French layouts. ⌃⌥ gives a character
 ///   on no layout.
 /// - `existingInstall`: whoever has a settings.json without this section
-///   already keeps the shortcuts from before (F20 and Hyper+D/U/,).
+///   already keeps the shortcuts from before (F20 and Hyper+D/U/,). Offered
+///   as the preset "Launcher on fn": F20 is what Karabiner-Elements sends
+///   for a tapped fn.
 public struct HotKeySettings: Codable, Equatable, Sendable {
     public var launcher: HotKey?
     public var dashboard: HotKey?
@@ -227,7 +234,9 @@ public struct HotKeySettings: Codable, Equatable, Sendable {
         self.nexus = nexus
     }
 
-    public static let firstLaunch = HotKeySettings(
+    public static let firstLaunch = HotKeySettings()
+
+    public static let suggested = HotKeySettings(
         launcher: HotKey(keyCode: HotKeyKey.space, modifiers: .option),
         dashboard: HotKey(keyCode: HotKeyKey.d, modifiers: [.control, .option]),
         utilities: HotKey(keyCode: HotKeyKey.u, modifiers: [.control, .option]),
@@ -278,14 +287,15 @@ public struct HotKeySettings: Codable, Equatable, Sendable {
         }
     }
 
-    /// Per action: when the key is missing or unreadable, the default for
-    /// fresh installations holds (the section comes out of this version
-    /// anyway); `null` means "no shortcut" on purpose.
+    /// Per action: when the key is missing or unreadable, the suggested one
+    /// holds - what fresh installations got before 0.2, and a section only
+    /// comes from a version that wrote it; `null` means "no shortcut" on
+    /// purpose.
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         var result = HotKeySettings()
         for key in [CodingKeys.launcher, .dashboard, .utilities, .nexus] {
-            let fallback = Self.firstLaunch[key.action]
+            let fallback = Self.suggested[key.action]
             if !c.contains(key) {
                 result[key.action] = fallback
             } else if (try? c.decodeNil(forKey: key)) == true {

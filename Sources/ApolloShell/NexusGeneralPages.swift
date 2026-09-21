@@ -65,9 +65,12 @@ struct NexusHotKeysPage: View {
             }
             Section {
                 HStack(spacing: 8) {
-                    Menu("Vorlage laden …") {
-                        Button("Default – \(Self.summary(.firstLaunch))") { store.settings.hotKeys = .firstLaunch }
-                        Button("Hyper Key – \(Self.summary(.existingInstall))") { store.settings.hotKeys = .existingInstall }
+                    Menu("Load Preset…") {
+                        ForEach(ShortcutPreset.allCases) { preset in
+                            Button("\(preset.title) – \(ShortcutsView.summary(preset.settings))") {
+                                store.settings.hotKeys = preset.settings
+                            }
+                        }
                     }
                     .fixedSize()
                     Spacer(minLength: 8)

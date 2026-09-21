@@ -62,6 +62,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var nexus: Nexus?
     /// Nexus in the menu bar.
     private var nexusMenu: NexusMenu?
+    /// The keyboard shortcuts, the one setting a menu cannot hold.
+    private var shortcutsWindow: ShortcutsWindow?
     /// One editing session of the bento pages (Nexus > Dashboard > Edit),
     /// shared between Nexus and the dashboard window.
     private var dashboardEditor: DashboardEditor?
@@ -206,6 +208,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             toastWindow?.utilitiesHeight = height
             editModeWindows?.utilitiesHeightChanged()
         }
+        shortcutsWindow = ShortcutsWindow(settings: settings, hotKeys: hotKeys)
         // The menu bar item calls the same parts the bar buttons call.
         nexusMenu = NexusMenu(settings: settings, themes: themes, actions: NexusMenu.Actions(
             dashboard: { [weak dashboard] in dashboard?.toggle() },
@@ -220,6 +223,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             },
             settings: { [weak nexus] in nexus?.show() },
+            shortcuts: { [weak self] in self?.shortcutsWindow?.show() },
             isEditing: { [weak shellEditor] in shellEditor?.isEditing ?? false }
         ), settingsMenu: NexusMenuSettings(settings: settings, themes: themes, updates: updates, autostart: autostart) {
             [weak toaster] title, message in toaster?.toast(title: title, message: message, kind: .error)

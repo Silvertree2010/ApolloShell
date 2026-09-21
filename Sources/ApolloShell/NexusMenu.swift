@@ -23,6 +23,7 @@ final class NexusMenu: NSObject, NSMenuDelegate {
         var editInterface: @MainActor () -> Void = {}
         var settings: @MainActor () -> Void = {}
         var introduction: @MainActor () -> Void = {}
+        var shortcuts: @MainActor () -> Void = {}
         /// While the global edit mode runs the openers stay greyed out, like
         /// their shortcuts do nothing then.
         var isEditing: @MainActor () -> Bool = { false }
@@ -138,6 +139,7 @@ final class NexusMenu: NSObject, NSMenuDelegate {
         let settingsItem = ClosureMenuItem(String(localized: "Settings…")) { [actions] in actions.settings() }
         settingsItem.isEnabled = !editing
         menu.addItem(settingsItem)
+        menu.addItem(ClosureMenuItem(String(localized: "Shortcuts…")) { [actions] in actions.shortcuts() })
         menu.addItem(ClosureMenuItem(String(localized: "Introduction…")) { [actions] in actions.introduction() })
         menu.addItem(ClosureMenuItem(String(localized: "Open System Settings")) { NexusSystemSettings.open(nil) })
         menu.addItem(ClosureMenuItem(String(localized: "About ApolloShell")) {
