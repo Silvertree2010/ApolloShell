@@ -46,7 +46,7 @@ public final class TilingEngine {
         /// from a settings toggle; it applies from the next frame on.
         public var resize: ResizeAnimation = .smooth
         /// Screen space the host keeps for itself, e.g. ApolloShell's 44 pt
-        /// sidebar on the left. Tiles never go there.
+        /// sidebar on the left, counted from the display edge. Tiles never go there.
         public var reserved = NSEdgeInsets()
 
         public init() {}
@@ -55,13 +55,23 @@ public final class TilingEngine {
     public let screenArea: CGRect
     public var options: Options
 
-    /// Where tiles go: the screen area minus the host's reserved edges.
+    /// The whole display, top-left coordinates (menu bar and Dock included).
+    public var screenBounds: CGRect {
+        guard let frame = NSScreen.screens.first?.frame else { return screenArea }
+        return CGRect(x: frame.minX, y: 0, width: frame.width, height: frame.height)
+    }
+
+    /// Where tiles go. The host's reserved edges count from the display's
+    /// edge, not on top of what macOS already keeps free: a Dock on the left
+    /// (62 pt) and ApolloShell's sidebar (44 pt) overlap, they do not add up.
     public var area: CGRect {
         let r = options.reserved
-        return CGRect(x: screenArea.minX + r.left,
-                      y: screenArea.minY + r.top,
-                      width: screenArea.width - r.left - r.right,
-                      height: screenArea.height - r.top - r.bottom)
+        let bounds = screenBounds
+        let left = max(screenArea.minX, bounds.minX + r.left)
+        let top = max(screenArea.minY, bounds.minY + r.top)
+        let right = min(screenArea.maxX, bounds.maxX - r.right)
+        let bottom = min(screenArea.maxY, bounds.maxY - r.bottom)
+        return CGRect(x: left, y: top, width: right - left, height: bottom - top)
     }
     /// One layout per desktop. Only `space`'s windows are arranged; the others
     /// keep their tiles until their desktop is shown again.
