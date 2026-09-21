@@ -40,6 +40,11 @@ public enum WindowDiscovery {
                       height: visible.height)
     }
 
+    /// Normal windows get tiled; dialogs and panels are managed too, but float.
+    static let managedSubroles: Set<String> = [
+        kAXStandardWindowSubrole, kAXDialogSubrole, kAXSystemDialogSubrole, kAXFloatingWindowSubrole,
+    ]
+
     /// Normal, visible windows on the current Space whose center (as the
     /// window server sees it) lies in `area`, sorted left to right so the
     /// first tiling keeps their rough order.
@@ -63,7 +68,7 @@ public enum WindowDiscovery {
             AXUIElementSetMessagingTimeout(app, 0.5)
             guard let elements = app.value(kAXWindowsAttribute) as? [AXUIElement] else { continue }
             for element in elements {
-                guard element.string(kAXSubroleAttribute) == kAXStandardWindowSubrole,
+                guard managedSubroles.contains(element.string(kAXSubroleAttribute) ?? ""),
                       element.bool(kAXMinimizedAttribute) != true,
                       element.bool("AXFullScreen") != true,
                       let window = AXWindow(element: element, pid: pid),

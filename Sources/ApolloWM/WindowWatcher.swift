@@ -125,7 +125,7 @@ public final class WindowWatcher {
 
         // Windows the user moved to another desktop follow there.
         for id in engine.windows.keys where id != engine.dragging {
-            if let space = Spaces.of(id), space != engine.layouts.space(of: id) {
+            if let space = Spaces.of(id), space != engine.desk(of: id)?.space {
                 engine.move(id, to: space)
             }
         }
@@ -138,10 +138,11 @@ public final class WindowWatcher {
 
         for (id, window) in engine.windows where !foundIDs.contains(id) && id != engine.dragging {
             // Not on screen. It keeps its tile only while it lives on another
-            // desktop. Apps like WhatsApp or System Settings keep closed
-            // windows alive but invisible; those must not hold a tile.
-            let space = Spaces.of(id)
-            let elsewhere = space != nil && space != engine.space
+            // desktop or is parked on another workspace. Apps like WhatsApp
+            // or System Settings keep closed windows alive but invisible;
+            // those must not hold a tile.
+            let home = engine.desk(of: id)
+            let elsewhere = home != nil && home != engine.desk
             let element = window.element
             let reason: String?
             if window.position == nil {

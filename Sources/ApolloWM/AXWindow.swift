@@ -15,6 +15,8 @@ public final class AXWindow: @unchecked Sendable {
     public let pid: pid_t
     public let windowID: CGWindowID
     public let title: String
+    /// AXStandardWindow, AXDialog, AXFloatingWindow, ...
+    public let subrole: String
 
     /// Last frame we wrote, used to skip calls that would change nothing.
     private var lastWritten: CGRect?
@@ -26,6 +28,7 @@ public final class AXWindow: @unchecked Sendable {
         self.pid = pid
         self.windowID = id
         self.title = element.string(kAXTitleAttribute) ?? ""
+        self.subrole = element.string(kAXSubroleAttribute) ?? ""
         // A hung app must not freeze the animation loop for seconds.
         AXUIElementSetMessagingTimeout(element, 0.25)
     }
@@ -37,6 +40,13 @@ public final class AXWindow: @unchecked Sendable {
     }
 
     public var position: CGPoint? { element.point(kAXPositionAttribute) }
+
+    /// Whether the app lets its size be changed at all.
+    public var isResizable: Bool {
+        var settable: DarwinBoolean = false
+        return AXUIElementIsAttributeSettable(element, kAXSizeAttribute as CFString, &settable) == .success
+            && settable.boolValue
+    }
 
     /// Frame as the window server sees it. During a title-bar drag the
     /// window server moves the window itself, so this is current even when

@@ -6,9 +6,11 @@ import Carbon.HIToolbox
 /// app never sees them.
 @MainActor
 public final class KeyBindings {
-    public enum Action: String, Sendable {
+    public enum Action: Sendable, Equatable {
         case toggleFloating
         case toggleFullscreen
+        /// Show workspace n. While a window is held with the mouse, it comes along.
+        case workspace(Int)
     }
 
     private let engine: TilingEngine
@@ -19,10 +21,16 @@ public final class KeyBindings {
     public var superFlags: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]
 
     /// Virtual key code (Carbon kVK_*) to action, pressed together with Super.
-    public var bindings: [Int64: Action] = [
-        Int64(kVK_Space): .toggleFloating,
-        Int64(kVK_ANSI_F): .toggleFullscreen,
-    ]
+    public var bindings: [Int64: Action] = {
+        var map: [Int64: Action] = [
+            Int64(kVK_Space): .toggleFloating,
+            Int64(kVK_ANSI_F): .toggleFullscreen,
+        ]
+        let digits = [kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5,
+                      kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9]
+        for (index, key) in digits.enumerated() { map[Int64(key)] = .workspace(index + 1) }
+        return map
+    }()
 
     public var log: (String) -> Void = { print($0) }
 
@@ -47,13 +55,18 @@ public final class KeyBindings {
     }
 
     public func perform(_ action: Action) {
+        if case .workspace(let number) = action {
+            engine.switchWorkspace(to: number)
+            return
+        }
         guard let id = WindowDiscovery.focusedWindowID(), engine.windows[id] != nil else {
-            log("\(action.rawValue): focused window is not managed")
+            log("\(action): focused window is not managed")
             return
         }
         switch action {
         case .toggleFloating: engine.toggleFloating(id)
         case .toggleFullscreen: engine.toggleFullscreen(id)
+        case .workspace: break
         }
     }
 

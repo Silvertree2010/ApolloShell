@@ -2,6 +2,20 @@ import ApolloWMCore
 import AppKit
 import Synchronization
 
+/// One layout slot: a macOS desktop (Space) and one of our own workspaces
+/// on it (1-9, Hyprland style).
+public struct Desk: Hashable, Sendable, CustomStringConvertible {
+    public var space: SpaceID
+    public var workspace: Int
+
+    public init(space: SpaceID, workspace: Int) {
+        self.space = space
+        self.workspace = workspace
+    }
+
+    public var description: String { "\(space)/\(workspace)" }
+}
+
 /// How window sizes animate during a glide.
 public enum ResizeAnimation: String, Sendable, CaseIterable {
     /// The size glides along with the position. Looks best, but apps redraw
@@ -47,9 +61,13 @@ public final class TilingEngine {
     }
     /// One layout per desktop. Only `space`'s windows are arranged; the others
     /// keep their tiles until their desktop is shown again.
-    public private(set) var layouts = SpaceLayouts<SpaceID, CGWindowID>()
-    /// The desktop currently shown on the main display.
-    public private(set) var space: SpaceID = 0
+    public private(set) var layouts = SpaceLayouts<Desk, CGWindowID>()
+    /// The desktop and workspace currently shown on the main display.
+    public private(set) var desk = Desk(space: 0, workspace: 1)
+    public var space: SpaceID { desk.space }
+    public var workspace: Int { desk.workspace }
+    /// The workspace last shown on each macOS desktop.
+    private var activeWorkspace: [SpaceID: Int] = [:]
     public private(set) var windows: [CGWindowID: AXWindow] = [:]
     public private(set) var dragging: CGWindowID?
     /// Window whose edge the user is dragging; it follows the mouse, the
@@ -62,7 +80,7 @@ public final class TilingEngine {
 
     /// Windows taken out of the layout; they keep their own frame on their desktop.
     public struct Floating: Sendable {
-        public var space: SpaceID
+        public var desk: Desk
         public var frame: CGRect
     }
     public private(set) var floating: [CGWindowID: Floating] = [:]
@@ -70,7 +88,15 @@ public final class TilingEngine {
     private var lastFloatFrame: [CGWindowID: CGRect] = [:]
     /// Per desktop, the tiled window that currently fills the whole area.
     /// It keeps its tile underneath and returns there when toggled off.
-    public private(set) var fullscreen: [SpaceID: CGWindowID] = [:]
+    public private(set) var fullscreen: [Desk: CGWindowID] = [:]
+
+    /// Windows of hidden workspaces wait just past the screen edge, a sliver
+    /// left on screen (macOS keeps part of every window visible): lower
+    /// workspaces to the left, higher ones to the right, so switching slides
+    /// like Hyprland. Remembers each parked window's size and height.
+    private var parked: [CGWindowID: CGRect] = [:]
+    /// Where each window was before the engine first touched it.
+    private var originalFrames: [CGWindowID: CGRect] = [:]
 
     /// When the shown desktop last changed. Windows ignore moves while macOS
     /// animates a desktop switch, so nothing is learned right after one.
@@ -82,7 +108,7 @@ public final class TilingEngine {
     private var fitCheck: DispatchWorkItem?
 
     /// Layout of the shown desktop.
-    public var tree: DwindleTree<CGWindowID> { layouts[space] }
+    public var tree: DwindleTree<CGWindowID> { layouts[desk] }
 
     /// Time spent writing frames per animation step.
     public private(set) var applyTimes = Durations()
@@ -107,23 +133,28 @@ public final class TilingEngine {
         for window in newWindows where windows[window.windowID] == nil {
             let id = window.windowID
             windows[id] = window
+            originalFrames[id] = window.frame
             measureLimits(of: window)
-            layouts.assign(id, to: space) { $0.insert(id) }
+            if floatsByItself(window) { continue }
+            layouts.assign(id, to: desk) { $0.insert(id) }
         }
         relayout()
     }
 
-    /// Tiles a new window on `space` (default: the shown desktop). On the shown
-    /// desktop a point (usually the mouse) picks the tile to split, like a
-    /// drop; otherwise the last tile is split.
-    public func add(_ window: AXWindow, at point: CGPoint?, space target: SpaceID? = nil) {
+    /// Tiles a new window on the shown desktop. A point (usually the mouse)
+    /// picks the tile to split, like a drop; otherwise the last tile is split.
+    public func add(_ window: AXWindow, at point: CGPoint?) {
         let id = window.windowID
         guard windows[id] == nil else { return }
         windows[id] = window
+        originalFrames[id] = window.frame
         measureLimits(of: window)
-        let target = target ?? space
-        layouts.assign(id, to: target) { tree in
-            if let point, target == space {
+        if floatsByItself(window) {
+            relayout()
+            return
+        }
+        layouts.assign(id, to: desk) { tree in
+            if let point {
                 tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
             } else {
                 tree.insert(id)
@@ -141,9 +172,38 @@ public final class TilingEngine {
         maximums[id] = nil
         floating[id] = nil
         lastFloatFrame[id] = nil
+        parked[id] = nil
+        originalFrames[id] = nil
         fullscreen = fullscreen.filter { $0.value != id }
         layouts.remove(id)
         relayout()
+    }
+
+    /// Dialogs, panels and windows that cannot be resized (or whose minimum
+    /// and maximum size are the same) float where the app put them instead of
+    /// taking a tile. Returns true when the window was made floating.
+    private func floatsByItself(_ window: AXWindow) -> Bool {
+        let id = window.windowID
+        let fixed = minimums[id].flatMap { minimum in maximums[id].map { maximum in
+            abs(minimum.width - maximum.width) < 2 && abs(minimum.height - maximum.height) < 2
+        } } ?? false
+        let reason: String
+        if window.subrole != kAXStandardWindowSubrole {
+            reason = window.subrole
+        } else if !window.isResizable {
+            reason = "not resizable"
+        } else if fixed {
+            reason = "fixed size"
+        } else {
+            return false
+        }
+        var frame = window.frame ?? defaultFloatFrame(for: id)
+        // Keep it inside the usable area.
+        frame.origin.x = min(max(frame.minX, area.minX), max(area.maxX - frame.width, area.minX))
+        frame.origin.y = min(max(frame.minY, area.minY), max(area.maxY - frame.height, area.minY))
+        floating[id] = Floating(desk: desk, frame: frame)
+        log("floats by itself (\(reason)): \(window.title)")
+        return true
     }
 
     /// Learns a new window's size limits up front (see `AXWindow.measureLimits`).
@@ -159,13 +219,15 @@ public final class TilingEngine {
     }
 
     /// The window now lives on another desktop (the user moved it there).
-    public func move(_ id: CGWindowID, to target: SpaceID) {
+    public func move(_ id: CGWindowID, to targetSpace: SpaceID) {
+        let target = Desk(space: targetSpace, workspace: activeWorkspace[targetSpace] ?? 1)
         if var state = floating[id] {
-            state.space = target
+            guard state.desk.space != targetSpace else { return }
+            state.desk = target
             floating[id] = state
             return
         }
-        guard windows[id] != nil, id != dragging, layouts.space(of: id) != target else { return }
+        guard windows[id] != nil, id != dragging, layouts.space(of: id)?.space != targetSpace else { return }
         fullscreen = fullscreen.filter { $0.value != id }
         log("\(windows[id]?.title ?? "\(id)") moved to desktop \(target)")
         layouts.assign(id, to: target) { $0.insert(id) }
@@ -176,22 +238,27 @@ public final class TilingEngine {
     public func switchSpace(to target: SpaceID) {
         guard target != space else { return }
         log("desktop \(space) -> \(target)")
-        space = target
+        desk = Desk(space: target, workspace: activeWorkspace[target] ?? 1)
         lastSpaceSwitch = CACurrentMediaTime()
         // A drag cannot survive a desktop switch; the window stays where it is.
         if let id = dragging {
             dragging = nil
-            layouts.assign(id, to: target) { $0.insert(id) }
+            layouts.assign(id, to: desk) { $0.insert(id) }
         }
         relayout()
     }
 
     public var isAnimating: Bool { timer != nil }
 
+    /// The desk a window belongs to, tiled or floating.
+    public func desk(of id: CGWindowID) -> Desk? {
+        layouts.space(of: id) ?? floating[id]?.desk
+    }
+
     /// Recomputes the layout and lets every window glide to its new tile.
     /// Windows not on the shown desktop are left alone.
     public func relayout() {
-        layouts[space].freezeDirections(in: area, gaps: options.gaps)
+        layouts[desk].freezeDirections(in: area, gaps: options.gaps)
         let frames = targetFrames()
         let held = [dragging, resizing]
         for id in springs.keys where frames[id] == nil || held.contains(id) { springs[id] = nil }
@@ -205,17 +272,17 @@ public final class TilingEngine {
     public func mirror() {
         let ids = tree.ids
         for id in ids { layouts.remove(id) }
-        for id in ids.reversed() { layouts.assign(id, to: space) { $0.insert(id) } }
+        for id in ids.reversed() { layouts.assign(id, to: desk) { $0.insert(id) } }
         relayout()
     }
 
     /// The managed window under `point`: floating windows first (they sit
     /// on top), then a fullscreen one, then the tiles.
     public func window(at point: CGPoint) -> CGWindowID? {
-        if let id = floating.first(where: { $0.value.space == space && $0.value.frame.contains(point) })?.key {
+        if let id = floating.first(where: { $0.value.desk == desk && $0.value.frame.contains(point) })?.key {
             return id
         }
-        if let id = fullscreen[space], tree.contains(id) { return id }
+        if let id = fullscreen[desk], tree.contains(id) { return id }
         return tree.id(at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
     }
 
@@ -231,13 +298,72 @@ public final class TilingEngine {
     /// fullscreen window over its tile, then floating windows.
     public func targetFrames() -> [CGWindowID: CGRect] {
         var frames = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
-        if let id = fullscreen[space], frames[id] != nil {
+        if let id = fullscreen[desk], frames[id] != nil {
             frames[id] = DwindleTree<CGWindowID>.centered(fullArea, maximum: maximums[id])
         }
-        for (id, state) in floating where state.space == space {
+        for (id, state) in floating where state.desk == desk {
             frames[id] = state.frame
         }
+        // Windows of this desktop's other workspaces go (or stay) aside.
+        var aside: [CGWindowID: Int] = [:]
+        for (id, home) in layouts.spaceOf where home.space == space && home.workspace != workspace {
+            aside[id] = home.workspace
+        }
+        for (id, state) in floating where state.desk.space == space && state.desk.workspace != workspace {
+            aside[id] = state.desk.workspace
+        }
+        for (id, home) in aside where id != dragging {
+            var frame = parked[id] ?? springs[id]?.current ?? windows[id]?.frame ?? fullArea
+            frame.origin.x = home < workspace ? screenArea.minX - frame.width + 1 : screenArea.maxX - 1
+            parked[id] = frame
+            frames[id] = frame
+        }
+        parked = parked.filter { aside[$0.key] != nil }
         return frames
+    }
+
+    // MARK: Workspaces
+
+    /// Shows workspace `number` (1-9) of the current desktop. Its windows
+    /// slide in, the others slide out to the side they belong to. A window
+    /// held with the mouse comes along and lands where it is dropped.
+    public func switchWorkspace(to number: Int) {
+        guard (1...9).contains(number), number != workspace else { return }
+        log("workspace \(workspace) -> \(number)")
+        activeWorkspace[space] = number
+        desk.workspace = number
+        relayout()
+    }
+
+    /// Sends a window to another workspace of the current desktop.
+    public func moveWindow(_ id: CGWindowID, toWorkspace number: Int) {
+        guard (1...9).contains(number), number != workspace, windows[id] != nil, id != dragging else { return }
+        let target = Desk(space: space, workspace: number)
+        if var state = floating[id] {
+            state.desk = target
+            floating[id] = state
+        } else if tree.contains(id) {
+            if fullscreen[desk] == id { fullscreen[desk] = nil }
+            layouts.remove(id)
+            layouts.assign(id, to: target) { $0.insert(id) }
+        }
+        log("\(windows[id]?.title ?? "\(id)") -> workspace \(number)")
+        relayout()
+    }
+
+    /// Puts every managed window back where it was before the engine first
+    /// touched it (or, for parked ones without a record, onto the screen).
+    public func restoreAll() {
+        timer?.invalidate()
+        timer = nil
+        for (id, window) in windows {
+            window.invalidateCache()
+            if let frame = originalFrames[id] {
+                window.setFrame(frame)
+            } else if let frame = parked[id] {
+                window.setFrame(CGRect(origin: CGPoint(x: area.midX - frame.width / 2, y: frame.minY), size: frame.size))
+            }
+        }
     }
 
     // MARK: Floating and fullscreen
@@ -251,15 +377,15 @@ public final class TilingEngine {
             floating[id] = nil
             lastFloatFrame[id] = state.frame
             let frame = window.frame ?? state.frame
-            layouts.assign(id, to: space) { tree in
+            layouts.assign(id, to: desk) { tree in
                 tree.insert(id, at: CGPoint(x: frame.midX, y: frame.midY), in: area, gaps: options.gaps,
                             minimums: minimums, maximums: maximums)
             }
             log("tiled: \(window.title)")
         } else if tree.contains(id) {
-            if fullscreen[space] == id { fullscreen[space] = nil }
+            if fullscreen[desk] == id { fullscreen[desk] = nil }
             layouts.remove(id)
-            floating[id] = Floating(space: space, frame: lastFloatFrame[id] ?? defaultFloatFrame(for: id))
+            floating[id] = Floating(desk: desk, frame: lastFloatFrame[id] ?? defaultFloatFrame(for: id))
             window.raise()
             log("floating: \(window.title)")
         }
@@ -279,11 +405,11 @@ public final class TilingEngine {
     /// macOS fullscreen), or sends it back to its tile.
     public func toggleFullscreen(_ id: CGWindowID) {
         guard let window = windows[id], tree.contains(id), dragging == nil, resizing == nil else { return }
-        if fullscreen[space] == id {
-            fullscreen[space] = nil
+        if fullscreen[desk] == id {
+            fullscreen[desk] = nil
             log("fullscreen off: \(window.title)")
         } else {
-            fullscreen[space] = id
+            fullscreen[desk] = id
             window.raise()
             log("fullscreen: \(window.title)")
         }
@@ -303,7 +429,7 @@ public final class TilingEngine {
         }
         guard tree.contains(id) else { return }
         dragging = id
-        if fullscreen[space] == id { fullscreen[space] = nil }
+        if fullscreen[desk] == id { fullscreen[desk] = nil }
         layouts.remove(id)
         windows[id]?.invalidateCache()
         log("drag start: \(windows[id]?.title ?? "\(id)")")
@@ -317,6 +443,7 @@ public final class TilingEngine {
         dragging = nil
         if var state = floating[id] {
             state.frame = windows[id]?.frame ?? state.frame
+            state.desk = desk
             floating[id] = state
             windows[id]?.invalidateCache()
             return
@@ -324,7 +451,7 @@ public final class TilingEngine {
         // A centered window is never asked to grow again, so a wrong maximum
         // would stick. Dropping it gives it a fresh chance.
         maximums[id] = nil
-        layouts.assign(id, to: space) { tree in
+        layouts.assign(id, to: desk) { tree in
             tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
         }
         if let window = windows[id] {
@@ -341,7 +468,7 @@ public final class TilingEngine {
     /// mouse (macOS resizes it) and its neighbors follow the window.
     public func beginResize(_ id: CGWindowID) {
         guard dragging == nil, resizing == nil, tree.contains(id) || floating[id] != nil else { return }
-        if fullscreen[space] == id { fullscreen[space] = nil }
+        if fullscreen[desk] == id { fullscreen[desk] = nil }
         resizing = id
         log("resize start: \(windows[id]?.title ?? "\(id)")")
     }
@@ -354,7 +481,7 @@ public final class TilingEngine {
             floating[id] = state
             return
         }
-        layouts[space].resize(id, to: frame, in: area, gaps: options.gaps)
+        layouts[desk].resize(id, to: frame, in: area, gaps: options.gaps)
         relayout()
     }
 
@@ -452,7 +579,7 @@ public final class TilingEngine {
         guard !isAnimating, dragging == nil, resizing == nil else { return }
         // Tiles only: a fullscreen window is bigger than its tile on purpose.
         var targets = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
-        if let id = fullscreen[space] { targets[id] = nil }
+        if let id = fullscreen[desk] { targets[id] = nil }
         var misfits: [CGWindowID] = []
         var changed = false
         for (id, target) in targets {
