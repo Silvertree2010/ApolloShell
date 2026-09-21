@@ -57,7 +57,7 @@ public final class FocusFollowsMouse {
     }
 
     private func focusWindow(at point: CGPoint) {
-        guard NSEvent.pressedMouseButtons == 0,
+        guard NSEvent.pressedMouseButtons == 0, !engine.isSwitchingSpace,
               engine.dragging == nil, engine.resizing == nil,
               let id = engine.window(at: point),
               let window = engine.windows[id],
@@ -65,6 +65,9 @@ public final class FocusFollowsMouse {
         // Already focused (by us or by a click): nothing to do.
         if id == lastFocused, WindowDiscovery.focusedWindowID() == id { return }
         lastFocused = id
+        if ProcessInfo.processInfo.environment["APOLLOWM_TRACE"] == "1" {
+            FileHandle.standardError.write(Data("focus: \(window.title) (desk \(engine.desk))\n".utf8))
+        }
         window.raise()
         _ = window.element.set(kAXMainAttribute, bool: true)
         // Without .activateAllWindows only the raised (main) window comes forward.
