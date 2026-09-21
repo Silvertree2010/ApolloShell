@@ -135,6 +135,8 @@ final class SidebarScreen {
     private func showIfNeeded() {
         guard lastFrame != nil, !panel.isVisible else { return }
         panel.orderFrontRegardless()
+        // Eigener Space: steht beim Schreibtischwechsel still (`StickySpace`).
+        StickySpace.pin(panel)
     }
 
     /// With the popout open: a wider window, the bar stays 44 wide on the
