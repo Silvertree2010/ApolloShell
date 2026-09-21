@@ -55,6 +55,8 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     /// Handed over by Sparkle as soon as a downloaded update waits for the quit.
     private var installNow: (() -> Void)?
     private var checkTask: Task<Void, Never>?
+    /// Follows the two switches, wherever they are changed (the menu bar).
+    private var settingsObservation: Task<Void, Never>?
 
     /// Checks the Homebrew build at most once a day by itself.
     private static let checkInterval: TimeInterval = 86400
@@ -75,6 +77,13 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         updaterController = controller
         applySettings()
         lastCheck = controller.updater.lastUpdateCheckDate
+        // Delivers the current value first, then every change; lives as
+        // long as the app (AppDelegate holds the controller).
+        settingsObservation = Task { [weak self, settings] in
+            for await _ in Observations({ settings.settings.updates }) {
+                self?.applySettings()
+            }
+        }
     }
 
     /// Sparkle needs a bundle with an Info.plist and a public key. Without the

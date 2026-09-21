@@ -6,9 +6,9 @@ import os
 /// in full screen, on a screen without a bar, with no shortcut set
 /// (design/2026-09-21-menubar-nexus.md, task 1).
 ///
-/// For now it holds the four openers, the settings window and Quit. The
-/// items only call what the bar buttons and shortcuts call; no logic of its
-/// own lives here.
+/// On top the four openers, below them the settings (`NexusMenuSettings`),
+/// at the bottom the windows and Quit. The openers only call what the bar
+/// buttons and shortcuts call; no logic of its own lives here.
 ///
 /// Its place survives restarts through the autosave name. The item is not
 /// removed when hidden, only made invisible: `NSStatusBar.removeStatusItem`
@@ -22,6 +22,7 @@ final class NexusMenu: NSObject, NSMenuDelegate {
         var launcher: @MainActor () -> Void = {}
         var editInterface: @MainActor () -> Void = {}
         var settings: @MainActor () -> Void = {}
+        var introduction: @MainActor () -> Void = {}
         /// While the global edit mode runs the openers stay greyed out, like
         /// their shortcuts do nothing then.
         var isEditing: @MainActor () -> Bool = { false }
@@ -34,16 +35,19 @@ final class NexusMenu: NSObject, NSMenuDelegate {
 
     private let settings: ShellSettingsStore
     private weak var themes: ThemeStore?
-    private let actions: Actions
+    /// Settable later: the introduction comes about after the menu.
+    var actions: Actions
+    private let settingsMenu: NexusMenuSettings
     private let item: NSStatusItem
     private let log = Logger(category: "menubar")
     private var shownObservation: Task<Void, Never>?
     private var themeObservation: Task<Void, Never>?
 
-    init(settings: ShellSettingsStore, themes: ThemeStore?, actions: Actions) {
+    init(settings: ShellSettingsStore, themes: ThemeStore?, actions: Actions, settingsMenu: NexusMenuSettings) {
         self.settings = settings
         self.themes = themes
         self.actions = actions
+        self.settingsMenu = settingsMenu
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         super.init()
         item.autosaveName = Self.autosaveName
@@ -129,9 +133,18 @@ final class NexusMenu: NSObject, NSMenuDelegate {
             menu.addItem(entry)
         }
         menu.addItem(.separator())
+        settingsMenu.append(to: menu)
+        menu.addItem(.separator())
         let settingsItem = ClosureMenuItem(String(localized: "Settings…")) { [actions] in actions.settings() }
         settingsItem.isEnabled = !editing
         menu.addItem(settingsItem)
+        menu.addItem(ClosureMenuItem(String(localized: "Introduction…")) { [actions] in actions.introduction() })
+        menu.addItem(ClosureMenuItem(String(localized: "Open System Settings")) { NexusSystemSettings.open(nil) })
+        menu.addItem(ClosureMenuItem(String(localized: "About ApolloShell")) {
+            NSApp.activate()
+            NSApp.orderFrontStandardAboutPanel(nil)
+        })
+        menu.addItem(.separator())
         menu.addItem(ClosureMenuItem(String(localized: "Hide from Menu Bar")) { [weak self] in
             self?.settings.settings.menuBar.shown = false
         })

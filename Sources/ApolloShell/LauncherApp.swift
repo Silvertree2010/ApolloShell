@@ -189,22 +189,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // All handlers set: register now (and match up again on changes in
         // Nexus).
         hotKeys.start()
-        // The menu bar item calls the same parts the bar buttons call.
-        nexusMenu = NexusMenu(settings: settings, themes: themes, actions: NexusMenu.Actions(
-            dashboard: { [weak dashboard] in dashboard?.toggle() },
-            utilities: { [weak utilities] in utilities?.toggle() },
-            launcher: { [weak controller] in controller?.toggle() },
-            editInterface: { [weak nexus, weak shellEditor] in
-                // An open Nexus steps aside itself and comes back after.
-                if let nexus, nexus.isVisible {
-                    nexus.beginEditing()
-                } else if let screen = ShellScreens.underPointer()?.screen ?? NSScreen.main {
-                    shellEditor?.begin(screen: screen)
-                }
-            },
-            settings: { [weak nexus] in nexus?.show() },
-            isEditing: { [weak shellEditor] in shellEditor?.isEditing ?? false }
-        ))
         // Toasts: charger, battery warning levels, audio devices. None on
         // the start - only changes after it.
         let toaster = Toaster()
@@ -222,6 +206,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             toastWindow?.utilitiesHeight = height
             editModeWindows?.utilitiesHeightChanged()
         }
+        // The menu bar item calls the same parts the bar buttons call.
+        nexusMenu = NexusMenu(settings: settings, themes: themes, actions: NexusMenu.Actions(
+            dashboard: { [weak dashboard] in dashboard?.toggle() },
+            utilities: { [weak utilities] in utilities?.toggle() },
+            launcher: { [weak controller] in controller?.toggle() },
+            editInterface: { [weak nexus, weak shellEditor] in
+                // An open Nexus steps aside itself and comes back after.
+                if let nexus, nexus.isVisible {
+                    nexus.beginEditing()
+                } else if let screen = ShellScreens.underPointer()?.screen ?? NSScreen.main {
+                    shellEditor?.begin(screen: screen)
+                }
+            },
+            settings: { [weak nexus] in nexus?.show() },
+            isEditing: { [weak shellEditor] in shellEditor?.isEditing ?? false }
+        ), settingsMenu: NexusMenuSettings(settings: settings, themes: themes, updates: updates, autostart: autostart) {
+            [weak toaster] title, message in toaster?.toast(title: title, message: message, kind: .error)
+        })
         powerToasts = ToastPowerMonitor(toaster: toaster, settings: settings)
         audioToasts = ToastAudioMonitor(toaster: toaster, settings: settings)
 
@@ -256,6 +258,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let onboarding = Onboarding(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions)
         self.onboarding = onboarding
         nexus.onShowOnboarding = { [weak onboarding] in onboarding?.show() }
+        nexusMenu?.actions.introduction = { [weak onboarding] in onboarding?.show() }
         if showOnboarding { onboarding.show() }
     }
 
