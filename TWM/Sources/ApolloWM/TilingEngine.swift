@@ -576,6 +576,16 @@ public final class TilingEngine {
         for (id, rect) in frames where !held.contains(id) && windows[id] != nil {
             springs[id, default: AnimatedRect(windows[id]?.serverFrame ?? rect)].target = rect
         }
+        if resizing != nil {
+            // An edge under the mouse: neighbors follow it at once, like
+            // Hyprland, instead of gliding after it.
+            for (id, rect) in frames where !held.contains(id) && windows[id] != nil {
+                springs[id] = AnimatedRect(rect)
+                write(id, rect)
+            }
+            publishTabBars()
+            return
+        }
         startProxies()
         startLoop()
         publishTabBars()
@@ -829,7 +839,19 @@ public final class TilingEngine {
         } else {
             return
         }
-        layouts[desk].resize(id, to: frame, in: area, gaps: options.gaps)
+        // Only the edges that really moved since the grab count, measured
+        // against the window's own frame then. Compared with the tile, a
+        // window that never matched it exactly (a minimum size, centered)
+        // looked as if every edge moved, and the layout jumped.
+        guard let start = resizeStart else { return }
+        var target = start.tile
+        let left = frame.minX - start.frame.minX, right = frame.maxX - start.frame.maxX
+        let top = frame.minY - start.frame.minY, bottom = frame.maxY - start.frame.maxY
+        if abs(left) > 1 { target.origin.x += left; target.size.width -= left }
+        if abs(right) > 1 { target.size.width += right }
+        if abs(top) > 1 { target.origin.y += top; target.size.height -= top }
+        if abs(bottom) > 1 { target.size.height += bottom }
+        layouts[desk].resize(id, to: target, in: area, gaps: options.gaps)
         relayout()
     }
 
@@ -955,8 +977,15 @@ public final class TilingEngine {
         dropProxy(id)
         if fullscreen[desk] == id { fullscreen[desk] = nil }
         resizing = id
+        if let frame = windows[id]?.serverFrame,
+           let tile = layouts[desk].tiles(in: area, gaps: options.gaps)[id] {
+            resizeStart = (frame, tile)
+        }
         log("resize start: \(windows[id]?.title ?? "\(id)")")
     }
+
+    /// The window's frame and its (plain) tile when the resize began.
+    private var resizeStart: (frame: CGRect, tile: CGRect)?
 
     /// Called while the edge moves, with the window's current frame.
     public func updateResize(to frame: CGRect) {
@@ -974,6 +1003,7 @@ public final class TilingEngine {
     public func endResize() {
         guard let id = resizing else { return }
         resizing = nil
+        resizeStart = nil
         if var state = floating[id] {
             state.frame = windows[id]?.serverFrame ?? state.frame
             floating[id] = state
