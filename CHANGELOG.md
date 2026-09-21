@@ -30,6 +30,9 @@ tabs you had into pages, with the cards at the same spots. The old
 - **Shortcuts get a window of their own** (Shortcuts… in the panel), with two
   presets: Control and Option (⌥Space, ⌃⌥D, ⌃⌥U, ⌃⌥,) and Launcher on fn
   (F20 and Hyper).
+- **The menu bar item wears the new ApolloShell mark**, as a template image
+  that follows the menu bar's light and dark. A theme's
+  `icons/menubar-nexus.png` still replaces it.
 - **The session menu's emblem is the new ApolloShell mark**: the A in the
   accent colour, glowing, with its moon going round the logo's orbit and
   behind the A on the far side. The reactions stay: a fast lap before
