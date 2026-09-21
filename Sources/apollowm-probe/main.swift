@@ -92,7 +92,26 @@ options.resize = option("--resize").flatMap(ResizeAnimation.init(rawValue:)) ?? 
 // ApolloShell's sidebar sits on the left edge, 44 pt wide.
 options.reserved.left = option("--reserve-left").flatMap(Double.init).map { CGFloat($0) } ?? 44
 let engine = TilingEngine(area: area, options: options)
-restoreWindows = { engine.restoreAll() }
+
+// The arrangement survives restarts: loaded before adopting, saved after
+// every glide and on quit.
+let layoutFile = FileManager.default.homeDirectoryForCurrentUser
+    .appendingPathComponent("Library/Application Support/ApolloWM/probe-layout.json")
+@MainActor func saveLayout() {
+    guard let data = try? JSONEncoder().encode(engine.snapshot()) else { return }
+    try? FileManager.default.createDirectory(at: layoutFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+    try? data.write(to: layoutFile, options: .atomic)
+}
+if mode == "run", let data = try? Data(contentsOf: layoutFile),
+   let snapshot = try? JSONDecoder().decode(TilingEngine.Snapshot.self, from: data) {
+    let existing = Set((CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] ?? [])
+        .compactMap { $0[kCGWindowNumber as String] as? CGWindowID })
+    engine.restore(snapshot, alive: { existing.contains($0) })
+}
+restoreWindows = {
+    if mode == "run" { saveLayout() }
+    engine.restoreAll()
+}
 if let space = Spaces.current() {
     print("shown desktop \(space)")
     engine.switchSpace(to: space)
@@ -152,7 +171,10 @@ default:
         print("could not watch the mouse (event tap refused)")
         restoreAndExit(1)
     }
-    engine.onSettled = { report("settled") }
+    engine.onSettled = {
+        report("settled")
+        saveLayout()
+    }
     engine.adopt(found)
     let watcher = WindowWatcher(engine: engine)
     watcher.start()

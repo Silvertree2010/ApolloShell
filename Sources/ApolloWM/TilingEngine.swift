@@ -4,7 +4,7 @@ import Synchronization
 
 /// One layout slot: a macOS desktop (Space) and one of our own workspaces
 /// on it (1-9, Hyprland style).
-public struct Desk: Hashable, Sendable, CustomStringConvertible {
+public struct Desk: Hashable, Sendable, Codable, CustomStringConvertible {
     public var space: SpaceID
     public var workspace: Int
 
@@ -79,7 +79,7 @@ public final class TilingEngine {
     public private(set) var maximums: [CGWindowID: CGSize] = [:]
 
     /// Windows taken out of the layout; they keep their own frame on their desktop.
-    public struct Floating: Sendable {
+    public struct Floating: Sendable, Codable {
         public var desk: Desk
         public var frame: CGRect
     }
@@ -133,8 +133,10 @@ public final class TilingEngine {
         for window in newWindows where windows[window.windowID] == nil {
             let id = window.windowID
             windows[id] = window
-            originalFrames[id] = window.frame
+            if originalFrames[id] == nil { originalFrames[id] = window.frame }
             measureLimits(of: window)
+            // Known from a saved layout: it keeps its old spot.
+            if desk(of: id) != nil { continue }
             if floatsByItself(window) { continue }
             layouts.assign(id, to: desk) { $0.insert(id) }
         }
@@ -147,9 +149,9 @@ public final class TilingEngine {
         let id = window.windowID
         guard windows[id] == nil else { return }
         windows[id] = window
-        originalFrames[id] = window.frame
+        if originalFrames[id] == nil { originalFrames[id] = window.frame }
         measureLimits(of: window)
-        if floatsByItself(window) {
+        if desk(of: id) != nil || floatsByItself(window) {
             relayout()
             return
         }
@@ -320,6 +322,36 @@ public final class TilingEngine {
         }
         parked = parked.filter { aside[$0.key] != nil }
         return frames
+    }
+
+    // MARK: Saving the layout
+
+    /// Everything needed to bring the arrangement back after a restart.
+    /// Window numbers stay the same as long as their apps keep running.
+    public struct Snapshot: Codable, Sendable {
+        public var layouts: SpaceLayouts<Desk, CGWindowID>
+        public var floating: [CGWindowID: Floating]
+        public var activeWorkspace: [SpaceID: Int]
+        public var originalFrames: [CGWindowID: CGRect]
+    }
+
+    public func snapshot() -> Snapshot {
+        Snapshot(layouts: layouts, floating: floating,
+                 activeWorkspace: activeWorkspace, originalFrames: originalFrames)
+    }
+
+    /// Loads a saved arrangement before windows are adopted. Windows that no
+    /// longer exist (`alive` rejects them) are dropped; the rest return to
+    /// their old tiles when they are adopted.
+    public func restore(_ snapshot: Snapshot, alive: (CGWindowID) -> Bool) {
+        var saved = snapshot.layouts
+        saved.retain(where: alive)
+        layouts = saved
+        floating = snapshot.floating.filter { alive($0.key) }
+        activeWorkspace = snapshot.activeWorkspace
+        originalFrames = snapshot.originalFrames.filter { alive($0.key) }
+        desk.workspace = activeWorkspace[space] ?? 1
+        log("restored layout: \(layouts.spaceOf.count) tiled, \(floating.count) floating")
     }
 
     // MARK: Workspaces

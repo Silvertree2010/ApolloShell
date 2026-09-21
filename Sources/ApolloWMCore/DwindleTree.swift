@@ -1,7 +1,7 @@
 import CoreGraphics
 
 /// Spacing around and between tiles, in points.
-public struct Gaps: Sendable, Equatable {
+public struct Gaps: Sendable, Equatable, Codable {
     public var outer: CGFloat
     public var inner: CGFloat
 
@@ -305,3 +305,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
 extension CGSize {
     public static let infinite = CGSize(width: CGFloat.infinity, height: CGFloat.infinity)
 }
+
+extension DwindleTree.Node: Codable where ID: Codable {}
+extension DwindleTree: Codable where ID: Codable {}

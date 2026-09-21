@@ -175,10 +175,17 @@ public final class WindowWatcher {
 
         for id in foundIDs { invisibleSince[id] = nil }
 
-        let mouse = CGEvent(source: nil)?.location
-        for window in found where engine.windows[window.windowID] == nil {
+        let fresh = found.filter { engine.windows[$0.windowID] == nil }
+        for window in fresh {
             log("opened: \(window.title.isEmpty ? "\(window.windowID)" : window.title)")
-            engine.add(window, at: mouse)
+        }
+        if fresh.count > 1 || engine.isSwitchingSpace {
+            // Several unknown windows at once (a desktop seen for the first
+            // time): keep the order they already have on screen.
+            engine.adopt(fresh)
+        } else if let window = fresh.first {
+            // One newly opened window: it splits the tile under the mouse.
+            engine.add(window, at: CGEvent(source: nil)?.location)
         }
         watchNewWindows()
     }

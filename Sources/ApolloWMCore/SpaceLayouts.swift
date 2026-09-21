@@ -25,8 +25,15 @@ public struct SpaceLayouts<Space: Hashable & Sendable, ID: Hashable & Sendable>:
         spaceOf[id] = space
     }
 
+    /// Forgets every window `keep` rejects, e.g. windows that no longer exist.
+    public mutating func retain(where keep: (ID) -> Bool) {
+        for id in spaceOf.keys where !keep(id) { remove(id) }
+    }
+
     public mutating func remove(_ id: ID) {
         guard let space = spaceOf.removeValue(forKey: id) else { return }
         self[space].remove(id)
     }
 }
+
+extension SpaceLayouts: Codable where Space: Codable, ID: Codable {}
