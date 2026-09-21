@@ -112,6 +112,8 @@ final class SidebarScreen {
     private func showIfNeeded() {
         guard lastFrame != nil, !panel.isVisible else { return }
         panel.orderFrontRegardless()
+        // Eigener Space: steht beim Schreibtischwechsel still (`StickySpace`).
+        StickySpace.pin(panel)
     }
 
     /// Popout offen: Fenster breiter, die Leiste bleibt links 44 breit, der
