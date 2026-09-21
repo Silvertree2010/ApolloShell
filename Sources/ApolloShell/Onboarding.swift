@@ -5,7 +5,8 @@ import SwiftUI
 
 /// The introduction on the first start: what ApolloShell is, the permissions,
 /// the launcher shortcut, autostart. It appears by itself only on fresh
-/// installations (`OnboardingRule`), otherwise through Nexus > About.
+/// installations (`OnboardingRule`), otherwise through Introduction… in the
+/// menu bar item.
 ///
 /// An ordinary window in the middle of the screen, like Nexus: the app is an
 /// accessory app and never active - without `NSApp.activate()` the window
@@ -13,7 +14,7 @@ import SwiftUI
 /// the app that was at the front before gets the focus back.
 ///
 /// Closing (the button, ⌘W), "Skip" and "Done" all count the same: through.
-/// Whoever wants it again finds it in Nexus. Quitting the app does NOT count -
+/// Whoever wants it again finds it in the menu bar item. Quitting the app does NOT count -
 /// whoever quits in the middle sees it again on the next start (otherwise only
 /// the bare accessibility prompt of macOS would follow). So
 /// `windowShouldClose` marks it (only when the user closes it) and not
@@ -185,7 +186,7 @@ struct OnboardingDots: View {
             }
         }
         .accessibilityElement()
-        .accessibilityLabel("Schritt \(current.rawValue + 1) von \(OnboardingStep.allCases.count)")
+        .accessibilityLabel("Step \(current.rawValue + 1) of \(OnboardingStep.allCases.count)")
     }
 }
 
@@ -272,7 +273,7 @@ struct OnboardingWelcomePage: View {
         VStack(spacing: 26) {
             OnboardingHeader(
                 symbol: "sidebar.left", tint: .indigo, title: OnboardingStep.welcome.title,
-                text: String(localized: "A desktop shell for macOS modelled on Caelestia. It complements the Mac instead of replacing it – everything can be set up in Nexus.")
+                text: String(localized: "A desktop shell for macOS modelled on Caelestia. It complements the Mac instead of replacing it – everything can be set up from its icon in the menu bar.")
             )
             VStack(alignment: .leading, spacing: 16) {
                 ForEach(features, id: \.title) { feature in
@@ -318,6 +319,10 @@ struct OnboardingPermissionsPage: View {
     }
 }
 
+/// Offers the launcher a key instead of taking one
+/// (design/2026-09-21-menubar-nexus.md, task 5): a fresh installation binds
+/// nothing, and skipping here leaves it that way. The page names the menu
+/// bar item as the way in without a key.
 struct OnboardingHotKeysPage: View {
     let store: ShellSettingsStore
     let hotKeys: HotKeyCenter
@@ -325,25 +330,24 @@ struct OnboardingHotKeysPage: View {
     var body: some View {
         VStack(spacing: 22) {
             OnboardingHeader(
-                symbol: "command", tint: .purple, title: OnboardingStep.hotKeys.title,
-                text: String(localized: "The launcher opens with a shortcut, in any app. To change it, click the field and press the new combination.")
+                symbol: "command", tint: .purple, title: String(localized: "Open the Launcher with a Key?"),
+                text: String(localized: "ApolloShell takes no keys on its own. Pick one for the launcher if you like – or leave it and open everything from the menu bar.")
             )
             VStack(spacing: 8) {
                 OnboardingCard {
                     HotKeyRow(center: hotKeys, store: store, action: .launcher)
                 }
-                OnboardingCard {
-                    ForEach([HotKeyAction.dashboard, .utilities, .nexus]) { action in
-                        HStack {
-                            Text(action.title)
-                            Spacer()
-                            Text(store.settings.hotKeys[action].map(HotKeyKeyboard.display) ?? HotKeyText.none)
-                                .foregroundStyle(.secondary)
-                        }
-                        .font(.callout)
+                if store.settings.hotKeys.launcher == nil, let suggestion = HotKeySettings.suggested.launcher {
+                    Button(String(localized: "Use \(HotKeyKeyboard.display(suggestion))")) {
+                        store.settings.hotKeys.launcher = suggestion
                     }
+                    .controlSize(.large)
+                } else {
+                    Button(String(localized: "Not Now")) { store.settings.hotKeys.launcher = nil }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
                 }
-                OnboardingFootnote(text: String(localized: "Spotlight stays on ⌘Space. All shortcuts can be changed or removed in Nexus under “Keyboard Shortcuts”."))
+                OnboardingFootnote(text: String(localized: "Without a key, the shell lives in the menu bar: its icon opens the launcher, the dashboard and every setting. Spotlight stays on ⌘Space. More shortcuts under Shortcuts… in that menu."))
             }
         }
     }
@@ -366,15 +370,15 @@ struct OnboardingFinishPage: View {
                 if let note = autostart.state.note {
                     OnboardingFootnote(text: note)
                 }
-                OnboardingFootnote(text: String(localized: "This introduction is always available again under Nexus › About."))
+                OnboardingFootnote(text: String(localized: "This introduction is always available again under Introduction… in the menu bar."))
             }
         }
     }
 
     private var settingsHint: String {
         guard let key = store.settings.hotKeys.nexus else {
-            return String(localized: "Settings live in Nexus – via the gear icon in the Control Centre.")
+            return String(localized: "Settings live in the menu bar – behind the ApolloShell icon.")
         }
-        return String(localized: "Settings live in Nexus – with \(HotKeyKeyboard.display(key)) or via the gear icon in the Control Centre.")
+        return String(localized: "Settings live in the menu bar – behind the ApolloShell icon, or with \(HotKeyKeyboard.display(key)).")
     }
 }

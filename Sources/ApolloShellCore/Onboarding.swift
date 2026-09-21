@@ -15,7 +15,7 @@ public struct OnboardingSettings: Codable, Equatable, Sendable {
     public static let existingInstall = OnboardingSettings(completed: true)
 
     /// Unreadable means done: turning up unasked is more of a nuisance than
-    /// being missing - in Nexus > About it can be had at any time.
+    /// being missing - the menu bar item has it at any time (Introduction…).
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         completed = (try? c.decodeIfPresent(Bool.self, forKey: .completed)) ?? true
@@ -44,7 +44,7 @@ public enum OnboardingStep: Int, CaseIterable, Identifiable, Sendable {
         switch self {
         case .welcome: String(localized: "Welcome to ApolloShell")
         case .permissions: String(localized: "Permissions")
-        case .hotKeys: String(localized: "Keyboard Shortcuts")
+        case .hotKeys: String(localized: "Launcher Key")
         case .finish: String(localized: "All Set")
         }
     }
