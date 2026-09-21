@@ -18,6 +18,11 @@ enum RenderMode {
         if let index = args.firstIndex(of: "--render-edit"), index + 1 < args.count {
             run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderEditMode)
         }
+        // `--render-mark <folder>`: the ApolloShell mark through one orbit of
+        // its moon, large and at bar size.
+        if let index = args.firstIndex(of: "--render-mark"), index + 1 < args.count {
+            run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderMark)
+        }
         // `--render-toasts <folder> [<theme folder or .css>]`: the four kinds
         // of toast, light and dark, with that theme's colours (none: the
         // defaults) - for checking a theme's toasts without waiting for a
@@ -175,6 +180,24 @@ enum RenderMode {
         let utilitiesView = EditableUtilitiesView(editor: editor, layout: editor.utilities?.layout ?? UtilitiesLayout())
             .environment(\.dashboardRendersForScreenshot, true)
         try write(utilitiesView, scheme: .light, to: editFolder.appendingPathComponent("utilities-selected-light.png"))
+    }
+
+    private static func renderMark(into folder: URL) throws {
+        let steps = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        let large = HStack(spacing: 8) {
+            ForEach(steps, id: \.self) { step in
+                ApolloMark(orbit: step).frame(width: 160, height: 160)
+            }
+        }
+        .padding(12)
+        try write(large, scheme: .light, to: folder.appendingPathComponent("mark-orbit-light.png"))
+        let small = HStack(spacing: 12) {
+            ForEach([16.0, 18, 20, 22, 24], id: \.self) { side in
+                ApolloMark().frame(width: side, height: side)
+            }
+        }
+        .padding(8)
+        try write(small, scheme: .dark, to: folder.appendingPathComponent("mark-sizes-dark.png"))
     }
 
     private static func renderToasts(into folder: URL, theme: Theme) throws {

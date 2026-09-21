@@ -30,6 +30,10 @@ tabs you had into pages, with the cards at the same spots. The old
 - **Shortcuts get a window of their own** (Shortcuts… in the panel), with two
   presets: Control and Option (⌥Space, ⌃⌥D, ⌃⌥U, ⌃⌥,) and Launcher on fn
   (F20 and Hyper).
+- **The session button wears the new ApolloShell mark**, an A with an
+  orbit, and its moon goes once around the orbit when the pointer comes onto
+  it (not with Reduce Motion). A theme's `icons/bar-power.png` still
+  replaces it.
 - **Actions in the launcher, as in Caelestia.** Type `>` for the list:
   `>calc` works out a sum as you type and Return copies it, `>theme` switches
   the theme, `>wallpaper` sets one of Apple's wallpapers (ones not yet

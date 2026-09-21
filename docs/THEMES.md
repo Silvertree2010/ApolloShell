@@ -284,7 +284,7 @@ within the size limit.
 | `bar-dashboard` | `square.grid.2x2.fill` | Opens the dashboard |
 | `bar-utilities` | `slider.horizontal.3` | Opens the control centre |
 | `bar-clock` | `calendar` | Above the clock in the bar |
-| `bar-power` | `power` | Opens the session menu |
+| `bar-power` | `power` | Opens the session menu; without it the animated ApolloShell mark |
 | `bar-launcher` | `magnifyingglass` | Opens the launcher |
 | `menubar-nexus` | `circle.hexagongrid` | The Nexus item in the menu bar |
 | `status-wifi` | `wifi` | Wi-Fi, when it is connected |
