@@ -66,8 +66,9 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
     /// Inserts `id` where the mouse dropped it: the tile under `point` is
     /// split, and the half of that tile the point lies in decides the side.
     /// A point outside every tile falls back to splitting the last tile.
-    public mutating func insert(_ id: ID, at point: CGPoint, in area: CGRect, gaps: Gaps = .none) {
-        let frames = layout(in: area, gaps: gaps)
+    public mutating func insert(_ id: ID, at point: CGPoint, in area: CGRect, gaps: Gaps = .none,
+                                minimums: [ID: CGSize] = [:]) {
+        let frames = layout(in: area, gaps: gaps, minimums: minimums)
         guard let target = frames.first(where: { $0.value.contains(point) }) else {
             insert(id)
             return
@@ -85,29 +86,72 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
     }
 
     /// The window whose tile contains `point`, if any.
-    public func id(at point: CGPoint, in area: CGRect, gaps: Gaps = .none) -> ID? {
-        layout(in: area, gaps: gaps).first(where: { $0.value.contains(point) })?.key
+    public func id(at point: CGPoint, in area: CGRect, gaps: Gaps = .none,
+                   minimums: [ID: CGSize] = [:]) -> ID? {
+        layout(in: area, gaps: gaps, minimums: minimums).first(where: { $0.value.contains(point) })?.key
     }
 
     /// Target frame for every window.
-    public func layout(in area: CGRect, gaps: Gaps = .none) -> [ID: CGRect] {
+    ///
+    /// `minimums` are sizes windows refuse to go below (learned by the
+    /// engine). A split then moves so each side gets at least its minimum;
+    /// the neighbor shrinks instead. When both sides together cannot fit,
+    /// the space is shared in proportion to their minimums.
+    ///
+    /// Split directions always come from the layout without minimums, so a
+    /// shifted split never flips a neighbor from stacked to side by side.
+    public func layout(in area: CGRect, gaps: Gaps = .none, minimums: [ID: CGSize] = [:]) -> [ID: CGRect] {
         var frames: [ID: CGRect] = [:]
-        func place(_ node: Node, in rect: CGRect) {
+        func place(_ node: Node, in rect: CGRect, plain: CGRect) {
             switch node {
             case .leaf(let id):
                 frames[id] = rect
             case .split(let a, let b, let ratio):
-                let (ra, rb) = Self.divide(rect, ratio: ratio, gap: gaps.inner)
-                place(a, in: ra)
-                place(b, in: rb)
+                let sideBySide = plain.width >= plain.height
+                let (pa, pb) = Self.divide(plain, ratio: ratio, gap: gaps.inner, sideBySide: sideBySide)
+                let minA = Self.minimum(of: a, plain: pa, gap: gaps.inner, minimums: minimums)
+                let minB = Self.minimum(of: b, plain: pb, gap: gaps.inner, minimums: minimums)
+                let available = (sideBySide ? rect.width : rect.height) - gaps.inner
+                let needA = sideBySide ? minA.width : minA.height
+                let needB = sideBySide ? minB.width : minB.height
+                var length = available * ratio
+                if needA + needB > available {
+                    if needA + needB > 0 { length = available * needA / (needA + needB) }
+                } else {
+                    length = min(max(length, needA), available - needB)
+                }
+                let adjusted = available > 0 ? length / available : ratio
+                let (ra, rb) = Self.divide(rect, ratio: adjusted, gap: gaps.inner, sideBySide: sideBySide)
+                place(a, in: ra, plain: pa)
+                place(b, in: rb, plain: pb)
             }
         }
-        if let root { place(root, in: area.insetBy(dx: gaps.outer, dy: gaps.outer)) }
+        if let root {
+            let inset = area.insetBy(dx: gaps.outer, dy: gaps.outer)
+            place(root, in: inset, plain: inset)
+        }
         return frames
     }
 
-    static func divide(_ rect: CGRect, ratio: CGFloat, gap: CGFloat) -> (CGRect, CGRect) {
-        if rect.width >= rect.height {
+    /// Smallest size a subtree can take, using the split directions of its
+    /// plain (minimum-free) layout.
+    static func minimum(of node: Node, plain: CGRect, gap: CGFloat, minimums: [ID: CGSize]) -> CGSize {
+        switch node {
+        case .leaf(let id):
+            return minimums[id] ?? .zero
+        case .split(let a, let b, let ratio):
+            let sideBySide = plain.width >= plain.height
+            let (pa, pb) = divide(plain, ratio: ratio, gap: gap, sideBySide: sideBySide)
+            let ma = minimum(of: a, plain: pa, gap: gap, minimums: minimums)
+            let mb = minimum(of: b, plain: pb, gap: gap, minimums: minimums)
+            return sideBySide
+                ? CGSize(width: ma.width + gap + mb.width, height: max(ma.height, mb.height))
+                : CGSize(width: max(ma.width, mb.width), height: ma.height + gap + mb.height)
+        }
+    }
+
+    static func divide(_ rect: CGRect, ratio: CGFloat, gap: CGFloat, sideBySide: Bool) -> (CGRect, CGRect) {
+        if sideBySide {
             let w = (rect.width - gap) * ratio
             return (
                 CGRect(x: rect.minX, y: rect.minY, width: w, height: rect.height),

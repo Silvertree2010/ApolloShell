@@ -35,6 +35,8 @@ public final class TilingEngine {
     public private(set) var tree = DwindleTree<CGWindowID>()
     public private(set) var windows: [CGWindowID: AXWindow] = [:]
     public private(set) var dragging: CGWindowID?
+    /// Sizes windows refused to go below, learned by measuring after each glide.
+    public private(set) var minimums: [CGWindowID: CGSize] = [:]
 
     /// Time spent writing frames per animation step.
     public private(set) var applyTimes = Durations()
@@ -64,9 +66,37 @@ public final class TilingEngine {
         relayout()
     }
 
+    /// Tiles a new window. With a point (usually the mouse), the tile under it
+    /// is split, like a drop; otherwise the last tile is split.
+    public func add(_ window: AXWindow, at point: CGPoint?) {
+        let id = window.windowID
+        guard windows[id] == nil else { return }
+        windows[id] = window
+        springs[id] = AnimatedRect(window.frame ?? area)
+        if let point {
+            tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums)
+        } else {
+            tree.insert(id)
+        }
+        relayout()
+    }
+
+    /// Drops a window from tiling; the others close the gap.
+    public func remove(_ id: CGWindowID) {
+        guard windows[id] != nil else { return }
+        if dragging == id { dragging = nil }
+        windows[id] = nil
+        springs[id] = nil
+        minimums[id] = nil
+        tree.remove(id)
+        relayout()
+    }
+
+    public var isAnimating: Bool { timer != nil }
+
     /// Recomputes the layout and lets every window glide to its new tile.
     public func relayout() {
-        for (id, rect) in tree.layout(in: area, gaps: options.gaps) {
+        for (id, rect) in tree.layout(in: area, gaps: options.gaps, minimums: minimums) {
             springs[id, default: AnimatedRect(windows[id]?.frame ?? rect)].target = rect
         }
         startLoop()
@@ -81,7 +111,7 @@ public final class TilingEngine {
     }
 
     public func window(at point: CGPoint) -> CGWindowID? {
-        tree.id(at: point, in: area, gaps: options.gaps)
+        tree.id(at: point, in: area, gaps: options.gaps, minimums: minimums)
     }
 
     /// Where the engine last put the window (nil while dragged or unknown).
@@ -90,7 +120,7 @@ public final class TilingEngine {
     }
 
     public func targetFrames() -> [CGWindowID: CGRect] {
-        tree.layout(in: area, gaps: options.gaps)
+        tree.layout(in: area, gaps: options.gaps, minimums: minimums)
     }
 
     // MARK: Drag and drop
@@ -111,7 +141,7 @@ public final class TilingEngine {
     public func endDrag(at point: CGPoint) {
         guard let id = dragging else { return }
         dragging = nil
-        tree.insert(id, at: point, in: area, gaps: options.gaps)
+        tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums)
         if let window = windows[id] {
             window.invalidateCache()
             springs[id] = AnimatedRect(window.frame ?? area)
@@ -168,7 +198,31 @@ public final class TilingEngine {
             timer?.invalidate()
             timer = nil
             onSettled?()
+            if learnMinimums() { relayout() }
         }
+    }
+
+    /// Compares where windows ended up with their tiles. A window that stayed
+    /// bigger refused the size; remember that as its minimum.
+    /// Returns true when a minimum grew, so the layout must be redone.
+    private func learnMinimums() -> Bool {
+        var changed = false
+        for (id, target) in tree.layout(in: area, gaps: options.gaps, minimums: minimums) {
+            guard id != dragging, let actual = windows[id]?.frame else { continue }
+            var minimum = minimums[id] ?? .zero
+            if actual.width > target.width + 4, actual.width > minimum.width + 1 {
+                minimum.width = actual.width
+            }
+            if actual.height > target.height + 4, actual.height > minimum.height + 1 {
+                minimum.height = actual.height
+            }
+            if minimum != (minimums[id] ?? .zero) {
+                log("minimum for \(windows[id]?.title ?? "\(id)"): \(Int(minimum.width))x\(Int(minimum.height))")
+                minimums[id] = minimum
+                changed = true
+            }
+        }
+        return changed
     }
 
     /// Writes frames; returns windows that no longer exist.
@@ -188,9 +242,6 @@ public final class TilingEngine {
         // A failed write can also mean a busy app; only drop windows that are really gone.
         guard windows[id]?.position == nil else { return }
         log("window gone: \(windows[id]?.title ?? "\(id)")")
-        windows[id] = nil
-        springs[id] = nil
-        tree.remove(id)
-        relayout()
+        remove(id)
     }
 }

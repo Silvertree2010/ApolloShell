@@ -13,6 +13,9 @@ public final class DragTracker {
 
     private var downPoint: CGPoint?
     private var candidate: CGWindowID?
+    /// The candidate's frame at mouse-down. Compared against this, not the
+    /// layout target, since apps may refuse a target size (minimum sizes).
+    private var startFrame: CGRect?
 
     /// Prints every decision to stderr (set APOLLOWM_TRACE=1).
     public var trace = ProcessInfo.processInfo.environment["APOLLOWM_TRACE"] == "1"
@@ -48,20 +51,25 @@ public final class DragTracker {
         case .leftMouseDown:
             downPoint = point
             candidate = engine.dragging == nil ? engine.window(at: point) : nil
+            startFrame = candidate.flatMap { engine.windows[$0]?.serverFrame }
             note("down \(Int(point.x)),\(Int(point.y)) candidate \(candidate.map(String.init) ?? "none")")
 
         case .leftMouseDragged:
             guard let id = candidate else { return }
-            guard let downPoint,
-                  let window = engine.windows[id],
-                  let expected = engine.expectedFrame(of: id),
-                  let actual = window.serverFrame else {
-                note("drag \(Int(point.x)),\(Int(point.y)) -> no frame for candidate \(id)")
+            guard let downPoint else { return }
+            guard let window = engine.windows[id], let start = startFrame else {
+                note("  -> candidate \(id) no longer tiled")
+                candidate = nil
                 return
             }
-            let moved = abs(actual.minX - expected.minX) > 2 || abs(actual.minY - expected.minY) > 2
-            let resized = abs(actual.width - expected.width) > 2 || abs(actual.height - expected.height) > 2
-            note("drag \(Int(point.x)),\(Int(point.y)) server \(Int(actual.minX)),\(Int(actual.minY)) \(Int(actual.width))x\(Int(actual.height)) app \(window.frame.map { "\(Int($0.minX)),\(Int($0.minY))" } ?? "-") expected \(Int(expected.minX)),\(Int(expected.minY)) \(Int(expected.width))x\(Int(expected.height))")
+            guard let actual = window.serverFrame else {
+                note("  -> window server has no frame for \(id)")
+                candidate = nil
+                return
+            }
+            let moved = abs(actual.minX - start.minX) > 2 || abs(actual.minY - start.minY) > 2
+            let resized = abs(actual.width - start.width) > 2 || abs(actual.height - start.height) > 2
+            note("drag \(Int(point.x)),\(Int(point.y)) now \(Int(actual.minX)),\(Int(actual.minY)) \(Int(actual.width))x\(Int(actual.height)) app \(window.frame.map { "\(Int($0.minX)),\(Int($0.minY))" } ?? "-") at down \(Int(start.minX)),\(Int(start.minY)) \(Int(start.width))x\(Int(start.height))")
             if resized {
                 note("  -> resize, ignored")
                 candidate = nil
@@ -80,6 +88,7 @@ public final class DragTracker {
             if engine.dragging != nil { engine.endDrag(at: point) }
             downPoint = nil
             candidate = nil
+            startFrame = nil
 
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }

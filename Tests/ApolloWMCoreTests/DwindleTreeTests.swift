@@ -109,6 +109,58 @@ struct DwindleTreeTests {
         #expect(tree.layout(in: area) == [7: area])
     }
 
+    @Test func minimumWidthMovesSplit() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        let f = tree.layout(in: area, minimums: [2: CGSize(width: 700, height: 0)])
+        #expect(f[1] == CGRect(x: 0, y: 0, width: 300, height: 600))
+        #expect(f[2] == CGRect(x: 300, y: 0, width: 700, height: 600))
+    }
+
+    @Test func minimumBelowShareChangesNothing() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        #expect(tree.layout(in: area, minimums: [1: CGSize(width: 200, height: 200)]) == tree.layout(in: area))
+    }
+
+    @Test func nestedMinimumPushesWholeSubtree() {
+        var tree = DwindleTree<Int>()
+        [1, 2, 3].forEach { tree.insert($0) }
+        // 3 sits in the right half, stacked under 2; its width moves the root split.
+        let f = tree.layout(in: area, minimums: [3: CGSize(width: 800, height: 0)])
+        #expect(f[1] == CGRect(x: 0, y: 0, width: 200, height: 600))
+        #expect(f[2]?.width == 800)
+        #expect(f[3] == CGRect(x: 200, y: 300, width: 800, height: 300))
+    }
+
+    @Test func minimumHeightMovesStackedSplit() {
+        var tree = DwindleTree<Int>()
+        [1, 2, 3].forEach { tree.insert($0) }
+        let f = tree.layout(in: area, minimums: [2: CGSize(width: 0, height: 450)])
+        #expect(f[2] == CGRect(x: 500, y: 0, width: 500, height: 450))
+        #expect(f[3] == CGRect(x: 500, y: 450, width: 500, height: 150))
+    }
+
+    @Test func impossibleMinimumsShareProportionally() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        let f = tree.layout(in: area, minimums: [1: CGSize(width: 900, height: 0), 2: CGSize(width: 300, height: 0)])
+        #expect(f[1]?.width == 750)
+        #expect(f[2]?.width == 250)
+    }
+
+    @Test func minimumsRespectInnerGap() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        let f = tree.layout(in: area, gaps: Gaps(outer: 0, inner: 10), minimums: [1: CGSize(width: 800, height: 0)])
+        #expect(f[1] == CGRect(x: 0, y: 0, width: 800, height: 600))
+        #expect(f[2] == CGRect(x: 810, y: 0, width: 190, height: 600))
+    }
+
     @Test func hitTestFindsTile() {
         var tree = DwindleTree<Int>()
         [1, 2, 3].forEach { tree.insert($0) }

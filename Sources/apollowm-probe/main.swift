@@ -129,8 +129,10 @@ default:
     }
     engine.onSettled = { report("settled") }
     engine.adopt(found)
+    let watcher = WindowWatcher(engine: engine)
+    watcher.start()
     print("live. drag a window by its title bar. Ctrl+C puts everything back.")
-    withExtendedLifetime((tracker, signalSources)) { app.run() }
+    withExtendedLifetime((tracker, watcher, signalSources)) { app.run() }
 }
 
 withExtendedLifetime(signalSources) { app.run() }
