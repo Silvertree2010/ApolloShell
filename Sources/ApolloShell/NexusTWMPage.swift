@@ -16,9 +16,7 @@ struct NexusTWMPage: View {
             NexusSwitchCard(symbol: "cursorarrow.motionlines", title: "Focus Follows Mouse",
                             subtitle: "The window under the mouse comes forward.",
                             isOn: twm.focusFollowsMouse) {
-                slider(value: Binding(
-                    get: { Double(store.settings.twm.focusDelayMilliseconds) },
-                    set: { store.settings.twm.focusDelayMilliseconds = Int($0.rounded()) }),
+                slider(value: twm.focusDelay,
                     range: Double(TWMSettings.focusDelayRange.lowerBound)...Double(TWMSettings.focusDelayRange.upperBound),
                     label: "\(store.settings.twm.focusDelayMilliseconds) ms")
                     .disabled(!store.settings.twm.focusFollowsMouse)

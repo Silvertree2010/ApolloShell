@@ -27,6 +27,14 @@ public struct TWMSettings: Codable, Equatable, Sendable {
 
     public init() {}
 
+    /// The focus delay as a Double, for a slider bound by key path (a
+    /// hand-made Binding with closures crashed: SwiftUI read it off the
+    /// main actor).
+    public var focusDelay: Double {
+        get { Double(focusDelayMilliseconds) }
+        set { focusDelayMilliseconds = Int(newValue.rounded()) }
+    }
+
     public init(from decoder: any Decoder) throws {
         self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
