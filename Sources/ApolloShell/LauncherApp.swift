@@ -111,8 +111,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // While the global editing runs (task 6) the shortcut does nothing:
         // the launcher would have no room next to the scrim and the toolbar
         // anyway, and one more window above everything would only get in the way.
-        hotKeys.setHandler(.launcher) { [weak controller, weak shellEditor] in
-            guard shellEditor?.isEditing != true else { return }
+        hotKeys.setHandler(.launcher) { [weak controller, weak shellEditor, settings] in
+            // Switched off in the Nexus panel: the key does nothing.
+            guard shellEditor?.isEditing != true, settings.settings.features.launcher else { return }
             controller?.toggle()
         }
 
@@ -181,9 +182,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         shortcutsWindow = ShortcutsWindow(settings: settings, hotKeys: hotKeys)
         // The menu bar item calls the same parts the bar buttons call.
         let nexusMenu = NexusMenu(settings: settings, themes: themes, actions: NexusMenu.Actions(
-            dashboard: { [weak dashboard] in dashboard?.toggle() },
-            utilities: { [weak utilities] in utilities?.toggle() },
-            launcher: { [weak controller] in controller?.toggle() },
             editInterface: { [weak self] in self?.beginEditing() },
             shortcuts: { [weak self] in self?.shortcutsWindow?.show() },
             isEditing: { [weak shellEditor] in shellEditor?.isEditing ?? false }

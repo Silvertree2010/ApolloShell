@@ -46,6 +46,9 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     public var theme = ThemeSettings()
     /// The Nexus item in the menu bar.
     public var menuBar = MenuBar()
+    /// Which of the three panels exist at all (the switches on top of the
+    /// Nexus panel).
+    public var features = Features()
 
     /// The defaults of the four sections for the release (hotKeys, keepAwake,
     /// onboarding, appleDockHiding) are the ones for an EXISTING installation
@@ -63,7 +66,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
                 appleDockHiding: AppleDockHidingSettings = .existingInstall,
                 updates: UpdateSettings = UpdateSettings(),
                 theme: ThemeSettings = ThemeSettings(),
-                menuBar: MenuBar = MenuBar()) {
+                menuBar: MenuBar = MenuBar(),
+                features: Features = Features()) {
         self.bar = bar
         self.toasts = toasts
         self.background = background
@@ -79,6 +83,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         self.updates = updates
         self.theme = theme
         self.menuBar = menuBar
+        self.features = features
     }
 
     /// A fresh installation (no settings.json): new shortcuts, the lid part
@@ -218,6 +223,29 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         }
     }
 
+    /// The dashboard, the control centre and the launcher, each on or off.
+    /// Off means gone: no hover at the screen edge, no shortcut, no button in
+    /// the bar. All on by default, for existing installations too.
+    public struct Features: Codable, Equatable, Sendable {
+        public var dashboard = true
+        public var utilities = true
+        public var launcher = true
+
+        public init(dashboard: Bool = true, utilities: Bool = true, launcher: Bool = true) {
+            self.dashboard = dashboard
+            self.utilities = utilities
+            self.launcher = launcher
+        }
+
+        public init(from decoder: any Decoder) throws {
+            self.init()
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            c.lenient(.dashboard, into: &dashboard)
+            c.lenient(.utilities, into: &utilities)
+            c.lenient(.launcher, into: &launcher)
+        }
+    }
+
     public struct Background: Codable, Equatable, Sendable {
         public var desktopClock = true
 
@@ -293,6 +321,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         theme = c.lenient(.theme) ?? ThemeSettings()
         // From 0.2 on; without it the item is shown.
         menuBar = c.lenient(.menuBar) ?? MenuBar()
+        features = c.lenient(.features) ?? Features()
     }
 
     /// The content of settings.json.

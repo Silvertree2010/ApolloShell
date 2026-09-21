@@ -37,7 +37,17 @@ struct SidebarContent: View {
 
     @ViewBuilder
     private var calmBar: some View {
-        let entries = settings.settings.bar.layout.entries
+        // A panel switched off in Nexus takes its button along: a button
+        // that opens nothing would only confuse. The layout itself keeps it,
+        // so switching back on brings it back to the same spot.
+        let features = settings.settings.features
+        let entries = settings.settings.bar.layout.entries.filter { entry in
+            switch entry.module {
+            case .dashboardButton: features.dashboard
+            case .utilitiesButton: features.utilities
+            default: true
+            }
+        }
         // With a theme, `--apollo-bar-item-spacing` and `--apollo-bar-padding`
         // set the gap between the blocks and the margin.
         BarStack(spacing: style.barItemSpacing(8)) {

@@ -6,10 +6,10 @@ import os
 /// in full screen, on a screen without a bar, with no shortcut set
 /// (design/2026-09-21-menubar-nexus.md, task 1).
 ///
-/// A click opens the Nexus panel (`NexusPanel`): the four openers, the
-/// settings as tabs of cards, Shortcuts and Quit - modelled on Vorssaint's
-/// menu bar panel. The openers only call what the bar buttons and shortcuts
-/// call; no logic of its own lives here.
+/// A click opens the Nexus panel (`NexusPanel`): on/off switches for the
+/// dashboard, the control centre and the launcher, Edit, the settings as
+/// tabs of cards, Shortcuts and Quit - modelled on Vorssaint's menu bar
+/// panel.
 ///
 /// Its place survives restarts through the autosave name. The item is not
 /// removed when hidden, only made invisible: `NSStatusBar.removeStatusItem`
@@ -18,14 +18,10 @@ import os
 final class NexusMenu: NSObject {
     /// What the items do. Set by the app delegate, which owns the parts.
     struct Actions {
-        var dashboard: @MainActor () -> Void = {}
-        var utilities: @MainActor () -> Void = {}
-        var launcher: @MainActor () -> Void = {}
         var editInterface: @MainActor () -> Void = {}
         var introduction: @MainActor () -> Void = {}
         var shortcuts: @MainActor () -> Void = {}
-        /// While the global edit mode runs the openers stay greyed out, like
-        /// their shortcuts do nothing then.
+        /// While the global edit mode runs, Edit stays greyed out.
         var isEditing: @MainActor () -> Bool = { false }
     }
 

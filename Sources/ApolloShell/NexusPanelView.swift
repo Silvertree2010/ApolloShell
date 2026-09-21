@@ -129,16 +129,43 @@ struct NexusPanelView: View {
 
     // MARK: - Top
 
+    /// The three panels as on/off switches (Andrin, 21.09.: "ein an aus
+    /// schalter für alle 3") - lit in the accent colour while they exist.
+    /// Edit stays a button: the edit mode is no panel one switches off.
     private var openers: some View {
+        @Bindable var store = model.settings
         let editing = model.actions.isEditing()
         return HStack(spacing: 8) {
-            opener("Dashboard", "square.grid.2x2.fill", model.actions.dashboard)
-            opener("Control Centre", short: "Controls", "slider.horizontal.3", model.actions.utilities)
-            opener("Launcher", "magnifyingglass", model.actions.launcher)
+            featureTile("Dashboard", "square.grid.2x2.fill", isOn: $store.settings.features.dashboard)
+            featureTile("Control Centre", short: "Controls", "slider.horizontal.3",
+                        isOn: $store.settings.features.utilities)
+            featureTile("Launcher", "magnifyingglass", isOn: $store.settings.features.launcher)
             opener("Edit", "pencil", model.actions.editInterface)
+                .disabled(editing)
+                .opacity(editing ? 0.4 : 1)
         }
-        .disabled(editing)
-        .opacity(editing ? 0.4 : 1)
+    }
+
+    private func featureTile(_ title: LocalizedStringKey, short: LocalizedStringKey? = nil, _ symbol: String,
+                             isOn: Binding<Bool>) -> some View {
+        let on = isOn.wrappedValue
+        return Button { isOn.wrappedValue.toggle() } label: {
+            tileLabel(title, short: short, symbol)
+                .foregroundStyle(on ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(style.secondaryText))
+                .background {
+                    if on {
+                        RoundedRectangle(cornerRadius: style.cardRadius(14), style: .continuous)
+                            .fill(style.accent)
+                    }
+                }
+                .cardSurface(radius: 14)
+                .contentShape(.rect)
+                .animation(.snappy(duration: 0.18), value: on)
+        }
+        .buttonStyle(NexusPressStyle())
+        .accessibilityAddTraits(.isToggle)
+        .accessibilityValue(on ? Text("On") : Text("Off"))
+        .help(on ? Text("On – click to switch off") : Text("Off – click to switch on"))
     }
 
     /// `short`: the name when the long one does not fit the tile (a wider
@@ -147,23 +174,27 @@ struct NexusPanelView: View {
     private func opener(_ title: LocalizedStringKey, short: LocalizedStringKey? = nil, _ symbol: String,
                         _ action: @escaping @MainActor () -> Void) -> some View {
         Button { model.run(action) } label: {
-            VStack(spacing: 5) {
-                Image(systemName: symbol)
-                    .font(style.font(size: 17, weight: .medium))
-                    .frame(height: 20)
-                ViewThatFits(in: .horizontal) {
-                    Text(title).fixedSize()
-                    Text(short ?? title).lineLimit(1)
-                }
-                .font(style.font(size: 11))
-                .padding(.horizontal, 8)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .cardSurface(radius: 14)
-            .contentShape(.rect)
+            tileLabel(title, short: short, symbol)
+                .cardSurface(radius: 14)
+                .contentShape(.rect)
         }
         .buttonStyle(NexusPressStyle())
+    }
+
+    private func tileLabel(_ title: LocalizedStringKey, short: LocalizedStringKey?, _ symbol: String) -> some View {
+        VStack(spacing: 5) {
+            Image(systemName: symbol)
+                .font(style.font(size: 17, weight: .medium))
+                .frame(height: 20)
+            ViewThatFits(in: .horizontal) {
+                Text(title).fixedSize()
+                Text(short ?? title).lineLimit(1)
+            }
+            .font(style.font(size: 11))
+            .padding(.horizontal, 8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
     }
 
     private var tabs: some View {

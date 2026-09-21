@@ -16,12 +16,17 @@ import SwiftUI
 @MainActor
 final class UtilitiesPanel {
     private let settings: ShellSettingsStore
+    /// Only asked whether the edit mode runs: that one still shows the panel
+    /// when it is switched off.
+    private weak var editor: ShellEditor?
     private let model: UtilitiesModel
     private let state: UtilitiesLayoutState
     private let drawer: EdgeDrawer<UtilitiesPanelView>
     private var observation: Task<Void, Never>?
     private var editingObservation: Task<Void, Never>?
     private var lidObservation: Task<Void, Never>?
+    /// Follows the on/off switch in the Nexus panel.
+    private var enabledObservation: Task<Void, Never>?
     /// Open or closed - the toasts then move up out of the way
     /// (Caelestia hangs them on `utilities.top`).
     var onVisibilityChange: (_ open: Bool) -> Void = { _ in }
@@ -61,6 +66,7 @@ final class UtilitiesPanel {
     /// Anordnung.
     init(settings: ShellSettingsStore, editor: ShellEditor, model injected: UtilitiesModel? = nil) {
         self.settings = settings
+        self.editor = editor
         model = injected ?? UtilitiesModel(lidAllowed: { settings.settings.keepAwake.lidClosed })
         let layout = settings.settings.utilities.layout
         state = UtilitiesLayoutState(layout: layout)
@@ -106,6 +112,15 @@ final class UtilitiesPanel {
         lidObservation = Task { [weak self, settings] in
             for await _ in Observations({ settings.settings.keepAwake.lidClosed }) {
                 self?.model.lidSettingChanged()
+            }
+        }
+        // Switched off in the Nexus panel: no hover at the bottom right, no
+        // shortcut, no bar button. The edit mode still shows it.
+        enabledObservation = Task { [weak self, settings] in
+            for await on in Observations({ settings.settings.features.utilities }) {
+                guard let self else { return }
+                self.drawer.opensOnHover = on
+                if !on, self.editor?.isEditing != true { self.drawer.close() }
             }
         }
         // While an editing session runs (task 5): every change to the working
@@ -161,6 +176,7 @@ final class UtilitiesPanel {
     }
 
     func toggle() {
+        guard settings.settings.features.utilities || editor?.isEditing == true else { return }
         drawer.toggle()
     }
 

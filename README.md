@@ -56,9 +56,9 @@ If you like it, a star on GitHub helps other Mac users find it.
   the dashboard is on this screen. Done keeps the changes, Cancel drops them.
 - **Themes** as one CSS file: colours, gradients, fonts, sizes and even the
   icons for the whole shell, applied the moment you save the file.
-- **Nexus**, a panel from the menu bar: opens everything and holds every
-  setting as cards with switches, with the keyboard shortcuts in a small
-  window of their own.
+- **Nexus**, a panel from the menu bar: switches the dashboard, the control
+  centre and the launcher on or off and holds every setting as cards with
+  switches, with the keyboard shortcuts in a small window of their own.
 - Volume display, notifications for power and audio, a desktop clock and a
   session menu.
 - **Keeps itself up to date** (the `.dmg` build), or says when a new version

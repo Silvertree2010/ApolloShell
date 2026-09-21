@@ -19,8 +19,9 @@ tabs you had into pages, with the cards at the same spots. The old
   delete them; "Restore default pages" brings back a deleted one.
 - **Widgets can go anywhere on a page**, in the sizes the dashboard already
   had, and the same widget can appear more than once.
-- **Nexus lives in the menu bar.** Its icon opens a glass panel: the
-  dashboard, the control centre, the launcher and the edit mode on top, then
+- **Nexus lives in the menu bar.** Its icon opens a glass panel: on top,
+  on/off switches for the dashboard, the control centre and the launcher (off
+  means no hover, no shortcut and no bar button) and the edit mode, then
   tabs for the bar, themes, toasts, providers, system and updates, each a
   column of cards with a switch or a list and one line of explanation. It
   works in full screen and on a screen without a bar, and closes on Esc or a

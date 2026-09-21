@@ -22,6 +22,8 @@ final class Dashboard {
     private let drawer: EdgeDrawer<DashboardView>
     /// Size at scale 1 (measured from the content, see `init`).
     private let baseSize: NSSize
+    /// Follows the on/off switch in the Nexus panel; lives as long as the app.
+    private var enabledObservation: Task<Void, Never>?
 
     /// `settings`: weather provider (Nexus > Provider), pages and
     /// widgets (Nexus > Dashboard, `settings.dashboardPages`). `editor`:
@@ -119,6 +121,12 @@ final class Dashboard {
         // Slider in the toolbar: the open Dashboard follows immediately.
         editor.onScaleChange = { [weak self] in self?.applyScaleWhileOpen() }
         editor.onNeedsKeyboard = { [weak drawer] in drawer?.takeKeyboard() }
+        // Delivers the current value first, then every change.
+        enabledObservation = Task { [weak self, settings] in
+            for await on in Observations({ settings.settings.features.dashboard }) {
+                self?.enabledChanged(on)
+            }
+        }
     }
 
     /// Scale for this screen: automatic based on width times slider -
@@ -152,7 +160,18 @@ final class Dashboard {
     }
 
     func toggle() {
+        guard isEnabled || editor.isEditing else { return }
         drawer.toggle()
+    }
+
+    /// Switched off in the Nexus panel: nothing opens it - no hover at the
+    /// top edge, no shortcut, no bar module. The edit mode still shows it:
+    /// switching a panel off is not the same as losing its pages.
+    private var isEnabled: Bool { settings.settings.features.dashboard }
+
+    private func enabledChanged(_ on: Bool) {
+        drawer.opensOnHover = on
+        if !on, !editor.isEditing { drawer.close() }
     }
 
     /// Frame of the open Dashboard (edit mode: the gallery sits below
@@ -202,6 +221,7 @@ final class Dashboard {
             }
             return
         }
+        guard isEnabled else { return }
         let page = pages.page(for: PageTemplate(tab), showing: kinds)
         if drawer.isOpen, model.pageID == page.id {
             drawer.close()

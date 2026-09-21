@@ -73,6 +73,16 @@ struct ShellSettingsTests {
         #expect(ShellSettings.firstLaunch.menuBar.shown)
     }
 
+    @Test("Panels: all on without the key, one off only when the file says so", arguments: [
+        ("{}", ShellSettings.Features()),
+        (#"{"features":{"dashboard":false}}"#, ShellSettings.Features(dashboard: false)),
+        (#"{"features":{"launcher":"nein","utilities":false}}"#, ShellSettings.Features(utilities: false)),
+    ])
+    func features(json: String, expected: ShellSettings.Features) {
+        #expect(ShellSettings.load(from: Data(json.utf8)).features == expected)
+        #expect(ShellSettings.firstLaunch.features == ShellSettings.Features())
+    }
+
     @Test("an old background key is ignored, the rest of the bar still reads")
     func oldBackgroundIgnored() {
         let json = #"{"bar":{"layout":[],"background":"glass","screens":{"mode":"primary"}}}"#
