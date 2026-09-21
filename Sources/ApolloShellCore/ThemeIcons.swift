@@ -62,6 +62,7 @@ public struct ThemeIconCatalog: Sendable {
         .init(id: "bar-clock", fallback: "calendar", summary: "Above the clock in the bar"),
         .init(id: "bar-power", fallback: "power", summary: "Opens the session menu"),
         .init(id: "bar-launcher", fallback: "magnifyingglass", summary: "Opens the launcher"),
+        .init(id: "menubar-nexus", fallback: "circle.hexagongrid", summary: "The Nexus item in the menu bar"),
 
         // MARK: State
         .init(id: "status-wifi", fallback: "wifi", summary: "Wi-Fi, when it is connected"),

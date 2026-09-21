@@ -62,6 +62,17 @@ struct ShellSettingsTests {
 
     // MARK: - Bar background
 
+    @Test("Menu bar item: on without the key, off only when the file says so", arguments: [
+        ("{}", true),
+        (#"{"menuBar":{}}"#, true),
+        (#"{"menuBar":{"shown":"nein"}}"#, true),
+        (#"{"menuBar":{"shown":false}}"#, false),
+    ])
+    func menuBarShown(json: String, shown: Bool) {
+        #expect(ShellSettings.load(from: Data(json.utf8)).menuBar.shown == shown)
+        #expect(ShellSettings.firstLaunch.menuBar.shown)
+    }
+
     @Test("Background: writing and reading again gives the same result", arguments: BarBackground.allCases)
     func backgroundRoundTrip(background: BarBackground) {
         // In a list instead of individually: a single value would be a

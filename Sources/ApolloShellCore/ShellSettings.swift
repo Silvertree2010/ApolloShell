@@ -44,6 +44,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     public var updates = UpdateSettings()
     /// The chosen theme (Nexus > Themes).
     public var theme = ThemeSettings()
+    /// The Nexus item in the menu bar.
+    public var menuBar = MenuBar()
 
     /// The defaults of the four sections for the release (hotKeys, keepAwake,
     /// onboarding, appleDockHiding) are the ones for an EXISTING installation
@@ -60,7 +62,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
                 onboarding: OnboardingSettings = .existingInstall,
                 appleDockHiding: AppleDockHidingSettings = .existingInstall,
                 updates: UpdateSettings = UpdateSettings(),
-                theme: ThemeSettings = ThemeSettings()) {
+                theme: ThemeSettings = ThemeSettings(),
+                menuBar: MenuBar = MenuBar()) {
         self.bar = bar
         self.toasts = toasts
         self.background = background
@@ -75,6 +78,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         self.appleDockHiding = appleDockHiding
         self.updates = updates
         self.theme = theme
+        self.menuBar = menuBar
     }
 
     /// A fresh installation (no settings.json): new shortcuts, the lid part
@@ -202,6 +206,22 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     }
 
     /// Desktop (Caelestia: background).
+    /// The Nexus item in the menu bar. On by default, for existing
+    /// installations too: it is the one way in that needs no shortcut.
+    public struct MenuBar: Codable, Equatable, Sendable {
+        public var shown = true
+
+        public init(shown: Bool = true) {
+            self.shown = shown
+        }
+
+        public init(from decoder: any Decoder) throws {
+            self.init()
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            c.lenient(.shown, into: &shown)
+        }
+    }
+
     public struct Background: Codable, Equatable, Sendable {
         public var desktopClock = true
 
@@ -275,6 +295,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         // apply: checking and installing on, no theme of its own.
         updates = c.lenient(.updates) ?? UpdateSettings()
         theme = c.lenient(.theme) ?? ThemeSettings()
+        // From 0.2 on; without it the item is shown.
+        menuBar = c.lenient(.menuBar) ?? MenuBar()
     }
 
     /// The content of settings.json.

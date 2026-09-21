@@ -60,6 +60,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKeys: HotKeyCenter?
     /// Settings window (Caelestia: Nexus).
     private var nexus: Nexus?
+    /// Nexus in the menu bar.
+    private var nexusMenu: NexusMenu?
     /// One editing session of the bento pages (Nexus > Dashboard > Edit),
     /// shared between Nexus and the dashboard window.
     private var dashboardEditor: DashboardEditor?
@@ -187,6 +189,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // All handlers set: register now (and match up again on changes in
         // Nexus).
         hotKeys.start()
+        // The menu bar item calls the same parts the bar buttons call.
+        nexusMenu = NexusMenu(settings: settings, themes: themes, actions: NexusMenu.Actions(
+            dashboard: { [weak dashboard] in dashboard?.toggle() },
+            utilities: { [weak utilities] in utilities?.toggle() },
+            launcher: { [weak controller] in controller?.toggle() },
+            editInterface: { [weak nexus, weak shellEditor] in
+                // An open Nexus steps aside itself and comes back after.
+                if let nexus, nexus.isVisible {
+                    nexus.beginEditing()
+                } else if let screen = ShellScreens.underPointer()?.screen ?? NSScreen.main {
+                    shellEditor?.begin(screen: screen)
+                }
+            },
+            settings: { [weak nexus] in nexus?.show() },
+            isEditing: { [weak shellEditor] in shellEditor?.isEditing ?? false }
+        ))
         // Toasts: charger, battery warning levels, audio devices. None on
         // the start - only changes after it.
         let toaster = Toaster()
@@ -241,9 +259,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if showOnboarding { onboarding.show() }
     }
 
-    /// ApolloShell opened a second time: show Nexus, or the launcher in
-    /// launcher-only mode (no Nexus).
+    /// ApolloShell opened a second time: show Nexus (and the menu bar item,
+    /// if it was hidden), or the launcher in launcher-only mode (no Nexus).
     private func showAfterSecondLaunch() {
+        // Whoever hid the menu bar item gets it back this way.
+        nexusMenu?.reveal()
         if let nexus {
             nexus.show()
         } else {

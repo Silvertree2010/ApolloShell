@@ -286,6 +286,7 @@ within the size limit.
 | `bar-clock` | `calendar` | Above the clock in the bar |
 | `bar-power` | `power` | Opens the session menu |
 | `bar-launcher` | `magnifyingglass` | Opens the launcher |
+| `menubar-nexus` | `circle.hexagongrid` | The Nexus item in the menu bar |
 | `status-wifi` | `wifi` | Wi-Fi, when it is connected |
 | `status-wifi-off` | `wifi.slash` | Wi-Fi, when it is off |
 | `status-bluetooth` | `bluetooth` | Bluetooth, when it is on |

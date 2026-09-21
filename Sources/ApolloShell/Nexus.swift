@@ -30,6 +30,10 @@ final class Nexus: NSObject, NSWindowDelegate {
     private var window: NexusWindow?
     /// Who was at the front before the opening - gets the focus back on closing.
     private var previousApp: NSRunningApplication?
+    /// Nexus hid itself for the edit mode and comes back when it ends. Not
+    /// when the mode was started elsewhere (the menu bar): then Nexus was
+    /// not open, and should not pop up afterwards.
+    private var steppedAside = false
 
     /// "Show Introduction" on the About page. Set it before the first opening.
     var onShowOnboarding: @MainActor () -> Void {
@@ -54,8 +58,10 @@ final class Nexus: NSObject, NSWindowDelegate {
         // gallery never take the keyboard themselves) - it then stood visibly,
         // but behind the app that was really active.
         shellEditor.addEndHandler { [weak self] in
+            guard let self, steppedAside else { return }
+            steppedAside = false
             NSApp.activate()
-            self?.window?.makeKeyAndOrderFront(nil)
+            window?.makeKeyAndOrderFront(nil)
         }
         shell.beginEditing = { [weak self] in self?.beginEditing() }
     }
@@ -71,8 +77,12 @@ final class Nexus: NSObject, NSWindowDelegate {
         // second start, and Nexus that hid anyway would be gone with
         // nothing to bring it back (`onEnd` never comes).
         guard shellEditor.isEditing else { return }
+        steppedAside = true
         window.orderOut(nil)
     }
+
+    /// The window stands open on screen.
+    var isVisible: Bool { window?.isVisible ?? false }
 
     func show(page: NexusPage? = nil) {
         if let page { state.page = page }
