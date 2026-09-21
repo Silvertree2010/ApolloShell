@@ -37,11 +37,10 @@ public final class KeyBindings {
 
     public var log: (String) -> Void = { print($0) }
 
-    /// Super+1..9 shows Apple desktop 1-9 (our own workspaces stay unused)
-    /// by pressing Apple's "Switch to Desktop N" shortcut, which start()
-    /// turns on if needed (see DesktopShortcuts).
+    /// Super+1..9 shows Apple desktop 1-9 (our own workspaces stay unused):
+    /// start() sets Apple's "Switch to Desktop N" shortcuts to Super + N and
+    /// those key presses are left to macOS (see DesktopShortcuts).
     public var useAppleDesktops = true
-    private var desktopShortcuts: [Int: DesktopShortcuts.Shortcut] = [:]
 
     public init(engine: TilingEngine) {
         self.engine = engine
@@ -50,9 +49,8 @@ public final class KeyBindings {
     /// Returns false when the event tap cannot be created (missing permission).
     public func start() -> Bool {
         if useAppleDesktops {
-            let (shortcuts, changed) = DesktopShortcuts.ensure()
-            desktopShortcuts = shortcuts
-            if changed { log("turned on Apple's Switch to Desktop 1-9 shortcuts (control + number)") }
+            let (_, changed) = DesktopShortcuts.ensure(modifiers: superFlags)
+            if changed { log("set Apple's Switch to Desktop 1-9 shortcuts to Super + number") }
         }
         let mask = CGEventMask(1 << CGEventType.keyDown.rawValue) | CGEventMask(1 << CGEventType.keyUp.rawValue)
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap,
@@ -70,9 +68,7 @@ public final class KeyBindings {
 
     public func perform(_ action: Action) {
         if case .workspace(let number) = action {
-            if useAppleDesktops {
-                if let shortcut = desktopShortcuts[number] { DesktopShortcuts.press(shortcut) }
-            } else {
+            if !useAppleDesktops {
                 engine.switchWorkspace(to: number)
             }
             return
@@ -99,6 +95,8 @@ public final class KeyBindings {
         switch type {
         case .keyDown:
             guard flags.intersection(superFlags) == superFlags, let action = bindings[key] else { return false }
+            // Super + digit belongs to macOS then: it switches the desktop itself.
+            if useAppleDesktops, case .workspace = action { return false }
             swallowed.insert(key)
             if !isRepeat { perform(action) }
             return true
