@@ -201,3 +201,16 @@ Tasks 1-6 built in one go (commits "Open the shell from the menu bar" to
 - **Open:** the notch case on the MacBook (above), drag and drop of pins
   (synthetic clicks cannot start a drag session), `NexusText` in Core is
   now only used by its tests.
+
+## Panel instead of a menu (21.09., later)
+
+Andrin showed Vorssaint's menu bar panel and said go: Nexus became a glass
+panel under its icon (`NexusPanel`, `NexusPanelView`) instead of an NSMenu.
+Four openers on top, a tab bar of symbols (bar, themes, toasts, providers,
+system, updates), a page of cards (symbol, title, one line, switch or list),
+Shortcuts and Quit at the bottom. The window follows the page's height up
+to 680 pt; Esc and a click beside it close it, as with the bar's popouts.
+The switches are drawn by the shell (`NexusSwitchStyle`): the system switch
+turns grey in a window that is not key, and the panel never is.
+`NexusMenuSettings` went. Checked in the VM: every tab, a switch changing
+settings.json and the desktop clock, Esc.

@@ -187,9 +187,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             editInterface: { [weak self] in self?.beginEditing() },
             shortcuts: { [weak self] in self?.shortcutsWindow?.show() },
             isEditing: { [weak shellEditor] in shellEditor?.isEditing ?? false }
-        ), settingsMenu: NexusMenuSettings(settings: settings, themes: themes, updates: updates, autostart: autostart) {
-            [weak self] title, message in self?.toaster?.toast(title: title, message: message, kind: .error)
-        })
+        ), updates: updates, autostart: autostart) { [weak self] title, message in
+            self?.toaster?.toast(title: title, message: message, kind: .error)
+        }
         self.nexusMenu = nexusMenu
         // The Nexus shortcut opens the menu. While editing it does nothing,
         // like the openers in the menu stay greyed out then.

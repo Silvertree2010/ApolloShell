@@ -6,15 +6,16 @@ import os
 /// in full screen, on a screen without a bar, with no shortcut set
 /// (design/2026-09-21-menubar-nexus.md, task 1).
 ///
-/// On top the four openers, below them the settings (`NexusMenuSettings`),
-/// at the bottom the windows and Quit. The openers only call what the bar
-/// buttons and shortcuts call; no logic of its own lives here.
+/// A click opens the Nexus panel (`NexusPanel`): the four openers, the
+/// settings as tabs of cards, Shortcuts and Quit - modelled on Vorssaint's
+/// menu bar panel. The openers only call what the bar buttons and shortcuts
+/// call; no logic of its own lives here.
 ///
 /// Its place survives restarts through the autosave name. The item is not
 /// removed when hidden, only made invisible: `NSStatusBar.removeStatusItem`
 /// would forget the place along with it.
 @MainActor
-final class NexusMenu: NSObject, NSMenuDelegate {
+final class NexusMenu: NSObject {
     /// What the items do. Set by the app delegate, which owns the parts.
     struct Actions {
         var dashboard: @MainActor () -> Void = {}
@@ -36,27 +37,33 @@ final class NexusMenu: NSObject, NSMenuDelegate {
     private let settings: ShellSettingsStore
     private weak var themes: ThemeStore?
     /// Settable later: the introduction comes about after the menu.
-    var actions: Actions
-    private let settingsMenu: NexusMenuSettings
+    var actions: Actions {
+        didSet { panel.model.actions = actions }
+    }
+    private let panel: NexusPanel
     private let item: NSStatusItem
     private let log = Logger(category: "menubar")
     private var shownObservation: Task<Void, Never>?
     private var themeObservation: Task<Void, Never>?
 
-    init(settings: ShellSettingsStore, themes: ThemeStore?, actions: Actions, settingsMenu: NexusMenuSettings) {
+    init(settings: ShellSettingsStore, themes: ThemeStore?, actions: Actions, updates: UpdateController?,
+         autostart: OnboardingAutostartModel?, report: @escaping @MainActor (String, String) -> Void) {
         self.settings = settings
         self.themes = themes
         self.actions = actions
-        self.settingsMenu = settingsMenu
+        let model = NexusPanelModel(settings: settings, themes: themes, updates: updates, autostart: autostart)
+        model.actions = actions
+        model.report = report
+        panel = NexusPanel(model: model)
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         super.init()
         item.autosaveName = Self.autosaveName
         item.button?.toolTip = "ApolloShell"
         item.button?.setAccessibilityLabel("Nexus")
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-        menu.delegate = self
-        item.menu = menu
+        item.button?.target = self
+        item.button?.action = #selector(buttonClicked)
+        item.button?.sendAction(on: [.leftMouseDown, .rightMouseDown])
+        panel.anchor = { [weak self] in self?.anchorFrame }
         // AppKit restores a visibility of its own under the autosave name;
         // the setting wins, and so does every later change to it. The loops
         // live as long as the app (AppDelegate holds the menu).
@@ -77,19 +84,18 @@ final class NexusMenu: NSObject, NSMenuDelegate {
         themeObservation?.cancel()
     }
 
-    /// Opens the menu: under the item when it stands in the menu bar,
-    /// otherwise at the pointer (hidden, or pushed behind the notch - the
-    /// menu itself does not depend on the item). For the Nexus shortcut, the
-    /// settings button of the control centre and a second launch.
+    /// Opens the panel: under the item when it stands in the menu bar,
+    /// otherwise at the top of the screen under the pointer (hidden, or
+    /// pushed behind the notch). For the Nexus shortcut, the settings button
+    /// of the control centre and a second launch.
     func open() {
-        if item.isVisible, let button = item.button, button.window?.isVisible == true,
-           button.window?.screen != nil {
-            button.performClick(nil)
-            return
-        }
-        guard let menu = item.menu else { return }
-        menuNeedsUpdate(menu)
-        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+        panel.open()
+    }
+
+    /// The item's frame on screen, `nil` when it is not visible there.
+    private var anchorFrame: NSRect? {
+        guard item.isVisible, let window = item.button?.window, window.isVisible, window.screen != nil else { return nil }
+        return window.frame
     }
 
     /// Shows the item again - the way back for whoever hid it and opens the
@@ -130,45 +136,13 @@ final class NexusMenu: NSObject, NSMenuDelegate {
         return NSSize(width: size.width * scale, height: size.height * scale)
     }
 
-    // MARK: - Menu
+    // MARK: - Panel
 
-    /// Built on every opening, so that the greyed-out state follows the edit mode.
-    func menuNeedsUpdate(_ menu: NSMenu) {
-        menu.removeAllItems()
-        let editing = actions.isEditing()
-        let openers: [(String, @MainActor () -> Void)] = [
-            (String(localized: "Dashboard"), actions.dashboard),
-            (String(localized: "Control Centre"), actions.utilities),
-            (String(localized: "Launcher"), actions.launcher),
-            (String(localized: "Edit Interface"), actions.editInterface),
-        ]
-        for (title, action) in openers {
-            let entry = ClosureMenuItem(title) { action() }
-            entry.isEnabled = !editing
-            menu.addItem(entry)
-        }
-        menu.addItem(.separator())
-        settingsMenu.append(to: menu)
-        menu.addItem(.separator())
-        menu.addItem(ClosureMenuItem(String(localized: "Shortcuts…")) { [actions] in actions.shortcuts() })
-        menu.addItem(ClosureMenuItem(String(localized: "Introduction…")) { [actions] in actions.introduction() })
-        menu.addItem(ClosureMenuItem(String(localized: "Open System Settings")) { SystemSettings.open(nil) })
-        menu.addItem(ClosureMenuItem(String(localized: "About ApolloShell")) {
-            NSApp.activate()
-            NSApp.orderFrontStandardAboutPanel(nil)
-        })
-        menu.addItem(.separator())
-        menu.addItem(ClosureMenuItem(String(localized: "Hide from Menu Bar")) { [weak self] in
-            self?.settings.settings.menuBar.shown = false
-        })
-        let hint = NSMenuItem(title: String(localized: "Open ApolloShell again to bring it back"),
-                              action: nil, keyEquivalent: "")
-        hint.isEnabled = false
-        menu.addItem(hint)
-        menu.addItem(.separator())
-        let quit = NSMenuItem(title: String(localized: "Quit ApolloShell"),
-                              action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        quit.target = NSApp
-        menu.addItem(quit)
+    @objc private func buttonClicked() {
+        toggle()
+    }
+
+    func toggle() {
+        panel.isOpen ? panel.close() : open()
     }
 }

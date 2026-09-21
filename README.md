@@ -56,8 +56,9 @@ If you like it, a star on GitHub helps other Mac users find it.
   the dashboard is on this screen. Done keeps the changes, Cancel drops them.
 - **Themes** as one CSS file: colours, gradients, fonts, sizes and even the
   icons for the whole shell, applied the moment you save the file.
-- **Nexus**, the menu bar item: opens everything and holds every setting,
-  with the keyboard shortcuts in a small window of their own.
+- **Nexus**, a panel from the menu bar: opens everything and holds every
+  setting as cards with switches, with the keyboard shortcuts in a small
+  window of their own.
 - Volume display, notifications for power and audio, a desktop clock and a
   session menu.
 - **Keeps itself up to date** (the `.dmg` build), or says when a new version
@@ -105,9 +106,9 @@ A theme is a CSS file in
 `~/Library/Application Support/ApolloShell/themes`: colours, sizes, fonts and
 gradients as `--apollo-*` tokens, a dark-mode block, and nothing else - no
 scripting, no selectors of your own. A theme folder can bring an `icons/`
-folder along and swap the shell's symbols for its own images. Pick one in the menu bar under **Themes**. Saving
+folder along and swap the shell's symbols for its own images. Pick one on the **Themes** tab of the Nexus panel in the menu bar. Saving
 the file applies it at once, and anything that could not be read falls back
-to the built-in value; hover the theme in that menu to see what. The format and every token
+to the built-in value; the theme's row counts the notes. The format and every token
 are in [docs/THEMES.md](docs/THEMES.md).
 
 The same shell, three themes. Colours, fonts, corners, sidebar width and dock
@@ -123,8 +124,8 @@ The `.dmg` build keeps itself up to date: it checks once a day in the
 background, downloads a new version when it finds one, and installs it the
 next time the app quits. The menu bar item also offers **Restart to Update**
 as soon as an update is waiting, because a shell rarely quits on its own.
-Both switches are on by default and can be turned off under **Updates** in
-that menu.
+Both switches are on by default and can be turned off on the **Updates** tab
+of the Nexus panel.
 
 A Homebrew install belongs to Homebrew, so ApolloShell never replaces itself
 there. It says when a new version is out; you install it with:

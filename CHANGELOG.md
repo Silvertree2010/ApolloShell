@@ -19,14 +19,14 @@ tabs you had into pages, with the cards at the same spots. The old
   delete them; "Restore default pages" brings back a deleted one.
 - **Widgets can go anywhere on a page**, in the sizes the dashboard already
   had, and the same widget can appear more than once.
-- **Nexus lives in the menu bar.** Its icon opens the dashboard, the control
-  centre, the launcher and the edit mode, and holds every setting as a
-  submenu: bar screens and background, themes, toasts, weather provider,
-  file manager, desktop clock, hiding Apple's Dock, Keep Awake with the lid
-  closed, start at login and updates. It works in full screen and on a
-  screen without a bar. Hide it from its own menu; opening ApolloShell again
+- **Nexus lives in the menu bar.** Its icon opens a glass panel: the
+  dashboard, the control centre, the launcher and the edit mode on top, then
+  tabs for the bar, themes, toasts, providers, system and updates, each a
+  column of cards with a switch or a list and one line of explanation. It
+  works in full screen and on a screen without a bar, and closes on Esc or a
+  click beside it. Hide the icon on the System tab; opening ApolloShell again
   brings it back.
-- **Shortcuts get a window of their own** (Shortcuts… in the menu), with two
+- **Shortcuts get a window of their own** (Shortcuts… in the panel), with two
   presets: Control and Option (⌥Space, ⌃⌥D, ⌃⌥U, ⌃⌥,) and Launcher on fn
   (F20 and Hyper).
 - **Pin an app where it stands.** Right-click a row in the launcher to pin or
