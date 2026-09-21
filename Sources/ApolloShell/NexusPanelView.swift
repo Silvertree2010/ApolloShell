@@ -133,7 +133,7 @@ struct NexusPanelView: View {
         let editing = model.actions.isEditing()
         return HStack(spacing: 8) {
             opener("Dashboard", "square.grid.2x2.fill", model.actions.dashboard)
-            opener("Control Centre", "slider.horizontal.3", model.actions.utilities)
+            opener("Control Centre", short: "Controls", "slider.horizontal.3", model.actions.utilities)
             opener("Launcher", "magnifyingglass", model.actions.launcher)
             opener("Edit", "pencil", model.actions.editInterface)
         }
@@ -141,17 +141,22 @@ struct NexusPanelView: View {
         .opacity(editing ? 0.4 : 1)
     }
 
-    private func opener(_ title: LocalizedStringKey, _ symbol: String,
+    /// `short`: the name when the long one does not fit the tile (a wider
+    /// font out of a theme) - a shorter word instead of smaller type, so the
+    /// four labels stay the same size.
+    private func opener(_ title: LocalizedStringKey, short: LocalizedStringKey? = nil, _ symbol: String,
                         _ action: @escaping @MainActor () -> Void) -> some View {
         Button { model.run(action) } label: {
             VStack(spacing: 5) {
                 Image(systemName: symbol)
                     .font(style.font(size: 17, weight: .medium))
                     .frame(height: 20)
-                Text(title)
-                    .font(style.font(size: 11))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                ViewThatFits(in: .horizontal) {
+                    Text(title).fixedSize()
+                    Text(short ?? title).lineLimit(1)
+                }
+                .font(style.font(size: 11))
+                .padding(.horizontal, 8)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
