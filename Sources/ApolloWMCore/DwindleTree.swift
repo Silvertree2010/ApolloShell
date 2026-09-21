@@ -119,7 +119,7 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
 
     /// A window that cannot fill its tile sits in the middle of it, so the
     /// leftover space reads as margin rather than a hole.
-    static func centered(_ tile: CGRect, maximum: CGSize?) -> CGRect {
+    public static func centered(_ tile: CGRect, maximum: CGSize?) -> CGRect {
         guard let maximum else { return tile }
         var frame = tile
         if maximum.width < tile.width {

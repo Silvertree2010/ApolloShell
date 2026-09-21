@@ -157,8 +157,11 @@ default:
     engine.adopt(found)
     let watcher = WindowWatcher(engine: engine)
     watcher.start()
-    print("live. drag a window by its title bar. Ctrl+C puts everything back.")
-    withExtendedLifetime((tracker, watcher, signalSources)) { app.run() }
+    let keys = KeyBindings(engine: engine)
+    if !keys.start() { print("could not watch the keyboard (event tap refused)") }
+    print("live. drag a window by its title bar, or hold fn (Super) and drag anywhere.")
+    print("fn+space floats, fn+F fills the area. Ctrl+C puts everything back.")
+    withExtendedLifetime((tracker, watcher, keys, signalSources)) { app.run() }
 }
 
 withExtendedLifetime(signalSources) { app.run() }

@@ -60,6 +60,18 @@ public final class TilingEngine {
     public private(set) var minimums: [CGWindowID: CGSize] = [:]
     public private(set) var maximums: [CGWindowID: CGSize] = [:]
 
+    /// Windows taken out of the layout; they keep their own frame on their desktop.
+    public struct Floating: Sendable {
+        public var space: SpaceID
+        public var frame: CGRect
+    }
+    public private(set) var floating: [CGWindowID: Floating] = [:]
+    /// Last floating frame per window, so floating again returns there.
+    private var lastFloatFrame: [CGWindowID: CGRect] = [:]
+    /// Per desktop, the tiled window that currently fills the whole area.
+    /// It keeps its tile underneath and returns there when toggled off.
+    public private(set) var fullscreen: [SpaceID: CGWindowID] = [:]
+
     /// When the shown desktop last changed. Windows ignore moves while macOS
     /// animates a desktop switch, so nothing is learned right after one.
     private var lastSpaceSwitch: CFTimeInterval = 0
@@ -127,6 +139,9 @@ public final class TilingEngine {
         windows[id] = nil
         minimums[id] = nil
         maximums[id] = nil
+        floating[id] = nil
+        lastFloatFrame[id] = nil
+        fullscreen = fullscreen.filter { $0.value != id }
         layouts.remove(id)
         relayout()
     }
@@ -145,7 +160,13 @@ public final class TilingEngine {
 
     /// The window now lives on another desktop (the user moved it there).
     public func move(_ id: CGWindowID, to target: SpaceID) {
+        if var state = floating[id] {
+            state.space = target
+            floating[id] = state
+            return
+        }
         guard windows[id] != nil, id != dragging, layouts.space(of: id) != target else { return }
+        fullscreen = fullscreen.filter { $0.value != id }
         log("\(windows[id]?.title ?? "\(id)") moved to desktop \(target)")
         layouts.assign(id, to: target) { $0.insert(id) }
         relayout()
@@ -171,9 +192,10 @@ public final class TilingEngine {
     /// Windows not on the shown desktop are left alone.
     public func relayout() {
         layouts[space].freezeDirections(in: area, gaps: options.gaps)
-        let frames = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
-        for id in springs.keys where frames[id] == nil || id == resizing { springs[id] = nil }
-        for (id, rect) in frames where id != resizing {
+        let frames = targetFrames()
+        let held = [dragging, resizing]
+        for id in springs.keys where frames[id] == nil || held.contains(id) { springs[id] = nil }
+        for (id, rect) in frames where !held.contains(id) {
             springs[id, default: AnimatedRect(windows[id]?.frame ?? rect)].target = rect
         }
         startLoop()
@@ -187,25 +209,101 @@ public final class TilingEngine {
         relayout()
     }
 
+    /// The managed window under `point`: floating windows first (they sit
+    /// on top), then a fullscreen one, then the tiles.
     public func window(at point: CGPoint) -> CGWindowID? {
-        tree.id(at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        if let id = floating.first(where: { $0.value.space == space && $0.value.frame.contains(point) })?.key {
+            return id
+        }
+        if let id = fullscreen[space], tree.contains(id) { return id }
+        return tree.id(at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
     }
+
+    /// The whole usable area, inside the outer gap.
+    private var fullArea: CGRect { area.insetBy(dx: options.gaps.outer, dy: options.gaps.outer) }
 
     /// Where the engine last put the window (nil while dragged or unknown).
     public func expectedFrame(of id: CGWindowID) -> CGRect? {
         springs[id]?.current
     }
 
+    /// Where every window on the shown desktop should be: tiles, then a
+    /// fullscreen window over its tile, then floating windows.
     public func targetFrames() -> [CGWindowID: CGRect] {
-        tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        var frames = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        if let id = fullscreen[space], frames[id] != nil {
+            frames[id] = DwindleTree<CGWindowID>.centered(fullArea, maximum: maximums[id])
+        }
+        for (id, state) in floating where state.space == space {
+            frames[id] = state.frame
+        }
+        return frames
+    }
+
+    // MARK: Floating and fullscreen
+
+    /// Takes a tiled window out of the layout (it glides to a centered
+    /// floating frame, or where it floated last) or puts a floating one back
+    /// into the tile under its center.
+    public func toggleFloating(_ id: CGWindowID) {
+        guard let window = windows[id], dragging == nil, resizing == nil else { return }
+        if let state = floating[id] {
+            floating[id] = nil
+            lastFloatFrame[id] = state.frame
+            let frame = window.frame ?? state.frame
+            layouts.assign(id, to: space) { tree in
+                tree.insert(id, at: CGPoint(x: frame.midX, y: frame.midY), in: area, gaps: options.gaps,
+                            minimums: minimums, maximums: maximums)
+            }
+            log("tiled: \(window.title)")
+        } else if tree.contains(id) {
+            if fullscreen[space] == id { fullscreen[space] = nil }
+            layouts.remove(id)
+            floating[id] = Floating(space: space, frame: lastFloatFrame[id] ?? defaultFloatFrame(for: id))
+            window.raise()
+            log("floating: \(window.title)")
+        }
+        relayout()
+    }
+
+    /// 60% of the area, centered, within the window's own limits.
+    private func defaultFloatFrame(for id: CGWindowID) -> CGRect {
+        let minimum = minimums[id] ?? .zero
+        let maximum = maximums[id] ?? .infinite
+        let width = min(max(area.width * 0.6, minimum.width), maximum.width, fullArea.width)
+        let height = min(max(area.height * 0.6, minimum.height), maximum.height, fullArea.height)
+        return CGRect(x: area.midX - width / 2, y: area.midY - height / 2, width: width, height: height)
+    }
+
+    /// Lets a tiled window fill the whole area (inside the outer gap, not
+    /// macOS fullscreen), or sends it back to its tile.
+    public func toggleFullscreen(_ id: CGWindowID) {
+        guard let window = windows[id], tree.contains(id), dragging == nil, resizing == nil else { return }
+        if fullscreen[space] == id {
+            fullscreen[space] = nil
+            log("fullscreen off: \(window.title)")
+        } else {
+            fullscreen[space] = id
+            window.raise()
+            log("fullscreen: \(window.title)")
+        }
+        relayout()
     }
 
     // MARK: Drag and drop
 
     /// The user picked up `id`: it leaves the layout and the rest closes the gap.
     public func beginDrag(_ id: CGWindowID) {
-        guard dragging == nil, tree.contains(id) else { return }
+        guard dragging == nil else { return }
+        if floating[id] != nil {
+            // Floating windows just move; nothing else changes.
+            dragging = id
+            springs[id] = nil
+            return
+        }
+        guard tree.contains(id) else { return }
         dragging = id
+        if fullscreen[space] == id { fullscreen[space] = nil }
         layouts.remove(id)
         windows[id]?.invalidateCache()
         log("drag start: \(windows[id]?.title ?? "\(id)")")
@@ -217,6 +315,12 @@ public final class TilingEngine {
     public func endDrag(at point: CGPoint) {
         guard let id = dragging else { return }
         dragging = nil
+        if var state = floating[id] {
+            state.frame = windows[id]?.frame ?? state.frame
+            floating[id] = state
+            windows[id]?.invalidateCache()
+            return
+        }
         // A centered window is never asked to grow again, so a wrong maximum
         // would stick. Dropping it gives it a fresh chance.
         maximums[id] = nil
@@ -236,7 +340,8 @@ public final class TilingEngine {
     /// The user grabbed an edge of `id`. From now on the window follows the
     /// mouse (macOS resizes it) and its neighbors follow the window.
     public func beginResize(_ id: CGWindowID) {
-        guard dragging == nil, resizing == nil, tree.contains(id) else { return }
+        guard dragging == nil, resizing == nil, tree.contains(id) || floating[id] != nil else { return }
+        if fullscreen[space] == id { fullscreen[space] = nil }
         resizing = id
         log("resize start: \(windows[id]?.title ?? "\(id)")")
     }
@@ -244,6 +349,11 @@ public final class TilingEngine {
     /// Called while the edge moves, with the window's current frame.
     public func updateResize(to frame: CGRect) {
         guard let id = resizing else { return }
+        if var state = floating[id] {
+            state.frame = frame
+            floating[id] = state
+            return
+        }
         layouts[space].resize(id, to: frame, in: area, gaps: options.gaps)
         relayout()
     }
@@ -252,6 +362,12 @@ public final class TilingEngine {
     public func endResize() {
         guard let id = resizing else { return }
         resizing = nil
+        if var state = floating[id] {
+            state.frame = windows[id]?.frame ?? state.frame
+            floating[id] = state
+            windows[id]?.invalidateCache()
+            return
+        }
         if let window = windows[id] {
             window.invalidateCache()
             springs[id] = AnimatedRect(window.frame ?? area)
@@ -334,7 +450,9 @@ public final class TilingEngine {
 
     private func checkFit(retry: Bool) {
         guard !isAnimating, dragging == nil, resizing == nil else { return }
-        let targets = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        // Tiles only: a fullscreen window is bigger than its tile on purpose.
+        var targets = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        if let id = fullscreen[space] { targets[id] = nil }
         var misfits: [CGWindowID] = []
         var changed = false
         for (id, target) in targets {

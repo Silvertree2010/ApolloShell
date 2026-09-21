@@ -55,7 +55,12 @@ public final class AXWindow: @unchecked Sendable {
     /// the screen edge; when growing, position goes first for the same reason.
     @discardableResult
     public func setFrame(_ rect: CGRect) -> Bool {
-        let rect = rect.integral
+        // Round each value on its own. `integral` would grow the size by a
+        // pixel whenever the origin is fractional, so a window dragged or
+        // animated along would change size on every other frame and apps
+        // like kitty would reflow and flash.
+        let rect = CGRect(x: rect.minX.rounded(), y: rect.minY.rounded(),
+                          width: rect.width.rounded(), height: rect.height.rounded())
         let moved = lastWritten.map { $0.origin != rect.origin } ?? true
         let resized = lastWritten.map { $0.size != rect.size } ?? true
         let shrinking = lastWritten.map { rect.width < $0.width || rect.height < $0.height } ?? false
