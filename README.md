@@ -37,3 +37,10 @@ Needs Accessibility access for the terminal it runs in.
   glides, size jumps once).
 - `reserved` — screen edges the host keeps free (ApolloShell sidebar: left 44).
 - `gaps`, `response` — spacing and glide duration.
+
+`FocusFollowsMouse` (the window under the mouse is raised and focused):
+
+- `isEnabled` — on or off.
+- `delay` — how long the mouse must rest over a window first
+  (default 0.05 s; probe: `--focus-delay MS`).
+- `disableFlags` — modifier keys that suspend it while held (default none).

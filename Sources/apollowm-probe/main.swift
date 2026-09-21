@@ -24,7 +24,7 @@ func option(_ name: String) -> String? {
 }
 
 guard ["bench", "run", "spaces", "selftest"].contains(mode) else {
-    print("usage: apollowm-probe bench|run|spaces|selftest [--max N] [--seed N] [--steps N] [--resize proxy|smooth|snap] [--no-focus-follows-mouse] [--restore-on-quit] [--reserve-left PT]")
+    print("usage: apollowm-probe bench|run|spaces|selftest [--max N] [--seed N] [--steps N] [--resize proxy|smooth|snap] [--no-focus-follows-mouse] [--focus-delay MS] [--restore-on-quit] [--reserve-left PT]")
     exit(2)
 }
 
@@ -233,6 +233,7 @@ default:
     if !keys.start() { print("could not watch the keyboard (event tap refused)") }
     let focus = FocusFollowsMouse(engine: engine)
     focus.isEnabled = !args.contains("--no-focus-follows-mouse")
+    if let ms = option("--focus-delay").flatMap(Double.init) { focus.delay = ms / 1000 }
     if !focus.start() { print("could not follow the mouse (event tap refused)") }
     print("live. drag a window by its title bar, or hold fn (Super) and drag anywhere.")
     print("fn+space floats, fn+F fills the area, fn+1..9 switches workspace. Ctrl+C quits, windows stay.")
