@@ -121,10 +121,14 @@ let engine = TilingEngine(area: area, options: options)
 // every glide and on quit.
 let layoutFile = FileManager.default.homeDirectoryForCurrentUser
     .appendingPathComponent("Library/Application Support/ApolloWM/probe-layout.json")
-@MainActor func saveLayout() {
+@MainActor func saveLayout(now: Bool = false) {
     guard let data = try? JSONEncoder().encode(engine.snapshot()) else { return }
-    try? FileManager.default.createDirectory(at: layoutFile.deletingLastPathComponent(), withIntermediateDirectories: true)
-    try? data.write(to: layoutFile, options: .atomic)
+    // Writing syncs to disk (fsync); off the main thread except on quit.
+    let write = { @Sendable in
+        try? FileManager.default.createDirectory(at: layoutFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? data.write(to: layoutFile, options: .atomic)
+    }
+    if now { write() } else { DispatchQueue.global(qos: .utility).async(execute: write) }
 }
 if mode == "run", let data = try? Data(contentsOf: layoutFile),
    let snapshot = try? JSONDecoder().decode(TilingEngine.Snapshot.self, from: data) {
@@ -133,7 +137,7 @@ if mode == "run", let data = try? Data(contentsOf: layoutFile),
     engine.restore(snapshot, alive: { existing.contains($0) })
 }
 restoreWindows = {
-    if mode == "run" { saveLayout() }
+    if mode == "run" { saveLayout(now: true) }
     engine.restoreAll()
 }
 if let space = Spaces.current() {

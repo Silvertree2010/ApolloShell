@@ -67,8 +67,22 @@ final class WindowProxies {
     /// macOS 26 window corners.
     var cornerRadius: CGFloat = 16
 
-    /// Needs the Screen Recording permission.
-    var isAvailable: Bool { CGPreflightScreenCaptureAccess() }
+    /// Needs the Screen Recording permission. Asking macOS is an XPC round
+    /// trip to tccd (~30 ms, measured), so the answer is cached and only
+    /// refreshed in the background every 30 s.
+    private(set) var isAvailable = CGPreflightScreenCaptureAccess()
+    private var permissionTimer: Timer?
+
+    init() {
+        let timer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
+            Task.detached(priority: .utility) {
+                let allowed = CGPreflightScreenCaptureAccess()
+                await MainActor.run { self?.isAvailable = allowed }
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        permissionTimer = timer
+    }
 
     func has(_ id: CGWindowID) -> Bool { overlays[id] != nil }
 
