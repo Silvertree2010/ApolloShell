@@ -25,6 +25,14 @@ public struct SpaceLayouts<Space: Hashable & Sendable, ID: Hashable & Sendable>:
         spaceOf[id] = space
     }
 
+    /// Puts `new` in `old`'s tile on the same desk.
+    public mutating func replace(_ old: ID, with new: ID) {
+        guard let space = spaceOf[old], spaceOf[new] == nil else { return }
+        self[space].replace(old, with: new)
+        spaceOf[old] = nil
+        spaceOf[new] = space
+    }
+
     /// Moves a whole layout to another key, keeping its arrangement. When
     /// the target already has windows, the moved ones are added one by one.
     public mutating func move(_ from: Space, to target: Space) {

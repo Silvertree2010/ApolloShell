@@ -56,6 +56,8 @@ Needs Accessibility access for the terminal it runs in.
 | Super + - / = | narrower / wider by 5 % |
 | Super + E | all splits back to half and half |
 | Super + Return | new terminal window (kitty, Ghostty or Terminal) |
+| Super + G | join the neighbor's tile as a tab / leave the tab group |
+| Super + [ / ] | previous / next tab |
 | Super + Space | float / tile |
 | Super + F | fill the area (not macOS fullscreen) |
 | Super + Q | close the window |

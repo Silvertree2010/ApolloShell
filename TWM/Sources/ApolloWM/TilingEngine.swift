@@ -42,6 +42,8 @@ public final class TilingEngine {
         /// Seconds a move roughly takes.
         public var response: CGFloat = 0.28
         public var frameRate: Double = 120
+        /// Room above a tab group's window for the host's tab bar.
+        public var tabBarHeight: CGFloat = 30
         /// How window sizes animate. Hosts can change it at any time, e.g.
         /// from a settings toggle; it applies from the next frame on.
         public var resize: ResizeAnimation = .smooth
@@ -204,6 +206,13 @@ public final class TilingEngine {
         if originalFrames[id] == nil { originalFrames[id] = window.serverFrame }
         inspect(window)
         let target = deskShown(on: space)
+        if let pending = pendingTab, pending.pid == window.pid, CACurrentMediaTime() - pending.since < 10,
+           windows[pending.target] != nil, desk(of: id) == nil {
+            pendingTab = nil
+            join(id, with: pending.target)
+            relayout()
+            return
+        }
         dirtyDesks.insert(desk(of: id) ?? target)
         if desk(of: id) != nil || floatsByItself(window, on: target) {
             relayout()
@@ -212,7 +221,7 @@ public final class TilingEngine {
         let shown = target == desk
         layouts.assign(id, to: target) { tree in
             if let point, shown {
-                tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+                tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
             } else {
                 tree.insert(id)
             }
@@ -235,6 +244,7 @@ public final class TilingEngine {
         proxies.forget(id)
         fullscreen = fullscreen.filter { $0.value != id }
         if let home = desk(of: id) { dirtyDesks.insert(home) }
+        leaveGroup(id)
         layouts.remove(id)
         relayout()
     }
@@ -290,6 +300,14 @@ public final class TilingEngine {
         if (!resizable || fixed), floating[id] == nil, let home = layouts.space(of: id) {
             layouts.remove(id)
             makeFloating(window, reason: resizable ? "fixed size" : "not resizable", on: home)
+            dirtyDesks.insert(home)
+        } else if let home = layouts.space(of: id), group(of: id) == nil,
+                  !layouts[home].fits(in: area, gaps: options.gaps, minimums: layoutMinimums),
+                  let sibling = layouts[home].sibling(of: id) {
+            // Not enough room next to its neighbor: share its tile as a tab
+            // instead of overlapping.
+            layouts.remove(id)
+            join(id, with: sibling)
             dirtyDesks.insert(home)
         }
         relayout()
@@ -382,10 +400,147 @@ public final class TilingEngine {
     /// Frames skipped because an app was still busy with an older one.
     public var droppedFrames: Int { workers.values.reduce(0) { $0 + $1.droppedFrames } }
 
-    /// The desk a window belongs to, tiled or floating.
+    /// The desk a window belongs to, tiled, grouped or floating.
     public func desk(of id: CGWindowID) -> Desk? {
-        layouts.space(of: id) ?? floating[id]?.desk
+        if let desk = layouts.space(of: id) ?? floating[id]?.desk { return desk }
+        return groups.first { $0.contains(id) }.flatMap { layouts.space(of: $0.active) }
     }
+
+    // MARK: Tab groups
+
+    /// Windows sharing a tile as tabs. Only each group's active window is in
+    /// the layout tree; the others lie exactly behind it.
+    public private(set) var groups: [TabGroup<CGWindowID>] = []
+
+    public func group(of id: CGWindowID) -> TabGroup<CGWindowID>? {
+        groups.first { $0.contains(id) }
+    }
+
+    /// Minimums as the layout sees them: a group needs the largest of its
+    /// windows' minimums, plus room for its tab bar.
+    private var layoutMinimums: [CGWindowID: CGSize] {
+        guard !groups.isEmpty else { return minimums }
+        var result = minimums
+        for group in groups {
+            var size = CGSize.zero
+            for member in group.members {
+                guard let minimum = minimums[member] else { continue }
+                size.width = max(size.width, minimum.width)
+                size.height = max(size.height, minimum.height)
+            }
+            size.height += options.tabBarHeight
+            result[group.active] = size
+        }
+        return result
+    }
+
+    /// One tab of a group, as the host shows it.
+    public struct Tab: Sendable, Equatable {
+        public let windowID: CGWindowID
+        public let title: String
+        public let pid: pid_t
+    }
+
+    /// Where a group's tab bar goes (top-left coordinates) and what it shows.
+    public struct TabBar: Sendable, Equatable {
+        public let frame: CGRect
+        public let tabs: [Tab]
+        public let active: CGWindowID
+    }
+
+    /// Called whenever tab bars appear, move or change; the host draws them.
+    public var onTabBarsChanged: (([TabBar]) -> Void)?
+    private var publishedBars: [TabBar] = []
+
+    /// The tab bars of the shown desktop, following their windows mid-glide.
+    public func tabBars() -> [TabBar] {
+        groups.compactMap { group in
+            guard layouts.space(of: group.active) == desk, dragging != group.active,
+                  let frame = springs[group.active]?.current ?? targetFrames()[group.active] else { return nil }
+            let tabs = group.members.compactMap { id in
+                windows[id].map { Tab(windowID: id, title: $0.title, pid: $0.pid) }
+            }
+            return TabBar(frame: CGRect(x: frame.minX, y: frame.minY - options.tabBarHeight,
+                                        width: frame.width, height: options.tabBarHeight),
+                          tabs: tabs, active: group.active)
+        }
+    }
+
+    private func publishTabBars() {
+        let bars = tabBars()
+        guard bars != publishedBars else { return }
+        publishedBars = bars
+        onTabBarsChanged?(bars)
+    }
+
+    /// Adds `id` (not in any tree) to `target`'s group, or makes a new group
+    /// of the two, and shows `id` in the shared tile.
+    private func join(_ id: CGWindowID, with target: CGWindowID) {
+        if let index = groups.firstIndex(where: { $0.contains(target) }) {
+            let shown = groups[index].active
+            groups[index].add(id)
+            layouts.replace(shown, with: id)
+        } else {
+            groups.append(TabGroup(target, id))
+            layouts.replace(target, with: id)
+        }
+        log("tab group: \(windows[id]?.title ?? "\(id)") joins \(windows[target]?.title ?? "\(target)")")
+        raise(id)
+    }
+
+    /// Takes `id` out of its group. If it was the shown tab, the next one
+    /// takes over the tile; a group down to one window ends. Afterwards `id`
+    /// is in no tree. Returns whether it was grouped.
+    @discardableResult
+    private func leaveGroup(_ id: CGWindowID) -> Bool {
+        guard let index = groups.firstIndex(where: { $0.contains(id) }) else { return false }
+        var group = groups[index]
+        let wasShown = group.active == id
+        let next = group.remove(id)
+        if wasShown, let heir = next ?? group.members.first {
+            layouts.replace(id, with: heir)
+            raise(heir)
+        }
+        if next == nil { groups.remove(at: index) } else { groups[index] = group }
+        return true
+    }
+
+    /// Shows another tab of a group.
+    public func activateTab(_ id: CGWindowID) {
+        guard let index = groups.firstIndex(where: { $0.contains(id) }) else { return }
+        let shown = groups[index].active
+        guard shown != id else { return focus(id) }
+        layouts.replace(shown, with: id)
+        groups[index].activate(id)
+        focus(id)
+        relayout()
+    }
+
+    /// The next or previous tab of the group holding `id`.
+    public func cycleTab(from id: CGWindowID, forward: Bool) {
+        guard let group = group(of: id), let next = group.neighbor(of: group.active, forward: forward) else { return }
+        activateTab(next)
+    }
+
+    /// Super+G: a grouped window leaves its group and gets its own tile next
+    /// to it; a tiled one joins the window it was split from.
+    public func toggleGroup(_ id: CGWindowID) {
+        if let group = group(of: id), let home = desk(of: id) {
+            leaveGroup(id)
+            let beside = group.members.first { $0 != id && layouts.space(of: $0) != nil }
+            layouts.assign(id, to: home) { $0.insert(id, splitting: beside) }
+        } else if tree.contains(id), let sibling = tree.sibling(of: id) {
+            layouts.remove(id)
+            join(id, with: sibling)
+        }
+        relayout()
+    }
+
+    /// The next new window of `pid` joins `id`'s group (the tab bar's + button).
+    public func routeNextWindow(of pid: pid_t, intoGroupWith id: CGWindowID) {
+        pendingTab = (pid, id, CACurrentMediaTime())
+    }
+    private var pendingTab: (pid: pid_t, target: CGWindowID, since: CFTimeInterval)?
 
     /// Recomputes the layout and lets every window glide to its new tile.
     /// Windows not on the shown desktop are left alone.
@@ -423,6 +578,7 @@ public final class TilingEngine {
         }
         startProxies()
         startLoop()
+        publishTabBars()
     }
 
     /// Reverses the window order. Used by the probe to force big moves.
@@ -440,7 +596,7 @@ public final class TilingEngine {
             return id
         }
         if let id = fullscreen[desk], tree.contains(id) { return id }
-        return tree.id(at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        return tree.id(at: point, in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
     }
 
     /// The whole usable area, inside the outer gap.
@@ -482,11 +638,13 @@ public final class TilingEngine {
         public var floating: [CGWindowID: Floating]
         public var activeWorkspace: [SpaceID: Int]
         public var originalFrames: [CGWindowID: CGRect]
+        /// Missing in layouts saved before tab groups existed.
+        public var groups: [TabGroup<CGWindowID>]?
     }
 
     public func snapshot() -> Snapshot {
         Snapshot(layouts: layouts, floating: floating,
-                 activeWorkspace: activeWorkspace, originalFrames: originalFrames)
+                 activeWorkspace: activeWorkspace, originalFrames: originalFrames, groups: groups)
     }
 
     /// Loads a saved arrangement before windows are adopted. Windows that no
@@ -499,6 +657,9 @@ public final class TilingEngine {
         floating = snapshot.floating.filter { alive($0.key) }
         activeWorkspace = snapshot.activeWorkspace
         originalFrames = snapshot.originalFrames.filter { alive($0.key) }
+        groups = (snapshot.groups ?? []).filter { group in
+            group.members.allSatisfy(alive) && layouts.space(of: group.active) != nil
+        }
         desk.workspace = activeWorkspace[space] ?? 1
         log("restored layout: \(layouts.spaceOf.count) tiled, \(floating.count) floating")
     }
@@ -516,12 +677,19 @@ public final class TilingEngine {
     /// Where the windows of `desk` go when it is shown: tiles, a fullscreen
     /// window over its tile, floating windows.
     public func frames(on desk: Desk) -> [CGWindowID: CGRect] {
-        var frames = layouts[desk].layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        var frames = layouts[desk].layout(in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
         if let id = fullscreen[desk], frames[id] != nil {
             frames[id] = DwindleTree<CGWindowID>.centered(fullArea, maximum: maximums[id])
         }
         for (id, state) in floating where state.desk == desk {
             frames[id] = state.frame
+        }
+        // A group's windows share its tile below the tab bar.
+        for group in groups {
+            guard let tile = frames[group.active] else { continue }
+            let below = CGRect(x: tile.minX, y: tile.minY + options.tabBarHeight,
+                               width: tile.width, height: max(tile.height - options.tabBarHeight, 1))
+            for member in group.members where windows[member] != nil { frames[member] = below }
         }
         return frames
     }
@@ -627,7 +795,7 @@ public final class TilingEngine {
     /// Swaps a tiled window with its tiled neighbor in `direction`.
     public func swap(_ id: CGWindowID, _ direction: Direction) {
         guard tree.contains(id) else { return }
-        let tiles = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        let tiles = tree.layout(in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
         guard let other = Neighbors.neighbor(of: id, direction, in: tiles) else { return }
         log("swap \(windows[id]?.title ?? "\(id)") with \(windows[other]?.title ?? "\(other)")")
         layouts[desk].swap(id, other)
@@ -650,7 +818,7 @@ public final class TilingEngine {
     /// Makes a tiled window wider (positive) or narrower by `fraction` of
     /// the area's width, moving the edge that has a neighbor.
     public func growWidth(of id: CGWindowID, by fraction: CGFloat) {
-        let tiles = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        let tiles = tree.layout(in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
         guard var frame = tiles[id] else { return }
         let delta = area.width * fraction
         if Neighbors.neighbor(of: id, .right, in: tiles) != nil {
@@ -678,7 +846,7 @@ public final class TilingEngine {
             let frame = window.serverFrame ?? state.frame
             layouts.assign(id, to: desk) { tree in
                 tree.insert(id, at: CGPoint(x: frame.midX, y: frame.midY), in: area, gaps: options.gaps,
-                            minimums: minimums, maximums: maximums)
+                            minimums: layoutMinimums, maximums: maximums)
             }
             log("tiled: \(window.title)")
         } else if tree.contains(id) {
@@ -727,6 +895,15 @@ public final class TilingEngine {
             springs[id] = nil
             return
         }
+        if group(of: id) != nil {
+            // Dragging a tab out of its group.
+            leaveGroup(id)
+            dragging = id
+            windows[id]?.invalidateCache()
+            log("drag tab out: \(windows[id]?.title ?? "\(id)")")
+            relayout()
+            return
+        }
         guard tree.contains(id) else { return }
         dragging = id
         if fullscreen[desk] == id { fullscreen[desk] = nil }
@@ -751,8 +928,15 @@ public final class TilingEngine {
         // A centered window is never asked to grow again, so a wrong maximum
         // would stick. Dropping it gives it a fresh chance.
         maximums[id] = nil
-        layouts.assign(id, to: desk) { tree in
-            tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        // Dropped on the middle of a tile: it joins that tile as a tab.
+        let tiles = tree.tiles(in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
+        if let (target, tile) = tiles.first(where: { $0.value.insetBy(dx: $0.value.width * 0.3, dy: $0.value.height * 0.3).contains(point) }) {
+            _ = tile
+            join(id, with: target)
+        } else {
+            layouts.assign(id, to: desk) { tree in
+                tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
+            }
         }
         if let window = windows[id] {
             window.invalidateCache()
@@ -975,6 +1159,7 @@ public final class TilingEngine {
         }
 
         for (id, _, frame) in work { write(id, frame) }
+        if !groups.isEmpty { publishTabBars() }
         // Main-thread cost of the whole step; the apps work on their own threads.
         applyTimes.add(CACurrentMediaTime() - now)
 
@@ -1010,7 +1195,10 @@ public final class TilingEngine {
     private func checkFit(retry: Bool) {
         guard !isAnimating, dragging == nil, resizing == nil else { return }
         // Tiles only: a fullscreen window is bigger than its tile on purpose.
-        var targets = tree.layout(in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
+        // Tiled and grouped windows (a group's sit below its tab bar); not a
+        // fullscreen window, which is bigger than its tile on purpose.
+        let grouped = Set(groups.flatMap(\.members))
+        var targets = frames(on: desk).filter { tree.contains($0.key) || grouped.contains($0.key) }
         if let id = fullscreen[desk] { targets[id] = nil }
         var misfits: [CGWindowID] = []
         var changed = false

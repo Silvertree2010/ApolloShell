@@ -212,6 +212,41 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         }
     }
 
+    /// Puts `new` in `old`'s place (same tile, same splits). Used when a
+    /// tab group shows another of its windows.
+    public mutating func replace(_ old: ID, with new: ID) {
+        guard old != new, contains(old), !contains(new), let root else { return }
+        self.root = Self.replacing(old, in: root) { _ in .leaf(new) }
+    }
+
+    /// The window `id` was split off from: the first window of its sibling
+    /// subtree. Nil for a lone window.
+    public func sibling(of id: ID) -> ID? {
+        func first(_ node: Node) -> ID {
+            switch node {
+            case .leaf(let leaf): return leaf
+            case .split(let a, _, _, _): return first(a)
+            }
+        }
+        func search(_ node: Node) -> ID? {
+            guard case .split(let a, let b, _, _) = node else { return nil }
+            if case .leaf(let leaf) = a, leaf == id { return first(b) }
+            if case .leaf(let leaf) = b, leaf == id { return first(a) }
+            return search(a) ?? search(b)
+        }
+        return root.flatMap(search)
+    }
+
+    /// Whether every window gets at least its minimum size, i.e. the
+    /// minimums fit the area without sharing or overlapping.
+    public func fits(in area: CGRect, gaps: Gaps = .none, minimums: [ID: CGSize]) -> Bool {
+        let tiles = tiles(in: area, gaps: gaps, minimums: minimums)
+        return tiles.allSatisfy { id, tile in
+            guard let minimum = minimums[id] else { return true }
+            return tile.width + 1 >= minimum.width && tile.height + 1 >= minimum.height
+        }
+    }
+
     /// Exchanges two windows' places; the tiles stay where they are.
     public mutating func swap(_ a: ID, _ b: ID) {
         guard a != b, contains(a), contains(b), let root else { return }

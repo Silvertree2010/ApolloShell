@@ -15,6 +15,10 @@ public final class KeyBindings {
         /// Wider (positive) or narrower by this fraction of the area.
         case growWidth(CGFloat)
         case newTerminal
+        /// Join the neighbor's tile as a tab, or leave a tab group.
+        case toggleGroup
+        /// Next (true) or previous tab of a group.
+        case cycleTab(Bool)
         case toggleFloating
         case toggleFullscreen
         /// Close the focused window (like its red button; the app keeps running).
@@ -50,6 +54,9 @@ public final class KeyBindings {
             Int64(kVK_ANSI_Minus): .growWidth(-0.05),
             Int64(kVK_ANSI_Equal): .growWidth(0.05),
             Int64(kVK_Return): .newTerminal,
+            Int64(kVK_ANSI_G): .toggleGroup,
+            Int64(kVK_ANSI_RightBracket): .cycleTab(true),
+            Int64(kVK_ANSI_LeftBracket): .cycleTab(false),
         ]
         let digits = [kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5,
                       kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9]
@@ -137,6 +144,8 @@ public final class KeyBindings {
             if let other = engine.neighbor(of: id, direction) { engine.focus(other) }
         case .swap(let direction): engine.swap(id, direction)
         case .toggleSplit: engine.toggleSplit(of: id)
+        case .toggleGroup: engine.toggleGroup(id)
+        case .cycleTab(let forward): engine.cycleTab(from: id, forward: forward)
         case .growWidth(let fraction): engine.growWidth(of: id, by: fraction)
         case .toggleFloating: engine.toggleFloating(id)
         case .toggleFullscreen: engine.toggleFullscreen(id)
