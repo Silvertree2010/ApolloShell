@@ -39,7 +39,12 @@ final class LauncherController {
             guard let self else { return }
             self.model.reload(self.catalog.scan(), usage: self.usage.stats, pinned: PinnedApps.load())
         }
-        model.onLaunch = { [weak self] app in self?.launch(app) }
+        model.onActivate = { [weak self] row in self?.activate(row) }
+        model.themes = {
+            guard let store = ThemeStore.shared else { return [] }
+            return [(id: nil, title: String(localized: "No Theme"), current: store.selection == nil)]
+                + store.available.map { (id: $0.identifier, title: $0.title, current: store.selection == $0.identifier) }
+        }
         model.onClose = { [weak self] in self?.close() }
         model.onRightClick = { [weak self] app, view in self?.showMenu(for: app, at: view) }
         model.onMovePin = { [weak self] id, target in self?.changePins { $0.move(id, onto: target) } }
@@ -47,6 +52,12 @@ final class LauncherController {
     }
 
     var isOpen: Bool { drawer.isOpen }
+
+    /// `>` Settings: opens the Nexus panel (set by the app delegate).
+    var onOpenSettings: () -> Void = {}
+    /// Something went wrong where nobody would see it (a wallpaper that
+    /// would not set): a toast.
+    var onReport: (_ title: String, _ message: String) -> Void = { _, _ in }
 
     func toggle() {
         drawer.toggle()
@@ -143,7 +154,72 @@ final class LauncherController {
         DockAppCommands.press(command, of: running)
     }
 
-    /// A click (or Return) on a row. Not running: start it. Running and able
+    /// Return or a click on a row.
+    private func activate(_ row: LauncherRow) {
+        switch row {
+        case .app(let app):
+            launch(app)
+        case .action(let action):
+            run(action)
+        case .calculation(let result):
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(result, forType: .string)
+            close()
+        case .theme(let id, _, _):
+            close()
+            ThemeStore.shared?.select(id)
+        case .wallpaper(let wallpaper):
+            close()
+            if !wallpaper.apply() {
+                onReport(String(localized: "Wallpaper not set"), wallpaper.name)
+            }
+        case .note:
+            break
+        }
+    }
+
+    /// The `>` actions. The three with a mode fill in the keyword instead
+    /// (as in Caelestia); log out, restart and shut down want a second
+    /// Return.
+    private func run(_ action: LauncherAction) {
+        if let keyword = action.completion {
+            model.query = "\(LauncherQuery.actionPrefix)\(keyword) "
+            return
+        }
+        if action.needsConfirmation, model.armed != action {
+            model.armed = action
+            return
+        }
+        close()
+        switch action {
+        case .light: UtilitiesAppearance.setDark(false)
+        case .dark: UtilitiesAppearance.setDark(true)
+        case .settings: onOpenSettings()
+        case .randomWallpaper:
+            if let wallpaper = AppleWallpaper.all().filter(\.isAvailable).randomElement(), !wallpaper.apply() {
+                onReport(String(localized: "Wallpaper not set"), wallpaper.name)
+            }
+        case .lock:
+            // Ctrl-Cmd-Q goes to the app in front: only once the launcher
+            // is gone, or it would land in our panel.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { UtilitiesKeys.post(.lockScreen) }
+        case .sleep: runSession(.sleep)
+        case .logOut: runSession(.logOut)
+        case .restart: runSession(.restart)
+        case .shutDown: runSession(.shutDown)
+        case .calculator, .theme, .wallpaper: break
+        }
+    }
+
+    /// The same commands as the session menu, after the launcher has left.
+    private func runSession(_ action: SessionAction) {
+        let command = action.command
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            _ = Subprocess.launch(command.executable, command.arguments)
+        }
+    }
+
+    /// A click (or Return) on an app. Not running: start it. Running and able
     /// to open more windows (a plain ⌘N in its menu bar): a new window, on
     /// the current desktop. Running with no such command: its windows come
     /// forward, which is what opening it again does.

@@ -30,6 +30,12 @@ tabs you had into pages, with the cards at the same spots. The old
 - **Shortcuts get a window of their own** (Shortcuts… in the panel), with two
   presets: Control and Option (⌥Space, ⌃⌥D, ⌃⌥U, ⌃⌥,) and Launcher on fn
   (F20 and Hyper).
+- **Actions in the launcher, as in Caelestia.** Type `>` for the list:
+  `>calc` works out a sum as you type and Return copies it, `>theme` switches
+  the theme, `>wallpaper` sets one of Apple's wallpapers (ones not yet
+  downloaded open Wallpaper settings), plus Random Wallpaper, Light, Dark,
+  Lock, Sleep, Settings, and Log Out, Restart and Shut Down, which ask for a
+  second Return.
 - **The launcher opens a new window** when the app is already running and
   can have more than one (a plain ⌘N in its menu bar: Finder, Terminal,
   kitty, TextEdit). An app with a single window just comes forward. Needs

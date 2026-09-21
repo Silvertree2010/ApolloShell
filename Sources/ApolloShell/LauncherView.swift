@@ -18,7 +18,7 @@ struct LauncherView: View {
                 Divider().opacity(0.4)
             }
             if model.results.isEmpty {
-                Text("No App Found")
+                Text(model.query.trimmingCharacters(in: .whitespaces).hasPrefix(LauncherQuery.actionPrefix) ? "No Match" : "No App Found")
                     .foregroundStyle(style.paint(.secondaryText, or: .secondary))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -53,27 +53,16 @@ struct LauncherView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 2) {
-                    ForEach(Array(model.results.enumerated()), id: \.element.id) { index, app in
-                        AppRow(
-                            app: app,
-                            icon: model.icon(for: app),
-                            selected: index == model.selectedIndex
-                        )
-                        .id(app.id)
-                        .onTapGesture {
-                            model.selectedIndex = index
-                            model.launchSelected()
-                        }
-                        // Right-click as in the Dock: the app's own menu.
-                        // It comes from Apple's Dock and needs a moment,
-                        // hence AppKit instead of `contextMenu`.
-                        .overlay {
-                            RightClickCatcher { view in
+                    ForEach(Array(model.results.enumerated()), id: \.element.id) { index, row in
+                        LauncherRowView(row: row, model: model, selected: index == model.selectedIndex)
+                            .id(row.id)
+                            .onTapGesture {
                                 model.selectedIndex = index
-                                model.onRightClick(app, view)
+                                model.launchSelected()
                             }
-                        }
-                        .modifier(PinDragging(model: model, app: app))
+                            .modifier(AppRowExtras(model: model, app: row.app) {
+                                model.selectedIndex = index
+                            })
                     }
                 }
                 .padding(8)
@@ -82,6 +71,30 @@ struct LauncherView: View {
                 guard model.results.indices.contains(index) else { return }
                 proxy.scrollTo(model.results[index].id)
             }
+        }
+    }
+}
+
+/// What only app rows have: the right-click menu (the app's own, out of
+/// Apple's Dock - it needs a moment, hence AppKit instead of `contextMenu`)
+/// and dragging within the pinned block.
+private struct AppRowExtras: ViewModifier {
+    let model: LauncherModel
+    let app: AppEntry?
+    let select: () -> Void
+
+    func body(content: Content) -> some View {
+        if let app {
+            content
+                .overlay {
+                    RightClickCatcher { view in
+                        select()
+                        model.onRightClick(app, view)
+                    }
+                }
+                .modifier(PinDragging(model: model, app: app))
+        } else {
+            content
         }
     }
 }
@@ -109,9 +122,11 @@ private struct PinDragging: ViewModifier {
     }
 }
 
-private struct AppRow: View {
-    let app: AppEntry
-    let icon: NSImage
+/// One row: an icon (app icon, wallpaper preview or symbol), a title,
+/// for actions a grey line below, and on the right what Return does.
+private struct LauncherRowView: View {
+    let row: LauncherRow
+    let model: LauncherModel
     let selected: Bool
 
     @Environment(\.shellStyle) private var style
@@ -119,14 +134,26 @@ private struct AppRow: View {
     var body: some View {
         let radius = style.controlRadius(10)
         HStack(spacing: 12) {
-            Image(nsImage: icon)
-                .resizable()
+            icon
                 .frame(width: 32, height: 32)
-            Text(app.name)
-                .font(style.font(size: 15))
-                .lineLimit(1)
-                .foregroundStyle(style.paint(.text, or: .primary))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(style.font(size: 15))
+                    .lineLimit(1)
+                    .foregroundStyle(style.paint(.text, or: .primary))
+                if let subtitle {
+                    Text(subtitle)
+                        .font(style.font(size: 12))
+                        .lineLimit(1)
+                        .foregroundStyle(armed ? AnyShapeStyle(Color.red) : style.paint(.secondaryText, or: .secondary))
+                }
+            }
             Spacer(minLength: 0)
+            if let trailing {
+                Text(trailing)
+                    .font(style.font(size: 11, weight: .medium))
+                    .foregroundStyle(style.paint(.secondaryText, or: .secondary))
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -145,5 +172,71 @@ private struct AppRow: View {
             }
         }
         .contentShape(.rect)
+    }
+}
+
+private extension LauncherRowView {
+    var armed: Bool {
+        if case .action(let action) = row { return model.armed == action }
+        return false
+    }
+
+    @ViewBuilder var icon: some View {
+        switch row {
+        case .app(let app):
+            Image(nsImage: model.icon(for: app)).resizable()
+        case .wallpaper(let wallpaper):
+            if let image = model.thumbnail(for: wallpaper) {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    // Square like the app icons, whatever the picture's shape.
+                    .frame(width: 32, height: 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            } else {
+                symbol("photo")
+            }
+        case .action(let action): symbol(action.symbol)
+        case .calculation: symbol("equal")
+        case .theme(_, _, let current): symbol(current ? "checkmark.circle.fill" : "paintpalette")
+        case .note: symbol("info.circle")
+        }
+    }
+
+    func symbol(_ name: String) -> some View {
+        Image(systemName: name)
+            .font(style.font(size: 17, weight: .medium))
+            .foregroundStyle(style.paint(.secondaryText, or: .secondary))
+    }
+
+    var title: String {
+        switch row {
+        case .app(let app): app.name
+        case .action(let action): action.title
+        case .calculation(let result): result
+        case .theme(_, let title, _): title
+        case .wallpaper(let wallpaper): wallpaper.name
+        case .note(let text): text
+        }
+    }
+
+    var subtitle: String? {
+        switch row {
+        case .action(let action):
+            if armed { return String(localized: "Press Return again to \(action.title.lowercased())") }
+            return action.subtitle
+        case .calculation: return String(localized: "Return copies the result")
+        case .wallpaper(let wallpaper) where !wallpaper.isAvailable:
+            return String(localized: "Not downloaded – Return opens Wallpaper settings")
+        default: return nil
+        }
+    }
+
+    var trailing: String? {
+        switch row {
+        case .action(let action) where action.completion != nil: ">\(action.completion!)"
+        case .theme(_, _, true): String(localized: "Current")
+        default: nil
+        }
     }
 }

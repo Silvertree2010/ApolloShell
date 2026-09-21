@@ -189,6 +189,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.toaster?.toast(title: title, message: message, kind: .error)
         }
         self.nexusMenu = nexusMenu
+        // `>` Settings in the launcher, and its failures as toasts.
+        controller.onOpenSettings = { [weak nexusMenu] in nexusMenu?.open() }
+        controller.onReport = { [weak self] title, message in
+            self?.toaster?.toast(title: title, message: message, kind: .error)
+        }
         // The Nexus shortcut opens the menu. While editing it does nothing,
         // like the openers in the menu stay greyed out then.
         hotKeys.setHandler(.nexus) { [weak nexusMenu, weak shellEditor] in
