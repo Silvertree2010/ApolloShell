@@ -96,6 +96,11 @@ public final class AXWindow: @unchecked Sendable {
         return (small, maximum)
     }
 
+    /// Brings the window to the front of its app's windows.
+    public func raise() {
+        AXUIElementPerformAction(element, kAXRaiseAction as CFString)
+    }
+
     /// Forget the cached frame, e.g. after the user moved the window by hand.
     public func invalidateCache() { lastWritten = nil }
 }
