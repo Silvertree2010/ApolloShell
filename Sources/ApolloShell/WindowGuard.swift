@@ -36,6 +36,11 @@ final class WindowGuard {
     /// How wide the strip is. The theme can make the bar wider or narrower
     /// at runtime; the manager reports that too.
     private var barWidth: CGFloat = 0
+    /// Switched off by someone else who keeps the strip free (the tiling
+    /// window manager on the ApolloShell-TWM branch, once it runs inside the
+    /// app: it reserves the same 44 pt, and two movers on one window would
+    /// push it back and forth).
+    private(set) var isSuspended = false
 
     /// `askForAccess`: show the system prompt at launch if the permission
     /// is missing. Off while the intro is running - that explains what it's
@@ -65,10 +70,25 @@ final class WindowGuard {
         Timer.repeating(every: Self.trustPollInterval, tolerance: 0.5, owner: self) { $0.pollTrust() }
     }
 
+    /// Stops or resumes the guard without touching the permission. While
+    /// suspended it moves no window; resuming picks up the apps and screens
+    /// as they are then.
+    func setSuspended(_ suspended: Bool) {
+        guard suspended != isSuspended else { return }
+        isSuspended = suspended
+        log.notice("Window guard \(suspended ? "suspended" : "resumed", privacy: .public)")
+        if suspended {
+            worker.stop()
+        } else if trusted {
+            startWorker()
+        }
+    }
+
     private func pollTrust() {
         let now = AXIsProcessTrusted()
         guard now != trusted else { return }
         trusted = now
+        guard !isSuspended else { return }
         if now {
             log.notice("Accessibility granted, window guard starting")
             startWorker()
