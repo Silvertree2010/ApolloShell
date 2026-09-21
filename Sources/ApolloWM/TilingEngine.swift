@@ -32,11 +32,18 @@ public final class TilingEngine {
                       width: screenArea.width - r.left - r.right,
                       height: screenArea.height - r.top - r.bottom)
     }
-    public private(set) var tree = DwindleTree<CGWindowID>()
+    /// One layout per desktop. Only `space`'s windows are arranged; the others
+    /// keep their tiles until their desktop is shown again.
+    public private(set) var layouts = SpaceLayouts<SpaceID, CGWindowID>()
+    /// The desktop currently shown on the main display.
+    public private(set) var space: SpaceID = 0
     public private(set) var windows: [CGWindowID: AXWindow] = [:]
     public private(set) var dragging: CGWindowID?
     /// Sizes windows refused to go below, learned by measuring after each glide.
     public private(set) var minimums: [CGWindowID: CGSize] = [:]
+
+    /// Layout of the shown desktop.
+    public var tree: DwindleTree<CGWindowID> { layouts[space] }
 
     /// Time spent writing frames per animation step.
     public private(set) var applyTimes = Durations()
@@ -59,24 +66,27 @@ public final class TilingEngine {
 
     public func adopt(_ newWindows: [AXWindow]) {
         for window in newWindows where windows[window.windowID] == nil {
-            windows[window.windowID] = window
-            springs[window.windowID] = AnimatedRect(window.frame ?? area)
-            tree.insert(window.windowID)
+            let id = window.windowID
+            windows[id] = window
+            layouts.assign(id, to: space) { $0.insert(id) }
         }
         relayout()
     }
 
-    /// Tiles a new window. With a point (usually the mouse), the tile under it
-    /// is split, like a drop; otherwise the last tile is split.
-    public func add(_ window: AXWindow, at point: CGPoint?) {
+    /// Tiles a new window on `space` (default: the shown desktop). On the shown
+    /// desktop a point (usually the mouse) picks the tile to split, like a
+    /// drop; otherwise the last tile is split.
+    public func add(_ window: AXWindow, at point: CGPoint?, space target: SpaceID? = nil) {
         let id = window.windowID
         guard windows[id] == nil else { return }
         windows[id] = window
-        springs[id] = AnimatedRect(window.frame ?? area)
-        if let point {
-            tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums)
-        } else {
-            tree.insert(id)
+        let target = target ?? space
+        layouts.assign(id, to: target) { tree in
+            if let point, target == space {
+                tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums)
+            } else {
+                tree.insert(id)
+            }
         }
         relayout()
     }
@@ -86,17 +96,40 @@ public final class TilingEngine {
         guard windows[id] != nil else { return }
         if dragging == id { dragging = nil }
         windows[id] = nil
-        springs[id] = nil
         minimums[id] = nil
-        tree.remove(id)
+        layouts.remove(id)
+        relayout()
+    }
+
+    /// The window now lives on another desktop (the user moved it there).
+    public func move(_ id: CGWindowID, to target: SpaceID) {
+        guard windows[id] != nil, id != dragging, layouts.space(of: id) != target else { return }
+        log("\(windows[id]?.title ?? "\(id)") moved to desktop \(target)")
+        layouts.assign(id, to: target) { $0.insert(id) }
+        relayout()
+    }
+
+    /// The user switched desktops: arrange the windows shown there.
+    public func switchSpace(to target: SpaceID) {
+        guard target != space else { return }
+        log("desktop \(space) -> \(target)")
+        space = target
+        // A drag cannot survive a desktop switch; the window stays where it is.
+        if let id = dragging {
+            dragging = nil
+            layouts.assign(id, to: target) { $0.insert(id) }
+        }
         relayout()
     }
 
     public var isAnimating: Bool { timer != nil }
 
     /// Recomputes the layout and lets every window glide to its new tile.
+    /// Windows not on the shown desktop are left alone.
     public func relayout() {
-        for (id, rect) in tree.layout(in: area, gaps: options.gaps, minimums: minimums) {
+        let frames = tree.layout(in: area, gaps: options.gaps, minimums: minimums)
+        for id in springs.keys where frames[id] == nil { springs[id] = nil }
+        for (id, rect) in frames {
             springs[id, default: AnimatedRect(windows[id]?.frame ?? rect)].target = rect
         }
         startLoop()
@@ -105,8 +138,8 @@ public final class TilingEngine {
     /// Reverses the window order. Used by the probe to force big moves.
     public func mirror() {
         let ids = tree.ids
-        tree = DwindleTree()
-        ids.reversed().forEach { tree.insert($0) }
+        for id in ids { layouts.remove(id) }
+        for id in ids.reversed() { layouts.assign(id, to: space) { $0.insert(id) } }
         relayout()
     }
 
@@ -129,8 +162,7 @@ public final class TilingEngine {
     public func beginDrag(_ id: CGWindowID) {
         guard dragging == nil, tree.contains(id) else { return }
         dragging = id
-        tree.remove(id)
-        springs[id] = nil
+        layouts.remove(id)
         windows[id]?.invalidateCache()
         log("drag start: \(windows[id]?.title ?? "\(id)")")
         relayout()
@@ -141,7 +173,9 @@ public final class TilingEngine {
     public func endDrag(at point: CGPoint) {
         guard let id = dragging else { return }
         dragging = nil
-        tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums)
+        layouts.assign(id, to: space) { tree in
+            tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums)
+        }
         if let window = windows[id] {
             window.invalidateCache()
             springs[id] = AnimatedRect(window.frame ?? area)

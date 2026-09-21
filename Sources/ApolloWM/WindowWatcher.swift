@@ -15,7 +15,6 @@ public final class WindowWatcher {
     private var watchedWindows: Set<CGWindowID> = []
     private var workspaceTokens: [NSObjectProtocol] = []
     private var safetyTimer: Timer?
-    private var pending: DispatchWorkItem?
 
     public var log: (String) -> Void = { print($0) }
 
@@ -24,6 +23,7 @@ public final class WindowWatcher {
     }
 
     public func start() {
+        if let space = Spaces.current() { engine.switchSpace(to: space) }
         for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
             observe(app.processIdentifier)
         }
@@ -34,6 +34,14 @@ public final class WindowWatcher {
                 MainActor.assumeIsolated {
                     guard let self, let pid else { return }
                     self.observe(pid)
+                    self.reconcileSoon()
+                }
+            },
+            center.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self, let space = Spaces.current() else { return }
+                    self.engine.switchSpace(to: space)
+                    // Windows of the new desktop are on screen only after the switch animation.
                     self.reconcileSoon()
                 }
             },
@@ -110,9 +118,16 @@ public final class WindowWatcher {
         let found = WindowDiscovery.tileableWindows(in: engine.screenArea)
         let foundIDs = Set(found.map(\.windowID))
 
+        // Windows the user moved to another desktop follow there.
+        for id in engine.windows.keys where id != engine.dragging {
+            if let space = Spaces.of(id), space != engine.layouts.space(of: id) {
+                engine.move(id, to: space)
+            }
+        }
+
         for (id, window) in engine.windows where !foundIDs.contains(id) {
             // Not on screen right now. Only drop it when it is really gone;
-            // a window on another Space stays valid and stays tiled.
+            // a window on another desktop stays valid and keeps its tile there.
             let element = window.element
             let gone = window.position == nil
                 || element.bool(kAXMinimizedAttribute) == true

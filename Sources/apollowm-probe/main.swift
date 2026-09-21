@@ -7,6 +7,8 @@ import ApolloWM
 //       Tiles the windows on the main display, animates big layout changes,
 //       prints frame rate and write cost, checks where windows really ended up,
 //       then puts every window back where it was.
+//   apollowm-probe spaces
+//       Read-only: prints the shown desktop and the desktop of every window.
 //   apollowm-probe run [--max N] [--serial]
 //       Tiles and stays live: pick up a window by its title bar and the others
 //       close the gap; drop it and everything glides into place. Ctrl+C restores.
@@ -18,9 +20,23 @@ func option(_ name: String) -> String? {
     args.firstIndex(of: name).flatMap { args.indices.contains($0 + 1) ? args[$0 + 1] : nil }
 }
 
-guard mode == "bench" || mode == "run" else {
-    print("usage: apollowm-probe bench|run [--max N] [--serial] [--reserve-left PT]")
+guard ["bench", "run", "spaces"].contains(mode) else {
+    print("usage: apollowm-probe bench|run|spaces [--max N] [--serial] [--reserve-left PT]")
     exit(2)
+}
+
+// Read-only: which desktop is shown and where every normal window lives.
+if mode == "spaces" {
+    print("shown desktop: \(Spaces.current().map(String.init) ?? "unknown")")
+    let infos = CGWindowListCopyWindowInfo([.excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+    for info in infos where (info[kCGWindowLayer as String] as? Int) == 0 {
+        guard let id = info[kCGWindowNumber as String] as? CGWindowID,
+              let owner = info[kCGWindowOwnerName as String] as? String else { continue }
+        let onScreen = (info[kCGWindowIsOnscreen as String] as? Bool) == true
+        let space = Spaces.of(id).map(String.init) ?? "none/all"
+        print("  \(owner) #\(id) desktop \(space)\(onScreen ? " (on screen)" : "")")
+    }
+    exit(0)
 }
 guard WindowDiscovery.isTrusted(prompt: true) else {
     print("Accessibility access missing. Allow your terminal in System Settings > Privacy & Security > Accessibility, then run again.")
@@ -40,7 +56,8 @@ for w in found {
     // App frame and window-server frame must agree, or drag detection is blind.
     let app = w.frame.map { "\(Int($0.minX)),\(Int($0.minY))" } ?? "-"
     let server = w.serverFrame.map { "\(Int($0.minX)),\(Int($0.minY))" } ?? "-"
-    print("  tile: [\(w.pid)] \(w.title.isEmpty ? "(untitled)" : w.title)  app \(app) server \(server)")
+    let space = Spaces.of(w.windowID).map(String.init) ?? "-"
+    print("  tile: [\(w.pid)] \(w.title.isEmpty ? "(untitled)" : w.title)  app \(app) server \(server) desktop \(space)")
 }
 
 let originals = found.map { ($0, $0.frame) }
@@ -72,6 +89,10 @@ options.parallel = !args.contains("--serial")
 // ApolloShell's sidebar sits on the left edge, 44 pt wide.
 options.reserved.left = option("--reserve-left").flatMap(Double.init).map { CGFloat($0) } ?? 44
 let engine = TilingEngine(area: area, options: options)
+if let space = Spaces.current() {
+    print("shown desktop \(space)")
+    engine.switchSpace(to: space)
+}
 
 @MainActor func report(_ label: String) {
     let fps = engine.stepIntervals.median.map { String(format: "%.0f fps", 1 / $0) } ?? "-"
