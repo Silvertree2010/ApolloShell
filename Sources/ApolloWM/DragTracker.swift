@@ -89,7 +89,7 @@ public final class DragTracker {
             guard gesture == nil, isSuper(flags), engine.dragging == nil, engine.resizing == nil,
                   let id = engine.window(at: point),
                   let window = engine.windows[id], let frame = window.frame else { return false }
-            window.raise()
+            engine.raise(id)
             if type == .leftMouseDown {
                 gesture = .move(id, grab: CGPoint(x: point.x - frame.minX, y: point.y - frame.minY), size: frame.size)
                 note("super move: \(window.title)")
@@ -103,8 +103,8 @@ public final class DragTracker {
 
         case .leftMouseDragged:
             guard case .move(let id, let grab, let size) = gesture else { return false }
-            engine.windows[id]?.setFrame(CGRect(x: point.x - grab.x, y: point.y - grab.y,
-                                                width: size.width, height: size.height))
+            engine.write(id, CGRect(x: point.x - grab.x, y: point.y - grab.y,
+                                    width: size.width, height: size.height))
             return true
 
         case .rightMouseDragged:
@@ -127,7 +127,7 @@ public final class DragTracker {
             } else {
                 frame.size.height = max(start.height + dy, minHeight)
             }
-            engine.windows[id]?.setFrame(frame)
+            engine.write(id, frame)
             engine.updateResize(to: frame)
             return true
 

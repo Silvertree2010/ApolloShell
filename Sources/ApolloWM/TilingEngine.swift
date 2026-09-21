@@ -41,8 +41,6 @@ public final class TilingEngine {
         public var gaps = Gaps(outer: 12, inner: 10)
         /// Seconds a move roughly takes.
         public var response: CGFloat = 0.28
-        /// Write frames of different windows concurrently.
-        public var parallel = true
         public var frameRate: Double = 120
         /// How window sizes animate. Hosts can change it at any time, e.g.
         /// from a settings toggle; it applies from the next frame on.
@@ -116,7 +114,7 @@ public final class TilingEngine {
     /// Layout of the shown desktop.
     public var tree: DwindleTree<CGWindowID> { layouts[desk] }
 
-    /// Time spent writing frames per animation step.
+    /// Main-thread time per animation step (the apps work on their own threads).
     public private(set) var applyTimes = Durations()
     /// Time between animation steps (1 / achieved frame rate).
     public private(set) var stepIntervals = Durations()
@@ -139,7 +137,10 @@ public final class TilingEngine {
     /// The size each proxied window was resized to off screen.
     private var preparedSize: [CGWindowID: CGSize] = [:]
     private var snapshotTimer: Timer?
-    private var timer: Timer?
+    /// Drives the glide in step with the display (vsync), not a timer.
+    private var ticker: DisplayTicker?
+    /// One thread per app for Accessibility calls (see AppWorker).
+    private var workers: [pid_t: AppWorker] = [:]
     private var lastStep: CFTimeInterval = 0
 
     public init(area: CGRect, options: Options = Options()) {
@@ -272,7 +273,35 @@ public final class TilingEngine {
         relayout()
     }
 
-    public var isAnimating: Bool { timer != nil }
+    public var isAnimating: Bool { ticker != nil }
+
+    /// The worker thread for an app, created on first use.
+    private func worker(for pid: pid_t) -> AppWorker {
+        if let worker = workers[pid] { return worker }
+        let worker = AppWorker(pid: pid) { [weak self] id in self?.forget(id) }
+        workers[pid] = worker
+        return worker
+    }
+
+    /// Sets a window's frame on its app's thread, never blocking the main
+    /// thread. Latest wins while the app is busy. `completion` runs once set.
+    public func write(_ id: CGWindowID, _ frame: CGRect,
+                      completion: (@MainActor @Sendable () -> Void)? = nil) {
+        guard let window = windows[id] else { return }
+        worker(for: window.pid).setFrame(window, frame, completion: completion)
+    }
+
+    /// Raises a window on its app's thread.
+    public func raise(_ id: CGWindowID, then: (@MainActor @Sendable () -> Void)? = nil) {
+        guard let window = windows[id] else { return }
+        worker(for: window.pid).run {
+            window.raise()
+            if let then { DispatchQueue.main.async { MainActor.assumeIsolated { then() } } }
+        }
+    }
+
+    /// Frames skipped because an app was still busy with an older one.
+    public var droppedFrames: Int { workers.values.reduce(0) { $0 + $1.droppedFrames } }
 
     /// The desk a window belongs to, tiled or floating.
     public func desk(of id: CGWindowID) -> Desk? {
@@ -414,8 +443,8 @@ public final class TilingEngine {
     /// Puts every managed window back where it was before the engine first
     /// touched it (or, for parked ones without a record, onto the screen).
     public func restoreAll() {
-        timer?.invalidate()
-        timer = nil
+        ticker?.stop()
+        ticker = nil
         proxyFinish?.cancel()
         proxied.removeAll()
         proxies.removeAll()
@@ -449,7 +478,7 @@ public final class TilingEngine {
             if fullscreen[desk] == id { fullscreen[desk] = nil }
             layouts.remove(id)
             floating[id] = Floating(desk: desk, frame: lastFloatFrame[id] ?? defaultFloatFrame(for: id))
-            window.raise()
+            raise(id)
             log("floating: \(window.title)")
         }
         relayout()
@@ -473,7 +502,7 @@ public final class TilingEngine {
             log("fullscreen off: \(window.title)")
         } else {
             fullscreen[desk] = id
-            window.raise()
+            raise(id)
             log("fullscreen: \(window.title)")
         }
         relayout()
@@ -591,16 +620,15 @@ public final class TilingEngine {
                   let window = windows[id], proxies.show(id, at: current) else { continue }
             proxied.insert(id)
             proxyGlides += 1
-            window.setFrame(CGRect(origin: parkedOrigin(for: target), size: target.size))
+            write(id, CGRect(origin: parkedOrigin(for: target), size: target.size))
             preparedSize[id] = target.size
             proxies.prepareNewLook(id)
         }
         // Proxied windows whose target size changed mid-glide: new size off
         // screen, and their new look is prepared again.
         for id in proxied {
-            guard let window = windows[id], let target = springs[id]?.target,
-                  preparedSize[id] != target.size else { continue }
-            window.setFrame(CGRect(origin: parkedOrigin(for: target), size: target.size))
+            guard let target = springs[id]?.target, preparedSize[id] != target.size else { continue }
+            write(id, CGRect(origin: parkedOrigin(for: target), size: target.size))
             preparedSize[id] = target.size
             proxies.prepareNewLook(id)
         }
@@ -630,19 +658,23 @@ public final class TilingEngine {
                     self.finishProxies(waited: waited + step, then: done)
                     return
                 }
-                for id in self.proxied {
-                    if let window = self.windows[id], let target = self.springs[id]?.target {
-                        window.setFrame(target)
-                    }
-                    self.preparedSize[id] = nil
-                }
                 let swapped = self.proxied
                 self.proxied.removeAll()
-                // One more beat so the moved windows are on screen before
-                // their snapshots disappear.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
-                    MainActor.assumeIsolated {
-                        for id in swapped where !self.proxied.contains(id) { self.proxies.remove(id) }
+                for id in swapped {
+                    self.preparedSize[id] = nil
+                    guard let target = self.springs[id]?.target else {
+                        self.proxies.remove(id)
+                        continue
+                    }
+                    // The snapshot goes once the app has the window in place,
+                    // plus one beat so it is on screen.
+                    self.write(id, target) { [weak self] in
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
+                            MainActor.assumeIsolated {
+                                guard let self, !self.proxied.contains(id) else { return }
+                                self.proxies.remove(id)
+                            }
+                        }
                     }
                 }
                 done()
@@ -672,7 +704,7 @@ public final class TilingEngine {
     /// A proxied window the user grabs becomes real again at once.
     private func dropProxy(_ id: CGWindowID) {
         guard proxied.remove(id) != nil else { return }
-        if let window = windows[id], let frame = springs[id]?.current { window.setFrame(frame) }
+        if let frame = springs[id]?.current { write(id, frame) }
         proxies.remove(id)
     }
 
@@ -697,17 +729,15 @@ public final class TilingEngine {
     public func resetStats() {
         applyTimes = Durations()
         stepIntervals = Durations()
+        for worker in workers.values { worker.resetStats() }
     }
 
     private func startLoop() {
-        guard timer == nil else { return }
+        guard ticker == nil else { return }
         lastStep = 0
-        let timer = Timer(timeInterval: 1 / options.frameRate, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.step() }
-        }
-        timer.tolerance = 0
-        RunLoop.main.add(timer, forMode: .common)
-        self.timer = timer
+        let ticker = DisplayTicker(frameRate: Float(options.frameRate)) { [weak self] in self?.step() }
+        self.ticker = ticker
+        ticker.start()
         step()
     }
 
@@ -737,16 +767,13 @@ public final class TilingEngine {
             }
         }
 
-        if !work.isEmpty {
-            let start = CACurrentMediaTime()
-            let gone = apply(work)
-            applyTimes.add(CACurrentMediaTime() - start)
-            for id in gone { forget(id) }
-        }
+        for (id, _, frame) in work { write(id, frame) }
+        // Main-thread cost of the whole step; the apps work on their own threads.
+        applyTimes.add(CACurrentMediaTime() - now)
 
         if springs.values.allSatisfy(\.isSettled) {
-            timer?.invalidate()
-            timer = nil
+            ticker?.stop()
+            ticker = nil
             updateSlowApps()
             finishProxies { [weak self] in
                 guard let self else { return }
@@ -815,7 +842,7 @@ public final class TilingEngine {
             for id in misfits {
                 guard let window = windows[id], let target = targets[id] else { continue }
                 window.invalidateCache()
-                window.setFrame(target)
+                write(id, target)
             }
             scheduleFitCheck(retry: false)
         }
@@ -825,19 +852,6 @@ public final class TilingEngine {
     private static func describe(_ size: CGSize) -> String {
         func side(_ v: CGFloat) -> String { v.isFinite ? "\(Int(v))" : "-" }
         return "\(side(size.width))x\(side(size.height))"
-    }
-
-    /// Writes frames; returns windows that no longer exist.
-    private func apply(_ work: [(CGWindowID, AXWindow, CGRect)]) -> [CGWindowID] {
-        if !options.parallel || work.count == 1 {
-            return work.compactMap { $0.1.setFrame($0.2) ? nil : $0.0 }
-        }
-        let gone = Mutex<[CGWindowID]>([])
-        DispatchQueue.concurrentPerform(iterations: work.count) { i in
-            let (id, window, rect) = work[i]
-            if !window.setFrame(rect) { gone.withLock { $0.append(id) } }
-        }
-        return gone.withLock { $0 }
     }
 
     private func forget(_ id: CGWindowID) {

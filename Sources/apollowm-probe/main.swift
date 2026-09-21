@@ -3,13 +3,13 @@ import ApolloWM
 
 // Measurement tool for the drag-and-glide spike.
 //
-//   apollowm-probe bench [--max N] [--serial]
+//   apollowm-probe bench [--max N]
 //       Tiles the windows on the main display, animates big layout changes,
 //       prints frame rate and write cost, checks where windows really ended up,
 //       then puts every window back where it was.
 //   apollowm-probe spaces
 //       Read-only: prints the shown desktop and the desktop of every window.
-//   apollowm-probe run [--max N] [--serial]
+//   apollowm-probe run [--max N]
 //       Tiles and stays live: pick up a window by its title bar and the others
 //       close the gap; drop it and everything glides into place. Ctrl+C restores.
 
@@ -21,7 +21,7 @@ func option(_ name: String) -> String? {
 }
 
 guard ["bench", "run", "spaces"].contains(mode) else {
-    print("usage: apollowm-probe bench|run|spaces [--max N] [--serial] [--resize proxy|smooth|snap] [--no-focus-follows-mouse] [--reserve-left PT]")
+    print("usage: apollowm-probe bench|run|spaces [--max N] [--resize proxy|smooth|snap] [--no-focus-follows-mouse] [--reserve-left PT]")
     exit(2)
 }
 
@@ -89,7 +89,6 @@ let signalSources = [SIGINT, SIGTERM].map { sig in
 }
 
 var options = TilingEngine.Options()
-options.parallel = !args.contains("--serial")
 options.resize = option("--resize").flatMap(ResizeAnimation.init(rawValue:)) ?? .proxy
 if options.resize == .proxy && !CGPreflightScreenCaptureAccess() {
     print("Screen Recording not allowed: proxy glides fall back to smooth. Asking macOS for it.")
@@ -125,7 +124,7 @@ if let space = Spaces.current() {
 
 @MainActor func report(_ label: String) {
     let fps = engine.stepIntervals.median.map { String(format: "%.0f fps", 1 / $0) } ?? "-"
-    print("\(label): \(fps) | proxies \(engine.proxyGlides) | step interval \(engine.stepIntervals.summary) | frame writes \(engine.applyTimes.summary)")
+    print("\(label): \(fps) | proxies \(engine.proxyGlides) | step interval \(engine.stepIntervals.summary) | main thread per frame \(engine.applyTimes.summary) | dropped \(engine.droppedFrames)")
     engine.resetStats()
 }
 
@@ -144,13 +143,13 @@ if let space = Spaces.current() {
 switch mode {
 case "bench":
     var steps: [(String, () -> Void)] = [
-        ("serial   tile",   { engine.options.parallel = false }),
-        ("serial   mirror", { engine.mirror() }),
-        ("serial   mirror", { engine.mirror() }),
-        ("parallel mirror", { engine.options.parallel = true; engine.mirror() }),
-        ("parallel mirror", { engine.mirror() }),
+        ("tile",   {}),
+        ("mirror", { engine.mirror() }),
+        ("mirror", { engine.mirror() }),
+        ("mirror", { engine.mirror() }),
+        ("mirror", { engine.mirror() }),
     ]
-    var current = "serial   tile"
+    var current = "tile"
     steps.removeFirst().1()
     engine.onSettled = {
         report(current)

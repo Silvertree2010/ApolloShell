@@ -68,10 +68,13 @@ public final class FocusFollowsMouse {
         if ProcessInfo.processInfo.environment["APOLLOWM_TRACE"] == "1" {
             FileHandle.standardError.write(Data("focus: \(window.title) (desk \(engine.desk))\n".utf8))
         }
-        window.raise()
-        _ = window.element.set(kAXMainAttribute, bool: true)
-        // Without .activateAllWindows only the raised (main) window comes forward.
-        NSRunningApplication(processIdentifier: window.pid)?.activate()
+        let pid = window.pid
+        // Raise on the app's thread; a slow app must not stall the mouse.
+        engine.raise(id) {
+            _ = window.element.set(kAXMainAttribute, bool: true)
+            // Without .activateAllWindows only the raised (main) window comes forward.
+            NSRunningApplication(processIdentifier: pid)?.activate()
+        }
     }
 
     /// The frontmost on-screen window at `point`, whatever its layer, so a

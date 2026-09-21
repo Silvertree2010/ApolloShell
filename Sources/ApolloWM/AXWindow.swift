@@ -1,6 +1,7 @@
 import ApplicationServices
 import CoreGraphics
 import QuartzCore
+import Synchronization
 
 @_silgen_name("_AXUIElementGetWindow")
 private func _AXUIElementGetWindow(_ element: AXUIElement, _ id: UnsafeMutablePointer<CGWindowID>) -> AXError
@@ -9,8 +10,9 @@ private func _AXUIElementGetWindow(_ element: AXUIElement, _ id: UnsafeMutablePo
 /// Frames are in global top-left coordinates (same as CGEvent locations).
 ///
 /// Thread-safety: every Accessibility call is a synchronous IPC round trip to
-/// the owning app. Calls for different windows may run concurrently; calls for
-/// the same window must not overlap (the engine guarantees that).
+/// the owning app; the Accessibility API itself is thread-safe. Frame writes
+/// run on the app's worker thread (see AppWorker), reads anywhere. The write
+/// cache and cost samples are guarded by a lock.
 public final class AXWindow: @unchecked Sendable {
     public let element: AXUIElement
     public let pid: pid_t
@@ -19,17 +21,21 @@ public final class AXWindow: @unchecked Sendable {
     /// AXStandardWindow, AXDialog, AXFloatingWindow, ...
     public let subrole: String
 
-    /// Last frame we wrote, used to skip calls that would change nothing.
-    private var lastWritten: CGRect?
+    private struct Cache {
+        /// Last frame written, used to skip calls that would change nothing.
+        var lastWritten: CGRect?
+        /// How long the app took for its recent size changes, in seconds.
+        var resizeCosts: [Double] = []
+    }
+    private let cache = Mutex(Cache())
 
-    /// How long the app took for its recent size changes, in seconds.
-    /// Slow apps (they re-layout a web page on every size) glide as a
-    /// snapshot instead.
-    public private(set) var resizeCosts: [Double] = []
-
+    /// Median of the app's recent size changes. Slow apps (they re-layout a
+    /// web page on every size) glide as a snapshot instead.
     public var medianResizeCost: Double? {
-        guard resizeCosts.count >= 5 else { return nil }
-        return resizeCosts.sorted()[resizeCosts.count / 2]
+        cache.withLock { cache in
+            guard cache.resizeCosts.count >= 5 else { return nil }
+            return cache.resizeCosts.sorted()[cache.resizeCosts.count / 2]
+        }
     }
 
     init?(element: AXUIElement, pid: pid_t) {
@@ -82,26 +88,33 @@ public final class AXWindow: @unchecked Sendable {
         // like kitty would reflow and flash.
         let rect = CGRect(x: rect.minX.rounded(), y: rect.minY.rounded(),
                           width: rect.width.rounded(), height: rect.height.rounded())
+        let lastWritten = cache.withLock { $0.lastWritten }
         let moved = lastWritten.map { $0.origin != rect.origin } ?? true
         let resized = lastWritten.map { $0.size != rect.size } ?? true
         let shrinking = lastWritten.map { rect.width < $0.width || rect.height < $0.height } ?? false
         // Only what the app accepted is cached; a write that failed (a busy
         // app hit the messaging timeout) is sent again next time.
         var written = lastWritten ?? CGRect(x: CGFloat.nan, y: CGFloat.nan, width: CGFloat.nan, height: CGFloat.nan)
+        var cost: Double?
         var ok = true
         func size() {
             guard resized else { return }
             let start = CACurrentMediaTime()
             if element.set(kAXSizeAttribute, size: rect.size) { written.size = rect.size } else { ok = false }
-            resizeCosts.append(CACurrentMediaTime() - start)
-            if resizeCosts.count > 30 { resizeCosts.removeFirst(resizeCosts.count - 30) }
+            cost = CACurrentMediaTime() - start
         }
         func position() {
             guard moved else { return }
             if element.set(kAXPositionAttribute, point: rect.origin) { written.origin = rect.origin } else { ok = false }
         }
         if shrinking { size(); position() } else { position(); size() }
-        lastWritten = written
+        cache.withLock { cache in
+            cache.lastWritten = written
+            if let cost {
+                cache.resizeCosts.append(cost)
+                if cache.resizeCosts.count > 30 { cache.resizeCosts.removeFirst(cache.resizeCosts.count - 30) }
+            }
+        }
         return ok
     }
 
@@ -116,7 +129,7 @@ public final class AXWindow: @unchecked Sendable {
         defer {
             _ = element.set(kAXSizeAttribute, size: original.size)
             _ = element.set(kAXPositionAttribute, point: original.origin)
-            lastWritten = nil
+            invalidateCache()
         }
         guard element.set(kAXSizeAttribute, size: CGSize(width: 1, height: 1)),
               let small = element.size(kAXSizeAttribute) else { return nil }
@@ -145,7 +158,7 @@ public final class AXWindow: @unchecked Sendable {
     }
 
     /// Forget the cached frame, e.g. after the user moved the window by hand.
-    public func invalidateCache() { lastWritten = nil }
+    public func invalidateCache() { cache.withLock { $0.lastWritten = nil } }
 }
 
 extension AXUIElement {
