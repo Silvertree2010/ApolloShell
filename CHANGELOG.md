@@ -74,6 +74,10 @@ tabs you had into pages, with the cards at the same spots. The old
   replacement; "Open System Settings" and "About ApolloShell" stay in the
   menu.
 - **The block list of Nexus > Bar** with its presets.
+- **The bar background setting.** Without a theme the bar is the system
+  material again, whatever was chosen before; Liquid Glass changed colour
+  with every window that moved under it. A theme that wants glass lets
+  light through its bar colour (`--apollo-bar-opacity` below 1).
 - **Nexus' Dashboard and Quick Actions pages** with their editors and
   templates (dashboard: Caelestia, Compact, Calendar & Weather; control
   centre: Standard, Minimal, Sound & Devices, Everything). The edit mode and

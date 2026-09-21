@@ -245,19 +245,6 @@ private struct NexusBarPage: View {
             NexusChoiceCard(symbol: "display.2", title: "Screens",
                             subtitle: "Where the bar stands – and with it the desktop clock and the strip kept clear of windows.",
                             options: options, selected: choice) { store.settings.bar.screens = $0 }
-            NexusChoiceCard(symbol: "square.on.square.intersection.dashed", title: "Background",
-                            subtitle: "Liquid Glass follows whatever is behind it; Material holds its colour.",
-                            options: BarBackground.allCases.map { .init($0, Self.title($0)) },
-                            selected: store.settings.bar.background) { store.settings.bar.background = $0 }
-        }
-    }
-
-    static func title(_ background: BarBackground) -> String {
-        switch background {
-        case .material: String(localized: "Material")
-        case .glass: String(localized: "Liquid Glass")
-        case .tintedGlass: String(localized: "Liquid Glass, Tinted")
-        case .fixedGlass: String(localized: "Liquid Glass on a Solid Fill")
         }
     }
 }

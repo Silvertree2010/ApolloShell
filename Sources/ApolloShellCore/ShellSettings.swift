@@ -122,19 +122,17 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         /// Which screens the bar stands on (Nexus > Bar).
         /// The default for all of them - existing installations included: all.
         public var screens: ScreenChoice
-        /// What the bar is backed with (Nexus > Bar), see `BarBackground`.
-        /// Default: material, the state before this choice existed.
-        public var background: BarBackground
 
-        public init(layout: BarLayout = BarPreset.caelestia.layout, screens: ScreenChoice = .all,
-                    background: BarBackground = .standard) {
+        public init(layout: BarLayout = BarPreset.caelestia.layout, screens: ScreenChoice = .all) {
             self.layout = layout
             self.screens = screens
-            self.background = background
         }
 
+        /// `background` (0.2 betas: material or three kinds of glass) is no
+        /// longer read; a file that still has it simply keeps it unused
+        /// until the next write drops it.
         private enum CodingKeys: String, CodingKey {
-            case layout, screens, background
+            case layout, screens
             // Only read from now on, for the migration.
             case showWorkspaces, showDock, showClock, showStatusIcons, clock
         }
@@ -143,9 +141,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
             self.init()
             let c = try decoder.container(keyedBy: CodingKeys.self)
             // Before these settings the keys did not exist; then the defaults
-            // apply (all screens, the background of back then: material).
+            // apply (all screens).
             c.lenient(.screens, into: &screens)
-            c.lenient(.background, into: &background)
             // An empty list is a bar too (everything removed) - only a missing
             // or unreadable one falls back to the old switches.
             if let layout: BarLayout = c.lenient(.layout) {
@@ -165,7 +162,6 @@ public struct ShellSettings: Codable, Equatable, Sendable {
             var c = encoder.container(keyedBy: CodingKeys.self)
             try c.encode(layout, forKey: .layout)
             try c.encode(screens, forKey: .screens)
-            try c.encode(background, forKey: .background)
         }
     }
 

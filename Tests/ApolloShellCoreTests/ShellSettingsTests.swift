@@ -73,36 +73,12 @@ struct ShellSettingsTests {
         #expect(ShellSettings.firstLaunch.menuBar.shown)
     }
 
-    @Test("Background: writing and reading again gives the same result", arguments: BarBackground.allCases)
-    func backgroundRoundTrip(background: BarBackground) {
-        // In a list instead of individually: a single value would be a
-        // JSON fragment, whereas in settings.json it's inside an object anyway.
-        let data = try! JSONEncoder().encode([background])
-        #expect(try! JSONDecoder().decode([BarBackground].self, from: data) == [background])
-        let settings = ShellSettings(bar: .init(background: background))
-        #expect(ShellSettings.load(from: settings.encoded()).bar.background == background)
-    }
-
-    @Test("Background: unknown value falls back to the default")
-    func backgroundUnknown() {
-        let json = #"["glass","hologramm","","fixedGlass"]"#
-        let decoded = try! JSONDecoder().decode([BarBackground].self, from: Data(json.utf8))
-        #expect(decoded == [.glass, .material, .material, .fixedGlass])
-        #expect(BarBackground.standard == .material)
-    }
-
-    @Test("Background: missing or broken key gives Material", arguments: [
-        #"{"bar":{"layout":[]}}"#, #"{"bar":{"background":"hologramm"}}"#, #"{"bar":{"background":5}}"#,
-        #"{"bar":{"background":null}}"#, #"{"bar":{"background":{"art":"glas"}}}"#,
-    ])
-    func backgroundLenient(json: String) {
-        #expect(ShellSettings.load(from: Data(json.utf8)).bar.background == .material)
-    }
-
-    @Test("Background: unchanged, it stays with the previous look")
-    func backgroundDefault() {
-        #expect(ShellSettings().bar.background == .material)
-        #expect(ShellSettings.firstLaunch.bar.background == .material)
+    @Test("an old background key is ignored, the rest of the bar still reads")
+    func oldBackgroundIgnored() {
+        let json = #"{"bar":{"layout":[],"background":"glass","screens":{"mode":"primary"}}}"#
+        let settings = ShellSettings.load(from: Data(json.utf8))
+        #expect(settings.bar.screens == .primary)
+        #expect(!String(decoding: settings.encoded(), as: UTF8.self).contains("\"background\" : \"glass\""))
     }
 
     @Test("Battery events follow their switch", arguments: [

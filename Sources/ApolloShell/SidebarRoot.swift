@@ -41,8 +41,7 @@ struct SidebarRoot: View {
             )
             ZStack(alignment: .topLeading) {
                 Color.clear
-                    .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: Sidebar.width, bulge: bulge),
-                                           background: settings.settings.bar.background))
+                    .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: Sidebar.width, bulge: bulge)))
                 SidebarContent(settings: settings, context: context, editor: editor)
                     .frame(width: Sidebar.width)
                     .frame(maxHeight: .infinity)
@@ -89,26 +88,22 @@ struct SidebarRoot: View {
 /// The background of the bar in its shape, replaced by a fixed area in image
 /// samples (glass draws only white offscreen).
 ///
-/// Which background is decided in Nexus > Bar > Background; why there is a
-/// choice and what the entries are for stands at `BarBackground`.
+/// Without a theme a system material: one colour per appearance. Plain
+/// Liquid Glass follows the brightness of whatever lies behind it and flips
+/// between light and dark with it (Apple, WWDC25 "Meet Liquid Glass"), so the
+/// bar changed colour whenever a window moved under it. A choice between
+/// material and three kinds of glass existed in the 0.2 betas and went
+/// again: a theme that wants glass lets light through its bar colour.
 private struct SidebarGlass<S: Shape>: ViewModifier {
     let shape: S
-    let background: BarBackground
     @Environment(\.statusPopoutGlassStandIn) private var standIn
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shellStyle) private var style
 
-    /// The window color, half opaque: it pulls the glass towards the window
-    /// color but lets it stay glass. A tint cannot stop the recoloring
-    /// entirely anyway (see `BarBackground`) - `fixedGlass` is there for that.
-    /// `fixedGlass` da.
-    private static var tint: Color { Color(nsColor: .windowBackgroundColor).opacity(0.7) }
-
     /// With a theme, the theme colors the bar: the color (or the gradient) out
     /// of `--apollo-bar-color` or `--apollo-bar-gradient`, with
-    /// `--apollo-bar-opacity`. The choice in Nexus > Bar stays visible below it
-    /// as long as the theme lets light through and allows glass - otherwise a
-    /// half-opaque bar would be a bar in front of the desktop.
+    /// `--apollo-bar-opacity`. Glass shows through below it as long as the
+    /// theme lets light through and allows glass (`--apollo-glass`).
     func body(content: Content) -> some View {
         if standIn {
             content.background(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95), in: shape)
@@ -122,25 +117,7 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
                     }
                 }
         } else {
-            switch background {
-            case .material:
-                content.background(.regularMaterial, in: shape)
-            case .glass:
-                content.glassEffect(.regular, in: shape)
-            case .tintedGlass:
-                content.glassEffect(.regular.tint(Self.tint), in: shape)
-            case .fixedGlass:
-                // The order: the glass behind the content first, then the
-                // opaque area behind the glass. The glass then has the same
-                // area in front of it everywhere instead of the desktop and
-                // the windows, so its adaptation has nothing left to adapt to.
-                // `clear` instead of `regular`, because only that version does
-                // not adapt at all according to Apple; the opaque area is the
-                // layer `clear` needs for that.
-                content
-                    .glassEffect(.clear, in: shape)
-                    .background(Color(nsColor: .windowBackgroundColor), in: shape)
-            }
+            content.background(.regularMaterial, in: shape)
         }
     }
 }
