@@ -44,9 +44,11 @@ public enum WindowFocus {
         var psn = ProcessSerialNumber()
         guard let processForPID = sky.processForPID, let setFront = sky.setFrontProcess,
               processForPID(window.pid, &psn) == noErr else {
-            // Private calls missing (future macOS): the official way.
+            // Private calls missing (future macOS): the official way, on the
+            // main thread like all of AppKit.
             window.raise()
-            NSRunningApplication(processIdentifier: window.pid)?.activate()
+            let pid = window.pid
+            DispatchQueue.main.async { NSRunningApplication(processIdentifier: pid)?.activate() }
             return
         }
         _ = setFront(&psn, window.windowID, userGenerated)
@@ -71,10 +73,22 @@ public enum WindowFocus {
         }
     }
 
+    /// The frontmost app, asked through Accessibility. Never NSWorkspace
+    /// off the main thread: reading it there can fire KVO into the host's
+    /// SwiftUI models on that thread, which crashed ApolloShell.
+    public static func frontmostPID() -> pid_t? {
+        let system = AXUIElementCreateSystemWide()
+        AXUIElementSetMessagingTimeout(system, 0.2)
+        guard let app = system.value(kAXFocusedApplicationAttribute),
+              CFGetTypeID(app) == AXUIElementGetTypeID() else { return nil }
+        var pid: pid_t = 0
+        return AXUIElementGetPid(app as! AXUIElement, &pid) == .success ? pid : nil
+    }
+
     /// The window that really has focus right now: the frontmost app's
-    /// focused window. Call off the main thread.
+    /// focused window. Safe off the main thread (Accessibility only).
     public static func focusedWindowID() -> CGWindowID? {
-        guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier else { return nil }
+        guard let pid = frontmostPID() else { return nil }
         let app = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(app, 0.2)
         guard let window = app.value(kAXFocusedWindowAttribute),

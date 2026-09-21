@@ -133,7 +133,7 @@ public final class FocusFollowsMouse {
             guard focused != window.windowID else { return }
             // A dialog of the same app over its window keeps focus; another
             // app's floating window does not block the window around it.
-            let frontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier
+            let frontmost = WindowFocus.frontmostPID()
             if let focused, frontmost == window.pid, let inner = FocusFollowsMouse.frame(of: focused),
                let outer = window.serverFrame, outer.contains(inner) {
                 return
