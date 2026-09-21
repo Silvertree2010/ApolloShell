@@ -69,6 +69,8 @@ public final class WindowWatcher {
         RunLoop.main.add(timer, forMode: .common)
         safetyTimer = timer
         watchNewWindows()
+        // Pick up the windows on the other desktops right away.
+        reconcile()
     }
 
     // MARK: Notifications
@@ -143,13 +145,15 @@ public final class WindowWatcher {
         let area = engine.screenArea
         let tracked = engine.windows
         Task.detached(priority: .userInitiated) { [weak self] in
-            let found = WindowDiscovery.tileableWindows(in: area)
-            let foundIDs = Set(found.map(\.windowID))
+            let order = Spaces.ordered()
+            let found = WindowDiscovery.allDesktopWindows(in: area)
+            let foundIDs = Set(found.map(\.window.windowID))
             var spaces: [CGWindowID: SpaceID] = [:]
+            for item in found { spaces[item.window.windowID] = item.space }
             var missing: [CGWindowID: Missing] = [:]
             for (id, window) in tracked {
-                spaces[id] = Spaces.of(id)
                 guard !foundIDs.contains(id) else { continue }
+                spaces[id] = Spaces.of(id)
                 var state = Missing()
                 if window.position == nil {
                     state.closed = true
@@ -160,9 +164,9 @@ public final class WindowWatcher {
                 }
                 missing[id] = state
             }
-            await MainActor.run { [found, spaces, missing] in
+            await MainActor.run { [found, spaces, missing, order] in
                 guard let self else { return }
-                self.apply(found: found, spaces: spaces, missing: missing)
+                self.apply(found: found, spaces: spaces, missing: missing, order: order)
                 self.scanning = false
                 if self.rescan {
                     self.rescan = false
@@ -172,8 +176,22 @@ public final class WindowWatcher {
         }
     }
 
-    private func apply(found: [AXWindow], spaces: [CGWindowID: SpaceID], missing: [CGWindowID: Missing]) {
-        let foundIDs = Set(found.map(\.windowID))
+    private func apply(found: [WindowDiscovery.Found], spaces: [CGWindowID: SpaceID],
+                       missing: [CGWindowID: Missing], order: [SpaceID]) {
+        let foundIDs = Set(found.map(\.window.windowID))
+
+        // Desktops closed in Mission Control: their windows now live on
+        // another desktop and keep their arrangement there.
+        if !order.isEmpty {
+            let vanished = Set(engine.knownSpaceOrder).subtracting(order)
+            for old in vanished {
+                let movedHere = engine.windows.keys.filter { engine.desk(of: $0)?.space == old }
+                if let into = movedHere.lazy.compactMap({ spaces[$0] }).first {
+                    engine.absorbVanishedSpace(old, into: into)
+                }
+            }
+            engine.noteSpaceOrder(order)
+        }
 
         // Windows the user moved to another desktop follow there.
         for id in engine.windows.keys where id != engine.dragging {
@@ -190,12 +208,9 @@ public final class WindowWatcher {
 
         for (id, state) in missing where engine.windows[id] != nil && id != engine.dragging {
             guard let window = engine.windows[id] else { continue }
-            // Not on screen. It keeps its tile only while it lives on another
-            // desktop or is parked on another workspace. Apps like WhatsApp
-            // or System Settings keep closed windows alive but invisible;
-            // those must not hold a tile.
-            let home = engine.desk(of: id)
-            let elsewhere = home != nil && home != engine.desk
+            // On no desktop at all (the scan covers every desktop). Apps like
+            // WhatsApp or System Settings keep closed windows alive but
+            // invisible; those must not hold a tile.
             let reason: String?
             if state.closed {
                 reason = "closed"
@@ -203,7 +218,7 @@ public final class WindowWatcher {
                 reason = "minimized"
             } else if state.appHidden {
                 reason = "app hidden"
-            } else if !elsewhere && !engine.isSwitchingSpace && !allAside {
+            } else if !engine.isSwitchingSpace && !allAside {
                 let since = invisibleSince[id] ?? CACurrentMediaTime()
                 invisibleSince[id] = since
                 if CACurrentMediaTime() - since >= invisibleGrace {
@@ -227,17 +242,20 @@ public final class WindowWatcher {
 
         for id in foundIDs { invisibleSince[id] = nil }
 
-        let fresh = found.filter { engine.windows[$0.windowID] == nil }
-        for window in fresh {
-            log("opened: \(window.title.isEmpty ? "\(window.windowID)" : window.title)")
+        let fresh = found.filter { engine.windows[$0.window.windowID] == nil }
+        for item in fresh {
+            log("opened: \(item.window.title.isEmpty ? "\(item.window.windowID)" : item.window.title) (desktop \(item.space))")
         }
-        if fresh.count > 1 || engine.isSwitchingSpace {
-            // Several unknown windows at once (a desktop seen for the first
-            // time): keep the order they already have on screen.
-            engine.adopt(fresh)
-        } else if let window = fresh.first {
+        let onShown = fresh.filter { $0.space == engine.space }
+        if onShown.count == 1, fresh.count == 1, !engine.isSwitchingSpace {
             // One newly opened window: it splits the tile under the mouse.
-            engine.add(window, at: CGEvent(source: nil)?.location)
+            engine.add(onShown[0].window, at: CGEvent(source: nil)?.location)
+        } else {
+            // Several at once (start, a desktop seen for the first time): each
+            // desktop keeps the order its windows already have on screen.
+            for space in Set(fresh.map(\.space)) {
+                engine.adopt(fresh.filter { $0.space == space }.map(\.window), on: space)
+            }
         }
         watchNewWindows()
     }

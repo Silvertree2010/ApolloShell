@@ -150,34 +150,55 @@ public final class TilingEngine {
 
     // MARK: Layout
 
-    public func adopt(_ newWindows: [AXWindow]) {
+    /// Takes over windows in their on-screen order. `space` is the desktop
+    /// they live on (default: the shown one); windows on hidden desktops are
+    /// arranged there right away, without animation.
+    public func adopt(_ newWindows: [AXWindow], on space: SpaceID? = nil) {
+        let target = deskShown(on: space)
         for window in newWindows where windows[window.windowID] == nil {
             let id = window.windowID
             windows[id] = window
             if originalFrames[id] == nil { originalFrames[id] = window.serverFrame }
             inspect(window)
             // Known from a saved layout: it keeps its old spot.
-            if desk(of: id) != nil { continue }
-            if floatsByItself(window) { continue }
-            layouts.assign(id, to: desk) { $0.insert(id) }
+            if let home = desk(of: id) {
+                dirtyDesks.insert(home)
+                continue
+            }
+            if floatsByItself(window, on: target) { continue }
+            layouts.assign(id, to: target) { $0.insert(id) }
         }
+        dirtyDesks.insert(target)
         relayout()
     }
 
+    /// The workspace shown on a desktop (always 1 while Apple's desktops
+    /// are the workspaces).
+    private func deskShown(on space: SpaceID?) -> Desk {
+        guard let space, space != self.space else { return desk }
+        return Desk(space: space, workspace: activeWorkspace[space] ?? 1)
+    }
+
+    /// Hidden desks whose layout changed; relayout() writes their frames.
+    private var dirtyDesks: Set<Desk> = []
+
     /// Tiles a new window on the shown desktop. A point (usually the mouse)
     /// picks the tile to split, like a drop; otherwise the last tile is split.
-    public func add(_ window: AXWindow, at point: CGPoint?) {
+    public func add(_ window: AXWindow, at point: CGPoint?, on space: SpaceID? = nil) {
         let id = window.windowID
         guard windows[id] == nil else { return }
         windows[id] = window
         if originalFrames[id] == nil { originalFrames[id] = window.serverFrame }
         inspect(window)
-        if desk(of: id) != nil || floatsByItself(window) {
+        let target = deskShown(on: space)
+        dirtyDesks.insert(desk(of: id) ?? target)
+        if desk(of: id) != nil || floatsByItself(window, on: target) {
             relayout()
             return
         }
-        layouts.assign(id, to: desk) { tree in
-            if let point {
+        let shown = target == desk
+        layouts.assign(id, to: target) { tree in
+            if let point, shown {
                 tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: minimums, maximums: maximums)
             } else {
                 tree.insert(id)
@@ -200,6 +221,7 @@ public final class TilingEngine {
         proxied.remove(id)
         proxies.forget(id)
         fullscreen = fullscreen.filter { $0.value != id }
+        if let home = desk(of: id) { dirtyDesks.insert(home) }
         layouts.remove(id)
         relayout()
     }
@@ -207,19 +229,19 @@ public final class TilingEngine {
     /// Dialogs, panels and windows that cannot be resized (or whose minimum
     /// and maximum size are the same) float where the app put them instead of
     /// taking a tile. Returns true when the window was made floating.
-    private func floatsByItself(_ window: AXWindow) -> Bool {
+    private func floatsByItself(_ window: AXWindow, on target: Desk) -> Bool {
         guard window.subrole != kAXStandardWindowSubrole else { return false }
-        makeFloating(window, reason: window.subrole)
+        makeFloating(window, reason: window.subrole, on: target)
         return true
     }
 
     /// Floats `window` where it is, kept inside the usable area.
-    private func makeFloating(_ window: AXWindow, reason: String) {
+    private func makeFloating(_ window: AXWindow, reason: String, on target: Desk) {
         let id = window.windowID
         var frame = window.serverFrame ?? defaultFloatFrame(for: id)
         frame.origin.x = min(max(frame.minX, area.minX), max(area.maxX - frame.width, area.minX))
         frame.origin.y = min(max(frame.minY, area.minY), max(area.maxY - frame.height, area.minY))
-        floating[id] = Floating(desk: desk(of: id) ?? desk, frame: frame)
+        floating[id] = Floating(desk: target, frame: frame)
         log("floats by itself (\(reason)): \(window.title)")
     }
 
@@ -254,8 +276,8 @@ public final class TilingEngine {
         } ?? false
         if (!resizable || fixed), floating[id] == nil, let home = layouts.space(of: id) {
             layouts.remove(id)
-            makeFloating(window, reason: resizable ? "fixed size" : "not resizable")
-            floating[id]?.desk = home
+            makeFloating(window, reason: resizable ? "fixed size" : "not resizable", on: home)
+            dirtyDesks.insert(home)
         }
         relayout()
     }
@@ -271,7 +293,9 @@ public final class TilingEngine {
         }
         guard windows[id] != nil, id != dragging, layouts.space(of: id)?.space != targetSpace else { return }
         fullscreen = fullscreen.filter { $0.value != id }
-        log("\(windows[id]?.title ?? "\(id)") moved to desktop \(target)")
+        log("\(windows[id]?.title ?? "\(id)") moved to desktop \(targetSpace)")
+        if let old = layouts.space(of: id) { dirtyDesks.insert(old) }
+        dirtyDesks.insert(target)
         layouts.assign(id, to: target) { $0.insert(id) }
         relayout()
     }
@@ -294,6 +318,7 @@ public final class TilingEngine {
             let new = Desk(space: target, workspace: min(9, place + old.workspace - 1))
             log("desktop \(vanished) closed: its workspace \(old.workspace) becomes workspace \(new.workspace)")
             layouts.move(old, to: new)
+            dirtyDesks.insert(new)
             for (id, state) in floating where state.desk == old { floating[id]?.desk = new }
             if let id = fullscreen.removeValue(forKey: old) { fullscreen[new] = id }
         }
@@ -353,6 +378,7 @@ public final class TilingEngine {
     /// Windows not on the shown desktop are left alone.
     public func relayout() {
         layouts[desk].freezeDirections(in: area, gaps: options.gaps)
+        arrangeHiddenDesks()
         let frames = targetFrames()
         let held = [dragging, resizing]
         // Windows of a restored layout that were not seen yet (their desktop
@@ -444,6 +470,16 @@ public final class TilingEngine {
         originalFrames = snapshot.originalFrames.filter { alive($0.key) }
         desk.workspace = activeWorkspace[space] ?? 1
         log("restored layout: \(layouts.spaceOf.count) tiled, \(floating.count) floating")
+    }
+
+    /// Hidden desktops change too (a window closed there, a new one opened):
+    /// their windows are put straight into place, nobody sees a glide.
+    private func arrangeHiddenDesks() {
+        for hidden in dirtyDesks where hidden != desk && hidden.space != space {
+            layouts[hidden].freezeDirections(in: area, gaps: options.gaps)
+            for (id, frame) in frames(on: hidden) where windows[id] != nil { write(id, frame) }
+        }
+        dirtyDesks.removeAll()
     }
 
     /// Where the windows of `desk` go when it is shown: tiles, a fullscreen

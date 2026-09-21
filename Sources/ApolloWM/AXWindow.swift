@@ -162,6 +162,12 @@ public final class AXWindow: @unchecked Sendable {
 }
 
 extension AXUIElement {
+    /// The window-server number of a window element.
+    var windowID: CGWindowID? {
+        var id: CGWindowID = 0
+        return _AXUIElementGetWindow(self, &id) == .success && id != 0 ? id : nil
+    }
+
     func value(_ attribute: String) -> CFTypeRef? {
         var ref: CFTypeRef?
         guard AXUIElementCopyAttributeValue(self, attribute as CFString, &ref) == .success else { return nil }

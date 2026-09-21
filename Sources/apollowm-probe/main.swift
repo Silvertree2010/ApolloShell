@@ -39,6 +39,14 @@ if mode == "spaces" {
         let space = Spaces.of(id).map(String.init) ?? "none/all"
         print("  \(owner) #\(id) desktop \(space)\(onScreen ? " (on screen)" : "")")
     }
+    if let area = WindowDiscovery.mainArea() {
+        for pass in 1...2 {
+            let start = CACurrentMediaTime()
+            let found = WindowDiscovery.allDesktopWindows(in: area)
+            print(String(format: "all desktops, pass %d: %d windows in %.0f ms", pass, found.count, (CACurrentMediaTime() - start) * 1000))
+            if pass == 2 { for f in found { print("  desktop \(f.space): \(f.window.title)") } }
+        }
+    }
     exit(0)
 }
 guard WindowDiscovery.isTrusted(prompt: true) else {
