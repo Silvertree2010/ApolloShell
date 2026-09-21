@@ -555,6 +555,34 @@ public final class TilingEngine {
         relayout()
     }
 
+    /// Lets go of every window where it belongs now: a glide in progress
+    /// jumps to its end, snapshot stand-ins go away and their real windows
+    /// (waiting off screen) take their tiles. Nothing goes back to where it
+    /// was before; for that there is restoreAll().
+    public func releaseAll() {
+        ticker?.stop()
+        ticker = nil
+        proxyFinish?.cancel()
+        let targets = targetFrames()
+        for (id, window) in windows {
+            let target: CGRect?
+            if parked[id] != nil, let home = desk(of: id) {
+                // Waiting past the edge for another workspace: onto the screen,
+                // or it would be lost there once nobody manages it.
+                target = frames(on: home)[id]
+            } else if proxied.contains(id) || !(springs[id]?.isSettled ?? true) {
+                target = targets[id]
+            } else {
+                target = nil
+            }
+            guard let target else { continue }
+            window.invalidateCache()
+            window.setFrame(target)
+        }
+        proxied.removeAll()
+        proxies.removeAll()
+    }
+
     /// Puts every managed window back where it was before the engine first
     /// touched it (or, for parked ones without a record, onto the screen).
     public func restoreAll() {

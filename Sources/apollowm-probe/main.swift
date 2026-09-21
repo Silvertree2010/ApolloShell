@@ -24,7 +24,7 @@ func option(_ name: String) -> String? {
 }
 
 guard ["bench", "run", "spaces", "selftest"].contains(mode) else {
-    print("usage: apollowm-probe bench|run|spaces|selftest [--max N] [--seed N] [--steps N] [--resize proxy|smooth|snap] [--no-focus-follows-mouse] [--reserve-left PT]")
+    print("usage: apollowm-probe bench|run|spaces|selftest [--max N] [--seed N] [--steps N] [--resize proxy|smooth|snap] [--no-focus-follows-mouse] [--restore-on-quit] [--reserve-left PT]")
     exit(2)
 }
 
@@ -102,7 +102,7 @@ var restoreWindows: (() -> Void)?
 @MainActor func restoreAndExit(_ code: Int32) -> Never {
     restoreWindows?()
     enhancedUI.restore()
-    print("restored all windows")
+    print(restoreOnQuit ? "restored all windows" : "left all windows in place")
     exit(code)
 }
 
@@ -144,9 +144,12 @@ if mode == "run", let data = try? Data(contentsOf: layoutFile),
         .compactMap { $0[kCGWindowNumber as String] as? CGWindowID })
     engine.restore(snapshot, alive: { existing.contains($0) })
 }
+// On quit, windows stay where the layout put them (the user's wish), unless
+// --restore-on-quit; bench and selftest always put everything back.
+let restoreOnQuit = mode != "run" || args.contains("--restore-on-quit")
 restoreWindows = {
     if mode == "run" { saveLayout(now: true) }
-    engine.restoreAll()
+    if restoreOnQuit { engine.restoreAll() } else { engine.releaseAll() }
 }
 if let space = Spaces.current() {
     print("shown desktop \(space)")
@@ -232,7 +235,7 @@ default:
     focus.isEnabled = !args.contains("--no-focus-follows-mouse")
     if !focus.start() { print("could not follow the mouse (event tap refused)") }
     print("live. drag a window by its title bar, or hold fn (Super) and drag anywhere.")
-    print("fn+space floats, fn+F fills the area, fn+1..9 switches workspace. Ctrl+C puts everything back.")
+    print("fn+space floats, fn+F fills the area, fn+1..9 switches workspace. Ctrl+C quits, windows stay.")
     withExtendedLifetime((tracker, watcher, keys, focus, signalSources)) { app.run() }
 }
 
