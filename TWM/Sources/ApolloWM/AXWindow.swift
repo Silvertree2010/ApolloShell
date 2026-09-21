@@ -77,6 +77,15 @@ public final class AXWindow: @unchecked Sendable {
         return CGRect(dictionaryRepresentation: bounds as! CFDictionary)
     }
 
+    /// The window-server layer (0 for normal windows). ApolloShell's bar and
+    /// panels float above it and are never tiled or focused by the mouse.
+    public var serverLayer: Int? {
+        var raw = UnsafeRawPointer(bitPattern: UInt(windowID))
+        guard let ids = CFArrayCreate(nil, &raw, 1, nil),
+              let list = CGWindowListCreateDescriptionFromArray(ids) as? [[String: Any]] else { return nil }
+        return list.first?[kCGWindowLayer as String] as? Int
+    }
+
     /// Writes only the components that changed. Returns false when the window
     /// is gone. When shrinking, size goes first so the move is not clamped by
     /// the screen edge; when growing, position goes first for the same reason.

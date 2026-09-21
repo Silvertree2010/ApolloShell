@@ -113,7 +113,10 @@ public final class FocusFollowsMouse {
             defer { Task { @MainActor in done() } }
             guard !WindowFocus.dockIsBusy(),
                   let window = WindowFocus.window(at: point), window.pid != own,
-                  [kAXStandardWindowSubrole, kAXDialogSubrole].contains(window.subrole) else { return }
+                  [kAXStandardWindowSubrole, kAXDialogSubrole].contains(window.subrole),
+                  // Only normal-layer windows: not ApolloShell's floating bar or
+                  // panels (they sit in a space of their own, see StickySpace).
+                  window.serverLayer == 0 else { return }
             let focused = WindowFocus.focusedWindowID()
             guard focused != window.windowID else { return }
             // A dialog of the same app over its window keeps focus; another
