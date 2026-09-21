@@ -60,6 +60,17 @@ public enum DockCommandFilter {
             || trimmed.hasPrefix("preferences")
     }
 
+    /// Plain ⌘N: the app's own "new window" - Finder's New Finder Window,
+    /// kitty's New OS Window, Vivaldi's New Window. Not ⇧⌘N (private
+    /// windows, Finder's New Folder) and nothing found only by its text: the
+    /// launcher presses this one without asking, so it has to be the plain
+    /// window.
+    public static func isNewWindow(_ shortcut: MenuShortcut?) -> Bool {
+        guard let shortcut else { return false }
+        return shortcut.hasCommand && !shortcut.hasShift && !shortcut.hasOption && !shortcut.hasControl
+            && shortcut.matches("n")
+    }
+
     /// Does this menu item belong in the Dock menu, and as what?
     ///
     /// `shortcut` is the shortcut of the item, `nil` when it has none.

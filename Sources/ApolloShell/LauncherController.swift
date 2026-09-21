@@ -143,9 +143,21 @@ final class LauncherController {
         DockAppCommands.press(command, of: running)
     }
 
+    /// A click (or Return) on a row. Not running: start it. Running and able
+    /// to open more windows (a plain ⌘N in its menu bar): a new window, on
+    /// the current desktop. Running with no such command: its windows come
+    /// forward, which is what opening it again does.
+    ///
+    /// The ⌘N lookup goes through Accessibility; without the permission it
+    /// finds nothing, and the app is simply brought forward as before.
     private func launch(_ app: AppEntry) {
         close()
         usage.record(app.usageKey)
+        if let running = LauncherController.runningApp(app),
+           let newWindow = DockAppCommands.commands(pid: running.processIdentifier).first(where: \.isNewWindow) {
+            DockAppCommands.press(newWindow, of: running)
+            return
+        }
         ownLaunches[app.usageKey] = Date()
         NSWorkspace.shared.openApplication(at: app.url, configuration: .init()) { [log] _, error in
             if let error {

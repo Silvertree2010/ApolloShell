@@ -72,4 +72,17 @@ struct DockCommandsTests {
         #expect(DockCommandFilter.kind(title: "Settings Window",
                                        shortcut: MenuShortcut(character: "n", modifiers: 0)) == .newItem)
     }
+
+    @Test("only a plain ⌘N counts as a new window", arguments: [
+        (MenuShortcut(character: "N", modifiers: 0), true),
+        (MenuShortcut(character: "n", modifiers: 0), true),
+        (MenuShortcut(character: "N", modifiers: 1), false),
+        (MenuShortcut(character: "N", modifiers: 2), false),
+        (MenuShortcut(character: "N", modifiers: 8), false),
+        (MenuShortcut(character: "T", modifiers: 0), false),
+    ])
+    func plainNewWindow(shortcut: MenuShortcut, expected: Bool) {
+        #expect(DockCommandFilter.isNewWindow(shortcut) == expected)
+        #expect(!DockCommandFilter.isNewWindow(nil))
+    }
 }

@@ -30,6 +30,10 @@ tabs you had into pages, with the cards at the same spots. The old
 - **Shortcuts get a window of their own** (Shortcuts… in the panel), with two
   presets: Control and Option (⌥Space, ⌃⌥D, ⌃⌥U, ⌃⌥,) and Launcher on fn
   (F20 and Hyper).
+- **The launcher opens a new window** when the app is already running and
+  can have more than one (a plain ⌘N in its menu bar: Finder, Terminal,
+  kitty, TextEdit). An app with a single window just comes forward. Needs
+  Accessibility; without it every app just comes forward as before.
 - **Pin an app where it stands.** Right-click a row in the launcher to pin or
   unpin it; drag pinned rows to reorder them.
 - **One edit mode for the whole shell.** "Edit Interface" in Nexus dims

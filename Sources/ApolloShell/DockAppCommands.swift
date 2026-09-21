@@ -10,6 +10,8 @@ enum DockAppCommands {
         let title: String
         let kind: DockCommandKind
         let element: AXUIElement
+        /// Plain ⌘N (`DockCommandFilter.isNewWindow`).
+        var isNewWindow = false
     }
 
     /// The app's commands for the Dock menu: new windows and the
@@ -36,12 +38,27 @@ enum DockAppCommands {
             guard let menu = AX.elements(menus[index], kAXChildrenAttribute).first else { continue }
             let items = AX.elements(menu, kAXChildrenAttribute)
             for item in items {
+                // Terminal keeps its ⌘N one level down ("New Window ▸
+                // Basic"): look into a "New …" submenu for the plain one.
+                if let title = AX.string(item, kAXTitleAttribute), DockCommandFilter.isNewCommand(title),
+                   let submenu = AX.elements(item, kAXChildrenAttribute).first {
+                    for child in AX.elements(submenu, kAXChildrenAttribute)
+                    where DockCommandFilter.isNewWindow(shortcut(of: child)) {
+                        let childTitle = AX.string(child, kAXTitleAttribute) ?? title
+                        if seen.insert(childTitle).inserted {
+                            commands.append(Command(title: childTitle, kind: .newItem, element: child, isNewWindow: true))
+                        }
+                    }
+                    continue
+                }
+                let keys = shortcut(of: item)
                 guard let title = AX.string(item, kAXTitleAttribute),
                       (AX.copy(item, kAXEnabledAttribute) as? NSNumber)?.boolValue ?? false,
-                      let kind = DockCommandFilter.kind(title: title, shortcut: shortcut(of: item)),
+                      let kind = DockCommandFilter.kind(title: title, shortcut: keys),
                       seen.insert(title).inserted
                 else { continue }
-                commands.append(Command(title: title, kind: kind, element: item))
+                commands.append(Command(title: title, kind: kind, element: item,
+                                        isNewWindow: DockCommandFilter.isNewWindow(keys)))
             }
         }
         // New windows first, then settings - like in Apple's Dock menu,
