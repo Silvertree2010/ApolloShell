@@ -79,6 +79,9 @@ tabs you had into pages, with the cards at the same spots. The old
 
 ### Fixed
 
+- **Info toasts keep their symbol in themes that turn the toast light on a
+  dark Mac** (Clay does). The symbol and its tile followed the system's dark
+  colours, white on the light toast; they now take the toast's text colour.
 - **Safari shows up in the launcher.** /Applications only holds a hidden
   symlink to it, which the search skipped; the launcher now also looks where
   Safari really lives.

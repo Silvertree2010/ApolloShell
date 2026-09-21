@@ -18,6 +18,15 @@ enum RenderMode {
         if let index = args.firstIndex(of: "--render-edit"), index + 1 < args.count {
             run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderEditMode)
         }
+        // `--render-toasts <folder> [<theme folder or .css>]`: the four kinds
+        // of toast, light and dark, with that theme's colours (none: the
+        // defaults) - for checking a theme's toasts without waiting for a
+        // charger or a battery warning.
+        if let index = args.firstIndex(of: "--render-toasts"), index + 1 < args.count {
+            let theme = index + 2 < args.count && !args[index + 2].hasPrefix("-")
+                ? ThemeLoader.load(at: URL(fileURLWithPath: args[index + 2])) : Theme.standard
+            run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true)) { try renderToasts(into: $0, theme: theme) }
+        }
     }
 
     private static func run(folder: URL, _ body: (URL) throws -> Void) {
@@ -166,6 +175,40 @@ enum RenderMode {
         let utilitiesView = EditableUtilitiesView(editor: editor, layout: editor.utilities?.layout ?? UtilitiesLayout())
             .environment(\.dashboardRendersForScreenshot, true)
         try write(utilitiesView, scheme: .light, to: editFolder.appendingPathComponent("utilities-selected-light.png"))
+    }
+
+    private static func renderToasts(into folder: URL, theme: Theme) throws {
+        let deadline = Date.distantFuture
+        let entries = [
+            ToastEntry(id: 1, title: "Charger Connected", message: "Battery is charging", symbol: "bolt.fill",
+                       kind: .info, deadline: deadline),
+            ToastEntry(id: 2, title: "Colour Copied", message: "#3A302A", symbol: "checkmark", kind: .success,
+                       deadline: deadline),
+            ToastEntry(id: 3, title: "Battery Low", message: "20 % left", symbol: "battery.25percent",
+                       kind: .warning, deadline: deadline),
+            ToastEntry(id: 4, title: "Keep Awake Failed", message: "No administrator rights", symbol: "xmark",
+                       kind: .error, deadline: deadline),
+        ]
+        for scheme in [ColorScheme.light, .dark] {
+            let style = ShellStyle(theme: theme, dark: scheme == .dark)
+            let view = VStack(spacing: 8) {
+                ForEach(entries) { entry in
+                    ToastCard(entry: entry).frame(width: 406)
+                }
+            }
+            .padding(24)
+            .environment(\.shellStyle, style)
+            .environment(\.colorScheme, scheme)
+            // A mid grey behind them: whatever the theme does, the edge of
+            // each toast stays visible.
+            .background(Color(white: 0.45))
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 2
+            guard let image = renderer.cgImage,
+                  let data = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+            else { throw RenderError.noImage("toasts") }
+            try data.write(to: folder.appendingPathComponent(name("toasts", scheme)))
+        }
     }
 
     static func name(_ base: String, _ scheme: ColorScheme) -> String {
