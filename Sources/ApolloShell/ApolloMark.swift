@@ -153,6 +153,51 @@ enum ApolloMarkGeometry {
         return CGPoint(x: point.x + normal.dx * o, y: point.y + normal.dy * o)
     }
 
+    // Even speed. The orbit is a flat ellipse (425 by 93): stepping its
+    // angle evenly moved the moon nearly five times slower at the two ends
+    // than in front and behind, and it crawled there (21.09.). The moon's
+    // clock therefore runs in "phase", and `angle(forPhase:)` turns that
+    // into the orbit angle that lies as far along the ring as the phase
+    // says - equal steps of phase, equal steps of path.
+
+    private static let lengthTable: [Double] = {
+        let steps = 720
+        var table = [0.0]
+        var previous = orbitPoint(0)
+        for i in 1...steps {
+            let p = orbitPoint(2 * .pi * Double(i) / Double(steps))
+            table.append(table[i - 1] + Double(hypot(p.x - previous.x, p.y - previous.y)))
+            previous = p
+        }
+        return table
+    }()
+
+    /// The orbit angle for a phase (both in radians, any number of turns).
+    static func angle(forPhase phase: Double) -> Double {
+        let turns = (phase / (2 * .pi)).rounded(.down)
+        let target = (phase / (2 * .pi) - turns) * lengthTable.last!
+        var low = 0
+        var high = lengthTable.count - 1
+        while high - low > 1 {
+            let mid = (low + high) / 2
+            if lengthTable[mid] < target { low = mid } else { high = mid }
+        }
+        let span = lengthTable[high] - lengthTable[low]
+        let t = span > 0 ? (target - lengthTable[low]) / span : 0
+        let steps = Double(lengthTable.count - 1)
+        return (turns + (Double(low) + t) / steps) * 2 * .pi
+    }
+
+    /// The phase for an orbit angle: the inverse of `angle(forPhase:)`.
+    static func phase(forAngle angle: Double) -> Double {
+        let turns = (angle / (2 * .pi)).rounded(.down)
+        let position = (angle / (2 * .pi) - turns) * Double(lengthTable.count - 1)
+        let index = min(Int(position), lengthTable.count - 2)
+        let t = position - Double(index)
+        let length = lengthTable[index] + (lengthTable[index + 1] - lengthTable[index]) * t
+        return (turns + length / lengthTable.last!) * 2 * .pi
+    }
+
     /// A piece of ring as a filled band along the middle line, its width
     /// going evenly from one end to the other.
     private static func band(from start: Double, to end: Double, startWidth: CGFloat, endWidth: CGFloat) -> Path {
@@ -180,7 +225,7 @@ enum ApolloMarkGeometry {
     /// on the near half of the ring (the lower one); a touch smaller at the
     /// back, for depth.
     static func moon(at orbit: Double) -> (center: CGPoint, radius: CGFloat, inFront: Bool) {
-        let angle = restAngle + 2 * .pi * orbit
+        let angle = self.angle(forPhase: phase(forAngle: restAngle) + 2 * .pi * orbit)
         let s = CGFloat(sin(angle))
         let depth = (s + 1) / 2
         let rest = (CGFloat(sin(restAngle)) + 1) / 2

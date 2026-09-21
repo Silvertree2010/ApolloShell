@@ -44,9 +44,12 @@ private struct EmblemCanvas: View {
 
     /// How much of the button the mark fills.
     private static let fill = 0.92
-    /// The moon in the logo sits here on its orbit; the emblem's clock
-    /// starts at `EmblemTimeline.restAngle`, so this offset lines the two up.
-    private static let angleOffset = ApolloMarkGeometry.restAngle - EmblemTimeline.restAngle
+    /// The emblem's clock (`EmblemPose.moonAngle`) counts in phase - equal
+    /// steps, equal path along the ring (`ApolloMarkGeometry.angle(forPhase:)`).
+    /// It starts at `EmblemTimeline.restAngle`; this offset puts that start
+    /// where the logo has its moon.
+    private static let phaseOffset = ApolloMarkGeometry.phase(forAngle: ApolloMarkGeometry.restAngle)
+        - EmblemTimeline.restAngle
     /// The stars in the 80 grid of the button: clear of the mark.
     private static let stars: [(x: Double, y: Double, r: Double)] = [
         (12, 14, 3.4), (66, 11, 2.4), (68, 66, 2.9),
@@ -84,14 +87,17 @@ private struct EmblemCanvas: View {
         func circle(_ c: CGPoint, _ r: Double) -> Path {
             Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r))
         }
+        func orbitAngle(_ theta: Double) -> Double {
+            ApolloMarkGeometry.angle(forPhase: theta + Self.phaseOffset)
+        }
         func point(_ theta: Double) -> CGPoint {
-            ApolloMarkGeometry.orbitPoint(theta + Self.angleOffset)
+            ApolloMarkGeometry.orbitPoint(orbitAngle(theta))
         }
         /// A little bigger in front, smaller behind: a breath of depth.
         func moonRadius(_ dot: Dot) -> Double {
-            dot.radius * (1 + 0.12 * sin(dot.theta + Self.angleOffset))
+            dot.radius * (1 + 0.12 * sin(orbitAngle(dot.theta)))
         }
-        func inFront(_ theta: Double) -> Bool { sin(theta + Self.angleOffset) >= 0 }
+        func inFront(_ theta: Double) -> Bool { sin(orbitAngle(theta)) >= 0 }
 
         let letter = ApolloMarkGeometry.letter
         // The lit part: a shadow circle moves in from the top left until only

@@ -198,6 +198,13 @@ enum RenderMode {
         }
         .padding(8)
         try write(small, scheme: .dark, to: folder.appendingPathComponent("mark-sizes-dark.png"))
+        // How far the moon moves per equal time step, once round: the
+        // slowest step against the fastest (1.0 = perfectly even).
+        let positions = (0...720).map { ApolloMarkGeometry.moon(at: Double($0) / 720).center }
+        let moves = zip(positions, positions.dropFirst()).map { hypot($1.x - $0.x, $1.y - $0.y) }
+        let speed = String(format: "moon step min %.2f max %.2f ratio %.3f\n",
+                           moves.min()!, moves.max()!, moves.min()! / moves.max()!)
+        try Data(speed.utf8).write(to: folder.appendingPathComponent("moon-speed.txt"))
         try write(ApolloMark().frame(width: 600, height: 600), scheme: .light,
                   to: folder.appendingPathComponent("mark-large-light.png"))
 
