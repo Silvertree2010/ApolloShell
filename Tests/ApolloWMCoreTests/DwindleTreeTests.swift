@@ -278,6 +278,23 @@ struct DwindleTreeTests {
         #expect(f[3] == CGRect(x: 900, y: 300, width: 100, height: 300))
     }
 
+    @Test func freezeDirectionsTwiceInARowMatchesOnce() {
+        // TilingEngine coalesces several relayout() calls made in the same
+        // run-loop turn into one; freezeDirections() must be safe to call
+        // repeatedly on unchanged geometry so that coalescing changes
+        // nothing about the resulting layout.
+        var once = DwindleTree<Int>()
+        [1, 2, 3].forEach { once.insert($0) }
+        once.freezeDirections(in: area)
+
+        var twice = DwindleTree<Int>()
+        [1, 2, 3].forEach { twice.insert($0) }
+        twice.freezeDirections(in: area)
+        twice.freezeDirections(in: area)
+
+        #expect(once.layout(in: area) == twice.layout(in: area))
+    }
+
     @Test func resizeClampsRatio() {
         var tree = DwindleTree<Int>()
         tree.insert(1)

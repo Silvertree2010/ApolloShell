@@ -142,6 +142,9 @@ public final class TilingEngine {
     /// One thread per app for Accessibility calls (see AppWorker).
     private var workers: [pid_t: AppWorker] = [:]
     private var lastStep: CFTimeInterval = 0
+    /// Set while a coalesced relayout is waiting for this run-loop turn to
+    /// end (see `relayout()`).
+    private var relayoutScheduled = false
 
     public init(area: CGRect, options: Options = Options()) {
         self.screenArea = area
@@ -376,7 +379,25 @@ public final class TilingEngine {
 
     /// Recomputes the layout and lets every window glide to its new tile.
     /// Windows not on the shown desktop are left alone.
+    ///
+    /// Several state changes in one run-loop turn (e.g. reconcile() moving
+    /// or dropping a handful of windows, or a fast edge-resize drag posting
+    /// many mouse-dragged events between display frames) each call this; all
+    /// but the first only mark it dirty and return, so the actual layout and
+    /// spring retargeting run once with the final state, not once per call.
+    /// Springs only consume their target on the next display tick anyway, so
+    /// nothing is lost by waiting for the turn to end.
     public func relayout() {
+        guard !relayoutScheduled else { return }
+        relayoutScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.relayoutScheduled = false
+            self.performRelayout()
+        }
+    }
+
+    private func performRelayout() {
         layouts[desk].freezeDirections(in: area, gaps: options.gaps)
         arrangeHiddenDesks()
         let frames = targetFrames()
