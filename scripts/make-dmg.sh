@@ -8,8 +8,8 @@
 # joined with lipo. The Now Playing helper framework is always universal.
 # ARCHS="arm64" ./scripts/make-dmg.sh builds an Apple-silicon-only image.
 #
-# Signing: see scripts/assemble-app.sh (SIGN_IDENTITY, default: local
-# identity if present, else ad-hoc). The image is not notarised - users have
+# Signing: see scripts/assemble-app.sh (SIGN_IDENTITY, default: the
+# release identity, then the local one, else ad-hoc). The image is not notarised - users have
 # to confirm the first launch under System Settings > Privacy & Security.
 #
 # Installs nothing, launches nothing.

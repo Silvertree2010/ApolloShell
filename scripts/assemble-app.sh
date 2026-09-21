@@ -8,10 +8,11 @@
 #   APP     where to create the bundle, e.g. build/dist/ApolloShell.app
 #
 # Environment:
-#   SIGN_IDENTITY  code-signing identity. Default "Launcher Local Signing"
-#                  (created by scripts/setup-signing.sh) if it exists in the
-#                  keychain, otherwise ad-hoc. Set it to an empty string to
-#                  force ad-hoc signing.
+#   SIGN_IDENTITY  code-signing identity. Default: "ApolloShell Release
+#                  Signing" if it is in the keychain (the maintainer's Mac),
+#                  then "Launcher Local Signing" (scripts/setup-signing.sh),
+#                  otherwise ad-hoc. Set it to an empty string to force
+#                  ad-hoc signing.
 #   BUILD_NUMBER   CFBundleVersion. Default: number of git commits, or 1
 #                  outside a git checkout (e.g. a release tarball).
 #   HOMEBREW_BUILD set to 1 by the Homebrew formula. It drops a marker file
@@ -38,8 +39,18 @@ APP=$2
 PLIST="$ROOT/Support/Info.plist"
 PLISTBUDDY=/usr/libexec/PlistBuddy
 
+has_identity() {
+    security find-identity -p codesigning 2>/dev/null | grep -q "\"$1\""
+}
+
 if [ "${SIGN_IDENTITY+set}" = set ]; then
     IDENTITY=$SIGN_IDENTITY
+elif has_identity "ApolloShell Release Signing"; then
+    # The release certificate first: an Accessibility grant given to a
+    # release (installed from the DMG or updated by Sparkle) then also holds
+    # for a local build, and the other way round. With the local one, every
+    # switch between a release and a local build lost the grant (21.09.).
+    IDENTITY="ApolloShell Release Signing"
 else
     IDENTITY="Launcher Local Signing"
 fi
@@ -49,7 +60,7 @@ fi
 if [ "$IDENTITY" = "-" ]; then
     # Explicitly ad-hoc (CI, rendered samples): no lookup, no error.
     echo "signing ad-hoc (SIGN_IDENTITY=-)"
-elif [ -n "$IDENTITY" ] && security find-identity -p codesigning 2>/dev/null | grep -q "\"$IDENTITY\""; then
+elif [ -n "$IDENTITY" ] && has_identity "$IDENTITY"; then
     echo "signing with: $IDENTITY"
 elif [ "${SIGN_IDENTITY+set}" = set ] && [ -n "$SIGN_IDENTITY" ]; then
     # Explicitly asked for and not there: stop. Quietly signing ad-hoc
