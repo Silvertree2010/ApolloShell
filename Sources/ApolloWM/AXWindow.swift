@@ -74,15 +74,20 @@ public final class AXWindow: @unchecked Sendable {
         let moved = lastWritten.map { $0.origin != rect.origin } ?? true
         let resized = lastWritten.map { $0.size != rect.size } ?? true
         let shrinking = lastWritten.map { rect.width < $0.width || rect.height < $0.height } ?? false
+        // Only what the app accepted is cached; a write that failed (a busy
+        // app hit the messaging timeout) is sent again next time.
+        var written = lastWritten ?? CGRect(x: CGFloat.nan, y: CGFloat.nan, width: CGFloat.nan, height: CGFloat.nan)
         var ok = true
-        if shrinking {
-            if resized { ok = element.set(kAXSizeAttribute, size: rect.size) && ok }
-            if moved { ok = element.set(kAXPositionAttribute, point: rect.origin) && ok }
-        } else {
-            if moved { ok = element.set(kAXPositionAttribute, point: rect.origin) && ok }
-            if resized { ok = element.set(kAXSizeAttribute, size: rect.size) && ok }
+        func size() {
+            guard resized else { return }
+            if element.set(kAXSizeAttribute, size: rect.size) { written.size = rect.size } else { ok = false }
         }
-        lastWritten = rect
+        func position() {
+            guard moved else { return }
+            if element.set(kAXPositionAttribute, point: rect.origin) { written.origin = rect.origin } else { ok = false }
+        }
+        if shrinking { size(); position() } else { position(); size() }
+        lastWritten = written
         return ok
     }
 

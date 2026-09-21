@@ -163,7 +163,7 @@ public final class DragTracker {
                 if let frame = engine.windows[id]?.serverFrame { engine.updateResize(to: frame) }
                 return
             }
-            guard let id = candidate, let downPoint else { return }
+            guard let id = candidate else { return }
             guard let window = engine.windows[id], let start = startFrame else {
                 note("  -> candidate \(id) no longer tiled")
                 candidate = nil
@@ -185,14 +185,25 @@ public final class DragTracker {
                 note("  -> pick up")
                 candidate = nil
                 engine.beginDrag(id)
-            } else if hypot(point.x - downPoint.x, point.y - downPoint.y) > 40 {
-                // Mouse travelled but the window stayed: text selection etc.
-                note("  -> window did not follow, gave up")
-                candidate = nil
             }
+            // Otherwise keep watching until the button goes up: some apps
+            // (kitty) apply an edge drag late, and text selection costs only
+            // one window-server lookup per event.
 
         case .leftMouseUp:
             note("up \(Int(point.x)),\(Int(point.y)) dragging \(engine.dragging.map(String.init) ?? "none")")
+            // Last look: a window that changed only after the final drag
+            // event still counts, so it never stays where the user left it.
+            if let id = candidate, let start = startFrame, let actual = engine.windows[id]?.serverFrame {
+                if abs(actual.width - start.width) > 2 || abs(actual.height - start.height) > 2 {
+                    note("  -> late resize")
+                    engine.beginResize(id)
+                    engine.updateResize(to: actual)
+                } else if abs(actual.minX - start.minX) > 2 || abs(actual.minY - start.minY) > 2 {
+                    note("  -> late move")
+                    engine.beginDrag(id)
+                }
+            }
             if engine.dragging != nil { engine.endDrag(at: point) }
             if engine.resizing != nil { engine.endResize() }
             downPoint = nil
