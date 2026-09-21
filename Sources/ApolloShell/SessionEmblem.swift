@@ -133,9 +133,21 @@ private struct EmblemCanvas: View {
         }
         let ring = neutral.opacity(pose.orbitOpacity)
 
+        // The moon itself joins the ring arc of its half in one fill: both
+        // are the same translucent colour, and two fills darkened the
+        // overlap. The trail keeps its own, fading fills.
+        let moonCircle = circle(point(moonDot.theta), moonRadius(moonDot))
+        let moonVisible = pose.moonOpacity > 0.01
+        func arc(_ path: Path, withMoon: Bool) -> Path {
+            withMoon && moonVisible && pose.moonOpacity >= pose.orbitOpacity - 0.01 ? path.union(moonCircle) : path
+        }
+        let moonJoins = moonVisible && pose.moonOpacity >= pose.orbitOpacity - 0.01
+        let moonBehind = !inFront(moonDot.theta)
+
         // 1. The back arc of the ring and what can be seen of the moon there.
-        mark.fill(ApolloMarkGeometry.ringBack, with: .color(ring))
-        fill((trail.reversed() + [moonDot]).filter { !inFront($0.theta) })
+        fill(trail.reversed().filter { !inFront($0.theta) })
+        mark.fill(arc(ApolloMarkGeometry.ringBack, withMoon: moonBehind), with: .color(ring))
+        if moonBehind, !moonJoins { fill([moonDot]) }
 
         // 2. The glow, then the A. The night side is neutral, only the lit
         //    part carries the accent.
@@ -159,8 +171,7 @@ private struct EmblemCanvas: View {
             endPoint: CGPoint(x: bounds.maxX - bounds.width * 0.2, y: bounds.maxY)
         ))
 
-        // 3. The front arc of the ring.
-        mark.fill(ApolloMarkGeometry.ringFront, with: .color(ring))
+        // 3. The front arc of the ring comes with the front moon (5).
 
         // 4. The thinking dots, in the triangle inside the A.
         for (i, opacity) in pose.dots.enumerated() where opacity > 0.01 {
@@ -179,7 +190,9 @@ private struct EmblemCanvas: View {
             cut.fill(circle(point(moonDot.theta), moonRadius(moonDot) + Self.moonGap),
                      with: .color(.black.opacity(pose.moonOpacity)))
         }
-        fill((trail.reversed() + [moonDot]).filter { inFront($0.theta) })
+        fill(trail.reversed().filter { inFront($0.theta) })
+        mark.fill(arc(ApolloMarkGeometry.ringFront, withMoon: !moonBehind), with: .color(ring))
+        if !moonBehind, !moonJoins { fill([moonDot]) }
 
         // 6. The stars (only in sleep), in the button's own grid.
         for (star, brightness) in zip(Self.stars, pose.stars) where brightness > 0.01 {

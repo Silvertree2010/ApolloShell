@@ -198,6 +198,8 @@ enum RenderMode {
         }
         .padding(8)
         try write(small, scheme: .dark, to: folder.appendingPathComponent("mark-sizes-dark.png"))
+        try write(ApolloMark().frame(width: 600, height: 600), scheme: .light,
+                  to: folder.appendingPathComponent("mark-large-light.png"))
 
         // The session emblem in each reaction, a few moments apart.
         let poses: [(EmblemReaction, Double)] = [
