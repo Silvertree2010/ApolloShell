@@ -21,7 +21,7 @@ func option(_ name: String) -> String? {
 }
 
 guard ["bench", "run", "spaces"].contains(mode) else {
-    print("usage: apollowm-probe bench|run|spaces [--max N] [--serial] [--resize smooth|snap] [--reserve-left PT]")
+    print("usage: apollowm-probe bench|run|spaces [--max N] [--serial] [--resize smooth|snap] [--no-focus-follows-mouse] [--reserve-left PT]")
     exit(2)
 }
 
@@ -158,9 +158,12 @@ default:
     watcher.start()
     let keys = KeyBindings(engine: engine)
     if !keys.start() { print("could not watch the keyboard (event tap refused)") }
+    let focus = FocusFollowsMouse(engine: engine)
+    focus.isEnabled = !args.contains("--no-focus-follows-mouse")
+    if !focus.start() { print("could not follow the mouse (event tap refused)") }
     print("live. drag a window by its title bar, or hold fn (Super) and drag anywhere.")
     print("fn+space floats, fn+F fills the area, fn+1..9 switches workspace. Ctrl+C puts everything back.")
-    withExtendedLifetime((tracker, watcher, keys, signalSources)) { app.run() }
+    withExtendedLifetime((tracker, watcher, keys, focus, signalSources)) { app.run() }
 }
 
 withExtendedLifetime(signalSources) { app.run() }
