@@ -61,9 +61,15 @@ public final class FocusFollowsMouse {
               engine.dragging == nil, engine.resizing == nil,
               let id = engine.window(at: point),
               let window = engine.windows[id],
-              Self.topmostWindow(at: point) == id else { return }
-        // Already focused (by us or by a click): nothing to do.
-        if id == lastFocused, WindowDiscovery.focusedWindowID() == id { return }
+              Self.topmostWindow(at: point) == id else {
+            // Over nothing we manage: entering a window later focuses it again.
+            if engine.window(at: point) == nil { lastFocused = nil }
+            return
+        }
+        // Focus on entering a window, not again while resting inside it.
+        // (Asking the system which window has focus is a round trip into
+        // the focused app, too slow for every mouse stop.)
+        guard id != lastFocused else { return }
         lastFocused = id
         if ProcessInfo.processInfo.environment["APOLLOWM_TRACE"] == "1" {
             FileHandle.standardError.write(Data("focus: \(window.title) (desk \(engine.desk))\n".utf8))

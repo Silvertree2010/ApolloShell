@@ -119,13 +119,65 @@ public final class WindowWatcher {
 
     // MARK: Reconcile
 
+    /// What a background scan learned about one tracked window that was
+    /// not found on screen.
+    private struct Missing: Sendable {
+        var closed = false
+        var minimized = false
+        var appHidden = false
+    }
+
+    private var scanning = false
+    private var rescan = false
+
+    /// Compares the engine with a fresh window scan. The scan asks every app
+    /// for its windows, which is a round trip each, so it runs off the main
+    /// thread (measured: it blocked the main thread for 30-80 ms after every
+    /// desktop switch); only the result is applied here.
     public func reconcile() {
-        let found = WindowDiscovery.tileableWindows(in: engine.screenArea)
+        if scanning {
+            rescan = true
+            return
+        }
+        scanning = true
+        let area = engine.screenArea
+        let tracked = engine.windows
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let found = WindowDiscovery.tileableWindows(in: area)
+            let foundIDs = Set(found.map(\.windowID))
+            var spaces: [CGWindowID: SpaceID] = [:]
+            var missing: [CGWindowID: Missing] = [:]
+            for (id, window) in tracked {
+                spaces[id] = Spaces.of(id)
+                guard !foundIDs.contains(id) else { continue }
+                var state = Missing()
+                if window.position == nil {
+                    state.closed = true
+                } else if window.element.bool(kAXMinimizedAttribute) == true {
+                    state.minimized = true
+                } else if AXUIElementCreateApplication(window.pid).bool(kAXHiddenAttribute) == true {
+                    state.appHidden = true
+                }
+                missing[id] = state
+            }
+            await MainActor.run { [found, spaces, missing] in
+                guard let self else { return }
+                self.apply(found: found, spaces: spaces, missing: missing)
+                self.scanning = false
+                if self.rescan {
+                    self.rescan = false
+                    self.reconcile()
+                }
+            }
+        }
+    }
+
+    private func apply(found: [AXWindow], spaces: [CGWindowID: SpaceID], missing: [CGWindowID: Missing]) {
         let foundIDs = Set(found.map(\.windowID))
 
         // Windows the user moved to another desktop follow there.
         for id in engine.windows.keys where id != engine.dragging {
-            if let space = Spaces.of(id), space != engine.desk(of: id)?.space {
+            if let space = spaces[id], space != engine.desk(of: id)?.space {
                 engine.move(id, to: space)
             }
         }
@@ -136,20 +188,20 @@ public final class WindowWatcher {
         let shown = engine.tree.ids
         let allAside = !shown.isEmpty && shown.allSatisfy { !foundIDs.contains($0) }
 
-        for (id, window) in engine.windows where !foundIDs.contains(id) && id != engine.dragging {
+        for (id, state) in missing where engine.windows[id] != nil && id != engine.dragging {
+            guard let window = engine.windows[id] else { continue }
             // Not on screen. It keeps its tile only while it lives on another
             // desktop or is parked on another workspace. Apps like WhatsApp
             // or System Settings keep closed windows alive but invisible;
             // those must not hold a tile.
             let home = engine.desk(of: id)
             let elsewhere = home != nil && home != engine.desk
-            let element = window.element
             let reason: String?
-            if window.position == nil {
+            if state.closed {
                 reason = "closed"
-            } else if element.bool(kAXMinimizedAttribute) == true {
+            } else if state.minimized {
                 reason = "minimized"
-            } else if AXUIElementCreateApplication(window.pid).bool(kAXHiddenAttribute) == true {
+            } else if state.appHidden {
                 reason = "app hidden"
             } else if !elsewhere && !engine.isSwitchingSpace && !allAside {
                 let since = invisibleSince[id] ?? CACurrentMediaTime()

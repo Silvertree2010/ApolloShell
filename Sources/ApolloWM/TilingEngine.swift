@@ -154,8 +154,8 @@ public final class TilingEngine {
         for window in newWindows where windows[window.windowID] == nil {
             let id = window.windowID
             windows[id] = window
-            if originalFrames[id] == nil { originalFrames[id] = window.frame }
-            measureLimits(of: window)
+            if originalFrames[id] == nil { originalFrames[id] = window.serverFrame }
+            inspect(window)
             // Known from a saved layout: it keeps its old spot.
             if desk(of: id) != nil { continue }
             if floatsByItself(window) { continue }
@@ -170,8 +170,8 @@ public final class TilingEngine {
         let id = window.windowID
         guard windows[id] == nil else { return }
         windows[id] = window
-        if originalFrames[id] == nil { originalFrames[id] = window.frame }
-        measureLimits(of: window)
+        if originalFrames[id] == nil { originalFrames[id] = window.serverFrame }
+        inspect(window)
         if desk(of: id) != nil || floatsByItself(window) {
             relayout()
             return
@@ -208,39 +208,56 @@ public final class TilingEngine {
     /// and maximum size are the same) float where the app put them instead of
     /// taking a tile. Returns true when the window was made floating.
     private func floatsByItself(_ window: AXWindow) -> Bool {
-        let id = window.windowID
-        let fixed = minimums[id].flatMap { minimum in maximums[id].map { maximum in
-            abs(minimum.width - maximum.width) < 2 && abs(minimum.height - maximum.height) < 2
-        } } ?? false
-        let reason: String
-        if window.subrole != kAXStandardWindowSubrole {
-            reason = window.subrole
-        } else if !window.isResizable {
-            reason = "not resizable"
-        } else if fixed {
-            reason = "fixed size"
-        } else {
-            return false
-        }
-        var frame = window.frame ?? defaultFloatFrame(for: id)
-        // Keep it inside the usable area.
-        frame.origin.x = min(max(frame.minX, area.minX), max(area.maxX - frame.width, area.minX))
-        frame.origin.y = min(max(frame.minY, area.minY), max(area.maxY - frame.height, area.minY))
-        floating[id] = Floating(desk: desk, frame: frame)
-        log("floats by itself (\(reason)): \(window.title)")
+        guard window.subrole != kAXStandardWindowSubrole else { return false }
+        makeFloating(window, reason: window.subrole)
         return true
     }
 
-    /// Learns a new window's size limits up front (see `AXWindow.measureLimits`).
-    private func measureLimits(of window: AXWindow) {
-        guard let limits = window.measureLimits(largest: area.insetBy(dx: options.gaps.outer, dy: options.gaps.outer)) else {
-            log("limits for \(window.title.isEmpty ? "\(window.windowID)" : window.title): app did not answer, learning later")
-            return
-        }
+    /// Floats `window` where it is, kept inside the usable area.
+    private func makeFloating(_ window: AXWindow, reason: String) {
         let id = window.windowID
-        minimums[id] = limits.minimum == .zero ? nil : limits.minimum
-        maximums[id] = limits.maximum == .infinite ? nil : limits.maximum
-        log("limits for \(window.title.isEmpty ? "\(id)" : window.title): min \(Self.describe(limits.minimum)) max \(Self.describe(limits.maximum)) (asked)")
+        var frame = window.serverFrame ?? defaultFloatFrame(for: id)
+        frame.origin.x = min(max(frame.minX, area.minX), max(area.maxX - frame.width, area.minX))
+        frame.origin.y = min(max(frame.minY, area.minY), max(area.maxY - frame.height, area.minY))
+        floating[id] = Floating(desk: desk(of: id) ?? desk, frame: frame)
+        log("floats by itself (\(reason)): \(window.title)")
+    }
+
+    /// Asks a new window for its size limits and whether it can be resized,
+    /// on its app's thread (these are round trips into the app). A window
+    /// that cannot be resized, or whose minimum and maximum are the same,
+    /// then leaves the layout and floats.
+    private func inspect(_ window: AXWindow) {
+        let largest = area.insetBy(dx: options.gaps.outer, dy: options.gaps.outer)
+        worker(for: window.pid).run { [weak self] in
+            let limits = window.measureLimits(largest: largest)
+            let resizable = window.isResizable
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { self?.applyInspection(window, limits: limits, resizable: resizable) }
+            }
+        }
+    }
+
+    private func applyInspection(_ window: AXWindow, limits: (minimum: CGSize, maximum: CGSize)?, resizable: Bool) {
+        let id = window.windowID
+        guard windows[id] != nil else { return }
+        let name = window.title.isEmpty ? "\(id)" : window.title
+        if let limits {
+            minimums[id] = limits.minimum == .zero ? nil : limits.minimum
+            maximums[id] = limits.maximum == .infinite ? nil : limits.maximum
+            log("limits for \(name): min \(Self.describe(limits.minimum)) max \(Self.describe(limits.maximum)) (asked)")
+        } else {
+            log("limits for \(name): app did not answer, learning later")
+        }
+        let fixed = limits.map {
+            abs($0.minimum.width - $0.maximum.width) < 2 && abs($0.minimum.height - $0.maximum.height) < 2
+        } ?? false
+        if (!resizable || fixed), floating[id] == nil, let home = layouts.space(of: id) {
+            layouts.remove(id)
+            makeFloating(window, reason: resizable ? "fixed size" : "not resizable")
+            floating[id]?.desk = home
+        }
+        relayout()
     }
 
     /// The window now lives on another desktop (the user moved it there).
@@ -321,7 +338,7 @@ public final class TilingEngine {
             springs[id] = nil
         }
         for (id, rect) in frames where !held.contains(id) && windows[id] != nil {
-            springs[id, default: AnimatedRect(windows[id]?.frame ?? rect)].target = rect
+            springs[id, default: AnimatedRect(windows[id]?.serverFrame ?? rect)].target = rect
         }
         startProxies()
         startLoop()
@@ -372,7 +389,7 @@ public final class TilingEngine {
             aside[id] = state.desk.workspace
         }
         for (id, home) in aside where id != dragging {
-            var frame = parked[id] ?? springs[id]?.current ?? windows[id]?.frame ?? fullArea
+            var frame = parked[id] ?? springs[id]?.current ?? windows[id]?.serverFrame ?? fullArea
             frame.origin.x = home < workspace ? screenArea.minX - frame.width + 1 : screenArea.maxX - 1
             parked[id] = frame
             frames[id] = frame
@@ -468,7 +485,7 @@ public final class TilingEngine {
         if let state = floating[id] {
             floating[id] = nil
             lastFloatFrame[id] = state.frame
-            let frame = window.frame ?? state.frame
+            let frame = window.serverFrame ?? state.frame
             layouts.assign(id, to: desk) { tree in
                 tree.insert(id, at: CGPoint(x: frame.midX, y: frame.midY), in: area, gaps: options.gaps,
                             minimums: minimums, maximums: maximums)
@@ -535,7 +552,7 @@ public final class TilingEngine {
         guard let id = dragging else { return }
         dragging = nil
         if var state = floating[id] {
-            state.frame = windows[id]?.frame ?? state.frame
+            state.frame = windows[id]?.serverFrame ?? state.frame
             state.desk = desk
             floating[id] = state
             windows[id]?.invalidateCache()
@@ -549,7 +566,7 @@ public final class TilingEngine {
         }
         if let window = windows[id] {
             window.invalidateCache()
-            springs[id] = AnimatedRect(window.frame ?? area)
+            springs[id] = AnimatedRect(window.serverFrame ?? area)
         }
         log("drop: \(windows[id]?.title ?? "\(id)") at \(Int(point.x)),\(Int(point.y))")
         relayout()
@@ -584,14 +601,14 @@ public final class TilingEngine {
         guard let id = resizing else { return }
         resizing = nil
         if var state = floating[id] {
-            state.frame = windows[id]?.frame ?? state.frame
+            state.frame = windows[id]?.serverFrame ?? state.frame
             floating[id] = state
             windows[id]?.invalidateCache()
             return
         }
         if let window = windows[id] {
             window.invalidateCache()
-            springs[id] = AnimatedRect(window.frame ?? area)
+            springs[id] = AnimatedRect(window.serverFrame ?? area)
         }
         log("resize end: \(windows[id]?.title ?? "\(id)")")
         relayout()
@@ -808,7 +825,7 @@ public final class TilingEngine {
         var misfits: [CGWindowID] = []
         var changed = false
         for (id, target) in targets {
-            guard let window = windows[id], let actual = window.frame else { continue }
+            guard let window = windows[id], let actual = window.serverFrame else { continue }
             var minimum = minimums[id] ?? .zero
             var maximum = maximums[id] ?? .infinite
             // Heal limits the window no longer honors.
@@ -855,8 +872,16 @@ public final class TilingEngine {
     }
 
     private func forget(_ id: CGWindowID) {
-        // A failed write can also mean a busy app; only drop windows that are really gone.
-        guard windows[id]?.position == nil else { return }
+        // A failed write can also mean a busy app; only drop windows that are
+        // really gone. Asking is a round trip, so it runs on the app's thread.
+        guard let window = windows[id] else { return }
+        worker(for: window.pid).run { [weak self] in
+            let gone = window.position == nil
+            DispatchQueue.main.async { MainActor.assumeIsolated { if gone { self?.forgetNow(id) } } }
+        }
+    }
+
+    private func forgetNow(_ id: CGWindowID) {
         log("window gone: \(windows[id]?.title ?? "\(id)")")
         remove(id)
     }

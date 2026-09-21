@@ -88,7 +88,7 @@ public final class DragTracker {
         case .leftMouseDown, .rightMouseDown:
             guard gesture == nil, isSuper(flags), engine.dragging == nil, engine.resizing == nil,
                   let id = engine.window(at: point),
-                  let window = engine.windows[id], let frame = window.frame else { return false }
+                  let window = engine.windows[id], let frame = window.serverFrame else { return false }
             engine.raise(id)
             if type == .leftMouseDown {
                 gesture = .move(id, grab: CGPoint(x: point.x - frame.minX, y: point.y - frame.minY), size: frame.size)
