@@ -102,8 +102,9 @@ final class ShellEditor {
         observeEndAsCancelEvents()
     }
 
-    /// A reconnected screen, an upcoming sleep, or a session switch
-    /// (fast user switching, screen locked via the login screen) do not
+    /// A reconnected screen, an upcoming sleep, a session switch
+    /// (fast user switching, screen locked via the login screen) or a switch
+    /// to another Space do not
     /// clean up after the user if they happen mid-edit - the working
     /// copy decays without confirmation, like a cancel. A confirmation
     /// would often be too late here anyway (lid closed, screen gone).
@@ -124,6 +125,13 @@ final class ShellEditor {
                 MainActor.assumeIsolated { self?.cancel() }
             },
             workspace.addObserver(forName: NSWorkspace.sessionDidResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.cancel() }
+            },
+            // Another Space: the panels being edited follow (they join all
+            // Spaces), but the scrim and the toolbar did not - the mode stood
+            // there half, with its minus badges and without Done (20.09.).
+            // Leaving the Space leaves the edit, like the events above.
+            workspace.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.cancel() }
             },
         ]
