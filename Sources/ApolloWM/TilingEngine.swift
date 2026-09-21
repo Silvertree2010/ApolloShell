@@ -14,12 +14,24 @@ public final class TilingEngine {
         /// Write frames of different windows concurrently.
         public var parallel = true
         public var frameRate: Double = 120
+        /// Screen space the host keeps for itself, e.g. ApolloShell's 44 pt
+        /// sidebar on the left. Tiles never go there.
+        public var reserved = NSEdgeInsets()
 
         public init() {}
     }
 
-    public let area: CGRect
+    public let screenArea: CGRect
     public var options: Options
+
+    /// Where tiles go: the screen area minus the host's reserved edges.
+    public var area: CGRect {
+        let r = options.reserved
+        return CGRect(x: screenArea.minX + r.left,
+                      y: screenArea.minY + r.top,
+                      width: screenArea.width - r.left - r.right,
+                      height: screenArea.height - r.top - r.bottom)
+    }
     public private(set) var tree = DwindleTree<CGWindowID>()
     public private(set) var windows: [CGWindowID: AXWindow] = [:]
     public private(set) var dragging: CGWindowID?
@@ -37,7 +49,7 @@ public final class TilingEngine {
     private var lastStep: CFTimeInterval = 0
 
     public init(area: CGRect, options: Options = Options()) {
-        self.area = area
+        self.screenArea = area
         self.options = options
     }
 

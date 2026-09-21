@@ -19,7 +19,7 @@ func option(_ name: String) -> String? {
 }
 
 guard mode == "bench" || mode == "run" else {
-    print("usage: apollowm-probe bench|run [--max N] [--serial]")
+    print("usage: apollowm-probe bench|run [--max N] [--serial] [--reserve-left PT]")
     exit(2)
 }
 guard WindowDiscovery.isTrusted(prompt: true) else {
@@ -69,6 +69,8 @@ let signalSources = [SIGINT, SIGTERM].map { sig in
 
 var options = TilingEngine.Options()
 options.parallel = !args.contains("--serial")
+// ApolloShell's sidebar sits on the left edge, 44 pt wide.
+options.reserved.left = option("--reserve-left").flatMap(Double.init).map { CGFloat($0) } ?? 44
 let engine = TilingEngine(area: area, options: options)
 
 @MainActor func report(_ label: String) {
