@@ -130,6 +130,8 @@ public final class TilingEngine {
     /// Windows shown as a snapshot right now; the real one waits off screen.
     private var proxied: Set<CGWindowID> = []
     private var proxyFinish: DispatchWorkItem?
+    /// The size each proxied window was resized to off screen.
+    private var preparedSize: [CGWindowID: CGSize] = [:]
     private var snapshotTimer: Timer?
     private var timer: Timer?
     private var lastStep: CFTimeInterval = 0
@@ -583,14 +585,17 @@ public final class TilingEngine {
             proxied.insert(id)
             proxyGlides += 1
             window.setFrame(CGRect(origin: parkedOrigin(for: target), size: target.size))
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                MainActor.assumeIsolated { self?.proxies.fadeInCurrent(id) }
-            }
+            preparedSize[id] = target.size
+            proxies.prepareNewLook(id)
         }
-        // Proxied windows whose target changed mid-glide: new size off screen.
+        // Proxied windows whose target size changed mid-glide: new size off
+        // screen, and their new look is prepared again.
         for id in proxied {
-            guard let window = windows[id], let target = springs[id]?.target else { continue }
+            guard let window = windows[id], let target = springs[id]?.target,
+                  preparedSize[id] != target.size else { continue }
             window.setFrame(CGRect(origin: parkedOrigin(for: target), size: target.size))
+            preparedSize[id] = target.size
+            proxies.prepareNewLook(id)
         }
     }
 
@@ -604,16 +609,25 @@ public final class TilingEngine {
 
     /// The glide is over: resize the real windows off screen, give the apps
     /// a moment to redraw, then swap them in for their snapshots.
-    private func finishProxies(then done: @escaping () -> Void) {
+    private func finishProxies(waited: TimeInterval = 0, then done: @escaping () -> Void) {
         guard !proxied.isEmpty else { done(); return }
-        // Already at their final size off screen since the glide started.
+        // Swap only once every app has finished drawing at its new size
+        // (its new look is showing), or after 0.5 s at most.
+        let step: TimeInterval = 0.03
+        let allReady = proxied.allSatisfy { proxies.isReady($0) }
         let work = DispatchWorkItem { [weak self] in
             MainActor.assumeIsolated {
                 guard let self else { return }
+                let ready = self.proxied.allSatisfy { self.proxies.isReady($0) }
+                guard ready || waited >= 0.5 else {
+                    self.finishProxies(waited: waited + step, then: done)
+                    return
+                }
                 for id in self.proxied {
                     if let window = self.windows[id], let target = self.springs[id]?.target {
                         window.setFrame(target)
                     }
+                    self.preparedSize[id] = nil
                 }
                 let swapped = self.proxied
                 self.proxied.removeAll()
@@ -628,7 +642,7 @@ public final class TilingEngine {
             }
         }
         proxyFinish = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + (allReady ? 0 : step), execute: work)
     }
 
     /// A proxied window the user grabs becomes real again at once.

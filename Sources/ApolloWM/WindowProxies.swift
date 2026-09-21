@@ -54,6 +54,11 @@ final class WindowProxies {
 
     private var snapshots: [CGWindowID: Snapshot] = [:]
     private var overlays: [CGWindowID: Overlay] = [:]
+    /// Windows whose new look has finished drawing and is showing.
+    private var ready: Set<CGWindowID> = []
+    /// Bumped whenever a window's new look must be prepared again, so an
+    /// older preparation still running gives up.
+    private var generation: [CGWindowID: Int] = [:]
     private var refreshing = false
 
     /// Snapshots older than this are not used.
@@ -104,18 +109,41 @@ final class WindowProxies {
         overlay.new.opacity = 0
         CATransaction.commit()
         overlays[id] = overlay
+        ready.remove(id)
         move(id, to: frame)
         overlay.window.order(.above, relativeTo: Int(id))
         return true
     }
 
-    /// Captures the real window now (at its new size, off screen) and fades
-    /// that image in over the old one.
-    func fadeInCurrent(_ id: CGWindowID) {
+    /// Whether the window's new look is on screen, so it can be swapped in.
+    func isReady(_ id: CGWindowID) -> Bool { ready.contains(id) }
+
+    /// Waits until the real window (resized off screen) has finished drawing
+    /// at its new size, then fades that image in. Apps like Spotify redraw
+    /// piece by piece; a capture taken too early showed half-drawn content
+    /// filling in from the bottom right. "Finished" means two captures
+    /// 50 ms apart look the same. Gives up after `limit` and uses the last.
+    func prepareNewLook(_ id: CGWindowID, limit: TimeInterval = 0.8) {
         guard isAvailable, overlays[id] != nil else { return }
+        ready.remove(id)
+        let token = (generation[id] ?? 0) + 1
+        generation[id] = token
         Task { [weak self] in
-            guard let image = await Self.capture([id], onScreenOnly: false)[id],
-                  let self, let overlay = self.overlays[id] else { return }
+            let deadline = CACurrentMediaTime() + limit
+            var previous: CGImage?
+            var settled: CGImage?
+            while CACurrentMediaTime() < deadline {
+                guard let image = await Self.capture([id], onScreenOnly: false)[id] else { break }
+                if let previous, Self.looksSame(previous, image) {
+                    settled = image
+                    break
+                }
+                previous = image
+                try? await Task.sleep(for: .milliseconds(50))
+                guard let self, self.generation[id] == token, self.overlays[id] != nil else { return }
+            }
+            guard let self, self.generation[id] == token, let overlay = self.overlays[id],
+                  let image = settled ?? previous else { return }
             self.snapshots[id] = Snapshot(image: image, taken: CACurrentMediaTime())
             overlay.new.contentsScale = overlay.old.contentsScale
             overlay.new.contents = image
@@ -125,7 +153,34 @@ final class WindowProxies {
             fade.duration = 0.12
             overlay.new.opacity = 1
             overlay.new.add(fade, forKey: "fade")
+            self.ready.insert(id)
         }
+    }
+
+    /// Same size and, shrunk to 24×16, no channel off by more than a little
+    /// on average.
+    private static func looksSame(_ a: CGImage, _ b: CGImage) -> Bool {
+        guard a.width == b.width, a.height == b.height,
+              let pa = thumbnail(a), let pb = thumbnail(b) else { return false }
+        var total = 0
+        for i in 0..<pa.count where i % 4 != 3 { total += abs(Int(pa[i]) - Int(pb[i])) }
+        return Double(total) / Double(pa.count / 4 * 3) < 2
+    }
+
+    private static func thumbnail(_ image: CGImage) -> [UInt8]? {
+        let width = 24, height = 16
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        let drawn = pixels.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: width, height: height,
+                                          bitsPerComponent: 8, bytesPerRow: width * 4,
+                                          space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+            else { return false }
+            context.interpolationQuality = .low
+            context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+            return true
+        }
+        return drawn ? pixels : nil
     }
 
     func move(_ id: CGWindowID, to frame: CGRect) {
@@ -137,6 +192,8 @@ final class WindowProxies {
     }
 
     func remove(_ id: CGWindowID) {
+        ready.remove(id)
+        generation[id] = (generation[id] ?? 0) + 1
         overlays.removeValue(forKey: id)?.window.orderOut(nil)
     }
 
