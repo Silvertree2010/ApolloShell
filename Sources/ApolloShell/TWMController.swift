@@ -82,9 +82,10 @@ final class TWMController {
         var options = TilingEngine.Options()
         options.reserved.left = Sidebar.width
         let engine = TilingEngine(area: area, options: options)
-        // Notice, not debug, while the TWM is being tried out: debug
-        // messages are not kept, and these explain what went wrong.
-        engine.log = { [log] message in log.notice("\(message, privacy: .public)") }
+        // Debug level only: the messages name window titles (chats, URLs,
+        // documents), and debug messages are never written to disk. Read
+        // them live with `log stream --level debug`.
+        engine.log = { [log] message in log.debug("\(message, privacy: .public)") }
         if let data = try? Data(contentsOf: layoutFile),
            let snapshot = try? JSONDecoder().decode(TilingEngine.Snapshot.self, from: data) {
             let existing = Set((CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] ?? [])
