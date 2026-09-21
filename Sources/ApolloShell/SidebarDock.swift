@@ -245,6 +245,16 @@ final class SidebarDockModel {
                 _ = app?.unhide()
             case .activate:
                 app?.activate()
+            case .raiseWindowElsewhere:
+                // Only through the window itself does macOS switch the
+                // desktop (measured 20.09.: `activate()` fetches none).
+                // Without a remote window the old way stays, better than
+                // nothing.
+                if let app, let window = windowElsewhere(of: app, onScreen: onScreen) {
+                    DockWindows.raise(window, of: app)
+                } else {
+                    app?.activate()
+                }
             case .raiseWindowOnActiveSpace:
                 // The frontmost window here: it brings the app forward
                 // along with it, no extra `.activate` needed.
@@ -259,9 +269,11 @@ final class SidebarDockModel {
                 // No timestamps via accessibility: the frontmost minimized
                 // window in the list is the closest thing to "most
                 // recently minimized" (it was frontmost right before being
-                // minimized).
-                if let last = windows.first(where: \.minimized) {
-                    AXUIElementSetAttributeValue(last.element, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+                // minimized). `raise` brings it out of the Dock, lifts it and
+                // brings the app along - also when it was put away on another
+                // desktop.
+                if let app, let last = windows.first(where: \.minimized) {
+                    DockWindows.raise(last, of: app)
                 }
             case .newWindow:
                 if let app,
@@ -276,6 +288,17 @@ final class SidebarDockModel {
             case .reveal:
                 reveal(entry)
             }
+        }
+    }
+
+    /// A window of the app on another desktop. `kAXWindowsAttribute` only
+    /// knows the current one, hence the list across all spaces (remote
+    /// token); whatever lies on screen right now drops out. Fetched only
+    /// here, not for the state already: the call costs milliseconds and is
+    /// only needed for this case.
+    private func windowElsewhere(of app: NSRunningApplication, onScreen: Set<CGWindowID>) -> DockWindows.Window? {
+        DockWindows.list(pid: app.processIdentifier, allSpaces: true).first { window in
+            !window.minimized && !(window.windowID.map(onScreen.contains) ?? false)
         }
     }
 

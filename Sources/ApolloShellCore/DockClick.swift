@@ -54,9 +54,16 @@ public enum DockClickAction: Equatable, Sendable {
     case launch
     /// If it was hidden, unhide it.
     case unhide
-    /// To the front. Only when no window lies on the current space - then
-    /// macOS switches there by itself, as with Apple.
+    /// To the front. Only when there is no window to raise at all -
+    /// `activate()` fetches none (see `raiseWindowElsewhere`).
     case activate
+    /// No window on the current space, but one on another: bring exactly that
+    /// one forward, and macOS switches to its desktop with it. Measured
+    /// 20.09.: `activate()` does make the app the frontmost one (the menu bar
+    /// changes) but fetches no window and switches no space - not even as
+    /// `activate(from:options: .activateAllWindows)`, which returns `true`
+    /// and still moves nothing. Only the way through the window works.
+    case raiseWindowElsewhere
     /// A window of the app lies on the current space already: bring that one
     /// to the front (which activates the app along with it) instead of
     /// switching to the space of another window.
@@ -77,12 +84,13 @@ public enum DockClickAction: Equatable, Sendable {
 
 /// What a click on a symbol in the Dock of the bar does - as in Apple's Dock:
 /// when the app does not run, it is started; when it runs and is not at the
-/// front, it comes forward (with all its windows); when one of its windows
-/// lies on the current space already, the space stays (no jump to another
-/// one); when it is at the front already and has a window here, nothing
-/// happens; when all windows are put away, the one put away last comes back;
-/// when it has none at all, it opens one ("reopen"). No more paging through
-/// windows on a click - only scrolling still does that (`DockWindowCycle`).
+/// front, one of its windows comes forward (and the app with it); when one of
+/// them lies on the current space already, the space stays (no jump to
+/// another one), otherwise macOS switches to the window; when it is at the
+/// front already and has a window here, nothing happens; when all windows are
+/// put away, the one put away last comes back; when it has none at all, it
+/// opens one ("reopen"). No more paging through windows on a click - only
+/// scrolling still does that (`DockWindowCycle`).
 public enum DockClick {
     /// A plain decision without a side effect: out of the state, an order of
     /// actions the app layer then carries out.
@@ -111,9 +119,9 @@ public enum DockClick {
 
     /// Not at the front, or at the front without a window on the current space
     /// (switched to another space by hand while it stayed active, say):
-    /// depending on where the windows lie, bring the one here forward,
-    /// otherwise activate it (and macOS switches by itself when there is only
-    /// one elsewhere), fetch a put-away one back or open a new one.
+    /// depending on where the windows lie, bring the one here forward, bring
+    /// the one on another desktop forward (switching space with it), fetch a
+    /// put-away one back or open a new one.
     private static func raiseActions(_ state: DockClickState) -> [DockClickAction] {
         var actions: [DockClickAction] = []
         // Only unhide when it really is hidden. Measured 16.09.: `unhide()`
@@ -124,10 +132,12 @@ public enum DockClick {
         if state.windowsOnActiveSpace > 0 {
             actions.append(.raiseWindowOnActiveSpace)
         } else if state.windowsElsewhere > 0 {
-            actions.append(.activate)
+            actions.append(.raiseWindowElsewhere)
         } else if state.minimizedWindows > 0 {
+            // Das Zurueckholen hebt das Fenster gleich mit und bringt die App
+            // nach vorne - ein zusaetzliches `activate` wuerde nur dieselbe
+            // Aufgabe schlechter erledigen (siehe `raiseWindowElsewhere`).
             actions.append(.unminimizeLast)
-            actions.append(.activate)
         } else {
             actions.append(.activate)
             actions.append(.newWindow)
