@@ -245,8 +245,20 @@ struct NexusPanelView: View {
     private var footer: some View {
         HStack(spacing: 8) {
             footerButton("Shortcuts…", "keyboard") { model.run(model.actions.shortcuts) }
+            footerButton("Restart", "arrow.clockwise") { Self.relaunch() }
             footerButton("Quit", "power") { NSApp.terminate(nil) }
         }
+    }
+
+    /// Quits and opens the app again: a small shell waits until this process
+    /// is gone, then opens the same bundle.
+    private static func relaunch() {
+        let bundle = Bundle.main.bundlePath
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", "while kill -0 \(getpid()) 2>/dev/null; do sleep 0.1; done; /usr/bin/open \"$0\"", bundle]
+        guard (try? process.run()) != nil else { return }
+        NSApp.terminate(nil)
     }
 
     private func footerButton(_ title: LocalizedStringKey, _ symbol: String,
