@@ -31,6 +31,16 @@ struct NexusTWMPage: View {
                            label: "Around \(Int(store.settings.twm.outerGap)) pt")
                 }
             }
+            NexusCard(symbol: "square.dashed", title: "Border", subtitle: "Around the focused window. 0 hides it.") {
+                EmptyView()
+            } footer: {
+                VStack(spacing: 6) {
+                    slider(value: twm.borderWidth, range: TWMSettings.borderWidthRange,
+                           label: String(format: "Width %.1f pt", store.settings.twm.borderWidth))
+                    slider(value: twm.borderRadius, range: TWMSettings.borderRadiusRange,
+                           label: "Corners \(Int(store.settings.twm.borderRadius)) pt")
+                }
+            }
             NexusCard(symbol: "wind", title: "Glide", subtitle: "How windows move to their place.") {
                 EmptyView()
             } footer: {
@@ -80,7 +90,7 @@ struct NexusTWMPage: View {
                 .font(style.font(size: 11))
                 .foregroundStyle(style.secondaryText)
                 .monospacedDigit()
-                .frame(width: 80, alignment: .trailing)
+                .frame(width: 96, alignment: .trailing)
         }
     }
 
@@ -90,6 +100,7 @@ struct NexusTWMPage: View {
         ("Super + Tab", "next window"),
         ("Super + T", "turn the split"),
         ("Super + - / =", "narrower / wider"),
+        ("Super + R", "resize with arrows, Esc ends"),
         ("Super + E", "even out all splits"),
         ("Super + G", "join / leave a tab group"),
         ("Super + [ / ]", "previous / next tab"),
@@ -98,6 +109,8 @@ struct NexusTWMPage: View {
         ("Super + Q", "close the window"),
         ("Super + Return", "new terminal"),
         ("Super + 1–9", "desktop 1–9"),
+        ("Super + M, 1–9", "send the window to desktop 1–9"),
+        ("Super + S", "scratchpad: keep / show / hide"),
         ("Super + drag", "move from anywhere"),
         ("Super + right drag", "resize"),
     ]

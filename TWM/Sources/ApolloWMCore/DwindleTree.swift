@@ -345,6 +345,32 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         self.root = adjust(root, rect: area.insetBy(dx: gaps.outer, dy: gaps.outer))
     }
 
+    /// Keyboard resizing: makes `id` wider or taller (negative: narrower,
+    /// shorter) by `delta`. The edge that has a neighbor moves, the right or
+    /// bottom one when both do; a tile alone on an axis stays as it is.
+    public mutating func grow(_ id: ID, by delta: CGSize, in area: CGRect, gaps: Gaps = .none) {
+        guard let tile = tiles(in: area, gaps: gaps)[id] else { return }
+        let bounds = area.insetBy(dx: gaps.outer, dy: gaps.outer)
+        var frame = tile
+        if delta.width != 0 {
+            if tile.maxX < bounds.maxX - 1 {
+                frame.size.width += delta.width
+            } else if tile.minX > bounds.minX + 1 {
+                frame.origin.x -= delta.width
+                frame.size.width += delta.width
+            }
+        }
+        if delta.height != 0 {
+            if tile.maxY < bounds.maxY - 1 {
+                frame.size.height += delta.height
+            } else if tile.minY > bounds.minY + 1 {
+                frame.origin.y -= delta.height
+                frame.size.height += delta.height
+            }
+        }
+        resize(id, to: frame, in: area, gaps: gaps)
+    }
+
     enum Edge { case left, right, top, bottom }
 
     static func contains(_ node: Node, _ id: ID) -> Bool {

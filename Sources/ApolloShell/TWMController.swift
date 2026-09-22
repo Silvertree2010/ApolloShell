@@ -23,6 +23,7 @@ final class TWMController {
     private var keys: KeyBindings?
     private var focus: FocusFollowsMouse?
     private var tabBars: TWMTabBars?
+    private var border: TWMBorder?
 
     /// Called with true while tiling runs: the window guard (which pushes
     /// windows out of the sidebar's strip) must pause then, or both would
@@ -67,6 +68,8 @@ final class TWMController {
         }
         focus?.isEnabled = twm.focusFollowsMouse
         focus?.delay = Double(twm.focusDelayMilliseconds) / 1000
+        border?.width = twm.borderWidth
+        border?.radius = twm.borderRadius
         engine.relayout()
     }
 
@@ -98,6 +101,8 @@ final class TWMController {
 
         let focus = FocusFollowsMouse(engine: engine)
         self.focus = focus
+        let border = TWMBorder(engine: engine)
+        self.border = border
         configure(engine, twm)
 
         engine.adopt(WindowDiscovery.tileableWindows(in: area))
@@ -111,10 +116,12 @@ final class TWMController {
         self.drags = drags
         let keys = KeyBindings(engine: engine)
         keys.log = engine.log
+        keys.onModeChanged = { [weak border] mode in border?.mode = mode }
         _ = keys.start()
         self.keys = keys
         _ = focus.start()
         tabBars = TWMTabBars(engine: engine)
+        engine.focusChanged()
         onRunningChange(true)
         log.notice("TWM started")
     }
@@ -123,6 +130,8 @@ final class TWMController {
         guard let engine else { return }
         tabBars?.close()
         tabBars = nil
+        border?.close()
+        border = nil
         focus?.stop()
         keys?.stop()
         drags?.stop()

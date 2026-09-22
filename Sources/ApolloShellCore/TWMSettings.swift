@@ -20,10 +20,16 @@ public struct TWMSettings: Codable, Equatable, Sendable {
     /// Roughly how long a glide takes, in seconds.
     public var glideDuration = 0.28
     public var resize = Resize.proxy
+    /// The frame around the focused window, in points; 0 hides it.
+    public var borderWidth = 2.0
+    /// Its corner radius, to match the windows' own corners.
+    public var borderRadius = 16.0
 
     public static let focusDelayRange = 0...500
     public static let gapRange = 0.0...40.0
     public static let glideRange = 0.1...0.8
+    public static let borderWidthRange = 0.0...6.0
+    public static let borderRadiusRange = 0.0...30.0
 
     public init() {}
 
@@ -45,9 +51,13 @@ public struct TWMSettings: Codable, Equatable, Sendable {
         c.lenient(.outerGap, into: &outerGap)
         c.lenient(.glideDuration, into: &glideDuration)
         c.lenient(.resize, into: &resize)
+        c.lenient(.borderWidth, into: &borderWidth)
+        c.lenient(.borderRadius, into: &borderRadius)
         focusDelayMilliseconds = min(max(focusDelayMilliseconds, Self.focusDelayRange.lowerBound), Self.focusDelayRange.upperBound)
         innerGap = min(max(innerGap, Self.gapRange.lowerBound), Self.gapRange.upperBound)
         outerGap = min(max(outerGap, Self.gapRange.lowerBound), Self.gapRange.upperBound)
         glideDuration = min(max(glideDuration, Self.glideRange.lowerBound), Self.glideRange.upperBound)
+        borderWidth = min(max(borderWidth, Self.borderWidthRange.lowerBound), Self.borderWidthRange.upperBound)
+        borderRadius = min(max(borderRadius, Self.borderRadiusRange.lowerBound), Self.borderRadiusRange.upperBound)
     }
 }

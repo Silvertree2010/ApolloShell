@@ -50,6 +50,9 @@ public final class WindowWatcher {
                     self.reconcileSoon()
                 }
             },
+            center.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.engine.focusChanged() }
+            },
             center.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] note in
                 let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
                 MainActor.assumeIsolated {
@@ -96,25 +99,36 @@ public final class WindowWatcher {
         let refcon = Unmanaged.passUnretained(self).toOpaque()
         for name in [kAXWindowCreatedNotification, kAXWindowMiniaturizedNotification,
                      kAXWindowDeminiaturizedNotification, kAXApplicationHiddenNotification,
-                     kAXApplicationShownNotification, kAXUIElementDestroyedNotification] {
+                     kAXApplicationShownNotification, kAXUIElementDestroyedNotification,
+                     kAXFocusedWindowChangedNotification] {
             AXObserverAddNotification(observer, app, name as CFString, refcon)
         }
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
         observers[pid] = observer
     }
 
-    /// Destroyed notifications are only reliable when registered on the window itself.
+    /// Destroyed notifications are only reliable when registered on the
+    /// window itself; title changes are only sent there.
     private func watchNewWindows() {
         let refcon = Unmanaged.passUnretained(self).toOpaque()
         for (id, window) in engine.windows where !watchedWindows.contains(id) {
             guard let observer = observers[window.pid] else { continue }
             AXObserverAddNotification(observer, window.element, kAXUIElementDestroyedNotification as CFString, refcon)
+            AXObserverAddNotification(observer, window.element, kAXTitleChangedNotification as CFString, refcon)
             watchedWindows.insert(id)
         }
         watchedWindows.formIntersection(engine.windows.keys)
     }
 
-    fileprivate func handle(_ notification: String) {
+    fileprivate func handle(_ notification: String, windowID: CGWindowID?) {
+        if notification == kAXTitleChangedNotification {
+            if let id = windowID { engine.refreshTitle(of: id) }
+            return
+        }
+        if notification == kAXFocusedWindowChangedNotification {
+            engine.focusChanged()
+            return
+        }
         if notification == kAXWindowCreatedNotification || notification == kAXWindowDeminiaturizedNotification
             || notification == kAXApplicationShownNotification {
             // Fresh windows often have no frame or subrole yet; look again shortly.
@@ -220,6 +234,8 @@ public final class WindowWatcher {
         let allAside = !shown.isEmpty && shown.allSatisfy { !foundIDs.contains($0) }
 
         for (id, state) in missing where engine.windows[id] != nil && id != engine.dragging {
+            // The hidden scratchpad is minimized on purpose.
+            if id == engine.scratchpad, state.minimized || engine.scratchpadHidden { continue }
             guard let window = engine.windows[id] else { continue }
             // On no desktop at all (the scan covers every desktop). Apps like
             // WhatsApp or System Settings keep closed windows alive but
@@ -274,9 +290,10 @@ public final class WindowWatcher {
     }
 }
 
-private let watcherCallback: AXObserverCallback = { _, _, notification, refcon in
+private let watcherCallback: AXObserverCallback = { _, element, notification, refcon in
     guard let refcon else { return }
     let watcher = Unmanaged<WindowWatcher>.fromOpaque(refcon).takeUnretainedValue()
     let name = notification as String
-    MainActor.assumeIsolated { watcher.handle(name) }
+    let id = name == kAXTitleChangedNotification ? element.windowID : nil
+    MainActor.assumeIsolated { watcher.handle(name, windowID: id) }
 }

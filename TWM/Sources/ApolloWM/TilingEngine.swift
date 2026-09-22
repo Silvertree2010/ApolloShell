@@ -233,6 +233,8 @@ public final class TilingEngine {
     public func remove(_ id: CGWindowID) {
         guard windows[id] != nil else { return }
         if dragging == id { dragging = nil }
+        if focused == id { focused = nil }
+        if scratchpad == id { scratchpad = nil }
         windows[id] = nil
         minimums[id] = nil
         maximums[id] = nil
@@ -315,6 +317,7 @@ public final class TilingEngine {
 
     /// The window now lives on another desktop (the user moved it there).
     public func move(_ id: CGWindowID, to targetSpace: SpaceID) {
+        if id == scratchpad, scratchpadHidden { return }
         let target = Desk(space: targetSpace, workspace: activeWorkspace[targetSpace] ?? 1)
         if var state = floating[id] {
             guard state.desk.space != targetSpace else { return }
@@ -404,6 +407,69 @@ public final class TilingEngine {
     public func desk(of id: CGWindowID) -> Desk? {
         if let desk = layouts.space(of: id) ?? floating[id]?.desk { return desk }
         return groups.first { $0.contains(id) }.flatMap { layouts.space(of: $0.active) }
+    }
+
+    // MARK: Titles and focus
+
+    /// A window's title changed: read it again on its app's thread and
+    /// update its group's tab bar.
+    public func refreshTitle(of id: CGWindowID) {
+        guard let window = windows[id] else { return }
+        worker(for: window.pid).run { [weak self] in
+            guard window.refreshTitle() else { return }
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.publishTabBars() } }
+        }
+    }
+
+    /// The managed window with keyboard focus, as last seen.
+    public private(set) var focused: CGWindowID?
+
+    /// Where the focused window is on screen and whether it is shown, for
+    /// the host's border around it.
+    public struct ActiveWindow: Sendable, Equatable {
+        public let windowID: CGWindowID
+        /// Top-left coordinates. A tab group's includes its tab bar.
+        public let frame: CGRect
+    }
+
+    /// Called when the focused window changes or moves; nil hides the border.
+    public var onActiveWindowChanged: ((ActiveWindow?) -> Void)?
+    private var publishedActive: ActiveWindow?
+
+    /// Something may have taken focus (an app came forward, an app focused
+    /// another window). Asking which window has it is a round trip into the
+    /// focused app, so it runs off the main thread.
+    public func focusChanged() {
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let id = WindowDiscovery.focusedWindowID()
+            await MainActor.run { self?.noteFocused(id) }
+        }
+    }
+
+    private func noteFocused(_ id: CGWindowID?) {
+        focused = id.flatMap { windows[$0] != nil ? $0 : nil }
+        publishActive()
+    }
+
+    /// The focused window's frame, following it mid-glide. Nil while it is
+    /// dragged or resized by hand (macOS moves it then), or not shown.
+    public func activeWindow() -> ActiveWindow? {
+        guard let id = focused, id != dragging, id != resizing else { return nil }
+        guard var frame = springs[id]?.current ?? targetFrames()[id], parked[id] == nil else { return nil }
+        if let group = group(of: id), layouts.space(of: group.active) == desk {
+            frame = CGRect(x: frame.minX, y: frame.minY - options.tabBarHeight,
+                           width: frame.width, height: frame.height + options.tabBarHeight)
+        } else if let home = desk(of: id), home != desk {
+            return nil
+        }
+        return ActiveWindow(windowID: id, frame: frame)
+    }
+
+    private func publishActive() {
+        let active = activeWindow()
+        guard active != publishedActive else { return }
+        publishedActive = active
+        onActiveWindowChanged?(active)
     }
 
     // MARK: Tab groups
@@ -584,11 +650,13 @@ public final class TilingEngine {
                 write(id, rect)
             }
             publishTabBars()
+            publishActive()
             return
         }
         startProxies()
         startLoop()
         publishTabBars()
+        publishActive()
     }
 
     /// Reverses the window order. Used by the probe to force big moves.
@@ -785,6 +853,8 @@ public final class TilingEngine {
     public func focus(_ id: CGWindowID) {
         guard let window = windows[id] else { return }
         worker(for: window.pid).run { WindowFocus.focus(window) }
+        focused = id
+        publishActive()
     }
 
     /// The managed window next to `id` on screen in `direction`, on the
@@ -825,33 +895,25 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// Makes a tiled window wider (positive) or narrower by `fraction` of
-    /// the area's width, moving the edge that has a neighbor.
-    public func growWidth(of id: CGWindowID, by fraction: CGFloat) {
-        let tiles = tree.layout(in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
-        guard var frame = tiles[id] else { return }
-        let delta = area.width * fraction
-        if Neighbors.neighbor(of: id, .right, in: tiles) != nil {
-            frame.size.width += delta
-        } else if Neighbors.neighbor(of: id, .left, in: tiles) != nil {
-            frame.origin.x -= delta
-            frame.size.width += delta
+    /// Makes a window wider or taller (negative: narrower, shorter) by
+    /// `fraction` of the area's width and height. A tile moves the edge that
+    /// has a neighbor; a floating window grows around its center.
+    public func grow(_ id: CGWindowID, by fraction: CGSize) {
+        guard dragging == nil, resizing == nil else { return }
+        let delta = CGSize(width: area.width * fraction.width, height: area.height * fraction.height)
+        if var state = floating[id] {
+            let minimum = minimums[id] ?? CGSize(width: 120, height: 80)
+            let width = min(max(state.frame.width + delta.width, minimum.width), fullArea.width)
+            let height = min(max(state.frame.height + delta.height, minimum.height), fullArea.height)
+            state.frame = CGRect(x: state.frame.midX - width / 2, y: state.frame.midY - height / 2,
+                                 width: width, height: height)
+            floating[id] = state
         } else {
-            return
+            let tile = group(of: id)?.active ?? id
+            guard tree.contains(tile) else { return }
+            if fullscreen[desk] == tile { fullscreen[desk] = nil }
+            layouts[desk].grow(tile, by: delta, in: area, gaps: options.gaps)
         }
-        // Only the edges that really moved since the grab count, measured
-        // against the window's own frame then. Compared with the tile, a
-        // window that never matched it exactly (a minimum size, centered)
-        // looked as if every edge moved, and the layout jumped.
-        guard let start = resizeStart else { return }
-        var target = start.tile
-        let left = frame.minX - start.frame.minX, right = frame.maxX - start.frame.maxX
-        let top = frame.minY - start.frame.minY, bottom = frame.maxY - start.frame.maxY
-        if abs(left) > 1 { target.origin.x += left; target.size.width -= left }
-        if abs(right) > 1 { target.size.width += right }
-        if abs(top) > 1 { target.origin.y += top; target.size.height -= top }
-        if abs(bottom) > 1 { target.size.height += bottom }
-        layouts[desk].resize(id, to: target, in: area, gaps: options.gaps)
         relayout()
     }
 
@@ -864,6 +926,10 @@ public final class TilingEngine {
         guard let window = windows[id], dragging == nil, resizing == nil else { return }
         if let state = floating[id] {
             floating[id] = nil
+            if scratchpad == id {
+                scratchpad = nil
+                log("no longer the scratchpad: \(window.title)")
+            }
             lastFloatFrame[id] = state.frame
             let frame = window.serverFrame ?? state.frame
             layouts.assign(id, to: desk) { tree in
@@ -881,12 +947,12 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// 60% of the area, centered, within the window's own limits.
-    private func defaultFloatFrame(for id: CGWindowID) -> CGRect {
+    /// `share` (60%) of the area, centered, within the window's own limits.
+    private func defaultFloatFrame(for id: CGWindowID, share: CGFloat = 0.6) -> CGRect {
         let minimum = minimums[id] ?? .zero
         let maximum = maximums[id] ?? .infinite
-        let width = min(max(area.width * 0.6, minimum.width), maximum.width, fullArea.width)
-        let height = min(max(area.height * 0.6, minimum.height), maximum.height, fullArea.height)
+        let width = min(max(area.width * share, minimum.width), maximum.width, fullArea.width)
+        let height = min(max(area.height * share, minimum.height), maximum.height, fullArea.height)
         return CGRect(x: area.midX - width / 2, y: area.midY - height / 2, width: width, height: height)
     }
 
@@ -905,6 +971,87 @@ public final class TilingEngine {
         relayout()
     }
 
+    // MARK: Scratchpad
+
+    /// One window kept at hand (Hyprland's special workspace): Super + S
+    /// hides it and brings it back, floating in the middle of whatever
+    /// desktop is shown. Hidden means minimized, because a window restored
+    /// from the Dock comes back on the shown desktop; that is the only way
+    /// to bring a window over from another desktop without SIP turned off.
+    public private(set) var scratchpad: CGWindowID?
+    public private(set) var scratchpadHidden = false
+
+    /// With no scratchpad yet, `focused` becomes it; otherwise it is hidden
+    /// when it shows on this desktop and brought here when not.
+    public func toggleScratchpad(focused id: CGWindowID?) {
+        if let pad = scratchpad, windows[pad] == nil { scratchpad = nil }
+        guard dragging == nil, resizing == nil else { return }
+        guard let pad = scratchpad else {
+            if let id, windows[id] != nil { makeScratchpad(id) }
+            return
+        }
+        if !scratchpadHidden, floating[pad]?.desk == desk {
+            hideScratchpad(pad)
+        } else {
+            showScratchpad(pad)
+        }
+    }
+
+    private func makeScratchpad(_ id: CGWindowID) {
+        guard let window = windows[id] else { return }
+        if let home = desk(of: id) { dirtyDesks.insert(home) }
+        leaveGroup(id)
+        layouts.remove(id)
+        fullscreen = fullscreen.filter { $0.value != id }
+        scratchpad = id
+        scratchpadHidden = false
+        floating[id] = Floating(desk: desk, frame: defaultFloatFrame(for: id, share: 0.7))
+        raise(id)
+        log("scratchpad: \(window.title)")
+        relayout()
+    }
+
+    private func hideScratchpad(_ id: CGWindowID) {
+        guard let window = windows[id] else { return }
+        floating[id] = nil
+        springs[id] = nil
+        scratchpadHidden = true
+        worker(for: window.pid).run { _ = window.element.set(kAXMinimizedAttribute, bool: true) }
+        log("scratchpad hidden")
+        relayout()
+        focusChanged()
+    }
+
+    private func showScratchpad(_ id: CGWindowID) {
+        guard let window = windows[id] else { return }
+        let wasShownElsewhere = !scratchpadHidden
+        floating[id] = nil
+        springs[id] = nil
+        scratchpadHidden = true
+        worker(for: window.pid).run { [weak self] in
+            if wasShownElsewhere {
+                // On another desktop: minimize first, so it comes back here.
+                _ = window.element.set(kAXMinimizedAttribute, bool: true)
+                Thread.sleep(forTimeInterval: 0.45)
+            }
+            _ = window.element.set(kAXMinimizedAttribute, bool: false)
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { self?.scratchpadRestored(id) }
+            }
+        }
+    }
+
+    private func scratchpadRestored(_ id: CGWindowID) {
+        guard scratchpad == id, let window = windows[id] else { return }
+        scratchpadHidden = false
+        window.invalidateCache()
+        floating[id] = Floating(desk: desk, frame: lastFloatFrame[id] ?? defaultFloatFrame(for: id, share: 0.7))
+        if let frame = window.serverFrame { springs[id] = AnimatedRect(frame) }
+        log("scratchpad shown")
+        relayout()
+        focus(id)
+    }
+
     // MARK: Drag and drop
 
     /// The user picked up `id`: it leaves the layout and the rest closes the gap.
@@ -915,6 +1062,7 @@ public final class TilingEngine {
             // Floating windows just move; nothing else changes.
             dragging = id
             springs[id] = nil
+            publishActive()
             return
         }
         if group(of: id) != nil {
@@ -945,6 +1093,7 @@ public final class TilingEngine {
             state.desk = desk
             floating[id] = state
             windows[id]?.invalidateCache()
+            publishActive()
             return
         }
         // A centered window is never asked to grow again, so a wrong maximum
@@ -982,6 +1131,7 @@ public final class TilingEngine {
             resizeStart = (frame, tile)
         }
         log("resize start: \(windows[id]?.title ?? "\(id)")")
+        publishActive()
     }
 
     /// The window's frame and its (plain) tile when the resize began.
@@ -995,7 +1145,23 @@ public final class TilingEngine {
             floating[id] = state
             return
         }
-        layouts[desk].resize(id, to: frame, in: area, gaps: options.gaps)
+        // Only the edges that really moved since the grab count, measured
+        // against the window's own frame then. Compared with the tile, a
+        // window that never matched it exactly (a minimum size, centered)
+        // looked as if every edge moved, and the layout jumped.
+        guard let start = resizeStart else {
+            layouts[desk].resize(id, to: frame, in: area, gaps: options.gaps)
+            relayout()
+            return
+        }
+        var target = start.tile
+        let left = frame.minX - start.frame.minX, right = frame.maxX - start.frame.maxX
+        let top = frame.minY - start.frame.minY, bottom = frame.maxY - start.frame.maxY
+        if abs(left) > 1 { target.origin.x += left; target.size.width -= left }
+        if abs(right) > 1 { target.size.width += right }
+        if abs(top) > 1 { target.origin.y += top; target.size.height -= top }
+        if abs(bottom) > 1 { target.size.height += bottom }
+        layouts[desk].resize(id, to: target, in: area, gaps: options.gaps)
         relayout()
     }
 
@@ -1008,6 +1174,7 @@ public final class TilingEngine {
             state.frame = windows[id]?.serverFrame ?? state.frame
             floating[id] = state
             windows[id]?.invalidateCache()
+            publishActive()
             return
         }
         if let window = windows[id] {
@@ -1207,6 +1374,7 @@ public final class TilingEngine {
 
         for (id, _, frame) in work { write(id, frame) }
         if !groups.isEmpty { publishTabBars() }
+        publishActive()
         // Main-thread cost of the whole step; the apps work on their own threads.
         applyTimes.add(CACurrentMediaTime() - now)
 

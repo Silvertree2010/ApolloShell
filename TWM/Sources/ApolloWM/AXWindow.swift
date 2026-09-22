@@ -17,11 +17,13 @@ public final class AXWindow: @unchecked Sendable {
     public let element: AXUIElement
     public let pid: pid_t
     public let windowID: CGWindowID
-    public let title: String
+    /// The title when the window was found, updated by refreshTitle().
+    public var title: String { cache.withLock { $0.title } }
     /// AXStandardWindow, AXDialog, AXFloatingWindow, ...
     public let subrole: String
 
     private struct Cache {
+        var title = ""
         /// Last frame written, used to skip calls that would change nothing.
         var lastWritten: CGRect?
         /// How long the app took for its recent size changes, in seconds.
@@ -44,8 +46,9 @@ public final class AXWindow: @unchecked Sendable {
         self.element = element
         self.pid = pid
         self.windowID = id
-        self.title = element.string(kAXTitleAttribute) ?? ""
         self.subrole = element.string(kAXSubroleAttribute) ?? ""
+        let title = element.string(kAXTitleAttribute) ?? ""
+        cache.withLock { $0.title = title }
         // A hung app must not freeze the animation loop for seconds.
         AXUIElementSetMessagingTimeout(element, 0.25)
     }
@@ -54,6 +57,18 @@ public final class AXWindow: @unchecked Sendable {
         guard let origin = element.point(kAXPositionAttribute),
               let size = element.size(kAXSizeAttribute) else { return nil }
         return CGRect(origin: origin, size: size)
+    }
+
+    /// Reads the title again (a round trip into the app). Returns true when
+    /// it changed.
+    @discardableResult
+    public func refreshTitle() -> Bool {
+        guard let title = element.string(kAXTitleAttribute) else { return false }
+        return cache.withLock { cache in
+            guard cache.title != title else { return false }
+            cache.title = title
+            return true
+        }
     }
 
     public var position: CGPoint? { element.point(kAXPositionAttribute) }

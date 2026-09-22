@@ -235,6 +235,50 @@ struct DwindleTreeTests {
         #expect(tree.id(at: CGPoint(x: 100, y: 20), in: area, maximums: maxes) == 1)
     }
 
+    @Test func growWidensLeftTileByMovingItsRightEdge() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        tree.grow(1, by: CGSize(width: 100, height: 0), in: area)
+        let f = tree.layout(in: area)
+        #expect(f[1]?.width == 600)
+        #expect(f[2]?.minX == 600)
+    }
+
+    @Test func growWidensRightTileByMovingItsLeftEdge() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        tree.grow(2, by: CGSize(width: 100, height: 0), in: area)
+        let f = tree.layout(in: area)
+        #expect(f[2] == CGRect(x: 400, y: 0, width: 600, height: 600))
+    }
+
+    @Test func growShrinksWithNegativeDelta() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.insert(2)
+        tree.grow(1, by: CGSize(width: -100, height: 0), in: area)
+        #expect(tree.layout(in: area)[1]?.width == 400)
+    }
+
+    @Test func growHeightMovesStackedSplit() {
+        var tree = DwindleTree<Int>()
+        [1, 2, 3].forEach { tree.insert($0) }
+        tree.freezeDirections(in: area)
+        tree.grow(3, by: CGSize(width: 0, height: 100), in: area)
+        let f = tree.layout(in: area)
+        #expect(f[3]?.height == 400)
+        #expect(f[2]?.height == 200)
+    }
+
+    @Test func growLeavesALoneTileAlone() {
+        var tree = DwindleTree<Int>()
+        tree.insert(1)
+        tree.grow(1, by: CGSize(width: 100, height: 100), in: area)
+        #expect(tree.layout(in: area)[1] == area)
+    }
+
     @Test func draggingRightEdgeMovesSplit() {
         var tree = DwindleTree<Int>()
         tree.insert(1)

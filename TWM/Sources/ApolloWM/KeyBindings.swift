@@ -12,8 +12,8 @@ public final class KeyBindings {
         case cycleFocus
         case toggleSplit
         case equalize
-        /// Wider (positive) or narrower by this fraction of the area.
-        case growWidth(CGFloat)
+        /// Wider/taller (positive) or narrower/shorter by these fractions of the area.
+        case grow(CGSize)
         case newTerminal
         /// Join the neighbor's tile as a tab, or leave a tab group.
         case toggleGroup
@@ -25,7 +25,33 @@ public final class KeyBindings {
         case closeWindow
         /// Show workspace n. While a window is held with the mouse, it comes along.
         case workspace(Int)
+        /// Send the focused window to desktop n and show that desktop.
+        case sendToDesktop(Int)
+        /// Resize mode: arrows or H J K L resize, Escape or Return ends it.
+        case resizeMode
+        /// Send mode: the next digit sends the window to that desktop.
+        case sendMode
+        /// Show or hide the scratchpad window, or make the focused window it.
+        case scratchpad
     }
+
+    /// Like Hyprland's submaps: after Super + R or Super + M the next keys
+    /// mean something else, with or without Super.
+    public enum Mode: String, Sendable, Equatable {
+        case normal
+        case resize
+        case send
+    }
+
+    public private(set) var mode = Mode.normal {
+        didSet { if mode != oldValue { onModeChanged?(mode) } }
+    }
+    public var onModeChanged: ((Mode) -> Void)?
+    /// A mode ends by itself after this long without a key.
+    public var modeTimeout: TimeInterval = 6
+    private var modeTimer: DispatchWorkItem?
+    /// One press in resize mode, as a fraction of the area.
+    public var resizeStep: CGFloat = 0.03
 
     private let engine: TilingEngine
     private var tap: CFMachPort?
@@ -51,8 +77,11 @@ public final class KeyBindings {
             Int64(kVK_Tab): .cycleFocus,
             Int64(kVK_ANSI_T): .toggleSplit,
             Int64(kVK_ANSI_E): .equalize,
-            Int64(kVK_ANSI_Minus): .growWidth(-0.05),
-            Int64(kVK_ANSI_Equal): .growWidth(0.05),
+            Int64(kVK_ANSI_Minus): .grow(CGSize(width: -0.05, height: 0)),
+            Int64(kVK_ANSI_Equal): .grow(CGSize(width: 0.05, height: 0)),
+            Int64(kVK_ANSI_R): .resizeMode,
+            Int64(kVK_ANSI_M): .sendMode,
+            Int64(kVK_ANSI_S): .scratchpad,
             Int64(kVK_Return): .newTerminal,
             Int64(kVK_ANSI_G): .toggleGroup,
             Int64(kVK_ANSI_RightBracket): .cycleTab(true),
@@ -78,7 +107,8 @@ public final class KeyBindings {
     /// Returns false when the event tap cannot be created (missing permission).
     public func start() -> Bool {
         if useAppleDesktops {
-            let (_, changed) = DesktopShortcuts.ensure(modifiers: superFlags)
+            let (shortcuts, changed) = DesktopShortcuts.ensure(modifiers: superFlags)
+            desktopShortcuts = shortcuts
             if changed { log("set Apple's Switch to Desktop 1-9 shortcuts to Super + number") }
         }
         let mask = CGEventMask(1 << CGEventType.keyDown.rawValue) | CGEventMask(1 << CGEventType.keyUp.rawValue)
@@ -118,6 +148,12 @@ public final class KeyBindings {
         case .newTerminal:
             openTerminal()
             return
+        case .resizeMode:
+            enter(.resize)
+            return
+        case .sendMode:
+            enter(.send)
+            return
         default:
             break
         }
@@ -141,6 +177,9 @@ public final class KeyBindings {
         case .cycleFocus:
             engine.cycleFocus(from: id)
             return
+        case .scratchpad:
+            engine.toggleScratchpad(focused: id)
+            return
         default:
             break
         }
@@ -155,10 +194,11 @@ public final class KeyBindings {
         case .toggleSplit: engine.toggleSplit(of: id)
         case .toggleGroup: engine.toggleGroup(id)
         case .cycleTab(let forward): engine.cycleTab(from: id, forward: forward)
-        case .growWidth(let fraction): engine.growWidth(of: id, by: fraction)
+        case .grow(let fraction): engine.grow(id, by: fraction)
+        case .sendToDesktop(let number): send(id, toDesktop: number)
         case .toggleFloating: engine.toggleFloating(id)
         case .toggleFullscreen: engine.toggleFullscreen(id)
-        case .workspace, .equalize, .newTerminal, .closeWindow, .cycleFocus: break
+        case .workspace, .equalize, .newTerminal, .closeWindow, .cycleFocus, .resizeMode, .sendMode, .scratchpad: break
         }
     }
 
@@ -175,6 +215,10 @@ public final class KeyBindings {
     fileprivate func handle(_ type: CGEventType, key: Int64, flags: CGEventFlags, isRepeat: Bool) -> Bool {
         switch type {
         case .keyDown:
+            if mode != .normal, let taken = handleInMode(key: key, flags: flags, isRepeat: isRepeat) {
+                if taken { swallowed.insert(key) }
+                return taken
+            }
             guard flags.intersection(superFlags) == superFlags, let action = bindings[key] else { return false }
             // Super + digit belongs to macOS then: it switches the desktop itself.
             if useAppleDesktops, case .workspace = action { return false }
@@ -188,6 +232,84 @@ public final class KeyBindings {
             return false
         default:
             return false
+        }
+    }
+
+    // MARK: Modes
+
+    private static let digits = [kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5,
+                                 kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9].map(Int64.init)
+
+    public func enter(_ mode: Mode) {
+        self.mode = mode
+        log("mode: \(mode.rawValue)")
+        restartModeTimer()
+    }
+
+    public func leaveMode() {
+        modeTimer?.cancel()
+        modeTimer = nil
+        mode = .normal
+    }
+
+    private func restartModeTimer() {
+        modeTimer?.cancel()
+        let work = DispatchWorkItem { [weak self] in MainActor.assumeIsolated { self?.leaveMode() } }
+        modeTimer = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + modeTimeout, execute: work)
+    }
+
+    /// A key while a mode is on. Nil lets normal handling run (the mode has
+    /// ended); true swallows the key, false passes it on.
+    private func handleInMode(key: Int64, flags: CGEventFlags, isRepeat: Bool) -> Bool? {
+        let exits = [Int64(kVK_Escape), Int64(kVK_Return)]
+        if exits.contains(key) {
+            leaveMode()
+            return true
+        }
+        switch mode {
+        case .resize:
+            let step = resizeStep
+            let grow: CGSize? = switch Int(key) {
+            case kVK_LeftArrow, kVK_ANSI_H: CGSize(width: -step, height: 0)
+            case kVK_RightArrow, kVK_ANSI_L: CGSize(width: step, height: 0)
+            case kVK_UpArrow, kVK_ANSI_K: CGSize(width: 0, height: -step)
+            case kVK_DownArrow, kVK_ANSI_J: CGSize(width: 0, height: step)
+            default: nil
+            }
+            if let grow {
+                restartModeTimer()
+                perform(.grow(grow))
+                return true
+            }
+            if key == Int64(kVK_ANSI_R), flags.intersection(superFlags) == superFlags {
+                leaveMode()
+                return true
+            }
+        case .send:
+            if let index = Self.digits.firstIndex(of: key) {
+                leaveMode()
+                if !isRepeat { perform(.sendToDesktop(index + 1)) }
+                return true
+            }
+        case .normal:
+            return nil
+        }
+        // Any other key ends the mode and does what it normally does.
+        leaveMode()
+        return nil
+    }
+
+    /// Apple's switch shortcut for each desktop, set by start().
+    private var desktopShortcuts: [Int: DesktopShortcuts.Shortcut] = [:]
+
+    private func send(_ id: CGWindowID, toDesktop number: Int) {
+        guard let window = engine.windows[id] else { return }
+        let shortcut = desktopShortcuts[number]
+            ?? DesktopShortcuts.Shortcut(keyCode: CGKeyCode(Self.digits[number - 1]), flags: superFlags)
+        Task { [weak self] in
+            let result = await DesktopMover.send(window, toDesktop: number, shortcut: shortcut)
+            if case .failure(let failure) = result { self?.log("send to desktop \(number): \(failure)") }
         }
     }
 }
