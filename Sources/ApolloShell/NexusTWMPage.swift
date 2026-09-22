@@ -38,6 +38,46 @@ struct NexusTWMPage: View {
                 }
             }
 
+            NexusSection("Canvas", symbol: "rectangle.lefthalf.inset.filled.arrow.left", id: "twm.canvas") {
+                NexusCard(symbol: "square.grid.3x1.folder.badge.plus", title: "Arrangement",
+                          subtitle: "Dwindle splits every tile. Canvas is one endless strip of columns, like niri.") {
+                    EmptyView()
+                } footer: {
+                    Picker("", selection: twm.layout) {
+                        Text("Dwindle").tag(TWMSettings.Layout.dwindle)
+                        Text("Canvas").tag(TWMSettings.Layout.canvas)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+                if store.settings.twm.layout == .canvas {
+                    NexusCard(symbol: "arrow.left.and.right.square", title: "Column Width",
+                              subtitle: "How wide a new column stands. Super + - / = steps through 1/3, 1/2, 2/3, full.") {
+                        EmptyView()
+                    } footer: {
+                        slider(value: twm.columnWidth, range: TWMSettings.columnWidthRange,
+                               label: "\(Int(store.settings.twm.columnWidth * 100)) %")
+                    }
+                    NexusSwitchCard(symbol: "align.horizontal.center", title: "Centre the Focused Column",
+                                    subtitle: "The strip keeps the focused column in the middle (Super + V toggles it).",
+                                    isOn: twm.centerFocusedColumn)
+                    NexusSwitchCard(symbol: "hand.draw", title: "Super + Scroll Pans",
+                                    subtitle: "Hold Super and scroll to move along the strip.",
+                                    isOn: twm.scrollPans) {
+                        VStack(spacing: 6) {
+                            slider(value: twm.scrollSpeed, range: TWMSettings.scrollSpeedRange,
+                                   label: String(format: "Speed %.1f×", store.settings.twm.scrollSpeed))
+                                .disabled(!store.settings.twm.scrollPans)
+                            Toggle("Other way round", isOn: twm.invertScroll)
+                                .font(style.font(size: 11))
+                                .toggleStyle(.checkbox)
+                                .disabled(!store.settings.twm.scrollPans)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+            }
+
             NexusSection("Layout", symbol: "square.split.2x2", id: "twm.layout") {
                 NexusCard(symbol: "square.split.2x2", title: "Gaps",
                           subtitle: "Between windows and around them.") {
@@ -179,7 +219,7 @@ struct NexusTWMPage: View {
         ("Super + - / =", "narrower / wider"),
         ("Super + R", "resize with arrows, Esc ends"),
         ("Super + E", "even out all splits"),
-        ("Super + G", "join / leave a tab group"),
+        ("Super + G", "join / leave a tab group (canvas: a column)"),
         ("Super + [ / ]", "previous / next tab"),
         ("Super + Space", "float / tile"),
         ("Super + F", "fill the area"),

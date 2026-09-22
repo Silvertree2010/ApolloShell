@@ -16,6 +16,14 @@ public struct Desk: Hashable, Sendable, Codable, CustomStringConvertible {
     public var description: String { "\(space)/\(workspace)" }
 }
 
+/// How windows are arranged on a desktop.
+public enum LayoutMode: String, Sendable, CaseIterable {
+    /// Hyprland's dwindle: every window splits the tile it lands in.
+    case dwindle
+    /// niri's endless strip of columns; the screen is a viewport onto it.
+    case canvas
+}
+
 /// How window sizes animate during a glide.
 public enum ResizeAnimation: String, Sendable, CaseIterable {
     /// The size glides along with the position. Looks best, but apps redraw
@@ -49,6 +57,12 @@ public final class TilingEngine {
         /// How window sizes animate. Hosts can change it at any time, e.g.
         /// from a settings toggle; it applies from the next frame on.
         public var resize: ResizeAnimation = .smooth
+        /// How windows are arranged: the dwindle tiles, or the canvas strip.
+        public var layout: LayoutMode = .dwindle
+        /// A new column's share of the screen in the canvas layout.
+        public var columnWidth: CGFloat = 0.5
+        /// The focused column is pulled to the middle of the screen.
+        public var centerFocusedColumn = false
         /// Screen space the host keeps for itself, e.g. ApolloShell's 44 pt
         /// sidebar on the left, counted from the display edge. Tiles never go there.
         public var reserved = NSEdgeInsets()
@@ -178,6 +192,32 @@ public final class TilingEngine {
     /// One layout per desktop. Only `space`'s windows are arranged; the others
     /// keep their tiles until their desktop is shown again.
     public private(set) var layouts = SpaceLayouts<Desk, CGWindowID>()
+    /// The canvas strips, one per desktop. Which windows belong to a desktop
+    /// is still kept in `layouts`; the strip only holds their order, their
+    /// columns and where the viewport stands.
+    public private(set) var strips: [Desk: Strip<CGWindowID>] = [:]
+
+    public var isCanvas: Bool { options.layout == .canvas }
+
+    /// The strip of a desk, made to match the desk's windows.
+    private func strip(of desk: Desk) -> Strip<CGWindowID> {
+        var strip = strips[desk] ?? Strip<CGWindowID>()
+        strip.centerFocused = options.centerFocusedColumn
+        let wanted = Set(layouts[desk].ids)
+        for id in strip.ids where !wanted.contains(id) { strip.remove(id) }
+        for id in layouts[desk].ids where !strip.contains(id) { strip.insert(id, width: options.columnWidth) }
+        return strip
+    }
+
+    /// Reads, changes and stores a desk's strip.
+    @discardableResult
+    private func withStrip(_ desk: Desk, _ change: (inout Strip<CGWindowID>) -> Void) -> Strip<CGWindowID> {
+        var strip = strip(of: desk)
+        change(&strip)
+        strip.scrollToFocused(area: area(of: desk), gaps: options.gaps)
+        strips[desk] = strip
+        return strip
+    }
     /// The desktop and workspace currently shown on the main display.
     public private(set) var desk = Desk(space: 0, workspace: 1)
     public var space: SpaceID { desk.space }
@@ -793,6 +833,22 @@ public final class TilingEngine {
     /// Super+G: a grouped window leaves its group and gets its own tile next
     /// to it; a tiled one joins the window it was split from.
     public func toggleGroup(_ id: CGWindowID) {
+        if isCanvas, let home = layouts.space(of: id) {
+            // On the strip a "group" is a column: the window joins the
+            // column to its left, or leaves its own again.
+            withStrip(home) { strip in
+                guard let index = strip.column(of: id) else { return }
+                if strip.columns[index].windows.count > 1 {
+                    strip.expel(id)
+                } else if index > 0 {
+                    let target = strip.columns[index - 1].active
+                    strip.remove(id)
+                    strip.stack(id, intoColumnOf: target)
+                }
+            }
+            relayout()
+            return
+        }
         if let group = group(of: id), let home = desk(of: id) {
             leaveGroup(id)
             let beside = group.members.first { $0 != id && layouts.space(of: $0) != nil }
@@ -965,8 +1021,10 @@ public final class TilingEngine {
     /// Where the windows of `desk` go when it is shown: tiles, a fullscreen
     /// window over its tile, floating windows.
     public func frames(on desk: Desk) -> [CGWindowID: CGRect] {
-        var frames = layouts[desk].layout(in: area(of: desk), gaps: options.gaps,
-                                          minimums: layoutMinimums, maximums: maximums)
+        var frames = isCanvas
+            ? canvasFrames(on: desk)
+            : layouts[desk].layout(in: area(of: desk), gaps: options.gaps,
+                                   minimums: layoutMinimums, maximums: maximums)
         if let id = fullscreen[desk], frames[id] != nil {
             frames[id] = DwindleTree<CGWindowID>.centered(fullArea(of: desk), maximum: maximums[id])
         }
@@ -981,6 +1039,68 @@ public final class TilingEngine {
             for member in group.members where windows[member] != nil { frames[member] = below }
         }
         return frames
+    }
+
+    // MARK: Canvas
+
+    /// Where the strip's windows go. Columns that the screen does not show
+    /// wait just past its edge: macOS keeps a sliver of every window on
+    /// screen, and a window sent far away would be lost there.
+    private func canvasFrames(on desk: Desk) -> [CGWindowID: CGRect] {
+        let area = area(of: desk)
+        var frames = strip(of: desk).layout(in: area, gaps: options.gaps, minimums: layoutMinimums)
+        for (id, frame) in frames {
+            if frame.maxX < area.minX {
+                frames[id] = CGRect(origin: CGPoint(x: area.minX - frame.width + 1, y: frame.minY), size: frame.size)
+            } else if frame.minX > area.maxX {
+                frames[id] = CGRect(origin: CGPoint(x: area.maxX - 1, y: frame.minY), size: frame.size)
+            }
+        }
+        return frames
+    }
+
+    /// Scrolls the strip of the shown desktop by `delta` points.
+    public func pan(by delta: CGFloat) {
+        guard isCanvas else { return }
+        var strip = strip(of: desk)
+        strip.scroll(by: delta, area: area(of: desk), gaps: options.gaps)
+        strips[desk] = strip
+        relayout()
+    }
+
+    /// Brings the focused column into view (after a focus change by keys).
+    public func scrollToFocused() {
+        guard isCanvas else { return }
+        withStrip(desk) { _ in }
+        relayout()
+    }
+
+    /// The window left, right, above or below on the strip.
+    private func canvasNeighbor(of id: CGWindowID, _ direction: Direction) -> CGWindowID? {
+        guard let home = layouts.space(of: id) else { return nil }
+        var strip = strip(of: home)
+        strip.focus(id)
+        return switch direction {
+        case .left: strip.focusColumn(next: false)
+        case .right: strip.focusColumn(next: true)
+        case .up: strip.focusInColumn(next: false)
+        case .down: strip.focusInColumn(next: true)
+        }
+    }
+
+    /// Super + H J K L on the strip: a column moves along it, a stacked
+    /// window moves inside its column.
+    private func canvasMove(_ id: CGWindowID, _ direction: Direction) {
+        guard let home = layouts.space(of: id) else { return }
+        withStrip(home) { strip in
+            strip.focus(id)
+            switch direction {
+            case .left: strip.moveColumn(next: false)
+            case .right: strip.moveColumn(next: true)
+            case .up, .down: strip.moveInColumn(id, next: direction == .down)
+            }
+        }
+        relayout()
     }
 
     // MARK: Workspaces
@@ -1073,6 +1193,9 @@ public final class TilingEngine {
     /// The managed window next to `id` on screen in `direction`, on the
     /// shown desktop (tiles and floating windows).
     public func neighbor(of id: CGWindowID, _ direction: Direction) -> CGWindowID? {
+        if isCanvas, floating[id] == nil, layouts.space(of: id) != nil {
+            return canvasNeighbor(of: id, direction)
+        }
         var frames: [CGWindowID: CGRect] = [:]
         for shown in shownDesks { frames.merge(self.frames(on: shown)) { first, _ in first } }
         return Neighbors.neighbor(of: id, direction, in: frames.filter { windows[$0.key] != nil })
@@ -1090,6 +1213,7 @@ public final class TilingEngine {
     /// Swaps a tiled window with its tiled neighbor in `direction`.
     public func swap(_ id: CGWindowID, _ direction: Direction) {
         guard let home = layouts.space(of: id) else { return }
+        if isCanvas { return canvasMove(id, direction) }
         let tiles = layouts[home].layout(in: area(of: home), gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
         guard let other = Neighbors.neighbor(of: id, direction, in: tiles) else { return }
         log("swap \(windows[id]?.title ?? "\(id)") with \(windows[other]?.title ?? "\(other)")")
@@ -1100,12 +1224,27 @@ public final class TilingEngine {
     /// Turns the split that holds `id` (side by side ↔ stacked).
     public func toggleSplit(of id: CGWindowID) {
         guard let home = layouts.space(of: id) else { return }
+        if isCanvas {
+            // No splits on the strip: the key centers the focused column instead.
+            options.centerFocusedColumn.toggle()
+            log("focused column centered: \(options.centerFocusedColumn)")
+            withStrip(home) { strip in strip.focus(id) }
+            relayout()
+            return
+        }
         layouts[home].toggleSplit(of: id)
         relayout()
     }
 
     /// Every split on the shown desktop back to half and half.
     public func equalize() {
+        if isCanvas {
+            withStrip(desk) { strip in
+                for id in strip.columns.map(\.active) { strip.setWidth(options.columnWidth, of: id) }
+            }
+            relayout()
+            return
+        }
         layouts[desk].equalize()
         relayout()
     }
@@ -1125,6 +1264,8 @@ public final class TilingEngine {
             state.frame = CGRect(x: state.frame.midX - width / 2, y: state.frame.midY - height / 2,
                                  width: width, height: height)
             floating[id] = state
+        } else if isCanvas {
+            withStrip(home) { strip in strip.cycleWidth(of: id, wider: fraction.width >= 0) }
         } else {
             let tile = group(of: id)?.active ?? id
             guard layouts[home].contains(tile) else { return }
@@ -1363,6 +1504,22 @@ public final class TilingEngine {
         // The display under the mouse takes it (dragging over to another display).
         let home = desk(at: point)
         let area = area(of: home)
+        if isCanvas {
+            layouts.assign(id, to: home) { $0.insert(id) }
+            withStrip(home) { strip in
+                strip.focus(id)
+                let inner = area.insetBy(dx: options.gaps.outer, dy: options.gaps.outer)
+                strip.moveColumn(of: id, nearX: point.x - inner.minX + strip.offset,
+                                 width: inner.width, gaps: options.gaps)
+            }
+            if let window = windows[id] {
+                window.invalidateCache()
+                springs[id] = AnimatedRect(window.serverFrame ?? area)
+            }
+            log("drop on the strip: \(windows[id]?.title ?? "\(id)")")
+            relayout()
+            return
+        }
         let tiles = layouts[home].tiles(in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
         if let (target, tile) = tiles.first(where: { $0.value.insetBy(dx: $0.value.width * 0.3, dy: $0.value.height * 0.3).contains(point) }) {
             _ = tile

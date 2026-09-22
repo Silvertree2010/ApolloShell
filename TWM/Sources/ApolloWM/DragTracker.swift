@@ -20,6 +20,12 @@ public final class DragTracker {
     /// sends them while fn is held.
     public var superFlags: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]
 
+    /// Super + scroll pans the canvas strip. Off in the dwindle layout.
+    public var scrollPans = true
+    /// Points of strip per scrolled point.
+    public var scrollSpeed: CGFloat = 1.5
+    public var invertScroll = false
+
     /// Prints every decision to stderr (set APOLLOWM_TRACE=1).
     public var trace = ProcessInfo.processInfo.environment["APOLLOWM_TRACE"] == "1"
 
@@ -47,7 +53,8 @@ public final class DragTracker {
     /// Returns false when the event tap cannot be created (missing permission).
     public func start() -> Bool {
         let types: [CGEventType] = [.leftMouseDown, .leftMouseDragged, .leftMouseUp,
-                                    .rightMouseDown, .rightMouseDragged, .rightMouseUp]
+                                    .rightMouseDown, .rightMouseDragged, .rightMouseUp,
+                                    .scrollWheel]
         let mask = types.reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
         // An active tap (not listen-only), so Super clicks can be swallowed.
         // The callback must stay fast: a slow active tap stalls all input.
@@ -79,7 +86,16 @@ public final class DragTracker {
     }
 
     /// Returns true when the event is ours and must not reach the app.
-    fileprivate func handle(_ type: CGEventType, at point: CGPoint, flags: CGEventFlags) -> Bool {
+    fileprivate func handle(_ type: CGEventType, at point: CGPoint, flags: CGEventFlags,
+                            scroll: CGVector = .zero) -> Bool {
+        if type == .scrollWheel {
+            guard scrollPans, engine.isCanvas, isSuper(flags) else { return false }
+            // Both axes pan the strip: a trackpad usually gives the vertical
+            // one when the fingers move straight up and down.
+            let delta = abs(scroll.dx) > abs(scroll.dy) ? scroll.dx : scroll.dy
+            engine.pan(by: (invertScroll ? delta : -delta) * scrollSpeed)
+            return true
+        }
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             note("event tap was disabled (\(type.rawValue)), re-enabling")
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
@@ -237,6 +253,12 @@ private let dragTapCallback: CGEventTapCallBack = { _, type, event, refcon in
     let tracker = Unmanaged<DragTracker>.fromOpaque(refcon).takeUnretainedValue()
     let location = event.location
     let flags = event.flags
-    let swallow = MainActor.assumeIsolated { tracker.handle(type, at: location, flags: flags) }
+    let scroll = type == .scrollWheel
+        ? CGVector(dx: event.getDoubleValueField(.scrollWheelEventPointDeltaAxis2),
+                   dy: event.getDoubleValueField(.scrollWheelEventPointDeltaAxis1))
+        : .zero
+    let swallow = MainActor.assumeIsolated {
+        tracker.handle(type, at: location, flags: flags, scroll: scroll)
+    }
     return swallow ? nil : Unmanaged.passUnretained(event)
 }

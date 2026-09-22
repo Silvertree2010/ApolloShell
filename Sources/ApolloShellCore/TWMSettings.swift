@@ -41,6 +41,25 @@ public struct TWMSettings: Codable, Equatable, Sendable {
     /// Super + Q on an app's last window quits the app (the Finder never).
     public var quitWithLastWindow = true
 
+    /// How windows are arranged.
+    public enum Layout: String, Codable, CaseIterable, Sendable {
+        /// Hyprland's dwindle: every window splits the tile it lands in.
+        case dwindle
+        /// niri's endless strip of columns; the screen looks onto a part of it.
+        case canvas
+    }
+
+    public var layout = Layout.dwindle
+    /// A new column's share of the screen on the strip.
+    public var columnWidth = 0.5
+    /// The focused column is pulled to the middle.
+    public var centerFocusedColumn = false
+    /// Super + scroll pans the strip.
+    public var scrollPans = true
+    /// How far the strip moves per scrolled point.
+    public var scrollSpeed = 1.5
+    public var invertScroll = false
+
     public static let focusDelayRange = 0...500
     public static let gapRange = 0.0...40.0
     public static let glideRange = 0.1...0.8
@@ -50,6 +69,8 @@ public struct TWMSettings: Codable, Equatable, Sendable {
     public static let resizeStepRange = 0.01...0.15
     public static let modeTimeoutRange = 2.0...20.0
     public static let scratchpadRange = 0.4...0.95
+    public static let columnWidthRange = 0.2...1.0
+    public static let scrollSpeedRange = 0.5...4.0
 
     public init() {}
 
@@ -80,6 +101,12 @@ public struct TWMSettings: Codable, Equatable, Sendable {
         c.lenient(.appleDesktops, into: &appleDesktops)
         c.lenient(.terminal, into: &terminal)
         c.lenient(.quitWithLastWindow, into: &quitWithLastWindow)
+        c.lenient(.layout, into: &layout)
+        c.lenient(.columnWidth, into: &columnWidth)
+        c.lenient(.centerFocusedColumn, into: &centerFocusedColumn)
+        c.lenient(.scrollPans, into: &scrollPans)
+        c.lenient(.scrollSpeed, into: &scrollSpeed)
+        c.lenient(.invertScroll, into: &invertScroll)
         focusDelayMilliseconds = min(max(focusDelayMilliseconds, Self.focusDelayRange.lowerBound), Self.focusDelayRange.upperBound)
         innerGap = min(max(innerGap, Self.gapRange.lowerBound), Self.gapRange.upperBound)
         outerGap = min(max(outerGap, Self.gapRange.lowerBound), Self.gapRange.upperBound)
@@ -90,5 +117,7 @@ public struct TWMSettings: Codable, Equatable, Sendable {
         resizeStep = min(max(resizeStep, Self.resizeStepRange.lowerBound), Self.resizeStepRange.upperBound)
         modeTimeout = min(max(modeTimeout, Self.modeTimeoutRange.lowerBound), Self.modeTimeoutRange.upperBound)
         scratchpadShare = min(max(scratchpadShare, Self.scratchpadRange.lowerBound), Self.scratchpadRange.upperBound)
+        columnWidth = min(max(columnWidth, Self.columnWidthRange.lowerBound), Self.columnWidthRange.upperBound)
+        scrollSpeed = min(max(scrollSpeed, Self.scrollSpeedRange.lowerBound), Self.scrollSpeedRange.upperBound)
     }
 }

@@ -66,6 +66,12 @@ final class TWMController {
         // The sidebar's strip is only kept free where a bar actually stands.
         engine.options.reservedOnEveryDisplay = settings.settings.bar.screens == .all
         engine.options.scratchpadShare = twm.scratchpadShare
+        engine.options.layout = twm.layout == .canvas ? .canvas : .dwindle
+        engine.options.columnWidth = twm.columnWidth
+        engine.options.centerFocusedColumn = twm.centerFocusedColumn
+        drags?.scrollPans = twm.scrollPans
+        drags?.scrollSpeed = twm.scrollSpeed
+        drags?.invertScroll = twm.invertScroll
         keys?.resizeStep = twm.resizeStep
         keys?.modeTimeout = twm.modeTimeout
         keys?.setUseAppleDesktops(twm.appleDesktops)

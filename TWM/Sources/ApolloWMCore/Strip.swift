@@ -132,6 +132,17 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         focusedColumn = index
     }
 
+    /// Moves a stacked window up or down inside its column.
+    public mutating func moveInColumn(_ id: ID, next: Bool) {
+        guard let index = column(of: id) else { return }
+        var column = columns[index]
+        guard let at = column.windows.firstIndex(of: id) else { return }
+        let to = at + (next ? 1 : -1)
+        guard column.windows.indices.contains(to) else { return }
+        column.windows.swapAt(at, to)
+        columns[index] = column
+    }
+
     /// Takes the active window out of its column into a column of its own,
     /// next to it (niri's "expel from column").
     public mutating func expel(_ id: ID) {
@@ -141,6 +152,22 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         let at = min(index + 1, columns.count)
         columns.insert(Column(windows: [id], width: width, active: id), at: at)
         focusedColumn = at
+    }
+
+    /// Moves `id`'s column so that it starts nearest to `x` (strip
+    /// coordinates) - what a drop along the strip means.
+    public mutating func moveColumn(of id: ID, nearX x: CGFloat, width area: CGFloat, gaps: Gaps) {
+        guard let from = column(of: id) else { return }
+        let frames = columnFrames(width: area, gaps: gaps)
+        var to = frames.count - 1
+        for frame in frames where x < frame.x + frame.width / 2 {
+            to = frame.index
+            break
+        }
+        guard to != from else { return }
+        let column = columns.remove(at: from)
+        columns.insert(column, at: to > from ? to - 1 : to)
+        focusedColumn = columns.firstIndex { $0.windows.contains(id) } ?? to
     }
 
     // MARK: Width

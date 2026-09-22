@@ -43,6 +43,19 @@ struct TWMSettingsTests {
         #expect(twm.terminal == "com.mitchellh.ghostty")
     }
 
+    @Test("the canvas settings are read and clamped")
+    func canvasSettings() {
+        let json = #"{"twm":{"layout":"canvas","columnWidth":9,"scrollSpeed":0,"centerFocusedColumn":true,"invertScroll":true}}"#
+        let twm = ShellSettings.load(from: Data(json.utf8)).twm
+        #expect(twm.layout == .canvas)
+        #expect(twm.columnWidth == 1)
+        #expect(twm.scrollSpeed == 0.5)
+        #expect(twm.centerFocusedColumn)
+        #expect(twm.invertScroll)
+        #expect(twm.scrollPans)
+        #expect(ShellSettings.load(from: Data(#"{"twm":{"layout":"spiral"}}"#.utf8)).twm.layout == .dwindle)
+    }
+
     @Test("round trip and readable keys")
     func roundTrip() {
         var settings = ShellSettings()
