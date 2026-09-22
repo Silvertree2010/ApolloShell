@@ -83,6 +83,13 @@ public final class DragTracker {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             note("event tap was disabled (\(type.rawValue)), re-enabling")
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+            // The mouse-up may have been missed while the tap was off: let go
+            // of whatever was held, or the window would stay picked up.
+            gesture = nil
+            candidate = nil
+            downPoint = nil
+            if engine.dragging != nil { engine.endDrag(at: point) }
+            if engine.resizing != nil { engine.endResize() }
             return false
         }
         if handleSuper(type, at: point, flags: flags) { return true }

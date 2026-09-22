@@ -61,7 +61,10 @@ public final class WindowWatcher {
                 let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
                 MainActor.assumeIsolated {
                     guard let self, let pid else { return }
-                    self.observers[pid] = nil
+                    if let observer = self.observers.removeValue(forKey: pid) {
+                        CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
+                    }
+                    self.engine.forgetApp(pid)
                     self.reconcile()
                 }
             },
@@ -259,8 +262,9 @@ public final class WindowWatcher {
         let allAside = !shown.isEmpty && shown.allSatisfy { !foundIDs.contains($0) }
 
         for (id, state) in missing where engine.windows[id] != nil && id != engine.dragging {
-            // The hidden scratchpad is minimized on purpose.
-            if id == engine.scratchpad, state.minimized || engine.scratchpadHidden { continue }
+            // The hidden scratchpad is minimized on purpose - but when its
+            // app quit it is gone for good and must not hold the slot.
+            if id == engine.scratchpad, !state.closed, state.minimized || engine.scratchpadHidden { continue }
             guard let window = engine.windows[id] else { continue }
             // On no desktop at all (the scan covers every desktop). Apps like
             // WhatsApp or System Settings keep closed windows alive but

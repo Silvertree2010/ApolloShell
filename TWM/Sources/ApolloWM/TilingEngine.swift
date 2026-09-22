@@ -581,6 +581,12 @@ public final class TilingEngine {
         }
     }
 
+    /// An app quit: its thread is not needed any more.
+    public func forgetApp(_ pid: pid_t) {
+        workers[pid] = nil
+        slowApps.remove(pid)
+    }
+
     /// Frames skipped because an app was still busy with an older one.
     public var droppedFrames: Int { workers.values.reduce(0) { $0 + $1.droppedFrames } }
 
