@@ -24,12 +24,30 @@ public struct TWMSettings: Codable, Equatable, Sendable {
     public var borderWidth = 2.0
     /// Its corner radius, to match the windows' own corners.
     public var borderRadius = 16.0
+    /// Room above a tab group's window for its tab bar.
+    public var tabBarHeight = 30.0
+    /// How much Super + R and one arrow change a window, as a share of the screen.
+    public var resizeStep = 0.03
+    /// How long a key mode (Super + R, Super + M) waits for the next key.
+    public var modeTimeout = 6.0
+    /// How much of the screen the scratchpad window covers.
+    public var scratchpadShare = 0.7
+    /// Super + 1-9 shows Apple's desktops. Off: the TWM's own workspaces,
+    /// whose windows wait past the screen edge.
+    public var appleDesktops = true
+    /// Bundle id for Super + Return; empty means the first one installed of
+    /// kitty, Ghostty, Terminal.
+    public var terminal = ""
 
     public static let focusDelayRange = 0...500
     public static let gapRange = 0.0...40.0
     public static let glideRange = 0.1...0.8
     public static let borderWidthRange = 0.0...6.0
     public static let borderRadiusRange = 0.0...30.0
+    public static let tabBarRange = 18.0...48.0
+    public static let resizeStepRange = 0.01...0.15
+    public static let modeTimeoutRange = 2.0...20.0
+    public static let scratchpadRange = 0.4...0.95
 
     public init() {}
 
@@ -53,11 +71,21 @@ public struct TWMSettings: Codable, Equatable, Sendable {
         c.lenient(.resize, into: &resize)
         c.lenient(.borderWidth, into: &borderWidth)
         c.lenient(.borderRadius, into: &borderRadius)
+        c.lenient(.tabBarHeight, into: &tabBarHeight)
+        c.lenient(.resizeStep, into: &resizeStep)
+        c.lenient(.modeTimeout, into: &modeTimeout)
+        c.lenient(.scratchpadShare, into: &scratchpadShare)
+        c.lenient(.appleDesktops, into: &appleDesktops)
+        c.lenient(.terminal, into: &terminal)
         focusDelayMilliseconds = min(max(focusDelayMilliseconds, Self.focusDelayRange.lowerBound), Self.focusDelayRange.upperBound)
         innerGap = min(max(innerGap, Self.gapRange.lowerBound), Self.gapRange.upperBound)
         outerGap = min(max(outerGap, Self.gapRange.lowerBound), Self.gapRange.upperBound)
         glideDuration = min(max(glideDuration, Self.glideRange.lowerBound), Self.glideRange.upperBound)
         borderWidth = min(max(borderWidth, Self.borderWidthRange.lowerBound), Self.borderWidthRange.upperBound)
         borderRadius = min(max(borderRadius, Self.borderRadiusRange.lowerBound), Self.borderRadiusRange.upperBound)
+        tabBarHeight = min(max(tabBarHeight, Self.tabBarRange.lowerBound), Self.tabBarRange.upperBound)
+        resizeStep = min(max(resizeStep, Self.resizeStepRange.lowerBound), Self.resizeStepRange.upperBound)
+        modeTimeout = min(max(modeTimeout, Self.modeTimeoutRange.lowerBound), Self.modeTimeoutRange.upperBound)
+        scratchpadShare = min(max(scratchpadShare, Self.scratchpadRange.lowerBound), Self.scratchpadRange.upperBound)
     }
 }

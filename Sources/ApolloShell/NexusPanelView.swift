@@ -101,6 +101,7 @@ struct NexusPanelView: View {
     var body: some View {
         VStack(spacing: Self.spacing) {
             VStack(spacing: Self.spacing) {
+                identity
                 openers
                 tabs
             }
@@ -134,6 +135,34 @@ struct NexusPanelView: View {
     /// The three panels as on/off switches (Andrin, 21.09.: "ein an aus
     /// schalter für alle 3") - lit in the accent colour while they exist.
     /// Edit stays a button: the edit mode is no panel one switches off.
+    /// The shell itself at the top: its symbol, its name and the version
+    /// that is running.
+    private var identity: some View {
+        HStack(spacing: 10) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 26, height: 26)
+            Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "ApolloShell")
+                .font(style.font(size: 15, weight: .semibold))
+            Spacer(minLength: 8)
+            Text(Self.version)
+                .font(style.font(size: 11))
+                .monospacedDigit()
+                .foregroundStyle(style.secondaryText)
+        }
+        .padding(.horizontal, 4)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// "0.2.0 (417)" - the build number helps when a test build is running.
+    private static var version: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "?"
+        guard let build = info?["CFBundleVersion"] as? String, build != short else { return short }
+        return "\(short) (\(build))"
+    }
+
     private var openers: some View {
         @Bindable var store = model.settings
         let editing = model.actions.isEditing()

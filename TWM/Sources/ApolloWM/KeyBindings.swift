@@ -94,6 +94,19 @@ public final class KeyBindings {
     /// Terminal opened by Super+Return (bundle ids, first installed wins).
     public var terminals = ["net.kovidgoyal.kitty", "com.mitchellh.ghostty", "com.apple.Terminal"]
 
+    /// Apple's "Switch to Desktop N" shortcuts follow `useAppleDesktops`:
+    /// on, macOS switches on Super + N itself; off, the TWM's own
+    /// workspaces do. Applies while it runs.
+    public func setUseAppleDesktops(_ use: Bool) {
+        guard use != useAppleDesktops else { return }
+        useAppleDesktops = use
+        if use {
+            let (shortcuts, _) = DesktopShortcuts.ensure(modifiers: superFlags)
+            desktopShortcuts = shortcuts
+        }
+        log("desktops: \(use ? "Apple's" : "the TWM's own")")
+    }
+
     public func perform(_ action: Action) {
         switch action {
         case .workspace(let number):

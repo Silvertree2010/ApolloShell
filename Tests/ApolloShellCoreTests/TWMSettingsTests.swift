@@ -30,6 +30,18 @@ struct TWMSettingsTests {
         #expect(twm.glideDuration == 0.1)
     }
 
+    @Test("the newer settings are read and clamped too")
+    func newerSettings() {
+        let json = #"{"twm":{"tabBarHeight":200,"resizeStep":0,"modeTimeout":99,"scratchpadShare":2,"appleDesktops":false,"terminal":"com.mitchellh.ghostty"}}"#
+        let twm = ShellSettings.load(from: Data(json.utf8)).twm
+        #expect(twm.tabBarHeight == 48)
+        #expect(twm.resizeStep == 0.01)
+        #expect(twm.modeTimeout == 20)
+        #expect(twm.scratchpadShare == 0.95)
+        #expect(!twm.appleDesktops)
+        #expect(twm.terminal == "com.mitchellh.ghostty")
+    }
+
     @Test("round trip and readable keys")
     func roundTrip() {
         var settings = ShellSettings()

@@ -62,6 +62,14 @@ final class TWMController {
     private func configure(_ engine: TilingEngine, _ twm: TWMSettings) {
         engine.options.gaps = Gaps(outer: twm.outerGap, inner: twm.innerGap)
         engine.options.response = twm.glideDuration
+        engine.options.tabBarHeight = twm.tabBarHeight
+        engine.options.scratchpadShare = twm.scratchpadShare
+        keys?.resizeStep = twm.resizeStep
+        keys?.modeTimeout = twm.modeTimeout
+        keys?.setUseAppleDesktops(twm.appleDesktops)
+        keys?.terminals = twm.terminal.isEmpty
+            ? ["net.kovidgoyal.kitty", "com.mitchellh.ghostty", "com.apple.Terminal"]
+            : [twm.terminal]
         engine.options.resize = switch twm.resize {
         case .proxy: .proxy
         case .smooth: .smooth
@@ -118,8 +126,10 @@ final class TWMController {
         let keys = KeyBindings(engine: engine)
         keys.log = engine.log
         keys.onModeChanged = { [weak border] mode in border?.mode = mode }
+        keys.useAppleDesktops = twm.appleDesktops
         _ = keys.start()
         self.keys = keys
+        configure(engine, twm)
         _ = focus.start()
         tabBars = TWMTabBars(engine: engine)
         // Right at the start ApolloShell itself may be in front; look again

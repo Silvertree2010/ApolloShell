@@ -44,6 +44,8 @@ public final class TilingEngine {
         public var frameRate: Double = 120
         /// Room above a tab group's window for the host's tab bar.
         public var tabBarHeight: CGFloat = 30
+        /// How much of the area the scratchpad window covers.
+        public var scratchpadShare: CGFloat = 0.7
         /// How window sizes animate. Hosts can change it at any time, e.g.
         /// from a settings toggle; it applies from the next frame on.
         public var resize: ResizeAnimation = .smooth
@@ -1241,7 +1243,7 @@ public final class TilingEngine {
         fullscreen = fullscreen.filter { $0.value != id }
         scratchpad = id
         scratchpadHidden = false
-        floating[id] = Floating(desk: desk, frame: defaultFloatFrame(for: id, share: 0.7))
+        floating[id] = Floating(desk: desk, frame: defaultFloatFrame(for: id, share: options.scratchpadShare))
         raise(id)
         log("scratchpad: \(window.title)")
         relayout()
@@ -1283,7 +1285,8 @@ public final class TilingEngine {
         if let home = Spaces.of(id), home != wanted { onScratchpadElsewhere?(window, wanted) }
         scratchpadHidden = false
         window.invalidateCache()
-        floating[id] = Floating(desk: desk, frame: lastFloatFrame[id] ?? defaultFloatFrame(for: id, share: 0.7))
+        floating[id] = Floating(desk: desk,
+                                frame: lastFloatFrame[id] ?? defaultFloatFrame(for: id, share: options.scratchpadShare))
         if let frame = window.serverFrame { springs[id] = AnimatedRect(frame) }
         log("scratchpad shown")
         relayout()
