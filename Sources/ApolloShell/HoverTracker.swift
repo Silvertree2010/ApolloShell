@@ -40,14 +40,26 @@ struct HoverTracker: NSViewRepresentable {
             ))
         }
 
-        override func mouseEntered(with event: NSEvent) { onChange(true) }
-        override func mouseExited(with event: NSEvent) { onChange(false) }
+        override func mouseEntered(with event: NSEvent) { report(true) }
+        override func mouseExited(with event: NSEvent) { report(false) }
+
+        /// Delivered one run-loop turn later: a hover change can make SwiftUI
+        /// tear down other tracking views while AppKit is still routing the
+        /// same enter/exit batch to them, which crashed on a freed view.
+        private func report(_ hovering: Bool) {
+            DispatchQueue.main.async { [weak self] in self?.onChange(hovering) }
+        }
 
         /// If the window disappears while the mouse is on it, no
         /// mouseExited arrives anymore - so end the hover here instead.
+        /// The tracking area goes too, so AppKit can't route to a view
+        /// that is about to be freed.
         override func viewWillMove(toWindow newWindow: NSWindow?) {
             super.viewWillMove(toWindow: newWindow)
-            if newWindow == nil { onChange(false) }
+            if newWindow == nil {
+                for area in trackingAreas { removeTrackingArea(area) }
+                onChange(false)
+            }
         }
 
         override func hitTest(_ point: NSPoint) -> NSView? { nil }
