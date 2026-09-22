@@ -100,8 +100,16 @@ public final class TilingEngine {
     /// is `desk`). Empty with one display.
     public private(set) var otherShown: [Desk] = []
 
-    /// Every desk on screen right now, the main display's first.
-    public var shownDesks: [Desk] { [desk] + otherShown }
+    /// Every desk on screen right now, the main display's first. A desktop
+    /// that is a macOS full-screen app is left out: nothing can be moved
+    /// there, and trying made the engine fight macOS 6 times a second.
+    public var shownDesks: [Desk] { ([desk] + otherShown).filter { isTileable($0.space) } }
+
+    /// Whether `space` is a normal desktop (not a full-screen app's).
+    /// Unknown ones count as normal until the displays have been read.
+    public func isTileable(_ space: SpaceID) -> Bool {
+        desktopOrder.isEmpty || desktopOrder.values.contains { $0.contains(space) }
+    }
 
     public func isShown(_ desk: Desk) -> Bool { desk == self.desk || otherShown.contains(desk) }
 
@@ -864,8 +872,8 @@ public final class TilingEngine {
     /// Where every window on the shown desktop should be: tiles, then a
     /// fullscreen window over its tile, then floating windows.
     public func targetFrames() -> [CGWindowID: CGRect] {
-        var frames = frames(on: desk)
-        for other in otherShown { frames.merge(self.frames(on: other)) { first, _ in first } }
+        var frames: [CGWindowID: CGRect] = [:]
+        for shown in shownDesks { frames.merge(self.frames(on: shown)) { first, _ in first } }
         // Windows of this desktop's other workspaces go (or stay) aside.
         var aside: [CGWindowID: Int] = [:]
         for (id, home) in layouts.spaceOf where home.space == space && home.workspace != workspace {
