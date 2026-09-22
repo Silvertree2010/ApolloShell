@@ -49,6 +49,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     /// Which of the three panels exist at all (the switches on top of the
     /// Nexus panel).
     public var features = Features()
+    /// Crash reports (Nexus > Updates).
+    public var crashReports = CrashReportSettings()
 
     /// The defaults of the four sections for the release (hotKeys, keepAwake,
     /// onboarding, appleDockHiding) are the ones for an EXISTING installation
@@ -322,6 +324,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         // From 0.2 on; without it the item is shown.
         menuBar = c.lenient(.menuBar) ?? MenuBar()
         features = c.lenient(.features) ?? Features()
+        // From 0.1.4.1 on; without it the app asks.
+        crashReports = c.lenient(.crashReports) ?? CrashReportSettings()
     }
 
     /// The content of settings.json.

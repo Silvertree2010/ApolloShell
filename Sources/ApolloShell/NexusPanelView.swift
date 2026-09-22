@@ -491,6 +491,19 @@ private struct NexusUpdatesPage: View {
 
     var body: some View {
         @Bindable var store = model.settings
+        VStack(spacing: 8) {
+            updateCards
+            NexusChoiceCard(symbol: "ladybug", title: "Crash Reports",
+                            subtitle: "After a crash, ApolloShell can send the report to its developer: the ApolloShell and macOS versions, the Mac model and where in the code it crashed. No files, names or device IDs.",
+                            options: [.init(CrashReportSettings.Mode.ask, String(localized: "Ask Each Time")),
+                                      .init(.always, String(localized: "Always")),
+                                      .init(.never, String(localized: "Never"))],
+                            selected: store.settings.crashReports.mode) { store.settings.crashReports.mode = $0 }
+        }
+    }
+
+    @ViewBuilder private var updateCards: some View {
+        @Bindable var store = model.settings
         if let updates = model.updates {
             VStack(spacing: 8) {
                 NexusCard(symbol: "arrow.triangle.2.circlepath", title: LocalizedStringKey(Self.status(updates.status)),
