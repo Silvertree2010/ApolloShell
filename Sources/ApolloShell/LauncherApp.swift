@@ -50,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Einstellungsfenster (Caelestia: Nexus).
     private var nexus: Nexus?
     private var updates: UpdateController?
+    private var crashReporter: CrashReporter?
     private var themes: ThemeStore?
     /// Einfuehrung beim ersten Start.
     private var onboarding: Onboarding?
@@ -180,6 +181,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.onboarding = onboarding
         nexus.onShowOnboarding = { [weak onboarding] in onboarding?.show() }
         if showOnboarding { onboarding.show() }
+
+        // Abgestuerzt seit dem letzten Mal? Nicht zusammen mit der
+        // Einfuehrung - zwei Fenster auf einmal waeren zu viel.
+        let crashReporter = CrashReporter(settings: settings)
+        self.crashReporter = crashReporter
+        if !showOnboarding { crashReporter.checkAfterLaunch() }
     }
 
     /// ApolloShell ein zweites Mal geoeffnet: Nexus zeigen, im
@@ -208,9 +215,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Weg, ueber den auch ein Quit aus dem Menue laeuft.
     private func installSigtermHandling() {
         signal(SIGTERM, SIG_IGN)
-        let source = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        // Nicht auf `.main`: waehrend eines modalen Dialogs (z. B. der
+        // Absturzbericht-Frage) arbeitet AppKit den Main-Queue nicht ab, das
+        // Signal bliebe liegen. Deshalb eigener Queue und von dort ausdruecklich
+        // auch im Modal-Modus auf den Main-Runloop (gemessen 22.09. in der VM).
+        let source = DispatchSource.makeSignalSource(signal: SIGTERM,
+                                                     queue: DispatchQueue(label: AppIdentity.scoped("sigterm")))
         source.setEventHandler {
-            NSApp.terminate(nil)
+            RunLoop.main.perform(inModes: [.common, .modalPanel]) {
+                MainActor.assumeIsolated {
+                    // Ein offener modaler Dialog laesst `terminate` sonst ins
+                    // Leere laufen: erst abbrechen, dann beenden.
+                    if NSApp.modalWindow != nil {
+                        NSApp.abortModal()
+                        DispatchQueue.main.async { NSApp.terminate(nil) }
+                    } else {
+                        NSApp.terminate(nil)
+                    }
+                }
+            }
+            CFRunLoopWakeUp(CFRunLoopGetMain())
         }
         source.resume()
         sigterm = source

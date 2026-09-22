@@ -59,6 +59,18 @@ struct NexusUpdatesPage: View {
             }
 
             Section {
+                Picker("Send crash reports", selection: $store.settings.crashReports.mode) {
+                    Text("Ask each time").tag(CrashReportSettings.Mode.ask)
+                    Text("Always").tag(CrashReportSettings.Mode.always)
+                    Text("Never").tag(CrashReportSettings.Mode.never)
+                }
+            } header: {
+                Text("Crash reports")
+            } footer: {
+                Text("After a crash, ApolloShell can send the report to its developer: the ApolloShell and macOS versions, the Mac model and where in the code it crashed. No files, names or device IDs.")
+            }
+
+            Section {
                 Button("Check now") { updates.checkNow() }
                 if updates.isReadyToInstall {
                     Button("Restart now") { updates.installNowIfReady() }
