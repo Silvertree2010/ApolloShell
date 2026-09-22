@@ -172,6 +172,11 @@ public final class TilingEngine {
         let target = deskShown(on: space)
         for window in newWindows where windows[window.windowID] == nil {
             let id = window.windowID
+            let rule = ruleAction(for: window)
+            if rule == .ignore {
+                ignore(window)
+                continue
+            }
             windows[id] = window
             if originalFrames[id] == nil { originalFrames[id] = window.serverFrame }
             inspect(window)
@@ -180,7 +185,7 @@ public final class TilingEngine {
                 dirtyDesks.insert(home)
                 continue
             }
-            if floatsByItself(window, on: target) { continue }
+            if floatsByItself(window, on: target, rule: rule) { continue }
             layouts.assign(id, to: target) { $0.insert(id) }
         }
         dirtyDesks.insert(target)
@@ -202,6 +207,8 @@ public final class TilingEngine {
     public func add(_ window: AXWindow, at point: CGPoint?, on space: SpaceID? = nil) {
         let id = window.windowID
         guard windows[id] == nil else { return }
+        let rule = ruleAction(for: window)
+        if rule == .ignore { return ignore(window) }
         windows[id] = window
         if originalFrames[id] == nil { originalFrames[id] = window.serverFrame }
         inspect(window)
@@ -214,7 +221,7 @@ public final class TilingEngine {
             return
         }
         dirtyDesks.insert(desk(of: id) ?? target)
-        if desk(of: id) != nil || floatsByItself(window, on: target) {
+        if desk(of: id) != nil || floatsByItself(window, on: target, rule: rule) {
             relayout()
             return
         }
@@ -254,10 +261,63 @@ public final class TilingEngine {
     /// Dialogs, panels and windows that cannot be resized (or whose minimum
     /// and maximum size are the same) float where the app put them instead of
     /// taking a tile. Returns true when the window was made floating.
-    private func floatsByItself(_ window: AXWindow, on target: Desk) -> Bool {
-        guard window.subrole != kAXStandardWindowSubrole else { return false }
+    private func floatsByItself(_ window: AXWindow, on target: Desk, rule: WindowRule.Action?) -> Bool {
+        if rule == .float {
+            makeFloating(window, reason: "rule", on: target)
+            return true
+        }
+        guard window.subrole != kAXStandardWindowSubrole, rule != .tile else { return false }
         makeFloating(window, reason: window.subrole, on: target)
         return true
+    }
+
+    // MARK: Rules
+
+    /// Rules from the config file; later ones win. Set them with apply(rules:).
+    public private(set) var rules: [WindowRule] = []
+    /// Windows a rule told the engine to leave alone.
+    public private(set) var ignored: Set<CGWindowID> = []
+
+    private func ruleAction(for window: AXWindow) -> WindowRule.Action? {
+        guard !rules.isEmpty else { return nil }
+        let app = NSRunningApplication(processIdentifier: window.pid)
+        return rules.action(bundleID: app?.bundleIdentifier, appName: app?.localizedName, title: window.title)
+    }
+
+    private func ignore(_ window: AXWindow) {
+        guard ignored.insert(window.windowID).inserted else { return }
+        log("ignored by a rule: \(window.title)")
+    }
+
+    /// New rules: managed windows they now ignore are let go (they stay
+    /// where they are), tiled ones they now float leave the layout, and
+    /// windows no longer ignored are picked up by the next scan.
+    public func apply(rules newRules: [WindowRule]) {
+        guard newRules != rules else { return }
+        rules = newRules
+        ignored.removeAll()
+        for (id, window) in windows {
+            switch ruleAction(for: window) {
+            case .ignore:
+                remove(id)
+                ignore(window)
+            case .float where floating[id] == nil:
+                guard let home = desk(of: id) else { continue }
+                dirtyDesks.insert(home)
+                leaveGroup(id)
+                layouts.remove(id)
+                fullscreen = fullscreen.filter { $0.value != id }
+                makeFloating(window, reason: "rule", on: home)
+            default:
+                break
+            }
+        }
+        relayout()
+    }
+
+    /// Forgets ignored windows that are gone.
+    public func pruneIgnored(keeping alive: Set<CGWindowID>) {
+        ignored.formIntersection(alive)
     }
 
     /// Floats `window` where it is, kept inside the usable area.

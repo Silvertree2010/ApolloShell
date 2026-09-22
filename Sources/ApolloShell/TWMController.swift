@@ -122,12 +122,20 @@ final class TWMController {
         _ = focus.start()
         tabBars = TWMTabBars(engine: engine)
         engine.focusChanged()
+        let file = TWMConfigFile.shared
+        file.onChange = { [weak engine, weak keys] config in
+            keys?.apply(config)
+            engine?.apply(rules: config.rules)
+        }
+        file.start()
         onRunningChange(true)
         log.notice("TWM started")
     }
 
     private func stop() {
         guard let engine else { return }
+        TWMConfigFile.shared.onChange = nil
+        TWMConfigFile.shared.stop()
         tabBars?.close()
         tabBars = nil
         border?.close()

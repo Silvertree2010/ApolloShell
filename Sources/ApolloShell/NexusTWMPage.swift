@@ -64,6 +64,7 @@ struct NexusTWMPage: View {
                 EmptyView()
             } footer: {
                 VStack(alignment: .leading, spacing: 3) {
+                    configFile
                     ForEach(Self.keys, id: \.0) { keys, action in
                         HStack(alignment: .firstTextBaseline) {
                             Text(keys).font(style.font(size: 11, weight: .semibold)).frame(width: 110, alignment: .leading)
@@ -73,6 +74,25 @@ struct NexusTWMPage: View {
                 }
             }
         }
+    }
+
+    /// twm.conf: open it, and what in it could not be read.
+    @ViewBuilder private var configFile: some View {
+        let file = TWMConfigFile.shared
+        HStack {
+            Text("Change keys and add app rules in twm.conf.")
+                .font(style.font(size: 11))
+                .foregroundStyle(style.secondaryText)
+            Spacer()
+            Button("Open") { file.open() }
+                .font(style.font(size: 11))
+        }
+        ForEach(file.config.problems, id: \.self) { problem in
+            Label(problem, systemImage: "exclamationmark.triangle")
+                .font(style.font(size: 11))
+                .foregroundStyle(.orange)
+        }
+        Divider().padding(.vertical, 3)
     }
 
     private func resizeHint(_ resize: TWMSettings.Resize) -> LocalizedStringKey {

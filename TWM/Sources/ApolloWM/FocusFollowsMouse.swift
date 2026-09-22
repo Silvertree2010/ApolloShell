@@ -118,6 +118,7 @@ public final class FocusFollowsMouse {
         checking = true
         let own = getpid()
         let trace = ProcessInfo.processInfo.environment["APOLLOWM_TRACE"] == "1"
+        let ignored = engine.ignored
         let done: @MainActor @Sendable () -> Void = { [weak self] in self?.checking = false }
         let markOurs: @MainActor @Sendable (pid_t) -> Void = { [weak self] pid in self?.ourActivation = pid }
         // Everything below asks other apps or the window server: off the main thread.
@@ -128,7 +129,7 @@ public final class FocusFollowsMouse {
                   [kAXStandardWindowSubrole, kAXDialogSubrole].contains(window.subrole),
                   // Only normal-layer windows: not ApolloShell's floating bar or
                   // panels (they sit in a space of their own, see StickySpace).
-                  window.serverLayer == 0 else { return }
+                  window.serverLayer == 0, !ignored.contains(window.windowID) else { return }
             let focused = WindowFocus.focusedWindowID()
             guard focused != window.windowID else { return }
             // A dialog of the same app over its window keeps focus; another

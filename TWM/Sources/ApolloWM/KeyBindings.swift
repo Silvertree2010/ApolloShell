@@ -6,34 +6,8 @@ import Carbon.HIToolbox
 /// app never sees them.
 @MainActor
 public final class KeyBindings {
-    public enum Action: Sendable, Equatable {
-        case focus(Direction)
-        case swap(Direction)
-        case cycleFocus
-        case toggleSplit
-        case equalize
-        /// Wider/taller (positive) or narrower/shorter by these fractions of the area.
-        case grow(CGSize)
-        case newTerminal
-        /// Join the neighbor's tile as a tab, or leave a tab group.
-        case toggleGroup
-        /// Next (true) or previous tab of a group.
-        case cycleTab(Bool)
-        case toggleFloating
-        case toggleFullscreen
-        /// Close the focused window (like its red button; the app keeps running).
-        case closeWindow
-        /// Show workspace n. While a window is held with the mouse, it comes along.
-        case workspace(Int)
-        /// Send the focused window to desktop n and show that desktop.
-        case sendToDesktop(Int)
-        /// Resize mode: arrows or H J K L resize, Escape or Return ends it.
-        case resizeMode
-        /// Send mode: the next digit sends the window to that desktop.
-        case sendMode
-        /// Show or hide the scratchpad window, or make the focused window it.
-        case scratchpad
-    }
+    /// What a key does; see ApolloWMCore's Command for the list.
+    public typealias Action = Command
 
     /// Like Hyprland's submaps: after Super + R or Super + M the next keys
     /// mean something else, with or without Super.
@@ -61,37 +35,16 @@ public final class KeyBindings {
     public var superFlags: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]
 
     /// Virtual key code (Carbon kVK_*) to action, pressed together with Super.
-    public var bindings: [Int64: Action] = {
-        var map: [Int64: Action] = [
-            Int64(kVK_Space): .toggleFloating,
-            Int64(kVK_ANSI_F): .toggleFullscreen,
-            Int64(kVK_ANSI_Q): .closeWindow,
-            Int64(kVK_LeftArrow): .focus(.left),
-            Int64(kVK_RightArrow): .focus(.right),
-            Int64(kVK_UpArrow): .focus(.up),
-            Int64(kVK_DownArrow): .focus(.down),
-            Int64(kVK_ANSI_H): .swap(.left),
-            Int64(kVK_ANSI_J): .swap(.down),
-            Int64(kVK_ANSI_K): .swap(.up),
-            Int64(kVK_ANSI_L): .swap(.right),
-            Int64(kVK_Tab): .cycleFocus,
-            Int64(kVK_ANSI_T): .toggleSplit,
-            Int64(kVK_ANSI_E): .equalize,
-            Int64(kVK_ANSI_Minus): .grow(CGSize(width: -0.05, height: 0)),
-            Int64(kVK_ANSI_Equal): .grow(CGSize(width: 0.05, height: 0)),
-            Int64(kVK_ANSI_R): .resizeMode,
-            Int64(kVK_ANSI_M): .sendMode,
-            Int64(kVK_ANSI_S): .scratchpad,
-            Int64(kVK_Return): .newTerminal,
-            Int64(kVK_ANSI_G): .toggleGroup,
-            Int64(kVK_ANSI_RightBracket): .cycleTab(true),
-            Int64(kVK_ANSI_LeftBracket): .cycleTab(false),
-        ]
-        let digits = [kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5,
-                      kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9]
-        for (index, key) in digits.enumerated() { map[Int64(key)] = .workspace(index + 1) }
-        return map
-    }()
+    public var bindings: [Int64: Action] = KeyBindings.table(Command.defaultBindings)
+
+    static func table(_ bindings: [UInt16: Command]) -> [Int64: Action] {
+        Dictionary(uniqueKeysWithValues: bindings.map { (Int64($0.key), $0.value) })
+    }
+
+    /// Takes the keys of a config file (defaults included).
+    public func apply(_ config: TWMConfig) {
+        bindings = Self.table(config.bindings)
+    }
 
     public var log: (String) -> Void = { print($0) }
 

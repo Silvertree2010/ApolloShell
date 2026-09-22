@@ -271,7 +271,8 @@ public final class WindowWatcher {
 
         for id in foundIDs { invisibleSince[id] = nil }
 
-        let fresh = found.filter { engine.windows[$0.window.windowID] == nil }
+        engine.pruneIgnored(keeping: foundIDs)
+        let fresh = found.filter { engine.windows[$0.window.windowID] == nil && !engine.ignored.contains($0.window.windowID) }
         for item in fresh {
             log("opened: \(item.window.title.isEmpty ? "\(item.window.windowID)" : item.window.title) (desktop \(item.space))")
         }
