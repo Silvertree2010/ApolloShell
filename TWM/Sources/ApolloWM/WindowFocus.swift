@@ -91,8 +91,9 @@ public enum WindowFocus {
         guard let pid = frontmostPID() else { return nil }
         let app = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(app, 0.2)
-        guard let window = app.value(kAXFocusedWindowAttribute),
-              CFGetTypeID(window) == AXUIElementGetTypeID() else { return nil }
+        // Chromium apps sometimes name no focused window; their main one counts.
+        let window = app.value(kAXFocusedWindowAttribute) ?? app.value(kAXMainWindowAttribute)
+        guard let window, CFGetTypeID(window) == AXUIElementGetTypeID() else { return nil }
         return (window as! AXUIElement).windowID
     }
 

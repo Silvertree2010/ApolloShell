@@ -13,19 +13,41 @@ public enum WindowDiscovery {
         return AXIsProcessTrustedWithOptions([key: prompt] as CFDictionary)
     }
 
-    /// The window that has keyboard focus, if any, managed or not.
+    /// The window that has keyboard focus, if any, managed or not. Chromium
+    /// apps (Vivaldi) sometimes report no focused window at all (seen live);
+    /// their main window counts then.
     public static func focusedWindow() -> AXWindow? {
-        let system = AXUIElementCreateSystemWide()
-        guard let app = system.value(kAXFocusedApplicationAttribute),
-              CFGetTypeID(app) == AXUIElementGetTypeID(),
-              let window = (app as! AXUIElement).value(kAXFocusedWindowAttribute),
-              CFGetTypeID(window) == AXUIElementGetTypeID() else { return nil }
-        var pid: pid_t = 0
-        AXUIElementGetPid(window as! AXUIElement, &pid)
-        return AXWindow(element: window as! AXUIElement, pid: pid)
+        guard let app = focusedApplication() else { return nil }
+        for attribute in [kAXFocusedWindowAttribute, kAXMainWindowAttribute] {
+            guard let window = app.value(attribute), CFGetTypeID(window) == AXUIElementGetTypeID() else { continue }
+            var pid: pid_t = 0
+            AXUIElementGetPid(window as! AXUIElement, &pid)
+            if let found = AXWindow(element: window as! AXUIElement, pid: pid) { return found }
+        }
+        return nil
     }
 
-    public static func focusedWindowID() -> CGWindowID? { focusedWindow()?.windowID }
+    /// The focused window's number. When the app names no window, the
+    /// topmost normal window it has on screen stands in.
+    public static func focusedWindowID() -> CGWindowID? {
+        if let id = focusedWindow()?.windowID { return id }
+        guard let app = focusedApplication() else { return nil }
+        var pid: pid_t = 0
+        AXUIElementGetPid(app, &pid)
+        let infos = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
+                                               kCGNullWindowID) as? [[String: Any]] ?? []
+        return infos.first {
+            ($0[kCGWindowOwnerPID as String] as? pid_t) == pid && ($0[kCGWindowLayer as String] as? Int) == 0
+        }?[kCGWindowNumber as String] as? CGWindowID
+    }
+
+    private static func focusedApplication() -> AXUIElement? {
+        let system = AXUIElementCreateSystemWide()
+        AXUIElementSetMessagingTimeout(system, 0.2)
+        guard let app = system.value(kAXFocusedApplicationAttribute),
+              CFGetTypeID(app) == AXUIElementGetTypeID() else { return nil }
+        return (app as! AXUIElement)
+    }
 
     /// Stage Manager shrinks inactive apps' windows to thumbnails at the
     /// screen edge and moves them on every app switch. It fights any tiling
