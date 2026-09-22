@@ -4,6 +4,30 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.4.1] - 2026-09-22
+
+A patch on 0.1.4: two crashes, and a way to tell me about the next one.
+
+### Added
+
+- **Crash reports, only with your yes.** After a crash, ApolloShell asks the
+  next time it starts whether to send the report, and shows the full text
+  first. It holds the ApolloShell and macOS versions, the Mac model, where
+  in the code it crashed and the errors ApolloShell logged just before; no
+  files, names or device IDs. Nexus > Updates sets it to ask, always or
+  never. The privacy policy says the rest.
+
+### Fixed
+
+- **Right-clicking an app in the Dock or the launcher no longer crashes the
+  shell** when the row went away while its menu was loading. The error was
+  caught quietly, but it left Swift's concurrency runtime pointing at freed
+  memory, and the shell crashed a few seconds later somewhere unrelated,
+  often while the mouse moved over the bar.
+- **Hover effects** now report one run-loop turn later and drop their
+  tracking area when their window goes, so a hover can no longer reach a view
+  that is being torn down.
+
 ## [0.1.4] - 2026-09-22
 
 ### Added
