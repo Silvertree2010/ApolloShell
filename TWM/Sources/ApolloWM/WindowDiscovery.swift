@@ -170,6 +170,23 @@ public enum WindowDiscovery {
         }
     }
 
+    /// The Accessibility window for a window number, from the cache or by
+    /// asking its app. Nil when the app does not list it (a panel of its
+    /// own, a window just closed).
+    public static func window(id: CGWindowID, pid: pid_t) -> AXWindow? {
+        if let cached = elementCache.withLock({ $0[id] }), cached.pid == pid {
+            return AXWindow(element: cached.element, pid: pid)
+        }
+        // Only the app's own list, never the token probe of elements(for:):
+        // this runs whenever the mouse rests over a window.
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.2)
+        for element in app.value(kAXWindowsAttribute) as? [AXUIElement] ?? [] where element.windowID == id {
+            return AXWindow(element: element, pid: pid)
+        }
+        return nil
+    }
+
     /// Accessibility elements are thread-safe to use; the box only tells
     /// the compiler so.
     private struct CachedElement: @unchecked Sendable {

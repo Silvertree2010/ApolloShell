@@ -97,36 +97,31 @@ public enum WindowFocus {
         return (window as! AXUIElement).windowID
     }
 
-    /// The window under `point`, as the system sees it: the element there,
-    /// walked up to its window. Menus, the menu bar and Dock items count as
-    /// no window. Call off the main thread.
+    /// The window under `point`, from the window server only. The
+    /// Accessibility hit test that used to do this asks whatever app owns
+    /// the window, and when that is ApolloShell itself, macOS answers
+    /// inside this process on the calling thread; a SwiftUI window asked
+    /// off the main thread then traps (it crashed the app twice with the
+    /// launcher under the mouse). The window server cannot call back.
+    ///
+    /// Nil when the topmost window there is not a normal one: a menu, the
+    /// menu bar, the Dock, one of our own panels. Call off the main thread.
     public static func window(at point: CGPoint) -> AXWindow? {
-        // Never hit-test our own windows from here: macOS answers that inside
-        // this process, on the calling thread, and a SwiftUI window asked off
-        // the main thread traps (crashed ApolloShell with the launcher open
-        // under the mouse). Our own windows are never focused anyway.
-        guard !isOwnWindowOnTop(at: point) else { return nil }
-        let system = AXUIElementCreateSystemWide()
-        AXUIElementSetMessagingTimeout(system, 0.2)
-        var hit: AXUIElement?
-        guard AXUIElementCopyElementAtPosition(system, Float(point.x), Float(point.y), &hit) == .success,
-              var element = hit else { return nil }
-        let skipped: Set<String> = [kAXMenuRole, kAXMenuItemRole, kAXMenuBarRole, kAXMenuBarItemRole, "AXDockItem"]
-        for _ in 0..<20 {
-            let role = element.string(kAXRoleAttribute) ?? ""
-            if skipped.contains(role) { return nil }
-            if role == kAXWindowRole || role == kAXSheetRole || role == kAXDrawerRole { break }
-            if let window = element.value(kAXWindowAttribute), CFGetTypeID(window) == AXUIElementGetTypeID() {
-                element = window as! AXUIElement
-                break
-            }
-            guard let parent = element.value(kAXParentAttribute),
-                  CFGetTypeID(parent) == AXUIElementGetTypeID() else { return nil }
-            element = parent as! AXUIElement
+        let infos = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
+                                               kCGNullWindowID) as? [[String: Any]] ?? []
+        for info in infos {
+            guard (info[kCGWindowAlpha as String] as? Double ?? 1) > 0,
+                  let bounds = info[kCGWindowBounds as String],
+                  let frame = CGRect(dictionaryRepresentation: bounds as! CFDictionary),
+                  frame.contains(point) else { continue }
+            // The first one that covers the point decides: anything but a
+            // normal window of another app means "no window here".
+            guard (info[kCGWindowLayer as String] as? Int) == 0,
+                  let pid = info[kCGWindowOwnerPID as String] as? pid_t, pid != getpid(),
+                  let id = info[kCGWindowNumber as String] as? CGWindowID else { return nil }
+            return WindowDiscovery.window(id: id, pid: pid)
         }
-        var pid: pid_t = 0
-        AXUIElementGetPid(element, &pid)
-        return AXWindow(element: element, pid: pid)
+        return nil
     }
 
     /// Whether the frontmost visible window under `point` belongs to this

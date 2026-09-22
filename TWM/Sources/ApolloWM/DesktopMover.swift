@@ -101,14 +101,16 @@ public enum DesktopMover {
     /// toolbar). Tries the middle first, then further out. Nil when there is
     /// none, e.g. a window without a title bar.
     nonisolated static func titleBarSpot(of window: AXUIElement, pid: pid_t, frame: CGRect) -> CGPoint? {
-        let system = AXUIElementCreateSystemWide()
+        // The app's own element, not the system-wide one: a system-wide hit
+        // test can land in our own process and trap off the main thread.
+        let system = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(system, 0.3)
         let rows: [CGFloat] = [6, 12, 20]
         let columns: [CGFloat] = [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8]
         for dy in rows {
             for fraction in columns {
                 let point = CGPoint(x: (frame.minX + frame.width * fraction).rounded(), y: frame.minY + dy)
-                // Our own window there (a tab bar): hit-testing it off the main
-                // thread would trap, and it is not the title bar anyway.
+                // Our own window there (a tab bar) is not the title bar.
                 if WindowFocus.isOwnWindowOnTop(at: point) { continue }
                 var hit: AXUIElement?
                 guard AXUIElementCopyElementAtPosition(system, Float(point.x), Float(point.y), &hit) == .success,
