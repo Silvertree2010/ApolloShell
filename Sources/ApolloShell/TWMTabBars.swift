@@ -20,6 +20,7 @@ final class TWMTabBars {
     }
 
     func close() {
+        picker.close()
         engine.onTabBarsChanged = nil
         for panel in panels.values { panel.orderOut(nil) }
         panels = [:]
@@ -48,37 +49,17 @@ final class TWMTabBars {
         )
     }
 
-    /// The + menu: running apps first, then every installed one. Picking an
-    /// app opens a new window of it that joins this group.
-    private func showNewTabMenu(for shown: CGWindowID, from view: NSView) {
-        let menu = NSMenu()
-        let running = NSWorkspace.shared.runningApplications
-            .filter { $0.activationPolicy == .regular && $0.bundleURL != nil }
-            .sorted { ($0.localizedName ?? "") < ($1.localizedName ?? "") }
-        for app in running {
-            menu.addItem(item(title: app.localizedName ?? "App", icon: app.icon) { [weak self] in
-                self?.openWindow(of: app, joining: shown)
-            })
-        }
-        let all = NSMenuItem(title: String(localized: "All Apps"), action: nil, keyEquivalent: "")
-        let submenu = NSMenu()
-        for url in Self.installedApps() {
-            let icon = NSWorkspace.shared.icon(forFile: url.path)
-            submenu.addItem(item(title: url.deletingPathExtension().lastPathComponent, icon: icon) { [weak self] in
-                self?.launch(url, joining: shown)
-            })
-        }
-        all.submenu = submenu
-        menu.addItem(.separator())
-        menu.addItem(all)
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: view.bounds.height + 4), in: view)
-    }
+    private let picker = TWMAppPicker()
 
-    private func item(title: String, icon: NSImage?, action: @escaping () -> Void) -> NSMenuItem {
-        let item = ClosureMenuItem(title, handler: action)
-        icon?.size = NSSize(width: 16, height: 16)
-        item.image = icon
-        return item
+    /// The + : a search panel with open apps first, then every installed
+    /// one. The chosen app's new window joins this group.
+    private func showNewTabMenu(for shown: CGWindowID, from view: NSView) {
+        picker.show(below: view) { [weak self] choice in
+            switch choice {
+            case .running(let app): self?.openWindow(of: app, joining: shown)
+            case .installed(let url): self?.launch(url, joining: shown)
+            }
+        }
     }
 
     /// A running app: its "New Window" (plain ⌘N) from its menu bar, the way
@@ -100,16 +81,6 @@ final class TWMTabBars {
                 self?.engine.routeNextWindow(of: pid, intoGroupWith: shown)
             }
         }
-    }
-
-    private static func installedApps() -> [URL] {
-        let folders = ["/Applications", "/System/Applications", NSHomeDirectory() + "/Applications"]
-        let urls = folders.flatMap { folder in
-            (try? FileManager.default.contentsOfDirectory(at: URL(fileURLWithPath: folder),
-                                                           includingPropertiesForKeys: nil)) ?? []
-        }
-        return urls.filter { $0.pathExtension == "app" }
-            .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
     }
 }
 
