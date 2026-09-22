@@ -59,6 +59,12 @@ enum NativeAppMenu {
     /// Rechts neben dem Symbol, oben buendig - die Leiste liegt links, und im
     /// Launcher steht das Menue so neben der Zeile.
     static func popUp(_ menu: NSMenu, at view: NSView) {
+        // Die Aufrufer warten zuerst auf Apples Dock; bis dahin kann die Zeile
+        // weg sein (Hover vorbei, Dock neu gebaut). AppKit wirft dann "View is
+        // not in any window" - in einem Swift-Task laesst das die Concurrency-
+        // Laufzeit kaputt zurueck, und die naechste MainActor-Pruefung stuerzt
+        // an ganz anderer Stelle ab.
+        guard view.window != nil else { return }
         let top = view.isFlipped ? view.bounds.minY : view.bounds.maxY
         menu.popUp(positioning: nil, at: NSPoint(x: view.bounds.maxX + 6, y: top), in: view)
     }
