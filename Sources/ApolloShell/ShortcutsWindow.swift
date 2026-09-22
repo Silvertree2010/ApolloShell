@@ -44,6 +44,9 @@ final class ShortcutsWindow: NSObject, NSWindowDelegate {
             defer: true
         )
         window.title = String(localized: "Shortcuts")
+        // Stays above other apps' windows: the shell's own windows are
+        // meant to be looked at while working in something else.
+        window.level = .floating
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
         window.collectionBehavior = [.moveToActiveSpace]
