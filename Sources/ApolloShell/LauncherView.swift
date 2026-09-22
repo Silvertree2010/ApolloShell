@@ -53,16 +53,13 @@ struct LauncherView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 2) {
-                    ForEach(Array(model.results.enumerated()), id: \.element.id) { index, row in
-                        LauncherRowView(row: row, model: model, selected: index == model.selectedIndex)
-                            .id(row.id)
-                            .onTapGesture {
-                                model.selectedIndex = index
-                                model.launchSelected()
-                            }
-                            .modifier(AppRowExtras(model: model, app: row.app) {
-                                model.selectedIndex = index
-                            })
+                    // `@Sendable`: SwiftUI 26 places the rows of a lazy stack
+                    // on a background thread and calls this closure there. As
+                    // a main-actor closure it hit Swift's isolation check and
+                    // crashed (EXC_BREAKPOINT in LauncherView.list); all
+                    // main-actor work now happens in `LauncherListRow`.
+                    ForEach(Array(model.results.enumerated()), id: \.element.id) { @Sendable index, row in
+                        LauncherListRow(model: model, index: index, row: row)
                     }
                 }
                 .padding(8)
@@ -72,6 +69,26 @@ struct LauncherView: View {
                 proxy.scrollTo(model.results[index].id)
             }
         }
+    }
+}
+
+/// One row of the list with its clicks. Its own view so that the `ForEach`
+/// closure above touches nothing of the main actor.
+private struct LauncherListRow: View {
+    let model: LauncherModel
+    let index: Int
+    let row: LauncherRow
+
+    var body: some View {
+        LauncherRowView(row: row, model: model, selected: index == model.selectedIndex)
+            .id(row.id)
+            .onTapGesture {
+                model.selectedIndex = index
+                model.launchSelected()
+            }
+            .modifier(AppRowExtras(model: model, app: row.app) {
+                model.selectedIndex = index
+            })
     }
 }
 

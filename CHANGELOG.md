@@ -113,6 +113,21 @@ tabs you had into pages, with the cards at the same spots. The old
   centre: Standard, Minimal, Sound & Devices, Everything). The edit mode and
   "Restore default pages" take their place.
 
+## [0.1.4.2] - 2026-09-23
+
+A patch on 0.1.4: two more crashes, both found through the new crash reports.
+
+### Fixed
+
+- **Quitting from outside no longer ends in a crash report.** When another
+  program told ApolloShell to quit (`launchctl`, `kill`), it crashed on the
+  way out instead of quitting cleanly, and the next start offered to send a
+  report for it.
+- **The launcher's list no longer crashes the shell.** macOS 26 lays out the
+  rows of a long list in the background, and building a row there tripped a
+  safety check meant for the main thread. The rows are now built so that
+  they can come from any thread.
+
 ## [0.1.4.1] - 2026-09-22
 
 A patch on 0.1.4: two crashes, and a way to tell me about the next one.
