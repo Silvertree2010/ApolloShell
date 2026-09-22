@@ -40,14 +40,27 @@ struct HoverTracker: NSViewRepresentable {
             ))
         }
 
-        override func mouseEntered(with event: NSEvent) { onChange(true) }
-        override func mouseExited(with event: NSEvent) { onChange(false) }
+        override func mouseEntered(with event: NSEvent) { report(true) }
+        override func mouseExited(with event: NSEvent) { report(false) }
+
+        /// Einen Runloop-Durchgang spaeter melden: ein Hover-Wechsel kann SwiftUI
+        /// andere Tracking-Ansichten abbauen lassen, waehrend AppKit dieselben
+        /// Enter/Exit-Ereignisse noch verteilt - das stuerzte auf einer
+        /// freigegebenen Ansicht ab.
+        private func report(_ hovering: Bool) {
+            DispatchQueue.main.async { [weak self] in self?.onChange(hovering) }
+        }
 
         /// Verschwindet das Fenster, waehrend die Maus drauf ist, kommt kein
         /// mouseExited mehr - dann hier den Hover beenden.
+        /// Die Tracking-Area geht mit, damit AppKit nicht an eine Ansicht
+        /// liefert, die gleich freigegeben wird.
         override func viewWillMove(toWindow newWindow: NSWindow?) {
             super.viewWillMove(toWindow: newWindow)
-            if newWindow == nil { onChange(false) }
+            if newWindow == nil {
+                for area in trackingAreas { removeTrackingArea(area) }
+                onChange(false)
+            }
         }
 
         override func hitTest(_ point: NSPoint) -> NSView? { nil }
