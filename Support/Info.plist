@@ -16,6 +16,10 @@
     <string>1</string>
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+    </array>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>NSHumanReadableCopyright</key>
@@ -24,6 +28,12 @@
     <string>26.0</string>
     <key>LSUIElement</key>
     <true/>
+    <!-- The Marketplace sign-in (0.1.4) talks to a local callback. -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
     <key>NSAppleEventsUsageDescription</key>
     <string>ApolloShell controls System Events for Log Out, Restart and Shut Down in the session menu.</string>
     <!-- Self-updating (Sparkle). Only for the DMG build; the Homebrew

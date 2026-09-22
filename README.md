@@ -203,6 +203,25 @@ list in System Settings, add it again and restart it.
 
 Full notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## AI disclosure
+
+<img src="https://img.shields.io/badge/Core-written%20by%20humans-2EA44F" alt="Core written by humans">
+<img src="https://img.shields.io/badge/Refactored%20with-Claude%20Fable%205.1-D97757?logo=claude&amp;logoColor=white" alt="Refactored with Claude Fable 5.1">
+
+The core was written by me and two friends in our free time. I do most of
+the work; my friends help out. Since then the code has been refactored
+several times with Claude (Fable 5.1), and we ran large multi-agent bug hunts
+with it.
+
+This stays the same for new releases:
+
+| Part | Done by |
+| --- | --- |
+| New features | Us |
+| Refactoring and bug hunts | Claude |
+| Patch releases (fixes only) | Claude |
+| Commits and code comments | Claude |
+
 ## License
 
 [Mozilla Public License 2.0](LICENSE) © 2026 Silvertree2010. You can use
