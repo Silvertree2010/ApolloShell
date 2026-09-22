@@ -52,6 +52,9 @@ public final class TilingEngine {
         /// Screen space the host keeps for itself, e.g. ApolloShell's 44 pt
         /// sidebar on the left, counted from the display edge. Tiles never go there.
         public var reserved = NSEdgeInsets()
+        /// Whether that space is kept free on every display or only on the
+        /// main one (the host's bar may stand on one screen only).
+        public var reservedOnEveryDisplay = true
 
         public init() {}
     }
@@ -71,8 +74,8 @@ public final class TilingEngine {
     /// The host's reserved edges count from the display's edge, not on top
     /// of what macOS already keeps free: a Dock on the left (62 pt) and
     /// ApolloShell's sidebar (44 pt) overlap, they do not add up.
-    private func usable(visible: CGRect, bounds: CGRect) -> CGRect {
-        let r = options.reserved
+    private func usable(visible: CGRect, bounds: CGRect, reserved: Bool = true) -> CGRect {
+        let r = reserved ? options.reserved : NSEdgeInsets()
         let left = max(visible.minX, bounds.minX + r.left)
         let top = max(visible.minY, bounds.minY + r.top)
         let right = min(visible.maxX, bounds.maxX - r.right)
@@ -147,7 +150,8 @@ public final class TilingEngine {
     public func area(of desk: Desk) -> CGRect {
         guard let uuid = displayOfSpace[desk.space], let screen = screens.first(where: { $0.uuid == uuid }),
               screen != screens.first else { return area }
-        return usable(visible: screen.visible, bounds: screen.bounds)
+        return usable(visible: screen.visible, bounds: screen.bounds,
+                      reserved: options.reservedOnEveryDisplay)
     }
 
     /// The whole usable area of `desk`'s display, inside the outer gap.
@@ -481,6 +485,13 @@ public final class TilingEngine {
     /// The window now lives on another desktop (the user moved it there).
     public func move(_ id: CGWindowID, to targetSpace: SpaceID) {
         if id == scratchpad, scratchpadHidden { return }
+        // A tab that was carried to another desktop leaves its group: its
+        // fellows stay where they are, and it would otherwise be a group
+        // member and a tile at the same time.
+        if group(of: id) != nil {
+            leaveGroup(id)
+            if let home = desk(of: id) { dirtyDesks.insert(home) }
+        }
         let target = Desk(space: targetSpace, workspace: activeWorkspace[targetSpace] ?? 1)
         if var state = floating[id] {
             guard state.desk.space != targetSpace else { return }
@@ -780,6 +791,7 @@ public final class TilingEngine {
             let beside = group.members.first { $0 != id && layouts.space(of: $0) != nil }
             layouts.assign(id, to: home) { $0.insert(id, splitting: beside) }
         } else if let home = layouts.space(of: id), let sibling = layouts[home].sibling(of: id) {
+            if fullscreen[home] == id { fullscreen[home] = nil }
             layouts.remove(id)
             join(id, with: sibling)
         }

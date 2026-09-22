@@ -63,6 +63,8 @@ final class TWMController {
         engine.options.gaps = Gaps(outer: twm.outerGap, inner: twm.innerGap)
         engine.options.response = twm.glideDuration
         engine.options.tabBarHeight = twm.tabBarHeight
+        // The sidebar's strip is only kept free where a bar actually stands.
+        engine.options.reservedOnEveryDisplay = settings.settings.bar.screens == .all
         engine.options.scratchpadShare = twm.scratchpadShare
         keys?.resizeStep = twm.resizeStep
         keys?.modeTimeout = twm.modeTimeout

@@ -115,6 +115,9 @@ public final class KeyBindings {
 
     /// Removes the event tap; start() can be called again later.
     public func stop() {
+        modeTimer?.cancel()
+        modeTimer = nil
+        mode = .normal
         if let tap {
             CGEvent.tapEnable(tap: tap, enable: false)
             CFMachPortInvalidate(tap)
