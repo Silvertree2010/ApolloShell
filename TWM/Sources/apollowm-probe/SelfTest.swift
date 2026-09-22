@@ -135,7 +135,9 @@ final class SelfTest {
                 fail("\(title(id)) sticks out of the area (\(actual))")
             }
         }
-        let ids = Array(frames.keys)
+        // A window filling the area (Super + F) lies over the others on purpose.
+        let covering = Set(engine.fullscreen.values)
+        let ids = frames.keys.filter { !covering.contains($0) }
         for (i, a) in ids.enumerated() {
             for b in ids[(i + 1)...] {
                 let overlap = frames[a]!.intersection(frames[b]!)

@@ -276,6 +276,8 @@ public final class TilingEngine {
         }
         dirtyDesks.insert(target)
         relayout()
+        // Focus may have moved to one of them before they were managed.
+        focusChanged()
     }
 
     /// The workspace shown on a desktop (always 1 while Apple's desktops
@@ -321,6 +323,8 @@ public final class TilingEngine {
             }
         }
         relayout()
+        // A new window usually takes focus before it is managed.
+        focusChanged()
     }
 
     /// Drops a window from tiling; the others close the gap.
@@ -414,6 +418,7 @@ public final class TilingEngine {
         var frame = window.serverFrame ?? defaultFloatFrame(for: id, on: target)
         frame.origin.x = min(max(frame.minX, area.minX), max(area.maxX - frame.width, area.minX))
         frame.origin.y = min(max(frame.minY, area.minY), max(area.maxY - frame.height, area.minY))
+        layouts.remove(id)
         floating[id] = Floating(desk: target, frame: frame)
         log("floats by itself (\(reason)): \(window.title)")
     }
@@ -888,9 +893,12 @@ public final class TilingEngine {
     /// their old tiles when they are adopted.
     public func restore(_ snapshot: Snapshot, alive: (CGWindowID) -> Bool) {
         var saved = snapshot.layouts
-        saved.retain(where: alive)
+        let floats = snapshot.floating.filter { alive($0.key) }
+        // A window is tiled or floating, never both (an older version could
+        // save both after a floating window was carried to another desktop).
+        saved.retain { alive($0) && floats[$0] == nil }
         layouts = saved
-        floating = snapshot.floating.filter { alive($0.key) }
+        floating = floats
         activeWorkspace = snapshot.activeWorkspace
         originalFrames = snapshot.originalFrames.filter { alive($0.key) }
         groups = (snapshot.groups ?? []).filter { group in
