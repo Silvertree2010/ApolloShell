@@ -59,6 +59,11 @@ enum NativeAppMenu {
     /// To the right of the symbol, flush at the top - the bar lies on the left,
     /// and in the launcher the menu then stands next to the row.
     static func popUp(_ menu: NSMenu, at view: NSView) {
+        // Callers wait for Apple's Dock first; by then the row can be gone
+        // (hover ended, dock rebuilt). AppKit then throws "View is not in any
+        // window" - inside a Swift task that leaves the concurrency runtime
+        // broken and the next MainActor check crashes somewhere else.
+        guard view.window != nil else { return }
         let top = view.isFlipped ? view.bounds.minY : view.bounds.maxY
         menu.popUp(positioning: nil, at: NSPoint(x: view.bounds.maxX + 6, y: top), in: view)
     }
