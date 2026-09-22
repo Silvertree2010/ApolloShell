@@ -161,8 +161,9 @@ public final class TilingEngine {
 
     /// The shown desk whose display holds `point` (the main one otherwise).
     public func desk(at point: CGPoint) -> Desk {
-        for shown in otherShown where area(of: shown) != area {
-            guard let uuid = displayOfSpace[shown.space],
+        let main = screens.first?.uuid
+        for shown in otherShown {
+            guard let uuid = displayOfSpace[shown.space], uuid != main,
                   let screen = screens.first(where: { $0.uuid == uuid }), screen.bounds.contains(point) else { continue }
             return shown
         }
