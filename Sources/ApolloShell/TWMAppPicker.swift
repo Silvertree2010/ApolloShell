@@ -54,7 +54,19 @@ private final class PickerPanel: ShellPanel, NSWindowDelegate {
         delegate = self
         let glass = NSGlassEffectView()
         let hosting = NSHostingView(rootView: PickerView(done: { [weak self] in self?.done($0) }).shellTheme())
-        glass.contentView = hosting
+        // In a container, like the tab bars: a theme's panel gradient goes
+        // into the glass content's layer at the bottom, and with the hosting
+        // view as the content it covered the whole picker.
+        let content = NSView()
+        hosting.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(hosting)
+        NSLayoutConstraint.activate([
+            hosting.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            hosting.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            hosting.topAnchor.constraint(equalTo: content.topAnchor),
+            hosting.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+        ])
+        glass.contentView = content
         contentView = glass
         ThemedGlass.apply(to: glass, fallbackRadius: 14)
     }
