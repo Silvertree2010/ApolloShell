@@ -303,6 +303,14 @@ private struct NexusThemesPage: View {
                     // for the old theme; the next opening takes the new one.
                     model.run { themes.select(name) }
                 }
+                NexusCard(symbol: "bag", title: "Marketplace",
+                          subtitle: "Themes made by others, ready to use. Share your own there too.") {
+                    EmptyView()
+                } footer: {
+                    NexusSmallButton("Open Marketplace…") {
+                        model.run { MarketplaceWindow.shared.show(themes: themes) }
+                    }
+                }
                 NexusCard(symbol: "folder", title: "Theme Folder",
                           subtitle: LocalizedStringKey((themes.folder.path as NSString).abbreviatingWithTildeInPath)) {
                     EmptyView()

@@ -33,12 +33,6 @@ tabs you had into pages, with the cards at the same spots. The old
 - **The menu bar item wears the new ApolloShell mark**, as a template image
   that follows the menu bar's light and dark. A theme's
   `icons/menubar-nexus.png` still replaces it.
-- **The session menu's emblem is the new ApolloShell mark**: the A in the
-  accent colour, glowing, with its moon going round the logo's orbit and
-  behind the A on the far side. The reactions stay: a fast lap before
-  shutting down or restarting, the night side and stars for sleep, the
-  thinking dots for logging out. A theme's `icons/session-emblem.png` still
-  replaces it.
 - **Actions in the launcher, as in Caelestia.** Type `>` for the list:
   `>calc` works out a sum as you type and Return copies it, `>theme` switches
   the theme, `>wallpaper` sets one of Apple's wallpapers (ones not yet
@@ -118,6 +112,26 @@ tabs you had into pages, with the cards at the same spots. The old
   templates (dashboard: Caelestia, Compact, Calendar & Weather; control
   centre: Standard, Minimal, Sound & Devices, Everything). The edit mode and
   "Restore default pages" take their place.
+
+## [0.1.4] - 2026-09-22
+
+### Added
+
+- **A theme Marketplace, in Nexus > Themes.** Browse themes other people
+  made, each shown with a live preview the shell draws from the theme's own
+  tokens, and install one with a click. Sign in with GitHub (device flow, no
+  scopes) to share your own themes or upload a new version; the shell only
+  ever sends and stores plain token CSS, checked against the same catalogue
+  the app reads. Report a theme, or, as the maintainer, review the queue.
+
+### Changed
+
+- **A new app icon and logo mark**, an A with an orbiting moon, drawn from
+  one set of paths. The mark is the session menu's emblem: the A in the
+  accent colour, glowing, with its moon going round the orbit and behind the
+  A on the far side. The reactions stay: a fast lap before shutting down or
+  restarting, the night side and stars for sleep, the thinking dots for
+  logging out. A theme's `icons/session-emblem.png` still replaces it.
 
 ## [0.1.3.1] - 2026-09-21
 
