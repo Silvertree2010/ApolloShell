@@ -1031,6 +1031,37 @@ public final class TilingEngine {
         relayout()
     }
 
+    // MARK: Remote control
+
+    /// Every managed window as a JSON array, for the command socket.
+    public func describeWindows() -> String {
+        let order = knownSpaceOrder
+        let shown = targetFrames()
+        let items: [[String: Any]] = windows.values.sorted { $0.windowID < $1.windowID }.map { window in
+            let id = window.windowID
+            var item: [String: Any] = [
+                "id": Int(id),
+                "pid": Int(window.pid),
+                "app": NSRunningApplication(processIdentifier: window.pid)?.localizedName ?? "",
+                "title": window.title,
+                "floating": floating[id] != nil,
+                "focused": focused == id,
+                "scratchpad": scratchpad == id,
+            ]
+            if let home = desk(of: id) {
+                item["desktop"] = (order.firstIndex(of: home.space) ?? -1) + 1
+                item["fullscreen"] = fullscreen[home] == id
+            }
+            if let group = group(of: id) { item["group"] = group.members.map { Int($0) } }
+            if let frame = shown[id] ?? window.serverFrame {
+                item["frame"] = ["x": frame.minX, "y": frame.minY, "width": frame.width, "height": frame.height]
+            }
+            return item
+        }
+        guard let data = try? JSONSerialization.data(withJSONObject: items, options: [.sortedKeys]) else { return "[]" }
+        return String(decoding: data, as: UTF8.self)
+    }
+
     // MARK: Scratchpad
 
     /// One window kept at hand (Hyprland's special workspace): Super + S

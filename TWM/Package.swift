@@ -10,6 +10,7 @@ let package = Package(
     products: [
         .library(name: "ApolloWM", targets: ["ApolloWM"]),
         .executable(name: "apollowm-probe", targets: ["apollowm-probe"]),
+        .executable(name: "twmctl", targets: ["twmctl"]),
     ],
     targets: [
         // Pure logic (layout, springs, stats). No AppKit, fully tested.
@@ -18,6 +19,8 @@ let package = Package(
         .target(name: "ApolloWM", dependencies: ["ApolloWMCore"]),
         // Measurement tool for the drag-and-glide spike.
         .executableTarget(name: "apollowm-probe", dependencies: ["ApolloWM"]),
+        // Command-line client for the command socket (like hyprctl).
+        .executableTarget(name: "twmctl"),
         .testTarget(name: "ApolloWMCoreTests", dependencies: ["ApolloWMCore"]),
     ]
 )

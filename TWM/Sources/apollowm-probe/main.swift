@@ -10,6 +10,9 @@ import ApolloWM
 //   apollowm-probe selftest [--seed N] [--steps N]
 //       For the test VM only: random steps with TextEdit windows, checking
 //       after each that windows sit on their tiles and never overlap.
+//   apollowm-probe echo-socket PATH
+//       Touches no window: answers every line on a command socket at PATH
+//       with "echo: LINE" for a few seconds, to test the socket and twmctl.
 //   apollowm-probe spaces
 //       Read-only: prints the shown desktop and the desktop of every window.
 //   apollowm-probe run [--max N]
@@ -23,9 +26,17 @@ func option(_ name: String) -> String? {
     args.firstIndex(of: name).flatMap { args.indices.contains($0 + 1) ? args[$0 + 1] : nil }
 }
 
-guard ["bench", "run", "spaces", "selftest"].contains(mode) else {
+guard ["bench", "run", "spaces", "selftest", "echo-socket"].contains(mode) else {
     print("usage: apollowm-probe bench|run|spaces|selftest [--max N] [--seed N] [--steps N] [--resize proxy|smooth|snap] [--no-focus-follows-mouse] [--focus-delay MS] [--restore-on-quit] [--reserve-left PT]")
     exit(2)
+}
+
+if mode == "echo-socket", args.count > 1 {
+    let server = CommandServer(path: args[1]) { "echo: \($0)" }
+    guard server.start() else { exit(1) }
+    print("listening on \(args[1])")
+    DispatchQueue.main.asyncAfter(deadline: .now() + 6) { MainActor.assumeIsolated { server.stop() }; exit(0) }
+    withExtendedLifetime(server) { RunLoop.main.run() }
 }
 
 // Read-only: which desktop is shown and where every normal window lives.

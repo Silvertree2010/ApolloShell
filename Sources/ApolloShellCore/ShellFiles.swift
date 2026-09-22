@@ -37,6 +37,8 @@ public struct ShellFiles: Sendable {
     public var twmLayout: URL { file("twm-layout.json") }
     /// The tiling window manager's keys and window rules (a text file).
     public var twmConfig: URL { file("twm.conf") }
+    /// The TWM's command socket (twmctl talks to it), there while it runs.
+    public var twmSocket: URL { file("twm.sock") }
     /// The saved values of Apple's Dock while it is hidden.
     public var appleDock: URL { file("apple-dock.json") }
     /// The marker: ApolloShell switched sleep with the lid closed off and has

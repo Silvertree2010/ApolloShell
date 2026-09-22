@@ -24,6 +24,7 @@ final class TWMController {
     private var focus: FocusFollowsMouse?
     private var tabBars: TWMTabBars?
     private var border: TWMBorder?
+    private var server: CommandServer?
 
     /// Called with true while tiling runs: the window guard (which pushes
     /// windows out of the sidebar's strip) must pause then, or both would
@@ -128,12 +129,20 @@ final class TWMController {
             engine?.apply(rules: config.rules)
         }
         file.start()
+        let server = CommandServer(path: ShellFiles.live.twmSocket.path) { [weak keys] line in
+            keys?.reply(to: line) ?? "error: stopped"
+        }
+        server.log = engine.log
+        server.start()
+        self.server = server
         onRunningChange(true)
         log.notice("TWM started")
     }
 
     private func stop() {
         guard let engine else { return }
+        server?.stop()
+        server = nil
         TWMConfigFile.shared.onChange = nil
         TWMConfigFile.shared.stop()
         tabBars?.close()

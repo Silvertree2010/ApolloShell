@@ -118,6 +118,36 @@ public final class KeyBindings {
         }
     }
 
+    /// One line from the command socket: a command in its text form, or
+    /// `windows` / `ping`. Returns the reply.
+    public func reply(to line: String) -> String {
+        switch line.lowercased() {
+        case "ping": return "pong"
+        case "windows": return engine.describeWindows()
+        default: break
+        }
+        guard let command = Command(parsing: line) else { return "error: unknown command `\(line)`" }
+        switch command {
+        case .workspace(let number) where useAppleDesktops:
+            // A key press would reach macOS by itself; from outside, press
+            // Apple's shortcut for it.
+            guard let shortcut = desktopShortcuts[number] else { return "error: desktop shortcuts are not set" }
+            let source = CGEventSource(stateID: .hidSystemState)
+            for keyDown in [true, false] {
+                let key = CGEvent(keyboardEventSource: source, virtualKey: shortcut.keyCode, keyDown: keyDown)
+                key?.flags = shortcut.flags
+                key?.post(tap: .cghidEventTap)
+            }
+        case .resizeMode:
+            enter(.resize)
+        case .sendMode:
+            enter(.send)
+        default:
+            perform(command)
+        }
+        return "ok"
+    }
+
     private func perform(_ action: Action, on focused: AXWindow?) {
         if action == .closeWindow {
             // Any focused window, managed or not.
