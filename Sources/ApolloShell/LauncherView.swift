@@ -53,26 +53,14 @@ struct LauncherView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 2) {
-                    ForEach(Array(model.results.enumerated()), id: \.element.id) { index, app in
-                        AppRow(
-                            app: app,
-                            icon: model.icon(for: app),
-                            selected: index == model.selectedIndex
-                        )
-                        .id(app.id)
-                        .onTapGesture {
-                            model.selectedIndex = index
-                            model.launchSelected()
-                        }
-                        // Rechtsklick wie im Dock: das Menue der App selbst.
-                        // Es kommt aus Apples Dock und braucht einen Moment,
-                        // deshalb AppKit statt `contextMenu`.
-                        .overlay {
-                            RightClickCatcher { view in
-                                model.selectedIndex = index
-                                model.onRightClick(app, view)
-                            }
-                        }
+                    // `@Sendable`: SwiftUI 26 legt die Zeilen eines faulen
+                    // Stapels auf einem Hintergrund-Thread an und ruft diese
+                    // Closure dort auf. Als Main-Actor-Closure schlug sie in
+                    // Swifts Isolationspruefung an (EXC_BREAKPOINT in
+                    // LauncherView.list); alles mit Main-Actor steckt jetzt in
+                    // `LauncherListRow`.
+                    ForEach(Array(model.results.enumerated()), id: \.element.id) { @Sendable index, app in
+                        LauncherListRow(model: model, index: index, app: app)
                     }
                 }
                 .padding(8)
@@ -80,6 +68,36 @@ struct LauncherView: View {
             .onChange(of: model.selectedIndex) { _, index in
                 guard model.results.indices.contains(index) else { return }
                 proxy.scrollTo(model.results[index].id)
+            }
+        }
+    }
+}
+
+/// Eine Zeile der Liste mit ihren Klicks. Eigene View, damit die
+/// `ForEach`-Closure oben nichts vom Main-Actor anfasst.
+private struct LauncherListRow: View {
+    let model: LauncherModel
+    let index: Int
+    let app: AppEntry
+
+    var body: some View {
+        AppRow(
+            app: app,
+            icon: model.icon(for: app),
+            selected: index == model.selectedIndex
+        )
+        .id(app.id)
+        .onTapGesture {
+            model.selectedIndex = index
+            model.launchSelected()
+        }
+        // Rechtsklick wie im Dock: das Menue der App selbst.
+        // Es kommt aus Apples Dock und braucht einen Moment,
+        // deshalb AppKit statt `contextMenu`.
+        .overlay {
+            RightClickCatcher { view in
+                model.selectedIndex = index
+                model.onRightClick(app, view)
             }
         }
     }
