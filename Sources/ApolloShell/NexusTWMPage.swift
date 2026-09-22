@@ -103,6 +103,9 @@ struct NexusTWMPage: View {
                                label: String(format: "Mode ends after %.0f s", store.settings.twm.modeTimeout))
                     }
                 }
+                NexusSwitchCard(symbol: "power", title: "Quit With the Last Window",
+                                subtitle: "Super + Q on an app's last window quits the app, not just the window.",
+                                isOn: twm.quitWithLastWindow)
                 NexusCard(symbol: "apple.terminal", title: "Terminal",
                           subtitle: "Opened by Super + T. Empty: kitty, Ghostty or Terminal.") {
                     EmptyView()
@@ -180,7 +183,7 @@ struct NexusTWMPage: View {
         ("Super + [ / ]", "previous / next tab"),
         ("Super + Space", "float / tile"),
         ("Super + F", "fill the area"),
-        ("Super + Q", "close the window"),
+        ("Super + Q", "close the window (quits the app with its last)"),
         ("Super + 1–9", "desktop 1–9"),
         ("Super + M, 1–9", "send the window to desktop 1–9"),
         ("Super + S", "scratchpad: keep / show / hide"),

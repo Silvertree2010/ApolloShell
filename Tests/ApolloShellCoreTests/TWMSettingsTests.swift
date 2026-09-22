@@ -39,6 +39,7 @@ struct TWMSettingsTests {
         #expect(twm.modeTimeout == 20)
         #expect(twm.scratchpadShare == 0.95)
         #expect(!twm.appleDesktops)
+        #expect(twm.quitWithLastWindow)
         #expect(twm.terminal == "com.mitchellh.ghostty")
     }
 

@@ -48,6 +48,37 @@ public final class KeyBindings {
 
     public var log: (String) -> Void = { print($0) }
 
+    /// Super + Q on the last window of an app quits it, the way ⌘Q would.
+    /// Without this, apps that stay alive without windows (kitty, and one
+    /// process per new instance) pile up invisible windows.
+    public var quitWithLastWindow = true
+    /// Apps that are never quit this way: the Finder always runs, and we
+    /// are not going to quit ourselves.
+    public var neverQuit: Set<String> = ["com.apple.finder"]
+
+    /// Looks a moment after the close (apps may ask to save) and quits the
+    /// app when no normal window of it is left.
+    private func quitIfLastWindowWent(pid: pid_t, closed: CGWindowID) {
+        guard pid != getpid(), let app = NSRunningApplication(processIdentifier: pid),
+              app.activationPolicy == .regular,
+              !neverQuit.contains(app.bundleIdentifier ?? "") else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, !app.isTerminated else { return }
+                let element = AXUIElementCreateApplication(pid)
+                AXUIElementSetMessagingTimeout(element, 0.3)
+                let windows = element.value(kAXWindowsAttribute) as? [AXUIElement] ?? []
+                let left = windows.filter { window in
+                    guard let id = window.windowID, id != closed else { return false }
+                    return window.bool(kAXMinimizedAttribute) != true
+                }
+                guard left.isEmpty else { return }
+                self.log("last window closed, quitting \(app.localizedName ?? "\(pid)")")
+                app.terminate()
+            }
+        }
+    }
+
     /// Super+1..9 shows Apple desktop 1-9 (our own workspaces stay unused):
     /// start() sets Apple's "Switch to Desktop N" shortcuts to Super + N and
     /// those key presses are left to macOS (see DesktopShortcuts).
@@ -176,7 +207,11 @@ public final class KeyBindings {
         if action == .closeWindow {
             // Any focused window, managed or not.
             guard let focused else { return }
-            if !focused.close() { log("close: \(focused.title) has no close button") }
+            if !focused.close() {
+                log("close: \(focused.title) has no close button")
+                return
+            }
+            if quitWithLastWindow { quitIfLastWindowWent(pid: focused.pid, closed: focused.windowID) }
             return
         }
         let id = focused.map(\.windowID).flatMap { engine.windows[$0] != nil ? $0 : nil }

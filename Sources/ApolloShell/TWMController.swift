@@ -67,6 +67,7 @@ final class TWMController {
         keys?.resizeStep = twm.resizeStep
         keys?.modeTimeout = twm.modeTimeout
         keys?.setUseAppleDesktops(twm.appleDesktops)
+        keys?.quitWithLastWindow = twm.quitWithLastWindow
         keys?.terminals = twm.terminal.isEmpty
             ? ["net.kovidgoyal.kitty", "com.mitchellh.ghostty", "com.apple.Terminal"]
             : [twm.terminal]

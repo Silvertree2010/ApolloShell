@@ -35,9 +35,11 @@ public struct TWMSettings: Codable, Equatable, Sendable {
     /// Super + 1-9 shows Apple's desktops. Off: the TWM's own workspaces,
     /// whose windows wait past the screen edge.
     public var appleDesktops = true
-    /// Bundle id for Super + Return; empty means the first one installed of
+    /// Bundle id for Super + T; empty means the first one installed of
     /// kitty, Ghostty, Terminal.
     public var terminal = ""
+    /// Super + Q on an app's last window quits the app (the Finder never).
+    public var quitWithLastWindow = true
 
     public static let focusDelayRange = 0...500
     public static let gapRange = 0.0...40.0
@@ -77,6 +79,7 @@ public struct TWMSettings: Codable, Equatable, Sendable {
         c.lenient(.scratchpadShare, into: &scratchpadShare)
         c.lenient(.appleDesktops, into: &appleDesktops)
         c.lenient(.terminal, into: &terminal)
+        c.lenient(.quitWithLastWindow, into: &quitWithLastWindow)
         focusDelayMilliseconds = min(max(focusDelayMilliseconds, Self.focusDelayRange.lowerBound), Self.focusDelayRange.upperBound)
         innerGap = min(max(innerGap, Self.gapRange.lowerBound), Self.gapRange.upperBound)
         outerGap = min(max(outerGap, Self.gapRange.lowerBound), Self.gapRange.upperBound)
