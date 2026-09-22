@@ -209,13 +209,44 @@ public final class KeyBindings {
         }
     }
 
+    /// Super + T. A terminal that already runs gets a new window through its
+    /// own ⌘N, never a second instance: starting one per press left 45 kitty
+    /// processes behind, each holding invisible windows, and every window
+    /// scan on the Mac grew with them.
     private func openTerminal() {
-        guard let url = terminals.lazy.compactMap({
-            NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0)
-        }).first else { return }
-        let configuration = NSWorkspace.OpenConfiguration()
-        configuration.createsNewApplicationInstance = url.lastPathComponent != "Terminal.app"
-        NSWorkspace.shared.openApplication(at: url, configuration: configuration) { _, _ in }
+        let installed = terminals.compactMap { id -> (id: String, url: URL)? in
+            NSWorkspace.shared.urlForApplication(withBundleIdentifier: id).map { (id, $0) }
+        }
+        guard let choice = installed.first else { return }
+        let running = installed.lazy.compactMap { entry in
+            NSRunningApplication.runningApplications(withBundleIdentifier: entry.id).first
+        }.first
+        guard let running else {
+            NSWorkspace.shared.openApplication(at: choice.url, configuration: NSWorkspace.OpenConfiguration()) { _, _ in }
+            return
+        }
+        running.activate()
+        Task { [weak self] in
+            await Self.waitForModifiersReleased()
+            guard self != nil else { return }
+            let source = CGEventSource(stateID: .hidSystemState)
+            for down in [true, false] {
+                let key = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_ANSI_N), keyDown: down)
+                key?.flags = .maskCommand
+                key?.post(tap: .cghidEventTap)
+                try? await Task.sleep(for: .milliseconds(15))
+            }
+        }
+    }
+
+    /// Waits (at most 2 s) until Super is no longer held: the ⌘N above would
+    /// otherwise carry the held modifiers along.
+    static func waitForModifiersReleased() async {
+        let modifiers: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]
+        for _ in 0..<80 {
+            if CGEventSource.flagsState(.hidSystemState).intersection(modifiers).isEmpty { return }
+            try? await Task.sleep(for: .milliseconds(25))
+        }
     }
 
     /// Returns true when the event is ours and must not reach the app.
