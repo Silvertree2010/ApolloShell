@@ -70,6 +70,17 @@ struct MarketplaceClientTests {
         #expect(server.requests.first?.url?.path == "/api/v1/themes/t1/report")
     }
 
+    @Test("approve names the version the admin reviewed")
+    func approveSendsVersion() async throws {
+        let server = FakeServer("", status: 204)
+        let client = MarketplaceClient(session: "admin", transport: server.transport)
+        try await client.decide(.approve, themeID: "t1", version: 3)
+        let request = try #require(server.requests.first)
+        #expect(request.url?.path == "/api/v1/admin/themes/t1/approve")
+        let body = try #require(request.httpBody.flatMap { try JSONSerialization.jsonObject(with: $0) as? [String: Any] })
+        #expect(body["version"] as? Int == 3)
+    }
+
     @Test("reads GitHub's device flow answers")
     func devicePoll() {
         #expect(GitHubDeviceFlow.poll(from: Data(#"{"access_token":"gho_x","token_type":"bearer"}"#.utf8)) == .token("gho_x"))

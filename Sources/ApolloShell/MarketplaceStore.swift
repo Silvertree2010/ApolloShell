@@ -280,11 +280,13 @@ final class MarketplaceStore {
 
     func decide(_ decision: MarketplaceClient.Decision, _ item: MarketQueueItem, reason: String = "") async {
         do {
-            try await client.decide(decision, themeID: item.theme.id, reason: reason)
+            try await client.decide(decision, themeID: item.theme.id, version: item.theme.version, reason: reason)
             await refreshAccount()
             await refresh()
         } catch {
             actionError = error.localizedDescription
+            // A newer upload arrived meanwhile: show it.
+            await refreshAccount()
         }
     }
 

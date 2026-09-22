@@ -180,8 +180,11 @@ public struct MarketplaceClient: Sendable {
 
     public enum Decision: String, Sendable { case approve, reject, hide, unhide }
 
-    public func decide(_ decision: Decision, themeID: String, reason: String = "") async throws {
-        let body: [String: String]? = reason.isEmpty ? nil : ["reason": reason]
+    /// `version` is the one the admin looked at: approve and reject act on
+    /// exactly that version, and the server refuses if a newer one arrived.
+    public func decide(_ decision: Decision, themeID: String, version: Int, reason: String = "") async throws {
+        var body: [String: Any] = ["version": version]
+        if !reason.isEmpty { body["reason"] = reason }
         try await call("POST", "admin/themes/\(themeID)/\(decision.rawValue)", body: body)
     }
 
@@ -196,7 +199,7 @@ public struct MarketplaceClient: Sendable {
     private struct Queue: Decodable { let items: [MarketQueueItem] }
     private struct Failure: Decodable { let error: String; let message: String }
 
-    public func request(_ method: String, _ path: String, body: [String: String]? = nil) -> URLRequest {
+    public func request(_ method: String, _ path: String, body: [String: Any]? = nil) -> URLRequest {
         var request = URLRequest(url: baseURL.appendingPathComponent("api/v1/" + path), timeoutInterval: 20)
         request.httpMethod = method
         // The edge caches the public list; the app always asks fresh, or
@@ -212,11 +215,11 @@ public struct MarketplaceClient: Sendable {
         return request
     }
 
-    private func call(_ method: String, _ path: String, body: [String: String]? = nil) async throws {
+    private func call(_ method: String, _ path: String, body: [String: Any]? = nil) async throws {
         _ = try await send(method, path, body: body)
     }
 
-    private func call<T: Decodable>(_ method: String, _ path: String, body: [String: String]? = nil,
+    private func call<T: Decodable>(_ method: String, _ path: String, body: [String: Any]? = nil,
                                     as type: T.Type) async throws -> T {
         let (data, status) = try await send(method, path, body: body)
         do {
@@ -227,7 +230,7 @@ public struct MarketplaceClient: Sendable {
     }
 
     /// The body of a successful answer; the server's error otherwise.
-    private func send(_ method: String, _ path: String, body: [String: String]?) async throws -> (Data, Int) {
+    private func send(_ method: String, _ path: String, body: [String: Any]?) async throws -> (Data, Int) {
         let data: Data
         let status: Int
         do {
