@@ -122,7 +122,10 @@ final class TWMController {
         self.keys = keys
         _ = focus.start()
         tabBars = TWMTabBars(engine: engine)
+        // Right at the start ApolloShell itself may be in front; look again
+        // once the app that had focus is back.
         engine.focusChanged()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak engine] in engine?.focusChanged() }
         let file = TWMConfigFile.shared
         file.onChange = { [weak engine, weak keys] config in
             keys?.apply(config)

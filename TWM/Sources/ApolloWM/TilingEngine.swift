@@ -513,10 +513,17 @@ public final class TilingEngine {
         log("desktop \(space) -> \(target)")
         desk = Desk(space: target, workspace: activeWorkspace[target] ?? 1)
         lastSpaceSwitch = CACurrentMediaTime()
-        // A drag cannot survive a desktop switch; the window stays where it is.
+        // A drag cannot survive a desktop switch; the window comes along and
+        // stays where it is: tiled on the new desktop, or floating there.
         if let id = dragging {
             dragging = nil
-            layouts.assign(id, to: desk) { $0.insert(id) }
+            if var state = floating[id] {
+                state.desk = desk
+                if let frame = windows[id]?.serverFrame { state.frame = frame }
+                floating[id] = state
+            } else {
+                layouts.assign(id, to: desk) { $0.insert(id) }
+            }
         }
         relayout()
     }
@@ -1168,12 +1175,15 @@ public final class TilingEngine {
     // MARK: Scratchpad
 
     /// One window kept at hand (Hyprland's special workspace): Super + S
-    /// hides it and brings it back, floating in the middle of whatever
-    /// desktop is shown. Hidden means minimized, because a window restored
-    /// from the Dock comes back on the shown desktop; that is the only way
-    /// to bring a window over from another desktop without SIP turned off.
+    /// hides it (minimized) and brings it back, floating in the middle of
+    /// whatever desktop is shown. A minimized window comes back on its own
+    /// desktop (measured on macOS 26, from the Dock too), so one kept on
+    /// another desktop is carried over afterwards (onScratchpadElsewhere).
     public private(set) var scratchpad: CGWindowID?
     public private(set) var scratchpadHidden = false
+    /// The scratchpad came back on another desktop than `SpaceID`, the one
+    /// shown when it was asked for: the host carries it over (DesktopMover).
+    public var onScratchpadElsewhere: ((AXWindow, SpaceID) -> Void)?
 
     /// With no scratchpad yet, `focused` becomes it; otherwise it is hidden
     /// when it shows on this desktop and brought here when not.
@@ -1219,6 +1229,7 @@ public final class TilingEngine {
     private func showScratchpad(_ id: CGWindowID) {
         guard let window = windows[id] else { return }
         let wasShownElsewhere = !scratchpadHidden
+        let wanted = space
         floating[id] = nil
         springs[id] = nil
         scratchpadHidden = true
@@ -1230,13 +1241,14 @@ public final class TilingEngine {
             }
             _ = window.element.set(kAXMinimizedAttribute, bool: false)
             DispatchQueue.main.async {
-                MainActor.assumeIsolated { self?.scratchpadRestored(id) }
+                MainActor.assumeIsolated { self?.scratchpadRestored(id, wanted: wanted) }
             }
         }
     }
 
-    private func scratchpadRestored(_ id: CGWindowID) {
+    private func scratchpadRestored(_ id: CGWindowID, wanted: SpaceID) {
         guard scratchpad == id, let window = windows[id] else { return }
+        if let home = Spaces.of(id), home != wanted { onScratchpadElsewhere?(window, wanted) }
         scratchpadHidden = false
         window.invalidateCache()
         floating[id] = Floating(desk: desk, frame: lastFloatFrame[id] ?? defaultFloatFrame(for: id, share: 0.7))

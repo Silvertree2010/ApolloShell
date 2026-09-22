@@ -55,6 +55,10 @@ public final class KeyBindings {
 
     public init(engine: TilingEngine) {
         self.engine = engine
+        engine.onScratchpadElsewhere = { [weak self] window, space in
+            guard let number = Spaces.ordered().firstIndex(of: space).map({ $0 + 1 }) else { return }
+            self?.send(window.windowID, toDesktop: number)
+        }
     }
 
     /// Returns false when the event tap cannot be created (missing permission).

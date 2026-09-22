@@ -37,6 +37,12 @@ public enum DesktopMover {
         guard order.indices.contains(number - 1) else { return .failure(.noSuchDesktop(number)) }
         guard Spaces.of(window.windowID) != order[number - 1] else { return .failure(.alreadyThere) }
         await waitForModifiersReleased()
+        // The window must be on screen to be held: wait for its desktop to
+        // show if macOS is still switching there (a restored scratchpad).
+        for _ in 0..<60 where Spaces.current() != Spaces.of(window.windowID) {
+            try? await Task.sleep(for: .milliseconds(25))
+        }
+        try? await Task.sleep(for: .milliseconds(250))
         guard let frame = window.serverFrame else { return .failure(.windowGone) }
         let element = window.element
         let pid = window.pid
@@ -101,6 +107,9 @@ public enum DesktopMover {
         for dy in rows {
             for fraction in columns {
                 let point = CGPoint(x: (frame.minX + frame.width * fraction).rounded(), y: frame.minY + dy)
+                // Our own window there (a tab bar): hit-testing it off the main
+                // thread would trap, and it is not the title bar anyway.
+                if WindowFocus.isOwnWindowOnTop(at: point) { continue }
                 var hit: AXUIElement?
                 guard AXUIElementCopyElementAtPosition(system, Float(point.x), Float(point.y), &hit) == .success,
                       let hit else { continue }

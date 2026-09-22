@@ -100,6 +100,11 @@ public enum WindowFocus {
     /// walked up to its window. Menus, the menu bar and Dock items count as
     /// no window. Call off the main thread.
     public static func window(at point: CGPoint) -> AXWindow? {
+        // Never hit-test our own windows from here: macOS answers that inside
+        // this process, on the calling thread, and a SwiftUI window asked off
+        // the main thread traps (crashed ApolloShell with the launcher open
+        // under the mouse). Our own windows are never focused anyway.
+        guard !isOwnWindowOnTop(at: point) else { return nil }
         let system = AXUIElementCreateSystemWide()
         AXUIElementSetMessagingTimeout(system, 0.2)
         var hit: AXUIElement?
@@ -121,6 +126,21 @@ public enum WindowFocus {
         var pid: pid_t = 0
         AXUIElementGetPid(element, &pid)
         return AXWindow(element: element, pid: pid)
+    }
+
+    /// Whether the frontmost visible window under `point` belongs to this
+    /// process. Safe off the main thread (window server only).
+    public static func isOwnWindowOnTop(at point: CGPoint) -> Bool {
+        let infos = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
+                                               kCGNullWindowID) as? [[String: Any]] ?? []
+        for info in infos {
+            guard (info[kCGWindowAlpha as String] as? Double ?? 1) > 0,
+                  let bounds = info[kCGWindowBounds as String],
+                  let frame = CGRect(dictionaryRepresentation: bounds as! CFDictionary),
+                  frame.contains(point) else { continue }
+            return (info[kCGWindowOwnerPID as String] as? pid_t) == getpid()
+        }
+        return false
     }
 
     /// Whether Mission Control, the app switcher or a Dock menu is showing
