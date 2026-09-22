@@ -104,7 +104,7 @@ struct NexusTWMPage: View {
                     }
                 }
                 NexusCard(symbol: "apple.terminal", title: "Terminal",
-                          subtitle: "Opened by Super + Return. Empty: kitty, Ghostty or Terminal.") {
+                          subtitle: "Opened by Super + T. Empty: kitty, Ghostty or Terminal.") {
                     EmptyView()
                 } footer: {
                     TextField("Bundle id", text: twm.terminal)
@@ -171,7 +171,8 @@ struct NexusTWMPage: View {
         ("Super + arrows", "focus the neighbor"),
         ("Super + H J K L", "swap with the neighbor"),
         ("Super + Tab", "next window"),
-        ("Super + T", "turn the split"),
+        ("Super + T", "new terminal"),
+        ("Super + V", "turn the split"),
         ("Super + - / =", "narrower / wider"),
         ("Super + R", "resize with arrows, Esc ends"),
         ("Super + E", "even out all splits"),
@@ -180,7 +181,6 @@ struct NexusTWMPage: View {
         ("Super + Space", "float / tile"),
         ("Super + F", "fill the area"),
         ("Super + Q", "close the window"),
-        ("Super + Return", "new terminal"),
         ("Super + 1–9", "desktop 1–9"),
         ("Super + M, 1–9", "send the window to desktop 1–9"),
         ("Super + S", "scratchpad: keep / show / hide"),

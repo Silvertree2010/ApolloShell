@@ -226,7 +226,12 @@ public final class KeyBindings {
                 if taken { swallowed.insert(key) }
                 return taken
             }
-            guard flags.intersection(superFlags) == superFlags, let action = bindings[key] else { return false }
+            guard flags.intersection(superFlags) == superFlags else { return false }
+            guard let action = bindings[key] else {
+                log("Super + key \(key) (\(KeyNames.name(UInt16(key)) ?? "?")): no command")
+                return false
+            }
+            if !isRepeat { log("Super + \(KeyNames.name(UInt16(key)) ?? "\(key)") -> \(action.text)") }
             // Super + digit belongs to macOS then: it switches the desktop itself.
             if useAppleDesktops, case .workspace = action { return false }
             swallowed.insert(key)

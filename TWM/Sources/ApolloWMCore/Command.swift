@@ -135,11 +135,16 @@ public enum Command: Sendable, Equatable {
             KeyNames.code("k")!: .swap(.up),
             KeyNames.code("l")!: .swap(.right),
             KeyNames.code("tab")!: .cycleFocus,
-            KeyNames.code("t")!: .toggleSplit,
+            KeyNames.code("t")!: .newTerminal,
+            KeyNames.code("v")!: .toggleSplit,
             KeyNames.code("e")!: .equalize,
             KeyNames.code("minus")!: .grow(CGSize(width: -0.05, height: 0)),
             KeyNames.code("equal")!: .grow(CGSize(width: 0.05, height: 0)),
+            // Super + Return never arrives (something swallows it on this
+            // Mac), so the terminal sits on Super + T; Return stays bound
+            // for keyboards where it does come through.
             KeyNames.code("return")!: .newTerminal,
+            KeyNames.code("keypad-enter")!: .newTerminal,
             KeyNames.code("g")!: .toggleGroup,
             KeyNames.code("]")!: .cycleTab(true),
             KeyNames.code("[")!: .cycleTab(false),
@@ -168,6 +173,7 @@ public enum KeyNames {
         ("f1", 0x7A), ("f2", 0x78), ("f3", 0x63), ("f4", 0x76), ("f5", 0x60), ("f6", 0x61),
         ("f7", 0x62), ("f8", 0x64), ("f9", 0x65), ("f10", 0x6D), ("f11", 0x67), ("f12", 0x6F),
         ("left", 0x7B), ("right", 0x7C), ("down", 0x7D), ("up", 0x7E),
+        ("keypad-enter", 0x4C), ("home", 0x73), ("end", 0x77), ("pageup", 0x74), ("pagedown", 0x79),
     ]
     static let aliases: [String: String] = [
         "=": "equal", "-": "minus", "enter": "return", "esc": "escape", ",": "comma", ".": "period",
