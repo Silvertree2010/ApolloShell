@@ -87,7 +87,7 @@ final class NexusPanelModel {
 }
 
 /// The panel itself: the openers, the tabs, one page of cards, and at the
-/// bottom Shortcuts and Quit.
+/// bottom Shortcuts, Restart and Quit.
 struct NexusPanelView: View {
     static let width: CGFloat = 380
     static let padding: CGFloat = 14
@@ -244,7 +244,7 @@ struct NexusPanelView: View {
 
     private var footer: some View {
         HStack(spacing: 8) {
-            footerButton("Shortcuts…", "keyboard") { model.run(model.actions.shortcuts) }
+            footerButton("Shortcuts", "keyboard") { model.run(model.actions.shortcuts) }
             footerButton("Restart", "arrow.clockwise") { Self.relaunch() }
             footerButton("Quit", "power") { NSApp.terminate(nil) }
         }
