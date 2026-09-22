@@ -42,6 +42,12 @@ if mode == "echo-socket", args.count > 1 {
 // Read-only: which desktop is shown and where every normal window lives.
 if mode == "spaces" {
     print("shown desktop: \(Spaces.current().map(String.init) ?? "unknown"), order: \(Spaces.ordered())")
+    for display in Spaces.displays() {
+        print("display \(display.uuid): shows \(display.current), desktops \(display.desktops)")
+    }
+    for screen in NSScreen.screens {
+        print("screen \(Spaces.uuid(of: screen) ?? "?") frame \(screen.frame) visible \(screen.visibleFrame)")
+    }
     let infos = CGWindowListCopyWindowInfo([.excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
     for info in infos where (info[kCGWindowLayer as String] as? Int) == 0 {
         guard let id = info[kCGWindowNumber as String] as? CGWindowID,
@@ -53,7 +59,7 @@ if mode == "spaces" {
     if let area = WindowDiscovery.mainArea() {
         for pass in 1...2 {
             let start = CACurrentMediaTime()
-            let found = WindowDiscovery.allDesktopWindows(in: area)
+            let found = WindowDiscovery.allDesktopWindows(on: [area])
             print(String(format: "all desktops, pass %d: %d windows in %.0f ms", pass, found.count, (CACurrentMediaTime() - start) * 1000))
             if pass == 2 { for f in found { print("  desktop \(f.space): \(f.window.title)") } }
         }

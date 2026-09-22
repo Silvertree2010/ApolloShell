@@ -54,26 +54,111 @@ public final class TilingEngine {
         public init() {}
     }
 
-    public let screenArea: CGRect
+    /// Usable area of the main display (menu bar and Dock excluded).
+    public private(set) var screenArea: CGRect
     public var options: Options
 
-    /// The whole display, top-left coordinates (menu bar and Dock included).
+    /// The whole main display, top-left coordinates (menu bar and Dock included).
     public var screenBounds: CGRect {
-        guard let frame = NSScreen.screens.first?.frame else { return screenArea }
-        return CGRect(x: frame.minX, y: 0, width: frame.width, height: frame.height)
+        screens.first?.bounds ?? screenArea
     }
 
-    /// Where tiles go. The host's reserved edges count from the display's
-    /// edge, not on top of what macOS already keeps free: a Dock on the left
-    /// (62 pt) and ApolloShell's sidebar (44 pt) overlap, they do not add up.
-    public var area: CGRect {
+    /// Where tiles go on the main display. See usable(visible:bounds:).
+    public var area: CGRect { usable(visible: screenArea, bounds: screenBounds) }
+
+    /// The host's reserved edges count from the display's edge, not on top
+    /// of what macOS already keeps free: a Dock on the left (62 pt) and
+    /// ApolloShell's sidebar (44 pt) overlap, they do not add up.
+    private func usable(visible: CGRect, bounds: CGRect) -> CGRect {
         let r = options.reserved
-        let bounds = screenBounds
-        let left = max(screenArea.minX, bounds.minX + r.left)
-        let top = max(screenArea.minY, bounds.minY + r.top)
-        let right = min(screenArea.maxX, bounds.maxX - r.right)
-        let bottom = min(screenArea.maxY, bounds.maxY - r.bottom)
+        let left = max(visible.minX, bounds.minX + r.left)
+        let top = max(visible.minY, bounds.minY + r.top)
+        let right = min(visible.maxX, bounds.maxX - r.right)
+        let bottom = min(visible.maxY, bounds.maxY - r.bottom)
         return CGRect(x: left, y: top, width: right - left, height: bottom - top)
+    }
+
+    // MARK: Displays
+
+    /// A display, in top-left coordinates.
+    public struct Screen: Sendable, Equatable {
+        /// The window server's UUID for it.
+        public let uuid: String
+        /// The whole display.
+        public let bounds: CGRect
+        /// Without the menu bar and the Dock.
+        public let visible: CGRect
+    }
+
+    /// Every display, the main one (with the menu bar) first.
+    public private(set) var screens: [Screen] = []
+    /// Which display each known desktop belongs to.
+    private var displayOfSpace: [SpaceID: String] = [:]
+    /// Each display's desktops in Mission Control order.
+    private var desktopOrder: [String: [SpaceID]] = [:]
+    /// The desks shown on the other displays right now (the main display's
+    /// is `desk`). Empty with one display.
+    public private(set) var otherShown: [Desk] = []
+
+    /// Every desk on screen right now, the main display's first.
+    public var shownDesks: [Desk] { [desk] + otherShown }
+
+    public func isShown(_ desk: Desk) -> Bool { desk == self.desk || otherShown.contains(desk) }
+
+    /// Reads the displays and the desktop each one shows. Call it when
+    /// displays or desktops change.
+    public func updateDisplays() {
+        screens = NSScreen.screens.compactMap { screen in
+            guard let uuid = Spaces.uuid(of: screen), let primary = NSScreen.screens.first else { return nil }
+            func flipped(_ r: CGRect) -> CGRect {
+                CGRect(x: r.minX, y: primary.frame.maxY - r.maxY, width: r.width, height: r.height)
+            }
+            return Screen(uuid: uuid, bounds: flipped(screen.frame), visible: flipped(screen.visibleFrame))
+        }
+        if let main = screens.first { screenArea = main.visible }
+        let displays = Spaces.displays()
+        displayOfSpace = [:]
+        desktopOrder = Dictionary(displays.map { ($0.uuid, $0.desktops) }) { first, _ in first }
+        for display in displays {
+            for space in display.desktops + [display.current] { displayOfSpace[space] = display.uuid }
+        }
+        let mainUUID = screens.first?.uuid
+        let known = Set(screens.map(\.uuid))
+        let others = displays.filter { $0.uuid != mainUUID && known.contains($0.uuid) }
+            .map { Desk(space: $0.current, workspace: activeWorkspace[$0.current] ?? 1) }
+        if others != otherShown {
+            if !otherShown.isEmpty || !others.isEmpty { log("other displays show \(others)") }
+            otherShown = others
+            lastSpaceSwitch = CACurrentMediaTime()
+        }
+    }
+
+    /// Where tiles go on the display that shows (or holds) `desk`.
+    public func area(of desk: Desk) -> CGRect {
+        guard let uuid = displayOfSpace[desk.space], let screen = screens.first(where: { $0.uuid == uuid }),
+              screen != screens.first else { return area }
+        return usable(visible: screen.visible, bounds: screen.bounds)
+    }
+
+    /// The whole usable area of `desk`'s display, inside the outer gap.
+    private func fullArea(of desk: Desk) -> CGRect {
+        area(of: desk).insetBy(dx: options.gaps.outer, dy: options.gaps.outer)
+    }
+
+    /// The shown desk whose display holds `point` (the main one otherwise).
+    public func desk(at point: CGPoint) -> Desk {
+        for shown in otherShown where area(of: shown) != area {
+            guard let uuid = displayOfSpace[shown.space],
+                  let screen = screens.first(where: { $0.uuid == uuid }), screen.bounds.contains(point) else { continue }
+            return shown
+        }
+        return desk
+    }
+
+    /// The usable area of the display a frame is mostly on.
+    private func area(containing frame: CGRect?) -> CGRect {
+        guard let frame else { return area }
+        return area(of: desk(at: CGPoint(x: frame.midX, y: frame.midY)))
     }
     /// One layout per desktop. Only `space`'s windows are arranged; the others
     /// keep their tiles until their desktop is shown again.
@@ -161,6 +246,7 @@ public final class TilingEngine {
     public init(area: CGRect, options: Options = Options()) {
         self.screenArea = area
         self.options = options
+        updateDisplays()
     }
 
     // MARK: Layout
@@ -225,10 +311,11 @@ public final class TilingEngine {
             relayout()
             return
         }
-        let shown = target == desk
+        let shown = isShown(target)
+        let targetArea = area(of: target)
         layouts.assign(id, to: target) { tree in
             if let point, shown {
-                tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
+                tree.insert(id, at: point, in: targetArea, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
             } else {
                 tree.insert(id)
             }
@@ -323,7 +410,8 @@ public final class TilingEngine {
     /// Floats `window` where it is, kept inside the usable area.
     private func makeFloating(_ window: AXWindow, reason: String, on target: Desk) {
         let id = window.windowID
-        var frame = window.serverFrame ?? defaultFloatFrame(for: id)
+        let area = area(of: target)
+        var frame = window.serverFrame ?? defaultFloatFrame(for: id, on: target)
         frame.origin.x = min(max(frame.minX, area.minX), max(area.maxX - frame.width, area.minX))
         frame.origin.y = min(max(frame.minY, area.minY), max(area.maxY - frame.height, area.minY))
         floating[id] = Floating(desk: target, frame: frame)
@@ -335,7 +423,7 @@ public final class TilingEngine {
     /// that cannot be resized, or whose minimum and maximum are the same,
     /// then leaves the layout and floats.
     private func inspect(_ window: AXWindow) {
-        let largest = area.insetBy(dx: options.gaps.outer, dy: options.gaps.outer)
+        let largest = area(containing: window.serverFrame).insetBy(dx: options.gaps.outer, dy: options.gaps.outer)
         worker(for: window.pid).run { [weak self] in
             let limits = window.measureLimits(largest: largest)
             let resizable = window.isResizable
@@ -364,7 +452,7 @@ public final class TilingEngine {
             makeFloating(window, reason: resizable ? "fixed size" : "not resizable", on: home)
             dirtyDesks.insert(home)
         } else if let home = layouts.space(of: id), group(of: id) == nil,
-                  !layouts[home].fits(in: area, gaps: options.gaps, minimums: layoutMinimums),
+                  !layouts[home].fits(in: area(of: home), gaps: options.gaps, minimums: layoutMinimums),
                   let sibling = layouts[home].sibling(of: id) {
             // Not enough room next to its neighbor: share its tile as a tab
             // instead of overlapping.
@@ -516,10 +604,10 @@ public final class TilingEngine {
     public func activeWindow() -> ActiveWindow? {
         guard let id = focused, id != dragging, id != resizing else { return nil }
         guard var frame = springs[id]?.current ?? targetFrames()[id], parked[id] == nil else { return nil }
-        if let group = group(of: id), layouts.space(of: group.active) == desk {
+        if let group = group(of: id), let home = layouts.space(of: group.active), isShown(home) {
             frame = CGRect(x: frame.minX, y: frame.minY - options.tabBarHeight,
                            width: frame.width, height: frame.height + options.tabBarHeight)
-        } else if let home = desk(of: id), home != desk {
+        } else if let home = desk(of: id), !isShown(home) {
             return nil
         }
         return ActiveWindow(windowID: id, frame: frame)
@@ -581,7 +669,7 @@ public final class TilingEngine {
     /// The tab bars of the shown desktop, following their windows mid-glide.
     public func tabBars() -> [TabBar] {
         groups.compactMap { group in
-            guard layouts.space(of: group.active) == desk, dragging != group.active,
+            guard let home = layouts.space(of: group.active), isShown(home), dragging != group.active,
                   let frame = springs[group.active]?.current ?? targetFrames()[group.active] else { return nil }
             let tabs = group.members.compactMap { id in
                 windows[id].map { Tab(windowID: id, title: $0.title, pid: $0.pid) }
@@ -655,7 +743,7 @@ public final class TilingEngine {
             leaveGroup(id)
             let beside = group.members.first { $0 != id && layouts.space(of: $0) != nil }
             layouts.assign(id, to: home) { $0.insert(id, splitting: beside) }
-        } else if tree.contains(id), let sibling = tree.sibling(of: id) {
+        } else if let home = layouts.space(of: id), let sibling = layouts[home].sibling(of: id) {
             layouts.remove(id)
             join(id, with: sibling)
         }
@@ -689,7 +777,7 @@ public final class TilingEngine {
     }
 
     private func performRelayout() {
-        layouts[desk].freezeDirections(in: area, gaps: options.gaps)
+        for shown in shownDesks { layouts[shown].freezeDirections(in: area(of: shown), gaps: options.gaps) }
         arrangeHiddenDesks()
         let frames = targetFrames()
         let held = [dragging, resizing]
@@ -730,15 +818,17 @@ public final class TilingEngine {
     /// The managed window under `point`: floating windows first (they sit
     /// on top), then a fullscreen one, then the tiles.
     public func window(at point: CGPoint) -> CGWindowID? {
-        if let id = floating.first(where: { $0.value.desk == desk && $0.value.frame.contains(point) })?.key {
+        if let id = floating.first(where: { isShown($0.value.desk) && $0.value.frame.contains(point) })?.key {
             return id
         }
-        if let id = fullscreen[desk], tree.contains(id) { return id }
-        return tree.id(at: point, in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
+        let here = desk(at: point)
+        if let id = fullscreen[here], layouts[here].contains(id) { return id }
+        return layouts[here].id(at: point, in: area(of: here), gaps: options.gaps,
+                                minimums: layoutMinimums, maximums: maximums)
     }
 
-    /// The whole usable area, inside the outer gap.
-    private var fullArea: CGRect { area.insetBy(dx: options.gaps.outer, dy: options.gaps.outer) }
+    /// The whole usable area of the main display, inside the outer gap.
+    private var fullArea: CGRect { fullArea(of: desk) }
 
     /// Where the engine last put the window (nil while dragged or unknown).
     public func expectedFrame(of id: CGWindowID) -> CGRect? {
@@ -749,6 +839,7 @@ public final class TilingEngine {
     /// fullscreen window over its tile, then floating windows.
     public func targetFrames() -> [CGWindowID: CGRect] {
         var frames = frames(on: desk)
+        for other in otherShown { frames.merge(self.frames(on: other)) { first, _ in first } }
         // Windows of this desktop's other workspaces go (or stay) aside.
         var aside: [CGWindowID: Int] = [:]
         for (id, home) in layouts.spaceOf where home.space == space && home.workspace != workspace {
@@ -805,8 +896,9 @@ public final class TilingEngine {
     /// Hidden desktops change too (a window closed there, a new one opened):
     /// their windows are put straight into place, nobody sees a glide.
     private func arrangeHiddenDesks() {
-        for hidden in dirtyDesks where hidden != desk && hidden.space != space {
-            layouts[hidden].freezeDirections(in: area, gaps: options.gaps)
+        let shownSpaces = Set(shownDesks.map(\.space))
+        for hidden in dirtyDesks where !isShown(hidden) && !shownSpaces.contains(hidden.space) {
+            layouts[hidden].freezeDirections(in: area(of: hidden), gaps: options.gaps)
             for (id, frame) in frames(on: hidden) where windows[id] != nil { write(id, frame) }
         }
         dirtyDesks.removeAll()
@@ -815,9 +907,10 @@ public final class TilingEngine {
     /// Where the windows of `desk` go when it is shown: tiles, a fullscreen
     /// window over its tile, floating windows.
     public func frames(on desk: Desk) -> [CGWindowID: CGRect] {
-        var frames = layouts[desk].layout(in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
+        var frames = layouts[desk].layout(in: area(of: desk), gaps: options.gaps,
+                                          minimums: layoutMinimums, maximums: maximums)
         if let id = fullscreen[desk], frames[id] != nil {
-            frames[id] = DwindleTree<CGWindowID>.centered(fullArea, maximum: maximums[id])
+            frames[id] = DwindleTree<CGWindowID>.centered(fullArea(of: desk), maximum: maximums[id])
         }
         for (id, state) in floating where state.desk == desk {
             frames[id] = state.frame
@@ -920,13 +1013,15 @@ public final class TilingEngine {
     /// The managed window next to `id` on screen in `direction`, on the
     /// shown desktop (tiles and floating windows).
     public func neighbor(of id: CGWindowID, _ direction: Direction) -> CGWindowID? {
-        let frames = frames(on: desk).filter { windows[$0.key] != nil }
-        return Neighbors.neighbor(of: id, direction, in: frames)
+        var frames: [CGWindowID: CGRect] = [:]
+        for shown in shownDesks { frames.merge(self.frames(on: shown)) { first, _ in first } }
+        return Neighbors.neighbor(of: id, direction, in: frames.filter { windows[$0.key] != nil })
     }
 
     /// Focus the next window in reading order (tiles, then floating ones).
     public func cycleFocus(from id: CGWindowID?) {
-        let order = tree.ids + floating.filter { $0.value.desk == desk }.map(\.key).sorted()
+        let home = id.flatMap { desk(of: $0) }.flatMap { isShown($0) ? $0 : nil } ?? desk
+        let order = layouts[home].ids + floating.filter { $0.value.desk == home }.map(\.key).sorted()
         guard !order.isEmpty else { return }
         let next = id.flatMap { order.firstIndex(of: $0) }.map { (order.index(after: $0)) % order.count } ?? 0
         focus(order[next])
@@ -934,18 +1029,18 @@ public final class TilingEngine {
 
     /// Swaps a tiled window with its tiled neighbor in `direction`.
     public func swap(_ id: CGWindowID, _ direction: Direction) {
-        guard tree.contains(id) else { return }
-        let tiles = tree.layout(in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
+        guard let home = layouts.space(of: id) else { return }
+        let tiles = layouts[home].layout(in: area(of: home), gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
         guard let other = Neighbors.neighbor(of: id, direction, in: tiles) else { return }
         log("swap \(windows[id]?.title ?? "\(id)") with \(windows[other]?.title ?? "\(other)")")
-        layouts[desk].swap(id, other)
+        layouts[home].swap(id, other)
         relayout()
     }
 
     /// Turns the split that holds `id` (side by side ↔ stacked).
     public func toggleSplit(of id: CGWindowID) {
-        guard tree.contains(id) else { return }
-        layouts[desk].toggleSplit(of: id)
+        guard let home = layouts.space(of: id) else { return }
+        layouts[home].toggleSplit(of: id)
         relayout()
     }
 
@@ -959,7 +1054,9 @@ public final class TilingEngine {
     /// `fraction` of the area's width and height. A tile moves the edge that
     /// has a neighbor; a floating window grows around its center.
     public func grow(_ id: CGWindowID, by fraction: CGSize) {
-        guard dragging == nil, resizing == nil else { return }
+        guard dragging == nil, resizing == nil, let home = desk(of: id) else { return }
+        let area = area(of: home)
+        let fullArea = fullArea(of: home)
         let delta = CGSize(width: area.width * fraction.width, height: area.height * fraction.height)
         if var state = floating[id] {
             let minimum = minimums[id] ?? CGSize(width: 120, height: 80)
@@ -970,9 +1067,9 @@ public final class TilingEngine {
             floating[id] = state
         } else {
             let tile = group(of: id)?.active ?? id
-            guard tree.contains(tile) else { return }
-            if fullscreen[desk] == tile { fullscreen[desk] = nil }
-            layouts[desk].grow(tile, by: delta, in: area, gaps: options.gaps)
+            guard layouts[home].contains(tile) else { return }
+            if fullscreen[home] == tile { fullscreen[home] = nil }
+            layouts[home].grow(tile, by: delta, in: area, gaps: options.gaps)
         }
         relayout()
     }
@@ -992,15 +1089,17 @@ public final class TilingEngine {
             }
             lastFloatFrame[id] = state.frame
             let frame = window.serverFrame ?? state.frame
-            layouts.assign(id, to: desk) { tree in
+            let home = state.desk
+            let area = area(of: home)
+            layouts.assign(id, to: home) { tree in
                 tree.insert(id, at: CGPoint(x: frame.midX, y: frame.midY), in: area, gaps: options.gaps,
                             minimums: layoutMinimums, maximums: maximums)
             }
             log("tiled: \(window.title)")
-        } else if tree.contains(id) {
-            if fullscreen[desk] == id { fullscreen[desk] = nil }
+        } else if let home = layouts.space(of: id) {
+            if fullscreen[home] == id { fullscreen[home] = nil }
             layouts.remove(id)
-            floating[id] = Floating(desk: desk, frame: lastFloatFrame[id] ?? defaultFloatFrame(for: id))
+            floating[id] = Floating(desk: home, frame: lastFloatFrame[id] ?? defaultFloatFrame(for: id, on: home))
             raise(id)
             log("floating: \(window.title)")
         }
@@ -1008,7 +1107,9 @@ public final class TilingEngine {
     }
 
     /// `share` (60%) of the area, centered, within the window's own limits.
-    private func defaultFloatFrame(for id: CGWindowID, share: CGFloat = 0.6) -> CGRect {
+    private func defaultFloatFrame(for id: CGWindowID, share: CGFloat = 0.6, on home: Desk? = nil) -> CGRect {
+        let area = area(of: home ?? desk)
+        let fullArea = fullArea(of: home ?? desk)
         let minimum = minimums[id] ?? .zero
         let maximum = maximums[id] ?? .infinite
         let width = min(max(area.width * share, minimum.width), maximum.width, fullArea.width)
@@ -1019,12 +1120,12 @@ public final class TilingEngine {
     /// Lets a tiled window fill the whole area (inside the outer gap, not
     /// macOS fullscreen), or sends it back to its tile.
     public func toggleFullscreen(_ id: CGWindowID) {
-        guard let window = windows[id], tree.contains(id), dragging == nil, resizing == nil else { return }
-        if fullscreen[desk] == id {
-            fullscreen[desk] = nil
+        guard let window = windows[id], let home = layouts.space(of: id), dragging == nil, resizing == nil else { return }
+        if fullscreen[home] == id {
+            fullscreen[home] = nil
             log("fullscreen off: \(window.title)")
         } else {
-            fullscreen[desk] = id
+            fullscreen[home] = id
             raise(id)
             log("fullscreen: \(window.title)")
         }
@@ -1035,7 +1136,6 @@ public final class TilingEngine {
 
     /// Every managed window as a JSON array, for the command socket.
     public func describeWindows() -> String {
-        let order = knownSpaceOrder
         let shown = targetFrames()
         let items: [[String: Any]] = windows.values.sorted { $0.windowID < $1.windowID }.map { window in
             let id = window.windowID
@@ -1049,7 +1149,10 @@ public final class TilingEngine {
                 "scratchpad": scratchpad == id,
             ]
             if let home = desk(of: id) {
+                let display = displayOfSpace[home.space]
+                let order = display.flatMap { desktopOrder[$0] } ?? knownSpaceOrder
                 item["desktop"] = (order.firstIndex(of: home.space) ?? -1) + 1
+                item["display"] = (screens.firstIndex { $0.uuid == display } ?? 0) + 1
                 item["fullscreen"] = fullscreen[home] == id
             }
             if let group = group(of: id) { item["group"] = group.members.map { Int($0) } }
@@ -1165,9 +1268,9 @@ public final class TilingEngine {
             relayout()
             return
         }
-        guard tree.contains(id) else { return }
+        guard let home = layouts.space(of: id) else { return }
         dragging = id
-        if fullscreen[desk] == id { fullscreen[desk] = nil }
+        if fullscreen[home] == id { fullscreen[home] = nil }
         layouts.remove(id)
         windows[id]?.invalidateCache()
         log("drag start: \(windows[id]?.title ?? "\(id)")")
@@ -1181,7 +1284,7 @@ public final class TilingEngine {
         dragging = nil
         if var state = floating[id] {
             state.frame = windows[id]?.serverFrame ?? state.frame
-            state.desk = desk
+            state.desk = desk(at: point)
             floating[id] = state
             windows[id]?.invalidateCache()
             publishActive()
@@ -1191,12 +1294,15 @@ public final class TilingEngine {
         // would stick. Dropping it gives it a fresh chance.
         maximums[id] = nil
         // Dropped on the middle of a tile: it joins that tile as a tab.
-        let tiles = tree.tiles(in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
+        // The display under the mouse takes it (dragging over to another display).
+        let home = desk(at: point)
+        let area = area(of: home)
+        let tiles = layouts[home].tiles(in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
         if let (target, tile) = tiles.first(where: { $0.value.insetBy(dx: $0.value.width * 0.3, dy: $0.value.height * 0.3).contains(point) }) {
             _ = tile
             join(id, with: target)
         } else {
-            layouts.assign(id, to: desk) { tree in
+            layouts.assign(id, to: home) { tree in
                 tree.insert(id, at: point, in: area, gaps: options.gaps, minimums: layoutMinimums, maximums: maximums)
             }
         }
@@ -1213,12 +1319,13 @@ public final class TilingEngine {
     /// The user grabbed an edge of `id`. From now on the window follows the
     /// mouse (macOS resizes it) and its neighbors follow the window.
     public func beginResize(_ id: CGWindowID) {
-        guard dragging == nil, resizing == nil, tree.contains(id) || floating[id] != nil else { return }
+        guard dragging == nil, resizing == nil, layouts.space(of: id) != nil || floating[id] != nil else { return }
         dropProxy(id)
-        if fullscreen[desk] == id { fullscreen[desk] = nil }
+        let home = desk(of: id) ?? desk
+        if fullscreen[home] == id { fullscreen[home] = nil }
         resizing = id
         if let frame = windows[id]?.serverFrame,
-           let tile = layouts[desk].tiles(in: area, gaps: options.gaps)[id] {
+           let tile = layouts[home].tiles(in: area(of: home), gaps: options.gaps)[id] {
             resizeStart = (frame, tile)
         }
         log("resize start: \(windows[id]?.title ?? "\(id)")")
@@ -1240,8 +1347,10 @@ public final class TilingEngine {
         // against the window's own frame then. Compared with the tile, a
         // window that never matched it exactly (a minimum size, centered)
         // looked as if every edge moved, and the layout jumped.
+        let home = desk(of: id) ?? desk
+        let area = area(of: home)
         guard let start = resizeStart else {
-            layouts[desk].resize(id, to: frame, in: area, gaps: options.gaps)
+            layouts[home].resize(id, to: frame, in: area, gaps: options.gaps)
             relayout()
             return
         }
@@ -1252,7 +1361,7 @@ public final class TilingEngine {
         if abs(right) > 1 { target.size.width += right }
         if abs(top) > 1 { target.origin.y += top; target.size.height -= top }
         if abs(bottom) > 1 { target.size.height += bottom }
-        layouts[desk].resize(id, to: target, in: area, gaps: options.gaps)
+        layouts[home].resize(id, to: target, in: area, gaps: options.gaps)
         relayout()
     }
 
@@ -1325,7 +1434,7 @@ public final class TilingEngine {
 
     /// Just past the right screen edge, same height on screen.
     private func parkedOrigin(for frame: CGRect) -> CGPoint {
-        CGPoint(x: screenArea.maxX - 1, y: frame.minY)
+        CGPoint(x: (screens.map(\.bounds.maxX).max() ?? screenArea.maxX) - 1, y: frame.minY)
     }
 
     /// The glide is over: resize the real windows off screen, give the apps
@@ -1417,7 +1526,7 @@ public final class TilingEngine {
 
     private func refreshSnapshots() {
         guard options.resize == .proxy, !isAnimating, proxied.isEmpty, dragging == nil else { return }
-        proxies.refresh(tree.ids + floating.filter { $0.value.desk == desk }.map(\.key))
+        proxies.refresh(shownDesks.flatMap { layouts[$0].ids } + floating.filter { isShown($0.value.desk) }.map(\.key))
     }
 
     // MARK: Animation loop
@@ -1503,8 +1612,12 @@ public final class TilingEngine {
         // Tiled and grouped windows (a group's sit below its tab bar); not a
         // fullscreen window, which is bigger than its tile on purpose.
         let grouped = Set(groups.flatMap(\.members))
-        var targets = frames(on: desk).filter { tree.contains($0.key) || grouped.contains($0.key) }
-        if let id = fullscreen[desk] { targets[id] = nil }
+        var targets: [CGWindowID: CGRect] = [:]
+        for shown in shownDesks {
+            let tiled = Set(layouts[shown].ids)
+            targets.merge(frames(on: shown).filter { tiled.contains($0.key) || grouped.contains($0.key) }) { a, _ in a }
+            if let id = fullscreen[shown] { targets[id] = nil }
+        }
         var misfits: [CGWindowID] = []
         var moved: [CGWindowID] = []
         var changed = false

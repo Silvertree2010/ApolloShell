@@ -99,7 +99,7 @@ public enum WindowDiscovery {
         public let space: SpaceID
     }
 
-    /// Normal windows on every desktop of the main display, shown or not,
+    /// Normal windows on every desktop of every display, shown or not,
     /// sorted left to right. Accessibility only lists the shown desktop's
     /// windows, so the others are reached the way yabai does it: an element
     /// made from a remote token (pid, 0, "coco", element number), probing
@@ -107,9 +107,9 @@ public enum WindowDiscovery {
     /// app is found. Found elements are cached, so later scans only probe
     /// for new windows. Costs 20-80 ms per app the first time (measured);
     /// call it off the main thread.
-    public static func allDesktopWindows(in area: CGRect) -> [Found] {
+    public static func allDesktopWindows(on screens: [CGRect]) -> [Found] {
         let own = getpid()
-        let desktops = Set(Spaces.ordered())
+        let desktops = Set(Spaces.displays().flatMap(\.desktops)).union(Spaces.ordered())
         let infos = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements],
                                                kCGNullWindowID) as? [[String: Any]] ?? []
         var wanted: [pid_t: Set<CGWindowID>] = [:]
@@ -136,8 +136,8 @@ public enum WindowDiscovery {
                       element.bool("AXFullScreen") != true,
                       let window = AXWindow(element: element, pid: pid), window.windowID == id,
                       let frame = window.serverFrame,
-                      // On the main display (hidden desktops keep coordinates).
-                      frame.midX >= area.minX, frame.midX <= area.maxX,
+                      // On a display (hidden desktops keep their coordinates).
+                      screens.isEmpty || screens.contains(where: { $0.contains(CGPoint(x: frame.midX, y: frame.midY)) }),
                       let space = spaceOf[id] else { continue }
                 result.append(Found(window: window, space: space))
             }

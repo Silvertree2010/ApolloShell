@@ -45,7 +45,10 @@ public final class WindowWatcher {
             center.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated {
                     guard let self, let space = Spaces.current() else { return }
+                    // Another display may have switched instead of the main one.
+                    self.engine.updateDisplays()
                     self.engine.switchSpace(to: space)
+                    self.engine.relayout()
                     // Windows of the new desktop are on screen only after the switch animation.
                     self.reconcileSoon()
                 }
@@ -62,6 +65,17 @@ public final class WindowWatcher {
                 }
             },
         ]
+        workspaceTokens.append(NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.log("displays changed")
+                self.engine.updateDisplays()
+                self.engine.relayout()
+                self.reconcileSoon()
+            }
+        })
         let timer = Timer(timeInterval: 3, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 // A full scan costs a few ms per app; never during a glide or drag.
@@ -80,7 +94,10 @@ public final class WindowWatcher {
     public func stop() {
         safetyTimer?.invalidate()
         safetyTimer = nil
-        for token in workspaceTokens { NSWorkspace.shared.notificationCenter.removeObserver(token) }
+        for token in workspaceTokens {
+            NSWorkspace.shared.notificationCenter.removeObserver(token)
+            NotificationCenter.default.removeObserver(token)
+        }
         workspaceTokens = []
         for observer in observers.values {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
@@ -169,11 +186,11 @@ public final class WindowWatcher {
             return
         }
         scanning = true
-        let area = engine.screenArea
+        let screens = engine.screens.isEmpty ? [engine.screenArea] : engine.screens.map(\.bounds)
         let tracked = engine.windows
         Task.detached(priority: .userInitiated) { [weak self] in
             let order = Spaces.ordered()
-            let found = WindowDiscovery.allDesktopWindows(in: area)
+            let found = WindowDiscovery.allDesktopWindows(on: screens)
             let foundIDs = Set(found.map(\.window.windowID))
             var spaces: [CGWindowID: SpaceID] = [:]
             for item in found { spaces[item.window.windowID] = item.space }
@@ -230,7 +247,7 @@ public final class WindowWatcher {
         // Everything on this desktop gone at once means Show Desktop or
         // Mission Control pushed the windows aside; they come back, so they
         // keep their tiles.
-        let shown = engine.tree.ids
+        let shown = engine.shownDesks.flatMap { engine.layouts[$0].ids }
         let allAside = !shown.isEmpty && shown.allSatisfy { !foundIDs.contains($0) }
 
         for (id, state) in missing where engine.windows[id] != nil && id != engine.dragging {
@@ -276,10 +293,11 @@ public final class WindowWatcher {
         for item in fresh {
             log("opened: \(item.window.title.isEmpty ? "\(item.window.windowID)" : item.window.title) (desktop \(item.space))")
         }
-        let onShown = fresh.filter { $0.space == engine.space }
+        let shownSpaces = Set(engine.shownDesks.map(\.space))
+        let onShown = fresh.filter { shownSpaces.contains($0.space) }
         if onShown.count == 1, fresh.count == 1, !engine.isSwitchingSpace {
             // One newly opened window: it splits the tile under the mouse.
-            engine.add(onShown[0].window, at: CGEvent(source: nil)?.location)
+            engine.add(onShown[0].window, at: CGEvent(source: nil)?.location, on: onShown[0].space)
         } else {
             // Several at once (start, a desktop seen for the first time): each
             // desktop keeps the order its windows already have on screen.

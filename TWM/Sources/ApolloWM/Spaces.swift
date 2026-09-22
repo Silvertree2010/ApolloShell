@@ -44,6 +44,39 @@ public enum Spaces {
             .compactMap { ($0["id64"] as? NSNumber)?.uint64Value }
     }
 
+    /// One display's desktops, as the window server lists them.
+    public struct Display: Sendable, Equatable {
+        /// The display's UUID ("Main" when all displays share their desktops).
+        public let uuid: String
+        /// The desktop shown on it right now.
+        public let current: SpaceID
+        /// Its normal desktops in Mission Control order (no full-screen apps).
+        public let desktops: [SpaceID]
+    }
+
+    /// Every display's desktops. Reading only, like the rest.
+    public static func displays() -> [Display] {
+        guard let raw = CGSCopyManagedDisplaySpaces(CGSMainConnectionID())?.takeRetainedValue()
+                as? [[String: Any]] else { return [] }
+        return raw.compactMap { entry in
+            guard let uuid = entry["Display Identifier"] as? String,
+                  let current = ((entry["Current Space"] as? [String: Any])?["id64"] as? NSNumber)?.uint64Value
+            else { return nil }
+            let spaces = entry["Spaces"] as? [[String: Any]] ?? []
+            let desktops = spaces.filter { ($0["type"] as? Int) == 0 }
+                .compactMap { ($0["id64"] as? NSNumber)?.uint64Value }
+            return Display(uuid: uuid, current: current, desktops: desktops)
+        }
+    }
+
+    /// The UUID the window server uses for a screen.
+    @MainActor
+    public static func uuid(of screen: NSScreen) -> String? {
+        guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
+              let uuid = CGDisplayCreateUUIDFromDisplayID(number.uint32Value)?.takeRetainedValue() else { return nil }
+        return CFUUIDCreateString(nil, uuid) as String?
+    }
+
     /// The Space a window lives on. Nil for unknown windows and for windows
     /// shown on every Space.
     public static func of(_ window: CGWindowID) -> SpaceID? {
