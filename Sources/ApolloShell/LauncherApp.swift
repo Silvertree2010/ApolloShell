@@ -306,7 +306,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // auch im Modal-Modus auf den Main-Runloop (gemessen 22.09. in der VM).
         let source = DispatchSource.makeSignalSource(signal: SIGTERM,
                                                      queue: DispatchQueue(label: AppIdentity.scoped("sigterm")))
-        source.setEventHandler {
+        // `@Sendable`: formed in this main-actor method, the closure would
+        // otherwise inherit the main actor, and Swift 6 checks that at run
+        // time - on the signal queue that check crashed every SIGTERM.
+        source.setEventHandler { @Sendable in
             RunLoop.main.perform(inModes: [.common, .modalPanel]) {
                 MainActor.assumeIsolated {
                     // Ein offener modaler Dialog laesst `terminate` sonst ins
