@@ -117,20 +117,35 @@ private final class TabBarPanel: ShellPanel {
         contentView = glass
     }
 
+    /// Called on every animation frame while the group glides: only what
+    /// changed is touched. Setting the model redraws SwiftUI, a synchronous
+    /// display and a re-order each cost a window-server round trip.
     func update(_ bar: TilingEngine.TabBar) {
-        model.tabs = bar.tabs
-        model.active = bar.active
+        if model.tabs != bar.tabs { model.tabs = bar.tabs }
+        if model.active != bar.active { model.active = bar.active }
         let height = NSScreen.screens.first?.frame.height ?? 0
         // The bar sits in the tile's top strip, a little inset.
         let frame = bar.frame.insetBy(dx: 0, dy: 2)
-        setFrame(NSRect(x: frame.minX, y: height - frame.maxY, width: frame.width, height: frame.height), display: true)
+        let rect = NSRect(x: frame.minX, y: height - frame.maxY, width: frame.width, height: frame.height)
+        if rect != self.frame { setFrame(rect, display: false) }
         if !themed {
             glassLayer = ThemedGlass.apply(to: glass, fallbackRadius: 10, previous: glassLayer)
             themed = true
         }
-        if !isVisible { orderFrontRegardless() }
+        let now = CACurrentMediaTime()
+        if !isVisible {
+            orderFrontRegardless()
+        } else if bar.active == orderedAbove, now - lastOrdered < 0.25 {
+            return
+        }
+        // Its window may have been raised over it meanwhile: order again
+        // a few times a second, not on every frame.
         order(.above, relativeTo: Int(bar.active))
+        orderedAbove = bar.active
+        lastOrdered = now
     }
+    private var orderedAbove: CGWindowID?
+    private var lastOrdered: CFTimeInterval = 0
 }
 
 @MainActor

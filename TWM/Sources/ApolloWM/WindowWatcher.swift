@@ -48,6 +48,7 @@ public final class WindowWatcher {
                     // Another display may have switched instead of the main one.
                     self.engine.updateDisplays()
                     self.engine.switchSpace(to: space)
+                    // switchSpace only relayouts when the main display changed.
                     self.engine.relayout()
                     // Windows of the new desktop are on screen only after the switch animation.
                     self.reconcileSoon()
@@ -155,13 +156,20 @@ public final class WindowWatcher {
         }
     }
 
+    /// Looks again a few times over the next second. A burst of
+    /// notifications (windows opening fast) restarts the series instead of
+    /// stacking up one per notification.
     private func reconcileSoon() {
-        for delay in [0.05, 0.25, 0.8, 1.2] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+        for work in pendingLooks { work.cancel() }
+        pendingLooks = [0.05, 0.25, 0.8, 1.2].map { delay in
+            let work = DispatchWorkItem { [weak self] in
                 MainActor.assumeIsolated { self?.reconcile() }
             }
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+            return work
         }
     }
+    private var pendingLooks: [DispatchWorkItem] = []
 
     // MARK: Reconcile
 

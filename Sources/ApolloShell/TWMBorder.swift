@@ -38,11 +38,22 @@ final class TWMBorder {
         let height = NSScreen.screens.first?.frame.height ?? 0
         // The stroke lies just outside the window.
         let frame = active.frame.insetBy(dx: -width, dy: -width)
-        panel.setFrame(NSRect(x: frame.minX, y: height - frame.maxY, width: frame.width, height: frame.height),
-                       display: false)
-        if !panel.isVisible { panel.orderFrontRegardless() }
+        let rect = NSRect(x: frame.minX, y: height - frame.maxY, width: frame.width, height: frame.height)
+        if rect != panel.frame { panel.setFrame(rect, display: false) }
+        // Re-ordering is a window-server round trip: on a new window, and a
+        // few times a second in case the window was raised over the border.
+        let now = CACurrentMediaTime()
+        if !panel.isVisible {
+            panel.orderFrontRegardless()
+        } else if active.windowID == orderedAbove, now - lastOrdered < 0.25 {
+            return
+        }
         panel.order(.above, relativeTo: Int(active.windowID))
+        orderedAbove = active.windowID
+        lastOrdered = now
     }
+    private var orderedAbove: CGWindowID?
+    private var lastOrdered: CFTimeInterval = 0
 }
 
 @MainActor

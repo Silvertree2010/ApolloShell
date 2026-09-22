@@ -600,14 +600,28 @@ public final class TilingEngine {
     /// another window). Asking which window has it is a round trip into the
     /// focused app, so it runs off the main thread.
     public func focusChanged() {
+        focusGeneration &+= 1
+        let generation = focusGeneration
         Task.detached(priority: .userInitiated) { [weak self] in
             let id = WindowDiscovery.focusedWindowID()
-            await MainActor.run { self?.noteFocused(id) }
+            await MainActor.run { self?.noteFocused(id, generation: generation) }
         }
     }
 
-    private func noteFocused(_ id: CGWindowID?) {
-        focused = id.flatMap { windows[$0] != nil ? $0 : nil }
+    /// Counts focus changes, so a slow answer to an older question (two
+    /// notifications for one change, a focus set by keys meanwhile) never
+    /// overwrites a newer state.
+    private var focusGeneration: UInt64 = 0
+
+    /// When the engine last focused a window on purpose (keys, a tab click).
+    /// Focus follows mouse stops insisting on its window after that.
+    public private(set) var lastDirectedFocus: CFTimeInterval = 0
+
+    private func noteFocused(_ id: CGWindowID?, generation: UInt64) {
+        guard generation == focusGeneration else { return }
+        let managed = id.flatMap { windows[$0] != nil ? $0 : nil }
+        guard managed != focused else { return }
+        focused = managed
         publishActive()
     }
 
@@ -1021,6 +1035,8 @@ public final class TilingEngine {
     public func focus(_ id: CGWindowID) {
         guard let window = windows[id] else { return }
         worker(for: window.pid).run { WindowFocus.focus(window) }
+        focusGeneration &+= 1
+        lastDirectedFocus = CACurrentMediaTime()
         focused = id
         publishActive()
     }
@@ -1405,12 +1421,17 @@ public final class TilingEngine {
         relayout()
         // Apps may apply the drag's last size a moment after the mouse is
         // up; look again once they had the time.
-        for delay in [0.1, 0.35, 0.8] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+        // A new resize replaces the looks still pending from the last one.
+        for work in resyncs { work.cancel() }
+        resyncs = [0.1, 0.35, 0.8].map { delay in
+            let work = DispatchWorkItem { [weak self] in
                 MainActor.assumeIsolated { self?.resyncFromServer() }
             }
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+            return work
         }
     }
+    private var resyncs: [DispatchWorkItem] = []
 
     // MARK: Proxy glides
 

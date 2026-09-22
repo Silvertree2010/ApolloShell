@@ -112,14 +112,34 @@ public final class FocusFollowsMouse {
         if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
     }
 
+    /// A point that arrived while a check was running; it is checked right
+    /// after, so a fast movement is never dropped.
+    private var waitingPoint: CGPoint?
+
     private func check(_ point: CGPoint) {
-        guard !checking, !suppressedUntilMove, NSEvent.pressedMouseButtons == 0,
+        if checking {
+            waitingPoint = point
+            return
+        }
+        guard !suppressedUntilMove, NSEvent.pressedMouseButtons == 0,
               !engine.isSwitchingSpace, engine.dragging == nil, engine.resizing == nil else { return }
         checking = true
         let own = getpid()
         let trace = ProcessInfo.processInfo.environment["APOLLOWM_TRACE"] == "1"
         let ignored = engine.ignored
-        let done: @MainActor @Sendable () -> Void = { [weak self] in self?.checking = false }
+        let done: @MainActor @Sendable () -> Void = { [weak self] in
+            guard let self else { return }
+            self.checking = false
+            if let next = self.waitingPoint {
+                self.waitingPoint = nil
+                self.check(next)
+            }
+        }
+        let started = CACurrentMediaTime()
+        let confirm: @MainActor @Sendable () -> Void = { [weak self] in self?.engine.focusChanged() }
+        let directedSince: @MainActor @Sendable () -> Bool = { [weak self] in
+            (self?.engine.lastDirectedFocus ?? 0) > started
+        }
         let markOurs: @MainActor @Sendable (pid_t) -> Void = { [weak self] pid in self?.ourActivation = pid }
         // Everything below asks other apps or the window server: off the main thread.
         Task.detached(priority: .userInitiated) {
@@ -142,12 +162,17 @@ public final class FocusFollowsMouse {
             await markOurs(window.pid)
             if trace { FileHandle.standardError.write(Data("focus: \(window.title)\n".utf8)) }
             WindowFocus.focus(window)
-            // Some apps push their own window back in front: up to twice more.
+            // Some apps push their own window back in front: up to twice more,
+            // unless the user focused something by keys or a tab meanwhile.
             for _ in 0..<2 {
                 try? await Task.sleep(for: .milliseconds(50))
+                if await directedSince() { break }
                 if WindowFocus.focusedWindowID() == window.windowID { break }
                 WindowFocus.focus(window)
             }
+            // The engine learns it from the app's notification too; this is
+            // in case one goes missing, so keys act on the right window.
+            await confirm()
         }
     }
 

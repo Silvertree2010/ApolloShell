@@ -114,8 +114,15 @@ public final class KeyBindings {
         default:
             break
         }
-        // The rest acts on the focused window. Asking which one that is is a
-        // round trip into the focused app, so it runs off the main thread.
+        // The rest acts on the focused window. The engine knows it when it is
+        // one of its own (it follows focus changes and sets it on every
+        // keyboard focus), so fast presses act one after the other at once;
+        // asking the app is a round trip and two quick presses would both
+        // see the old window. Closing acts on any window, so it always asks.
+        if action != .closeWindow, let id = engine.focused, let window = engine.windows[id] {
+            perform(action, on: window)
+            return
+        }
         Task.detached(priority: .userInitiated) { [weak self] in
             let focused = WindowDiscovery.focusedWindow()
             await MainActor.run { self?.perform(action, on: focused) }
