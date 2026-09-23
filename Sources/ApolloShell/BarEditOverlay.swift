@@ -9,15 +9,17 @@ import UniformTypeIdentifiers
 // blocks only while `editor.isEditing` holds - the calm bar stays exactly
 // the view it was (image comparison).
 
-/// Payload while dragging a block that is already in the bar. A different
+/// Payload while dragging a block that is already in a bar. A different
 /// prefix from the gallery's `apolloshell.bar:` (a kind): the drop target
-/// has to tell "move this block" from "insert a new one".
+/// has to tell "move this block" from "insert a new one". After the prefix
+/// `BarEntryRef.payload`: a sidebar block is still its bare id, an edge bar
+/// block names its zone too, so a block can be dropped into another bar.
 enum BarEntryDragPayload {
     static let prefix = "apolloshell.bar.entry:"
-    static func string(for id: String) -> String { prefix + id }
-    static func id(from string: String) -> String? {
+    static func string(for ref: BarEntryRef) -> String { prefix + ref.payload }
+    static func ref(from string: String) -> BarEntryRef? {
         guard string.hasPrefix(prefix) else { return nil }
-        return String(string.dropFirst(prefix.count))
+        return BarEntryRef(payload: String(string.dropFirst(prefix.count)))
     }
 }
 
@@ -38,7 +40,7 @@ struct EditableBarContent: View {
         let entries = layout.entries
         BarStack(spacing: spacing) {
             ForEach(entries) { entry in
-                EditableBarBlock(editor: editor, entry: entry, context: context,
+                EditableBarBlock(editor: editor, entry: entry, ref: .sidebar(entry.id), context: context,
                                  reduceMotion: reduceMotion, dragging: !rendersForScreenshot)
                     .layoutValue(key: BarFlexible.self, value: entry.kind.isFlexible)
             }
@@ -46,18 +48,21 @@ struct EditableBarContent: View {
         .animation(SidebarMotion.spatial, value: entries.map(\.id))
         // A block dragged out of the gallery that lands between two blocks,
         // or on the padding above and below, still arrives - at the end.
-        .modifier(BarAppendDropModifier(editor: editor, active: !rendersForScreenshot))
+        .modifier(BarAppendDropModifier(editor: editor, place: .sidebar, active: !rendersForScreenshot))
     }
 }
 
 /// One block while editing: it draws exactly what the calm bar draws, but
-/// its own controls do nothing - a click selects it instead.
-private struct EditableBarBlock: View {
+/// its own controls do nothing - a click selects it instead. The sidebar and
+/// the edge bars share it; `edge` is `nil` in the sidebar.
+struct EditableBarBlock: View {
     let editor: ShellEditor
     let entry: BarEntry
+    let ref: BarEntryRef
     let context: BarModuleContext
     let reduceMotion: Bool
     let dragging: Bool
+    var edge: BarEdge?
     @Environment(\.shellStyle) private var style
     @State private var isDeleting = false
     @State private var targeted = false
@@ -65,19 +70,23 @@ private struct EditableBarBlock: View {
     /// Every block wobbles a touch out of step, so the bar does not pulse
     /// as one piece (the dashboard widgets do the same).
     private var phase: Double { Double(abs(entry.id.hashValue) % 260) / 1000 }
-    private var isSelected: Bool { editor.selectedBarEntryID == entry.id }
-    private var showsOptions: Bool { isSelected && !isDeleting && entry.module.hasOptions }
+    private var isSelected: Bool { editor.selectedBarEntry == ref }
+    /// In an edge bar every block has an option: joining its neighbour.
+    private var showsOptions: Bool { isSelected && !isDeleting && (entry.module.hasOptions || edge != nil) }
+    /// A horizontal bar stretches its blocks across, not along: along they
+    /// keep their own length, as in the calm bar.
+    private var horizontal: Bool { edge?.isHorizontal ?? false }
 
     var body: some View {
         Button {
-            editor.selectedBarEntryID = isSelected ? nil : entry.id
+            editor.selectedBarEntry = isSelected ? nil : ref
         } label: {
             BarModuleView(entry: entry, context: context)
                 // The real action of the block belongs to the bar, not to
                 // the editor: while editing a click selects instead of
                 // opening the dashboard or switching a space.
                 .allowsHitTesting(false)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: horizontal ? nil : .infinity, maxHeight: horizontal ? .infinity : nil)
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -95,38 +104,54 @@ private struct EditableBarBlock: View {
         .editWobble(phase: phase, active: !reduceMotion)
         .opacity(isDeleting ? 0 : 1)
         .scaleEffect(isDeleting ? 0.6 : 1)
-        .modifier(BarEntryDragModifier(entry: entry, active: dragging))
-        .modifier(BarEntryDropModifier(editor: editor, entry: entry, targeted: $targeted, active: dragging))
+        .modifier(BarEntryDragModifier(ref: ref, active: dragging))
+        .modifier(BarEntryDropModifier(editor: editor, ref: ref, targeted: $targeted, active: dragging))
         .help(entry.kind.title)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(entry.kind.title)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        // Only lets go of its own selection: the popover closing because a
+        // block in another bar was just picked must not clear that pick.
         .popover(isPresented: Binding(
             get: { showsOptions },
-            set: { if !$0 { editor.selectedBarEntryID = nil } }
-        ), arrowEdge: .trailing) {
-            BarBlockOptionsView(editor: editor, entry: entry) { editor.selectedBarEntryID = nil }
+            set: { if !$0, isSelected { editor.selectedBarEntry = nil } }
+        ), arrowEdge: arrowEdge) {
+            BarBlockOptionsView(editor: editor, entry: entry, ref: ref) { editor.selectedBarEntry = nil }
+        }
+    }
+
+    /// Away from the screen edge the bar stands on.
+    private var arrowEdge: Edge {
+        switch edge {
+        case nil: .trailing
+        case .top: .bottom
+        case .bottom: .top
+        case .right: .leading
         }
     }
 
 
+    private var badgeSize: CGFloat { edge == nil ? 18 : 14 }
+
     private var minusBadge: some View {
         Button {
             withAnimation(.easeOut(duration: 0.18)) { isDeleting = true }
-            if isSelected { editor.selectedBarEntryID = nil }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { editor.removeBarModule(entry.id) }
+            if isSelected { editor.selectedBarEntry = nil }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { editor.removeBarEntry(ref) }
         } label: {
             Image(systemName: "minus")
-                .font(.system(size: 10, weight: .bold))
-                .frame(width: 18, height: 18)
+                .font(.system(size: edge == nil ? 10 : 8, weight: .bold))
+                .frame(width: badgeSize, height: badgeSize)
                 .background(EditBadge.background, in: .circle)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
         // Inside the block, not outside it: the bar is only
         // `Sidebar.width` wide (44 pt by default), and a badge hanging over
-        // the left edge would be cut off by the window.
-        .offset(x: 1, y: -4)
+        // the left edge would be cut off by the window. An edge bar is
+        // hardly thicker than its blocks, so its badge is smaller and stays
+        // within the block's corner.
+        .offset(x: 1, y: edge == nil ? -4 : 1)
         .help("Remove")
         .accessibilityLabel("Remove \(entry.kind.title)")
     }
@@ -172,18 +197,25 @@ extension View {
 // MARK: - Options of the selected block (popover)
 
 /// The same choices the Nexus bar editor offered, in a popover next to the
-/// block. It writes into the working copy (`ShellEditor.updateBarModule`),
+/// block. It writes into the working copy (`ShellEditor.updateBarEntry`),
 /// never into the settings - Cancel has to be able to drop them.
 struct BarBlockOptionsView: View {
     let editor: ShellEditor
     let entry: BarEntry
+    let ref: BarEntryRef
     let onDone: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(entry.kind.title)
                 .font(.headline)
-            rows
+            if ref.place != .sidebar {
+                joinToggle
+                if entry.module.hasOptions { Divider() }
+            }
+            if ref.place == .sidebar || entry.module.hasOptions {
+                rows
+            }
             HStack {
                 Spacer()
                 Button("Done", action: onDone)
@@ -257,7 +289,7 @@ struct BarBlockOptionsView: View {
             }
         case .appButton(let options):
             AppChoiceRow(bundleID: options.bundleID) { id in
-                editor.updateBarModule(entry.id, to: .appButton(.init(bundleID: id)))
+                editor.updateBarEntry(ref, to: .appButton(.init(bundleID: id)))
             }
         case .battery(let options):
             Toggle("Show Icon", isOn: binding(options.showIcon) { .battery(.init(showIcon: $0)) })
@@ -313,6 +345,18 @@ struct BarBlockOptionsView: View {
         }
     }
 
+    /// Edge bars only: one capsule with the block before it. Off for the
+    /// first block of a zone - there is nothing before it to join.
+    private var joinToggle: some View {
+        let canJoin = editor.bar?.canJoin(ref) ?? false
+        return Toggle("Join with Previous", isOn: Binding(
+            get: { entry.joinsPrevious && canJoin },
+            set: { editor.setBarEntryJoins(ref, $0) }
+        ))
+        .disabled(!canJoin)
+        .help(canJoin ? "Share one capsule with the block before it" : "The first block of a zone has nothing to join")
+    }
+
     /// The longest text before the ellipsis. A stepper like the gap's, for
     /// the same reason: every step writes the working copy.
     private func lengthStepper(_ value: Int, _ make: @escaping (Int) -> BarModule) -> some View {
@@ -324,7 +368,7 @@ struct BarBlockOptionsView: View {
     /// One option of this block: reading stays on the working copy, writing
     /// goes back through the editor as a whole module.
     private func binding<Value>(_ value: Value, _ make: @escaping (Value) -> BarModule) -> Binding<Value> {
-        Binding(get: { value }, set: { editor.updateBarModule(entry.id, to: make($0)) })
+        Binding(get: { value }, set: { editor.updateBarEntry(ref, to: make($0)) })
     }
 }
 
@@ -343,13 +387,13 @@ enum BarEditText {
 // MARK: - Dragging and dropping
 
 private struct BarEntryDragModifier: ViewModifier {
-    let entry: BarEntry
+    let ref: BarEntryRef
     let active: Bool
 
     func body(content: Content) -> some View {
         if active {
             content.onDrag {
-                NSItemProvider(object: BarEntryDragPayload.string(for: entry.id) as NSString)
+                NSItemProvider(object: BarEntryDragPayload.string(for: ref) as NSString)
             }
         } else {
             content
@@ -359,13 +403,13 @@ private struct BarEntryDragModifier: ViewModifier {
 
 private struct BarEntryDropModifier: ViewModifier {
     let editor: ShellEditor
-    let entry: BarEntry
+    let ref: BarEntryRef
     @Binding var targeted: Bool
     let active: Bool
 
     func body(content: Content) -> some View {
         if active {
-            content.onDrop(of: [.text], delegate: BarEntryDropDelegate(editor: editor, entry: entry,
+            content.onDrop(of: [.text], delegate: BarEntryDropDelegate(editor: editor, ref: ref,
                                                                       targeted: $targeted))
         } else {
             content
@@ -373,11 +417,12 @@ private struct BarEntryDropModifier: ViewModifier {
     }
 }
 
-/// A block dropped on another one takes its place, and a kind dropped out
-/// of the gallery is inserted there - so where it lands is where it lies.
+/// A block dropped on another one takes its place (from another zone or bar
+/// it goes in right before it), and a kind dropped out of the gallery is
+/// inserted there - so where it lands is where it lies.
 private struct BarEntryDropDelegate: DropDelegate {
     let editor: ShellEditor
-    let entry: BarEntry
+    let ref: BarEntryRef
     @Binding var targeted: Bool
 
     func dropEntered(info: DropInfo) {
@@ -397,14 +442,15 @@ private struct BarEntryDropDelegate: DropDelegate {
         targeted = false
         if EditDragPayload.refuses(.bar) { return false }
         guard let provider = info.itemProviders(for: [.text]).first else { return false }
-        let index = editor.bar?.layout.entries.firstIndex { $0.id == entry.id }
+        let ref = ref
+        let index = editor.bar?[ref.place].entries.firstIndex { $0.id == ref.id }
         provider.loadObject(ofClass: NSString.self) { text, _ in
             guard let text = text as? String else { return }
             DispatchQueue.main.async {
-                if let id = BarEntryDragPayload.id(from: text), id != entry.id {
-                    editor.moveBarModule(id, onto: entry.id)
+                if let dragged = BarEntryDragPayload.ref(from: text), dragged != ref {
+                    editor.moveBarEntry(dragged, onto: ref)
                 } else if let kind = BarModuleDragPayload.kind(from: text) {
-                    editor.addBarModule(kind, at: index)
+                    editor.addBarModule(kind, to: ref.place, at: index)
                 }
             }
         }
@@ -412,15 +458,20 @@ private struct BarEntryDropDelegate: DropDelegate {
     }
 }
 
-/// The safety net around the whole bar: a kind from the gallery that lands
-/// next to a block instead of on one is appended at its usual spot.
-private struct BarAppendDropModifier: ViewModifier {
+/// The safety net around the whole bar (or one zone of an edge bar): a kind
+/// from the gallery that lands next to a block instead of on one is appended
+/// at its usual spot, and a block from another bar or zone goes to the end.
+struct BarAppendDropModifier: ViewModifier {
     let editor: ShellEditor
+    let place: BarPlace
     let active: Bool
+    /// Set while a drag hovers over it, for the zone's drop marking.
+    var targeted: Binding<Bool>?
 
     func body(content: Content) -> some View {
         if active {
-            content.onDrop(of: [.text], delegate: BarAppendDropDelegate(editor: editor))
+            content.onDrop(of: [.text], delegate: BarAppendDropDelegate(editor: editor, place: place,
+                                                                       targeted: targeted))
         } else {
             content
         }
@@ -432,20 +483,37 @@ private struct BarAppendDropModifier: ViewModifier {
 /// still being dragged, instead of swallowing it at the drop.
 private struct BarAppendDropDelegate: DropDelegate {
     let editor: ShellEditor
+    let place: BarPlace
+    let targeted: Binding<Bool>?
 
-    func dropEntered(info: DropInfo) { EditDragPayload.remember(info, types: [.text]) }
+    func dropEntered(info: DropInfo) {
+        targeted?.wrappedValue = true
+        EditDragPayload.remember(info, types: [.text])
+    }
+
+    func dropExited(info: DropInfo) { targeted?.wrappedValue = false }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
         EditDragPayload.refuses(.bar) ? DropProposal(operation: .forbidden) : DropProposal(operation: .copy)
     }
 
     func performDrop(info: DropInfo) -> Bool {
+        targeted?.wrappedValue = false
         if EditDragPayload.refuses(.bar) { return false }
         guard let provider = info.itemProviders(for: [.text]).first else { return false }
+        let place = place
         provider.loadObject(ofClass: NSString.self) { text, _ in
-            guard let text = text as? String,
-                  let kind = BarModuleDragPayload.kind(from: text) else { return }
-            DispatchQueue.main.async { editor.addBarModule(kind) }
+            guard let text = text as? String else { return }
+            DispatchQueue.main.async {
+                if let kind = BarModuleDragPayload.kind(from: text) {
+                    editor.addBarModule(kind, to: place)
+                } else if let dragged = BarEntryDragPayload.ref(from: text),
+                          // A sidebar block let go between sidebar blocks
+                          // stays where it was, as it always did.
+                          dragged.place != place || place != .sidebar {
+                    editor.moveBarEntry(dragged, toEndOf: place)
+                }
+            }
         }
         return true
     }

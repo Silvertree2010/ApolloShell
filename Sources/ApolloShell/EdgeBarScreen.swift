@@ -23,13 +23,19 @@ final class EdgeBarScreen {
     /// The foreground app is in full screen on THIS screen.
     private(set) var isHiddenForFullscreen = false
 
-    init(edge: BarEdge, screen: ShellScreen, settings: ShellSettingsStore, context: BarModuleContext) {
+    /// The level `update` chose for the calm bar, to go back to after the
+    /// edit mode.
+    private var calmLevel: NSWindow.Level = .floating
+    private var isEditing = false
+
+    init(edge: BarEdge, screen: ShellScreen, settings: ShellSettingsStore, context: BarModuleContext,
+         editor: ShellEditor? = nil) {
         self.edge = edge
         info = screen.info
         popout = EdgeBarPopout(edge: edge)
         let hosting = FirstMouseHostingView(
             rootView: EdgeBarRoot(settings: settings, edge: edge, state: state, context: context,
-                                  popout: popout.model).shellTheme()
+                                  popout: popout.model, editor: editor).shellTheme()
         )
         // The window size is the manager's (`EdgeBarGeometry`), not the view's.
         hosting.sizingOptions = []
@@ -69,7 +75,8 @@ final class EdgeBarScreen {
         // where the icon was.
         if panel.frame != frame { popout.close() }
         let covers = edge == .top && coversMenuBar
-        let level: NSWindow.Level = covers ? .statusBar : .floating
+        calmLevel = covers ? .statusBar : .floating
+        let level = isEditing ? SidebarScreen.editingLevel : calmLevel
         if panel.level != level { panel.level = level }
         let notch = covers ? BarNotch(screenMinX: screen.frame.minX, leftArea: screen.screen.auxiliaryTopLeftArea,
                                       rightArea: screen.screen.auxiliaryTopRightArea) : nil
@@ -84,6 +91,16 @@ final class EdgeBarScreen {
     #if DEBUG
     var debugLevel: Int { panel.level.rawValue }
     #endif
+
+    /// Above the edit scrim while the mode runs, like the sidebar
+    /// (`SidebarScreen.setEditing`): otherwise the scrim dims the bar being
+    /// edited and swallows the clicks meant for its blocks. An open status
+    /// popout closes - it belongs to the calm bar.
+    func setEditing(_ editing: Bool) {
+        isEditing = editing
+        if editing { popout.close() }
+        panel.level = editing ? SidebarScreen.editingLevel : calmLevel
+    }
 
     /// The screen is gone, deselected, or the bar was switched off.
     func tearDown() {

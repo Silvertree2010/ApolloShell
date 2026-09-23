@@ -99,8 +99,12 @@ final class SidebarScreen {
     /// pinned edge windows (`EdgeDrawer`), so the toolbar and the gallery
     /// still stand above it.
     func setEditing(_ editing: Bool) {
-        panel.level = editing ? .popUpMenu : .floating
+        panel.level = editing ? Self.editingLevel : .floating
     }
+
+    /// The level of every bar while the edit mode runs - one value, so the
+    /// edge bars (`EdgeBarScreen.setEditing`) rise exactly as far.
+    static let editingLevel: NSWindow.Level = .popUpMenu
 
     /// The screen is gone or deselected: close the popout, remove the window.
     func tearDown() {

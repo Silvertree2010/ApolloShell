@@ -401,6 +401,7 @@ final class EditModeWindows {
                     self?.editor.dashboard.selectedWidgetID = nil
                     self?.editor.selectedToggleID = nil
                     self?.editor.selectedBarEntryID = nil
+                    self?.editor.barTargetPlace = nil
                     self?.editor.dashboard.renamingPageID = nil
                 }
                 scrims[candidate.displayID] = panel

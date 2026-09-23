@@ -22,7 +22,12 @@ import SwiftUI
 /// A click on a status icon opens its details when the bar's panel puts a
 /// popout model into the environment (`EdgeBarRoot`); without one (image
 /// samples) the icons are display only - the model is an optional
-/// environment value. The edit mode comes later.
+/// environment value.
+///
+/// While the global edit mode runs (`editor`), the blocks are the sidebar's
+/// edit blocks (`EditableBarBlock`: wobble, minus badge, selection, options
+/// popover), every zone takes drops, and an empty zone shows a target -
+/// otherwise it would measure 0 and nothing could be dropped into it.
 struct EdgeBarView: View {
     let bar: EdgeBar
     let edge: BarEdge
@@ -33,8 +38,19 @@ struct EdgeBarView: View {
     /// sidebar (`SidebarContent.calmBar`).
     let features: ShellSettings.Features
     let context: BarModuleContext
+    /// The global edit mode; `nil` in image samples of the calm bar.
+    var editor: ShellEditor?
 
     @Environment(\.shellStyle) private var style
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @Environment(\.dashboardReducesMotionOverride) private var reduceMotionOverride
+    @Environment(\.dashboardRendersForScreenshot) private var rendersForScreenshot
+
+    /// The editor while it edits; the calm bar otherwise.
+    private var editing: ShellEditor? {
+        guard let editor, editor.isEditing, editor.bar != nil else { return nil }
+        return editor
+    }
 
     /// Least distance between two zones.
     static let zoneGap: CGFloat = 8
@@ -134,13 +150,18 @@ struct EdgeBarView: View {
         let spacing = style.length(.edgeBarGroupSpacing) ?? (islands || bar.distinctGroups ? 6 : style.barItemSpacing(8))
         return EdgeBarGroupStack(axis: axis, spacing: spacing) {
             ForEach(groups) { group in
-                self.group(group)
+                self.group(group, zone: zone)
                     .layoutValue(key: EdgeBarFlexCount.self, value: group.flexible)
+            }
+            if let editing, groups.isEmpty {
+                EdgeBarEmptyZone(editor: editing, place: .edge(edge, zone), axis: axis,
+                                 thickness: Self.controlSize(thickness: CGFloat(bar.thickness), capsules: false))
             }
         }
         .fixedSize(horizontal: horizontal && flexible == 0, vertical: !horizontal && flexible == 0)
         .frame(maxWidth: horizontal ? .infinity : nil, maxHeight: horizontal ? nil : .infinity,
                alignment: Self.alignment(zone, horizontal: horizontal))
+        .modifier(EdgeBarZoneDrop(editor: editing, place: .edge(edge, zone), active: !rendersForScreenshot))
         .clipped()
         .layoutValue(key: EdgeBarFlexCount.self, value: flexible)
     }
@@ -161,10 +182,11 @@ struct EdgeBarView: View {
     }
 
     /// Grouped first, filtered second: a hidden button at the head of a
-    /// group must not hand its followers to the group before it.
+    /// group must not hand its followers to the group before it. While
+    /// editing nothing is hidden - a block one cannot see cannot be removed.
     private func groups(_ zone: BarZone) -> [BlockGroup] {
         EdgeBar.groups(of: bar[zone]).compactMap { group in
-            let shown = group.filter { entry in
+            let shown = editing != nil ? group : group.filter { entry in
                 switch entry.module {
                 case .dashboardButton: features.dashboard
                 case .utilitiesButton: features.utilities
@@ -176,7 +198,7 @@ struct EdgeBarView: View {
     }
 
     @ViewBuilder
-    private func group(_ group: BlockGroup) -> some View {
+    private func group(_ group: BlockGroup, zone: BarZone) -> some View {
         let horizontal = edge.isHorizontal
         let capsule = islands || bar.distinctGroups
         // An island never rounds past a capsule: more than half the
@@ -186,7 +208,14 @@ struct EdgeBarView: View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         BarStack(spacing: moduleSpacing, axis: axis) {
             ForEach(group.entries) { entry in
-                BarModuleView(entry: entry, context: context)
+                if let editing {
+                    EditableBarBlock(editor: editing, entry: entry, ref: BarEntryRef(place: .edge(edge, zone), id: entry.id),
+                                     context: context, reduceMotion: reduceMotionOverride ?? systemReduceMotion,
+                                     dragging: !rendersForScreenshot, edge: edge)
+                        .layoutValue(key: BarFlexible.self, value: entry.kind.isFlexible)
+                } else {
+                    BarModuleView(entry: entry, context: context)
+                }
             }
         }
         // Status icons and spaces drop their own capsule inside this one.
@@ -315,11 +344,95 @@ struct EdgeBarRoot: View {
     let context: BarModuleContext
     /// The status icons open their details through it (`EdgeBarPopout`).
     let popout: StatusPopoutModel
+    /// The global edit mode; handed over once when the panel is built, like
+    /// the sidebar's (`Sidebar.editor`).
+    var editor: ShellEditor?
 
     var body: some View {
-        EdgeBarView(bar: settings.settings.edgeBars[edge], edge: edge, notch: state.notch,
-                    features: settings.settings.features, context: context)
+        EdgeBarView(bar: Self.shown(settings.settings.edgeBars[edge], edge: edge, editor: editor), edge: edge,
+                    notch: state.notch, features: settings.settings.features, context: context, editor: editor)
             .environment(popout)
+    }
+
+    /// The bar as the panel would show it, without a panel - for the
+    /// edit mode's image samples.
+    static func shownView(settings: ShellSettingsStore, edge: BarEdge, editor: ShellEditor?,
+                          context: BarModuleContext) -> some View {
+        EdgeBarView(bar: shown(settings.settings.edgeBars[edge], edge: edge, editor: editor), edge: edge,
+                    notch: nil, features: settings.settings.features, context: context, editor: editor)
+    }
+
+    /// While editing, the zones come from the working copy; style,
+    /// thickness and the rest stay the settings' (the session only edits
+    /// zones, and the panel's frame was measured from the settings).
+    static func shown(_ bar: EdgeBar, edge: BarEdge, editor: ShellEditor?) -> EdgeBar {
+        guard let editor, editor.isEditing, let session = editor.bar else { return bar }
+        var bar = bar
+        for zone in BarZone.allCases { bar[zone] = session.edgeBars[edge][zone] }
+        return bar
+    }
+}
+
+/// The drop net of one zone while editing, with its marking: a kind from the
+/// gallery or a block from elsewhere dropped next to the zone's blocks goes to
+/// its end (`BarAppendDropModifier`), and the zone outlines itself while a
+/// drag hovers over it, so it is clear which zone takes the drop.
+private struct EdgeBarZoneDrop: ViewModifier {
+    let editor: ShellEditor?
+    let place: BarPlace
+    let active: Bool
+    @State private var targeted = false
+    @Environment(\.shellStyle) private var style
+
+    func body(content: Content) -> some View {
+        if let editor {
+            content
+                .overlay {
+                    if targeted {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(style.accent.opacity(0.6), lineWidth: 2)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .modifier(BarAppendDropModifier(editor: editor, place: place, active: active, targeted: $targeted))
+        } else {
+            content
+        }
+    }
+}
+
+/// The target an empty zone shows while editing: a dashed slot with a plus,
+/// so it can be seen and hit. The zone's drop net (`EdgeBarZoneDrop`) takes
+/// the drops; a click makes the zone the gallery's target
+/// (`ShellEditor.barTargetPlace`), as a selected block would - an empty zone
+/// has no block to select.
+private struct EdgeBarEmptyZone: View {
+    let editor: ShellEditor
+    let place: BarPlace
+    let axis: BarAxis
+    let thickness: CGFloat
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let horizontal = axis == .horizontal
+        let chosen = editor.galleryBarPlace == place
+        Button {
+            editor.barTargetPlace = chosen ? nil : place
+        } label: {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(chosen ? AnyShapeStyle(style.accent) : AnyShapeStyle(.secondary),
+                              style: StrokeStyle(lineWidth: chosen ? 2 : 1.5, dash: [4, 3]))
+                .overlay {
+                    Image(systemName: "plus")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(chosen ? AnyShapeStyle(style.accent) : AnyShapeStyle(.secondary))
+                }
+                .frame(width: horizontal ? 56 : thickness, height: horizontal ? thickness : 56)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .help("Drop a block here, or click and pick one in the gallery")
+        .accessibilityLabel("Empty zone")
     }
 }
 

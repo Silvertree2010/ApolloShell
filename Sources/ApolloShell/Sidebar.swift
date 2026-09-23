@@ -181,6 +181,7 @@ final class Sidebar {
     func setEditing(_ editing: Bool) {
         isEditing = editing
         for bar in bars.values { bar.setEditing(editing) }
+        for bar in edgeScreens { bar.setEditing(editing) }
     }
 
     /// From `FullscreenMonitor`: a full-screen app is showing on these
@@ -274,7 +275,9 @@ final class Sidebar {
                 edgeSlot.distribute(
                     on: bar.screens,
                     make: { screen in
-                        let bar = EdgeBarScreen(edge: edge, screen: screen, settings: settings, context: context)
+                        let bar = EdgeBarScreen(edge: edge, screen: screen, settings: settings, context: context,
+                                                editor: editor)
+                        bar.setEditing(isEditing)
                         bar.onPopoutOpen = { [weak self] id in self?.closePopouts(except: id) }
                         return bar
                     },
