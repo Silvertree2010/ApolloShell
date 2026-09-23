@@ -384,6 +384,11 @@ public enum BarModule: BlockModule, Equatable, Sendable {
 public struct BarEntry: Codable, Equatable, Identifiable, Sendable {
     public var id: String
     public var module: BarModule
+    /// Shares one capsule with the entry before it (the bars along the other
+    /// edges draw groups this way, see `EdgeBar.groups`). The sidebar
+    /// ignores it. Only written when set, so the sidebar's section reads the
+    /// same as before.
+    public var joinsPrevious = false
 
     public var kind: BarModuleKind { module.kind }
 
@@ -406,7 +411,14 @@ public struct BarEntry: Codable, Equatable, Identifiable, Sendable {
 
     // `fileprivate`, not `private`: `BarModule.init(kind:options:)` needs
     // the same key type to read the options.
-    fileprivate enum CodingKeys: String, CodingKey { case id, kind, options }
+    /// The same entry, joined to the one before it.
+    public func joined(_ joins: Bool = true) -> BarEntry {
+        var copy = self
+        copy.joinsPrevious = joins
+        return copy
+    }
+
+    fileprivate enum CodingKeys: String, CodingKey { case id, kind, options, joinsPrevious }
 
     /// Unknown or missing kind: an error - `BarLayout` then skips the
     /// entry. Broken options, on the other hand, just fall back to defaults.
@@ -418,6 +430,7 @@ public struct BarEntry: Codable, Equatable, Identifiable, Sendable {
         // If the identifier is missing, `BarLayout` assigns one.
         id = c.lenient(.id) ?? ""
         module = BarModule(kind: kind, options: c)
+        joinsPrevious = c.lenient(.joinsPrevious) ?? false
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -427,6 +440,7 @@ public struct BarEntry: Codable, Equatable, Identifiable, Sendable {
         if let options = module.options {
             try c.encode(AnyEncodable(value: options), forKey: .options)
         }
+        if joinsPrevious { try c.encode(true, forKey: .joinsPrevious) }
     }
 }
 
