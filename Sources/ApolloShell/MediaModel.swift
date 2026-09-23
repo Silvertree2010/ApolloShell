@@ -49,7 +49,7 @@ final class MediaModel {
     @ObservationIgnored private let live: Bool
 
     @ObservationIgnored private var state = MediaStreamState()
-    @ObservationIgnored private var shownArtworkRevision = 0
+    @ObservationIgnored private var shownArtwork = MediaArtworkShown()
     @ObservationIgnored private var stream: Process?
     @ObservationIgnored private var streamStartedAt = Date()
     /// Every stream process gets a number; late lines or a late end of an old
@@ -150,6 +150,7 @@ final class MediaModel {
         let generation = generation
         // Diffs only hold inside one process.
         state = MediaStreamState()
+        shownArtwork.streamRestarted()
 
         // According to the README, stderr holds non-fatal messages;
         // `Subprocess` throws them away, and unread the pipe would fill up.
@@ -203,9 +204,8 @@ final class MediaModel {
     private func publish() {
         let next = state.nowPlaying
         if next != nowPlaying { nowPlaying = next }
-        if state.artworkRevision != shownArtworkRevision {
-            shownArtworkRevision = state.artworkRevision
-            artwork = state.artwork.flatMap(NSImage.init(data:))
+        if let data = shownArtwork.take(state) {
+            artwork = data.isEmpty ? nil : NSImage(data: data)
             artworkID += 1
         }
         let nextSource = next?.sourceBundleIdentifier.map(source(for:))

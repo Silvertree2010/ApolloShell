@@ -205,6 +205,33 @@ public struct MediaStreamState: Sendable {
     }
 }
 
+/// Which cover the UI shows, across adapter processes. The count in
+/// `MediaStreamState` starts over with every process - and the dashboard
+/// starts one on every opening. Compared across that, a song changed while
+/// closed kept the old cover whenever both counts happened to match
+/// (usually both 1). So after a restart the data itself decides.
+public struct MediaArtworkShown: Sendable {
+    private var revision: Int?
+    private var data: Data?
+
+    public init() {}
+
+    /// A new process: its count means nothing next to the old one.
+    public mutating func streamRestarted() {
+        revision = nil
+    }
+
+    /// The cover data to show if it changed since the last call, otherwise
+    /// `nil`. A cover that went away comes back as empty `Data`.
+    public mutating func take(_ state: MediaStreamState) -> Data? {
+        guard state.artworkRevision != revision else { return nil }
+        revision = state.artworkRevision
+        guard state.artwork != data else { return nil }
+        data = state.artwork
+        return state.artwork ?? Data()
+    }
+}
+
 /// What's currently playing, ready for the UI.
 public struct MediaNowPlaying: Sendable, Equatable {
     public var title: String

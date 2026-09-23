@@ -338,4 +338,28 @@ struct MediaAdapterTests {
         let empty = MediaNowPlaying(fields: ["title": .string("T"), "mediaType": .string("")])
         #expect(empty?.mediaType == nil)
     }
+
+    @Test("A new stream after reopening brings its new cover, even at the same revision count")
+    func coverAfterRestart() {
+        func full(_ title: String, cover: String) -> MediaStreamMessage {
+            MediaStreamMessage(diff: false, payload: ["title": .string(title),
+                                                      "artworkData": .string(Data(cover.utf8).base64EncodedString())])
+        }
+        var shown = MediaArtworkShown()
+        var first = MediaStreamState()
+        first.apply(full("Song A", cover: "cover A"))
+        #expect(shown.take(first) == Data("cover A".utf8))
+        #expect(shown.take(first) == nil)
+        // Closed, the song changes, reopened: a new process, its count starts over.
+        shown.streamRestarted()
+        var second = MediaStreamState()
+        second.apply(full("Song B", cover: "cover B"))
+        #expect(second.artworkRevision == first.artworkRevision)
+        #expect(shown.take(second) == Data("cover B".utf8))
+        // Reopened on the same song: nothing new to decode.
+        shown.streamRestarted()
+        var third = MediaStreamState()
+        third.apply(full("Song B", cover: "cover B"))
+        #expect(shown.take(third) == nil)
+    }
 }
