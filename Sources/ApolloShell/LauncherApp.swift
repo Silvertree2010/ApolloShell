@@ -243,13 +243,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             toaster?.setHiddenForFullscreen(!fullscreenScreens.isEmpty)
         }
         self.windowGuard = windowGuard
-        // The watch keeps the strip free on every screen that has a bar - and
-        // learns of every change to that (a screen added, removed, the setting
-        // in Nexus changed or a new width out of the theme).
-        // dem Theme).
-        windowGuard.setBarScreens(Set(sidebar.screens.map(\.key)), barWidth: Sidebar.width)
-        sidebar.onScreensChange = { [weak windowGuard] screens in
-            windowGuard?.setBarScreens(Set(screens.map(\.key)), barWidth: Sidebar.width)
+        // The watch keeps free what the bars cover on every screen - and
+        // learns of every change to that (a screen added, removed, a setting
+        // in Nexus changed, an edge bar switched on, or a new width out of
+        // the theme).
+        windowGuard.setReserved(sidebar.reserved)
+        sidebar.onReservedChange = { [weak windowGuard] reserved in
+            windowGuard?.setReserved(reserved)
         }
 
         let onboarding = Onboarding(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions)
