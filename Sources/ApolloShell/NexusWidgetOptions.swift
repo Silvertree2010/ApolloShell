@@ -16,6 +16,22 @@ struct WidgetOptionsView: View {
     @State private var showsTimeZonePicker = false
 
     var body: some View {
+        if widget.kind.displays.count > 1 {
+            Picker("Display", selection: Binding(
+                get: { widget.options.display(for: widget.kind) },
+                set: { newValue in
+                    var options = widget.options
+                    // The first one is the default: stored as nothing.
+                    options.display = newValue == widget.kind.displays[0] ? nil : newValue
+                    editor.setOptions(options, for: widget.id)
+                }
+            )) {
+                ForEach(widget.kind.displays, id: \.self) { display in
+                    Text(display.title(for: widget.kind)).tag(display)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
         switch widget.kind {
         case .weather:
             let o = binding(\.weather, fallback: DashboardWeatherOptions())
@@ -67,8 +83,7 @@ struct WidgetOptionsView: View {
             SettingToggle(title: "Source", subtitle: "Which app is playing", isOn: o.showSource)
         case .performanceCPU, .performanceGPU, .performanceStorage, .performanceNetwork,
              .performanceMemory, .performanceBattery, .mediaPlayer:
-            Text("There are no settings for this widget.")
-                .foregroundStyle(.secondary)
+            EmptyView()
         }
     }
 
@@ -183,5 +198,34 @@ private struct NexusTimeZonePicker: View {
             if checked { Image(systemName: "checkmark") }
         }
         .contentShape(.rect)
+    }
+}
+
+extension WidgetDisplay {
+    /// The name in the options, per kind: the default is called after what
+    /// it shows ("Rings", "Digital") where "Standard" would say nothing.
+    func title(for kind: WidgetKind) -> String {
+        switch (self, kind) {
+        case (.standard, .clock): String(localized: "Digital")
+        case (.standard, .calendar): String(localized: "Month")
+        case (.standard, .resources): String(localized: "Rings")
+        case (.standard, .performanceStorage), (.standard, .performanceMemory): String(localized: "Gauge")
+        case (.standard, .performanceNetwork): String(localized: "Graph")
+        case (.standard, .performanceBattery): String(localized: "Tank")
+        case (.standard, .weatherHourly): String(localized: "Columns")
+        case (.standard, .weatherDaily): String(localized: "Cards")
+        case (.standard, _): String(localized: "Standard")
+        case (.minimal, _): String(localized: "Minimal")
+        case (.analog, _): String(localized: "Analog")
+        case (.today, _): String(localized: "Today")
+        case (.bars, _): String(localized: "Bars")
+        case (.cover, _): String(localized: "Cover")
+        case (.graph, _): String(localized: "Graph")
+        case (.gauge, _): String(localized: "Gauge")
+        case (.bar, _): String(localized: "Bar")
+        case (.numbers, _): String(localized: "Numbers")
+        case (.ring, _): String(localized: "Ring")
+        case (.list, _): String(localized: "List")
+        }
     }
 }

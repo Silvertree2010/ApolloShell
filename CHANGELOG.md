@@ -17,8 +17,14 @@ tabs you had into pages, with the cards at the same spots. The old
   Performance and Weather come as ready-made pages that look exactly as
   before. Add your own pages, rename them, give them a symbol, duplicate or
   delete them; "Restore default pages" brings back a deleted one.
-- **Widgets can go anywhere on a page**, in the sizes the dashboard already
-  had, and the same widget can appear more than once.
+- **Widgets can go anywhere on a page**, and the same widget can appear
+  more than once. The performance, weather and playback widgets come in
+  more sizes than their page had, so they also fit the rows of the overview.
+- **Every widget has display modes** in its options: an analog clock, today
+  in large, bars for the resources, a minimal weather and user card, graph
+  and gauge for CPU and GPU, bars for storage and memory, plain numbers for
+  the network, a ring for the battery, a temperature curve for the hours, a
+  list for the next days, and the cover filling the playback cards.
 - **Nexus lives in the menu bar.** Its icon opens a glass panel: on top,
   on/off switches for the dashboard, the control centre and the launcher (off
   means no hover, no shortcut and no bar button) and the edit mode, then
@@ -66,6 +72,12 @@ tabs you had into pages, with the cards at the same spots. The old
   AeroSpace, yabai and Amethyst go by when they decide what to tile.
 
 ### Changed
+
+- **Playback is a card like every other widget.** Its background used to be
+  the blurred cover stretched across the whole page.
+- **The upload line follows the theme**: the theme's secondary accent, or
+  the opposite of the accent colour. It was always orange, and with an
+  orange accent both network lines looked the same.
 
 - **"Quick Actions" is called the control centre** everywhere, as in the
   README.

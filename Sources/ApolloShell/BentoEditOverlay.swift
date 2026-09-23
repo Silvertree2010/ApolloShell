@@ -41,22 +41,15 @@ extension WidgetKind {
         case .weatherHero: 42
         case .weatherHourly: 28
         case .weatherDaily: 24
-        case .mediaPlayer: 56
+        case .mediaPlayer: 28
         }
     }
 }
 
 extension WidgetKind {
-    /// Whether the options popover has anything to show - performance
-    /// widgets and playback have no options; an empty popover would only
-    /// be in the way (live test 09/19).
-    var hasEditOptions: Bool {
-        switch self {
-        case .weather, .weatherHero, .weatherHourly, .weatherDaily, .user, .clock, .calendar, .resources, .media: true
-        case .performanceCPU, .performanceGPU, .performanceStorage, .performanceNetwork, .performanceMemory,
-             .performanceBattery, .mediaPlayer: false
-        }
-    }
+    /// Whether the options popover has anything to show - since 09/23
+    /// every kind has at least two displays to choose from.
+    var hasEditOptions: Bool { displays.count > 1 || usesPlaces }
 }
 
 /// Overrides `accessibilityReduceMotion` (system-wide, not settable) for
