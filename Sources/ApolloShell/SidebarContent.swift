@@ -74,8 +74,14 @@ struct SidebarContent: View {
 /// kit (image sample: pixel for pixel).
 struct BarStack: Layout {
     var spacing: CGFloat = 8
+    /// `.horizontal` for the bars along the top and the bottom edge: the same
+    /// rules turned by 90 degrees - left to right, the flexible ones share the
+    /// free width, every block centered in the height. `BarFlex` only knows
+    /// lengths, so it serves both directions unchanged.
+    var axis: BarAxis = .vertical
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        if axis == .horizontal { return horizontalSize(proposal: proposal, subviews: subviews) }
         let width = proposal.width ?? subviews.map { $0.sizeThatFits(.unspecified).width }.max() ?? 0
         if let height = proposal.height { return CGSize(width: width, height: height) }
         // Ideal: only the fixed ones, flexible ones count 0.
@@ -85,6 +91,7 @@ struct BarStack: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        if axis == .horizontal { return placeHorizontally(in: bounds, subviews: subviews) }
         let heights: [Double?] = subviews.map { subview in
             subview[BarFlexible.self]
                 ? nil
@@ -94,6 +101,31 @@ struct BarStack: Layout {
         for (subview, slot) in zip(subviews, slots) {
             subview.place(at: CGPoint(x: bounds.midX, y: bounds.minY + slot.y), anchor: .top,
                           proposal: ProposedViewSize(width: bounds.width, height: slot.height))
+        }
+    }
+
+    /// The vertical rules with width and height swapped. Kept apart from
+    /// the vertical path instead of folding both into one: the sidebar must
+    /// not move by a pixel.
+    private func horizontalSize(proposal: ProposedViewSize, subviews: Subviews) -> CGSize {
+        let height = proposal.height ?? subviews.map { $0.sizeThatFits(.unspecified).height }.max() ?? 0
+        if let width = proposal.width { return CGSize(width: width, height: height) }
+        let fixed = subviews.filter { !$0[BarFlexible.self] }
+            .map { $0.sizeThatFits(ProposedViewSize(width: nil, height: height)).width }
+        return CGSize(width: fixed.reduce(0, +) + CGFloat(max(subviews.count - 1, 0)) * spacing, height: height)
+    }
+
+    /// `BarSlot.y` and `.height` read as x and width here.
+    private func placeHorizontally(in bounds: CGRect, subviews: Subviews) {
+        let widths: [Double?] = subviews.map { subview in
+            subview[BarFlexible.self]
+                ? nil
+                : Double(subview.sizeThatFits(ProposedViewSize(width: nil, height: bounds.height)).width)
+        }
+        let slots = BarFlex.slots(available: Double(bounds.width), heights: widths, spacing: Double(spacing))
+        for (subview, slot) in zip(subviews, slots) {
+            subview.place(at: CGPoint(x: bounds.minX + slot.y, y: bounds.midY), anchor: .leading,
+                          proposal: ProposedViewSize(width: slot.height, height: bounds.height))
         }
     }
 }
@@ -113,6 +145,7 @@ struct BarFlexible: LayoutValueKey {
 struct BarModuleView: View {
     let entry: BarEntry
     let context: BarModuleContext
+    @Environment(\.barAxis) private var axis
 
     var body: some View {
         switch entry.module {
@@ -154,14 +187,19 @@ struct BarModuleView: View {
                 .layoutValue(key: BarFlexible.self, value: true)
                 .accessibilityHidden(true)
         case .gap(let options):
+            // "Height" in the options is the length along the bar: across
+            // it, in a bar along the top or the bottom edge.
+            let horizontal = axis == .horizontal
             Color.clear
-                .frame(width: 1, height: options.height)
+                .frame(width: horizontal ? options.height : 1, height: horizontal ? 1 : options.height)
                 .accessibilityHidden(true)
         case .divider:
-            // Like the rule in the Dock between pinned and running ones.
+            // Like the rule in the Dock between pinned and running ones -
+            // always across the bar.
+            let horizontal = axis == .horizontal
             Capsule()
                 .fill(Color.primary.opacity(0.18))
-                .frame(width: 20, height: 2)
+                .frame(width: horizontal ? 2 : 20, height: horizontal ? 18 : 2)
                 .accessibilityHidden(true)
         case .appButton(let options):
             BarAppButton(bundleID: options.bundleID, onOpen: context.onOpenApp)
@@ -186,15 +224,17 @@ struct BarModuleView: View {
 /// A click opens the detail window next to it (`StatusPopout`); the symbol of
 /// the open one stays backed. The model comes out of the environment - when
 /// it is missing (preview, image samples), the symbols are display only.
+/// Along a horizontal bar the symbols stand side by side in a lying capsule.
 private struct StatusCapsule: View {
     let status: StatusModel
     var options = BarStatusIconsOptions()
     @Environment(StatusPopoutModel.self) private var popout: StatusPopoutModel?
+    @Environment(\.barAxis) private var axis
 
     var body: some View {
         let battery = options.showBattery ? StatusGlyphs.batterySymbol(status.battery) : nil
         if options.showWifi || options.showBluetooth || battery != nil {
-            VStack(spacing: 2) {
+            axis.stack(spacing: 2) {
                 if options.showWifi {
                     let wifi = StatusGlyphs.wifi(powerOn: status.wifiOn, rssi: status.wifiRSSI)
                     popoutIcon(.wifi, help: wifiHelp) {
@@ -218,11 +258,13 @@ private struct StatusCapsule: View {
                                    fallback: battery)
                             .font(.system(size: 13, weight: .semibold))
                             .frame(width: 15, height: 15)
-                            .rotationEffect(.degrees(-90))
+                            // Stood up in the narrow sidebar; lying, as
+                            // in Apple's menu bar, along a horizontal one.
+                            .rotationEffect(.degrees(axis == .horizontal ? 0 : -90))
                     }
                 }
             }
-            .padding(.vertical, 4)
+            .padding(axis == .horizontal ? .horizontal : .vertical, 4)
             .background(Color.primary.opacity(0.08), in: .capsule)
         }
     }

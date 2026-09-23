@@ -516,6 +516,10 @@ enum DockIconArt {
 ///
 /// Nexus > Bar > Dock: show pinned only, icon size. This only filters the
 /// view - the model still reads everything.
+///
+/// Along a horizontal bar the same icons in a row, scrolling sideways when
+/// they don't fit. Clicks, menus and dragging are the same per icon
+/// (`DockMouseCatcher` knows no direction).
 struct SidebarDock: View {
     let model: SidebarDockModel
     var options = BarDockOptions()
@@ -523,12 +527,45 @@ struct SidebarDock: View {
     /// there should really launch, quit or pin an app.
     @Environment(\.barPreview) private var preview
     @Environment(\.shellStyle) private var dockStyle
+    @Environment(\.barAxis) private var axis
 
     private var entries: [SidebarDockModel.Entry] {
         options.showRunning ? model.entries : model.entries.filter(\.pinned)
     }
 
     var body: some View {
+        if axis == .horizontal {
+            rowBody
+        } else {
+            columnBody
+        }
+    }
+
+    private var rowBody: some View {
+        ViewThatFits(in: .horizontal) {
+            row
+            ScrollView(.horizontal, showsIndicators: false) {
+                row.padding(.horizontal, 8)
+            }
+            .mask {
+                LinearGradient(
+                    stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.04),
+                            .init(color: .black, location: 0.96), .init(color: .clear, location: 1)],
+                    startPoint: .leading, endPoint: .trailing
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .animation(SidebarMotion.spatial, value: entries.map(\.id))
+    }
+
+    private var row: some View {
+        HStack(spacing: dockStyle.dockSpacing(4)) { items }
+            // Full bar height, so the running dots below the icons stay inside.
+            .frame(maxHeight: .infinity)
+    }
+
+    private var columnBody: some View {
         ViewThatFits(in: .vertical) {
             column
             ScrollView(.vertical, showsIndicators: false) {
@@ -549,38 +586,43 @@ struct SidebarDock: View {
     }
 
     private var column: some View {
-        let entries = entries
-        let split = entries.firstIndex { !$0.pinned }
         // With theme: `--apollo-dock-spacing` between the icons,
         // `--apollo-dock-icon-size` for their size.
-        return VStack(spacing: dockStyle.dockSpacing(4)) {
-            ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-                // Divider between pinned and merely-running, as in Apple's Dock.
-                if index == split, index > 0 {
-                    Capsule()
-                        .fill(Color.primary.opacity(0.18))
-                        .frame(width: 20, height: 2)
-                        .padding(.vertical, 3)
-                }
-                SidebarDockItem(
-                    entry: entry,
-                    iconSize: dockStyle.dockIconSize(CGFloat(options.iconSize.points)),
-                    interactive: !preview,
-                    active: entry.bundleID == model.frontmost,
-                    launching: model.launching.contains(entry.bundleID),
-                    badge: model.badges[entry.bundleID],
-                    onClick: { model.click(entry, modifiers: $0) },
-                    onMenu: { DockMenu.show(for: entry, model: model, at: $0) },
-                    onScroll: { model.scroll(entry) },
-                    onDropFiles: { model.openFiles($0, with: entry) },
-                    onDropApp: { model.place($0, onto: entry.bundleID) }
-                )
+        VStack(spacing: dockStyle.dockSpacing(4)) { items }
+            // Full bar width: otherwise the column sits at the left edge
+            // within the ScrollView, and the running-indicator dots (outside
+            // the icon on the left) get cut off - screenshot from 09-14.
+            .frame(maxWidth: .infinity)
+    }
+
+    /// The icons with the divider, for the column and the row alike.
+    @ViewBuilder
+    private var items: some View {
+        let entries = entries
+        let split = entries.firstIndex { !$0.pinned }
+        let horizontal = axis == .horizontal
+        ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+            // Divider between pinned and merely-running, as in Apple's Dock.
+            if index == split, index > 0 {
+                Capsule()
+                    .fill(Color.primary.opacity(0.18))
+                    .frame(width: horizontal ? 2 : 20, height: horizontal ? 20 : 2)
+                    .padding(horizontal ? .horizontal : .vertical, 3)
             }
+            SidebarDockItem(
+                entry: entry,
+                iconSize: dockStyle.dockIconSize(CGFloat(options.iconSize.points)),
+                interactive: !preview,
+                active: entry.bundleID == model.frontmost,
+                launching: model.launching.contains(entry.bundleID),
+                badge: model.badges[entry.bundleID],
+                onClick: { model.click(entry, modifiers: $0) },
+                onMenu: { DockMenu.show(for: entry, model: model, at: $0) },
+                onScroll: { model.scroll(entry) },
+                onDropFiles: { model.openFiles($0, with: entry) },
+                onDropApp: { model.place($0, onto: entry.bundleID) }
+            )
         }
-        // Full bar width: otherwise the column sits at the left edge
-        // within the ScrollView, and the running-indicator dots (outside
-        // the icon on the left) get cut off - screenshot from 09-14.
-        .frame(maxWidth: .infinity)
     }
 }
 
@@ -607,6 +649,7 @@ private struct SidebarDockItem: View {
     /// Files are currently being dragged over it: highlight like in Apple's Dock.
     @State private var dropTarget = false
     @Environment(\.shellStyle) private var style
+    @Environment(\.barAxis) private var axis
 
     var body: some View {
         Image(nsImage: entry.icon)
@@ -635,13 +678,15 @@ private struct SidebarDockItem: View {
                 }
             }
             .animation(.easeOut(duration: 0.18), value: badge)
-            .overlay(alignment: .leading) {
+            // In a row the dot sits below the icon instead: to its left it
+            // would stand in the gap to the neighbor and read as theirs.
+            .overlay(alignment: axis == .horizontal ? .bottom : .leading) {
                 if entry.running {
                     Circle()
                         // With theme: `--apollo-dock-indicator-color`.
                         .fill(style.paint(.dockIndicator, or: Color.primary.opacity(0.65)))
                         .frame(width: 4, height: 4)
-                        .offset(x: -5)
+                        .offset(x: axis == .horizontal ? 0 : -5)
                 }
             }
             .overlay {

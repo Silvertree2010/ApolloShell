@@ -16,6 +16,31 @@ private struct BarPreviewKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+/// The direction a bar runs in: the sidebar stacks its blocks from top to
+/// bottom, the bars along the top and the bottom edge from left to right.
+/// The blocks are the same; each one only turns its parts along.
+enum BarAxis: Sendable {
+    case vertical, horizontal
+
+    /// The parts of a block (symbol and text, dots): below each other in the
+    /// sidebar, side by side in a bar along the top or the bottom edge. The
+    /// vertical case is the plain `VStack` of before - the sidebar has to
+    /// stay pixel for pixel the same (scripts/compare-renders.py).
+    @MainActor
+    func stack<Content: View>(spacing: CGFloat, horizontal: CGFloat? = nil,
+                              @ViewBuilder content: () -> Content) -> some View {
+        let layout = switch self {
+        case .vertical: AnyLayout(VStackLayout(spacing: spacing))
+        case .horizontal: AnyLayout(HStackLayout(spacing: horizontal ?? spacing))
+        }
+        return layout(content)
+    }
+}
+
+private struct BarAxisKey: EnvironmentKey {
+    static let defaultValue = BarAxis.vertical
+}
+
 extension EnvironmentValues {
     /// In the preview of Nexus: no mouse views (hover, Dock clicks,
     /// dragging). The preview is scaled down, and AppKit views do not go
@@ -24,6 +49,13 @@ extension EnvironmentValues {
     var barPreview: Bool {
         get { self[BarPreviewKey.self] }
         set { self[BarPreviewKey.self] = newValue }
+    }
+
+    /// Which way the bar around a block runs. Vertical unless a bar along the
+    /// top or the bottom edge sets it - so the sidebar needs no change.
+    var barAxis: BarAxis {
+        get { self[BarAxisKey.self] }
+        set { self[BarAxisKey.self] = newValue }
     }
 }
 
@@ -216,13 +248,16 @@ enum BarApps {
 // MARK: - Views
 
 /// Button of the bar for blocks with text (battery, CPU, weather): 32 wide,
-/// at least 32 high, otherwise like `SidebarIcon` (hover, tooltip).
+/// at least 32 high, otherwise like `SidebarIcon` (hover, tooltip). Along a
+/// horizontal bar the other way round: 32 high, at least 32 wide - the text
+/// stands next to the symbol there and sets the width.
 struct BarTile<Content: View>: View {
     let help: String
     var action: (() -> Void)?
     @ViewBuilder let content: () -> Content
     @State private var hovering = false
     @Environment(\.barPreview) private var preview
+    @Environment(\.barAxis) private var axis
 
     init(help: String, action: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.help = help
@@ -231,11 +266,12 @@ struct BarTile<Content: View>: View {
     }
 
     var body: some View {
+        let horizontal = axis == .horizontal
         Button(action: { action?() }) {
             content()
-                .padding(.vertical, 5)
-                .frame(width: 32)
-                .frame(minHeight: 32)
+                .padding(horizontal ? .horizontal : .vertical, horizontal ? 6 : 5)
+                .frame(width: horizontal ? nil : 32, height: horizontal ? 32 : nil)
+                .frame(minWidth: horizontal ? 32 : nil, minHeight: horizontal ? nil : 32)
                 .background(Color.primary.opacity(hovering ? 0.14 : 0), in: .rect(cornerRadius: 9))
                 .contentShape(.rect(cornerRadius: 9))
         }
@@ -281,13 +317,14 @@ struct BarBatteryModule: View {
     let status: StatusModel
     let options: BarBatteryOptions
     let onOpen: () -> Void
+    @Environment(\.barAxis) private var axis
 
     var body: some View {
         if let battery = status.battery, let symbol = StatusGlyphs.batterySymbol(battery) {
             // Red like Apple's battery symbol as soon as the last warning level is reached.
             let low = battery.level <= 10 && !battery.charging && !battery.onAC
             BarTile(help: StatusGlyphs.batteryText(battery), action: onOpen) {
-                VStack(spacing: 3) {
+                axis.stack(spacing: 3, horizontal: 4) {
                     if options.showIcon {
                         Image(systemName: symbol)
                             .font(.system(size: 13, weight: .semibold))
@@ -311,6 +348,7 @@ struct BarCPUModule: View {
     let model: BarCPUModel
     let options: BarCPUOptions
     let onOpen: () -> Void
+    @Environment(\.barAxis) private var axis
 
     var body: some View {
         let percent = model.usage.map { Int(($0 * 100).rounded()) }
@@ -332,7 +370,7 @@ struct BarCPUModule: View {
                 .frame(width: 24, height: 24)
                 .animation(.easeOut(duration: 0.3), value: model.usage)
             case .percent:
-                VStack(spacing: 3) {
+                axis.stack(spacing: 3, horizontal: 4) {
                     Image(systemName: "cpu")
                         .font(.system(size: 13, weight: .semibold))
                     Text(percent.map { "\($0)%" } ?? "–")
@@ -355,6 +393,7 @@ struct BarWeatherModule: View {
     let options: BarWeatherOptions
     let onOpen: () -> Void
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.barAxis) private var axis
 
     var body: some View {
         let model = feed.model
@@ -364,7 +403,7 @@ struct BarWeatherModule: View {
                         ?? String(localized: "Weather in \(location.name)")
                 } ?? String(localized: "Set a Location under Edit Interface"),
                 action: onOpen) {
-            VStack(spacing: 2) {
+            axis.stack(spacing: 2, horizontal: 4) {
                 if let current {
                     Image(systemName: WeatherCondition.symbol(code: current.code, isDay: current.isDay))
                         .symbolRenderingMode(.multicolor)

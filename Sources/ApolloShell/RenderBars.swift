@@ -23,6 +23,37 @@ enum RenderBars {
                                      to: sidebar.appendingPathComponent("\(preset.rawValue)-\(scheme == .dark ? "dark" : "light").png"))
             }
         }
+        try renderHorizontal(into: folder.appendingPathComponent("horizontal", isDirectory: true), context: context)
+    }
+
+    /// The same blocks along a horizontal axis, for the bars along the top and
+    /// the bottom edge: every template as one 34 pt high row, and every kind
+    /// alone - so a block that breaks out of the height shows up on its own.
+    private static func renderHorizontal(into folder: URL, context: BarModuleContext) throws {
+        let modules = folder.appendingPathComponent("modules", isDirectory: true)
+        try FileManager.default.createDirectory(at: modules, withIntermediateDirectories: true)
+        for scheme in [ColorScheme.light, .dark] {
+            for preset in BarPreset.allCases {
+                try RenderMode.write(row(preset.layout.entries, context: context).frame(width: 1400, height: 34),
+                                     scheme: scheme, to: folder.appendingPathComponent(RenderMode.name(preset.rawValue, scheme)))
+            }
+            for kind in BarModuleKind.allCases {
+                try RenderMode.write(row([BarEntry(kind)], context: context).frame(width: 300, height: 34),
+                                     scheme: scheme, to: modules.appendingPathComponent(RenderMode.name(kind.rawValue, scheme)))
+            }
+        }
+    }
+
+    private static func row(_ entries: [BarEntry], context: BarModuleContext) -> some View {
+        BarStack(axis: .horizontal) {
+            ForEach(entries) { entry in
+                BarModuleView(entry: entry, context: context)
+            }
+        }
+        // The sidebar's margin at its ends, here at the left and the right.
+        .padding(.horizontal, 10)
+        .environment(\.barAxis, .horizontal)
+        .environment(\.barPreview, true)
     }
 
     /// Like `BarPreviewModels.context`, but at the fixtures' point in time

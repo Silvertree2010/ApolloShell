@@ -208,8 +208,10 @@ final class DockMouseView: NSView, NSDraggingSource {
         // When the column runs as a scrolling list right now (too many apps),
         // the scrolling belongs to it - otherwise it could no longer be moved
         // over the symbols.
+        // The width counts for the row along a horizontal bar.
         if let scrollView = enclosingScrollView, let document = scrollView.documentView,
-           document.frame.height > scrollView.contentView.bounds.height + 1 {
+           document.frame.height > scrollView.contentView.bounds.height + 1
+            || document.frame.width > scrollView.contentView.bounds.width + 1 {
             super.scrollWheel(with: event)
             return
         }
