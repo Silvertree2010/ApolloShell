@@ -190,8 +190,8 @@ struct MenuBarZonesTests {
     @Test("Two reservations for one screen key: the larger strip per edge wins")
     func insetsUnion() {
         let a = ReservedInsets(top: 40, left: 44)
-        let b = ReservedInsets(left: 30, bottom: 34)
-        #expect(a.union(b) == ReservedInsets(top: 40, left: 44, bottom: 34))
+        let b = ReservedInsets(top: 52, left: 30)
+        #expect(a.union(b) == ReservedInsets(top: 52, left: 44))
         #expect(ReservedInsets.zero.union(a) == a)
     }
 }

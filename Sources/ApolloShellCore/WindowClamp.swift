@@ -1,26 +1,24 @@
 import CoreGraphics
 
-/// How much of each screen edge a bar reserves, in accessibility
-/// coordinates. A bar only at the left, say, leaves the other three at 0 -
-/// `WindowClamp` then leaves those edges alone entirely, rather than pulling
-/// in a window that merely happens to sit off-screen there.
+/// How much of the top and left screen edges the shell reserves, in
+/// accessibility coordinates: the menu bar at the top, the sidebar at the
+/// left. No bar sits at the bottom or the right, so those edges are never
+/// reserved. An edge left at 0 is left alone entirely by `WindowClamp`,
+/// rather than pulling in a window that merely happens to sit off-screen
+/// there.
 public struct ReservedInsets: Equatable, Sendable {
     public var top: CGFloat
     public var left: CGFloat
-    public var bottom: CGFloat
-    public var right: CGFloat
 
-    public init(top: CGFloat = 0, left: CGFloat = 0, bottom: CGFloat = 0, right: CGFloat = 0) {
+    public init(top: CGFloat = 0, left: CGFloat = 0) {
         self.top = top
         self.left = left
-        self.bottom = bottom
-        self.right = right
     }
 
     public static let zero = ReservedInsets()
 
     public var isZero: Bool {
-        top == 0 && left == 0 && bottom == 0 && right == 0
+        top == 0 && left == 0
     }
 
     /// The larger reservation per edge. The window watch knows screens by
@@ -28,8 +26,7 @@ public struct ReservedInsets: Equatable, Sendable {
     /// differ, keeping the larger strip on both never lets a window run
     /// under a bar (the sidebar alone did the same with its set of keys).
     public func union(_ other: ReservedInsets) -> ReservedInsets {
-        ReservedInsets(top: max(top, other.top), left: max(left, other.left),
-                       bottom: max(bottom, other.bottom), right: max(right, other.right))
+        ReservedInsets(top: max(top, other.top), left: max(left, other.left))
     }
 }
 
@@ -70,32 +67,26 @@ public enum WindowClamp {
         )
     }
 
-    /// A new frame for a window that reaches into a strip reserved at any of
-    /// the four screen edges, or `nil` when there is nothing to do. Bars can
-    /// sit at the top, the bottom, or either side, and more than one at once
-    /// (a maximised window with bars top and left ends up exactly in the
-    /// free rect between them).
+    /// A new frame for a window that reaches into the strip reserved at the
+    /// top (menu bar) or the left (sidebar) of the screen, or `nil` when
+    /// there is nothing to do. Both at once work too: a maximised window
+    /// ends up exactly in the free rect below the menu bar and right of the
+    /// sidebar.
     ///
     /// Coordinates are accessibility coordinates (origin top left, y
-    /// downwards): `insets.top` therefore limits `minY` and `insets.bottom`
-    /// limits `maxY`, the mirror image of how `left`/`right` limit `minX`/
-    /// `maxX`.
+    /// downwards): `insets.top` therefore limits `minY` just as
+    /// `insets.left` limits `minX`.
     ///
-    /// The two edges of an axis (left/right, top/bottom) are handled
-    /// together, each following the same two-case rule the original
-    /// left-only function used, applied per edge:
-    /// - That edge exactly at the matching screen edge: the system or the
+    /// Each axis follows the same two-case rule:
+    /// - The window's edge exactly at the screen edge: the system or the
     ///   app put it there (zoom, "fill", tile, maximise). Then the opposite
     ///   edge stays put and the window shrinks - the way those commands
     ///   reckon with a bar docked at that edge. Otherwise a left tile would
     ///   be pushed into the right one.
     /// - Otherwise (dragged halfway under it by hand, hanging over the
     ///   edge): move it and keep the size. Only when it would then run past
-    ///   the opposite reserved limit, make it smaller - but never let it
-    ///   reach further than it already did.
-    /// When both edges of an axis are reserved against at once (a bar on
-    /// each side), the window is fit exactly into the free strip between
-    /// them.
+    ///   the opposite screen edge, make it smaller - but never let it reach
+    ///   further than it already did.
     ///
     /// `minSize` is the smallest size the app allows (learned from a
     /// refused shrink, otherwise `.zero`). Neither dimension ever gets
@@ -112,14 +103,12 @@ public enum WindowClamp {
         let x = clampedAxis(
             windowLow: window.minX, windowHigh: window.maxX,
             screenLow: screen.minX, screenHigh: screen.maxX,
-            insetLow: insets.left, insetHigh: insets.right,
-            minLength: minSize.width
+            inset: insets.left, minLength: minSize.width
         )
         let y = clampedAxis(
             windowLow: window.minY, windowHigh: window.maxY,
             screenLow: screen.minY, screenHigh: screen.maxY,
-            insetLow: insets.top, insetHigh: insets.bottom,
-            minLength: minSize.height
+            inset: insets.top, minLength: minSize.height
         )
         guard x != nil || y != nil else { return nil }
 
@@ -132,50 +121,27 @@ public enum WindowClamp {
         return isSameFrame(result, window) ? nil : result
     }
 
-    /// One axis (x with left/right, or y with top/bottom) of `clampedFrame`.
-    /// `nil` when this axis needs no change. `insetLow`/`insetHigh` of 0
-    /// mean no bar sits at that edge, so it is never a reason to move or
-    /// shrink the window - a window off-screen on an edge without a bar is
-    /// left alone.
+    /// One axis (x with the sidebar, or y with the menu bar) of
+    /// `clampedFrame`. `nil` when this axis needs no change. An `inset` of 0
+    /// means no bar sits at that edge, so it is never a reason to move or
+    /// shrink the window.
     private static func clampedAxis(
         windowLow: CGFloat,
         windowHigh: CGFloat,
         screenLow: CGFloat,
         screenHigh: CGFloat,
-        insetLow: CGFloat,
-        insetHigh: CGFloat,
+        inset: CGFloat,
         minLength: CGFloat
     ) -> (low: CGFloat, length: CGFloat)? {
-        let lowLimit = screenLow + insetLow
-        let highLimit = screenHigh - insetHigh
-        let violatesLow = insetLow > 0 && windowLow < lowLimit - tolerance
-        let violatesHigh = insetHigh > 0 && windowHigh > highLimit + tolerance
-        guard violatesLow || violatesHigh else { return nil }
+        let limit = screenLow + inset
+        guard inset > 0, windowLow < limit - tolerance else { return nil }
 
-        // Bars on both edges of this axis at once: fit into the free strip
-        // between them, regardless of how the window came to overlap both.
-        if violatesLow, violatesHigh {
-            return (lowLimit, max(highLimit - lowLimit, minLength))
+        let pinnedLength = windowHigh - limit
+        if abs(windowLow - screenLow) <= tolerance, pinnedLength > 0 {
+            return (limit, max(pinnedLength, minLength))
         }
-
-        if violatesLow {
-            let pinnedLength = windowHigh - lowLimit
-            if abs(windowLow - screenLow) <= tolerance, pinnedLength > 0 {
-                return (lowLimit, max(pinnedLength, minLength))
-            }
-            let bound = max(highLimit, windowHigh)
-            return (lowLimit, max(min(windowHigh - windowLow, bound - lowLimit), minLength))
-        }
-
-        // violatesHigh: the mirror image of the block above.
-        let pinnedLength = highLimit - windowLow
-        if abs(windowHigh - screenHigh) <= tolerance, pinnedLength > 0 {
-            let length = max(pinnedLength, minLength)
-            return (highLimit - length, length)
-        }
-        let bound = min(lowLimit, windowLow)
-        let length = max(min(windowHigh - windowLow, highLimit - bound), minLength)
-        return (highLimit - length, length)
+        let bound = max(screenHigh, windowHigh)
+        return (limit, max(min(windowHigh - windowLow, bound - limit), minLength))
     }
 
     /// Index of the screen that holds the largest part of the window, or
