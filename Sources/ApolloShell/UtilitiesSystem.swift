@@ -104,6 +104,158 @@ final class UtilitiesNightShiftClient {
     }
 }
 
+// MARK: - Brightness
+
+/// Display brightness through DisplayServices, the way many menu-bar
+/// brightness tools do it: `int DisplayServicesGetBrightness(CGDirectDisplayID, float*)`
+/// and `int DisplayServicesSetBrightness(CGDirectDisplayID, float)`. Public
+/// API (`NSScreen`/IOKit) has no writable brightness anymore on Apple
+/// silicon; this private framework is what System Settings itself uses.
+///
+/// Only built-in and other Apple displays answer (measured 23.09.: a
+/// non-Apple external monitor returns a non-zero status) - so a status
+/// other than zero is read as "cannot do brightness here" rather than an
+/// error, and the button stays disabled instead of doing nothing.
+@MainActor
+enum UtilitiesBrightness {
+    private typealias Getter = @convention(c) (UInt32, UnsafeMutablePointer<Float>) -> Int32
+    private typealias Setter = @convention(c) (UInt32, Float) -> Int32
+
+    private static let displayServices: (get: Getter, set: Setter)? = {
+        guard let handle = dlopen("/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices", RTLD_LAZY),
+              let get = dlsym(handle, "DisplayServicesGetBrightness"),
+              let set = dlsym(handle, "DisplayServicesSetBrightness")
+        else {
+            systemLog.notice("Brightness via DisplayServices missing, the card stays disabled")
+            return nil
+        }
+        return (unsafeBitCast(get, to: Getter.self), unsafeBitCast(set, to: Setter.self))
+    }()
+
+    /// The main display's brightness, 0...1. `nil`: no DisplayServices, or
+    /// this display does not answer (an external, non-Apple monitor).
+    static func brightness() -> Float? {
+        guard let displayServices else { return nil }
+        var value: Float = 0
+        return displayServices.get(CGMainDisplayID(), &value) == 0 ? value : nil
+    }
+
+    /// Sets every active display that answers - a MacBook with an external
+    /// Apple display dims together, like the brightness keys. `true` when
+    /// at least one of them took it.
+    @discardableResult
+    static func setBrightness(_ value: Float) -> Bool {
+        guard let displayServices else { return false }
+        var ok = false
+        for id in activeDisplayIDs() where displayServices.set(id, value) == 0 { ok = true }
+        return ok
+    }
+
+    private static func activeDisplayIDs() -> [CGDirectDisplayID] {
+        var count: UInt32 = 0
+        guard CGGetActiveDisplayList(0, nil, &count) == .success, count > 0 else { return [CGMainDisplayID()] }
+        var ids = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        guard CGGetActiveDisplayList(count, &ids, &count) == .success else { return [CGMainDisplayID()] }
+        return ids
+    }
+}
+
+// MARK: - Hidden files
+
+/// "Show hidden files" through the same preference the Finder itself
+/// reads (`defaults read/write com.apple.finder AppleShowAllFiles`), plus
+/// a relaunch so it takes hold right away - Finder only rereads this on
+/// launch.
+enum UtilitiesFinder {
+    static let defaultsTool = "/usr/bin/defaults"
+    static let killTool = "/usr/bin/killall"
+    static let domain = "com.apple.finder"
+    static let key = "AppleShowAllFiles"
+
+    /// A process of its own (like the shortcuts list): cheap, but still a
+    /// process, so it is not read on every 2 s tick, only like Bluetooth.
+    /// The parsing itself (`UtilitiesFinderPreference.parse`) lives in
+    /// ApolloShellCore, where it is unit-tested.
+    static func readHiddenFiles() async -> Bool? {
+        guard let result = await Subprocess.output(defaultsTool, ["read", domain, key]), result.status == 0 else { return nil }
+        return UtilitiesFinderPreference.parse(result.text)
+    }
+
+    @MainActor
+    static func setHiddenFiles(_ on: Bool) {
+        Subprocess.launch(defaultsTool, ["write", domain, key, "-bool", on ? "true" : "false"]) { status in
+            guard status == 0 else { return }
+            Subprocess.launch(killTool, ["Finder"])
+        }
+    }
+}
+
+// MARK: - Low Power Mode
+
+/// `pmset -a lowpowermode` needs administrator rights; `ProcessInfo`
+/// reads the state without any (it is the same flag System Settings and
+/// Control Centre show).
+///
+/// Through `NSAppleScript` instead of an `osascript` process (unlike
+/// `LidAwake`/`UtilitiesAppearance`): the call is rare (a manual click),
+/// and `NSAppleScript` needs no process to start up for it - only off the
+/// main thread, so the administrator prompt never blocks the panel.
+enum UtilitiesPower {
+    @MainActor
+    static func setLowPowerMode(_ on: Bool) {
+        Task.detached(priority: .userInitiated) {
+            let prompt = on
+                ? String(localized: "ApolloShell would like to turn on Low Power Mode.")
+                : String(localized: "ApolloShell would like to turn off Low Power Mode.")
+            let command = "/usr/bin/pmset -a lowpowermode \(on ? 1 : 0)"
+            let source = "do shell script \"\(escaped(command))\" with prompt \"\(escaped(prompt))\" with administrator privileges"
+            var error: NSDictionary?
+            NSAppleScript(source: source)?.executeAndReturnError(&error)
+            if let error {
+                systemLog.error("Low Power Mode not switched: \(error, privacy: .public)")
+            }
+        }
+    }
+
+    /// Same escaping as `LidAwake.appleScriptEscaped` (internal to that
+    /// module, hence its own copy here): the text sits inside an
+    /// AppleScript string, which only needs `\` and `"` doubled.
+    private static func escaped(_ text: String) -> String {
+        text.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+    }
+}
+
+// MARK: - System windows
+
+/// Mission Control, Launchpad, AirDrop: all three are separate apps or
+/// app-like bundles macOS ships, opened the same way a Dock click would.
+enum UtilitiesSystemWindows {
+    /// macOS 26 folded Launchpad into "Apps" (Spotlight-style grid); on
+    /// older systems, or if that bundle is ever renamed back, "Launchpad"
+    /// by name still resolves through LaunchServices.
+    static let appsBundle = "/System/Applications/Apps.app"
+    static let airDropBundle = "/System/Library/CoreServices/Finder.app/Contents/Applications/AirDrop.app"
+
+    @MainActor
+    static func openMissionControl() {
+        Subprocess.launch("/usr/bin/open", ["-a", "Mission Control"])
+    }
+
+    @MainActor
+    static func openLaunchpad() {
+        if FileManager.default.fileExists(atPath: appsBundle) {
+            Subprocess.launch("/usr/bin/open", [appsBundle])
+        } else {
+            Subprocess.launch("/usr/bin/open", ["-a", "Launchpad"])
+        }
+    }
+
+    @MainActor
+    static func openAirDrop() {
+        Subprocess.launch("/usr/bin/open", [airDropBundle])
+    }
+}
+
 // MARK: - Key presses
 
 /// Key presses for the action buttons, like SpaceSwitcher. Needs the

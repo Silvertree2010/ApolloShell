@@ -53,12 +53,17 @@ public struct QuickToggleLook: Equatable, Sendable {
     public var active: Bool
     public var enabled: Bool
     public var help: String
+    /// Lights up red instead of the accent color while `active` - only the
+    /// armed step of "Empty Trash" uses this, a warning before something
+    /// that cannot be undone.
+    public var danger: Bool
 
-    public init(symbol: String?, active: Bool, enabled: Bool, help: String) {
+    public init(symbol: String?, active: Bool, enabled: Bool, help: String, danger: Bool = false) {
         self.symbol = symbol
         self.active = active
         self.enabled = enabled
         self.help = help
+        self.danger = danger
     }
 }
 
@@ -167,5 +172,24 @@ public enum QuickToggles {
     public static func cornerRadius(active: Bool, pressed: Bool, height: Double) -> Double {
         if pressed { return 8 }
         return active ? 12 : height / 2
+    }
+}
+
+// MARK: - Hidden files
+
+/// The pure part of "show hidden files": parsing what `defaults read` on
+/// `com.apple.finder AppleShowAllFiles` prints back. The process call
+/// itself (`UtilitiesFinder` in the app target) is not testable here, but
+/// this reading is - so it lives in the core.
+public enum UtilitiesFinderPreference {
+    /// `defaults read` prints "1"/"0"; other writers may leave "true"/
+    /// "false" or "yes"/"no" there instead - all three count. `nil`:
+    /// unset, or not parseable.
+    public static func parse(_ output: String) -> Bool? {
+        switch output.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "1", "true", "yes": true
+        case "0", "false", "no": false
+        default: nil
+        }
     }
 }
