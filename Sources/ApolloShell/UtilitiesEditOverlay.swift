@@ -104,6 +104,8 @@ private struct EditableUtilitiesCard: View {
         case .keepAwake: KeepAwakeCard(model: UtilitiesEditorPreviewModel.model)
         case .audio: UtilitiesAudioCard(model: UtilitiesEditorPreviewModel.model)
         case .quickToggles: EditableQuickTogglesCard(editor: editor, rows: rows, reduceMotion: reduceMotion)
+        case .brightness: UtilitiesBrightnessCard(model: UtilitiesEditorPreviewModel.model)
+        case .nowPlaying: UtilitiesNowPlayingCard(model: UtilitiesEditorPreviewModel.media)
         }
     }
 

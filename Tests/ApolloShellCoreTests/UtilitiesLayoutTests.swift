@@ -28,7 +28,7 @@ struct UtilitiesLayoutTests {
         let layout = ShellSettings.load(from: Data(json.utf8)).utilities.layout
         #expect(layout == UtilitiesPreset.standard.layout)
         #expect(toggleKinds(layout) == Self.standardKinds)
-        #expect(cards(layout) == ["keepAwake", "audio", "quickToggles"])
+        #expect(cards(layout) == ["keepAwake", "audio", "quickToggles", "brightness-off", "nowPlaying-off"])
         #expect(layout.toggles.map(\.id) == Self.standardKinds)
     }
 
@@ -53,13 +53,15 @@ struct UtilitiesLayoutTests {
         #expect(toggleKinds(layout(json)) == expected)
     }
 
-    @Test("Cards: unknown ones go, duplicates go, missing ones switched on at the end", arguments: [
-        (#"{"cards":[{"kind":"audio","enabled":false},{"kind":"keepAwake"}]}"#, ["audio-off", "keepAwake", "quickToggles"]),
+    @Test("Cards: unknown ones go, duplicates go, missing ones appended with their own default", arguments: [
+        (#"{"cards":[{"kind":"audio","enabled":false},{"kind":"keepAwake"}]}"#,
+         ["audio-off", "keepAwake", "quickToggles", "brightness-off", "nowPlaying-off"]),
         (#"{"cards":[{"kind":"quickToggles"},{"kind":"quickToggles","enabled":false},{"kind":"radio"}]}"#,
-         ["quickToggles", "keepAwake", "audio"]),
-        (#"{"cards":[{"kind":"audio","enabled":"nein"}]}"#, ["audio", "keepAwake", "quickToggles"]),
-        (#"{"cards":7}"#, ["keepAwake", "audio", "quickToggles"]),
-        (#"{"cards":[]}"#, ["keepAwake", "audio", "quickToggles"]),
+         ["quickToggles", "keepAwake", "audio", "brightness-off", "nowPlaying-off"]),
+        (#"{"cards":[{"kind":"audio","enabled":"nein"}]}"#,
+         ["audio", "keepAwake", "quickToggles", "brightness-off", "nowPlaying-off"]),
+        (#"{"cards":7}"#, ["keepAwake", "audio", "quickToggles", "brightness-off", "nowPlaying-off"]),
+        (#"{"cards":[]}"#, ["keepAwake", "audio", "quickToggles", "brightness-off", "nowPlaying-off"]),
     ])
     func cardsNormalized(json: String, expected: [String]) {
         #expect(cards(layout(json)) == expected)
@@ -118,16 +120,17 @@ struct UtilitiesLayoutTests {
     // MARK: Templates
 
     @Test("templates are data with a fixed order", arguments: [
-        (UtilitiesPreset.standard, ["keepAwake", "audio", "quickToggles"],
+        (UtilitiesPreset.standard, ["keepAwake", "audio", "quickToggles", "brightness-off", "nowPlaying-off"],
          ["wifi", "microphone", "bluetooth", "darkMode", "nightShift", "screenshot", "showDesktop", "colorPicker",
           "lockScreen", "settings"]),
-        (UtilitiesPreset.minimal, ["quickToggles", "keepAwake-off", "audio-off"],
+        (UtilitiesPreset.minimal, ["quickToggles", "keepAwake-off", "audio-off", "brightness-off", "nowPlaying-off"],
          ["wifi", "bluetooth", "darkMode", "lockScreen", "settings"]),
-        (UtilitiesPreset.audio, ["audio", "quickToggles", "keepAwake-off"],
+        (UtilitiesPreset.audio, ["audio", "quickToggles", "keepAwake-off", "brightness-off", "nowPlaying-off"],
          ["microphone", "bluetooth", "wifi", "displaySleep", "settings"]),
-        (UtilitiesPreset.everything, ["keepAwake", "audio", "quickToggles"],
-         ["wifi", "microphone", "bluetooth", "darkMode", "nightShift", "screenshot", "showDesktop", "colorPicker",
-          "lockScreen", "displaySleep", "hideApps", "settings"]),
+        (UtilitiesPreset.everything, ["keepAwake", "audio", "quickToggles", "brightness-off", "nowPlaying-off"],
+         ["wifi", "microphone", "bluetooth", "darkMode", "nightShift", "mute", "hiddenFiles", "lowPower",
+          "screenshot", "showDesktop", "colorPicker", "lockScreen", "displaySleep", "hideApps",
+          "emptyTrash", "missionControl", "launchpad", "airDrop", "settings"]),
     ])
     func presetOrder(preset: UtilitiesPreset, expectedCards: [String], expectedToggles: [String]) {
         #expect(cards(preset.layout) == expectedCards)
@@ -239,9 +242,9 @@ struct UtilitiesLayoutTests {
     }
 
     @Test("cards on/off and reordering", arguments: [
-        (UtilitiesCardKind.audio, false, [2], 0, ["quickToggles", "keepAwake", "audio-off"]),
-        (UtilitiesCardKind.keepAwake, false, [0], 3, ["audio", "quickToggles", "keepAwake-off"]),
-        (UtilitiesCardKind.quickToggles, true, [1], 0, ["audio", "keepAwake", "quickToggles"]),
+        (UtilitiesCardKind.audio, false, [2], 0, ["quickToggles", "keepAwake", "audio-off", "brightness-off", "nowPlaying-off"]),
+        (UtilitiesCardKind.keepAwake, false, [0], 3, ["audio", "quickToggles", "keepAwake-off", "brightness-off", "nowPlaying-off"]),
+        (UtilitiesCardKind.quickToggles, true, [1], 0, ["audio", "keepAwake", "quickToggles", "brightness-off", "nowPlaying-off"]),
     ])
     func cardChanges(kind: UtilitiesCardKind, enabled: Bool, source: [Int], destination: Int, expected: [String]) {
         var layout = UtilitiesLayout()
@@ -252,8 +255,12 @@ struct UtilitiesLayoutTests {
     }
 
     @Test("moving a card one place", arguments: [
-        (UtilitiesCardKind.audio, -1, ["audio", "keepAwake", "quickToggles"]),
-        (UtilitiesCardKind.quickToggles, 1, ["keepAwake", "audio", "quickToggles"]),
+        (UtilitiesCardKind.audio, -1, ["audio", "keepAwake", "quickToggles", "brightness-off", "nowPlaying-off"]),
+        // Now that brightness sits right after quickToggles, moving it
+        // one place forward swaps with brightness instead of standing
+        // still at the (no longer last) edge.
+        (UtilitiesCardKind.quickToggles, 1, ["keepAwake", "audio", "brightness-off", "quickToggles", "nowPlaying-off"]),
+        (UtilitiesCardKind.nowPlaying, 1, ["keepAwake", "audio", "quickToggles", "brightness-off", "nowPlaying-off"]),
     ])
     func cardStep(kind: UtilitiesCardKind, step: Int, expected: [String]) {
         var layout = UtilitiesLayout()
@@ -265,7 +272,8 @@ struct UtilitiesLayoutTests {
 
     @Test("the height per template out of the measurements", arguments: [
         (UtilitiesPreset.standard, 426.0), (UtilitiesPreset.minimal, 137.0), (UtilitiesPreset.audio, 290.0),
-        (UtilitiesPreset.everything, 482.0),
+        // 19 toggles now (12 plus the 7 new ones) - four rows instead of three.
+        (UtilitiesPreset.everything, 538.0),
     ])
     func presetHeight(preset: UtilitiesPreset, height: Double) {
         #expect(preset.layout.panelHeight == height)
@@ -317,7 +325,7 @@ struct UtilitiesLayoutTests {
         let settings = ShellSettings.load(from: Data(json.utf8))
         #expect(settings.toasts.batteryWarnings == false)
         #expect(toggleKinds(settings.utilities.layout) == ["wifi"])
-        #expect(cards(settings.utilities.layout) == ["keepAwake", "audio", "quickToggles"])
+        #expect(cards(settings.utilities.layout) == ["keepAwake", "audio", "quickToggles", "brightness-off", "nowPlaying-off"])
     }
 }
 

@@ -53,12 +53,17 @@ public struct QuickToggleLook: Equatable, Sendable {
     public var active: Bool
     public var enabled: Bool
     public var help: String
+    /// Lights up red instead of the accent color while `active` - only the
+    /// armed step of "Empty Trash" uses this, a warning before something
+    /// that cannot be undone.
+    public var danger: Bool
 
-    public init(symbol: String?, active: Bool, enabled: Bool, help: String) {
+    public init(symbol: String?, active: Bool, enabled: Bool, help: String, danger: Bool = false) {
         self.symbol = symbol
         self.active = active
         self.enabled = enabled
         self.help = help
+        self.danger = danger
     }
 }
 

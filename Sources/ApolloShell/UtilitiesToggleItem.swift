@@ -69,6 +69,27 @@ struct UtilitiesToggleItem {
         case .runShortcut(let options):
             look = QuickToggles.runShortcut(options)
             action = { model.runShortcut(options) }
+        case .mute:
+            look = QuickToggles.mute(muted: model.outputMuted, settable: model.muteSettable)
+            action = model.toggleOutputMute
+        case .hiddenFiles:
+            look = QuickToggles.hiddenFiles(on: model.hiddenFilesOn)
+            action = model.toggleHiddenFiles
+        case .lowPower:
+            look = QuickToggles.lowPower(on: model.lowPowerOn)
+            action = model.toggleLowPower
+        case .emptyTrash:
+            look = QuickToggles.emptyTrash(armed: model.emptyTrashArmed)
+            action = model.emptyTrash
+        case .missionControl:
+            look = QuickToggles.missionControl
+            action = model.openMissionControl
+        case .launchpad:
+            look = QuickToggles.launchpad
+            action = model.openLaunchpad
+        case .airDrop:
+            look = QuickToggles.airDrop
+            action = model.openAirDrop
         }
         self.look = look
         icon = Self.icon(for: entry.toggle, look: look)

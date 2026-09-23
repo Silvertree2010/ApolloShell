@@ -585,8 +585,10 @@ private struct MediaClock<Content: View>: View {
 /// Cover or a placeholder note; a new cover crossfades in. As an overlay
 /// on the shape: this way the shape determines the size, and a wide cover
 /// (video preview 16:9, measured 150 x 83 px) is cropped instead of
-/// breaking out of the frame.
-private struct MediaArtwork<S: Shape>: View {
+/// breaking out of the frame. Not `private`: the now-playing card in the
+/// utilities panel (`UtilitiesNowPlayingCard.swift`) reuses it for its own,
+/// smaller cover.
+struct MediaArtwork<S: Shape>: View {
     let image: NSImage?
     let id: Int
     let shape: S
@@ -676,8 +678,9 @@ private struct MediaProgressBar: View {
 
 /// Previous, play/pause (wide), next - like Caelestia's ButtonRow. While
 /// something is playing, the middle button is filled and more angular
-/// (Caelestia: checked + shapeMorph), paused it's round and tinted.
-private struct MediaControls: View {
+/// (Caelestia: checked + shapeMorph), paused it's round and tinted. Not
+/// `private`: reused as-is by `UtilitiesNowPlayingCard.swift`.
+struct MediaControls: View {
     let model: MediaModel
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shellStyle) private var style
@@ -719,7 +722,7 @@ private struct MediaControls: View {
 }
 
 /// Round, tinted button (Caelestia: IconButton Tonal, isRound).
-private struct MediaRoundButton: View {
+struct MediaRoundButton: View {
     let symbol: String
     let label: LocalizedStringKey
     let size: CGFloat
@@ -742,7 +745,7 @@ private struct MediaRoundButton: View {
 }
 
 /// Press: briefly smaller, springs back with Caelestia's spatial curve.
-private struct MediaPressStyle: ButtonStyle {
+struct MediaPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.92 : 1)
