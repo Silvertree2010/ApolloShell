@@ -204,6 +204,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.nexusMenu = nexusMenu
         // ApolloShell's own item among the mirrored status items.
         sidebar.onNexus = { [weak nexusMenu] in nexusMenu?.open() }
+        sidebar.nexusItemFrame = { [weak nexusMenu] in nexusMenu?.mirrorFrame }
         // `>` Settings in the launcher, and its failures as toasts.
         controller.onOpenSettings = { [weak nexusMenu] in nexusMenu?.open() }
         controller.onReport = { [weak self] title, message in

@@ -52,6 +52,8 @@ final class Sidebar {
     var onDashboardTab: (DashboardTab) -> Void = { _ in }
     /// Opens Nexus: ApolloShell's own item among the mirrored status items.
     var onNexus: () -> Void = {}
+    /// Where the Nexus item stands in Apple's bar, for that mirror.
+    var nexusItemFrame: () -> NSRect? = { nil }
     /// After every rebuild: the room the bars keep free per screen, by
     /// `ScreenInfo.key`. The window guard keeps windows out of it.
     var onReservedChange: ([String: ReservedInsets]) -> Void = { _ in }
@@ -133,6 +135,7 @@ final class Sidebar {
         )
 
         statusItems.onOwnItem = { [weak self] in self?.onNexus() }
+        statusItems.ownItemFrame = { [weak self] in self?.nexusItemFrame() }
         rebuild()
         observeSystemChanges()
         // Delivers the current value first (nothing to do), then every

@@ -34,7 +34,8 @@ enum AXMenus {
     /// The top-level titles, Apple's menu first ("Apple", "Finder", "File"
     /// ...). `nil` without the permission or without a menu bar.
     static func menuBarTitles(pid: pid_t) async -> [String]? {
-        await run {
+        guard !isOwn(pid) else { return nil }
+        return await run {
             guard AXIsProcessTrusted(), let bar = menuBar(pid: pid) else { return nil }
             return AX.elements(bar, kAXChildrenAttribute).map { AX.string($0, kAXTitleAttribute) ?? "" }
         }
@@ -43,7 +44,8 @@ enum AXMenus {
     /// The entries of top-level menus, read fresh: the menu may have changed
     /// since the titles were read ("Open Recent", window lists).
     static func menuBarMenus(pid: pid_t, indices: [Int]) async -> [(title: String, index: Int, nodes: [AppMenuNode])] {
-        await run {
+        guard !isOwn(pid) else { return [] }
+        return await run {
             guard AXIsProcessTrusted(), let bar = menuBar(pid: pid) else { return [] }
             let items = AX.elements(bar, kAXChildrenAttribute)
             var budget = entryBudget
@@ -59,7 +61,8 @@ enum AXMenus {
     /// Carries out an entry of the menu bar; the first step is the top-level
     /// menu.
     static func pressMenuBar(pid: pid_t, path: [AXMenuStep]) async -> Bool {
-        await run {
+        guard !isOwn(pid) else { return false }
+        return await run {
             guard let bar = menuBar(pid: pid), let first = path.first else { return false }
             let items = AX.elements(bar, kAXChildrenAttribute)
             guard let index = first.resolve(in: items.map { AX.string($0, kAXTitleAttribute) ?? "" }) else { return false }
@@ -69,12 +72,20 @@ enum AXMenus {
 
     // MARK: - Status items
 
-    /// Every app's status items, raw - the core picks and orders
+    /// Every other app's status items, raw - the core picks and orders
     /// (`StatusItemOrder`). Only apps that can have a status item: a
     /// background-only process has no user interface at all.
+    ///
+    /// Never our own process: AppKit answers an accessibility request to
+    /// itself in-process, on the asking thread - AppKit and SwiftUI off the
+    /// main thread (the TWM crashes of 21.09.), and while one of our menus
+    /// tracks on the main thread the request can hold this queue up. Our
+    /// own item (Nexus) comes from its NSStatusItem instead.
     static func statusItems() async -> [StatusItemRecord] {
+        let own = ProcessInfo.processInfo.processIdentifier
         let apps = NSWorkspace.shared.runningApplications
-            .filter { $0.activationPolicy != .prohibited && !StatusItemOrder.isSystem(bundleID: $0.bundleIdentifier) }
+            .filter { $0.activationPolicy != .prohibited && $0.processIdentifier != own
+                && !StatusItemOrder.isSystem(bundleID: $0.bundleIdentifier) }
             .map { (pid: $0.processIdentifier, bundleID: $0.bundleIdentifier) }
         return await run {
             guard AXIsProcessTrusted() else { return [] }
@@ -100,7 +111,8 @@ enum AXMenus {
     /// has none: then it opens a popover or a window of its own, which only
     /// its app can show (`pressStatusItem` with an empty path).
     static func statusItemMenu(pid: pid_t, index: Int) async -> [AppMenuNode]? {
-        await run {
+        guard !isOwn(pid) else { return nil }
+        return await run {
             guard let item = statusItem(pid: pid, index: index), let menu = submenu(of: item) else { return nil }
             var budget = entryBudget
             let entries = read(menu, depth: 0, budget: &budget)
@@ -111,13 +123,19 @@ enum AXMenus {
     /// Presses an entry of a status item's menu, or with an empty path the
     /// item itself - its popover opens where Apple's menu bar has the item.
     static func pressStatusItem(pid: pid_t, index: Int, path: [AXMenuStep]) async -> Bool {
-        await run {
+        guard !isOwn(pid) else { return false }
+        return await run {
             guard let item = statusItem(pid: pid, index: index) else { return false }
             return press(from: item, rest: path)
         }
     }
 
     // MARK: - Walking
+
+    /// Our own process: never asked through accessibility, see `statusItems`.
+    static func isOwn(_ pid: pid_t) -> Bool {
+        pid == ProcessInfo.processInfo.processIdentifier
+    }
 
     private static func application(_ pid: pid_t) -> AXUIElement {
         let app = AXUIElementCreateApplication(pid)

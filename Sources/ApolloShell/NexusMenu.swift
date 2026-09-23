@@ -88,6 +88,15 @@ final class NexusMenu: NSObject {
         panel.open()
     }
 
+    /// Where the item stands for the menu bar's mirror of the status items:
+    /// its window's frame even while Apple's menu bar is hidden (the window
+    /// lies above the screen then, its x still tells the order). `nil` only
+    /// when the item is switched off.
+    var mirrorFrame: NSRect? {
+        guard item.isVisible, let window = item.button?.window else { return nil }
+        return window.frame
+    }
+
     /// The item's frame on screen, `nil` when it is not visible there.
     private var anchorFrame: NSRect? {
         guard item.isVisible, let window = item.button?.window, window.isVisible, window.screen != nil else { return nil }

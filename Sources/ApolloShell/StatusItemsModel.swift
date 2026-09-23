@@ -47,6 +47,10 @@ final class StatusItemsModel {
     /// Our own item: Nexus opens through the shell, not through AX to
     /// ourselves.
     @ObservationIgnored var onOwnItem: @MainActor () -> Void = {}
+    /// Where our own item (Nexus) stands in Apple's bar, in screen
+    /// coordinates; `nil` while it is hidden. Read on the main thread - never
+    /// through accessibility (see `AXMenus.statusItems`).
+    @ObservationIgnored var ownItemFrame: @MainActor () -> NSRect? = { nil }
 
     @ObservationIgnored private let live: Bool
     @ObservationIgnored private var demand = BarDemand()
@@ -125,8 +129,17 @@ final class StatusItemsModel {
         lastSignature = Self.windowSignature()
         lastList = Date()
         Task { @MainActor in
-            let records = StatusItemOrder.mirrored(await AXMenus.statusItems())
             let own = ProcessInfo.processInfo.processIdentifier
+            var raw = await AXMenus.statusItems()
+            if let frame = ownItemFrame(), let main = NSScreen.screens.first {
+                // Screen coordinates (y up from the main screen's bottom) to
+                // accessibility's (y down from its top).
+                raw.append(StatusItemRecord(pid: own, bundleID: Bundle.main.bundleIdentifier, index: 0,
+                                            frame: CGRect(x: frame.minX, y: main.frame.maxY - frame.maxY,
+                                                          width: frame.width, height: frame.height),
+                                            label: "Nexus"))
+            }
+            let records = StatusItemOrder.mirrored(raw)
             let old = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
             let next = records.map { record in
                 var item = old[record.id].map { Item(record: record, image: $0.image, template: $0.template,
@@ -190,8 +203,12 @@ final class StatusItemsModel {
         let index = item.record.index
         Task { @MainActor in
             if let nodes = await AXMenus.statusItemMenu(pid: pid, index: index) {
-                let menu = AXMenuBuilder.menu(nodes) { path in
-                    Task { _ = await AXMenus.pressStatusItem(pid: pid, index: index, path: path) }
+                log.notice("status item \(item.id, privacy: .public): menu of \(nodes.count, privacy: .public), anchored: \(view.window != nil, privacy: .public)")
+                let menu = AXMenuBuilder.menu(nodes) { [log] path in
+                    Task {
+                        let pressed = await AXMenus.pressStatusItem(pid: pid, index: index, path: path)
+                        log.notice("status item \(item.id, privacy: .public) entry \(path.last?.title ?? "", privacy: .public) pressed: \(pressed, privacy: .public)")
+                    }
                 }
                 openID = item.id
                 AXMenuBuilder.popUp(menu, below: view)
