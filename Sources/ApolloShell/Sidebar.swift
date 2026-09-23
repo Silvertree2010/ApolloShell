@@ -50,6 +50,8 @@ final class Sidebar {
     /// Click on media, weather, CPU, or battery: Dashboard on the
     /// matching tab.
     var onDashboardTab: (DashboardTab) -> Void = { _ in }
+    /// Opens Nexus: ApolloShell's own item among the mirrored status items.
+    var onNexus: () -> Void = {}
     /// After every rebuild: the room the bars keep free per screen, by
     /// `ScreenInfo.key`. The window guard keeps windows out of it.
     var onReservedChange: ([String: ReservedInsets]) -> Void = { _ in }
@@ -71,6 +73,10 @@ final class Sidebar {
     private let frontApp = BarFrontAppModel()
     private let keyboard = BarKeyboardModel()
     private let volume = BarVolumeModel()
+    /// The macOS template's blocks: the frontmost app's menus and the other
+    /// apps' status items.
+    private let appMenu = AppMenuModel()
+    private let statusItems = StatusItemsModel()
 
     /// One bar per screen, by display identifier.
     private var slots = ScreenSlots<SidebarScreen>()
@@ -117,6 +123,7 @@ final class Sidebar {
         context = BarModuleContext(
             status: status, spaces: spaces, dock: dock, clock: clock, cpu: cpu, weather: weather,
             media: media, frontApp: frontApp, keyboard: keyboard, volume: volume,
+            appMenu: appMenu, statusItems: statusItems,
             onDashboard: { [weak self] in self?.onDashboard() },
             onDashboardTab: { [weak self] in self?.onDashboardTab($0) },
             onUtilities: { [weak self] in self?.onUtilities() },
@@ -125,6 +132,7 @@ final class Sidebar {
             onOpenApp: { BarApps.open($0) }
         )
 
+        statusItems.onOwnItem = { [weak self] in self?.onNexus() }
         rebuild()
         observeSystemChanges()
         // Delivers the current value first (nothing to do), then every
@@ -177,6 +185,12 @@ final class Sidebar {
     var debugBarsKnowEditor: Bool { !bars.isEmpty && bars.values.allSatisfy(\.debugHasEditor) }
     #endif
 
+    /// Measure again: Apple's menu bar was hidden or shown, which changes
+    /// every screen's visible frame without a screen notification.
+    func relayout() {
+        rebuild()
+    }
+
     func setEditing(_ editing: Bool) {
         isEditing = editing
         for bar in bars.values { bar.setEditing(editing) }
@@ -208,6 +222,8 @@ final class Sidebar {
         frontApp.paused = !anyVisible
         keyboard.paused = !anyVisible
         volume.paused = !anyVisible
+        appMenu.paused = !anyVisible
+        statusItems.paused = !anyVisible
         dock.badgesPaused = !anyVisible
     }
 

@@ -233,6 +233,16 @@ struct BarModuleView: View {
                           standalone: true)
         case .systemStats(let options):
             BarSystemStatsModule(model: context.cpu, options: options) { context.onDashboardTab(.performance) }
+        case .appleMenu:
+            BarAppleMenuModule(model: context.appMenu)
+        case .appMenu:
+            // Along the menu bar it takes the free width and folds its
+            // titles into "…" when that is short; across the sidebar it is
+            // one fixed button.
+            BarAppMenuModule(model: context.appMenu)
+                .layoutValue(key: BarFlexible.self, value: axis == .horizontal)
+        case .statusItems:
+            BarStatusItemsModule(model: context.statusItems)
         }
     }
 }

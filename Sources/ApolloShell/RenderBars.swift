@@ -157,6 +157,14 @@ enum RenderBars {
                         RenderMode.name("top-\(name)-\(look.name)", scheme)))
                 }
             }
+            // The macOS template on narrow screens: the app's menus fold into
+            // "…" from the right, its name stays.
+            for width in [760.0, 560.0, 420.0] {
+                let bar = MenuBarPreset.macOS.bar()
+                let view = menuBar(bar, notch: nil, context: context).frame(width: width, height: CGFloat(bar.thickness))
+                try RenderMode.write(view, scheme: scheme, to: folder.appendingPathComponent(
+                    RenderMode.name("top-macOS-narrow-\(Int(width))", scheme)))
+            }
             // The status popout of the menu bar: the sidebar's content on a
             // plain card (the glass stand-in here).
             let popout = StatusPopoutModel.preview(
@@ -267,8 +275,36 @@ enum RenderBars {
                 now: now),
             frontApp: BarFrontAppModel(preview: frontApp(), title: "Apple – Start Page"),
             keyboard: BarKeyboardModel(preview: "DE", name: "Swiss German"),
-            volume: BarVolumeModel(preview: 0.45, muted: false, deviceName: "MacBook Pro Speakers")
+            volume: BarVolumeModel(preview: 0.45, muted: false, deviceName: "MacBook Pro Speakers"),
+            appMenu: AppMenuModel(preview: .init(pid: 1, name: "Finder"),
+                                  titles: ["Apple", "Finder", "File", "Edit", "View", "Go", "Window", "Help"]),
+            statusItems: StatusItemsModel(preview: statusItems())
         )
+    }
+
+    /// Stand-ins for other apps' status items: grey glyphs as Apple's bar
+    /// would give them (templates, drawn in the bar's colour), one coloured
+    /// icon that keeps its colours, and a text item.
+    private static func statusItems() -> [StatusItemsModel.Item] {
+        func glyph(_ symbol: String, colour: NSColor? = nil) -> NSImage? {
+            let configuration = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+                .applying(colour.map { NSImage.SymbolConfiguration(paletteColors: [$0]) } ?? .init())
+            guard let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+                .withSymbolConfiguration(configuration) else { return nil }
+            image.isTemplate = colour == nil
+            return image
+        }
+        let samples: [(String, String?, NSColor?, String)] = [
+            ("Docker", "shippingbox.fill", nil, ""), ("Dropbox", "drop.fill", .systemBlue, ""),
+            ("VPN", "lock.shield.fill", nil, ""), ("Timer", nil, nil, "12:30"),
+        ]
+        return samples.enumerated().map { index, sample in
+            let record = StatusItemRecord(pid: 100 + Int32(index), bundleID: "sample.\(sample.0)", index: 0,
+                                          frame: CGRect(x: 600 + index * 30, y: 4, width: 24, height: 22),
+                                          title: sample.3, label: sample.0)
+            return StatusItemsModel.Item(record: record, image: sample.1.flatMap { glyph($0, colour: sample.2) },
+                                         template: sample.2 == nil && sample.1 != nil)
+        }
     }
 
     /// Safari as the frontmost app, with its real icon where it is installed.

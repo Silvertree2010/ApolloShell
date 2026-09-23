@@ -154,8 +154,9 @@ struct MenuBarView: View {
     private struct BlockGroup: Identifiable {
         let entries: [BarEntry]
         var id: BarEntry.ID { entries[0].id }
-        /// Dock and spacers in it: they share the zone's spare room.
-        var flexible: Int { entries.filter(\.kind.isFlexible).count }
+        /// Dock, spacers and the app menu in it: they share the zone's
+        /// spare room.
+        var flexible: Int { entries.filter(\.kind.growsAlongMenuBar).count }
     }
 
     /// Grouped first, filtered second: a hidden button at the head of a
@@ -188,7 +189,7 @@ struct MenuBarView: View {
                     EditableBarBlock(editor: editing, entry: entry, ref: BarEntryRef(place: .menuBar(zone), id: entry.id),
                                      context: context, reduceMotion: reduceMotionOverride ?? systemReduceMotion,
                                      dragging: !rendersForScreenshot, inMenuBar: true)
-                        .layoutValue(key: BarFlexible.self, value: entry.kind.isFlexible)
+                        .layoutValue(key: BarFlexible.self, value: entry.kind.growsAlongMenuBar)
                 } else {
                     BarModuleView(entry: entry, context: context)
                 }

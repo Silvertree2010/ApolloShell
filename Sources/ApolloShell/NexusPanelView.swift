@@ -361,6 +361,9 @@ struct NexusMenuBarPage: View {
             NexusSwitchCard(symbol: "menubar.rectangle", title: "Cover Apple's Menu Bar",
                             subtitle: "Lie over Apple's menu bar instead of below it.",
                             isOn: binding(\.coversMenuBar))
+            NexusSwitchCard(symbol: "menubar.dock.rectangle", title: "Hide Apple's Menu Bar",
+                            subtitle: "More room for windows. Other apps' status items then show without their images.",
+                            isOn: binding(\.hideAppleMenuBar))
         }
     }
 

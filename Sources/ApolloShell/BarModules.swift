@@ -120,6 +120,10 @@ struct BarModuleContext {
     var frontApp: BarFrontAppModel
     var keyboard: BarKeyboardModel
     var volume: BarVolumeModel
+    /// The frontmost app's menus, for the Apple menu and app menu blocks.
+    var appMenu: AppMenuModel
+    /// Other apps' status items.
+    var statusItems: StatusItemsModel
     var onDashboard: @MainActor () -> Void = {}
     /// Media, weather, CPU, battery: straight to the matching tab.
     var onDashboardTab: @MainActor (DashboardTab) -> Void = { _ in }
@@ -536,6 +540,8 @@ extension BarModuleKind {
         case .volume: .pink
         case .wifi, .bluetooth: .blue
         case .systemStats: .orange
+        case .appleMenu, .appMenu: .gray
+        case .statusItems: .blue
         }
     }
 }
