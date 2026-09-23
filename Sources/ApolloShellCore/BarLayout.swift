@@ -108,7 +108,15 @@ extension BarModuleKind: BlockKind {}
 // or has the wrong type, the default applies to just that one.
 
 public struct BarWorkspacesOptions: Codable, Equatable, Sendable {
-    public enum Style: String, Codable, CaseIterable, Sendable { case dots, numbers }
+    /// Stored as the raw value in settings.json: never rename a case. An
+    /// unknown value (a newer version's face) reads as the default.
+    public enum Style: String, Codable, CaseIterable, Sendable {
+        case dots, numbers
+        /// The active desktop an elongated capsule, the others small dots.
+        case pills
+        /// A thin bar per desktop, the active one taller.
+        case bars
+    }
     public var style: Style
 
     public init(style: Style = .dots) { self.style = style }
@@ -156,12 +164,28 @@ public struct BarDockOptions: Codable, Equatable, Sendable {
 /// to redraw every second instead of every minute. Same keys as the old
 /// `bar.clock`, so migration can read it unchanged.
 public struct BarClockOptions: Codable, Equatable, Sendable {
+    /// How the time is laid out. Raw values are stored: never rename one.
+    public enum Style: String, Codable, CaseIterable, Sendable {
+        /// "14:05" in one line.
+        case line
+        /// Hour above minute, as in the sidebar.
+        case stacked
+        /// The time on a filled capsule in the clock colour.
+        case badge
+    }
+
     public var showIcon: Bool
     public var showDate: Bool
+    /// `nil` is "automatic" and is what every clock saved before faces
+    /// existed reads as - so it keeps looking the way it did: stacked
+    /// across the narrow sidebar and the right bar, one line along the top
+    /// and the bottom bar. See `resolvedStyle(horizontal:)`.
+    public var style: Style?
 
-    public init(showIcon: Bool = true, showDate: Bool = false) {
+    public init(showIcon: Bool = true, showDate: Bool = false, style: Style? = nil) {
         self.showIcon = showIcon
         self.showDate = showDate
+        self.style = style
     }
 
     public init(from decoder: any Decoder) throws {
@@ -169,6 +193,18 @@ public struct BarClockOptions: Codable, Equatable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         c.lenient(.showIcon, into: &showIcon)
         c.lenient(.showDate, into: &showDate)
+        // Unknown or broken: automatic, like a clock that never chose.
+        style = c.lenient(.style)
+    }
+
+    /// The face actually drawn along a bar of this axis. A line does not
+    /// fit across a vertical bar (32 points hold "14" but not "14:05"), so
+    /// there it falls back to stacked; everything else is taken as chosen.
+    public func resolvedStyle(horizontal: Bool) -> Style {
+        switch style {
+        case nil, .line?: horizontal ? .line : .stacked
+        case let chosen?: chosen
+        }
     }
 }
 

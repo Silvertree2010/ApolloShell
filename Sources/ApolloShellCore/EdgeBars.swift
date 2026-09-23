@@ -49,6 +49,18 @@ public enum BarStyle: String, Codable, CaseIterable, Sendable, Identifiable {
     }
 }
 
+/// How the status icons module draws Wi-Fi, Bluetooth and battery in an
+/// edge bar. Stored as the raw value: never rename a case.
+public enum BarStatusStyle: String, Codable, CaseIterable, Sendable, Identifiable {
+    /// Glyphs side by side, as in the sidebar.
+    case icons
+    /// Each one its own coloured capsule with a short text ("Wi-Fi", "On",
+    /// "76%"), coloured by the `--apollo-status-*` theme tokens.
+    case pills
+
+    public var id: Self { self }
+}
+
 /// The three zones of a bar, in reading order.
 public enum BarZone: String, Codable, CaseIterable, Sendable, Identifiable {
     case start, center, end
@@ -80,13 +92,17 @@ public struct EdgeBar: Codable, Equatable, Sendable {
     }
     /// Only for the top edge: lie over Apple's menu bar instead of below it.
     public var coversMenuBar: Bool
+    /// Glyphs or coloured pills for the status icons module. A bar setting
+    /// rather than a module option: pills are a look of the whole bar, and
+    /// the sidebar has no room for them.
+    public var statusStyle: BarStatusStyle
     public var start: BarLayout
     public var center: BarLayout
     public var end: BarLayout
 
     public init(enabled: Bool = false, screens: ScreenChoice = .all, style: BarStyle = .fill,
                 distinctGroups: Bool = false, thickness: Double = EdgeBar.standardThickness,
-                coversMenuBar: Bool = true,
+                coversMenuBar: Bool = true, statusStyle: BarStatusStyle = .icons,
                 start: BarLayout = BarLayout(), center: BarLayout = BarLayout(), end: BarLayout = BarLayout()) {
         self.enabled = enabled
         self.screens = screens
@@ -94,13 +110,14 @@ public struct EdgeBar: Codable, Equatable, Sendable {
         self.distinctGroups = distinctGroups
         self.thickness = Self.clamped(thickness)
         self.coversMenuBar = coversMenuBar
+        self.statusStyle = statusStyle
         self.start = start
         self.center = center
         self.end = end
     }
 
     private enum CodingKeys: String, CodingKey {
-        case enabled, screens, style, distinctGroups, thickness, coversMenuBar, start, center, end
+        case enabled, screens, style, distinctGroups, thickness, coversMenuBar, statusStyle, start, center, end
     }
 
     /// Every key on its own: one broken value costs only that value.
@@ -114,6 +131,7 @@ public struct EdgeBar: Codable, Equatable, Sendable {
         // Not `into:`, it would skip `didSet` and with it the clamping.
         if let raw: Double = c.lenient(.thickness) { thickness = Self.clamped(raw) }
         c.lenient(.coversMenuBar, into: &coversMenuBar)
+        c.lenient(.statusStyle, into: &statusStyle)
         c.lenient(.start, into: &start)
         c.lenient(.center, into: &center)
         c.lenient(.end, into: &end)
