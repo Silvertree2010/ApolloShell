@@ -15,6 +15,14 @@ enum RenderMode {
         if let index = args.firstIndex(of: "--render-dashboard"), index + 1 < args.count {
             run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderDashboard)
         }
+        // `--render-widgets <folder> [<kind>...]`: a contact sheet per widget
+        // kind, every display mode at every size (`RenderWidgets.swift`).
+        if let index = args.firstIndex(of: "--render-widgets"), index + 1 < args.count {
+            let kinds = args[(index + 2)...].prefix { !$0.hasPrefix("-") }.compactMap(WidgetKind.init(rawValue:))
+            run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true)) {
+                try RenderWidgets.run(into: $0, kinds: Array(kinds))
+            }
+        }
         if let index = args.firstIndex(of: "--render-edit"), index + 1 < args.count {
             run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderEditMode)
         }
