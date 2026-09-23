@@ -109,7 +109,7 @@ final class DesktopClock {
     /// the spread and the position are not.
     private func observeSystemChanges() {
         ShellScreens.onChange { [weak self] in self?.rebuild() }
-        // An edge bar switched on or off moves the room the clock sits in.
+        // The menu bar switched on or off moves the room the clock sits in.
         ScreenRoom.onChange { [weak self] in self?.rebuild() }
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
@@ -144,7 +144,7 @@ private final class DesktopClockWindow {
         // therefore reports no size of its own (fittingSize was 0 x 0 and the
         // clock invisible - measured 14.09.).
         let size = NSHostingView(rootView: DesktopClockView(model: model).shellTheme()).fittingSize
-        // Clear of a bottom or right edge bar.
+        // Clear of Apple's Dock.
         let visible = screen.usableFrame
         // The view brings a 24 pt shadow margin; the 32 pt hold for the text.
         let inset = margin - 24

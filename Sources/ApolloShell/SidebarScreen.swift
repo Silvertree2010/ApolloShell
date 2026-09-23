@@ -15,10 +15,9 @@ final class SidebarScreen {
     /// Which screen this is - refreshed on every rebuild.
     private(set) var info: ScreenInfo
     private var frame: NSRect
-    /// The bar's column from bottom to top (`EdgeBarGeometry`): the screen
-    /// edge up to the menu bar, or between the bars along the top and the
-    /// bottom edge when those are on.
-    private var columnMinY: CGFloat
+    /// The top of the bar's column (`MenuBarGeometry`): Apple's menu bar, or
+    /// the menu bar's lower edge when that one is on. The column always
+    /// starts at the screen's bottom edge.
     private var columnMaxY: CGFloat
     /// The last valid frame. Without it the bar does not show itself.
     private var lastFrame: NSRect?
@@ -28,14 +27,13 @@ final class SidebarScreen {
     /// This popout opens - the manager closes the others.
     var onPopoutOpen: (ObjectIdentifier) -> Void = { _ in }
 
-    init(screen: ShellScreen, column: EdgeBarGeometry.Result, settings: ShellSettingsStore, context: BarModuleContext,
+    init(screen: ShellScreen, column: MenuBarGeometry.Result, settings: ShellSettingsStore, context: BarModuleContext,
          editor: ShellEditor? = nil) {
         #if DEBUG
         debugHasEditor = editor != nil
         #endif
         info = screen.info
         frame = screen.frame
-        columnMinY = column.sidebarMinY
         columnMaxY = column.sidebarMaxY
 
         // SwiftUI draws the glass (`SidebarRoot`), not NSGlassEffectView: only
@@ -73,10 +71,9 @@ final class SidebarScreen {
 
     /// The same screen, but maybe with new measurements or in a new
     /// place.
-    func update(screen: ShellScreen, column: EdgeBarGeometry.Result) {
+    func update(screen: ShellScreen, column: MenuBarGeometry.Result) {
         info = screen.info
         frame = screen.frame
-        columnMinY = column.sidebarMinY
         columnMaxY = column.sidebarMaxY
         layout()
         showIfNeeded()
@@ -103,7 +100,7 @@ final class SidebarScreen {
     }
 
     /// The level of every bar while the edit mode runs - one value, so the
-    /// edge bars (`EdgeBarScreen.setEditing`) rise exactly as far.
+    /// menu bars (`MenuBarScreen.setEditing`) rise exactly as far.
     static let editingLevel: NSWindow.Level = .popUpMenu
 
     /// The screen is gone or deselected: close the popout, remove the window.
@@ -158,13 +155,13 @@ final class SidebarScreen {
         layout()
     }
 
-    /// At the left edge of this screen, in its column: without other bars
-    /// down to the edge and up to the bottom edge of the menu bar (screens
-    /// without a menu bar have no deduction there, and then the bar reaches
-    /// all the way to the top); with a top or bottom bar, between them.
+    /// At the left edge of this screen, in its column: down to the bottom edge
+    /// and up to the bottom edge of Apple's menu bar (screens without a menu
+    /// bar have no deduction there, and then the bar reaches all the way to
+    /// the top); with the menu bar on, up to its lower edge.
     private func layout() {
         let width = expanded ? StatusPopout.expandedWidth : Sidebar.width
-        let rect = NSRect(x: frame.minX, y: columnMinY, width: width, height: columnMaxY - columnMinY)
+        let rect = NSRect(x: frame.minX, y: frame.minY, width: width, height: columnMaxY - frame.minY)
         lastFrame = rect
         // Compare with the real panel frame, not with `lastFrame`: macOS moves
         // windows by itself when a screen is replugged.

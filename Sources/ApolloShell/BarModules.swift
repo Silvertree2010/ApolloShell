@@ -17,13 +17,13 @@ private struct BarPreviewKey: EnvironmentKey {
 }
 
 /// The direction a bar runs in: the sidebar stacks its blocks from top to
-/// bottom, the bars along the top and the bottom edge from left to right.
+/// bottom, the menu bar across the top from left to right.
 /// The blocks are the same; each one only turns its parts along.
 enum BarAxis: Sendable {
     case vertical, horizontal
 
     /// The parts of a block (symbol and text, dots): below each other in the
-    /// sidebar, side by side in a bar along the top or the bottom edge. The
+    /// sidebar, side by side in the menu bar. The
     /// vertical case is the plain `VStack` of before - the sidebar has to
     /// stay pixel for pixel the same (scripts/compare-renders.py).
     @MainActor
@@ -59,8 +59,8 @@ extension EnvironmentValues {
         set { self[BarPreviewKey.self] = newValue }
     }
 
-    /// Which way the bar around a block runs. Vertical unless a bar along the
-    /// top or the bottom edge sets it - so the sidebar needs no change.
+    /// Which way the bar around a block runs. Vertical unless the menu bar
+    /// sets it - so the sidebar needs no change.
     var barAxis: BarAxis {
         get { self[BarAxisKey.self] }
         set { self[BarAxisKey.self] = newValue }
@@ -68,7 +68,7 @@ extension EnvironmentValues {
 
     /// Edge length of a button across the bar (`SidebarIcon`, `BarTile`,
     /// Dock icons, spaces). 32 in the sidebar, which never sets it - so the
-    /// sidebar stays pixel for pixel the same. An edge bar thinner than
+    /// sidebar stays pixel for pixel the same. A menu bar thinner than
     /// 32 + its margins sets less, or its buttons would stick out of it.
     var barControlSize: CGFloat {
         get { self[BarControlSizeKey.self] }
@@ -84,8 +84,8 @@ extension EnvironmentValues {
         set { self[BarGroupCapsuleKey.self] = newValue }
     }
 
-    /// Glyphs or coloured pills for the status icons (`EdgeBar.statusStyle`).
-    /// Only an edge bar sets it; the sidebar keeps its glyphs.
+    /// Glyphs or coloured pills for the status icons (`ApolloMenuBar.statusStyle`).
+    /// Only the menu bar sets it; the sidebar keeps its glyphs.
     var barStatusStyle: BarStatusStyle {
         get { self[BarStatusStyleKey.self] }
         set { self[BarStatusStyleKey.self] = newValue }

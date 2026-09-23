@@ -249,7 +249,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.windowGuard = windowGuard
         // The watch keeps free what the bars cover on every screen - and
         // learns of every change to that (a screen added, removed, a setting
-        // in Nexus changed, an edge bar switched on, or a new width out of
+        // in Nexus changed, the menu bar switched on, or a new width out of
         // the theme).
         windowGuard.setReserved(sidebar.reserved)
         sidebar.onReservedChange = { [weak windowGuard] reserved in

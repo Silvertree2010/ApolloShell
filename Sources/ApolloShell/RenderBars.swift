@@ -5,7 +5,7 @@ import SwiftUI
 /// `ApolloShell --render-bars <folder>`: the bars as PNG with fixed sample
 /// data, light and dark - the sidebar with every template, so a rebuild of
 /// the bar kit can be checked pixel for pixel (scripts/compare-renders.py),
-/// and the bars along the other edges in every template and style.
+/// and the menu bar in every template and style.
 /// Nothing measures, nothing calls out; the Dock shows bundled Apple apps.
 @MainActor
 enum RenderBars {
@@ -26,13 +26,13 @@ enum RenderBars {
         }
         try renderHorizontal(into: folder.appendingPathComponent("horizontal", isDirectory: true), context: context)
         try renderVertical(into: folder.appendingPathComponent("vertical", isDirectory: true), context: context)
-        try renderEdge(into: folder.appendingPathComponent("edge", isDirectory: true), context: context)
+        try renderMenuBar(into: folder.appendingPathComponent("menubar", isDirectory: true), context: context)
         try renderThemes(into: folder.appendingPathComponent("themes", isDirectory: true), context: context)
     }
 
     /// The example themes of docs/THEMES.md ("Teal Strip", "Ember Islands"),
     /// read straight out of the docs so the picture shows the text a reader
-    /// copies, on the Serpantinum top bar as strip and as islands - with the
+    /// copies, on the Serpantinum menu bar as strip and as islands - with the
     /// status as pills (all three, the battery module dropped for it) and
     /// Spaces as pills; one more with the bars face and the badge clock.
     private static func renderThemes(into folder: URL, context: BarModuleContext) throws {
@@ -50,9 +50,9 @@ enum RenderBars {
                 ("pills", .pills, nil), ("bars-badge", .bars, .badge),
             ]
             for scheme in [ColorScheme.light, .dark] {
-                for look in edgeLooks where look.name != "fill-distinct" {
+                for look in looks where look.name != "fill-distinct" {
                     for face in faces {
-                        var bar = EdgeBarPreset.serpantinum.bar(edge: .top)
+                        var bar = MenuBarPreset.serpantinum.bar()
                         bar.style = look.style
                         bar.statusStyle = .pills
                         for zone in BarZone.allCases {
@@ -70,8 +70,8 @@ enum RenderBars {
                                 return entry
                             })
                         }
-                        let height = CGFloat(bar.thickness) + (look.style == .islands ? EdgeBarGeometry.islandMargin : 0)
-                        let view = edgeBar(bar, edge: .top, notch: nil, context: context)
+                        let height = CGFloat(bar.thickness) + (look.style == .islands ? MenuBarGeometry.islandMargin : 0)
+                        let view = menuBar(bar, notch: nil, context: context)
                             .environment(\.shellStyle, ShellStyle(theme: theme, dark: scheme == .dark))
                             .frame(width: 1728, height: height)
                         try RenderMode.write(view, scheme: scheme, to: folder.appendingPathComponent(
@@ -82,30 +82,29 @@ enum RenderBars {
         }
     }
 
-    /// The three looks every edge bar template is drawn in.
-    private static let edgeLooks: [(name: String, style: BarStyle, distinct: Bool)] = [
+    /// The three looks every menu bar template is drawn in.
+    private static let looks: [(name: String, style: BarStyle, distinct: Bool)] = [
         ("fill", .fill, false), ("fill-distinct", .fill, true), ("islands", .islands, false),
     ]
 
-    /// Edge bars as their panels would show them: every template x look as a
-    /// top bar across a MacBook screen (1728 wide), with and without the
-    /// camera housing measured there (left area to 771, right from 956),
-    /// and the Serpantinum template as a 44 pt bar at the right edge. The
-    /// housing is painted in black, so a block running under it shows up.
+    /// The menu bar as its panel would show it: every template x look across
+    /// a MacBook screen (1728 wide), with and without the camera housing
+    /// measured there (left area to 771, right from 956). The housing is
+    /// painted in black, so a block running under it shows up.
     /// Behind the bar a mid-tone "wallpaper", so the strip and the islands
     /// stand out from it; glass is replaced by its fixed stand-in.
-    private static func renderEdge(into folder: URL, context: BarModuleContext) throws {
+    private static func renderMenuBar(into folder: URL, context: BarModuleContext) throws {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let notch = BarNotch(leftEnd: 771, rightStart: 956)
         for scheme in [ColorScheme.light, .dark] {
-            for preset in EdgeBarPreset.allCases {
-                for look in edgeLooks {
-                    var bar = preset.bar(edge: .top)
+            for preset in MenuBarPreset.allCases {
+                for look in looks {
+                    var bar = preset.bar()
                     bar.style = look.style
                     bar.distinctGroups = look.distinct
-                    let height = CGFloat(bar.thickness) + (look.style == .islands ? EdgeBarGeometry.islandMargin : 0)
+                    let height = CGFloat(bar.thickness) + (look.style == .islands ? MenuBarGeometry.islandMargin : 0)
                     for withNotch in [false, true] {
-                        let view = edgeBar(bar, edge: .top, notch: withNotch ? notch : nil, context: context)
+                        let view = menuBar(bar, notch: withNotch ? notch : nil, context: context)
                             .frame(width: 1728, height: height)
                             .overlay(alignment: .topLeading) {
                                 if withNotch {
@@ -123,13 +122,13 @@ enum RenderBars {
             // Thin and thick: the buttons shrink to fit a 26 pt bar and stop
             // at 32 in a 44 pt one.
             for thickness in [26.0, 44.0] {
-                for look in edgeLooks {
-                    var bar = EdgeBarPreset.serpantinum.bar(edge: .top)
+                for look in looks {
+                    var bar = MenuBarPreset.serpantinum.bar()
                     bar.style = look.style
                     bar.distinctGroups = look.distinct
                     bar.thickness = thickness
-                    let height = CGFloat(thickness) + (look.style == .islands ? EdgeBarGeometry.islandMargin : 0)
-                    let view = edgeBar(bar, edge: .top, notch: nil, context: context).frame(width: 1728, height: height)
+                    let height = CGFloat(thickness) + (look.style == .islands ? MenuBarGeometry.islandMargin : 0)
+                    let view = menuBar(bar, notch: nil, context: context).frame(width: 1728, height: height)
                     try RenderMode.write(view, scheme: scheme, to: folder.appendingPathComponent(
                         RenderMode.name("top-serpantinum-\(Int(thickness))-\(look.name)", scheme)))
                 }
@@ -137,28 +136,28 @@ enum RenderBars {
             // The Dock in a zone takes the room the others leave: alone in
             // the centre it stays centred; with a spacer on the left, start
             // and centre share.
-            let dockBars: [(name: String, bar: EdgeBar)] = [
-                ("dock-center", EdgeBar(enabled: true,
-                                        start: BarLayout([BarEntry(.dashboardButton), BarEntry(.workspaces)]),
-                                        center: BarLayout([BarEntry(.dock)]),
-                                        end: BarLayout([BarEntry(.statusIcons), BarEntry(.clock), BarEntry(.power)]))),
-                ("dock-start", EdgeBar(enabled: true,
-                                       start: BarLayout([BarEntry(.dashboardButton), BarEntry(.dock)]),
-                                       center: BarLayout([BarEntry(.clock)]),
-                                       end: BarLayout([BarEntry(.statusIcons), BarEntry(.power)]))),
+            let dockBars: [(name: String, bar: ApolloMenuBar)] = [
+                ("dock-center", ApolloMenuBar(enabled: true,
+                                              start: BarLayout([BarEntry(.dashboardButton), BarEntry(.workspaces)]),
+                                              center: BarLayout([BarEntry(.dock)]),
+                                              end: BarLayout([BarEntry(.statusIcons), BarEntry(.clock), BarEntry(.power)]))),
+                ("dock-start", ApolloMenuBar(enabled: true,
+                                             start: BarLayout([BarEntry(.dashboardButton), BarEntry(.dock)]),
+                                             center: BarLayout([BarEntry(.clock)]),
+                                             end: BarLayout([BarEntry(.statusIcons), BarEntry(.power)]))),
             ]
             for (name, template) in dockBars {
-                for look in edgeLooks {
+                for look in looks {
                     var bar = template
                     bar.style = look.style
                     bar.distinctGroups = look.distinct
-                    let height = CGFloat(bar.thickness) + (look.style == .islands ? EdgeBarGeometry.islandMargin : 0)
-                    let view = edgeBar(bar, edge: .bottom, notch: nil, context: context).frame(width: 1728, height: height)
+                    let height = CGFloat(bar.thickness) + (look.style == .islands ? MenuBarGeometry.islandMargin : 0)
+                    let view = menuBar(bar, notch: nil, context: context).frame(width: 1728, height: height)
                     try RenderMode.write(view, scheme: scheme, to: folder.appendingPathComponent(
-                        RenderMode.name("bottom-\(name)-\(look.name)", scheme)))
+                        RenderMode.name("top-\(name)-\(look.name)", scheme)))
                 }
             }
-            // The status popout of an edge bar: the sidebar's content on a
+            // The status popout of the menu bar: the sidebar's content on a
             // plain card (the glass stand-in here).
             let popout = StatusPopoutModel.preview(
                 shown: .wifi,
@@ -167,36 +166,25 @@ enum RenderBars {
                 bluetooth: nil,
                 battery: nil
             )
-            let card = EdgeBarPopoutView(model: popout) { _ in }
+            let card = MenuBarPopoutView(model: popout) { _ in }
                 .padding(12)
                 .background(Color(red: 0.45, green: 0.52, blue: 0.62))
                 .environment(\.statusPopoutGlassStandIn, true)
                 .fixedSize()
             try RenderMode.write(card, scheme: scheme, to: folder.appendingPathComponent(
                 RenderMode.name("popout-wifi", scheme)))
-            for look in edgeLooks {
-                var bar = EdgeBarPreset.serpantinum.bar(edge: .right)
-                bar.style = look.style
-                bar.distinctGroups = look.distinct
-                bar.thickness = 44
-                let width = 44 + (look.style == .islands ? EdgeBarGeometry.islandMargin : 0)
-                let view = edgeBar(bar, edge: .right, notch: nil, context: context).frame(width: width, height: 900)
-                try RenderMode.write(view, scheme: scheme, to: folder.appendingPathComponent(
-                    RenderMode.name("right-serpantinum-\(look.name)", scheme)))
-            }
         }
     }
 
-    private static func edgeBar(_ bar: EdgeBar, edge: BarEdge, notch: BarNotch?,
-                                context: BarModuleContext) -> some View {
-        EdgeBarView(bar: bar, edge: edge, notch: notch, features: ShellSettings.Features(), context: context)
+    private static func menuBar(_ bar: ApolloMenuBar, notch: BarNotch?, context: BarModuleContext) -> some View {
+        MenuBarView(bar: bar, notch: notch, features: ShellSettings.Features(), context: context)
             .background(Color(red: 0.45, green: 0.52, blue: 0.62))
             .environment(\.barPreview, true)
             .environment(\.statusPopoutGlassStandIn, true)
     }
 
-    /// The same blocks along a horizontal axis, for the bars along the top and
-    /// the bottom edge: every template as one 34 pt high row, and every kind
+    /// The same blocks along a horizontal axis, for the menu bar: every
+    /// template as one 34 pt high row, and every kind
     /// alone - so a block that breaks out of the height shows up on its own.
     private static func renderHorizontal(into folder: URL, context: BarModuleContext) throws {
         let modules = folder.appendingPathComponent("modules", isDirectory: true)
@@ -216,7 +204,7 @@ enum RenderBars {
     /// The stage-3 blocks (spec "Etappe 3") across a vertical bar, each
     /// alone in a sidebar-wide column - kept out of `sidebar/`, whose files
     /// are the pixel baseline - and once more along a horizontal row with
-    /// their options switched on, in icons and as pills on a top bar.
+    /// their options switched on, in icons and as pills on the menu bar.
     private static let stageThree: [BarEntry] = [
         BarEntry(module: .nowPlaying(.init())),
         BarEntry(module: .windowTitle(.init())),
@@ -239,11 +227,11 @@ enum RenderBars {
             try RenderMode.write(row(stageThree, context: context).frame(width: 1400, height: 34), scheme: scheme,
                                  to: folder.appendingPathComponent(RenderMode.name("stage3-row", scheme)))
             for (name, pills) in [("stage3-top-icons", false), ("stage3-top-pills", true)] {
-                let bar = EdgeBar(enabled: true, statusStyle: pills ? .pills : .icons,
-                                  start: BarLayout([BarEntry(.dashboardButton), stageThree[0], stageThree[1]]),
-                                  center: BarLayout([BarEntry(.clock)]),
-                                  end: BarLayout(Array(stageThree[2...]) + [BarEntry(.power)]))
-                let view = edgeBar(bar, edge: .top, notch: nil, context: context)
+                let bar = ApolloMenuBar(enabled: true, statusStyle: pills ? .pills : .icons,
+                                        start: BarLayout([BarEntry(.dashboardButton), stageThree[0], stageThree[1]]),
+                                        center: BarLayout([BarEntry(.clock)]),
+                                        end: BarLayout(Array(stageThree[2...]) + [BarEntry(.power)]))
+                let view = menuBar(bar, notch: nil, context: context)
                     .frame(width: 1728, height: CGFloat(bar.thickness))
                 try RenderMode.write(view, scheme: scheme, to: folder.appendingPathComponent(RenderMode.name(name, scheme)))
             }

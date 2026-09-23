@@ -87,8 +87,8 @@ struct SidebarRoot: View {
 
 /// The background of the bar in its shape, replaced by a fixed area in image
 /// samples (glass draws only white offscreen). Shared by the sidebar and the
-/// bars along the other edges (`EdgeBarView`), so a theme colours them all
-/// alike and they read as one shell.
+/// menu bar (`MenuBarView`), so a theme colours both alike and they read as
+/// one shell.
 ///
 /// Without a theme a system material: one colour per appearance. Plain
 /// Liquid Glass follows the brightness of whatever lies behind it and flips

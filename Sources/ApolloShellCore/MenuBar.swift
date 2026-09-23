@@ -1,41 +1,21 @@
 import Foundation
 
-// Bars along the other screen edges (0.2): top, bottom and right, next to
-// the sidebar on the left. Each one has three zones - start, centre, end -
-// and every zone is an ordinary `BarLayout`, so all modules work in all of
-// them. In a vertical bar "start" is the top, in a horizontal one the left.
+// The menu bar (0.2): one extra bar across the top of the screen, next to
+// the sidebar on the left. It has three zones - start, centre, end, from left
+// to right - and every zone is an ordinary `BarLayout`, so all modules work
+// in all of them.
 //
 // The sidebar keeps its own section (`ShellSettings.bar`): 0.1.x reads that
 // one, and a step back must not lose it. Everything new lives in
-// `ShellSettings.edgeBars`, which 0.1.x simply does not know.
+// `ShellSettings.apolloMenuBar`, which 0.1.x simply does not know.
 
-// MARK: - Edge, style, zone
+// MARK: - Style, zone
 
-/// The screen edge a bar runs along. The raw value is stored in the file,
-/// so never rename it.
-public enum BarEdge: String, Codable, CaseIterable, Sendable, Identifiable {
-    case top, bottom, right
-
-    public var id: Self { self }
-
-    /// Modules run from left to right (top, bottom) instead of from top to
-    /// bottom (right).
-    public var isHorizontal: Bool { self != .right }
-
-    public var title: String {
-        switch self {
-        case .top: String(localized: "Top")
-        case .bottom: String(localized: "Bottom")
-        case .right: String(localized: "Right")
-        }
-    }
-}
-
-/// How a bar sits on its edge.
+/// How the menu bar sits at the top of the screen.
 public enum BarStyle: String, Codable, CaseIterable, Sendable, Identifiable {
-    /// One strip along the whole edge (Serpantinum: "fill").
+    /// One strip across the whole width (Serpantinum: "fill").
     case fill
-    /// No strip: every group is an island with a gap to the edge
+    /// No strip: every group is an island with a gap to the screen edge
     /// (Serpantinum: "pills").
     case islands
 
@@ -49,8 +29,8 @@ public enum BarStyle: String, Codable, CaseIterable, Sendable, Identifiable {
     }
 }
 
-/// How the status icons module draws Wi-Fi, Bluetooth and battery in an
-/// edge bar. Stored as the raw value: never rename a case.
+/// How the status icons module draws Wi-Fi, Bluetooth and battery in the
+/// menu bar. Stored as the raw value: never rename a case.
 public enum BarStatusStyle: String, Codable, CaseIterable, Sendable, Identifiable {
     /// Glyphs side by side, as in the sidebar.
     case icons
@@ -68,11 +48,11 @@ public enum BarZone: String, Codable, CaseIterable, Sendable, Identifiable {
     public var id: Self { self }
 }
 
-// MARK: - One bar
+// MARK: - The bar
 
-/// A bar along one edge. Always valid: the thickness stays in range, so a
+/// The menu bar. Always valid: the thickness stays in range, so a
 /// hand-edited 10000 can not cover the screen.
-public struct EdgeBar: Codable, Equatable, Sendable {
+public struct ApolloMenuBar: Codable, Equatable, Sendable {
     public static let thicknessRange: ClosedRange<Double> = 24...64
     public static let standardThickness: Double = 34
 
@@ -83,14 +63,14 @@ public struct EdgeBar: Codable, Equatable, Sendable {
     /// In the strip style every group gets its own lighter capsule
     /// (Serpantinum: "distinctPills"). Islands always have one.
     public var distinctGroups: Bool
-    /// Height of a horizontal bar, width of a vertical one, in points.
+    /// Height of the bar in points.
     public var thickness: Double {
         didSet {
             let clamped = Self.clamped(thickness)
             if clamped != thickness { thickness = clamped }
         }
     }
-    /// Only for the top edge: lie over Apple's menu bar instead of below it.
+    /// Lie over Apple's menu bar instead of below it.
     public var coversMenuBar: Bool
     /// Glyphs or coloured pills for the status icons module. A bar setting
     /// rather than a module option: pills are a look of the whole bar, and
@@ -101,7 +81,7 @@ public struct EdgeBar: Codable, Equatable, Sendable {
     public var end: BarLayout
 
     public init(enabled: Bool = false, screens: ScreenChoice = .all, style: BarStyle = .fill,
-                distinctGroups: Bool = false, thickness: Double = EdgeBar.standardThickness,
+                distinctGroups: Bool = false, thickness: Double = ApolloMenuBar.standardThickness,
                 coversMenuBar: Bool = true, statusStyle: BarStatusStyle = .icons,
                 start: BarLayout = BarLayout(), center: BarLayout = BarLayout(), end: BarLayout = BarLayout()) {
         self.enabled = enabled
@@ -120,9 +100,15 @@ public struct EdgeBar: Codable, Equatable, Sendable {
         case enabled, screens, style, distinctGroups, thickness, coversMenuBar, statusStyle, start, center, end
     }
 
-    /// Every key on its own: one broken value costs only that value.
+    /// The bar without a settings section: the Serpantinum template,
+    /// switched off, so switching it on shows something.
+    public static let standard = MenuBarPreset.serpantinum.bar(enabled: false)
+
+    /// Every key on its own: one broken value costs only that value. A key
+    /// missing in the file keeps the standard bar's value, zones included:
+    /// `{"enabled": true}` shows the Serpantinum bar, not an empty one.
     public init(from decoder: any Decoder) throws {
-        self.init()
+        self = .standard
         let c = try decoder.container(keyedBy: CodingKeys.self)
         c.lenient(.enabled, into: &enabled)
         c.lenient(.screens, into: &screens)
@@ -157,6 +143,9 @@ public struct EdgeBar: Codable, Equatable, Sendable {
     /// No module in any zone.
     public var isEmpty: Bool { BarZone.allCases.allSatisfy { self[$0].entries.isEmpty } }
 
+    /// Switched on and with something to show.
+    public var isActive: Bool { enabled && !isEmpty }
+
     /// Dock and status icons may stand only once in a whole bar, not once
     /// per zone - the same reasons as in `BarModuleKind.isUnique`.
     public func canAdd(_ kind: BarModuleKind) -> Bool {
@@ -186,10 +175,10 @@ public struct EdgeBar: Codable, Equatable, Sendable {
 
 // MARK: - Templates
 
-/// Ready-made bars. "Serpantinum" follows the look this was built after
+/// Ready-made menu bars. "Serpantinum" follows the look this was built after
 /// (its idea, not its code): settings, spaces and media on the left, clock
 /// and weather in the middle, the status pills on the right.
-public enum EdgeBarPreset: String, CaseIterable, Identifiable, Sendable {
+public enum MenuBarPreset: String, CaseIterable, Identifiable, Sendable {
     case serpantinum, minimal, clockOnly
 
     public var id: Self { self }
@@ -210,90 +199,24 @@ public enum EdgeBarPreset: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// The zones of the template, for a bar of any edge.
-    public func bar(edge: BarEdge, enabled: Bool = true) -> EdgeBar {
+    /// The template as a bar, its other settings at their defaults.
+    public func bar(enabled: Bool = true) -> ApolloMenuBar {
         switch self {
         case .serpantinum:
-            EdgeBar(enabled: enabled,
-                    start: BarLayout([BarEntry(.dashboardButton), BarEntry(.workspaces), BarEntry(.mediaButton)]),
-                    center: BarLayout([BarEntry(module: .clock(.init(showIcon: false, showDate: true))),
-                                       BarEntry(.weather).joined()]),
-                    // The battery as its own module with its number, so not
-                    // a second time as a glyph in the status capsule.
-                    end: BarLayout([BarEntry(module: .statusIcons(.init(showBattery: false))),
-                                    BarEntry(.battery).joined(), BarEntry(.power)]))
+            ApolloMenuBar(enabled: enabled,
+                          start: BarLayout([BarEntry(.dashboardButton), BarEntry(.workspaces), BarEntry(.mediaButton)]),
+                          center: BarLayout([BarEntry(module: .clock(.init(showIcon: false, showDate: true))),
+                                             BarEntry(.weather).joined()]),
+                          // The battery as its own module with its number, so not
+                          // a second time as a glyph in the status capsule.
+                          end: BarLayout([BarEntry(module: .statusIcons(.init(showBattery: false))),
+                                          BarEntry(.battery).joined(), BarEntry(.power)]))
         case .minimal:
-            EdgeBar(enabled: enabled,
-                    start: BarLayout([BarEntry(.workspaces)]),
-                    end: BarLayout([BarEntry(module: .clock(.init(showIcon: false)))]))
+            ApolloMenuBar(enabled: enabled,
+                          start: BarLayout([BarEntry(.workspaces)]),
+                          end: BarLayout([BarEntry(module: .clock(.init(showIcon: false)))]))
         case .clockOnly:
-            EdgeBar(enabled: enabled, center: BarLayout([BarEntry(module: .clock(.init(showIcon: false)))]))
+            ApolloMenuBar(enabled: enabled, center: BarLayout([BarEntry(module: .clock(.init(showIcon: false)))]))
         }
-    }
-}
-
-// MARK: - All bars
-
-/// The bars of the three other edges. Missing ones are off; the top bar
-/// starts with the Serpantinum template so switching it on shows something.
-public struct EdgeBars: Codable, Equatable, Sendable {
-    public var top: EdgeBar
-    public var bottom: EdgeBar
-    public var right: EdgeBar
-
-    public init(top: EdgeBar = EdgeBarPreset.serpantinum.bar(edge: .top, enabled: false),
-                bottom: EdgeBar = EdgeBarPreset.minimal.bar(edge: .bottom, enabled: false),
-                right: EdgeBar = EdgeBarPreset.minimal.bar(edge: .right, enabled: false)) {
-        self.top = top
-        self.bottom = bottom
-        self.right = right
-    }
-
-    private enum CodingKeys: String, CodingKey { case top, bottom, right }
-
-    /// A zone missing in the file keeps the template's zone: `{"top":
-    /// {"enabled": true}}` shows the Serpantinum bar, not an empty one.
-    public init(from decoder: any Decoder) throws {
-        self.init()
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        for (key, edge) in [(CodingKeys.top, BarEdge.top), (.bottom, .bottom), (.right, .right)] {
-            guard var bar: EdgeBar = c.lenient(key) else { continue }
-            if let zones = try? c.nestedContainer(keyedBy: ZoneKey.self, forKey: key) {
-                for zone in BarZone.allCases where !zones.contains(ZoneKey(zone)) {
-                    bar[zone] = self[edge][zone]
-                }
-            }
-            self[edge] = bar
-        }
-    }
-
-    private struct ZoneKey: CodingKey {
-        var stringValue: String
-        var intValue: Int? { nil }
-        init(_ zone: BarZone) { stringValue = zone.rawValue }
-        init?(stringValue: String) { self.stringValue = stringValue }
-        init?(intValue: Int) { nil }
-    }
-
-    public subscript(edge: BarEdge) -> EdgeBar {
-        get {
-            switch edge {
-            case .top: top
-            case .bottom: bottom
-            case .right: right
-            }
-        }
-        set {
-            switch edge {
-            case .top: top = newValue
-            case .bottom: bottom = newValue
-            case .right: right = newValue
-            }
-        }
-    }
-
-    /// The bars that are switched on and have something to show.
-    public var active: [BarEdge] {
-        BarEdge.allCases.filter { self[$0].enabled && !self[$0].isEmpty }
     }
 }

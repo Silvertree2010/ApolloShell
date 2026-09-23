@@ -17,7 +17,7 @@ enum GalleryTab: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard: String(localized: "Dashboard")
         case .controlCentre: String(localized: "Control Centre")
-        // The sidebar and the edge bars: blocks go where the selection is.
+        // The sidebar and the menu bar: blocks go where the selection is.
         case .bar: String(localized: "Bar")
         }
     }
@@ -390,7 +390,7 @@ struct EditGalleryView: View {
     }
 
     /// Every block of the bars. A click puts it into the zone of the selected
-    /// edge bar block, otherwise into the sidebar (`galleryBarPlace`). A kind
+    /// menu bar block, otherwise into the sidebar (`galleryBarPlace`). A kind
     /// that may exist only once and is already in that bar stays greyed out,
     /// like a card that is on.
     private var barTiles: some View {

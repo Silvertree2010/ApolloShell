@@ -23,7 +23,7 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
     case dashboardButton, workspaces, dock, clock, utilitiesButton, statusIcons, power
     // Added new, for different tastes.
     case spacer, gap, divider, appButton, battery, cpu, weather, mediaButton
-    // Stage 3 of the edge bars (spec 23.09.): the modules a top bar lives on.
+    // Stage 3 of the menu bar (spec 23.09.): the modules the menu bar lives on.
     case nowPlaying, windowTitle, keyboardLayout, volume, wifi, bluetooth, systemStats
 
     public var id: Self { self }
@@ -202,8 +202,8 @@ public struct BarClockOptions: Codable, Equatable, Sendable {
     public var showDate: Bool
     /// `nil` is "automatic" and is what every clock saved before faces
     /// existed reads as - so it keeps looking the way it did: stacked
-    /// across the narrow sidebar and the right bar, one line along the top
-    /// and the bottom bar. See `resolvedStyle(horizontal:)`.
+    /// across the narrow sidebar, one line along the menu bar. See
+    /// `resolvedStyle(horizontal:)`.
     public var style: Style?
 
     public init(showIcon: Bool = true, showDate: Bool = false, style: Style? = nil) {
@@ -339,7 +339,7 @@ public struct BarWeatherOptions: Codable, Equatable, Sendable {
 public struct BarNowPlayingOptions: Codable, Equatable, Sendable {
     /// Characters of "title · artist" before it is cut with an ellipsis.
     /// Clamped like the gap's height: a hand-edited 0 or 10000 would leave
-    /// nothing or push every other block out of a top bar.
+    /// nothing or push every other block out of the menu bar.
     public var maxLength: Int {
         didSet {
             let clamped = BarText.clampedLength(maxLength)
@@ -584,8 +584,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
 public struct BarEntry: Codable, Equatable, Identifiable, Sendable {
     public var id: String
     public var module: BarModule
-    /// Shares one capsule with the entry before it (the bars along the other
-    /// edges draw groups this way, see `EdgeBar.groups`). The sidebar
+    /// Shares one capsule with the entry before it (the menu bar draws
+    /// groups this way, see `ApolloMenuBar.groups`). The sidebar
     /// ignores it. Only written when set, so the sidebar's section reads the
     /// same as before.
     public var joinsPrevious = false
@@ -718,14 +718,14 @@ public struct BarLayout: Codable, Equatable, Sendable {
     /// Different options for a module. The kind stays the same: a clock
     /// cannot turn into a second Dock this way.
     /// Keeps `joinsPrevious`: new options must not tear a block out of its
-    /// group in an edge bar.
+    /// group in the menu bar.
     public mutating func update(id: String, to module: BarModule) {
         let joins = blocks[id: id]?.joinsPrevious ?? false
         blocks.update(id: id, to: BarEntry(id: id, module: module).joined(joins))
     }
 
-    /// Joins a block to the one before it, or splits it off (edge bars draw
-    /// a run of joined blocks as one capsule).
+    /// Joins a block to the one before it, or splits it off (the menu bar
+    /// draws a run of joined blocks as one capsule).
     public mutating func setJoinsPrevious(id: String, _ joins: Bool) {
         guard let entry = blocks[id: id], entry.joinsPrevious != joins else { return }
         blocks.update(id: id, to: entry.joined(joins))

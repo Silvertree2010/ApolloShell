@@ -20,7 +20,7 @@ final class ShellEditor {
     private let store: ShellSettingsStore
     let dashboard: DashboardEditor
     private(set) var utilities: UtilitiesEditSession?
-    /// The working copy of the sidebar and the edge bars' zones; `nil`
+    /// The working copy of the sidebar and the menu bar's zones; `nil`
     /// while the mode is not running.
     private(set) var bar: BarEditSession?
 
@@ -151,7 +151,7 @@ final class ShellEditor {
         guard !isEditing, let pages = store.settings.dashboardPages else { return }
         let pageID = dashboardStartPageID() ?? pages.pages[0].id
         utilities = UtilitiesEditSession(layout: store.settings.utilities.layout)
-        bar = BarEditSession(layout: store.settings.bar.layout, edgeBars: store.settings.edgeBars)
+        bar = BarEditSession(layout: store.settings.bar.layout, menuBar: store.settings.apolloMenuBar)
         barTargetPlace = nil
         galleryVisible = false
         galleryTab = .dashboard
@@ -214,11 +214,10 @@ final class ShellEditor {
         }
         if let bar, bar.hasChanges {
             next.bar.layout = bar.layout
-            // Only the zones: the session never changes whether a bar is on,
-            // its style or thickness, so those stay what the settings hold.
-            for edge in BarEdge.allCases {
-                for zone in BarZone.allCases { next.edgeBars[edge][zone] = bar.edgeBars[edge][zone] }
-            }
+            // Only the zones: the session never changes whether the menu bar
+            // is on, its style or thickness, so those stay what the settings
+            // hold.
+            for zone in BarZone.allCases { next.apolloMenuBar[zone] = bar.menuBar[zone] }
             changed = true
         }
         if scaleChanged, let scale = dashboard.scale {
@@ -398,7 +397,7 @@ final class ShellEditor {
         bar?.move(id: id, onto: target)
     }
 
-    // MARK: - Any bar (sidebar or an edge bar's zone)
+    // MARK: - Any bar (sidebar or a menu bar zone)
 
     /// A new block in one bar's zone; selects it like `addBarModule`.
     @discardableResult
@@ -410,8 +409,8 @@ final class ShellEditor {
     }
 
     /// Where the gallery's "Bar" tab puts a block: the zone of the selected
-    /// edge bar block, otherwise the sidebar - so a click there does what it
-    /// always did until an edge bar block is picked.
+    /// menu bar block, otherwise the sidebar - so a click there does what it
+    /// always did until a menu bar block is picked.
     var galleryBarPlace: BarPlace {
         if let place = bar?.selection?.place { return place }
         return barTargetPlace ?? .sidebar
