@@ -108,7 +108,7 @@ enum ShellScreens {
         return current().first { $0.displayID == id }
     }
 
-    private static func displayID(of screen: NSScreen) -> CGDirectDisplayID? {
+    static func displayID(of screen: NSScreen) -> CGDirectDisplayID? {
         (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
     }
 }

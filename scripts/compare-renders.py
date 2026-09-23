@@ -33,7 +33,7 @@ def compare(before: Path, after: Path, diff_dir: Path | None) -> bool:
     if changed == 0:
         print(f"{before.name}: same")
         return True
-        print(f"{before.name}: {changed} pixels differ")
+    print(f"{before.name}: {changed} pixels differ")
     if diff_dir:
         diff_dir.mkdir(parents=True, exist_ok=True)
         red = Image.new("RGBA", a.size, (255, 0, 0, 255))

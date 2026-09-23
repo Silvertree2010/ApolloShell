@@ -8,7 +8,7 @@ import os
 /// follows Nexus > TWM: on starts it, off lets every window stay where it
 /// is and stops it, the other settings apply live.
 ///
-/// Tiles keep the sidebar's 44 pt on the left free. The arrangement is saved
+/// Tiles keep free what the bars cover, on every edge of every screen. The arrangement is saved
 /// in twm-layout.json after every glide and on quit.
 @MainActor
 final class TWMController {
@@ -31,6 +31,30 @@ final class TWMController {
     /// move the same windows. Set by the AppDelegate.
     var onRunningChange: (Bool) -> Void = { _ in } {
         didSet { onRunningChange(engine != nil) }
+    }
+
+    /// What the bars cover per screen key (`ScreenInfo.key`), from the
+    /// sidebar. Set by the AppDelegate on every change.
+    private var barReserved: [String: ReservedInsets] = [:]
+
+    func setReserved(_ reserved: [String: ReservedInsets]) {
+        guard reserved != barReserved else { return }
+        barReserved = reserved
+        guard let engine else { return }
+        engine.options.reservedByDisplay = reservedByDisplay()
+        engine.relayout()
+    }
+
+    /// The bars' room by display UUID, the way the engine knows displays.
+    private func reservedByDisplay() -> [String: NSEdgeInsets] {
+        var result: [String: NSEdgeInsets] = [:]
+        for screen in ShellScreens.current() {
+            guard let insets = barReserved[screen.info.key],
+                  let uuid = ShellScreens.uuid(of: screen.displayID) else { continue }
+            result[uuid] = NSEdgeInsets(top: insets.top, left: insets.left,
+                                        bottom: insets.bottom, right: insets.right)
+        }
+        return result
     }
 
     init(settings: ShellSettingsStore, layoutFile: URL = ShellFiles.live.twmLayout) {
@@ -63,8 +87,7 @@ final class TWMController {
         engine.options.gaps = Gaps(outer: twm.outerGap, inner: twm.innerGap)
         engine.options.response = twm.glideDuration
         engine.options.tabBarHeight = twm.tabBarHeight
-        // The sidebar's strip is only kept free where a bar actually stands.
-        engine.options.reservedOnEveryDisplay = settings.settings.bar.screens == .all
+        engine.options.reservedByDisplay = reservedByDisplay()
         engine.options.scratchpadShare = twm.scratchpadShare
         engine.options.layout = twm.layout == .canvas ? .canvas : .dwindle
         engine.options.columnWidth = twm.columnWidth
@@ -101,7 +124,7 @@ final class TWMController {
             log.notice("Stage Manager is on; it fights tiling")
         }
         var options = TilingEngine.Options()
-        options.reserved.left = Sidebar.width
+        options.reservedByDisplay = reservedByDisplay()
         let engine = TilingEngine(area: area, options: options)
         // Debug level only: the messages name window titles (chats, URLs,
         // documents), and debug messages are never written to disk. Read
@@ -115,8 +138,10 @@ final class TWMController {
         }
         if let space = Spaces.current() { engine.switchSpace(to: space) }
         engine.onSettled = { [weak self] in self?.save() }
-        engine.onDisplaysChanged = { [weak engine] in
-            guard let engine else { return }
+        engine.onDisplaysChanged = { [weak self, weak engine] in
+            guard let self, let engine else { return }
+            // A replug hands out new display IDs; the bars' keys stay.
+            engine.options.reservedByDisplay = reservedByDisplay()
             TWMStatus.shared.update(from: engine)
         }
         TWMStatus.shared.update(from: engine)

@@ -74,8 +74,14 @@ struct SidebarContent: View {
 /// kit (image sample: pixel for pixel).
 struct BarStack: Layout {
     var spacing: CGFloat = 8
+    /// `.horizontal` for the bars along the top and the bottom edge: the same
+    /// rules turned by 90 degrees - left to right, the flexible ones share the
+    /// free width, every block centered in the height. `BarFlex` only knows
+    /// lengths, so it serves both directions unchanged.
+    var axis: BarAxis = .vertical
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        if axis == .horizontal { return horizontalSize(proposal: proposal, subviews: subviews) }
         let width = proposal.width ?? subviews.map { $0.sizeThatFits(.unspecified).width }.max() ?? 0
         if let height = proposal.height { return CGSize(width: width, height: height) }
         // Ideal: only the fixed ones, flexible ones count 0.
@@ -85,6 +91,7 @@ struct BarStack: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        if axis == .horizontal { return placeHorizontally(in: bounds, subviews: subviews) }
         let heights: [Double?] = subviews.map { subview in
             subview[BarFlexible.self]
                 ? nil
@@ -94,6 +101,31 @@ struct BarStack: Layout {
         for (subview, slot) in zip(subviews, slots) {
             subview.place(at: CGPoint(x: bounds.midX, y: bounds.minY + slot.y), anchor: .top,
                           proposal: ProposedViewSize(width: bounds.width, height: slot.height))
+        }
+    }
+
+    /// The vertical rules with width and height swapped. Kept apart from
+    /// the vertical path instead of folding both into one: the sidebar must
+    /// not move by a pixel.
+    private func horizontalSize(proposal: ProposedViewSize, subviews: Subviews) -> CGSize {
+        let height = proposal.height ?? subviews.map { $0.sizeThatFits(.unspecified).height }.max() ?? 0
+        if let width = proposal.width { return CGSize(width: width, height: height) }
+        let fixed = subviews.filter { !$0[BarFlexible.self] }
+            .map { $0.sizeThatFits(ProposedViewSize(width: nil, height: height)).width }
+        return CGSize(width: fixed.reduce(0, +) + CGFloat(max(subviews.count - 1, 0)) * spacing, height: height)
+    }
+
+    /// `BarSlot.y` and `.height` read as x and width here.
+    private func placeHorizontally(in bounds: CGRect, subviews: Subviews) {
+        let widths: [Double?] = subviews.map { subview in
+            subview[BarFlexible.self]
+                ? nil
+                : Double(subview.sizeThatFits(ProposedViewSize(width: nil, height: bounds.height)).width)
+        }
+        let slots = BarFlex.slots(available: Double(bounds.width), heights: widths, spacing: Double(spacing))
+        for (subview, slot) in zip(subviews, slots) {
+            subview.place(at: CGPoint(x: bounds.minX + slot.y, y: bounds.midY), anchor: .leading,
+                          proposal: ProposedViewSize(width: slot.height, height: bounds.height))
         }
     }
 }
@@ -113,6 +145,7 @@ struct BarFlexible: LayoutValueKey {
 struct BarModuleView: View {
     let entry: BarEntry
     let context: BarModuleContext
+    @Environment(\.barAxis) private var axis
 
     var body: some View {
         switch entry.module {
@@ -130,7 +163,8 @@ struct BarModuleView: View {
             SidebarDock(model: context.dock, options: options)
                 .layoutValue(key: BarFlexible.self, value: true)
         case .clock(let options):
-            SidebarClock(model: context.clock, showIcon: options.showIcon, showDate: options.showDate)
+            SidebarClock(model: context.clock, showIcon: options.showIcon, showDate: options.showDate,
+                         style: options.resolvedStyle(horizontal: axis == .horizontal))
                 // A click opens the dashboard with the calendar.
                 .contentShape(.rect)
                 .onTapGesture { context.onDashboard() }
@@ -154,14 +188,19 @@ struct BarModuleView: View {
                 .layoutValue(key: BarFlexible.self, value: true)
                 .accessibilityHidden(true)
         case .gap(let options):
+            // "Height" in the options is the length along the bar: across
+            // it, in a bar along the top or the bottom edge.
+            let horizontal = axis == .horizontal
             Color.clear
-                .frame(width: 1, height: options.height)
+                .frame(width: horizontal ? options.height : 1, height: horizontal ? 1 : options.height)
                 .accessibilityHidden(true)
         case .divider:
-            // Like the rule in the Dock between pinned and running ones.
+            // Like the rule in the Dock between pinned and running ones -
+            // always across the bar.
+            let horizontal = axis == .horizontal
             Capsule()
                 .fill(Color.primary.opacity(0.18))
-                .frame(width: 20, height: 2)
+                .frame(width: horizontal ? 2 : 20, height: horizontal ? 18 : 2)
                 .accessibilityHidden(true)
         case .appButton(let options):
             BarAppButton(bundleID: options.bundleID, onOpen: context.onOpenApp)
@@ -176,6 +215,24 @@ struct BarModuleView: View {
                 Image(systemName: "music.note")
                     .font(.system(size: 15, weight: .semibold))
             }
+        case .nowPlaying(let options):
+            BarNowPlayingModule(media: context.media, options: options) { context.onDashboardTab(.media) }
+        case .windowTitle(let options):
+            BarWindowTitleModule(model: context.frontApp, options: options)
+        case .keyboardLayout(let options):
+            BarKeyboardModule(model: context.keyboard, options: options)
+        case .volume(let options):
+            BarVolumeModule(model: context.volume, options: options)
+        case .wifi:
+            // The status capsule with one symbol, so the pill, the theme
+            // image and the popout are exactly the capsule's.
+            StatusCapsule(status: context.status, options: .init(showWifi: true, showBluetooth: false, showBattery: false),
+                          standalone: true)
+        case .bluetooth:
+            StatusCapsule(status: context.status, options: .init(showWifi: false, showBluetooth: true, showBattery: false),
+                          standalone: true)
+        case .systemStats(let options):
+            BarSystemStatsModule(model: context.cpu, options: options) { context.onDashboardTab(.performance) }
         }
     }
 }
@@ -186,15 +243,37 @@ struct BarModuleView: View {
 /// A click opens the detail window next to it (`StatusPopout`); the symbol of
 /// the open one stays backed. The model comes out of the environment - when
 /// it is missing (preview, image samples), the symbols are display only.
+/// Along a horizontal bar the symbols stand side by side in a lying capsule.
+///
+/// An edge bar can ask for pills instead (`EdgeBar.statusStyle`): each
+/// symbol on its own capsule in its `--apollo-status-*` colour, with a word
+/// beside it along a horizontal bar. Across the right bar there is no room
+/// for the word, so the pill carries the symbol only.
 private struct StatusCapsule: View {
     let status: StatusModel
     var options = BarStatusIconsOptions()
+    /// A Wi-Fi or Bluetooth block on its own: no capsule behind the one
+    /// symbol (a lone symbol in a capsule reads as a stray frame).
+    var standalone = false
+    /// Where this capsule's symbols lie, kept to hand to the popout on a
+    /// click: with a Wi-Fi block beside the capsule two symbols report a
+    /// frame for the same kind, and the one clicked must win. A box, not
+    /// plain state: a frame change should not redraw anything.
+    @State private var frames = StatusFrameBox()
     @Environment(StatusPopoutModel.self) private var popout: StatusPopoutModel?
+    @Environment(\.barAxis) private var axis
+    /// Its group draws the capsule already (islands, distinct groups).
+    @Environment(\.barGroupCapsule) private var inCapsule
+    @Environment(\.barStatusStyle) private var statusStyle
+    @Environment(\.barControlSize) private var size
+    @Environment(\.shellStyle) private var shellStyle
 
     var body: some View {
         let battery = options.showBattery ? StatusGlyphs.batterySymbol(status.battery) : nil
-        if options.showWifi || options.showBluetooth || battery != nil {
-            VStack(spacing: 2) {
+        if statusStyle == .pills {
+            pills(battery: battery)
+        } else if options.showWifi || options.showBluetooth || battery != nil {
+            axis.stack(spacing: 2) {
                 if options.showWifi {
                     let wifi = StatusGlyphs.wifi(powerOn: status.wifiOn, rssi: status.wifiRSSI)
                     popoutIcon(.wifi, help: wifiHelp) {
@@ -218,13 +297,97 @@ private struct StatusCapsule: View {
                                    fallback: battery)
                             .font(.system(size: 13, weight: .semibold))
                             .frame(width: 15, height: 15)
-                            .rotationEffect(.degrees(-90))
+                            // Stood up in the narrow sidebar; lying, as
+                            // in Apple's menu bar, along a horizontal one.
+                            .rotationEffect(.degrees(axis == .horizontal ? 0 : -90))
                     }
                 }
             }
-            .padding(.vertical, 4)
-            .background(Color.primary.opacity(0.08), in: .capsule)
+            .padding(axis == .horizontal ? .horizontal : .vertical, standalone ? 0 : 4)
+            .background(Color.primary.opacity(inCapsule || standalone ? 0 : 0.08), in: .capsule)
         }
+    }
+
+    @ViewBuilder
+    private func pills(battery: String?) -> some View {
+        if options.showWifi || options.showBluetooth || battery != nil {
+            axis.stack(spacing: 4) {
+                if options.showWifi {
+                    let wifi = StatusGlyphs.wifi(powerOn: status.wifiOn, rssi: status.wifiRSSI)
+                    pill(.wifi, colors: shellStyle.statusPill(.statusWifi), help: wifiHelp,
+                         text: StatusGlyphs.wifiPillText(powerOn: status.wifiOn)) {
+                        ThemedIcon(status.wifiOn == false ? "status-wifi-off" : "status-wifi", fallback: wifi.symbol)
+                            .font(.system(size: 11, weight: .bold))
+                            .frame(width: 13, height: 13)
+                    }
+                }
+                if options.showBluetooth {
+                    pill(.bluetooth, colors: shellStyle.statusPill(.statusBluetooth), help: bluetoothHelp,
+                         text: StatusGlyphs.bluetoothPillText(on: status.bluetoothOn)) {
+                        BluetoothGlyph(on: status.bluetoothOn != false)
+                            .scaleEffect(0.8)
+                            .frame(width: 10, height: 13)
+                    }
+                }
+                if let battery {
+                    pill(.battery, colors: shellStyle.statusPill(.statusBattery),
+                         help: StatusGlyphs.batteryText(status.battery),
+                         text: StatusGlyphs.batteryPillText(status.battery) ?? "") {
+                        ThemedIcon(status.battery?.charging == true ? "status-battery-charging" : "status-battery",
+                                   fallback: battery)
+                            .font(.system(size: 11, weight: .bold))
+                            .frame(width: 15, height: 13)
+                    }
+                }
+            }
+        }
+    }
+
+    /// One pill: a button like `popoutIcon`, reporting its frame for the
+    /// popout, with the open one ringed instead of backed - a darker backing
+    /// would change the pill's colour.
+    private func pill<Glyph: View>(
+        _ kind: StatusPopoutKind, colors: (fill: Color, text: Color), help: String, text: String,
+        @ViewBuilder glyph: @escaping () -> Glyph
+    ) -> some View {
+        let horizontal = axis == .horizontal
+        let active = popout?.isOpen == true && popout?.shown == kind
+        // A few points off the bar's edges, like the capsules of a group.
+        let across = max(size - 8, 16)
+        return Button(action: { click(kind) }) {
+            HStack(spacing: 4) {
+                glyph()
+                if horizontal {
+                    Text(text)
+                        .font(shellStyle.font(size: 11, weight: .semibold))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+            }
+            .padding(.horizontal, horizontal ? 8 : 0)
+            .frame(width: horizontal ? nil : across, height: across)
+            .foregroundStyle(colors.text)
+            .background(colors.fill, in: .capsule)
+            .overlay { Capsule().strokeBorder(colors.text.opacity(active ? 0.55 : 0), lineWidth: 1.5) }
+            .frame(width: horizontal ? nil : size, height: horizontal ? size : nil)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .animation(.easeOut(duration: 0.12), value: active)
+        .help(help)
+        .accessibilityLabel(help)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { report(kind, $0) }
+    }
+
+    private func report(_ kind: StatusPopoutKind, _ frame: CGRect) {
+        frames.value[kind] = frame
+        popout?.iconFrames[kind] = frame
+    }
+
+    private func click(_ kind: StatusPopoutKind) {
+        if let frame = frames.value[kind] { popout?.iconFrames[kind] = frame }
+        popout?.onIconClick(kind)
     }
 
     /// A symbol button that reports its frame for the placement of the popout.
@@ -232,10 +395,10 @@ private struct StatusCapsule: View {
         _ kind: StatusPopoutKind, help: String, @ViewBuilder glyph: @escaping () -> Glyph
     ) -> some View {
         let active = popout?.isOpen == true && popout?.shown == kind
-        return SidebarIcon(help: help, action: { popout?.onIconClick(kind) }, content: glyph)
+        return SidebarIcon(help: help, action: { click(kind) }, content: glyph)
             .background(Color.primary.opacity(active ? 0.14 : 0), in: .rect(cornerRadius: 9))
             .animation(.easeOut(duration: 0.12), value: active)
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { popout?.iconFrames[kind] = $0 }
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { report(kind, $0) }
     }
 
     private var wifiHelp: String {
@@ -253,6 +416,12 @@ private struct StatusCapsule: View {
     }
 }
 
+/// See `StatusCapsule.frames`.
+@MainActor
+private final class StatusFrameBox {
+    var value: [StatusPopoutKind: CGRect] = [:]
+}
+
 /// Symbol button of the bar: 32 x 32, slightly backed on hover. Without an
 /// action (status symbols) it is display only, but it still shimmers.
 struct SidebarIcon<Content: View>: View {
@@ -262,6 +431,7 @@ struct SidebarIcon<Content: View>: View {
     @State private var hovering = false
     @Environment(\.barPreview) private var preview
     @Environment(\.shellStyle) private var style
+    @Environment(\.barControlSize) private var size
 
     init(help: String, action: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.help = help
@@ -272,7 +442,7 @@ struct SidebarIcon<Content: View>: View {
     var body: some View {
         Button(action: { action?() }) {
             content()
-                .frame(width: 32, height: 32)
+                .frame(width: size, height: size)
                 .background(Color.primary.opacity(hovering ? 0.14 : 0), in: .rect(cornerRadius: 9))
                 .contentShape(.rect(cornerRadius: 9))
         }

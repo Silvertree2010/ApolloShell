@@ -41,7 +41,7 @@ struct SidebarRoot: View {
             )
             ZStack(alignment: .topLeading) {
                 Color.clear
-                    .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: Sidebar.width, bulge: bulge)))
+                    .modifier(BarGlass(shape: SidebarGlassShape(barWidth: Sidebar.width, bulge: bulge)))
                 SidebarContent(settings: settings, context: context, editor: editor)
                     .frame(width: Sidebar.width)
                     .frame(maxHeight: .infinity)
@@ -86,7 +86,9 @@ struct SidebarRoot: View {
 }
 
 /// The background of the bar in its shape, replaced by a fixed area in image
-/// samples (glass draws only white offscreen).
+/// samples (glass draws only white offscreen). Shared by the sidebar and the
+/// bars along the other edges (`EdgeBarView`), so a theme colours them all
+/// alike and they read as one shell.
 ///
 /// Without a theme a system material: one colour per appearance. Plain
 /// Liquid Glass follows the brightness of whatever lies behind it and flips
@@ -94,7 +96,7 @@ struct SidebarRoot: View {
 /// bar changed colour whenever a window moved under it. A choice between
 /// material and three kinds of glass existed in the 0.2 betas and went
 /// again: a theme that wants glass lets light through its bar colour.
-private struct SidebarGlass<S: Shape>: ViewModifier {
+struct BarGlass<S: Shape>: ViewModifier {
     let shape: S
     @Environment(\.statusPopoutGlassStandIn) private var standIn
     @Environment(\.colorScheme) private var colorScheme
@@ -104,18 +106,21 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
     /// of `--apollo-bar-color` or `--apollo-bar-gradient`, with
     /// `--apollo-bar-opacity`. Glass shows through below it as long as the
     /// theme lets light through and allows glass (`--apollo-glass`).
+    ///
+    /// The image samples' stand-in only replaces the glass: a theme's own
+    /// colour is drawn there too, so `--render-bars` can show themes.
     func body(content: Content) -> some View {
-        if standIn {
-            content.background(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95), in: shape)
-        } else if style.paintsBar {
+        if style.paintsBar {
             let opaque = style.barIsOpaque
             content
                 .background(style.barFill, in: shape)
                 .background {
-                    if !opaque, style.glass {
+                    if !opaque, style.glass, !standIn {
                         Color.clear.glassEffect(.regular, in: shape)
                     }
                 }
+        } else if standIn {
+            content.background(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95), in: shape)
         } else {
             content.background(.regularMaterial, in: shape)
         }

@@ -145,6 +145,25 @@ struct ThemeDocsTests {
         #expect(ThemeLoader.themes(in: Self.examples).map(\.identifier) == ["full", "minimal", "Nightfall"])
     }
 
+    @Test("the edge bar example themes in the docs load without a notice", arguments: ["Teal Strip", "Ember Islands"])
+    func edgeBarExamples(name: String) throws {
+        let css = try #require(ThemeDocumentation.cssBlock(after: "### \(name)", in: try read(Self.docs)))
+        let theme = Theme.make(identifier: name, styleSheet: ThemeStyleSheetParser.parse(css))
+        #expect(theme.title == name)
+        #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
+        #expect(theme.color(.edgeBar) != nil)
+        #expect(theme.color(.bar) == nil, "an edge bar example leaves the sidebar alone")
+    }
+
+    @Test("cssBlock takes only the block of its own heading")
+    func cssBlockScope() {
+        let text = "intro\n### A\n\ntext\n\n```css\n:root {}\n```\n### B\nnone\n### C\n```css\nx\n```\n"
+        #expect(ThemeDocumentation.cssBlock(after: "### A", in: text) == ":root {}\n")
+        #expect(ThemeDocumentation.cssBlock(after: "### B", in: text) == nil)
+        #expect(ThemeDocumentation.cssBlock(after: "### C", in: text) == "x\n")
+        #expect(ThemeDocumentation.cssBlock(after: "### D", in: text) == nil)
+    }
+
     @Test("the gradient example loads without a notice and sets gradients")
     func gradientExample() {
         let theme = ThemeLoader.load(at: Self.examples.appendingPathComponent("Nightfall.css"))

@@ -47,6 +47,29 @@ public enum StatusGlyphs {
         }
     }
 
+    // MARK: Pill labels
+
+    // The short texts of the status pills (`BarStatusStyle.pills`). A pill
+    // has room for a word, not a sentence; the full description stays in
+    // the tooltip. Each says what the glyph beside it cannot: whether the
+    // radio is on, how full the battery is.
+
+    /// "Wi-Fi" while on, "Off" when switched off.
+    public static func wifiPillText(powerOn: Bool) -> String {
+        powerOn ? String(localized: "Wi-Fi") : String(localized: "Off")
+    }
+
+    /// "On" or "Off"; unknown (no controller answered yet) reads as on,
+    /// like the glyph, which only crosses out a radio known to be off.
+    public static func bluetoothPillText(on: Bool?) -> String {
+        on == false ? String(localized: "Off") : String(localized: "On")
+    }
+
+    /// "76%", `nil` without a battery - then there is no pill either.
+    public static func batteryPillText(_ state: BatteryState?) -> String? {
+        state.map { "\(min(max($0.level, 0), 100))%" }
+    }
+
     /// Short description for tooltip and VoiceOver.
     public static func batteryText(_ state: BatteryState?) -> String {
         guard let state else { return String(localized: "No Battery") }

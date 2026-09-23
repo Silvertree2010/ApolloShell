@@ -53,6 +53,9 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     public var twm = TWMSettings()
     /// Crash reports (Nexus > Updates).
     public var crashReports = CrashReportSettings()
+    /// The bars along the top, bottom and right edge (0.2), next to the
+    /// sidebar on the left. 0.1.x does not know the section and leaves it be.
+    public var edgeBars = EdgeBars()
 
     /// The defaults of the four sections for the release (hotKeys, keepAwake,
     /// onboarding, appleDockHiding) are the ones for an EXISTING installation
@@ -330,6 +333,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         twm = c.lenient(.twm) ?? TWMSettings()
         // From 0.1.4.1 on; without it the app asks.
         crashReports = c.lenient(.crashReports) ?? CrashReportSettings()
+        // From 0.2 on; without it every bar is off.
+        edgeBars = c.lenient(.edgeBars) ?? EdgeBars()
     }
 
     /// The content of settings.json.

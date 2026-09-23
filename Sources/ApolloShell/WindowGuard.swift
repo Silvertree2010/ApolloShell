@@ -3,7 +3,8 @@ import ApplicationServices
 import ApolloShellCore
 import os
 
-/// Window guard: keeps foreign windows out of the left bar's strip.
+/// Window guard: keeps foreign windows out of the strips the bars cover -
+/// the sidebar on the left and the bars along the other edges.
 ///
 /// macOS has no interface to reserve screen space; `visibleFrame` belongs
 /// solely to the Dock and menu bar. So, like the app "Sidebar": listen to
@@ -30,12 +31,10 @@ final class WindowGuard {
     private let worker: WindowGuardWorker
     private let log = Logger(category: "windowguard")
     private var trusted = false
-    /// Keys of the screens that have a bar - the strip is only kept clear
-    /// there. Reported by the bar manager.
-    private var barScreenKeys: Set<String> = []
-    /// How wide the strip is. The theme can make the bar wider or narrower
-    /// at runtime; the manager reports that too.
-    private var barWidth: CGFloat = 0
+    /// The room kept clear per screen key (`ScreenInfo.key`), edge by edge.
+    /// Screens without an entry are left alone. Reported by the bar manager
+    /// on every change (screens, settings, a theme's new bar width).
+    private var reserved: [String: ReservedInsets] = [:]
     /// Switched off by someone else who keeps the strip free (the tiling
     /// window manager on the ApolloShell-TWM branch, once it runs inside the
     /// app: it reserves the same 44 pt, and two movers on one window would
@@ -108,20 +107,20 @@ final class WindowGuard {
         )
     }
 
-    /// Which screens have a bar and how wide it is. This determines where
-    /// and how wide the strip is kept clear; the bar manager reports every
-    /// change.
-    func setBarScreens(_ keys: Set<String>, barWidth: CGFloat) {
-        guard keys != barScreenKeys || barWidth != self.barWidth else { return }
-        barScreenKeys = keys
-        self.barWidth = barWidth
-        log.notice("Keeping strip (\(Int(barWidth), privacy: .public) pt) clear on \(keys.count, privacy: .public) screen(s)")
+    /// How much room the bars keep on each screen, by screen key. Insets
+    /// are distances from the screen edges, so they carry over from AppKit
+    /// to accessibility coordinates unchanged (top stays top); only the
+    /// screen frames are flipped. The bar manager reports every change.
+    func setReserved(_ insets: [String: ReservedInsets]) {
+        guard insets != reserved else { return }
+        reserved = insets
+        log.notice("Keeping strips clear on \(insets.count, privacy: .public) screen(s)")
         guard let screens = screensForWorker() else { return }
         worker.screensChanged(screens)
     }
 
     /// Screens in accessibility coordinates, the one with the menu bar
-    /// first, each with its key and whether a bar sits on it. `nil` if
+    /// first, each with its key and the room its bars keep. `nil` if
     /// there currently is none (screen mid-reconfiguration): then keep
     /// the old ones.
     private func screensForWorker() -> [GuardScreen]? {
@@ -134,7 +133,7 @@ final class WindowGuard {
             GuardScreen(
                 key: screen.info.key,
                 frame: WindowClamp.flipped(screen.frame, primaryHeight: primaryHeight),
-                reservedWidth: barScreenKeys.contains(screen.info.key) ? barWidth : 0
+                insets: reserved[screen.info.key] ?? .zero
             )
         }
     }
@@ -187,9 +186,9 @@ struct GuardScreen: Sendable, Equatable {
     /// Frame in accessibility coordinates (origin top left on the main
     /// screen, y downward).
     let frame: CGRect
-    /// How wide the strip to keep clear is on the left edge. 0: no bar
-    /// there, windows are left alone.
-    let reservedWidth: CGFloat
+    /// The strips to keep clear, per edge. All zero: no bar there, windows
+    /// are left alone.
+    let insets: ReservedInsets
 }
 
 /// The actual window guard.
@@ -236,8 +235,9 @@ final class WindowGuardWorker: @unchecked Sendable {
     /// row", but an app that puts its window back every time only twitches
     /// briefly at most every 30 s instead of constantly.
     private var ledger = ClampLedger<AXUIElement>(maxAttempts: 3, period: 30)
-    /// Minimum widths learned from rejected shrink attempts.
-    private var minWidths: [AXUIElement: CGFloat] = [:]
+    /// Minimum sizes learned from rejected shrink attempts (0 where none
+    /// was learned yet).
+    private var minSizes: [AXUIElement: CGSize] = [:]
 
     // MARK: - From outside (any thread)
 
@@ -261,7 +261,7 @@ final class WindowGuardWorker: @unchecked Sendable {
             for work in pending.values { work.cancel() }
             pending = [:]
             ledger = ClampLedger(maxAttempts: ledger.maxAttempts, period: ledger.period)
-            minWidths = [:]
+            minSizes = [:]
         }
     }
 
@@ -369,7 +369,7 @@ final class WindowGuardWorker: @unchecked Sendable {
             pending[window] = nil
         }
         ledger.forget(where: belongs)
-        minWidths = minWidths.filter { !belongs($0.key) }
+        minSizes = minSizes.filter { !belongs($0.key) }
     }
 
     /// "Moved" and "resized" arrive per window, so every new window is
@@ -407,7 +407,7 @@ final class WindowGuardWorker: @unchecked Sendable {
     private func forget(_ window: AXUIElement, pid: pid_t) {
         pending.removeValue(forKey: window)?.cancel()
         ledger.forget(window)
-        minWidths[window] = nil
+        minSizes[window] = nil
         apps[pid]?.windows.remove(window)
     }
 
@@ -479,10 +479,10 @@ final class WindowGuardWorker: @unchecked Sendable {
               // The window belongs to the screen where the largest part
               // of it lies - and it's only repositioned where a bar sits.
               let index = WindowClamp.dominantScreen(for: frame, among: screens.map(\.frame)),
-              screens[index].reservedWidth > 0,
+              !screens[index].insets.isZero,
               let target = WindowClamp.clampedFrame(
                   window: frame, screen: screens[index].frame,
-                  reservedWidth: screens[index].reservedWidth, minWidth: minWidths[window] ?? 0
+                  insets: screens[index].insets, minSize: minSizes[window] ?? .zero
               )
         else { return }
 
@@ -496,13 +496,21 @@ final class WindowGuardWorker: @unchecked Sendable {
         apply(target, to: window, current: frame, pid: pid)
 
         // Read back: whatever the app made of it is the new state. If it
-        // rejected the shrink, that's its minimum width - then don't try
-        // to make it narrower next time, only move it.
+        // rejected the shrink, that's its minimum size - then don't try to
+        // make it smaller next time, only move it. Width and height apart:
+        // a bar at the left only ever shrinks the width, one at the top or
+        // the bottom the height.
         let result = AX.frame(of: window) ?? target
+        var learned = minSizes[window] ?? .zero
         if target.width < frame.width - WindowClamp.tolerance,
            result.width > target.width + WindowClamp.tolerance {
-            minWidths[window] = result.width
+            learned.width = result.width
         }
+        if target.height < frame.height - WindowClamp.tolerance,
+           result.height > target.height + WindowClamp.tolerance {
+            learned.height = result.height
+        }
+        if learned != .zero { minSizes[window] = learned }
         ledger.record(window, result: result, now: now)
         log.debug("pid \(pid, privacy: .public): \(String(describing: frame), privacy: .public) -> \(String(describing: result), privacy: .public)")
     }
@@ -518,10 +526,11 @@ final class WindowGuardWorker: @unchecked Sendable {
         if enhanced { AX.setBool(app, AX.enhancedUserInterfaceAttribute, false) }
         defer { if enhanced { AX.setBool(app, AX.enhancedUserInterfaceAttribute, true) } }
 
-        // Narrow first, then move: this way the window never sticks out
-        // past the right edge in between. If the app rejects the size, it
+        // Shrink first, then move: this way the window never sticks out
+        // past the opposite edge in between. If the app rejects the size, it
         // is still moved.
-        if abs(target.width - current.width) > WindowClamp.tolerance {
+        if abs(target.width - current.width) > WindowClamp.tolerance
+            || abs(target.height - current.height) > WindowClamp.tolerance {
             AX.setSize(window, target.size)
         }
         AX.setPosition(window, target.origin)

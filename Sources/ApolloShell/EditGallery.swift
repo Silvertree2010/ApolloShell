@@ -17,7 +17,8 @@ enum GalleryTab: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard: String(localized: "Dashboard")
         case .controlCentre: String(localized: "Control Centre")
-        case .bar: String(localized: "Sidebar")
+        // The sidebar and the edge bars: blocks go where the selection is.
+        case .bar: String(localized: "Bar")
         }
     }
 }
@@ -388,14 +389,17 @@ struct EditGalleryView: View {
         }
     }
 
-    /// Every block of the sidebar. A kind that may exist only once and is
-    /// already in the bar stays greyed out, like a card that is on.
+    /// Every block of the bars. A click puts it into the zone of the selected
+    /// edge bar block, otherwise into the sidebar (`galleryBarPlace`). A kind
+    /// that may exist only once and is already in that bar stays greyed out,
+    /// like a card that is on.
     private var barTiles: some View {
-        ForEach(BarModuleKind.allCases) { kind in
-            let already = editor.bar.map { !$0.layout.canAdd(kind) } ?? false
+        let place = editor.galleryBarPlace
+        return ForEach(BarModuleKind.allCases) { kind in
+            let already = editor.bar.map { !$0.canAdd(kind, to: place) } ?? false
             EditGalleryTile(symbol: kind.symbol, title: kind.title, detail: nil, tooltip: kind.summary,
                             payload: BarModuleDragPayload.string(for: kind), isDisabled: already) {
-                if editor.addBarModule(kind) == nil {
+                if editor.addBarModule(kind, to: place) == nil {
                     show(notice: String(localized: "Already there"))
                 }
             }

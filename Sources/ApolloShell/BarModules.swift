@@ -16,6 +16,39 @@ private struct BarPreviewKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+/// The direction a bar runs in: the sidebar stacks its blocks from top to
+/// bottom, the bars along the top and the bottom edge from left to right.
+/// The blocks are the same; each one only turns its parts along.
+enum BarAxis: Sendable {
+    case vertical, horizontal
+
+    /// The parts of a block (symbol and text, dots): below each other in the
+    /// sidebar, side by side in a bar along the top or the bottom edge. The
+    /// vertical case is the plain `VStack` of before - the sidebar has to
+    /// stay pixel for pixel the same (scripts/compare-renders.py).
+    @MainActor
+    func stack<Content: View>(spacing: CGFloat, horizontal: CGFloat? = nil,
+                              @ViewBuilder content: () -> Content) -> some View {
+        let layout = switch self {
+        case .vertical: AnyLayout(VStackLayout(spacing: spacing))
+        case .horizontal: AnyLayout(HStackLayout(spacing: horizontal ?? spacing))
+        }
+        return layout(content)
+    }
+}
+
+private struct BarAxisKey: EnvironmentKey {
+    static let defaultValue = BarAxis.vertical
+}
+
+private struct BarControlSizeKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 32
+}
+
+private struct BarGroupCapsuleKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     /// In the preview of Nexus: no mouse views (hover, Dock clicks,
     /// dragging). The preview is scaled down, and AppKit views do not go
@@ -24,6 +57,51 @@ extension EnvironmentValues {
     var barPreview: Bool {
         get { self[BarPreviewKey.self] }
         set { self[BarPreviewKey.self] = newValue }
+    }
+
+    /// Which way the bar around a block runs. Vertical unless a bar along the
+    /// top or the bottom edge sets it - so the sidebar needs no change.
+    var barAxis: BarAxis {
+        get { self[BarAxisKey.self] }
+        set { self[BarAxisKey.self] = newValue }
+    }
+
+    /// Edge length of a button across the bar (`SidebarIcon`, `BarTile`,
+    /// Dock icons, spaces). 32 in the sidebar, which never sets it - so the
+    /// sidebar stays pixel for pixel the same. An edge bar thinner than
+    /// 32 + its margins sets less, or its buttons would stick out of it.
+    var barControlSize: CGFloat {
+        get { self[BarControlSizeKey.self] }
+        set { self[BarControlSizeKey.self] = newValue }
+    }
+
+    /// The block stands in a group that already draws a capsule (islands,
+    /// or the strip with `distinctGroups`). Blocks that bring a capsule of
+    /// their own (status icons, spaces) then leave theirs out: a capsule in
+    /// a capsule read as a stray frame.
+    var barGroupCapsule: Bool {
+        get { self[BarGroupCapsuleKey.self] }
+        set { self[BarGroupCapsuleKey.self] = newValue }
+    }
+
+    /// Glyphs or coloured pills for the status icons (`EdgeBar.statusStyle`).
+    /// Only an edge bar sets it; the sidebar keeps its glyphs.
+    var barStatusStyle: BarStatusStyle {
+        get { self[BarStatusStyleKey.self] }
+        set { self[BarStatusStyleKey.self] = newValue }
+    }
+}
+
+private struct BarStatusStyleKey: EnvironmentKey {
+    static let defaultValue = BarStatusStyle.icons
+}
+
+extension CGFloat {
+    /// A size of the sidebar's 32 pt buttons scaled to a button of
+    /// `control`: unchanged at 32 and above (the sidebar), otherwise shrunk
+    /// so it still leaves `margin` inside the button.
+    func fitting(control: CGFloat, margin: CGFloat = 4) -> CGFloat {
+        control >= 32 ? self : Swift.min(self, Swift.max(control - margin, 0))
     }
 }
 
@@ -37,6 +115,11 @@ struct BarModuleContext {
     var clock: SidebarClockModel
     var cpu: BarCPUModel
     var weather: BarWeatherFeed
+    /// Shared with the dashboard; see `MediaModel`.
+    var media: MediaModel
+    var frontApp: BarFrontAppModel
+    var keyboard: BarKeyboardModel
+    var volume: BarVolumeModel
     var onDashboard: @MainActor () -> Void = {}
     /// Media, weather, CPU, battery: straight to the matching tab.
     var onDashboardTab: @MainActor (DashboardTab) -> Void = { _ in }
@@ -75,6 +158,9 @@ final class BarCPUModel {
     /// 0...1, rounded to whole percent: that way the bar only redraws when
     /// the shown number changes. `nil` until the second measurement.
     private(set) var usage: Double?
+    /// Used memory, 0...1 in whole percent, for the system stats block. Read
+    /// in the same round: one more Mach call, microseconds.
+    private(set) var memory: Double?
 
     static let interval: TimeInterval = 2
 
@@ -88,9 +174,10 @@ final class BarCPUModel {
     }
 
     /// For the preview and the image sample: a fixed value, never measures.
-    init(preview usage: Double?) {
+    init(preview usage: Double?, memory: Double? = nil) {
         live = false
         self.usage = usage
+        self.memory = memory
     }
 
     var isSampling: Bool { timer != nil }
@@ -107,6 +194,8 @@ final class BarCPUModel {
         guard live else { return }
         if demand.isActive, timer == nil {
             lastTicks = SystemSampler.cpuTicks()
+            // Memory needs no second reading: shown right away.
+            sampleMemory()
             let timer = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.sample() }
             }
@@ -122,7 +211,15 @@ final class BarCPUModel {
         }
     }
 
+    private func sampleMemory() {
+        guard let reading = SystemSampler.memory(),
+              let value = BarText.fraction(used: reading.used, total: reading.total) else { return }
+        let rounded = (value * 100).rounded() / 100
+        if rounded != memory { memory = rounded }
+    }
+
     private func sample() {
+        sampleMemory()
         guard let ticks = SystemSampler.cpuTicks() else { return }
         defer { lastTicks = ticks }
         guard let old = lastTicks, let value = ResourceMath.cpuUsage(from: old, to: ticks) else { return }
@@ -216,13 +313,17 @@ enum BarApps {
 // MARK: - Views
 
 /// Button of the bar for blocks with text (battery, CPU, weather): 32 wide,
-/// at least 32 high, otherwise like `SidebarIcon` (hover, tooltip).
+/// at least 32 high, otherwise like `SidebarIcon` (hover, tooltip). Along a
+/// horizontal bar the other way round: 32 high, at least 32 wide - the text
+/// stands next to the symbol there and sets the width.
 struct BarTile<Content: View>: View {
     let help: String
     var action: (() -> Void)?
     @ViewBuilder let content: () -> Content
     @State private var hovering = false
     @Environment(\.barPreview) private var preview
+    @Environment(\.barAxis) private var axis
+    @Environment(\.barControlSize) private var size
 
     init(help: String, action: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.help = help
@@ -231,11 +332,12 @@ struct BarTile<Content: View>: View {
     }
 
     var body: some View {
+        let horizontal = axis == .horizontal
         Button(action: { action?() }) {
             content()
-                .padding(.vertical, 5)
-                .frame(width: 32)
-                .frame(minHeight: 32)
+                .padding(horizontal ? .horizontal : .vertical, horizontal ? 6 : 5)
+                .frame(width: horizontal ? nil : size, height: horizontal ? size : nil)
+                .frame(minWidth: horizontal ? size : nil, minHeight: horizontal ? nil : size)
                 .background(Color.primary.opacity(hovering ? 0.14 : 0), in: .rect(cornerRadius: 9))
                 .contentShape(.rect(cornerRadius: 9))
         }
@@ -255,16 +357,18 @@ struct BarTile<Content: View>: View {
 struct BarAppButton: View {
     let bundleID: String
     let onOpen: @MainActor (String) -> Void
+    @Environment(\.barControlSize) private var size
 
     var body: some View {
         let info = BarApps.info(for: bundleID)
+        let side = CGFloat(26).fitting(control: size)
         SidebarIcon(help: info.map { String(localized: "Open \($0.name)") } ?? String(localized: "No app chosen (Edit Interface)"),
                     action: { if info != nil { onOpen(bundleID) } }) {
             if let info {
                 Image(nsImage: info.icon)
                     .resizable()
                     .interpolation(.high)
-                    .frame(width: 26, height: 26)
+                    .frame(width: side, height: side)
             } else {
                 Image(systemName: "app.dashed")
                     .font(.system(size: 20))
@@ -281,13 +385,14 @@ struct BarBatteryModule: View {
     let status: StatusModel
     let options: BarBatteryOptions
     let onOpen: () -> Void
+    @Environment(\.barAxis) private var axis
 
     var body: some View {
         if let battery = status.battery, let symbol = StatusGlyphs.batterySymbol(battery) {
             // Red like Apple's battery symbol as soon as the last warning level is reached.
             let low = battery.level <= 10 && !battery.charging && !battery.onAC
             BarTile(help: StatusGlyphs.batteryText(battery), action: onOpen) {
-                VStack(spacing: 3) {
+                axis.stack(spacing: 3, horizontal: 4) {
                     if options.showIcon {
                         Image(systemName: symbol)
                             .font(.system(size: 13, weight: .semibold))
@@ -311,6 +416,8 @@ struct BarCPUModule: View {
     let model: BarCPUModel
     let options: BarCPUOptions
     let onOpen: () -> Void
+    @Environment(\.barAxis) private var axis
+    @Environment(\.barControlSize) private var size
 
     var body: some View {
         let percent = model.usage.map { Int(($0 * 100).rounded()) }
@@ -329,10 +436,10 @@ struct BarCPUModule: View {
                         .monospacedDigit()
                         .minimumScaleFactor(0.7)
                 }
-                .frame(width: 24, height: 24)
+                .frame(width: CGFloat(24).fitting(control: size), height: CGFloat(24).fitting(control: size))
                 .animation(.easeOut(duration: 0.3), value: model.usage)
             case .percent:
-                VStack(spacing: 3) {
+                axis.stack(spacing: 3, horizontal: 4) {
                     Image(systemName: "cpu")
                         .font(.system(size: 13, weight: .semibold))
                     Text(percent.map { "\($0)%" } ?? "–")
@@ -355,6 +462,8 @@ struct BarWeatherModule: View {
     let options: BarWeatherOptions
     let onOpen: () -> Void
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.barAxis) private var axis
+    @Environment(\.shellStyle) private var shellStyle
 
     var body: some View {
         let model = feed.model
@@ -364,7 +473,7 @@ struct BarWeatherModule: View {
                         ?? String(localized: "Weather in \(location.name)")
                 } ?? String(localized: "Set a Location under Edit Interface"),
                 action: onOpen) {
-            VStack(spacing: 2) {
+            axis.stack(spacing: 2, horizontal: 4) {
                 if let current {
                     Image(systemName: WeatherCondition.symbol(code: current.code, isDay: current.isDay))
                         .symbolRenderingMode(.multicolor)
@@ -376,6 +485,11 @@ struct BarWeatherModule: View {
                         Text(WeatherText.temperature(current.temperature))
                             .font(.system(size: 11, weight: .semibold))
                             .monospacedDigit()
+                            // `--apollo-weather-temperature-color`; unset, the
+                            // tile's own `.primary` as before. No fallback to
+                            // the text colour: that would recolour the bar of
+                            // every theme that sets its text colour.
+                            .foregroundStyle(shellStyle.paint(.weatherTemperature, or: .primary))
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
@@ -416,6 +530,12 @@ extension BarModuleKind {
         case .cpu: .orange
         case .weather: .cyan
         case .mediaButton: .pink
+        case .nowPlaying: .pink
+        case .windowTitle: .indigo
+        case .keyboardLayout: .brown
+        case .volume: .pink
+        case .wifi, .bluetooth: .blue
+        case .systemStats: .orange
         }
     }
 }

@@ -20,7 +20,8 @@ final class ShellEditor {
     private let store: ShellSettingsStore
     let dashboard: DashboardEditor
     private(set) var utilities: UtilitiesEditSession?
-    /// The sidebar's working copy; `nil` while the mode is not running.
+    /// The working copy of the sidebar and the edge bars' zones; `nil`
+    /// while the mode is not running.
     private(set) var bar: BarEditSession?
 
     var isEditing: Bool { dashboard.isEditing }
@@ -150,7 +151,8 @@ final class ShellEditor {
         guard !isEditing, let pages = store.settings.dashboardPages else { return }
         let pageID = dashboardStartPageID() ?? pages.pages[0].id
         utilities = UtilitiesEditSession(layout: store.settings.utilities.layout)
-        bar = BarEditSession(layout: store.settings.bar.layout)
+        bar = BarEditSession(layout: store.settings.bar.layout, edgeBars: store.settings.edgeBars)
+        barTargetPlace = nil
         galleryVisible = false
         galleryTab = .dashboard
         showsAllInGallery = false
@@ -212,6 +214,11 @@ final class ShellEditor {
         }
         if let bar, bar.hasChanges {
             next.bar.layout = bar.layout
+            // Only the zones: the session never changes whether a bar is on,
+            // its style or thickness, so those stay what the settings hold.
+            for edge in BarEdge.allCases {
+                for zone in BarZone.allCases { next.edgeBars[edge][zone] = bar.edgeBars[edge][zone] }
+            }
             changed = true
         }
         if scaleChanged, let scale = dashboard.scale {
@@ -267,8 +274,9 @@ final class ShellEditor {
             dashboard.selectedWidgetID = nil
         } else if selectedToggleID != nil {
             selectedToggleID = nil
-        } else if selectedBarEntryID != nil {
-            selectedBarEntryID = nil
+        } else if selectedBarEntry != nil || barTargetPlace != nil {
+            selectedBarEntry = nil
+            barTargetPlace = nil
         } else if dashboard.renamingPageID != nil {
             dashboard.renamingPageID = nil
         } else if galleryVisible {
@@ -388,6 +396,70 @@ final class ShellEditor {
 
     func moveBarModule(_ id: String, onto target: String) {
         bar?.move(id: id, onto: target)
+    }
+
+    // MARK: - Any bar (sidebar or an edge bar's zone)
+
+    /// A new block in one bar's zone; selects it like `addBarModule`.
+    @discardableResult
+    func addBarModule(_ kind: BarModuleKind, to place: BarPlace, at index: Int? = nil) -> String? {
+        guard let id = bar?.add(kind, to: place, at: index) else { return nil }
+        utilities?.selectedToggleID = nil
+        dashboard.selectedWidgetID = nil
+        return id
+    }
+
+    /// Where the gallery's "Bar" tab puts a block: the zone of the selected
+    /// edge bar block, otherwise the sidebar - so a click there does what it
+    /// always did until an edge bar block is picked.
+    var galleryBarPlace: BarPlace {
+        if let place = bar?.selection?.place { return place }
+        return barTargetPlace ?? .sidebar
+    }
+
+    /// An empty zone clicked as the gallery's target. It has no block to
+    /// select, so it is remembered here; selecting anything lets it go.
+    var barTargetPlace: BarPlace? {
+        didSet {
+            if barTargetPlace != nil {
+                bar?.selection = nil
+                utilities?.selectedToggleID = nil
+                dashboard.selectedWidgetID = nil
+            }
+        }
+    }
+
+    func removeBarEntry(_ ref: BarEntryRef) {
+        bar?.remove(ref)
+    }
+
+    func updateBarEntry(_ ref: BarEntryRef, to module: BarModule) {
+        bar?.update(ref, to: module)
+    }
+
+    func setBarEntryJoins(_ ref: BarEntryRef, _ joins: Bool) {
+        bar?.setJoinsPrevious(ref, joins)
+    }
+
+    func moveBarEntry(_ ref: BarEntryRef, onto target: BarEntryRef) {
+        bar?.move(ref, onto: target)
+    }
+
+    func moveBarEntry(_ ref: BarEntryRef, toEndOf place: BarPlace) {
+        bar?.moveToEnd(ref, of: place)
+    }
+
+    /// The one selected block across all bars.
+    var selectedBarEntry: BarEntryRef? {
+        get { bar?.selection }
+        set {
+            bar?.selection = newValue
+            if newValue != nil {
+                barTargetPlace = nil
+                utilities?.selectedToggleID = nil
+                dashboard.selectedWidgetID = nil
+            }
+        }
     }
 
     var selectedBarEntryID: String? {

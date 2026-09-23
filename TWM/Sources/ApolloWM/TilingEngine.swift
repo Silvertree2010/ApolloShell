@@ -69,6 +69,11 @@ public final class TilingEngine {
         /// Whether that space is kept free on every display or only on the
         /// main one (the host's bar may stand on one screen only).
         public var reservedOnEveryDisplay = true
+        /// Reserved space per display, by the display's UUID. When set it
+        /// wins over `reserved` and `reservedOnEveryDisplay`: a display
+        /// missing from it keeps nothing free (the host's bars may stand on
+        /// any edge, and differently on each screen).
+        public var reservedByDisplay: [String: NSEdgeInsets]?
 
         public init() {}
     }
@@ -83,13 +88,21 @@ public final class TilingEngine {
     }
 
     /// Where tiles go on the main display. See usable(visible:bounds:).
-    public var area: CGRect { usable(visible: screenArea, bounds: screenBounds) }
+    public var area: CGRect { usable(visible: screenArea, bounds: screenBounds, insets: reserved(on: screens.first?.uuid)) }
+
+    /// What the host keeps free on the display `uuid` (nil: the main one).
+    private func reserved(on uuid: String?) -> NSEdgeInsets {
+        if let byDisplay = options.reservedByDisplay {
+            return uuid.flatMap { byDisplay[$0] } ?? NSEdgeInsets()
+        }
+        let isMain = uuid == nil || uuid == screens.first?.uuid
+        return isMain || options.reservedOnEveryDisplay ? options.reserved : NSEdgeInsets()
+    }
 
     /// The host's reserved edges count from the display's edge, not on top
     /// of what macOS already keeps free: a Dock on the left (62 pt) and
     /// ApolloShell's sidebar (44 pt) overlap, they do not add up.
-    private func usable(visible: CGRect, bounds: CGRect, reserved: Bool = true) -> CGRect {
-        let r = reserved ? options.reserved : NSEdgeInsets()
+    private func usable(visible: CGRect, bounds: CGRect, insets r: NSEdgeInsets) -> CGRect {
         let left = max(visible.minX, bounds.minX + r.left)
         let top = max(visible.minY, bounds.minY + r.top)
         let right = min(visible.maxX, bounds.maxX - r.right)
@@ -208,8 +221,7 @@ public final class TilingEngine {
     public func area(of desk: Desk) -> CGRect {
         guard let uuid = displayOfSpace[desk.space], let screen = screens.first(where: { $0.uuid == uuid }),
               screen != screens.first else { return area }
-        return usable(visible: screen.visible, bounds: screen.bounds,
-                      reserved: options.reservedOnEveryDisplay)
+        return usable(visible: screen.visible, bounds: screen.bounds, insets: reserved(on: uuid))
     }
 
     /// The whole usable area of `desk`'s display, inside the outer gap.

@@ -20,6 +20,11 @@ final class VolumeMonitor {
     private(set) var muteSettable = false
     /// Only on real changes after `start()`, not on the first reading.
     var onChange: (_ volume: Float, _ muted: Bool) -> Void = { _, _ in }
+    /// After it hung itself on another output device (the bar's volume
+    /// block shows the device's name).
+    var onDeviceChange: () -> Void = {}
+    /// Name of the current output device, read once per device.
+    private(set) var deviceName: String?
 
     private var device = AudioObjectID(kAudioObjectUnknown)
     private var deviceListener: AudioObjectPropertyListenerBlock?
@@ -59,18 +64,38 @@ final class VolumeMonitor {
         attachToDefaultDevice(notify: false)
     }
 
-    /// Let go of the listener on the old device, hang it on the current default.
-    private func attachToDefaultDevice(notify: Bool) {
+    /// Lets go of every listener. The OSD's monitor lives as long as the app
+    /// and never calls it; the bar's volume block starts and stops its own
+    /// with its visibility.
+    func stop() {
+        detachFromDevice()
+        if let listener = deviceListener {
+            var address = Self.defaultOutputAddress
+            AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, .main, listener)
+        }
+        deviceListener = nil
+        device = AudioObjectID(kAudioObjectUnknown)
+    }
+
+    private func detachFromDevice() {
         if let listener = valueListener, device != kAudioObjectUnknown {
             var volume = Self.volumeAddress
             var mute = Self.muteAddress
             AudioObjectRemovePropertyListenerBlock(device, &volume, .main, listener)
             AudioObjectRemovePropertyListenerBlock(device, &mute, .main, listener)
         }
+        valueListener = nil
+    }
+
+    /// Let go of the listener on the old device, hang it on the current default.
+    private func attachToDefaultDevice(notify: Bool) {
+        detachFromDevice()
         guard let next: AudioObjectID = Self.read(AudioObjectID(kAudioObjectSystemObject), Self.defaultOutputAddress, initial: AudioObjectID(kAudioObjectUnknown)),
               next != kAudioObjectUnknown
         else { return }
+        let changedDevice = next != device
         device = next
+        if changedDevice { deviceName = UtilitiesAudioHardware.name(of: next) }
 
         let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
             MainActor.assumeIsolated { self?.refresh(notify: true) }
@@ -81,6 +106,7 @@ final class VolumeMonitor {
         AudioObjectAddPropertyListenerBlock(device, &mute, .main, listener)
         valueListener = listener
         refresh(notify: notify)
+        if changedDevice { onDeviceChange() }
     }
 
     /// Only on an explicit wish: dragging the OSD slider. It lifts the mute as
