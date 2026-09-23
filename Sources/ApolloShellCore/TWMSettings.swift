@@ -26,10 +26,6 @@ public struct TWMSettings: Codable, Equatable, Sendable {
     public var borderRadius = 16.0
     /// Room above a tab group's window for its tab bar.
     public var tabBarHeight = 30.0
-    /// How much Super + R and one arrow change a window, as a share of the screen.
-    public var resizeStep = 0.03
-    /// How long a key mode (Super + R, Super + M) waits for the next key.
-    public var modeTimeout = 6.0
     /// How much of the screen the scratchpad window covers.
     public var scratchpadShare = 0.7
     /// Super + 1-9 shows Apple's desktops. Off: the TWM's own workspaces,
@@ -66,8 +62,6 @@ public struct TWMSettings: Codable, Equatable, Sendable {
     public static let borderWidthRange = 0.0...6.0
     public static let borderRadiusRange = 0.0...30.0
     public static let tabBarRange = 18.0...48.0
-    public static let resizeStepRange = 0.01...0.15
-    public static let modeTimeoutRange = 2.0...20.0
     public static let scratchpadRange = 0.4...0.95
     public static let columnWidthRange = 0.2...1.0
     public static let scrollSpeedRange = 0.5...4.0
@@ -95,8 +89,6 @@ public struct TWMSettings: Codable, Equatable, Sendable {
         c.lenient(.borderWidth, into: &borderWidth)
         c.lenient(.borderRadius, into: &borderRadius)
         c.lenient(.tabBarHeight, into: &tabBarHeight)
-        c.lenient(.resizeStep, into: &resizeStep)
-        c.lenient(.modeTimeout, into: &modeTimeout)
         c.lenient(.scratchpadShare, into: &scratchpadShare)
         c.lenient(.appleDesktops, into: &appleDesktops)
         c.lenient(.terminal, into: &terminal)
@@ -114,8 +106,6 @@ public struct TWMSettings: Codable, Equatable, Sendable {
         borderWidth = min(max(borderWidth, Self.borderWidthRange.lowerBound), Self.borderWidthRange.upperBound)
         borderRadius = min(max(borderRadius, Self.borderRadiusRange.lowerBound), Self.borderRadiusRange.upperBound)
         tabBarHeight = min(max(tabBarHeight, Self.tabBarRange.lowerBound), Self.tabBarRange.upperBound)
-        resizeStep = min(max(resizeStep, Self.resizeStepRange.lowerBound), Self.resizeStepRange.upperBound)
-        modeTimeout = min(max(modeTimeout, Self.modeTimeoutRange.lowerBound), Self.modeTimeoutRange.upperBound)
         scratchpadShare = min(max(scratchpadShare, Self.scratchpadRange.lowerBound), Self.scratchpadRange.upperBound)
         columnWidth = min(max(columnWidth, Self.columnWidthRange.lowerBound), Self.columnWidthRange.upperBound)
         scrollSpeed = min(max(scrollSpeed, Self.scrollSpeedRange.lowerBound), Self.scrollSpeedRange.upperBound)

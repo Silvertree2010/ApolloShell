@@ -9,24 +9,6 @@ public final class KeyBindings {
     /// What a key does; see ApolloWMCore's Command for the list.
     public typealias Action = Command
 
-    /// Like Hyprland's submaps: after Super + R or Super + M the next keys
-    /// mean something else, with or without Super.
-    public enum Mode: String, Sendable, Equatable {
-        case normal
-        case resize
-        case send
-    }
-
-    public private(set) var mode = Mode.normal {
-        didSet { if mode != oldValue { onModeChanged?(mode) } }
-    }
-    public var onModeChanged: ((Mode) -> Void)?
-    /// A mode ends by itself after this long without a key.
-    public var modeTimeout: TimeInterval = 6
-    private var modeTimer: DispatchWorkItem?
-    /// One press in resize mode, as a fraction of the area.
-    public var resizeStep: CGFloat = 0.03
-
     private let engine: TilingEngine
     private var tap: CFMachPort?
     /// Keys whose key-down we swallowed; their key-up is swallowed too.
@@ -115,9 +97,6 @@ public final class KeyBindings {
 
     /// Removes the event tap; start() can be called again later.
     public func stop() {
-        modeTimer?.cancel()
-        modeTimer = nil
-        mode = .normal
         if let tap {
             CGEvent.tapEnable(tap: tap, enable: false)
             CFMachPortInvalidate(tap)
@@ -154,12 +133,6 @@ public final class KeyBindings {
             return
         case .focusDisplay(let next):
             engine.focusDisplay(next: next)
-            return
-        case .resizeMode:
-            enter(.resize)
-            return
-        case .sendMode:
-            enter(.send)
             return
         default:
             break
@@ -199,10 +172,6 @@ public final class KeyBindings {
                 key?.flags = shortcut.flags
                 key?.post(tap: .cghidEventTap)
             }
-        case .resizeMode:
-            enter(.resize)
-        case .sendMode:
-            enter(.send)
         default:
             perform(command)
         }
@@ -249,7 +218,7 @@ public final class KeyBindings {
         case .sendToDisplay(let next): engine.sendToDisplay(id, next: next)
         case .toggleFloating: engine.toggleFloating(id)
         case .toggleFullscreen: engine.toggleFullscreen(id)
-        case .workspace, .equalize, .newTerminal, .closeWindow, .cycleFocus, .resizeMode, .sendMode,
+        case .workspace, .equalize, .newTerminal, .closeWindow, .cycleFocus,
              .scratchpad, .focusDisplay: break
         }
     }
@@ -298,10 +267,6 @@ public final class KeyBindings {
     fileprivate func handle(_ type: CGEventType, key: Int64, flags: CGEventFlags, isRepeat: Bool) -> Bool {
         switch type {
         case .keyDown:
-            if mode != .normal, let taken = handleInMode(key: key, flags: flags, isRepeat: isRepeat) {
-                if taken { swallowed.insert(key) }
-                return taken
-            }
             guard flags.intersection(superFlags) == superFlags else { return false }
             guard let action = bindings[key] else {
                 log("Super + key \(key) (\(KeyNames.name(UInt16(key)) ?? "?")): no command")
@@ -323,70 +288,8 @@ public final class KeyBindings {
         }
     }
 
-    // MARK: Modes
-
     private static let digits = [kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5,
                                  kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9].map(Int64.init)
-
-    public func enter(_ mode: Mode) {
-        self.mode = mode
-        log("mode: \(mode.rawValue)")
-        restartModeTimer()
-    }
-
-    public func leaveMode() {
-        modeTimer?.cancel()
-        modeTimer = nil
-        mode = .normal
-    }
-
-    private func restartModeTimer() {
-        modeTimer?.cancel()
-        let work = DispatchWorkItem { [weak self] in MainActor.assumeIsolated { self?.leaveMode() } }
-        modeTimer = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + modeTimeout, execute: work)
-    }
-
-    /// A key while a mode is on. Nil lets normal handling run (the mode has
-    /// ended); true swallows the key, false passes it on.
-    private func handleInMode(key: Int64, flags: CGEventFlags, isRepeat: Bool) -> Bool? {
-        let exits = [Int64(kVK_Escape), Int64(kVK_Return)]
-        if exits.contains(key) {
-            leaveMode()
-            return true
-        }
-        switch mode {
-        case .resize:
-            let step = resizeStep
-            let grow: CGSize? = switch Int(key) {
-            case kVK_LeftArrow, kVK_ANSI_H: CGSize(width: -step, height: 0)
-            case kVK_RightArrow, kVK_ANSI_L: CGSize(width: step, height: 0)
-            case kVK_UpArrow, kVK_ANSI_K: CGSize(width: 0, height: -step)
-            case kVK_DownArrow, kVK_ANSI_J: CGSize(width: 0, height: step)
-            default: nil
-            }
-            if let grow {
-                restartModeTimer()
-                perform(.grow(grow))
-                return true
-            }
-            if key == Int64(kVK_ANSI_R), flags.intersection(superFlags) == superFlags {
-                leaveMode()
-                return true
-            }
-        case .send:
-            if let index = Self.digits.firstIndex(of: key) {
-                leaveMode()
-                if !isRepeat { perform(.sendToDesktop(index + 1)) }
-                return true
-            }
-        case .normal:
-            return nil
-        }
-        // Any other key ends the mode and does what it normally does.
-        leaveMode()
-        return nil
-    }
 
     /// Apple's switch shortcut for each desktop, set by start().
     private var desktopShortcuts: [Int: DesktopShortcuts.Shortcut] = [:]

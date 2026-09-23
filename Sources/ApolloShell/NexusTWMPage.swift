@@ -159,17 +159,6 @@ struct NexusTWMPage: View {
                 NexusSwitchCard(symbol: "square.grid.3x1.below.line.grid.1x2", title: "Apple's Desktops",
                                 subtitle: "Super + 1–9 switches macOS desktops. Off: the TWM's own workspaces.",
                                 isOn: twm.appleDesktops)
-                NexusCard(symbol: "arrow.left.and.right", title: "Key Resizing",
-                          subtitle: "How far one arrow moves an edge in Super + R.") {
-                    EmptyView()
-                } footer: {
-                    VStack(spacing: 6) {
-                        slider(value: twm.resizeStep, range: TWMSettings.resizeStepRange,
-                               label: "\(Int(store.settings.twm.resizeStep * 100)) %")
-                        slider(value: twm.modeTimeout, range: TWMSettings.modeTimeoutRange,
-                               label: String(format: "Mode ends after %.0f s", store.settings.twm.modeTimeout))
-                    }
-                }
                 NexusSwitchCard(symbol: "power", title: "Quit With the Last Window",
                                 subtitle: "Super + Q on an app's last window quits the app, not just the window.",
                                 isOn: twm.quitWithLastWindow)
@@ -244,7 +233,6 @@ struct NexusTWMPage: View {
         ("Super + T", "new terminal"),
         ("Super + V", "turn the split"),
         ("Super + - / =", "narrower / wider"),
-        ("Super + R", "resize with arrows, Esc ends"),
         ("Super + E", "even out all splits"),
         ("Super + G", "join / leave a tab group (canvas: a column)"),
         ("drag a tab", "reorder it, or pull it down out of the group"),
@@ -255,7 +243,6 @@ struct NexusTWMPage: View {
         ("Super + F", "fill the area"),
         ("Super + Q", "close the window (quits the app with its last)"),
         ("Super + 1–9", "desktop 1–9"),
-        ("Super + M, 1–9", "send the window to desktop 1–9"),
         ("Super + S", "scratchpad: keep / show / hide"),
         ("Super + O / P", "focus the previous / next display"),
         ("Super + , / .", "send the window to the previous / next display"),

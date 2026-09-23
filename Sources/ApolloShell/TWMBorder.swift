@@ -5,9 +5,7 @@ import SwiftUI
 
 /// A colored frame around the focused window while the TWM runs, so it is
 /// clear which window the keys act on. Follows `TilingEngine.onActiveWindowChanged`
-/// (and glides along with the window). The color shows the key mode: the
-/// theme's accent normally, orange while resizing by keys, green while
-/// choosing a desktop to send the window to.
+/// (and glides along with the window), in the theme's accent.
 @MainActor
 final class TWMBorder {
     private let engine: TilingEngine
@@ -16,7 +14,6 @@ final class TWMBorder {
 
     var width: CGFloat = 2 { didSet { panel.model.width = width; show(active) } }
     var radius: CGFloat = 16 { didSet { panel.model.radius = radius } }
-    var mode: KeyBindings.Mode = .normal { didSet { panel.model.mode = mode } }
 
     init(engine: TilingEngine) {
         self.engine = engine
@@ -61,7 +58,6 @@ final class TWMBorder {
 private final class BorderModel {
     var width: CGFloat = 2
     var radius: CGFloat = 16
-    var mode: KeyBindings.Mode = .normal
 }
 
 /// Normal level, ordered right above the focused window; clicks go through.
@@ -82,15 +78,6 @@ private struct BorderView: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: model.radius + model.width, style: .continuous)
-            .strokeBorder(color, lineWidth: model.width)
-            .animation(.easeOut(duration: 0.15), value: model.mode)
-    }
-
-    private var color: Color {
-        switch model.mode {
-        case .normal: style.accent
-        case .resize: .orange
-        case .send: .green
-        }
+            .strokeBorder(style.accent, lineWidth: model.width)
     }
 }

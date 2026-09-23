@@ -16,7 +16,7 @@ guard !arguments.isEmpty, arguments.first != "-h", arguments.first != "--help" e
     usage: twmctl COMMAND
       focus left|right|up|down|next   swap left|right|up|down
       split   equalize   grow W H   group   tab next|prev   float   fullscreen
-      close   terminal   desktop N   send N   resize-mode   send-mode   scratchpad
+      close   terminal   desktop N   send N   scratchpad
       windows (JSON)   ping
     """)
     exit(arguments.isEmpty ? 1 : 0)

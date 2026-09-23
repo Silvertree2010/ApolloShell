@@ -84,7 +84,7 @@ public struct TWMConfig: Sendable, Equatable {
             "# Commands: focus left|right|up|down|next, swap left|right|up|down,",
             "# split, equalize, grow W H (fractions, e.g. grow 0.05 0), terminal,",
             "# group, tab next|prev, float, fullscreen, close, desktop N, send N,",
-            "# resize-mode, send-mode, scratchpad, display next|prev,",
+            "# scratchpad, display next|prev,",
             "# move-display next|prev, tab-move next|prev, group-app",
             "#",
             "# The defaults:",

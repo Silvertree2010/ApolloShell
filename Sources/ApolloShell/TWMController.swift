@@ -95,8 +95,6 @@ final class TWMController {
         drags?.scrollPans = twm.scrollPans
         drags?.scrollSpeed = twm.scrollSpeed
         drags?.invertScroll = twm.invertScroll
-        keys?.resizeStep = twm.resizeStep
-        keys?.modeTimeout = twm.modeTimeout
         keys?.setUseAppleDesktops(twm.appleDesktops)
         keys?.quitWithLastWindow = twm.quitWithLastWindow
         keys?.terminals = twm.terminal.isEmpty
@@ -164,7 +162,6 @@ final class TWMController {
         self.drags = drags
         let keys = KeyBindings(engine: engine)
         keys.log = engine.log
-        keys.onModeChanged = { [weak border] mode in border?.mode = mode }
         keys.useAppleDesktops = twm.appleDesktops
         _ = keys.start()
         self.keys = keys

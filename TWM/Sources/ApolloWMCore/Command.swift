@@ -29,10 +29,6 @@ public enum Command: Sendable, Equatable {
     case workspace(Int)
     /// Send the focused window to desktop n and show that desktop.
     case sendToDesktop(Int)
-    /// Resize mode: arrows or H J K L resize, Escape or Return ends it.
-    case resizeMode
-    /// Send mode: the next digit sends the window to that desktop.
-    case sendMode
     /// Show or hide the scratchpad window, or make the focused window it.
     case scratchpad
     /// Focus the next (true) or previous display.
@@ -91,8 +87,6 @@ public enum Command: Sendable, Equatable {
         case "send":
             guard let n = number() else { return nil }
             self = .sendToDesktop(n)
-        case "resize-mode" where none(): self = .resizeMode
-        case "send-mode" where none(): self = .sendMode
         case "scratchpad" where none(): self = .scratchpad
         case "display":
             guard rest.count == 1, ["next", "prev", "previous"].contains(rest[0]) else { return nil }
@@ -134,8 +128,6 @@ public enum Command: Sendable, Equatable {
         case .closeWindow: "close"
         case .workspace(let n): "desktop \(n)"
         case .sendToDesktop(let n): "send \(n)"
-        case .resizeMode: "resize-mode"
-        case .sendMode: "send-mode"
         case .scratchpad: "scratchpad"
         case .focusDisplay(let next): next ? "display next" : "display prev"
         case .sendToDisplay(let next): next ? "move-display next" : "move-display prev"
@@ -171,8 +163,6 @@ public enum Command: Sendable, Equatable {
             KeyNames.code("]")!: .cycleTab(true),
             KeyNames.code("[")!: .cycleTab(false),
             KeyNames.code("a")!: .groupApp,
-            KeyNames.code("r")!: .resizeMode,
-            KeyNames.code("m")!: .sendMode,
             KeyNames.code("s")!: .scratchpad,
             KeyNames.code("o")!: .focusDisplay(false),
             KeyNames.code("p")!: .focusDisplay(true),
