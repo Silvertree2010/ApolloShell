@@ -124,8 +124,8 @@ including the materials and the sizes you set in Nexus. The *Default* column
 is what that built-in look amounts to, so you can start from it. *Dark* is the built-in value in dark mode, where it differs.
 Numbers are clamped to the range in the type column.
 Some tokens *follow* another one when your theme leaves them out ("unset,
-follows ..."): the edge bar tokens follow their sidebar counterparts, so a
-theme written before the edge bars existed colours them like its sidebar.
+follows ..."): the menu bar tokens follow their sidebar counterparts, so a
+theme written before the menu bar existed colours it like its sidebar.
 
 <!-- The tables below are generated from the token catalogue in
      Sources/ApolloShellCore/ThemeTokens.swift and checked by a test. -->
@@ -199,26 +199,26 @@ theme written before the edge bars existed colours them like its sidebar.
 | `--apollo-bar-item-spacing` | length (0px–48px) | `8px` |  | Space between two blocks |
 | `--apollo-bar-blur` | length (0px–64px) | `24px` |  | Blur behind the sidebar |
 
-### Edge bars
+### Menu bar
 
 | Token | Type | Default | Dark | What it does |
 | --- | --- | --- | --- | --- |
-| `--apollo-edgebar-color` | color | `#f5f5f7` | `#1c1c1e` | Backing of the edge bars, the strip or each island; unset, follows `--apollo-bar-color` |
-| `--apollo-edgebar-gradient` | gradient | `none` |  | Gradient along an edge bar instead of the flat colour; unset, follows `--apollo-bar-gradient` |
-| `--apollo-edgebar-opacity` | ratio (0–1) | `1` |  | How opaque the edge bar backing is; unset, follows `--apollo-bar-opacity` |
-| `--apollo-edgebar-blur` | length (0px–64px) | `24px` |  | Blur behind the edge bars; unset, follows `--apollo-bar-blur` |
-| `--apollo-edgebar-text-color` | color | `#1c1c1e` | `#f5f5f7` | Text in the edge bars; unset, follows `--apollo-bar-text-color` |
-| `--apollo-edgebar-icon-color` | color | `#3c3c43` | `#e5e5ea` | Glyphs in the edge bars; unset, follows `--apollo-bar-icon-color` |
-| `--apollo-edgebar-radius` | length (0px–32px) | `0px` |  | Corner radius of the strip |
-| `--apollo-edgebar-island-radius` | length (0px–32px) | `12px` |  | Corner radius of an island, at most half the bar thickness |
-| `--apollo-edgebar-island-margin` | length (0px–6px) | `6px` |  | Gap between an island and the screen edge; the bar reserves 6 points for it |
-| `--apollo-edgebar-group-color` | color | `#00000014` | `#ffffff14` | Capsule behind each group on a strip with distinct groups |
-| `--apollo-edgebar-group-radius` | length (0px–32px) | `9px` |  | Corner radius of that capsule |
-| `--apollo-edgebar-padding` | length (0px–24px) | `6px` |  | Space inside a capsule or island before its first and after its last block |
-| `--apollo-edgebar-item-spacing` | length (0px–24px) | `4px` |  | Space between two blocks of one group |
-| `--apollo-edgebar-group-spacing` | length (0px–48px) | `6px` |  | Space between two groups; a plain strip uses the sidebar item spacing instead |
-| `--apollo-edgebar-font-family` | text | `""` |  | Font in the edge bars; empty means the system font; unset, follows `--apollo-font-family` |
-| `--apollo-edgebar-font-size` | length (8px–32px) | `13px` |  | Base text size in the edge bars; unset, follows `--apollo-font-size` |
+| `--apollo-menubar-color` | color | `#f5f5f7` | `#1c1c1e` | Backing of the menu bar, the strip or each island; unset, follows `--apollo-bar-color` |
+| `--apollo-menubar-gradient` | gradient | `none` |  | Gradient along the menu bar instead of the flat colour; unset, follows `--apollo-bar-gradient` |
+| `--apollo-menubar-opacity` | ratio (0–1) | `1` |  | How opaque the menu bar backing is; unset, follows `--apollo-bar-opacity` |
+| `--apollo-menubar-blur` | length (0px–64px) | `24px` |  | Blur behind the menu bar; unset, follows `--apollo-bar-blur` |
+| `--apollo-menubar-text-color` | color | `#1c1c1e` | `#f5f5f7` | Text in the menu bar; unset, follows `--apollo-bar-text-color` |
+| `--apollo-menubar-icon-color` | color | `#3c3c43` | `#e5e5ea` | Glyphs in the menu bar; unset, follows `--apollo-bar-icon-color` |
+| `--apollo-menubar-radius` | length (0px–32px) | `0px` |  | Corner radius of the strip |
+| `--apollo-menubar-island-radius` | length (0px–32px) | `12px` |  | Corner radius of an island, at most half the bar thickness |
+| `--apollo-menubar-island-margin` | length (0px–6px) | `6px` |  | Gap between an island and the screen edge; the bar reserves 6 points for it |
+| `--apollo-menubar-group-color` | color | `#00000014` | `#ffffff14` | Capsule behind each group on a strip with distinct groups |
+| `--apollo-menubar-group-radius` | length (0px–32px) | `9px` |  | Corner radius of that capsule |
+| `--apollo-menubar-padding` | length (0px–24px) | `6px` |  | Space inside a capsule or island before its first and after its last block |
+| `--apollo-menubar-item-spacing` | length (0px–24px) | `4px` |  | Space between two blocks of one group |
+| `--apollo-menubar-group-spacing` | length (0px–48px) | `6px` |  | Space between two groups; a plain strip uses the sidebar item spacing instead |
+| `--apollo-menubar-font-family` | text | `""` |  | Font in the menu bar; empty means the system font; unset, follows `--apollo-font-family` |
+| `--apollo-menubar-font-size` | length (8px–32px) | `13px` |  | Base text size in the menu bar; unset, follows `--apollo-font-size` |
 
 ### Bar modules
 
@@ -227,7 +227,7 @@ theme written before the edge bars existed colours them like its sidebar.
 | `--apollo-spaces-active-color` | color | `#007aff` | `#0a84ff` | Marker of the active desktop in Spaces; unset, follows `--apollo-accent-color` |
 | `--apollo-clock-color` | color | `#af52de` | `#bf5af2` | Digits of the bar clock; unset, follows `--apollo-bar-text-color` |
 | `--apollo-weather-temperature-color` | color | `#1c1c1e` | `#f5f5f7` | Temperature next to the weather symbol |
-| `--apollo-status-wifi-color` | color | `#8fd3e8` |  | Wi-Fi pill when an edge bar shows status as pills |
+| `--apollo-status-wifi-color` | color | `#8fd3e8` |  | Wi-Fi pill when the menu bar shows status as pills |
 | `--apollo-status-bluetooth-color` | color | `#a9b8ff` |  | Bluetooth pill |
 | `--apollo-status-volume-color` | color | `#d2b3f2` |  | Volume pill, once a bar shows one |
 | `--apollo-status-battery-color` | color | `#9edc9a` |  | Battery pill |
@@ -402,20 +402,20 @@ Two themes to start from are in [`examples/themes`](../examples/themes):
 - [`full/theme.css`](../examples/themes/full/theme.css) - every token with its
   default value, plus metadata and images. Copy it and change what you like.
 
-### Edge bar examples
+### Menu bar examples
 
-Two themes for the bars along the top, the bottom and the right edge. Save
-one as a `.css` file in your themes folder. Everything they leave out stays
-as it is - the sidebar, the panels and the Dock keep their built-in look, and
-every edge bar token they do not set follows its sidebar counterpart.
+Two themes for the menu bar at the top of the screen. Save one as a `.css`
+file in your themes folder. Everything they leave out stays as it is - the
+sidebar, the panels and the Dock keep their built-in look, and every menu bar
+token they do not set follows its sidebar counterpart.
 
-The shape of a bar is a setting, not part of the theme: strip or islands,
+The shape of the bar is a setting, not part of the theme: strip or islands,
 `statusStyle` `icons` or `pills` (Wi-Fi, Bluetooth and battery as coloured
 pills with a short text), and the faces of Spaces (`dots`, `numbers`,
 `pills`, `bars`) and of the clock (`line`, `stacked`, `badge`; left out, the
-clock is stacked across the sidebar and the right bar and one line along the
-top and the bottom bar) live in `settings.json`. The pictures in the render
-samples show both themes with status pills and the pills face.
+clock is stacked in the sidebar and one line in the menu bar) live in
+`settings.json`. The pictures in the render samples show both themes with
+status pills and the pills face.
 
 ### Teal Strip
 
@@ -425,11 +425,11 @@ A deep teal strip with lavender accents and pastel status pills.
 :root {
   --apollo-theme-name: "Teal Strip";
   --apollo-theme-description: "A deep teal strip with lavender accents";
-  --apollo-edgebar-color: #123f44;
-  --apollo-edgebar-text-color: #e3f2ef;
-  --apollo-edgebar-icon-color: #a9ded5;
-  --apollo-edgebar-group-color: rgba(255, 255, 255, 0.1);
-  --apollo-edgebar-group-radius: 12px;
+  --apollo-menubar-color: #123f44;
+  --apollo-menubar-text-color: #e3f2ef;
+  --apollo-menubar-icon-color: #a9ded5;
+  --apollo-menubar-group-color: rgba(255, 255, 255, 0.1);
+  --apollo-menubar-group-radius: 12px;
   --apollo-spaces-active-color: #c4b5fd;
   --apollo-clock-color: #c4b5fd;
   --apollo-weather-temperature-color: #e3f2ef;
@@ -448,12 +448,12 @@ Warm dark islands with gold and ember accents.
 :root {
   --apollo-theme-name: "Ember Islands";
   --apollo-theme-description: "Warm dark islands with gold accents";
-  --apollo-edgebar-color: #1f1813;
-  --apollo-edgebar-text-color: #f4e7d3;
-  --apollo-edgebar-icon-color: #e8c07a;
-  --apollo-edgebar-island-radius: 10px;
-  --apollo-edgebar-padding: 8px;
-  --apollo-edgebar-group-spacing: 8px;
+  --apollo-menubar-color: #1f1813;
+  --apollo-menubar-text-color: #f4e7d3;
+  --apollo-menubar-icon-color: #e8c07a;
+  --apollo-menubar-island-radius: 10px;
+  --apollo-menubar-padding: 8px;
+  --apollo-menubar-group-spacing: 8px;
   --apollo-spaces-active-color: #f2b544;
   --apollo-clock-color: #f2c66d;
   --apollo-weather-temperature-color: #f4e7d3;

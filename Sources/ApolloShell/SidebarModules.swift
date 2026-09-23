@@ -139,7 +139,7 @@ struct SidebarSpaces: View {
         }
         .padding(horizontal ? .horizontal : .vertical, Self.gap * 2)
         .frame(width: horizontal ? nil : size, height: horizontal ? size : nil)
-        .background(inCapsule ? Color.clear : shellStyle.edgeBarGroup, in: .capsule)
+        .background(inCapsule ? Color.clear : shellStyle.menuBarGroup, in: .capsule)
         .animation(SidebarMotion.spatial, value: snapshot)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.help(snapshot))

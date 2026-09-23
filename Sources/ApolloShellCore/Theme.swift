@@ -261,7 +261,7 @@ public enum ThemeGuards {
         // hints should always be the same for the same file.
         for token in catalog.tokens {
             // If the theme does not name the background, the text sits on
-            // what the background follows (the edge bar on the sidebar's
+            // what the background follows (the menu bar on the sidebar's
             // colour), and without that on the shell's - which the default
             // in the directory approximates.
             guard let rule = token.contrast,
