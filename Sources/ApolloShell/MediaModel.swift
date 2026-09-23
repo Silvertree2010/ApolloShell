@@ -28,6 +28,14 @@ struct MediaSource: Equatable {
 final class MediaModel {
     private(set) var nowPlaying: MediaNowPlaying?
     private(set) var artwork: NSImage?
+
+    /// Music or video - the cards shape themselves after it (a square cover
+    /// or a wide picture). Nothing playing counts as music.
+    var kind: MediaKind {
+        guard let playing = nowPlaying else { return .music }
+        let aspect = artwork.flatMap { $0.size.height > 0 ? Double($0.size.width / $0.size.height) : nil }
+        return MediaKind.detect(playing, artworkAspect: aspect)
+    }
     /// Counts cover changes - the view cross-fades with it.
     private(set) var artworkID = 0
     private(set) var source: MediaSource?

@@ -69,15 +69,28 @@ struct MediaDashCard: View {
     var body: some View {
         Card(radius: 56) {
             VStack(spacing: 0) {
-                MediaClock(model: model) { now in
-                    ZStack {
-                        MediaArc(value: model.nowPlaying?.progress(at: now) ?? 0, lineWidth: Self.arcLine)
-                        MediaArtwork(image: model.artwork, id: model.artworkID, shape: Circle(), symbolSize: 40)
-                            .padding(Self.arcLine + Self.arcGap)
+                if model.kind == .video {
+                    // A wide picture in a circle would cut the video in
+                    // half: on top as it is, the progress as a bar below.
+                    MediaVideoPicture(model: model, width: 168, radius: 18)
+                        .padding(.top, 34)
+                    MediaClock(model: model) { now in
+                        MediaProgressBar(value: model.nowPlaying?.progress(at: now) ?? 0,
+                                         known: model.nowPlaying?.duration != nil)
                     }
+                    .frame(width: 168)
+                    .padding(.top, 12)
+                } else {
+                    MediaClock(model: model) { now in
+                        ZStack {
+                            MediaArc(value: model.nowPlaying?.progress(at: now) ?? 0, lineWidth: Self.arcLine)
+                            MediaArtwork(image: model.artwork, id: model.artworkID, shape: Circle(), symbolSize: 40)
+                                .padding(Self.arcLine + Self.arcGap)
+                        }
+                    }
+                    .frame(width: Self.arcSize, height: Self.arcSize)
+                    .padding(.top, 22)
                 }
-                .frame(width: Self.arcSize, height: Self.arcSize)
-                .padding(.top, 22)
 
                 texts
                     .frame(width: 168)
@@ -111,6 +124,7 @@ struct MediaDashCard: View {
                 Text(playing.title)
                     .font(style.font(size: 14, weight: .semibold))
                     .foregroundStyle(MediaColor.accentText(colorScheme))
+                    .lineLimit(model.kind == .video ? 3 : 1)
                 if options.showAlbum, let album = playing.album {
                     Text(album).font(style.font(size: 12)).foregroundStyle(.tertiary)
                 }
@@ -141,6 +155,8 @@ struct MediaStripCard: View {
     var options = DashboardMediaOptions()
     /// Height of the card; the cover fills it up to the edge.
     let height: CGFloat
+    /// Width of the card: a video's wide picture takes at most 45 % of it.
+    var width: CGFloat = .infinity
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shellStyle) private var style
 
@@ -149,11 +165,14 @@ struct MediaStripCard: View {
     var body: some View {
         // At most as large as the cover in the Media tab.
         let cover = min(max(height - 2 * Self.inset, 40), 244)
+        let video = model.kind == .video
         Card(radius: 28) {
             HStack(spacing: 16) {
                 MediaArtwork(image: model.artwork, id: model.artworkID,
-                             shape: RoundedRectangle(cornerRadius: style.cardRadius(18), style: .continuous), symbolSize: cover * 0.32)
-                    .frame(width: cover, height: cover)
+                             shape: RoundedRectangle(cornerRadius: style.cardRadius(18), style: .continuous), symbolSize: cover * 0.32,
+                             placeholder: video ? "play.rectangle" : "music.note")
+                    .frame(width: video ? min(cover * 16 / 9, width * 0.45).rounded() : cover,
+                           height: video ? (min(cover * 16 / 9, width * 0.45) * 9 / 16).rounded() : cover)
                 VStack(alignment: .leading, spacing: 3) {
                     texts
                     MediaClock(model: model) { now in
@@ -182,6 +201,7 @@ struct MediaStripCard: View {
             Text(playing.title)
                 .font(style.font(size: 14, weight: .semibold))
                 .foregroundStyle(MediaColor.accentText(colorScheme))
+                .lineLimit(model.kind == .video && height >= 200 ? 2 : 1)
             // Artist and album in one line: there is no room for two.
             Text([playing.artist ?? String(localized: "Unknown Artist"), options.showAlbum ? playing.album : nil]
                     .compactMap { $0 }.joined(separator: " · "))
@@ -213,14 +233,24 @@ struct MediaCompactCard: View {
     var body: some View {
         Card(radius: 40) {
             VStack(spacing: 0) {
-                MediaClock(model: model) { now in
-                    ZStack {
-                        MediaArc(value: model.nowPlaying?.progress(at: now) ?? 0, lineWidth: Self.arcLine)
-                        MediaArtwork(image: model.artwork, id: model.artworkID, shape: Circle(), symbolSize: 28)
-                            .padding(Self.arcLine + Self.arcGap)
+                if model.kind == .video {
+                    MediaVideoPicture(model: model, width: 168)
+                    MediaClock(model: model) { now in
+                        MediaProgressBar(value: model.nowPlaying?.progress(at: now) ?? 0,
+                                         known: model.nowPlaying?.duration != nil)
                     }
+                    .frame(width: 168)
+                    .padding(.top, 10)
+                } else {
+                    MediaClock(model: model) { now in
+                        ZStack {
+                            MediaArc(value: model.nowPlaying?.progress(at: now) ?? 0, lineWidth: Self.arcLine)
+                            MediaArtwork(image: model.artwork, id: model.artworkID, shape: Circle(), symbolSize: 28)
+                                .padding(Self.arcLine + Self.arcGap)
+                        }
+                    }
+                    .frame(width: Self.arcSize, height: Self.arcSize)
                 }
-                .frame(width: Self.arcSize, height: Self.arcSize)
 
                 VStack(spacing: 2) {
                     if let playing = model.nowPlaying {
@@ -276,20 +306,25 @@ struct MediaTab: View {
     private static let spacing: CGFloat = 24        // 28 x 0.839
 
     var body: some View {
+        let video = model.kind == .video
         let cover = min(size.height - 48, size.width * 0.34, 244)
-        let showsSource = size.width >= 700
+        // A video's picture is wide: up to 45 % of the card, and the source
+        // column gives way to it (the source stays as a chip below the text).
+        let pictureWidth = min(size.width * 0.45, (size.height - 48) * 16 / 9, 400)
+        let showsSource = size.width >= 700 && !video
         Card(radius: 28) {
             HStack(spacing: Self.spacing) {
                 MediaArtwork(image: model.artwork, id: model.artworkID,
                              shape: RoundedRectangle(cornerRadius: style.cardRadius(22), style: .continuous),
-                             symbolSize: cover * 0.26)
-                    .frame(width: cover, height: cover)
+                             symbolSize: cover * 0.26, placeholder: video ? "play.rectangle" : "music.note")
+                    .frame(width: video ? pictureWidth : cover, height: video ? (pictureWidth * 9 / 16).rounded() : cover)
                     .shadow(color: .black.opacity(model.artwork == nil ? 0 : 0.25), radius: 14, y: 6)
 
                 ZStack {
                     if let playing = model.nowPlaying {
                         HStack(spacing: Self.spacing) {
-                            MediaDetails(model: model, playing: playing, compact: size.height < 300)
+                            MediaDetails(model: model, playing: playing, compact: size.height < 300 || video,
+                                         video: video)
                             if showsSource {
                                 MediaSourcePanel(source: model.source, isPlaying: playing.isPlaying)
                                     .frame(width: Self.sourceWidth, height: cover)
@@ -380,6 +415,9 @@ private struct MediaDetails: View {
     let playing: MediaNowPlaying
     /// 250 tall: smaller type and gaps.
     var compact = false
+    /// A video: the title may take more lines (they are long), no album
+    /// (browsers send an empty one), and the source as a chip below.
+    var video = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shellStyle) private var style
 
@@ -387,11 +425,17 @@ private struct MediaDetails: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(playing.title)
                 .font(style.font(size: compact ? 18 : 22, weight: .semibold))
-                .lineLimit(compact ? 1 : 2)
-            Text(playing.artist ?? String(localized: "Unknown Artist"))
-                .font(style.font(size: compact ? 14 : 16, weight: .medium))
-                .foregroundStyle(.secondary)
-            if let album = playing.album {
+                .lineLimit(video ? 3 : compact ? 1 : 2)
+            if let artist = playing.artist ?? (video ? nil : String(localized: "Unknown Artist")) {
+                Text(artist)
+                    .font(style.font(size: compact ? 14 : 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            if video, let source = model.source {
+                MediaSourceChip(source: source, isPlaying: playing.isPlaying)
+                    .padding(.top, 4)
+            }
+            if !video, let album = playing.album {
                 Text(album)
                     .font(style.font(size: compact ? 14 : 16, weight: .medium))
                     .foregroundStyle(MediaColor.accentText(colorScheme))
@@ -507,6 +551,21 @@ private struct MediaNothingPlaying: View {
 
 // MARK: - Building blocks
 
+/// A video's picture: 16:9 with rounded corners, the play symbol as a stand-in.
+private struct MediaVideoPicture: View {
+    let model: MediaModel
+    let width: CGFloat
+    var radius: CGFloat = 14
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        MediaArtwork(image: model.artwork, id: model.artworkID,
+                     shape: RoundedRectangle(cornerRadius: style.cardRadius(radius), style: .continuous),
+                     symbolSize: width * 0.18, placeholder: "play.rectangle")
+            .frame(width: width, height: (width * 9 / 16).rounded())
+    }
+}
+
 /// Ticks every 0.5 s (Caelestia: mediaUpdateInterval 500), but only while
 /// something is playing - when paused the time stands still anyway, and
 /// the display has nothing to do. Runs on the screen sync, so it also only
@@ -532,12 +591,13 @@ private struct MediaArtwork<S: Shape>: View {
     let id: Int
     let shape: S
     let symbolSize: CGFloat
+    var placeholder = "music.note"
 
     var body: some View {
         shape
             .fill(Color.primary.opacity(0.08))
             .overlay {
-                Image(systemName: "music.note")
+                Image(systemName: placeholder)
                     .font(.system(size: symbolSize, weight: .light))
                     .foregroundStyle(.tertiary)
                     .opacity(image == nil ? 1 : 0)

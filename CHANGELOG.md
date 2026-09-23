@@ -75,6 +75,9 @@ tabs you had into pages, with the cards at the same spots. The old
 
 - **Playback is a card like every other widget.** Its background used to be
   the blurred cover stretched across the whole page.
+- **Playback tells music from video.** A video (YouTube in a browser, IINA,
+  VLC, TV ...) gets its wide picture instead of a square cover, room for a
+  long title, and the channel instead of an album.
 - **The upload line follows the theme**: the theme's secondary accent, or
   the opposite of the accent colour. It was always orange, and with an
   orange accent both network lines looked the same.

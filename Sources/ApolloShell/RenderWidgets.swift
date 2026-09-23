@@ -20,12 +20,26 @@ enum RenderWidgets {
                                         isPlaying: true, duration: 240, elapsed: 80, timestamp: fixtures.now,
                                         playbackRate: 1),
             artwork: sampleCover(), source: MediaSource(name: "Music", icon: nil), now: fixtures.now)
-        let context = WidgetContext(dashboard: fixtures.dashboard, media: media, weather: { _ in fixtures.weather })
+        // A YouTube video in a browser, as measured 09/23: no media type,
+        // a wide 150 x 83 preview, an empty album.
+        let video = MediaModel.preview(
+            nowPlaying: MediaNowPlaying(title: "Transformers (2007) explained by an idiot in fifteen minutes",
+                                        artist: "Sample Channel", bundleIdentifier: "com.vivaldi.Vivaldi",
+                                        isPlaying: true, duration: 945, elapsed: 210, timestamp: fixtures.now,
+                                        playbackRate: 1),
+            artwork: sampleCover(size: NSSize(width: 150, height: 83)),
+            source: MediaSource(name: "Vivaldi", icon: nil), now: fixtures.now)
         for kind in kinds.isEmpty ? WidgetKind.allCases : kinds {
+            let rows: [(WidgetDisplay, MediaModel, String)] = kind.displays.flatMap { display in
+                kind.usesMedia ? [(display, media, "music"), (display, video, "video")] : [(display, media, "")]
+            }
             let sheet = VStack(alignment: .leading, spacing: 18) {
-                ForEach(kind.displays, id: \.self) { display in
+                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                    let (display, rowMedia, label) = row
+                    let context = WidgetContext(dashboard: fixtures.dashboard, media: rowMedia,
+                                                weather: { _ in fixtures.weather })
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("\(kind.rawValue) · \(display.rawValue)").font(.system(size: 12, weight: .semibold))
+                        Text("\(kind.rawValue) · \(display.rawValue) \(label)").font(.system(size: 12, weight: .semibold))
                         HStack(alignment: .top, spacing: 14) {
                             ForEach(Array(frames(kind).enumerated()), id: \.offset) { _, size in
                                 VStack(alignment: .leading, spacing: 3) {
@@ -94,15 +108,15 @@ enum RenderWidgets {
 
     /// A made-up cover: a diagonal sunset gradient with a pale disc, so the
     /// player's background has real colour to work with.
-    static func sampleCover() -> NSImage {
-        let size = NSSize(width: 600, height: 600)
-        return NSImage(size: size, flipped: false) { rect in
+    static func sampleCover(size: NSSize = NSSize(width: 600, height: 600)) -> NSImage {
+        NSImage(size: size, flipped: false) { rect in
             NSGradient(colors: [NSColor(red: 0.95, green: 0.45, blue: 0.25, alpha: 1),
                                 NSColor(red: 0.55, green: 0.18, blue: 0.55, alpha: 1),
                                 NSColor(red: 0.12, green: 0.10, blue: 0.35, alpha: 1)])?
                 .draw(in: rect, angle: -45)
             NSColor(white: 1, alpha: 0.85).setFill()
-            NSBezierPath(ovalIn: NSRect(x: 330, y: 330, width: 150, height: 150)).fill()
+            let disc = min(rect.width, rect.height) * 0.25
+            NSBezierPath(ovalIn: NSRect(x: rect.width * 0.55, y: rect.height * 0.55, width: disc, height: disc)).fill()
             return true
         }
     }

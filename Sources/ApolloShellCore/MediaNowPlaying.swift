@@ -70,6 +70,9 @@ enum MediaKey {
     static let playing = "playing"
     static let playbackRate = "playbackRate"
     static let artworkData = "artworkData"
+    /// MediaRemote's media type ("MRMediaRemoteMediaTypeMusic", "...Video").
+    /// Browsers leave it out (measured 09/23: YouTube in Vivaldi).
+    static let mediaType = "mediaType"
     // With --micros (how the app starts the adapter): whole microseconds.
     static let durationMicros = "durationMicros"
     static let elapsedMicros = "elapsedTimeMicros"
@@ -217,6 +220,9 @@ public struct MediaNowPlaying: Sendable, Equatable {
     public var elapsed: TimeInterval?
     public var timestamp: Date?
     public var playbackRate: Double?
+    /// MediaRemote's media type as reported, `nil` when the player leaves
+    /// it out - see `MediaKind.detect`.
+    public var mediaType: String?
 
     public init(
         title: String,
@@ -228,7 +234,8 @@ public struct MediaNowPlaying: Sendable, Equatable {
         duration: TimeInterval? = nil,
         elapsed: TimeInterval? = nil,
         timestamp: Date? = nil,
-        playbackRate: Double? = nil
+        playbackRate: Double? = nil,
+        mediaType: String? = nil
     ) {
         self.title = title
         self.artist = artist
@@ -240,6 +247,7 @@ public struct MediaNowPlaying: Sendable, Equatable {
         self.elapsed = elapsed
         self.timestamp = timestamp
         self.playbackRate = playbackRate
+        self.mediaType = mediaType
     }
 
     /// `nil` without a title: the adapter doesn't emit anything then
@@ -255,6 +263,7 @@ public struct MediaNowPlaying: Sendable, Equatable {
         parentBundleIdentifier = Self.text(fields[MediaKey.parentBundleIdentifier])
         isPlaying = fields[MediaKey.playing]?.bool ?? false
         playbackRate = fields[MediaKey.playbackRate]?.number
+        mediaType = Self.text(fields[MediaKey.mediaType])
 
         let duration = fields[MediaKey.durationMicros]?.number.map { $0 / 1_000_000 } ?? fields[MediaKey.duration]?.number
         self.duration = duration.flatMap { $0 > 0 ? $0 : nil }
@@ -299,6 +308,44 @@ public struct MediaNowPlaying: Sendable, Equatable {
     public func progress(at now: Date) -> Double {
         guard let duration, let elapsed = elapsed(at: now) else { return 0 }
         return min(max(elapsed / duration, 0), 1)
+    }
+}
+
+// MARK: - Music or video
+
+/// What is playing - the player shapes itself after it: a square cover for
+/// music, a wide picture for video.
+public enum MediaKind: Sendable, Equatable {
+    case music, video
+
+    /// Apps that play video, whatever their cover looks like.
+    static let videoApps: Set<String> = [
+        "com.apple.TV", "com.apple.QuickTimePlayerX", "com.colliderli.iina", "org.videolan.vlc",
+        "io.mpv", "com.firecore.infuse", "com.netflix.Netflix", "com.disney.disneyplus",
+        "com.amazon.aiv.AIVApp", "tv.plex.desktop", "com.plexapp.plex", "org.jellyfin.jellyfin-media-player",
+    ]
+
+    /// Apps that play music (and podcasts), whatever their cover looks like.
+    static let musicApps: Set<String> = [
+        "com.apple.Music", "com.spotify.client", "com.apple.podcasts", "com.tidal.desktop",
+        "com.deezer.deezer-desktop", "com.amazon.music", "com.soundcloud.desktop",
+    ]
+
+    /// In this order: the media type if the player names it, then the app,
+    /// then the cover's shape - browsers name no type, but a video's
+    /// preview is wide (YouTube: 150 x 83, measured 09/23) and an album
+    /// cover square. Without anything to go by: music, as before.
+    public static func detect(_ playing: MediaNowPlaying, artworkAspect: Double?) -> MediaKind {
+        if let type = playing.mediaType?.lowercased() {
+            if type.contains("video") { return .video }
+            if type.contains("music") || type.contains("audio") { return .music }
+        }
+        for app in [playing.bundleIdentifier, playing.parentBundleIdentifier].compactMap({ $0 }) {
+            if videoApps.contains(app) { return .video }
+            if musicApps.contains(app) { return .music }
+        }
+        if let aspect = artworkAspect, aspect.isFinite, aspect >= 1.3 { return .video }
+        return .music
     }
 }
 

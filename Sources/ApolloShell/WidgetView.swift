@@ -53,7 +53,7 @@ struct WidgetView: View {
                 if display == .cover {
                     MediaCoverCard(model: context.media, size: size)
                 } else if size.width > size.height * 1.3 {
-                    MediaStripCard(model: context.media, options: options, height: size.height)
+                    MediaStripCard(model: context.media, options: options, height: size.height, width: size.width)
                 } else if size.height >= 330 {
                     MediaDashCard(model: context.media, options: options)
                 } else {
