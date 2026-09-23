@@ -26,6 +26,15 @@ struct EdgeBarsTests {
         #expect(settings.edgeBars == EdgeBars())
     }
 
+    @Test("Switching a bar on by hand keeps the template's zones; zones in the file win")
+    func partialFile() throws {
+        let bars = try #require(decode(EdgeBars.self, #"{"top": {"enabled": true}, "bottom": {"enabled": true, "end": []}}"#))
+        #expect(bars.active == [.top, .bottom])
+        #expect(bars.top.start == EdgeBars().top.start && bars.top.end == EdgeBars().top.end)
+        #expect(bars.bottom.start == EdgeBars().bottom.start)
+        #expect(bars.bottom.end.entries.isEmpty)
+    }
+
     @Test("Round trip keeps every field")
     func roundTrip() throws {
         var bar = EdgeBarPreset.minimal.bar(edge: .bottom)

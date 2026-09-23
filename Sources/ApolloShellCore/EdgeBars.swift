@@ -233,12 +233,28 @@ public struct EdgeBars: Codable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey { case top, bottom, right }
 
+    /// A zone missing in the file keeps the template's zone: `{"top":
+    /// {"enabled": true}}` shows the Serpantinum bar, not an empty one.
     public init(from decoder: any Decoder) throws {
         self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        c.lenient(.top, into: &top)
-        c.lenient(.bottom, into: &bottom)
-        c.lenient(.right, into: &right)
+        for (key, edge) in [(CodingKeys.top, BarEdge.top), (.bottom, .bottom), (.right, .right)] {
+            guard var bar: EdgeBar = c.lenient(key) else { continue }
+            if let zones = try? c.nestedContainer(keyedBy: ZoneKey.self, forKey: key) {
+                for zone in BarZone.allCases where !zones.contains(ZoneKey(zone)) {
+                    bar[zone] = self[edge][zone]
+                }
+            }
+            self[edge] = bar
+        }
+    }
+
+    private struct ZoneKey: CodingKey {
+        var stringValue: String
+        var intValue: Int? { nil }
+        init(_ zone: BarZone) { stringValue = zone.rawValue }
+        init?(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { nil }
     }
 
     public subscript(edge: BarEdge) -> EdgeBar {
