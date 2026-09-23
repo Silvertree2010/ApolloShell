@@ -717,8 +717,26 @@ public struct BarLayout: Codable, Equatable, Sendable {
 
     /// Different options for a module. The kind stays the same: a clock
     /// cannot turn into a second Dock this way.
+    /// Keeps `joinsPrevious`: new options must not tear a block out of its
+    /// group in an edge bar.
     public mutating func update(id: String, to module: BarModule) {
-        blocks.update(id: id, to: BarEntry(id: id, module: module))
+        let joins = blocks[id: id]?.joinsPrevious ?? false
+        blocks.update(id: id, to: BarEntry(id: id, module: module).joined(joins))
+    }
+
+    /// Joins a block to the one before it, or splits it off (edge bars draw
+    /// a run of joined blocks as one capsule).
+    public mutating func setJoinsPrevious(id: String, _ joins: Bool) {
+        guard let entry = blocks[id: id], entry.joinsPrevious != joins else { return }
+        blocks.update(id: id, to: entry.joined(joins))
+    }
+
+    /// An existing block from another zone or bar, options and all. Keeps
+    /// its id unless it collides (see `BlockList.insert`); `nil` when the
+    /// kind may exist only once and is here already.
+    @discardableResult
+    public mutating func insert(_ entry: BarEntry, at index: Int) -> String? {
+        blocks.insert(entry, at: index)
     }
 
     /// Like SwiftUI's `onMove`: `destination` counts in the list BEFORE

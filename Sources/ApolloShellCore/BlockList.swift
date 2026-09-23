@@ -78,6 +78,23 @@ public struct BlockList<B: Block>: Codable, Equatable, Sendable {
         entries.removeAll { $0.id == id }
     }
 
+    /// An existing block from another list (moving between bars), with its
+    /// options. Unlike `add` it keeps its id when that is still free - the
+    /// selection and SwiftUI's identity follow it - and only a collision
+    /// gets a fresh one. `nil` when the kind may appear only once and is
+    /// here already.
+    @discardableResult
+    public mutating func insert(_ entry: B, at index: Int) -> String? {
+        guard canAdd(entry.kind) else { return nil }
+        var entry = entry
+        let taken = Set(entries.map(\.id))
+        if entry.id.isEmpty || taken.contains(entry.id) {
+            entry.id = Self.uniqueID(for: entry.kind, taken: taken)
+        }
+        entries.insert(entry, at: min(max(index, 0), entries.count))
+        return entry.id
+    }
+
     /// A different block in the same place. The kind stays: a clock does not
     /// become a second Dock that way.
     public mutating func update(id: String, to entry: B) {
