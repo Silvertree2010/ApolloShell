@@ -665,10 +665,9 @@ public enum UtilitiesMetrics {
     public static let toggleRowSpacing = 8.0
     /// Notice when nothing is shown: one line like "Keep Awake".
     public static let emptyCardHeight = 68.0
-    /// Heading 17, 10, slider row 32, 10, one-line note (settable or not),
-    /// plus inner margin - the same shape as the sound card, minus the
-    /// device buttons.
-    public static let brightnessHeight = 111.0
+    /// Heading 17, 10, slider row 32, plus inner margin - the sound card
+    /// without its device buttons. "Not available" stands in the heading.
+    public static let brightnessHeight = 87.0
     /// 48pt cover, plus inner margin: one row, no second line needed.
     public static let nowPlayingHeight = 76.0
 

@@ -448,7 +448,7 @@ struct UtilitiesNewControlsTests {
 
     @Test("brightness and now-playing card heights out of the measurements")
     func newCardHeights() {
-        #expect(UtilitiesMetrics.cardHeight(.brightness, toggleRows: 2) == 111)
+        #expect(UtilitiesMetrics.cardHeight(.brightness, toggleRows: 2) == 87)
         #expect(UtilitiesMetrics.cardHeight(.nowPlaying, toggleRows: 2) == 76)
     }
 
@@ -459,7 +459,7 @@ struct UtilitiesNewControlsTests {
         let before = layout.panelHeight
         layout.setCard(.brightness, enabled: true)
         layout.setCard(.nowPlaying, enabled: true)
-        #expect(layout.panelHeight == before + 111 + 76 + 2 * UtilitiesMetrics.spacing)
+        #expect(layout.panelHeight == before + 87 + 76 + 2 * UtilitiesMetrics.spacing)
     }
 
     // MARK: Mute

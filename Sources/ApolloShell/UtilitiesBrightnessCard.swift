@@ -22,7 +22,14 @@ struct UtilitiesBrightnessCard: View {
                     Text(UtilitiesBrightnessText.title)
                         .font(style.font(size: 14, weight: .medium))
                     Spacer(minLength: 8)
-                    if let brightness = model.brightness {
+                    // Not settable (no DisplayServices, or only foreign
+                    // displays): said where the level would stand, so the
+                    // card keeps one height either way.
+                    if !model.brightnessSettable {
+                        Text(UtilitiesBrightnessText.unavailable)
+                            .font(style.font(size: 12))
+                            .foregroundStyle(.secondary)
+                    } else if let brightness = model.brightness {
                         Text(UtilitiesBrightnessText.level(brightness))
                             .font(style.font(size: 12))
                             .monospacedDigit()
@@ -40,14 +47,6 @@ struct UtilitiesBrightnessCard: View {
                     UtilitiesBrightnessSlider(model: model)
                 }
 
-                // Reserved even when settable, empty and invisible: that
-                // way the card is exactly as tall in both states, matching
-                // the fixed `UtilitiesMetrics.brightnessHeight`.
-                Text(model.brightnessSettable ? "" : UtilitiesBrightnessText.unavailable)
-                    .font(style.font(size: 11))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .opacity(model.brightnessSettable ? 0 : 1)
             }
         }
     }
