@@ -94,17 +94,25 @@ struct EdgeBarView: View {
     /// A zone at its natural length. The zones layout may give it less (a
     /// start zone cut by the notch): then it is clipped at the side away
     /// from its anchor instead of squeezing its blocks.
+    ///
+    /// A zone with a Dock or a spacer is not pinned to its natural length:
+    /// it takes what `EdgeBarZoneLayout` hands it, and `EdgeBarGroupStack`
+    /// passes that on to its flexible groups.
     private func zone(_ zone: BarZone) -> some View {
         let horizontal = edge.isHorizontal
-        return axis.stack(spacing: islands || bar.distinctGroups ? 6 : style.barItemSpacing(8)) {
-            ForEach(groups(zone)) { group in
+        let groups = groups(zone)
+        let flexible = groups.reduce(0) { $0 + $1.flexible }
+        return EdgeBarGroupStack(axis: axis, spacing: islands || bar.distinctGroups ? 6 : style.barItemSpacing(8)) {
+            ForEach(groups) { group in
                 self.group(group)
+                    .layoutValue(key: EdgeBarFlexCount.self, value: group.flexible)
             }
         }
-        .fixedSize(horizontal: horizontal, vertical: !horizontal)
+        .fixedSize(horizontal: horizontal && flexible == 0, vertical: !horizontal && flexible == 0)
         .frame(maxWidth: horizontal ? .infinity : nil, maxHeight: horizontal ? nil : .infinity,
                alignment: Self.alignment(zone, horizontal: horizontal))
         .clipped()
+        .layoutValue(key: EdgeBarFlexCount.self, value: flexible)
     }
 
     private static func alignment(_ zone: BarZone, horizontal: Bool) -> Alignment {
@@ -118,6 +126,8 @@ struct EdgeBarView: View {
     private struct BlockGroup: Identifiable {
         let entries: [BarEntry]
         var id: BarEntry.ID { entries[0].id }
+        /// Dock and spacers in it: they share the zone's spare room.
+        var flexible: Int { entries.filter(\.kind.isFlexible).count }
     }
 
     /// Grouped first, filtered second: a hidden button at the head of a
@@ -185,9 +195,13 @@ struct EdgeBarZones: Layout {
                                                        : ProposedViewSize(width: cross, height: nil))
             return horizontal ? size.width : size.height
         }
+        let flexible = EdgeBarZoneLayout.Flexible(start: subviews[0][EdgeBarFlexCount.self],
+                                                  center: subviews[1][EdgeBarFlexCount.self],
+                                                  end: subviews[2][EdgeBarFlexCount.self])
         let placement = EdgeBarZoneLayout.place(
             length: horizontal ? bounds.width : bounds.height,
-            start: natural[0], center: natural[1], end: natural[2], gap: gap, notch: horizontal ? notch : nil
+            start: natural[0], center: natural[1], end: natural[2], gap: gap, notch: horizontal ? notch : nil,
+            flexible: flexible
         )
         for (subview, span) in zip(subviews, [placement.start, placement.center, placement.end]) {
             let origin = horizontal ? CGPoint(x: bounds.minX + span.origin, y: bounds.minY)
@@ -195,6 +209,63 @@ struct EdgeBarZones: Layout {
             subview.place(at: origin, anchor: .topLeading,
                           proposal: horizontal ? ProposedViewSize(width: span.length, height: cross)
                                                : ProposedViewSize(width: cross, height: span.length))
+        }
+    }
+}
+
+/// How many flexible modules (Dock, spacer) a zone or a group holds - read
+/// by `EdgeBarZones` and `EdgeBarGroupStack` to hand out the spare room.
+struct EdgeBarFlexCount: LayoutValueKey {
+    static let defaultValue = 0
+}
+
+/// The groups of one zone in a row (or a column in the right bar). Unlike a
+/// plain HStack, which splits spare room between every child that accepts it
+/// - and a group's `BarStack` accepts any length - only the groups holding a
+/// Dock or a spacer grow, by an equal share per flexible module
+/// (`EdgeBarZoneLayout.stack`). Measured without a length it is the groups'
+/// natural lengths, flexible modules counted as 0.
+struct EdgeBarGroupStack: Layout {
+    var axis: BarAxis
+    var spacing: CGFloat
+
+    private func naturals(_ subviews: Subviews, cross: CGFloat?) -> [CGSize] {
+        subviews.map { subview in
+            subview.sizeThatFits(axis == .horizontal ? ProposedViewSize(width: nil, height: cross)
+                                                     : ProposedViewSize(width: cross, height: nil))
+        }
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let horizontal = axis == .horizontal
+        let sizes = naturals(subviews, cross: horizontal ? proposal.height : proposal.width)
+        let along = sizes.map { horizontal ? $0.width : $0.height }.reduce(0, +)
+            + CGFloat(max(subviews.count - 1, 0)) * spacing
+        let across = sizes.map { horizontal ? $0.height : $0.width }.max() ?? 0
+        let flexible = subviews.contains { $0[EdgeBarFlexCount.self] > 0 }
+        let offered = horizontal ? proposal.width : proposal.height
+        let length = flexible ? (offered ?? along) : along
+        let thickness = (horizontal ? proposal.height : proposal.width) ?? across
+        return horizontal ? CGSize(width: length, height: thickness) : CGSize(width: thickness, height: length)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let horizontal = axis == .horizontal
+        let cross = horizontal ? bounds.height : bounds.width
+        let sizes = naturals(subviews, cross: cross)
+        let spans = EdgeBarZoneLayout.stack(
+            naturals: sizes.map { horizontal ? $0.width : $0.height },
+            weights: subviews.map { $0[EdgeBarFlexCount.self] },
+            length: horizontal ? bounds.width : bounds.height, spacing: spacing
+        )
+        for (subview, span) in zip(subviews, spans) {
+            if horizontal {
+                subview.place(at: CGPoint(x: bounds.minX + span.origin, y: bounds.midY), anchor: .leading,
+                              proposal: ProposedViewSize(width: span.length, height: cross))
+            } else {
+                subview.place(at: CGPoint(x: bounds.midX, y: bounds.minY + span.origin), anchor: .top,
+                              proposal: ProposedViewSize(width: cross, height: span.length))
+            }
         }
     }
 }

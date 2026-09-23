@@ -44,6 +44,13 @@ public struct BarNotch: Equatable, Sendable {
 ///   hidden behind the camera, and the spot right next to it is the closest
 ///   thing to a centre that can be seen.
 /// - Empty zones take no room and no gap.
+/// - A zone holding flexible modules (Dock, spacer) takes the room that is
+///   left over, like `BarFlex` does inside one bar: every flexible module
+///   gets an equal share of it, and a zone grows by the shares of the
+///   modules it holds. Start and end grow towards the centre; a flexible
+///   centre grows evenly on both sides so it stays in the middle, and only
+///   takes the lopsided rest when not even its natural length fits there.
+///   Without the share a Dock in a zone measured 0 and vanished.
 public enum EdgeBarZoneLayout {
     public struct Span: Equatable, Sendable {
         public var origin: CGFloat
@@ -63,23 +70,131 @@ public enum EdgeBarZoneLayout {
         public var end: Span
     }
 
+    /// How many flexible modules (Dock, spacer) each zone holds. Zero
+    /// everywhere is the plain layout of fixed zones.
+    public struct Flexible: Equatable, Sendable {
+        public var start: Int
+        public var center: Int
+        public var end: Int
+
+        public init(start: Int = 0, center: Int = 0, end: Int = 0) {
+            self.start = max(start, 0)
+            self.center = max(center, 0)
+            self.end = max(end, 0)
+        }
+
+        public static let none = Flexible()
+
+        var total: Int { start + center + end }
+    }
+
     /// - Parameters:
     ///   - length: the room along the bar, from 0.
-    ///   - start, center, end: the ideal length of each zone.
+    ///   - start, center, end: the natural length of each zone (flexible
+    ///     modules counted as 0, the way `BarStack` measures them).
     ///   - notch: in the same coordinates as `length`.
+    ///   - flexible: which zones hold flexible modules and how many.
     public static func place(length: CGFloat, start: CGFloat, center: CGFloat, end: CGFloat,
-                             gap: CGFloat, notch: BarNotch? = nil) -> Placement {
+                             gap: CGFloat, notch: BarNotch? = nil, flexible: Flexible = .none) -> Placement {
         let length = max(length, 0)
         guard let notch else {
-            return row(from: 0, to: length, start: start, center: center, end: end, gap: gap, centered: true)
+            let base = row(from: 0, to: length, start: start, center: center, end: end, gap: gap, centered: true)
+            return grow(base, from: 0, to: length, flexible: flexible, gap: gap, centered: true)
         }
-        // Left of the housing: the start zone alone, a gap short of it.
+        // Left of the housing: the start zone alone, a gap short of it. A
+        // flexible start takes all of that room - nothing else may use it.
         let leftEnd = min(max(notch.leftEnd - gap, 0), length)
-        let startLength = min(max(start, 0), leftEnd)
-        // Right of it: centre and end.
+        let startLength = flexible.start > 0 ? leftEnd : min(max(start, 0), leftEnd)
+        // Right of it: centre and end, the centre right next to the housing.
         let rightStart = min(max(notch.rightStart + gap, 0), length)
-        let right = row(from: rightStart, to: length, start: 0, center: center, end: end, gap: gap, centered: false)
+        let right = grow(
+            row(from: rightStart, to: length, start: 0, center: center, end: end, gap: gap, centered: false),
+            from: rightStart, to: length, flexible: Flexible(center: flexible.center, end: flexible.end),
+            gap: gap, centered: false
+        )
         return Placement(start: Span(origin: 0, length: startLength), center: right.center, end: right.end)
+    }
+
+    /// The modules of one zone (or the groups of one zone) in a row: fixed
+    /// ones keep their natural length, flexible ones get their natural length
+    /// plus an equal share of what is left per flexible module (`weights`,
+    /// 0 = fixed). Too little room: everyone keeps the natural length and
+    /// the zone clips, like the fixed zones do.
+    public static func stack(naturals: [CGFloat], weights: [Int], length: CGFloat, spacing: CGFloat) -> [Span] {
+        let total = weights.reduce(0) { $0 + max($1, 0) }
+        let used = naturals.reduce(0) { $0 + max($1, 0) } + CGFloat(max(naturals.count - 1, 0)) * spacing
+        let share = total > 0 ? max(length - used, 0) / CGFloat(total) : 0
+        var origin: CGFloat = 0
+        return naturals.enumerated().map { index, natural in
+            let weight = index < weights.count ? max(weights[index], 0) : 0
+            let span = Span(origin: origin, length: max(natural, 0) + share * CGFloat(weight))
+            origin = span.end + spacing
+            return span
+        }
+    }
+
+    /// Hands the room `row` left over to the flexible zones. `base` is the
+    /// layout at natural lengths; its lengths are the least each zone keeps.
+    private static func grow(_ base: Placement, from lo: CGFloat, to hi: CGFloat, flexible: Flexible,
+                             gap: CGFloat, centered: Bool) -> Placement {
+        let total = flexible.total
+        guard total > 0 else { return base }
+        // A flexible zone counts as present even at natural length 0: a Dock
+        // alone still wants its gap to the neighbours.
+        let hasStart = base.start.length > 0 || flexible.start > 0
+        let hasCenter = base.center.length > 0 || flexible.center > 0
+        let hasEnd = base.end.length > 0 || flexible.end > 0
+        let present = [hasStart, hasCenter, hasEnd].filter { $0 }.count
+        let natural = base.start.length + base.center.length + base.end.length
+        let free = (hi - lo) - natural - CGFloat(max(present - 1, 0)) * gap
+        guard free > 0 else { return base }
+        let share = free / CGFloat(total)
+
+        var result = base
+        if flexible.center > 0 {
+            // The centre's slot, with start and end at their least.
+            let low = lo + base.start.length + (hasStart ? gap : 0)
+            let high = hi - base.end.length - (hasEnd ? gap : 0)
+            var length = base.center.length + share * CGFloat(flexible.center)
+            let origin: CGFloat
+            if centered {
+                let mid = (lo + hi) / 2
+                let widest = 2 * min(mid - low, high - mid)
+                if widest >= base.center.length {
+                    length = min(length, widest)
+                    origin = mid - length / 2
+                } else {
+                    origin = min(max(mid - length / 2, low), high - length)
+                }
+            } else {
+                origin = low
+            }
+            result.center = Span(origin: origin, length: length)
+        }
+        if flexible.start > 0 {
+            let limit: CGFloat
+            if hasCenter {
+                limit = result.center.origin - gap
+            } else if hasEnd {
+                limit = hi - base.end.length - share * CGFloat(flexible.end) - gap
+            } else {
+                limit = hi
+            }
+            result.start = Span(origin: lo, length: max(limit - lo, base.start.length))
+        }
+        if flexible.end > 0 {
+            let limit: CGFloat
+            if hasCenter {
+                limit = result.center.end + gap
+            } else if hasStart {
+                limit = result.start.end + gap
+            } else {
+                limit = lo
+            }
+            let length = max(hi - limit, base.end.length)
+            result.end = Span(origin: hi - length, length: length)
+        }
+        return result
     }
 
     /// Three zones between `lo` and `hi`. `centered`: the centre aims at the
