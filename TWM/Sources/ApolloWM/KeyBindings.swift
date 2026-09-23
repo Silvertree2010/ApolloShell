@@ -152,6 +152,9 @@ public final class KeyBindings {
         case .newTerminal:
             openTerminal()
             return
+        case .focusDisplay(let next):
+            engine.focusDisplay(next: next)
+            return
         case .resizeMode:
             enter(.resize)
             return
@@ -241,9 +244,11 @@ public final class KeyBindings {
         case .cycleTab(let forward): engine.cycleTab(from: id, forward: forward)
         case .grow(let fraction): engine.grow(id, by: fraction)
         case .sendToDesktop(let number): send(id, toDesktop: number)
+        case .sendToDisplay(let next): engine.sendToDisplay(id, next: next)
         case .toggleFloating: engine.toggleFloating(id)
         case .toggleFullscreen: engine.toggleFullscreen(id)
-        case .workspace, .equalize, .newTerminal, .closeWindow, .cycleFocus, .resizeMode, .sendMode, .scratchpad: break
+        case .workspace, .equalize, .newTerminal, .closeWindow, .cycleFocus, .resizeMode, .sendMode,
+             .scratchpad, .focusDisplay: break
         }
     }
 

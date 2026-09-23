@@ -31,6 +31,10 @@ public enum Command: Sendable, Equatable {
     case sendMode
     /// Show or hide the scratchpad window, or make the focused window it.
     case scratchpad
+    /// Focus the next (true) or previous display.
+    case focusDisplay(Bool)
+    /// Put the focused window on the next (true) or previous display.
+    case sendToDisplay(Bool)
 
     public init?(parsing text: String) {
         let words = text.lowercased().split(whereSeparator: \.isWhitespace).map(String.init)
@@ -82,6 +86,12 @@ public enum Command: Sendable, Equatable {
         case "resize-mode" where none(): self = .resizeMode
         case "send-mode" where none(): self = .sendMode
         case "scratchpad" where none(): self = .scratchpad
+        case "display":
+            guard rest.count == 1, ["next", "prev", "previous"].contains(rest[0]) else { return nil }
+            self = .focusDisplay(rest[0] == "next")
+        case "move-display":
+            guard rest.count == 1, ["next", "prev", "previous"].contains(rest[0]) else { return nil }
+            self = .sendToDisplay(rest[0] == "next")
         default: return nil
         }
     }
@@ -117,6 +127,8 @@ public enum Command: Sendable, Equatable {
         case .resizeMode: "resize-mode"
         case .sendMode: "send-mode"
         case .scratchpad: "scratchpad"
+        case .focusDisplay(let next): next ? "display next" : "display prev"
+        case .sendToDisplay(let next): next ? "move-display next" : "move-display prev"
         }
     }
 
@@ -151,6 +163,10 @@ public enum Command: Sendable, Equatable {
             KeyNames.code("r")!: .resizeMode,
             KeyNames.code("m")!: .sendMode,
             KeyNames.code("s")!: .scratchpad,
+            KeyNames.code("o")!: .focusDisplay(false),
+            KeyNames.code("p")!: .focusDisplay(true),
+            KeyNames.code("comma")!: .sendToDisplay(false),
+            KeyNames.code("period")!: .sendToDisplay(true),
         ]
         for n in 1...9 { map[KeyNames.code(String(n))!] = .workspace(n) }
         return map

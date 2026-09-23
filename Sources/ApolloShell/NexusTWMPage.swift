@@ -38,6 +38,33 @@ struct NexusTWMPage: View {
                 }
             }
 
+            NexusSection("Displays", symbol: "display.2", id: "twm.displays") {
+                NexusCard(symbol: "display.2", title: "What the TWM Sees",
+                          subtitle: "One arrangement per display. Windows move across by dragging, Super + , / .") {
+                    EmptyView()
+                } footer: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if TWMStatus.shared.displays.isEmpty {
+                            Text("Turn tiling on to see the displays.")
+                                .font(style.font(size: 11))
+                                .foregroundStyle(style.secondaryText)
+                        }
+                        ForEach(TWMStatus.shared.displays, id: \.self) { line in
+                            Text(line)
+                                .font(style.font(size: 11))
+                                .foregroundStyle(style.secondaryText)
+                        }
+                        if TWMStatus.shared.sharedSpaces {
+                            Label("Your displays share their desktops, so only the main one is arranged. Switch \"Displays have separate Spaces\" on in System Settings > Desktop & Dock and log out once.",
+                                  systemImage: "exclamationmark.triangle")
+                                .font(style.font(size: 11))
+                                .foregroundStyle(.orange)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+
             NexusSection("Canvas", symbol: "rectangle.lefthalf.inset.filled.arrow.left", id: "twm.canvas") {
                 NexusCard(symbol: "square.grid.3x1.folder.badge.plus", title: "Arrangement",
                           subtitle: "Dwindle splits every tile. Canvas is one endless strip of columns, like niri.") {
@@ -227,6 +254,8 @@ struct NexusTWMPage: View {
         ("Super + 1–9", "desktop 1–9"),
         ("Super + M, 1–9", "send the window to desktop 1–9"),
         ("Super + S", "scratchpad: keep / show / hide"),
+        ("Super + O / P", "focus the previous / next display"),
+        ("Super + , / .", "send the window to the previous / next display"),
         ("Super + drag", "move from anywhere"),
         ("Super + right drag", "resize"),
     ]

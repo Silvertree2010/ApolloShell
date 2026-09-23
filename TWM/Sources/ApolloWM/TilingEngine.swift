@@ -118,6 +118,11 @@ public final class TilingEngine {
     /// The desks shown on the other displays right now (the main display's
     /// is `desk`). Empty with one display.
     public private(set) var otherShown: [Desk] = []
+    /// True when several displays share their desktops, i.e. "Displays have
+    /// separate Spaces" is off in System Settings. macOS then reports one
+    /// desktop for everything, so the engine cannot tell the displays'
+    /// windows apart; it keeps to the main display and the host says so.
+    public private(set) var displaysShareSpaces = false
 
     /// Every desk on screen right now, the main display's first. A desktop
     /// that is a macOS full-screen app is left out: nothing can be moved
@@ -151,12 +156,51 @@ public final class TilingEngine {
         }
         let mainUUID = screens.first?.uuid
         let known = Set(screens.map(\.uuid))
+        // With "Displays have separate Spaces" off, the window server lists a
+        // single display called "Main" for all of them.
+        let shared = screens.count > 1 && displays.allSatisfy { !known.contains($0.uuid) }
+        if shared != displaysShareSpaces {
+            displaysShareSpaces = shared
+            if shared {
+                log("displays share their desktops: only the main display is arranged")
+            }
+        }
         let others = displays.filter { $0.uuid != mainUUID && known.contains($0.uuid) }
             .map { Desk(space: $0.current, workspace: activeWorkspace[$0.current] ?? 1) }
         if others != otherShown {
             if !otherShown.isEmpty || !others.isEmpty { log("other displays show \(others)") }
             otherShown = others
             lastSpaceSwitch = CACurrentMediaTime()
+        }
+        adoptOrphans()
+        onDisplaysChanged?()
+    }
+
+    /// Called when the displays or the desktops they show changed, so the
+    /// host can show what the engine sees.
+    public var onDisplaysChanged: (() -> Void)?
+
+    /// Windows whose display was unplugged: macOS has moved them onto a
+    /// display that is still there, so they join the desk shown on it.
+    private func adoptOrphans() {
+        let live = Set(screens.map(\.uuid))
+        var moved = 0
+        for (id, home) in layouts.spaceOf where !live.contains(displayOfSpace[home.space] ?? "") {
+            guard windows[id] != nil, displayOfSpace[home.space] != nil else { continue }
+            layouts.remove(id)
+            layouts.assign(id, to: desk) { $0.insert(id) }
+            strips[home]?.remove(id)
+            moved += 1
+        }
+        for (id, state) in floating where !live.contains(displayOfSpace[state.desk.space] ?? "") {
+            guard displayOfSpace[state.desk.space] != nil else { continue }
+            floating[id]?.desk = desk
+            moved += 1
+        }
+        if moved > 0 {
+            log("a display went away: \(moved) window(s) came over")
+            dirtyDesks.insert(desk)
+            relayout()
         }
     }
 
@@ -1041,6 +1085,72 @@ public final class TilingEngine {
         return frames
     }
 
+    // MARK: Displays: focus and moving between them
+
+    /// The desks on screen, in the order the displays stand (main first).
+    private func shownDesk(onDisplay index: Int) -> Desk? {
+        guard screens.indices.contains(index) else { return nil }
+        let uuid = screens[index].uuid
+        return shownDesks.first { displayOfSpace[$0.space] == uuid }
+            ?? (index == 0 ? desk : nil)
+    }
+
+    /// The desks on screen that belong to one display.
+    public func desks(onDisplay uuid: String) -> [Desk] {
+        shownDesks.filter { displayOfSpace[$0.space] == uuid }
+    }
+
+    private func displayIndex(of desk: Desk) -> Int? {
+        guard let uuid = displayOfSpace[desk.space] else { return nil }
+        return screens.firstIndex { $0.uuid == uuid }
+    }
+
+    /// Focus goes to the next or previous display, onto the window that was
+    /// focused there last, or the first one.
+    public func focusDisplay(next: Bool) {
+        guard screens.count > 1 else { return }
+        let here = focused.flatMap { desk(of: $0) }.flatMap { displayIndex(of: $0) } ?? 0
+        let there = (here + (next ? 1 : -1) + screens.count) % screens.count
+        guard let target = shownDesk(onDisplay: there) else { return }
+        let candidates = layouts[target].ids + floating.filter { $0.value.desk == target }.map(\.key)
+        guard let id = lastFocusedOnDesk[target].flatMap({ candidates.contains($0) ? $0 : nil })
+                ?? candidates.first else { return }
+        focus(id)
+    }
+
+    /// The focused window goes to the next or previous display: it is put
+    /// into the layout there, and macOS counts it to that display once its
+    /// frame lies on it.
+    public func sendToDisplay(_ id: CGWindowID, next: Bool) {
+        guard screens.count > 1, let home = desk(of: id) else { return }
+        let here = displayIndex(of: home) ?? 0
+        let there = (here + (next ? 1 : -1) + screens.count) % screens.count
+        guard there != here, let target = shownDesk(onDisplay: there) else { return }
+        if var state = floating[id] {
+            let area = area(of: target)
+            state.desk = target
+            state.frame = CGRect(x: area.midX - state.frame.width / 2,
+                                 y: area.midY - state.frame.height / 2,
+                                 width: state.frame.width, height: state.frame.height)
+            floating[id] = state
+        } else {
+            leaveGroup(id)
+            if fullscreen[home] == id { fullscreen[home] = nil }
+            layouts.remove(id)
+            strips[home]?.remove(id)
+            layouts.assign(id, to: target) { $0.insert(id) }
+        }
+        dirtyDesks.insert(home)
+        dirtyDesks.insert(target)
+        log("\(windows[id]?.title ?? "\(id)") -> display \(there + 1)")
+        relayout()
+        focus(id)
+    }
+
+    /// The window focused last on each desk, so coming back to a display
+    /// lands where one left off.
+    private var lastFocusedOnDesk: [Desk: CGWindowID] = [:]
+
     // MARK: Canvas
 
     /// Where the strip's windows go. Columns that the screen does not show
@@ -1187,6 +1297,7 @@ public final class TilingEngine {
         focusGeneration &+= 1
         lastDirectedFocus = CACurrentMediaTime()
         focused = id
+        if let home = desk(of: id) { lastFocusedOnDesk[home] = id }
         publishActive()
     }
 

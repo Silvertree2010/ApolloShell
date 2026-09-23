@@ -197,7 +197,11 @@ public final class WindowWatcher {
             return
         }
         scanning = true
-        let screens = engine.screens.isEmpty ? [engine.screenArea] : engine.screens.map(\.bounds)
+        // While the displays share their desktops, only the main display's
+        // windows are ours; the others cannot be told apart from it.
+        let screens = engine.displaysShareSpaces
+            ? [engine.screens.first?.bounds ?? engine.screenArea]
+            : (engine.screens.isEmpty ? [engine.screenArea] : engine.screens.map(\.bounds))
         let tracked = engine.windows
         Task.detached(priority: .userInitiated) { [weak self] in
             let order = Spaces.ordered()

@@ -115,6 +115,11 @@ final class TWMController {
         }
         if let space = Spaces.current() { engine.switchSpace(to: space) }
         engine.onSettled = { [weak self] in self?.save() }
+        engine.onDisplaysChanged = { [weak engine] in
+            guard let engine else { return }
+            TWMStatus.shared.update(from: engine)
+        }
+        TWMStatus.shared.update(from: engine)
         self.engine = engine
 
         let focus = FocusFollowsMouse(engine: engine)
@@ -183,6 +188,7 @@ final class TWMController {
         drags = nil
         watcher = nil
         self.engine = nil
+        TWMStatus.shared.clear()
         onRunningChange(false)
         log.notice("TWM stopped")
     }
