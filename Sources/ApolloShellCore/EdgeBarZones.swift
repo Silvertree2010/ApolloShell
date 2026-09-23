@@ -222,3 +222,31 @@ public enum EdgeBarZoneLayout {
                          end: Span(origin: hi - endLength, length: endLength))
     }
 }
+
+/// Where the detail window of a status icon in an edge bar goes (Wi-Fi,
+/// Bluetooth, battery). The sidebar grows its popout out of its own glass;
+/// an edge bar opens a plain panel next to the bar instead, so this only has
+/// to say where. AppKit coordinates (y up).
+///
+/// - Top bar: below the bar, bottom bar: above it, right bar: left of it -
+///   `gap` off the bar's inner edge, never over it.
+/// - Along the bar it centres on the icon, but stays `margin` inside the
+///   screen: a Wi-Fi icon in the far corner still opens a whole window.
+public enum EdgeBarPopoutPlacement {
+    public static func frame(icon: CGRect, bar: CGRect, size: CGSize, edge: BarEdge, screen: CGRect,
+                             gap: CGFloat = 6, margin: CGFloat = 8) -> CGRect {
+        func clamp(_ value: CGFloat, _ lo: CGFloat, _ hi: CGFloat) -> CGFloat {
+            // A window wider than the screen keeps its start on screen.
+            max(lo, min(value, hi))
+        }
+        switch edge {
+        case .top, .bottom:
+            let x = clamp(icon.midX - size.width / 2, screen.minX + margin, screen.maxX - margin - size.width)
+            let y = edge == .top ? bar.minY - gap - size.height : bar.maxY + gap
+            return CGRect(x: x, y: y, width: size.width, height: size.height)
+        case .right:
+            let y = clamp(icon.midY - size.height / 2, screen.minY + margin, screen.maxY - margin - size.height)
+            return CGRect(x: bar.minX - gap - size.width, y: y, width: size.width, height: size.height)
+        }
+    }
+}

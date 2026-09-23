@@ -14,9 +14,10 @@ import SwiftUI
 /// - `.islands`: no strip; every group is its own piece of that background,
 ///   `EdgeBarGeometry.islandMargin` away from the screen edge.
 ///
-/// Status popout and edit mode come later: without a popout model in the
-/// environment the status capsule's symbols are display only (its model is
-/// an optional environment value), so a click does nothing.
+/// A click on a status icon opens its details when the bar's panel puts a
+/// popout model into the environment (`EdgeBarRoot`); without one (image
+/// samples) the icons are display only - the model is an optional
+/// environment value. The edit mode comes later.
 struct EdgeBarView: View {
     let bar: EdgeBar
     let edge: BarEdge
@@ -289,10 +290,13 @@ struct EdgeBarRoot: View {
     let edge: BarEdge
     let state: EdgeBarPanelState
     let context: BarModuleContext
+    /// The status icons open their details through it (`EdgeBarPopout`).
+    let popout: StatusPopoutModel
 
     var body: some View {
         EdgeBarView(bar: settings.settings.edgeBars[edge], edge: edge, notch: state.notch,
                     features: settings.settings.features, context: context)
+            .environment(popout)
     }
 }
 

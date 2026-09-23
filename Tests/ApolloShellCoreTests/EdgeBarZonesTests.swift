@@ -165,6 +165,37 @@ struct EdgeBarZonesTests {
         #expect(tight.map(\.length) == [32, 12])
     }
 
+    // MARK: Status popout
+
+    private let screenFrame = CGRect(x: 0, y: 0, width: 1728, height: 1117)
+
+    @Test("Top bar: the popout hangs below the bar, centred on the icon")
+    func popoutBelowTopBar() {
+        let bar = CGRect(x: 0, y: 1073, width: 1728, height: 44)
+        let icon = CGRect(x: 800, y: 1080, width: 30, height: 30)
+        let f = EdgeBarPopoutPlacement.frame(icon: icon, bar: bar, size: CGSize(width: 300, height: 200),
+                                             edge: .top, screen: screenFrame)
+        #expect(f == CGRect(x: 665, y: 867, width: 300, height: 200))
+    }
+
+    @Test("Bottom bar: above the bar; an icon in the corner keeps the window on screen")
+    func popoutAboveBottomBar() {
+        let bar = CGRect(x: 0, y: 0, width: 1728, height: 34)
+        let icon = CGRect(x: 1690, y: 2, width: 30, height: 30)
+        let f = EdgeBarPopoutPlacement.frame(icon: icon, bar: bar, size: CGSize(width: 300, height: 200),
+                                             edge: .bottom, screen: screenFrame)
+        #expect(f == CGRect(x: 1420, y: 40, width: 300, height: 200))
+    }
+
+    @Test("Right bar: left of the bar, centred on the icon's height")
+    func popoutLeftOfRightBar() {
+        let bar = CGRect(x: 1684, y: 0, width: 44, height: 1084)
+        let icon = CGRect(x: 1690, y: 500, width: 32, height: 32)
+        let f = EdgeBarPopoutPlacement.frame(icon: icon, bar: bar, size: CGSize(width: 270, height: 180),
+                                             edge: .right, screen: screenFrame)
+        #expect(f == CGRect(x: 1408, y: 426, width: 270, height: 180))
+    }
+
     @Test("Two reservations for one screen key: the larger strip per edge wins")
     func insetsUnion() {
         let a = ReservedInsets(top: 40, left: 44)

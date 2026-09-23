@@ -260,7 +260,11 @@ final class Sidebar {
                 let bar = edgeBars[edge]
                 edgeSlot.distribute(
                     on: bar.screens,
-                    make: { EdgeBarScreen(edge: edge, screen: $0, settings: settings, context: context) },
+                    make: { screen in
+                        let bar = EdgeBarScreen(edge: edge, screen: screen, settings: settings, context: context)
+                        bar.onPopoutOpen = { [weak self] id in self?.closePopouts(except: id) }
+                        return bar
+                    },
                     update: { item, screen in
                         guard let frame = layouts[screen.displayID]?.frames[edge] else { return }
                         item.update(screen: screen, frame: frame, coversMenuBar: bar.coversMenuBar)
@@ -319,9 +323,12 @@ final class Sidebar {
     }
 
     /// Only ever one status popout is open: when one opens, it closes
-    /// that of another bar.
+    /// that of another bar - sidebar or edge bar.
     private func closePopouts(except id: ObjectIdentifier) {
         for bar in bars.values where ObjectIdentifier(bar) != id {
+            bar.closePopout()
+        }
+        for bar in edgeScreens where ObjectIdentifier(bar) != id {
             bar.closePopout()
         }
     }
@@ -343,6 +350,7 @@ final class Sidebar {
             // New resolution or arrangement: position and height of an
             // open popout are no longer correct.
             for bar in self.bars.values { bar.closePopout() }
+            for bar in self.edgeScreens { bar.closePopout() }
             self.rebuild()
         }
 
