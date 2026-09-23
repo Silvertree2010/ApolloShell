@@ -754,6 +754,15 @@ public final class TilingEngine {
     public func activeWindow() -> ActiveWindow? {
         guard let id = focused, id != dragging, id != resizing else { return nil }
         guard var frame = springs[id]?.current ?? targetFrames()[id], parked[id] == nil else { return nil }
+        // At rest, the window's real frame: apps that snap to character
+        // cells (kitty) stay a little smaller than their tile, and the
+        // border should hug the window, not the tile. Mid-glide the spring
+        // is exact enough and saves a window-server query per frame.
+        if !isAnimating, let actual = windows[id]?.serverFrame,
+           abs(actual.minX - frame.minX) < 40, abs(actual.minY - frame.minY) < 40,
+           abs(actual.width - frame.width) < 40, abs(actual.height - frame.height) < 40 {
+            frame = actual
+        }
         if let group = group(of: id), let home = layouts.space(of: group.active), isShown(home) {
             frame = CGRect(x: frame.minX, y: frame.minY - options.tabBarHeight,
                            width: frame.width, height: frame.height + options.tabBarHeight)
@@ -2099,7 +2108,7 @@ public final class TilingEngine {
             }
             changed = true
         }
-        if changed { relayout() }
+        if changed { relayout() } else { publishActive() }
     }
 
     /// Measures where the shown desktop's windows really are and glides any

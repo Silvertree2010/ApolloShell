@@ -36,6 +36,17 @@ final class TWMBorder {
         // The stroke lies just outside the window.
         let frame = active.frame.insetBy(dx: -width, dy: -width)
         let rect = NSRect(x: frame.minX, y: height - frame.maxY, width: frame.width, height: frame.height)
+        // The panel lives on the desktop it was ordered in on. After a
+        // desktop switch, or with the focus on another display, it has to be
+        // ordered in anew there - reordering alone leaves it behind.
+        // The screen AppKit files it under: the one holding most of it.
+        let screen = NSScreen.screens.max { a, b in
+            let overlapA = a.frame.intersection(rect), overlapB = b.frame.intersection(rect)
+            return overlapA.width * overlapA.height < overlapB.width * overlapB.height
+        }
+        if panel.isVisible, !panel.isOnActiveSpace || screen != panel.screen {
+            panel.orderOut(nil)
+        }
         if rect != panel.frame { panel.setFrame(rect, display: false) }
         // Re-ordering is a window-server round trip: on a new window, and a
         // few times a second in case the window was raised over the border.
