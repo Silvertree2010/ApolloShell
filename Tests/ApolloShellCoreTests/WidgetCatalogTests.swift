@@ -47,17 +47,17 @@ struct WidgetCatalogTests {
         #expect(text(kind.sizes) == expected)
     }
 
-    @Test("Sizes of the performance, weather, and media pages", arguments: [
-        (WidgetKind.performanceCPU, "343-413.5x191"),
-        (.performanceGPU, "343-413.5x191"),
-        (.performanceStorage, "169.5-240x189"),
-        (.performanceNetwork, "335x189"),
-        (.performanceMemory, "169.5-240x189"),
-        (.performanceBattery, "129x392"),
-        (.weatherHero, "839x116"),
-        (.weatherHourly, "839x108"),
-        (.weatherDaily, "839x144"),
-        (.mediaPlayer, "839x392"),
+    @Test("Sizes of the performance, weather, and media pages: their own plus the overview heights", arguments: [
+        (WidgetKind.performanceCPU, "220-839x130 343-839x191 250-839x250 250-839x392"),
+        (.performanceGPU, "220-839x130 343-839x191 250-839x250 250-839x392"),
+        (.performanceStorage, "200-839x130 169.5-420x189 169.5-420x250 169.5-420x392"),
+        (.performanceNetwork, "230-839x130 335-839x189 300-839x250 300-839x392"),
+        (.performanceMemory, "200-839x130 169.5-420x189 169.5-420x250 169.5-420x392"),
+        (.performanceBattery, "129-420x130 129-420x250 129-420x392"),
+        (.weatherHero, "500-839x116 275-839x250 275-839x392"),
+        (.weatherHourly, "300-839x108 300-839x250"),
+        (.weatherDaily, "300-839x144 275-839x250 200-839x392"),
+        (.mediaPlayer, "413-839x250 413-839x392"),
     ])
     func pageSizes(kind: WidgetKind, expected: String) {
         #expect(text(kind.sizes) == expected)
@@ -85,7 +85,7 @@ struct WidgetCatalogTests {
     func smallest() {
         #expect(WidgetKind.clock.smallestSize == .flexible(110, 839, 130))
         #expect(WidgetKind.resources.smallestSize == .flexible(90, 839, 250))
-        #expect(WidgetKind.mediaPlayer.smallestSize == .fixed(839, 392))
+        #expect(WidgetKind.mediaPlayer.smallestSize == .flexible(413, 839, 250))
     }
 
     @Test("Home, places, media")
@@ -104,5 +104,27 @@ struct WidgetCatalogTests {
         #expect(PerformancePageGeometry.sideWidths(hasBattery: true) == [169.5, 169.5])
         #expect(PerformancePageGeometry.sideWidths(hasBattery: false) == [240, 240])
         #expect(WeatherPageGeometry.dailyHeight == 144)
+    }
+
+    @Test("Every size of the page templates stays allowed, and one size per height")
+    func pageTemplatesStayAllowed() {
+        for hasBattery in [true, false] {
+            let pages = DashboardPages.defaultPages(places: .empty, hasBattery: hasBattery)
+            for widget in pages.flatMap(\.widgets) {
+                #expect(widget.kind.allows(width: widget.frame.width, height: widget.frame.height),
+                        "\(widget.kind.rawValue) \(widget.frame)")
+            }
+        }
+        for kind in WidgetKind.allCases {
+            #expect(Set(kind.sizes.map(\.height)).count == kind.sizes.count, "\(kind.rawValue)")
+        }
+    }
+
+    @Test("Every kind has displays, the first is the standard one")
+    func displays() {
+        for kind in WidgetKind.allCases {
+            #expect(kind.displays.first == .standard, "\(kind.rawValue)")
+            #expect(Set(kind.displays).count == kind.displays.count)
+        }
     }
 }

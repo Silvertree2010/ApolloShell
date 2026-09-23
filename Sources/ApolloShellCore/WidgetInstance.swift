@@ -41,11 +41,14 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
     public var media: DashboardMediaOptions?
     /// Locations of the weather widgets, one list per widget.
     public var places: WeatherFavorites?
+    /// How the widget shows itself; `nil` (and a mode its kind does not
+    /// have) is the kind's first one, see `display(for:)`.
+    public var display: WidgetDisplay?
 
     public init(weather: DashboardWeatherOptions? = nil, user: DashboardUserOptions? = nil,
                 clock: DashboardClockOptions? = nil, calendar: DashboardCalendarOptions? = nil,
                 resources: DashboardResourcesOptions? = nil, media: DashboardMediaOptions? = nil,
-                places: WeatherFavorites? = nil) {
+                places: WeatherFavorites? = nil, display: WidgetDisplay? = nil) {
         self.weather = weather
         self.user = user
         self.clock = clock
@@ -53,6 +56,12 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
         self.resources = resources
         self.media = media
         self.places = places
+        self.display = display
+    }
+
+    /// The display to draw for a widget of `kind`.
+    public func display(for kind: WidgetKind) -> WidgetDisplay {
+        display.flatMap { kind.displays.contains($0) ? $0 : nil } ?? kind.displays[0]
     }
 
     /// Defaults of a kind. Weather widgets get `places` (during migration, the
@@ -76,7 +85,7 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
         return options
     }
 
-    private enum CodingKeys: String, CodingKey { case weather, user, clock, calendar, resources, media, places }
+    private enum CodingKeys: String, CodingKey { case weather, user, clock, calendar, resources, media, places, display }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -87,6 +96,7 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
         resources = c.lenient(.resources)
         media = c.lenient(.media)
         places = c.lenient(.places)
+        display = c.lenient(.display)
     }
 }
 

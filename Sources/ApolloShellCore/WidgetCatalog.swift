@@ -39,6 +39,12 @@ public struct WidgetSize: Equatable, Hashable, Sendable {
     }
 }
 
+/// How a widget shows itself (`WidgetKind.displays`, `WidgetOptions.display`).
+/// The raw value stands in settings.json - never rename it.
+public enum WidgetDisplay: String, Codable, CaseIterable, Sendable {
+    case standard, minimal, analog, today, bars, cover, graph, gauge, bar, numbers, ring, list
+}
+
 /// All widgets. The raw value stands in settings.json - never rename it. The
 /// six cards of the overview keep the ids of `DashboardCardKind`.
 public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
@@ -114,22 +120,69 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
 
     public var isPerformance: Bool { rawValue.hasPrefix("performance.") }
 
+    /// The page widgets got sizes of their own on 09/23: besides the one
+    /// from their page, the heights of the overview (130, 250, 392), so that
+    /// they fit into its rows. At most one size per height - resizing picks
+    /// the size by the nearest height (`BentoGeometry.snapResize`).
     public var sizes: [WidgetSize] {
         if let card = overviewCard { return Self.overviewSizes(card) }
         let p = PerformancePageGeometry.self
         let w = DashboardGeometry.width
+        let h = DashboardGeometry.height
+        let top = DashboardGeometry.topHeight
+        let bottom = h - top - DashboardGeometry.spacing
         switch self {
         case .performanceCPU, .performanceGPU:
-            return [.flexible(p.heroWidths(hasBattery: true).min()!, p.heroWidths(hasBattery: false).max()!, p.heroHeight)]
+            return [.flexible(220, w, top),
+                    .flexible(p.heroWidths(hasBattery: true).min()!, w, p.heroHeight),
+                    .flexible(250, w, bottom),
+                    .flexible(250, w, h)]
         case .performanceStorage, .performanceMemory:
-            return [.flexible(p.sideWidths(hasBattery: true).min()!, p.sideWidths(hasBattery: false).max()!, p.bottomHeight)]
-        case .performanceNetwork: return [.fixed(p.networkWidth, p.bottomHeight)]
-        case .performanceBattery: return [.fixed(p.batteryWidth, DashboardGeometry.height)]
-        case .weatherHero: return [.fixed(w, WeatherPageGeometry.heroHeight)]
-        case .weatherHourly: return [.fixed(w, WeatherPageGeometry.hourlyHeight)]
-        case .weatherDaily: return [.fixed(w, WeatherPageGeometry.dailyHeight)]
-        case .mediaPlayer: return [.fixed(w, DashboardGeometry.height)]
+            return [.flexible(200, w, top),
+                    .flexible(p.sideWidths(hasBattery: true).min()!, 420, p.bottomHeight),
+                    .flexible(p.sideWidths(hasBattery: true).min()!, 420, bottom),
+                    .flexible(p.sideWidths(hasBattery: true).min()!, 420, h)]
+        case .performanceNetwork:
+            return [.flexible(230, w, top),
+                    .flexible(p.networkWidth, w, p.bottomHeight),
+                    .flexible(300, w, bottom),
+                    .flexible(300, w, h)]
+        case .performanceBattery:
+            return [.flexible(p.batteryWidth, 420, top),
+                    .flexible(p.batteryWidth, 420, bottom),
+                    .flexible(p.batteryWidth, 420, h)]
+        case .weatherHero:
+            return [.flexible(500, w, WeatherPageGeometry.heroHeight),
+                    .flexible(275, w, bottom),
+                    .flexible(275, w, h)]
+        case .weatherHourly:
+            return [.flexible(300, w, WeatherPageGeometry.hourlyHeight),
+                    .flexible(300, w, bottom)]
+        case .weatherDaily:
+            return [.flexible(300, w, WeatherPageGeometry.dailyHeight),
+                    .flexible(275, w, bottom),
+                    .flexible(200, w, h)]
+        case .mediaPlayer:
+            return [.flexible(413, w, bottom), .flexible(413, w, h)]
         case .weather, .user, .clock, .calendar, .resources, .media: return []
+        }
+    }
+
+    /// The ways a widget can show itself, chosen in its options. The first one
+    /// is the default, the look from before 09/23.
+    public var displays: [WidgetDisplay] {
+        switch self {
+        case .weather, .user, .weatherHero: [.standard, .minimal]
+        case .clock: [.standard, .analog]
+        case .calendar: [.standard, .today]
+        case .resources: [.standard, .bars]
+        case .media, .mediaPlayer: [.standard, .cover]
+        case .performanceCPU, .performanceGPU: [.standard, .graph, .gauge]
+        case .performanceStorage, .performanceMemory: [.standard, .bar]
+        case .performanceNetwork: [.standard, .numbers]
+        case .performanceBattery: [.standard, .ring]
+        case .weatherHourly: [.standard, .graph]
+        case .weatherDaily: [.standard, .list]
         }
     }
 

@@ -51,4 +51,18 @@ struct WidgetInstanceTests {
     func rounding() {
         #expect(WidgetFrame(x: 10.4, y: 10.6, width: 99.5, height: 130).rounded() == WidgetFrame(x: 10, y: 11, width: 100, height: 130))
     }
+
+    @Test("Display: stored, missing = the first, one of another kind = the first")
+    func display() throws {
+        let decoder = JSONDecoder()
+        let graph = try decoder.decode(WidgetOptions.self, from: Data(#"{"display":"graph"}"#.utf8))
+        #expect(graph.display == .graph)
+        #expect(graph.display(for: .performanceCPU) == .graph)
+        #expect(graph.display(for: .clock) == .standard)
+        let unknown = try decoder.decode(WidgetOptions.self, from: Data(#"{"display":"hologram"}"#.utf8))
+        #expect(unknown.display == nil)
+        #expect(WidgetOptions().display(for: .weatherDaily) == .standard)
+        let encoded = try JSONEncoder().encode(WidgetOptions())
+        #expect(String(decoding: encoded, as: UTF8.self) == "{}")
+    }
 }

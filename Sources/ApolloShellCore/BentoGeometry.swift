@@ -96,11 +96,18 @@ public enum BentoGeometry {
             for other in others {
                 candidates += [other.x - spacing - frame.x, other.maxX - frame.x]
             }
+            let free = width
             width = snap(width, to: candidates.filter { $0 >= size.minWidth && $0 <= size.maxWidth })
-            // Round first, then force it back into the range of the size - a
-            // half-point maximum (413.5, say) stays untouched that way instead
-            // of becoming invalid through the rounding.
-            width = min(max(width.rounded(), size.minWidth), size.maxWidth)
+            // Round only a free width: a snapped one lands exactly on its
+            // target, and the ends of the range stay exact too - rounded,
+            // 169.5 of the performance page became 170, 12.5 points short
+            // of its neighbour and so invalid. Then force it back into the
+            // range, so a half-point maximum (413.5) never gets passed.
+            if width == free {
+                width = abs(width - size.minWidth) < 0.5 ? size.minWidth
+                    : abs(width - size.maxWidth) < 0.5 ? size.maxWidth : width.rounded()
+            }
+            width = min(max(width, size.minWidth), size.maxWidth)
         }
         // A fixed width (minWidth == maxWidth) is the exact catalogue value
         // already - never round, otherwise 169.5 becomes invalid.
