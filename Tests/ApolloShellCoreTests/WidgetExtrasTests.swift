@@ -96,4 +96,12 @@ struct WidgetExtrasTests {
         #expect(ClipboardList.records(types: ["public.utf8-plain-text"]))
         #expect(ClipboardList.preview("a\n  b\tc") == "a b c")
     }
+
+    @Test("The bar's timer and network blocks decode and keep their raw values")
+    func barBlocks() throws {
+        #expect(BarModuleKind.timer.rawValue == "timer" && BarModuleKind.networkSpeed.rawValue == "networkSpeed")
+        let json = #"[{"kind":"timer"},{"kind":"networkSpeed"}]"#
+        let layout = try JSONDecoder().decode(BarLayout.self, from: Data(json.utf8))
+        #expect(layout.entries.map(\.kind) == [.timer, .networkSpeed])
+    }
 }

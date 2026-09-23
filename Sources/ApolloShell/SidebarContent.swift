@@ -176,6 +176,10 @@ struct BarModuleView: View {
                 Image(systemName: "music.note")
                     .font(.system(size: 15, weight: .semibold))
             }
+        case .timer:
+            BarTimerModule(timer: context.timer)
+        case .networkSpeed:
+            BarNetworkModule(model: context.network) { context.onDashboardTab(.performance) }
         }
     }
 }

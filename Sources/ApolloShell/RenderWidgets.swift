@@ -30,6 +30,7 @@ enum RenderWidgets {
             artwork: sampleCover(size: NSSize(width: 150, height: 83)),
             source: MediaSource(name: "Vivaldi", icon: nil), now: fixtures.now)
         let extras = previewExtras(now: fixtures.now)
+        try renderBar(into: folder, now: fixtures.now)
         for kind in kinds.isEmpty ? WidgetKind.allCases : kinds {
             let rows: [(WidgetDisplay, MediaModel, String)] = kind.displays.flatMap { display in
                 kind.usesMedia ? [(display, media, "music"), (display, video, "video")] : [(display, media, "")]
@@ -61,6 +62,29 @@ enum RenderWidgets {
                 try RenderMode.write(sheet, scheme: scheme,
                                      to: folder.appendingPathComponent(RenderMode.name(kind.rawValue, scheme)))
             }
+        }
+    }
+
+    /// `--render-widgets <folder> bar`: the timer and network blocks of the
+    /// bar, idle and running, at the bar's width.
+    static func renderBar(into folder: URL, now: Date) throws {
+        let running = previewExtras(now: now).timer
+        let idle = ShellTimer.preview({ _ in }, now: now)
+        let column = HStack(spacing: 24) {
+            ForEach([idle, running], id: \.state.isRunning) { timer in
+                VStack(spacing: 8) {
+                    BarTimerModule(timer: timer)
+                    BarNetworkModule(model: BarNetworkModel(preview: NetRate(download: 1_234_000, upload: 85_000))) {}
+                    BarNetworkModule(model: BarNetworkModel(preview: NetRate(download: 23_000_000, upload: 420))) {}
+                }
+                .frame(width: Sidebar.width)
+            }
+        }
+        .padding(16)
+        // Without the AppKit mouse views, which `ImageRenderer` draws as a no-entry sign.
+        .environment(\.barPreview, true)
+        for scheme in [ColorScheme.dark, .light] {
+            try RenderMode.write(column, scheme: scheme, to: folder.appendingPathComponent(RenderMode.name("bar", scheme)))
         }
     }
 

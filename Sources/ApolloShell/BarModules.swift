@@ -37,6 +37,8 @@ struct BarModuleContext {
     var clock: SidebarClockModel
     var cpu: BarCPUModel
     var weather: BarWeatherFeed
+    var network: BarNetworkModel = BarNetworkModel(preview: NetRate(download: 1_200_000, upload: 85_000))
+    var timer: ShellTimer = .shared
     var onDashboard: @MainActor () -> Void = {}
     /// Media, weather, CPU, battery: straight to the matching tab.
     var onDashboardTab: @MainActor (DashboardTab) -> Void = { _ in }
@@ -348,6 +350,149 @@ struct BarCPUModule: View {
     }
 }
 
+/// Download and upload per second for the network block. Every 2 s and only
+/// on demand (`BarDemand`), like the CPU: reading the interface counters is
+/// one sysctl.
+@MainActor
+@Observable
+final class BarNetworkModel {
+    private(set) var rate: NetRate?
+
+    @ObservationIgnored private let live: Bool
+    @ObservationIgnored private var demand = BarDemand()
+    @ObservationIgnored private var timer: Timer?
+    @ObservationIgnored private var meter = NetworkMeter()
+
+    init() {
+        live = true
+    }
+
+    init(preview rate: NetRate?) {
+        live = false
+        self.rate = rate
+    }
+
+    var paused: Bool {
+        get { demand.paused }
+        set { demand.paused = newValue; sync() }
+    }
+
+    func acquire() { demand.acquire(); sync() }
+    func release() { demand.release(); sync() }
+
+    private func sync() {
+        guard live else { return }
+        if demand.isActive, timer == nil {
+            meter.pause()
+            sample()
+            let timer = Timer(timeInterval: BarCPUModel.interval, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.sample() }
+            }
+            timer.tolerance = 0.5
+            RunLoop.main.add(timer, forMode: .common)
+            self.timer = timer
+        } else if !demand.isActive, let timer {
+            timer.invalidate()
+            self.timer = nil
+        }
+    }
+
+    private func sample() {
+        guard let counters = PerformanceSampler.networkCounters() else { return }
+        meter.add(counters, at: ProcessInfo.processInfo.systemUptime)
+        if meter.rate != rate { rate = meter.rate }
+    }
+}
+
+/// Down above up, short ("1.2M", "85K") - the bar is narrow.
+struct BarNetworkModule: View {
+    let model: BarNetworkModel
+    let onOpen: () -> Void
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let rate = model.rate
+        BarTile(help: rate.map { "↓ \(ByteFormat.rate($0.download))  ↑ \(ByteFormat.rate($0.upload))" }
+                    ?? String(localized: "Network Speed"),
+                action: onOpen) {
+            VStack(spacing: 1) {
+                line("arrow.down", rate.map { Self.short($0.download) }, color: style.accent)
+                line("arrow.up", rate.map { Self.short($0.upload) }, color: style.contrastAccent)
+            }
+        }
+        .onAppear { model.acquire() }
+        .onDisappear { model.release() }
+    }
+
+    private func line(_ symbol: String, _ value: String?, color: Color) -> some View {
+        HStack(spacing: 1) {
+            Image(systemName: symbol).font(.system(size: 7, weight: .black)).foregroundStyle(color)
+            Text(value ?? "–").font(.system(size: 9.5, weight: .semibold)).monospacedDigit()
+                .lineLimit(1).minimumScaleFactor(0.7)
+        }
+    }
+
+    /// Bytes per second in three characters or so: 0, 850, 85K, 1.2M, 12M.
+    static func short(_ bytesPerSecond: Double) -> String {
+        let value = max(bytesPerSecond, 0)
+        if value < 1_000 { return "\(Int(value))" }
+        if value < 1_000_000 { return "\(Int(value / 1_000))K" }
+        let megabytes = value / 1_000_000
+        return megabytes < 10 ? String(format: "%.1fM", megabytes) : "\(Int(megabytes))M"
+    }
+}
+
+/// The shell's timer in the bar: a ring with the minutes left; idle only the
+/// symbol. A click starts or pauses, the menu resets or starts a preset.
+struct BarTimerModule: View {
+    let timer: ShellTimer
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let state = timer.state
+        // Ticks only while it runs: an idle or paused timer draws nothing new.
+        TimelineView(.animation(minimumInterval: 1, paused: !timer.state.isRunning || timer.fixedNow != nil)) { context in
+            let now = timer.fixedNow ?? context.date
+            BarTile(help: state.isIdle ? String(localized: "Timer") : TimerCard.text(state, now: now),
+                    action: { timer.toggle() }) {
+                if state.isIdle {
+                    Image(systemName: "timer").font(.system(size: 15, weight: .semibold))
+                } else {
+                    ZStack {
+                        Circle().stroke(Color.primary.opacity(0.15), lineWidth: 2.5)
+                        Circle()
+                            .trim(from: 0, to: state.mode == .stopwatch ? state.progress(at: now) : 1 - state.progress(at: now))
+                            .stroke(state.isRunning ? style.accent : Color.secondary,
+                                    style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                        Text(Self.short(state, now: now))
+                            .font(.system(size: 8.5, weight: .bold, design: .rounded)).monospacedDigit()
+                            .minimumScaleFactor(0.7)
+                    }
+                    .frame(width: 26, height: 26)
+                }
+            }
+        }
+        .contextMenu {
+            if !state.isIdle { Button("Reset") { timer.reset() } }
+            ForEach([5, 10, 15, 25], id: \.self) { minutes in
+                Button(String(localized: "\(minutes) Minutes")) {
+                    timer.reset()
+                    timer.set(mode: .timer, minutes: minutes)
+                    timer.prepare(minutes: minutes)
+                    timer.toggle()
+                }
+            }
+        }
+    }
+
+    /// Minutes left while there are more than 99 seconds, then seconds.
+    static func short(_ state: ShellTimerState, now: Date) -> String {
+        let seconds = state.remaining(at: now) ?? state.elapsed(at: now)
+        return seconds >= 100 ? "\(Int((seconds / 60).rounded(.up)))m" : "\(Int(seconds.rounded(.up)))"
+    }
+}
+
 /// The weather symbol in multicolor (as in the dashboard), below it the
 /// temperature on request. Place and data as in the dashboard (Open-Meteo).
 struct BarWeatherModule: View {
@@ -416,6 +561,8 @@ extension BarModuleKind {
         case .cpu: .orange
         case .weather: .cyan
         case .mediaButton: .pink
+        case .timer: .orange
+        case .networkSpeed: .blue
         }
     }
 }

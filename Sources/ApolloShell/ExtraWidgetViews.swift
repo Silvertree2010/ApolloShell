@@ -30,7 +30,8 @@ struct TimerCard: View {
         let state = timer.state
         // Idle: the widget's own mode; running or paused: the one timer.
         let shown = state.isIdle && state.mode != mode ? previewState : state
-        TimelineView(.periodic(from: .now, by: 1)) { context in
+        // Ticks only while it runs: an idle or paused timer draws nothing new.
+        TimelineView(.animation(minimumInterval: 1, paused: !timer.state.isRunning || timer.fixedNow != nil)) { context in
             let now = timer.fixedNow ?? context.date
             let text = Self.text(shown, now: now)
             Card(radius: 24) {

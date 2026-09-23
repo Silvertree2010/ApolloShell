@@ -259,7 +259,7 @@ struct BarBlockOptionsView: View {
                 .weather(.init(showTemperature: $0))
             })
             BarWeatherPlacesSection()
-        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton:
+        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .timer, .networkSpeed:
             Text("Nothing to set.")
                 .font(.callout)
                 .foregroundStyle(.secondary)

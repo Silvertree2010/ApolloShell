@@ -54,6 +54,7 @@ final class Sidebar {
     /// CPU and weather only measure or fetch as long as at least one bar
     /// is visible.
     private let cpu = BarCPUModel()
+    private let network = BarNetworkModel()
     private let weather: BarWeatherFeed
     /// Wi-Fi, Bluetooth, battery for the status capsule.
     private let status = StatusModel()
@@ -94,7 +95,7 @@ final class Sidebar {
         // Weather provider likewise from the settings, as in the Dashboard.
         weather = BarWeatherFeed(settings: settings)
         context = BarModuleContext(
-            status: status, spaces: spaces, dock: dock, clock: clock, cpu: cpu, weather: weather,
+            status: status, spaces: spaces, dock: dock, clock: clock, cpu: cpu, weather: weather, network: network,
             onDashboard: { [weak self] in self?.onDashboard() },
             onDashboardTab: { [weak self] in self?.onDashboardTab($0) },
             onUtilities: { [weak self] in self?.onUtilities() },
@@ -174,6 +175,7 @@ final class Sidebar {
     private func updateModelDemand() {
         let anyVisible = bars.values.contains { !$0.isHiddenForFullscreen }
         cpu.paused = !anyVisible
+        network.paused = !anyVisible
         weather.paused = !anyVisible
         dock.badgesPaused = !anyVisible
     }

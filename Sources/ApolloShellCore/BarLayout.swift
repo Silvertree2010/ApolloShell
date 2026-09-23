@@ -23,6 +23,8 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
     case dashboardButton, workspaces, dock, clock, utilitiesButton, statusIcons, power
     // Added new, for different tastes.
     case spacer, gap, divider, appButton, battery, cpu, weather, mediaButton
+    // 09/23, with the new dashboard widgets.
+    case timer, networkSpeed
 
     public var id: Self { self }
 
@@ -52,6 +54,8 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .cpu: String(localized: "CPU")
         case .weather: String(localized: "Weather")
         case .mediaButton: String(localized: "Media")
+        case .timer: String(localized: "Timer")
+        case .networkSpeed: String(localized: "Network Speed")
         }
     }
 
@@ -73,6 +77,8 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .cpu: String(localized: "Load as a ring or number, every 2 seconds.")
         case .weather: String(localized: "Icon and temperature for the Dashboard's location.")
         case .mediaButton: String(localized: "Opens the Dashboard at the Media tab.")
+        case .timer: String(localized: "The time left on the timer; a click starts or pauses it.")
+        case .networkSpeed: String(localized: "Download and upload per second, every 2 seconds.")
         }
     }
 
@@ -94,6 +100,8 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .cpu: "cpu.fill"
         case .weather: "cloud.sun.fill"
         case .mediaButton: "music.note"
+        case .timer: "timer"
+        case .networkSpeed: "arrow.up.arrow.down"
         }
     }
 }
@@ -296,6 +304,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
     case cpu(BarCPUOptions)
     case weather(BarWeatherOptions)
     case mediaButton
+    case timer
+    case networkSpeed
 
     /// With the kind's defaults.
     public init(_ kind: BarModuleKind) {
@@ -323,6 +333,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .cpu: .cpu(Self.decoded(c, forKey: .options, default: .init()))
         case .weather: .weather(Self.decoded(c, forKey: .options, default: .init()))
         case .mediaButton: .mediaButton
+        case .timer: .timer
+        case .networkSpeed: .networkSpeed
         }
     }
 
@@ -343,6 +355,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .cpu: .cpu
         case .weather: .weather
         case .mediaButton: .mediaButton
+        case .timer: .timer
+        case .networkSpeed: .networkSpeed
         }
     }
 
@@ -359,7 +373,7 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .battery(let o): o
         case .cpu(let o): o
         case .weather(let o): o
-        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton: nil
+        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .timer, .networkSpeed: nil
         }
     }
 

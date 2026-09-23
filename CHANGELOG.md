@@ -26,6 +26,9 @@ tabs you had into pages, with the cards at the same spots. The old
   clipboard history (text only, never what password managers mark secret,
   kept in memory only), sun and moon for a place, and the drives with an
   eject button.
+- **Two new bar blocks**: the timer (a ring with the minutes left; a click
+  starts or pauses, the menu starts 5, 10, 15 or 25 minutes) and the
+  network speed (download above upload, every 2 seconds).
 - **Every widget has display modes** in its options: an analog clock, today
   in large, bars for the resources, a minimal weather and user card, graph
   and gauge for CPU and GPU, bars for storage and memory, plain numbers for
