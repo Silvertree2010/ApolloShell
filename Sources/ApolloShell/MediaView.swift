@@ -258,50 +258,118 @@ struct MediaCompactCard: View {
 
 // MARK: - Tab
 
-/// The "Media" tab, fills the dashboard's content area (839 x 392).
-/// Caelestia: 1000 x 320 with three columns - cover (300), details, lyrics
-/// and player picker (300), gap 28. Widths times 0.839 to make it fit; the
-/// extra height goes to the cover (244 instead of 200).
+/// The "Play" widget, the page of its own at 839 x 392 and smaller ones
+/// down to 413 x 250. Caelestia: 1000 x 320 with three columns - cover (300),
+/// details, lyrics and player picker (300), gap 28. Widths times 0.839 to
+/// make it fit; the extra height goes to the cover (244 instead of 200).
+///
+/// A card like every other widget since 09/23: before, the blurred cover
+/// stretched over the whole page was its background, a smeared patch that
+/// looked like nothing else in the dashboard. The source column only where
+/// there is room for it (from 700 wide).
 struct MediaTab: View {
     let model: MediaModel
+    var size = CGSize(width: 839, height: 392)
     @Environment(\.shellStyle) private var style
 
-    private static let coverSection: CGFloat = 252  // 300 x 0.839
-    private static let coverSize: CGFloat = 244
     private static let sourceWidth: CGFloat = 200
-    /// Source exactly as tall as the cover: the columns form a calm line.
-    private static let panelHeight: CGFloat = coverSize
     private static let spacing: CGFloat = 24        // 28 x 0.839
 
     var body: some View {
-        HStack(spacing: Self.spacing) {
-            MediaArtwork(image: model.artwork, id: model.artworkID,
-                         shape: RoundedRectangle(cornerRadius: style.cardRadius(28), style: .continuous), symbolSize: 64)
-                .frame(width: Self.coverSize, height: Self.coverSize)
-                .shadow(color: .black.opacity(model.artwork == nil ? 0 : 0.3), radius: 18, y: 8)
-                .frame(width: Self.coverSection)
+        let cover = min(size.height - 48, size.width * 0.34, 244)
+        let showsSource = size.width >= 700
+        Card(radius: 28) {
+            HStack(spacing: Self.spacing) {
+                MediaArtwork(image: model.artwork, id: model.artworkID,
+                             shape: RoundedRectangle(cornerRadius: style.cardRadius(22), style: .continuous),
+                             symbolSize: cover * 0.26)
+                    .frame(width: cover, height: cover)
+                    .shadow(color: .black.opacity(model.artwork == nil ? 0 : 0.25), radius: 14, y: 6)
 
-            ZStack {
-                if let playing = model.nowPlaying {
-                    HStack(spacing: Self.spacing) {
-                        MediaDetails(model: model, playing: playing)
-                        MediaSourcePanel(source: model.source, isPlaying: playing.isPlaying)
-                            .frame(width: Self.sourceWidth, height: Self.panelHeight)
-                    }
-                    .transition(.opacity)
-                } else {
-                    MediaNothingPlaying(isUnavailable: model.isUnavailable)
+                ZStack {
+                    if let playing = model.nowPlaying {
+                        HStack(spacing: Self.spacing) {
+                            MediaDetails(model: model, playing: playing, compact: size.height < 300)
+                            if showsSource {
+                                MediaSourcePanel(source: model.source, isPlaying: playing.isPlaying)
+                                    .frame(width: Self.sourceWidth, height: cover)
+                            }
+                        }
                         .transition(.opacity)
+                    } else {
+                        MediaNothingPlaying(isUnavailable: model.isUnavailable)
+                            .transition(.opacity)
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 24)
         }
-        .padding(.leading, 18)
-        .padding(.trailing, 20)
-        .padding(.vertical, 20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background { MediaAmbient(image: model.ambient, id: model.artworkID) }
         .animation(MediaMotion.slowFade, value: model.nowPlaying == nil)
+    }
+}
+
+/// Display "cover" of the player and the small media card: the cover itself
+/// fills the card, sharp, a dark veil from below carries title, artist and
+/// the buttons. Without a cover the accent's tint instead of a picture.
+struct MediaCoverCard: View {
+    let model: MediaModel
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let big = size.height >= 300 && size.width >= 400
+        let radius = style.cardRadius(28)
+        ZStack(alignment: .bottomLeading) {
+            Rectangle().fill(style.accent.opacity(0.25))
+            if let image = model.artwork {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFill()
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+                    .id(model.artworkID)
+                    .transition(.opacity)
+            } else {
+                Image(systemName: "music.note")
+                    .font(.system(size: min(size.width, size.height) * 0.3, weight: .light))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            LinearGradient(colors: [.black.opacity(0), .black.opacity(0.35), .black.opacity(0.75)],
+                           startPoint: .init(x: 0.5, y: 0.25), endPoint: .bottom)
+            VStack(alignment: .leading, spacing: big ? 4 : 2) {
+                if let playing = model.nowPlaying {
+                    Text(playing.title)
+                        .font(style.font(size: big ? 24 : 15, weight: .semibold))
+                    Text(playing.artist ?? String(localized: "Unknown Artist"))
+                        .font(style.font(size: big ? 15 : 12, weight: .medium))
+                        .opacity(0.8)
+                    MediaClock(model: model) { now in
+                        MediaProgressBar(value: playing.progress(at: now), known: playing.duration != nil,
+                                         tint: .white)
+                    }
+                    .padding(.top, big ? 12 : 6)
+                } else {
+                    Text(model.isUnavailable ? String(localized: "Not Available") : String(localized: "Nothing Playing"))
+                        .font(style.font(size: big ? 22 : 14, weight: .semibold))
+                }
+                MediaControls(model: model, height: big ? 44 : 30, symbolSize: big ? 17 : 12, spacing: 6)
+                    .frame(maxWidth: big ? 260 : 180)
+                    .padding(.top, big ? 12 : 6)
+                    .environment(\.colorScheme, .dark)
+            }
+            .lineLimit(1)
+            .foregroundStyle(.white)
+            .padding(big ? 24 : 14)
+        }
+        .frame(width: size.width, height: size.height)
+        .clipShape(.rect(cornerRadius: radius, style: .continuous))
+        .overlay { style.border(RoundedRectangle(cornerRadius: radius, style: .continuous)) }
+        .animation(MediaMotion.slowFade, value: model.artworkID)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Media")
     }
 }
 
@@ -310,30 +378,32 @@ struct MediaTab: View {
 private struct MediaDetails: View {
     let model: MediaModel
     let playing: MediaNowPlaying
+    /// 250 tall: smaller type and gaps.
+    var compact = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shellStyle) private var style
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(playing.title)
-                .font(style.font(size: 22, weight: .semibold))
-                .lineLimit(2)
+                .font(style.font(size: compact ? 18 : 22, weight: .semibold))
+                .lineLimit(compact ? 1 : 2)
             Text(playing.artist ?? String(localized: "Unknown Artist"))
-                .font(style.font(size: 16, weight: .medium))
+                .font(style.font(size: compact ? 14 : 16, weight: .medium))
                 .foregroundStyle(.secondary)
             if let album = playing.album {
                 Text(album)
-                    .font(style.font(size: 16, weight: .medium))
+                    .font(style.font(size: compact ? 14 : 16, weight: .medium))
                     .foregroundStyle(MediaColor.accentText(colorScheme))
             }
 
             MediaClock(model: model) { now in
                 MediaTimeline(playing: playing, now: now)
             }
-            .padding(.top, 26)
+            .padding(.top, compact ? 12 : 26)
 
-            MediaControls(model: model, height: 52, symbolSize: 20, spacing: 6)
-                .padding(.top, 18)
+            MediaControls(model: model, height: compact ? 40 : 52, symbolSize: compact ? 16 : 20, spacing: 6)
+                .padding(.top, compact ? 10 : 18)
         }
         .lineLimit(1)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -488,34 +558,6 @@ private struct MediaArtwork<S: Shape>: View {
     }
 }
 
-/// Blurred cover behind the tab - a calm replacement for Caelestia's
-/// drifting shapes. The image is already blurred in the model
-/// (`MediaBlur`), once per cover; here it is only stretched. Weaker in
-/// light mode, otherwise the gray text suffers.
-private struct MediaAmbient: View {
-    let image: NSImage?
-    let id: Int
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.shellStyle) private var style
-
-    var body: some View {
-        Color.primary.opacity(0.06)
-            .overlay {
-                if let image {
-                    Image(nsImage: image)
-                        .resizable()
-                        .interpolation(.high)
-                        .scaledToFill()
-                        .opacity(colorScheme == .dark ? 0.45 : 0.35)
-                        .id(id)
-                        .transition(.opacity)
-                }
-            }
-            .clipShape(.rect(cornerRadius: style.cardRadius(28), style: .continuous))
-            .animation(MediaMotion.slowFade, value: id)
-    }
-}
-
 /// Half arc above the cover, from left over the top to the right
 /// (Caelestia: startAngle -90 - sweep/2, sweep 180). Played portion in
 /// accent, the rest faint, with a gap between them as there.
@@ -552,15 +594,17 @@ private struct MediaArc: View {
 private struct MediaProgressBar: View {
     let value: Double
     let known: Bool
+    /// Over a cover: white instead of the accent.
+    var tint: Color?
     @Environment(\.shellStyle) private var style
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.12))
+                Capsule().fill((tint ?? .primary).opacity(tint == nil ? 0.12 : 0.3))
                 if known {
                     Capsule()
-                        .fill(style.accent)
+                        .fill(tint ?? style.accent)
                         .frame(width: max(geometry.size.height, geometry.size.width * min(max(value, 0), 1)))
                 }
             }

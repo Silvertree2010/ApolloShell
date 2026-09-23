@@ -33,7 +33,9 @@ struct WidgetView: View {
                 let options = widget.options.media ?? .init()
                 // Right (200 x 392) Caelestia's card; flat and wide a
                 // strip; otherwise the small portrait one.
-                if size.width > size.height * 1.3 {
+                if display == .cover {
+                    MediaCoverCard(model: context.media, size: size)
+                } else if size.width > size.height * 1.3 {
                     MediaStripCard(model: context.media, options: options, height: size.height)
                 } else if size.height >= 330 {
                     MediaDashCard(model: context.media, options: options)
@@ -125,7 +127,11 @@ struct WidgetView: View {
                     }
                 }
             case .mediaPlayer:
-                MediaTab(model: context.media)
+                if display == .cover {
+                    MediaCoverCard(model: context.media, size: size)
+                } else {
+                    MediaTab(model: context.media, size: size)
+                }
             }
         }
     }
