@@ -204,6 +204,7 @@ enum RenderMode {
         var layout = UtilitiesPreset.everything.layout
         layout.setCard(.brightness, enabled: true)
         layout.setCard(.nowPlaying, enabled: true)
+        layout.setCard(.timer, enabled: true)
         let model = UtilitiesModel.preview(
             keepAwakeSince: Date(timeIntervalSinceNow: -3600), wifiOn: true, micMuted: false, bluetoothOn: true,
             darkMode: true, nightShift: false, showDesktopAvailable: true, hiddenFilesOn: false, lowPowerOn: false,

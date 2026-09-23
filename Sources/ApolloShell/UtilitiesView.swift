@@ -54,6 +54,7 @@ struct UtilitiesView: View {
         case .quickToggles: QuickTogglesCard(model: model, rows: rows)
         case .brightness: UtilitiesBrightnessCard(model: model)
         case .nowPlaying: UtilitiesNowPlayingCard(model: media)
+        case .timer: UtilitiesTimerCard(timer: .shared)
         }
     }
 }

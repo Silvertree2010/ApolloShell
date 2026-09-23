@@ -26,6 +26,12 @@ tabs you had into pages, with the cards at the same spots. The old
   clipboard history (text only, never what password managers mark secret,
   kept in memory only), sun and moon for a place, and the drives with an
   eject button.
+- **Control centre: three new cards and seven new switches.** Cards for the
+  display brightness, what is playing, and the timer (quick starts 5, 15,
+  25 minutes); all three start switched off. Switches for mute, hidden files
+  in the Finder, emptying the trash (asks with a second click), Mission
+  Control, Launchpad (Apps on macOS 26), AirDrop and Low Power Mode (asks
+  for the administrator password).
 - **Two new bar blocks**: the timer (a ring with the minutes left; a click
   starts or pauses, the menu starts 5, 10, 15 or 25 minutes) and the
   network speed (download above upload, every 2 seconds).

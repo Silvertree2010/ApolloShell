@@ -18,7 +18,7 @@ public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifi
     case keepAwake, audio, quickToggles
     // Newly added, off by default (`defaultEnabledWhenMissing`): whoever
     // wants them turns them on in Nexus or the gallery.
-    case brightness, nowPlaying
+    case brightness, nowPlaying, timer
 
     public var id: Self { self }
 
@@ -29,6 +29,7 @@ public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifi
         case .quickToggles: UtilitiesToggleText.cardTitle
         case .brightness: UtilitiesBrightnessText.title
         case .nowPlaying: UtilitiesNowPlayingText.title
+        case .timer: String(localized: "Timer")
         }
     }
 
@@ -39,6 +40,7 @@ public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifi
         case .quickToggles: "Switches and actions, five per row."
         case .brightness: "The brightness of the built-in and connected displays."
         case .nowPlaying: "Cover, title, artist and the transport buttons."
+        case .timer: "The shell's timer, with quick starts for 5, 15 and 25 minutes."
         }
     }
 
@@ -49,6 +51,7 @@ public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifi
         case .quickToggles: "square.grid.3x3.fill"
         case .brightness: "sun.max.fill"
         case .nowPlaying: "music.note"
+        case .timer: "timer"
         }
     }
 
@@ -59,7 +62,7 @@ public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifi
     var defaultEnabledWhenMissing: Bool {
         switch self {
         case .keepAwake, .audio, .quickToggles: true
-        case .brightness, .nowPlaying: false
+        case .brightness, .nowPlaying, .timer: false
         }
     }
 }
@@ -670,6 +673,8 @@ public enum UtilitiesMetrics {
     public static let brightnessHeight = 87.0
     /// 48pt cover, plus inner margin: one row, no second line needed.
     public static let nowPlayingHeight = 76.0
+    /// 48pt ring, plus inner margin: one row like the now-playing card.
+    public static let timerHeight = 76.0
 
     public static func toggleCardHeight(rows: Int) -> Double {
         let rows = max(rows, 1)
@@ -684,6 +689,7 @@ public enum UtilitiesMetrics {
         case .quickToggles: toggleCardHeight(rows: toggleRows)
         case .brightness: brightnessHeight
         case .nowPlaying: nowPlayingHeight
+        case .timer: timerHeight
         }
     }
 }
