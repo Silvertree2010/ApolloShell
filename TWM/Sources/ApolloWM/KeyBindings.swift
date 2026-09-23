@@ -242,6 +242,8 @@ public final class KeyBindings {
         case .toggleSplit: engine.toggleSplit(of: id)
         case .toggleGroup: engine.toggleGroup(id)
         case .cycleTab(let forward): engine.cycleTab(from: id, forward: forward)
+        case .moveTab(let forward): engine.moveTab(id, forward: forward)
+        case .groupApp: engine.groupApp(of: id)
         case .grow(let fraction): engine.grow(id, by: fraction)
         case .sendToDesktop(let number): send(id, toDesktop: number)
         case .sendToDisplay(let next): engine.sendToDisplay(id, next: next)

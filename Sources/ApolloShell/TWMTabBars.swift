@@ -45,7 +45,13 @@ final class TWMTabBars {
         TabBarActions(
             select: { [weak self] id in self?.engine.activateTab(id) },
             close: { [weak self] id in self?.engine.windows[id]?.close() },
-            add: { [weak self] shown, button in self?.showNewTabMenu(for: shown, from: button) }
+            add: { [weak self] shown, button in self?.showNewTabMenu(for: shown, from: button) },
+            reorder: { [weak self] id, place in self?.engine.moveTab(id, to: place) },
+            cycle: { [weak self] forward in
+                guard let self, let shown = self.engine.tabBars().first?.active else { return }
+                self.engine.cycleTab(from: shown, forward: forward)
+            },
+            detach: { [weak self] id in self?.engine.toggleGroup(id) }
         )
     }
 
@@ -88,6 +94,12 @@ struct TabBarActions {
     let select: (CGWindowID) -> Void
     let close: (CGWindowID) -> Void
     let add: (CGWindowID, NSView) -> Void
+    /// A tab was dragged to another place on the bar.
+    let reorder: (CGWindowID, Int) -> Void
+    /// Scrolling over the bar walks the tabs.
+    let cycle: (Bool) -> Void
+    /// A tab dragged off the bar gets a tile of its own again.
+    let detach: (CGWindowID) -> Void
 }
 
 /// One tab bar: a normal-level glass panel (the tile below belongs to its
@@ -103,7 +115,8 @@ private final class TabBarPanel: ShellPanel {
         glass = NSGlassEffectView()
         super.init(level: .normal, behavior: [.ignoresCycle, .transient], mayLeaveScreen: true)
         model.actions = actions
-        let content = NSView()
+        let content = ScrollCatchingView()
+        content.onScroll = { [weak model] forward in model?.actions?.cycle(forward) }
         let hosting = FirstMouseHostingView(rootView: TabBarView(model: model).shellTheme())
         hosting.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(hosting)
@@ -148,6 +161,22 @@ private final class TabBarPanel: ShellPanel {
     private var lastOrdered: CFTimeInterval = 0
 }
 
+/// Scrolling anywhere on the bar walks the tabs; SwiftUI does not use the
+/// wheel here, so the event reaches this view underneath.
+private final class ScrollCatchingView: NSView {
+    var onScroll: ((Bool) -> Void)?
+    private var wheel: CGFloat = 0
+
+    override func scrollWheel(with event: NSEvent) {
+        wheel += event.scrollingDeltaY + event.scrollingDeltaX
+        // A trackpad sends many small steps: one tab per 20 points.
+        while abs(wheel) >= 20 {
+            onScroll?(wheel < 0)
+            wheel += wheel > 0 ? -20 : 20
+        }
+    }
+}
+
 @MainActor
 @Observable
 private final class TabBarModel {
@@ -161,10 +190,13 @@ private struct TabBarView: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(model.tabs, id: \.windowID) { tab in
+            ForEach(Array(model.tabs.enumerated()), id: \.element.windowID) { index, tab in
                 TabButton(tab: tab, isActive: tab.windowID == model.active,
+                          index: index, count: model.tabs.count,
                           select: { model.actions?.select(tab.windowID) },
-                          close: { model.actions?.close(tab.windowID) })
+                          close: { model.actions?.close(tab.windowID) },
+                          reorder: { place in model.actions?.reorder(tab.windowID, place) },
+                          detach: { model.actions?.detach(tab.windowID) })
             }
             AddButton { view in model.actions?.add(model.active, view) }
         }
@@ -176,33 +208,66 @@ private struct TabBarView: View {
 private struct TabButton: View {
     let tab: TilingEngine.Tab
     let isActive: Bool
+    let index: Int
+    let count: Int
     let select: () -> Void
     let close: () -> Void
+    /// Dragged this far along the bar, in tab widths.
+    let reorder: (Int) -> Void
+    /// Dragged off the bar.
+    let detach: () -> Void
     @State private var hovering = false
+    @State private var drag: CGFloat = 0
 
     var body: some View {
-        HStack(spacing: 6) {
-            if let icon = NSRunningApplication(processIdentifier: tab.pid)?.icon {
-                Image(nsImage: icon).resizable().frame(width: 14, height: 14)
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            HStack(spacing: 6) {
+                if let icon = NSRunningApplication(processIdentifier: tab.pid)?.icon {
+                    Image(nsImage: icon).resizable().frame(width: 14, height: 14)
+                }
+                // Under 70 pt there is no room for a name worth reading.
+                if width > 70 {
+                    Text(tab.title.isEmpty ? String(localized: "Window") : tab.title)
+                        .font(.system(size: 11, weight: isActive ? .semibold : .regular))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Button(action: close) {
+                        Image(systemName: "xmark").font(.system(size: 9, weight: .bold))
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(hovering || isActive ? 0.8 : 0)
+                    .help(String(localized: "Close this window"))
+                } else {
+                    Spacer(minLength: 0)
+                }
             }
-            Text(tab.title.isEmpty ? String(localized: "Window") : tab.title)
-                .font(.system(size: 11, weight: isActive ? .semibold : .regular))
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Button(action: close) {
-                Image(systemName: "xmark").font(.system(size: 9, weight: .bold))
-            }
-            .buttonStyle(.plain)
-            .opacity(hovering || isActive ? 0.8 : 0)
-            .help(String(localized: "Close this window"))
+            .padding(.horizontal, width > 70 ? 8 : 4)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(RoundedRectangle(cornerRadius: 6).fill(.primary.opacity(isActive ? 0.14 : hovering ? 0.07 : 0)))
+            .contentShape(Rectangle())
+            .offset(x: drag)
+            .zIndex(drag == 0 ? 0 : 1)
+            .onHover { hovering = $0 }
+            .onTapGesture(perform: select)
+            .help(tab.title)
+            .gesture(
+                DragGesture(minimumDistance: 6)
+                    .onChanged { drag = $0.translation.width }
+                    .onEnded { value in
+                        drag = 0
+                        // Dragged down off the bar: out of the group.
+                        if value.translation.height > 24 {
+                            detach()
+                            return
+                        }
+                        let places = Int((value.translation.width / max(width, 1)).rounded())
+                        guard places != 0 else { return }
+                        reorder(min(max(index + places, 0), count - 1))
+                    }
+            )
         }
-        .padding(.horizontal, 8)
-        .frame(maxHeight: .infinity)
-        .background(RoundedRectangle(cornerRadius: 6).fill(.primary.opacity(isActive ? 0.14 : hovering ? 0.07 : 0)))
-        .contentShape(Rectangle())
-        .onHover { hovering = $0 }
-        .onTapGesture(perform: select)
         .padding(.vertical, 3)
     }
 }

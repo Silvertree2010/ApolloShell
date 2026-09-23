@@ -62,4 +62,24 @@ struct TabGroupTests {
         #expect(tree.fits(in: area, minimums: [1: CGSize(width: 400, height: 0)]))
         #expect(!tree.fits(in: area, minimums: [1: CGSize(width: 700, height: 0), 2: CGSize(width: 400, height: 0)]))
     }
+
+    @Test func aTabMovesOnePlaceAlongTheBarAndStopsAtTheEnds() {
+        var group = TabGroup(1, 2)
+        group.add(3)
+        let moved = group.move(1, forward: true)
+        #expect(moved)
+        #expect(group.members == [2, 1, 3])
+        let stopped = group.move(2, forward: false)
+        #expect(!stopped)
+        #expect(group.members == [2, 1, 3])
+    }
+
+    @Test func aTabCanBeDroppedAtAPlace() {
+        var group = TabGroup(1, 2)
+        group.add(3)
+        group.move(3, to: 0)
+        #expect(group.members == [3, 1, 2])
+        group.move(3, to: 99)
+        #expect(group.members == [3, 1, 2])
+    }
 }

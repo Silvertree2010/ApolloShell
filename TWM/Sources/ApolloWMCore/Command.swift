@@ -17,6 +17,10 @@ public enum Command: Sendable, Equatable {
     case toggleGroup
     /// Next (true) or previous tab of a group.
     case cycleTab(Bool)
+    /// Move the active tab one place along its bar.
+    case moveTab(Bool)
+    /// Put every window of the focused window's app into one group.
+    case groupApp
     case toggleFloating
     case toggleFullscreen
     /// Close the focused window (like its red button; the app keeps running).
@@ -74,6 +78,10 @@ public enum Command: Sendable, Equatable {
         case "tab":
             guard rest.count == 1, ["next", "prev", "previous"].contains(rest[0]) else { return nil }
             self = .cycleTab(rest[0] == "next")
+        case "tab-move":
+            guard rest.count == 1, ["next", "prev", "previous"].contains(rest[0]) else { return nil }
+            self = .moveTab(rest[0] == "next")
+        case "group-app" where none(): self = .groupApp
         case "float" where none(): self = .toggleFloating
         case "fullscreen" where none(): self = .toggleFullscreen
         case "close" where none(): self = .closeWindow
@@ -119,6 +127,8 @@ public enum Command: Sendable, Equatable {
         case .newTerminal: "terminal"
         case .toggleGroup: "group"
         case .cycleTab(let forward): forward ? "tab next" : "tab prev"
+        case .moveTab(let forward): forward ? "tab-move next" : "tab-move prev"
+        case .groupApp: "group-app"
         case .toggleFloating: "float"
         case .toggleFullscreen: "fullscreen"
         case .closeWindow: "close"
@@ -160,6 +170,7 @@ public enum Command: Sendable, Equatable {
             KeyNames.code("g")!: .toggleGroup,
             KeyNames.code("]")!: .cycleTab(true),
             KeyNames.code("[")!: .cycleTab(false),
+            KeyNames.code("a")!: .groupApp,
             KeyNames.code("r")!: .resizeMode,
             KeyNames.code("m")!: .sendMode,
             KeyNames.code("s")!: .scratchpad,

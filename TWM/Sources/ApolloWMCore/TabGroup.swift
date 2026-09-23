@@ -34,6 +34,23 @@ public struct TabGroup<ID: Hashable & Sendable & Codable>: Sendable, Codable, Eq
         return members.count > 1 ? active : nil
     }
 
+    /// Moves a tab one place along the bar. Returns whether it moved.
+    @discardableResult
+    public mutating func move(_ id: ID, forward: Bool) -> Bool {
+        guard let index = members.firstIndex(of: id) else { return false }
+        let to = index + (forward ? 1 : -1)
+        guard members.indices.contains(to) else { return false }
+        members.swapAt(index, to)
+        return true
+    }
+
+    /// Puts a tab at `index` (a drag along the bar).
+    public mutating func move(_ id: ID, to index: Int) {
+        guard let from = members.firstIndex(of: id), members.indices.contains(index), from != index else { return }
+        let member = members.remove(at: from)
+        members.insert(member, at: index)
+    }
+
     /// The tab after (or before) the active one, wrapping around.
     public func neighbor(of id: ID, forward: Bool) -> ID? {
         guard let index = members.firstIndex(of: id), members.count > 1 else { return nil }

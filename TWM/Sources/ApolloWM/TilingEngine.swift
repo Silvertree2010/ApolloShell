@@ -868,6 +868,43 @@ public final class TilingEngine {
         relayout()
     }
 
+    /// Moves a tab one place along its bar.
+    public func moveTab(_ id: CGWindowID, forward: Bool) {
+        guard let index = groups.firstIndex(where: { $0.contains(id) }) else { return }
+        guard groups[index].move(id, forward: forward) else { return }
+        publishTabBars()
+    }
+
+    /// Puts a tab where it was dragged to on the bar.
+    public func moveTab(_ id: CGWindowID, to place: Int) {
+        guard let index = groups.firstIndex(where: { $0.contains(id) }) else { return }
+        groups[index].move(id, to: place)
+        publishTabBars()
+    }
+
+    /// Every window of one app on this desktop into a single group, so an
+    /// app's windows sit in one tile as tabs.
+    public func groupApp(of id: CGWindowID) {
+        guard let window = windows[id], let home = desk(of: id) else { return }
+        let mates = windows.values
+            .filter { $0.pid == window.pid && $0.windowID != id && desk(of: $0.windowID) == home
+                      && floating[$0.windowID] == nil && scratchpad != $0.windowID }
+            .map(\.windowID)
+        guard !mates.isEmpty else {
+            log("group app: \(window.title) is the only window of its app here")
+            return
+        }
+        for mate in mates {
+            guard group(of: mate)?.contains(id) != true else { continue }
+            leaveGroup(mate)
+            layouts.remove(mate)
+            strips[home]?.remove(mate)
+            join(mate, with: id)
+        }
+        log("grouped \(mates.count + 1) windows of \(window.title)")
+        relayout()
+    }
+
     /// The next or previous tab of the group holding `id`.
     public func cycleTab(from id: CGWindowID, forward: Bool) {
         guard let group = group(of: id), let next = group.neighbor(of: group.active, forward: forward) else { return }
