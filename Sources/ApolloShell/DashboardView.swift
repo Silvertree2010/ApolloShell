@@ -22,6 +22,9 @@ struct DashboardView: View {
     let media: MediaModel
     let settings: ShellSettingsStore
     let editor: DashboardEditor
+    /// The models of the widgets of 09/23 - one set for the dashboard, owned
+    /// by `Dashboard`, which starts and stops them.
+    var extras = DashboardExtras()
     @Namespace private var tabIndicator
     @Environment(\.shellStyle) private var style
 
@@ -69,6 +72,7 @@ struct DashboardView: View {
             model.showsPerformance = key.kinds.contains { $0.isPerformance }
             if model.isOpen {
                 weatherModels.start(for: selected.widgets.filter { $0.kind.usesPlaces })
+                extras.start(for: selected.widgets)
             }
         }
     }
@@ -93,7 +97,8 @@ struct DashboardView: View {
             pageBar(pages: pages.pages, selected: selected)
             Divider().opacity(0.5)
             BentoPageView(page: selected, context: WidgetContext(dashboard: model, media: media,
-                                                                  weather: weatherModels.model(for:)), editor: editor)
+                                                                  weather: weatherModels.model(for:), extras: extras),
+                          editor: editor)
                 .frame(width: Self.gridWidth, height: Self.gridHeight)
                 .padding(Self.padding)
         }

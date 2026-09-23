@@ -44,6 +44,14 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
     /// How the widget shows itself; `nil` (and a mode its kind does not
     /// have) is the kind's first one, see `display(for:)`.
     public var display: WidgetDisplay?
+    /// Apps of the app grid, as bundle identifiers in their order.
+    public var apps: [String]?
+    /// Folder of the photo frame (a path, `~` allowed); `nil` = Pictures.
+    public var folder: String?
+    /// Minutes the timer starts with.
+    public var minutes: Int?
+    /// The connection widget asks a web service for the public address.
+    public var publicAddress: Bool?
 
     public init(weather: DashboardWeatherOptions? = nil, user: DashboardUserOptions? = nil,
                 clock: DashboardClockOptions? = nil, calendar: DashboardCalendarOptions? = nil,
@@ -58,6 +66,13 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
         self.places = places
         self.display = display
     }
+
+    /// A new app grid is not empty: Apple's own apps, which every Mac has.
+    public static let standardApps = ["com.apple.finder", "com.apple.Safari", "com.apple.mail",
+                                      "com.apple.Music", "com.apple.systempreferences"]
+
+    /// The timer's start value: the stored minutes (1...600), else 10.
+    public var timerMinutes: Int { min(max(minutes ?? 10, 1), 600) }
 
     /// The display to draw for a widget of `kind`.
     public func display(for kind: WidgetKind) -> WidgetDisplay {
@@ -78,14 +93,17 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
         case .calendar: options.calendar = DashboardCalendarOptions()
         case .resources: options.resources = DashboardResourcesOptions()
         case .media: options.media = DashboardMediaOptions()
+        case .sun: options.places = places
+        case .apps: options.apps = WidgetOptions.standardApps
         case .performanceCPU, .performanceGPU, .performanceStorage, .performanceNetwork,
-             .performanceMemory, .performanceBattery, .mediaPlayer:
+             .performanceMemory, .performanceBattery, .mediaPlayer,
+             .timer, .photos, .networkInfo, .recentFiles, .clipboard, .drives:
             break
         }
         return options
     }
 
-    private enum CodingKeys: String, CodingKey { case weather, user, clock, calendar, resources, media, places, display }
+    private enum CodingKeys: String, CodingKey { case weather, user, clock, calendar, resources, media, places, display, apps, folder, minutes, publicAddress }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -97,6 +115,10 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
         media = c.lenient(.media)
         places = c.lenient(.places)
         display = c.lenient(.display)
+        apps = c.lenient(.apps)
+        folder = c.lenient(.folder)
+        minutes = c.lenient(.minutes)
+        publicAddress = c.lenient(.publicAddress)
     }
 }
 

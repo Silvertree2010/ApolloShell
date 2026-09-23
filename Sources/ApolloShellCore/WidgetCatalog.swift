@@ -43,6 +43,7 @@ public struct WidgetSize: Equatable, Hashable, Sendable {
 /// The raw value stands in settings.json - never rename it.
 public enum WidgetDisplay: String, Codable, CaseIterable, Sendable {
     case standard, minimal, analog, today, bars, cover, graph, gauge, bar, numbers, ring, list
+    case stopwatch, pomodoro, grid
 }
 
 /// All widgets. The raw value stands in settings.json - never rename it. The
@@ -59,6 +60,11 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
     case weatherHourly = "weather.hourly"
     case weatherDaily = "weather.daily"
     case mediaPlayer = "media.player"
+    // 09/23: widgets of their own, not from any page before.
+    case timer, apps, photos
+    case networkInfo = "network.info"
+    case recentFiles = "files.recent"
+    case clipboard, sun, drives
 
     public var id: Self { self }
 
@@ -83,6 +89,14 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         case .weatherHourly: String(localized: "Hourly")
         case .weatherDaily: String(localized: "Next days")
         case .mediaPlayer: String(localized: "Play")
+        case .timer: String(localized: "Timer")
+        case .apps: String(localized: "Apps")
+        case .photos: String(localized: "Photos")
+        case .networkInfo: String(localized: "Connection")
+        case .recentFiles: String(localized: "Recent Files")
+        case .clipboard: String(localized: "Clipboard")
+        case .sun: String(localized: "Sun and Moon")
+        case .drives: String(localized: "Drives")
         case .weather, .user, .clock, .calendar, .resources, .media: ""
         }
     }
@@ -100,6 +114,14 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         case .weatherHourly: "clock"
         case .weatherDaily: "calendar"
         case .mediaPlayer: "play.rectangle"
+        case .timer: "timer"
+        case .apps: "square.grid.3x3.fill"
+        case .photos: "photo.on.rectangle"
+        case .networkInfo: "wifi"
+        case .recentFiles: "doc.on.doc"
+        case .clipboard: "list.clipboard"
+        case .sun: "sun.horizon"
+        case .drives: "externaldrive"
         case .weather, .user, .clock, .calendar, .resources, .media: "questionmark"
         }
     }
@@ -107,6 +129,10 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
     /// All of today's widgets belong in the dashboard; the control centre gets
     /// its own only with the editor for all surfaces.
     public var home: WidgetSurface { .dashboard }
+
+    /// Places of their own without weather: the sun needs where, not what
+    /// the sky does (computed, no fetch).
+    public var hasPlaces: Bool { usesPlaces || self == .sun }
 
     /// Weather widgets carry their own list of places (`WidgetOptions.places`).
     public var usesPlaces: Bool {
@@ -164,6 +190,14 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
                     .flexible(200, w, h)]
         case .mediaPlayer:
             return [.flexible(413, w, bottom), .flexible(413, w, h)]
+        case .timer, .photos:
+            return [.flexible(130, w, top), .flexible(180, w, bottom), .flexible(180, w, h)]
+        case .apps, .drives:
+            return [.flexible(200, w, top), .flexible(200, w, bottom), .flexible(200, w, h)]
+        case .networkInfo, .sun:
+            return [.flexible(230, w, top), .flexible(200, w, bottom)]
+        case .recentFiles, .clipboard:
+            return [.flexible(260, w, top), .flexible(230, w, bottom), .flexible(230, w, h)]
         case .weather, .user, .clock, .calendar, .resources, .media: return []
         }
     }
@@ -183,6 +217,11 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         case .performanceBattery: [.standard, .ring]
         case .weatherHourly: [.standard, .graph]
         case .weatherDaily: [.standard, .list]
+        case .timer: [.standard, .stopwatch, .pomodoro]
+        case .apps: [.standard, .list]
+        case .recentFiles: [.standard, .grid]
+        case .networkInfo, .sun: [.standard, .minimal]
+        case .photos, .clipboard, .drives: [.standard]
         }
     }
 

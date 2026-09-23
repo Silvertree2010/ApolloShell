@@ -20,6 +20,12 @@ tabs you had into pages, with the cards at the same spots. The old
 - **Widgets can go anywhere on a page**, and the same widget can appear
   more than once. The performance, weather and playback widgets come in
   more sizes than their page had, so they also fit the rows of the overview.
+- **Eight new widgets**: a timer (also stopwatch and pomodoro, it rings with
+  the dashboard closed), favourite apps, a photo frame for a folder, the
+  connection (Wi-Fi, local and public address, latency), recent files, a
+  clipboard history (text only, never what password managers mark secret,
+  kept in memory only), sun and moon for a place, and the drives with an
+  eject button.
 - **Every widget has display modes** in its options: an analog clock, today
   in large, bars for the resources, a minimal weather and user card, graph
   and gauge for CPU and GPU, bars for storage and memory, plain numbers for

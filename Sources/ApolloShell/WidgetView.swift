@@ -146,6 +146,24 @@ struct WidgetView: View {
                         WeatherEmptyState(model: model)
                     }
                 }
+            case .timer:
+                TimerCard(timer: context.extras.timer, display: display, minutes: widget.options.timerMinutes, size: size)
+            case .apps:
+                AppsCard(bundleIDs: widget.options.apps ?? [], list: display == .list, size: size)
+            case .photos:
+                PhotoFrameCard(photos: context.extras.photos, folder: widget.options.folder, size: size,
+                               fixedNow: context.extras.timer.fixedNow)
+            case .networkInfo:
+                NetworkInfoCard(model: context.extras.network, minimal: display == .minimal, size: size)
+            case .recentFiles:
+                RecentFilesCard(model: context.extras.files, grid: display == .grid, size: size)
+            case .clipboard:
+                ClipboardCard(history: context.extras.clipboard, size: size)
+            case .sun:
+                SunCard(place: widget.options.places?.selected ?? widget.options.places?.locations.first,
+                        minimal: display == .minimal, size: size, fixedNow: context.extras.timer.fixedNow)
+            case .drives:
+                DrivesCard(model: context.extras.drives, size: size)
             case .mediaPlayer:
                 if display == .cover {
                     MediaCoverCard(model: context.media, size: size)
@@ -186,4 +204,6 @@ struct WidgetContext {
     let dashboard: DashboardModel
     let media: MediaModel
     let weather: (WidgetInstance) -> WeatherModel
+    /// The widgets of 09/23 (timer, clipboard, files ...).
+    let extras: DashboardExtras
 }

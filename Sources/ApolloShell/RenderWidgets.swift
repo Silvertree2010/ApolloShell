@@ -29,6 +29,7 @@ enum RenderWidgets {
                                         playbackRate: 1),
             artwork: sampleCover(size: NSSize(width: 150, height: 83)),
             source: MediaSource(name: "Vivaldi", icon: nil), now: fixtures.now)
+        let extras = previewExtras(now: fixtures.now)
         for kind in kinds.isEmpty ? WidgetKind.allCases : kinds {
             let rows: [(WidgetDisplay, MediaModel, String)] = kind.displays.flatMap { display in
                 kind.usesMedia ? [(display, media, "music"), (display, video, "video")] : [(display, media, "")]
@@ -37,7 +38,7 @@ enum RenderWidgets {
                 ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                     let (display, rowMedia, label) = row
                     let context = WidgetContext(dashboard: fixtures.dashboard, media: rowMedia,
-                                                weather: { _ in fixtures.weather })
+                                                weather: { _ in fixtures.weather }, extras: extras)
                     VStack(alignment: .leading, spacing: 6) {
                         Text("\(kind.rawValue) · \(display.rawValue) \(label)").font(.system(size: 12, weight: .semibold))
                         HStack(alignment: .top, spacing: 14) {
@@ -82,6 +83,47 @@ enum RenderWidgets {
 
     private static func format(_ value: CGFloat) -> String {
         value == value.rounded() ? "\(Int(value))" : "\(value)"
+    }
+
+    /// Made-up content for the widgets of 09/23: a timer 3:25 into its ten
+    /// minutes, a few copied texts and files, a Wi-Fi, two drives, three
+    /// pictures. Nothing of this Mac's own is read.
+    static func previewExtras(now: Date) -> DashboardExtras {
+        let timer = ShellTimer.preview({ timer in
+            timer.set(mode: .timer, minutes: 10)
+            timer.toggle()
+        }, now: now.addingTimeInterval(-205))
+        timer.fixedNow = now
+        let files = ["Budget 2026.numbers", "Lehrvertrag.pdf", "Screenshot 2026-09-18.png", "ApolloShell",
+                     "Notes.md", "Präsentation.key", "Invoice-0042.pdf", "IMG_4211.heic"]
+            .enumerated().map { index, name in
+                RecentFile(url: URL(fileURLWithPath: "/private/tmp/\(name)"), name: name,
+                           used: now.addingTimeInterval(-Double(index + 1) * 5_400))
+            }
+        let drives = [
+            DriveInfo(url: URL(fileURLWithPath: "/"), name: "Macintosh HD", total: 994_662_584_320,
+                      free: 582_000_000_000, ejectable: false),
+            DriveInfo(url: URL(fileURLWithPath: "/Volumes/Backup"), name: "Backup", total: 2_000_000_000_000,
+                      free: 310_000_000_000, ejectable: true),
+            DriveInfo(url: URL(fileURLWithPath: "/Volumes/USB"), name: "USB Stick", total: 64_000_000_000,
+                      free: 51_000_000_000, ejectable: true),
+        ]
+        let pictures = [(0.95, 0.45, 0.25), (0.20, 0.55, 0.85), (0.25, 0.70, 0.45)].map { tone in
+            NSImage(size: NSSize(width: 800, height: 600), flipped: false) { rect in
+                NSGradient(colors: [NSColor(red: tone.0, green: tone.1, blue: tone.2, alpha: 1),
+                                    NSColor(red: tone.0 * 0.3, green: tone.1 * 0.3, blue: tone.2 * 0.5, alpha: 1)])?
+                    .draw(in: rect, angle: -60)
+                return true
+            }
+        }
+        return DashboardExtras(
+            timer: timer,
+            clipboard: .preview(["git push --force-with-lease origin release/0.2", "Treffen am Freitag um 14:00?",
+                                 "https://github.com/silvertree2010/apolloshell", "#3A302A", "Bad Ragaz"]),
+            files: .preview(files),
+            network: .preview(link: .wifi("Apollo 5G"), local: "192.168.1.42", public: "203.0.113.7", latency: 14),
+            drives: .preview(drives),
+            photos: .preview(folder: PhotoFrames.defaultFolder, images: pictures))
     }
 
     /// Thirty seconds of made-up but plausible readings: CPU and GPU waves,

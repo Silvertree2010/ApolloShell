@@ -17,6 +17,8 @@ final class Dashboard {
     private let weatherModels: WeatherModels
     /// Now Playing: the adapter process only runs while open.
     private let media = MediaModel()
+    /// Timer, clipboard, files, connection, drives, photos (09/23).
+    private let extras = DashboardExtras()
     private let settings: ShellSettingsStore
     private let editor: DashboardEditor
     private let drawer: EdgeDrawer<DashboardView>
@@ -42,7 +44,12 @@ final class Dashboard {
             )
         }
         weatherModels = WeatherModels(settings: settings, editor: editor)
-        let view = DashboardView(model: model, weatherModels: weatherModels, media: media, settings: settings, editor: editor)
+        let view = DashboardView(model: model, weatherModels: weatherModels, media: media, settings: settings, editor: editor,
+                                 extras: extras)
+        // The history has to see what is copied while the dashboard is closed.
+        if settings.settings.dashboardPages?.pages.contains(where: { $0.contains(.clipboard) }) == true {
+            extras.clipboard.start()
+        }
         // Size from the content (fixed card dimensions) at scale 1,
         // before the first opening. Does not depend on pages and
         // widgets - the grid is always 839 x 392; `prepareForScreen`
@@ -54,7 +61,7 @@ final class Dashboard {
         drawer.prepareForScreen = { [weak self] screen in
             self?.applyScale(on: screen)
         }
-        drawer.onOpen = { [model, weatherModels, media, settings] in
+        drawer.onOpen = { [model, weatherModels, media, settings, extras] in
             let page = Dashboard.resolvedPage(model: model, settings: settings)
             model.pageID = page.id
             model.showsPerformance = page.widgets.contains { $0.kind.isPerformance }
@@ -63,11 +70,13 @@ final class Dashboard {
             // Without a widget, no fetch and no adapter process.
             if pages?.usesWeather == true { weatherModels.start(for: page.widgets.filter { $0.kind.usesPlaces }) }
             if pages?.usesMedia == true { media.start() }
+            extras.start(for: page.widgets)
         }
-        drawer.onClose = { [model, weatherModels, media] in
+        drawer.onClose = { [model, weatherModels, media, extras] in
             model.stop()
             weatherModels.stop()
             media.stop()
+            extras.stop()
         }
         // Edit (Nexus > Dashboard > Edit): the window stays open and
         // pinned, regardless of the mouse; weather, media, and

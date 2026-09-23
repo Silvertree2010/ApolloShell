@@ -42,6 +42,8 @@ extension WidgetKind {
         case .weatherHourly: 28
         case .weatherDaily: 24
         case .mediaPlayer: 28
+        case .sun: 28
+        case .timer, .apps, .photos, .networkInfo, .recentFiles, .clipboard, .drives: 24
         }
     }
 }
@@ -49,7 +51,7 @@ extension WidgetKind {
 extension WidgetKind {
     /// Whether the options popover has anything to show - since 09/23
     /// every kind has at least two displays to choose from.
-    var hasEditOptions: Bool { displays.count > 1 || usesPlaces }
+    var hasEditOptions: Bool { displays.count > 1 || hasPlaces || [.apps, .photos, .timer, .networkInfo, .clipboard].contains(self) }
 }
 
 /// Overrides `accessibilityReduceMotion` (system-wide, not settable) for
