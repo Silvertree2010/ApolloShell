@@ -174,19 +174,11 @@ enum UtilitiesFinder {
 
     /// A process of its own (like the shortcuts list): cheap, but still a
     /// process, so it is not read on every 2 s tick, only like Bluetooth.
+    /// The parsing itself (`UtilitiesFinderPreference.parse`) lives in
+    /// ApolloShellCore, where it is unit-tested.
     static func readHiddenFiles() async -> Bool? {
         guard let result = await Subprocess.output(defaultsTool, ["read", domain, key]), result.status == 0 else { return nil }
-        return parse(result.text)
-    }
-
-    /// `defaults read` prints "1"/"0", or "true"/"false" from some other
-    /// writer - either counts.
-    static func parse(_ output: String) -> Bool? {
-        switch output.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "1", "true", "yes": true
-        case "0", "false", "no": false
-        default: nil
-        }
+        return UtilitiesFinderPreference.parse(result.text)
     }
 
     @MainActor

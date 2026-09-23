@@ -174,3 +174,22 @@ public enum QuickToggles {
         return active ? 12 : height / 2
     }
 }
+
+// MARK: - Hidden files
+
+/// The pure part of "show hidden files": parsing what `defaults read` on
+/// `com.apple.finder AppleShowAllFiles` prints back. The process call
+/// itself (`UtilitiesFinder` in the app target) is not testable here, but
+/// this reading is - so it lives in the core.
+public enum UtilitiesFinderPreference {
+    /// `defaults read` prints "1"/"0"; other writers may leave "true"/
+    /// "false" or "yes"/"no" there instead - all three count. `nil`:
+    /// unset, or not parseable.
+    public static func parse(_ output: String) -> Bool? {
+        switch output.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "1", "true", "yes": true
+        case "0", "false", "no": false
+        default: nil
+        }
+    }
+}

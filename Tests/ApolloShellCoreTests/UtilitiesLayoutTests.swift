@@ -441,3 +441,99 @@ struct UtilitiesCustomToggleTests {
         #expect(content.message == message && content.kind == .warning)
     }
 }
+
+@Suite("The utilities panel: the newer cards and quick toggles")
+struct UtilitiesNewControlsTests {
+    // MARK: Cards
+
+    @Test("brightness and now-playing card heights out of the measurements")
+    func newCardHeights() {
+        #expect(UtilitiesMetrics.cardHeight(.brightness, toggleRows: 2) == 111)
+        #expect(UtilitiesMetrics.cardHeight(.nowPlaying, toggleRows: 2) == 76)
+    }
+
+    @Test("the two new cards are off by default, so turning them on changes the height")
+    func newCardsOffByDefault() {
+        var layout = UtilitiesLayout()
+        #expect(!layout.isEnabled(.brightness) && !layout.isEnabled(.nowPlaying))
+        let before = layout.panelHeight
+        layout.setCard(.brightness, enabled: true)
+        layout.setCard(.nowPlaying, enabled: true)
+        #expect(layout.panelHeight == before + 111 + 76 + 2 * UtilitiesMetrics.spacing)
+    }
+
+    // MARK: Mute
+
+    @Test("Mute: lights up when not muted, like the microphone", arguments: [
+        (true, true, "Output Muted"), (false, true, "Output On"), (false, false, "Output On (not switchable)"),
+    ])
+    func muteLook(muted: Bool, settable: Bool, help: String) {
+        let look = QuickToggles.mute(muted: muted, settable: settable)
+        #expect(look.active == !muted && look.enabled == settable && look.help == help)
+    }
+
+    @Test("Mute: no default output found, not clickable")
+    func muteNoOutput() {
+        let look = QuickToggles.mute(muted: nil, settable: false)
+        #expect(!look.active && !look.enabled)
+    }
+
+    // MARK: Hidden files
+
+    @Test("Hidden files: on/off/not read yet", arguments: [
+        (true as Bool?, true, true), (false as Bool?, false, true), (nil as Bool?, false, false),
+    ])
+    func hiddenFilesLook(on: Bool?, active: Bool, enabled: Bool) {
+        let look = QuickToggles.hiddenFiles(on: on)
+        #expect(look.active == active && look.enabled == enabled)
+    }
+
+    @Test("Hidden files: defaults read output parsed leniently", arguments: [
+        ("1\n", true as Bool?), ("0", false as Bool?), ("true", true as Bool?), ("false", false as Bool?),
+        ("yes", true as Bool?), ("no", false as Bool?), ("", nil as Bool?), ("kaputt", nil as Bool?),
+    ])
+    func hiddenFilesParse(output: String, expected: Bool?) {
+        #expect(UtilitiesFinderPreference.parse(output) == expected)
+    }
+
+    // MARK: Low Power Mode
+
+    @Test("Low Power Mode: always readable, unlike Night Shift", arguments: [true, false])
+    func lowPowerLook(on: Bool) {
+        let look = QuickToggles.lowPower(on: on)
+        #expect(look.active == on && look.enabled)
+    }
+
+    // MARK: Empty Trash
+
+    @Test("Empty Trash: armed is red (danger) and a different help text")
+    func emptyTrashLook() {
+        let calm = QuickToggles.emptyTrash(armed: false)
+        let armed = QuickToggles.emptyTrash(armed: true)
+        #expect(!calm.danger && !calm.active && calm.help == "Empty Trash")
+        #expect(armed.danger && armed.active && armed.help == "Click Again to Empty the Trash")
+    }
+
+    @Test("Only Empty Trash asks for a second click - the other new actions never light up")
+    func actionsNeverActive() {
+        #expect(!QuickToggles.missionControl.active && !QuickToggles.launchpad.active && !QuickToggles.airDrop.active)
+    }
+
+    // MARK: Metadata and preset membership
+
+    @Test("kind, name, description, symbol for every new toggle", arguments: [
+        UtilitiesToggleKind.mute, .hiddenFiles, .lowPower, .emptyTrash, .missionControl, .launchpad, .airDrop,
+    ])
+    func newToggleMetadata(kind: UtilitiesToggleKind) {
+        #expect(!kind.title.isEmpty && !kind.summary.isEmpty && kind.symbol != nil)
+        #expect(UtilitiesToggle(kind).kind == kind)
+    }
+
+    @Test("the new switches and actions land in the right group", arguments: [
+        (UtilitiesToggleKind.mute, UtilitiesToggleGroup.switches), (.hiddenFiles, .switches), (.lowPower, .switches),
+        (.emptyTrash, .actions), (.missionControl, .actions), (.launchpad, .actions), (.airDrop, .actions),
+    ])
+    func newToggleGroups(kind: UtilitiesToggleKind, group: UtilitiesToggleGroup) {
+        #expect(kind.group == group)
+    }
+}
