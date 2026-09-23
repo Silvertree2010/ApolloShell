@@ -20,11 +20,34 @@ public enum ThemeDocumentation {
                          "| --- | --- | --- | --- | --- |"]
             for token in tokens {
                 let dark = token.darkDefaultValue == token.defaultValue ? "" : "`\(token.defaultText(dark: true))`"
-                lines.append("| `\(token.name)` | \(typeText(token.kind)) | `\(token.defaultText())` | \(dark) | \(token.summary) |")
+                lines.append("| `\(token.name)` | \(typeText(token.kind)) | `\(token.defaultText())` | \(dark) | \(summary(token)) |")
             }
             blocks.append(lines.joined(separator: "\n"))
         }
         return blocks.joined(separator: "\n\n")
+    }
+
+    /// The description, plus which token stands in when the theme leaves
+    /// this one out - generated, so the docs cannot forget a fallback.
+    public static func summary(_ token: ThemeTokenDescriptor) -> String {
+        guard let fallback = token.fallback else { return token.summary }
+        return "\(token.summary); unset, follows `\(fallback)`"
+    }
+
+    /// The first ```css block after the line `heading` in a Markdown text,
+    /// without the fences - `nil` if there is none. Lets the example themes
+    /// in docs/THEMES.md be loaded by tests and drawn by `--render-bars`
+    /// straight from the docs, so the text a reader copies is the one that
+    /// was checked.
+    public static func cssBlock(after heading: String, in markdown: String) -> String? {
+        guard let start = markdown.range(of: "\n" + heading + "\n"),
+              let open = markdown.range(of: "```css\n", range: start.upperBound..<markdown.endIndex),
+              let close = markdown.range(of: "\n```", range: open.upperBound..<markdown.endIndex)
+        else { return nil }
+        // Only this heading's block: another heading before the fence means
+        // the section has none.
+        if markdown.range(of: "\n#", range: start.upperBound..<open.lowerBound) != nil { return nil }
+        return String(markdown[open.upperBound..<close.lowerBound]) + "\n"
     }
 
     /// What a type is called in the docs - including the bounds it is clamped
