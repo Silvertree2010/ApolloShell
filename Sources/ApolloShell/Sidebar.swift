@@ -277,6 +277,8 @@ final class Sidebar {
         updateModelDemand()
         laidOutWidth = Sidebar.width
         reserved = Self.reserved(layouts, screens: all)
+        // Panels placed against a screen edge keep clear of the edge bars.
+        ScreenRoom.update(layouts.mapValues(\.barInsets))
         log.notice("sidebar on \(placed.count, privacy: .public) screen(s), edge bars: \(edgeBars.active.map(\.rawValue).joined(separator: ","), privacy: .public)")
         onReservedChange(reserved)
     }

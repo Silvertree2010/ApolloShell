@@ -589,7 +589,7 @@ final class EditModeWindows {
     /// where there is room, narrower beside a control centre it would
     /// otherwise stand over.
     private func applyGalleryWidth(on screen: NSScreen) {
-        let width = EditModeGeometry.galleryWidth(visible: screen.visibleFrame, utilities: utilitiesFrame(),
+        let width = EditModeGeometry.galleryWidth(visible: ScreenRoom.usableFrame(of: screen), utilities: utilitiesFrame(),
                                                   preferred: galleryWidth, minimum: galleryMinimumWidth)
         if editor.galleryPanelWidth != width { editor.galleryPanelWidth = width }
     }
@@ -599,7 +599,7 @@ final class EditModeWindows {
     /// lives in `EditModeGeometry`, where it can be checked against
     /// screens nobody here has.
     private func toolbarCenter(on screen: NSScreen, size: NSSize) -> NSPoint {
-        EditModeGeometry.toolbarCenter(screen: screen.frame, visible: screen.visibleFrame,
+        EditModeGeometry.toolbarCenter(screen: screen.frame, visible: ScreenRoom.usableFrame(of: screen),
                                        size: size, utilities: utilitiesFrame())
     }
 
@@ -651,7 +651,7 @@ final class EditModeWindows {
     #endif
 
     private func galleryCenter(on screen: NSScreen) -> NSPoint {
-        EditModeGeometry.galleryCenter(visible: screen.visibleFrame,
+        EditModeGeometry.galleryCenter(visible: ScreenRoom.usableFrame(of: screen),
                                        gallery: gallery?.size ?? NSSize(width: 760, height: 380),
                                        dashboard: dashboardFrame().flatMap { $0.intersects(screen.frame) ? $0 : nil },
                                        utilities: utilitiesFrame(),

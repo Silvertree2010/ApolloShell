@@ -44,6 +44,13 @@ public enum EdgeBarGeometry {
         /// screen frame. Top counts only a top bar that reaches below the
         /// menu bar - the menu bar itself macOS already keeps free.
         public var reserved: ReservedInsets
+        /// How far the edge bars reach in from each edge of the full screen
+        /// frame - the menu bar included when a top bar covers or sits
+        /// below it. Unlike `reserved` it leaves out the sidebar: panels
+        /// placed against the screen (Dashboard, Utilities, toasts) always
+        /// reckoned with the sidebar on their own, and with no edge bar on
+        /// they must land exactly where they did before edge bars existed.
+        public var barInsets: ReservedInsets
     }
 
     /// - Parameters:
@@ -92,6 +99,39 @@ public enum EdgeBarGeometry {
             bottom: frames[.bottom]?.height ?? 0,
             right: frames[.right]?.width ?? 0
         )
-        return Result(frames: frames, sidebarMinY: bottom, sidebarMaxY: top, reserved: reserved)
+        let barInsets = ReservedInsets(
+            top: frames[.top].map { screen.maxY - $0.minY } ?? 0,
+            bottom: frames[.bottom]?.height ?? 0,
+            right: frames[.right]?.width ?? 0
+        )
+        return Result(frames: frames, sidebarMinY: bottom, sidebarMaxY: top, reserved: reserved,
+                      barInsets: barInsets)
+    }
+
+    /// The part of `visible` (the screen's `visibleFrame`) no edge bar
+    /// covers: where panels that avoid the menu bar and Apple's Dock go
+    /// (Nexus panel, desktop clock, edit mode toolbar). No bars: `visible`
+    /// itself, untouched, so nothing moves by a rounding error.
+    public static func usableFrame(visible: CGRect, screen: CGRect, bars: ReservedInsets) -> CGRect {
+        guard !bars.isZero else { return visible }
+        return inset(visible, within: screen, by: bars)
+    }
+
+    /// The part of the whole screen frame no edge bar covers: where panels
+    /// that grow out of a screen edge (Dashboard, Utilities, Launcher,
+    /// toasts) attach instead of the screen edge itself. No bars: `screen`.
+    public static func barFreeFrame(screen: CGRect, bars: ReservedInsets) -> CGRect {
+        guard !bars.isZero else { return screen }
+        return inset(screen, within: screen, by: bars)
+    }
+
+    /// `rect` cut back wherever a bar, measured from the edges of `screen`,
+    /// reaches into it. Never negative.
+    private static func inset(_ rect: CGRect, within screen: CGRect, by bars: ReservedInsets) -> CGRect {
+        let minX = max(rect.minX, screen.minX + bars.left)
+        let maxX = min(rect.maxX, screen.maxX - bars.right)
+        let minY = max(rect.minY, screen.minY + bars.bottom)
+        let maxY = min(rect.maxY, screen.maxY - bars.top)
+        return CGRect(x: minX, y: minY, width: max(maxX - minX, 0), height: max(maxY - minY, 0))
     }
 }

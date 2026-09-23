@@ -80,4 +80,39 @@ struct EdgeBarGeometryTests {
         #expect(r.frames[.top] == CGRect(x: 0, y: 1083, width: 1728, height: 34))
         #expect(r.reserved.top == 34)
     }
+    // MARK: Room left for panels
+
+    @Test("Bar insets: the full reach from each screen edge, the sidebar left out")
+    func barInsets() {
+        let none = EdgeBarGeometry.layout(screen: screen, visibleTop: visibleTop, sidebarWidth: 44, bars: [:])
+        #expect(none.barInsets == .zero)
+        let covering = EdgeBarGeometry.layout(screen: screen, visibleTop: visibleTop, sidebarWidth: 44,
+                                              bars: [.top: .init(thickness: 28), .bottom: .init(thickness: 40),
+                                                     .right: .init(thickness: 34, style: .islands)])
+        #expect(covering.barInsets == ReservedInsets(top: 33, bottom: 40, right: 40))
+        let below = EdgeBarGeometry.layout(screen: screen, visibleTop: visibleTop, sidebarWidth: nil,
+                                           bars: [.top: .init(thickness: 34, coversMenuBar: false)])
+        #expect(below.barInsets.top == 67)
+    }
+
+    @Test("No edge bar: usable and bar-free frames are the old ones, bit for bit")
+    func roomUnchanged() {
+        let visible = CGRect(x: 0.25, y: 70.5, width: 1727.75, height: 1013.5)
+        #expect(EdgeBarGeometry.usableFrame(visible: visible, screen: screen, bars: .zero) == visible)
+        #expect(EdgeBarGeometry.barFreeFrame(screen: screen, bars: .zero) == screen)
+    }
+
+    @Test("Usable frame: the visible frame without what the bars cover")
+    func usableFrame() {
+        // Apple's Dock at the bottom (70), menu bar 33.
+        let visible = CGRect(x: 0, y: 70, width: 1728, height: 1014)
+        let bars = ReservedInsets(top: 44, bottom: 40, right: 34)
+        #expect(EdgeBarGeometry.usableFrame(visible: visible, screen: screen, bars: bars)
+            == CGRect(x: 0, y: 70, width: 1694, height: 1003))
+        #expect(EdgeBarGeometry.barFreeFrame(screen: screen, bars: bars)
+            == CGRect(x: 0, y: 40, width: 1694, height: 1033))
+        // A top bar inside the menu bar takes nothing the menu bar did not.
+        #expect(EdgeBarGeometry.usableFrame(visible: visible, screen: screen, bars: ReservedInsets(top: 33))
+            == visible)
+    }
 }

@@ -134,7 +134,7 @@ final class Dashboard {
     /// the saved one.
     private func applyScale(on screen: NSScreen) {
         let user = editor.scale ?? settings.settings.dashboardScale
-        let scale = BentoGeometry.scale(screenWidth: screen.frame.width, availableHeight: screen.visibleFrame.height,
+        let scale = BentoGeometry.scale(screenWidth: screen.frame.width, availableHeight: ScreenRoom.usableFrame(of: screen).height,
                                         contentHeight: baseSize.height, contentWidth: baseSize.width, userScale: user)
         model.scale = CGFloat(scale)
         drawer.resize(to: NSSize(width: baseSize.width * CGFloat(scale), height: baseSize.height * CGFloat(scale)))
