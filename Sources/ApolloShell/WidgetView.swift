@@ -17,7 +17,7 @@ struct WidgetView: View {
             switch widget.kind {
             case .weather:
                 SmallWeatherCard(model: context.weather(widget), options: widget.options.weather ?? .init(),
-                                 vertical: upright)
+                                 vertical: upright, minimal: display == .minimal)
             case .user:
                 UserCard(model: context.dashboard, options: widget.options.user ?? .init(), vertical: upright)
             case .clock:
@@ -101,7 +101,8 @@ struct WidgetView: View {
                 TimelineView(.everyMinute) { context in
                     let now = model.fixedNow ?? context.date
                     if let report = model.report {
-                        WeatherHero(report: report, model: model, now: now, stand: model.standText(now: now))
+                        WeatherHero(report: report, model: model, now: now, stand: model.standText(now: now),
+                                    size: size, minimal: display == .minimal)
                     } else {
                         WeatherEmptyState(model: model)
                     }
@@ -111,7 +112,8 @@ struct WidgetView: View {
                 TimelineView(.everyMinute) { context in
                     let now = model.fixedNow ?? context.date
                     if let report = model.report {
-                        WeatherHourly(slots: report.hourlyStrip(now: now), calendar: report.calendar)
+                        WeatherHourly(slots: report.hourlyStrip(now: now), calendar: report.calendar,
+                                      size: size, graph: display == .graph)
                     } else {
                         WeatherEmptyState(model: model)
                     }
@@ -121,7 +123,8 @@ struct WidgetView: View {
                 TimelineView(.everyMinute) { context in
                     let now = model.fixedNow ?? context.date
                     if let report = model.report {
-                        WeatherDaily(days: report.upcomingDays(now: now), now: now, calendar: report.calendar)
+                        WeatherDaily(days: report.upcomingDays(now: now), now: now, calendar: report.calendar,
+                                     size: size, list: display == .list)
                     } else {
                         WeatherEmptyState(model: model)
                     }
