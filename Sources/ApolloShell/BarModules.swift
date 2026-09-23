@@ -41,6 +41,14 @@ private struct BarAxisKey: EnvironmentKey {
     static let defaultValue = BarAxis.vertical
 }
 
+private struct BarControlSizeKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 32
+}
+
+private struct BarGroupCapsuleKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     /// In the preview of Nexus: no mouse views (hover, Dock clicks,
     /// dragging). The preview is scaled down, and AppKit views do not go
@@ -56,6 +64,33 @@ extension EnvironmentValues {
     var barAxis: BarAxis {
         get { self[BarAxisKey.self] }
         set { self[BarAxisKey.self] = newValue }
+    }
+
+    /// Edge length of a button across the bar (`SidebarIcon`, `BarTile`,
+    /// Dock icons, spaces). 32 in the sidebar, which never sets it - so the
+    /// sidebar stays pixel for pixel the same. An edge bar thinner than
+    /// 32 + its margins sets less, or its buttons would stick out of it.
+    var barControlSize: CGFloat {
+        get { self[BarControlSizeKey.self] }
+        set { self[BarControlSizeKey.self] = newValue }
+    }
+
+    /// The block stands in a group that already draws a capsule (islands,
+    /// or the strip with `distinctGroups`). Blocks that bring a capsule of
+    /// their own (status icons, spaces) then leave theirs out: a capsule in
+    /// a capsule read as a stray frame.
+    var barGroupCapsule: Bool {
+        get { self[BarGroupCapsuleKey.self] }
+        set { self[BarGroupCapsuleKey.self] = newValue }
+    }
+}
+
+extension CGFloat {
+    /// A size of the sidebar's 32 pt buttons scaled to a button of
+    /// `control`: unchanged at 32 and above (the sidebar), otherwise shrunk
+    /// so it still leaves `margin` inside the button.
+    func fitting(control: CGFloat, margin: CGFloat = 4) -> CGFloat {
+        control >= 32 ? self : Swift.min(self, Swift.max(control - margin, 0))
     }
 }
 
@@ -258,6 +293,7 @@ struct BarTile<Content: View>: View {
     @State private var hovering = false
     @Environment(\.barPreview) private var preview
     @Environment(\.barAxis) private var axis
+    @Environment(\.barControlSize) private var size
 
     init(help: String, action: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.help = help
@@ -270,8 +306,8 @@ struct BarTile<Content: View>: View {
         Button(action: { action?() }) {
             content()
                 .padding(horizontal ? .horizontal : .vertical, horizontal ? 6 : 5)
-                .frame(width: horizontal ? nil : 32, height: horizontal ? 32 : nil)
-                .frame(minWidth: horizontal ? 32 : nil, minHeight: horizontal ? nil : 32)
+                .frame(width: horizontal ? nil : size, height: horizontal ? size : nil)
+                .frame(minWidth: horizontal ? size : nil, minHeight: horizontal ? nil : size)
                 .background(Color.primary.opacity(hovering ? 0.14 : 0), in: .rect(cornerRadius: 9))
                 .contentShape(.rect(cornerRadius: 9))
         }
@@ -291,16 +327,18 @@ struct BarTile<Content: View>: View {
 struct BarAppButton: View {
     let bundleID: String
     let onOpen: @MainActor (String) -> Void
+    @Environment(\.barControlSize) private var size
 
     var body: some View {
         let info = BarApps.info(for: bundleID)
+        let side = CGFloat(26).fitting(control: size)
         SidebarIcon(help: info.map { String(localized: "Open \($0.name)") } ?? String(localized: "No app chosen (Edit Interface)"),
                     action: { if info != nil { onOpen(bundleID) } }) {
             if let info {
                 Image(nsImage: info.icon)
                     .resizable()
                     .interpolation(.high)
-                    .frame(width: 26, height: 26)
+                    .frame(width: side, height: side)
             } else {
                 Image(systemName: "app.dashed")
                     .font(.system(size: 20))
@@ -349,6 +387,7 @@ struct BarCPUModule: View {
     let options: BarCPUOptions
     let onOpen: () -> Void
     @Environment(\.barAxis) private var axis
+    @Environment(\.barControlSize) private var size
 
     var body: some View {
         let percent = model.usage.map { Int(($0 * 100).rounded()) }
@@ -367,7 +406,7 @@ struct BarCPUModule: View {
                         .monospacedDigit()
                         .minimumScaleFactor(0.7)
                 }
-                .frame(width: 24, height: 24)
+                .frame(width: CGFloat(24).fitting(control: size), height: CGFloat(24).fitting(control: size))
                 .animation(.easeOut(duration: 0.3), value: model.usage)
             case .percent:
                 axis.stack(spacing: 3, horizontal: 4) {

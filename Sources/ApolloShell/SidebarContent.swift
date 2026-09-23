@@ -230,6 +230,8 @@ private struct StatusCapsule: View {
     var options = BarStatusIconsOptions()
     @Environment(StatusPopoutModel.self) private var popout: StatusPopoutModel?
     @Environment(\.barAxis) private var axis
+    /// Its group draws the capsule already (islands, distinct groups).
+    @Environment(\.barGroupCapsule) private var inCapsule
 
     var body: some View {
         let battery = options.showBattery ? StatusGlyphs.batterySymbol(status.battery) : nil
@@ -265,7 +267,7 @@ private struct StatusCapsule: View {
                 }
             }
             .padding(axis == .horizontal ? .horizontal : .vertical, 4)
-            .background(Color.primary.opacity(0.08), in: .capsule)
+            .background(Color.primary.opacity(inCapsule ? 0 : 0.08), in: .capsule)
         }
     }
 
@@ -304,6 +306,7 @@ struct SidebarIcon<Content: View>: View {
     @State private var hovering = false
     @Environment(\.barPreview) private var preview
     @Environment(\.shellStyle) private var style
+    @Environment(\.barControlSize) private var size
 
     init(help: String, action: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.help = help
@@ -314,7 +317,7 @@ struct SidebarIcon<Content: View>: View {
     var body: some View {
         Button(action: { action?() }) {
             content()
-                .frame(width: 32, height: 32)
+                .frame(width: size, height: size)
                 .background(Color.primary.opacity(hovering ? 0.14 : 0), in: .rect(cornerRadius: 9))
                 .contentShape(.rect(cornerRadius: 9))
         }

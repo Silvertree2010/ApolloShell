@@ -70,6 +70,15 @@ struct EdgeBarView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: Self.screenAlignment(edge))
         }
         .environment(\.barAxis, axis)
+        .environment(\.barControlSize, Self.controlSize(thickness: thickness, capsules: islands || bar.distinctGroups))
+    }
+
+    /// The buttons' edge length across the bar: the sidebar's 32 where it
+    /// fits, less in a thinner bar so nothing sticks out of it. The margin
+    /// keeps a hover highlight inside the strip (2 pt) or inside a group's
+    /// capsule, which stands `distinctInset` off the strip's edges.
+    static func controlSize(thickness: CGFloat, capsules: Bool) -> CGFloat {
+        min(32, thickness - 2 * (capsules ? distinctInset : 2))
     }
 
     /// The side of the panel that touches the screen edge.
@@ -156,6 +165,8 @@ struct EdgeBarView: View {
                 BarModuleView(entry: entry, context: context)
             }
         }
+        // Status icons and spaces drop their own capsule inside this one.
+        .environment(\.barGroupCapsule, capsule)
         .padding(horizontal ? .horizontal : .vertical, capsule ? Self.capsuleInset : 0)
         .frame(maxWidth: horizontal ? nil : .infinity, maxHeight: horizontal ? .infinity : nil)
         .background {

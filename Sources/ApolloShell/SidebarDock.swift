@@ -650,16 +650,18 @@ private struct SidebarDockItem: View {
     @State private var dropTarget = false
     @Environment(\.shellStyle) private var style
     @Environment(\.barAxis) private var axis
+    @Environment(\.barControlSize) private var size
 
     var body: some View {
+        let side = iconSize.fitting(control: size)
         Image(nsImage: entry.icon)
             .resizable()
             .interpolation(.high)
-            .frame(width: iconSize, height: iconSize)
+            .frame(width: side, height: side)
             .brightness(pressed || dropTarget ? -0.25 : 0)
             .opacity(entry.hidden ? 0.5 : 1)
             .modifier(DockBounce(active: launching))
-            .frame(width: 32, height: 32)
+            .frame(width: size, height: size)
             .background(Color.primary.opacity(hovering || dropTarget ? 0.14 : active ? 0.10 : 0), in: .rect(cornerRadius: 9))
             // Counter like in Apple's Dock: red capsule at the top right.
             .overlay(alignment: .topTrailing) {

@@ -36,8 +36,13 @@ struct SidebarSpaces: View {
     var onSelect: (Int) -> Void = { _ in }
     @Environment(\.shellStyle) private var shellStyle
     @Environment(\.barAxis) private var axis
+    @Environment(\.barControlSize) private var size
+    /// Its group draws the capsule already (islands, distinct groups).
+    @Environment(\.barGroupCapsule) private var inCapsule
 
-    private static let slot: CGFloat = 26
+    /// One place: 26 in the 32 pt sidebar, 3 pt of the capsule around it on
+    /// each side - and the same margin in a thinner edge bar.
+    private var slot: CGFloat { size - 6 }
     private static let gap: CGFloat = 3
 
     var body: some View {
@@ -51,7 +56,7 @@ struct SidebarSpaces: View {
                 if let active {
                     Capsule()
                         .fill(shellStyle.accent)
-                        .frame(width: Self.slot, height: Self.slot)
+                        .frame(width: slot, height: slot)
                         .offset(pill(active))
                     // Like Caelestia's Colouriser: whatever lies under the
                     // pill, in the text color for accent areas. As a mask, so
@@ -60,7 +65,7 @@ struct SidebarSpaces: View {
                     dots(count: snapshot.desktops.count, active: active, tint: shellStyle.onAccent)
                         .mask(alignment: start) {
                             Capsule()
-                                .frame(width: Self.slot, height: Self.slot)
+                                .frame(width: slot, height: slot)
                                 .offset(pill(active))
                         }
                 }
@@ -70,7 +75,7 @@ struct SidebarSpaces: View {
                 axis.stack(spacing: Self.gap) {
                     ForEach(0..<snapshot.desktops.count, id: \.self) { index in
                         Color.clear
-                            .frame(width: Self.slot, height: Self.slot)
+                            .frame(width: slot, height: slot)
                             .contentShape(.rect)
                             .onTapGesture { onSelect(index) }
                             .help("To Desktop \(index + 1)")
@@ -78,8 +83,8 @@ struct SidebarSpaces: View {
                 }
             }
             .padding(axis == .horizontal ? .horizontal : .vertical, Self.gap)
-            .frame(width: axis == .horizontal ? nil : 32, height: axis == .horizontal ? 32 : nil)
-            .background(Color.primary.opacity(0.08), in: .capsule)
+            .frame(width: axis == .horizontal ? nil : size, height: axis == .horizontal ? size : nil)
+            .background(Color.primary.opacity(inCapsule ? 0 : 0.08), in: .capsule)
             .animation(SidebarMotion.spatial, value: snapshot)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Self.help(snapshot))
@@ -91,7 +96,7 @@ struct SidebarSpaces: View {
         axis.stack(spacing: Self.gap) {
             ForEach(0..<count, id: \.self) { index in
                 let isActive = index == active
-                SidebarSpaceDot(active: isActive, slot: Self.slot, number: style == .numbers ? index + 1 : nil)
+                SidebarSpaceDot(active: isActive, slot: slot, number: style == .numbers ? index + 1 : nil)
                     // The inactive ones muted like Caelestia's outlineVariant;
                     // the active one full (visible only while the pill
                     // glides). The digits a little stronger: thin strokes fade
@@ -101,13 +106,13 @@ struct SidebarSpaces: View {
         }
     }
 
-    private static func offset(_ index: Int) -> CGFloat {
-        CGFloat(index) * (slot + gap)
+    private func offset(_ index: Int) -> CGFloat {
+        CGFloat(index) * (slot + Self.gap)
     }
 
     /// The pill's shift to place `index`, along the bar.
     private func pill(_ index: Int) -> CGSize {
-        axis == .horizontal ? CGSize(width: Self.offset(index), height: 0) : CGSize(width: 0, height: Self.offset(index))
+        axis == .horizontal ? CGSize(width: offset(index), height: 0) : CGSize(width: 0, height: offset(index))
     }
 
     private static func help(_ snapshot: SpaceSnapshot) -> String {
@@ -168,6 +173,7 @@ struct SidebarClock: View {
 
     @Environment(\.shellStyle) private var shellStyle
     @Environment(\.barAxis) private var axis
+    @Environment(\.barControlSize) private var size
 
     /// With a theme, `--apollo-bar-text-color` colors the clock: the fixed
     /// purple reads well on glass, but next to a theme with a bar color of its
@@ -202,7 +208,7 @@ struct SidebarClock: View {
         .lineLimit(1)
         .fixedSize()
         .foregroundStyle(color)
-        .frame(height: 32)
+        .frame(height: size)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(model.now.formatted(.dateTime.hour().minute().locale(Self.locale)))
         .help(model.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Self.locale)))
@@ -233,7 +239,7 @@ struct SidebarClock: View {
         .font(shellStyle.font(size: 13, weight: .semibold))
         .monospacedDigit()
         .foregroundStyle(color)
-        .frame(width: 32)
+        .frame(width: size)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(model.now.formatted(.dateTime.hour().minute().locale(Self.locale)))
         .help(model.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Self.locale)))
