@@ -51,6 +51,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     public var features = Features()
     /// The tiling window manager (Nexus > TWM).
     public var twm = TWMSettings()
+    /// Crash reports (Nexus > Updates).
+    public var crashReports = CrashReportSettings()
 
     /// The defaults of the four sections for the release (hotKeys, keepAwake,
     /// onboarding, appleDockHiding) are the ones for an EXISTING installation
@@ -326,6 +328,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         features = c.lenient(.features) ?? Features()
         // From the TWM branch on; without it the window manager stays off.
         twm = c.lenient(.twm) ?? TWMSettings()
+        // From 0.1.4.1 on; without it the app asks.
+        crashReports = c.lenient(.crashReports) ?? CrashReportSettings()
     }
 
     /// The content of settings.json.

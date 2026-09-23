@@ -72,6 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Scrim, toolbar and gallery of the edit mode (task 3).
     private var editModeWindows: EditModeWindows?
     private var updates: UpdateController?
+    private var crashReporter: CrashReporter?
     private var themes: ThemeStore?
     /// Introduction on the first start.
     private var onboarding: Onboarding?
@@ -262,6 +263,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.onboarding = onboarding
         nexusMenu.actions.introduction = { [weak onboarding] in onboarding?.show() }
         if showOnboarding { onboarding.show() }
+
+        // Abgestuerzt seit dem letzten Mal? Nicht zusammen mit der
+        // Einfuehrung - zwei Fenster auf einmal waeren zu viel.
+        let crashReporter = CrashReporter(settings: settings)
+        self.crashReporter = crashReporter
+        if !showOnboarding { crashReporter.checkAfterLaunch() }
     }
 
     /// ApolloShell opened a second time: the menu bar item comes back if it
@@ -301,9 +308,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// way a Quit from the menu takes too.
     private func installSigtermHandling() {
         signal(SIGTERM, SIG_IGN)
-        let source = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
-        source.setEventHandler {
-            NSApp.terminate(nil)
+        // Nicht auf `.main`: waehrend eines modalen Dialogs (z. B. der
+        // Absturzbericht-Frage) arbeitet AppKit den Main-Queue nicht ab, das
+        // Signal bliebe liegen. Deshalb eigener Queue und von dort ausdruecklich
+        // auch im Modal-Modus auf den Main-Runloop (gemessen 22.09. in der VM).
+        let source = DispatchSource.makeSignalSource(signal: SIGTERM,
+                                                     queue: DispatchQueue(label: AppIdentity.scoped("sigterm")))
+        // `@Sendable`: formed in this main-actor method, the closure would
+        // otherwise inherit the main actor, and Swift 6 checks that at run
+        // time - on the signal queue that check crashed every SIGTERM.
+        source.setEventHandler { @Sendable in
+            RunLoop.main.perform(inModes: [.common, .modalPanel]) {
+                MainActor.assumeIsolated {
+                    // Ein offener modaler Dialog laesst `terminate` sonst ins
+                    // Leere laufen: erst abbrechen, dann beenden.
+                    if NSApp.modalWindow != nil {
+                        NSApp.abortModal()
+                        DispatchQueue.main.async { NSApp.terminate(nil) }
+                    } else {
+                        NSApp.terminate(nil)
+                    }
+                }
+            }
+            CFRunLoopWakeUp(CFRunLoopGetMain())
         }
         source.resume()
         sigterm = source

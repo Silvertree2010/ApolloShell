@@ -163,7 +163,10 @@ held key into ⌃⌥⇧⌘. Installs from before 0.2 keep the shortcuts they had
   `pmset -a disablesleep 1` and `0`. You can remove it from the menu bar item.
 
 **Privacy.** No telemetry, no accounts. The only network traffic is weather:
-the place you picked goes to Open-Meteo, MET Norway or wttr.in. Settings live
+the place you picked goes to Open-Meteo, MET Norway or wttr.in. After a crash,
+ApolloShell asks whether to send the crash report (versions, Mac model and
+where in the code it crashed; you can read it first). Nexus → Updates can set
+that to always or never. Settings live
 in `~/Library/Application Support/ApolloShell/`. Delete that folder to reset
 everything.
 
