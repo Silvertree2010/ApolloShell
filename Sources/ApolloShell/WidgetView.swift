@@ -19,16 +19,33 @@ struct WidgetView: View {
                 SmallWeatherCard(model: context.weather(widget), options: widget.options.weather ?? .init(),
                                  vertical: upright, minimal: display == .minimal)
             case .user:
-                UserCard(model: context.dashboard, options: widget.options.user ?? .init(), vertical: upright)
+                if display == .minimal {
+                    UserMinimalCard(model: context.dashboard, size: size)
+                } else {
+                    UserCard(model: context.dashboard, options: widget.options.user ?? .init(), vertical: upright)
+                }
             case .clock:
-                DateTimeCard(now: context.dashboard.now, locale: context.dashboard.calendar.locale ?? .current,
-                            options: widget.options.clock ?? .init())
+                if display == .analog {
+                    AnalogClockCard(now: context.dashboard.now, locale: context.dashboard.calendar.locale ?? .current,
+                                    options: widget.options.clock ?? .init(), size: size)
+                } else {
+                    DateTimeCard(now: context.dashboard.now, locale: context.dashboard.calendar.locale ?? .current,
+                                options: widget.options.clock ?? .init(), size: size)
+                }
             case .calendar:
-                CalendarCard(model: context.dashboard, options: widget.options.calendar ?? .init(),
-                            tall: size.height > 300)
+                if display == .today {
+                    CalendarTodayCard(model: context.dashboard, size: size)
+                } else {
+                    CalendarCard(model: context.dashboard, options: widget.options.calendar ?? .init(),
+                                tall: size.height > 300)
+                }
             case .resources:
-                ResourcesCard(model: context.dashboard, options: widget.options.resources ?? .init(),
-                              horizontal: size.width > size.height)
+                if display == .bars {
+                    ResourcesBarsCard(model: context.dashboard, options: widget.options.resources ?? .init(), size: size)
+                } else {
+                    ResourcesCard(model: context.dashboard, options: widget.options.resources ?? .init(),
+                                  horizontal: size.width > size.height, size: size)
+                }
             case .media:
                 let options = widget.options.media ?? .init()
                 // Right (200 x 392) Caelestia's card; flat and wide a
