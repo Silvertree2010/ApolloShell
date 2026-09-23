@@ -272,10 +272,52 @@ struct BarBlockOptionsView: View {
                 .weather(.init(showTemperature: $0))
             })
             BarWeatherPlacesSection()
-        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton:
+        case .nowPlaying(let options):
+            Toggle("Show Controls", isOn: binding(options.showControls) {
+                .nowPlaying(.init(maxLength: options.maxLength, showControls: $0))
+            })
+            lengthStepper(options.maxLength) { .nowPlaying(.init(maxLength: $0, showControls: options.showControls)) }
+        case .windowTitle(let options):
+            Toggle("Show Icon", isOn: binding(options.showIcon) {
+                .windowTitle(.init(showIcon: $0, showTitle: options.showTitle, maxLength: options.maxLength))
+            })
+            Toggle("Show Window Title", isOn: binding(options.showTitle) {
+                .windowTitle(.init(showIcon: options.showIcon, showTitle: $0, maxLength: options.maxLength))
+            })
+            lengthStepper(options.maxLength) {
+                .windowTitle(.init(showIcon: options.showIcon, showTitle: options.showTitle, maxLength: $0))
+            }
+            Text("The window title needs Accessibility access, like keeping windows out of the bar.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        case .keyboardLayout(let options):
+            Toggle("Show Icon", isOn: binding(options.showIcon) { .keyboardLayout(.init(showIcon: $0)) })
+        case .volume(let options):
+            Toggle("Show Percent", isOn: binding(options.showPercent) {
+                .volume(.init(showPercent: $0, showDevice: options.showDevice))
+            })
+            Toggle("Show Output Device", isOn: binding(options.showDevice) {
+                .volume(.init(showPercent: options.showPercent, showDevice: $0))
+            })
+        case .systemStats(let options):
+            Toggle("CPU", isOn: binding(options.showCPU) {
+                .systemStats(.init(showCPU: $0, showMemory: options.showMemory))
+            })
+            Toggle("Memory", isOn: binding(options.showMemory) {
+                .systemStats(.init(showCPU: options.showCPU, showMemory: $0))
+            })
+        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .wifi, .bluetooth:
             Text("Nothing to set.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    /// The longest text before the ellipsis. A stepper like the gap's, for
+    /// the same reason: every step writes the working copy.
+    private func lengthStepper(_ value: Int, _ make: @escaping (Int) -> BarModule) -> some View {
+        Stepper(value: binding(value, make), in: BarText.lengthRange, step: 4) {
+            LabeledContent("Maximum Length", value: String(localized: "\(value) characters"))
         }
     }
 

@@ -23,6 +23,8 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
     case dashboardButton, workspaces, dock, clock, utilitiesButton, statusIcons, power
     // Added new, for different tastes.
     case spacer, gap, divider, appButton, battery, cpu, weather, mediaButton
+    // Stage 3 of the edge bars (spec 23.09.): the modules a top bar lives on.
+    case nowPlaying, windowTitle, keyboardLayout, volume, wifi, bluetooth, systemStats
 
     public var id: Self { self }
 
@@ -52,6 +54,13 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .cpu: String(localized: "CPU")
         case .weather: String(localized: "Weather")
         case .mediaButton: String(localized: "Media")
+        case .nowPlaying: String(localized: "Now Playing")
+        case .windowTitle: String(localized: "Window Title")
+        case .keyboardLayout: String(localized: "Input Source")
+        case .volume: String(localized: "Volume")
+        case .wifi: String(localized: "Wi-Fi")
+        case .bluetooth: String(localized: "Bluetooth")
+        case .systemStats: String(localized: "System Stats")
         }
     }
 
@@ -73,6 +82,13 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .cpu: String(localized: "Load as a ring or number, every 2 seconds.")
         case .weather: String(localized: "Icon and temperature for the Dashboard's location.")
         case .mediaButton: String(localized: "Opens the Dashboard at the Media tab.")
+        case .nowPlaying: String(localized: "Title and artist of what is playing, with previous, play and next.")
+        case .windowTitle: String(localized: "The frontmost app and the title of its window.")
+        case .keyboardLayout: String(localized: "The current keyboard layout; a click switches to the next one.")
+        case .volume: String(localized: "Output volume; scroll to change it, click to mute.")
+        case .wifi: String(localized: "Wi-Fi on its own; a click shows details.")
+        case .bluetooth: String(localized: "Bluetooth on its own; a click shows details.")
+        case .systemStats: String(localized: "CPU and memory use in percent, every 2 seconds.")
         }
     }
 
@@ -94,6 +110,14 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .cpu: "cpu.fill"
         case .weather: "cloud.sun.fill"
         case .mediaButton: "music.note"
+        case .nowPlaying: "play.circle.fill"
+        case .windowTitle: "macwindow"
+        case .keyboardLayout: "keyboard"
+        case .volume: "speaker.wave.2.fill"
+        case .wifi: "wifi"
+        // SF Symbols has no Bluetooth rune (a trademark); the bar draws its own.
+        case .bluetooth: "antenna.radiowaves.left.and.right"
+        case .systemStats: "memorychip"
         }
     }
 }
@@ -312,6 +336,115 @@ public struct BarWeatherOptions: Codable, Equatable, Sendable {
     }
 }
 
+public struct BarNowPlayingOptions: Codable, Equatable, Sendable {
+    /// Characters of "title · artist" before it is cut with an ellipsis.
+    /// Clamped like the gap's height: a hand-edited 0 or 10000 would leave
+    /// nothing or push every other block out of a top bar.
+    public var maxLength: Int {
+        didSet {
+            let clamped = BarText.clampedLength(maxLength)
+            if clamped != maxLength { maxLength = clamped }
+        }
+    }
+    /// Previous, play/pause and next beside the text.
+    public var showControls: Bool
+
+    public init(maxLength: Int = 28, showControls: Bool = true) {
+        self.maxLength = BarText.clampedLength(maxLength)
+        self.showControls = showControls
+    }
+
+    public init(from decoder: any Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        // By hand for the same reason as the gap: `into:` would skip `didSet`.
+        if let raw: Int = c.lenient(.maxLength) { maxLength = BarText.clampedLength(raw) }
+        c.lenient(.showControls, into: &showControls)
+    }
+}
+
+public struct BarWindowTitleOptions: Codable, Equatable, Sendable {
+    /// The app's icon before the text.
+    public var showIcon: Bool
+    /// The focused window's title besides the app's name. Reading it needs
+    /// the accessibility permission (the window guard asks for it anyway);
+    /// off, nothing is asked of other apps at all.
+    public var showTitle: Bool
+    public var maxLength: Int {
+        didSet {
+            let clamped = BarText.clampedLength(maxLength)
+            if clamped != maxLength { maxLength = clamped }
+        }
+    }
+
+    public init(showIcon: Bool = true, showTitle: Bool = true, maxLength: Int = 40) {
+        self.showIcon = showIcon
+        self.showTitle = showTitle
+        self.maxLength = BarText.clampedLength(maxLength)
+    }
+
+    public init(from decoder: any Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        c.lenient(.showIcon, into: &showIcon)
+        c.lenient(.showTitle, into: &showTitle)
+        if let raw: Int = c.lenient(.maxLength) { maxLength = BarText.clampedLength(raw) }
+    }
+}
+
+public struct BarKeyboardLayoutOptions: Codable, Equatable, Sendable {
+    /// A keyboard symbol before the short name.
+    public var showIcon: Bool
+
+    public init(showIcon: Bool = false) { self.showIcon = showIcon }
+
+    public init(from decoder: any Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        c.lenient(.showIcon, into: &showIcon)
+    }
+}
+
+public struct BarVolumeOptions: Codable, Equatable, Sendable {
+    public var showPercent: Bool
+    /// The output device's name ("MacBook Pro Speakers", "AirPods") beside
+    /// the number - only along a horizontal bar, it does not fit across one.
+    public var showDevice: Bool
+
+    public init(showPercent: Bool = true, showDevice: Bool = false) {
+        self.showPercent = showPercent
+        self.showDevice = showDevice
+    }
+
+    public init(from decoder: any Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        c.lenient(.showPercent, into: &showPercent)
+        c.lenient(.showDevice, into: &showDevice)
+    }
+}
+
+public struct BarSystemStatsOptions: Codable, Equatable, Sendable {
+    public var showCPU: Bool
+    public var showMemory: Bool
+
+    public init(showCPU: Bool = true, showMemory: Bool = true) {
+        self.showCPU = showCPU
+        self.showMemory = showMemory
+    }
+
+    public init(from decoder: any Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        c.lenient(.showCPU, into: &showCPU)
+        c.lenient(.showMemory, into: &showMemory)
+    }
+
+    /// Both switched off would leave an empty button; the CPU stays then,
+    /// the way a module that is in the bar should always show something.
+    public var shownCPU: Bool { showCPU || !showMemory }
+}
+
 // MARK: - Module
 
 /// Kind and options in one: each kind carries exactly its own option
@@ -332,6 +465,13 @@ public enum BarModule: BlockModule, Equatable, Sendable {
     case cpu(BarCPUOptions)
     case weather(BarWeatherOptions)
     case mediaButton
+    case nowPlaying(BarNowPlayingOptions)
+    case windowTitle(BarWindowTitleOptions)
+    case keyboardLayout(BarKeyboardLayoutOptions)
+    case volume(BarVolumeOptions)
+    case wifi
+    case bluetooth
+    case systemStats(BarSystemStatsOptions)
 
     /// With the kind's defaults.
     public init(_ kind: BarModuleKind) {
@@ -359,6 +499,13 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .cpu: .cpu(Self.decoded(c, forKey: .options, default: .init()))
         case .weather: .weather(Self.decoded(c, forKey: .options, default: .init()))
         case .mediaButton: .mediaButton
+        case .nowPlaying: .nowPlaying(Self.decoded(c, forKey: .options, default: .init()))
+        case .windowTitle: .windowTitle(Self.decoded(c, forKey: .options, default: .init()))
+        case .keyboardLayout: .keyboardLayout(Self.decoded(c, forKey: .options, default: .init()))
+        case .volume: .volume(Self.decoded(c, forKey: .options, default: .init()))
+        case .wifi: .wifi
+        case .bluetooth: .bluetooth
+        case .systemStats: .systemStats(Self.decoded(c, forKey: .options, default: .init()))
         }
     }
 
@@ -379,6 +526,13 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .cpu: .cpu
         case .weather: .weather
         case .mediaButton: .mediaButton
+        case .nowPlaying: .nowPlaying
+        case .windowTitle: .windowTitle
+        case .keyboardLayout: .keyboardLayout
+        case .volume: .volume
+        case .wifi: .wifi
+        case .bluetooth: .bluetooth
+        case .systemStats: .systemStats
         }
     }
 
@@ -395,7 +549,12 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .battery(let o): o
         case .cpu(let o): o
         case .weather(let o): o
-        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton: nil
+        case .nowPlaying(let o): o
+        case .windowTitle(let o): o
+        case .keyboardLayout(let o): o
+        case .volume(let o): o
+        case .systemStats(let o): o
+        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .wifi, .bluetooth: nil
         }
     }
 
@@ -409,6 +568,11 @@ public enum BarModule: BlockModule, Equatable, Sendable {
     public var battery: BarBatteryOptions? { if case .battery(let o) = self { o } else { nil } }
     public var cpu: BarCPUOptions? { if case .cpu(let o) = self { o } else { nil } }
     public var weather: BarWeatherOptions? { if case .weather(let o) = self { o } else { nil } }
+    public var nowPlaying: BarNowPlayingOptions? { if case .nowPlaying(let o) = self { o } else { nil } }
+    public var windowTitle: BarWindowTitleOptions? { if case .windowTitle(let o) = self { o } else { nil } }
+    public var keyboardLayout: BarKeyboardLayoutOptions? { if case .keyboardLayout(let o) = self { o } else { nil } }
+    public var volume: BarVolumeOptions? { if case .volume(let o) = self { o } else { nil } }
+    public var systemStats: BarSystemStatsOptions? { if case .systemStats(let o) = self { o } else { nil } }
 }
 
 /// A slot in the bar. The identifier stays the same when reordering and

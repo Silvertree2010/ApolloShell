@@ -66,6 +66,12 @@ final class Sidebar {
     private let spaces = SpacesModel()
     private let dock: SidebarDockModel
     private let clock = SidebarClockModel()
+    /// The stage-3 blocks: shared like the rest, each one only listening
+    /// while a block that shows it stands in a visible bar.
+    private let media: MediaModel
+    private let frontApp = BarFrontAppModel()
+    private let keyboard = BarKeyboardModel()
+    private let volume = BarVolumeModel()
 
     /// One bar per screen, by display identifier.
     private var slots = ScreenSlots<SidebarScreen>()
@@ -100,15 +106,18 @@ final class Sidebar {
     /// stayed calm while the rest of the shell was being edited).
     private(set) weak var editor: ShellEditor?
 
-    init(settings: ShellSettingsStore, editor: ShellEditor? = nil) {
+    /// `media`: the shell's one Now Playing model, shared with the dashboard.
+    init(settings: ShellSettingsStore, editor: ShellEditor? = nil, media: MediaModel = MediaModel()) {
         self.settings = settings
         self.editor = editor
+        self.media = media
         // The file manager above comes from the settings (Nexus > Providers).
         dock = SidebarDockModel(settings: settings)
         // Weather provider likewise from the settings, as in the Dashboard.
         weather = BarWeatherFeed(settings: settings)
         context = BarModuleContext(
             status: status, spaces: spaces, dock: dock, clock: clock, cpu: cpu, weather: weather,
+            media: media, frontApp: frontApp, keyboard: keyboard, volume: volume,
             onDashboard: { [weak self] in self?.onDashboard() },
             onDashboardTab: { [weak self] in self?.onDashboardTab($0) },
             onUtilities: { [weak self] in self?.onUtilities() },
@@ -197,6 +206,10 @@ final class Sidebar {
             || edgeScreens.contains { !$0.isHiddenForFullscreen }
         cpu.paused = !anyVisible
         weather.paused = !anyVisible
+        media.barsPaused = !anyVisible
+        frontApp.paused = !anyVisible
+        keyboard.paused = !anyVisible
+        volume.paused = !anyVisible
         dock.badgesPaused = !anyVisible
     }
 

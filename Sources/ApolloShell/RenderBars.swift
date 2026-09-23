@@ -25,6 +25,7 @@ enum RenderBars {
             }
         }
         try renderHorizontal(into: folder.appendingPathComponent("horizontal", isDirectory: true), context: context)
+        try renderVertical(into: folder.appendingPathComponent("vertical", isDirectory: true), context: context)
         try renderEdge(into: folder.appendingPathComponent("edge", isDirectory: true), context: context)
         try renderThemes(into: folder.appendingPathComponent("themes", isDirectory: true), context: context)
     }
@@ -212,6 +213,43 @@ enum RenderBars {
         }
     }
 
+    /// The stage-3 blocks (spec "Etappe 3") across a vertical bar, each
+    /// alone in a sidebar-wide column - kept out of `sidebar/`, whose files
+    /// are the pixel baseline - and once more along a horizontal row with
+    /// their options switched on, in icons and as pills on a top bar.
+    private static let stageThree: [BarEntry] = [
+        BarEntry(module: .nowPlaying(.init())),
+        BarEntry(module: .windowTitle(.init())),
+        BarEntry(module: .keyboardLayout(.init(showIcon: true))),
+        BarEntry(module: .volume(.init(showDevice: true))),
+        BarEntry(.wifi), BarEntry(.bluetooth),
+        BarEntry(module: .systemStats(.init())),
+    ]
+
+    private static func renderVertical(into folder: URL, context: BarModuleContext) throws {
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        for scheme in [ColorScheme.light, .dark] {
+            for entry in stageThree {
+                let view = BarModuleView(entry: entry, context: context)
+                    .environment(\.barPreview, true)
+                    .frame(width: Sidebar.width, height: 110)
+                try RenderMode.write(view, scheme: scheme,
+                                     to: folder.appendingPathComponent(RenderMode.name(entry.kind.rawValue, scheme)))
+            }
+            try RenderMode.write(row(stageThree, context: context).frame(width: 1400, height: 34), scheme: scheme,
+                                 to: folder.appendingPathComponent(RenderMode.name("stage3-row", scheme)))
+            for (name, pills) in [("stage3-top-icons", false), ("stage3-top-pills", true)] {
+                let bar = EdgeBar(enabled: true, statusStyle: pills ? .pills : .icons,
+                                  start: BarLayout([BarEntry(.dashboardButton), stageThree[0], stageThree[1]]),
+                                  center: BarLayout([BarEntry(.clock)]),
+                                  end: BarLayout(Array(stageThree[2...]) + [BarEntry(.power)]))
+                let view = edgeBar(bar, edge: .top, notch: nil, context: context)
+                    .frame(width: 1728, height: CGFloat(bar.thickness))
+                try RenderMode.write(view, scheme: scheme, to: folder.appendingPathComponent(RenderMode.name(name, scheme)))
+            }
+        }
+    }
+
     private static func row(_ entries: [BarEntry], context: BarModuleContext) -> some View {
         BarStack(axis: .horizontal) {
             ForEach(entries) { entry in
@@ -233,9 +271,23 @@ enum RenderBars {
             spaces: SpacesModel(preview: SpaceSnapshot(desktops: [1, 2, 3, 4], activeIndex: 1)),
             dock: SidebarDockModel(preview: dockEntries(), frontmost: "com.apple.Safari"),
             clock: SidebarClockModel(preview: now),
-            cpu: BarCPUModel(preview: 0.23),
-            weather: BarWeatherFeed(preview: weather)
+            cpu: BarCPUModel(preview: 0.23, memory: 0.61),
+            weather: BarWeatherFeed(preview: weather),
+            media: MediaModel.preview(
+                nowPlaying: MediaNowPlaying(title: "Sample Track With a Long Name", artist: "Sample Band",
+                                            isPlaying: true, duration: 240, elapsed: 80, timestamp: now, playbackRate: 1),
+                now: now),
+            frontApp: BarFrontAppModel(preview: frontApp(), title: "Apple – Start Page"),
+            keyboard: BarKeyboardModel(preview: "DE", name: "Swiss German"),
+            volume: BarVolumeModel(preview: 0.45, muted: false, deviceName: "MacBook Pro Speakers")
         )
+    }
+
+    /// Safari as the frontmost app, with its real icon where it is installed.
+    private static func frontApp() -> BarFrontAppModel.FrontApp {
+        let icon = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Safari")
+            .map { NSWorkspace.shared.icon(forFile: $0.path) }
+        return BarFrontAppModel.FrontApp(pid: 1, name: "Safari", icon: icon)
     }
 
     private static func dockEntries() -> [SidebarDockModel.Entry] {

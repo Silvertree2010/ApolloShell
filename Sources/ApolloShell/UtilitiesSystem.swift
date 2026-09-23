@@ -218,7 +218,7 @@ enum UtilitiesAudioHardware {
     }
 
     /// CoreAudio hands the CFString back with +1, hence `takeRetainedValue`.
-    private static func name(of device: AudioObjectID) -> String? {
+    static func name(of device: AudioObjectID) -> String? {
         var address = address(kAudioObjectPropertyName)
         var name: Unmanaged<CFString>?
         var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)

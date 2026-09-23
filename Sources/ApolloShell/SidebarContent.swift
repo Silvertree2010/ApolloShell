@@ -215,6 +215,24 @@ struct BarModuleView: View {
                 Image(systemName: "music.note")
                     .font(.system(size: 15, weight: .semibold))
             }
+        case .nowPlaying(let options):
+            BarNowPlayingModule(media: context.media, options: options) { context.onDashboardTab(.media) }
+        case .windowTitle(let options):
+            BarWindowTitleModule(model: context.frontApp, options: options)
+        case .keyboardLayout(let options):
+            BarKeyboardModule(model: context.keyboard, options: options)
+        case .volume(let options):
+            BarVolumeModule(model: context.volume, options: options)
+        case .wifi:
+            // The status capsule with one symbol, so the pill, the theme
+            // image and the popout are exactly the capsule's.
+            StatusCapsule(status: context.status, options: .init(showWifi: true, showBluetooth: false, showBattery: false),
+                          standalone: true)
+        case .bluetooth:
+            StatusCapsule(status: context.status, options: .init(showWifi: false, showBluetooth: true, showBattery: false),
+                          standalone: true)
+        case .systemStats(let options):
+            BarSystemStatsModule(model: context.cpu, options: options) { context.onDashboardTab(.performance) }
         }
     }
 }
@@ -234,6 +252,14 @@ struct BarModuleView: View {
 private struct StatusCapsule: View {
     let status: StatusModel
     var options = BarStatusIconsOptions()
+    /// A Wi-Fi or Bluetooth block on its own: no capsule behind the one
+    /// symbol (a lone symbol in a capsule reads as a stray frame).
+    var standalone = false
+    /// Where this capsule's symbols lie, kept to hand to the popout on a
+    /// click: with a Wi-Fi block beside the capsule two symbols report a
+    /// frame for the same kind, and the one clicked must win. A box, not
+    /// plain state: a frame change should not redraw anything.
+    @State private var frames = StatusFrameBox()
     @Environment(StatusPopoutModel.self) private var popout: StatusPopoutModel?
     @Environment(\.barAxis) private var axis
     /// Its group draws the capsule already (islands, distinct groups).
@@ -277,8 +303,8 @@ private struct StatusCapsule: View {
                     }
                 }
             }
-            .padding(axis == .horizontal ? .horizontal : .vertical, 4)
-            .background(Color.primary.opacity(inCapsule ? 0 : 0.08), in: .capsule)
+            .padding(axis == .horizontal ? .horizontal : .vertical, standalone ? 0 : 4)
+            .background(Color.primary.opacity(inCapsule || standalone ? 0 : 0.08), in: .capsule)
         }
     }
 
@@ -328,7 +354,7 @@ private struct StatusCapsule: View {
         let active = popout?.isOpen == true && popout?.shown == kind
         // A few points off the bar's edges, like the capsules of a group.
         let across = max(size - 8, 16)
-        return Button(action: { popout?.onIconClick(kind) }) {
+        return Button(action: { click(kind) }) {
             HStack(spacing: 4) {
                 glyph()
                 if horizontal {
@@ -351,7 +377,17 @@ private struct StatusCapsule: View {
         .animation(.easeOut(duration: 0.12), value: active)
         .help(help)
         .accessibilityLabel(help)
-        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { popout?.iconFrames[kind] = $0 }
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { report(kind, $0) }
+    }
+
+    private func report(_ kind: StatusPopoutKind, _ frame: CGRect) {
+        frames.value[kind] = frame
+        popout?.iconFrames[kind] = frame
+    }
+
+    private func click(_ kind: StatusPopoutKind) {
+        if let frame = frames.value[kind] { popout?.iconFrames[kind] = frame }
+        popout?.onIconClick(kind)
     }
 
     /// A symbol button that reports its frame for the placement of the popout.
@@ -359,10 +395,10 @@ private struct StatusCapsule: View {
         _ kind: StatusPopoutKind, help: String, @ViewBuilder glyph: @escaping () -> Glyph
     ) -> some View {
         let active = popout?.isOpen == true && popout?.shown == kind
-        return SidebarIcon(help: help, action: { popout?.onIconClick(kind) }, content: glyph)
+        return SidebarIcon(help: help, action: { click(kind) }, content: glyph)
             .background(Color.primary.opacity(active ? 0.14 : 0), in: .rect(cornerRadius: 9))
             .animation(.easeOut(duration: 0.12), value: active)
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { popout?.iconFrames[kind] = $0 }
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { report(kind, $0) }
     }
 
     private var wifiHelp: String {
@@ -378,6 +414,12 @@ private struct StatusCapsule: View {
         case nil: "Bluetooth"
         }
     }
+}
+
+/// See `StatusCapsule.frames`.
+@MainActor
+private final class StatusFrameBox {
+    var value: [StatusPopoutKind: CGRect] = [:]
 }
 
 /// Symbol button of the bar: 32 x 32, slightly backed on hover. Without an

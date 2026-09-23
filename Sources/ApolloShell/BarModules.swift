@@ -115,6 +115,11 @@ struct BarModuleContext {
     var clock: SidebarClockModel
     var cpu: BarCPUModel
     var weather: BarWeatherFeed
+    /// Shared with the dashboard; see `MediaModel`.
+    var media: MediaModel
+    var frontApp: BarFrontAppModel
+    var keyboard: BarKeyboardModel
+    var volume: BarVolumeModel
     var onDashboard: @MainActor () -> Void = {}
     /// Media, weather, CPU, battery: straight to the matching tab.
     var onDashboardTab: @MainActor (DashboardTab) -> Void = { _ in }
@@ -153,6 +158,9 @@ final class BarCPUModel {
     /// 0...1, rounded to whole percent: that way the bar only redraws when
     /// the shown number changes. `nil` until the second measurement.
     private(set) var usage: Double?
+    /// Used memory, 0...1 in whole percent, for the system stats block. Read
+    /// in the same round: one more Mach call, microseconds.
+    private(set) var memory: Double?
 
     static let interval: TimeInterval = 2
 
@@ -166,9 +174,10 @@ final class BarCPUModel {
     }
 
     /// For the preview and the image sample: a fixed value, never measures.
-    init(preview usage: Double?) {
+    init(preview usage: Double?, memory: Double? = nil) {
         live = false
         self.usage = usage
+        self.memory = memory
     }
 
     var isSampling: Bool { timer != nil }
@@ -185,6 +194,8 @@ final class BarCPUModel {
         guard live else { return }
         if demand.isActive, timer == nil {
             lastTicks = SystemSampler.cpuTicks()
+            // Memory needs no second reading: shown right away.
+            sampleMemory()
             let timer = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.sample() }
             }
@@ -200,7 +211,15 @@ final class BarCPUModel {
         }
     }
 
+    private func sampleMemory() {
+        guard let reading = SystemSampler.memory(),
+              let value = BarText.fraction(used: reading.used, total: reading.total) else { return }
+        let rounded = (value * 100).rounded() / 100
+        if rounded != memory { memory = rounded }
+    }
+
     private func sample() {
+        sampleMemory()
         guard let ticks = SystemSampler.cpuTicks() else { return }
         defer { lastTicks = ticks }
         guard let old = lastTicks, let value = ResourceMath.cpuUsage(from: old, to: ticks) else { return }
@@ -511,6 +530,12 @@ extension BarModuleKind {
         case .cpu: .orange
         case .weather: .cyan
         case .mediaButton: .pink
+        case .nowPlaying: .pink
+        case .windowTitle: .indigo
+        case .keyboardLayout: .brown
+        case .volume: .pink
+        case .wifi, .bluetooth: .blue
+        case .systemStats: .orange
         }
     }
 }

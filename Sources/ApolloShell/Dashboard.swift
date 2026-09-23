@@ -15,8 +15,9 @@ final class Dashboard {
     /// One `WeatherModel` per weather widget: only fetches on open when
     /// the data is older than 15 min, and every 30 min while open.
     private let weatherModels: WeatherModels
-    /// Now Playing: the adapter process only runs while open.
-    private let media = MediaModel()
+    /// Now Playing, shared with the bars' now-playing blocks (one adapter
+    /// process for both); the dashboard asks for the stream while open.
+    private let media: MediaModel
     private let settings: ShellSettingsStore
     private let editor: DashboardEditor
     private let drawer: EdgeDrawer<DashboardView>
@@ -29,8 +30,11 @@ final class Dashboard {
     /// widgets (Nexus > Dashboard, `settings.dashboardPages`). `editor`:
     /// an edit session, started from Nexus > Dashboard > Edit - the same
     /// object also holds Nexus.
-    init(settings: ShellSettingsStore, editor: DashboardEditor) {
+    /// `media`: the shell's one `MediaModel`; a fresh one where nothing else
+    /// shares it (the self-tests).
+    init(settings: ShellSettingsStore, editor: DashboardEditor, media: MediaModel = MediaModel()) {
         self.settings = settings
+        self.media = media
         self.editor = editor
         // Migration on the very first access to the pages - before
         // anything that reads them (including the size measurement right
@@ -242,6 +246,6 @@ final class Dashboard {
     /// When the app quits: do not let the adapter's perl process keep
     /// running orphaned if the Dashboard is currently open.
     func shutdown() {
-        media.stop()
+        media.shutdown()
     }
 }

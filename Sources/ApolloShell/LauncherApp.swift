@@ -142,7 +142,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The bars draw their edit surface while the global mode runs, and
         // stand above its scrim for as long as it lasts. The editor goes in
         // on the way in: `Sidebar.init` builds the bars right away.
-        let sidebar = Sidebar(settings: settings, editor: shellEditor)
+        // One Now Playing model for the dashboard and the bars' now-playing
+        // blocks: each asks for the stream while it is seen, and two readers
+        // share one adapter process instead of starting two.
+        let media = MediaModel()
+        let sidebar = Sidebar(settings: settings, editor: shellEditor, media: media)
         self.sidebar = sidebar
         shellEditor.addBeginHandler { [weak sidebar] _ in sidebar?.setEditing(true) }
         shellEditor.addEndHandler { [weak sidebar] in sidebar?.setEditing(false) }
@@ -157,7 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         osd = OSD()
         desktopClock = DesktopClock(settings: settings)
-        let dashboard = Dashboard(settings: settings, editor: dashboardEditor)
+        let dashboard = Dashboard(settings: settings, editor: dashboardEditor, media: media)
         self.dashboard = dashboard
         // The global edit mode starts on the page the dashboard shows right
         // now (or showed last); before the first opening `nil` - then
