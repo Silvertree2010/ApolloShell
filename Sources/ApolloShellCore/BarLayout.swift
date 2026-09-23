@@ -25,11 +25,19 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
     case spacer, gap, divider, appButton, battery, cpu, weather, mediaButton
     // Stage 3 of the menu bar (spec 23.09.): the modules the menu bar lives on.
     case nowPlaying, windowTitle, keyboardLayout, volume, wifi, bluetooth, systemStats
+    // Stage 5 (spec 23.09. evening): Apple's menu bar, drawn by the shell.
+    case appleMenu, appMenu, statusItems
 
     public var id: Self { self }
 
     /// Shares the free height with the other flexible ones (`BarFlex`).
     public var isFlexible: Bool { self == .dock || self == .spacer }
+
+    /// Takes a share of the free width along the menu bar. The app menu
+    /// too: it shows as many menu titles as the room it gets holds and puts
+    /// the rest into "…" - across the sidebar it is one button and stays
+    /// fixed.
+    public var growsAlongMenuBar: Bool { isFlexible || self == .appMenu }
 
     /// At most once: the Dock (dragging and dropping writes Apple's Dock
     /// list - two columns with the same content would make no sense)
@@ -61,6 +69,9 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .wifi: String(localized: "Wi-Fi")
         case .bluetooth: String(localized: "Bluetooth")
         case .systemStats: String(localized: "System Stats")
+        case .appleMenu: String(localized: "Apple Menu")
+        case .appMenu: String(localized: "App Menu")
+        case .statusItems: String(localized: "App Status Items")
         }
     }
 
@@ -89,6 +100,9 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .wifi: String(localized: "Wi-Fi on its own; a click shows details.")
         case .bluetooth: String(localized: "Bluetooth on its own; a click shows details.")
         case .systemStats: String(localized: "CPU and memory use in percent, every 2 seconds.")
+        case .appleMenu: String(localized: "The Apple menu of the frontmost app.")
+        case .appMenu: String(localized: "The frontmost app's name and its menus, File, Edit and so on.")
+        case .statusItems: String(localized: "Other apps' icons from Apple's menu bar, with their menus.")
         }
     }
 
@@ -118,6 +132,9 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         // SF Symbols has no Bluetooth rune (a trademark); the bar draws its own.
         case .bluetooth: "antenna.radiowaves.left.and.right"
         case .systemStats: "memorychip"
+        case .appleMenu: "apple.logo"
+        case .appMenu: "filemenu.and.selection"
+        case .statusItems: "menubar.rectangle"
         }
     }
 }
@@ -472,6 +489,9 @@ public enum BarModule: BlockModule, Equatable, Sendable {
     case wifi
     case bluetooth
     case systemStats(BarSystemStatsOptions)
+    case appleMenu
+    case appMenu
+    case statusItems
 
     /// With the kind's defaults.
     public init(_ kind: BarModuleKind) {
@@ -506,6 +526,9 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .wifi: .wifi
         case .bluetooth: .bluetooth
         case .systemStats: .systemStats(Self.decoded(c, forKey: .options, default: .init()))
+        case .appleMenu: .appleMenu
+        case .appMenu: .appMenu
+        case .statusItems: .statusItems
         }
     }
 
@@ -533,6 +556,9 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .wifi: .wifi
         case .bluetooth: .bluetooth
         case .systemStats: .systemStats
+        case .appleMenu: .appleMenu
+        case .appMenu: .appMenu
+        case .statusItems: .statusItems
         }
     }
 
@@ -554,7 +580,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .keyboardLayout(let o): o
         case .volume(let o): o
         case .systemStats(let o): o
-        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .wifi, .bluetooth: nil
+        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .wifi, .bluetooth,
+             .appleMenu, .appMenu, .statusItems: nil
         }
     }
 

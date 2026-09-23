@@ -10,10 +10,21 @@ struct MenuBarTests {
 
     private func kinds(_ layout: BarLayout) -> [String] { layout.entries.map(\.kind.rawValue) }
 
-    @Test("Without the section the bar is off and holds the Serpantinum template")
+    @Test("Without the section the bar is off and holds the macOS template")
     func defaults() {
         let bar = ApolloMenuBar.standard
         #expect(!bar.enabled && !bar.isActive)
+        #expect(kinds(bar.start) == ["appleMenu", "appMenu"])
+        #expect(bar.center.entries.isEmpty)
+        #expect(kinds(bar.end) == ["statusItems", "statusIcons", "clock"])
+        // Apple's height, covering Apple's bar rather than hiding it.
+        #expect(bar.thickness == 24 && bar.coversMenuBar && !bar.hideAppleMenuBar)
+        #expect(bar == MenuBarPreset.macOS.bar(enabled: false))
+    }
+
+    @Test("Serpantinum stays a template")
+    func serpantinum() {
+        let bar = MenuBarPreset.serpantinum.bar()
         #expect(kinds(bar.start) == ["dashboardButton", "workspaces", "mediaButton"])
         #expect(kinds(bar.center) == ["clock", "weather"])
         #expect(kinds(bar.end) == ["statusIcons", "battery", "power"])
@@ -54,6 +65,7 @@ struct MenuBarTests {
         bar.distinctGroups = true
         bar.thickness = 40
         bar.coversMenuBar = false
+        bar.hideAppleMenuBar = true
         bar.statusStyle = .pills
         bar.screens = .primary
         let data = try JSONEncoder().encode(bar)
@@ -68,7 +80,7 @@ struct MenuBarTests {
         let bar = try #require(decode(ApolloMenuBar.self, json))
         #expect(bar.enabled)
         #expect(bar.style == .fill)
-        #expect(bar.thickness == ApolloMenuBar.standardThickness)
+        #expect(bar.thickness == ApolloMenuBar.standard.thickness)
         #expect(bar.start == ApolloMenuBar.standard.start)
     }
 

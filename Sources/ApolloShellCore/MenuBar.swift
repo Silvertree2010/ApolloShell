@@ -72,6 +72,12 @@ public struct ApolloMenuBar: Codable, Equatable, Sendable {
     }
     /// Lie over Apple's menu bar instead of below it.
     public var coversMenuBar: Bool
+    /// Hide Apple's menu bar while this one stands (`_HIHideMenuBar`, see
+    /// `AppleMenuBarHiding`): 30 more points for windows, but the mirrored
+    /// status items lose their images - Apple's item windows move off
+    /// screen, and a window that is not there can not be captured (spec,
+    /// measured 22.09.). Off: the bar covers Apple's instead.
+    public var hideAppleMenuBar: Bool
     /// Glyphs or coloured pills for the status icons module. A bar setting
     /// rather than a module option: pills are a look of the whole bar, and
     /// the sidebar has no room for them.
@@ -82,7 +88,7 @@ public struct ApolloMenuBar: Codable, Equatable, Sendable {
 
     public init(enabled: Bool = false, screens: ScreenChoice = .all, style: BarStyle = .fill,
                 distinctGroups: Bool = false, thickness: Double = ApolloMenuBar.standardThickness,
-                coversMenuBar: Bool = true, statusStyle: BarStatusStyle = .icons,
+                coversMenuBar: Bool = true, hideAppleMenuBar: Bool = false, statusStyle: BarStatusStyle = .icons,
                 start: BarLayout = BarLayout(), center: BarLayout = BarLayout(), end: BarLayout = BarLayout()) {
         self.enabled = enabled
         self.screens = screens
@@ -90,6 +96,7 @@ public struct ApolloMenuBar: Codable, Equatable, Sendable {
         self.distinctGroups = distinctGroups
         self.thickness = Self.clamped(thickness)
         self.coversMenuBar = coversMenuBar
+        self.hideAppleMenuBar = hideAppleMenuBar
         self.statusStyle = statusStyle
         self.start = start
         self.center = center
@@ -97,16 +104,18 @@ public struct ApolloMenuBar: Codable, Equatable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case enabled, screens, style, distinctGroups, thickness, coversMenuBar, statusStyle, start, center, end
+        case enabled, screens, style, distinctGroups, thickness, coversMenuBar, hideAppleMenuBar, statusStyle
+        case start, center, end
     }
 
-    /// The bar without a settings section: the Serpantinum template,
-    /// switched off, so switching it on shows something.
-    public static let standard = MenuBarPreset.serpantinum.bar(enabled: false)
+    /// The bar without a settings section: the macOS template (Apple's
+    /// menu bar, drawn by the shell), switched off, so switching it on
+    /// shows something.
+    public static let standard = MenuBarPreset.macOS.bar(enabled: false)
 
     /// Every key on its own: one broken value costs only that value. A key
     /// missing in the file keeps the standard bar's value, zones included:
-    /// `{"enabled": true}` shows the Serpantinum bar, not an empty one.
+    /// `{"enabled": true}` shows the macOS bar, not an empty one.
     public init(from decoder: any Decoder) throws {
         self = .standard
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -117,6 +126,7 @@ public struct ApolloMenuBar: Codable, Equatable, Sendable {
         // Not `into:`, it would skip `didSet` and with it the clamping.
         if let raw: Double = c.lenient(.thickness) { thickness = Self.clamped(raw) }
         c.lenient(.coversMenuBar, into: &coversMenuBar)
+        c.lenient(.hideAppleMenuBar, into: &hideAppleMenuBar)
         c.lenient(.statusStyle, into: &statusStyle)
         c.lenient(.start, into: &start)
         c.lenient(.center, into: &center)
@@ -175,16 +185,19 @@ public struct ApolloMenuBar: Codable, Equatable, Sendable {
 
 // MARK: - Templates
 
-/// Ready-made menu bars. "Serpantinum" follows the look this was built after
-/// (its idea, not its code): settings, spaces and media on the left, clock
-/// and weather in the middle, the status pills on the right.
+/// Ready-made menu bars. "macOS" is Apple's menu bar drawn by the shell and
+/// the default (his decision 23.09. evening). "Serpantinum" follows the look
+/// this was built after (its idea, not its code): settings, spaces and media
+/// on the left, clock and weather in the middle, the status pills on the
+/// right.
 public enum MenuBarPreset: String, CaseIterable, Identifiable, Sendable {
-    case serpantinum, minimal, clockOnly
+    case macOS, serpantinum, minimal, clockOnly
 
     public var id: Self { self }
 
     public var title: String {
         switch self {
+        case .macOS: "macOS"
         case .serpantinum: "Serpantinum"
         case .minimal: "Minimal"
         case .clockOnly: "Clock Only"
@@ -193,6 +206,7 @@ public enum MenuBarPreset: String, CaseIterable, Identifiable, Sendable {
 
     public var summary: String {
         switch self {
+        case .macOS: "Apple menu, the app's menus, other apps' status items, the clock."
         case .serpantinum: "Spaces and media on the left, clock and weather in the middle, status on the right."
         case .minimal: "Spaces on the left, the clock on the right."
         case .clockOnly: "Just the clock in the middle."
@@ -202,6 +216,14 @@ public enum MenuBarPreset: String, CaseIterable, Identifiable, Sendable {
     /// The template as a bar, its other settings at their defaults.
     public func bar(enabled: Bool = true) -> ApolloMenuBar {
         switch self {
+        case .macOS:
+            // As thin as Apple's bar: covering it, the panel takes Apple's
+            // height anyway (33 points next to a notch). Wi-Fi, Bluetooth and
+            // battery are ours - Apple's own status items are not mirrored.
+            ApolloMenuBar(enabled: enabled, thickness: 24,
+                          start: BarLayout([BarEntry(.appleMenu), BarEntry(.appMenu)]),
+                          end: BarLayout([BarEntry(.statusItems), BarEntry(module: .statusIcons(.init())),
+                                          BarEntry(module: .clock(.init(showIcon: false, showDate: true)))]))
         case .serpantinum:
             ApolloMenuBar(enabled: enabled,
                           start: BarLayout([BarEntry(.dashboardButton), BarEntry(.workspaces), BarEntry(.mediaButton)]),
