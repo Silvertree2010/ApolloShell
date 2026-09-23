@@ -163,7 +163,8 @@ struct BarModuleView: View {
             SidebarDock(model: context.dock, options: options)
                 .layoutValue(key: BarFlexible.self, value: true)
         case .clock(let options):
-            SidebarClock(model: context.clock, showIcon: options.showIcon, showDate: options.showDate)
+            SidebarClock(model: context.clock, showIcon: options.showIcon, showDate: options.showDate,
+                         style: options.resolvedStyle(horizontal: axis == .horizontal))
                 // A click opens the dashboard with the calendar.
                 .contentShape(.rect)
                 .onTapGesture { context.onDashboard() }
@@ -225,6 +226,11 @@ struct BarModuleView: View {
 /// the open one stays backed. The model comes out of the environment - when
 /// it is missing (preview, image samples), the symbols are display only.
 /// Along a horizontal bar the symbols stand side by side in a lying capsule.
+///
+/// An edge bar can ask for pills instead (`EdgeBar.statusStyle`): each
+/// symbol on its own capsule in its `--apollo-status-*` colour, with a word
+/// beside it along a horizontal bar. Across the right bar there is no room
+/// for the word, so the pill carries the symbol only.
 private struct StatusCapsule: View {
     let status: StatusModel
     var options = BarStatusIconsOptions()
@@ -232,10 +238,15 @@ private struct StatusCapsule: View {
     @Environment(\.barAxis) private var axis
     /// Its group draws the capsule already (islands, distinct groups).
     @Environment(\.barGroupCapsule) private var inCapsule
+    @Environment(\.barStatusStyle) private var statusStyle
+    @Environment(\.barControlSize) private var size
+    @Environment(\.shellStyle) private var shellStyle
 
     var body: some View {
         let battery = options.showBattery ? StatusGlyphs.batterySymbol(status.battery) : nil
-        if options.showWifi || options.showBluetooth || battery != nil {
+        if statusStyle == .pills {
+            pills(battery: battery)
+        } else if options.showWifi || options.showBluetooth || battery != nil {
             axis.stack(spacing: 2) {
                 if options.showWifi {
                     let wifi = StatusGlyphs.wifi(powerOn: status.wifiOn, rssi: status.wifiRSSI)
@@ -269,6 +280,78 @@ private struct StatusCapsule: View {
             .padding(axis == .horizontal ? .horizontal : .vertical, 4)
             .background(Color.primary.opacity(inCapsule ? 0 : 0.08), in: .capsule)
         }
+    }
+
+    @ViewBuilder
+    private func pills(battery: String?) -> some View {
+        if options.showWifi || options.showBluetooth || battery != nil {
+            axis.stack(spacing: 4) {
+                if options.showWifi {
+                    let wifi = StatusGlyphs.wifi(powerOn: status.wifiOn, rssi: status.wifiRSSI)
+                    pill(.wifi, colors: shellStyle.statusPill(.statusWifi), help: wifiHelp,
+                         text: StatusGlyphs.wifiPillText(powerOn: status.wifiOn)) {
+                        ThemedIcon(status.wifiOn == false ? "status-wifi-off" : "status-wifi", fallback: wifi.symbol)
+                            .font(.system(size: 11, weight: .bold))
+                            .frame(width: 13, height: 13)
+                    }
+                }
+                if options.showBluetooth {
+                    pill(.bluetooth, colors: shellStyle.statusPill(.statusBluetooth), help: bluetoothHelp,
+                         text: StatusGlyphs.bluetoothPillText(on: status.bluetoothOn)) {
+                        BluetoothGlyph(on: status.bluetoothOn != false)
+                            .scaleEffect(0.8)
+                            .frame(width: 10, height: 13)
+                    }
+                }
+                if let battery {
+                    pill(.battery, colors: shellStyle.statusPill(.statusBattery),
+                         help: StatusGlyphs.batteryText(status.battery),
+                         text: StatusGlyphs.batteryPillText(status.battery) ?? "") {
+                        ThemedIcon(status.battery?.charging == true ? "status-battery-charging" : "status-battery",
+                                   fallback: battery)
+                            .font(.system(size: 11, weight: .bold))
+                            .frame(width: 15, height: 13)
+                    }
+                }
+            }
+        }
+    }
+
+    /// One pill: a button like `popoutIcon`, reporting its frame for the
+    /// popout, with the open one ringed instead of backed - a darker backing
+    /// would change the pill's colour.
+    private func pill<Glyph: View>(
+        _ kind: StatusPopoutKind, colors: (fill: Color, text: Color), help: String, text: String,
+        @ViewBuilder glyph: @escaping () -> Glyph
+    ) -> some View {
+        let horizontal = axis == .horizontal
+        let active = popout?.isOpen == true && popout?.shown == kind
+        // A few points off the bar's edges, like the capsules of a group.
+        let across = max(size - 8, 16)
+        return Button(action: { popout?.onIconClick(kind) }) {
+            HStack(spacing: 4) {
+                glyph()
+                if horizontal {
+                    Text(text)
+                        .font(shellStyle.font(size: 11, weight: .semibold))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+            }
+            .padding(.horizontal, horizontal ? 8 : 0)
+            .frame(width: horizontal ? nil : across, height: across)
+            .foregroundStyle(colors.text)
+            .background(colors.fill, in: .capsule)
+            .overlay { Capsule().strokeBorder(colors.text.opacity(active ? 0.55 : 0), lineWidth: 1.5) }
+            .frame(width: horizontal ? nil : size, height: horizontal ? size : nil)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .animation(.easeOut(duration: 0.12), value: active)
+        .help(help)
+        .accessibilityLabel(help)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { popout?.iconFrames[kind] = $0 }
     }
 
     /// A symbol button that reports its frame for the placement of the popout.

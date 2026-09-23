@@ -106,18 +106,21 @@ struct BarGlass<S: Shape>: ViewModifier {
     /// of `--apollo-bar-color` or `--apollo-bar-gradient`, with
     /// `--apollo-bar-opacity`. Glass shows through below it as long as the
     /// theme lets light through and allows glass (`--apollo-glass`).
+    ///
+    /// The image samples' stand-in only replaces the glass: a theme's own
+    /// colour is drawn there too, so `--render-bars` can show themes.
     func body(content: Content) -> some View {
-        if standIn {
-            content.background(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95), in: shape)
-        } else if style.paintsBar {
+        if style.paintsBar {
             let opaque = style.barIsOpaque
             content
                 .background(style.barFill, in: shape)
                 .background {
-                    if !opaque, style.glass {
+                    if !opaque, style.glass, !standIn {
                         Color.clear.glassEffect(.regular, in: shape)
                     }
                 }
+        } else if standIn {
+            content.background(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95), in: shape)
         } else {
             content.background(.regularMaterial, in: shape)
         }

@@ -201,6 +201,8 @@ struct BarBlockOptionsView: View {
             Picker("Style", selection: binding(options.style) { .workspaces(.init(style: $0)) }) {
                 Text("Dots").tag(BarWorkspacesOptions.Style.dots)
                 Text("Numbers").tag(BarWorkspacesOptions.Style.numbers)
+                Text("Pills").tag(BarWorkspacesOptions.Style.pills)
+                Text("Bars").tag(BarWorkspacesOptions.Style.bars)
             }
             .pickerStyle(.segmented)
         case .dock(let options):
@@ -217,11 +219,22 @@ struct BarBlockOptionsView: View {
             .pickerStyle(.segmented)
         case .clock(let options):
             Toggle("Show Icon", isOn: binding(options.showIcon) {
-                .clock(.init(showIcon: $0, showDate: options.showDate))
+                .clock(.init(showIcon: $0, showDate: options.showDate, style: options.style))
             })
             Toggle("Show Date", isOn: binding(options.showDate) {
-                .clock(.init(showIcon: options.showIcon, showDate: $0))
+                .clock(.init(showIcon: options.showIcon, showDate: $0, style: options.style))
             })
+            // `nil` stays selectable: "Automatic" is what a clock saved
+            // before faces had, and it adapts when the block moves between
+            // the sidebar and a top bar.
+            Picker("Style", selection: binding(options.style) {
+                .clock(.init(showIcon: options.showIcon, showDate: options.showDate, style: $0))
+            }) {
+                Text("Automatic").tag(BarClockOptions.Style?.none)
+                Text("Line").tag(BarClockOptions.Style?.some(.line))
+                Text("Stacked").tag(BarClockOptions.Style?.some(.stacked))
+                Text("Badge").tag(BarClockOptions.Style?.some(.badge))
+            }
         case .statusIcons(let options):
             Toggle("Wi-Fi", isOn: binding(options.showWifi) {
                 .statusIcons(.init(showWifi: $0, showBluetooth: options.showBluetooth,

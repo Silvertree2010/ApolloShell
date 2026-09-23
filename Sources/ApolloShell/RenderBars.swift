@@ -26,6 +26,59 @@ enum RenderBars {
         }
         try renderHorizontal(into: folder.appendingPathComponent("horizontal", isDirectory: true), context: context)
         try renderEdge(into: folder.appendingPathComponent("edge", isDirectory: true), context: context)
+        try renderThemes(into: folder.appendingPathComponent("themes", isDirectory: true), context: context)
+    }
+
+    /// The example themes of docs/THEMES.md ("Teal Strip", "Ember Islands"),
+    /// read straight out of the docs so the picture shows the text a reader
+    /// copies, on the Serpantinum top bar as strip and as islands - with the
+    /// status as pills (all three, the battery module dropped for it) and
+    /// Spaces as pills; one more with the bars face and the badge clock.
+    private static func renderThemes(into folder: URL, context: BarModuleContext) throws {
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let docs = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("docs/THEMES.md")
+        let markdown = String(decoding: try Data(contentsOf: docs), as: UTF8.self)
+        for (name, slug) in [("Teal Strip", "teal-strip"), ("Ember Islands", "ember-islands")] {
+            guard let css = ThemeDocumentation.cssBlock(after: "### \(name)", in: markdown) else {
+                throw RenderMode.RenderError.noImage("\(name) is missing from docs/THEMES.md")
+            }
+            let theme = Theme.make(identifier: slug, styleSheet: ThemeStyleSheetParser.parse(css))
+            let faces: [(name: String, spaces: BarWorkspacesOptions.Style, clock: BarClockOptions.Style?)] = [
+                ("pills", .pills, nil), ("bars-badge", .bars, .badge),
+            ]
+            for scheme in [ColorScheme.light, .dark] {
+                for look in edgeLooks where look.name != "fill-distinct" {
+                    for face in faces {
+                        var bar = EdgeBarPreset.serpantinum.bar(edge: .top)
+                        bar.style = look.style
+                        bar.statusStyle = .pills
+                        for zone in BarZone.allCases {
+                            bar[zone] = BarLayout(bar[zone].entries.compactMap { entry in
+                                var entry = entry
+                                switch entry.module {
+                                case .battery: return nil
+                                case .statusIcons: entry.module = .statusIcons(.init())
+                                case .workspaces: entry.module = .workspaces(.init(style: face.spaces))
+                                case let .clock(options):
+                                    entry.module = .clock(.init(showIcon: options.showIcon, showDate: options.showDate,
+                                                                style: face.clock))
+                                default: break
+                                }
+                                return entry
+                            })
+                        }
+                        let height = CGFloat(bar.thickness) + (look.style == .islands ? EdgeBarGeometry.islandMargin : 0)
+                        let view = edgeBar(bar, edge: .top, notch: nil, context: context)
+                            .environment(\.shellStyle, ShellStyle(theme: theme, dark: scheme == .dark))
+                            .frame(width: 1728, height: height)
+                        try RenderMode.write(view, scheme: scheme, to: folder.appendingPathComponent(
+                            RenderMode.name("\(slug)-\(look.name)-\(face.name)", scheme)))
+                    }
+                }
+            }
+        }
     }
 
     /// The three looks every edge bar template is drawn in.

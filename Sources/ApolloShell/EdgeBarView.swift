@@ -14,6 +14,11 @@ import SwiftUI
 /// - `.islands`: no strip; every group is its own piece of that background,
 ///   `EdgeBarGeometry.islandMargin` away from the screen edge.
 ///
+/// Theme: the blocks inside read the `--apollo-edgebar-*` tokens through
+/// `ShellStyle.edgeBarScope`; the strip, islands and capsules here read the
+/// edge bar's shape tokens directly. Every default is the look the bars had
+/// before those tokens existed.
+///
 /// A click on a status icon opens its details when the bar's panel puts a
 /// popout model into the environment (`EdgeBarRoot`); without one (image
 /// samples) the icons are display only - the model is an optional
@@ -33,13 +38,20 @@ struct EdgeBarView: View {
 
     /// Least distance between two zones.
     static let zoneGap: CGFloat = 8
-    /// Distance between the blocks inside one group - tighter than between
-    /// groups, so a group reads as one even without a capsule.
-    static let moduleSpacing: CGFloat = 4
-    /// Room inside a capsule before its first and after its last block.
-    static let capsuleInset: CGFloat = 6
     /// How far a lighter capsule on the strip stays off the strip's edges.
     static let distinctInset: CGFloat = 3
+
+    /// Distance between the blocks inside one group - tighter than between
+    /// groups, so a group reads as one even without a capsule.
+    private var moduleSpacing: CGFloat { style.length(.edgeBarItemSpacing) ?? 4 }
+    /// Room inside a capsule before its first and after its last block.
+    private var capsuleInset: CGFloat { style.length(.edgeBarPadding) ?? 6 }
+    /// The island's gap to the screen edge. Capped at the 6 points the
+    /// panel and the window guard reserve (`EdgeBarGeometry.islandMargin`),
+    /// so a theme can move an island closer but never out of its panel.
+    private var islandMargin: CGFloat {
+        min(style.length(.edgeBarIslandMargin) ?? EdgeBarGeometry.islandMargin, EdgeBarGeometry.islandMargin)
+    }
 
     private var axis: BarAxis { edge.isHorizontal ? .horizontal : .vertical }
     private var islands: Bool { bar.style == .islands }
@@ -49,12 +61,13 @@ struct EdgeBarView: View {
         // Along the bar: the sidebar's margin at its ends for the strip, the
         // island gap for islands, so they keep the same distance to the
         // screen corners as to the edge.
-        let along = islands ? EdgeBarGeometry.islandMargin : style.barPadding(10)
-        let margin = islands ? EdgeBarGeometry.islandMargin : 0
+        let along = islands ? islandMargin : style.barPadding(10)
+        let margin = islands ? islandMargin : 0
         let thickness = CGFloat(bar.thickness)
         ZStack {
             if !islands {
-                Color.clear.modifier(BarGlass(shape: Rectangle()))
+                Color.clear.modifier(BarGlass(shape: RoundedRectangle(cornerRadius: style.length(.edgeBarRadius) ?? 0,
+                                                                     style: .continuous)))
             }
             EdgeBarZones(axis: axis, gap: Self.zoneGap, notch: horizontal ? notch?.shifted(by: along) : nil) {
                 zone(.start)
@@ -72,6 +85,10 @@ struct EdgeBarView: View {
         }
         .environment(\.barAxis, axis)
         .environment(\.barControlSize, Self.controlSize(thickness: thickness, capsules: islands || bar.distinctGroups))
+        .environment(\.barStatusStyle, bar.statusStyle)
+        // Last, so `style` above is still the unscoped one: the redirects
+        // are for the blocks, this view reads the edge tokens by name.
+        .environment(\.shellStyle, style.edgeBarScope)
     }
 
     /// The buttons' edge length across the bar: the sidebar's 32 where it
@@ -112,7 +129,10 @@ struct EdgeBarView: View {
         let horizontal = edge.isHorizontal
         let groups = groups(zone)
         let flexible = groups.reduce(0) { $0 + $1.flexible }
-        return EdgeBarGroupStack(axis: axis, spacing: islands || bar.distinctGroups ? 6 : style.barItemSpacing(8)) {
+        // Capsules need less room between them than plain groups, which
+        // only the gap tells apart.
+        let spacing = style.length(.edgeBarGroupSpacing) ?? (islands || bar.distinctGroups ? 6 : style.barItemSpacing(8))
+        return EdgeBarGroupStack(axis: axis, spacing: spacing) {
             ForEach(groups) { group in
                 self.group(group)
                     .layoutValue(key: EdgeBarFlexCount.self, value: group.flexible)
@@ -159,23 +179,26 @@ struct EdgeBarView: View {
     private func group(_ group: BlockGroup) -> some View {
         let horizontal = edge.isHorizontal
         let capsule = islands || bar.distinctGroups
-        let shape = RoundedRectangle(cornerRadius: islands ? min(CGFloat(bar.thickness) / 2, 12) : 9,
-                                     style: .continuous)
-        BarStack(spacing: Self.moduleSpacing, axis: axis) {
+        // An island never rounds past a capsule: more than half the
+        // thickness would pinch its ends.
+        let radius = islands ? min(CGFloat(bar.thickness) / 2, style.length(.edgeBarIslandRadius) ?? 12)
+                             : style.length(.edgeBarGroupRadius) ?? 9
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        BarStack(spacing: moduleSpacing, axis: axis) {
             ForEach(group.entries) { entry in
                 BarModuleView(entry: entry, context: context)
             }
         }
         // Status icons and spaces drop their own capsule inside this one.
         .environment(\.barGroupCapsule, capsule)
-        .padding(horizontal ? .horizontal : .vertical, capsule ? Self.capsuleInset : 0)
+        .padding(horizontal ? .horizontal : .vertical, capsule ? capsuleInset : 0)
         .frame(maxWidth: horizontal ? nil : .infinity, maxHeight: horizontal ? .infinity : nil)
         .background {
             if islands {
                 Color.clear.modifier(BarGlass(shape: shape))
             } else if bar.distinctGroups {
                 shape
-                    .fill(Color.primary.opacity(0.08))
+                    .fill(style.edgeBarGroup)
                     .padding(horizontal ? .vertical : .horizontal, Self.distinctInset)
             }
         }

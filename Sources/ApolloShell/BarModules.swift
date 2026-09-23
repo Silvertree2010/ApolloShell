@@ -83,6 +83,17 @@ extension EnvironmentValues {
         get { self[BarGroupCapsuleKey.self] }
         set { self[BarGroupCapsuleKey.self] = newValue }
     }
+
+    /// Glyphs or coloured pills for the status icons (`EdgeBar.statusStyle`).
+    /// Only an edge bar sets it; the sidebar keeps its glyphs.
+    var barStatusStyle: BarStatusStyle {
+        get { self[BarStatusStyleKey.self] }
+        set { self[BarStatusStyleKey.self] = newValue }
+    }
+}
+
+private struct BarStatusStyleKey: EnvironmentKey {
+    static let defaultValue = BarStatusStyle.icons
 }
 
 extension CGFloat {
@@ -433,6 +444,7 @@ struct BarWeatherModule: View {
     let onOpen: () -> Void
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.barAxis) private var axis
+    @Environment(\.shellStyle) private var shellStyle
 
     var body: some View {
         let model = feed.model
@@ -454,6 +466,11 @@ struct BarWeatherModule: View {
                         Text(WeatherText.temperature(current.temperature))
                             .font(.system(size: 11, weight: .semibold))
                             .monospacedDigit()
+                            // `--apollo-weather-temperature-color`; unset, the
+                            // tile's own `.primary` as before. No fallback to
+                            // the text colour: that would recolour the bar of
+                            // every theme that sets its text colour.
+                            .foregroundStyle(shellStyle.paint(.weatherTemperature, or: .primary))
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
