@@ -22,6 +22,15 @@ public struct ReservedInsets: Equatable, Sendable {
     public var isZero: Bool {
         top == 0 && left == 0 && bottom == 0 && right == 0
     }
+
+    /// The larger reservation per edge. The window watch knows screens by
+    /// `ScreenInfo.key`, which two identical screens share; when their bars
+    /// differ, keeping the larger strip on both never lets a window run
+    /// under a bar (the sidebar alone did the same with its set of keys).
+    public func union(_ other: ReservedInsets) -> ReservedInsets {
+        ReservedInsets(top: max(top, other.top), left: max(left, other.left),
+                       bottom: max(bottom, other.bottom), right: max(right, other.right))
+    }
 }
 
 /// Geometry for the window watch: other apps' windows should not run under
