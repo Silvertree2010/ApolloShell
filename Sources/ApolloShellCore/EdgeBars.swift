@@ -200,7 +200,10 @@ public enum EdgeBarPreset: String, CaseIterable, Identifiable, Sendable {
                     start: BarLayout([BarEntry(.dashboardButton), BarEntry(.workspaces), BarEntry(.mediaButton)]),
                     center: BarLayout([BarEntry(module: .clock(.init(showIcon: false, showDate: true))),
                                        BarEntry(.weather).joined()]),
-                    end: BarLayout([BarEntry(.statusIcons), BarEntry(.battery).joined(), BarEntry(.power)]))
+                    // The battery as its own module with its number, so not
+                    // a second time as a glyph in the status capsule.
+                    end: BarLayout([BarEntry(module: .statusIcons(.init(showBattery: false))),
+                                    BarEntry(.battery).joined(), BarEntry(.power)]))
         case .minimal:
             EdgeBar(enabled: enabled,
                     start: BarLayout([BarEntry(.workspaces)]),
