@@ -18,6 +18,10 @@ enum RenderMode {
         if let index = args.firstIndex(of: "--render-edit"), index + 1 < args.count {
             run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderEditMode)
         }
+        // `--render-bars <folder>`: the bars with every template.
+        if let index = args.firstIndex(of: "--render-bars"), index + 1 < args.count {
+            run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true)) { try RenderBars.render(into: $0) }
+        }
         // `--render-mark <folder>`: the ApolloShell mark through one orbit of
         // its moon, large and at bar size.
         if let index = args.firstIndex(of: "--render-mark"), index + 1 < args.count {
