@@ -66,6 +66,60 @@ enum RenderBars {
                     }
                 }
             }
+            // Thin and thick: the buttons shrink to fit a 26 pt bar and stop
+            // at 32 in a 44 pt one.
+            for thickness in [26.0, 44.0] {
+                for look in edgeLooks {
+                    var bar = EdgeBarPreset.serpantinum.bar(edge: .top)
+                    bar.style = look.style
+                    bar.distinctGroups = look.distinct
+                    bar.thickness = thickness
+                    let height = CGFloat(thickness) + (look.style == .islands ? EdgeBarGeometry.islandMargin : 0)
+                    let view = edgeBar(bar, edge: .top, notch: nil, context: context).frame(width: 1728, height: height)
+                    try RenderMode.write(view, scheme: scheme, to: folder.appendingPathComponent(
+                        RenderMode.name("top-serpantinum-\(Int(thickness))-\(look.name)", scheme)))
+                }
+            }
+            // The Dock in a zone takes the room the others leave: alone in
+            // the centre it stays centred; with a spacer on the left, start
+            // and centre share.
+            let dockBars: [(name: String, bar: EdgeBar)] = [
+                ("dock-center", EdgeBar(enabled: true,
+                                        start: BarLayout([BarEntry(.dashboardButton), BarEntry(.workspaces)]),
+                                        center: BarLayout([BarEntry(.dock)]),
+                                        end: BarLayout([BarEntry(.statusIcons), BarEntry(.clock), BarEntry(.power)]))),
+                ("dock-start", EdgeBar(enabled: true,
+                                       start: BarLayout([BarEntry(.dashboardButton), BarEntry(.dock)]),
+                                       center: BarLayout([BarEntry(.clock)]),
+                                       end: BarLayout([BarEntry(.statusIcons), BarEntry(.power)]))),
+            ]
+            for (name, template) in dockBars {
+                for look in edgeLooks {
+                    var bar = template
+                    bar.style = look.style
+                    bar.distinctGroups = look.distinct
+                    let height = CGFloat(bar.thickness) + (look.style == .islands ? EdgeBarGeometry.islandMargin : 0)
+                    let view = edgeBar(bar, edge: .bottom, notch: nil, context: context).frame(width: 1728, height: height)
+                    try RenderMode.write(view, scheme: scheme, to: folder.appendingPathComponent(
+                        RenderMode.name("bottom-\(name)-\(look.name)", scheme)))
+                }
+            }
+            // The status popout of an edge bar: the sidebar's content on a
+            // plain card (the glass stand-in here).
+            let popout = StatusPopoutModel.preview(
+                shown: .wifi,
+                wifi: StatusPopoutWifiInfo(powerOn: true, interfaceName: "en0", rssi: -55, noise: -92,
+                                           transmitRate: 866, phyMode: 6, channel: 44, band: 2),
+                bluetooth: nil,
+                battery: nil
+            )
+            let card = EdgeBarPopoutView(model: popout) { _ in }
+                .padding(12)
+                .background(Color(red: 0.45, green: 0.52, blue: 0.62))
+                .environment(\.statusPopoutGlassStandIn, true)
+                .fixedSize()
+            try RenderMode.write(card, scheme: scheme, to: folder.appendingPathComponent(
+                RenderMode.name("popout-wifi", scheme)))
             for look in edgeLooks {
                 var bar = EdgeBarPreset.serpantinum.bar(edge: .right)
                 bar.style = look.style
