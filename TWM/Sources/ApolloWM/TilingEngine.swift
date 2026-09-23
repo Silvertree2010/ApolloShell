@@ -969,6 +969,7 @@ public final class TilingEngine {
     }
 
     private func performRelayout() {
+        if isCanvas { syncStrips() }
         for shown in shownDesks { layouts[shown].freezeDirections(in: area(of: shown), gaps: options.gaps) }
         arrangeHiddenDesks()
         let frames = targetFrames()
@@ -1206,6 +1207,24 @@ public final class TilingEngine {
         return frames
     }
 
+    /// The strip follows the focused window, and the viewport follows the
+    /// focused column - but only when the focus really changed, so a scroll
+    /// by hand is not undone by the next layout.
+    private func syncStrips() {
+        for shown in shownDesks {
+            var strip = strip(of: shown)
+            if let id = focused, strip.contains(id) { strip.focus(id) }
+            if let onTop = strip.focused, lastScrolledTo[shown] != onTop {
+                strip.scrollToFocused(area: area(of: shown), gaps: options.gaps)
+                lastScrolledTo[shown] = onTop
+            }
+            strips[shown] = strip
+        }
+    }
+
+    /// The column the viewport was moved to last, per desk.
+    private var lastScrolledTo: [Desk: CGWindowID] = [:]
+
     /// Scrolls the strip of the shown desktop by `delta` points.
     public func pan(by delta: CGFloat) {
         guard isCanvas else { return }
@@ -1336,6 +1355,8 @@ public final class TilingEngine {
         focused = id
         if let home = desk(of: id) { lastFocusedOnDesk[home] = id }
         publishActive()
+        // On the strip the viewport follows the focus.
+        if isCanvas { relayout() }
     }
 
     /// The managed window next to `id` on screen in `direction`, on the
@@ -1805,6 +1826,11 @@ public final class TilingEngine {
         }
     }
 
+    /// Whether a snapshot is still standing in for a real window. Its real
+    /// window waits off screen until the app has redrawn, so nothing should
+    /// measure window frames while this is true.
+    public var hasProxies: Bool { !proxied.isEmpty }
+
     /// How many window glides used a snapshot (for the probe).
     public private(set) var proxyGlides = 0
 
@@ -1833,7 +1859,10 @@ public final class TilingEngine {
                 self.proxied.removeAll()
                 for id in swapped {
                     self.preparedSize[id] = nil
-                    guard let target = self.springs[id]?.target else {
+                    // Without a spring (the glide was cut short by a desktop
+                    // switch, say) the window would stay parked off screen,
+                    // so its place is looked up instead.
+                    guard let target = self.springs[id]?.target ?? self.placeOf(id) else {
                         self.proxies.remove(id)
                         continue
                     }
@@ -1879,8 +1908,16 @@ public final class TilingEngine {
     /// A proxied window the user grabs becomes real again at once.
     private func dropProxy(_ id: CGWindowID) {
         guard proxied.remove(id) != nil else { return }
-        if let frame = springs[id]?.current { write(id, frame) }
+        if let frame = springs[id]?.current ?? placeOf(id) { write(id, frame) }
         proxies.remove(id)
+    }
+
+    /// Where a window belongs right now, spring or no spring: its frame on
+    /// the desk it lives on.
+    private func placeOf(_ id: CGWindowID) -> CGRect? {
+        if let frame = targetFrames()[id] { return frame }
+        guard let home = desk(of: id) else { return nil }
+        return frames(on: home)[id]
     }
 
     /// Stops the snapshot refresh timer.

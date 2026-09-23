@@ -121,6 +121,15 @@ final class SelfTest {
 
     // MARK: Checks
 
+    /// Snapshots stand in for real windows while their apps redraw off
+    /// screen; measuring then would read the parked frames.
+    private func checkWhenSnapshotsAreGone(tries: Int = 8) {
+        guard engine.hasProxies, tries > 0 else { return check() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            MainActor.assumeIsolated { self?.checkWhenSnapshotsAreGone(tries: tries - 1) }
+        }
+    }
+
     private func check() {
         let targets = engine.targetFrames()
         let tiled = engine.tree.ids
@@ -178,7 +187,7 @@ final class SelfTest {
             if CACurrentMediaTime() > deadline { return then(false) }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { MainActor.assumeIsolated { check() } }
         }
-        check()
+        checkWhenSnapshotsAreGone()
     }
 
     private func pick<T>(_ items: [T]) -> T { items[Int(random.next() % UInt64(items.count))] }

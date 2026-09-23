@@ -105,7 +105,7 @@ public enum WindowDiscovery {
                       // Manager parks windows past the screen edge as thumbnails
                       // while the app still reports an on-screen position.
                       let frame = window.serverFrame,
-                      area.contains(CGPoint(x: frame.midX, y: frame.midY)) else { continue }
+                      area.intersects(frame) else { continue }
                 result.append(window)
             }
         }
@@ -159,7 +159,11 @@ public enum WindowDiscovery {
                       let window = AXWindow(element: element, pid: pid), window.windowID == id,
                       let frame = window.serverFrame,
                       // On a display (hidden desktops keep their coordinates).
-                      screens.isEmpty || screens.contains(where: { $0.contains(CGPoint(x: frame.midX, y: frame.midY)) }),
+                      // Overlap, not the middle: the canvas layout parks the
+                      // columns the screen does not show at its edge, and
+                      // those windows stay ours. Stage Manager's thumbnails
+                      // lie fully past the edge and still drop out.
+                      screens.isEmpty || screens.contains(where: { $0.intersects(frame) }),
                       let space = spaceOf[id] else { continue }
                 result.append(Found(window: window, space: space))
             }
