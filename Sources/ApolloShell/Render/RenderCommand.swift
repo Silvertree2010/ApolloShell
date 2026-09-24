@@ -59,7 +59,11 @@ enum RenderCommand {
         try FileManager.default.createDirectory(at: options.output, withIntermediateDirectories: true)
         for surface in session.surfaces {
             let name = "\(surface.id)-\(session.dark ? "dark" : "light").png"
-            try session.capture(surface, name: name).write(to: options.output.appendingPathComponent(name))
+            do {
+                try session.capture(surface, name: name).write(to: options.output.appendingPathComponent(name))
+            } catch RenderError.empty {
+                FileHandle.standardError.write(Data("skip \(name): nothing to draw\n".utf8))
+            }
         }
         report(session.context.styles.diagnostics)
     }

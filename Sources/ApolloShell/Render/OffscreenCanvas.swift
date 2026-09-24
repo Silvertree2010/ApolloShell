@@ -141,6 +141,7 @@ final class OffscreenCanvas {
 
     func snapshot(_ view: NSView, name: String) throws -> Data {
         let bounds = view.bounds
+        guard bounds.width >= 1, bounds.height >= 1 else { throw RenderError.empty(name) }
         guard let blank = NSBitmapImageRep(
             bitmapDataPlanes: nil,
             pixelsWide: Int((bounds.width * scale).rounded()), pixelsHigh: Int((bounds.height * scale).rounded()),
@@ -161,6 +162,7 @@ final class OffscreenCanvas {
 enum RenderError: Error, CustomStringConvertible {
     case unstable(String)
     case noImage(String)
+    case empty(String)
     case usage(String)
     case config(String)
 
@@ -168,6 +170,7 @@ enum RenderError: Error, CustomStringConvertible {
         switch self {
         case .unstable(let name): "render of \(name) did not settle"
         case .noImage(let name): "no image for \(name)"
+        case .empty(let name): "\(name) has nothing to draw"
         case .usage(let text): text
         case .config(let text): text
         }

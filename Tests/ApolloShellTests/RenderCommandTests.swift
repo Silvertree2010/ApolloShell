@@ -13,6 +13,7 @@ struct RenderCommandTests {
             style "style.css"
             panel "left-bar" anchor="left" { stack class="a" }
             popup "card" { stack class="a" }
+            toast "quiet" { text "{toast.title}" }
             """.utf8),
             "style.css": Data(".a { width: 20px; height: 20px; background: var(--apollo-accent-color, #000000); }".utf8),
             "theme.css": Data(":root { --apollo-accent-color: #ff0000; }".utf8),
