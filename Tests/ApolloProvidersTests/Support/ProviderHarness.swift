@@ -57,8 +57,13 @@ final class ProviderHarness {
     }
 
     func advance(_ seconds: Double) {
-        clock.advance(by: seconds)
-        flush()
+        var remaining = seconds
+        while remaining > 0 {
+            let step = min(remaining, 0.25)
+            clock.advance(by: step)
+            flush()
+            remaining -= step
+        }
     }
 
     func value(_ root: String, _ field: String) -> Value {
