@@ -345,6 +345,17 @@ struct RecorderOutcome: Equatable {
     }
 }
 
+struct StopWhenHidden: ViewModifier {
+    let action: @MainActor () -> Void
+    @Environment(\.surfaceShown) private var shown
+
+    func body(content: Content) -> some View {
+        content.onChange(of: shown) { _, visible in
+            if !visible { action() }
+        }
+    }
+}
+
 struct KeyRecorderElement: View {
     let element: ElementInstance
     let style: ComputedStyle
@@ -374,6 +385,7 @@ struct KeyRecorderElement: View {
         .onTapGesture { recording ? stop() : start() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in stop() }
         .onDisappear { stop() }
+        .modifier(StopWhenHidden { stop() })
         .overlay { PassiveZone(element: element, context: context) }
         .accessibilityAddTraits(.isButton)
     }

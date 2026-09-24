@@ -91,7 +91,7 @@ final class RenderSession {
         return hosting
     }
 
-    private func root(_ surface: SurfaceInstance, reserve: EdgeInsets) -> AnyView {
+    func root(_ surface: SurfaceInstance, reserve: EdgeInsets) -> AnyView {
         let appearance: ColorScheme = dark ? .dark : .light
         return AnyView(SurfaceView(surface: surface, context: context)
             .padding(reserve)
