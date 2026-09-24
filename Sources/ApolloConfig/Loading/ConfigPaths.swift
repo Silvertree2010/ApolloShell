@@ -1,4 +1,5 @@
 import Foundation
+import ApolloShellCore
 
 public struct ConfigPaths: Sendable, Hashable {
     public var builtinConfigs: URL
@@ -13,7 +14,7 @@ public struct ConfigPaths: Sendable, Hashable {
 
     public static func standard(environment: [String: String], home: URL, bundleResources: URL) -> ConfigPaths {
         let configHome: URL
-        if let xdg = environment["XDG_CONFIG_HOME"], !xdg.isEmpty {
+        if let xdg = environment["XDG_CONFIG_HOME"], !xdg.isEmpty, xdg.hasPrefix("/") {
             configHome = URL(fileURLWithPath: xdg).appendingPathComponent("apolloshell")
         } else {
             configHome = home.appendingPathComponent(".config").appendingPathComponent("apolloshell")
@@ -42,7 +43,7 @@ public struct ConfigPaths: Sendable, Hashable {
     }
 
     public var legacyThemesDirectory: URL {
-        applicationSupport.appendingPathComponent("Themes")
+        applicationSupport.appendingPathComponent(ThemeLoader.folderName, isDirectory: true)
     }
 
     public var packagesDirectory: URL {
