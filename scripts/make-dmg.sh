@@ -16,20 +16,25 @@ rm -rf "$OUT"
 mkdir -p "$OUT" dist
 
 BINARIES=""
+CLIS=""
 for arch in $ARCHS; do
-    set -- -c release --product ApolloShell --triple "$arch-apple-macosx26.0" --scratch-path ".build/release-$arch"
-    swift build "$@"
+    set -- -c release --triple "$arch-apple-macosx26.0" --scratch-path ".build/release-$arch"
+    swift build "$@" --product ApolloShell
+    swift build "$@" --product apollo
     bin="$(swift build "$@" --show-bin-path)/ApolloShell"
     lipo "$bin" -verify_arch "$arch"
+    lipo "$(dirname "$bin")/apollo" -verify_arch "$arch"
     BINARIES="$BINARIES $bin"
+    CLIS="$CLIS $(dirname "$bin")/apollo"
     [ -n "${SPARKLE_FRAMEWORK:-}" ] || SPARKLE_FRAMEWORK="$(dirname "$bin")/Sparkle.framework"
 done
 export SPARKLE_FRAMEWORK
 
 lipo -create $BINARIES -output "$OUT/ApolloShell"
 lipo -info "$OUT/ApolloShell"
+lipo -create $CLIS -output "$OUT/apollo"
 
-scripts/assemble-app.sh "$OUT/ApolloShell" "$OUT/ApolloShell.app"
+APOLLO_CLI="$OUT/apollo" scripts/assemble-app.sh "$OUT/ApolloShell" "$OUT/ApolloShell.app"
 
 STAGE="$OUT/dmg"
 mkdir -p "$STAGE"

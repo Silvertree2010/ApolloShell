@@ -35,7 +35,7 @@ jobs:
           swift --version
 
       - name: Build
-        run: swift build -c release --product ApolloShell
+        run: swift build -c release --product ApolloShell && swift build -c release --product apollo
 
       - name: Test
         run: ./test.sh

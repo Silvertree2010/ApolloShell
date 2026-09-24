@@ -9,6 +9,7 @@ fi
 export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk
 
 swift build -c release --product ApolloShell
+swift build -c release --product apollo
 
 APP="build/ApolloShell.app"
 scripts/assemble-app.sh .build/release/ApolloShell "$APP"

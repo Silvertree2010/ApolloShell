@@ -12,14 +12,16 @@ class Apolloshell < Formula
     sdk = "/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk"
     ENV["SDKROOT"] = sdk if File.directory?(sdk)
 
-    args = %w[--disable-sandbox -c release --product ApolloShell]
-    system "swift", "build", *args
+    args = %w[--disable-sandbox -c release]
+    system "swift", "build", *args, "--product", "ApolloShell"
+    system "swift", "build", *args, "--product", "apollo"
     bin_path = Utils.safe_popen_read("swift", "build", *args, "--show-bin-path").chomp
 
     ENV["BUILD_NUMBER"] = version.to_s
     ENV["HOMEBREW_BUILD"] = "1"
     system "scripts/assemble-app.sh", "#{bin_path}/ApolloShell", "#{buildpath}/ApolloShell.app"
     prefix.install "ApolloShell.app"
+    bin.install_symlink prefix/"ApolloShell.app/Contents/Helpers/apollo"
     pkgshare.install "scripts/setup-signing.sh"
   end
 
@@ -57,6 +59,8 @@ class Apolloshell < Formula
     assert_path_exists app/"Contents/Frameworks/MediaRemoteAdapter.framework"
     assert_path_exists app/"Contents/Frameworks/Sparkle.framework"
     assert_path_exists app/"Contents/Resources/installed-by-homebrew"
+    assert_path_exists app/"Contents/Helpers/apollo"
+    assert_match "apollo", shell_output("#{bin}/apollo version")
     system "codesign", "--verify", "--deep", "--strict", app
   end
 end

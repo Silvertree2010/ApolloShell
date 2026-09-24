@@ -37,8 +37,15 @@ fi
 BUNDLE_ID=$("$PLISTBUDDY" -c 'Print :CFBundleIdentifier' "$PLIST")
 
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Frameworks" "$APP/Contents/Resources"
+CLI=${APOLLO_CLI:-$(dirname "$BINARY")/apollo}
+if [ ! -f "$CLI" ]; then
+    echo "apollo fehlt: $CLI (swift build --product apollo)" >&2
+    exit 1
+fi
+
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Frameworks" "$APP/Contents/Resources" "$APP/Contents/Helpers"
 cp "$BINARY" "$APP/Contents/MacOS/ApolloShell"
+cp "$CLI" "$APP/Contents/Helpers/apollo"
 cp "$PLIST" "$APP/Contents/Info.plist"
 "$PLISTBUDDY" -c "Set :CFBundleVersion $BUILD_NUMBER" "$APP/Contents/Info.plist"
 cp "$ROOT/Support/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
@@ -78,6 +85,7 @@ for part in \
     codesign --force --sign "$IDENTITY" --timestamp=none "$part"
 done
 codesign --force --sign "$IDENTITY" --timestamp=none "$APP/Contents/Frameworks/Sparkle.framework"
+codesign --force --sign "$IDENTITY" --timestamp=none --identifier "$BUNDLE_ID.apollo" "$APP/Contents/Helpers/apollo"
 codesign --force --sign "$IDENTITY" --identifier "$BUNDLE_ID" "$APP"
 
 codesign --verify --deep --strict "$APP"
