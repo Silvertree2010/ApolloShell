@@ -34,6 +34,8 @@ final class SurfaceWindowController {
     var placed = false
     var offset: CGPoint?
     var observing = false
+    var flyout = EdgeInsets()
+    var flyoutShrink: DispatchWorkItem?
 
     init(surface: SurfaceInstance, window: any HostWindow, spec: SurfaceWindowSpec) {
         self.surface = surface
@@ -55,7 +57,10 @@ final class WindowHost: SurfaceHosting {
         (window as? AppKitHostWindow).map { DisplayLinkTicker(view: $0.container) }
     }
     var context: RenderContext? {
-        didSet { context?.hits.onChange = { [weak self] _ in self?.pointerMoved() } }
+        didSet {
+            context?.hits.onChange = { [weak self] _ in self?.pointerMoved() }
+            context?.onFlyoutExtent = { [weak self] key, extent in self?.flyoutExtent(key, extent) }
+        }
     }
     var screens: [String: ScreenGeometry] = [:]
     weak var link: (any WindowHostLink)?
@@ -75,6 +80,7 @@ final class WindowHost: SurfaceHosting {
         DispatchQueue.main.async { MainActor.assumeIsolated { work() } }
     }
     static let hoverPoll: TimeInterval = 0.25
+    static let flyoutShrinkDelay: TimeInterval = 0.5
     var watchPointer: @MainActor (@escaping @MainActor () -> Void) -> (@MainActor () -> Void) = PointerWatch.live
     private var stopPointer: (@MainActor () -> Void)?
 
@@ -126,7 +132,7 @@ final class WindowHost: SurfaceHosting {
         self.context = context
         stats.restyles += 1
         for (key, controller) in controllers {
-            controller.window.setContent(content(controller.surface, insets: controller.insets))
+            controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
             sync(key)
         }
     }
@@ -142,9 +148,37 @@ final class WindowHost: SurfaceHosting {
         for key in controllers.keys { sync(key) }
     }
 
-    private func content(_ surface: SurfaceInstance, insets: EdgeInsets) -> AnyView {
+    private func content(_ surface: SurfaceInstance, insets: EdgeInsets, flyout: EdgeInsets = EdgeInsets()) -> AnyView {
         guard let context else { return AnyView(EmptyView()) }
-        return AnyView(SurfaceView(surface: surface, context: context, insets: insets, painter: backgroundPainter))
+        return AnyView(SurfaceView(surface: surface, context: context, insets: insets, painter: backgroundPainter).padding(flyout))
+    }
+
+    func flyoutExtent(_ key: String, _ extent: EdgeInsets) {
+        guard let controller = controllers[key], controller.spec.kind != "window" else { return }
+        controller.flyoutShrink?.cancel()
+        controller.flyoutShrink = nil
+        let current = controller.flyout
+        if extent.top >= current.top, extent.bottom >= current.bottom, extent.leading >= current.leading, extent.trailing >= current.trailing {
+            applyFlyout(key, extent)
+            return
+        }
+        let work = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated { self?.applyFlyout(key, extent) }
+        }
+        controller.flyoutShrink = work
+        scheduleTimer(Self.flyoutShrinkDelay, work)
+    }
+
+    private func applyFlyout(_ key: String, _ extent: EdgeInsets) {
+        guard let controller = controllers[key], controller.flyout != extent else { return }
+        controller.flyout = extent
+        controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: extent))
+        sync(key)
+    }
+
+    static func expand(_ frame: CGRect, by extent: EdgeInsets) -> CGRect {
+        CGRect(x: frame.minX - extent.leading, y: frame.minY - extent.bottom,
+               width: frame.width + extent.leading + extent.trailing, height: frame.height + extent.top + extent.bottom)
     }
 
     private func build(_ surface: SurfaceInstance) {
@@ -165,6 +199,7 @@ final class WindowHost: SurfaceHosting {
     private func tearDown(_ key: String) {
         guard let controller = controllers.removeValue(forKey: key) else { return }
         controller.timeout?.cancel()
+        controller.flyoutShrink?.cancel()
         controller.ticker?.stop()
         controller.ticker = nil
         controller.window.close()
@@ -191,7 +226,7 @@ final class WindowHost: SurfaceHosting {
         let point = pointer()
         for (key, controller) in controllers where controller.spec.clickThrough == .auto && controller.shown {
             let frame = controller.window.frame
-            let local = CGPoint(x: point.x - frame.minX, y: frame.maxY - point.y)
+            let local = CGPoint(x: point.x - frame.minX - controller.flyout.leading, y: frame.maxY - point.y - controller.flyout.top)
             controller.window.setIgnoresMouse(!(frame.contains(point) && hits.contains(local, surfaceKey: key)))
         }
     }
@@ -216,10 +251,12 @@ final class WindowHost: SurfaceHosting {
         observeProperties(controller, key: key)
         let style = context.styles.resolve(StyleResolver.subject(for: surface), ancestors: [], parent: nil)
         let placement = SurfacePlacement(kind: surface.ir.kind, property: surface.property, style: style)
-        let layout = SurfaceLayout.compute(placement: placement, spec: spec, radius: StyleValues.radius(style["border-radius"]), screen: screen, fitting: controller.window.fittingSize)
+        let fit = controller.window.fittingSize, flyout = controller.flyout
+        let fitting = CGSize(width: max(0, fit.width - flyout.leading - flyout.trailing), height: max(0, fit.height - flyout.top - flyout.bottom))
+        let layout = SurfaceLayout.compute(placement: placement, spec: spec, radius: StyleValues.radius(style["border-radius"]), screen: screen, fitting: fitting)
         if layout.insets != controller.insets {
             controller.insets = layout.insets
-            controller.window.setContent(content(surface, insets: layout.insets))
+            controller.window.setContent(content(surface, insets: layout.insets, flyout: flyout))
         }
         let frame = layout.frame
         if spec.kind == "window" {
@@ -234,7 +271,7 @@ final class WindowHost: SurfaceHosting {
             let glide = controller.shown && controller.offset != nil && controller.offset != offset
             controller.offset = offset
             controller.openFrame = frame
-            controller.window.setFrame(frame, glide: glide)
+            controller.window.setFrame(Self.expand(frame, by: flyout), glide: glide)
         }
         let opening = surface.isOpen && !controller.wasOpen
         let closing = !surface.isOpen && controller.wasOpen

@@ -211,6 +211,9 @@ final class BindHotKeys {
     var keyStateReadable: @MainActor () -> Bool = { CGPreflightListenEventAccess() }
 
     var hasFailures: Bool { registered.values.contains { !$0.ok } }
+    var suspended = false {
+        didSet { if suspended != oldValue { refresh() } }
+    }
 
     func retryFailed() {
         guard hasFailures else { return }
@@ -268,7 +271,7 @@ final class BindHotKeys {
         guard !applying else { return }
         var desired: [String: (id: String, chord: KeyChord, repeats: Bool)] = [:]
         var order: [String] = []
-        for entry in entries where entry.active {
+        for entry in entries where entry.active && !suspended {
             guard let text = entry.chord else { continue }
             guard let chord = KeyChord.parse(text) else {
                 warnOnce("bad|" + text, "bind '\(entry.bind.id)': unknown key combination '\(text)'")
@@ -320,6 +323,7 @@ final class BindHotKeys {
                     : "shortcut \(canonical) could not be registered (\(failure.status))")
             }
         }
+        guard !suspended else { return }
         publish(order.map { canonical in
             .record(Record([("chord", .string(canonical)), ("ok", .bool(registered[canonical]?.ok ?? false))]))
         })

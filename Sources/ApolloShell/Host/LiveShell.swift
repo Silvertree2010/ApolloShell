@@ -72,6 +72,7 @@ final class LiveShell: WindowHostLink {
     let keyNames = KeyNameSource()
     let themes: LiveThemes
     let providerImages = ProviderImages()
+    private(set) var recordings = 0
     var accessibility: @MainActor () -> LiveAccessibility = { LiveAccessibility.current() }
     let toasts = ToastCenter()
     var isDark: @MainActor () -> Bool = { NSApplication.shared.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua }
@@ -334,6 +335,7 @@ final class LiveShell: WindowHostLink {
         context.theme = { themes.theme($0) }
         context.themeIcon = { themes.icon($0) }
         context.imageValue = { images.image($0) }
+        context.onRecording = { [weak self] on in self?.recording(on) }
         if let assembly { context.connectLive(assembly) }
         return context
     }
@@ -504,6 +506,11 @@ final class LiveShell: WindowHostLink {
         let dark = isDark()
         guard dark != lastDark, host.context != nil else { return }
         host.restyle(makeContext(lastIR))
+    }
+
+    func recording(_ on: Bool) {
+        recordings = max(0, recordings + (on ? 1 : -1))
+        hotKeys?.suspended = recordings > 0
     }
 
     func accessibilityChanged() {
