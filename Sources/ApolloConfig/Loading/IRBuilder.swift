@@ -73,6 +73,7 @@ enum IRBuilder {
             var ir = ConfigIR(id: location.id, root: location.root, files: files)
             applyRequires(requires, to: &ir)
             var blockNodes: [ExpandedNode] = []
+            var implicitBindCounts: [String: Int] = [:]
             for node in nodes where !node.isExpansionMarker {
                 let name = node.kdl.name
                 if skippedTopLevelNodes.contains(name) { continue }
@@ -84,7 +85,14 @@ enum IRBuilder {
                 case "style":
                     ir.styleSheets.append(contentsOf: buildStyle(node, location: location, fileSystem: fileSystem, paths: paths, state: state))
                 case "bind":
-                    if let bind = buildBind(node, state: state) {
+                    if var bind = buildBind(node, state: state) {
+                        if stringProperty(node, "id") == nil {
+                            let count = (implicitBindCounts[bind.id] ?? 0) + 1
+                            implicitBindCounts[bind.id] = count
+                            if count > 1 {
+                                bind.id += "#\(count)"
+                            }
+                        }
                         ir.binds.append(bind)
                     }
                 case "on":

@@ -123,6 +123,9 @@ enum DisableStage {
         }
         if node.kdl.name == "bind" {
             guard kinds.contains(.bind) else { return nil }
+            if stringProperty(node, "id") == nil, let raw = argumentString(node), ExpressionText.containsExpression(raw) {
+                return nil
+            }
             return .bind(bindIdentity(node))
         }
         if kinds.contains(.surface), let schema = registry.node(node.kdl.name), schema.category == .surface, let id = argumentString(node) {

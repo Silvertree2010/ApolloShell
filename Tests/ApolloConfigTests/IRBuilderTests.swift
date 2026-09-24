@@ -595,6 +595,32 @@ struct IRTopLevelTests {
         #expect(wm.nodes.map(\.name) == ["wm"])
     }
 
+    @Test("bind mit gleichem Ausdruck ohne id bekommt #2, #3 nach Reihenfolge")
+    func bindExpressionIDsAreNumbered() {
+        let result = IRHarness.build("""
+            var key "alt+k"
+            var other "alt+j"
+            bind "{var.key}" { toggle "a" }
+            bind "{var.key}" { toggle "b" }
+            bind "{var.other}" { toggle "c" }
+            bind "alt+space" { toggle "d" }
+            bind "{var.key}" { toggle "e" }
+            bind "{var.key}" id="own" { toggle "f" }
+            """)
+        #expect(result.diagnostics.filter { $0.severity == .error }.isEmpty, "\(result.diagnostics.map(\.message))")
+        #expect(result.ir.binds.map(\.id) == ["{var.key}", "{var.key}#2", "{var.other}", "alt+space", "{var.key}#3", "own"])
+    }
+
+    @Test("zwei bind mit gleicher statischer Kombination bleiben ein Ladefehler")
+    func bindStaticDuplicateStillFails() {
+        let result = IRHarness.build("""
+            bind "alt+space" { toggle "a" }
+            bind "option+space" { toggle "b" }
+            """)
+        #expect(result.diagnostics.contains { $0.severity == .error && $0.message.contains("duplicate") })
+        #expect(result.ir.binds.map(\.id) == ["alt+space"])
+    }
+
     @Test("poll und listen mit Namen auf -error sind ein Ladefehler")
     func pollAndListenRejectErrorSuffix() {
         let result = IRHarness.build("""
