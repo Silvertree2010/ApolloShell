@@ -70,6 +70,9 @@ final class LiveShell: WindowHostLink {
     private var lastIR: ConfigIR?
     private var lastDark: Bool?
     let keyNames = KeyNameSource()
+    let themes: LiveThemes
+    let providerImages = ProviderImages()
+    var accessibility: @MainActor () -> LiveAccessibility = { LiveAccessibility.current() }
     let toasts = ToastCenter()
     var isDark: @MainActor () -> Bool = { NSApplication.shared.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua }
     var terminateApp: @MainActor () -> Void = { NSApp.terminate(nil) }
@@ -87,6 +90,7 @@ final class LiveShell: WindowHostLink {
         self.fullscreen = fullscreen ?? FullscreenMonitor.live()
         paths = ConfigPaths.standard(environment: environment, home: home, bundleResources: options.resources)
         settings = SettingsStore(file: paths.userConfig.appendingPathComponent("settings.kdl"))
+        themes = LiveThemes(folders: [paths.themesDirectory, paths.legacyThemesDirectory])
         host.log = Self.log
         host.link = self
         debouncer.fire = { [weak self] in self?.reload() }
@@ -267,6 +271,8 @@ final class LiveShell: WindowHostLink {
         marketplace.onThemesChanged = { [weak self] in self?.reload() }
         let system = SystemProviders(directory: paths.applicationSupport, socketPath: socketPath, polls: [], listens: [], marketplace: marketplace, clock: DispatchRuntimeClock())
         self.system = system
+        let media = system.providers.compactMap { $0 as? MediaProvider }.first
+        providerImages.data = { ref in ref.source == "media" ? media?.artworkData(ref.id) : nil }
         providerIDs = system.providers.map(\.schema.id)
         assembly.install(system.providers)
         let wm = system.wm
@@ -310,12 +316,26 @@ final class LiveShell: WindowHostLink {
             Self.report(diagnostics)
             sheets = loaded
         }
-        let dark = isDark()
-        lastDark = dark
-        let styles = StyleResolver(sheets: sheets, environment: StyleSheets.environment(dark: dark))
-        return RenderContext(styles: styles, icons: icons, trigger: { [weak self] handler, identity, event in
+        let system = isDark()
+        lastDark = system
+        themes.reload(activeID: settings.settings.theme)
+        let appearance: Appearance = system ? .dark : .light
+        let theme = themes.active
+        let dark = theme.map { ThemeTokenBridge.effectiveAppearance(theme: $0, system: appearance) == .dark } ?? system
+        let tokens = theme.map { ThemeTokenBridge.environment(for: $0, appearance: appearance) } ?? .empty
+        let root = location?.root
+        let environment = StyleSheets.liveEnvironment(dark: dark, tokens: tokens, accessibility: accessibility())
+        let styles = StyleResolver(sheets: sheets, environment: environment, assetRoot: root)
+        let context = RenderContext(styles: styles, icons: icons, trigger: { [weak self] handler, identity, event in
             _ = self?.assembly?.runtime.trigger(handler, on: identity, event: event)
         })
+        context.configRoot = root
+        let themes = self.themes, images = providerImages
+        context.theme = { themes.theme($0) }
+        context.themeIcon = { themes.icon($0) }
+        context.imageValue = { images.image($0) }
+        if let assembly { context.connectLive(assembly) }
+        return context
     }
 
     private func configApplied(_ ir: ConfigIR) {
@@ -472,6 +492,9 @@ final class LiveShell: WindowHostLink {
             MainActor.assumeIsolated { self?.keyboardLayoutChanged() }
         }))
         let workspace = NSWorkspace.shared.notificationCenter
+        environmentObservers.append((workspace, workspace.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.accessibilityChanged() }
+        }))
         environmentObservers.append((workspace, workspace.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.hotKeys?.retryFailed() }
         }))
@@ -480,6 +503,12 @@ final class LiveShell: WindowHostLink {
     func appearanceChanged() {
         let dark = isDark()
         guard dark != lastDark, host.context != nil else { return }
+        host.restyle(makeContext(lastIR))
+    }
+
+    func accessibilityChanged() {
+        guard host.context != nil, host.context?.styles.environment.reduceTransparency != accessibility().reduceTransparency
+            || host.context?.styles.environment.reduceMotion != accessibility().reduceMotion else { return }
         host.restyle(makeContext(lastIR))
     }
 

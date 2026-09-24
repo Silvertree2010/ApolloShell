@@ -25,9 +25,20 @@ enum StyleSheets {
     }
 
     @MainActor
-    static func liveEnvironment(dark: Bool, tokens: TokenEnvironment = .empty) -> StyleEnvironment {
+    static func liveEnvironment(dark: Bool, tokens: TokenEnvironment = .empty, accessibility: LiveAccessibility = .current()) -> StyleEnvironment {
+        StyleEnvironment(appearance: dark ? .dark : .light, reduceMotion: accessibility.reduceMotion,
+                         reduceTransparency: accessibility.reduceTransparency, tokens: tokens)
+    }
+}
+
+struct LiveAccessibility: Equatable {
+    var reduceMotion: Bool
+    var reduceTransparency: Bool
+
+    @MainActor
+    static func current() -> LiveAccessibility {
         let workspace = NSWorkspace.shared
-        return StyleEnvironment(appearance: dark ? .dark : .light, reduceMotion: workspace.accessibilityDisplayShouldReduceMotion,
-                                reduceTransparency: workspace.accessibilityDisplayShouldReduceTransparency, tokens: tokens)
+        return LiveAccessibility(reduceMotion: workspace.accessibilityDisplayShouldReduceMotion,
+                                 reduceTransparency: workspace.accessibilityDisplayShouldReduceTransparency)
     }
 }
