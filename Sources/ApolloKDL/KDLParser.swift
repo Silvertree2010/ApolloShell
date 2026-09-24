@@ -166,7 +166,7 @@ struct KDLParser {
         var end = index
         try parseNodeBody(into: &node, end: &end, depth: depth)
         node.span = span(start, end)
-        node.lineRange = start..<end
+        node.lineRange = KDLLineRange.range(in: source, start: start, end: end)
         try parseTerminator(insideChildren: insideChildren)
         return commented ? nil : node
     }
