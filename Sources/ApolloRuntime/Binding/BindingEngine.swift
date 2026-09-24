@@ -99,6 +99,10 @@ public final class BindingHandle {
     public func updateScope(_ scope: LocalScope) {
         engine?.updateScope(id, scope)
     }
+
+    func updateSource(_ value: CompiledValue) {
+        engine?.updateSource(id, value)
+    }
 }
 
 final class WarningBuffer: Sendable {
@@ -130,11 +134,15 @@ public final class BindingEngine {
     private var flushEvaluator: Evaluator?
     private let warningBuffer = WarningBuffer()
     private var seenWarnings: Set<Diagnostic> = []
+    private var deferring = 0
+    private(set) var flushCount = 0
 
     public private(set) var evaluationCount = 0
     public var onWarning: (@MainActor (Diagnostic) -> Void)?
 
     var sharedEvaluator: Evaluator { evaluator }
+
+    var liveBindingCount: Int { bindings.count }
 
     public init(store: SignalStore, evaluator: Evaluator) {
         self.store = store
@@ -171,7 +179,7 @@ public final class BindingEngine {
         bindings[binding.id] = binding
         if active {
             subscribe(binding)
-            evaluate(binding)
+            evaluateOrDefer(binding)
         }
         return BindingHandle(engine: self, id: binding.id)
     }
@@ -179,6 +187,7 @@ public final class BindingEngine {
     public func flush() {
         guard !isFlushing else { return }
         isFlushing = true
+        flushCount += 1
         flushEvaluator = pinnedEvaluator()
         var rounds = 0
         while !dirty.isEmpty {
@@ -210,7 +219,7 @@ public final class BindingEngine {
         binding.isActive = active
         if active {
             subscribe(binding)
-            evaluate(binding)
+            evaluateOrDefer(binding)
         } else {
             unsubscribe(binding)
             dirty.remove(id)
@@ -245,6 +254,19 @@ public final class BindingEngine {
         }
     }
 
+    func updateSource(_ id: Int, _ value: CompiledValue) {
+        bindings[id]?.source = BindingSource(compiled: value)
+    }
+
+    func deferEvaluation(_ body: () -> Void) {
+        deferring += 1
+        body()
+        deferring -= 1
+        if deferring == 0 {
+            flush()
+        }
+    }
+
     private func subscriptionPaths(_ source: BindingSource, _ scope: LocalScope) -> Set<DependencyPath> {
         Set(source.dependencies.map { rewrittenPath($0, locals: scope) })
     }
@@ -274,6 +296,15 @@ public final class BindingEngine {
         dirty.insert(id)
         if !isFlushing {
             store.requestFlush()
+        }
+    }
+
+    private func evaluateOrDefer(_ binding: Binding) {
+        if deferring > 0 {
+            binding.isDirty = true
+            dirty.insert(binding.id)
+        } else {
+            evaluate(binding)
         }
     }
 

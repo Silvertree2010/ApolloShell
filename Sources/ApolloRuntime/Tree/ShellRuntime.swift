@@ -28,8 +28,20 @@ public final class ShellRuntime: SurfaceControlling {
     private var warned: Set<String> = []
     private var surfacesBuilt = 0
     private var elementsBuilt = 0
+    private var pendingTeardown: [TreeNode] = []
+    var generation = 0
+    var eachPass = 0
+    var reloading = false
+    var definesChanged = false
 
     public var onWarning: (@MainActor (Diagnostic) -> Void)?
+
+    enum EachKeyLookup {
+        case dictionary
+        case linear
+    }
+
+    var eachKeyLookup = EachKeyLookup.dictionary
 
     public init(registry: SchemaRegistry, evaluator: Evaluator, store: SignalStore, bindings: BindingEngine, vars: VarStore, providers: ProviderHost, actions: ActionDispatcher, host: any SurfaceHosting) {
         self.registry = registry
@@ -270,7 +282,7 @@ public final class ShellRuntime: SurfaceControlling {
         }
     }
 
-    private func registerConfigDemand(_ ir: ConfigIR) {
+    func registerConfigDemand(_ ir: ConfigIR) {
         for handler in ir.events {
             if let when = handler.when, !when.dependencies.isEmpty {
                 configTokens.append(store.demand(when.dependencies))
@@ -292,6 +304,11 @@ public final class ShellRuntime: SurfaceControlling {
                 teardownSurface(node)
             }
         }
+        releaseConfigDemand()
+        config = nil
+    }
+
+    private func releaseConfigDemand() {
         for token in configTokens {
             store.unsubscribe(token)
         }
@@ -300,16 +317,16 @@ public final class ShellRuntime: SurfaceControlling {
             providers.unsubscribe(token)
         }
         awakeTokens.removeAll()
-        config = nil
     }
 
-    private func teardownSurface(_ node: SurfaceNode) {
+    func teardownSurface(_ node: SurfaceNode) {
         if let root = node.root {
             teardown(root.region.parts)
             root.region.parts.removeAll()
+            root.region.context = nil
         }
         node.root = nil
-        for handle in node.propertyBindings {
+        for handle in node.propertyBindings.values {
             handle.cancel()
         }
         node.propertyBindings.removeAll()
@@ -321,7 +338,7 @@ public final class ShellRuntime: SurfaceControlling {
         host.surfaceRemoved(id: node.instance.id, screenKey: node.instance.screenKey)
     }
 
-    private func targetScreens(_ surfaceIR: SurfaceIR) -> [String] {
+    func targetScreens(_ surfaceIR: SurfaceIR) -> [String] {
         guard let main = screens.first else { return [] }
         var choice = surfaceIR.kind == "panel" ? "all" : "pointer"
         if let compiled = surfaceIR.properties["screen"], case .string(let text) = bindings.evaluateOnce(compiled, scope: LocalScope()), !text.isEmpty {
@@ -341,29 +358,19 @@ public final class ShellRuntime: SurfaceControlling {
         kind == "panel" || kind == "overlay"
     }
 
-    private func buildSurface(_ ir: SurfaceIR, screen: String) -> SurfaceNode {
+    func buildSurface(_ ir: SurfaceIR, screen: String) -> SurfaceNode {
         let instance = SurfaceInstance(id: ir.id, screenKey: screen, ir: ir, isOpen: Self.opensByDefault(ir.kind))
         let node = SurfaceNode(instance: instance)
         surfaceNodes[node.surfaceKey] = node
         surfaceOrder.append(node.surfaceKey)
         surfacesBuilt += 1
         publishSurface(node)
-        let scope = node.scope
         var cells: [String: PropertyCell] = [:]
         for name in ir.properties.keys.sorted() {
             guard let compiled = ir.properties[name] else { continue }
             let cell = PropertyCell(.null)
             cells[name] = cell
-            let isVisibility = name == "visible"
-            let handle = bindings.bind(compiled, scope: scope, rank: isVisibility ? .structure(depth: -1) : .property, active: true) { [weak self, weak node, weak cell] value in
-                cell?.update(value)
-                guard isVisibility, let self, let node else { return }
-                node.visibleProperty = value.isTruthy
-                if node.isConfigured, self.updateVisibility(node) {
-                    self.host.surfaceChanged(node.instance)
-                }
-            }
-            node.propertyBindings.append(handle)
+            node.propertyBindings[name] = bindSurfaceProperty(node, name, compiled, cell)
         }
         instance.properties = cells
         instance.isVisible = computeVisible(node)
@@ -372,10 +379,25 @@ public final class ShellRuntime: SurfaceControlling {
             instance.root = list
         }
         node.root = root
-        let context = BuildContext(surface: node, scope: scope, path: node.identity, depth: 0, useDepth: 0, active: instance.isVisible, container: root)
-        buildParts(root.region, ir.children, context)
+        buildParts(root.region, ir.children, rootContext(node, root))
         node.isConfigured = true
         return node
+    }
+
+    func rootContext(_ node: SurfaceNode, _ root: Container) -> BuildContext {
+        BuildContext(surface: node, scope: node.scope, path: node.identity, depth: 0, useDepth: 0, active: node.instance.isVisible, container: root)
+    }
+
+    func bindSurfaceProperty(_ node: SurfaceNode, _ name: String, _ compiled: CompiledValue, _ cell: PropertyCell) -> BindingHandle {
+        let isVisibility = name == "visible"
+        return bindings.bind(compiled, scope: node.scope, rank: isVisibility ? .structure(depth: -1) : .property, active: true) { [weak self, weak node, weak cell] value in
+            cell?.update(value)
+            guard isVisibility, let self, let node else { return }
+            node.visibleProperty = value.isTruthy
+            if node.isConfigured, self.updateVisibility(node) {
+                self.host.surfaceChanged(node.instance)
+            }
+        }
     }
 
     private func computeVisible(_ node: SurfaceNode) -> Bool {
@@ -399,7 +421,7 @@ public final class ShellRuntime: SurfaceControlling {
     }
 
     @discardableResult
-    private func updateVisibility(_ node: SurfaceNode) -> Bool {
+    func updateVisibility(_ node: SurfaceNode) -> Bool {
         guard node.isConfigured else { return false }
         let visible = computeVisible(node)
         guard visible != node.instance.isVisible else { return false }
@@ -435,12 +457,19 @@ public final class ShellRuntime: SurfaceControlling {
             return
         }
         inSession = true
+        generation += 1
         body()
         var head = 0
-        while head < queue.count {
-            let work = queue[head]
-            head += 1
-            work()
+        while true {
+            while head < queue.count {
+                let work = queue[head]
+                head += 1
+                work()
+            }
+            guard !pendingTeardown.isEmpty else { break }
+            let pending = pendingTeardown
+            pendingTeardown.removeAll()
+            teardown(pending.filter(\.isParked))
         }
         queue.removeAll()
         inSession = false
@@ -466,48 +495,66 @@ public final class ShellRuntime: SurfaceControlling {
     }
 
     func buildParts(_ region: Region, _ children: [ChildIR], _ context: BuildContext) {
+        region.context = context
         for child in children {
-            switch child {
-            case .element(let ir):
-                if let node = makeElement(ir, context) {
-                    region.parts.append(node)
-                }
-            case .each(let each):
-                region.parts.append(makeStructure(.each(each), context))
-            case .when(let when):
-                region.parts.append(makeStructure(.when(when), context))
-            case .switchOn(let switchIR):
-                region.parts.append(makeStructure(.switchOn(switchIR), context))
-            case .dynamicUse(let use):
-                region.parts.append(makeStructure(.use(use), context))
+            let part: TreeNode?
+            if case .element(let ir) = child {
+                part = placeElement(ir, context, reuse: nil)
+            } else if let kind = StructureNode.Kind(child) {
+                part = makeStructure(kind, context)
+            } else {
+                part = nil
+            }
+            if let part {
+                part.region = region
+                region.parts.append(part)
             }
         }
         markDirty(context.container)
     }
 
-    private func makeElement(_ ir: ElementIR, _ context: BuildContext) -> ElementNode? {
+    func placeElement(_ ir: ElementIR, _ context: BuildContext, reuse positional: [String: TreeNode]?) -> ElementNode? {
         let surface = context.surface
         guard context.depth < RuntimeLimits.elementDepth else {
             warn(key: "depth|\(ir.span)", Diagnostic(.warning, "elements nested deeper than \(RuntimeLimits.elementDepth) levels are not built", span: ir.span))
             return nil
         }
+        var runtimeID: String?
+        if let template = ir.idTemplate, let text = Self.idText(bindings.evaluateOnce(template, scope: context.scope)) {
+            if let existing = surface.ids[text], !existing.isDead {
+                if existing.stamp != generation, reloading || existing.isParked {
+                    if existing.instance.kind == ir.kind {
+                        adopt(existing)
+                        reconcileElement(existing, ir, context)
+                        return existing
+                    }
+                    surface.ids[text] = nil
+                    runtimeID = text
+                } else {
+                    warn(key: "duplicate-id|\(template.span)|\(text)", Diagnostic(.warning, "duplicate id '\(text)' in surface '\(surface.instance.id)', the later element loses it", span: template.span))
+                }
+            } else {
+                runtimeID = text
+            }
+        }
+        if runtimeID == nil, let existing = positional?["e|" + ir.key] as? ElementNode, existing.runtimeID == nil, existing.stamp != generation, !existing.isDead, existing.instance.kind == ir.kind {
+            reconcileElement(existing, ir, context)
+            return existing
+        }
+        return buildElement(ir, context, runtimeID: runtimeID)
+    }
+
+    private func buildElement(_ ir: ElementIR, _ context: BuildContext, runtimeID: String?) -> ElementNode? {
+        let surface = context.surface
         guard surface.elementCount < RuntimeLimits.elementsPerSurface else {
             warn(key: "budget|" + surface.surfaceKey, Diagnostic(.warning, "surface '\(surface.instance.id)' reached \(RuntimeLimits.elementsPerSurface) elements, further elements are not built", span: ir.span))
             return nil
         }
-        var identity = context.path.appending(ir.key)
-        var runtimeID: String?
-        if let template = ir.idTemplate, let text = Self.idText(bindings.evaluateOnce(template, scope: context.scope)) {
-            if surface.ids[text] == nil {
-                runtimeID = text
-                identity = surface.identity.appending("#" + text)
-            } else {
-                warn(key: "duplicate-id|\(template.span)|\(text)", Diagnostic(.warning, "duplicate id '\(text)' in surface '\(surface.instance.id)', the later element loses it", span: template.span))
-            }
-        }
+        let identity = runtimeID.map { surface.identity.appending("#" + $0) } ?? context.path.appending(ir.key)
         let scope = context.scope.adding(ContextScopeKeys.selfIdentity, .string(identity.description))
         let instance = ElementInstance(identity: identity, kind: ir.kind, ir: ir, scope: scope)
-        let node = ElementNode(instance: instance, surface: surface, runtimeID: runtimeID, outerActive: context.active)
+        let node = ElementNode(instance: instance, surface: surface, runtimeID: runtimeID, context: context)
+        node.stamp = generation
         if let runtimeID {
             surface.ids[runtimeID] = node
         }
@@ -519,11 +566,7 @@ public final class ShellRuntime: SurfaceControlling {
         if let visible = ir.properties["visible"] {
             let cell = PropertyCell(.null)
             cells["visible"] = cell
-            node.visibleBinding = bindings.bind(visible, scope: scope, rank: .structure(depth: context.depth), active: context.active) { [weak self, weak node, weak cell] value in
-                cell?.update(value)
-                guard let self, let node else { return }
-                self.setSelfVisible(node, value.isTruthy)
-            }
+            node.visibleBinding = bindVisible(node, visible, cell)
         }
         for name in ir.properties.keys.sorted() where name != "visible" {
             guard let compiled = ir.properties[name] else { continue }
@@ -531,39 +574,83 @@ public final class ShellRuntime: SurfaceControlling {
                 cells[name] = PropertyCell(runtimeID.map { .string($0) } ?? .null)
                 continue
             }
-            cells[name] = makeCell(compiled, scope: scope, node: node)
+            let cell = PropertyCell(.null)
+            cells[name] = cell
+            node.cellBindings[name] = fill(cell, compiled, node: node)
         }
         instance.properties = cells
-        instance.arguments = ir.arguments.map { makeCell($0, scope: scope, node: node) }
-
-        for handler in ir.handlers {
-            guard let when = handler.properties["when"], !when.dependencies.isEmpty else { continue }
-            node.demandTokens.append(store.demand(Set(when.dependencies.map { rewrittenPath($0, locals: scope) })))
+        var arguments: [PropertyCell] = []
+        for (index, compiled) in ir.arguments.enumerated() {
+            let cell = PropertyCell(.null)
+            arguments.append(cell)
+            node.argumentBindings[index] = fill(cell, compiled, node: node)
         }
+        instance.arguments = arguments
+
+        registerHandlerDemand(node, ir.handlers)
         let selfRoot = "self:" + identity.description
         instance.onPseudoChange = { [weak self] state in
             self?.publishPseudo(selfRoot, state)
         }
 
-        let childContainer = Container { [weak instance] list in
-            guard let instance, !Self.same(instance.children, list) else { return }
-            instance.children = list
-        }
+        let childContainer = makeChildContainer(instance)
         node.childContainer = childContainer
-        let childContext = BuildContext(surface: surface, scope: scope, path: identity, depth: context.depth + 1, useDepth: context.useDepth, active: node.innerActive, container: childContainer)
+        let childContext = node.childContext(childContainer, path: identity)
+        childContainer.region.context = childContext
         scheduleBuild(node, ir.children, childContext)
         for name in ir.slots.keys.sorted() {
-            let slotContainer = Container { [weak instance] list in
-                guard let instance else { return }
-                if let existing = instance.slotChildren[name], Self.same(existing, list) { return }
-                instance.slotChildren[name] = list
-            }
-            node.slotContainers[name] = slotContainer
-            let slotContext = BuildContext(surface: surface, scope: scope, path: identity.appending("slot:" + name), depth: context.depth + 1, useDepth: context.useDepth, active: node.innerActive, container: slotContainer)
-            scheduleBuild(node, ir.slots[name] ?? [], slotContext)
+            addSlot(node, name, ir.slots[name] ?? [])
         }
         node.isConfigured = true
         return node
+    }
+
+    func makeChildContainer(_ instance: ElementInstance) -> Container {
+        Container { [weak instance] list in
+            guard let instance, !Self.same(instance.children, list) else { return }
+            instance.children = list
+        }
+    }
+
+    func addSlot(_ node: ElementNode, _ name: String, _ children: [ChildIR]) {
+        let slotContainer = Container { [weak instance = node.instance] list in
+            guard let instance else { return }
+            if let existing = instance.slotChildren[name], Self.same(existing, list) { return }
+            instance.slotChildren[name] = list
+        }
+        node.slotContainers[name] = slotContainer
+        let slotContext = node.childContext(slotContainer, path: node.instance.identity.appending("slot:" + name))
+        slotContainer.region.context = slotContext
+        scheduleBuild(node, children, slotContext)
+    }
+
+    func registerHandlerDemand(_ node: ElementNode, _ handlers: [HandlerIR]) {
+        for token in node.demandTokens {
+            store.unsubscribe(token)
+        }
+        node.demandTokens.removeAll()
+        for handler in handlers {
+            guard let when = handler.properties["when"], !when.dependencies.isEmpty else { continue }
+            node.demandTokens.append(store.demand(Set(when.dependencies.map { rewrittenPath($0, locals: node.instance.scope) })))
+        }
+    }
+
+    func bindVisible(_ node: ElementNode, _ compiled: CompiledValue, _ cell: PropertyCell) -> BindingHandle {
+        bindings.bind(compiled, scope: node.instance.scope, rank: .structure(depth: node.depth), active: node.outerActive) { [weak self, weak node, weak cell] value in
+            cell?.update(value)
+            guard let self, let node else { return }
+            self.setSelfVisible(node, value.isTruthy)
+        }
+    }
+
+    func fill(_ cell: PropertyCell, _ compiled: CompiledValue, node: ElementNode) -> BindingHandle? {
+        if BindingSource(compiled: compiled).isLiteral {
+            cell.update(bindings.evaluateOnce(compiled, scope: node.instance.scope))
+            return nil
+        }
+        return bindings.bind(compiled, scope: node.instance.scope, rank: .property, active: node.innerActive) { [weak cell] value in
+            cell?.update(value)
+        }
     }
 
     private func scheduleBuild(_ node: ElementNode, _ children: [ChildIR], _ context: BuildContext) {
@@ -572,20 +659,9 @@ public final class ShellRuntime: SurfaceControlling {
             guard let self, let node, !node.isDead else { return }
             var current = context
             current.active = node.innerActive
+            current.scope = node.instance.scope
             self.buildParts(context.container.region, children, current)
         }
-    }
-
-    private func makeCell(_ compiled: CompiledValue, scope: LocalScope, node: ElementNode) -> PropertyCell {
-        if BindingSource(compiled: compiled).isLiteral {
-            return PropertyCell(bindings.evaluateOnce(compiled, scope: scope))
-        }
-        let cell = PropertyCell(.null)
-        let handle = bindings.bind(compiled, scope: scope, rank: .property, active: node.innerActive) { [weak cell] value in
-            cell?.update(value)
-        }
-        node.propertyBindings.append(handle)
-        return cell
     }
 
     private func publishPseudo(_ root: String, _ state: PseudoState) {
@@ -594,14 +670,14 @@ public final class ShellRuntime: SurfaceControlling {
         store.set(DependencyPath(root, ["focused"]), .bool(state.contains(.focus)))
     }
 
-    private func setSelfVisible(_ node: ElementNode, _ visible: Bool) {
+    func setSelfVisible(_ node: ElementNode, _ visible: Bool) {
         guard node.selfVisible != visible else { return }
         node.selfVisible = visible
         guard node.isConfigured, propagating == 0, !node.isDead else { return }
         withSession {
             let inner = node.innerActive
             propagating += 1
-            for handle in node.propertyBindings {
+            for handle in node.innerBindings {
                 handle.isActive = inner
             }
             propagating -= 1
@@ -609,7 +685,7 @@ public final class ShellRuntime: SurfaceControlling {
         }
     }
 
-    private func propagate(_ parts: [TreeNode], active: Bool) {
+    func propagate(_ parts: [TreeNode], active: Bool) {
         propagating += 1
         defer { propagating -= 1 }
         var stack = parts.map { ($0, active) }
@@ -619,7 +695,7 @@ public final class ShellRuntime: SurfaceControlling {
                 element.outerActive = active
                 element.visibleBinding?.isActive = active
                 let inner = element.innerActive
-                for handle in element.propertyBindings {
+                for handle in element.innerBindings {
                     handle.isActive = inner
                 }
                 for part in element.childParts {
@@ -627,6 +703,7 @@ public final class ShellRuntime: SurfaceControlling {
                 }
             } else if let structure = node as? StructureNode {
                 structure.outerActive = active
+                structure.context.active = active
                 for handle in structure.allBindings {
                     handle.isActive = active
                 }
@@ -639,16 +716,94 @@ public final class ShellRuntime: SurfaceControlling {
         }
     }
 
+    func park(_ parts: [TreeNode]) {
+        guard let first = parts.first else { return }
+        guard inSession else {
+            teardown(parts)
+            return
+        }
+        for part in parts {
+            part.isParked = true
+        }
+        pendingTeardown.append(contentsOf: parts)
+        guard let surface = first.surfaceNode, !surface.ids.isEmpty else { return }
+        var stack = parts
+        while let node = stack.popLast() {
+            if let element = node as? ElementNode, element.runtimeID != nil {
+                element.isParked = true
+            }
+            for region in node.innerRegions {
+                stack.append(contentsOf: region.parts)
+            }
+        }
+    }
+
+    func adopt(_ node: ElementNode) {
+        node.stamp = generation
+        node.isParked = false
+        if let region = node.region, let position = region.parts.firstIndex(where: { $0 === node }) {
+            region.parts.remove(at: position)
+            if let container = region.context?.container {
+                markDirty(container)
+            }
+        }
+        guard !node.surface.ids.isEmpty else { return }
+        var stack = node.childParts
+        while let part = stack.popLast() {
+            part.isParked = false
+            for region in part.innerRegions {
+                stack.append(contentsOf: region.parts)
+            }
+        }
+    }
+
+    func applyScope(_ start: [(TreeNode, LocalScope)]) {
+        var stack = start
+        while let (part, scope) = stack.popLast() {
+            guard !part.isDead else { continue }
+            if let element = part as? ElementNode {
+                let own = scope.adding(ContextScopeKeys.selfIdentity, .string(element.instance.identity.description))
+                guard own != element.instance.scope else { continue }
+                element.instance.scope = own
+                for handle in element.allBindings {
+                    handle.updateScope(own)
+                }
+                for region in element.childRegions {
+                    region.context?.scope = own
+                    for child in region.parts {
+                        stack.append((child, own))
+                    }
+                }
+            } else if let structure = part as? StructureNode {
+                guard structure.context.scope != scope else { continue }
+                structure.context.scope = scope
+                for handle in structure.allBindings {
+                    handle.updateScope(scope)
+                }
+                for region in structure.regions {
+                    let inner = regionScope(structure, region)
+                    region.context?.scope = inner
+                    for child in region.parts {
+                        stack.append((child, inner))
+                    }
+                }
+            }
+        }
+    }
+
     func teardown(_ parts: [TreeNode]) {
         var stack = parts
         while let node = stack.popLast() {
             guard !node.isDead else { continue }
             node.isDead = true
+            node.isParked = false
             if let element = node as? ElementNode {
-                element.visibleBinding?.cancel()
-                for handle in element.propertyBindings {
+                for handle in element.allBindings {
                     handle.cancel()
                 }
+                element.visibleBinding = nil
+                element.cellBindings.removeAll()
+                element.argumentBindings.removeAll()
                 for token in element.demandTokens {
                     store.unsubscribe(token)
                 }
@@ -663,12 +818,12 @@ public final class ShellRuntime: SurfaceControlling {
                     elements[identity] = nil
                 }
                 element.surface.elementCount -= 1
-                stack.append(contentsOf: element.childParts)
-                element.childContainer?.region.parts.removeAll()
-                element.childContainer = nil
-                for container in element.slotContainers.values {
-                    container.region.parts.removeAll()
+                for region in element.childRegions {
+                    stack.append(contentsOf: region.parts)
+                    region.parts.removeAll()
+                    region.context = nil
                 }
+                element.childContainer = nil
                 element.slotContainers.removeAll()
             } else if let structure = node as? StructureNode {
                 for handle in structure.allBindings {
@@ -676,8 +831,37 @@ public final class ShellRuntime: SurfaceControlling {
                 }
                 for region in structure.regions {
                     stack.append(contentsOf: region.parts)
+                    region.parts.removeAll()
+                    region.context = nil
                 }
                 structure.regions.removeAll()
+            }
+        }
+    }
+
+    nonisolated static func identical(_ lhs: Value, _ rhs: Value) -> Bool {
+        switch (lhs, rhs) {
+        case (.null, .null):
+            return true
+        case (.bool(let left), .bool(let right)):
+            return left == right
+        case (.number(let left), .number(let right)):
+            return left.bitPattern == right.bitPattern
+        case (.string(let left), .string(let right)):
+            return sameBytes(left, right)
+        case (.record(let left), .record(let right)):
+            return sameBytes(left, right)
+        case (.list(let left), .list(let right)):
+            return left.count == right.count && left.withUnsafeBufferPointer { a in right.withUnsafeBufferPointer { b in a.baseAddress == b.baseAddress } }
+        default:
+            return false
+        }
+    }
+
+    private nonisolated static func sameBytes<T>(_ lhs: T, _ rhs: T) -> Bool {
+        withUnsafeBytes(of: lhs) { left in
+            withUnsafeBytes(of: rhs) { right in
+                left.elementsEqual(right)
             }
         }
     }

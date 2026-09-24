@@ -107,6 +107,10 @@ public final class SignalStore {
         Set(demandCounts.keys.filter { $0.root == root })
     }
 
+    var subscriptionCount: Int {
+        subscriptions.count + demandGroups.count
+    }
+
     func demandCount(_ path: DependencyPath) -> Int {
         demandCounts[path, default: 0]
     }
@@ -192,6 +196,23 @@ public final class SignalStore {
     }
 
     nonisolated static func sanitize(_ value: Value) -> Value {
+        isFinite(value) ? value : rebuiltFinite(value)
+    }
+
+    private nonisolated static func isFinite(_ value: Value) -> Bool {
+        switch value {
+        case .number(let number):
+            return number.isFinite
+        case .list(let items):
+            return items.allSatisfy(isFinite)
+        case .record(let record):
+            return record.keys.allSatisfy { isFinite(record[$0] ?? .null) }
+        default:
+            return true
+        }
+    }
+
+    private nonisolated static func rebuiltFinite(_ value: Value) -> Value {
         switch value {
         case .number(let number):
             return number.isFinite ? value : .null

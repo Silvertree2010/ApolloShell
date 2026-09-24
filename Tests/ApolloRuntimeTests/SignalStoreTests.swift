@@ -109,6 +109,18 @@ struct SignalStoreTests {
         #expect(store.value(DependencyPath("perf", ["load", "value"])) == .null)
     }
 
+    @Test("Saubere Werte bleiben beim Eintritt dieselben Speicherobjekte, NaN in der Tiefe wird null")
+    func sanitizeKeepsSharing() {
+        let record = Value.record(Record([("id", .string("a")), ("n", .number(1))]))
+        let clean = Value.list([record, .list([record]), .string("x")])
+        #expect(ShellRuntime.identical(SignalStore.sanitize(clean), clean))
+        #expect(ShellRuntime.identical(SignalStore.sanitize(record), record))
+        let dirty = Value.list([record, .record(Record([("n", .number(.nan))]))])
+        let sanitized = SignalStore.sanitize(dirty)
+        #expect(sanitized == .list([record, .record(Record([("n", .null)]))]))
+        #expect(!ShellRuntime.identical(sanitized, dirty))
+    }
+
     @Test("Verschachteltes requestFlush während eines Flushs stösst einen neuen Durchlauf an")
     func nestedRequestFlushSchedulesNewPass() {
         let scheduler = ManualFlushScheduler()
