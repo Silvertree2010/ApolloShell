@@ -39,7 +39,7 @@ enum ContentRenderers {
     }
 
     static func themePreview(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
-        let theme = scope.context.theme(element.property("theme").plainText ?? "default") ?? .standard
+        let theme = scope.context.previewTheme(element.property("theme"))
         let forced = element.property("appearance").plainText
         return AnyView(ThemePreviewElement(theme: theme, forced: forced))
     }

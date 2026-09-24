@@ -84,6 +84,18 @@ public enum ThemeLoader {
         url.appendingPathComponent(folderName, isDirectory: true)
     }
 
+    public static func load(css text: String, identifier: String,
+                            limits: ThemeLimits = .standard,
+                            catalog: ThemeTokenCatalog = .standard) -> Theme {
+        let bytes = text.utf8.count
+        guard bytes <= limits.maxStyleSheetBytes else {
+            return Theme.make(identifier: identifier, styleSheet: ThemeStyleSheet(), catalog: catalog, limits: limits,
+                              issues: [ThemeIssue(.styleSheetTooLarge(bytes: bytes, limit: limits.maxStyleSheetBytes))])
+        }
+        return Theme.make(identifier: identifier, styleSheet: ThemeStyleSheetParser.parse(text, limits: limits),
+                          catalog: catalog, limits: limits)
+    }
+
     public static func load(at url: URL,
                             limits: ThemeLimits = .standard,
                             catalog: ThemeTokenCatalog = .standard) -> Theme {
