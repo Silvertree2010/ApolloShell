@@ -370,7 +370,7 @@ struct LegacyImportEdgeTests {
         let result = try LegacyFixtures.convert(weather: "weather-single.json")
         let places = LegacyFixtures.list(result.state["weather-places"])
         #expect(places.count == 1)
-        #expect(places[0]["name"] == .string("Standort"))
+        #expect(places[0]["name"] == .string("Location"))
         #expect(result.state["weather-selected"] == places[0]["id"])
     }
 
@@ -452,6 +452,11 @@ struct LegacyImportFileTests {
         #expect(settings.theme == "Catppuccin Mocha")
         #expect(settings.config == "launcher-only")
 
+        let launcherText = try String(contentsOf: LegacyImport.launcherOnlyStateFile(paths), encoding: .utf8)
+        let (launcherValues, launcherDiagnostics) = VarStateFile.readAll(launcherText, file: "launcher-only.kdl")
+        #expect(launcherDiagnostics.isEmpty)
+        #expect(launcherValues == ["hotkey-launcher": try #require(result.state["hotkey-launcher"])])
+
         #expect(!LegacyImport.isNeeded(paths: paths, fileSystem: fs))
     }
 
@@ -474,6 +479,7 @@ struct LegacyImportFileTests {
         let fs = MemoryFileSystem(["/r/Application Support/ApolloShell/settings.json": "{}"])
         _ = LegacyImport.run(paths: paths, fileSystem: fs, defaults: { _ in nil })
         #expect(fs.exists(LegacyImport.stateFile(paths)))
+        #expect(!fs.exists(LegacyImport.launcherOnlyStateFile(paths)))
         #expect(!fs.exists(paths.settingsFile))
         #expect(!LegacyImport.isNeeded(paths: paths, fileSystem: fs))
     }

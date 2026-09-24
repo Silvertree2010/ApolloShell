@@ -32,6 +32,10 @@ public enum LegacyImport {
         paths.stateDirectory.appendingPathComponent("\(configID).kdl")
     }
 
+    public static func launcherOnlyStateFile(_ paths: ConfigPaths) -> URL {
+        paths.stateDirectory.appendingPathComponent("\(launcherOnlyConfigID).kdl")
+    }
+
     public static func isNeeded(paths: ConfigPaths, fileSystem: any ConfigFileSystem) -> Bool {
         fileSystem.exists(settingsJSON(paths)) && !fileSystem.exists(paths.stateDirectory)
     }
@@ -60,6 +64,15 @@ public enum LegacyImport {
             try fileSystem.write(try VarStateFile.writing(result.state, into: existing, file: stateURL.path), to: stateURL)
         } catch {
             result.diagnostics.append(Diagnostic(.error, "could not write the imported settings to '\(stateURL.path)'", span: .synthetic(stateURL.path)))
+        }
+        if result.launcherOnly, let hotkey = result.state["hotkey-launcher"] {
+            let launcherURL = launcherOnlyStateFile(paths)
+            do {
+                let existing = fileSystem.exists(launcherURL) ? try fileSystem.read(launcherURL) : ""
+                try fileSystem.write(try VarStateFile.writing(["hotkey-launcher": hotkey], into: existing, file: launcherURL.path), to: launcherURL)
+            } catch {
+                result.diagnostics.append(Diagnostic(.error, "could not write the imported launcher shortcut to '\(launcherURL.path)'", span: .synthetic(launcherURL.path)))
+            }
         }
         let settingsKDL = paths.settingsFile
         do {
@@ -662,7 +675,7 @@ extension LegacyImport {
             let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             return Record([
                 ("id", .string(id)),
-                ("name", .string(trimmed.isEmpty ? "Standort" : trimmed)),
+                ("name", .string(trimmed.isEmpty ? "Location" : trimmed)),
                 ("latitude", .number(latitude)),
                 ("longitude", .number(longitude)),
             ])
