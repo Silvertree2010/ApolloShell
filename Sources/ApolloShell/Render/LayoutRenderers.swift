@@ -76,6 +76,7 @@ struct ScrollElement: View {
             .scrollBounceBehavior(.basedOnSize, axes: axis)
             .scrollClipDisabled(!overflowing)
             .modifier(HitRegionClip(active: true))
+            .modifier(HitRegionMarker(active: overflowing, identity: element.identity))
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 horizontal ? geometry.contentSize.width > geometry.containerSize.width + 0.5
                     : geometry.contentSize.height > geometry.containerSize.height + 0.5
