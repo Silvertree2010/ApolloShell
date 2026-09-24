@@ -1,10 +1,10 @@
 import ApolloBase
-import Dispatch
-import Foundation
 
 public enum KDLLimits {
     public static let maxBytes = 1_048_576
     public static let maxDepth = 64
+    static let headroomMinimum = 2 << 20
+    static let headroomStackSize = 16 << 20
 }
 
 extension KDLDocument {
@@ -30,27 +30,19 @@ struct KDLParser {
         self.source = KDLSource(text)
     }
 
-    final class ResultBox: @unchecked Sendable {
-        var value: Result<KDLDocument, KDLParseError>?
-    }
-
     static func parseOnDedicatedStack(text: String, file: String) throws(KDLParseError) -> KDLDocument {
-        let box = ResultBox()
-        let semaphore = DispatchSemaphore(value: 0)
-        let thread = Thread {
+        let result: Result<KDLDocument, KDLParseError> = StackHeadroom.run(
+            minimum: KDLLimits.headroomMinimum,
+            stackSize: KDLLimits.headroomStackSize
+        ) {
             var parser = KDLParser(text: text, file: file)
             do throws(KDLParseError) {
-                box.value = .success(try parser.parseDocument())
+                return .success(try parser.parseDocument())
             } catch {
-                box.value = .failure(error)
+                return .failure(error)
             }
-            semaphore.signal()
         }
-        thread.stackSize = 16 << 20
-        thread.qualityOfService = Thread.current.qualityOfService
-        thread.start()
-        semaphore.wait()
-        switch box.value! {
+        switch result {
         case .success(let document):
             return document
         case .failure(let error):
