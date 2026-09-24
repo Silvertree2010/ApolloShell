@@ -1,0 +1,44 @@
+import Foundation
+
+enum DurationText {
+    static func clock(_ seconds: Double) -> String {
+        let total = Int(Swift.abs(seconds).rounded(.down))
+        let sign = seconds < 0 && total > 0 ? "-" : ""
+        let hours = total / 3600
+        let minutes = total % 3600 / 60
+        let rest = total % 60
+        if hours > 0 {
+            return sign + "\(hours):" + twoDigits(minutes) + ":" + twoDigits(rest)
+        }
+        return sign + "\(minutes):" + twoDigits(rest)
+    }
+
+    static func twoDigits(_ value: Int) -> String {
+        value < 10 ? "0\(value)" : "\(value)"
+    }
+}
+
+enum DateText {
+    static func format(_ date: Date, pattern: String, locale: Locale, timeZone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = timeZone
+        formatter.dateFormat = pattern
+        return formatter.string(from: date)
+    }
+
+    static func relative(_ date: Date, now: Date) -> String {
+        let delta = date.timeIntervalSince(now)
+        let seconds = Swift.abs(delta)
+        guard seconds >= 60 else { return "now" }
+        let amount: String
+        if seconds < 3600 {
+            amount = "\(Int(seconds / 60)) min"
+        } else if seconds < 86_400 {
+            amount = "\(Int(seconds / 3600)) h"
+        } else {
+            amount = "\(Int(Swift.min(seconds / 86_400, 1_000_000_000))) d"
+        }
+        return delta > 0 ? "in \(amount)" : "\(amount) ago"
+    }
+}
