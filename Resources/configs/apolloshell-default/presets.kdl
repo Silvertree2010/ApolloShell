@@ -80,8 +80,7 @@ let dashboard-compact {
         - id="calendar" kind="calendar" first-weekday="monday" show-week-numbers=#false
         - id="resources" kind="resources" show-cpu=#true show-memory=#true show-storage=#true
     }
-    side {
-    }
+    side "{[]}"
 }
 
 let dashboard-calendar-weather {
@@ -91,8 +90,7 @@ let dashboard-calendar-weather {
         - id="media" visible=#false
         - id="performance" visible=#false
     }
-    top {
-    }
+    top "{[]}"
     bottom {
         - id="clock" kind="clock" style="stacked" show-date=#false
         - id="calendar" kind="calendar" first-weekday="monday" show-week-numbers=#false
