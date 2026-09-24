@@ -59,18 +59,29 @@ struct MotionTests {
         let column = try #require(mounted.session.surfaces.first?.root.first)
         #expect(column.children.count == 40)
         let target = try #require(column.children.dropFirst(5).first)
+        let warmup = try #require(column.children.dropFirst(20).first)
         for _ in 0..<3 {
             RunLoop.current.run(until: Date().addingTimeInterval(0.02))
             mounted.view.layoutSubtreeIfNeeded()
         }
-        let lookups = styles.lookups, computed = styles.computed
+        let coldComputed = styles.computed
+        warmup.pseudo.insert(.hover)
+        mounted.view.layoutSubtreeIfNeeded()
+        mounted.view.displayIfNeeded()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        let firstComputed = styles.computed - coldComputed
+        warmup.pseudo.remove(.hover)
+        mounted.view.layoutSubtreeIfNeeded()
+        mounted.view.displayIfNeeded()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        let lookups = styles.lookups
         let started = ContinuousClock.now
         target.pseudo.insert(.hover)
         mounted.view.layoutSubtreeIfNeeded()
         mounted.view.displayIfNeeded()
         let first = ContinuousClock.now - started
         RunLoop.current.run(until: Date().addingTimeInterval(0.05))
-        let newLookups = styles.lookups - lookups, newComputed = styles.computed - computed
+        let newLookups = styles.lookups - lookups
         var samples = [first]
         for round in 0..<8 {
             let begin = ContinuousClock.now
@@ -80,19 +91,14 @@ struct MotionTests {
             samples.append(ContinuousClock.now - begin)
             RunLoop.current.run(until: Date().addingTimeInterval(0.02))
         }
-        let median = samples.sorted()[samples.count / 2]
-        print("hover recalculation: \(newLookups) lookups, \(newComputed) computed, first \(first), median \(median)")
-        #expect(newComputed <= 6)
+        let longest = try #require(samples.max())
+        print("hover recalculation: \(newLookups) lookups, \(firstComputed) computed when cold, first \(first), max \(longest)")
+        #expect(firstComputed > 0 && firstComputed <= 6)
         #expect(newLookups <= 20)
-        #expect(median <= Self.mainActorBlockBudget)
+        #expect(longest <= Self.mainActorBlockBudget)
     }
 
     static let mainActorBlockBudget = Duration.microseconds(16_700)
-
-    @Test("Budget-Grenze ist die längste Blockade des Main Actors aus testing.md 4")
-    func budgetFromSpec() {
-        #expect(Self.mainActorBlockBudget == .microseconds(16_700))
-    }
 
     @Test("RunningAnimation schreibt ohne Animation keinen Zustand, mit Animation Neustart und Ende")
     func runningAnimationWritesOnlyWithSpec() async throws {
