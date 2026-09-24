@@ -49,6 +49,7 @@ cp "$CLI" "$APP/Contents/Helpers/apollo"
 cp "$PLIST" "$APP/Contents/Info.plist"
 "$PLISTBUDDY" -c "Set :CFBundleVersion $BUILD_NUMBER" "$APP/Contents/Info.plist"
 cp "$ROOT/Support/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+ditto "$ROOT/Resources" "$APP/Contents/Resources"
 
 if [ "${HOMEBREW_BUILD:-}" = "1" ]; then
     echo "Installed by Homebrew. Updates go through: brew upgrade apolloshell" \

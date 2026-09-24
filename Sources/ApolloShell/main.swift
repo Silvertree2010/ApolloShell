@@ -9,4 +9,9 @@ if CommandLine.arguments.contains("--render") {
     exit(MainActor.assumeIsolated { RenderCommand.run(CommandLine.arguments) })
 }
 
-print(AppBanner.text)
+if CommandLine.arguments.contains("--version") {
+    print(AppBanner.text)
+    exit(0)
+}
+
+exit(MainActor.assumeIsolated { LiveShell.run(CommandLine.arguments) })
