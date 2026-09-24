@@ -40,6 +40,6 @@ let package = Package(
         .testTarget(name: "ApolloRuntimeTests", dependencies: ["ApolloRuntime"]),
         .testTarget(name: "ApolloWMCoreTests", dependencies: ["ApolloWMCore"]),
         .testTarget(name: "ApolloControlTests", dependencies: ["ApolloControl", "ApolloConfig", "ApolloBase", "ApolloKDL", "ApolloShellCore"]),
-        .testTarget(name: "ApolloShellTests", dependencies: ["ApolloShell", "ApolloBase"]),
+        .testTarget(name: "ApolloShellTests", dependencies: ["ApolloShell", "ApolloBase", "ApolloControl", "ApolloShellCore"]),
     ]
 )
