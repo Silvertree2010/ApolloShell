@@ -32,6 +32,7 @@ enum CSSKeywordParser {
 public enum CSSPropertyRegistry {
     static let groups: [[CSSPropertyEntry]] = [
         CSSBoxProperties.entries,
+        CSSPaintProperties.entries,
     ]
 
     static let entries: [String: CSSPropertyEntry] = {
