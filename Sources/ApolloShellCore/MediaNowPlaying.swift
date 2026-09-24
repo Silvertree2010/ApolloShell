@@ -54,6 +54,7 @@ enum MediaKey {
     static let duration = "duration"
     static let elapsed = "elapsedTime"
     static let timestamp = "timestamp"
+    static let mediaType = "mediaType"
 }
 
 public struct MediaStreamMessage: Sendable, Equatable, Decodable {
@@ -159,6 +160,7 @@ public struct MediaNowPlaying: Sendable, Equatable {
     public var elapsed: TimeInterval?
     public var timestamp: Date?
     public var playbackRate: Double?
+    public var mediaType: String?
 
     public init(
         title: String,
@@ -170,7 +172,8 @@ public struct MediaNowPlaying: Sendable, Equatable {
         duration: TimeInterval? = nil,
         elapsed: TimeInterval? = nil,
         timestamp: Date? = nil,
-        playbackRate: Double? = nil
+        playbackRate: Double? = nil,
+        mediaType: String? = nil
     ) {
         self.title = title
         self.artist = artist
@@ -182,6 +185,7 @@ public struct MediaNowPlaying: Sendable, Equatable {
         self.elapsed = elapsed
         self.timestamp = timestamp
         self.playbackRate = playbackRate
+        self.mediaType = mediaType
     }
 
     public init?(fields: [String: MediaValue]) {
@@ -193,6 +197,7 @@ public struct MediaNowPlaying: Sendable, Equatable {
         parentBundleIdentifier = Self.text(fields[MediaKey.parentBundleIdentifier])
         isPlaying = fields[MediaKey.playing]?.bool ?? false
         playbackRate = fields[MediaKey.playbackRate]?.number
+        mediaType = Self.text(fields[MediaKey.mediaType])
 
         let duration = fields[MediaKey.durationMicros]?.number.map { $0 / 1_000_000 } ?? fields[MediaKey.duration]?.number
         self.duration = duration.flatMap { $0 > 0 ? $0 : nil }
@@ -228,6 +233,34 @@ public struct MediaNowPlaying: Sendable, Equatable {
     public func progress(at now: Date) -> Double {
         guard let duration, let elapsed = elapsed(at: now) else { return 0 }
         return min(max(elapsed / duration, 0), 1)
+    }
+}
+
+public enum MediaKind: String, Sendable, Equatable {
+    case music, video
+
+    static let videoApps: Set<String> = [
+        "com.apple.TV", "com.apple.QuickTimePlayerX", "com.colliderli.iina", "org.videolan.vlc",
+        "io.mpv", "com.firecore.infuse", "com.netflix.Netflix", "com.disney.disneyplus",
+        "com.amazon.aiv.AIVApp", "tv.plex.desktop", "com.plexapp.plex", "org.jellyfin.jellyfin-media-player",
+    ]
+
+    static let musicApps: Set<String> = [
+        "com.apple.Music", "com.spotify.client", "com.apple.podcasts", "com.tidal.desktop",
+        "com.deezer.deezer-desktop", "com.amazon.music", "com.soundcloud.desktop",
+    ]
+
+    public static func detect(_ playing: MediaNowPlaying, artworkAspect: Double?) -> MediaKind {
+        if let type = playing.mediaType?.lowercased() {
+            if type.contains("video") { return .video }
+            if type.contains("music") || type.contains("audio") { return .music }
+        }
+        for app in [playing.bundleIdentifier, playing.parentBundleIdentifier].compactMap({ $0 }) {
+            if videoApps.contains(app) { return .video }
+            if musicApps.contains(app) { return .music }
+        }
+        if let aspect = artworkAspect, aspect.isFinite, aspect >= 1.3 { return .video }
+        return .music
     }
 }
 

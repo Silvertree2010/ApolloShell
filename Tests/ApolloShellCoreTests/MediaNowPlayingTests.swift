@@ -309,4 +309,26 @@ struct MediaAdapterTests {
     func restartCounter(previous: Int, runtime: TimeInterval, expected: Int) {
         #expect(MediaRestart.failures(previous: previous, runtime: runtime) == expected)
     }
+
+    @Test("Musik oder Video: erst der Typ, dann die App, dann die Form des Covers")
+    func kind() {
+        func playing(_ app: String?, type: String? = nil) -> MediaNowPlaying {
+            MediaNowPlaying(title: "T", bundleIdentifier: app, isPlaying: true, mediaType: type)
+        }
+        #expect(MediaKind.detect(playing("com.vivaldi.Vivaldi"), artworkAspect: 150.0 / 83) == .video)
+        #expect(MediaKind.detect(playing("com.vivaldi.Vivaldi"), artworkAspect: 1) == .music)
+        #expect(MediaKind.detect(playing("com.vivaldi.Vivaldi"), artworkAspect: nil) == .music)
+        #expect(MediaKind.detect(playing("com.spotify.client"), artworkAspect: 1.8) == .music)
+        #expect(MediaKind.detect(playing("com.colliderli.iina"), artworkAspect: nil) == .video)
+        #expect(MediaKind.detect(playing("com.apple.Music", type: "MRMediaRemoteMediaTypeVideo"), artworkAspect: 1) == .video)
+        #expect(MediaKind.detect(playing("org.videolan.vlc", type: "MRMediaRemoteMediaTypeMusic"), artworkAspect: nil) == .music)
+    }
+
+    @Test("Der Medientyp kommt aus der Nutzlast, leer zählt als keiner")
+    func mediaTypeField() {
+        let typed = MediaNowPlaying(fields: ["title": .string("T"), "mediaType": .string("MRMediaRemoteMediaTypeVideo")])
+        #expect(typed?.mediaType == "MRMediaRemoteMediaTypeVideo")
+        let empty = MediaNowPlaying(fields: ["title": .string("T"), "mediaType": .string("")])
+        #expect(empty?.mediaType == nil)
+    }
 }
