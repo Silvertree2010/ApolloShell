@@ -34,6 +34,7 @@ struct SurfaceView: View {
     let context: RenderContext
     var insets = EdgeInsets()
     var painter: (any BackgroundPainter)?
+    var occluded = false
 
     var body: some View {
         let subject = StyleResolver.subject(for: surface)
@@ -48,6 +49,6 @@ struct SurfaceView: View {
         .background { painted }
         .modifier(HitRegionCollector(surfaceKey: SurfaceHost.key(surface.id, surface.screenKey), regions: context.hits))
         .modifier(ElementFrameCollector(surfaceKey: SurfaceHost.key(surface.id, surface.screenKey), frames: context.elementFrames))
-        .environment(\.surfaceShown, surface.isVisible)
+        .environment(\.surfaceShown, surface.isVisible && !occluded)
     }
 }

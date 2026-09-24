@@ -155,7 +155,8 @@ final class WindowHost: SurfaceHosting {
 
     private func content(_ surface: SurfaceInstance, insets: EdgeInsets, flyout: EdgeInsets = EdgeInsets()) -> AnyView {
         guard let context else { return AnyView(EmptyView()) }
-        return AnyView(SurfaceView(surface: surface, context: context, insets: insets, painter: backgroundPainter).padding(flyout))
+        let occluded = context.occluded.contains(SurfaceHost.key(surface.id, surface.screenKey))
+        return AnyView(SurfaceView(surface: surface, context: context, insets: insets, painter: backgroundPainter, occluded: occluded).padding(flyout))
     }
 
     func flyoutExtent(_ key: String, _ extent: EdgeInsets) {
@@ -203,6 +204,7 @@ final class WindowHost: SurfaceHosting {
         window.onCloseRequest = { [weak self] in self?.link?.close(id, screenKey: screenKey) }
         window.onKey = { [weak self] chord in self?.link?.keyPressed(chord, surfaceID: id, screenKey: screenKey) ?? false }
         window.onResize = { [weak self] in self?.userResized(key) }
+        window.onOcclusion = { [weak self] visible in self?.occlusionChanged(key, visible: visible) }
         controllers[key] = controller
         sync(key)
     }
@@ -241,6 +243,12 @@ final class WindowHost: SurfaceHosting {
             let local = CGPoint(x: point.x - frame.minX - controller.flyout.leading, y: frame.maxY - point.y - controller.flyout.top)
             controller.window.setIgnoresMouse(!(frame.contains(point) && hits.contains(local, surfaceKey: key)))
         }
+    }
+
+    private func occlusionChanged(_ key: String, visible: Bool) {
+        guard let controller = controllers[key], let context else { return }
+        if visible { context.occluded.remove(key) } else { context.occluded.insert(key) }
+        controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
     }
 
     private func userResized(_ key: String) {

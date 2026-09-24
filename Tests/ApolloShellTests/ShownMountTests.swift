@@ -71,6 +71,39 @@ struct ShownMountTests {
 }
 
 @MainActor
+@Suite("Verdecktes Fenster gilt nicht als gezeigt (Befund 12)")
+struct OcclusionTests {
+    @Test("Verdeckung meldet surfaceShown false an den Inhalt, Aufdecken wieder true")
+    func occludedIsHidden() throws {
+        let fixture = try HostFixture("panel \"bar\" anchor=\"left\" { column { text \"a\" } }")
+        let probe = ShownProbe()
+        fixture.host.backgroundPainter = probe
+        fixture.host.resync()
+        let window = try #require(fixture.window("bar"))
+        let hosting = NSHostingView(rootView: AnyView(EmptyView()))
+        func render() {
+            hosting.rootView = window.content ?? AnyView(EmptyView())
+            hosting.frame = CGRect(x: 0, y: 0, width: 60, height: 60)
+            hosting.layoutSubtreeIfNeeded()
+            RunLoopPump.run(0.05)
+        }
+        window.content = nil
+        window.onOcclusion?(true)
+        fixture.flush()
+        render()
+        #expect(probe.seen.last == true)
+        window.onOcclusion?(false)
+        fixture.flush()
+        render()
+        #expect(probe.seen.last == false)
+        window.onOcclusion?(true)
+        fixture.flush()
+        render()
+        #expect(probe.seen.last == true)
+    }
+}
+
+@MainActor
 final class ShownProbe: BackgroundPainter {
     var seen: [Bool] = []
 

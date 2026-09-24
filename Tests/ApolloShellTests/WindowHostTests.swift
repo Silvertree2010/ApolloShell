@@ -16,6 +16,7 @@ final class FakeWindow: HostWindow {
     var onCloseRequest: (@MainActor () -> Void)?
     var onKey: (@MainActor (String) -> Bool)?
     var onResize: (@MainActor () -> Void)?
+    var onOcclusion: (@MainActor (Bool) -> Void)?
     var windowNumber = 1
     var spec: SurfaceWindowSpec
     var level: NSWindow.Level
