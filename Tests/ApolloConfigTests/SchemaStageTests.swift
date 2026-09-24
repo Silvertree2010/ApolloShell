@@ -18,7 +18,7 @@ struct SchemaStageTests {
         #expect(used.diagnostics.isEmpty, sourceLocation: sourceLocation)
         let disabled = DisableStage.run(used.nodes, registry: .builtin)
         #expect(disabled.diagnostics.isEmpty, sourceLocation: sourceLocation)
-        return SchemaStage.run(disabled.nodes, registry: .builtin)
+        return SchemaStage.run(disabled.nodes, defines: used.defines, registry: .builtin)
     }
 
     static func errors(_ result: SchemaStageResult) -> [Diagnostic] {
@@ -199,7 +199,7 @@ struct SchemaStageTests {
         #expect(result.diagnostics.isEmpty)
     }
 
-    @Test("each-Variable mit dem Namen einer festen Wurzel bleibt unbekannt")
+    @Test("Wurzel ausserhalb eines each ist unbekannt")
     func unknownRootOutsideEachIsAnError() {
         let result = Self.pipeline("""
         panel "sidebar" {

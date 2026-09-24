@@ -4,8 +4,72 @@ import ApolloKDL
 struct ExpressionEnvironment: Sendable {
     var registry: SchemaRegistry
     var letValues: [String: Value]
+    var poisonedLets: Set<String> = []
     var locals: Set<String>
     var context: NodeContext
+}
+
+enum ExpressionText {
+    static func containsExpression(_ text: String) -> Bool {
+        var iterator = text.makeIterator()
+        while let character = iterator.next() {
+            guard character == "{" else { continue }
+            guard iterator.next() == "{" else { return true }
+        }
+        return false
+    }
+
+    static func isPlainQuoted(_ text: String, span: SourceSpan) -> Bool {
+        !span.isSynthetic
+            && span.start.line == span.end.line
+            && span.end.offset - span.start.offset == text.utf8.count + 2
+    }
+}
+
+struct NameOccurrence: Sendable {
+    var root: SourceSpan
+    var firstField: SourceSpan?
+}
+
+enum NameLocator {
+    static func occurrences(in text: String, span: SourceSpan) -> [String: [NameOccurrence]] {
+        guard ExpressionText.isPlainQuoted(text, span: span) else { return [:] }
+        let characters = Array(text)
+        let mapper = ExpressionSpanMapper(base: span, characters: characters, origin: 0)
+        var result: [String: [NameOccurrence]] = [:]
+        var index = 0
+        while index < characters.count {
+            let next: Character? = index + 1 < characters.count ? characters[index + 1] : nil
+            if (characters[index] == "{" && next == "{") || (characters[index] == "}" && next == "}") {
+                index += 2
+                continue
+            }
+            guard characters[index] == "{" else {
+                index += 1
+                continue
+            }
+            guard case .success(let close) = ExpressionParser.closingBrace(characters, openingAt: index) else { return result }
+            let inner = Array(characters[(index + 1)..<close])
+            let local = mapper.shifted(to: index + 1)
+            if let tokens = try? ExpressionLexer.scan(inner) {
+                collect(tokens, mapper: local, into: &result)
+            }
+            index = close + 1
+        }
+        return result
+    }
+
+    private static func collect(_ tokens: [ExpressionToken], mapper: ExpressionSpanMapper, into result: inout [String: [NameOccurrence]]) {
+        for (position, token) in tokens.enumerated() {
+            guard case .name(let name) = token.kind else { continue }
+            if position > 0, tokens[position - 1].isSymbol(".") || tokens[position - 1].isSymbol("|") { continue }
+            var field: SourceSpan?
+            if position + 2 < tokens.count, tokens[position + 1].isSymbol("."), case .name = tokens[position + 2].kind {
+                field = mapper.span(from: tokens[position + 2].start, to: tokens[position + 2].end)
+            }
+            result[name, default: []].append(NameOccurrence(root: mapper.span(from: token.start, to: token.end), firstField: field))
+        }
+    }
 }
 
 enum ExpressionCompiler {
@@ -19,7 +83,7 @@ enum ExpressionCompiler {
         case .null:
             return (CompiledValueBuilder.literal(.null, span: kdlValue.span), diagnostics)
         case .string(let text):
-            guard text.contains("{") else {
+            guard text.contains("{"), allowsExpression || ExpressionText.containsExpression(text) else {
                 return (CompiledValueBuilder.literal(.string(text), span: kdlValue.span), diagnostics)
             }
             if !allowsExpression {
@@ -27,114 +91,143 @@ enum ExpressionCompiler {
                 return (CompiledValueBuilder.literal(.string(text), span: kdlValue.span), diagnostics)
             }
             switch ExpressionParser.parseTemplate(text, span: kdlValue.span) {
-            case .failure(let diagnostic):
+            case .failure(var diagnostic):
+                if !ExpressionText.isPlainQuoted(text, span: kdlValue.span) {
+                    diagnostic.span = kdlValue.span
+                }
                 diagnostics.append(diagnostic)
                 return (CompiledValueBuilder.literal(.null, span: kdlValue.span), diagnostics)
             case .success(let template):
                 let substituted = LetSubstitution.apply(template, lets: env.letValues, locals: env.locals)
-                diagnostics.append(contentsOf: validate(substituted, env: env, fallback: kdlValue.span))
+                var validator = ExpressionValidator(env: env, fallback: kdlValue.span, occurrences: NameLocator.occurrences(in: text, span: kdlValue.span))
+                validator.validate(substituted)
+                diagnostics.append(contentsOf: validator.diagnostics)
                 let dependencies = substituted.dependencies(locals: env.locals)
                 return (CompiledValue(template: substituted, dependencies: dependencies, span: kdlValue.span), diagnostics)
             }
         }
     }
+}
 
-    private static func validate(_ template: StringTemplate, env: ExpressionEnvironment, fallback: SourceSpan) -> [Diagnostic] {
+private struct ExpressionValidator {
+    let env: ExpressionEnvironment
+    let fallback: SourceSpan
+    let occurrences: [String: [NameOccurrence]]
+    var visits: [String: Int] = [:]
+    var diagnostics: [Diagnostic] = []
+
+    init(env: ExpressionEnvironment, fallback: SourceSpan, occurrences: [String: [NameOccurrence]]) {
+        self.env = env
+        self.fallback = fallback
+        self.occurrences = occurrences
+    }
+
+    mutating func validate(_ template: StringTemplate) {
         switch template {
         case .literal:
-            return []
+            return
         case .whole(let expr):
-            return validate(expr, env: env, fallback: fallback)
+            validate(expr)
         case .parts(let parts):
-            var diagnostics: [Diagnostic] = []
             for part in parts {
                 if case .expression(let expr) = part {
-                    diagnostics.append(contentsOf: validate(expr, env: env, fallback: fallback))
+                    validate(expr)
                 }
             }
-            return diagnostics
         }
     }
 
-    private static func validate(_ expr: Expr, env: ExpressionEnvironment, fallback: SourceSpan) -> [Diagnostic] {
+    private mutating func validate(_ expr: Expr) {
         switch expr {
         case .literal:
-            return []
+            return
         case .list(let items):
-            return items.flatMap { validate($0, env: env, fallback: fallback) }
+            items.forEach { validate($0) }
         case .path(let root, let members):
-            var diagnostics = validateRoot(root, env: env, fallback: fallback)
-            diagnostics.append(contentsOf: validateFirstField(root: root, members: members, env: env, fallback: fallback))
-            diagnostics.append(contentsOf: members.flatMap { validate($0, env: env, fallback: fallback) })
-            return diagnostics
+            let occurrence = nextOccurrence(of: root)
+            validateRoot(root, span: occurrence?.root ?? fallback)
+            validateFirstField(root: root, members: members, span: occurrence?.firstField ?? fallback)
+            members.forEach { validate($0) }
         case .access(let base, let members):
-            return validate(base, env: env, fallback: fallback) + members.flatMap { validate($0, env: env, fallback: fallback) }
+            validate(base)
+            members.forEach { validate($0) }
         case .unary(_, let operand):
-            return validate(operand, env: env, fallback: fallback)
+            validate(operand)
         case .binary(_, let lhs, let rhs), .coalesce(let lhs, let rhs):
-            return validate(lhs, env: env, fallback: fallback) + validate(rhs, env: env, fallback: fallback)
+            validate(lhs)
+            validate(rhs)
         case .conditional(let condition, let then, let otherwise):
-            return validate(condition, env: env, fallback: fallback) + validate(then, env: env, fallback: fallback) + validate(otherwise, env: env, fallback: fallback)
+            validate(condition)
+            validate(then)
+            validate(otherwise)
         case .pipe(let input, let call):
-            return validate(input, env: env, fallback: fallback) + validate(call, env: env, fallback: fallback)
+            validate(input)
+            validate(call)
         }
     }
 
-    private static func validate(_ member: PathMember, env: ExpressionEnvironment, fallback: SourceSpan) -> [Diagnostic] {
-        guard case .index(let expr) = member else { return [] }
-        return validate(expr, env: env, fallback: fallback)
+    private mutating func nextOccurrence(of root: String) -> NameOccurrence? {
+        let index = visits[root, default: 0]
+        visits[root] = index + 1
+        guard let list = occurrences[root], index < list.count else { return nil }
+        return list[index]
     }
 
-    private static func validateRoot(_ root: String, env: ExpressionEnvironment, fallback: SourceSpan) -> [Diagnostic] {
-        if env.locals.contains(root) { return [] }
-        if root == "var" { return [] }
+    private mutating func validate(_ member: PathMember) {
+        guard case .index(let expr) = member else { return }
+        validate(expr)
+    }
+
+    private mutating func validateRoot(_ root: String, span: SourceSpan) {
+        if env.locals.contains(root) || env.poisonedLets.contains(root) || root == "var" { return }
         if let provider = env.registry.providers[root] {
             if provider.stability == .experimental {
-                return [Diagnostic(.note, "'\(root)' is experimental and may change", span: fallback)]
+                diagnostics.append(Diagnostic(.note, "'\(root)' is experimental and may change", span: span))
             }
-            return []
+            return
         }
         if let contextRoot = env.registry.contextRoots[root] {
             if !contextRoot.validIn.contains(env.context.rawValue) {
-                return [Diagnostic(.error, "'\(root)' is not valid here", span: fallback)]
+                diagnostics.append(Diagnostic(.error, "'\(root)' is not valid here", span: span))
             }
-            return []
+            return
         }
         if env.registry.reservedProviderNames.contains(root) {
-            return [Diagnostic(.error, "unknown root '\(root)'", span: fallback, help: "'\(root)' will be a provider in a later version")]
+            diagnostics.append(Diagnostic(.error, "unknown root '\(root)'", span: span, help: "'\(root)' will be a provider in a later version"))
+            return
         }
         let candidates = Array(env.locals) + Array(env.registry.providers.keys) + Array(env.registry.contextRoots.keys) + ["var"]
         let suggestion = Suggestion.closest(to: root, among: candidates)
-        return [Diagnostic(.error, "unknown root '\(root)'", span: fallback, help: suggestion.map { "did you mean '\($0)'?" })]
+        diagnostics.append(Diagnostic(.error, "unknown root '\(root)'", span: span, help: suggestion.map { "did you mean '\($0)'?" }))
     }
 
-    private static func validateFirstField(root: String, members: [PathMember], env: ExpressionEnvironment, fallback: SourceSpan) -> [Diagnostic] {
-        guard case .field(let first)? = members.first else { return [] }
+    private mutating func validateFirstField(root: String, members: [PathMember], span: SourceSpan) {
+        guard case .field(let first)? = members.first, !env.locals.contains(root) else { return }
         let fields: [FieldSchema]
         if let provider = env.registry.providers[root] {
             fields = provider.fields
         } else if let contextRoot = env.registry.contextRoots[root] {
             fields = contextRoot.fields
         } else {
-            return []
+            return
         }
-        guard !fields.isEmpty else { return [] }
+        guard !fields.isEmpty else { return }
         let names = Set(fields.map { $0.path[0] })
-        if names.contains(first) { return [] }
+        if names.contains(first) { return }
         let suggestion = Suggestion.closest(to: first, among: Array(names))
-        return [Diagnostic(.error, "unknown field '\(first)' on '\(root)'", span: fallback, help: suggestion.map { "did you mean '\($0)'?" })]
+        diagnostics.append(Diagnostic(.error, "unknown field '\(first)' on '\(root)'", span: span, help: suggestion.map { "did you mean '\($0)'?" }))
     }
 
-    private static func validate(_ call: FilterCall, env: ExpressionEnvironment, fallback: SourceSpan) -> [Diagnostic] {
-        var diagnostics = call.arguments.flatMap { validate($0, env: env, fallback: fallback) }
+    private mutating func validate(_ call: FilterCall) {
+        call.arguments.forEach { validate($0) }
         if call.name == "lua" {
             diagnostics.append(Diagnostic(.error, "Lua scripting comes in a later version", span: call.span))
-            return diagnostics
+            return
         }
         guard let schema = env.registry.filters[call.name] else {
             let suggestion = Suggestion.closest(to: call.name, among: Array(env.registry.filters.keys))
             diagnostics.append(Diagnostic(.error, "unknown filter '\(call.name)'", span: call.span, help: suggestion.map { "did you mean '\($0)'?" }))
-            return diagnostics
+            return
         }
         if schema.stability == .experimental {
             diagnostics.append(Diagnostic(.note, "'\(call.name)' is experimental and may change", span: call.span))
@@ -145,7 +238,6 @@ enum ExpressionCompiler {
             let phrase = minimum == maximum ? "\(minimum) argument\(minimum == 1 ? "" : "s")" : "\(minimum) to \(maximum) arguments"
             diagnostics.append(Diagnostic(.error, "'\(call.name)' expects \(phrase)", span: call.span))
         }
-        return diagnostics
     }
 }
 

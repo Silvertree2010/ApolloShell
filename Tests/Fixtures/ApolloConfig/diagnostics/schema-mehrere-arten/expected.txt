@@ -1,7 +1,7 @@
 /config/shell.kdl:1:17: error: unknown property 'ancor' on 'panel'
       = help: did you mean 'anchor'?
 
-/config/shell.kdl:2:10: error: unknown field 'cpuu' on 'perf'
+/config/shell.kdl:2:17: error: unknown field 'cpuu' on 'perf'
       = help: did you mean 'cpu'?
 
 /config/shell.kdl:3:5: error: 'slider' is missing property 'value'

@@ -130,7 +130,7 @@ enum LanguageNodes {
             category: .language,
             arguments: [ArgumentSchema(name: "values", type: .value, variadic: true, doc: "ein oder mehrere Werte, die diesen Zweig auswählen.")],
             childContext: .elementBody,
-            contexts: [.elementBody],
+            contexts: structural,
             doc: "Zweig eines switch, gilt beim ersten passenden Wert.",
             example: "case \"a\" \"b\" { text \"A or B\" }"
         ),
@@ -138,7 +138,7 @@ enum LanguageNodes {
             name: "default",
             category: .language,
             childContext: .elementBody,
-            contexts: [.elementBody],
+            contexts: structural,
             doc: "Zweig eines switch, der greift, wenn kein case passt.",
             example: "default { text \"Unknown\" }"
         ),

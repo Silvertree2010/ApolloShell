@@ -6,8 +6,11 @@ enum TypeChecker {
         switch type {
         case .any, .value:
             return true
-        case .string, .path, .identifier, .keyChord:
+        case .string, .path, .identifier:
             if case .string = value.scalar { return true }
+            return false
+        case .keyChord:
+            if case .string(let text) = value.scalar { return KeyChord.parse(text) != nil }
             return false
         case .number:
             if case .number = value.scalar { return true }

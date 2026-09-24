@@ -425,7 +425,10 @@ enum UseStage {
             contents[slot] = expand(fill.children, context: contentContext, state: state)
         }
         if hasErrors || state.budgetHit { return }
-        let frame = UseFrame(defineName: name, defineSpan: definition.node.kdl.span, useSpan: kdl.span, bindings: bindings, parent: context.frame)
+        var callSite = node
+        callSite.children = []
+        callSite.useFrame = context.frame
+        let frame = UseFrame(defineName: name, defineSpan: definition.node.kdl.span, useSpan: kdl.span, bindings: bindings, parent: context.frame, callSite: callSite)
         let bodyContext = ExpansionContext(frame: frame, slots: .substitute(SlotContents(contents)), depth: context.depth, isTopLevel: false, quiet: true)
         expand(definition.rawBody, context: bodyContext, state: state, into: &built)
     }

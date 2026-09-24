@@ -19,14 +19,16 @@ final class UseFrame: Sendable, Hashable {
     let bindings: [String: ParameterBinding]
     let parent: UseFrame?
     let nesting: Int
+    let callSite: ExpandedNode?
 
-    init(defineName: String, defineSpan: SourceSpan, useSpan: SourceSpan?, bindings: [String: ParameterBinding], parent: UseFrame?) {
+    init(defineName: String, defineSpan: SourceSpan, useSpan: SourceSpan?, bindings: [String: ParameterBinding], parent: UseFrame?, callSite: ExpandedNode? = nil) {
         self.defineName = defineName
         self.defineSpan = defineSpan
         self.useSpan = useSpan
         self.bindings = bindings
         self.parent = parent
         self.nesting = (parent?.nesting ?? 0) + 1
+        self.callSite = callSite
     }
 
     func resolve(_ name: String) -> ParameterResolution? {
