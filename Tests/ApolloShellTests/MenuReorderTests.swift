@@ -202,6 +202,26 @@ struct MenuReorderTests {
         #expect(await sources.entries("app-dock", properties: ["app": .null], element: element, context: context).isEmpty)
     }
 
+    @Test("Remote-Fenstersuche bricht nach wiederholten Zeitüberschreitungen ab und sammelt sonst alle Treffer")
+    func remoteWindowScanStops() {
+        var calls = 0
+        let hung: [UInt64] = RemoteWindows.scan(limit: 1000) { _ in
+            calls += 1
+            return .failed
+        }
+        #expect(hung.isEmpty)
+        #expect(calls == RemoteWindows.maxFailures)
+        calls = 0
+        let found = RemoteWindows.scan(limit: 1000) { id -> RemoteWindows.Probe<UInt64> in
+            calls += 1
+            if id == 7 { return .failed }
+            return id % 100 == 3 ? .match(id) : .other
+        }
+        #expect(found == [3, 103, 203, 303, 403, 503, 603, 703, 803, 903])
+        #expect(calls == 1000)
+        #expect(RemoteWindows.messagingTimeout > 0 && RemoteWindows.messagingTimeout <= 0.5)
+    }
+
     static let reorderConfig = """
     var log ""
     panel "t" anchor="left" {
