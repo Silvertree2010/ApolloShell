@@ -1,6 +1,5 @@
 import ApolloShellCore
 import Foundation
-import Observation
 import os
 
 @MainActor
@@ -9,25 +8,23 @@ final class AppleDockHidingController {
     private static let domain = "com.apple.dock" as CFString
 
     private let fileURL: URL?
-    private var settingsObservation: Task<Void, Never>?
     private let log = Logger(category: "appleDockHiding")
 
-    init(settings: ShellSettingsStore, fileURL: URL? = ShellFiles.live.appleDock) {
+    init(fileURL: URL?) {
         self.fileURL = fileURL
-        settingsObservation = Task { [weak self, settings] in
-            for await hide in Observations({ settings.settings.appleDockHiding.hideWhileRunning }) {
-                self?.apply(hide)
-            }
-        }
+    }
+
+    var isHidden: Bool {
+        guard let fileURL else { return false }
+        return FileManager.default.fileExists(atPath: fileURL.path)
     }
 
     func terminate() {
-        settingsObservation?.cancel()
         guard let fileURL, FileManager.default.fileExists(atPath: fileURL.path) else { return }
         restore(fileURL: fileURL)
     }
 
-    private func apply(_ hide: Bool) {
+    func apply(_ hide: Bool) {
         guard let fileURL else { return }
         if hide {
             self.hide(fileURL: fileURL)
