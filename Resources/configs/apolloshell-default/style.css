@@ -235,7 +235,7 @@
 .session-button:checked { background: rgb(from -apple-system-label r g b / 0.14); }
 .session-glyph { width: 30px; height: 30px; font-size: 28px; font-weight: 500; }
 .session-emblem { width: 80px; height: 80px; }
-.session-mark { color: var(--apollo-accent-color, -apple-system-control-accent); }
+.session-mark { accent-color: -apple-system-control-accent; }
 
 #volume { width: 52px; height: 182px; padding: 16px 11px; }
 .osd-slider {

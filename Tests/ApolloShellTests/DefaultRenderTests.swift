@@ -9,13 +9,13 @@ import ApolloProviders
 struct DefaultRenderTests {
     static let resources = PackageResources.root.appendingPathComponent("Resources")
 
-    static func shot(_ id: String, state: String? = nil, theme: String? = nil) throws -> Snapshot {
+    static func shot(_ id: String, state: String? = nil, theme: String? = nil, themeURL: URL? = nil) throws -> Snapshot {
         let config = state.map { resources.appendingPathComponent("render/\($0)") } ?? resources.appendingPathComponent("configs/apolloshell-default")
         let fixture = state.map { resources.appendingPathComponent("render/\($0)/fixture.kdl") }
             .flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil } ?? resources.appendingPathComponent("render/fixture.kdl")
         let session = try RenderSession(config: config, resources: resources, fixture: ProviderFixture.load(fixture),
                                         fixtureRoot: fixture.deletingLastPathComponent(), dark: false, scale: 1,
-                                        theme: theme.map { PackageResources.root.appendingPathComponent("examples/themes/\($0)") })
+                                        theme: themeURL ?? theme.map { PackageResources.root.appendingPathComponent("examples/themes/\($0)") })
         let surface = try #require(session.surface(id))
         return Snapshot(rep: try #require(NSBitmapImageRep(data: try session.capture(surface, name: id))), scale: 1)
     }
@@ -53,5 +53,19 @@ struct DefaultRenderTests {
         let emblem = try #require(shot.bounds { max($0.r, $0.g, $0.b) - min($0.r, $0.g, $0.b) > 120 })
         #expect(emblem.minY > 208 && emblem.maxY < 288)
         #expect(emblem.width < 60)
+    }
+
+    @Test("Sitzungsmenü: Emblem bleibt System-Akzent, auch wenn ein Theme den Akzent setzt (9b-P2-5)")
+    func sessionEmblemIgnoresThemeAccent() throws {
+        let source = try String(contentsOf: PackageResources.root.appendingPathComponent("examples/themes/minimal.css"), encoding: .utf8)
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("emblem-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let theme = folder.appendingPathComponent("green.css")
+        try source.replacingOccurrences(of: "#ff6b35", with: "#00ff00").replacingOccurrences(of: "#ff8354", with: "#00ff00")
+            .write(to: theme, atomically: true, encoding: .utf8)
+        let green: (RGBA) -> Bool = { $0.g > 200 && $0.r < 80 && $0.b < 80 }
+        #expect(try Self.shot("session", themeURL: theme).bounds(where: green) == nil)
+        #expect(try Self.shot("volume", themeURL: theme).bounds(where: green) != nil)
     }
 }
