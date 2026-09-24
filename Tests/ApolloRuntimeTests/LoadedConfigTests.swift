@@ -72,6 +72,33 @@ struct KDLShell {
 @MainActor
 @Suite("Echte KDL durch die Runtime")
 struct LoadedConfigTests {
+    @Test("abgeleitetes var, das nur eine Aktion liest, hat beim Lesen seinen Wert (9b-5)")
+    func derivedVarReadOnlyInAction() async throws {
+        let shell = KDLShell()
+        let result = try await shell.load("""
+        var items "{[1, 2, 3]}" type="list"
+        var size from="{var.items | count}"
+        var next from="{var.size + 1}"
+        var out 0
+        window "w" {
+            button id="b" {
+                on-click { set "out" "{var.next}" }
+            }
+        }
+        """)
+        shell.apply(result)
+        let button = try #require(shell.fixture.surface("w").root.first)
+        _ = shell.runtime.trigger("on-click", on: button.identity, event: Record())
+        await shell.settle()
+        #expect(shell.vars.value("out") == .number(4))
+        #expect(shell.vars.set("items", .list([.number(1)])))
+        shell.fixture.flush()
+        _ = shell.runtime.trigger("on-click", on: button.identity, event: Record())
+        await shell.settle()
+        #expect(shell.vars.value("out") == .number(2))
+        #expect(shell.fixture.warnings.isEmpty, "\(shell.fixture.warnings.map(\.message))")
+    }
+
     @Test("on über emit mit when=, Zähler in var")
     func onViaEmit() async throws {
         let shell = KDLShell()

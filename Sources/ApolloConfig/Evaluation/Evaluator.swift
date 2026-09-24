@@ -10,24 +10,32 @@ public struct Evaluator: Sendable {
     let context: @Sendable () -> FilterContext
     let warn: @Sendable (Diagnostic) -> Void
     let gate: WarningGate
+    let missingField: (@Sendable (String, SourceSpan?) -> Void)?
 
-    public init(filters: FilterTable, context: @escaping @Sendable () -> FilterContext, warn: @escaping @Sendable (Diagnostic) -> Void) {
+    public init(
+        filters: FilterTable,
+        context: @escaping @Sendable () -> FilterContext,
+        warn: @escaping @Sendable (Diagnostic) -> Void,
+        missingField: (@Sendable (String, SourceSpan?) -> Void)? = nil
+    ) {
         self.filters = filters
         self.context = context
         self.warn = warn
         self.gate = WarningGate()
+        self.missingField = missingField
     }
 
-    private init(filters: FilterTable, context: @escaping @Sendable () -> FilterContext, warn: @escaping @Sendable (Diagnostic) -> Void, gate: WarningGate) {
+    private init(filters: FilterTable, context: @escaping @Sendable () -> FilterContext, warn: @escaping @Sendable (Diagnostic) -> Void, gate: WarningGate, missingField: (@Sendable (String, SourceSpan?) -> Void)?) {
         self.filters = filters
         self.context = context
         self.warn = warn
         self.gate = gate
+        self.missingField = missingField
     }
 
     public func pinningContext(warn: @escaping @Sendable (Diagnostic) -> Void) -> Evaluator {
         let pinned = context()
-        return Evaluator(filters: filters, context: { pinned }, warn: warn, gate: gate)
+        return Evaluator(filters: filters, context: { pinned }, warn: warn, gate: gate, missingField: missingField)
     }
 
     public func evaluate(_ expr: Expr, in scope: any EvaluationScope) -> Value {

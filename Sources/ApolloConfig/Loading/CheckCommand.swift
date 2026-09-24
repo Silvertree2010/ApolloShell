@@ -2,7 +2,7 @@ import Foundation
 import ApolloBase
 
 public enum CheckCommand {
-    public static let usage = "usage: apollo check [<folder>]\n\nLoads and checks a config without applying it. Without a folder, checks the active config."
+    public static let usage = "usage: apollo check [--fixture <file>] [<folder>]\n\nLoads and checks a config without applying it. Without a folder, checks the active config.\nWith --fixture, also builds every surface with the fixture's provider values and reports\nevery read of a record field that does not exist."
 
     public enum Exit {
         public static let ok: Int32 = 0
@@ -14,10 +14,23 @@ public enum CheckCommand {
         arguments: [String],
         environment: [String: String],
         fileSystem: any ConfigFileSystem,
-        executableURL: URL
+        executableURL: URL,
+        fixtureCheck: ((ConfigIR, URL) -> [Diagnostic])? = nil
     ) -> (output: String, exitCode: Int32) {
         if arguments.contains(where: { $0 == "--help" || $0 == "-h" }) {
             return (usage, Exit.ok)
+        }
+        var arguments = arguments
+        var fixture: URL?
+        if let index = arguments.firstIndex(of: "--fixture") {
+            guard fixtureCheck != nil else {
+                return ("error: --fixture is not available in this build\n\n" + usage, Exit.usage)
+            }
+            guard index + 1 < arguments.count else {
+                return ("error: --fixture needs a file\n\n" + usage, Exit.usage)
+            }
+            fixture = URL(fileURLWithPath: arguments[index + 1]).standardizedFileURL
+            arguments.removeSubrange(index...(index + 1))
         }
         if let option = arguments.first(where: { $0.hasPrefix("-") }) {
             return ("error: unknown option '\(option)'\n\n" + usage, Exit.usage)
@@ -52,6 +65,12 @@ public enum CheckCommand {
         let loader = ConfigLoader(fileSystem: fileSystem, paths: paths, registry: .builtin, filters: .builtin, shellVersion: ShellVersion.current)
         let result = loader.load(location)
         diagnostics += result.diagnostics
+        if let fixture, let ir = result.ir, let fixtureCheck {
+            guard fileSystem.exists(fixture) else {
+                return render(diagnostics + [Diagnostic(.error, "fixture '\(fixture.path)' does not exist")], fileSystem: fileSystem, home: home)
+            }
+            diagnostics += fixtureCheck(ir, fixture)
+        }
         let rendered = render(diagnostics, fileSystem: fileSystem, home: home)
         return (rendered.output, result.ir == nil ? Exit.failure : rendered.exitCode)
     }

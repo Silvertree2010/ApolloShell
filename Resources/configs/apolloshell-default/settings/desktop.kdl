@@ -1,0 +1,8 @@
+define "settings-page-desktop" {
+    column class="settings-group" {
+        use "settings-switch" title="Desktop Clock" detail="Time and date in the bottom right corner of the desktop." checked="{var.desktop-clock}" {
+            on-change { set "desktop-clock" "{event.value}" }
+        }
+    }
+    use "settings-link" title="Wallpaper" detail="Choose the desktop picture in System Settings." area="wallpaper"
+}

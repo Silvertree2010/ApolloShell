@@ -1,0 +1,8 @@
+popup "settings-confirm" anchor="center" motion="fade" scrim=0.15 close-on="outside-click escape" {
+    on-close { set "settings-sidebar-confirm" ""; set "settings-utilities-confirm" ""; set "settings-dashboard-confirm" "" }
+    column class="settings-confirm-popup" {
+        when "{var.settings-sidebar-confirm != ''}" { use "settings-confirm-sidebar" }
+        when "{var.settings-utilities-confirm != ''}" { use "settings-confirm-control-centre" }
+        when "{var.settings-dashboard-confirm != ''}" { use "settings-confirm-dashboard" }
+    }
+}

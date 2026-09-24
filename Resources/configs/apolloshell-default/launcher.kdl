@@ -1,0 +1,54 @@
+var launcher-query ""
+var launcher-selection 0
+var launcher-results from="{apps.all | app-search var.launcher-query}"
+var hotkey-launcher "{shell.fresh-install ? 'alt+space' : 'f20'}" persist=#true
+
+popup "launcher" anchor="bottom" motion="grow" overhang=#true {
+    on-open { apps.refresh; set "launcher-query" ""; set "launcher-selection" 0 }
+    column class="launcher" {
+        row class="launcher-search" {
+            icon "bar-launcher" fallback="magnifyingglass" class="launcher-search-icon"
+            input bind="var.launcher-query" placeholder="Search…" focus="{surface.open}" class="launcher-field" {
+                on-change { set "launcher-selection" 0 }
+                on-submit {
+                    when "{(var.launcher-results | count) > 0}" {
+                        apps.launch "{var.launcher-results | at var.launcher-selection}"
+                        close "launcher"
+                    }
+                }
+                key "up" { set "launcher-selection" "{var.launcher-selection - 1 | max 0}" }
+                key "down" { set "launcher-selection" "{var.launcher-selection + 1 | min ((var.launcher-results | count) - 1) | max 0}" }
+            }
+        }
+        stack class="launcher-separator"
+        when "{(var.launcher-results | count) == 0}" {
+            text "No App Found" class="launcher-empty"
+        }
+        else {
+            scroll class="launcher-list" lazy=#true reveal="{(var.launcher-results | at var.launcher-selection).bundle-id}" {
+                each app in="{var.launcher-results}" key="{app.bundle-id}" index="i" {
+                    button class="launcher-row" checked="{i == var.launcher-selection}" {
+                        on-click {
+                            set "launcher-selection" "{i}"
+                            apps.launch "{app}"
+                            close "launcher"
+                        }
+                        on-right-click { set "launcher-selection" "{i}" }
+                        menu side="pointer" {
+                            item "Open" { apps.launch "{app}"; close "launcher" }
+                            separator
+                            source "app-dock" app="{app}" fallback="commands"
+                            separator
+                            item "Show in Finder" { close "launcher"; apps.reveal "{app}" in="finder" }
+                        }
+                        app-icon "{app}" class="launcher-icon"
+                        text "{app.name}" class="launcher-name"
+                        spacer
+                    }
+                }
+            }
+        }
+    }
+}
+
+bind "{var.hotkey-launcher}" { toggle "launcher" }

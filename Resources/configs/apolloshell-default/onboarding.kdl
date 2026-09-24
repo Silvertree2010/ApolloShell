@@ -1,0 +1,109 @@
+var onboarding-step 0
+
+on "shell.started" when="{!var.onboarding-done}" { open "onboarding" }
+
+define "onboarding-permission" {
+    param "title"
+    param "detail"
+    param "granted"
+    param "kind"
+    row class="onboarding-permission" {
+        column class="onboarding-permission-text" {
+            text "{title}" class="onboarding-permission-title"
+            text "{detail}" class="onboarding-permission-detail"
+        }
+        spacer
+        when "{granted}" {
+            text "Granted" class="onboarding-granted"
+        }
+        else {
+            button class="onboarding-grant" {
+                on-click { permissions.open "{kind}" }
+                text "Grant…"
+            }
+        }
+    }
+}
+
+window "onboarding" title="Welcome to ApolloShell" resizable=#false {
+    on-close { set "onboarding-done" #true }
+    column class="onboarding" {
+        switch "{var.onboarding-step}" {
+            case 0 {
+                column class="onboarding-page" {
+                    mark state="idle" greet=#true class="onboarding-mark"
+                    text "Welcome to ApolloShell" class="onboarding-title"
+                    text "A sidebar, a dock, a launcher and a dashboard for your Mac." class="onboarding-body"
+                }
+            }
+            case 1 {
+                column class="onboarding-page" {
+                    text "Permissions" class="onboarding-title"
+                    column class="onboarding-card" {
+                        use "onboarding-permission" title="Accessibility" detail="Needed for the dock, window switching and shortcuts." granted="{permissions.accessibility}" kind="accessibility"
+                        use "onboarding-permission" title="Automation" detail="Needed to control apps like Finder and Music." granted="{permissions.automation}" kind="automation"
+                        use "onboarding-permission" title="Screen Recording" detail="Needed for window previews." granted="{permissions.screen-recording}" kind="screen-recording"
+                    }
+                }
+            }
+            case 2 {
+                column class="onboarding-page" {
+                    text "Launcher Shortcut" class="onboarding-title"
+                    text "Press the keys you want to use to open the launcher." class="onboarding-body"
+                    key-recorder value="{var.hotkey-launcher}" class="onboarding-recorder" {
+                        on-change { set "hotkey-launcher" "{event.value}" }
+                    }
+                    when "{(var.hotkey-launcher | hotkey-warning) != null}" {
+                        text "{var.hotkey-launcher | hotkey-warning}" class="onboarding-warning"
+                    }
+                }
+            }
+            default {
+                column class="onboarding-page" {
+                    text "All Set" class="onboarding-title"
+                    row class="onboarding-card onboarding-login" {
+                        text "Start at Login" class="onboarding-permission-title"
+                        spacer
+                        toggle checked="{shell.login-item}" disabled="{!shell.login-item-available}" {
+                            on-change { shell.set-login-item "{event.value}" }
+                        }
+                    }
+                    text "Settings live in the Settings window, open it with {var.hotkey-settings | chord} or from the menu bar icon." class="onboarding-body"
+                }
+            }
+        }
+        row class="onboarding-footer" {
+            when "{var.onboarding-step < 3}" {
+                button class="onboarding-skip" {
+                    on-click { set "onboarding-done" #true; close "onboarding" }
+                    text "Skip"
+                }
+            }
+            spacer
+            row class="onboarding-dots" {
+                each dot in="{[0, 1, 2, 3]}" {
+                    stack class="onboarding-dot {dot == var.onboarding-step ? 'current' : ''}"
+                }
+            }
+            spacer
+            when "{var.onboarding-step > 0}" {
+                button class="onboarding-back" {
+                    on-click { set "onboarding-step" "{var.onboarding-step - 1}" }
+                    text "Back"
+                }
+            }
+            when "{var.onboarding-step < 3}" {
+                button class="onboarding-next" {
+                    on-click { set "onboarding-step" "{var.onboarding-step + 1}" }
+                    text "Continue"
+                }
+            }
+            else {
+                button class="onboarding-next" {
+                    on-click { set "onboarding-done" #true; close "onboarding" }
+                    text "Done"
+                }
+            }
+        }
+    }
+}

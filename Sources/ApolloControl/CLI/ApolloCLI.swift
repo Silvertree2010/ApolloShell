@@ -7,7 +7,7 @@ public struct ApolloCLI: Sendable {
     public static let usage = """
         usage: apollo <command> [arguments]
 
-          check [<folder>]                 load and check a config without applying it
+          check [--fixture <f>] [<folder>] load and check a config without applying it
           reload                           hot-reload the config and print diagnostics
           open|close|toggle <surface>      like the actions
           run '<actions>'                  run a KDL snippet of actions

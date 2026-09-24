@@ -1,0 +1,172 @@
+{
+  "appleDockHiding" : {
+    "hideWhileRunning" : "yes"
+  },
+  "background" : {
+    "desktopClock" : 1
+  },
+  "bar" : {
+    "background" : "neon",
+    "layout" : [
+      {
+        "id" : "dock",
+        "kind" : "dock",
+        "options" : {
+          "iconSize" : "huge",
+          "showRunning" : "no"
+        }
+      },
+      {
+        "id" : "dock",
+        "kind" : "dock"
+      },
+      {
+        "id" : "rocket",
+        "kind" : "rocketLauncher"
+      },
+      "clock",
+      {
+        "id" : "gap",
+        "kind" : "gap",
+        "options" : {
+          "height" : "tall"
+        }
+      },
+      {
+        "kind" : "clock",
+        "options" : [
+          true
+        ]
+      }
+    ],
+    "screens" : {
+      "mode" : "single",
+      "screen" : "   "
+    }
+  },
+  "dashboard" : {
+    "cards" : {
+      "bottom" : [
+        {
+          "kind" : "calendar"
+        },
+        {
+          "kind" : "user"
+        },
+        {
+          "kind" : "resources",
+          "options" : {
+            "showCPU" : false,
+            "showMemory" : false,
+            "showStorage" : false
+          }
+        }
+      ],
+      "side" : [
+        {
+          "kind" : "calendar"
+        },
+        {
+          "kind" : "media"
+        },
+        {
+          "kind" : "weather"
+        }
+      ],
+      "top" : "weather"
+    },
+    "tabs" : [
+      {
+        "id" : "media",
+        "visible" : false
+      },
+      {
+        "id" : "radio",
+        "visible" : true
+      },
+      {
+        "id" : "dashboard",
+        "visible" : false
+      },
+      {
+        "id" : "weather",
+        "visible" : false
+      },
+      {
+        "id" : "performance",
+        "visible" : false
+      }
+    ]
+  },
+  "hotKeys" : {
+    "dashboard" : {
+      "keyCode" : 200,
+      "modifiers" : [
+        "control"
+      ]
+    },
+    "launcher" : "alt+space",
+    "utilities" : {
+      "keyCode" : 10,
+      "modifiers" : [
+        "control",
+        "wobble"
+      ]
+    }
+  },
+  "keepAwake" : [
+    true
+  ],
+  "onboarding" : {
+    "completed" : null
+  },
+  "providers" : {
+    "fileManager" : 42,
+    "weather" : "accuWeather"
+  },
+  "theme" : {
+    "name" : "../outside"
+  },
+  "toasts" : {
+    "audioInputChanged" : "false",
+    "audioOutputChanged" : 0,
+    "batteryWarnings" : false,
+    "chargingChanged" : null
+  },
+  "utilities" : {
+    "layout" : {
+      "cards" : [
+        {
+          "enabled" : "yes",
+          "kind" : "audio"
+        },
+        {
+          "enabled" : false,
+          "kind" : "radio"
+        }
+      ],
+      "quickToggles" : [
+        {
+          "id" : "wifi",
+          "kind" : "wifi"
+        },
+        {
+          "id" : "wifi-2",
+          "kind" : "wifi"
+        },
+        {
+          "id" : "teleport",
+          "kind" : "teleport"
+        },
+        {
+          "id" : "openApp",
+          "kind" : "openApp",
+          "options" : {
+            "bundleID" : 7,
+            "title" : false
+          }
+        }
+      ]
+    }
+  }
+}

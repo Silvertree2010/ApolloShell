@@ -587,6 +587,13 @@ public final class ShellRuntime: SurfaceControlling {
         if node.kind == "toast" { fields.append(("toasts", .list(node.toasts))) }
         store.set(DependencyPath("surface:" + node.surfaceKey, []), .record(Record(fields)))
         store.set(DependencyPath("surfaces:" + instance.screenKey, [instance.id, "open"]), .bool(instance.isOpen))
+        let entry = DependencyPath("surfaces:" + instance.screenKey, [instance.id])
+        if case .record(var record) = store.value(entry), record["width"] == nil || record["height"] == nil {
+            for field in ["width", "height"] where record[field] == nil {
+                record[field] = .null
+            }
+            store.set(entry, .record(record))
+        }
     }
 
     static func same(_ lhs: [ElementInstance], _ rhs: [ElementInstance]) -> Bool {

@@ -1,0 +1,82 @@
+var dashboard-tabs "{dashboard-caelestia.tabs}" type="list" persist=#true
+var dashboard-cards-top "{dashboard-caelestia.top}" type="list" persist=#true
+var dashboard-cards-bottom "{dashboard-caelestia.bottom}" type="list" persist=#true
+var dashboard-cards-side "{dashboard-caelestia.side}" type="list" persist=#true
+var dashboard-tab "dashboard"
+var calendar-offset 0
+var dashboard-visible-tabs from="{var.dashboard-tabs | where 'visible' true}"
+var dashboard-active-tab from="{(var.dashboard-visible-tabs | where 'id' var.dashboard-tab | count) > 0 ? var.dashboard-tab : (var.dashboard-visible-tabs | first).id}"
+
+let dashboard-tab-looks {
+    - id="dashboard" title="Dashboard" icon="bar-dashboard" symbol="square.grid.2x2"
+    - id="media" title="Media" icon="panel-media" symbol="music.note"
+    - id="performance" title="Performance" icon="panel-performance" symbol="gauge.with.dots.needle.33percent"
+    - id="weather" title="Weather" icon="panel-weather" symbol="cloud.sun.fill"
+}
+
+include "dashboard-cards.kdl"
+include "media.kdl"
+include "performance.kdl"
+include "weather.kdl"
+
+define "dashboard-overview" {
+    when "{(var.dashboard-cards-top | count) + (var.dashboard-cards-bottom | count) + (var.dashboard-cards-side | count) == 0}" {
+        column class="dashboard-empty" {
+            text "No Cards" class="dashboard-empty-title"
+            button class="dashboard-empty-button" {
+                on-click { set "settings-page" "dashboard"; open "settings"; close "dashboard" }
+                text "Settings"
+            }
+        }
+    }
+    else {
+        row class="dashboard-overview" {
+            column class="dashboard-main" {
+                when "{(var.dashboard-cards-top | count) > 0}" {
+                    row class="dashboard-zone zone-top" {
+                        each card in="{var.dashboard-cards-top}" key="{card.id}" {
+                            use "card-{card.kind}" card="{card}" zone="top"
+                        }
+                    }
+                }
+                when "{(var.dashboard-cards-bottom | count) > 0}" {
+                    row class="dashboard-zone zone-bottom" {
+                        each card in="{var.dashboard-cards-bottom}" key="{card.id}" {
+                            use "card-{card.kind}" card="{card}" zone="bottom"
+                        }
+                    }
+                }
+            }
+            when "{(var.dashboard-cards-side | count) > 0}" {
+                column class="dashboard-zone zone-side" {
+                    each card in="{var.dashboard-cards-side}" key="{card.id}" {
+                        use "card-{card.kind}" card="{card}" zone="side"
+                    }
+                }
+            }
+        }
+    }
+}
+
+popup "dashboard" anchor="top" motion="slide" hover-edge=#true overhang=#true area="full" safe-area=#true {
+    column class="dashboard" {
+        row class="dashboard-tabs" {
+            each tab in="{var.dashboard-visible-tabs}" key="{tab.id}" {
+                button class="dashboard-tab" checked="{tab.id == var.dashboard-active-tab}" {
+                    on-click { set "dashboard-tab" "{tab.id}" }
+                    when "{tab.id == var.dashboard-active-tab}" { stack class="dashboard-tab-pill" match-id="dashboard-tab" }
+                    row class="dashboard-tab-label" {
+                        icon "{(dashboard-tab-looks | where 'id' tab.id | first).icon}" fallback="{(dashboard-tab-looks | where 'id' tab.id | first).symbol}" class="dashboard-tab-glyph"
+                        text "{(dashboard-tab-looks | where 'id' tab.id | first).title}" class="dashboard-tab-title"
+                    }
+                }
+            }
+        }
+        switch "{var.dashboard-active-tab}" {
+            case "dashboard" { use "dashboard-overview" }
+            case "media" { use "dashboard-media" }
+            case "performance" { use "dashboard-performance" }
+            case "weather" { use "dashboard-weather" }
+        }
+    }
+}

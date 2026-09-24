@@ -1,0 +1,59 @@
+define "media-controls" {
+    row class="media-controls" {
+        button class="media-button" tooltip="Previous" {
+            on-click { media.previous }
+            icon "backward.fill" class="media-glyph"
+        }
+        button class="media-button media-play" tooltip="{media.playing ? 'Pause' : 'Play'}" {
+            on-click { media.play-pause }
+            icon "{media.playing ? 'pause.fill' : 'play.fill'}" class="media-glyph media-play-glyph"
+        }
+        button class="media-button" tooltip="Next" {
+            on-click { media.next }
+            icon "forward.fill" class="media-glyph"
+        }
+    }
+}
+
+define "dashboard-media" {
+    stack class="media-tab" {
+        image "{media.artwork}" fit="fill" class="media-backdrop"
+        switch "{media.unavailable != null && media.unavailable != '' ? 'unavailable' : (media.playing || media.title != null ? 'playing' : 'idle')}" {
+            case "unavailable" {
+                column class="media-empty" {
+                    text "{media.available ? 'Media Not Available' : 'Adapter Not Running'}" class="media-empty-title"
+                    text "{media.unavailable}" class="media-empty-detail"
+                }
+            }
+            case "idle" {
+                column class="media-empty" {
+                    icon "music.note" class="media-empty-glyph"
+                    text "Nothing Playing" class="media-empty-title"
+                }
+            }
+            default {
+                row class="media-now" {
+                    image "{media.artwork}" placeholder="music.note" fit="fill" class="media-artwork"
+                    column class="media-info" {
+                        text "{media.title}" class="media-title" lines=1 truncate="tail"
+                        text "{media.artist}" class="media-artist" lines=1 truncate="tail"
+                        text "{media.album}" class="media-album" lines=1 truncate="tail"
+                        progress value="{media.progress}" class="media-timeline"
+                        row class="media-times" {
+                            text "{media.elapsed | duration 'clock'}" class="media-time"
+                            spacer
+                            text "{media.duration | duration 'clock'}" class="media-time"
+                        }
+                        use "media-controls"
+                        button class="media-source" {
+                            on-click { media.open-app }
+                            app-icon "{media.app}" class="media-source-icon"
+                            text "{media.app-name}" class="media-source-name"
+                            icon "waveform" class="media-source-wave"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

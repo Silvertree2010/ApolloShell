@@ -39,6 +39,16 @@ struct VarStageTests {
         #expect(decl.derived == nil)
     }
 
+    @Test("leerer Block bei type=list ist eine leere Liste (9b-6), ohne Typ bleibt er ein Record")
+    func emptyBlockIsEmptyList() {
+        let result = Self.run("var places type=\"list\" persist=#true { }\nvar other { }")
+        #expect(result.diagnostics.isEmpty, "\(result.diagnostics.map(\.message))")
+        let decls = Dictionary(uniqueKeysWithValues: result.declarations.map { ($0.name, $0) })
+        #expect(decls["places"]?.type == .list)
+        #expect(decls["places"]?.defaultValue == .list([]))
+        #expect(decls["other"]?.defaultValue == .record([]))
+    }
+
     @Test("var mit persist=#true")
     func varWithPersist() {
         let result = Self.run("var dashboard-tab \"dashboard\" persist=#true")

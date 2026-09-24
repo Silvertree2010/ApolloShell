@@ -1,0 +1,364 @@
+var settings-sidebar-insert-at from="{(var.sidebar-modules | index-where 'kind' ['dock', 'spacer'] 'last') != null ? (var.sidebar-modules | index-where 'kind' ['dock', 'spacer'] 'last') + 1 : ((var.sidebar-modules | count) > 0 && (var.sidebar-modules | last).kind == 'power' ? (var.sidebar-modules | count) - 1 : (var.sidebar-modules | count))}"
+var settings-sidebar-expanded ""
+var settings-sidebar-gallery #false
+var settings-sidebar-confirm ""
+var settings-sidebar-app-query ""
+
+let sidebar-module-kinds {
+    - kind="dashboard-button" title="Dashboard" summary="Opens the Dashboard with calendar, media and weather." symbol="square.grid.2x2.fill" unique=#false options=#false {
+        module kind="dashboard-button"
+    }
+    - kind="spaces" title="Spaces" summary="A dot or a number per desktop." symbol="square.stack.fill" unique=#false options=#true {
+        module kind="spaces" style="dots"
+    }
+    - kind="dock" title="Dock" summary="Pinned and running apps, like Apple's Dock." symbol="dock.rectangle" unique=#true options=#true {
+        module kind="dock" show-running=#true icon-size="medium"
+    }
+    - kind="clock" title="Clock" summary="Hour and minute stacked, with an optional date." symbol="clock.fill" unique=#false options=#true {
+        module kind="clock" show-icon=#true show-date=#false
+    }
+    - kind="utilities-button" title="Utilities" summary="Opens the Control Centre." symbol="slider.horizontal.3" unique=#false options=#false {
+        module kind="utilities-button"
+    }
+    - kind="status-icons" title="Status Icons" summary="Wi-Fi, Bluetooth and battery; a click shows details." symbol="wifi" unique=#true options=#true {
+        module kind="status-icons" wifi=#true bluetooth=#true battery=#true
+    }
+    - kind="power" title="Power" summary="Opens the session menu." symbol="power" unique=#false options=#false {
+        module kind="power"
+    }
+    - kind="spacer" title="Flexible Spacer" summary="Fills free space; shares it with the Dock and other spacers." symbol="arrow.up.and.down" unique=#false options=#false {
+        module kind="spacer"
+    }
+    - kind="gap" title="Fixed Spacer" summary="Empty space with a fixed size." symbol="arrow.up.and.line.horizontal.and.arrow.down" unique=#false options=#true {
+        module kind="gap" height=16
+    }
+    - kind="divider" title="Divider" summary="A short line between two groups." symbol="minus" unique=#false options=#false {
+        module kind="divider"
+    }
+    - kind="app-button" title="App" summary="Launches a chosen app with a click." symbol="app.fill" unique=#false options=#true {
+        module kind="app-button" bundle-id=""
+    }
+    - kind="battery" title="Battery" summary="Charge level in percent." symbol="battery.75percent" unique=#false options=#true {
+        module kind="battery" show-icon=#true
+    }
+    - kind="cpu" title="CPU" summary="Load as a ring or number, every 2 seconds." symbol="cpu.fill" unique=#false options=#true {
+        module kind="cpu" style="ring"
+    }
+    - kind="weather" title="Weather" summary="Icon and temperature for the Dashboard's location." symbol="cloud.sun.fill" unique=#false options=#true {
+        module kind="weather" show-temperature=#true
+    }
+    - kind="media-button" title="Media" summary="Opens the Dashboard at the Media tab." symbol="music.note" unique=#false options=#false {
+        module kind="media-button"
+    }
+}
+
+let sidebar-presets {
+    - id="caelestia" title="Caelestia" summary="The default: Dashboard, Spaces, Dock, Clock, Control Centre, Status, Power off."
+    - id="minimal" title="Minimal" summary="Spaces at the top, Clock and Power off at the bottom, nothing else."
+    - id="dock-only" title="Dock Only" summary="Just the apps, spanning the full height."
+    - id="everything" title="Everything" summary="Every module once, to try out and sort through."
+}
+
+let sidebar-backgrounds {
+    - id="material" title="Material" detail="System material with a fixed color that follows light and dark."
+    - id="glass" title="Liquid Glass" detail="Real glass; it takes on the color and brightness of whatever is behind it."
+    - id="tinted-glass" title="Liquid Glass, Tinted" detail="Glass tinted with the window color; it shifts less, but it still shifts."
+    - id="fixed-glass" title="Liquid Glass on a Solid Fill" detail="Clear glass over an opaque fill in the window color: the sheen stays, the color holds still."
+}
+
+define "settings-module-summary" {
+    param "module"
+    param "look"
+    switch "{module.kind}" {
+        case "spaces" { text "{module.style == 'numbers' ? 'Numbers' : 'Dots'}" class="settings-row-detail" }
+        case "dock" { text "{module.show-running ? 'Pinned and Running Apps' : 'Pinned Apps Only'} · {module.icon-size == 'small' ? 'Small' : (module.icon-size == 'large' ? 'Large' : 'Medium')}" class="settings-row-detail" }
+        case "clock" { text "Time{module.show-icon ? ' · Icon' : ''}{module.show-date ? ' · Date' : ''}" class="settings-row-detail" }
+        case "status-icons" { text "{module.wifi || module.bluetooth || module.battery ? (((module.wifi ? ' · Wi-Fi' : '') + (module.bluetooth ? ' · Bluetooth' : '') + (module.battery ? ' · Battery' : '')) | skip 3) : 'None chosen – invisible'}" class="settings-row-detail" }
+        case "gap" { text "{module.height ?? 16 | clamp 4 96} pt" class="settings-row-detail" }
+        case "app-button" { text "{(module.bundle-id ?? '') == '' ? 'No App Chosen Yet' : ((apps.all | where 'bundle-id' module.bundle-id | first).name ?? 'Not Installed')}" class="settings-row-detail" }
+        case "battery" { text "{module.show-icon ? 'Icon and Percent' : 'Percent Only'}" class="settings-row-detail" }
+        case "cpu" { text "{module.style == 'percent' ? 'Icon and Percent' : 'Ring with Number'}" class="settings-row-detail" }
+        case "weather" { text "{module.show-temperature ? 'Icon and Temperature' : 'Icon Only'}" class="settings-row-detail" }
+        default { text "{look.summary}" class="settings-row-detail" lines=0 }
+    }
+}
+
+define "settings-module-options" {
+    param "module"
+    column class="settings-options" {
+        switch "{module.kind}" {
+            case "spaces" {
+                row class="settings-row" {
+                    text "Style" class="settings-row-title"
+                    spacer
+                    button class="settings-popup-button" menu-on="click" {
+                        menu side="below" {
+                            item "Dots" checked="{module.style != 'numbers'}" { list.update "sidebar-modules" key="{module.id}" { - style="dots" } }
+                            item "Numbers" checked="{module.style == 'numbers'}" { list.update "sidebar-modules" key="{module.id}" { - style="numbers" } }
+                        }
+                        text "{module.style == 'numbers' ? 'Numbers' : 'Dots'}"
+                    }
+                }
+            }
+            case "dock" {
+                use "settings-switch" title="Show Running Apps" detail="Also unpinned ones, below a divider" checked="{module.show-running}" {
+                    on-change { list.update "sidebar-modules" key="{module.id}" { - show-running="{event.value}" } }
+                }
+                row class="settings-row" {
+                    text "Icon Size" class="settings-row-title"
+                    spacer
+                    button class="settings-popup-button" menu-on="click" {
+                        menu side="below" {
+                            item "Small" checked="{module.icon-size == 'small'}" { list.update "sidebar-modules" key="{module.id}" { - icon-size="small" } }
+                            item "Medium" checked="{module.icon-size == 'medium'}" { list.update "sidebar-modules" key="{module.id}" { - icon-size="medium" } }
+                            item "Large" checked="{module.icon-size == 'large'}" { list.update "sidebar-modules" key="{module.id}" { - icon-size="large" } }
+                        }
+                        text "{module.icon-size == 'small' ? 'Small' : (module.icon-size == 'large' ? 'Large' : 'Medium')}"
+                    }
+                }
+            }
+            case "clock" {
+                use "settings-switch" title="Show Icon" detail="Calendar icon above the time" checked="{module.show-icon}" {
+                    on-change { list.update "sidebar-modules" key="{module.id}" { - show-icon="{event.value}" } }
+                }
+                use "settings-switch" title="Show Date" detail="Weekday and day above the time" checked="{module.show-date}" {
+                    on-change { list.update "sidebar-modules" key="{module.id}" { - show-date="{event.value}" } }
+                }
+            }
+            case "status-icons" {
+                use "settings-switch" title="Wi-Fi" checked="{module.wifi}" {
+                    on-change { list.update "sidebar-modules" key="{module.id}" { - wifi="{event.value}" } }
+                }
+                use "settings-switch" title="Bluetooth" checked="{module.bluetooth}" {
+                    on-change { list.update "sidebar-modules" key="{module.id}" { - bluetooth="{event.value}" } }
+                }
+                use "settings-switch" title="Battery" detail="Only on Macs with a battery" checked="{module.battery}" {
+                    on-change { list.update "sidebar-modules" key="{module.id}" { - battery="{event.value}" } }
+                }
+            }
+            case "gap" {
+                row class="settings-row" {
+                    text "Height" class="settings-row-title"
+                    slider value="{module.height ?? 16 | clamp 4 96}" min=4 max=96 step=1 class="settings-slider" {
+                        on-commit { list.update "sidebar-modules" key="{module.id}" { - height="{event.value}" } }
+                    }
+                    text "{module.height ?? 16 | clamp 4 96} pt" class="settings-row-value"
+                }
+            }
+            case "app-button" {
+                input bind="var.settings-sidebar-app-query" placeholder="Search Apps" class="settings-search"
+                when "{var.settings-sidebar-app-query != ''}" {
+                    each app in="{apps.all | fuzzy var.settings-sidebar-app-query | take 8}" key="{app.bundle-id}" {
+                        button class="settings-row settings-result" checked="{app.bundle-id == module.bundle-id}" {
+                            on-click { list.update "sidebar-modules" key="{module.id}" { - bundle-id="{app.bundle-id}" }; set "settings-sidebar-app-query" "" }
+                            app-icon "{app.bundle-id}" class="settings-app-icon"
+                            text "{app.name}" class="settings-row-title"
+                            spacer
+                            when "{app.bundle-id == module.bundle-id}" { icon "checkmark" class="settings-choice-glyph" }
+                        }
+                    }
+                }
+            }
+            case "battery" {
+                use "settings-switch" title="Show Icon" detail="Battery icon above the percentage" checked="{module.show-icon}" {
+                    on-change { list.update "sidebar-modules" key="{module.id}" { - show-icon="{event.value}" } }
+                }
+            }
+            case "cpu" {
+                row class="settings-row" {
+                    text "Style" class="settings-row-title"
+                    spacer
+                    button class="settings-popup-button" menu-on="click" {
+                        menu side="below" {
+                            item "Ring" checked="{module.style != 'percent'}" { list.update "sidebar-modules" key="{module.id}" { - style="ring" } }
+                            item "Percent" checked="{module.style == 'percent'}" { list.update "sidebar-modules" key="{module.id}" { - style="percent" } }
+                        }
+                        text "{module.style == 'percent' ? 'Percent' : 'Ring'}"
+                    }
+                }
+            }
+            case "weather" {
+                use "settings-switch" title="Show Temperature" detail="The location is set on the Dashboard page" checked="{module.show-temperature}" {
+                    on-change { list.update "sidebar-modules" key="{module.id}" { - show-temperature="{event.value}" } }
+                }
+            }
+        }
+    }
+}
+
+define "settings-module-row" {
+    param "module"
+    param "index"
+    param "look"
+    column class="settings-module" {
+        row class="settings-row settings-module-row" {
+            menu {
+                item "Move Up" disabled="{index == 0}" { list.move "sidebar-modules" from="{index}" to="{index - 1}" }
+                item "Move Down" disabled="{index == (var.sidebar-modules | count) - 1}" { list.move "sidebar-modules" from="{index}" to="{index + 2}" }
+                separator
+                item "Remove" { list.remove "sidebar-modules" key="{module.id}" }
+            }
+            accessibility-action "Move Up" { list.move "sidebar-modules" from="{index}" to="{index - 1}" }
+            accessibility-action "Move Down" { list.move "sidebar-modules" from="{index}" to="{index + 2}" }
+            icon "{look.symbol ?? 'questionmark.square.dashed'}" class="settings-row-glyph"
+            column class="settings-row-text" {
+                text "{look.title ?? module.kind}" class="settings-row-title"
+                use "settings-module-summary" module="{module}" look="{look}"
+            }
+            spacer
+            when "{look.options}" {
+                button class="settings-icon-button" tooltip="Options" checked="{var.settings-sidebar-expanded == module.id}" {
+                    on-click { set "settings-sidebar-expanded" "{var.settings-sidebar-expanded == module.id ? '' : module.id}"; set "settings-sidebar-app-query" "" }
+                    icon "{var.settings-sidebar-expanded == module.id ? 'chevron.down' : 'chevron.right'}" class="settings-disclosure-glyph"
+                }
+            }
+            button class="settings-icon-button" tooltip="Remove" label="Remove {look.title ?? module.kind}" {
+                on-click { list.remove "sidebar-modules" key="{module.id}" }
+                icon "minus.circle.fill"
+            }
+        }
+        when "{look.options && var.settings-sidebar-expanded == module.id}" {
+            use "settings-module-options" module="{module}"
+        }
+    }
+}
+
+define "settings-page-sidebar" {
+    row class="settings-split" {
+        column class="settings-split-main" {
+            column class="settings-group" {
+                text "Building Blocks" class="settings-group-title"
+                text "Top to bottom as in the sidebar. Drag to reorder, or use the context menu. The Dock and flexible spacers share the free space." class="settings-row-detail" lines=0
+                when "{(var.sidebar-modules | count) == 0}" {
+                    text "The sidebar is empty. Use “Add…” to get building blocks or load a preset." class="settings-row-detail" lines=0
+                }
+                reorderable axis="vertical" enabled=#true {
+                    on-reorder { list.move "sidebar-modules" from="{event.from}" to="{event.to}" }
+                    each module in="{var.sidebar-modules}" key="{module.id}" index="i" {
+                        use "settings-module-row" module="{module}" index="{i}" look="{sidebar-module-kinds | where 'kind' module.kind | first}"
+                    }
+                }
+                row class="settings-actions" {
+                    button class="settings-button" checked="{var.settings-sidebar-gallery}" {
+                        on-click { toggle-var "settings-sidebar-gallery" }
+                        icon "plus"
+                        text "Add…"
+                    }
+                    spacer
+                    button class="settings-button" menu-on="click" {
+                        menu side="below" {
+                            each preset in="{sidebar-presets}" key="{preset.id}" {
+                                item "{preset.title}" { set "settings-sidebar-confirm" "{preset.id}"; open "settings-confirm" }
+                            }
+                        }
+                        text "Load Preset…"
+                    }
+                    button class="settings-button" disabled="{var.sidebar-modules == sidebar-caelestia}" {
+                        on-click { set "settings-sidebar-confirm" "reset"; open "settings-confirm" }
+                        text "Reset"
+                    }
+                }
+            }
+            when "{var.settings-sidebar-gallery}" {
+                column class="settings-group" {
+                    text "Add Building Block" class="settings-group-title"
+                    text "It's added below the Dock, or after the last flexible spacer – drag it to the right place afterwards." class="settings-row-detail" lines=0
+                    grid columns=3 class="settings-gallery" {
+                        each kind in="{sidebar-module-kinds}" key="{kind.kind}" {
+                            button class="settings-gallery-tile" disabled="{kind.unique && (var.sidebar-modules | where 'kind' kind.kind | count) > 0}" tooltip="{kind.unique && (var.sidebar-modules | where 'kind' kind.kind | count) > 0 ? 'Only exists once, and it is already in the sidebar' : 'Add ' + kind.title}" {
+                                on-click {
+                                    list.insert "sidebar-modules" at="{var.settings-sidebar-insert-at}" id-from="kind" { - "{kind.module}" }
+                                    set "settings-sidebar-gallery" #false
+                                }
+                                column class="settings-gallery-content" {
+                                    icon "{kind.symbol}" class="settings-gallery-glyph"
+                                    text "{kind.title}" class="settings-row-title"
+                                    text "{kind.summary}" class="settings-row-detail" lines=0
+                                    when "{kind.unique && (var.sidebar-modules | where 'kind' kind.kind | count) > 0}" {
+                                        text "Already Added" class="settings-badge"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    row class="settings-actions" {
+                        spacer
+                        button class="settings-button" {
+                            on-click { set "settings-sidebar-gallery" #false }
+                            text "Cancel"
+                        }
+                    }
+                }
+            }
+            column class="settings-group" {
+                text "Screens" class="settings-group-title"
+                row class="settings-row" {
+                    text "Screens" class="settings-row-title"
+                    spacer
+                    button class="settings-popup-button" menu-on="click" {
+                        menu side="below" {
+                            item "All" checked="{var.sidebar-screens == 'all'}" { set "sidebar-screens" "all" }
+                            item "Main Display Only" checked="{var.sidebar-screens == 'main'}" { set "sidebar-screens" "main" }
+                            separator
+                            each monitor in="{screens.list}" key="{monitor.id}" {
+                                item "{monitor.name}" checked="{var.sidebar-screens == monitor.id}" { set "sidebar-screens" "{monitor.id}" }
+                            }
+                            when "{var.sidebar-screens != 'all' && var.sidebar-screens != 'main' && (screens.list | where 'id' var.sidebar-screens | count) == 0}" {
+                                item "{var.sidebar-screens} (not connected)" checked=#true disabled=#true
+                            }
+                        }
+                        text "{var.sidebar-screens == 'all' ? 'All' : (var.sidebar-screens == 'main' ? 'Main Display Only' : ((screens.list | where 'id' var.sidebar-screens | first).name ?? var.sidebar-screens + ' (not connected)'))}"
+                    }
+                }
+                text "Which screens the sidebar stands on – and with it the desktop clock and the strip the window guard keeps clear. A single screen is remembered by name and resolution; when it is not connected, the sidebar stands on the main display." class="settings-row-detail" lines=0
+            }
+            column class="settings-group" {
+                text "Background" class="settings-group-title"
+                each background in="{sidebar-backgrounds}" key="{background.id}" {
+                    button class="settings-choice-button" checked="{background.id == var.sidebar-background}" {
+                        on-click { set "sidebar-background" "{background.id}" }
+                        use "settings-choice" title="{background.title}" detail="{background.detail}" checked="{background.id == var.sidebar-background}"
+                    }
+                }
+                text "Liquid Glass follows the brightness of whatever is behind it, and it also flips between a light and a dark appearance – so the sidebar changes color as soon as a window moves underneath it. That cannot be switched off; for a fixed color, pick Material or glass on a solid fill." class="settings-row-detail" lines=0
+            }
+        }
+        column class="settings-preview settings-sidebar-preview" label="Preview of the Sidebar" {
+            text "Preview" class="settings-group-title"
+            stack class="settings-preview-frame {theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-' + var.sidebar-background}" {
+                column class="sidebar-modules settings-preview-modules" {
+                    each module in="{var.sidebar-modules}" key="{module.id}" {
+                        use "sidebar-{module.kind}" module="{module}"
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "settings-confirm-sidebar" {
+    column class="settings-confirm" {
+        text "{var.settings-sidebar-confirm == 'reset' ? 'Reset the sidebar?' : 'Load preset “' + (sidebar-presets | where 'id' var.settings-sidebar-confirm | first).title + '”?'}" class="settings-row-title"
+        text "{var.settings-sidebar-confirm == 'reset' ? 'The sidebar looks like it did at the start again (Caelestia preset). The current arrangement will be replaced.' : (sidebar-presets | where 'id' var.settings-sidebar-confirm | first).summary + ' The current arrangement will be replaced.'}" class="settings-row-detail" lines=0
+        row class="settings-actions" {
+            spacer
+            button class="settings-button" {
+                on-click { close "settings-confirm" }
+                text "Cancel"
+            }
+            button class="settings-button settings-default-button" {
+                on-click {
+                    switch "{var.settings-sidebar-confirm}" {
+                        case "minimal" { set "sidebar-modules" "{sidebar-minimal}" }
+                        case "dock-only" { set "sidebar-modules" "{sidebar-dock-only}" }
+                        case "everything" { set "sidebar-modules" "{sidebar-everything}" }
+                        default { set "sidebar-modules" "{sidebar-caelestia}" }
+                    }
+                    close "settings-confirm"
+                    set "settings-sidebar-expanded" ""
+                }
+                text "{var.settings-sidebar-confirm == 'reset' ? 'Reset' : 'Load'}"
+            }
+        }
+    }
+}
