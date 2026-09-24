@@ -297,7 +297,11 @@ public struct SchemaRegistry: Sendable {
     }
 
     public func action(_ name: String) -> ActionSchema? {
-        actions[name]
+        if let action = actions[name] {
+            return action
+        }
+        guard let dot = name.firstIndex(of: "."), let provider = providers[String(name[..<dot])] else { return nil }
+        return provider.actions.first { $0.name == name }
     }
 
     public func merging(_ other: SchemaRegistry) -> SchemaRegistry {

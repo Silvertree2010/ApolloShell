@@ -90,7 +90,7 @@ enum SchemaStage {
         }
     }
 
-    private static func bodyContext(_ body: [ExpandedNode], registry: SchemaRegistry) -> NodeContext {
+    static func bodyContext(_ body: [ExpandedNode], registry: SchemaRegistry) -> NodeContext {
         let isActionBody = body.contains { registry.action($0.kdl.name) != nil && registry.node($0.kdl.name) == nil }
         return isActionBody ? .actions : .elementBody
     }
@@ -135,7 +135,16 @@ enum SchemaStage {
             return checkRuntimeUse(node, schema: schema, walk: walk, env: env, state: state)
         }
 
-        if let schema = registry.node(kdl.name), schema.contexts.contains(walk.context) {
+        if var schema = registry.node(kdl.name), schema.contexts.contains(walk.context) {
+            if kdl.name == "source", let first = kdl.arguments.first, case .string(let kind) = first.scalar {
+                if let source = registry.menuSources[kind] {
+                    schema.properties += source.properties
+                } else {
+                    let suggestion = Suggestion.closest(to: kind, among: Array(registry.menuSources.keys))
+                    state.report(Diagnostic(.error, "unknown menu source '\(kind)'", span: first.span, help: suggestion.map { "did you mean '\($0)'?" }), node: node)
+                    return nil
+                }
+            }
             return checkStructural(node, schema: schema, walk: walk, env: env, state: state)
         }
 

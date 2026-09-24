@@ -89,4 +89,46 @@ struct LoadingGapTests {
         #expect(invalid.map(\.message) == ["unknown property 'sourc' on 'weather'"])
         #expect(invalid.first?.help == "did you mean 'source'?")
     }
+
+    @Test("Provider-Aktionen in Handlern sind bekannt")
+    func providerActionsInHandlers() {
+        let diagnostics = SchemaStageScopeTests.all("""
+        osd "volume" {
+            slider value="{audio.volume}" {
+                on-change { audio.set-volume "{event.value}" }
+            }
+        }
+        """)
+        #expect(diagnostics.isEmpty)
+        #expect(SchemaRegistry.builtin.action("audio.set-volume")?.name == "audio.set-volume")
+        #expect(SchemaRegistry.builtin.action("audio.nothing") == nil)
+    }
+
+    @Test("Menue-Quellen pruefen ihre eigenen Properties")
+    func menuSourcesCheckTheirProperties() {
+        let valid = SchemaStageScopeTests.all("""
+        panel "dock" {
+            each app in="{apps.dock}" {
+                button {
+                    menu {
+                        source "app-windows" app="{app}"
+                        source "app-dock" app="{app}" fallback="commands"
+                    }
+                }
+            }
+        }
+        """)
+        #expect(valid.isEmpty)
+        let invalid = SchemaStageScopeTests.all("""
+        panel "dock" {
+            button {
+                menu {
+                    source "app-window" app="x"
+                }
+            }
+        }
+        """)
+        #expect(invalid.map(\.message) == ["unknown menu source 'app-window'"])
+        #expect(invalid.first?.help == "did you mean 'app-windows'?")
+    }
 }
