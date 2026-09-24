@@ -217,6 +217,11 @@ enum SchemaStage {
         state: SchemaWalkState
     ) -> CheckedNode {
         let kdl = node.kdl
+        var env = env
+        if schema.category == .surface {
+            env.context = .surfaceBody
+        }
+        let isVar = kdl.name == "var"
         var loopLocals: [EachLocal] = []
         if kdl.name == "each" {
             if let variable = kdl.arguments.first, let name = checkLocalName(variable, node: node, state: state) {
@@ -233,8 +238,14 @@ enum SchemaStage {
         for diagnostic in argumentDiagnostics { state.report(diagnostic, node: node) }
         var keyEnv = env
         keyEnv.locals.formUnion(loopLocals.map(\.name))
-        let (properties, propertyDiagnostics) = checkProperties(schema.properties, kdl.properties, nodeName: kdl.name, nodeSpan: kdl.span, env: env, overrides: ["key": keyEnv])
+        let checkedProperties = isVar ? kdl.properties.filter { VarStage.controlProperties.contains($0.name) } : kdl.properties
+        let (properties, propertyDiagnostics) = checkProperties(schema.properties, checkedProperties, nodeName: kdl.name, nodeSpan: kdl.span, env: env, overrides: ["key": keyEnv])
         for diagnostic in propertyDiagnostics { state.report(diagnostic, node: node) }
+        if isVar {
+            let dataProperties = kdl.properties.filter { !VarStage.controlProperties.contains($0.name) }
+            checkDataValues(dataProperties.map(\.value), node: node, env: env, state: state)
+            checkDataNodes(node.children, env: env, state: state)
+        }
 
         var children: [CheckedNode] = []
         if schema.childContext != nil || !schema.handlers.isEmpty {
@@ -249,11 +260,25 @@ enum SchemaStage {
             nextWalk.handlerNames = schema.handlers
             nextWalk.eachStack.append(contentsOf: loopLocals)
             children = walkNodes(node.children, walk: nextWalk, state: state)
-        } else if !node.children.isEmpty {
+        } else if !node.children.isEmpty, !isVar {
             state.report(Diagnostic(.error, "'\(kdl.name)' cannot have children", span: kdl.span), node: node)
         }
 
         return CheckedNode(name: kdl.name, span: kdl.span, arguments: arguments, properties: properties, children: children)
+    }
+
+    private static func checkDataNodes(_ nodes: [ExpandedNode], env: ExpressionEnvironment, state: SchemaWalkState) {
+        for node in nodes where !node.isExpansionMarker {
+            checkDataValues(node.kdl.arguments + node.kdl.properties.map(\.value), node: node, env: env, state: state)
+            checkDataNodes(node.children, env: env, state: state)
+        }
+    }
+
+    private static func checkDataValues(_ values: [KDLValue], node: ExpandedNode, env: ExpressionEnvironment, state: SchemaWalkState) {
+        for value in values {
+            let (_, diagnostics) = ExpressionCompiler.compile(value, env: env, allowsExpression: true)
+            for diagnostic in diagnostics { state.report(diagnostic, node: node) }
+        }
     }
 
     private static func checkAction(

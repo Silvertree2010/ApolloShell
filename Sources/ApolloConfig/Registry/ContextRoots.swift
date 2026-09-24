@@ -98,7 +98,7 @@ enum ContextRoots {
                 S.field("remaining", .number, update: .tick, doc: "Sekunden bis zum Verschwinden."),
                 S.field("queued", .bool, update: .once, doc: "ob sie vor dem Erscheinen gewartet hat."),
             ],
-            validIn: ["elementBody"]
+            validIn: ["surfaceBody", "elementBody"]
         ),
     ]
 }

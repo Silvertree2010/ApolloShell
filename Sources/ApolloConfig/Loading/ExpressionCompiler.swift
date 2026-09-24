@@ -28,7 +28,7 @@ enum ExpressionText {
 
 struct NameOccurrence: Sendable {
     var root: SourceSpan
-    var firstField: SourceSpan?
+    var fields: [SourceSpan]
 }
 
 enum NameLocator {
@@ -63,11 +63,13 @@ enum NameLocator {
         for (position, token) in tokens.enumerated() {
             guard case .name(let name) = token.kind else { continue }
             if position > 0, tokens[position - 1].isSymbol(".") || tokens[position - 1].isSymbol("|") { continue }
-            var field: SourceSpan?
-            if position + 2 < tokens.count, tokens[position + 1].isSymbol("."), case .name = tokens[position + 2].kind {
-                field = mapper.span(from: tokens[position + 2].start, to: tokens[position + 2].end)
+            var fields: [SourceSpan] = []
+            var cursor = position + 1
+            while cursor + 1 < tokens.count, tokens[cursor].isSymbol("."), case .name = tokens[cursor + 1].kind {
+                fields.append(mapper.span(from: tokens[cursor + 1].start, to: tokens[cursor + 1].end))
+                cursor += 2
             }
-            result[name, default: []].append(NameOccurrence(root: mapper.span(from: token.start, to: token.end), firstField: field))
+            result[name, default: []].append(NameOccurrence(root: mapper.span(from: token.start, to: token.end), fields: fields))
         }
     }
 }
@@ -149,7 +151,7 @@ private struct ExpressionValidator {
         case .path(let root, let members):
             let occurrence = nextOccurrence(of: root)
             validateRoot(root, span: occurrence?.root ?? fallback)
-            validateFirstField(root: root, members: members, span: occurrence?.firstField ?? fallback)
+            validateFirstField(root: root, members: members, fieldSpans: occurrence?.fields ?? [])
             members.forEach { validate($0) }
         case .access(let base, let members):
             validate(base)
@@ -204,8 +206,13 @@ private struct ExpressionValidator {
         diagnostics.append(Diagnostic(.error, "unknown root '\(root)'", span: span, help: suggestion.map { "did you mean '\($0)'?" }))
     }
 
-    private mutating func validateFirstField(root: String, members: [PathMember], span: SourceSpan) {
-        guard case .field(let first)? = members.first, !env.locals.contains(root) else { return }
+    static let rootsKeyedById: Set<String> = ["surfaces"]
+
+    private mutating func validateFirstField(root: String, members: [PathMember], fieldSpans: [SourceSpan]) {
+        guard !env.locals.contains(root) else { return }
+        let position = Self.rootsKeyedById.contains(root) ? 1 : 0
+        guard position < members.count, case .field(let first) = members[position] else { return }
+        let span = position < fieldSpans.count ? fieldSpans[position] : fallback
         let fields: [FieldSchema]
         if let provider = env.registry.providers[root] {
             fields = provider.fields
