@@ -61,6 +61,23 @@ struct ControlCodecTests {
         #expect(JSONText.encode(.image(ImageRef(source: "sf", id: "wifi"))) == #"{"source":"sf","id":"wifi"}"#)
     }
 
+    @Test("Reihenfolge der Schlüssel bleibt, Tiefe ist begrenzt")
+    func keepsOrderAndLimitsDepth() {
+        #expect(JSONText.encode(JSONText.decode(#"{"z":1,"a":{"y":2,"b":3}}"#)!) == #"{"z":1,"a":{"y":2,"b":3}}"#)
+        #expect(JSONText.decode(String(repeating: "[", count: 100_000) + String(repeating: "]", count: 100_000)) == nil)
+        #expect(JSONText.decode(String(repeating: "[", count: 200) + String(repeating: "]", count: 200)) != nil)
+    }
+
+    @Test("Escapes, Unicode und Zahlenformen")
+    func decodesEscapes() {
+        #expect(JSONText.decode(#""a\n\u00fc\ud83d\ude00\/""#) == .string("a\nü😀/"))
+        #expect(JSONText.decode("-1.5e2") == .number(-150))
+        #expect(JSONText.decode("[1,]") == nil)
+        #expect(JSONText.decode("01") == nil)
+        #expect(JSONText.decode("1 2") == nil)
+        #expect(JSONText.decode("1e999") == .null)
+    }
+
     @Test("JSON-Text wird zum Wert, Unsinn nicht")
     func decodes() {
         #expect(JSONText.decode("[true, 1e3, \"x\"]") == .list([.bool(true), .number(1000), .string("x")]))
