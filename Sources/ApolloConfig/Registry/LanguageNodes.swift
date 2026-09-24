@@ -149,7 +149,7 @@ enum LanguageNodes {
             childContext: .elementBody,
             contexts: [.topLevel, .surfaceBody, .elementBody, .actions, .menu, .commandCenterItems],
             doc: "beschränkt den Rumpf auf Shells, die dieses Feature kennen.",
-            example: "feature \"status-items\" { text \"New\" }"
+            example: "feature \"wm\" { text \"Tiling\" }"
         ),
         NodeSchema(
             name: "disable",

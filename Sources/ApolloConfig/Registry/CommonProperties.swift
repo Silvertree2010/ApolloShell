@@ -77,7 +77,7 @@ enum CommonProperties {
         childContext: .menu,
         contexts: [.elementBody],
         doc: "gibt einem Element ein natives Kontextmenü.",
-        example: "menu { item \"Copy\" { clipboard.copy \"{self.value}\" } }"
+        example: "menu { item \"Copy\" { clipboard.copy \"{system.full-name}\" } }"
     )
 
     static let accessibilityAction = NodeSchema(

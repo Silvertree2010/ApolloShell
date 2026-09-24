@@ -14,7 +14,7 @@ enum MenuNodes {
             childContext: .actions,
             contexts: [.menu, .commandCenterItems],
             doc: "ein Eintrag in einem nativen Menü.",
-            example: "item \"Copy\" { clipboard.copy \"{self.value}\" }"
+            example: "item \"Copy\" { clipboard.copy \"{system.full-name}\" }"
         ),
         NodeSchema(
             name: "separator",
