@@ -22,6 +22,8 @@ final class RenderContext {
     var reorders: [String: ReorderCoordinator] = [:]
     var menuSources: [String: any MenuSourceProviding] = [:]
     var pending: [Task<Void, Never>] = []
+    var flyoutExtents: [String: EdgeInsets] = [:]
+    var onFlyoutExtent: @MainActor (String, EdgeInsets) -> Void = { _, _ in }
     let hits = HitRegions()
     private var images: [String: NSImage] = [:]
 
@@ -114,7 +116,7 @@ struct ElementView: View {
             let mouse = MouseConfig(element, reorder: reorderEntry)
             let hover = styles.sensitive(to: .hover, subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline) || element.kind == "button"
             ElementRenderers.view(for: element, style: style, scope: inner)
-                .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element)))
+                .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText))
                 .modifier(HitRegionMarker(active: !mouse.isEmpty || StyleValues.visibleBackground(style), identity: element.identity))
                 .modifier(InteractionIfNeeded(element: element, context: scope.context, config: mouse, hover: hover))
                 .modifier(Motion(element: element, style: style, context: scope.context))
@@ -203,8 +205,9 @@ struct ElementChildren: View {
     let scope: RenderScope
 
     var body: some View {
-        ForEach(Array(children.enumerated()), id: \.element.identity) { index, child in
-            ElementView(element: child, scope: scope, position: ChildPosition(index: index, count: children.count))
+        let shown = children.filter { $0.kind != "flyout" }
+        ForEach(Array(shown.enumerated()), id: \.element.identity) { index, child in
+            ElementView(element: child, scope: scope, position: ChildPosition(index: index, count: shown.count))
         }
     }
 }

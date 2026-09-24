@@ -40,7 +40,7 @@ struct SurfaceView: View {
         LayoutRenderers.flex(horizontal: false, style: style) {
             ElementChildren(children: surface.root, scope: scope)
         }
-        .modifier(StyledBox(style: style, context: context))
+        .modifier(SurfaceBox(surface: surface, style: style, context: context))
         .modifier(HitRegionCollector(surfaceKey: SurfaceHost.key(surface.id, surface.screenKey), regions: context.hits))
     }
 }

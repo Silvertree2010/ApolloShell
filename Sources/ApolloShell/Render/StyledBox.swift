@@ -8,6 +8,8 @@ struct StyledBox: ViewModifier {
     var padded = true
     var fill = Definite()
     var form: AnyShape?
+    var flyouts: AnyView?
+    var anchorID: String?
 
     func body(content: Content) -> some View {
         let width = style["width"], height = style["height"]
@@ -22,9 +24,11 @@ struct StyledBox: ViewModifier {
             .background { BackgroundLayers(style: style, shape: shape, context: context) }
             .overlay { BorderLayer(style: style, shape: shape) }
             .modifier(Clip(active: StyleValues.keyword(style["overflow"]) == "hidden", shape: shape))
+            .modifier(FlyoutOverlay(layer: flyouts))
             .modifier(Filters(style["filter"]))
             .opacity(StyleValues.number(style["opacity"]) ?? 1)
             .modifier(Transform(style["transform"]))
+            .modifier(AnchorReport(id: anchorID))
             .padding(StyleValues.sides(style["margin"]))
             .zIndex(StyleValues.number(style["z-index"]) ?? 0)
             .allowsHitTesting(StyleValues.keyword(style["pointer-events"]) != "none")

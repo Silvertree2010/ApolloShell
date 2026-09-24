@@ -63,8 +63,27 @@ final class RenderSession {
     }
 
     func mount(_ surface: SurfaceInstance) -> NSView {
+        let hosting = NSHostingView(rootView: root(surface, reserve: EdgeInsets()))
+        canvas.host(hosting, size: hosting.fittingSize)
+        let key = SurfaceHost.key(surface.id, surface.screenKey)
+        guard !FlyoutCollector.collect(surface.root).isEmpty else { return hosting }
+        var reserved = EdgeInsets()
+        for _ in 0..<10 {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+            hosting.layoutSubtreeIfNeeded()
+            let wanted = context.flyoutExtents[key] ?? EdgeInsets()
+            guard wanted != reserved else { continue }
+            reserved = wanted
+            hosting.rootView = root(surface, reserve: wanted)
+            canvas.host(hosting, size: hosting.fittingSize)
+        }
+        return hosting
+    }
+
+    private func root(_ surface: SurfaceInstance, reserve: EdgeInsets) -> AnyView {
         let appearance: ColorScheme = dark ? .dark : .light
-        let view = SurfaceView(surface: surface, context: context)
+        return AnyView(SurfaceView(surface: surface, context: context)
+            .padding(reserve)
             .environment(\.colorScheme, appearance)
             .environment(\._accessibilityReduceTransparency, true)
             .environment(\.renderMode, true)
@@ -72,10 +91,7 @@ final class RenderSession {
             .transaction { transaction in
                 transaction.animation = nil
                 transaction.disablesAnimations = true
-            }
-        let hosting = NSHostingView(rootView: view)
-        canvas.host(hosting, size: hosting.fittingSize)
-        return hosting
+            })
     }
 
     func capture(_ surface: SurfaceInstance, name: String) throws -> Data {
