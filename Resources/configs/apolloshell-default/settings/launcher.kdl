@@ -1,4 +1,50 @@
+var settings-launcher-query ""
+
 define "settings-page-launcher" {
     column class="settings-group" {
+        text "Favorites · {apps.favorites | count} of 10" class="settings-group-title"
+        when "{(apps.favorites | count) == 0}" {
+            text "No favorites yet. Search for an app below and add it." class="settings-row-detail"
+        }
+        reorderable axis="vertical" enabled=#true {
+            on-reorder { apps.favorite-move "{event.from}" "{event.to}" }
+            each app in="{apps.favorites}" key="{app.bundle-id}" {
+                row class="settings-row settings-favorite" disabled="{!app.installed}" {
+                    menu {
+                        item "Move Up" disabled="{app.favorite-index == 0}" { apps.favorite-move "{app.favorite-index}" "{app.favorite-index - 1}" }
+                        item "Move Down" disabled="{app.favorite-index == (apps.favorites | count) - 1}" { apps.favorite-move "{app.favorite-index}" "{app.favorite-index + 2}" }
+                        separator
+                        item "Remove" { apps.favorite-remove "{app.bundle-id}" }
+                    }
+                    text "{app.favorite-index + 1}" class="settings-favorite-index"
+                    app-icon "{app.bundle-id}" class="settings-app-icon"
+                    column class="settings-row-text" {
+                        text "{app.name}" class="settings-row-title"
+                        when "{!app.installed}" { text "Not Installed" class="settings-row-detail" }
+                    }
+                    spacer
+                    button class="settings-icon-button" tooltip="Remove" {
+                        on-click { apps.favorite-remove "{app.bundle-id}" }
+                        icon "minus.circle.fill"
+                    }
+                }
+            }
+        }
+    }
+    column class="settings-group" {
+        input bind="var.settings-launcher-query" placeholder="Search Apps" class="settings-search"
+        when "{var.settings-launcher-query != ''}" {
+            each app in="{apps.all | fuzzy var.settings-launcher-query | take 8}" key="{app.bundle-id}" {
+                row class="settings-row settings-result" {
+                    app-icon "{app.bundle-id}" class="settings-app-icon"
+                    text "{app.name}" class="settings-row-title"
+                    spacer
+                    button class="settings-icon-button" tooltip="Add to Favorites" disabled="{app.favorite || (apps.favorites | count) >= 10}" {
+                        on-click { apps.favorite-add "{app.bundle-id}" }
+                        icon "{app.favorite ? 'checkmark.circle.fill' : 'plus.circle.fill'}"
+                    }
+                }
+            }
+        }
     }
 }

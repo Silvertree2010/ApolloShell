@@ -26,6 +26,21 @@ include "providers.kdl"
 include "system-settings.kdl"
 include "about.kdl"
 
+define "settings-link" {
+    param "title"
+    param "detail" default=""
+    param "area"
+    button class="settings-group settings-row settings-link-row" {
+        on-click { system.open-settings "{area}" }
+        column class="settings-row-text" {
+            text "{title}" class="settings-row-title"
+            when "{detail != ''}" { text "{detail}" class="settings-row-detail" }
+        }
+        spacer
+        icon "arrow.up.forward.app" class="settings-link-glyph"
+    }
+}
+
 define "settings-switch" {
     param "title"
     param "detail" default=""

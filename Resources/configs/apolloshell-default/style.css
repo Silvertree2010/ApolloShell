@@ -289,6 +289,18 @@
 .settings-row { gap: 12px; align-items: center; }
 .settings-row-detail, .settings-warning { font-size: 12px; color: -apple-system-secondary-label; }
 .settings-actions { gap: 8px; }
+.settings-row-value { color: -apple-system-secondary-label; }
+.settings-row-glyph, .settings-choice-glyph { width: 18px; }
+.settings-choice-glyph { color: -apple-system-control-accent; }
+.settings-link-glyph { color: -apple-system-tertiary-label; }
+.settings-choice-button, .settings-link-row, .settings-result, .settings-disclosure { padding: 4px 6px; border-radius: 6px; }
+.settings-choice-button:hover, .settings-link-row:hover, .settings-result:hover, .settings-disclosure:hover { background: rgb(from -apple-system-label r g b / 0.06); }
+.settings-app-icon { width: 24px; height: 24px; }
+.settings-favorite-index { width: 20px; color: -apple-system-secondary-label; }
+.settings-search { padding: 6px 8px; border-radius: 6px; background: rgb(from -apple-system-label r g b / 0.06); }
+.settings-about-head { align-items: center; padding: 20px; }
+.settings-about-mark { width: 48px; height: 48px; color: -apple-system-control-accent; }
+.settings-about-name { font-size: 18px; font-weight: 700; }
 
 .dock {
   -apollo-fade-edges: 4%;

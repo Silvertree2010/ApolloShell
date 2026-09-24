@@ -1,4 +1,45 @@
+define "settings-info" {
+    param "title"
+    param "value"
+    row class="settings-row" {
+        text "{title}" class="settings-row-title"
+        spacer
+        text "{value}" class="settings-row-value" truncate="middle"
+    }
+}
+
 define "settings-page-about" {
+    column class="settings-group settings-about-head" {
+        icon "builtin:apollo-mark" class="settings-about-mark"
+        text "ApolloShell" class="settings-about-name"
+        text "Version {shell.version}" class="settings-row-detail"
+    }
     column class="settings-group" {
+        text "System" class="settings-group-title"
+        use "settings-info" title="Computer Name" value="{system.host-name}"
+        use "settings-info" title="Device" value="{system.model}"
+        use "settings-info" title="Chip" value="{system.chip}"
+        use "settings-info" title="Operating System" value="macOS {system.macos-version}"
+        use "settings-info" title="Kernel" value="{system.kernel-version}"
+        use "settings-info" title="Uptime" value="{system.uptime | duration 'short'}"
+    }
+    column class="settings-group" {
+        text "Software" class="settings-group-title"
+        button class="settings-row settings-link-row" {
+            on-click { open-url "https://github.com/caelestia-dots/shell" }
+            text "Based On" class="settings-row-title"
+            spacer
+            text "Caelestia Shell" class="settings-row-value"
+        }
+    }
+    row class="settings-actions" {
+        button class="settings-button" {
+            on-click { set "onboarding-step" 0; open "onboarding" }
+            text "Show Introduction…"
+        }
+        button class="settings-button" {
+            on-click { system.open-settings "about" }
+            text "About This Mac"
+        }
     }
 }

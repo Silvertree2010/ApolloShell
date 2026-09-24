@@ -1,4 +1,17 @@
 define "settings-page-toasts" {
     column class="settings-group" {
+        use "settings-switch" title="Charger" detail="When the power adapter is connected or disconnected." checked="{var.toast-charging}" {
+            on-change { set "toast-charging" "{event.value}" }
+        }
+        use "settings-switch" title="Battery Warnings" detail="At 20, 10 and 5 percent while on battery." checked="{var.toast-battery}" {
+            on-change { set "toast-battery" "{event.value}" }
+        }
+        use "settings-switch" title="Audio Output" detail="When the sound output device changes." checked="{var.toast-audio-output}" {
+            on-change { set "toast-audio-output" "{event.value}" }
+        }
+        use "settings-switch" title="Audio Input" detail="When the microphone changes." checked="{var.toast-audio-input}" {
+            on-change { set "toast-audio-input" "{event.value}" }
+        }
     }
+    use "settings-link" title="Notifications from Apps" detail="Apps send their own notifications through macOS." area="notifications"
 }
