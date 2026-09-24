@@ -1,0 +1,7 @@
+surface "sidebar" kind="panel" {
+    button {
+        on-clik {
+            toggle "session"
+        }
+    }
+}

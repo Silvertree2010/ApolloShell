@@ -102,4 +102,38 @@ struct DiagnosticFormatterTests {
         #expect(Severity.warning < Severity.error)
         #expect(Severity.error.label == "error")
     }
+
+    @Test("consoleText kuerzt das Home-Verzeichnis auf ~")
+    func consoleTextShortensHome() {
+        let span = SourceSpan(
+            file: "/Users/tester/.config/apolloshell/sidebar.kdl",
+            start: SourcePosition(offset: 0, line: 1, column: 1),
+            end: SourcePosition(offset: 1, line: 1, column: 2)
+        )
+        let diagnostic = Diagnostic(.error, "bad", span: span)
+        let text = DiagnosticFormatter.consoleText([diagnostic], sources: { _ in nil }, home: "/Users/tester")
+        #expect(text == "~/.config/apolloshell/sidebar.kdl:1:1: error: bad")
+    }
+
+    @Test("consoleText ohne Home-Verzeichnis laesst den Pfad stehen")
+    func consoleTextWithoutHome() {
+        let span = SourceSpan(
+            file: "/Users/tester/.config/apolloshell/sidebar.kdl",
+            start: SourcePosition(offset: 0, line: 1, column: 1),
+            end: SourcePosition(offset: 1, line: 1, column: 2)
+        )
+        let diagnostic = Diagnostic(.error, "bad", span: span)
+        let text = DiagnosticFormatter.consoleText([diagnostic], sources: { _ in nil }, home: nil)
+        #expect(text == "/Users/tester/.config/apolloshell/sidebar.kdl:1:1: error: bad")
+    }
+
+    @Test("consoleText verbindet mehrere Diagnosen mit Leerzeile")
+    func consoleTextJoinsMultipleDiagnostics() {
+        let text = DiagnosticFormatter.consoleText(
+            [Diagnostic(.error, "first"), Diagnostic(.warning, "second")],
+            sources: { _ in nil },
+            home: nil
+        )
+        #expect(text == "error: first\n\nwarning: second")
+    }
 }

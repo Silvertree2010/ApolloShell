@@ -1,4 +1,16 @@
 public enum DiagnosticFormatter {
+    public static func consoleText(_ diagnostics: [Diagnostic], sources: (String) -> String?, home: String?) -> String {
+        diagnostics
+            .map { shortenHome(format($0, sourceText: sources), home: home) }
+            .joined(separator: "\n\n")
+    }
+
+    static func shortenHome(_ text: String, home: String?) -> String {
+        guard let home, !home.isEmpty else { return text }
+        let prefix = home.hasSuffix("/") ? home : home + "/"
+        return text.replacingOccurrences(of: prefix, with: "~/")
+    }
+
     public static func format(_ diagnostic: Diagnostic, sourceText: (String) -> String?) -> String {
         var lines = [header(diagnostic)]
         var gutter = 5

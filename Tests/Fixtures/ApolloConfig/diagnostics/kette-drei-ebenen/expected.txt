@@ -1,0 +1,5 @@
+/Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/kette-drei-ebenen/c.kdl:1:1: error: unknown property 'surprise' on 'panel'
+    1 | panel "broken" surprise=#true
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      = note: included from /Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/kette-drei-ebenen/b.kdl:1:1 (/Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/kette-drei-ebenen/b.kdl:1:1)
+      = note: included from /Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/kette-drei-ebenen/a.kdl:1:1 (/Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/kette-drei-ebenen/a.kdl:1:1)
