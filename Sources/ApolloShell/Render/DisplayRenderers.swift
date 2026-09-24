@@ -238,6 +238,7 @@ struct ProgressBar: View {
     var track: Color
     var context: RenderContext
     @Environment(\.renderMode) private var renderMode
+    @Environment(\.surfaceShown) private var shown
 
     var body: some View {
         GeometryReader { proxy in
@@ -247,7 +248,7 @@ struct ProgressBar: View {
                 if let value {
                     paint.frame(width: vertical ? nil : length * value, height: vertical ? length * value : nil)
                 } else {
-                    TimelineView(.animation(paused: renderMode)) { timeline in
+                    TimelineView(.animation(paused: renderMode || !shown)) { timeline in
                         let phase = renderMode ? 0.25 : timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.2) / 1.2
                         paint.frame(width: vertical ? nil : length * 0.3, height: vertical ? length * 0.3 : nil)
                             .offset(x: vertical ? 0 : (length * 1.3) * phase - length * 0.3, y: vertical ? -((length * 1.3) * phase - length * 0.3) : 0)

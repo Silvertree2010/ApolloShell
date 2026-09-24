@@ -47,5 +47,6 @@ struct SurfaceView: View {
         .modifier(SurfaceBox(surface: surface, style: style, context: context))
         .background { painted }
         .modifier(HitRegionCollector(surfaceKey: SurfaceHost.key(surface.id, surface.screenKey), regions: context.hits))
+        .environment(\.surfaceShown, surface.isVisible)
     }
 }

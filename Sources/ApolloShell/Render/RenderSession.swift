@@ -121,7 +121,16 @@ private struct RenderModeKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct SurfaceShownKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
 extension EnvironmentValues {
+    var surfaceShown: Bool {
+        get { self[SurfaceShownKey.self] }
+        set { self[SurfaceShownKey.self] = newValue }
+    }
+
     var renderMode: Bool {
         get { self[RenderModeKey.self] }
         set { self[RenderModeKey.self] = newValue }

@@ -110,14 +110,19 @@ struct AnimationSpec: Equatable {
 }
 
 struct RunningAnimation: ViewModifier {
+    static func paused(spec: AnimationSpec?, finished: Bool, shown: Bool) -> Bool {
+        spec == nil || finished || !shown
+    }
+
     let spec: AnimationSpec?
     var enabled = true
     @State private var start = Date()
     @State private var finished = false
+    @Environment(\.surfaceShown) private var shown
 
     func body(content: Content) -> some View {
         if enabled {
-            TimelineView(.animation(paused: spec == nil || finished)) { timeline in
+            TimelineView(.animation(paused: Self.paused(spec: spec, finished: finished, shown: shown))) { timeline in
                 let pose = spec.map { $0.pose($0.progress(elapsed: timeline.date.timeIntervalSince(start))) } ?? AnimationSpec.Pose()
                 content
                     .rotationEffect(.degrees(pose.rotation))

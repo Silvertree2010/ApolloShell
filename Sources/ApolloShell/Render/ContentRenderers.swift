@@ -176,13 +176,14 @@ struct IconElement: View {
 struct SymbolEffect: ViewModifier {
     let kind: String?
     @Environment(\.renderMode) private var renderMode
+    @Environment(\.surfaceShown) private var shown
 
     init(_ value: CSSValue?) {
         kind = StyleValues.keyword(value)
     }
 
     func body(content: Content) -> some View {
-        switch renderMode ? nil : kind {
+        switch renderMode || !shown ? nil : kind {
         case "variable-color": content.symbolEffect(.variableColor.iterative, options: .repeating)
         case "pulse": content.symbolEffect(.pulse, options: .repeating)
         case "bounce": content.symbolEffect(.bounce, options: .repeating)
@@ -294,15 +295,23 @@ struct MarkElement: View {
     let size: CGFloat
     @State private var timeline: EmblemTimeline?
     @Environment(\.renderMode) private var renderMode
+    @Environment(\.surfaceShown) private var shown
+
+    static func onShow(_ shown: Bool, greet: Bool, reaction: EmblemReaction, at time: TimeInterval) -> EmblemTimeline? {
+        shown ? EmblemTimeline(greet ? .greet : reaction, at: time) : nil
+    }
 
     var body: some View {
         let current = timeline ?? EmblemTimeline(greet ? .greet : reaction, at: 0)
-        SessionEmblem(timeline: current, size: size, animating: !renderMode,
+        SessionEmblem(timeline: current, size: size, animating: !renderMode && shown,
                       fixedTime: renderMode ? current.startTime + 30 : nil, accent: accent, track: track)
             .onAppear {
                 if timeline == nil {
                     timeline = EmblemTimeline(greet ? .greet : reaction, at: Date.timeIntervalSinceReferenceDate)
                 }
+            }
+            .onChange(of: shown) { _, now in
+                if let next = Self.onShow(now, greet: greet, reaction: reaction, at: Date.timeIntervalSinceReferenceDate) { timeline = next }
             }
             .onChange(of: reaction) { _, next in
                 timeline?.show(next, at: Date.timeIntervalSinceReferenceDate)
