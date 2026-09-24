@@ -22,6 +22,7 @@ public struct PseudoState: OptionSet, Sendable, Hashable {
     public static let firstChild = PseudoState(rawValue: 1 << 6)
     public static let lastChild = PseudoState(rawValue: 1 << 7)
     public static let invalid = PseudoState(rawValue: 1 << 8)
+    public static let overflowing = PseudoState(rawValue: 1 << 9)
 
     static let byName: [String: PseudoState] = [
         "hover": .hover,
@@ -33,6 +34,7 @@ public struct PseudoState: OptionSet, Sendable, Hashable {
         "first-child": .firstChild,
         "last-child": .lastChild,
         "invalid": .invalid,
+        "overflowing": .overflowing,
     ]
 }
 

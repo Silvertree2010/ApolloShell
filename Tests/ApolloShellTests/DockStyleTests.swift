@@ -51,4 +51,13 @@ struct DockStyleTests {
         #expect(StyleValues.translation(dot.1["transform"]) == CGSize(width: -5, height: 0))
         #expect(StyleValues.keyword(dot.1["align-self"]) == "start")
     }
+
+    @Test("Plakette per CSS: Farbe, Versatz wie 0.1.4.2, Erscheinen")
+    func badge() throws {
+        let icon = try #require(try styled().first { $0.0.kind == "app-icon" })
+        let badge = BadgeStyle(icon.1)
+        #expect(badge.offset == CGSize(width: 8, height: -6))
+        #expect(icon.1["-apollo-badge-color"] == .color(.system(name: "-apple-system-red", alpha: 1)))
+        #expect(badge.animation != nil)
+    }
 }

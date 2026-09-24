@@ -50,14 +50,6 @@ final class StyleResolver {
         cache[key] = style
         return style
     }
-
-    func color(fromCustom name: String, in style: ComputedStyle, subject: StyleSubject, ancestors: [StyleSubject]) -> CSSColor? {
-        guard style.customProperties[name] != nil else { return nil }
-        let probe = StyleSubject(kind: "-apollo-probe")
-        let resolved = resolve(probe, ancestors: ancestors + [subject], parent: style, inline: "color: var(\(name))")
-        if case .color(let color)? = resolved["color"] { return color }
-        return nil
-    }
 }
 
 extension Value {

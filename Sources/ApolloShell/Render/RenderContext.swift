@@ -54,7 +54,7 @@ struct ElementView: View {
         let inner = RenderScope(context: scope.context, ancestors: scope.ancestors + [subject], parentStyle: style, parentKind: element.kind)
         if element.property("visible") != .bool(false) {
             ElementRenderers.view(for: element, style: style, scope: inner)
-                .modifier(StyledBox(style: style))
+                .modifier(StyledBox(style: style, padded: element.kind != "scroll"))
                 .modifier(SelfAlignment(style: style, parentKind: scope.parentKind))
         }
     }
@@ -73,12 +73,13 @@ struct ElementChildren: View {
 
 struct StyledBox: ViewModifier {
     let style: ComputedStyle
+    var padded = true
 
     func body(content: Content) -> some View {
         let width = style["width"], height = style["height"]
         let shape = RoundedRectangle(cornerRadius: StyleValues.radius(style["border-radius"]), style: StyleValues.keyword(style["-apollo-corner-shape"]) == "circular" ? .circular : .continuous)
         content
-            .padding(StyleValues.sides(style["padding"]))
+            .padding(padded ? StyleValues.sides(style["padding"]) : EdgeInsets())
             .frame(width: StyleValues.points(width), height: StyleValues.points(height))
             .frame(maxWidth: StyleValues.fills(width) ? .infinity : nil, maxHeight: StyleValues.fills(height) ? .infinity : nil)
             .background { BackgroundLayers(style: style, shape: shape) }

@@ -51,8 +51,10 @@ enum RenderCommand {
     static func render(_ options: Options) throws {
         NSApplication.shared.setActivationPolicy(.prohibited)
         NSApplication.shared.appearance = NSAppearance(named: options.dark ? .darkAqua : .aqua)
-        let fixture = ProviderFixture.load(options.fixture)
+        var fixture = ProviderFixture.load(options.fixture)
         report(fixture.diagnostics)
+        let extracted = FixtureIcons.extract(fixture.values)
+        fixture.values = extracted.values
         var now = Date()
         if case .date(let date)? = fixture.values["clock"]?["now"] { now = date }
         let host = SurfaceHost()
@@ -70,7 +72,7 @@ enum RenderCommand {
         let (sheets, sheetDiagnostics) = StyleSheets.load(ir)
         report(sheetDiagnostics)
         let styles = StyleResolver(sheets: sheets, environment: StyleSheets.environment(dark: options.dark))
-        let context = RenderContext(styles: styles, icons: FixtureAppIcons(), trigger: { _, _, _ in })
+        let context = RenderContext(styles: styles, icons: FixtureAppIcons(files: extracted.icons, root: options.fixture.deletingLastPathComponent()), trigger: { _, _, _ in })
         let appearance: ColorScheme = options.dark ? .dark : .light
         let canvas = OffscreenCanvas(appearance: appearance, scale: options.scale)
         try FileManager.default.createDirectory(at: options.output, withIntermediateDirectories: true)

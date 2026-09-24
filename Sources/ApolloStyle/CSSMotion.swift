@@ -39,7 +39,7 @@ enum CSSTimingCurves {
 
 enum CSSMotionParser {
     static let transitionTargets: Set<String> = ["all", "size", "value", "content", "match"]
-    static let motionProperties: Set<String> = ["transition", "-apollo-appear", "-apollo-disappear", "animation", "animation-delay"]
+    static let motionProperties: Set<String> = ["transition", "-apollo-appear", "-apollo-disappear", "-apollo-badge-appear", "animation", "animation-delay"]
     static let animationNames: Set<String> = ["spin", "pulse", "wiggle", "bounce"]
     static let slideEdges: [String: String] = [
         "top": "top", "bottom": "bottom", "leading": "leading", "trailing": "trailing", "left": "leading", "right": "trailing",

@@ -31,6 +31,16 @@ enum LayoutRenderers {
     }
 
     static func scroll(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
+        AnyView(ScrollElement(element: element, style: style, scope: scope))
+    }
+}
+
+struct ScrollElement: View {
+    let element: ElementInstance
+    let style: ComputedStyle
+    let scope: RenderScope
+
+    var body: some View {
         let horizontal = element.property("axis").plainText == "horizontal"
         let axis: Axis.Set = horizontal ? .horizontal : .vertical
         let indicators = element.property("indicators") == .bool(true)
@@ -39,11 +49,16 @@ enum LayoutRenderers {
             ElementChildren(children: element.children, scope: scope)
         }
         .frame(maxWidth: horizontal ? nil : .infinity, maxHeight: horizontal ? .infinity : nil)
-        return AnyView(ViewThatFits(in: axis) {
+        ViewThatFits(in: axis) {
             content
-            ScrollView(axis, showsIndicators: indicators) { content }
-                .mask { FadeMask(fraction: fade ?? 0, horizontal: horizontal) }
-        })
+                .padding(StyleValues.sides(style["padding"]))
+                .onAppear { element.pseudo.remove(.overflowing) }
+            ScrollView(axis, showsIndicators: indicators) {
+                content.padding(StyleValues.sides(style["padding"]))
+            }
+            .mask { FadeMask(fraction: fade ?? 0, horizontal: horizontal) }
+            .onAppear { element.pseudo.insert(.overflowing) }
+        }
     }
 }
 

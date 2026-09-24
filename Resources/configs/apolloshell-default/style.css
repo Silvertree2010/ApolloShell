@@ -5,6 +5,7 @@
   width: 100%;
   height: 100%;
 }
+.dock:overflowing { padding: 8px 0; }
 .dock > reorderable {
   gap: var(--apollo-dock-spacing, 4px);
   align-items: center;
@@ -37,8 +38,12 @@
 .dock-item.size-medium .dock-icon { width: var(--apollo-dock-icon-size, 26px); height: var(--apollo-dock-icon-size, 26px); }
 .dock-item.size-large .dock-icon { width: var(--apollo-dock-icon-size, 30px); height: var(--apollo-dock-icon-size, 30px); }
 .dock-icon {
-  --badge-color: var(--apollo-danger-color, -apple-system-red);
+  -apollo-badge-color: var(--apollo-danger-color, -apple-system-red);
+  -apollo-badge-offset: 8px -6px;
+  -apollo-badge-appear: fade scale(0.6) 180ms ease-out;
 }
+.dock-item.size-small .dock-icon { -apollo-badge-offset: 10px -8px; }
+.dock-item.size-large .dock-icon { -apollo-badge-offset: 6px -4px; }
 
 .dock-running-dot {
   width: 4px;
