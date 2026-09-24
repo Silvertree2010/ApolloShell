@@ -74,11 +74,13 @@ private struct ExpansionContext {
     var depth: Int
     var isTopLevel: Bool
     var quiet: Bool
+    var allowsFill = false
 
     func nested(by levels: Int = 1) -> ExpansionContext {
         var copy = self
         copy.depth += levels
         copy.isTopLevel = false
+        copy.allowsFill = false
         return copy
     }
 }
@@ -282,21 +284,27 @@ enum UseStage {
                 reportUnlessQuiet(Diagnostic(.error, "'define' is only allowed at the top level", span: node.kdl.span), at: node, context: context, state: state)
             case "param":
                 reportUnlessQuiet(Diagnostic(.error, "'param' is only allowed directly inside 'define'", span: node.kdl.span), at: node, context: context, state: state)
-            case "fill":
+            case "fill" where !context.allowsFill:
                 reportUnlessQuiet(Diagnostic(.error, "'fill' is only allowed directly inside 'use'", span: node.kdl.span), at: node, context: context, state: state)
             case "slot":
                 insertSlot(node, context: context, state: state, into: &built)
             case "use":
                 expandUse(node, context: context, state: state, into: &built)
             default:
-                guard countNode(node, frame: context.frame, state: state) else { break }
-                let children = expand(node.children, context: context.nested(), state: state)
-                var copy = node
-                copy.children = children.nodes
-                copy.useFrame = context.frame
-                built.append(copy, height: 1 + children.height, count: 1 + children.count)
+                expandPlain(node, context: context, state: state, into: &built)
             }
         }
+    }
+
+    private static func expandPlain(_ node: ExpandedNode, context: ExpansionContext, state: UseExpansionState, into built: inout Built) {
+        guard countNode(node, frame: context.frame, state: state) else { return }
+        var childContext = context.nested()
+        childContext.allowsFill = state.registry.node(node.kdl.name)?.category == .element
+        let children = expand(node.children, context: childContext, state: state)
+        var copy = node
+        copy.children = children.nodes
+        copy.useFrame = context.frame
+        built.append(copy, height: 1 + children.height, count: 1 + children.count)
     }
 
     private static func insertSlot(_ node: ExpandedNode, context: ExpansionContext, state: UseExpansionState, into built: inout Built) {
@@ -430,7 +438,14 @@ enum UseStage {
         callSite.useFrame = context.frame
         let frame = UseFrame(defineName: name, defineSpan: definition.node.kdl.span, useSpan: kdl.span, bindings: bindings, parent: context.frame, callSite: callSite)
         let bodyContext = ExpansionContext(frame: frame, slots: .substitute(SlotContents(contents)), depth: context.depth, isTopLevel: false, quiet: true)
+        let countBefore = built.nodes.count
         expand(definition.rawBody, context: bodyContext, state: state, into: &built)
+        if built.nodes.count == countBefore, !state.budgetHit {
+            var marker = callSite
+            marker.useFrame = frame
+            marker.isExpansionMarker = true
+            built.append(marker, height: 0, count: 0)
+        }
     }
 
     private static func expandRuntimeUse(_ node: ExpandedNode, context: ExpansionContext, state: UseExpansionState) -> Built {

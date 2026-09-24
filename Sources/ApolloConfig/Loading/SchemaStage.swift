@@ -121,6 +121,7 @@ enum SchemaStage {
 
     private static func check(_ node: ExpandedNode, walk: WalkContext, state: SchemaWalkState) -> CheckedNode? {
         validateCallSites(of: node.useFrame, walk: walk, state: state)
+        if node.isExpansionMarker { return nil }
         let registry = state.registry
         let kdl = node.kdl
         let env = walk.environment(for: node, registry: registry)
@@ -135,6 +136,10 @@ enum SchemaStage {
         }
 
         if let schema = registry.node(kdl.name), schema.contexts.contains(walk.context) {
+            return checkStructural(node, schema: schema, walk: walk, env: env, state: state)
+        }
+
+        if walk.context == .topLevel, let schema = providerSettingsSchema(kdl.name, registry: registry) {
             return checkStructural(node, schema: schema, walk: walk, env: env, state: state)
         }
 
@@ -160,6 +165,11 @@ enum SchemaStage {
         let suggestion = Suggestion.closest(to: kdl.name, among: candidates)
         state.report(Diagnostic(.error, "unknown node '\(kdl.name)'", span: kdl.span, help: suggestion.map { "did you mean '\($0)'?" }), node: node)
         return nil
+    }
+
+    static func providerSettingsSchema(_ name: String, registry: SchemaRegistry) -> NodeSchema? {
+        guard let provider = registry.providers[name] else { return nil }
+        return NodeSchema(name: name, category: .providerSettings, feature: provider.feature, stability: provider.stability, properties: provider.settings, contexts: [.topLevel], doc: provider.doc, example: "")
     }
 
     private static func checkRuntimeUse(_ node: ExpandedNode, schema: NodeSchema, walk: WalkContext, env: ExpressionEnvironment, state: SchemaWalkState) -> CheckedNode {
