@@ -7,6 +7,7 @@ final class GlobalHotKey {
     private static var nextID: UInt32 = 1
     private static var handlerInstalled = false
     private static var actions: [UInt32: @MainActor () -> Void] = [:]
+    private static var releases: [UInt32: @MainActor () -> Void] = [:]
 
     private let id: UInt32
     private var ref: EventHotKeyRef?
@@ -17,6 +18,10 @@ final class GlobalHotKey {
     }
 
     static func register(_ key: HotKey, action: @escaping @MainActor () -> Void) -> Result<GlobalHotKey, HotKeyRegistrationError> {
+        register(key, pressed: action, released: nil)
+    }
+
+    static func register(_ key: HotKey, pressed action: @escaping @MainActor () -> Void, released: (@MainActor () -> Void)?) -> Result<GlobalHotKey, HotKeyRegistrationError> {
         let installed = installHandler()
         guard installed == noErr else { return .failure(HotKeyRegistrationError(status: installed)) }
         let id = nextID
@@ -28,6 +33,7 @@ final class GlobalHotKey {
         )
         guard status == noErr, let ref else { return .failure(HotKeyRegistrationError(status: status)) }
         actions[id] = action
+        releases[id] = released
         return .success(GlobalHotKey(id: id, ref: ref))
     }
 
@@ -35,11 +41,14 @@ final class GlobalHotKey {
         if let ref { UnregisterEventHotKey(ref) }
         ref = nil
         Self.actions[id] = nil
+        Self.releases[id]?()
+        Self.releases[id] = nil
     }
 
     private static func installHandler() -> OSStatus {
         guard !handlerInstalled else { return noErr }
-        var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+        var specs = [EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed)),
+                     EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyReleased))]
         let status = InstallEventHandler(
             GetApplicationEventTarget(),
             { _, event, _ in
@@ -50,16 +59,21 @@ final class GlobalHotKey {
                     nil, MemoryLayout<EventHotKeyID>.size, nil, &pressed
                 )
                 let hit = pressed
+                let isRelease = GetEventKind(event) == UInt32(kEventHotKeyReleased)
                 let handled = MainActor.assumeIsolated { () -> Bool in
                     guard status == noErr, hit.signature == GlobalHotKey.signature,
-                          let action = GlobalHotKey.actions[hit.id]
+                          GlobalHotKey.actions[hit.id] != nil
                     else { return false }
-                    action()
+                    if isRelease {
+                        GlobalHotKey.releases[hit.id]?()
+                    } else {
+                        GlobalHotKey.actions[hit.id]?()
+                    }
                     return true
                 }
                 return handled ? noErr : OSStatus(eventNotHandledErr)
             },
-            1, &spec, nil, nil
+            specs.count, &specs, nil, nil
         )
         if status == noErr { handlerInstalled = true }
         return status

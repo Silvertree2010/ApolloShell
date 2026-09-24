@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import ApolloShellCore
+import ApolloProviders
 import os
 
 @MainActor
@@ -10,8 +11,8 @@ final class WindowGuard {
     private let worker: WindowGuardWorker
     private let log = Logger(category: "windowguard")
     private var trusted = false
-    private var barScreenKeys: Set<String> = []
-    private var barWidth: CGFloat = 0
+    private var reserved: [String: ReservedEdges] = [:]
+    var source: @MainActor () -> [String: ReservedEdges] = { [:] }
 
     init(askForAccess: Bool = true) {
         worker = WindowGuardWorker()
@@ -31,6 +32,7 @@ final class WindowGuard {
 
     private func pollTrust() {
         let now = AXIsProcessTrusted()
+        refresh()
         guard now != trusted else { return }
         trusted = now
         if now {
@@ -51,11 +53,11 @@ final class WindowGuard {
         )
     }
 
-    func setBarScreens(_ keys: Set<String>, barWidth: CGFloat) {
-        guard keys != barScreenKeys || barWidth != self.barWidth else { return }
-        barScreenKeys = keys
-        self.barWidth = barWidth
-        log.notice("Streifen (\(Int(barWidth), privacy: .public) pt) freihalten auf \(keys.count, privacy: .public) Bildschirm(en)")
+    func refresh() {
+        let next = source().filter { !$0.value.isEmpty }
+        guard next != reserved else { return }
+        reserved = next
+        log.notice("Streifen freihalten auf \(next.count, privacy: .public) Bildschirm(en)")
         guard let screens = screensForWorker() else { return }
         worker.screensChanged(screens)
     }
@@ -68,7 +70,7 @@ final class WindowGuard {
             GuardScreen(
                 key: screen.info.key,
                 frame: WindowClamp.flipped(screen.frame, primaryHeight: primaryHeight),
-                reservedWidth: barScreenKeys.contains(screen.info.key) ? barWidth : 0
+                reserved: reserved[screen.info.key] ?? ReservedEdges()
             )
         }
     }
@@ -111,7 +113,7 @@ final class WindowGuard {
 struct GuardScreen: Sendable, Equatable {
     let key: String
     let frame: CGRect
-    let reservedWidth: CGFloat
+    let reserved: ReservedEdges
 }
 
 final class WindowGuardWorker: @unchecked Sendable {
@@ -334,10 +336,10 @@ final class WindowGuardWorker: @unchecked Sendable {
               AX.bool(window, AX.fullScreenAttribute) != true,
               let frame = AX.frame(of: window),
               let index = WindowClamp.dominantScreen(for: frame, among: screens.map(\.frame)),
-              screens[index].reservedWidth > 0,
+              !screens[index].reserved.isEmpty,
               let target = WindowClamp.clampedFrame(
                   window: frame, screen: screens[index].frame,
-                  reservedWidth: screens[index].reservedWidth, minWidth: minWidths[window] ?? 0
+                  reserved: screens[index].reserved, minWidth: minWidths[window] ?? 0
               )
         else { return }
 

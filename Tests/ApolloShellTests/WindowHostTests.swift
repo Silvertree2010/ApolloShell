@@ -21,6 +21,8 @@ final class FakeWindow: HostWindow {
     var contentSets = 0
     var frameSets = 0
     var closed = false
+    var hides = 0
+    var shows = 0
     var animations: [(opening: Bool, animator: String)] = []
     var pending: [@MainActor () -> Void] = []
 
@@ -43,8 +45,15 @@ final class FakeWindow: HostWindow {
     }
 
     func setContent(_ view: AnyView) { contentSets += 1 }
-    func show(focus: Bool) { isShown = true }
-    func hide() { isShown = false }
+    func show(focus: Bool) {
+        isShown = true
+        shows += 1
+    }
+
+    func hide() {
+        isShown = false
+        hides += 1
+    }
 
     func animate(opening: Bool, animator: any SurfaceAnimator, geometry: MotionGeometry, scrim: Double?, screen: CGRect, completion: @escaping @MainActor () -> Void) {
         animations.append((opening, animator.name))

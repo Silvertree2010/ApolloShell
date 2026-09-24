@@ -93,7 +93,64 @@ protocol HotKeyRegistration: AnyObject {
 
 @MainActor
 protocol HotKeyRegistering: AnyObject {
-    func register(_ chord: KeyChord, action: @escaping @MainActor () -> Void) -> Result<any HotKeyRegistration, HotKeyFailure>
+    func register(_ chord: KeyChord, pressed: @escaping @MainActor () -> Void, released: (@MainActor () -> Void)?) -> Result<any HotKeyRegistration, HotKeyFailure>
+}
+
+@MainActor
+final class KeyRepeater {
+    struct Timing: Equatable {
+        var delay: TimeInterval
+        var interval: TimeInterval
+
+        static var system: Timing {
+            Timing(delay: max(0.05, NSEvent.keyRepeatDelay), interval: max(0.01, NSEvent.keyRepeatInterval))
+        }
+    }
+
+    typealias Schedule = @MainActor (TimeInterval, @escaping @MainActor () -> Void) -> DispatchWorkItem
+
+    static let dispatch: Schedule = { delay, work in
+        let item = DispatchWorkItem { MainActor.assumeIsolated { work() } }
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: item)
+        return item
+    }
+
+    private let timing: @MainActor () -> Timing
+    private let schedule: Schedule
+    private var running: [String: DispatchWorkItem] = [:]
+    private var generations: [String: Int] = [:]
+
+    init(timing: @escaping @MainActor () -> Timing = { .system }, schedule: @escaping Schedule = KeyRepeater.dispatch) {
+        self.timing = timing
+        self.schedule = schedule
+    }
+
+    var active: Set<String> { Set(running.keys) }
+
+    func start(_ key: String, fire: @escaping @MainActor () -> Void) {
+        stop(key)
+        let generation = (generations[key] ?? 0) + 1
+        generations[key] = generation
+        let current = timing()
+        step(key, generation: generation, after: current.delay, interval: current.interval, fire: fire)
+    }
+
+    private func step(_ key: String, generation: Int, after delay: TimeInterval, interval: TimeInterval, fire: @escaping @MainActor () -> Void) {
+        running[key] = schedule(delay) { [weak self] in
+            guard let self, self.generations[key] == generation, self.running[key] != nil else { return }
+            fire()
+            self.step(key, generation: generation, after: interval, interval: interval, fire: fire)
+        }
+    }
+
+    func stop(_ key: String) {
+        running.removeValue(forKey: key)?.cancel()
+        generations[key] = (generations[key] ?? 0) + 1
+    }
+
+    func stopAll() {
+        for key in Array(running.keys) { stop(key) }
+    }
 }
 
 struct HotKeyFailure: Error, Equatable {
@@ -103,8 +160,8 @@ struct HotKeyFailure: Error, Equatable {
 
 @MainActor
 final class CarbonHotKeys: HotKeyRegistering {
-    func register(_ chord: KeyChord, action: @escaping @MainActor () -> Void) -> Result<any HotKeyRegistration, HotKeyFailure> {
-        switch GlobalHotKey.register(chord.hotKey, action: action) {
+    func register(_ chord: KeyChord, pressed: @escaping @MainActor () -> Void, released: (@MainActor () -> Void)?) -> Result<any HotKeyRegistration, HotKeyFailure> {
+        switch GlobalHotKey.register(chord.hotKey, pressed: pressed, released: released) {
         case .success(let key): return .success(key)
         case .failure(let error): return .failure(HotKeyFailure(taken: error.alreadyTaken, status: error.status))
         }
@@ -129,6 +186,7 @@ final class BindHotKeys {
 
     private struct Registered {
         let id: String
+        let repeats: Bool
         let registration: (any HotKeyRegistration)?
         let ok: Bool
     }
@@ -138,6 +196,7 @@ final class BindHotKeys {
     private let trigger: @MainActor (String) -> Void
     private let warn: @MainActor (Diagnostic) -> Void
     private let publish: @MainActor ([Value]) -> Void
+    let repeater: KeyRepeater
     private var entries: [Entry] = []
     private var registered: [String: Registered] = [:]
     private var warned: Set<String> = []
@@ -145,7 +204,8 @@ final class BindHotKeys {
     private(set) var registrations = 0
     private(set) var unregistrations = 0
 
-    init(bindings: BindingEngine, registrar: any HotKeyRegistering, trigger: @escaping @MainActor (String) -> Void, warn: @escaping @MainActor (Diagnostic) -> Void, publish: @escaping @MainActor ([Value]) -> Void) {
+    init(bindings: BindingEngine, registrar: any HotKeyRegistering, trigger: @escaping @MainActor (String) -> Void, warn: @escaping @MainActor (Diagnostic) -> Void, publish: @escaping @MainActor ([Value]) -> Void, repeater: KeyRepeater = KeyRepeater()) {
+        self.repeater = repeater
         self.bindings = bindings
         self.registrar = registrar
         self.trigger = trigger
@@ -193,7 +253,7 @@ final class BindHotKeys {
 
     private func refresh() {
         guard !applying else { return }
-        var desired: [String: (id: String, chord: KeyChord)] = [:]
+        var desired: [String: (id: String, chord: KeyChord, repeats: Bool)] = [:]
         var order: [String] = []
         for entry in entries where entry.active {
             guard let text = entry.chord else { continue }
@@ -206,10 +266,11 @@ final class BindHotKeys {
                 warnOnce("dup|" + canonical + "|" + entry.bind.id, "bind '\(entry.bind.id)' uses \(canonical), already taken by bind '\(first.id)'")
                 continue
             }
-            desired[canonical] = (entry.bind.id, chord)
+            desired[canonical] = (entry.bind.id, chord, entry.bind.repeats)
             order.append(canonical)
         }
-        for (canonical, current) in registered where desired[canonical]?.id != current.id {
+        for (canonical, current) in registered where desired[canonical]?.id != current.id || desired[canonical]?.repeats != current.repeats {
+            repeater.stop(canonical)
             if let registration = current.registration {
                 registration.unregister()
                 unregistrations += 1
@@ -219,12 +280,22 @@ final class BindHotKeys {
         for canonical in order where registered[canonical] == nil {
             guard let wanted = desired[canonical] else { continue }
             let id = wanted.id
-            switch registrar.register(wanted.chord, action: { [weak self] in self?.trigger(id) }) {
+            let repeats = wanted.repeats
+            let pressed: @MainActor () -> Void = { [weak self] in
+                guard let self else { return }
+                self.trigger(id)
+                if repeats { self.repeater.start(canonical) { [weak self] in self?.trigger(id) } }
+            }
+            var released: (@MainActor () -> Void)?
+            if repeats {
+                released = { [weak self] in self?.repeater.stop(canonical) }
+            }
+            switch registrar.register(wanted.chord, pressed: pressed, released: released) {
             case .success(let registration):
                 registrations += 1
-                registered[canonical] = Registered(id: id, registration: registration, ok: true)
+                registered[canonical] = Registered(id: id, repeats: repeats, registration: registration, ok: true)
             case .failure(let failure):
-                registered[canonical] = Registered(id: id, registration: nil, ok: false)
+                registered[canonical] = Registered(id: id, repeats: repeats, registration: nil, ok: false)
                 warnOnce("fail|" + canonical, failure.taken
                     ? "shortcut \(canonical) is already used by another app"
                     : "shortcut \(canonical) could not be registered (\(failure.status))")
@@ -241,6 +312,7 @@ final class BindHotKeys {
     }
 
     func removeAll() {
+        repeater.stopAll()
         for entry in entries { entry.handles.forEach { $0.cancel() } }
         entries = []
         for current in registered.values { current.registration?.unregister() }

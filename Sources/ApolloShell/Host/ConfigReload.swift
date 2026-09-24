@@ -29,9 +29,9 @@ final class ReloadDebouncer {
 
 final class FolderWatcher: @unchecked Sendable {
     private var stream: FSEventStreamRef?
-    private let onChange: @Sendable () -> Void
+    private let onChange: @Sendable ([String]) -> Void
 
-    init(onChange: @escaping @Sendable () -> Void) {
+    init(onChange: @escaping @Sendable ([String]) -> Void) {
         self.onChange = onChange
     }
 
@@ -40,12 +40,13 @@ final class FolderWatcher: @unchecked Sendable {
         let unique = Array(Set(paths.filter { FileManager.default.fileExists(atPath: $0) })).sorted()
         guard !unique.isEmpty else { return }
         var context = FSEventStreamContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil, release: nil, copyDescription: nil)
-        let callback: FSEventStreamCallback = { _, info, _, _, _, _ in
+        let callback: FSEventStreamCallback = { _, info, _, eventPaths, _, _ in
             guard let info else { return }
-            Unmanaged<FolderWatcher>.fromOpaque(info).takeUnretainedValue().onChange()
+            let paths = (Unmanaged<CFArray>.fromOpaque(eventPaths).takeUnretainedValue() as? [String]) ?? []
+            Unmanaged<FolderWatcher>.fromOpaque(info).takeUnretainedValue().onChange(paths)
         }
         guard let stream = FSEventStreamCreate(nil, callback, &context, unique as CFArray, FSEventStreamEventId(kFSEventStreamEventIdSinceNow), 0.05,
-                                               FSEventStreamCreateFlags(kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagNoDefer)) else { return }
+                                               FSEventStreamCreateFlags(kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagNoDefer | kFSEventStreamCreateFlagUseCFTypes)) else { return }
         FSEventStreamSetDispatchQueue(stream, .main)
         FSEventStreamStart(stream)
         self.stream = stream

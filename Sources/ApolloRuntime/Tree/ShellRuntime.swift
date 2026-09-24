@@ -37,6 +37,7 @@ public final class ShellRuntime: SurfaceControlling {
     public var onWarning: (@MainActor (Diagnostic) -> Void)?
     public var onDiagnostics: (@MainActor ([Diagnostic]) -> Void)?
     public var onConfigApplied: (@MainActor (_ old: ConfigIR?, _ new: ConfigIR) -> Void)?
+    public var preferredScreen: (@MainActor () -> String?)?
 
     enum EachKeyLookup {
         case dictionary
@@ -229,7 +230,7 @@ public final class ShellRuntime: SurfaceControlling {
             warn(key: "unknown-surface|" + surfaceID, Diagnostic(.warning, "unknown surface '\(surfaceID)'"))
             return
         }
-        let preferred = screenKey ?? screens.first
+        let preferred = screenKey ?? preferredScreen?() ?? screens.first
         let target = candidates.first { $0.instance.screenKey == preferred } ?? candidates[0]
         guard !target.instance.isOpen else { return }
         if let group = groupName(target) {

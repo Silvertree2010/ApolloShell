@@ -3,6 +3,7 @@ import SwiftUI
 import ApolloConfig
 import ApolloRuntime
 import ApolloProviders
+import ApolloShellCore
 
 @MainActor
 protocol WindowHostLink: AnyObject {
@@ -28,6 +29,7 @@ final class SurfaceWindowController {
     var insets = EdgeInsets()
     var openFrame: CGRect = .zero
     var timeout: DispatchWorkItem?
+    var hovered = false
 
     init(surface: SurfaceInstance, window: any HostWindow, spec: SurfaceWindowSpec) {
         self.surface = surface
@@ -59,6 +61,11 @@ final class WindowHost: SurfaceHosting {
     private var spaceObserver: NSObjectProtocol?
     private weak var spaceCenter: NotificationCenter?
     var onSpaceChange: () -> Void = {}
+    var pointer: @MainActor () -> CGPoint = { NSEvent.mouseLocation }
+    var scheduleTimer: @MainActor (TimeInterval, DispatchWorkItem) -> Void = { delay, work in
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+    static let hoverPoll: TimeInterval = 0.25
 
     static let windowKinds: Set<String> = ["panel", "popup", "overlay", "toast", "osd", "window"]
 
@@ -245,15 +252,27 @@ final class WindowHost: SurfaceHosting {
         }
     }
 
-    private func scheduleTimeout(_ controller: SurfaceWindowController) {
+    private func scheduleTimeout(_ controller: SurfaceWindowController, after delay: TimeInterval? = nil) {
         controller.timeout?.cancel()
+        controller.timeout = nil
         guard let seconds = controller.spec.timeout else { return }
+        if delay == nil { controller.hovered = false }
         let id = controller.surface.id
-        let work = DispatchWorkItem { [weak self] in
-            MainActor.assumeIsolated { self?.link?.close(id) }
+        let work = DispatchWorkItem { [weak self, weak controller] in
+            MainActor.assumeIsolated {
+                guard let self, let controller, self.controllers.values.contains(where: { $0 === controller }) else { return }
+                if controller.openFrame.contains(self.pointer()) {
+                    controller.hovered = true
+                    self.scheduleTimeout(controller, after: Self.hoverPoll)
+                } else if controller.hovered {
+                    self.scheduleTimeout(controller)
+                } else {
+                    self.link?.close(id)
+                }
+            }
         }
         controller.timeout = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)
+        scheduleTimer(delay ?? seconds, work)
     }
 
     private func updateReserves() {
@@ -273,6 +292,39 @@ final class WindowHost: SurfaceHosting {
         guard next != reserves else { return }
         reserves = next
         onReservesChanged(next)
+    }
+}
+
+extension WindowHost {
+    func reservedEdges() -> [String: ReservedEdges] {
+        var result: [String: ReservedEdges] = [:]
+        for controller in controllers.values where controller.spec.reserve && controller.shown {
+            let key = controller.surface.screenKey
+            guard let screen = screens[key]?.frame else { continue }
+            let frame = controller.openFrame
+            var edges = result[key] ?? ReservedEdges()
+            switch SurfacePlacement(kind: controller.surface.ir.kind, property: controller.surface.property, style: .init()).anchor {
+            case .left: edges.left = max(edges.left, frame.maxX - screen.minX)
+            case .right: edges.right = max(edges.right, screen.maxX - frame.minX)
+            case .top: edges.top = max(edges.top, screen.maxY - frame.minY)
+            case .bottom: edges.bottom = max(edges.bottom, frame.maxY - screen.minY)
+            default: continue
+            }
+            result[key] = edges
+        }
+        return result
+    }
+
+    func hoverTargets() -> [EdgeHoverController.Target] {
+        controllers.keys.sorted().compactMap { key in
+            guard let controller = controllers[key], controller.spec.hoverEdge,
+                  let screen = screens[controller.surface.screenKey] else { return nil }
+            let surface = controller.surface
+            let anchor = SurfacePlacement(kind: surface.ir.kind, property: surface.property, style: .init()).anchor
+            return EdgeHoverController.Target(key: key, surfaceID: surface.id, screenKey: surface.screenKey, anchor: anchor,
+                                              frame: controller.openFrame, screen: screen.frame, margin: controller.spec.hoverMargin,
+                                              gap: controller.spec.hoverGap, isOpen: surface.isOpen)
+        }
     }
 }
 

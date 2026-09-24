@@ -19,17 +19,20 @@ final class FakeRegistration: HotKeyRegistration {
 @MainActor
 final class FakeRegistrar: HotKeyRegistering {
     var active: [String: @MainActor () -> Void] = [:]
+    var releases: [String: @MainActor () -> Void] = [:]
     var taken: Set<String> = []
     var registered: [String] = []
 
-    func register(_ chord: KeyChord, action: @escaping @MainActor () -> Void) -> Result<any HotKeyRegistration, HotKeyFailure> {
+    func register(_ chord: KeyChord, pressed action: @escaping @MainActor () -> Void, released: (@MainActor () -> Void)?) -> Result<any HotKeyRegistration, HotKeyFailure> {
         if taken.contains(chord.canonical) { return .failure(HotKeyFailure(taken: true, status: -9878)) }
         registered.append(chord.canonical)
         active[chord.canonical] = action
+        releases[chord.canonical] = released
         return .success(FakeRegistration(chord: chord.canonical, owner: self))
     }
 
     func press(_ chord: String) { active[chord]?() }
+    func release(_ chord: String) { releases[chord]?() }
 }
 
 @MainActor
@@ -41,11 +44,11 @@ final class KeysFixture {
     var published: [Value] = []
     var triggered: [String] = []
 
-    init(_ shell: String) throws {
+    init(_ shell: String, repeater: KeyRepeater = KeyRepeater()) throws {
         fixture = try HostFixture(shell)
         var sink: KeysFixture?
         keys = BindHotKeys(bindings: fixture.assembly.bindings, registrar: registrar, trigger: { sink?.triggered.append($0) },
-                           warn: { sink?.warnings.append($0.message) }, publish: { sink?.published = $0 })
+                           warn: { sink?.warnings.append($0.message) }, publish: { sink?.published = $0 }, repeater: repeater)
         sink = self
         keys.apply(fixture.ir?.binds ?? [])
         fixture.flush()

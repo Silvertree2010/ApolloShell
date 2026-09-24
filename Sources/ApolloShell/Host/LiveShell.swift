@@ -38,27 +38,40 @@ final class LiveShell: WindowHostLink {
     let paths: ConfigPaths
     let settings: SettingsStore
     let overlay = ErrorOverlayModel()
+    let fullscreen: FullscreenMonitor
+    let edgeHover = EdgeHoverController()
     private(set) var assembly: ShellAssembly?
     private(set) var hotKeys: BindHotKeys?
     private(set) var location: ConfigLocation?
     private(set) var steps: [String] = []
+    private(set) var providerIDs: [String] = []
+    private(set) var reloadsApplied = 0
     private var system: SystemProviders?
     private var icons: any AppIconSource = WorkspaceAppIcons()
     private var shell = Record()
     private var overlayWindow: ErrorOverlayWindow?
     private var watcher: FolderWatcher?
-    private let debouncer = ReloadDebouncer()
+    let debouncer = ReloadDebouncer()
     private var socket: ControlSocketServer?
     private var updates: UpdateController?
     private var crashes: CrashReporter?
+    private var commandCenter: CommandCenterController?
+    private var windowGuard: WindowGuard?
+    private var writers: [String: StateWriter] = [:]
     private var reloading = false
+    private var reloadGeneration = 0
     private var watchedFiles: [URL] = []
     var registrar: any HotKeyRegistering = CarbonHotKeys()
     var interactive = true
+    var currentScreens: @MainActor () -> [String: ScreenGeometry] = {
+        Dictionary(ShellScreens.current().map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame)) }, uniquingKeysWith: { first, _ in first })
+    }
+    var pointerScreen: @MainActor () -> String? = { ShellScreens.underPointer()?.info.key }
 
-    init(options: Options, host: WindowHost = WindowHost(), environment: [String: String] = ProcessInfo.processInfo.environment, home: URL = FileManager.default.homeDirectoryForCurrentUser) {
+    init(options: Options, host: WindowHost = WindowHost(), environment: [String: String] = ProcessInfo.processInfo.environment, home: URL = FileManager.default.homeDirectoryForCurrentUser, fullscreen: FullscreenMonitor? = nil) {
         self.options = options
         self.host = host
+        self.fullscreen = fullscreen ?? FullscreenMonitor.live()
         paths = ConfigPaths.standard(environment: environment, home: home, bundleResources: options.resources)
         settings = SettingsStore(file: paths.userConfig.appendingPathComponent("settings.kdl"))
         host.log = Self.log
@@ -79,7 +92,11 @@ final class LiveShell: WindowHostLink {
     }
 
     func activeLocation() -> ConfigLocation {
-        catalog.active
+        resolveActive().0
+    }
+
+    func resolveActive() -> (ConfigLocation, [Diagnostic]) {
+        ActiveConfigResolver.resolve(cliOverride: options.config, settings: settings.settings, paths: paths, fileSystem: DiskFileSystem())
     }
 
     func load(_ location: ConfigLocation) async -> ConfigLoadResult {
@@ -88,6 +105,24 @@ final class LiveShell: WindowHostLink {
             let loader = ConfigLoader(fileSystem: DiskFileSystem(), paths: paths, registry: .builtin, filters: .builtin, shellVersion: ShellVersion.current)
             return loader.load(location)
         }.value
+    }
+
+    func stateFile(_ location: ConfigLocation) -> URL {
+        paths.stateDirectory.appendingPathComponent("\(location.id).kdl")
+    }
+
+    func writer(for location: ConfigLocation) -> StateWriter {
+        if let writer = writers[location.id] { return writer }
+        let writer = StateWriter(file: stateFile(location), fileSystem: DiskFileSystem())
+        writers[location.id] = writer
+        return writer
+    }
+
+    func persisted(for location: ConfigLocation, ir: ConfigIR?) -> [String: Value] {
+        guard let ir, let text = try? String(contentsOf: stateFile(location), encoding: .utf8) else { return [:] }
+        let (values, diagnostics) = VarStateFile.read(text, file: stateFile(location).path, declarations: ir.vars)
+        for diagnostic in diagnostics { overlay.add(diagnostic) }
+        return values
     }
 
     func start() async throws {
@@ -106,6 +141,10 @@ final class LiveShell: WindowHostLink {
             self?.overlay.add(diagnostic)
         }
         assembly.runtime.onConfigApplied = { [weak self] _, new in self?.configApplied(new) }
+        assembly.runtime.preferredScreen = { [weak self] in
+            guard let self, let key = self.pointerScreen(), self.host.screens[key] != nil else { return nil }
+            return key
+        }
         hotKeys = BindHotKeys(bindings: assembly.bindings, registrar: registrar, trigger: { [weak assembly] id in
             _ = assembly?.runtime.triggerBind(id, event: Record())
         }, warn: { [weak self] diagnostic in
@@ -114,11 +153,10 @@ final class LiveShell: WindowHostLink {
             self?.setShell("hotkeys", .list(list))
         })
         steps.append("config")
-        var location = activeLocation()
+        var (location, failed) = resolveActive()
         var result = await load(location)
-        var failed: [Diagnostic] = []
         if result.ir == nil {
-            failed = result.diagnostics
+            failed += result.diagnostics
             location = ConfigLocation(id: "apolloshell-default", root: paths.builtinConfigs.appendingPathComponent("apolloshell-default"), isBuiltin: true)
             result = await load(location)
         }
@@ -135,17 +173,18 @@ final class LiveShell: WindowHostLink {
         steps.append("surfaces")
         refreshScreens()
         shell = Record([("config", .string(location.id)), ("version", .string(ShellVersion.current))])
-        guard assembly.runtime.applyLoaded(result, persisted: [:], screens: Array(host.screens.keys).sorted(), shell: shell) else {
+        guard assembly.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Array(host.screens.keys).sorted(), shell: shell, writer: writer(for: location)) else {
             throw RenderError.config("config \(location.root.path) did not load")
         }
+        if !failed.isEmpty { overlay.show(failed + overlay.problems.filter { problem in !failed.contains { $0.message == problem.message } }) }
         host.observeSpaces()
+        host.onSpaceChange = { [weak self] in self?.fullscreen.poke() }
+        fullscreen.apply = { [weak self] hidden, key in self?.assembly?.runtime.setHiddenByFullscreen(hidden, screenKey: key) }
+        fullscreen.setScreens(Array(host.screens.keys))
+        setUpEdgeHover()
         ShellScreens.onChange { [weak self] in
-            guard let self, let assembly = self.assembly else { return }
-            self.refreshScreens()
-            guard !self.host.screens.isEmpty else { return }
-            assembly.runtime.setScreens(Array(self.host.screens.keys).sorted())
-            self.host.screensChanged(self.host.screens)
-            self.system?.wm.screensChanged()
+            guard let self else { return }
+            self.screensDidChange(self.currentScreens())
         }
         watch()
         steps.append("services")
@@ -155,21 +194,69 @@ final class LiveShell: WindowHostLink {
         Self.log("started: config \(location.root.path), providers \(options.fixture == nil ? "system" : "fixture"), \(host.controllers.count) window(s)")
     }
 
+    func screensDidChange(_ screens: [String: ScreenGeometry]) {
+        guard let assembly, !screens.isEmpty else { return }
+        host.screens = screens
+        assembly.runtime.setScreens(Array(screens.keys).sorted())
+        host.screensChanged(screens)
+        fullscreen.setScreens(Array(screens.keys))
+        system?.wm.screensChanged()
+        windowGuard?.refresh()
+        edgeHover.refresh()
+    }
+
+    private func setUpEdgeHover() {
+        edgeHover.targets = { [weak self] in self?.host.hoverTargets() ?? [] }
+        edgeHover.isFullscreen = { [weak self] key in self?.fullscreen.contains(key) ?? false }
+        edgeHover.open = { [weak self] id, screen in self?.assembly?.runtime.open(id, screenKey: screen) }
+        edgeHover.close = { [weak self] id in self?.assembly?.runtime.close(id) }
+        edgeHover.refresh()
+    }
+
     private func installProviders(_ assembly: ShellAssembly) {
         if let fixtureURL = options.fixture {
             let fixture = ProviderFixture.load(fixtureURL)
             Self.report(fixture.diagnostics)
-            assembly.install(FixtureProvider.all(fixture: fixture, onAction: { action, _, _ in
+            let list = FixtureProvider.all(fixture: fixture, onAction: { action, _, _ in
                 Self.log("action \(action) (not run)")
-            }))
+            })
+            providerIDs = list.map(\.schema.id)
+            assembly.install(list)
             icons = FixtureAppIcons()
             return
         }
         let system = SystemProviders(directory: paths.applicationSupport, socketPath: socketPath, polls: [], listens: [], clock: DispatchRuntimeClock())
         self.system = system
+        providerIDs = system.providers.map(\.schema.id)
         assembly.install(system.providers)
         let wm = system.wm
-        host.onReservesChanged = { reserves in wm.setPanelReserves(reserves) }
+        host.onReservesChanged = { [weak self] reserves in
+            wm.setPanelReserves(reserves)
+            self?.reservesChanged()
+        }
+    }
+
+    private func reservesChanged() {
+        guard interactive else { return }
+        let edges = host.reservedEdges()
+        if windowGuard == nil, !edges.isEmpty {
+            windowGuard = WindowGuard(askForAccess: !onboardingOpen)
+            windowGuard?.source = { [weak self] in
+                guard let self, self.system?.wm.isEngineRunning != true else { return [:] }
+                return self.host.reservedEdges()
+            }
+        }
+        windowGuard?.refresh()
+    }
+
+    private var onboardingOpen: Bool {
+        host.controllers.values.contains { controller in
+            guard controller.surface.ir.kind == "window", controller.surface.isOpen else { return false }
+            if case .string(let classes) = controller.surface.property("class") {
+                return classes.split(separator: " ").contains("onboarding")
+            }
+            return false
+        }
     }
 
     var socketPath: String {
@@ -196,6 +283,7 @@ final class LiveShell: WindowHostLink {
         }
         system?.wm.apply(WMSettings(config: ir))
         hotKeys?.apply(ir.binds)
+        edgeHover.refresh()
     }
 
     private func setShell(_ name: String, _ value: Value) {
@@ -206,36 +294,72 @@ final class LiveShell: WindowHostLink {
     }
 
     private func refreshScreens() {
-        let current = ShellScreens.current()
+        let current = currentScreens()
         guard !current.isEmpty else { return }
-        host.screens = Dictionary(current.map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame)) }, uniquingKeysWith: { first, _ in first })
+        host.screens = current
     }
 
     func watch() {
         guard let location else { return }
-        let watcher = FolderWatcher { [weak self] in
-            DispatchQueue.main.async { MainActor.assumeIsolated { self?.debouncer.poke() } }
+        let watcher = FolderWatcher { [weak self] paths in
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.filesChanged(paths) } }
         }
-        watcher.watch([location.root.path, paths.userConfig.path] + watchedFiles.map { $0.deletingLastPathComponent().path })
+        watcher.watch([location.root.path, paths.userConfig.path, paths.stateDirectory.path] + watchedFiles.map { $0.deletingLastPathComponent().path })
         self.watcher = watcher
     }
 
-    func reload() {
-        guard let location = activeLocationForReload() else { return }
-        Task { @MainActor in
+    func filesChanged(_ changed: [String]) {
+        let state = paths.stateDirectory.standardizedFileURL.path + "/"
+        let onlyState = !changed.isEmpty && changed.allSatisfy { URL(fileURLWithPath: $0).standardizedFileURL.path.hasPrefix(state) }
+        if onlyState {
+            stateChanged()
+        } else {
+            debouncer.poke()
+        }
+    }
+
+    func stateChanged() {
+        guard let location, let assembly, let writer = writers[location.id],
+              let text = try? String(contentsOf: stateFile(location), encoding: .utf8),
+              text != writer.lastWrittenText else { return }
+        assembly.vars.applyExternal(text: text)
+    }
+
+    @discardableResult
+    func reload() -> Task<Void, Never>? {
+        guard let location = activeLocationForReload() else { return nil }
+        reloadGeneration += 1
+        let generation = reloadGeneration
+        return Task { @MainActor in
             let result = await load(location)
+            guard generation == reloadGeneration else { return }
+            if result.ir != nil, Self.shellFileIsEmpty(location) {
+                Self.log("shell.kdl of \(location.id) is empty, keeping the last config")
+                return
+            }
             self.location = location
+            if result.ir != nil { watchedFiles = result.files }
             reloading = true
-            _ = assembly?.runtime.applyLoaded(result, persisted: [:], screens: Array(host.screens.keys).sorted(), shell: shell)
+            if assembly?.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Array(host.screens.keys).sorted(), shell: shell, writer: writer(for: location)) == true {
+                reloadsApplied += 1
+            }
             reloading = false
         }
+    }
+
+    static func shellFileIsEmpty(_ location: ConfigLocation) -> Bool {
+        let file = location.root.appendingPathComponent("shell.kdl")
+        guard let text = try? String(contentsOf: file, encoding: .utf8) else { return false }
+        return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func activeLocationForReload() -> ConfigLocation? {
         guard let location else { return nil }
         if location.id == "render-dock" { return location }
         _ = settings.reload()
-        return activeLocation()
+        let (next, diagnostics) = resolveActive()
+        for diagnostic in diagnostics { overlay.add(diagnostic) }
+        return next
     }
 
     private func startServices() {
@@ -247,6 +371,9 @@ final class LiveShell: WindowHostLink {
             self?.openInEditor(diagnostic)
         }, reload: { [weak self] in self?.reload() })
         overlayWindow?.update()
+        commandCenter = CommandCenterController(entries: { [weak self] in self?.commandCenterEntries() ?? [] }, perform: { [weak self] command in
+            self?.perform(command)
+        })
         let control = LiveShellControl(shell: self)
         let server = ControlSocketServer(path: socketPath, service: ControlRouter(shell: control, configs: catalog, themes: ThemeCatalog(paths: paths, settings: settings)))
         do {
@@ -256,6 +383,118 @@ final class LiveShell: WindowHostLink {
             Self.log("control socket failed: \(error)")
         }
         updates = UpdateController(settings: settings, machine: machine)
+        fullscreen.observe()
+        reservesChanged()
+    }
+
+    func commandCenterEntries() -> [MenuEntry] {
+        let active = location?.id
+        let themes = ThemeCatalog(paths: paths, settings: settings).list()
+        var state = CommandCenterState(configs: catalog.list().map { .init(id: $0.id, isActive: $0.id == active) },
+                                       themes: themes.map { .init(id: $0.id, issueCount: $0.issueCount, isActive: $0.isActive) })
+        state.problemCount = overlay.problems.count
+        return CommandCenterModel.build(nil, state: state)
+    }
+
+    func perform(_ command: MenuCommand) {
+        switch command {
+        case .reloadConfig: reload()
+        case .showProblems: overlay.show(overlay.problems)
+        case .selectConfig(let id):
+            do { try catalog.select(id); reload() } catch { overlay.add(Diagnostic(.warning, "\(error)")) }
+        case .selectTheme(let id):
+            do { try ThemeCatalog(paths: paths, settings: settings).select(id); reload() } catch { overlay.add(Diagnostic(.warning, "\(error)")) }
+        case .openConfigFolder: if let location { NSWorkspace.shared.open(location.root) }
+        case .openThemesFolder: NSWorkspace.shared.open(paths.themesDirectory)
+        case .checkForUpdates: updates?.checkNow()
+        case .about:
+            NSApp.activate()
+            NSApp.orderFrontStandardAboutPanel(nil)
+        case .quit, .restart:
+            shutdown()
+            NSApp.terminate(nil)
+        case .custom(let name): _ = assembly?.runtime.emit("command-center." + name, Record())
+        default: Self.log("command center: \(command) is not wired yet")
+        }
+    }
+
+    func runActions(_ text: String) async throws -> Value {
+        let root = URL(fileURLWithPath: "/ipc")
+        let fileSystem = MemoryFileSystem([root.appendingPathComponent("shell.kdl").path: "bind \"f20\" id=\"ipc-run\" {\n\(text)\n}\n"])
+        let loader = ConfigLoader(fileSystem: fileSystem, paths: ConfigPaths(builtinConfigs: root, userConfig: root, applicationSupport: root), registry: .builtin, filters: .builtin, shellVersion: ShellVersion.current)
+        let result = loader.load(ConfigLocation(id: "ipc", root: root, isBuiltin: false))
+        let errors = result.diagnostics.filter { $0.severity == .error }
+        guard errors.isEmpty, let actions = result.ir?.binds.first?.actions, let assembly else {
+            throw ShellControlError(errors.map(\.message).joined(separator: "\n").isEmpty ? "could not run the actions" : errors.map(\.message).joined(separator: "\n"))
+        }
+        await assembly.actions.trigger(actions, site: "ipc#run", environment: ActionEnvironment())?.value
+        return .null
+    }
+
+    func compiled(_ expression: String) throws -> CompiledValue {
+        let span = SourceSpan.synthetic("ipc")
+        switch ExpressionParser.parseTemplate("{" + expression + "}", span: span) {
+        case .success(let template): return CompiledValue(template: template, dependencies: template.dependencies(locals: []), span: span)
+        case .failure(let diagnostic): throw ShellControlError(diagnostic.message)
+        }
+    }
+
+    func evaluate(_ expression: String) throws -> Value {
+        guard let assembly else { throw LiveShellControl.unavailable("eval") }
+        let value = try compiled(expression)
+        var result: Value = .null
+        let handle = assembly.bindings.bind(value, scope: LocalScope(), active: true) { result = $0 }
+        handle.cancel()
+        return result
+    }
+
+    func watchExpression(_ expression: String) throws -> AsyncStream<Value> {
+        guard let assembly else { throw LiveShellControl.unavailable("watch") }
+        let value = try compiled(expression)
+        let (stream, continuation) = AsyncStream<Value>.makeStream()
+        let handle = assembly.bindings.bind(value, scope: LocalScope(), active: true) { continuation.yield($0) }
+        let box = HandleBox(handle)
+        continuation.onTermination = { _ in
+            Task { @MainActor in box.handle?.cancel() }
+        }
+        return stream
+    }
+
+    func variable(_ name: String) throws -> Value {
+        guard let vars = assembly?.vars, vars.isDeclared(name) else { throw ShellControlError("no var named '\(name)'") }
+        return vars.value(name)
+    }
+
+    func setVariable(_ name: String, _ value: Value) throws {
+        guard let vars = assembly?.vars, vars.isDeclared(name) else { throw ShellControlError("no var named '\(name)'") }
+        guard vars.set(name, value) else { throw ShellControlError("var '\(name)' cannot be set to this value") }
+    }
+
+    func providerValues() -> Value {
+        guard let store = assembly?.store else { return .record(Record()) }
+        return .record(Record(providerIDs.sorted().map { ($0, store.value(DependencyPath($0, []))) }))
+    }
+
+    func tree(_ surfaceID: String?) throws -> Value {
+        let controllers = host.controllers.keys.sorted().compactMap { host.controllers[$0] }
+            .filter { surfaceID == nil || $0.surface.id == surfaceID }
+        if let surfaceID, controllers.isEmpty { throw ShellControlError("unknown surface '\(surfaceID)'") }
+        return .list(controllers.map { controller in
+            let surface = controller.surface
+            return .record(Record([
+                ("surface", .string(surface.id)), ("screen", .string(surface.screenKey)), ("kind", .string(surface.ir.kind)),
+                ("open", .bool(surface.isOpen)), ("visible", .bool(surface.isVisible)),
+                ("children", .list(surface.root.map(Self.node))),
+            ]))
+        })
+    }
+
+    static func node(_ element: ElementInstance) -> Value {
+        .record(Record([
+            ("kind", .string(element.kind)),
+            ("identity", .string(String(describing: element.identity))),
+            ("children", .list(element.children.map(node))),
+        ]))
     }
 
     func openInEditor(_ diagnostic: Diagnostic) {
@@ -291,6 +530,11 @@ final class LiveShell: WindowHostLink {
     }
 
     func shutdown() {
+        edgeHover.stop()
+        fullscreen.stop()
+        commandCenter?.remove()
+        commandCenter = nil
+        assembly?.vars.flushPendingSaves()
         watcher?.stop()
         socket?.stop()
         hotKeys?.removeAll()
@@ -328,8 +572,9 @@ final class LiveShellControl: ShellControl, @unchecked Sendable {
     var shellVersion: String { ShellVersion.current }
 
     func reload() async -> DiagnosticSummary {
-        await MainActor.run {
-            shell?.reload()
+        let task = await MainActor.run { shell?.reload() }
+        await task?.value
+        return await MainActor.run {
             let problems = shell?.overlay.problems ?? []
             return DiagnosticSummary(text: problems.map(\.message).joined(separator: "\n"),
                                      errors: problems.filter { $0.severity == .error }.count,
@@ -381,21 +626,49 @@ final class LiveShellControl: ShellControl, @unchecked Sendable {
         await quit()
     }
 
-    func openCommandCenter() async {}
+    func openCommandCenter() async {
+        await MainActor.run { shell?.commandCenterPopUp() }
+    }
 
-    func run(_ actions: String) async throws -> Value { throw Self.unavailable("run") }
-    func evaluate(_ expression: String) async throws -> Value { throw Self.unavailable("eval") }
-    func watch(_ expression: String) async throws -> AsyncStream<Value> { throw Self.unavailable("watch") }
-    func variable(_ name: String) async throws -> Value { throw Self.unavailable("var") }
-    func setVariable(_ name: String, to value: Value) async throws { throw Self.unavailable("set") }
+    @MainActor
+    private func live(_ command: String) throws -> LiveShell {
+        guard let shell else { throw Self.unavailable(command) }
+        return shell
+    }
+
+    func run(_ actions: String) async throws -> Value {
+        let shell = try await live("run")
+        return try await shell.runActions(actions)
+    }
+
+    func evaluate(_ expression: String) async throws -> Value {
+        try await MainActor.run { try live("eval").evaluate(expression) }
+    }
+
+    func watch(_ expression: String) async throws -> AsyncStream<Value> {
+        try await MainActor.run { try live("watch").watchExpression(expression) }
+    }
+
+    func variable(_ name: String) async throws -> Value {
+        try await MainActor.run { try live("get").variable(name) }
+    }
+
+    func setVariable(_ name: String, to value: Value) async throws {
+        try await MainActor.run { try live("set").setVariable(name, value) }
+    }
     func emit(_ name: String, event: Value) async throws {
         await MainActor.run {
             let fields: Record = if case .record(let record) = event { record } else { Record() }
             _ = shell?.assembly?.runtime.emit(name, fields)
         }
     }
-    func providers() async -> Value { .list([]) }
-    func tree(_ surface: String?) async throws -> Value { throw Self.unavailable("tree") }
+    func providers() async -> Value {
+        await MainActor.run { shell?.providerValues() ?? .record(Record()) }
+    }
+
+    func tree(_ surface: String?) async throws -> Value {
+        try await MainActor.run { try live("tree").tree(surface) }
+    }
     func custom(_ request: ControlRequest) async -> ControlReply { .failure("unknown command \(request.cmd)") }
 
     static func unavailable(_ command: String) -> ShellControlError {
@@ -405,4 +678,17 @@ final class LiveShellControl: ShellControl, @unchecked Sendable {
 
 extension LiveShell {
     var systemWM: WMProvider? { system?.wm }
+
+    func commandCenterPopUp() {
+        commandCenter?.popUpUnderPointer()
+    }
+}
+
+@MainActor
+final class HandleBox {
+    var handle: BindingHandle?
+
+    init(_ handle: BindingHandle) {
+        self.handle = handle
+    }
 }

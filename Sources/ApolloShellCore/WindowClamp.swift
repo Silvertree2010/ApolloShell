@@ -87,3 +87,48 @@ public struct ClampLedger<Key: Hashable> {
 
     public var count: Int { Set(lastFrames.keys).union(attempts.keys).count }
 }
+
+public struct ReservedEdges: Sendable, Equatable {
+    public var left: CGFloat
+    public var right: CGFloat
+    public var top: CGFloat
+    public var bottom: CGFloat
+
+    public init(left: CGFloat = 0, right: CGFloat = 0, top: CGFloat = 0, bottom: CGFloat = 0) {
+        self.left = left
+        self.right = right
+        self.top = top
+        self.bottom = bottom
+    }
+
+    public var isEmpty: Bool { left <= 0 && right <= 0 && top <= 0 && bottom <= 0 }
+}
+
+extension WindowClamp {
+    public static func clampedFrame(window: CGRect, screen: CGRect, reserved: ReservedEdges, minWidth: CGFloat = 0) -> CGRect? {
+        guard !reserved.isEmpty, window.width > 0, window.height > 0 else { return nil }
+        var result = window
+        if reserved.left > 0, let clamped = clampedFrame(window: result, screen: screen, reservedWidth: reserved.left, minWidth: minWidth) {
+            result = clamped
+        }
+        let leftLimit = screen.minX + max(0, reserved.left)
+        if reserved.right > 0 {
+            let limit = screen.maxX - reserved.right
+            if result.maxX > limit + tolerance {
+                result.origin.x = max(leftLimit, limit - result.width)
+                result.size.width = max(limit - result.origin.x, minWidth)
+            }
+        }
+        let topLimit = screen.minY + max(0, reserved.top)
+        let bottomLimit = screen.maxY - max(0, reserved.bottom)
+        if reserved.top > 0, result.minY < topLimit - tolerance {
+            result.origin.y = topLimit
+            if result.maxY > bottomLimit { result.size.height = max(bottomLimit - topLimit, 1) }
+        }
+        if reserved.bottom > 0, result.maxY > bottomLimit + tolerance {
+            result.origin.y = max(topLimit, bottomLimit - result.height)
+            result.size.height = max(bottomLimit - result.origin.y, 1)
+        }
+        return isSameFrame(result, window) ? nil : result
+    }
+}
