@@ -126,6 +126,16 @@ struct MarketThemeInstallerTests {
         #expect(box.files(box.root).isEmpty)
     }
 
+    @Test("url(, @import and expression( inside a quoted text token are text, not rules")
+    func wordsInText() throws {
+        let box = try Sandbox()
+        let css = ":root {\n  --apollo-theme-name: \"Dusk url(x) @import expression(1)\";\n  --apollo-accent-color: #ff8a3d;\n}\n"
+        #expect(throws: Never.self) { try MarketThemeInstaller.check(Self.theme(css: css)) }
+        #expect(try box.installer.install(Self.theme(css: css)) == "dusk")
+        #expect(throws: MarketInstallProblem.usesFiles) { try MarketThemeInstaller.check(Self.theme(css: "@import url(\"x.css\");\n" + css)) }
+        #expect(throws: MarketInstallProblem.usesFiles) { try MarketThemeInstaller.check(Self.theme(css: ":root {\n  --apollo-theme-name: \"a\\\"\";\n  --apollo-wallpaper: url(\"x.png\");\n}\n")) }
+    }
+
     static func kind(_ problem: MarketInstallProblem) -> String {
         switch problem {
         case .badID: "badID"

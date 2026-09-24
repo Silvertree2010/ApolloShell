@@ -59,20 +59,57 @@ public struct MarketThemeInstaller: Sendable {
         else { throw .badID }
         guard isSlug(theme.slug) else { throw .badSlug(theme.slug) }
         guard theme.version >= 1 else { throw .badVersion(theme.version) }
-        let bytes = theme.css.utf8.count
+        try checkCSS(theme.css, identifier: theme.slug)
+    }
+
+    public static func checkCSS(_ css: String, identifier: String) throws(MarketInstallProblem) {
+        let bytes = css.utf8.count
         guard bytes <= maxCSSBytes else { throw .tooLarge(bytes: bytes, limit: maxCSSBytes) }
-        guard !theme.css.unicodeScalars.contains(where: { $0 == "\0" }) else { throw .notText }
-        let lowered = theme.css.lowercased()
-        if lowered.contains("url(") || lowered.contains("image-set(") { throw .usesFiles }
-        for rule in ["@import", "@font-face", "@namespace", "expression("] where lowered.contains(rule) {
+        guard !css.unicodeScalars.contains(where: { $0 == "\0" }) else { throw .notText }
+        let rules = withoutStringsAndComments(css).lowercased()
+        if rules.contains("url(") || rules.contains("image-set(") { throw .usesFiles }
+        for rule in ["@import", "@font-face", "@namespace", "expression("] where rules.contains(rule) {
             throw .foreignRule(rule)
         }
-        let parsed = Theme.make(identifier: theme.slug, styleSheet: ThemeStyleSheetParser.parse(theme.css))
+        let parsed = Theme.make(identifier: identifier, styleSheet: ThemeStyleSheetParser.parse(css))
         switch ThemeCanonical.css(for: parsed) {
         case .success: return
         case .failure(.usesFiles): throw .usesFiles
         case .failure(.noTokens): throw .noTokens
         }
+    }
+
+    static func withoutStringsAndComments(_ css: String) -> String {
+        var out = String.UnicodeScalarView()
+        var quote: Unicode.Scalar?
+        var inComment = false
+        var escaped = false
+        var previous: Unicode.Scalar?
+        for scalar in css.unicodeScalars {
+            if inComment {
+                if previous == "*" && scalar == "/" { inComment = false; previous = nil } else { previous = scalar }
+                out.append(" ")
+                continue
+            }
+            if let open = quote {
+                if escaped { escaped = false } else if scalar == "\\" { escaped = true } else if scalar == open || scalar == "\n" { quote = nil }
+                out.append(" ")
+                continue
+            }
+            if scalar == "\"" || scalar == "'" {
+                quote = scalar
+                out.append(" ")
+            } else if scalar == "*" && previous == "/" {
+                inComment = true
+                previous = nil
+                out.append(" ")
+                continue
+            } else {
+                out.append(scalar)
+            }
+            previous = scalar
+        }
+        return String(out)
     }
 
     public static func isSlug(_ slug: String) -> Bool {
@@ -125,9 +162,6 @@ public struct MarketThemeInstaller: Sendable {
         var index = self.index()
         let fileName = entry(theme.id, in: index)?.fileName ?? freeFileName(for: theme.slug)
         let target = themes.appendingPathComponent(fileName)
-        guard target.deletingLastPathComponent().standardizedFileURL.path == themes.standardizedFileURL.path else {
-            throw MarketInstallProblem.badSlug(theme.slug)
-        }
         if let type = Self.fileType(target) {
             switch type {
             case .typeSymbolicLink: try manager.removeItem(at: target)

@@ -364,6 +364,12 @@ public final class MarketplaceProvider: BaseProvider {
             return
         }
         guard case .success(let css) = ThemeCanonical.css(for: theme) else { return }
+        do {
+            try MarketThemeInstaller.checkCSS(css, identifier: theme.identifier)
+        } catch {
+            actionError = error.description
+            return
+        }
         await attempt { [self] in
             let result = if let id {
                 try await client.update(themeID: id, css: css)
