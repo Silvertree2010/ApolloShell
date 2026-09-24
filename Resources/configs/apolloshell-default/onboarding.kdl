@@ -64,7 +64,9 @@ window "onboarding" title="Welcome to ApolloShell" resizable=#false {
                     row class="onboarding-card onboarding-login" {
                         text "Start at Login" class="onboarding-permission-title"
                         spacer
-                        toggle checked="{shell.login-item}" disabled="{!shell.login-item-available}"
+                        toggle checked="{shell.login-item}" disabled="{!shell.login-item-available}" {
+                            on-change { shell.set-login-item "{event.value}" }
+                        }
                     }
                     text "Settings live in the Settings window, open it with {var.hotkey-settings | chord} or from the menu bar icon." class="onboarding-body"
                 }

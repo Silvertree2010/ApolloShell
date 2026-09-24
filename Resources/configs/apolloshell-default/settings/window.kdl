@@ -45,13 +45,14 @@ define "settings-switch" {
     param "title"
     param "detail" default=""
     param "checked"
+    param "disabled" default=#false
     row class="settings-row" {
         column class="settings-row-text" {
             text "{title}" class="settings-row-title"
             when "{detail != ''}" { text "{detail}" class="settings-row-detail" }
         }
         spacer
-        toggle checked="{checked}" class="settings-switch" {
+        toggle checked="{checked}" class="settings-switch" disabled="{disabled}" {
             slot
         }
     }

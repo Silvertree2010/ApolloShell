@@ -301,6 +301,49 @@
 .settings-about-head { align-items: center; padding: 20px; }
 .settings-about-mark { width: 48px; height: 48px; color: -apple-system-control-accent; }
 .settings-about-name { font-size: 18px; font-weight: 700; }
+.settings-group-title { font-weight: 600; }
+.settings-button, .settings-popup-button { gap: 6px; padding: 4px 10px; border-radius: 6px; align-items: center; background: rgb(from -apple-system-label r g b / 0.08); }
+.settings-button:hover, .settings-popup-button:hover { background: rgb(from -apple-system-label r g b / 0.12); }
+.settings-button:disabled, .settings-gallery-tile:disabled { opacity: 0.45; }
+.settings-default-button { background: -apple-system-control-accent; color: white; }
+.settings-icon-button { padding: 2px; border-radius: 6px; color: -apple-system-secondary-label; }
+.settings-icon-button:hover { background: rgb(from -apple-system-label r g b / 0.08); }
+.settings-disclosure-glyph { width: 14px; }
+.settings-module { gap: 6px; }
+.settings-module-row { padding: 4px 6px; border-radius: 8px; }
+.settings-module-row:hover { background: rgb(from -apple-system-label r g b / 0.04); }
+.settings-options { gap: 8px; padding: 8px 12px 8px 36px; }
+.settings-slider { flex-grow: 1; }
+.settings-field { flex-grow: 1; }
+.settings-confirm { gap: 8px; padding: 12px; border-radius: 10px; background: rgb(from -apple-system-control-accent r g b / 0.08); }
+.settings-gallery { gap: 8px; grid-template-columns: repeat(3, 1fr); }
+.settings-gallery-tile { padding: 10px; border-radius: 10px; min-height: 118px; background: rgb(from -apple-system-label r g b / 0.05); }
+.settings-gallery-tile:hover { background: rgb(from -apple-system-label r g b / 0.09); }
+.settings-gallery-content { gap: 4px; align-items: start; }
+.settings-gallery-glyph { font-size: 20px; color: -apple-system-control-accent; }
+.settings-badge { font-size: 11px; font-weight: 600; color: -apple-system-secondary-label; }
+.settings-toggle-grid { gap: 8px; grid-template-columns: repeat(5, 1fr); }
+.settings-toggle-tile { padding: 8px 4px; border-radius: 10px; background: rgb(from -apple-system-label r g b / 0.06); }
+.settings-toggle-tile:checked { background: rgb(from -apple-system-control-accent r g b / 0.2); }
+.settings-toggle-content { gap: 4px; align-items: center; }
+.settings-toggle-glyph { font-size: 18px; }
+.settings-toggle-title { font-size: 11px; }
+.settings-symbol-picker { gap: 8px; }
+.settings-symbol-grid { gap: 4px; grid-template-columns: repeat(8, 1fr); }
+.settings-symbol { padding: 6px; border-radius: 6px; }
+.settings-symbol:checked, .settings-symbol:hover { background: rgb(from -apple-system-label r g b / 0.1); }
+.settings-split { gap: 16px; align-items: start; }
+.settings-split-main { gap: 16px; flex-grow: 1; }
+.settings-preview { gap: 8px; pointer-events: none; }
+.settings-sidebar-preview { width: 124px; }
+.settings-preview-frame { border-radius: 12px; overflow: hidden; }
+.settings-preview-frame.bg-material { background: material(regular); }
+.settings-preview-frame.bg-glass { background: glass(regular); }
+.settings-preview-frame.bg-tinted-glass { background: glass(regular, rgb(from -apple-system-window-background r g b / 0.7)); }
+.settings-preview-frame.bg-fixed-glass { background: glass(clear), -apple-system-window-background; }
+.settings-preview-modules { transform: scale(0.6); }
+.settings-dashboard-frame { height: 240px; background: material(regular); }
+.settings-dashboard-frame > .dashboard { transform: scale(0.36); }
 
 .dock {
   -apollo-fade-edges: 4%;

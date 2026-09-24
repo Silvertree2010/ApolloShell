@@ -1,6 +1,8 @@
 define "settings-page-general" {
     column class="settings-group" {
-        use "settings-switch" title="Start at Login" checked="{shell.login-item}"
+        use "settings-switch" title="Start at Login" detail="{shell.login-item-note ?? ''}" checked="{shell.login-item}" disabled="{!shell.login-item-available}" {
+            on-change { shell.set-login-item "{event.value}" }
+        }
         use "settings-switch" title="Hide Apple's Dock" detail="While ApolloShell runs, the Dock stays hidden. It comes back when you quit." checked="{var.hide-apple-dock}" {
             on-change { set "hide-apple-dock" "{event.value}"; system.hide-apple-dock "{event.value}" }
         }
