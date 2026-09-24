@@ -33,6 +33,7 @@ public enum CSSPropertyRegistry {
     static let groups: [[CSSPropertyEntry]] = [
         CSSBoxProperties.entries,
         CSSPaintProperties.entries,
+        CSSTextProperties.entries,
     ]
 
     static let entries: [String: CSSPropertyEntry] = {
