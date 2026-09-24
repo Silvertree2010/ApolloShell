@@ -1,3 +1,4 @@
+import Foundation
 import ApolloConfig
 import ApolloRuntime
 import ApolloShellCore
@@ -15,8 +16,19 @@ public final class SystemProvider: BaseProvider {
         super.init(schema: BuiltinProviderSchemas.schema("system"), clock: clock)
     }
 
+    private var userImage: (id: String, data: Data?)?
+
+    public func userImageData(_ id: String) -> Data? {
+        guard id == source.info.userName else { return nil }
+        if let userImage, userImage.id == id { return userImage.data }
+        let data = source.userImageData()
+        userImage = (id, data)
+        return data
+    }
+
     override func didStart() {
         lastDark = nil
+        userImage = nil
         source.observeChanges { [weak self] in
             self?.refresh()
         }

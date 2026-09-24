@@ -1,3 +1,4 @@
+import Foundation
 import ApolloShellCore
 
 public struct SystemInfo: Equatable, Sendable {
@@ -51,6 +52,11 @@ public protocol SystemSource: AnyObject {
     func pickColor(_ completion: @escaping @MainActor (String?) -> Void)
     func observeChanges(_ handler: @escaping @MainActor () -> Void)
     func stopObserving()
+    func userImageData() -> Data?
+}
+
+extension SystemSource {
+    public func userImageData() -> Data? { nil }
 }
 
 @MainActor
