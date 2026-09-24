@@ -19,17 +19,18 @@ let package = Package(
         .target(name: "ApolloConfig", dependencies: ["ApolloBase", "ApolloKDL", "ApolloShellCore"]),
         .target(name: "ApolloStyle", dependencies: ["ApolloBase", "ApolloShellCore"]),
         .target(name: "ApolloRuntime", dependencies: ["ApolloBase", "ApolloKDL", "ApolloConfig", "ApolloStyle"]),
+        .target(name: "ApolloControl", dependencies: ["ApolloBase", "ApolloKDL", "ApolloConfig"]),
         .target(name: "ApolloWMCore"),
         .target(name: "ApolloWM", dependencies: ["ApolloWMCore"]),
         .executableTarget(
             name: "ApolloShell",
             dependencies: [
-                "ApolloBase", "ApolloKDL", "ApolloShellCore", "ApolloConfig", "ApolloStyle", "ApolloRuntime", "ApolloWM",
+                "ApolloBase", "ApolloKDL", "ApolloShellCore", "ApolloConfig", "ApolloStyle", "ApolloRuntime", "ApolloWM", "ApolloControl",
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
             exclude: ["Legacy"]
         ),
-        .executableTarget(name: "apollo", dependencies: ["ApolloBase", "ApolloKDL", "ApolloConfig", "ApolloStyle"]),
+        .executableTarget(name: "apollo", dependencies: ["ApolloBase", "ApolloKDL", "ApolloConfig", "ApolloStyle", "ApolloControl"]),
         .executableTarget(name: "apollowm-probe", dependencies: ["ApolloWM"]),
         .testTarget(name: "ApolloBaseTests", dependencies: ["ApolloBase"]),
         .testTarget(name: "ApolloKDLTests", dependencies: ["ApolloKDL"]),
@@ -38,6 +39,7 @@ let package = Package(
         .testTarget(name: "ApolloStyleTests", dependencies: ["ApolloStyle", "ApolloBase", "ApolloShellCore"]),
         .testTarget(name: "ApolloRuntimeTests", dependencies: ["ApolloRuntime"]),
         .testTarget(name: "ApolloWMCoreTests", dependencies: ["ApolloWMCore"]),
+        .testTarget(name: "ApolloControlTests", dependencies: ["ApolloControl", "ApolloConfig", "ApolloBase", "ApolloKDL"]),
         .testTarget(name: "ApolloShellTests", dependencies: ["ApolloShell", "ApolloBase"]),
     ]
 )
