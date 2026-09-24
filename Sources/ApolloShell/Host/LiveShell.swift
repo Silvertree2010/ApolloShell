@@ -61,6 +61,17 @@ final class LiveShell: WindowHostLink {
     private var reloading = false
     private var reloadGeneration = 0
     private var watchedFiles: [URL] = []
+    private(set) var watchedPaths: [String] = []
+    private(set) var shutdowns = 0
+    private var termination: TerminationWatch?
+    private var environmentObservers: [(NotificationCenter, NSObjectProtocol)] = []
+    private var appearanceObservation: NSKeyValueObservation?
+    private var lastIR: ConfigIR?
+    private var lastDark: Bool?
+    let keyNames = KeyNameSource()
+    var isDark: @MainActor () -> Bool = { NSApplication.shared.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua }
+    var terminateApp: @MainActor () -> Void = { NSApp.terminate(nil) }
+    var relaunch: @MainActor (URL, Int32) -> Void = LiveShell.relaunchAfterExit
     var registrar: any HotKeyRegistering = CarbonHotKeys()
     var interactive = true
     var currentScreens: @MainActor () -> [String: ScreenGeometry] = {
@@ -127,10 +138,12 @@ final class LiveShell: WindowHostLink {
 
     func start() async throws {
         steps.append("settings")
+        let names = keyNames
         let assembly = ShellAssembly(host: host, scheduler: RunLoopFlushScheduler(), filterContext: {
-            FilterContext(now: Date(), locale: .current, timeZone: .current, services: LayoutFilterServices(keyName: KeyboardLayoutNames.keyName))
+            FilterContext(now: Date(), locale: .current, timeZone: .current, services: LayoutFilterServices(keyName: { names.name($0) }))
         })
         self.assembly = assembly
+        assembly.actions.register("osd.show", OSDShowAction(shell: self))
         installProviders(assembly)
         assembly.runtime.onDiagnostics = { [weak self] diagnostics in
             Self.report(diagnostics)
@@ -269,7 +282,8 @@ final class LiveShell: WindowHostLink {
             Self.report(diagnostics)
             sheets = loaded
         }
-        let dark = NSApplication.shared.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let dark = isDark()
+        lastDark = dark
         let styles = StyleResolver(sheets: sheets, environment: StyleSheets.environment(dark: dark))
         return RenderContext(styles: styles, icons: icons, trigger: { [weak self] handler, identity, event in
             _ = self?.assembly?.runtime.trigger(handler, on: identity, event: event)
@@ -277,6 +291,7 @@ final class LiveShell: WindowHostLink {
     }
 
     private func configApplied(_ ir: ConfigIR) {
+        lastIR = ir
         if host.context != nil, reloading {
             host.restyle(makeContext(ir))
         }
@@ -300,10 +315,15 @@ final class LiveShell: WindowHostLink {
 
     func watch() {
         guard let location else { return }
+        let wanted = Array(Set(([location.root.path, paths.userConfig.path, paths.stateDirectory.path] + watchedFiles.map { $0.deletingLastPathComponent().path })
+            .map(FolderWatcher.existingAncestor))).sorted()
+        guard wanted != watchedPaths || watcher == nil else { return }
+        watchedPaths = wanted
+        watcher?.stop()
         let watcher = FolderWatcher { [weak self] paths in
             DispatchQueue.main.async { MainActor.assumeIsolated { self?.filesChanged(paths) } }
         }
-        watcher.watch([location.root.path, paths.userConfig.path, paths.stateDirectory.path] + watchedFiles.map { $0.deletingLastPathComponent().path })
+        watcher.watch(wanted)
         self.watcher = watcher
     }
 
@@ -337,13 +357,16 @@ final class LiveShell: WindowHostLink {
                 Self.log("shell.kdl of \(location.id) is empty, keeping the last config")
                 return
             }
-            self.location = location
-            if result.ir != nil { watchedFiles = result.files }
+            if result.ir != nil {
+                self.location = location
+                watchedFiles = result.files
+            }
             reloading = true
             if assembly?.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Array(host.screens.keys).sorted(), shell: shell, writer: writer(for: location)) == true {
                 reloadsApplied += 1
             }
             reloading = false
+            watch()
         }
     }
 
@@ -383,6 +406,59 @@ final class LiveShell: WindowHostLink {
         updates = UpdateController(settings: settings, machine: machine)
         fullscreen.observe()
         reservesChanged()
+        termination = TerminationWatch { [weak self] number in
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    self?.shutdown()
+                    if number != nil { exit(0) }
+                }
+            }
+        }
+        observeEnvironment()
+    }
+
+    func observeEnvironment() {
+        appearanceObservation = NSApplication.shared.observe(\.effectiveAppearance) { [weak self] _, _ in
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.appearanceChanged() } }
+        }
+        let distributed = DistributedNotificationCenter.default()
+        environmentObservers.append((distributed, distributed.addObserver(forName: NSNotification.Name("com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged"), object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.keyboardLayoutChanged() }
+        }))
+        let workspace = NSWorkspace.shared.notificationCenter
+        environmentObservers.append((workspace, workspace.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.hotKeys?.retryFailed() }
+        }))
+    }
+
+    func appearanceChanged() {
+        let dark = isDark()
+        guard dark != lastDark, host.context != nil else { return }
+        host.restyle(makeContext(lastIR))
+    }
+
+    func keyboardLayoutChanged() {
+        assembly?.bindings.invalidateAll()
+    }
+
+    func showOSD(_ id: String) {
+        guard let runtime = assembly?.runtime else { return }
+        let shown = host.shownKeys(id)
+        runtime.open(id, screenKey: nil)
+        host.restartTimeout(id, keys: shown)
+    }
+
+    func restart() {
+        shutdown()
+        relaunch(Bundle.main.bundleURL, ProcessInfo.processInfo.processIdentifier)
+        terminateApp()
+    }
+
+    static func relaunchAfterExit(_ bundle: URL, _ pid: Int32) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", "while kill -0 \(pid) 2>/dev/null; do sleep 0.1; done; /usr/bin/open -n \"$0\"", bundle.path]
+        try? process.run()
     }
 
     func commandCenterEntries() -> [MenuEntry] {
@@ -408,9 +484,11 @@ final class LiveShell: WindowHostLink {
         case .about:
             NSApp.activate()
             NSApp.orderFrontStandardAboutPanel(nil)
-        case .quit, .restart:
+        case .quit:
             shutdown()
-            NSApp.terminate(nil)
+            terminateApp()
+        case .restart:
+            restart()
         case .custom(let name): _ = assembly?.runtime.emit("command-center." + name, Record())
         default: Self.log("command center: \(command) is not wired yet")
         }
@@ -528,6 +606,12 @@ final class LiveShell: WindowHostLink {
     }
 
     func shutdown() {
+        guard shutdowns == 0 else { return }
+        shutdowns += 1
+        termination?.cancel()
+        appearanceObservation = nil
+        for (center, observer) in environmentObservers { center.removeObserver(observer) }
+        environmentObservers.removeAll()
         edgeHover.stop()
         fullscreen.stop()
         commandCenter?.remove()
@@ -621,7 +705,7 @@ final class LiveShellControl: ShellControl, @unchecked Sendable {
     }
 
     func restart() async {
-        await quit()
+        await MainActor.run { shell?.restart() }
     }
 
     func openCommandCenter() async {

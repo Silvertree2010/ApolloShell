@@ -127,19 +127,23 @@ final class KeyRepeater {
 
     var active: Set<String> { Set(running.keys) }
 
-    func start(_ key: String, fire: @escaping @MainActor () -> Void) {
+    func start(_ key: String, held: @escaping @MainActor () -> Bool = { true }, fire: @escaping @MainActor () -> Void) {
         stop(key)
         let generation = (generations[key] ?? 0) + 1
         generations[key] = generation
         let current = timing()
-        step(key, generation: generation, after: current.delay, interval: current.interval, fire: fire)
+        step(key, generation: generation, after: current.delay, interval: current.interval, held: held, fire: fire)
     }
 
-    private func step(_ key: String, generation: Int, after delay: TimeInterval, interval: TimeInterval, fire: @escaping @MainActor () -> Void) {
+    private func step(_ key: String, generation: Int, after delay: TimeInterval, interval: TimeInterval, held: @escaping @MainActor () -> Bool, fire: @escaping @MainActor () -> Void) {
         running[key] = schedule(delay) { [weak self] in
             guard let self, self.generations[key] == generation, self.running[key] != nil else { return }
+            guard held() else {
+                self.stop(key)
+                return
+            }
             fire()
-            self.step(key, generation: generation, after: interval, interval: interval, fire: fire)
+            self.step(key, generation: generation, after: interval, interval: interval, held: held, fire: fire)
         }
     }
 
@@ -203,6 +207,14 @@ final class BindHotKeys {
     private var applying = false
     private(set) var registrations = 0
     private(set) var unregistrations = 0
+    var keyIsDown: @MainActor (UInt32) -> Bool = { CGEventSource.keyState(.combinedSessionState, key: CGKeyCode($0)) }
+
+    var hasFailures: Bool { registered.values.contains { !$0.ok } }
+
+    func retryFailed() {
+        guard hasFailures else { return }
+        refresh()
+    }
 
     init(bindings: BindingEngine, registrar: any HotKeyRegistering, trigger: @escaping @MainActor (String) -> Void, warn: @escaping @MainActor (Diagnostic) -> Void, publish: @escaping @MainActor ([Value]) -> Void, repeater: KeyRepeater = KeyRepeater()) {
         self.repeater = repeater
@@ -269,7 +281,7 @@ final class BindHotKeys {
             desired[canonical] = (entry.bind.id, chord, entry.bind.repeats)
             order.append(canonical)
         }
-        for (canonical, current) in registered where desired[canonical]?.id != current.id || desired[canonical]?.repeats != current.repeats {
+        for (canonical, current) in registered where !current.ok || desired[canonical]?.id != current.id || desired[canonical]?.repeats != current.repeats {
             repeater.stop(canonical)
             if let registration = current.registration {
                 registration.unregister()
@@ -281,10 +293,13 @@ final class BindHotKeys {
             guard let wanted = desired[canonical] else { continue }
             let id = wanted.id
             let repeats = wanted.repeats
+            let keyCode = wanted.chord.keyCode
             let pressed: @MainActor () -> Void = { [weak self] in
                 guard let self else { return }
                 self.trigger(id)
-                if repeats { self.repeater.start(canonical) { [weak self] in self?.trigger(id) } }
+                if repeats {
+                    self.repeater.start(canonical, held: { [weak self] in self?.keyIsDown(keyCode) ?? false }) { [weak self] in self?.trigger(id) }
+                }
             }
             var released: (@MainActor () -> Void)?
             if repeats {

@@ -23,7 +23,7 @@ final class EdgeHoverController {
     var open: @MainActor (String, String) -> Void = { _, _ in }
     var close: @MainActor (String) -> Void = { _ in }
     var makeTimer: @MainActor (TimeInterval, @escaping @MainActor () -> Void) -> Timer? = { interval, tick in
-        Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in MainActor.assumeIsolated { tick() } }
+        ShellTimer.repeating(interval, tick)
     }
     private(set) var states: [String: EdgeHoverState] = [:]
     private var timer: Timer?

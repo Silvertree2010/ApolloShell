@@ -290,6 +290,10 @@ public final class BindingEngine {
         binding.subscriptions.removeAll()
     }
 
+    public func invalidateAll() {
+        for id in bindings.keys { markDirty(id) }
+    }
+
     private func markDirty(_ id: Int) {
         guard let binding = bindings[id], !binding.isCancelled else { return }
         binding.isDirty = true

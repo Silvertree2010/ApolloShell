@@ -246,8 +246,12 @@ final class WindowHost: SurfaceHosting {
         old.kind == "panel" && old.sticky && !new.sticky
     }
 
-    func restartTimeout(_ surfaceID: String) {
-        for controller in controllers.values where controller.surface.id == surfaceID && controller.shown {
+    func shownKeys(_ surfaceID: String) -> Set<String> {
+        Set(controllers.filter { $0.value.surface.id == surfaceID && $0.value.shown }.keys)
+    }
+
+    func restartTimeout(_ surfaceID: String, keys: Set<String>? = nil) {
+        for (key, controller) in controllers where controller.surface.id == surfaceID && controller.shown && keys?.contains(key) ?? true {
             scheduleTimeout(controller)
         }
     }

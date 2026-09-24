@@ -241,6 +241,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     private func reveal(focus: Bool) {
         if spec.kind == "window" {
             if !stage.isVisible(window) { previousApp = NSWorkspace.shared.frontmostApplication }
+            WindowMainMenu.install()
             stage.activateApp()
             stage.front(window, key: true)
         } else {
@@ -350,12 +351,10 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         if spec.closeOn.contains(.mouseLeave) {
             let margin = spec.hoverMargin
             var entered = false
-            leaveTimer = .scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard let self else { return }
-                    let inside = self.window.frame.insetBy(dx: -margin, dy: -margin).contains(NSEvent.mouseLocation)
-                    if inside { entered = true } else if entered { self.onCloseRequest?() }
-                }
+            leaveTimer = ShellTimer.repeating(0.1) { [weak self] in
+                guard let self else { return }
+                let inside = self.window.frame.insetBy(dx: -margin, dy: -margin).contains(NSEvent.mouseLocation)
+                if inside { entered = true } else if entered { self.onCloseRequest?() }
             }
         }
     }
@@ -399,6 +398,48 @@ private final class ScrimClickView: NSView {
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     override func mouseDown(with event: NSEvent) { action() }
+}
+
+enum ShellTimer {
+    static func repeating(_ interval: TimeInterval, _ tick: @escaping @MainActor () -> Void) -> Timer {
+        let timer = Timer(timeInterval: interval, repeats: true) { _ in MainActor.assumeIsolated { tick() } }
+        timer.tolerance = interval * 0.2
+        RunLoop.main.add(timer, forMode: .common)
+        return timer
+    }
+}
+
+enum WindowMainMenu {
+    static func make() -> NSMenu {
+        let main = NSMenu()
+        let app = NSMenu(title: "ApolloShell")
+        app.addItem(withTitle: "Hide", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        main.addItem(submenu(app))
+        let file = NSMenu(title: "File")
+        file.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        main.addItem(submenu(file))
+        let edit = NSMenu(title: "Edit")
+        edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        let redo = edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "z")
+        redo.keyEquivalentModifierMask = [.command, .shift]
+        edit.addItem(.separator())
+        edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        main.addItem(submenu(edit))
+        return main
+    }
+
+    private static func submenu(_ menu: NSMenu) -> NSMenuItem {
+        let item = NSMenuItem(title: menu.title, action: nil, keyEquivalent: "")
+        item.submenu = menu
+        return item
+    }
+
+    static func install() {
+        if NSApp.mainMenu?.item(withTitle: "Edit") == nil { NSApp.mainMenu = make() }
+    }
 }
 
 enum KeyEventChord {
