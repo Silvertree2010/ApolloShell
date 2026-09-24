@@ -44,6 +44,7 @@ final class MarketFake: @unchecked Sendable {
     private var headers: [String: String] = [:]
     var themesAnswer: (Int, String)
     var failAll = false
+    var reportAnswer = (403, json(["error": "rate_limited", "message": "Too many reports today."]))
 
     init() {
         themesAnswer = (200, Self.json(["themes": [Self.theme(), Self.theme(id: "bad", slug: "../x", name: "Bad")]]))
@@ -104,7 +105,7 @@ final class MarketFake: @unchecked Sendable {
         ]]))
         case "POST /api/v1/themes": (200, Self.json(own))
         case "PUT /api/v1/themes/t1": (200, Self.json(own.merging(["status": "published"]) { _, new in new }))
-        case "POST /api/v1/themes/t1/report": (403, Self.json(["error": "rate_limited", "message": "Too many reports today."]))
+        case "POST /api/v1/themes/t1/report": reportAnswer
         default: (204, "")
         }
         return (Data(text.utf8), status)
@@ -236,7 +237,7 @@ struct MarketplaceProviderTests {
         for _ in 0..<20 { await Task.yield() }
         #expect(setup.host.session == nil)
         #expect(!setup.fake.requests.contains("POST /login/oauth/access_token"))
-        guard case .record(let state) = setup.field("sign-in") else { return }
+        guard case .record(let state) = setup.field("sign-in") else { Issue.record("no sign-in"); return }
         #expect(state["status"] == .string("idle"))
     }
 
@@ -282,7 +283,10 @@ struct MarketplaceProviderTests {
         let setup = try Setup()
         setup.host.session = "s3cret"
         try setup.host.writeLocal("mine", MarketFake.css)
-        try setup.host.writeLocal("pictures", ":root {\n  --apollo-theme-name: \"P\";\n  --apollo-wallpaper: url(\"x.png\");\n}\n")
+        let folder = setup.host.installer.themes.appendingPathComponent("pictures")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")!.write(to: folder.appendingPathComponent("x.png"))
+        try ":root {\n  --apollo-theme-name: \"P\";\n  --apollo-background-image: url(\"x.png\");\n}\n".write(to: folder.appendingPathComponent(ThemeLoader.styleSheetName), atomically: true, encoding: .utf8)
         try setup.host.writeLocal("nameless", ":root {\n  --apollo-accent-color: #ff8a3d;\n}\n")
         try await setup.run("refresh")
         guard case .list(let local) = setup.field("local") else { Issue.record("no local"); return }
@@ -292,6 +296,11 @@ struct MarketplaceProviderTests {
         })
         #expect(problems["mine"] == .null)
         #expect(problems["nameless"] == .string("no-name"))
+        #expect(problems["pictures"] == .string("uses-files"))
+        try await setup.run("submit", [.string("pictures")], Record([("accept-terms", .bool(true))]))
+        #expect(setup.field("error") == .string("This theme uses images. The Marketplace takes plain CSS themes only for now."))
+        #expect(!setup.fake.requests.contains("POST /api/v1/themes"))
+        try await setup.run("dismiss")
         await #expect(throws: ProviderActionError.self) { try await setup.run("submit", [.string("mine")]) }
         try await setup.run("submit", [.string("nameless")], Record([("accept-terms", .bool(true))]))
         #expect(setup.field("error") == .string("Give it a name first: --apollo-theme-name in the file."))
@@ -338,6 +347,12 @@ struct MarketplaceProviderTests {
         try await setup.run("report", [.string("t1"), .string("copied")])
         #expect(setup.field("error") == .string("Too many reports today."))
         #expect(setup.field("status") == .string("loaded"))
+        try await setup.run("dismiss")
+        setup.fake.reportAnswer = (204, "")
+        try await setup.run("report", [.string("t1"), .string("copied")])
+        #expect(setup.field("message") == .string("Thanks. The report was sent."))
+        #expect(setup.field("error") == .null)
+        #expect(setup.fake.body("POST /api/v1/themes/t1/report")?["reason"] as? String == "copied")
         setup.fake.failAll = true
         try await setup.run("refresh")
         #expect(setup.field("status") == .string("loaded"))
