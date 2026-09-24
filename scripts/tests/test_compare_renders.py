@@ -78,6 +78,23 @@ class CompareRendersTests(unittest.TestCase):
         result = compare_renders.compare(Path("a.png"), Path("b.png"), None, a_image=a, b_image=b)
         self.assertFalse(result.passed)
 
+    def test_same_absolute_area_change_judged_equally_on_small_and_large_images(self):
+        small_a = solid((100, 100), (10, 10, 10, 255))
+        small_b = with_patch(small_a, (10, 10, 34, 34), (255, 255, 255, 255))
+        large_a = solid((2000, 1000), (10, 10, 10, 255))
+        large_b = with_patch(large_a, (10, 10, 34, 34), (255, 255, 255, 255))
+        small_result = compare_renders.compare_images(small_a, small_b)
+        large_result = compare_renders.compare_images(large_a, large_b)
+        self.assertTrue(small_result.passed)
+        self.assertTrue(large_result.passed)
+
+        small_b = with_patch(small_a, (10, 10, 70, 70), (255, 255, 255, 255))
+        large_b = with_patch(large_a, (10, 10, 70, 70), (255, 255, 255, 255))
+        small_result = compare_renders.compare_images(small_a, small_b)
+        large_result = compare_renders.compare_images(large_a, large_b)
+        self.assertFalse(small_result.passed)
+        self.assertFalse(large_result.passed)
+
     def test_side_by_side_image_written_on_failure(self):
         import tempfile
         with tempfile.TemporaryDirectory() as before, tempfile.TemporaryDirectory() as after, \

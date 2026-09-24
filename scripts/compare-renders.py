@@ -12,7 +12,9 @@ size difference of up to 4 pt per direction is padded with the smaller
 image's top-left corner pixel colour; more is a failure. Pixels with a
 channel deviation (including alpha) above the tolerance count as
 different. A pair passes when the fraction of differing pixels AND the
-largest 4-connected area of differing pixels are below their
+largest 4-connected area of differing pixels (in absolute pixels, not
+scaled by image size; the area is what separates localised changes on
+images of very different sizes, testing.md 3.4) are below their
 thresholds. With a diff folder, a diff image (differing pixels in red)
 and a side-by-side image (reference left, after right, 16 px gap) are
 written for every pair that fails.
@@ -25,10 +27,9 @@ from pathlib import Path
 
 from PIL import Image, ImageChops, ImageFilter
 
-CHANNEL_TOLERANCE = 40
-FRACTION_THRESHOLD = 0.03
-LARGEST_COMPONENT_THRESHOLD = 0.002
-LARGEST_COMPONENT_MINIMUM = 90
+CHANNEL_TOLERANCE = 20
+FRACTION_THRESHOLD = 0.10
+LARGEST_COMPONENT_THRESHOLD = 300
 BLUR_SIGMA = 1.5
 MAX_SIZE_DIFF = 4
 SIDE_BY_SIDE_GAP = 16
@@ -97,8 +98,7 @@ def largest_connected_component(mask: Image.Image) -> int:
 
 def compare_images(a: Image.Image, b: Image.Image, channel_tolerance: int = CHANNEL_TOLERANCE,
                     fraction_threshold: float = FRACTION_THRESHOLD,
-                    area_threshold: float = LARGEST_COMPONENT_THRESHOLD,
-                    area_minimum: int = LARGEST_COMPONENT_MINIMUM,
+                    area_threshold: int = LARGEST_COMPONENT_THRESHOLD,
                     blur_sigma: float = BLUR_SIGMA,
                     max_size_diff: int = MAX_SIZE_DIFF) -> ComparisonResult:
     scaled_a = downscale_2x2(a.convert("RGBA"))
@@ -122,8 +122,7 @@ def compare_images(a: Image.Image, b: Image.Image, channel_tolerance: int = CHAN
     changed = total - mask.histogram()[0]
     fraction = changed / total if total else 0.0
     largest_component = largest_connected_component(mask) if changed else 0
-    area_limit = max(area_minimum, round(area_threshold * total))
-    passed = fraction <= fraction_threshold and largest_component <= area_limit
+    passed = fraction <= fraction_threshold and largest_component <= area_threshold
     return ComparisonResult(passed=passed, fraction=fraction, largest_component=largest_component)
 
 
@@ -172,8 +171,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("diff_dir", nargs="?")
     parser.add_argument("--channel-tolerance", type=int, default=CHANNEL_TOLERANCE)
     parser.add_argument("--fraction-threshold", type=float, default=FRACTION_THRESHOLD)
-    parser.add_argument("--area-threshold", type=float, default=LARGEST_COMPONENT_THRESHOLD)
-    parser.add_argument("--area-minimum", type=int, default=LARGEST_COMPONENT_MINIMUM)
+    parser.add_argument("--area-threshold", type=int, default=LARGEST_COMPONENT_THRESHOLD)
     parser.add_argument("--blur-sigma", type=float, default=BLUR_SIGMA)
     parser.add_argument("--max-size-diff", type=int, default=MAX_SIZE_DIFF)
     if len(argv) < 2:
@@ -183,8 +181,8 @@ def main(argv: list[str]) -> int:
     before_dir, after_dir = Path(args.before), Path(args.after)
     diff_dir = Path(args.diff_dir) if args.diff_dir else None
     options = dict(channel_tolerance=args.channel_tolerance, fraction_threshold=args.fraction_threshold,
-                    area_threshold=args.area_threshold, area_minimum=args.area_minimum,
-                    blur_sigma=args.blur_sigma, max_size_diff=args.max_size_diff)
+                    area_threshold=args.area_threshold, blur_sigma=args.blur_sigma,
+                    max_size_diff=args.max_size_diff)
     ok = True
     before_names = set()
     for before in sorted(before_dir.glob("*.png")):
