@@ -127,7 +127,7 @@ define "marketplace-browse" {
             }
             when "{(marketplace.items | count) > 0}" {
                 scroll class="marketplace-scroll" axis="vertical" {
-                    grid class="marketplace-grid" {
+                    grid class="marketplace-grid" style="grid-template-columns: repeat({(((surfaces.marketplace.width ?? 780) - 16) / 236) | floor | clamp 1 8}, 1fr);" {
                         each item in="{marketplace.items}" key="{item.id}" {
                             column class="marketplace-card" {
                                 button class="marketplace-card-preview" {
