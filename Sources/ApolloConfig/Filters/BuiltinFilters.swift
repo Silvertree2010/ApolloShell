@@ -1,5 +1,10 @@
 enum BuiltinFilters {
-    static let all: [BuiltinFilter] = NumberFilters.all + UnitFilters.all + StringFilters.all + ListShapeFilters.all
+    static let all: [BuiltinFilter] = NumberFilters.all
+        + UnitFilters.all
+        + StringFilters.all
+        + ListShapeFilters.all
+        + ListSearchFilters.all
+        + OtherFilters.all
 
     static var entries: [String: FilterTable.Entry] {
         var result: [String: FilterTable.Entry] = [:]
