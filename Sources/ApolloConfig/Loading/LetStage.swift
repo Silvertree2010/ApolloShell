@@ -8,46 +8,25 @@ struct LetStageResult: Sendable {
     var values: [String: Value]
 }
 
-private final class LetFrame: @unchecked Sendable {
-    let parent: LetFrame?
-    var bindings: [String: Value] = [:]
+private struct LetScope {
+    var values: [String: Value]
+    var poisoned: Set<String>
+    var declaredHere: Set<String> = []
 
-    init(parent: LetFrame?) {
-        self.parent = parent
+    func entering() -> LetScope {
+        LetScope(values: values, poisoned: poisoned)
     }
 
-    func lookup(_ name: String) -> Value? {
-        bindings[name] ?? parent?.lookup(name)
-    }
-
-    func declares(_ name: String) -> Bool {
-        bindings[name] != nil
-    }
-
-    func visibleFromParent(_ name: String) -> Bool {
-        parent?.lookup(name) != nil
-    }
-
-    func allNames() -> Set<String> {
-        var result = parent?.allNames() ?? []
-        result.formUnion(bindings.keys)
-        return result
-    }
-
-    func flattenedValues() -> [String: Value] {
-        var result = parent?.flattenedValues() ?? [:]
-        for (name, value) in bindings {
-            result[name] = value
-        }
-        return result
+    func isVisible(_ name: String) -> Bool {
+        values[name] != nil || poisoned.contains(name)
     }
 }
 
 private struct LetEvalScope: EvaluationScope {
-    let frame: LetFrame
+    let values: [String: Value]
 
     func local(_ name: String) -> Value? {
-        frame.lookup(name)
+        values[name]
     }
 
     func global(_ root: String, _ fields: [String]) -> Value {
@@ -60,40 +39,37 @@ enum LetStage {
         StackHeadroom.run {
             var diagnostics: [Diagnostic] = []
             var values: [String: Value] = [:]
-            let root = LetFrame(parent: nil)
-            let resultNodes = process(nodes, frame: root, registry: registry, diagnostics: &diagnostics, values: &values)
+            let resultNodes = process(nodes, inherited: LetScope(values: [:], poisoned: []), registry: registry, diagnostics: &diagnostics, values: &values)
             return LetStageResult(nodes: resultNodes, diagnostics: diagnostics, values: values)
         }
     }
 
     private static func process(
         _ nodes: [ExpandedNode],
-        frame: LetFrame,
+        inherited: LetScope,
         registry: SchemaRegistry,
         diagnostics: inout [Diagnostic],
         values: inout [String: Value]
     ) -> [ExpandedNode] {
+        var scope = inherited.entering()
         var result: [ExpandedNode] = []
         for node in nodes {
             if node.kdl.name == "let" {
-                handleLet(node, frame: frame, registry: registry, diagnostics: &diagnostics, values: &values)
+                handleLet(node, scope: &scope, registry: registry, diagnostics: &diagnostics, values: &values)
                 continue
             }
             var copy = node
-            let childFrame = LetFrame(parent: frame)
-            copy.children = process(node.children, frame: childFrame, registry: registry, diagnostics: &diagnostics, values: &values)
+            copy.letValues = scope.values
+            copy.poisonedLets = scope.poisoned
+            copy.children = process(node.children, inherited: scope, registry: registry, diagnostics: &diagnostics, values: &values)
             result.append(copy)
-        }
-        let flattened = frame.flattenedValues()
-        for index in result.indices {
-            result[index].letValues = flattened
         }
         return result
     }
 
     private static func handleLet(
         _ node: ExpandedNode,
-        frame: LetFrame,
+        scope: inout LetScope,
         registry: SchemaRegistry,
         diagnostics: inout [Diagnostic],
         values: inout [String: Value]
@@ -105,7 +81,7 @@ enum LetStage {
                 name: name,
                 nameSpan: kdl.arguments[0].span,
                 node: node,
-                frame: frame,
+                scope: &scope,
                 registry: registry,
                 diagnostics: &diagnostics,
                 values: &values
@@ -131,7 +107,7 @@ enum LetStage {
                 name: property.name,
                 nameSpan: property.span,
                 node: node,
-                frame: frame,
+                scope: &scope,
                 registry: registry,
                 diagnostics: &diagnostics,
                 values: &values
@@ -145,7 +121,7 @@ enum LetStage {
         name: String,
         nameSpan: SourceSpan,
         node: ExpandedNode,
-        frame: LetFrame,
+        scope: inout LetScope,
         registry: SchemaRegistry,
         diagnostics: inout [Diagnostic],
         values: inout [String: Value],
@@ -161,30 +137,40 @@ enum LetStage {
         if registry.reservedProviderNames.contains(name) {
             report(Diagnostic(.note, "'\(name)' hides provider '\(name)'", span: nameSpan))
         }
-        if frame.declares(name) {
+        if scope.declaredHere.contains(name) {
             report(Diagnostic(.error, "duplicate 'let' '\(name)' in this scope", span: nameSpan))
             return
         }
-        if frame.visibleFromParent(name) {
+        if scope.isVisible(name) {
             report(Diagnostic(.warning, "'\(name)' shadows an outer 'let'", span: nameSpan))
         }
-        let locals = frame.allNames()
-        switch build(locals) {
+        scope.declaredHere.insert(name)
+        func poison() {
+            scope.values[name] = nil
+            scope.poisoned.insert(name)
+        }
+        switch build(Set(scope.values.keys)) {
         case .failure(let diagnostic):
             report(diagnostic)
+            poison()
         case .success(let template):
             let dependencies = template.dependencies
-            if let offending = dependencies.first {
-                report(Diagnostic(
-                    .error,
-                    "'let' cannot reference '\(offending.root)' at load time; only earlier 'let' constants are allowed",
-                    span: nameSpan
-                ))
+            if !dependencies.isEmpty {
+                let offending = dependencies.map(\.root).filter { !scope.poisoned.contains($0) }.sorted()
+                if let first = offending.first {
+                    report(Diagnostic(
+                        .error,
+                        "'let' cannot reference '\(first)' at load time; only earlier 'let' constants are allowed",
+                        span: nameSpan
+                    ))
+                }
+                poison()
                 return
             }
             let evaluator = Evaluator(filters: .builtin, context: { fixedContext() }, warn: { _ in })
-            let value = template.evaluate(with: evaluator, scope: LetEvalScope(frame: frame))
-            frame.bindings[name] = value
+            let value = template.evaluate(with: evaluator, scope: LetEvalScope(values: scope.values))
+            scope.values[name] = value
+            scope.poisoned.remove(name)
             values[name] = value
         }
     }

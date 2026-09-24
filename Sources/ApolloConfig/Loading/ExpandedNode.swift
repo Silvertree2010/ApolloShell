@@ -16,6 +16,7 @@ struct ExpandedNode: Sendable, Hashable {
     var origin: FileOrigin
     var useFrame: UseFrame?
     var letValues: [String: Value] = [:]
+    var poisonedLets: Set<String> = []
 
     init(kdl: KDLNode, file: String, includeChain: [SourceSpan], children: [ExpandedNode], origin: FileOrigin = .user, useFrame: UseFrame? = nil, letValues: [String: Value] = [:]) {
         var stripped = kdl

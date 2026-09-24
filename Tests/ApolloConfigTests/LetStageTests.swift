@@ -211,12 +211,31 @@ struct LetStageTests {
         #expect(text?.letValues["b"] == .number(2))
     }
 
-    @Test("Knoten sehen ein spaeter im selben Bereich deklariertes let")
-    func nodesSeeALaterLetInTheSameScope() {
-        let result = Self.run("dock {}\nlet a=1")
+    @Test("Knoten sehen kein spaeter im selben Bereich deklariertes let, auch ihre Kinder nicht")
+    func nodesDoNotSeeALaterLetInTheSameScope() {
+        let result = Self.run("dock {\n  text {}\n}\nlet a=1\nbar {\n  text {}\n}")
         #expect(result.diagnostics.isEmpty)
         let dock = result.nodes.first { $0.kdl.name == "dock" }
-        #expect(dock?.letValues["a"] == .number(1))
+        #expect(dock?.letValues["a"] == nil)
+        #expect(dock?.children.first?.letValues["a"] == nil)
+        let bar = result.nodes.first { $0.kdl.name == "bar" }
+        #expect(bar?.letValues["a"] == .number(1))
+        #expect(bar?.children.first?.letValues["a"] == .number(1))
+    }
+
+    @Test("10000 Knoten mit 400 let laden im Zeitbudget")
+    func manyNodesWithManyLetsStayFast() {
+        var lines = (0..<400).map { "let c\($0)=\($0)" }
+        lines.append("dock {")
+        lines.append(contentsOf: Array(repeating: "  text {}", count: 10_000))
+        lines.append("}")
+        let nodes = Self.expand(["/config/shell.kdl": lines.joined(separator: "\n")])
+        let start = Date()
+        let result = LetStage.run(nodes, registry: .builtin)
+        let elapsed = Date().timeIntervalSince(start)
+        #expect(result.diagnostics.isEmpty)
+        #expect(result.nodes.first?.children.last?.letValues["c399"] == .number(399))
+        #expect(elapsed < 0.3)
     }
 
     @Test("Fehler eines let in einer eingebundenen Datei tragen die include-Kette")
