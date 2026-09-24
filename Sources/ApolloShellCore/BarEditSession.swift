@@ -3,30 +3,25 @@ import Foundation
 // MARK: - Where a block stands
 
 /// One list of blocks the edit mode can change: the sidebar, or one zone of
-/// an edge bar. Every such list is an ordinary `BarLayout`.
+/// the menu bar. Every such list is an ordinary `BarLayout`.
 public enum BarPlace: Hashable, Sendable {
     case sidebar
-    case edge(BarEdge, BarZone)
+    case menuBar(BarZone)
 
-    /// The sidebar first, then every zone of every edge in reading order.
-    public static let all: [BarPlace] = [.sidebar] + BarEdge.allCases.flatMap { edge in
-        BarZone.allCases.map { BarPlace.edge(edge, $0) }
-    }
+    /// The sidebar first, then the menu bar's zones in reading order.
+    public static let all: [BarPlace] = [.sidebar] + BarZone.allCases.map(BarPlace.menuBar)
 
-    public var edge: BarEdge? {
-        if case .edge(let edge, _) = self { edge } else { nil }
-    }
-
-    /// "top.start" - for drag payloads, which carry only text.
+    /// "menuBar.start" - for drag payloads, which carry only text.
     var token: String? {
-        if case .edge(let edge, let zone) = self { "\(edge.rawValue).\(zone.rawValue)" } else { nil }
+        if case .menuBar(let zone) = self { "\(Self.menuBarPrefix)\(zone.rawValue)" } else { nil }
     }
+
+    private static let menuBarPrefix = "menuBar."
 
     init?(token: String) {
-        let parts = token.split(separator: ".", omittingEmptySubsequences: false)
-        guard parts.count == 2, let edge = BarEdge(rawValue: String(parts[0])),
-              let zone = BarZone(rawValue: String(parts[1])) else { return nil }
-        self = .edge(edge, zone)
+        guard token.hasPrefix(Self.menuBarPrefix),
+              let zone = BarZone(rawValue: String(token.dropFirst(Self.menuBarPrefix.count))) else { return nil }
+        self = .menuBar(zone)
     }
 }
 
@@ -44,8 +39,8 @@ public struct BarEntryRef: Hashable, Sendable {
     public static func sidebar(_ id: String) -> BarEntryRef { BarEntryRef(place: .sidebar, id: id) }
 
     /// The text a drag carries. A sidebar block is its bare id, exactly what
-    /// the sidebar dragged before the edge bars could be edited, so nothing
-    /// changes there; an edge block is "top.start/clock".
+    /// the sidebar dragged before the menu bar could be edited, so nothing
+    /// changes there; a menu bar block is "menuBar.start/clock".
     public var payload: String {
         place.token.map { "\($0)/\(id)" } ?? id
     }
@@ -64,38 +59,38 @@ public struct BarEntryRef: Hashable, Sendable {
 // MARK: - The session
 
 /// An edit of the bars (global edit mode, `ShellEditor`): working copies of
-/// the sidebar and of the edge bars' zones, and the selected block. "Done"
-/// adopts them, "Cancel" discards them (`original`, `originalEdgeBars`).
+/// the sidebar and of the menu bar's zones, and the selected block. "Done"
+/// adopts them, "Cancel" discards them (`original`, `originalMenuBar`).
 ///
 /// The same shape as `UtilitiesEditSession`, and for the same reason: the
 /// rules of one list (unique ids, kinds that may exist only once, where a new
 /// block goes) live in `BarLayout`, so this only carries the copies and the
 /// selection through the mode - plus the two rules that span lists: Dock and
-/// status icons at most once per bar (not per zone, `EdgeBar.canAdd`), and
+/// status icons at most once per bar (not per zone, `ApolloMenuBar.canAdd`), and
 /// groups (`joinsPrevious`) that stay whole when a block leaves or arrives.
 ///
 /// The sidebar-only calls (`add(_:at:)`, `move(id:onto:)`, `selectedEntryID`
-/// ...) are the ones the sidebar used before the edge bars could be edited;
+/// ...) are the ones the sidebar used before the menu bar could be edited;
 /// they behave exactly as they did.
 public struct BarEditSession: Equatable, Sendable {
     public let original: BarLayout
-    public let originalEdgeBars: EdgeBars
+    public let originalMenuBar: ApolloMenuBar
     /// The sidebar's working copy.
     public private(set) var layout: BarLayout
-    /// The edge bars' working copy. Only the zones change here; switching a
-    /// bar on, its style and thickness stay Nexus settings.
-    public private(set) var edgeBars: EdgeBars
+    /// The menu bar's working copy. Only the zones change here; switching
+    /// the bar on, its style and thickness stay Nexus settings.
+    public private(set) var menuBar: ApolloMenuBar
     /// At most one block in all bars together: only one options popover.
     public var selection: BarEntryRef?
 
-    public init(layout: BarLayout, edgeBars: EdgeBars = EdgeBars()) {
+    public init(layout: BarLayout, menuBar: ApolloMenuBar = .standard) {
         original = layout
-        originalEdgeBars = edgeBars
+        originalMenuBar = menuBar
         self.layout = layout
-        self.edgeBars = edgeBars
+        self.menuBar = menuBar
     }
 
-    public var hasChanges: Bool { layout != original || edgeBars != originalEdgeBars }
+    public var hasChanges: Bool { layout != original || menuBar != originalMenuBar }
 
     /// The selected sidebar block. Setting `nil` clears the selection
     /// wherever it is, as it did when the sidebar was the only bar.
@@ -110,13 +105,13 @@ public struct BarEditSession: Equatable, Sendable {
         get {
             switch place {
             case .sidebar: layout
-            case .edge(let edge, let zone): edgeBars[edge][zone]
+            case .menuBar(let zone): menuBar[zone]
             }
         }
         set {
             switch place {
             case .sidebar: layout = newValue
-            case .edge(let edge, let zone): edgeBars[edge][zone] = newValue
+            case .menuBar(let zone): menuBar[zone] = newValue
             }
         }
     }
@@ -126,15 +121,15 @@ public struct BarEditSession: Equatable, Sendable {
     }
 
     /// Dock and status icons once per bar: in the sidebar, or once across
-    /// all three zones of an edge bar.
+    /// all three zones of the menu bar.
     public func canAdd(_ kind: BarModuleKind, to place: BarPlace) -> Bool {
         switch place {
         case .sidebar: layout.canAdd(kind)
-        case .edge(let edge, _): edgeBars[edge].canAdd(kind)
+        case .menuBar: menuBar.canAdd(kind)
         }
     }
 
-    /// Only an edge bar draws groups, and the first block of a zone has
+    /// Only the menu bar draws groups, and the first block of a zone has
     /// nothing before it to join.
     public func canJoin(_ ref: BarEntryRef) -> Bool {
         guard ref.place != .sidebar, let index = self[ref.place].entries.firstIndex(where: { $0.id == ref.id })
@@ -142,7 +137,7 @@ public struct BarEditSession: Equatable, Sendable {
         return index > 0
     }
 
-    // MARK: Sidebar (the calls from before the edge bars)
+    // MARK: Sidebar (the calls from before the menu bar)
 
     /// A new block, without `index` at the spot `BarLayout.insertionIndex`
     /// picks; selects it. `nil`: the kind may exist only once and is there

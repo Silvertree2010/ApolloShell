@@ -4,7 +4,7 @@ import ApolloShellCore
 import os
 
 /// Window guard: keeps foreign windows out of the strips the bars cover -
-/// the sidebar on the left and the bars along the other edges.
+/// the sidebar on the left and the menu bar at the top.
 ///
 /// macOS has no interface to reserve screen space; `visibleFrame` belongs
 /// solely to the Dock and menu bar. So, like the app "Sidebar": listen to

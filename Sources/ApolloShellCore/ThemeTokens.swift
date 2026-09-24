@@ -8,7 +8,7 @@ public enum ThemeTokenGroup: String, Equatable, Hashable, Sendable, CaseIterable
     case text = "Text"
     case accent = "Accent and state"
     case bar = "Sidebar"
-    case edgeBar = "Edge bars"
+    case menuBar = "Menu bar"
     case barModules = "Bar modules"
     case dock = "Dock"
     case panel = "Panels"
@@ -103,7 +103,7 @@ public struct ThemeTokenDescriptor: Equatable, Hashable, Sendable {
     /// Only for text colors: what it stands on and how readable it has to be.
     public let contrast: ThemeContrastRule?
     /// The token whose value the app uses when the theme does not set this
-    /// one - `--apollo-edgebar-color` follows `--apollo-bar-color`. That is
+    /// one - `--apollo-menubar-color` follows `--apollo-bar-color`. That is
     /// how a newer, more specific token keeps the compatibility promise: a
     /// theme written before it existed still colours the new part to match
     /// the old one, instead of leaving it at the built-in look. Same kind,
@@ -295,7 +295,7 @@ public extension ThemeToken where Kind == ThemeTokenTypes.Gradient {
     static var card: Self { Self("--apollo-card-gradient") }
     static var launcherHighlight: Self { Self("--apollo-launcher-highlight-gradient") }
     static var toast: Self { Self("--apollo-toast-gradient") }
-    static var edgeBar: Self { Self("--apollo-edgebar-gradient") }
+    static var menuBar: Self { Self("--apollo-menubar-gradient") }
 }
 
 public extension ThemeToken where Kind == ThemeTokenTypes.Color {
@@ -333,10 +333,10 @@ public extension ThemeToken where Kind == ThemeTokenTypes.Color {
     static var toast: Self { Self("--apollo-toast-color") }
     static var toastText: Self { Self("--apollo-toast-text-color") }
 
-    static var edgeBar: Self { Self("--apollo-edgebar-color") }
-    static var edgeBarText: Self { Self("--apollo-edgebar-text-color") }
-    static var edgeBarIcon: Self { Self("--apollo-edgebar-icon-color") }
-    static var edgeBarGroup: Self { Self("--apollo-edgebar-group-color") }
+    static var menuBar: Self { Self("--apollo-menubar-color") }
+    static var menuBarText: Self { Self("--apollo-menubar-text-color") }
+    static var menuBarIcon: Self { Self("--apollo-menubar-icon-color") }
+    static var menuBarGroup: Self { Self("--apollo-menubar-group-color") }
 
     static var spacesActive: Self { Self("--apollo-spaces-active-color") }
     static var clock: Self { Self("--apollo-clock-color") }
@@ -385,16 +385,16 @@ public extension ThemeToken where Kind == ThemeTokenTypes.Number {
 
     static var toastRadius: Self { Self("--apollo-toast-radius") }
 
-    static var edgeBarOpacity: Self { Self("--apollo-edgebar-opacity") }
-    static var edgeBarBlur: Self { Self("--apollo-edgebar-blur") }
-    static var edgeBarRadius: Self { Self("--apollo-edgebar-radius") }
-    static var edgeBarIslandRadius: Self { Self("--apollo-edgebar-island-radius") }
-    static var edgeBarIslandMargin: Self { Self("--apollo-edgebar-island-margin") }
-    static var edgeBarGroupRadius: Self { Self("--apollo-edgebar-group-radius") }
-    static var edgeBarPadding: Self { Self("--apollo-edgebar-padding") }
-    static var edgeBarItemSpacing: Self { Self("--apollo-edgebar-item-spacing") }
-    static var edgeBarGroupSpacing: Self { Self("--apollo-edgebar-group-spacing") }
-    static var edgeBarFontSize: Self { Self("--apollo-edgebar-font-size") }
+    static var menuBarOpacity: Self { Self("--apollo-menubar-opacity") }
+    static var menuBarBlur: Self { Self("--apollo-menubar-blur") }
+    static var menuBarRadius: Self { Self("--apollo-menubar-radius") }
+    static var menuBarIslandRadius: Self { Self("--apollo-menubar-island-radius") }
+    static var menuBarIslandMargin: Self { Self("--apollo-menubar-island-margin") }
+    static var menuBarGroupRadius: Self { Self("--apollo-menubar-group-radius") }
+    static var menuBarPadding: Self { Self("--apollo-menubar-padding") }
+    static var menuBarItemSpacing: Self { Self("--apollo-menubar-item-spacing") }
+    static var menuBarGroupSpacing: Self { Self("--apollo-menubar-group-spacing") }
+    static var menuBarFontSize: Self { Self("--apollo-menubar-font-size") }
 }
 
 public extension ThemeToken where Kind == ThemeTokenTypes.Text {
@@ -405,7 +405,7 @@ public extension ThemeToken where Kind == ThemeTokenTypes.Text {
     static var homepage: Self { Self("--apollo-theme-homepage") }
     static var fontFamily: Self { Self("--apollo-font-family") }
     static var monospaceFontFamily: Self { Self("--apollo-monospace-font-family") }
-    static var edgeBarFontFamily: Self { Self("--apollo-edgebar-font-family") }
+    static var menuBarFontFamily: Self { Self("--apollo-menubar-font-family") }
 }
 
 public extension ThemeToken where Kind == ThemeTokenTypes.File {
@@ -593,58 +593,57 @@ public extension ThemeTokenCatalog {
         .length("--apollo-bar-item-spacing", 8, max: 48, group: .bar, "Space between two blocks"),
         .length("--apollo-bar-blur", 24, max: 64, group: .bar, "Blur behind the sidebar"),
 
-        // MARK: Edge bars
-        // The bars along the top, the bottom and the right edge. Every
-        // surface, text and font token follows its sidebar counterpart when a
-        // theme leaves it out, so a theme from before the edge bars colours
-        // them like its sidebar. The shape defaults are the look the edge
-        // bars shipped with.
-        .color("--apollo-edgebar-color", light: 0xF5F5F7, dark: 0x1C1C1E, group: .edgeBar,
-               "Backing of the edge bars, the strip or each island").following("--apollo-bar-color"),
-        .gradient("--apollo-edgebar-gradient", group: .edgeBar,
-                  "Gradient along an edge bar instead of the flat colour").following("--apollo-bar-gradient"),
-        .ratio("--apollo-edgebar-opacity", 1, group: .edgeBar,
-               "How opaque the edge bar backing is").following("--apollo-bar-opacity"),
-        .length("--apollo-edgebar-blur", 24, max: 64, group: .edgeBar,
-                "Blur behind the edge bars").following("--apollo-bar-blur"),
-        .color("--apollo-edgebar-text-color", light: 0x1C1C1E, dark: 0xF5F5F7, group: .edgeBar,
-               "Text in the edge bars", on: "--apollo-edgebar-color").following("--apollo-bar-text-color"),
-        .color("--apollo-edgebar-icon-color", light: 0x3C3C43, dark: 0xE5E5EA, group: .edgeBar,
-               "Glyphs in the edge bars", on: "--apollo-edgebar-color", contrast: 3)
+        // MARK: Menu bar
+        // The bar across the top of the screen. Every surface, text and font
+        // token follows its sidebar counterpart when a theme leaves it out,
+        // so a theme from before the menu bar colours it like its sidebar.
+        // The shape defaults are the look the bar was built with.
+        .color("--apollo-menubar-color", light: 0xF5F5F7, dark: 0x1C1C1E, group: .menuBar,
+               "Backing of the menu bar, the strip or each island").following("--apollo-bar-color"),
+        .gradient("--apollo-menubar-gradient", group: .menuBar,
+                  "Gradient along the menu bar instead of the flat colour").following("--apollo-bar-gradient"),
+        .ratio("--apollo-menubar-opacity", 1, group: .menuBar,
+               "How opaque the menu bar backing is").following("--apollo-bar-opacity"),
+        .length("--apollo-menubar-blur", 24, max: 64, group: .menuBar,
+                "Blur behind the menu bar").following("--apollo-bar-blur"),
+        .color("--apollo-menubar-text-color", light: 0x1C1C1E, dark: 0xF5F5F7, group: .menuBar,
+               "Text in the menu bar", on: "--apollo-menubar-color").following("--apollo-bar-text-color"),
+        .color("--apollo-menubar-icon-color", light: 0x3C3C43, dark: 0xE5E5EA, group: .menuBar,
+               "Glyphs in the menu bar", on: "--apollo-menubar-color", contrast: 3)
             .following("--apollo-bar-icon-color"),
-        .length("--apollo-edgebar-radius", 0, max: 32, group: .edgeBar, "Corner radius of the strip"),
-        .length("--apollo-edgebar-island-radius", 12, max: 32, group: .edgeBar,
+        .length("--apollo-menubar-radius", 0, max: 32, group: .menuBar, "Corner radius of the strip"),
+        .length("--apollo-menubar-island-radius", 12, max: 32, group: .menuBar,
                 "Corner radius of an island, at most half the bar thickness"),
-        .length("--apollo-edgebar-island-margin", 6, max: 6, group: .edgeBar,
+        .length("--apollo-menubar-island-margin", 6, max: 6, group: .menuBar,
                 "Gap between an island and the screen edge; the bar reserves 6 points for it"),
-        .color("--apollo-edgebar-group-color", light: 0x000000, dark: 0xFFFFFF, alpha: 0.08, group: .edgeBar,
+        .color("--apollo-menubar-group-color", light: 0x000000, dark: 0xFFFFFF, alpha: 0.08, group: .menuBar,
                "Capsule behind each group on a strip with distinct groups"),
-        .length("--apollo-edgebar-group-radius", 9, max: 32, group: .edgeBar,
+        .length("--apollo-menubar-group-radius", 9, max: 32, group: .menuBar,
                 "Corner radius of that capsule"),
-        .length("--apollo-edgebar-padding", 6, max: 24, group: .edgeBar,
+        .length("--apollo-menubar-padding", 6, max: 24, group: .menuBar,
                 "Space inside a capsule or island before its first and after its last block"),
-        .length("--apollo-edgebar-item-spacing", 4, max: 24, group: .edgeBar,
+        .length("--apollo-menubar-item-spacing", 4, max: 24, group: .menuBar,
                 "Space between two blocks of one group"),
-        .length("--apollo-edgebar-group-spacing", 6, max: 48, group: .edgeBar,
+        .length("--apollo-menubar-group-spacing", 6, max: 48, group: .menuBar,
                 "Space between two groups; a plain strip uses the sidebar item spacing instead"),
-        .text("--apollo-edgebar-font-family", group: .edgeBar,
-              "Font in the edge bars; empty means the system font").following("--apollo-font-family"),
-        .length("--apollo-edgebar-font-size", 13, min: 8, max: 32, group: .edgeBar,
-                "Base text size in the edge bars").following("--apollo-font-size"),
+        .text("--apollo-menubar-font-family", group: .menuBar,
+              "Font in the menu bar; empty means the system font").following("--apollo-font-family"),
+        .length("--apollo-menubar-font-size", 13, min: 8, max: 32, group: .menuBar,
+                "Base text size in the menu bar").following("--apollo-font-size"),
 
         // MARK: Bar modules
-        // Colours of single blocks, in the sidebar and in the edge bars alike.
-        // Their text colours are measured against the edge bar backing, which
+        // Colours of single blocks, in the sidebar and in the menu bar alike.
+        // Their text colours are measured against the menu bar backing, which
         // is the sidebar's unless a theme sets it apart.
         .color("--apollo-spaces-active-color", light: 0x007AFF, dark: 0x0A84FF, group: .barModules,
                "Marker of the active desktop in Spaces").following("--apollo-accent-color"),
         .color("--apollo-clock-color", light: 0xAF52DE, dark: 0xBF5AF2, group: .barModules,
-               "Digits of the bar clock", on: "--apollo-edgebar-color", contrast: 3)
+               "Digits of the bar clock", on: "--apollo-menubar-color", contrast: 3)
             .following("--apollo-bar-text-color"),
         .color("--apollo-weather-temperature-color", light: 0x1C1C1E, dark: 0xF5F5F7, group: .barModules,
-               "Temperature next to the weather symbol", on: "--apollo-edgebar-color"),
+               "Temperature next to the weather symbol", on: "--apollo-menubar-color"),
         .color("--apollo-status-wifi-color", light: 0x8FD3E8, group: .barModules,
-               "Wi-Fi pill when an edge bar shows status as pills"),
+               "Wi-Fi pill when the menu bar shows status as pills"),
         .color("--apollo-status-bluetooth-color", light: 0xA9B8FF, group: .barModules, "Bluetooth pill"),
         .color("--apollo-status-volume-color", light: 0xD2B3F2, group: .barModules,
                "Volume pill, once a bar shows one"),

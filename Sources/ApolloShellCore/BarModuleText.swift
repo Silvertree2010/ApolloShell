@@ -10,7 +10,7 @@ import Foundation
 public enum BarText {
     /// How long a text in a bar may grow, in characters. Below 8 even a
     /// short title is only an ellipsis; above 80 one block would push every
-    /// other one out of a top bar.
+    /// other one out of the menu bar.
     public static let lengthRange: ClosedRange<Int> = 8...80
 
     public static func clampedLength(_ value: Int) -> Int {

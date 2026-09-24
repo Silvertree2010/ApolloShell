@@ -2,9 +2,9 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// The detail window of the status icons (Wi-Fi, Bluetooth, battery) in a
-/// bar along the top, the bottom or the right edge: below, above or left of
-/// the bar, centred on the clicked icon (`EdgeBarPopoutPlacement`).
+/// The detail window of the status icons (Wi-Fi, Bluetooth, battery) in the
+/// menu bar: below the bar, centred on the clicked icon
+/// (`MenuBarPopoutPlacement`).
 ///
 /// A panel of its own instead of the sidebar's bulge (`StatusPopout`): that
 /// one grows out of the sidebar's glass and widens the sidebar's window,
@@ -14,11 +14,10 @@ import SwiftUI
 /// popout: same icon closes, another switches in place, a click elsewhere or
 /// Esc closes.
 @MainActor
-final class EdgeBarPopout {
+final class MenuBarPopout {
     /// Handed to the bar's view through the environment: the status icons
     /// report their frames into it and call `onIconClick`.
     let model = StatusPopoutModel()
-    let edge: BarEdge
 
     /// An icon frame from the bar view (top = 0) in screen coordinates.
     var screenRect: (CGRect) -> NSRect? = { _ in nil }
@@ -38,8 +37,7 @@ final class EdgeBarPopout {
     private var localMonitor: Any?
     private var generation = 0
 
-    init(edge: BarEdge) {
-        self.edge = edge
+    init() {
         model.onIconClick = { [weak self] kind in self?.iconClicked(kind) }
         model.onOpenedSettings = { [weak self] in self?.close() }
     }
@@ -116,18 +114,18 @@ final class EdgeBarPopout {
     private func place() {
         guard let panel, let icon, let bar = barFrame(), contentSize.width > 0 else { return }
         let screen = NSScreen.screens.first { $0.frame.intersects(bar) }?.frame ?? bar
-        let frame = EdgeBarPopoutPlacement.frame(icon: icon, bar: bar, size: contentSize, edge: edge, screen: screen)
+        let frame = MenuBarPopoutPlacement.frame(icon: icon, bar: bar, size: contentSize, screen: screen)
         if panel.frame != frame { panel.setFrame(frame, display: true) }
     }
 
     private func makePanel() -> ShellPanel {
-        // Above the bars (a top bar over the menu bar stands at .statusBar),
-        // like the edge drawers.
+        // Above the bars (a menu bar over Apple's stands at .statusBar), like
+        // the edge drawers.
         let panel = ShellPanel(level: .popUpMenu,
                                behavior: [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary],
                                deferred: false)
         let hosting = FirstMouseHostingView(
-            rootView: EdgeBarPopoutView(model: model) { [weak self] in self?.contentSizeChanged($0) }.shellTheme()
+            rootView: MenuBarPopoutView(model: model) { [weak self] in self?.contentSizeChanged($0) }.shellTheme()
         )
         // The panel's size is `place()`'s, from the reported content size.
         hosting.sizingOptions = []
@@ -180,7 +178,7 @@ final class EdgeBarPopout {
 
 /// The popout's content on the bar background, reporting its size so the
 /// panel can follow it.
-struct EdgeBarPopoutView: View {
+struct MenuBarPopoutView: View {
     let model: StatusPopoutModel
     let onSize: (CGSize) -> Void
 

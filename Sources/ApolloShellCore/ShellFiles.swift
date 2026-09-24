@@ -41,6 +41,8 @@ public struct ShellFiles: Sendable {
     public var twmSocket: URL { file("twm.sock") }
     /// The saved values of Apple's Dock while it is hidden.
     public var appleDock: URL { file("apple-dock.json") }
+    /// `_HIHideMenuBar` before the menu bar hid Apple's (`AppleMenuBarOriginal`).
+    public var appleMenuBar: URL { file("apple-menubar.json") }
     /// The marker: ApolloShell switched sleep with the lid closed off and has
     /// to switch it back on.
     public var lidAwakeMarker: URL { file("lid-awake") }

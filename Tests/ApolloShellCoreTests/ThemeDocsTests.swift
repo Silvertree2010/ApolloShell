@@ -145,14 +145,14 @@ struct ThemeDocsTests {
         #expect(ThemeLoader.themes(in: Self.examples).map(\.identifier) == ["full", "minimal", "Nightfall"])
     }
 
-    @Test("the edge bar example themes in the docs load without a notice", arguments: ["Teal Strip", "Ember Islands"])
-    func edgeBarExamples(name: String) throws {
+    @Test("the menu bar example themes in the docs load without a notice", arguments: ["Teal Strip", "Ember Islands"])
+    func menuBarExamples(name: String) throws {
         let css = try #require(ThemeDocumentation.cssBlock(after: "### \(name)", in: try read(Self.docs)))
         let theme = Theme.make(identifier: name, styleSheet: ThemeStyleSheetParser.parse(css))
         #expect(theme.title == name)
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
-        #expect(theme.color(.edgeBar) != nil)
-        #expect(theme.color(.bar) == nil, "an edge bar example leaves the sidebar alone")
+        #expect(theme.color(.menuBar) != nil)
+        #expect(theme.color(.bar) == nil, "a menu bar example leaves the sidebar alone")
     }
 
     @Test("cssBlock takes only the block of its own heading")

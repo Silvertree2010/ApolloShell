@@ -31,7 +31,7 @@ enum SidebarMotion {
 /// Along a horizontal bar the places run from left to right and the pill
 /// glides sideways; sizes and colors stay the same.
 ///
-/// Two more faces (`BarWorkspacesOptions.Style`) for the edge bars, in the
+/// Two more faces (`BarWorkspacesOptions.Style`) for the menu bar, in the
 /// same capsule and with the same click per place: `pills` stretches the
 /// active dot into a capsule along the bar, `bars` draws a thin line across
 /// the bar per desktop, the active one longer. Both mark the active desktop
@@ -47,7 +47,7 @@ struct SidebarSpaces: View {
     @Environment(\.barGroupCapsule) private var inCapsule
 
     /// One place: 26 in the 32 pt sidebar, 3 pt of the capsule around it on
-    /// each side - and the same margin in a thinner edge bar.
+    /// each side - and the same margin in a thinner menu bar.
     private var slot: CGFloat { size - 6 }
     private static let gap: CGFloat = 3
 
@@ -139,7 +139,7 @@ struct SidebarSpaces: View {
         }
         .padding(horizontal ? .horizontal : .vertical, Self.gap * 2)
         .frame(width: horizontal ? nil : size, height: horizontal ? size : nil)
-        .background(inCapsule ? Color.clear : shellStyle.edgeBarGroup, in: .capsule)
+        .background(inCapsule ? Color.clear : shellStyle.menuBarGroup, in: .capsule)
         .animation(SidebarMotion.spatial, value: snapshot)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.help(snapshot))

@@ -74,7 +74,7 @@ struct SidebarContent: View {
 /// kit (image sample: pixel for pixel).
 struct BarStack: Layout {
     var spacing: CGFloat = 8
-    /// `.horizontal` for the bars along the top and the bottom edge: the same
+    /// `.horizontal` for the menu bar across the top: the same
     /// rules turned by 90 degrees - left to right, the flexible ones share the
     /// free width, every block centered in the height. `BarFlex` only knows
     /// lengths, so it serves both directions unchanged.
@@ -189,7 +189,7 @@ struct BarModuleView: View {
                 .accessibilityHidden(true)
         case .gap(let options):
             // "Height" in the options is the length along the bar: across
-            // it, in a bar along the top or the bottom edge.
+            // it, in the menu bar.
             let horizontal = axis == .horizontal
             Color.clear
                 .frame(width: horizontal ? options.height : 1, height: horizontal ? 1 : options.height)
@@ -215,6 +215,10 @@ struct BarModuleView: View {
                 Image(systemName: "music.note")
                     .font(.system(size: 15, weight: .semibold))
             }
+        case .timer:
+            BarTimerModule(timer: context.timer)
+        case .networkSpeed:
+            BarNetworkModule(model: context.network) { context.onDashboardTab(.performance) }
         case .nowPlaying(let options):
             BarNowPlayingModule(media: context.media, options: options) { context.onDashboardTab(.media) }
         case .windowTitle(let options):
@@ -233,10 +237,16 @@ struct BarModuleView: View {
                           standalone: true)
         case .systemStats(let options):
             BarSystemStatsModule(model: context.cpu, options: options) { context.onDashboardTab(.performance) }
-        case .timer:
-            BarTimerModule(timer: context.timer)
-        case .networkSpeed:
-            BarNetworkModule(model: context.network) { context.onDashboardTab(.performance) }
+        case .appleMenu:
+            BarAppleMenuModule(model: context.appMenu)
+        case .appMenu:
+            // Along the menu bar it takes the free width and folds its
+            // titles into "…" when that is short; across the sidebar it is
+            // one fixed button.
+            BarAppMenuModule(model: context.appMenu)
+                .layoutValue(key: BarFlexible.self, value: axis == .horizontal)
+        case .statusItems:
+            BarStatusItemsModule(model: context.statusItems)
         }
     }
 }
@@ -249,10 +259,9 @@ struct BarModuleView: View {
 /// it is missing (preview, image samples), the symbols are display only.
 /// Along a horizontal bar the symbols stand side by side in a lying capsule.
 ///
-/// An edge bar can ask for pills instead (`EdgeBar.statusStyle`): each
+/// The menu bar can ask for pills instead (`ApolloMenuBar.statusStyle`): each
 /// symbol on its own capsule in its `--apollo-status-*` colour, with a word
-/// beside it along a horizontal bar. Across the right bar there is no room
-/// for the word, so the pill carries the symbol only.
+/// beside it.
 private struct StatusCapsule: View {
     let status: StatusModel
     var options = BarStatusIconsOptions()
@@ -354,27 +363,24 @@ private struct StatusCapsule: View {
         _ kind: StatusPopoutKind, colors: (fill: Color, text: Color), help: String, text: String,
         @ViewBuilder glyph: @escaping () -> Glyph
     ) -> some View {
-        let horizontal = axis == .horizontal
         let active = popout?.isOpen == true && popout?.shown == kind
         // A few points off the bar's edges, like the capsules of a group.
         let across = max(size - 8, 16)
         return Button(action: { click(kind) }) {
             HStack(spacing: 4) {
                 glyph()
-                if horizontal {
-                    Text(text)
-                        .font(shellStyle.font(size: 11, weight: .semibold))
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .fixedSize()
-                }
+                Text(text)
+                    .font(shellStyle.font(size: 11, weight: .semibold))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .fixedSize()
             }
-            .padding(.horizontal, horizontal ? 8 : 0)
-            .frame(width: horizontal ? nil : across, height: across)
+            .padding(.horizontal, 8)
+            .frame(height: across)
             .foregroundStyle(colors.text)
             .background(colors.fill, in: .capsule)
             .overlay { Capsule().strokeBorder(colors.text.opacity(active ? 0.55 : 0), lineWidth: 1.5) }
-            .frame(width: horizontal ? nil : size, height: horizontal ? size : nil)
+            .frame(height: size)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)

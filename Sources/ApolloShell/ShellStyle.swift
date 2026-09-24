@@ -17,7 +17,7 @@ struct ShellStyle: Equatable {
     let theme: Theme
     let dark: Bool
     /// Tokens that are read from another token first, inside one part of
-    /// the shell - see `edgeBarScope`. Empty everywhere else.
+    /// the shell - see `menuBarScope`. Empty everywhere else.
     var redirects: [String: String] = [:]
 
     /// The built-in look: exactly the shell without a theme.
@@ -30,7 +30,7 @@ struct ShellStyle: Equatable {
     }
 
     /// A redirect applies once per name, so `--apollo-bar-color` can point at
-    /// `--apollo-edgebar-color` while that one falls back to
+    /// `--apollo-menubar-color` while that one falls back to
     /// `--apollo-bar-color` - the second time the theme's own value is read.
     private func lookup(_ name: String, redirected: Set<String>) -> ThemeValue? {
         if let target = redirects[name], !redirected.contains(name) {
@@ -41,27 +41,27 @@ struct ShellStyle: Equatable {
         return lookup(fallback, redirected: redirected)
     }
 
-    /// The style inside an edge bar. The bar blocks are the sidebar's
+    /// The style inside the menu bar. The bar blocks are the sidebar's
     /// (`BarModuleView`) and read the sidebar's tokens - backing, text and
-    /// glyph colour, font. Here those reads go to the `--apollo-edgebar-*`
+    /// glyph colour, font. Here those reads go to the `--apollo-menubar-*`
     /// tokens instead, which in turn follow the sidebar's when a theme does
     /// not set them. So no block needs to know which bar it stands in, and
     /// the sidebar, which never gets this scope, stays exactly as it was.
-    var edgeBarScope: ShellStyle {
+    var menuBarScope: ShellStyle {
         var scoped = self
-        scoped.redirects = Self.edgeBarRedirects
+        scoped.redirects = Self.menuBarRedirects
         return scoped
     }
 
-    private static let edgeBarRedirects: [String: String] = [
-        ThemeColorToken.bar.name: ThemeColorToken.edgeBar.name,
-        ThemeGradientToken.bar.name: ThemeGradientToken.edgeBar.name,
-        ThemeNumberToken.barOpacity.name: ThemeNumberToken.edgeBarOpacity.name,
-        ThemeNumberToken.barBlur.name: ThemeNumberToken.edgeBarBlur.name,
-        ThemeColorToken.barText.name: ThemeColorToken.edgeBarText.name,
-        ThemeColorToken.barIcon.name: ThemeColorToken.edgeBarIcon.name,
-        ThemeTextToken.fontFamily.name: ThemeTextToken.edgeBarFontFamily.name,
-        ThemeNumberToken.fontSize.name: ThemeNumberToken.edgeBarFontSize.name,
+    private static let menuBarRedirects: [String: String] = [
+        ThemeColorToken.bar.name: ThemeColorToken.menuBar.name,
+        ThemeGradientToken.bar.name: ThemeGradientToken.menuBar.name,
+        ThemeNumberToken.barOpacity.name: ThemeNumberToken.menuBarOpacity.name,
+        ThemeNumberToken.barBlur.name: ThemeNumberToken.menuBarBlur.name,
+        ThemeColorToken.barText.name: ThemeColorToken.menuBarText.name,
+        ThemeColorToken.barIcon.name: ThemeColorToken.menuBarIcon.name,
+        ThemeTextToken.fontFamily.name: ThemeTextToken.menuBarFontFamily.name,
+        ThemeNumberToken.fontSize.name: ThemeNumberToken.menuBarFontSize.name,
     ]
 
     // MARK: - Colors
@@ -147,7 +147,7 @@ struct ShellStyle: Equatable {
     }
 
     /// The capsule behind a group on a strip with distinct groups.
-    var edgeBarGroup: Color { color(.edgeBarGroup) ?? Color.primary.opacity(0.08) }
+    var menuBarGroup: Color { color(.menuBarGroup) ?? Color.primary.opacity(0.08) }
 
     // MARK: - Surfaces
 

@@ -80,6 +80,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var appleDockHiding: AppleDockHidingController?
     /// The tiling window manager (Nexus > TWM).
     private var twm: TWMController?
+    /// Hide Apple's menu bar while ours stands in its place (setting of the
+    /// menu bar).
+    private var appleMenuBarHiding: AppleMenuBarHidingController?
     /// Catches SIGTERM (`launchctl stop`, say), so `terminate()` restores the
     /// Dock instead of leaving it hidden - the default SIGTERM handler does
     /// not clean up.
@@ -153,6 +156,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let media = MediaModel()
         let sidebar = Sidebar(settings: settings, editor: shellEditor, media: media)
         self.sidebar = sidebar
+        // After the sidebar: the start with the setting on hides right away,
+        // and the bars have to measure again then.
+        let appleMenuBarHiding = AppleMenuBarHidingController(settings: settings)
+        appleMenuBarHiding.onChange = { [weak sidebar] in sidebar?.relayout() }
+        self.appleMenuBarHiding = appleMenuBarHiding
         shellEditor.addBeginHandler { [weak sidebar] _ in sidebar?.setEditing(true) }
         shellEditor.addEndHandler { [weak sidebar] in sidebar?.setEditing(false) }
         let sessionMenu = SessionMenu()
@@ -199,6 +207,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.toaster?.toast(title: title, message: message, kind: .error)
         }
         self.nexusMenu = nexusMenu
+        // ApolloShell's own item among the mirrored status items.
+        sidebar.onNexus = { [weak nexusMenu] in nexusMenu?.open() }
+        sidebar.nexusItemFrame = { [weak nexusMenu] in nexusMenu?.mirrorFrame }
         // `>` Settings in the launcher, and its failures as toasts.
         controller.onOpenSettings = { [weak nexusMenu] in nexusMenu?.open() }
         controller.onReport = { [weak self] title, message in
@@ -267,7 +278,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         twm?.onRunningChange = { [weak windowGuard] running in windowGuard?.setSuspended(running) }
         // The watch keeps free what the bars cover on every screen - and
         // learns of every change to that (a screen added, removed, a setting
-        // in Nexus changed, an edge bar switched on, or a new width out of
+        // in Nexus changed, the menu bar switched on, or a new width out of
         // the theme).
         windowGuard.setReserved(sidebar.reserved)
         twm?.setReserved(sidebar.reserved)
@@ -314,6 +325,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // the Dock is already back.
         appleDockHiding?.terminate()
         twm?.terminate()
+        appleMenuBarHiding?.terminate()
         controller?.close()
         dashboard?.shutdown()
         utilities?.shutdown()

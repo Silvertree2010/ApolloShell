@@ -146,26 +146,26 @@ struct ThemeTokenCatalogTests {
         }
     }
 
-    @Test("an edge bar token set by the theme wins, otherwise the sidebar's, otherwise nothing")
+    @Test("the menu bar token set by the theme wins, otherwise the sidebar's, otherwise nothing")
     func fallbackChain() {
         let values: [String: ThemeValue] = ["--apollo-bar-color": .color(ThemeColor(hex: 0x112233))]
-        #expect(catalog.value("--apollo-edgebar-color", in: { values[$0] })?.color == ThemeColor(hex: 0x112233))
-        #expect(catalog.value("--apollo-edgebar-text-color", in: { values[$0] }) == nil)
-        let both = values.merging(["--apollo-edgebar-color": .color(ThemeColor(hex: 0x445566))]) { $1 }
-        #expect(catalog.value("--apollo-edgebar-color", in: { both[$0] })?.color == ThemeColor(hex: 0x445566))
+        #expect(catalog.value("--apollo-menubar-color", in: { values[$0] })?.color == ThemeColor(hex: 0x112233))
+        #expect(catalog.value("--apollo-menubar-text-color", in: { values[$0] }) == nil)
+        let both = values.merging(["--apollo-menubar-color": .color(ThemeColor(hex: 0x445566))]) { $1 }
+        #expect(catalog.value("--apollo-menubar-color", in: { both[$0] })?.color == ThemeColor(hex: 0x445566))
     }
 
-    @Test("the edge bar text is checked against the sidebar colour it falls back to")
+    @Test("the menu bar text is checked against the sidebar colour it falls back to")
     func contrastFollowsFallback() {
-        // A dark sidebar and light edge bar text, the edge bar colour left
+        // A dark sidebar and light menu bar text, the menu bar colour left
         // out: the text sits on the dark sidebar colour and is fine. Checked
         // against the light default it would be darkened.
         let sheet = ThemeStyleSheetParser.parse("""
-        :root { --apollo-bar-color: #101014; --apollo-edgebar-text-color: #f0f0f0; --apollo-clock-color: #f2c66d; }
+        :root { --apollo-bar-color: #101014; --apollo-menubar-text-color: #f0f0f0; --apollo-clock-color: #f2c66d; }
         """)
         let theme = Theme.make(identifier: "t", styleSheet: sheet)
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
-        #expect(theme.color(.edgeBarText) == ThemeColor(hex: 0xF0F0F0))
+        #expect(theme.color(.menuBarText) == ThemeColor(hex: 0xF0F0F0))
     }
 
     @Test("the status pill text reads on every pill by default, light and dark")
@@ -181,19 +181,19 @@ struct ThemeTokenCatalogTests {
     }
 
     @Test("the new handles point at tokens of the right type")
-    func edgeBarHandles() {
+    func menuBarHandles() {
         let colors: [ThemeColorToken] = [
-            .edgeBar, .edgeBarText, .edgeBarIcon, .edgeBarGroup, .spacesActive, .clock, .weatherTemperature,
+            .menuBar, .menuBarText, .menuBarIcon, .menuBarGroup, .spacesActive, .clock, .weatherTemperature,
             .statusWifi, .statusBluetooth, .statusVolume, .statusBattery, .statusKeyboard, .statusPillText,
         ]
         for token in colors { #expect(tag(token.descriptor?.kind) == "color", "\(token.name)") }
         let numbers: [ThemeNumberToken] = [
-            .edgeBarOpacity, .edgeBarBlur, .edgeBarRadius, .edgeBarIslandRadius, .edgeBarIslandMargin,
-            .edgeBarGroupRadius, .edgeBarPadding, .edgeBarItemSpacing, .edgeBarGroupSpacing, .edgeBarFontSize,
+            .menuBarOpacity, .menuBarBlur, .menuBarRadius, .menuBarIslandRadius, .menuBarIslandMargin,
+            .menuBarGroupRadius, .menuBarPadding, .menuBarItemSpacing, .menuBarGroupSpacing, .menuBarFontSize,
         ]
         for token in numbers { #expect(tag(token.descriptor?.kind) == "number", "\(token.name)") }
-        #expect(tag(ThemeGradientToken.edgeBar.descriptor?.kind) == "gradient")
-        #expect(tag(ThemeTextToken.edgeBarFontFamily.descriptor?.kind) == "text")
+        #expect(tag(ThemeGradientToken.menuBar.descriptor?.kind) == "gradient")
+        #expect(tag(ThemeTextToken.menuBarFontFamily.descriptor?.kind) == "text")
     }
 
     @Test("every group has at least one token", arguments: ThemeTokenGroup.allCases)

@@ -2,20 +2,19 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Editing: the sidebar and the edge bars together")
+@Suite("Editing: the sidebar and the menu bar together")
 struct BarsEditSessionTests {
-    private let topStart = BarPlace.edge(.top, .start)
-    private let topCenter = BarPlace.edge(.top, .center)
-    private let topEnd = BarPlace.edge(.top, .end)
+    private let topStart = BarPlace.menuBar(.start)
+    private let topCenter = BarPlace.menuBar(.center)
+    private let topEnd = BarPlace.menuBar(.end)
 
-    /// Sidebar: dock and clock. Top bar: spaces | clock + weather (joined) | status.
+    /// Sidebar: dock and clock. Menu bar: spaces | clock + weather (joined) | status.
     private func session() -> BarEditSession {
-        var bars = EdgeBars()
-        bars.top = EdgeBar(enabled: true,
-                           start: BarLayout([BarEntry(.workspaces)]),
-                           center: BarLayout([BarEntry(.clock), BarEntry(.weather).joined()]),
-                           end: BarLayout([BarEntry(.statusIcons)]))
-        return BarEditSession(layout: BarLayout([BarEntry(.dock), BarEntry(.clock)]), edgeBars: bars)
+        let menuBar = ApolloMenuBar(enabled: true,
+                                    start: BarLayout([BarEntry(.workspaces)]),
+                                    center: BarLayout([BarEntry(.clock), BarEntry(.weather).joined()]),
+                                    end: BarLayout([BarEntry(.statusIcons)]))
+        return BarEditSession(layout: BarLayout([BarEntry(.dock), BarEntry(.clock)]), menuBar: menuBar)
     }
 
     @Test("A fresh session over both has no changes")
@@ -141,7 +140,7 @@ struct BarsEditSessionTests {
         _ = try #require(r8)
         // battery | clock + weather: move the clock away.
         s.move(BarEntryRef(place: topCenter, id: "clock"), to: topStart, at: 0)
-        let groups = EdgeBar.groups(of: s[topCenter]).map { $0.map(\.kind) }
+        let groups = ApolloMenuBar.groups(of: s[topCenter]).map { $0.map(\.kind) }
         #expect(groups == [[.battery], [.weather]])
     }
 
@@ -149,9 +148,9 @@ struct BarsEditSessionTests {
     func landingJoins() throws {
         var s = session()
         s.move(BarEntryRef(place: topStart, id: "workspaces"), to: topCenter, at: 1)
-        #expect(EdgeBar.groups(of: s[topCenter]).map { $0.map(\.kind) } == [[.clock, .workspaces, .weather]])
+        #expect(ApolloMenuBar.groups(of: s[topCenter]).map { $0.map(\.kind) } == [[.clock, .workspaces, .weather]])
         s.move(BarEntryRef(place: topCenter, id: "workspaces"), to: topCenter, at: 3)
-        #expect(EdgeBar.groups(of: s[topCenter]).map { $0.map(\.kind) } == [[.clock, .weather], [.workspaces]])
+        #expect(ApolloMenuBar.groups(of: s[topCenter]).map { $0.map(\.kind) } == [[.clock, .weather], [.workspaces]])
     }
 
     @Test("Dropped where it stands, a joined block keeps its group")
@@ -202,11 +201,11 @@ struct BarsEditSessionTests {
         #expect(s.selection == nil)
     }
 
-    @Test("Drag payloads: sidebar ids unchanged, edge ids carry their zone")
+    @Test("Drag payloads: sidebar ids unchanged, menu bar ids carry their zone")
     func payload() {
         #expect(BarEntryRef.sidebar("clock-2").payload == "clock-2")
-        let ref = BarEntryRef(place: .edge(.right, .end), id: "clock")
-        #expect(ref.payload == "right.end/clock")
+        let ref = BarEntryRef(place: .menuBar(.end), id: "clock")
+        #expect(ref.payload == "menuBar.end/clock")
         #expect(BarEntryRef(payload: ref.payload) == ref)
         #expect(BarEntryRef(payload: "clock-2") == .sidebar("clock-2"))
         #expect(BarEntryRef(payload: "odd/id") == .sidebar("odd/id"))

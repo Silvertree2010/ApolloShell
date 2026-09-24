@@ -26,15 +26,15 @@ enum RenderMode {
         if let index = args.firstIndex(of: "--render-edit"), index + 1 < args.count {
             run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderEditMode)
         }
-        // `--render-bars <folder>`: the bars with every template.
-        if let index = args.firstIndex(of: "--render-bars"), index + 1 < args.count {
-            run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true)) { try RenderBars.render(into: $0) }
-        }
         // `--render-utilities <folder>`: the control centre with every card
         // on (including the new brightness and now-playing ones) and a
         // grid with the new quick toggles, light and dark.
         if let index = args.firstIndex(of: "--render-utilities"), index + 1 < args.count {
             run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderUtilities)
+        }
+        // `--render-bars <folder>`: the bars with every template.
+        if let index = args.firstIndex(of: "--render-bars"), index + 1 < args.count {
+            run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true)) { try RenderBars.render(into: $0) }
         }
         // `--render-mark <folder>`: the ApolloShell mark through one orbit of
         // its moon, large and at bar size.
@@ -149,14 +149,12 @@ enum RenderMode {
         let place = WeatherLocation(name: "Berlin", latitude: 52.52, longitude: 13.405)
         let places = WeatherFavorites(locations: [place], selectedID: place.id)
         let pages = DashboardPages(pages: DashboardPages.defaultPages(places: places, hasBattery: false))!
-        // A top bar with an empty centre (the drop target an empty zone
-        // shows) and a right bar, for the edge bar samples below. They only
-        // enter the session; the sidebar and gallery samples read neither.
+        // A menu bar with an empty centre (the drop target an empty zone
+        // shows), for the menu bar samples below. It only enters the
+        // session; the sidebar and gallery samples do not read it.
         var shell = ShellSettings(dashboardPages: pages)
-        shell.edgeBars.top = EdgeBarPreset.serpantinum.bar(edge: .top)
-        shell.edgeBars.top.center = BarLayout()
-        shell.edgeBars.right = EdgeBarPreset.serpantinum.bar(edge: .right)
-        shell.edgeBars.right.thickness = 44
+        shell.apolloMenuBar = MenuBarPreset.serpantinum.bar()
+        shell.apolloMenuBar.center = BarLayout()
         let settings = ShellSettingsStore.preview(shell)
         let dashboardEditor = DashboardEditor(store: settings)
         let editor = ShellEditor(store: settings, dashboard: dashboardEditor)
@@ -190,7 +188,7 @@ enum RenderMode {
             .padding(.vertical, 10)
             .frame(width: Sidebar.width, height: 520)
         try write(barView, scheme: .light, to: editFolder.appendingPathComponent("bar-editing-light.png"))
-        try renderEdgeBarsEditing(editor: editor, settings: settings, into: editFolder)
+        try renderMenuBarEditing(editor: editor, settings: settings, into: editFolder)
         // The control centre while editing (task 5): one button selected -
         // `ImageRenderer` does not draw the wobble itself (a fixed snapshot
         // in the middle of the endless loop), but the frame, the minus badge
@@ -207,49 +205,6 @@ enum RenderMode {
         let utilitiesView = EditableUtilitiesView(editor: editor, layout: editor.utilities?.layout ?? UtilitiesLayout())
             .environment(\.dashboardRendersForScreenshot, true)
         try write(utilitiesView, scheme: .light, to: editFolder.appendingPathComponent("utilities-selected-light.png"))
-    }
-
-    /// Edge bars while editing (Etappe 4): the top bar with a joined block
-    /// selected and its empty centre zone showing the drop target, the right
-    /// bar, and the options of the selected block with "Join with Previous".
-    /// The popover itself is a window of its own, so its content is drawn
-    /// separately; the wobble is one fixed moment, as in the sidebar sample.
-    private static func renderEdgeBarsEditing(editor: ShellEditor, settings: ShellSettingsStore,
-                                              into folder: URL) throws {
-        let end = BarPlace.edge(.top, .end)
-        guard let battery = editor.bar?[end].entries.first(where: { $0.kind == .battery }) else { return }
-        let ref = BarEntryRef(place: end, id: battery.id)
-        editor.selectedBarEntry = ref
-        func edge(_ edge: BarEdge) -> some View {
-            EdgeBarRoot.shownView(settings: settings, edge: edge, editor: editor, context: BarPreviewModels.context)
-                .background(Color(red: 0.45, green: 0.52, blue: 0.62))
-                .environment(\.barPreview, true)
-                .environment(\.statusPopoutGlassStandIn, true)
-                .environment(\.dashboardRendersForScreenshot, true)
-        }
-        try write(edge(.top).frame(width: 1200, height: CGFloat(settings.settings.edgeBars.top.thickness)),
-                  scheme: .light, to: folder.appendingPathComponent("edgebar-top-editing-light.png"))
-        try write(edge(.top).frame(width: 1200, height: CGFloat(settings.settings.edgeBars.top.thickness)),
-                  scheme: .dark, to: folder.appendingPathComponent("edgebar-top-editing-dark.png"))
-        try write(edge(.right).frame(width: CGFloat(settings.settings.edgeBars.right.thickness), height: 700),
-                  scheme: .light, to: folder.appendingPathComponent("edgebar-right-editing-light.png"))
-        if let entry = editor.bar?.entry(ref) {
-            try write(BarBlockOptionsView(editor: editor, entry: entry, ref: ref) {}, scheme: .light,
-                      to: folder.appendingPathComponent("edgebar-options-light.png"))
-        }
-        // The gallery follows the selection: the top bar's status icons are
-        // there already, so their tile is greyed out now.
-        try write(EditGalleryView(editor: editor).environment(\.galleryRendersForScreenshot, true), scheme: .light,
-                  to: folder.appendingPathComponent("gallery-bar-edge-light.png"))
-        editor.selectedBarEntry = nil
-        // Nexus > Edge Bars for the same settings: the top bar's centre was
-        // emptied above, so the template list shows "Custom".
-        let nexus = NexusPanelModel(settings: settings, themes: nil, updates: nil, autostart: nil)
-        nexus.tab = .bars
-        // The page alone: the panel holds it in a scroll view, which
-        // `ImageRenderer` leaves empty.
-        try write(NexusEdgeBarsPage(model: nexus).padding(NexusPanelView.padding).frame(width: NexusPanelView.width),
-                  scheme: .light, to: folder.appendingPathComponent("nexus-edgebars-light.png"))
     }
 
     /// `--render-utilities <folder>`: the quiet panel with every card on
@@ -282,6 +237,46 @@ enum RenderMode {
             let view = UtilitiesView(model: model, layout: layout, media: media)
             try write(view, scheme: scheme, to: folder.appendingPathComponent(name("utilities", scheme)))
         }
+    }
+
+    /// The menu bar while editing (Etappe 4): a joined block selected and the
+    /// empty centre zone showing the drop target, and the options of the
+    /// selected block with "Join with Previous".
+    /// The popover itself is a window of its own, so its content is drawn
+    /// separately; the wobble is one fixed moment, as in the sidebar sample.
+    private static func renderMenuBarEditing(editor: ShellEditor, settings: ShellSettingsStore,
+                                             into folder: URL) throws {
+        let end = BarPlace.menuBar(.end)
+        guard let battery = editor.bar?[end].entries.first(where: { $0.kind == .battery }) else { return }
+        let ref = BarEntryRef(place: end, id: battery.id)
+        editor.selectedBarEntry = ref
+        func menuBar() -> some View {
+            MenuBarRoot.shownView(settings: settings, editor: editor, context: BarPreviewModels.context)
+                .background(Color(red: 0.45, green: 0.52, blue: 0.62))
+                .environment(\.barPreview, true)
+                .environment(\.statusPopoutGlassStandIn, true)
+                .environment(\.dashboardRendersForScreenshot, true)
+                .frame(width: 1200, height: CGFloat(settings.settings.apolloMenuBar.thickness))
+        }
+        try write(menuBar(), scheme: .light, to: folder.appendingPathComponent("menubar-editing-light.png"))
+        try write(menuBar(), scheme: .dark, to: folder.appendingPathComponent("menubar-editing-dark.png"))
+        if let entry = editor.bar?.entry(ref) {
+            try write(BarBlockOptionsView(editor: editor, entry: entry, ref: ref) {}, scheme: .light,
+                      to: folder.appendingPathComponent("menubar-options-light.png"))
+        }
+        // The gallery follows the selection: the menu bar's status icons are
+        // there already, so their tile is greyed out now.
+        try write(EditGalleryView(editor: editor).environment(\.galleryRendersForScreenshot, true), scheme: .light,
+                  to: folder.appendingPathComponent("gallery-bar-menubar-light.png"))
+        editor.selectedBarEntry = nil
+        // Nexus > Menu Bar for the same settings: the bar's centre was
+        // emptied above, so the template list shows "Custom".
+        let nexus = NexusPanelModel(settings: settings, themes: nil, updates: nil, autostart: nil)
+        nexus.tab = .menuBar
+        // The page alone: the panel holds it in a scroll view, which
+        // `ImageRenderer` leaves empty.
+        try write(NexusMenuBarPage(model: nexus).padding(NexusPanelView.padding).frame(width: NexusPanelView.width),
+                  scheme: .light, to: folder.appendingPathComponent("nexus-menubar-light.png"))
     }
 
     private static func renderMark(into folder: URL) throws {

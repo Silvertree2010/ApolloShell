@@ -51,8 +51,7 @@ final class TWMController {
         for screen in ShellScreens.current() {
             guard let insets = barReserved[screen.info.key],
                   let uuid = ShellScreens.uuid(of: screen.displayID) else { continue }
-            result[uuid] = NSEdgeInsets(top: insets.top, left: insets.left,
-                                        bottom: insets.bottom, right: insets.right)
+            result[uuid] = NSEdgeInsets(top: insets.top, left: insets.left, bottom: 0, right: 0)
         }
         return result
     }

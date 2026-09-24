@@ -23,15 +23,23 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
     case dashboardButton, workspaces, dock, clock, utilitiesButton, statusIcons, power
     // Added new, for different tastes.
     case spacer, gap, divider, appButton, battery, cpu, weather, mediaButton
-    // Stage 3 of the edge bars (spec 23.09.): the modules a top bar lives on.
-    case nowPlaying, windowTitle, keyboardLayout, volume, wifi, bluetooth, systemStats
     // 09/23, with the new dashboard widgets.
     case timer, networkSpeed
+    // Stage 3 of the menu bar (spec 23.09.): the modules the menu bar lives on.
+    case nowPlaying, windowTitle, keyboardLayout, volume, wifi, bluetooth, systemStats
+    // Stage 5 (spec 23.09. evening): Apple's menu bar, drawn by the shell.
+    case appleMenu, appMenu, statusItems
 
     public var id: Self { self }
 
     /// Shares the free height with the other flexible ones (`BarFlex`).
     public var isFlexible: Bool { self == .dock || self == .spacer }
+
+    /// Takes a share of the free width along the menu bar. The app menu
+    /// too: it shows as many menu titles as the room it gets holds and puts
+    /// the rest into "…" - across the sidebar it is one button and stays
+    /// fixed.
+    public var growsAlongMenuBar: Bool { isFlexible || self == .appMenu }
 
     /// At most once: the Dock (dragging and dropping writes Apple's Dock
     /// list - two columns with the same content would make no sense)
@@ -56,6 +64,8 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .cpu: String(localized: "CPU")
         case .weather: String(localized: "Weather")
         case .mediaButton: String(localized: "Media")
+        case .timer: String(localized: "Timer")
+        case .networkSpeed: String(localized: "Network Speed")
         case .nowPlaying: String(localized: "Now Playing")
         case .windowTitle: String(localized: "Window Title")
         case .keyboardLayout: String(localized: "Input Source")
@@ -63,8 +73,9 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .wifi: String(localized: "Wi-Fi")
         case .bluetooth: String(localized: "Bluetooth")
         case .systemStats: String(localized: "System Stats")
-        case .timer: String(localized: "Timer")
-        case .networkSpeed: String(localized: "Network Speed")
+        case .appleMenu: String(localized: "Apple Menu")
+        case .appMenu: String(localized: "App Menu")
+        case .statusItems: String(localized: "App Status Items")
         }
     }
 
@@ -86,6 +97,8 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .cpu: String(localized: "Load as a ring or number, every 2 seconds.")
         case .weather: String(localized: "Icon and temperature for the Dashboard's location.")
         case .mediaButton: String(localized: "Opens the Dashboard at the Media tab.")
+        case .timer: String(localized: "The time left on the timer; a click starts or pauses it.")
+        case .networkSpeed: String(localized: "Download and upload per second, every 2 seconds.")
         case .nowPlaying: String(localized: "Title and artist of what is playing, with previous, play and next.")
         case .windowTitle: String(localized: "The frontmost app and the title of its window.")
         case .keyboardLayout: String(localized: "The current keyboard layout; a click switches to the next one.")
@@ -93,8 +106,9 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .wifi: String(localized: "Wi-Fi on its own; a click shows details.")
         case .bluetooth: String(localized: "Bluetooth on its own; a click shows details.")
         case .systemStats: String(localized: "CPU and memory use in percent, every 2 seconds.")
-        case .timer: String(localized: "The time left on the timer; a click starts or pauses it.")
-        case .networkSpeed: String(localized: "Download and upload per second, every 2 seconds.")
+        case .appleMenu: String(localized: "The Apple menu of the frontmost app.")
+        case .appMenu: String(localized: "The frontmost app's name and its menus, File, Edit and so on.")
+        case .statusItems: String(localized: "Other apps' icons from Apple's menu bar, with their menus.")
         }
     }
 
@@ -116,6 +130,8 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .cpu: "cpu.fill"
         case .weather: "cloud.sun.fill"
         case .mediaButton: "music.note"
+        case .timer: "timer"
+        case .networkSpeed: "arrow.up.arrow.down"
         case .nowPlaying: "play.circle.fill"
         case .windowTitle: "macwindow"
         case .keyboardLayout: "keyboard"
@@ -124,8 +140,9 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         // SF Symbols has no Bluetooth rune (a trademark); the bar draws its own.
         case .bluetooth: "antenna.radiowaves.left.and.right"
         case .systemStats: "memorychip"
-        case .timer: "timer"
-        case .networkSpeed: "arrow.up.arrow.down"
+        case .appleMenu: "apple.logo"
+        case .appMenu: "filemenu.and.selection"
+        case .statusItems: "menubar.rectangle"
         }
     }
 }
@@ -210,8 +227,8 @@ public struct BarClockOptions: Codable, Equatable, Sendable {
     public var showDate: Bool
     /// `nil` is "automatic" and is what every clock saved before faces
     /// existed reads as - so it keeps looking the way it did: stacked
-    /// across the narrow sidebar and the right bar, one line along the top
-    /// and the bottom bar. See `resolvedStyle(horizontal:)`.
+    /// across the narrow sidebar, one line along the menu bar. See
+    /// `resolvedStyle(horizontal:)`.
     public var style: Style?
 
     public init(showIcon: Bool = true, showDate: Bool = false, style: Style? = nil) {
@@ -347,7 +364,7 @@ public struct BarWeatherOptions: Codable, Equatable, Sendable {
 public struct BarNowPlayingOptions: Codable, Equatable, Sendable {
     /// Characters of "title · artist" before it is cut with an ellipsis.
     /// Clamped like the gap's height: a hand-edited 0 or 10000 would leave
-    /// nothing or push every other block out of a top bar.
+    /// nothing or push every other block out of the menu bar.
     public var maxLength: Int {
         didSet {
             let clamped = BarText.clampedLength(maxLength)
@@ -473,6 +490,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
     case cpu(BarCPUOptions)
     case weather(BarWeatherOptions)
     case mediaButton
+    case timer
+    case networkSpeed
     case nowPlaying(BarNowPlayingOptions)
     case windowTitle(BarWindowTitleOptions)
     case keyboardLayout(BarKeyboardLayoutOptions)
@@ -480,8 +499,9 @@ public enum BarModule: BlockModule, Equatable, Sendable {
     case wifi
     case bluetooth
     case systemStats(BarSystemStatsOptions)
-    case timer
-    case networkSpeed
+    case appleMenu
+    case appMenu
+    case statusItems
 
     /// With the kind's defaults.
     public init(_ kind: BarModuleKind) {
@@ -509,6 +529,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .cpu: .cpu(Self.decoded(c, forKey: .options, default: .init()))
         case .weather: .weather(Self.decoded(c, forKey: .options, default: .init()))
         case .mediaButton: .mediaButton
+        case .timer: .timer
+        case .networkSpeed: .networkSpeed
         case .nowPlaying: .nowPlaying(Self.decoded(c, forKey: .options, default: .init()))
         case .windowTitle: .windowTitle(Self.decoded(c, forKey: .options, default: .init()))
         case .keyboardLayout: .keyboardLayout(Self.decoded(c, forKey: .options, default: .init()))
@@ -516,8 +538,9 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .wifi: .wifi
         case .bluetooth: .bluetooth
         case .systemStats: .systemStats(Self.decoded(c, forKey: .options, default: .init()))
-        case .timer: .timer
-        case .networkSpeed: .networkSpeed
+        case .appleMenu: .appleMenu
+        case .appMenu: .appMenu
+        case .statusItems: .statusItems
         }
     }
 
@@ -538,6 +561,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .cpu: .cpu
         case .weather: .weather
         case .mediaButton: .mediaButton
+        case .timer: .timer
+        case .networkSpeed: .networkSpeed
         case .nowPlaying: .nowPlaying
         case .windowTitle: .windowTitle
         case .keyboardLayout: .keyboardLayout
@@ -545,8 +570,9 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .wifi: .wifi
         case .bluetooth: .bluetooth
         case .systemStats: .systemStats
-        case .timer: .timer
-        case .networkSpeed: .networkSpeed
+        case .appleMenu: .appleMenu
+        case .appMenu: .appMenu
+        case .statusItems: .statusItems
         }
     }
 
@@ -568,7 +594,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .keyboardLayout(let o): o
         case .volume(let o): o
         case .systemStats(let o): o
-        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .wifi, .bluetooth, .timer, .networkSpeed: nil
+        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .timer, .networkSpeed,
+             .wifi, .bluetooth, .appleMenu, .appMenu, .statusItems: nil
         }
     }
 
@@ -598,8 +625,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
 public struct BarEntry: Codable, Equatable, Identifiable, Sendable {
     public var id: String
     public var module: BarModule
-    /// Shares one capsule with the entry before it (the bars along the other
-    /// edges draw groups this way, see `EdgeBar.groups`). The sidebar
+    /// Shares one capsule with the entry before it (the menu bar draws
+    /// groups this way, see `ApolloMenuBar.groups`). The sidebar
     /// ignores it. Only written when set, so the sidebar's section reads the
     /// same as before.
     public var joinsPrevious = false
@@ -732,14 +759,14 @@ public struct BarLayout: Codable, Equatable, Sendable {
     /// Different options for a module. The kind stays the same: a clock
     /// cannot turn into a second Dock this way.
     /// Keeps `joinsPrevious`: new options must not tear a block out of its
-    /// group in an edge bar.
+    /// group in the menu bar.
     public mutating func update(id: String, to module: BarModule) {
         let joins = blocks[id: id]?.joinsPrevious ?? false
         blocks.update(id: id, to: BarEntry(id: id, module: module).joined(joins))
     }
 
-    /// Joins a block to the one before it, or splits it off (edge bars draw
-    /// a run of joined blocks as one capsule).
+    /// Joins a block to the one before it, or splits it off (the menu bar
+    /// draws a run of joined blocks as one capsule).
     public mutating func setJoinsPrevious(id: String, _ joins: Bool) {
         guard let entry = blocks[id: id], entry.joinsPrevious != joins else { return }
         blocks.update(id: id, to: entry.joined(joins))

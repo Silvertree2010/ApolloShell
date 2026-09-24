@@ -2,7 +2,7 @@ import CoreGraphics
 import Testing
 @testable import ApolloShellCore
 
-@Suite("Nudging windows in front of bars on any edge")
+@Suite("Nudging windows in front of the menu bar and the sidebar")
 struct WindowClampInsetsTests {
     /// The MacBook screen in accessibility coordinates, the menu bar 30 pt.
     let screen = CGRect(x: 0, y: 0, width: 1512, height: 982)
@@ -42,41 +42,6 @@ struct WindowClampInsetsTests {
         #expect(WindowClamp.clampedFrame(window: dragged, screen: screen, insets: ReservedInsets(top: bar)) == expected)
     }
 
-    @Test("right bar: a filled window becomes narrower, the left edge stays")
-    func rightBarShrinksFilledWindow() {
-        let filled = CGRect(x: 0, y: 30, width: 1512, height: 952)
-        let expected = CGRect(x: 0, y: 30, width: 1468, height: 952)
-        #expect(WindowClamp.clampedFrame(window: filled, screen: screen, insets: ReservedInsets(right: bar)) == expected)
-    }
-
-    @Test("right bar: a window hanging over the right edge is moved fully into view")
-    func rightBarMovesHangingWindow() {
-        let hanging = CGRect(x: 1400, y: 200, width: 300, height: 400)
-        let expected = CGRect(x: 1168, y: 200, width: 300, height: 400)
-        #expect(WindowClamp.clampedFrame(window: hanging, screen: screen, insets: ReservedInsets(right: bar)) == expected)
-    }
-
-    @Test("right bar: while moving, not past the screen on the left")
-    func rightBarMoveStopsAtLeftEdge() {
-        let wide = CGRect(x: 20, y: 30, width: 1520, height: 900)
-        let expected = CGRect(x: 0, y: 30, width: 1468, height: 900)
-        #expect(WindowClamp.clampedFrame(window: wide, screen: screen, insets: ReservedInsets(right: bar)) == expected)
-    }
-
-    @Test("bottom bar: a window hanging over the bottom edge is moved fully into view")
-    func bottomBarMovesHangingWindow() {
-        let hanging = CGRect(x: 100, y: 700, width: 400, height: 400)
-        let expected = CGRect(x: 100, y: 538, width: 400, height: 400)
-        #expect(WindowClamp.clampedFrame(window: hanging, screen: screen, insets: ReservedInsets(bottom: bar)) == expected)
-    }
-
-    @Test("bottom bar: a filled window becomes shorter, the top edge stays")
-    func bottomBarShrinksFilledWindow() {
-        let filled = CGRect(x: 100, y: 0, width: 800, height: 982)
-        let expected = CGRect(x: 100, y: 0, width: 800, height: 938)
-        #expect(WindowClamp.clampedFrame(window: filled, screen: screen, insets: ReservedInsets(bottom: bar)) == expected)
-    }
-
     @Test("a maximised window with bars top and left ends up exactly in the free rect")
     func topAndLeftBarsFitMaximisedWindow() {
         let maximised = CGRect(x: 0, y: 0, width: 1512, height: 982)
@@ -85,12 +50,18 @@ struct WindowClampInsetsTests {
         #expect(WindowClamp.clampedFrame(window: maximised, screen: screen, insets: insets) == expected)
     }
 
-    @Test("bars on both sides of an axis: the window fits into the free strip between them")
-    func leftAndRightBarsFitFilledWindow() {
-        let filled = CGRect(x: 0, y: 30, width: 1512, height: 952)
-        let expected = CGRect(x: 44, y: 30, width: 1424, height: 952)
-        let insets = ReservedInsets(left: bar, right: bar)
-        #expect(WindowClamp.clampedFrame(window: filled, screen: screen, insets: insets) == expected)
+    @Test("left bar: a window dragged under it is moved right, the size stays")
+    func leftBarMovesDraggedWindow() {
+        let dragged = CGRect(x: 10, y: 200, width: 600, height: 400)
+        let expected = CGRect(x: 44, y: 200, width: 600, height: 400)
+        #expect(WindowClamp.clampedFrame(window: dragged, screen: screen, insets: ReservedInsets(left: bar)) == expected)
+    }
+
+    @Test("left bar: while moving, not past the screen on the right")
+    func leftBarMoveStopsAtRightEdge() {
+        let wide = CGRect(x: -10, y: 30, width: 1500, height: 900)
+        let expected = CGRect(x: 44, y: 30, width: 1468, height: 900)
+        #expect(WindowClamp.clampedFrame(window: wide, screen: screen, insets: ReservedInsets(left: bar)) == expected)
     }
 
     @Test("minSize is respected on both axes, then only moved")
@@ -112,7 +83,7 @@ struct WindowClampInsetsTests {
     @Test("a window with no overlap with any reserved strip stays as it is")
     func noOverlapIsUntouched() {
         let window = CGRect(x: 200, y: 200, width: 400, height: 300)
-        let insets = ReservedInsets(top: bar, left: bar, bottom: bar, right: bar)
+        let insets = ReservedInsets(top: bar, left: bar)
         #expect(WindowClamp.clampedFrame(window: window, screen: screen, insets: insets) == nil)
     }
 

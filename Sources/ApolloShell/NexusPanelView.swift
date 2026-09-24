@@ -6,14 +6,14 @@ import UniformTypeIdentifiers
 /// The pages of the Nexus panel, as tabs of symbols along the top (modelled
 /// on Vorssaint's menu bar panel, which Andrin showed on 21.09.).
 enum NexusTab: String, CaseIterable, Identifiable {
-    case bar, bars, themes, toasts, providers, twm, system, updates
+    case bar, menuBar, themes, toasts, providers, twm, system, updates
 
     var id: Self { self }
 
     var title: String {
         switch self {
         case .bar: String(localized: "Bar")
-        case .bars: String(localized: "Edge Bars")
+        case .menuBar: String(localized: "Menu Bar")
         case .themes: String(localized: "Themes")
         case .toasts: String(localized: "Toasts")
         case .providers: String(localized: "Providers")
@@ -26,7 +26,7 @@ enum NexusTab: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .bar: "sidebar.left"
-        case .bars: "rectangle.topthird.inset.filled"
+        case .menuBar: "rectangle.topthird.inset.filled"
         case .themes: "paintpalette"
         case .toasts: "bell.badge"
         case .providers: "cloud.sun"
@@ -262,7 +262,7 @@ struct NexusPanelView: View {
     @ViewBuilder private var page: some View {
         switch model.tab {
         case .bar: NexusBarPage(model: model)
-        case .bars: NexusEdgeBarsPage(model: model)
+        case .menuBar: NexusMenuBarPage(model: model)
         case .themes: NexusThemesPage(model: model)
         case .toasts: NexusToastsPage(model: model)
         case .providers: NexusProvidersPage(model: model)
@@ -323,7 +323,7 @@ private struct NexusBarPage: View {
 
     /// Every connected screen once (two identical ones share a key), plus
     /// the chosen one when it is not connected right now - so the tick
-    /// always stands on a row. Shared with the edge bars' page.
+    /// always stands on a row. Shared with the menu bar's page.
     static func screenOptions(for choice: ScreenChoice) -> [NexusOption<ScreenChoice>] {
         var seen: Set<String> = []
         let screens = ShellScreens.current().map(\.info).filter { seen.insert($0.key).inserted }
@@ -339,13 +339,11 @@ private struct NexusBarPage: View {
     }
 }
 
-/// The bars along the top, bottom and right edge: one edge at a time
-/// (picked at the top), each with the same cards. What stands in a bar is
-/// edited in the edit mode, like the sidebar; the templates here are the
-/// quick start, and choosing one replaces the bar's zones.
-struct NexusEdgeBarsPage: View {
+/// The menu bar across the top of the screen. What stands in it is edited in
+/// the edit mode, like the sidebar; the templates here are the quick start,
+/// and choosing one replaces the bar's zones.
+struct NexusMenuBarPage: View {
     let model: NexusPanelModel
-    @State private var edge: BarEdge = .top
     /// The thickness while the slider is dragged. Written once when it is
     /// let go: every write moves the bar, the sidebar's column and the room
     /// kept free for windows, and the window guard would push windows along
@@ -355,35 +353,27 @@ struct NexusEdgeBarsPage: View {
 
     var body: some View {
         @Bindable var store = model.settings
-        let bar = store.settings.edgeBars[edge]
+        let bar = store.settings.apolloMenuBar
         let thickness = draftThickness ?? bar.thickness
-        let preset = EdgeBarPreset.allCases.first { Self.matches($0, bar, edge: edge) }
-        var presets = EdgeBarPreset.allCases.map { NexusOption<EdgeBarPreset?>($0, $0.title, $0.summary) }
+        let preset = MenuBarPreset.allCases.first { Self.matches($0, bar) }
+        var presets = MenuBarPreset.allCases.map { NexusOption<MenuBarPreset?>($0, $0.title, $0.summary) }
         if preset == nil {
             presets.append(.init(nil, String(localized: "Custom"), String(localized: "Changed in the edit mode")))
         }
         return VStack(spacing: 8) {
-            Picker("Edge", selection: $edge) {
-                ForEach(BarEdge.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .padding(4)
-            .cardSurface(radius: 14)
-
-            NexusSwitchCard(symbol: "power", title: "Show Bar",
-                            subtitle: bar.isEmpty ? "Empty - pick a template below first." : "Along this edge of the screen.",
+            NexusSwitchCard(symbol: "power", title: "Show Menu Bar",
+                            subtitle: bar.isEmpty ? "Empty - pick a template below first." : "Across the top of the screen.",
                             isOn: binding(\.enabled))
             NexusChoiceCard(symbol: "square.grid.3x1.below.line.grid.1x2", title: "Template",
                             subtitle: "Replaces what stands in the bar. Arrange it further in the edit mode.",
                             options: presets, selected: preset) { choice in
                 guard let choice else { return }
-                let template = choice.bar(edge: edge)
-                for zone in BarZone.allCases { store.settings.edgeBars[edge][zone] = template[zone] }
+                let template = choice.bar()
+                for zone in BarZone.allCases { store.settings.apolloMenuBar[zone] = template[zone] }
             }
             NexusChoiceCard(symbol: "capsule", title: "Style", subtitle: nil,
                             options: BarStyle.allCases.map { .init($0, $0.title, Self.summary($0)) },
-                            selected: bar.style) { store.settings.edgeBars[edge].style = $0 }
+                            selected: bar.style) { store.settings.apolloMenuBar.style = $0 }
             if bar.style == .fill {
                 // Islands are capsules already; the switch only means
                 // something on the strip.
@@ -397,9 +387,9 @@ struct NexusEdgeBarsPage: View {
                     .monospacedDigit()
             } footer: {
                 Slider(value: Binding(get: { thickness }, set: { draftThickness = $0 }),
-                       in: EdgeBar.thicknessRange, step: 1) { editing in
+                       in: ApolloMenuBar.thicknessRange, step: 1) { editing in
                     guard !editing, let value = draftThickness else { return }
-                    store.settings.edgeBars[edge].thickness = value
+                    store.settings.apolloMenuBar.thickness = value
                     draftThickness = nil
                 }
             }
@@ -408,37 +398,35 @@ struct NexusEdgeBarsPage: View {
                                             String(localized: "Glyphs side by side, as in the sidebar")),
                                       .init(.pills, String(localized: "Pills"),
                                             String(localized: "Coloured capsules with a short text"))],
-                            selected: bar.statusStyle) { store.settings.edgeBars[edge].statusStyle = $0 }
+                            selected: bar.statusStyle) { store.settings.apolloMenuBar.statusStyle = $0 }
             NexusChoiceCard(symbol: "display.2", title: "Screens", subtitle: nil,
                             options: NexusBarPage.screenOptions(for: bar.screens),
-                            selected: bar.screens) { store.settings.edgeBars[edge].screens = $0 }
-            if edge == .top {
-                NexusSwitchCard(symbol: "menubar.rectangle", title: "Cover Apple's Menu Bar",
-                                subtitle: "Lie over the menu bar instead of below it.",
-                                isOn: binding(\.coversMenuBar))
-            }
+                            selected: bar.screens) { store.settings.apolloMenuBar.screens = $0 }
+            NexusSwitchCard(symbol: "menubar.rectangle", title: "Cover Apple's Menu Bar",
+                            subtitle: "Lie over Apple's menu bar instead of below it.",
+                            isOn: binding(\.coversMenuBar))
+            NexusSwitchCard(symbol: "menubar.dock.rectangle", title: "Hide Apple's Menu Bar",
+                            subtitle: "More room for windows. Other apps' status items then show without their images.",
+                            isOn: binding(\.hideAppleMenuBar))
         }
-        // Another edge: a slider still held belongs to the old one.
-        .onChange(of: edge) { draftThickness = nil }
     }
 
-    /// One switch of the chosen bar, straight into the settings.
-    private func binding(_ key: WritableKeyPath<EdgeBar, Bool>) -> Binding<Bool> {
+    /// One switch of the bar, straight into the settings.
+    private func binding(_ key: WritableKeyPath<ApolloMenuBar, Bool>) -> Binding<Bool> {
         let store = model.settings
-        let edge = edge
-        return Binding(get: { store.settings.edgeBars[edge][keyPath: key] },
-                       set: { store.settings.edgeBars[edge][keyPath: key] = $0 })
+        return Binding(get: { store.settings.apolloMenuBar[keyPath: key] },
+                       set: { store.settings.apolloMenuBar[keyPath: key] = $0 })
     }
 
     /// A template is ticked while the bar's zones are exactly its zones.
-    private static func matches(_ preset: EdgeBarPreset, _ bar: EdgeBar, edge: BarEdge) -> Bool {
-        let template = preset.bar(edge: edge)
+    private static func matches(_ preset: MenuBarPreset, _ bar: ApolloMenuBar) -> Bool {
+        let template = preset.bar()
         return BarZone.allCases.allSatisfy { template[$0] == bar[$0] }
     }
 
     private static func summary(_ style: BarStyle) -> String {
         switch style {
-        case .fill: String(localized: "One strip along the whole edge")
+        case .fill: String(localized: "One strip across the whole width")
         case .islands: String(localized: "Every group floats on its own")
         }
     }

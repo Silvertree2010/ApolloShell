@@ -5,9 +5,9 @@ import SwiftUI
 // The blocks of stage 3 (spec "Etappe 3: Module"): now playing, window title,
 // input source, volume, system stats. Wi-Fi and Bluetooth on their own are the
 // status capsule with one symbol (SidebarContent.swift). Every block lies
-// along a top or bottom bar (text beside the symbol) and stands compact across
-// the sidebar and the right bar, where 32 points leave room for a symbol and a
-// short number, never for a title.
+// along the menu bar (text beside the symbol) and stands compact across the
+// sidebar, where 32 points leave room for a symbol and a short number, never
+// for a title.
 
 // MARK: - Now playing
 

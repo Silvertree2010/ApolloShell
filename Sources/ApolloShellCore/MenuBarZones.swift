@@ -1,8 +1,8 @@
 import CoreGraphics
 
-/// Where the camera housing cuts the top edge of a screen, as lengths along a
-/// top bar (0 = the bar's left end). Only a bar that lies over the menu bar
-/// meets it; one below the menu bar never does.
+/// Where the camera housing cuts the top edge of a screen, as lengths along
+/// the menu bar (0 = the bar's left end). Only a bar that lies over Apple's
+/// menu bar meets it; one below it never does.
 public struct BarNotch: Equatable, Sendable {
     /// End of the usable room left of the housing.
     public var leftEnd: CGFloat
@@ -29,8 +29,8 @@ public struct BarNotch: Equatable, Sendable {
     }
 }
 
-/// Where the three zones of a bar go along its length. Pure arithmetic, so the
-/// rules below are tested without a view.
+/// Where the three zones of the menu bar go along its length. Pure
+/// arithmetic, so the rules below are tested without a view.
 ///
 /// - The end zone has the first claim (status, power: the things one looks
 ///   for at a fixed spot), then the centre, and the start zone gets what is
@@ -51,7 +51,7 @@ public struct BarNotch: Equatable, Sendable {
 ///   centre grows evenly on both sides so it stays in the middle, and only
 ///   takes the lopsided rest when not even its natural length fits there.
 ///   Without the share a Dock in a zone measured 0 and vanished.
-public enum EdgeBarZoneLayout {
+public enum MenuBarZoneLayout {
     public struct Span: Equatable, Sendable {
         public var origin: CGFloat
         public var length: CGFloat
@@ -223,30 +223,19 @@ public enum EdgeBarZoneLayout {
     }
 }
 
-/// Where the detail window of a status icon in an edge bar goes (Wi-Fi,
+/// Where the detail window of a status icon in the menu bar goes (Wi-Fi,
 /// Bluetooth, battery). The sidebar grows its popout out of its own glass;
-/// an edge bar opens a plain panel next to the bar instead, so this only has
+/// the menu bar opens a plain panel below itself instead, so this only has
 /// to say where. AppKit coordinates (y up).
 ///
-/// - Top bar: below the bar, bottom bar: above it, right bar: left of it -
-///   `gap` off the bar's inner edge, never over it.
-/// - Along the bar it centres on the icon, but stays `margin` inside the
-///   screen: a Wi-Fi icon in the far corner still opens a whole window.
-public enum EdgeBarPopoutPlacement {
-    public static func frame(icon: CGRect, bar: CGRect, size: CGSize, edge: BarEdge, screen: CGRect,
+/// - Below the bar, `gap` off its lower edge, never over it.
+/// - Across it centres on the icon, but stays `margin` inside the screen: a
+///   Wi-Fi icon in the far corner still opens a whole window.
+public enum MenuBarPopoutPlacement {
+    public static func frame(icon: CGRect, bar: CGRect, size: CGSize, screen: CGRect,
                              gap: CGFloat = 6, margin: CGFloat = 8) -> CGRect {
-        func clamp(_ value: CGFloat, _ lo: CGFloat, _ hi: CGFloat) -> CGFloat {
-            // A window wider than the screen keeps its start on screen.
-            max(lo, min(value, hi))
-        }
-        switch edge {
-        case .top, .bottom:
-            let x = clamp(icon.midX - size.width / 2, screen.minX + margin, screen.maxX - margin - size.width)
-            let y = edge == .top ? bar.minY - gap - size.height : bar.maxY + gap
-            return CGRect(x: x, y: y, width: size.width, height: size.height)
-        case .right:
-            let y = clamp(icon.midY - size.height / 2, screen.minY + margin, screen.maxY - margin - size.height)
-            return CGRect(x: bar.minX - gap - size.width, y: y, width: size.width, height: size.height)
-        }
+        // A window wider than the screen keeps its start on screen.
+        let x = max(screen.minX + margin, min(icon.midX - size.width / 2, screen.maxX - margin - size.width))
+        return CGRect(x: x, y: bar.minY - gap - size.height, width: size.width, height: size.height)
     }
 }

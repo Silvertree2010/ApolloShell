@@ -12,7 +12,7 @@ import UniformTypeIdentifiers
 /// Payload while dragging a block that is already in a bar. A different
 /// prefix from the gallery's `apolloshell.bar:` (a kind): the drop target
 /// has to tell "move this block" from "insert a new one". After the prefix
-/// `BarEntryRef.payload`: a sidebar block is still its bare id, an edge bar
+/// `BarEntryRef.payload`: a sidebar block is still its bare id, a menu bar
 /// block names its zone too, so a block can be dropped into another bar.
 enum BarEntryDragPayload {
     static let prefix = "apolloshell.bar.entry:"
@@ -54,7 +54,7 @@ struct EditableBarContent: View {
 
 /// One block while editing: it draws exactly what the calm bar draws, but
 /// its own controls do nothing - a click selects it instead. The sidebar and
-/// the edge bars share it; `edge` is `nil` in the sidebar.
+/// the menu bar share it.
 struct EditableBarBlock: View {
     let editor: ShellEditor
     let entry: BarEntry
@@ -62,7 +62,8 @@ struct EditableBarBlock: View {
     let context: BarModuleContext
     let reduceMotion: Bool
     let dragging: Bool
-    var edge: BarEdge?
+    /// Stands in the menu bar rather than the sidebar.
+    var inMenuBar = false
     @Environment(\.shellStyle) private var style
     @State private var isDeleting = false
     @State private var targeted = false
@@ -71,11 +72,11 @@ struct EditableBarBlock: View {
     /// as one piece (the dashboard widgets do the same).
     private var phase: Double { Double(abs(entry.id.hashValue) % 260) / 1000 }
     private var isSelected: Bool { editor.selectedBarEntry == ref }
-    /// In an edge bar every block has an option: joining its neighbour.
-    private var showsOptions: Bool { isSelected && !isDeleting && (entry.module.hasOptions || edge != nil) }
-    /// A horizontal bar stretches its blocks across, not along: along they
-    /// keep their own length, as in the calm bar.
-    private var horizontal: Bool { edge?.isHorizontal ?? false }
+    /// In the menu bar every block has an option: joining its neighbour.
+    private var showsOptions: Bool { isSelected && !isDeleting && (entry.module.hasOptions || inMenuBar) }
+    /// The menu bar stretches its blocks across, not along: along they keep
+    /// their own length, as in the calm bar.
+    private var horizontal: Bool { inMenuBar }
 
     var body: some View {
         Button {
@@ -121,17 +122,10 @@ struct EditableBarBlock: View {
     }
 
     /// Away from the screen edge the bar stands on.
-    private var arrowEdge: Edge {
-        switch edge {
-        case nil: .trailing
-        case .top: .bottom
-        case .bottom: .top
-        case .right: .leading
-        }
-    }
+    private var arrowEdge: Edge { inMenuBar ? .bottom : .trailing }
 
 
-    private var badgeSize: CGFloat { edge == nil ? 18 : 14 }
+    private var badgeSize: CGFloat { inMenuBar ? 14 : 18 }
 
     private var minusBadge: some View {
         Button {
@@ -140,7 +134,7 @@ struct EditableBarBlock: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { editor.removeBarEntry(ref) }
         } label: {
             Image(systemName: "minus")
-                .font(.system(size: edge == nil ? 10 : 8, weight: .bold))
+                .font(.system(size: inMenuBar ? 8 : 10, weight: .bold))
                 .frame(width: badgeSize, height: badgeSize)
                 .background(EditBadge.background, in: .circle)
                 .contentShape(Circle())
@@ -148,10 +142,10 @@ struct EditableBarBlock: View {
         .buttonStyle(.plain)
         // Inside the block, not outside it: the bar is only
         // `Sidebar.width` wide (44 pt by default), and a badge hanging over
-        // the left edge would be cut off by the window. An edge bar is
+        // the left edge would be cut off by the window. The menu bar is
         // hardly thicker than its blocks, so its badge is smaller and stays
         // within the block's corner.
-        .offset(x: 1, y: edge == nil ? -4 : 1)
+        .offset(x: 1, y: inMenuBar ? 1 : -4)
         .help("Remove")
         .accessibilityLabel("Remove \(entry.kind.title)")
     }
@@ -258,7 +252,7 @@ struct BarBlockOptionsView: View {
             })
             // `nil` stays selectable: "Automatic" is what a clock saved
             // before faces had, and it adapts when the block moves between
-            // the sidebar and a top bar.
+            // the sidebar and the menu bar.
             Picker("Style", selection: binding(options.style) {
                 .clock(.init(showIcon: options.showIcon, showDate: options.showDate, style: $0))
             }) {
@@ -338,14 +332,15 @@ struct BarBlockOptionsView: View {
             Toggle("Memory", isOn: binding(options.showMemory) {
                 .systemStats(.init(showCPU: options.showCPU, showMemory: $0))
             })
-        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .wifi, .bluetooth, .timer, .networkSpeed:
+        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .timer, .networkSpeed,
+             .wifi, .bluetooth, .appleMenu, .appMenu, .statusItems:
             Text("Nothing to set.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
     }
 
-    /// Edge bars only: one capsule with the block before it. Off for the
+    /// Menu bar only: one capsule with the block before it. Off for the
     /// first block of a zone - there is nothing before it to join.
     private var joinToggle: some View {
         let canJoin = editor.bar?.canJoin(ref) ?? false
@@ -458,7 +453,7 @@ private struct BarEntryDropDelegate: DropDelegate {
     }
 }
 
-/// The safety net around the whole bar (or one zone of an edge bar): a kind
+/// The safety net around the whole bar (or one zone of the menu bar): a kind
 /// from the gallery that lands next to a block instead of on one is appended
 /// at its usual spot, and a block from another bar or zone goes to the end.
 struct BarAppendDropModifier: ViewModifier {

@@ -3,16 +3,14 @@ import ApolloShellCore
 import os
 import SwiftUI
 
-/// The bar along one edge (top, bottom, right) of ONE screen: its window,
-/// its view and the detail window of its status icons (`EdgeBarPopout`).
-/// Like `SidebarScreen`; the models belong to the manager (`Sidebar`) and
-/// are shared by all bars.
+/// The menu bar of ONE screen: its window, its view and the detail window of
+/// its status icons (`MenuBarPopout`). Like `SidebarScreen`; the models
+/// belong to the manager (`Sidebar`) and are shared by all bars.
 @MainActor
-final class EdgeBarScreen {
-    let edge: BarEdge
-    private let panel = EdgeBarPanel()
-    private let state = EdgeBarPanelState()
-    private let popout: EdgeBarPopout
+final class MenuBarScreen {
+    private let panel = MenuBarPanel()
+    private let state = MenuBarPanelState()
+    private let popout = MenuBarPopout()
     /// Its popout opens - the manager closes all others.
     var onPopoutOpen: (ObjectIdentifier) -> Void = { _ in }
     private let log = Logger(category: "sidebar")
@@ -28,16 +26,13 @@ final class EdgeBarScreen {
     private var calmLevel: NSWindow.Level = .floating
     private var isEditing = false
 
-    init(edge: BarEdge, screen: ShellScreen, settings: ShellSettingsStore, context: BarModuleContext,
-         editor: ShellEditor? = nil) {
-        self.edge = edge
+    init(screen: ShellScreen, settings: ShellSettingsStore, context: BarModuleContext, editor: ShellEditor? = nil) {
         info = screen.info
-        popout = EdgeBarPopout(edge: edge)
         let hosting = FirstMouseHostingView(
-            rootView: EdgeBarRoot(settings: settings, edge: edge, state: state, context: context,
+            rootView: MenuBarRoot(settings: settings, state: state, context: context,
                                   popout: popout.model, editor: editor).shellTheme()
         )
-        // The window size is the manager's (`EdgeBarGeometry`), not the view's.
+        // The window size is the manager's (`MenuBarGeometry`), not the view's.
         hosting.sizingOptions = []
         // Islands leave most of the panel transparent: clear it, or whatever
         // stood there before keeps showing.
@@ -64,21 +59,20 @@ final class EdgeBarScreen {
 
     /// New measurements from the manager.
     ///
-    /// - `frame`: from `EdgeBarGeometry` for this screen.
-    /// - `coversMenuBar`: a top bar over Apple's menu bar has to stand above
-    ///   it (level 25, measured 22.09.: the menu bar is 24, its status items
-    ///   25) and meets the camera housing; everything else stays at the
-    ///   sidebar's level, below the Dock and the menu bar.
+    /// - `frame`: from `MenuBarGeometry` for this screen.
+    /// - `coversMenuBar`: a bar over Apple's menu bar has to stand above it
+    ///   (level 25, measured 22.09.: the menu bar is 24, its status items 25)
+    ///   and meets the camera housing; below it the bar stays at the
+    ///   sidebar's level, below the Dock and Apple's menu bar.
     func update(screen: ShellScreen, frame: NSRect, coversMenuBar: Bool) {
         info = screen.info
         // The bar moves or changes thickness: an open popout would point at
         // where the icon was.
         if panel.frame != frame { popout.close() }
-        let covers = edge == .top && coversMenuBar
-        calmLevel = covers ? .statusBar : .floating
+        calmLevel = coversMenuBar ? .statusBar : .floating
         let level = isEditing ? SidebarScreen.editingLevel : calmLevel
         if panel.level != level { panel.level = level }
-        let notch = covers ? BarNotch(screenMinX: screen.frame.minX, leftArea: screen.screen.auxiliaryTopLeftArea,
+        let notch = coversMenuBar ? BarNotch(screenMinX: screen.frame.minX, leftArea: screen.screen.auxiliaryTopLeftArea,
                                       rightArea: screen.screen.auxiliaryTopRightArea) : nil
         if state.notch != notch { state.notch = notch }
         lastFrame = frame
@@ -117,7 +111,7 @@ final class EdgeBarScreen {
         isHiddenForFullscreen = hidden
         // Without its bar the popout would hang in the air.
         if hidden { popout.close() }
-        log.notice("\(self.edge.rawValue, privacy: .public) bar \(hidden ? "away (full screen)" : "back", privacy: .public)")
+        log.notice("menu bar \(hidden ? "away (full screen)" : "back", privacy: .public)")
         panel.alphaValue = hidden ? 0 : 1
         panel.ignoresMouseEvents = hidden
         if !hidden { showIfNeeded() }
@@ -134,10 +128,10 @@ final class EdgeBarScreen {
 }
 
 /// A borderless panel that never takes focus - the sidebar's panel
-/// (`SidebarPanel`, see there for the reasons) with a level chosen per bar by
-/// `EdgeBarScreen.update`. `canHide = false`: "Hide Others" must not take
-/// the bars along.
-final class EdgeBarPanel: ShellPanel {
+/// (`SidebarPanel`, see there for the reasons) with a level chosen by
+/// `MenuBarScreen.update`. `canHide = false`: "Hide Others" must not take
+/// the bar along.
+final class MenuBarPanel: ShellPanel {
     init() {
         super.init(level: .floating, behavior: [.canJoinAllSpaces, .stationary, .ignoresCycle], deferred: false)
         canHide = false

@@ -31,7 +31,10 @@ enum BarPreviewModels {
             media: MediaModel.preview(nowPlaying: nil, now: now),
             frontApp: BarFrontAppModel(preview: nil, title: nil),
             keyboard: BarKeyboardModel(preview: "EN", name: "ABC"),
-            volume: BarVolumeModel(preview: 0.5, muted: false, deviceName: "")
+            volume: BarVolumeModel(preview: 0.5, muted: false, deviceName: ""),
+            appMenu: AppMenuModel(preview: .init(pid: 1, name: "Finder"),
+                                  titles: ["Apple", "Finder", "File", "Edit", "View", "Go", "Window", "Help"]),
+            statusItems: StatusItemsModel(preview: [])
         )
     }()
 

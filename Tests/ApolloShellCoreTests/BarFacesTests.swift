@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-/// Etappe 2 of the edge bars: status pills and the faces of Spaces and the
+/// Etappe 2 of the menu bar: status pills and the faces of Spaces and the
 /// clock. All three are stored as raw values in settings.json, so the tests
 /// pin the raw values and the lenient reading as much as the behaviour.
 @Suite("Bar faces: status pills, Spaces and clock styles")
@@ -19,17 +19,17 @@ struct BarFacesTests {
 
     @Test("A bar without statusStyle shows icons; pills and junk read as expected")
     func statusStyleDecoding() {
-        #expect(decode(EdgeBar.self, #"{"enabled": true}"#)?.statusStyle == .icons)
-        #expect(decode(EdgeBar.self, #"{"statusStyle": "pills"}"#)?.statusStyle == .pills)
+        #expect(decode(ApolloMenuBar.self, #"{"enabled": true}"#)?.statusStyle == .icons)
+        #expect(decode(ApolloMenuBar.self, #"{"statusStyle": "pills"}"#)?.statusStyle == .pills)
         // A newer version's style or a wrong type costs only this field.
-        let odd = decode(EdgeBar.self, #"{"enabled": true, "statusStyle": "neon"}"#)
+        let odd = decode(ApolloMenuBar.self, #"{"enabled": true, "statusStyle": "neon"}"#)
         #expect(odd?.statusStyle == .icons && odd?.enabled == true)
-        #expect(decode(EdgeBar.self, #"{"statusStyle": 3}"#)?.statusStyle == .icons)
+        #expect(decode(ApolloMenuBar.self, #"{"statusStyle": 3}"#)?.statusStyle == .icons)
     }
 
     @Test("statusStyle survives a round trip and keeps its raw values")
     func statusStyleRoundTrip() throws {
-        var bar = EdgeBarPreset.serpantinum.bar(edge: .top)
+        var bar = MenuBarPreset.serpantinum.bar()
         bar.statusStyle = .pills
         #expect(try roundTrip(bar) == bar)
         #expect(BarStatusStyle.allCases.map(\.rawValue) == ["icons", "pills"])

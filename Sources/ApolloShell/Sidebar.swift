@@ -3,12 +3,11 @@ import ApolloShellCore
 import os
 import SwiftUI
 
-/// Manager of the bars: one sidebar per screen, and the bars along the top,
-/// the bottom and the right edge (`ShellSettings.edgeBars`) where they are
-/// switched on. One manager for all of them because they share the models
-/// and have to agree on the room: a top or bottom bar shortens the sidebar's
-/// column, and the window guard keeps free what all of them cover together
-/// (`EdgeBarGeometry`).
+/// Manager of the bars: one sidebar per screen, and the menu bar across the
+/// top (`ShellSettings.apolloMenuBar`) where it is switched on. One manager
+/// for both because they share the models and have to agree on the room: the
+/// menu bar shortens the sidebar's column, and the window guard keeps free
+/// what both cover together (`MenuBarGeometry`).
 ///
 /// Which screens get one is decided by Nexus > Bar (All, main display
 /// only, a single one); the computation for that lives in
@@ -51,6 +50,10 @@ final class Sidebar {
     /// Click on media, weather, CPU, or battery: Dashboard on the
     /// matching tab.
     var onDashboardTab: (DashboardTab) -> Void = { _ in }
+    /// Opens Nexus: ApolloShell's own item among the mirrored status items.
+    var onNexus: () -> Void = {}
+    /// Where the Nexus item stands in Apple's bar, for that mirror.
+    var nexusItemFrame: () -> NSRect? = { nil }
     /// After every rebuild: the room the bars keep free per screen, by
     /// `ScreenInfo.key`. The window guard keeps windows out of it.
     var onReservedChange: ([String: ReservedInsets]) -> Void = { _ in }
@@ -73,23 +76,27 @@ final class Sidebar {
     private let frontApp = BarFrontAppModel()
     private let keyboard = BarKeyboardModel()
     private let volume = BarVolumeModel()
+    /// The macOS template's blocks: the frontmost app's menus and the other
+    /// apps' status items.
+    private let appMenu = AppMenuModel()
+    private let statusItems = StatusItemsModel()
 
     /// One bar per screen, by display identifier.
     private var slots = ScreenSlots<SidebarScreen>()
     private var bars: [CGDirectDisplayID: SidebarScreen] { slots.items }
-    /// The bars along the other edges, per edge by display identifier.
-    private var edgeSlots: [BarEdge: ScreenSlots<EdgeBarScreen>] = [:]
-    private var edgeScreens: [EdgeBarScreen] { edgeSlots.values.flatMap { $0.items.values } }
-    /// The edge bars as they were laid out last, to skip the rebuild when a
+    /// The menu bars, by display identifier.
+    private var menuBarSlots = ScreenSlots<MenuBarScreen>()
+    private var menuBars: Dictionary<CGDirectDisplayID, MenuBarScreen>.Values { menuBarSlots.items.values }
+    /// The menu bar as it was laid out last, to skip the rebuild when a
     /// settings change touched something else.
-    private var laidOutEdgeBars: EdgeBars?
+    private var laidOutMenuBar: ApolloMenuBar?
     /// The room kept free from the last rebuild.
     private(set) var reserved: [String: ReservedInsets] = [:]
     /// Screens on which a full-screen app currently stands.
     private var fullscreenScreens: Set<CGDirectDisplayID> = []
     private var context: BarModuleContext!
     private var choiceObservation: Task<Void, Never>?
-    private var edgeBarsObservation: Task<Void, Never>?
+    private var menuBarObservation: Task<Void, Never>?
     private var widthObservation: Task<Void, Never>?
     private var appearanceObservation: NSKeyValueObservation?
     /// Width from the last time the windows were measured.
@@ -117,8 +124,9 @@ final class Sidebar {
         // Weather provider likewise from the settings, as in the Dashboard.
         weather = BarWeatherFeed(settings: settings)
         context = BarModuleContext(
-            status: status, spaces: spaces, dock: dock, clock: clock, cpu: cpu, weather: weather,
-            media: media, frontApp: frontApp, keyboard: keyboard, volume: volume, network: network,
+            status: status, spaces: spaces, dock: dock, clock: clock, cpu: cpu, weather: weather, network: network,
+            media: media, frontApp: frontApp, keyboard: keyboard, volume: volume,
+            appMenu: appMenu, statusItems: statusItems,
             onDashboard: { [weak self] in self?.onDashboard() },
             onDashboardTab: { [weak self] in self?.onDashboardTab($0) },
             onUtilities: { [weak self] in self?.onUtilities() },
@@ -127,6 +135,8 @@ final class Sidebar {
             onOpenApp: { BarApps.open($0) }
         )
 
+        statusItems.onOwnItem = { [weak self] in self?.onNexus() }
+        statusItems.ownItemFrame = { [weak self] in self?.nexusItemFrame() }
         rebuild()
         observeSystemChanges()
         // Delivers the current value first (nothing to do), then every
@@ -136,13 +146,13 @@ final class Sidebar {
                 self?.rebuild()
             }
         }
-        // Edge bars on or off, thicker, another style or other screens: the
-        // frames, the sidebar's column and the room kept free all follow.
-        // What only changes the blocks inside a bar redraws by itself (the
+        // The menu bar on or off, thicker, another style or other screens:
+        // the frames, the sidebar's column and the room kept free all follow.
+        // What only changes the blocks inside the bar redraws by itself (the
         // view reads the settings), so equal values are skipped.
-        edgeBarsObservation = Task { [weak self, settings] in
-            for await edgeBars in Observations({ settings.settings.edgeBars }) {
-                if let self, edgeBars != self.laidOutEdgeBars { self.rebuild() }
+        menuBarObservation = Task { [weak self, settings] in
+            for await menuBar in Observations({ settings.settings.apolloMenuBar }) {
+                if let self, menuBar != self.laidOutMenuBar { self.rebuild() }
             }
         }
         // The width depends on the theme (observable) and on light/dark
@@ -179,10 +189,16 @@ final class Sidebar {
     var debugBarsKnowEditor: Bool { !bars.isEmpty && bars.values.allSatisfy(\.debugHasEditor) }
     #endif
 
+    /// Measure again: Apple's menu bar was hidden or shown, which changes
+    /// every screen's visible frame without a screen notification.
+    func relayout() {
+        rebuild()
+    }
+
     func setEditing(_ editing: Bool) {
         isEditing = editing
         for bar in bars.values { bar.setEditing(editing) }
-        for bar in edgeScreens { bar.setEditing(editing) }
+        for bar in menuBars { bar.setEditing(editing) }
     }
 
     /// From `FullscreenMonitor`: a full-screen app is showing on these
@@ -195,9 +211,7 @@ final class Sidebar {
         for (id, bar) in bars {
             bar.setHiddenForFullscreen(ids.contains(id))
         }
-        for slots in edgeSlots.values {
-            for (id, bar) in slots.items { bar.setHiddenForFullscreen(ids.contains(id)) }
-        }
+        for (id, bar) in menuBarSlots.items { bar.setHiddenForFullscreen(ids.contains(id)) }
         updateModelDemand()
     }
 
@@ -205,7 +219,7 @@ final class Sidebar {
     /// models rest as soon as no bar is visible anymore.
     private func updateModelDemand() {
         let anyVisible = bars.values.contains { !$0.isHiddenForFullscreen }
-            || edgeScreens.contains { !$0.isHiddenForFullscreen }
+            || menuBars.contains { !$0.isHiddenForFullscreen }
         cpu.paused = !anyVisible
         network.paused = !anyVisible
         weather.paused = !anyVisible
@@ -213,6 +227,8 @@ final class Sidebar {
         frontApp.paused = !anyVisible
         keyboard.paused = !anyVisible
         volume.paused = !anyVisible
+        appMenu.paused = !anyVisible
+        statusItems.paused = !anyVisible
         dock.badgesPaused = !anyVisible
     }
 
@@ -221,11 +237,11 @@ final class Sidebar {
     /// Create, measure, and tear down bars again, as the settings and the
     /// connected screens currently require.
     ///
-    /// First the geometry of every screen (which bars stand there decides
-    /// the sidebar's column and the room kept free), then the sidebars, then
-    /// the edge bars. With no edge bar on, every screen's geometry is the
-    /// sidebar from the screen's bottom edge up to the menu bar - exactly the
-    /// frame it had before edge bars existed.
+    /// First the geometry of every screen (whether the menu bar stands there
+    /// decides the sidebar's column and the room kept free), then the
+    /// sidebars, then the menu bars. With the menu bar off, every screen's
+    /// geometry is the sidebar from the screen's bottom edge up to Apple's
+    /// menu bar - exactly the frame it had before the menu bar existed.
     ///
     /// Without screens (a cable mid-reconnect, `NSScreen.screens` empty),
     /// everything stays put instead of tearing everything down and
@@ -239,12 +255,12 @@ final class Sidebar {
             log.notice("no screen, the bars stay put")
             return
         }
-        let edgeBars = settings.settings.edgeBars
-        laidOutEdgeBars = edgeBars
-        let layouts = Self.layouts(for: all, sidebar: settings.settings.bar.screens, edgeBars: edgeBars)
+        let menuBar = settings.settings.apolloMenuBar
+        laidOutMenuBar = menuBar
+        let layouts = Self.layouts(for: all, sidebar: settings.settings.bar.screens, menuBar: menuBar)
         let fallback = { (screen: ShellScreen) in
-            EdgeBarGeometry.layout(screen: screen.frame, visibleTop: screen.visibleFrame.maxY,
-                                   sidebarWidth: Sidebar.width, bars: [:])
+            MenuBarGeometry.layout(screen: screen.frame, visibleTop: screen.visibleFrame.maxY,
+                                   sidebarWidth: Sidebar.width, bar: nil)
         }
 
         let placed = slots.distribute(
@@ -269,60 +285,48 @@ final class Sidebar {
             return
         }
 
-        let active = Set(edgeBars.active)
-        for edge in BarEdge.allCases {
-            var edgeSlot = edgeSlots[edge] ?? ScreenSlots()
-            if active.contains(edge) {
-                let bar = edgeBars[edge]
-                edgeSlot.distribute(
-                    on: bar.screens,
-                    make: { screen in
-                        let bar = EdgeBarScreen(edge: edge, screen: screen, settings: settings, context: context,
-                                                editor: editor)
-                        bar.setEditing(isEditing)
-                        bar.onPopoutOpen = { [weak self] id in self?.closePopouts(except: id) }
-                        return bar
-                    },
-                    update: { item, screen in
-                        guard let frame = layouts[screen.displayID]?.frames[edge] else { return }
-                        item.update(screen: screen, frame: frame, coversMenuBar: bar.coversMenuBar)
-                        item.setHiddenForFullscreen(fullscreenScreens.contains(screen.displayID))
-                    },
-                    remove: { $0.tearDown() }
-                )
-            } else {
-                edgeSlot.removeAll { $0.tearDown() }
-            }
-            edgeSlots[edge] = edgeSlot
+        if menuBar.isActive {
+            menuBarSlots.distribute(
+                on: menuBar.screens,
+                make: { screen in
+                    let bar = MenuBarScreen(screen: screen, settings: settings, context: context, editor: editor)
+                    bar.setEditing(isEditing)
+                    bar.onPopoutOpen = { [weak self] id in self?.closePopouts(except: id) }
+                    return bar
+                },
+                update: { item, screen in
+                    guard let frame = layouts[screen.displayID]?.frame else { return }
+                    item.update(screen: screen, frame: frame, coversMenuBar: menuBar.coversMenuBar)
+                    item.setHiddenForFullscreen(fullscreenScreens.contains(screen.displayID))
+                },
+                remove: { $0.tearDown() }
+            )
+        } else {
+            menuBarSlots.removeAll { $0.tearDown() }
         }
 
         updateModelDemand()
         laidOutWidth = Sidebar.width
         reserved = Self.reserved(layouts, screens: all)
-        // Panels placed against a screen edge keep clear of the edge bars.
-        ScreenRoom.update(layouts.mapValues(\.barInsets))
-        log.notice("sidebar on \(placed.count, privacy: .public) screen(s), edge bars: \(edgeBars.active.map(\.rawValue).joined(separator: ","), privacy: .public)")
+        // Panels placed against a screen edge keep clear of the menu bar.
+        ScreenRoom.update(layouts.mapValues(\.barInset))
+        log.notice("sidebar on \(placed.count, privacy: .public) screen(s), menu bar: \(menuBar.isActive ? "on" : "off", privacy: .public)")
         onReservedChange(reserved)
     }
 
     /// The geometry of every connected screen: which bars stand on it
     /// (each bar by its own screen choice) and where.
     private static func layouts(for all: [ShellScreen], sidebar: ScreenChoice,
-                                edgeBars: EdgeBars) -> [CGDirectDisplayID: EdgeBarGeometry.Result] {
+                                menuBar: ApolloMenuBar) -> [CGDirectDisplayID: MenuBarGeometry.Result] {
         let sidebarIDs = Set(ShellScreens.targets(for: sidebar, among: all).map(\.displayID))
-        var edgeIDs: [BarEdge: Set<CGDirectDisplayID>] = [:]
-        for edge in edgeBars.active {
-            edgeIDs[edge] = Set(ShellScreens.targets(for: edgeBars[edge].screens, among: all).map(\.displayID))
-        }
-        var result: [CGDirectDisplayID: EdgeBarGeometry.Result] = [:]
+        let menuBarIDs = menuBar.isActive
+            ? Set(ShellScreens.targets(for: menuBar.screens, among: all).map(\.displayID)) : []
+        var result: [CGDirectDisplayID: MenuBarGeometry.Result] = [:]
         for screen in all {
-            var bars: [BarEdge: EdgeBarGeometry.Bar] = [:]
-            for (edge, ids) in edgeIDs where ids.contains(screen.displayID) {
-                bars[edge] = EdgeBarGeometry.Bar(edgeBars[edge])
-            }
-            result[screen.displayID] = EdgeBarGeometry.layout(
+            result[screen.displayID] = MenuBarGeometry.layout(
                 screen: screen.frame, visibleTop: screen.visibleFrame.maxY,
-                sidebarWidth: sidebarIDs.contains(screen.displayID) ? Sidebar.width : nil, bars: bars
+                sidebarWidth: sidebarIDs.contains(screen.displayID) ? Sidebar.width : nil,
+                bar: menuBarIDs.contains(screen.displayID) ? MenuBarGeometry.Bar(menuBar) : nil
             )
         }
         return result
@@ -330,7 +334,7 @@ final class Sidebar {
 
     /// The room kept free per screen key. Screens where nothing is reserved
     /// are left out, so the window guard leaves their windows alone.
-    private static func reserved(_ layouts: [CGDirectDisplayID: EdgeBarGeometry.Result],
+    private static func reserved(_ layouts: [CGDirectDisplayID: MenuBarGeometry.Result],
                                  screens: [ShellScreen]) -> [String: ReservedInsets] {
         var result: [String: ReservedInsets] = [:]
         for screen in screens {
@@ -341,12 +345,12 @@ final class Sidebar {
     }
 
     /// Only ever one status popout is open: when one opens, it closes
-    /// that of another bar - sidebar or edge bar.
+    /// that of another bar - sidebar or menu bar.
     private func closePopouts(except id: ObjectIdentifier) {
         for bar in bars.values where ObjectIdentifier(bar) != id {
             bar.closePopout()
         }
-        for bar in edgeScreens where ObjectIdentifier(bar) != id {
+        for bar in menuBars where ObjectIdentifier(bar) != id {
             bar.closePopout()
         }
     }
@@ -368,7 +372,7 @@ final class Sidebar {
             // New resolution or arrangement: position and height of an
             // open popout are no longer correct.
             for bar in self.bars.values { bar.closePopout() }
-            for bar in self.edgeScreens { bar.closePopout() }
+            for bar in self.menuBars { bar.closePopout() }
             self.rebuild()
         }
 

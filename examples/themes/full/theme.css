@@ -63,23 +63,23 @@
   --apollo-bar-item-spacing: 8px;
   --apollo-bar-blur: 24px;
 
-  /* Edge bars */
-  --apollo-edgebar-color: #f5f5f7;
-  --apollo-edgebar-gradient: none;
-  --apollo-edgebar-opacity: 1;
-  --apollo-edgebar-blur: 24px;
-  --apollo-edgebar-text-color: #1c1c1e;
-  --apollo-edgebar-icon-color: #3c3c43;
-  --apollo-edgebar-radius: 0px;
-  --apollo-edgebar-island-radius: 12px;
-  --apollo-edgebar-island-margin: 6px;
-  --apollo-edgebar-group-color: #00000014;
-  --apollo-edgebar-group-radius: 9px;
-  --apollo-edgebar-padding: 6px;
-  --apollo-edgebar-item-spacing: 4px;
-  --apollo-edgebar-group-spacing: 6px;
-  --apollo-edgebar-font-family: "";
-  --apollo-edgebar-font-size: 13px;
+  /* Menu bar */
+  --apollo-menubar-color: #f5f5f7;
+  --apollo-menubar-gradient: none;
+  --apollo-menubar-opacity: 1;
+  --apollo-menubar-blur: 24px;
+  --apollo-menubar-text-color: #1c1c1e;
+  --apollo-menubar-icon-color: #3c3c43;
+  --apollo-menubar-radius: 0px;
+  --apollo-menubar-island-radius: 12px;
+  --apollo-menubar-island-margin: 6px;
+  --apollo-menubar-group-color: #00000014;
+  --apollo-menubar-group-radius: 9px;
+  --apollo-menubar-padding: 6px;
+  --apollo-menubar-item-spacing: 4px;
+  --apollo-menubar-group-spacing: 6px;
+  --apollo-menubar-font-family: "";
+  --apollo-menubar-font-size: 13px;
 
   /* Bar modules */
   --apollo-spaces-active-color: #007aff;
@@ -158,10 +158,10 @@
     --apollo-bar-color: #1c1c1e;
     --apollo-bar-text-color: #f5f5f7;
     --apollo-bar-icon-color: #e5e5ea;
-    --apollo-edgebar-color: #1c1c1e;
-    --apollo-edgebar-text-color: #f5f5f7;
-    --apollo-edgebar-icon-color: #e5e5ea;
-    --apollo-edgebar-group-color: #ffffff14;
+    --apollo-menubar-color: #1c1c1e;
+    --apollo-menubar-text-color: #f5f5f7;
+    --apollo-menubar-icon-color: #e5e5ea;
+    --apollo-menubar-group-color: #ffffff14;
     --apollo-spaces-active-color: #0a84ff;
     --apollo-clock-color: #bf5af2;
     --apollo-weather-temperature-color: #f5f5f7;

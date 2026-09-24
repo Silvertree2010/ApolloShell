@@ -2,8 +2,8 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// One bar along the top, the bottom or the right edge: its three zones
-/// (start, centre, end) of groups, each group a row of ordinary bar blocks
+/// The menu bar across the top of the screen: its three zones (start,
+/// centre, end) of groups, each group a row of ordinary bar blocks
 /// (`BarModuleView`). The same blocks as in the sidebar; only the axis turns
 /// (`\.barAxis`), so a block needs no second implementation.
 ///
@@ -12,15 +12,15 @@ import SwiftUI
 ///   (`BarGlass`), the groups plain on it - or as lighter capsules with
 ///   `distinctGroups`, so they still read as groups.
 /// - `.islands`: no strip; every group is its own piece of that background,
-///   `EdgeBarGeometry.islandMargin` away from the screen edge.
+///   `MenuBarGeometry.islandMargin` below the top edge of the screen.
 ///
-/// Theme: the blocks inside read the `--apollo-edgebar-*` tokens through
-/// `ShellStyle.edgeBarScope`; the strip, islands and capsules here read the
-/// edge bar's shape tokens directly. Every default is the look the bars had
+/// Theme: the blocks inside read the `--apollo-menubar-*` tokens through
+/// `ShellStyle.menuBarScope`; the strip, islands and capsules here read the
+/// menu bar's shape tokens directly. Every default is the look the bar had
 /// before those tokens existed.
 ///
 /// A click on a status icon opens its details when the bar's panel puts a
-/// popout model into the environment (`EdgeBarRoot`); without one (image
+/// popout model into the environment (`MenuBarRoot`); without one (image
 /// samples) the icons are display only - the model is an optional
 /// environment value.
 ///
@@ -28,11 +28,10 @@ import SwiftUI
 /// edit blocks (`EditableBarBlock`: wobble, minus badge, selection, options
 /// popover), every zone takes drops, and an empty zone shows a target -
 /// otherwise it would measure 0 and nothing could be dropped into it.
-struct EdgeBarView: View {
-    let bar: EdgeBar
-    let edge: BarEdge
-    /// The camera housing in panel coordinates. Only a top bar that lies
-    /// over the menu bar meets it; everyone else passes `nil`.
+struct MenuBarView: View {
+    let bar: ApolloMenuBar
+    /// The camera housing in panel coordinates. Only a bar that lies over
+    /// Apple's menu bar meets it; below it the bar passes `nil`.
     var notch: BarNotch?
     /// A panel switched off in Nexus takes its button along, as in the
     /// sidebar (`SidebarContent.calmBar`).
@@ -59,21 +58,19 @@ struct EdgeBarView: View {
 
     /// Distance between the blocks inside one group - tighter than between
     /// groups, so a group reads as one even without a capsule.
-    private var moduleSpacing: CGFloat { style.length(.edgeBarItemSpacing) ?? 4 }
+    private var moduleSpacing: CGFloat { style.length(.menuBarItemSpacing) ?? 4 }
     /// Room inside a capsule before its first and after its last block.
-    private var capsuleInset: CGFloat { style.length(.edgeBarPadding) ?? 6 }
+    private var capsuleInset: CGFloat { style.length(.menuBarPadding) ?? 6 }
     /// The island's gap to the screen edge. Capped at the 6 points the
-    /// panel and the window guard reserve (`EdgeBarGeometry.islandMargin`),
+    /// panel and the window guard reserve (`MenuBarGeometry.islandMargin`),
     /// so a theme can move an island closer but never out of its panel.
     private var islandMargin: CGFloat {
-        min(style.length(.edgeBarIslandMargin) ?? EdgeBarGeometry.islandMargin, EdgeBarGeometry.islandMargin)
+        min(style.length(.menuBarIslandMargin) ?? MenuBarGeometry.islandMargin, MenuBarGeometry.islandMargin)
     }
 
-    private var axis: BarAxis { edge.isHorizontal ? .horizontal : .vertical }
     private var islands: Bool { bar.style == .islands }
 
     var body: some View {
-        let horizontal = edge.isHorizontal
         // Along the bar: the sidebar's margin at its ends for the strip, the
         // island gap for islands, so they keep the same distance to the
         // screen corners as to the edge.
@@ -82,29 +79,28 @@ struct EdgeBarView: View {
         let thickness = CGFloat(bar.thickness)
         ZStack {
             if !islands {
-                Color.clear.modifier(BarGlass(shape: RoundedRectangle(cornerRadius: style.length(.edgeBarRadius) ?? 0,
+                Color.clear.modifier(BarGlass(shape: RoundedRectangle(cornerRadius: style.length(.menuBarRadius) ?? 0,
                                                                      style: .continuous)))
             }
-            EdgeBarZones(axis: axis, gap: Self.zoneGap, notch: horizontal ? notch?.shifted(by: along) : nil) {
+            MenuBarZones(gap: Self.zoneGap, notch: notch?.shifted(by: along)) {
                 zone(.start)
                 zone(.center)
                 zone(.end)
             }
-            .padding(horizontal ? .horizontal : .vertical, along)
-            // A strip fills the whole panel across (it may be taller than
-            // `thickness` where it covers a thicker menu bar); islands keep
-            // their thickness and hug the screen edge.
-            .frame(width: horizontal || !islands ? nil : thickness,
-                   height: horizontal && islands ? thickness : nil)
-            .padding(Self.screenSide(edge), margin)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: Self.screenAlignment(edge))
+            .padding(.horizontal, along)
+            // A strip fills the whole panel's height (it may be taller than
+            // `thickness` where it covers a thicker Apple menu bar); islands
+            // keep their thickness and hug the top edge.
+            .frame(height: islands ? thickness : nil)
+            .padding(.top, margin)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .environment(\.barAxis, axis)
+        .environment(\.barAxis, .horizontal)
         .environment(\.barControlSize, Self.controlSize(thickness: thickness, capsules: islands || bar.distinctGroups))
         .environment(\.barStatusStyle, bar.statusStyle)
         // Last, so `style` above is still the unscoped one: the redirects
-        // are for the blocks, this view reads the edge tokens by name.
-        .environment(\.shellStyle, style.edgeBarScope)
+        // are for the blocks, this view reads the menu bar tokens by name.
+        .environment(\.shellStyle, style.menuBarScope)
     }
 
     /// The buttons' edge length across the bar: the sidebar's 32 where it
@@ -115,23 +111,6 @@ struct EdgeBarView: View {
         min(32, thickness - 2 * (capsules ? distinctInset : 2))
     }
 
-    /// The side of the panel that touches the screen edge.
-    static func screenSide(_ edge: BarEdge) -> Edge.Set {
-        switch edge {
-        case .top: .top
-        case .bottom: .bottom
-        case .right: .trailing
-        }
-    }
-
-    private static func screenAlignment(_ edge: BarEdge) -> Alignment {
-        switch edge {
-        case .top: .top
-        case .bottom: .bottom
-        case .right: .trailing
-        }
-    }
-
     // MARK: Zones and groups
 
     /// A zone at its natural length. The zones layout may give it less (a
@@ -139,53 +118,52 @@ struct EdgeBarView: View {
     /// from its anchor instead of squeezing its blocks.
     ///
     /// A zone with a Dock or a spacer is not pinned to its natural length:
-    /// it takes what `EdgeBarZoneLayout` hands it, and `EdgeBarGroupStack`
+    /// it takes what `MenuBarZoneLayout` hands it, and `MenuBarGroupStack`
     /// passes that on to its flexible groups.
     private func zone(_ zone: BarZone) -> some View {
-        let horizontal = edge.isHorizontal
         let groups = groups(zone)
         let flexible = groups.reduce(0) { $0 + $1.flexible }
         // Capsules need less room between them than plain groups, which
         // only the gap tells apart.
-        let spacing = style.length(.edgeBarGroupSpacing) ?? (islands || bar.distinctGroups ? 6 : style.barItemSpacing(8))
-        return EdgeBarGroupStack(axis: axis, spacing: spacing) {
+        let spacing = style.length(.menuBarGroupSpacing) ?? (islands || bar.distinctGroups ? 6 : style.barItemSpacing(8))
+        return MenuBarGroupStack(spacing: spacing) {
             ForEach(groups) { group in
                 self.group(group, zone: zone)
-                    .layoutValue(key: EdgeBarFlexCount.self, value: group.flexible)
+                    .layoutValue(key: MenuBarFlexCount.self, value: group.flexible)
             }
             if let editing, groups.isEmpty {
-                EdgeBarEmptyZone(editor: editing, place: .edge(edge, zone), axis: axis,
+                MenuBarEmptyZone(editor: editing, place: .menuBar(zone),
                                  thickness: Self.controlSize(thickness: CGFloat(bar.thickness), capsules: false))
             }
         }
-        .fixedSize(horizontal: horizontal && flexible == 0, vertical: !horizontal && flexible == 0)
-        .frame(maxWidth: horizontal ? .infinity : nil, maxHeight: horizontal ? nil : .infinity,
-               alignment: Self.alignment(zone, horizontal: horizontal))
-        .modifier(EdgeBarZoneDrop(editor: editing, place: .edge(edge, zone), active: !rendersForScreenshot))
+        .fixedSize(horizontal: flexible == 0, vertical: false)
+        .frame(maxWidth: .infinity, alignment: Self.alignment(zone))
+        .modifier(MenuBarZoneDrop(editor: editing, place: .menuBar(zone), active: !rendersForScreenshot))
         .clipped()
-        .layoutValue(key: EdgeBarFlexCount.self, value: flexible)
+        .layoutValue(key: MenuBarFlexCount.self, value: flexible)
     }
 
-    private static func alignment(_ zone: BarZone, horizontal: Bool) -> Alignment {
+    private static func alignment(_ zone: BarZone) -> Alignment {
         switch zone {
-        case .start: horizontal ? .leading : .top
+        case .start: .leading
         case .center: .center
-        case .end: horizontal ? .trailing : .bottom
+        case .end: .trailing
         }
     }
 
     private struct BlockGroup: Identifiable {
         let entries: [BarEntry]
         var id: BarEntry.ID { entries[0].id }
-        /// Dock and spacers in it: they share the zone's spare room.
-        var flexible: Int { entries.filter(\.kind.isFlexible).count }
+        /// Dock, spacers and the app menu in it: they share the zone's
+        /// spare room.
+        var flexible: Int { entries.filter(\.kind.growsAlongMenuBar).count }
     }
 
     /// Grouped first, filtered second: a hidden button at the head of a
     /// group must not hand its followers to the group before it. While
     /// editing nothing is hidden - a block one cannot see cannot be removed.
     private func groups(_ zone: BarZone) -> [BlockGroup] {
-        EdgeBar.groups(of: bar[zone]).compactMap { group in
+        ApolloMenuBar.groups(of: bar[zone]).compactMap { group in
             let shown = editing != nil ? group : group.filter { entry in
                 switch entry.module {
                 case .dashboardButton: features.dashboard
@@ -199,20 +177,19 @@ struct EdgeBarView: View {
 
     @ViewBuilder
     private func group(_ group: BlockGroup, zone: BarZone) -> some View {
-        let horizontal = edge.isHorizontal
         let capsule = islands || bar.distinctGroups
         // An island never rounds past a capsule: more than half the
         // thickness would pinch its ends.
-        let radius = islands ? min(CGFloat(bar.thickness) / 2, style.length(.edgeBarIslandRadius) ?? 12)
-                             : style.length(.edgeBarGroupRadius) ?? 9
+        let radius = islands ? min(CGFloat(bar.thickness) / 2, style.length(.menuBarIslandRadius) ?? 12)
+                             : style.length(.menuBarGroupRadius) ?? 9
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-        BarStack(spacing: moduleSpacing, axis: axis) {
+        BarStack(spacing: moduleSpacing, axis: .horizontal) {
             ForEach(group.entries) { entry in
                 if let editing {
-                    EditableBarBlock(editor: editing, entry: entry, ref: BarEntryRef(place: .edge(edge, zone), id: entry.id),
+                    EditableBarBlock(editor: editing, entry: entry, ref: BarEntryRef(place: .menuBar(zone), id: entry.id),
                                      context: context, reduceMotion: reduceMotionOverride ?? systemReduceMotion,
-                                     dragging: !rendersForScreenshot, edge: edge)
-                        .layoutValue(key: BarFlexible.self, value: entry.kind.isFlexible)
+                                     dragging: !rendersForScreenshot, inMenuBar: true)
+                        .layoutValue(key: BarFlexible.self, value: entry.kind.growsAlongMenuBar)
                 } else {
                     BarModuleView(entry: entry, context: context)
                 }
@@ -220,116 +197,89 @@ struct EdgeBarView: View {
         }
         // Status icons and spaces drop their own capsule inside this one.
         .environment(\.barGroupCapsule, capsule)
-        .padding(horizontal ? .horizontal : .vertical, capsule ? capsuleInset : 0)
-        .frame(maxWidth: horizontal ? nil : .infinity, maxHeight: horizontal ? .infinity : nil)
+        .padding(.horizontal, capsule ? capsuleInset : 0)
+        .frame(maxHeight: .infinity)
         .background {
             if islands {
                 Color.clear.modifier(BarGlass(shape: shape))
             } else if bar.distinctGroups {
                 shape
-                    .fill(style.edgeBarGroup)
-                    .padding(horizontal ? .vertical : .horizontal, Self.distinctInset)
+                    .fill(style.menuBarGroup)
+                    .padding(.vertical, Self.distinctInset)
             }
         }
     }
 }
 
-/// Start, centre and end of a bar along its axis; the arithmetic lives in
-/// `EdgeBarZoneLayout` (ApolloShellCore) and is tested there. Expects exactly
-/// three subviews in that order. Every zone is measured at its natural
-/// length and handed the length it got; across the bar it gets the full
-/// thickness.
-struct EdgeBarZones: Layout {
-    var axis: BarAxis
+/// Start, centre and end of the menu bar from left to right; the arithmetic
+/// lives in `MenuBarZoneLayout` (ApolloShellCore) and is tested there.
+/// Expects exactly three subviews in that order. Every zone is measured at
+/// its natural width and handed the width it got; it gets the bar's full
+/// height.
+struct MenuBarZones: Layout {
     var gap: CGFloat
-    /// Along a horizontal bar only, in this layout's coordinates.
+    /// In this layout's coordinates.
     var notch: BarNotch?
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        // Always the room it is offered: a bar spans its panel.
+        // Always the room it is offered: the bar spans its panel.
         CGSize(width: proposal.width ?? 0, height: proposal.height ?? 0)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         guard subviews.count == 3 else { return }
-        let horizontal = axis == .horizontal
-        let cross = horizontal ? bounds.height : bounds.width
-        let natural = subviews.map { subview -> CGFloat in
-            let size = subview.sizeThatFits(horizontal ? ProposedViewSize(width: nil, height: cross)
-                                                       : ProposedViewSize(width: cross, height: nil))
-            return horizontal ? size.width : size.height
-        }
-        let flexible = EdgeBarZoneLayout.Flexible(start: subviews[0][EdgeBarFlexCount.self],
-                                                  center: subviews[1][EdgeBarFlexCount.self],
-                                                  end: subviews[2][EdgeBarFlexCount.self])
-        let placement = EdgeBarZoneLayout.place(
-            length: horizontal ? bounds.width : bounds.height,
-            start: natural[0], center: natural[1], end: natural[2], gap: gap, notch: horizontal ? notch : nil,
+        let natural = subviews.map { $0.sizeThatFits(ProposedViewSize(width: nil, height: bounds.height)).width }
+        let flexible = MenuBarZoneLayout.Flexible(start: subviews[0][MenuBarFlexCount.self],
+                                                  center: subviews[1][MenuBarFlexCount.self],
+                                                  end: subviews[2][MenuBarFlexCount.self])
+        let placement = MenuBarZoneLayout.place(
+            length: bounds.width, start: natural[0], center: natural[1], end: natural[2], gap: gap, notch: notch,
             flexible: flexible
         )
         for (subview, span) in zip(subviews, [placement.start, placement.center, placement.end]) {
-            let origin = horizontal ? CGPoint(x: bounds.minX + span.origin, y: bounds.minY)
-                                    : CGPoint(x: bounds.minX, y: bounds.minY + span.origin)
-            subview.place(at: origin, anchor: .topLeading,
-                          proposal: horizontal ? ProposedViewSize(width: span.length, height: cross)
-                                               : ProposedViewSize(width: cross, height: span.length))
+            subview.place(at: CGPoint(x: bounds.minX + span.origin, y: bounds.minY), anchor: .topLeading,
+                          proposal: ProposedViewSize(width: span.length, height: bounds.height))
         }
     }
 }
 
 /// How many flexible modules (Dock, spacer) a zone or a group holds - read
-/// by `EdgeBarZones` and `EdgeBarGroupStack` to hand out the spare room.
-struct EdgeBarFlexCount: LayoutValueKey {
+/// by `MenuBarZones` and `MenuBarGroupStack` to hand out the spare room.
+struct MenuBarFlexCount: LayoutValueKey {
     static let defaultValue = 0
 }
 
-/// The groups of one zone in a row (or a column in the right bar). Unlike a
-/// plain HStack, which splits spare room between every child that accepts it
-/// - and a group's `BarStack` accepts any length - only the groups holding a
-/// Dock or a spacer grow, by an equal share per flexible module
-/// (`EdgeBarZoneLayout.stack`). Measured without a length it is the groups'
-/// natural lengths, flexible modules counted as 0.
-struct EdgeBarGroupStack: Layout {
-    var axis: BarAxis
+/// The groups of one zone in a row. Unlike a plain HStack, which splits
+/// spare room between every child that accepts it - and a group's `BarStack`
+/// accepts any width - only the groups holding a Dock or a spacer grow, by
+/// an equal share per flexible module (`MenuBarZoneLayout.stack`). Measured
+/// without a width it is the groups' natural widths, flexible modules
+/// counted as 0.
+struct MenuBarGroupStack: Layout {
     var spacing: CGFloat
 
-    private func naturals(_ subviews: Subviews, cross: CGFloat?) -> [CGSize] {
-        subviews.map { subview in
-            subview.sizeThatFits(axis == .horizontal ? ProposedViewSize(width: nil, height: cross)
-                                                     : ProposedViewSize(width: cross, height: nil))
-        }
+    private func naturals(_ subviews: Subviews, height: CGFloat?) -> [CGSize] {
+        subviews.map { $0.sizeThatFits(ProposedViewSize(width: nil, height: height)) }
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let horizontal = axis == .horizontal
-        let sizes = naturals(subviews, cross: horizontal ? proposal.height : proposal.width)
-        let along = sizes.map { horizontal ? $0.width : $0.height }.reduce(0, +)
-            + CGFloat(max(subviews.count - 1, 0)) * spacing
-        let across = sizes.map { horizontal ? $0.height : $0.width }.max() ?? 0
-        let flexible = subviews.contains { $0[EdgeBarFlexCount.self] > 0 }
-        let offered = horizontal ? proposal.width : proposal.height
-        let length = flexible ? (offered ?? along) : along
-        let thickness = (horizontal ? proposal.height : proposal.width) ?? across
-        return horizontal ? CGSize(width: length, height: thickness) : CGSize(width: thickness, height: length)
+        let sizes = naturals(subviews, height: proposal.height)
+        let natural = sizes.map(\.width).reduce(0, +) + CGFloat(max(subviews.count - 1, 0)) * spacing
+        let tallest = sizes.map(\.height).max() ?? 0
+        let flexible = subviews.contains { $0[MenuBarFlexCount.self] > 0 }
+        let width = flexible ? (proposal.width ?? natural) : natural
+        return CGSize(width: width, height: proposal.height ?? tallest)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let horizontal = axis == .horizontal
-        let cross = horizontal ? bounds.height : bounds.width
-        let sizes = naturals(subviews, cross: cross)
-        let spans = EdgeBarZoneLayout.stack(
-            naturals: sizes.map { horizontal ? $0.width : $0.height },
-            weights: subviews.map { $0[EdgeBarFlexCount.self] },
-            length: horizontal ? bounds.width : bounds.height, spacing: spacing
+        let sizes = naturals(subviews, height: bounds.height)
+        let spans = MenuBarZoneLayout.stack(
+            naturals: sizes.map(\.width), weights: subviews.map { $0[MenuBarFlexCount.self] },
+            length: bounds.width, spacing: spacing
         )
         for (subview, span) in zip(subviews, spans) {
-            if horizontal {
-                subview.place(at: CGPoint(x: bounds.minX + span.origin, y: bounds.midY), anchor: .leading,
-                              proposal: ProposedViewSize(width: span.length, height: cross))
-            } else {
-                subview.place(at: CGPoint(x: bounds.midX, y: bounds.minY + span.origin), anchor: .top,
-                              proposal: ProposedViewSize(width: cross, height: span.length))
-            }
+            subview.place(at: CGPoint(x: bounds.minX + span.origin, y: bounds.midY), anchor: .leading,
+                          proposal: ProposedViewSize(width: span.length, height: bounds.height))
         }
     }
 }
@@ -337,38 +287,37 @@ struct EdgeBarGroupStack: Layout {
 /// The live bar in its panel: reads the bar and the feature switches from the
 /// settings (so a change in Nexus redraws right away) and the notch from its
 /// panel.
-struct EdgeBarRoot: View {
+struct MenuBarRoot: View {
     let settings: ShellSettingsStore
-    let edge: BarEdge
-    let state: EdgeBarPanelState
+    let state: MenuBarPanelState
     let context: BarModuleContext
-    /// The status icons open their details through it (`EdgeBarPopout`).
+    /// The status icons open their details through it (`MenuBarPopout`).
     let popout: StatusPopoutModel
     /// The global edit mode; handed over once when the panel is built, like
     /// the sidebar's (`Sidebar.editor`).
     var editor: ShellEditor?
 
     var body: some View {
-        EdgeBarView(bar: Self.shown(settings.settings.edgeBars[edge], edge: edge, editor: editor), edge: edge,
-                    notch: state.notch, features: settings.settings.features, context: context, editor: editor)
+        MenuBarView(bar: Self.shown(settings.settings.apolloMenuBar, editor: editor), notch: state.notch,
+                    features: settings.settings.features, context: context, editor: editor)
             .environment(popout)
     }
 
     /// The bar as the panel would show it, without a panel - for the
     /// edit mode's image samples.
-    static func shownView(settings: ShellSettingsStore, edge: BarEdge, editor: ShellEditor?,
+    static func shownView(settings: ShellSettingsStore, editor: ShellEditor?,
                           context: BarModuleContext) -> some View {
-        EdgeBarView(bar: shown(settings.settings.edgeBars[edge], edge: edge, editor: editor), edge: edge,
-                    notch: nil, features: settings.settings.features, context: context, editor: editor)
+        MenuBarView(bar: shown(settings.settings.apolloMenuBar, editor: editor), notch: nil,
+                    features: settings.settings.features, context: context, editor: editor)
     }
 
     /// While editing, the zones come from the working copy; style,
     /// thickness and the rest stay the settings' (the session only edits
     /// zones, and the panel's frame was measured from the settings).
-    static func shown(_ bar: EdgeBar, edge: BarEdge, editor: ShellEditor?) -> EdgeBar {
+    static func shown(_ bar: ApolloMenuBar, editor: ShellEditor?) -> ApolloMenuBar {
         guard let editor, editor.isEditing, let session = editor.bar else { return bar }
         var bar = bar
-        for zone in BarZone.allCases { bar[zone] = session.edgeBars[edge][zone] }
+        for zone in BarZone.allCases { bar[zone] = session.menuBar[zone] }
         return bar
     }
 }
@@ -377,7 +326,7 @@ struct EdgeBarRoot: View {
 /// gallery or a block from elsewhere dropped next to the zone's blocks goes to
 /// its end (`BarAppendDropModifier`), and the zone outlines itself while a
 /// drag hovers over it, so it is clear which zone takes the drop.
-private struct EdgeBarZoneDrop: ViewModifier {
+private struct MenuBarZoneDrop: ViewModifier {
     let editor: ShellEditor?
     let place: BarPlace
     let active: Bool
@@ -402,19 +351,17 @@ private struct EdgeBarZoneDrop: ViewModifier {
 }
 
 /// The target an empty zone shows while editing: a dashed slot with a plus,
-/// so it can be seen and hit. The zone's drop net (`EdgeBarZoneDrop`) takes
+/// so it can be seen and hit. The zone's drop net (`MenuBarZoneDrop`) takes
 /// the drops; a click makes the zone the gallery's target
 /// (`ShellEditor.barTargetPlace`), as a selected block would - an empty zone
 /// has no block to select.
-private struct EdgeBarEmptyZone: View {
+private struct MenuBarEmptyZone: View {
     let editor: ShellEditor
     let place: BarPlace
-    let axis: BarAxis
     let thickness: CGFloat
     @Environment(\.shellStyle) private var style
 
     var body: some View {
-        let horizontal = axis == .horizontal
         let chosen = editor.galleryBarPlace == place
         Button {
             editor.barTargetPlace = chosen ? nil : place
@@ -427,7 +374,7 @@ private struct EdgeBarEmptyZone: View {
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(chosen ? AnyShapeStyle(style.accent) : AnyShapeStyle(.secondary))
                 }
-                .frame(width: horizontal ? 56 : thickness, height: horizontal ? thickness : 56)
+                .frame(width: 56, height: thickness)
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -437,9 +384,9 @@ private struct EdgeBarEmptyZone: View {
 }
 
 /// What the panel knows and the view needs: the notch changes with the
-/// screen (and with "over the menu bar" on or off).
+/// screen (and with "Cover Apple's menu bar" on or off).
 @MainActor
 @Observable
-final class EdgeBarPanelState {
+final class MenuBarPanelState {
     var notch: BarNotch?
 }
