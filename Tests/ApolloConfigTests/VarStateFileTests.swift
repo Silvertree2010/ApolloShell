@@ -78,6 +78,13 @@ struct VarStateFileReadTests {
         #expect(values["flag"] == .number(5))
     }
 
+    @Test("Leere Liste im Statusfile bleibt leer statt auf die Vorgabe zurueckzufallen")
+    func emptyListStaysEmptyInsteadOfFallingBackToDefault() {
+        let (values, diagnostics) = VarStateFile.read("pinned-toggles {\n}\n", file: "state.kdl", declarations: [Self.decl("pinned-toggles", .list)])
+        #expect(diagnostics.isEmpty)
+        #expect(values["pinned-toggles"] == .list([]))
+    }
+
     @Test("50000 Listeneintraege werden im Zeitbudget gelesen")
     func largeListReadsWithinBudget() {
         var text = "big {\n"

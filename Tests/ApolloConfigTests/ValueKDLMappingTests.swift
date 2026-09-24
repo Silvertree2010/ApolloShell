@@ -62,6 +62,24 @@ struct ValueKDLMappingTests {
         #expect(Self.roundtrip(.list([.string("mountain")])) == .list([.string("mountain")]))
     }
 
+    @Test("Leere Liste ueberlebt den Rundlauf mit erwartetem Typ")
+    func emptyListRoundtripsWithExpectedType() {
+        let node = ValueKDLMapping.node(named: "field", value: .list([]))
+        #expect(ValueKDLMapping.value(from: node, expectedType: .list) == .list([]))
+    }
+
+    @Test("Leere Liste ohne erwarteten Typ wird als leerer Record gelesen")
+    func emptyListWithoutExpectedTypeReadsAsEmptyRecord() {
+        let node = ValueKDLMapping.node(named: "field", value: .list([]))
+        #expect(ValueKDLMapping.value(from: node) == .record(Record()))
+    }
+
+    @Test("Leerer Record ueberlebt den Rundlauf mit erwartetem Typ")
+    func emptyRecordRoundtripsWithExpectedType() {
+        let node = ValueKDLMapping.node(named: "field", value: .record(Record()))
+        #expect(ValueKDLMapping.value(from: node, expectedType: .record) == .record(Record()))
+    }
+
     @Test("KDL-Knoten fuer Skalar")
     func nodeForScalar() {
         let node = ValueKDLMapping.node(named: "clock-format", value: .string("HH:mm"))

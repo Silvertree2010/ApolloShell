@@ -89,6 +89,26 @@ struct StateFilesTests {
         #expect(!fs.exists(URL(fileURLWithPath: "/config/state/apolloshell-default.kdl.unreadable")))
     }
 
+    @Test("Kopie haengt am Diagnose-Signal, nicht am Meldungstext")
+    func backupDependsOnDiagnosticKindNotMessageText() {
+        let fs = MemoryFileSystem(["/config/state/apolloshell-default.kdl": "dashboard-tab 5\n"])
+        let (_, diagnostics) = StateFiles.load(
+            configID: "apolloshell-default",
+            declarations: [Self.decl("dashboard-tab", .string)],
+            paths: Self.paths(),
+            fileSystem: fs
+        )
+        #expect(diagnostics.contains { $0.kind == .valueDiscarded })
+        var renamed = diagnostics
+        renamed = renamed.map {
+            var copy = $0
+            copy.message = "completely different wording without the old keywords"
+            return copy
+        }
+        #expect(renamed.contains { $0.kind == .valueDiscarded })
+        #expect(fs.exists(URL(fileURLWithPath: "/config/state/apolloshell-default.kdl.unreadable")))
+    }
+
     @Test("Zwei Configs haben getrennte Statusdateien")
     func twoConfigsHaveSeparateStateFiles() {
         let fs = MemoryFileSystem([

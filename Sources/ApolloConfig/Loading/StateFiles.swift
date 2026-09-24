@@ -20,6 +20,6 @@ enum StateFiles {
     }
 
     private static func needsBackup(_ diagnostics: [Diagnostic]) -> Bool {
-        diagnostics.contains { $0.message.contains("could not be parsed") || $0.message.contains("using the default") }
+        diagnostics.contains { $0.kind == .stateFileUnreadable || $0.kind == .valueDiscarded }
     }
 }

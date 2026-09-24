@@ -2,20 +2,23 @@ import Foundation
 import ApolloKDL
 
 public enum ValueKDLMapping {
-    public static func value(from node: KDLNode) -> Value {
-        nodeValue(node)
+    public static func value(from node: KDLNode, expectedType: ValueType = .any) -> Value {
+        nodeValue(node, expectedType: expectedType)
     }
 
     public static func node(named name: String, value: Value) -> KDLNode {
         kdlNode(named: name, for: value)
     }
 
-    static func nodeValue(_ node: KDLNode) -> Value {
+    static func nodeValue(_ node: KDLNode, expectedType: ValueType = .any) -> Value {
         if let children = node.children, !children.isEmpty, children.allSatisfy({ $0.name == "-" }) {
             return .list(children.map { nodeValue($0) })
         }
         if node.arguments.count == 1, node.properties.isEmpty, (node.children?.isEmpty ?? true) {
             return scalarValue(node.arguments[0].scalar)
+        }
+        if expectedType == .list, node.arguments.isEmpty, node.properties.isEmpty, (node.children?.isEmpty ?? true) {
+            return .list([])
         }
         var record = Record()
         for property in node.properties {
