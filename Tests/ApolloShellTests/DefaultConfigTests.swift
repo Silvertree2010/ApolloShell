@@ -166,8 +166,8 @@ struct DefaultConfigTests {
         "--apollo-shadow-opacity": [".audio-mute", ".osd-slider"],
         "--apollo-text-color": [".launcher-"],
         "--apollo-secondary-text-color": [".launcher-"],
-        "--apollo-on-accent-color": [".osd-", ".toast-", ".dashboard-tab", ".weather-", ".space-", ".media-", ".quick-toggle", ".audio-mute", ".popout-", ".card-", ".perf-"],
-        "--apollo-accent-color": [""],
+        "--apollo-on-accent-color": [".space-number", ".popout-status-circle", ".popout-capsule", ".dashboard-tab", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-badge-text", ".weather-place", ".audio-mute", ".quick-toggle", ".osd-percent", ".osd-glyph", ".toast-chip"],
+        "--apollo-accent-color": [":root", ".space-pill", ".popout-status-circle", ".popout-capsule", ".popout-battery-bolt", ".dashboard-tab-pill", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-graph", ".perf-badge-shape", ".weather-place", ".audio-mute", ".audio-slider", ".quick-toggle", ".session-mark", ".osd-slider", ".toast-chip", ".onboarding-dot"],
         "--apollo-accent-gradient": [".audio-mute", ".osd-slider"],
         "--apollo-success-color": [".kind-success"],
         "--apollo-warning-color": [".kind-warning"],
@@ -189,7 +189,7 @@ struct DefaultConfigTests {
         "--apollo-panel-radius": panels,
         "--apollo-card-color": cards + [".osd-slider"],
         "--apollo-card-gradient": cards + [".osd-slider"],
-        "--apollo-card-radius": cards + [".media-", ".card-media", ".perf-"],
+        "--apollo-card-radius": cards + [".card-media-artwork", ".media-artwork", ".perf-card"],
         "--apollo-launcher-highlight-color": [".launcher-row"],
         "--apollo-launcher-highlight-gradient": [".launcher-row"],
         "--apollo-launcher-row-height": [".launcher-row"],
@@ -199,6 +199,12 @@ struct DefaultConfigTests {
         "--apollo-toast-text-color": [".toast-card"],
         "--apollo-toast-radius": [".toast-card"],
     ]
+
+    static func matches(_ part: String, place: String) -> Bool {
+        let regex = try! NSRegularExpression(pattern: #"[.#][A-Za-z0-9_-]+|:root"#)
+        let tokens = regex.matches(in: part, range: NSRange(part.startIndex..., in: part)).map { String(part[Range($0.range, in: part)!]) }
+        return tokens.contains { place.hasSuffix("-") ? $0.hasPrefix(place) : $0 == place }
+    }
 
     static func tokenPlaces(in css: String) -> [(selector: String, token: String)] {
         var text = css
@@ -219,6 +225,18 @@ struct DefaultConfigTests {
         return result
     }
 
+    @Test("Stellenprüfung: jeder Teil-Selektor einzeln, Klassen exakt oder per Präfix mit Bindestrich")
+    func placeMatching() {
+        #expect(Self.matches(".card", place: ".card"))
+        #expect(!Self.matches(".card-media-title", place: ".card"))
+        #expect(Self.matches(".weather-place:checked", place: ".weather-place"))
+        #expect(!Self.matches(".weather-place-name", place: ".weather-place"))
+        #expect(Self.matches("#dashboard .card-x", place: "#dashboard"))
+        #expect(Self.matches(".launcher-row", place: ".launcher-"))
+        let parts = ".osd-percent, .card-media-title".components(separatedBy: ",")
+        #expect(!parts.allSatisfy { part in Self.allowedPlaces["--apollo-on-accent-color"]!.contains { Self.matches(part, place: $0) } })
+    }
+
     @Test("Token-Stellen wie anhang-token-verbraucher.md")
     func tokenPlaces() throws {
         let css = try String(contentsOf: Self.defaultFolder.appendingPathComponent("style.css"), encoding: .utf8)
@@ -231,8 +249,8 @@ struct DefaultConfigTests {
                     Issue.record("\(token) an '\(selector)' hat in 0.1.4.2 keinen Leser dort (Basis \(base))")
                     continue
                 }
-                let allowed = places.contains { place in
-                    place.isEmpty || selector.components(separatedBy: ",").allSatisfy { $0.contains(place) } || selector.contains(place)
+                let allowed = selector.components(separatedBy: ",").allSatisfy { part in
+                    places.contains { Self.matches(part, place: $0) }
                 }
                 #expect(allowed, "\(token) an '\(selector)' ist keine Stelle aus 0.1.4.2")
             }
