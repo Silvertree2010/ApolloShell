@@ -92,3 +92,9 @@ public enum ProviderValue {
         value.map(Value.bool) ?? .null
     }
 }
+
+public enum BuiltinProviderSchemas {
+    public static func schema(_ id: String) -> ProviderSchema {
+        SchemaRegistry.builtin.providers[id] ?? ProviderSchema(id: id, doc: "")
+    }
+}
