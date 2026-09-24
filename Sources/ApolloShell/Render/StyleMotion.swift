@@ -13,6 +13,17 @@ enum StyleMotion {
         }
     }
 
+    static func transition(_ style: ComputedStyle, _ property: String) -> Animation? {
+        guard case .transitions(let list)? = style["transition"] else { return nil }
+        let match = list.last { $0.property == property } ?? (property == "match" ? nil : list.last { $0.property == "all" })
+        guard let match, match.duration > 0 else { return nil }
+        return animation(match.curve, duration: match.duration)
+    }
+
+    static func valueAnimation(_ style: ComputedStyle) -> Animation? {
+        transition(style, "value")
+    }
+
     static func appear(_ value: CSSValue?) -> (transition: AnyTransition, animation: Animation?) {
         guard case .appear(let list)? = value, let first = list.first else { return (.identity, nil) }
         var transition = AnyTransition.identity
