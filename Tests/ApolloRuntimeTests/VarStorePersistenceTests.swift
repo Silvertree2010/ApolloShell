@@ -256,26 +256,30 @@ struct VarStorePersistenceTests {
         #expect(vars.value("mode") == .string("b"))
     }
 
-    @Test("Statusdatei mit 50 000 Listeneinträgen: ein geänderter Eintrag schreibt im Budget")
-    func largeListWritesQuickly() {
-        var lines = ["big {"]
-        for index in 0..<50_000 { lines.append("    - \"item-\(index)\"") }
-        lines.append("}")
-        let initial = lines.joined(separator: "\n") + "\n"
-        let fileSystem = MemoryFileSystem(["/state/test.kdl": initial])
-        let writer = StateWriter(file: URL(fileURLWithPath: "/state/test.kdl"), fileSystem: fileSystem)
-        var items: [Value] = (0..<50_000).map { .string("item-\($0)") }
-        items[10] = .string("changed")
-        let warnings = Mutex<[Diagnostic]>([])
-        writer.setWarningHandler { diagnostic in warnings.withLock { $0.append(diagnostic) } }
-        let start = Date()
-        writer.enqueue(["big": .list(items)])
-        writer.flushSync()
-        let elapsed = Date().timeIntervalSince(start)
-        #expect(warnings.withLock { $0 }.isEmpty)
-        #expect(elapsed < 2.0)
-        let text = try! fileSystem.read(URL(fileURLWithPath: "/state/test.kdl"))
-        #expect(text.contains("changed"))
+    @Test("Statusdatei mit 50 000 Listeneinträgen: ein geänderter Eintrag kostet linear, nicht quadratisch")
+    func largeListWritesLinearly() {
+        func writeCost(_ count: Int) -> Double {
+            var lines = ["big {"]
+            for index in 0..<count { lines.append("    - \"item-\(index)\"") }
+            lines.append("}")
+            let initial = lines.joined(separator: "\n") + "\n"
+            let fileSystem = MemoryFileSystem(["/state/test.kdl": initial])
+            let writer = StateWriter(file: URL(fileURLWithPath: "/state/test.kdl"), fileSystem: fileSystem)
+            var items: [Value] = (0..<count).map { .string("item-\($0)") }
+            items[10] = .string("changed")
+            var diagnostic: Diagnostic?
+            let cost = CPUTime.measure {
+                diagnostic = writer.write(["big": .list(items)])
+            }
+            #expect(diagnostic == nil)
+            let text = try! fileSystem.read(URL(fileURLWithPath: "/state/test.kdl"))
+            #expect(text.contains("changed"))
+            return cost
+        }
+        let small = (0..<3).map { _ in writeCost(5_000) }.min()!
+        let large = writeCost(50_000)
+        print("state-write cpu ms small=\(small) large=\(large) ratio=\(large / small)")
+        #expect(large / small < 40)
     }
 }
 
