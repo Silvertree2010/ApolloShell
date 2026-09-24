@@ -1,0 +1,72 @@
+#marketplace { width: 780px; height: 620px; min-width: 640px; min-height: 480px; }
+.marketplace { width: 100%; height: 100%; }
+.marketplace-main { width: 100%; height: 100%; }
+.marketplace-header { padding: 16px; gap: 12px; align-items: center; border-bottom: 1px solid rgb(from -apple-system-separator r g b / 1); }
+.marketplace-title { font-size: 22px; font-weight: 700; }
+.marketplace-tabs { padding: 2px; gap: 2px; border-radius: 7px; background: rgb(from -apple-system-label r g b / 0.06); }
+.marketplace-tab { padding: 3px 12px; border-radius: 5px; font-size: 13px; }
+.marketplace-tab:checked { background: -apple-system-control-background; font-weight: 600; }
+.marketplace-body { flex-grow: 1; }
+.marketplace-footer { padding: 12px; gap: 12px; align-items: center; font-size: 13px; border-top: 1px solid rgb(from -apple-system-separator r g b / 1); }
+.marketplace-link { color: -apple-system-link; }
+.marketplace-button { padding: 4px 12px; border-radius: 6px; font-size: 13px; background: rgb(from -apple-system-label r g b / 0.08); }
+.marketplace-button:hover { background: rgb(from -apple-system-label r g b / 0.12); }
+.marketplace-button:disabled { opacity: 0.4; }
+.marketplace-prominent { background: -apple-system-control-accent; color: white; }
+.marketplace-prominent:hover { background: -apple-system-control-accent; }
+.marketplace-destructive { color: -apple-system-red; }
+.marketplace-secondary { color: -apple-system-secondary-label; font-size: 13px; }
+.marketplace-caption { color: -apple-system-secondary-label; font-size: 11px; }
+.marketplace-warning { color: -apple-system-orange; font-size: 13px; }
+.marketplace-reason { color: -apple-system-orange; font-size: 13px; }
+.marketplace-code { font-family: ui-monospace; font-weight: 600; }
+.marketplace-sign-in { gap: 8px; align-items: center; }
+.marketplace-sign-in-error { max-width: 320px; }
+.marketplace-spinner { width: 16px; height: 16px; }
+.marketplace-empty { flex-grow: 1; gap: 8px; align-items: center; justify-content: center; padding: 24px; }
+.marketplace-empty-glyph { font-size: 36px; color: -apple-system-secondary-label; }
+.marketplace-empty-title { font-size: 17px; font-weight: 700; }
+.marketplace-empty-detail { color: -apple-system-secondary-label; font-size: 13px; max-width: 360px; text-align: center; }
+.marketplace-scroll { flex-grow: 1; }
+.marketplace-grid { padding: 16px; gap: 16px; grid-template-columns: repeat(3, 1fr); }
+.marketplace-card { gap: 8px; }
+.marketplace-card-footer { gap: 8px; align-items: center; }
+.marketplace-card-text { gap: 1px; }
+.marketplace-card-name { font-size: 13px; font-weight: 600; }
+.marketplace-card-author { font-size: 11px; color: -apple-system-secondary-label; }
+.marketplace-preview { border-radius: 10px; }
+.marketplace-previews { gap: 12px; }
+.marketplace-preview-column { gap: 4px; align-items: center; flex-grow: 1; }
+.marketplace-list { padding: 16px; gap: 12px; }
+.marketplace-group { gap: 6px; padding: 12px; border-radius: 10px; background: rgb(from -apple-system-label r g b / 0.05); }
+.marketplace-footnote { font-size: 11px; }
+.marketplace-section-title { font-size: 13px; font-weight: 600; color: -apple-system-secondary-label; }
+.marketplace-own { gap: 12px; align-items: center; }
+.marketplace-own-preview { width: 96px; }
+.marketplace-own-text { gap: 2px; }
+.marketplace-own-name { font-size: 13px; font-weight: 600; }
+.marketplace-queue-item { gap: 12px; padding: 4px 0; }
+.marketplace-queue-previews { gap: 4px; }
+.marketplace-queue-preview { width: 150px; }
+.marketplace-queue-text { gap: 3px; flex-grow: 1; }
+.marketplace-queue-actions { gap: 8px; padding-top: 4px; }
+.marketplace-banner { gap: 12px; padding: 10px 16px; align-items: center; }
+.marketplace-banner-error { background: rgb(from -apple-system-red r g b / 0.12); }
+.marketplace-banner-message { background: rgb(from -apple-system-control-accent r g b / 0.12); }
+.marketplace-banner-text { gap: 2px; }
+.marketplace-banner-title { font-size: 13px; font-weight: 600; }
+.marketplace-scrim { width: 100%; height: 100%; background: rgb(0 0 0 / 0.2); align-items: center; justify-content: center; }
+.marketplace-sheet { gap: 14px; padding: 20px; border-radius: 12px; background: -apple-system-window-background; align-self: center; justify-self: center; }
+.marketplace-detail { width: 620px; }
+.marketplace-detail-text { gap: 4px; }
+.marketplace-detail-name { font-size: 22px; font-weight: 700; }
+.marketplace-submit { width: 560px; }
+.marketplace-alert { width: 320px; }
+.marketplace-alert-title { font-size: 13px; font-weight: 700; }
+.marketplace-input { padding: 4px 6px; border-radius: 5px; background: -apple-system-text-background; }
+.marketplace-sheet-buttons { gap: 8px; align-items: center; }
+.marketplace-choices { max-height: 120px; }
+.marketplace-choice-list { gap: 2px; }
+.marketplace-choice { padding: 4px 8px; border-radius: 6px; }
+.marketplace-choice:checked { background: rgb(from -apple-system-control-accent r g b / 0.2); }
+.marketplace-agree { gap: 8px; align-items: center; }

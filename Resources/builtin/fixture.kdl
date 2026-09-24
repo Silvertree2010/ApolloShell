@@ -1,0 +1,24 @@
+fixture {
+    marketplace status="loaded" error=#null message="Thanks. The report was sent." {
+        user id="42" login="octo" is-admin=#true
+        sign-in status="waiting" code="ABCD-1234" url="https://github.com/login/device" error=#null
+        items {
+            - id="t1" kind="theme" slug="dusk" name="Dusk" author="octo" version=2 description="Warm" license="CC0-1.0" attribution="" updated="2026-09-21T12:00:00Z" state="get" css=":root {\n  --apollo-theme-name: \"Dusk\";\n  --apollo-accent-color: #ff8a3d;\n}\n"
+            - id="t2" kind="theme" slug="nord" name="Nord" author="arctic" version=1 description="" license="CC0-1.0" attribution="Based on Nord (MIT)" updated="2026-09-20T12:00:00Z" state="use" css=":root {\n  --apollo-theme-name: \"Nord\";\n  --apollo-accent-color: #88c0d0;\n}\n"
+        }
+        mine {
+            - id="t1" kind="theme" slug="dusk" name="Dusk" author="octo" version=3 description="Warm" license="CC0-1.0" attribution="" updated="2026-09-21T12:00:00Z" state="get" css="" status="rejected" reason="Copy of Nord" live-version=2
+        }
+        queue {
+            - id="t3" kind="theme" slug="ember" name="Ember" author="flame" version=1 description="Hot" license="CC0-1.0" attribution="" updated="2026-09-22T12:00:00Z" css="" status="waiting" reason=#null live-version=#null update-note="Update: name or description changed." previous-css="" owner-id="7" {
+                reports {
+                    - reason="spam" at="2026-09-22T10:00:00Z"
+                }
+            }
+        }
+        local {
+            - id="mine" name="Mine" problem=#null css=""
+            - id="nameless" name="nameless" problem="no-name" css=""
+        }
+    }
+}

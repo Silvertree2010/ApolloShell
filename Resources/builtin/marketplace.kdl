@@ -1,0 +1,545 @@
+var marketplace-tab "browse"
+var marketplace-detail ""
+var marketplace-sheet ""
+var marketplace-reason ""
+var marketplace-reason-action ""
+var marketplace-target ""
+var marketplace-target-version ""
+var marketplace-choice ""
+var marketplace-agreed #false
+var marketplace-replacing ""
+
+define "marketplace-install-button" {
+    param "item"
+    switch "{item.state}" {
+        case "get" {
+            button class="marketplace-button marketplace-prominent marketplace-get" {
+                on-click { marketplace.get "{item.id}" }
+                text "Get"
+            }
+        }
+        case "update" {
+            button class="marketplace-button marketplace-prominent marketplace-update" {
+                on-click { marketplace.update "{item.id}" }
+                text "Update"
+            }
+        }
+        case "use" {
+            button class="marketplace-button marketplace-use" {
+                on-click { marketplace.use "{item.id}" }
+                text "Use"
+            }
+        }
+    }
+}
+
+define "marketplace-previews" {
+    param "look"
+    row class="marketplace-previews" {
+        column class="marketplace-preview-column" {
+            theme-preview theme="{look}" appearance="light" class="marketplace-preview"
+            text "Light" class="marketplace-caption"
+        }
+        column class="marketplace-preview-column" {
+            theme-preview theme="{look}" appearance="dark" class="marketplace-preview"
+            text "Dark" class="marketplace-caption"
+        }
+    }
+}
+
+define "marketplace-empty" {
+    param "symbol"
+    param "title"
+    param "detail" default=""
+    column class="marketplace-empty" {
+        icon "{symbol}" class="marketplace-empty-glyph"
+        text "{title}" class="marketplace-empty-title"
+        when "{detail != ''}" { text "{detail}" class="marketplace-empty-detail" lines=0 }
+        slot
+    }
+}
+
+define "marketplace-sign-in" {
+    switch "{marketplace.sign-in.status}" {
+        case "waiting" {
+            row class="marketplace-sign-in" {
+                progress class="marketplace-spinner"
+                when "{marketplace.sign-in.code == null}" { text "Connecting to GitHub…" class="marketplace-secondary" }
+                when "{marketplace.sign-in.code != null}" {
+                    text "Enter" class="marketplace-secondary"
+                    text "{marketplace.sign-in.code}" class="marketplace-code"
+                    button class="marketplace-button marketplace-copy" {
+                        on-click { marketplace.copy-code }
+                        text "Copy"
+                    }
+                    button class="marketplace-button marketplace-cancel-sign-in" {
+                        on-click { marketplace.cancel-sign-in }
+                        text "Cancel"
+                    }
+                }
+            }
+        }
+        case "failed" {
+            row class="marketplace-sign-in" {
+                text "{marketplace.sign-in.error ?? ''}" class="marketplace-secondary marketplace-sign-in-error" lines=2
+                button class="marketplace-button" {
+                    on-click { marketplace.sign-in }
+                    text "Try again"
+                }
+            }
+        }
+        default {
+            button class="marketplace-button marketplace-sign-in-button" {
+                on-click { marketplace.sign-in }
+                text "Sign in with GitHub"
+            }
+        }
+    }
+}
+
+define "marketplace-account" {
+    when "{marketplace.user != null}" {
+        button class="marketplace-button marketplace-account" menu-on="click" {
+            text "@{marketplace.user.login}"
+            menu side="below" {
+                item "Sign out" { marketplace.sign-out }
+                separator
+                item "Delete account and themes…" { set "marketplace-sheet" "delete-account" }
+            }
+        }
+    }
+    when "{marketplace.user == null}" { use "marketplace-sign-in" }
+}
+
+define "marketplace-browse" {
+    switch "{marketplace.status}" {
+        case "failed" {
+            use "marketplace-empty" symbol="wifi.exclamationmark" title="Marketplace unavailable" detail="{marketplace.error ?? ''}" {
+                button class="marketplace-button marketplace-retry" {
+                    on-click { marketplace.refresh }
+                    text "Try again"
+                }
+            }
+        }
+        case "loaded" {
+            when "{(marketplace.items | count) == 0}" {
+                use "marketplace-empty" symbol="paintpalette" title="No themes yet" detail="Be the first: submit one under My themes."
+            }
+            when "{(marketplace.items | count) > 0}" {
+                scroll class="marketplace-scroll" axis="vertical" {
+                    grid class="marketplace-grid" {
+                        each item in="{marketplace.items}" key="{item.id}" {
+                            column class="marketplace-card" {
+                                button class="marketplace-card-preview" {
+                                    on-click { set "marketplace-detail" "{item.id}" }
+                                    theme-preview theme="{item}" class="marketplace-preview"
+                                }
+                                row class="marketplace-card-footer" {
+                                    column class="marketplace-card-text" {
+                                        text "{item.name}" class="marketplace-card-name" truncate="tail"
+                                        text "by {item.author}" class="marketplace-card-author" truncate="tail"
+                                    }
+                                    spacer
+                                    use "marketplace-install-button" item="{item}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        default {
+            column class="marketplace-empty" { progress class="marketplace-spinner" }
+        }
+    }
+}
+
+define "marketplace-mine" {
+    when "{marketplace.user == null}" {
+        use "marketplace-empty" symbol="square.and.arrow.up" title="Share your themes" detail="Sign in with GitHub to submit a theme. The Marketplace only sees your public GitHub profile." {
+            use "marketplace-sign-in"
+        }
+    }
+    when "{marketplace.user != null}" {
+        scroll class="marketplace-scroll" axis="vertical" {
+            column class="marketplace-list" {
+                column class="marketplace-group" {
+                    button class="marketplace-button marketplace-submit-open" {
+                        on-click {
+                            set "marketplace-replacing" ""
+                            set "marketplace-choice" ""
+                            set "marketplace-agreed" #false
+                            set "marketplace-sheet" "submit"
+                        }
+                        text "Submit a theme…"
+                    }
+                    text "A new theme, or a new name or description, is reviewed before it goes live. New colours for a published theme go live at once." class="marketplace-secondary marketplace-footnote" lines=0
+                }
+                text "Yours" class="marketplace-section-title"
+                when "{(marketplace.mine | count) == 0}" { text "Nothing submitted yet." class="marketplace-secondary" }
+                each own in="{marketplace.mine}" key="{own.id}" {
+                    row class="marketplace-own" {
+                        theme-preview theme="{own}" appearance="light" class="marketplace-own-preview"
+                        column class="marketplace-own-text" {
+                            text "{own.name}" class="marketplace-own-name"
+                            switch "{own.status}" {
+                                case "waiting" { text "Waiting for review · version {own.version}" class="marketplace-secondary" }
+                                case "live" { text "Live · version {own.version}" class="marketplace-secondary" }
+                                case "rejected" { text "Not accepted" class="marketplace-secondary" }
+                                case "hidden" { text "Hidden" class="marketplace-secondary" }
+                            }
+                            when "{own.reason != null}" { text "{own.reason}" class="marketplace-reason" lines=0 }
+                        }
+                        spacer
+                        button class="marketplace-button marketplace-new-version" {
+                            on-click {
+                                set "marketplace-replacing" "{own.id}"
+                                set "marketplace-choice" ""
+                                set "marketplace-agreed" #false
+                                set "marketplace-sheet" "submit"
+                            }
+                            text "New version…"
+                        }
+                        button class="marketplace-button marketplace-destructive marketplace-delete" {
+                            on-click { marketplace.delete "{own.id}" }
+                            text "Delete"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "marketplace-review" {
+    when "{(marketplace.queue | count) == 0}" {
+        use "marketplace-empty" symbol="checkmark.seal" title="Nothing to review"
+    }
+    when "{(marketplace.queue | count) > 0}" {
+        scroll class="marketplace-scroll" axis="vertical" {
+            column class="marketplace-list" {
+                each entry in="{marketplace.queue}" key="{entry.id}-{entry.version}" {
+                    row class="marketplace-queue-item" {
+                        column class="marketplace-queue-previews" {
+                            theme-preview theme="{entry}" appearance="light" class="marketplace-queue-preview"
+                            theme-preview theme="{entry}" appearance="dark" class="marketplace-queue-preview"
+                        }
+                        column class="marketplace-queue-text" {
+                            text "{entry.name}" class="marketplace-own-name"
+                            text "by {entry.author} · version {entry.version} · {entry.status}" class="marketplace-secondary"
+                            when "{entry.description != ''}" { text "{entry.description}" lines=0 }
+                            when "{entry.update-note != null}" { text "{entry.update-note}" class="marketplace-secondary" }
+                            each report in="{entry.reports}" key="{report.at}-{report.reason}" {
+                                text "Report: {report.reason}" class="marketplace-reason" lines=0
+                            }
+                            row class="marketplace-queue-actions" {
+                                when "{entry.status == 'hidden'}" {
+                                    button class="marketplace-button marketplace-unhide" {
+                                        on-click { marketplace.unhide "{entry.id}" }
+                                        text "Show again"
+                                    }
+                                }
+                                when "{entry.status != 'hidden'}" {
+                                    button class="marketplace-button marketplace-prominent marketplace-approve" {
+                                        on-click { marketplace.approve "{entry.id}" "{entry.version}" }
+                                        text "Approve"
+                                    }
+                                    button class="marketplace-button marketplace-reject" {
+                                        on-click {
+                                            set "marketplace-reason" ""
+                                            set "marketplace-reason-action" "reject"
+                                            set "marketplace-target" "{entry.id}"
+                                            set "marketplace-target-version" "{entry.version}"
+                                            set "marketplace-sheet" "reason"
+                                        }
+                                        text "Reject…"
+                                    }
+                                    button class="marketplace-button marketplace-hide" {
+                                        on-click {
+                                            set "marketplace-reason" ""
+                                            set "marketplace-reason-action" "hide"
+                                            set "marketplace-target" "{entry.id}"
+                                            set "marketplace-sheet" "reason"
+                                        }
+                                        text "Hide…"
+                                    }
+                                }
+                                when "{entry.owner-id != marketplace.user.id}" {
+                                    button class="marketplace-button marketplace-destructive marketplace-ban" {
+                                        on-click {
+                                            set "marketplace-reason" ""
+                                            set "marketplace-reason-action" "ban"
+                                            set "marketplace-target" "{entry.owner-id}"
+                                            set "marketplace-sheet" "reason"
+                                        }
+                                        text "Ban author…"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "marketplace-detail" {
+    param "item"
+    column class="marketplace-sheet marketplace-detail" {
+        use "marketplace-previews" look="{item}"
+        column class="marketplace-detail-text" {
+            text "{item.name}" class="marketplace-detail-name"
+            text "by {item.author} · version {item.version}" class="marketplace-secondary"
+            when "{item.description != ''}" { text "{item.description}" lines=0 }
+            when "{item.attribution == ''}" { text "License: {item.license}" class="marketplace-caption" }
+            when "{item.attribution != ''}" { text "License: {item.license} · {item.attribution}" class="marketplace-caption" }
+        }
+        row class="marketplace-sheet-buttons" {
+            button class="marketplace-button marketplace-report-open" {
+                on-click {
+                    set "marketplace-reason" ""
+                    set "marketplace-target" "{item.id}"
+                    set "marketplace-sheet" "report"
+                }
+                text "Report…"
+            }
+            when "{item.state != 'get'}" {
+                button class="marketplace-button marketplace-destructive marketplace-remove" {
+                    on-click { marketplace.remove "{item.id}" }
+                    text "Remove"
+                }
+            }
+            spacer
+            button class="marketplace-button marketplace-close" {
+                on-click { set "marketplace-detail" "" }
+                text "Close"
+            }
+            use "marketplace-install-button" item="{item}"
+        }
+    }
+}
+
+define "marketplace-report" {
+    column class="marketplace-sheet marketplace-alert" {
+        text "Report this theme" class="marketplace-alert-title"
+        text "For content that is illegal, offensive or copies someone else's work. A theme reported three times is hidden until it is reviewed." class="marketplace-secondary" lines=0
+        input bind="var.marketplace-reason" placeholder="What is wrong with it?" focus="{var.marketplace-sheet == 'report'}" class="marketplace-input"
+        row class="marketplace-sheet-buttons" {
+            spacer
+            button class="marketplace-button" {
+                on-click {
+                    set "marketplace-sheet" ""
+                    set "marketplace-reason" ""
+                }
+                text "Cancel"
+            }
+            button class="marketplace-button marketplace-prominent marketplace-report-send" {
+                on-click {
+                    marketplace.report "{var.marketplace-target}" "{var.marketplace-reason}"
+                    set "marketplace-sheet" ""
+                    set "marketplace-reason" ""
+                }
+                text "Send"
+            }
+        }
+    }
+}
+
+define "marketplace-reason" {
+    column class="marketplace-sheet marketplace-alert" {
+        text "Reason" class="marketplace-alert-title"
+        text "The author sees this reason." class="marketplace-secondary"
+        input bind="var.marketplace-reason" placeholder="Shown to the author" focus="{var.marketplace-sheet == 'reason'}" class="marketplace-input"
+        row class="marketplace-sheet-buttons" {
+            spacer
+            button class="marketplace-button" {
+                on-click {
+                    set "marketplace-sheet" ""
+                    set "marketplace-reason" ""
+                }
+                text "Cancel"
+            }
+            button class="marketplace-button marketplace-prominent marketplace-reason-send" disabled="{(var.marketplace-reason | replace ' ' '') == ''}" {
+                on-click {
+                    when "{var.marketplace-reason-action == 'reject'}" { marketplace.reject "{var.marketplace-target}" "{var.marketplace-target-version}" "{var.marketplace-reason}" }
+                    when "{var.marketplace-reason-action == 'hide'}" { marketplace.hide "{var.marketplace-target}" "{var.marketplace-reason}" }
+                    when "{var.marketplace-reason-action == 'ban'}" { marketplace.ban "{var.marketplace-target}" "{var.marketplace-reason}" }
+                    set "marketplace-sheet" ""
+                    set "marketplace-reason" ""
+                }
+                text "Send"
+            }
+        }
+    }
+}
+
+define "marketplace-delete-account" {
+    column class="marketplace-sheet marketplace-alert" {
+        text "Delete your Marketplace account?" class="marketplace-alert-title"
+        text "Your themes leave the Marketplace. Copies others installed stay on their Macs." class="marketplace-secondary" lines=0
+        row class="marketplace-sheet-buttons" {
+            spacer
+            button class="marketplace-button" {
+                on-click { set "marketplace-sheet" "" }
+                text "Cancel"
+            }
+            button class="marketplace-button marketplace-destructive marketplace-delete-account" {
+                on-click {
+                    marketplace.delete-account
+                    set "marketplace-sheet" ""
+                }
+                text "Delete"
+            }
+        }
+    }
+}
+
+define "marketplace-submit" {
+    param "chosen"
+    column class="marketplace-sheet marketplace-submit" {
+        when "{var.marketplace-replacing == ''}" { text "Submit a theme" class="marketplace-detail-name" }
+        when "{var.marketplace-replacing != ''}" {
+            text "New version of {(marketplace.mine | where 'id' var.marketplace-replacing | first).name ?? ''}" class="marketplace-detail-name"
+        }
+        text "Theme" class="marketplace-section-title"
+        scroll class="marketplace-choices" axis="vertical" {
+            column class="marketplace-choice-list" {
+                when "{(marketplace.local | count) == 0}" { text "No themes in the themes folder yet." class="marketplace-secondary" }
+                each local in="{marketplace.local}" key="{local.id}" {
+                    button class="marketplace-choice" checked="{local.id == var.marketplace-choice}" {
+                        on-click { set "marketplace-choice" "{local.id}" }
+                        text "{local.name}" truncate="tail"
+                    }
+                }
+            }
+        }
+        when "{chosen != null}" {
+            use "marketplace-previews" look="{chosen.id}"
+            switch "{chosen.problem ?? ''}" {
+                case "uses-files" { text "This theme uses images. The Marketplace takes plain CSS themes only for now." class="marketplace-warning" lines=0 }
+                case "no-tokens" { text "There is nothing in this theme the shell knows." class="marketplace-warning" lines=0 }
+                case "no-name" { text "Give it a name first: --apollo-theme-name in the file." class="marketplace-warning" lines=0 }
+            }
+        }
+        row class="marketplace-agree" {
+            toggle checked="{var.marketplace-agreed}" class="marketplace-agree-toggle" {
+                on-change { set "marketplace-agreed" "{event.value}" }
+            }
+            text "I made this theme or may share it, and publish it under CC0 (free for anyone to use). I agree to the Terms." lines=0
+        }
+        text "The preview is made from the theme itself. Author, homepage and anything the shell does not know are left out." class="marketplace-secondary" lines=0
+        row class="marketplace-sheet-buttons" {
+            spacer
+            button class="marketplace-button" {
+                on-click { set "marketplace-sheet" "" }
+                text "Cancel"
+            }
+            button class="marketplace-button marketplace-prominent marketplace-submit-send" disabled="{!var.marketplace-agreed || chosen == null || chosen.problem != null}" {
+                on-click {
+                    when "{var.marketplace-replacing == ''}" { marketplace.submit "{var.marketplace-choice}" accept-terms="{var.marketplace-agreed}" }
+                    when "{var.marketplace-replacing != ''}" { marketplace.new-version "{var.marketplace-replacing}" "{var.marketplace-choice}" accept-terms="{var.marketplace-agreed}" }
+                    set "marketplace-sheet" ""
+                }
+                when "{var.marketplace-replacing == ''}" { text "Submit" }
+                when "{var.marketplace-replacing != ''}" { text "Upload" }
+            }
+        }
+    }
+}
+
+window "marketplace" title="Marketplace" autosave="Marketplace" miniaturizable=#true {
+    on-open { marketplace.refresh }
+    key "return" {
+        when "{var.marketplace-sheet == '' && var.marketplace-detail == ''}" { close "marketplace" }
+    }
+    on-close {
+        set "marketplace-detail" ""
+        set "marketplace-sheet" ""
+    }
+    stack class="marketplace" {
+        column class="marketplace-main" {
+            row class="marketplace-header" {
+                text "Marketplace" class="marketplace-title"
+                row class="marketplace-tabs" {
+                    button class="marketplace-tab" checked="{var.marketplace-tab == 'browse'}" {
+                        on-click { set "marketplace-tab" "browse" }
+                        text "Browse"
+                    }
+                    button class="marketplace-tab" checked="{var.marketplace-tab == 'mine'}" {
+                        on-click { set "marketplace-tab" "mine" }
+                        text "My themes"
+                    }
+                    when "{marketplace.user.is-admin ?? false}" {
+                        button class="marketplace-tab" checked="{var.marketplace-tab == 'review'}" {
+                            on-click { set "marketplace-tab" "review" }
+                            text "Review ({marketplace.queue | count})"
+                        }
+                    }
+                }
+                spacer
+                use "marketplace-account"
+            }
+            when "{marketplace.error != null && marketplace.status != 'failed'}" {
+                row class="marketplace-banner marketplace-banner-error" {
+                    column class="marketplace-banner-text" {
+                        text "Something went wrong" class="marketplace-banner-title"
+                        text "{marketplace.error}" lines=0
+                    }
+                    spacer
+                    button class="marketplace-button" {
+                        on-click { marketplace.dismiss }
+                        text "OK"
+                    }
+                }
+            }
+            when "{marketplace.message != null}" {
+                row class="marketplace-banner marketplace-banner-message" {
+                    text "{marketplace.message}" class="marketplace-banner-title" lines=0
+                    spacer
+                    button class="marketplace-button" {
+                        on-click { marketplace.dismiss }
+                        text "OK"
+                    }
+                }
+            }
+            column class="marketplace-body" {
+                switch "{(var.marketplace-tab == 'review' && !(marketplace.user.is-admin ?? false)) ? 'browse' : var.marketplace-tab}" {
+                    case "mine" { use "marketplace-mine" }
+                    case "review" { use "marketplace-review" }
+                    default { use "marketplace-browse" }
+                }
+            }
+            row class="marketplace-footer" {
+                button class="marketplace-link" {
+                    on-click { open-url "https://silvertree2010.github.io/ApolloShell/terms.html" }
+                    text "Terms"
+                }
+                button class="marketplace-link" {
+                    on-click { open-url "https://silvertree2010.github.io/ApolloShell/privacy.html" }
+                    text "Privacy"
+                }
+                spacer
+                button class="marketplace-button marketplace-prominent marketplace-done" {
+                    on-click { close "marketplace" }
+                    text "Done"
+                }
+            }
+        }
+        when "{var.marketplace-detail != '' || var.marketplace-sheet != ''}" {
+            stack class="marketplace-scrim" {
+                when "{var.marketplace-detail != '' && var.marketplace-sheet == ''}" {
+                    use "marketplace-detail" item="{marketplace.items | where 'id' var.marketplace-detail | first}"
+                }
+                switch "{var.marketplace-sheet}" {
+                    case "report" { use "marketplace-report" }
+                    case "reason" { use "marketplace-reason" }
+                    case "delete-account" { use "marketplace-delete-account" }
+                    case "submit" { use "marketplace-submit" chosen="{marketplace.local | where 'id' var.marketplace-choice | first}" }
+                }
+            }
+        }
+    }
+}
+
+style "marketplace.css"

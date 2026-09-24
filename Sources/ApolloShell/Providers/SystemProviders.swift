@@ -9,8 +9,10 @@ struct SystemProviders {
     let power: PowerProvider
     let system: SystemMacSource
     let wm: WMProvider
+    let marketplace: SystemMarketplaceHost
 
-    init(directory: URL, socketPath: String?, polls: [ScriptSourceSpec], listens: [ScriptSourceSpec], clock: any RuntimeClock) {
+    init(directory: URL, socketPath: String?, polls: [ScriptSourceSpec], listens: [ScriptSourceSpec], marketplace: SystemMarketplaceHost, clock: any RuntimeClock) {
+        self.marketplace = marketplace
         let apps = AppsProvider(source: SystemAppsSource(directory: directory), clock: clock)
         let window = WindowProvider(source: SystemWindowSource(), clock: clock)
         let system = SystemMacSource(directory: directory)
@@ -42,6 +44,7 @@ struct SystemProviders {
             ScriptSourcesProvider(kind: .poll, sources: polls, runner: runner, clock: clock),
             ScriptSourcesProvider(kind: .listen, sources: listens, runner: runner, clock: clock),
             wm,
+            MarketplaceProvider(host: marketplace, clock: clock),
         ]
     }
 

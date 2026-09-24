@@ -116,8 +116,22 @@ final class LiveShell: WindowHostLink {
         let paths = self.paths
         return await Task.detached {
             let loader = ConfigLoader(fileSystem: DiskFileSystem(), paths: paths, registry: .builtin, filters: .builtin, shellVersion: ShellVersion.current)
-            return loader.load(location)
+            return BuiltinSurfaces.apply(loader.load(location)) {
+                BuiltinSurfaces.load(paths: paths, fileSystem: DiskFileSystem(), shellVersion: ShellVersion.current)
+            }
         }.value
+    }
+
+    var marketplaceEnabled: Bool {
+        lastIR.map(BuiltinSurfaces.marketplaceEnabled) ?? false
+    }
+
+    func openMarketplace() {
+        guard marketplaceEnabled, lastIR?.surface(BuiltinSurfaces.marketplaceID) != nil else {
+            Self.log("marketplace.open: the Marketplace is switched off in this config")
+            return
+        }
+        assembly?.runtime.open(BuiltinSurfaces.marketplaceID, screenKey: nil)
     }
 
     func stateFile(_ location: ConfigLocation) -> URL {
@@ -148,6 +162,7 @@ final class LiveShell: WindowHostLink {
         assembly.actions.register("osd.show", OSDShowAction(shell: self))
         assembly.actions.register("notify", NotifyAction(center: toasts))
         assembly.actions.register("toast.dismiss", ToastDismissAction(center: toasts))
+        assembly.actions.register("marketplace.open", MarketplaceOpenAction(shell: self))
         toasts.runtime = assembly.runtime
         toasts.targetScreen = { [weak self] in
             guard let self else { return nil }
@@ -248,7 +263,9 @@ final class LiveShell: WindowHostLink {
             icons = FixtureAppIcons()
             return
         }
-        let system = SystemProviders(directory: paths.applicationSupport, socketPath: socketPath, polls: [], listens: [], clock: DispatchRuntimeClock())
+        let marketplace = SystemMarketplaceHost(paths: paths, settings: settings)
+        marketplace.onThemesChanged = { [weak self] in self?.reload() }
+        let system = SystemProviders(directory: paths.applicationSupport, socketPath: socketPath, polls: [], listens: [], marketplace: marketplace, clock: DispatchRuntimeClock())
         self.system = system
         providerIDs = system.providers.map(\.schema.id)
         assembly.install(system.providers)
@@ -496,6 +513,7 @@ final class LiveShell: WindowHostLink {
         var state = CommandCenterState(configs: catalog.list().map { .init(id: $0.id, isActive: $0.id == active) },
                                        themes: themes.map { .init(id: $0.id, issueCount: $0.issueCount, isActive: $0.isActive) })
         state.problemCount = overlay.problems.count
+        state.marketplaceEnabled = marketplaceEnabled
         return CommandCenterModel.build(nil, state: state)
     }
 
@@ -509,6 +527,7 @@ final class LiveShell: WindowHostLink {
             do { try ThemeCatalog(paths: paths, settings: settings).select(id); reload() } catch { overlay.add(Diagnostic(.warning, "\(error)")) }
         case .openConfigFolder: if let location { NSWorkspace.shared.open(location.root) }
         case .openThemesFolder: NSWorkspace.shared.open(paths.themesDirectory)
+        case .openMarketplace: openMarketplace()
         case .checkForUpdates: updates?.checkNow()
         case .about:
             NSApp.activate()
