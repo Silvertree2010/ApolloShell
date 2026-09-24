@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, framework]
   pull_request:
 
 permissions:
@@ -38,7 +38,7 @@ jobs:
         run: swift build -c release --product ApolloShell
 
       - name: Test
-        run: swift test
+        run: ./test.sh
 
       - name: Assemble and verify the app bundle
         run: |
