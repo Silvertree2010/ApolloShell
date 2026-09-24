@@ -30,7 +30,7 @@ struct ElementMenuCommand {
 
 @MainActor
 protocol MenuSourceProviding {
-    func entries(_ kind: String, properties: [String: Value], element: ElementInstance) -> [ElementMenuEntry]
+    func entries(_ kind: String, properties: [String: Value], element: ElementInstance, context: RenderContext) async -> [ElementMenuEntry]
 }
 
 @MainActor
@@ -40,12 +40,12 @@ protocol MenuPresenting {
 
 @MainActor
 enum MenuModel {
-    static func entries(for element: ElementInstance, context: RenderContext) -> [ElementMenuEntry] {
+    static func entries(for element: ElementInstance, context: RenderContext) async -> [ElementMenuEntry] {
         guard let menu = element.ir.menu else { return [] }
-        return build(menu.items, element: element, context: context, locals: [:])
+        return await build(menu.items, element: element, context: context, locals: [:])
     }
 
-    static func build(_ items: [MenuItemIR], element: ElementInstance, context: RenderContext, locals: [String: Value]) -> [ElementMenuEntry] {
+    static func build(_ items: [MenuItemIR], element: ElementInstance, context: RenderContext, locals: [String: Value]) async -> [ElementMenuEntry] {
         var result: [ElementMenuEntry] = []
         func value(_ compiled: CompiledValue) -> Value {
             if let runtime = context.runtime { return runtime.evaluate(compiled, on: element.identity, locals: locals) }
@@ -74,20 +74,22 @@ enum MenuModel {
             case .section(let title):
                 result.append(.section(value(title).stringified))
             case let .submenu(title, children):
-                result.append(.submenu(value(title).stringified, build(children, element: element, context: context, locals: locals)))
+                result.append(.submenu(value(title).stringified, await build(children, element: element, context: context, locals: locals)))
             case let .source(kind, properties):
                 let resolved = properties.mapValues(value)
-                result += context.menuSources[kind]?.entries(kind, properties: resolved, element: element) ?? []
+                if let source = context.menuSources[kind] {
+                    result += await source.entries(kind, properties: resolved, element: element, context: context)
+                }
             case let .each(variable, index, list, _, body):
                 guard case .list(let values) = value(list) else { continue }
                 for (offset, entry) in values.enumerated() {
                     var inner = locals
                     inner[variable] = entry
                     if let index { inner[index] = .number(Double(offset)) }
-                    result += build(body, element: element, context: context, locals: inner)
+                    result += await build(body, element: element, context: context, locals: inner)
                 }
             case let .when(condition, then, otherwise):
-                result += build(value(condition).isTruthy ? then : otherwise, element: element, context: context, locals: locals)
+                result += await build(value(condition).isTruthy ? then : otherwise, element: element, context: context, locals: locals)
             }
         }
         return result
@@ -97,12 +99,20 @@ enum MenuModel {
 @MainActor
 final class NativeMenuPresenter: MenuPresenting {
     func present(_ element: ElementInstance, context: RenderContext, from view: NSView, at point: NSPoint?) {
-        let entries = MenuModel.entries(for: element, context: context)
-        guard !entries.isEmpty else { return }
+        let pointer = point ?? view.window.map { view.convert($0.mouseLocationOutsideOfEventStream, from: nil) }
+        Task { @MainActor [weak view, weak context] in
+            guard let context else { return }
+            let entries = await MenuModel.entries(for: element, context: context)
+            guard !entries.isEmpty, let view, view.window != nil else { return }
+            Self.open(entries, element: element, context: context, view: view, pointer: pointer)
+        }
+    }
+
+    private static func open(_ entries: [ElementMenuEntry], element: ElementInstance, context: RenderContext, view: NSView, pointer: NSPoint?) {
         let menu = NativeMenu.make(entries, context: context)
         let side = element.ir.menu?.properties["side"].map { context.runtime?.evaluate($0, on: element.identity, locals: [:]) ?? HandlerRules.literal($0) ?? .null }?.plainText ?? "pointer"
         let offset = element.ir.menu?.properties["offset"].flatMap { context.runtime?.evaluate($0, on: element.identity, locals: [:]) }.flatMap(StyleValues.numberValue) ?? 6
-        let location = NativeMenu.location(side: side, offset: offset, bounds: view.bounds, flipped: view.isFlipped, menuWidth: menu.size.width, pointer: point ?? view.window.map { view.convert($0.mouseLocationOutsideOfEventStream, from: nil) })
+        let location = NativeMenu.location(side: side, offset: offset, bounds: view.bounds, flipped: view.isFlipped, menuWidth: menu.size.width, pointer: pointer)
         menu.popUp(positioning: nil, at: location, in: view)
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import ApolloBase
 import ApolloConfig
 import ApolloRuntime
 
@@ -12,6 +13,17 @@ protocol RenderRuntime: AnyObject {
     func variable(_ name: String) -> Value
     func setVariable(_ name: String, _ value: Value)
     func bindChords() -> [(id: String, chord: String)]
+    @discardableResult
+    func perform(_ action: String, _ arguments: [String], on identity: Identity) -> Task<Void, Never>?
+}
+
+extension RenderRuntime {
+    @discardableResult
+    func perform(_ action: String, _ arguments: [String], on identity: Identity) -> Task<Void, Never>? {
+        let span = SourceSpan.synthetic()
+        let call = ActionCallIR(name: action, arguments: arguments.map { CompiledValue(template: .literal($0), dependencies: [], span: span) }, span: span)
+        return run([.call(call)], on: identity, site: "menu-source:" + action, event: Record(), locals: [:])
+    }
 }
 
 @MainActor

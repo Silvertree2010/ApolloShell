@@ -114,4 +114,20 @@ struct ElementRenderTests {
         let mark = try panel("mark class=\"m\" color=\"#ff0000\"", ".m { width: 50px; height: 50px; }")
         #expect(mark.count { $0.r > 180 && $0.g < 120 && $0.b < 120 } > 20)
     }
+
+    @Test("mark state folgt einem Ausdruck ohne Neuaufbau (Entscheid 9b-1)")
+    func markStateExpression() async throws {
+        let mounted = try Mounted.mount("""
+        var mood "idle"
+        panel "t" anchor="left" { mark id="m" state="{var.mood}" class="m" }
+        """, css: "#t { width: 60px; height: 60px; } .m { width: 50px; height: 50px; }")
+        let surface = try #require(mounted.session.surfaces.first)
+        let mark = try #require(surface.root.first)
+        #expect(mark.property("state") == .string("idle"))
+        mounted.session.context.runtime?.setVariable("mood", .string("sleep"))
+        await mounted.settle()
+        let after = try #require(mounted.session.surfaces.first?.root.first)
+        #expect(after === mark)
+        #expect(mark.property("state") == .string("sleep"))
+    }
 }

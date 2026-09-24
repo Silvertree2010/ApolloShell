@@ -85,8 +85,14 @@ enum RenderProbe {
         let fixtureData = fixture.map { ProviderFixture.parse($0, file: "probe-fixture.kdl") }
             ?? ProviderFixture.load(PackageResources.root.appendingPathComponent("Resources/render/fixture.kdl"))
         var diagnostics: [Diagnostic] = []
-        let session = try RenderSession(config: config, resources: PackageResources.root.appendingPathComponent("Resources"),
+        let session: RenderSession
+        do {
+            session = try RenderSession(config: config, resources: PackageResources.root.appendingPathComponent("Resources"),
                                         fixture: fixtureData, fixtureRoot: config, dark: dark, scale: scale) { diagnostics += $0 }
+        } catch {
+            Issue.record("\(diagnostics.map { "\($0.span?.start.line ?? 0): \($0.message)" })")
+            throw error
+        }
         return (session, diagnostics)
     }
 
