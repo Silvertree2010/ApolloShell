@@ -51,12 +51,38 @@ struct ElementView: View {
     var body: some View {
         let subject = StyleResolver.subject(for: element)
         let style = scope.context.styles.resolve(subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: element.property("style").plainText)
-        let inner = RenderScope(context: scope.context, ancestors: scope.ancestors + [subject], parentStyle: style, parentKind: element.kind)
+        let inner = RenderScope(context: scope.context, ancestors: scope.ancestors + [subject], parentStyle: style, parentKind: Self.layoutKind(element))
         if element.property("visible") != .bool(false) {
+            let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle)
             ElementRenderers.view(for: element, style: style, scope: inner)
-                .modifier(StyledBox(style: style, padded: element.kind != "scroll"))
-                .modifier(SelfAlignment(style: style, parentKind: scope.parentKind))
+                .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill))
+                .layoutValue(key: ChildMetricsKey.self, value: ChildMetrics(style))
         }
+    }
+}
+
+extension ElementView {
+    static func layoutKind(_ element: ElementInstance) -> String {
+        switch element.kind {
+        case "reorderable": element.property("axis").plainText == "horizontal" ? "row" : "column"
+        default: element.kind
+        }
+    }
+
+    static func fill(_ style: ComputedStyle, parentKind: String, parentStyle: ComputedStyle?) -> Definite {
+        let horizontal: Bool
+        switch parentKind {
+        case "row": horizontal = true
+        case "column": horizontal = false
+        default: return Definite()
+        }
+        let grows = (StyleValues.number(style["flex-grow"]) ?? 0) > 0
+        let own = StyleValues.keyword(style["align-self"])
+        let inherited = StyleValues.keyword(parentStyle?["align-items"]) ?? "stretch"
+        let stretches = (own == nil || own == "auto" ? inherited : own) == "stretch"
+        let definite = Definite(style)
+        let crossFree = horizontal ? !definite.height : !definite.width
+        return horizontal ? Definite(width: grows, height: stretches && crossFree) : Definite(width: stretches && crossFree, height: grows)
     }
 }
 
@@ -67,66 +93,6 @@ struct ElementChildren: View {
     var body: some View {
         ForEach(children, id: \.identity) { child in
             ElementView(element: child, scope: scope)
-        }
-    }
-}
-
-struct StyledBox: ViewModifier {
-    let style: ComputedStyle
-    var padded = true
-
-    func body(content: Content) -> some View {
-        let width = style["width"], height = style["height"]
-        let shape = RoundedRectangle(cornerRadius: StyleValues.radius(style["border-radius"]), style: StyleValues.keyword(style["-apollo-corner-shape"]) == "circular" ? .circular : .continuous)
-        content
-            .padding(padded ? StyleValues.sides(style["padding"]) : EdgeInsets())
-            .frame(width: StyleValues.points(width), height: StyleValues.points(height))
-            .frame(maxWidth: StyleValues.fills(width) ? .infinity : nil, maxHeight: StyleValues.fills(height) ? .infinity : nil)
-            .background { BackgroundLayers(style: style, shape: shape) }
-            .opacity(StyleValues.number(style["opacity"]) ?? 1)
-            .offset(StyleValues.translation(style["transform"]))
-            .padding(StyleValues.sides(style["margin"]))
-    }
-}
-
-struct BackgroundLayers<S: Shape>: View {
-    let style: ComputedStyle
-    let shape: S
-
-    var body: some View {
-        if case .layers(let layers)? = style["background"] {
-            ZStack {
-                ForEach(Array(layers.reversed().enumerated()), id: \.offset) { _, layer in
-                    switch layer {
-                    case .color(let color):
-                        shape.fill(StyleValues.color(color))
-                    case .glass, .material:
-                        shape.fill(Color(nsColor: .windowBackgroundColor))
-                    case .gradient, .image:
-                        EmptyView()
-                    }
-                }
-            }
-        }
-    }
-}
-
-struct SelfAlignment: ViewModifier {
-    let style: ComputedStyle
-    let parentKind: String
-
-    func body(content: Content) -> some View {
-        switch (parentKind, StyleValues.keyword(style["align-self"])) {
-        case ("stack", "start"?), ("button", "start"?):
-            content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        case ("stack", "end"?), ("button", "end"?):
-            content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
-        case ("column", "start"?), ("reorderable", "start"?):
-            content.frame(maxWidth: .infinity, alignment: .leading)
-        case ("column", "end"?), ("reorderable", "end"?):
-            content.frame(maxWidth: .infinity, alignment: .trailing)
-        default:
-            content
         }
     }
 }

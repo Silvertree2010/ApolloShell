@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import ApolloBase
 import ApolloConfig
 import ApolloStyle
@@ -18,9 +19,14 @@ final class StyleResolver {
     private var cache: [Key: ComputedStyle] = [:]
     private(set) var diagnostics: [Diagnostic] = []
 
-    init(sheets: [StyleSheet], environment: StyleEnvironment) {
+    let assetRoot: URL?
+    let assetRoots: [URL]
+
+    init(sheets: [StyleSheet], environment: StyleEnvironment, assetRoot: URL? = nil) {
         engine = StyleEngine(sheets: sheets)
         self.environment = environment
+        self.assetRoot = assetRoot
+        assetRoots = sheets.compactMap(\.assetRoot)
     }
 
     static func subject(for element: ElementInstance) -> StyleSubject {
@@ -34,6 +40,17 @@ final class StyleResolver {
     static func classes(_ value: Value) -> [String] {
         guard let text = value.plainText else { return [] }
         return text.split(whereSeparator: \.isWhitespace).map(String.init)
+    }
+
+    private var images: [String: NSImage] = [:]
+
+    func image(_ path: String) -> NSImage? {
+        if let cached = images[path] { return cached }
+        let url = URL(fileURLWithPath: path)
+        let roots = assetRoots + (assetRoot.map { [$0] } ?? [])
+        guard let image = roots.lazy.compactMap({ SafeImageFile.image(at: url, root: $0) }).first else { return nil }
+        images[path] = image
+        return image
     }
 
     func resolve(_ subject: StyleSubject, ancestors: [StyleSubject], parent: ComputedStyle?, inline: String? = nil) -> ComputedStyle {

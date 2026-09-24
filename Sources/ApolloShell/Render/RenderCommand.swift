@@ -49,51 +49,17 @@ enum RenderCommand {
     }
 
     static func render(_ options: Options) throws {
-        NSApplication.shared.setActivationPolicy(.prohibited)
-        NSApplication.shared.appearance = NSAppearance(named: options.dark ? .darkAqua : .aqua)
         var fixture = ProviderFixture.load(options.fixture)
         report(fixture.diagnostics)
-        let extracted = FixtureIcons.extract(fixture.values)
-        fixture.values = extracted.values
-        var now = Date()
-        if case .date(let date)? = fixture.values["clock"]?["now"] { now = date }
-        let host = SurfaceHost()
-        let scheduler = ManualFlushScheduler()
-        let assembly = ShellAssembly(host: host, scheduler: scheduler, clock: ManualRuntimeClock(), filterContext: ShellAssembly.fixedContext(now: now))
-        assembly.install(FixtureProvider.all(fixture: fixture, onAction: { action, _, _ in
-            FileHandle.standardError.write(Data("action \(action) (not run)\n".utf8))
-        }))
-        let loaded = ConfigSource.load(options.config, builtinConfigs: options.resources.appendingPathComponent("configs"), id: "render")
-        report(loaded.diagnostics)
-        guard let ir = loaded.ir else { throw RenderError.config("config \(options.config.path) did not load") }
-        assembly.apply(ir, screens: ["render"])
-        for _ in 0..<50 { scheduler.runPending() }
-        report(assembly.warnings)
-        let (sheets, sheetDiagnostics) = StyleSheets.load(ir)
-        report(sheetDiagnostics)
-        let styles = StyleResolver(sheets: sheets, environment: StyleSheets.environment(dark: options.dark))
-        let context = RenderContext(styles: styles, icons: FixtureAppIcons(files: extracted.icons, root: options.fixture.deletingLastPathComponent()), trigger: { _, _, _ in })
-        let appearance: ColorScheme = options.dark ? .dark : .light
-        let canvas = OffscreenCanvas(appearance: appearance, scale: options.scale)
+        let session = try RenderSession(config: options.config, resources: options.resources, fixture: fixture,
+                                        fixtureRoot: options.fixture.deletingLastPathComponent(), dark: options.dark, scale: options.scale, log: report)
+        fixture.values = [:]
         try FileManager.default.createDirectory(at: options.output, withIntermediateDirectories: true)
-        for key in host.order {
-            guard let surface = host.surfaces[key] else { continue }
+        for surface in session.surfaces {
             let name = "\(surface.id)-\(options.dark ? "dark" : "light").png"
-            let view = SurfaceView(surface: surface, context: context)
-                .environment(\.colorScheme, appearance)
-                .environment(\._accessibilityReduceTransparency, true)
-                .background(options.dark ? Color.black : Color.white)
-                .transaction { transaction in
-                    transaction.animation = nil
-                    transaction.disablesAnimations = true
-                }
-            let hosting = NSHostingView(rootView: view)
-            canvas.host(hosting, size: hosting.fittingSize)
-            let data = try canvas.stableCapture(hosting, name: name)
-            canvas.window.contentView = nil
-            try data.write(to: options.output.appendingPathComponent(name))
+            try session.capture(surface, name: name).write(to: options.output.appendingPathComponent(name))
         }
-        report(styles.diagnostics)
+        report(session.context.styles.diagnostics)
     }
 
     static func report(_ diagnostics: [Diagnostic]) {

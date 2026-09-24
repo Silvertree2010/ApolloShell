@@ -5,22 +5,24 @@ import ApolloRuntime
 
 @MainActor
 enum LayoutRenderers {
+    static func flex(horizontal: Bool, style: ComputedStyle, @ViewBuilder content: () -> some View) -> some View {
+        let gap = StyleValues.gap(style[horizontal ? "column-gap" : "row-gap"] ?? style["gap"])
+        return FlexLayout(horizontal: horizontal, gap: gap, align: StyleValues.keyword(style["align-items"]) ?? "stretch",
+                          justify: StyleValues.keyword(style["justify-content"]) ?? "start", definite: Definite(style)) {
+            content()
+        }
+    }
+
     static func column(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
-        AnyView(VStack(alignment: StyleValues.horizontal(style["align-items"]), spacing: StyleValues.gap(style["gap"])) {
-            ElementChildren(children: element.children, scope: scope)
-        })
+        AnyView(flex(horizontal: false, style: style) { ElementChildren(children: element.children, scope: scope) })
     }
 
     static func row(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
-        AnyView(HStack(alignment: StyleValues.vertical(style["align-items"]), spacing: StyleValues.gap(style["gap"])) {
-            ElementChildren(children: element.children, scope: scope)
-        })
+        AnyView(flex(horizontal: true, style: style) { ElementChildren(children: element.children, scope: scope) })
     }
 
     static func stack(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
-        AnyView(ZStack {
-            ElementChildren(children: element.children, scope: scope)
-        })
+        AnyView(StackLayout(definite: Definite(style)) { ElementChildren(children: element.children, scope: scope) })
     }
 
     static func reorderable(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
