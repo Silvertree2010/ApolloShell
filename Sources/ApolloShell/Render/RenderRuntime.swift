@@ -59,6 +59,11 @@ final class AssemblyRenderRuntime: RenderRuntime {
     }
 }
 
+struct GateKey: Hashable {
+    var identity: Identity
+    var handler: String
+}
+
 struct HandlerRules: Equatable {
     var debounce: Double?
     var throttle: Double?
@@ -66,6 +71,8 @@ struct HandlerRules: Equatable {
     var cooldown: Double?
     var delay: Double?
     var accept: String?
+
+    var gated: Bool { debounce != nil || throttle != nil || step != nil || cooldown != nil }
 
     static func literal(_ value: CompiledValue?) -> Value? {
         guard let value else { return nil }
@@ -97,37 +104,68 @@ extension RenderContext {
     }
 
     func gate(_ element: ElementInstance, _ name: String) -> EventGate {
-        let key = element.identity.description + "#" + name
+        let key = GateKey(identity: element.identity, handler: name)
         if let existing = gates[key] { return existing }
         let gate = EventGate(clock: clock)
         gates[key] = gate
         return gate
     }
 
+    func forget(_ element: ElementInstance) {
+        let identity = element.identity
+        if gates.keys.contains(where: { $0.identity == identity }) {
+            gates = gates.filter { $0.key.identity != identity }
+        }
+        if let coordinator = reorders[identity.description], coordinator.container === element {
+            reorders[identity.description] = nil
+        }
+    }
+
     @discardableResult
-    func fire(_ name: String, _ element: ElementInstance, _ event: Record = Record()) -> Bool {
+    func fire(_ name: String, _ element: ElementInstance, _ event: Record = Record(),
+              onTask: (@MainActor (Task<Void, Never>?) -> Void)? = nil) -> Bool {
         guard handler(element, name) != nil else { return false }
         let identity = element.identity
-        gate(element, name).submit(event, rules: rules(element, name)) { [weak self] event in
-            self?.dispatch(name, identity, event)
+        let rules = rules(element, name)
+        guard rules.gated else {
+            let task = dispatch(name, identity, event)
+            onTask?(task)
+            return true
         }
+        let outcome = gate(element, name).submit(event, rules: rules) { [weak self] event in
+            let task = self?.dispatch(name, identity, event)
+            onTask?(task)
+        }
+        if outcome == .dropped { onTask?(nil) }
         return true
     }
 
-    func dispatch(_ name: String, _ identity: Identity, _ event: Record) {
-        if let runtime {
-            let task = runtime.trigger(name, on: identity, event: event)
-            if let task { pending.append(task) }
-        } else {
+    @discardableResult
+    func dispatch(_ name: String, _ identity: Identity, _ event: Record) -> Task<Void, Never>? {
+        guard let runtime else {
             trigger(name, identity, event)
+            return nil
         }
+        return track(runtime.trigger(name, on: identity, event: event))
+    }
+
+    @discardableResult
+    func track(_ task: Task<Void, Never>?) -> Task<Void, Never>? {
+        guard let task else { return nil }
+        let id = nextPending
+        nextPending += 1
+        pending[id] = task
+        Task { @MainActor [weak self] in
+            await task.value
+            self?.pending[id] = nil
+        }
+        return task
     }
 
     func settle() async {
-        while !pending.isEmpty {
-            let tasks = pending
-            pending.removeAll()
-            for task in tasks { await task.value }
+        while let (id, task) = pending.first {
+            await task.value
+            pending[id] = nil
         }
     }
 }

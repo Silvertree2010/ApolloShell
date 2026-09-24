@@ -101,13 +101,13 @@ final class ReorderCoordinator {
             ("from", .number(Double(move.from))), ("to", .number(Double(move.to))),
             ("key", keys[move.from]), ("from-key", keys[move.from]), ("to-key", keys[targetIndex]),
         ])
-        context.fire("on-reorder", container, event)
-        let task = context.pending.last
-        Task { @MainActor [weak self] in
-            await task?.value
-            try? await Task.sleep(for: .milliseconds(300))
-            guard let self, self.preview != nil else { return }
-            if self.keys == self.shownFor { self.preview = nil }
+        context.fire("on-reorder", container, event) { [weak self] task in
+            Task { @MainActor [weak self] in
+                await task?.value
+                try? await Task.sleep(for: .milliseconds(300))
+                guard let self, self.preview != nil else { return }
+                if self.keys == self.shownFor { self.preview = nil }
+            }
         }
         return true
     }

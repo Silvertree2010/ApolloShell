@@ -29,21 +29,26 @@ final class EventGate {
         self.clock = clock
     }
 
-    func submit(_ event: Record, rules: HandlerRules, fire: @escaping @MainActor (Record) -> Void) {
+    enum Outcome {
+        case fired, deferred, dropped
+    }
+
+    @discardableResult
+    func submit(_ event: Record, rules: HandlerRules, fire: @escaping @MainActor (Record) -> Void) -> Outcome {
         var event = event
         if let step = rules.step, step > 0 {
             if event["phase"] == .string("began") { scrolled = 0 }
             let dy = StyleValues.numberValue(event["dy"] ?? .null) ?? 0
             let precise = event["precise"] != .bool(false)
             scrolled += abs(dy) * (precise ? 1 : 10)
-            guard scrolled >= step else { return }
-            if let cooldown = rules.cooldown, clock.now - lastFire <= cooldown { return }
+            guard scrolled >= step else { return .dropped }
+            if let cooldown = rules.cooldown, clock.now - lastFire <= cooldown { return .dropped }
             scrolled = 0
             event["direction"] = .string(dy >= 0 ? "up" : "down")
         } else if let cooldown = rules.cooldown, clock.now - lastFire <= cooldown {
-            return
+            return .dropped
         }
-        if let throttle = rules.throttle, clock.now - lastFire < throttle { return }
+        if let throttle = rules.throttle, clock.now - lastFire < throttle { return .dropped }
         if let debounce = rules.debounce, debounce > 0 {
             generation += 1
             let ticket = generation
@@ -52,9 +57,10 @@ final class EventGate {
                 self.lastFire = self.clock.now
                 fire(event)
             }
-            return
+            return .deferred
         }
         lastFire = clock.now
         fire(event)
+        return .fired
     }
 }

@@ -144,6 +144,7 @@ struct ElementInteraction: ViewModifier {
             .onAppear { context.fire("on-appear", element) }
             .onDisappear {
                 context.fire("on-disappear", element)
+                context.forget(element)
                 if element.pseudo.contains(.hover) || element.pseudo.contains(.active) {
                     element.pseudo.subtract([.hover, .active])
                 }

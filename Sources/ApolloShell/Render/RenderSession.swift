@@ -79,7 +79,7 @@ final class RenderSession {
         guard !FlyoutCollector.collect(surface.root).isEmpty else { return hosting }
         var reserved = EdgeInsets()
         for _ in 0..<10 {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+            CFRunLoopRunInMode(.defaultMode, OffscreenCanvas.settleStep, false)
             hosting.layoutSubtreeIfNeeded()
             let wanted = context.flyoutExtents[key] ?? EdgeInsets()
             guard wanted != reserved else { continue }

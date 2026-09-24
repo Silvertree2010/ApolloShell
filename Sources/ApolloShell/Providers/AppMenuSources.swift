@@ -36,7 +36,7 @@ final class AppMenuSources: MenuSourceProviding {
         if case .record(let fields) = properties["app"] ?? .null { record = fields }
         let act: @MainActor (String, [String]) -> Void = { [weak context] action, arguments in
             guard let task = context?.runtime?.perform(action, [app] + arguments, on: element.identity) else { return }
-            context?.pending.append(task)
+            context?.track(task)
         }
         switch kind {
         case "app-dock":

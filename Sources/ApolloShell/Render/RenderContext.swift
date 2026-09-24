@@ -18,14 +18,15 @@ final class RenderContext {
     var clock: any GateClock = SystemGateClock()
     var menus: any MenuPresenting = NativeMenuPresenter()
     var onRecording: @MainActor (Bool) -> Void = { _ in }
-    var gates: [String: EventGate] = [:]
+    var gates: [GateKey: EventGate] = [:]
     var reorders: [String: ReorderCoordinator] = [:]
     var menuSources: [String: any MenuSourceProviding] = [:]
-    var pending: [Task<Void, Never>] = []
+    var pending: [Int: Task<Void, Never>] = [:]
+    var nextPending = 0
     var flyoutExtents: [String: EdgeInsets] = [:]
     var onFlyoutExtent: @MainActor (String, EdgeInsets) -> Void = { _, _ in }
     let hits = HitRegions()
-    private var images: [String: NSImage] = [:]
+    private var images = BoundedCache<String, NSImage>(limit: 128)
 
     func image(for source: Value) -> NSImage? {
         switch source {

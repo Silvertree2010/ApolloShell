@@ -42,6 +42,13 @@ struct Mounted {
         session.context.runtime?.variable(name) ?? .null
     }
 
+    func pump(_ steps: Int = 10) {
+        for _ in 0..<steps {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+            view.layoutSubtreeIfNeeded()
+        }
+    }
+
     func settle() async {
         await session.context.settle()
         session.flush()

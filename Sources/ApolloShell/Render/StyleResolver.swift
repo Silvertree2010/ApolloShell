@@ -16,10 +16,12 @@ final class StyleResolver {
 
     let engine: StyleEngine
     let environment: StyleEnvironment
-    private var cache: [Key: ComputedStyle] = [:]
+    private var cache = BoundedCache<Key, ComputedStyle>(limit: StyleResolver.cacheLimit)
     private(set) var diagnostics: [Diagnostic] = []
     private(set) var lookups = 0
     private(set) var computed = 0
+    static let cacheLimit = 4096
+    var cachedCount: Int { cache.count }
 
     let assetRoot: URL?
     let assetRoots: [URL]
@@ -44,7 +46,7 @@ final class StyleResolver {
         return text.split(whereSeparator: \.isWhitespace).map(String.init)
     }
 
-    private var images: [String: NSImage] = [:]
+    private var images = BoundedCache<String, NSImage>(limit: 128)
 
     func image(_ path: String) -> NSImage? {
         if let cached = images[path] { return cached }

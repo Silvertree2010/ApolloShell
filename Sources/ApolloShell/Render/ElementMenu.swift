@@ -66,7 +66,7 @@ enum MenuModel {
                     alternate: properties["alternate"].map(value)?.isTruthy ?? false,
                     perform: { [weak context] in
                         guard let task = context?.runtime?.run(actions, on: identity, site: site, event: Record(), locals: captured) else { return }
-                        context?.pending.append(task)
+                        context?.track(task)
                     }
                 )))
             case .separator:

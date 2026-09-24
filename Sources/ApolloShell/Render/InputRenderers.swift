@@ -282,7 +282,7 @@ struct InputElement: View {
         for (index, handler) in element.ir.keyHandlers.enumerated() {
             guard let chord = KeyChord.parse(handler.chord), KeyMatch.matches(chord, keyCode: event.keyCode, flags: event.modifierFlags) else { continue }
             if let task = context.runtime?.run(handler.actions, on: element.identity, site: "key#\(index)", event: Record([("chord", .string(chord.canonical))]), locals: [:]) {
-                context.pending.append(task)
+                context.track(task)
             }
             return true
         }

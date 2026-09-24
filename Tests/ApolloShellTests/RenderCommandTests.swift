@@ -30,4 +30,42 @@ struct RenderCommandTests {
         let color = try #require(rep.colorAt(x: 10, y: 10)?.usingColorSpace(.sRGB))
         #expect(color.redComponent > 0.8 && color.greenComponent < 0.2)
     }
+
+    @Test("Oberfläche mit Flyout kehrt unter der festen Uhr aus render.sh zurück")
+    func flyoutUnderFixedClock() throws {
+        let config = try RenderProbe.folder([
+            "shell.kdl": Data("""
+            style "style.css"
+            var open #true
+            panel "bar" anchor="left" shape="fused" {
+                stack id="hook" class="a"
+                flyout anchor="hook" side="right" open="{var.open}" { stack class="a" }
+            }
+            """.utf8),
+            "style.css": Data(".a { width: 20px; height: 20px; background: #ff0000; }".utf8),
+        ])
+        let output = config.appendingPathComponent("out")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.arguments = [PackageResources.root.appendingPathComponent("scripts/render/render.sh").path, output.path, "light"]
+        var environment = ProcessInfo.processInfo.environment
+        environment["APOLLO_RENDER_EXTRA"] = "--config \(config.path)"
+        process.environment = environment
+        process.standardError = FileHandle.nullDevice
+        process.standardOutput = FileHandle.nullDevice
+        try process.run()
+        let deadline = Date().addingTimeInterval(60)
+        while process.isRunning, Date() < deadline { usleep(100_000) }
+        let hung = process.isRunning
+        if hung {
+            process.terminate()
+            let kill = Process()
+            kill.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+            kill.arguments = ["-f", output.path]
+            try? kill.run()
+            kill.waitUntilExit()
+        }
+        #expect(!hung)
+        #expect(FileManager.default.fileExists(atPath: output.appendingPathComponent("bar-light.png").path))
+    }
 }
