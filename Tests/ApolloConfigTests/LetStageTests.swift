@@ -198,4 +198,34 @@ struct LetStageTests {
         #expect(result.diagnostics.count == 1)
         #expect(result.diagnostics[0].severity == .error)
     }
+
+    @Test("Knoten tragen die sichtbaren let-Werte ihres Bereichs")
+    func nodesCarryVisibleLetValues() {
+        let result = Self.run("let a=1\ndock {\n  let b=2\n  text {}\n}")
+        #expect(result.diagnostics.isEmpty)
+        let dock = result.nodes.first { $0.kdl.name == "dock" }
+        #expect(dock?.letValues["a"] == .number(1))
+        #expect(dock?.letValues["b"] == nil)
+        let text = dock?.children.first { $0.kdl.name == "text" }
+        #expect(text?.letValues["a"] == .number(1))
+        #expect(text?.letValues["b"] == .number(2))
+    }
+
+    @Test("Knoten sehen ein spaeter im selben Bereich deklariertes let")
+    func nodesSeeALaterLetInTheSameScope() {
+        let result = Self.run("dock {}\nlet a=1")
+        #expect(result.diagnostics.isEmpty)
+        let dock = result.nodes.first { $0.kdl.name == "dock" }
+        #expect(dock?.letValues["a"] == .number(1))
+    }
+
+    @Test("Fehler eines let in einer eingebundenen Datei tragen die include-Kette")
+    func letErrorInIncludedFileCarriesIncludeChain() {
+        let result = LetStage.run(Self.expand([
+            "/config/shell.kdl": "include \"more.kdl\"",
+            "/config/more.kdl": "let var=1",
+        ]), registry: .builtin)
+        #expect(result.diagnostics.count == 1)
+        #expect(result.diagnostics[0].notes.contains { $0.message.contains("included from") })
+    }
 }

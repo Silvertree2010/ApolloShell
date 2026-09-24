@@ -33,6 +33,14 @@ private final class LetFrame: @unchecked Sendable {
         result.formUnion(bindings.keys)
         return result
     }
+
+    func flattenedValues() -> [String: Value] {
+        var result = parent?.flattenedValues() ?? [:]
+        for (name, value) in bindings {
+            result[name] = value
+        }
+        return result
+    }
 }
 
 private struct LetEvalScope: EvaluationScope {
@@ -76,6 +84,10 @@ enum LetStage {
             copy.children = process(node.children, frame: childFrame, registry: registry, diagnostics: &diagnostics, values: &values)
             result.append(copy)
         }
+        let flattened = frame.flattenedValues()
+        for index in result.indices {
+            result[index].letValues = flattened
+        }
         return result
     }
 
@@ -92,6 +104,7 @@ enum LetStage {
             declare(
                 name: name,
                 nameSpan: kdl.arguments[0].span,
+                node: node,
                 frame: frame,
                 registry: registry,
                 diagnostics: &diagnostics,
@@ -102,21 +115,22 @@ enum LetStage {
             return
         }
         if !kdl.arguments.isEmpty || !node.children.isEmpty {
-            diagnostics.append(Diagnostic(
+            diagnostics.append(DiagnosticCollector.withExpansionChain(Diagnostic(
                 .error,
                 "'let' must be written as 'let name=value ...' or 'let name { ... }'",
                 span: kdl.span
-            ))
+            ), node: node))
             return
         }
         guard !kdl.properties.isEmpty else {
-            diagnostics.append(Diagnostic(.error, "'let' needs at least one constant", span: kdl.span))
+            diagnostics.append(DiagnosticCollector.withExpansionChain(Diagnostic(.error, "'let' needs at least one constant", span: kdl.span), node: node))
             return
         }
         for property in kdl.properties {
             declare(
                 name: property.name,
                 nameSpan: property.span,
+                node: node,
                 frame: frame,
                 registry: registry,
                 diagnostics: &diagnostics,
@@ -130,34 +144,38 @@ enum LetStage {
     private static func declare(
         name: String,
         nameSpan: SourceSpan,
+        node: ExpandedNode,
         frame: LetFrame,
         registry: SchemaRegistry,
         diagnostics: inout [Diagnostic],
         values: inout [String: Value],
         build: (Set<String>) -> Result<ValueTemplate, Diagnostic>
     ) {
+        func report(_ diagnostic: Diagnostic) {
+            diagnostics.append(DiagnosticCollector.withExpansionChain(diagnostic, node: node))
+        }
         if registry.fixedRoots.contains(name) || registry.providers[name] != nil {
-            diagnostics.append(Diagnostic(.error, "'\(name)' is reserved", span: nameSpan))
+            report(Diagnostic(.error, "'\(name)' is reserved", span: nameSpan))
             return
         }
         if registry.reservedProviderNames.contains(name) {
-            diagnostics.append(Diagnostic(.note, "'\(name)' hides provider '\(name)'", span: nameSpan))
+            report(Diagnostic(.note, "'\(name)' hides provider '\(name)'", span: nameSpan))
         }
         if frame.declares(name) {
-            diagnostics.append(Diagnostic(.error, "duplicate 'let' '\(name)' in this scope", span: nameSpan))
+            report(Diagnostic(.error, "duplicate 'let' '\(name)' in this scope", span: nameSpan))
             return
         }
         if frame.visibleFromParent(name) {
-            diagnostics.append(Diagnostic(.warning, "'\(name)' shadows an outer 'let'", span: nameSpan))
+            report(Diagnostic(.warning, "'\(name)' shadows an outer 'let'", span: nameSpan))
         }
         let locals = frame.allNames()
         switch build(locals) {
         case .failure(let diagnostic):
-            diagnostics.append(diagnostic)
+            report(diagnostic)
         case .success(let template):
             let dependencies = template.dependencies
             if let offending = dependencies.first {
-                diagnostics.append(Diagnostic(
+                report(Diagnostic(
                     .error,
                     "'let' cannot reference '\(offending.root)' at load time; only earlier 'let' constants are allowed",
                     span: nameSpan

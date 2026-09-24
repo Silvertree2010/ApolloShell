@@ -15,8 +15,9 @@ struct ExpandedNode: Sendable, Hashable {
     var children: [ExpandedNode]
     var origin: FileOrigin
     var useFrame: UseFrame?
+    var letValues: [String: Value] = [:]
 
-    init(kdl: KDLNode, file: String, includeChain: [SourceSpan], children: [ExpandedNode], origin: FileOrigin = .user, useFrame: UseFrame? = nil) {
+    init(kdl: KDLNode, file: String, includeChain: [SourceSpan], children: [ExpandedNode], origin: FileOrigin = .user, useFrame: UseFrame? = nil, letValues: [String: Value] = [:]) {
         var stripped = kdl
         stripped.children = nil
         self.kdl = stripped
@@ -25,6 +26,7 @@ struct ExpandedNode: Sendable, Hashable {
         self.children = children
         self.origin = origin
         self.useFrame = useFrame
+        self.letValues = letValues
     }
 }
 
