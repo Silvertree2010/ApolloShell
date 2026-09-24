@@ -2,9 +2,6 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-/// Antwort der Ortssuche fuer "Springfield" (Feld-Struktur wie Open-Meteo,
-/// eigene Testdaten): gleichnamige Orte in verschiedenen Bundesstaaten, wie
-/// bei Buchs AG/SG in der echten Schnittstelle.
 private let springfield = """
 {"results":[{"id":4926166,"name":"Springfield","latitude":39.78421,"longitude":-89.64371,"elevation":180.0,"feature_code":"PPLA2","country_code":"US","admin1_id":4896861,"admin2_id":4250384,"timezone":"America/Chicago","population":114230,"postcodes":["62701"],"country_id":6252001,"country":"Vereinigte Staaten","admin1":"Illinois","admin2":"Sangamon County"},{"id":4409896,"name":"Springfield","latitude":37.21533,"longitude":-93.29824,"elevation":409.0,"feature_code":"PPLA2","country_code":"US","admin1_id":4398678,"admin2_id":4404128,"timezone":"America/Chicago","population":159498,"postcodes":["65801"],"country_id":6252001,"country":"Vereinigte Staaten","admin1":"Missouri","admin2":"Greene County"},{"id":4951788,"name":"Springfield","latitude":42.10148,"longitude":-72.58981,"elevation":21.0,"feature_code":"PPLA2","country_code":"US","admin1_id":6254926,"admin2_id":4936544,"timezone":"America/New_York","postcodes":["01101"],"country_id":6252001,"country":"Vereinigte Staaten","admin1":"Massachusetts","admin2":"Hampden County"}],"generationtime_ms":0.8020401}
 """
@@ -98,8 +95,6 @@ struct GeocodingTests {
     func coordinatesEnglish() {
         let text = WeatherLocation(name: "", latitude: 47.00601, longitude: 9.50266)
             .coordinateText(locale: Locale(identifier: "en_US"))
-        // Die Himmelsrichtung uebersetzt erst die App (en.lproj), die Tests
-        // laufen ohne Uebersetzung.
         #expect(text.hasPrefix("47.01° N, 9.50° "))
     }
 }

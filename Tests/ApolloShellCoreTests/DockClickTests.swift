@@ -3,7 +3,6 @@ import Testing
 
 @Suite("Klick im Dock der Leiste")
 struct DockClickTests {
-    /// Kurzform, damit die Faelle unten lesbar bleiben.
     private static func state(
         running: Bool, launching: Bool = false, frontmost: Bool, hidden: Bool = false,
         here: Int = 0, elsewhere: Int = 0, minimized: Int = 0, covered: Bool = false,
@@ -34,8 +33,6 @@ struct DockClickTests {
         #expect(actions == [.raiseWindowOnActiveSpace])
     }
 
-    /// `activate()` allein reicht nicht: gemessen 20.09. wird die App damit
-    /// zwar zur vordersten, das Fenster bleibt aber auf seinem Schreibtisch.
     @Test("Laeuft, nicht vorne, Fenster nur woanders: das dortige Fenster nach vorne")
     func onlyElsewhere() {
         let actions = DockClick.actions(for: Self.state(running: true, frontmost: false, here: 0, elsewhere: 2))

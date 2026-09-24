@@ -1,30 +1,4 @@
 #!/bin/sh
-# Assembles and signs ApolloShell.app from an already built binary.
-# Shared by scripts/make-dmg.sh and the Homebrew formula
-# (packaging/homebrew/apolloshell.rb). Installs nothing, launches nothing.
-#
-# Usage: scripts/assemble-app.sh BINARY APP
-#   BINARY  the ApolloShell executable (thin or universal)
-#   APP     where to create the bundle, e.g. build/dist/ApolloShell.app
-#
-# Environment:
-#   SIGN_IDENTITY  code-signing identity. Default "Launcher Local Signing"
-#                  (created by scripts/setup-signing.sh) if it exists in the
-#                  keychain, otherwise ad-hoc. Set it to an empty string to
-#                  force ad-hoc signing.
-#   BUILD_NUMBER   CFBundleVersion. Default: number of git commits, or 1
-#                  outside a git checkout (e.g. a release tarball).
-#   HOMEBREW_BUILD set to 1 by the Homebrew formula. It drops a marker file
-#                  into the bundle; the app reads it and then never updates
-#                  itself, because the Cellar copy belongs to Homebrew
-#                  (Sources/ApolloShellCore/InstallKind.swift). The marker has
-#                  to be written before signing, or the signature would not
-#                  match the bundle any more.
-#
-# Why a fixed identity matters: macOS ties the Accessibility grant to the
-# app's code signature. Ad-hoc signatures change with every build, so the
-# grant would have to be given again after each update. See
-# scripts/setup-signing.sh.
 set -eu
 
 if [ $# -ne 2 ]; then
@@ -44,17 +18,11 @@ else
     IDENTITY="Launcher Local Signing"
 fi
 
-# Einmal entscheiden, womit alles signiert wird: die App, Sparkles Teile und
-# der Now-Playing-Helfer muessen dieselbe Signatur tragen.
 if [ "$IDENTITY" = "-" ]; then
-    # Ausdruecklich ad-hoc (CI, Bildproben): kein Nachschlagen, kein Fehler.
     echo "signing ad-hoc (SIGN_IDENTITY=-)"
 elif [ -n "$IDENTITY" ] && security find-identity -p codesigning 2>/dev/null | grep -q "\"$IDENTITY\""; then
     echo "signing with: $IDENTITY"
 elif [ "${SIGN_IDENTITY+set}" = set ] && [ -n "$SIGN_IDENTITY" ]; then
-    # Ausdruecklich verlangt und nicht da: abbrechen. Still ad-hoc zu
-    # signieren hiesse im Release, dass jede Bedienungshilfen-Freigabe nach
-    # dem Update weg ist - und das faellt erst den Nutzern auf.
     echo "Signier-Identitaet nicht im Schluesselbund: $SIGN_IDENTITY" >&2
     exit 1
 else
@@ -80,42 +48,26 @@ if [ "${HOMEBREW_BUILD:-}" = "1" ]; then
         > "$APP/Contents/Resources/installed-by-homebrew"
 fi
 
-# Now Playing helper (extras/mediaremote-adapter, see MediaModel.swift): the
-# framework goes to Frameworks (nested code, signed before the app), the perl
-# script to Resources. The framework is always built for arm64 and x86_64.
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT INT TERM
 "$ROOT/scripts/build-mediaremote-adapter.sh" "$WORK/mediaremote-adapter" "$IDENTITY"
 ditto "$WORK/mediaremote-adapter/MediaRemoteAdapter.framework" "$APP/Contents/Frameworks/MediaRemoteAdapter.framework"
 cp "$WORK/mediaremote-adapter/mediaremote-adapter.pl" "$APP/Contents/Resources/mediaremote-adapter.pl"
 
-# Sparkle (Selbstaktualisierung): SwiftPM legt das Rahmenwerk neben das
-# Programm. Es ist bereits universell (arm64 + x86_64), deshalb genuegt eine
-# Kopie, auch fuer das universelle DMG. SPARKLE_FRAMEWORK ueberschreibt den
-# Fundort.
 SPARKLE=${SPARKLE_FRAMEWORK:-$(dirname "$BINARY")/Sparkle.framework}
 if [ ! -d "$SPARKLE" ]; then
     echo "Sparkle.framework fehlt: $SPARKLE (swift build laeuft es mit)" >&2
     exit 1
 fi
 ditto "$SPARKLE" "$APP/Contents/Frameworks/Sparkle.framework"
-# Ohne Header und Modulkarten laeuft es genauso; die braucht nur der Compiler.
 rm -rf "$APP/Contents/Frameworks/Sparkle.framework/Versions/B/Headers" \
     "$APP/Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders" \
     "$APP/Contents/Frameworks/Sparkle.framework/Versions/B/Modules" \
     "$APP/Contents/Frameworks/Sparkle.framework/Headers" \
     "$APP/Contents/Frameworks/Sparkle.framework/PrivateHeaders" \
     "$APP/Contents/Frameworks/Sparkle.framework/Modules"
-# SwiftPM baut mit Suchpfaden auf den Bauordner; im Bundle liegt das
-# Rahmenwerk daneben in Frameworks.
 install_name_tool -add_rpath @executable_path/../Frameworks "$APP/Contents/MacOS/ApolloShell" 2>/dev/null || true
 
-# One language: the interface is written in English, there is no
-# translation table to merge in any more (0.1.3).
-
-# Sparkle bringt eigene Programme mit (Updater.app, Autoupdate, zwei
-# XPC-Dienste). Verschachtelter Code wird vor dem Aeusseren signiert, sonst
-# passt die Signatur der App nicht mehr zu ihrem Inhalt.
 SPARKLE_IN_APP="$APP/Contents/Frameworks/Sparkle.framework/Versions/B"
 for part in \
     "$SPARKLE_IN_APP/XPCServices/Downloader.xpc" \

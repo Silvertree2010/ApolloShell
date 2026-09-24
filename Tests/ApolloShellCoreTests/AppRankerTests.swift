@@ -38,7 +38,7 @@ struct AppRankerTests {
     func oldUsageFallsBackToAlphabet() {
         let apps = ["Zed", "Affinity"].map(app)
         var stats = UsageStats()
-        stats.record("id.Zed", at: now - 60 * 24 * 60 * 60) // vor 60 Tagen
+        stats.record("id.Zed", at: now - 60 * 24 * 60 * 60)
         let names = ranker.rank(apps, query: "", usage: stats, now: now).map(\.name)
         #expect(names == ["Affinity", "Zed"])
     }

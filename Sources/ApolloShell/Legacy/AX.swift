@@ -1,13 +1,7 @@
 import AppKit
 import ApplicationServices
 
-/// Duenne Huelle um die C-Schnittstelle der Bedienungshilfen - fuer die
-/// Fensterwache, das Dock-Menue, die Zaehler und Apples Dock. Jeder Zugriff
-/// ist eine Anfrage an die andere App und wartet bis zu ihrem Timeout; nur
-/// wo das nichts kostet, auf dem Hauptthread.
 enum AX {
-    /// Keine oeffentlichen Konstanten dafuer, die Namen sind aber seit Jahren
-    /// stabil und werden von allen Fenster-Tools so benutzt.
     static let fullScreenAttribute = "AXFullScreen"
     static let enhancedUserInterfaceAttribute = "AXEnhancedUserInterface"
 
@@ -40,8 +34,6 @@ enum AX {
         (copy(element, attribute) as? [AXUIElement]) ?? []
     }
 
-    /// Rahmen in Bedienungshilfen-Koordinaten: Position ist die linke obere
-    /// Ecke, gemessen ab der linken oberen Ecke des Hauptbildschirms.
     static func frame(of window: AXUIElement) -> CGRect? {
         var origin = CGPoint.zero
         var size = CGSize.zero
@@ -84,12 +76,7 @@ enum AX {
     }
 }
 
-/// Die Symbole in Apples Dock, wie die Bedienungshilfen sie zeigen: eine
-/// AXList mit AXApplicationDockItem-Kindern, jedes mit Titel und AXURL auf
-/// die App (gemessen 14.09.). Apples Dock ist ausgeblendet, fuehrt sie aber
-/// weiter - fuer Zaehler und Menues.
 enum AppleDockItems {
-    /// Leer ohne Freigabe oder ohne laufendes Dock.
     static func all(timeout: Float) -> [AXUIElement] {
         guard AXIsProcessTrusted(),
               let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first
@@ -102,7 +89,6 @@ enum AppleDockItems {
         return AX.elements(list, kAXChildrenAttribute)
     }
 
-    /// Die App hinter einem Symbol, ueber seine AXURL.
     static func bundleID(of item: AXUIElement) -> String? {
         (AX.copy(item, kAXURLAttribute) as? URL).flatMap { Bundle(url: $0)?.bundleIdentifier }
     }

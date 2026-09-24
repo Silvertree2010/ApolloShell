@@ -1,23 +1,7 @@
 #!/bin/sh
-# Builds a release disk image: dist/ApolloShell-<version>.dmg with
-# ApolloShell.app and a shortcut to /Applications.
-#
-# Universal by default: one release build per architecture (each in its own
-# scratch path - with SwiftPM's build system on Swift 6.4 every triple writes
-# to the same .build/out/Products/Release and would overwrite the other),
-# joined with lipo. The Now Playing helper framework is always universal.
-# ARCHS="arm64" ./scripts/make-dmg.sh builds an Apple-silicon-only image.
-#
-# Signing: see scripts/assemble-app.sh (SIGN_IDENTITY, default: local
-# identity if present, else ad-hoc). The image is not notarised - users have
-# to confirm the first launch under System Settings > Privacy & Security.
-#
-# Installs nothing, launches nothing.
 set -eu
 cd "$(dirname "$0")/.."
 
-# Same SDK pin as build.sh/test.sh (newer Command Line Tools default to an SDK
-# that does not match their compiler).
 SDK=/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk
 if [ -z "${SDKROOT:-}" ] && [ -d "$SDK" ]; then
     export SDKROOT="$SDK"
@@ -38,13 +22,10 @@ for arch in $ARCHS; do
     bin="$(swift build "$@" --show-bin-path)/ApolloShell"
     lipo "$bin" -verify_arch "$arch"
     BINARIES="$BINARIES $bin"
-    # Sparkle ist als XCFramework schon universell; eine Kopie genuegt fuer
-    # beide Architekturen.
     [ -n "${SPARKLE_FRAMEWORK:-}" ] || SPARKLE_FRAMEWORK="$(dirname "$bin")/Sparkle.framework"
 done
 export SPARKLE_FRAMEWORK
 
-# shellcheck disable=SC2086 # word splitting of BINARIES is intended
 lipo -create $BINARIES -output "$OUT/ApolloShell"
 lipo -info "$OUT/ApolloShell"
 

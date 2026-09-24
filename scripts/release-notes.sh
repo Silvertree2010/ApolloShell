@@ -1,9 +1,4 @@
 #!/bin/sh
-# Schneidet den Abschnitt einer Fassung aus CHANGELOG.md heraus, fuer die
-# Notizen eines GitHub-Releases. Ohne das stand dort nur ein Verweis - und
-# der war deutsch, obwohl alles andere am Repo englisch ist.
-#
-#   scripts/release-notes.sh 0.1.2.2 [CHANGELOG.md]
 set -eu
 
 version=${1:?Fassung fehlt}

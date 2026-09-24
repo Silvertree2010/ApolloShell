@@ -1,15 +1,6 @@
 import CoreGraphics
 import Foundation
 
-/// Reads the `d` attribute of an SVG path into absolute drawing steps.
-///
-/// Enough for artwork exported from Illustrator: M/m, L/l, H/h, V/v, C/c,
-/// S/s and Z/z, numbers with or without separators ("-3.97-6.38", ".5.5").
-/// No arcs and no quadratic curves; a path that uses them reads up to that
-/// point and stops, so a bad string draws less instead of crashing.
-///
-/// For the ApolloShell mark (`ApolloMark`), whose shapes come straight out of
-/// the logo's SVG, so the drawn mark is the logo and not a redrawing of it.
 public enum SVGPathData {
     public enum Step: Equatable, Sendable {
         case move(CGPoint)
@@ -36,7 +27,6 @@ public enum SVGPathData {
                     continue
                 }
             } else {
-                // A number without a command letter repeats the last one.
                 scanner.pushBack()
             }
             guard let c = command else { break }
@@ -49,7 +39,6 @@ public enum SVGPathData {
                 current = p
                 subpathStart = p
                 lastControl = nil
-                // Further pairs after a move are lines.
                 command = relative ? "l" : "L"
             case "L", "l":
                 guard let p = scanner.point(origin) else { return steps }
@@ -74,7 +63,6 @@ public enum SVGPathData {
                 lastControl = c2
             case "S", "s":
                 guard let c2 = scanner.point(origin), let p = scanner.point(origin) else { return steps }
-                // The first control mirrors the previous curve's second one.
                 let c1 = lastControl.map { CGPoint(x: 2 * current.x - $0.x, y: 2 * current.y - $0.y) } ?? current
                 steps.append(.curve(p, control1: c1, control2: c2))
                 current = p
@@ -114,8 +102,6 @@ public enum SVGPathData {
             return CGPoint(x: origin.x + x, y: origin.y + y)
         }
 
-        /// One number: a sign, digits, at most one point, an exponent. A
-        /// second point or a sign ends it, as SVG allows ("1.5.5" = 1.5, .5).
         mutating func number() -> Double? {
             skipSeparators()
             let start = index

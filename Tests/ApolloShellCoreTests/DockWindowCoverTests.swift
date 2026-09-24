@@ -36,7 +36,6 @@ struct DockWindowCoverTests {
 
     @Test("Teilweise verdeckt, aber unter der Schwelle: nichts blaettert")
     func partiallyCoveredBelowThreshold() {
-        // 5 % der Flaeche liegen unter dem anderen Fenster.
         let windows = [
             Self.window(1, .other, 0, 0, 100, 30),
             Self.window(2, .target, 0, 0, 100, 600),
@@ -46,7 +45,6 @@ struct DockWindowCoverTests {
 
     @Test("Teilweise verdeckt, ueber der Schwelle: gilt als verdeckt")
     func partiallyCoveredAboveThreshold() {
-        // 20 % der Flaeche liegen unter dem anderen Fenster.
         let windows = [
             Self.window(1, .other, 0, 0, 100, 120),
             Self.window(2, .target, 0, 0, 100, 600),
@@ -61,15 +59,11 @@ struct DockWindowCoverTests {
             Self.window(2, .target, 100, 100, 200, 200),
             Self.window(3, .target, 300, 300, 200, 200),
         ]
-        // Beide Zielfenster liegen unter Fenster 1 - das vordere Zielfenster
-        // (2) ist naeher an der Spitze der Liste und kommt zuerst.
         #expect(DockWindowCover.nextCovered(in: windows) == 2)
     }
 
     @Test("Nach dem Nachvornholen ist ein anderes an der Reihe")
     func nextClickPicksTheNextOne() {
-        // Wie im echten Ablauf: nach dem Heben von 2 steht die Liste neu -
-        // 2 ist jetzt vorne, 3 liegt immer noch unter 1.
         let windows = [
             Self.window(2, .target, 100, 100, 200, 200),
             Self.window(1, .other, 0, 0, 800, 600),

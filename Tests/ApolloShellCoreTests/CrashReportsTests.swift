@@ -2,8 +2,6 @@ import ApolloShellCore
 import Foundation
 import Testing
 
-/// Kuenstlicher Bericht im Aufbau einer echten `.ips`-Datei, mit allem,
-/// was nicht mitgehen darf.
 private let sampleIPS = """
 {"app_name":"ApolloShell","timestamp":"2026-09-22 12:32:21.00 +0200","app_version":"0.1.4.1","build_version":"340","bundleID":"io.github.silvertree2010.apolloshell","os_version":"macOS 26.6.2 (25G83)","bug_type":"309","name":"ApolloShell","incident_id":"C5AB207E-0000-0000-0000-000000000000","share_with_app_devs":0}
 {"pid":43684,"userID":501,"procPath":"/Users/someone/Applications/ApolloShell.app/Contents/MacOS/ApolloShell","procName":"ApolloShell","procLaunch":"2026-09-22 12:21:37.4200 +0200","captureTime":"2026-09-22 12:32:18.1997 +0200","cpuType":"ARM-64","modelCode":"Mac16,7","crashReporterKey":"FFA5F0B7-0000-0000-0000-000000000000","storeInfo":{"deviceIdentifierForVendor":"5F811D95-0000"},"sleepWakeUUID":"9C50","bootSessionUUID":"93B2","osVersion":{"train":"macOS 26.6.2","build":"25G83"},"exception":{"type":"EXC_BAD_ACCESS","signal":"SIGSEGV"},"faultingThread":0,"threads":[{"triggered":true,"id":57266094,"queue":"com.apple.main-thread","threadState":{"x":[{"value":4267754718184}]},"frames":[{"imageOffset":100,"imageIndex":0,"symbol":"swift_getObjectType","symbolLocation":4},{"imageOffset":200,"imageIndex":1,"symbol":"main","sourceFile":"/Users/someone/src/LauncherApp.swift","sourceLine":34}]}],"usedImages":[{"name":"libswiftCore.dylib","path":"/usr/lib/swift/libswiftCore.dylib","arch":"arm64","base":1,"size":2,"uuid":"a"},{"name":"ApolloShell","path":"/Users/someone/Applications/ApolloShell.app/Contents/MacOS/ApolloShell","arch":"arm64","base":3,"size":4,"uuid":"b"}]}
@@ -120,7 +118,6 @@ struct CrashLogContextTests {
     }
 
     private static func trim(_ text: String) -> String {
-        // Ueber den oeffentlichen Weg: eine ndjson-Zeile je Textzeile.
         let ndjson = text.split(separator: "\n").map { line in
             let data = try! JSONSerialization.data(withJSONObject: ["eventMessage": String(line)])
             return String(decoding: data, as: UTF8.self)

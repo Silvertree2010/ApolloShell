@@ -1,13 +1,6 @@
 import ApolloShellCore
 import SwiftUI
 
-/// A small, always identical scene of the shell painted with one theme:
-/// desktop, the sidebar with its icons and clock, the launcher panel with a
-/// highlighted row, an accent button and a toast. Every Marketplace theme
-/// is shown this way, so the previews compare fairly and nobody uploads a
-/// picture of their own.
-///
-/// Drawn in a fixed 320 x 200 grid and scaled to whatever size it gets.
 struct ThemePreview: View {
     let theme: Theme
     let dark: Bool
@@ -31,7 +24,6 @@ struct ThemePreview: View {
         ZStack(alignment: .topLeading) {
             Rectangle().fill(desktop(style))
 
-            // Sidebar
             let barRadius = min(style.barRadius(0), 12)
             VStack(spacing: 7) {
                 ForEach(0..<5) { index in
@@ -49,7 +41,6 @@ struct ThemePreview: View {
             .background(style.paintsBar ? style.barFill : AnyShapeStyle(.regularMaterial),
                         in: .rect(cornerRadius: barRadius))
 
-            // Launcher panel
             let panelRadius = min(style.panelRadius(14), 22)
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 4) {
@@ -100,7 +91,6 @@ struct ThemePreview: View {
                         in: .rect(cornerRadius: panelRadius))
             .offset(x: 44, y: 26)
 
-            // Card
             VStack(alignment: .leading, spacing: 3) {
                 Text("Weather").font(style.font(size: 6)).foregroundStyle(style.secondaryText)
                 Text("18°").font(style.font(size: 14, weight: .semibold)).foregroundStyle(style.text)
@@ -112,7 +102,6 @@ struct ThemePreview: View {
                         in: .rect(cornerRadius: min(style.cardRadius(10), 16)))
             .offset(x: 208, y: 26)
 
-            // Toast
             HStack(spacing: 4) {
                 Circle().fill(style.success).frame(width: 6, height: 6)
                 Text("Theme applied").font(style.font(size: 6.5, weight: .medium))
@@ -126,7 +115,6 @@ struct ThemePreview: View {
         }
     }
 
-    /// The theme's background, or a quiet stand-in for the wallpaper.
     private func desktop(_ style: ShellStyle) -> AnyShapeStyle {
         if style.color(.background) != nil || style.value(ThemeGradientToken.background) != nil {
             return style.backgroundFill
@@ -138,7 +126,6 @@ struct ThemePreview: View {
 }
 
 extension Theme {
-    /// A Marketplace theme read the same way as one from the folder.
     static func marketplace(_ theme: MarketTheme) -> Theme {
         Theme.make(identifier: theme.name, styleSheet: ThemeStyleSheetParser.parse(theme.css))
     }

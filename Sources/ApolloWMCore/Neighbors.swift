@@ -4,18 +4,10 @@ public enum Direction: Sendable, CaseIterable {
     case left, right, up, down
 }
 
-/// Finds the window next to another one on screen, for keyboard focus and
-/// swapping. Works on frames, so it does not care how the tree is built.
 public enum Neighbors {
-    /// The frame's nearest neighbor in `direction`: it must lie on that side
-    /// and overlap on the other axis (so "right" never jumps diagonally);
-    /// among those, the closest edge wins, then the most overlap.
     public static func neighbor<ID: Hashable>(of id: ID, _ direction: Direction,
                                               in frames: [ID: CGRect]) -> ID? {
         guard let from = frames[id] else { return nil }
-        // Ranked by: edge distance, then overlap (more is better), then how
-        // far the centers are apart across the axis, then top/left first, so
-        // ties never depend on dictionary order.
         var best: (id: ID, key: [CGFloat])?
         for (other, frame) in frames where other != id {
             let distance: CGFloat

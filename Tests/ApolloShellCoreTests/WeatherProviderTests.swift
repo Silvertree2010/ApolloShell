@@ -2,10 +2,6 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-// Echte Antworten fuer Berlin (52.52, 13.405), je einmal abgerufen am
-// 14.09.2026 um 16:21 UTC, gekuerzt auf die gebrauchten Felder (MET: 16 der
-// 90 Zeitpunkte, ueber den Wechsel von stuendlich zu sechsstuendlich).
-
 private let openMeteoBerlin = """
 {"latitude":52.52,"longitude":13.4,"generationtime_ms":0.4347562789916992,"utc_offset_seconds":7200,"timezone":"Europe/Berlin","timezone_abbreviation":"GMT+2","elevation":37.0,"current":{"time":"2026-09-14T18:15","interval":900,"temperature_2m":17.6,"apparent_temperature":15.6,"relative_humidity_2m":47,"weather_code":2,"wind_speed_10m":6.4,"is_day":1},"hourly":{"time":["2026-09-14T18:00","2026-09-14T19:00","2026-09-14T20:00","2026-09-14T21:00","2026-09-14T22:00","2026-09-14T23:00"],"temperature_2m":[17.7,17.2,16.8,16.0,15.1,14.3],"weather_code":[1,2,2,2,2,1],"precipitation_probability":[0,0,0,0,0,0]},"daily":{"time":["2026-09-14","2026-09-15","2026-09-16","2026-09-17","2026-09-18","2026-09-19","2026-09-20"],"weather_code":[3,3,95,3,61,61,80],"temperature_2m_max":[17.8,24.4,19.8,19.8,18.2,21.5,17.6],"temperature_2m_min":[14.3,12.0,15.8,12.8,13.8,11.0,13.2],"sunrise":["2026-09-14T06:38","2026-09-15T06:40","2026-09-16T06:42","2026-09-17T06:43","2026-09-18T06:45","2026-09-19T06:47","2026-09-20T06:48"],"sunset":["2026-09-14T19:24","2026-09-15T19:21","2026-09-16T19:19","2026-09-17T19:16","2026-09-18T19:14","2026-09-19T19:12","2026-09-20T19:09"],"precipitation_probability_max":[5,0,90,3,30,4,35]}}
 """
@@ -14,7 +10,6 @@ private let metBerlin = """
 {"type":"Feature","properties":{"meta":{"updated_at":"2026-09-14T13:36:31Z"},"timeseries":[{"time":"2026-09-14T16:00:00Z","data":{"instant":{"details":{"air_temperature":17.8,"relative_humidity":51.6,"wind_speed":2.3}},"next_1_hours":{"summary":{"symbol_code":"clearsky_day"}},"next_6_hours":{"summary":{"symbol_code":"fair_night"}}}},{"time":"2026-09-14T17:00:00Z","data":{"instant":{"details":{"air_temperature":16.8,"relative_humidity":56.1,"wind_speed":1.5}},"next_1_hours":{"summary":{"symbol_code":"clearsky_night"}},"next_6_hours":{"summary":{"symbol_code":"fair_night"}}}},{"time":"2026-09-14T18:00:00Z","data":{"instant":{"details":{"air_temperature":15.6,"relative_humidity":63.7,"wind_speed":1.3}},"next_1_hours":{"summary":{"symbol_code":"clearsky_night"}},"next_6_hours":{"summary":{"symbol_code":"partlycloudy_night"}}}},{"time":"2026-09-14T19:00:00Z","data":{"instant":{"details":{"air_temperature":15.1,"relative_humidity":67.2,"wind_speed":1.2}},"next_1_hours":{"summary":{"symbol_code":"fair_night"}},"next_6_hours":{"summary":{"symbol_code":"partlycloudy_night"}}}},{"time":"2026-09-15T07:00:00Z","data":{"instant":{"details":{"air_temperature":14.4,"relative_humidity":74.3,"wind_speed":1.8}},"next_1_hours":{"summary":{"symbol_code":"clearsky_day"}},"next_6_hours":{"summary":{"symbol_code":"fair_day"}}}},{"time":"2026-09-15T08:00:00Z","data":{"instant":{"details":{"air_temperature":16.7,"relative_humidity":67.9,"wind_speed":1.8}},"next_1_hours":{"summary":{"symbol_code":"clearsky_day"}},"next_6_hours":{"summary":{"symbol_code":"fair_day"}}}},{"time":"2026-09-15T13:00:00Z","data":{"instant":{"details":{"air_temperature":23.5,"relative_humidity":52.8,"wind_speed":2.6}},"next_1_hours":{"summary":{"symbol_code":"cloudy"}},"next_6_hours":{"summary":{"symbol_code":"fair_day"}}}},{"time":"2026-09-17T05:00:00Z","data":{"instant":{"details":{"air_temperature":11.9,"relative_humidity":94.7,"wind_speed":2.3}},"next_1_hours":{"summary":{"symbol_code":"clearsky_day"}}}},{"time":"2026-09-17T06:00:00Z","data":{"instant":{"details":{"air_temperature":12.5,"relative_humidity":93.1,"wind_speed":2.7}},"next_6_hours":{"summary":{"symbol_code":"cloudy"}}}},{"time":"2026-09-17T12:00:00Z","data":{"instant":{"details":{"air_temperature":18.3,"relative_humidity":54.3,"wind_speed":3.7}},"next_6_hours":{"summary":{"symbol_code":"fair_day"}}}},{"time":"2026-09-17T18:00:00Z","data":{"instant":{"details":{"air_temperature":15.9,"relative_humidity":67.2,"wind_speed":2.3}},"next_6_hours":{"summary":{"symbol_code":"fair_night"}}}},{"time":"2026-09-18T00:00:00Z","data":{"instant":{"details":{"air_temperature":12.9,"relative_humidity":73.9,"wind_speed":2.7}},"next_6_hours":{"summary":{"symbol_code":"cloudy"}}}},{"time":"2026-09-18T06:00:00Z","data":{"instant":{"details":{"air_temperature":13.1,"relative_humidity":69.9,"wind_speed":3.5}},"next_6_hours":{"summary":{"symbol_code":"partlycloudy_day"}}}},{"time":"2026-09-18T12:00:00Z","data":{"instant":{"details":{"air_temperature":19.3,"relative_humidity":52.9,"wind_speed":3.9}},"next_6_hours":{"summary":{"symbol_code":"fair_day"}}}},{"time":"2026-09-18T18:00:00Z","data":{"instant":{"details":{"air_temperature":16.8,"relative_humidity":59.3,"wind_speed":2.6}},"next_6_hours":{"summary":{"symbol_code":"fair_night"}}}},{"time":"2026-09-24T00:00:00Z","data":{"instant":{"details":{"air_temperature":11.5,"relative_humidity":77.9,"wind_speed":1.5}}}}]}}
 """
 
-/// Sunrise 3.0, ungekuerzt.
 private let sunBerlin = """
 {"copyright":"MET Norway","licenseURL":"https://api.met.no/license_data.html","type":"Feature","geometry":{"type":"Point","coordinates":[13.405,52.52]},"when":{"interval":["2026-09-13T23:01:00Z","2026-09-14T23:06:00Z"]},"properties":{"body":"Sun","sunrise":{"time":"2026-09-14T06:38+02:00","azimuth":83.3},"sunset":{"time":"2026-09-14T19:24+02:00","azimuth":276.36},"solarnoon":{"time":"2026-09-14T13:01+02:00","disc_centre_elevation":40.79,"visible":true},"solarmidnight":{"time":"2026-09-14T01:02+02:00","disc_centre_elevation":-33.98,"visible":false}}}
 """
@@ -38,7 +33,6 @@ private func local(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
     return calendar.date(from: DateComponents(year: 2026, month: 9, day: day, hour: hour, minute: minute))!
 }
 
-/// Zeitpunkt des Abrufs.
 private let fetched = utc(14, 16, 21, second: 22)
 
 private func data(_ text: String) -> Data { Data(text.utf8) }
@@ -50,8 +44,6 @@ private func metReport(sun: Bool = true) throws -> WeatherReport {
 private func wttrReport() throws -> WeatherReport {
     try WttrProvider(timeZone: berlinZone).decode([data(wttrBerlin)], now: fetched)
 }
-
-// MARK: - Gemeinsam
 
 @Suite("Wetteranbieter: Auswahl, Quellenangabe, Kennung")
 struct WeatherProviderCommonTests {
@@ -173,8 +165,6 @@ struct WeatherProviderCommonTests {
     }
 }
 
-// MARK: - Open-Meteo
-
 @Suite("Wetteranbieter: Open-Meteo")
 struct OpenMeteoProviderTests {
     @Test("Eine Anfrage, dieselbe wie bisher")
@@ -205,8 +195,6 @@ struct OpenMeteoProviderTests {
         }
     }
 }
-
-// MARK: - MET Norway
 
 @Suite("Wetteranbieter: MET Norway")
 struct MetNorwayProviderTests {
@@ -315,8 +303,6 @@ struct MetNorwayProviderTests {
     }
 }
 
-// MARK: - wttr.in
-
 @Suite("Wetteranbieter: wttr.in")
 struct WttrProviderTests {
     @Test("Anfrage: Koordinaten im Pfad, JSON")
@@ -332,7 +318,7 @@ struct WttrProviderTests {
         #expect(r.current.temperature == 20 && r.current.apparentTemperature == 17)
         #expect(r.current.humidity == 38 && r.current.windSpeed == 10)
         #expect(r.current.code == 3)
-        #expect(r.current.isDay) // 18:09 Ortszeit, Untergang 19:24
+        #expect(r.current.isDay)
     }
 
     @Test("hours every drei hours, Ortszeit, Regen- oder Schneewahrscheinlichkeit")

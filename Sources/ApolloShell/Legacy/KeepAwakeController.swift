@@ -3,39 +3,21 @@ import Foundation
 import Observation
 import os
 
-/// "Keep Awake": die IOKit-Zusicherung, der Akku-Schutz und der Deckel-Teil
-/// (`pmset disablesleep`, siehe `LidAwake`) samt Administrator-Frage und
-/// Merker fuer den Absturzfall.
-///
-/// Eine eigene Zustandsmaschine; das Utilities-Modell reicht nur weiter.
 @MainActor
 @Observable
 final class KeepAwakeController {
-    /// Seit wann "Keep Awake" laeuft; `nil` = aus.
     private(set) var since: Date?
-    /// Stand des Deckel-Teils.
     private(set) var lid: KeepAwakeLid = .off
 
     var isOn: Bool { since != nil }
 
-    /// Eine Kurzmeldung zeigen (Akku-Schutz, abgelehnte Freigabe).
     @ObservationIgnored var onToast: (ToastText.Content) -> Void = { _ in }
 
-    /// `false` fuer Vorschauen: schaltet nichts.
     @ObservationIgnored private let live: Bool
     @ObservationIgnored private var assertion: PowerAssertion?
-    /// Hat die App `disablesleep` selbst gesetzt? Nur dann setzt sie es
-    /// zurueck. Stand es schon vorher auf 1 (von jemand anderem), bleibt es,
-    /// wie es war.
     @ObservationIgnored private var lidAwakeOwned = false
-    /// Einstellung "Also With the Lid Closed" (settings.json keepAwake).
-    /// Wird bei jedem Einschalten neu gefragt, sie kann sich ja aendern.
     @ObservationIgnored private let lidAllowed: @MainActor () -> Bool
-    /// Der osascript-Prozess der offenen Administrator-Frage und wofuer sie
-    /// ist. Solange er laeuft, keine zweite Frage; danach wird abgeglichen.
-    /// Beim Beenden der App wird eine Einschalt-Frage abgebrochen.
     @ObservationIgnored private var lidPrompt: (process: Process, disableSleep: Bool)?
-    /// Akku-Schutz, solange Wach halten laeuft: jede Minute nachsehen.
     @ObservationIgnored private var batteryGuard: Timer?
     @ObservationIgnored private let log = Logger(category: "utilities")
 
@@ -45,7 +27,6 @@ final class KeepAwakeController {
         recoverLidAwake()
     }
 
-    /// Fester Stand fuer Vorschauen und Bildproben.
     init(preview since: Date?) {
         live = false
         self.since = since
@@ -64,7 +45,6 @@ final class KeepAwakeController {
                 log.error("Wach halten nicht moeglich: IOReturn \(error.code, privacy: .public)")
             }
         } else {
-            // Loslassen = Objekt weg, siehe PowerAssertion.deinit.
             assertion = nil
             since = nil
             batteryGuard?.invalidate()
@@ -73,14 +53,6 @@ final class KeepAwakeController {
         }
     }
 
-    /// Beim Beenden der App: nichts wach zuruecklassen. Braucht das
-    /// Zuruecksetzen einen Administrator, wird hier auf die Antwort gewartet -
-    /// danach lebt die App nicht mehr, um sie abzuholen, und ein zugeklappter
-    /// Mac in der Tasche schliefe sonst nie.
-    ///
-    /// Ist gerade eine Administrator-Frage offen, wird nicht gewartet: Eine
-    /// Einschalt-Frage wird abgebrochen, eine Ausschalt-Frage bleibt stehen.
-    /// Der Merker liegt in beiden Faellen schon, der naechste Start gleicht ab.
     func shutdown() {
         guard live else { return }
         assertion = nil
@@ -92,21 +64,17 @@ final class KeepAwakeController {
             return
         }
         guard lidAwakeOwned else { return }
-        // Hier wird gewartet (siehe oben) - auch auf eine Administrator-Frage.
         if Self.sudoSleepDisabled(false)
             || Subprocess.runAndWait(LidAwake.osascript, LidAwake.osascriptArguments(disableSleep: false))?.status == 0 {
             lidReleased()
         }
     }
 
-    /// Nexus hat "Also With the Lid Closed" umgeschaltet: gilt sofort,
-    /// auch waehrend "Keep Awake" laeuft.
     func lidSettingChanged() {
         guard live, isOn else { return }
         reconcileLid()
     }
 
-    /// Im Akkubetrieb bei 10 % aus - und sagen, warum.
     private func checkBattery() {
         guard LidAwake.shouldStop(battery: StatusModel.readBattery()) else { return }
         set(false)
@@ -118,14 +86,8 @@ final class KeepAwakeController {
         ))
     }
 
-    // MARK: Zugeklappt wach (pmset disablesleep, siehe LidAwake)
-
-    /// Soll der Deckel-Teil gerade gelten?
     private var lidWanted: Bool { isOn && lidAllowed() }
 
-    /// Bringt den Deckel-Teil auf den gewuenschten Stand. Laeuft noch eine
-    /// Administrator-Frage, erst deren Antwort abwarten - `lidPromptFinished`
-    /// gleicht danach erneut ab.
     private func reconcileLid() {
         guard lidPrompt == nil else {
             lid = lidWanted ? .pending : .off
@@ -138,9 +100,6 @@ final class KeepAwakeController {
         guard lid != .on else { return }
         let current = LidAwake.sleepDisabled(pmsetOutput: Self.pmsetSettings())
         if current == true {
-            // Schon an. Liegt unser Merker noch da (ein Zuruecksetzen wurde
-            // abgelehnt), ist es unseres - sonst hat es jemand anderes gesetzt
-            // und es bleibt nachher, wie es war.
             lidAwakeOwned = FileManager.default.fileExists(atPath: Self.lidMarker.path)
             lid = .on
             return
@@ -149,9 +108,6 @@ final class KeepAwakeController {
             lidTaken()
             return
         }
-        // Kein passwortloses sudo: macOS fragt nach einem Administrator.
-        // Merker schon vorher: Endet die App, bevor die Antwort kommt, und
-        // wird danach doch zugestimmt, setzt der naechste Start zurueck.
         Self.writeLidMarker()
         lid = .pending
         askAdmin(disableSleep: true)
@@ -171,8 +127,6 @@ final class KeepAwakeController {
     }
 
     private func askAdmin(disableSleep: Bool) {
-        // Beim ersten Einschalten legt dieselbe Frage die Regel ohne Passwort
-        // an; danach klappt schon `sudo -n`, und es fragt niemand mehr.
         let arguments = LidAwake.osascriptArguments(
             disableSleep: disableSleep,
             installRuleFor: disableSleep ? LidAwakeRule.userToInstall : nil
@@ -180,30 +134,23 @@ final class KeepAwakeController {
         let process = Subprocess.launch(LidAwake.osascript, arguments) { [weak self] status in
             self?.lidPromptFinished(disableSleep: disableSleep, ok: status == 0)
         }
-        // Liess sich osascript nicht starten, gilt das wie eine Absage.
         guard let process else { return lidPromptFinished(disableSleep: disableSleep, ok: false) }
         lidPrompt = (process, disableSleep)
     }
 
-    /// Antwort auf die Administrator-Frage. Abgebrochen gibt osascript einen
-    /// Fehler (-128) zurueck; dann bleibt "Keep Awake" ohne Deckel-Teil.
     private func lidPromptFinished(disableSleep: Bool, ok: Bool) {
         lidPrompt = nil
         if disableSleep {
             guard ok else {
                 log.notice("disablesleep 1: Administrator abgelehnt, wach nur aufgeklappt")
-                // Der vorab gelegte Merker gilt nicht mehr.
                 if !lidAwakeOwned { try? FileManager.default.removeItem(at: Self.lidMarker) }
                 lid = lidWanted ? .declined : .off
                 return
             }
             lidTaken()
-            // Waehrend der Frage ausgeschaltet: gleich wieder zuruecksetzen.
             if !lidWanted { releaseLid() }
         } else {
             guard ok else {
-                // Merker bleibt: der naechste Start (oder das naechste Aus)
-                // versucht es erneut. Und sagen, dass der Mac noch wach bleibt.
                 log.error("disablesleep 0: Administrator abgelehnt")
                 lid = lidWanted ? .on : .off
                 if !lidWanted { onToast(Self.lidStillDisabledToast) }
@@ -217,11 +164,9 @@ final class KeepAwakeController {
     private func lidTaken() {
         lidAwakeOwned = true
         lid = .on
-        // Merker fuer den Absturzfall, siehe recoverLidAwake().
         Self.writeLidMarker()
     }
 
-    /// Der Ordner fehlt bei einer frischen Installation womoeglich noch.
     private static func writeLidMarker() {
         let url = lidMarker
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
@@ -242,10 +187,6 @@ final class KeepAwakeController {
         kind: .warning
     )
 
-    /// Ist die App abgestuerzt, waehrend sie `disablesleep` gesetzt hatte,
-    /// schliefe der Mac nie mehr - auch zugeklappt in der Tasche. Beim
-    /// naechsten Start deshalb aufraeumen, wenn der Merker noch da ist. Steht
-    /// es inzwischen ohnehin auf 0, genuegt es, den Merker zu loeschen.
     private func recoverLidAwake() {
         guard FileManager.default.fileExists(atPath: Self.lidMarker.path) else { return }
         let current = LidAwake.sleepDisabled(pmsetOutput: Self.pmsetSettings())
@@ -259,15 +200,10 @@ final class KeepAwakeController {
 
     private static var lidMarker: URL { ShellFiles.live.lidAwakeMarker }
 
-    // Beide Werkzeuge laufen synchron auf dem Hauptthread: gemessen sind es
-    // Millisekunden, und die Zustandsmaschine bleibt ohne Zwischenstaende.
-
-    /// `sudo -n`: ohne Passwort oder gar nicht - wartet nie auf eine Eingabe.
     private static func sudoSleepDisabled(_ on: Bool) -> Bool {
         Subprocess.runAndWait(LidAwake.sudo, LidAwake.sudoArguments(disableSleep: on))?.status == 0
     }
 
-    /// `pmset -g`, die aktiven Einstellungen.
     private static func pmsetSettings() -> String {
         Subprocess.runAndWait(LidAwake.pmset, ["-g"])?.text ?? ""
     }

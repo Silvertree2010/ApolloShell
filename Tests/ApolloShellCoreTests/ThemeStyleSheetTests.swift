@@ -78,7 +78,6 @@ struct ThemeStyleSheetTests {
     ])
     func skipsForeignRules(css: String) {
         let sheet = ThemeStyleSheetParser.parse(css)
-        // Die eine erlaubte Zeile kommt an, der Rest nicht - und man erfaehrt es.
         #expect(sheet.light == [ThemeDeclaration(name: "--apollo-bar-width", value: "40px", line: 2)])
         #expect(sheet.dark.isEmpty)
         #expect(sheet.issues.contains(where: isIgnoredRule))
@@ -143,14 +142,12 @@ struct ThemeStyleSheetTests {
     func brokenInputNeverCrashes(css: String) {
         let sheet = ThemeStyleSheetParser.parse(css)
         let theme = Theme.make(identifier: "kaputt", styleSheet: sheet)
-        // Immer ein benutzbares Theme, und die Hinweise bleiben zaehlbar.
         #expect(theme.color(.accent) == nil)
         #expect(theme.issues.count <= ThemeLimits.standard.maxIssues + 1)
     }
 
     @Test("Zufallsbytes ergeben ein Theme mit den Vorgaben")
     func randomBytes() {
-        // Fester Startwert: derselbe Lauf ergibt dieselben Zeichen.
         var state: UInt64 = 0x2545_F491_4F6C_DD1D
         func next() -> UInt8 {
             state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
@@ -175,7 +172,7 @@ struct ThemeStyleSheetTests {
     func issueLimit() {
         let many = (0..<50).map { "h\($0) { color: red; }" }.joined(separator: "\n")
         let sheet = ThemeStyleSheetParser.parse(many, limits: ThemeLimits(maxIssues: 5))
-        #expect(sheet.issues.count == 6) // fuenf Hinweise und der Vermerk
+        #expect(sheet.issues.count == 6)
         #expect(sheet.issues.last.map { if case .moreIssues = $0.kind { true } else { false } } == true)
     }
 }

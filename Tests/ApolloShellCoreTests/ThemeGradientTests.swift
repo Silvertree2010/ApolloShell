@@ -86,7 +86,6 @@ struct ThemeGradientTests {
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
         #expect(theme.gradient(.bar)?.stops.count == 2)
         #expect(theme.gradient(.bar)?.stops.first?.color == ThemeColor(hex: 0x101014))
-        // Was nicht gesetzt ist, bleibt leer - Verlauf wie Farbe.
         #expect(theme.gradient(.panel) == nil)
         #expect(theme.color(.bar) == nil)
     }

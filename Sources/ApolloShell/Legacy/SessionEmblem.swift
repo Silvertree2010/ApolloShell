@@ -1,19 +1,10 @@
 import ApolloShellCore
 import SwiftUI
 
-/// The emblem in the middle of the session menu: the ApolloShell mark, the A
-/// in the accent colour with its moon circling on the logo's orbit. The
-/// motion comes as
-/// plain numbers out of `EmblemPose` (ApolloShellCore); only the drawing
-/// happens here.
-///
-/// The clock only ticks while `animating` holds (the menu is visible). With
-/// "reduce motion" the emblem stands in a fixed pose per reaction.
 struct SessionEmblem: View {
     let timeline: EmblemTimeline
     var size: CGFloat = SessionMenu.buttonSize
     var animating = true
-    /// A fixed point in time for image samples; `nil` = the real clock.
     var fixedTime: TimeInterval?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -34,32 +25,19 @@ struct SessionEmblem: View {
     }
 }
 
-/// Draws one pose: the ApolloShell mark (0.2 logo, `ApolloMarkGeometry`)
-/// with the old emblem's motion. The A takes the planet's part - the
-/// accent colour, the glow, the night side while sleeping - and the moon
-/// goes round the logo's orbit, behind the A on the far half.
 private struct EmblemCanvas: View {
     let pose: EmblemPose
     @Environment(\.colorScheme) private var scheme
 
-    /// How much of the button the mark fills.
     private static let fill = 0.92
-    /// The emblem's clock (`EmblemPose.moonAngle`) counts in phase - equal
-    /// steps, equal path along the ring (`ApolloMarkGeometry.angle(forPhase:)`).
-    /// It starts at `EmblemTimeline.restAngle`; this offset puts that start
-    /// where the logo has its moon.
     private static let phaseOffset = ApolloMarkGeometry.phase(forAngle: ApolloMarkGeometry.restAngle)
         - EmblemTimeline.restAngle
-    /// The stars in the 80 grid of the button: clear of the mark.
     private static let stars: [(x: Double, y: Double, r: Double)] = [
         (12, 14, 3.4), (66, 11, 2.4), (68, 66, 2.9),
     ]
 
     var body: some View {
-        // Read once per drawing, see `Color.onAccent`.
         let onAccent = Color.onAccent
-        // The moon and the ring are neutral; pulled back a little in the
-        // light, otherwise they look heavy next to the A.
         let neutral = Color.primary.opacity(scheme == .dark ? 0.9 : 0.62)
         Canvas { context, canvas in
             draw(in: &context, size: canvas, onAccent: onAccent, neutral: neutral)
@@ -76,8 +54,6 @@ private struct EmblemCanvas: View {
         let k = size.width / 80
         let box = ApolloMarkGeometry.viewBox
         let scale = size.width * Self.fill / box.width
-        // Into the logo's coordinates: centred, scaled by the pose (greet,
-        // farewell), tilted by the pose (the thinking wobble).
         var mark = context
         mark.translateBy(x: size.width / 2, y: size.height / 2)
         mark.rotate(by: .degrees(pose.orbitTilt))
@@ -93,15 +69,12 @@ private struct EmblemCanvas: View {
         func point(_ theta: Double) -> CGPoint {
             ApolloMarkGeometry.orbitPoint(orbitAngle(theta))
         }
-        /// A little bigger in front, smaller behind: a breath of depth.
         func moonRadius(_ dot: Dot) -> Double {
             dot.radius * (1 + 0.12 * sin(orbitAngle(dot.theta)))
         }
         func inFront(_ theta: Double) -> Bool { sin(orbitAngle(theta)) >= 0 }
 
         let letter = ApolloMarkGeometry.letter
-        // The lit part: a shadow circle moves in from the top left until only
-        // a crescent is left at the bottom right.
         var lit = letter
         if pose.night > 0.001 {
             let r = 330.0
@@ -110,8 +83,6 @@ private struct EmblemCanvas: View {
             lit = letter.subtracting(circle(CGPoint(x: c.x - offset * 0.72, y: c.y - offset * 0.7), r))
         }
 
-        // The moon with its trail; the trail only appears from twice the
-        // resting speed on and is fully there from eight times on.
         let moonDot = Dot(theta: pose.moonAngle, radius: ApolloMarkGeometry.radius, opacity: 1)
         var trail: [Dot] = []
         let strength = min(max(
@@ -136,20 +107,14 @@ private struct EmblemCanvas: View {
         }
         let ring = neutral.opacity(pose.orbitOpacity)
 
-        // The gap around the moon travels with it: cut out of both ring
-        // arcs (and, in front, out of the A below), so ring and moon never
-        // touch - and never overlap, which darkened the translucent colour.
         let gap = circle(point(moonDot.theta), moonRadius(moonDot) + ApolloMarkGeometry.moonGap)
         let moonBehind = !inFront(moonDot.theta)
         func cut(_ arc: Path) -> Path { pose.moonOpacity > 0.01 ? arc.subtracting(gap) : arc }
 
-        // 1. The back arc of the ring and what can be seen of the moon there.
         fill(trail.reversed().filter { !inFront($0.theta) })
         mark.fill(cut(ApolloMarkGeometry.ringBack), with: .color(ring))
         if moonBehind { fill([moonDot]) }
 
-        // 2. The glow, then the A. The night side is neutral, only the lit
-        //    part carries the accent.
         if pose.glow > 0.01 {
             mark.drawLayer { layer in
                 layer.addFilter(.shadow(color: Color.accentColor.opacity(pose.glow), radius: 9 * k / scale))
@@ -170,21 +135,14 @@ private struct EmblemCanvas: View {
             endPoint: CGPoint(x: bounds.maxX - bounds.width * 0.2, y: bounds.maxY)
         ))
 
-        // 3. The front arc of the ring comes with the front moon (5).
-
-        // 4. The thinking dots, in the triangle inside the A.
         for (i, opacity) in pose.dots.enumerated() where opacity > 0.01 {
             let c = ApolloMarkGeometry.counter
             mark.fill(circle(CGPoint(x: c.x + Double(i - 1) * 44, y: c.y), 17), with: .color(neutral.opacity(opacity)))
         }
 
-        // 5. The front moon. In front of the A it punches a narrow gap into
-        //    it (like badges with SF Symbols) and stays one colour.
         if inFront(moonDot.theta), pose.moonOpacity > 0.01 {
             var punch = mark
             punch.clip(to: letter)
-            // destinationOut instead of clear: it respects the opacity, so
-            // that the gap fades in and out with the moon.
             punch.blendMode = .destinationOut
             punch.fill(gap, with: .color(.black.opacity(pose.moonOpacity)))
         }
@@ -192,14 +150,12 @@ private struct EmblemCanvas: View {
         mark.fill(cut(ApolloMarkGeometry.ringFront), with: .color(ring))
         if !moonBehind { fill([moonDot]) }
 
-        // 6. The stars (only in sleep), in the button's own grid.
         for (star, brightness) in zip(Self.stars, pose.stars) where brightness > 0.01 {
             let c = CGPoint(x: star.x * k, y: star.y * k)
             context.fill(sparkle(at: c, radius: star.r * k), with: .color(Color.primary.opacity(0.75 * brightness)))
         }
     }
 
-    /// A four-pointed star with drawn-in flanks.
     private func sparkle(at c: CGPoint, radius r: Double) -> Path {
         Path { path in
             let waist = r * 0.16

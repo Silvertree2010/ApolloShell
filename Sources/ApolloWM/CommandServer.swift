@@ -1,16 +1,6 @@
 import Darwin
 import Foundation
 
-/// Remote control, like Hyprland's hyprctl: a Unix socket that takes one
-/// line per connection and answers with one reply. A line is a command in
-/// its text form (see Command, e.g. `focus left`, `send 3`) or a question:
-///
-/// - `windows`: every managed window as JSON
-/// - `ping`: answers `pong`
-///
-/// Only the user's own processes can connect (the socket is 0600 in the
-/// user's own folder). `twmctl` in this package is the client; `nc -U`
-/// works too.
 @MainActor
 public final class CommandServer {
     public let path: String
@@ -20,13 +10,11 @@ public final class CommandServer {
 
     public var log: (String) -> Void = { print($0) }
 
-    /// `handler` gets each line and returns the reply.
     public init(path: String, handler: @escaping @MainActor (String) -> String) {
         self.path = path
         self.handler = handler
     }
 
-    /// Returns false when the socket cannot be made.
     @discardableResult
     public func start() -> Bool {
         stop()
@@ -76,8 +64,6 @@ public final class CommandServer {
     private func accept() {
         let client = Darwin.accept(descriptor, nil, nil)
         guard client >= 0 else { return }
-        // A client that never sends its line must not hang anything: read
-        // off the main thread, with a timeout.
         var timeout = timeval(tv_sec: 2, tv_usec: 0)
         setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
         var noSigPipe: Int32 = 1

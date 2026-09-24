@@ -1,13 +1,6 @@
 import AppKit
 import ApolloWM
 
-/// Stress test for a throwaway machine (the test VM): random steps (open,
-/// close, float, fullscreen, workspace, drag, resize, mirror) with TextEdit
-/// windows, and after each step, once everything has settled, checks that
-///   - every tiled window is where the layout wants it (within 3 pt),
-///   - no two tiled windows overlap,
-///   - every tiled window lies inside the usable area.
-/// Seeded, so a failure can be replayed with the same seed.
 @MainActor
 final class SelfTest {
     private let engine: TilingEngine
@@ -31,8 +24,6 @@ final class SelfTest {
         print("selftest: seed \(seed), \(steps) steps")
         openWindow { self.openWindow { self.openWindow { self.settled { self.check(); self.next() } } } }
     }
-
-    // MARK: Steps
 
     private func next() {
         stepNumber += 1
@@ -90,7 +81,6 @@ final class SelfTest {
         engine.endResize()
     }
 
-    /// Goes to workspace 2, checks, and comes back.
     private func workspaceRoundTrip() {
         let from = engine.workspace
         let to = from == 1 ? 2 : 1
@@ -112,17 +102,12 @@ final class SelfTest {
                             "-e", "tell application \"TextEdit\" to activate"]
         try? script.run()
         lastAction = "open"
-        // Wait until the watcher has picked the new window up.
         poll(until: { self.engine.windows.count > before }, timeout: 4) { found in
             if !found { self.fail("open: no new window picked up") }
             then()
         }
     }
 
-    // MARK: Checks
-
-    /// Snapshots stand in for real windows while their apps redraw off
-    /// screen; measuring then would read the parked frames.
     private func checkWhenSnapshotsAreGone(tries: Int = 8) {
         guard engine.hasProxies, tries > 0 else { return check() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
@@ -144,7 +129,6 @@ final class SelfTest {
                 fail("\(title(id)) sticks out of the area (\(actual))")
             }
         }
-        // A window filling the area (Super + F) lies over the others on purpose.
         let covering = Set(engine.fullscreen.values)
         let ids = frames.keys.filter { !covering.contains($0) }
         for (i, a) in ids.enumerated() {
@@ -169,9 +153,6 @@ final class SelfTest {
         exit(failures.isEmpty ? 0 : 1)
     }
 
-    // MARK: Helpers
-
-    /// Waits until the glide, the snapshot swap and the fit check are over.
     private func settled(then: @escaping () -> Void) {
         poll(until: { !self.engine.isAnimating }, timeout: 5) { done in
             if !done { self.fail("still animating after 5 s") }
@@ -198,7 +179,6 @@ final class SelfTest {
     }
 }
 
-/// SplitMix64: small, fast, reproducible.
 struct SeededRandom {
     private var state: UInt64
     init(seed: UInt64) { state = seed }

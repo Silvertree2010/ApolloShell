@@ -1,11 +1,5 @@
 import Foundation
 
-// The Marketplace as the app sees it: the types the server sends, a client
-// for its API and the GitHub device flow for signing in. No UI here, and no
-// Keychain - the app keeps the session and hands it in.
-
-// MARK: - Types
-
 public struct MarketUser: Codable, Equatable, Sendable {
     public let id: String
     public let login: String
@@ -13,8 +7,6 @@ public struct MarketUser: Codable, Equatable, Sendable {
     public let isAdmin: Bool
 }
 
-/// A theme as the Marketplace lists it. `css` is the live version in the
-/// canonical form (`ThemeCanonical`).
 public struct MarketTheme: Codable, Equatable, Identifiable, Sendable {
     public let id: String
     public let slug: String
@@ -42,7 +34,6 @@ public struct MarketTheme: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
-/// One of the signed-in user's own themes, with where it stands.
 public struct MarketOwnTheme: Codable, Equatable, Identifiable, Sendable {
     public enum Status: String, Codable, Sendable {
         case pending, published, rejected, hidden
@@ -76,14 +67,12 @@ public struct MarketReport: Codable, Equatable, Sendable {
 
 public struct MarketQueueItem: Codable, Equatable, Identifiable, Sendable {
     public let theme: MarketOwnTheme
-    /// GitHub id of the author, for banning.
     public let ownerID: String?
     public let reports: [MarketReport]
     public let previousCSS: String?
     public var id: String { "\(theme.id)-\(theme.version)" }
 }
 
-/// What went wrong, with the server's own sentence when it sent one.
 public enum MarketError: Error, Equatable, Sendable, LocalizedError {
     case server(code: String, message: String, status: Int)
     case unreadable(status: Int)
@@ -103,9 +92,6 @@ public enum MarketError: Error, Equatable, Sendable, LocalizedError {
     }
 }
 
-// MARK: - Client
-
-/// Sends one request and returns the body and the status code.
 public struct MarketTransport: Sendable {
     let send: @Sendable (URLRequest) async throws -> (Data, Int)
 
@@ -135,7 +121,6 @@ public struct MarketplaceClient: Sendable {
         self.transport = transport
     }
 
-    // Public
     public func themes() async throws -> [MarketTheme] {
         try await call("GET", "themes", as: ThemeList.self).themes
     }
@@ -144,7 +129,6 @@ public struct MarketplaceClient: Sendable {
         try await call("POST", "themes/\(themeID)/report", body: ["reason": reason])
     }
 
-    // Account
     public struct SignIn: Codable, Sendable {
         public let session: String
         public let user: MarketUser
@@ -158,7 +142,6 @@ public struct MarketplaceClient: Sendable {
     public func signOut() async throws { try await call("POST", "auth/logout") }
     public func deleteAccount() async throws { try await call("DELETE", "me") }
 
-    // Own themes
     public func mine() async throws -> [MarketOwnTheme] {
         try await call("GET", "mine", as: OwnList.self).themes
     }
@@ -173,15 +156,12 @@ public struct MarketplaceClient: Sendable {
 
     public func delete(themeID: String) async throws { try await call("DELETE", "themes/\(themeID)") }
 
-    // Admin
     public func queue() async throws -> [MarketQueueItem] {
         try await call("GET", "admin/queue", as: Queue.self).items
     }
 
     public enum Decision: String, Sendable { case approve, reject, hide, unhide }
 
-    /// `version` is the one the admin looked at: approve and reject act on
-    /// exactly that version, and the server refuses if a newer one arrived.
     public func decide(_ decision: Decision, themeID: String, version: Int, reason: String = "") async throws {
         var body: [String: Any] = ["version": version]
         if !reason.isEmpty { body["reason"] = reason }
@@ -192,8 +172,6 @@ public struct MarketplaceClient: Sendable {
         try await call("POST", "admin/users/\(userID)/ban", body: ["reason": reason])
     }
 
-    // MARK: Plumbing
-
     private struct ThemeList: Decodable { let themes: [MarketTheme] }
     private struct OwnList: Decodable { let themes: [MarketOwnTheme] }
     private struct Queue: Decodable { let items: [MarketQueueItem] }
@@ -202,8 +180,6 @@ public struct MarketplaceClient: Sendable {
     public func request(_ method: String, _ path: String, body: [String: Any]? = nil) -> URLRequest {
         var request = URLRequest(url: baseURL.appendingPathComponent("api/v1/" + path), timeoutInterval: 20)
         request.httpMethod = method
-        // The edge caches the public list; the app always asks fresh, or
-        // an approved or updated theme would stay invisible for a minute.
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("ApolloShell", forHTTPHeaderField: "User-Agent")
@@ -229,7 +205,6 @@ public struct MarketplaceClient: Sendable {
         }
     }
 
-    /// The body of a successful answer; the server's error otherwise.
     private func send(_ method: String, _ path: String, body: [String: Any]?) async throws -> (Data, Int) {
         let data: Data
         let status: Int
@@ -248,15 +223,7 @@ public struct MarketplaceClient: Sendable {
     }
 }
 
-// MARK: - GitHub sign-in
-
-/// GitHub's device flow: the app shows a code, the user confirms it on
-/// github.com, the app polls until GitHub hands out a token. No scopes, so
-/// the token can read the public profile and nothing else. It goes to the
-/// Marketplace once and is then thrown away.
 public struct GitHubDeviceFlow: Sendable {
-    /// The client id of the "ApolloShell Marketplace" OAuth app. Public by
-    /// design: the device flow has no secret.
     public static let clientID = "Ov23liuDNoG1U7DcGF5q"
 
     public struct Code: Equatable, Sendable {
@@ -342,10 +309,6 @@ public struct GitHubDeviceFlow: Sendable {
     }
 }
 
-// MARK: - Installing
-
-/// Which Marketplace themes sit in the theme folder, and as which file.
-/// Kept next to the folder (not in it), so the loader never sees it.
 public struct MarketInstallIndex: Codable, Equatable, Sendable {
     public struct Entry: Codable, Equatable, Sendable {
         public var fileName: String
@@ -376,9 +339,6 @@ public struct MarketInstallIndex: Codable, Equatable, Sendable {
 }
 
 public enum MarketInstall {
-    /// The file as it lands in the theme folder: a comment with where it
-    /// came from, the author put back (the Marketplace keeps it out of the
-    /// canonical form), then the canonical CSS.
     public static func fileContents(for theme: MarketTheme) -> String {
         func comment(_ text: String) -> String {
             ThemeCanonical.cleanText(text).replacingOccurrences(of: "*/", with: "* /")
@@ -397,8 +357,6 @@ public enum MarketInstall {
         return header + css
     }
 
-    /// A file name from the theme's name: letters, digits, spaces and
-    /// dashes, never empty, never a path.
     public static func fileName(for theme: MarketTheme) -> String {
         let kept = theme.name.unicodeScalars.filter {
             CharacterSet.alphanumerics.contains($0) || $0 == " " || $0 == "-"

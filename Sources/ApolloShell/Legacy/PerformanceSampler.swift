@@ -4,12 +4,7 @@ import IOKit
 import IOKit.ps
 import ApolloShellCore
 
-/// Liest fuer den Reiter "Performance", was SystemSampler nicht hat: GPU,
-/// Netzwerk, Akku mit Restzeit. Alles oeffentliche Schnittstellen ohne
-/// Freigabe (gemessen 14.09. auf dem M4 Pro). Temperaturen fehlen bewusst:
-/// auf Apple Silicon gibt es sie nur ueber SMC/private Schnittstellen.
 enum PerformanceSampler {
-    /// Chipname fuer die Untertitel, z. B. "Apple M4 Pro".
     static let chipName: String = {
         var size = 0
         guard sysctlbyname("machdep.cpu.brand_string", nil, &size, nil, 0) == 0, size > 0 else { return "Mac" }
@@ -18,15 +13,11 @@ enum PerformanceSampler {
         return String(decoding: buffer.prefix { $0 != 0 }, as: UTF8.self)
     }()
 
-    /// Anzahl GPU-Kerne aus der IORegistry ("gpu-core-count", M4 Pro: 20).
     static let gpuCores: Int? = accelerators { entry in
         IORegistryEntryCreateCFProperty(entry, "gpu-core-count" as CFString, kCFAllocatorDefault, 0)?
             .takeRetainedValue() as? Int
     }.first
 
-    /// GPU-Auslastung 0...1, wie der Treiber sie in "PerformanceStatistics"
-    /// meldet. Nur diese eine Eigenschaft lesen: alle Eigenschaften des
-    /// Beschleunigers kosten gemessen 1,2 ms, die eine 0,02 ms.
     static func gpuUsage() -> Double? {
         let values = accelerators { entry -> Int? in
             guard let stats = IORegistryEntryCreateCFProperty(
@@ -38,14 +29,10 @@ enum PerformanceSampler {
         return min(max(Double(busiest) / 100, 0), 1)
     }
 
-    /// Summe der 64-Bit-Byte-Zaehler (if_data64) ueber die gezaehlten
-    /// Schnittstellen, siehe `NetworkMath.counts`. Gemessen 0,03 ms.
     static func networkCounters() -> NetCounters? {
         var mib: [Int32] = [CTL_NET, PF_ROUTE, 0, 0, NET_RT_IFLIST2, 0]
         var length = 0
         guard sysctl(&mib, u_int(mib.count), nil, &length, nil, 0) == 0, length > 0 else { return nil }
-        // Etwas Reserve: kommt zwischen den beiden Aufrufen eine Schnittstelle
-        // dazu, schlaegt der zweite sonst mit ENOMEM fehl.
         var buffer = [UInt8](repeating: 0, count: length + 2048)
         length = buffer.count
         guard sysctl(&mib, u_int(mib.count), &buffer, &length, nil, 0) == 0 else { return nil }
@@ -71,9 +58,6 @@ enum PerformanceSampler {
         return total
     }
 
-    /// Eingebauter Akku mit Restzeit in Minuten (beim Laden bis voll, sonst
-    /// bis leer; IOKit meldet -1, solange es noch rechnet). `nil` auf
-    /// Macs ohne Akku.
     static func battery() -> (state: BatteryState, minutes: Int?)? {
         let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources = IOPSCopyPowerSourcesList(info).takeRetainedValue() as [CFTypeRef]
@@ -94,7 +78,6 @@ enum PerformanceSampler {
         return nil
     }
 
-    /// Ruft `read` fuer jeden Grafikbeschleuniger auf (Apple Silicon: einer).
     private static func accelerators<T>(_ read: (io_registry_entry_t) -> T?) -> [T] {
         var iterator: io_iterator_t = 0
         guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &iterator) == KERN_SUCCESS

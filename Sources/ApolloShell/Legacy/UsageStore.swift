@@ -2,8 +2,6 @@ import Foundation
 import ApolloShellCore
 import os
 
-/// Laedt und speichert die Nutzungsstatistik lokal unter
-/// ~/Library/Application Support/ApolloShell/usage.json.
 @MainActor
 final class UsageStore {
     private(set) var stats: UsageStats
@@ -17,7 +15,6 @@ final class UsageStore {
             stats = decoded
         } else {
             stats = UsageStats()
-            // Da, aber unlesbar: aufheben, bevor der naechste Start sie ersetzt.
             if data != nil {
                 ShellFiles.preserveUnreadable(url)
                 log.error("usage.json unlesbar, Kopie als usage.json.unreadable")

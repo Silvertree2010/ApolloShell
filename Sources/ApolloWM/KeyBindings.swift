@@ -1,45 +1,31 @@
 import AppKit
 import Carbon.HIToolbox
 
-/// Super + key shortcuts for the focused window. Super is fn held, which
-/// Karabiner sends as ⌘⌃⌥⇧; the matching key presses are swallowed so the
-/// app never sees them.
 @MainActor
 public final class KeyBindings {
-    /// What a key does; see ApolloWMCore's Command for the list.
     public typealias Action = Command
 
     private let engine: TilingEngine
     private var tap: CFMachPort?
-    /// Keys whose key-down we swallowed; their key-up is swallowed too.
     private var swallowed: Set<Int64> = []
 
     public var superFlags: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]
 
-    /// Virtual key code (Carbon kVK_*) to action, pressed together with Super.
     public var bindings: [Int64: Action] = KeyBindings.table(Command.defaultBindings)
 
     static func table(_ bindings: [UInt16: Command]) -> [Int64: Action] {
         Dictionary(uniqueKeysWithValues: bindings.map { (Int64($0.key), $0.value) })
     }
 
-    /// Takes the keys of a config file (defaults included).
     public func apply(_ config: TWMConfig) {
         bindings = Self.table(config.bindings)
     }
 
     public var log: (String) -> Void = { print($0) }
 
-    /// Super + Q on the last window of an app quits it, the way ⌘Q would.
-    /// Without this, apps that stay alive without windows (kitty, and one
-    /// process per new instance) pile up invisible windows.
     public var quitWithLastWindow = true
-    /// Apps that are never quit this way: the Finder always runs, and we
-    /// are not going to quit ourselves.
     public var neverQuit: Set<String> = ["com.apple.finder"]
 
-    /// Looks a moment after the close (apps may ask to save) and quits the
-    /// app when no normal window of it is left.
     private func quitIfLastWindowWent(pid: pid_t, closed: CGWindowID) {
         guard pid != getpid(), let app = NSRunningApplication(processIdentifier: pid),
               app.activationPolicy == .regular,
@@ -61,9 +47,6 @@ public final class KeyBindings {
         }
     }
 
-    /// Super+1..9 shows Apple desktop 1-9 (our own workspaces stay unused):
-    /// start() sets Apple's "Switch to Desktop N" shortcuts to Super + N and
-    /// those key presses are left to macOS (see DesktopShortcuts).
     public var useAppleDesktops = true
 
     public init(engine: TilingEngine) {
@@ -74,7 +57,6 @@ public final class KeyBindings {
         }
     }
 
-    /// Returns false when the event tap cannot be created (missing permission).
     public func start() -> Bool {
         if useAppleDesktops {
             let (shortcuts, changed) = DesktopShortcuts.ensure(modifiers: superFlags)
@@ -95,7 +77,6 @@ public final class KeyBindings {
         return true
     }
 
-    /// Removes the event tap; start() can be called again later.
     public func stop() {
         if let tap {
             CGEvent.tapEnable(tap: tap, enable: false)
@@ -104,12 +85,8 @@ public final class KeyBindings {
         tap = nil
     }
 
-    /// Terminal opened by Super+Return (bundle ids, first installed wins).
     public var terminals = ["net.kovidgoyal.kitty", "com.mitchellh.ghostty", "com.apple.Terminal"]
 
-    /// Apple's "Switch to Desktop N" shortcuts follow `useAppleDesktops`:
-    /// on, macOS switches on Super + N itself; off, the TWM's own
-    /// workspaces do. Applies while it runs.
     public func setUseAppleDesktops(_ use: Bool) {
         guard use != useAppleDesktops else { return }
         useAppleDesktops = use
@@ -137,11 +114,6 @@ public final class KeyBindings {
         default:
             break
         }
-        // The rest acts on the focused window. The engine knows it when it is
-        // one of its own (it follows focus changes and sets it on every
-        // keyboard focus), so fast presses act one after the other at once;
-        // asking the app is a round trip and two quick presses would both
-        // see the old window. Closing acts on any window, so it always asks.
         if action != .closeWindow, let id = engine.focused, let window = engine.windows[id] {
             perform(action, on: window)
             return
@@ -152,8 +124,6 @@ public final class KeyBindings {
         }
     }
 
-    /// One line from the command socket: a command in its text form, or
-    /// `windows` / `ping`. Returns the reply.
     public func reply(to line: String) -> String {
         switch line.lowercased() {
         case "ping": return "pong"
@@ -163,8 +133,6 @@ public final class KeyBindings {
         guard let command = Command(parsing: line) else { return "error: unknown command `\(line)`" }
         switch command {
         case .workspace(let number) where useAppleDesktops:
-            // A key press would reach macOS by itself; from outside, press
-            // Apple's shortcut for it.
             guard let shortcut = desktopShortcuts[number] else { return "error: desktop shortcuts are not set" }
             let source = CGEventSource(stateID: .hidSystemState)
             for keyDown in [true, false] {
@@ -180,7 +148,6 @@ public final class KeyBindings {
 
     private func perform(_ action: Action, on focused: AXWindow?) {
         if action == .closeWindow {
-            // Any focused window, managed or not.
             guard let focused else { return }
             if !focused.close() {
                 log("close: \(focused.title) has no close button")
@@ -223,10 +190,6 @@ public final class KeyBindings {
         }
     }
 
-    /// Super + T. A terminal that already runs gets a new window through its
-    /// own ⌘N, never a second instance: starting one per press left 45 kitty
-    /// processes behind, each holding invisible windows, and every window
-    /// scan on the Mac grew with them.
     private func openTerminal() {
         let installed = terminals.compactMap { id -> (id: String, url: URL)? in
             NSWorkspace.shared.urlForApplication(withBundleIdentifier: id).map { (id, $0) }
@@ -253,8 +216,6 @@ public final class KeyBindings {
         }
     }
 
-    /// Waits (at most 2 s) until Super is no longer held: the ⌘N above would
-    /// otherwise carry the held modifiers along.
     static func waitForModifiersReleased() async {
         let modifiers: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]
         for _ in 0..<80 {
@@ -263,7 +224,6 @@ public final class KeyBindings {
         }
     }
 
-    /// Returns true when the event is ours and must not reach the app.
     fileprivate func handle(_ type: CGEventType, key: Int64, flags: CGEventFlags, isRepeat: Bool) -> Bool {
         switch type {
         case .keyDown:
@@ -273,7 +233,6 @@ public final class KeyBindings {
                 return false
             }
             if !isRepeat { log("Super + \(KeyNames.name(UInt16(key)) ?? "\(key)") -> \(action.text)") }
-            // Super + digit belongs to macOS then: it switches the desktop itself.
             if useAppleDesktops, case .workspace = action { return false }
             swallowed.insert(key)
             if !isRepeat { perform(action) }
@@ -291,7 +250,6 @@ public final class KeyBindings {
     private static let digits = [kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5,
                                  kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9].map(Int64.init)
 
-    /// Apple's switch shortcut for each desktop, set by start().
     private var desktopShortcuts: [Int: DesktopShortcuts.Shortcut] = [:]
 
     private func send(_ id: CGWindowID, toDesktop number: Int) {

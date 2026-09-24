@@ -2,8 +2,6 @@ import ApolloWMCore
 import AppKit
 import Synchronization
 
-/// One layout slot: a macOS desktop (Space) and one of our own workspaces
-/// on it (1-9, Hyprland style).
 public struct Desk: Hashable, Sendable, Codable, CustomStringConvertible {
     public var space: SpaceID
     public var workspace: Int
@@ -16,81 +14,45 @@ public struct Desk: Hashable, Sendable, Codable, CustomStringConvertible {
     public var description: String { "\(space)/\(workspace)" }
 }
 
-/// How windows are arranged on a desktop.
 public enum LayoutMode: String, Sendable, CaseIterable {
-    /// Hyprland's dwindle: every window splits the tile it lands in.
     case dwindle
-    /// niri's endless strip of columns; the screen is a viewport onto it.
     case canvas
 }
 
-/// How window sizes animate during a glide.
 public enum ResizeAnimation: String, Sendable, CaseIterable {
-    /// The size glides along with the position. Looks best, but apps redraw
-    /// their content on every frame (measured: GPU ~36% vs ~20%).
     case smooth
-    /// Only the position glides; a shrinking side snaps at the start, a
-    /// growing side at the end. Cheap, but the jump is visible.
     case snap
-    /// Like smooth, except for apps measured to be slow at resizing
-    /// (Spotify, browsers): their windows glide as an unscaled snapshot while
-    /// the app resizes once, off screen, and takes its place at the end.
-    /// Fast apps (kitty) keep gliding for real, so blur and transparency stay
-    /// live. Needs Screen Recording; without it this acts like smooth.
     case proxy
 }
 
-/// Owns the tiled windows, their layout tree and the animation loop.
-/// Every layout change only sets new spring targets; the loop then glides
-/// each window there. Retargeting mid-flight keeps momentum.
 @MainActor
 public final class TilingEngine {
     public struct Options: Sendable {
         public var gaps = Gaps(outer: 12, inner: 10)
-        /// Seconds a move roughly takes.
         public var response: CGFloat = 0.28
         public var frameRate: Double = 120
-        /// Room above a tab group's window for the host's tab bar.
         public var tabBarHeight: CGFloat = 30
-        /// How much of the area the scratchpad window covers.
         public var scratchpadShare: CGFloat = 0.7
-        /// How window sizes animate. Hosts can change it at any time, e.g.
-        /// from a settings toggle; it applies from the next frame on.
         public var resize: ResizeAnimation = .smooth
-        /// How windows are arranged: the dwindle tiles, or the canvas strip.
         public var layout: LayoutMode = .dwindle
-        /// A new column's share of the screen in the canvas layout.
         public var columnWidth: CGFloat = 0.5
-        /// The focused column is pulled to the middle of the screen.
         public var centerFocusedColumn = false
-        /// Screen space the host keeps for itself, e.g. ApolloShell's 44 pt
-        /// sidebar on the left, counted from the display edge. Tiles never go there.
         public var reserved = NSEdgeInsets()
-        /// Whether that space is kept free on every display or only on the
-        /// main one (the host's bar may stand on one screen only).
         public var reservedOnEveryDisplay = true
-        /// Reserved space per display, by the display's UUID. When set it
-        /// wins over `reserved` and `reservedOnEveryDisplay`: a display
-        /// missing from it keeps nothing free (the host's bars may stand on
-        /// any edge, and differently on each screen).
         public var reservedByDisplay: [String: NSEdgeInsets]?
 
         public init() {}
     }
 
-    /// Usable area of the main display (menu bar and Dock excluded).
     public private(set) var screenArea: CGRect
     public var options: Options
 
-    /// The whole main display, top-left coordinates (menu bar and Dock included).
     public var screenBounds: CGRect {
         screens.first?.bounds ?? screenArea
     }
 
-    /// Where tiles go on the main display. See usable(visible:bounds:).
     public var area: CGRect { usable(visible: screenArea, bounds: screenBounds, insets: reserved(on: screens.first?.uuid)) }
 
-    /// What the host keeps free on the display `uuid` (nil: the main one).
     private func reserved(on uuid: String?) -> NSEdgeInsets {
         if let byDisplay = options.reservedByDisplay {
             return uuid.flatMap { byDisplay[$0] } ?? NSEdgeInsets()
@@ -99,9 +61,6 @@ public final class TilingEngine {
         return isMain || options.reservedOnEveryDisplay ? options.reserved : NSEdgeInsets()
     }
 
-    /// The host's reserved edges count from the display's edge, not on top
-    /// of what macOS already keeps free: a Dock on the left (62 pt) and
-    /// ApolloShell's sidebar (44 pt) overlap, they do not add up.
     private func usable(visible: CGRect, bounds: CGRect, insets r: NSEdgeInsets) -> CGRect {
         let left = max(visible.minX, bounds.minX + r.left)
         let top = max(visible.minY, bounds.minY + r.top)
@@ -110,48 +69,26 @@ public final class TilingEngine {
         return CGRect(x: left, y: top, width: right - left, height: bottom - top)
     }
 
-    // MARK: Displays
-
-    /// A display, in top-left coordinates.
     public struct Screen: Sendable, Equatable {
-        /// The window server's UUID for it.
         public let uuid: String
-        /// The whole display.
         public let bounds: CGRect
-        /// Without the menu bar and the Dock.
         public let visible: CGRect
     }
 
-    /// Every display, the main one (with the menu bar) first.
     public private(set) var screens: [Screen] = []
-    /// Which display each known desktop belongs to.
     private var displayOfSpace: [SpaceID: String] = [:]
-    /// Each display's desktops in Mission Control order.
     private var desktopOrder: [String: [SpaceID]] = [:]
-    /// The desks shown on the other displays right now (the main display's
-    /// is `desk`). Empty with one display.
     public private(set) var otherShown: [Desk] = []
-    /// True when several displays share their desktops, i.e. "Displays have
-    /// separate Spaces" is off in System Settings. macOS then reports one
-    /// desktop for everything, so the engine cannot tell the displays'
-    /// windows apart; it keeps to the main display and the host says so.
     public private(set) var displaysShareSpaces = false
 
-    /// Every desk on screen right now, the main display's first. A desktop
-    /// that is a macOS full-screen app is left out: nothing can be moved
-    /// there, and trying made the engine fight macOS 6 times a second.
     public var shownDesks: [Desk] { ([desk] + otherShown).filter { isTileable($0.space) } }
 
-    /// Whether `space` is a normal desktop (not a full-screen app's).
-    /// Unknown ones count as normal until the displays have been read.
     public func isTileable(_ space: SpaceID) -> Bool {
         desktopOrder.isEmpty || desktopOrder.values.contains { $0.contains(space) }
     }
 
     public func isShown(_ desk: Desk) -> Bool { desk == self.desk || otherShown.contains(desk) }
 
-    /// Reads the displays and the desktop each one shows. Call it when
-    /// displays or desktops change.
     public func updateDisplays() {
         screens = NSScreen.screens.compactMap { screen in
             guard let uuid = Spaces.uuid(of: screen), let primary = NSScreen.screens.first else { return nil }
@@ -169,8 +106,6 @@ public final class TilingEngine {
         }
         let mainUUID = screens.first?.uuid
         let known = Set(screens.map(\.uuid))
-        // With "Displays have separate Spaces" off, the window server lists a
-        // single display called "Main" for all of them.
         let shared = screens.count > 1 && displays.allSatisfy { !known.contains($0.uuid) }
         if shared != displaysShareSpaces {
             displaysShareSpaces = shared
@@ -189,12 +124,8 @@ public final class TilingEngine {
         onDisplaysChanged?()
     }
 
-    /// Called when the displays or the desktops they show changed, so the
-    /// host can show what the engine sees.
     public var onDisplaysChanged: (() -> Void)?
 
-    /// Windows whose display was unplugged: macOS has moved them onto a
-    /// display that is still there, so they join the desk shown on it.
     private func adoptOrphans() {
         let live = Set(screens.map(\.uuid))
         var moved = 0
@@ -217,19 +148,16 @@ public final class TilingEngine {
         }
     }
 
-    /// Where tiles go on the display that shows (or holds) `desk`.
     public func area(of desk: Desk) -> CGRect {
         guard let uuid = displayOfSpace[desk.space], let screen = screens.first(where: { $0.uuid == uuid }),
               screen != screens.first else { return area }
         return usable(visible: screen.visible, bounds: screen.bounds, insets: reserved(on: uuid))
     }
 
-    /// The whole usable area of `desk`'s display, inside the outer gap.
     private func fullArea(of desk: Desk) -> CGRect {
         area(of: desk).insetBy(dx: options.gaps.outer, dy: options.gaps.outer)
     }
 
-    /// The shown desk whose display holds `point` (the main one otherwise).
     public func desk(at point: CGPoint) -> Desk {
         let main = screens.first?.uuid
         for shown in otherShown {
@@ -240,22 +168,15 @@ public final class TilingEngine {
         return desk
     }
 
-    /// The usable area of the display a frame is mostly on.
     private func area(containing frame: CGRect?) -> CGRect {
         guard let frame else { return area }
         return area(of: desk(at: CGPoint(x: frame.midX, y: frame.midY)))
     }
-    /// One layout per desktop. Only `space`'s windows are arranged; the others
-    /// keep their tiles until their desktop is shown again.
     public private(set) var layouts = SpaceLayouts<Desk, CGWindowID>()
-    /// The canvas strips, one per desktop. Which windows belong to a desktop
-    /// is still kept in `layouts`; the strip only holds their order, their
-    /// columns and where the viewport stands.
     public private(set) var strips: [Desk: Strip<CGWindowID>] = [:]
 
     public var isCanvas: Bool { options.layout == .canvas }
 
-    /// The strip of a desk, made to match the desk's windows.
     private func strip(of desk: Desk) -> Strip<CGWindowID> {
         var strip = strips[desk] ?? Strip<CGWindowID>()
         strip.centerFocused = options.centerFocusedColumn
@@ -265,7 +186,6 @@ public final class TilingEngine {
         return strip
     }
 
-    /// Reads, changes and stores a desk's strip.
     @discardableResult
     private func withStrip(_ desk: Desk, _ change: (inout Strip<CGWindowID>) -> Void) -> Strip<CGWindowID> {
         var strip = strip(of: desk)
@@ -274,57 +194,35 @@ public final class TilingEngine {
         strips[desk] = strip
         return strip
     }
-    /// The desktop and workspace currently shown on the main display.
     public private(set) var desk = Desk(space: 0, workspace: 1)
     public var space: SpaceID { desk.space }
     public var workspace: Int { desk.workspace }
-    /// The workspace last shown on each macOS desktop.
     private var activeWorkspace: [SpaceID: Int] = [:]
     public private(set) var windows: [CGWindowID: AXWindow] = [:]
     public private(set) var dragging: CGWindowID?
-    /// Window whose edge the user is dragging; it follows the mouse, the
-    /// others follow it.
     public private(set) var resizing: CGWindowID?
-    /// Sizes windows refused to go below or above, learned by measuring
-    /// after each glide.
     public private(set) var minimums: [CGWindowID: CGSize] = [:]
     public private(set) var maximums: [CGWindowID: CGSize] = [:]
 
-    /// Windows taken out of the layout; they keep their own frame on their desktop.
     public struct Floating: Sendable, Codable {
         public var desk: Desk
         public var frame: CGRect
     }
     public private(set) var floating: [CGWindowID: Floating] = [:]
-    /// Last floating frame per window, so floating again returns there.
     private var lastFloatFrame: [CGWindowID: CGRect] = [:]
-    /// Per desktop, the tiled window that currently fills the whole area.
-    /// It keeps its tile underneath and returns there when toggled off.
     public private(set) var fullscreen: [Desk: CGWindowID] = [:]
 
-    /// Windows of hidden workspaces wait just past the screen edge, a sliver
-    /// left on screen (macOS keeps part of every window visible): lower
-    /// workspaces to the left, higher ones to the right, so switching slides
-    /// like Hyprland. Remembers each parked window's size and height.
     private var parked: [CGWindowID: CGRect] = [:]
-    /// Where each window was before the engine first touched it.
     private var originalFrames: [CGWindowID: CGRect] = [:]
 
-    /// When the shown desktop last changed. Windows ignore moves while macOS
-    /// animates a desktop switch, so nothing is learned right after one.
     private var lastSpaceSwitch: CFTimeInterval = 0
 
-    /// True for a moment after a desktop switch, while macOS still animates
-    /// it and the new desktop's windows may not be on screen yet.
     public var isSwitchingSpace: Bool { CACurrentMediaTime() - lastSpaceSwitch < 1 }
     private var fitCheck: DispatchWorkItem?
 
-    /// Layout of the shown desktop.
     public var tree: DwindleTree<CGWindowID> { layouts[desk] }
 
-    /// Main-thread time per animation step (the apps work on their own threads).
     public private(set) var applyTimes = Durations()
-    /// Time between animation steps (1 / achieved frame rate).
     public private(set) var stepIntervals = Durations()
 
     public var onSettled: (() -> Void)?
@@ -332,26 +230,16 @@ public final class TilingEngine {
 
     private var springs: [CGWindowID: AnimatedRect] = [:]
 
-    // Proxy glides (see ResizeAnimation.proxy).
     private let proxies = WindowProxies()
-    /// Windows shown as a snapshot right now; the real one waits off screen.
     private var proxied: Set<CGWindowID> = []
     private var proxyFinish: DispatchWorkItem?
-    /// Apps whose size changes took longer than a frame (median of recent
-    /// ones). Only their windows glide as snapshots.
     public private(set) var slowApps: Set<pid_t> = []
-    /// Slower than this per size change counts as slow: one frame at 120 Hz.
     public var slowResizeThreshold: Double = 0.008
-    /// The size each proxied window was resized to off screen.
     private var preparedSize: [CGWindowID: CGSize] = [:]
     private var snapshotTimer: Timer?
-    /// Drives the glide in step with the display (vsync), not a timer.
     private var ticker: DisplayTicker?
-    /// One thread per app for Accessibility calls (see AppWorker).
     private var workers: [pid_t: AppWorker] = [:]
     private var lastStep: CFTimeInterval = 0
-    /// Set while a coalesced relayout is waiting for this run-loop turn to
-    /// end (see `relayout()`).
     private var relayoutScheduled = false
 
     public init(area: CGRect, options: Options = Options()) {
@@ -360,11 +248,6 @@ public final class TilingEngine {
         updateDisplays()
     }
 
-    // MARK: Layout
-
-    /// Takes over windows in their on-screen order. `space` is the desktop
-    /// they live on (default: the shown one); windows on hidden desktops are
-    /// arranged there right away, without animation.
     public func adopt(_ newWindows: [AXWindow], on space: SpaceID? = nil) {
         let target = deskShown(on: space)
         for window in newWindows where windows[window.windowID] == nil {
@@ -377,7 +260,6 @@ public final class TilingEngine {
             windows[id] = window
             if originalFrames[id] == nil { originalFrames[id] = window.serverFrame }
             inspect(window)
-            // Known from a saved layout: it keeps its old spot.
             if let home = desk(of: id) {
                 dirtyDesks.insert(home)
                 continue
@@ -387,22 +269,16 @@ public final class TilingEngine {
         }
         dirtyDesks.insert(target)
         relayout()
-        // Focus may have moved to one of them before they were managed.
         focusChanged()
     }
 
-    /// The workspace shown on a desktop (always 1 while Apple's desktops
-    /// are the workspaces).
     private func deskShown(on space: SpaceID?) -> Desk {
         guard let space, space != self.space else { return desk }
         return Desk(space: space, workspace: activeWorkspace[space] ?? 1)
     }
 
-    /// Hidden desks whose layout changed; relayout() writes their frames.
     private var dirtyDesks: Set<Desk> = []
 
-    /// Tiles a new window on the shown desktop. A point (usually the mouse)
-    /// picks the tile to split, like a drop; otherwise the last tile is split.
     public func add(_ window: AXWindow, at point: CGPoint?, on space: SpaceID? = nil) {
         let id = window.windowID
         guard windows[id] == nil else { return }
@@ -434,11 +310,9 @@ public final class TilingEngine {
             }
         }
         relayout()
-        // A new window usually takes focus before it is managed.
         focusChanged()
     }
 
-    /// Drops a window from tiling; the others close the gap.
     public func remove(_ id: CGWindowID) {
         guard windows[id] != nil else { return }
         if dragging == id { dragging = nil }
@@ -460,9 +334,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// Dialogs, panels and windows that cannot be resized (or whose minimum
-    /// and maximum size are the same) float where the app put them instead of
-    /// taking a tile. Returns true when the window was made floating.
     private func floatsByItself(_ window: AXWindow, on target: Desk, rule: WindowRule.Action?) -> Bool {
         if rule == .float {
             makeFloating(window, reason: "rule", on: target)
@@ -473,11 +344,7 @@ public final class TilingEngine {
         return true
     }
 
-    // MARK: Rules
-
-    /// Rules from the config file; later ones win. Set them with apply(rules:).
     public private(set) var rules: [WindowRule] = []
-    /// Windows a rule told the engine to leave alone.
     public private(set) var ignored: Set<CGWindowID> = []
 
     private func ruleAction(for window: AXWindow) -> WindowRule.Action? {
@@ -491,9 +358,6 @@ public final class TilingEngine {
         log("ignored by a rule: \(window.title)")
     }
 
-    /// New rules: managed windows they now ignore are let go (they stay
-    /// where they are), tiled ones they now float leave the layout, and
-    /// windows no longer ignored are picked up by the next scan.
     public func apply(rules newRules: [WindowRule]) {
         guard newRules != rules else { return }
         rules = newRules
@@ -517,12 +381,10 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// Forgets ignored windows that are gone.
     public func pruneIgnored(keeping alive: Set<CGWindowID>) {
         ignored.formIntersection(alive)
     }
 
-    /// Floats `window` where it is, kept inside the usable area.
     private func makeFloating(_ window: AXWindow, reason: String, on target: Desk) {
         let id = window.windowID
         let area = area(of: target)
@@ -534,10 +396,6 @@ public final class TilingEngine {
         log("floats by itself (\(reason)): \(window.title)")
     }
 
-    /// Asks a new window for its size limits and whether it can be resized,
-    /// on its app's thread (these are round trips into the app). A window
-    /// that cannot be resized, or whose minimum and maximum are the same,
-    /// then leaves the layout and floats.
     private func inspect(_ window: AXWindow) {
         let largest = area(containing: window.serverFrame).insetBy(dx: options.gaps.outer, dy: options.gaps.outer)
         worker(for: window.pid).run { [weak self] in
@@ -570,8 +428,6 @@ public final class TilingEngine {
         } else if let home = layouts.space(of: id), group(of: id) == nil,
                   !layouts[home].fits(in: area(of: home), gaps: options.gaps, minimums: layoutMinimums),
                   let sibling = layouts[home].sibling(of: id) {
-            // Not enough room next to its neighbor: share its tile as a tab
-            // instead of overlapping.
             layouts.remove(id)
             join(id, with: sibling)
             dirtyDesks.insert(home)
@@ -579,12 +435,8 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// The window now lives on another desktop (the user moved it there).
     public func move(_ id: CGWindowID, to targetSpace: SpaceID) {
         if id == scratchpad, scratchpadHidden { return }
-        // A tab that was carried to another desktop leaves its group: its
-        // fellows stay where they are, and it would otherwise be a group
-        // member and a tile at the same time.
         if group(of: id) != nil {
             leaveGroup(id)
             if let home = desk(of: id) { dirtyDesks.insert(home) }
@@ -605,16 +457,12 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// The desktops in Mission Control order, as last seen.
     public private(set) var knownSpaceOrder: [SpaceID] = []
 
     public func noteSpaceOrder(_ order: [SpaceID]) {
         if !order.isEmpty { knownSpaceOrder = order }
     }
 
-    /// A desktop was closed in Mission Control and macOS moved its windows
-    /// onto `target`. They keep their arrangement and land on our workspace
-    /// numbered after the closed desktop's place (third desktop: workspace 3).
     public func absorbVanishedSpace(_ vanished: SpaceID, into target: SpaceID) {
         let place = (knownSpaceOrder.firstIndex(of: vanished) ?? 0) + 1
         let desks = Set(layouts.spaceOf.values.filter { $0.space == vanished })
@@ -630,14 +478,11 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// The user switched desktops: arrange the windows shown there.
     public func switchSpace(to target: SpaceID) {
         guard target != space else { return }
         log("desktop \(space) -> \(target)")
         desk = Desk(space: target, workspace: activeWorkspace[target] ?? 1)
         lastSpaceSwitch = CACurrentMediaTime()
-        // A drag cannot survive a desktop switch; the window comes along and
-        // stays where it is: tiled on the new desktop, or floating there.
         if let id = dragging {
             dragging = nil
             if var state = floating[id] {
@@ -653,7 +498,6 @@ public final class TilingEngine {
 
     public var isAnimating: Bool { ticker != nil }
 
-    /// The worker thread for an app, created on first use.
     private func worker(for pid: pid_t) -> AppWorker {
         if let worker = workers[pid] { return worker }
         let worker = AppWorker(pid: pid) { [weak self] id in self?.forget(id) }
@@ -661,15 +505,12 @@ public final class TilingEngine {
         return worker
     }
 
-    /// Sets a window's frame on its app's thread, never blocking the main
-    /// thread. Latest wins while the app is busy. `completion` runs once set.
     public func write(_ id: CGWindowID, _ frame: CGRect,
                       completion: (@MainActor @Sendable () -> Void)? = nil) {
         guard let window = windows[id] else { return }
         worker(for: window.pid).setFrame(window, frame, completion: completion)
     }
 
-    /// Raises a window on its app's thread.
     public func raise(_ id: CGWindowID, then: (@MainActor @Sendable () -> Void)? = nil) {
         guard let window = windows[id] else { return }
         worker(for: window.pid).run {
@@ -678,25 +519,18 @@ public final class TilingEngine {
         }
     }
 
-    /// An app quit: its thread is not needed any more.
     public func forgetApp(_ pid: pid_t) {
         workers[pid] = nil
         slowApps.remove(pid)
     }
 
-    /// Frames skipped because an app was still busy with an older one.
     public var droppedFrames: Int { workers.values.reduce(0) { $0 + $1.droppedFrames } }
 
-    /// The desk a window belongs to, tiled, grouped or floating.
     public func desk(of id: CGWindowID) -> Desk? {
         if let desk = layouts.space(of: id) ?? floating[id]?.desk { return desk }
         return groups.first { $0.contains(id) }.flatMap { layouts.space(of: $0.active) }
     }
 
-    // MARK: Titles and focus
-
-    /// A window's title changed: read it again on its app's thread and
-    /// update its group's tab bar.
     public func refreshTitle(of id: CGWindowID) {
         guard let window = windows[id] else { return }
         worker(for: window.pid).run { [weak self] in
@@ -705,24 +539,16 @@ public final class TilingEngine {
         }
     }
 
-    /// The managed window with keyboard focus, as last seen.
     public private(set) var focused: CGWindowID?
 
-    /// Where the focused window is on screen and whether it is shown, for
-    /// the host's border around it.
     public struct ActiveWindow: Sendable, Equatable {
         public let windowID: CGWindowID
-        /// Top-left coordinates. A tab group's includes its tab bar.
         public let frame: CGRect
     }
 
-    /// Called when the focused window changes or moves; nil hides the border.
     public var onActiveWindowChanged: ((ActiveWindow?) -> Void)?
     private var publishedActive: ActiveWindow?
 
-    /// Something may have taken focus (an app came forward, an app focused
-    /// another window). Asking which window has it is a round trip into the
-    /// focused app, so it runs off the main thread.
     public func focusChanged() {
         focusGeneration &+= 1
         let generation = focusGeneration
@@ -732,13 +558,8 @@ public final class TilingEngine {
         }
     }
 
-    /// Counts focus changes, so a slow answer to an older question (two
-    /// notifications for one change, a focus set by keys meanwhile) never
-    /// overwrites a newer state.
     private var focusGeneration: UInt64 = 0
 
-    /// When the engine last focused a window on purpose (keys, a tab click).
-    /// Focus follows mouse stops insisting on its window after that.
     public private(set) var lastDirectedFocus: CFTimeInterval = 0
 
     private func noteFocused(_ id: CGWindowID?, generation: UInt64) {
@@ -749,15 +570,9 @@ public final class TilingEngine {
         publishActive()
     }
 
-    /// The focused window's frame, following it mid-glide. Nil while it is
-    /// dragged or resized by hand (macOS moves it then), or not shown.
     public func activeWindow() -> ActiveWindow? {
         guard let id = focused, id != dragging, id != resizing else { return nil }
         guard var frame = springs[id]?.current ?? targetFrames()[id], parked[id] == nil else { return nil }
-        // At rest, the window's real frame: apps that snap to character
-        // cells (kitty) stay a little smaller than their tile, and the
-        // border should hug the window, not the tile. Mid-glide the spring
-        // is exact enough and saves a window-server query per frame.
         if !isAnimating, let actual = windows[id]?.serverFrame,
            abs(actual.minX - frame.minX) < 40, abs(actual.minY - frame.minY) < 40,
            abs(actual.width - frame.width) < 40, abs(actual.height - frame.height) < 40 {
@@ -779,18 +594,12 @@ public final class TilingEngine {
         onActiveWindowChanged?(active)
     }
 
-    // MARK: Tab groups
-
-    /// Windows sharing a tile as tabs. Only each group's active window is in
-    /// the layout tree; the others lie exactly behind it.
     public private(set) var groups: [TabGroup<CGWindowID>] = []
 
     public func group(of id: CGWindowID) -> TabGroup<CGWindowID>? {
         groups.first { $0.contains(id) }
     }
 
-    /// Minimums as the layout sees them: a group needs the largest of its
-    /// windows' minimums, plus room for its tab bar.
     private var layoutMinimums: [CGWindowID: CGSize] {
         guard !groups.isEmpty else { return minimums }
         var result = minimums
@@ -807,25 +616,21 @@ public final class TilingEngine {
         return result
     }
 
-    /// One tab of a group, as the host shows it.
     public struct Tab: Sendable, Equatable {
         public let windowID: CGWindowID
         public let title: String
         public let pid: pid_t
     }
 
-    /// Where a group's tab bar goes (top-left coordinates) and what it shows.
     public struct TabBar: Sendable, Equatable {
         public let frame: CGRect
         public let tabs: [Tab]
         public let active: CGWindowID
     }
 
-    /// Called whenever tab bars appear, move or change; the host draws them.
     public var onTabBarsChanged: (([TabBar]) -> Void)?
     private var publishedBars: [TabBar] = []
 
-    /// The tab bars of the shown desktop, following their windows mid-glide.
     public func tabBars() -> [TabBar] {
         groups.compactMap { group in
             guard let home = layouts.space(of: group.active), isShown(home), dragging != group.active,
@@ -846,8 +651,6 @@ public final class TilingEngine {
         onTabBarsChanged?(bars)
     }
 
-    /// Adds `id` (not in any tree) to `target`'s group, or makes a new group
-    /// of the two, and shows `id` in the shared tile.
     private func join(_ id: CGWindowID, with target: CGWindowID) {
         if let index = groups.firstIndex(where: { $0.contains(target) }) {
             let shown = groups[index].active
@@ -861,9 +664,6 @@ public final class TilingEngine {
         raise(id)
     }
 
-    /// Takes `id` out of its group. If it was the shown tab, the next one
-    /// takes over the tile; a group down to one window ends. Afterwards `id`
-    /// is in no tree. Returns whether it was grouped.
     @discardableResult
     private func leaveGroup(_ id: CGWindowID) -> Bool {
         guard let index = groups.firstIndex(where: { $0.contains(id) }) else { return false }
@@ -878,7 +678,6 @@ public final class TilingEngine {
         return true
     }
 
-    /// Shows another tab of a group.
     public func activateTab(_ id: CGWindowID) {
         guard let index = groups.firstIndex(where: { $0.contains(id) }) else { return }
         let shown = groups[index].active
@@ -889,22 +688,18 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// Moves a tab one place along its bar.
     public func moveTab(_ id: CGWindowID, forward: Bool) {
         guard let index = groups.firstIndex(where: { $0.contains(id) }) else { return }
         guard groups[index].move(id, forward: forward) else { return }
         publishTabBars()
     }
 
-    /// Puts a tab where it was dragged to on the bar.
     public func moveTab(_ id: CGWindowID, to place: Int) {
         guard let index = groups.firstIndex(where: { $0.contains(id) }) else { return }
         groups[index].move(id, to: place)
         publishTabBars()
     }
 
-    /// Every window of one app on this desktop into a single group, so an
-    /// app's windows sit in one tile as tabs.
     public func groupApp(of id: CGWindowID) {
         guard let window = windows[id], let home = desk(of: id) else { return }
         let mates = windows.values
@@ -926,18 +721,13 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// The next or previous tab of the group holding `id`.
     public func cycleTab(from id: CGWindowID, forward: Bool) {
         guard let group = group(of: id), let next = group.neighbor(of: group.active, forward: forward) else { return }
         activateTab(next)
     }
 
-    /// Super+G: a grouped window leaves its group and gets its own tile next
-    /// to it; a tiled one joins the window it was split from.
     public func toggleGroup(_ id: CGWindowID) {
         if isCanvas, let home = layouts.space(of: id) {
-            // On the strip a "group" is a column: the window joins the
-            // column to its left, or leaves its own again.
             withStrip(home) { strip in
                 guard let index = strip.column(of: id) else { return }
                 if strip.columns[index].windows.count > 1 {
@@ -963,22 +753,11 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// The next new window of `pid` joins `id`'s group (the tab bar's + button).
     public func routeNextWindow(of pid: pid_t, intoGroupWith id: CGWindowID) {
         pendingTab = (pid, id, CACurrentMediaTime())
     }
     private var pendingTab: (pid: pid_t, target: CGWindowID, since: CFTimeInterval)?
 
-    /// Recomputes the layout and lets every window glide to its new tile.
-    /// Windows not on the shown desktop are left alone.
-    ///
-    /// Several state changes in one run-loop turn (e.g. reconcile() moving
-    /// or dropping a handful of windows, or a fast edge-resize drag posting
-    /// many mouse-dragged events between display frames) each call this; all
-    /// but the first only mark it dirty and return, so the actual layout and
-    /// spring retargeting run once with the final state, not once per call.
-    /// Springs only consume their target on the next display tick anyway, so
-    /// nothing is lost by waiting for the turn to end.
     public func relayout() {
         guard !relayoutScheduled else { return }
         relayoutScheduled = true
@@ -995,9 +774,6 @@ public final class TilingEngine {
         arrangeHiddenDesks()
         let frames = targetFrames()
         let held = [dragging, resizing]
-        // Windows of a restored layout that were not seen yet (their desktop
-        // was never shown) get no spring: a spring made up at the target
-        // would never move the real window there.
         for id in springs.keys where frames[id] == nil || held.contains(id) || windows[id] == nil {
             springs[id] = nil
         }
@@ -1005,8 +781,6 @@ public final class TilingEngine {
             springs[id, default: AnimatedRect(windows[id]?.serverFrame ?? rect)].target = rect
         }
         if resizing != nil {
-            // An edge under the mouse: neighbors follow it at once, like
-            // Hyprland, instead of gliding after it.
             for (id, rect) in frames where !held.contains(id) && windows[id] != nil {
                 springs[id] = AnimatedRect(rect)
                 write(id, rect)
@@ -1021,7 +795,6 @@ public final class TilingEngine {
         publishActive()
     }
 
-    /// Reverses the window order. Used by the probe to force big moves.
     public func mirror() {
         let ids = tree.ids
         for id in ids { layouts.remove(id) }
@@ -1029,8 +802,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// The managed window under `point`: floating windows first (they sit
-    /// on top), then a fullscreen one, then the tiles.
     public func window(at point: CGPoint) -> CGWindowID? {
         if let id = floating.first(where: { isShown($0.value.desk) && $0.value.frame.contains(point) })?.key {
             return id
@@ -1041,20 +812,15 @@ public final class TilingEngine {
                                 minimums: layoutMinimums, maximums: maximums)
     }
 
-    /// The whole usable area of the main display, inside the outer gap.
     private var fullArea: CGRect { fullArea(of: desk) }
 
-    /// Where the engine last put the window (nil while dragged or unknown).
     public func expectedFrame(of id: CGWindowID) -> CGRect? {
         springs[id]?.current
     }
 
-    /// Where every window on the shown desktop should be: tiles, then a
-    /// fullscreen window over its tile, then floating windows.
     public func targetFrames() -> [CGWindowID: CGRect] {
         var frames: [CGWindowID: CGRect] = [:]
         for shown in shownDesks { frames.merge(self.frames(on: shown)) { first, _ in first } }
-        // Windows of this desktop's other workspaces go (or stay) aside.
         var aside: [CGWindowID: Int] = [:]
         for (id, home) in layouts.spaceOf where home.space == space && home.workspace != workspace {
             aside[id] = home.workspace
@@ -1072,16 +838,11 @@ public final class TilingEngine {
         return frames
     }
 
-    // MARK: Saving the layout
-
-    /// Everything needed to bring the arrangement back after a restart.
-    /// Window numbers stay the same as long as their apps keep running.
     public struct Snapshot: Codable, Sendable {
         public var layouts: SpaceLayouts<Desk, CGWindowID>
         public var floating: [CGWindowID: Floating]
         public var activeWorkspace: [SpaceID: Int]
         public var originalFrames: [CGWindowID: CGRect]
-        /// Missing in layouts saved before tab groups existed.
         public var groups: [TabGroup<CGWindowID>]?
     }
 
@@ -1090,14 +851,9 @@ public final class TilingEngine {
                  activeWorkspace: activeWorkspace, originalFrames: originalFrames, groups: groups)
     }
 
-    /// Loads a saved arrangement before windows are adopted. Windows that no
-    /// longer exist (`alive` rejects them) are dropped; the rest return to
-    /// their old tiles when they are adopted.
     public func restore(_ snapshot: Snapshot, alive: (CGWindowID) -> Bool) {
         var saved = snapshot.layouts
         let floats = snapshot.floating.filter { alive($0.key) }
-        // A window is tiled or floating, never both (an older version could
-        // save both after a floating window was carried to another desktop).
         saved.retain { alive($0) && floats[$0] == nil }
         layouts = saved
         floating = floats
@@ -1110,8 +866,6 @@ public final class TilingEngine {
         log("restored layout: \(layouts.spaceOf.count) tiled, \(floating.count) floating")
     }
 
-    /// Hidden desktops change too (a window closed there, a new one opened):
-    /// their windows are put straight into place, nobody sees a glide.
     private func arrangeHiddenDesks() {
         let shownSpaces = Set(shownDesks.map(\.space))
         for hidden in dirtyDesks where !isShown(hidden) && !shownSpaces.contains(hidden.space) {
@@ -1121,8 +875,6 @@ public final class TilingEngine {
         dirtyDesks.removeAll()
     }
 
-    /// Where the windows of `desk` go when it is shown: tiles, a fullscreen
-    /// window over its tile, floating windows.
     public func frames(on desk: Desk) -> [CGWindowID: CGRect] {
         var frames = isCanvas
             ? canvasFrames(on: desk)
@@ -1134,7 +886,6 @@ public final class TilingEngine {
         for (id, state) in floating where state.desk == desk {
             frames[id] = state.frame
         }
-        // A group's windows share its tile below the tab bar.
         for group in groups {
             guard let tile = frames[group.active] else { continue }
             let below = CGRect(x: tile.minX, y: tile.minY + options.tabBarHeight,
@@ -1144,9 +895,6 @@ public final class TilingEngine {
         return frames
     }
 
-    // MARK: Displays: focus and moving between them
-
-    /// The desks on screen, in the order the displays stand (main first).
     private func shownDesk(onDisplay index: Int) -> Desk? {
         guard screens.indices.contains(index) else { return nil }
         let uuid = screens[index].uuid
@@ -1154,7 +902,6 @@ public final class TilingEngine {
             ?? (index == 0 ? desk : nil)
     }
 
-    /// The desks on screen that belong to one display.
     public func desks(onDisplay uuid: String) -> [Desk] {
         shownDesks.filter { displayOfSpace[$0.space] == uuid }
     }
@@ -1164,8 +911,6 @@ public final class TilingEngine {
         return screens.firstIndex { $0.uuid == uuid }
     }
 
-    /// Focus goes to the next or previous display, onto the window that was
-    /// focused there last, or the first one.
     public func focusDisplay(next: Bool) {
         guard screens.count > 1 else { return }
         let here = focused.flatMap { desk(of: $0) }.flatMap { displayIndex(of: $0) } ?? 0
@@ -1177,9 +922,6 @@ public final class TilingEngine {
         focus(id)
     }
 
-    /// The focused window goes to the next or previous display: it is put
-    /// into the layout there, and macOS counts it to that display once its
-    /// frame lies on it.
     public func sendToDisplay(_ id: CGWindowID, next: Bool) {
         guard screens.count > 1, let home = desk(of: id) else { return }
         let here = displayIndex(of: home) ?? 0
@@ -1206,15 +948,8 @@ public final class TilingEngine {
         focus(id)
     }
 
-    /// The window focused last on each desk, so coming back to a display
-    /// lands where one left off.
     private var lastFocusedOnDesk: [Desk: CGWindowID] = [:]
 
-    // MARK: Canvas
-
-    /// Where the strip's windows go. Columns that the screen does not show
-    /// wait just past its edge: macOS keeps a sliver of every window on
-    /// screen, and a window sent far away would be lost there.
     private func canvasFrames(on desk: Desk) -> [CGWindowID: CGRect] {
         let area = area(of: desk)
         var frames = strip(of: desk).layout(in: area, gaps: options.gaps, minimums: layoutMinimums)
@@ -1228,9 +963,6 @@ public final class TilingEngine {
         return frames
     }
 
-    /// The strip follows the focused window, and the viewport follows the
-    /// focused column - but only when the focus really changed, so a scroll
-    /// by hand is not undone by the next layout.
     private func syncStrips() {
         for shown in shownDesks {
             var strip = strip(of: shown)
@@ -1243,10 +975,8 @@ public final class TilingEngine {
         }
     }
 
-    /// The column the viewport was moved to last, per desk.
     private var lastScrolledTo: [Desk: CGWindowID] = [:]
 
-    /// Scrolls the strip of the shown desktop by `delta` points.
     public func pan(by delta: CGFloat) {
         guard isCanvas else { return }
         var strip = strip(of: desk)
@@ -1255,14 +985,12 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// Brings the focused column into view (after a focus change by keys).
     public func scrollToFocused() {
         guard isCanvas else { return }
         withStrip(desk) { _ in }
         relayout()
     }
 
-    /// The window left, right, above or below on the strip.
     private func canvasNeighbor(of id: CGWindowID, _ direction: Direction) -> CGWindowID? {
         guard let home = layouts.space(of: id) else { return nil }
         var strip = strip(of: home)
@@ -1275,8 +1003,6 @@ public final class TilingEngine {
         }
     }
 
-    /// Super + H J K L on the strip: a column moves along it, a stacked
-    /// window moves inside its column.
     private func canvasMove(_ id: CGWindowID, _ direction: Direction) {
         guard let home = layouts.space(of: id) else { return }
         withStrip(home) { strip in
@@ -1290,11 +1016,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    // MARK: Workspaces
-
-    /// Shows workspace `number` (1-9) of the current desktop. Its windows
-    /// slide in, the others slide out to the side they belong to. A window
-    /// held with the mouse comes along and lands where it is dropped.
     public func switchWorkspace(to number: Int) {
         guard (1...9).contains(number), number != workspace else { return }
         log("workspace \(workspace) -> \(number)")
@@ -1303,7 +1024,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// Sends a window to another workspace of the current desktop.
     public func moveWindow(_ id: CGWindowID, toWorkspace number: Int) {
         guard (1...9).contains(number), number != workspace, windows[id] != nil, id != dragging else { return }
         let target = Desk(space: space, workspace: number)
@@ -1319,10 +1039,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// Lets go of every window where it belongs now: a glide in progress
-    /// jumps to its end, snapshot stand-ins go away and their real windows
-    /// (waiting off screen) take their tiles. Nothing goes back to where it
-    /// was before; for that there is restoreAll().
     public func releaseAll() {
         ticker?.stop()
         ticker = nil
@@ -1331,8 +1047,6 @@ public final class TilingEngine {
         for (id, window) in windows {
             let target: CGRect?
             if parked[id] != nil, let home = desk(of: id) {
-                // Waiting past the edge for another workspace: onto the screen,
-                // or it would be lost there once nobody manages it.
                 target = frames(on: home)[id]
             } else if proxied.contains(id) || !(springs[id]?.isSettled ?? true) {
                 target = targets[id]
@@ -1347,8 +1061,6 @@ public final class TilingEngine {
         proxies.removeAll()
     }
 
-    /// Puts every managed window back where it was before the engine first
-    /// touched it (or, for parked ones without a record, onto the screen).
     public func restoreAll() {
         ticker?.stop()
         ticker = nil
@@ -1365,9 +1077,6 @@ public final class TilingEngine {
         }
     }
 
-    // MARK: Keyboard
-
-    /// Raises and focuses a window (its app comes forward with only it).
     public func focus(_ id: CGWindowID) {
         guard let window = windows[id] else { return }
         worker(for: window.pid).run { WindowFocus.focus(window) }
@@ -1376,12 +1085,9 @@ public final class TilingEngine {
         focused = id
         if let home = desk(of: id) { lastFocusedOnDesk[home] = id }
         publishActive()
-        // On the strip the viewport follows the focus.
         if isCanvas { relayout() }
     }
 
-    /// The managed window next to `id` on screen in `direction`, on the
-    /// shown desktop (tiles and floating windows).
     public func neighbor(of id: CGWindowID, _ direction: Direction) -> CGWindowID? {
         if isCanvas, floating[id] == nil, layouts.space(of: id) != nil {
             return canvasNeighbor(of: id, direction)
@@ -1391,7 +1097,6 @@ public final class TilingEngine {
         return Neighbors.neighbor(of: id, direction, in: frames.filter { windows[$0.key] != nil })
     }
 
-    /// Focus the next window in reading order (tiles, then floating ones).
     public func cycleFocus(from id: CGWindowID?) {
         let home = id.flatMap { desk(of: $0) }.flatMap { isShown($0) ? $0 : nil } ?? desk
         let order = layouts[home].ids + floating.filter { $0.value.desk == home }.map(\.key).sorted()
@@ -1400,7 +1105,6 @@ public final class TilingEngine {
         focus(order[next])
     }
 
-    /// Swaps a tiled window with its tiled neighbor in `direction`.
     public func swap(_ id: CGWindowID, _ direction: Direction) {
         guard let home = layouts.space(of: id) else { return }
         if isCanvas { return canvasMove(id, direction) }
@@ -1411,11 +1115,9 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// Turns the split that holds `id` (side by side ↔ stacked).
     public func toggleSplit(of id: CGWindowID) {
         guard let home = layouts.space(of: id) else { return }
         if isCanvas {
-            // No splits on the strip: the key centers the focused column instead.
             options.centerFocusedColumn.toggle()
             log("focused column centered: \(options.centerFocusedColumn)")
             withStrip(home) { strip in strip.focus(id) }
@@ -1426,7 +1128,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// Every split on the shown desktop back to half and half.
     public func equalize() {
         if isCanvas {
             withStrip(desk) { strip in
@@ -1439,9 +1140,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// Makes a window wider or taller (negative: narrower, shorter) by
-    /// `fraction` of the area's width and height. A tile moves the edge that
-    /// has a neighbor; a floating window grows around its center.
     public func grow(_ id: CGWindowID, by fraction: CGSize) {
         guard dragging == nil, resizing == nil, let home = desk(of: id) else { return }
         let area = area(of: home)
@@ -1465,11 +1163,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    // MARK: Floating and fullscreen
-
-    /// Takes a tiled window out of the layout (it glides to a centered
-    /// floating frame, or where it floated last) or puts a floating one back
-    /// into the tile under its center.
     public func toggleFloating(_ id: CGWindowID) {
         guard let window = windows[id], dragging == nil, resizing == nil else { return }
         if let state = floating[id] {
@@ -1497,7 +1190,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// `share` (60%) of the area, centered, within the window's own limits.
     private func defaultFloatFrame(for id: CGWindowID, share: CGFloat = 0.6, on home: Desk? = nil) -> CGRect {
         let area = area(of: home ?? desk)
         let fullArea = fullArea(of: home ?? desk)
@@ -1508,8 +1200,6 @@ public final class TilingEngine {
         return CGRect(x: area.midX - width / 2, y: area.midY - height / 2, width: width, height: height)
     }
 
-    /// Lets a tiled window fill the whole area (inside the outer gap, not
-    /// macOS fullscreen), or sends it back to its tile.
     public func toggleFullscreen(_ id: CGWindowID) {
         guard let window = windows[id], let home = layouts.space(of: id), dragging == nil, resizing == nil else { return }
         if fullscreen[home] == id {
@@ -1523,9 +1213,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    // MARK: Remote control
-
-    /// Every managed window as a JSON array, for the command socket.
     public func describeWindows() -> String {
         let shown = targetFrames()
         let items: [[String: Any]] = windows.values.sorted { $0.windowID < $1.windowID }.map { window in
@@ -1556,21 +1243,10 @@ public final class TilingEngine {
         return String(decoding: data, as: UTF8.self)
     }
 
-    // MARK: Scratchpad
-
-    /// One window kept at hand (Hyprland's special workspace): Super + S
-    /// hides it (minimized) and brings it back, floating in the middle of
-    /// whatever desktop is shown. A minimized window comes back on its own
-    /// desktop (measured on macOS 26, from the Dock too), so one kept on
-    /// another desktop is carried over afterwards (onScratchpadElsewhere).
     public private(set) var scratchpad: CGWindowID?
     public private(set) var scratchpadHidden = false
-    /// The scratchpad came back on another desktop than `SpaceID`, the one
-    /// shown when it was asked for: the host carries it over (DesktopMover).
     public var onScratchpadElsewhere: ((AXWindow, SpaceID) -> Void)?
 
-    /// With no scratchpad yet, `focused` becomes it; otherwise it is hidden
-    /// when it shows on this desktop and brought here when not.
     public func toggleScratchpad(focused id: CGWindowID?) {
         if let pad = scratchpad, windows[pad] == nil { scratchpad = nil }
         guard dragging == nil, resizing == nil else { return }
@@ -1619,7 +1295,6 @@ public final class TilingEngine {
         scratchpadHidden = true
         worker(for: window.pid).run { [weak self] in
             if wasShownElsewhere {
-                // On another desktop: minimize first, so it comes back here.
                 _ = window.element.set(kAXMinimizedAttribute, bool: true)
                 Thread.sleep(forTimeInterval: 0.45)
             }
@@ -1643,21 +1318,16 @@ public final class TilingEngine {
         focus(id)
     }
 
-    // MARK: Drag and drop
-
-    /// The user picked up `id`: it leaves the layout and the rest closes the gap.
     public func beginDrag(_ id: CGWindowID) {
         guard dragging == nil else { return }
         dropProxy(id)
         if floating[id] != nil {
-            // Floating windows just move; nothing else changes.
             dragging = id
             springs[id] = nil
             publishActive()
             return
         }
         if group(of: id) != nil {
-            // Dragging a tab out of its group.
             leaveGroup(id)
             dragging = id
             windows[id]?.invalidateCache()
@@ -1674,8 +1344,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// The user let go at `point`: the tile under the mouse splits to take it.
-    /// The dropped window starts from where the user left it.
     public func endDrag(at point: CGPoint) {
         guard let id = dragging else { return }
         dragging = nil
@@ -1687,11 +1355,7 @@ public final class TilingEngine {
             publishActive()
             return
         }
-        // A centered window is never asked to grow again, so a wrong maximum
-        // would stick. Dropping it gives it a fresh chance.
         maximums[id] = nil
-        // Dropped on the middle of a tile: it joins that tile as a tab.
-        // The display under the mouse takes it (dragging over to another display).
         let home = desk(at: point)
         let area = area(of: home)
         if isCanvas {
@@ -1727,10 +1391,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    // MARK: Resize by mouse
-
-    /// The user grabbed an edge of `id`. From now on the window follows the
-    /// mouse (macOS resizes it) and its neighbors follow the window.
     public func beginResize(_ id: CGWindowID) {
         guard dragging == nil, resizing == nil, layouts.space(of: id) != nil || floating[id] != nil else { return }
         dropProxy(id)
@@ -1745,10 +1405,8 @@ public final class TilingEngine {
         publishActive()
     }
 
-    /// The window's frame and its (plain) tile when the resize began.
     private var resizeStart: (frame: CGRect, tile: CGRect)?
 
-    /// Called while the edge moves, with the window's current frame.
     public func updateResize(to frame: CGRect) {
         guard let id = resizing else { return }
         if var state = floating[id] {
@@ -1756,10 +1414,6 @@ public final class TilingEngine {
             floating[id] = state
             return
         }
-        // Only the edges that really moved since the grab count, measured
-        // against the window's own frame then. Compared with the tile, a
-        // window that never matched it exactly (a minimum size, centered)
-        // looked as if every edge moved, and the layout jumped.
         let home = desk(of: id) ?? desk
         let area = area(of: home)
         guard let start = resizeStart else {
@@ -1778,7 +1432,6 @@ public final class TilingEngine {
         relayout()
     }
 
-    /// The user let go: the window settles into its (new) tile.
     public func endResize() {
         guard let id = resizing else { return }
         resizing = nil
@@ -1796,9 +1449,6 @@ public final class TilingEngine {
         }
         log("resize end: \(windows[id]?.title ?? "\(id)")")
         relayout()
-        // Apps may apply the drag's last size a moment after the mouse is
-        // up; look again once they had the time.
-        // A new resize replaces the looks still pending from the last one.
         for work in resyncs { work.cancel() }
         resyncs = [0.1, 0.35, 0.8].map { delay in
             let work = DispatchWorkItem { [weak self] in
@@ -1810,18 +1460,10 @@ public final class TilingEngine {
     }
     private var resyncs: [DispatchWorkItem] = []
 
-    // MARK: Proxy glides
-
-    /// Windows whose size is about to change glide as a snapshot. The real
-    /// window goes just off screen and takes its new size there right away,
-    /// so the app has the whole glide to redraw; its new look fades in.
     private func startProxies() {
         proxyFinish?.cancel()
         proxyFinish = nil
         guard options.resize == .proxy, proxies.isAvailable else { return }
-        // While the user drags an edge, neighbors follow live: a frozen
-        // snapshot would look wrong for the whole drag, and resizing parked
-        // windows on every mouse event made the drag lag.
         guard resizing == nil else {
             for id in proxied { dropProxy(id) }
             return
@@ -1837,8 +1479,6 @@ public final class TilingEngine {
             preparedSize[id] = target.size
             proxies.prepareNewLook(id)
         }
-        // Proxied windows whose target size changed mid-glide: new size off
-        // screen, and their new look is prepared again.
         for id in proxied {
             guard let target = springs[id]?.target, preparedSize[id] != target.size else { continue }
             write(id, CGRect(origin: parkedOrigin(for: target), size: target.size))
@@ -1847,25 +1487,16 @@ public final class TilingEngine {
         }
     }
 
-    /// Whether a snapshot is still standing in for a real window. Its real
-    /// window waits off screen until the app has redrawn, so nothing should
-    /// measure window frames while this is true.
     public var hasProxies: Bool { !proxied.isEmpty }
 
-    /// How many window glides used a snapshot (for the probe).
     public private(set) var proxyGlides = 0
 
-    /// Just past the right screen edge, same height on screen.
     private func parkedOrigin(for frame: CGRect) -> CGPoint {
         CGPoint(x: (screens.map(\.bounds.maxX).max() ?? screenArea.maxX) - 1, y: frame.minY)
     }
 
-    /// The glide is over: resize the real windows off screen, give the apps
-    /// a moment to redraw, then swap them in for their snapshots.
     private func finishProxies(waited: TimeInterval = 0, then done: @escaping () -> Void) {
         guard !proxied.isEmpty else { done(); return }
-        // Swap only once every app has finished drawing at its new size
-        // (its new look is showing), or after 0.5 s at most.
         let step: TimeInterval = 0.03
         let allReady = proxied.allSatisfy { proxies.isReady($0) }
         let work = DispatchWorkItem { [weak self] in
@@ -1880,19 +1511,11 @@ public final class TilingEngine {
                 self.proxied.removeAll()
                 for id in swapped {
                     self.preparedSize[id] = nil
-                    // Without a spring (the glide was cut short by a desktop
-                    // switch, say) the window would stay parked off screen,
-                    // so its place is looked up instead.
                     guard let target = self.springs[id]?.target ?? self.placeOf(id) else {
                         self.proxies.remove(id)
                         continue
                     }
-                    // Size and position again: Chromium-based apps (Vivaldi)
-                    // ignore a resize while their window is off screen, so
-                    // the size written while parked may not have landed.
                     self.windows[id]?.invalidateCache()
-                    // The snapshot goes once the app has the window in place,
-                    // plus one beat so it is on screen.
                     self.write(id, target) { [weak self] in
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
                             MainActor.assumeIsolated {
@@ -1909,7 +1532,6 @@ public final class TilingEngine {
         DispatchQueue.main.asyncAfter(deadline: .now() + (allReady ? 0 : step), execute: work)
     }
 
-    /// Sorts apps into slow and fast by their measured resize cost.
     private func updateSlowApps() {
         var costs: [pid_t: [Double]] = [:]
         for window in windows.values {
@@ -1926,28 +1548,23 @@ public final class TilingEngine {
         }
     }
 
-    /// A proxied window the user grabs becomes real again at once.
     private func dropProxy(_ id: CGWindowID) {
         guard proxied.remove(id) != nil else { return }
         if let frame = springs[id]?.current ?? placeOf(id) { write(id, frame) }
         proxies.remove(id)
     }
 
-    /// Where a window belongs right now, spring or no spring: its frame on
-    /// the desk it lives on.
     private func placeOf(_ id: CGWindowID) -> CGRect? {
         if let frame = targetFrames()[id] { return frame }
         guard let home = desk(of: id) else { return nil }
         return frames(on: home)[id]
     }
 
-    /// Stops the snapshot refresh timer.
     public func stopSnapshots() {
         snapshotTimer?.invalidate()
         snapshotTimer = nil
     }
 
-    /// Keeps snapshots of the shown windows fresh while nothing moves.
     public func startSnapshots(every interval: TimeInterval = 3) {
         guard options.resize == .proxy, snapshotTimer == nil else { return }
         let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
@@ -1962,8 +1579,6 @@ public final class TilingEngine {
         guard options.resize == .proxy, !isAnimating, proxied.isEmpty, dragging == nil else { return }
         proxies.refresh(shownDesks.flatMap { layouts[$0].ids } + floating.filter { isShown($0.value.desk) }.map(\.key))
     }
-
-    // MARK: Animation loop
 
     public func resetStats() {
         applyTimes = Durations()
@@ -2009,7 +1624,6 @@ public final class TilingEngine {
         for (id, _, frame) in work { write(id, frame) }
         if !groups.isEmpty { publishTabBars() }
         publishActive()
-        // Main-thread cost of the whole step; the apps work on their own threads.
         applyTimes.add(CACurrentMediaTime() - now)
 
         if springs.values.allSatisfy(\.isSettled) {
@@ -2025,11 +1639,6 @@ public final class TilingEngine {
         }
     }
 
-    /// After a glide, compare where windows really are with their tiles.
-    /// A window that does not fit gets its frame written once more first
-    /// (it may have missed a write); only a second refusal is learned as a
-    /// minimum or maximum. Learned limits also heal: a window seen smaller
-    /// than its minimum or bigger than its maximum loosens that limit.
     private func scheduleFitCheck(retry: Bool) {
         fitCheck?.cancel()
         let sinceSwitch = CACurrentMediaTime() - lastSpaceSwitch
@@ -2043,8 +1652,6 @@ public final class TilingEngine {
 
     private func checkFit(retry: Bool) {
         guard !isAnimating, dragging == nil, resizing == nil else { return }
-        // Tiled and grouped windows (a group's sit below its tab bar); not a
-        // fullscreen window, which is bigger than its tile on purpose.
         let grouped = Set(groups.flatMap(\.members))
         var targets: [CGWindowID: CGRect] = [:]
         for shown in shownDesks {
@@ -2057,21 +1664,17 @@ public final class TilingEngine {
         var changed = false
         for (id, target) in targets {
             guard let window = windows[id], let actual = window.serverFrame else { continue }
-            // Somebody moved it (an app applying a late resize, say) while
-            // the engine thought it was in place: put it back.
             if abs(actual.minX - target.minX) > 2 || abs(actual.minY - target.minY) > 2 {
                 moved.append(id)
             }
             var minimum = minimums[id] ?? .zero
             var maximum = maximums[id] ?? .infinite
-            // Heal limits the window no longer honors.
             if actual.width < minimum.width - 4 { minimum.width = actual.width }
             if actual.height < minimum.height - 4 { minimum.height = actual.height }
             if actual.width > maximum.width + 4 { maximum.width = .infinity }
             if actual.height > maximum.height + 4 { maximum.height = .infinity }
 
             let tooBig = actual.width > target.width + 4 || actual.height > target.height + 4
-            // Small shortfalls are apps snapping to character cells, not a real limit.
             let tooSmall = actual.width < target.width - 20 || actual.height < target.height - 20
             if tooBig || tooSmall {
                 if retry {
@@ -2111,12 +1714,6 @@ public final class TilingEngine {
         if changed { relayout() } else { publishActive() }
     }
 
-    /// Measures where the shown desktop's windows really are and glides any
-    /// that are not where the engine believes back to their place. The
-    /// engine's springs only know where it sent a window; an app that moves
-    /// or resizes a window later (kitty applying the last size of an edge
-    /// drag after the mouse is up) would otherwise stay wrong until the next
-    /// desktop switch.
     public func resyncFromServer() {
         guard dragging == nil, resizing == nil else { return }
         var drifted = false
@@ -2138,8 +1735,6 @@ public final class TilingEngine {
     }
 
     private func forget(_ id: CGWindowID) {
-        // A failed write can also mean a busy app; only drop windows that are
-        // really gone. Asking is a round trip, so it runs on the app's thread.
         guard let window = windows[id] else { return }
         worker(for: window.pid).run { [weak self] in
             let gone = window.position == nil

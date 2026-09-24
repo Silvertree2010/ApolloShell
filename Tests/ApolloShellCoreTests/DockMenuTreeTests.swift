@@ -3,9 +3,6 @@ import Testing
 
 @Suite("Apples Dock-Menue nachbauen")
 struct DockMenuTreeTests {
-    /// So sieht Apples Menue bei Vivaldi aus (gemessen 17.09. am Bildschirm):
-    /// das vordere Fenster mit Haken, ein Trenner, die Befehle der App, ein
-    /// Trenner, "Options" mit Untermenue, ein Trenner, der Schlussblock.
     private var vivaldi: [RawMenuItem] {
         [
             RawMenuItem(title: "ApolloShell, a desktop shell for macOS Tahoe - Vivaldi", mark: "✓"),

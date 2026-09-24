@@ -4,7 +4,6 @@ import Testing
 
 @Suite("App-Suche auf der Platte")
 struct AppCatalogTests {
-    /// Legt ein falsches .app-Bundle mit Info.plist an.
     private func makeApp(_ path: String, in root: URL, bundleID: String) throws {
         let contents = root.appendingPathComponent(path).appendingPathComponent("Contents")
         try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)

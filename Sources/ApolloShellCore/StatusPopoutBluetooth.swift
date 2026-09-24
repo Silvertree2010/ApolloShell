@@ -1,7 +1,5 @@
 import Foundation
 
-/// Ein Akkuwert eines Bluetooth-Geraets. AirPods melden links, rechts und
-/// Case getrennt, Tastatur und Maus nur einen.
 public struct StatusPopoutBluetoothBattery: Equatable, Sendable {
     public enum Part: String, Sendable {
         case main, left, right, `case`
@@ -15,7 +13,6 @@ public struct StatusPopoutBluetoothBattery: Equatable, Sendable {
         self.percent = percent
     }
 
-    /// Kurzbeschriftung vor der Zahl; beim einzigen Wert keine.
     public var label: String? {
         switch part {
         case .main: nil
@@ -26,13 +23,10 @@ public struct StatusPopoutBluetoothBattery: Equatable, Sendable {
     }
 }
 
-/// Ein gekoppeltes Geraet, wie system_profiler es auflistet.
 public struct StatusPopoutBluetoothDevice: Equatable, Sendable, Identifiable {
     public var name: String
-    /// system_profiler: `device_minorType` ("Headphones", "Keyboard", ...).
     public var minorType: String?
     public var connected: Bool
-    /// Nur bei verbundenen Geraeten; Reihenfolge Haupt, L, R, Case.
     public var batteries: [StatusPopoutBluetoothBattery]
 
     public init(name: String, minorType: String?, connected: Bool, batteries: [StatusPopoutBluetoothBattery]) {
@@ -44,9 +38,6 @@ public struct StatusPopoutBluetoothDevice: Equatable, Sendable, Identifiable {
 
     public var id: String { "\(connected ? 1 : 0)-\(name)" }
 
-    /// SF Symbol fuer die Zeile. Apple-Geraete am Namen erkannt (die
-    /// Kopfhoerer-Art allein unterscheidet AirPods nicht von anderen), sonst
-    /// nach Geraeteart; unbekannt: allgemeines Funksymbol.
     public var symbol: String {
         let lower = name.lowercased()
         if lower.contains("airpods max") { return "airpodsmax" }
@@ -66,11 +57,8 @@ public struct StatusPopoutBluetoothDevice: Equatable, Sendable, Identifiable {
     }
 }
 
-/// Alles, was das Bluetooth-Detailfenster zeigt.
 public struct StatusPopoutBluetoothSnapshot: Equatable, Sendable {
-    /// `nil`: Zustand nicht lesbar.
     public var powerOn: Bool?
-    /// Verbundene zuerst, sonst in der Reihenfolge von system_profiler.
     public var devices: [StatusPopoutBluetoothDevice]
 
     public init(powerOn: Bool?, devices: [StatusPopoutBluetoothDevice]) {
@@ -82,14 +70,6 @@ public struct StatusPopoutBluetoothSnapshot: Equatable, Sendable {
     public var pairedCount: Int { devices.count }
 }
 
-/// Liest Geraete aus `system_profiler SPBluetoothDataType -json` (ohne
-/// Freigabe-Dialog, siehe `BluetoothStatus`).
-///
-/// Form (gemessen 14.09., macOS 26): `device_connected` und
-/// `device_not_connected` sind Listen aus Ein-Schluessel-Woerterbuechern
-/// `{ "<Name>": { "device_minorType": ..., "device_batteryLevelMain": "85%" } }`.
-/// Auch getrennte Geraete tragen manchmal einen Akkuwert - den letzten
-/// bekannten. Der waere veraltet, deshalb nur bei verbundenen.
 public enum StatusPopoutBluetoothParser {
     public static func snapshot(fromSystemProfilerJSON data: Data) -> StatusPopoutBluetoothSnapshot? {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -128,7 +108,6 @@ public enum StatusPopoutBluetoothParser {
         }
     }
 
-    /// "85%" oder 85 -> 85; alles andere (auch ausserhalb 0...100) -> nil.
     static func percent(_ value: Any?) -> Int? {
         let number: Int?
         switch value {

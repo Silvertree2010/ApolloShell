@@ -5,20 +5,9 @@ import CoreGraphics
 import SwiftUI
 
 extension NSPasteboard.PasteboardType {
-    /// Bundle-ID eines Dock-Symbols, das in der Leiste verschoben wird.
     static let dockApp = NSPasteboard.PasteboardType(AppIdentity.scoped("dock-app"))
 }
 
-/// Maus auf einem Dock-Symbol, wie in Apples Dock: kurzer Klick loest aus
-/// (mit Modifikatoren, beim Loslassen und nur ueber dem Symbol - Wegziehen
-/// bricht ab), halten ab 0,5 s, Rechtsklick oder ⌃-Klick oeffnen das Menue,
-/// Ziehen verschiebt das Symbol, Dateien darauf ziehen oeffnet sie mit der
-/// App, Scrollen wechselt ihre Fenster.
-///
-/// Als AppKit-Ansicht statt SwiftUI-Button: SwiftUI kennt auf dem Mac weder
-/// "halten" neben einem Klick noch den Rechtsklick sauber, das Menue braucht
-/// eine Ansicht, an der es aufgeht, und Ziehen und Ablegen laeuft so an einer
-/// Stelle statt verteilt auf zwei Welten.
 struct DockMouseCatcher: NSViewRepresentable {
     let bundleID: String
     let dragImage: NSImage
@@ -54,12 +43,8 @@ struct DockMouseCatcher: NSViewRepresentable {
 }
 
 final class DockMouseView: NSView, NSDraggingSource {
-    /// Apple-Dock: so lange halten, bis das Menue kommt.
     private static let holdDelay: TimeInterval = 0.5
-    /// Ab so viel Bewegung ist es Ziehen statt Klicken.
     private static let dragThreshold: CGFloat = 4
-    /// Trackpads liefern viele kleine Schritte: so viel aufsummieren, und
-    /// hoechstens so oft wechseln, sonst rast man durch alle Fenster.
     private static let scrollStep: CGFloat = 30
     private static let scrollCooldown: TimeInterval = 0.3
 
@@ -74,7 +59,6 @@ final class DockMouseView: NSView, NSDraggingSource {
     var onDropTarget: (Bool) -> Void = { _ in }
 
     private var holdTimer: Timer?
-    /// Menue kam durch Halten: das Loslassen danach ist kein Klick.
     private var menuShown = false
     private var downPoint: NSPoint?
     private var dragging = false
@@ -90,11 +74,7 @@ final class DockMouseView: NSView, NSDraggingSource {
         fatalError("nicht aus Nib")
     }
 
-    /// Die Leiste gehoert einer App, die nie vorne ist; der erste Klick soll
-    /// trotzdem gleich wirken.
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-    // MARK: Klicken und Halten
 
     override func mouseDown(with event: NSEvent) {
         if event.modifierFlags.contains(.control) {
@@ -113,7 +93,6 @@ final class DockMouseView: NSView, NSDraggingSource {
                 self.onMenu(self)
             }
         }
-        // .common: laeuft auch, waehrend AppKit die Maus verfolgt.
         RunLoop.main.add(timer, forMode: .common)
         holdTimer = timer
     }
@@ -152,15 +131,9 @@ final class DockMouseView: NSView, NSDraggingSource {
         onMenu(self)
     }
 
-    // MARK: Ziehen (Quelle)
-
-    /// Nur innerhalb der Leiste verschieben; ausserhalb abgelegt passiert
-    /// nichts (kein "Wegziehen zum Entfernen" - dafuer gibt es das Menue).
     func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
         context == .withinApplication ? .move : []
     }
-
-    // MARK: Ablegen (Ziel)
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         let operation = operation(for: sender)
@@ -202,12 +175,7 @@ final class DockMouseView: NSView, NSDraggingSource {
         return pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) ? .copy : []
     }
 
-    // MARK: Scrollen
-
     override func scrollWheel(with event: NSEvent) {
-        // Laeuft die Spalte gerade als Scrollliste (zu viele Apps), gehoert
-        // das Scrollen ihr - sonst liesse sie sich ueber den Symbolen nicht
-        // mehr bewegen.
         if let scrollView = enclosingScrollView, let document = scrollView.documentView,
            document.frame.height > scrollView.contentView.bounds.height + 1 {
             super.scrollWheel(with: event)

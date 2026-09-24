@@ -4,7 +4,6 @@ import Testing
 
 @Suite("Fenster vor der linken Leiste zurechtruecken")
 struct WindowClampTests {
-    /// MacBook-Bildschirm in Bedienungshilfen-Koordinaten, Menueleiste 30 pt.
     let screen = CGRect(x: 0, y: 0, width: 1512, height: 982)
     let bar: CGFloat = 44
 
@@ -60,7 +59,7 @@ struct WindowClampTests {
 
     @Test("reichte es schon rechts hinaus, darf es dort bleiben")
     func alreadyBeyondRightEdgeKeepsIt() {
-        let beyond = CGRect(x: -10, y: 30, width: 1622, height: 900) // bis 1612
+        let beyond = CGRect(x: -10, y: 30, width: 1622, height: 900)
         #expect(clamp(beyond) == CGRect(x: 44, y: 30, width: 1568, height: 900))
     }
 
@@ -106,17 +105,16 @@ struct WindowClampTests {
     @Test("Zipfel of einem linken Nachbarbildschirm gehoert dem Nachbarn")
     func leftNeighbourOwnsWindow() {
         let left = CGRect(x: -1920, y: 0, width: 1920, height: 1080)
-        let window = CGRect(x: -800, y: 100, width: 830, height: 500) // 30 pt auf dem Hauptbildschirm
+        let window = CGRect(x: -800, y: 100, width: 830, height: 500)
         #expect(WindowClamp.dominantScreen(for: window, among: [screen, left]) == 1)
     }
 
     @Test("AppKit und Bedienungshilfen: y gespiegelt, hin und zurueck identisch")
     func flip() {
-        let menuBarStrip = CGRect(x: 0, y: 952, width: 1512, height: 30) // AppKit, oben
+        let menuBarStrip = CGRect(x: 0, y: 952, width: 1512, height: 30)
         let ax = WindowClamp.flipped(menuBarStrip, primaryHeight: 982)
         #expect(ax == CGRect(x: 0, y: 0, width: 1512, height: 30))
         #expect(WindowClamp.flipped(ax, primaryHeight: 982) == menuBarStrip)
-        // Bildschirm unterhalb des Hauptbildschirms: in AppKit negatives y.
         let below = CGRect(x: 0, y: -1080, width: 1920, height: 1080)
         #expect(WindowClamp.flipped(below, primaryHeight: 982) == CGRect(x: 0, y: 982, width: 1920, height: 1080))
     }
@@ -125,8 +123,6 @@ struct WindowClampTests {
 @Suite("Keine Schleifen beim Zurechtruecken")
 struct ClampLedgerTests {
     let frame = CGRect(x: 44, y: 30, width: 800, height: 600)
-
-    // #expect darf nichts Mutierendes aufrufen, deshalb erst in eine Konstante.
 
     @Test("unbekanntes Fenster darf angefasst werden")
     func freshWindow() {

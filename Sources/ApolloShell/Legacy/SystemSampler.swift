@@ -2,12 +2,7 @@ import Darwin
 import Foundation
 import ApolloShellCore
 
-/// Liest CPU, Arbeitsspeicher und Festplatte fuer die Ressourcen-Ringe des
-/// Dashboards. Alles oeffentliche Mach-/Foundation-Schnittstellen, keine
-/// Freigabe noetig.
 enum SystemSampler {
-    /// mach_host_self() einmal holen: jeder Aufruf belegt sonst einen neuen
-    /// Port-Verweis.
     private static let host = mach_host_self()
 
     static func cpuTicks() -> CPUTicks? {
@@ -21,7 +16,6 @@ enum SystemSampler {
             }
         }
         guard result == KERN_SUCCESS else { return nil }
-        // Reihenfolge laut <mach/machine.h>: USER, SYSTEM, IDLE, NICE.
         return CPUTicks(
             user: UInt64(info.cpu_ticks.0),
             system: UInt64(info.cpu_ticks.1),
@@ -30,8 +24,6 @@ enum SystemSampler {
         )
     }
 
-    /// "Belegter Speicher" wie in der Aktivitaetsanzeige, grob: aktiv +
-    /// fest verdrahtet + komprimiert.
     static func memory() -> (used: UInt64, total: UInt64)? {
         var stats = vm_statistics64()
         var count = mach_msg_type_number_t(
@@ -48,8 +40,6 @@ enum SystemSampler {
         return (used, ProcessInfo.processInfo.physicalMemory)
     }
 
-    /// Startvolume: belegt = gesamt - fuer Wichtiges verfuegbar (das zaehlt
-    /// auch loeschbare Caches als frei, wie der Finder).
     static func storage() -> (used: UInt64, total: UInt64)? {
         let keys: Set<URLResourceKey> = [.volumeTotalCapacityKey, .volumeAvailableCapacityForImportantUsageKey]
         guard let values = try? URL(fileURLWithPath: "/").resourceValues(forKeys: keys),

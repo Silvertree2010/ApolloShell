@@ -2,13 +2,11 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-/// Ein Space-Woerterbuch wie von CGSCopyManagedDisplaySpaces.
 private func space(_ id: Int, type: Int = 0) -> [String: Any] {
     ["ManagedSpaceID": id, "id64": id, "type": type, "uuid": ""]
 }
 
 private func display(_ identifier: String, spaces: [[String: Any]], current: Int) -> [String: Any] {
-    // Wie gemessen: der aktuelle Space traegt seinen eigenen Typ.
     let type = spaces.first { ($0["id64"] as? Int) == current }?["type"] as? Int ?? 0
     return ["Display Identifier": identifier, "Spaces": spaces, "Current Space": space(current, type: type)]
 }

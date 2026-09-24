@@ -1,22 +1,9 @@
 import ApolloShellCore
 import Carbon.HIToolbox
 
-/// Globaler Hotkey ueber Carbon (RegisterEventHotKey).
-///
-/// Braucht keine Bedienungshilfen-Rechte, anders als ein Event-Tap. Die
-/// fn-Taste selbst kann Carbon nicht abfangen; wer sie als Launcher-Taste
-/// will, laesst sie von einem Tastatur-Werkzeug (z. B. Karabiner-Elements)
-/// als F20 schicken und nimmt F20 als Kuerzel.
-///
-/// Ein einziger Ereignis-Handler fuer alle Hotkeys der App; er sucht die
-/// Aktion ueber die Kennung heraus. Die erste Fassung installierte pro Hotkey
-/// einen Handler, der auf JEDES Hotkey-Ereignis ansprang - mit mehreren
-/// haette jeder Tastendruck alle ausgeloest. Und seit sich Kuerzel zur
-/// Laufzeit aendern, muessen sie sich sauber abmelden lassen: ein Handler
-/// mit Zeiger auf ein freigegebenes Objekt waere ein Absturz.
 @MainActor
 final class GlobalHotKey {
-    private static let signature = OSType(0x4C4E_4348) // "LNCH"
+    private static let signature = OSType(0x4C4E_4348)
     private static var nextID: UInt32 = 1
     private static var handlerInstalled = false
     private static var actions: [UInt32: @MainActor () -> Void] = [:]
@@ -29,8 +16,6 @@ final class GlobalHotKey {
         self.ref = ref
     }
 
-    /// Registriert das Kuerzel. Scheitert es (z. B. hat eine andere App es
-    /// schon), kommt Carbons Fehlercode zurueck - Nexus zeigt ihn an.
     static func register(_ key: HotKey, action: @escaping @MainActor () -> Void) -> Result<GlobalHotKey, HotKeyRegistrationError> {
         let installed = installHandler()
         guard installed == noErr else { return .failure(HotKeyRegistrationError(status: installed)) }
@@ -46,7 +31,6 @@ final class GlobalHotKey {
         return .success(GlobalHotKey(id: id, ref: ref))
     }
 
-    /// Kuerzel freigeben; danach tut das Objekt nichts mehr.
     func unregister() {
         if let ref { UnregisterEventHotKey(ref) }
         ref = nil
@@ -66,8 +50,6 @@ final class GlobalHotKey {
                     nil, MemoryLayout<EventHotKeyID>.size, nil, &pressed
                 )
                 let hit = pressed
-                // Carbon liefert Hotkey-Ereignisse auf dem Main-Thread; erst
-                // dort Kennung vergleichen (die Tabelle ist Main-Actor-Zustand).
                 let handled = MainActor.assumeIsolated { () -> Bool in
                     guard status == noErr, hit.signature == GlobalHotKey.signature,
                           let action = GlobalHotKey.actions[hit.id]
@@ -75,7 +57,6 @@ final class GlobalHotKey {
                     action()
                     return true
                 }
-                // Fremde Hotkeys an den naechsten Handler weiterreichen.
                 return handled ? noErr : OSStatus(eventNotHandledErr)
             },
             1, &spec, nil, nil
@@ -85,11 +66,9 @@ final class GlobalHotKey {
     }
 }
 
-/// Carbon hat das Kuerzel nicht angenommen.
 struct HotKeyRegistrationError: Error, Equatable {
     let status: OSStatus
 
-    /// eventHotKeyExistsErr: jemand anderes hat es zuerst registriert.
     var alreadyTaken: Bool { status == OSStatus(eventHotKeyExistsErr) }
 
     var message: String {

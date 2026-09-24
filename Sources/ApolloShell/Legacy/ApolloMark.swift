@@ -1,20 +1,6 @@
 import ApolloShellCore
 import SwiftUI
 
-/// The ApolloShell mark (the logo of 0.2: an A with an orbit and a moon),
-/// drawn from the logo's own SVG paths, so the bar shows the logo and not
-/// a redrawing of it.
-///
-/// Layers, back to front: the back arc of the ring, the moon while it is
-/// behind, the A, the front arc, the moon while it is in front. The ring
-/// already runs through the A in the artwork (gaps in the A where the front
-/// arc crosses), so only the moon has to be sorted.
-///
-/// `orbit` 0...1 moves the moon once around its path and back to where the
-/// logo has it; 0 is the logo as drawn. The path is an ellipse fitted to
-/// the two ring arcs (least squares over points sampled from the curves,
-/// 21.09.): centre (501.4, 497.8), tilted by -18.4°, semi-axes scaled so
-/// that the moon's centre in the logo lies on it.
 struct ApolloMark: View {
     var orbit: Double = 0
 
@@ -25,10 +11,6 @@ struct ApolloMark: View {
     }
 }
 
-/// The whole mark as one path, filled once: in one colour the layers do
-/// not matter (the moon behind the A is hidden either way), and separate
-/// fills with a translucent colour such as `.primary` darkened every
-/// overlap. A shape so that `orbit` animates.
 private struct ApolloMarkShape: Shape {
     var orbit: Double
 
@@ -43,12 +25,8 @@ private struct ApolloMarkShape: Shape {
 }
 
 enum ApolloMarkGeometry {
-    /// Centred on the ring's centre, so the mark sits in the middle of its
-    /// frame (the artwork's own box, x 90...926, is not); large enough for
-    /// the moon at the far ends of its orbit.
     static let viewBox = CGRect(x: 501.4 - 470, y: 497.8 - 470, width: 940, height: 940)
 
-    /// From the view box into a frame, centred and kept square.
     static func transform(into rect: CGRect) -> CGAffineTransform {
         let side = min(rect.width, rect.height)
         let scale = side / viewBox.width
@@ -57,43 +35,26 @@ enum ApolloMarkGeometry {
             .scaledBy(x: scale, y: scale)
     }
 
-    /// The A, straight from the logo (with the gaps where the ring passes in
-    /// front of it).
     static let letter: Path = {
         var path = Path()
         for d in [SVG.aTop, SVG.rightLeg, SVG.leftLeg] { path.addPath(Path(svg: d)) }
         return path
     }()
 
-    // The orbit: an ellipse fitted to the logo's two ring arcs (least
-    // squares over points sampled from the curves, 21.09.).
     static let center = CGPoint(x: 501.4, y: 497.8)
-    /// Along the long axis (to the upper right) and the short one (down).
     private static let major = CGVector(dx: 0.9488, dy: -0.3159)
     private static let minor = CGVector(dx: 0.3159, dy: 0.9488)
     private static let a: CGFloat = 424.9
     private static let b: CGFloat = 92.6
 
-    /// The ring: the logo's two arcs, except around the moon's resting
-    /// place, where the logo leaves a break under the moon - with the moon
-    /// moving on, that break showed as a hole (21.09.). There the arcs are
-    /// cut off square to the ring (at 36° and 62°) and a band along the
-    /// ring's middle line takes over, as wide as the logo's ring at both
-    /// cuts (43.8 and 39.2, measured on the SVG).
     private static let bridgeStart = 36 * Double.pi / 180
     private static let bridgeEnd = 62 * Double.pi / 180
     private static let bridge = band(from: bridgeStart, to: bridgeEnd, startWidth: 43.8, endWidth: 39.2)
     private static let bridgeCut = band(from: bridgeStart, to: bridgeEnd, startWidth: 200, endWidth: 200)
     static let ringBack = Path(svg: SVG.ringBack).subtracting(bridgeCut)
     static let ringFront = Path(svg: SVG.ringFront).subtracting(bridgeCut).union(bridge)
-    /// The air around the moon, towards the ring and (in front) the A - as
-    /// wide as the gaps the logo leaves where the ring crosses the A.
     static let moonGap: CGFloat = 16
 
-    /// The whole mark as one outline, in the logo's coordinates, with the
-    /// moon at `orbit` (0 = where the logo has it). The gap around the moon
-    /// travels with it: cut out of the ring always, out of the A only while
-    /// the moon is in front of it.
     static func outline(orbit: Double = 0) -> Path {
         let moon = moon(at: orbit)
         let gap = circle(moon.center, moon.radius + moonGap)
@@ -102,9 +63,6 @@ enum ApolloMarkGeometry {
         return a.union(rings).union(circle(moon.center, moon.radius))
     }
 
-    /// The resting mark as a template image for the menu bar: fitted to the
-    /// artwork itself (not the roomier view box, the moon does not move
-    /// there), so it is as large as the bar allows.
     static func menuBarImage(side: CGFloat) -> NSImage {
         let path = outline()
         let bounds = path.boundingRect
@@ -128,12 +86,6 @@ enum ApolloMarkGeometry {
         Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r))
     }
 
-    /// The ring's middle line in the logo is not quite the fitted ellipse:
-    /// these are the distances from the ellipse to it, along its normal,
-    /// every 3° of `angle`, measured on the SVG (ray casting across the ring
-    /// arcs, smoothed; where the A hides the ring or at the break, filled in
-    /// between). The moon runs on this line, so it stays in the middle of
-    /// the ring all the way round.
     private static let offsets: [CGFloat] = [
         16.1, 15.0, 14.6, 14.1, 13.3, 12.6, 11.4, 9.4, 7.1, 5.3, 4.4, 4.0,
         3.5, 3.0, 2.4, 1.8, 1.1, 0.5, -0.1, -0.8, -1.4, -2.2, -3.1, -3.8,
@@ -147,8 +99,6 @@ enum ApolloMarkGeometry {
         1.7, 3.0, 4.6, 6.6, 9.5, 12.3, 14.6, 15.8, 16.8, 17.8, 18.2, 17.3,
     ]
 
-    /// Where the moon rests: the point on the ring's middle line nearest to
-    /// where the logo has it (cx 779.19, cy 472.95), 6 units from it.
     static let restAngle = 50 * Double.pi / 180
     static let radius: CGFloat = 51.29
 
@@ -172,20 +122,11 @@ enum ApolloMarkGeometry {
         return offsets[index % offsets.count] * (1 - t) + offsets[(index + 1) % offsets.count] * t
     }
 
-    /// A point on the ring's middle line. The near half (in front of the A)
-    /// is where `sin(angle) > 0`, as with the old emblem's orbit.
     static func orbitPoint(_ angle: Double) -> CGPoint {
         let (point, normal) = ellipse(angle)
         let o = offset(angle)
         return CGPoint(x: point.x + normal.dx * o, y: point.y + normal.dy * o)
     }
-
-    // Even speed. The orbit is a flat ellipse (425 by 93): stepping its
-    // angle evenly moved the moon nearly five times slower at the two ends
-    // than in front and behind, and it crawled there (21.09.). The moon's
-    // clock therefore runs in "phase", and `angle(forPhase:)` turns that
-    // into the orbit angle that lies as far along the ring as the phase
-    // says - equal steps of phase, equal steps of path.
 
     private static let lengthTable: [Double] = {
         let steps = 720
@@ -199,7 +140,6 @@ enum ApolloMarkGeometry {
         return table
     }()
 
-    /// The orbit angle for a phase (both in radians, any number of turns).
     static func angle(forPhase phase: Double) -> Double {
         let turns = (phase / (2 * .pi)).rounded(.down)
         let target = (phase / (2 * .pi) - turns) * lengthTable.last!
@@ -215,7 +155,6 @@ enum ApolloMarkGeometry {
         return (turns + (Double(low) + t) / steps) * 2 * .pi
     }
 
-    /// The phase for an orbit angle: the inverse of `angle(forPhase:)`.
     static func phase(forAngle angle: Double) -> Double {
         let turns = (angle / (2 * .pi)).rounded(.down)
         let position = (angle / (2 * .pi) - turns) * Double(lengthTable.count - 1)
@@ -225,8 +164,6 @@ enum ApolloMarkGeometry {
         return (turns + length / lengthTable.last!) * 2 * .pi
     }
 
-    /// A piece of ring as a filled band along the middle line, its width
-    /// going evenly from one end to the other.
     private static func band(from start: Double, to end: Double, startWidth: CGFloat, endWidth: CGFloat) -> Path {
         let steps = 32
         var outer: [CGPoint] = []
@@ -245,12 +182,8 @@ enum ApolloMarkGeometry {
         return path
     }
 
-    /// The triangle inside the A, above the ring: room for the thinking dots.
     static let counter = CGPoint(x: 492, y: 505)
 
-    /// Position, size and layer of the moon at `orbit` 0...1. In front while
-    /// on the near half of the ring (the lower one); a touch smaller at the
-    /// back, for depth.
     static func moon(at orbit: Double) -> (center: CGPoint, radius: CGFloat, inFront: Bool) {
         let angle = self.angle(forPhase: phase(forAngle: restAngle) + 2 * .pi * orbit)
         let s = CGFloat(sin(angle))
@@ -270,8 +203,6 @@ enum ApolloMarkGeometry {
 }
 
 extension Path {
-    /// A path out of SVG path data (`SVGPathData`), in the SVG's own
-    /// coordinates (y down, as in SwiftUI).
     init(svg d: String) {
         self.init()
         for step in SVGPathData.parse(d) {

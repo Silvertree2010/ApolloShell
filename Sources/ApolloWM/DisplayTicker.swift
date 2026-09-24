@@ -1,7 +1,5 @@
 import AppKit
 
-/// Calls back once per display refresh (vsync) on the main thread, so the
-/// glide steps in time with the screen instead of beating against it.
 @MainActor
 final class DisplayTicker: NSObject {
     private let tick: @MainActor () -> Void

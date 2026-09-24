@@ -3,26 +3,12 @@ import Foundation
 import IOKit.ps
 import ApolloShellCore
 
-/// Ladegeraet ein/aus und Akku-Warnstufen als Kurzmeldungen (Caelestia:
-/// modules/BatteryMonitor.qml). Liest nur, loest nie Ruhezustand oder eine
-/// andere Sitzungsaktion aus - bei leerem Akku handelt macOS selbst.
-///
-/// Eigene IOKit-Meldung statt Anhaengen an `StatusModel`: das gehoert der
-/// Leiste und soll nicht wissen, wer sonst noch am Akku interessiert ist.
-/// Gelesen wird mit derselben Funktion.
-///
-/// Lebt so lange wie die App: die IOKit-Quelle haelt einen unretained
-/// Zeiger auf das Objekt (wie in `StatusModel`).
 @MainActor
 final class ToastPowerMonitor {
-    /// Rueckfall, falls die IOKit-Meldung ausbleibt (wie StatusModel).
     private static let fallbackInterval: TimeInterval = 60
 
     private let toaster: Toaster
-    /// Nexus > Kurzmeldungen: im Moment des Ereignisses gefragt, gilt also
-    /// sofort.
     private let settings: ShellSettingsStore
-    /// `nil`: kein Akku (Mac mini, iMac) - dann gibt es nichts zu melden.
     private var tracker: BatteryToastTracker?
     private var source: CFRunLoopSource?
     private var timer: Timer?
@@ -30,7 +16,6 @@ final class ToastPowerMonitor {
     init(toaster: Toaster, settings: ShellSettingsStore) {
         self.toaster = toaster
         self.settings = settings
-        // Der Zustand beim Start ist Ausgangspunkt, keine Meldung.
         if let state = StatusModel.readBattery() {
             tracker = BatteryToastTracker(percent: state.level, onBattery: !state.onAC)
         }
@@ -44,8 +29,6 @@ final class ToastPowerMonitor {
             tracker = BatteryToastTracker(percent: state.level, onBattery: !state.onAC)
             return
         }
-        // Der Tracker laeuft auch bei ausgeschalteter Meldung mit: sonst
-        // kaeme beim Wiedereinschalten eine laengst vergangene Warnung.
         let events = tracker.update(percent: state.level, onBattery: !state.onAC)
         self.tracker = tracker
         let toasts = settings.settings.toasts
@@ -54,13 +37,11 @@ final class ToastPowerMonitor {
         }
     }
 
-    /// IOKit meldet Netzteil und Ladestand sofort.
     private func observe() {
         let context = Unmanaged.passUnretained(self).toOpaque()
         guard let source = IOPSNotificationCreateRunLoopSource({ context in
             guard let context else { return }
             let monitor = Unmanaged<ToastPowerMonitor>.fromOpaque(context).takeUnretainedValue()
-            // Die Quelle haengt am Main-Runloop, der Aufruf kommt also dort an.
             MainActor.assumeIsolated { monitor.refresh() }
         }, context)?.takeRetainedValue() else { return }
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
@@ -68,11 +49,6 @@ final class ToastPowerMonitor {
     }
 }
 
-/// Wechsel des Standard-Ausgabe- und -Eingangsgeraets als Kurzmeldung
-/// (Caelestia: services/Audio.qml, beide Meldungen dort standardmaessig an).
-///
-/// Nur CoreAudio-Eigenschaften lesen - kein Ton, also keine
-/// Mikrofon-Freigabe. Schaltet nie ein Geraet um.
 @MainActor
 final class ToastAudioMonitor {
     private let toaster: Toaster
@@ -84,7 +60,6 @@ final class ToastAudioMonitor {
     init(toaster: Toaster, settings: ShellSettingsStore) {
         self.toaster = toaster
         self.settings = settings
-        // Erste Namen merken, ohne Meldung.
         check(kAudioHardwarePropertyDefaultOutputDevice)
         check(kAudioHardwarePropertyDefaultInputDevice)
         listen(kAudioHardwarePropertyDefaultOutputDevice)
@@ -100,15 +75,10 @@ final class ToastAudioMonitor {
         listeners.append(listener)
     }
 
-    /// Kein Geraet: nichts merken (Caelestia vergleicht nur, wenn es vorher
-    /// schon einen Namen gab).
     private func check(_ selector: AudioObjectPropertySelector) {
         guard let device = Self.defaultDevice(selector) else { return }
         let name = Self.name(of: device) ?? ""
         let toasts = settings.settings.toasts
-        // `update` zuerst und immer: der Name wird auch bei ausgeschalteter
-        // Meldung nachgefuehrt (sonst meldete das Wiedereinschalten einen
-        // alten Wechsel).
         if selector == kAudioHardwarePropertyDefaultOutputDevice {
             if output.update(name: name), toasts.audioOutputChanged { toaster.toast(ToastText.audioOutput(name)) }
         } else {
@@ -133,8 +103,6 @@ final class ToastAudioMonitor {
         return device
     }
 
-    /// Anzeigename, z. B. "MacBook Pro-Lautsprecher". CoreAudio gibt den
-    /// CFString mit +1 zurueck, deshalb `takeRetainedValue`.
     private static func name(of device: AudioObjectID) -> String? {
         var address = address(kAudioObjectPropertyName)
         var name: Unmanaged<CFString>?

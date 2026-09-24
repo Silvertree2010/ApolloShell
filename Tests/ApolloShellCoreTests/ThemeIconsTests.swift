@@ -4,7 +4,6 @@ import Testing
 
 @Suite("Themes: Symbole aus dem Theme")
 struct ThemeIconsTests {
-    /// Reicht als Datei - geprueft wird der Pfad, nicht der Bildinhalt.
     private let pixel = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
 
     private func themeFolder(_ icons: [String], css: String = ":root { --apollo-theme-name: \"Icons\"; }") throws -> URL {

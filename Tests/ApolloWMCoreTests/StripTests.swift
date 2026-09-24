@@ -121,7 +121,6 @@ struct StripTests {
         var strip = strip(3)
         strip.focus(3)
         strip.scrollToFocused(area: area, gaps: gaps)
-        // The third column ends at 1520; the viewport is 1000 wide.
         #expect(strip.offset == 520)
         let frames = strip.layout(in: area, gaps: gaps)
         #expect(frames[3] == CGRect(x: 500, y: 0, width: 500, height: 600))
@@ -143,7 +142,6 @@ struct StripTests {
         strip.scroll(by: -500, area: area, gaps: gaps)
         #expect(strip.offset == 0)
         strip.scroll(by: 5000, area: area, gaps: gaps)
-        // Two columns of 500 with a 10 gap = 1010, screen 1000.
         #expect(strip.offset == 10)
     }
 

@@ -1,17 +1,3 @@
-// Builds the ApolloShell app icon: the logo mark, black on a white squircle,
-// and turns it into Support/AppIcon.icns plus the PNGs the website and the
-// README use.
-//
-// The mark is the project's own logo, Support/ApolloMark.svg (the same
-// artwork the shell draws in the session menu). This script renders it with
-// `rsvg-convert` (librsvg), trims the transparent margin, and composites it
-// on a white squircle. librsvg is the only extra dependency; the committed
-// Support/AppIcon.icns is what actually ships, so a machine without it can
-// still build the app.
-//
-// Run from the package root:
-//   rsvg-convert --version >/dev/null   # brew install librsvg
-//   swift scripts/make-icon.swift
 
 import AppKit
 import CoreGraphics
@@ -25,7 +11,6 @@ let markSVG = root.appendingPathComponent("Support/ApolloMark.svg")
 let temp = FileManager.default.temporaryDirectory.appendingPathComponent("apollo-mark-\(UUID().uuidString).png")
 defer { try? FileManager.default.removeItem(at: temp) }
 
-// 1. Render the mark to a big PNG (black on transparent).
 func rsvg(_ args: [String]) {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -36,8 +21,6 @@ func rsvg(_ args: [String]) {
 }
 rsvg(["-w", "2048", "-h", "2048", markSVG.path, "-o", temp.path])
 
-// 2. Load it and find the tight bounding box of the non-transparent pixels,
-//    so the mark is centred on its own ink, not on the SVG's roomy view box.
 let markFull = NSBitmapImageRep(data: try! Data(contentsOf: temp))!.cgImage!
 let (mw, mh) = (markFull.width, markFull.height)
 let bytesPerRow = mw * 4
@@ -57,13 +40,11 @@ let cropRect = CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - m
 let mark = markFull.cropping(to: cropRect)!
 let iw = CGFloat(mark.width), ih = CGFloat(mark.height)
 
-// 3. Compose: black mark on a white squircle.
 let canvas: CGFloat = 1024
 let body = CGRect(x: 76, y: 76, width: 872, height: 872)
 
 func gray(_ v: CGFloat, _ a: CGFloat = 1) -> CGColor { CGColor(gray: v, alpha: a) }
 
-/// Superellipse (n = 5) - close to Apple's continuous-corner squircle.
 func squircle(in rect: CGRect, exponent n: CGFloat = 5) -> CGPath {
     let path = CGMutablePath()
     let a = rect.width / 2, b = rect.height / 2, steps = 1440
@@ -89,7 +70,6 @@ func render(size: Int) -> CGImage {
     ctx.addPath(shape)
     ctx.setFillColor(gray(1))
     ctx.fillPath()
-    // A hair of edge, so the white tile still reads on a white page.
     ctx.saveGState()
     ctx.addPath(shape)
     ctx.setStrokeColor(gray(0, 0.06))
@@ -107,7 +87,6 @@ func png(_ image: CGImage) -> Data {
     NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])!
 }
 
-// 4. Write the iconset and turn it into Support/AppIcon.icns.
 let iconset = FileManager.default.temporaryDirectory.appendingPathComponent("AppIcon.iconset")
 try? FileManager.default.removeItem(at: iconset)
 try! FileManager.default.createDirectory(at: iconset, withIntermediateDirectories: true)
@@ -127,8 +106,6 @@ iconutil.arguments = ["-c", "icns", iconset.path, "-o", root.appendingPathCompon
 try! iconutil.run(); iconutil.waitUntilExit()
 try? FileManager.default.removeItem(at: iconset)
 
-// 5. The website favicon and the README icon: a 512 PNG and an apple-touch
-//    icon. The .ico is built once with Pillow; see scripts/make-favicon.py.
 try! png(image(512)).write(to: root.appendingPathComponent("docs/images/icon.png"))
 try! png(render(size: 180)).write(to: root.appendingPathComponent("docs/apple-touch-icon.png"))
 

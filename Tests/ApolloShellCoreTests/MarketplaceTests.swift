@@ -2,7 +2,6 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-/// Records what the client sent and answers with a fixed body.
 private final class FakeServer: @unchecked Sendable {
     var requests: [URLRequest] = []
     var answer: (Data, Int)

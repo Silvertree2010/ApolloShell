@@ -45,7 +45,6 @@ struct NeighborsTests {
         var tree = threeWindows()
         tree.toggleSplit(of: 3)
         let f = tree.layout(in: area)
-        // 2 and 3 were stacked in the right half; now side by side.
         #expect(f[2] == CGRect(x: 500, y: 0, width: 250, height: 600))
         #expect(f[3] == CGRect(x: 750, y: 0, width: 250, height: 600))
     }

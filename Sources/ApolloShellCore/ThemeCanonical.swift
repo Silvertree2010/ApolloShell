@@ -1,25 +1,11 @@
 import Foundation
 
-/// Why a theme cannot go to the Marketplace as it is.
 public enum ThemeCanonicalProblem: Error, Equatable, Sendable {
-    /// The theme points at a file (a background, an author picture). The
-    /// Marketplace takes plain CSS only for now.
     case usesFiles([String])
-    /// Nothing the shell knows about is left.
     case noTokens
 }
 
-/// Writes a theme back out as CSS in one fixed form: only tokens the shell
-/// knows, values as the shell read them, in catalogue order, no comments.
-///
-/// This is what goes to the Marketplace. The server takes this form and
-/// nothing else (it checks every line against the token manifest), so a
-/// file that looked fine to the parser but carried anything else - a
-/// selector, an `@import`, a stray comment - never reaches another Mac.
 public enum ThemeCanonical {
-    /// Tokens the Marketplace drops: the author comes from the GitHub
-    /// account, a homepage would be a link nobody checked, and the format
-    /// is written by whoever writes the file.
     public static let droppedTokens: Set<String> = [
         "--apollo-theme-author",
         "--apollo-theme-homepage",
@@ -66,8 +52,6 @@ public enum ThemeCanonical {
         return .success(lines.joined(separator: "\n") + "\n")
     }
 
-    /// The value as CSS, or `nil` when it has no place in plain CSS (an
-    /// empty file reference).
     private static func text(for value: ThemeValue, of token: ThemeTokenDescriptor) -> String? {
         switch value {
         case let .text(raw): "\"\(cleanText(raw))\""
@@ -76,8 +60,6 @@ public enum ThemeCanonical {
         }
     }
 
-    /// Text inside quotes without the characters that could end the string
-    /// or start an escape: no quotes, no backslashes, no line breaks.
     public static func cleanText(_ raw: String) -> String {
         let kept = raw.unicodeScalars.filter { scalar in
             scalar != "\"" && scalar != "\\" && !CharacterSet.controlCharacters.contains(scalar)
@@ -86,8 +68,6 @@ public enum ThemeCanonical {
     }
 }
 
-/// The token catalogue as JSON, for the Marketplace server: it checks
-/// uploads against exactly the tokens and ranges this build knows.
 public enum ThemeTokenManifest {
     public static func json(catalog: ThemeTokenCatalog = .standard,
                             limits: ThemeLimits = .standard) throws -> Data {

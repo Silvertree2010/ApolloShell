@@ -4,7 +4,6 @@ import Testing
 
 @Suite("Kurzmeldungen: Akku-Warnstufen")
 struct BatteryToastTrackerTests {
-    /// Nur die Stufe der Warnung, 0 = keine Warnung.
     private func warnedLevel(_ events: [BatteryToastEvent]) -> Int {
         for event in events {
             if case .warning(let level) = event { return level.level }
@@ -64,7 +63,6 @@ struct BatteryToastTrackerTests {
         let plugged = tracker.update(percent: 15, onBattery: false)
         #expect(plugged == [.chargerConnected])
         #expect(tracker.reference == 100)
-        // Gleich wieder abziehen: Warnung fuer 15 % kommt noch einmal.
         let events = tracker.update(percent: 15, onBattery: true)
         #expect(events.first == .chargerDisconnected)
         #expect(warnedLevel(events) == 20)
@@ -124,7 +122,7 @@ struct ToastQueueTests {
 
     @Test("Aelteste laufen zuerst ab, die ausgeblendeten laufen mit ab")
     func expiryOrder() {
-        var queue = queue(count: 6) // T0 bei +0 s ... T5 bei +5 s
+        var queue = queue(count: 6)
         #expect(queue.nextDeadline == start.addingTimeInterval(5))
         let changed = queue.expire(now: start.addingTimeInterval(6))
         #expect(changed)

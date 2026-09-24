@@ -31,7 +31,7 @@ struct DashboardLogicTests {
         let weeks = CalendarMonth.weeks(for: date(2026, 9, 14), today: date(2026, 9, 14), calendar: calendar)
         let today = weeks.flatMap { $0 }.filter(\.isToday)
         #expect(today.count == 1)
-        #expect(weeks[2][0].isToday) // Montag der dritten Zeile
+        #expect(weeks[2][0].isToday)
     }
 
     @Test("Monat mit 6 Wochen (Maerz 2026 beginnt am Sonntag)")
@@ -50,7 +50,6 @@ struct DashboardLogicTests {
     func cpuUsage() {
         let old = CPUTicks(user: 100, system: 50, idle: 800, nice: 0)
         let new = CPUTicks(user: 130, system: 60, idle: 860, nice: 0)
-        // busy 40, idle 60 -> 40 %
         #expect(ResourceMath.cpuUsage(from: old, to: new) == 0.4)
     }
 
@@ -68,12 +67,10 @@ struct DashboardLogicTests {
         #expect(ResourceMath.fraction(used: 1, total: 0) == 0)
     }
 
-    // Ausgerechnete Werte: mit `3.0 * 3600 + 12 * 60` im Array gibt der
-    // Typpruefer auf ("unable to type-check in reasonable time").
     @Test("Laufzeit-Text", arguments: [
-        (TimeInterval(2_700), "45m"),        // 45 Minuten
-        (TimeInterval(11_520), "3h 12m"), // 3 h 12 min
-        (TimeInterval(183_600), "2d 3h"),   // 2 Tage 3 h
+        (TimeInterval(2_700), "45m"),
+        (TimeInterval(11_520), "3h 12m"),
+        (TimeInterval(183_600), "2d 3h"),
     ])
     func uptime(seconds: TimeInterval, text: String) {
         #expect(UptimeText.format(seconds: seconds) == text)

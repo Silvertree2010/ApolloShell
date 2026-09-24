@@ -25,10 +25,8 @@ struct WeatherChoiceTests {
         let addedVienna = favorites.add(Self.vienna)
         #expect(addedVienna)
         #expect(favorites.locations == [Self.berlin, Self.vienna])
-        // weiterhin der erste gewaehlt
         #expect(favorites.selected == Self.berlin)
 
-        // dieselben Koordinaten, anderer Name: kein zweiter Eintrag
         let renamed = WeatherLocation(name: "Berlin Mitte", latitude: 52.52, longitude: 13.405)
         let addedDuplicate = favorites.add(renamed)
         #expect(!addedDuplicate)

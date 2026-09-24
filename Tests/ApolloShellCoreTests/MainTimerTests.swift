@@ -10,8 +10,6 @@ private final class Counter {
 @Suite("Timer auf dem Hauptthread")
 @MainActor
 struct MainTimerTests {
-    /// Laesst die RunLoop des Hauptthreads laufen, bis `done` gilt oder die
-    /// Zeit um ist.
     private func spin(for seconds: TimeInterval, until done: () -> Bool = { false }) {
         let end = Date().addingTimeInterval(seconds)
         while !done(), Date() < end {

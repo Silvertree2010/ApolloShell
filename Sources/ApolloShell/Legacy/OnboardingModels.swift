@@ -5,9 +5,6 @@ import Observation
 import ServiceManagement
 import SwiftUI
 
-/// Stand der Bedienungshilfen-Freigabe, live. macOS meldet nicht, wenn man
-/// sie in den Systemeinstellungen erteilt - also nachsehen, solange jemand
-/// hinschaut (Einfuehrung, Nexus > Allgemein). AXIsProcessTrusted ist billig.
 @MainActor
 @Observable
 final class OnboardingPermissions {
@@ -15,7 +12,6 @@ final class OnboardingPermissions {
 
     @ObservationIgnored private let live: Bool
     @ObservationIgnored private var timer: Timer?
-    /// Wer gerade hinschaut; der Timer laeuft, solange einer da ist.
     @ObservationIgnored private var watchers: Set<String> = []
     @ObservationIgnored private var asked = false
 
@@ -29,7 +25,6 @@ final class OnboardingPermissions {
         self.accessibility = accessibility
     }
 
-    /// Fuer Bildproben: fester Stand, fragt nie das System.
     static func preview(accessibility: Bool) -> OnboardingPermissions {
         OnboardingPermissions(preview: accessibility)
     }
@@ -53,22 +48,16 @@ final class OnboardingPermissions {
         }
     }
 
-    /// Einmal pro Start die Systemfrage: sie traegt ApolloShell in die Liste
-    /// der Bedienungshilfen ein, sonst muesste man die App dort selbst
-    /// suchen. Dazu direkt der richtige Bereich der Systemeinstellungen.
     func openAccessibilitySettings() {
         guard live else { return }
         if !accessibility, !asked {
             asked = true
-            // Wert von kAXTrustedCheckOptionPrompt (siehe WindowGuard).
             _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
         }
         NexusSystemSettings.open(.accessibility)
     }
 }
 
-/// Bei der Anmeldung starten, ueber SMAppService.mainApp - das
-/// Anmeldeobjekt, das macOS unter Allgemein > Anmeldeobjekte zeigt.
 @MainActor
 @Observable
 final class OnboardingAutostartModel {
@@ -97,22 +86,17 @@ final class OnboardingAutostartModel {
         self.isAppBundle = isAppBundle
     }
 
-    /// Fuer Bildproben: liest und schaltet nichts.
     static func preview(status: OnboardingAutostart.Status = .notRegistered, launchdLabel: String? = nil,
                         isAppBundle: Bool = true) -> OnboardingAutostartModel {
         OnboardingAutostartModel(preview: status, launchdLabel: launchdLabel, isAppBundle: isAppBundle)
     }
 
-    /// Nach aussen kann es sich aendern (Systemeinstellungen) - beim Zeigen
-    /// frisch lesen.
     func refresh() {
         guard live else { return }
         let now = Self.read()
         if now != status { status = now }
     }
 
-    /// Nur, wenn der Schalter bedienbar ist: nie aus einem Entwicklungs-Build
-    /// und nie zusaetzlich zu einem eigenen launchd-Agenten.
     func setEnabled(_ on: Bool) {
         guard live, state.canToggle, on != state.isOn else { return }
         do {
@@ -144,16 +128,11 @@ final class OnboardingAutostartModel {
     }
 }
 
-// MARK: - Bausteine fuer Einfuehrung und Nexus
-
-/// Schalter "Start at Login" samt Hinweisen.
 struct OnboardingAutostartToggle: View {
     let model: OnboardingAutostartModel
 
     var body: some View {
         let state = model.state
-        // Eigene Zeile statt NexusToggle: ausserhalb eines Form (Einfuehrung)
-        // saesse der Schalter sonst direkt am Text statt am rechten Rand.
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Start at Login")
@@ -178,7 +157,6 @@ struct OnboardingAutostartToggle: View {
     }
 }
 
-/// Bedienungshilfen: wozu, Stand (live) und der Weg in die Einstellungen.
 struct OnboardingAccessibilityRow: View {
     let permissions: OnboardingPermissions
 
@@ -200,9 +178,6 @@ struct OnboardingAccessibilityRow: View {
     }
 }
 
-/// System Events: fragt macOS selbst, beim ersten Abmelden, Neustarten oder
-/// Ausschalten. Hier absichtlich nicht ausloesen - eine Frage ohne Anlass
-/// waere nur verwirrend.
 struct OnboardingSystemEventsRow: View {
     var body: some View {
         OnboardingPermissionRow(

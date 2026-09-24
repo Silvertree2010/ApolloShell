@@ -1,24 +1,6 @@
 import AppKit
 import ApolloWM
 
-// Measurement tool for the drag-and-glide spike.
-//
-//   apollowm-probe bench [--max N]
-//       Tiles the windows on the main display, animates big layout changes,
-//       prints frame rate and write cost, checks where windows really ended up,
-//       then puts every window back where it was.
-//   apollowm-probe selftest [--seed N] [--steps N]
-//       For the test VM only: random steps with TextEdit windows, checking
-//       after each that windows sit on their tiles and never overlap.
-//   apollowm-probe echo-socket PATH
-//       Touches no window: answers every line on a command socket at PATH
-//       with "echo: LINE" for a few seconds, to test the socket and twmctl.
-//   apollowm-probe spaces
-//       Read-only: prints the shown desktop and the desktop of every window.
-//   apollowm-probe run [--max N]
-//       Tiles and stays live: pick up a window by its title bar and the others
-//       close the gap; drop it and everything glides into place. Ctrl+C restores.
-
 setvbuf(stdout, nil, _IOLBF, 0)
 let args = Array(CommandLine.arguments.dropFirst())
 let mode = args.first ?? ""
@@ -39,7 +21,6 @@ if mode == "echo-socket", args.count > 1 {
     withExtendedLifetime(server) { RunLoop.main.run() }
 }
 
-// Read-only: which desktop is shown and where every normal window lives.
 if mode == "spaces" {
     print("shown desktop: \(Spaces.current().map(String.init) ?? "unknown"), order: \(Spaces.ordered())")
     for display in Spaces.displays() {
@@ -75,8 +56,6 @@ if WindowDiscovery.isStageManagerOn {
     print("warning: Stage Manager is on. It moves windows on every app switch and fights tiling.")
 }
 
-// Trace: a background thread pings the main thread every 5 ms and reports
-// when it answers late, to tell a blocked main thread from a slow ticker.
 if ProcessInfo.processInfo.environment["APOLLOWM_TRACE"] == "1" {
     Thread.detachNewThread {
         while true {
@@ -92,18 +71,15 @@ if ProcessInfo.processInfo.environment["APOLLOWM_TRACE"] == "1" {
 }
 
 let app = NSApplication.shared
-// Accessory, not prohibited: proxy glides show our own snapshot windows.
 app.setActivationPolicy(.accessory)
 
 guard let area = WindowDiscovery.mainArea() else { print("no display"); exit(1) }
 var found = WindowDiscovery.tileableWindows(in: area)
 if let max = option("--max").flatMap(Int.init) { found = Array(found.prefix(max)) }
-// Bench needs windows; run mode starts empty and picks windows up as they appear.
 guard !found.isEmpty || mode == "run" || mode == "selftest" else { print("no windows to tile on the main display"); exit(1) }
 
 print("area \(area)")
 for w in found {
-    // App frame and window-server frame must agree, or drag detection is blind.
     let app = w.frame.map { "\(Int($0.minX)),\(Int($0.minY))" } ?? "-"
     let server = w.serverFrame.map { "\(Int($0.minX)),\(Int($0.minY))" } ?? "-"
     let space = Spaces.of(w.windowID).map(String.init) ?? "-"
@@ -113,7 +89,6 @@ for w in found {
 let enhancedUI = EnhancedUIGuard()
 enhancedUI.disable(for: Set(found.map(\.pid)))
 
-/// Set once the engine exists; puts every managed window back.
 var restoreWindows: (() -> Void)?
 
 @MainActor func restoreAndExit(_ code: Int32) -> Never {
@@ -138,17 +113,13 @@ if options.resize == .proxy && !CGPreflightScreenCaptureAccess() {
     print("Screen Recording not allowed: proxy glides fall back to smooth. Asking macOS for it.")
     CGRequestScreenCaptureAccess()
 }
-// ApolloShell's sidebar sits on the left edge, 44 pt wide.
 options.reserved.left = option("--reserve-left").flatMap(Double.init).map { CGFloat($0) } ?? 44
 let engine = TilingEngine(area: area, options: options)
 
-// The arrangement survives restarts: loaded before adopting, saved after
-// every glide and on quit.
 let layoutFile = FileManager.default.homeDirectoryForCurrentUser
     .appendingPathComponent("Library/Application Support/ApolloWM/probe-layout.json")
 @MainActor func saveLayout(now: Bool = false) {
     guard let data = try? JSONEncoder().encode(engine.snapshot()) else { return }
-    // Writing syncs to disk (fsync); off the main thread except on quit.
     let write = { @Sendable in
         try? FileManager.default.createDirectory(at: layoutFile.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? data.write(to: layoutFile, options: .atomic)
@@ -161,8 +132,6 @@ if mode == "run", let data = try? Data(contentsOf: layoutFile),
         .compactMap { $0[kCGWindowNumber as String] as? CGWindowID })
     engine.restore(snapshot, alive: { existing.contains($0) })
 }
-// On quit, windows stay where the layout put them (the user's wish), unless
-// --restore-on-quit; bench and selftest always put everything back.
 let restoreOnQuit = mode != "run" || args.contains("--restore-on-quit")
 restoreWindows = {
     if mode == "run" { saveLayout(now: true) }
@@ -179,7 +148,6 @@ if let space = Spaces.current() {
     engine.resetStats()
 }
 
-/// Largest distance between where a window should be and where it is.
 @MainActor func verify() {
     for (id, target) in engine.targetFrames() {
         guard let window = engine.windows[id] else { continue }
@@ -210,7 +178,6 @@ case "bench":
         }
         let next = steps.removeFirst()
         current = next.0
-        // Short pause so each animation starts from rest.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { MainActor.assumeIsolated { next.1() } }
     }
     engine.adopt(found)

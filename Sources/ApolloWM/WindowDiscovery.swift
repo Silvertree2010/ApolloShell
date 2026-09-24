@@ -6,16 +6,11 @@ import Synchronization
 private func _AXUIElementCreateWithRemoteToken(_ token: CFData) -> Unmanaged<AXUIElement>?
 
 public enum WindowDiscovery {
-    /// Whether this process may control other apps' windows. With `prompt`,
-    /// macOS shows its permission dialog when access is missing.
     public static func isTrusted(prompt: Bool) -> Bool {
         let key = "AXTrustedCheckOptionPrompt" as CFString
         return AXIsProcessTrustedWithOptions([key: prompt] as CFDictionary)
     }
 
-    /// The window that has keyboard focus, if any, managed or not. Chromium
-    /// apps (Vivaldi) sometimes report no focused window at all (seen live);
-    /// their main window counts then.
     public static func focusedWindow() -> AXWindow? {
         guard let app = focusedApplication() else { return nil }
         for attribute in [kAXFocusedWindowAttribute, kAXMainWindowAttribute] {
@@ -27,8 +22,6 @@ public enum WindowDiscovery {
         return nil
     }
 
-    /// The focused window's number. When the app names no window, the
-    /// topmost normal window it has on screen stands in.
     public static func focusedWindowID() -> CGWindowID? {
         if let id = focusedWindow()?.windowID { return id }
         guard let app = focusedApplication() else { return nil }
@@ -49,15 +42,10 @@ public enum WindowDiscovery {
         return (app as! AXUIElement)
     }
 
-    /// Stage Manager shrinks inactive apps' windows to thumbnails at the
-    /// screen edge and moves them on every app switch. It fights any tiling
-    /// window manager, so hosts should warn when it is on.
     public static var isStageManagerOn: Bool {
         UserDefaults(suiteName: "com.apple.WindowManager")?.bool(forKey: "GloballyEnabled") ?? false
     }
 
-    /// Usable area of the main display (menu bar and Dock excluded),
-    /// in global top-left coordinates.
     @MainActor
     public static func mainArea() -> CGRect? {
         guard let primary = NSScreen.screens.first else { return nil }
@@ -68,14 +56,10 @@ public enum WindowDiscovery {
                       height: visible.height)
     }
 
-    /// Normal windows get tiled; dialogs and panels are managed too, but float.
     static let managedSubroles: Set<String> = [
         kAXStandardWindowSubrole, kAXDialogSubrole, kAXSystemDialogSubrole, kAXFloatingWindowSubrole,
     ]
 
-    /// Normal, visible windows on the current Space whose center (as the
-    /// window server sees it) lies in `area`, sorted left to right so the
-    /// first tiling keeps their rough order.
     public static func tileableWindows(in area: CGRect) -> [AXWindow] {
         let own = getpid()
         let infos = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
@@ -101,9 +85,6 @@ public enum WindowDiscovery {
                       element.bool("AXFullScreen") != true,
                       let window = AXWindow(element: element, pid: pid),
                       onScreen.contains(window.windowID),
-                      // The window server's frame decides, not the app's: Stage
-                      // Manager parks windows past the screen edge as thumbnails
-                      // while the app still reports an on-screen position.
                       let frame = window.serverFrame,
                       area.intersects(frame) else { continue }
                 result.append(window)
@@ -115,20 +96,11 @@ public enum WindowDiscovery {
         }
     }
 
-    /// A window found on one of the main display's desktops.
     public struct Found: Sendable {
         public let window: AXWindow
         public let space: SpaceID
     }
 
-    /// Normal windows on every desktop of every display, shown or not,
-    /// sorted left to right. Accessibility only lists the shown desktop's
-    /// windows, so the others are reached the way yabai does it: an element
-    /// made from a remote token (pid, 0, "coco", element number), probing
-    /// element numbers until every window the window server knows for the
-    /// app is found. Found elements are cached, so later scans only probe
-    /// for new windows. Costs 20-80 ms per app the first time (measured);
-    /// call it off the main thread.
     public static func allDesktopWindows(on screens: [CGRect]) -> [Found] {
         let own = getpid()
         let desktops = Set(Spaces.displays().flatMap(\.desktops)).union(Spaces.ordered())
@@ -143,8 +115,6 @@ public enum WindowDiscovery {
                   let bounds = info[kCGWindowBounds as String],
                   let frame = CGRect(dictionaryRepresentation: bounds as! CFDictionary),
                   frame.width > 50, frame.height > 50,
-                  // Windows closed but kept alive (WhatsApp, System Settings)
-                  // belong to no desktop.
                   let space = Spaces.of(id), desktops.contains(space) else { continue }
             wanted[pid, default: []].insert(id)
             spaceOf[id] = space
@@ -158,11 +128,6 @@ public enum WindowDiscovery {
                       element.bool("AXFullScreen") != true,
                       let window = AXWindow(element: element, pid: pid), window.windowID == id,
                       let frame = window.serverFrame,
-                      // On a display (hidden desktops keep their coordinates).
-                      // Overlap, not the middle: the canvas layout parks the
-                      // columns the screen does not show at its edge, and
-                      // those windows stay ours. Stage Manager's thumbnails
-                      // lie fully past the edge and still drop out.
                       screens.isEmpty || screens.contains(where: { $0.intersects(frame) }),
                       let space = spaceOf[id] else { continue }
                 result.append(Found(window: window, space: space))
@@ -174,15 +139,10 @@ public enum WindowDiscovery {
         }
     }
 
-    /// The Accessibility window for a window number, from the cache or by
-    /// asking its app. Nil when the app does not list it (a panel of its
-    /// own, a window just closed).
     public static func window(id: CGWindowID, pid: pid_t) -> AXWindow? {
         if let cached = elementCache.withLock({ $0[id] }), cached.pid == pid {
             return AXWindow(element: cached.element, pid: pid)
         }
-        // Only the app's own list, never the token probe of elements(for:):
-        // this runs whenever the mouse rests over a window.
         let app = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(app, 0.2)
         for element in app.value(kAXWindowsAttribute) as? [AXUIElement] ?? [] where element.windowID == id {
@@ -191,8 +151,6 @@ public enum WindowDiscovery {
         return nil
     }
 
-    /// Accessibility elements are thread-safe to use; the box only tells
-    /// the compiler so.
     private struct CachedElement: @unchecked Sendable {
         let element: AXUIElement
         let pid: pid_t
@@ -200,8 +158,6 @@ public enum WindowDiscovery {
 
     private static let elementCache = Mutex<[CGWindowID: CachedElement]>([:])
 
-    /// Accessibility elements for `windows` of app `pid`: cached ones, the
-    /// shown desktop's from the window list, the rest by probing tokens.
     private static func elements(for pid: pid_t, windows: Set<CGWindowID>) -> [CGWindowID: AXUIElement] {
         var result: [CGWindowID: AXUIElement] = [:]
         let cached = elementCache.withLock { cache in cache.filter { windows.contains($0.key) } }
@@ -232,7 +188,6 @@ public enum WindowDiscovery {
         }
         let entries = result.mapValues { CachedElement(element: $0, pid: pid) }
         elementCache.withLock { cache in
-            // This app's windows that no longer exist are dropped.
             cache = cache.filter { $0.value.pid != pid || windows.contains($0.key) }
             cache.merge(entries) { _, new in new }
         }
@@ -240,9 +195,6 @@ public enum WindowDiscovery {
     }
 }
 
-/// Apps with "enhanced user interface" on (set by VoiceOver and some tools)
-/// animate every frame change themselves, which makes scripted moves lag.
-/// Turn it off while we drive windows and put it back afterwards.
 public final class EnhancedUIGuard {
     private var previous: [pid_t: Bool] = [:]
 

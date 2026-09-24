@@ -4,7 +4,6 @@ import Testing
 
 @Suite("Utilities-Panel: Wach halten")
 struct KeepAwakeTextTests {
-    /// Feste Zeitzone, damit der Test nicht von der Maschine abhaengt.
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Europe/Zurich")!

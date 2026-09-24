@@ -3,26 +3,8 @@ import ApolloShellCore
 import CoreAudio
 import os
 
-/// Die Systemanbindungen der neuen Schnellschalter und der Ton-Karte im
-/// Utilities-Panel. Alles, was hier ohne Freigabe-Dialog geht, geht hier
-/// ohne; wo private Schnittstellen noetig sind, werden sie zur Laufzeit
-/// nachgeschlagen - fehlen sie in einem kuenftigen macOS, bleibt der Knopf
-/// aus, statt dass die App beim Start abstuerzt.
-
 private let systemLog = Logger(category: "utilities")
 
-// MARK: - Dunkelmodus
-
-/// Dunkelmodus ueber SkyLight, wie es NightOwl & Co. tun:
-/// `BOOL SLSGetAppearanceThemeLegacy(void)` und
-/// `void SLSSetAppearanceThemeLegacy(BOOL)`.
-///
-/// Warum nicht AppleScript ("System Events" -> appearance preferences): das
-/// fragt beim ersten Mal nach der Automatisierungs-Freigabe. SkyLight
-/// braucht keine. Gemessen 14.09.: beide Symbole da, Lesen ergibt `true`
-/// bei `defaults read -g AppleInterfaceStyle` = Dark. Nur wenn die Symbole
-/// fehlen, geht es ueber System Events (dafuer steht der Text schon in der
-/// Info.plist).
 @MainActor
 enum UtilitiesAppearance {
     private typealias Getter = @convention(c) () -> Bool
@@ -39,8 +21,6 @@ enum UtilitiesAppearance {
         return (unsafeBitCast(get, to: Getter.self), unsafeBitCast(set, to: Setter.self))
     }()
 
-    /// SkyLight fragt den Fensterserver direkt, also immer aktuell. Ohne
-    /// SkyLight die globale Voreinstellung - dort steht "Dark" oder nichts.
     static func isDark() -> Bool {
         if let skyLight { return skyLight.get() }
         CFPreferencesAppSynchronize(kCFPreferencesAnyApplication)
@@ -50,24 +30,12 @@ enum UtilitiesAppearance {
 
     static func setDark(_ dark: Bool) {
         if let skyLight { return skyLight.set(dark) }
-        // osascript als eigener Prozess: blockiert den Hauptthread nicht,
-        // auch nicht waehrend macOS beim ersten Mal nach der Freigabe fragt.
         Subprocess.launch("/usr/bin/osascript", [
             "-e", "tell application \"System Events\" to tell appearance preferences to set dark mode to \(dark)",
         ])
     }
 }
 
-// MARK: - Night Shift
-
-/// Night Shift ueber CoreBrightness' `CBBlueLightClient` (privat, ueber die
-/// ObjC-Laufzeit), wie das quelloffene `nightlight` und Shifty.
-///
-/// Gemessen 14.09. in einem unsignierten Probeprogramm: Klasse da,
-/// `supportsBlueLightReduction` = ja, `getBlueLightStatus:` liefert ohne
-/// Dialog. `setEnabled:` ist dieselbe Verbindung zum Dienst; ausprobiert
-/// wurde es bewusst nicht (es haette den Bildschirm des Testrechners
-/// umgefaerbt).
 @MainActor
 final class UtilitiesNightShiftClient {
     private typealias GetStatus = @convention(c) (AnyObject, Selector, UnsafeMutableRawPointer) -> Bool
@@ -77,8 +45,6 @@ final class UtilitiesNightShiftClient {
     private let getSelector = NSSelectorFromString("getBlueLightStatus:")
     private let setSelector = NSSelectorFromString("setEnabled:")
 
-    /// `nil`: CoreBrightness oder die Klasse fehlen, oder sie kennt die zwei
-    /// Methoden nicht mehr.
     init?() {
         guard dlopen("/System/Library/PrivateFrameworks/CoreBrightness.framework/CoreBrightness", RTLD_LAZY) != nil,
               let type = NSClassFromString("CBBlueLightClient") as? NSObject.Type
@@ -88,7 +54,6 @@ final class UtilitiesNightShiftClient {
         self.client = client
     }
 
-    /// `nil`: Bildschirm ohne Night Shift oder Abfrage gescheitert.
     func enabled() -> Bool? {
         var bytes = [UInt8](repeating: 0, count: UtilitiesNightShiftStatus.bufferSize)
         let function = unsafeBitCast(client.method(for: getSelector), to: GetStatus.self)
@@ -104,19 +69,7 @@ final class UtilitiesNightShiftClient {
     }
 }
 
-// MARK: - Tastendruecke
-
-/// Tastendruecke fuer die Aktions-Knoepfe, wie SpaceSwitcher. Braucht die
-/// Bedienungshilfen-Freigabe (hat der Launcher); ohne sie passiert nichts.
-///
-/// Warum Tasten statt eigener Umsetzung: Bildschirmfoto-Leiste,
-/// "Show Desktop" und "Lock Screen" sind Systemfunktionen,
-/// die macOS nur ueber ihre Kurzbefehle anbietet. Der Druck loest genau das
-/// aus, was er selbst mit der Tastatur ausloesen wuerde - unsere App braucht
-/// dafuer keine Bildschirmaufnahme-Freigabe.
 enum UtilitiesKeys {
-    /// Den Kurzbefehl so lesen, wie er in Mission Control bzw. unter
-    /// Tastatur > Tastaturkurzbefehle eingestellt ist - nicht annehmen.
     static func symbolic(id: Int, fallback: UtilitiesHotKey) -> UtilitiesHotKey? {
         let all = CFPreferencesCopyAppValue("AppleSymbolicHotKeys" as CFString, "com.apple.symbolichotkeys" as CFString)
         let entry = (all as? [String: Any])?[String(id)] as? [String: Any]
@@ -128,8 +81,6 @@ enum UtilitiesKeys {
         )
     }
 
-    /// `false`: keine Freigabe oder kein Ereignis - dann soll der Aufrufer
-    /// den Ersatzweg nehmen, falls es einen gibt.
     @discardableResult
     static func post(_ key: UtilitiesHotKey) -> Bool {
         guard AXIsProcessTrusted() else {
@@ -139,8 +90,6 @@ enum UtilitiesKeys {
         let source = CGEventSource(stateID: .hidSystemState)
         for down in [true, false] {
             guard let event = CGEvent(keyboardEventSource: source, virtualKey: key.keyCode, keyDown: down) else { return false }
-            // Genau die gespeicherten Modifier, sonst nichts: haelt er gerade
-            // eine Taste, soll sie den Kurzbefehl nicht verfaelschen.
             event.flags = CGEventFlags(rawValue: key.modifiers)
             event.post(tap: .cghidEventTap)
         }
@@ -148,11 +97,6 @@ enum UtilitiesKeys {
     }
 }
 
-// MARK: - Audiogeraete
-
-/// Liest die CoreAudio-Geraete und setzt das Standardgeraet. Nur
-/// Eigenschaften, kein Ton - also keine Mikrofon-Freigabe. Gemessen 14.09.:
-/// `kAudioHardwarePropertyDefaultOutputDevice` ist schreibbar.
 enum UtilitiesAudioHardware {
     static func devices() -> [UtilitiesAudioDevice] {
         let system = AudioObjectID(kAudioObjectSystemObject)
@@ -182,8 +126,6 @@ enum UtilitiesAudioHardware {
         return status == noErr && device != kAudioObjectUnknown ? device : nil
     }
 
-    /// Wie die Auswahl in den Toneinstellungen. Die Kurzmeldung "Audioausgabe
-    /// geaendert" kommt dann von selbst (ToastAudioMonitor hoert mit).
     static func setDefault(_ device: UInt32, _ scope: UtilitiesAudioScope) -> OSStatus {
         var address = address(selector(scope))
         var value = AudioObjectID(device)
@@ -200,8 +142,6 @@ enum UtilitiesAudioHardware {
         AudioObjectPropertyAddress(mSelector: selector, mScope: scope, mElement: kAudioObjectPropertyElementMain)
     }
 
-    /// Anzahl Stroeme in einer Richtung: die Groesse der Liste geteilt durch
-    /// die Groesse einer Strom-ID. Daran erkennt man Ausgabe oder Eingang.
     private static func streamCount(_ device: AudioObjectID, _ scope: AudioObjectPropertyScope) -> Int {
         var address = address(kAudioDevicePropertyStreams, scope)
         var size: UInt32 = 0
@@ -218,7 +158,6 @@ enum UtilitiesAudioHardware {
         return AudioObjectGetPropertyData(device, &address, 0, nil, &size, &value) == noErr && value != 0
     }
 
-    /// CoreAudio gibt den CFString mit +1 zurueck, deshalb `takeRetainedValue`.
     private static func name(of device: AudioObjectID) -> String? {
         var address = address(kAudioObjectPropertyName)
         var name: Unmanaged<CFString>?

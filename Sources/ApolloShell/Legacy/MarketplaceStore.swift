@@ -3,9 +3,6 @@ import ApolloShellCore
 import Foundation
 import Observation
 
-/// Everything the Marketplace sheet shows and does: the list, the signed-in
-/// account, the user's own themes, the review queue for the admin, and the
-/// installed themes in the theme folder.
 @MainActor
 @Observable
 final class MarketplaceStore {
@@ -13,7 +10,6 @@ final class MarketplaceStore {
         case idle, loading, loaded, failed(String)
     }
 
-    /// Where the device flow stands while signing in.
     enum SignIn: Equatable {
         case idle
         case starting
@@ -28,9 +24,7 @@ final class MarketplaceStore {
     private(set) var queue: [MarketQueueItem] = []
     private(set) var signIn: SignIn = .idle
     private(set) var installed = MarketInstallIndex()
-    /// The last thing that went wrong with an action, shown as an alert.
     var actionError: String?
-    /// A short confirmation after an action ("Submitted for review").
     var notice: String?
 
     @ObservationIgnored private let themeStore: ThemeStore
@@ -38,8 +32,6 @@ final class MarketplaceStore {
     @ObservationIgnored private let flow = GitHubDeviceFlow()
     @ObservationIgnored private var signInTask: Task<Void, Never>?
 
-    /// A local server for development:
-    /// `defaults write io.github.silvertree2010.apolloshell MarketplaceURL http://localhost:8788`
     private static var baseURL: URL {
         UserDefaults.standard.string(forKey: "MarketplaceURL").flatMap(URL.init(string:))
             ?? MarketplaceClient.productionURL
@@ -57,8 +49,6 @@ final class MarketplaceStore {
     private var indexURL: URL {
         themeStore.folder.deletingLastPathComponent().appendingPathComponent("marketplace.json")
     }
-
-    // MARK: Loading
 
     func refresh() async {
         load = .loading
@@ -80,11 +70,8 @@ final class MarketplaceStore {
         } catch MarketError.server(code: "unauthorized", _, _) {
             forgetSession()
         } catch {
-            // Offline: keep what we had.
         }
     }
-
-    // MARK: Installing
 
     enum InstallState { case notInstalled, installed, updateAvailable }
 
@@ -100,8 +87,6 @@ final class MarketplaceStore {
         let folder = themeStore.folder
         do {
             try manager.createDirectory(at: folder, withIntermediateDirectories: true)
-            // Update in place; a new install never overwrites a file that
-            // is not ours.
             var fileName = installed.entries[theme.id]?.fileName ?? MarketInstall.fileName(for: theme)
             if installed.entries[theme.id] == nil {
                 let base = String(fileName.dropLast(4))
@@ -137,10 +122,7 @@ final class MarketplaceStore {
         themeStore.reload()
     }
 
-    // MARK: Account
-
     func startSignIn() {
-        // One sign-in at a time; a second click while waiting changes nothing.
         switch signIn {
         case .starting, .waiting: return
         case .idle, .failed: break
@@ -156,7 +138,6 @@ final class MarketplaceStore {
                 NSWorkspace.shared.open(code.verificationURL)
                 await poll(code)
             } catch {
-                // A cancelled attempt must not overwrite the one after it.
                 guard !Task.isCancelled else { return }
                 signIn = .failed(error.localizedDescription)
             }
@@ -232,9 +213,6 @@ final class MarketplaceStore {
         queue = []
     }
 
-    // MARK: Submitting
-
-    /// The canonical form of a local theme, or why it cannot go up.
     func canonical(for theme: Theme) -> Result<String, ThemeCanonicalProblem> {
         ThemeCanonical.css(for: theme)
     }
@@ -276,8 +254,6 @@ final class MarketplaceStore {
         }
     }
 
-    // MARK: Review
-
     func decide(_ decision: MarketplaceClient.Decision, _ item: MarketQueueItem, reason: String = "") async {
         do {
             try await client.decide(decision, themeID: item.theme.id, version: item.theme.version, reason: reason)
@@ -285,7 +261,6 @@ final class MarketplaceStore {
             await refresh()
         } catch {
             actionError = error.localizedDescription
-            // A newer upload arrived meanwhile: show it.
             await refreshAccount()
         }
     }

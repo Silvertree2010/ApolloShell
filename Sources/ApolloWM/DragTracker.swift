@@ -1,39 +1,20 @@
 import AppKit
 
-/// Watches the mouse and turns gestures into engine calls.
-///
-/// Title-bar drags: macOS moves the window itself; we only notice that it
-/// left the spot it had at mouse-down. Same size means a move (the window
-/// leaves the layout, the rest close the gap); a size change means the user
-/// grabbed an edge (neighbors follow live).
-///
-/// Super gestures (Super = fn held, which Karabiner turns into ⌘⌃⌥⇧):
-/// Super + left drag moves a window from anywhere inside it, Super + right
-/// drag resizes it from the corner nearest the mouse. We move the window
-/// ourselves and swallow those clicks, so the app never sees them.
 @MainActor
 public final class DragTracker {
     private let engine: TilingEngine
     private var tap: CFMachPort?
 
-    /// Modifiers that together mean Super. Default: all four, as Karabiner
-    /// sends them while fn is held.
     public var superFlags: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]
 
-    /// Super + scroll pans the canvas strip. Off in the dwindle layout.
     public var scrollPans = true
-    /// Points of strip per scrolled point.
     public var scrollSpeed: CGFloat = 1.5
     public var invertScroll = false
 
-    /// Prints every decision to stderr (set APOLLOWM_TRACE=1).
     public var trace = ProcessInfo.processInfo.environment["APOLLOWM_TRACE"] == "1"
 
-    // Title-bar drag detection.
     private var downPoint: CGPoint?
     private var candidate: CGWindowID?
-    /// The candidate's frame at mouse-down. Compared against this, not the
-    /// layout target, since apps may refuse a target size (minimum sizes).
     private var startFrame: CGRect?
 
     private enum SuperGesture {
@@ -50,14 +31,11 @@ public final class DragTracker {
         if trace { FileHandle.standardError.write(Data((message() + "\n").utf8)) }
     }
 
-    /// Returns false when the event tap cannot be created (missing permission).
     public func start() -> Bool {
         let types: [CGEventType] = [.leftMouseDown, .leftMouseDragged, .leftMouseUp,
                                     .rightMouseDown, .rightMouseDragged, .rightMouseUp,
                                     .scrollWheel]
         let mask = types.reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
-        // An active tap (not listen-only), so Super clicks can be swallowed.
-        // The callback must stay fast: a slow active tap stalls all input.
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap,
                                           place: .headInsertEventTap,
                                           options: .defaultTap,
@@ -72,7 +50,6 @@ public final class DragTracker {
         return true
     }
 
-    /// Removes the event tap; start() can be called again later.
     public func stop() {
         if let tap {
             CGEvent.tapEnable(tap: tap, enable: false)
@@ -85,13 +62,10 @@ public final class DragTracker {
         flags.intersection(superFlags) == superFlags
     }
 
-    /// Returns true when the event is ours and must not reach the app.
     fileprivate func handle(_ type: CGEventType, at point: CGPoint, flags: CGEventFlags,
                             scroll: CGVector = .zero) -> Bool {
         if type == .scrollWheel {
             guard scrollPans, engine.isCanvas, isSuper(flags) else { return false }
-            // Both axes pan the strip: a trackpad usually gives the vertical
-            // one when the fingers move straight up and down.
             let delta = abs(scroll.dx) > abs(scroll.dy) ? scroll.dx : scroll.dy
             engine.pan(by: (invertScroll ? delta : -delta) * scrollSpeed)
             return true
@@ -99,8 +73,6 @@ public final class DragTracker {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             note("event tap was disabled (\(type.rawValue)), re-enabling")
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
-            // The mouse-up may have been missed while the tap was off: let go
-            // of whatever was held, or the window would stay picked up.
             gesture = nil
             candidate = nil
             downPoint = nil
@@ -112,8 +84,6 @@ public final class DragTracker {
         handleTitleBar(type, at: point)
         return false
     }
-
-    // MARK: Super + mouse
 
     private func handleSuper(_ type: CGEventType, at point: CGPoint, flags: CGEventFlags) -> Bool {
         switch type {
@@ -180,8 +150,6 @@ public final class DragTracker {
         }
     }
 
-    // MARK: Title-bar drags (macOS moves or resizes the window)
-
     private func handleTitleBar(_ type: CGEventType, at point: CGPoint) {
         switch type {
         case .leftMouseDown:
@@ -218,14 +186,9 @@ public final class DragTracker {
                 candidate = nil
                 engine.beginDrag(id)
             }
-            // Otherwise keep watching until the button goes up: some apps
-            // (kitty) apply an edge drag late, and text selection costs only
-            // one window-server lookup per event.
 
         case .leftMouseUp:
             note("up \(Int(point.x)),\(Int(point.y)) dragging \(engine.dragging.map(String.init) ?? "none")")
-            // Last look: a window that changed only after the final drag
-            // event still counts, so it never stays where the user left it.
             if let id = candidate, let start = startFrame, let actual = engine.windows[id]?.serverFrame {
                 if abs(actual.width - start.width) > 2 || abs(actual.height - start.height) > 2 {
                     note("  -> late resize")

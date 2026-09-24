@@ -1,11 +1,3 @@
-/* Nightfall - one file, a handful of tokens, gradients where they show.
- *
- * Everything not mentioned keeps its built-in value, so this stays a short
- * file. Copy it into ~/Library/Application Support/ApolloShell/themes and
- * pick it in Nexus > Themes.
- *
- * :root is the theme; the @media block below only changes what should look
- * different in dark mode. */
 
 :root {
   --apollo-theme-name: "Nightfall";

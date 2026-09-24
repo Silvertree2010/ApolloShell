@@ -13,8 +13,6 @@ struct DockCommandsTests {
         #expect(!DockCommandFilter.isNewCommand(title))
     }
 
-    // MARK: - Nach Tastenkuerzel statt nach Text
-
     @Test("Befehl-N ist ein neues Fenster, in jeder Sprache")
     func commandNIsNew() {
         let shortcut = MenuShortcut(character: "n", modifiers: 0)
@@ -55,7 +53,6 @@ struct DockCommandsTests {
 
     @Test("ein Kuerzel ohne Befehlstaste zaehlt nicht")
     func withoutCommandKeyItIsNoShortcut() {
-        // Bit 3 der Bedienungshilfen heisst: kein ⌘ in diesem Kuerzel.
         let shortcut = MenuShortcut(character: "n", modifiers: 8)
         #expect(!shortcut.hasCommand)
         #expect(DockCommandFilter.kind(title: "Nouvelle fenêtre", shortcut: shortcut) == nil)

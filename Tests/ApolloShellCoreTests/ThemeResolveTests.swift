@@ -121,7 +121,6 @@ struct ThemeResolveTests {
     func contrastGuard() throws {
         let theme = theme(":root { --apollo-text-color: #fbfbfb; }")
         let text = try #require(theme.color(.text))
-        // Ohne eigenen Untergrund misst die Pruefung am Untergrund der Shell.
         let surface = ThemeColorToken.surface.defaultValue()
         #expect(text != ThemeColor(hex: 0xFBFBFB))
         #expect(ThemeColor.contrast(text.composited(over: surface), surface) >= 4.5)
@@ -130,9 +129,6 @@ struct ThemeResolveTests {
 
     @Test("Kontrast: lesbare Farben bleiben genau, wie sie sind")
     func contrastLeavesGoodColorsAlone() {
-        // Mit dunkler Abweichung, sonst stuende die dunkle Schrift im
-        // dunklen Erscheinungsbild auf dunklem Grund - und genau das wuerde
-        // die Kontrastgrenze (zu Recht) anfassen.
         let theme = theme("""
         :root { --apollo-text-color: #102030; }
         @media (prefers-color-scheme: dark) { :root { --apollo-text-color: #e8e8ea; } }
@@ -271,14 +267,11 @@ struct ThemeResolveTests {
 
     @Test("Schrift auf dem Akzent: lesbar gemacht, sobald das Theme den Akzent nennt")
     func readableOnAccent() throws {
-        // Gelb: weiss darauf waere unlesbar.
         let yellow = theme(":root { --apollo-accent-color: #ffd60a; }")
         let onYellow = try #require(yellow.readableColor(.onAccent))
         #expect(ThemeColor.contrast(onYellow, ThemeColor(hex: 0xFFD60A)) >= 3)
         #expect(onYellow != ThemeColorToken.onAccent.defaultValue())
-        // Nennt es weder Akzent noch Schrift: nichts, die App bleibt bei macOS.
         #expect(theme(":root { --apollo-bar-width: 40px; }").readableColor(.onAccent) == nil)
-        // Nennt es die Schrift selbst, gilt genau die.
         let own = theme(":root { --apollo-accent-color: #000000; --apollo-on-accent-color: #ffffff; }")
         #expect(own.readableColor(.onAccent) == ThemeColor(hex: 0xFFFFFF))
     }

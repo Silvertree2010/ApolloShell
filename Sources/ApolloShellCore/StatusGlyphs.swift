@@ -1,6 +1,5 @@
 import Foundation
 
-/// Akkuzustand, wie ihn IOKit (IOPSCopyPowerSourcesInfo) liefert.
 public struct BatteryState: Equatable, Sendable {
     public var level: Int
     public var charging: Bool
@@ -13,13 +12,7 @@ public struct BatteryState: Equatable, Sendable {
     }
 }
 
-/// Welches SF Symbol die Statussymbole der Leiste zeigen.
-///
-/// Wie bei Caelestia zeigen sie den echten Zustand (WLAN-Staerke, Akkustand,
-/// Laden). Ein Platzhalter-Akku, der "voll" zeigt, waere irrefuehrend.
 public enum StatusGlyphs {
-    /// Akku in Viertelschritten; beim Laden der Blitz. `nil` heisst: kein
-    /// Akku (Desktop-Mac), dann zeigt die Leiste keinen.
     public static func batterySymbol(_ state: BatteryState?) -> String? {
         guard let state else { return nil }
         if state.charging { return "battery.100percent.bolt" }
@@ -32,13 +25,9 @@ public enum StatusGlyphs {
         }
     }
 
-    /// WLAN-Symbol und Fuellstand fuer SF Symbols' variableValue (0...1,
-    /// drei Balken). Schwellen in dBm wie ueblich: ab -55 voll, ab -67 zwei
-    /// Drittel, ab -75 ein Drittel, darunter fast leer.
     public static func wifi(powerOn: Bool, rssi: Int?) -> (symbol: String, strength: Double) {
         guard powerOn else { return ("wifi.slash", 1) }
         guard let rssi, rssi != 0 else { return ("wifi", 0) }
-        // Klammern noetig: `-55...` liest Swift als Minus vor `55...`.
         switch rssi {
         case (-55)...: return ("wifi", 1)
         case (-67)...: return ("wifi", 0.66)
@@ -47,7 +36,6 @@ public enum StatusGlyphs {
         }
     }
 
-    /// Kurzbeschreibung fuer Tooltip und VoiceOver.
     public static func batteryText(_ state: BatteryState?) -> String {
         guard let state else { return String(localized: "No Battery") }
         let base = String(localized: "Battery \(state.level)%")

@@ -1,18 +1,6 @@
 import AppKit
 @preconcurrency import ScreenCaptureKit
 
-/// Stand-in images for windows during a glide.
-///
-/// Snapshots are never stretched: the image sits at its own size in the top
-/// left corner, like an app's content during a native live resize; space it
-/// does not cover takes the window's background color, and a shrinking frame
-/// crops it. Meanwhile the real window is resized off screen, captured at its
-/// new size and shown once it has finished drawing, so the glide ends on
-/// the right content.
-///
-/// The first snapshot is taken ahead of time (after each glide and every few
-/// seconds while idle), because a capture costs ~35 ms plus ~27 ms for the
-/// window list (measured) and a glide must start at once.
 @MainActor
 final class WindowProxies {
     private struct Snapshot {
@@ -20,8 +8,6 @@ final class WindowProxies {
         let taken: CFTimeInterval
     }
 
-    /// One overlay: the window's background color with rounded corners, the
-    /// old snapshot on top, the new one fading in above it.
     private final class Overlay {
         let window: NSWindow
         let old = CALayer()
@@ -42,8 +28,6 @@ final class WindowProxies {
             root.cornerCurve = .continuous
             root.masksToBounds = true
             for layer in [old, new] {
-                // Top left, never scaled (AppKit layers are not flipped, so
-                // "top" is the visual top).
                 layer.contentsGravity = .topLeft
                 layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
                 root.addSublayer(layer)
@@ -55,21 +39,13 @@ final class WindowProxies {
 
     private var snapshots: [CGWindowID: Snapshot] = [:]
     private var overlays: [CGWindowID: Overlay] = [:]
-    /// Windows whose new look has finished drawing and is showing.
     private var ready: Set<CGWindowID> = []
-    /// Bumped whenever a window's new look must be prepared again, so an
-    /// older preparation still running gives up.
     private var generation: [CGWindowID: Int] = [:]
     private var refreshing = false
 
-    /// Snapshots older than this are not used.
     var maxAge: CFTimeInterval = 10
-    /// macOS 26 window corners.
     var cornerRadius: CGFloat = 16
 
-    /// Needs the Screen Recording permission. Asking macOS is an XPC round
-    /// trip to tccd (~30 ms, measured), so the answer is cached and only
-    /// refreshed in the background every 30 s.
     private(set) var isAvailable = CGPreflightScreenCaptureAccess()
     private var permissionTimer: Timer?
 
@@ -91,7 +67,6 @@ final class WindowProxies {
         return CACurrentMediaTime() - snapshot.taken < maxAge
     }
 
-    /// Captures fresh snapshots of `ids` in the background.
     func refresh(_ ids: [CGWindowID]) {
         guard isAvailable, !refreshing, !ids.isEmpty else { return }
         refreshing = true
@@ -109,8 +84,6 @@ final class WindowProxies {
         remove(id)
     }
 
-    /// Shows the snapshot of `id` at `frame` (top-left coordinates).
-    /// Returns false when there is no usable snapshot.
     func show(_ id: CGWindowID, at frame: CGRect) -> Bool {
         guard hasSnapshot(of: id), let image = snapshots[id]?.image else { return false }
         let overlay = overlays[id] ?? Overlay(cornerRadius: cornerRadius)
@@ -130,14 +103,8 @@ final class WindowProxies {
         return true
     }
 
-    /// Whether the window's new look is on screen, so it can be swapped in.
     func isReady(_ id: CGWindowID) -> Bool { ready.contains(id) }
 
-    /// Waits until the real window (resized off screen) has finished drawing
-    /// at its new size, then shows that image. Apps like Spotify redraw
-    /// piece by piece; a capture taken too early showed half-drawn content
-    /// filling in from the bottom right. "Finished" means two captures
-    /// 50 ms apart look the same. Gives up after `limit` and uses the last.
     func prepareNewLook(_ id: CGWindowID, limit: TimeInterval = 0.8) {
         guard isAvailable, overlays[id] != nil else { return }
         ready.remove(id)
@@ -160,8 +127,6 @@ final class WindowProxies {
             guard let self, self.generation[id] == token, let overlay = self.overlays[id],
                   let image = settled ?? previous else { return }
             self.snapshots[id] = Snapshot(image: image, taken: CACurrentMediaTime())
-            // A plain cut: cross-fading reflowed text showed both versions
-            // on top of each other (seen in a screen recording).
             CATransaction.begin()
             CATransaction.setDisableActions(true)
             overlay.new.contentsScale = overlay.old.contentsScale
@@ -172,8 +137,6 @@ final class WindowProxies {
         }
     }
 
-    /// Same size and, shrunk to 24×16, no channel off by more than a little
-    /// on average.
     private static func looksSame(_ a: CGImage, _ b: CGImage) -> Bool {
         guard a.width == b.width, a.height == b.height,
               let pa = thumbnail(a), let pb = thumbnail(b) else { return false }
@@ -216,14 +179,11 @@ final class WindowProxies {
         for id in Array(overlays.keys) { remove(id) }
     }
 
-    /// Top-left global coordinates to AppKit's bottom-left ones.
     private static func cocoa(_ frame: CGRect) -> CGRect {
         let height = NSScreen.screens.first?.frame.height ?? 0
         return CGRect(x: frame.minX, y: height - frame.maxY, width: frame.width, height: frame.height)
     }
 
-    /// The color just inside the bottom-right corner, used to fill space the
-    /// snapshot does not cover. Most windows have a plain background there.
     private static func backgroundColor(of image: CGImage) -> CGColor {
         let inset = 24
         let x = max(0, image.width - inset), y = max(0, image.height - inset)
@@ -238,8 +198,6 @@ final class WindowProxies {
                        blue: CGFloat(data[2]) / 255, alpha: 1)
     }
 
-    /// One window-list fetch, then all windows captured in parallel, without
-    /// shadows and at full pixel resolution.
     private nonisolated static func capture(_ ids: Set<CGWindowID>, onScreenOnly: Bool = true) async -> [CGWindowID: CGImage] {
         guard let content = try? await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: onScreenOnly)
         else { return [:] }

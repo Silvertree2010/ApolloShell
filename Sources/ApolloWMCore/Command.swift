@@ -1,39 +1,24 @@
 import CoreGraphics
 
-/// Everything the window manager can be told to do, by a key, the config
-/// file or the command socket. Each has a short text form, e.g.
-/// `focus left`, `send 3` or `grow 0.05 0`.
 public enum Command: Sendable, Equatable {
     case focus(Direction)
     case swap(Direction)
-    /// The next window in reading order.
     case cycleFocus
     case toggleSplit
     case equalize
-    /// Wider/taller (positive) or narrower/shorter by these fractions of the area.
     case grow(CGSize)
     case newTerminal
-    /// Join the neighbor's tile as a tab, or leave a tab group.
     case toggleGroup
-    /// Next (true) or previous tab of a group.
     case cycleTab(Bool)
-    /// Move the active tab one place along its bar.
     case moveTab(Bool)
-    /// Put every window of the focused window's app into one group.
     case groupApp
     case toggleFloating
     case toggleFullscreen
-    /// Close the focused window (like its red button; the app keeps running).
     case closeWindow
-    /// Show desktop n.
     case workspace(Int)
-    /// Send the focused window to desktop n and show that desktop.
     case sendToDesktop(Int)
-    /// Show or hide the scratchpad window, or make the focused window it.
     case scratchpad
-    /// Focus the next (true) or previous display.
     case focusDisplay(Bool)
-    /// Put the focused window on the next (true) or previous display.
     case sendToDisplay(Bool)
 
     public init?(parsing text: String) {
@@ -98,7 +83,6 @@ public enum Command: Sendable, Equatable {
         }
     }
 
-    /// The text form, which `init(parsing:)` reads back.
     public var text: String {
         func name(_ d: Direction) -> String {
             switch d {
@@ -134,7 +118,6 @@ public enum Command: Sendable, Equatable {
         }
     }
 
-    /// Super + key, as shipped. Keys are macOS virtual key codes.
     public static let defaultBindings: [UInt16: Command] = {
         var map: [UInt16: Command] = [
             KeyNames.code("space")!: .toggleFloating,
@@ -154,9 +137,6 @@ public enum Command: Sendable, Equatable {
             KeyNames.code("e")!: .equalize,
             KeyNames.code("minus")!: .grow(CGSize(width: -0.05, height: 0)),
             KeyNames.code("equal")!: .grow(CGSize(width: 0.05, height: 0)),
-            // Super + Return never arrives (something swallows it on this
-            // Mac), so the terminal sits on Super + T; Return stays bound
-            // for keyboards where it does come through.
             KeyNames.code("return")!: .newTerminal,
             KeyNames.code("keypad-enter")!: .newTerminal,
             KeyNames.code("g")!: .toggleGroup,
@@ -174,8 +154,6 @@ public enum Command: Sendable, Equatable {
     }()
 }
 
-/// Names for keys in the config file, and their macOS virtual key codes
-/// (the positions on a US keyboard, like Carbon's kVK_ constants).
 public enum KeyNames {
     static let table: [(String, UInt16)] = [
         ("a", 0x00), ("s", 0x01), ("d", 0x02), ("f", 0x03), ("h", 0x04), ("g", 0x05), ("z", 0x06),

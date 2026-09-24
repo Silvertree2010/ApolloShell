@@ -1,10 +1,8 @@
 import Foundation
 
-/// Eine startbare App, so wie sie in der Liste erscheint.
 public struct AppEntry: Hashable, Sendable, Identifiable {
     public var id: URL { url }
 
-    /// Schluessel fuer die Nutzungsstatistik: Bundle-ID, sonst der Pfad.
     public var usageKey: String { bundleID ?? url.path }
 
     public let name: String

@@ -47,10 +47,8 @@ struct LidAwakeTests {
         let rule = try #require(LidAwake.sudoersRule(user: "alex"))
         let lines = rule.split(separator: "\n").filter { !$0.hasPrefix("#") && !$0.isEmpty }
         #expect(lines == ["alex ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 1, /usr/bin/pmset -a disablesleep 0"])
-        // Muss genau zu dem passen, was die App mit sudo -n aufruft.
         #expect(rule.contains(LidAwake.sudoArguments(disableSleep: true).dropFirst().joined(separator: " ")))
         #expect(rule.contains(LidAwake.sudoArguments(disableSleep: false).dropFirst().joined(separator: " ")))
-        // Landet in einfachen Anfuehrungszeichen der Shell und in einem AppleScript-String.
         #expect(!rule.contains("'") && !rule.contains("\"") && !rule.contains("\\"))
     }
 
@@ -75,11 +73,9 @@ struct LidAwakeTests {
         #expect(script.contains("/usr/sbin/visudo -cf"))
         #expect(script.contains(LidAwake.sudoersFile))
         #expect(script.hasSuffix("with administrator privileges"))
-        // Die Regel wird erst nach bestandener Pruefung verschoben.
         let visudo = try #require(script.range(of: "visudo -cf"))
         let move = try #require(script.range(of: "/bin/mv -f"))
         #expect(visudo.lowerBound < move.lowerBound)
-        // Ausschalten richtet nie eine Regel ein.
         #expect(LidAwake.osascriptArguments(disableSleep: false, installRuleFor: "alex")
             == LidAwake.osascriptArguments(disableSleep: false))
     }

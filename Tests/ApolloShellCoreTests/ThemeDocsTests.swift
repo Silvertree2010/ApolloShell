@@ -2,16 +2,8 @@ import ApolloShellCore
 import Foundation
 import Testing
 
-/// Haelt docs/THEMES.md und die Beispiele am Verzeichnis fest.
-///
-/// Eine Doku, die von Hand nachgezogen wird, stimmt nach dem dritten neuen
-/// Token nicht mehr - und eine falsche Doku ist schlimmer als keine, weil
-/// jemand danach ein Theme schreibt. Deshalb erzeugt der Kern die Tabellen,
-/// und diese Tests bestehen darauf, dass genau sie in der Datei stehen.
 @Suite("Themes: Doku und Beispiele")
 struct ThemeDocsTests {
-    /// Das Wurzelverzeichnis des Projekts, von dieser Datei aus gerechnet:
-    /// Tests/ApolloShellCoreTests/ThemeDocsTests.swift
     private static let root = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
@@ -24,7 +16,6 @@ struct ThemeDocsTests {
         String(decoding: try Data(contentsOf: url), as: UTF8.self)
     }
 
-    /// Jeder Tokenname, der in einem Text vorkommt.
     private func mentionedTokens(in text: String) -> Set<String> {
         var found: Set<String> = []
         var rest = Substring(text)
@@ -34,7 +25,6 @@ struct ThemeDocsTests {
                 end = rest.index(after: end)
             }
             var name = String(rest[start.lowerBound..<end])
-            // `--apollo-…` in einem Satz ist kein Tokenname.
             while name.hasSuffix("-") { name.removeLast() }
             found.insert(name)
             rest = rest[end...]
@@ -84,8 +74,6 @@ struct ThemeDocsTests {
         }
     }
 
-    // MARK: - Die Beispiele
-
     @Test("das kleine Beispiel laedt ohne einen einzigen Hinweis")
     func minimalExample() {
         let theme = ThemeLoader.load(at: Self.examples.appendingPathComponent("minimal.css"))
@@ -94,7 +82,6 @@ struct ThemeDocsTests {
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
         #expect(theme.color(.accent) == ThemeColor(hex: 0xFF6B35))
         #expect(theme.color(.accent, dark: true) == ThemeColor(hex: 0xFF8354))
-        // Was es nicht setzt, bleibt leer - hell wie dunkel.
         #expect(theme.color(.surface) == nil)
         #expect(theme.color(.surface, dark: true) == nil)
     }
@@ -117,8 +104,6 @@ struct ThemeDocsTests {
         #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
         #expect(theme.formatVersion == ThemeFormat.current)
 
-        // Der Beweis, dass Schreiben und Lesen dasselbe meinen: jedes Token
-        // ausser den Angaben zum Theme selbst steht wieder auf der Vorgabe.
         for token in ThemeTokenCatalog.standard.tokens where token.group != .meta {
             if token.name == ThemeFileToken.backgroundImage.name { continue }
             #expect(theme.value(token.name) == token.defaultValue, "\(token.name) hell")
@@ -132,7 +117,6 @@ struct ThemeDocsTests {
         let theme = ThemeLoader.load(at: folder)
         #expect(theme.file(.backgroundImage)?.lastPathComponent == "background.png")
         #expect(theme.file(.authorImage)?.lastPathComponent == "author.png")
-        // Und zwar aus dem eigenen Ordner, nicht von irgendwoher.
         for url in [theme.file(.backgroundImage), theme.file(.authorImage)] {
             #expect(url?.path.hasPrefix(folder.resolvingSymlinksInPath().path) == true)
         }

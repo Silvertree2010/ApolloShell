@@ -36,8 +36,6 @@ struct UtilitiesColorHexTests {
 
 @Suite("Utilities-Panel: Audiogeraete")
 struct UtilitiesAudioDevicesTests {
-    /// Die Geraete, wie sie am 14.09. auf einem MacBook gelesen wurden,
-    /// plus ein verstecktes Aggregat und ein Geraet ohne Standard-Recht.
     static let measured: [UtilitiesAudioDevice] = [
         .init(id: 105, name: "iPhone Mikrofon", outputStreams: 0, inputStreams: 1,
               canBeDefaultOutput: false, canBeDefaultInput: true, hidden: false),
@@ -103,10 +101,10 @@ struct UtilitiesAudioDevicesTests {
 @Suite("Utilities-Panel: Tastenkuerzel aus symbolichotkeys")
 struct UtilitiesHotKeyTests {
     @Test("Tastencode und Maske wie gespeichert; Maske nur Modifier-Bits", arguments: [
-        ([65535, 103, 0], 103, 0),                      // Schreibtisch anzeigen, gemessen: F11 ohne Fn
-        ([53, 23, 1_179_648], 23, 0x12_0000),           // ⌘⇧5
-        ([65535, 125, 0x84_0000], 125, 0x84_0000),      // ⌃↓ mit Fn, wie echte Pfeiltasten
-        ([113, 12, 0x114_0000], 12, 0x14_0000),         // Bit ausserhalb der Maske faellt weg
+        ([65535, 103, 0], 103, 0),
+        ([53, 23, 1_179_648], 23, 0x12_0000),
+        ([65535, 125, 0x84_0000], 125, 0x84_0000),
+        ([113, 12, 0x114_0000], 12, 0x14_0000),
     ])
     func resolved(parameters: [Int], keyCode: Int, modifiers: Int) {
         let key = UtilitiesHotKey.resolve(enabled: true, parameters: parameters, fallback: .showDesktopDefault)
@@ -138,7 +136,6 @@ struct UtilitiesHotKeyTests {
 
 @Suite("Utilities-Panel: Night Shift")
 struct UtilitiesNightShiftStatusTests {
-    /// Am 14.09. um 16 Uhr gelesen: aus, Zeitplan 22-7 gespeichert, verfuegbar.
     static let measuredOff: [UInt8] = [
         1, 0, 0, 0, 0, 0, 0, 0, 22, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,

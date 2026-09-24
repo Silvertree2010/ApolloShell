@@ -7,9 +7,9 @@ struct AppIdentityTests {
     @Test("Bundle-ID in Support/Info.plist ist dieselbe wie im Code")
     func matchesInfoPlist() throws {
         let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent() // ApolloShellCoreTests
-            .deletingLastPathComponent() // Tests
-            .deletingLastPathComponent() // Repo
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
         let data = try Data(contentsOf: root.appending(path: "Support/Info.plist"))
         let plist = try #require(PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any])
         #expect(plist["CFBundleIdentifier"] as? String == AppIdentity.bundleID)

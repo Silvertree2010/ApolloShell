@@ -1,24 +1,5 @@
 import AppKit
 
-/// Focus follows the mouse: when the mouse rests over a window for `delay`,
-/// that window is focused and raised. Modeled on AutoRaise (which borrows
-/// yabai's focusing), reimplemented:
-///
-/// - The window under the mouse is what the system reports at that point
-///   (any app's window, not just tiles); menus and Dock items are skipped.
-/// - It is compared with the window that really has focus now, not with the
-///   last one we focused, so after cmd+Tab or a click elsewhere, going back
-///   over a window focuses it again.
-/// - Focusing goes straight to the window server (WindowFocus), since the
-///   official activation is sometimes refused on macOS 14 and later.
-/// - Apps that push themselves back in front are raised up to three times.
-/// - Nothing happens while a button is held, a window is dragged or
-///   resized, a desktop switch runs, Mission Control or the app switcher is
-///   showing, right after an app was activated by other means (until the
-///   mouse moves again), or when the focused window lies inside the one
-///   under the mouse and belongs to the same app (a dialog over its parent).
-/// - The point looked at is 3 pt ahead in the direction of movement, so
-///   crossing a border does not focus the window being left.
 @MainActor
 public final class FocusFollowsMouse {
     private let engine: TilingEngine
@@ -27,18 +8,12 @@ public final class FocusFollowsMouse {
     private var lastPoint: CGPoint?
     private var lookahead = CGVector.zero
     private var checking = false
-    /// Set when some app came to the front without us (cmd+Tab, Dock
-    /// click); cleared by the next mouse movement.
     private var suppressedUntilMove = false
     private var ourActivation: pid_t?
     private var activationObserver: NSObjectProtocol?
 
     public var isEnabled = true
-    /// How long the mouse must rest over a window (AutoRaise used 50 ms;
-    /// the user settled on 25 ms).
     public var delay: TimeInterval = 0.025
-    /// Holding these suspends focus following. None by default: the user
-    /// did not want control to switch it off (AutoRaise's habit).
     public var disableFlags: CGEventFlags = []
 
     public var log: (String) -> Void = { print($0) }
@@ -47,7 +22,6 @@ public final class FocusFollowsMouse {
         self.engine = engine
     }
 
-    /// Returns false when the event tap cannot be created (missing permission).
     public func start() -> Bool {
         let mask = CGEventMask(1 << CGEventType.mouseMoved.rawValue)
         guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap,
@@ -69,7 +43,6 @@ public final class FocusFollowsMouse {
         return true
     }
 
-    /// Removes the event tap and the activation observer.
     public func stop() {
         pending?.cancel()
         if let tap {
@@ -85,8 +58,6 @@ public final class FocusFollowsMouse {
         if let pid, pid == ourActivation {
             ourActivation = nil
         } else {
-            // Someone else chose this app: do not fight it with the window
-            // that happens to be under the resting mouse.
             suppressedUntilMove = true
         }
     }
@@ -112,8 +83,6 @@ public final class FocusFollowsMouse {
         if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
     }
 
-    /// A point that arrived while a check was running; it is checked right
-    /// after, so a fast movement is never dropped.
     private var waitingPoint: CGPoint?
 
     private func check(_ point: CGPoint) {
@@ -141,19 +110,14 @@ public final class FocusFollowsMouse {
             (self?.engine.lastDirectedFocus ?? 0) > started
         }
         let markOurs: @MainActor @Sendable (pid_t) -> Void = { [weak self] pid in self?.ourActivation = pid }
-        // Everything below asks other apps or the window server: off the main thread.
         Task.detached(priority: .userInitiated) {
             defer { Task { @MainActor in done() } }
             guard !WindowFocus.dockIsBusy(),
                   let window = WindowFocus.window(at: point), window.pid != own,
                   [kAXStandardWindowSubrole, kAXDialogSubrole].contains(window.subrole),
-                  // Only normal-layer windows: not ApolloShell's floating bar or
-                  // panels (they sit in a space of their own, see StickySpace).
                   window.serverLayer == 0, !ignored.contains(window.windowID) else { return }
             let focused = WindowFocus.focusedWindowID()
             guard focused != window.windowID else { return }
-            // A dialog of the same app over its window keeps focus; another
-            // app's floating window does not block the window around it.
             let frontmost = WindowFocus.frontmostPID()
             if let focused, frontmost == window.pid, let inner = FocusFollowsMouse.frame(of: focused),
                let outer = window.serverFrame, outer.contains(inner) {
@@ -162,16 +126,12 @@ public final class FocusFollowsMouse {
             await markOurs(window.pid)
             if trace { FileHandle.standardError.write(Data("focus: \(window.title)\n".utf8)) }
             WindowFocus.focus(window)
-            // Some apps push their own window back in front: up to twice more,
-            // unless the user focused something by keys or a tab meanwhile.
             for _ in 0..<2 {
                 try? await Task.sleep(for: .milliseconds(50))
                 if await directedSince() { break }
                 if WindowFocus.focusedWindowID() == window.windowID { break }
                 WindowFocus.focus(window)
             }
-            // The engine learns it from the app's notification too; this is
-            // in case one goes missing, so keys act on the right window.
             await confirm()
         }
     }

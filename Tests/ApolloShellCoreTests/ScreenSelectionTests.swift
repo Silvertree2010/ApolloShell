@@ -3,8 +3,6 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-/// Masse wie an einem echten Aufbau: MacBook-Bildschirm als Hauptbildschirm,
-/// daneben rechts ein groesserer externer.
 private enum Screens {
     static let builtIn = ScreenInfo(
         name: "Built-in Retina Display",
@@ -21,8 +19,6 @@ private enum Screens {
 
 @Suite("Bildschirme auswaehlen")
 struct ScreenSelectionTests {
-    // MARK: - Zielbildschirme
-
     @Test("Alle: jeder angeschlossene Bildschirm, in der gegebenen Reihenfolge")
     func targetsAll() {
         #expect(ScreenSelection.targets(among: Screens.both, choice: .all) == Screens.both)
@@ -31,7 +27,6 @@ struct ScreenSelectionTests {
     @Test("Nur Hauptbildschirm: der mit der Menueleiste, egal wo er in der Liste steht")
     func targetsPrimary() {
         #expect(ScreenSelection.targets(among: Screens.both, choice: .primary) == [Screens.builtIn])
-        // Auch wenn der Hauptbildschirm nicht zuerst kommt.
         let reversed = [Screens.external, Screens.builtIn]
         #expect(ScreenSelection.targets(among: reversed, choice: .primary) == [Screens.builtIn])
     }
@@ -69,8 +64,6 @@ struct ScreenSelectionTests {
         #expect(ScreenSelection.targets(among: [left, right], choice: .single(left.key)) == [left])
     }
 
-    // MARK: - Schluessel
-
     @Test("Schluessel ist Name plus Aufloesung, auf ganze Punkte gerundet")
     func keyIsNameAndSize() {
         #expect(Screens.builtIn.key == "Built-in Retina Display 1728x1117")
@@ -89,8 +82,6 @@ struct ScreenSelectionTests {
         #expect(lowRes.key != Screens.external.key)
     }
 
-    // MARK: - Bildschirm unter dem Zeiger
-
     @Test("Zeiger mitten auf einem Bildschirm")
     func pointerInside() {
         #expect(ScreenSelection.screen(at: CGPoint(x: 800, y: 500), among: Screens.both) == Screens.builtIn)
@@ -99,22 +90,16 @@ struct ScreenSelectionTests {
 
     @Test("Zeiger genau auf der Kante zwischen beiden: eindeutig der rechte")
     func pointerOnSharedEdge() {
-        // 1728 ist zugleich die rechte Kante des einen und die linke des
-        // anderen. Genau ein Bildschirm darf ihn beanspruchen.
         let point = CGPoint(x: 1728, y: 500)
         #expect(Screens.builtIn.frame.contains(point) == false)
         #expect(Screens.external.frame.contains(point))
         #expect(ScreenSelection.screen(at: point, among: Screens.both) == Screens.external)
-        // Die Antwort haengt nicht an der Reihenfolge der Liste.
         #expect(ScreenSelection.screen(at: point, among: [Screens.external, Screens.builtIn]) == Screens.external)
-        // Einen Punkt weiter links gehoert er noch dem linken.
         #expect(ScreenSelection.screen(at: CGPoint(x: 1727, y: 500), among: Screens.both) == Screens.builtIn)
     }
 
     @Test("Zeiger auf der Oberkante: gehoert dem Bildschirm darunter")
     func pointerOnTopEdge() {
-        // y = maxY liegt in keinem Rahmen (contains zaehlt die Oberkante
-        // nicht mit) - der naechstgelegene muss einspringen.
         let point = CGPoint(x: 800, y: 1117)
         #expect(Screens.builtIn.frame.contains(point) == false)
         #expect(ScreenSelection.screen(at: point, among: Screens.both) == Screens.builtIn)
@@ -124,10 +109,6 @@ struct ScreenSelectionTests {
     func pointerOutside() {
         #expect(ScreenSelection.screen(at: CGPoint(x: -100, y: 500), among: Screens.both) == Screens.builtIn)
         #expect(ScreenSelection.screen(at: CGPoint(x: 5000, y: 500), among: Screens.both) == Screens.external)
-        // Knapp ueber dem Hauptbildschirm und waagrecht ueber ihm: er ist
-        // naeher als der hoehere Nachbar rechts. Weit genug oben kippt das,
-        // weil der Nachbar hoeher hinaufreicht - der Abstand entscheidet,
-        // nicht die Reihenfolge.
         #expect(ScreenSelection.screen(at: CGPoint(x: 200, y: 1500), among: Screens.both) == Screens.builtIn)
     }
 
@@ -141,8 +122,6 @@ struct ScreenSelectionTests {
         let only = [Screens.builtIn]
         #expect(ScreenSelection.screen(at: CGPoint(x: 9999, y: -9999), among: only) == Screens.builtIn)
     }
-
-    // MARK: - Einstellung lesen und schreiben
 
     @Test("schreiben und wieder lesen ergibt dasselbe", arguments: [
         ScreenChoice.all, .primary, .single("Built-in Retina Display 1728x1117"),

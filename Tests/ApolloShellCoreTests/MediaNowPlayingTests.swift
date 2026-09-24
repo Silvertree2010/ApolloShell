@@ -2,11 +2,7 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-/// Zeilen im Format des mediaremote-adapters (README "stream", Aufruf mit
-/// --micros). Aufbau abgeschaut an echter Ausgabe vom 14.09. (pausiertes
-/// Video im Browser); Inhalte erfunden.
 private enum Fixture {
-    /// Spielt seit 34 s, 3:05 lang, Zeitstempel 2026-09-14 10:00:00 UTC.
     static let full = """
     {"type":"data","diff":false,"payload":{"playbackRate":1,"timestampEpochMicros":1789380000000000,\
     "album":"Nachtfahrt","elapsedTimeMicros":34000000,"playing":true,"bundleIdentifier":"com.spotify.client",\
@@ -83,7 +79,6 @@ struct MediaStreamTests {
         #expect(playing.title == "Bergwind")
         #expect(playing.album == "Nachtfahrt")
         #expect(playing.duration == 185)
-        // Ein Diff ohne Cover laesst das Cover stehen und baut es nicht neu.
         #expect(state.artwork != nil)
         #expect(state.artworkRevision == 1)
     }
@@ -168,7 +163,6 @@ struct MediaStreamTests {
 
 @Suite("Now Playing: Zeilen puffern")
 struct MediaLineBufferTests {
-    /// Jedes Stueck einzeln anhaengen, Ergebnis als Texte.
     private func feed(_ chunks: [String]) -> [[String]] {
         var buffer = MediaLineBuffer()
         var result: [[String]] = []
@@ -211,13 +205,13 @@ struct MediaTimeTests {
     }
 
     @Test("Hochrechnen aus Zeitstempel und Tempo", arguments: [
-        (10.0, Double?.some(1), true, 5.0, 15.0),     // normal
-        (10.0, Double?.some(2), true, 5.0, 20.0),     // doppeltes Tempo
-        (10.0, Double?.none, true, 5.0, 15.0),        // Tempo fehlt: 1
-        (10.0, Double?.some(1), false, 5.0, 10.0),    // pausiert
-        (10.0, Double?.some(0), true, 5.0, 10.0),     // puffert
-        (180.0, Double?.some(1), true, 30.0, 185.0),  // nicht ueber das Ende
-        (10.0, Double?.some(1), true, -3.0, 10.0),    // Zeitstempel in der Zukunft
+        (10.0, Double?.some(1), true, 5.0, 15.0),
+        (10.0, Double?.some(2), true, 5.0, 20.0),
+        (10.0, Double?.none, true, 5.0, 15.0),
+        (10.0, Double?.some(1), false, 5.0, 10.0),
+        (10.0, Double?.some(0), true, 5.0, 10.0),
+        (180.0, Double?.some(1), true, 30.0, 185.0),
+        (10.0, Double?.some(1), true, -3.0, 10.0),
     ])
     func extrapolation(elapsed: TimeInterval, rate: Double?, isPlaying: Bool, later: TimeInterval, expected: TimeInterval) {
         let now = Fixture.referenceDate.addingTimeInterval(later)

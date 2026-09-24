@@ -2,8 +2,6 @@ import Foundation
 import Security
 import ApolloShellCore
 
-/// The Marketplace session in the login keychain. Only the Marketplace's
-/// own session lives here; the GitHub token is never kept.
 enum MarketplaceKeychain {
     private static let service = AppIdentity.bundleID + ".marketplace"
     private static let account = "session"

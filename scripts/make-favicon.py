@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# Builds docs/favicon.ico (16/32/48) from the app icon PNG. Run after
-# scripts/make-icon.swift, from the package root. Needs Pillow.
 from PIL import Image
 from pathlib import Path
 

@@ -82,7 +82,6 @@ struct ConfigTests {
         let config = TWMConfig.parse(TWMConfig.template)
         #expect(config.problems.isEmpty)
         #expect(config == TWMConfig())
-        // Every default is listed in it.
         let listed = TWMConfig.parse(TWMConfig.template.replacingOccurrences(of: "# bind = ", with: "bind = "))
         #expect(listed.problems.isEmpty)
         #expect(listed.bindings == Command.defaultBindings)

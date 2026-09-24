@@ -1,15 +1,6 @@
 import Foundation
 
-/// Schreibt das Token-Verzeichnis auf - als Tabelle fuer docs/THEMES.md und
-/// als vollstaendiges Beispiel-Theme.
-///
-/// Warum im Kern und nicht von Hand: eine Doku, die jemand abtippt, stimmt
-/// nach dem dritten neuen Token nicht mehr. So kommt beides aus derselben
-/// Quelle, und ein Test vergleicht das Ergebnis mit den Dateien im Verzeichnis
-/// - wer ein Token hinzufuegt, ohne die Doku nachzuziehen, sieht einen roten
-/// Test statt einer stillen Luecke.
 public enum ThemeDocumentation {
-    /// Die Tabellen fuer docs/THEMES.md, eine je Gruppe.
     public static func markdownTables(catalog: ThemeTokenCatalog = .standard) -> String {
         var blocks: [String] = []
         for group in ThemeTokenGroup.allCases {
@@ -27,8 +18,6 @@ public enum ThemeDocumentation {
         return blocks.joined(separator: "\n\n")
     }
 
-    /// Wie ein Typ in der Doku heisst - samt der Grenzen, an denen geklemmt
-    /// wird, und den erlaubten Woertern einer Aufzaehlung.
     public static func typeText(_ kind: ThemeTokenKind) -> String {
         switch kind {
         case let .number(spec):
@@ -40,7 +29,6 @@ public enum ThemeDocumentation {
         }
     }
 
-    /// Die Tabelle der Symbole fuer docs/THEMES.md.
     public static func iconTable(catalog: ThemeIconCatalog = .standard) -> String {
         var lines = ["| File in `icons/` | Replaces | What it is |", "| --- | --- | --- |"]
         for icon in catalog.icons {
@@ -50,8 +38,6 @@ public enum ThemeDocumentation {
         return lines.joined(separator: "\n")
     }
 
-    /// Ein Theme, das jedes Token nennt - mit den Vorgaben, also genau dem
-    /// eingebauten Aussehen. Grundlage fuer examples/themes/full/theme.css.
     public static func exampleCSS(catalog: ThemeTokenCatalog = .standard) -> String {
         var lines: [String] = [":root {"]
         var group: ThemeTokenGroup?

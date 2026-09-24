@@ -61,9 +61,6 @@ struct EdgeHoverTests {
         #expect(!open.contains(CGPoint(x: 1500, y: 230)))
     }
 
-    /// Das Panel bleibt klickbar, solange es ausblendet. Ein Doppelklick auf
-    /// Bildschirmfoto oder Sperren lief deshalb einmal sofort (Glas noch zu
-    /// sehen) und einmal nach dem Ausblenden.
     @Test("Schliessen mit Aktion: nie vor dem Ausblenden, nie doppelt", arguments: [
         (true, false, false, DrawerCloseStep.closeThenRun),
         (true, true, false, DrawerCloseStep.closeThenRun),

@@ -4,8 +4,6 @@ import Testing
 
 @Suite("Leistung-Logik")
 struct PerformanceMathTests {
-    // MARK: Netzwerk
-
     @Test("Rate aus zwei Zaehlerstaenden")
     func rate() {
         let old = NetCounters(received: 1_000, sent: 500)
@@ -31,10 +29,10 @@ struct PerformanceMathTests {
 
     @Test("Nur echte Schnittstellen zaehlen: kein Loopback, kein VPN-Tunnel, keine Bruecke")
     func countedInterfaces() {
-        #expect(NetworkMath.counts(flags: IFF_UP | IFF_BROADCAST, type: UInt8(IFT_ETHER)))            // en0
-        #expect(!NetworkMath.counts(flags: IFF_UP | IFF_LOOPBACK, type: UInt8(IFT_LOOP)))            // lo0
-        #expect(!NetworkMath.counts(flags: IFF_UP | IFF_POINTOPOINT, type: UInt8(IFT_OTHER)))        // utun
-        #expect(!NetworkMath.counts(flags: IFF_UP | IFF_BROADCAST, type: UInt8(IFT_BRIDGE)))          // bridge0
+        #expect(NetworkMath.counts(flags: IFF_UP | IFF_BROADCAST, type: UInt8(IFT_ETHER)))
+        #expect(!NetworkMath.counts(flags: IFF_UP | IFF_LOOPBACK, type: UInt8(IFT_LOOP)))
+        #expect(!NetworkMath.counts(flags: IFF_UP | IFF_POINTOPOINT, type: UInt8(IFT_OTHER)))
+        #expect(!NetworkMath.counts(flags: IFF_UP | IFF_BROADCAST, type: UInt8(IFT_BRIDGE)))
     }
 
     @Test("Messer: erste Messung ohne Rate, danach Rate und Summe")
@@ -56,7 +54,7 @@ struct PerformanceMathTests {
         meter.pause()
         #expect(meter.rate == nil)
         meter.add(NetCounters(received: 61_000, sent: 0), at: 61)
-        #expect(meter.rate == nil) // ueber 60 s Pause gemittelt waere falsch
+        #expect(meter.rate == nil)
         #expect(meter.total.received == 61_000)
         meter.add(NetCounters(received: 62_000, sent: 0), at: 62)
         #expect(meter.rate?.download == 1_000)
@@ -73,8 +71,6 @@ struct PerformanceMathTests {
         #expect(meter.rate == NetRate(download: 500, upload: 200))
         #expect(meter.total == NetCounters(received: 500, sent: 200))
     }
-
-    // MARK: Verlauf
 
     @Test("Verlauf behaelt nur die letzten 30 Werte, aeltester zuerst")
     func historyCapacity() {
@@ -102,17 +98,15 @@ struct PerformanceMathTests {
         #expect(Sparkline.scale(peak: 200, floor: 10_000) == 10_000)
     }
 
-    // MARK: Texte
-
     @Test("Bytes auf Deutsch, dezimal", arguments: [
         (0.0, "0 B"),
         (999.0, "999 B"),
-        (999.6, "1,0 KB"),       // gerundet 1000 B -> naechste Einheit
+        (999.6, "1,0 KB"),
         (1_234.0, "1,2 KB"),
         (340_000.0, "340 KB"),
         (999_700.0, "1,0 MB"),
         (1_234_567.0, "1,2 MB"),
-        (9_960_000.0, "10 MB"),  // 9,96 -> keine Nachkommastelle mehr
+        (9_960_000.0, "10 MB"),
         (5_000_000_000.0, "5,0 GB"),
         (-5.0, "0 B"),
     ])

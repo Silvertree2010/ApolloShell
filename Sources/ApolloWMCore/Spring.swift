@@ -1,9 +1,6 @@
 import CoreGraphics
 import Foundation
 
-/// A critically damped spring: reaches its target as fast as possible without
-/// overshooting. Changing the target mid-flight keeps the current velocity,
-/// so interrupted animations (drag start, drop) stay smooth instead of jumping.
 public struct Spring: Sendable, Equatable {
     public var value: CGFloat
     public var velocity: CGFloat = 0
@@ -18,8 +15,6 @@ public struct Spring: Sendable, Equatable {
         abs(value - target) < 0.5 && abs(velocity) < 5
     }
 
-    /// Advances by `dt` seconds. `response` is roughly how long a move takes.
-    /// Uses the closed-form solution, so large or uneven steps stay stable.
     public mutating func step(_ dt: CGFloat, response: CGFloat) {
         let omega = 2 * .pi / response
         let delta = value - target
@@ -34,7 +29,6 @@ public struct Spring: Sendable, Equatable {
     }
 }
 
-/// Four springs, one per frame component.
 public struct AnimatedRect: Sendable, Equatable {
     public var x, y, width, height: Spring
 
@@ -70,9 +64,6 @@ public struct AnimatedRect: Sendable, Equatable {
         height.step(dt, response: response)
     }
 
-    /// Glide the position, resize only twice: a shrinking side snaps at the
-    /// start, a growing side snaps once the position has arrived. Apps then
-    /// redraw their content once instead of on every frame.
     public mutating func stepResizingOnce(_ dt: CGFloat, response: CGFloat) {
         if width.target < width.value { width.snap() }
         if height.target < height.value { height.snap() }
@@ -86,7 +77,6 @@ public struct AnimatedRect: Sendable, Equatable {
 }
 
 extension Spring {
-    /// Jump to the target and stop.
     public mutating func snap() {
         value = target
         velocity = 0

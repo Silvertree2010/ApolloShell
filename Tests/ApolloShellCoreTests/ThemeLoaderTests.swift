@@ -4,7 +4,6 @@ import Testing
 
 @Suite("Themes: of der Platte lesen")
 struct ThemeLoaderTests {
-    /// Reicht als Datei - geprueft wird der Pfad, nicht der Bildinhalt.
     private let pixel = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
 
     private func tempRoot() throws -> URL {
@@ -27,8 +26,6 @@ struct ThemeLoaderTests {
         try write(css, to: folder.appendingPathComponent(ThemeLoader.styleSheetName))
         return folder
     }
-
-    // MARK: - Aufbau
 
     @Test("eine verknuepfte .css-Datei ist ein Theme")
     func symlinkedFile() throws {
@@ -157,13 +154,10 @@ struct ThemeLoaderTests {
         #expect(ThemeLoader.folder(inApplicationSupport: support).lastPathComponent == "themes")
     }
 
-    // MARK: - Sicherheit
-
     @Test("ein Theme kommt nicht aus seinem Ordner heraus")
     func assetsStayInsideTheFolder() throws {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        // Etwas, das ein boesartiges Theme gerne haette.
         let secret = root.appendingPathComponent("secret.png")
         try pixel.write(to: secret)
         let folder = try folderTheme(in: root, named: "Angriff", css: ":root {}")
@@ -201,7 +195,6 @@ struct ThemeLoaderTests {
                     "\(reference): \(theme.issues.map(\.description))")
         }
 
-        // Und was erlaubt ist, geht auch wirklich.
         let good = Theme.make(identifier: "Angriff",
                               styleSheet: ThemeStyleSheetParser.parse(
                                   ":root { --apollo-background-image: url(\"ok.png\"); }"),
@@ -240,8 +233,6 @@ struct ThemeLoaderTests {
             $0.kind == .rejectedAsset(reference: "fremd.png", reason: .needsThemeFolder)
         })
     }
-
-    // MARK: - Kaputte Dateien
 
     @Test("leere Datei: die Vorgaben, ohne Aufhebens")
     func emptyFile() throws {
@@ -307,7 +298,7 @@ struct ThemeLoaderTests {
         let root = try tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let file = root.appendingPathComponent("Gross.css")
-        let filler = String(repeating: "/* Kommentar */\n", count: 20_000) // rund 320 KB
+        let filler = String(repeating: "/* Kommentar */\n", count: 20_000)
         try write(filler + ":root { --apollo-accent-color: #ff0000; }\n", to: file)
         let theme = ThemeLoader.load(at: file)
         #expect(theme.color(.accent) == ThemeColor(hex: 0xFF0000))

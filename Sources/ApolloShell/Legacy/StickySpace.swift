@@ -1,19 +1,6 @@
 import AppKit
 import os
 
-/// Ein eigener, immer sichtbarer Space fuer die Leisten, damit sie beim
-/// Wechsel zwischen Schreibtischen stehen bleiben.
-///
-/// `.canJoinAllSpaces` + `.stationary` reicht dafuer nicht: gemessen 21.09.
-/// (Video in der VM, 20 Bilder/s) verschwindet die Leiste beim Wisch fuer
-/// ein paar Bilder und taucht erst nach der Animation wieder auf. So macht es
-/// SketchyBar (`window.c`, Einstellung `sticky`): ein Space ueber
-/// `SLSSpaceCreate`, auf Ebene 0, eingeblendet, und die Fenster dorthin
-/// verschoben. Dieser Space nimmt am Wisch nicht teil.
-///
-/// Private Schnittstelle aus SkyLight, ueber `dlsym`: fehlt ein Symbol (ein
-/// kuenftiges macOS), passiert nichts, und die Leiste verhaelt sich wie
-/// vorher.
 @MainActor
 enum StickySpace {
     private typealias MainConnection = @convention(c) () -> Int32
@@ -47,12 +34,9 @@ enum StickySpace {
         return (connection, unsafeBitCast(add, to: AddWindows.self), space)
     }()
 
-    /// Das Fenster in den eigenen Space. Erst aufrufen, wenn es eine
-    /// Fensternummer hat (nach dem ersten `orderFront`).
     static func pin(_ window: NSWindow) {
         guard let api, window.windowNumber > 0 else { return }
         let windows = [NSNumber(value: window.windowNumber)] as CFArray
-        // 0x7 wie bei SketchyBar: aus allen bisherigen Spaces heraus.
         _ = api.add(api.connection, api.space, windows, 0x7)
     }
 }

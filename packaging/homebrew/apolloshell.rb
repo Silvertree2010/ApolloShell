@@ -1,13 +1,3 @@
-# Homebrew formula for ApolloShell - builds from source.
-#
-# Lives in the tap repository Silvertree2010/homebrew-apolloshell, so users
-# run `brew tap Silvertree2010/apolloshell`. For a new release, update url and
-# set sha256 to `shasum -a 256` of the release tarball.
-#
-# Only the Command Line Tools are needed (swift, clang, codesign, iconutil
-# are not even required - the icon is prebuilt). Xcode is NOT required.
-# The build fetches one dependency, Sparkle, over the network; Homebrew
-# allows that during `install`.
 class Apolloshell < Formula
   desc "Caelestia-inspired desktop shell for macOS: sidebar dock, launcher, dashboard"
   homepage "https://github.com/Silvertree2010/ApolloShell"
@@ -16,12 +6,9 @@ class Apolloshell < Formula
   license "MIT"
   head "https://github.com/Silvertree2010/ApolloShell.git", branch: "main"
 
-  # Liquid Glass (NSGlassEffectView) exists from macOS 26 Tahoe on.
   depends_on macos: :tahoe
 
   def install
-    # Newer Command Line Tools default to an SDK that does not match their
-    # compiler; pin the macOS 26 SDK when it is there (same as build.sh).
     sdk = "/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk"
     ENV["SDKROOT"] = sdk if File.directory?(sdk)
 
@@ -29,12 +16,7 @@ class Apolloshell < Formula
     system "swift", "build", *args
     bin_path = Utils.safe_popen_read("swift", "build", *args, "--show-bin-path").chomp
 
-    # Signs with the local identity from scripts/setup-signing.sh if the
-    # keychain offers it, otherwise ad-hoc (see caveats).
     ENV["BUILD_NUMBER"] = version.to_s
-    # Marks the bundle as a Homebrew build. The app then never replaces
-    # itself - this copy belongs to Homebrew, and `brew upgrade` is the way
-    # to a new version. It still says when a newer one is out.
     ENV["HOMEBREW_BUILD"] = "1"
     system "scripts/assemble-app.sh", "#{bin_path}/ApolloShell", "#{buildpath}/ApolloShell.app"
     prefix.install "ApolloShell.app"
@@ -44,7 +26,6 @@ class Apolloshell < Formula
   def caveats
     <<~EOS
       ApolloShell.app is in:
-        #{opt_prefix}/ApolloShell.app
 
       To find it in Spotlight and Launchpad, link it into ~/Applications:
         mkdir -p ~/Applications
@@ -58,7 +39,6 @@ class Apolloshell < Formula
       The app is signed ad-hoc unless you created a local signing identity.
       Ad-hoc signatures change with every build, so the Accessibility grant
       has to be given again after each upgrade. For a stable signature:
-        #{opt_pkgshare}/setup-signing.sh
         brew reinstall apolloshell
       (If the Homebrew build cannot reach your keychain, build with
       ./build.sh from a git checkout instead.)

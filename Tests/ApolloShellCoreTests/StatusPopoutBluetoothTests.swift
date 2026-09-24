@@ -2,10 +2,6 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-/// Form wie `system_profiler SPBluetoothDataType -json` auf macOS 26
-/// (gemessen 14.09.), Werte erfunden - keine echten Adressen oder
-/// Seriennummern. Das getrennte "Kopfhoerer Max" traegt wie in echt einen
-/// alten Akkuwert, der nicht angezeigt werden darf.
 private let fixture = Data("""
 {
   "SPBluetoothDataType" : [

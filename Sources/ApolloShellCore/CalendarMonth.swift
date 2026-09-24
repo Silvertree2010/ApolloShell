@@ -1,16 +1,12 @@
 import Foundation
 
-/// Ein Tag im Kalenderraster des Dashboards.
 public struct CalendarDay: Hashable, Sendable {
     public let date: Date
     public let day: Int
-    /// Gehoert zum angezeigten Monat (sonst Vor-/Folgemonat, blass).
     public let inMonth: Bool
     public let isToday: Bool
 }
 
-/// Monatsraster wie im Caelestia-Dashboard (DayOfWeekRow + MonthGrid):
-/// ganze Wochen, der erste Wochentag kommt aus dem Kalender (bei uns Montag).
 public enum CalendarMonth {
     public static func weeks(for month: Date, today: Date, calendar: Calendar) -> [[CalendarDay]] {
         guard let interval = calendar.dateInterval(of: .month, for: month),
@@ -35,16 +31,10 @@ public enum CalendarMonth {
         }
     }
 
-    /// Kalenderwoche je Zeile von `weeks(for:)`. Eine Zeile beginnt am ersten
-    /// Wochentag des Kalenders, alle ihre Tage liegen also in derselben
-    /// Woche - der erste genuegt. Mit Montag und der Schweizer Regel (vier
-    /// Tage) ist das die ISO-Woche.
     public static func weekNumbers(_ weeks: [[CalendarDay]], calendar: Calendar) -> [Int] {
         weeks.map { week in week.first.map { calendar.component(.weekOfYear, from: $0.date) } ?? 0 }
     }
 
-    /// Zweibuchstabige Wochentage ab dem ersten Wochentag, ohne Punkt
-    /// ("Mo", "Di", ...).
     public static func weekdaySymbols(calendar: Calendar) -> [String] {
         let symbols = calendar.shortStandaloneWeekdaySymbols.map {
             String($0.replacingOccurrences(of: ".", with: "").prefix(2))
@@ -54,7 +44,6 @@ public enum CalendarMonth {
     }
 }
 
-/// Laufzeit als kurzer Text ("2 T 3 Std", "3 Std 12 Min", "12 Min").
 public enum UptimeText {
     public static func format(seconds: TimeInterval) -> String {
         let minutes = Int(seconds) / 60

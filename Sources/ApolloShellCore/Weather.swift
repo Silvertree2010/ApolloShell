@@ -1,15 +1,5 @@
 import Foundation
 
-// Wetter fuer das Dashboard (Caelestia: services/Weather.qml). Daten von
-// Open-Meteo (Vorgabe, dieselbe Quelle wie Caelestia) oder einem der anderen
-// Anbieter in WeatherProvider.swift - alle ohne Schluessel und Konto.
-// Hier nur reine Logik - Abruf und Oberflaeche liegen in der App.
-
-// MARK: - Ort
-
-/// Wofuer das Wetter gilt. Fest statt CoreLocation: Ortung wuerde einen
-/// Freigabe-Dialog zeigen. Kein fester Ort mehr - stattdessen selbst
-/// angelegte Favoriten (siehe `WeatherFavorites`), gespeichert in weather.json.
 public struct WeatherLocation: Equatable, Sendable, Identifiable {
     public var id: UUID
     public var name: String
@@ -24,11 +14,6 @@ public struct WeatherLocation: Equatable, Sendable, Identifiable {
     }
 }
 
-// MARK: - Favoriten
-
-/// Selbst angelegte Orte (Nexus > Dashboard): eine geordnete Liste plus der
-/// gewaehlte, gespeichert in weather.json. Frische Installation: leer, kein
-/// gewaehlter Ort - erst ein Favorit macht das Wetter abrufbar.
 public struct WeatherFavorites: Equatable, Sendable {
     public var locations: [WeatherLocation]
     public var selectedID: WeatherLocation.ID?
@@ -45,10 +30,6 @@ public struct WeatherFavorites: Equatable, Sendable {
         return locations.first { $0.id == selectedID }
     }
 
-    /// Neuer Favorit ans Ende - nicht doppelt, wenn schon einer mit
-    /// denselben Koordinaten da ist (dieselbe Ortssuche liefert fuer denselben
-    /// Ort immer dieselben Zahlen). Der erste Favorit wird gleich gewaehlt.
-    /// `false`, wenn er schon da war - dann bleibt die Liste unveraendert.
     @discardableResult
     public mutating func add(_ location: WeatherLocation) -> Bool {
         guard !locations.contains(where: { $0.sameCoordinates(as: location) }) else { return false }
@@ -57,34 +38,20 @@ public struct WeatherFavorites: Equatable, Sendable {
         return true
     }
 
-    /// Entfernt einen Favoriten. War er der gewaehlte, gilt danach keiner
-    /// mehr - der Aufrufer (Nexus, Wetter-Reiter) entscheidet, ob und was
-    /// von Hand nachgewaehlt wird.
     public mutating func remove(id: WeatherLocation.ID) {
         locations.removeAll { $0.id == id }
         if selectedID == id { selectedID = nil }
     }
 
-    /// Wie SwiftUIs `onMove`: `destination` zaehlt in der Liste VOR dem
-    /// Verschieben ("vor Zeile n einfuegen"), siehe `Array.move` in
-    /// Reorder.swift - `move(fromOffsets:toOffset:)` selbst gehoert zu
-    /// SwiftUI, und ApolloShellCore bleibt ohne Oberflaeche.
     public mutating func move(fromOffsets source: IndexSet, toOffset destination: Int) {
         locations.move(fromOffsets: source, toOffset: destination)
     }
 
-    /// Nur ein vorhandener Favorit laesst sich waehlen.
     public mutating func select(id: WeatherLocation.ID) {
         guard locations.contains(where: { $0.id == id }) else { return }
         selectedID = id
     }
 
-    /// Inhalt von weather.json. Neues Format: `{"favorites":[...],"selectedID":...}`.
-    /// Erkennt zusaetzlich das alte Format eines einzelnen Orts
-    /// (`{"name","latitude","longitude"}`) und macht daraus einen Favoriten -
-    /// so wird eine vorhandene Datei beim ersten Start zum ersten Favoriten
-    /// und zum gewaehlten Ort, ohne dass etwas verloren geht. Fehlt die
-    /// Datei, ist sie kaputt oder leer: keine Favoriten.
     public static func load(from data: Data?) -> WeatherFavorites {
         guard let data, let file = try? JSONDecoder().decode(File.self, from: data) else { return .empty }
         if let favoriteFiles = file.favorites {
@@ -93,7 +60,6 @@ public struct WeatherFavorites: Equatable, Sendable {
                 ?? locations.first?.id
             return WeatherFavorites(locations: locations, selectedID: selectedID)
         }
-        // Migration: alte Datei mit genau einem Ort, ohne "favorites".
         guard let latitude = file.latitude, let longitude = file.longitude,
               (-90...90).contains(latitude), (-180...180).contains(longitude)
         else { return .empty }
@@ -102,8 +68,6 @@ public struct WeatherFavorites: Equatable, Sendable {
         return WeatherFavorites(locations: [location], selectedID: location.id)
     }
 
-    /// Zum Schreiben nach weather.json - sortierte Schluessel, eingerueckt:
-    /// von Hand lesbar, und gleiche Favoriten ergeben byte-gleiche Dateien.
     public func fileData() -> Data {
         let file = File(
             favorites: locations.map { File.Location(id: $0.id, name: $0.name, latitude: $0.latitude, longitude: $0.longitude) },
@@ -121,8 +85,6 @@ public struct WeatherFavorites: Equatable, Sendable {
             let latitude: Double
             let longitude: Double
 
-            /// `nil`, wenn die Koordinaten nicht auf der Erde liegen - so ein
-            /// Eintrag faellt beim Lesen weg statt die ganze Datei zu verwerfen.
             var location: WeatherLocation? {
                 guard (-90...90).contains(latitude), (-180...180).contains(longitude) else { return nil }
                 let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -133,7 +95,6 @@ public struct WeatherFavorites: Equatable, Sendable {
 
         let favorites: [Location]?
         let selectedID: WeatherLocation.ID?
-        // Nur fuer die Migration von der alten, einzeiligen Datei.
         let name: String?
         let latitude: Double?
         let longitude: Double?
@@ -141,14 +102,10 @@ public struct WeatherFavorites: Equatable, Sendable {
 }
 
 private extension WeatherLocation {
-    /// Gleicher Ort, ohne die Kennung zu vergleichen - fuer die
-    /// Duplikatpruefung beim Hinzufuegen.
     func sameCoordinates(as other: WeatherLocation) -> Bool {
         latitude == other.latitude && longitude == other.longitude
     }
 }
-
-// MARK: - Bericht
 
 public struct CurrentWeather: Equatable, Sendable {
     public var time: Date
@@ -176,8 +133,6 @@ public struct HourForecast: Equatable, Sendable {
     public var temperature: Double
     public var code: Int
     public var precipitationProbability: Int?
-    /// Tag oder Nacht, wenn der Anbieter es je Stunde sagt (MET Norway im
-    /// Symbolnamen); sonst `nil` und die Sonnenzeiten entscheiden.
     public var isDay: Bool?
 
     public init(time: Date, temperature: Double, code: Int, precipitationProbability: Int?, isDay: Bool? = nil) {
@@ -190,7 +145,6 @@ public struct HourForecast: Equatable, Sendable {
 }
 
 public struct DayForecast: Equatable, Sendable {
-    /// Tagesbeginn in der Zeitzone des Orts.
     public var date: Date
     public var code: Int
     public var maxTemperature: Double
@@ -211,14 +165,12 @@ public struct DayForecast: Equatable, Sendable {
     }
 }
 
-/// Eine Spalte der Stundenleiste.
 public struct HourSlot: Equatable, Sendable {
     public var time: Date
     public var temperature: Double
     public var code: Int
     public var isDay: Bool
     public var precipitationProbability: Int?
-    /// Die laufende Stunde ("Now").
     public var isNow: Bool
 }
 
@@ -226,14 +178,8 @@ public struct WeatherReport: Equatable, Sendable {
     public var current: CurrentWeather
     public var hours: [HourForecast]
     public var days: [DayForecast]
-    /// Deutsche Wochentage, Montag zuerst, Zeitzone des Orts: "Today" und
-    /// "14 Uhr" gelten dort, wo das Wetter ist.
     public let calendar: Calendar
 
-    /// `locale`: Standard `.current` - folgt der Sprachwahl in Nexus >
-    /// Allgemein (Wochentage, Monatsnamen in "Today"/Langdatum). Frueher fest
-    /// `de_CH`; Woche beginnt trotzdem am Montag (`firstWeekday`), das ist
-    /// eine Einstellung, keine Sprachfrage.
     public init(current: CurrentWeather, hours: [HourForecast], days: [DayForecast], timeZone: TimeZone,
                 locale: Locale = .current) {
         self.current = current
@@ -246,21 +192,11 @@ public struct WeatherReport: Equatable, Sendable {
         self.calendar = calendar
     }
 
-    /// Abstand der Stundenwerte: eine Stunde bei Open-Meteo und MET Norway,
-    /// drei bei wttr.in. Der haeufigste Abstand (Median), damit eine einzelne
-    /// Luecke ihn nicht verfaelscht; ohne zwei Werte eine Stunde.
     public var hourSpacing: TimeInterval {
         let gaps = zip(hours, hours.dropFirst()).map { $1.time.timeIntervalSince($0.time) }.filter { $0 > 0 }.sorted()
         return gaps.isEmpty ? 3600 : gaps[gaps.count / 2]
     }
 
-    /// Stundenleiste ab dem laufenden Wert, etwa alle `step` Stunden - bei
-    /// Werten alle drei Stunden (wttr.in) also jeder Wert.
-    ///
-    /// Die erste Spalte zeigt die aktuellen Werte, sofern sie aus demselben
-    /// Abschnitt stammen - sonst sagte "Now" etwas anderes als die grosse
-    /// Zahl daneben. Sind die Daten alt (Abruf fehlgeschlagen), rueckt die
-    /// Leiste trotzdem mit der Uhr weiter und nimmt die Vorhersage.
     public func hourlyStrip(now: Date, count: Int = 12, step: Int = 2) -> [HourSlot] {
         let spacing = hourSpacing
         guard let first = hours.firstIndex(where: { $0.time.addingTimeInterval(spacing) > now }) else { return [] }
@@ -279,8 +215,6 @@ public struct WeatherReport: Equatable, Sendable {
         }
     }
 
-    /// Tag oder Nacht nach Sonnenauf- und -untergang des Tages. Fehlt der Tag
-    /// in den Daten, grob 7 bis 19 Uhr.
     public func isDay(at date: Date) -> Bool {
         if let day = days.first(where: { calendar.isDate($0.date, inSameDayAs: date) }),
            let sunrise = day.sunrise, let sunset = day.sunset {
@@ -289,7 +223,6 @@ public struct WeatherReport: Equatable, Sendable {
         return (7..<19).contains(calendar.component(.hour, from: date))
     }
 
-    /// Tage ab heute; vergangene fallen weg, falls die Daten von gestern sind.
     public func upcomingDays(now: Date, count: Int = 7) -> [DayForecast] {
         let today = calendar.startOfDay(for: now)
         return Array(days.filter { $0.date >= today }.prefix(count))
@@ -300,18 +233,11 @@ public struct WeatherReport: Equatable, Sendable {
     }
 }
 
-// MARK: - Open-Meteo
-
 public enum OpenMeteo {
     public enum DecodeError: Error, Equatable {
-        /// Ohne aktuelle Temperatur und Wetterlage gibt es nichts anzuzeigen.
         case noCurrentWeather
     }
 
-    /// Anfrage wie Caelestia (getWeatherUrl), plus Regenwahrscheinlichkeit
-    /// pro Tag. `forecast_hours=48` statt der vollen 7 Tage: die Leiste
-    /// braucht 24 Stunden ab jetzt, der Rest ist Reserve, falls ein Abruf
-    /// fehlschlaegt und die Daten ein paar Stunden alt werden.
     public static func url(for location: WeatherLocation) -> URL {
         var components = URLComponents()
         components.scheme = "https"
@@ -327,14 +253,9 @@ public enum OpenMeteo {
             URLQueryItem(name: "forecast_days", value: "7"),
             URLQueryItem(name: "forecast_hours", value: "48"),
         ]
-        // Statische Teile, kann nicht scheitern.
         return components.url!
     }
 
-    /// Open-Meteo liefert Ortszeit ohne Zone ("2026-09-14T06:58") und die Zone
-    /// separat. Umgerechnet wird mit der benannten Zone, nicht mit
-    /// `utc_offset_seconds`: der Versatz gilt nur fuer jetzt, ueber eine
-    /// Zeitumstellung in der Wochenvorschau hinweg waere er falsch.
     public static func decode(_ data: Data) throws -> WeatherReport {
         let raw = try JSONDecoder().decode(Raw.self, from: data)
 
@@ -359,7 +280,6 @@ public enum OpenMeteo {
             isDay: (c.isDay ?? 1) != 0
         )
 
-        // Einzelne Luecken (null) ueberspringen statt alles zu verwerfen.
         var hours: [HourForecast] = []
         if let h = raw.hourly {
             for (i, text) in h.time.enumerated() {
@@ -392,9 +312,6 @@ public enum OpenMeteo {
         return WeatherReport(current: current, hours: hours, days: days, timeZone: zone)
     }
 
-    /// "2026-09-14T06:58" oder "2026-09-14" als Ortszeit. Von Hand statt
-    /// DateFormatter: das Format ist fest, und so gibt es keine Abhaengigkeit
-    /// von Locale-Einstellungen.
     static func localDate(_ text: String, calendar: Calendar) -> Date? {
         let parts = text.split(whereSeparator: { !$0.isASCII || !$0.isNumber }).compactMap { Int($0) }
         guard parts.count == 3 || parts.count == 5 else { return nil }
@@ -411,9 +328,6 @@ public enum OpenMeteo {
         return array[index]
     }
 
-    /// Schluessel von Hand statt `.convertFromSnakeCase`: das macht aus
-    /// "temperature_2m" `temperature2M` (gemessen 14.09.), nicht
-    /// `temperature2m` - die Felder blieben still leer.
     private struct Raw: Decodable {
         struct Current: Decodable {
             let time: String
@@ -480,23 +394,9 @@ public enum OpenMeteo {
     }
 }
 
-// MARK: - Wetterlage
-
-/// WMO-Wettercode (Open-Meteo `weather_code`) als SF Symbol und deutscher
-/// Text. Gruppen wie Caelestia (Icons.weatherIcons, getWeatherCondition),
-/// Texte feiner abgestuft, weil "Rain" und "Heavy Rain" etwas anderes
-/// bedeuten, wenn man rausgeht.
 public enum WeatherCondition {
-    /// Fuer Codes anderer Anbieter, die keine Entsprechung haben: "Unknown"
-    /// mit Thermometer. Negativ, damit er nie ein echter WMO-Code ist.
     public static let unknownCode = -1
 
-    /// Gefuellte Varianten: nur die haben Mehrfarben-Ebenen (Sonne gelb,
-    /// Regen blau). Tag/Nacht nur, wo es ein Mond-Gegenstueck gibt.
-    ///
-    /// 68/69 (Schneeregen), 79 (Eiskoerner) und 83/84 (Schneeregenschauer)
-    /// liefert Open-Meteo nie, MET Norway und wttr.in aber schon - echte
-    /// WMO-Codes statt "gefrierender Regen", der etwas anderes ist.
     public static func symbol(code: Int, isDay: Bool) -> String {
         switch code {
         case 0, 1: isDay ? "sun.max.fill" : "moon.stars.fill"
@@ -551,18 +451,11 @@ public enum WeatherCondition {
     }
 }
 
-// MARK: - Texte
-
-/// Alle Zahlen und Zeiten als Text, fest in deutscher Schreibweise statt
-/// ueber Formatter mit Systemsprache: so ist das Ergebnis testbar gleich.
 public enum WeatherText {
-    /// "12°", "-3°". Gerundet wie Apple Wetter; -0.4 wird "0°", nicht "-0°".
     public static func temperature(_ celsius: Double) -> String {
         "\(Int(celsius.rounded()))°"
     }
 
-    /// "H: 22° T: 14°" wie Apple Wetter auf Deutsch ("H:22° L:14°" auf
-    /// Englisch - Apple nennt den Tiefstwert dort "Low", nicht "Tief").
     public static func range(max: Double, min: Double) -> String {
         String(localized: "H:\(temperature(max)) L:\(temperature(min))")
     }
@@ -575,8 +468,6 @@ public enum WeatherText {
         "\(percent) %"
     }
 
-    /// Regenwahrscheinlichkeit erst ab 20 %: darunter ist es Rauschen, und
-    /// eine Leiste voller "3 %" liest sich wie Regenwetter.
     public static func precipitation(_ percent: Int?) -> String? {
         guard let percent, percent >= 20 else { return nil }
         return "\(percent) %"
@@ -587,24 +478,20 @@ public enum WeatherText {
         return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
     }
 
-    /// Zeigt an, von wann die angezeigten Daten sind, wenn sie nicht frisch sind.
     public static func stand(_ date: Date, calendar: Calendar) -> String {
         String(localized: "As of \(clock(date, calendar: calendar))")
     }
 
-    /// "Now" oder "14 Uhr".
     public static func hourLabel(_ date: Date, isNow: Bool, calendar: Calendar) -> String {
         isNow ? String(localized: "Now") : String(localized: "\(calendar.component(.hour, from: date)):00")
     }
 
-    /// "Today", sonst zwei Buchstaben wie im Kalender ("Mo", "Di").
     public static func dayLabel(_ date: Date, today: Date, calendar: Calendar) -> String {
         if calendar.isDate(date, inSameDayAs: today) { return String(localized: "Today") }
         let symbol = calendar.shortStandaloneWeekdaySymbols[calendar.component(.weekday, from: date) - 1]
         return String(symbol.replacingOccurrences(of: ".", with: "").prefix(2))
     }
 
-    /// Tag und Monat kurz, im Format der Sprache: "15.9." (de), "9/15" (en).
     public static func shortDate(_ date: Date, calendar: Calendar, locale: Locale = .current) -> String {
         date.formatted(
             Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone)
@@ -612,7 +499,6 @@ public enum WeatherText {
         )
     }
 
-    /// "Montag, 14. September".
     public static func longDate(_ date: Date, calendar: Calendar) -> String {
         let c = calendar.dateComponents([.weekday, .day, .month], from: date)
         let weekday = calendar.standaloneWeekdaySymbols[(c.weekday ?? 1) - 1]
@@ -621,24 +507,11 @@ public enum WeatherText {
     }
 }
 
-// MARK: - Abrufregeln
-
 public enum WeatherRefresh {
-    /// Beim Oeffnen nur abrufen, wenn die Daten aelter sind: wer das Dashboard
-    /// mehrmals pro Minute oeffnet, soll nicht jedes Mal den Anbieter fragen.
-    /// Passt auch zu MET Norway (hoechstens alle 10 Minuten, gemessen 14.09.:
-    /// ihre Antwort gilt laut Expires gut 10 Minuten).
     public static let maxAge: TimeInterval = 15 * 60
-    /// Takt, solange das Dashboard offen bleibt.
     public static let interval: TimeInterval = 30 * 60
-    /// Ab hier gilt der Stand als alt, auch ohne gemeldeten Fehler (z. B.
-    /// lange zu gewesen, neuer Abruf laeuft noch).
     public static let staleAfter: TimeInterval = 45 * 60
 
-    /// Nach einem Fehlschlag, solange das Dashboard offen ist: bald nochmal
-    /// statt erst nach 30 Minuten. Gemessen 14.09.: direkt nach dem Aufwachen
-    /// lief der Abruf in die Zeitueberschreitung (Netz/VPN noch nicht bereit),
-    /// wenige Minuten spaeter klappte derselbe Abruf.
     public static func retryDelay(afterFailures failures: Int) -> TimeInterval {
         switch failures {
         case ...1: 10
@@ -653,8 +526,6 @@ public enum WeatherRefresh {
         return now.timeIntervalSince(fetchedAt) >= maxAge
     }
 
-    /// "Stand HH:MM" zeigen? Nur wenn es alte Daten gibt, die nicht frisch
-    /// sind - ohne Daten gibt es keinen Stand, und frische brauchen keinen.
     public static func showsStand(fetchedAt: Date?, lastAttemptFailed: Bool, now: Date) -> Bool {
         guard let fetchedAt else { return false }
         return lastAttemptFailed || now.timeIntervalSince(fetchedAt) > staleAfter

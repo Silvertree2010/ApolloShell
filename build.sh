@@ -1,16 +1,4 @@
 #!/bin/sh
-# Entwicklungs-Build: baut ApolloShell.app, installiert es nach
-# ~/Applications und startet eine laufende Instanz neu. Kein Xcode noetig.
-# Das Bundle setzt scripts/assemble-app.sh zusammen, dasselbe Skript wie fuer
-# DMG und Homebrew-Formel.
-#
-# Neustart danach:
-# - APOLLOSHELL_LAUNCHD_LABEL gesetzt und dieser launchd-Agent geladen:
-#   `launchctl kickstart -k`. Rechner-eigene Werte stehen in .local.env
-#   (nicht im Repo), z. B. APOLLOSHELL_LAUNCHD_LABEL=org.example.apolloshell
-# - Sonst, wenn ApolloShell laeuft: sauber beenden (SIGTERM, stellt Apples
-#   Dock wieder her) und das installierte Bundle oeffnen.
-# - Laeuft nichts, startet build.sh auch nichts.
 set -eu
 cd "$(dirname "$0")"
 
@@ -18,8 +6,6 @@ if [ -f .local.env ]; then
     . ./.local.env
 fi
 
-# SDK fest auf macOS 26 (Begruendung in test.sh: CLT 26.6 stellt sonst das
-# macOS-27-SDK ein, das nicht zum Compiler passt).
 export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk
 
 swift build -c release --product ApolloShell

@@ -1,15 +1,8 @@
 import Foundation
 
-/// Unscharfe Suche: die Buchstaben der Eingabe muessen in dieser
-/// Reihenfolge im Namen vorkommen, aber nicht direkt hintereinander.
-/// "illu" findet "Adobe Illustrator 2026", "ff" findet "Firefox".
-///
-/// Bewertung: Treffer am Namensanfang und an Wortanfaengen zaehlen mehr,
-/// zusammenhaengende Treffer auch. Gross/klein und Akzente sind egal.
 public struct FuzzyMatcher: Sendable {
     public init() {}
 
-    /// `nil`, wenn der Name nicht passt. Hoeher ist besser.
     public func score(_ query: String, in candidate: String) -> Int? {
         let q = Array(Self.normalize(query).filter { !$0.isWhitespace })
         guard !q.isEmpty else { return 0 }
@@ -43,8 +36,6 @@ public struct FuzzyMatcher: Sendable {
         return score
     }
 
-    /// Filtert und sortiert. Leere Eingabe laesst die Reihenfolge, wie sie ist.
-    /// Bei gleicher Bewertung entscheidet der Name alphabetisch.
     public func rank<T>(_ items: [T], query: String, name: (T) -> String) -> [T] {
         guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return items }
         return items

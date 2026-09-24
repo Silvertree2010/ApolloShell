@@ -19,7 +19,6 @@ struct SingleInstanceTests {
         ([], [:], false),
         (["ApolloShell", "--relaunch"], [:], true),
         ([], ["XPC_SERVICE_NAME": "org.example.apolloshell"], true),
-        // Finder, Dock, `open`: LaunchServices setzt "application.…".
         ([], ["XPC_SERVICE_NAME": "application.io.github.example.123.456"], false),
         ([], ["XPC_SERVICE_NAME": "0"], false),
     ] as [([String], [String: String], Bool)])

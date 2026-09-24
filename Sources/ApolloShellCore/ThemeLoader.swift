@@ -1,21 +1,11 @@
 import Foundation
 
-/// Obergrenzen beim Lesen eines Themes. Keine davon ist Geschmack: jede
-/// verhindert, dass eine Datei den Speicher, die Anzeige oder die Zeit der
-/// Shell auffrisst.
 public struct ThemeLimits: Equatable, Hashable, Sendable {
-    /// Groesste .css-Datei. Darueber wird gar nicht erst gelesen.
     public var maxStyleSheetBytes: Int
-    /// Groesstes Bild aus einem Theme-Ordner.
     public var maxAssetBytes: Int
-    /// Mehr Zeilen `--x: y;` kann ein Theme nicht haben.
     public var maxDeclarations: Int
-    /// Mehr Hinweise werden nicht gesammelt (Zufallsbytes ergeben sonst
-    /// beliebig viele).
     public var maxIssues: Int
-    /// Laengster Text in einem Token.
     public var maxTextLength: Int
-    /// Welche Dateiendungen ein Bild haben darf - klein geschrieben.
     public var imageExtensions: Set<String>
 
     public init(maxStyleSheetBytes: Int = 512 * 1024,
@@ -36,12 +26,6 @@ public struct ThemeLimits: Equatable, Hashable, Sendable {
     public static let standard = ThemeLimits()
 }
 
-/// Entscheidet, ob ein Theme eine Datei benutzen darf, und gibt sie geprueft
-/// zurueck.
-///
-/// Das ist die Sicherheitsgrenze des ganzen Formats: ein Theme aus dem Netz
-/// ist fremder Code in Textform, und der einzige Weg nach draussen waere ein
-/// Pfad. Deshalb hier und nur hier.
 public typealias ThemeAssetOutcome = Result<URL, ThemeAssetRejection>
 
 public struct ThemeAssetResolver: Sendable {
@@ -55,27 +39,14 @@ public struct ThemeAssetResolver: Sendable {
         body(reference)
     }
 
-    /// Ein Theme, das aus einer einzelnen .css-Datei besteht, hat keinen
-    /// eigenen Ordner - also auch keine Bilder. Sonst duerfte es im Ordner
-    /// aller Themes stoebern.
     public static let none = ThemeAssetResolver { _ in .failure(.needsThemeFolder) }
 
-    /// Dateien aus genau diesem Ordner, sonst nichts.
-    ///
-    /// Geprueft wird in dieser Reihenfolge, und jede Stufe darf allein
-    /// genuegen: Prozentzeichen zuerst aufloesen (sonst schmuggelt `%2e%2e`
-    /// ein `..` an der Pruefung vorbei), kein Schema, kein absoluter Pfad,
-    /// kein `..`, erlaubte Endung, danach Verknuepfungen aufloesen und den
-    /// tatsaechlichen Pfad mit dem Ordner vergleichen. Erst dann wird die
-    /// Groesse gemessen.
     public static func folder(_ folder: URL, limits: ThemeLimits = .standard) -> ThemeAssetResolver {
         let root = folder.resolvingSymlinksInPath().standardizedFileURL
         return ThemeAssetResolver { reference in
             var path = reference.trimmedText
             if path.contains("%") { path = path.removingPercentEncoding ?? path }
             guard !path.isEmpty else { return .failure(.missing) }
-            // `:` gibt es in macOS-Dateinamen praktisch nicht, in `http:` und
-            // `data:` aber immer.
             guard !path.contains(":") else { return .failure(.notALocalPath) }
             guard !path.hasPrefix("/"), !path.hasPrefix("~"), !path.hasPrefix("\\") else {
                 return .failure(.escapesFolder)
@@ -91,8 +62,6 @@ public struct ThemeAssetResolver: Sendable {
             var candidate = root
             for component in components { candidate.appendPathComponent(component) }
             let resolved = candidate.resolvingSymlinksInPath().standardizedFileURL
-            // Nach dem Aufloesen: liegt die Datei wirklich im Ordner? Eine
-            // Verknuepfung nach draussen faellt genau hier durch.
             guard resolved.path.hasPrefix(root.path + "/") else { return .failure(.outsideThemeFolder) }
             guard let attributes = try? FileManager.default.attributesOfItem(atPath: resolved.path),
                   (attributes[.type] as? FileAttributeType) == .typeRegular else {
@@ -107,20 +76,10 @@ public struct ThemeAssetResolver: Sendable {
     }
 }
 
-/// Liest Themes von der Platte. Wirft nie, stuerzt nie ab, gibt immer ein
-/// benutzbares Theme zurueck - notfalls die Vorgaben mit einem Hinweis.
-///
-/// Ein Theme ist entweder
-/// - eine einzelne Datei `Name.css` (Kennung: `Name`) oder
-/// - ein Ordner `Name/` mit `theme.css` darin (Kennung: `Name`), dann duerfen
-///   Bilder daneben liegen.
 public enum ThemeLoader {
-    /// Die Datei, die ein Theme-Ordner haben muss.
     public static let styleSheetName = "theme.css"
-    /// Der Ordner, in dem alle Themes liegen.
     public static let folderName = "themes"
 
-    /// ~/Library/Application Support/ApolloShell/themes
     public static func folder(inApplicationSupport url: URL) -> URL {
         url.appendingPathComponent(folderName, isDirectory: true)
     }
@@ -142,9 +101,6 @@ public enum ThemeLoader {
         }
         let sheet = isDirectory.boolValue ? url.appendingPathComponent(styleSheetName) : url
         let assets = isDirectory.boolValue ? ThemeAssetResolver.folder(url, limits: limits) : .none
-        // Verknuepfungen gelten (Themes aus einem Dotfiles-Ordner). Die
-        // theme.css eines Ordners muss danach aber im Ordner liegen, wie
-        // seine Bilder.
         let resolved = sheet.resolvingSymlinksInPath().standardizedFileURL
         if isDirectory.boolValue {
             let root = url.resolvingSymlinksInPath().standardizedFileURL
@@ -160,8 +116,6 @@ public enum ThemeLoader {
         guard size <= limits.maxStyleSheetBytes else {
             return fallback(.styleSheetTooLarge(bytes: size, limit: limits.maxStyleSheetBytes))
         }
-        // Hoechstens eins ueber der Grenze lesen: waechst die Datei zwischen
-        // Messen und Lesen, bleibt die Grenze trotzdem.
         guard let handle = try? FileHandle(forReadingFrom: resolved),
               let data = try? handle.read(upToCount: limits.maxStyleSheetBytes + 1) ?? Data()
         else {
@@ -175,8 +129,6 @@ public enum ThemeLoader {
         guard let text else {
             return fallback(issue ?? .notText)
         }
-        // Symbole gibt es nur in einem Theme-Ordner: eine einzelne .css hat
-        // keinen Platz, an dem Bilder liegen duerften.
         let icons = isDirectory.boolValue ? ThemeIconSet.read(in: url, limits: limits) : (icons: ThemeIconSet.none, issues: [])
         return Theme.make(identifier: identifier,
                           styleSheet: ThemeStyleSheetParser.parse(text, limits: limits),
@@ -185,8 +137,6 @@ public enum ThemeLoader {
                           icons: icons.icons)
     }
 
-    /// Alle Themes eines Ordners, nach Kennung sortiert. Was kein Theme ist,
-    /// wird stumm uebergangen.
     public static func themes(in folder: URL,
                               limits: ThemeLimits = .standard,
                               catalog: ThemeTokenCatalog = .standard) -> [Theme] {
@@ -199,7 +149,6 @@ public enum ThemeLoader {
         }
         var result: [Theme] = []
         for entry in sorted {
-            // Durch Verknuepfungen hindurch: ein verlinkter Ordner ist auch einer.
             let isDirectory = (try? entry.resolvingSymlinksInPath()
                 .resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             if isDirectory {
@@ -212,13 +161,6 @@ public enum ThemeLoader {
         return result
     }
 
-    /// Bytes zu Text. Gibt zusaetzlich zurueck, was daran auffiel.
-    ///
-    /// UTF-8 ist die Vorgabe. Eine Datei mit Byte-Reihenfolge-Marke wird als
-    /// UTF-16 gelesen, Nullbytes gelten als "gar kein Text" (jemand hat ein
-    /// Bild umbenannt), und was kein gueltiges UTF-8 ist, wird als Latin-1
-    /// gelesen: dann stimmen wenigstens die ASCII-Zeilen, und die Farben
-    /// kommen an.
     public static func decode(_ data: Data) -> (text: String?, issue: ThemeIssue.Kind?) {
         guard !data.isEmpty else { return ("", nil) }
         let bytes = [UInt8](data.prefix(4))

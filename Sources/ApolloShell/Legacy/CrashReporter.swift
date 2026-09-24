@@ -2,22 +2,12 @@ import AppKit
 import ApolloShellCore
 import os
 
-/// Sieht beim Start nach, ob die Shell seit dem letzten Mal abgestuerzt ist,
-/// und schickt den Bericht - je nach Wahl in Nexus > Updates nach Rueckfrage,
-/// immer oder nie.
-///
-/// Gesendet wird nur die bereinigte Fassung (`CrashReportSanitizer`) und die
-/// Exception-Zeilen aus dem Log kurz davor (`CrashLogContext`). Der Dialog
-/// zeigt genau die Bytes, die rausgehen.
 @MainActor
 final class CrashReporter {
-    /// Zum Testen gegen einen lokalen Worker:
-    /// `defaults write <Bundle-ID> crashReportEndpoint http://127.0.0.1:8787/v1/reports`.
     static var endpoint: URL {
         UserDefaults.standard.string(forKey: "crashReportEndpoint").flatMap(URL.init(string:))
             ?? URL(string: "https://apolloshell-crashes.pages.dev/v1/reports")!
     }
-    /// Nicht gleich beim Start: erst sollen Leiste und Dock stehen.
     private static let delay: TimeInterval = 8
 
     private let settings: ShellSettingsStore
@@ -48,10 +38,6 @@ final class CrashReporter {
             return
         }
         busy = true
-        // Einlesen und das Log abfragen dauert ein, zwei Sekunden: abseits
-        // des Hauptthreads. AppKit (der Dialog) kommt danach ausdruecklich
-        // NICHT in diesem Task dran - eine Exception dort liesse die
-        // Concurrency-Laufzeit kaputt zurueck (siehe CrashLogContext).
         let install = installKind == .homebrew ? "homebrew" : "dmg"
         Task { [weak self] in
             var prepared: [(CrashReportScan.Candidate, CrashReportUpload)] = []
@@ -67,7 +53,6 @@ final class CrashReporter {
 
     private func handle(_ prepared: [(CrashReportScan.Candidate, CrashReportUpload)], lastSeen: Date) {
         defer { busy = false }
-        // Unlesbare Dateien gelten als erledigt, sonst kaemen sie ewig wieder.
         guard !prepared.isEmpty else { return markHandled(until: lastSeen) }
         for (candidate, upload) in prepared {
             switch settings.settings.crashReports.mode {
@@ -79,15 +64,12 @@ final class CrashReporter {
                 switch ask(upload) {
                 case true?: send(upload, handledUntil: candidate.modified)
                 case false?: markHandled(until: candidate.modified)
-                // Abgebrochen (App wird beendet): beim naechsten Start nochmal.
                 case nil: return
                 }
             }
         }
     }
 
-    /// `true`: senden, `false`: nicht, `nil`: Dialog abgebrochen. Merkt sich
-    /// "jedes Mal so", wenn angekreuzt.
     private func ask(_ upload: CrashReportUpload) -> Bool? {
         let alert = NSAlert()
         alert.messageText = String(localized: "ApolloShell quit unexpectedly")
@@ -125,11 +107,9 @@ final class CrashReporter {
                         self.log.notice("Absturzbericht gesendet")
                         self.markHandled(until: handledUntil)
                     } else if (400..<500).contains(status), status != 429 {
-                        // Abgelehnt (zu gross, ungueltig): wiederholen hilft nicht.
                         self.log.error("Absturzbericht abgelehnt: \(status, privacy: .public)")
                         self.markHandled(until: handledUntil)
                     } else {
-                        // Offline, Server weg, zu viele: beim naechsten Start nochmal.
                         self.log.error("Absturzbericht nicht gesendet: \(status, privacy: .public) \(error?.localizedDescription ?? "", privacy: .public)")
                     }
                 }
@@ -142,7 +122,6 @@ final class CrashReporter {
         if date > current { settings.settings.crashReports.handledUntil = date }
     }
 
-    /// Eigene `.ips`-Dateien im Berichtsordner des Nutzers.
     private static func candidates() -> [CrashReportScan.Candidate] {
         let folder = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Logs/DiagnosticReports")
@@ -170,7 +149,6 @@ final class CrashReporter {
         return CrashReportUpload(report, install: install, context: context)
     }
 
-    /// Was gesendet wird, zum Nachlesen im Dialog.
     private static func preview(_ upload: CrashReportUpload) -> NSView {
         let scroll = NSTextView.scrollableTextView()
         scroll.frame = NSRect(x: 0, y: 0, width: 460, height: 180)
@@ -179,7 +157,6 @@ final class CrashReporter {
         if let text = scroll.documentView as? NSTextView {
             text.isEditable = false
             text.font = .monospacedSystemFont(ofSize: 10, weight: .regular)
-            // Dieselben Felder wie im Upload, nur lesbar statt als eine Zeile JSON.
             var parts = ["ApolloShell \(upload.appVersion) (\(upload.build)), \(upload.os), \(upload.arch), \(upload.install)",
                          upload.report]
             if let context = upload.context { parts.append(context) }

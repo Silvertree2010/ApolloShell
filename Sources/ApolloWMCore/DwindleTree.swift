@@ -1,6 +1,5 @@
 import CoreGraphics
 
-/// Spacing around and between tiles, in points.
 public struct Gaps: Sendable, Equatable, Codable {
     public var outer: CGFloat
     public var inner: CGFloat
@@ -13,22 +12,12 @@ public struct Gaps: Sendable, Equatable, Codable {
     public static let none = Gaps(outer: 0, inner: 0)
 }
 
-/// Hyprland's "dwindle" layout: a binary tree where every new window splits
-/// an existing tile in two. Each split runs along the longer side of the tile,
-/// so the layout spirals inward as windows are added.
-///
-/// Coordinates are top-left based (y grows downward), matching the
-/// Accessibility API. "First" means left in a side-by-side split and top in a
-/// stacked split.
 public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
     indirect enum Node: Sendable {
         case leaf(ID)
-        /// `sideBySide` nil means "decide by the tile's shape"; once frozen it
-        /// stays, so resizing never flips a split's direction.
         case split(first: Node, second: Node, ratio: CGFloat, sideBySide: Bool?)
     }
 
-    /// The split direction: frozen, or by shape (wide tiles split side by side).
     static func sideBySide(_ frozen: Bool?, _ plain: CGRect) -> Bool {
         frozen ?? (plain.width >= plain.height)
     }
@@ -39,7 +28,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
 
     public var isEmpty: Bool { root == nil }
 
-    /// All windows in reading order (first before second, depth first).
     public var ids: [ID] {
         var result: [ID] = []
         func walk(_ node: Node) {
@@ -54,8 +42,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
 
     public func contains(_ id: ID) -> Bool { ids.contains(id) }
 
-    /// Splits `target`'s tile and puts `id` in one half. Without a target the
-    /// last tile is split, which produces the dwindle spiral.
     public mutating func insert(_ id: ID, splitting target: ID? = nil, first: Bool = false) {
         guard !contains(id) else { return }
         guard let root else {
@@ -70,9 +56,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         }
     }
 
-    /// Inserts `id` where the mouse dropped it: the tile under `point` is
-    /// split, and the half of that tile the point lies in decides the side.
-    /// A point outside every tile falls back to splitting the last tile.
     public mutating func insert(_ id: ID, at point: CGPoint, in area: CGRect, gaps: Gaps = .none,
                                 minimums: [ID: CGSize] = [:], maximums: [ID: CGSize] = [:]) {
         let frames = tiles(in: area, gaps: gaps, minimums: minimums, maximums: maximums)
@@ -86,29 +69,16 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         insert(id, splitting: target.key, first: first)
     }
 
-    /// Removes `id`; its sibling takes over the freed space.
     public mutating func remove(_ id: ID) {
         guard let root else { return }
         self.root = Self.removing(id, from: root)
     }
 
-    /// The window whose tile contains `point`, if any.
     public func id(at point: CGPoint, in area: CGRect, gaps: Gaps = .none,
                    minimums: [ID: CGSize] = [:], maximums: [ID: CGSize] = [:]) -> ID? {
         tiles(in: area, gaps: gaps, minimums: minimums, maximums: maximums).first(where: { $0.value.contains(point) })?.key
     }
 
-    /// Target frame for every window.
-    ///
-    /// `minimums` and `maximums` are sizes windows refuse to go below or
-    /// above (learned by the engine). A split moves so each side stays within
-    /// its limits: a side that cannot grow hands the rest to its neighbor, so
-    /// no hole appears; a side that cannot shrink takes space from it.
-    /// Minimums win over maximums. When both minimums together cannot fit,
-    /// the space is shared in proportion to them.
-    ///
-    /// Split directions always come from the plain layout (no limits), so a
-    /// shifted split never flips a neighbor from stacked to side by side.
     public func layout(in area: CGRect, gaps: Gaps = .none,
                        minimums: [ID: CGSize] = [:], maximums: [ID: CGSize] = [:]) -> [ID: CGRect] {
         let inner = area.insetBy(dx: gaps.outer, dy: gaps.outer)
@@ -119,10 +89,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
             }
     }
 
-    /// When the windows' minimums together do not fit, a window gets a tile
-    /// smaller than it can be. It then keeps its minimum size and is moved
-    /// just far enough to stay fully inside the area: overlapping a
-    /// neighbor, but never hanging off the screen.
     static func keptInside(_ frame: CGRect, minimum: CGSize?, area: CGRect) -> CGRect {
         guard let minimum else { return frame }
         var frame = frame
@@ -137,8 +103,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         return frame
     }
 
-    /// A window that cannot fill its tile sits in the middle of it, so the
-    /// leftover space reads as margin rather than a hole.
     public static func centered(_ tile: CGRect, maximum: CGSize?) -> CGRect {
         guard let maximum else { return tile }
         var frame = tile
@@ -153,9 +117,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         return frame
     }
 
-    /// Each window's whole tile, before centering windows that cannot fill
-    /// it. Hit-testing uses tiles, so the margin around such a window still
-    /// counts as its spot.
     public func tiles(in area: CGRect, gaps: Gaps = .none,
                       minimums: [ID: CGSize] = [:], maximums: [ID: CGSize] = [:]) -> [ID: CGRect] {
         var frames: [ID: CGRect] = [:]
@@ -194,8 +155,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         return frames
     }
 
-    /// Combined limit of a subtree: along a split the children's limits add
-    /// up; across it the larger one counts. Uses the plain layout's directions.
     static func limit(of node: Node, plain: CGRect, gap: CGFloat, sizes: [ID: CGSize],
                       missing: CGSize, cross: (CGFloat, CGFloat) -> CGFloat) -> CGSize {
         switch node {
@@ -212,15 +171,11 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         }
     }
 
-    /// Puts `new` in `old`'s place (same tile, same splits). Used when a
-    /// tab group shows another of its windows.
     public mutating func replace(_ old: ID, with new: ID) {
         guard old != new, contains(old), !contains(new), let root else { return }
         self.root = Self.replacing(old, in: root) { _ in .leaf(new) }
     }
 
-    /// The window `id` was split off from: the first window of its sibling
-    /// subtree. Nil for a lone window.
     public func sibling(of id: ID) -> ID? {
         func first(_ node: Node) -> ID {
             switch node {
@@ -237,8 +192,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         return root.flatMap(search)
     }
 
-    /// Whether every window gets at least its minimum size, i.e. the
-    /// minimums fit the area without sharing or overlapping.
     public func fits(in area: CGRect, gaps: Gaps = .none, minimums: [ID: CGSize]) -> Bool {
         let tiles = tiles(in: area, gaps: gaps, minimums: minimums)
         return tiles.allSatisfy { id, tile in
@@ -247,7 +200,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         }
     }
 
-    /// Exchanges two windows' places; the tiles stay where they are.
     public mutating func swap(_ a: ID, _ b: ID) {
         guard a != b, contains(a), contains(b), let root else { return }
         func swapped(_ node: Node) -> Node {
@@ -261,8 +213,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         self.root = swapped(root)
     }
 
-    /// Turns the split holding `id` (side by side ↔ stacked). Needs frozen
-    /// directions (see freezeDirections), which the engine keeps.
     public mutating func toggleSplit(of id: ID) {
         guard let root else { return }
         func toggled(_ node: Node) -> Node {
@@ -278,7 +228,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         self.root = toggled(root)
     }
 
-    /// Every split back to half and half.
     public mutating func equalize() {
         guard let root else { return }
         func even(_ node: Node) -> Node {
@@ -288,8 +237,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         self.root = even(root)
     }
 
-    /// Fixes every undecided split direction to what the current layout
-    /// shows. Call after each change, so later resizes never flip a split.
     public mutating func freezeDirections(in area: CGRect, gaps: Gaps = .none) {
         func freeze(_ node: Node, plain: CGRect) -> Node {
             guard case .split(let a, let b, let ratio, let frozen) = node else { return node }
@@ -301,13 +248,8 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         if let root { self.root = freeze(root, plain: area.insetBy(dx: gaps.outer, dy: gaps.outer)) }
     }
 
-    /// The user dragged edges of `id` so the window now covers `frame`. Each
-    /// edge that moved shifts the nearest split on that side, like dragging
-    /// a border in Hyprland; the neighbors on the other side give or take
-    /// the space. Ratios stay between 5% and 95%.
     public mutating func resize(_ id: ID, to frame: CGRect, in area: CGRect, gaps: Gaps = .none) {
         guard let root, let tile = tiles(in: area, gaps: gaps)[id] else { return }
-        // Which edges moved, compared with the window's current tile.
         var edges: Set<Edge> = []
         if abs(frame.minX - tile.minX) > 1 { edges.insert(.left) }
         if abs(frame.maxX - tile.maxX) > 1 { edges.insert(.right) }
@@ -323,7 +265,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
             let length = (sideBySide ? rect.width : rect.height) - gaps.inner
             guard length > 0 else { return node }
             if Self.contains(a, id) {
-                // Deeper splits claim an edge first: they sit closer to the window.
                 let na = adjust(a, rect: ra)
                 if sideBySide, edges.remove(.right) != nil {
                     ratio = clamp((frame.maxX - rect.minX) / length)
@@ -345,9 +286,6 @@ public struct DwindleTree<ID: Hashable & Sendable>: Sendable {
         self.root = adjust(root, rect: area.insetBy(dx: gaps.outer, dy: gaps.outer))
     }
 
-    /// Keyboard resizing: makes `id` wider or taller (negative: narrower,
-    /// shorter) by `delta`. The edge that has a neighbor moves, the right or
-    /// bottom one when both do; a tile alone on an axis stays as it is.
     public mutating func grow(_ id: ID, by delta: CGSize, in area: CGRect, gaps: Gaps = .none) {
         guard let tile = tiles(in: area, gaps: gaps)[id] else { return }
         let bounds = area.insetBy(dx: gaps.outer, dy: gaps.outer)

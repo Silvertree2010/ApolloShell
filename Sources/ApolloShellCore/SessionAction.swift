@@ -1,22 +1,12 @@
 import Foundation
 
-/// Die vier Aktionen des Sitzungsmenues.
-///
-/// Aufbau wie im Sitzungsmenue von Caelestia (modules/session/Content.qml):
-/// von oben nach unten Abmelden, Ausschalten, dann das Emblem, dann
-/// Ruhezustand und Neustart. Caelestia hat dort Hibernate; das gibt es auf
-/// dem Mac so nicht, deshalb Ruhezustand.
 public enum SessionAction: String, CaseIterable, Sendable {
     case logOut, shutDown, sleep, restart
 
-    /// Reihenfolge der Knoepfe von oben nach unten.
     public static let menuOrder: [SessionAction] = [.logOut, .shutDown, .sleep, .restart]
 
-    /// Vor diesem Knopf-Index sitzt das Emblem (zwischen Ausschalten und
-    /// Ruhezustand, wo Caelestia sein Bild zeigt).
     public static let emblemSlot = 2
 
-    /// Kennung fuer den Symbol-Austausch im Theme (`icons/<kennung>.png`).
     public var iconID: String {
         switch self {
         case .logOut: "session-logout"
@@ -35,8 +25,6 @@ public enum SessionAction: String, CaseIterable, Sendable {
         }
     }
 
-    /// Fuer Tooltip und VoiceOver; die Knoepfe selbst sind wie bei Caelestia
-    /// ohne Beschriftung.
     public var title: String {
         switch self {
         case .logOut: String(localized: "Log Out")
@@ -46,12 +34,6 @@ public enum SessionAction: String, CaseIterable, Sendable {
         }
     }
 
-    /// Der Befehl dahinter. Keine Rueckfrage, wie bei Caelestia: das Menue
-    /// ist selbst die Bestaetigung. Neustart, Ausschalten und Abmelden gehen
-    /// ueber System Events wie im Apple-Menue: Apps mit ungesicherten
-    /// Dokumenten fragen selbst nach und koennen abbrechen. Braucht die
-    /// Automation-Freigabe fuer System Events; macOS fragt beim ersten
-    /// Mal danach.
     public var command: (executable: String, arguments: [String]) {
         switch self {
         case .sleep:
@@ -66,13 +48,6 @@ public enum SessionAction: String, CaseIterable, Sendable {
     }
 }
 
-/// Tastatur-Auswahl im Sitzungsmenue, ↑↓ bewegen ohne Umlauf.
-///
-/// Bewusst OHNE Vorauswahl, anders als Caelestia (dort ist Abmelden
-/// vorausgewaehlt): ein dauerhaft markierter Knopf wirkt wie ein
-/// haengender Hover-Effekt. Der erste Druck auf ↓ markiert den obersten, ↑ den
-/// untersten Knopf. Enter ohne Auswahl tut nichts - ein versehentliches Enter
-/// meldet also niemanden ab.
 public struct SessionSelection: Equatable, Sendable {
     public private(set) var index: Int?
 

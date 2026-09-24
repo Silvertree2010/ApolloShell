@@ -81,7 +81,6 @@ struct ThemeCanonicalTests {
 
     @Test("a theme with files is refused, one without tokens too")
     func refusals() {
-        // A folder theme: its files resolve.
         let withFile = Theme.make(identifier: "test",
                                   styleSheet: ThemeStyleSheetParser.parse(#":root { --apollo-theme-author-image: url("me.png"); }"#),
                                   assets: ThemeAssetResolver { _ in .success(URL(fileURLWithPath: "/tmp/me.png")) })

@@ -3,17 +3,6 @@ import Foundation
 import Observation
 import os
 
-/// Seiteneffekte um `AppleDockHiding` (ApolloShellCore, rein) herum: liest
-/// und schreibt `com.apple.dock` ueber cfprefsd wie `SidebarDock.writeTiles`,
-/// danach `killall Dock` - aber nur, wenn sich dabei wirklich etwas aendert.
-/// Das gesicherte Original liegt in
-/// ~/Library/Application Support/ApolloShell/apple-dock.json.
-///
-/// Folgt der Einstellung (Nexus > Allgemein): eingeschaltet -> sofort
-/// verstecken, ausgeschaltet -> sofort wiederherstellen. `terminate()` fuer
-/// applicationWillTerminate und SIGTERM stellt beim Beenden ebenfalls wieder
-/// her, egal wie die Einstellung gerade steht - ApolloShell soll das Dock
-/// nie versteckt zuruecklassen.
 @MainActor
 final class AppleDockHidingController {
     static let killall = "/usr/bin/killall"
@@ -25,9 +14,6 @@ final class AppleDockHidingController {
 
     init(settings: ShellSettingsStore, fileURL: URL? = ShellFiles.live.appleDock) {
         self.fileURL = fileURL
-        // Liefert zuerst den aktuellen Wert (das erledigt den Start mit
-        // aktiver Einstellung, siehe `hide()`), danach jede Aenderung -
-        // wie `SidebarDockModel`s Beobachtung von Nexus.
         settingsObservation = Task { [weak self, settings] in
             for await hide in Observations({ settings.settings.appleDockHiding.hideWhileRunning }) {
                 self?.apply(hide)
@@ -35,11 +21,6 @@ final class AppleDockHidingController {
         }
     }
 
-    /// Beim Beenden (applicationWillTerminate, SIGTERM): unabhaengig von der
-    /// Einstellung wiederherstellen, falls gerade versteckt (Datei da).
-    /// Kein Abbruch stellt fest, ob ApolloShell wirklich sauber beendet -
-    /// nur ein SIGKILL laesst das Dock bis zum naechsten normalen Start und
-    /// Ende versteckt.
     func terminate() {
         settingsObservation?.cancel()
         guard let fileURL, FileManager.default.fileExists(atPath: fileURL.path) else { return }
@@ -55,30 +36,17 @@ final class AppleDockHidingController {
         }
     }
 
-    /// Existiert schon eine gesicherte apple-dock.json, bleibt sie -
-    /// entweder von einem frueheren Absturz waehrend versteckt, oder weil
-    /// ein zweiter "Start" (z. B. erneutes Einschalten der Einstellung)
-    /// nichts am gesicherten Original aendert. Sonst Ist-Zustand lesen,
-    /// Original sichern. Danach in jedem Fall die versteckten Werte
-    /// schreiben.
     private func hide(fileURL: URL) {
         if AppleDockPreferenceValues.load(from: try? Data(contentsOf: fileURL)) == nil {
             let original = AppleDockHiding.originalToSave(current: readCurrent())
-            // Ohne Sicherung kein Verstecken: sonst fände das Wiederherstellen
-            // nichts, und das Dock bliebe fuer immer weg.
             guard write(original.encoded(), to: fileURL) else { return }
         }
         writeAndApply(AppleDockHiding.hidden)
         log.notice("Apple-Dock ausgeblendet")
     }
 
-    /// Das gesicherte Original zurueckschreiben (fehlende Schluessel
-    /// loeschen), Datei entfernen. Keine Datei: nichts zu tun (schon
-    /// wiederhergestellt oder nie versteckt).
     private func restore(fileURL: URL) {
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
-        // Sicherung da, aber unlesbar: auf die Vorgaben von macOS zurueck,
-        // statt das Dock versteckt zu lassen.
         let original = AppleDockPreferenceValues.load(from: try? Data(contentsOf: fileURL))
             ?? AppleDockPreferenceValues(autohide: nil, autohideDelay: nil, autohideTimeModifier: nil)
         writeAndApply(original)
@@ -99,9 +67,6 @@ final class AppleDockHidingController {
         )
     }
 
-    /// Schreibt `target` nur, wenn sich gegenueber dem Ist-Zustand wirklich
-    /// etwas aendert - erst dann `killall Dock` (Apples Dock liest seine
-    /// Einstellung nur beim eigenen Start neu).
     private func writeAndApply(_ target: AppleDockPreferenceValues) {
         guard readCurrent() != target else { return }
         for action in AppleDockHiding.actions(toReach: target) {

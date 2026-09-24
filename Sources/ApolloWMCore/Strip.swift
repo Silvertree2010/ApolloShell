@@ -1,19 +1,9 @@
 import CoreGraphics
 
-/// The canvas layout, modeled on niri: one endless strip of columns per
-/// desktop, and the screen is a window onto it. Nothing is ever squeezed to
-/// make room; a new window opens a new column and the strip scrolls to it.
-/// A column can hold several windows above each other.
-///
-/// Pure geometry and order, like DwindleTree: no windows, no AppKit.
-/// Widths are fractions of the usable area, so they survive a screen change.
 public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equatable {
-    /// One column: the windows in it, top to bottom, and how wide it stands.
     public struct Column: Sendable, Equatable {
         public var windows: [ID]
-        /// Share of the usable width, 0.1...1.
         public var width: CGFloat
-        /// The window of this column that keys act on.
         public var active: ID
 
         public init(windows: [ID], width: CGFloat, active: ID) {
@@ -23,30 +13,22 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         }
     }
 
-    /// How much of the area a column takes when it is made wider or
-    /// narrower, the way niri does it.
     public static var widthPresets: [CGFloat] { [1.0 / 3, 0.5, 2.0 / 3, 1.0] }
 
     public private(set) var columns: [Column] = []
-    /// Where the strip stands: the x of the viewport's left edge, measured in
-    /// the strip's own coordinates (0 = the first column's left edge).
     public private(set) var offset: CGFloat = 0
-    /// The column keys act on.
     public private(set) var focusedColumn = 0
 
-    /// Whether the focused column is pulled to the middle of the screen.
     public var centerFocused = false
 
     public init() {}
 
     public var isEmpty: Bool { columns.isEmpty }
 
-    /// Every window on the strip, left to right, top to bottom.
     public var ids: [ID] { columns.flatMap(\.windows) }
 
     public func contains(_ id: ID) -> Bool { columns.contains { $0.windows.contains(id) } }
 
-    /// The window keys act on.
     public var focused: ID? {
         columns.indices.contains(focusedColumn) ? columns[focusedColumn].active : nil
     }
@@ -55,10 +37,6 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         columns.firstIndex { $0.windows.contains(id) }
     }
 
-    // MARK: Adding and removing
-
-    /// A new window opens its own column right of the focused one and takes
-    /// the focus, like niri. `width` defaults to half the area.
     public mutating func insert(_ id: ID, width: CGFloat = 0.5) {
         guard !contains(id) else { return }
         let index = columns.isEmpty ? 0 : focusedColumn + 1
@@ -66,8 +44,6 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         focusedColumn = index
     }
 
-    /// Puts `id` into the focused column, under its active window (niri's
-    /// "consume into column").
     public mutating func stack(_ id: ID, intoColumnOf other: ID) {
         guard !contains(id), let index = column(of: other) else { return }
         var column = columns[index]
@@ -91,15 +67,12 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         }
     }
 
-    // MARK: Focus
-
     public mutating func focus(_ id: ID) {
         guard let index = column(of: id) else { return }
         columns[index].active = id
         focusedColumn = index
     }
 
-    /// One column left or right. Returns the window that now has the focus.
     @discardableResult
     public mutating func focusColumn(next: Bool) -> ID? {
         guard !columns.isEmpty else { return nil }
@@ -109,7 +82,6 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         return focused
     }
 
-    /// One window up or down inside the focused column.
     @discardableResult
     public mutating func focusInColumn(next: Bool) -> ID? {
         guard columns.indices.contains(focusedColumn) else { return nil }
@@ -122,9 +94,6 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         return column.active
     }
 
-    // MARK: Moving
-
-    /// Moves the focused column one place left or right.
     public mutating func moveColumn(next: Bool) {
         let index = focusedColumn + (next ? 1 : -1)
         guard columns.indices.contains(focusedColumn), columns.indices.contains(index) else { return }
@@ -132,7 +101,6 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         focusedColumn = index
     }
 
-    /// Moves a stacked window up or down inside its column.
     public mutating func moveInColumn(_ id: ID, next: Bool) {
         guard let index = column(of: id) else { return }
         var column = columns[index]
@@ -143,8 +111,6 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         columns[index] = column
     }
 
-    /// Takes the active window out of its column into a column of its own,
-    /// next to it (niri's "expel from column").
     public mutating func expel(_ id: ID) {
         guard let index = column(of: id), columns[index].windows.count > 1 else { return }
         let width = columns[index].width
@@ -154,8 +120,6 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         focusedColumn = at
     }
 
-    /// Moves `id`'s column so that it starts nearest to `x` (strip
-    /// coordinates) - what a drop along the strip means.
     public mutating func moveColumn(of id: ID, nearX x: CGFloat, width area: CGFloat, gaps: Gaps) {
         guard let from = column(of: id) else { return }
         let frames = columnFrames(width: area, gaps: gaps)
@@ -170,10 +134,6 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         focusedColumn = columns.firstIndex { $0.windows.contains(id) } ?? to
     }
 
-    // MARK: Width
-
-    /// The next preset width for a column: 1/3, 1/2, 2/3, full, then round
-    /// again. `wider` false goes the other way.
     public mutating func cycleWidth(of id: ID, wider: Bool) {
         guard let index = column(of: id) else { return }
         let presets = Self.widthPresets
@@ -194,10 +154,6 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
 
     private func clampWidth(_ width: CGFloat) -> CGFloat { min(max(width, 0.1), 1) }
 
-    // MARK: Geometry
-
-    /// Where each column starts and how wide it is, in strip coordinates.
-    /// The gap between columns is the inner gap.
     public func columnFrames(width area: CGFloat, gaps: Gaps) -> [(index: Int, x: CGFloat, width: CGFloat)] {
         var x: CGFloat = 0
         var result: [(Int, CGFloat, CGFloat)] = []
@@ -209,16 +165,11 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         return result
     }
 
-    /// How long the strip is, from the first column's left edge to the last
-    /// one's right edge.
     public func length(width area: CGFloat, gaps: Gaps) -> CGFloat {
         guard let last = columnFrames(width: area, gaps: gaps).last else { return 0 }
         return last.x + last.width
     }
 
-    /// Scrolls so the focused column is fully in view. With `centerFocused`
-    /// it is pulled to the middle instead. Never scrolls past the ends
-    /// unless the strip is shorter than the screen.
     public mutating func scrollToFocused(area: CGRect, gaps: Gaps) {
         let inner = area.insetBy(dx: gaps.outer, dy: gaps.outer)
         let frames = columnFrames(width: inner.width, gaps: gaps)
@@ -234,7 +185,6 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         clampOffset(area: area, gaps: gaps)
     }
 
-    /// Moves the viewport by `delta` points (a scroll gesture).
     public mutating func scroll(by delta: CGFloat, area: CGRect, gaps: Gaps) {
         offset += delta
         clampOffset(area: area, gaps: gaps)
@@ -247,9 +197,6 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         offset = min(max(offset, 0), highest)
     }
 
-    /// Where every window goes, in screen coordinates. Columns that lie
-    /// outside the screen keep their place on the strip, so the caller can
-    /// park them; `visible` says which ones the screen shows.
     public func layout(in area: CGRect, gaps: Gaps,
                        minimums: [ID: CGSize] = [:]) -> [ID: CGRect] {
         let inner = area.insetBy(dx: gaps.outer, dy: gaps.outer)
@@ -272,7 +219,6 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         return frames
     }
 
-    /// The windows the screen shows at least a part of.
     public func visible(in area: CGRect, gaps: Gaps) -> Set<ID> {
         var result: Set<ID> = []
         for (id, frame) in layout(in: area, gaps: gaps) where frame.intersects(area) {

@@ -2,8 +2,6 @@ import Foundation
 import Testing
 @testable import ApolloShellCore
 
-/// Echte Antwort von Open-Meteo fuer einen Testort (abgerufen 14.09.2026,
-/// 01:00), gekuerzt: Einheiten weg, nur die ersten 6 Stunden.
 private let fixture = """
 {"latitude":47.0,"longitude":9.52,"utc_offset_seconds":7200,"timezone":"Europe/Zurich","timezone_abbreviation":"GMT+2","elevation":510.0,
 "current":{"time":"2026-09-14T01:00","interval":900,"temperature_2m":16.4,"apparent_temperature":17.4,"relative_humidity_2m":85,"weather_code":61,"wind_speed_10m":1.5,"is_day":0},
@@ -16,7 +14,6 @@ private let fixture = """
 "precipitation_probability_max":[70,0,93,78,15,14,13]}}
 """
 
-/// Feste Zone, damit nichts von der Maschine abhaengt.
 private let zurichCalendar: Calendar = {
     var calendar = Calendar(identifier: .gregorian)
     calendar.locale = Locale(identifier: "de_CH")
@@ -53,7 +50,7 @@ struct OpenMeteoDecodingTests {
         let r = try report()
         #expect(r.hours.count == 6)
         #expect(r.hours[0].time == zurich(14, 1))
-        #expect(r.hours[0].time.timeIntervalSince1970 == 1_789_340_400) // 2026-09-13T23:00Z
+        #expect(r.hours[0].time.timeIntervalSince1970 == 1_789_340_400)
         #expect(r.hours[4].code == 80)
         #expect(r.hours[5].precipitationProbability == 43)
     }
@@ -85,7 +82,7 @@ struct OpenMeteoDecodingTests {
         #expect(r.days[0].sunrise == nil)
         #expect(r.days[0].precipitationProbability == nil)
         #expect(r.current.humidity == nil)
-        #expect(r.current.isDay) // ohne Angabe lieber Tag als Nacht
+        #expect(r.current.isDay)
     }
 
     @Test("Ohne Zonennamen: Versatz aus utc_offset_seconds")
@@ -218,7 +215,7 @@ struct WeatherTextTests {
 
     @Test("Wochentage: Heute, dann zwei Buchstaben")
     func dayLabels() {
-        let today = zurich(14, 9) // Montag
+        let today = zurich(14, 9)
         #expect(WeatherText.dayLabel(zurich(14, 0), today: today, calendar: zurichCalendar) == "Today")
         #expect(WeatherText.dayLabel(zurich(15, 0), today: today, calendar: zurichCalendar) == "Di")
         #expect(WeatherText.dayLabel(zurich(20, 0), today: today, calendar: zurichCalendar) == "So")
@@ -250,7 +247,7 @@ struct WeatherReportTests {
         let strip = try report().hourlyStrip(now: zurich(14, 2, 10))
         #expect(strip.map(\.time) == [zurich(14, 2), zurich(14, 4), zurich(14, 6)])
         #expect(strip[0].isNow)
-        #expect(strip[0].temperature == 16.8) // Vorhersage 02:00, nicht "aktuell" von 01:00
+        #expect(strip[0].temperature == 16.8)
     }
 
     @Test("Vor der ersten Stunde kein Jetzt, nach der letzten nichts")
@@ -268,7 +265,6 @@ struct WeatherReportTests {
         #expect(!r.isDay(at: zurich(14, 6, 30)))
         #expect(r.isDay(at: zurich(14, 19, 30)))
         #expect(!r.isDay(at: zurich(14, 19, 40)))
-        // Tag nicht in den Daten: grob 7 bis 19 Uhr.
         #expect(r.isDay(at: zurich(25, 12)))
         #expect(!r.isDay(at: zurich(25, 23)))
     }

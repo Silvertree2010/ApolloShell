@@ -87,7 +87,6 @@ struct DwindleTreeTests {
         var tree = DwindleTree<Int>()
         tree.insert(1)
         tree.insert(2)
-        // Top of window 1's tall tile: 1 is split top/bottom, 3 on top.
         tree.insert(3, at: CGPoint(x: 250, y: 50), in: area)
         let f = tree.layout(in: area)
         #expect(f[3] == CGRect(x: 0, y: 0, width: 500, height: 300))
@@ -128,7 +127,6 @@ struct DwindleTreeTests {
     @Test func nestedMinimumPushesWholeSubtree() {
         var tree = DwindleTree<Int>()
         [1, 2, 3].forEach { tree.insert($0) }
-        // 3 sits in the right half, stacked under 2; its width moves the root split.
         let f = tree.layout(in: area, minimums: [3: CGSize(width: 800, height: 0)])
         #expect(f[1] == CGRect(x: 0, y: 0, width: 200, height: 600))
         #expect(f[2]?.width == 800)
@@ -156,8 +154,6 @@ struct DwindleTreeTests {
         var tree = DwindleTree<Int>()
         tree.insert(1)
         tree.insert(2)
-        // 970 + 800 do not fit into 1000: both keep their minimum, the
-        // right one moves in so it does not hang off the screen.
         let f = tree.layout(in: area, minimums: [1: CGSize(width: 970, height: 0), 2: CGSize(width: 800, height: 0)])
         #expect(f[1] == CGRect(x: 0, y: 0, width: 970, height: 600))
         #expect(f[2] == CGRect(x: 200, y: 0, width: 800, height: 600))
@@ -203,7 +199,6 @@ struct DwindleTreeTests {
     @Test func maximumInsideStackLimitsOnlyAlongStack() {
         var tree = DwindleTree<Int>()
         [1, 2, 3].forEach { tree.insert($0) }
-        // 2 and 3 are stacked; 2 cannot be taller than 200, 3 takes the rest.
         let f = tree.layout(in: area, maximums: [2: CGSize(width: CGFloat.infinity, height: 200)])
         #expect(f[2] == CGRect(x: 500, y: 0, width: 500, height: 200))
         #expect(f[3] == CGRect(x: 500, y: 200, width: 500, height: 400))
@@ -220,7 +215,6 @@ struct DwindleTreeTests {
     @Test func centeringOnlyAcrossTheSplit() {
         var tree = DwindleTree<Int>()
         [1, 2, 3].forEach { tree.insert($0) }
-        // 2 sits in a 500 wide column but cannot be wider than 300.
         let f = tree.layout(in: area, maximums: [2: CGSize(width: 300, height: CGFloat.infinity)])
         #expect(f[2] == CGRect(x: 600, y: 0, width: 300, height: 300))
         #expect(f[3] == CGRect(x: 500, y: 300, width: 500, height: 300))
@@ -231,7 +225,6 @@ struct DwindleTreeTests {
         tree.insert(1)
         tree.insert(2)
         let maxes = [1: CGSize(width: 200, height: 200)]
-        // 1 gives the rest to 2 along the split; across it, 1 is centered.
         #expect(tree.id(at: CGPoint(x: 100, y: 20), in: area, maximums: maxes) == 1)
     }
 
@@ -314,7 +307,6 @@ struct DwindleTreeTests {
         var tree = DwindleTree<Int>()
         [1, 2, 3].forEach { tree.insert($0) }
         tree.freezeDirections(in: area)
-        // 2's bottom-left corner: left edge to 400, bottom edge to 200.
         tree.resize(2, to: CGRect(x: 400, y: 0, width: 600, height: 200), in: area)
         let f = tree.layout(in: area)
         #expect(f[1]?.width == 400)
@@ -326,8 +318,6 @@ struct DwindleTreeTests {
         var tree = DwindleTree<Int>()
         [1, 2, 3].forEach { tree.insert($0) }
         tree.freezeDirections(in: area)
-        // Shrinking the right column to 300 wide would make it taller than
-        // wide; frozen, 2 and 3 stay stacked.
         tree.resize(1, to: CGRect(x: 0, y: 0, width: 900, height: 600), in: area)
         let f = tree.layout(in: area)
         #expect(f[2] == CGRect(x: 900, y: 0, width: 100, height: 300))
@@ -335,10 +325,6 @@ struct DwindleTreeTests {
     }
 
     @Test func freezeDirectionsTwiceInARowMatchesOnce() {
-        // TilingEngine coalesces several relayout() calls made in the same
-        // run-loop turn into one; freezeDirections() must be safe to call
-        // repeatedly on unchanged geometry so that coalescing changes
-        // nothing about the resulting layout.
         var once = DwindleTree<Int>()
         [1, 2, 3].forEach { once.insert($0) }
         once.freezeDirections(in: area)

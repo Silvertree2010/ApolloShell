@@ -1,18 +1,6 @@
 import Foundation
 
-/// The window manager's config file (like Hyprland's hyprland.conf): which
-/// Super + key does what, and rules for particular apps. One setting per
-/// line, `#` starts a comment:
-///
-///     bind = H, swap left
-///     unbind = Q
-///     rule = float, app:com.apple.calculator
-///     rule = ignore, app:zoom.us, title:Meeting
-///
-/// Lines it cannot read are reported with their number and skipped; the rest
-/// still apply.
 public struct TWMConfig: Sendable, Equatable {
-    /// Super + key (virtual key code) to command, defaults included.
     public var bindings: [UInt16: Command]
     public var rules: [WindowRule]
     public var problems: [String]
@@ -67,8 +55,6 @@ public struct TWMConfig: Sendable, Equatable {
         return config
     }
 
-    /// The file a user starts from: every default key as a comment, and how
-    /// to write rules.
     public static var template: String {
         var lines = [
             "# ApolloShell TWM: keys and window rules. Changes apply as soon as",
@@ -105,21 +91,15 @@ public struct TWMConfig: Sendable, Equatable {
     }
 }
 
-/// What happens to the windows of a particular app.
 public struct WindowRule: Sendable, Equatable, Codable {
     public enum Action: String, Sendable, Codable, CaseIterable {
-        /// Never tiled: floats where the app puts it.
         case float
-        /// Tiled even when it would float by itself (a dialog, a panel).
         case tile
-        /// Left alone completely: never moved, focused or bordered.
         case ignore
     }
 
     public var action: Action
-    /// Bundle id or app name, compared without case.
     public var app: String?
-    /// Part of the window title, compared without case.
     public var title: String?
 
     public init(action: Action, app: String? = nil, title: String? = nil) {
@@ -132,7 +112,6 @@ public struct WindowRule: Sendable, Equatable, Codable {
         public let message: String
     }
 
-    /// `float, app:com.apple.calculator, title:Converter`
     public init?(parsing text: String) {
         guard case .success(let rule) = Self.parse(text) else { return nil }
         self = rule
@@ -176,7 +155,6 @@ public struct WindowRule: Sendable, Equatable, Codable {
 }
 
 extension Array where Element == WindowRule {
-    /// The action of the last rule that matches (later lines win).
     public func action(bundleID: String?, appName: String?, title: String) -> WindowRule.Action? {
         last { $0.matches(bundleID: bundleID, appName: appName, title: title) }?.action
     }

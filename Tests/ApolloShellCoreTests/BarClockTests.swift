@@ -8,7 +8,6 @@ private func calendar(_ zone: String) -> Calendar {
     return calendar
 }
 
-/// 14.09.2026 in UTC, auf die Sekunde (mit Bruchteil).
 private func utc(_ hour: Int, _ minute: Int, _ second: Double = 0) -> Date {
     let base = calendar("UTC").date(from: DateComponents(year: 2026, month: 9, day: 14, hour: hour, minute: minute))!
     return base.addingTimeInterval(second)
