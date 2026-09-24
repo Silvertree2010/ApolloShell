@@ -26,24 +26,28 @@ popup "launcher" anchor="bottom" motion="grow" overhang=#true {
         }
         else {
             scroll class="launcher-list" lazy=#true reveal="{(var.launcher-results | at var.launcher-selection).bundle-id}" {
-                each app in="{var.launcher-results}" key="{app.bundle-id}" index="i" {
-                    button class="launcher-row" checked="{i == var.launcher-selection}" {
-                        on-click {
-                            set "launcher-selection" "{i}"
-                            apps.launch "{app}"
-                            close "launcher"
+                column class="launcher-rows" {
+                    each app in="{var.launcher-results}" key="{app.bundle-id}" index="i" {
+                        button class="launcher-row" checked="{i == var.launcher-selection}" {
+                            on-click {
+                                set "launcher-selection" "{i}"
+                                apps.launch "{app}"
+                                close "launcher"
+                            }
+                            on-right-click { set "launcher-selection" "{i}" }
+                            menu side="pointer" {
+                                item "Open" { apps.launch "{app}"; close "launcher" }
+                                separator
+                                source "app-dock" app="{app}" fallback="commands"
+                                separator
+                                item "Show in Finder" { close "launcher"; apps.reveal "{app}" in="finder" }
+                            }
+                            row class="launcher-row-content" {
+                                app-icon "{app}" class="launcher-icon"
+                                text "{app.name}" class="launcher-name"
+                                spacer
+                            }
                         }
-                        on-right-click { set "launcher-selection" "{i}" }
-                        menu side="pointer" {
-                            item "Open" { apps.launch "{app}"; close "launcher" }
-                            separator
-                            source "app-dock" app="{app}" fallback="commands"
-                            separator
-                            item "Show in Finder" { close "launcher"; apps.reveal "{app}" in="finder" }
-                        }
-                        app-icon "{app}" class="launcher-icon"
-                        text "{app.name}" class="launcher-name"
-                        spacer
                     }
                 }
             }

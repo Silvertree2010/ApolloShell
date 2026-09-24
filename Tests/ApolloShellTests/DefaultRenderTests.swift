@@ -78,4 +78,25 @@ struct DefaultRenderTests {
         #expect(plain.pixel(8, 8).near(bare.pixel(8, 8)))
         #expect(!themed.pixel(8, 8).near(bare.pixel(8, 8)))
     }
+
+    @Test("Launcher: Liste aus apps.all, angeheftete zuerst, oben bündig mit 46 pt Zeilenabstand")
+    func launcherList() throws {
+        let shot = try Self.shot("launcher", state: "launcher-empty")
+        #expect(shot.size == CGSize(width: 560, height: 520))
+        let safari = try #require(shot.bounds { $0.b > 180 && $0.g > 170 && $0.r < 40 })
+        let finder = try #require(shot.bounds { $0.b > 230 && $0.g > 100 && $0.g < 160 && $0.r < 40 })
+        #expect(abs(safari.minY - 66) <= 1 && abs(safari.minX - 18) <= 1, "\(safari) \(finder)")
+        #expect(abs(finder.minY - safari.minY - 92) <= 2)
+    }
+
+    @Test("scroll mit justify-content: start füllt seinen Platz und legt den Inhalt oben an, ohne hält es sich an den Inhalt")
+    func scrollFillsWithJustifyStart() throws {
+        let kdl = "panel \"p\" anchor=\"left\" { column class=\"c\" { scroll class=\"s\" { stack class=\"box\" } } }"
+        let base = "#p { width: 100px; height: 200px; } .c { width: 100px; height: 200px; } .box { width: 100px; height: 20px; background: rgb(255 0 0); } .s { flex-grow: 1; "
+        let red: (RGBA) -> Bool = { $0.r > 200 && $0.g < 60 && $0.b < 60 }
+        let filled = try #require(try RenderProbe.render(kdl, css: base + "justify-content: start; }").bounds(where: red))
+        let hugging = try #require(try RenderProbe.render(kdl, css: base + "}").bounds(where: red))
+        #expect(abs(filled.minY) <= 1)
+        #expect(hugging.minY > 50)
+    }
 }

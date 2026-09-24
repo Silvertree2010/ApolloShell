@@ -31,5 +31,10 @@ fixture {
             - bundle-id="com.apple.Safari" name="Safari" running=#true active=#true dock-pinned=#true section="pinned" hidden=#false launching=#false badge=#null
             - bundle-id="com.apple.mail" name="Mail" running=#false dock-pinned=#true section="pinned" badge="3" active=#false hidden=#false launching=#false
         }
+        all {
+            - bundle-id="com.apple.finder" name="Finder" path="/System/Library/CoreServices/Finder.app" usage=0 favorite-index=#null
+            - bundle-id="com.apple.Safari" name="Safari" path="/Applications/Safari.app" usage=0 favorite-index=0
+            - bundle-id="com.apple.mail" name="Mail" path="/System/Applications/Mail.app" usage=0 favorite-index=1
+        }
     }
 }

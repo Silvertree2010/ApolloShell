@@ -115,7 +115,7 @@
   border-radius: var(--apollo-panel-radius, 25px);
 }
 #launcher { border-radius: var(--apollo-panel-radius, 26px); }
-#session { --render-glass: clear; }
+#session, #launcher { --render-glass: clear; }
 
 .card {
   padding: 16px;
@@ -211,23 +211,22 @@
 .quick-toggle:checked { background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
 .quick-toggle:disabled { opacity: 0.4; }
 
-.launcher { width: 560px; height: 520px; padding: 16px; gap: 10px; }
-.launcher-search { gap: 10px; align-items: center; }
-.launcher-search-icon { font-size: 18px; color: var(--apollo-secondary-text-color, -apple-system-secondary-label); }
+.launcher { width: 560px; height: 520px; }
+.launcher-search { gap: 10px; padding: 14px 18px; align-items: center; }
+.launcher-search-icon { width: 20px; height: 20px; font-size: 18px; font-weight: 500; color: var(--apollo-secondary-text-color, -apple-system-secondary-label); }
 .launcher-field { flex-grow: 1; font-size: 20px; color: var(--apollo-text-color, -apple-system-label); }
 .launcher-separator { height: 1px; background: var(--apollo-separator-color, rgb(from -apple-system-separator r g b / 0.4)); }
-.launcher-empty { font-size: 15px; color: var(--apollo-secondary-text-color, -apple-system-secondary-label); }
-.launcher-list { flex-grow: 1; }
+.launcher-empty { flex-grow: 1; align-self: stretch; font-size: 13px; color: var(--apollo-secondary-text-color, -apple-system-secondary-label); }
+.launcher-list { flex-grow: 1; padding: 8px; justify-content: start; }
+.launcher-rows { gap: 2px; }
 .launcher-row {
-  gap: 10px;
-  padding: 6px 10px;
-  align-items: center;
   min-height: var(--apollo-launcher-row-height, auto);
   border-radius: var(--apollo-control-radius, 10px);
 }
-.launcher-row:checked { background: var(--apollo-launcher-highlight-fill, rgb(from -apple-system-control-accent r g b / 0.18)); }
+.launcher-row-content { align-self: stretch; gap: 12px; padding: 6px 10px; align-items: center; }
+.launcher-row:checked { background: var(--apollo-launcher-highlight-fill, rgb(from -apple-system-label r g b / 0.12)); }
 .launcher-icon { width: 32px; height: 32px; }
-.launcher-name { font-size: 14px; color: var(--apollo-text-color, -apple-system-label); }
+.launcher-name { font-size: 15px; color: var(--apollo-text-color, -apple-system-label); }
 
 .session { width: 102px; height: 496px; padding: 16px 6px 16px 16px; gap: 16px; align-items: start; }
 .session-button { width: 80px; height: 80px; border-radius: 20px; background: rgb(from -apple-system-label r g b / 0.08); }
