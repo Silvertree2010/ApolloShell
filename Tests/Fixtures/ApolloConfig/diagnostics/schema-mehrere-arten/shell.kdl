@@ -1,0 +1,12 @@
+panel "sidebar" ancor="left" {
+    text "{perf.cpuu}"
+    slider {
+    }
+    button {
+        on-click {
+            toggle "sidebar"
+        }
+    }
+}
+pannel "second" {
+}
