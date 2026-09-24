@@ -14,8 +14,20 @@ struct BindingSource: Sendable {
         self.span = span
     }
 
+    init(compiled: CompiledValue) {
+        template = compiled.template
+        dependencies = compiled.dependencies
+        let globalRoots = Set(compiled.dependencies.map(\.root))
+        localNames = Set(compiled.template.dependencies(locals: []).map(\.root)).subtracting(globalRoots)
+        span = compiled.span
+    }
+
     var isConstant: Bool {
         dependencies.isEmpty
+    }
+
+    var isLiteral: Bool {
+        dependencies.isEmpty && localNames.isEmpty
     }
 }
 

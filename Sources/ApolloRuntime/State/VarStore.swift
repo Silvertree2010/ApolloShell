@@ -218,10 +218,22 @@ public final class VarStore {
         return .null
     }
 
+    public func isDeclared(_ name: String) -> Bool {
+        plain[name] != nil || derived[name] != nil
+    }
+
+    public func isDerived(_ name: String) -> Bool {
+        derived[name] != nil
+    }
+
     @discardableResult
     public func set(_ name: String, _ value: Value, for duration: Double? = nil) -> Bool {
         guard let slot = plain[name] else {
-            warn(Diagnostic(.warning, "unknown var '\(name)'"))
+            if let slot = derived[name] {
+                warn(Diagnostic(.warning, "'\(name)' is derived and cannot be set", span: slot.decl.span))
+            } else {
+                warn(Diagnostic(.warning, "unknown var '\(name)'"))
+            }
             return false
         }
         let sanitized = SignalStore.sanitize(value)

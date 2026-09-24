@@ -5,6 +5,7 @@ import ApolloConfig
 struct BindingScope: EvaluationScope {
     let snapshot: StoreSnapshot
     let locals: LocalScope
+    var event: Record? = nil
 
     func local(_ name: String) -> Value? {
         locals[name]
@@ -21,6 +22,9 @@ struct BindingScope: EvaluationScope {
         case "surfaces":
             guard case .string(let key)? = locals[ContextScopeKeys.screenKey] else { break }
             return snapshot.value("surfaces:" + key, fields)
+        case "event":
+            guard let event else { break }
+            return SignalStore.read(.record(event), fields)
         default:
             break
         }
@@ -138,6 +142,26 @@ public final class BindingEngine {
         store.onFlush = { [weak self] in
             self?.flush()
         }
+    }
+
+    @discardableResult
+    public func bind(_ value: CompiledValue, scope: LocalScope, active: Bool, onChange: @escaping @MainActor (Value) -> Void) -> BindingHandle {
+        bind(BindingSource(compiled: value), scope: scope, rank: .property, active: active, onChange: onChange)
+    }
+
+    @discardableResult
+    func bind(_ value: CompiledValue, scope: LocalScope, rank: BindingRank, active: Bool, onChange: @escaping @MainActor (Value) -> Void) -> BindingHandle {
+        bind(BindingSource(compiled: value), scope: scope, rank: rank, active: active, onChange: onChange)
+    }
+
+    func evaluateOnce(_ value: CompiledValue, scope: LocalScope, event: Record? = nil) -> Value {
+        let adHoc = flushEvaluator == nil
+        let evaluator = flushEvaluator ?? pinnedEvaluator()
+        let result = evaluator.render(value.template, in: BindingScope(snapshot: store.snapshot(), locals: scope, event: event), at: value.span)
+        if adHoc {
+            deliverWarnings()
+        }
+        return result
     }
 
     @discardableResult
