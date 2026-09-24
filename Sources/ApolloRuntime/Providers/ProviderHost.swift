@@ -63,6 +63,10 @@ public final class ProviderHost {
         providers[id]?.configure(settings)
     }
 
+    var awakeTokenCount: Int {
+        awakeGroups.count
+    }
+
     public var runningProviderCount: Int {
         running.values.filter(\.isRunning).count
     }

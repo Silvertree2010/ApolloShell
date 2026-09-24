@@ -144,6 +144,7 @@ public final class BindingEngine {
 
     var liveBindingCount: Int { bindings.count }
 
+
     public init(store: SignalStore, evaluator: Evaluator) {
         self.store = store
         self.evaluator = evaluator

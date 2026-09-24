@@ -35,6 +35,8 @@ public final class ShellRuntime: SurfaceControlling {
     var definesChanged = false
 
     public var onWarning: (@MainActor (Diagnostic) -> Void)?
+    public var onDiagnostics: (@MainActor ([Diagnostic]) -> Void)?
+    public var onConfigApplied: (@MainActor (_ old: ConfigIR?, _ new: ConfigIR) -> Void)?
 
     enum EachKeyLookup {
         case dictionary
@@ -54,7 +56,7 @@ public final class ShellRuntime: SurfaceControlling {
         self.host = host
         actions.surfaces = self
         providers.onEvent = { [weak self] event, fields in
-            self?.emit(event, fields)
+            _ = self?.emit(event, fields)
         }
     }
 
@@ -75,9 +77,25 @@ public final class ShellRuntime: SurfaceControlling {
         elements[identity]?.instance
     }
 
-    public func apply(_ ir: ConfigIR, persisted: [String: Value], screens: [String], shell: Record) {
+    @discardableResult
+    public func applyLoaded(_ result: ConfigLoadResult, persisted: [String: Value], screens: [String], shell: Record, writer: StateWriter? = nil) -> Bool {
+        onDiagnostics?(result.diagnostics)
+        guard let ir = result.ir else {
+            let errors = result.diagnostics.filter { $0.severity == .error }.count
+            emit("config.failed", Record([("errors", .number(Double(errors)))]))
+            return false
+        }
+        let old = config
+        apply(ir, persisted: persisted, screens: screens, shell: shell, writer: writer)
+        onConfigApplied?(old, ir)
+        let warnings = result.diagnostics.filter { $0.severity == .warning }.count
+        emit("config.loaded", Record([("warnings", .number(Double(warnings)))]))
+        return true
+    }
+
+    public func apply(_ ir: ConfigIR, persisted: [String: Value], screens: [String], shell: Record, writer: StateWriter? = nil) {
         if let old = config {
-            reload(from: old, to: ir, persisted: persisted, screens: screens, shell: shell)
+            reload(from: old, to: ir, persisted: persisted, screens: screens, shell: shell, writer: writer)
             return
         }
         teardownAll()
@@ -85,6 +103,9 @@ public final class ShellRuntime: SurfaceControlling {
         config = ir
         self.screens = screens
         store.set(DependencyPath("shell", []), .record(shell))
+        if let writer {
+            vars.connect(writer)
+        }
         vars.declare(ir.vars, persisted: persisted, shell: shell)
         registerConfigDemand(ir)
         var added: [SurfaceNode] = []
@@ -100,7 +121,7 @@ public final class ShellRuntime: SurfaceControlling {
         }
     }
 
-    private func reload(from old: ConfigIR, to ir: ConfigIR, persisted: [String: Value], screens: [String], shell: Record) {
+    private func reload(from old: ConfigIR, to ir: ConfigIR, persisted: [String: Value], screens: [String], shell: Record, writer: StateWriter?) {
         warned.removeAll()
         let diff = IRDiff.surfaces(old: old, new: ir)
         let changedIDs = Set(diff.changed.map(\.id))
@@ -114,7 +135,7 @@ public final class ShellRuntime: SurfaceControlling {
                 store.set(DependencyPath("shell", []), .record(shell))
             }
             if old.id != ir.id {
-                vars.switchConfig(ir.vars, persisted: persisted, shell: shell)
+                vars.switchConfig(ir.vars, persisted: persisted, shell: shell, writer: writer)
             } else {
                 vars.declare(ir.vars, persisted: persisted, shell: shell)
             }
@@ -286,14 +307,31 @@ public final class ShellRuntime: SurfaceControlling {
         }
     }
 
-    public func emit(_ event: String, _ fields: Record) {
-        guard let config else { return }
+    @discardableResult
+    public func emit(_ event: String, _ fields: Record) -> [Task<Void, Never>] {
+        guard let config else { return [] }
+        var tasks: [Task<Void, Never>] = []
         for (index, handler) in config.events.enumerated() where handler.event == event {
             if let when = handler.when, !bindings.evaluateOnce(when, scope: LocalScope(), event: fields).isTruthy {
                 continue
             }
-            actions.trigger(handler.actions, site: "on#\(index)", environment: ActionEnvironment(event: fields))
+            if let task = actions.trigger(handler.actions, site: "on#\(index)", environment: ActionEnvironment(event: fields)) {
+                tasks.append(task)
+            }
         }
+        return tasks
+    }
+
+    @discardableResult
+    public func triggerBind(_ id: String, event: Record) -> Task<Void, Never>? {
+        guard let bind = config?.binds.first(where: { $0.id == id }) else {
+            warn(key: "unknown-bind|" + id, Diagnostic(.warning, "no bind '\(id)'"))
+            return nil
+        }
+        if let when = bind.when, !bindings.evaluateOnce(when, scope: LocalScope(), event: event).isTruthy {
+            return nil
+        }
+        return actions.trigger(bind.actions, site: "bind#" + id, environment: ActionEnvironment(event: event))
     }
 
     @discardableResult
@@ -311,9 +349,6 @@ public final class ShellRuntime: SurfaceControlling {
     private func runHandlers(_ handlers: [HandlerIR], named name: String, scope: LocalScope, surface: SurfaceNode, site: String, event: Record) -> Task<Void, Never>? {
         var last: Task<Void, Never>?
         for (index, handler) in handlers.enumerated() where handler.name == name {
-            if let when = handler.properties["when"], !bindings.evaluateOnce(when, scope: scope, event: event).isTruthy {
-                continue
-            }
             let environment = ActionEnvironment(scope: scope, surfaceID: surface.instance.id, screenKey: surface.instance.screenKey, event: event)
             if let task = actions.trigger(handler.actions, site: "\(site)#\(name)#\(index)", environment: environment) {
                 last = task
@@ -668,7 +703,6 @@ public final class ShellRuntime: SurfaceControlling {
         }
         instance.arguments = arguments
 
-        registerHandlerDemand(node, ir.handlers)
         let selfRoot = "self:" + identity.description
         instance.onPseudoChange = { [weak self] state in
             self?.publishPseudo(selfRoot, state)
@@ -703,17 +737,6 @@ public final class ShellRuntime: SurfaceControlling {
         let slotContext = node.childContext(slotContainer, path: node.instance.identity.appending("slot:" + name))
         slotContainer.region.context = slotContext
         scheduleBuild(node, children, slotContext)
-    }
-
-    func registerHandlerDemand(_ node: ElementNode, _ handlers: [HandlerIR]) {
-        for token in node.demandTokens {
-            store.unsubscribe(token)
-        }
-        node.demandTokens.removeAll()
-        for handler in handlers {
-            guard let when = handler.properties["when"], !when.dependencies.isEmpty else { continue }
-            node.demandTokens.append(store.demand(Set(when.dependencies.map { rewrittenPath($0, locals: node.instance.scope) })))
-        }
     }
 
     func bindVisible(_ node: ElementNode, _ compiled: CompiledValue, _ cell: PropertyCell) -> BindingHandle {
@@ -885,10 +908,6 @@ public final class ShellRuntime: SurfaceControlling {
                 element.visibleBinding = nil
                 element.cellBindings.removeAll()
                 element.argumentBindings.removeAll()
-                for token in element.demandTokens {
-                    store.unsubscribe(token)
-                }
-                element.demandTokens.removeAll()
                 element.instance.onPseudoChange = nil
                 let identity = element.instance.identity
                 store.removeRoot("self:" + identity.description)

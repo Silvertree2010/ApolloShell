@@ -93,7 +93,6 @@ final class ElementNode: TreeNode {
     var visibleBinding: BindingHandle?
     var cellBindings: [String: BindingHandle] = [:]
     var argumentBindings: [Int: BindingHandle] = [:]
-    var demandTokens: [SubscriptionToken] = []
     var childContainer: Container?
     var slotContainers: [String: Container] = [:]
 

@@ -117,7 +117,6 @@ extension ShellRuntime {
         }
         reconcileCells(node, from: old, to: ir, scopeChanged: scopeChanged)
         if old.handlers != ir.handlers || scopeChanged {
-            registerHandlerDemand(node, ir.handlers)
         }
         updateActivity(node, context.active)
         if let container = node.childContainer {

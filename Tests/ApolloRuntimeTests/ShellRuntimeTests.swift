@@ -44,13 +44,13 @@ struct ShellFixture {
 
     var warnings: [Diagnostic] { warningLog.entries }
 
-    init() {
+    init(registry: SchemaRegistry = SchemaRegistry()) {
         store = SignalStore(scheduler: scheduler)
         bindings = BindingEngine(store: store, evaluator: BindingTestHarness.evaluator())
         vars = VarStore(store: store, bindings: bindings, clock: clock)
         providers = ProviderHost(store: store)
         actions = ActionDispatcher(evaluator: BindingTestHarness.evaluator(), vars: vars, providers: providers, store: store, clock: clock)
-        runtime = ShellRuntime(registry: SchemaRegistry(), evaluator: BindingTestHarness.evaluator(), store: store, bindings: bindings, vars: vars, providers: providers, actions: actions, host: host)
+        runtime = ShellRuntime(registry: registry, evaluator: BindingTestHarness.evaluator(), store: store, bindings: bindings, vars: vars, providers: providers, actions: actions, host: host)
         let sink = warningLog
         runtime.onWarning = { sink.entries.append($0) }
         actions.onWarning = { sink.entries.append($0) }
@@ -319,14 +319,12 @@ struct ShellRuntimeTests {
         #expect(box.children[0] === kept)
     }
 
-    @Test("Handler-when= zählt zur Nachfrage, auch in unsichtbaren Oberflächen")
+    @Test("when= an on zählt zur Nachfrage, auch ohne sichtbare Oberfläche")
     func handlerWhenDemand() {
         let fixture = ShellFixture()
-        let handler = HandlerIR(name: "on-click", properties: ["when": IR.value("{net.online}")], actions: [IR.log("x")], span: IR.span(5))
-        fixture.apply([T.surface("popup", "menu", children: [T.box("0", handlers: [handler], children: [])])], events: [
+        fixture.apply([T.surface("popup", "menu", children: [T.box("0", children: [])])], events: [
             EventHandlerIR(event: "battery.warning", when: IR.value("{var.enabled}"), actions: [IR.log("warn {event.level}")], span: IR.span(6)),
         ])
-        #expect(fixture.demanded("net") == [DependencyPath("net", ["online"])])
         #expect(fixture.demanded("var") == [DependencyPath("var", ["enabled"])])
     }
 

@@ -107,6 +107,14 @@ public final class SignalStore {
         Set(demandCounts.keys.filter { $0.root == root })
     }
 
+    var rootCount: Int {
+        roots.count
+    }
+
+    var demandedPathCount: Int {
+        demandCounts.count
+    }
+
     var subscriptionCount: Int {
         subscriptions.count + demandGroups.count
     }
