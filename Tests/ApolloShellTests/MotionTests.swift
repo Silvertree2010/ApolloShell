@@ -93,4 +93,15 @@ struct MotionTests {
     func budgetFromSpec() {
         #expect(Self.mainActorBlockBudget == .microseconds(16_700))
     }
+
+    @Test("RunningAnimation schreibt ohne Animation keinen Zustand, mit Animation Neustart und Ende")
+    func runningAnimationWritesOnlyWithSpec() async throws {
+        var restarts = 0
+        var finishes = 0
+        await RunningAnimation.run(nil, restart: { restarts += 1 }, finish: { finishes += 1 })
+        #expect(restarts == 0 && finishes == 0)
+        let spec = try #require(AnimationSpec(try style("animation: pulse 10ms 1;")))
+        await RunningAnimation.run(spec, restart: { restarts += 1 }, finish: { finishes += 1 })
+        #expect(restarts == 1 && finishes == 1)
+    }
 }

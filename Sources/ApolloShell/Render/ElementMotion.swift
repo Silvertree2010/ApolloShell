@@ -125,15 +125,22 @@ struct RunningAnimation: ViewModifier {
                     .offset(y: pose.offsetY)
             }
             .task(id: spec) {
-                start = Date()
-                finished = false
-                guard let spec, let count = spec.count else { return }
-                try? await Task.sleep(for: .seconds(max(0, spec.delay + spec.duration * count)))
-                if !Task.isCancelled { finished = true }
+                await Self.run(spec, restart: {
+                    start = Date()
+                    finished = false
+                }, finish: { finished = true })
             }
         } else {
             content
         }
+    }
+
+    static func run(_ spec: AnimationSpec?, restart: () -> Void, finish: () -> Void) async {
+        guard let spec else { return }
+        restart()
+        guard let count = spec.count else { return }
+        try? await Task.sleep(for: .seconds(max(0, spec.delay + spec.duration * count)))
+        if !Task.isCancelled { finish() }
     }
 }
 
