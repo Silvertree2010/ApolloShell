@@ -1,4 +1,4 @@
-/Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/vorschlag/sidebar.kdl:3:9: error: unknown handler 'on-clik' on 'button'
+<fixtures>/vorschlag/sidebar.kdl:3:9: error: unknown handler 'on-clik' on 'button'
     3 |         on-clik {
       |         ^^^^^^^
       = help: did you mean 'on-click'?

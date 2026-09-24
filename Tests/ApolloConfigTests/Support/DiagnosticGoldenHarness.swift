@@ -5,6 +5,7 @@ import ApolloBase
 
 enum DiagnosticGolden {
     static let rewriteEnvironmentKey = "APOLLOSHELL_REWRITE_GOLDEN"
+    static let fixturesPlaceholder = "<fixtures>"
 
     static func fixturesRoot(_ file: StaticString = #filePath) -> URL {
         URL(fileURLWithPath: "\(file)")
@@ -33,12 +34,13 @@ enum DiagnosticGolden {
 
     static func verify(_ name: String, diagnostics: [Diagnostic], home: String? = nil, sourceLocation: SourceLocation = #_sourceLocation) {
         let text = DiagnosticFormatter.consoleText(diagnostics, sources: { sources(for: name)[$0] }, home: home)
+        let normalizedText = text.replacingOccurrences(of: fixturesRoot().path, with: fixturesPlaceholder)
         let expectedPath = fixturesRoot().appendingPathComponent(name).appendingPathComponent("expected.txt")
         let disk = DiskFileSystem()
         if ProcessInfo.processInfo.environment[rewriteEnvironmentKey] == "1" {
-            try? disk.write(text, to: expectedPath)
+            try? disk.write(normalizedText, to: expectedPath)
         }
         let expected = (try? disk.read(expectedPath)) ?? ""
-        #expect(text == expected, sourceLocation: sourceLocation)
+        #expect(normalizedText == expected, sourceLocation: sourceLocation)
     }
 }
