@@ -26,6 +26,10 @@ enum LayoutRenderers {
     }
 
     static func grid(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
+        AnyView(gridLayout(element, style) { ElementChildren(children: element.children, scope: scope) })
+    }
+
+    static func gridLayout(_ element: ElementInstance, _ style: ComputedStyle, @ViewBuilder content: () -> some View) -> some View {
         var columns: [CSSLength]
         if case .gridColumns(let list)? = style["grid-template-columns"] {
             columns = list
@@ -34,18 +38,15 @@ enum LayoutRenderers {
             columns = Array(repeating: CSSLength(1, .fraction), count: count)
         }
         let gap = StyleValues.gap(style["gap"])
-        return AnyView(GridLayout(columns: columns, columnGap: style["column-gap"].map { StyleValues.gap($0) } ?? gap,
-                                  rowGap: style["row-gap"].map { StyleValues.gap($0) } ?? gap,
-                                  rowHeight: StyleValues.points(style["grid-auto-rows"]), definite: Definite(style)) {
-            ElementChildren(children: element.children, scope: scope)
-        })
+        return GridLayout(columns: columns, columnGap: style["column-gap"].map { StyleValues.gap($0) } ?? gap,
+                          rowGap: style["row-gap"].map { StyleValues.gap($0) } ?? gap,
+                          rowHeight: StyleValues.points(style["grid-auto-rows"]), definite: Definite(style)) {
+            content()
+        }
     }
 
     static func reorderable(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
-        if element.property("axis").plainText == "horizontal" {
-            return row(element, style, scope)
-        }
-        return column(element, style, scope)
+        AnyView(ReorderableElement(element: element, style: style, scope: scope))
     }
 
     static func scroll(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {

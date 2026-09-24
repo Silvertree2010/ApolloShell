@@ -14,6 +14,15 @@ final class RenderContext {
     var themeIcon: @MainActor (String) -> NSImage? = { _ in nil }
     var theme: @MainActor (String) -> Theme? = { $0 == "default" ? .standard : nil }
     var imageValue: @MainActor (ImageRef) -> NSImage? = { _ in nil }
+    var runtime: (any RenderRuntime)?
+    var clock: any GateClock = SystemGateClock()
+    var menus: any MenuPresenting = NativeMenuPresenter()
+    var onRecording: @MainActor (Bool) -> Void = { _ in }
+    var gates: [String: EventGate] = [:]
+    var reorders: [String: ReorderCoordinator] = [:]
+    var menuSources: [String: any MenuSourceProviding] = [:]
+    var pending: [Task<Void, Never>] = []
+    let hits = HitRegions()
     private var images: [String: NSImage] = [:]
 
     func image(for source: Value) -> NSImage? {
@@ -55,6 +64,10 @@ enum ElementRenderers {
         "row": LayoutRenderers.row,
         "stack": LayoutRenderers.stack,
         "reorderable": LayoutRenderers.reorderable,
+        "toggle": InputRenderers.toggle,
+        "slider": InputRenderers.slider,
+        "input": InputRenderers.input,
+        "key-recorder": InputRenderers.keyRecorder,
         "scroll": LayoutRenderers.scroll,
         "button": ControlRenderers.button,
         "app-icon": ImageRenderers.appIcon,
@@ -74,20 +87,63 @@ enum ElementRenderers {
     }
 }
 
+struct ChildPosition: Equatable {
+    var index: Int
+    var count: Int
+}
+
 struct ElementView: View {
     let element: ElementInstance
     let scope: RenderScope
+    var position: ChildPosition?
+    var reorderEntry: ReorderEntry?
 
     var body: some View {
-        let subject = StyleResolver.subject(for: element)
-        let style = scope.context.styles.resolve(subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: element.property("style").plainText)
+        let styles = scope.context.styles
+        let subject = Self.subject(element, position: position)
+        let inline = element.property("style").plainText
+        let style = styles.resolve(subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
         let inner = RenderScope(context: scope.context, ancestors: scope.ancestors + [subject], parentStyle: style, parentKind: Self.layoutKind(element), outerKind: scope.parentKind)
         if element.property("visible") != .bool(false) {
             let spacer = element.kind == "spacer" && element.property("size") == .null
             let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
+            let mouse = MouseConfig(element, reorder: reorderEntry)
+            let hover = styles.sensitive(to: .hover, subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline) || element.kind == "button"
             ElementRenderers.view(for: element, style: style, scope: inner)
                 .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element)))
+                .modifier(HitRegionMarker(active: !mouse.isEmpty || StyleValues.visibleBackground(style), identity: element.identity))
+                .modifier(InteractionIfNeeded(element: element, context: scope.context, config: mouse, hover: hover))
+                .modifier(Motion(element: element, style: style, context: scope.context))
                 .layoutValue(key: ChildMetricsKey.self, value: ChildMetrics(style, spacer: spacer))
+        }
+    }
+
+    static func subject(_ element: ElementInstance, position: ChildPosition?) -> StyleSubject {
+        var subject = StyleResolver.subject(for: element)
+        if element.property("checked").isTruthy { subject.pseudo.insert(.checked) }
+        if element.property("disabled").isTruthy { subject.pseudo.insert(.disabled) }
+        if let position {
+            if position.index == 0 { subject.pseudo.insert(.firstChild) }
+            if position.index == position.count - 1 { subject.pseudo.insert(.lastChild) }
+        }
+        return subject
+    }
+}
+
+struct InteractionIfNeeded: ViewModifier {
+    let element: ElementInstance
+    let context: RenderContext
+    let config: MouseConfig
+    let hover: Bool
+
+    func body(content: Content) -> some View {
+        let ir = element.ir
+        let needed = !config.isEmpty || hover || !ir.handlers.isEmpty || !ir.accessibilityActions.isEmpty
+            || element.property("tooltip") != .null || element.property("label") != .null
+        if needed {
+            content.modifier(ElementInteraction(element: element, context: context, config: config, hoverSensitive: hover))
+        } else {
+            content
         }
     }
 }
@@ -95,7 +151,12 @@ struct ElementView: View {
 extension ElementView {
     static func layoutKind(_ element: ElementInstance) -> String {
         switch element.kind {
-        case "reorderable": element.property("axis").plainText == "horizontal" ? "row" : "column"
+        case "reorderable":
+            switch element.property("axis").plainText {
+            case "horizontal": "row"
+            case "grid": "grid"
+            default: "column"
+            }
         default: element.kind
         }
     }
@@ -138,8 +199,8 @@ struct ElementChildren: View {
     let scope: RenderScope
 
     var body: some View {
-        ForEach(children, id: \.identity) { child in
-            ElementView(element: child, scope: scope)
+        ForEach(Array(children.enumerated()), id: \.element.identity) { index, child in
+            ElementView(element: child, scope: scope, position: ChildPosition(index: index, count: children.count))
         }
     }
 }

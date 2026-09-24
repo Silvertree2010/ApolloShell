@@ -13,7 +13,8 @@ final class RenderSession {
     let context: RenderContext
     let canvas: OffscreenCanvas
     let dark: Bool
-    var actions: [String] = []
+    let actionLog = ActionLog()
+    var actions: [String] { actionLog.entries }
 
     init(config: URL, resources: URL, fixture: ProviderFixture, fixtureRoot: URL?, dark: Bool, scale: CGFloat,
          log: @escaping ([Diagnostic]) -> Void = { _ in }) throws {
@@ -26,9 +27,9 @@ final class RenderSession {
         var now = Date()
         if case .date(let date)? = fixture.values["clock"]?["now"] { now = date }
         assembly = ShellAssembly(host: host, scheduler: scheduler, clock: ManualRuntimeClock(), filterContext: ShellAssembly.fixedContext(now: now))
-        var logged: [String] = []
+        let actionLog = self.actionLog
         assembly.install(FixtureProvider.all(fixture: fixture, onAction: { action, _, _ in
-            logged.append(action)
+            actionLog.entries.append(action)
             FileHandle.standardError.write(Data("action \(action) (not run)\n".utf8))
         }))
         let loaded = ConfigSource.load(config, builtinConfigs: resources.appendingPathComponent("configs"), id: "render")
@@ -45,6 +46,7 @@ final class RenderSession {
             _ = assembly.runtime.trigger(name, on: identity, event: event)
         })
         context.configRoot = config
+        context.runtime = AssemblyRenderRuntime(assembly)
         canvas = OffscreenCanvas(appearance: dark ? .dark : .light, scale: scale)
     }
 
@@ -60,7 +62,7 @@ final class RenderSession {
         for _ in 0..<50 { scheduler.runPending() }
     }
 
-    func capture(_ surface: SurfaceInstance, name: String) throws -> Data {
+    func mount(_ surface: SurfaceInstance) -> NSView {
         let appearance: ColorScheme = dark ? .dark : .light
         let view = SurfaceView(surface: surface, context: context)
             .environment(\.colorScheme, appearance)
@@ -73,9 +75,19 @@ final class RenderSession {
             }
         let hosting = NSHostingView(rootView: view)
         canvas.host(hosting, size: hosting.fittingSize)
+        return hosting
+    }
+
+    func capture(_ surface: SurfaceInstance, name: String) throws -> Data {
+        let hosting = mount(surface)
         defer { canvas.window.contentView = nil }
         return try canvas.stableCapture(hosting, name: name)
     }
+}
+
+@MainActor
+final class ActionLog {
+    var entries: [String] = []
 }
 
 private struct RenderModeKey: EnvironmentKey {

@@ -1,0 +1,466 @@
+import SwiftUI
+import AppKit
+import ApolloConfig
+import ApolloStyle
+import ApolloRuntime
+
+struct MouseConfig: Equatable {
+    var click = false
+    var doubleClick = false
+    var longPress = false
+    var right = false
+    var middle = false
+    var scroll = false
+    var accepts: Set<String> = []
+    var menuOn: Set<String> = []
+    var disabled = false
+    var passive = false
+    var reorder: ReorderEntry?
+
+    init() {}
+
+    @MainActor
+    init(_ element: ElementInstance, reorder: ReorderEntry?) {
+        let names = Set(element.ir.handlers.map(\.name))
+        click = names.contains("on-click")
+        doubleClick = names.contains("on-double-click")
+        longPress = names.contains("on-long-press")
+        right = names.contains("on-right-click")
+        middle = names.contains("on-middle-click")
+        scroll = names.contains("on-scroll")
+        if names.contains("on-drop"), let handler = element.ir.handlers.first(where: { $0.name == "on-drop" }),
+           let accept = handler.properties["accept"].flatMap(HandlerRules.literal)?.plainText {
+            accepts = [accept]
+        }
+        if element.ir.menu != nil {
+            let text = element.property("menu-on").plainText ?? "right-click"
+            menuOn = Set(text.split(whereSeparator: \.isWhitespace).map(String.init))
+        }
+        disabled = element.property("disabled").isTruthy
+        self.reorder = reorder
+    }
+
+    var isEmpty: Bool {
+        !click && !doubleClick && !longPress && !right && !middle && !scroll && accepts.isEmpty && menuOn.isEmpty && reorder == nil && !passive
+    }
+
+    func claims(_ kind: MouseKind) -> Bool {
+        if passive { return kind != .scroll }
+        switch kind {
+        case .left: return click || doubleClick || longPress || right || !menuOn.isEmpty || reorder != nil
+        case .right: return right || menuOn.contains("right-click")
+        case .middle: return middle
+        case .scroll: return scroll
+        case .drag: return !accepts.isEmpty || reorder != nil
+        }
+    }
+
+    var hasMenuOnSecondary: Bool { menuOn.contains("right-click") }
+}
+
+enum MouseKind {
+    case left, right, middle, scroll, drag
+
+    static func current(_ event: NSEvent?) -> MouseKind {
+        switch event?.type {
+        case .rightMouseDown?, .rightMouseUp?, .rightMouseDragged?: .right
+        case .otherMouseDown?, .otherMouseUp?, .otherMouseDragged?: .middle
+        case .scrollWheel?: .scroll
+        case .leftMouseDown?, .leftMouseUp?, .leftMouseDragged?: .left
+        default: .drag
+        }
+    }
+}
+
+enum EventFields {
+    static func modifiers(_ flags: NSEvent.ModifierFlags) -> Value {
+        var names: [Value] = []
+        if flags.contains(.command) { names.append(.string("cmd")) }
+        if flags.contains(.option) { names.append(.string("alt")) }
+        if flags.contains(.shift) { names.append(.string("shift")) }
+        if flags.contains(.control) { names.append(.string("ctrl")) }
+        return .list(names)
+    }
+
+    static func phase(_ event: NSEvent) -> String {
+        let phase = event.phase.isEmpty ? event.momentumPhase : event.phase
+        if phase.contains(.began) || phase.contains(.mayBegin) { return "began" }
+        if phase.contains(.ended) || phase.contains(.cancelled) { return "ended" }
+        if phase.contains(.changed) || phase.contains(.stationary) { return "changed" }
+        return "none"
+    }
+
+    static func drop(_ pasteboard: NSPasteboard, accept: String) -> Record? {
+        switch accept {
+        case "files":
+            let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+            guard !urls.isEmpty else { return nil }
+            return Record([("files", .list(urls.map { .string($0.path) }))])
+        case "apps":
+            var ids: [String] = []
+            if let id = pasteboard.string(forType: .apolloApp) { ids.append(id) }
+            let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+            ids += urls.filter { $0.pathExtension == "app" }.compactMap { Bundle(url: $0)?.bundleIdentifier }
+            guard !ids.isEmpty else { return nil }
+            return Record([("apps", .list(ids.map { .string($0) }))])
+        case "text":
+            guard let text = pasteboard.string(forType: .string), !text.isEmpty else { return nil }
+            return Record([("text", .string(text))])
+        default:
+            return nil
+        }
+    }
+
+    static func types(_ accepts: Set<String>) -> [NSPasteboard.PasteboardType] {
+        var result: [NSPasteboard.PasteboardType] = []
+        if accepts.contains("files") || accepts.contains("apps") { result.append(.fileURL) }
+        if accepts.contains("apps") { result.append(.apolloApp) }
+        if accepts.contains("text") { result.append(.string) }
+        return result
+    }
+}
+
+extension NSPasteboard.PasteboardType {
+    static let apolloApp = NSPasteboard.PasteboardType("to.apollocloud.apolloshell.app")
+    static let apolloReorder = NSPasteboard.PasteboardType("to.apollocloud.apolloshell.reorder")
+}
+
+struct ElementInteraction: ViewModifier {
+    let element: ElementInstance
+    let context: RenderContext
+    let config: MouseConfig
+    let hoverSensitive: Bool
+
+    func body(content: Content) -> some View {
+        let tooltip = element.property("tooltip").plainText
+        let label = element.property("label").plainText ?? tooltip
+        content
+            .modifier(HoverTracking(element: element, context: context, active: hoverSensitive || element.ir.handlers.contains { $0.name == "on-hover" || $0.name == "on-hover-end" }))
+            .overlay {
+                if !config.isEmpty {
+                    MouseCatcher(element: element, context: context, config: config)
+                }
+            }
+            .onAppear { context.fire("on-appear", element) }
+            .onDisappear {
+                context.fire("on-disappear", element)
+                if element.pseudo.contains(.hover) || element.pseudo.contains(.active) {
+                    element.pseudo.subtract([.hover, .active])
+                }
+            }
+            .modifier(OptionalHelp(text: tooltip))
+            .modifier(AccessibilityActions(element: element, context: context, label: label, config: config))
+    }
+}
+
+struct HoverTracking: ViewModifier {
+    let element: ElementInstance
+    let context: RenderContext
+    let active: Bool
+
+    func body(content: Content) -> some View {
+        if active {
+            content.onHover { inside in
+                if inside {
+                    element.pseudo.insert(.hover)
+                    context.fire("on-hover", element)
+                } else {
+                    element.pseudo.remove(.hover)
+                    context.fire("on-hover-end", element)
+                }
+            }
+        } else {
+            content
+        }
+    }
+}
+
+struct OptionalHelp: ViewModifier {
+    let text: String?
+
+    func body(content: Content) -> some View {
+        if let text { content.help(text) } else { content }
+    }
+}
+
+struct AccessibilityActions: ViewModifier {
+    let element: ElementInstance
+    let context: RenderContext
+    let label: String?
+    let config: MouseConfig
+
+    func body(content: Content) -> some View {
+        let named = element.ir.accessibilityActions
+        var view = AnyView(content)
+        if let label {
+            view = AnyView(view.accessibilityLabel(label))
+        }
+        if config.click {
+            view = AnyView(view.accessibilityAction { context.fire("on-click", element, Record([("modifiers", .list([]))])) })
+        }
+        for (index, action) in named.enumerated() {
+            let title = context.runtime?.evaluate(action.title, on: element.identity, locals: [:]).plainText
+                ?? HandlerRules.literal(action.title)?.plainText ?? ""
+            view = AnyView(view.accessibilityAction(named: Text(title)) {
+                context.runtime?.run(action.actions, on: element.identity, site: "accessibility#\(index)", event: Record(), locals: [:])
+            })
+        }
+        return view
+    }
+}
+
+struct MouseCatcher: NSViewRepresentable {
+    let element: ElementInstance
+    let context: RenderContext
+    let config: MouseConfig
+
+    func makeNSView(context: Context) -> ElementMouseView {
+        let view = ElementMouseView()
+        update(view)
+        return view
+    }
+
+    func updateNSView(_ view: ElementMouseView, context: Context) {
+        update(view)
+    }
+
+    private func update(_ view: ElementMouseView) {
+        view.element = element
+        view.renderContext = context
+        view.config = config
+    }
+}
+
+@MainActor
+final class ElementMouseView: NSView, NSDraggingSource {
+    private static var live: [WeakMouseView] = []
+    private static let dragThreshold: CGFloat = 4
+
+    weak var element: ElementInstance?
+    weak var renderContext: RenderContext?
+    var config = MouseConfig() {
+        didSet {
+            guard config != oldValue else { return }
+            let types = EventFields.types(config.accepts) + (config.reorder != nil ? [.apolloReorder] : [])
+            unregisterDraggedTypes()
+            if !types.isEmpty { registerForDraggedTypes(types) }
+        }
+    }
+
+    private var holdWork: DispatchWorkItem?
+    private var longPressed = false
+    private var downPoint: NSPoint?
+    private var dragging = false
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        Self.live.append(WeakMouseView(view: self))
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("not from a nib")
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard let window, !isHidden, !config.disabled else { return nil }
+        let kind = MouseKind.current(NSApp.currentEvent)
+        guard config.claims(kind), let superview else { return nil }
+        let local = convert(point, from: superview)
+        guard bounds.contains(local) else { return nil }
+        let inWindow = convert(local, to: nil)
+        let winner = Self.winner(at: inWindow, in: window, kind: kind)
+        return winner === self && !config.passive ? self : nil
+    }
+
+    static func winner(at point: NSPoint, in window: NSWindow, kind: MouseKind) -> ElementMouseView? {
+        live.removeAll { $0.view == nil }
+        var best: ElementMouseView?
+        var bestArea = CGFloat.infinity
+        for entry in live {
+            guard let view = entry.view, view.window === window, !view.isHiddenOrHasHiddenAncestor, view.config.claims(kind) else { continue }
+            let frame = view.convert(view.bounds, to: nil)
+            guard frame.contains(point) else { continue }
+            let area = frame.width * frame.height
+            if area <= bestArea {
+                best = view
+                bestArea = area
+            }
+        }
+        return best
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        guard let element, let context = renderContext else { return }
+        if event.modifierFlags.contains(.control) {
+            secondary(event)
+            return
+        }
+        longPressed = false
+        dragging = false
+        downPoint = event.locationInWindow
+        element.pseudo.insert(.active)
+        if config.longPress || config.menuOn.contains("long-press") {
+            let delay = context.rules(element, "on-long-press").delay ?? 0.5
+            let work = DispatchWorkItem { [weak self] in
+                MainActor.assumeIsolated { self?.longPress() }
+            }
+            holdWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+        }
+    }
+
+    func longPress() {
+        guard let element, let context = renderContext, !dragging else { return }
+        holdWork = nil
+        longPressed = true
+        element.pseudo.remove(.active)
+        context.fire("on-long-press", element)
+        if config.menuOn.contains("long-press") { context.menus.present(element, context: context, from: self, at: nil) }
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let start = downPoint, !dragging, !longPressed, let reorder = config.reorder, reorder.enabled else { return }
+        let point = event.locationInWindow
+        guard hypot(point.x - start.x, point.y - start.y) > Self.dragThreshold else { return }
+        dragging = true
+        holdWork?.cancel()
+        holdWork = nil
+        element?.pseudo.remove(.active)
+        let item = NSPasteboardItem()
+        item.setString(reorder.token, forType: .apolloReorder)
+        if let app = reorder.app { item.setString(app, forType: .apolloApp) }
+        let dragItem = NSDraggingItem(pasteboardWriter: item)
+        dragItem.setDraggingFrame(bounds, contents: snapshot())
+        reorder.coordinator?.begin(reorder)
+        beginDraggingSession(with: [dragItem], event: event, source: self)
+    }
+
+    func snapshot() -> NSImage? {
+        guard let rep = bitmapImageRepForCachingDisplay(in: bounds) else { return nil }
+        superview?.cacheDisplay(in: frame, to: rep)
+        let image = NSImage(size: bounds.size)
+        image.addRepresentation(rep)
+        return image
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        holdWork?.cancel()
+        holdWork = nil
+        downPoint = nil
+        element?.pseudo.remove(.active)
+        if dragging {
+            dragging = false
+            return
+        }
+        guard !longPressed, bounds.contains(convert(event.locationInWindow, from: nil)) else { return }
+        primary(event.modifierFlags, count: event.clickCount)
+    }
+
+    func primary(_ flags: NSEvent.ModifierFlags, count: Int) {
+        guard let element, let context = renderContext else { return }
+        let fields = Record([("modifiers", EventFields.modifiers(flags))])
+        if count >= 2, config.doubleClick {
+            context.fire("on-double-click", element, fields)
+            return
+        }
+        let menu = config.menuOn.contains("click")
+        if !menu || !config.click {
+            context.fire("on-click", element, fields)
+        }
+        if menu { context.menus.present(element, context: context, from: self, at: nil) }
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        secondary(event)
+    }
+
+    func secondary(_ event: NSEvent?) {
+        guard let element, let context = renderContext else { return }
+        context.fire("on-right-click", element, Record([("modifiers", EventFields.modifiers(event?.modifierFlags ?? []))]))
+        if config.hasMenuOnSecondary {
+            let point = event.map { convert($0.locationInWindow, from: nil) }
+            context.menus.present(element, context: context, from: self, at: point)
+        }
+    }
+
+    override func otherMouseDown(with event: NSEvent) {
+        guard event.buttonNumber == 2, let element, let context = renderContext else {
+            super.otherMouseDown(with: event)
+            return
+        }
+        context.fire("on-middle-click", element, Record([("modifiers", EventFields.modifiers(event.modifierFlags))]))
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        guard config.scroll, let element, let context = renderContext, !scrollsAncestor() else {
+            super.scrollWheel(with: event)
+            return
+        }
+        context.fire("on-scroll", element, Record([
+            ("dx", .number(Double(event.scrollingDeltaX))),
+            ("dy", .number(Double(event.scrollingDeltaY))),
+            ("phase", .string(EventFields.phase(event))),
+            ("precise", .bool(event.hasPreciseScrollingDeltas)),
+        ]))
+    }
+
+    private func scrollsAncestor() -> Bool {
+        guard let scrollView = enclosingScrollView, let document = scrollView.documentView else { return false }
+        return document.frame.height > scrollView.contentView.bounds.height + 1 || document.frame.width > scrollView.contentView.bounds.width + 1
+    }
+
+    func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        context == .withinApplication ? .move : .move
+    }
+
+    func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        guard let reorder = config.reorder else { return }
+        let inside = window.map { $0.frame.contains(screenPoint) } ?? false
+        reorder.coordinator?.end(reorder, droppedOutside: !inside && operation == [])
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        operation(for: sender)
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        operation(for: sender)
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard let element, let context = renderContext else { return false }
+        let pasteboard = sender.draggingPasteboard
+        if let token = pasteboard.string(forType: .apolloReorder), let reorder = config.reorder {
+            return reorder.coordinator?.drop(token: token, on: reorder) ?? false
+        }
+        for accept in config.accepts.sorted() {
+            if let fields = EventFields.drop(pasteboard, accept: accept) {
+                context.fire("on-drop", element, fields)
+                return true
+            }
+        }
+        if let reorder = config.reorder, let coordinator = reorder.coordinator {
+            return coordinator.foreignDrop(pasteboard, on: reorder)
+        }
+        return false
+    }
+
+    private func operation(for info: NSDraggingInfo) -> NSDragOperation {
+        let pasteboard = info.draggingPasteboard
+        if let token = pasteboard.string(forType: .apolloReorder) {
+            guard let reorder = config.reorder, reorder.coordinator?.accepts(token: token, on: reorder) == true else { return [] }
+            return .move
+        }
+        for accept in config.accepts where EventFields.drop(pasteboard, accept: accept) != nil {
+            return .copy
+        }
+        if let reorder = config.reorder, reorder.coordinator?.acceptsForeign(pasteboard) == true { return .copy }
+        return []
+    }
+}
+
+private struct WeakMouseView {
+    weak var view: ElementMouseView?
+}

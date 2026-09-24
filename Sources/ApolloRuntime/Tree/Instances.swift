@@ -37,6 +37,7 @@ public final class ElementInstance {
     public internal(set) var children: [ElementInstance] = []
     public internal(set) var slotChildren: [String: [ElementInstance]] = [:]
     public internal(set) var scope: LocalScope
+    public internal(set) var entryKey: Value?
     public var pseudo: PseudoState = [] {
         didSet {
             if pseudo != oldValue {

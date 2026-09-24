@@ -59,6 +59,12 @@ final class StyleResolver {
         return nil
     }
 
+    func sensitive(to state: PseudoState, _ subject: StyleSubject, ancestors: [StyleSubject], parent: ComputedStyle?, inline: String?) -> Bool {
+        var flipped = subject
+        if flipped.pseudo.contains(state) { flipped.pseudo.remove(state) } else { flipped.pseudo.insert(state) }
+        return resolve(flipped, ancestors: ancestors, parent: parent, inline: inline) != resolve(subject, ancestors: ancestors, parent: parent, inline: inline)
+    }
+
     func resolve(_ subject: StyleSubject, ancestors: [StyleSubject], parent: ComputedStyle?, inline: String? = nil) -> ComputedStyle {
         let key = Key(subject: subject, ancestors: ancestors, parent: parent, inline: inline ?? "")
         if let cached = cache[key] { return cached }

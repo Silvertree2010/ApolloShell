@@ -41,5 +41,6 @@ struct SurfaceView: View {
             ElementChildren(children: surface.root, scope: scope)
         }
         .modifier(StyledBox(style: style, context: context))
+        .modifier(HitRegionCollector(surfaceKey: SurfaceHost.key(surface.id, surface.screenKey), regions: context.hits))
     }
 }

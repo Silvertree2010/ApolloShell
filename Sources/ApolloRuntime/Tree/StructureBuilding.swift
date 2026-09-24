@@ -139,6 +139,7 @@ extension ShellRuntime {
         var entry = context
         entry.scope = entryScope(each, context.scope, item: region.item, index: region.index)
         entry.path = context.path.appending(each.key).appending(key.component)
+        entry.entryKey = entryKeyValue(each, region, base: context.scope)
         return entry
     }
 
@@ -242,6 +243,16 @@ extension ShellRuntime {
             }
         }
         markDirty(node.context.container)
+    }
+
+    private func entryKeyValue(_ each: EachIR, _ region: Region, base: LocalScope) -> Value {
+        if let itemKey = each.itemKey {
+            let key = bindings.evaluateOnce(itemKey, scope: entryScope(each, base, item: region.item, index: region.index))
+            if key != .null { return key }
+        } else if case .record(let record) = region.item, let id = record["id"], id != .null {
+            return id
+        }
+        return .number(Double(region.index))
     }
 
     private func entryKey(_ each: EachIR, item: Value, index: Int, base: LocalScope) -> EntryKey {

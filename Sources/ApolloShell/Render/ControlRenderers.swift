@@ -21,11 +21,6 @@ struct ButtonElement: View {
             ElementChildren(children: element.children, scope: scope)
         }
         .contentShape(Rectangle())
-        .onTapGesture { scope.context.trigger("on-click", element.identity, Record([("modifiers", .list([]))])) }
-        .onHover { inside in
-            if inside { element.pseudo.insert(.hover) } else { element.pseudo.remove(.hover) }
-        }
-        .help(element.property("tooltip").plainText ?? "")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
         .accessibilityAddTraits(.isButton)

@@ -62,8 +62,8 @@ public protocol SurfaceControlling: AnyObject {
     func closeGroup(_ group: String)
 }
 
-enum RuntimeDuration {
-    static func seconds(_ value: Value?) -> Double? {
+public enum RuntimeDuration {
+    public static func seconds(_ value: Value?) -> Double? {
         switch value {
         case .number(let number)?:
             return number.isFinite ? number : nil

@@ -37,6 +37,12 @@ public struct KeyChord: Sendable, Hashable {
         return (names + [key]).joined(separator: "+")
     }
 
+    public init?(hotKey: HotKey) {
+        let names = Self.keyCodes.filter { $0.value == hotKey.keyCode }.map(\.key).sorted { ($0.count, $0) < ($1.count, $1) }
+        guard let key = names.first else { return nil }
+        self.init(modifiers: hotKey.modifiers, key: key, keyCode: hotKey.keyCode)
+    }
+
     public var hotKey: HotKey {
         HotKey(keyCode: keyCode, modifiers: modifiers)
     }
