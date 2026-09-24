@@ -5,7 +5,7 @@ fixture {
         wifi on=#true connected=#true rssi=-52 bars=3
     }
     bluetooth on=#true status="ready" paired=2 connected=1
-    audio volume=0.35 muted=#false {
+    audio volume=0.35 muted=#false symbol="speaker.wave.2.fill" {
         output id="builtin" name="MacBook Pro Speakers"
     }
     system user-name="Andrin Example" full-name="Andrin Example" uptime=11520 macos-version="26.6.2" chip="Apple M4 Pro"

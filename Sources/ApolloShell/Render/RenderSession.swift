@@ -106,9 +106,24 @@ final class RenderSession {
     }
 
     func capture(_ surface: SurfaceInstance, name: String) throws -> Data {
+        let opened = Self.opensForCapture(surface)
+        if opened {
+            assembly.runtime.open(surface.id, screenKey: surface.screenKey)
+            flush()
+        }
         let hosting = mount(surface)
-        defer { canvas.window.contentView = nil }
+        defer {
+            canvas.window.contentView = nil
+            if opened {
+                assembly.runtime.close(surface.id)
+                flush()
+            }
+        }
         return try canvas.stableCapture(hosting, name: name)
+    }
+
+    static func opensForCapture(_ surface: SurfaceInstance) -> Bool {
+        !surface.isOpen && !["panel", "toast"].contains(surface.ir.kind)
     }
 }
 

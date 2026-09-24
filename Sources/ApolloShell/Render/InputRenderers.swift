@@ -96,6 +96,33 @@ struct SliderMetrics: Equatable {
     }
 }
 
+struct SliderGeometry: Equatable {
+    var length: CGFloat
+    var cross: CGFloat
+    var thumb: CGFloat
+    var thumbCross: CGFloat
+    var fraction: Double
+
+    var inside: Bool { thumb > 0 && thumbCross < cross && thumb < cross }
+
+    var travel: CGFloat { Swift.max(0, length - thumb) }
+
+    var fill: CGFloat {
+        if inside { return Swift.min(length, Swift.max(cross, fraction * length)) }
+        return Swift.max(thumb > 0 ? thumbCenter : 0, fraction * length)
+    }
+
+    var thumbCenter: CGFloat {
+        if inside { return fill - cross / 2 }
+        return thumb / 2 + fraction * travel
+    }
+
+    func fraction(at position: CGFloat) -> Double {
+        if inside { return length > 0 ? Double(position / length) : 0 }
+        return travel > 0 ? Double((position - thumb / 2) / travel) : 0
+    }
+}
+
 struct SliderElement: View {
     let element: ElementInstance
     let style: ComputedStyle
@@ -111,14 +138,15 @@ struct SliderElement: View {
         let keyStep = StyleValues.numberValue(element.property("key-step")) ?? (metrics.step > 0 ? metrics.step : (metrics.max - metrics.min) / 20)
         GeometryReader { proxy in
             let length = vertical ? proxy.size.height : proxy.size.width
+            let cross = vertical ? proxy.size.width : proxy.size.height
             let extent = vertical ? thumb.height : thumb.width
-            let travel = Swift.max(0, length - extent)
-            let center = extent / 2 + metrics.fraction(shown) * travel
+            let geometry = SliderGeometry(length: length, cross: cross, thumb: extent, thumbCross: vertical ? thumb.width : thumb.height,
+                                          fraction: metrics.fraction(shown))
+            let center = geometry.thumbCenter
             ZStack(alignment: vertical ? .bottom : .leading) {
                 Capsule().fill(trackColor)
                 BackgroundLayers(style: ComputedStyle(values: ["background": fillLayers]), shape: AnyShape(Capsule()), context: scope.context)
-                    .frame(width: vertical ? nil : Swift.max(extent > 0 ? center : 0, metrics.fraction(shown) * length),
-                           height: vertical ? Swift.max(extent > 0 ? center : 0, metrics.fraction(shown) * length) : nil)
+                    .frame(width: vertical ? nil : geometry.fill, height: vertical ? geometry.fill : nil)
                 if extent > 0 {
                     thumbView(thumb)
                         .offset(x: vertical ? 0 : center - thumb.width / 2, y: vertical ? -(center - thumb.height / 2) : 0)
@@ -129,7 +157,7 @@ struct SliderElement: View {
             .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
                 guard !element.property("disabled").isTruthy else { return }
                 let position = vertical ? length - drag.location.y : drag.location.x
-                let value = metrics.value(fraction: travel > 0 ? (position - extent / 2) / travel : 0)
+                let value = metrics.value(fraction: geometry.fraction(at: position))
                 if value != dragValue {
                     dragValue = value
                     scope.context.fire("on-change", element, Record([("value", .number(value))]))

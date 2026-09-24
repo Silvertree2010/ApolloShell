@@ -236,18 +236,20 @@
 .session-emblem { width: 80px; height: 80px; }
 .session-mark { color: var(--apollo-accent-color, -apple-system-control-accent); }
 
-#volume { width: 52px; height: 182px; }
+#volume { width: 52px; height: 182px; padding: 16px 11px; }
 .osd-slider {
-  width: 52px;
-  height: 182px;
-  border-radius: 28px;
-  background: var(--apollo-card-fill, rgb(from -apple-system-label r g b / 0.10));
+  width: 30px;
+  height: 150px;
+  -apollo-track-color: var(--apollo-card-fill, rgb(from -apple-system-label r g b / 0.10));
   -apollo-fill-color: var(--apollo-accent-fill, var(--apollo-accent-color, -apple-system-control-accent));
-  box-shadow: 0 2px 8px rgb(0 0 0 / var(--apollo-shadow-opacity, 0.25));
+  -apollo-thumb-size: 26px 26px;
+  -apollo-thumb-color: var(--apollo-on-accent-color, white);
+  -apollo-thumb-shadow: 0 0.5px 3px rgb(0 0 0 / var(--apollo-shadow-opacity, 0.25));
   transition: all 600ms emphasized;
 }
-.osd-percent, .osd-glyph { color: var(--apollo-on-accent-color, white); -apollo-appear: fade 200ms ease-out; }
-.osd-percent { font-size: 13px; font-weight: 700; }
+.osd-percent, .osd-glyph { color: rgb(0 0 0 / 0.8); -apollo-appear: fade 200ms ease-out; }
+.osd-glyph { width: 13px; height: 13px; font-size: 11px; font-weight: 600; }
+.osd-percent { font-size: 10px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
 
 .toast-card {
   width: 406px;

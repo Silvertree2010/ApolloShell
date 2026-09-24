@@ -166,7 +166,7 @@ struct DefaultConfigTests {
         "--apollo-shadow-opacity": [".audio-mute", ".osd-slider"],
         "--apollo-text-color": [".launcher-"],
         "--apollo-secondary-text-color": [".launcher-"],
-        "--apollo-on-accent-color": [".space-number", ".popout-status-circle", ".popout-capsule", ".dashboard-tab", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-badge-text", ".weather-place", ".audio-mute", ".quick-toggle", ".osd-percent", ".osd-glyph", ".toast-chip"],
+        "--apollo-on-accent-color": [".space-number", ".popout-status-circle", ".popout-capsule", ".dashboard-tab", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-badge-text", ".weather-place", ".audio-mute", ".quick-toggle", ".osd-slider", ".toast-chip"],
         "--apollo-accent-color": [":root", ".space-pill", ".popout-status-circle", ".popout-capsule", ".popout-battery-bolt", ".dashboard-tab-pill", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-graph", ".perf-badge-shape", ".weather-place", ".audio-mute", ".audio-slider", ".quick-toggle", ".session-mark", ".osd-slider", ".toast-chip", ".onboarding-dot"],
         "--apollo-accent-gradient": [".audio-mute", ".osd-slider"],
         "--apollo-success-color": [".kind-success"],
