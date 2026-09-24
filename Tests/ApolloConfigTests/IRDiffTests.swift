@@ -56,6 +56,53 @@ struct IRDiffTests {
         #expect(change.unchanged == ["calendar"])
     }
 
+    static let rich = """
+    panel "bar" {
+        button id="go" {
+            on-click { toggle "calendar" }
+        }
+        text "{battery.percent}" id="level"
+        each app in="{apps.running}" key="{app.bundle-id}" {
+            text "{app.name}"
+        }
+        when "{battery.present}" {
+            text "on battery"
+        }
+    }
+    popup "calendar" {
+        text "C"
+    }
+    """
+
+    @Test("Aenderung an Handler, Binding, Art, each und when markiert nur die betroffene Oberflaeche", arguments: [
+        ("toggle \"calendar\"", "toggle \"bar\""),
+        ("on-click {", "on-click debounce=\"200ms\" {"),
+        ("text \"{battery.percent}\"", "text \"{battery.percent | percent}\""),
+        ("text \"{battery.percent}\" id=\"level\"", "icon \"{battery.percent}\" id=\"level\""),
+        ("key=\"{app.bundle-id}\"", "key=\"{app.name}\""),
+        ("text \"{app.name}\"", "text \"{app.title}\""),
+        ("when \"{battery.present}\"", "when \"{!battery.present}\""),
+        ("text \"on battery\"", "text \"on power\""),
+    ])
+    func detailChanges(_ replacement: (String, String)) {
+        #expect(Self.rich.contains(replacement.0))
+        let new = Self.rich.replacingOccurrences(of: replacement.0, with: replacement.1)
+        let old = IRHarness.clean(Self.rich)
+        let changed = IRHarness.clean(new)
+        let change = IRDiff.surfaces(old: old, new: changed)
+        #expect(change.changed.map(\.id) == ["bar"])
+        #expect(change.added.isEmpty && change.removed.isEmpty)
+        #expect(change.unchanged == ["calendar"])
+    }
+
+    @Test("verschobene Zeilen allein aendern weder Handler noch Aktionen noch Bindings")
+    func shiftedSourceIsUnchanged() {
+        let old = IRHarness.clean(Self.rich)
+        let shifted = IRHarness.clean("\n\n" + Self.rich.replacingOccurrences(of: "    ", with: "  "))
+        #expect(old != shifted)
+        #expect(IRDiff.surfaces(old: old, new: shifted) == SurfaceChange(unchanged: ["bar", "calendar"]))
+    }
+
     @Test("Art gewechselt bei gleicher Kennung ist eine Aenderung, kein Entfernen")
     func kindChanged() {
         let change = Self.diff(Self.base, """

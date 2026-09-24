@@ -679,4 +679,40 @@ struct IRTopLevelTests {
         """)
         #expect(result.diagnostics.map(\.message) == ["children of 'list.insert' must be '-' entries"])
     }
+
+    @Test("jedes '-' ist genau ein Kind der Aktion, auch ein einzelnes")
+    func everyDashIsOneChild() throws {
+        let ir = IRHarness.clean("""
+        panel "bar" {
+            button {
+                on-click {
+                    set "cards" {
+                        - "only"
+                    }
+                    list.insert "cards" {
+                        - id="a"
+                        - id="b"
+                    }
+                    set "tab" "x"
+                }
+            }
+        }
+        var cards type="list"
+        var tab "a"
+        """)
+        let button = try #require(IRHarness.element(ir.surface("bar")?.children.first))
+        let actions = try #require(button.handlers.first?.actions)
+        let calls: [ActionCallIR] = actions.compactMap {
+            guard case .call(let call) = $0 else { return nil }
+            return call
+        }
+        #expect(calls.map(\.children.count) == [1, 2, 0])
+        let evaluator = EvaluationHarness.evaluator(sink: WarningSink())
+        let scope = TestScope()
+        #expect(calls[0].children.map { $0.evaluate(with: evaluator, scope: scope) } == [.string("only")])
+        #expect(calls[1].children.map { $0.evaluate(with: evaluator, scope: scope) } == [
+            .record(fields(["id": .string("a")])),
+            .record(fields(["id": .string("b")])),
+        ])
+    }
 }
