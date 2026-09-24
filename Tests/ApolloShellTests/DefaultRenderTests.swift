@@ -9,12 +9,12 @@ import ApolloProviders
 struct DefaultRenderTests {
     static let resources = PackageResources.root.appendingPathComponent("Resources")
 
-    static func shot(_ id: String, state: String? = nil, theme: String? = nil, themeURL: URL? = nil) throws -> Snapshot {
+    static func shot(_ id: String, state: String? = nil, theme: String? = nil, themeURL: URL? = nil, dark: Bool = false) throws -> Snapshot {
         let config = state.map { resources.appendingPathComponent("render/\($0)") } ?? resources.appendingPathComponent("configs/apolloshell-default")
         let fixture = state.map { resources.appendingPathComponent("render/\($0)/fixture.kdl") }
             .flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil } ?? resources.appendingPathComponent("render/fixture.kdl")
         let session = try RenderSession(config: config, resources: resources, fixture: ProviderFixture.load(fixture),
-                                        fixtureRoot: fixture.deletingLastPathComponent(), dark: false, scale: 1,
+                                        fixtureRoot: fixture.deletingLastPathComponent(), dark: dark, scale: 1,
                                         theme: themeURL ?? theme.map { PackageResources.root.appendingPathComponent("examples/themes/\($0)") })
         let surface = try #require(session.surface(id))
         return Snapshot(rep: try #require(NSBitmapImageRep(data: try session.capture(surface, name: id))), scale: 1)
@@ -67,5 +67,15 @@ struct DefaultRenderTests {
         let green: (RGBA) -> Bool = { $0.g > 200 && $0.r < 80 && $0.b < 80 }
         #expect(try Self.shot("session", themeURL: theme).bounds(where: green) == nil)
         #expect(try Self.shot("volume", themeURL: theme).bounds(where: green) != nil)
+    }
+
+    @Test("Sitzungsmenü-Vergleich ohne Theme-Fläche: Render-Zustand sessionmenu-idle lässt die Fläche von full weg (9b-P2-6)")
+    func sessionStateWithoutThemeFill() throws {
+        let plain = try Self.shot("session", state: "sessionmenu-idle", theme: "full/theme.css", dark: true)
+        let themed = try Self.shot("session", theme: "full/theme.css", dark: true)
+        let bare = try Self.shot("session", dark: true)
+        #expect(plain.size == themed.size)
+        #expect(plain.pixel(8, 8).near(bare.pixel(8, 8)))
+        #expect(!themed.pixel(8, 8).near(bare.pixel(8, 8)))
     }
 }
