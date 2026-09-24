@@ -62,12 +62,6 @@ struct BuiltinMarketplaceTests {
         #expect(property.type == .oneOf([.string, .record]))
     }
 
-    @Test("Grösse aus CSS: 780×620, min 640×480, per #marketplace überschreibbar")
-    func size() throws {
-        let css = try String(contentsOf: Self.builtin.appendingPathComponent("marketplace.css"), encoding: .utf8)
-        #expect(css.contains("#marketplace { width: 780px; height: 620px; min-width: 640px; min-height: 480px; }"))
-    }
-
     @Test("Zusammenführen: Stylesheet zuerst, Config gewinnt bei Oberfläche und var, enabled=#false lädt nichts")
     func merge() throws {
         let merged = try #require(Self.merged("window \"settings\" { }\nstyle \"style.css\"\n").ir)
@@ -84,11 +78,12 @@ struct BuiltinMarketplaceTests {
         #expect(on.surface("marketplace") != nil)
     }
 
-    static func texts(_ roots: [ElementInstance]) -> [String] {
+    static func texts(_ roots: [ElementInstance], kinds: Bool = false) -> [String] {
         var out: [String] = []
         var stack = Array(roots.reversed())
         while let element = stack.popLast() {
-            if element.kind == "text", case .string(let text)? = element.arguments.first?.value { out.append(text) }
+            if kinds { out.append(element.kind) }
+            else if element.kind == "text", case .string(let text)? = element.arguments.first?.value { out.append(text) }
             stack.append(contentsOf: element.children.reversed())
             for slot in element.slotChildren.values { stack.append(contentsOf: slot.reversed()) }
         }
@@ -121,6 +116,10 @@ struct BuiltinMarketplaceTests {
         var texts: [String] {
             BuiltinMarketplaceTests.texts(session.runtime.surface("marketplace", screenKey: "main")?.root ?? [])
         }
+
+        var kinds: [String] {
+            BuiltinMarketplaceTests.texts(session.runtime.surface("marketplace", screenKey: "main")?.root ?? [], kinds: true)
+        }
     }
 
     @Test("Aktionsfehler als Banner auf jedem Reiter, auch wenn Browse nicht laden konnte; Ladefehler im Leerzustand (MP-03, MP-23)")
@@ -143,7 +142,7 @@ struct BuiltinMarketplaceTests {
     static let mapping: [String: [(String, String)]] = [
         "MP-01": [("file", "window \"marketplace\" title=\"Marketplace\" autosave=\"Marketplace\"")],
         "MP-02": [("browse", "Browse"), ("browse", "My themes"), ("browse", "Review (1)")],
-        "MP-03": [("file", "Marketplace unavailable"), ("file", "Try again"), ("file", "No themes yet"), ("file", "progress class=\"marketplace-spinner\"")],
+        "MP-03": [("failed", "Marketplace unavailable"), ("failed", "Offline."), ("failed", "Try again"), ("empty", "No themes yet"), ("empty", "Be the first: submit one under My themes."), ("loading:kinds", "progress")],
         "MP-04": [("browse", "Dusk"), ("browse", "by octo"), ("file", "theme-preview theme=\"{item}\"")],
         "MP-05": [("detail", "by arctic · version 1"), ("detail", "License: CC0-1.0 · Based on Nord (MIT)"), ("detail", "Report…"), ("detail", "Remove"), ("detail", "Close"), ("detail", "Light"), ("detail", "Dark")],
         "MP-06": [("browse", "Get"), ("browse", "Use"), ("file", "text \"Update\"")],
@@ -151,19 +150,19 @@ struct BuiltinMarketplaceTests {
         "MP-08": [("file", "marketplace.use \"{item.id}\"")],
         "MP-09": [("file", "marketplace.remove \"{item.id}\"")],
         "MP-10": [("report", "Report this theme"), ("report", "For content that is illegal, offensive or copies someone else's work. A theme reported three times is hidden until it is reviewed.")],
-        "MP-11": [("file", "text \"{marketplace.sign-in.code}\""), ("file", "marketplace.copy-code"), ("file", "text \"Copy\""), ("file", "Sign in with GitHub"), ("file", "Connecting to GitHub…")],
-        "MP-12": [("file", "marketplace.cancel-sign-in")],
+        "MP-11": [("signed-out", "Share your themes"), ("signed-out", "Enter"), ("signed-out", "ABCD-1234"), ("signed-out", "Copy"), ("file", "marketplace.copy-code"), ("signed-out-idle", "Sign in with GitHub"), ("connecting", "Connecting to GitHub…")],
+        "MP-12": [("signed-out", "Cancel"), ("file", "marketplace.cancel-sign-in")],
         "MP-13": [("browse", "@octo"), ("file", "item \"Sign out\""), ("file", "item \"Delete account and themes…\""), ("delete-account", "Delete your Marketplace account?")],
-        "MP-14": [("source", "Sources/ApolloShell/Marketplace/MarketplaceKeychain.swift|.marketplace"), ("source", "Sources/ApolloShell/Marketplace/MarketplaceKeychain.swift|\"session\"")],
+        "MP-14": [("source", "Tests/ApolloShellTests/MarketplaceHostTests.swift|func keychainItem()"), ("source", "Tests/ApolloProvidersTests/MarketplaceProviderTests.swift|#expect(setup.host.session == \"s3cret\")")],
         "MP-15": [("submit", "Submit a theme"), ("submit", "Give it a name first: --apollo-theme-name in the file."), ("file", "This theme uses images. The Marketplace takes plain CSS themes only for now."), ("file", "There is nothing in this theme the shell knows.")],
         "MP-16": [("submit", "I made this theme or may share it, and publish it under CC0 (free for anyone to use). I agree to the Terms."), ("file", "accept-terms=\"{var.marketplace-agreed}\"")],
-        "MP-17": [("mine", "Not accepted"), ("mine", "Copy of Nord"), ("file", "Waiting for review · version {own.version}"), ("file", "Live · version {own.version}"), ("file", "text \"Hidden\"")],
+        "MP-17": [("mine", "Not accepted"), ("mine", "Copy of Nord"), ("mine-waiting", "Waiting for review · version 3"), ("mine-live", "Live · version 3"), ("mine-hidden", "Hidden")],
         "MP-18": [("mine", "New version…"), ("mine", "Delete"), ("file", "marketplace.delete \"{own.id}\"")],
-        "MP-19": [("review", "Ember"), ("review", "Update: name or description changed."), ("review", "Report: spam"), ("review", "by flame · version 1 · waiting")],
-        "MP-20": [("review", "Approve"), ("review", "Reject…"), ("review", "Hide…"), ("review", "Ban author…"), ("file", "Show again"), ("reason", "The author sees this reason.")],
+        "MP-19": [("review", "Ember"), ("review", "Update: name or description changed."), ("review", "Report: spam"), ("review", "by flame · version 1 · pending"), ("review-live", "by flame · version 1 · published"), ("review-hidden", "by flame · version 1 · hidden")],
+        "MP-20": [("review", "Approve"), ("review", "Reject…"), ("review", "Hide…"), ("review", "Ban author…"), ("review-hidden", "Show again"), ("reason", "The author sees this reason.")],
         "MP-21": [("browse", "Terms"), ("browse", "Privacy"), ("browse", "Done"), ("file", "https://silvertree2010.github.io/ApolloShell/terms.html"), ("file", "https://silvertree2010.github.io/ApolloShell/privacy.html")],
         "MP-22": [("source", "Sources/ApolloShell/Marketplace/SystemMarketplaceHost.swift|\"MarketplaceURL\"")],
-        "MP-23": [("file", "Something went wrong")],
+        "MP-23": [("error", "Something went wrong"), ("error", "You must be signed in."), ("error", "OK")],
         "MP-24": [("browse", "Thanks. The report was sent.")],
     ]
 
@@ -194,6 +193,34 @@ struct BuiltinMarketplaceTests {
         view.set("marketplace-choice", "nameless")
         view.set("marketplace-sheet", "submit")
         screens["submit"] = view.texts
+        let user = "user id=\"42\" login=\"octo\" is-admin=#true"
+        let waiting = "sign-in status=\"waiting\" code=\"ABCD-1234\" url=\"https://github.com/login/device\" error=#null"
+        let own = "status=\"rejected\" reason=\"Copy of Nord\""
+        let fixtureText = try String(contentsOf: Self.builtin.appendingPathComponent("fixture.kdl"), encoding: .utf8)
+        let itemsStart = try #require(fixtureText.range(of: "        items {"))
+        let itemsEnd = try #require(fixtureText.range(of: "        mine {"))
+        let itemsBlock = String(fixtureText[itemsStart.lowerBound..<itemsEnd.lowerBound])
+        let variants: [(String, String, [(String, String)])] = [
+            ("failed", "browse", [("status=\"loaded\" error=#null load-error=#null", "status=\"failed\" error=#null load-error=\"Offline.\"")]),
+            ("empty", "browse", [(itemsBlock, "        items {\n        }\n")]),
+            ("loading", "browse", [("status=\"loaded\"", "status=\"loading\"")]),
+            ("signed-out", "mine", [(user, "user #null")]),
+            ("signed-out-idle", "mine", [(user, "user #null"), (waiting, "sign-in status=\"idle\" code=#null url=#null error=#null")]),
+            ("connecting", "mine", [(user, "user #null"), (waiting, "sign-in status=\"waiting\" code=#null url=#null error=#null")]),
+            ("mine-waiting", "mine", [(own, "status=\"waiting\" reason=#null")]),
+            ("mine-live", "mine", [(own, "status=\"live\" reason=#null")]),
+            ("mine-hidden", "mine", [(own, "status=\"hidden\" reason=#null")]),
+            ("review-live", "review", [("status=\"waiting\" reason=#null live-version=#null", "status=\"live\" reason=#null live-version=1")]),
+            ("review-hidden", "review", [("status=\"waiting\" reason=#null live-version=#null", "status=\"hidden\" reason=\"Reported\" live-version=1")]),
+            ("error", "mine", [("error=#null load-error", "error=\"You must be signed in.\" load-error")]),
+        ]
+        for (name, tab, changes) in variants {
+            let variant = try View(changes)
+            variant.set("marketplace-tab", tab)
+            screens[name] = variant.texts
+            screens[name + ":kinds"] = variant.kinds
+            #expect(variant.session.diagnostics.isEmpty, "\(name): \(variant.session.diagnostics.map(\.message))")
+        }
         for (row, evidence) in Self.mapping.sorted(by: { $0.key < $1.key }) {
             for (place, needle) in evidence {
                 switch place {

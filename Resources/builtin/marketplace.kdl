@@ -226,7 +226,7 @@ define "marketplace-review" {
                         }
                         column class="marketplace-queue-text" {
                             text "{entry.name}" class="marketplace-own-name"
-                            text "by {entry.author} · version {entry.version} · {entry.status}" class="marketplace-secondary"
+                            text "by {entry.author} · version {entry.version} · {entry.status == 'waiting' ? 'pending' : entry.status == 'live' ? 'published' : entry.status}" class="marketplace-secondary"
                             when "{entry.description != ''}" { text "{entry.description}" lines=0 }
                             when "{entry.update-note != null}" { text "{entry.update-note}" class="marketplace-secondary" }
                             each report in="{entry.reports}" key="{report.at}-{report.reason}" {

@@ -22,12 +22,16 @@ enum MarketplaceKeychain {
         return String(data: data, encoding: .utf8)
     }
 
-    static func save(_ session: String) {
-        delete()
+    static func item(_ session: String) -> [String: Any] {
         var item = query
         item[kSecValueData as String] = Data(session.utf8)
         item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-        SecItemAdd(item as CFDictionary, nil)
+        return item
+    }
+
+    static func save(_ session: String) {
+        delete()
+        SecItemAdd(item(session) as CFDictionary, nil)
     }
 
     static func delete() {
