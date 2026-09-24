@@ -1,0 +1,78 @@
+enum ActionsGlobal {
+    private typealias S = ProviderSupport
+
+    static let all: [ActionSchema] = [
+        ActionSchema(name: "open", arguments: [S.arg("id", .identifier, doc: "Kennung der Oberfläche.")], properties: [PropertySchema(name: "screen", type: .string, defaultValue: .null, doc: "überschreibt die Bildschirmwahl.")], doc: "öffnet eine Oberfläche."),
+        ActionSchema(name: "close", arguments: [S.arg("id", .identifier, doc: "Kennung der Oberfläche.")], properties: [PropertySchema(name: "wait", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "folgende Aktionen erst nach dem Schliessen.")], waits: true, doc: "schliesst eine Oberfläche."),
+        ActionSchema(name: "toggle", arguments: [S.arg("id", .identifier, doc: "Kennung der Oberfläche.")], doc: "öffnet oder schliesst eine Oberfläche."),
+        ActionSchema(name: "close-group", arguments: [S.arg("group", .string, doc: "Gruppenname.")], doc: "schliesst alle Oberflächen einer Gruppe."),
+        ActionSchema(name: "set", arguments: [S.arg("variable", .identifier, doc: "Name des var."), S.arg("value", .value, required: false, doc: "neuer Wert.")], properties: [
+            PropertySchema(name: "for", type: .duration, defaultValue: .null, doc: "nur vorübergehend setzen."),
+            PropertySchema(name: "in", type: .value, defaultValue: .null, doc: "wirkt auf einen Eintrag einer var-Liste."),
+            PropertySchema(name: "field", type: .string, defaultValue: .null, allowsExpression: false, doc: "Feld dieses Eintrags."),
+        ], acceptsChildren: true, doc: "setzt den Wert eines var."),
+        ActionSchema(name: "toggle-var", arguments: [S.arg("variable", .identifier, doc: "Name des var.")], doc: "kehrt einen bool-Wert um."),
+        ActionSchema(name: "reset", arguments: [S.arg("variable", .identifier, doc: "Name des var.")], doc: "setzt ein var auf seinen Vorgabewert."),
+        ActionSchema(name: "list.insert", arguments: [S.arg("variable", .identifier, doc: "Name der var-Liste.")], properties: [
+            PropertySchema(name: "at", type: .number, defaultValue: .null, doc: "Einfügestelle, Vorgabe hinten."),
+            PropertySchema(name: "id-from", type: .string, defaultValue: .null, allowsExpression: false, doc: "Feld für eine eindeutige id."),
+            PropertySchema(name: "in", type: .value, defaultValue: .null, doc: "wirkt auf eine Liste im Feld eines Eintrags."),
+            PropertySchema(name: "field", type: .string, defaultValue: .null, allowsExpression: false, doc: "Feldname dieser Liste."),
+        ], acceptsChildren: true, doc: "fügt einen Eintrag in eine var-Liste ein."),
+        ActionSchema(name: "list.remove", arguments: [S.arg("variable", .identifier, doc: "Name der var-Liste.")], properties: [
+            PropertySchema(name: "at", type: .number, defaultValue: .null, doc: "Stelle."),
+            PropertySchema(name: "key", type: .value, defaultValue: .null, doc: "Schlüssel des Eintrags."),
+        ], doc: "entfernt einen Eintrag aus einer var-Liste."),
+        ActionSchema(name: "list.move", arguments: [S.arg("variable", .identifier, doc: "Name der var-Liste.")], properties: [
+            PropertySchema(name: "from", type: .number, defaultValue: .null, doc: "Quellstelle."),
+            PropertySchema(name: "to", type: .number, defaultValue: .null, doc: "Zielstelle."),
+            PropertySchema(name: "key", type: .value, defaultValue: .null, doc: "Schlüssel statt from."),
+        ], doc: "sortiert einen Eintrag einer var-Liste um."),
+        ActionSchema(name: "list.move-to", arguments: [S.arg("fromVariable", .identifier, doc: "Quell-Liste."), S.arg("toVariable", .identifier, doc: "Ziel-Liste.")], properties: [
+            PropertySchema(name: "from", type: .number, defaultValue: .null, doc: "Quellstelle."),
+            PropertySchema(name: "to", type: .number, defaultValue: .null, doc: "Zielstelle."),
+        ], doc: "verschiebt einen Eintrag zwischen zwei var-Listen."),
+        ActionSchema(name: "list.swap", arguments: [S.arg("variable", .identifier, doc: "erste var-Liste."), S.arg("index", .number, doc: "Stelle."), S.arg("otherVariable", .identifier, doc: "zweite var-Liste."), S.arg("otherIndex", .number, doc: "Stelle.")], doc: "tauscht zwei Einträge."),
+        ActionSchema(name: "list.update", arguments: [S.arg("variable", .identifier, doc: "Name der var-Liste.")], properties: [
+            PropertySchema(name: "at", type: .number, defaultValue: .null, doc: "Stelle."),
+            PropertySchema(name: "key", type: .value, defaultValue: .null, doc: "Schlüssel statt at."),
+        ], acceptsChildren: true, doc: "mischt Felder in einen Record einer var-Liste."),
+        ActionSchema(name: "wait", arguments: [S.arg("duration", .duration, doc: "Wartezeit, höchstens 10s.")], waits: true, doc: "wartet, bevor die nächste Aktion läuft."),
+        ActionSchema(name: "repeat", arguments: [S.arg("count", .number, doc: "Wiederholungen, höchstens 100.")], acceptsChildren: true, doc: "führt die Kinder mehrmals aus."),
+        ActionSchema(name: "exec", arguments: [S.arg("command", .string, doc: "Befehl über /bin/sh -c.")], properties: [PropertySchema(name: "timeout", type: .duration, defaultValue: .string("30s"), allowsExpression: false, doc: "Zeitlimit.")], startsProgramsOrControlsApps: true, doc: "startet ein beliebiges Programm."),
+        ActionSchema(name: "open-app", arguments: [S.arg("bundleID", .string, doc: "Bundle-ID.")], startsProgramsOrControlsApps: true, doc: "startet eine App oder holt sie nach vorne."),
+        ActionSchema(name: "open-url", arguments: [S.arg("url", .string, doc: "Adresse.")], startsProgramsOrControlsApps: true, doc: "öffnet eine Adresse."),
+        ActionSchema(name: "open-file", arguments: [S.arg("path", .path, doc: "Pfad.")], properties: [PropertySchema(name: "app", type: .string, defaultValue: .null, doc: "bestimmte App.")], startsProgramsOrControlsApps: true, doc: "öffnet eine Datei."),
+        ActionSchema(name: "reveal-file", arguments: [S.arg("path", .path, doc: "Pfad.")], doc: "zeigt eine Datei im Finder."),
+        ActionSchema(name: "run-shortcut", arguments: [S.arg("name", .string, doc: "Name des Kurzbefehls.")], startsProgramsOrControlsApps: true, doc: "führt einen Kurzbefehl aus."),
+        ActionSchema(name: "clipboard.copy", arguments: [S.arg("text", .string, doc: "Text.")], doc: "kopiert Text in die Zwischenablage."),
+        ActionSchema(name: "pick-file", arguments: [S.arg("variable", .identifier, doc: "Ziel-var für den Pfad.")], properties: [
+            PropertySchema(name: "folders", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Ordner statt Dateien."),
+            PropertySchema(name: "types", type: .list, defaultValue: .null, allowsExpression: false, doc: "erlaubte Endungen."),
+        ], doc: "öffnet eine Dateiauswahl."),
+        ActionSchema(name: "notify", properties: [
+            PropertySchema(name: "title", type: .string, defaultValue: .null, doc: "Titel."),
+            PropertySchema(name: "body", type: .string, defaultValue: .null, doc: "Text."),
+            PropertySchema(name: "icon", type: .string, defaultValue: .null, doc: "Symbol."),
+            PropertySchema(name: "kind", type: .string, defaultValue: .null, doc: "Art."),
+            PropertySchema(name: "style", type: .string, defaultValue: .string("default"), doc: "toast-Stil."),
+            PropertySchema(name: "duration", type: .duration, defaultValue: .null, doc: "Anzeigedauer."),
+        ], doc: "zeigt eine Toast-Meldung."),
+        ActionSchema(name: "toast.dismiss", doc: "schliesst die angeklickte Meldung im Toast-Inhalt."),
+        ActionSchema(name: "osd.show", arguments: [S.arg("id", .identifier, doc: "Kennung des osd.")], doc: "zeigt eine OSD und startet ihren Timer neu."),
+        ActionSchema(name: "sound", arguments: [S.arg("name", .string, doc: "Systemklangname.")], doc: "spielt einen Systemklang."),
+        ActionSchema(name: "shell.reload-config", doc: "lädt die Config neu."),
+        ActionSchema(name: "shell.restart", doc: "startet den Prozess neu."),
+        ActionSchema(name: "shell.quit", doc: "beendet die Shell."),
+        ActionSchema(name: "config.select", arguments: [S.arg("id", .identifier, doc: "Config-Kennung.")], doc: "wechselt die Config."),
+        ActionSchema(name: "theme.select", arguments: [S.arg("id", .identifier, required: false, doc: "Theme-Kennung oder #null.")], doc: "wechselt das Theme."),
+        ActionSchema(name: "command-center.open", doc: "öffnet das Menü der Kommandozentrale."),
+        ActionSchema(name: "marketplace.open", doc: "öffnet das Marketplace-Fenster."),
+        ActionSchema(name: "theme.import", startsProgramsOrControlsApps: false, doc: "importiert eine Theme-Datei oder einen Ordner."),
+        ActionSchema(name: "theme.open-folder", doc: "öffnet den Themes-Ordner im Finder."),
+        ActionSchema(name: "shell.check-updates", doc: "prüft jetzt auf Updates."),
+        ActionSchema(name: "shell.install-update", doc: "installiert ein bereitliegendes Update und startet neu."),
+        ActionSchema(name: "shell.open-config-folder", doc: "öffnet den Ordner der aktiven Config."),
+        ActionSchema(name: "shell.edit", arguments: [S.arg("file", .path, doc: "Datei.")], properties: [PropertySchema(name: "line", type: .number, defaultValue: .null, doc: "Zeile.")], startsProgramsOrControlsApps: true, doc: "öffnet eine Datei im Editor aus settings.kdl."),
+    ]
+}
