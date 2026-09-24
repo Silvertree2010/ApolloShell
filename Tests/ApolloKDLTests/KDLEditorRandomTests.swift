@@ -318,15 +318,73 @@ struct KDLEditorRandomTests {
         }
     }
 
-    static func expectedWindow(for operation: EditOperation, in nodes: [KDLNode], textLength: Int) -> Range<Int> {
+    static func bomLength(_ bytes: [UInt8]) -> Int {
+        bytes.starts(with: [0xEF, 0xBB, 0xBF]) ? 3 : 0
+    }
+
+    static func ownNewlineLength(_ bytes: [UInt8], at index: Int) -> Int? {
+        guard index < bytes.count else { return nil }
+        switch bytes[index] {
+        case 0x0A, 0x0C:
+            return 1
+        case 0x0D:
+            return (index + 1 < bytes.count && bytes[index + 1] == 0x0A) ? 2 : 1
+        case 0xC2:
+            return (index + 1 < bytes.count && bytes[index + 1] == 0x85) ? 2 : nil
+        case 0xE2:
+            if index + 2 < bytes.count, bytes[index + 1] == 0x80, bytes[index + 2] == 0xA8 || bytes[index + 2] == 0xA9 {
+                return 3
+            }
+            return nil
+        default:
+            return nil
+        }
+    }
+
+    static func lineStart(_ bytes: [UInt8], before offset: Int) -> Int {
+        let floor = bomLength(bytes)
+        var index = offset - 1
+        while index >= floor {
+            let byte = bytes[index]
+            if byte == 0x0A || byte == 0x0D || byte == 0x0C {
+                return index + 1
+            }
+            if byte == 0x85, index >= 1, bytes[index - 1] == 0xC2 {
+                return index + 1
+            }
+            if (byte == 0xA8 || byte == 0xA9), index >= 2, bytes[index - 1] == 0x80, bytes[index - 2] == 0xE2 {
+                return index + 1
+            }
+            index -= 1
+        }
+        return floor
+    }
+
+    static func lineEnd(_ bytes: [UInt8], after offset: Int) -> Int {
+        var index = offset
+        while index < bytes.count {
+            if let length = ownNewlineLength(bytes, at: index) {
+                return index + length
+            }
+            index += 1
+        }
+        return bytes.count
+    }
+
+    static func lineWindow(around node: KDLNode, in bytes: [UInt8]) -> Range<Int> {
+        lineStart(bytes, before: node.span.start.offset)..<lineEnd(bytes, after: node.span.end.offset)
+    }
+
+    static func expectedWindow(for operation: EditOperation, in nodes: [KDLNode], text: String) -> Range<Int> {
+        let bytes = Array(text.utf8)
         switch operation {
         case .replace(let path, _):
             let old = RandomKDLFactory.node(at: path, in: nodes)
             return old.span.start.offset..<old.span.end.offset
         case .remove(let path):
-            return RandomKDLFactory.node(at: path, in: nodes).lineRange
+            return lineWindow(around: RandomKDLFactory.node(at: path, in: nodes), in: bytes)
         case .insertAfter(let path, _):
-            return RandomKDLFactory.node(at: path, in: nodes).lineRange
+            return lineWindow(around: RandomKDLFactory.node(at: path, in: nodes), in: bytes)
         case .insertInto(let parent, let index, _):
             let siblings: [KDLNode]
             if let parent {
@@ -335,15 +393,15 @@ struct KDLEditorRandomTests {
                 siblings = nodes
             }
             if index > 0 {
-                return RandomKDLFactory.node(at: (parent ?? []) + [index - 1], in: nodes).lineRange
+                return lineWindow(around: RandomKDLFactory.node(at: (parent ?? []) + [index - 1], in: nodes), in: bytes)
             }
             if let first = siblings.first {
-                return first.lineRange
+                return lineWindow(around: first, in: bytes)
             }
             if let parent {
-                return RandomKDLFactory.node(at: parent, in: nodes).lineRange
+                return lineWindow(around: RandomKDLFactory.node(at: parent, in: nodes), in: bytes)
             }
-            return textLength..<textLength
+            return bytes.count..<bytes.count
         }
     }
 
@@ -399,7 +457,7 @@ struct KDLEditorRandomTests {
                     failures.append("Folge \(sequence), Schritt \(step): Ergebnis weicht vom Modell ab nach \(operation)\nvorher:\n\(before)\nnachher:\n\(editor.text)")
                     break
                 }
-                let window = expectedWindow(for: operation, in: beforeNodes, textLength: before.utf8.count)
+                let window = expectedWindow(for: operation, in: beforeNodes, text: before)
                 guard unchangedOutside(before: before, after: editor.text, window: window) else {
                     failures.append("Folge \(sequence), Schritt \(step): Bytes ausserhalb des Fensters \(window) geändert nach \(operation)\nvorher:\n\(before)\nnachher:\n\(editor.text)")
                     break
@@ -422,17 +480,32 @@ struct KDLEditorRandomTests {
         #expect(failures.allSatisfy { $0.contains("weicht vom Modell ab") || $0.contains("parst nicht") || $0.contains("entspricht nicht") })
     }
 
-    @Test("Messvorrichtung beweist sich: ein Byte ausserhalb des erwarteten Fensters fällt auf, auch wenn das Modell stimmt")
+    @Test("Messvorrichtung beweist sich: ein Byte ausserhalb der Zeilen fällt auf, auch wenn das Modell stimmt")
     func detectsByteChangeOutsideExpectedWindow() throws {
         let text = "a 1\n\nb 2\nc 3\n"
         var editor = KDLEditor(try KDLDocument.parse(text, file: "zufall.kdl"))
         let nodes = editor.document.nodes
-        let target = nodes[1]
+        let window = Self.expectedWindow(for: .remove([1]), in: nodes, text: text)
         var expected = nodes
         expected.remove(at: 1)
-        let sabotagedRange = (target.lineRange.lowerBound - 1)..<target.lineRange.upperBound
+        let sabotagedRange = (window.lowerBound - 1)..<window.upperBound
         try editor.commit(replacing: sabotagedRange, with: "", expected: expected)
         #expect(KDLNode.areEquivalent(editor.document.nodes, expected))
-        #expect(!Self.unchangedOutside(before: text, after: editor.text, window: target.lineRange))
+        #expect(!Self.unchangedOutside(before: text, after: editor.text, window: window))
+    }
+
+    @Test("Messvorrichtung beweist sich: eine mitgelöschte Nachbarzeile fällt auf, auch wenn das Modell stimmt")
+    func detectsNeighborLineDeletedOutsideExpectedWindow() throws {
+        let text = "a 1\n// weg\nb 2\nc 3\n"
+        var editor = KDLEditor(try KDLDocument.parse(text, file: "zufall.kdl"))
+        let nodes = editor.document.nodes
+        let target = nodes[1]
+        let window = Self.expectedWindow(for: .remove([1]), in: nodes, text: text)
+        var expected = nodes
+        expected.remove(at: 1)
+        let sabotagedRange = 4..<target.span.end.offset
+        try editor.commit(replacing: sabotagedRange, with: "", expected: expected)
+        #expect(KDLNode.areEquivalent(editor.document.nodes, expected))
+        #expect(!Self.unchangedOutside(before: text, after: editor.text, window: window))
     }
 }
