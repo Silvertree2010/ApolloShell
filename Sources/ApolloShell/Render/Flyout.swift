@@ -307,6 +307,7 @@ struct FlyoutView: View {
                 ElementChildren(children: element.children, scope: scope)
             }
                 .modifier(StyledBox(style: boxStyle, context: context))
+                .transformEnvironment(\.elementInteractive) { $0 = $0 && open }
                 .fixedSize()
                 .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
                 .frame(width: target.width, height: target.height, alignment: .topLeading)
@@ -322,11 +323,20 @@ struct FlyoutView: View {
             if now, !renderMode { monitor.start { context.fire("on-close", element) } } else { monitor.stop() }
         }
         .onChange(of: container) { old, new in
-            guard open, abs(old.width - new.width) > 0.5 || abs(old.height - new.height) > 0.5 else { return }
+            guard open, Self.thicknessChanged(old, new, anchor: surface.property("anchor").plainText) else { return }
             context.fire("on-close", element)
         }
         .onAppear { if open, !renderMode { monitor.start { context.fire("on-close", element) } } }
         .onDisappear { monitor.stop() }
+    }
+
+    static func thicknessChanged(_ old: CGSize, _ new: CGSize, anchor: String?) -> Bool {
+        let width = abs(old.width - new.width) > 0.5, height = abs(old.height - new.height) > 0.5
+        switch anchor {
+        case "left", "right": return width
+        case "top", "bottom": return height
+        default: return width || height
+        }
     }
 
     static func withoutPaint(_ style: ComputedStyle) -> ComputedStyle {

@@ -353,4 +353,26 @@ struct InteractionTests {
         #expect(EventFields.drop(board, accept: "text")?["text"] == .string("hello"))
         board.releaseGlobally()
     }
+
+    @Test("weggescrollter Inhalt unter einem sichtbaren Knopf gewinnt den Klick nicht")
+    func clippedLoses() throws {
+        let mounted = try Mounted.mount("""
+        var hit ""
+        panel "t" anchor="left" {
+            column {
+                scroll class="s" {
+                    each item in="{['a', 'b', 'c', 'd']}" key="{item}" {
+                        stack class="item" { on-click { set "hit" "{item}" } }
+                    }
+                }
+                button id="b" class="b" { on-click { set "hit" "button" } }
+            }
+        }
+        """, css: "#t { width: 100px; height: 100px; align-items: start; } .s { width: 100px; height: 40px; } .item { width: 20px; height: 20px; } .b { width: 100px; height: 40px; }")
+        let button = try mounted.catcher("b")
+        let window = try #require(button.window)
+        let point = button.convert(NSPoint(x: button.bounds.midX, y: button.bounds.midY), to: nil)
+        #expect(mounted.catchers.contains { $0 !== button && $0.convert($0.bounds, to: nil).contains(point) })
+        #expect(ElementMouseView.winner(at: point, in: window, kind: .left) === button)
+    }
 }

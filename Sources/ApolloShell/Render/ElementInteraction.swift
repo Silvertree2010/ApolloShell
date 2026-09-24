@@ -273,7 +273,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
         let kind = MouseKind.current(NSApp.currentEvent)
         guard config.claims(kind), let superview else { return nil }
         let local = convert(point, from: superview)
-        guard bounds.contains(local) else { return nil }
+        guard bounds.intersection(visibleRect).contains(local) else { return nil }
         let inWindow = convert(local, to: nil)
         let winner = Self.winner(at: inWindow, in: window, kind: kind)
         return winner === self && !config.passive ? self : nil
@@ -286,7 +286,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
         for entry in live {
             guard let view = entry.view, view.window === window, !view.isHiddenOrHasHiddenAncestor, view.config.claims(kind) else { continue }
             let frame = view.convert(view.bounds, to: nil)
-            guard frame.contains(point) else { continue }
+            guard frame.intersection(view.convert(view.visibleRect, to: nil)).contains(point) else { continue }
             let area = frame.width * frame.height
             if area <= bestArea {
                 best = view

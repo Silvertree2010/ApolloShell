@@ -22,6 +22,12 @@ struct FlyoutTests {
         #expect(FlyoutSide.resolve("bottom", surfaceAnchor: "left") == .bottom)
         let bulge = FlyoutBulge(key: "a", rect: rect, side: .right, radius: 25, join: 14, joined: true, open: true, container: container)
         #expect(FlyoutGeometry.extent([bulge]).trailing == 200)
+        let small = CGSize(width: 40, height: 200), wider = CGSize(width: 60, height: 200), taller = CGSize(width: 40, height: 300)
+        #expect(FlyoutView.thicknessChanged(small, wider, anchor: "right"))
+        #expect(!FlyoutView.thicknessChanged(small, taller, anchor: "left"))
+        #expect(FlyoutView.thicknessChanged(small, taller, anchor: "top"))
+        #expect(!FlyoutView.thicknessChanged(small, wider, anchor: "bottom"))
+        #expect(FlyoutView.thicknessChanged(small, taller, anchor: "center"))
     }
 
     static let config = """
@@ -54,7 +60,7 @@ struct FlyoutTests {
         #expect(!shot.pixel(90, 30).near(.blue))
     }
 
-    @Test("geschlossen: keine Fläche neben der Oberfläche, Inhalt nicht sichtbar; Grössenänderung ruft on-close")
+    @Test("geschlossen: keine Fläche neben der Oberfläche, Inhalt nicht sichtbar; on-close setzt open zurück")
     func closed() async throws {
         let shot = try RenderProbe.render(Self.config.replacingOccurrences(of: "var open #true", with: "var open #false"), css: Self.css)
         #expect(shot.size.width == 40)
@@ -65,5 +71,61 @@ struct FlyoutTests {
         #expect(mounted.session.context.fire("on-close", flyout.element))
         await mounted.settle()
         #expect(mounted.variable("open") == .bool(false))
+    }
+
+    static let resizeConfig = """
+    var open #true
+    var wide #false
+    var tall #false
+    panel "bar" anchor="left" shape="fused" {
+        stack id="hook" class="hook"
+        stack class="{var.wide ? 'w60' : 'w40'} {var.tall ? 'h300' : 'h200'}"
+        flyout anchor="hook" side="right" open="{var.open}" class="fly" {
+            on-close { set "open" #false }
+            button id="inside" class="content" { on-click { set "open" #true } }
+        }
+    }
+    """
+    static let resizeCSS = """
+    #bar { background: #0000ff; align-items: start; }
+    .hook { width: 40px; height: 40px; }
+    .w40 { width: 40px; } .w60 { width: 60px; } .h200 { height: 200px; } .h300 { height: 300px; }
+    .fly { padding: 10px; background: #ff0000; }
+    .content { width: 60px; height: 40px; background: #00ff00; }
+    """
+
+    @Test("Grössenänderung der Oberfläche: nur die Dicke quer zur verankerten Kante schliesst (Fund 46)")
+    func closesOnThicknessOnly() async throws {
+        let mounted = try Mounted.mount(Self.resizeConfig, css: Self.resizeCSS)
+        let runtime = try #require(mounted.session.context.runtime)
+        #expect(mounted.variable("open") == .bool(true))
+        runtime.setVariable("tall", .bool(true))
+        mounted.session.flush()
+        mounted.pump()
+        await mounted.settle()
+        #expect(mounted.variable("open") == .bool(true))
+        runtime.setVariable("wide", .bool(true))
+        mounted.session.flush()
+        mounted.pump()
+        await mounted.settle()
+        #expect(mounted.variable("open") == .bool(false))
+    }
+
+    @Test("geschlossener Flyout fängt keine Klicks und zählt nicht als Trefferfläche")
+    func closedIsInert() async throws {
+        let mounted = try Mounted.mount(Self.resizeConfig, css: Self.resizeCSS)
+        let inside = try #require(mounted.catchers.first { $0.element?.property("id").plainText == "inside" })
+        let key = try #require(mounted.session.surfaces.first).id + "@render"
+        #expect(inside.config.claims(.left))
+        #expect(mounted.session.context.hits.regions(for: key).contains { $0.identity == inside.element?.identity })
+        mounted.session.context.runtime?.setVariable("open", .bool(false))
+        mounted.session.flush()
+        mounted.pump()
+        #expect(!inside.config.claims(.left))
+        #expect(!mounted.session.context.hits.regions(for: key).contains { $0.identity == inside.element?.identity })
+        if let window = inside.window {
+            let point = inside.convert(NSPoint(x: inside.bounds.midX, y: inside.bounds.midY), to: nil)
+            #expect(ElementMouseView.winner(at: point, in: window, kind: .left) !== inside)
+        }
     }
 }
