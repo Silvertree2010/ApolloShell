@@ -27,10 +27,26 @@ public final class SignalStore {
     private var nextToken = 0
     private let scheduler: any FlushScheduler
     private var flushRequested = false
+    private var demandObservers: [@MainActor (String) -> Void] = []
+    private var demandSettleObservers: [@MainActor () -> Void] = []
 
-    public var onDemandChange: (@MainActor (String) -> Void)?
+    public var onDemandChange: (@MainActor (String) -> Void)? {
+        get { demandObservers.first }
+        set { demandObservers = newValue.map { [$0] } ?? [] }
+    }
     public var onFlush: (@MainActor () -> Void)?
-    public var onDemandSettle: (@MainActor () -> Void)?
+    public var onDemandSettle: (@MainActor () -> Void)? {
+        get { demandSettleObservers.first }
+        set { demandSettleObservers = newValue.map { [$0] } ?? [] }
+    }
+
+    public func addDemandObserver(_ observer: @escaping @MainActor (String) -> Void) {
+        demandObservers.append(observer)
+    }
+
+    public func addDemandSettleObserver(_ observer: @escaping @MainActor () -> Void) {
+        demandSettleObservers.append(observer)
+    }
 
     public init(scheduler: any FlushScheduler) {
         self.scheduler = scheduler
@@ -93,7 +109,7 @@ public final class SignalStore {
             }
         }
         for root in touchedRoots {
-            onDemandChange?(root)
+            for observer in demandObservers { observer(root) }
         }
     }
 
@@ -109,7 +125,7 @@ public final class SignalStore {
             }
         }
         for root in touchedRoots {
-            onDemandChange?(root)
+            for observer in demandObservers { observer(root) }
         }
     }
 
@@ -130,7 +146,7 @@ public final class SignalStore {
             guard let self else { return }
             self.flushRequested = false
             self.onFlush?()
-            self.onDemandSettle?()
+            for observer in self.demandSettleObservers { observer() }
         }
     }
 

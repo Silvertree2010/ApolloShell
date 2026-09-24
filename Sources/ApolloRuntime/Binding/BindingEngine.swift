@@ -130,6 +130,8 @@ public final class BindingEngine {
     public private(set) var evaluationCount = 0
     public var onWarning: (@MainActor (Diagnostic) -> Void)?
 
+    var sharedEvaluator: Evaluator { evaluator }
+
     public init(store: SignalStore, evaluator: Evaluator) {
         self.store = store
         self.evaluator = evaluator
