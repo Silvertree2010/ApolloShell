@@ -9,7 +9,7 @@ enum ContextRoots {
                 S.field("pressed", .bool, update: .push, doc: "ob der Baustein gerade gedrückt ist."),
                 S.field("focused", .bool, update: .push, doc: "ob der Baustein den Fokus hat."),
             ],
-            validIn: ["surfaceBody", "elementBody"]
+            validIn: ["surfaceBody", "elementBody", "menu", "actions"]
         ),
         ContextRootSchema(
             name: "surface",

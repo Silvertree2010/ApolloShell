@@ -73,6 +73,7 @@ enum IRBuilder {
             var ir = ConfigIR(id: location.id, root: location.root, files: files)
             applyRequires(requires, to: &ir)
             var blockNodes: [ExpandedNode] = []
+            var implicitBindCounts: [String: Int] = [:]
             for node in nodes where !node.isExpansionMarker {
                 let name = node.kdl.name
                 if skippedTopLevelNodes.contains(name) { continue }
@@ -84,7 +85,14 @@ enum IRBuilder {
                 case "style":
                     ir.styleSheets.append(contentsOf: buildStyle(node, location: location, fileSystem: fileSystem, paths: paths, state: state))
                 case "bind":
-                    if let bind = buildBind(node, state: state) {
+                    if var bind = buildBind(node, state: state) {
+                        if stringProperty(node, "id") == nil {
+                            let count = (implicitBindCounts[bind.id] ?? 0) + 1
+                            implicitBindCounts[bind.id] = count
+                            if count > 1 {
+                                bind.id += "#\(count)"
+                            }
+                        }
                         ir.binds.append(bind)
                     }
                 case "on":
@@ -634,6 +642,8 @@ enum IRBuilder {
         return CompiledValue(template: .whole(condition ?? .literal(.bool(false))), dependencies: dependencies, span: subject.span)
     }
 
+    private static let errorSuffixedSourceKinds: Set<String> = ["poll", "listen"]
+
     private static func buildBlocks(_ nodes: [ExpandedNode], state: IRBuildState) -> [String: [BlockIR]] {
         let lastCommandCenterList = nodes.lastIndex { $0.kdl.name == "command-center" && $0.children.contains { !$0.isExpansionMarker } }
         var result: [String: [BlockIR]] = [:]
@@ -641,6 +651,9 @@ enum IRBuilder {
             var node = original
             if node.kdl.name == "command-center", let last = lastCommandCenterList, position != last {
                 node.children = []
+            }
+            if errorSuffixedSourceKinds.contains(node.kdl.name), let name = node.kdl.arguments.first, case .string(let text) = name.scalar, text.hasSuffix("-error") {
+                state.report(Diagnostic(.error, "'\(node.kdl.name)' name '\(text)' cannot end with '-error', that suffix is reserved for the load error field", span: name.span), node: node)
             }
             let schema = state.registry.node(node.kdl.name) ?? SchemaStage.providerSettingsSchema(node.kdl.name, registry: state.registry)
             var compiled: [String: CompiledValue] = [:]
