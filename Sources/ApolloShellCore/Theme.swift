@@ -16,10 +16,13 @@ public struct Theme: Equatable, Sendable {
     public let lightValues: [String: ThemeValue]
     public let darkValues: [String: ThemeValue]
     public let icons: ThemeIconSet
+    public let foreignLightValues: [String: String]
+    public let foreignDarkValues: [String: String]
 
     init(identifier: String, formatVersion: Int, issues: [ThemeIssue],
          lightValues: [String: ThemeValue], darkValues: [String: ThemeValue],
-         icons: ThemeIconSet = .none) {
+         icons: ThemeIconSet = .none,
+         foreignLightValues: [String: String] = [:], foreignDarkValues: [String: String] = [:]) {
         let name = Theme.cleanIdentifier(identifier)
         self.identifier = name
         slug = Theme.slug(from: name)
@@ -28,6 +31,8 @@ public struct Theme: Equatable, Sendable {
         self.lightValues = lightValues
         self.darkValues = darkValues
         self.icons = icons
+        self.foreignLightValues = foreignLightValues
+        self.foreignDarkValues = foreignDarkValues
     }
 
     public static let standard = Theme.make(identifier: "default", styleSheet: ThemeStyleSheet())
@@ -91,9 +96,30 @@ public struct Theme: Equatable, Sendable {
         if format > ThemeFormat.current {
             log.add(.newerFormat(found: format, known: ThemeFormat.current))
         }
+        let foreignLight = foreignValues(styleSheet.light, limits: limits)
+        let foreignDark = foreignLight.merging(foreignValues(styleSheet.dark, limits: limits)) { _, new in new }
         return Theme(identifier: identifier, formatVersion: format,
                      issues: withoutDuplicates(log.finished()),
-                     lightValues: lightValues, darkValues: darkValues, icons: icons)
+                     lightValues: lightValues, darkValues: darkValues, icons: icons,
+                     foreignLightValues: foreignLight, foreignDarkValues: foreignDark)
+    }
+
+    private static func foreignValues(_ declarations: [ThemeDeclaration], limits: ThemeLimits) -> [String: String] {
+        var values: [String: String] = [:]
+        for declaration in declarations where !declaration.name.hasPrefix(ThemeTokenCatalog.prefix) {
+            var text = declaration.value
+            if let range = text.range(of: "!important", options: [.caseInsensitive, .backwards]),
+               range.upperBound == text.endIndex {
+                text = String(text[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            let lowered = text.lowercased()
+            guard !text.isEmpty, text.count <= limits.maxTextLength,
+                  !lowered.contains("var("), !lowered.contains("url("),
+                  !text.unicodeScalars.contains(where: { $0.properties.generalCategory == .control })
+            else { continue }
+            values[declaration.name] = text
+        }
+        return values
     }
 
     private static func apply(_ declarations: [ThemeDeclaration],

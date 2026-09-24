@@ -35,7 +35,7 @@ let package = Package(
         .testTarget(name: "ApolloKDLTests", dependencies: ["ApolloKDL"]),
         .testTarget(name: "ApolloShellCoreTests", dependencies: ["ApolloShellCore"]),
         .testTarget(name: "ApolloConfigTests", dependencies: ["ApolloConfig"]),
-        .testTarget(name: "ApolloStyleTests", dependencies: ["ApolloStyle"]),
+        .testTarget(name: "ApolloStyleTests", dependencies: ["ApolloStyle", "ApolloBase", "ApolloShellCore"]),
         .testTarget(name: "ApolloRuntimeTests", dependencies: ["ApolloRuntime"]),
         .testTarget(name: "ApolloWMCoreTests", dependencies: ["ApolloWMCore"]),
         .testTarget(name: "ApolloShellTests", dependencies: ["ApolloShell", "ApolloBase"]),
