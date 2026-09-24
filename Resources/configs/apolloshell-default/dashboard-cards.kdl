@@ -119,11 +119,30 @@ define "card-media" {
         switch "{zone}" {
             case "side" {
                 column class="card-media-tall" {
-                    image "{media.artwork}" placeholder="music.note" fit="fill" class="card-media-artwork"
-                    ring value="{media.progress}" class="card-media-progress"
+                    stack class="card-media-cover" {
+                        image "{media.artwork}" placeholder="music.note" fit="fill" class="card-media-artwork card-media-round"
+                        ring value="{media.progress}" class="card-media-progress"
+                    }
+                    text "{media.playing ? media.title : 'Nothing Playing'}" class="card-media-title" lines=1 truncate="tail"
+                    when "{card.show-album}" { text "{media.album}" class="card-media-album" lines=1 truncate="tail" }
+                    text "{media.artist}" class="card-media-artist" lines=1 truncate="tail"
+                    use "media-controls"
+                    when "{card.show-source && media.app != null}" {
+                        row class="card-media-source" {
+                            app-icon "{media.app}" class="card-media-source-icon"
+                            text "{media.app-name}" class="card-media-source-name" lines=1 truncate="tail"
+                        }
+                    }
+                }
+            }
+            case "bottom" {
+                column class="card-media-compact" {
+                    stack class="card-media-cover" {
+                        image "{media.artwork}" placeholder="music.note" fit="fill" class="card-media-artwork card-media-round card-media-small"
+                        ring value="{media.progress}" class="card-media-progress"
+                    }
                     text "{media.playing ? media.title : 'Nothing Playing'}" class="card-media-title" lines=1 truncate="tail"
                     text "{media.artist}" class="card-media-artist" lines=1 truncate="tail"
-                    when "{card.show-album}" { text "{media.album}" class="card-media-album" lines=1 truncate="tail" }
                     use "media-controls"
                 }
             }
@@ -132,10 +151,16 @@ define "card-media" {
                     image "{media.artwork}" placeholder="music.note" fit="fill" class="card-media-artwork"
                     column class="card-media-text" {
                         text "{media.playing ? media.title : 'Nothing Playing'}" class="card-media-title" lines=1 truncate="tail"
-                        text "{media.artist}" class="card-media-artist" lines=1 truncate="tail"
+                        text "{media.artist}{card.show-album && media.album != null ? ' – ' + media.album : ''}" class="card-media-artist" lines=1 truncate="tail"
+                        progress value="{media.progress}" class="card-media-bar"
+                        use "media-controls"
                     }
-                    spacer
-                    use "media-controls"
+                    when "{card.show-source && media.app != null}" {
+                        row class="card-media-source" {
+                            app-icon "{media.app}" class="card-media-source-icon"
+                            text "{media.app-name}" class="card-media-source-name" lines=1 truncate="tail"
+                        }
+                    }
                 }
             }
         }

@@ -192,4 +192,36 @@ struct FixtureFieldCheckTests {
         #expect(icons == [.string("checkmark.circle.fill"), .string("plus.circle.fill")])
         #expect(session.diagnostics.map(\.message) == [])
     }
+
+    static func classes(_ element: ElementInstance) -> [String] {
+        guard case .string(let value) = element.property("class") else { return [] }
+        return value.split(separator: " ").map(String.init)
+    }
+
+    @Test("Media-Karte: Dash rechts, Streifen oben mit Balken, Compact unten ohne Album und Quelle")
+    func mediaCardVariants() throws {
+        let fixture = ProviderFixture.load(Self.fixtureURL)
+        let ir = try #require(Self.builtin("apolloshell-default").ir)
+        let session = FixtureFieldCheck.session(ir, fixture: fixture)
+        let card = Value.record(Record([("id", .string("media")), ("kind", .string("media")), ("show-album", .bool(true)), ("show-source", .bool(true))]))
+        #expect(session.vars.set("dashboard-cards-top", .list([card])))
+        #expect(session.vars.set("dashboard-cards-bottom", .list([card])))
+        #expect(session.vars.set("dashboard-cards-side", .list([card])))
+        session.runtime.open("dashboard", screenKey: nil)
+        session.flush()
+        let elements = Self.all(try #require(session.runtime.surface("dashboard", screenKey: "main")).root)
+        func variant(_ name: String) throws -> ElementInstance {
+            try #require(elements.first { Self.classes($0).contains(name) }, "\(name)")
+        }
+        let tall = try variant("card-media-tall")
+        #expect(Self.texts([tall]) == ["Starboy", "Starboy", "The Weeknd", "Spotify"])
+        #expect(Self.all([tall]).contains { $0.kind == "ring" })
+        let strip = try variant("card-media-strip")
+        #expect(Self.texts([strip]) == ["Starboy", "The Weeknd – Starboy", "Spotify"])
+        #expect(Self.all([strip]).contains { $0.kind == "progress" })
+        let compact = try variant("card-media-compact")
+        #expect(Self.texts([compact]) == ["Starboy", "The Weeknd"])
+        #expect(Self.all([compact]).contains { $0.kind == "ring" })
+        #expect(session.diagnostics.map(\.message) == [])
+    }
 }

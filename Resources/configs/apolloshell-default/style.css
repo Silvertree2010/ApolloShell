@@ -153,6 +153,12 @@
 .card-resource-ring { width: 64px; height: 64px; transition: value 600ms ease-out; }
 .card-media-artwork { border-radius: var(--apollo-card-radius, 14px); }
 .card-media-progress { -apollo-sweep-angle: 180deg; transition: value 600ms emphasized; }
+.card-media-round { width: 132px; height: 132px; border-radius: 9999px; }
+.card-media-round.card-media-small { width: 96px; height: 96px; }
+.card-media-bar { transition: value 600ms emphasized; }
+.card-media-source { gap: 6px; padding: 4px 10px; border-radius: 9999px; background: rgba(127, 127, 127, 0.18); }
+.card-media-source-icon { width: 16px; height: 16px; }
+.card-media-source-name { font-size: 11px; font-weight: 500; }
 
 .media-backdrop { filter: blur(40px); opacity: 0.5; }
 .media-artwork { width: 220px; height: 220px; border-radius: var(--apollo-card-radius, 28px); }
