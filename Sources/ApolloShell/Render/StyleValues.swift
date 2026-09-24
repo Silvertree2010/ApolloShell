@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import ApolloStyle
+import ApolloConfig
 
 enum StyleValues {
     static func color(_ color: CSSColor, current: Color = .primary) -> Color {
@@ -53,6 +54,35 @@ enum StyleValues {
         return CGFloat(length.value)
     }
 
+    static func percent(_ value: CSSValue?) -> CGFloat? {
+        guard let length = length(value), length.unit == .percent else { return nil }
+        return CGFloat(length.value / 100)
+    }
+
+    static func gradient(_ gradient: ApolloStyle.LinearGradient) -> SwiftUI.LinearGradient {
+        let radians = gradient.angleDegrees * .pi / 180
+        let dx = sin(radians) / 2, dy = -cos(radians) / 2
+        return SwiftUI.LinearGradient(
+            stops: gradient.stops.map { .init(color: color($0.color), location: $0.position ?? 0) },
+            startPoint: UnitPoint(x: 0.5 - dx, y: 0.5 - dy), endPoint: UnitPoint(x: 0.5 + dx, y: 0.5 + dy))
+    }
+
+    static func glass(_ variant: GlassVariant, tint: CSSColor?) -> Glass {
+        let base: Glass = variant == .clear ? .clear : .regular
+        return tint.map { base.tint(color($0)) } ?? base
+    }
+
+    static func material(_ thickness: MaterialThickness) -> Material {
+        switch thickness {
+        case .ultraThin: .ultraThinMaterial
+        case .thin: .thinMaterial
+        case .regular: .regularMaterial
+        case .thick: .thickMaterial
+        case .ultraThick: .ultraThickMaterial
+        case .bar: .bar
+        }
+    }
+
     static func fills(_ value: CSSValue?) -> Bool {
         guard let length = length(value) else { return false }
         return length.unit == .percent && length.value >= 100
@@ -88,6 +118,14 @@ enum StyleValues {
     static func number(_ value: CSSValue?) -> Double? {
         if case .number(let number)? = value { return number }
         return nil
+    }
+
+    static func numberValue(_ value: Value) -> Double? {
+        switch value {
+        case .number(let number): number
+        case .string(let text): Double(text)
+        default: nil
+        }
     }
 
     static func keyword(_ value: CSSValue?) -> String? {

@@ -80,7 +80,7 @@ enum StyleFinisher {
             if environment.reduceMotion { result.removeAll { reducedMotionTransitions.contains($0.property) } }
             values["transition"] = .transitions(result)
         }
-        for key in ["-apollo-appear", "-apollo-disappear"] {
+        for key in ["-apollo-appear", "-apollo-disappear", "-apollo-badge-appear"] {
             guard case let .appear(list)? = values[key] else { continue }
             values[key] = .appear(list.map {
                 AppearTransition(effects: environment.reduceMotion ? [.fade] : $0.effects,

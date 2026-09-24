@@ -1,7 +1,7 @@
 import Foundation
 
 extension Value {
-    var stringified: String {
+    public var stringified: String {
         switch self {
         case .null, .image: ""
         case .bool(let flag): flag ? "true" : "false"

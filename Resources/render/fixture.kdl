@@ -8,7 +8,8 @@ fixture {
     audio volume=0.35 muted=#false {
         output id="builtin" name="MacBook Pro Speakers"
     }
-    perf cpu=0.42 {
+    system user-name="Andrin Example" full-name="Andrin Example" uptime=11520 macos-version="26.6.2" chip="Apple M4 Pro"
+    perf cpu=0.42 chip="Apple M4 Pro" cores=14 gpu-cores=20 {
         live cpu=0.42 memory=0.61
     }
     weather status="ready" {

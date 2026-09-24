@@ -36,7 +36,7 @@ enum AppleDockMenu {
     private static let queue = DispatchQueue(label: "io.github.silvertree2010.apolloshell.dockmenu",
                                              qos: .userInitiated)
 
-    private static func onReaderQueue<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
+    static func onReaderQueue<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
         await withCheckedContinuation { continuation in
             queue.async { continuation.resume(returning: work()) }
         }

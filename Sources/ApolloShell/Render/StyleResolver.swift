@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import ApolloBase
 import ApolloConfig
 import ApolloStyle
@@ -15,12 +16,25 @@ final class StyleResolver {
 
     let engine: StyleEngine
     let environment: StyleEnvironment
-    private var cache: [Key: ComputedStyle] = [:]
+    private var cache = BoundedCache<Key, ComputedStyle>(limit: StyleResolver.cacheLimit)
     private(set) var diagnostics: [Diagnostic] = []
+    private(set) var lookups = 0
+    private(set) var computed = 0
+    static let cacheLimit = 4096
+    var cachedCount: Int { cache.count }
 
-    init(sheets: [StyleSheet], environment: StyleEnvironment) {
+    let assetRoot: URL?
+    let assetRoots: [URL]
+    let declared: Set<String>
+    let selectorPseudo: PseudoState
+
+    init(sheets: [StyleSheet], environment: StyleEnvironment, assetRoot: URL? = nil) {
         engine = StyleEngine(sheets: sheets)
         self.environment = environment
+        self.assetRoot = assetRoot
+        assetRoots = (sheets.compactMap(\.assetRoot) + (assetRoot.map { [$0] } ?? [])).map { $0.resolvingSymlinksInPath().standardizedFileURL }
+        declared = sheets.reduce(into: Set<String>()) { $0.formUnion($1.declaredProperties) }
+        selectorPseudo = sheets.reduce(into: PseudoState()) { $0.formUnion($1.selectorPseudo) }
     }
 
     static func subject(for element: ElementInstance) -> StyleSubject {
@@ -36,9 +50,35 @@ final class StyleResolver {
         return text.split(whereSeparator: \.isWhitespace).map(String.init)
     }
 
+    private var images = BoundedCache<String, NSImage>(limit: 128)
+
+    func image(_ path: String) -> NSImage? {
+        if let cached = images[path] { return cached }
+        let url = URL(fileURLWithPath: path).standardizedFileURL
+        guard let root = assetRoots.filter({ url.path.hasPrefix($0.path + "/") }).max(by: { $0.path.count < $1.path.count }),
+              let image = SafeImageFile.image(at: url, root: root)
+        else { return nil }
+        images[path] = image
+        return image
+    }
+
+    func parseColor(_ text: String) -> CSSColor? {
+        let probe = resolve(StyleSubject(kind: "-apollo-probe"), ancestors: [], parent: nil, inline: "color: \(text)")
+        if case .color(let color)? = probe["color"] { return color }
+        return nil
+    }
+
+    func sensitive(to state: PseudoState, _ subject: StyleSubject, ancestors: [StyleSubject], parent: ComputedStyle?, inline: String?) -> Bool {
+        var flipped = subject
+        if flipped.pseudo.contains(state) { flipped.pseudo.remove(state) } else { flipped.pseudo.insert(state) }
+        return resolve(flipped, ancestors: ancestors, parent: parent, inline: inline) != resolve(subject, ancestors: ancestors, parent: parent, inline: inline)
+    }
+
     func resolve(_ subject: StyleSubject, ancestors: [StyleSubject], parent: ComputedStyle?, inline: String? = nil) -> ComputedStyle {
         let key = Key(subject: subject, ancestors: ancestors, parent: parent, inline: inline ?? "")
+        lookups += 1
         if let cached = cache[key] { return cached }
+        computed += 1
         var declarations: [Declaration] = []
         if let inline, !inline.isEmpty {
             let parsed = StyleEngine.parseInline(inline, span: .synthetic("style"))
@@ -49,14 +89,6 @@ final class StyleResolver {
         diagnostics += found
         cache[key] = style
         return style
-    }
-
-    func color(fromCustom name: String, in style: ComputedStyle, subject: StyleSubject, ancestors: [StyleSubject]) -> CSSColor? {
-        guard style.customProperties[name] != nil else { return nil }
-        let probe = StyleSubject(kind: "-apollo-probe")
-        let resolved = resolve(probe, ancestors: ancestors + [subject], parent: style, inline: "color: var(\(name))")
-        if case .color(let color)? = resolved["color"] { return color }
-        return nil
     }
 }
 

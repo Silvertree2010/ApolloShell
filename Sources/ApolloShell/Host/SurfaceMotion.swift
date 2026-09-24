@@ -212,10 +212,3 @@ struct CubicBezier {
         return sample(y1, y2, t)
     }
 }
-
-extension CAMediaTimingFunction {
-    static var shellSpatial: CAMediaTimingFunction {
-        CAMediaTimingFunction(controlPoints: Float(MotionCurve.spatial.x1), Float(MotionCurve.spatial.y1),
-                              Float(MotionCurve.spatial.x2), Float(MotionCurve.spatial.y2))
-    }
-}

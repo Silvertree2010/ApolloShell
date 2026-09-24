@@ -104,10 +104,11 @@ struct CSSMotionPropertiesTests {
     func completeRegistry() {
         let expected: Set<String> = [
             "width", "height", "min-width", "max-width", "min-height", "max-height", "aspect-ratio", "padding", "margin",
-            "gap", "row-gap", "column-gap", "flex-grow", "flex-shrink", "align-items", "align-self", "justify-content",
+            "gap", "row-gap", "column-gap", "flex-grow", "flex-shrink", "align-items", "align-self", "justify-self", "justify-content",
             "grid-template-columns", "grid-auto-rows", "grid-column", "grid-row", "overflow", "z-index", "pointer-events", "cursor",
             "color", "accent-color", "background", "background-color", "opacity", "border", "border-width", "border-color",
             "border-radius", "-apollo-corner-shape", "box-shadow", "filter", "-apollo-fade-edges", "-apollo-join-radius",
+            "-apollo-badge-color", "-apollo-badge-offset", "-apollo-badge-appear",
             "font-family", "font-size", "font-weight", "font-style", "font-variant-numeric", "line-height", "letter-spacing",
             "text-align", "-apollo-font-scale", "-apollo-image-rendering", "-apollo-symbol-rendering", "-apollo-symbol-effect",
             "-apollo-content-transition",
@@ -115,9 +116,9 @@ struct CSSMotionPropertiesTests {
             "-apollo-sweep-angle", "-apollo-stroke-width", "-apollo-start-angle", "-apollo-fill",
             "transition", "-apollo-appear", "-apollo-disappear", "transform", "animation-delay", "animation",
         ]
-        #expect(expected.count == 67)
+        #expect(expected.count == 71)
         #expect(Set(CSSPropertyRegistry.builtin.keys) == expected)
-        #expect(CSSPropertyRegistry.groups.map(\.count).reduce(0, +) == 67)
+        #expect(CSSPropertyRegistry.groups.map(\.count).reduce(0, +) == 71)
         #expect(CSSPropertyRegistry.builtin.values.allSatisfy { $0.feature == "core" })
     }
 }

@@ -67,7 +67,7 @@ enum Elements {
             name: "mark",
             category: .element,
             properties: CommonProperties.elementProperties + [
-                PropertySchema(name: "state", type: .enumeration(["idle", "farewell", "sleep", "think"]), defaultValue: .null, allowsExpression: false, doc: "Grundstimmung des Emblems."),
+                PropertySchema(name: "state", type: .enumeration(["idle", "farewell", "sleep", "think"]), defaultValue: .null, allowsExpression: true, doc: "Grundstimmung des Emblems."),
                 PropertySchema(name: "greet", type: .bool, defaultValue: .bool(true), doc: "spielt beim Erscheinen die Begrüssung."),
                 PropertySchema(name: "color", type: .string, defaultValue: .null, doc: "Akzentfarbe."),
             ],

@@ -98,6 +98,7 @@ extension ShellRuntime {
     func reconcileElement(_ node: ElementNode, _ ir: ElementIR, _ context: BuildContext) {
         node.stamp = generation
         node.isParked = false
+        if node.instance.entryKey != context.entryKey { node.instance.entryKey = context.entryKey }
         node.depth = context.depth
         node.useDepth = context.useDepth
         let moved = node.slotOwner !== context.slotOwner

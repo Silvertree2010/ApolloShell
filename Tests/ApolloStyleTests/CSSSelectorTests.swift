@@ -77,7 +77,7 @@ struct CSSSelectorTests {
     }
 
     @Test("jede Pseudoklasse aus der Spec wird erkannt",
-          arguments: ["hover", "active", "focus", "checked", "disabled", "open", "first-child", "last-child", "invalid"])
+          arguments: ["hover", "active", "focus", "checked", "disabled", "open", "first-child", "last-child", "invalid", "overflowing"])
     func pseudoClasses(name: String) throws {
         let state = try #require(PseudoState.byName[name])
         #expect(try selector(":\(name)").matches(StyleSubject(kind: "x", pseudo: state), ancestors: []))

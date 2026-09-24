@@ -1,4 +1,6 @@
 import SwiftUI
+import AppKit
+import ApolloShellCore
 import ApolloConfig
 import ApolloStyle
 import ApolloRuntime
@@ -8,6 +10,38 @@ final class RenderContext {
     let styles: StyleResolver
     let icons: any AppIconSource
     let trigger: @MainActor (String, Identity, Record) -> Void
+    var configRoot: URL?
+    var themeIcon: @MainActor (String) -> NSImage? = { _ in nil }
+    var theme: @MainActor (String) -> Theme? = { $0 == "default" ? .standard : nil }
+    var imageValue: @MainActor (ImageRef) -> NSImage? = { _ in nil }
+    var runtime: (any RenderRuntime)?
+    var clock: any GateClock = SystemGateClock()
+    var menus: any MenuPresenting = NativeMenuPresenter()
+    var onRecording: @MainActor (Bool) -> Void = { _ in }
+    var keyName: @MainActor (UInt32) -> String? = KeyboardLayout.keyName
+    var gates: [GateKey: EventGate] = [:]
+    var reorders: [String: ReorderCoordinator] = [:]
+    var menuSources: [String: any MenuSourceProviding] = [:]
+    var pending: [Int: Task<Void, Never>] = [:]
+    var nextPending = 0
+    var flyoutExtents: [String: EdgeInsets] = [:]
+    var onFlyoutExtent: @MainActor (String, EdgeInsets) -> Void = { _, _ in }
+    let hits = HitRegions()
+    private var images = BoundedCache<String, NSImage>(limit: 128)
+
+    func image(for source: Value) -> NSImage? {
+        switch source {
+        case .image(let ref):
+            return ref.source == "app-icon" ? icons.icon(for: source) : imageValue(ref)
+        case .string(let path) where !path.isEmpty:
+            if let cached = images[path] { return cached }
+            guard let root = configRoot, let image = SafeImageFile.image(path, root: root) else { return nil }
+            images[path] = image
+            return image
+        default:
+            return nil
+        }
+    }
 
     init(styles: StyleResolver, icons: any AppIconSource, trigger: @escaping @MainActor (String, Identity, Record) -> Void) {
         self.styles = styles
@@ -22,6 +56,7 @@ struct RenderScope {
     let ancestors: [StyleSubject]
     let parentStyle: ComputedStyle?
     let parentKind: String
+    var outerKind = ""
 }
 
 @MainActor
@@ -33,9 +68,25 @@ enum ElementRenderers {
         "row": LayoutRenderers.row,
         "stack": LayoutRenderers.stack,
         "reorderable": LayoutRenderers.reorderable,
+        "toggle": InputRenderers.toggle,
+        "slider": InputRenderers.slider,
+        "input": InputRenderers.input,
+        "key-recorder": InputRenderers.keyRecorder,
+        "ring": DisplayRenderers.ring,
+        "gauge": DisplayRenderers.gauge,
+        "graph": DisplayRenderers.graph,
+        "progress": DisplayRenderers.progress,
         "scroll": LayoutRenderers.scroll,
         "button": ControlRenderers.button,
         "app-icon": ImageRenderers.appIcon,
+        "text": ContentRenderers.text,
+        "icon": ContentRenderers.icon,
+        "image": ContentRenderers.image,
+        "shape": ContentRenderers.shape,
+        "spacer": ContentRenderers.spacer,
+        "grid": LayoutRenderers.grid,
+        "theme-preview": ContentRenderers.themePreview,
+        "mark": ContentRenderers.mark,
     ]
 
     static func view(for element: ElementInstance, style: ComputedStyle, scope: RenderScope) -> AnyView {
@@ -44,19 +95,115 @@ enum ElementRenderers {
     }
 }
 
+struct ChildPosition: Equatable {
+    var index: Int
+    var count: Int
+}
+
 struct ElementView: View {
     let element: ElementInstance
     let scope: RenderScope
+    var position: ChildPosition?
+    var reorderEntry: ReorderEntry?
 
     var body: some View {
-        let subject = StyleResolver.subject(for: element)
-        let style = scope.context.styles.resolve(subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: element.property("style").plainText)
-        let inner = RenderScope(context: scope.context, ancestors: scope.ancestors + [subject], parentStyle: style, parentKind: element.kind)
+        let styles = scope.context.styles
+        let subject = Self.subject(element, position: position)
+        let inline = element.property("style").plainText
+        let style = styles.resolve(subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
+        let inner = RenderScope(context: scope.context, ancestors: scope.ancestors + [subject], parentStyle: style, parentKind: Self.layoutKind(element), outerKind: scope.parentKind)
         if element.property("visible") != .bool(false) {
+            let spacer = element.kind == "spacer" && element.property("size") == .null
+            let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
+            let mouse = MouseConfig(element, reorder: reorderEntry)
+            let hover = element.kind == "button" || SelfState.uses(element, "hover")
+                || styles.sensitive(to: .hover, subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
+            let press = SelfState.uses(element, "pressed")
+                || styles.sensitive(to: .active, subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
+            let inlineStyle = element.ir.properties["style"] != nil
             ElementRenderers.view(for: element, style: style, scope: inner)
-                .modifier(StyledBox(style: style))
-                .modifier(SelfAlignment(style: style, parentKind: scope.parentKind))
+                .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: inlineStyle))
+                .modifier(HitRegionMarker(active: !mouse.isEmpty || StyleValues.visibleBackground(style), identity: element.identity))
+                .modifier(InteractionIfNeeded(element: element, context: scope.context, config: mouse, hover: hover, press: press,
+                                              needed: Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil)))
+                .modifier(Motion(element: element, style: style, context: scope.context, dynamicInline: inlineStyle))
+                .transformEnvironment(\.elementInteractive) { if StyleValues.keyword(style["pointer-events"]) == "none" { $0 = false } }
+                .layoutValue(key: ChildMetricsKey.self, value: ChildMetrics(style, spacer: spacer))
         }
+    }
+
+    static func subject(_ element: ElementInstance, position: ChildPosition?) -> StyleSubject {
+        var subject = StyleResolver.subject(for: element)
+        if element.property("checked").isTruthy { subject.pseudo.insert(.checked) }
+        if element.property("disabled").isTruthy { subject.pseudo.insert(.disabled) }
+        if let position {
+            if position.index == 0 { subject.pseudo.insert(.firstChild) }
+            if position.index == position.count - 1 { subject.pseudo.insert(.lastChild) }
+        }
+        return subject
+    }
+}
+
+struct InteractionIfNeeded: ViewModifier {
+    let element: ElementInstance
+    let context: RenderContext
+    let config: MouseConfig
+    let hover: Bool
+    let press: Bool
+    let needed: Bool
+
+    func body(content: Content) -> some View {
+        if needed {
+            content.modifier(ElementInteraction(element: element, context: context, config: config, hoverSensitive: hover, pressSensitive: press))
+        } else {
+            content
+        }
+    }
+}
+
+extension ElementView {
+    static func layoutKind(_ element: ElementInstance) -> String {
+        switch element.kind {
+        case "reorderable":
+            switch element.property("axis").plainText {
+            case "horizontal": "row"
+            case "grid": "grid"
+            default: "column"
+            }
+        default: element.kind
+        }
+    }
+
+    static func form(_ element: ElementInstance) -> AnyShape? {
+        guard element.kind == "shape" else { return nil }
+        switch element.arguments.first?.value.stringified {
+        case "circle": return AnyShape(Circle())
+        case "capsule": return AnyShape(Capsule())
+        case "scallop":
+            let count = StyleValues.numberValue(element.property("count")).map(Int.init) ?? 8
+            let depth = StyleValues.numberValue(element.property("depth")) ?? 0.2
+            return AnyShape(ScallopShape(count: count, depth: depth))
+        default: return nil
+        }
+    }
+
+    static func fill(_ style: ComputedStyle, parentKind: String, parentStyle: ComputedStyle?, spacer: Bool = false) -> Definite {
+        let horizontal: Bool
+        switch parentKind {
+        case "row": horizontal = true
+        case "column": horizontal = false
+        case "grid":
+            let own = Definite(style)
+            return Definite(width: !own.width, height: !own.height)
+        default: return Definite()
+        }
+        let grows = (StyleValues.number(style["flex-grow"]) ?? 0) > 0 || spacer
+        let own = StyleValues.keyword(style["align-self"])
+        let inherited = StyleValues.keyword(parentStyle?["align-items"]) ?? "stretch"
+        let stretches = (own == nil || own == "auto" ? inherited : own) == "stretch"
+        let definite = Definite(style)
+        let crossFree = horizontal ? !definite.height : !definite.width
+        return horizontal ? Definite(width: grows, height: stretches && crossFree) : Definite(width: stretches && crossFree, height: grows)
     }
 }
 
@@ -65,67 +212,9 @@ struct ElementChildren: View {
     let scope: RenderScope
 
     var body: some View {
-        ForEach(children, id: \.identity) { child in
-            ElementView(element: child, scope: scope)
-        }
-    }
-}
-
-struct StyledBox: ViewModifier {
-    let style: ComputedStyle
-
-    func body(content: Content) -> some View {
-        let width = style["width"], height = style["height"]
-        let shape = RoundedRectangle(cornerRadius: StyleValues.radius(style["border-radius"]), style: StyleValues.keyword(style["-apollo-corner-shape"]) == "circular" ? .circular : .continuous)
-        content
-            .padding(StyleValues.sides(style["padding"]))
-            .frame(width: StyleValues.points(width), height: StyleValues.points(height))
-            .frame(maxWidth: StyleValues.fills(width) ? .infinity : nil, maxHeight: StyleValues.fills(height) ? .infinity : nil)
-            .background { BackgroundLayers(style: style, shape: shape) }
-            .opacity(StyleValues.number(style["opacity"]) ?? 1)
-            .offset(StyleValues.translation(style["transform"]))
-            .padding(StyleValues.sides(style["margin"]))
-    }
-}
-
-struct BackgroundLayers<S: Shape>: View {
-    let style: ComputedStyle
-    let shape: S
-
-    var body: some View {
-        if case .layers(let layers)? = style["background"] {
-            ZStack {
-                ForEach(Array(layers.reversed().enumerated()), id: \.offset) { _, layer in
-                    switch layer {
-                    case .color(let color):
-                        shape.fill(StyleValues.color(color))
-                    case .glass, .material:
-                        shape.fill(Color(nsColor: .windowBackgroundColor))
-                    case .gradient, .image:
-                        EmptyView()
-                    }
-                }
-            }
-        }
-    }
-}
-
-struct SelfAlignment: ViewModifier {
-    let style: ComputedStyle
-    let parentKind: String
-
-    func body(content: Content) -> some View {
-        switch (parentKind, StyleValues.keyword(style["align-self"])) {
-        case ("stack", "start"?), ("button", "start"?):
-            content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        case ("stack", "end"?), ("button", "end"?):
-            content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
-        case ("column", "start"?), ("reorderable", "start"?):
-            content.frame(maxWidth: .infinity, alignment: .leading)
-        case ("column", "end"?), ("reorderable", "end"?):
-            content.frame(maxWidth: .infinity, alignment: .trailing)
-        default:
-            content
+        let shown = children.filter { $0.kind != "flyout" }
+        ForEach(Array(shown.enumerated()), id: \.element.identity) { index, child in
+            ElementView(element: child, scope: scope, position: ChildPosition(index: index, count: shown.count))
         }
     }
 }

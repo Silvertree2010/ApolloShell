@@ -26,6 +26,12 @@ enum CSSPaintProperties {
         CSSPropertyEntry("-apollo-join-radius") { components, _ in
             .length(try CSSRead.length(CSSRead.single(components), negative: false))
         },
+        CSSPropertyEntry("-apollo-badge-color") { components, _ in .color(try CSSColorParser.color(components)) },
+        CSSPropertyEntry("-apollo-badge-offset") { components, _ in
+            let words = CSSList.words(components)
+            guard words.count == 2 else { throw CSSValueError("'-apollo-badge-offset' needs x and y") }
+            return .lengths(try words.map { try CSSRead.length($0) })
+        },
     ]
 }
 

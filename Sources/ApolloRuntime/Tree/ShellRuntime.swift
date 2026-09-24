@@ -352,6 +352,37 @@ public final class ShellRuntime: SurfaceControlling {
         return runHandlers(element.instance.ir.handlers, named: handler, scope: element.instance.scope, surface: element.surface, site: identity.description, event: event)
     }
 
+    @discardableResult
+    public func run(_ list: [ActionIR], on identity: Identity, site: String, event: Record, locals: [String: Value] = [:]) -> Task<Void, Never>? {
+        guard let (scope, surface) = context(of: identity) else { return nil }
+        let environment = ActionEnvironment(scope: Self.extend(scope, locals), surfaceID: surface.instance.id, screenKey: surface.instance.screenKey, event: event)
+        return actions.trigger(list, site: "\(identity.description)#\(site)", environment: environment)
+    }
+
+    public func evaluate(_ value: CompiledValue, on identity: Identity, locals: [String: Value] = [:], event: Record? = nil) -> Value {
+        let scope = context(of: identity)?.0 ?? LocalScope()
+        return bindings.evaluateOnce(value, scope: Self.extend(scope, locals), event: event)
+    }
+
+    public func bindChords() -> [(id: String, chord: String)] {
+        (config?.binds ?? []).compactMap { bind in
+            guard case .string(let chord) = bindings.evaluateOnce(bind.chord, scope: LocalScope()), !chord.isEmpty else { return nil }
+            return (bind.id, chord)
+        }
+    }
+
+    private func context(of identity: Identity) -> (LocalScope, SurfaceNode)? {
+        if identity.components.count == 1, let node = surfaceNodes[identity.components[0]] {
+            return (node.scope, node)
+        }
+        guard let element = elements[identity], !element.isDead else { return nil }
+        return (element.instance.scope, element.surface)
+    }
+
+    private static func extend(_ scope: LocalScope, _ locals: [String: Value]) -> LocalScope {
+        locals.keys.sorted().reduce(scope) { $0.adding($1, locals[$1] ?? .null) }
+    }
+
     private func runHandlers(_ handlers: [HandlerIR], named name: String, scope: LocalScope, surface: SurfaceNode, site: String, event: Record) -> Task<Void, Never>? {
         var last: Task<Void, Never>?
         for (index, handler) in handlers.enumerated() where handler.name == name {
@@ -709,6 +740,7 @@ public final class ShellRuntime: SurfaceControlling {
         let identity = runtimeID.map { surface.identity.appending("#" + $0) } ?? context.path.appending(ir.key)
         let scope = context.scope.adding(ContextScopeKeys.selfIdentity, .string(identity.description))
         let instance = ElementInstance(identity: identity, kind: ir.kind, ir: ir, scope: scope)
+        instance.entryKey = context.entryKey
         let node = ElementNode(instance: instance, surface: surface, runtimeID: runtimeID, context: context)
         node.stamp = generation
         if let runtimeID {

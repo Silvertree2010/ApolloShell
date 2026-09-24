@@ -13,12 +13,12 @@ struct StyleTypesTests {
 
     @Test("jede Pseudoklasse hat ein eigenes Bit und einen CSS-Namen")
     func pseudoStates() {
-        let all: [PseudoState] = [.hover, .active, .focus, .checked, .disabled, .open, .firstChild, .lastChild, .invalid]
-        #expect(Set(all.map(\.rawValue)).count == 9)
+        let all: [PseudoState] = [.hover, .active, .focus, .checked, .disabled, .open, .firstChild, .lastChild, .invalid, .overflowing]
+        #expect(Set(all.map(\.rawValue)).count == 10)
         #expect(all.allSatisfy { $0.rawValue.nonzeroBitCount == 1 })
         #expect(PseudoState.byName["first-child"] == .firstChild)
         #expect(PseudoState.byName["last-child"] == .lastChild)
-        #expect(PseudoState.byName.count == 9)
+        #expect(PseudoState.byName.count == 10)
     }
 
     @Test("ein berechneter Stil liefert Werte über den CSS-Namen")

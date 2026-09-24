@@ -12,7 +12,6 @@ enum DockWindows {
         let windowID: CGWindowID?
     }
 
-    @MainActor
     static func list(pid: pid_t, allSpaces: Bool = false) -> [Window] {
         guard AXIsProcessTrusted() else { return [] }
         let app = AXUIElementCreateApplication(pid)
@@ -126,23 +125,50 @@ enum RemoteWindows {
         guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "_AXUIElementCreateWithRemoteToken") else { return nil }
         return unsafeBitCast(symbol, to: Create.self)
     }()
-    private static let maxElementID: UInt64 = 1000
+    static let maxElementID: UInt64 = 1000
+    static let messagingTimeout: Float = 0.25
+    static let maxFailures = 2
 
-    @MainActor
+    enum Probe<T> {
+        case match(T)
+        case other
+        case failed
+    }
+
     static func all(pid: pid_t) -> [AXUIElement] {
         guard let create else { return [] }
         var token = Data(count: 20)
         token.replaceSubrange(0..<4, with: withUnsafeBytes(of: pid) { Data($0) })
         token.replaceSubrange(4..<8, with: withUnsafeBytes(of: Int32(0)) { Data($0) })
         token.replaceSubrange(8..<12, with: withUnsafeBytes(of: Int32(0x636f636f)) { Data($0) })
-        var windows: [AXUIElement] = []
-        for elementID in 0..<maxElementID {
+        return scan { elementID -> Probe<AXUIElement> in
             token.replaceSubrange(12..<20, with: withUnsafeBytes(of: elementID) { Data($0) })
-            guard let element = create(token as CFData)?.takeRetainedValue(),
-                  AX.string(element, kAXSubroleAttribute) == kAXStandardWindowSubrole as String
-            else { continue }
-            windows.append(element)
+            guard let element = create(token as CFData)?.takeRetainedValue() else { return .other }
+            AXUIElementSetMessagingTimeout(element, messagingTimeout)
+            var value: CFTypeRef?
+            switch AXUIElementCopyAttributeValue(element, kAXSubroleAttribute as CFString, &value) {
+            case .success:
+                return value as? String == kAXStandardWindowSubrole as String ? .match(element) : .other
+            case .cannotComplete:
+                return .failed
+            default:
+                return .other
+            }
         }
-        return windows
+    }
+
+    static func scan<T>(limit: UInt64 = maxElementID, maxFailures: Int = maxFailures, _ probe: (UInt64) -> Probe<T>) -> [T] {
+        var found: [T] = []
+        var failures = 0
+        for elementID in 0..<limit {
+            switch probe(elementID) {
+            case .match(let value): found.append(value)
+            case .other: break
+            case .failed:
+                failures += 1
+                if failures >= maxFailures { return found }
+            }
+        }
+        return found
     }
 }

@@ -18,6 +18,7 @@ enum CSSBoxProperties {
         CSSPropertyEntry("flex-shrink") { components, _ in .number(try CSSRead.number(CSSRead.single(components), minimum: 0)) },
         CSSPropertyEntry("align-items", parse: CSSKeywordParser.keyword(["start", "center", "end", "stretch"], aliases: flexAliases)),
         CSSPropertyEntry("align-self", parse: CSSKeywordParser.keyword(["auto", "start", "center", "end", "stretch"], aliases: flexAliases)),
+        CSSPropertyEntry("justify-self", parse: CSSKeywordParser.keyword(["auto", "start", "center", "end"], aliases: flexAliases)),
         CSSPropertyEntry("justify-content", parse: CSSKeywordParser.keyword(
             ["start", "center", "end", "space-between", "space-around", "space-evenly"], aliases: flexAliases)),
         CSSPropertyEntry("grid-template-columns") { components, _ in try gridColumns(components) },

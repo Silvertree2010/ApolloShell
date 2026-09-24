@@ -11,7 +11,6 @@ enum DockAppCommands {
         let element: AXUIElement
     }
 
-    @MainActor
     static func commands(pid: pid_t) -> [Command] {
         guard AXIsProcessTrusted() else { return [] }
         let app = AXUIElementCreateApplication(pid)
@@ -38,7 +37,6 @@ enum DockAppCommands {
         return commands.filter { $0.kind == .newItem } + commands.filter { $0.kind == .settings }
     }
 
-    @MainActor
     private static func shortcut(of item: AXUIElement) -> MenuShortcut? {
         guard let character = AX.string(item, kAXMenuItemCmdCharAttribute), !character.isEmpty else { return nil }
         let modifiers = (AX.copy(item, kAXMenuItemCmdModifiersAttribute) as? NSNumber)?.intValue ?? 0

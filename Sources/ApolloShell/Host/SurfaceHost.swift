@@ -40,11 +40,12 @@ struct SurfaceView: View {
         let resolved = context.styles.resolve(subject, ancestors: [], parent: nil)
         let (style, painted) = SurfaceBackground.resolve(painter, surface: surface, style: resolved)
         let scope = RenderScope(context: context, ancestors: [subject], parentStyle: style, parentKind: "column")
-        VStack(alignment: StyleValues.horizontal(style["align-items"]), spacing: StyleValues.gap(style["gap"])) {
+        LayoutRenderers.flex(horizontal: false, style: style) {
             ElementChildren(children: surface.root, scope: scope)
         }
         .padding(insets)
-        .modifier(StyledBox(style: style))
+        .modifier(SurfaceBox(surface: surface, style: style, context: context))
         .background { painted }
+        .modifier(HitRegionCollector(surfaceKey: SurfaceHost.key(surface.id, surface.screenKey), regions: context.hits))
     }
 }

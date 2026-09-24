@@ -80,6 +80,7 @@ struct BuildContext {
     var active: Bool
     let container: Container
     var slotOwner: StructureNode?
+    var entryKey: Value?
 }
 
 @MainActor

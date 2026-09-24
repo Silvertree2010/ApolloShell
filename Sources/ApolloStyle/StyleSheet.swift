@@ -137,6 +137,14 @@ public struct StyleSheet: Sendable, Hashable {
         return (sheet, parser.log.finished())
     }
 
+    public var declaredProperties: Set<String> {
+        Set(rules.flatMap { $0.declarations.map(\.property) })
+    }
+
+    public var selectorPseudo: PseudoState {
+        rules.flatMap(\.selectors).flatMap(\.compounds).reduce(into: PseudoState()) { $0.formUnion($1.pseudo) }
+    }
+
     public var declaredCustomProperties: Set<String> {
         var names: Set<String> = []
         for rule in rules where rule.selectors.contains(where: \.isBareRoot) {
