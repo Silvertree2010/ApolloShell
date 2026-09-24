@@ -1,0 +1,4 @@
+include "bausteine.kdl"
+panel "main" {
+    use "a"
+}

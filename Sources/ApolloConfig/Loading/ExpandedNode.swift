@@ -13,14 +13,18 @@ struct ExpandedNode: Sendable, Hashable {
     var file: String
     var includeChain: [SourceSpan]
     var children: [ExpandedNode]
+    var origin: FileOrigin
+    var useFrame: UseFrame?
 
-    init(kdl: KDLNode, file: String, includeChain: [SourceSpan], children: [ExpandedNode]) {
+    init(kdl: KDLNode, file: String, includeChain: [SourceSpan], children: [ExpandedNode], origin: FileOrigin = .user, useFrame: UseFrame? = nil) {
         var stripped = kdl
         stripped.children = nil
         self.kdl = stripped
         self.file = file
         self.includeChain = includeChain
         self.children = children
+        self.origin = origin
+        self.useFrame = useFrame
     }
 }
 

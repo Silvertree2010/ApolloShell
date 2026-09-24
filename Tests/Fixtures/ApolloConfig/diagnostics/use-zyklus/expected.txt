@@ -1,0 +1,6 @@
+/Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/use-zyklus/bausteine.kdl:7:5: error: use cycle: a -> b -> a
+    7 |     use "a"
+      |     ^^^^^^^
+      = note: included from /Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/use-zyklus/shell.kdl:1:1 (/Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/use-zyklus/shell.kdl:1:1)
+      = note: in use of 'b' at /Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/use-zyklus/bausteine.kdl:3:9 (/Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/use-zyklus/bausteine.kdl:3:9)
+      = note: in use of 'a' at /Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/use-zyklus/shell.kdl:3:5 (/Users/andrin/projects/private/ApolloShell/app/framework/Tests/Fixtures/ApolloConfig/diagnostics/use-zyklus/shell.kdl:3:5)

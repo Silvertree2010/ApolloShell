@@ -1,0 +1,8 @@
+define "a" {
+    column {
+        use "b"
+    }
+}
+define "b" {
+    use "a"
+}

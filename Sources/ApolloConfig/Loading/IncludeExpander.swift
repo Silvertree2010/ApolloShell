@@ -184,7 +184,7 @@ enum IncludeExpander {
             } else {
                 expandedChildren = []
             }
-            result.append(ExpandedNode(kdl: node, file: file, includeChain: chain, children: expandedChildren))
+            result.append(ExpandedNode(kdl: node, file: file, includeChain: chain, children: expandedChildren, origin: origin))
         }
         return result
     }
