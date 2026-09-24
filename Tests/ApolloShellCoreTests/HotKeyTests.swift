@@ -1,0 +1,136 @@
+import ApolloShellCore
+import Carbon.HIToolbox
+import Foundation
+import Testing
+
+@Suite("Globale Tastenkürzel")
+struct HotKeyTests {
+    @Test("Sondertasten sind bitgleich mit Carbon", arguments: [
+        (HotKeyModifiers.command, cmdKey), (HotKeyModifiers.shift, shiftKey),
+        (HotKeyModifiers.option, optionKey), (HotKeyModifiers.control, controlKey),
+    ])
+    func carbonBits(flag: HotKeyModifiers, carbon: Int) {
+        #expect(flag.rawValue == UInt32(carbon))
+    }
+
+    @Test("Tastencodes sind Carbons kVK-Werte", arguments: [
+        (HotKeyKey.space, kVK_Space), (HotKeyKey.escape, kVK_Escape), (HotKeyKey.delete, kVK_Delete),
+        (HotKeyKey.forwardDelete, kVK_ForwardDelete), (HotKeyKey.d, kVK_ANSI_D), (HotKeyKey.u, kVK_ANSI_U),
+        (HotKeyKey.comma, kVK_ANSI_Comma), (HotKeyKey.f20, kVK_F20),
+    ])
+    func keyConstants(ours: UInt32, carbon: Int) {
+        #expect(ours == UInt32(carbon))
+    }
+
+    @Test("Beschriftung je Tastencode", arguments: [
+        (kVK_ANSI_D, "D"), (kVK_ANSI_U, "U"), (kVK_ANSI_Z, "Z"), (kVK_ANSI_Y, "Y"), (kVK_ANSI_Comma, ","),
+        (kVK_ANSI_0, "0"), (kVK_ANSI_Grave, "`"), (kVK_ISO_Section, "§"), (kVK_Space, "Space"),
+        (kVK_Return, "↩"), (kVK_Tab, "⇥"), (kVK_Escape, "⎋"), (kVK_Delete, "⌫"), (kVK_UpArrow, "↑"),
+        (kVK_LeftArrow, "←"), (kVK_PageDown, "⇟"), (kVK_ANSI_Keypad9, "Num 9"), (kVK_F1, "F1"),
+        (kVK_F5, "F5"), (kVK_F13, "F13"), (kVK_F19, "F19"), (kVK_F20, "F20"),
+    ])
+    func keyNames(code: Int, name: String) {
+        #expect(HotKeyKey.name(for: UInt32(code)) == name)
+    }
+
+    @Test("Zeichentasten fragen die Belegung, andere nicht", arguments: [
+        (kVK_ANSI_D, true), (kVK_ANSI_Comma, true), (kVK_ANSI_1, true), (kVK_Space, false),
+        (kVK_F20, false), (kVK_Return, false), (kVK_ANSI_Keypad1, false),
+    ])
+    func characterKeys(code: Int, isCharacter: Bool) {
+        #expect(HotKeyKey.isCharacterKey(UInt32(code)) == isCharacter)
+    }
+
+    @Test("Anzeige wie in Apples Menüs", arguments: [
+        (HotKey(keyCode: HotKeyKey.space, modifiers: .option), "⌥Space"),
+        (HotKey(keyCode: HotKeyKey.d, modifiers: .hyper), "⌃⌥⇧⌘D"),
+        (HotKey(keyCode: HotKeyKey.f20), "F20"),
+        (HotKey(keyCode: HotKeyKey.comma, modifiers: [.command, .shift]), "⇧⌘,"),
+        (HotKey(keyCode: HotKeyKey.u, modifiers: [.command, .control]), "⌃⌘U"),
+        (HotKey(keyCode: 0x7F, modifiers: .command), "⌘Key 127"),
+    ])
+    func display(key: HotKey, text: String) {
+        #expect(key.display() == text)
+    }
+
+    @Test("Zeichen der aktuellen Belegung ersetzt die US-Beschriftung", arguments: [
+        (HotKey(keyCode: UInt32(kVK_ANSI_Z), modifiers: .command), "Y", "⌘Y"),
+        (HotKey(keyCode: UInt32(kVK_ANSI_Semicolon), modifiers: [.control, .option]), "Ö", "⌃⌥Ö"),
+    ])
+    func displayWithLayout(key: HotKey, keyName: String, text: String) {
+        #expect(key.display(keyName: keyName) == text)
+    }
+
+    @Test("Vorgaben für frische Installationen", arguments: [
+        (HotKeyAction.launcher, "⌥Space"), (HotKeyAction.dashboard, "⌃⌥D"),
+        (HotKeyAction.utilities, "⌃⌥U"), (HotKeyAction.nexus, "⌃⌥,"),
+    ])
+    func firstLaunchDefaults(action: HotKeyAction, text: String) {
+        #expect(HotKeySettings.firstLaunch[action]?.display() == text)
+    }
+
+    @Test("Vorhandene Installation behält F20 und Hyper", arguments: [
+        (HotKeyAction.launcher, "F20"), (HotKeyAction.dashboard, "⌃⌥⇧⌘D"),
+        (HotKeyAction.utilities, "⌃⌥⇧⌘U"), (HotKeyAction.nexus, "⌃⌥⇧⌘,"),
+    ])
+    func existingDefaults(action: HotKeyAction, text: String) {
+        #expect(HotKeySettings.existingInstall[action]?.display() == text)
+    }
+
+    @Test("Neue Vorgaben: keine Doppelten, keine Warnung", arguments: HotKeyAction.allCases)
+    func firstLaunchConflictFree(action: HotKeyAction) throws {
+        let key = try #require(HotKeySettings.firstLaunch[action])
+        #expect(HotKeySettings.firstLaunch.action(using: key, except: action) == nil)
+        #expect(HotKeyAdvice.warning(for: key) == nil)
+    }
+
+    @Test("Aufnehmen: was ein Tastendruck bewirkt", arguments: [
+        (kVK_Space, HotKeyModifiers.option, HotKeyRecording.record(HotKey(keyCode: HotKeyKey.space, modifiers: .option))),
+        (kVK_Escape, HotKeyModifiers(), HotKeyRecording.cancel),
+        (kVK_Delete, HotKeyModifiers(), HotKeyRecording.clear),
+        (kVK_ForwardDelete, HotKeyModifiers(), HotKeyRecording.clear),
+        (kVK_Escape, HotKeyModifiers.command, HotKeyRecording.record(HotKey(keyCode: HotKeyKey.escape, modifiers: .command))),
+        (kVK_F20, HotKeyModifiers(), HotKeyRecording.record(HotKey(keyCode: HotKeyKey.f20))),
+        (kVK_F5, HotKeyModifiers.shift, HotKeyRecording.record(HotKey(keyCode: UInt32(kVK_F5), modifiers: .shift))),
+        (kVK_ANSI_D, HotKeyModifiers(), HotKeyRecording.rejected(.needsModifier)),
+        (kVK_Space, HotKeyModifiers(), HotKeyRecording.rejected(.needsModifier)),
+        (kVK_ANSI_D, HotKeyModifiers.shift, HotKeyRecording.rejected(.shiftOnly)),
+        (kVK_ANSI_D, HotKeyModifiers([.shift, .command]),
+         HotKeyRecording.record(HotKey(keyCode: HotKeyKey.d, modifiers: [.shift, .command]))),
+    ])
+    func recording(code: Int, modifiers: HotKeyModifiers, expected: HotKeyRecording) {
+        #expect(HotKeyRecording.evaluate(keyCode: UInt32(code), modifiers: modifiers) == expected)
+    }
+
+    @Test("Wer ein Kürzel schon hat", arguments: [
+        (HotKey(keyCode: HotKeyKey.d, modifiers: [.control, .option]), HotKeyAction.launcher, HotKeyAction.dashboard),
+        (HotKey(keyCode: HotKeyKey.d, modifiers: [.control, .option]), HotKeyAction.dashboard, nil),
+        (HotKey(keyCode: HotKeyKey.d, modifiers: .option), HotKeyAction.launcher, nil),
+    ] as [(HotKey, HotKeyAction, HotKeyAction?)])
+    func owner(key: HotKey, recordingFor: HotKeyAction, owner: HotKeyAction?) {
+        #expect(HotKeySettings.firstLaunch.action(using: key, except: recordingFor) == owner)
+    }
+
+    @Test("Hinweise zu heiklen Kürzeln", arguments: [
+        (HotKey(keyCode: HotKeyKey.space, modifiers: .command), HotKeyWarning.system("Spotlight")),
+        (HotKey(keyCode: HotKeyKey.d, modifiers: [.option, .command]), HotKeyWarning.system("Show and Hide the Dock")),
+        (HotKey(keyCode: HotKeyKey.comma, modifiers: .command), HotKeyWarning.system("Settings, in Any App")),
+        (HotKey(keyCode: HotKeyKey.u, modifiers: .option), HotKeyWarning.typesCharacters),
+        (HotKey(keyCode: HotKeyKey.comma, modifiers: [.option, .shift]), HotKeyWarning.typesCharacters),
+        (HotKey(keyCode: HotKeyKey.space, modifiers: .option), nil),
+        (HotKey(keyCode: HotKeyKey.u, modifiers: [.control, .option]), nil),
+        (HotKey(keyCode: UInt32(kVK_F5), modifiers: .option), nil),
+        (HotKey(keyCode: HotKeyKey.f20), nil),
+    ] as [(HotKey, HotKeyWarning?)])
+    func advice(key: HotKey, warning: HotKeyWarning?) {
+        #expect(HotKeyAdvice.warning(for: key) == warning)
+    }
+
+    @Test("Registrierung gescheitert: sagt, woran", arguments: [
+        (true, eventHotKeyExistsErr, "Another app"),
+        (false, eventHotKeyInvalidErr, "error -9879"),
+    ])
+    func registrationText(taken: Bool, status: Int, fragment: String) {
+        #expect(HotKeyText.registrationFailed(alreadyTaken: taken, status: Int32(status)).contains(fragment))
+    }
+}
