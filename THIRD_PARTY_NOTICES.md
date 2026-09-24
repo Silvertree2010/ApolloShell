@@ -47,6 +47,23 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
+## KDL test suite (test fixtures)
+
+- **Source:** https://github.com/kdl-org/kdl
+- **Version:** tag `2.0.0`, commit `6ceecd85d6dd111ae8eb62bfeaca737662d073c8`
+- **Where:** `Tests/Fixtures/kdl-org/`: `test_cases/input/`,
+  `test_cases/expected_kdl/` and the suite's `README.md`, unmodified, plus the
+  repository's `LICENSE.md`.
+- **How it is used:** only by the test target `ApolloKDLTests` to check the KDL
+  parser. Nothing from it ships in the app.
+- **License:** Creative Commons Attribution-ShareAlike 4.0 International
+  (CC BY-SA 4.0), © the KDL contributors. The license notice of the
+  repository, reproduced in full:
+
+```
+This work is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License. To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/4.0/ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+```
+
 ## Weather data
 
 ApolloShell requests forecasts from the one provider you choose in Nexus. The
