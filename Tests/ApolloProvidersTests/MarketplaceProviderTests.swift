@@ -41,6 +41,7 @@ final class MarketFake: @unchecked Sendable {
     private let lock = NSLock()
     private var log: [String] = []
     private var bodies: [String: [String: Any]] = [:]
+    private var headers: [String: String] = [:]
     var themesAnswer: (Int, String)
     var failAll = false
 
@@ -69,6 +70,11 @@ final class MarketFake: @unchecked Sendable {
         return bodies[key]
     }
 
+    func authorization(_ key: String) -> String? {
+        lock.lock(); defer { lock.unlock() }
+        return headers[key]
+    }
+
     var transport: MarketTransport {
         MarketTransport { request in self.answer(request) }
     }
@@ -78,6 +84,7 @@ final class MarketFake: @unchecked Sendable {
         lock.lock()
         log.append(key)
         if let body = request.httpBody, let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any] { bodies[key] = object }
+        headers[key] = request.value(forHTTPHeaderField: "Authorization")
         lock.unlock()
         if failAll { return (Data(Self.json(["error": "server_error", "message": "Down for a moment."]).utf8), 503) }
         let own = Self.theme().merging(["status": "pending", "reason": NSNull(), "liveVersion": NSNull()]) { _, new in new }
@@ -252,7 +259,17 @@ struct MarketplaceProviderTests {
         try await setup.run("reject", [.string("t1"), .string("2"), .string("Copy")])
         #expect(setup.fake.body("POST /api/v1/admin/themes/t1/reject")?["reason"] as? String == "Copy")
         try await setup.run("hide", [.string("t1"), .string("Reported")])
+        #expect(setup.fake.body("POST /api/v1/admin/themes/t1/hide")?["version"] as? Int == 2)
+        #expect(setup.fake.body("POST /api/v1/admin/themes/t1/hide")?["reason"] as? String == "Reported")
         try await setup.run("unhide", [.string("t1")])
+        #expect(setup.fake.requests.contains("POST /api/v1/admin/themes/t1/unhide"))
+        try await setup.run("hide", [.string("live1"), .string("Offensive")])
+        let hidden = setup.fake.body("POST /api/v1/admin/themes/live1/hide")
+        #expect(hidden?["reason"] as? String == "Offensive")
+        #expect(hidden?["version"] == nil)
+        try await setup.run("unhide", [.string("live1")])
+        #expect(setup.fake.requests.contains("POST /api/v1/admin/themes/live1/unhide"))
+        #expect(setup.field("error") == .null)
         try await setup.run("ban", [.string("7"), .string("Spam")])
         #expect(setup.fake.requests.contains("POST /api/v1/admin/users/7/ban"))
         await #expect(throws: ProviderActionError.self) { try await setup.run("reject", [.string("t1"), .string("2"), .string("  ")]) }
@@ -287,6 +304,15 @@ struct MarketplaceProviderTests {
         #expect(setup.field("message") == .string("Dusk is updated."))
         try await setup.run("delete", [.string("t1")])
         #expect(setup.fake.requests.contains("DELETE /api/v1/themes/t1"))
+    }
+
+    @Test("actions from anywhere before the window ever opened still carry the stored session")
+    func sessionBeforeRefresh() async throws {
+        let setup = try Setup()
+        setup.host.session = "s3cret"
+        try await setup.run("delete", [.string("t1")])
+        #expect(setup.fake.authorization("DELETE /api/v1/themes/t1") == "Bearer s3cret")
+        #expect(setup.field("error") == .null)
     }
 
     @Test("mine and queue: only entries that pass the installer check keep their css for the preview")

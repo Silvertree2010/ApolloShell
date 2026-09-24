@@ -162,8 +162,9 @@ public struct MarketplaceClient: Sendable {
 
     public enum Decision: String, Sendable { case approve, reject, hide, unhide }
 
-    public func decide(_ decision: Decision, themeID: String, version: Int, reason: String = "") async throws {
-        var body: [String: Any] = ["version": version]
+    public func decide(_ decision: Decision, themeID: String, version: Int?, reason: String = "") async throws {
+        var body: [String: Any] = [:]
+        if let version { body["version"] = version }
         if !reason.isEmpty { body["reason"] = reason }
         try await call("POST", "admin/themes/\(themeID)/\(decision.rawValue)", body: body)
     }

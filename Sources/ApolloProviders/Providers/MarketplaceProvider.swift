@@ -54,6 +54,7 @@ public final class MarketplaceProvider: BaseProvider {
 
     override func handle(_ arguments: ActionArguments) async throws -> Value {
         let action = arguments.action.hasPrefix("marketplace.") ? String(arguments.action.dropFirst("marketplace.".count)) : arguments.action
+        loadSessionOnce()
         switch action {
         case "refresh":
             await refresh()
@@ -238,7 +239,6 @@ public final class MarketplaceProvider: BaseProvider {
     }
 
     private func startSignIn() {
-        loadSessionOnce()
         switch signIn {
         case .starting, .waiting: return
         case .idle, .done, .failed: break
@@ -328,13 +328,11 @@ public final class MarketplaceProvider: BaseProvider {
     }
 
     private func signOut() async {
-        loadSessionOnce()
         try? await client.signOut()
         forgetSession()
     }
 
     private func deleteAccount() async {
-        loadSessionOnce()
         await attempt { [self] in
             try await client.deleteAccount()
             forgetSession()
@@ -383,17 +381,15 @@ public final class MarketplaceProvider: BaseProvider {
 
     private func decide(_ decision: MarketplaceClient.Decision, _ arguments: ActionArguments, versionIndex: Int?, reasonIndex: Int?) async throws {
         let id = try arguments.string(0)
-        let version: Int
+        let version: Int?
         if let versionIndex {
             let text = try arguments.string(versionIndex)
             guard let number = Int(text), number >= 1 else {
                 throw ProviderActionError.invalidArgument(action: arguments.action, message: "version must be a whole number")
             }
             version = number
-        } else if let item = queue.first(where: { $0.theme.id == id }) {
-            version = item.theme.version
         } else {
-            throw ProviderActionError.invalidArgument(action: arguments.action, message: "no queue entry with id \"\(id)\"")
+            version = queue.first(where: { $0.theme.id == id })?.theme.version
         }
         let reason = try reasonIndex.map { try Self.reason(arguments, $0) } ?? ""
         await attempt { [self] in
