@@ -203,7 +203,7 @@
   box-shadow: 0 2px 6px rgb(0 0 0 / var(--apollo-shadow-opacity, 0.25));
 }
 .audio-mute-glyph { -apollo-content-transition: symbol; }
-.audio-slider { flex-grow: 1; -apollo-thumb-color: white; -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); }
+.audio-slider { flex-grow: 1; -apollo-fill-mode: inside-linear; -apollo-thumb-color: white; -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); }
 .audio-devices { gap: 8px; }
 .audio-device { flex-grow: 1; padding: 8px 10px; border-radius: var(--apollo-control-radius, 12px); background: rgb(from -apple-system-label r g b / 0.08); }
 .quick-toggles { gap: 8px; }
@@ -244,6 +244,7 @@
   -apollo-track-color: var(--apollo-card-fill, rgb(from -apple-system-label r g b / 0.10));
   -apollo-fill-color: var(--apollo-accent-fill, var(--apollo-accent-color, -apple-system-control-accent));
   -apollo-thumb-size: 26px 26px;
+  -apollo-fill-mode: inside;
   -apollo-thumb-color: var(--apollo-on-accent-color, white);
   -apollo-thumb-shadow: 0 0.5px 3px rgb(0 0 0 / var(--apollo-shadow-opacity, 0.25));
   transition: all 600ms emphasized;

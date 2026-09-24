@@ -96,30 +96,43 @@ struct SliderMetrics: Equatable {
     }
 }
 
+enum SliderFillMode: String, Equatable {
+    case center
+    case inside
+    case insideLinear = "inside-linear"
+}
+
 struct SliderGeometry: Equatable {
     var length: CGFloat
     var cross: CGFloat
     var thumb: CGFloat
     var thumbCross: CGFloat
     var fraction: Double
-
-    var inside: Bool { thumb > 0 && thumbCross < cross && thumb < cross }
+    var mode: SliderFillMode = .center
 
     var travel: CGFloat { Swift.max(0, length - thumb) }
 
     var fill: CGFloat {
-        if inside { return Swift.min(length, Swift.max(cross, fraction * length)) }
-        return Swift.max(thumb > 0 ? thumbCenter : 0, fraction * length)
+        switch mode {
+        case .center: return Swift.max(thumb > 0 ? thumbCenter : 0, fraction * length)
+        case .inside: return Swift.min(length, Swift.max(cross, fraction * length))
+        case .insideLinear: return Swift.min(length, cross + fraction * Swift.max(0, length - cross))
+        }
     }
 
     var thumbCenter: CGFloat {
-        if inside { return fill - cross / 2 }
-        return thumb / 2 + fraction * travel
+        switch mode {
+        case .center: return thumb / 2 + fraction * travel
+        case .inside, .insideLinear: return fill - cross / 2
+        }
     }
 
     func fraction(at position: CGFloat) -> Double {
-        if inside { return length > 0 ? Double(position / length) : 0 }
-        return travel > 0 ? Double((position - thumb / 2) / travel) : 0
+        switch mode {
+        case .center: return travel > 0 ? Double((position - thumb / 2) / travel) : 0
+        case .inside: return length > 0 ? Double(position / length) : 0
+        case .insideLinear: return length > cross ? Double((position - cross / 2) / (length - cross)) : 0
+        }
     }
 }
 
@@ -141,7 +154,7 @@ struct SliderElement: View {
             let cross = vertical ? proxy.size.width : proxy.size.height
             let extent = vertical ? thumb.height : thumb.width
             let geometry = SliderGeometry(length: length, cross: cross, thumb: extent, thumbCross: vertical ? thumb.width : thumb.height,
-                                          fraction: metrics.fraction(shown))
+                                          fraction: metrics.fraction(shown), mode: fillMode)
             let center = geometry.thumbCenter
             ZStack(alignment: vertical ? .bottom : .leading) {
                 Capsule().fill(trackColor)
@@ -184,6 +197,11 @@ struct SliderElement: View {
             return CGSize(width: list[0].value, height: list[1].value)
         }
         return .zero
+    }
+
+    var fillMode: SliderFillMode {
+        if case .keyword(let name)? = style["-apollo-fill-mode"], let mode = SliderFillMode(rawValue: name) { return mode }
+        return .center
     }
 
     var trackColor: Color {

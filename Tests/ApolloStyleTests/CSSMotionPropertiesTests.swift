@@ -112,13 +112,13 @@ struct CSSMotionPropertiesTests {
             "font-family", "font-size", "font-weight", "font-style", "font-variant-numeric", "line-height", "letter-spacing",
             "text-align", "-apollo-font-scale", "-apollo-image-rendering", "-apollo-symbol-rendering", "-apollo-symbol-effect",
             "-apollo-content-transition",
-            "-apollo-track-color", "-apollo-fill-color", "-apollo-thumb-color", "-apollo-thumb-size", "-apollo-thumb-shadow",
+            "-apollo-track-color", "-apollo-fill-color", "-apollo-thumb-color", "-apollo-thumb-size", "-apollo-thumb-shadow", "-apollo-fill-mode",
             "-apollo-sweep-angle", "-apollo-stroke-width", "-apollo-start-angle", "-apollo-fill",
             "transition", "-apollo-appear", "-apollo-disappear", "transform", "animation-delay", "animation",
         ]
-        #expect(expected.count == 71)
+        #expect(expected.count == 72)
         #expect(Set(CSSPropertyRegistry.builtin.keys) == expected)
-        #expect(CSSPropertyRegistry.groups.map(\.count).reduce(0, +) == 71)
+        #expect(CSSPropertyRegistry.groups.map(\.count).reduce(0, +) == 72)
         #expect(CSSPropertyRegistry.builtin.values.allSatisfy { $0.feature == "core" })
     }
 }
