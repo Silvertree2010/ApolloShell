@@ -200,6 +200,21 @@ enum KeyMatch {
 }
 
 @MainActor
+final class VarWatcher {
+    private var cancel: (@MainActor () -> Void)?
+
+    func start(_ cancel: (@MainActor () -> Void)?) {
+        stop()
+        self.cancel = cancel
+    }
+
+    func stop() {
+        cancel?()
+        cancel = nil
+    }
+}
+
+@MainActor
 final class KeyInterceptor {
     private var monitor: Any?
 
@@ -224,6 +239,7 @@ struct InputElement: View {
     let context: RenderContext
     @State private var text = ""
     @State private var interceptor = KeyInterceptor()
+    @State private var watcher = VarWatcher()
     @FocusState private var focused: Bool
 
     var bindName: String? {
@@ -262,6 +278,13 @@ struct InputElement: View {
         .onAppear {
             text = external
             if element.property("focus").isTruthy { focused = true }
+            if let name = bindName, let runtime = context.runtime {
+                let text = $text
+                watcher.start(runtime.watch(name) { [weak runtime] in
+                    guard let value = runtime?.variable(name).stringified, value != text.wrappedValue else { return }
+                    text.wrappedValue = value
+                })
+            }
         }
         .onChange(of: external) { _, value in if value != text { text = value } }
         .onChange(of: element.property("focus").isTruthy) { _, value in if value { focused = true } }
@@ -273,7 +296,10 @@ struct InputElement: View {
                 interceptor.stop()
             }
         }
-        .onDisappear { interceptor.stop() }
+        .onDisappear {
+            interceptor.stop()
+            watcher.stop()
+        }
         .overlay { PassiveZone(element: element, context: context) }
     }
 

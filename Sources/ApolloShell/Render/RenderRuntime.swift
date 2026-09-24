@@ -13,11 +13,16 @@ protocol RenderRuntime: AnyObject {
     func variable(_ name: String) -> Value
     func setVariable(_ name: String, _ value: Value)
     func bindChords() -> [(id: String, chord: String)]
+    func watch(_ name: String, _ onChange: @escaping @MainActor () -> Void) -> (@MainActor () -> Void)?
     @discardableResult
     func perform(_ action: String, _ arguments: [String], on identity: Identity) -> Task<Void, Never>?
 }
 
 extension RenderRuntime {
+    func watch(_ name: String, _ onChange: @escaping @MainActor () -> Void) -> (@MainActor () -> Void)? {
+        nil
+    }
+
     @discardableResult
     func perform(_ action: String, _ arguments: [String], on identity: Identity) -> Task<Void, Never>? {
         let span = SourceSpan.synthetic()
@@ -56,6 +61,12 @@ final class AssemblyRenderRuntime: RenderRuntime {
 
     func bindChords() -> [(id: String, chord: String)] {
         assembly?.runtime.bindChords() ?? []
+    }
+
+    func watch(_ name: String, _ onChange: @escaping @MainActor () -> Void) -> (@MainActor () -> Void)? {
+        guard let store = assembly?.store else { return nil }
+        let token = store.subscribe(DependencyPath("var", [name]), onChange)
+        return { [weak store] in store?.unsubscribe(token) }
     }
 }
 

@@ -21,7 +21,7 @@ enum StyleSheets {
     }
 
     static func environment(dark: Bool, tokens: TokenEnvironment = .empty) -> StyleEnvironment {
-        StyleEnvironment(appearance: dark ? .dark : .light, reduceMotion: false, reduceTransparency: true, tokens: tokens)
+        StyleEnvironment(appearance: dark ? .dark : .light, reduceMotion: false, reduceTransparency: false, tokens: tokens)
     }
 
     @MainActor

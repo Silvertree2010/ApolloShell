@@ -119,4 +119,16 @@ struct StyleRenderTests {
                                           files: ["img/g.png": png])
         #expect(shot.pixel(10, 10).near(.green, tolerance: 30))
     }
+
+    @Test("Glas im Render-Modus: Stand-in wie SidebarRoot 0.1.4.2 (weiss 0,95 hell, 0,17 dunkel), per --render-glass: clear leer")
+    func glassStandIn() throws {
+        let kdl = "panel \"t\" anchor=\"left\" { stack class=\"g\" }"
+        let css = "#t { width: 40px; height: 40px; } .g { width: 40px; height: 40px; background: glass(regular); }"
+        let light = try RenderProbe.render(kdl, css: css)
+        let dark = try RenderProbe.render(kdl, css: css, dark: true)
+        #expect(light.pixel(20, 20).near(RGBA(r: 242, g: 242, b: 242, a: 255), tolerance: 1), "\(light.pixel(20, 20))")
+        #expect(dark.pixel(20, 20).near(RGBA(r: 43, g: 43, b: 43, a: 255), tolerance: 1), "\(dark.pixel(20, 20))")
+        let clear = try RenderProbe.render(kdl, css: css + " .g { --render-glass: clear; }")
+        #expect(clear.pixel(20, 20) == .white, "\(clear.pixel(20, 20))")
+    }
 }

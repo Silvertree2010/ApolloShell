@@ -375,4 +375,29 @@ struct InteractionTests {
         #expect(mounted.catchers.contains { $0 !== button && $0.convert($0.bounds, to: nil).contains(point) })
         #expect(ElementMouseView.winner(at: point, in: window, kind: .left) === button)
     }
+
+    @Test("input bind liest das var beobachtet: Zurücksetzen per Aktion leert das Feld")
+    func inputBindReads() async throws {
+        let mounted = try Mounted.mount("""
+        var query "start"
+        panel "t" anchor="left" {
+            input class="i" bind="var.query"
+            button id="clear" class="b" { on-click { set "query" "" } }
+        }
+        """, css: "#t { width: 160px; height: 60px; align-items: start; } .i { width: 150px; } .b { width: 20px; height: 20px; }")
+        func field() -> NSTextField? {
+            func walk(_ view: NSView) -> [NSTextField] { ((view as? NSTextField).map { [$0] } ?? []) + view.subviews.flatMap(walk) }
+            return walk(mounted.view).first
+        }
+        #expect(field()?.stringValue == "start")
+        mounted.session.context.runtime?.setVariable("query", .string("hello"))
+        mounted.session.flush()
+        mounted.pump()
+        #expect(field()?.stringValue == "hello")
+        let clear = try mounted.catcher("clear")
+        clear.primary([], count: 1)
+        await mounted.settle()
+        mounted.pump()
+        #expect(field()?.stringValue == "")
+    }
 }

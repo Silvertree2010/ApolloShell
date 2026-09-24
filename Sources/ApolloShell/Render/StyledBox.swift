@@ -228,6 +228,14 @@ struct BackgroundLayers: View {
     let shape: AnyShape
     let context: RenderContext
     @Environment(\.renderMode) private var renderMode
+    @Environment(\.colorScheme) private var colorScheme
+
+    static let glassStandInLight = Color(white: 0.95)
+    static let glassStandInDark = Color(white: 0.17)
+
+    var glassClear: Bool {
+        style.customProperties["--render-glass"]?.trimmingCharacters(in: .whitespaces).lowercased() == "clear"
+    }
 
     var body: some View {
         ZStack {
@@ -258,7 +266,11 @@ struct BackgroundLayers: View {
             }
         case .glass(let variant, let tint):
             if renderMode {
-                Color.clear
+                if glassClear {
+                    Color.clear
+                } else {
+                    shape.fill(colorScheme == .dark ? Self.glassStandInDark : Self.glassStandInLight)
+                }
             } else {
                 Color.clear.glassEffect(StyleValues.glass(variant, tint: tint), in: shape)
             }
