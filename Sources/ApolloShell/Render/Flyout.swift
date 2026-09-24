@@ -232,6 +232,7 @@ struct SurfaceBox: ViewModifier {
     let style: ComputedStyle
     let context: RenderContext
     @State private var bulges: [FlyoutBulge] = []
+    @Namespace private var matches
 
     func body(content: Content) -> some View {
         let flyouts = FlyoutCollector.collect(surface.root)
@@ -242,6 +243,7 @@ struct SurfaceBox: ViewModifier {
         let key = SurfaceHost.key(surface.id, surface.screenKey)
         let overlay: AnyView? = flyouts.isEmpty ? nil : AnyView(FlyoutLayer(surface: surface, flyouts: flyouts, fused: fused, bulges: bulges, context: context))
         content
+            .environment(\.matchNamespace, matches)
             .modifier(StyledBox(style: style, context: context, form: form, flyouts: overlay))
             .animation(Self.motion(bulges, context: context), value: bulges)
             .onPreferenceChange(FlyoutBulgeKey.self) { new in

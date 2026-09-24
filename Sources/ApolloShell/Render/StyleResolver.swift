@@ -18,6 +18,8 @@ final class StyleResolver {
     let environment: StyleEnvironment
     private var cache: [Key: ComputedStyle] = [:]
     private(set) var diagnostics: [Diagnostic] = []
+    private(set) var lookups = 0
+    private(set) var computed = 0
 
     let assetRoot: URL?
     let assetRoots: [URL]
@@ -67,7 +69,9 @@ final class StyleResolver {
 
     func resolve(_ subject: StyleSubject, ancestors: [StyleSubject], parent: ComputedStyle?, inline: String? = nil) -> ComputedStyle {
         let key = Key(subject: subject, ancestors: ancestors, parent: parent, inline: inline ?? "")
+        lookups += 1
         if let cached = cache[key] { return cached }
+        computed += 1
         var declarations: [Declaration] = []
         if let inline, !inline.isEmpty {
             let parsed = StyleEngine.parseInline(inline, span: .synthetic("style"))
