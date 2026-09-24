@@ -33,21 +33,21 @@ public final class SettingsFileWatcher: @unchecked Sendable {
     private func arm() {
         guard running else { return }
         armFile()
-        let target = nearestExistingFolder(store.file.deletingLastPathComponent())
-        guard target != watched else { return }
-        source?.cancel()
-        let fd = open(target, O_EVTONLY)
-        guard fd >= 0 else {
+        while true {
+            let target = nearestExistingFolder(store.file.deletingLastPathComponent())
+            guard target != watched else { return }
+            source?.cancel()
             source = nil
             watched = nil
-            return
+            let fd = open(target, O_EVTONLY)
+            guard fd >= 0 else { return }
+            let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename, .delete, .link], queue: queue)
+            source.setEventHandler { [weak self] in self?.changed() }
+            source.setCancelHandler { close(fd) }
+            self.source = source
+            watched = target
+            source.resume()
         }
-        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename, .delete, .link], queue: queue)
-        source.setEventHandler { [weak self] in self?.changed() }
-        source.setCancelHandler { close(fd) }
-        self.source = source
-        watched = target
-        source.resume()
     }
 
     private func armFile() {
