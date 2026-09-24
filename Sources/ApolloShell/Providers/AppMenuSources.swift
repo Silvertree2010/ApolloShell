@@ -3,7 +3,7 @@ import ApolloShellCore
 import ApolloConfig
 import ApolloRuntime
 
-struct AppMenuWindow: Equatable {
+struct AppMenuWindow: Equatable, Sendable {
     var title: String
     var minimized: Bool
 }
@@ -14,9 +14,9 @@ protocol AppMenuSystem {
     func pressDock(_ path: [DockMenuStep], _ bundleID: String)
     func isRunning(_ bundleID: String) -> Bool
     func isHidden(_ bundleID: String) -> Bool
-    func windows(_ bundleID: String) -> [AppMenuWindow]
+    func windows(_ bundleID: String) async -> [AppMenuWindow]
     func raiseWindow(_ bundleID: String, index: Int)
-    func commands(_ bundleID: String, newItemsOnly: Bool) -> [String]
+    func commands(_ bundleID: String, newItemsOnly: Bool) async -> [String]
     var fileManagerName: String { get }
 }
 
@@ -42,15 +42,15 @@ final class AppMenuSources: MenuSourceProviding {
         case "app-dock":
             let nodes = await system.dockMenu(app)
             if !nodes.isEmpty { return mirrored(nodes, app: app, pinned: record?["dock-pinned"]?.isTruthy ?? false, act: act) }
-            if properties["fallback"]?.plainText == "commands" { return commandEntries(app, newItemsOnly: false, act: act) }
-            return full(app, name: record?["name"]?.plainText ?? app, pinned: record?["dock-pinned"]?.isTruthy ?? false, act: act)
+            if properties["fallback"]?.plainText == "commands" { return await commandEntries(app, newItemsOnly: false, act: act) }
+            return await full(app, name: record?["name"]?.plainText ?? app, pinned: record?["dock-pinned"]?.isTruthy ?? false, act: act)
         case "app-commands":
-            var result = commandEntries(app, newItemsOnly: false, act: act)
+            var result = await commandEntries(app, newItemsOnly: false, act: act)
             if !result.isEmpty { result.append(.separator) }
             result.append(.item(ElementMenuCommand(title: "Show in Finder", perform: { act("apps.reveal", ["finder"]) })))
             return result
         case "app-windows":
-            return windowEntries(app, name: record?["name"]?.plainText ?? app)
+            return await windowEntries(app, name: record?["name"]?.plainText ?? app)
         default:
             return []
         }
@@ -79,8 +79,8 @@ final class AppMenuSources: MenuSourceProviding {
         }
     }
 
-    func windowEntries(_ app: String, name: String) -> [ElementMenuEntry] {
-        let windows = system.windows(app)
+    func windowEntries(_ app: String, name: String) async -> [ElementMenuEntry] {
+        let windows = await system.windows(app)
         let front = windows.firstIndex { !$0.minimized }
         let system = self.system
         return windows.enumerated().map { index, window in
@@ -89,21 +89,21 @@ final class AppMenuSources: MenuSourceProviding {
         }
     }
 
-    func commandEntries(_ app: String, newItemsOnly: Bool, act: @escaping @MainActor (String, [String]) -> Void) -> [ElementMenuEntry] {
+    func commandEntries(_ app: String, newItemsOnly: Bool, act: @escaping @MainActor (String, [String]) -> Void) async -> [ElementMenuEntry] {
         guard system.isRunning(app) else { return [] }
-        return system.commands(app, newItemsOnly: newItemsOnly).map { title in
+        return await system.commands(app, newItemsOnly: newItemsOnly).map { title in
             .item(ElementMenuCommand(title: title, perform: { act("apps.run-command", [title]) }))
         }
     }
 
-    func full(_ app: String, name: String, pinned: Bool, act: @escaping @MainActor (String, [String]) -> Void) -> [ElementMenuEntry] {
+    func full(_ app: String, name: String, pinned: Bool, act: @escaping @MainActor (String, [String]) -> Void) async -> [ElementMenuEntry] {
         var result: [ElementMenuEntry] = []
         let running = system.isRunning(app)
         if running {
-            let windows = windowEntries(app, name: name)
+            let windows = await windowEntries(app, name: name)
             result += windows
             if !windows.isEmpty { result.append(.separator) }
-            let commands = commandEntries(app, newItemsOnly: true, act: act)
+            let commands = await commandEntries(app, newItemsOnly: true, act: act)
             result += commands
             if !commands.isEmpty { result.append(.separator) }
         } else {
@@ -126,8 +126,26 @@ final class AppMenuSources: MenuSourceProviding {
     }
 }
 
+struct AppMenuReader: Sendable {
+    var windows: @Sendable (pid_t) -> [AppMenuWindow]
+    var commands: @Sendable (pid_t, Bool) -> [String]
+
+    static let live = AppMenuReader(
+        windows: { pid in DockWindows.list(pid: pid, allSpaces: true).map { AppMenuWindow(title: $0.title, minimized: $0.minimized) } },
+        commands: { pid, newItemsOnly in DockAppCommands.commands(pid: pid).filter { !newItemsOnly || $0.kind == .newItem }.map(\.title) }
+    )
+}
+
 @MainActor
 final class LiveAppMenuSystem: AppMenuSystem {
+    let reader: AppMenuReader
+    let pid: @MainActor (String) -> pid_t?
+
+    init(reader: AppMenuReader = .live, pid: @escaping @MainActor (String) -> pid_t? = { NSRunningApplication.runningApplications(withBundleIdentifier: $0).first?.processIdentifier }) {
+        self.reader = reader
+        self.pid = pid
+    }
+
     func dockMenu(_ bundleID: String) async -> [DockMenuNode] {
         await AppleDockMenu.snapshot(bundleID: bundleID)
     }
@@ -144,9 +162,10 @@ final class LiveAppMenuSystem: AppMenuSystem {
 
     func isHidden(_ bundleID: String) -> Bool { running(bundleID)?.isHidden ?? false }
 
-    func windows(_ bundleID: String) -> [AppMenuWindow] {
-        guard let app = running(bundleID) else { return [] }
-        return DockWindows.list(pid: app.processIdentifier, allSpaces: true).map { AppMenuWindow(title: $0.title, minimized: $0.minimized) }
+    func windows(_ bundleID: String) async -> [AppMenuWindow] {
+        guard let pid = pid(bundleID) else { return [] }
+        let read = reader.windows
+        return await AppleDockMenu.onReaderQueue { read(pid) }
     }
 
     func raiseWindow(_ bundleID: String, index: Int) {
@@ -156,9 +175,10 @@ final class LiveAppMenuSystem: AppMenuSystem {
         DockWindows.raise(windows[index], of: app)
     }
 
-    func commands(_ bundleID: String, newItemsOnly: Bool) -> [String] {
-        guard let app = running(bundleID) else { return [] }
-        return DockAppCommands.commands(pid: app.processIdentifier).filter { !newItemsOnly || $0.kind == .newItem }.map(\.title)
+    func commands(_ bundleID: String, newItemsOnly: Bool) async -> [String] {
+        guard let pid = pid(bundleID) else { return [] }
+        let read = reader.commands
+        return await AppleDockMenu.onReaderQueue { read(pid, newItemsOnly) }
     }
 
     var fileManagerName: String {

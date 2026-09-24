@@ -12,7 +12,6 @@ enum DockWindows {
         let windowID: CGWindowID?
     }
 
-    @MainActor
     static func list(pid: pid_t, allSpaces: Bool = false) -> [Window] {
         guard AXIsProcessTrusted() else { return [] }
         let app = AXUIElementCreateApplication(pid)
@@ -128,7 +127,6 @@ enum RemoteWindows {
     }()
     private static let maxElementID: UInt64 = 1000
 
-    @MainActor
     static func all(pid: pid_t) -> [AXUIElement] {
         guard let create else { return [] }
         var token = Data(count: 20)

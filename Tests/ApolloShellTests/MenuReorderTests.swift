@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 import AppKit
+import os
 import ApolloConfig
 import ApolloShellCore
 import ApolloRuntime
@@ -42,9 +43,9 @@ final class FakeAppMenuSystem: AppMenuSystem {
     func pressDock(_ path: [DockMenuStep], _ bundleID: String) { pressed.append(path) }
     func isRunning(_ bundleID: String) -> Bool { running }
     func isHidden(_ bundleID: String) -> Bool { hidden }
-    func windows(_ bundleID: String) -> [AppMenuWindow] { running ? windowList : [] }
+    func windows(_ bundleID: String) async -> [AppMenuWindow] { running ? windowList : [] }
     func raiseWindow(_ bundleID: String, index: Int) { raised.append(index) }
-    func commands(_ bundleID: String, newItemsOnly: Bool) -> [String] { newItemsOnly ? ["New Window"] : ["New Window", "Settings…"] }
+    func commands(_ bundleID: String, newItemsOnly: Bool) async -> [String] { newItemsOnly ? ["New Window"] : ["New Window", "Settings…"] }
     var fileManagerName: String { "ForkLift" }
 }
 
@@ -236,6 +237,28 @@ struct MenuReorderTests {
         for _ in 0..<60 where list.preview != nil { try await Task.sleep(for: .milliseconds(50)) }
         #expect(list.preview == nil)
         #expect(list.ordered(list.container.children).map { $0.entryKey } == list.keys)
+    }
+
+    @Test("app-windows und app-commands lesen AX abseits des Main Thread, das Menü entsteht auf dem Main Actor")
+    func axReadOffMain() async throws {
+        let threads = OSAllocatedUnfairLock(initialState: [Bool]())
+        let reader = AppMenuReader(
+            windows: { _ in
+                threads.withLock { $0.append(pthread_main_np() != 0) }
+                return [AppMenuWindow(title: "Doc", minimized: false)]
+            },
+            commands: { _, newItemsOnly in
+                threads.withLock { $0.append(pthread_main_np() != 0) }
+                return newItemsOnly ? ["New"] : ["New", "Settings…"]
+            }
+        )
+        let system = LiveAppMenuSystem(reader: reader, pid: { _ in 4242 })
+        let sources = AppMenuSources(system: system)
+        #expect(await system.windows("x").map(\.title) == ["Doc"])
+        #expect(await system.commands("x", newItemsOnly: true) == ["New"])
+        let entries = await sources.windowEntries("x", name: "X")
+        #expect(entries.map(\.title) == ["Doc"])
+        #expect(threads.withLock { $0 } == [false, false, false])
     }
 
     @Test("reorderable: App-Kennung kommt vom app-icon im Eintrag, nicht aus einem Punkt im Schlüssel")
