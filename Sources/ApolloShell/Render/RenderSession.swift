@@ -18,6 +18,7 @@ final class RenderSession {
     let actionLog = ActionLog()
     var markRenderTime: TimeInterval = 0
     var actions: [String] { actionLog.entries }
+    let renderVars: Record
 
     init(config: URL, resources: URL, fixture: ProviderFixture, fixtureRoot: URL?, dark: Bool, scale: CGFloat, theme themeURL: URL? = nil,
          log: @escaping ([Diagnostic]) -> Void = { _ in }) throws {
@@ -27,6 +28,7 @@ final class RenderSession {
         NSApplication.shared.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         self.dark = dark
         var fixture = fixture
+        renderVars = fixture.vars
         let extracted = FixtureIcons.extract(fixture.values)
         fixture.values = extracted.values
         var now = Date()
@@ -113,6 +115,10 @@ final class RenderSession {
             assembly.runtime.open(surface.id, screenKey: surface.screenKey)
             flush()
         }
+        for name in renderVars.keys where assembly.actions.vars.isDeclared(name) {
+            if let value = renderVars[name] { assembly.actions.vars.set(name, value) }
+        }
+        if renderVars.count > 0 { flush() }
         let hosting = mount(surface)
         defer {
             canvas.window.contentView = nil
