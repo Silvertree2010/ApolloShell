@@ -69,6 +69,16 @@ class CompareRendersTests(unittest.TestCase):
         result = compare_renders.compare(Path("a.png"), Path("b.png"), None, a_image=a, b_image=b)
         self.assertFalse(result.passed)
 
+    def test_extra_file_without_reference_reported_per_pair(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as before, tempfile.TemporaryDirectory() as after:
+            before_path, after_path = Path(before), Path(after)
+            solid((10, 10), (0, 0, 0, 255)).save(before_path / "both.png")
+            solid((10, 10), (0, 0, 0, 255)).save(after_path / "both.png")
+            solid((10, 10), (0, 0, 0, 255)).save(after_path / "only-after.png")
+            exit_code = compare_renders.main([str(before_path), str(after_path)])
+            self.assertEqual(exit_code, 1)
+
     def test_missing_file_reported_per_pair(self, ):
         import tempfile
         with tempfile.TemporaryDirectory() as before, tempfile.TemporaryDirectory() as after:

@@ -105,13 +105,19 @@ def main(argv: list[str]) -> int:
     before_dir, after_dir = Path(argv[0]), Path(argv[1])
     diff_dir = Path(argv[2]) if len(argv) > 2 else None
     ok = True
+    before_names = set()
     for before in sorted(before_dir.glob("*.png")):
+        before_names.add(before.name)
         after = after_dir / before.name
         if not after.exists():
             print(f"{before.name}: missing afterwards")
             ok = False
             continue
         ok = compare(before, after, diff_dir).passed and ok
+    for after in sorted(after_dir.glob("*.png")):
+        if after.name not in before_names:
+            print(f"{after.name}: no reference")
+            ok = False
     return 0 if ok else 1
 
 
