@@ -243,7 +243,7 @@ struct SurfaceBox: ViewModifier {
         content
             .environment(\.matchNamespace, matches)
             .modifier(StyledBox(style: style, context: context, form: form, flyouts: overlay,
-                                dynamicInline: context.styles.declares("filter", StyleResolver.subject(for: surface), ancestors: [], parent: nil, inline: nil)))
+                                dynamicInline: context.styles.declares("filter", StyleResolver.staticSubject(for: surface))))
             .animation(Self.motion(bulges, context: context), value: bulges)
             .onPreferenceChange(FlyoutBulgeKey.self) { new in
                 bulges = new
@@ -307,7 +307,7 @@ struct FlyoutView: View {
             LayoutRenderers.flex(horizontal: false, style: style) {
                 ElementChildren(children: element.children, scope: scope)
             }
-                .modifier(StyledBox(style: boxStyle, context: context, dynamicInline: style["filter"] != nil))
+                .modifier(StyledBox(style: boxStyle, context: context, dynamicInline: context.styles.declares("filter", StyleResolver.staticSubject(for: element))))
                 .transformEnvironment(\.elementInteractive) { $0 = $0 && open }
                 .fixedSize()
                 .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }

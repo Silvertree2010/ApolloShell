@@ -68,21 +68,50 @@ final class StyleResolver {
         return nil
     }
 
-    func sensitive(to state: PseudoState, _ subject: StyleSubject, ancestors: [StyleSubject], parent: ComputedStyle?, inline: String?) -> Bool {
-        var flipped = subject
-        if flipped.pseudo.contains(state) { flipped.pseudo.remove(state) } else { flipped.pseudo.insert(state) }
-        return resolve(flipped, ancestors: ancestors, parent: parent, inline: inline) != resolve(subject, ancestors: ancestors, parent: parent, inline: inline)
+    private struct SlotKey: Hashable {
+        var probe: String
+        var subject: StaticSubject
+    }
+    private var slots: [SlotKey: Bool] = [:]
+
+    func declares(_ property: String, _ subject: StaticSubject) -> Bool {
+        guard declared.contains(property) else { return false }
+        return slot(SlotKey(probe: property, subject: subject)) { engine.mayDeclare(property, subject) }
     }
 
-    func declares(_ property: String, _ subject: StyleSubject, ancestors: [StyleSubject], parent: ComputedStyle?, inline: String?) -> Bool {
-        guard declared.contains(property) else { return false }
-        let states: [PseudoState] = [[], .hover, .active, [.hover, .active]]
-        return states.contains { state in
-            var probe = subject
-            probe.pseudo.formUnion(state)
-            guard let value = resolve(probe, ancestors: ancestors, parent: parent, inline: inline)[property] else { return false }
-            return StyleValues.keyword(value) != "none"
+    func stateStyled(_ state: PseudoState, _ subject: StaticSubject) -> Bool {
+        guard !selectorPseudo.isDisjoint(with: state) else { return false }
+        return slot(SlotKey(probe: ":\(state.rawValue)", subject: subject)) { engine.mayMatch(state, subject) }
+    }
+
+    private func slot(_ key: SlotKey, _ compute: () -> Bool) -> Bool {
+        if let known = slots[key] { return known }
+        let found = compute()
+        slots[key] = found
+        return found
+    }
+
+    static func staticSubject(for element: ElementInstance) -> StaticSubject {
+        staticSubject(kind: element.kind, id: element.ir.properties["id"], classes: element.ir.properties["class"])
+    }
+
+    static func staticSubject(for surface: SurfaceInstance) -> StaticSubject {
+        var subject = staticSubject(kind: surface.ir.kind, id: nil, classes: surface.ir.properties["class"])
+        subject.id = surface.id
+        return subject
+    }
+
+    static func staticSubject(kind: String, id: CompiledValue?, classes: CompiledValue?) -> StaticSubject {
+        var subject = StaticSubject(kind: kind)
+        if let id {
+            if case .literal(let text) = id.template { subject.id = text } else if case .whole(.literal(let value)) = id.template { subject.id = value.plainText } else { subject.anyID = true }
         }
+        if let classes, let words = ClassCandidates.words(classes.template) {
+            subject.classes = words
+        } else if classes != nil {
+            subject.anyClass = true
+        }
+        return subject
     }
 
     func resolve(_ subject: StyleSubject, ancestors: [StyleSubject], parent: ComputedStyle?, inline: String? = nil) -> ComputedStyle {
@@ -110,5 +139,48 @@ extension Value {
         case .number(let number): number == number.rounded() ? String(Int(number)) : String(number)
         default: nil
         }
+    }
+}
+
+enum ClassCandidates {
+    static func words(_ template: StringTemplate) -> Set<String>? {
+        switch template {
+        case .literal(let text): return split(text)
+        case .whole(let expr): return words(expr)
+        case .parts(let parts):
+            var found: Set<String> = []
+            for (index, part) in parts.enumerated() {
+                switch part {
+                case .text(let text):
+                    found.formUnion(split(text))
+                case .expression(let expr):
+                    guard let inner = words(expr) else { return nil }
+                    if index > 0, case .text(let before) = parts[index - 1], before.last.map({ !$0.isWhitespace }) ?? false { return nil }
+                    if index + 1 < parts.count, case .text(let after) = parts[index + 1], after.first.map({ !$0.isWhitespace }) ?? false { return nil }
+                    found.formUnion(inner)
+                }
+            }
+            return found
+        }
+    }
+
+    static func words(_ expr: Expr) -> Set<String>? {
+        switch expr {
+        case .literal(let value):
+            switch value {
+            case .string(let text): return split(text)
+            case .null, .bool: return []
+            default: return nil
+            }
+        case .conditional(_, let then, let otherwise), .coalesce(let then, let otherwise):
+            guard let first = words(then), let second = words(otherwise) else { return nil }
+            return first.union(second)
+        default:
+            return nil
+        }
+    }
+
+    static func split(_ text: String) -> Set<String> {
+        Set(text.split(whereSeparator: \.isWhitespace).map(String.init))
     }
 }

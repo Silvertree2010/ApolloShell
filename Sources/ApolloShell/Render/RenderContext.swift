@@ -130,13 +130,12 @@ struct ElementView: View {
             let spacer = element.kind == "spacer" && element.property("size") == .null
             let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
             let mouse = MouseConfig(element, reorder: reorderEntry)
-            let hover = element.kind == "button" || SelfState.uses(element, "hover")
-                || styles.sensitive(to: .hover, subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
-            let press = SelfState.uses(element, "pressed")
-                || styles.sensitive(to: .active, subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
+            let fixed = StyleResolver.staticSubject(for: element)
+            let hover = element.kind == "button" || SelfState.uses(element, "hover") || styles.stateStyled(.hover, fixed)
+            let press = SelfState.uses(element, "pressed") || styles.stateStyled(.active, fixed)
             let inlineStyle = element.ir.properties["style"] != nil
-            let filters = inlineStyle || styles.declares("filter", subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
-            let animated = inlineStyle || styles.declares("animation", subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
+            let filters = inlineStyle || styles.declares("filter", fixed)
+            let animated = inlineStyle || styles.declares("animation", fixed)
             ElementRenderers.view(for: element, style: style, scope: inner)
                 .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: filters))
                 .modifier(HitRegionMarker(active: !mouse.isEmpty || StyleValues.visibleBackground(style), identity: element.identity))
