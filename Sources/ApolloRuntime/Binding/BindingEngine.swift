@@ -88,6 +88,10 @@ public final class BindingHandle {
         set { engine?.setActive(id, newValue) }
     }
 
+    func refresh() {
+        engine?.refresh(id)
+    }
+
     public func cancel() {
         engine?.cancel(id)
     }
@@ -139,6 +143,7 @@ public final class BindingEngine {
 
     public private(set) var evaluationCount = 0
     public var onWarning: (@MainActor (Diagnostic) -> Void)?
+    var freshen: (@MainActor (Set<DependencyPath>) -> Void)?
 
     var sharedEvaluator: Evaluator { evaluator }
 
@@ -164,6 +169,7 @@ public final class BindingEngine {
     }
 
     func evaluateOnce(_ value: CompiledValue, scope: LocalScope, event: Record? = nil) -> Value {
+        freshen?(value.dependencies)
         let adHoc = flushEvaluator == nil
         let evaluator = flushEvaluator ?? pinnedEvaluator()
         let result = evaluator.render(value.template, in: BindingScope(snapshot: store.snapshot(), locals: scope, event: event), at: value.span)
@@ -209,6 +215,11 @@ public final class BindingEngine {
             store.requestFlush()
         }
         deliverWarnings()
+    }
+
+    func refresh(_ id: Int) {
+        guard let binding = bindings[id], !binding.isCancelled, !binding.isActive || binding.isDirty else { return }
+        evaluate(binding)
     }
 
     func isActive(_ id: Int) -> Bool {

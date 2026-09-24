@@ -1,3 +1,4 @@
+var settings-sidebar-insert-at from="{(var.sidebar-modules | index-where 'kind' ['dock', 'spacer'] 'last') != null ? (var.sidebar-modules | index-where 'kind' ['dock', 'spacer'] 'last') + 1 : ((var.sidebar-modules | count) > 0 && (var.sidebar-modules | last).kind == 'power' ? (var.sidebar-modules | count) - 1 : (var.sidebar-modules | count))}"
 var settings-sidebar-expanded ""
 var settings-sidebar-gallery #false
 var settings-sidebar-confirm ""
@@ -292,7 +293,7 @@ define "settings-page-sidebar" {
                         each kind in="{sidebar-module-kinds}" key="{kind.kind}" {
                             button class="settings-gallery-tile" disabled="{kind.unique && (var.sidebar-modules | where 'kind' kind.kind | count) > 0}" tooltip="{kind.unique && (var.sidebar-modules | where 'kind' kind.kind | count) > 0 ? 'Only exists once, and it is already in the sidebar' : 'Add ' + kind.title}" {
                                 on-click {
-                                    list.insert "sidebar-modules" at="{(var.sidebar-modules | index-where 'kind' ['dock', 'spacer'] 'last') != null ? (var.sidebar-modules | index-where 'kind' ['dock', 'spacer'] 'last') + 1 : ((var.sidebar-modules | count) > 0 && (var.sidebar-modules | last).kind == 'power' ? (var.sidebar-modules | count) - 1 : (var.sidebar-modules | count))}" id-from="kind" { - "{kind.module}" }
+                                    list.insert "sidebar-modules" at="{var.settings-sidebar-insert-at}" id-from="kind" { - "{kind.module}" }
                                     set "settings-sidebar-gallery" #false
                                 }
                                 column class="settings-gallery-content" {

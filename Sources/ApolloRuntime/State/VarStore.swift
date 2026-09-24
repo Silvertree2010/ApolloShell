@@ -180,6 +180,9 @@ public final class VarStore {
         self.store = store
         self.bindings = bindings
         self.clock = clock
+        bindings.freshen = { [weak self] paths in
+            self?.freshen(paths)
+        }
         store.addDemandObserver { [weak self] root in
             guard root == "var" else { return }
             self?.reconcileDemand()
@@ -208,6 +211,22 @@ public final class VarStore {
             connect(writer)
         }
         apply(decls, persisted: persisted, shell: shell)
+    }
+
+    func freshen(_ paths: Set<DependencyPath>) {
+        var seen: Set<String> = []
+        var order: [String] = []
+        func visit(_ name: String) {
+            guard let slot = derived[name], slot.handle != nil, seen.insert(name).inserted else { return }
+            slot.dependencies.forEach(visit)
+            order.append(name)
+        }
+        for path in paths where path.root == "var" {
+            if let name = path.fields.first { visit(name) }
+        }
+        for name in order {
+            derived[name]?.handle?.refresh()
+        }
     }
 
     public func value(_ name: String) -> Value {

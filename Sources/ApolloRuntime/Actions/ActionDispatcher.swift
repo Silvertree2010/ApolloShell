@@ -226,6 +226,7 @@ public final class ActionDispatcher: ActionRuntime {
     func evaluate(_ compiled: CompiledValue, _ environment: ActionEnvironment) -> Value {
         let buffer = warningBuffer
         let pinned = evaluator.pinningContext(warn: { buffer.append($0) })
+        vars.freshen(compiled.dependencies)
         let scope = BindingScope(snapshot: store.snapshot(), locals: environment.scope, event: environment.event)
         let value = pinned.render(compiled.template, in: scope, at: compiled.span)
         for diagnostic in buffer.drain() {
