@@ -23,11 +23,7 @@ struct DiagnosticCollector {
 
     mutating func add(_ diagnostic: Diagnostic, stage: String, includeChain: [SourceSpan] = []) {
         stageCounts[stage, default: 0] += 1
-        var enriched = diagnostic
-        if !includeChain.isEmpty {
-            let notes = includeChain.map { DiagnosticNote("included from \(DiagnosticCollector.location($0))", span: $0) }
-            enriched.notes = notes + enriched.notes
-        }
+        let enriched = DiagnosticCollector.withIncludeChain(diagnostic, chain: includeChain)
         registerFile(of: enriched)
         totalCounts[enriched.severity, default: 0] += 1
         insert(enriched)
@@ -71,5 +67,13 @@ struct DiagnosticCollector {
 
     static func location(_ span: SourceSpan) -> String {
         span.isSynthetic ? span.file : "\(span.file):\(span.start.line):\(span.start.column)"
+    }
+
+    static func withIncludeChain(_ diagnostic: Diagnostic, chain: [SourceSpan]) -> Diagnostic {
+        guard !chain.isEmpty else { return diagnostic }
+        var enriched = diagnostic
+        let notes = chain.map { DiagnosticNote("included from \(DiagnosticCollector.location($0))", span: $0) }
+        enriched.notes = notes + enriched.notes
+        return enriched
     }
 }
