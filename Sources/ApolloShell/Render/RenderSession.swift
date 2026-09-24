@@ -51,6 +51,7 @@ final class RenderSession {
             _ = assembly.runtime.trigger(name, on: identity, event: event)
         })
         context.configRoot = config
+        context.keyName = { _ in nil }
         if let theme, let themeURL {
             let root = themeURL.hasDirectoryPath || themeURL.pathExtension.lowercased() != "css" ? themeURL : themeURL.deletingLastPathComponent()
             context.themeIcon = { id in theme.icons.file(id).flatMap { SafeImageFile.image(at: $0, root: root) } }

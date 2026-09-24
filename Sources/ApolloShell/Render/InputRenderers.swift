@@ -322,7 +322,8 @@ struct RecorderOutcome: Equatable {
     var warning: String?
     var conflict: String?
 
-    static func evaluate(keyCode: UInt32, modifiers: HotKeyModifiers, reject: [String], current: String?, binds: [(id: String, chord: String)]) -> RecorderOutcome {
+    @MainActor static func evaluate(keyCode: UInt32, modifiers: HotKeyModifiers, reject: [String], current: String?, binds: [(id: String, chord: String)],
+                         keyName: @MainActor (UInt32) -> String? = { _ in nil }) -> RecorderOutcome {
         switch HotKeyRecording.evaluate(keyCode: keyCode, modifiers: modifiers) {
         case .cancel:
             return RecorderOutcome(kind: .cancel)
@@ -335,7 +336,7 @@ struct RecorderOutcome: Equatable {
             let canonical = chord.canonical
             let normalized = reject.compactMap { KeyChord.parse($0)?.canonical }
             if normalized.contains(canonical) {
-                return RecorderOutcome(kind: .rejected("Already assigned to \(chord.display)"))
+                return RecorderOutcome(kind: .rejected("Already assigned to \(KeyboardLayout.label(chord, keyName: keyName))"))
             }
             let own = current.flatMap(KeyChord.parse)?.canonical
             let conflict = binds.first { KeyChord.parse($0.chord)?.canonical == canonical && canonical != own }?.id
@@ -358,7 +359,7 @@ struct KeyRecorderElement: View {
         let value = element.property("value").plainText
         let shown: String = {
             if recording { return live.isEmpty ? "…" : live.symbols }
-            if let value, let chord = KeyChord.parse(value) { return chord.display }
+            if let value, let chord = KeyChord.parse(value) { return KeyboardLayout.label(chord, keyName: context.keyName) }
             return element.property("placeholder").plainText ?? ""
         }()
         VStack(alignment: .leading, spacing: 2) {
@@ -406,7 +407,7 @@ struct KeyRecorderElement: View {
             return element.property("reject").plainText.map { [$0] } ?? []
         }()
         let outcome = RecorderOutcome.evaluate(keyCode: UInt32(event.keyCode), modifiers: modifiers, reject: reject,
-                                               current: element.property("value").plainText, binds: context.runtime?.bindChords() ?? [])
+                                               current: element.property("value").plainText, binds: context.runtime?.bindChords() ?? [], keyName: context.keyName)
         switch outcome.kind {
         case .cancel:
             stop()

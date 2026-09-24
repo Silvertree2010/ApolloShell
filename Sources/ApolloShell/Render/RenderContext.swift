@@ -18,6 +18,7 @@ final class RenderContext {
     var clock: any GateClock = SystemGateClock()
     var menus: any MenuPresenting = NativeMenuPresenter()
     var onRecording: @MainActor (Bool) -> Void = { _ in }
+    var keyName: @MainActor (UInt32) -> String? = KeyboardLayout.keyName
     var gates: [GateKey: EventGate] = [:]
     var reorders: [String: ReorderCoordinator] = [:]
     var menuSources: [String: any MenuSourceProviding] = [:]

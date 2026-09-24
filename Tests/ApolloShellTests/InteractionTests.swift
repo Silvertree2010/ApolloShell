@@ -293,6 +293,25 @@ struct InteractionTests {
         #expect(blank.ink() == nil)
     }
 
+    @Test("key-recorder beschriftet Buchstaben nach der Tastaturbelegung: QWERTZ zeigt Z als Y")
+    func recorderLayout() throws {
+        let css = "#t { width: 160px; height: 40px; align-items: start; } .i { width: 150px; color: #ff0000; font-size: 16px; }"
+        func shot(_ value: String, _ keyName: @escaping @MainActor (UInt32) -> String?) throws -> Data {
+            let (session, _) = try RenderProbe.session("panel \"t\" anchor=\"left\" { key-recorder class=\"i\" value=\"\(value)\" }", css: css)
+            session.context.keyName = keyName
+            let surface = try #require(session.surfaces.first)
+            return try session.capture(surface, name: surface.id)
+        }
+        let qwertz: @MainActor (UInt32) -> String? = { $0 == 0x06 ? "Y" : ($0 == 0x10 ? "Z" : nil) }
+        let us: @MainActor (UInt32) -> String? = { _ in nil }
+        #expect(try shot("cmd+z", qwertz) == shot("cmd+y", us))
+        #expect(try shot("cmd+z", qwertz) != shot("cmd+z", us))
+        let rejected = RecorderOutcome.evaluate(keyCode: 0x06, modifiers: .command, reject: ["cmd+z"], current: nil, binds: [], keyName: qwertz)
+        #expect(rejected.kind == .rejected("Already assigned to ⌘Y"))
+        #expect(KeyboardLayout.label(KeyChord.parse("alt+space")!, keyName: qwertz) == "⌥Space")
+        #expect(KeyboardLayout.label(KeyChord.parse("ctrl+semicolon")!, keyName: { $0 == 0x29 ? "Ö" : nil }) == "⌃Ö")
+    }
+
     @Test("Trefferflächen: Handler und sichtbarer Hintergrund zählen, reiner Text nicht (Entscheid 38)")
     func hitRegions() throws {
         let mounted = try Mounted.mount("""
