@@ -83,7 +83,7 @@ struct MarketThemeInstallerTests {
     func legacyInstall() throws {
         let box = try Sandbox()
         try FileManager.default.createDirectory(at: box.installer.legacyThemes, withIntermediateDirectories: true)
-        try Self.css.write(to: box.installer.legacyThemes.appendingPathComponent("Dusk.css"), atomically: true, encoding: .utf8)
+        try MarketInstall.fileContents(for: Self.theme()).write(to: box.installer.legacyThemes.appendingPathComponent("Dusk.css"), atomically: true, encoding: .utf8)
         try box.prepareIndex(MarketInstallIndex(entries: ["t1": .init(fileName: "Dusk.css", version: 1)]))
         #expect(box.installer.state(of: Self.theme()) == .use)
         #expect(box.installer.state(of: Self.theme(version: 2)) == .update)
@@ -93,6 +93,38 @@ struct MarketThemeInstallerTests {
         #expect(box.files(box.installer.themes).isEmpty)
         #expect(box.files(box.installer.legacyThemes).isEmpty)
         #expect(box.installer.index().entries.isEmpty)
+    }
+
+    @Test("a legacy update never overwrites someone else's file of the same name in $CONFIG")
+    func legacyUpdateDodgesForeignFile() throws {
+        let box = try Sandbox()
+        try FileManager.default.createDirectory(at: box.installer.legacyThemes, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: box.installer.themes, withIntermediateDirectories: true)
+        try MarketInstall.fileContents(for: Self.theme()).write(to: box.installer.legacyThemes.appendingPathComponent("Dusk.css"), atomically: true, encoding: .utf8)
+        try "/* my own Dusk */".write(to: box.installer.themes.appendingPathComponent("Dusk.css"), atomically: true, encoding: .utf8)
+        try box.prepareIndex(MarketInstallIndex(entries: ["t1": .init(fileName: "Dusk.css", version: 1)]))
+        #expect(try box.installer.install(Self.theme(version: 2)) == "dusk-2")
+        #expect(try box.text("Dusk.css") == "/* my own Dusk */")
+        #expect(box.installer.index().entries["t1"] == .init(fileName: "dusk-2.css", version: 2))
+        #expect(try box.installer.remove("t1") == "dusk-2")
+        #expect(try box.text("Dusk.css") == "/* my own Dusk */")
+    }
+
+    @Test("remove deletes only files the Marketplace wrote, in either folder")
+    func removeKeepsForeignFiles() throws {
+        let box = try Sandbox()
+        try FileManager.default.createDirectory(at: box.installer.legacyThemes, withIntermediateDirectories: true)
+        try box.installer.install(Self.theme())
+        try "/* mine */".write(to: box.installer.legacyThemes.appendingPathComponent("dusk.css"), atomically: true, encoding: .utf8)
+        #expect(try box.installer.remove("t1") == "dusk")
+        #expect(box.files(box.installer.themes).isEmpty)
+        #expect(box.files(box.installer.legacyThemes) == ["dusk.css"])
+        try MarketInstall.fileContents(for: Self.theme()).write(to: box.installer.legacyThemes.appendingPathComponent("Dusk.css"), atomically: true, encoding: .utf8)
+        try "/* mine */".write(to: box.installer.themes.appendingPathComponent("Dusk.css"), atomically: true, encoding: .utf8)
+        try box.prepareIndex(MarketInstallIndex(entries: ["t1": .init(fileName: "Dusk.css", version: 1)]))
+        #expect(try box.installer.remove("t1") == "Dusk")
+        #expect(try box.text("Dusk.css") == "/* mine */")
+        #expect(box.files(box.installer.legacyThemes).isEmpty)
     }
 
     @Test("broken entries are refused before anything is written", arguments: [

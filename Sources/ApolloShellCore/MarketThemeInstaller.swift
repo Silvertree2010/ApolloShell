@@ -160,7 +160,10 @@ public struct MarketThemeInstaller: Sendable {
         let manager = FileManager.default
         try manager.createDirectory(at: themes, withIntermediateDirectories: true, attributes: [.posixPermissions: NSNumber(value: Self.folderMode)])
         var index = self.index()
-        let fileName = entry(theme.id, in: index)?.fileName ?? freeFileName(for: theme.slug)
+        var fileName = entry(theme.id, in: index)?.fileName ?? freeFileName(for: theme.slug)
+        if Self.fileType(themes.appendingPathComponent(fileName)) == .typeRegular, !Self.isMarketplaceFile(themes.appendingPathComponent(fileName)) {
+            fileName = freeFileName(for: theme.slug)
+        }
         let target = themes.appendingPathComponent(fileName)
         if let type = Self.fileType(target) {
             switch type {
@@ -185,9 +188,7 @@ public struct MarketThemeInstaller: Sendable {
         let manager = FileManager.default
         for folder in [themes, legacyThemes] {
             let file = folder.appendingPathComponent(entry.fileName)
-            if let type = Self.fileType(file), type == .typeRegular || type == .typeSymbolicLink {
-                try manager.removeItem(at: file)
-            }
+            if Self.isMarketplaceFile(file) { try manager.removeItem(at: file) }
         }
         index.entries[id] = nil
         try index.save(to: indexFile)
@@ -207,6 +208,17 @@ public struct MarketThemeInstaller: Sendable {
             if !used { return name }
             counter += 1
         }
+    }
+
+    static let marker = ", from the ApolloShell Marketplace."
+
+    static func isMarketplaceFile(_ url: URL) -> Bool {
+        guard fileType(url) == .typeRegular, let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? handle.close() }
+        guard let data = try? handle.read(upToCount: 1024),
+              let line = String(decoding: data, as: UTF8.self).split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false).first
+        else { return false }
+        return line.hasPrefix("/* ") && line.hasSuffix(marker)
     }
 
     static func fileType(_ url: URL) -> FileAttributeType? {
