@@ -337,6 +337,15 @@ public final class VarStore {
 
         for decl in decls {
             if let source = sources[decl.name], derived[decl.name] == nil, plain[decl.name] == nil {
+                let order = analysis.order[decl.name] ?? 0
+                if let prior = previousDerived[decl.name], let handle = prior.handle, let before = prior.decl.derived, let after = decl.derived,
+                   !analysis.cycleMembers.contains(decl.name), prior.decl.type == decl.type, prior.order == order, ShellRuntime.equivalent(before, after) {
+                    if before != after {
+                        handle.updateSource(after)
+                    }
+                    derived[decl.name] = DerivedSlot(decl: decl, handle: handle, order: order, dependencies: edges[decl.name] ?? [], paths: source.dependencies.filter { $0.root == "var" })
+                    continue
+                }
                 let path = DependencyPath("var", [decl.name])
                 var handle: BindingHandle?
                 if analysis.cycleMembers.contains(decl.name) {
@@ -372,7 +381,7 @@ public final class VarStore {
         for (name, prior) in previousPlain where plain[name] !== prior {
             prior.transient?.work.cancel()
         }
-        for prior in previousDerived.values {
+        for (name, prior) in previousDerived where derived[name]?.handle !== prior.handle {
             prior.handle?.cancel()
         }
         let removed = Set(previousPlain.keys).union(previousDerived.keys).filter { plain[$0] == nil && derived[$0] == nil }

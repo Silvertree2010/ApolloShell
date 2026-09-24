@@ -15,6 +15,7 @@ struct ReloadTests {
         IR.plainVar("size", .number, .number(10)),
         IR.plainVar("show", .bool, .bool(true)),
         IR.plainVar("items", .list, .list([.string("a"), .string("b")])),
+        IR.derivedVar("double", .number, from: "{var.size * 2}"),
     ]
 
     static func dashboard(line: Int = 1) -> [SurfaceIR] {
@@ -25,7 +26,7 @@ struct ReloadTests {
             T.surface("panel", "bar", properties: ["height": IR.value("{var.size}", line: line)], children: [
                 T.text("0", IR.value("{var.label}", line: line + 1), properties: ["class": IR.string("title", line: line + 1), "tip": IR.value("{var.label | upper}", line: line + 1)], line: line + 1),
                 T.box("1", properties: ["visible": IR.value("{var.show}", line: line + 2)], children: [
-                    T.text("0", IR.value("{var.size * 2}", line: line + 2), properties: ["id": IR.string("size", line: line + 2)], line: line + 2),
+                    T.text("0", IR.value("{var.double}", line: line + 2), properties: ["id": IR.string("size", line: line + 2)], line: line + 2),
                 ], line: line + 2),
                 .each(each),
             ]),
