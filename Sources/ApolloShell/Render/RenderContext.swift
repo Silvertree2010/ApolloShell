@@ -29,17 +29,20 @@ final class RenderContext {
     let hits = HitRegions()
     let elementFrames = ElementFrames()
     private var images = BoundedCache<String, NSImage>(limit: 128)
-    private var previews = BoundedCache<String, Theme>(limit: 32)
+    static let previewLimit = 128
+    private var previews = BoundedCache<String, (css: String, theme: Theme)>(limit: RenderContext.previewLimit)
+    private(set) var previewParses = 0
 
     func previewTheme(_ value: Value) -> Theme {
         guard case .record(let record) = value, case .string(let css)? = record["css"] else {
             return theme(value.plainText ?? "default") ?? .standard
         }
         let identifier = record["slug"]?.plainText ?? record["id"]?.plainText ?? "preview"
-        let key = identifier + "\u{0}" + css
-        if let cached = previews[key] { return cached }
+        let key = [identifier, record["version"]?.plainText ?? "", record["updated"]?.plainText ?? "", String(css.utf8.count)].joined(separator: "\u{0}")
+        if let cached = previews[key], cached.css == css { return cached.theme }
         let built = ThemeLoader.load(css: css, identifier: identifier)
-        previews[key] = built
+        previewParses += 1
+        previews[key] = (css, built)
         return built
     }
 
