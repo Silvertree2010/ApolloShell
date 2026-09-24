@@ -8,6 +8,7 @@ struct SystemProviders {
     let providers: [any ProviderInstance]
     let power: PowerProvider
     let system: SystemMacSource
+    let wm: WMProvider
 
     init(directory: URL, socketPath: String?, polls: [ScriptSourceSpec], listens: [ScriptSourceSpec], clock: any RuntimeClock) {
         let apps = AppsProvider(source: SystemAppsSource(directory: directory), clock: clock)
@@ -15,8 +16,10 @@ struct SystemProviders {
         let system = SystemMacSource(directory: directory)
         let power = PowerProvider(source: SystemPowerSource(directory: directory), clock: clock)
         let runner = SystemScriptRunner(socketPath: socketPath)
+        let wm = WMProvider(engine: SystemWMEngine(layoutFile: directory.appendingPathComponent("wm-layout.json")), clock: clock)
         self.power = power
         self.system = system
+        self.wm = wm
         providers = [
             ClockProvider(source: SystemClockSource(), clock: clock),
             BatteryProvider(source: SystemBatterySource(), clock: clock),
@@ -38,12 +41,14 @@ struct SystemProviders {
             ShortcutsProvider(source: SystemShortcutsSource(), clock: clock),
             ScriptSourcesProvider(kind: .poll, sources: polls, runner: runner, clock: clock),
             ScriptSourcesProvider(kind: .listen, sources: listens, runner: runner, clock: clock),
+            wm,
         ]
     }
 
     var ids: [String] { providers.map(\.schema.id) }
 
     func terminate() {
+        wm.shutdown()
         power.shutdown()
         system.terminate()
     }

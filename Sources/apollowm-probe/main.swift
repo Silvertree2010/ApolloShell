@@ -8,17 +8,9 @@ func option(_ name: String) -> String? {
     args.firstIndex(of: name).flatMap { args.indices.contains($0 + 1) ? args[$0 + 1] : nil }
 }
 
-guard ["bench", "run", "spaces", "selftest", "echo-socket"].contains(mode) else {
+guard ["bench", "run", "spaces", "selftest"].contains(mode) else {
     print("usage: apollowm-probe bench|run|spaces|selftest [--max N] [--seed N] [--steps N] [--resize proxy|smooth|snap] [--no-focus-follows-mouse] [--focus-delay MS] [--restore-on-quit] [--reserve-left PT]")
     exit(2)
-}
-
-if mode == "echo-socket", args.count > 1 {
-    let server = CommandServer(path: args[1]) { "echo: \($0)" }
-    guard server.start() else { exit(1) }
-    print("listening on \(args[1])")
-    DispatchQueue.main.asyncAfter(deadline: .now() + 6) { MainActor.assumeIsolated { server.stop() }; exit(0) }
-    withExtendedLifetime(server) { RunLoop.main.run() }
 }
 
 if mode == "spaces" {
@@ -213,15 +205,15 @@ default:
     engine.startSnapshots()
     let watcher = WindowWatcher(engine: engine)
     watcher.start()
-    let keys = KeyBindings(engine: engine)
-    if !keys.start() { print("could not watch the keyboard (event tap refused)") }
+    let commands = WMCommands(engine: engine)
+    commands.start()
     let focus = FocusFollowsMouse(engine: engine)
     focus.isEnabled = !args.contains("--no-focus-follows-mouse")
     if let ms = option("--focus-delay").flatMap(Double.init) { focus.delay = ms / 1000 }
     if !focus.start() { print("could not follow the mouse (event tap refused)") }
     print("live. drag a window by its title bar, or hold fn (Super) and drag anywhere.")
-    print("fn+space floats, fn+F fills the area, fn+1..9 switches workspace. Ctrl+C quits, windows stay.")
-    withExtendedLifetime((tracker, watcher, keys, focus, signalSources)) { app.run() }
+    print("keys are bound in the shell config now. Ctrl+C quits, windows stay.")
+    withExtendedLifetime((tracker, watcher, commands, focus, signalSources)) { app.run() }
 }
 
 withExtendedLifetime(signalSources) { app.run() }

@@ -2,24 +2,12 @@ import AppKit
 import Carbon.HIToolbox
 
 @MainActor
-public final class KeyBindings {
+public final class WMCommands {
     public typealias Action = Command
 
     private let engine: TilingEngine
-    private var tap: CFMachPort?
-    private var swallowed: Set<Int64> = []
 
     public var superFlags: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate, .maskShift]
-
-    public var bindings: [Int64: Action] = KeyBindings.table(Command.defaultBindings)
-
-    static func table(_ bindings: [UInt16: Command]) -> [Int64: Action] {
-        Dictionary(uniqueKeysWithValues: bindings.map { (Int64($0.key), $0.value) })
-    }
-
-    public func apply(_ config: TWMConfig) {
-        bindings = Self.table(config.bindings)
-    }
 
     public var log: (String) -> Void = { print($0) }
 
@@ -57,32 +45,15 @@ public final class KeyBindings {
         }
     }
 
-    public func start() -> Bool {
-        if useAppleDesktops {
-            let (shortcuts, changed) = DesktopShortcuts.ensure(modifiers: superFlags)
-            desktopShortcuts = shortcuts
-            if changed { log("set Apple's Switch to Desktop 1-9 shortcuts to Super + number") }
-        }
-        let mask = CGEventMask(1 << CGEventType.keyDown.rawValue) | CGEventMask(1 << CGEventType.keyUp.rawValue)
-        guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap,
-                                          place: .headInsertEventTap,
-                                          options: .defaultTap,
-                                          eventsOfInterest: mask,
-                                          callback: keyTapCallback,
-                                          userInfo: Unmanaged.passUnretained(self).toOpaque())
-        else { return false }
-        self.tap = tap
-        CFRunLoopAddSource(CFRunLoopGetMain(), CFMachPortCreateRunLoopSource(nil, tap, 0), .commonModes)
-        CGEvent.tapEnable(tap: tap, enable: true)
-        return true
+    public func start() {
+        guard useAppleDesktops else { return }
+        let (shortcuts, changed) = DesktopShortcuts.ensure(modifiers: superFlags)
+        desktopShortcuts = shortcuts
+        if changed { log("set Apple's Switch to Desktop 1-9 shortcuts to Super + number") }
     }
 
     public func stop() {
-        if let tap {
-            CGEvent.tapEnable(tap: tap, enable: false)
-            CFMachPortInvalidate(tap)
-        }
-        tap = nil
+        engine.onScratchpadElsewhere = nil
     }
 
     public var terminals = ["net.kovidgoyal.kitty", "com.mitchellh.ghostty", "com.apple.Terminal"]
@@ -100,7 +71,11 @@ public final class KeyBindings {
     public func perform(_ action: Action) {
         switch action {
         case .workspace(let number):
-            if !useAppleDesktops { engine.switchWorkspace(to: number) }
+            if useAppleDesktops {
+                switchAppleDesktop(number)
+            } else {
+                engine.switchWorkspace(to: number)
+            }
             return
         case .equalize:
             engine.equalize()
@@ -124,26 +99,23 @@ public final class KeyBindings {
         }
     }
 
-    public func reply(to line: String) -> String {
-        switch line.lowercased() {
-        case "ping": return "pong"
-        case "windows": return engine.describeWindows()
-        default: break
+    public static let echoWindow: CFTimeInterval = 0.4
+    private var lastPosted: (number: Int, time: CFTimeInterval)?
+
+    private func switchAppleDesktop(_ number: Int) {
+        let now = CACurrentMediaTime()
+        if let last = lastPosted, last.number == number, now - last.time < Self.echoWindow { return }
+        guard let shortcut = desktopShortcuts[number] else {
+            log("desktop \(number): desktop shortcuts are not set")
+            return
         }
-        guard let command = Command(parsing: line) else { return "error: unknown command `\(line)`" }
-        switch command {
-        case .workspace(let number) where useAppleDesktops:
-            guard let shortcut = desktopShortcuts[number] else { return "error: desktop shortcuts are not set" }
-            let source = CGEventSource(stateID: .hidSystemState)
-            for keyDown in [true, false] {
-                let key = CGEvent(keyboardEventSource: source, virtualKey: shortcut.keyCode, keyDown: keyDown)
-                key?.flags = shortcut.flags
-                key?.post(tap: .cghidEventTap)
-            }
-        default:
-            perform(command)
+        lastPosted = (number, now)
+        let source = CGEventSource(stateID: .hidSystemState)
+        for keyDown in [true, false] {
+            let key = CGEvent(keyboardEventSource: source, virtualKey: shortcut.keyCode, keyDown: keyDown)
+            key?.flags = shortcut.flags
+            key?.post(tap: .cghidEventTap)
         }
-        return "ok"
     }
 
     private func perform(_ action: Action, on focused: AXWindow?) {
@@ -224,29 +196,6 @@ public final class KeyBindings {
         }
     }
 
-    fileprivate func handle(_ type: CGEventType, key: Int64, flags: CGEventFlags, isRepeat: Bool) -> Bool {
-        switch type {
-        case .keyDown:
-            guard flags.intersection(superFlags) == superFlags else { return false }
-            guard let action = bindings[key] else {
-                log("Super + key \(key) (\(KeyNames.name(UInt16(key)) ?? "?")): no command")
-                return false
-            }
-            if !isRepeat { log("Super + \(KeyNames.name(UInt16(key)) ?? "\(key)") -> \(action.text)") }
-            if useAppleDesktops, case .workspace = action { return false }
-            swallowed.insert(key)
-            if !isRepeat { perform(action) }
-            return true
-        case .keyUp:
-            return swallowed.remove(key) != nil
-        case .tapDisabledByTimeout, .tapDisabledByUserInput:
-            if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
-            return false
-        default:
-            return false
-        }
-    }
-
     private static let digits = [kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5,
                                  kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9].map(Int64.init)
 
@@ -261,16 +210,4 @@ public final class KeyBindings {
             if case .failure(let failure) = result { self?.log("send to desktop \(number): \(failure)") }
         }
     }
-}
-
-private let keyTapCallback: CGEventTapCallBack = { _, type, event, refcon in
-    guard let refcon else { return Unmanaged.passUnretained(event) }
-    let bindings = Unmanaged<KeyBindings>.fromOpaque(refcon).takeUnretainedValue()
-    let key = event.getIntegerValueField(.keyboardEventKeycode)
-    let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
-    let flags = event.flags
-    let swallow = MainActor.assumeIsolated {
-        bindings.handle(type, key: key, flags: flags, isRepeat: isRepeat)
-    }
-    return swallow ? nil : Unmanaged.passUnretained(event)
 }
