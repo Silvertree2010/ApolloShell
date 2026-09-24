@@ -54,7 +54,9 @@ final class WindowHost: SurfaceHosting {
     var makeTicker: (any HostWindow) -> (any FrameTicker)? = { window in
         (window as? AppKitHostWindow).map { DisplayLinkTicker(view: $0.container) }
     }
-    var context: RenderContext?
+    var context: RenderContext? {
+        didSet { context?.hits.onChange = { [weak self] _ in self?.pointerMoved() } }
+    }
     var screens: [String: ScreenGeometry] = [:]
     weak var link: (any WindowHostLink)?
     var log: (String) -> Void = { _ in }
@@ -73,6 +75,8 @@ final class WindowHost: SurfaceHosting {
         DispatchQueue.main.async { MainActor.assumeIsolated { work() } }
     }
     static let hoverPoll: TimeInterval = 0.25
+    var watchPointer: @MainActor (@escaping @MainActor () -> Void) -> (@MainActor () -> Void) = PointerWatch.live
+    private var stopPointer: (@MainActor () -> Void)?
 
     static let windowKinds: Set<String> = ["panel", "popup", "overlay", "toast", "osd", "window"]
 
@@ -166,7 +170,30 @@ final class WindowHost: SurfaceHosting {
         controller.window.close()
         stats.windowsClosed += 1
         frames.publish(key, nil)
+        context?.hits.remove(key)
         updateReserves()
+        updateClickThrough()
+    }
+
+    func updateClickThrough() {
+        let tracking = controllers.values.contains { $0.spec.clickThrough == .auto && $0.shown }
+        guard tracking else {
+            stopPointer?()
+            stopPointer = nil
+            return
+        }
+        if stopPointer == nil { stopPointer = watchPointer { [weak self] in self?.pointerMoved() } }
+        pointerMoved()
+    }
+
+    func pointerMoved() {
+        guard let hits = context?.hits else { return }
+        let point = pointer()
+        for (key, controller) in controllers where controller.spec.clickThrough == .auto && controller.shown {
+            let frame = controller.window.frame
+            let local = CGPoint(x: point.x - frame.minX, y: frame.maxY - point.y)
+            controller.window.setIgnoresMouse(!(frame.contains(point) && hits.contains(local, surfaceKey: key)))
+        }
     }
 
     private func sync(_ key: String) {
@@ -224,6 +251,7 @@ final class WindowHost: SurfaceHosting {
             frames.publish(key, controller.openFrame)
         }
         updateReserves()
+        updateClickThrough()
     }
 
     private func observeProperties(_ controller: SurfaceWindowController, key: String) {
@@ -425,5 +453,21 @@ struct SurfaceLayout: Equatable {
             if reach > 0, frame.maxY > menuBottom { insets.top = max(insets.top, reach) }
         }
         return SurfaceLayout(frame: frame, insets: insets)
+    }
+}
+
+@MainActor
+enum PointerWatch {
+    static func live(_ moved: @escaping @MainActor () -> Void) -> (@MainActor () -> Void) {
+        let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .scrollWheel]
+        let global = NSEvent.addGlobalMonitorForEvents(matching: mask) { _ in MainActor.assumeIsolated { moved() } }
+        let local = NSEvent.addLocalMonitorForEvents(matching: mask) { event in
+            moved()
+            return event
+        }
+        return {
+            if let global { NSEvent.removeMonitor(global) }
+            if let local { NSEvent.removeMonitor(local) }
+        }
     }
 }

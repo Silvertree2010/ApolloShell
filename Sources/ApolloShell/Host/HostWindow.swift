@@ -15,6 +15,7 @@ protocol HostWindow: AnyObject {
     func setLevel(_ level: NSWindow.Level)
     func setFrame(_ frame: CGRect, glide: Bool)
     func setMinSize(_ size: CGSize)
+    func setIgnoresMouse(_ ignores: Bool)
     func restoreFrame() -> Bool
     func setContent(_ view: AnyView)
     func show(focus: Bool)
@@ -181,6 +182,10 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     var fittingSize: CGSize { hosting.fittingSize }
     var windowNumber: Int { window.windowNumber }
 
+    func setIgnoresMouse(_ ignores: Bool) {
+        if window.ignoresMouseEvents != ignores { window.ignoresMouseEvents = ignores }
+    }
+
     func apply(_ spec: SurfaceWindowSpec) {
         self.spec = spec
         if let panel = window as? ShellPanel {
@@ -189,7 +194,8 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         }
         if window.level != spec.level { window.level = spec.level }
         if window.collectionBehavior != spec.behavior { window.collectionBehavior = spec.behavior }
-        window.ignoresMouseEvents = spec.clickThrough == .on
+        if spec.clickThrough != .auto { window.ignoresMouseEvents = spec.clickThrough == .on }
+        window.acceptsMouseMovedEvents = spec.clickThrough == .auto
         if spec.kind == "window" {
             window.title = spec.title
             window.titleVisibility = spec.titleVisible ? .visible : .hidden

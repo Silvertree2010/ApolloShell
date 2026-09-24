@@ -28,6 +28,7 @@ final class FakeWindow: HostWindow {
     var focuses: [Bool] = []
     var glides: [CGRect] = []
     var minSize: CGSize = .zero
+    var ignoresMouse: Bool?
     var restorable: CGRect?
     var content: AnyView?
     var pending: [@MainActor () -> Void] = []
@@ -36,6 +37,8 @@ final class FakeWindow: HostWindow {
         self.spec = spec
         level = spec.level
     }
+
+    func setIgnoresMouse(_ ignores: Bool) { ignoresMouse = ignores }
 
     func apply(_ spec: SurfaceWindowSpec) {
         self.spec = spec
