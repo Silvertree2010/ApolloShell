@@ -26,3 +26,10 @@ public struct UsageStats: Codable, Sendable, Equatable {
         return entry.score * pow(0.5, age / halfLife)
     }
 }
+
+extension UsageStats {
+    public init(weights: [String: Double], at date: Date, halfLife: TimeInterval = UsageStats.defaultHalfLife) {
+        self.init(halfLife: halfLife)
+        entries = weights.mapValues { Entry(score: $0, updated: date) }
+    }
+}
