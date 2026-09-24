@@ -11,6 +11,7 @@ final class StubProvider: ProviderInstance {
     var lastDemand: Set<DependencyPath> = []
     var lastContext: ProviderContext?
     var configuredSettings: [Record] = []
+    var failOnStart = false
 
     init(id: String) {
         schema = ProviderSchema(id: id, doc: "stub")
@@ -19,6 +20,9 @@ final class StubProvider: ProviderInstance {
     func start(_ context: ProviderContext) {
         startCount += 1
         lastContext = context
+        if failOnStart {
+            context.warn(Diagnostic(.warning, "provider \"\(schema.id)\" failed to start", span: .synthetic()))
+        }
     }
 
     func demandChanged(_ demanded: Set<DependencyPath>) {

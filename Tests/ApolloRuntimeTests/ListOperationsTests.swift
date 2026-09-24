@@ -207,4 +207,84 @@ struct ListOperationsTests {
         let result = ListOperations.moveTo(from: list(["a"]), at: .index(0), to: list(["x"]), index: 5)
         #expect(throws: (any Error).self) { try result.get() }
     }
+
+    @Test("move-to wirkt mit in=/field= auf verschachtelte Listen")
+    func moveToWithLocatorOperatesOnNestedLists() {
+        let sourceEntry = Value.record(Record([("id", .string("page-a")), ("widgets", list(["w1"]))]))
+        let destinationEntry = Value.record(Record([("id", .string("page-b")), ("widgets", list(["w2"]))]))
+        let source = Value.list([sourceEntry])
+        let destination = Value.list([destinationEntry])
+        let locator = ListLocator(entry: .index(0), field: "widgets")
+
+        let result = ListOperations.moveTo(from: source, at: .index(0), to: destination, index: 1, locator: locator)
+        let (newSource, newDestination) = try! result.get()
+
+        guard case .list(let sourceItems) = newSource, case .record(let sourceRecord) = sourceItems[0], case .list(let sourceWidgets)? = sourceRecord["widgets"] else {
+            Issue.record("expected nested widgets in source")
+            return
+        }
+        guard case .list(let destinationItems) = newDestination, case .record(let destinationRecord) = destinationItems[0], case .list(let destinationWidgets)? = destinationRecord["widgets"] else {
+            Issue.record("expected nested widgets in destination")
+            return
+        }
+        #expect(sourceWidgets.isEmpty)
+        #expect(ids(.list(destinationWidgets)) == ["w2", "w1"])
+    }
+
+    @Test("move-to mit ungültigem Locator-Pfad ist eine Warnung ohne Absturz")
+    func moveToWithInvalidLocatorFails() {
+        let source = Value.list([record("page-a")])
+        let destination = Value.list([record("page-b")])
+        let locator = ListLocator(entry: .entry("missing"), field: "widgets")
+
+        let result = ListOperations.moveTo(from: source, at: .index(0), to: destination, index: 0, locator: locator)
+        #expect(throws: (any Error).self) { try result.get() }
+    }
+
+    @Test("swap in derselben Liste wirkt mit in=/field= auf eine verschachtelte Liste")
+    func swapSameListWithLocatorOperatesOnNestedList() {
+        let entry = Value.record(Record([("id", .string("page")), ("widgets", list(["a", "b", "c"]))]))
+        let base = Value.list([entry])
+        let locator = ListLocator(entry: .index(0), field: "widgets")
+
+        let result = ListOperations.swap(base, .index(0), .index(2), locator: locator)
+        guard case .list(let items) = try! result.get(), case .record(let record) = items[0], case .list(let widgets)? = record["widgets"] else {
+            Issue.record("expected nested widgets list")
+            return
+        }
+        #expect(ids(.list(widgets)) == ["c", "b", "a"])
+    }
+
+    @Test("swap über zwei Listen wirkt mit in=/field= auf verschachtelte Listen")
+    func swapAcrossListsWithLocatorOperatesOnNestedLists() {
+        let entryA = Value.record(Record([("id", .string("page-a")), ("widgets", list(["a1", "a2"]))]))
+        let entryB = Value.record(Record([("id", .string("page-b")), ("widgets", list(["b1", "b2"]))]))
+        let a = Value.list([entryA])
+        let b = Value.list([entryB])
+        let locator = ListLocator(entry: .index(0), field: "widgets")
+
+        let result = ListOperations.swap(a, .index(0), b, .index(1), locator: locator)
+        let (newA, newB) = try! result.get()
+
+        guard case .list(let itemsA) = newA, case .record(let recordA) = itemsA[0], case .list(let widgetsA)? = recordA["widgets"] else {
+            Issue.record("expected nested widgets in a")
+            return
+        }
+        guard case .list(let itemsB) = newB, case .record(let recordB) = itemsB[0], case .list(let widgetsB)? = recordB["widgets"] else {
+            Issue.record("expected nested widgets in b")
+            return
+        }
+        #expect(ids(.list(widgetsA)) == ["b2", "a2"])
+        #expect(ids(.list(widgetsB)) == ["b1", "a1"])
+    }
+
+    @Test("swap mit ungültigem Locator-Feld ist eine Warnung ohne Absturz")
+    func swapWithInvalidLocatorFieldFails() {
+        let entry = Value.record(Record([("id", .string("page")), ("widgets", .string("not a list"))]))
+        let base = Value.list([entry])
+        let locator = ListLocator(entry: .index(0), field: "widgets")
+
+        let result = ListOperations.swap(base, .index(0), .index(1), locator: locator)
+        #expect(throws: (any Error).self) { try result.get() }
+    }
 }

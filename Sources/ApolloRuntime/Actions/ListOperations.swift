@@ -40,19 +40,20 @@ public enum ListOperations {
         at sourceKey: ListKey,
         to destination: Value,
         index: Int,
+        locator: ListLocator = ListLocator(),
         span: SourceSpan = .synthetic()
     ) -> Result<(source: Value, destination: Value), Diagnostic> {
-        extractList(source, span: span).flatMap { sourceItems in
-            resolveIndex(sourceKey, in: sourceItems, span: span).flatMap { sourceIndex in
-                extractList(destination, span: span).flatMap { destinationItems in
-                    guard index >= 0, index <= destinationItems.count else {
-                        return .failure(outOfRange("move-to target", index, upTo: destinationItems.count, span: span))
+        locate(source, locator: locator, span: span).flatMap { located in
+            resolveIndex(sourceKey, in: located.items, span: span).flatMap { sourceIndex in
+                locate(destination, locator: locator, span: span).flatMap { destinationLocated in
+                    guard index >= 0, index <= destinationLocated.items.count else {
+                        return .failure(outOfRange("move-to target", index, upTo: destinationLocated.items.count, span: span))
                     }
-                    var newSource = sourceItems
-                    let moved = newSource.remove(at: sourceIndex)
-                    var newDestination = destinationItems
-                    newDestination.insert(moved, at: index)
-                    return .success((source: .list(newSource), destination: .list(newDestination)))
+                    var newSourceItems = located.items
+                    let moved = newSourceItems.remove(at: sourceIndex)
+                    var newDestinationItems = destinationLocated.items
+                    newDestinationItems.insert(moved, at: index)
+                    return .success((source: located.rebuild(newSourceItems), destination: destinationLocated.rebuild(newDestinationItems)))
                 }
             }
         }
@@ -62,14 +63,15 @@ public enum ListOperations {
         _ value: Value,
         _ keyA: ListKey,
         _ keyB: ListKey,
+        locator: ListLocator = ListLocator(),
         span: SourceSpan = .synthetic()
     ) -> Result<Value, Diagnostic> {
-        extractList(value, span: span).flatMap { items in
-            resolveIndex(keyA, in: items, span: span).flatMap { indexA in
-                resolveIndex(keyB, in: items, span: span).map { indexB in
-                    var newItems = items
+        locate(value, locator: locator, span: span).flatMap { located in
+            resolveIndex(keyA, in: located.items, span: span).flatMap { indexA in
+                resolveIndex(keyB, in: located.items, span: span).map { indexB in
+                    var newItems = located.items
                     newItems.swapAt(indexA, indexB)
-                    return .list(newItems)
+                    return located.rebuild(newItems)
                 }
             }
         }
@@ -80,18 +82,19 @@ public enum ListOperations {
         _ keyA: ListKey,
         _ b: Value,
         _ keyB: ListKey,
+        locator: ListLocator = ListLocator(),
         span: SourceSpan = .synthetic()
     ) -> Result<(a: Value, b: Value), Diagnostic> {
-        extractList(a, span: span).flatMap { itemsA in
-            resolveIndex(keyA, in: itemsA, span: span).flatMap { indexA in
-                extractList(b, span: span).flatMap { itemsB in
-                    resolveIndex(keyB, in: itemsB, span: span).map { indexB in
-                        var newA = itemsA
-                        var newB = itemsB
+        locate(a, locator: locator, span: span).flatMap { locatedA in
+            resolveIndex(keyA, in: locatedA.items, span: span).flatMap { indexA in
+                locate(b, locator: locator, span: span).flatMap { locatedB in
+                    resolveIndex(keyB, in: locatedB.items, span: span).map { indexB in
+                        var newA = locatedA.items
+                        var newB = locatedB.items
                         let temp = newA[indexA]
                         newA[indexA] = newB[indexB]
                         newB[indexB] = temp
-                        return (a: .list(newA), b: .list(newB))
+                        return (a: locatedA.rebuild(newA), b: locatedB.rebuild(newB))
                     }
                 }
             }
@@ -104,33 +107,44 @@ public enum ListOperations {
         span: SourceSpan,
         transform: ([Value]) -> Result<[Value], Diagnostic>
     ) -> Result<Value, Diagnostic> {
+        locate(value, locator: locator, span: span).flatMap { located in
+            transform(located.items).map(located.rebuild)
+        }
+    }
+
+    private static func locate(
+        _ value: Value,
+        locator: ListLocator,
+        span: SourceSpan
+    ) -> Result<(items: [Value], rebuild: ([Value]) -> Value), Diagnostic> {
         guard let entryKey = locator.entry else {
-            return extractList(value, span: span).flatMap { items in
-                transform(items).map { .list($0) }
+            return extractList(value, span: span).map { items in
+                (items, { .list($0) })
             }
         }
         return extractList(value, span: span).flatMap { items in
             resolveIndex(entryKey, in: items, span: span).flatMap { index in
-                guard case .record(var record) = items[index] else {
+                guard case .record(let record) = items[index] else {
                     return .failure(Diagnostic(.warning, "list locator entry is not a record", span: span))
                 }
                 if let field = locator.field {
                     let fieldValue = record[field] ?? .list([])
-                    return extractList(fieldValue, span: span).flatMap { fieldItems in
-                        transform(fieldItems).map { newFieldItems in
-                            record[field] = .list(newFieldItems)
+                    return extractList(fieldValue, span: span).map { fieldItems in
+                        (fieldItems, { newFieldItems in
+                            var newRecord = record
+                            newRecord[field] = .list(newFieldItems)
                             var newItems = items
-                            newItems[index] = .record(record)
+                            newItems[index] = .record(newRecord)
                             return .list(newItems)
-                        }
+                        })
                     }
                 }
-                return extractList(items[index], span: span).flatMap { entryItems in
-                    transform(entryItems).map { newEntryItems in
+                return extractList(items[index], span: span).map { entryItems in
+                    (entryItems, { newEntryItems in
                         var newItems = items
                         newItems[index] = .list(newEntryItems)
                         return .list(newItems)
-                    }
+                    })
                 }
             }
         }

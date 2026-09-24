@@ -133,6 +133,37 @@ struct ProviderHostTests {
         #expect(events.first?.0 == "apps.launched")
     }
 
+    @Test("Fehlschlagender Provider-Start warnt, hängt nicht und lässt die Nachfrage konsistent")
+    func failingProviderStartWarnsWithoutHanging() {
+        let (store, scheduler, host) = makeHost()
+        let provider = StubProvider(id: "perf")
+        provider.failOnStart = true
+        host.register(provider)
+        var warnings: [Diagnostic] = []
+        host.onWarning = { warnings.append($0) }
+
+        let token = store.subscribe(DependencyPath("perf", ["cpu"])) {}
+        scheduler.runPending()
+
+        #expect(provider.startCount == 1)
+        #expect(warnings.count == 1)
+        #expect(host.runningProviderCount == 1)
+        #expect(store.demandedPaths(root: "perf") == [DependencyPath("perf", ["cpu"])])
+
+        store.unsubscribe(token)
+        scheduler.runPending()
+        #expect(provider.stopCount == 1)
+        #expect(host.runningProviderCount == 0)
+        #expect(store.demandedPaths(root: "perf").isEmpty)
+
+        let secondToken = store.subscribe(DependencyPath("perf", ["cpu"])) {}
+        scheduler.runPending()
+        #expect(provider.startCount == 2)
+        #expect(host.runningProviderCount == 1)
+        store.unsubscribe(secondToken)
+        scheduler.runPending()
+    }
+
     @Test("Zähler laufender Provider für apollo stats")
     func runningProviderCountReflectsState() {
         let (store, scheduler, host) = makeHost()
