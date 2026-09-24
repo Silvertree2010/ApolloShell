@@ -40,6 +40,7 @@ enum CommonProperties {
     static let elementProperties: [PropertySchema] = baseline + [dragValue]
 
     static let surfaceCommon: [PropertySchema] = [
+        PropertySchema(name: "override", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "ersetzt eine gleichnamige Oberfläche aus einer eingebundenen Datei."),
         PropertySchema(name: "screen", type: .string, defaultValue: .null, allowsExpression: true, doc: "auf welchem Bildschirm es Instanzen gibt."),
         PropertySchema(name: "anchor", type: .enumeration(["top", "bottom", "left", "right", "top-left", "top-right", "bottom-left", "bottom-right", "center", "fill"]), defaultValue: .string("center"), doc: "woran die Oberfläche klebt."),
         PropertySchema(name: "area", type: .enumeration(["full", "below-menubar", "visible"]), defaultValue: .string("below-menubar"), doc: "Bezugsrechteck der Verankerung."),

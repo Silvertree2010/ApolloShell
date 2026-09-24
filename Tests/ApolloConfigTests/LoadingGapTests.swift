@@ -131,4 +131,15 @@ struct LoadingGapTests {
         #expect(invalid.map(\.message) == ["unknown menu source 'app-window'"])
         #expect(invalid.first?.help == "did you mean 'app-windows'?")
     }
+
+    @Test("override=#true ist an Oberflaechen erlaubt")
+    func overrideOnSurfaces() {
+        let diagnostics = SchemaStageScopeTests.all("""
+        panel "bar" {
+        }
+        panel "bar" override=#true {
+        }
+        """)
+        #expect(diagnostics.isEmpty)
+    }
 }
