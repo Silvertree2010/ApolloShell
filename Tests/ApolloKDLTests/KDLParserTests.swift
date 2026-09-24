@@ -151,6 +151,15 @@ struct KDLParserTests {
         #expect(error.message.contains("64"))
     }
 
+    @Test("leerer Kinderblock auf Ebene 64 ist erlaubt, ein Knoten auf Ebene 65 nicht")
+    func depthLimitEmptyBlock() throws {
+        let okEmptyBlock = String(repeating: "n { ", count: 63) + "n {}" + String(repeating: " }", count: 63)
+        #expect(try parse(okEmptyBlock).first != nil)
+        let deepNode = String(repeating: "n { ", count: 63) + "n { m }" + String(repeating: " }", count: 63)
+        let error = try #require(parseError(deepNode))
+        #expect(error.message.contains("64"))
+    }
+
     @Test("nie geschlossene Konstrukte enden mit Fehler", arguments: [
         "/* x", "n /* /* */", "n #\"abc", "n \"abc", "n \"\"\"\nx", "n {", "n { a {",
     ])

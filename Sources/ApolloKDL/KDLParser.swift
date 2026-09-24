@@ -47,6 +47,7 @@ struct KDLParser {
             semaphore.signal()
         }
         thread.stackSize = 16 << 20
+        thread.qualityOfService = Thread.current.qualityOfService
         thread.start()
         semaphore.wait()
         switch box.value! {
@@ -132,6 +133,9 @@ struct KDLParser {
             if byte == UInt8(ascii: "}") {
                 if insideChildren { return nodes }
                 throw KDLSyntaxError(message: "unexpected '}' without a matching '{'", start: index, end: index + 1)
+            }
+            guard depth <= KDLLimits.maxDepth else {
+                throw KDLSyntaxError(message: "nodes are nested deeper than \(KDLLimits.maxDepth) levels", start: index, end: index + 1)
             }
             if let node = try parseNode(depth: depth, insideChildren: insideChildren) {
                 nodes.append(node)
@@ -246,9 +250,6 @@ struct KDLParser {
 
     mutating func parseChildren(depth: Int) throws(KDLSyntaxError) -> [KDLNode] {
         let open = index
-        guard depth < KDLLimits.maxDepth else {
-            throw KDLSyntaxError(message: "nodes are nested deeper than \(KDLLimits.maxDepth) levels", start: open, end: open + 1)
-        }
         index += 1
         let children = try parseNodes(depth: depth + 1, insideChildren: true)
         guard source.byte(at: index) == UInt8(ascii: "}") else {
