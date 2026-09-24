@@ -257,14 +257,15 @@ define "popout-bluetooth" {
         }
         when "{(bluetooth.devices | count) > 0}" {
             column class="popout-card popout-devices" {
-                each device in="{bluetooth.devices}" key="{device.id}" {
+                each device in="{bluetooth.devices}" key="{device.name}" {
                     row class="popout-device" {
                         icon "{device.symbol}" fallback="headphones" class="popout-device-glyph"
                         text "{device.name}" class="popout-device-name" lines=1 truncate="tail"
                         spacer
-                        each level in="{device.batteries}" key="{level.kind}" {
-                            text "{level.label}{level.percent | percent}" class="popout-device-battery {level.percent < 0.2 ? 'low' : ''}"
-                        }
+                        use "popout-device-battery" label="" level="{device.battery.main}"
+                        use "popout-device-battery" label="L" level="{device.battery.left}"
+                        use "popout-device-battery" label="R" level="{device.battery.right}"
+                        use "popout-device-battery" label="Case" level="{device.battery.case}"
                     }
                 }
             }
@@ -272,6 +273,17 @@ define "popout-bluetooth" {
         button class="popout-link" {
             on-click { bluetooth.open-settings; set "status-popout" "" }
             text "Bluetooth Settings…"
+        }
+    }
+}
+
+define "popout-device-battery" {
+    param "label"
+    param "level"
+    when "{level != null}" {
+        row class="popout-device-battery-part" {
+            when "{label != ''}" { text "{label}" class="popout-device-battery-label" }
+            text "{level | percent}" class="popout-device-battery {level < 0.2 ? 'low' : ''}"
         }
     }
 }

@@ -6,7 +6,37 @@ import ApolloRuntime
 
 @MainActor
 public enum FixtureFieldCheck {
+    public struct Session {
+        public let runtime: ShellRuntime
+        public let vars: VarStore
+        public let flush: () -> Void
+        let sink: FieldCheckSink
+
+        public var diagnostics: [Diagnostic] { sink.diagnostics }
+    }
+
     public static func run(_ ir: ConfigIR, fixture: ProviderFixture, registry: SchemaRegistry = .builtin, screens: [String] = ["main"]) -> [Diagnostic] {
+        let session = session(ir, fixture: fixture, registry: registry, screens: screens)
+        let runtime = session.runtime
+        let vars = session.vars
+        let flush = session.flush
+        let variations = variations(ir)
+        for surface in ir.surfaces {
+            runtime.open(surface.id, screenKey: nil)
+            flush()
+            for (name, value) in variations {
+                guard vars.set(name, value) else { continue }
+                flush()
+                vars.reset(name)
+                flush()
+            }
+            runtime.close(surface.id)
+            flush()
+        }
+        return session.diagnostics
+    }
+
+    public static func session(_ ir: ConfigIR, fixture: ProviderFixture, registry: SchemaRegistry = .builtin, screens: [String] = ["main"]) -> Session {
         let sink = FieldCheckSink()
         let now = fixtureNow(fixture)
         let context = FilterContext(
@@ -40,20 +70,7 @@ public enum FixtureFieldCheck {
         }
         runtime.apply(ir, persisted: [:], screens: screens, shell: shellRecord(registry), writer: nil)
         flush()
-        let variations = variations(ir)
-        for surface in ir.surfaces {
-            runtime.open(surface.id, screenKey: nil)
-            flush()
-            for (name, value) in variations {
-                guard vars.set(name, value) else { continue }
-                flush()
-                vars.reset(name)
-                flush()
-            }
-            runtime.close(surface.id)
-            flush()
-        }
-        return sink.diagnostics
+        return Session(runtime: runtime, vars: vars, flush: flush, sink: sink)
     }
 
     public static func variations(_ ir: ConfigIR) -> [(String, Value)] {

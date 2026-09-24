@@ -103,6 +103,8 @@
 .popout-capsule.on { background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
 .popout-device { gap: 8px; align-items: center; }
 .popout-device-battery.low { color: -apple-system-red; }
+.popout-device-battery-part { gap: 3px; }
+.popout-device-battery-label { font-size: 11px; font-weight: 500; opacity: 0.6; }
 .popout-battery-percent { font-size: 34px; font-weight: 700; }
 .popout-battery-bolt { color: var(--apollo-accent-color, -apple-system-control-accent); }
 .popout-link { padding: 6px 10px; border-radius: 8px; background: rgb(from -apple-system-label r g b / 0.08); }
@@ -147,6 +149,7 @@
 .card-clock-hour, .card-clock-minute { font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .card-calendar-day.today { border-radius: 9999px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
 .card-calendar-day.outside { opacity: 0.35; }
+.card-calendar-weekday { font-size: 11px; font-weight: 600; opacity: 0.6; }
 .card-resource-ring { width: 64px; height: 64px; transition: value 600ms ease-out; }
 .card-media-artwork { border-radius: var(--apollo-card-radius, 14px); }
 .card-media-progress { -apollo-sweep-angle: 180deg; transition: value 600ms emphasized; }

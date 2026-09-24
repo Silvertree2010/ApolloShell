@@ -9,8 +9,8 @@ define "card-weather" {
                     icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph card-weather-glyph"
                     column class="card-weather-text" {
                         text "{weather.current.temperature | temperature}" class="card-weather-temperature"
-                        when "{card.show-condition}" { text "{weather.current.condition}" class="card-weather-condition" }
-                        when "{card.show-range}" { text "{weather.today.high | temperature} / {weather.today.low | temperature}" class="card-weather-range" }
+                        when "{card.show-condition}" { text "{weather.current.description}" class="card-weather-condition" }
+                        when "{card.show-range && weather.today != null}" { text "H:{weather.today.max | temperature} L:{weather.today.min | temperature}" class="card-weather-range" }
                     }
                 }
             }
@@ -63,7 +63,7 @@ define "card-calendar" {
             spacer
             button class="card-calendar-month" {
                 on-click { set "calendar-offset" 0 }
-                text "{(clock.now | month-grid var.calendar-offset card.first-weekday).title}" class="card-calendar-title"
+                text "{((clock.now | month-grid var.calendar-offset card.first-weekday) | at 1 | first).date | date 'MMMM yyyy'}" class="card-calendar-title"
             }
             spacer
             button class="card-calendar-arrow" tooltip="Next Month" {
@@ -72,10 +72,14 @@ define "card-calendar" {
             }
         }
         grid columns="{card.show-week-numbers ? 8 : 7}" class="card-calendar-grid" {
-            each week in="{(clock.now | month-grid var.calendar-offset card.first-weekday).weeks}" key="{week.number}" {
-                when "{card.show-week-numbers}" { text "{week.number}" class="card-calendar-week" }
-                each day in="{week.days}" key="{day.date}" {
-                    text "{day.day}" class="card-calendar-day {day.today ? 'today' : ''} {day.outside ? 'outside' : ''}"
+            when "{card.show-week-numbers}" { text "Wk" class="card-calendar-week" }
+            each weekday in="{clock.now | month-grid var.calendar-offset card.first-weekday | first}" key="{weekday.weekday}" {
+                text "{weekday.date | date 'EEEEEE'}" class="card-calendar-weekday"
+            }
+            each week in="{clock.now | month-grid var.calendar-offset card.first-weekday}" key="{(week | first).week}" {
+                when "{card.show-week-numbers}" { text "{(week | first).week}" class="card-calendar-week" }
+                each day in="{week}" key="{day.date}" {
+                    text "{day.day}" class="card-calendar-day {day.today ? 'today' : ''} {!day.in-month ? 'outside' : ''}"
                 }
             }
         }

@@ -3,7 +3,7 @@ import Foundation
 import CoreGraphics
 import ApolloBase
 import ApolloConfig
-import ApolloRuntime
+@testable import ApolloRuntime
 import ApolloShellCore
 @testable import ApolloProviders
 
@@ -105,5 +105,61 @@ struct FixtureFieldCheckTests {
         }
         #expect(Self.keys(first["battery"]) == Self.keys(real["battery"]))
         #expect(Self.keys(fixture.values["screens"]?["list"]) == Self.keys(ScreensProvider.record(FakeScreensSource.builtin, index: 0)))
+    }
+
+    @Test("Default-Config und launcher-only lesen keinen Schlüssel, den die Provider nicht liefern")
+    func defaultConfigsReadOnlyExistingFields() throws {
+        let fixture = ProviderFixture.load(Self.fixtureURL)
+        for id in ["apolloshell-default", "launcher-only"] {
+            let result = Self.builtin(id)
+            let ir = try #require(result.ir, "\(result.diagnostics.map(\.message))")
+            let findings = FixtureFieldCheck.run(ir, fixture: fixture)
+            let lines = findings.map { "\($0.span.map { "\($0.file.split(separator: "/").suffix(2).joined(separator: "/")):\($0.start.line)" } ?? "") \($0.message)" }
+            #expect(lines == [], "\(id)")
+        }
+    }
+
+
+    static func texts(_ roots: [ElementInstance]) -> [String] {
+        var out: [String] = []
+        var stack = Array(roots.reversed())
+        while let element = stack.popLast() {
+            if element.kind == "text", let first = element.arguments.first {
+                switch first.value {
+                case .string(let text): out.append(text)
+                case .number(let number): out.append(number == number.rounded() ? String(Int(number)) : String(number))
+                default: out.append("\(first.value)")
+                }
+            }
+            for slot in element.slotChildren.values.reversed() { stack.append(contentsOf: slot.reversed()) }
+            stack.append(contentsOf: element.children.reversed())
+        }
+        return out
+    }
+
+    @Test("Wetter, Kalender und Bluetooth zeigen die Fixture-Werte")
+    func surfacesShowFixtureValues() throws {
+        let fixture = ProviderFixture.load(Self.fixtureURL)
+        let ir = try #require(Self.builtin("apolloshell-default").ir)
+        let session = FixtureFieldCheck.session(ir, fixture: fixture)
+        session.runtime.open("dashboard", screenKey: nil)
+        session.flush()
+        let overview = Self.texts(try #require(session.runtime.surface("dashboard", screenKey: "main")).root)
+        #expect(session.vars.set("dashboard-tab", .string("weather")))
+        session.flush()
+        let weather = Self.texts(try #require(session.runtime.surface("dashboard", screenKey: "main")).root)
+        #expect(session.vars.set("status-popout", .string("bluetooth")))
+        session.flush()
+        let sidebar = Self.texts(try #require(session.runtime.surface("sidebar", screenKey: "main")).root)
+        #expect(overview.contains("Partly Cloudy") && overview.contains("H:17° L:8°"))
+        let calendar = try #require(overview.firstIndex(of: "September 2026"))
+        #expect(Array(overview[calendar...].prefix(9)) == ["September 2026", "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su", "31"])
+        #expect(overview[calendar...].filter { $0 == "30" }.count == 1)
+        for text in ["Feels like 12° · H:17° L:8°", "Weather data by Open-Meteo.com", "62%", "07:18", "11 km/h", "19:16", "Now", "Thu", "15°", "6°"] {
+            #expect(weather.contains(text), "\(text)")
+        }
+        let airpods = try #require(sidebar.firstIndex(of: "AirPods Pro"))
+        #expect(Array(sidebar[airpods...].prefix(9)) == ["AirPods Pro", "L", "80%", "R", "15%", "Case", "55%", "Magic Keyboard", "64%"])
+        #expect(session.diagnostics.map(\.message) == [])
     }
 }

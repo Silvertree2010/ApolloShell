@@ -71,8 +71,8 @@ define "settings-module-summary" {
     switch "{module.kind}" {
         case "spaces" { text "{module.style == 'numbers' ? 'Numbers' : 'Dots'}" class="settings-row-detail" }
         case "dock" { text "{module.show-running ? 'Pinned and Running Apps' : 'Pinned Apps Only'} · {module.icon-size == 'small' ? 'Small' : (module.icon-size == 'large' ? 'Large' : 'Medium')}" class="settings-row-detail" }
-        case "clock" { text "{(['Time'] + (module.show-icon ? ['Icon'] : []) + (module.show-date ? ['Date'] : [])) | join ' · '}" class="settings-row-detail" }
-        case "status-icons" { text "{module.wifi || module.bluetooth || module.battery ? (((module.wifi ? ['Wi-Fi'] : []) + (module.bluetooth ? ['Bluetooth'] : []) + (module.battery ? ['Battery'] : [])) | join ' · ') : 'None chosen – invisible'}" class="settings-row-detail" }
+        case "clock" { text "Time{module.show-icon ? ' · Icon' : ''}{module.show-date ? ' · Date' : ''}" class="settings-row-detail" }
+        case "status-icons" { text "{module.wifi || module.bluetooth || module.battery ? (((module.wifi ? ' · Wi-Fi' : '') + (module.bluetooth ? ' · Bluetooth' : '') + (module.battery ? ' · Battery' : '')) | skip 3) : 'None chosen – invisible'}" class="settings-row-detail" }
         case "gap" { text "{module.height ?? 16 | clamp 4 96} pt" class="settings-row-detail" }
         case "app-button" { text "{(module.bundle-id ?? '') == '' ? 'No App Chosen Yet' : ((apps.all | where 'bundle-id' module.bundle-id | first).name ?? 'Not Installed')}" class="settings-row-detail" }
         case "battery" { text "{module.show-icon ? 'Icon and Percent' : 'Percent Only'}" class="settings-row-detail" }
