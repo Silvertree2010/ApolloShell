@@ -15,6 +15,7 @@ final class FakeWindow: HostWindow {
     var fittingSize = CGSize(width: 100, height: 50)
     var onCloseRequest: (@MainActor () -> Void)?
     var onKey: (@MainActor (String) -> Bool)?
+    var onResize: (@MainActor () -> Void)?
     var windowNumber = 1
     var spec: SurfaceWindowSpec
     var level: NSWindow.Level

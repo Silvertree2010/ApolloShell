@@ -10,6 +10,7 @@ protocol HostWindow: AnyObject {
     var fittingSize: CGSize { get }
     var onCloseRequest: (@MainActor () -> Void)? { get set }
     var onKey: (@MainActor (String) -> Bool)? { get set }
+    var onResize: (@MainActor () -> Void)? { get set }
     var windowNumber: Int { get }
     func apply(_ spec: SurfaceWindowSpec)
     func setLevel(_ level: NSWindow.Level)
@@ -142,6 +143,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     let stage: any WindowStage
     var onCloseRequest: (@MainActor () -> Void)?
     var onKey: (@MainActor (String) -> Bool)?
+    var onResize: (@MainActor () -> Void)?
 
     init(spec: SurfaceWindowSpec, content: AnyView, stage: any WindowStage = SystemStage.shared) {
         self.spec = spec
@@ -382,6 +384,10 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
 
     func windowDidResignKey(_ notification: Notification) {
         if spec.closeOn.contains(.focusLoss) { onCloseRequest?() }
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        onResize?()
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {

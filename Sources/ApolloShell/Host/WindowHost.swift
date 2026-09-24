@@ -197,6 +197,7 @@ final class WindowHost: SurfaceHosting {
         let id = surface.id, screenKey = surface.screenKey
         window.onCloseRequest = { [weak self] in self?.link?.close(id, screenKey: screenKey) }
         window.onKey = { [weak self] chord in self?.link?.keyPressed(chord, surfaceID: id, screenKey: screenKey) ?? false }
+        window.onResize = { [weak self] in self?.userResized(key) }
         controllers[key] = controller
         sync(key)
     }
@@ -235,6 +236,17 @@ final class WindowHost: SurfaceHosting {
             let local = CGPoint(x: point.x - frame.minX - controller.flyout.leading, y: frame.maxY - point.y - controller.flyout.top)
             controller.window.setIgnoresMouse(!(frame.contains(point) && hits.contains(local, surfaceKey: key)))
         }
+    }
+
+    private func userResized(_ key: String) {
+        guard let controller = controllers[key], controller.spec.kind == "window", controller.shown else { return }
+        let frame = controller.window.frame
+        guard frame != controller.openFrame else { return }
+        let resized = frame.size != controller.openFrame.size
+        controller.openFrame = frame
+        frames.publish(key, frame)
+        if resized { publishSize(controller.surface.id, controller.surface.screenKey, frame.size) }
+        if !attachSyncing.contains(key) { syncAttached(to: key) }
     }
 
     private func sync(_ key: String) {
