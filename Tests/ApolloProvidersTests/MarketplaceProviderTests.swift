@@ -48,7 +48,9 @@ final class MarketFake: @unchecked Sendable {
         themesAnswer = (200, Self.json(["themes": [Self.theme(), Self.theme(id: "bad", slug: "../x", name: "Bad")]]))
     }
 
-    static func theme(id: String = "t1", slug: String = "dusk", name: String = "Dusk", version: Int = 2) -> [String: Any] {
+    static let pictures = ":root {\n  --apollo-theme-name: \"Pics\";\n  --apollo-wallpaper: url(\"x.png\");\n}\n"
+
+    static func theme(id: String = "t1", slug: String = "dusk", name: String = "Dusk", version: Int = 2, css: String = css) -> [String: Any] {
         ["id": id, "slug": slug, "name": name, "description": "Warm", "author": "octo", "license": "CC0-1.0",
          "attribution": "", "version": version, "updatedAt": "2026-09-21T12:00:00Z", "css": css]
     }
@@ -85,8 +87,14 @@ final class MarketFake: @unchecked Sendable {
         case "POST /login/oauth/access_token": (200, Self.json(["access_token": "gho_ok"]))
         case "POST /api/v1/auth/github": (200, Self.json(["session": "s3cret", "user": ["id": "42", "login": "octo", "avatarURL": "", "isAdmin": true]]))
         case "GET /api/v1/me": (200, Self.json(["id": "42", "login": "octo", "avatarURL": "", "isAdmin": true]))
-        case "GET /api/v1/mine": (200, Self.json(["themes": [Self.theme().merging(["status": "rejected", "reason": "Copy", "liveVersion": 1]) { _, new in new }]]))
-        case "GET /api/v1/admin/queue": (200, Self.json(["items": [["theme": own, "ownerID": "7", "reports": [["reason": "spam", "at": "2026-09-22"]], "previousCSS": Self.css]]]))
+        case "GET /api/v1/mine": (200, Self.json(["themes": [
+            Self.theme().merging(["status": "rejected", "reason": "Copy", "liveVersion": 1]) { _, new in new },
+            Self.theme(id: "t9", slug: "pics", name: "Pics", css: Self.pictures).merging(["status": "pending", "reason": NSNull(), "liveVersion": NSNull()]) { _, new in new },
+        ]]))
+        case "GET /api/v1/admin/queue": (200, Self.json(["items": [
+            ["theme": own, "ownerID": "7", "reports": [["reason": "spam", "at": "2026-09-22"]], "previousCSS": Self.css],
+            ["theme": Self.theme(id: "t9", slug: "pics", name: "Pics", css: Self.pictures).merging(["status": "pending", "reason": NSNull(), "liveVersion": NSNull()]) { _, new in new }, "ownerID": "7", "reports": [], "previousCSS": NSNull()],
+        ]]))
         case "POST /api/v1/themes": (200, Self.json(own))
         case "PUT /api/v1/themes/t1": (200, Self.json(own.merging(["status": "published"]) { _, new in new }))
         case "POST /api/v1/themes/t1/report": (403, Self.json(["error": "rate_limited", "message": "Too many reports today."]))
@@ -273,6 +281,22 @@ struct MarketplaceProviderTests {
         #expect(setup.field("message") == .string("Dusk is updated."))
         try await setup.run("delete", [.string("t1")])
         #expect(setup.fake.requests.contains("DELETE /api/v1/themes/t1"))
+    }
+
+    @Test("mine and queue: only entries that pass the installer check keep their css for the preview")
+    func previewChecked() async throws {
+        let setup = try Setup()
+        setup.host.session = "s3cret"
+        try await setup.run("refresh")
+        guard case .list(let mine) = setup.field("mine"), case .list(let queue) = setup.field("queue") else { Issue.record("no lists"); return }
+        let css = { (list: [Value]) -> [String: Value] in
+            Dictionary(uniqueKeysWithValues: list.compactMap { value -> (String, Value)? in
+                guard case .record(let record) = value, case .string(let id) = record["id"] ?? .null else { return nil }
+                return (id, record["css"] ?? .null)
+            })
+        }
+        #expect(css(mine) == ["t1": .string(MarketFake.css), "t9": .string("")])
+        #expect(css(queue) == ["t1": .string(MarketFake.css), "t9": .string("")])
     }
 
     @Test("action errors land in error, report success in message")

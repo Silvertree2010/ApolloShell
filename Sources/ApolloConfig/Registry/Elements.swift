@@ -55,7 +55,7 @@ enum Elements {
             name: "theme-preview",
             category: .element,
             properties: CommonProperties.elementProperties + [
-                PropertySchema(name: "theme", type: .string, required: true, doc: "Theme-Kennung oder Marketplace-Eintrag."),
+                PropertySchema(name: "theme", type: .oneOf([.string, .record]), required: true, doc: "Theme-Kennung oder Record mit `css` (Marketplace-Eintrag, vorher wie ein installiertes Theme geprüft)."),
                 PropertySchema(name: "appearance", type: .enumeration(["light", "dark"]), defaultValue: .null, doc: "erzwungenes Erscheinungsbild der Vorschau."),
             ],
             handlers: CommonProperties.elementHandlers,

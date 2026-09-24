@@ -453,7 +453,7 @@ public final class MarketplaceProvider: BaseProvider {
         publish("local", .list(local.map(Self.localTheme)))
     }
 
-    static func fields(_ theme: MarketTheme) -> [(String, Value)] {
+    static func fields(_ theme: MarketTheme, css: String? = nil) -> [(String, Value)] {
         [
             ("id", .string(theme.id)),
             ("kind", .string("theme")),
@@ -465,7 +465,7 @@ public final class MarketplaceProvider: BaseProvider {
             ("license", .string(theme.license)),
             ("attribution", .string(theme.attribution)),
             ("updated", .string(theme.updatedAt)),
-            ("css", .string(theme.css)),
+            ("css", .string(css ?? theme.css)),
         ]
     }
 
@@ -482,8 +482,17 @@ public final class MarketplaceProvider: BaseProvider {
         }
     }
 
+    static func previewCSS(_ theme: MarketTheme) -> String {
+        do {
+            try MarketThemeInstaller.check(theme)
+            return theme.css
+        } catch {
+            return ""
+        }
+    }
+
     static func ownFields(_ own: MarketOwnTheme) -> [(String, Value)] {
-        fields(own.theme) + [
+        fields(own.theme, css: previewCSS(own.theme)) + [
             ("status", .string(statusName(own.status))),
             ("reason", ProviderValue.string(own.reason.flatMap { $0.isEmpty ? nil : $0 })),
             ("live-version", ProviderValue.number(own.liveVersion)),

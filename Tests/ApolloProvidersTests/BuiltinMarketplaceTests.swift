@@ -56,6 +56,12 @@ struct BuiltinMarketplaceTests {
         #expect(diagnostics.isEmpty, "\(diagnostics.map(\.message))")
     }
 
+    @Test("theme-preview theme= nimmt String oder Record (Fund 11-12)")
+    func themePreviewType() throws {
+        let property = try #require(SchemaRegistry.builtin.node("theme-preview")?.properties.first { $0.name == "theme" })
+        #expect(property.type == .oneOf([.string, .record]))
+    }
+
     @Test("Grösse aus CSS: 780×620, min 640×480, per #marketplace überschreibbar")
     func size() throws {
         let css = try String(contentsOf: Self.builtin.appendingPathComponent("marketplace.css"), encoding: .utf8)
