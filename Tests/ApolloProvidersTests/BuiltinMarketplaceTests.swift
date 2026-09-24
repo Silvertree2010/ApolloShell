@@ -56,6 +56,14 @@ struct BuiltinMarketplaceTests {
         #expect(diagnostics.isEmpty, "\(diagnostics.map(\.message))")
     }
 
+    @Test("marketplace.get und .update starten nichts (Entscheid 11-10)")
+    func installStartsNothing() throws {
+        for name in ["marketplace.get", "marketplace.update"] {
+            let action = try #require(SchemaRegistry.builtin.action(name))
+            #expect(!action.startsProgramsOrControlsApps, "\(name)")
+        }
+    }
+
     @Test("theme-preview theme= nimmt String oder Record (Fund 11-12)")
     func themePreviewType() throws {
         let property = try #require(SchemaRegistry.builtin.node("theme-preview")?.properties.first { $0.name == "theme" })

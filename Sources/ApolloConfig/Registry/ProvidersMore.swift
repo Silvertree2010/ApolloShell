@@ -244,8 +244,8 @@ enum ProvidersMore {
         ],
         actions: [
             S.action("marketplace.refresh", doc: "neu laden."),
-            S.action("marketplace.get", [S.arg("id", .string, doc: "Eintrag.")], doc: "installieren.", startsProgramsOrControlsApps: true),
-            S.action("marketplace.update", [S.arg("id", .string, doc: "Eintrag.")], doc: "aktualisieren.", startsProgramsOrControlsApps: true),
+            S.action("marketplace.get", [S.arg("id", .string, doc: "Eintrag.")], doc: "installieren."),
+            S.action("marketplace.update", [S.arg("id", .string, doc: "Eintrag.")], doc: "aktualisieren."),
             S.action("marketplace.use", [S.arg("id", .string, doc: "Eintrag.")], doc: "aktivieren."),
             S.action("marketplace.remove", [S.arg("id", .string, doc: "Eintrag.")], doc: "entfernen."),
             S.action("marketplace.sign-in", doc: "anmelden."),
