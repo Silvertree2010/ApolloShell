@@ -40,7 +40,7 @@ enum VarStage {
         if derived != nil, persist {
             diagnostics.append(Diagnostic(.error, "a derived 'var' (with 'from=') cannot persist", span: kdl.span))
         }
-        let defaultValue: ValueTemplate
+        var defaultValue: ValueTemplate
         if derived != nil {
             defaultValue = .scalar(CompiledValueBuilder.literal(.null, span: kdl.span))
         } else {
@@ -69,6 +69,9 @@ enum VarStage {
             }
         } else {
             type = inferredType(from: defaultValue)
+        }
+        if type == .list, case .record(let fields) = defaultValue, fields.isEmpty {
+            defaultValue = .list([])
         }
         return VarDecl(name: name, type: type, defaultValue: defaultValue, persist: persist, derived: derived, span: kdl.span)
     }

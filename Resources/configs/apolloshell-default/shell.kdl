@@ -1,7 +1,7 @@
 include "presets.kdl"
 
 var weather-source "open-meteo" persist=#true
-var weather-places "{[]}" type="list" persist=#true
+var weather-places type="list" persist=#true { }
 var weather-selected #null type="any" persist=#true
 var file-manager #null type="any" persist=#true
 var hide-apple-dock "{!shell.fresh-install}" persist=#true
