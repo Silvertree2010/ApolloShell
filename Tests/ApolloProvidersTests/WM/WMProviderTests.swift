@@ -48,16 +48,35 @@ struct WMProviderTests {
         #expect(harness.value("wm", "enabled") == .bool(true))
     }
 
-    @Test("proxy braucht Bildschirmaufnahme, smooth nicht")
-    func screenRecording() {
+    @Test("proxy ohne Bildschirmaufnahme faellt mit Warnung auf smooth zurueck und startet")
+    func screenRecording() throws {
         let engine = FakeWMEngine()
         engine.screenRecordingAllowed = false
         var proxy = WMSettings()
         proxy.resize = .proxy
-        let (_, _, provider) = make(engine, settings: proxy)
-        #expect(!provider.isEngineRunning)
-        provider.apply(WMSettings())
+        let (harness, _, provider) = make(engine, settings: proxy)
+        harness.demand("wm")
         #expect(provider.isEngineRunning)
+        #expect(harness.value("wm", "enabled") == .bool(true))
+        let started = try #require(engine.starts.first)
+        #expect(started.resize == .smooth)
+        #expect(provider.currentSettings.resize == .proxy)
+        let fallbacks = harness.warnings.filter { $0.severity == .warning && $0.message.contains("screen recording") }
+        #expect(fallbacks.count == 1)
+        var gapped = proxy
+        gapped.innerGap = 4
+        provider.apply(gapped)
+        #expect(engine.configures.last?.resize == .smooth)
+        #expect(harness.warnings.filter { $0.message.contains("screen recording") }.count == 1)
+    }
+
+    @Test("proxy mit Bildschirmaufnahme bleibt proxy, ohne Warnung")
+    func screenRecordingAllowed() throws {
+        var proxy = WMSettings()
+        proxy.resize = .proxy
+        let (harness, engine, _) = make(settings: proxy)
+        #expect(try #require(engine.starts.first).resize == .proxy)
+        #expect(!harness.warnings.contains { $0.message.contains("screen recording") })
     }
 
     @Test("Neue Einstellungen gehen an die laufende Engine")
