@@ -131,11 +131,11 @@ enum SelfState {
 }
 
 extension ElementView {
-    static func needsInteraction(_ element: ElementInstance, styles: StyleResolver, reorder: Bool) -> Bool {
+    static func needsInteraction(_ element: ElementInstance, styles: StyleResolver, reorder: Bool, stateStyled: Bool = false) -> Bool {
         let ir = element.ir
         return !ir.handlers.isEmpty || !ir.accessibilityActions.isEmpty || ir.menu != nil || reorder
             || ir.properties["tooltip"] != nil || ir.properties["label"] != nil || element.kind == "button"
-            || !styles.selectorPseudo.isDisjoint(with: [.hover, .active])
+            || stateStyled
             || SelfState.uses(element, "hover") || SelfState.uses(element, "pressed")
     }
 }

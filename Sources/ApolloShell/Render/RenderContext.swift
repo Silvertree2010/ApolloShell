@@ -121,12 +121,14 @@ struct ElementView: View {
             let press = SelfState.uses(element, "pressed")
                 || styles.sensitive(to: .active, subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
             let inlineStyle = element.ir.properties["style"] != nil
+            let filters = inlineStyle || styles.declares("filter", subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
+            let animated = inlineStyle || styles.declares("animation", subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
             ElementRenderers.view(for: element, style: style, scope: inner)
-                .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: inlineStyle))
+                .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: filters))
                 .modifier(HitRegionMarker(active: !mouse.isEmpty || StyleValues.visibleBackground(style), identity: element.identity))
                 .modifier(InteractionIfNeeded(element: element, context: scope.context, config: mouse, hover: hover, press: press,
-                                              needed: Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil)))
-                .modifier(Motion(element: element, style: style, context: scope.context, dynamicInline: inlineStyle))
+                                              needed: Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil, stateStyled: hover || press)))
+                .modifier(Motion(element: element, style: style, context: scope.context, dynamicInline: animated))
                 .transformEnvironment(\.elementInteractive) { if StyleValues.keyword(style["pointer-events"]) == "none" { $0 = false } }
                 .layoutValue(key: ChildMetricsKey.self, value: ChildMetrics(style, spacer: spacer))
         }

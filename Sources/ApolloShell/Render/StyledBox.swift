@@ -26,7 +26,7 @@ struct StyledBox: ViewModifier {
             .overlay { BorderLayer(style: style, shape: shape) }
             .modifier(Clip(active: StyleValues.keyword(style["overflow"]) == "hidden", shape: shape))
             .modifier(FlyoutOverlay(layer: flyouts))
-            .modifier(Filters(style["filter"], enabled: dynamicInline || context.styles.declared.contains("filter")))
+            .modifier(Filters(style["filter"], enabled: dynamicInline))
             .opacity(StyleValues.number(style["opacity"]) ?? 1)
             .modifier(Transform(style["transform"]))
             .modifier(AnchorReport(id: anchorID))

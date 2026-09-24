@@ -74,6 +74,17 @@ final class StyleResolver {
         return resolve(flipped, ancestors: ancestors, parent: parent, inline: inline) != resolve(subject, ancestors: ancestors, parent: parent, inline: inline)
     }
 
+    func declares(_ property: String, _ subject: StyleSubject, ancestors: [StyleSubject], parent: ComputedStyle?, inline: String?) -> Bool {
+        guard declared.contains(property) else { return false }
+        let states: [PseudoState] = [[], .hover, .active, [.hover, .active]]
+        return states.contains { state in
+            var probe = subject
+            probe.pseudo.formUnion(state)
+            guard let value = resolve(probe, ancestors: ancestors, parent: parent, inline: inline)[property] else { return false }
+            return StyleValues.keyword(value) != "none"
+        }
+    }
+
     func resolve(_ subject: StyleSubject, ancestors: [StyleSubject], parent: ComputedStyle?, inline: String? = nil) -> ComputedStyle {
         let key = Key(subject: subject, ancestors: ancestors, parent: parent, inline: inline ?? "")
         lookups += 1

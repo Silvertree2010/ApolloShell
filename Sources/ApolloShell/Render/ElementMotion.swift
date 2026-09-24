@@ -14,7 +14,7 @@ struct Motion: ViewModifier {
     func body(content: Content) -> some View {
         let plan = MotionPlan(style, reduceMotion: reduceMotion)
         content
-            .modifier(RunningAnimation(spec: renderMode ? nil : plan.animation, enabled: dynamicInline || context.styles.declared.contains("animation")))
+            .modifier(RunningAnimation(spec: renderMode ? nil : plan.animation, enabled: dynamicInline))
             .modifier(ChangeAnimation(animation: plan.change, style: style))
             .modifier(Matched(id: element.property("match-id").plainText, fallback: element.identity.description,
                               enabled: element.ir.properties["match-id"] != nil, namespace: namespace))
