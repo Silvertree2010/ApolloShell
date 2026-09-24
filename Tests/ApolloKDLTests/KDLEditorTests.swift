@@ -92,6 +92,20 @@ struct KDLEditorTests {
         try expectText(last, Self.file(expectedLast))
     }
 
+    @Test("Entfernen des letzten Kindes lässt einen leeren Block", arguments: [
+        ("p {\n    x 1\n}", "p {\n}"),
+        ("p {\r\n    x 1\r\n}", "p {\r\n}"),
+        ("p {\n\tx 1\n}", "p {\n}"),
+        ("p {\n    /* c */\n    x 1\n}", "p {\n    /* c */\n}"),
+        ("  p {\n      x 1\n  }\n", "  p {\n  }\n"),
+    ] as [(String, String)])
+    func removeLastChild(text: String, expected: String) throws {
+        var editor = try Self.editor(text)
+        let parent = editor.document.nodes.count - 1
+        try editor.remove(at: [parent, 0])
+        try expectText(editor, expected)
+    }
+
     @Test("Einfügen nach einem Knoten auf eigener Zeile")
     func insertAfterOwnLine() throws {
         var editor = try Self.editor(Self.file(Self.lines))

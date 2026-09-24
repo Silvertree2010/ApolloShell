@@ -318,6 +318,47 @@ struct KDLEditorRandomTests {
         }
     }
 
+    static func expectedWindow(for operation: EditOperation, in nodes: [KDLNode], textLength: Int) -> Range<Int> {
+        switch operation {
+        case .replace(let path, _):
+            let old = RandomKDLFactory.node(at: path, in: nodes)
+            return old.span.start.offset..<old.span.end.offset
+        case .remove(let path):
+            return RandomKDLFactory.node(at: path, in: nodes).lineRange
+        case .insertAfter(let path, _):
+            return RandomKDLFactory.node(at: path, in: nodes).lineRange
+        case .insertInto(let parent, let index, _):
+            let siblings: [KDLNode]
+            if let parent {
+                siblings = RandomKDLFactory.node(at: parent, in: nodes).children ?? []
+            } else {
+                siblings = nodes
+            }
+            if index > 0 {
+                return RandomKDLFactory.node(at: (parent ?? []) + [index - 1], in: nodes).lineRange
+            }
+            if let first = siblings.first {
+                return first.lineRange
+            }
+            if let parent {
+                return RandomKDLFactory.node(at: parent, in: nodes).lineRange
+            }
+            return textLength..<textLength
+        }
+    }
+
+    static func unchangedOutside(before: String, after: String, window: Range<Int>) -> Bool {
+        let beforeBytes = Array(before.utf8)
+        let afterBytes = Array(after.utf8)
+        guard window.lowerBound >= 0, window.upperBound <= beforeBytes.count else { return false }
+        let prefixLength = window.lowerBound
+        let suffixLength = beforeBytes.count - window.upperBound
+        guard afterBytes.count >= prefixLength, afterBytes.count >= suffixLength else { return false }
+        let prefixMatches = afterBytes.prefix(prefixLength).elementsEqual(beforeBytes.prefix(prefixLength))
+        let suffixMatches = afterBytes.suffix(suffixLength).elementsEqual(beforeBytes.suffix(suffixLength))
+        return prefixMatches && suffixMatches
+    }
+
     static func run(sequences: Range<Int>, operations: Int, sabotage: Bool) -> [String] {
         var failures: [String] = []
         for sequence in sequences {
@@ -340,6 +381,7 @@ struct KDLEditorRandomTests {
                 let sabotaged = sabotage && step == 0
                 let operation = sabotaged ? EditOperation.insertInto(nil, 0, KDLNode(name: "sabotage")) : factory.operation(on: model)
                 let before = editor.text
+                let beforeNodes = editor.document.nodes
                 do {
                     try perform(operation, on: &editor)
                 } catch {
@@ -357,12 +399,17 @@ struct KDLEditorRandomTests {
                     failures.append("Folge \(sequence), Schritt \(step): Ergebnis weicht vom Modell ab nach \(operation)\nvorher:\n\(before)\nnachher:\n\(editor.text)")
                     break
                 }
+                let window = expectedWindow(for: operation, in: beforeNodes, textLength: before.utf8.count)
+                guard unchangedOutside(before: before, after: editor.text, window: window) else {
+                    failures.append("Folge \(sequence), Schritt \(step): Bytes ausserhalb des Fensters \(window) geändert nach \(operation)\nvorher:\n\(before)\nnachher:\n\(editor.text)")
+                    break
+                }
             }
         }
         return failures
     }
 
-    @Test("1000 zufällige Folgen enden in einer Datei, die parst und dem Modell entspricht")
+    @Test("1000 zufällige Folgen enden in einer Datei, die parst und dem Modell entspricht, und Bytes ausserhalb bleiben gleich")
     func thousandSequences() {
         let failures = Self.run(sequences: 0..<1000, operations: 5, sabotage: false)
         #expect(failures.isEmpty, "\(failures.count) Fehler, die ersten:\n\(failures.prefix(3).joined(separator: "\n\n"))")
@@ -373,5 +420,19 @@ struct KDLEditorRandomTests {
         let failures = Self.run(sequences: 0..<20, operations: 1, sabotage: true)
         #expect(failures.count == 20)
         #expect(failures.allSatisfy { $0.contains("weicht vom Modell ab") || $0.contains("parst nicht") || $0.contains("entspricht nicht") })
+    }
+
+    @Test("Messvorrichtung beweist sich: ein Byte ausserhalb des erwarteten Fensters fällt auf, auch wenn das Modell stimmt")
+    func detectsByteChangeOutsideExpectedWindow() throws {
+        let text = "a 1\n\nb 2\nc 3\n"
+        var editor = KDLEditor(try KDLDocument.parse(text, file: "zufall.kdl"))
+        let nodes = editor.document.nodes
+        let target = nodes[1]
+        var expected = nodes
+        expected.remove(at: 1)
+        let sabotagedRange = (target.lineRange.lowerBound - 1)..<target.lineRange.upperBound
+        try editor.commit(replacing: sabotagedRange, with: "", expected: expected)
+        #expect(KDLNode.areEquivalent(editor.document.nodes, expected))
+        #expect(!Self.unchangedOutside(before: text, after: editor.text, window: target.lineRange))
     }
 }
