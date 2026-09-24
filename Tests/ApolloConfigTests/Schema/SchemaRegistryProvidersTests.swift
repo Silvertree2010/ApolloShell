@@ -128,6 +128,18 @@ struct SchemaRegistryProvidersTests {
         }
     }
 
+    @Test("shell.set-login-item ist eine globale Aktion, login-item steht nur unter shell")
+    func loginItemLivesUnderShell() {
+        let registry = SchemaRegistry.builtin
+        #expect(registry.action("shell.set-login-item") != nil)
+        #expect(registry.actions["shell.set-login-item"] != nil)
+        let permissions = registry.providers["permissions"]
+        #expect(permissions?.actions.contains { $0.name == "shell.set-login-item" } == false)
+        #expect(permissions?.fields.contains { $0.path == ["shell", "login-item"] } == false)
+        let shell = ContextRoots.all.first { $0.name == "shell" }
+        #expect(shell?.fields.contains { $0.path == ["login-item"] } == true)
+    }
+
     @Test("shell-Kontext-Wurzel beschreibt configs, themes und update mit verschachtelten Feldern statt opaker Listen/Records")
     func shellContextRootHasDetailedNestedFields() {
         guard let shell = ContextRoots.all.first(where: { $0.name == "shell" }) else {

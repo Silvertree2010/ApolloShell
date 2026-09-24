@@ -214,12 +214,10 @@ enum ProvidersMore {
             S.field("accessibility", .bool, update: .poll(seconds: 2), doc: "Bedienungshilfen erlaubt."),
             S.field("automation", .bool, nullable: true, update: .poll(seconds: 2), doc: "Automation erlaubt."),
             S.field("screen-recording", .bool, update: .poll(seconds: 2), doc: "Bildschirmaufnahme erlaubt."),
-            S.field("shell.login-item", .bool, update: .push, doc: "ob die Shell als Anmeldeobjekt läuft."),
         ],
         actions: [
             S.action("permissions.request-accessibility", doc: "Bedienungshilfen anfragen."),
             S.action("permissions.open", [S.arg("kind", .enumeration(["accessibility", "automation", "screen-recording"]), doc: "Bereich.")], doc: "Systemeinstellungen zur Berechtigung öffnen."),
-            S.action("shell.set-login-item", [S.arg("value", .bool, doc: "Zustand.")], doc: "Anmeldeobjekt setzen."),
         ],
         doc: "Berechtigungen."
     )
