@@ -268,8 +268,7 @@ final class LiveShell: WindowHostLink {
         marketplace.onThemesChanged = { [weak self] in self?.reload() }
         let system = SystemProviders(directory: paths.applicationSupport, socketPath: socketPath, polls: [], listens: [], marketplace: marketplace, clock: DispatchRuntimeClock())
         self.system = system
-        let media = system.providers.compactMap { $0 as? MediaProvider }.first
-        providerImages.data = { ref in ref.source == "media" ? media?.artworkData(ref.id) : nil }
+        providerImages.data = Self.imageData(system.providers)
         providerIDs = system.providers.map(\.schema.id)
         assembly.install(system.providers)
         let wm = system.wm
@@ -618,6 +617,11 @@ final class LiveShell: WindowHostLink {
     func variable(_ name: String) throws -> Value {
         guard let vars = assembly?.vars, vars.isDeclared(name) else { throw ShellControlError("no var named '\(name)'") }
         return vars.value(name)
+    }
+
+    static func imageData(_ providers: [any ProviderInstance]) -> @MainActor (ImageRef) -> Data? {
+        let media = providers.compactMap { $0 as? MediaProvider }.first
+        return { ref in ref.source == "media" ? media?.artworkData(ref.id) : nil }
     }
 
     func setVariable(_ name: String, _ value: Value) throws {
