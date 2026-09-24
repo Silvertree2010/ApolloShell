@@ -27,9 +27,9 @@ fixture {
     }
     apps {
         dock {
-            - bundle-id="com.apple.finder" name="Finder" running=#true section="file-manager"
-            - bundle-id="com.apple.Safari" name="Safari" running=#true active=#true dock-pinned=#true section="pinned"
-            - bundle-id="com.apple.mail" name="Mail" running=#false dock-pinned=#true section="pinned" badge="3"
+            - bundle-id="com.apple.finder" name="Finder" running=#true section="file-manager" active=#false hidden=#false launching=#false badge=#null
+            - bundle-id="com.apple.Safari" name="Safari" running=#true active=#true dock-pinned=#true section="pinned" hidden=#false launching=#false badge=#null
+            - bundle-id="com.apple.mail" name="Mail" running=#false dock-pinned=#true section="pinned" badge="3" active=#false hidden=#false launching=#false
         }
     }
 }
