@@ -237,4 +237,42 @@ struct MenuReorderTests {
         #expect(list.preview == nil)
         #expect(list.ordered(list.container.children).map { $0.entryKey } == list.keys)
     }
+
+    @Test("reorderable: App-Kennung kommt vom app-icon im Eintrag, nicht aus einem Punkt im Schlüssel")
+    func reorderAppFromEntry() throws {
+        let config = """
+        panel "t" anchor="left" {
+            reorderable axis="horizontal" id="list" {
+                each item in="{['notes.txt', 'mod.weather', 'x']}" key="{item}" {
+                    stack class="cell" {
+                        when "{item == 'x'}" {
+                            app-icon "com.apple.finder"
+                        }
+                    }
+                }
+            }
+        }
+        """
+        let mounted = try Mounted.mount(config, css: Self.reorderCSS)
+        let list = try #require(mounted.session.context.reorders.values.first)
+        let apps = list.container.children.enumerated().map { list.entry(for: $0.element, index: $0.offset).app }
+        #expect(apps == [nil, nil, "com.apple.finder"])
+    }
+
+    @Test("reorderable: App-Kennung kommt aus item.bundle-id, auch wenn der Schlüssel kein Punkt hat")
+    func reorderAppFromItem() throws {
+        let config = """
+        panel "t" anchor="left" {
+            reorderable axis="horizontal" id="list" {
+                each app in="{apps.dock}" key="{app.name}" {
+                    stack class="cell"
+                }
+            }
+        }
+        """
+        let mounted = try Mounted.mount(config, css: Self.reorderCSS)
+        let list = try #require(mounted.session.context.reorders.values.first)
+        let apps = list.container.children.enumerated().map { list.entry(for: $0.element, index: $0.offset).app }
+        #expect(apps == ["com.apple.finder", "com.apple.Safari", "com.apple.mail"])
+    }
 }

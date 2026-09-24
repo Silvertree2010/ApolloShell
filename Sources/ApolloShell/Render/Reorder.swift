@@ -60,9 +60,22 @@ final class ReorderCoordinator {
 
     func entry(for child: ElementInstance, index: Int) -> ReorderEntry {
         let key = child.entryKey ?? .number(Double(index))
-        var app: String?
-        if case .string(let id) = key, id.contains(".") { app = id }
-        return ReorderEntry(token: prefix + key.stringified, key: key, index: index, app: app, enabled: enabled, coordinator: self)
+        return ReorderEntry(token: prefix + key.stringified, key: key, index: index, app: itemApp(child) ?? Self.app(in: child), enabled: enabled, coordinator: self)
+    }
+
+    private func itemApp(_ child: ElementInstance) -> String? {
+        for case .each(let each) in container.ir.children {
+            if case .record(let record)? = child.scope[each.variable], case .string(let id)? = record["bundle-id"], !id.isEmpty { return id }
+        }
+        return nil
+    }
+
+    static func app(in element: ElementInstance) -> String? {
+        if element.kind == "app-icon", let id = element.arguments.first.flatMap({ AppIconKey.bundleID($0.value) }) { return id }
+        for child in element.children + element.slotChildren.values.flatMap({ $0 }) {
+            if let id = app(in: child) { return id }
+        }
+        return nil
     }
 
     func ordered(_ children: [ElementInstance]) -> [ElementInstance] {
