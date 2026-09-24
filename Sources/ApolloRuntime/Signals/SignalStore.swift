@@ -1,0 +1,142 @@
+import ApolloConfig
+
+public struct SubscriptionToken: Hashable, Sendable {
+    public let id: Int
+}
+
+struct StoreSnapshot: Sendable {
+    let roots: [String: Value]
+
+    func value(_ root: String, _ fields: [String]) -> Value {
+        guard let base = roots[root] else { return .null }
+        return SignalStore.read(base, fields)
+    }
+}
+
+@MainActor
+public final class SignalStore {
+    private struct Subscription {
+        let path: DependencyPath
+        let onChange: @MainActor () -> Void
+    }
+
+    private var roots: [String: Value] = [:]
+    private var subscriptions: [Int: Subscription] = [:]
+    private var demandCounts: [DependencyPath: Int] = [:]
+    private var nextToken = 0
+    private let scheduler: any FlushScheduler
+    private var flushRequested = false
+
+    public var onDemandChange: (@MainActor (String) -> Void)?
+
+    public init(scheduler: any FlushScheduler) {
+        self.scheduler = scheduler
+    }
+
+    public func value(_ path: DependencyPath) -> Value {
+        guard let base = roots[path.root] else { return .null }
+        return SignalStore.read(base, path.fields)
+    }
+
+    public func set(_ path: DependencyPath, _ value: Value) {
+        let sanitized = SignalStore.sanitize(value)
+        guard self.value(path) != sanitized else { return }
+        let base = roots[path.root] ?? .record(Record())
+        roots[path.root] = SignalStore.write(base, path.fields, sanitized)
+        notify(path)
+        requestFlushIfNeeded()
+    }
+
+    @discardableResult
+    public func subscribe(_ path: DependencyPath, _ onChange: @escaping @MainActor () -> Void) -> SubscriptionToken {
+        let token = nextToken
+        nextToken += 1
+        subscriptions[token] = Subscription(path: path, onChange: onChange)
+        let count = demandCounts[path, default: 0]
+        demandCounts[path] = count + 1
+        if count == 0 {
+            onDemandChange?(path.root)
+        }
+        return SubscriptionToken(id: token)
+    }
+
+    public func unsubscribe(_ token: SubscriptionToken) {
+        guard let subscription = subscriptions.removeValue(forKey: token.id) else { return }
+        let path = subscription.path
+        let count = demandCounts[path, default: 0] - 1
+        if count <= 0 {
+            demandCounts.removeValue(forKey: path)
+            onDemandChange?(path.root)
+        } else {
+            demandCounts[path] = count
+        }
+    }
+
+    public func demandedPaths(root: String) -> Set<DependencyPath> {
+        Set(demandCounts.keys.filter { $0.root == root })
+    }
+
+    func snapshot() -> StoreSnapshot {
+        StoreSnapshot(roots: roots)
+    }
+
+    private func notify(_ changed: DependencyPath) {
+        for subscription in subscriptions.values where Self.related(subscription.path, changed) {
+            subscription.onChange()
+        }
+    }
+
+    private func requestFlushIfNeeded() {
+        guard !flushRequested else { return }
+        flushRequested = true
+        scheduler.requestFlush { [weak self] in
+            self?.flushRequested = false
+        }
+    }
+
+    private static func related(_ a: DependencyPath, _ b: DependencyPath) -> Bool {
+        guard a.root == b.root else { return false }
+        return isPrefix(a.fields, b.fields) || isPrefix(b.fields, a.fields)
+    }
+
+    private static func isPrefix(_ prefix: [String], _ fields: [String]) -> Bool {
+        guard prefix.count <= fields.count else { return false }
+        return Array(fields[0..<prefix.count]) == prefix
+    }
+
+    nonisolated static func read(_ value: Value, _ fields: [String]) -> Value {
+        guard let first = fields.first else { return value }
+        guard case .record(let record) = value, let next = record[first] else { return .null }
+        return read(next, Array(fields.dropFirst()))
+    }
+
+    nonisolated static func write(_ value: Value, _ fields: [String], _ newValue: Value) -> Value {
+        guard let first = fields.first else { return newValue }
+        var record: Record
+        if case .record(let existing) = value {
+            record = existing
+        } else {
+            record = Record()
+        }
+        let child = record[first] ?? .null
+        record[first] = write(child, Array(fields.dropFirst()), newValue)
+        return .record(record)
+    }
+
+    nonisolated static func sanitize(_ value: Value) -> Value {
+        switch value {
+        case .number(let number):
+            return number.isFinite ? value : .null
+        case .list(let items):
+            return .list(items.map(sanitize))
+        case .record(let record):
+            var sanitized = Record()
+            for key in record.keys {
+                sanitized[key] = sanitize(record[key] ?? .null)
+            }
+            return .record(sanitized)
+        default:
+            return value
+        }
+    }
+}
