@@ -65,7 +65,10 @@ final class ShellHarness {
     }
 
     func settle() {
+        let wake = Timer(timeInterval: 0.002, repeats: true) { _ in }
+        RunLoop.main.add(wake, forMode: .default)
         for _ in 0..<5 { RunLoop.main.run(until: Date().addingTimeInterval(0.01)) }
+        wake.invalidate()
     }
 
     func write(_ source: String) throws {

@@ -198,12 +198,12 @@ struct HostOverlayStartTests {
         #expect(shell.activeLocation().id == "user")
         try await shell.start()
         #expect(shell.steps == ["settings", "config", "styles", "surfaces", "services", "started"])
-        #expect(shell.location?.id == "render-dock")
+        #expect(shell.location?.id == "apolloshell-default")
         guard case .errors = shell.overlay.state else {
             Issue.record("overlay shows no errors: \(shell.overlay.state)")
             return
         }
-        #expect(shell.host.controllers.keys.contains { $0.hasPrefix("dock@") })
+        #expect(shell.host.controllers.keys.contains { $0.hasPrefix("sidebar@") })
         shell.shutdown()
     }
 }

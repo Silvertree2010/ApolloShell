@@ -60,6 +60,7 @@ final class LiveShell: WindowHostLink {
     private var writers: [String: StateWriter] = [:]
     private var reloading = false
     private var reloadGeneration = 0
+    private var latestReload: Task<Void, Never>?
     private var watchedFiles: [URL] = []
     private(set) var watchedPaths: [String] = []
     private(set) var shutdowns = 0
@@ -373,9 +374,12 @@ final class LiveShell: WindowHostLink {
         guard let (location, notes) = activeLocationForReload() else { return nil }
         reloadGeneration += 1
         let generation = reloadGeneration
-        return Task { @MainActor in
+        let task = Task { @MainActor in
             var result = await load(location)
-            guard generation == reloadGeneration else { return }
+            guard generation == reloadGeneration else {
+                await latestReload?.value
+                return
+            }
             result = ConfigLoadResult(ir: result.ir, diagnostics: notes + result.diagnostics, files: result.files)
             if result.ir != nil, Self.shellFileIsEmpty(location) {
                 Self.log("shell.kdl of \(location.id) is empty, keeping the last config")
@@ -392,6 +396,8 @@ final class LiveShell: WindowHostLink {
             reloading = false
             watch()
         }
+        latestReload = task
+        return task
     }
 
     static func shellFileIsEmpty(_ location: ConfigLocation) -> Bool {
