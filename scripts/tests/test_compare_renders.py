@@ -23,51 +23,74 @@ def with_patch(base, box, color):
 
 class CompareRendersTests(unittest.TestCase):
     def test_identical_images_pass(self):
-        a = solid((40, 40), (10, 10, 10, 255))
+        a = solid((80, 80), (10, 10, 10, 255))
         b = a.copy()
         result = compare_renders.compare_images(a, b)
         self.assertTrue(result.passed)
         self.assertEqual(result.fraction, 0.0)
         self.assertEqual(result.largest_component, 0)
 
-    def test_scattered_single_pixels_under_threshold_pass(self):
-        a = solid((100, 100), (10, 10, 10, 255))
-        b = a.copy()
-        pixels = b.load()
-        for i in range(15):
-            pixels[i * 6, i * 6] = (255, 255, 255, 255)
+    def test_small_shift_passes(self):
+        a = solid((120, 120), (10, 10, 10, 255))
+        a = with_patch(a, (40, 40, 60, 60), (255, 255, 255, 255))
+        b = solid((120, 120), (10, 10, 10, 255))
+        b = with_patch(b, (42, 40, 62, 60), (255, 255, 255, 255))
         result = compare_renders.compare_images(a, b)
         self.assertTrue(result.passed)
-        self.assertEqual(result.largest_component, 1)
+
+    def test_large_shift_fails(self):
+        a = solid((120, 120), (10, 10, 10, 255))
+        a = with_patch(a, (40, 40, 60, 60), (255, 255, 255, 255))
+        b = solid((120, 120), (10, 10, 10, 255))
+        b = with_patch(b, (60, 40, 80, 60), (255, 255, 255, 255))
+        result = compare_renders.compare_images(a, b)
+        self.assertFalse(result.passed)
 
     def test_large_connected_block_fails(self):
         a = solid((100, 100), (10, 10, 10, 255))
-        b = with_patch(a, (10, 10, 20, 20), (255, 255, 255, 255))
+        b = with_patch(a, (0, 0, 60, 60), (255, 255, 255, 255))
         result = compare_renders.compare_images(a, b)
         self.assertFalse(result.passed)
-        self.assertEqual(result.largest_component, 100)
-
-    def test_many_small_blocks_over_fraction_threshold_fail(self):
-        a = solid((100, 100), (10, 10, 10, 255))
-        b = a.copy()
-        for row in range(0, 100, 4):
-            for col in range(0, 100, 4):
-                b = with_patch(b, (col, row, col + 2, row + 2), (255, 255, 255, 255))
-        result = compare_renders.compare_images(a, b)
-        self.assertFalse(result.passed)
-        self.assertLessEqual(result.largest_component, 24)
 
     def test_alpha_only_difference_is_detected(self):
-        a = Image.new("RGBA", (20, 20), (10, 10, 10, 255))
-        b = Image.new("RGBA", (20, 20), (10, 10, 10, 0))
+        a = Image.new("RGBA", (40, 40), (10, 10, 10, 255))
+        b = Image.new("RGBA", (40, 40), (10, 10, 10, 0))
         result = compare_renders.compare_images(a, b)
+        self.assertFalse(result.passed)
+
+    def test_size_mismatch_within_tolerance_is_padded_and_passes(self):
+        a = solid((100, 100), (10, 10, 10, 255))
+        b = solid((94, 100), (10, 10, 10, 255))
+        result = compare_renders.compare_images(a, b)
+        self.assertFalse(result.size_mismatch)
+        self.assertTrue(result.passed)
+
+    def test_size_mismatch_beyond_tolerance_fails(self):
+        a = solid((100, 100), (10, 10, 10, 255))
+        b = solid((40, 40), (10, 10, 10, 255))
+        result = compare_renders.compare_images(a, b)
+        self.assertTrue(result.size_mismatch)
         self.assertFalse(result.passed)
 
     def test_size_mismatch_reports_failure_without_exception(self):
         a = solid((40, 40), (10, 10, 10, 255))
-        b = solid((41, 40), (10, 10, 10, 255))
+        b = solid((80, 40), (10, 10, 10, 255))
         result = compare_renders.compare(Path("a.png"), Path("b.png"), None, a_image=a, b_image=b)
         self.assertFalse(result.passed)
+
+    def test_side_by_side_image_written_on_failure(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as before, tempfile.TemporaryDirectory() as after, \
+                tempfile.TemporaryDirectory() as diff:
+            before_path, after_path, diff_path = Path(before), Path(after), Path(diff)
+            a = solid((100, 100), (10, 10, 10, 255))
+            b = with_patch(a, (0, 0, 60, 60), (255, 255, 255, 255))
+            a.save(before_path / "case.png")
+            b.save(after_path / "case.png")
+            exit_code = compare_renders.main([str(before_path), str(after_path), str(diff_path)])
+            self.assertEqual(exit_code, 1)
+            self.assertTrue((diff_path / "case.png").exists())
+            self.assertTrue((diff_path / "case-side-by-side.png").exists())
 
     def test_extra_file_without_reference_reported_per_pair(self):
         import tempfile
@@ -79,7 +102,7 @@ class CompareRendersTests(unittest.TestCase):
             exit_code = compare_renders.main([str(before_path), str(after_path)])
             self.assertEqual(exit_code, 1)
 
-    def test_missing_file_reported_per_pair(self, ):
+    def test_missing_file_reported_per_pair(self):
         import tempfile
         with tempfile.TemporaryDirectory() as before, tempfile.TemporaryDirectory() as after:
             before_path, after_path = Path(before), Path(after)

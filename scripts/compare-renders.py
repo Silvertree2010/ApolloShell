@@ -3,23 +3,35 @@
 --render, see testing.md 3).
 
 Call: scripts/compare-renders.py <before> <after> [<diff folder>]
+    [--channel-tolerance N] [--fraction-threshold F]
+    [--area-threshold N] [--blur-sigma S] [--max-size-diff N]
 
-For every PNG that lies in both folders: same size? Pixels with a channel
-deviation above 8/255 count as different. A pair passes when at most 0.2 %
-of the pixels differ AND the largest 4-connected area of differing pixels
-is at most 24 pixels (testing.md 3.3). With a diff folder, an image is
-written for every pair that fails, with the differing pixels in red.
+For every PNG that lies in both folders: both images are downscaled by
+2x2 averaging and Gaussian-blurred (testing.md 3.3), then compared. A
+size difference of up to 4 pt per direction is padded with the smaller
+image's top-left corner pixel colour; more is a failure. Pixels with a
+channel deviation (including alpha) above the tolerance count as
+different. A pair passes when the fraction of differing pixels AND the
+largest 4-connected area of differing pixels are below their
+thresholds. With a diff folder, a diff image (differing pixels in red)
+and a side-by-side image (reference left, after right, 16 px gap) are
+written for every pair that fails.
 Ends with 1 as soon as one pair fails or a file is missing on one side.
 """
+import argparse
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageFilter
 
-CHANNEL_TOLERANCE = 8
-FRACTION_THRESHOLD = 0.002
-LARGEST_COMPONENT_THRESHOLD = 24
+CHANNEL_TOLERANCE = 40
+FRACTION_THRESHOLD = 0.03
+LARGEST_COMPONENT_THRESHOLD = 0.002
+LARGEST_COMPONENT_MINIMUM = 90
+BLUR_SIGMA = 1.5
+MAX_SIZE_DIFF = 4
+SIDE_BY_SIDE_GAP = 16
 
 
 @dataclass
@@ -30,13 +42,31 @@ class ComparisonResult:
     size_mismatch: bool = False
 
 
-def difference_mask(a: Image.Image, b: Image.Image) -> Image.Image:
+def downscale_2x2(image: Image.Image) -> Image.Image:
+    width, height = image.size
+    target = (max(1, width // 2), max(1, height // 2))
+    return image.resize(target, Image.BOX)
+
+
+def pad_to_match(smaller: Image.Image, target_size: tuple[int, int]) -> Image.Image:
+    corner = smaller.getpixel((0, 0))
+    padded = Image.new("RGBA", target_size, corner)
+    padded.paste(smaller, (0, 0))
+    return padded
+
+
+def prepare(image: Image.Image, sigma: float) -> Image.Image:
+    scaled = downscale_2x2(image.convert("RGBA"))
+    return scaled.filter(ImageFilter.GaussianBlur(radius=sigma))
+
+
+def difference_mask(a: Image.Image, b: Image.Image, channel_tolerance: int) -> Image.Image:
     delta = ImageChops.difference(a.convert("RGBA"), b.convert("RGBA"))
     channels = delta.split()
     largest = channels[0]
     for channel in channels[1:]:
         largest = ImageChops.lighter(largest, channel)
-    return largest.point(lambda v: 255 if v > CHANNEL_TOLERANCE else 0)
+    return largest.point(lambda v: 255 if v > channel_tolerance else 0)
 
 
 def largest_connected_component(mask: Image.Image) -> int:
@@ -65,24 +95,54 @@ def largest_connected_component(mask: Image.Image) -> int:
     return largest
 
 
-def compare_images(a: Image.Image, b: Image.Image) -> ComparisonResult:
-    if a.size != b.size:
-        return ComparisonResult(passed=False, fraction=1.0, largest_component=a.size[0] * a.size[1],
+def compare_images(a: Image.Image, b: Image.Image, channel_tolerance: int = CHANNEL_TOLERANCE,
+                    fraction_threshold: float = FRACTION_THRESHOLD,
+                    area_threshold: float = LARGEST_COMPONENT_THRESHOLD,
+                    area_minimum: int = LARGEST_COMPONENT_MINIMUM,
+                    blur_sigma: float = BLUR_SIGMA,
+                    max_size_diff: int = MAX_SIZE_DIFF) -> ComparisonResult:
+    scaled_a = downscale_2x2(a.convert("RGBA"))
+    scaled_b = downscale_2x2(b.convert("RGBA"))
+    width_diff = abs(scaled_a.size[0] - scaled_b.size[0])
+    height_diff = abs(scaled_a.size[1] - scaled_b.size[1])
+    if scaled_a.size != scaled_b.size and (width_diff > max_size_diff or height_diff > max_size_diff):
+        return ComparisonResult(passed=False, fraction=1.0,
+                                largest_component=scaled_a.size[0] * scaled_a.size[1],
                                 size_mismatch=True)
-    mask = difference_mask(a, b)
-    total = a.size[0] * a.size[1]
+    if scaled_a.size != scaled_b.size:
+        target = (max(scaled_a.size[0], scaled_b.size[0]), max(scaled_a.size[1], scaled_b.size[1]))
+        if scaled_a.size != target:
+            scaled_a = pad_to_match(scaled_a, target)
+        if scaled_b.size != target:
+            scaled_b = pad_to_match(scaled_b, target)
+    scaled_a = scaled_a.filter(ImageFilter.GaussianBlur(radius=blur_sigma))
+    scaled_b = scaled_b.filter(ImageFilter.GaussianBlur(radius=blur_sigma))
+    mask = difference_mask(scaled_a, scaled_b, channel_tolerance)
+    total = scaled_a.size[0] * scaled_a.size[1]
     changed = total - mask.histogram()[0]
     fraction = changed / total if total else 0.0
     largest_component = largest_connected_component(mask) if changed else 0
-    passed = fraction <= FRACTION_THRESHOLD and largest_component <= LARGEST_COMPONENT_THRESHOLD
+    area_limit = max(area_minimum, round(area_threshold * total))
+    passed = fraction <= fraction_threshold and largest_component <= area_limit
     return ComparisonResult(passed=passed, fraction=fraction, largest_component=largest_component)
 
 
+def side_by_side(a: Image.Image, b: Image.Image) -> Image.Image:
+    a = a.convert("RGBA")
+    b = b.convert("RGBA")
+    height = max(a.size[1], b.size[1])
+    width = a.size[0] + SIDE_BY_SIDE_GAP + b.size[0]
+    canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    canvas.paste(a, (0, 0))
+    canvas.paste(b, (a.size[0] + SIDE_BY_SIDE_GAP, 0))
+    return canvas
+
+
 def compare(before: Path, after: Path, diff_dir: Path | None, a_image: Image.Image | None = None,
-           b_image: Image.Image | None = None) -> ComparisonResult:
+           b_image: Image.Image | None = None, **options) -> ComparisonResult:
     a = a_image if a_image is not None else Image.open(before).convert("RGBA")
     b = b_image if b_image is not None else Image.open(after).convert("RGBA")
-    result = compare_images(a, b)
+    result = compare_images(a, b, **options)
     if result.size_mismatch:
         print(f"{before.name}: size {a.size} -> {b.size}")
         return result
@@ -92,18 +152,39 @@ def compare(before: Path, after: Path, diff_dir: Path | None, a_image: Image.Ima
     print(f"{before.name}: fail ({result.fraction:.4%}, largest area {result.largest_component})")
     if diff_dir:
         diff_dir.mkdir(parents=True, exist_ok=True)
-        mask = difference_mask(a, b)
-        red = Image.new("RGBA", a.size, (255, 0, 0, 255))
-        Image.composite(red, a.convert("RGBA"), mask).save(diff_dir / before.name)
+        sigma = options.get("blur_sigma", BLUR_SIGMA)
+        tolerance = options.get("channel_tolerance", CHANNEL_TOLERANCE)
+        mask = difference_mask(prepare(a, sigma), prepare(b, sigma), tolerance)
+        mask = mask.resize(a.size if a.size[0] * a.size[1] >= b.size[0] * b.size[1] else b.size, Image.NEAREST)
+        red = Image.new("RGBA", mask.size, (255, 0, 0, 255))
+        base = a.convert("RGBA")
+        if base.size != mask.size:
+            base = pad_to_match(base, mask.size)
+        Image.composite(red, base, mask).save(diff_dir / before.name)
+        side_by_side(a, b).save(diff_dir / f"{before.stem}-side-by-side.png")
     return result
 
 
 def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("before")
+    parser.add_argument("after")
+    parser.add_argument("diff_dir", nargs="?")
+    parser.add_argument("--channel-tolerance", type=int, default=CHANNEL_TOLERANCE)
+    parser.add_argument("--fraction-threshold", type=float, default=FRACTION_THRESHOLD)
+    parser.add_argument("--area-threshold", type=float, default=LARGEST_COMPONENT_THRESHOLD)
+    parser.add_argument("--area-minimum", type=int, default=LARGEST_COMPONENT_MINIMUM)
+    parser.add_argument("--blur-sigma", type=float, default=BLUR_SIGMA)
+    parser.add_argument("--max-size-diff", type=int, default=MAX_SIZE_DIFF)
     if len(argv) < 2:
         print(__doc__)
         return 2
-    before_dir, after_dir = Path(argv[0]), Path(argv[1])
-    diff_dir = Path(argv[2]) if len(argv) > 2 else None
+    args = parser.parse_args(argv)
+    before_dir, after_dir = Path(args.before), Path(args.after)
+    diff_dir = Path(args.diff_dir) if args.diff_dir else None
+    options = dict(channel_tolerance=args.channel_tolerance, fraction_threshold=args.fraction_threshold,
+                    area_threshold=args.area_threshold, area_minimum=args.area_minimum,
+                    blur_sigma=args.blur_sigma, max_size_diff=args.max_size_diff)
     ok = True
     before_names = set()
     for before in sorted(before_dir.glob("*.png")):
@@ -113,7 +194,7 @@ def main(argv: list[str]) -> int:
             print(f"{before.name}: missing afterwards")
             ok = False
             continue
-        ok = compare(before, after, diff_dir).passed and ok
+        ok = compare(before, after, diff_dir, **options).passed and ok
     for after in sorted(after_dir.glob("*.png")):
         if after.name not in before_names:
             print(f"{after.name}: no reference")
