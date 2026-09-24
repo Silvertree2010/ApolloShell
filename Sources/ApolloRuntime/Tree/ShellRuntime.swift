@@ -894,6 +894,14 @@ public final class ShellRuntime: SurfaceControlling {
                         stack.append((child, inner))
                     }
                 }
+                for slot in structure.slotNodes where !slot.isDead && slot.context.slotOwner === structure {
+                    for region in slot.regions {
+                        region.context?.scope = scope
+                        for child in region.parts {
+                            stack.append((child, scope))
+                        }
+                    }
+                }
             }
         }
     }
@@ -938,6 +946,7 @@ public final class ShellRuntime: SurfaceControlling {
                     region.context = nil
                 }
                 structure.regions.removeAll()
+                structure.slotNodes.removeAll()
             }
         }
     }

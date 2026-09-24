@@ -20,6 +20,9 @@ extension ShellRuntime {
                     node.argumentBindings[name] = bindStructure(node, compiled)
                 }
             }
+        case .slot:
+            context.slotOwner?.register(node)
+            scheduleRebuild(node)
         }
         return node
     }
@@ -63,6 +66,52 @@ extension ShellRuntime {
             rebuildEach(node, each, context)
         case .use(let use):
             rebuildUse(node, use, context)
+        case .slot:
+            fillSlot(node)
+        }
+    }
+
+    func slotContext(_ node: StructureNode) -> BuildContext {
+        var context = node.context
+        context.active = node.outerActive
+        if case .slot(let name) = node.kind {
+            context.path = context.path.appending("fill:" + name)
+        }
+        context.scope = node.context.slotOwner?.context.scope ?? node.context.scope
+        context.slotOwner = node.context.slotOwner?.context.slotOwner
+        return context
+    }
+
+    func slotContent(_ node: StructureNode) -> [ChildIR] {
+        guard case .slot(let name) = node.kind, let owner = node.context.slotOwner, case .use(let use) = owner.kind else { return [] }
+        return use.slots[name] ?? []
+    }
+
+    func fillSlot(_ node: StructureNode) {
+        guard node.slotGeneration != generation else { return }
+        node.slotGeneration = generation
+        let context = slotContext(node)
+        if let region = node.regions.first {
+            reconcileParts(region, slotContent(node), context)
+            return
+        }
+        let region = Region()
+        node.regions = [region]
+        node.selection = "slot"
+        buildParts(region, slotContent(node), context)
+    }
+
+    func refreshSlots(_ owner: StructureNode, contentChanged: Bool) {
+        let scope = owner.context.scope
+        for slot in owner.slotNodes where !slot.isDead && slot.context.slotOwner === owner {
+            if contentChanged {
+                scheduleRebuild(slot)
+            } else {
+                for region in slot.regions {
+                    region.context?.scope = scope
+                    applyScope(region.parts.map { ($0, scope) })
+                }
+            }
         }
     }
 
@@ -235,6 +284,8 @@ extension ShellRuntime {
         case .use(let use):
             guard let define = node.define else { return node.context.scope }
             return useScope(node, use, define, node.context.scope)
+        case .slot:
+            return node.context.slotOwner?.context.scope ?? node.context.scope
         }
     }
 
@@ -272,45 +323,7 @@ extension ShellRuntime {
         body.scope = scope
         body.useDepth = context.useDepth + 1
         body.path = context.path.appending(use.key).appending("use:" + name)
-        replace(node, selection: "use:" + name, bodies: [(Self.fillSlots(define.body, use.slots), body)])
-    }
-
-    static func fillSlots(_ body: [ChildIR], _ slots: [String: [ChildIR]]) -> [ChildIR] {
-        body.flatMap { child -> [ChildIR] in
-            switch child {
-            case .slot(let name):
-                let slot = name ?? ""
-                return (slots[slot] ?? []).map { rekey($0, "slot:" + slot + "/" + $0.key) }
-            case .element(var element):
-                element.children = fillSlots(element.children, slots)
-                element.slots = element.slots.mapValues { fillSlots($0, slots) }
-                return [.element(element)]
-            case .each(var each):
-                each.body = fillSlots(each.body, slots)
-                return [.each(each)]
-            case .when(var when):
-                when.then = fillSlots(when.then, slots)
-                when.otherwise = fillSlots(when.otherwise, slots)
-                return [.when(when)]
-            case .switchOn(var switchIR):
-                switchIR.cases = switchIR.cases.map { SwitchCaseIR(values: $0.values, body: fillSlots($0.body, slots)) }
-                switchIR.otherwise = fillSlots(switchIR.otherwise, slots)
-                return [.switchOn(switchIR)]
-            case .dynamicUse(var use):
-                use.slots = use.slots.mapValues { fillSlots($0, slots) }
-                return [.dynamicUse(use)]
-            }
-        }
-    }
-
-    private static func rekey(_ child: ChildIR, _ key: String) -> ChildIR {
-        switch child {
-        case .element(var element): element.key = key; return .element(element)
-        case .each(var each): each.key = key; return .each(each)
-        case .when(var when): when.key = key; return .when(when)
-        case .switchOn(var switchIR): switchIR.key = key; return .switchOn(switchIR)
-        case .dynamicUse(var use): use.key = key; return .dynamicUse(use)
-        case .slot: return child
-        }
+        body.slotOwner = node
+        replace(node, selection: "use:" + name, bodies: [(define.body, body)])
     }
 }

@@ -100,8 +100,10 @@ extension ShellRuntime {
         node.isParked = false
         node.depth = context.depth
         node.useDepth = context.useDepth
+        let moved = node.slotOwner !== context.slotOwner
+        node.slotOwner = context.slotOwner
         let old = node.instance.ir
-        if old == ir && !definesChanged {
+        if old == ir && !definesChanged && !moved {
             applyScope([(node, context.scope)])
             updateActivity(node, context.active)
             return
@@ -267,6 +269,10 @@ extension ShellRuntime {
     func reconcileStructure(_ node: StructureNode, _ kind: StructureNode.Kind, _ context: BuildContext) {
         node.stamp = generation
         node.isParked = false
+        if case .slot = kind {
+            reconcileSlot(node, context)
+            return
+        }
         let old = node.kind
         if old == kind && !definesChanged {
             applyScope([(node, context.scope)])
@@ -365,13 +371,35 @@ extension ShellRuntime {
                     inner.scope = useScope(node, after, define, context.scope)
                     inner.useDepth = context.useDepth + 1
                     inner.path = context.path.appending(after.key).appending(selection)
-                    reconcileLater(node, region, Self.fillSlots(define.body, after.slots), inner)
+                    inner.slotOwner = node
+                    reconcileLater(node, region, define.body, inner)
                 } else if !name.replaced {
                     scheduleRebuild(node)
                 }
             }
+            if before.slots != after.slots || scopeChanged {
+                refreshSlots(node, contentChanged: before.slots != after.slots)
+            }
         default:
             break
+        }
+    }
+
+    private func reconcileSlot(_ node: StructureNode, _ context: BuildContext) {
+        let moved = node.context.slotOwner !== context.slotOwner
+        node.context = context
+        updateActivity(node, context.active)
+        if moved {
+            context.slotOwner?.register(node)
+        }
+        if moved || definesChanged || node.regions.isEmpty {
+            scheduleRebuild(node)
+            return
+        }
+        let scope = slotContext(node).scope
+        for region in node.regions {
+            region.context?.scope = scope
+            applyScope(region.parts.map { ($0, scope) })
         }
     }
 

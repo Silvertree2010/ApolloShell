@@ -358,9 +358,134 @@ struct LoadedConfigScopeTests {
             }
         }
         """))
-        withKnownIssue("Parameter des define überdecken im Slot-Inhalt eines Laufzeit-use gleichnamige Namen der Aufrufstelle, siehe task-11-report") {
-            #expect(shell.texts("p") == ["param T", "slot x"])
+        #expect(shell.texts("p") == ["param T", "slot x"])
+    }
+
+    func textInstances(_ shell: KDLShell, _ surface: String) -> [String: ElementInstance] {
+        var out: [String: ElementInstance] = [:]
+        var stack = shell.fixture.surface(surface, "A").root
+        while let element = stack.popLast() {
+            if element.kind == "text", let first = element.arguments.first {
+                out[KDLShell.describe(first.value)] = element
+            }
+            stack.append(contentsOf: element.children)
         }
+        return out
+    }
+
+    @Test("Laufzeit-use in each der Aufrufstelle: Slot-Inhalt folgt Eintrag und Index, auch wenn Parameter gleich heissen")
+    func runtimeSlotInEach() async throws {
+        let shell = KDLShell()
+        shell.apply(try await shell.load("""
+        var names { - "x"; - "y" }
+        var block "card"
+        define "card" {
+            param "title"
+            param "i"
+            column {
+                text "param {title} {i}"
+                slot
+            }
+        }
+        panel "p" {
+            each title in="{var.names}" key="{title}" index="i" {
+                use "{var.block}" title="T" i=9 { text "slot {title} {i}" }
+            }
+        }
+        """))
+        #expect(shell.texts("p") == ["param T 9", "slot x 0", "param T 9", "slot y 1"])
+        let before = textInstances(shell, "p")
+        #expect(shell.vars.set("names", .list([.string("w"), .string("x"), .string("y")]), for: nil))
+        shell.fixture.flush()
+        #expect(shell.texts("p") == ["param T 9", "slot w 0", "param T 9", "slot x 1", "param T 9", "slot y 2"])
+        let after = textInstances(shell, "p")
+        #expect(before["slot x 0"] != nil && before["slot x 0"] === after["slot x 1"])
+        #expect(before["slot y 1"] != nil && before["slot y 1"] === after["slot y 2"])
+    }
+
+    @Test("Verschachteltes Laufzeit-use: Slot reicht Slot weiter, jede Ebene sieht ihre Aufrufstelle")
+    func nestedRuntimeSlot() async throws {
+        let shell = KDLShell()
+        shell.apply(try await shell.load("""
+        var names { - "x" }
+        var outer "outer"
+        var inner "inner"
+        define "inner" {
+            param "title"
+            row {
+                text "inner {title}"
+                slot
+            }
+        }
+        define "outer" {
+            param "title"
+            column {
+                text "outer {title}"
+                use "{var.inner}" title="I" {
+                    text "mid {title}"
+                    slot
+                }
+            }
+        }
+        panel "p" {
+            each title in="{var.names}" key="{title}" index="i" {
+                use "{var.outer}" title="O" { text "slot {title} {i}" }
+            }
+        }
+        """))
+        #expect(shell.texts("p") == ["outer O", "inner I", "mid O", "slot x 0"])
+        let before = textInstances(shell, "p")
+        #expect(shell.vars.set("names", .list([.string("w"), .string("x")]), for: nil))
+        shell.fixture.flush()
+        #expect(shell.texts("p") == ["outer O", "inner I", "mid O", "slot w 0", "outer O", "inner I", "mid O", "slot x 1"])
+        #expect(before["slot x 0"] != nil && before["slot x 0"] === textInstances(shell, "p")["slot x 1"])
+    }
+
+    static func slotState(_ variant: Int) -> String {
+        let argument = variant == 0 ? "T" : "U"
+        let label = variant == 2 ? "label" : "param"
+        let extra = variant == 0 ? "" : "text \"more {title}\""
+        return """
+        var names { - "x" }
+        var block "card"
+        define "card" {
+            param "title"
+            column {
+                text "\(label) {title}"
+                slot
+            }
+        }
+        panel "p" {
+            each title in="{var.names}" {
+                use "{var.block}" title="\(argument)" {
+                    text "slot {title}"
+                    \(extra)
+                }
+            }
+        }
+        """
+    }
+
+    @Test("Reload behält Slot-Instanzen bei geändertem Argument, Slot-Inhalt und define")
+    func reloadKeepsSlotInstances() async throws {
+        let shell = KDLShell()
+        let states = [try await shell.load(Self.slotState(0)), try await shell.load(Self.slotState(1)), try await shell.load(Self.slotState(2))]
+        shell.apply(states[0])
+        #expect(shell.texts("p") == ["param T", "slot x"])
+        let slot = textInstances(shell, "p")["slot x"]
+        #expect(slot != nil)
+        shell.apply(states[1])
+        #expect(shell.texts("p") == ["param U", "slot x", "more x"])
+        #expect(textInstances(shell, "p")["slot x"] === slot)
+        shell.apply(states[2])
+        #expect(shell.texts("p") == ["label U", "slot x", "more x"])
+        #expect(textInstances(shell, "p")["slot x"] === slot)
+        weak var dropped = textInstances(shell, "p")["more x"]
+        #expect(dropped != nil)
+        shell.apply(states[0])
+        #expect(shell.texts("p") == ["param T", "slot x"])
+        #expect(textInstances(shell, "p")["slot x"] === slot)
+        #expect(dropped == nil)
     }
 
     struct Counters: Equatable {

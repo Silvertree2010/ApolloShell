@@ -79,6 +79,7 @@ struct BuildContext {
     var useDepth: Int
     var active: Bool
     let container: Container
+    var slotOwner: StructureNode?
 }
 
 @MainActor
@@ -90,6 +91,7 @@ final class ElementNode: TreeNode {
     var isConfigured = false
     var depth: Int
     var useDepth: Int
+    var slotOwner: StructureNode?
     var visibleBinding: BindingHandle?
     var cellBindings: [String: BindingHandle] = [:]
     var argumentBindings: [Int: BindingHandle] = [:]
@@ -102,11 +104,12 @@ final class ElementNode: TreeNode {
         self.runtimeID = runtimeID
         depth = context.depth
         useDepth = context.useDepth
+        slotOwner = context.slotOwner
         super.init(outerActive: context.active)
     }
 
     func childContext(_ container: Container, path: Identity) -> BuildContext {
-        BuildContext(surface: surface, scope: instance.scope, path: path, depth: depth + 1, useDepth: useDepth, active: innerActive, container: container)
+        BuildContext(surface: surface, scope: instance.scope, path: path, depth: depth + 1, useDepth: useDepth, active: innerActive, container: container, slotOwner: slotOwner)
     }
 
     var innerActive: Bool {
@@ -150,10 +153,12 @@ final class StructureNode: TreeNode {
         case switchOn(SwitchIR)
         case each(EachIR)
         case use(DynamicUseIR)
+        case slot(String)
 
         init?(_ child: ChildIR) {
             switch child {
-            case .element, .slot: return nil
+            case .element: return nil
+            case .slot(let name): self = .slot(name ?? "")
             case .when(let when): self = .when(when)
             case .switchOn(let switchIR): self = .switchOn(switchIR)
             case .each(let each): self = .each(each)
@@ -167,6 +172,7 @@ final class StructureNode: TreeNode {
             case .switchOn(let switchIR): "switch|" + switchIR.key
             case .each(let each): "each|" + each.key
             case .use(let use): "use|" + use.key
+            case .slot(let name): "slot|" + name
             }
         }
     }
@@ -180,6 +186,9 @@ final class StructureNode: TreeNode {
     var selection: String?
     var define: DefineIR?
     var rebuildQueued = false
+    var slotNodes: [StructureNode] = []
+    var slotPruneAt = 8
+    var slotGeneration = -1
 
     init(kind: Kind, context: BuildContext) {
         self.kind = kind
@@ -195,6 +204,14 @@ final class StructureNode: TreeNode {
             if let handle = argumentBindings[name] { handles.append(handle) }
         }
         return handles
+    }
+
+    func register(_ slot: StructureNode) {
+        if slotNodes.count >= slotPruneAt {
+            slotNodes.removeAll { $0.isDead }
+            slotPruneAt = max(8, slotNodes.count * 2)
+        }
+        slotNodes.append(slot)
     }
 }
 
