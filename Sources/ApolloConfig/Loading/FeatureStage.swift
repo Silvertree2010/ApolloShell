@@ -68,8 +68,15 @@ enum FeatureStage {
                 continue
             }
             if node.kdl.name == "else" {
+                if index > 0, nodes[index - 1].kdl.name == "when" {
+                    var copy = node
+                    copy.children = resolveFeatures(node.children, shellVersion: shellVersion, registry: registry, diagnostics: &diagnostics)
+                    result.append(copy)
+                    index += 1
+                    continue
+                }
                 diagnostics.append(DiagnosticCollector.withIncludeChain(
-                    Diagnostic(.error, "'else' without a preceding 'feature'", span: node.kdl.span),
+                    Diagnostic(.error, "'else' without a preceding 'when' or 'feature'", span: node.kdl.span),
                     chain: node.includeChain
                 ))
                 index += 1

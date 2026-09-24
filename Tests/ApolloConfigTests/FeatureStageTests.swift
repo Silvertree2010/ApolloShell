@@ -121,6 +121,47 @@ struct FeatureStageTests {
         #expect(result.diagnostics[0].message.contains("else"))
     }
 
+    @Test("when else bleibt fuer eine spaetere Stufe unangetastet")
+    func whenElsePassesThroughUnchanged() {
+        let nodes = expand("when \"{battery.present}\" {\n  a {}\n}\nelse {\n  b {}\n}")
+        let result = FeatureStage.run(nodes, shellVersion: "0.2.0", registry: .builtin)
+        #expect(result.diagnostics.isEmpty)
+        #expect(names(result.nodes) == ["when", "else"])
+        #expect(names(result.nodes[0].children) == ["a"])
+        #expect(names(result.nodes[1].children) == ["b"])
+    }
+
+    @Test("feature else bleibt weiterhin korrekt neben when else")
+    func featureElseStillWorksAlongsideWhenElse() {
+        let nodes = expand(
+            "when \"{battery.present}\" {\n  a {}\n}\nelse {\n  b {}\n}\n" +
+            "feature \"time-travel\" {\n  c {}\n}\nelse {\n  d {}\n}"
+        )
+        let result = FeatureStage.run(nodes, shellVersion: "0.2.0", registry: .builtin)
+        #expect(result.diagnostics.count == 1)
+        #expect(result.diagnostics[0].severity == .note)
+        #expect(names(result.nodes) == ["when", "else", "d"])
+    }
+
+    @Test("verwaistes else ohne when oder feature bleibt ein Fehler")
+    func orphanElseStillFailsAmongWhenElse() {
+        let nodes = expand("when \"{battery.present}\" {\n  a {}\n}\nelse {\n  b {}\n}\nelse {\n  c {}\n}")
+        let result = FeatureStage.run(nodes, shellVersion: "0.2.0", registry: .builtin)
+        #expect(result.diagnostics.count == 1)
+        #expect(result.diagnostics[0].severity == .error)
+        #expect(result.diagnostics[0].message.contains("else"))
+        #expect(names(result.nodes) == ["when", "else"])
+    }
+
+    @Test("verschachteltes when else bleibt in Kindknoten unangetastet")
+    func nestedWhenElsePassesThroughUnchanged() {
+        let nodes = expand("dock {\n  when \"{battery.present}\" {\n    a {}\n  }\n  else {\n    b {}\n  }\n}")
+        let result = FeatureStage.run(nodes, shellVersion: "0.2.0", registry: .builtin)
+        #expect(result.diagnostics.isEmpty)
+        #expect(names(result.nodes) == ["dock"])
+        #expect(names(result.nodes[0].children) == ["when", "else"])
+    }
+
     @Test("feature in Handler-Aktionen wird aufgeloest")
     func featureInHandlerActions() {
         let nodes = expand("bind \"alt+space\" {\n  feature \"wm\" {\n    wm.focus \"left\"\n  }\n}")
