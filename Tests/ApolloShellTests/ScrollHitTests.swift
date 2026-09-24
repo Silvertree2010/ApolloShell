@@ -12,7 +12,7 @@ struct ScrollHitTests {
         let surface = try #require(session.surfaces.first)
         let hosting = session.mount(surface)
         for _ in 0..<20 {
-            CFRunLoopRunInMode(.defaultMode, 0.01, false)
+            RunLoopPump.run(0.01)
             hosting.layoutSubtreeIfNeeded()
         }
         return session.context.hits.regions(for: SurfaceHost.key(surface.id, surface.screenKey))

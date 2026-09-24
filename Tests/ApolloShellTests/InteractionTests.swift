@@ -44,7 +44,7 @@ struct Mounted {
 
     func pump(_ steps: Int = 10) {
         for _ in 0..<steps {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+            RunLoopPump.run(0.02)
             view.layoutSubtreeIfNeeded()
         }
     }
@@ -59,7 +59,7 @@ struct Mounted {
         let surface = try #require(session.surfaces.first)
         let view = session.mount(surface)
         for _ in 0..<5 {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+            RunLoopPump.run(0.02)
             view.layoutSubtreeIfNeeded()
         }
         return Mounted(session: session, view: view)

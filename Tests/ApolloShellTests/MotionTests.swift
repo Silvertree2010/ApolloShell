@@ -61,26 +61,26 @@ struct MotionTests {
         let target = try #require(column.children.dropFirst(5).first)
         let warmup = try #require(column.children.dropFirst(20).first)
         for _ in 0..<3 {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+            RunLoopPump.run(0.02)
             mounted.view.layoutSubtreeIfNeeded()
         }
         let coldComputed = styles.computed
         warmup.pseudo.insert(.hover)
         mounted.view.layoutSubtreeIfNeeded()
         mounted.view.displayIfNeeded()
-        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        RunLoopPump.run(0.05)
         let firstComputed = styles.computed - coldComputed
         warmup.pseudo.remove(.hover)
         mounted.view.layoutSubtreeIfNeeded()
         mounted.view.displayIfNeeded()
-        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        RunLoopPump.run(0.05)
         let lookups = styles.lookups
         let started = ContinuousClock.now
         target.pseudo.insert(.hover)
         mounted.view.layoutSubtreeIfNeeded()
         mounted.view.displayIfNeeded()
         let first = ContinuousClock.now - started
-        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        RunLoopPump.run(0.05)
         let newLookups = styles.lookups - lookups
         var samples = [first]
         for round in 0..<8 {
@@ -89,7 +89,7 @@ struct MotionTests {
             mounted.view.layoutSubtreeIfNeeded()
             mounted.view.displayIfNeeded()
             samples.append(ContinuousClock.now - begin)
-            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+            RunLoopPump.run(0.02)
         }
         let longest = try #require(samples.max())
         print("hover recalculation: \(newLookups) lookups, \(firstComputed) computed when cold, first \(first), max \(longest)")
