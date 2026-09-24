@@ -53,6 +53,36 @@ struct SurfacePlacement: Equatable {
         offsetY = Self.points(property("offset-y"))
     }
 
+    struct Attachment: Equatable {
+        enum Side: String { case top, bottom, left, right }
+        var surface: String
+        var element: String
+        var side: Side
+    }
+
+    static func attachment(_ property: (String) -> Value) -> Attachment? {
+        guard case .string(let text) = property("attach") else { return nil }
+        let parts = text.split(separator: "#", maxSplits: 1).map(String.init)
+        guard parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty else { return nil }
+        let side = property("side").plainText.flatMap(Attachment.Side.init(rawValue:)) ?? .right
+        return Attachment(surface: parts[0], element: parts[1], side: side)
+    }
+
+    static func attached(size: CGSize, to rect: CGRect, side: Attachment.Side, offset: CGPoint, visible: CGRect) -> CGRect {
+        var origin: CGPoint
+        switch side {
+        case .right: origin = CGPoint(x: rect.maxX, y: rect.maxY - size.height)
+        case .left: origin = CGPoint(x: rect.minX - size.width, y: rect.maxY - size.height)
+        case .bottom: origin = CGPoint(x: rect.minX, y: rect.minY - size.height)
+        case .top: origin = CGPoint(x: rect.minX, y: rect.maxY)
+        }
+        origin.x += offset.x
+        origin.y -= offset.y
+        origin.x = min(max(origin.x, visible.minX), max(visible.minX, visible.maxX - size.width))
+        origin.y = min(max(origin.y, visible.minY), max(visible.minY, visible.maxY - size.height))
+        return CGRect(origin: origin, size: size)
+    }
+
     static func points(_ value: Value) -> CGFloat {
         switch value {
         case .number(let number): return CGFloat(number)

@@ -32,6 +32,42 @@ final class HitRegions {
     }
 }
 
+@MainActor
+final class ElementFrames {
+    private var frames: [String: [String: CGRect]] = [:]
+    var onChange: @MainActor (String) -> Void = { _ in }
+
+    func frame(_ id: String, surfaceKey: String) -> CGRect? {
+        frames[surfaceKey]?[id]
+    }
+
+    func update(_ list: [String: CGRect], surfaceKey: String) {
+        guard frames[surfaceKey] != list else { return }
+        frames[surfaceKey] = list
+        onChange(surfaceKey)
+    }
+
+    func remove(_ surfaceKey: String) {
+        frames[surfaceKey] = nil
+    }
+}
+
+struct ElementFrameCollector: ViewModifier {
+    let surfaceKey: String
+    let frames: ElementFrames
+
+    func body(content: Content) -> some View {
+        content.backgroundPreferenceValue(FlyoutAnchorKey.self) { anchors in
+            GeometryReader { proxy in
+                let list = anchors.mapValues { proxy[$0] }
+                Color.clear
+                    .onAppear { frames.update(list, surfaceKey: surfaceKey) }
+                    .onChange(of: list) { _, new in frames.update(new, surfaceKey: surfaceKey) }
+            }
+        }
+    }
+}
+
 struct HitRegionEntry {
     var identity: Identity
     var anchor: Anchor<CGRect>

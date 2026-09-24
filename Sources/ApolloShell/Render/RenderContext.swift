@@ -27,6 +27,7 @@ final class RenderContext {
     var flyoutExtents: [String: EdgeInsets] = [:]
     var onFlyoutExtent: @MainActor (String, EdgeInsets) -> Void = { _, _ in }
     let hits = HitRegions()
+    let elementFrames = ElementFrames()
     private var images = BoundedCache<String, NSImage>(limit: 128)
 
     func image(for source: Value) -> NSImage? {

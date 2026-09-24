@@ -60,6 +60,7 @@ final class WindowHost: SurfaceHosting {
         didSet {
             context?.hits.onChange = { [weak self] _ in self?.pointerMoved() }
             context?.onFlyoutExtent = { [weak self] key, extent in self?.flyoutExtent(key, extent) }
+            context?.elementFrames.onChange = { [weak self] key in self?.syncAttached(to: key) }
         }
     }
     var screens: [String: ScreenGeometry] = [:]
@@ -83,6 +84,7 @@ final class WindowHost: SurfaceHosting {
     static let flyoutShrinkDelay: TimeInterval = 0.5
     var watchPointer: @MainActor (@escaping @MainActor () -> Void) -> (@MainActor () -> Void) = PointerWatch.live
     private var stopPointer: (@MainActor () -> Void)?
+    private var attachSyncing: Set<String> = []
 
     static let windowKinds: Set<String> = ["panel", "popup", "overlay", "toast", "osd", "window"]
 
@@ -206,6 +208,7 @@ final class WindowHost: SurfaceHosting {
         stats.windowsClosed += 1
         frames.publish(key, nil)
         context?.hits.remove(key)
+        context?.elementFrames.remove(key)
         updateReserves()
         updateClickThrough()
     }
@@ -258,7 +261,10 @@ final class WindowHost: SurfaceHosting {
             controller.insets = layout.insets
             controller.window.setContent(content(surface, insets: layout.insets, flyout: flyout))
         }
-        let frame = layout.frame
+        var frame = layout.frame
+        if let attach = SurfacePlacement.attachment(surface.property), let target = attachedRect(attach, screenKey: surface.screenKey) {
+            frame = SurfacePlacement.attached(size: frame.size, to: target, side: attach.side, offset: CGPoint(x: placement.offsetX, y: placement.offsetY), visible: screen.visible)
+        }
         if spec.kind == "window" {
             controller.window.setMinSize(CGSize(width: StyleValues.points(style["min-width"]) ?? 0, height: StyleValues.points(style["min-height"]) ?? 0))
             if surface.isVisible && !controller.placed {
@@ -289,6 +295,26 @@ final class WindowHost: SurfaceHosting {
         }
         updateReserves()
         updateClickThrough()
+        if !attachSyncing.contains(key) { syncAttached(to: key) }
+    }
+
+    func attachedRect(_ attach: SurfacePlacement.Attachment, screenKey: String) -> CGRect? {
+        let same = SurfaceHost.key(attach.surface, screenKey)
+        let key = controllers[same] != nil ? same : controllers.keys.sorted().first { controllers[$0]?.surface.id == attach.surface }
+        guard let key, let controller = controllers[key], controller.shown,
+              let rect = context?.elementFrames.frame(attach.element, surfaceKey: key) else { return nil }
+        let outer = controller.window.frame, flyout = controller.flyout
+        return CGRect(x: outer.minX + flyout.leading + rect.minX, y: outer.maxY - flyout.top - rect.maxY, width: rect.width, height: rect.height)
+    }
+
+    func syncAttached(to key: String) {
+        guard let target = controllers[key]?.surface.id ?? key.split(separator: "@").first.map(String.init) else { return }
+        attachSyncing.insert(key)
+        defer { attachSyncing.remove(key) }
+        for other in controllers.keys.sorted() where other != key && !attachSyncing.contains(other) {
+            guard let controller = controllers[other], SurfacePlacement.attachment(controller.surface.property)?.surface == target else { continue }
+            sync(other)
+        }
     }
 
     private func observeProperties(_ controller: SurfaceWindowController, key: String) {
