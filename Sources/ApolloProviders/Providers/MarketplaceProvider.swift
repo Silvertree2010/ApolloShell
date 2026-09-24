@@ -449,7 +449,8 @@ public final class MarketplaceProvider: BaseProvider {
         guard isRunning else { return }
         let index = host.installer.index()
         publish("status", .string(status))
-        publish("error", ProviderValue.string(actionError ?? (status == "failed" ? loadError : nil)))
+        publish("error", ProviderValue.string(actionError))
+        publish("load-error", ProviderValue.string(status == "failed" ? loadError : nil))
         publish("items", .list(themes.map { Self.item($0, state: host.installer.state(of: $0, index: index)) }))
         publish("user", user.map { .record(Record([("id", .string($0.id)), ("login", .string($0.login)), ("is-admin", .bool($0.isAdmin))])) } ?? .null)
         publish("sign-in", signInValue)

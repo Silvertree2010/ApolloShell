@@ -156,17 +156,23 @@ struct MarketplaceProviderTests {
         #expect(setup.harness.conformanceProblems(BuiltinProviderSchemas.schema("marketplace"), strict: true).isEmpty)
     }
 
-    @Test("failed load: status failed with the error, Try again recovers")
+    @Test("failed load: status failed with load-error, action errors stay apart in error, Try again recovers")
     func failed() async throws {
         let setup = try Setup()
         setup.fake.themesAnswer = (500, "<html>")
         try await setup.run("refresh")
         #expect(setup.field("status") == .string("failed"))
-        #expect(setup.field("error") != .null)
+        #expect(setup.field("load-error") != .null)
+        #expect(setup.field("error") == .null)
+        try await setup.run("report", [.string("t1"), .string("copied")])
+        #expect(setup.field("error") == .string("Too many reports today."))
+        #expect(setup.field("load-error") != .null)
+        #expect(setup.field("status") == .string("failed"))
         setup.fake.themesAnswer = (200, MarketFake.json(["themes": []]))
         try await setup.run("refresh")
         #expect(setup.field("status") == .string("loaded"))
-        #expect(setup.field("error") == .null)
+        #expect(setup.field("load-error") == .null)
+        #expect(setup.field("error") == .string("Too many reports today."))
         #expect(setup.field("items") == .list([]))
     }
 

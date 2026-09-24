@@ -1,5 +1,5 @@
 fixture {
-    marketplace status="loaded" error=#null message="Thanks. The report was sent." {
+    marketplace status="loaded" error=#null load-error=#null message="Thanks. The report was sent." {
         user id="42" login="octo" is-admin=#true
         sign-in status="waiting" code="ABCD-1234" url="https://github.com/login/device" error=#null
         items {

@@ -114,7 +114,7 @@ define "marketplace-account" {
 define "marketplace-browse" {
     switch "{marketplace.status}" {
         case "failed" {
-            use "marketplace-empty" symbol="wifi.exclamationmark" title="Marketplace unavailable" detail="{marketplace.error ?? ''}" {
+            use "marketplace-empty" symbol="wifi.exclamationmark" title="Marketplace unavailable" detail="{marketplace.load-error ?? ''}" {
                 button class="marketplace-button marketplace-retry" {
                     on-click { marketplace.refresh }
                     text "Try again"
@@ -480,7 +480,7 @@ window "marketplace" title="Marketplace" autosave="Marketplace" miniaturizable=#
                 spacer
                 use "marketplace-account"
             }
-            when "{marketplace.error != null && marketplace.status != 'failed'}" {
+            when "{marketplace.error != null}" {
                 row class="marketplace-banner marketplace-banner-error" {
                     column class="marketplace-banner-text" {
                         text "Something went wrong" class="marketplace-banner-title"

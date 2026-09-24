@@ -99,9 +99,15 @@ struct BuiltinMarketplaceTests {
     struct View {
         let session: FixtureFieldCheck.Session
 
-        init() throws {
+        init(_ changes: [(String, String)] = []) throws {
             let ir = try #require(BuiltinMarketplaceTests.loadBuiltin().ir)
-            let fixture = ProviderFixture.load(BuiltinMarketplaceTests.builtin.appendingPathComponent("fixture.kdl"))
+            var text = try String(contentsOf: BuiltinMarketplaceTests.builtin.appendingPathComponent("fixture.kdl"), encoding: .utf8)
+            for (old, new) in changes {
+                #expect(text.contains(old), "Fixture enthält \(old) nicht")
+                text = text.replacingOccurrences(of: old, with: new)
+            }
+            let fixture = ProviderFixture.parse(text, file: "fixture.kdl")
+            #expect(fixture.diagnostics.isEmpty, "\(fixture.diagnostics.map(\.message))")
             session = FixtureFieldCheck.session(ir, fixture: fixture)
             session.runtime.open("marketplace", screenKey: nil)
             session.flush()
@@ -115,6 +121,23 @@ struct BuiltinMarketplaceTests {
         var texts: [String] {
             BuiltinMarketplaceTests.texts(session.runtime.surface("marketplace", screenKey: "main")?.root ?? [])
         }
+    }
+
+    @Test("Aktionsfehler als Banner auf jedem Reiter, auch wenn Browse nicht laden konnte; Ladefehler im Leerzustand (MP-03, MP-23)")
+    func errorBanner() throws {
+        let view = try View([("status=\"loaded\" error=#null load-error=#null", "status=\"failed\" error=\"You must be signed in.\" load-error=\"The Marketplace could not be reached.\"")])
+        let browse = view.texts
+        #expect(browse.contains("Marketplace unavailable"))
+        #expect(browse.contains("The Marketplace could not be reached."), "\(browse)")
+        #expect(browse.contains("Try again"))
+        #expect(browse.contains("Something went wrong"))
+        #expect(browse.contains("You must be signed in."))
+        for tab in ["mine", "review"] {
+            view.set("marketplace-tab", tab)
+            #expect(view.texts.contains("Something went wrong"), "\(tab): \(view.texts)")
+            #expect(view.texts.contains("You must be signed in."), "\(tab): \(view.texts)")
+        }
+        #expect(view.session.diagnostics.isEmpty, "\(view.session.diagnostics.map(\.message))")
     }
 
     static let mapping: [String: [(String, String)]] = [

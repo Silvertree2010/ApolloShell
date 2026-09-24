@@ -232,7 +232,8 @@ enum ProvidersMore {
         id: "marketplace",
         fields: [
             S.field("status", .string, update: .push, doc: "idle, loading, loaded oder failed."),
-            S.field("error", .string, nullable: true, update: .push, doc: "letzte Fehlermeldung."),
+            S.field("error", .string, nullable: true, update: .push, doc: "letzter Fehler einer Aktion, bis marketplace.dismiss."),
+            S.field("load-error", .string, nullable: true, update: .push, doc: "warum die Liste nicht geladen werden konnte, nur bei status failed."),
             S.field("items", .list, update: .push, doc: "verfügbare Einträge."),
             S.field("user", .record, nullable: true, update: .push, doc: "angemeldeter Benutzer."),
             S.field("sign-in", .record, update: .push, doc: "Status der Anmeldung."),
