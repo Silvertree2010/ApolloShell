@@ -1,7 +1,7 @@
 import Foundation
 
-enum JSONValue {
-    static func parse(_ text: String) -> Value? {
+public enum JSONValue {
+    public static func parse(_ text: String) -> Value? {
         guard let data = text.data(using: .utf8),
               let object = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
         else { return nil }
