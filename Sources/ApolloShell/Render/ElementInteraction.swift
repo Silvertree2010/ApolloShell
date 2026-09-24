@@ -15,6 +15,7 @@ struct MouseConfig: Equatable {
     var menuOn: Set<String> = []
     var disabled = false
     var passive = false
+    var inert = false
     var reorder: ReorderEntry?
 
     init() {}
@@ -45,6 +46,7 @@ struct MouseConfig: Equatable {
     }
 
     func claims(_ kind: MouseKind) -> Bool {
+        if inert { return false }
         if passive { return kind != .scroll }
         switch kind {
         case .left: return click || doubleClick || longPress || right || !menuOn.isEmpty || reorder != nil
@@ -130,12 +132,20 @@ struct ElementInteraction: ViewModifier {
     let context: RenderContext
     let config: MouseConfig
     let hoverSensitive: Bool
+    var pressSensitive = false
+    @Environment(\.elementInteractive) private var interactive
 
     func body(content: Content) -> some View {
         let tooltip = element.property("tooltip").plainText
         let label = element.property("label").plainText ?? tooltip
-        content
-            .modifier(HoverTracking(element: element, context: context, active: hoverSensitive || element.ir.handlers.contains { $0.name == "on-hover" || $0.name == "on-hover-end" }))
+        var config = config
+        config.inert = !interactive
+        let pressing = pressSensitive && interactive && !config.claims(.left)
+        return content
+            .modifier(HoverTracking(element: element, context: context, active: interactive && (hoverSensitive || element.ir.handlers.contains { $0.name == "on-hover" || $0.name == "on-hover-end" })))
+            .simultaneousGesture(DragGesture(minimumDistance: 0)
+                .onChanged { _ in element.pseudo.insert(.active) }
+                .onEnded { _ in element.pseudo.remove(.active) }, including: pressing ? .all : .subviews)
             .overlay {
                 if !config.isEmpty {
                     MouseCatcher(element: element, context: context, config: config)
@@ -160,18 +170,15 @@ struct HoverTracking: ViewModifier {
     let active: Bool
 
     func body(content: Content) -> some View {
-        if active {
-            content.onHover { inside in
-                if inside {
-                    element.pseudo.insert(.hover)
-                    context.fire("on-hover", element)
-                } else {
-                    element.pseudo.remove(.hover)
-                    context.fire("on-hover-end", element)
-                }
+        content.onHover { inside in
+            if inside {
+                guard active else { return }
+                element.pseudo.insert(.hover)
+                context.fire("on-hover", element)
+            } else if active || element.pseudo.contains(.hover) {
+                element.pseudo.remove(.hover)
+                context.fire("on-hover-end", element)
             }
-        } else {
-            content
         }
     }
 }
@@ -180,7 +187,7 @@ struct OptionalHelp: ViewModifier {
     let text: String?
 
     func body(content: Content) -> some View {
-        if let text { content.help(text) } else { content }
+        content.help(text ?? "")
     }
 }
 
@@ -192,10 +199,7 @@ struct AccessibilityActions: ViewModifier {
 
     func body(content: Content) -> some View {
         let named = element.ir.accessibilityActions
-        var view = AnyView(content)
-        if let label {
-            view = AnyView(view.accessibilityLabel(label))
-        }
+        var view = AnyView(content.accessibilityLabel(Text(label ?? ""), isEnabled: label != nil))
         if config.click {
             view = AnyView(view.accessibilityAction { context.fire("on-click", element, Record([("modifiers", .list([]))])) })
         }

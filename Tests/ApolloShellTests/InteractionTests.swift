@@ -307,7 +307,7 @@ struct InteractionTests {
         """, css: "#t { width: 100px; height: 100px; align-items: start; } .card { width: 50px; height: 20px; background: #ff0000; } .b { width: 30px; height: 20px; }")
         let key = try #require(mounted.session.surfaces.first).id + "@render"
         let regions = mounted.session.context.hits.regions(for: key)
-        #expect(regions.count == 2)
+        #expect(regions.count == 2, "\(regions)")
         #expect(mounted.session.context.hits.contains(CGPoint(x: 10, y: 10), surfaceKey: key))
         #expect(!mounted.session.context.hits.contains(CGPoint(x: 90, y: 90), surfaceKey: key))
     }

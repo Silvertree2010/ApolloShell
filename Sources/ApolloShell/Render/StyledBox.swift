@@ -10,6 +10,7 @@ struct StyledBox: ViewModifier {
     var form: AnyShape?
     var flyouts: AnyView?
     var anchorID: String?
+    var dynamicInline = false
 
     func body(content: Content) -> some View {
         let width = style["width"], height = style["height"]
@@ -25,7 +26,7 @@ struct StyledBox: ViewModifier {
             .overlay { BorderLayer(style: style, shape: shape) }
             .modifier(Clip(active: StyleValues.keyword(style["overflow"]) == "hidden", shape: shape))
             .modifier(FlyoutOverlay(layer: flyouts))
-            .modifier(Filters(style["filter"]))
+            .modifier(Filters(style["filter"], enabled: dynamicInline || context.styles.declared.contains("filter")))
             .opacity(StyleValues.number(style["opacity"]) ?? 1)
             .modifier(Transform(style["transform"]))
             .modifier(AnchorReport(id: anchorID))
@@ -71,11 +72,38 @@ struct AspectRatio: ViewModifier {
     let ratio: Double?
 
     func body(content: Content) -> some View {
-        if let ratio, ratio > 0 {
-            content.aspectRatio(ratio, contentMode: .fit)
-        } else {
-            content
+        AspectLayout(ratio: ratio.flatMap { $0 > 0 ? CGFloat($0) : nil }) { content }
+    }
+}
+
+struct AspectLayout: Layout {
+    let ratio: CGFloat?
+
+    func target(_ proposal: ProposedViewSize, _ subview: LayoutSubview) -> ProposedViewSize {
+        guard let ratio else { return proposal }
+        switch (proposal.width, proposal.height) {
+        case let (width?, height?):
+            let fitted = min(width, height * ratio)
+            return ProposedViewSize(width: fitted, height: fitted / ratio)
+        case let (width?, nil):
+            return ProposedViewSize(width: width, height: width / ratio)
+        case let (nil, height?):
+            return ProposedViewSize(width: height * ratio, height: height)
+        case (nil, nil):
+            let ideal = subview.sizeThatFits(.unspecified)
+            let width = ideal.height > 0 ? min(ideal.width, ideal.height * ratio) : ideal.width
+            return ProposedViewSize(width: width, height: width / ratio)
         }
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let subview = subviews.first else { return .zero }
+        return subview.sizeThatFits(target(proposal, subview))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let subview = subviews.first else { return }
+        subview.place(at: bounds.origin, proposal: target(proposal, subview))
     }
 }
 
@@ -84,26 +112,60 @@ struct Clip: ViewModifier {
     let shape: AnyShape
 
     func body(content: Content) -> some View {
-        if active { content.clipShape(shape) } else { content }
+        content.clipShape(ClipForm(active: active, shape: shape))
+    }
+}
+
+struct ClipForm: Shape {
+    let active: Bool
+    let shape: AnyShape
+
+    func path(in rect: CGRect) -> Path {
+        active ? shape.path(in: rect) : Path(rect.insetBy(dx: -100_000, dy: -100_000))
     }
 }
 
 struct Filters: ViewModifier {
+    static let slots = 4
     let operations: [FilterOperation]
+    let enabled: Bool
 
-    init(_ value: CSSValue?) {
+    init(_ value: CSSValue?, enabled: Bool) {
         if case .filters(let list)? = value { operations = list } else { operations = [] }
+        self.enabled = enabled
+    }
+
+    func slot(_ index: Int) -> FilterOperation? {
+        operations.indices.contains(index) ? operations[index] : nil
     }
 
     func body(content: Content) -> some View {
-        operations.reduce(AnyView(content)) { view, operation in
-            switch operation {
-            case .blur(let radius):
-                AnyView(view.blur(radius: radius))
-            case .dropShadow(let shadow):
-                AnyView(view.shadow(color: StyleValues.color(shadow.color), radius: shadow.blur / 2, x: shadow.x, y: shadow.y))
-            }
+        if enabled {
+            content
+                .modifier(FilterSlot(operation: slot(0)))
+                .modifier(FilterSlot(operation: slot(1)))
+                .modifier(FilterSlot(operation: slot(2)))
+                .modifier(FilterSlot(operation: slot(3)))
+        } else {
+            content
         }
+    }
+}
+
+struct FilterSlot: ViewModifier {
+    let operation: FilterOperation?
+
+    func body(content: Content) -> some View {
+        var blur: CGFloat = 0
+        var shadow: Shadow?
+        switch operation {
+        case .blur(let radius)?: blur = radius
+        case .dropShadow(let value)?: shadow = value
+        case nil: break
+        }
+        return content
+            .blur(radius: blur)
+            .shadow(color: shadow.map { StyleValues.color($0.color) } ?? .clear, radius: (shadow?.blur ?? 0) / 2, x: shadow?.x ?? 0, y: shadow?.y ?? 0)
     }
 }
 
@@ -134,12 +196,13 @@ struct Cursor: ViewModifier {
     let name: String?
 
     func body(content: Content) -> some View {
-        switch name {
-        case "pointer": content.pointerStyle(.link)
-        case "text": content.pointerStyle(.horizontalText)
-        case "grab": content.pointerStyle(.grabIdle)
-        default: content
+        let style: PointerStyle? = switch name {
+        case "pointer": .link
+        case "text": .horizontalText
+        case "grab": .grabIdle
+        default: nil
         }
+        return content.pointerStyle(style)
     }
 }
 

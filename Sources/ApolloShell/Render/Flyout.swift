@@ -92,10 +92,8 @@ struct AnchorReport: ViewModifier {
     let id: String?
 
     func body(content: Content) -> some View {
-        if let id {
-            content.anchorPreference(key: FlyoutAnchorKey.self, value: .bounds) { [id: $0] }
-        } else {
-            content
+        content.transformAnchorPreference(key: FlyoutAnchorKey.self, value: .bounds) { value, anchor in
+            if let id, value[id] == nil { value[id] = anchor }
         }
     }
 }
@@ -241,7 +239,7 @@ struct SurfaceBox: ViewModifier {
             ? AnyShape(FusedShape(radius: StyleValues.radius(style["border-radius"]), circular: StyleValues.keyword(style["-apollo-corner-shape"]) == "circular", bulges: bulges))
             : nil
         let key = SurfaceHost.key(surface.id, surface.screenKey)
-        let overlay: AnyView? = flyouts.isEmpty ? nil : AnyView(FlyoutLayer(surface: surface, flyouts: flyouts, fused: fused, bulges: bulges, context: context))
+        let overlay = AnyView(FlyoutLayer(surface: surface, flyouts: flyouts, fused: fused, bulges: bulges, context: context))
         content
             .environment(\.matchNamespace, matches)
             .modifier(StyledBox(style: style, context: context, form: form, flyouts: overlay))

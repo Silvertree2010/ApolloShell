@@ -1,6 +1,7 @@
 import SwiftUI
 import ApolloConfig
 import ApolloStyle
+import ApolloRuntime
 
 struct HitRegion: Equatable {
     var identity: Identity
@@ -34,6 +35,7 @@ final class HitRegions {
 struct HitRegionEntry {
     var identity: Identity
     var anchor: Anchor<CGRect>
+    var active: Bool
 }
 
 struct HitRegionKey: PreferenceKey {
@@ -47,13 +49,24 @@ struct HitRegionKey: PreferenceKey {
 struct HitRegionMarker: ViewModifier {
     let active: Bool
     let identity: Identity
+    @Environment(\.elementInteractive) private var interactive
 
     func body(content: Content) -> some View {
-        if active {
-            content.anchorPreference(key: HitRegionKey.self, value: .bounds) { [HitRegionEntry(identity: identity, anchor: $0)] }
-        } else {
-            content
+        let active = self.active && interactive
+        return content.transformAnchorPreference(key: HitRegionKey.self, value: .bounds) { value, anchor in
+            if active { value.append(HitRegionEntry(identity: identity, anchor: anchor, active: true)) }
         }
+    }
+}
+
+private struct ElementInteractiveKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var elementInteractive: Bool {
+        get { self[ElementInteractiveKey.self] }
+        set { self[ElementInteractiveKey.self] = newValue }
     }
 }
 
@@ -64,7 +77,7 @@ struct HitRegionCollector: ViewModifier {
     func body(content: Content) -> some View {
         content.backgroundPreferenceValue(HitRegionKey.self) { entries in
             GeometryReader { proxy in
-                let list = entries.map { HitRegion(identity: $0.identity, frame: proxy[$0.anchor]) }
+                let list = entries.filter(\.active).map { HitRegion(identity: $0.identity, frame: proxy[$0.anchor]) }
                 Color.clear
                     .onAppear { regions.update(list, surfaceKey: surfaceKey) }
                     .onChange(of: list) { _, new in regions.update(new, surfaceKey: surfaceKey) }
@@ -92,5 +105,23 @@ extension CSSColor {
         case .rgba(_, _, _, let alpha), .system(_, let alpha): alpha <= 0
         case .currentColor: false
         }
+    }
+}
+
+@MainActor
+enum SelfState {
+    static func uses(_ element: ElementInstance, _ field: String) -> Bool {
+        let values = Array(element.ir.properties.values) + element.ir.arguments
+        return values.contains { value in value.dependencies.contains { $0.root == "self" && $0.fields.first == field } }
+    }
+}
+
+extension ElementView {
+    static func needsInteraction(_ element: ElementInstance, styles: StyleResolver, reorder: Bool) -> Bool {
+        let ir = element.ir
+        return !ir.handlers.isEmpty || !ir.accessibilityActions.isEmpty || ir.menu != nil || reorder
+            || ir.properties["tooltip"] != nil || ir.properties["label"] != nil || element.kind == "button"
+            || !styles.selectorPseudo.isDisjoint(with: [.hover, .active])
+            || SelfState.uses(element, "hover") || SelfState.uses(element, "pressed")
     }
 }

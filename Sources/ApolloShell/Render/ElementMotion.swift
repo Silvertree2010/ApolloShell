@@ -6,6 +6,7 @@ struct Motion: ViewModifier {
     let element: ElementInstance
     let style: ComputedStyle
     let context: RenderContext
+    var dynamicInline = false
     @Environment(\.matchNamespace) private var namespace
     @Environment(\.renderMode) private var renderMode
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -13,9 +14,10 @@ struct Motion: ViewModifier {
     func body(content: Content) -> some View {
         let plan = MotionPlan(style, reduceMotion: reduceMotion)
         content
-            .modifier(RunningAnimation(spec: renderMode ? nil : plan.animation))
+            .modifier(RunningAnimation(spec: renderMode ? nil : plan.animation, enabled: dynamicInline || context.styles.declared.contains("animation")))
             .modifier(ChangeAnimation(animation: plan.change, style: style))
-            .modifier(Matched(id: element.property("match-id").plainText, namespace: namespace))
+            .modifier(Matched(id: element.property("match-id").plainText, fallback: element.identity.description,
+                              enabled: element.ir.properties["match-id"] != nil, namespace: namespace))
             .transition(plan.transition)
     }
 }
@@ -109,13 +111,14 @@ struct AnimationSpec: Equatable {
 
 struct RunningAnimation: ViewModifier {
     let spec: AnimationSpec?
+    var enabled = true
     @State private var start = Date()
     @State private var finished = false
 
     func body(content: Content) -> some View {
-        if let spec {
-            TimelineView(.animation(paused: finished)) { timeline in
-                let pose = spec.pose(spec.progress(elapsed: timeline.date.timeIntervalSince(start)))
+        if enabled {
+            TimelineView(.animation(paused: spec == nil || finished)) { timeline in
+                let pose = spec.map { $0.pose($0.progress(elapsed: timeline.date.timeIntervalSince(start))) } ?? AnimationSpec.Pose()
                 content
                     .rotationEffect(.degrees(pose.rotation))
                     .opacity(pose.opacity)
@@ -124,7 +127,7 @@ struct RunningAnimation: ViewModifier {
             .task(id: spec) {
                 start = Date()
                 finished = false
-                guard let count = spec.count else { return }
+                guard let spec, let count = spec.count else { return }
                 try? await Task.sleep(for: .seconds(max(0, spec.delay + spec.duration * count)))
                 if !Task.isCancelled { finished = true }
             }
@@ -139,21 +142,21 @@ struct ChangeAnimation: ViewModifier {
     let style: ComputedStyle
 
     func body(content: Content) -> some View {
-        if let animation {
-            content.animation(animation, value: style)
-        } else {
-            content
+        content.transaction(value: style) { transaction in
+            if let animation { transaction.animation = animation }
         }
     }
 }
 
 struct Matched: ViewModifier {
     let id: String?
+    let fallback: String
+    let enabled: Bool
     let namespace: Namespace.ID?
 
     func body(content: Content) -> some View {
-        if let id, let namespace {
-            content.matchedGeometryEffect(id: id, in: namespace)
+        if enabled, let namespace {
+            content.matchedGeometryEffect(id: id ?? "unmatched:" + fallback, in: namespace)
         } else {
             content
         }

@@ -64,20 +64,47 @@ struct ScrollElement: View {
         let axis: Axis.Set = horizontal ? .horizontal : .vertical
         let indicators = element.property("indicators") == .bool(true)
         let fade = StyleValues.fadeEdges(style["-apollo-fade-edges"])
-        let content = VStack(spacing: 0) {
-            ElementChildren(children: element.children, scope: scope)
-        }
-        .frame(maxWidth: horizontal ? nil : .infinity, maxHeight: horizontal ? .infinity : nil)
-        ViewThatFits(in: axis) {
-            content
-                .padding(StyleValues.sides(style["padding"]))
-                .onAppear { element.pseudo.remove(.overflowing) }
+        let overflowing = element.pseudo.contains(.overflowing)
+        ScrollFit(horizontal: horizontal) {
             ScrollView(axis, showsIndicators: indicators) {
-                content.padding(StyleValues.sides(style["padding"]))
+                VStack(spacing: 0) {
+                    ElementChildren(children: element.children, scope: scope)
+                }
+                .frame(maxWidth: horizontal ? nil : .infinity, maxHeight: horizontal ? .infinity : nil)
+                .padding(StyleValues.sides(style["padding"]))
             }
-            .mask { FadeMask(fraction: fade ?? 0, horizontal: horizontal) }
-            .onAppear { element.pseudo.insert(.overflowing) }
+            .scrollBounceBehavior(.basedOnSize, axes: axis)
+            .scrollClipDisabled(!overflowing)
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                horizontal ? geometry.contentSize.width > geometry.containerSize.width + 0.5
+                    : geometry.contentSize.height > geometry.containerSize.height + 0.5
+            } action: { _, now in
+                if now { element.pseudo.insert(.overflowing) } else { element.pseudo.remove(.overflowing) }
+            }
+            .mask {
+                if overflowing, let fade, fade > 0 {
+                    FadeMask(fraction: fade, horizontal: horizontal)
+                } else {
+                    Rectangle().padding(-100_000)
+                }
+            }
         }
+    }
+}
+
+struct ScrollFit: Layout {
+    let horizontal: Bool
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let subview = subviews.first else { return .zero }
+        let fitted = subview.sizeThatFits(proposal)
+        let ideal = subview.sizeThatFits(horizontal ? ProposedViewSize(width: nil, height: proposal.height) : ProposedViewSize(width: proposal.width, height: nil))
+        return horizontal ? CGSize(width: min(fitted.width, ideal.width), height: fitted.height)
+            : CGSize(width: fitted.width, height: min(fitted.height, ideal.height))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(at: bounds.origin, proposal: ProposedViewSize(bounds.size))
     }
 }
 

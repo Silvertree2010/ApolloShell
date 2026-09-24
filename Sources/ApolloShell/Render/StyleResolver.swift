@@ -25,12 +25,16 @@ final class StyleResolver {
 
     let assetRoot: URL?
     let assetRoots: [URL]
+    let declared: Set<String>
+    let selectorPseudo: PseudoState
 
     init(sheets: [StyleSheet], environment: StyleEnvironment, assetRoot: URL? = nil) {
         engine = StyleEngine(sheets: sheets)
         self.environment = environment
         self.assetRoot = assetRoot
         assetRoots = sheets.compactMap(\.assetRoot)
+        declared = sheets.reduce(into: Set<String>()) { $0.formUnion($1.declaredProperties) }
+        selectorPseudo = sheets.reduce(into: PseudoState()) { $0.formUnion($1.selectorPseudo) }
     }
 
     static func subject(for element: ElementInstance) -> StyleSubject {

@@ -115,12 +115,17 @@ struct ElementView: View {
             let spacer = element.kind == "spacer" && element.property("size") == .null
             let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
             let mouse = MouseConfig(element, reorder: reorderEntry)
-            let hover = styles.sensitive(to: .hover, subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline) || element.kind == "button"
+            let hover = element.kind == "button" || SelfState.uses(element, "hover")
+                || styles.sensitive(to: .hover, subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
+            let press = SelfState.uses(element, "pressed")
+                || styles.sensitive(to: .active, subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
+            let inlineStyle = element.ir.properties["style"] != nil
             ElementRenderers.view(for: element, style: style, scope: inner)
-                .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText))
+                .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: inlineStyle))
                 .modifier(HitRegionMarker(active: !mouse.isEmpty || StyleValues.visibleBackground(style), identity: element.identity))
-                .modifier(InteractionIfNeeded(element: element, context: scope.context, config: mouse, hover: hover))
-                .modifier(Motion(element: element, style: style, context: scope.context))
+                .modifier(InteractionIfNeeded(element: element, context: scope.context, config: mouse, hover: hover, press: press,
+                                              needed: Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil)))
+                .modifier(Motion(element: element, style: style, context: scope.context, dynamicInline: inlineStyle))
                 .layoutValue(key: ChildMetricsKey.self, value: ChildMetrics(style, spacer: spacer))
         }
     }
@@ -142,13 +147,12 @@ struct InteractionIfNeeded: ViewModifier {
     let context: RenderContext
     let config: MouseConfig
     let hover: Bool
+    let press: Bool
+    let needed: Bool
 
     func body(content: Content) -> some View {
-        let ir = element.ir
-        let needed = !config.isEmpty || hover || !ir.handlers.isEmpty || !ir.accessibilityActions.isEmpty
-            || element.property("tooltip") != .null || element.property("label") != .null
         if needed {
-            content.modifier(ElementInteraction(element: element, context: context, config: config, hoverSensitive: hover))
+            content.modifier(ElementInteraction(element: element, context: context, config: config, hoverSensitive: hover, pressSensitive: press))
         } else {
             content
         }
