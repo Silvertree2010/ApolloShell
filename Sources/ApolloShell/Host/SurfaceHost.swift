@@ -32,14 +32,19 @@ final class SurfaceHost: SurfaceHosting {
 struct SurfaceView: View {
     let surface: SurfaceInstance
     let context: RenderContext
+    var insets = EdgeInsets()
+    var painter: (any BackgroundPainter)?
 
     var body: some View {
         let subject = StyleResolver.subject(for: surface)
-        let style = context.styles.resolve(subject, ancestors: [], parent: nil)
+        let resolved = context.styles.resolve(subject, ancestors: [], parent: nil)
+        let (style, painted) = SurfaceBackground.resolve(painter, surface: surface, style: resolved)
         let scope = RenderScope(context: context, ancestors: [subject], parentStyle: style, parentKind: "column")
         VStack(alignment: StyleValues.horizontal(style["align-items"]), spacing: StyleValues.gap(style["gap"])) {
             ElementChildren(children: surface.root, scope: scope)
         }
+        .padding(insets)
         .modifier(StyledBox(style: style))
+        .background { painted }
     }
 }

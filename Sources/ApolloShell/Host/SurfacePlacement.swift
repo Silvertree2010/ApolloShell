@@ -38,6 +38,12 @@ struct SurfacePlacement: Equatable {
     }
 
     init(property: (String) -> Value, style: ComputedStyle) {
+        self.init(kind: "panel", property: property, style: style)
+    }
+
+    init(kind: String, property: (String) -> Value, style: ComputedStyle) {
+        anchor = Anchor(rawValue: SurfaceWindowKind.defaultAnchor(kind)) ?? .center
+        area = Area(rawValue: SurfaceWindowKind.defaultArea(kind)) ?? .belowMenubar
         if case .string(let name) = property("anchor"), let anchor = Anchor(rawValue: name) { self.anchor = anchor }
         if case .string(let name) = property("area"), let area = Area(rawValue: name) { self.area = area }
         width = StyleValues.length(style["width"])
@@ -54,6 +60,25 @@ struct SurfacePlacement: Equatable {
             let trimmed = text.hasSuffix("px") ? String(text.dropLast(2)) : text
             return Double(trimmed).map { CGFloat($0) } ?? 0
         default: return 0
+        }
+    }
+
+    enum Edge: Hashable {
+        case top, bottom, left, right
+    }
+
+    var anchoredEdges: Set<Edge> {
+        switch anchor {
+        case .top: [.top]
+        case .bottom: [.bottom]
+        case .left: [.left]
+        case .right: [.right]
+        case .topLeft: [.top, .left]
+        case .topRight: [.top, .right]
+        case .bottomLeft: [.bottom, .left]
+        case .bottomRight: [.bottom, .right]
+        case .fill: [.top, .bottom, .left, .right]
+        case .center: []
         }
     }
 
@@ -129,6 +154,7 @@ enum SurfaceWindowKind {
         case "popup", "osd": [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary]
         case "toast": [.canJoinAllSpaces, .transient, .ignoresCycle]
         case "window": [.moveToActiveSpace]
+        case "overlay": [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
         default: [.canJoinAllSpaces, .stationary, .ignoresCycle]
         }
     }
