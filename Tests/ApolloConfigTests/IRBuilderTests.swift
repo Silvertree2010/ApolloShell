@@ -595,6 +595,18 @@ struct IRTopLevelTests {
         #expect(wm.nodes.map(\.name) == ["wm"])
     }
 
+    @Test("poll und listen mit Namen auf -error sind ein Ladefehler")
+    func pollAndListenRejectErrorSuffix() {
+        let result = IRHarness.build("""
+        poll "vpn-error" command="scutil"
+        listen "watch-error" command="watch"
+        """)
+        #expect(result.diagnostics.filter { $0.severity == .error }.map(\.message) == [
+            "'poll' name 'vpn-error' cannot end with '-error', that suffix is reserved for the load error field",
+            "'listen' name 'watch-error' cannot end with '-error', that suffix is reserved for the load error field",
+        ])
+    }
+
     @Test("command-center: die letzte Liste ersetzt die fruehere")
     func commandCenterItemsReplaceTheList() throws {
         let ir = IRHarness.clean("""

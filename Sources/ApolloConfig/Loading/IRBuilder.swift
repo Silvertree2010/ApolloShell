@@ -634,6 +634,8 @@ enum IRBuilder {
         return CompiledValue(template: .whole(condition ?? .literal(.bool(false))), dependencies: dependencies, span: subject.span)
     }
 
+    private static let errorSuffixedSourceKinds: Set<String> = ["poll", "listen"]
+
     private static func buildBlocks(_ nodes: [ExpandedNode], state: IRBuildState) -> [String: [BlockIR]] {
         let lastCommandCenterList = nodes.lastIndex { $0.kdl.name == "command-center" && $0.children.contains { !$0.isExpansionMarker } }
         var result: [String: [BlockIR]] = [:]
@@ -641,6 +643,9 @@ enum IRBuilder {
             var node = original
             if node.kdl.name == "command-center", let last = lastCommandCenterList, position != last {
                 node.children = []
+            }
+            if errorSuffixedSourceKinds.contains(node.kdl.name), let name = node.kdl.arguments.first, case .string(let text) = name.scalar, text.hasSuffix("-error") {
+                state.report(Diagnostic(.error, "'\(node.kdl.name)' name '\(text)' cannot end with '-error', that suffix is reserved for the load error field", span: name.span), node: node)
             }
             let schema = state.registry.node(node.kdl.name) ?? SchemaStage.providerSettingsSchema(node.kdl.name, registry: state.registry)
             var compiled: [String: CompiledValue] = [:]
