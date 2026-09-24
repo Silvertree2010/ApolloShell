@@ -23,7 +23,7 @@ struct ReloadTests {
         ])
         return [
             T.surface("panel", "bar", properties: ["height": IR.value("{var.size}", line: line)], children: [
-                T.text("0", IR.value("{var.label}", line: line + 1), properties: ["class": IR.string("title", line: line + 1)], line: line + 1),
+                T.text("0", IR.value("{var.label}", line: line + 1), properties: ["class": IR.string("title", line: line + 1), "tip": IR.value("{var.label | upper}", line: line + 1)], line: line + 1),
                 T.box("1", properties: ["visible": IR.value("{var.show}", line: line + 2)], children: [
                     T.text("0", IR.value("{var.size * 2}", line: line + 2), properties: ["id": IR.string("size", line: line + 2)], line: line + 2),
                 ], line: line + 2),
@@ -117,6 +117,27 @@ struct ReloadTests {
         fixture.clock.advance(by: 2)
         await running?.value
         #expect(fixture.log.entries == ["new", "old"])
+    }
+
+    @Test("Geänderte on-Handler: Provider läuft durch, neuer Handler gilt, entfallene Nachfrage endet")
+    func eventHandlersChanged() async {
+        let fixture = ShellFixture()
+        let battery = StubProvider(id: "battery")
+        let network = StubProvider(id: "network")
+        fixture.providers.register(battery)
+        fixture.providers.register(network)
+        fixture.apply([], events: [
+            EventHandlerIR(event: "battery.warning", actions: [IR.log("old")], span: IR.span(11)),
+            EventHandlerIR(event: "network.lost", actions: [IR.log("net")], span: IR.span(12)),
+        ])
+        fixture.flush()
+        fixture.apply([], events: [EventHandlerIR(event: "battery.warning", actions: [IR.log("new")], span: IR.span(13))])
+        fixture.flush()
+        #expect(battery.startCount == 1 && battery.stopCount == 0)
+        #expect(network.stopCount == 1)
+        battery.lastContext?.emit("battery.warning", Record())
+        await settle()
+        #expect(fixture.log.entries == ["new"])
     }
 
     static func labelled(_ labels: [String], ids: Bool) -> [SurfaceIR] {
