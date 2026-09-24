@@ -48,7 +48,7 @@ extension ValueTemplate {
         dependencies.isEmpty
     }
 
-    func evaluate(with evaluator: Evaluator, scope: any EvaluationScope) -> Value {
+    public func evaluate(with evaluator: Evaluator, scope: any EvaluationScope) -> Value {
         switch self {
         case .scalar(let compiled):
             return evaluator.render(compiled.template, in: scope, at: compiled.span)

@@ -28,6 +28,21 @@ public enum VarStateFile {
         return (values, diagnostics)
     }
 
+    public static func readAll(_ text: String, file: String) -> ([String: Value], [Diagnostic]) {
+        guard let document = try? KDLDocument.parse(text, file: file) else {
+            return ([:], [Diagnostic(.warning, "state file could not be parsed, using defaults", span: .synthetic(file), kind: .stateFileUnreadable)])
+        }
+        var values: [String: Value] = [:]
+        var diagnostics: [Diagnostic] = []
+        for node in document.nodes {
+            if values[node.name] != nil {
+                diagnostics.append(Diagnostic(.warning, "duplicate '\(node.name)' in state file, using the last one", span: node.span))
+            }
+            values[node.name] = ValueKDLMapping.value(from: node)
+        }
+        return (values, diagnostics)
+    }
+
     public static func writing(_ values: [String: Value], into text: String, file: String) throws -> String {
         let document = try KDLDocument.parse(text, file: file)
         var editor = KDLEditor(document)
