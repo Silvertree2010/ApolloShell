@@ -270,6 +270,16 @@ struct HostStartIPCTests {
         try await harness.start()
         #expect(harness.shell.overlay.problems.contains { $0.message.contains("settings.kdl names config 'nope'") })
         harness.shell.shutdown()
+        let named = try ShellHarness("panel \"x\" { row {} }", settings: "config \"good\"\n", useConfigFolder: false)
+        let good = named.home.appendingPathComponent("apolloshell/configs/good")
+        try FileManager.default.createDirectory(at: good, withIntermediateDirectories: true)
+        try "panel \"x\" { row {} }".write(to: good.appendingPathComponent("shell.kdl"), atomically: true, encoding: .utf8)
+        try await named.start()
+        #expect(named.shell.location?.id == "good")
+        try "config \"still-missing\"\n".write(to: named.home.appendingPathComponent("apolloshell/settings.kdl"), atomically: true, encoding: .utf8)
+        await named.shell.reload()?.value
+        #expect(named.shell.overlay.problems.contains { $0.message.contains("'still-missing'") })
+        named.shell.shutdown()
     }
 
     @Test("var persist: Wert aus state/<config>.kdl geladen, set schreibt zurück")

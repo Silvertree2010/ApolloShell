@@ -176,7 +176,6 @@ final class LiveShell: WindowHostLink {
         guard assembly.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Array(host.screens.keys).sorted(), shell: shell, writer: writer(for: location)) else {
             throw RenderError.config("config \(location.root.path) did not load")
         }
-        if !failed.isEmpty { overlay.show(failed + overlay.problems.filter { problem in !failed.contains { $0.message == problem.message } }) }
         host.observeSpaces()
         host.onSpaceChange = { [weak self] in self?.fullscreen.poke() }
         fullscreen.apply = { [weak self] hidden, key in self?.assembly?.runtime.setHiddenByFullscreen(hidden, screenKey: key) }
@@ -327,12 +326,13 @@ final class LiveShell: WindowHostLink {
 
     @discardableResult
     func reload() -> Task<Void, Never>? {
-        guard let location = activeLocationForReload() else { return nil }
+        guard let (location, notes) = activeLocationForReload() else { return nil }
         reloadGeneration += 1
         let generation = reloadGeneration
         return Task { @MainActor in
-            let result = await load(location)
+            var result = await load(location)
             guard generation == reloadGeneration else { return }
+            result = ConfigLoadResult(ir: result.ir, diagnostics: notes + result.diagnostics, files: result.files)
             if result.ir != nil, Self.shellFileIsEmpty(location) {
                 Self.log("shell.kdl of \(location.id) is empty, keeping the last config")
                 return
@@ -353,13 +353,11 @@ final class LiveShell: WindowHostLink {
         return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private func activeLocationForReload() -> ConfigLocation? {
+    private func activeLocationForReload() -> (ConfigLocation, [Diagnostic])? {
         guard let location else { return nil }
-        if location.id == "render-dock" { return location }
+        if location.id == "render-dock" { return (location, []) }
         _ = settings.reload()
-        let (next, diagnostics) = resolveActive()
-        for diagnostic in diagnostics { overlay.add(diagnostic) }
-        return next
+        return resolveActive()
     }
 
     private func startServices() {
