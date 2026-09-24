@@ -112,7 +112,7 @@ struct Clip: ViewModifier {
     let shape: AnyShape
 
     func body(content: Content) -> some View {
-        content.clipShape(ClipForm(active: active, shape: shape))
+        content.clipShape(ClipForm(active: active, shape: shape)).modifier(HitRegionClip(active: active))
     }
 }
 

@@ -395,6 +395,52 @@ struct InteractionTests {
         #expect(ElementMouseView.winner(at: point, in: window, kind: .left) === button)
     }
 
+    static let clipConfig = """
+    var hit ""
+    panel "t" anchor="left" {
+        column {
+            stack class="clip" {
+                column class="inner" {
+                    each item in="{['p', 'q', 'r', 's']}" key="{item}" {
+                        stack id="{item}" class="item" { on-click { set "hit" "{item}" } }
+                    }
+                }
+            }
+            button id="b" class="b" { on-click { set "hit" "button" } }
+        }
+    }
+    """
+    static let clipCSS = "#t { width: 100px; height: 100px; align-items: start; } .clip { width: 100px; height: 20px; overflow: hidden; } .inner { flex-shrink: 0; } .item { width: 100px; height: 20px; flex-shrink: 0; background: #ff0000; } .b { width: 100px; height: 40px; }"
+
+    @Test("overflow: hidden ausserhalb einer ScrollView: weggeschnittener Fänger verliert gegen den sichtbaren Knopf")
+    func overflowClipLoses() throws {
+        let mounted = try Mounted.mount(Self.clipConfig, css: Self.clipCSS)
+        let button = try mounted.catcher("b")
+        let window = try #require(button.window)
+        let point = button.convert(NSPoint(x: button.bounds.midX, y: button.bounds.midY), to: nil)
+        #expect(try mounted.catcher("s").convert(mounted.catcher("s").bounds, to: nil).contains(point))
+        #expect(ElementMouseView.winner(at: point, in: window, kind: .left) === button)
+        let frame = button.convert(button.bounds, to: nil)
+        let inClip = NSPoint(x: frame.midX, y: frame.maxY + 10)
+        let winner = ElementMouseView.winner(at: inClip, in: window, kind: .left)
+        #expect(["q", "r"].contains(winner?.element?.property("id").plainText ?? ""))
+    }
+
+    @Test("Trefferflächen schneiden weggeschnittene und weggescrollte Flächen ab")
+    func hitRegionsClipped() throws {
+        func items(_ mounted: Mounted) throws -> [HitRegion] {
+            let key = try #require(mounted.session.surfaces.first).id + "@render"
+            let ids = try ["p", "q", "r", "s"].map { try #require(try mounted.catcher($0).element?.identity) }
+            return mounted.session.context.hits.regions(for: key).filter { ids.contains($0.identity) }
+        }
+        let clipped = try items(Mounted.mount(Self.clipConfig, css: Self.clipCSS))
+        #expect(clipped.count == 2)
+        #expect(clipped.allSatisfy { CGRect(x: 0, y: 0, width: 100, height: 20).contains($0.frame) })
+        let scrolled = try items(Mounted.mount(Self.clipConfig.replacingOccurrences(of: "stack class=\"clip\"", with: "scroll class=\"clip\""), css: Self.clipCSS))
+        #expect(scrolled.count == 1)
+        #expect(scrolled.first?.frame == CGRect(x: 0, y: 0, width: 100, height: 20))
+    }
+
     @Test("input bind liest das var beobachtet: Zurücksetzen per Aktion leert das Feld")
     func inputBindReads() async throws {
         let mounted = try Mounted.mount("""

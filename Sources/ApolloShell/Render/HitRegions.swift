@@ -36,6 +36,7 @@ struct HitRegionEntry {
     var identity: Identity
     var anchor: Anchor<CGRect>
     var active: Bool
+    var clips: [Anchor<CGRect>] = []
 }
 
 struct HitRegionKey: PreferenceKey {
@@ -59,6 +60,16 @@ struct HitRegionMarker: ViewModifier {
     }
 }
 
+struct HitRegionClip: ViewModifier {
+    let active: Bool
+
+    func body(content: Content) -> some View {
+        content.transformAnchorPreference(key: HitRegionKey.self, value: .bounds) { value, anchor in
+            if active { for index in value.indices { value[index].clips.append(anchor) } }
+        }
+    }
+}
+
 private struct ElementInteractiveKey: EnvironmentKey {
     static let defaultValue = true
 }
@@ -77,7 +88,10 @@ struct HitRegionCollector: ViewModifier {
     func body(content: Content) -> some View {
         content.backgroundPreferenceValue(HitRegionKey.self) { entries in
             GeometryReader { proxy in
-                let list = entries.filter(\.active).map { HitRegion(identity: $0.identity, frame: proxy[$0.anchor]) }
+                let list = entries.filter(\.active).compactMap { entry -> HitRegion? in
+                    let frame = entry.clips.reduce(proxy[entry.anchor]) { $0.intersection(proxy[$1]) }
+                    return frame.isNull || frame.isEmpty ? nil : HitRegion(identity: entry.identity, frame: frame)
+                }
                 Color.clear
                     .onAppear { regions.update(list, surfaceKey: surfaceKey) }
                     .onChange(of: list) { _, new in regions.update(new, surfaceKey: surfaceKey) }
