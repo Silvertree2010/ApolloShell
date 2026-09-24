@@ -24,6 +24,14 @@ struct ExpandedNode: Sendable, Hashable {
     }
 }
 
+extension ExpandedNode {
+    func reattachingChildren() -> KDLNode {
+        var result = kdl
+        result.children = children.isEmpty ? nil : children.map { $0.reattachingChildren() }
+        return result
+    }
+}
+
 struct IncludeExpansionResult: Sendable {
     var nodes: [ExpandedNode]
     var diagnostics: [Diagnostic]
