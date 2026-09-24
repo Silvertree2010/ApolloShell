@@ -41,11 +41,11 @@ struct SignalStoreDemandTests {
         #expect(store.demandedPaths(root: "apps").isEmpty)
     }
 
-    @Test("onDemandChange feuert nur bei echter Änderung der Menge, je Wurzel")
-    func onDemandChangeFiresOnlyOnRealChange() {
+    @Test("Nachfrage-Beobachter feuert nur bei echter Änderung der Menge, je Wurzel")
+    func demandObserverFiresOnlyOnRealChange() {
         let store = SignalStore(scheduler: ManualFlushScheduler())
         var changes: [String] = []
-        store.onDemandChange = { changes.append($0) }
+        store.addDemandObserver { changes.append($0) }
 
         let a = store.subscribe(DependencyPath("perf", ["cpu"])) {}
         let b = store.subscribe(DependencyPath("perf", ["cpu"])) {}

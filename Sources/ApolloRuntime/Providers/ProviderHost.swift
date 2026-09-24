@@ -40,10 +40,10 @@ public final class ProviderHost {
 
     public init(store: SignalStore) {
         self.store = store
-        store.onDemandChange = { [weak self] root in
+        store.addDemandObserver { [weak self] root in
             self?.markDirty(root)
         }
-        store.onDemandSettle = { [weak self] in
+        store.addDemandSettleObserver { [weak self] in
             self?.reconcile()
         }
     }

@@ -30,15 +30,7 @@ public final class SignalStore {
     private var demandObservers: [@MainActor (String) -> Void] = []
     private var demandSettleObservers: [@MainActor () -> Void] = []
 
-    public var onDemandChange: (@MainActor (String) -> Void)? {
-        get { demandObservers.first }
-        set { demandObservers = newValue.map { [$0] } ?? [] }
-    }
     public var onFlush: (@MainActor () -> Void)?
-    public var onDemandSettle: (@MainActor () -> Void)? {
-        get { demandSettleObservers.first }
-        set { demandSettleObservers = newValue.map { [$0] } ?? [] }
-    }
 
     public func addDemandObserver(_ observer: @escaping @MainActor (String) -> Void) {
         demandObservers.append(observer)
@@ -62,6 +54,16 @@ public final class SignalStore {
         guard self.value(path) != sanitized else { return }
         let base = roots[path.root] ?? .record(Record())
         roots[path.root] = SignalStore.write(base, path.fields, sanitized)
+        notify(path)
+        requestFlush()
+    }
+
+    func remove(_ path: DependencyPath) {
+        guard let last = path.fields.last, let base = roots[path.root] else { return }
+        let parentFields = Array(path.fields.dropLast())
+        guard case .record(var record) = SignalStore.read(base, parentFields), record[last] != nil else { return }
+        record[last] = nil
+        roots[path.root] = SignalStore.write(base, parentFields, .record(record))
         notify(path)
         requestFlush()
     }
@@ -97,6 +99,10 @@ public final class SignalStore {
 
     public func demandedPaths(root: String) -> Set<DependencyPath> {
         Set(demandCounts.keys.filter { $0.root == root })
+    }
+
+    func demandCount(_ path: DependencyPath) -> Int {
+        demandCounts[path, default: 0]
     }
 
     private func incrementDemand(_ paths: [DependencyPath]) {
