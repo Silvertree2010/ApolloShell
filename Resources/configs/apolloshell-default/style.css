@@ -115,6 +115,7 @@
   border-radius: var(--apollo-panel-radius, 25px);
 }
 #launcher { border-radius: var(--apollo-panel-radius, 26px); }
+#session { --render-glass: clear; }
 
 .card {
   padding: 16px;
@@ -228,11 +229,11 @@
 .launcher-icon { width: 32px; height: 32px; }
 .launcher-name { font-size: 14px; color: var(--apollo-text-color, -apple-system-label); }
 
-.session { width: 112px; height: 496px; padding: 16px; gap: 16px; align-items: center; }
-.session-button { width: 80px; height: 80px; border-radius: 20px; background: rgb(from -apple-system-label r g b / 0.06); }
+.session { width: 102px; height: 496px; padding: 16px 6px 16px 16px; gap: 16px; align-items: start; }
+.session-button { width: 80px; height: 80px; border-radius: 20px; background: rgb(from -apple-system-label r g b / 0.08); }
 .session-button.hovered { background: rgb(from -apple-system-label r g b / 0.08); }
 .session-button:checked { background: rgb(from -apple-system-label r g b / 0.14); }
-.session-glyph { font-size: 26px; }
+.session-glyph { width: 30px; height: 30px; font-size: 28px; font-weight: 500; }
 .session-emblem { width: 80px; height: 80px; }
 .session-mark { color: var(--apollo-accent-color, -apple-system-control-accent); }
 

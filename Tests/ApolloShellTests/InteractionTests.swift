@@ -54,8 +54,9 @@ struct Mounted {
         session.flush()
     }
 
-    static func mount(_ kdl: String, css: String) throws -> Mounted {
+    static func mount(_ kdl: String, css: String, markTime: TimeInterval = 0) throws -> Mounted {
         let (session, _) = try RenderProbe.session(kdl, css: css)
+        session.markRenderTime = markTime
         let surface = try #require(session.surfaces.first)
         let view = session.mount(surface)
         for _ in 0..<5 {

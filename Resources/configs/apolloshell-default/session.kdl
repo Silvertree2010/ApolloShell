@@ -1,7 +1,7 @@
 let session-actions {
     - id="logout" title="Log Out" icon="session-logout" symbol="rectangle.portrait.and.arrow.right" mood="think"
     - id="shutdown" title="Shut Down" icon="session-shutdown" symbol="power" mood="farewell"
-    - id="sleep" title="Sleep" icon="session-sleep" symbol="moon.fill" mood="sleep"
+    - id="sleep" title="Sleep" icon="session-sleep" symbol="moon.zzz" mood="sleep"
     - id="restart" title="Restart" icon="session-restart" symbol="arrow.clockwise" mood="farewell"
 }
 

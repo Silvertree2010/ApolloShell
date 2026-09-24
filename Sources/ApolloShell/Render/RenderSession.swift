@@ -16,6 +16,7 @@ final class RenderSession {
     let canvas: OffscreenCanvas
     let dark: Bool
     let actionLog = ActionLog()
+    var markRenderTime: TimeInterval = 0
     var actions: [String] { actionLog.entries }
 
     init(config: URL, resources: URL, fixture: ProviderFixture, fixtureRoot: URL?, dark: Bool, scale: CGFloat, theme themeURL: URL? = nil,
@@ -98,6 +99,7 @@ final class RenderSession {
             .environment(\.colorScheme, appearance)
             .environment(\._accessibilityReduceTransparency, true)
             .environment(\.renderMode, true)
+            .environment(\.markRenderTime, markRenderTime)
             .background(dark ? Color.black : Color.white)
             .transaction { transaction in
                 transaction.animation = nil
@@ -136,6 +138,10 @@ private struct RenderModeKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct MarkRenderTimeKey: EnvironmentKey {
+    static let defaultValue: TimeInterval = 0
+}
+
 private struct SurfaceShownKey: EnvironmentKey {
     static let defaultValue = true
 }
@@ -144,6 +150,11 @@ extension EnvironmentValues {
     var surfaceShown: Bool {
         get { self[SurfaceShownKey.self] }
         set { self[SurfaceShownKey.self] = newValue }
+    }
+
+    var markRenderTime: TimeInterval {
+        get { self[MarkRenderTimeKey.self] }
+        set { self[MarkRenderTimeKey.self] = newValue }
     }
 
     var renderMode: Bool {

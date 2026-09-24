@@ -35,4 +35,13 @@ struct DefaultRenderTests {
         #expect(abs(fill.minX - 11) <= 1 && abs(fill.width - 30) <= 1)
         #expect(abs(fill.height - 52.5) <= 1.5)
     }
+
+    @Test("Sitzungsmenü: 102 × 496, Kacheln 80 × 80 links bündig, Emblem in der Mitte am Beginn der Begrüssung")
+    func session() throws {
+        let shot = try Self.shot("session")
+        #expect(abs(shot.size.width - 102) <= 1 && abs(shot.size.height - 496) <= 1)
+        let emblem = try #require(shot.bounds { max($0.r, $0.g, $0.b) - min($0.r, $0.g, $0.b) > 120 })
+        #expect(emblem.minY > 208 && emblem.maxY < 288)
+        #expect(emblem.width < 60)
+    }
 }

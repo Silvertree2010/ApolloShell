@@ -295,6 +295,7 @@ struct MarkElement: View {
     let size: CGFloat
     @State private var timeline: EmblemTimeline?
     @Environment(\.renderMode) private var renderMode
+    @Environment(\.markRenderTime) private var markRenderTime
     @Environment(\.surfaceShown) private var shown
 
     static func onShow(_ shown: Bool, greet: Bool, reaction: EmblemReaction, at time: TimeInterval) -> EmblemTimeline? {
@@ -304,7 +305,7 @@ struct MarkElement: View {
     var body: some View {
         let current = timeline ?? EmblemTimeline(greet ? .greet : reaction, at: 0)
         SessionEmblem(timeline: current, size: size, animating: !renderMode && shown,
-                      fixedTime: renderMode ? current.startTime + 30 : nil, accent: accent, track: track)
+                      fixedTime: renderMode ? current.startTime + markRenderTime : nil, accent: accent, track: track)
             .onAppear {
                 if timeline == nil {
                     timeline = EmblemTimeline(greet ? .greet : reaction, at: Date.timeIntervalSinceReferenceDate)
