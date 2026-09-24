@@ -7,10 +7,11 @@ struct StyledBox: ViewModifier {
     let context: RenderContext
     var padded = true
     var fill = Definite()
+    var form: AnyShape?
 
     func body(content: Content) -> some View {
         let width = style["width"], height = style["height"]
-        let shape = StyleShape(style)
+        let shape = form ?? AnyShape(StyleShape(style))
         let fillsWidth = fill.width || StyleValues.percent(width) != nil, fillsHeight = fill.height || StyleValues.percent(height) != nil
         content
             .padding(padded ? StyleValues.sides(style["padding"]) : EdgeInsets())
@@ -76,7 +77,7 @@ struct AspectRatio: ViewModifier {
 
 struct Clip: ViewModifier {
     let active: Bool
-    let shape: StyleShape
+    let shape: AnyShape
 
     func body(content: Content) -> some View {
         if active { content.clipShape(shape) } else { content }
@@ -140,11 +141,12 @@ struct Cursor: ViewModifier {
 
 struct BorderLayer: View {
     let style: ComputedStyle
-    let shape: StyleShape
+    let shape: AnyShape
 
     var body: some View {
         if case let .border(width, dashed, color)? = style["border"], width > 0 {
-            shape.strokeBorder(StyleValues.color(color, current: foreground), style: StrokeStyle(lineWidth: width, dash: dashed ? [width * 3, width * 2] : []))
+            shape.stroke(StyleValues.color(color, current: foreground), style: StrokeStyle(lineWidth: width * 2, dash: dashed ? [width * 3, width * 2] : []))
+                .clipShape(shape)
         }
     }
 
@@ -156,7 +158,7 @@ struct BorderLayer: View {
 
 struct BackgroundLayers: View {
     let style: ComputedStyle
-    let shape: StyleShape
+    let shape: AnyShape
     let context: RenderContext
     @Environment(\.renderMode) private var renderMode
 
@@ -205,9 +207,9 @@ struct BackgroundLayers: View {
 
 struct BoxShadows: ViewModifier {
     let shadows: [Shadow]
-    let shape: StyleShape
+    let shape: AnyShape
 
-    init(_ value: CSSValue?, shape: StyleShape) {
+    init(_ value: CSSValue?, shape: AnyShape) {
         if case .shadows(let list)? = value { shadows = list } else { shadows = [] }
         self.shape = shape
     }
@@ -229,7 +231,7 @@ struct BoxShadows: ViewModifier {
 }
 
 struct ShadowMask: View {
-    let shape: StyleShape
+    let shape: AnyShape
 
     var body: some View {
         Rectangle().padding(-1000).overlay { shape.blendMode(.destinationOut) }.compositingGroup()

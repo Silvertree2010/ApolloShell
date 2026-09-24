@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import ApolloStyle
+import ApolloConfig
 
 enum StyleValues {
     static func color(_ color: CSSColor, current: Color = .primary) -> Color {
@@ -117,6 +118,14 @@ enum StyleValues {
     static func number(_ value: CSSValue?) -> Double? {
         if case .number(let number)? = value { return number }
         return nil
+    }
+
+    static func numberValue(_ value: Value) -> Double? {
+        switch value {
+        case .number(let number): number
+        case .string(let text): Double(text)
+        default: nil
+        }
     }
 
     static func keyword(_ value: CSSValue?) -> String? {

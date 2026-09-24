@@ -3,21 +3,23 @@ import SwiftUI
 
 struct SessionEmblem: View {
     let timeline: EmblemTimeline
-    var size: CGFloat = SessionMenu.buttonSize
+    var size: CGFloat = 80
     var animating = true
     var fixedTime: TimeInterval?
+    var accent: Color = .accentColor
+    var track: Color?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Group {
             if let fixedTime {
-                EmblemCanvas(pose: timeline.pose(at: fixedTime))
+                EmblemCanvas(pose: timeline.pose(at: fixedTime), accent: accent, track: track)
             } else if reduceMotion {
-                EmblemCanvas(pose: timeline.still)
+                EmblemCanvas(pose: timeline.still, accent: accent, track: track)
             } else {
                 TimelineView(.animation(paused: !animating)) { context in
-                    EmblemCanvas(pose: timeline.pose(at: context.date.timeIntervalSinceReferenceDate))
+                    EmblemCanvas(pose: timeline.pose(at: context.date.timeIntervalSinceReferenceDate), accent: accent, track: track)
                 }
             }
         }
@@ -27,6 +29,8 @@ struct SessionEmblem: View {
 
 private struct EmblemCanvas: View {
     let pose: EmblemPose
+    let accent: Color
+    let track: Color?
     @Environment(\.colorScheme) private var scheme
 
     private static let fill = 0.92
@@ -38,7 +42,7 @@ private struct EmblemCanvas: View {
 
     var body: some View {
         let onAccent = Color.onAccent
-        let neutral = Color.primary.opacity(scheme == .dark ? 0.9 : 0.62)
+        let neutral = track ?? Color.primary.opacity(scheme == .dark ? 0.9 : 0.62)
         Canvas { context, canvas in
             draw(in: &context, size: canvas, onAccent: onAccent, neutral: neutral)
         }
@@ -117,8 +121,8 @@ private struct EmblemCanvas: View {
 
         if pose.glow > 0.01 {
             mark.drawLayer { layer in
-                layer.addFilter(.shadow(color: Color.accentColor.opacity(pose.glow), radius: 9 * k / scale))
-                layer.fill(lit, with: .color(.accentColor))
+                layer.addFilter(.shadow(color: accent.opacity(pose.glow), radius: 9 * k / scale))
+                layer.fill(lit, with: .color(accent))
             }
         }
         if pose.night > 0.001 {
@@ -127,9 +131,9 @@ private struct EmblemCanvas: View {
         let bounds = letter.boundingRect
         mark.fill(lit, with: .linearGradient(
             Gradient(colors: [
-                Color.accentColor.mix(with: .white, by: 0.28),
-                Color.accentColor,
-                Color.accentColor.mix(with: .black, by: 0.18),
+                accent.mix(with: .white, by: 0.28),
+                accent,
+                accent.mix(with: .black, by: 0.18),
             ]),
             startPoint: CGPoint(x: bounds.minX + bounds.width * 0.2, y: bounds.minY),
             endPoint: CGPoint(x: bounds.maxX - bounds.width * 0.2, y: bounds.maxY)

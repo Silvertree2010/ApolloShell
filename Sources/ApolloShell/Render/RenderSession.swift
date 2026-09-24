@@ -44,6 +44,7 @@ final class RenderSession {
         context = RenderContext(styles: styles, icons: FixtureAppIcons(files: extracted.icons, root: fixtureRoot), trigger: { name, identity, event in
             _ = assembly.runtime.trigger(name, on: identity, event: event)
         })
+        context.configRoot = config
         canvas = OffscreenCanvas(appearance: dark ? .dark : .light, scale: scale)
     }
 

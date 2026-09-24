@@ -10,16 +10,18 @@ struct ChildMetrics: Equatable {
     var justifySelf: String?
     var marginH: CGFloat = 0
     var marginV: CGFloat = 0
+    var span = 1
 
     init() {}
 
-    init(_ style: ComputedStyle) {
-        grow = CGFloat(StyleValues.number(style["flex-grow"]) ?? 0)
+    init(_ style: ComputedStyle, spacer: Bool = false) {
+        grow = CGFloat(StyleValues.number(style["flex-grow"]) ?? (spacer ? 1 : 0))
         shrink = CGFloat(StyleValues.number(style["flex-shrink"]) ?? 0)
         width = StyleValues.percent(style["width"])
         height = StyleValues.percent(style["height"])
         alignSelf = StyleValues.keyword(style["align-self"])
         justifySelf = StyleValues.keyword(style["justify-self"])
+        if case .span(let count)? = style["grid-column"] { span = max(1, count) }
         let margin = StyleValues.sides(style["margin"])
         marginH = margin.leading + margin.trailing
         marginV = margin.top + margin.bottom
@@ -215,6 +217,84 @@ struct StackLayout: Layout {
             default: y = bounds.midY - measured.height / 2
             }
             subview.place(at: CGPoint(x: x, y: y), anchor: .topLeading, proposal: ProposedViewSize(measured))
+        }
+    }
+}
+
+struct GridLayout: Layout {
+    var columns: [CSSLength]
+    var columnGap: CGFloat
+    var rowGap: CGFloat
+    var rowHeight: CGFloat?
+    var definite = Definite()
+
+    struct Cell {
+        var index: Int
+        var row: Int
+        var column: Int
+        var span: Int
+    }
+
+    func cells(_ subviews: Subviews) -> [Cell] {
+        var result: [Cell] = []
+        var row = 0, column = 0
+        let count = max(1, columns.count)
+        for (index, subview) in subviews.enumerated() {
+            let span = min(count, subview[ChildMetricsKey.self].span)
+            if column + span > count { row += 1; column = 0 }
+            result.append(Cell(index: index, row: row, column: column, span: span))
+            column += span
+            if column >= count { row += 1; column = 0 }
+        }
+        return result
+    }
+
+    func widths(_ total: CGFloat?, subviews: Subviews) -> [CGFloat] {
+        let gaps = columnGap * CGFloat(max(0, columns.count - 1))
+        let fixed = columns.filter { $0.unit == .points }.map { CGFloat($0.value) }.reduce(0, +)
+        let fractions = columns.filter { $0.unit == .fraction }.map { CGFloat($0.value) }.reduce(0, +)
+        let free: CGFloat
+        if let total, total.isFinite {
+            free = max(0, total - gaps - fixed)
+        } else {
+            let widest = subviews.map { $0.sizeThatFits(.unspecified).width / CGFloat($0[ChildMetricsKey.self].span) }.max() ?? 0
+            free = widest * fractions
+        }
+        return columns.map { $0.unit == .points ? CGFloat($0.value) : (fractions > 0 ? free * CGFloat($0.value) / fractions : 0) }
+    }
+
+    func spanWidth(_ cell: Cell, _ widths: [CGFloat]) -> CGFloat {
+        widths[cell.column..<(cell.column + cell.span)].reduce(0, +) + columnGap * CGFloat(cell.span - 1)
+    }
+
+    func rows(_ cells: [Cell], _ widths: [CGFloat], _ subviews: Subviews) -> [CGFloat] {
+        let count = (cells.map(\.row).max() ?? -1) + 1
+        var heights = [CGFloat](repeating: rowHeight ?? 0, count: count)
+        guard rowHeight == nil else { return heights }
+        for cell in cells {
+            let size = subviews[cell.index].sizeThatFits(ProposedViewSize(width: spanWidth(cell, widths), height: nil))
+            heights[cell.row] = max(heights[cell.row], size.height)
+        }
+        return heights
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let widths = widths(proposal.width, subviews: subviews)
+        let heights = rows(cells(subviews), widths, subviews)
+        let width = widths.reduce(0, +) + columnGap * CGFloat(max(0, widths.count - 1))
+        let height = heights.reduce(0, +) + rowGap * CGFloat(max(0, heights.count - 1))
+        return definite.apply(CGSize(width: width, height: height), proposal)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let widths = widths(bounds.width, subviews: subviews)
+        let cells = cells(subviews)
+        let heights = rows(cells, widths, subviews)
+        for cell in cells {
+            let x = bounds.minX + widths[0..<cell.column].reduce(0, +) + columnGap * CGFloat(cell.column)
+            let y = bounds.minY + heights[0..<cell.row].reduce(0, +) + rowGap * CGFloat(cell.row)
+            subviews[cell.index].place(at: CGPoint(x: x, y: y), anchor: .topLeading,
+                                       proposal: ProposedViewSize(width: spanWidth(cell, widths), height: heights[cell.row]))
         }
     }
 }

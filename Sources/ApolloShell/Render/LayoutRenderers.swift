@@ -25,6 +25,22 @@ enum LayoutRenderers {
         AnyView(StackLayout(definite: Definite(style)) { ElementChildren(children: element.children, scope: scope) })
     }
 
+    static func grid(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
+        var columns: [CSSLength]
+        if case .gridColumns(let list)? = style["grid-template-columns"] {
+            columns = list
+        } else {
+            let count = max(1, StyleValues.numberValue(element.property("columns")).map(Int.init) ?? 1)
+            columns = Array(repeating: CSSLength(1, .fraction), count: count)
+        }
+        let gap = StyleValues.gap(style["gap"])
+        return AnyView(GridLayout(columns: columns, columnGap: style["column-gap"].map { StyleValues.gap($0) } ?? gap,
+                                  rowGap: style["row-gap"].map { StyleValues.gap($0) } ?? gap,
+                                  rowHeight: StyleValues.points(style["grid-auto-rows"]), definite: Definite(style)) {
+            ElementChildren(children: element.children, scope: scope)
+        })
+    }
+
     static func reorderable(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
         if element.property("axis").plainText == "horizontal" {
             return row(element, style, scope)

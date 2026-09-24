@@ -53,6 +53,12 @@ final class StyleResolver {
         return image
     }
 
+    func parseColor(_ text: String) -> CSSColor? {
+        let probe = resolve(StyleSubject(kind: "-apollo-probe"), ancestors: [], parent: nil, inline: "color: \(text)")
+        if case .color(let color)? = probe["color"] { return color }
+        return nil
+    }
+
     func resolve(_ subject: StyleSubject, ancestors: [StyleSubject], parent: ComputedStyle?, inline: String? = nil) -> ComputedStyle {
         let key = Key(subject: subject, ancestors: ancestors, parent: parent, inline: inline ?? "")
         if let cached = cache[key] { return cached }
