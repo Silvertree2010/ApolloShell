@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import ApolloBase
 import ApolloConfig
 import ApolloStyle
@@ -19,7 +20,14 @@ enum StyleSheets {
         return (sheets, diagnostics)
     }
 
-    static func environment(dark: Bool) -> StyleEnvironment {
-        StyleEnvironment(appearance: dark ? .dark : .light, reduceMotion: false, reduceTransparency: true, tokens: .empty)
+    static func environment(dark: Bool, tokens: TokenEnvironment = .empty) -> StyleEnvironment {
+        StyleEnvironment(appearance: dark ? .dark : .light, reduceMotion: false, reduceTransparency: true, tokens: tokens)
+    }
+
+    @MainActor
+    static func liveEnvironment(dark: Bool, tokens: TokenEnvironment = .empty) -> StyleEnvironment {
+        let workspace = NSWorkspace.shared
+        return StyleEnvironment(appearance: dark ? .dark : .light, reduceMotion: workspace.accessibilityDisplayShouldReduceMotion,
+                                reduceTransparency: workspace.accessibilityDisplayShouldReduceTransparency, tokens: tokens)
     }
 }

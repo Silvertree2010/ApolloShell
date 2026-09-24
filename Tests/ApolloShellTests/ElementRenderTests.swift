@@ -130,4 +130,13 @@ struct ElementRenderTests {
         #expect(after === mark)
         #expect(mark.property("state") == .string("sleep"))
     }
+
+    @Test("Fixture liefert die Werte, die 0.1.4.2 zeigt (Benutzer, Laufzeit, macOS, Chip, Kerne)")
+    func fixtureSystemValues() throws {
+        let mounted = try Mounted.mount("""
+        panel "t" anchor="left" { text "{system.user-name}|{system.uptime}|{system.macos-version}|{system.chip}|{perf.chip}|{perf.cores}|{perf.gpu-cores}" }
+        """, css: "#t { width: 200px; height: 20px; }")
+        let text = try #require(mounted.session.surfaces.first?.root.first)
+        #expect(text.arguments.first?.value.stringified == "Andrin Example|11520|26.6.2|Apple M4 Pro|Apple M4 Pro|14|20")
+    }
 }

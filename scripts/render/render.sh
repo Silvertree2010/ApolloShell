@@ -23,4 +23,4 @@ defaults_args=(
 [[ -x $binary ]] || { print -u2 "missing $binary"; exit 1 }
 mkdir -p ${system:h} $out
 clang -dynamiclib -framework CoreFoundation -framework IOKit -o $system $root/scripts/render/fixed-system.c || exit 1
-env $fixed_env DYLD_INSERT_LIBRARIES=$system $binary --render $out --fixture $root/Resources/render/fixture.kdl --resources $root/Resources --appearance $appearance --scale 2 $defaults_args
+env $fixed_env DYLD_INSERT_LIBRARIES=$system $binary --render $out --fixture $root/Resources/render/fixture.kdl --resources $root/Resources --appearance $appearance --scale 2 ${=APOLLO_RENDER_EXTRA:-} $defaults_args

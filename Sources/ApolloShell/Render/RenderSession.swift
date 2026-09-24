@@ -4,6 +4,8 @@ import ApolloBase
 import ApolloConfig
 import ApolloRuntime
 import ApolloProviders
+import ApolloShellCore
+import ApolloStyle
 
 @MainActor
 final class RenderSession {
@@ -16,8 +18,10 @@ final class RenderSession {
     let actionLog = ActionLog()
     var actions: [String] { actionLog.entries }
 
-    init(config: URL, resources: URL, fixture: ProviderFixture, fixtureRoot: URL?, dark: Bool, scale: CGFloat,
+    init(config: URL, resources: URL, fixture: ProviderFixture, fixtureRoot: URL?, dark: Bool, scale: CGFloat, theme themeURL: URL? = nil,
          log: @escaping ([Diagnostic]) -> Void = { _ in }) throws {
+        let theme = themeURL.map { ThemeLoader.load(at: $0) }
+        let dark = theme.map { ThemeTokenBridge.effectiveAppearance(theme: $0, system: dark ? .dark : .light) == .dark } ?? dark
         NSApplication.shared.setActivationPolicy(.prohibited)
         NSApplication.shared.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         self.dark = dark
@@ -40,12 +44,18 @@ final class RenderSession {
         log(assembly.warnings)
         let (sheets, sheetDiagnostics) = StyleSheets.load(ir)
         log(sheetDiagnostics)
-        let styles = StyleResolver(sheets: sheets, environment: StyleSheets.environment(dark: dark), assetRoot: config)
+        let tokens = theme.map { ThemeTokenBridge.environment(for: $0, appearance: dark ? .dark : .light) } ?? .empty
+        let styles = StyleResolver(sheets: sheets, environment: StyleSheets.environment(dark: dark, tokens: tokens), assetRoot: config)
         let assembly = assembly
         context = RenderContext(styles: styles, icons: FixtureAppIcons(files: extracted.icons, root: fixtureRoot), trigger: { name, identity, event in
             _ = assembly.runtime.trigger(name, on: identity, event: event)
         })
         context.configRoot = config
+        if let theme, let themeURL {
+            let root = themeURL.hasDirectoryPath || themeURL.pathExtension.lowercased() != "css" ? themeURL : themeURL.deletingLastPathComponent()
+            context.themeIcon = { id in theme.icons.file(id).flatMap { SafeImageFile.image(at: $0, root: root) } }
+            context.theme = { name in name == theme.identifier ? theme : (name == "default" ? .standard : nil) }
+        }
         context.runtime = AssemblyRenderRuntime(assembly)
         canvas = OffscreenCanvas(appearance: dark ? .dark : .light, scale: scale)
     }
