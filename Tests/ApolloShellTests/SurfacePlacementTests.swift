@@ -49,8 +49,8 @@ struct SurfacePlacementTests {
         let style = resolver.resolve(StyleResolver.subject(for: surface), ancestors: [], parent: nil)
         let placement = SurfacePlacement(property: surface.property, style: style)
         #expect(placement == SurfacePlacement(anchor: .left, width: CSSLength(44, .points), height: CSSLength(300, .points)))
-        #expect(SurfaceWindow.isVisible(surface))
-        #expect(SurfaceWindow.isSticky(surface))
+        #expect(surface.isVisible)
+        #expect(SurfaceWindowSpec(surface: surface).sticky)
     }
 
     @Test("Ebene und Collection Behavior je Art nach blocks.md 2.8/2.9")
@@ -62,14 +62,15 @@ struct SurfacePlacementTests {
         #expect(SurfaceWindowKind.behavior(kind: "toast") == [.canJoinAllSpaces, .transient, .ignoresCycle])
     }
 
-    @Test("Start-Optionen: Vorgabe Dock-Config aus dem Bundle, Fixture per Schalter")
+    @Test("Start-Optionen: ohne --config aktive Config aus settings.kdl, Dock-Rückfall im Bundle")
     func launchOptions() {
         let exe = URL(fileURLWithPath: "/Apps/ApolloShell.app/Contents/MacOS/ApolloShell")
         let plain = LiveShell.options(["x"], executable: exe)
-        #expect(plain.config.path == "/Apps/ApolloShell.app/Contents/Resources/render/dock")
+        #expect(plain.config == nil)
+        #expect(plain.dockFallback.path == "/Apps/ApolloShell.app/Contents/Resources/render/dock")
         #expect(plain.fixture == nil)
         let fixture = LiveShell.options(["x", "--fixture", "/tmp/f.kdl", "--config", "/tmp/c"], executable: exe)
         #expect(fixture.fixture?.path == "/tmp/f.kdl")
-        #expect(fixture.config.path == "/tmp/c")
+        #expect(fixture.config?.path == "/tmp/c")
     }
 }

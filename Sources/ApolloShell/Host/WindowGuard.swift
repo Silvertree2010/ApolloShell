@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import ApolloShellCore
+import ApolloProviders
 import os
 
 @MainActor
@@ -10,15 +11,15 @@ final class WindowGuard {
     private let worker: WindowGuardWorker
     private let log = Logger(category: "windowguard")
     private var trusted = false
-    private var barScreenKeys: Set<String> = []
-    private var barWidth: CGFloat = 0
+    private var reserved: [String: ReservedEdges] = [:]
+    var source: @MainActor () -> [String: ReservedEdges] = { [:] }
 
     init(askForAccess: Bool = true) {
         worker = WindowGuardWorker()
 
         let options = ["AXTrustedCheckOptionPrompt": askForAccess] as CFDictionary
         trusted = AXIsProcessTrustedWithOptions(options)
-        log.notice("Bedienungshilfen \(self.trusted ? "freigegeben" : "nicht freigegeben", privacy: .public)")
+        log.notice("Accessibility \(self.trusted ? "granted" : "not granted", privacy: .public)")
         if trusted { startWorker() }
 
         observeSystem()
@@ -31,13 +32,14 @@ final class WindowGuard {
 
     private func pollTrust() {
         let now = AXIsProcessTrusted()
+        refresh()
         guard now != trusted else { return }
         trusted = now
         if now {
-            log.notice("Bedienungshilfen freigegeben, Fensterwache startet")
+            log.notice("Accessibility granted, window guard starting")
             startWorker()
         } else {
-            log.notice("Bedienungshilfen entzogen, Fensterwache haelt an")
+            log.notice("Accessibility revoked, window guard stopping")
             worker.stop()
         }
     }
@@ -51,11 +53,11 @@ final class WindowGuard {
         )
     }
 
-    func setBarScreens(_ keys: Set<String>, barWidth: CGFloat) {
-        guard keys != barScreenKeys || barWidth != self.barWidth else { return }
-        barScreenKeys = keys
-        self.barWidth = barWidth
-        log.notice("Streifen (\(Int(barWidth), privacy: .public) pt) freihalten auf \(keys.count, privacy: .public) Bildschirm(en)")
+    func refresh() {
+        let next = source().filter { !$0.value.isEmpty }
+        guard next != reserved else { return }
+        reserved = next
+        log.notice("Keeping strips free on \(next.count, privacy: .public) screen(s)")
         guard let screens = screensForWorker() else { return }
         worker.screensChanged(screens)
     }
@@ -68,7 +70,7 @@ final class WindowGuard {
             GuardScreen(
                 key: screen.info.key,
                 frame: WindowClamp.flipped(screen.frame, primaryHeight: primaryHeight),
-                reservedWidth: barScreenKeys.contains(screen.info.key) ? barWidth : 0
+                reserved: reserved[screen.info.key] ?? ReservedEdges()
             )
         }
     }
@@ -111,7 +113,7 @@ final class WindowGuard {
 struct GuardScreen: Sendable, Equatable {
     let key: String
     let frame: CGRect
-    let reservedWidth: CGFloat
+    let reserved: ReservedEdges
 }
 
 final class WindowGuardWorker: @unchecked Sendable {
@@ -138,7 +140,7 @@ final class WindowGuardWorker: @unchecked Sendable {
             AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), Self.messagingTimeout)
             self.screens = screens
             for pid in pids { watchApp(pid, attempt: 0) }
-            log.notice("Fensterwache laeuft, \(self.apps.count, privacy: .public) Apps beobachtet")
+            log.notice("Window guard running, watching \(self.apps.count, privacy: .public) apps")
         }
     }
 
@@ -208,7 +210,7 @@ final class WindowGuardWorker: @unchecked Sendable {
             worker.receive(AXElementRef(element: element), notification as String)
         }, &created)
         guard status == .success, let observer = created else {
-            log.error("AXObserver fuer pid \(pid, privacy: .public) nicht angelegt: \(status.rawValue, privacy: .public)")
+            log.error("AXObserver for pid \(pid, privacy: .public) not created: \(status.rawValue, privacy: .public)")
             return
         }
 
@@ -223,7 +225,7 @@ final class WindowGuardWorker: @unchecked Sendable {
                     watchApp(pid, attempt: attempt + 1)
                 }
             } else {
-                log.info("pid \(pid, privacy: .public) nicht beobachtbar: \(results.map(\.rawValue), privacy: .public)")
+                log.info("pid \(pid, privacy: .public) not observable: \(results.map(\.rawValue), privacy: .public)")
             }
             return
         }
@@ -334,16 +336,16 @@ final class WindowGuardWorker: @unchecked Sendable {
               AX.bool(window, AX.fullScreenAttribute) != true,
               let frame = AX.frame(of: window),
               let index = WindowClamp.dominantScreen(for: frame, among: screens.map(\.frame)),
-              screens[index].reservedWidth > 0,
+              !screens[index].reserved.isEmpty,
               let target = WindowClamp.clampedFrame(
                   window: frame, screen: screens[index].frame,
-                  reservedWidth: screens[index].reservedWidth, minWidth: minWidths[window] ?? 0
+                  reserved: screens[index].reserved, minWidth: minWidths[window] ?? 0
               )
         else { return }
 
         let now = ProcessInfo.processInfo.systemUptime
         guard ledger.shouldClamp(window, current: frame, now: now) else {
-            log.debug("pid \(pid, privacy: .public): Fenster eben erst angefasst oder wehrt sich, lasse es")
+            log.debug("pid \(pid, privacy: .public): window just moved or resisting, leaving it")
             return
         }
         guard AX.isSettable(window, kAXPositionAttribute) else { return }

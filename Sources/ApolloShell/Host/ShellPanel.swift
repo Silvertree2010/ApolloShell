@@ -1,8 +1,8 @@
 import AppKit
 
 class ShellPanel: NSPanel {
-    private let takesKeyboard: Bool
-    private let mayLeaveScreen: Bool
+    var takesKeyboard: Bool
+    var mayLeaveScreen: Bool
 
     init(size: NSSize = .zero, level: NSWindow.Level, behavior: NSWindow.CollectionBehavior,
          takesKeyboard: Bool = false, mayLeaveScreen: Bool = false, deferred: Bool = true) {
@@ -20,6 +20,7 @@ class ShellPanel: NSPanel {
         backgroundColor = .clear
         hasShadow = false
         hidesOnDeactivate = false
+        canHide = false
         isMovable = false
         isReleasedWhenClosed = false
         becomesKeyOnlyIfNeeded = false
