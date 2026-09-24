@@ -31,7 +31,7 @@ let package = Package(
             ],
             exclude: ["Legacy"]
         ),
-        .executableTarget(name: "apollo", dependencies: ["ApolloBase", "ApolloKDL", "ApolloConfig", "ApolloStyle", "ApolloControl"]),
+        .executableTarget(name: "apollo", dependencies: ["ApolloBase", "ApolloKDL", "ApolloConfig", "ApolloStyle", "ApolloControl", "ApolloRuntime", "ApolloProviders"]),
         .executableTarget(name: "apollowm-probe", dependencies: ["ApolloWM"]),
         .testTarget(name: "ApolloBaseTests", dependencies: ["ApolloBase"]),
         .testTarget(name: "ApolloKDLTests", dependencies: ["ApolloKDL"]),

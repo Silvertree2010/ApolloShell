@@ -131,14 +131,14 @@ struct CheckCommandTests {
     func usageErrors(arguments: [String]) {
         let result = CheckHarness.run(arguments)
         #expect(result.exitCode == 2)
-        #expect(result.output.contains("usage: apollo check [<folder>]"))
+        #expect(result.output.contains("usage: apollo check [--fixture <file>] [<folder>]"))
     }
 
     @Test("Hilfe ergibt Exit 0")
     func help() {
         let result = CheckHarness.run(["--help"])
         #expect(result.exitCode == 0)
-        #expect(result.output.hasPrefix("usage: apollo check [<folder>]"))
+        #expect(result.output.hasPrefix("usage: apollo check [--fixture <file>] [<folder>]"))
     }
 
     @Test("ohne Ordner die eigene Config nach Regel 3")

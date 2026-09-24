@@ -5,6 +5,7 @@ struct EvaluationRun {
     let evaluator: Evaluator
     let scope: any EvaluationScope
     let span: SourceSpan?
+    var tolerant = false
 
     func render(_ template: StringTemplate) -> Value {
         switch template {
@@ -33,7 +34,7 @@ struct EvaluationRun {
         case .path(let root, let members):
             return path(root, members)
         case .access(let base, let members):
-            return apply(members[...], to: value(base))
+            return apply(members[...], to: value(base), label: "(…)")
         case .unary(let op, let operand):
             return unary(op, value(operand))
         case .binary(let op, let lhs, let rhs):
@@ -41,7 +42,9 @@ struct EvaluationRun {
         case .conditional(let condition, let then, let otherwise):
             return value(condition).isTruthy ? value(then) : value(otherwise)
         case .coalesce(let lhs, let rhs):
-            let left = value(lhs)
+            var lenient = self
+            lenient.tolerant = true
+            let left = lenient.value(lhs)
             if case .null = left {
                 return value(rhs)
             }
@@ -53,7 +56,7 @@ struct EvaluationRun {
 
     func path(_ root: String, _ members: [PathMember]) -> Value {
         if let local = scope.local(root) {
-            return apply(members[...], to: local)
+            return apply(members[...], to: local, label: String(root.prefix { $0 != "#" }))
         }
         var fields: [String] = []
         var rest = members[...]
@@ -61,28 +64,53 @@ struct EvaluationRun {
             fields.append(name)
             rest = rest.dropFirst()
         }
-        return apply(rest, to: scope.global(root, fields))
+        let base = scope.global(root, fields)
+        if case .null = base, !fields.isEmpty, evaluator.missingField != nil, !tolerant {
+            checkGlobal(root, fields)
+        }
+        return apply(rest, to: base, label: ([root] + fields).joined(separator: "."))
     }
 
-    func apply(_ members: ArraySlice<PathMember>, to start: Value) -> Value {
+    func checkGlobal(_ root: String, _ fields: [String]) {
+        for count in fields.indices where root != "var" || count > 0 {
+            guard case .record(let record) = scope.global(root, Array(fields.prefix(count))) else { return }
+            if record[fields[count]] == nil {
+                missing(([root] + fields.prefix(count + 1)).joined(separator: "."))
+                return
+            }
+        }
+    }
+
+    func missing(_ path: String) {
+        guard !tolerant, let observer = evaluator.missingField else { return }
+        observer(path, span)
+    }
+
+    func apply(_ members: ArraySlice<PathMember>, to start: Value, label: String) -> Value {
         var current = start
+        var path = label
         for member in members {
             if case .null = current {
                 return .null
             }
-            current = self.member(member, of: current)
+            current = self.member(member, of: current, label: path)
+            if case .field(let name) = member { path += "." + name } else { path += "[…]" }
         }
         return current
     }
 
-    func member(_ member: PathMember, of base: Value) -> Value {
+    func member(_ member: PathMember, of base: Value, label: String = "") -> Value {
         switch member {
         case .field(let name):
             guard case .record(let record) = base else {
                 report("a \(base.typeName) has no field '\(name)'")
                 return .null
             }
-            return record[name] ?? .null
+            guard let field = record[name] else {
+                missing(label + "." + name)
+                return .null
+            }
+            return field
         case .index(let indexExpr):
             let index = value(indexExpr)
             switch (base, index) {
@@ -135,8 +163,17 @@ struct EvaluationRun {
         default:
             break
         }
-        let left = value(lhs)
-        let right = value(rhs)
+        let left: Value
+        let right: Value
+        if (op == .equal || op == .notEqual) && (Self.isNull(lhs) || Self.isNull(rhs)) {
+            var lenient = self
+            lenient.tolerant = true
+            left = lenient.value(lhs)
+            right = lenient.value(rhs)
+        } else {
+            left = value(lhs)
+            right = value(rhs)
+        }
         switch op {
         case .equal:
             return .bool(left == right)
@@ -172,6 +209,11 @@ struct EvaluationRun {
         case .greater: return .bool(order == .orderedDescending)
         default: return .bool(order != .orderedAscending)
         }
+    }
+
+    static func isNull(_ expr: Expr) -> Bool {
+        if case .literal(.null) = expr { return true }
+        return false
     }
 
     static func order<T: Comparable>(_ a: T, _ b: T) -> ComparisonResult {

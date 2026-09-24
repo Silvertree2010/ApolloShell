@@ -54,7 +54,7 @@ public final class FixtureProvider: ProviderInstance {
         return record
     }
 
-    private static func insert(_ value: Value, _ path: [String], _ newValue: Value) -> Value {
+    static func insert(_ value: Value, _ path: [String], _ newValue: Value) -> Value {
         guard let first = path.first else { return newValue }
         var record: Record
         if case .record(let existing) = value { record = existing } else { record = Record() }

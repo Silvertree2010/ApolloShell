@@ -1,0 +1,116 @@
+fixture {
+    clock now="2026-09-24T09:41:00+02:00" hour=9 minute=41 second=0 day=24 month=9 year=2026 weekday=4 time-zone="Europe/Zurich"
+    battery present=#true percent=0.76 charging=#false on-power=#false full=#false minutes-to-empty=312 minutes-to-full=#null state-text="Battery" time-text="5:12 left" symbol="battery.75percent" tank-text="76%" health=0.91 cycles=214 low-power-mode=#false
+    network {
+        wifi on=#true connected=#true rssi=-52 noise=-90 snr=38 bars=3 quality="Good" tx-rate=866 standard="802.11ax" band="5 GHz" channel="44" interface="en0" symbol="wifi"
+    }
+    bluetooth on=#true status="ready" paired=2 connected=2 {
+        devices {
+            - name="AirPods Pro" kind="headphones" symbol="airpodspro" {
+                battery main=#null left=0.8 right=0.15 case=0.55
+            }
+            - name="Magic Keyboard" kind="keyboard" symbol="keyboard" {
+                battery main=0.64 left=#null right=#null case=#null
+            }
+        }
+    }
+    audio volume=0.35 muted=#false symbol="speaker.wave.2.fill" {
+        output id="builtin" name="MacBook Pro Speakers"
+        input id="mic" name="MacBook Pro Microphone" volume=0.7 muted=#false
+        outputs {
+            - id="builtin" name="MacBook Pro Speakers" active=#true
+            - id="airpods" name="AirPods Pro" active=#false
+        }
+        inputs {
+            - id="mic" name="MacBook Pro Microphone" active=#true
+        }
+    }
+    perf cpu=0.42 memory=0.61 net-down=120000 net-up=30000 chip="Apple M4" cores=10 gpu-cores=10 {
+        live cpu=0.42 gpu=0.18 memory=0.61 memory-used=9800000000 memory-total=16000000000 disk=0.55 disk-used=270000000000 disk-total=494000000000 net-down=120000 net-up=30000 net-total-down=5400000000 net-total-up=800000000 {
+            cpu-history 0.3 0.35 0.42 0.4 0.38 0.42
+            gpu-history 0.1 0.12 0.18 0.2 0.15 0.18
+            net-history {
+                - down=100000 up=20000
+                - down=120000 up=30000
+            }
+        }
+    }
+    power keep-awake=#false keep-awake-text="Off" lid-rule-installed=#false
+    system user-name="andrin" full-name="Andrin" host-name="Andrins-MacBook-Pro" model="MacBook Pro" chip="Apple M4" macos-version="26.0" kernel-version="25.0.0" uptime=93600 dark-mode=#true night-shift=#false microphone-muted=#false show-desktop-available=#true
+    weather status="ready" updated="2026-09-24T09:30:00+02:00" stale=#false search-status="done" {
+        place name="Chur" latitude=46.85 longitude=9.53
+        current temperature=14 apparent=12 humidity=0.62 wind=11 code=2 symbol="cloud.sun.fill" description="Partly Cloudy" is-day=#true
+        today min=8 max=17 sunrise="2026-09-24T07:18:00+02:00" sunset="2026-09-24T19:16:00+02:00"
+        hourly-strip {
+            - time="2026-09-24T09:00:00+02:00" now=#true temperature=14 symbol="cloud.sun.fill" precipitation=0.0 precipitation-text="0%"
+            - time="2026-09-24T11:00:00+02:00" now=#false temperature=15 symbol="cloud.sun.fill" precipitation=0.1 precipitation-text="10%"
+            - time="2026-09-24T13:00:00+02:00" now=#false temperature=16 symbol="cloud.sun.fill" precipitation=0.2 precipitation-text="20%"
+            - time="2026-09-24T15:00:00+02:00" now=#false temperature=17 symbol="cloud.sun.fill" precipitation=0.3 precipitation-text="30%"
+            - time="2026-09-24T17:00:00+02:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0.4 precipitation-text="40%"
+            - time="2026-09-24T19:00:00+02:00" now=#false temperature=15 symbol="cloud.sun.fill" precipitation=0.5 precipitation-text="50%"
+            - time="2026-09-25T00:00:00+02:00" now=#false temperature=9 symbol="moon.fill" precipitation=0.1 precipitation-text="10%"
+            - time="2026-09-25T02:00:00+02:00" now=#false temperature=10 symbol="moon.fill" precipitation=0.1 precipitation-text="10%"
+            - time="2026-09-25T04:00:00+02:00" now=#false temperature=11 symbol="moon.fill" precipitation=0.1 precipitation-text="10%"
+            - time="2026-09-25T06:00:00+02:00" now=#false temperature=9 symbol="moon.fill" precipitation=0.1 precipitation-text="10%"
+            - time="2026-09-25T08:00:00+02:00" now=#false temperature=10 symbol="moon.fill" precipitation=0.1 precipitation-text="10%"
+            - time="2026-09-25T10:00:00+02:00" now=#false temperature=11 symbol="moon.fill" precipitation=0.1 precipitation-text="10%"
+        }
+        days {
+            - date="2026-09-24T00:00:00+02:00" today=#true min=6 max=15 symbol="sun.max.fill" precipitation-text="0%"
+            - date="2026-09-25T00:00:00+02:00" today=#false min=7 max=16 symbol="sun.max.fill" precipitation-text="10%"
+            - date="2026-09-26T00:00:00+02:00" today=#false min=8 max=17 symbol="sun.max.fill" precipitation-text="20%"
+            - date="2026-09-27T00:00:00+02:00" today=#false min=9 max=18 symbol="sun.max.fill" precipitation-text="30%"
+            - date="2026-09-28T00:00:00+02:00" today=#false min=10 max=19 symbol="sun.max.fill" precipitation-text="40%"
+            - date="2026-09-29T00:00:00+02:00" today=#false min=11 max=20 symbol="sun.max.fill" precipitation-text="50%"
+            - date="2026-09-30T00:00:00+02:00" today=#false min=12 max=21 symbol="sun.max.fill" precipitation-text="60%"
+        }
+        attribution text="Weather data by Open-Meteo.com" url="https://open-meteo.com/"
+        capabilities hour-step=1 days=7 precipitation-probability=#true apparent-temperature=#true sun-times="all-days" summary="Open-Meteo"
+        search-results {
+            - name="Chur" region="Grisons" country="Switzerland" latitude=46.85 longitude=9.53
+            - name="Zürich" region="Zurich" country="Switzerland" latitude=47.37 longitude=8.55
+        }
+    }
+    media available=#true playing=#true title="Starboy" artist="The Weeknd" album="Starboy" artwork="artwork/starboy.png" kind="music" duration=230 elapsed=74 progress=0.32 app="com.spotify.client" app-name="Spotify" app-icon="icons/com.spotify.client.png"
+    screens {
+        list {
+            - id="Built-in Retina Display 1512x982" name="Built-in Retina Display" main=#true index=0 x=0 y=0 width=1512 height=982 visible-x=0 visible-y=0 visible-width=1512 visible-height=949 scale=2 notch=#true menubar-height=33 fullscreen=#false
+        }
+    }
+    spaces current=2 count=4 {
+        list {
+            - id=1 index=1 active=#false fullscreen=#false
+            - id=2 index=2 active=#true fullscreen=#false
+            - id=3 index=3 active=#false fullscreen=#false
+            - id=4 index=4 active=#false fullscreen=#false
+        }
+    }
+    apps {
+        dock {
+            - bundle-id="com.apple.finder" name="Finder" path="/Applications/Finder.app" icon="icons/com.apple.finder.png" installed=#true usage=1 favorite-index=#null running=#true launching=#false active=#false hidden=#false badge=#null windows=1 minimized=0 dock-pinned=#false favorite=#false section="file-manager"
+            - bundle-id="com.apple.Safari" name="Safari" path="/Applications/Safari.app" icon="icons/com.apple.Safari.png" installed=#true usage=1 favorite-index=0 running=#true launching=#false active=#true hidden=#false badge=#null windows=2 minimized=0 dock-pinned=#true favorite=#true section="pinned"
+            - bundle-id="com.apple.mail" name="Mail" path="/Applications/Mail.app" icon="icons/com.apple.mail.png" installed=#true usage=1 favorite-index=#null running=#false launching=#false active=#false hidden=#false badge="3" windows=0 minimized=0 dock-pinned=#true favorite=#false section="pinned"
+            - bundle-id="com.apple.Terminal" name="Terminal" path="/Applications/Terminal.app" icon="icons/com.apple.Terminal.png" installed=#true usage=1 favorite-index=#null running=#true launching=#false active=#false hidden=#false badge=#null windows=1 minimized=0 dock-pinned=#false favorite=#false section="running"
+        }
+        all {
+            - bundle-id="com.apple.finder" name="Finder" path="/Applications/Finder.app" icon="icons/com.apple.finder.png" installed=#true usage=1 favorite-index=#null running=#true launching=#false active=#false hidden=#false badge=#null windows=1 minimized=0 dock-pinned=#false favorite=#false
+            - bundle-id="com.apple.Safari" name="Safari" path="/Applications/Safari.app" icon="icons/com.apple.Safari.png" installed=#true usage=1 favorite-index=0 running=#true launching=#false active=#true hidden=#false badge=#null windows=2 minimized=0 dock-pinned=#true favorite=#true
+            - bundle-id="com.apple.mail" name="Mail" path="/Applications/Mail.app" icon="icons/com.apple.mail.png" installed=#true usage=1 favorite-index=#null running=#false launching=#false active=#false hidden=#false badge="3" windows=0 minimized=0 dock-pinned=#true favorite=#false
+            - bundle-id="com.apple.Terminal" name="Terminal" path="/Applications/Terminal.app" icon="icons/com.apple.Terminal.png" installed=#true usage=1 favorite-index=#null running=#true launching=#false active=#false hidden=#false badge=#null windows=1 minimized=0 dock-pinned=#false favorite=#false
+        }
+        running {
+            - bundle-id="com.apple.finder" name="Finder" path="/Applications/Finder.app" icon="icons/com.apple.finder.png" installed=#true usage=1 favorite-index=#null running=#true launching=#false active=#false hidden=#false badge=#null windows=1 minimized=0 dock-pinned=#false favorite=#false
+            - bundle-id="com.apple.Safari" name="Safari" path="/Applications/Safari.app" icon="icons/com.apple.Safari.png" installed=#true usage=1 favorite-index=0 running=#true launching=#false active=#true hidden=#false badge=#null windows=2 minimized=0 dock-pinned=#true favorite=#true
+            - bundle-id="com.apple.mail" name="Mail" path="/Applications/Mail.app" icon="icons/com.apple.mail.png" installed=#true usage=1 favorite-index=#null running=#false launching=#false active=#false hidden=#false badge="3" windows=0 minimized=0 dock-pinned=#true favorite=#false
+            - bundle-id="com.apple.Terminal" name="Terminal" path="/Applications/Terminal.app" icon="icons/com.apple.Terminal.png" installed=#true usage=1 favorite-index=#null running=#true launching=#false active=#false hidden=#false badge=#null windows=1 minimized=0 dock-pinned=#false favorite=#false
+        }
+        favorites {
+            - bundle-id="com.apple.Safari" name="Safari" path="/Applications/Safari.app" icon="icons/com.apple.Safari.png" installed=#true usage=1 favorite-index=0 running=#true launching=#false active=#true hidden=#false badge=#null windows=2 minimized=0 dock-pinned=#true favorite=#true
+        }
+        file-managers {
+            - bundle-id="com.apple.finder" name="Finder" path="/Applications/Finder.app" icon="icons/com.apple.finder.png" installed=#true usage=1 favorite-index=#null running=#true launching=#false active=#false hidden=#false badge=#null windows=1 minimized=0 dock-pinned=#false favorite=#false
+        }
+        file-manager bundle-id="com.apple.finder" name="Finder" path="/Applications/Finder.app" icon="icons/com.apple.finder.png" installed=#true usage=1 favorite-index=#null running=#true launching=#false active=#false hidden=#false badge=#null windows=1 minimized=0 dock-pinned=#false favorite=#false
+        frontmost bundle-id="com.apple.Safari" name="Safari" path="/Applications/Safari.app" icon="icons/com.apple.Safari.png" installed=#true usage=1 favorite-index=0 running=#true launching=#false active=#true hidden=#false badge=#null windows=2 minimized=0 dock-pinned=#true favorite=#true
+    }
+}

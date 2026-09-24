@@ -91,6 +91,10 @@ public struct ProviderFixture: Sendable {
                 result[key] = .record(convertDates(inner, schema: schema, prefix: path))
                 continue
             }
+            if let field = schema.fields.first(where: { $0.path == path }), field.type == .list || field.type == .record {
+                result[key] = nestedDates(value)
+                continue
+            }
             if case .string(let text) = value,
                let field = schema.fields.first(where: { $0.path == path }), field.type == .value,
                let date = FixtureDate.parse(text) {
@@ -98,6 +102,25 @@ public struct ProviderFixture: Sendable {
             }
         }
         return result
+    }
+}
+
+extension ProviderFixture {
+    static func nestedDates(_ value: Value) -> Value {
+        switch value {
+        case .list(let items):
+            return .list(items.map(nestedDates))
+        case .record(let record):
+            var result = record
+            for key in record.keys {
+                if let inner = record[key] { result[key] = nestedDates(inner) }
+            }
+            return .record(result)
+        case .string(let text):
+            return FixtureDate.parse(text).map(Value.date) ?? value
+        default:
+            return value
+        }
     }
 }
 
