@@ -127,4 +127,38 @@ struct SchemaRegistryProvidersTests {
             }
         }
     }
+
+    @Test("shell-Kontext-Wurzel beschreibt configs, themes und update mit verschachtelten Feldern statt opaker Listen/Records")
+    func shellContextRootHasDetailedNestedFields() {
+        guard let shell = ContextRoots.all.first(where: { $0.name == "shell" }) else {
+            Issue.record("no 'shell' context root")
+            return
+        }
+        let paths = Set(shell.fields.map { $0.path.joined(separator: ".") })
+
+        #expect(!paths.contains("configs"))
+        #expect(paths.contains("configs.id"))
+        #expect(paths.contains("configs.name"))
+        #expect(paths.contains("configs.source"))
+
+        #expect(!paths.contains("themes"))
+        #expect(paths.contains("themes.id"))
+        #expect(paths.contains("themes.name"))
+        #expect(paths.contains("themes.author"))
+        #expect(paths.contains("themes.description"))
+        #expect(paths.contains("themes.issues"))
+
+        #expect(!paths.contains("update"))
+        #expect(paths.contains("update.status"))
+        #expect(paths.contains("update.version"))
+        #expect(paths.contains("update.notes-url"))
+        #expect(paths.contains("update.last-check"))
+        #expect(paths.contains("update.error"))
+
+        guard let status = shell.fields.first(where: { $0.path == ["update", "status"] }) else {
+            Issue.record("missing 'update.status'")
+            return
+        }
+        #expect(status.type == .enumeration(["idle", "checking", "available", "ready", "failed", "unavailable"]))
+    }
 }

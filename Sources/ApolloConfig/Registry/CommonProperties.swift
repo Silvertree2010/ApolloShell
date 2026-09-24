@@ -45,7 +45,7 @@ enum CommonProperties {
         PropertySchema(name: "area", type: .enumeration(["full", "below-menubar", "visible"]), defaultValue: .string("below-menubar"), doc: "Bezugsrechteck der Verankerung."),
         PropertySchema(name: "layer", type: .string, defaultValue: .null, doc: "Fensterebene, Vorgabe je Oberflächen-Art."),
         PropertySchema(name: "keyboard", type: .bool, defaultValue: .bool(false), doc: "ob die Oberfläche Tastatureingaben annimmt."),
-        PropertySchema(name: "click-through", type: .enumeration(["true", "false", "auto"]), defaultValue: .bool(false), doc: "ob Mausereignisse durchgehen."),
+        PropertySchema(name: "click-through", type: .any, defaultValue: .bool(false), doc: "ob Mausereignisse durchgehen; bool oder \"auto\" (nur dort nicht, wo ein Element mit Handler oder sichtbarem Hintergrund liegt)."),
         PropertySchema(name: "offset-x", type: .number, defaultValue: .number(0), doc: "Verschiebung entlang x gegenüber der verankerten Lage."),
         PropertySchema(name: "offset-y", type: .number, defaultValue: .number(0), doc: "Verschiebung entlang y gegenüber der verankerten Lage."),
         PropertySchema(name: "sticky", type: .bool, defaultValue: .bool(true), doc: "auf allen Spaces und im eigenen Space."),

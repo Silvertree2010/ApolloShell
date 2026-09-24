@@ -168,4 +168,12 @@ struct SchemaRegistryTests {
         let dragValue = button?.properties.first { $0.name == "drag-value" }
         #expect(dragValue?.stability == .experimental)
     }
+
+    @Test("click-through erlaubt Bool oder \"auto\" mit passender Bool-Vorgabe")
+    func clickThroughTypeMatchesDefault() {
+        let panel = BuiltinSchemaRegistry.allNodes.first { $0.name == "panel" }
+        let clickThrough = panel?.properties.first { $0.name == "click-through" }
+        #expect(clickThrough?.type == .any)
+        #expect(clickThrough?.defaultValue == .bool(false))
+    }
 }
