@@ -44,7 +44,7 @@ enum ListShapeFilters {
             case .text(let characters): return .string(String(characters.reversed()))
             }
         },
-        BuiltinFilter("sort", arity: FilterArity(0, 2)) { input, arguments, _ in
+        BuiltinFilter("sort", arity: FilterArity(0, 2)) { input, arguments, context in
             let items = try input.listInput("sort")
             var field: String?
             var descending = false
@@ -63,7 +63,7 @@ enum ListShapeFilters {
                 (offset: offset, item: item, key: field.map { ValueOrdering.field($0, of: item) } ?? item)
             }
             let sorted = keyed.sorted { lhs, rhs in
-                let order = ValueOrdering.compare(lhs.key, rhs.key)
+                let order = ValueOrdering.compare(lhs.key, rhs.key, locale: context.locale)
                 if order == .orderedSame { return lhs.offset < rhs.offset }
                 return descending ? order == .orderedDescending : order == .orderedAscending
             }

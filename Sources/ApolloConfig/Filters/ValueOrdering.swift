@@ -14,14 +14,16 @@ enum ValueOrdering {
         }
     }
 
-    static func compare(_ lhs: Value, _ rhs: Value) -> ComparisonResult {
+    static let localeAwareOptions: String.CompareOptions = [.caseInsensitive, .numeric, .widthInsensitive, .forcedOrdering]
+
+    static func compare(_ lhs: Value, _ rhs: Value, locale: Locale) -> ComparisonResult {
         switch (lhs, rhs) {
         case (.bool(let a), .bool(let b)):
             return a == b ? .orderedSame : (a ? .orderedDescending : .orderedAscending)
         case (.number(let a), .number(let b)):
             return order(a, b)
         case (.string(let a), .string(let b)):
-            return a.localizedStandardCompare(b)
+            return a.compare(b, options: localeAwareOptions, range: nil, locale: locale)
         case (.date(let a), .date(let b)):
             return order(a, b)
         default:

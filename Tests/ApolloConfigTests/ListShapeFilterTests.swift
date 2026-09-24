@@ -90,4 +90,33 @@ struct ListShapeFilterTests {
         }
         #expect(elapsed < .seconds(3))
     }
+
+    static func context(locale: Locale) -> FilterContext {
+        FilterContext(now: FilterHarness.now, locale: locale, timeZone: FilterHarness.context.timeZone, services: FakeFilterServices())
+    }
+
+    static func sorted(_ input: Value, in context: FilterContext) -> Value {
+        guard case .value(let value) = FilterTable.builtin.function(named: "sort")!(input, [], context) else {
+            Issue.record("'sort' failed")
+            return .null
+        }
+        return value
+    }
+
+    @Test("sort vergleicht Strings nach FilterContext.locale, nicht nach der Locale des Prozesses")
+    func sortUsesContextLocale() {
+        let words = Value.list([.string("z"), .string("ä")])
+        let swedish = Self.context(locale: Locale(identifier: "sv_SE"))
+        let german = Self.context(locale: Locale(identifier: "de_DE"))
+        #expect(Self.sorted(words, in: swedish) == .list([.string("z"), .string("ä")]))
+        #expect(Self.sorted(words, in: german) == .list([.string("ä"), .string("z")]))
+    }
+
+    @Test("sort ignoriert die Locale des Mac, auf dem die Tests laufen")
+    func sortIgnoresProcessLocale() {
+        let words = Value.list([.string("z"), .string("ä")])
+        #expect(Locale.current.identifier != "sv_SE")
+        let swedish = Self.context(locale: Locale(identifier: "sv_SE"))
+        #expect(Self.sorted(words, in: swedish) == .list([.string("z"), .string("ä")]))
+    }
 }
