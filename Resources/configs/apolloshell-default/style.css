@@ -325,6 +325,7 @@
 .settings-slider { flex-grow: 1; }
 .settings-field { flex-grow: 1; }
 .settings-confirm { gap: 8px; padding: 12px; border-radius: 10px; background: rgb(from -apple-system-control-accent r g b / 0.08); }
+.settings-confirm-popup { width: 380px; }
 .settings-gallery { gap: 8px; grid-template-columns: repeat(3, 1fr); }
 .settings-gallery-tile { padding: 10px; border-radius: 10px; min-height: 118px; background: rgb(from -apple-system-label r g b / 0.05); }
 .settings-gallery-tile:hover { background: rgb(from -apple-system-label r g b / 0.09); }

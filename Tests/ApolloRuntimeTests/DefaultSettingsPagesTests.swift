@@ -56,7 +56,8 @@ struct DefaultSettingsPagesTests {
     }
 
     static func find(_ shell: KDLShell, kind: String, withClass name: String? = nil, text: String) throws -> ElementInstance {
-        let matches = all(shell.fixture.surface("settings").root).filter { element in
+        let roots = shell.fixture.surface("settings").root + (shell.runtime.surface("settings-confirm", screenKey: "A")?.root ?? [])
+        let matches = all(roots).filter { element in
             element.kind == kind && (name.map { classes(element).contains($0) } ?? true) && texts(element).contains(text)
         }
         return try #require(matches.last, "no \(kind) with text \(text)")
@@ -108,14 +109,25 @@ struct DefaultSettingsPagesTests {
 
         await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-button", text: "Reset"))
         #expect(shell.vars.value("settings-sidebar-confirm") == .string("reset"))
+        #expect(shell.runtime.surface("settings-confirm", screenKey: "A")?.isOpen == true)
         #expect(list(shell, "sidebar-modules").count == 8)
         await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-default-button", text: "Reset"))
         #expect(list(shell, "sidebar-modules").count == 7)
         #expect(shell.vars.value("settings-sidebar-confirm") == .string(""))
+        #expect(shell.runtime.surface("settings-confirm", screenKey: "A")?.isOpen == false)
 
         set(shell, "settings-sidebar-confirm", .string("minimal"))
+        shell.runtime.open("settings-confirm", screenKey: nil)
+        await shell.settle()
         await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-default-button", text: "Load"))
         #expect(list(shell, "sidebar-modules").map { $0["kind"] } == ["spaces", "spacer", "clock", "power"].map { .string($0) })
+        set(shell, "settings-sidebar-confirm", .string("everything"))
+        shell.runtime.open("settings-confirm", screenKey: nil)
+        await shell.settle()
+        shell.runtime.close("settings-confirm")
+        await shell.settle()
+        #expect(shell.vars.value("settings-sidebar-confirm") == .string(""))
+        #expect(list(shell, "sidebar-modules").count == 4)
         #expect(shell.fixture.warnings.isEmpty, "\(shell.fixture.warnings.map(\.message))")
     }
 
@@ -144,6 +156,8 @@ struct DefaultSettingsPagesTests {
         #expect(list(shell, "utilities-toggles").last?["title"] == .string("Mail"))
 
         set(shell, "settings-utilities-confirm", .string("minimal"))
+        shell.runtime.open("settings-confirm", screenKey: nil)
+        await shell.settle()
         await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-default-button", text: "Load"))
         #expect(list(shell, "utilities-toggles").count == 5)
         #expect(shell.fixture.warnings.isEmpty, "\(shell.fixture.warnings.map(\.message))")
@@ -170,6 +184,8 @@ struct DefaultSettingsPagesTests {
         #expect(try Self.find(shell, kind: "button", withClass: "settings-gallery-tile", text: "Weather").property("disabled") == .bool(true))
 
         set(shell, "settings-dashboard-confirm", .string("compact"))
+        shell.runtime.open("settings-confirm", screenKey: nil)
+        await shell.settle()
         await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-default-button", text: "Load"))
         #expect(shell.vars.value("dashboard-cards-side") == .list([]))
         #expect(list(shell, "dashboard-cards-top").map { $0["kind"] } == [.string("weather"), .string("media")])

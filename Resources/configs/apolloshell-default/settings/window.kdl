@@ -25,6 +25,7 @@ include "toasts.kdl"
 include "providers.kdl"
 include "system-settings.kdl"
 include "about.kdl"
+include "confirm.kdl"
 
 define "settings-link" {
     param "title"

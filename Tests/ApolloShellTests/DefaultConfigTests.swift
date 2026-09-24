@@ -36,7 +36,7 @@ struct DefaultConfigTests {
         let expected = [
             "sidebar": "panel", "desktop-clock": "panel", "dashboard": "popup", "utilities": "popup",
             "launcher": "popup", "session": "popup", "volume": "osd", "default": "toast",
-            "onboarding": "window", "settings": "window",
+            "onboarding": "window", "settings": "window", "settings-confirm": "popup",
         ]
         #expect(kinds == expected)
     }

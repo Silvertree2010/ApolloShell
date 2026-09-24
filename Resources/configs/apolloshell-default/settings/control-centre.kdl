@@ -317,40 +317,14 @@ define "settings-page-control-centre" {
             button class="settings-button" menu-on="click" {
                 menu side="below" {
                     each preset in="{utilities-presets}" key="{preset.id}" {
-                        item "{preset.title}" { set "settings-utilities-confirm" "{preset.id}" }
+                        item "{preset.title}" { set "settings-utilities-confirm" "{preset.id}"; open "settings-confirm" }
                     }
                 }
                 text "Load Preset…"
             }
             button class="settings-button" disabled="{var.utilities-cards == utilities-standard.cards && var.utilities-toggles == utilities-standard.toggles}" {
-                on-click { set "settings-utilities-confirm" "reset" }
+                on-click { set "settings-utilities-confirm" "reset"; open "settings-confirm" }
                 text "Reset"
-            }
-        }
-        when "{var.settings-utilities-confirm != ''}" {
-            column class="settings-confirm" {
-                text "{var.settings-utilities-confirm == 'reset' ? 'Reset the Control Centre?' : 'Load preset “' + (utilities-presets | where 'id' var.settings-utilities-confirm | first).title + '”?'}" class="settings-row-title"
-                text "{var.settings-utilities-confirm == 'reset' ? 'Cards and buttons like they were at the start again (Standard preset).' : (utilities-presets | where 'id' var.settings-utilities-confirm | first).summary} The current arrangement will be replaced." class="settings-row-detail" lines=0
-                row class="settings-actions" {
-                    spacer
-                    button class="settings-button" {
-                        on-click { set "settings-utilities-confirm" "" }
-                        text "Cancel"
-                    }
-                    button class="settings-button settings-default-button" {
-                        on-click {
-                            switch "{var.settings-utilities-confirm}" {
-                                case "minimal" { set "utilities-cards" "{utilities-minimal.cards}"; set "utilities-toggles" "{utilities-minimal.toggles}" }
-                                case "audio" { set "utilities-cards" "{utilities-audio.cards}"; set "utilities-toggles" "{utilities-audio.toggles}" }
-                                case "everything" { set "utilities-cards" "{utilities-everything.cards}"; set "utilities-toggles" "{utilities-everything.toggles}" }
-                                default { set "utilities-cards" "{utilities-standard.cards}"; set "utilities-toggles" "{utilities-standard.toggles}" }
-                            }
-                            set "settings-utilities-confirm" ""
-                            set "settings-toggle-selected" ""
-                        }
-                        text "{var.settings-utilities-confirm == 'reset' ? 'Reset' : 'Load'}"
-                    }
-                }
             }
         }
     }
@@ -389,5 +363,32 @@ define "settings-page-control-centre" {
     }
     when "{var.settings-toggle-selected != '' && (var.utilities-toggles | where 'id' var.settings-toggle-selected | count) > 0}" {
         use "settings-toggle-options" toggle="{var.utilities-toggles | where 'id' var.settings-toggle-selected | first}" look="{utilities-toggle-kinds | where 'kind' (var.utilities-toggles | where 'id' var.settings-toggle-selected | first).kind | first}"
+    }
+}
+
+define "settings-confirm-control-centre" {
+    column class="settings-confirm" {
+        text "{var.settings-utilities-confirm == 'reset' ? 'Reset the Control Centre?' : 'Load preset “' + (utilities-presets | where 'id' var.settings-utilities-confirm | first).title + '”?'}" class="settings-row-title"
+        text "{var.settings-utilities-confirm == 'reset' ? 'Cards and buttons like they were at the start again (Standard preset).' : (utilities-presets | where 'id' var.settings-utilities-confirm | first).summary} The current arrangement will be replaced." class="settings-row-detail" lines=0
+        row class="settings-actions" {
+            spacer
+            button class="settings-button" {
+                on-click { set "settings-utilities-confirm" ""; close "settings-confirm" }
+                text "Cancel"
+            }
+            button class="settings-button settings-default-button" {
+                on-click {
+                    switch "{var.settings-utilities-confirm}" {
+                        case "minimal" { set "utilities-cards" "{utilities-minimal.cards}"; set "utilities-toggles" "{utilities-minimal.toggles}" }
+                        case "audio" { set "utilities-cards" "{utilities-audio.cards}"; set "utilities-toggles" "{utilities-audio.toggles}" }
+                        case "everything" { set "utilities-cards" "{utilities-everything.cards}"; set "utilities-toggles" "{utilities-everything.toggles}" }
+                        default { set "utilities-cards" "{utilities-standard.cards}"; set "utilities-toggles" "{utilities-standard.toggles}" }
+                    }
+                    set "settings-utilities-confirm" ""; close "settings-confirm"
+                    set "settings-toggle-selected" ""
+                }
+                text "{var.settings-utilities-confirm == 'reset' ? 'Reset' : 'Load'}"
+            }
+        }
     }
 }

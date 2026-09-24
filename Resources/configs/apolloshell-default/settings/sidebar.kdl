@@ -248,40 +248,14 @@ define "settings-page-sidebar" {
                     button class="settings-button" menu-on="click" {
                         menu side="below" {
                             each preset in="{sidebar-presets}" key="{preset.id}" {
-                                item "{preset.title}" { set "settings-sidebar-confirm" "{preset.id}" }
+                                item "{preset.title}" { set "settings-sidebar-confirm" "{preset.id}"; open "settings-confirm" }
                             }
                         }
                         text "Load Preset…"
                     }
                     button class="settings-button" disabled="{var.sidebar-modules == sidebar-caelestia}" {
-                        on-click { set "settings-sidebar-confirm" "reset" }
+                        on-click { set "settings-sidebar-confirm" "reset"; open "settings-confirm" }
                         text "Reset"
-                    }
-                }
-                when "{var.settings-sidebar-confirm != ''}" {
-                    column class="settings-confirm" {
-                        text "{var.settings-sidebar-confirm == 'reset' ? 'Reset the sidebar?' : 'Load preset “' + (sidebar-presets | where 'id' var.settings-sidebar-confirm | first).title + '”?'}" class="settings-row-title"
-                        text "{var.settings-sidebar-confirm == 'reset' ? 'The sidebar looks like it did at the start again (Caelestia preset). The current arrangement will be replaced.' : (sidebar-presets | where 'id' var.settings-sidebar-confirm | first).summary + ' The current arrangement will be replaced.'}" class="settings-row-detail" lines=0
-                        row class="settings-actions" {
-                            spacer
-                            button class="settings-button" {
-                                on-click { set "settings-sidebar-confirm" "" }
-                                text "Cancel"
-                            }
-                            button class="settings-button settings-default-button" {
-                                on-click {
-                                    switch "{var.settings-sidebar-confirm}" {
-                                        case "minimal" { set "sidebar-modules" "{sidebar-minimal}" }
-                                        case "dock-only" { set "sidebar-modules" "{sidebar-dock-only}" }
-                                        case "everything" { set "sidebar-modules" "{sidebar-everything}" }
-                                        default { set "sidebar-modules" "{sidebar-caelestia}" }
-                                    }
-                                    set "settings-sidebar-confirm" ""
-                                    set "settings-sidebar-expanded" ""
-                                }
-                                text "{var.settings-sidebar-confirm == 'reset' ? 'Reset' : 'Load'}"
-                            }
-                        }
                     }
                 }
             }
@@ -357,6 +331,33 @@ define "settings-page-sidebar" {
                         use "sidebar-{module.kind}" module="{module}"
                     }
                 }
+            }
+        }
+    }
+}
+
+define "settings-confirm-sidebar" {
+    column class="settings-confirm" {
+        text "{var.settings-sidebar-confirm == 'reset' ? 'Reset the sidebar?' : 'Load preset “' + (sidebar-presets | where 'id' var.settings-sidebar-confirm | first).title + '”?'}" class="settings-row-title"
+        text "{var.settings-sidebar-confirm == 'reset' ? 'The sidebar looks like it did at the start again (Caelestia preset). The current arrangement will be replaced.' : (sidebar-presets | where 'id' var.settings-sidebar-confirm | first).summary + ' The current arrangement will be replaced.'}" class="settings-row-detail" lines=0
+        row class="settings-actions" {
+            spacer
+            button class="settings-button" {
+                on-click { set "settings-sidebar-confirm" ""; close "settings-confirm" }
+                text "Cancel"
+            }
+            button class="settings-button settings-default-button" {
+                on-click {
+                    switch "{var.settings-sidebar-confirm}" {
+                        case "minimal" { set "sidebar-modules" "{sidebar-minimal}" }
+                        case "dock-only" { set "sidebar-modules" "{sidebar-dock-only}" }
+                        case "everything" { set "sidebar-modules" "{sidebar-everything}" }
+                        default { set "sidebar-modules" "{sidebar-caelestia}" }
+                    }
+                    set "settings-sidebar-confirm" ""; close "settings-confirm"
+                    set "settings-sidebar-expanded" ""
+                }
+                text "{var.settings-sidebar-confirm == 'reset' ? 'Reset' : 'Load'}"
             }
         }
     }

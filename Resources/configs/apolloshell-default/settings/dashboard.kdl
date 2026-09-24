@@ -245,39 +245,14 @@ define "settings-page-dashboard" {
         button class="settings-button" menu-on="click" {
             menu side="below" {
                 each preset in="{dashboard-presets}" key="{preset.id}" {
-                    item "{preset.title}" { set "settings-dashboard-confirm" "{preset.id}" }
+                    item "{preset.title}" { set "settings-dashboard-confirm" "{preset.id}"; open "settings-confirm" }
                 }
             }
             text "Load Preset…"
         }
         button class="settings-button" disabled="{var.dashboard-tabs == dashboard-caelestia.tabs && var.dashboard-cards-top == dashboard-caelestia.top && var.dashboard-cards-bottom == dashboard-caelestia.bottom && var.dashboard-cards-side == dashboard-caelestia.side}" {
-            on-click { set "settings-dashboard-confirm" "reset" }
+            on-click { set "settings-dashboard-confirm" "reset"; open "settings-confirm" }
             text "Reset"
-        }
-    }
-    when "{var.settings-dashboard-confirm != ''}" {
-        column class="settings-group settings-confirm" {
-            text "{var.settings-dashboard-confirm == 'reset' ? 'Reset the Dashboard?' : 'Load preset “' + (dashboard-presets | where 'id' var.settings-dashboard-confirm | first).title + '”?'}" class="settings-row-title"
-            text "{var.settings-dashboard-confirm == 'reset' ? 'Tabs and cards like they were at the start again (Caelestia preset).' : (dashboard-presets | where 'id' var.settings-dashboard-confirm | first).summary} The weather location stays." class="settings-row-detail" lines=0
-            row class="settings-actions" {
-                spacer
-                button class="settings-button" {
-                    on-click { set "settings-dashboard-confirm" "" }
-                    text "Cancel"
-                }
-                button class="settings-button settings-default-button" {
-                    on-click {
-                        switch "{var.settings-dashboard-confirm}" {
-                            case "compact" { set "dashboard-tabs" "{dashboard-compact.tabs}"; set "dashboard-cards-top" "{dashboard-compact.top}"; set "dashboard-cards-bottom" "{dashboard-compact.bottom}"; set "dashboard-cards-side" "{dashboard-compact.side}" }
-                            case "calendar-weather" { set "dashboard-tabs" "{dashboard-calendar-weather.tabs}"; set "dashboard-cards-top" "{dashboard-calendar-weather.top}"; set "dashboard-cards-bottom" "{dashboard-calendar-weather.bottom}"; set "dashboard-cards-side" "{dashboard-calendar-weather.side}" }
-                            default { set "dashboard-tabs" "{dashboard-caelestia.tabs}"; set "dashboard-cards-top" "{dashboard-caelestia.top}"; set "dashboard-cards-bottom" "{dashboard-caelestia.bottom}"; set "dashboard-cards-side" "{dashboard-caelestia.side}" }
-                        }
-                        set "settings-dashboard-confirm" ""
-                        set "settings-dashboard-expanded" ""
-                    }
-                    text "{var.settings-dashboard-confirm == 'reset' ? 'Reset' : 'Load'}"
-                }
-            }
         }
     }
     when "{var.settings-dashboard-gallery}" {
@@ -374,6 +349,32 @@ define "settings-dashboard-gallery-tile" {
             when "{present}" { text "Already Added" class="settings-badge" }
             else {
                 when "{zone == null}" { text "No Room Left" class="settings-badge" }
+            }
+        }
+    }
+}
+
+define "settings-confirm-dashboard" {
+    column class="settings-confirm" {
+        text "{var.settings-dashboard-confirm == 'reset' ? 'Reset the Dashboard?' : 'Load preset “' + (dashboard-presets | where 'id' var.settings-dashboard-confirm | first).title + '”?'}" class="settings-row-title"
+        text "{var.settings-dashboard-confirm == 'reset' ? 'Tabs and cards like they were at the start again (Caelestia preset).' : (dashboard-presets | where 'id' var.settings-dashboard-confirm | first).summary} The weather location stays." class="settings-row-detail" lines=0
+        row class="settings-actions" {
+            spacer
+            button class="settings-button" {
+                on-click { set "settings-dashboard-confirm" ""; close "settings-confirm" }
+                text "Cancel"
+            }
+            button class="settings-button settings-default-button" {
+                on-click {
+                    switch "{var.settings-dashboard-confirm}" {
+                        case "compact" { set "dashboard-tabs" "{dashboard-compact.tabs}"; set "dashboard-cards-top" "{dashboard-compact.top}"; set "dashboard-cards-bottom" "{dashboard-compact.bottom}"; set "dashboard-cards-side" "{dashboard-compact.side}" }
+                        case "calendar-weather" { set "dashboard-tabs" "{dashboard-calendar-weather.tabs}"; set "dashboard-cards-top" "{dashboard-calendar-weather.top}"; set "dashboard-cards-bottom" "{dashboard-calendar-weather.bottom}"; set "dashboard-cards-side" "{dashboard-calendar-weather.side}" }
+                        default { set "dashboard-tabs" "{dashboard-caelestia.tabs}"; set "dashboard-cards-top" "{dashboard-caelestia.top}"; set "dashboard-cards-bottom" "{dashboard-caelestia.bottom}"; set "dashboard-cards-side" "{dashboard-caelestia.side}" }
+                    }
+                    set "settings-dashboard-confirm" ""; close "settings-confirm"
+                    set "settings-dashboard-expanded" ""
+                }
+                text "{var.settings-dashboard-confirm == 'reset' ? 'Reset' : 'Load'}"
             }
         }
     }
