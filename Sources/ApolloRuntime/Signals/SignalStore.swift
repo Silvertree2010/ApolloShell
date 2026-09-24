@@ -22,6 +22,7 @@ public final class SignalStore {
 
     private var roots: [String: Value] = [:]
     private var subscriptions: [Int: Subscription] = [:]
+    private var demandGroups: [Int: [DependencyPath]] = [:]
     private var demandCounts: [DependencyPath: Int] = [:]
     private var nextToken = 0
     private let scheduler: any FlushScheduler
@@ -29,6 +30,7 @@ public final class SignalStore {
 
     public var onDemandChange: (@MainActor (String) -> Void)?
     public var onFlush: (@MainActor () -> Void)?
+    public var onDemandSettle: (@MainActor () -> Void)?
 
     public init(scheduler: any FlushScheduler) {
         self.scheduler = scheduler
@@ -53,28 +55,62 @@ public final class SignalStore {
         let token = nextToken
         nextToken += 1
         subscriptions[token] = Subscription(path: path, onChange: onChange)
-        let count = demandCounts[path, default: 0]
-        demandCounts[path] = count + 1
-        if count == 0 {
-            onDemandChange?(path.root)
-        }
+        incrementDemand([path])
+        return SubscriptionToken(id: token)
+    }
+
+    @discardableResult
+    public func demand(_ paths: Set<DependencyPath>) -> SubscriptionToken {
+        let token = nextToken
+        nextToken += 1
+        let ordered = Array(paths)
+        demandGroups[token] = ordered
+        incrementDemand(ordered)
         return SubscriptionToken(id: token)
     }
 
     public func unsubscribe(_ token: SubscriptionToken) {
-        guard let subscription = subscriptions.removeValue(forKey: token.id) else { return }
-        let path = subscription.path
-        let count = demandCounts[path, default: 0] - 1
-        if count <= 0 {
-            demandCounts.removeValue(forKey: path)
-            onDemandChange?(path.root)
-        } else {
-            demandCounts[path] = count
+        if let subscription = subscriptions.removeValue(forKey: token.id) {
+            decrementDemand([subscription.path])
+            return
+        }
+        if let paths = demandGroups.removeValue(forKey: token.id) {
+            decrementDemand(paths)
         }
     }
 
     public func demandedPaths(root: String) -> Set<DependencyPath> {
         Set(demandCounts.keys.filter { $0.root == root })
+    }
+
+    private func incrementDemand(_ paths: [DependencyPath]) {
+        var touchedRoots: [String] = []
+        for path in paths {
+            let count = demandCounts[path, default: 0]
+            demandCounts[path] = count + 1
+            if count == 0 {
+                touchedRoots.append(path.root)
+            }
+        }
+        for root in touchedRoots {
+            onDemandChange?(root)
+        }
+    }
+
+    private func decrementDemand(_ paths: [DependencyPath]) {
+        var touchedRoots: [String] = []
+        for path in paths {
+            let count = demandCounts[path, default: 0] - 1
+            if count <= 0 {
+                demandCounts.removeValue(forKey: path)
+                touchedRoots.append(path.root)
+            } else {
+                demandCounts[path] = count
+            }
+        }
+        for root in touchedRoots {
+            onDemandChange?(root)
+        }
     }
 
     func snapshot() -> StoreSnapshot {
@@ -94,6 +130,7 @@ public final class SignalStore {
             guard let self else { return }
             self.flushRequested = false
             self.onFlush?()
+            self.onDemandSettle?()
         }
     }
 
