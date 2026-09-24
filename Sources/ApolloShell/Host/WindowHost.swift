@@ -116,7 +116,8 @@ final class WindowHost: SurfaceHosting {
 
     func surfaceChanged(_ surface: SurfaceInstance) {
         model.surfaceChanged(surface)
-        sync(SurfaceHost.key(surface.id, surface.screenKey))
+        let key = SurfaceHost.key(surface.id, surface.screenKey)
+        if controllers[key] == nil { build(surface) } else { sync(key) }
     }
 
     func surfaceReplaced(_ surface: SurfaceInstance) {
@@ -186,6 +187,7 @@ final class WindowHost: SurfaceHosting {
 
     private func build(_ surface: SurfaceInstance) {
         guard Self.windowKinds.contains(surface.ir.kind), context != nil else { return }
+        guard surface.ir.kind != "window" || surface.isVisible else { return }
         let key = SurfaceHost.key(surface.id, surface.screenKey)
         let spec = SurfaceWindowSpec(surface: surface)
         let window = factory.make(spec: spec, content: content(surface, insets: EdgeInsets()))

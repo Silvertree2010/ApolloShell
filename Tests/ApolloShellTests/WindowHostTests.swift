@@ -103,10 +103,12 @@ final class FakeWindow: HostWindow {
 final class FakeFactory: HostWindowFactory {
     var made: [FakeWindow] = []
     var auxiliary: [FakeWindow] = []
+    var restorable: CGRect?
 
     func make(spec: SurfaceWindowSpec, content: AnyView) -> any HostWindow {
         let window = FakeWindow(spec: spec)
         window.content = content
+        window.restorable = restorable
         made.append(window)
         return window
     }
@@ -299,8 +301,8 @@ struct WindowHostTests {
     @Test("ein Fenster je Oberfläche und Bildschirm, panel sichtbar, popup zu")
     func build() throws {
         let fixture = try HostFixture(Self.shell, css: Self.css)
-        #expect(fixture.factory.made.count == 6)
-        #expect(fixture.host.stats.windowsCreated == 6)
+        #expect(fixture.factory.made.count == 5)
+        #expect(fixture.host.stats.windowsCreated == 5)
         #expect(fixture.window("bar")?.isShown == true)
         #expect(fixture.window("bar")?.frame == CGRect(x: 0, y: 0, width: 44, height: 870))
         #expect(fixture.window("menu")?.isShown == false)
@@ -328,7 +330,7 @@ struct WindowHostTests {
         fixture.assembly.runtime.toggle("quick")
         #expect(quick.animations.isEmpty)
         #expect(fixture.link.finished == ["menu", "quick"])
-        #expect(fixture.host.stats.windowsCreated == 6)
+        #expect(fixture.host.stats.windowsCreated == 5)
     }
 
     @Test("close-on fragt die Runtime, window-Art schliesst über die Runtime")
@@ -362,7 +364,7 @@ struct WindowHostTests {
         try fixture.reload(Self.shell, css: Self.css)
         let after = fixture.host.controllers.mapValues { ObjectIdentifier($0.window) }
         #expect(after == before)
-        #expect(fixture.host.stats.windowsCreated == 7)
+        #expect(fixture.host.stats.windowsCreated == 6)
         #expect(fixture.host.stats.windowsClosed == 1)
         #expect(fixture.window("bar")?.frame.width == 44)
     }
@@ -373,7 +375,7 @@ struct WindowHostTests {
         let bar = try #require(fixture.window("bar"))
         try fixture.reload(Self.shell.replacingOccurrences(of: "overlay \"corners\"", with: "panel \"corners\""), css: Self.css)
         #expect(fixture.window("bar") === bar)
-        #expect(fixture.host.stats.windowsCreated == 7)
+        #expect(fixture.host.stats.windowsCreated == 6)
     }
 
     @Test("20 Space-Wechsel: 0 neue Fenster, 0 neu gebaute Oberflächen")
@@ -410,7 +412,7 @@ struct WindowHostTests {
         #expect(bar.frame.height == 800)
         fixture.host.screensChanged([:])
         #expect(bar.frame.height == 800)
-        #expect(fixture.host.stats.windowsCreated == 6)
+        #expect(fixture.host.stats.windowsCreated == 5)
     }
 }
 

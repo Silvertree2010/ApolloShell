@@ -42,7 +42,7 @@ final class ShellHarness {
         config = home.appendingPathComponent("cfg")
         try FileManager.default.createDirectory(at: config, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: home.appendingPathComponent("apolloshell/state"), withIntermediateDirectories: true)
-        let text = Self.withoutMarketplace(source)
+        let text = source
         try text.write(to: config.appendingPathComponent("shell.kdl"), atomically: true, encoding: .utf8)
         if let settings {
             try settings.write(to: home.appendingPathComponent("apolloshell/settings.kdl"), atomically: true, encoding: .utf8)
@@ -72,12 +72,8 @@ final class ShellHarness {
         wake.invalidate()
     }
 
-    static func withoutMarketplace(_ source: String) -> String {
-        source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || source.contains("marketplace") ? source : source + "\nmarketplace enabled=#false\n"
-    }
-
     func write(_ source: String) throws {
-        try Self.withoutMarketplace(source).write(to: config.appendingPathComponent("shell.kdl"), atomically: false, encoding: .utf8)
+        try source.write(to: config.appendingPathComponent("shell.kdl"), atomically: false, encoding: .utf8)
     }
 
     var runtime: ShellRuntime { shell.assembly!.runtime }

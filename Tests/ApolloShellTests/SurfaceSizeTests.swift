@@ -28,3 +28,23 @@ struct SurfaceSizeTests {
         #expect(toast.property("offset-y") == .number(0))
     }
 }
+
+@MainActor
+@Suite("Oberflächen der Art window entstehen erst beim ersten Öffnen (11-11)")
+struct LazyWindowTests {
+    @Test("Marketplace und eigenes window: kein Fenster vor dem Öffnen, danach bleibt es")
+    func lazy() async throws {
+        let harness = try ShellHarness("window \"notes\" { column { text \"n\" } }\npanel \"bar\" { row { text \"a\" } }")
+        try await harness.start()
+        #expect(harness.window("notes") == nil)
+        #expect(harness.window("marketplace") == nil)
+        #expect(harness.window("bar") != nil)
+        harness.runtime.open("notes", screenKey: ShellHarness.a.key)
+        harness.settle()
+        let notes = try #require(harness.window("notes"))
+        #expect(notes.isShown)
+        harness.runtime.close("notes")
+        harness.settle()
+        #expect(harness.window("notes") === notes)
+    }
+}

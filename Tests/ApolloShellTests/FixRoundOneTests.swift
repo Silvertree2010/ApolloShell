@@ -166,8 +166,9 @@ struct HostFixRoundOneTests {
     func windowKeepsUserFrame() throws {
         let css = "#settings { width: 400px; height: 300px; min-width: 320px; min-height: 200px; }"
         let fixture = try HostFixture("window \"settings\" title=\"Settings\" { row {} }", css: css)
-        let window = try #require(fixture.window("settings"))
+        #expect(fixture.window("settings") == nil)
         fixture.assembly.runtime.open("settings", screenKey: nil)
+        let window = try #require(fixture.window("settings"))
         #expect(window.frame.size == CGSize(width: 400, height: 300))
         #expect(window.minSize == CGSize(width: 320, height: 200))
         let moved = CGRect(x: 10, y: 20, width: 500, height: 420)
@@ -176,9 +177,9 @@ struct HostFixRoundOneTests {
         fixture.host.resync()
         #expect(window.frame == moved)
         let saved = try HostFixture("window \"prefs\" autosave=\"prefs\" { row {} }", css: "#prefs { width: 400px; height: 300px; }")
-        let prefs = try #require(saved.window("prefs"))
-        prefs.restorable = CGRect(x: 5, y: 5, width: 600, height: 500)
+        saved.factory.restorable = CGRect(x: 5, y: 5, width: 600, height: 500)
         saved.assembly.runtime.open("prefs", screenKey: nil)
+        let prefs = try #require(saved.window("prefs"))
         #expect(prefs.frame == CGRect(x: 5, y: 5, width: 600, height: 500))
     }
 
