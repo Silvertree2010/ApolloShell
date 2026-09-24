@@ -38,8 +38,11 @@ final class StageRecorder: WindowStage {
         }
     }
 
-    func glide(_ window: NSWindow, to frame: CGRect, duration: TimeInterval, curve: CAMediaTimingFunction) {
+    var glideEnds: [@MainActor () -> Void] = []
+
+    func glide(_ window: NSWindow, to frame: CGRect, duration: TimeInterval, curve: CAMediaTimingFunction, completion: @escaping @MainActor () -> Void) {
         glides.append(frame)
+        glideEnds.append(completion)
         if glideInstantly { window.setFrame(frame, display: false) }
     }
 

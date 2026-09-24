@@ -34,7 +34,7 @@ protocol WindowStage: AnyObject {
     func out(_ window: NSWindow)
     func isVisible(_ window: NSWindow) -> Bool
     func fade(_ window: NSWindow, to alpha: CGFloat, duration: TimeInterval, curve: CAMediaTimingFunction, completion: @escaping @MainActor () -> Void)
-    func glide(_ window: NSWindow, to frame: CGRect, duration: TimeInterval, curve: CAMediaTimingFunction)
+    func glide(_ window: NSWindow, to frame: CGRect, duration: TimeInterval, curve: CAMediaTimingFunction, completion: @escaping @MainActor () -> Void)
     func pin(_ window: NSWindow)
     func activateApp()
 }
@@ -60,11 +60,13 @@ final class SystemStage: WindowStage {
         })
     }
 
-    func glide(_ window: NSWindow, to frame: CGRect, duration: TimeInterval, curve: CAMediaTimingFunction) {
+    func glide(_ window: NSWindow, to frame: CGRect, duration: TimeInterval, curve: CAMediaTimingFunction, completion: @escaping @MainActor () -> Void) {
         NSAnimationContext.runAnimationGroup { context in
             context.duration = duration
             context.timingFunction = curve
             window.animator().setFrame(frame, display: true)
+        } completionHandler: {
+            MainActor.assumeIsolated { completion() }
         }
     }
 
@@ -219,7 +221,10 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         guard (glideTarget ?? window.frame) != frame else { return }
         if glide, stage.isVisible(window) {
             glideTarget = frame
-            stage.glide(window, to: frame, duration: MotionCurve.spatialDuration, curve: .shellSpatial)
+            stage.glide(window, to: frame, duration: MotionCurve.spatialDuration, curve: .shellSpatial) { [weak self] in
+                guard let self, self.glideTarget == frame else { return }
+                self.glideTarget = nil
+            }
         } else {
             glideTarget = nil
             window.setFrame(frame, display: true)
