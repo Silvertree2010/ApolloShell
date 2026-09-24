@@ -338,12 +338,12 @@ define "settings-page-dashboard" {
                     text "{result.region ?? ''}{result.region != null && result.country != null ? ', ' : ''}{result.country ?? ''}" class="settings-row-detail"
                 }
                 spacer
-                button class="settings-icon-button" tooltip="Add to Favorites" disabled="{(var.weather-places | where 'id' (result.latitude + ':' + result.longitude) | count) > 0}" {
+                button class="settings-icon-button" tooltip="Add to Favorites" disabled="{(var.weather-places | where 'latitude' result.latitude | where 'longitude' result.longitude | count) > 0}" {
                     on-click {
                         list.insert "weather-places" { - id="{result.latitude}:{result.longitude}" name="{result.name}" region="{result.region}" country="{result.country}" latitude="{result.latitude}" longitude="{result.longitude}" }
                         when "{var.weather-selected == null}" { set "weather-selected" "{result.latitude}:{result.longitude}" }
                     }
-                    icon "{(var.weather-places | where 'id' (result.latitude + ':' + result.longitude) | count) > 0 ? 'checkmark.circle.fill' : 'plus.circle.fill'}"
+                    icon "{(var.weather-places | where 'latitude' result.latitude | where 'longitude' result.longitude | count) > 0 ? 'checkmark.circle.fill' : 'plus.circle.fill'}"
                 }
             }
         }

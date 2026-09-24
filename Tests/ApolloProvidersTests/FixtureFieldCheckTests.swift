@@ -162,4 +162,34 @@ struct FixtureFieldCheckTests {
         #expect(Array(sidebar[airpods...].prefix(9)) == ["AirPods Pro", "L", "80%", "R", "15%", "Case", "55%", "Magic Keyboard", "64%"])
         #expect(session.diagnostics.map(\.message) == [])
     }
+
+    static func all(_ roots: [ElementInstance]) -> [ElementInstance] {
+        var out: [ElementInstance] = []
+        var stack = Array(roots.reversed())
+        while let element = stack.popLast() {
+            out.append(element)
+            for slot in element.slotChildren.values.reversed() { stack.append(contentsOf: slot.reversed()) }
+            stack.append(contentsOf: element.children.reversed())
+        }
+        return out
+    }
+
+    @Test("Wetter-Favorit mit UUID aus 0.1.4.2 gilt beim Hinzufügen als vorhanden (Koordinaten)")
+    func importedFavoriteMatchesByCoordinates() throws {
+        let fixture = ProviderFixture.load(Self.fixtureURL)
+        let ir = try #require(Self.builtin("apolloshell-default").ir)
+        let session = FixtureFieldCheck.session(ir, fixture: fixture)
+        let place = Record([("id", .string("5C0F6A2E-1D7B-4C1B-9F59-2E1B7A0C9D11")), ("name", .string("Chur")), ("region", .null), ("country", .null), ("latitude", .number(46.85)), ("longitude", .number(9.53))])
+        #expect(session.vars.set("weather-places", .list([.record(place)])))
+        #expect(session.vars.set("settings-page", .string("dashboard")))
+        session.runtime.open("settings", screenKey: nil)
+        session.flush()
+        let buttons = Self.all(try #require(session.runtime.surface("settings", screenKey: "main")).root)
+            .filter { $0.kind == "button" && $0.property("tooltip") == .string("Add to Favorites") }
+        #expect(buttons.count == 2)
+        #expect(buttons.map { $0.property("disabled") } == [.bool(true), .bool(false)])
+        let icons = buttons.map { Self.all([$0]).first { $0.kind == "icon" }?.arguments.first?.value }
+        #expect(icons == [.string("checkmark.circle.fill"), .string("plus.circle.fill")])
+        #expect(session.diagnostics.map(\.message) == [])
+    }
 }
