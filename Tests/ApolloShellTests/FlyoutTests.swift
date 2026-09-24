@@ -94,6 +94,30 @@ struct FlyoutTests {
     .content { width: 60px; height: 40px; background: #00ff00; }
     """
 
+    @Test("Klick-ausserhalb-Monitor: ein globaler Monitor je Start, Mausklick ruft on-close, stop entfernt ihn")
+    func outsideMonitor() async throws {
+        var installed: [(NSEvent.EventTypeMask, (NSEvent) -> Void)] = []
+        var removed = 0
+        let monitor = FlyoutOutsideMonitor(install: { mask, handler in
+            installed.append((mask, handler))
+            return installed.count
+        }, remove: { _ in removed += 1 })
+        var closed = 0
+        monitor.start { closed += 1 }
+        monitor.start { closed += 1 }
+        #expect(installed.count == 2)
+        #expect(removed == 1)
+        #expect(installed[1].0 == [.leftMouseDown, .rightMouseDown, .otherMouseDown])
+        let click = try #require(NSEvent.mouseEvent(with: .leftMouseDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: 0,
+                                                    context: nil, eventNumber: 0, clickCount: 1, pressure: 1))
+        installed[1].1(click)
+        for _ in 0..<5 { await Task.yield() }
+        #expect(closed == 1)
+        monitor.stop()
+        monitor.stop()
+        #expect(removed == 2)
+    }
+
     @Test("Grössenänderung der Oberfläche: nur die Dicke quer zur verankerten Kante schliesst (Fund 46)")
     func closesOnThicknessOnly() async throws {
         let mounted = try Mounted.mount(Self.resizeConfig, css: Self.resizeCSS)

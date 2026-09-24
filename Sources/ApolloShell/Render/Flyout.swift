@@ -407,16 +407,24 @@ extension EnvironmentValues {
 @MainActor
 final class FlyoutOutsideMonitor {
     private var token: Any?
+    private let install: (NSEvent.EventTypeMask, @escaping (NSEvent) -> Void) -> Any?
+    private let remove: (Any) -> Void
+
+    init(install: @escaping (NSEvent.EventTypeMask, @escaping (NSEvent) -> Void) -> Any? = { NSEvent.addGlobalMonitorForEvents(matching: $0, handler: $1) },
+         remove: @escaping (Any) -> Void = { NSEvent.removeMonitor($0) }) {
+        self.install = install
+        self.remove = remove
+    }
 
     func start(_ onOutside: @escaping @MainActor () -> Void) {
         stop()
-        token = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { _ in
+        token = install([.leftMouseDown, .rightMouseDown, .otherMouseDown]) { _ in
             Task { @MainActor in onOutside() }
         }
     }
 
     func stop() {
-        if let token { NSEvent.removeMonitor(token) }
+        if let token { remove(token) }
         token = nil
     }
 }

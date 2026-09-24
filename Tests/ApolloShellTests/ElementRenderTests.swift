@@ -131,6 +131,35 @@ struct ElementRenderTests {
         #expect(mark.property("state") == .string("sleep"))
     }
 
+    @Test("mark state wechselt das gezeichnete Emblem, ohne das Element neu aufzubauen")
+    func markStateDrawn() async throws {
+        let config = """
+        var mood "idle"
+        var appeared 0
+        panel "t" anchor="left" { mark id="m" state="{var.mood}" greet=#false class="m" color="#ff0000" { on-appear { set "appeared" "{var.appeared + 1}" } } }
+        """
+        let css = "#t { width: 60px; height: 60px; background: #ffffff; } .m { width: 50px; height: 50px; }"
+        let mounted = try Mounted.mount(config, css: css)
+        let canvas = mounted.session.canvas
+        let before = try canvas.snapshot(mounted.view, name: "idle")
+        mounted.session.context.runtime?.setVariable("mood", .string("sleep"))
+        await mounted.settle()
+        mounted.pump()
+        let after = try canvas.snapshot(mounted.view, name: "sleep")
+        let reference = try Mounted.mount(config.replacingOccurrences(of: "var mood \"idle\"", with: "var mood \"sleep\""), css: css)
+        let fresh = try reference.session.canvas.snapshot(reference.view, name: "fresh")
+        let shots = try [before, after, fresh].map { Snapshot(rep: try #require(NSBitmapImageRep(data: $0)), scale: 1) }
+        func differing(_ a: Snapshot, _ b: Snapshot) -> Int {
+            var count = 0
+            for y in 0..<60 { for x in 0..<60 where !a.pixel(CGFloat(x), CGFloat(y)).near(b.pixel(CGFloat(x), CGFloat(y)), tolerance: 24) { count += 1 } }
+            return count
+        }
+        let changed = differing(shots[0], shots[1])
+        #expect(changed > 200)
+        #expect(differing(shots[1], shots[2]) * 10 < changed)
+        #expect(mounted.variable("appeared") == .number(1))
+    }
+
     @Test("Fixture liefert die Werte, die 0.1.4.2 zeigt (Benutzer, Laufzeit, macOS, Chip, Kerne)")
     func fixtureSystemValues() throws {
         let mounted = try Mounted.mount("""
