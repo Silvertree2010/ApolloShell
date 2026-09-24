@@ -441,6 +441,42 @@ struct InteractionTests {
         #expect(scrolled.first?.frame == CGRect(x: 0, y: 0, width: 100, height: 20))
     }
 
+    @Test("Trefferflächen folgen dem Scrollen: nach echtem Scrollen ist der sichtbar gewordene Eintrag getroffen")
+    func hitRegionsFollowScrolling() throws {
+        let mounted = try Mounted.mount("""
+        var hit ""
+        panel "t" anchor="left" {
+            scroll class="sc" {
+                stack id="e0" class="cell" { on-click { set "hit" "0" } }
+                stack class="cell"
+                stack id="e1" class="cell" { on-click { set "hit" "1" } }
+                stack class="cell"
+                stack id="e2" class="cell" { on-click { set "hit" "2" } }
+                stack class="cell"
+            }
+        }
+        """, css: "#t { width: 100px; height: 100px; align-items: start; } .sc { width: 100px; height: 40px; } .cell { width: 100px; height: 20px; flex-shrink: 0; }")
+        let key = try #require(mounted.session.surfaces.first).id + "@render"
+        let hits = mounted.session.context.hits
+        func center(_ id: String) throws -> CGPoint {
+            let catcher = try mounted.catcher(id)
+            let frame = catcher.convert(catcher.bounds, to: mounted.view)
+            return CGPoint(x: frame.midX, y: mounted.view.isFlipped ? frame.midY : mounted.view.bounds.height - frame.midY)
+        }
+        func walk(_ view: NSView) -> [NSScrollView] { ((view as? NSScrollView).map { [$0] } ?? []) + view.subviews.flatMap(walk) }
+        let scrollView = try #require(walk(mounted.view).first)
+        #expect(try hits.contains(center("e0"), surfaceKey: key))
+        #expect(try center("e1").y > 40)
+        let clip = scrollView.contentView
+        let target = NSPoint(x: 0, y: clip.isFlipped ? 20 : clip.bounds.minY - 20)
+        clip.scroll(to: target)
+        scrollView.reflectScrolledClipView(clip)
+        mounted.pump()
+        let visible = try center("e1")
+        #expect(visible.y > 20 && visible.y < 40, "\(visible)")
+        #expect(hits.contains(visible, surfaceKey: key), "\(hits.regions(for: key))")
+    }
+
     @Test("input bind liest das var beobachtet: Zurücksetzen per Aktion leert das Feld")
     func inputBindReads() async throws {
         let mounted = try Mounted.mount("""
