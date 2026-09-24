@@ -268,10 +268,15 @@
 .toast-title { font-size: 13px; font-weight: 600; }
 .toast-body { font-size: 12px; opacity: 0.8; }
 
-.desktop-clock { margin: 32px; gap: 6px; align-items: end; color: white; }
-.desktop-clock-time { font-size: 84px; font-weight: 700; font-family: ui-rounded; }
-.desktop-clock-rule { width: 100%; height: 2px; background: rgb(255 255 255 / 0.6); }
-.desktop-clock-date { font-size: 18px; font-weight: 600; }
+#desktop-clock { margin: 8px; }
+.desktop-clock { padding: 24px; gap: 20px; align-items: center; color: white; filter: drop-shadow(0 0 20px rgb(0 0 0 / 0.7)); }
+.desktop-clock-time { font-size: 84px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.desktop-clock-colon { font-weight: 400; opacity: 0.8; }
+.desktop-clock-rule { width: 3px; height: 86px; border-radius: 1.5px; background: rgb(255 255 255 / 0.55); }
+.desktop-clock-date { gap: 2px; align-items: start; }
+.desktop-clock-month { font-size: 16px; font-weight: 700; letter-spacing: 4px; }
+.desktop-clock-day { font-size: 28px; font-weight: 500; font-family: ui-rounded; letter-spacing: 2px; }
+.desktop-clock-weekday { font-size: 16px; letter-spacing: 2px; opacity: 0.85; }
 
 #onboarding { width: 620px; height: 560px; }
 .onboarding { padding: 24px; gap: 16px; }

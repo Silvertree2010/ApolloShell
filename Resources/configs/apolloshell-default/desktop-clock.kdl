@@ -1,9 +1,17 @@
 var desktop-clock #true persist=#true
 
 panel "desktop-clock" anchor="bottom-right" layer="desktop" click-through=#true sticky=#false visible="{var.desktop-clock}" screen="{var.sidebar-screens}" {
-    column class="desktop-clock" {
-        text "{clock.now | date 'HH:mm'}" class="desktop-clock-time"
+    row class="desktop-clock" {
+        row class="desktop-clock-time" {
+            text "{clock.now | date 'HH'}"
+            text ":" class="desktop-clock-colon"
+            text "{clock.now | date 'mm'}"
+        }
         stack class="desktop-clock-rule"
-        text "{clock.now | date 'MMMM d, EEEE'}" class="desktop-clock-date"
+        column class="desktop-clock-date" {
+            text "{clock.now | date 'MMMM' | upper}" class="desktop-clock-month"
+            text "{clock.now | date 'dd'}" class="desktop-clock-day"
+            text "{clock.now | date 'EEEE'}" class="desktop-clock-weekday"
+        }
     }
 }
