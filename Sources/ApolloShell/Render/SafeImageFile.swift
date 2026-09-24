@@ -48,8 +48,25 @@ enum SafeImageFile {
     }
 
     static func decode(_ data: Data) -> NSImage? {
-        guard let pixels = pixelCount(data), pixels <= maxPixels else { return nil }
-        return NSImage(data: data)
+        let options = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let pixels = pixelCount(data), pixels <= maxPixels,
+              let source = CGImageSourceCreateWithData(data as CFData, options),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, options) as? [CFString: Any],
+              let width = (properties[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue,
+              let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                  kCGImageSourceCreateThumbnailFromImageAlways: true,
+                  kCGImageSourceCreateThumbnailWithTransform: true,
+                  kCGImageSourceShouldCacheImmediately: true,
+                  kCGImageSourceThumbnailMaxPixelSize: max(width, (properties[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue ?? width),
+              ] as CFDictionary)
+        else { return nil }
+        let rep = NSBitmapImageRep(cgImage: cgImage)
+        let dpi = (properties[kCGImagePropertyDPIWidth] as? NSNumber)?.doubleValue ?? 72
+        let scale = dpi.isFinite && dpi > 0 ? 72 / dpi : 1
+        rep.size = NSSize(width: Double(cgImage.width) * scale, height: Double(cgImage.height) * scale)
+        let image = NSImage(size: rep.size)
+        image.addRepresentation(rep)
+        return image
     }
 
     static func image(_ reference: String, root: URL) -> NSImage? {

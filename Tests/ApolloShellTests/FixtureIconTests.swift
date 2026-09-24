@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 import AppKit
+import ImageIO
 import ApolloConfig
 import ApolloStyle
 @testable import ApolloShell
@@ -115,5 +116,37 @@ struct FixtureIconTests {
         #expect(SafeImageFile.pixelCount(try Data(contentsOf: bomb)) == 144_000_000)
         #expect(SafeImageFile.image(at: bomb, root: root) == nil)
         #expect(SafeImageFile.image(at: root.appendingPathComponent("icons/finder.png"), root: root) != nil)
+    }
+
+    static func grayImage(_ side: Int) -> CGImage? {
+        let context = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side,
+                                space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
+        return context?.makeImage()
+    }
+
+    @Test("mehrseitiges TIFF: nur Seite 0 wird dekodiert, grosse Folgeseiten kommen nicht ins Bild")
+    func multiPageTiff() throws {
+        let root = try folder()
+        let url = root.appendingPathComponent("icons/pages.tiff")
+        let destination = try #require(CGImageDestinationCreateWithURL(url as CFURL, "public.tiff" as CFString, 2, nil))
+        let lzw = [kCGImagePropertyTIFFDictionary: [kCGImagePropertyTIFFCompression: 5]] as CFDictionary
+        CGImageDestinationAddImage(destination, try #require(Self.grayImage(16)), lzw)
+        CGImageDestinationAddImage(destination, try #require(Self.grayImage(4000)), lzw)
+        #expect(CGImageDestinationFinalize(destination))
+        #expect(try Data(contentsOf: url).count < 1024 * 1024)
+        let image = try #require(SafeImageFile.image(at: url, root: root))
+        let sides = image.representations.map { max($0.pixelsWide, $0.pixelsHigh) }
+        #expect(sides == [16])
+        var rect = NSRect(x: 0, y: 0, width: 64, height: 64)
+        #expect(image.cgImage(forProposedRect: &rect, context: nil, hints: nil)?.width == 16)
+        let finder = root.appendingPathComponent("icons/finder.png")
+        #expect(SafeImageFile.image(at: finder, root: root)?.size == NSImage(data: try Data(contentsOf: finder))?.size)
+        let retina = root.appendingPathComponent("icons/retina.png")
+        let png = try #require(CGImageDestinationCreateWithURL(retina as CFURL, "public.png" as CFString, 1, nil))
+        CGImageDestinationAddImage(png, try #require(Self.grayImage(32)), [kCGImagePropertyDPIWidth: 144, kCGImagePropertyDPIHeight: 144] as CFDictionary)
+        #expect(CGImageDestinationFinalize(png))
+        let retinaSize = SafeImageFile.image(at: retina, root: root)?.size
+        #expect(retinaSize == NSImage(data: try Data(contentsOf: retina))?.size)
+        #expect(retinaSize == NSSize(width: 16, height: 16))
     }
 }
