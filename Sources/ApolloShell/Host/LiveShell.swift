@@ -265,7 +265,10 @@ final class LiveShell: WindowHostLink {
             return
         }
         let marketplace = SystemMarketplaceHost(paths: paths, settings: settings)
-        marketplace.onThemesChanged = { [weak self] in self?.reload() }
+        marketplace.onThemesChanged = { [weak self] in
+            self?.themes.invalidate()
+            self?.reload()
+        }
         let system = SystemProviders(directory: paths.applicationSupport, socketPath: socketPath, polls: [], listens: [], marketplace: marketplace, clock: DispatchRuntimeClock())
         self.system = system
         providerImages.data = Self.imageData(system.providers)
@@ -314,7 +317,7 @@ final class LiveShell: WindowHostLink {
         }
         let system = isDark()
         lastDark = system
-        themes.reload(activeID: settings.settings.theme)
+        themes.refresh(activeID: settings.settings.theme)
         let appearance: Appearance = system ? .dark : .light
         let theme = themes.active
         let dark = theme.map { ThemeTokenBridge.effectiveAppearance(theme: $0, system: appearance) == .dark } ?? system
@@ -360,7 +363,7 @@ final class LiveShell: WindowHostLink {
 
     func watch() {
         guard let location else { return }
-        let wanted = Array(Set(([location.root.path, paths.userConfig.path, paths.stateDirectory.path] + watchedFiles.map { $0.deletingLastPathComponent().path })
+        let wanted = Array(Set(([location.root.path, paths.userConfig.path, paths.stateDirectory.path] + themes.folders.map(\.path) + watchedFiles.map { $0.deletingLastPathComponent().path })
             .map(FolderWatcher.existingAncestor))).sorted()
         guard wanted != watchedPaths || watcher == nil else { return }
         watchedPaths = wanted
@@ -373,7 +376,8 @@ final class LiveShell: WindowHostLink {
     }
 
     func filesChanged(_ all: [String]) {
-        let roots = ([location?.root, paths.userConfig, paths.stateDirectory].compactMap { $0 } + watchedFiles.map { $0.deletingLastPathComponent() }).map { Self.comparable($0.path) + "/" }
+        if all.contains(where: themes.covers) { themes.invalidate() }
+        let roots = ([location?.root, paths.userConfig, paths.stateDirectory].compactMap { $0 } + themes.folders + watchedFiles.map { $0.deletingLastPathComponent() }).map { Self.comparable($0.path) + "/" }
         let changed = all.filter { path in
             let candidate = Self.comparable(path) + "/"
             return roots.contains { candidate.hasPrefix($0) }

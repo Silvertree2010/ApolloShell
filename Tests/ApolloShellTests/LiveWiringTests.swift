@@ -61,6 +61,25 @@ struct LiveWiringTests {
         #expect(harness.shell.themes.diskReads == 1)
     }
 
+    @Test("Themes werden nur neu gelesen, wenn sich der Theme-Ordner oder die Theme-Wahl ändert")
+    func themesReadOnlyOnChange() async throws {
+        let harness = try Self.themed()
+        try await harness.start()
+        let loads = harness.shell.themes.loads
+        var dark = false
+        harness.shell.isDark = { dark }
+        dark = true
+        harness.shell.appearanceChanged()
+        dark = false
+        harness.shell.appearanceChanged()
+        #expect(harness.shell.themes.loads == loads)
+        #expect(harness.shell.host.context?.themeIcon("bar-power") != nil)
+        harness.shell.filesChanged([harness.home.appendingPathComponent("apolloshell/themes/nacht/theme.css").path])
+        dark = true
+        harness.shell.appearanceChanged()
+        #expect(harness.shell.themes.loads == loads + 1)
+    }
+
     @Test("Provider-Bilder wie media.artwork kommen über imageValue")
     func providerImages() async throws {
         let harness = try ShellHarness("panel \"bar\" { row { text \"a\" } }")

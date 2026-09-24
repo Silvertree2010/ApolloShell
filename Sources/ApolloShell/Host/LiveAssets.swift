@@ -11,12 +11,32 @@ final class LiveThemes {
     private var icons = BoundedCache<String, NSImage>(limit: 64)
     private var misses: Set<String> = []
     private(set) var diskReads = 0
+    private(set) var loads = 0
+    private var stale = true
+    private var loadedID: String?
 
     init(folders: [URL]) {
         self.folders = folders
     }
 
+    func refresh(activeID: String?) {
+        guard stale || activeID != loadedID else { return }
+        reload(activeID: activeID)
+    }
+
+    func invalidate() {
+        stale = true
+    }
+
+    func covers(_ path: String) -> Bool {
+        let candidate = LiveShell.comparable(path) + "/"
+        return folders.contains { candidate.hasPrefix(LiveShell.comparable($0.path) + "/") }
+    }
+
     func reload(activeID: String?) {
+        loads += 1
+        stale = false
+        loadedID = activeID
         var seen = Set<String>()
         installed = []
         for folder in folders {
