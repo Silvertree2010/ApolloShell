@@ -50,7 +50,7 @@ struct DiagnosticGoldenTests {
         collector.add(
             Diagnostic(.error, "unknown property 'surprise' on 'panel'", span: brokenNode.span),
             stage: "schema",
-            includeChain: [includeInB.span, includeInA.span]
+            includeChain: [includeInA.span, includeInB.span]
         )
         DiagnosticGolden.verify("kette-drei-ebenen", diagnostics: collector.finalize().diagnostics)
     }

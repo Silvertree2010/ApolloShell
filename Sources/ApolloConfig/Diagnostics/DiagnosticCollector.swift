@@ -72,7 +72,7 @@ struct DiagnosticCollector {
     static func withIncludeChain(_ diagnostic: Diagnostic, chain: [SourceSpan]) -> Diagnostic {
         guard !chain.isEmpty else { return diagnostic }
         var enriched = diagnostic
-        let notes = chain.map { DiagnosticNote("included from \(DiagnosticCollector.location($0))", span: $0) }
+        let notes = chain.reversed().map { DiagnosticNote("included from \(DiagnosticCollector.location($0))", span: $0) }
         enriched.notes = notes + enriched.notes
         return enriched
     }

@@ -35,11 +35,12 @@ private struct LetEvalScope: EvaluationScope {
 }
 
 enum LetStage {
-    static func run(_ nodes: [ExpandedNode], registry: SchemaRegistry) -> LetStageResult {
+    static func run(_ nodes: [ExpandedNode], registry: SchemaRegistry, filters: FilterTable = .builtin) -> LetStageResult {
         StackHeadroom.run {
             var diagnostics: [Diagnostic] = []
             var values: [String: Value] = [:]
-            let resultNodes = process(nodes, inherited: LetScope(values: [:], poisoned: []), registry: registry, diagnostics: &diagnostics, values: &values)
+            let evaluator = Evaluator(filters: filters, context: { fixedContext() }, warn: { _ in })
+            let resultNodes = process(nodes, inherited: LetScope(values: [:], poisoned: []), registry: registry, evaluator: evaluator, diagnostics: &diagnostics, values: &values)
             return LetStageResult(nodes: resultNodes, diagnostics: diagnostics, values: values)
         }
     }
@@ -48,6 +49,7 @@ enum LetStage {
         _ nodes: [ExpandedNode],
         inherited: LetScope,
         registry: SchemaRegistry,
+        evaluator: Evaluator,
         diagnostics: inout [Diagnostic],
         values: inout [String: Value]
     ) -> [ExpandedNode] {
@@ -55,13 +57,13 @@ enum LetStage {
         var result: [ExpandedNode] = []
         for node in nodes {
             if node.kdl.name == "let" {
-                handleLet(node, scope: &scope, registry: registry, diagnostics: &diagnostics, values: &values)
+                handleLet(node, scope: &scope, registry: registry, evaluator: evaluator, diagnostics: &diagnostics, values: &values)
                 continue
             }
             var copy = node
             copy.letValues = scope.values
             copy.poisonedLets = scope.poisoned
-            copy.children = process(node.children, inherited: scope, registry: registry, diagnostics: &diagnostics, values: &values)
+            copy.children = process(node.children, inherited: scope, registry: registry, evaluator: evaluator, diagnostics: &diagnostics, values: &values)
             result.append(copy)
         }
         return result
@@ -71,6 +73,7 @@ enum LetStage {
         _ node: ExpandedNode,
         scope: inout LetScope,
         registry: SchemaRegistry,
+        evaluator: Evaluator,
         diagnostics: inout [Diagnostic],
         values: inout [String: Value]
     ) {
@@ -83,6 +86,7 @@ enum LetStage {
                 node: node,
                 scope: &scope,
                 registry: registry,
+                evaluator: evaluator,
                 diagnostics: &diagnostics,
                 values: &values
             ) { locals in
@@ -109,6 +113,7 @@ enum LetStage {
                 node: node,
                 scope: &scope,
                 registry: registry,
+                evaluator: evaluator,
                 diagnostics: &diagnostics,
                 values: &values
             ) { locals in
@@ -123,6 +128,7 @@ enum LetStage {
         node: ExpandedNode,
         scope: inout LetScope,
         registry: SchemaRegistry,
+        evaluator: Evaluator,
         diagnostics: inout [Diagnostic],
         values: inout [String: Value],
         build: (Set<String>) -> Result<ValueTemplate, Diagnostic>
@@ -167,7 +173,6 @@ enum LetStage {
                 poison()
                 return
             }
-            let evaluator = Evaluator(filters: .builtin, context: { fixedContext() }, warn: { _ in })
             let value = template.evaluate(with: evaluator, scope: LetEvalScope(values: scope.values))
             scope.values[name] = value
             scope.poisoned.remove(name)

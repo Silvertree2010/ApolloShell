@@ -1,0 +1,4 @@
+define "card" {
+    param "title" default="{apps.dokc}"
+    text "{title}"
+}

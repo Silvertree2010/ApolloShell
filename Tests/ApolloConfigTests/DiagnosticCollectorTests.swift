@@ -106,7 +106,7 @@ struct DiagnosticCollectorTests {
     @Test("Kette wird als Notizen innerste zuerst angehaengt")
     func includeChainBecomesNotes() {
         var collector = DiagnosticCollector()
-        let chain = [Self.span("b.kdl", line: 2), Self.span("a.kdl", line: 1)]
+        let chain = [Self.span("a.kdl", line: 1), Self.span("b.kdl", line: 2)]
         collector.add(Diagnostic(.error, "boom", span: Self.span("c.kdl", line: 3)), stage: "schema", includeChain: chain)
         let report = collector.finalize()
         #expect(report.diagnostics[0].notes.map(\.message) == [
