@@ -32,7 +32,7 @@ final class StyleResolver {
         engine = StyleEngine(sheets: sheets)
         self.environment = environment
         self.assetRoot = assetRoot
-        assetRoots = sheets.compactMap(\.assetRoot)
+        assetRoots = (sheets.compactMap(\.assetRoot) + (assetRoot.map { [$0] } ?? [])).map { $0.resolvingSymlinksInPath().standardizedFileURL }
         declared = sheets.reduce(into: Set<String>()) { $0.formUnion($1.declaredProperties) }
         selectorPseudo = sheets.reduce(into: PseudoState()) { $0.formUnion($1.selectorPseudo) }
     }
@@ -54,9 +54,10 @@ final class StyleResolver {
 
     func image(_ path: String) -> NSImage? {
         if let cached = images[path] { return cached }
-        let url = URL(fileURLWithPath: path)
-        let roots = assetRoots + (assetRoot.map { [$0] } ?? [])
-        guard let image = roots.lazy.compactMap({ SafeImageFile.image(at: url, root: $0) }).first else { return nil }
+        let url = URL(fileURLWithPath: path).standardizedFileURL
+        guard let root = assetRoots.filter({ url.path.hasPrefix($0.path + "/") }).max(by: { $0.path.count < $1.path.count }),
+              let image = SafeImageFile.image(at: url, root: root)
+        else { return nil }
         images[path] = image
         return image
     }
