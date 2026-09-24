@@ -625,6 +625,30 @@ struct UseStageTests {
         #expect(errors.first?.notes.contains { $0.message.hasPrefix("in use of 'd") } == true)
     }
 
+    @Test("Fan-out 2 ueber 32 Ebenen mit leerem Baustein scheitert am Budget")
+    func exponentialFanOutOfEmptyDefineHitsBudget() {
+        var text = "define \"d0\" {}\n"
+        for level in 1...32 {
+            text += "define \"d\(level)\" {\n    use \"d\(level - 1)\"; use \"d\(level - 1)\"\n}\n"
+        }
+        text += "panel \"p\" {\n    use \"d32\"\n}\n"
+        let clock = ContinuousClock()
+        var result: UseStageResult?
+        let elapsed = clock.measure {
+            result = Self.run(text)
+        }
+        #expect(result.map(Self.errors)?.map(\.message) == ["config expands to more than \(ConfigLimits.maxExpansionBudget) nodes"])
+        #expect(elapsed < .seconds(10))
+    }
+
+    @Test("Leere Slots zaehlen ebenfalls gegen das Budget")
+    func emptySlotInsertionsCountAgainstBudget() {
+        let slots = Array(repeating: "    slot", count: 2000).joined(separator: "\n")
+        let uses = Array(repeating: "    use \"many\"", count: 60).joined(separator: "\n")
+        let result = Self.run("define \"many\" {\n\(slots)\n}\npanel \"p\" {\n\(uses)\n}")
+        #expect(Self.errors(result).map(\.message) == ["config expands to more than \(ConfigLimits.maxExpansionBudget) nodes"])
+    }
+
     @Test("Lineare Vervielfachung zaehlt gegen dasselbe Budget")
     func linearFanOutHitsBudget() {
         let body = Array(repeating: "    text \"x\"", count: 1000).joined(separator: "\n")

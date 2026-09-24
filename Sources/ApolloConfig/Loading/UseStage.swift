@@ -310,6 +310,7 @@ enum UseStage {
             copy.useFrame = context.frame
             built.append(copy, height: 1, count: 1)
         case .substitute(let slots):
+            guard countNode(node, frame: context.frame, state: state) else { return }
             let name = slotName(node)
             guard let content = slots.contents[name], !content.nodes.isEmpty else { return }
             if context.depth + content.height - 1 > ConfigLimits.maxExpandedDepth {
@@ -359,6 +360,7 @@ enum UseStage {
                 return
             }
         }
+        guard countNode(node, frame: context.frame, state: state) else { return }
         let declaration = definition.declaration
         var hasErrors = false
         var bindings: [String: ParameterBinding] = [:]
