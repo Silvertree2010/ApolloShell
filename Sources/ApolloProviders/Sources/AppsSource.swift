@@ -63,9 +63,9 @@ public protocol AppsSource: AnyObject {
     func appPath(_ bundleID: String) -> String?
     func readBadges(_ completion: @escaping @MainActor ([String: String]) -> Void)
     func loadUsage() -> Data?
-    func saveUsage(_ data: Data)
+    func saveUsage(_ data: Data) -> Bool
     func loadFavorites() -> Data?
-    func saveFavorites(_ data: Data)
+    func saveFavorites(_ data: Data) -> Bool
     func preserveUnreadableFavorites()
     func observeChanges(_ handler: @escaping @MainActor (AppsChange) -> Void)
     func stopObserving()

@@ -7,6 +7,7 @@ import ApolloShellCore
 public final class AppsProvider: BaseProvider {
     static let badgeInterval: Double = 3
     static let ownLaunchWindow: TimeInterval = 10
+    static let launchTimeout: Double = 15
     static let fileManagerIcon = ImageRef(source: "builtin", id: "file-manager-folder")
     static let accessibilityActions: Set<String> = ["apps.new-window", "apps.cycle-windows", "apps.show-all-windows", "apps.run-command"]
     static let accessibilityClicks: Set<DockClickAction> = [.raiseWindowElsewhere, .raiseWindowOnActiveSpace, .raiseCoveredWindow, .unminimizeLast, .newWindow]
@@ -22,6 +23,7 @@ public final class AppsProvider: BaseProvider {
     private var wantedAll = false
     private var badgeReading = false
     private var generation = 0
+    private var warnedSaves: Set<String> = []
 
     public init(source: any AppsSource, clock: any RuntimeClock) {
         self.source = source
@@ -130,7 +132,7 @@ public final class AppsProvider: BaseProvider {
     private func recordUsage(_ id: String) {
         usage.record(id, at: source.now)
         if let data = try? JSONEncoder().encode(usage) {
-            source.saveUsage(data)
+            saved(source.saveUsage(data), "usage.json")
         }
     }
 
@@ -263,7 +265,10 @@ public final class AppsProvider: BaseProvider {
             guard direction == "up" || direction == "down" else {
                 throw ProviderActionError.invalidArgument(action: action, message: "direction must be \"up\" or \"down\"")
             }
-            forward(.cycleWindows(up: direction == "up"), id, action)
+            guard source.runningApps().contains(where: { $0.bundleID == id }) else { return }
+            if !source.perform(.cycleWindows(up: direction == "up"), on: id) {
+                click(id, modifiers: [])
+            }
         case "apps.open-files":
             guard case .list(let items) = try arguments.value(1) else {
                 throw ProviderActionError.invalidArgument(action: action, message: "files must be a list")
@@ -330,6 +335,10 @@ public final class AppsProvider: BaseProvider {
             return
         }
         launching.insert(id)
+        timers.once("launching-\(id)", after: Self.launchTimeout) { [weak self] in
+            guard let self, self.launching.remove(id) != nil else { return }
+            self.publishAll()
+        }
     }
 
     private func click(_ id: String, modifiers: Set<String>) {
@@ -381,7 +390,15 @@ public final class AppsProvider: BaseProvider {
     }
 
     private func saveFavorites() {
-        source.saveFavorites(favorites.encoded())
+        saved(source.saveFavorites(favorites.encoded()), "pinned.json")
+    }
+
+    private func saved(_ ok: Bool, _ file: String) {
+        if ok {
+            warnedSaves.remove(file)
+        } else if warnedSaves.insert(file).inserted {
+            warn("\(file) could not be saved. The change only applies until the next restart.")
+        }
     }
 
     static func appID(_ arguments: ActionArguments) throws -> String {

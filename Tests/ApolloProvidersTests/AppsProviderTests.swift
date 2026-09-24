@@ -238,4 +238,43 @@ struct AppsProviderTests {
             try await harness.perform("apps", "apps.hide", [.number(3)])
         }
     }
+
+    @Test("Schreibfehler warnt einmal je Datei mit dem Text aus NX-30")
+    func saveFailureWarnsOnce() async throws {
+        let (harness, source, _) = make()
+        harness.demand("apps", "favorites")
+        source.savesFail = true
+        _ = try await harness.perform("apps", "apps.favorite-add", [.string("com.apple.Safari")])
+        _ = try await harness.perform("apps", "apps.favorite-remove", [.string("com.apple.Safari")])
+        let warnings = harness.warnings.filter { $0.severity == .warning }
+        #expect(warnings.map(\.message) == ["pinned.json could not be saved. The change only applies until the next restart."])
+    }
+
+    @Test("launching endet spätestens nach 15 s")
+    func launchingTimesOut() async throws {
+        let (harness, _, _) = make()
+        harness.demand("apps", "dock")
+        _ = try await harness.perform("apps", "apps.launch", [.string("com.apple.mail")])
+        #expect(list(harness, "dock")[2]["launching"] == .bool(true))
+        harness.advance(14.75)
+        #expect(list(harness, "dock")[2]["launching"] == .bool(true))
+        harness.advance(0.5)
+        #expect(list(harness, "dock")[2]["launching"] == .bool(false))
+    }
+
+    @Test("cycle-windows: sonst wie Klick, startet nie eine App")
+    func cycleFallsBackToClick() async throws {
+        let (harness, source, _) = make()
+        harness.demand("apps", "running")
+        source.cycles = false
+        _ = try await harness.perform("apps", "apps.cycle-windows", [.string("com.apple.Notes"), .string("down")])
+        #expect(source.performed.map(\.0) == [
+            .cycleWindows(up: false),
+            .click(.unhide, previous: "com.apple.Safari"),
+            .click(.raiseWindowOnActiveSpace, previous: "com.apple.Safari"),
+        ])
+        _ = try await harness.perform("apps", "apps.cycle-windows", [.string("com.apple.mail"), .string("down")])
+        #expect(source.launches.isEmpty)
+        #expect(source.performed.count == 3)
+    }
 }

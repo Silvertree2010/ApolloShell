@@ -83,11 +83,21 @@ final class FakeAppsSource: AppsSource {
 
     func loadUsage() -> Data? { usageData }
 
-    func saveUsage(_ data: Data) { usageData = data }
+    var savesFail = false
+
+    func saveUsage(_ data: Data) -> Bool {
+        guard !savesFail else { return false }
+        usageData = data
+        return true
+    }
 
     func loadFavorites() -> Data? { favoritesData }
 
-    func saveFavorites(_ data: Data) { favoritesData = data }
+    func saveFavorites(_ data: Data) -> Bool {
+        guard !savesFail else { return false }
+        favoritesData = data
+        return true
+    }
 
     func preserveUnreadableFavorites() { preservedUnreadable += 1 }
 
@@ -125,8 +135,11 @@ final class FakeAppsSource: AppsSource {
         return isInstalled(bundleID)
     }
 
+    var cycles = true
+
     func perform(_ action: AppsWindowAction, on bundleID: String) -> Bool {
         performed.append((action, bundleID))
+        if case .cycleWindows = action { return cycles }
         return true
     }
 
