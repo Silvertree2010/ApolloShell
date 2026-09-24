@@ -1,0 +1,105 @@
+import Testing
+import Foundation
+import ApolloConfig
+import ApolloShellCore
+@testable import ApolloControl
+
+final class ChangeLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var entries: [(ShellSettingsFile, ShellSettingsFile)] = []
+
+    func add(_ old: ShellSettingsFile, _ new: ShellSettingsFile) {
+        lock.withLock { entries.append((old, new)) }
+    }
+
+    var all: [(ShellSettingsFile, ShellSettingsFile)] { lock.withLock { entries } }
+}
+
+@Suite("settings.kdl zur Laufzeit")
+struct SettingsStoreTests {
+    static let file = URL(fileURLWithPath: "/cfg/apolloshell/settings.kdl")
+
+    @Test("ohne Datei gelten die Vorgaben und nichts wird angelegt")
+    func missingFile() {
+        let fileSystem = MemoryFileSystem()
+        let store = SettingsStore(file: Self.file, fileSystem: fileSystem)
+        #expect(store.settings == ShellSettingsFile())
+        #expect(store.diagnostics.isEmpty)
+        #expect(!fileSystem.exists(Self.file))
+    }
+
+    @Test("eine Änderung legt die Datei erst dann an")
+    func createsOnChange() throws {
+        let fileSystem = MemoryFileSystem()
+        let store = SettingsStore(file: Self.file, fileSystem: fileSystem)
+        try store.apply(.theme("Afterglow"))
+        let written = try fileSystem.read(Self.file)
+        #expect(ShellSettingsFile.parse(written, file: "s").0.theme == "Afterglow")
+        #expect(written.split(separator: "\n").count == 1)
+        #expect(store.settings.theme == "Afterglow")
+    }
+
+    @Test("Kommentare und Formatierung des Users bleiben stehen")
+    func keepsComments() throws {
+        let text = "// meine Einstellungen\nconfig   \"user\"  // bleibt\ncrash-reports \"ask\"\n"
+        let fileSystem = MemoryFileSystem([Self.file.path: text])
+        let store = SettingsStore(file: Self.file, fileSystem: fileSystem)
+        try store.apply(.crashReports("never"))
+        let written = try fileSystem.read(Self.file)
+        #expect(written.hasPrefix("// meine Einstellungen\nconfig   \"user\"  // bleibt\n"))
+        #expect(written.split(separator: "\n").count == 3)
+        #expect(ShellSettingsFile.parse(written, file: "s").0.crashReports == "never")
+        #expect(store.settings.crashReports == "never")
+        #expect(store.settings.config == "user")
+    }
+
+    @Test("eine kaputte Datei wird nie überschrieben")
+    func brokenFileStays() throws {
+        let text = "config \"user\n"
+        let fileSystem = MemoryFileSystem([Self.file.path: text])
+        let store = SettingsStore(file: Self.file, fileSystem: fileSystem)
+        #expect(!store.diagnostics.isEmpty)
+        #expect(throws: SettingsStoreError.self) { try store.apply(.theme("X")) }
+        #expect(try fileSystem.read(Self.file) == text)
+    }
+
+    @Test("Beobachter bekommen alt und neu, gleiche Werte melden nichts")
+    func observers() throws {
+        let fileSystem = MemoryFileSystem()
+        let store = SettingsStore(file: Self.file, fileSystem: fileSystem)
+        let log = ChangeLog()
+        let token = store.observe { log.add($0, $1) }
+        try store.apply(.updates(autoCheck: false, autoInstall: true))
+        try store.apply(.updates(autoCheck: false, autoInstall: true))
+        #expect(log.all.count == 1)
+        #expect(log.all.first?.0.autoCheckUpdates == true)
+        #expect(log.all.first?.1.autoCheckUpdates == false)
+        token.cancel()
+        try store.apply(.theme("Y"))
+        #expect(log.all.count == 1)
+    }
+
+    @Test("fremde Änderung an der Datei wird beim Nachlesen erkannt")
+    func externalChange() throws {
+        let fileSystem = MemoryFileSystem()
+        let store = SettingsStore(file: Self.file, fileSystem: fileSystem)
+        let log = ChangeLog()
+        let token = store.observe { log.add($0, $1) }
+        defer { token.cancel() }
+        #expect(store.reload() == false)
+        try fileSystem.write("theme \"Z\"\nbogus 1\n", to: Self.file)
+        #expect(store.reload() == true)
+        #expect(store.settings.theme == "Z")
+        #expect(store.diagnostics.map(\.message) == ["unknown settings.kdl node 'bogus'"])
+        #expect(log.all.count == 1)
+        #expect(store.reload() == false)
+    }
+
+    @Test("Crash-Report-Modus wird gelesen, Unbekanntes gilt als ask")
+    func crashMode() throws {
+        let fileSystem = MemoryFileSystem([Self.file.path: "crash-reports \"always\""])
+        #expect(SettingsStore(file: Self.file, fileSystem: fileSystem).crashReportMode == CrashReportSettings.Mode.always)
+        try fileSystem.write("crash-reports \"sometimes\"", to: Self.file)
+        #expect(SettingsStore(file: Self.file, fileSystem: fileSystem).crashReportMode == CrashReportSettings.Mode.ask)
+    }
+}

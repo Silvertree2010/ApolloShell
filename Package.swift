@@ -19,7 +19,7 @@ let package = Package(
         .target(name: "ApolloConfig", dependencies: ["ApolloBase", "ApolloKDL", "ApolloShellCore"]),
         .target(name: "ApolloStyle", dependencies: ["ApolloBase", "ApolloShellCore"]),
         .target(name: "ApolloRuntime", dependencies: ["ApolloBase", "ApolloKDL", "ApolloConfig", "ApolloStyle"]),
-        .target(name: "ApolloControl", dependencies: ["ApolloBase", "ApolloKDL", "ApolloConfig"]),
+        .target(name: "ApolloControl", dependencies: ["ApolloBase", "ApolloKDL", "ApolloConfig", "ApolloShellCore"]),
         .target(name: "ApolloWMCore"),
         .target(name: "ApolloWM", dependencies: ["ApolloWMCore"]),
         .executableTarget(
@@ -39,7 +39,7 @@ let package = Package(
         .testTarget(name: "ApolloStyleTests", dependencies: ["ApolloStyle", "ApolloBase", "ApolloShellCore"]),
         .testTarget(name: "ApolloRuntimeTests", dependencies: ["ApolloRuntime"]),
         .testTarget(name: "ApolloWMCoreTests", dependencies: ["ApolloWMCore"]),
-        .testTarget(name: "ApolloControlTests", dependencies: ["ApolloControl", "ApolloConfig", "ApolloBase", "ApolloKDL"]),
+        .testTarget(name: "ApolloControlTests", dependencies: ["ApolloControl", "ApolloConfig", "ApolloBase", "ApolloKDL", "ApolloShellCore"]),
         .testTarget(name: "ApolloShellTests", dependencies: ["ApolloShell", "ApolloBase"]),
     ]
 )
