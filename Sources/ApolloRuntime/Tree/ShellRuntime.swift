@@ -607,6 +607,18 @@ public final class ShellRuntime: SurfaceControlling {
         return CompiledValue(template: template, dependencies: template.dependencies(locals: locals), span: span)
     }
 
+    public func setSurfaceSize(_ surfaceID: String, screenKey: String, width: Double, height: Double) {
+        let base = "surfaces:" + screenKey
+        let old = store.value(DependencyPath(base, [surfaceID]))
+        if case .record(let record) = old, record["width"] == .number(width), record["height"] == .number(height) { return }
+        store.set(DependencyPath(base, [surfaceID, "width"]), .number(width))
+        store.set(DependencyPath(base, [surfaceID, "height"]), .number(height))
+    }
+
+    public func surfaceValue(_ surfaceID: String, screenKey: String, _ field: String) -> Value {
+        store.value(DependencyPath("surfaces:" + screenKey, [surfaceID, field]))
+    }
+
     private func publishSurface(_ node: SurfaceNode) {
         let instance = node.instance
         var fields: [(String, Value)] = [

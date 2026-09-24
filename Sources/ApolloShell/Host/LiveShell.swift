@@ -169,6 +169,9 @@ final class LiveShell: WindowHostLink {
         assembly.actions.register("toast.dismiss", ToastDismissAction(center: toasts))
         assembly.actions.register("marketplace.open", MarketplaceOpenAction(shell: self))
         toasts.runtime = assembly.runtime
+        host.publishSize = { [weak assembly] id, screen, size in
+            assembly?.runtime.setSurfaceSize(id, screenKey: screen, width: Double(size.width), height: Double(size.height))
+        }
         toasts.targetScreen = { [weak self] in
             guard let self else { return nil }
             if let key = self.pointerScreen(), self.host.screens[key] != nil { return key }

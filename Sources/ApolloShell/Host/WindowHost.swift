@@ -67,6 +67,7 @@ final class WindowHost: SurfaceHosting {
     weak var link: (any WindowHostLink)?
     var log: (String) -> Void = { _ in }
     var onReservesChanged: ([PanelReserve]) -> Void = { _ in }
+    var publishSize: @MainActor (String, String, CGSize) -> Void = { _, _, _ in }
     private(set) var controllers: [String: SurfaceWindowController] = [:]
     private(set) var stats = WindowHostStats()
     private var reserves: [PanelReserve] = []
@@ -293,6 +294,7 @@ final class WindowHost: SurfaceHosting {
         } else if controller.shown && controller.ticker == nil {
             frames.publish(key, controller.openFrame)
         }
+        if controller.shown { publishSize(surface.id, surface.screenKey, controller.openFrame.size) }
         updateReserves()
         updateClickThrough()
         if !attachSyncing.contains(key) { syncAttached(to: key) }
