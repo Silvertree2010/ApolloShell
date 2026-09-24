@@ -109,6 +109,35 @@ class CompareRendersTests(unittest.TestCase):
             self.assertTrue((diff_path / "case.png").exists())
             self.assertTrue((diff_path / "case-side-by-side.png").exists())
 
+    def test_side_by_side_image_written_on_pass(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as before, tempfile.TemporaryDirectory() as after, \
+                tempfile.TemporaryDirectory() as diff:
+            before_path, after_path, diff_path = Path(before), Path(after), Path(diff)
+            a = solid((100, 100), (10, 10, 10, 255))
+            b = a.copy()
+            a.save(before_path / "case.png")
+            b.save(after_path / "case.png")
+            exit_code = compare_renders.main([str(before_path), str(after_path), str(diff_path)])
+            self.assertEqual(exit_code, 0)
+            self.assertFalse((diff_path / "case.png").exists())
+            self.assertTrue((diff_path / "case-side-by-side.png").exists())
+
+    def test_diff_image_padded_like_verdict_on_small_size_mismatch(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as before, tempfile.TemporaryDirectory() as after, \
+                tempfile.TemporaryDirectory() as diff:
+            before_path, after_path, diff_path = Path(before), Path(after), Path(diff)
+            a = solid((100, 100), (10, 10, 10, 255))
+            b = with_patch(solid((94, 100), (10, 10, 10, 255)), (0, 0, 60, 60), (255, 255, 255, 255))
+            a.save(before_path / "case.png")
+            b.save(after_path / "case.png")
+            exit_code = compare_renders.main([str(before_path), str(after_path), str(diff_path)])
+            self.assertEqual(exit_code, 1)
+            diff_image = Image.open(diff_path / "case.png").convert("RGBA")
+            self.assertEqual(diff_image.size, (100, 100))
+            self.assertEqual(diff_image.getpixel((97, 90)), (255, 0, 0, 255))
+
     def test_extra_file_without_reference_reported_per_pair(self):
         import tempfile
         with tempfile.TemporaryDirectory() as before, tempfile.TemporaryDirectory() as after:
