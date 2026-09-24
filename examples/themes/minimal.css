@@ -1,0 +1,26 @@
+/* Minimal theme - a single .css file, a handful of colours.
+ *
+ * Everything that is not listed here keeps the built-in look, in this
+ * version and in every later one. A single file cannot ship images; for
+ * those, make a folder with a theme.css in it (see full/). */
+
+:root {
+  --apollo-theme-name: "Minimal";
+  --apollo-theme-author: "Alex";
+  --apollo-theme-description: "Warm accent, sharper corners, nothing else";
+
+  --apollo-accent-color: #ff6b35;
+  /* White on a warm orange is hard to read, and the shell would darken it
+   * for you (with a note). Saying it here keeps the theme in control. */
+  --apollo-on-accent-color: #3a1a08;
+  --apollo-selection-color: #ffe3d6;
+  --apollo-corner-radius: 6px;
+  --apollo-control-radius: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --apollo-accent-color: #ff8354;
+    --apollo-selection-color: #55301f;
+  }
+}
