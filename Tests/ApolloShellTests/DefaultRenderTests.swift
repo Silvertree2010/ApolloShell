@@ -9,10 +9,13 @@ import ApolloProviders
 struct DefaultRenderTests {
     static let resources = PackageResources.root.appendingPathComponent("Resources")
 
-    static func shot(_ id: String) throws -> Snapshot {
-        let session = try RenderSession(config: resources.appendingPathComponent("configs/apolloshell-default"), resources: resources,
-                                        fixture: ProviderFixture.load(resources.appendingPathComponent("render/fixture.kdl")),
-                                        fixtureRoot: resources.appendingPathComponent("render"), dark: false, scale: 1)
+    static func shot(_ id: String, state: String? = nil, theme: String? = nil) throws -> Snapshot {
+        let config = state.map { resources.appendingPathComponent("render/\($0)") } ?? resources.appendingPathComponent("configs/apolloshell-default")
+        let fixture = state.map { resources.appendingPathComponent("render/\($0)/fixture.kdl") }
+            .flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil } ?? resources.appendingPathComponent("render/fixture.kdl")
+        let session = try RenderSession(config: config, resources: resources, fixture: ProviderFixture.load(fixture),
+                                        fixtureRoot: fixture.deletingLastPathComponent(), dark: false, scale: 1,
+                                        theme: theme.map { PackageResources.root.appendingPathComponent("examples/themes/\($0)") })
         let surface = try #require(session.surface(id))
         return Snapshot(rep: try #require(NSBitmapImageRep(data: try session.capture(surface, name: id))), scale: 1)
     }
@@ -34,6 +37,13 @@ struct DefaultRenderTests {
         let fill = try #require(shot.bounds { max($0.r, $0.g, $0.b) - min($0.r, $0.g, $0.b) > 120 })
         #expect(abs(fill.minX - 11) <= 1 && abs(fill.width - 30) <= 1)
         #expect(abs(fill.height - 52.5) <= 1.5)
+    }
+
+    @Test("OSD stumm: Füllung nur so lang wie die Spur breit, obwohl die Lautstärke 0,35 ist", arguments: ["osd-muted", "osd-0"])
+    func osdMuted(state: String) throws {
+        let shot = try Self.shot("volume", state: state)
+        let fill = try #require(shot.bounds { max($0.r, $0.g, $0.b) - min($0.r, $0.g, $0.b) > 120 })
+        #expect(abs(fill.height - 30) <= 1.5)
     }
 
     @Test("Sitzungsmenü: 102 × 496, Kacheln 80 × 80 links bündig, Emblem in der Mitte am Beginn der Begrüssung")
