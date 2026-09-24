@@ -98,6 +98,28 @@ struct IdentityTests {
         #expect(!ElementView.needsInteraction(plain, styles: session.context.styles, reorder: false))
     }
 
+    @Test("Drücken: zurückgesetzter Gestenzustand (auch Abbruch) nimmt :active und self.pressed zurück")
+    func pressResetClearsActive() throws {
+        let mounted = try Mounted.mount("""
+        panel "t" anchor="left" {
+            stack id="press" class="{self.pressed ? 'down' : 'up'}"
+        }
+        """, css: "#t { width: 40px; height: 40px; } #press { width: 20px; height: 20px; } .down { background: #ff0000; }")
+        let press = try #require(Self.all(in: mounted).first { $0.property("id").plainText == "press" })
+        PressTracking.apply(true, to: press)
+        mounted.session.flush()
+        mounted.pump()
+        #expect(press.pseudo.contains(.active))
+        #expect(press.property("class").plainText == "down")
+        PressTracking.apply(false, to: press)
+        mounted.session.flush()
+        mounted.pump()
+        #expect(!press.pseudo.contains(.active))
+        #expect(press.property("class").plainText == "up")
+        PressTracking.apply(false, to: press)
+        #expect(!press.pseudo.contains(.active))
+    }
+
     static func all(in mounted: Mounted) -> [ElementInstance] {
         func walk(_ list: [ElementInstance]) -> [ElementInstance] { list.flatMap { [$0] + walk($0.children) } }
         return walk(mounted.session.surfaces.first?.root ?? [])

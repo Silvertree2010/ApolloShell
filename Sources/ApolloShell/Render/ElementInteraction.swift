@@ -143,9 +143,7 @@ struct ElementInteraction: ViewModifier {
         let pressing = pressSensitive && interactive && !config.claims(.left)
         return content
             .modifier(HoverTracking(element: element, context: context, active: interactive && (hoverSensitive || element.ir.handlers.contains { $0.name == "on-hover" || $0.name == "on-hover-end" })))
-            .simultaneousGesture(DragGesture(minimumDistance: 0)
-                .onChanged { _ in element.pseudo.insert(.active) }
-                .onEnded { _ in element.pseudo.remove(.active) }, including: pressing ? .all : .subviews)
+            .modifier(PressTracking(element: element, including: pressing ? .all : .subviews))
             .overlay {
                 if !config.isEmpty {
                     MouseCatcher(element: element, context: context, config: config)
@@ -161,6 +159,26 @@ struct ElementInteraction: ViewModifier {
             }
             .modifier(OptionalHelp(text: tooltip))
             .modifier(AccessibilityActions(element: element, context: context, label: label, config: config))
+    }
+}
+
+struct PressTracking: ViewModifier {
+    let element: ElementInstance
+    let including: GestureMask
+    @GestureState private var pressed = false
+
+    func body(content: Content) -> some View {
+        content
+            .simultaneousGesture(DragGesture(minimumDistance: 0).updating($pressed) { _, state, _ in state = true }, including: including)
+            .onChange(of: pressed) { _, now in Self.apply(now, to: element) }
+    }
+
+    static func apply(_ pressed: Bool, to element: ElementInstance) {
+        if pressed {
+            if !element.pseudo.contains(.active) { element.pseudo.insert(.active) }
+        } else if element.pseudo.contains(.active) {
+            element.pseudo.remove(.active)
+        }
     }
 }
 
