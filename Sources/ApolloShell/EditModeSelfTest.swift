@@ -429,7 +429,7 @@ private final class EditModeSelfTestHarness {
         check(home(UtilitiesToggleDragPayload.string(for: .wifi)) == "control centre", "A quick toggle belongs to the control centre")
         check(home(UtilitiesCardDragPayload.string(for: .audio)) == "control centre", "A card belongs to the control centre")
         check(home(BarModuleDragPayload.string(for: .clock)) == "bar", "A block kind belongs to the bar")
-        check(home(BarEntryDragPayload.string(for: "abc")) == "bar", "A block that is already in the bar belongs to the bar")
+        check(home(BarEntryDragPayload.string(for: .sidebar("abc"))) == "bar", "A block that is already in the bar belongs to the bar")
         // A tile being moved inside the control centre carries its bare id
         // - nobody may turn that down.
         check(home("wifi") == "-", "A bare id belongs to nobody, and is turned down by nobody")

@@ -78,6 +78,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var onboarding: Onboarding?
     /// Hide Apple's own Dock while ApolloShell runs.
     private var appleDockHiding: AppleDockHidingController?
+    /// Hide Apple's menu bar while ours stands in its place (setting of the
+    /// menu bar).
+    private var appleMenuBarHiding: AppleMenuBarHidingController?
     /// Catches SIGTERM (`launchctl stop`, say), so `terminate()` restores the
     /// Dock instead of leaving it hidden - the default SIGTERM handler does
     /// not clean up.
@@ -142,8 +145,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The bars draw their edit surface while the global mode runs, and
         // stand above its scrim for as long as it lasts. The editor goes in
         // on the way in: `Sidebar.init` builds the bars right away.
-        let sidebar = Sidebar(settings: settings, editor: shellEditor)
+        // One Now Playing model for the dashboard and the bars' now-playing
+        // blocks: each asks for the stream while it is seen, and two readers
+        // share one adapter process instead of starting two.
+        let media = MediaModel()
+        let sidebar = Sidebar(settings: settings, editor: shellEditor, media: media)
         self.sidebar = sidebar
+        // After the sidebar: the start with the setting on hides right away,
+        // and the bars have to measure again then.
+        let appleMenuBarHiding = AppleMenuBarHidingController(settings: settings)
+        appleMenuBarHiding.onChange = { [weak sidebar] in sidebar?.relayout() }
+        self.appleMenuBarHiding = appleMenuBarHiding
         shellEditor.addBeginHandler { [weak sidebar] _ in sidebar?.setEditing(true) }
         shellEditor.addEndHandler { [weak sidebar] in sidebar?.setEditing(false) }
         let sessionMenu = SessionMenu()
@@ -157,7 +169,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         osd = OSD()
         desktopClock = DesktopClock(settings: settings)
-        let dashboard = Dashboard(settings: settings, editor: dashboardEditor)
+        let dashboard = Dashboard(settings: settings, editor: dashboardEditor, media: media)
         self.dashboard = dashboard
         // The global edit mode starts on the page the dashboard shows right
         // now (or showed last); before the first opening `nil` - then
@@ -190,6 +202,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.toaster?.toast(title: title, message: message, kind: .error)
         }
         self.nexusMenu = nexusMenu
+        // ApolloShell's own item among the mirrored status items.
+        sidebar.onNexus = { [weak nexusMenu] in nexusMenu?.open() }
+        sidebar.nexusItemFrame = { [weak nexusMenu] in nexusMenu?.mirrorFrame }
         // `>` Settings in the launcher, and its failures as toasts.
         controller.onOpenSettings = { [weak nexusMenu] in nexusMenu?.open() }
         controller.onReport = { [weak self] title, message in
@@ -254,13 +269,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             toaster?.setHiddenForFullscreen(!fullscreenScreens.isEmpty)
         }
         self.windowGuard = windowGuard
-        // The watch keeps the strip free on every screen that has a bar - and
-        // learns of every change to that (a screen added, removed, the setting
-        // in Nexus changed or a new width out of the theme).
-        // dem Theme).
-        windowGuard.setBarScreens(Set(sidebar.screens.map(\.key)), barWidth: Sidebar.width)
-        sidebar.onScreensChange = { [weak windowGuard] screens in
-            windowGuard?.setBarScreens(Set(screens.map(\.key)), barWidth: Sidebar.width)
+        // The watch keeps free what the bars cover on every screen - and
+        // learns of every change to that (a screen added, removed, a setting
+        // in Nexus changed, the menu bar switched on, or a new width out of
+        // the theme).
+        windowGuard.setReserved(sidebar.reserved)
+        sidebar.onReservedChange = { [weak windowGuard] reserved in
+            windowGuard?.setReserved(reserved)
         }
 
         let onboarding = Onboarding(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions)
@@ -300,6 +315,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // wait on an administrator prompt. If launchd cuts the end short,
         // the Dock is already back.
         appleDockHiding?.terminate()
+        appleMenuBarHiding?.terminate()
         controller?.close()
         dashboard?.shutdown()
         utilities?.shutdown()

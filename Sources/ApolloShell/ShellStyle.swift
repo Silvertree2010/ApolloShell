@@ -16,15 +16,53 @@ import SwiftUI
 struct ShellStyle: Equatable {
     let theme: Theme
     let dark: Bool
+    /// Tokens that are read from another token first, inside one part of
+    /// the shell - see `menuBarScope`. Empty everywhere else.
+    var redirects: [String: String] = [:]
 
     /// The built-in look: exactly the shell without a theme.
     static let standard = ShellStyle(theme: .standard, dark: false)
 
-    /// The value of the theme in this appearance, `nil` if it does not
-    /// name it.
+    /// The value of the theme in this appearance, `nil` if it names neither
+    /// the token nor what it follows (`ThemeTokenDescriptor.fallback`).
     func value<Kind>(_ token: ThemeToken<Kind>) -> Kind.Value? {
-        theme.value(token, dark: dark)
+        lookup(token.name, redirected: []).flatMap(Kind.value(from:))
     }
+
+    /// A redirect applies once per name, so `--apollo-bar-color` can point at
+    /// `--apollo-menubar-color` while that one falls back to
+    /// `--apollo-bar-color` - the second time the theme's own value is read.
+    private func lookup(_ name: String, redirected: Set<String>) -> ThemeValue? {
+        if let target = redirects[name], !redirected.contains(name) {
+            return lookup(target, redirected: redirected.union([name]))
+        }
+        if let own = theme.value(name, dark: dark) { return own }
+        guard let fallback = ThemeTokenCatalog.standard.descriptor(named: name)?.fallback else { return nil }
+        return lookup(fallback, redirected: redirected)
+    }
+
+    /// The style inside the menu bar. The bar blocks are the sidebar's
+    /// (`BarModuleView`) and read the sidebar's tokens - backing, text and
+    /// glyph colour, font. Here those reads go to the `--apollo-menubar-*`
+    /// tokens instead, which in turn follow the sidebar's when a theme does
+    /// not set them. So no block needs to know which bar it stands in, and
+    /// the sidebar, which never gets this scope, stays exactly as it was.
+    var menuBarScope: ShellStyle {
+        var scoped = self
+        scoped.redirects = Self.menuBarRedirects
+        return scoped
+    }
+
+    private static let menuBarRedirects: [String: String] = [
+        ThemeColorToken.bar.name: ThemeColorToken.menuBar.name,
+        ThemeGradientToken.bar.name: ThemeGradientToken.menuBar.name,
+        ThemeNumberToken.barOpacity.name: ThemeNumberToken.menuBarOpacity.name,
+        ThemeNumberToken.barBlur.name: ThemeNumberToken.menuBarBlur.name,
+        ThemeColorToken.barText.name: ThemeColorToken.menuBarText.name,
+        ThemeColorToken.barIcon.name: ThemeColorToken.menuBarIcon.name,
+        ThemeTextToken.fontFamily.name: ThemeTextToken.menuBarFontFamily.name,
+        ThemeNumberToken.fontSize.name: ThemeNumberToken.menuBarFontSize.name,
+    ]
 
     // MARK: - Colors
 
@@ -82,6 +120,34 @@ struct ShellStyle: Equatable {
     /// Text color on accent areas; without a theme value, like macOS
     /// (`Color.onAccent`, matching the system accent).
     var onAccent: Color { themeOnAccent ?? .onAccent }
+
+    // MARK: - Bar modules
+
+    /// The marker of the active desktop. Follows the accent, so without
+    /// `--apollo-spaces-active-color` it is exactly the accent as before.
+    var spacesActive: Color { color(.spacesActive) ?? .accentColor }
+
+    /// Digits on that marker (the numbers face). The accent's text colour,
+    /// unless the theme gave Spaces a colour of its own: then that text
+    /// colour made readable on it, since it was chosen for the accent.
+    var onSpacesActive: Color {
+        guard let own = theme.value(ThemeColorToken.spacesActive, dark: dark) else { return onAccent }
+        let text = theme.readableColor(.onAccent, dark: dark) ?? ThemeColorToken.onAccent.defaultValue(dark: dark)
+        return Color(ThemeGuards.readable(text, on: own, minimum: 3))
+    }
+
+    /// Backing and text of a status pill. Pills have no macOS counterpart to
+    /// fall back to, so the catalogue's colours apply without a theme. The
+    /// text is one colour for five backings, so it is made readable per
+    /// pill (4.5:1) - a theme cannot pick a pill colour that swallows it.
+    func statusPill(_ token: ThemeColorToken) -> (fill: Color, text: Color) {
+        let fill = value(token) ?? token.defaultValue(dark: dark)
+        let text = value(ThemeColorToken.statusPillText) ?? ThemeColorToken.statusPillText.defaultValue(dark: dark)
+        return (Color(fill), Color(ThemeGuards.readable(text, on: fill, minimum: 4.5)))
+    }
+
+    /// The capsule behind a group on a strip with distinct groups.
+    var menuBarGroup: Color { color(.menuBarGroup) ?? Color.primary.opacity(0.08) }
 
     // MARK: - Surfaces
 

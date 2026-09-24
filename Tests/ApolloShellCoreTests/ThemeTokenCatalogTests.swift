@@ -120,6 +120,82 @@ struct ThemeTokenCatalogTests {
         }
     }
 
+    @Test("a fallback names an existing token of the same kind, and no chain runs in a circle")
+    func fallbacks() {
+        for token in catalog.tokens {
+            guard let fallback = token.fallback else { continue }
+            let target = catalog.descriptor(named: fallback)
+            #expect(target != nil, "\(token.name): \(fallback) does not exist")
+            #expect(target?.kind == token.kind, "\(token.name) follows a token of another kind")
+            // Its default is the target's: unset, both look the same. The
+            // clock is the exception on purpose - without a theme it is
+            // purple, with one it takes the theme's bar text colour.
+            if token.name != ThemeColorToken.clock.name {
+                #expect(target?.defaultValue == token.defaultValue, "\(token.name)")
+                #expect(target?.darkDefaultValue == token.darkDefaultValue, "\(token.name) dark")
+            }
+            var seen: Set<String> = [token.name]
+            var next = target?.fallback
+            while let name = next {
+                guard seen.insert(name).inserted else {
+                    Issue.record("\(token.name): the chain returns to \(name)")
+                    break
+                }
+                next = catalog.descriptor(named: name)?.fallback
+            }
+        }
+    }
+
+    @Test("the menu bar token set by the theme wins, otherwise the sidebar's, otherwise nothing")
+    func fallbackChain() {
+        let values: [String: ThemeValue] = ["--apollo-bar-color": .color(ThemeColor(hex: 0x112233))]
+        #expect(catalog.value("--apollo-menubar-color", in: { values[$0] })?.color == ThemeColor(hex: 0x112233))
+        #expect(catalog.value("--apollo-menubar-text-color", in: { values[$0] }) == nil)
+        let both = values.merging(["--apollo-menubar-color": .color(ThemeColor(hex: 0x445566))]) { $1 }
+        #expect(catalog.value("--apollo-menubar-color", in: { both[$0] })?.color == ThemeColor(hex: 0x445566))
+    }
+
+    @Test("the menu bar text is checked against the sidebar colour it falls back to")
+    func contrastFollowsFallback() {
+        // A dark sidebar and light menu bar text, the menu bar colour left
+        // out: the text sits on the dark sidebar colour and is fine. Checked
+        // against the light default it would be darkened.
+        let sheet = ThemeStyleSheetParser.parse("""
+        :root { --apollo-bar-color: #101014; --apollo-menubar-text-color: #f0f0f0; --apollo-clock-color: #f2c66d; }
+        """)
+        let theme = Theme.make(identifier: "t", styleSheet: sheet)
+        #expect(theme.issues.isEmpty, "\(theme.issues.map(\.description))")
+        #expect(theme.color(.menuBarText) == ThemeColor(hex: 0xF0F0F0))
+    }
+
+    @Test("the status pill text reads on every pill by default, light and dark")
+    func statusPillContrast() {
+        let pills: [ThemeColorToken] = [.statusWifi, .statusBluetooth, .statusVolume, .statusBattery, .statusKeyboard]
+        for dark in [false, true] {
+            let text = ThemeColorToken.statusPillText.defaultValue(dark: dark)
+            for pill in pills {
+                let ratio = ThemeColor.contrast(text, pill.defaultValue(dark: dark))
+                #expect(ratio >= 4.5, "\(pill.name) dark=\(dark): \(ratio)")
+            }
+        }
+    }
+
+    @Test("the new handles point at tokens of the right type")
+    func menuBarHandles() {
+        let colors: [ThemeColorToken] = [
+            .menuBar, .menuBarText, .menuBarIcon, .menuBarGroup, .spacesActive, .clock, .weatherTemperature,
+            .statusWifi, .statusBluetooth, .statusVolume, .statusBattery, .statusKeyboard, .statusPillText,
+        ]
+        for token in colors { #expect(tag(token.descriptor?.kind) == "color", "\(token.name)") }
+        let numbers: [ThemeNumberToken] = [
+            .menuBarOpacity, .menuBarBlur, .menuBarRadius, .menuBarIslandRadius, .menuBarIslandMargin,
+            .menuBarGroupRadius, .menuBarPadding, .menuBarItemSpacing, .menuBarGroupSpacing, .menuBarFontSize,
+        ]
+        for token in numbers { #expect(tag(token.descriptor?.kind) == "number", "\(token.name)") }
+        #expect(tag(ThemeGradientToken.menuBar.descriptor?.kind) == "gradient")
+        #expect(tag(ThemeTextToken.menuBarFontFamily.descriptor?.kind) == "text")
+    }
+
     @Test("every group has at least one token", arguments: ThemeTokenGroup.allCases)
     func groupsAreUsed(group: ThemeTokenGroup) {
         #expect(catalog.tokens.contains { $0.group == group })

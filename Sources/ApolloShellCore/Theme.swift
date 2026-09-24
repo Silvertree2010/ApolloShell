@@ -95,7 +95,7 @@ public struct Theme: Equatable, Sendable {
     public func readableColor(_ token: ThemeColorToken, dark: Bool = false) -> ThemeColor? {
         if let color = value(token, dark: dark) { return color }
         guard let rule = token.descriptor?.contrast,
-              let background = value(rule.background, dark: dark)?.color
+              let background = ThemeTokenCatalog.standard.value(rule.background, in: { value($0, dark: dark) })?.color
         else { return nil }
         return ThemeGuards.readable(token.defaultValue(dark: dark), on: background, minimum: rule.minimum)
     }
@@ -261,11 +261,12 @@ public enum ThemeGuards {
         // hints should always be the same for the same file.
         for token in catalog.tokens {
             // If the theme does not name the background, the text sits on
-            // the shell's - which the default in the directory
-            // approximates.
+            // what the background follows (the menu bar on the sidebar's
+            // colour), and without that on the shell's - which the default
+            // in the directory approximates.
             guard let rule = token.contrast,
                   let color = values[token.name]?.color,
-                  let background = values[rule.background]?.color
+                  let background = catalog.value(rule.background, in: { values[$0] })?.color
                       ?? catalog.descriptor(named: rule.background)?.defaultValue(dark: dark).color
             else { continue }
             let fixed = readable(color, on: background, minimum: rule.minimum)

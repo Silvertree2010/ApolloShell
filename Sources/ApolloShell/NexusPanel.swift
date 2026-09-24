@@ -71,7 +71,8 @@ final class NexusPanel {
         guard let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) ?? NSScreen.main else { return }
         model.refresh()
         let panel = self.panel ?? makePanel()
-        let visible = screen.visibleFrame
+        // Below the menu bar, not only below Apple's.
+        let visible = ScreenRoom.usableFrame(of: screen)
         room = visible.height - 2 * Self.margin
         top = visible.maxY - Self.margin
         let size = NSSize(width: NexusPanelView.width, height: height)

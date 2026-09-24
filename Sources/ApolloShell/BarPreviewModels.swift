@@ -27,7 +27,14 @@ enum BarPreviewModels {
             dock: SidebarDockModel(preview: dockEntries(), frontmost: "com.apple.Safari"),
             clock: SidebarClockModel(preview: now),
             cpu: BarCPUModel(preview: 0.18),
-            weather: BarWeatherFeed(preview: WeatherModel.preview(report: report, fetchedAt: now, now: now))
+            weather: BarWeatherFeed(preview: WeatherModel.preview(report: report, fetchedAt: now, now: now)),
+            media: MediaModel.preview(nowPlaying: nil, now: now),
+            frontApp: BarFrontAppModel(preview: nil, title: nil),
+            keyboard: BarKeyboardModel(preview: "EN", name: "ABC"),
+            volume: BarVolumeModel(preview: 0.5, muted: false, deviceName: ""),
+            appMenu: AppMenuModel(preview: .init(pid: 1, name: "Finder"),
+                                  titles: ["Apple", "Finder", "File", "Edit", "View", "Go", "Window", "Help"]),
+            statusItems: StatusItemsModel(preview: [])
         )
     }()
 

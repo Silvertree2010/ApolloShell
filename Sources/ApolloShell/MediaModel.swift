@@ -18,8 +18,12 @@ struct MediaSource: Equatable {
 /// Apple-signed /usr/bin/perl, which is still allowed to, and streams JSON
 /// lines (the logic sits in ApolloShellCore/MediaNowPlaying.swift).
 ///
-/// The stream only runs while the dashboard is open: `start` on opening,
-/// `stop` on closing and when the app ends. If it dies along the way, it
+/// ONE model for the whole shell (built in `LauncherApp`): the dashboard and
+/// the bars' now-playing blocks share it, so two readers never mean two perl
+/// processes. The stream only runs while someone looks: the dashboard with
+/// `start` on opening and `stop` on closing, a bar block with `acquire` and
+/// `release` (`BarDemand`, paused while the bars stepped aside for full
+/// screen). `shutdown` ends it when the app ends. If it dies along the way, it
 /// starts again with growing pauses (`MediaRestart`). Control commands go out
 /// as short calls of their own; the display follows from the stream
 /// afterwards, not from a guess.
@@ -56,6 +60,10 @@ final class MediaModel {
     /// process are recognised by it and thrown away.
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var wantsStream = false
+    /// The dashboard is open with a media widget.
+    @ObservationIgnored private var dashboardWants = false
+    /// Now-playing blocks in visible bars.
+    @ObservationIgnored private var barDemand = BarDemand()
     @ObservationIgnored private var failures = 0
     @ObservationIgnored private var restartTask: Task<Void, Never>?
     @ObservationIgnored private var emptyTask: Task<Void, Never>?
@@ -112,7 +120,49 @@ final class MediaModel {
 
     // MARK: - Stream
 
+    /// The dashboard opened with a media widget. Every opening is a fresh
+    /// attempt, even after the adapter gave up.
     func start() {
+        dashboardWants = true
+        beginStream()
+    }
+
+    /// The dashboard closed; the stream goes on while a bar block shows it.
+    func stop() {
+        dashboardWants = false
+        if !barDemand.isActive { endStream() }
+    }
+
+    /// A now-playing block appeared in a bar.
+    func acquire() {
+        barDemand.acquire()
+        if barDemand.isActive && !wantsStream { beginStream() }
+    }
+
+    func release() {
+        barDemand.release()
+        if !barDemand.isActive && !dashboardWants { endStream() }
+    }
+
+    /// Every bar stepped aside (full screen): the blocks are not seen.
+    var barsPaused: Bool {
+        get { barDemand.paused }
+        set {
+            barDemand.paused = newValue
+            if barDemand.isActive && !wantsStream { beginStream() }
+            if !barDemand.isActive && !dashboardWants { endStream() }
+        }
+    }
+
+    /// When the app quits: whoever still wants it, the perl process must not
+    /// outlive the app.
+    func shutdown() {
+        dashboardWants = false
+        barDemand = BarDemand()
+        endStream()
+    }
+
+    private func beginStream() {
         guard live else { return }
         wantsStream = true
         // Every opening is a new attempt, even after "gives up".
@@ -121,7 +171,7 @@ final class MediaModel {
         if stream == nil && restartTask == nil { launchStream() }
     }
 
-    func stop() {
+    private func endStream() {
         guard live else { return }
         wantsStream = false
         restartTask?.cancel()

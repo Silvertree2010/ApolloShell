@@ -252,6 +252,13 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// the built-in one has a notch anyway. It is redetermined for the
     /// target screen on open (`applyGeometry`).
     private var topInset: CGFloat
+    /// How far the window reaches past the edge(s) it grows out of: the
+    /// corner radius hides the glass corners beyond the screen edge. Where
+    /// the menu bar stands, a panel at the top grows out of the bar's lower
+    /// edge instead, and an overhang there would lay glass over the bar - so
+    /// it is 0 there and the corners show, like a card hanging off the bar.
+    /// `width`: at the right edge, `height`: at the top or bottom.
+    private var overhang: NSSize
 
     init(edge: DrawerEdge, size: NSSize, cornerRadius: CGFloat, takesKeyboard: Bool = true,
          motion: DrawerMotion = .slide, scrim: DrawerScrim? = nil, rootView: Content) {
@@ -262,10 +269,12 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         self.cornerRadius = cornerRadius
         self.takesKeyboard = takesKeyboard
         self.rootView = rootView
-        topInset = edge == .top ? Self.menuBarInset(NSScreen.screens.first) : 0
+        let attachment = Self.attachment(for: edge, on: NSScreen.screens.first, radius: cornerRadius)
+        topInset = attachment.topInset
+        overhang = attachment.overhang
         container = NSView(frame: NSRect(
             origin: .zero,
-            size: Self.windowSize(for: edge, size: size, radius: cornerRadius, topInset: topInset)
+            size: Self.windowSize(for: edge, size: size, overhang: overhang, topInset: topInset)
         ))
         super.init()
         observeScreenChanges()
@@ -286,6 +295,27 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     private static func menuBarInset(_ screen: NSScreen?) -> CGFloat {
         guard let screen else { return 0 }
         return max(screen.frame.maxY - screen.visibleFrame.maxY, screen.safeAreaInsets.top)
+    }
+
+    /// Where the window meets the edge of `screen`: the strip left under the
+    /// menu bar and the notch (top only), and the overhang per side. With
+    /// the menu bar on, a top panel hangs from it, so only the part of
+    /// Apple's menu bar still below the bar's edge counts - none, as the bar
+    /// is never thinner than the menu bar it covers. Without it: the
+    /// menu-bar inset and the corner radius, as before the menu bar existed.
+    private static func attachment(for edge: DrawerEdge, on screen: NSScreen?,
+                                   radius: CGFloat) -> (topInset: CGFloat, overhang: NSSize) {
+        let bar = screen.map(ScreenRoom.barInset(of:)) ?? 0
+        switch edge {
+        case .top:
+            return (max(menuBarInset(screen) - bar, 0), NSSize(width: 0, height: bar > 0 ? 0 : radius))
+        case .right:
+            return (0, NSSize(width: radius, height: 0))
+        case .bottomRight:
+            return (0, NSSize(width: radius, height: radius))
+        case .bottom:
+            return (0, NSSize(width: 0, height: radius))
+        }
     }
 
     /// While editing (`isPinned`), neither the icon nor the keyboard
@@ -536,10 +566,12 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// screen (a second screen may have none at all, depending on settings).
     private func applyGeometry(on screen: ShellScreen) {
         currentScreen = screen
-        let inset = edge == .top ? Self.menuBarInset(screen.screen) : 0
-        let wanted = Self.windowSize(for: edge, size: size, radius: cornerRadius, topInset: inset)
-        guard inset != topInset || container.frame.size != wanted else { return }
-        topInset = inset
+        let attachment = Self.attachment(for: edge, on: screen.screen, radius: cornerRadius)
+        let wanted = Self.windowSize(for: edge, size: size, overhang: attachment.overhang, topInset: attachment.topInset)
+        guard attachment.topInset != topInset || attachment.overhang != overhang || container.frame.size != wanted
+        else { return }
+        topInset = attachment.topInset
+        overhang = attachment.overhang
         container.setFrameSize(wanted)
         // As in `resize(to:)`: set the content area explicitly, not via
         // autoresizing.
@@ -563,7 +595,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     func resize(to newSize: NSSize) {
         guard newSize != size else { return }
         size = newSize
-        container.setFrameSize(Self.windowSize(for: edge, size: newSize, radius: cornerRadius, topInset: topInset))
+        container.setFrameSize(Self.windowSize(for: edge, size: newSize, overhang: overhang, topInset: topInset))
         guard let builtPanel else { return }
         if let screen = currentScreen ?? ShellScreens.underPointer() {
             builtPanel.setFrame(windowFrame(on: screen), display: builtPanel.isVisible)
@@ -649,10 +681,14 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     }
 
     private func hoverArea(on screen: ShellScreen, open: Bool) -> NSRect? {
+        // The trigger stays at the screen edge, over the menu bar if there
+        // is one (the pointer runs into the edge, not into the bar's lower
+        // side); open, the area reaches across the bar down to the panel.
         switch edge {
         case .top:
-            let inset = Self.menuBarInset(screen.screen)
-            return EdgeHoverArea.top(screen: screen.frame, width: size.width, depth: inset + size.height,
+            let bar = ScreenRoom.barInset(of: screen.screen)
+            let inset = Self.attachment(for: edge, on: screen.screen, radius: cornerRadius).topInset
+            return EdgeHoverArea.top(screen: screen.frame, width: size.width, depth: bar + inset + size.height,
                                      margin: cornerRadius, open: open)
         case .bottomRight:
             return EdgeHoverArea.bottomRight(screen: screen.frame, width: size.width, height: size.height,
@@ -684,12 +720,12 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 
     /// Window = visible + radius at every edge it sticks to (plus the
     /// menu-bar strip at the top).
-    private static func windowSize(for edge: DrawerEdge, size: NSSize, radius: CGFloat, topInset: CGFloat) -> NSSize {
+    private static func windowSize(for edge: DrawerEdge, size: NSSize, overhang: NSSize, topInset: CGFloat) -> NSSize {
         switch edge {
-        case .top: NSSize(width: size.width, height: size.height + topInset + radius)
-        case .right: NSSize(width: size.width + radius, height: size.height)
-        case .bottomRight: NSSize(width: size.width + radius, height: size.height + radius)
-        case .bottom: NSSize(width: size.width, height: size.height + radius)
+        case .top: NSSize(width: size.width, height: size.height + topInset + overhang.height)
+        case .right: NSSize(width: size.width + overhang.width, height: size.height)
+        case .bottomRight: NSSize(width: size.width + overhang.width, height: size.height + overhang.height)
+        case .bottom: NSSize(width: size.width, height: size.height + overhang.height)
         }
     }
 
@@ -698,12 +734,17 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         switch edge {
         case .top: NSRect(x: 0, y: 0, width: size.width, height: size.height)
         case .right: NSRect(x: 0, y: 0, width: size.width, height: size.height)
-        case .bottomRight, .bottom: NSRect(x: 0, y: cornerRadius, width: size.width, height: size.height)
+        case .bottomRight, .bottom: NSRect(x: 0, y: overhang.height, width: size.width, height: size.height)
         }
     }
 
+    /// Against the screen edge - or, at the top where the menu bar stands,
+    /// against the bar's lower edge (`ScreenRoom.barFreeFrame`; the whole
+    /// frame without the menu bar). Centred panels stay centred on the
+    /// screen, under the centre zone of the bar.
     private func windowFrame(on screen: ShellScreen) -> NSRect {
         let frame = screen.frame
+        let room = screen.barFreeFrame
         let windowSize = container.frame.size
         switch edge {
         case .top:
@@ -711,17 +752,17 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
             // radius strip overhangs the screen. It used to end below the
             // menu bar - with macOS 26's translucent menu bar that looked
             // like a floating window with a gap.
-            return NSRect(x: frame.midX - size.width / 2, y: frame.maxY - topInset - size.height,
+            return NSRect(x: frame.midX - size.width / 2, y: room.maxY - topInset - size.height,
                           width: windowSize.width, height: windowSize.height)
         case .right:
-            return NSRect(x: frame.maxX - size.width, y: frame.midY - size.height / 2,
+            return NSRect(x: room.maxX - size.width, y: room.midY - size.height / 2,
                           width: windowSize.width, height: windowSize.height)
         case .bottomRight:
-            return NSRect(x: frame.maxX - size.width, y: frame.minY - cornerRadius,
+            return NSRect(x: room.maxX - size.width, y: room.minY - overhang.height,
                           width: windowSize.width, height: windowSize.height)
         case .bottom:
             // Flush with the bottom edge; the bottom corners overhang.
-            return NSRect(x: frame.midX - size.width / 2, y: frame.minY - cornerRadius,
+            return NSRect(x: frame.midX - size.width / 2, y: room.minY - overhang.height,
                           width: windowSize.width, height: windowSize.height)
         }
     }

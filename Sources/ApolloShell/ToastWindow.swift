@@ -128,7 +128,8 @@ final class ToastWindow {
     /// panel, on the whole screen, not the visible area), tall enough for 4
     /// toasts above the open panel.
     private func frame(on screen: ShellScreen) -> NSRect {
-        let s = screen.frame
+        // Below the menu bar, like the utilities panel.
+        let s = screen.barFreeFrame
         let margin = CGFloat(ToastLayout.margin)
         let width = CGFloat(ToastLayout.width)
         let stack = CGFloat(ToastLayout.stackHeight(count: ToastQueue.maxVisible))

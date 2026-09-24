@@ -1,5 +1,35 @@
 import CoreGraphics
 
+/// How much of the top and left screen edges the shell reserves, in
+/// accessibility coordinates: the menu bar at the top, the sidebar at the
+/// left. No bar sits at the bottom or the right, so those edges are never
+/// reserved. An edge left at 0 is left alone entirely by `WindowClamp`,
+/// rather than pulling in a window that merely happens to sit off-screen
+/// there.
+public struct ReservedInsets: Equatable, Sendable {
+    public var top: CGFloat
+    public var left: CGFloat
+
+    public init(top: CGFloat = 0, left: CGFloat = 0) {
+        self.top = top
+        self.left = left
+    }
+
+    public static let zero = ReservedInsets()
+
+    public var isZero: Bool {
+        top == 0 && left == 0
+    }
+
+    /// The larger reservation per edge. The window watch knows screens by
+    /// `ScreenInfo.key`, which two identical screens share; when their bars
+    /// differ, keeping the larger strip on both never lets a window run
+    /// under a bar (the sidebar alone did the same with its set of keys).
+    public func union(_ other: ReservedInsets) -> ReservedInsets {
+        ReservedInsets(top: max(top, other.top), left: max(left, other.left))
+    }
+}
+
 /// Geometry for the window watch: other apps' windows should not run under
 /// the left bar, just as they do not run under the Dock.
 ///
@@ -20,41 +50,98 @@ public enum WindowClamp {
     /// A new frame for a window that reaches into the reserved strip at the
     /// left edge of `screen`, or `nil` when there is nothing to do.
     ///
-    /// Two cases, because they came about differently:
-    /// - The left edge exactly at the screen edge: the system or the app put
-    ///   it there (zoom, "fill", tile left, maximise). Then the right edge
-    ///   stays put and the window gets narrower - the way those commands
-    ///   reckon with a Dock docked on the left. Otherwise a left tile would
-    ///   be pushed into the right one.
-    /// - Otherwise (dragged halfway under it by hand, hanging over the left
-    ///   edge): move it and keep the size. Only when it would then run past
-    ///   the screen on the right, make it narrower - but never let it reach
-    ///   further right than it already did.
-    ///
-    /// `minWidth` is the smallest width the app allows (learned from a
-    /// refused shrink, otherwise 0). It never gets narrower than that; then
-    /// it is only moved and the window reaches further right.
+    /// Kept as a thin wrapper: the left bar was the first bar the watch grew,
+    /// and its callers and tests should not have to learn `ReservedInsets`
+    /// just to reserve one edge.
     public static func clampedFrame(
         window: CGRect,
         screen: CGRect,
         reservedWidth: CGFloat,
         minWidth: CGFloat = 0
     ) -> CGRect? {
-        guard reservedWidth > 0, window.width > 0, window.height > 0 else { return nil }
-        let limit = screen.minX + reservedWidth
-        guard window.minX < limit - tolerance else { return nil }
+        clampedFrame(
+            window: window,
+            screen: screen,
+            insets: ReservedInsets(left: reservedWidth),
+            minSize: CGSize(width: minWidth, height: 0)
+        )
+    }
 
-        var result = window
-        result.origin.x = limit
+    /// A new frame for a window that reaches into the strip reserved at the
+    /// top (menu bar) or the left (sidebar) of the screen, or `nil` when
+    /// there is nothing to do. Both at once work too: a maximised window
+    /// ends up exactly in the free rect below the menu bar and right of the
+    /// sidebar.
+    ///
+    /// Coordinates are accessibility coordinates (origin top left, y
+    /// downwards): `insets.top` therefore limits `minY` just as
+    /// `insets.left` limits `minX`.
+    ///
+    /// Each axis follows the same two-case rule:
+    /// - The window's edge exactly at the screen edge: the system or the
+    ///   app put it there (zoom, "fill", tile, maximise). Then the opposite
+    ///   edge stays put and the window shrinks - the way those commands
+    ///   reckon with a bar docked at that edge. Otherwise a left tile would
+    ///   be pushed into the right one.
+    /// - Otherwise (dragged halfway under it by hand, hanging over the
+    ///   edge): move it and keep the size. Only when it would then run past
+    ///   the opposite screen edge, make it smaller - but never let it reach
+    ///   further than it already did.
+    ///
+    /// `minSize` is the smallest size the app allows (learned from a
+    /// refused shrink, otherwise `.zero`). Neither dimension ever gets
+    /// smaller than that; then the window is only moved and reaches further
+    /// in the direction it was shrinking towards.
+    public static func clampedFrame(
+        window: CGRect,
+        screen: CGRect,
+        insets: ReservedInsets,
+        minSize: CGSize = .zero
+    ) -> CGRect? {
+        guard !insets.isZero, window.width > 0, window.height > 0 else { return nil }
 
-        let pinnedWidth = window.maxX - limit
-        if abs(window.minX - screen.minX) <= tolerance, pinnedWidth > 0 {
-            result.size.width = max(pinnedWidth, minWidth)
-        } else {
-            let rightLimit = max(screen.maxX, window.maxX)
-            result.size.width = max(min(window.width, rightLimit - limit), minWidth)
+        let x = clampedAxis(
+            windowLow: window.minX, windowHigh: window.maxX,
+            screenLow: screen.minX, screenHigh: screen.maxX,
+            inset: insets.left, minLength: minSize.width
+        )
+        let y = clampedAxis(
+            windowLow: window.minY, windowHigh: window.maxY,
+            screenLow: screen.minY, screenHigh: screen.maxY,
+            inset: insets.top, minLength: minSize.height
+        )
+        guard x != nil || y != nil else { return nil }
+
+        let result = CGRect(
+            x: x?.low ?? window.minX,
+            y: y?.low ?? window.minY,
+            width: x?.length ?? window.width,
+            height: y?.length ?? window.height
+        )
+        return isSameFrame(result, window) ? nil : result
+    }
+
+    /// One axis (x with the sidebar, or y with the menu bar) of
+    /// `clampedFrame`. `nil` when this axis needs no change. An `inset` of 0
+    /// means no bar sits at that edge, so it is never a reason to move or
+    /// shrink the window.
+    private static func clampedAxis(
+        windowLow: CGFloat,
+        windowHigh: CGFloat,
+        screenLow: CGFloat,
+        screenHigh: CGFloat,
+        inset: CGFloat,
+        minLength: CGFloat
+    ) -> (low: CGFloat, length: CGFloat)? {
+        let limit = screenLow + inset
+        guard inset > 0, windowLow < limit - tolerance else { return nil }
+
+        let pinnedLength = windowHigh - limit
+        if abs(windowLow - screenLow) <= tolerance, pinnedLength > 0 {
+            return (limit, max(pinnedLength, minLength))
         }
-        return result
+        let bound = max(screenHigh, windowHigh)
+        return (limit, max(min(windowHigh - windowLow, bound - limit), minLength))
     }
 
     /// Index of the screen that holds the largest part of the window, or
