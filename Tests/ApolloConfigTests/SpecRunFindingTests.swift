@@ -94,4 +94,21 @@ struct SpecRunFindingTests {
         #expect(result.diagnostics.isEmpty, "\(Self.messages(result))")
         #expect(result.ir != nil)
     }
+
+    @Test("self im Menue verweist auf das Element, an dem das Menue haengt")
+    func selfIsValidInMenuAndActions() {
+        let result = LoaderHarness.load(["/config/shell.kdl": """
+        panel "dock" {
+            button {
+                menu {
+                    item "Toggle" checked="{self.pressed}" {
+                        system.hide-apps keep-frontmost="{self.hover}"
+                    }
+                }
+            }
+        }
+        """])
+        #expect(result.diagnostics.isEmpty, "\(Self.messages(result))")
+        #expect(result.ir != nil)
+    }
 }
