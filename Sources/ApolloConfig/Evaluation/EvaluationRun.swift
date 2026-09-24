@@ -90,13 +90,13 @@ struct EvaluationRun {
                 return .null
             case (.list(let items), .number(let number)):
                 guard let position = ValueIndexing.wholeNumber(number) else {
-                    report("a list index must be a whole number")
+                    report(Self.indexIssueMessage("list", ValueIndexing.classify(number)))
                     return .null
                 }
                 return ValueIndexing.element(items, position) ?? .null
             case (.string(let text), .number(let number)):
                 guard let position = ValueIndexing.wholeNumber(number) else {
-                    report("a string index must be a whole number")
+                    report(Self.indexIssueMessage("string", ValueIndexing.classify(number)))
                     return .null
                 }
                 return ValueIndexing.element(Array(text), position).map { .string(String($0)) } ?? .null
@@ -239,5 +239,12 @@ struct EvaluationRun {
 
     func report(_ message: String) {
         evaluator.report(message, span: span)
+    }
+
+    static func indexIssueMessage(_ kind: String, _ issue: ValueIndexIssue) -> String {
+        switch issue {
+        case .notWhole: "a \(kind) index must be a whole number"
+        case .outOfRange: "a \(kind) index is out of range"
+        }
     }
 }

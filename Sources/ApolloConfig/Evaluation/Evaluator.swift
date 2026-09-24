@@ -1,14 +1,6 @@
 import ApolloBase
 
-struct ScopeBox: @unchecked Sendable {
-    let scope: any EvaluationScope
-
-    init(_ scope: any EvaluationScope) {
-        self.scope = scope
-    }
-}
-
-public protocol EvaluationScope {
+public protocol EvaluationScope: Sendable {
     func local(_ name: String) -> Value?
     func global(_ root: String, _ fields: [String]) -> Value
 }
@@ -27,30 +19,26 @@ public struct Evaluator: Sendable {
     }
 
     public func evaluate(_ expr: Expr, in scope: any EvaluationScope) -> Value {
-        let box = ScopeBox(scope)
-        return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
-            EvaluationRun(evaluator: self, scope: box.scope, span: nil).value(expr)
+        StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
+            EvaluationRun(evaluator: self, scope: scope, span: nil).value(expr)
         }
     }
 
     public func evaluate(_ expr: Expr, in scope: any EvaluationScope, at span: SourceSpan) -> Value {
-        let box = ScopeBox(scope)
-        return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
-            EvaluationRun(evaluator: self, scope: box.scope, span: span).value(expr)
+        StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
+            EvaluationRun(evaluator: self, scope: scope, span: span).value(expr)
         }
     }
 
     public func render(_ template: StringTemplate, in scope: any EvaluationScope) -> Value {
-        let box = ScopeBox(scope)
-        return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
-            EvaluationRun(evaluator: self, scope: box.scope, span: nil).render(template)
+        StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
+            EvaluationRun(evaluator: self, scope: scope, span: nil).render(template)
         }
     }
 
     public func render(_ template: StringTemplate, in scope: any EvaluationScope, at span: SourceSpan) -> Value {
-        let box = ScopeBox(scope)
-        return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
-            EvaluationRun(evaluator: self, scope: box.scope, span: span).render(template)
+        StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
+            EvaluationRun(evaluator: self, scope: scope, span: span).render(template)
         }
     }
 

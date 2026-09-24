@@ -1,9 +1,18 @@
+enum ValueIndexIssue {
+    case notWhole
+    case outOfRange
+}
+
 enum ValueIndexing {
     static let limit = 1_000_000_000.0
 
     static func wholeNumber(_ number: Double) -> Int? {
         guard number.rounded() == number, Swift.abs(number) <= limit else { return nil }
         return Int(number)
+    }
+
+    static func classify(_ number: Double) -> ValueIndexIssue {
+        number.rounded() == number ? .outOfRange : .notWhole
     }
 
     static func element<T>(_ items: [T], _ position: Int) -> T? {

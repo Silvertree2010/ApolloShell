@@ -132,6 +132,7 @@ struct EvaluatorTests {
         ("rec[0]", "cannot index a record with a number"),
         ("rec.name.first", "a string has no field 'first'"),
         ("1 < 'a'", "cannot compare a number with a string"),
+        ("list[1000000001]", "a list index is out of range"),
     ]
 
     @Test("Warntexte", arguments: EvaluatorTests.messages)
@@ -256,5 +257,13 @@ struct EvaluatorTests {
         let expr = try EvaluationHarness.expression(source)
         let evaluator = EvaluationHarness.evaluator(sink: WarningSink())
         #expect(evaluator.evaluate(expr, in: Self.scope) == .number(256))
+    }
+
+    @MainActor
+    @Test("Auf dem Main Thread bei genug Stapel kein Thread-Wechsel")
+    func inlineOnMainThread() throws {
+        let scope = MainThreadCheckingScope()
+        let evaluator = EvaluationHarness.evaluator(sink: WarningSink())
+        #expect(evaluator.evaluate(try EvaluationHarness.expression("a"), in: scope) == .bool(true))
     }
 }

@@ -3,7 +3,7 @@ import Synchronization
 import ApolloBase
 @testable import ApolloConfig
 
-struct TestScope: EvaluationScope {
+struct TestScope: EvaluationScope, Sendable {
     var locals: [String: Value] = [:]
     var globals: [String: Value] = [:]
 
@@ -21,16 +21,30 @@ struct TestScope: EvaluationScope {
     }
 }
 
-final class RecordingScope: EvaluationScope {
-    var calls: [DependencyPath] = []
+final class RecordingScope: EvaluationScope, Sendable {
+    private let stored = Mutex<[DependencyPath]>([])
+
+    var calls: [DependencyPath] {
+        stored.withLock { $0 }
+    }
 
     func local(_ name: String) -> Value? {
         nil
     }
 
     func global(_ root: String, _ fields: [String]) -> Value {
-        calls.append(DependencyPath(root, fields))
+        stored.withLock { $0.append(DependencyPath(root, fields)) }
         return .list([.number(7)])
+    }
+}
+
+struct MainThreadCheckingScope: EvaluationScope, Sendable {
+    func local(_ name: String) -> Value? {
+        .bool(Thread.isMainThread)
+    }
+
+    func global(_ root: String, _ fields: [String]) -> Value {
+        .null
     }
 }
 
