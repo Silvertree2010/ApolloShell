@@ -1,0 +1,50 @@
+:root { accent-color: var(--apollo-accent-color, -apple-system-control-accent); }
+
+.dock {
+  -apollo-fade-edges: 4%;
+  width: 100%;
+  height: 100%;
+}
+.dock > reorderable {
+  gap: var(--apollo-dock-spacing, 4px);
+  align-items: center;
+  width: 100%;
+}
+.dock-slot { align-items: center; }
+
+.dock-divider {
+  width: 20px;
+  height: 2px;
+  margin: 3px 0;
+  border-radius: 9999px;
+  background: rgb(from -apple-system-label r g b / 0.18);
+}
+
+.dock-item {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  transition: background 120ms ease-out;
+}
+.dock-item > stack { width: 100%; height: 100%; }
+.dock-item.front { background: rgb(from -apple-system-label r g b / 0.10); }
+.dock-item:hover, .dock-item:active { background: rgb(from -apple-system-label r g b / 0.14); }
+.dock-item.hidden .dock-icon { opacity: 0.5; }
+.dock-item.launching .dock-icon { animation: bounce 440ms infinite; }
+
+.dock-icon { width: 26px; height: 26px; }
+.dock-item.size-small .dock-icon { width: var(--apollo-dock-icon-size, 22px); height: var(--apollo-dock-icon-size, 22px); }
+.dock-item.size-medium .dock-icon { width: var(--apollo-dock-icon-size, 26px); height: var(--apollo-dock-icon-size, 26px); }
+.dock-item.size-large .dock-icon { width: var(--apollo-dock-icon-size, 30px); height: var(--apollo-dock-icon-size, 30px); }
+.dock-icon {
+  --badge-color: var(--apollo-danger-color, -apple-system-red);
+}
+
+.dock-running-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  align-self: start;
+  transform: translate(-5px, 0);
+  background: var(--apollo-dock-indicator-color, rgb(from -apple-system-label r g b / 0.65));
+}

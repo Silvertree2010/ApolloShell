@@ -1,0 +1,23 @@
+var dock-first-running from="{apps.dock | index-where 'section' ['running']}"
+
+define "dock-item" {
+    param "app"
+    param "size"
+    button class="dock-item size-{size} {app.active ? 'front' : ''} {app.hidden ? 'hidden' : ''} {app.launching ? 'launching' : ''}" tooltip="{app.name}" label="{app.running ? app.name + ', running' : app.name}" menu-on="right-click long-press" {
+        on-click { apps.click "{app}" modifiers="{event.modifiers}" }
+        on-scroll step=30 cooldown="300ms" { apps.cycle-windows "{app}" "{event.direction}" }
+        on-drop accept="files" { apps.open-files "{app}" "{event.files}" }
+        menu side="right" offset=6 {
+            source "app-dock" app="{app}" fallback="full"
+        }
+        stack {
+            app-icon "{app}" class="dock-icon" badge="{app.badge}"
+            when "{app.running}" { stack class="dock-running-dot" }
+        }
+    }
+}
+
+define "sidebar-dock" {
+    param "module"
+    include "dock.kdl"
+}

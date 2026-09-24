@@ -1,0 +1,13 @@
+scroll class="dock" axis="vertical" {
+    reorderable axis="vertical" {
+        on-reorder { apps.dock-move "{event.from-key}" "{event.to-key}" }
+        each app in="{module.show-running ? apps.dock : (apps.dock | where-not 'section' 'running')}" key="{app.bundle-id}" index="i" {
+            column class="dock-slot" {
+                when "{app.section == 'running' && i == var.dock-first-running}" {
+                    stack class="dock-divider"
+                }
+                use "dock-item" app="{app}" size="{module.icon-size}"
+            }
+        }
+    }
+}
