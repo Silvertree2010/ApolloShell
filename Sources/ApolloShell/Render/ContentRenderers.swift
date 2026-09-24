@@ -53,6 +53,9 @@ enum ContentRenderers {
         var track: Color?
         if case .color(let value)? = style["-apollo-track-color"] { track = StyleValues.color(value) }
         let size = StyleValues.points(style["width"]) ?? 80
+        if let themed = scope.context.themeIcon("session-emblem") {
+            return AnyView(Image(nsImage: themed).resizable().scaledToFit().frame(width: size, height: size))
+        }
         return AnyView(MarkElement(reaction: reaction, greet: greet, accent: accent, track: track, size: size))
     }
 }
