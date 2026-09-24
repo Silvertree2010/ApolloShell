@@ -73,7 +73,7 @@ enum NameLocator {
 }
 
 enum ExpressionCompiler {
-    static func compile(_ kdlValue: KDLValue, env: ExpressionEnvironment, allowsExpression: Bool) -> (CompiledValue, [Diagnostic]) {
+    static func compile(_ kdlValue: KDLValue, env: ExpressionEnvironment, allowsExpression: Bool, validates: Bool = true) -> (CompiledValue, [Diagnostic]) {
         var diagnostics: [Diagnostic] = []
         switch kdlValue.scalar {
         case .number(let number, _):
@@ -99,6 +99,9 @@ enum ExpressionCompiler {
                 return (CompiledValueBuilder.literal(.null, span: kdlValue.span), diagnostics)
             case .success(let template):
                 let substituted = LetSubstitution.apply(template, lets: env.letValues, locals: env.locals)
+                guard validates else {
+                    return (CompiledValue(template: substituted, dependencies: [], span: kdlValue.span), diagnostics)
+                }
                 var validator = ExpressionValidator(env: env, fallback: kdlValue.span, occurrences: NameLocator.occurrences(in: text, span: kdlValue.span))
                 validator.validate(substituted)
                 diagnostics.append(contentsOf: validator.diagnostics)

@@ -266,6 +266,32 @@ enum IncludeExpander {
         }
     }
 
+    static func resolveAsset(
+        _ raw: String,
+        currentFile: String,
+        origin: FileOrigin,
+        configRoot: URL,
+        fileSystem: any ConfigFileSystem,
+        paths: ConfigPaths
+    ) -> Result<[URL], Diagnostic> {
+        if raw.contains("{") {
+            return .failure(Diagnostic(.error, "style path cannot contain an expression"))
+        }
+        let boundary: URL
+        switch origin {
+        case .user: boundary = configRoot
+        case .builtin(let id): boundary = paths.builtinConfigs.appendingPathComponent(id)
+        case .pkg(let id): boundary = paths.packagesDirectory.appendingPathComponent(id)
+        }
+        switch resolveIncludeTargets(raw, currentFile: currentFile, currentOrigin: origin, currentBoundary: boundary, fileSystem: fileSystem, paths: paths) {
+        case .failure(var diagnostic):
+            diagnostic.message = diagnostic.message.replacingOccurrences(of: "include path", with: "style path")
+            return .failure(diagnostic)
+        case .success(let targets):
+            return .success(targets.map(\.url))
+        }
+    }
+
     private static func resolveIncludeTargets(
         _ raw: String,
         currentFile: String,

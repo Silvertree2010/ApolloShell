@@ -50,6 +50,7 @@ public indirect enum ChildIR: Sendable, Hashable {
     case when(WhenIR)
     case switchOn(SwitchIR)
     case dynamicUse(DynamicUseIR)
+    case slot(name: String?)
 
     public var key: String {
         switch self {
@@ -58,6 +59,7 @@ public indirect enum ChildIR: Sendable, Hashable {
         case .when(let when): return when.key
         case .switchOn(let switchIR): return switchIR.key
         case .dynamicUse(let use): return use.key
+        case .slot(let name): return "slot:\(name ?? "")"
         }
     }
 }

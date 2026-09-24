@@ -20,7 +20,7 @@ enum VarStage {
         return VarStageResult(declarations: declarations, diagnostics: diagnostics)
     }
 
-    private static func declaration(for node: ExpandedNode, diagnostics: inout [Diagnostic]) -> VarDecl? {
+    static func declaration(for node: ExpandedNode, diagnostics: inout [Diagnostic]) -> VarDecl? {
         let kdl = node.kdl
         guard let first = kdl.arguments.first, case .string(let name) = first.scalar else {
             diagnostics.append(Diagnostic(.error, "'var' needs a name", span: kdl.span))

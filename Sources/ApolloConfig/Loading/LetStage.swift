@@ -180,7 +180,7 @@ enum LetStage {
         calendar.timeZone = TimeZone(identifier: "UTC")!
         calendar.locale = Locale(identifier: "en_US_POSIX")
         return FilterContext(
-            now: Date(),
+            now: Date(timeIntervalSince1970: 0),
             locale: Locale(identifier: "en_US_POSIX"),
             timeZone: TimeZone(identifier: "UTC")!,
             services: DefaultFilterServices(calendar: calendar)

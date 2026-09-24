@@ -20,6 +20,8 @@ struct DefineDecl: Sendable, Hashable {
     var body: [ExpandedNode]
     var span: SourceSpan
     var includeChain: [SourceSpan]
+    var letValues: [String: Value] = [:]
+    var poisonedLets: Set<String> = []
 }
 
 struct UseStageResult: Sendable {
@@ -171,7 +173,9 @@ enum UseStage {
             namedSlots: namedSlots,
             body: [],
             span: kdl.span,
-            includeChain: node.includeChain
+            includeChain: node.includeChain,
+            letValues: node.letValues,
+            poisonedLets: node.poisonedLets
         )
         state.definitions[name] = Definition(declaration: declaration, node: node, rawBody: rawBody)
         state.order.append(name)

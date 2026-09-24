@@ -88,6 +88,20 @@ struct IRTypesTests {
         #expect(SurfaceChange() == SurfaceChange(added: [], removed: [], changed: [], unchanged: []))
     }
 
+    @Test("Slot-Platzhalter im define-Rumpf traegt seinen Namen und Schluessel")
+    func slotPlaceholder() {
+        let unnamed = ChildIR.slot(name: nil)
+        let header = ChildIR.slot(name: "header")
+        #expect(unnamed.key == "slot:")
+        #expect(header.key == "slot:header")
+        let define = DefineIR(name: "card", body: [.element(ElementIR(kind: "column", key: "0", children: [header, unnamed], span: .synthetic()))], span: .synthetic())
+        guard case .element(let column) = define.body.first, case .slot(let name) = column.children.first else {
+            Issue.record("slot fehlt")
+            return
+        }
+        #expect(name == "header")
+    }
+
     @Test("Identität hängt Komponenten an und beschreibt sich als Pfad")
     func identityAppends() {
         let surface = Identity(["bar"])
