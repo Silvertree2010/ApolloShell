@@ -13,17 +13,52 @@ final class TWMBorder {
     private var active: TilingEngine.ActiveWindow?
 
     var width: CGFloat = 2 { didSet { panel.model.width = width; show(active) } }
-    var radius: CGFloat = 16 { didSet { panel.model.radius = radius } }
+    /// The corner radius of windows of apps built with the macOS 26 SDK.
+    var radius: CGFloat = 16 { didSet { show(active) } }
+
+    /// Apps built with an older SDK keep the pre-26 window corners.
+    private static let legacyRadius: CGFloat = 10
+    /// Whether an app (by process) was built with a pre-26 SDK, read once.
+    private var legacyApps: [pid_t: Bool] = [:]
+    private var clicks: Any?
 
     init(engine: TilingEngine) {
         self.engine = engine
         engine.onActiveWindowChanged = { [weak self] active in self?.show(active) }
+        // A click raises the clicked window to the top - over the border,
+        // which then hides the window's corners behind it. Put it back on top.
+        clicks = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak self] _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                MainActor.assumeIsolated { self?.raise() }
+            }
+        }
         show(engine.activeWindow())
     }
 
     func close() {
         engine.onActiveWindowChanged = nil
+        if let clicks { NSEvent.removeMonitor(clicks) }
+        clicks = nil
         panel.orderOut(nil)
+    }
+
+    private func raise() {
+        guard let active, panel.isVisible else { return }
+        panel.order(.above, relativeTo: Int(active.windowID))
+        orderedAbove = active.windowID
+        lastOrdered = CACurrentMediaTime()
+    }
+
+    /// The corner radius of `id`'s app: old SDK, old corners.
+    private func cornerRadius(of id: CGWindowID) -> CGFloat {
+        guard let pid = engine.windows[id]?.pid else { return radius }
+        let legacy = legacyApps[pid] ?? {
+            let executable = NSRunningApplication(processIdentifier: pid)?.executableURL
+            let legacy = (executable.flatMap(MachOSDK.major(ofExecutableAt:)) ?? 26) < 26
+            legacyApps[pid] = legacy
+            return legacy
+        }()
+        return legacy ? Self.legacyRadius : radius
     }
 
     private func show(_ active: TilingEngine.ActiveWindow?) {
@@ -47,6 +82,8 @@ final class TWMBorder {
         if panel.isVisible, !panel.isOnActiveSpace || screen != panel.screen {
             panel.orderOut(nil)
         }
+        let corner = cornerRadius(of: active.windowID)
+        if panel.model.radius != corner { panel.model.radius = corner }
         if rect != panel.frame { panel.setFrame(rect, display: false) }
         // Re-ordering is a window-server round trip: on a new window, and a
         // few times a second in case the window was raised over the border.

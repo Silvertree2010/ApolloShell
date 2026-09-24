@@ -22,7 +22,8 @@ public struct TWMSettings: Codable, Equatable, Sendable {
     public var resize = Resize.proxy
     /// The frame around the focused window, in points; 0 hides it.
     public var borderWidth = 2.0
-    /// Its corner radius, to match the windows' own corners.
+    /// Its corner radius, to match the windows' own corners - those of apps
+    /// built for macOS 26. Older apps keep 10 pt corners; the border follows.
     public var borderRadius = 16.0
     /// Room above a tab group's window for its tab bar.
     public var tabBarHeight = 30.0
