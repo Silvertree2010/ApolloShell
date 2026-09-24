@@ -184,6 +184,23 @@ struct HostOverlayStartTests {
         #expect(fired == 1)
     }
 
+    @Test("Start: Config ohne Oberfläche bleibt aktiv, kein Rückfall auf den Dock-Render")
+    func startWithoutSurfaces() async throws {
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent("start-\(UUID().uuidString)")
+        let config = home.appendingPathComponent("apolloshell")
+        try FileManager.default.createDirectory(at: config, withIntermediateDirectories: true)
+        try "var \"x\" 1\nmarketplace enabled=#false\n".write(to: config.appendingPathComponent("shell.kdl"), atomically: true, encoding: .utf8)
+        let options = LiveShell.Options(config: nil, resources: PackageResources.root.appendingPathComponent("Resources"),
+                                        fixture: PackageResources.root.appendingPathComponent("Resources/render/fixture.kdl"))
+        let shell = LiveShell(options: options, host: WindowHost(factory: FakeFactory()), environment: ["XDG_CONFIG_HOME": home.path], home: home)
+        shell.interactive = false
+        shell.registrar = FakeRegistrar()
+        try await shell.start()
+        #expect(shell.location?.id == "user")
+        #expect(!shell.host.controllers.keys.contains { $0.hasPrefix("dock@") })
+        shell.shutdown()
+    }
+
     @Test("Start: kaputte User-Config fällt auf die Default-Config zurück und zeigt das Overlay")
     func startFallback() async throws {
         let home = FileManager.default.temporaryDirectory.appendingPathComponent("start-\(UUID().uuidString)")

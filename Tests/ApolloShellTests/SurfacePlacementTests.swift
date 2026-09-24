@@ -62,12 +62,12 @@ struct SurfacePlacementTests {
         #expect(SurfaceWindowKind.behavior(kind: "toast") == [.canJoinAllSpaces, .transient, .ignoresCycle])
     }
 
-    @Test("Start-Optionen: ohne --config aktive Config aus settings.kdl, Dock-Rückfall im Bundle")
+    @Test("Start-Optionen: ohne --config aktive Config aus settings.kdl, Ressourcen im Bundle")
     func launchOptions() {
         let exe = URL(fileURLWithPath: "/Apps/ApolloShell.app/Contents/MacOS/ApolloShell")
         let plain = LiveShell.options(["x"], executable: exe)
         #expect(plain.config == nil)
-        #expect(plain.dockFallback.path == "/Apps/ApolloShell.app/Contents/Resources/render/dock")
+        #expect(plain.resources.path == "/Apps/ApolloShell.app/Contents/Resources")
         #expect(plain.fixture == nil)
         let fixture = LiveShell.options(["x", "--fixture", "/tmp/f.kdl", "--config", "/tmp/c"], executable: exe)
         #expect(fixture.fixture?.path == "/tmp/f.kdl")

@@ -15,8 +15,6 @@ final class LiveShell: WindowHostLink {
         var config: URL?
         var resources: URL
         var fixture: URL?
-
-        var dockFallback: URL { resources.appendingPathComponent("render/dock") }
     }
 
     static func options(_ arguments: [String], executable: URL) -> Options {
@@ -205,11 +203,6 @@ final class LiveShell: WindowHostLink {
         if result.ir == nil {
             failed += result.diagnostics
             location = ConfigLocation(id: "apolloshell-default", root: paths.builtinConfigs.appendingPathComponent("apolloshell-default"), isBuiltin: true)
-            result = await load(location)
-        }
-        if options.config == nil, let ir = result.ir, ir.surfaces.isEmpty {
-            Self.log("config \(location.id) has no surfaces yet, falling back to the dock render config")
-            location = ConfigLocation(id: "render-dock", root: options.dockFallback, isBuiltin: false)
             result = await load(location)
         }
         result = ConfigLoadResult(ir: result.ir, diagnostics: failed + result.diagnostics, files: result.files)
@@ -450,7 +443,6 @@ final class LiveShell: WindowHostLink {
 
     private func activeLocationForReload() -> (ConfigLocation, [Diagnostic])? {
         guard let location else { return nil }
-        if location.id == "render-dock" { return (location, []) }
         _ = settings.reload()
         return resolveActive()
     }
