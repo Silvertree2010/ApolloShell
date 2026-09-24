@@ -508,8 +508,8 @@ final class LiveShell: WindowHostLink {
         }
     }
 
-    func close(_ surfaceID: String) {
-        assembly?.runtime.close(surfaceID)
+    func close(_ surfaceID: String, screenKey: String) {
+        assembly?.runtime.close(surfaceID, screenKey: screenKey)
     }
 
     func surfaceDidFinishClosing(id: String, screenKey: String) {

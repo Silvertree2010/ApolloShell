@@ -51,6 +51,7 @@ final class SurfaceFrames {
 @MainActor
 protocol FrameTicker: AnyObject {
     func start(_ tick: @escaping @MainActor (TimeInterval) -> Bool)
+    func stop()
 }
 
 @MainActor
@@ -72,6 +73,12 @@ final class DisplayLinkTicker: NSObject, FrameTicker {
         let link = view.displayLink(target: self, selector: #selector(step))
         link.add(to: .main, forMode: .common)
         self.link = link
+    }
+
+    func stop() {
+        link?.invalidate()
+        link = nil
+        tick = nil
     }
 
     @objc private func step(_ link: CADisplayLink) {

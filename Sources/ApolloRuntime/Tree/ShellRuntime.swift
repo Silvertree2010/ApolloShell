@@ -259,6 +259,11 @@ public final class ShellRuntime: SurfaceControlling {
         }
     }
 
+    public func close(_ surfaceID: String, screenKey: String) {
+        guard let node = surfaceNodes[surfaceID + "@" + screenKey] else { return }
+        closeNode(node)
+    }
+
     public func closeAndWait(_ surfaceID: String) async {
         let targets = nodes(for: surfaceID).filter { $0.instance.isOpen }
         close(surfaceID)

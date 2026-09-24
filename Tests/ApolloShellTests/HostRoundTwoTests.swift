@@ -35,6 +35,7 @@ final class ShellHarness {
     var screens: [String: ScreenGeometry] = [a.key: a]
     var fullscreenKeys: Set<String> = []
     var pointerKey: String?
+    var scheduledChecks = 0
 
     init(_ source: String, settings: String? = nil, useConfigFolder: Bool = true) throws {
         home = FileManager.default.temporaryDirectory.appendingPathComponent("round2-\(UUID().uuidString)")
@@ -48,7 +49,7 @@ final class ShellHarness {
         let resources = PackageResources.root.appendingPathComponent("Resources")
         let options = LiveShell.Options(config: useConfigFolder ? config : nil, resources: resources, fixture: resources.appendingPathComponent("render/fixture.kdl"))
         var sink: ShellHarness?
-        let monitor = FullscreenMonitor(read: { sink?.fullscreenKeys }, schedule: { _, _ in })
+        let monitor = FullscreenMonitor(read: { sink?.fullscreenKeys }, schedule: { _, _ in sink?.scheduledChecks += 1 })
         shell = LiveShell(options: options, host: WindowHost(factory: factory), environment: ["XDG_CONFIG_HOME": home.path], home: home, fullscreen: monitor)
         shell.interactive = false
         shell.registrar = FakeRegistrar()
@@ -411,8 +412,12 @@ struct ReviewFocusTests {
         #expect(harness.window("menu", ShellHarness.b)?.isShown == true)
         let onB = harness.identities()
         shell.screensDidChange([:])
-        NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
-        NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        let center = NotificationCenter()
+        shell.fullscreen.observe(center)
+        let checksBefore = harness.scheduledChecks
+        center.post(name: NSWorkspace.willSleepNotification, object: nil)
+        center.post(name: NSWorkspace.didWakeNotification, object: nil)
+        #expect(harness.scheduledChecks == checksBefore + FullscreenMonitor.checks.count)
         shell.fullscreen.poke()
         shell.host.spaceChanged()
         shell.screensDidChange([ShellHarness.b.key: ShellHarness.b])

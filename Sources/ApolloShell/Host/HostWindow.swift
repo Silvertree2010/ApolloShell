@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import ApolloRuntime
+import ApolloShellCore
 
 @MainActor
 protocol HostWindow: AnyObject {
@@ -12,12 +13,62 @@ protocol HostWindow: AnyObject {
     var windowNumber: Int { get }
     func apply(_ spec: SurfaceWindowSpec)
     func setLevel(_ level: NSWindow.Level)
-    func setFrame(_ frame: CGRect)
+    func setFrame(_ frame: CGRect, glide: Bool)
+    func setMinSize(_ size: CGSize)
+    func restoreFrame() -> Bool
     func setContent(_ view: AnyView)
     func show(focus: Bool)
     func hide()
-    func animate(opening: Bool, animator: any SurfaceAnimator, geometry: MotionGeometry, scrim: Double?, screen: CGRect, completion: @escaping @MainActor () -> Void)
+    func animate(opening: Bool, focus: Bool, animator: any SurfaceAnimator, geometry: MotionGeometry, scrim: Double?, screen: CGRect, completion: @escaping @MainActor () -> Void)
     func close()
+}
+
+extension HostWindow {
+    func setFrame(_ frame: CGRect) { setFrame(frame, glide: false) }
+}
+
+@MainActor
+protocol WindowStage: AnyObject {
+    func front(_ window: NSWindow, key: Bool)
+    func out(_ window: NSWindow)
+    func isVisible(_ window: NSWindow) -> Bool
+    func fade(_ window: NSWindow, to alpha: CGFloat, duration: TimeInterval, curve: CAMediaTimingFunction, completion: @escaping @MainActor () -> Void)
+    func glide(_ window: NSWindow, to frame: CGRect, duration: TimeInterval, curve: CAMediaTimingFunction)
+    func pin(_ window: NSWindow)
+    func activateApp()
+}
+
+@MainActor
+final class SystemStage: WindowStage {
+    static let shared = SystemStage()
+
+    func front(_ window: NSWindow, key: Bool) {
+        if key { window.makeKeyAndOrderFront(nil) } else { window.orderFrontRegardless() }
+    }
+
+    func out(_ window: NSWindow) { window.orderOut(nil) }
+    func isVisible(_ window: NSWindow) -> Bool { window.isVisible }
+
+    func fade(_ window: NSWindow, to alpha: CGFloat, duration: TimeInterval, curve: CAMediaTimingFunction, completion: @escaping @MainActor () -> Void) {
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = duration
+            context.timingFunction = curve
+            window.animator().alphaValue = alpha
+        }, completionHandler: {
+            MainActor.assumeIsolated { completion() }
+        })
+    }
+
+    func glide(_ window: NSWindow, to frame: CGRect, duration: TimeInterval, curve: CAMediaTimingFunction) {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = duration
+            context.timingFunction = curve
+            window.animator().setFrame(frame, display: true)
+        }
+    }
+
+    func pin(_ window: NSWindow) { StickySpace.pin(window) }
+    func activateApp() { NSApp.activate() }
 }
 
 @MainActor
@@ -28,14 +79,20 @@ protocol HostWindowFactory: AnyObject {
 
 @MainActor
 final class AppKitWindowFactory: HostWindowFactory {
+    let stage: any WindowStage
+
+    init(stage: any WindowStage = SystemStage.shared) {
+        self.stage = stage
+    }
+
     func make(spec: SurfaceWindowSpec, content: AnyView) -> any HostWindow {
-        AppKitHostWindow(spec: spec, content: content)
+        AppKitHostWindow(spec: spec, content: content, stage: stage)
     }
 
     func makeAuxiliary(content: AnyView) -> any HostWindow {
         var spec = SurfaceWindowSpec(kind: "overlay", property: { _ in .null })
         spec.clickThrough = .on
-        return AppKitHostWindow(spec: spec, content: content)
+        return AppKitHostWindow(spec: spec, content: content, stage: stage)
     }
 }
 
@@ -60,9 +117,11 @@ final class HostTitledWindow: NSWindow {
     }
 }
 
-final class FirstMouseHosting: NSHostingView<AnyView> {
+final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
+
+typealias FirstMouseHosting = FirstMouseHostingView<AnyView>
 
 @MainActor
 final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
@@ -76,15 +135,17 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     private var generation = 0
     private var pinned = false
     private var previousApp: NSRunningApplication?
+    let stage: any WindowStage
     var onCloseRequest: (@MainActor () -> Void)?
     var onKey: (@MainActor (String) -> Bool)?
 
-    init(spec: SurfaceWindowSpec, content: AnyView) {
+    init(spec: SurfaceWindowSpec, content: AnyView, stage: any WindowStage = SystemStage.shared) {
         self.spec = spec
+        self.stage = stage
         container = NSView()
         container.wantsLayer = true
         hosting = FirstMouseHosting(rootView: content)
-        hosting.sizingOptions = []
+        hosting.sizingOptions = [.intrinsicContentSize]
         hosting.autoresizingMask = [.width, .height]
         container.addSubview(hosting)
         if spec.kind == "window" {
@@ -121,6 +182,10 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
 
     func apply(_ spec: SurfaceWindowSpec) {
         self.spec = spec
+        if let panel = window as? ShellPanel {
+            panel.takesKeyboard = spec.keyboard
+            panel.mayLeaveScreen = spec.overhang || spec.animates
+        }
         if window.level != spec.level { window.level = spec.level }
         if window.collectionBehavior != spec.behavior { window.collectionBehavior = spec.behavior }
         window.ignoresMouseEvents = spec.clickThrough == .on
@@ -130,17 +195,37 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
             if window.styleMask != spec.styleMask { window.styleMask = spec.styleMask }
             if let autosave = spec.autosave, window.frameAutosaveName != autosave { window.setFrameAutosaveName(autosave) }
         }
+        if stage.isVisible(window) { pinIfSticky() }
+    }
+
+    private func pinIfSticky() {
+        guard !pinned, spec.kind == "panel", spec.sticky else { return }
+        stage.pin(window)
+        pinned = true
     }
 
     func setLevel(_ level: NSWindow.Level) {
         if window.level != level { window.level = level }
     }
 
-    func setFrame(_ frame: CGRect) {
+    func setFrame(_ frame: CGRect, glide: Bool) {
         guard window.frame != frame else { return }
-        window.setFrame(frame, display: true)
+        if glide, stage.isVisible(window) {
+            stage.glide(window, to: frame, duration: MotionCurve.spatialDuration, curve: .shellSpatial)
+        } else {
+            window.setFrame(frame, display: true)
+        }
         container.frame = CGRect(origin: .zero, size: frame.size)
         hosting.frame = container.bounds
+    }
+
+    func setMinSize(_ size: CGSize) {
+        if window.contentMinSize != size { window.contentMinSize = size }
+    }
+
+    func restoreFrame() -> Bool {
+        guard let autosave = spec.autosave, !autosave.isEmpty else { return false }
+        return window.setFrameUsingName(autosave)
     }
 
     func setContent(_ view: AnyView) {
@@ -149,50 +234,47 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
 
     func show(focus: Bool) {
         generation += 1
-        if spec.kind == "window" {
-            previousApp = NSWorkspace.shared.frontmostApplication
-            NSApp.activate()
-            window.makeKeyAndOrderFront(nil)
-        } else if focus && spec.keyboard {
-            window.makeKeyAndOrderFront(nil)
-        } else {
-            window.orderFrontRegardless()
-        }
-        if !pinned, spec.kind == "panel", spec.sticky {
-            StickySpace.pin(window)
-            pinned = true
-        }
+        reveal(focus: focus)
         window.alphaValue = 1
+    }
+
+    private func reveal(focus: Bool) {
+        if spec.kind == "window" {
+            if !stage.isVisible(window) { previousApp = NSWorkspace.shared.frontmostApplication }
+            stage.activateApp()
+            stage.front(window, key: true)
+        } else {
+            stage.front(window, key: focus && spec.keyboard)
+        }
+        pinIfSticky()
         armCloseTriggers()
     }
 
     func hide() {
         generation += 1
         disarmCloseTriggers()
-        window.orderOut(nil)
-        scrimWindow?.orderOut(nil)
+        stage.out(window)
+        if let scrimWindow { stage.out(scrimWindow) }
         if spec.kind == "window", let previousApp {
             previousApp.activate()
             self.previousApp = nil
         }
     }
 
-    func animate(opening: Bool, animator: any SurfaceAnimator, geometry: MotionGeometry, scrim: Double?, screen: CGRect, completion: @escaping @MainActor () -> Void) {
+    func animate(opening: Bool, focus: Bool, animator: any SurfaceAnimator, geometry: MotionGeometry, scrim: Double?, screen: CGRect, completion: @escaping @MainActor () -> Void) {
         generation += 1
         let current = generation
         guard let layer = container.layer else {
-            opening ? show(focus: true) : hide()
+            opening ? show(focus: focus) : hide()
             completion()
             return
         }
         let closed = animator.closedTransform(geometry)
-        let from = layer.presentation()?.sublayerTransform ?? (opening && !window.isVisible ? closed : layer.sublayerTransform)
+        let from = layer.presentation()?.sublayerTransform ?? (opening && !stage.isVisible(window) ? closed : layer.sublayerTransform)
         let target = opening ? CATransform3DIdentity : closed
         if opening {
-            if !window.isVisible { window.alphaValue = 0 }
-            show(focus: true)
-            window.alphaValue = window.isVisible ? window.alphaValue : 0
-            generation = current
+            if !stage.isVisible(window) { window.alphaValue = 0 }
+            reveal(focus: focus)
         } else {
             disarmCloseTriggers()
         }
@@ -202,15 +284,11 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
             scrimWindow = shade
             shade.setFrame(screen, display: false)
             if opening {
-                if !shade.isVisible { shade.alphaValue = 0 }
-                shade.orderFrontRegardless()
+                if !stage.isVisible(shade) { shade.alphaValue = 0 }
+                stage.front(shade, key: false)
             }
             let fade = animator.fade(opening: opening)
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = fade.duration
-                context.timingFunction = fade.curve
-                shade.animator().alphaValue = opening ? scrim : 0
-            }
+            stage.fade(shade, to: opening ? scrim : 0, duration: fade.duration, curve: fade.curve) {}
         }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -226,28 +304,22 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
             layer.removeAnimation(forKey: "surface.motion")
         }
         let fade = animator.fade(opening: opening)
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = fade.duration
-            context.timingFunction = fade.curve
-            window.animator().alphaValue = opening ? 1 : 0
-        }, completionHandler: { [weak self] in
-            MainActor.assumeIsolated {
-                guard let self, self.generation == current else { return }
-                if !opening {
-                    self.window.orderOut(nil)
-                    self.scrimWindow?.orderOut(nil)
-                }
-                completion()
+        stage.fade(window, to: opening ? 1 : 0, duration: fade.duration, curve: fade.curve) { [weak self] in
+            guard let self, self.generation == current else { return }
+            if !opening {
+                self.stage.out(self.window)
+                if let scrim = self.scrimWindow { self.stage.out(scrim) }
             }
-        })
+            completion()
+        }
     }
 
     func close() {
         generation += 1
         disarmCloseTriggers()
         window.delegate = nil
-        window.orderOut(nil)
-        scrimWindow?.orderOut(nil)
+        stage.out(window)
+        if let scrimWindow { stage.out(scrimWindow) }
         scrimWindow?.close()
         window.contentView = nil
         window.close()

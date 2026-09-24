@@ -24,6 +24,12 @@ final class FakeWindow: HostWindow {
     var hides = 0
     var shows = 0
     var animations: [(opening: Bool, animator: String)] = []
+    var animatorIDs: [ObjectIdentifier] = []
+    var focuses: [Bool] = []
+    var glides: [CGRect] = []
+    var minSize: CGSize = .zero
+    var restorable: CGRect?
+    var content: AnyView?
     var pending: [@MainActor () -> Void] = []
 
     init(spec: SurfaceWindowSpec) {
@@ -38,13 +44,25 @@ final class FakeWindow: HostWindow {
 
     func setLevel(_ level: NSWindow.Level) { self.level = level }
 
-    func setFrame(_ frame: CGRect) {
+    func setFrame(_ frame: CGRect, glide: Bool) {
         guard frame != self.frame else { return }
         self.frame = frame
         frameSets += 1
+        if glide { glides.append(frame) }
     }
 
-    func setContent(_ view: AnyView) { contentSets += 1 }
+    func setMinSize(_ size: CGSize) { minSize = size }
+
+    func restoreFrame() -> Bool {
+        guard let restorable else { return false }
+        frame = restorable
+        return true
+    }
+
+    func setContent(_ view: AnyView) {
+        contentSets += 1
+        content = view
+    }
     func show(focus: Bool) {
         isShown = true
         shows += 1
@@ -55,8 +73,10 @@ final class FakeWindow: HostWindow {
         hides += 1
     }
 
-    func animate(opening: Bool, animator: any SurfaceAnimator, geometry: MotionGeometry, scrim: Double?, screen: CGRect, completion: @escaping @MainActor () -> Void) {
+    func animate(opening: Bool, focus: Bool, animator: any SurfaceAnimator, geometry: MotionGeometry, scrim: Double?, screen: CGRect, completion: @escaping @MainActor () -> Void) {
         animations.append((opening, animator.name))
+        animatorIDs.append(ObjectIdentifier(animator))
+        focuses.append(focus)
         if opening { isShown = true }
         pending.append { [weak self] in
             if !opening { self?.isShown = false }
@@ -83,12 +103,14 @@ final class FakeFactory: HostWindowFactory {
 
     func make(spec: SurfaceWindowSpec, content: AnyView) -> any HostWindow {
         let window = FakeWindow(spec: spec)
+        window.content = content
         made.append(window)
         return window
     }
 
     func makeAuxiliary(content: AnyView) -> any HostWindow {
         let window = FakeWindow(spec: SurfaceWindowSpec(kind: "overlay", property: { _ in .null }))
+        window.content = content
         auxiliary.append(window)
         return window
     }
@@ -100,7 +122,7 @@ final class RuntimeLink: WindowHostLink {
     var finished: [String] = []
     var keys: [String] = []
 
-    func close(_ surfaceID: String) { runtime?.close(surfaceID) }
+    func close(_ surfaceID: String, screenKey: String) { runtime?.close(surfaceID, screenKey: screenKey) }
 
     func surfaceDidFinishClosing(id: String, screenKey: String) {
         finished.append(id)
@@ -116,7 +138,12 @@ final class RuntimeLink: WindowHostLink {
 @MainActor
 final class ManualTicker: FrameTicker {
     var tick: (@MainActor (TimeInterval) -> Bool)?
+    var stops = 0
     func start(_ tick: @escaping @MainActor (TimeInterval) -> Bool) { self.tick = tick }
+    func stop() {
+        stops += 1
+        tick = nil
+    }
 }
 
 @MainActor
@@ -130,14 +157,19 @@ final class HostFixture {
     var ir: ConfigIR?
     static let screen = ScreenGeometry(key: "Test 1440x900", frame: CGRect(x: 0, y: 0, width: 1440, height: 900), visible: CGRect(x: 0, y: 0, width: 1440, height: 870))
 
+    var deferred: [@MainActor () -> Void] = []
+
     init(_ shell: String, css: String = "") throws {
         host = WindowHost(factory: factory)
+        var sink: HostFixture?
+        host.later = { work in sink?.deferred.append(work) }
         assembly = ShellAssembly(host: host, scheduler: scheduler, filterContext: ShellAssembly.fixedContext(now: Date(timeIntervalSince1970: 1_790_235_660)))
         link.runtime = assembly.runtime
         host.link = link
         host.screens = [Self.screen.key: Self.screen]
         folder = FileManager.default.temporaryDirectory.appendingPathComponent("host-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        sink = self
         try write(shell, css: css)
         let result = PackageResources.load(folder, id: "host")
         ir = result.ir
@@ -168,7 +200,12 @@ final class HostFixture {
     }
 
     func flush() {
-        for _ in 0..<10 { scheduler.runPending() }
+        for _ in 0..<10 {
+            scheduler.runPending()
+            let work = deferred
+            deferred = []
+            work.forEach { $0() }
+        }
     }
 
     func window(_ id: String) -> FakeWindow? {
@@ -442,6 +479,7 @@ struct HostHookTests {
         #expect(fixture.host.animators.animator("slide") === drop)
         fixture.assembly.runtime.open("sheet", screenKey: nil)
         #expect(fixture.window("sheet")?.animations.map(\.animator) == ["slide"])
+        #expect(fixture.window("sheet")?.animatorIDs == [ObjectIdentifier(drop)])
         let frame = Drop().visibleFrame(open: CGRect(x: 0, y: 0, width: 10, height: 10), geometry: MotionGeometry(edge: .center, size: CGSize(width: 10, height: 10), topInset: 0, flipped: false), progress: 0.5)
         #expect(frame.minY == 50)
         #expect(Set(AnimatorRegistry.builtin().names) == ["fade", "grow", "none", "slide"])
@@ -463,6 +501,9 @@ struct HostHookTests {
         fixture.host.backgroundPainter = painter
         fixture.host.restyle(try #require(fixture.host.context))
         #expect(fixture.host.stats.windowsCreated == 1)
+        let hosting = NSHostingView(rootView: try #require(fixture.window("bar")?.content))
+        _ = hosting.fittingSize
+        #expect(painter.calls > 0)
     }
 
     @Test("Hilfsfenster je Bildschirm, bleiben beim Abgleich, gehen mit dem Bildschirm")

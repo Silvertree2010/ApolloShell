@@ -7,7 +7,7 @@ import ApolloShellCore
 
 @MainActor
 protocol WindowHostLink: AnyObject {
-    func close(_ surfaceID: String)
+    func close(_ surfaceID: String, screenKey: String)
     func surfaceDidFinishClosing(id: String, screenKey: String)
     func keyPressed(_ chord: String, surfaceID: String, screenKey: String) -> Bool
 }
@@ -30,6 +30,10 @@ final class SurfaceWindowController {
     var openFrame: CGRect = .zero
     var timeout: DispatchWorkItem?
     var hovered = false
+    var ticker: (any FrameTicker)?
+    var placed = false
+    var offset: CGPoint?
+    var observing = false
 
     init(surface: SurfaceInstance, window: any HostWindow, spec: SurfaceWindowSpec) {
         self.surface = surface
@@ -64,6 +68,9 @@ final class WindowHost: SurfaceHosting {
     var pointer: @MainActor () -> CGPoint = { NSEvent.mouseLocation }
     var scheduleTimer: @MainActor (TimeInterval, DispatchWorkItem) -> Void = { delay, work in
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+    var later: @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
+        DispatchQueue.main.async { MainActor.assumeIsolated { work() } }
     }
     static let hoverPoll: TimeInterval = 0.25
 
@@ -145,7 +152,7 @@ final class WindowHost: SurfaceHosting {
         let controller = SurfaceWindowController(surface: surface, window: window, spec: spec)
         controller.wasOpen = false
         let id = surface.id, screenKey = surface.screenKey
-        window.onCloseRequest = { [weak self] in self?.link?.close(id) }
+        window.onCloseRequest = { [weak self] in self?.link?.close(id, screenKey: screenKey) }
         window.onKey = { [weak self] chord in self?.link?.keyPressed(chord, surfaceID: id, screenKey: screenKey) ?? false }
         controllers[key] = controller
         sync(key)
@@ -154,6 +161,8 @@ final class WindowHost: SurfaceHosting {
     private func tearDown(_ key: String) {
         guard let controller = controllers.removeValue(forKey: key) else { return }
         controller.timeout?.cancel()
+        controller.ticker?.stop()
+        controller.ticker = nil
         controller.window.close()
         stats.windowsClosed += 1
         frames.publish(key, nil)
@@ -165,6 +174,11 @@ final class WindowHost: SurfaceHosting {
         let surface = controller.surface
         let spec = SurfaceWindowSpec(surface: surface)
         if spec != controller.spec {
+            if Self.needsNewWindow(old: controller.spec, new: spec) {
+                tearDown(key)
+                build(surface)
+                return
+            }
             controller.spec = spec
             controller.window.apply(spec)
         }
@@ -172,6 +186,7 @@ final class WindowHost: SurfaceHosting {
             log("surface \(surface.id): no screen \(surface.screenKey)")
             return
         }
+        observeProperties(controller, key: key)
         let style = context.styles.resolve(StyleResolver.subject(for: surface), ancestors: [], parent: nil)
         let placement = SurfacePlacement(kind: surface.ir.kind, property: surface.property, style: style)
         let layout = SurfaceLayout.compute(placement: placement, spec: spec, radius: StyleValues.radius(style["border-radius"]), screen: screen, fitting: controller.window.fittingSize)
@@ -179,8 +194,21 @@ final class WindowHost: SurfaceHosting {
             controller.insets = layout.insets
             controller.window.setContent(content(surface, insets: layout.insets))
         }
-        controller.openFrame = layout.frame
-        controller.window.setFrame(layout.frame)
+        let frame = layout.frame
+        if spec.kind == "window" {
+            controller.window.setMinSize(CGSize(width: StyleValues.points(style["min-width"]) ?? 0, height: StyleValues.points(style["min-height"]) ?? 0))
+            if surface.isVisible && !controller.placed {
+                controller.placed = true
+                if !controller.window.restoreFrame() { controller.window.setFrame(frame) }
+            }
+            controller.openFrame = controller.window.frame
+        } else {
+            let offset = CGPoint(x: placement.offsetX, y: placement.offsetY)
+            let glide = controller.shown && controller.offset != nil && controller.offset != offset
+            controller.offset = offset
+            controller.openFrame = frame
+            controller.window.setFrame(frame, glide: glide)
+        }
         let opening = surface.isOpen && !controller.wasOpen
         let closing = !surface.isOpen && controller.wasOpen
         controller.wasOpen = surface.isOpen
@@ -192,45 +220,82 @@ final class WindowHost: SurfaceHosting {
             dismiss(controller, key: key, placement: placement, screen: screen, closing: closing)
         } else if closing {
             finishClosing(controller, key: key)
-        } else if controller.shown {
-            frames.publish(key, layout.frame)
+        } else if controller.shown && controller.ticker == nil {
+            frames.publish(key, controller.openFrame)
         }
         updateReserves()
+    }
+
+    private func observeProperties(_ controller: SurfaceWindowController, key: String) {
+        guard !controller.observing else { return }
+        controller.observing = true
+        withObservationTracking {
+            for cell in controller.surface.properties.values { _ = cell.value }
+        } onChange: { [weak self, weak controller] in
+            MainActor.assumeIsolated {
+                self?.later {
+                    guard let self, let controller, self.controllers[key] === controller else { return }
+                    controller.observing = false
+                    self.sync(key)
+                }
+            }
+        }
+    }
+
+    static func needsNewWindow(old: SurfaceWindowSpec, new: SurfaceWindowSpec) -> Bool {
+        old.kind == "panel" && old.sticky && !new.sticky
+    }
+
+    func restartTimeout(_ surfaceID: String) {
+        for controller in controllers.values where controller.surface.id == surfaceID && controller.shown {
+            scheduleTimeout(controller)
+        }
     }
 
     private func geometry(_ controller: SurfaceWindowController, placement: SurfacePlacement, screen: ScreenGeometry) -> MotionGeometry {
         MotionGeometry(edge: MotionEdge(anchor: placement.anchor), size: controller.openFrame.size, topInset: max(0, screen.frame.maxY - screen.visible.maxY), flipped: false)
     }
 
+    private func motion(_ spec: SurfaceWindowSpec) -> String? {
+        if spec.animates { return spec.motion }
+        return spec.scrim != nil ? "none" : nil
+    }
+
     private func present(_ controller: SurfaceWindowController, key: String, placement: SurfacePlacement, screen: ScreenGeometry, focus: Bool) {
         let spec = controller.spec
-        guard spec.animates else {
+        guard let motion = motion(spec) else {
             controller.window.show(focus: focus)
             frames.publish(key, controller.openFrame)
             scheduleTimeout(controller)
             return
         }
-        let animator = animators.animator(spec.motion)
+        let animator = animators.animator(motion)
         let geometry = geometry(controller, placement: placement, screen: screen)
         track(controller, key: key, animator: animator, geometry: geometry, opening: true)
-        controller.window.animate(opening: true, animator: animator, geometry: geometry, scrim: spec.scrim, screen: screen.frame) {}
+        controller.window.animate(opening: true, focus: focus, animator: animator, geometry: geometry, scrim: spec.scrim, screen: screen.frame) { [weak self, weak controller] in
+            guard let self, let controller, controller.shown else { return }
+            self.stopTicker(controller)
+            self.frames.publish(key, controller.openFrame)
+        }
         scheduleTimeout(controller)
     }
 
     private func dismiss(_ controller: SurfaceWindowController, key: String, placement: SurfacePlacement, screen: ScreenGeometry, closing: Bool) {
         controller.timeout?.cancel()
         let spec = controller.spec
-        guard spec.animates, closing else {
+        guard let motion = motion(spec), closing else {
+            stopTicker(controller)
             controller.window.hide()
             frames.publish(key, nil)
             if closing { finishClosing(controller, key: key) }
             return
         }
-        let animator = animators.animator(spec.motion)
+        let animator = animators.animator(motion)
         let geometry = geometry(controller, placement: placement, screen: screen)
         track(controller, key: key, animator: animator, geometry: geometry, opening: false)
-        controller.window.animate(opening: false, animator: animator, geometry: geometry, scrim: spec.scrim, screen: screen.frame) { [weak self, weak controller] in
+        controller.window.animate(opening: false, focus: false, animator: animator, geometry: geometry, scrim: spec.scrim, screen: screen.frame) { [weak self, weak controller] in
             guard let self, let controller else { return }
+            self.stopTicker(controller)
             self.frames.publish(key, nil)
             self.finishClosing(controller, key: key)
         }
@@ -240,15 +305,24 @@ final class WindowHost: SurfaceHosting {
         link?.surfaceDidFinishClosing(id: controller.surface.id, screenKey: controller.surface.screenKey)
     }
 
+    private func stopTicker(_ controller: SurfaceWindowController) {
+        controller.ticker?.stop()
+        controller.ticker = nil
+    }
+
     private func track(_ controller: SurfaceWindowController, key: String, animator: any SurfaceAnimator, geometry: MotionGeometry, opening: Bool) {
+        stopTicker(controller)
         guard frames.hasObservers, let ticker = makeTicker(controller.window) else { return }
+        controller.ticker = ticker
         let open = controller.openFrame
         let total = animator.duration(opening: opening)
-        ticker.start { [weak self] elapsed in
-            guard let self else { return false }
+        ticker.start { [weak self, weak controller, weak ticker] elapsed in
+            guard let self, let controller, let ticker, controller.ticker === ticker else { return false }
             let progress = animator.progress(at: elapsed, opening: opening)
             self.frames.publish(key, animator.visibleFrame(open: open, geometry: geometry, progress: progress))
-            return elapsed < total && self.frames.hasObservers
+            let going = elapsed < total && self.frames.hasObservers
+            if !going { controller.ticker = nil }
+            return going
         }
     }
 
@@ -257,7 +331,7 @@ final class WindowHost: SurfaceHosting {
         controller.timeout = nil
         guard let seconds = controller.spec.timeout else { return }
         if delay == nil { controller.hovered = false }
-        let id = controller.surface.id
+        let id = controller.surface.id, screenKey = controller.surface.screenKey
         let work = DispatchWorkItem { [weak self, weak controller] in
             MainActor.assumeIsolated {
                 guard let self, let controller, self.controllers.values.contains(where: { $0 === controller }) else { return }
@@ -267,7 +341,7 @@ final class WindowHost: SurfaceHosting {
                 } else if controller.hovered {
                     self.scheduleTimeout(controller)
                 } else {
-                    self.link?.close(id)
+                    self.link?.close(id, screenKey: screenKey)
                 }
             }
         }

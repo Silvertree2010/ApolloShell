@@ -127,36 +127,57 @@ struct ErrorOverlayView: View {
 @MainActor
 final class ErrorOverlayWindow {
     let model: ErrorOverlayModel
-    private var panel: ShellPanel?
-    private var hosting: NSHostingView<ErrorOverlayView>?
+    private(set) var panel: ShellPanel?
+    private var hosting: FirstMouseHostingView<ErrorOverlayView>?
     private let open: (Diagnostic) -> Void
     private let reload: () -> Void
+    private let stage: any WindowStage
+    private let visibleFrame: @MainActor () -> CGRect?
 
-    init(model: ErrorOverlayModel, open: @escaping (Diagnostic) -> Void, reload: @escaping () -> Void) {
+    init(model: ErrorOverlayModel, open: @escaping (Diagnostic) -> Void, reload: @escaping () -> Void,
+         stage: any WindowStage = SystemStage.shared, visibleFrame: @escaping @MainActor () -> CGRect? = { NSScreen.screens.first?.visibleFrame }) {
         self.model = model
         self.open = open
         self.reload = reload
+        self.stage = stage
+        self.visibleFrame = visibleFrame
         model.onChange = { [weak self] _ in self?.update() }
     }
 
+    var hostingView: NSView? { hosting }
+
     func update() {
         guard model.state != .hidden else {
-            panel?.orderOut(nil)
+            if let panel { stage.out(panel) }
             return
         }
         let panel = self.panel ?? makePanel()
-        guard let screen = NSScreen.screens.first, let hosting else { return }
+        guard let hosting else { return }
+        hosting.rootView = makeView()
+        resize()
+        stage.front(panel, key: false)
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated { self?.resize() }
+        }
+    }
+
+    private func makeView() -> ErrorOverlayView {
+        ErrorOverlayView(model: model, open: open, reload: reload)
+    }
+
+    private func resize() {
+        guard model.state != .hidden, let panel, let hosting, let visible = visibleFrame() else { return }
+        hosting.layoutSubtreeIfNeeded()
         let size = hosting.fittingSize
-        let visible = screen.visibleFrame
-        panel.setFrame(CGRect(x: visible.maxX - size.width - 12, y: visible.maxY - size.height - 12, width: size.width, height: size.height), display: true)
-        panel.orderFrontRegardless()
+        let frame = CGRect(x: visible.maxX - size.width - 12, y: visible.maxY - size.height - 12, width: size.width, height: size.height)
+        if panel.frame != frame { panel.setFrame(frame, display: true) }
     }
 
     private func makePanel() -> ShellPanel {
         let panel = ShellPanel(level: SurfaceWindowKind.level("overlay", kind: "overlay"),
                                behavior: [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary])
-        let hosting = NSHostingView(rootView: ErrorOverlayView(model: model, open: open, reload: reload))
-        hosting.sizingOptions = [.preferredContentSize]
+        let hosting = FirstMouseHostingView(rootView: makeView())
+        hosting.sizingOptions = [.intrinsicContentSize]
         panel.contentView = hosting
         self.panel = panel
         self.hosting = hosting
