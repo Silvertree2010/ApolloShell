@@ -18,6 +18,18 @@ public struct Evaluator: Sendable {
         self.gate = WarningGate()
     }
 
+    private init(filters: FilterTable, context: @escaping @Sendable () -> FilterContext, warn: @escaping @Sendable (Diagnostic) -> Void, gate: WarningGate) {
+        self.filters = filters
+        self.context = context
+        self.warn = warn
+        self.gate = gate
+    }
+
+    public func pinningContext(warn: @escaping @Sendable (Diagnostic) -> Void) -> Evaluator {
+        let pinned = context()
+        return Evaluator(filters: filters, context: { pinned }, warn: warn, gate: gate)
+    }
+
     public func evaluate(_ expr: Expr, in scope: any EvaluationScope) -> Value {
         StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
             EvaluationRun(evaluator: self, scope: scope, span: nil).value(expr)
