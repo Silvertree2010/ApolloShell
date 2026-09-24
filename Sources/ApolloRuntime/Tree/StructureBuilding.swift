@@ -105,8 +105,19 @@ extension ShellRuntime {
         if items.count > RuntimeLimits.eachEntries {
             warn(key: "each-limit|\(each.list.span)", Diagnostic(.warning, "each builds at most \(RuntimeLimits.eachEntries) entries, got \(items.count)", span: each.list.span))
         }
-        let count = min(items.count, RuntimeLimits.eachEntries)
         let old = node.regions
+        var count = min(items.count, RuntimeLimits.eachEntries)
+        if old.isEmpty {
+            let surface = context.surface
+            let left = max(RuntimeLimits.elementsPerSurface - surface.elementCount, 0)
+            if left < count {
+                count = left
+                if !surface.budgetWarned {
+                    surface.budgetWarned = true
+                    warn(key: "budget|" + surface.surfaceKey, Diagnostic(.warning, "surface '\(surface.instance.id)' reached \(RuntimeLimits.elementsPerSurface) elements, further elements are not built", span: each.list.span))
+                }
+            }
+        }
         eachPass += 1
         let pass = eachPass
         var lookup: [EntryKey: Region] = [:]

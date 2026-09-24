@@ -663,7 +663,10 @@ public final class ShellRuntime: SurfaceControlling {
     private func buildElement(_ ir: ElementIR, _ context: BuildContext, runtimeID: String?) -> ElementNode? {
         let surface = context.surface
         guard surface.elementCount < RuntimeLimits.elementsPerSurface else {
-            warn(key: "budget|" + surface.surfaceKey, Diagnostic(.warning, "surface '\(surface.instance.id)' reached \(RuntimeLimits.elementsPerSurface) elements, further elements are not built", span: ir.span))
+            if !surface.budgetWarned {
+                surface.budgetWarned = true
+                warn(key: "budget|" + surface.surfaceKey, Diagnostic(.warning, "surface '\(surface.instance.id)' reached \(RuntimeLimits.elementsPerSurface) elements, further elements are not built", span: ir.span))
+            }
             return nil
         }
         let identity = runtimeID.map { surface.identity.appending("#" + $0) } ?? context.path.appending(ir.key)

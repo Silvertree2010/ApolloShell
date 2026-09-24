@@ -445,7 +445,7 @@ struct ShellRuntimeTests {
         #expect(fixture.demanded("var").isEmpty)
     }
 
-    @Test("each baut höchstens 5 000 Einträge, Elementbudget je Oberfläche 20 000")
+    @Test("each baut höchstens 5 000 Einträge, Elementbudget je Oberfläche 10 000")
     func eachAndElementBudget() {
         let fixture = ShellFixture()
         let inner = EachIR(key: "0", variable: "b", list: IR.value("{var.items}"), body: [T.text("0", IR.string("x"))])
@@ -460,7 +460,7 @@ struct ShellRuntimeTests {
         ])
         #expect(fixture.surface("grid").root.count == RuntimeLimits.elementsPerSurface)
         #expect(fixture.surface("list").root.count == RuntimeLimits.eachEntries)
-        #expect(fixture.warnings.filter { $0.message.contains("20000") }.count == 1)
+        #expect(fixture.warnings.filter { $0.message.contains("\(RuntimeLimits.elementsPerSurface) elements") }.count == 1)
         #expect(fixture.warnings.filter { $0.message.contains("5000") }.count == 1)
     }
 

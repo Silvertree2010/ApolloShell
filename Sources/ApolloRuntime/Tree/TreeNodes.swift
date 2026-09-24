@@ -294,6 +294,7 @@ final class CloseWaiter {
 
 @MainActor
 final class SurfaceNode {
+    var budgetWarned = false
     let instance: SurfaceInstance
     let identity: Identity
     let surfaceKey: String

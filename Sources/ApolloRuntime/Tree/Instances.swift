@@ -5,7 +5,7 @@ import ApolloStyle
 
 public enum RuntimeLimits {
     public static let eachEntries = 5_000
-    public static let elementsPerSurface = 20_000
+    public static let elementsPerSurface = 10_000
     public static let elementDepth = 256
     public static let closeFeedbackTimeout: Double = 5
 }
