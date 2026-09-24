@@ -501,7 +501,7 @@ public final class ShellRuntime: SurfaceControlling {
             instance.root = list
         }
         node.root = root
-        buildParts(root.region, ir.children, rootContext(node, root))
+        buildParts(root.region, surfaceChildren(ir), rootContext(node, root))
         node.isConfigured = true
         return node
     }
@@ -554,14 +554,38 @@ public final class ShellRuntime: SurfaceControlling {
         return true
     }
 
+    public func setToasts(_ surfaceID: String, screenKey: String, _ toasts: [Value]) {
+        guard let node = surfaceNodes[surfaceID + "@" + screenKey], node.kind == "toast", node.toasts != toasts else { return }
+        node.toasts = toasts
+        publishSurface(node)
+    }
+
+    func surfaceChildren(_ ir: SurfaceIR) -> [ChildIR] {
+        guard ir.kind == "toast" else { return ir.children }
+        return [.each(EachIR(key: "toast-stack", variable: "toast", list: Self.toastList, itemKey: Self.toastKey, body: ir.children))]
+    }
+
+    private static let toastList = compiledInternal("{surface.toasts}")
+    private static let toastKey = compiledInternal("{toast.id}", locals: ["toast"])
+
+    private static func compiledInternal(_ text: String, locals: Set<String> = []) -> CompiledValue {
+        let span = SourceSpan.synthetic("<toast>")
+        guard case .success(let template) = ExpressionParser.parseTemplate(text, span: span) else {
+            return CompiledValue(template: .literal(""), dependencies: [], span: span)
+        }
+        return CompiledValue(template: template, dependencies: template.dependencies(locals: locals), span: span)
+    }
+
     private func publishSurface(_ node: SurfaceNode) {
         let instance = node.instance
-        store.set(DependencyPath("surface:" + node.surfaceKey, []), .record(Record([
+        var fields: [(String, Value)] = [
             ("id", .string(instance.id)),
             ("open", .bool(instance.isOpen)),
             ("opening", .bool(false)),
             ("closing", .bool(node.isClosing)),
-        ])))
+        ]
+        if node.kind == "toast" { fields.append(("toasts", .list(node.toasts))) }
+        store.set(DependencyPath("surface:" + node.surfaceKey, []), .record(Record(fields)))
         store.set(DependencyPath("surfaces:" + instance.screenKey, [instance.id, "open"]), .bool(instance.isOpen))
     }
 

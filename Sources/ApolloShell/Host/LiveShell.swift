@@ -69,6 +69,7 @@ final class LiveShell: WindowHostLink {
     private var lastIR: ConfigIR?
     private var lastDark: Bool?
     let keyNames = KeyNameSource()
+    let toasts = ToastCenter()
     var isDark: @MainActor () -> Bool = { NSApplication.shared.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua }
     var terminateApp: @MainActor () -> Void = { NSApp.terminate(nil) }
     var relaunch: @MainActor (URL, Int32) -> Void = LiveShell.relaunchAfterExit
@@ -144,12 +145,20 @@ final class LiveShell: WindowHostLink {
         })
         self.assembly = assembly
         assembly.actions.register("osd.show", OSDShowAction(shell: self))
+        assembly.actions.register("notify", NotifyAction(center: toasts))
+        assembly.actions.register("toast.dismiss", ToastDismissAction(center: toasts))
+        toasts.runtime = assembly.runtime
+        toasts.targetScreen = { [weak self] in
+            guard let self else { return nil }
+            if let key = self.pointerScreen(), self.host.screens[key] != nil { return key }
+            return self.host.screens.keys.sorted().first
+        }
         installProviders(assembly)
         assembly.runtime.onDiagnostics = { [weak self] diagnostics in
             Self.report(diagnostics)
             self?.overlay.show(diagnostics)
         }
-        assembly.runtime.onWarning = { [weak self] diagnostic in
+        assembly.onWarning = { [weak self] diagnostic in
             Self.report([diagnostic])
             self?.overlay.add(diagnostic)
         }
@@ -608,6 +617,7 @@ final class LiveShell: WindowHostLink {
     func shutdown() {
         guard shutdowns == 0 else { return }
         shutdowns += 1
+        toasts.stop()
         termination?.cancel()
         appearanceObservation = nil
         for (center, observer) in environmentObservers { center.removeObserver(observer) }

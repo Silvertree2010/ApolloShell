@@ -11,7 +11,7 @@ extension ShellRuntime {
             reconcileSurfaceProperties(node, from: old.properties, to: ir.properties)
         }
         if let root = node.root, old.children != ir.children || definesChanged {
-            reconcileParts(root.region, ir.children, rootContext(node, root))
+            reconcileParts(root.region, surfaceChildren(ir), rootContext(node, root))
         }
         return changed
     }

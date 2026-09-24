@@ -15,6 +15,7 @@ final class ShellAssembly {
     let actions: ActionDispatcher
     let runtime: ShellRuntime
     private(set) var warnings: [Diagnostic] = []
+    var onWarning: (@MainActor (Diagnostic) -> Void)?
 
     init(host: any SurfaceHosting, scheduler: any FlushScheduler, clock: any RuntimeClock = DispatchRuntimeClock(), filterContext: @escaping @Sendable () -> FilterContext) {
         self.scheduler = scheduler
@@ -25,10 +26,15 @@ final class ShellAssembly {
         providers = ProviderHost(store: store)
         actions = ActionDispatcher(evaluator: evaluator, vars: vars, providers: providers, store: store, clock: clock)
         runtime = ShellRuntime(registry: .builtin, evaluator: evaluator, store: store, bindings: bindings, vars: vars, providers: providers, actions: actions, host: host)
-        runtime.onWarning = { [weak self] in self?.warnings.append($0) }
-        actions.onWarning = { [weak self] in self?.warnings.append($0) }
-        vars.onWarning = { [weak self] in self?.warnings.append($0) }
-        providers.onWarning = { [weak self] in self?.warnings.append($0) }
+        runtime.onWarning = { [weak self] in self?.warned($0) }
+        actions.onWarning = { [weak self] in self?.warned($0) }
+        vars.onWarning = { [weak self] in self?.warned($0) }
+        providers.onWarning = { [weak self] in self?.warned($0) }
+    }
+
+    private func warned(_ diagnostic: Diagnostic) {
+        warnings.append(diagnostic)
+        onWarning?(diagnostic)
     }
 
     func install(_ list: [any ProviderInstance]) {

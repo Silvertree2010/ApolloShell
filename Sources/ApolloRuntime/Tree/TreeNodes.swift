@@ -324,6 +324,7 @@ final class SurfaceNode {
     var elementCount = 0
     var ids: [String: ElementNode] = [:]
     var closeWaiters: [CloseWaiter] = []
+    var toasts: [Value] = []
 
     init(instance: SurfaceInstance) {
         self.instance = instance
