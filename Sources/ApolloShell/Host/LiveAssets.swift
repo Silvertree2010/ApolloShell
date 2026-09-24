@@ -7,7 +7,7 @@ final class LiveThemes {
     let folders: [URL]
     private(set) var active: Theme?
     private var activeRoot: URL?
-    private var installed: [(theme: Theme, root: URL)] = []
+    private var installed: [(theme: Theme, root: URL?)] = []
     private var icons = BoundedCache<String, NSImage>(limit: 64)
     private var misses: Set<String> = []
     private(set) var diskReads = 0
@@ -21,14 +21,23 @@ final class LiveThemes {
         installed = []
         for folder in folders {
             for theme in ThemeLoader.themes(in: folder) where seen.insert(theme.identifier).inserted {
-                installed.append((theme, folder))
+                installed.append((theme, Self.ownRoot(theme, in: folder)))
             }
         }
         let found = activeID.flatMap { id in installed.first { $0.theme.identifier == id } }
         active = found?.theme
-        activeRoot = found?.root
+        activeRoot = found?.root ?? nil
         icons = BoundedCache(limit: 64)
         misses = []
+    }
+
+    static func ownRoot(_ theme: Theme, in folder: URL) -> URL? {
+        let entry = folder.appendingPathComponent(theme.identifier)
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDirectory), isDirectory.boolValue,
+              let real = SafeImageFile.realPath(entry.path)
+        else { return nil }
+        return URL(fileURLWithPath: real, isDirectory: true)
     }
 
     func theme(_ name: String) -> Theme? {
