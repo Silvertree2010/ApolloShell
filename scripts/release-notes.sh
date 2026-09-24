@@ -9,7 +9,6 @@ awk -v want="## [$version]" '
     found && /^## \[/    { exit }
     found                { print }
 ' "$file" | awk '
-    # Fuehrende und abschliessende Leerzeilen weg
     NF { blank = 0; for (i = 0; i < held; i++) print ""; held = 0; print; seen = 1; next }
     seen { held++ }
 '
