@@ -1,0 +1,298 @@
+{
+  "appleDockHiding" : {
+    "hideWhileRunning" : false
+  },
+  "background" : {
+    "desktopClock" : false
+  },
+  "bar" : {
+    "background" : "tintedGlass",
+    "layout" : [
+      {
+        "id" : "dashboardButton",
+        "kind" : "dashboardButton"
+      },
+      {
+        "id" : "workspaces",
+        "kind" : "workspaces",
+        "options" : {
+          "style" : "numbers"
+        }
+      },
+      {
+        "id" : "dock",
+        "kind" : "dock",
+        "options" : {
+          "iconSize" : "large",
+          "showRunning" : false
+        }
+      },
+      {
+        "id" : "clock",
+        "kind" : "clock",
+        "options" : {
+          "showDate" : true,
+          "showIcon" : false
+        }
+      },
+      {
+        "id" : "utilitiesButton",
+        "kind" : "utilitiesButton"
+      },
+      {
+        "id" : "statusIcons",
+        "kind" : "statusIcons",
+        "options" : {
+          "showBattery" : false,
+          "showBluetooth" : true,
+          "showWifi" : false
+        }
+      },
+      {
+        "id" : "power",
+        "kind" : "power"
+      },
+      {
+        "id" : "spacer",
+        "kind" : "spacer"
+      },
+      {
+        "id" : "gap",
+        "kind" : "gap",
+        "options" : {
+          "height" : 24
+        }
+      },
+      {
+        "id" : "gap-2",
+        "kind" : "gap",
+        "options" : {
+          "height" : 500
+        }
+      },
+      {
+        "id" : "divider",
+        "kind" : "divider"
+      },
+      {
+        "id" : "appButton",
+        "kind" : "appButton",
+        "options" : {
+          "bundleID" : "com.apple.Safari"
+        }
+      },
+      {
+        "id" : "battery",
+        "kind" : "battery",
+        "options" : {
+          "showIcon" : false
+        }
+      },
+      {
+        "id" : "cpu",
+        "kind" : "cpu",
+        "options" : {
+          "style" : "percent"
+        }
+      },
+      {
+        "id" : "weather",
+        "kind" : "weather",
+        "options" : {
+          "showTemperature" : false
+        }
+      },
+      {
+        "id" : "mediaButton",
+        "kind" : "mediaButton"
+      }
+    ],
+    "screens" : {
+      "mode" : "single",
+      "screen" : "DELL U2720Q@3840x2160"
+    }
+  },
+  "crashReports" : {
+    "mode" : "always"
+  },
+  "dashboard" : {
+    "cards" : {
+      "bottom" : [
+        {
+          "kind" : "calendar",
+          "options" : {
+            "firstWeekday" : "sunday",
+            "showWeekNumbers" : true
+          }
+        },
+        {
+          "kind" : "clock",
+          "options" : {
+            "showDate" : true,
+            "style" : "inline"
+          }
+        }
+      ],
+      "side" : [
+        {
+          "kind" : "weather",
+          "options" : {
+            "showCondition" : false,
+            "showRange" : true
+          }
+        }
+      ],
+      "top" : [
+        {
+          "kind" : "media",
+          "options" : {
+            "showAlbum" : false,
+            "showSource" : true
+          }
+        },
+        {
+          "kind" : "resources",
+          "options" : {
+            "showCPU" : true,
+            "showMemory" : false,
+            "showStorage" : true
+          }
+        }
+      ]
+    },
+    "tabs" : [
+      {
+        "id" : "weather",
+        "visible" : true
+      },
+      {
+        "id" : "dashboard",
+        "visible" : true
+      },
+      {
+        "id" : "media",
+        "visible" : false
+      },
+      {
+        "id" : "performance",
+        "visible" : false
+      }
+    ]
+  },
+  "hotKeys" : {
+    "dashboard" : {
+      "keyCode" : 2,
+      "modifiers" : [
+        "control",
+        "shift"
+      ]
+    },
+    "launcher" : {
+      "keyCode" : 49,
+      "modifiers" : [
+        "command"
+      ]
+    },
+    "nexus" : null,
+    "utilities" : {
+      "keyCode" : 32,
+      "modifiers" : [
+        "control",
+        "option",
+        "shift",
+        "command"
+      ]
+    }
+  },
+  "keepAwake" : {
+    "lidClosed" : false
+  },
+  "onboarding" : {
+    "completed" : false
+  },
+  "providers" : {
+    "fileManager" : "com.binarynights.ForkLift",
+    "weather" : "metNorway"
+  },
+  "theme" : {
+    "name" : "Catppuccin Mocha"
+  },
+  "toasts" : {
+    "audioInputChanged" : false,
+    "audioOutputChanged" : true,
+    "batteryWarnings" : false,
+    "chargingChanged" : true
+  },
+  "updates" : {
+    "autoCheck" : true,
+    "autoInstall" : false
+  },
+  "utilities" : {
+    "layout" : {
+      "cards" : [
+        {
+          "enabled" : true,
+          "kind" : "quickToggles"
+        },
+        {
+          "enabled" : false,
+          "kind" : "keepAwake"
+        },
+        {
+          "enabled" : true,
+          "kind" : "audio"
+        }
+      ],
+      "quickToggles" : [
+        {
+          "id" : "darkMode",
+          "kind" : "darkMode"
+        },
+        {
+          "id" : "hideApps",
+          "kind" : "hideApps",
+          "options" : {
+            "keepFrontmost" : true
+          }
+        },
+        {
+          "id" : "openApp",
+          "kind" : "openApp",
+          "options" : {
+            "bundleID" : "com.apple.Music",
+            "symbol" : "",
+            "title" : "Musik"
+          }
+        },
+        {
+          "id" : "openLink",
+          "kind" : "openLink",
+          "options" : {
+            "symbol" : "globe",
+            "title" : "",
+            "url" : "https://apollocloud.to"
+          }
+        },
+        {
+          "id" : "runShortcut",
+          "kind" : "runShortcut",
+          "options" : {
+            "identifier" : "3C1E2F0A-8B7D-4E7A-9C41-2F0B6D1E5A77",
+            "name" : "Focus On",
+            "symbol" : "moon.fill",
+            "title" : ""
+          }
+        },
+        {
+          "id" : "openApp-2",
+          "kind" : "openApp",
+          "options" : {
+            "bundleID" : "",
+            "symbol" : "",
+            "title" : ""
+          }
+        }
+      ]
+    }
+  }
+}

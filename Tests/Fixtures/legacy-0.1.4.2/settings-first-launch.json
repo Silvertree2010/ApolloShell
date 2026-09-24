@@ -1,0 +1,217 @@
+{
+  "appleDockHiding" : {
+    "hideWhileRunning" : false
+  },
+  "background" : {
+    "desktopClock" : true
+  },
+  "bar" : {
+    "background" : "material",
+    "layout" : [
+      {
+        "id" : "dashboardButton",
+        "kind" : "dashboardButton"
+      },
+      {
+        "id" : "workspaces",
+        "kind" : "workspaces",
+        "options" : {
+          "style" : "dots"
+        }
+      },
+      {
+        "id" : "dock",
+        "kind" : "dock",
+        "options" : {
+          "iconSize" : "medium",
+          "showRunning" : true
+        }
+      },
+      {
+        "id" : "clock",
+        "kind" : "clock",
+        "options" : {
+          "showDate" : false,
+          "showIcon" : true
+        }
+      },
+      {
+        "id" : "utilitiesButton",
+        "kind" : "utilitiesButton"
+      },
+      {
+        "id" : "statusIcons",
+        "kind" : "statusIcons",
+        "options" : {
+          "showBattery" : true,
+          "showBluetooth" : true,
+          "showWifi" : true
+        }
+      },
+      {
+        "id" : "power",
+        "kind" : "power"
+      }
+    ],
+    "screens" : {
+      "mode" : "all",
+      "screen" : null
+    }
+  },
+  "crashReports" : {
+    "mode" : "ask"
+  },
+  "dashboard" : {
+    "cards" : {
+      "bottom" : [
+        {
+          "kind" : "clock",
+          "options" : {
+            "showDate" : false,
+            "style" : "stacked"
+          }
+        },
+        {
+          "kind" : "calendar",
+          "options" : {
+            "firstWeekday" : "monday",
+            "showWeekNumbers" : false
+          }
+        },
+        {
+          "kind" : "resources",
+          "options" : {
+            "showCPU" : true,
+            "showMemory" : true,
+            "showStorage" : true
+          }
+        }
+      ],
+      "side" : [
+        {
+          "kind" : "media",
+          "options" : {
+            "showAlbum" : true,
+            "showSource" : true
+          }
+        }
+      ],
+      "top" : [
+        {
+          "kind" : "weather",
+          "options" : {
+            "showCondition" : true,
+            "showRange" : true
+          }
+        },
+        {
+          "kind" : "user",
+          "options" : {
+            "showSystem" : true,
+            "showUptime" : true
+          }
+        }
+      ]
+    },
+    "tabs" : [
+      {
+        "id" : "dashboard",
+        "visible" : true
+      },
+      {
+        "id" : "media",
+        "visible" : true
+      },
+      {
+        "id" : "performance",
+        "visible" : true
+      },
+      {
+        "id" : "weather",
+        "visible" : true
+      }
+    ]
+  },
+  "hotKeys" : {
+    "dashboard" : {
+      "keyCode" : 2,
+      "modifiers" : [
+        "control",
+        "option"
+      ]
+    },
+    "launcher" : {
+      "keyCode" : 49,
+      "modifiers" : [
+        "option"
+      ]
+    },
+    "nexus" : {
+      "keyCode" : 43,
+      "modifiers" : [
+        "control",
+        "option"
+      ]
+    },
+    "utilities" : {
+      "keyCode" : 32,
+      "modifiers" : [
+        "control",
+        "option"
+      ]
+    }
+  },
+  "keepAwake" : {
+    "lidClosed" : false
+  },
+  "onboarding" : {
+    "completed" : false
+  },
+  "providers" : {
+    "fileManager" : null,
+    "weather" : "openMeteo"
+  },
+  "theme" : {
+    "name" : null
+  },
+  "toasts" : {
+    "audioInputChanged" : true,
+    "audioOutputChanged" : true,
+    "batteryWarnings" : true,
+    "chargingChanged" : true
+  },
+  "updates" : {
+    "autoCheck" : true,
+    "autoInstall" : true
+  },
+  "utilities" : {
+    "layout" : {
+      "cards" : [
+        {
+          "enabled" : true,
+          "kind" : "keepAwake"
+        },
+        {
+          "enabled" : true,
+          "kind" : "audio"
+        },
+        {
+          "enabled" : true,
+          "kind" : "quickToggles"
+        }
+      ],
+      "quickToggles" : [
+        { "id" : "wifi", "kind" : "wifi" },
+        { "id" : "microphone", "kind" : "microphone" },
+        { "id" : "bluetooth", "kind" : "bluetooth" },
+        { "id" : "darkMode", "kind" : "darkMode" },
+        { "id" : "nightShift", "kind" : "nightShift" },
+        { "id" : "screenshot", "kind" : "screenshot" },
+        { "id" : "showDesktop", "kind" : "showDesktop" },
+        { "id" : "colorPicker", "kind" : "colorPicker" },
+        { "id" : "lockScreen", "kind" : "lockScreen" },
+        { "id" : "settings", "kind" : "settings" }
+      ]
+    }
+  }
+}

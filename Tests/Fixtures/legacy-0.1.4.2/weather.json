@@ -1,0 +1,17 @@
+{
+  "favorites" : [
+    {
+      "id" : "5B1E7C9A-2D4F-4A6B-8C0D-1E2F3A4B5C6D",
+      "latitude" : 46.85,
+      "longitude" : 9.53,
+      "name" : "Chur"
+    },
+    {
+      "id" : "0F9E8D7C-6B5A-4948-3726-15040A0B0C0D",
+      "latitude" : 47.0,
+      "longitude" : 9.5,
+      "name" : "Bad Ragaz"
+    }
+  ],
+  "selectedID" : "0F9E8D7C-6B5A-4948-3726-15040A0B0C0D"
+}
