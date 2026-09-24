@@ -366,7 +366,7 @@ extension ShellRuntime {
                     inner.scope = useScope(node, after, define, context.scope)
                     inner.useDepth = context.useDepth + 1
                     inner.path = context.path.appending(after.key).appending(selection)
-                    reconcileLater(node, region, define.body, inner)
+                    reconcileLater(node, region, Self.fillSlots(define.body, after.slots), inner)
                 } else if !name.replaced {
                     scheduleRebuild(node)
                 }

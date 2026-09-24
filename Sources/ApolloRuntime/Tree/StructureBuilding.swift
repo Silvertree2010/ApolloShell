@@ -250,9 +250,6 @@ extension ShellRuntime {
         for argument in use.arguments.keys.sorted() where !known.contains(argument) {
             warn(key: "use-parameter|\(use.name.span)|\(name)|\(argument)", Diagnostic(.warning, "unknown parameter '\(argument)' for block '\(name)'", span: use.arguments[argument]?.span ?? use.name.span))
         }
-        if !use.slots.isEmpty {
-            warn(key: "use-slots|\(use.name.span)", Diagnostic(.warning, "slot content of a runtime use is not supported yet", span: use.name.span))
-        }
         node.define = define
         let scope = useScope(node, use, define, context.scope)
         if node.selection == "use:" + name, let region = node.regions.first {
@@ -264,6 +261,45 @@ extension ShellRuntime {
         body.scope = scope
         body.useDepth = context.useDepth + 1
         body.path = context.path.appending(use.key).appending("use:" + name)
-        replace(node, selection: "use:" + name, bodies: [(define.body, body)])
+        replace(node, selection: "use:" + name, bodies: [(Self.fillSlots(define.body, use.slots), body)])
+    }
+
+    static func fillSlots(_ body: [ChildIR], _ slots: [String: [ChildIR]]) -> [ChildIR] {
+        body.flatMap { child -> [ChildIR] in
+            switch child {
+            case .slot(let name):
+                let slot = name ?? ""
+                return (slots[slot] ?? []).map { rekey($0, "slot:" + slot + "/" + $0.key) }
+            case .element(var element):
+                element.children = fillSlots(element.children, slots)
+                element.slots = element.slots.mapValues { fillSlots($0, slots) }
+                return [.element(element)]
+            case .each(var each):
+                each.body = fillSlots(each.body, slots)
+                return [.each(each)]
+            case .when(var when):
+                when.then = fillSlots(when.then, slots)
+                when.otherwise = fillSlots(when.otherwise, slots)
+                return [.when(when)]
+            case .switchOn(var switchIR):
+                switchIR.cases = switchIR.cases.map { SwitchCaseIR(values: $0.values, body: fillSlots($0.body, slots)) }
+                switchIR.otherwise = fillSlots(switchIR.otherwise, slots)
+                return [.switchOn(switchIR)]
+            case .dynamicUse(var use):
+                use.slots = use.slots.mapValues { fillSlots($0, slots) }
+                return [.dynamicUse(use)]
+            }
+        }
+    }
+
+    private static func rekey(_ child: ChildIR, _ key: String) -> ChildIR {
+        switch child {
+        case .element(var element): element.key = key; return .element(element)
+        case .each(var each): each.key = key; return .each(each)
+        case .when(var when): when.key = key; return .when(when)
+        case .switchOn(var switchIR): switchIR.key = key; return .switchOn(switchIR)
+        case .dynamicUse(var use): use.key = key; return .dynamicUse(use)
+        case .slot: return child
+        }
     }
 }

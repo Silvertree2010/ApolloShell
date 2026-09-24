@@ -371,6 +371,33 @@ struct ShellRuntimeTests {
         #expect(fixture.warnings.contains { $0.message.contains("unknown parameter 'legacy'") })
     }
 
+    @Test("Laufzeit-use füllt unbenannten und benannten Slot mit dem Inhalt der Aufrufstelle")
+    func dynamicUseSlots() {
+        let fixture = ShellFixture()
+        let card = DefineIR(name: "card", parameters: [ParameterIR(name: "title")], body: [
+            T.box("0", children: [
+                T.text("0", IR.value("{title}", locals: ["title"])),
+                .slot(name: nil),
+                .slot(name: "footer"),
+                .slot(name: "missing"),
+            ]),
+        ], span: IR.span(45))
+        fixture.apply([T.surface("panel", "side", children: [
+            .dynamicUse(DynamicUseIR(key: "0", name: IR.string("card", line: 46), arguments: ["title": IR.string("T")], slots: [
+                "": [T.text("0", IR.string("A")), T.text("1", IR.value("{var.label}"))],
+                "footer": [T.text("0", IR.string("F"))],
+            ])),
+        ])], vars: [IR.plainVar("label", .string, .string("B"))], defines: [card])
+        fixture.flush()
+        let root = fixture.surface("side").root
+        #expect(root.count == 1)
+        let children = root.first?.children ?? []
+        #expect(children.map { $0.arguments.first?.value }  == [.string("T"), .string("A"), .string("B"), .string("F")])
+        #expect(fixture.surface("side").root.map(\.kind) == ["column"])
+        #expect(Set(children.map(\.identity.description)).count == 4)
+        #expect(fixture.warnings.map(\.message) == [])
+    }
+
     @Test("Laufzeit-use rekursiv bis 32, darüber Warnung ohne Absturz")
     func recursiveUseCapped() {
         let fixture = ShellFixture()

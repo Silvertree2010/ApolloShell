@@ -154,7 +154,7 @@ final class StructureNode: TreeNode {
 
         init?(_ child: ChildIR) {
             switch child {
-            case .element: return nil
+            case .element, .slot: return nil
             case .when(let when): self = .when(when)
             case .switchOn(let switchIR): self = .switchOn(switchIR)
             case .each(let each): self = .each(each)
