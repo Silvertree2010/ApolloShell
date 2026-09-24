@@ -7,6 +7,7 @@ public enum Stability: String, Sendable, Hashable {
 public indirect enum ValueType: Sendable, Hashable {
     case any, string, number, bool, duration, keyChord, path, identifier, value, actions, list, record
     case enumeration([String])
+    case oneOf([ValueType])
 }
 
 public struct PropertySchema: Sendable, Hashable {

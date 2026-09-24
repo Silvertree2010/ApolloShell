@@ -160,5 +160,9 @@ struct SchemaRegistryProvidersTests {
             return
         }
         #expect(status.type == .enumeration(["idle", "checking", "available", "ready", "failed", "unavailable"]))
+
+        #expect(!paths.contains("hotkeys"))
+        #expect(paths.contains("hotkeys.chord"))
+        #expect(paths.contains("hotkeys.ok"))
     }
 }

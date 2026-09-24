@@ -6,6 +6,14 @@ enum CommandCenterNodes {
 
     static let all: [NodeSchema] = [
         NodeSchema(
+            name: "items",
+            category: .commandCenterItem,
+            childContext: .commandCenterItems,
+            contexts: [.commandCenterItems],
+            doc: "ersetzt die ganze Liste der Kommandozentrale.",
+            example: "items { builtin \"reload-config\" }"
+        ),
+        NodeSchema(
             name: "builtin",
             category: .commandCenterItem,
             arguments: [ArgumentSchema(name: "name", type: .enumeration(builtinNames), allowsExpression: false, doc: "Name eines eingebauten Eintrags der Kommandozentrale.")],

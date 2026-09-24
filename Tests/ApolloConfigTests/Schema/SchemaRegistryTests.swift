@@ -31,7 +31,7 @@ struct SchemaRegistryTests {
 
     static let menuItemNames: Set<String> = ["item", "separator", "section", "submenu", "source"]
 
-    static let commandCenterItemNames: Set<String> = ["builtin"]
+    static let commandCenterItemNames: Set<String> = ["builtin", "items"]
 
     static let wmSettingNames: Set<String> = [
         "layout", "gaps", "focus-follows-mouse", "drag", "resize-animation", "spring", "tab-bar",
@@ -42,7 +42,7 @@ struct SchemaRegistryTests {
 
     static let nodesWithChildren: Set<String> = [
         "define", "fill", "use", "each", "when", "else", "switch", "case", "default", "feature",
-        "bind", "on", "wm", "command-center",
+        "bind", "on", "wm", "command-center", "items",
         "panel", "popup", "overlay", "toast", "osd", "window",
         "row", "column", "grid", "stack", "scroll",
         "slider", "reorderable", "flyout", "menu", "accessibility-action",
@@ -173,7 +173,14 @@ struct SchemaRegistryTests {
     func clickThroughTypeMatchesDefault() {
         let panel = BuiltinSchemaRegistry.allNodes.first { $0.name == "panel" }
         let clickThrough = panel?.properties.first { $0.name == "click-through" }
-        #expect(clickThrough?.type == .any)
+        #expect(clickThrough?.type == .oneOf([.bool, .enumeration(["auto"])]))
         #expect(clickThrough?.defaultValue == .bool(false))
+    }
+
+    @Test("items ist ein eigener Zwischenknoten unter command-center")
+    func commandCenterItemsWrapperExists() {
+        let items = BuiltinSchemaRegistry.allNodes.first { $0.name == "items" }
+        #expect(items?.contexts.contains(.commandCenterItems) == true)
+        #expect(items?.childContext == .commandCenterItems)
     }
 }
