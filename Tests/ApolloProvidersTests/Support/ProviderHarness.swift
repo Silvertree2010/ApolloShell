@@ -12,6 +12,7 @@ final class ProviderHarness {
     let clock = ManualRuntimeClock()
     var events: [(name: String, fields: Record)] = []
     var warnings: [Diagnostic] = []
+    var recorders: [String: RecordingProvider] = [:]
 
     init() {
         store = SignalStore(scheduler: scheduler)
@@ -21,7 +22,9 @@ final class ProviderHarness {
     }
 
     func register(_ provider: any ProviderInstance) {
-        host.register(provider)
+        let recorder = RecordingProvider(provider)
+        recorders[provider.schema.id] = recorder
+        host.register(recorder)
         flush()
     }
 
@@ -78,6 +81,6 @@ final class ProviderHarness {
     }
 
     func conformanceProblems(_ schema: ProviderSchema, strict: Bool = true) -> [String] {
-        ProviderConformance.problems(schema: schema, root: root(schema.id), strictNullability: strict)
+        ProviderConformance.problems(schema: schema, root: recorders[schema.id]?.published ?? .null, strictNullability: strict)
     }
 }
