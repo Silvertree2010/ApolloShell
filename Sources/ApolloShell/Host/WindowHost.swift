@@ -35,6 +35,7 @@ final class SurfaceWindowController {
     var offset: CGPoint?
     var observing = false
     var flyout = EdgeInsets()
+    var pendingContent: AnyView?
     var flyoutShrink: DispatchWorkItem?
 
     init(surface: SurfaceInstance, window: any HostWindow, spec: SurfaceWindowSpec) {
@@ -176,8 +177,12 @@ final class WindowHost: SurfaceHosting {
     private func applyFlyout(_ key: String, _ extent: EdgeInsets) {
         guard let controller = controllers[key], controller.flyout != extent else { return }
         controller.flyout = extent
-        controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: extent))
+        controller.pendingContent = content(controller.surface, insets: controller.insets, flyout: extent)
         sync(key)
+        if let pending = controller.pendingContent {
+            controller.pendingContent = nil
+            controller.window.setContent(pending)
+        }
     }
 
     static func expand(_ frame: CGRect, by extent: EdgeInsets) -> CGRect {
@@ -274,7 +279,7 @@ final class WindowHost: SurfaceHosting {
         let layout = SurfaceLayout.compute(placement: placement, spec: spec, radius: StyleValues.radius(style["border-radius"]), screen: screen, fitting: fitting)
         if layout.insets != controller.insets {
             controller.insets = layout.insets
-            controller.window.setContent(content(surface, insets: layout.insets, flyout: flyout))
+            controller.pendingContent = content(surface, insets: layout.insets, flyout: flyout)
         }
         var frame = layout.frame
         if let attach = SurfacePlacement.attachment(surface.property), let target = attachedRect(attach, screenKey: surface.screenKey) {
@@ -287,12 +292,21 @@ final class WindowHost: SurfaceHosting {
                 if !controller.window.restoreFrame() { controller.window.setFrame(frame) }
             }
             controller.openFrame = controller.window.frame
+            if let pending = controller.pendingContent {
+                controller.pendingContent = nil
+                controller.window.setContent(pending)
+            }
         } else {
             let offset = CGPoint(x: placement.offsetX, y: placement.offsetY)
             let glide = controller.shown && controller.offset != nil && controller.offset != offset
             controller.offset = offset
             controller.openFrame = frame
-            controller.window.setFrame(Self.expand(frame, by: flyout), glide: glide)
+            if let pending = controller.pendingContent {
+                controller.pendingContent = nil
+                controller.window.setContent(pending, frame: Self.expand(frame, by: flyout), glide: glide)
+            } else {
+                controller.window.setFrame(Self.expand(frame, by: flyout), glide: glide)
+            }
         }
         let opening = surface.isOpen && !controller.wasOpen
         let closing = !surface.isOpen && controller.wasOpen

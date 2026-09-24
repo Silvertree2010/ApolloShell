@@ -19,6 +19,7 @@ protocol HostWindow: AnyObject {
     func setIgnoresMouse(_ ignores: Bool)
     func restoreFrame() -> Bool
     func setContent(_ view: AnyView)
+    func setContent(_ view: AnyView, frame: CGRect, glide: Bool)
     func show(focus: Bool)
     func hide()
     func animate(opening: Bool, focus: Bool, animator: any SurfaceAnimator, geometry: MotionGeometry, scrim: Double?, screen: CGRect, completion: @escaping @MainActor () -> Void)
@@ -246,6 +247,16 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
 
     func setContent(_ view: AnyView) {
         hosting.rootView = view
+    }
+
+    func setContent(_ view: AnyView, frame: CGRect, glide: Bool) {
+        window.disableScreenUpdatesUntilFlush()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        hosting.rootView = view
+        setFrame(frame, glide: glide)
+        hosting.layoutSubtreeIfNeeded()
+        CATransaction.commit()
     }
 
     func show(focus: Bool) {
