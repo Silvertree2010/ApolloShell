@@ -1,0 +1,54 @@
+import Testing
+import Foundation
+import ApolloConfig
+import ApolloStyle
+import ApolloRuntime
+@testable import ApolloShell
+
+@MainActor
+@Suite("Dock-Stile im Renderer")
+struct DockStyleTests {
+    func styled() throws -> [(ElementInstance, ComputedStyle)] {
+        let (_, surface) = try DockSlice.build()
+        let ir = try #require(ConfigSource.load(PackageResources.dockRender, builtinConfigs: PackageResources.configs, id: "render-dock").ir)
+        let (sheets, diagnostics) = StyleSheets.load(ir)
+        #expect(diagnostics.isEmpty)
+        let resolver = StyleResolver(sheets: sheets, environment: StyleSheets.environment(dark: false))
+        var result: [(ElementInstance, ComputedStyle)] = []
+        func walk(_ element: ElementInstance, _ ancestors: [StyleSubject], _ parent: ComputedStyle) {
+            let subject = StyleResolver.subject(for: element)
+            let style = resolver.resolve(subject, ancestors: ancestors, parent: parent)
+            result.append((element, style))
+            for child in element.children { walk(child, ancestors + [subject], style) }
+        }
+        let root = StyleResolver.subject(for: surface)
+        let rootStyle = resolver.resolve(root, ancestors: [], parent: nil)
+        #expect(StyleValues.points(rootStyle["width"]) == 44)
+        #expect(StyleValues.points(rootStyle["height"]) == 300)
+        for element in surface.root { walk(element, [root], rootStyle) }
+        return result
+    }
+
+    @Test("dock-item 32 pt, Radius 9, Tönung nur im Vordergrund")
+    func items() throws {
+        let items = try styled().filter { DockSlice.classes($0.0).contains("dock-item") }
+        #expect(items.count == 3)
+        for (_, style) in items {
+            #expect(StyleValues.points(style["width"]) == 32)
+            #expect(StyleValues.radius(style["border-radius"]) == 9)
+        }
+        #expect(items[1].1["background"] == .layers([.color(.system(name: "-apple-system-label", alpha: 0.10))]))
+        #expect(items[0].1["background"] == nil || items[0].1["background"] == .layers([]))
+    }
+
+    @Test("Symbol 26 pt, Punkt 4 pt links um 5 pt versetzt")
+    func iconAndDot() throws {
+        let all = try styled()
+        let icon = try #require(all.first { $0.0.kind == "app-icon" })
+        #expect(StyleValues.points(icon.1["width"]) == 26)
+        let dot = try #require(all.first { DockSlice.classes($0.0).contains("dock-running-dot") })
+        #expect(StyleValues.points(dot.1["width"]) == 4)
+        #expect(StyleValues.translation(dot.1["transform"]) == CGSize(width: -5, height: 0))
+        #expect(StyleValues.keyword(dot.1["align-self"]) == "start")
+    }
+}
