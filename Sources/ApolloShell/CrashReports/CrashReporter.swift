@@ -1,4 +1,5 @@
 import AppKit
+import ApolloControl
 import ApolloShellCore
 import os
 
@@ -10,15 +11,24 @@ final class CrashReporter {
     }
     private static let delay: TimeInterval = 8
 
-    private let settings: ShellSettingsStore
+    private let settings: SettingsStore
+    private let machine: MachineState
     private let installKind: InstallKind
-    private let log = Logger(category: "crashreports")
+    private let log = Logger(category: "crash")
     private var busy = false
 
-    init(settings: ShellSettingsStore,
+    init(settings: SettingsStore,
+         machine: MachineState,
          installKind: InstallKind = .detect(resourcesURL: Bundle.main.resourceURL)) {
         self.settings = settings
+        self.machine = machine
         self.installKind = installKind
+    }
+
+    var mode: CrashReportSettings.Mode { settings.crashReportMode }
+
+    func setMode(_ mode: CrashReportSettings.Mode) throws {
+        try settings.apply(.crashReports(mode.rawValue))
     }
 
     func checkAfterLaunch() {
@@ -30,10 +40,10 @@ final class CrashReporter {
     private func check() {
         guard !busy else { return }
         let now = Date()
-        let pending = CrashReportScan.pending(Self.candidates(), handledUntil: settings.settings.crashReports.handledUntil,
+        let pending = CrashReportScan.pending(Self.candidates(), handledUntil: machine.crashReportsHandledUntil,
                                               now: now)
         guard !pending.isEmpty else { return }
-        if settings.settings.crashReports.mode == .never {
+        if mode == .never {
             markHandled(until: pending.last!.modified)
             return
         }
@@ -55,7 +65,7 @@ final class CrashReporter {
         defer { busy = false }
         guard !prepared.isEmpty else { return markHandled(until: lastSeen) }
         for (candidate, upload) in prepared {
-            switch settings.settings.crashReports.mode {
+            switch mode {
             case .never:
                 markHandled(until: candidate.modified)
             case .always:
@@ -81,14 +91,18 @@ final class CrashReporter {
         alert.addButton(withTitle: String(localized: "Send"))
         alert.addButton(withTitle: String(localized: "Don't Send"))
         alert.showsSuppressionButton = true
-        alert.suppressionButton?.title = String(localized: "Do this every time (change it in Nexus > Updates)")
+        alert.suppressionButton?.title = String(localized: "Do this every time (change it in the command center under Crash Reports)")
         alert.accessoryView = Self.preview(upload)
         NSApp.activate()
         let response = alert.runModal()
         guard response != .abort else { return nil }
         let send = response == .alertFirstButtonReturn
         if alert.suppressionButton?.state == .on {
-            settings.settings.crashReports.mode = send ? .always : .never
+            do {
+                try setMode(send ? .always : .never)
+            } catch {
+                log.error("Einstellung nicht gespeichert: \(String(describing: error), privacy: .public)")
+            }
         }
         return send
     }
@@ -118,8 +132,8 @@ final class CrashReporter {
     }
 
     private func markHandled(until date: Date) {
-        let current = settings.settings.crashReports.handledUntil ?? .distantPast
-        if date > current { settings.settings.crashReports.handledUntil = date }
+        let current = machine.crashReportsHandledUntil ?? .distantPast
+        if date > current { machine.crashReportsHandledUntil = date }
     }
 
     private static func candidates() -> [CrashReportScan.Candidate] {

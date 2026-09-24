@@ -1,38 +1,39 @@
 import AppKit
+import ApolloControl
 import ApolloShellCore
 import Sparkle
-import SwiftUI
 
 @MainActor
-@Observable
 final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDelegate {
-    enum Status: Equatable {
-        case idle
-        case checking
-        case upToDate
-        case found(version: String, page: URL?)
-        case ready(version: String)
-        case failed(String)
-        case unavailable
+    private(set) var status: UpdateStatus = .idle {
+        didSet { if status != oldValue { onChange?() } }
     }
-
-    private(set) var status: Status = .idle
+    private(set) var releaseNotes: URL?
     private(set) var lastCheck: Date?
     let installKind: InstallKind
+    var onChange: (() -> Void)?
 
-    private let settings: ShellSettingsStore
+    private let settings: SettingsStore
+    private let machine: MachineState
     private var updaterController: SPUStandardUpdaterController?
     private var installNow: (() -> Void)?
     private var checkTask: Task<Void, Never>?
+    private var settingsToken: ObservationToken?
 
     private static let checkInterval: TimeInterval = 86400
 
-    init(settings: ShellSettingsStore,
+    init(settings: SettingsStore,
+         machine: MachineState,
          installKind: InstallKind = .detect(resourcesURL: Bundle.main.resourceURL)) {
         self.settings = settings
+        self.machine = machine
         self.installKind = installKind
         super.init()
-        lastCheck = settings.settings.updates.lastCheck
+        lastCheck = machine.lastUpdateCheck
+        settingsToken = settings.observe { [weak self] old, new in
+            guard old.autoCheckUpdates != new.autoCheckUpdates || old.autoInstallUpdates != new.autoInstallUpdates else { return }
+            Task { @MainActor in self?.applySettings() }
+        }
 
         guard installKind.updatesItself, Self.bundleCanUpdate else {
             status = .unavailable
@@ -55,11 +56,24 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
 
     var upgradeCommand: String { InstallKind.homebrewUpgradeCommand }
 
+    var autoCheck: Bool { settings.settings.autoCheckUpdates }
+
+    var autoInstall: Bool { settings.settings.autoInstallUpdates }
+
+    func setAutoCheck(_ enabled: Bool) throws {
+        try settings.apply(.updates(autoCheck: enabled, autoInstall: autoInstall))
+    }
+
+    func setAutoInstall(_ enabled: Bool) throws {
+        try settings.apply(.updates(autoCheck: autoCheck, autoInstall: enabled))
+    }
+
     func applySettings() {
         guard let updater = updaterController?.updater else { return }
-        updater.automaticallyChecksForUpdates = settings.settings.updates.checkAutomatically
-        updater.automaticallyDownloadsUpdates = settings.settings.updates.installAutomatically
+        updater.automaticallyChecksForUpdates = autoCheck
+        updater.automaticallyDownloadsUpdates = autoInstall
         updater.updateCheckInterval = Self.checkInterval
+        onChange?()
     }
 
     func checkNow() {
@@ -74,8 +88,7 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
 
     func checkInBackgroundIfDue() {
         guard updaterController == nil, installKind == .homebrew else { return }
-        guard settings.settings.updates.checkAutomatically else { return }
-        if let lastCheck, Date().timeIntervalSince(lastCheck) < Self.checkInterval { return }
+        guard UpdateSchedule.isDue(lastCheck: lastCheck, now: Date(), autoCheck: autoCheck, interval: Self.checkInterval) else { return }
         checkViaGitHub()
     }
 
@@ -93,7 +106,7 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     private func rememberCheck(at date: Date) {
         lastCheck = date
         guard updaterController == nil else { return }
-        settings.settings.updates.lastCheck = date
+        machine.lastUpdateCheck = date
     }
 
     private func checkViaGitHub() {
@@ -106,7 +119,9 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
             self?.rememberCheck(at: Date())
             switch outcome {
             case .current: self?.status = .upToDate
-            case let .newer(release): self?.status = .found(version: release.version.description, page: release.page)
+            case let .newer(release):
+                self?.releaseNotes = release.page
+                self?.status = .available(version: release.version.description)
             case let .failed(message): self?.status = .failed(message)
             }
         }
@@ -117,7 +132,8 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
             status = .ready(version: item.displayVersionString)
             return
         }
-        status = .found(version: item.displayVersionString, page: item.releaseNotesURL ?? item.infoURL)
+        releaseNotes = item.releaseNotesURL ?? item.infoURL
+        status = .available(version: item.displayVersionString)
     }
 
     func updaterDidNotFindUpdate(_ updater: SPUUpdater) {
@@ -142,6 +158,7 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
 
     func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
         lastCheck = updater.lastUpdateCheckDate
+        onChange?()
         if case .checking = status, error == nil { status = .upToDate }
     }
 
