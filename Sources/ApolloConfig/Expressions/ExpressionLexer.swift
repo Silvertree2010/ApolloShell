@@ -6,9 +6,11 @@ enum ExpressionLexer {
     static func scan(_ characters: [Character]) throws(ExpressionSyntaxError) -> [ExpressionToken] {
         var tokens: [ExpressionToken] = []
         var index = 0
+        var sawWhitespace = false
         while index < characters.count {
             if characters[index].isWhitespace {
                 index += 1
+                sawWhitespace = true
                 continue
             }
             guard tokens.count < maximumTokens else {
@@ -19,7 +21,9 @@ enum ExpressionLexer {
                     end: characters.count
                 )
             }
-            let token = try nextToken(characters, at: index)
+            var token = try nextToken(characters, at: index)
+            token.leadingWhitespace = sawWhitespace
+            sawWhitespace = false
             tokens.append(token)
             index = token.end
         }

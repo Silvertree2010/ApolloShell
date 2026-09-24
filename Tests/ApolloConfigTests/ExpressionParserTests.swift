@@ -59,6 +59,15 @@ struct ExpressionParserTests {
         ("3.25", number(3.25)),
         ("(1 + 2) * 3", .binary(.multiply, .binary(.add, number(1), number(2)), number(3))),
         ("x | contains [1, 2]", .pipe(path("x"), filter("contains", [.list([number(1), number(2)])]))),
+        ("list[0][1]", .path(root: "list", members: [.index(number(0)), .index(number(1))])),
+        (
+            "apps.dock | index-where 'section' ['running']",
+            .pipe(path("apps", "dock"), filter("index-where", [text("section"), .list([text("running")])]))
+        ),
+        (
+            "x | zip [1, 2] [3, 4]",
+            .pipe(path("x"), filter("zip", [.list([number(1), number(2)]), .list([number(3), number(4)])]))
+        ),
     ]
 
     @Test("gültige Ausdrücke ergeben den erwarteten Baum", arguments: ExpressionParserTests.valid)
@@ -82,6 +91,7 @@ struct ExpressionParserTests {
         ("a b", "unexpected 'b'", nil),
         ("a)", "unexpected ')'", nil),
         ("list[0", "expected ']' after the index, found end of expression", nil),
+        ("a [0]", "unexpected '['", nil),
     ]
 
     @Test("ungültige Ausdrücke ergeben eine Diagnose mit Text und Hilfe", arguments: ExpressionParserTests.invalid)

@@ -169,7 +169,7 @@ struct ExpressionGrammar {
                 }
                 advance()
                 members.append(.field(field))
-            } else if current.isSymbol("[") {
+            } else if current.isSymbol("[") && !current.leadingWhitespace {
                 let open = advance()
                 try enterNesting(open)
                 let index = try parseExpression()

@@ -10,6 +10,7 @@ struct ExpressionToken: Sendable, Hashable {
     var kind: ExpressionTokenKind
     var start: Int
     var end: Int
+    var leadingWhitespace: Bool = false
 
     var description: String {
         switch kind {
