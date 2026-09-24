@@ -257,7 +257,7 @@ define "popout-bluetooth" {
         }
         when "{(bluetooth.devices | count) > 0}" {
             column class="popout-card popout-devices" {
-                each device in="{bluetooth.devices}" key="{device.name}" {
+                each device in="{bluetooth.devices}" key="{device.name + device.kind}" {
                     row class="popout-device" {
                         icon "{device.symbol}" fallback="headphones" class="popout-device-glyph"
                         text "{device.name}" class="popout-device-name" lines=1 truncate="tail"

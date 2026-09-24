@@ -151,15 +151,9 @@ define "card-media" {
                     image "{media.artwork}" placeholder="music.note" fit="fill" class="card-media-artwork"
                     column class="card-media-text" {
                         text "{media.playing ? media.title : 'Nothing Playing'}" class="card-media-title" lines=1 truncate="tail"
-                        text "{media.artist}{card.show-album && media.album != null ? ' – ' + media.album : ''}" class="card-media-artist" lines=1 truncate="tail"
+                        text "{media.artist}{card.show-album && media.album != null ? ' · ' + media.album : ''}" class="card-media-artist" lines=1 truncate="tail"
                         progress value="{media.progress}" class="card-media-bar"
                         use "media-controls"
-                    }
-                    when "{card.show-source && media.app != null}" {
-                        row class="card-media-source" {
-                            app-icon "{media.app}" class="card-media-source-icon"
-                            text "{media.app-name}" class="card-media-source-name" lines=1 truncate="tail"
-                        }
                     }
                 }
             }

@@ -373,7 +373,7 @@ define "settings-confirm-control-centre" {
         row class="settings-actions" {
             spacer
             button class="settings-button" {
-                on-click { set "settings-utilities-confirm" ""; close "settings-confirm" }
+                on-click { close "settings-confirm" }
                 text "Cancel"
             }
             button class="settings-button settings-default-button" {
@@ -384,7 +384,7 @@ define "settings-confirm-control-centre" {
                         case "everything" { set "utilities-cards" "{utilities-everything.cards}"; set "utilities-toggles" "{utilities-everything.toggles}" }
                         default { set "utilities-cards" "{utilities-standard.cards}"; set "utilities-toggles" "{utilities-standard.toggles}" }
                     }
-                    set "settings-utilities-confirm" ""; close "settings-confirm"
+                    close "settings-confirm"
                     set "settings-toggle-selected" ""
                 }
                 text "{var.settings-utilities-confirm == 'reset' ? 'Reset' : 'Load'}"

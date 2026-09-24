@@ -163,6 +163,21 @@ struct FixtureFieldCheckTests {
         #expect(session.diagnostics.map(\.message) == [])
     }
 
+    @Test("Zwei gleichnamige Bluetooth-Geräte geben keine Warnung über doppelte Schlüssel")
+    func sidebarBluetoothDuplicateNamesNoWarning() throws {
+        let text = try String(contentsOf: Self.fixtureURL, encoding: .utf8)
+            .replacingOccurrences(of: "Magic Keyboard", with: "AirPods Pro")
+        let fixture = ProviderFixture.parse(text, file: "apolloshell-default.kdl")
+        let ir = try #require(Self.builtin("apolloshell-default").ir)
+        let session = FixtureFieldCheck.session(ir, fixture: fixture)
+        #expect(session.vars.set("status-popout", .string("bluetooth")))
+        session.runtime.open("sidebar", screenKey: nil)
+        session.flush()
+        let sidebar = Self.texts(try #require(session.runtime.surface("sidebar", screenKey: "main")).root)
+        #expect(sidebar.filter { $0 == "AirPods Pro" }.count == 2)
+        #expect(!session.diagnostics.map(\.message).contains { $0.contains("duplicate keys") })
+    }
+
     static func all(_ roots: [ElementInstance]) -> [ElementInstance] {
         var out: [ElementInstance] = []
         var stack = Array(roots.reversed())
@@ -217,7 +232,7 @@ struct FixtureFieldCheckTests {
         #expect(Self.texts([tall]) == ["Starboy", "Starboy", "The Weeknd", "Spotify"])
         #expect(Self.all([tall]).contains { $0.kind == "ring" })
         let strip = try variant("card-media-strip")
-        #expect(Self.texts([strip]) == ["Starboy", "The Weeknd – Starboy", "Spotify"])
+        #expect(Self.texts([strip]) == ["Starboy", "The Weeknd · Starboy"])
         #expect(Self.all([strip]).contains { $0.kind == "progress" })
         let compact = try variant("card-media-compact")
         #expect(Self.texts([compact]) == ["Starboy", "The Weeknd"])

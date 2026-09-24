@@ -343,7 +343,7 @@ define "settings-confirm-sidebar" {
         row class="settings-actions" {
             spacer
             button class="settings-button" {
-                on-click { set "settings-sidebar-confirm" ""; close "settings-confirm" }
+                on-click { close "settings-confirm" }
                 text "Cancel"
             }
             button class="settings-button settings-default-button" {
@@ -354,7 +354,7 @@ define "settings-confirm-sidebar" {
                         case "everything" { set "sidebar-modules" "{sidebar-everything}" }
                         default { set "sidebar-modules" "{sidebar-caelestia}" }
                     }
-                    set "settings-sidebar-confirm" ""; close "settings-confirm"
+                    close "settings-confirm"
                     set "settings-sidebar-expanded" ""
                 }
                 text "{var.settings-sidebar-confirm == 'reset' ? 'Reset' : 'Load'}"

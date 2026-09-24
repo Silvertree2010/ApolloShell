@@ -361,7 +361,7 @@ define "settings-confirm-dashboard" {
         row class="settings-actions" {
             spacer
             button class="settings-button" {
-                on-click { set "settings-dashboard-confirm" ""; close "settings-confirm" }
+                on-click { close "settings-confirm" }
                 text "Cancel"
             }
             button class="settings-button settings-default-button" {
@@ -371,7 +371,7 @@ define "settings-confirm-dashboard" {
                         case "calendar-weather" { set "dashboard-tabs" "{dashboard-calendar-weather.tabs}"; set "dashboard-cards-top" "{dashboard-calendar-weather.top}"; set "dashboard-cards-bottom" "{dashboard-calendar-weather.bottom}"; set "dashboard-cards-side" "{dashboard-calendar-weather.side}" }
                         default { set "dashboard-tabs" "{dashboard-caelestia.tabs}"; set "dashboard-cards-top" "{dashboard-caelestia.top}"; set "dashboard-cards-bottom" "{dashboard-caelestia.bottom}"; set "dashboard-cards-side" "{dashboard-caelestia.side}" }
                     }
-                    set "settings-dashboard-confirm" ""; close "settings-confirm"
+                    close "settings-confirm"
                     set "settings-dashboard-expanded" ""
                 }
                 text "{var.settings-dashboard-confirm == 'reset' ? 'Reset' : 'Load'}"
