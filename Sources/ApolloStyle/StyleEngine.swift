@@ -107,6 +107,7 @@ public final class StyleEngine: Sendable {
                 values[name] = initial
             }
         }
+        StyleFinisher.finish(&values, winners: winners, declared: declared, environment: environment)
         var style = ComputedStyle(values: values)
         style.customProperties = custom
         return (style, diagnostics.list)
