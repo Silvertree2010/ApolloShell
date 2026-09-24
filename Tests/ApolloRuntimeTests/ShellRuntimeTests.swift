@@ -19,6 +19,10 @@ final class RecordingHost: SurfaceHosting {
         events.append("changed:\(surface.id)@\(surface.screenKey)")
     }
 
+    func surfaceReplaced(_ surface: SurfaceInstance) {
+        events.append("replaced:\(surface.id)@\(surface.screenKey)")
+    }
+
     func surfaceRemoved(id: String, screenKey: String) {
         events.append("removed:\(id)@\(screenKey)")
     }
@@ -54,9 +58,9 @@ struct ShellFixture {
         actions.register("log", LogAction(log))
     }
 
-    func apply(_ surfaces: [SurfaceIR], vars declarations: [VarDecl] = [], defines: [DefineIR] = [], events: [EventHandlerIR] = [], screens: [String] = ["A"]) {
+    func apply(_ surfaces: [SurfaceIR], vars declarations: [VarDecl] = [], defines: [DefineIR] = [], events: [EventHandlerIR] = [], screens: [String] = ["A"], id: String = "test") {
         let ir = ConfigIR(
-            id: "test",
+            id: id,
             root: URL(fileURLWithPath: "/config"),
             vars: declarations,
             surfaces: surfaces,
@@ -94,8 +98,8 @@ final class ChangeCounter: Sendable {
 enum TreeIR {
     typealias IR = RuntimeIR
 
-    static func text(_ key: String, _ content: CompiledValue, properties: [String: CompiledValue] = [:], line: Int = 1) -> ChildIR {
-        .element(ElementIR(kind: "text", key: key, arguments: [content], properties: properties, span: IR.span(line)))
+    static func text(_ key: String, _ content: CompiledValue, properties: [String: CompiledValue] = [:], handlers: [HandlerIR] = [], line: Int = 1) -> ChildIR {
+        .element(ElementIR(kind: "text", key: key, arguments: [content], properties: properties, handlers: handlers, span: IR.span(line)))
     }
 
     static func box(_ key: String, properties: [String: CompiledValue] = [:], handlers: [HandlerIR] = [], slots: [String: [ChildIR]] = [:], children: [ChildIR], line: Int = 1) -> ChildIR {

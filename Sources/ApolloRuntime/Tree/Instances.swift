@@ -87,6 +87,7 @@ public final class SurfaceInstance {
 public protocol SurfaceHosting: AnyObject {
     func surfaceAdded(_ surface: SurfaceInstance)
     func surfaceChanged(_ surface: SurfaceInstance)
+    func surfaceReplaced(_ surface: SurfaceInstance)
     func surfaceRemoved(id: String, screenKey: String)
 }
 

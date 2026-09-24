@@ -76,6 +76,10 @@ public final class ShellRuntime: SurfaceControlling {
     }
 
     public func apply(_ ir: ConfigIR, persisted: [String: Value], screens: [String], shell: Record) {
+        if let old = config {
+            reload(from: old, to: ir, persisted: persisted, screens: screens, shell: shell)
+            return
+        }
         teardownAll()
         warned.removeAll()
         config = ir
@@ -93,6 +97,81 @@ public final class ShellRuntime: SurfaceControlling {
         }
         for node in added {
             host.surfaceAdded(node.instance)
+        }
+    }
+
+    private func reload(from old: ConfigIR, to ir: ConfigIR, persisted: [String: Value], screens: [String], shell: Record) {
+        warned.removeAll()
+        let diff = IRDiff.surfaces(old: old, new: ir)
+        let changedIDs = Set(diff.changed.map(\.id))
+        var added: [SurfaceNode] = []
+        var replaced: [SurfaceNode] = []
+        var changed: [SurfaceNode] = []
+        var removed: [(id: String, screenKey: String)] = []
+        bindings.deferEvaluation {
+            self.screens = screens
+            if store.value(DependencyPath("shell", [])) != .record(shell) {
+                store.set(DependencyPath("shell", []), .record(shell))
+            }
+            if old.id != ir.id {
+                vars.switchConfig(ir.vars, persisted: persisted, shell: shell)
+            } else {
+                vars.declare(ir.vars, persisted: persisted, shell: shell)
+            }
+            config = ir
+            if old.events != ir.events || old.binds != ir.binds {
+                let staleConfig = configTokens
+                let staleAwake = awakeTokens
+                configTokens.removeAll()
+                awakeTokens.removeAll()
+                registerConfigDemand(ir)
+                staleConfig.forEach(store.unsubscribe)
+                staleAwake.forEach(providers.unsubscribe)
+            }
+            definesChanged = old.defines != ir.defines
+            reloading = true
+            withSession {
+                var desired: [(key: String, ir: SurfaceIR, screen: String)] = []
+                for surfaceIR in ir.surfaces {
+                    for screen in targetScreens(surfaceIR) {
+                        desired.append((surfaceIR.id + "@" + screen, surfaceIR, screen))
+                    }
+                }
+                let wanted = Set(desired.map(\.key))
+                for key in surfaceOrder where !wanted.contains(key) {
+                    if let node = surfaceNodes[key] {
+                        removed.append((node.instance.id, node.instance.screenKey))
+                        teardownSurface(node, notify: false)
+                    }
+                }
+                for entry in desired {
+                    if let node = surfaceNodes[entry.key] {
+                        if node.kind != entry.ir.kind {
+                            teardownSurface(node, notify: false)
+                            replaced.append(buildSurface(entry.ir, screen: entry.screen))
+                        } else if reconcileSurface(node, entry.ir), changedIDs.contains(entry.ir.id) {
+                            changed.append(node)
+                        }
+                    } else {
+                        added.append(buildSurface(entry.ir, screen: entry.screen))
+                    }
+                }
+                surfaceOrder = desired.map(\.key).filter { surfaceNodes[$0] != nil }
+            }
+            reloading = false
+            definesChanged = false
+        }
+        for entry in removed where surfaceNodes[entry.id + "@" + entry.screenKey] == nil {
+            host.surfaceRemoved(id: entry.id, screenKey: entry.screenKey)
+        }
+        for node in replaced where surfaceNodes[node.surfaceKey] === node {
+            host.surfaceReplaced(node.instance)
+        }
+        for node in added where surfaceNodes[node.surfaceKey] === node {
+            host.surfaceAdded(node.instance)
+        }
+        for node in changed where surfaceNodes[node.surfaceKey] === node {
+            host.surfaceChanged(node.instance)
         }
     }
 
@@ -319,7 +398,7 @@ public final class ShellRuntime: SurfaceControlling {
         awakeTokens.removeAll()
     }
 
-    func teardownSurface(_ node: SurfaceNode) {
+    func teardownSurface(_ node: SurfaceNode, notify: Bool = true) {
         if let root = node.root {
             teardown(root.region.parts)
             root.region.parts.removeAll()
@@ -335,7 +414,9 @@ public final class ShellRuntime: SurfaceControlling {
         store.remove(DependencyPath("surfaces:" + node.instance.screenKey, [node.instance.id]))
         surfaceNodes[node.surfaceKey] = nil
         surfaceOrder.removeAll { $0 == node.surfaceKey }
-        host.surfaceRemoved(id: node.instance.id, screenKey: node.instance.screenKey)
+        if notify {
+            host.surfaceRemoved(id: node.instance.id, screenKey: node.instance.screenKey)
+        }
     }
 
     func targetScreens(_ surfaceIR: SurfaceIR) -> [String] {
