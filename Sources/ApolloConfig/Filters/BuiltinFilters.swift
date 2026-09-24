@@ -1,5 +1,5 @@
 enum BuiltinFilters {
-    static let all: [BuiltinFilter] = NumberFilters.all + UnitFilters.all
+    static let all: [BuiltinFilter] = NumberFilters.all + UnitFilters.all + StringFilters.all
 
     static var entries: [String: FilterTable.Entry] {
         var result: [String: FilterTable.Entry] = [:]
