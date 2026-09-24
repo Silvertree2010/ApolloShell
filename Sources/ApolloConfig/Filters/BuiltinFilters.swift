@@ -5,6 +5,7 @@ enum BuiltinFilters {
         + ListShapeFilters.all
         + ListSearchFilters.all
         + OtherFilters.all
+        + DomainFilters.all
 
     static var entries: [String: FilterTable.Entry] {
         var result: [String: FilterTable.Entry] = [:]
