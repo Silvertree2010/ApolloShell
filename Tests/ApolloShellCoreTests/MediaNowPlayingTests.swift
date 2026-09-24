@@ -315,4 +315,51 @@ struct MediaAdapterTests {
     func restartCounter(previous: Int, runtime: TimeInterval, expected: Int) {
         #expect(MediaRestart.failures(previous: previous, runtime: runtime) == expected)
     }
+
+    @Test("Music or video: type first, then the app, then the cover's shape")
+    func kind() {
+        func playing(_ app: String?, type: String? = nil) -> MediaNowPlaying {
+            MediaNowPlaying(title: "T", bundleIdentifier: app, isPlaying: true, mediaType: type)
+        }
+        // Measured 09/23: YouTube in Vivaldi, no type, a 150 x 83 preview.
+        #expect(MediaKind.detect(playing("com.vivaldi.Vivaldi"), artworkAspect: 150.0 / 83) == .video)
+        #expect(MediaKind.detect(playing("com.vivaldi.Vivaldi"), artworkAspect: 1) == .music)
+        #expect(MediaKind.detect(playing("com.vivaldi.Vivaldi"), artworkAspect: nil) == .music)
+        #expect(MediaKind.detect(playing("com.spotify.client"), artworkAspect: 1.8) == .music)
+        #expect(MediaKind.detect(playing("com.colliderli.iina"), artworkAspect: nil) == .video)
+        #expect(MediaKind.detect(playing("com.apple.Music", type: "MRMediaRemoteMediaTypeVideo"), artworkAspect: 1) == .video)
+        #expect(MediaKind.detect(playing("org.videolan.vlc", type: "MRMediaRemoteMediaTypeMusic"), artworkAspect: nil) == .music)
+    }
+
+    @Test("The media type is read from the payload, empty counts as none")
+    func mediaTypeField() {
+        let typed = MediaNowPlaying(fields: ["title": .string("T"), "mediaType": .string("MRMediaRemoteMediaTypeVideo")])
+        #expect(typed?.mediaType == "MRMediaRemoteMediaTypeVideo")
+        let empty = MediaNowPlaying(fields: ["title": .string("T"), "mediaType": .string("")])
+        #expect(empty?.mediaType == nil)
+    }
+
+    @Test("A new stream after reopening brings its new cover, even at the same revision count")
+    func coverAfterRestart() {
+        func full(_ title: String, cover: String) -> MediaStreamMessage {
+            MediaStreamMessage(diff: false, payload: ["title": .string(title),
+                                                      "artworkData": .string(Data(cover.utf8).base64EncodedString())])
+        }
+        var shown = MediaArtworkShown()
+        var first = MediaStreamState()
+        first.apply(full("Song A", cover: "cover A"))
+        #expect(shown.take(first) == Data("cover A".utf8))
+        #expect(shown.take(first) == nil)
+        // Closed, the song changes, reopened: a new process, its count starts over.
+        shown.streamRestarted()
+        var second = MediaStreamState()
+        second.apply(full("Song B", cover: "cover B"))
+        #expect(second.artworkRevision == first.artworkRevision)
+        #expect(shown.take(second) == Data("cover B".utf8))
+        // Reopened on the same song: nothing new to decode.
+        shown.streamRestarted()
+        var third = MediaStreamState()
+        third.apply(full("Song B", cover: "cover B"))
+        #expect(shown.take(third) == nil)
+    }
 }

@@ -338,7 +338,7 @@ struct BarBlockOptionsView: View {
             Toggle("Memory", isOn: binding(options.showMemory) {
                 .systemStats(.init(showCPU: options.showCPU, showMemory: $0))
             })
-        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .wifi, .bluetooth:
+        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .wifi, .bluetooth, .timer, .networkSpeed:
             Text("Nothing to set.")
                 .font(.callout)
                 .foregroundStyle(.secondary)

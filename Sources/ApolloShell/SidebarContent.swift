@@ -233,6 +233,10 @@ struct BarModuleView: View {
                           standalone: true)
         case .systemStats(let options):
             BarSystemStatsModule(model: context.cpu, options: options) { context.onDashboardTab(.performance) }
+        case .timer:
+            BarTimerModule(timer: context.timer)
+        case .networkSpeed:
+            BarNetworkModule(model: context.network) { context.onDashboardTab(.performance) }
         }
     }
 }

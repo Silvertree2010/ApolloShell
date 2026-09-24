@@ -128,9 +128,12 @@ struct BentoSnapTests {
         // The width snaps 12 before the neighbour: a neighbour at x = 300 -> width 288
         let neighbour = f(300, 142, 110, 250)
         #expect(BentoGeometry.snapResize(clock, kind: .clock, proposedWidth: 283, proposedHeight: 250, others: [neighbour]).width == 288)
-        // A fixed size stays fixed
+        // A page widget jumps to one of the overview heights too (09/23)
         let network = f(0, 203, 335, 189)
-        #expect(BentoGeometry.snapResize(network, kind: .performanceNetwork, proposedWidth: 400, proposedHeight: 150, others: []) == network)
+        #expect(BentoGeometry.snapResize(network, kind: .performanceNetwork, proposedWidth: 400, proposedHeight: 150, others: []) == f(0, 203, 400, 130))
+        // A half-point width inside a range stays untouched
+        let storage = f(0, 203, 169.5, 189)
+        #expect(BentoGeometry.snapResize(storage, kind: .performanceStorage, proposedWidth: 169.5, proposedHeight: 189, others: []) == storage)
     }
 
     @Test("Dropping: the smallest size, centred under the pointer, snapped")

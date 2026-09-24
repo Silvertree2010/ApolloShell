@@ -69,15 +69,28 @@ struct MediaDashCard: View {
     var body: some View {
         Card(radius: 56) {
             VStack(spacing: 0) {
-                MediaClock(model: model) { now in
-                    ZStack {
-                        MediaArc(value: model.nowPlaying?.progress(at: now) ?? 0, lineWidth: Self.arcLine)
-                        MediaArtwork(image: model.artwork, id: model.artworkID, shape: Circle(), symbolSize: 40)
-                            .padding(Self.arcLine + Self.arcGap)
+                if model.kind == .video {
+                    // A wide picture in a circle would cut the video in
+                    // half: on top as it is, the progress as a bar below.
+                    MediaVideoPicture(model: model, width: 168, radius: 18)
+                        .padding(.top, 34)
+                    MediaClock(model: model) { now in
+                        MediaProgressBar(value: model.nowPlaying?.progress(at: now) ?? 0,
+                                         known: model.nowPlaying?.duration != nil)
                     }
+                    .frame(width: 168)
+                    .padding(.top, 12)
+                } else {
+                    MediaClock(model: model) { now in
+                        ZStack {
+                            MediaArc(value: model.nowPlaying?.progress(at: now) ?? 0, lineWidth: Self.arcLine)
+                            MediaArtwork(image: model.artwork, id: model.artworkID, shape: Circle(), symbolSize: 40)
+                                .padding(Self.arcLine + Self.arcGap)
+                        }
+                    }
+                    .frame(width: Self.arcSize, height: Self.arcSize)
+                    .padding(.top, 22)
                 }
-                .frame(width: Self.arcSize, height: Self.arcSize)
-                .padding(.top, 22)
 
                 texts
                     .frame(width: 168)
@@ -111,6 +124,7 @@ struct MediaDashCard: View {
                 Text(playing.title)
                     .font(style.font(size: 14, weight: .semibold))
                     .foregroundStyle(MediaColor.accentText(colorScheme))
+                    .lineLimit(model.kind == .video ? 3 : 1)
                 if options.showAlbum, let album = playing.album {
                     Text(album).font(style.font(size: 12)).foregroundStyle(.tertiary)
                 }
@@ -141,6 +155,8 @@ struct MediaStripCard: View {
     var options = DashboardMediaOptions()
     /// Height of the card; the cover fills it up to the edge.
     let height: CGFloat
+    /// Width of the card: a video's wide picture takes at most 45 % of it.
+    var width: CGFloat = .infinity
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shellStyle) private var style
 
@@ -149,11 +165,14 @@ struct MediaStripCard: View {
     var body: some View {
         // At most as large as the cover in the Media tab.
         let cover = min(max(height - 2 * Self.inset, 40), 244)
+        let video = model.kind == .video
         Card(radius: 28) {
             HStack(spacing: 16) {
                 MediaArtwork(image: model.artwork, id: model.artworkID,
-                             shape: RoundedRectangle(cornerRadius: style.cardRadius(18), style: .continuous), symbolSize: cover * 0.32)
-                    .frame(width: cover, height: cover)
+                             shape: RoundedRectangle(cornerRadius: style.cardRadius(18), style: .continuous), symbolSize: cover * 0.32,
+                             placeholder: video ? "play.rectangle" : "music.note")
+                    .frame(width: video ? min(cover * 16 / 9, width * 0.45).rounded() : cover,
+                           height: video ? (min(cover * 16 / 9, width * 0.45) * 9 / 16).rounded() : cover)
                 VStack(alignment: .leading, spacing: 3) {
                     texts
                     MediaClock(model: model) { now in
@@ -182,6 +201,7 @@ struct MediaStripCard: View {
             Text(playing.title)
                 .font(style.font(size: 14, weight: .semibold))
                 .foregroundStyle(MediaColor.accentText(colorScheme))
+                .lineLimit(model.kind == .video && height >= 200 ? 2 : 1)
             // Artist and album in one line: there is no room for two.
             Text([playing.artist ?? String(localized: "Unknown Artist"), options.showAlbum ? playing.album : nil]
                     .compactMap { $0 }.joined(separator: " · "))
@@ -213,14 +233,24 @@ struct MediaCompactCard: View {
     var body: some View {
         Card(radius: 40) {
             VStack(spacing: 0) {
-                MediaClock(model: model) { now in
-                    ZStack {
-                        MediaArc(value: model.nowPlaying?.progress(at: now) ?? 0, lineWidth: Self.arcLine)
-                        MediaArtwork(image: model.artwork, id: model.artworkID, shape: Circle(), symbolSize: 28)
-                            .padding(Self.arcLine + Self.arcGap)
+                if model.kind == .video {
+                    MediaVideoPicture(model: model, width: 168)
+                    MediaClock(model: model) { now in
+                        MediaProgressBar(value: model.nowPlaying?.progress(at: now) ?? 0,
+                                         known: model.nowPlaying?.duration != nil)
                     }
+                    .frame(width: 168)
+                    .padding(.top, 10)
+                } else {
+                    MediaClock(model: model) { now in
+                        ZStack {
+                            MediaArc(value: model.nowPlaying?.progress(at: now) ?? 0, lineWidth: Self.arcLine)
+                            MediaArtwork(image: model.artwork, id: model.artworkID, shape: Circle(), symbolSize: 28)
+                                .padding(Self.arcLine + Self.arcGap)
+                        }
+                    }
+                    .frame(width: Self.arcSize, height: Self.arcSize)
                 }
-                .frame(width: Self.arcSize, height: Self.arcSize)
 
                 VStack(spacing: 2) {
                     if let playing = model.nowPlaying {
@@ -258,50 +288,123 @@ struct MediaCompactCard: View {
 
 // MARK: - Tab
 
-/// The "Media" tab, fills the dashboard's content area (839 x 392).
-/// Caelestia: 1000 x 320 with three columns - cover (300), details, lyrics
-/// and player picker (300), gap 28. Widths times 0.839 to make it fit; the
-/// extra height goes to the cover (244 instead of 200).
+/// The "Play" widget, the page of its own at 839 x 392 and smaller ones
+/// down to 413 x 250. Caelestia: 1000 x 320 with three columns - cover (300),
+/// details, lyrics and player picker (300), gap 28. Widths times 0.839 to
+/// make it fit; the extra height goes to the cover (244 instead of 200).
+///
+/// A card like every other widget since 09/23: before, the blurred cover
+/// stretched over the whole page was its background, a smeared patch that
+/// looked like nothing else in the dashboard. The source column only where
+/// there is room for it (from 700 wide).
 struct MediaTab: View {
     let model: MediaModel
+    var size = CGSize(width: 839, height: 392)
     @Environment(\.shellStyle) private var style
 
-    private static let coverSection: CGFloat = 252  // 300 x 0.839
-    private static let coverSize: CGFloat = 244
     private static let sourceWidth: CGFloat = 200
-    /// Source exactly as tall as the cover: the columns form a calm line.
-    private static let panelHeight: CGFloat = coverSize
     private static let spacing: CGFloat = 24        // 28 x 0.839
 
     var body: some View {
-        HStack(spacing: Self.spacing) {
-            MediaArtwork(image: model.artwork, id: model.artworkID,
-                         shape: RoundedRectangle(cornerRadius: style.cardRadius(28), style: .continuous), symbolSize: 64)
-                .frame(width: Self.coverSize, height: Self.coverSize)
-                .shadow(color: .black.opacity(model.artwork == nil ? 0 : 0.3), radius: 18, y: 8)
-                .frame(width: Self.coverSection)
+        let video = model.kind == .video
+        let cover = min(size.height - 48, size.width * 0.34, 244)
+        // A video's picture is wide: up to 45 % of the card, and the source
+        // column gives way to it (the source stays as a chip below the text).
+        let pictureWidth = min(size.width * 0.45, (size.height - 48) * 16 / 9, 400)
+        let showsSource = size.width >= 700 && !video
+        Card(radius: 28) {
+            HStack(spacing: Self.spacing) {
+                MediaArtwork(image: model.artwork, id: model.artworkID,
+                             shape: RoundedRectangle(cornerRadius: style.cardRadius(22), style: .continuous),
+                             symbolSize: cover * 0.26, placeholder: video ? "play.rectangle" : "music.note")
+                    .frame(width: video ? pictureWidth : cover, height: video ? (pictureWidth * 9 / 16).rounded() : cover)
+                    .shadow(color: .black.opacity(model.artwork == nil ? 0 : 0.25), radius: 14, y: 6)
 
-            ZStack {
-                if let playing = model.nowPlaying {
-                    HStack(spacing: Self.spacing) {
-                        MediaDetails(model: model, playing: playing)
-                        MediaSourcePanel(source: model.source, isPlaying: playing.isPlaying)
-                            .frame(width: Self.sourceWidth, height: Self.panelHeight)
-                    }
-                    .transition(.opacity)
-                } else {
-                    MediaNothingPlaying(isUnavailable: model.isUnavailable)
+                ZStack {
+                    if let playing = model.nowPlaying {
+                        HStack(spacing: Self.spacing) {
+                            MediaDetails(model: model, playing: playing, compact: size.height < 300 || video,
+                                         video: video)
+                            if showsSource {
+                                MediaSourcePanel(source: model.source, isPlaying: playing.isPlaying)
+                                    .frame(width: Self.sourceWidth, height: cover)
+                            }
+                        }
                         .transition(.opacity)
+                    } else {
+                        MediaNothingPlaying(isUnavailable: model.isUnavailable)
+                            .transition(.opacity)
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 24)
         }
-        .padding(.leading, 18)
-        .padding(.trailing, 20)
-        .padding(.vertical, 20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background { MediaAmbient(image: model.ambient, id: model.artworkID) }
         .animation(MediaMotion.slowFade, value: model.nowPlaying == nil)
+    }
+}
+
+/// Display "cover" of the player and the small media card: the cover itself
+/// fills the card, sharp, a dark veil from below carries title, artist and
+/// the buttons. Without a cover the accent's tint instead of a picture.
+struct MediaCoverCard: View {
+    let model: MediaModel
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let big = size.height >= 300 && size.width >= 400
+        let radius = style.cardRadius(28)
+        ZStack(alignment: .bottomLeading) {
+            Rectangle().fill(style.accent.opacity(0.25))
+            if let image = model.artwork {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFill()
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+                    .id(model.artworkID)
+                    .transition(.opacity)
+            } else {
+                Image(systemName: "music.note")
+                    .font(.system(size: min(size.width, size.height) * 0.3, weight: .light))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            LinearGradient(colors: [.black.opacity(0), .black.opacity(0.35), .black.opacity(0.75)],
+                           startPoint: .init(x: 0.5, y: 0.25), endPoint: .bottom)
+            VStack(alignment: .leading, spacing: big ? 4 : 2) {
+                if let playing = model.nowPlaying {
+                    Text(playing.title)
+                        .font(style.font(size: big ? 24 : 15, weight: .semibold))
+                    Text(playing.artist ?? String(localized: "Unknown Artist"))
+                        .font(style.font(size: big ? 15 : 12, weight: .medium))
+                        .opacity(0.8)
+                    MediaClock(model: model) { now in
+                        MediaProgressBar(value: playing.progress(at: now), known: playing.duration != nil,
+                                         tint: .white)
+                    }
+                    .padding(.top, big ? 12 : 6)
+                } else {
+                    Text(model.isUnavailable ? String(localized: "Not Available") : String(localized: "Nothing Playing"))
+                        .font(style.font(size: big ? 22 : 14, weight: .semibold))
+                }
+                MediaControls(model: model, height: big ? 44 : 30, symbolSize: big ? 17 : 12, spacing: 6)
+                    .frame(maxWidth: big ? 260 : 180)
+                    .padding(.top, big ? 12 : 6)
+                    .environment(\.colorScheme, .dark)
+            }
+            .lineLimit(1)
+            .foregroundStyle(.white)
+            .padding(big ? 24 : 14)
+        }
+        .frame(width: size.width, height: size.height)
+        .clipShape(.rect(cornerRadius: radius, style: .continuous))
+        .overlay { style.border(RoundedRectangle(cornerRadius: radius, style: .continuous)) }
+        .animation(MediaMotion.slowFade, value: model.artworkID)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Media")
     }
 }
 
@@ -310,30 +413,41 @@ struct MediaTab: View {
 private struct MediaDetails: View {
     let model: MediaModel
     let playing: MediaNowPlaying
+    /// 250 tall: smaller type and gaps.
+    var compact = false
+    /// A video: the title may take more lines (they are long), no album
+    /// (browsers send an empty one), and the source as a chip below.
+    var video = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shellStyle) private var style
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(playing.title)
-                .font(style.font(size: 22, weight: .semibold))
-                .lineLimit(2)
-            Text(playing.artist ?? String(localized: "Unknown Artist"))
-                .font(style.font(size: 16, weight: .medium))
-                .foregroundStyle(.secondary)
-            if let album = playing.album {
+                .font(style.font(size: compact ? 18 : 22, weight: .semibold))
+                .lineLimit(video ? 3 : compact ? 1 : 2)
+            if let artist = playing.artist ?? (video ? nil : String(localized: "Unknown Artist")) {
+                Text(artist)
+                    .font(style.font(size: compact ? 14 : 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            if video, let source = model.source {
+                MediaSourceChip(source: source, isPlaying: playing.isPlaying)
+                    .padding(.top, 4)
+            }
+            if !video, let album = playing.album {
                 Text(album)
-                    .font(style.font(size: 16, weight: .medium))
+                    .font(style.font(size: compact ? 14 : 16, weight: .medium))
                     .foregroundStyle(MediaColor.accentText(colorScheme))
             }
 
             MediaClock(model: model) { now in
                 MediaTimeline(playing: playing, now: now)
             }
-            .padding(.top, 26)
+            .padding(.top, compact ? 12 : 26)
 
-            MediaControls(model: model, height: 52, symbolSize: 20, spacing: 6)
-                .padding(.top, 18)
+            MediaControls(model: model, height: compact ? 40 : 52, symbolSize: compact ? 16 : 20, spacing: 6)
+                .padding(.top, compact ? 10 : 18)
         }
         .lineLimit(1)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -437,6 +551,21 @@ private struct MediaNothingPlaying: View {
 
 // MARK: - Building blocks
 
+/// A video's picture: 16:9 with rounded corners, the play symbol as a stand-in.
+private struct MediaVideoPicture: View {
+    let model: MediaModel
+    let width: CGFloat
+    var radius: CGFloat = 14
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        MediaArtwork(image: model.artwork, id: model.artworkID,
+                     shape: RoundedRectangle(cornerRadius: style.cardRadius(radius), style: .continuous),
+                     symbolSize: width * 0.18, placeholder: "play.rectangle")
+            .frame(width: width, height: (width * 9 / 16).rounded())
+    }
+}
+
 /// Ticks every 0.5 s (Caelestia: mediaUpdateInterval 500), but only while
 /// something is playing - when paused the time stands still anyway, and
 /// the display has nothing to do. Runs on the screen sync, so it also only
@@ -456,18 +585,21 @@ private struct MediaClock<Content: View>: View {
 /// Cover or a placeholder note; a new cover crossfades in. As an overlay
 /// on the shape: this way the shape determines the size, and a wide cover
 /// (video preview 16:9, measured 150 x 83 px) is cropped instead of
-/// breaking out of the frame.
-private struct MediaArtwork<S: Shape>: View {
+/// breaking out of the frame. Not `private`: the now-playing card in the
+/// utilities panel (`UtilitiesNowPlayingCard.swift`) reuses it for its own,
+/// smaller cover.
+struct MediaArtwork<S: Shape>: View {
     let image: NSImage?
     let id: Int
     let shape: S
     let symbolSize: CGFloat
+    var placeholder = "music.note"
 
     var body: some View {
         shape
             .fill(Color.primary.opacity(0.08))
             .overlay {
-                Image(systemName: "music.note")
+                Image(systemName: placeholder)
                     .font(.system(size: symbolSize, weight: .light))
                     .foregroundStyle(.tertiary)
                     .opacity(image == nil ? 1 : 0)
@@ -485,34 +617,6 @@ private struct MediaArtwork<S: Shape>: View {
             .clipShape(shape)
             .animation(MediaMotion.slowFade, value: id)
             .accessibilityHidden(true)
-    }
-}
-
-/// Blurred cover behind the tab - a calm replacement for Caelestia's
-/// drifting shapes. The image is already blurred in the model
-/// (`MediaBlur`), once per cover; here it is only stretched. Weaker in
-/// light mode, otherwise the gray text suffers.
-private struct MediaAmbient: View {
-    let image: NSImage?
-    let id: Int
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.shellStyle) private var style
-
-    var body: some View {
-        Color.primary.opacity(0.06)
-            .overlay {
-                if let image {
-                    Image(nsImage: image)
-                        .resizable()
-                        .interpolation(.high)
-                        .scaledToFill()
-                        .opacity(colorScheme == .dark ? 0.45 : 0.35)
-                        .id(id)
-                        .transition(.opacity)
-                }
-            }
-            .clipShape(.rect(cornerRadius: style.cardRadius(28), style: .continuous))
-            .animation(MediaMotion.slowFade, value: id)
     }
 }
 
@@ -552,15 +656,17 @@ private struct MediaArc: View {
 private struct MediaProgressBar: View {
     let value: Double
     let known: Bool
+    /// Over a cover: white instead of the accent.
+    var tint: Color?
     @Environment(\.shellStyle) private var style
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.12))
+                Capsule().fill((tint ?? .primary).opacity(tint == nil ? 0.12 : 0.3))
                 if known {
                     Capsule()
-                        .fill(style.accent)
+                        .fill(tint ?? style.accent)
                         .frame(width: max(geometry.size.height, geometry.size.width * min(max(value, 0), 1)))
                 }
             }
@@ -572,8 +678,9 @@ private struct MediaProgressBar: View {
 
 /// Previous, play/pause (wide), next - like Caelestia's ButtonRow. While
 /// something is playing, the middle button is filled and more angular
-/// (Caelestia: checked + shapeMorph), paused it's round and tinted.
-private struct MediaControls: View {
+/// (Caelestia: checked + shapeMorph), paused it's round and tinted. Not
+/// `private`: reused as-is by `UtilitiesNowPlayingCard.swift`.
+struct MediaControls: View {
     let model: MediaModel
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shellStyle) private var style
@@ -615,7 +722,7 @@ private struct MediaControls: View {
 }
 
 /// Round, tinted button (Caelestia: IconButton Tonal, isRound).
-private struct MediaRoundButton: View {
+struct MediaRoundButton: View {
     let symbol: String
     let label: LocalizedStringKey
     let size: CGFloat
@@ -638,7 +745,7 @@ private struct MediaRoundButton: View {
 }
 
 /// Press: briefly smaller, springs back with Caelestia's spatial curve.
-private struct MediaPressStyle: ButtonStyle {
+struct MediaPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.92 : 1)

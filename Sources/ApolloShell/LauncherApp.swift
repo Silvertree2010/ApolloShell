@@ -230,6 +230,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             toastWindow?.utilitiesHeight = height
             editModeWindows?.utilitiesHeightChanged()
         }
+        // The timer rings with every panel closed: a toast and Apple's "Glass".
+        ShellTimer.shared.onFinish = { [weak toaster] finished in
+            let title: String = switch (finished.mode, finished.phase) {
+            case (.pomodoro, .focus): String(localized: "Time for a Break")
+            case (.pomodoro, _): String(localized: "Break Is Over")
+            default: String(localized: "Timer Done")
+            }
+            toaster?.toast(title: title, message: ShellTimerState.text(finished.target ?? 0, countingDown: false),
+                           symbol: "timer", kind: .info)
+            NSSound(named: "Glass")?.play()
+        }
         powerToasts = ToastPowerMonitor(toaster: toaster, settings: settings)
         audioToasts = ToastAudioMonitor(toaster: toaster, settings: settings)
 

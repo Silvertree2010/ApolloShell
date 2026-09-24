@@ -23,9 +23,99 @@ struct HeroCard: View {
     let subtitle: String
     let value: Double?
     let history: SampleHistory
+    /// The height of the widget: below 150 the compact row, above the page
+    /// size (191) the history grows into the extra room.
+    var height: CGFloat = 191
     @Environment(\.shellStyle) private var style
 
     var body: some View {
+        if height < 150 {
+            compact
+        } else if height > 200 {
+            tall
+        } else {
+            full
+        }
+    }
+
+    /// 250 and 392 tall: the badge moves up next to the title, and the
+    /// history gets the whole width below - squeezed next to the badge it
+    /// turned into spikes.
+    private var tall: some View {
+        Card(radius: 24) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) {
+                    UsageRing(value: value ?? 0, symbol: symbol, iconID: iconID)
+                        .frame(width: 46, height: 46)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title)
+                            .font(style.font(size: 19, weight: .semibold))
+                            .foregroundStyle(style.accent)
+                        Text(subtitle)
+                            .font(style.font(size: 12))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 8)
+                    UsageBadge(value: value, side: 76)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Last 30s")
+                        .font(style.font(size: 10, weight: .medium))
+                        .foregroundStyle(.tertiary)
+                    SparklineArea(values: history.values, capacity: history.capacity, scale: 1,
+                                  color: style.accent, fillOpacity: 0.18)
+                        .frame(maxHeight: .infinity)
+                        .background(alignment: .bottom) {
+                            Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1)
+                        }
+                }
+            }
+            .padding(14)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title) \(PerformanceText.percent(value))")
+    }
+
+    /// 130 tall: the ring and the title on top, the history and the load in
+    /// one row below - the scalloped badge would not fit.
+    private var compact: some View {
+        Card(radius: 24) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 10) {
+                    UsageRing(value: value ?? 0, symbol: symbol, iconID: iconID)
+                        .frame(width: 34, height: 34)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(title)
+                            .font(style.font(size: 15, weight: .semibold))
+                            .foregroundStyle(style.accent)
+                        Text(subtitle)
+                            .font(style.font(size: 11))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 8)
+                    Text(PerformanceText.percent(value))
+                        .font(.system(size: 26, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .fixedSize()
+                        .contentTransition(.numericText(value: value ?? 0))
+                        .animation(PerformanceAnimation.value, value: value)
+                }
+                SparklineArea(values: history.values, capacity: history.capacity, scale: 1,
+                              color: style.accent, fillOpacity: 0.18)
+                    .frame(maxHeight: .infinity)
+                    .background(alignment: .bottom) {
+                        Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 1)
+                    }
+            }
+            .padding(14)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title) \(PerformanceText.percent(value))")
+    }
+
+    private var full: some View {
         Card(radius: 24) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 12) {
@@ -90,6 +180,7 @@ private struct UsageRing: View {
 
 private struct UsageBadge: View {
     let value: Double?
+    var side: CGFloat = 92
     @Environment(\.shellStyle) private var style
 
     var body: some View {
@@ -99,13 +190,13 @@ private struct UsageBadge: View {
                          depth: usage >= 0.8 ? 0.11 : usage >= 0.4 ? 0.07 : 0.12)
                 .fill(style.accent)
             Text(PerformanceText.percent(value))
-                .font(.system(size: 24, weight: .semibold, design: .rounded))
+                .font(.system(size: side * 24 / 92, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(style.onAccent)
                 .contentTransition(.numericText(value: usage))
                 .animation(PerformanceAnimation.value, value: usage)
         }
-        .frame(width: 92, height: 92)
+        .frame(width: side, height: side)
     }
 }
 
@@ -183,9 +274,24 @@ private struct PercentLabel: View {
 
 struct StorageCard: View {
     let usage: ByteUsage?
+    var size = CGSize(width: 169.5, height: 189)
     @Environment(\.shellStyle) private var style
 
     var body: some View {
+        if size.height < 150 {
+            UsageRow(title: "Storage", iconID: "panel-disk", symbol: "internaldrive.fill", usage: usage, binary: false,
+                     width: size.width)
+                .help("Startup Volume")
+        } else if size.height > 200 {
+            UsageTall(title: "Storage", iconID: "panel-disk", symbol: "internaldrive.fill", usage: usage,
+                      binary: false, size: size)
+                .help("Startup Volume")
+        } else {
+            page
+        }
+    }
+
+    private var page: some View {
         Card(radius: 41) {
             VStack(spacing: 6) {
                 ArcGauge(value: usage?.fraction ?? 0, caption: "Used") {
@@ -213,9 +319,22 @@ struct StorageCard: View {
 
 struct MemoryCard: View {
     let usage: ByteUsage?
+    var size = CGSize(width: 169.5, height: 189)
     @Environment(\.shellStyle) private var style
 
     var body: some View {
+        if size.height < 150 {
+            UsageRow(title: "Memory", iconID: "panel-memory", symbol: "memorychip.fill", usage: usage, binary: true,
+                     width: size.width)
+        } else if size.height > 200 {
+            UsageTall(title: "Memory", iconID: "panel-memory", symbol: "memorychip.fill", usage: usage,
+                      binary: true, size: size)
+        } else {
+            page
+        }
+    }
+
+    private var page: some View {
         Card(radius: 10) {
             VStack(spacing: 6) {
                 HStack(spacing: 6) {
@@ -243,15 +362,263 @@ struct MemoryCard: View {
     }
 }
 
+// MARK: - Storage and memory in the other sizes
+
+/// 130 tall: a small gauge on the left, the title and the numbers next to it.
+private struct UsageRow: View {
+    let title: LocalizedStringKey
+    let iconID: String
+    let symbol: String
+    let usage: ByteUsage?
+    let binary: Bool
+    var width: CGFloat = 200
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let gauge = min(92, width * 0.4)
+        Card(radius: 24) {
+            HStack(spacing: 12) {
+                ArcGauge(value: usage?.fraction ?? 0, caption: "") {
+                    Text(PerformanceText.percent(usage?.fraction))
+                        .font(.system(size: 19, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                }
+                .frame(width: gauge, height: gauge)
+                VStack(alignment: .leading, spacing: 4) {
+                    UsageTitle(title: title, iconID: iconID, symbol: symbol)
+                    Text(usage.map { ByteFormat.usage(used: $0.used, total: $0.total, binary: binary) } ?? "–")
+                        .font(style.font(size: 12))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+        }
+    }
+}
+
+/// 250 and 392 tall: the gauge as large as the card allows, the title above it.
+private struct UsageTall: View {
+    let title: LocalizedStringKey
+    let iconID: String
+    let symbol: String
+    let usage: ByteUsage?
+    let binary: Bool
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let gauge = min(size.width - 40, size.height - 96, 220)
+        Card(radius: 28) {
+            VStack(spacing: 8) {
+                UsageTitle(title: title, iconID: iconID, symbol: symbol)
+                ArcGauge(value: usage?.fraction ?? 0, caption: "Used") {
+                    Text(PerformanceText.percent(usage?.fraction))
+                        .font(.system(size: gauge * 0.26, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: usage?.fraction ?? 0))
+                        .animation(PerformanceAnimation.value, value: usage?.fraction)
+                }
+                .frame(width: gauge, height: gauge)
+                Text(usage.map { ByteFormat.usage(used: $0.used, total: $0.total, binary: binary) } ?? "–")
+                    .font(style.font(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+}
+
+private struct UsageTitle: View {
+    let title: LocalizedStringKey
+    let iconID: String
+    let symbol: String
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ThemedIcon(iconID, fallback: symbol)
+                .font(style.font(size: 13, weight: .semibold))
+                .frame(width: 15, height: 15)
+                .foregroundStyle(style.accent)
+            Text(title)
+                .font(style.font(size: 13, weight: .semibold))
+                .fixedSize()
+        }
+    }
+}
+
+/// Display "bar": the load as a big number and a bar - reads at a glance in
+/// every size, and next to other bars they line up.
+struct UsageBarCard: View {
+    let title: LocalizedStringKey
+    let iconID: String
+    let symbol: String
+    let usage: ByteUsage?
+    let binary: Bool
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let big = size.height >= 200
+        Card(radius: 24) {
+            VStack(alignment: .leading, spacing: big ? 12 : 8) {
+                UsageTitle(title: title, iconID: iconID, symbol: symbol)
+                Spacer(minLength: 0)
+                Text(PerformanceText.percent(usage?.fraction))
+                    .font(.system(size: big ? 44 : 30, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText(value: usage?.fraction ?? 0))
+                    .animation(PerformanceAnimation.value, value: usage?.fraction)
+                UsageBar(value: usage?.fraction ?? 0, height: big ? 12 : 8)
+                Text(usage.map { ByteFormat.usage(used: $0.used, total: $0.total, binary: binary) } ?? "–")
+                    .font(style.font(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(16)
+        }
+    }
+}
+
+struct UsageBar: View {
+    let value: Double
+    var height: CGFloat = 8
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.primary.opacity(0.10))
+                Capsule()
+                    .fill(style.accent)
+                    .frame(width: max(height, geometry.size.width * min(max(value, 0), 1)))
+            }
+        }
+        .frame(height: height)
+        .animation(PerformanceAnimation.value, value: value)
+    }
+}
+
+// MARK: - CPU and GPU, the other displays
+
+/// Display "graph": the history fills the card, title and load sit on it.
+struct HeroGraphCard: View {
+    let symbol: String
+    var iconID: String = ""
+    let title: String
+    let subtitle: String
+    let value: Double?
+    let history: SampleHistory
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        Card(radius: 24) {
+            ZStack(alignment: .topLeading) {
+                SparklineArea(values: history.values, capacity: history.capacity, scale: 1,
+                              color: style.accent, fillOpacity: 0.22)
+                    .padding(.top, 44)
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 6) {
+                            ThemedIcon(iconID.isEmpty ? symbol : iconID, fallback: symbol)
+                                .font(style.font(size: 13, weight: .semibold))
+                                .frame(width: 15, height: 15)
+                            Text(title).font(style.font(size: 15, weight: .semibold))
+                        }
+                        .foregroundStyle(style.accent)
+                        Text(subtitle)
+                            .font(style.font(size: 11))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 8)
+                    Text(PerformanceText.percent(value))
+                        .font(.system(size: 28, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: value ?? 0))
+                        .animation(PerformanceAnimation.value, value: value)
+                }
+                .padding(14)
+            }
+            .clipShape(.rect(cornerRadius: style.cardRadius(24), style: .continuous))
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title) \(PerformanceText.percent(value))")
+    }
+}
+
+/// Display "gauge": the load on the same 270-degree gauge as storage.
+struct HeroGaugeCard: View {
+    let symbol: String
+    var iconID: String = ""
+    let title: String
+    let subtitle: String
+    let value: Double?
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let wide = size.width > size.height * 1.4
+        let gauge = wide ? min(size.height - 28, 220) : min(size.width - 40, size.height - 84, 240)
+        Card(radius: 24) {
+            let label = VStack(alignment: wide ? .leading : .center, spacing: 1) {
+                HStack(spacing: 6) {
+                    ThemedIcon(iconID.isEmpty ? symbol : iconID, fallback: symbol)
+                        .font(style.font(size: 13, weight: .semibold))
+                        .frame(width: 15, height: 15)
+                    Text(title).font(style.font(size: 15, weight: .semibold)).fixedSize()
+                }
+                .foregroundStyle(style.accent)
+                Text(subtitle)
+                    .font(style.font(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(wide ? 2 : 1)
+            }
+            let dial = ArcGauge(value: value ?? 0, caption: "") {
+                Text(PerformanceText.percent(value))
+                    .font(.system(size: gauge * 0.24, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText(value: value ?? 0))
+                    .animation(PerformanceAnimation.value, value: value)
+            }
+            .frame(width: gauge, height: gauge)
+            if wide {
+                HStack(spacing: 18) {
+                    label
+                    Spacer(minLength: 0)
+                    dial
+                }
+                .padding(.horizontal, 18)
+            } else {
+                VStack(spacing: 10) {
+                    label
+                    dial
+                }
+                .padding(14)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title) \(PerformanceText.percent(value))")
+    }
+}
+
 // MARK: - Network
 
 struct NetworkCard: View {
     let model: PerformanceModel
+    var height: CGFloat = 189
     @Environment(\.shellStyle) private var style
 
     /// The upload in a second color, so that the lines can be told apart
-    /// (Caelestia: the secondary and tertiary palette color).
-    private let uploadColor = Color.orange
+    /// (Caelestia: the secondary and tertiary palette color) - from the
+    /// theme or the accent, `ShellStyle.contrastAccent`.
+    private var uploadColor: Color { style.contrastAccent }
 
     var body: some View {
         // Both lines on the same scale, otherwise they could not be compared.
@@ -284,6 +651,15 @@ struct NetworkCard: View {
                 .frame(maxHeight: .infinity)
                 .padding(.top, 10)
                 .padding(.bottom, 8)
+                if height < 150 {
+                    HStack(spacing: 14) {
+                        RateLabel(symbol: "arrow.down", color: style.accent,
+                                  value: model.network.map { ByteFormat.rate($0.download) } ?? "–")
+                        RateLabel(symbol: "arrow.up", color: uploadColor,
+                                  value: model.network.map { ByteFormat.rate($0.upload) } ?? "–")
+                        Spacer(minLength: 0)
+                    }
+                } else {
                 VStack(spacing: 4) {
                     RateRow(symbol: "arrow.down", color: style.accent, title: "Download",
                             value: model.network.map { ByteFormat.rate($0.download) } ?? "–")
@@ -293,8 +669,76 @@ struct NetworkCard: View {
                             value: "↓ \(ByteFormat.bytes(Double(model.networkTotal.received)))   ↑ \(ByteFormat.bytes(Double(model.networkTotal.sent)))")
                         .help("Since this tab was first opened")
                 }
+                }
             }
             .padding(14)
+        }
+    }
+}
+
+/// Display "numbers": download and upload as big figures, no history.
+struct NetworkNumbersCard: View {
+    let model: PerformanceModel
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let stacked = size.height >= 200 && size.width < 420
+        Card(radius: 24) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.up.arrow.down")
+                        .font(style.font(size: 13, weight: .semibold))
+                        .foregroundStyle(style.accent)
+                    Text("Network").font(style.font(size: 15, weight: .semibold))
+                }
+                Spacer(minLength: 0)
+                let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 14))
+                                     : AnyLayout(HStackLayout(alignment: .bottom, spacing: 24))
+                layout {
+                    figure(symbol: "arrow.down", color: style.accent, title: "Download",
+                           value: model.network?.download)
+                    figure(symbol: "arrow.up", color: style.contrastAccent, title: "Upload",
+                           value: model.network?.upload)
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+        }
+    }
+
+    private func figure(symbol: String, color: Color, title: LocalizedStringKey, value: Double?) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 5) {
+                Image(systemName: symbol)
+                    .font(style.font(size: 11, weight: .bold))
+                    .foregroundStyle(color)
+                Text(title).font(style.font(size: 12)).foregroundStyle(.secondary)
+            }
+            Text(value.map { ByteFormat.rate($0) } ?? "–")
+                .font(.system(size: size.height >= 200 ? 34 : 26, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .contentTransition(.numericText(value: value ?? 0))
+                .animation(PerformanceAnimation.value, value: value)
+        }
+    }
+}
+
+private struct RateLabel: View {
+    let symbol: String
+    let color: Color
+    let value: String
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: symbol)
+                .font(style.font(size: 11, weight: .bold))
+                .foregroundStyle(color)
+            Text(value).font(style.font(size: 13, weight: .medium)).monospacedDigit().lineLimit(1)
         }
     }
 }
@@ -439,5 +883,61 @@ private struct TankContents: View {
         .foregroundStyle(inverted ? style.onAccent : Color.primary)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .padding(14)
+    }
+}
+
+/// Display "ring": the level on a ring, the state below it.
+struct BatteryRingCard: View {
+    let state: BatteryState
+    let minutes: Int?
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let wide = size.width > size.height * 1.3
+        let ring = wide ? min(size.height - 32, 150) : min(size.width - 32, size.height - 70, 170)
+        Card(radius: 24) {
+            let dial = ZStack {
+                Circle().stroke(Color.primary.opacity(0.10), lineWidth: 8)
+                Circle()
+                    .trim(from: 0, to: Double(state.level) / 100)
+                    .stroke(style.accent, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(PerformanceAnimation.value, value: state.level)
+                VStack(spacing: 0) {
+                    Image(systemName: state.charging ? "bolt.fill" : (StatusGlyphs.batterySymbol(state) ?? "battery.100percent"))
+                        .font(style.font(size: ring * 0.12, weight: .semibold))
+                        .foregroundStyle(style.accent)
+                    Text(BatteryTankText.percent(state))
+                        .font(.system(size: ring * 0.22, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                }
+            }
+            .frame(width: ring, height: ring)
+            let status = Text(BatteryTankText.status(state, minutes: minutes))
+                .font(style.font(size: 12))
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .multilineTextAlignment(wide ? .leading : .center)
+            if wide {
+                HStack(spacing: 16) {
+                    dial
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Battery").font(style.font(size: 15, weight: .semibold))
+                        status
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 16)
+            } else {
+                VStack(spacing: 10) {
+                    dial
+                    status
+                }
+                .padding(12)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(StatusGlyphs.batteryText(state))
     }
 }

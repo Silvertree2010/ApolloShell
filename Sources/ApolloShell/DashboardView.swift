@@ -22,6 +22,9 @@ struct DashboardView: View {
     let media: MediaModel
     let settings: ShellSettingsStore
     let editor: DashboardEditor
+    /// The models of the widgets of 09/23 - one set for the dashboard, owned
+    /// by `Dashboard`, which starts and stops them.
+    var extras = DashboardExtras()
     @Namespace private var tabIndicator
     @Environment(\.shellStyle) private var style
 
@@ -69,6 +72,7 @@ struct DashboardView: View {
             model.showsPerformance = key.kinds.contains { $0.isPerformance }
             if model.isOpen {
                 weatherModels.start(for: selected.widgets.filter { $0.kind.usesPlaces })
+                extras.start(for: selected.widgets)
             }
         }
     }
@@ -93,7 +97,8 @@ struct DashboardView: View {
             pageBar(pages: pages.pages, selected: selected)
             Divider().opacity(0.5)
             BentoPageView(page: selected, context: WidgetContext(dashboard: model, media: media,
-                                                                  weather: weatherModels.model(for:)), editor: editor)
+                                                                  weather: weatherModels.model(for:), extras: extras),
+                          editor: editor)
                 .frame(width: Self.gridWidth, height: Self.gridHeight)
                 .padding(Self.padding)
         }
@@ -387,7 +392,12 @@ struct DateTimeCard: View {
     let now: Date
     let locale: Locale
     var options = DashboardClockOptions()
+    /// Wider than its column (110) the digits grow with the card;
+    /// never below the size from before.
+    var size = CGSize(width: 110, height: 250)
     @Environment(\.shellStyle) private var style
+
+    private var scale: CGFloat { max(1, min(size.width / 110, size.height / 130, 2.4)) }
 
     /// Time zone from the options (`nil` = the system's) - affects both
     /// clock and date, so a chosen city really shows its own time.
@@ -422,16 +432,16 @@ struct DateTimeCard: View {
     @ViewBuilder private var clock: some View {
         switch options.style {
         case .stacked:
-            VStack(spacing: 6) {
+            VStack(spacing: 6 * scale) {
                 Text(now, format: .dateTime.hour(.twoDigits(amPM: .omitted)))
-                Text("•••").font(style.font(size: 14, weight: .bold)).foregroundStyle(.secondary)
+                Text("•••").font(style.font(size: 14 * scale, weight: .bold)).foregroundStyle(.secondary)
                 Text(now, format: .dateTime.minute(.twoDigits))
             }
-            .font(.system(size: 30, weight: .semibold, design: .rounded))
+            .font(.system(size: 30 * scale, weight: .semibold, design: .rounded))
             .monospacedDigit()
         case .inline:
             Text(now, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
-                .font(.system(size: 30, weight: .semibold, design: .rounded))
+                .font(.system(size: 30 * scale, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
@@ -509,6 +519,17 @@ struct ResourcesCard: View {
     let model: DashboardModel
     var options = DashboardResourcesOptions()
     var horizontal = false
+    var size = CGSize(width: 90, height: 250)
+
+    /// The rings grow in large cards (both sides from 200); in the places
+    /// from before they stay 56.
+    private var side: CGFloat {
+        guard size.width >= 200, size.height >= 200 else { return 56 }
+        let count = CGFloat(max(options.count, 1))
+        let fit = horizontal ? min((size.width - 40 - 16 * (count - 1)) / count, size.height - 40)
+                             : min(size.width - 40, (size.height - 40 - 14 * (count - 1)) / count)
+        return min(max(56, fit), 120)
+    }
 
     var body: some View {
         Card(radius: 16) {
@@ -521,9 +542,9 @@ struct ResourcesCard: View {
     }
 
     @ViewBuilder private var rings: some View {
-        if options.showCPU { Ring(value: model.cpu, symbol: "cpu", iconID: "panel-cpu", help: "CPU") }
-        if options.showMemory { Ring(value: model.memory, symbol: "memorychip", iconID: "panel-memory", help: String(localized: "Memory")) }
-        if options.showStorage { Ring(value: model.storage, symbol: "internaldrive", iconID: "panel-disk", help: String(localized: "Storage")) }
+        if options.showCPU { Ring(value: model.cpu, symbol: "cpu", iconID: "panel-cpu", help: "CPU", side: side) }
+        if options.showMemory { Ring(value: model.memory, symbol: "memorychip", iconID: "panel-memory", help: String(localized: "Memory"), side: side) }
+        if options.showStorage { Ring(value: model.storage, symbol: "internaldrive", iconID: "panel-disk", help: String(localized: "Storage"), side: side) }
     }
 }
 
@@ -533,9 +554,11 @@ private struct Ring: View {
     /// Identifier for the symbol replacement in the theme.
     var iconID: String = ""
     let help: String
+    var side: CGFloat = 56
     @Environment(\.shellStyle) private var style
 
     var body: some View {
+        let icon = side * 14 / 56
         ZStack {
             Circle().stroke(Color.primary.opacity(0.10), lineWidth: 6)
             Circle()
@@ -544,10 +567,10 @@ private struct Ring: View {
                 .rotationEffect(.degrees(-90))
                 .animation(.easeOut(duration: 0.6), value: value)
             ThemedIcon(iconID.isEmpty ? symbol : iconID, fallback: symbol)
-                .font(style.font(size: 14, weight: .medium))
-                .frame(width: 16, height: 16)
+                .font(style.font(size: icon, weight: .medium))
+                .frame(width: icon + 2, height: icon + 2)
         }
-        .frame(width: 56, height: 56)
+        .frame(width: side, height: side)
         .help("\(help) \(Int((value * 100).rounded()))%")
         .accessibilityLabel("\(help) \(Int((value * 100).rounded())) percent")
     }
@@ -563,3 +586,183 @@ let nexusPageSymbols = [
     "paintbrush", "hammer", "wrench.and.screwdriver", "leaf", "pawprint",
     "airplane", "car", "bicycle", "figure.walk", "heart", "flag", "globe",
 ]
+
+// MARK: - Other displays of the overview cards
+
+/// Display "minimal" of the user: only the initial and the name, large.
+struct UserMinimalCard: View {
+    let model: DashboardModel
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let avatar = min(size.height - 40, size.width * 0.45, 120)
+        let vertical = size.height >= 200 && size.width < 300
+        Card(radius: 28) {
+            let layout = vertical ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 16))
+            layout {
+                Text(String(model.userName.prefix(1)))
+                    .font(.system(size: avatar * 0.42, weight: .semibold, design: .rounded))
+                    .foregroundStyle(style.onAccent)
+                    .frame(width: avatar, height: avatar)
+                    .background(style.accent, in: .circle)
+                Text(model.userName)
+                    .font(style.font(size: vertical ? 18 : 22, weight: .semibold))
+                    .lineLimit(vertical ? 2 : 1)
+                    .multilineTextAlignment(vertical ? .center : .leading)
+                    .minimumScaleFactor(0.7)
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+}
+
+/// Display "analog" of the clock: a dial with hands, the date below on request.
+struct AnalogClockCard: View {
+    let now: Date
+    let locale: Locale
+    var options = DashboardClockOptions()
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let timeZone = options.resolvedTimeZone
+        let dateHeight: CGFloat = options.showDate ? 34 : 0
+        let dial = max(40, min(size.width - 24, size.height - 24 - dateHeight))
+        Card(radius: 16) {
+            VStack(spacing: 8) {
+                ClockDial(now: now, timeZone: timeZone)
+                    .frame(width: dial, height: dial)
+                if options.showDate {
+                    VStack(spacing: 1) {
+                        Text(now, format: .dateTime.weekday(.wide).locale(locale))
+                            .font(style.font(size: 12, weight: .semibold))
+                        Text(now, format: .dateTime.day().month(.abbreviated).locale(locale))
+                            .font(style.font(size: 11, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                }
+            }
+        }
+        .environment(\.timeZone, timeZone)
+    }
+}
+
+private struct ClockDial: View {
+    let now: Date
+    let timeZone: TimeZone
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let parts = calendar.dateComponents([.hour, .minute], from: now)
+        let minute = Double(parts.minute ?? 0)
+        let hour = Double((parts.hour ?? 0) % 12) + minute / 60
+        return GeometryReader { geometry in
+            let side = min(geometry.size.width, geometry.size.height)
+            let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+            ZStack {
+                Circle().fill(Color.primary.opacity(0.06))
+                ForEach(0..<12, id: \.self) { tick in
+                    Capsule()
+                        .fill(Color.primary.opacity(tick % 3 == 0 ? 0.55 : 0.25))
+                        .frame(width: side * (tick % 3 == 0 ? 0.025 : 0.018), height: side * 0.07)
+                        .offset(y: -side * 0.41)
+                        .rotationEffect(.degrees(Double(tick) * 30))
+                }
+                Capsule()
+                    .fill(Color.primary)
+                    .frame(width: side * 0.045, height: side * 0.27)
+                    .offset(y: -side * 0.135)
+                    .rotationEffect(.degrees(hour * 30))
+                Capsule()
+                    .fill(style.accent)
+                    .frame(width: side * 0.03, height: side * 0.38)
+                    .offset(y: -side * 0.19)
+                    .rotationEffect(.degrees(minute * 6))
+                Circle().fill(style.accent).frame(width: side * 0.07, height: side * 0.07)
+            }
+            .frame(width: side, height: side)
+            .position(center)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(now, format: .dateTime.hour().minute()))
+    }
+}
+
+/// Display "today" of the calendar: the day large, weekday and month around
+/// it - for a glance instead of planning.
+struct CalendarTodayCard: View {
+    let model: DashboardModel
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let locale = model.calendar.locale ?? .current
+        let big = size.height >= 250
+        Card(radius: 28) {
+            VStack(spacing: big ? 4 : 0) {
+                Text(model.now, format: .dateTime.weekday(.wide).locale(locale))
+                    .font(style.font(size: big ? 18 : 14, weight: .semibold))
+                    .foregroundStyle(style.accent)
+                Text(model.now, format: .dateTime.day().locale(locale))
+                    .font(.system(size: big ? min(size.height * 0.42, 150) : 64, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.5)
+                Text(model.now, format: .dateTime.month(.wide).year().locale(locale))
+                    .font(style.font(size: big ? 15 : 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .lineLimit(1)
+            .padding(12)
+        }
+    }
+}
+
+/// Display "bars" of the resources: one bar per value, with its figure.
+struct ResourcesBarsCard: View {
+    let model: DashboardModel
+    var options = DashboardResourcesOptions()
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        Card(radius: 16) {
+            VStack(alignment: .leading, spacing: size.height >= 200 ? 18 : 10) {
+                if options.showCPU { row(symbol: "cpu", iconID: "panel-cpu", title: "CPU", value: model.cpu) }
+                if options.showMemory {
+                    row(symbol: "memorychip", iconID: "panel-memory", title: String(localized: "Memory"), value: model.memory)
+                }
+                if options.showStorage {
+                    row(symbol: "internaldrive", iconID: "panel-disk", title: String(localized: "Storage"), value: model.storage)
+                }
+            }
+            .padding(.horizontal, size.width >= 150 ? 16 : 12)
+        }
+    }
+
+    private func row(symbol: String, iconID: String, title: String, value: Double) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                ThemedIcon(iconID, fallback: symbol)
+                    .font(style.font(size: 11, weight: .semibold))
+                    .frame(width: 13, height: 13)
+                    .foregroundStyle(style.accent)
+                if size.width >= 150 {
+                    Text(title).font(style.font(size: 12, weight: .medium)).lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                Text("\(Int((value * 100).rounded())) %")
+                    .font(style.font(size: 12, weight: .semibold))
+                    .monospacedDigit()
+                    .fixedSize()
+            }
+            UsageBar(value: value, height: 6)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title) \(Int((value * 100).rounded())) percent")
+    }
+}

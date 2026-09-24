@@ -25,6 +25,8 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
     case spacer, gap, divider, appButton, battery, cpu, weather, mediaButton
     // Stage 3 of the edge bars (spec 23.09.): the modules a top bar lives on.
     case nowPlaying, windowTitle, keyboardLayout, volume, wifi, bluetooth, systemStats
+    // 09/23, with the new dashboard widgets.
+    case timer, networkSpeed
 
     public var id: Self { self }
 
@@ -61,6 +63,8 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .wifi: String(localized: "Wi-Fi")
         case .bluetooth: String(localized: "Bluetooth")
         case .systemStats: String(localized: "System Stats")
+        case .timer: String(localized: "Timer")
+        case .networkSpeed: String(localized: "Network Speed")
         }
     }
 
@@ -89,6 +93,8 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         case .wifi: String(localized: "Wi-Fi on its own; a click shows details.")
         case .bluetooth: String(localized: "Bluetooth on its own; a click shows details.")
         case .systemStats: String(localized: "CPU and memory use in percent, every 2 seconds.")
+        case .timer: String(localized: "The time left on the timer; a click starts or pauses it.")
+        case .networkSpeed: String(localized: "Download and upload per second, every 2 seconds.")
         }
     }
 
@@ -118,6 +124,8 @@ public enum BarModuleKind: String, CaseIterable, Sendable, Identifiable {
         // SF Symbols has no Bluetooth rune (a trademark); the bar draws its own.
         case .bluetooth: "antenna.radiowaves.left.and.right"
         case .systemStats: "memorychip"
+        case .timer: "timer"
+        case .networkSpeed: "arrow.up.arrow.down"
         }
     }
 }
@@ -472,6 +480,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
     case wifi
     case bluetooth
     case systemStats(BarSystemStatsOptions)
+    case timer
+    case networkSpeed
 
     /// With the kind's defaults.
     public init(_ kind: BarModuleKind) {
@@ -506,6 +516,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .wifi: .wifi
         case .bluetooth: .bluetooth
         case .systemStats: .systemStats(Self.decoded(c, forKey: .options, default: .init()))
+        case .timer: .timer
+        case .networkSpeed: .networkSpeed
         }
     }
 
@@ -533,6 +545,8 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .wifi: .wifi
         case .bluetooth: .bluetooth
         case .systemStats: .systemStats
+        case .timer: .timer
+        case .networkSpeed: .networkSpeed
         }
     }
 
@@ -554,7 +568,7 @@ public enum BarModule: BlockModule, Equatable, Sendable {
         case .keyboardLayout(let o): o
         case .volume(let o): o
         case .systemStats(let o): o
-        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .wifi, .bluetooth: nil
+        case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton, .wifi, .bluetooth, .timer, .networkSpeed: nil
         }
     }
 

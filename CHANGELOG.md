@@ -17,8 +17,29 @@ tabs you had into pages, with the cards at the same spots. The old
   Performance and Weather come as ready-made pages that look exactly as
   before. Add your own pages, rename them, give them a symbol, duplicate or
   delete them; "Restore default pages" brings back a deleted one.
-- **Widgets can go anywhere on a page**, in the sizes the dashboard already
-  had, and the same widget can appear more than once.
+- **Widgets can go anywhere on a page**, and the same widget can appear
+  more than once. The performance, weather and playback widgets come in
+  more sizes than their page had, so they also fit the rows of the overview.
+- **Eight new widgets**: a timer (also stopwatch and pomodoro, it rings with
+  the dashboard closed), favourite apps, a photo frame for a folder, the
+  connection (Wi-Fi, local and public address, latency), recent files, a
+  clipboard history (text only, never what password managers mark secret,
+  kept in memory only), sun and moon for a place, and the drives with an
+  eject button.
+- **Control centre: three new cards and seven new switches.** Cards for the
+  display brightness, what is playing, and the timer (quick starts 5, 15,
+  25 minutes); all three start switched off. Switches for mute, hidden files
+  in the Finder, emptying the trash (asks with a second click), Mission
+  Control, Launchpad (Apps on macOS 26), AirDrop and Low Power Mode (asks
+  for the administrator password).
+- **Two new bar blocks**: the timer (a ring with the minutes left; a click
+  starts or pauses, the menu starts 5, 10, 15 or 25 minutes) and the
+  network speed (download above upload, every 2 seconds).
+- **Every widget has display modes** in its options: an analog clock, today
+  in large, bars for the resources, a minimal weather and user card, graph
+  and gauge for CPU and GPU, bars for storage and memory, plain numbers for
+  the network, a ring for the battery, a temperature curve for the hours, a
+  list for the next days, and the cover filling the playback cards.
 - **Nexus lives in the menu bar.** Its icon opens a glass panel: on top,
   on/off switches for the dashboard, the control centre and the launcher (off
   means no hover, no shortcut and no bar button) and the edit mode, then
@@ -67,6 +88,15 @@ tabs you had into pages, with the cards at the same spots. The old
 
 ### Changed
 
+- **Playback is a card like every other widget.** Its background used to be
+  the blurred cover stretched across the whole page.
+- **Playback tells music from video.** A video (YouTube in a browser, IINA,
+  VLC, TV ...) gets its wide picture instead of a square cover, room for a
+  long title, and the channel instead of an album.
+- **The upload line follows the theme**: the theme's secondary accent, or
+  the opposite of the accent colour. It was always orange, and with an
+  orange accent both network lines looked the same.
+
 - **"Quick Actions" is called the control centre** everywhere, as in the
   README.
 - **The dashboard asks the disk every 20 seconds, not every second.** Reading
@@ -82,6 +112,8 @@ tabs you had into pages, with the cards at the same spots. The old
 
 ### Fixed
 
+- **The cover follows a song change while the dashboard was closed.** It
+  used to keep the old cover (with the new title) until the next change.
 - **Info toasts keep their symbol in themes that turn the toast light on a
   dark Mac** (Clay does). The symbol and its tile followed the system's dark
   colours, white on the light toast; they now take the toast's text colour.

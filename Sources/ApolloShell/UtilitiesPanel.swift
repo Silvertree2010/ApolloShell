@@ -20,6 +20,9 @@ final class UtilitiesPanel {
     /// when it is switched off.
     private weak var editor: ShellEditor?
     private let model: UtilitiesModel
+    /// Now Playing: the adapter process only runs while the panel is open,
+    /// the same way `Dashboard.swift` runs its own instance.
+    private let media = MediaModel()
     private let state: UtilitiesLayoutState
     private let drawer: EdgeDrawer<UtilitiesPanelView>
     private var observation: Task<Void, Never>?
@@ -70,7 +73,7 @@ final class UtilitiesPanel {
         model = injected ?? UtilitiesModel(lidAllowed: { settings.settings.keepAwake.lidClosed })
         let layout = settings.settings.utilities.layout
         state = UtilitiesLayoutState(layout: layout)
-        let view = UtilitiesPanelView(model: model, state: state, editor: editor)
+        let view = UtilitiesPanelView(model: model, state: state, media: media, editor: editor)
         // The height is worked out, not measured: every card has a fixed
         // height (UtilitiesMetrics) and the view sticks to it. No state (a
         // long device name, Keep Awake on) changes it.
@@ -78,10 +81,12 @@ final class UtilitiesPanel {
         drawer.opensOnHover = true
         drawer.onOpen = { [weak self] in
             self?.model.start()
+            self?.media.start()
             self?.onVisibilityChange(true)
         }
         drawer.onClose = { [weak self] in
             self?.model.stop()
+            self?.media.stop()
             self?.onVisibilityChange(false)
         }
         // Close the panel on purpose, then open Nexus. Do not wait for it to
@@ -180,9 +185,12 @@ final class UtilitiesPanel {
         drawer.toggle()
     }
 
-    /// When the app ends: let go of Keep Awake (with the lid closed too) cleanly.
+    /// When the app ends: let go of Keep Awake (with the lid closed too)
+    /// cleanly, and do not let the adapter's perl process keep running
+    /// orphaned if the panel is currently open.
     func shutdown() {
         model.shutdown()
+        media.stop()
     }
 
     /// From `FullscreenMonitor`: these screens are in full screen, and the
@@ -214,6 +222,7 @@ struct UtilitiesPanelView: View {
     static let rootSpace = "utilitiesRoot"
     let model: UtilitiesModel
     let state: UtilitiesLayoutState
+    let media: MediaModel
     @Bindable var editor: ShellEditor
 
     var body: some View {
@@ -221,7 +230,7 @@ struct UtilitiesPanelView: View {
             EditableUtilitiesView(editor: editor, layout: layout)
                 .coordinateSpace(name: Self.rootSpace)
         } else {
-            UtilitiesView(model: model, layout: state.layout)
+            UtilitiesView(model: model, layout: state.layout, media: media)
         }
     }
 }

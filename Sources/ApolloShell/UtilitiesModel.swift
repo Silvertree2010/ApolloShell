@@ -44,6 +44,13 @@ final class UtilitiesModel {
     private(set) var nightShift: Bool?
     /// "Show Desktop" shortcut enabled in Mission Control.
     private(set) var showDesktopAvailable = true
+    /// `nil`: not read yet, or `defaults read` failed.
+    private(set) var hiddenFilesOn: Bool?
+    /// `ProcessInfo` always answers, so no `nil` case here.
+    private(set) var lowPowerOn = false
+    /// The armed ("Empty?") step of the two-click "Empty Trash" button;
+    /// `nil` = not armed. See `emptyTrash()`.
+    private(set) var emptyTrashArmed = false
 
     // Sound card
     private(set) var volume: Float = 0
@@ -54,6 +61,12 @@ final class UtilitiesModel {
     private(set) var audioDevices: [UtilitiesAudioDevice] = []
     private(set) var defaultOutput: UInt32?
     private(set) var defaultInput: UInt32?
+
+    // Brightness card
+    /// `nil`: no display here answers DisplayServices (an external,
+    /// non-Apple monitor as the only screen, or the framework is missing).
+    private(set) var brightness: Float?
+    private(set) var brightnessSettable = false
 
     var outputs: [UtilitiesAudioDevice] { UtilitiesAudioDevices.devices(audioDevices, for: .output) }
     var inputs: [UtilitiesAudioDevice] { UtilitiesAudioDevices.devices(audioDevices, for: .input) }
@@ -73,9 +86,15 @@ final class UtilitiesModel {
     /// polling via a CoreAudio listener (VolumeMonitor).
     @ObservationIgnored private static let interval: TimeInterval = 2
     @ObservationIgnored private static let bluetoothEvery = 5
+    /// Hidden files is a process too (`defaults read`); the same cadence as
+    /// Bluetooth.
+    @ObservationIgnored private static let hiddenFilesEvery = 5
     /// After the panel fades away, wait this long until macOS has handed
     /// the keyboard back to the frontmost app - only then post the key press.
     @ObservationIgnored private static let keyHandBack: Duration = .milliseconds(100)
+    /// How long "Empty?" stays armed before it falls back to "Empty Trash"
+    /// on its own.
+    @ObservationIgnored private static let emptyTrashArmedFor: Duration = .seconds(3)
 
     /// `false` for the preview: then the model reads and switches
     /// nothing, no matter which action is called.
@@ -88,6 +107,9 @@ final class UtilitiesModel {
     @ObservationIgnored private var nightShiftLookedUp = false
     /// Keeps the color picker alive until it delivers a color.
     @ObservationIgnored private var colorSampler: NSColorSampler?
+    /// Counts down the armed "Empty?" step; a later timer firing after a
+    /// second arming is told apart by its own generation.
+    @ObservationIgnored private var emptyTrashGeneration = 0
     @ObservationIgnored private let log = Logger(category: "utilities")
 
     /// From the panel: close first, then `then` (see `EdgeDrawer.close(then:)`).
@@ -120,11 +142,15 @@ final class UtilitiesModel {
         darkMode: Bool? = true,
         nightShift: Bool? = false,
         showDesktopAvailable: Bool = true,
+        hiddenFilesOn: Bool? = false,
+        lowPowerOn: Bool = false,
         volume: Float = 0.45,
         outputMuted: Bool = false,
         audioDevices: [UtilitiesAudioDevice] = [],
         defaultOutput: UInt32? = nil,
-        defaultInput: UInt32? = nil
+        defaultInput: UInt32? = nil,
+        brightness: Float? = 0.6,
+        brightnessSettable: Bool = true
     ) -> UtilitiesModel {
         let model = UtilitiesModel(keepAwakeSince: keepAwakeSince)
         model.wifiOn = wifiOn
@@ -134,6 +160,8 @@ final class UtilitiesModel {
         model.darkMode = darkMode
         model.nightShift = nightShift
         model.showDesktopAvailable = showDesktopAvailable
+        model.hiddenFilesOn = hiddenFilesOn
+        model.lowPowerOn = lowPowerOn
         model.volume = volume
         model.outputMuted = outputMuted
         model.volumeSettable = true
@@ -141,6 +169,8 @@ final class UtilitiesModel {
         model.audioDevices = audioDevices
         model.defaultOutput = defaultOutput
         model.defaultInput = defaultInput
+        model.brightness = brightness
+        model.brightnessSettable = brightnessSettable
         return model
     }
 
@@ -162,8 +192,8 @@ final class UtilitiesModel {
         timer = nil
     }
 
-    /// Read everything again, including Bluetooth and the show-desktop
-    /// shortcut (which only changes in System Settings).
+    /// Read everything again, including Bluetooth, hidden files and the
+    /// show-desktop shortcut (which only change in System Settings/Finder).
     func refresh() {
         guard live else { return }
         readWifi()
@@ -172,8 +202,11 @@ final class UtilitiesModel {
         readAppearance()
         readNightShift()
         readShowDesktop()
+        readHiddenFiles()
+        readLowPower()
         readVolume()
         readAudioDevices()
+        readBrightness()
     }
 
     private func tick() {
@@ -182,8 +215,11 @@ final class UtilitiesModel {
         readMicrophone()
         readAppearance()
         readNightShift()
+        readLowPower()
         readAudioDevices()
+        readBrightness()
         if ticks % Self.bluetoothEvery == 0 { readBluetooth() }
+        if ticks % Self.hiddenFilesEvery == 0 { readHiddenFiles() }
     }
 
     private func readWifi() {
@@ -225,6 +261,26 @@ final class UtilitiesModel {
     private func readShowDesktop() {
         let available = UtilitiesKeys.symbolic(id: UtilitiesHotKey.showDesktopID, fallback: .showDesktopDefault) != nil
         if available != showDesktopAvailable { showDesktopAvailable = available }
+    }
+
+    private func readHiddenFiles() {
+        Task { [weak self] in
+            guard let self else { return }
+            let on = await UtilitiesFinder.readHiddenFiles()
+            if on != self.hiddenFilesOn { self.hiddenFilesOn = on }
+        }
+    }
+
+    private func readLowPower() {
+        let on = ProcessInfo.processInfo.isLowPowerModeEnabled
+        if on != lowPowerOn { lowPowerOn = on }
+    }
+
+    private func readBrightness() {
+        let value = UtilitiesBrightness.brightness()
+        let settable = value != nil
+        if value != brightness { brightness = value }
+        if settable != brightnessSettable { brightnessSettable = settable }
     }
 
     private func startVolume() {
@@ -444,6 +500,70 @@ final class UtilitiesModel {
         }
     }
 
+    /// `defaults write` + a Finder relaunch. The panel stays open - the
+    /// Finder relaunch is quick and the toggle recolors right when the read
+    /// comes back, the same confirmation pattern as dark mode.
+    func toggleHiddenFiles() {
+        guard live, let current = hiddenFilesOn else { return }
+        UtilitiesFinder.setHiddenFiles(!current)
+        hiddenFilesOn = !current
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            self?.readHiddenFiles()
+        }
+    }
+
+    /// `pmset lowpowermode` through an administrator prompt
+    /// (`UtilitiesPower`) - the panel stays open, `ProcessInfo` reports the
+    /// real state back once macOS applies it.
+    func toggleLowPower() {
+        guard live else { return }
+        UtilitiesPower.setLowPowerMode(!lowPowerOn)
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            self?.readLowPower()
+        }
+    }
+
+    /// Two clicks: the first only arms it (red "Empty?", `emptyTrashArmed`),
+    /// falling back on its own after `emptyTrashArmedFor` - the second
+    /// click while armed runs the AppleScript. That way a stray click never
+    /// empties the trash by accident.
+    func emptyTrash() {
+        guard live else { return }
+        guard emptyTrashArmed else {
+            emptyTrashArmed = true
+            emptyTrashGeneration += 1
+            let generation = emptyTrashGeneration
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: Self.emptyTrashArmedFor)
+                guard let self, self.emptyTrashGeneration == generation else { return }
+                self.emptyTrashArmed = false
+            }
+            return
+        }
+        emptyTrashArmed = false
+        emptyTrashGeneration += 1
+        closePanel {
+            Subprocess.launch("/usr/bin/osascript", ["-e", "tell application \"Finder\" to empty the trash"])
+        }
+    }
+
+    func openMissionControl() {
+        guard live else { return }
+        closePanel { UtilitiesSystemWindows.openMissionControl() }
+    }
+
+    func openLaunchpad() {
+        guard live else { return }
+        closePanel { UtilitiesSystemWindows.openLaunchpad() }
+    }
+
+    func openAirDrop() {
+        guard live else { return }
+        closePanel { UtilitiesSystemWindows.openAirDrop() }
+    }
+
     // MARK: - Sound
 
     /// While dragging the slider. Show it immediately, the listener
@@ -471,6 +591,17 @@ final class UtilitiesModel {
         }
         readAudioDevices()
         readVolume()
+    }
+
+    // MARK: - Brightness
+
+    /// While dragging the slider, same pattern as `setVolume`: show it
+    /// right away, DisplayServices takes it from there.
+    func setBrightness(_ value: Float) {
+        guard live, brightnessSettable else { return }
+        let clamped = min(max(value, 0), 1)
+        UtilitiesBrightness.setBrightness(clamped)
+        brightness = clamped
     }
 
     /// Sets the panel: opens Nexus (Caelestia's "Settings" button opens

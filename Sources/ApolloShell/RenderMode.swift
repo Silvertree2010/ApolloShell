@@ -15,12 +15,26 @@ enum RenderMode {
         if let index = args.firstIndex(of: "--render-dashboard"), index + 1 < args.count {
             run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderDashboard)
         }
+        // `--render-widgets <folder> [<kind>...]`: a contact sheet per widget
+        // kind, every display mode at every size (`RenderWidgets.swift`).
+        if let index = args.firstIndex(of: "--render-widgets"), index + 1 < args.count {
+            let kinds = args[(index + 2)...].prefix { !$0.hasPrefix("-") }.compactMap(WidgetKind.init(rawValue:))
+            run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true)) {
+                try RenderWidgets.run(into: $0, kinds: Array(kinds))
+            }
+        }
         if let index = args.firstIndex(of: "--render-edit"), index + 1 < args.count {
             run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderEditMode)
         }
         // `--render-bars <folder>`: the bars with every template.
         if let index = args.firstIndex(of: "--render-bars"), index + 1 < args.count {
             run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true)) { try RenderBars.render(into: $0) }
+        }
+        // `--render-utilities <folder>`: the control centre with every card
+        // on (including the new brightness and now-playing ones) and a
+        // grid with the new quick toggles, light and dark.
+        if let index = args.firstIndex(of: "--render-utilities"), index + 1 < args.count {
+            run(folder: URL(fileURLWithPath: args[index + 1], isDirectory: true), renderUtilities)
         }
         // `--render-mark <folder>`: the ApolloShell mark through one orbit of
         // its moon, large and at bar size.
@@ -236,6 +250,38 @@ enum RenderMode {
         // `ImageRenderer` leaves empty.
         try write(NexusEdgeBarsPage(model: nexus).padding(NexusPanelView.padding).frame(width: NexusPanelView.width),
                   scheme: .light, to: folder.appendingPathComponent("nexus-edgebars-light.png"))
+    }
+
+    /// `--render-utilities <folder>`: the quiet panel with every card on
+    /// (`UtilitiesPreset.everything` plus the two new cards switched on) -
+    /// fixed sample data, so brightness, now playing and the new quick
+    /// toggles all show real content instead of their empty states.
+    private static func renderUtilities(into folder: URL) throws {
+        var layout = UtilitiesPreset.everything.layout
+        layout.setCard(.brightness, enabled: true)
+        layout.setCard(.nowPlaying, enabled: true)
+        layout.setCard(.timer, enabled: true)
+        let model = UtilitiesModel.preview(
+            keepAwakeSince: Date(timeIntervalSinceNow: -3600), wifiOn: true, micMuted: false, bluetoothOn: true,
+            darkMode: true, nightShift: false, showDesktopAvailable: true, hiddenFilesOn: false, lowPowerOn: false,
+            volume: 0.6, outputMuted: false,
+            audioDevices: [
+                UtilitiesAudioDevice(id: 1, name: "Speakers", outputStreams: 1, inputStreams: 0,
+                                     canBeDefaultOutput: true, canBeDefaultInput: false, hidden: false),
+                UtilitiesAudioDevice(id: 2, name: "Microphone", outputStreams: 0, inputStreams: 1,
+                                     canBeDefaultOutput: false, canBeDefaultInput: true, hidden: false),
+            ],
+            defaultOutput: 1, defaultInput: 2, brightness: 0.7, brightnessSettable: true
+        )
+        let media = MediaModel.preview(
+            nowPlaying: MediaNowPlaying(title: "Sample Track", artist: "Sample Artist", isPlaying: true,
+                                        duration: 200, elapsed: 60, timestamp: Date()),
+            now: Date()
+        )
+        for scheme in [ColorScheme.light, .dark] {
+            let view = UtilitiesView(model: model, layout: layout, media: media)
+            try write(view, scheme: scheme, to: folder.appendingPathComponent(name("utilities", scheme)))
+        }
     }
 
     private static func renderMark(into folder: URL) throws {

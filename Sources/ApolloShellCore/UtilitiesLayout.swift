@@ -16,6 +16,9 @@ import Foundation
 /// rename, only add new ones.
 public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifiable {
     case keepAwake, audio, quickToggles
+    // Newly added, off by default (`defaultEnabledWhenMissing`): whoever
+    // wants them turns them on in Nexus or the gallery.
+    case brightness, nowPlaying, timer
 
     public var id: Self { self }
 
@@ -24,6 +27,9 @@ public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifi
         case .keepAwake: KeepAwakeText.title
         case .audio: UtilitiesAudioText.title
         case .quickToggles: UtilitiesToggleText.cardTitle
+        case .brightness: UtilitiesBrightnessText.title
+        case .nowPlaying: UtilitiesNowPlayingText.title
+        case .timer: String(localized: "Timer")
         }
     }
 
@@ -32,6 +38,9 @@ public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifi
         case .keepAwake: "Keep the Mac awake, even with the lid closed if you want."
         case .audio: "Volume, mute, output and input."
         case .quickToggles: "Switches and actions, five per row."
+        case .brightness: "The brightness of the built-in and connected displays."
+        case .nowPlaying: "Cover, title, artist and the transport buttons."
+        case .timer: "The shell's timer, with quick starts for 5, 15 and 25 minutes."
         }
     }
 
@@ -40,6 +49,20 @@ public enum UtilitiesCardKind: String, CaseIterable, Codable, Sendable, Identifi
         case .keepAwake: "cup.and.saucer.fill"
         case .audio: "speaker.wave.2.fill"
         case .quickToggles: "square.grid.3x3.fill"
+        case .brightness: "sun.max.fill"
+        case .nowPlaying: "music.note"
+        case .timer: "timer"
+        }
+    }
+
+    /// Whether an entry appended for this kind (a settings file that does
+    /// not have it yet) starts enabled. The three old cards did, so an
+    /// older file keeps looking the way it always did; the new ones start
+    /// off - nobody asked for them to just appear.
+    var defaultEnabledWhenMissing: Bool {
+        switch self {
+        case .keepAwake, .audio, .quickToggles: true
+        case .brightness, .nowPlaying, .timer: false
         }
     }
 }
@@ -100,6 +123,11 @@ public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Iden
     // Newly added.
     case displaySleep, hideApps
     case openApp, openLink, runShortcut
+    // Newly added again: mute, hidden files and low power as switches with
+    // a state; empty trash, Mission Control, Launchpad and AirDrop as
+    // actions without one.
+    case mute, hiddenFiles, lowPower
+    case emptyTrash, missionControl, launchpad, airDrop
 
     public var id: Self { self }
 
@@ -110,8 +138,9 @@ public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Iden
 
     public var group: UtilitiesToggleGroup {
         switch self {
-        case .wifi, .microphone, .bluetooth, .darkMode, .nightShift: .switches
-        case .screenshot, .showDesktop, .colorPicker, .lockScreen, .settings, .displaySleep, .hideApps: .actions
+        case .wifi, .microphone, .bluetooth, .darkMode, .nightShift, .mute, .hiddenFiles, .lowPower: .switches
+        case .screenshot, .showDesktop, .colorPicker, .lockScreen, .settings, .displaySleep, .hideApps,
+             .emptyTrash, .missionControl, .launchpad, .airDrop: .actions
         case .openApp, .openLink, .runShortcut: .custom
         }
     }
@@ -133,6 +162,13 @@ public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Iden
         case .openApp: "Open App"
         case .openLink: "Open Link"
         case .runShortcut: "Shortcut"
+        case .mute: "Mute"
+        case .hiddenFiles: "Hidden Files"
+        case .lowPower: "Low Power Mode"
+        case .emptyTrash: "Empty Trash"
+        case .missionControl: "Mission Control"
+        case .launchpad: "Launchpad"
+        case .airDrop: "AirDrop"
         }
     }
 
@@ -154,6 +190,13 @@ public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Iden
         case .openApp: "Launches a chosen app or brings it to the front."
         case .openLink: "Opens an address in the default browser."
         case .runShortcut: "Runs a shortcut, e.g. to toggle a Focus."
+        case .mute: "Mute the default audio output."
+        case .hiddenFiles: "Shows hidden files in the Finder."
+        case .lowPower: "Throttles the Mac to save battery."
+        case .emptyTrash: "Empties the trash - asks once before it does."
+        case .missionControl: "Opens Mission Control."
+        case .launchpad: "Opens Launchpad, or the Apps overview where that replaced it."
+        case .airDrop: "Opens the AirDrop window."
         }
     }
 
@@ -176,6 +219,13 @@ public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Iden
         case .openApp: UtilitiesAppOptions.fallbackSymbol
         case .openLink: UtilitiesLinkOptions.fallbackSymbol
         case .runShortcut: UtilitiesShortcutOptions.fallbackSymbol
+        case .mute: "speaker.slash.fill"
+        case .hiddenFiles: "eye.fill"
+        case .lowPower: "leaf.fill"
+        case .emptyTrash: "trash.fill"
+        case .missionControl: "square.stack.3d.up.fill"
+        case .launchpad: "square.grid.3x3.fill"
+        case .airDrop: "wave.3.right.circle.fill"
         }
     }
 }
@@ -289,6 +339,8 @@ public enum UtilitiesToggle: BlockModule, Equatable, Sendable {
     case openApp(UtilitiesAppOptions)
     case openLink(UtilitiesLinkOptions)
     case runShortcut(UtilitiesShortcutOptions)
+    case mute, hiddenFiles, lowPower
+    case emptyTrash, missionControl, launchpad, airDrop
 
     /// With the kind's defaults.
     public init(_ kind: UtilitiesToggleKind) {
@@ -314,6 +366,13 @@ public enum UtilitiesToggle: BlockModule, Equatable, Sendable {
         case .openApp: .openApp(Self.decoded(c, forKey: .options, default: .init()))
         case .openLink: .openLink(Self.decoded(c, forKey: .options, default: .init()))
         case .runShortcut: .runShortcut(Self.decoded(c, forKey: .options, default: .init()))
+        case .mute: .mute
+        case .hiddenFiles: .hiddenFiles
+        case .lowPower: .lowPower
+        case .emptyTrash: .emptyTrash
+        case .missionControl: .missionControl
+        case .launchpad: .launchpad
+        case .airDrop: .airDrop
         }
     }
 
@@ -334,6 +393,13 @@ public enum UtilitiesToggle: BlockModule, Equatable, Sendable {
         case .openApp: .openApp
         case .openLink: .openLink
         case .runShortcut: .runShortcut
+        case .mute: .mute
+        case .hiddenFiles: .hiddenFiles
+        case .lowPower: .lowPower
+        case .emptyTrash: .emptyTrash
+        case .missionControl: .missionControl
+        case .launchpad: .launchpad
+        case .airDrop: .airDrop
         }
     }
 
@@ -445,8 +511,12 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
         try c.encode(toggleBlocks, forKey: .quickToggles)
     }
 
-    /// The panel before the building-kit: all three cards in Caelestia's order ...
-    public static let standardCards: [UtilitiesCardEntry] = UtilitiesCardKind.allCases.map { UtilitiesCardEntry($0) }
+    /// The panel before the building-kit: all three cards in Caelestia's
+    /// order, plus the two newer ones (brightness, now playing) - off, so
+    /// the standard panel looks exactly as it always did.
+    public static let standardCards: [UtilitiesCardEntry] = UtilitiesCardKind.allCases.map {
+        UtilitiesCardEntry($0, enabled: $0.defaultEnabledWhenMissing)
+    }
     /// ... and the ten buttons: switches on top, actions below.
     public static let standardToggles: [UtilitiesToggleEntry] = [
         .wifi, .microphone, .bluetooth, .darkMode, .nightShift,
@@ -559,13 +629,14 @@ public struct UtilitiesLayout: Codable, Equatable, Sendable {
     // MARK: Rules
 
     /// Every card exactly once (the first one counts); if one is missing -
-    /// a file from an older version with fewer cards -, it is appended at
-    /// the end, enabled.
+    /// a file from an older version with fewer cards, or one of the newer
+    /// ones nobody has turned on yet -, it is appended at the end, with
+    /// that kind's own default (`defaultEnabledWhenMissing`).
     static func normalizedCards(_ list: [UtilitiesCardEntry]) -> [UtilitiesCardEntry] {
         var seen = Set<UtilitiesCardKind>()
         var result = list.filter { seen.insert($0.kind).inserted }
         for kind in UtilitiesCardKind.allCases where !seen.contains(kind) {
-            result.append(UtilitiesCardEntry(kind))
+            result.append(UtilitiesCardEntry(kind, enabled: kind.defaultEnabledWhenMissing))
         }
         return result
     }
@@ -597,6 +668,13 @@ public enum UtilitiesMetrics {
     public static let toggleRowSpacing = 8.0
     /// Notice when nothing is shown: one line like "Keep Awake".
     public static let emptyCardHeight = 68.0
+    /// Heading 17, 10, slider row 32, plus inner margin - the sound card
+    /// without its device buttons. "Not available" stands in the heading.
+    public static let brightnessHeight = 87.0
+    /// 48pt cover, plus inner margin: one row, no second line needed.
+    public static let nowPlayingHeight = 76.0
+    /// 48pt ring, plus inner margin: one row like the now-playing card.
+    public static let timerHeight = 76.0
 
     public static func toggleCardHeight(rows: Int) -> Double {
         let rows = max(rows, 1)
@@ -609,6 +687,9 @@ public enum UtilitiesMetrics {
         case .keepAwake: keepAwakeHeight
         case .audio: audioHeight
         case .quickToggles: toggleCardHeight(rows: toggleRows)
+        case .brightness: brightnessHeight
+        case .nowPlaying: nowPlayingHeight
+        case .timer: timerHeight
         }
     }
 }
@@ -657,9 +738,9 @@ public enum UtilitiesPreset: String, CaseIterable, Identifiable, Sendable {
             )
         case .everything:
             UtilitiesLayout(toggles: [
-                .wifi, .microphone, .bluetooth, .darkMode, .nightShift,
+                .wifi, .microphone, .bluetooth, .darkMode, .nightShift, .mute, .hiddenFiles, .lowPower,
                 .screenshot, .showDesktop, .colorPicker, .lockScreen, .displaySleep,
-                .hideApps, .settings,
+                .hideApps, .emptyTrash, .missionControl, .launchpad, .airDrop, .settings,
             ].map { UtilitiesToggleEntry($0) })
         }
     }
@@ -676,6 +757,22 @@ public enum UtilitiesToggleText {
     public static let cardTitle = String(localized: "Quick Toggles")
     public static let displaySleepSymbol = "moon.zzz.fill"
     public static let hideAppsSymbol = "eye.slash.fill"
+}
+
+/// The texts of the brightness card.
+public enum UtilitiesBrightnessText {
+    public static let title = String(localized: "Brightness")
+    public static let unavailable = String(localized: "No display found that supports this")
+
+    /// "45 %", the same spelling as the sound card's level.
+    public static func level(_ value: Float) -> String {
+        String(localized: "\(VolumeGlyphs.percent(value)) %")
+    }
+}
+
+/// The texts of the now-playing card.
+public enum UtilitiesNowPlayingText {
+    public static let title = String(localized: "Now Playing")
 }
 
 extension QuickToggles {
@@ -721,6 +818,60 @@ extension QuickToggles {
         QuickToggleLook(symbol: UtilitiesToggleText.hideAppsSymbol, active: false, enabled: true,
                         help: options.keepFrontmost ? String(localized: "Hide Other Apps") : String(localized: "Hide All Apps"))
     }
+
+    /// `muted == nil`: no default output found (should not really happen -
+    /// there is always some default device - but the panel stays calm
+    /// about it instead of crashing). Lights up like the microphone: "not
+    /// muted" reads as "on".
+    public static func mute(muted: Bool?, settable: Bool) -> QuickToggleLook {
+        guard let muted else {
+            return QuickToggleLook(symbol: "speaker.slash.fill", active: false, enabled: false, help: String(localized: "No Output"))
+        }
+        let state = muted ? String(localized: "Output Muted") : String(localized: "Output On")
+        return QuickToggleLook(
+            symbol: muted ? "speaker.slash.fill" : "speaker.wave.2.fill",
+            active: !muted, enabled: settable,
+            help: settable ? state : state + String(localized: " (not switchable)")
+        )
+    }
+
+    /// `nil`: not read yet.
+    public static func hiddenFiles(on: Bool?) -> QuickToggleLook {
+        switch on {
+        case true?: QuickToggleLook(symbol: "eye.fill", active: true, enabled: true, help: String(localized: "Hidden Files Shown"))
+        case false?: QuickToggleLook(symbol: "eye.fill", active: false, enabled: true, help: String(localized: "Hidden Files Not Shown"))
+        case nil: QuickToggleLook(symbol: "eye.fill", active: false, enabled: false, help: String(localized: "Hidden Files"))
+        }
+    }
+
+    /// Always readable (`ProcessInfo`), hence no `nil` case, unlike Night
+    /// Shift and the like.
+    public static func lowPower(on: Bool) -> QuickToggleLook {
+        QuickToggleLook(symbol: "leaf.fill", active: on, enabled: true,
+                        help: on ? String(localized: "Low Power Mode On") : String(localized: "Low Power Mode Off"))
+    }
+
+    /// The two-step "empty trash": the first click only arms it (red,
+    /// "Empty?"), the second within a few seconds actually empties it -
+    /// see `UtilitiesModel.emptyTrash`. `danger` on `QuickToggleLook` picks
+    /// the red look instead of the accent color while armed.
+    public static func emptyTrash(armed: Bool) -> QuickToggleLook {
+        QuickToggleLook(symbol: armed ? "trash.slash.fill" : "trash.fill", active: armed, enabled: true,
+                        help: armed ? String(localized: "Click Again to Empty the Trash") : String(localized: "Empty Trash"),
+                        danger: armed)
+    }
+
+    public static let missionControl = QuickToggleLook(
+        symbol: "square.stack.3d.up.fill", active: false, enabled: true, help: String(localized: "Mission Control")
+    )
+
+    public static let launchpad = QuickToggleLook(
+        symbol: "square.grid.3x3.fill", active: false, enabled: true, help: String(localized: "Launchpad")
+    )
+
+    public static let airDrop = QuickToggleLook(
+        symbol: "wave.3.right.circle.fill", active: false, enabled: true, help: String(localized: "AirDrop")
+    )
 }
 
 // MARK: - Links

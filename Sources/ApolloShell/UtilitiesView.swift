@@ -23,6 +23,10 @@ struct UtilitiesView: View {
 
     @Bindable var model: UtilitiesModel
     let layout: UtilitiesLayout
+    /// For the now-playing card; the panel starts and stops its stream
+    /// (`UtilitiesPanel.swift`), the same way `Dashboard.swift` does for
+    /// the Dashboard's own media card.
+    let media: MediaModel
 
     var body: some View {
         let rows = layout.toggleRows
@@ -48,6 +52,9 @@ struct UtilitiesView: View {
         case .keepAwake: KeepAwakeCard(model: model)
         case .audio: UtilitiesAudioCard(model: model)
         case .quickToggles: QuickTogglesCard(model: model, rows: rows)
+        case .brightness: UtilitiesBrightnessCard(model: model)
+        case .nowPlaying: UtilitiesNowPlayingCard(model: media)
+        case .timer: UtilitiesTimerCard(timer: .shared)
         }
     }
 }
@@ -270,7 +277,7 @@ struct QuickToggleButton: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: Self.height)
         }
-        .buttonStyle(QuickToggleStyle(active: look.active, hovered: hovering))
+        .buttonStyle(QuickToggleStyle(active: look.active, danger: look.danger, hovered: hovering))
         .disabled(!look.enabled)
         // Not `onHover`: the panel belongs to an app that is never active, see
         // HoverTracker.
@@ -314,8 +321,11 @@ struct UtilitiesToggleGlyph: View {
 /// Caelestia's IconButton in Apple colors: off is a round, quiet area with a
 /// grey symbol; on is a rectangle with radius 12 in the accent color, the
 /// symbol white (dark on yellow, see `Color.onAccent`); pressed radius 8. Shape and color glide in 200 ms.
+/// `danger`: red instead of the accent color while `active` - the armed
+/// step of "Empty Trash", so it reads as a warning, not a normal switch.
 private struct QuickToggleStyle: ButtonStyle {
     let active: Bool
+    var danger: Bool = false
     let hovered: Bool
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.shellStyle) private var style
@@ -325,9 +335,9 @@ private struct QuickToggleStyle: ButtonStyle {
             active: active, pressed: configuration.isPressed, height: QuickToggleButton.height
         )
         configuration.label
-            .foregroundStyle(active ? AnyShapeStyle(style.onAccent) : AnyShapeStyle(.secondary))
+            .foregroundStyle(active ? (danger ? AnyShapeStyle(Color.white) : AnyShapeStyle(style.onAccent)) : AnyShapeStyle(.secondary))
             .background(
-                active ? AnyShapeStyle(style.accent) : AnyShapeStyle(Color.primary.opacity(0.10)),
+                active ? (danger ? AnyShapeStyle(Color.red) : AnyShapeStyle(style.accent)) : AnyShapeStyle(Color.primary.opacity(0.10)),
                 in: .rect(cornerRadius: radius)
             )
             // The hover shimmer: 8 % on top, like Caelestia's StateLayer.

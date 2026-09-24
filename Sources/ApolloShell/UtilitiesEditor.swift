@@ -21,6 +21,13 @@ enum UtilitiesEditorPreviewModel {
         ],
         defaultOutput: 1, defaultInput: 2
     )
+
+    /// For the now-playing card while editing: fixed, starts no process.
+    static let media = MediaModel.preview(
+        nowPlaying: MediaNowPlaying(title: "Sample Track", artist: "Sample Artist", isPlaying: true,
+                                    duration: 200, elapsed: 60, timestamp: Date()),
+        now: Date()
+    )
 }
 
 // MARK: - Texts and colors

@@ -32,8 +32,14 @@ struct MediaSource: Equatable {
 final class MediaModel {
     private(set) var nowPlaying: MediaNowPlaying?
     private(set) var artwork: NSImage?
-    /// The cover small and blurred, as the background of the tab.
-    private(set) var ambient: NSImage?
+
+    /// Music or video - the cards shape themselves after it (a square cover
+    /// or a wide picture). Nothing playing counts as music.
+    var kind: MediaKind {
+        guard let playing = nowPlaying else { return .music }
+        let aspect = artwork.flatMap { $0.size.height > 0 ? Double($0.size.width / $0.size.height) : nil }
+        return MediaKind.detect(playing, artworkAspect: aspect)
+    }
     /// Counts cover changes - the view cross-fades with it.
     private(set) var artworkID = 0
     private(set) var source: MediaSource?
@@ -47,7 +53,7 @@ final class MediaModel {
     @ObservationIgnored private let live: Bool
 
     @ObservationIgnored private var state = MediaStreamState()
-    @ObservationIgnored private var shownArtworkRevision = 0
+    @ObservationIgnored private var shownArtwork = MediaArtworkShown()
     @ObservationIgnored private var stream: Process?
     @ObservationIgnored private var streamStartedAt = Date()
     /// Every stream process gets a number; late lines or a late end of an old
@@ -86,7 +92,6 @@ final class MediaModel {
         let model = MediaModel(fixedNow: now)
         model.nowPlaying = nowPlaying
         model.artwork = artwork
-        model.ambient = artwork.flatMap(MediaBlur.ambient(from:))
         model.source = source
         model.isUnavailable = isUnavailable
         return model
@@ -195,6 +200,7 @@ final class MediaModel {
         let generation = generation
         // Diffs only hold inside one process.
         state = MediaStreamState()
+        shownArtwork.streamRestarted()
 
         // According to the README, stderr holds non-fatal messages;
         // `Subprocess` throws them away, and unread the pipe would fill up.
@@ -248,10 +254,8 @@ final class MediaModel {
     private func publish() {
         let next = state.nowPlaying
         if next != nowPlaying { nowPlaying = next }
-        if state.artworkRevision != shownArtworkRevision {
-            shownArtworkRevision = state.artworkRevision
-            artwork = state.artwork.flatMap(NSImage.init(data:))
-            ambient = artwork.flatMap(MediaBlur.ambient(from:))
+        if let data = shownArtwork.take(state) {
+            artwork = data.isEmpty ? nil : NSImage(data: data)
             artworkID += 1
         }
         let nextSource = next?.sourceBundleIdentifier.map(source(for:))
@@ -310,28 +314,6 @@ final class MediaModel {
         }
         sources[bundleIdentifier] = source
         return source
-    }
-}
-
-/// The background out of the cover, worked out once per cover: scaled down
-/// and blurred. A SwiftUI `.blur` with a large radius would run along on
-/// every redraw of the tab.
-@MainActor
-enum MediaBlur {
-    private static let context = CIContext()
-
-    static func ambient(from image: NSImage) -> NSImage? {
-        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
-        let input = CIImage(cgImage: cgImage)
-        let longest = max(input.extent.width, input.extent.height)
-        guard longest > 0 else { return nil }
-        // 96 px is enough for a soft background and keeps the blur cheap.
-        let scale = 96 / longest
-        let small = input.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-        // Continue the edge, otherwise the blur pulls transparency in from outside.
-        let blurred = small.clampedToExtent().applyingGaussianBlur(sigma: 8).cropped(to: small.extent)
-        guard let output = context.createCGImage(blurred, from: small.extent) else { return nil }
-        return NSImage(cgImage: output, size: NSSize(width: output.width, height: output.height))
     }
 }
 
