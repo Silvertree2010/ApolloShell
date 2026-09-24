@@ -68,6 +68,12 @@ public final class SignalStore {
         requestFlush()
     }
 
+    func removeRoot(_ root: String) {
+        guard roots.removeValue(forKey: root) != nil else { return }
+        notify(DependencyPath(root, []))
+        requestFlush()
+    }
+
     @discardableResult
     public func subscribe(_ path: DependencyPath, _ onChange: @escaping @MainActor () -> Void) -> SubscriptionToken {
         let token = nextToken
