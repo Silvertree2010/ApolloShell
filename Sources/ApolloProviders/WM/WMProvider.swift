@@ -16,6 +16,8 @@ public final class WMProvider: BaseProvider {
     private var panels: [PanelReserve] = []
     private var sentReserve: [String: WMInsets]?
     private var last: WMState?
+    private var proxyFallback = false
+    private var proxyFallbackWarned = false
 
     public private(set) var isEngineRunning = false
 
@@ -38,7 +40,7 @@ public final class WMProvider: BaseProvider {
             toggled = false
         }
         if changed, isEngineRunning {
-            engine.configure(next)
+            engine.configure(effective(next))
         }
         sendReserve(force: changed)
         reconcile()
@@ -70,6 +72,7 @@ public final class WMProvider: BaseProvider {
 
     override func didStart() {
         publishAll()
+        warnProxyFallback()
     }
 
     override func handle(_ arguments: ActionArguments) async throws -> Value {
@@ -198,7 +201,7 @@ public final class WMProvider: BaseProvider {
                 lifecycle.once("permissions", after: Self.permissionRetry) { [weak self] in self?.reconcile() }
                 return
             }
-            guard engine.start(settings) else {
+            guard engine.start(effective(settings)) else {
                 lifecycle.once("permissions", after: Self.permissionRetry) { [weak self] in self?.reconcile() }
                 return
             }
@@ -213,9 +216,26 @@ public final class WMProvider: BaseProvider {
     }
 
     private func permitted() -> Bool {
-        guard engine.accessibilityTrusted else { return false }
-        if settings.resize == .proxy && !engine.screenRecordingAllowed { return false }
-        return true
+        engine.accessibilityTrusted
+    }
+
+    private func effective(_ settings: WMSettings) -> WMSettings {
+        guard settings.resize == .proxy, !engine.screenRecordingAllowed else {
+            proxyFallback = false
+            proxyFallbackWarned = false
+            return settings
+        }
+        proxyFallback = true
+        warnProxyFallback()
+        var fallback = settings
+        fallback.resize = .smooth
+        return fallback
+    }
+
+    private func warnProxyFallback() {
+        guard proxyFallback, !proxyFallbackWarned, isRunning else { return }
+        proxyFallbackWarned = true
+        warn("resize-animation \"proxy\" needs screen recording; falling back to \"smooth\"")
     }
 
     private func halt() {

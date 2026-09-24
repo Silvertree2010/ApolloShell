@@ -1,11 +1,11 @@
 import ApolloShellCore
 import Foundation
 
-struct CSSParseContext: Sendable, Hashable {
-    var assetRoot: URL?
-    var limits: ThemeLimits
+public struct CSSParseContext: Sendable, Hashable {
+    public var assetRoot: URL?
+    public var limits: ThemeLimits
 
-    init(assetRoot: URL? = nil, limits: ThemeLimits = .standard) {
+    public init(assetRoot: URL? = nil, limits: ThemeLimits = .standard) {
         self.assetRoot = assetRoot
         self.limits = limits
     }
@@ -47,7 +47,7 @@ public enum CSSPropertyRegistry {
 
     public static let builtin: [String: CSSPropertySchema] = entries.mapValues(\.schema)
 
-    static func parse(_ property: String, _ text: String, context: CSSParseContext) throws -> CSSValue {
+    public static func parse(_ property: String, _ text: String, context: CSSParseContext = CSSParseContext()) throws -> CSSValue {
         guard let entry = entries[property] else { throw CSSValueError("unknown property '\(property)'") }
         let components = CSSComponentParser.parse(text: text)
         guard !CSSList.words(components).isEmpty else { throw CSSValueError("'\(property)' has no value") }

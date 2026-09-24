@@ -74,5 +74,6 @@ enum ActionsGlobal {
         ActionSchema(name: "shell.install-update", doc: "installiert ein bereitliegendes Update und startet neu."),
         ActionSchema(name: "shell.open-config-folder", doc: "öffnet den Ordner der aktiven Config."),
         ActionSchema(name: "shell.edit", arguments: [S.arg("file", .path, doc: "Datei.")], properties: [PropertySchema(name: "line", type: .number, defaultValue: .null, doc: "Zeile.")], startsProgramsOrControlsApps: true, doc: "öffnet eine Datei im Editor aus settings.kdl."),
+        ActionSchema(name: "shell.set-login-item", arguments: [S.arg("value", .bool, doc: "Zustand.")], doc: "Anmeldeobjekt setzen."),
     ]
 }
