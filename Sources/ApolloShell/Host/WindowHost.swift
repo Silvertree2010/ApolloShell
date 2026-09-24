@@ -277,8 +277,7 @@ final class WindowHost: SurfaceHosting {
         let geometry = geometry(controller, placement: placement, screen: screen)
         track(controller, key: key, animator: animator, geometry: geometry, opening: true)
         controller.window.animate(opening: true, focus: focus, animator: animator, geometry: geometry, scrim: spec.scrim, screen: screen.frame) { [weak self, weak controller] in
-            guard let self, let controller, controller.shown else { return }
-            self.stopTicker(controller)
+            guard let self, let controller, controller.shown, controller.ticker == nil else { return }
             self.frames.publish(key, controller.openFrame)
         }
         scheduleTimeout(controller)

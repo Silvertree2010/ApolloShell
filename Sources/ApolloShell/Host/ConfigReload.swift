@@ -8,6 +8,7 @@ final class ReloadDebouncer {
     private let schedule: (TimeInterval, @escaping @MainActor () -> Void) -> Void
     var fire: @MainActor () -> Void = {}
     private(set) var fired = 0
+    private(set) var pokes = 0
 
     init(delay: TimeInterval = 0.15, schedule: @escaping (TimeInterval, @escaping @MainActor () -> Void) -> Void = { delay, work in
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { MainActor.assumeIsolated { work() } }
@@ -17,6 +18,7 @@ final class ReloadDebouncer {
     }
 
     func poke() {
+        pokes += 1
         generation += 1
         let current = generation
         schedule(delay) { [weak self] in

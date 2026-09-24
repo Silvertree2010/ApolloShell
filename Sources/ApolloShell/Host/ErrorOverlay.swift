@@ -43,6 +43,7 @@ final class ErrorOverlayModel {
     }
 
     func add(_ diagnostic: Diagnostic) {
+        guard !problems.contains(where: { $0.message == diagnostic.message && $0.span == diagnostic.span && $0.severity == diagnostic.severity }) else { return }
         show(problems + [diagnostic])
     }
 

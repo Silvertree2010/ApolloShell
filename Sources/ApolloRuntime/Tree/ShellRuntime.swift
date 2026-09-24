@@ -528,7 +528,7 @@ public final class ShellRuntime: SurfaceControlling {
         case "panel":
             return node.visibleProperty && !hidden
         case "toast", "osd":
-            return node.instance.isOpen
+            return node.instance.isOpen && !hidden
         default:
             return node.instance.isOpen && node.visibleProperty && !hidden
         }

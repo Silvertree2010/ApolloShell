@@ -20,6 +20,7 @@ class ShellPanel: NSPanel {
         backgroundColor = .clear
         hasShadow = false
         hidesOnDeactivate = false
+        canHide = false
         isMovable = false
         isReleasedWhenClosed = false
         becomesKeyOnlyIfNeeded = false

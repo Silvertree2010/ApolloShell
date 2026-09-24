@@ -159,6 +159,7 @@ final class LiveShell: WindowHostLink {
             self?.overlay.show(diagnostics)
         }
         assembly.onWarning = { [weak self] diagnostic in
+            guard diagnostic.severity != .note else { return }
             Self.report([diagnostic])
             self?.overlay.add(diagnostic)
         }
@@ -336,14 +337,28 @@ final class LiveShell: WindowHostLink {
         self.watcher = watcher
     }
 
-    func filesChanged(_ changed: [String]) {
-        let state = paths.stateDirectory.standardizedFileURL.path + "/"
-        let onlyState = !changed.isEmpty && changed.allSatisfy { URL(fileURLWithPath: $0).standardizedFileURL.path.hasPrefix(state) }
+    func filesChanged(_ all: [String]) {
+        let roots = ([location?.root, paths.userConfig, paths.stateDirectory].compactMap { $0 } + watchedFiles.map { $0.deletingLastPathComponent() }).map { Self.comparable($0.path) + "/" }
+        let changed = all.filter { path in
+            let candidate = Self.comparable(path) + "/"
+            return roots.contains { candidate.hasPrefix($0) }
+        }
+        guard !changed.isEmpty else { return }
+        let state = Self.comparable(paths.stateDirectory.path) + "/"
+        let onlyState = changed.allSatisfy { Self.comparable($0).hasPrefix(state) }
         if onlyState {
             stateChanged()
         } else {
             debouncer.poke()
         }
+    }
+
+    static func comparable(_ path: String) -> String {
+        let standard = URL(fileURLWithPath: path).standardizedFileURL.path
+        for prefix in ["/private/var/", "/private/tmp/", "/private/etc/"] where standard.hasPrefix(prefix) {
+            return String(standard.dropFirst("/private".count))
+        }
+        return standard
     }
 
     func stateChanged() {
@@ -415,15 +430,14 @@ final class LiveShell: WindowHostLink {
         updates = UpdateController(settings: settings, machine: machine)
         fullscreen.observe()
         reservesChanged()
-        termination = TerminationWatch { [weak self] number in
-            DispatchQueue.main.async {
-                MainActor.assumeIsolated {
-                    self?.shutdown()
-                    if number != nil { exit(0) }
-                }
-            }
-        }
+        installTermination()
         observeEnvironment()
+    }
+
+    func installTermination(signals: [Int32] = [SIGTERM, SIGINT], center: NotificationCenter = .default) {
+        termination = TerminationWatch(signals: signals, center: center) { [weak self] _ in
+            MainActor.assumeIsolated { self?.shutdown() }
+        }
     }
 
     func observeEnvironment() {

@@ -126,6 +126,7 @@ typealias FirstMouseHosting = FirstMouseHostingView<AnyView>
 @MainActor
 final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     let window: NSWindow
+    private var glideTarget: CGRect?
     let container: NSView
     let hosting: FirstMouseHosting
     private var spec: SurfaceWindowSpec
@@ -209,10 +210,12 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     }
 
     func setFrame(_ frame: CGRect, glide: Bool) {
-        guard window.frame != frame else { return }
+        guard (glideTarget ?? window.frame) != frame else { return }
         if glide, stage.isVisible(window) {
+            glideTarget = frame
             stage.glide(window, to: frame, duration: MotionCurve.spatialDuration, curve: .shellSpatial)
         } else {
+            glideTarget = nil
             window.setFrame(frame, display: true)
         }
         container.frame = CGRect(origin: .zero, size: frame.size)
@@ -413,7 +416,6 @@ enum WindowMainMenu {
     static func make() -> NSMenu {
         let main = NSMenu()
         let app = NSMenu(title: "ApolloShell")
-        app.addItem(withTitle: "Hide", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         main.addItem(submenu(app))
         let file = NSMenu(title: "File")
         file.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")

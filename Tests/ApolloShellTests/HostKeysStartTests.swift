@@ -51,6 +51,7 @@ final class KeysFixture {
                            warn: { sink?.warnings.append($0.message) }, publish: { sink?.published = $0 }, repeater: repeater)
         sink = self
         keys.keyIsDown = { _ in true }
+        keys.keyStateReadable = { true }
         keys.apply(fixture.ir?.binds ?? [])
         fixture.flush()
     }

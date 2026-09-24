@@ -7,11 +7,17 @@ final class TerminationWatch: @unchecked Sendable {
     private var observer: NSObjectProtocol?
     private weak var center: NotificationCenter?
 
-    init(signals: [Int32] = [SIGTERM, SIGINT], queue: DispatchQueue = .main, center: NotificationCenter = .default, onTerminate: @escaping @Sendable (Int32?) -> Void) {
+    init(signals: [Int32] = [SIGTERM, SIGINT], queue: DispatchQueue = DispatchQueue(label: "apolloshell.termination"), center: NotificationCenter = .default, fallback: TimeInterval = 2, hop: @escaping @Sendable (@escaping @Sendable () -> Void) -> Void = { DispatchQueue.main.async(execute: $0) }, exitProcess: @escaping @Sendable (Int32) -> Void = { exit($0) }, onTerminate: @escaping @Sendable (Int32?) -> Void) {
         for number in signals {
             signal(number, SIG_IGN)
             let source = DispatchSource.makeSignalSource(signal: number, queue: queue)
-            source.setEventHandler { onTerminate(number) }
+            source.setEventHandler {
+                queue.asyncAfter(deadline: .now() + fallback) { exitProcess(0) }
+                hop {
+                    onTerminate(number)
+                    exitProcess(0)
+                }
+            }
             source.resume()
             sources.append(source)
         }

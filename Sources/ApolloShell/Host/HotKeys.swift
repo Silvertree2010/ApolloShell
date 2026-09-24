@@ -208,6 +208,7 @@ final class BindHotKeys {
     private(set) var registrations = 0
     private(set) var unregistrations = 0
     var keyIsDown: @MainActor (UInt32) -> Bool = { CGEventSource.keyState(.combinedSessionState, key: CGKeyCode($0)) }
+    var keyStateReadable: @MainActor () -> Bool = { CGPreflightListenEventAccess() }
 
     var hasFailures: Bool { registered.values.contains { !$0.ok } }
 
@@ -298,7 +299,10 @@ final class BindHotKeys {
                 guard let self else { return }
                 self.trigger(id)
                 if repeats {
-                    self.repeater.start(canonical, held: { [weak self] in self?.keyIsDown(keyCode) ?? false }) { [weak self] in self?.trigger(id) }
+                    self.repeater.start(canonical, held: { [weak self] in
+                        guard let self else { return false }
+                        return !self.keyStateReadable() || self.keyIsDown(keyCode)
+                    }) { [weak self] in self?.trigger(id) }
                 }
             }
             var released: (@MainActor () -> Void)?

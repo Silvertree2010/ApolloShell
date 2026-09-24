@@ -84,7 +84,7 @@ struct ShellFixRoundOneTests {
         let queue = DispatchQueue(label: "termination-test")
         let center = NotificationCenter()
         let seen = LockedList()
-        let watch = TerminationWatch(signals: [SIGUSR2], queue: queue, center: center) { number in
+        let watch = TerminationWatch(signals: [SIGUSR2], queue: queue, center: center, hop: { $0() }, exitProcess: { _ in }) { number in
             seen.append(number ?? 0)
         }
         kill(getpid(), SIGUSR2)

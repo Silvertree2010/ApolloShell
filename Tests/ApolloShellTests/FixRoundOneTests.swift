@@ -19,6 +19,7 @@ final class StageRecorder: WindowStage {
     var fades: [ObjectIdentifier: [Fade]] = [:]
     var glides: [CGRect] = []
     var pins = 0
+    var glideInstantly = true
     var pending: [@MainActor () -> Void] = []
 
     func front(_ window: NSWindow, key: Bool) {
@@ -39,7 +40,7 @@ final class StageRecorder: WindowStage {
 
     func glide(_ window: NSWindow, to frame: CGRect, duration: TimeInterval, curve: CAMediaTimingFunction) {
         glides.append(frame)
-        window.setFrame(frame, display: false)
+        if glideInstantly { window.setFrame(frame, display: false) }
     }
 
     func pin(_ window: NSWindow) { pins += 1 }
