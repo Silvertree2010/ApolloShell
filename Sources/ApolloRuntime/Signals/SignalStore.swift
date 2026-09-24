@@ -28,6 +28,7 @@ public final class SignalStore {
     private var flushRequested = false
 
     public var onDemandChange: (@MainActor (String) -> Void)?
+    public var onFlush: (@MainActor () -> Void)?
 
     public init(scheduler: any FlushScheduler) {
         self.scheduler = scheduler
@@ -44,7 +45,7 @@ public final class SignalStore {
         let base = roots[path.root] ?? .record(Record())
         roots[path.root] = SignalStore.write(base, path.fields, sanitized)
         notify(path)
-        requestFlushIfNeeded()
+        requestFlush()
     }
 
     @discardableResult
@@ -86,11 +87,13 @@ public final class SignalStore {
         }
     }
 
-    private func requestFlushIfNeeded() {
+    func requestFlush() {
         guard !flushRequested else { return }
         flushRequested = true
         scheduler.requestFlush { [weak self] in
-            self?.flushRequested = false
+            guard let self else { return }
+            self.flushRequested = false
+            self.onFlush?()
         }
     }
 

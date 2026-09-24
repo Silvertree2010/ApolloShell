@@ -7,18 +7,20 @@ public protocol FlushScheduler: AnyObject {
 
 @MainActor
 public final class ManualFlushScheduler: FlushScheduler {
-    private var pending: (@MainActor () -> Void)?
+    private var pending: [@MainActor () -> Void] = []
 
     public init() {}
 
     public func requestFlush(_ flush: @escaping @MainActor () -> Void) {
-        pending = flush
+        pending.append(flush)
     }
 
     public func runPending() {
-        guard let flush = pending else { return }
-        pending = nil
-        flush()
+        let flushes = pending
+        pending.removeAll()
+        for flush in flushes {
+            flush()
+        }
     }
 }
 
@@ -26,7 +28,7 @@ public final class ManualFlushScheduler: FlushScheduler {
 public final class RunLoopFlushScheduler: FlushScheduler {
     private static let flushOrder: CFIndex = 1_000_000
 
-    private var pending: (@MainActor () -> Void)?
+    private var pending: [@MainActor () -> Void] = []
     private nonisolated(unsafe) var observer: CFRunLoopObserver?
 
     public init() {
@@ -51,16 +53,18 @@ public final class RunLoopFlushScheduler: FlushScheduler {
     }
 
     public func requestFlush(_ flush: @escaping @MainActor () -> Void) {
-        let shouldWake = pending == nil
-        pending = flush
+        let shouldWake = pending.isEmpty
+        pending.append(flush)
         if shouldWake {
             CFRunLoopWakeUp(CFRunLoopGetMain())
         }
     }
 
     private func runPending() {
-        guard let flush = pending else { return }
-        pending = nil
-        flush()
+        let flushes = pending
+        pending.removeAll()
+        for flush in flushes {
+            flush()
+        }
     }
 }

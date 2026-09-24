@@ -1,8 +1,9 @@
 import Testing
 import Foundation
-import AppKit
 import ApolloConfig
 @testable import ApolloRuntime
+
+private let eventTrackingMode = RunLoop.Mode("NSEventTrackingRunLoopMode")
 
 @MainActor
 @Suite("SignalStore und FlushScheduler")
@@ -37,16 +38,51 @@ struct SignalStoreTests {
         let store = SignalStore(scheduler: scheduler)
         var flushCount = 0
         var notifications = 0
+        store.onFlush = { flushCount += 1 }
         store.subscribe(DependencyPath("perf", ["cpu"])) { notifications += 1 }
 
         for index in 0..<100 {
             store.set(DependencyPath("perf", ["cpu"]), .number(Double(index)))
         }
-        scheduler.requestFlush { flushCount += 1 }
+        #expect(flushCount == 0)
         scheduler.runPending()
 
         #expect(notifications == 100)
         #expect(flushCount == 1)
+
+        store.set(DependencyPath("perf", ["cpu"]), .number(-1))
+        scheduler.runPending()
+        #expect(flushCount == 2)
+    }
+
+    @Test("Schreiben aus dem Flush heraus stösst einen neuen Durchlauf an")
+    func writeDuringFlushSchedulesNextPass() {
+        let scheduler = ManualFlushScheduler()
+        let store = SignalStore(scheduler: scheduler)
+        var flushCount = 0
+        store.onFlush = {
+            flushCount += 1
+            if flushCount == 1 {
+                store.set(DependencyPath("perf", ["cpu"]), .number(2))
+            }
+        }
+        store.set(DependencyPath("perf", ["cpu"]), .number(1))
+        scheduler.runPending()
+        #expect(flushCount == 1)
+        scheduler.runPending()
+        #expect(flushCount == 2)
+    }
+
+    @Test("Der Scheduler sammelt Anfragen statt sie zu überschreiben")
+    func schedulerCollectsRequests() {
+        let scheduler = ManualFlushScheduler()
+        var first = 0
+        var second = 0
+        scheduler.requestFlush { first += 1 }
+        scheduler.requestFlush { second += 1 }
+        scheduler.runPending()
+        #expect(first == 1)
+        #expect(second == 1)
     }
 
     @Test("Gleicher Wert löst keine Meldung aus")
@@ -92,26 +128,32 @@ struct SignalStoreTests {
     @Test("RunLoop-Durchlauf liefert genau einen Flush, auch in eventTracking")
     func runLoopDeliversOneFlush() {
         let scheduler = RunLoopFlushScheduler()
+        let store = SignalStore(scheduler: scheduler)
         var flushes = 0
+        var otherRequests = 0
+        store.onFlush = { flushes += 1 }
 
-        scheduler.requestFlush { flushes += 1 }
-        scheduler.requestFlush { flushes += 1 }
-        scheduler.requestFlush { flushes += 1 }
+        store.set(DependencyPath("perf", ["cpu"]), .number(1))
+        store.set(DependencyPath("perf", ["cpu"]), .number(2))
+        store.set(DependencyPath("perf", ["load"]), .number(3))
+        scheduler.requestFlush { otherRequests += 1 }
 
         let keepAlive = Timer(timeInterval: 0.01, repeats: true) { _ in }
         RunLoop.main.add(keepAlive, forMode: .common)
         RunLoop.main.run(until: Date().addingTimeInterval(0.2))
         keepAlive.invalidate()
         #expect(flushes == 1)
+        #expect(otherRequests == 1)
 
-        CFRunLoopAddCommonMode(CFRunLoopGetMain(), CFRunLoopMode(RunLoop.Mode.eventTracking.rawValue as CFString))
+        CFRunLoopAddCommonMode(CFRunLoopGetMain(), CFRunLoopMode(eventTrackingMode.rawValue as CFString))
         flushes = 0
-        scheduler.requestFlush { flushes += 1 }
+        store.set(DependencyPath("perf", ["cpu"]), .number(4))
+        store.set(DependencyPath("perf", ["cpu"]), .number(5))
         let eventTrackingKeepAlive = Timer(timeInterval: 0.01, repeats: true) { _ in }
-        RunLoop.main.add(eventTrackingKeepAlive, forMode: .eventTracking)
+        RunLoop.main.add(eventTrackingKeepAlive, forMode: eventTrackingMode)
         let eventTrackingDeadline = Date().addingTimeInterval(0.2)
         while Date() < eventTrackingDeadline {
-            RunLoop.main.run(mode: .eventTracking, before: Date().addingTimeInterval(0.01))
+            RunLoop.main.run(mode: eventTrackingMode, before: Date().addingTimeInterval(0.01))
         }
         eventTrackingKeepAlive.invalidate()
         #expect(flushes == 1)

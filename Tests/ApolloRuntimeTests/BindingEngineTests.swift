@@ -199,4 +199,161 @@ struct BindingEngineTests {
 
         #expect(values == [.bool(true)])
     }
+
+    @Test("Jede Auswertung sieht den Stand nach früheren onChange derselben Runde")
+    func laterBindingSeesEarlierWriteInSameRound() {
+        let (store, _, engine) = makeEngine()
+        engine.bind(BindingTestHarness.source("{a.value}"), scope: LocalScope(), rank: .derived(order: 0), active: true) { value in
+            store.set(DependencyPath("b", ["value"]), value)
+        }
+        var seen: [Value] = []
+        engine.bind(BindingTestHarness.source("{a.value}-{b.value}"), scope: LocalScope(), rank: .property, active: true) { seen.append($0) }
+        seen.removeAll()
+
+        store.set(DependencyPath("a", ["value"]), .number(1))
+        engine.flush()
+
+        #expect(seen == [.string("1-1")])
+    }
+
+    @Test("Schreiben in den Store löst über den Scheduler einen Flush der Engine aus")
+    func storeWriteFlushesEngineThroughScheduler() {
+        let (store, scheduler, engine) = makeEngine()
+        var values: [Value] = []
+        engine.bind(BindingTestHarness.source("{perf.cpu}"), scope: LocalScope(), active: true) { values.append($0) }
+        values.removeAll()
+        let before = engine.evaluationCount
+
+        for index in 0..<100 {
+            store.set(DependencyPath("perf", ["cpu"]), .number(Double(index)))
+        }
+        scheduler.runPending()
+
+        #expect(values == [.number(99)])
+        #expect(engine.evaluationCount - before == 1)
+    }
+
+    @Test("updateScope ausserhalb eines Flushs fordert einen Flush an")
+    func updateScopeRequestsFlush() {
+        let (_, scheduler, engine) = makeEngine()
+        var values: [Value] = []
+        let handle = engine.bind(BindingTestHarness.source("{item}", locals: ["item"]), scope: LocalScope(["item": .number(1)]), active: true) { values.append($0) }
+        values.removeAll()
+
+        handle.updateScope(LocalScope(["item": .number(2)]))
+        scheduler.runPending()
+
+        #expect(values == [.number(2)])
+    }
+
+    @Test("Nach Abbruch nach 8 Runden fordert die Engine selbst den nächsten Flush an")
+    func abortedFlushSchedulesNextPass() {
+        let (_, scheduler, engine) = makeEngine()
+        var warnings: [Diagnostic] = []
+        engine.onWarning = { warnings.append($0) }
+        var evaluations = 0
+        var handle: BindingHandle?
+        handle = engine.bind(BindingTestHarness.source("{n}", locals: ["n"]), scope: LocalScope(["n": .number(0)]), active: true) { value in
+            evaluations += 1
+            guard case .number(let number) = value else { return }
+            handle?.updateScope(LocalScope(["n": .number(number + 1)]))
+        }
+        evaluations = 0
+
+        handle?.updateScope(LocalScope(["n": .number(100)]))
+        scheduler.runPending()
+        #expect(evaluations == 8)
+        #expect(warnings.count == 1)
+
+        scheduler.runPending()
+        #expect(evaluations == 16)
+    }
+
+    @Test("Aktivieren liefert, auch wenn sich der Wert seit dem Binden nicht geändert hat")
+    func activationDeliversUnchangedValue() {
+        let (store, _, engine) = makeEngine()
+        store.set(DependencyPath("perf", ["cpu"]), .number(0.7))
+        var values: [Value] = []
+        let handle = engine.bind(BindingTestHarness.source("{perf.cpu}"), scope: LocalScope(), active: false) { values.append($0) }
+        #expect(values.isEmpty)
+
+        handle.isActive = true
+
+        #expect(values == [.number(0.7)])
+        #expect(handle.currentValue == .number(0.7))
+    }
+
+    @Test("Inaktive Bindings werden nicht ausgewertet")
+    func inactiveBindingIsNotEvaluated() {
+        let (store, _, engine) = makeEngine()
+        let before = engine.evaluationCount
+        engine.bind(BindingTestHarness.source("{perf.cpu}"), scope: LocalScope(), active: false) { _ in }
+        store.set(DependencyPath("perf", ["cpu"]), .number(0.3))
+        engine.flush()
+        #expect(engine.evaluationCount == before)
+    }
+
+    @Test("Alle Bindings eines Flushs sehen dasselbe now")
+    func nowIsFrozenPerFlush() {
+        let start = Date(timeIntervalSince1970: 1_790_236_800)
+        let clock = SteppingClock(start: start, step: 3_600)
+        let scheduler = ManualFlushScheduler()
+        let store = SignalStore(scheduler: scheduler)
+        let engine = BindingEngine(store: store, evaluator: BindingTestHarness.evaluator(clock: { clock.tick() }))
+        var first: [Value] = []
+        var second: [Value] = []
+        engine.bind(BindingTestHarness.source("{t.value | relative}"), scope: LocalScope(), active: true) { first.append($0) }
+        engine.bind(BindingTestHarness.source("{t.value | relative}"), scope: LocalScope(), active: true) { second.append($0) }
+        first.removeAll()
+        second.removeAll()
+
+        store.set(DependencyPath("t", ["value"]), .date(start))
+        engine.flush()
+
+        #expect(first.count == 1)
+        #expect(first == second)
+    }
+
+    @Test("Warnungen des Evaluators kommen am Flush-Ende über die Engine, einmal je Stelle")
+    func evaluatorWarningsAreBufferedByEngine() {
+        let sink = DiagnosticSink()
+        let scheduler = ManualFlushScheduler()
+        let store = SignalStore(scheduler: scheduler)
+        let engine = BindingEngine(store: store, evaluator: BindingTestHarness.evaluator(warn: { sink.append($0) }))
+        var warnings: [Diagnostic] = []
+        engine.onWarning = { warnings.append($0) }
+        var warningsAtChange: [Int] = []
+        engine.bind(BindingTestHarness.source("{x.value}-{x.value | round}"), scope: LocalScope(), active: true) { _ in warningsAtChange.append(warnings.count) }
+        warningsAtChange.removeAll()
+
+        store.set(DependencyPath("x", ["value"]), .string("abc"))
+        engine.flush()
+        store.set(DependencyPath("x", ["value"]), .string("def"))
+        engine.flush()
+
+        #expect(warningsAtChange.first == 0)
+        #expect(warnings.count == 1)
+        #expect(sink.all.isEmpty)
+    }
+
+    @Test("updateScope hängt die Abos um, wenn $self wechselt")
+    func updateScopeMovesSelfSubscriptions() {
+        let (store, _, engine) = makeEngine()
+        var values: [Value] = []
+        let handle = engine.bind(BindingTestHarness.source("{self.hover}"), scope: LocalScope(["$self": .string("a")]), active: true) { values.append($0) }
+        values.removeAll()
+
+        store.set(DependencyPath("self:b", ["hover"]), .bool(true))
+        handle.updateScope(LocalScope(["$self": .string("b")]))
+        engine.flush()
+        #expect(values == [.bool(true)])
+
+        store.set(DependencyPath("self:a", ["hover"]), .bool(false))
+        engine.flush()
+        #expect(values == [.bool(true)])
+
+        store.set(DependencyPath("self:b", ["hover"]), .bool(false))
+        engine.flush()
+        #expect(values == [.bool(true), .bool(false)])
+    }
 }

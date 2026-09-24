@@ -97,15 +97,34 @@ public final class BindingHandle {
     }
 }
 
+final class WarningBuffer: Sendable {
+    private let storage = Mutex<[Diagnostic]>([])
+
+    func append(_ diagnostic: Diagnostic) {
+        storage.withLock { $0.append(diagnostic) }
+    }
+
+    func drain() -> [Diagnostic] {
+        storage.withLock { buffer in
+            let drained = buffer
+            buffer.removeAll()
+            return drained
+        }
+    }
+}
+
 @MainActor
 public final class BindingEngine {
+    private static let maximumRounds = 8
+
     private let store: SignalStore
     private let evaluator: Evaluator
     private var bindings: [Int: Binding] = [:]
     private var nextID = 0
     private var dirty: Set<Int> = []
     private var isFlushing = false
-    private let warningBuffer = Mutex<[Diagnostic]>([])
+    private var flushEvaluator: Evaluator?
+    private let warningBuffer = WarningBuffer()
     private var seenWarnings: Set<Diagnostic> = []
 
     public private(set) var evaluationCount = 0
@@ -114,6 +133,9 @@ public final class BindingEngine {
     public init(store: SignalStore, evaluator: Evaluator) {
         self.store = store
         self.evaluator = evaluator
+        store.onFlush = { [weak self] in
+            self?.flush()
+        }
     }
 
     @discardableResult
@@ -123,29 +145,32 @@ public final class BindingEngine {
         bindings[binding.id] = binding
         if active {
             subscribe(binding)
+            evaluate(binding)
         }
-        evaluate(binding, snapshot: store.snapshot())
         return BindingHandle(engine: self, id: binding.id)
     }
 
     public func flush() {
         guard !isFlushing else { return }
         isFlushing = true
-        defer { isFlushing = false }
+        flushEvaluator = pinnedEvaluator()
         var rounds = 0
         while !dirty.isEmpty {
-            rounds += 1
-            if rounds > 8 {
-                report(Diagnostic(.warning, "flush did not settle within 8 rounds"))
+            if rounds == Self.maximumRounds {
+                report(Diagnostic(.warning, "flush did not settle within \(Self.maximumRounds) rounds"))
                 break
             }
-            let batch = dirty.sorted { bindings[$0]!.rank < bindings[$1]!.rank }
+            rounds += 1
+            let batch = dirty.compactMap { bindings[$0] }.sorted { ($0.rank, $0.id) < ($1.rank, $1.id) }
             dirty.removeAll()
-            let snapshot = store.snapshot()
-            for id in batch {
-                guard let binding = bindings[id], !binding.isCancelled, binding.isActive else { continue }
-                evaluate(binding, snapshot: snapshot)
+            for binding in batch where !binding.isCancelled && binding.isActive && binding.isDirty {
+                evaluate(binding)
             }
+        }
+        flushEvaluator = nil
+        isFlushing = false
+        if !dirty.isEmpty {
+            store.requestFlush()
         }
         deliverWarnings()
     }
@@ -159,9 +184,11 @@ public final class BindingEngine {
         binding.isActive = active
         if active {
             subscribe(binding)
-            evaluate(binding, snapshot: store.snapshot())
+            evaluate(binding)
         } else {
             unsubscribe(binding)
+            dirty.remove(id)
+            binding.isDirty = true
         }
     }
 
@@ -179,19 +206,28 @@ public final class BindingEngine {
 
     func updateScope(_ id: Int, _ scope: LocalScope) {
         guard let binding = bindings[id], !binding.isCancelled else { return }
-        let changed = binding.source.localNames.contains { name in binding.scope[name] != scope[name] }
+        let localsChanged = binding.source.localNames.contains { name in binding.scope[name] != scope[name] }
+        let oldPaths = subscriptionPaths(binding.source, binding.scope)
         binding.scope = scope
-        if changed {
+        let pathsChanged = oldPaths != subscriptionPaths(binding.source, scope)
+        if pathsChanged && binding.isActive {
+            unsubscribe(binding)
+            subscribe(binding)
+        }
+        if localsChanged || pathsChanged {
             markDirty(id)
         }
     }
 
+    private func subscriptionPaths(_ source: BindingSource, _ scope: LocalScope) -> Set<DependencyPath> {
+        Set(source.dependencies.map { rewrittenPath($0, locals: scope) })
+    }
+
     private func subscribe(_ binding: Binding) {
         guard binding.subscriptions.isEmpty, !binding.source.isConstant else { return }
-        for path in binding.source.dependencies {
-            let rewritten = rewrittenPath(path, locals: binding.scope)
-            let id = binding.id
-            let token = store.subscribe(rewritten) { [weak self] in
+        let id = binding.id
+        for path in subscriptionPaths(binding.source, binding.scope) {
+            let token = store.subscribe(path) { [weak self] in
                 self?.markDirty(id)
             }
             binding.subscriptions.append(token)
@@ -208,33 +244,45 @@ public final class BindingEngine {
     private func markDirty(_ id: Int) {
         guard let binding = bindings[id], !binding.isCancelled else { return }
         binding.isDirty = true
+        guard binding.isActive else { return }
         dirty.insert(id)
+        if !isFlushing {
+            store.requestFlush()
+        }
     }
 
-    private func evaluate(_ binding: Binding, snapshot: StoreSnapshot) {
+    private func evaluate(_ binding: Binding) {
+        dirty.remove(binding.id)
         binding.isDirty = false
-        let scope = BindingScope(snapshot: snapshot, locals: binding.scope)
-        let result = evaluator.render(binding.source.template, in: scope, at: binding.source.span)
+        let adHoc = flushEvaluator == nil
+        let result = render(binding, with: flushEvaluator ?? pinnedEvaluator())
         binding.evaluationCount += 1
         evaluationCount += 1
-        guard binding.storedValue == nil || result != binding.storedValue else { return }
-        binding.storedValue = result
-        if binding.isActive {
+        if binding.storedValue == nil || result != binding.storedValue {
+            binding.storedValue = result
             binding.onChange(result)
         }
+        if adHoc {
+            deliverWarnings()
+        }
+    }
+
+    private func render(_ binding: Binding, with evaluator: Evaluator) -> Value {
+        let scope = BindingScope(snapshot: store.snapshot(), locals: binding.scope)
+        return evaluator.render(binding.source.template, in: scope, at: binding.source.span)
+    }
+
+    private func pinnedEvaluator() -> Evaluator {
+        let buffer = warningBuffer
+        return evaluator.pinningContext(warn: { buffer.append($0) })
     }
 
     private func report(_ diagnostic: Diagnostic) {
-        warningBuffer.withLock { $0.append(diagnostic) }
+        warningBuffer.append(diagnostic)
     }
 
     private func deliverWarnings() {
-        let pending = warningBuffer.withLock { buffer -> [Diagnostic] in
-            let result = buffer
-            buffer.removeAll()
-            return result
-        }
-        for diagnostic in pending where seenWarnings.insert(diagnostic).inserted {
+        for diagnostic in warningBuffer.drain() where seenWarnings.insert(diagnostic).inserted {
             onWarning?(diagnostic)
         }
     }
