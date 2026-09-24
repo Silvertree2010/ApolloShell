@@ -1,0 +1,4 @@
+define "settings-page-about" {
+    column class="settings-group" {
+    }
+}

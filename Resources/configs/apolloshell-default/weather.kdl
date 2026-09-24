@@ -1,0 +1,82 @@
+define "weather-detail" {
+    param "title"
+    param "value"
+    param "icon"
+    column class="weather-detail" {
+        row class="weather-detail-head" {
+            icon "{icon}" class="weather-detail-glyph"
+            text "{title}" class="weather-detail-title"
+        }
+        text "{value}" class="weather-detail-value"
+    }
+}
+
+define "dashboard-weather" {
+    switch "{weather.status}" {
+        case "no-place" {
+            column class="weather-empty" {
+                text "Set Location in Settings" class="weather-empty-title"
+                button class="weather-empty-button" {
+                    on-click { set "settings-page" "dashboard"; open "settings"; close "dashboard" }
+                    text "Settings"
+                }
+            }
+        }
+        default {
+            column class="weather" {
+                row class="weather-top" {
+                    column class="card weather-head" {
+                        row class="weather-now" {
+                            icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph weather-now-glyph"
+                            column class="weather-now-text" {
+                                text "{weather.current.temperature | temperature}" class="weather-now-temperature"
+                                text "{weather.current.condition}" class="weather-now-condition"
+                                text "{weather.today.high | temperature} / {weather.today.low | temperature}" class="weather-now-range"
+                            }
+                        }
+                        row class="weather-places" {
+                            each place in="{var.weather-places}" key="{place.id}" {
+                                button class="weather-place" checked="{place.id == var.weather-selected}" {
+                                    on-click { set "weather-selected" "{place.id}" }
+                                    text "{place.name}" class="weather-place-name"
+                                }
+                            }
+                        }
+                        row class="weather-source" {
+                            button class="weather-attribution" {
+                                on-click { open-url "{weather.attribution.url}" }
+                                text "{weather.attribution.name}" class="weather-attribution-text"
+                            }
+                            when "{weather.stale}" { text "Updated {weather.updated | date 'HH:mm'}" class="weather-stale" }
+                        }
+                    }
+                    grid columns=2 class="card weather-details" {
+                        use "weather-detail" title="Feels Like" value="{weather.current.feels-like | temperature}" icon="thermometer.medium"
+                        use "weather-detail" title="Humidity" value="{weather.current.humidity | percent}" icon="humidity.fill"
+                        use "weather-detail" title="Wind" value="{weather.current.wind}" icon="wind"
+                        use "weather-detail" title="Precipitation" value="{weather.today.precipitation}" icon="cloud.rain.fill"
+                    }
+                }
+                row class="card weather-hours" {
+                    each hour in="{weather.hourly-strip}" key="{hour.time}" {
+                        column class="weather-hour" {
+                            text "{hour.time | date 'HH'}" class="weather-hour-time"
+                            icon "{hour.symbol}" class="weather-glyph weather-hour-glyph"
+                            text "{hour.temperature | temperature}" class="weather-hour-temperature"
+                        }
+                    }
+                }
+                row class="card weather-days" {
+                    each day in="{weather.days}" key="{day.date}" {
+                        column class="weather-day" {
+                            text "{day.date | date 'EEE'}" class="weather-day-name"
+                            icon "{day.symbol}" class="weather-glyph weather-day-glyph"
+                            text "{day.high | temperature}" class="weather-day-high"
+                            text "{day.low | temperature}" class="weather-day-low"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

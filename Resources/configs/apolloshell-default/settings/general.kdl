@@ -1,0 +1,14 @@
+define "settings-page-general" {
+    column class="settings-group" {
+        use "settings-switch" title="Start at Login" checked="{shell.login-item}"
+        use "settings-switch" title="Hide Apple's Dock" detail="While ApolloShell runs, the Dock stays hidden. It comes back when you quit." checked="{var.hide-apple-dock}" {
+            on-change { set "hide-apple-dock" "{event.value}"; system.hide-apple-dock "{event.value}" }
+        }
+    }
+    column class="settings-group" {
+        text "Permissions" class="settings-group-title"
+        use "onboarding-permission" title="Accessibility" detail="Needed for the dock, window switching and shortcuts." granted="{permissions.accessibility}" kind="accessibility"
+        use "onboarding-permission" title="Automation" detail="Needed to control apps like Finder and Music." granted="{permissions.automation}" kind="automation"
+        use "onboarding-permission" title="Screen Recording" detail="Needed for window previews." granted="{permissions.screen-recording}" kind="screen-recording"
+    }
+}

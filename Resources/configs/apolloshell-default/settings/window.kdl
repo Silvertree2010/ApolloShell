@@ -1,0 +1,65 @@
+var settings-page "general"
+
+let settings-pages {
+    - id="general" title="General" symbol="gearshape"
+    - id="shortcuts" title="Keyboard Shortcuts" symbol="keyboard"
+    - id="sidebar" title="Sidebar" symbol="sidebar.left"
+    - id="control-centre" title="Control Centre" symbol="switch.2"
+    - id="launcher" title="Launcher" symbol="magnifyingglass"
+    - id="dashboard" title="Dashboard" symbol="square.grid.2x2"
+    - id="desktop" title="Desktop" symbol="menubar.dock.rectangle"
+    - id="toasts" title="Toasts" symbol="bell.badge"
+    - id="providers" title="Providers" symbol="cloud.sun"
+    - id="system-settings" title="System Settings" symbol="gear"
+    - id="about" title="About" symbol="info.circle"
+}
+
+include "general.kdl"
+include "shortcuts.kdl"
+include "sidebar.kdl"
+include "control-centre.kdl"
+include "launcher.kdl"
+include "dashboard.kdl"
+include "desktop.kdl"
+include "toasts.kdl"
+include "providers.kdl"
+include "system-settings.kdl"
+include "about.kdl"
+
+define "settings-switch" {
+    param "title"
+    param "detail" default=""
+    param "checked"
+    row class="settings-row" {
+        column class="settings-row-text" {
+            text "{title}" class="settings-row-title"
+            when "{detail != ''}" { text "{detail}" class="settings-row-detail" }
+        }
+        spacer
+        toggle checked="{checked}" class="settings-switch" {
+            slot
+        }
+    }
+}
+
+window "settings" title="Settings" autosave="Settings" {
+    row class="settings" {
+        scroll class="settings-sidebar" axis="vertical" {
+            column class="settings-nav" {
+                each page in="{settings-pages}" key="{page.id}" {
+                    button class="settings-nav-item" checked="{page.id == var.settings-page}" {
+                        on-click { set "settings-page" "{page.id}" }
+                        icon "{page.symbol}" class="settings-nav-glyph"
+                        text "{page.title}" class="settings-nav-title"
+                    }
+                }
+            }
+        }
+        scroll class="settings-content" axis="vertical" {
+            column class="settings-page" {
+                text "{(settings-pages | where 'id' var.settings-page | first).title}" class="settings-page-title"
+                use "settings-page-{var.settings-page}"
+            }
+        }
+    }
+}

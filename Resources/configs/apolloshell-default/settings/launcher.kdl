@@ -1,0 +1,4 @@
+define "settings-page-launcher" {
+    column class="settings-group" {
+    }
+}

@@ -1,0 +1,4 @@
+define "settings-page-providers" {
+    column class="settings-group" {
+    }
+}

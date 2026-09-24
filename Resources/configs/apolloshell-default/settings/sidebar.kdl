@@ -1,0 +1,4 @@
+define "settings-page-sidebar" {
+    column class="settings-group" {
+    }
+}

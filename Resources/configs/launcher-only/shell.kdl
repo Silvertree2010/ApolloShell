@@ -1,0 +1,3 @@
+include "builtin:apolloshell-default/presets.kdl"
+include "builtin:apolloshell-default/launcher.kdl"
+style "builtin:apolloshell-default/style.css"

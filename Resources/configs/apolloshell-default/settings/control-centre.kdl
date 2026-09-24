@@ -1,0 +1,4 @@
+define "settings-page-control-centre" {
+    column class="settings-group" {
+    }
+}

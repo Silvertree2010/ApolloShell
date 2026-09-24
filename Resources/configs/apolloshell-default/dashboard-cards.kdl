@@ -1,0 +1,139 @@
+define "card-weather" {
+    param "card"
+    param "zone"
+    button class="card card-weather zone-{zone}" {
+        on-click { set "dashboard-tab" "weather" }
+        switch "{weather.status}" {
+            case "ready" {
+                row class="card-weather-body" {
+                    icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph card-weather-glyph"
+                    column class="card-weather-text" {
+                        text "{weather.current.temperature | temperature}" class="card-weather-temperature"
+                        when "{card.show-condition}" { text "{weather.current.condition}" class="card-weather-condition" }
+                        when "{card.show-range}" { text "{weather.today.high | temperature} / {weather.today.low | temperature}" class="card-weather-range" }
+                    }
+                }
+            }
+            case "no-place" { text "Set Location in Settings" class="card-hint" }
+            case "loading" { text "Loading…" class="card-hint" }
+            default { text "Weather Unavailable" class="card-hint" }
+        }
+    }
+}
+
+define "card-user" {
+    param "card"
+    param "zone"
+    row class="card card-user zone-{zone}" {
+        stack class="card-user-avatar" {
+            text "{system.full-name | first | upper}" class="card-user-initial"
+        }
+        column class="card-user-text" {
+            text "{system.full-name}" class="card-user-name" lines=1 truncate="tail"
+            when "{card.show-system}" { text "macOS {system.macos-version}" class="card-user-detail" }
+            when "{card.show-uptime}" { text "Up {system.uptime | duration 'short'}" class="card-user-detail" }
+        }
+    }
+}
+
+define "card-clock" {
+    param "card"
+    param "zone"
+    column class="card card-clock style-{card.style} zone-{zone}" {
+        switch "{card.style}" {
+            case "inline" { text "{clock.now | date 'HH:mm'}" class="card-clock-inline" }
+            default {
+                text "{clock.now | date 'HH'}" class="card-clock-hour"
+                text "{clock.now | date 'mm'}" class="card-clock-minute"
+            }
+        }
+        when "{card.show-date}" { text "{clock.now | date 'EEE d MMM'}" class="card-clock-date" }
+    }
+}
+
+define "card-calendar" {
+    param "card"
+    param "zone"
+    column class="card card-calendar zone-{zone}" {
+        row class="card-calendar-head" {
+            button class="card-calendar-arrow" tooltip="Previous Month" {
+                on-click { set "calendar-offset" "{var.calendar-offset - 1}" }
+                icon "chevron.left" class="card-calendar-arrow-glyph"
+            }
+            spacer
+            button class="card-calendar-month" {
+                on-click { set "calendar-offset" 0 }
+                text "{(clock.now | month-grid var.calendar-offset card.first-weekday).title}" class="card-calendar-title"
+            }
+            spacer
+            button class="card-calendar-arrow" tooltip="Next Month" {
+                on-click { set "calendar-offset" "{var.calendar-offset + 1}" }
+                icon "chevron.right" class="card-calendar-arrow-glyph"
+            }
+        }
+        grid columns="{card.show-week-numbers ? 8 : 7}" class="card-calendar-grid" {
+            each week in="{(clock.now | month-grid var.calendar-offset card.first-weekday).weeks}" key="{week.number}" {
+                when "{card.show-week-numbers}" { text "{week.number}" class="card-calendar-week" }
+                each day in="{week.days}" key="{day.date}" {
+                    text "{day.day}" class="card-calendar-day {day.today ? 'today' : ''} {day.outside ? 'outside' : ''}"
+                }
+            }
+        }
+    }
+}
+
+define "card-resources" {
+    param "card"
+    param "zone"
+    row class="card card-resources zone-{zone}" {
+        when "{card.show-cpu}" {
+            column class="card-resource" {
+                ring value="{perf.cpu}" class="card-resource-ring"
+                text "CPU" class="card-resource-label"
+            }
+        }
+        when "{card.show-memory}" {
+            column class="card-resource" {
+                ring value="{perf.memory}" class="card-resource-ring"
+                text "Memory" class="card-resource-label"
+            }
+        }
+        when "{card.show-storage}" {
+            column class="card-resource" {
+                ring value="{perf.live.disk}" class="card-resource-ring"
+                text "Storage" class="card-resource-label"
+            }
+        }
+    }
+}
+
+define "card-media" {
+    param "card"
+    param "zone"
+    button class="card card-media zone-{zone}" {
+        on-click { set "dashboard-tab" "media" }
+        switch "{zone}" {
+            case "side" {
+                column class="card-media-tall" {
+                    image "{media.artwork}" placeholder="music.note" fit="fill" class="card-media-artwork"
+                    ring value="{media.progress}" class="card-media-progress"
+                    text "{media.playing ? media.title : 'Nothing Playing'}" class="card-media-title" lines=1 truncate="tail"
+                    text "{media.artist}" class="card-media-artist" lines=1 truncate="tail"
+                    when "{card.show-album}" { text "{media.album}" class="card-media-album" lines=1 truncate="tail" }
+                    use "media-controls"
+                }
+            }
+            default {
+                row class="card-media-strip" {
+                    image "{media.artwork}" placeholder="music.note" fit="fill" class="card-media-artwork"
+                    column class="card-media-text" {
+                        text "{media.playing ? media.title : 'Nothing Playing'}" class="card-media-title" lines=1 truncate="tail"
+                        text "{media.artist}" class="card-media-artist" lines=1 truncate="tail"
+                    }
+                    spacer
+                    use "media-controls"
+                }
+            }
+        }
+    }
+}

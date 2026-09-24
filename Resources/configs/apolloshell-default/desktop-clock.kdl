@@ -1,0 +1,9 @@
+var desktop-clock #true persist=#true
+
+panel "desktop-clock" anchor="bottom-right" layer="desktop" click-through=#true sticky=#false visible="{var.desktop-clock}" screen="{var.sidebar-screens}" {
+    column class="desktop-clock" {
+        text "{clock.now | date 'HH:mm'}" class="desktop-clock-time"
+        stack class="desktop-clock-rule"
+        text "{clock.now | date 'MMMM d, EEEE'}" class="desktop-clock-date"
+    }
+}

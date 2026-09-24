@@ -1,0 +1,4 @@
+define "settings-page-dashboard" {
+    column class="settings-group" {
+    }
+}

@@ -1,0 +1,34 @@
+define "settings-hotkey" {
+    param "title"
+    param "name"
+    param "value"
+    row class="settings-row" {
+        text "{title}" class="settings-row-title"
+        spacer
+        column class="settings-hotkey" {
+            key-recorder value="{value}" class="settings-recorder" {
+                on-change { set "{name}" "{event.value}" }
+            }
+            when "{(value | hotkey-warning) != null}" { text "{value | hotkey-warning}" class="settings-warning" }
+        }
+    }
+}
+
+define "settings-page-shortcuts" {
+    column class="settings-group" {
+        use "settings-hotkey" title="Launcher" name="hotkey-launcher" value="{var.hotkey-launcher}"
+        use "settings-hotkey" title="Dashboard" name="hotkey-dashboard" value="{var.hotkey-dashboard}"
+        use "settings-hotkey" title="Utilities" name="hotkey-utilities" value="{var.hotkey-utilities}"
+        use "settings-hotkey" title="Settings" name="hotkey-settings" value="{var.hotkey-settings}"
+    }
+    row class="settings-actions" {
+        button class="settings-button" {
+            on-click { set "hotkey-launcher" "{hotkeys-default.launcher}"; set "hotkey-dashboard" "{hotkeys-default.dashboard}"; set "hotkey-utilities" "{hotkeys-default.utilities}"; set "hotkey-settings" "{hotkeys-default.settings}" }
+            text "Default"
+        }
+        button class="settings-button" {
+            on-click { set "hotkey-launcher" "{hotkeys-hyper.launcher}"; set "hotkey-dashboard" "{hotkeys-hyper.dashboard}"; set "hotkey-utilities" "{hotkeys-hyper.utilities}"; set "hotkey-settings" "{hotkeys-hyper.settings}" }
+            text "Hyper Key"
+        }
+    }
+}

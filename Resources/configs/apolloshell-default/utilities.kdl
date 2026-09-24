@@ -1,0 +1,204 @@
+var utilities-cards "{utilities-standard.cards}" type="list" persist=#true
+var utilities-toggles "{utilities-standard.toggles}" type="list" persist=#true
+
+define "quick-toggle" {
+    param "icon"
+    param "fallback" default=#null
+    param "tooltip" default=""
+    param "active" default=#false
+    param "enabled" default=#true
+    button class="quick-toggle" checked="{active}" disabled="{!enabled}" tooltip="{tooltip}" {
+        icon "{icon}" fallback="{fallback}" class="quick-toggle-glyph"
+        slot
+    }
+}
+
+define "toggle-wifi" {
+    param "toggle"
+    use "quick-toggle" icon="{network.wifi.on ? 'wifi' : 'wifi.slash'}" tooltip="Wi-Fi" active="{network.wifi.on}" {
+        on-click { network.toggle-wifi }
+    }
+}
+
+define "toggle-microphone" {
+    param "toggle"
+    use "quick-toggle" icon="{system.microphone-muted ? 'mic.slash.fill' : 'mic.fill'}" tooltip="{system.microphone-muted == null ? 'Microphone Unavailable' : 'Microphone'}" active="{system.microphone-muted == false}" enabled="{system.microphone-muted != null}" {
+        on-click { system.toggle-microphone }
+    }
+}
+
+define "toggle-bluetooth" {
+    param "toggle"
+    use "quick-toggle" icon="{bluetooth.on == false ? 'status-bluetooth-off' : 'status-bluetooth'}" fallback="builtin:bluetooth-rune" tooltip="Bluetooth" active="{bluetooth.on == true}" {
+        on-click { bluetooth.open-settings }
+    }
+}
+
+define "toggle-dark-mode" {
+    param "toggle"
+    use "quick-toggle" icon="circle.lefthalf.filled" tooltip="Dark Mode" active="{system.dark-mode}" {
+        on-click { system.toggle-dark-mode }
+    }
+}
+
+define "toggle-night-shift" {
+    param "toggle"
+    use "quick-toggle" icon="sun.max.fill" tooltip="{system.night-shift == null ? 'Night Shift Unavailable' : 'Night Shift'}" active="{system.night-shift == true}" enabled="{system.night-shift != null}" {
+        on-click { system.toggle-night-shift }
+    }
+}
+
+define "toggle-screenshot" {
+    param "toggle"
+    use "quick-toggle" icon="camera.viewfinder" tooltip="Screenshot" {
+        on-click { close "utilities" wait=#true; system.screenshot }
+    }
+}
+
+define "toggle-show-desktop" {
+    param "toggle"
+    use "quick-toggle" icon="menubar.dock.rectangle" tooltip="{system.show-desktop-available ? 'Show Desktop' : 'Show Desktop Shortcut Is Off'}" enabled="{system.show-desktop-available}" {
+        on-click { system.show-desktop }
+    }
+}
+
+define "toggle-color-picker" {
+    param "toggle"
+    use "quick-toggle" icon="eyedropper" tooltip="Color Picker" {
+        on-click { close "utilities" wait=#true; system.color-picker }
+    }
+}
+
+define "toggle-lock-screen" {
+    param "toggle"
+    use "quick-toggle" icon="lock.fill" tooltip="Lock Screen" {
+        on-click { close "utilities" wait=#true; system.lock }
+    }
+}
+
+define "toggle-settings" {
+    param "toggle"
+    use "quick-toggle" icon="gearshape.fill" tooltip="Settings" {
+        on-click { close "utilities" wait=#true; open "settings" }
+    }
+}
+
+define "toggle-display-sleep" {
+    param "toggle"
+    use "quick-toggle" icon="moon.zzz.fill" tooltip="Display Sleep" {
+        on-click { close "utilities" wait=#true; system.display-sleep }
+    }
+}
+
+define "toggle-hide-apps" {
+    param "toggle"
+    use "quick-toggle" icon="eye.slash.fill" tooltip="{toggle.keep-frontmost ? 'Hide Other Apps' : 'Hide All Apps'}" {
+        on-click { system.hide-apps keep-frontmost="{toggle.keep-frontmost ?? false}" }
+    }
+}
+
+define "toggle-open-app" {
+    param "toggle"
+    use "quick-toggle" icon="{toggle.symbol != null && toggle.symbol != '' ? toggle.symbol : 'app.fill'}" tooltip="{toggle.bundle-id == null || toggle.bundle-id == '' ? 'No App Chosen Yet' : 'Open ' + (toggle.title ?? toggle.bundle-id)}" enabled="{toggle.bundle-id != null && toggle.bundle-id != ''}" {
+        on-click { apps.launch "{toggle.bundle-id}" }
+    }
+}
+
+define "toggle-open-link" {
+    param "toggle"
+    use "quick-toggle" icon="{toggle.symbol != null && toggle.symbol != '' ? toggle.symbol : 'link'}" tooltip="{(toggle.url ?? '' | url) == null ? ((toggle.url ?? '') == '' ? 'No Link Yet' : 'Invalid Link') : 'Open ' + (toggle.title ?? toggle.url)}" enabled="{(toggle.url ?? '' | url) != null}" {
+        on-click { open-url "{toggle.url | url}" }
+    }
+}
+
+define "toggle-run-shortcut" {
+    param "toggle"
+    use "quick-toggle" icon="{toggle.symbol != null && toggle.symbol != '' ? toggle.symbol : 'square.stack.3d.forward.dottedline.fill'}" tooltip="{toggle.name == null || toggle.name == '' ? 'No Shortcut Chosen Yet' : 'Run ' + (toggle.title ?? toggle.name)}" enabled="{toggle.name != null && toggle.name != ''}" {
+        on-click { run-shortcut "{toggle.name}" }
+    }
+}
+
+define "card-keep-awake" {
+    row class="utilities-card keep-awake" {
+        column class="keep-awake-text" {
+            text "Keep Awake" class="utilities-card-title"
+            text "{power.keep-awake-text}" class="utilities-card-detail"
+        }
+        spacer
+        toggle checked="{power.keep-awake}" class="keep-awake-switch" {
+            on-change { power.toggle-keep-awake }
+        }
+    }
+}
+
+define "audio-device-tile" {
+    param "title"
+    param "devices"
+    param "current"
+    param "kind"
+    button class="audio-device" menu-on="click" {
+        menu side="pointer" {
+            when "{(devices | count) == 0}" {
+                item "No Devices" disabled=#true
+            }
+            each device in="{devices}" key="{device.id}" {
+                item "{device.name}" checked="{device.id == current.id}" {
+                    when "{kind == 'output'}" { audio.select-output "{device.id}" }
+                    else { audio.select-input "{device.id}" }
+                }
+            }
+        }
+        column class="audio-device-text" {
+            text "{title}" class="audio-device-title"
+            text "{current.name ?? 'No Devices'}" class="audio-device-name" lines=1 truncate="tail"
+        }
+    }
+}
+
+define "card-audio" {
+    column class="utilities-card audio" {
+        row class="audio-volume" {
+            button class="audio-mute" tooltip="{audio.muted ? 'Unmute' : 'Mute'}" {
+                on-click { audio.toggle-mute }
+                icon "{audio.muted ? 'status-volume-muted' : 'status-volume'}" fallback="{audio.symbol}" class="audio-mute-glyph"
+            }
+            slider value="{audio.volume}" step=0 key-step=0.0625 class="audio-slider" {
+                on-change { audio.set-volume "{event.value}" }
+            }
+        }
+        row class="audio-devices" {
+            use "audio-device-tile" title="Output" devices="{audio.outputs}" current="{audio.output}" kind="output"
+            use "audio-device-tile" title="Input" devices="{audio.inputs}" current="{audio.input}" kind="input"
+        }
+    }
+}
+
+define "card-quick-toggles" {
+    grid columns=5 class="utilities-card quick-toggles" {
+        each toggle in="{var.utilities-toggles}" key="{toggle.id}" {
+            use "toggle-{toggle.kind}" toggle="{toggle}"
+        }
+        each filler in="{[0, 1, 2, 3, 4] | take ((5 - (var.utilities-toggles | count) % 5) % 5)}" {
+            stack class="quick-toggle-filler"
+        }
+    }
+}
+
+popup "utilities" anchor="bottom-right" hover-edge=#true hover-gap=12 overhang=#true {
+    column class="utilities" {
+        when "{(var.utilities-cards | where 'enabled' true | count) == 0}" {
+            column class="utilities-empty" {
+                text "Nothing Shown" class="utilities-empty-title"
+                button class="utilities-empty-button" {
+                    on-click { set "settings-page" "control-centre"; close "utilities" wait=#true; open "settings" }
+                    text "Settings"
+                }
+            }
+        }
+        else {
+            each card in="{var.utilities-cards | where 'enabled' true}" key="{card.kind}" {
+                use "card-{card.kind}"
+            }
+        }
+    }
+}

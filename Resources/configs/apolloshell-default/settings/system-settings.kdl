@@ -1,0 +1,4 @@
+define "settings-page-system-settings" {
+    column class="settings-group" {
+    }
+}

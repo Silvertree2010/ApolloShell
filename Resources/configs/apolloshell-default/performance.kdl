@@ -1,0 +1,74 @@
+define "perf-chip-card" {
+    param "title"
+    param "value"
+    param "history"
+    param "icon"
+    param "fallback"
+    column class="card perf-card perf-chip" {
+        row class="perf-card-head" {
+            icon "{icon}" fallback="{fallback}" class="perf-card-glyph"
+            text "{title}" class="perf-card-title"
+            spacer
+            stack class="perf-badge" {
+                shape "scallop" count="{value < 0.4 ? 4 : (value < 0.8 ? 8 : 12)}" class="perf-badge-shape"
+                text "{value | percent}" class="perf-badge-text"
+            }
+        }
+        row class="perf-card-body" {
+            ring value="{value}" class="perf-ring"
+            graph values="{history}" kind="line" min=0 max=1 class="perf-graph"
+        }
+    }
+}
+
+define "perf-gauge-card" {
+    param "title"
+    param "value"
+    param "detail"
+    param "icon"
+    param "fallback"
+    column class="card perf-card perf-gauge-card" {
+        row class="perf-card-head" {
+            icon "{icon}" fallback="{fallback}" class="perf-card-glyph"
+            text "{title}" class="perf-card-title"
+        }
+        stack class="perf-gauge-stack" {
+            gauge value="{value}" class="perf-gauge"
+            text "{value | percent}" class="perf-gauge-text"
+        }
+        text "{detail}" class="perf-card-detail"
+    }
+}
+
+define "dashboard-performance" {
+    column class="performance" {
+        row class="performance-row" {
+            use "perf-chip-card" title="CPU" value="{perf.live.cpu}" history="{perf.live.cpu-history}" icon="panel-cpu" fallback="cpu"
+            use "perf-chip-card" title="GPU" value="{perf.live.gpu}" history="{perf.live.gpu-history}" icon="panel-gpu" fallback="square.stack.3d.up"
+        }
+        row class="performance-row" {
+            use "perf-gauge-card" title="Memory" value="{perf.live.memory}" detail="{perf.live.memory-used | bytes} of {perf.live.memory-total | bytes}" icon="panel-memory" fallback="memorychip"
+            use "perf-gauge-card" title="Storage" value="{perf.live.disk}" detail="{perf.live.disk-used | bytes} of {perf.live.disk-total | bytes}" icon="panel-storage" fallback="internaldrive"
+            column class="card perf-card perf-network" {
+                row class="perf-card-head" {
+                    icon "panel-network" fallback="network" class="perf-card-glyph"
+                    text "Network" class="perf-card-title"
+                }
+                graph values="{perf.live.net-history | map 'down'}" kind="area" class="perf-graph perf-net-down"
+                graph values="{perf.live.net-history | map 'up'}" kind="area" class="perf-graph perf-net-up"
+                row class="perf-net-rates" {
+                    text "↓ {perf.live.net-down | bytes-per-second}" class="perf-net-rate"
+                    spacer
+                    text "↑ {perf.live.net-up | bytes-per-second}" class="perf-net-rate"
+                }
+                text "↓ {perf.live.net-total-down | bytes}  ↑ {perf.live.net-total-up | bytes}" class="perf-card-detail" tooltip="Since this tab was first opened"
+            }
+            when "{battery.present}" {
+                column class="card perf-card perf-battery" {
+                    progress value="{battery.percent}" vertical=#true class="perf-tank"
+                    text "{battery.tank-text}" class="perf-card-detail"
+                }
+            }
+        }
+    }
+}

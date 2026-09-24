@@ -1,0 +1,4 @@
+define "settings-page-desktop" {
+    column class="settings-group" {
+    }
+}
