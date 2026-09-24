@@ -76,4 +76,19 @@ struct LifetimeTests {
         for _ in 0..<60 where mounted.variable("log") == .string("") { try await Task.sleep(for: .milliseconds(25)) }
         #expect(mounted.variable("log") == .string("0>3 a a>c"))
     }
+
+    @Test("reorderable ohne on-reorder: Vorschau springt zurück")
+    func reorderWithoutHandlerSnapsBack() async throws {
+        let config = MenuReorderTests.reorderConfig.replacingOccurrences(
+            of: "on-reorder { set \"log\" \"{event.from}>{event.to} {event.key} {event.from-key}>{event.to-key}\" }\n", with: "")
+        #expect(!config.contains("on-reorder"))
+        let mounted = try Mounted.mount(config, css: MenuReorderTests.reorderCSS)
+        let list = try #require(mounted.session.context.reorders.values.first)
+        let a = list.entry(for: list.container.children[0], index: 0)
+        let c = list.entry(for: list.container.children[2], index: 2)
+        #expect(list.drop(token: a.token, on: c))
+        #expect(list.preview != nil)
+        for _ in 0..<40 where list.preview != nil { try await Task.sleep(for: .milliseconds(50)) }
+        #expect(list.preview == nil)
+    }
 }

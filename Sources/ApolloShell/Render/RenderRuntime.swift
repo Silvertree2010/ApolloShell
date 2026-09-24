@@ -135,7 +135,10 @@ extension RenderContext {
     @discardableResult
     func fire(_ name: String, _ element: ElementInstance, _ event: Record = Record(),
               onTask: (@MainActor (Task<Void, Never>?) -> Void)? = nil) -> Bool {
-        guard handler(element, name) != nil else { return false }
+        guard handler(element, name) != nil else {
+            onTask?(nil)
+            return false
+        }
         let identity = element.identity
         let rules = rules(element, name)
         guard rules.gated else {
