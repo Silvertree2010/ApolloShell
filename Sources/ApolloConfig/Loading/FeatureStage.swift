@@ -7,13 +7,6 @@ struct FeatureStageResult: Sendable {
     var diagnostics: [Diagnostic]
 }
 
-private enum NodeIdentity: Hashable {
-    case define(String)
-    case surface(String)
-    case bind(String)
-    case on(String)
-}
-
 enum FeatureStage {
     static func run(_ nodes: [ExpandedNode], shellVersion: String, registry: SchemaRegistry) -> FeatureStageResult {
         StackHeadroom.run {
@@ -22,8 +15,7 @@ enum FeatureStage {
             }
             var diagnostics: [Diagnostic] = []
             var resolved = resolveFeatures(nodes, shellVersion: shellVersion, registry: registry, diagnostics: &diagnostics)
-            resolved = applyOverride(resolved, registry: registry, diagnostics: &diagnostics)
-            resolved = applyDisable(resolved, registry: registry, diagnostics: &diagnostics)
+            resolved = DisableStage.applyOverride(resolved, kinds: [.define], registry: registry, diagnostics: &diagnostics)
             return FeatureStageResult(nodes: resolved, diagnostics: diagnostics)
         }
     }
@@ -119,144 +111,8 @@ enum FeatureStage {
         return result
     }
 
-    private static func applyOverride(
-        _ nodes: [ExpandedNode],
-        registry: SchemaRegistry,
-        diagnostics: inout [Diagnostic]
-    ) -> [ExpandedNode] {
-        var result: [ExpandedNode] = []
-        var indexByIdentity: [NodeIdentity: Int] = [:]
-        for node in nodes {
-            guard let identity = overridableIdentity(of: node, registry: registry) else {
-                result.append(node)
-                continue
-            }
-            let isOverride = boolProperty(node, "override") ?? false
-            if let existingIndex = indexByIdentity[identity] {
-                if isOverride {
-                    result[existingIndex] = node
-                } else {
-                    diagnostics.append(DiagnosticCollector.withIncludeChain(
-                        Diagnostic(
-                            .error,
-                            "duplicate \(describe(identity)); add override=#true to replace it",
-                            span: node.kdl.span,
-                            notes: [DiagnosticNote("first defined here", span: result[existingIndex].kdl.span)]
-                        ),
-                        chain: node.includeChain
-                    ))
-                }
-            } else {
-                if isOverride {
-                    diagnostics.append(DiagnosticCollector.withIncludeChain(
-                        Diagnostic(.warning, "override=#true on \(describe(identity)) without a previous definition", span: node.kdl.span),
-                        chain: node.includeChain
-                    ))
-                }
-                indexByIdentity[identity] = result.count
-                result.append(node)
-            }
-        }
-        return result
-    }
-
-    private static func applyDisable(
-        _ nodes: [ExpandedNode],
-        registry: SchemaRegistry,
-        diagnostics: inout [Diagnostic]
-    ) -> [ExpandedNode] {
-        var targets: [NodeIdentity: ExpandedNode] = [:]
-        for node in nodes where node.kdl.name == "disable" {
-            if let property = node.kdl.property("surface"), case .string(let id) = property.value.scalar {
-                targets[.surface(id)] = node
-            } else if let property = node.kdl.property("bind"), case .string(let raw) = property.value.scalar {
-                targets[.bind(normalizeChord(raw))] = node
-            } else if let property = node.kdl.property("on"), case .string(let event) = property.value.scalar {
-                targets[.on(event)] = node
-            } else {
-                diagnostics.append(DiagnosticCollector.withIncludeChain(
-                    Diagnostic(.error, "'disable' needs 'surface=', 'bind=' or 'on='", span: node.kdl.span),
-                    chain: node.includeChain
-                ))
-            }
-        }
-        var matched: Set<NodeIdentity> = []
-        var result: [ExpandedNode] = []
-        for node in nodes {
-            if node.kdl.name == "disable" { continue }
-            if let identity = disableIdentity(of: node, registry: registry), targets[identity] != nil {
-                matched.insert(identity)
-                continue
-            }
-            result.append(node)
-        }
-        for (identity, node) in targets where !matched.contains(identity) {
-            diagnostics.append(DiagnosticCollector.withIncludeChain(
-                Diagnostic(.warning, "unknown target for disable: \(describe(identity))", span: node.kdl.span),
-                chain: node.includeChain
-            ))
-        }
-        return result
-    }
-
-    private static func overridableIdentity(of node: ExpandedNode, registry: SchemaRegistry) -> NodeIdentity? {
-        if node.kdl.name == "define", let name = argumentString(node) {
-            return .define(name)
-        }
-        if node.kdl.name == "bind" {
-            return .bind(bindIdentity(node))
-        }
-        if let schema = registry.node(node.kdl.name), schema.category == .surface, let id = argumentString(node) {
-            return .surface(id)
-        }
-        return nil
-    }
-
-    private static func disableIdentity(of node: ExpandedNode, registry: SchemaRegistry) -> NodeIdentity? {
-        if node.kdl.name == "bind" {
-            return .bind(bindIdentity(node))
-        }
-        if node.kdl.name == "on", let event = argumentString(node) {
-            return .on(event)
-        }
-        if let schema = registry.node(node.kdl.name), schema.category == .surface, let id = argumentString(node) {
-            return .surface(id)
-        }
-        return nil
-    }
-
-    private static func bindIdentity(_ node: ExpandedNode) -> String {
-        if let explicit = stringProperty(node, "id") {
-            return explicit
-        }
-        return normalizeChord(argumentString(node) ?? "")
-    }
-
-    private static func normalizeChord(_ raw: String) -> String {
-        KeyChord.parse(raw)?.canonical ?? raw
-    }
-
     private static func argumentString(_ node: ExpandedNode) -> String? {
         guard let first = node.kdl.arguments.first, case .string(let value) = first.scalar else { return nil }
         return value
-    }
-
-    private static func stringProperty(_ node: ExpandedNode, _ name: String) -> String? {
-        guard let property = node.kdl.property(name), case .string(let value) = property.value.scalar else { return nil }
-        return value
-    }
-
-    private static func boolProperty(_ node: ExpandedNode, _ name: String) -> Bool? {
-        guard let property = node.kdl.property(name), case .bool(let value) = property.value.scalar else { return nil }
-        return value
-    }
-
-    private static func describe(_ identity: NodeIdentity) -> String {
-        switch identity {
-        case .define(let name): return "define '\(name)'"
-        case .surface(let id): return "surface '\(id)'"
-        case .bind(let id): return "bind '\(id)'"
-        case .on(let event): return "on '\(event)'"
-        }
     }
 }

@@ -18,6 +18,12 @@ struct FeatureStageTests {
         return result.nodes
     }
 
+    func featureThenDisable(_ nodes: [ExpandedNode]) -> FeatureStageResult {
+        let featured = FeatureStage.run(nodes, shellVersion: "0.2.0", registry: .builtin)
+        let disabled = DisableStage.run(featured.nodes, registry: .builtin)
+        return FeatureStageResult(nodes: disabled.nodes, diagnostics: featured.diagnostics + disabled.diagnostics)
+    }
+
     func names(_ nodes: [ExpandedNode]) -> [String] {
         nodes.map(\.kdl.name)
     }
@@ -176,7 +182,7 @@ struct FeatureStageTests {
         let before = expand("disable surface=\"desktop-clock\"\npanel \"desktop-clock\" {}\ndock {}")
         let after = expand("panel \"desktop-clock\" {}\ndisable surface=\"desktop-clock\"\ndock {}")
         for nodes in [before, after] {
-            let result = FeatureStage.run(nodes, shellVersion: "0.2.0", registry: .builtin)
+            let result = featureThenDisable(nodes)
             #expect(result.diagnostics.isEmpty)
             #expect(names(result.nodes) == ["dock"])
         }
@@ -185,7 +191,7 @@ struct FeatureStageTests {
     @Test("disable bind vergleicht normalisierte Tastenkombinationen")
     func disableBindComparesNormalizedChords() {
         let nodes = expand("bind \"option+space\" {\n  a {}\n}\ndisable bind=\"alt+space\"")
-        let result = FeatureStage.run(nodes, shellVersion: "0.2.0", registry: .builtin)
+        let result = featureThenDisable(nodes)
         #expect(result.diagnostics.isEmpty)
         #expect(result.nodes.isEmpty)
     }
@@ -193,7 +199,7 @@ struct FeatureStageTests {
     @Test("disable on entfernt einen Ereignis-Handler")
     func disableOnRemovesEventHandler() {
         let nodes = expand("on \"battery.warning\" {\n  a {}\n}\ndisable on=\"battery.warning\"")
-        let result = FeatureStage.run(nodes, shellVersion: "0.2.0", registry: .builtin)
+        let result = featureThenDisable(nodes)
         #expect(result.diagnostics.isEmpty)
         #expect(result.nodes.isEmpty)
     }
@@ -201,7 +207,7 @@ struct FeatureStageTests {
     @Test("disable auf ein unbekanntes Ziel ist eine Warnung")
     func disableUnknownTargetWarns() {
         let nodes = expand("disable surface=\"does-not-exist\"")
-        let result = FeatureStage.run(nodes, shellVersion: "0.2.0", registry: .builtin)
+        let result = featureThenDisable(nodes)
         #expect(result.diagnostics.count == 1)
         #expect(result.diagnostics[0].severity == .warning)
     }
@@ -214,7 +220,7 @@ struct FeatureStageTests {
             "disable surface=\"desktop-clock\"\n" +
             "dock {}"
         )
-        let result = FeatureStage.run(nodes, shellVersion: "0.2.0", registry: .builtin)
+        let result = featureThenDisable(nodes)
         #expect(result.diagnostics.isEmpty)
         #expect(names(result.nodes) == ["dock"])
     }
@@ -258,11 +264,11 @@ struct FeatureStageTests {
     @Test("Zwei bind mit gleichbedeutender Tastenschreibweise brauchen override")
     func twoEquivalentBindsNeedOverride() {
         let failing = expand("bind \"alt+space\" {\n  a {}\n}\nbind \"option+space\" {\n  b {}\n}")
-        let failingResult = FeatureStage.run(failing, shellVersion: "0.2.0", registry: .builtin)
+        let failingResult = featureThenDisable(failing)
         #expect(failingResult.diagnostics.contains { $0.severity == .error })
 
         let overridden = expand("bind \"alt+space\" {\n  a {}\n}\nbind \"option+space\" override=#true {\n  b {}\n}")
-        let overriddenResult = FeatureStage.run(overridden, shellVersion: "0.2.0", registry: .builtin)
+        let overriddenResult = featureThenDisable(overridden)
         #expect(overriddenResult.diagnostics.isEmpty)
         #expect(overriddenResult.nodes.count == 1)
         #expect(names(overriddenResult.nodes[0].children) == ["b"])
