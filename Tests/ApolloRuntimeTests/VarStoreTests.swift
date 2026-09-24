@@ -444,6 +444,24 @@ struct VarStoreTests {
         #expect(vars.value("count") == .number(99))
     }
 
+    @Test("Reload beendet das alte Binding eines gleichnamigen abgeleiteten var")
+    func reloadCancelsReplacedDerivedBinding() {
+        let (_, scheduler, engine, vars, _) = makeStore()
+        let decls = [
+            decl("base", type: .number, defaultText: "1"),
+            decl("doubled", type: .number, defaultText: "0", derived: "var.base * 2")
+        ]
+        vars.declare(decls, persisted: [:], shell: Record())
+        let reader = engine.bind(BindingTestHarness.source("{var.doubled}"), scope: LocalScope(), active: true) { _ in }
+        vars.declare(decls, persisted: [:], shell: Record())
+        scheduler.runPending()
+        let before = engine.evaluationCount
+        vars.set("base", .number(5), for: nil)
+        scheduler.runPending()
+        #expect(engine.evaluationCount - before == 2)
+        #expect(reader.currentValue == .number(10))
+    }
+
     @Test("Ein nicht mehr deklariertes var verschwindet aus dem Store")
     func removedVarVanishesFromStore() {
         let (store, scheduler, engine, vars, _) = makeStore()
