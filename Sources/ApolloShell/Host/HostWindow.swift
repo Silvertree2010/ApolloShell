@@ -12,6 +12,7 @@ protocol HostWindow: AnyObject {
     var onKey: (@MainActor (String) -> Bool)? { get set }
     var onResize: (@MainActor () -> Void)? { get set }
     var onOcclusion: (@MainActor (Bool) -> Void)? { get set }
+    var onFittingChange: (@MainActor () -> Void)? { get set }
     var windowNumber: Int { get }
     func apply(_ spec: SurfaceWindowSpec)
     func setLevel(_ level: NSWindow.Level)
@@ -124,7 +125,14 @@ final class HostTitledWindow: NSWindow {
 }
 
 final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
+    var onInvalidate: (@MainActor () -> Void)?
+
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func invalidateIntrinsicContentSize() {
+        super.invalidateIntrinsicContentSize()
+        onInvalidate?()
+    }
 }
 
 typealias FirstMouseHosting = FirstMouseHostingView<AnyView>
@@ -147,6 +155,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     var onKey: (@MainActor (String) -> Bool)?
     var onResize: (@MainActor () -> Void)?
     var onOcclusion: (@MainActor (Bool) -> Void)?
+    var onFittingChange: (@MainActor () -> Void)?
 
     init(spec: SurfaceWindowSpec, content: AnyView, stage: any WindowStage = SystemStage.shared) {
         self.spec = spec
@@ -169,6 +178,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         super.init()
         window.contentView = container
         window.delegate = self
+        hosting.onInvalidate = { [weak self] in self?.onFittingChange?() }
         if let panel = window as? HostPanel {
             panel.onEscape = { [weak self] in
                 MainActor.assumeIsolated { self?.escape() ?? false }

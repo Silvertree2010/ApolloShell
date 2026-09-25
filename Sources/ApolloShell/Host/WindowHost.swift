@@ -34,6 +34,8 @@ final class SurfaceWindowController {
     var placed = false
     var offset: CGPoint?
     var observing = false
+    var fitPending = false
+    var lastFitting: CGSize?
     var flyout = EdgeInsets()
     var pendingContent: AnyView?
     var flyoutShrink: DispatchWorkItem?
@@ -205,6 +207,7 @@ final class WindowHost: SurfaceHosting {
         window.onKey = { [weak self] chord in self?.link?.keyPressed(chord, surfaceID: id, screenKey: screenKey) ?? false }
         window.onResize = { [weak self] in self?.userResized(key) }
         window.onOcclusion = { [weak self] visible in self?.occlusionChanged(key, visible: visible) }
+        window.onFittingChange = { [weak self] in self?.fittingChanged(key) }
         controllers[key] = controller
         sync(key)
     }
@@ -249,6 +252,19 @@ final class WindowHost: SurfaceHosting {
         guard let controller = controllers[key], let context else { return }
         if visible { context.occluded.remove(key) } else { context.occluded.insert(key) }
         controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
+    }
+
+    private func fittingChanged(_ key: String) {
+        guard let controller = controllers[key], controller.spec.kind != "window", !controller.fitPending else { return }
+        controller.fitPending = true
+        later { [weak self, weak controller] in
+            guard let self, let controller, self.controllers[key] === controller else { return }
+            controller.fitPending = false
+            let fitting = controller.window.fittingSize
+            guard fitting != controller.lastFitting else { return }
+            controller.lastFitting = fitting
+            self.sync(key)
+        }
     }
 
     private func userResized(_ key: String) {
