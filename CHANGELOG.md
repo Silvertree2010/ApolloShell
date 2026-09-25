@@ -4,6 +4,40 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - Unreleased
+
+ApolloShell becomes a framework. The shell is now a config, and the built-in
+one looks and behaves like 0.1.4.2. How to move over is in
+[docs/release-notes-0.2.0.md](docs/release-notes-0.2.0.md).
+
+### Added
+
+- **Configs in KDL.** Surfaces, blocks, variables, shortcuts and actions are
+  described in `.kdl` files in `~/.config/apolloshell/`. Saving a file
+  reloads the shell; windows that did not change stay where they are.
+- **Styles in CSS.** A config brings its own `style.css` with selectors, the
+  theme tokens as `var(--apollo-*)` and `-apollo-*` properties for things CSS
+  has no word for. See [docs/THEMES.md](docs/THEMES.md).
+- **Two built-in configs:** `apolloshell-default` and `launcher-only`.
+  `apollo config fork` copies one as a starting point for your own.
+- **The `apollo` command** checks configs (`apollo check`), reloads them,
+  reads and sets variables, runs actions and prints the reference
+  (`apollo schema`).
+- **Reference documentation** for every block, action, provider, filter and
+  event in [docs/CONFIG.md](docs/CONFIG.md), generated from the shell.
+  `schema/0.2.0.json` records what 0.2.0 publishes; later versions are
+  tested against it.
+- **Problems stay visible.** Mistakes in a config are listed with file, line
+  and a suggestion, and the rest of the config keeps working.
+
+### Changed
+
+- Settings move from `~/Library/Application Support/ApolloShell/settings.json`
+  to `~/.config/apolloshell/`. They are carried over once on the first start.
+- Themes live in `~/.config/apolloshell/themes/`. The old folder is still
+  read, and every `--apollo-*` token keeps its name and meaning.
+- The settings window is part of the default config.
+
 ## [0.1.4.2] - 2026-09-23
 
 A patch on 0.1.4: two more crashes, both found through the new crash reports.
