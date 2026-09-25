@@ -707,7 +707,7 @@
 .settings-preview-frame.bg-glass { background: glass(regular); }
 .settings-preview-frame.bg-tinted-glass { background: glass(regular, rgb(from -apple-system-window-background r g b / 0.7)); }
 .settings-preview-frame.bg-fixed-glass { background: glass(clear), -apple-system-window-background; }
-.settings-preview-modules { transform: scale(0.6); }
+.settings-preview-modules { height: auto; transform: scale(0.6); }
 .settings-dashboard-frame { width: 100%; height: 240px; background: material(regular); }
 .settings-dashboard-frame > .dashboard { transform: scale(0.36); }
 
