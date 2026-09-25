@@ -156,7 +156,7 @@ struct DefaultConfigTests {
         "--apollo-background-fill": ["--apollo-background-color", "--apollo-background-gradient"],
     ]
 
-    static let cards = [".card", ".card-weather", ".card-user", ".card-clock", ".card-calendar", ".card-resources", ".card-media", ".media-source", ".popout-card", ".utilities-card", ".onboarding-card"]
+    static let cards = [".card", ".card-weather", ".card-user", ".card-clock", ".card-calendar", ".card-resources", ".card-media", ".media-source", ".popout-card", ".utilities-card", ".onboarding-card", ".weather-hero", ".weather-hours", ".weather-day"]
     static let panels = ["#dashboard", "#utilities", "#launcher", "#session"]
 
     static let allowedPlaces: [String: [String]] = [
@@ -166,8 +166,8 @@ struct DefaultConfigTests {
         "--apollo-shadow-opacity": [".audio-mute", ".osd-slider", ".audio-slider"],
         "--apollo-text-color": [".launcher-"],
         "--apollo-secondary-text-color": [".launcher-"],
-        "--apollo-on-accent-color": [".space-number", ".popout-status-circle", ".popout-capsule", ".dashboard-tab", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-badge-text", ".weather-place", ".audio-mute", ".quick-toggle", ".osd-slider", ".toast-chip", ".audio-slider", ".keep-awake-chip"],
-        "--apollo-accent-color": [":root", ".space-pill", ".popout-status-circle", ".popout-capsule", ".popout-battery-bolt", ".dashboard-tab-pill", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-graph", ".perf-badge-shape", ".weather-place", ".audio-mute", ".audio-slider", ".quick-toggle", ".session-mark", ".osd-slider", ".toast-chip", ".onboarding-dot", ".keep-awake-chip", ".dashboard-tab", ".card-resource-ring", ".card-media-arc", ".media-empty-badge", ".media-timeline", ".card-media-bar"],
+        "--apollo-on-accent-color": [".space-number", ".popout-status-circle", ".popout-capsule", ".dashboard-tab", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-badge-text", ".weather-place", ".weather-day-name", ".audio-mute", ".quick-toggle", ".osd-slider", ".toast-chip", ".audio-slider", ".keep-awake-chip"],
+        "--apollo-accent-color": [":root", ".space-pill", ".popout-status-circle", ".popout-capsule", ".popout-battery-bolt", ".dashboard-tab-pill", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-graph", ".perf-badge-shape", ".weather-place", ".weather-day-name", ".audio-mute", ".audio-slider", ".quick-toggle", ".session-mark", ".osd-slider", ".toast-chip", ".onboarding-dot", ".keep-awake-chip", ".dashboard-tab", ".card-resource-ring", ".card-media-arc", ".media-empty-badge", ".media-timeline", ".card-media-bar"],
         "--apollo-accent-gradient": [".audio-mute", ".osd-slider", ".audio-slider"],
         "--apollo-success-color": [".kind-success"],
         "--apollo-warning-color": [".kind-warning"],

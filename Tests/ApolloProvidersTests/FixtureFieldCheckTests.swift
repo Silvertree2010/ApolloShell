@@ -155,7 +155,7 @@ struct FixtureFieldCheckTests {
         let calendar = try #require(overview.firstIndex(of: "September 2026"))
         #expect(Array(overview[calendar...].prefix(9)) == ["September 2026", "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su", "31"])
         #expect(overview[calendar...].filter { $0 == "30" }.count == 1)
-        for text in ["Feels like 12° · H:17° L:8°", "Weather data by Open-Meteo.com", "62%", "07:18", "11 km/h", "19:16", "Now", "Thu", "15°", "6°"] {
+        for text in ["Feels like 12° · H:17° L:8°", "Weather data by Open-Meteo.com", "62 %", "07:18", "11 km/h", "19:16", "Now", "Today", "Fr", "9/25", "15°", "6°"] {
             #expect(weather.contains(text), "\(text)")
         }
         let airpods = try #require(sidebar.firstIndex(of: "AirPods Pro"))

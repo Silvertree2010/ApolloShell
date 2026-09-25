@@ -289,11 +289,51 @@
 .perf-gauge { width: 90px; height: 90px; }
 .perf-tank { width: 40px; height: 90px; }
 
-.weather { gap: 12px; }
+.weather { flex-grow: 1; align-self: stretch; gap: 12px; }
 .weather-glyph { -apollo-symbol-rendering: multicolor; }
-.weather-place { padding: 4px 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); transition: background 150ms ease-out; }
+@media (prefers-color-scheme: light) {
+  .weather-glyph, .weather-detail-glyph { filter: drop-shadow(0 0.4px 0.8px rgb(0 0 0 / 0.3)); }
+}
+.weather-hero { height: 116px; padding: 0; border-radius: var(--apollo-card-radius, 28px); }
+.weather-hero-body { align-self: stretch; padding: 0 28px 0 22px; gap: 18px; align-items: center; }
+.weather-hero-glyph-frame { width: 72px; align-items: center; justify-content: center; }
+.weather-hero-glyph { font-size: 56px; }
+.weather-hero-temperature { font-size: 60px; font-weight: 500; font-family: ui-rounded; }
+.weather-hero-text { gap: 3px; align-items: start; }
+.weather-hero-condition { font-size: 19px; font-weight: 600; }
+.weather-hero-summary { font-size: 13px; color: -apple-system-secondary-label; }
+.weather-places { gap: 5px; margin: 3px 0 0; }
+.weather-place { padding: 4px 9px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-secondary-label; transition: background 150ms ease-out; }
 .weather-place:checked { background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
-.weather-hours, .weather-days { justify-content: space-between; }
+.weather-place-name { font-size: 11px; font-weight: 600; }
+.weather-stale { font-size: 11px; color: -apple-system-tertiary-label; }
+.weather-details { gap: 24px; margin: 0 0 10px; }
+.weather-details-column { gap: 12px; align-items: start; }
+.weather-detail { gap: 8px; align-items: center; }
+.weather-detail-glyph { width: 22px; font-size: 16px; color: -apple-system-secondary-label; -apollo-symbol-rendering: multicolor; }
+.weather-detail-text { align-items: start; }
+.weather-detail-title { font-size: 11px; color: -apple-system-secondary-label; }
+.weather-detail-value { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.weather-attribution { align-self: end; justify-self: end; margin: 0 18px 7px 0; }
+.weather-attribution-text { font-size: 10px; color: -apple-system-tertiary-label; }
+.weather-hours { height: 108px; padding: 0 10px; border-radius: var(--apollo-card-radius, 24px); align-items: center; }
+.weather-hour { width: 8.333333%; gap: 5px; align-items: center; }
+.weather-hour-time { font-size: 12px; font-weight: 500; color: -apple-system-secondary-label; }
+.weather-hour.now .weather-hour-time { font-weight: 600; color: -apple-system-label; }
+.weather-hour-glyph-frame { height: 26px; align-items: center; justify-content: center; }
+.weather-hour-glyph { font-size: 20px; }
+.weather-precipitation { height: 12px; font-size: 10px; font-weight: 600; color: -apple-system-blue; }
+.weather-hour-temperature { font-size: 15px; font-weight: 600; font-family: ui-rounded; }
+.weather-days { flex-grow: 1; align-self: stretch; gap: 12px; }
+.weather-day { width: 13.0597%; align-self: stretch; padding: 0; gap: 4px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 20px); }
+.weather-day-name { height: 20px; font-size: 13px; font-weight: 600; }
+.weather-day-name.today { padding: 0 9px; border-radius: 9999px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.weather-day-date { font-size: 11px; color: -apple-system-secondary-label; }
+.weather-day-glyph-frame { height: 32px; margin: 2px 0 0; align-items: center; justify-content: center; }
+.weather-day-glyph { font-size: 24px; }
+.weather-day-range { gap: 6px; }
+.weather-day-high, .weather-day-low { font-size: 14px; font-weight: 600; font-family: ui-rounded; }
+.weather-day-low { color: -apple-system-secondary-label; }
 
 .utilities { width: 430px; padding: 16px; gap: 12px; transition: all 200ms effects; }
 .utilities-card {
