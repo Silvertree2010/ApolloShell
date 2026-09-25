@@ -2,20 +2,20 @@ enum CommonProperties {
     static let idArgument = ArgumentSchema(
         name: "id",
         type: .identifier,
-        doc: "Kennung, je Oberfläche eindeutig; Ziel für flyout, popup und each."
+        doc: "Id, unique per surface; target for flyout, popup and each."
     )
 
     static let baseline: [PropertySchema] = [
-        PropertySchema(name: "id", type: .identifier, defaultValue: .null, doc: "Kennung, je Oberfläche eindeutig, Vorlage erlaubt."),
-        PropertySchema(name: "class", type: .string, defaultValue: .null, doc: "CSS-Klassen, durch Leerzeichen getrennt."),
-        PropertySchema(name: "style", type: .string, defaultValue: .null, doc: "CSS-Deklarationen nur für diesen Knoten."),
-        PropertySchema(name: "visible", type: .bool, defaultValue: .bool(true), doc: "versteckt den Knoten, ohne Zustand zu verlieren."),
-        PropertySchema(name: "tooltip", type: .string, defaultValue: .null, doc: "Hilfetext beim Verweilen."),
-        PropertySchema(name: "label", type: .string, defaultValue: .null, doc: "Text für VoiceOver, Vorgabe aus tooltip oder Inhalt."),
-        PropertySchema(name: "checked", type: .bool, defaultValue: .bool(false), doc: "setzt die Pseudoklasse :checked."),
-        PropertySchema(name: "disabled", type: .bool, defaultValue: .bool(false), doc: "keine Eingaben, Pseudoklasse :disabled."),
-        PropertySchema(name: "match-id", type: .string, defaultValue: .null, doc: "Elemente mit gleicher match-id gleiten beim Erscheinen ineinander."),
-        PropertySchema(name: "menu-on", type: .string, defaultValue: .string("right-click"), doc: "was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt."),
+        PropertySchema(name: "id", type: .identifier, defaultValue: .null, doc: "Id, unique per surface, template allowed."),
+        PropertySchema(name: "class", type: .string, defaultValue: .null, doc: "CSS classes, separated by spaces."),
+        PropertySchema(name: "style", type: .string, defaultValue: .null, doc: "CSS declarations for this node only."),
+        PropertySchema(name: "visible", type: .bool, defaultValue: .bool(true), doc: "Hides the node without losing state."),
+        PropertySchema(name: "tooltip", type: .string, defaultValue: .null, doc: "Help text on hover."),
+        PropertySchema(name: "label", type: .string, defaultValue: .null, doc: "Text for VoiceOver, default from tooltip or content."),
+        PropertySchema(name: "checked", type: .bool, defaultValue: .bool(false), doc: "Sets the :checked pseudo-class."),
+        PropertySchema(name: "disabled", type: .bool, defaultValue: .bool(false), doc: "No input, :disabled pseudo-class."),
+        PropertySchema(name: "match-id", type: .string, defaultValue: .null, doc: "Elements with the same match-id glide into each other when they appear."),
+        PropertySchema(name: "menu-on", type: .string, defaultValue: .string("right-click"), doc: "What opens the context menu, several separated by spaces."),
     ]
 
     static let dragValue = PropertySchema(
@@ -23,7 +23,7 @@ enum CommonProperties {
         type: .value,
         defaultValue: .null,
         allowsExpression: true,
-        doc: "macht das Element zur Ziehquelle, reserviert für 0.2.1.",
+        doc: "Makes the element a drag source, reserved for 0.2.1.",
         stability: .experimental,
         feature: "drag-values"
     )
@@ -32,7 +32,7 @@ enum CommonProperties {
         name: "fuse-group",
         type: .string,
         defaultValue: .null,
-        doc: "verschmilzt Oberflächen zu einer Fläche, reserviert für 0.2.1.",
+        doc: "Merges surfaces into one area, reserved for 0.2.1.",
         stability: .experimental,
         feature: "fusion"
     )
@@ -40,20 +40,20 @@ enum CommonProperties {
     static let elementProperties: [PropertySchema] = baseline + [dragValue]
 
     static let surfaceCommon: [PropertySchema] = [
-        PropertySchema(name: "override", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "ersetzt eine gleichnamige Oberfläche aus einer eingebundenen Datei."),
-        PropertySchema(name: "screen", type: .string, defaultValue: .null, allowsExpression: true, doc: "auf welchem Bildschirm es Instanzen gibt."),
-        PropertySchema(name: "anchor", type: .enumeration(["top", "bottom", "left", "right", "top-left", "top-right", "bottom-left", "bottom-right", "center", "fill"]), defaultValue: .string("center"), doc: "woran die Oberfläche klebt."),
-        PropertySchema(name: "area", type: .enumeration(["full", "below-menubar", "visible"]), defaultValue: .string("below-menubar"), doc: "Bezugsrechteck der Verankerung."),
-        PropertySchema(name: "layer", type: .string, defaultValue: .null, doc: "Fensterebene, Vorgabe je Oberflächen-Art."),
-        PropertySchema(name: "keyboard", type: .bool, defaultValue: .bool(false), doc: "ob die Oberfläche Tastatureingaben annimmt."),
-        PropertySchema(name: "click-through", type: .oneOf([.bool, .enumeration(["auto"])]), defaultValue: .bool(false), doc: "ob Mausereignisse durchgehen; bool oder \"auto\" (nur dort nicht, wo ein Element mit Handler oder sichtbarem Hintergrund liegt)."),
-        PropertySchema(name: "offset-x", type: .number, defaultValue: .number(0), doc: "Verschiebung entlang x gegenüber der verankerten Lage."),
-        PropertySchema(name: "offset-y", type: .number, defaultValue: .number(0), doc: "Verschiebung entlang y gegenüber der verankerten Lage."),
-        PropertySchema(name: "sticky", type: .bool, defaultValue: .bool(true), doc: "auf allen Spaces und im eigenen Space."),
-        PropertySchema(name: "fullscreen", type: .enumeration(["hide", "show"]), defaultValue: .null, doc: "Verhalten auf einem Bildschirm mit Vollbild-App."),
-        PropertySchema(name: "overhang", type: .bool, defaultValue: .bool(false), doc: "ragt um den Eckenradius über die verankerten Kanten."),
-        PropertySchema(name: "safe-area", type: .bool, defaultValue: .bool(true), doc: "Inhalt beginnt unter Menüleiste und Notch."),
-        PropertySchema(name: "shape", type: .enumeration(["rect", "fused"]), defaultValue: .string("rect"), doc: "ob offene flyout eine gemeinsame Form mit dem Hintergrund bilden."),
+        PropertySchema(name: "override", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Replaces a surface of the same name from an included file."),
+        PropertySchema(name: "screen", type: .string, defaultValue: .null, allowsExpression: true, doc: "Which screens get instances."),
+        PropertySchema(name: "anchor", type: .enumeration(["top", "bottom", "left", "right", "top-left", "top-right", "bottom-left", "bottom-right", "center", "fill"]), defaultValue: .string("center"), doc: "What the surface sticks to."),
+        PropertySchema(name: "area", type: .enumeration(["full", "below-menubar", "visible"]), defaultValue: .string("below-menubar"), doc: "Reference rectangle for anchoring."),
+        PropertySchema(name: "layer", type: .string, defaultValue: .null, doc: "Window level, default per surface kind."),
+        PropertySchema(name: "keyboard", type: .bool, defaultValue: .bool(false), doc: "Whether the surface accepts keyboard input."),
+        PropertySchema(name: "click-through", type: .oneOf([.bool, .enumeration(["auto"])]), defaultValue: .bool(false), doc: "Whether mouse events pass through; bool or \"auto\" (only not where an element with a handler or visible background lies)."),
+        PropertySchema(name: "offset-x", type: .number, defaultValue: .number(0), doc: "Offset along x from the anchored position."),
+        PropertySchema(name: "offset-y", type: .number, defaultValue: .number(0), doc: "Offset along y from the anchored position."),
+        PropertySchema(name: "sticky", type: .bool, defaultValue: .bool(true), doc: "On all Spaces and in its own Space."),
+        PropertySchema(name: "fullscreen", type: .enumeration(["hide", "show"]), defaultValue: .null, doc: "Behavior on a screen with a full-screen app."),
+        PropertySchema(name: "overhang", type: .bool, defaultValue: .bool(false), doc: "Extends past the anchored edges by the corner radius."),
+        PropertySchema(name: "safe-area", type: .bool, defaultValue: .bool(true), doc: "Content starts below the menu bar and notch."),
+        PropertySchema(name: "shape", type: .enumeration(["rect", "fused"]), defaultValue: .string("rect"), doc: "Whether open flyouts form one shape with the background."),
         fuseGroup,
     ]
 
@@ -71,22 +71,22 @@ enum CommonProperties {
         category: .element,
         arguments: [],
         properties: [
-            PropertySchema(name: "side", type: .enumeration(["pointer", "right", "left", "below"]), defaultValue: .string("pointer"), doc: "wo das Menü aufgeht."),
-            PropertySchema(name: "offset", type: .number, defaultValue: .number(6), doc: "Abstand in pt beim Aufgehen neben dem Element."),
+            PropertySchema(name: "side", type: .enumeration(["pointer", "right", "left", "below"]), defaultValue: .string("pointer"), doc: "Where the menu opens."),
+            PropertySchema(name: "offset", type: .number, defaultValue: .number(6), doc: "Distance in pt when opening next to the element."),
         ],
         childContext: .menu,
         contexts: [.elementBody],
-        doc: "gibt einem Element ein natives Kontextmenü.",
+        doc: "Gives an element a native context menu.",
         example: "menu { item \"Copy\" { clipboard.copy \"{system.full-name}\" } }"
     )
 
     static let accessibilityAction = NodeSchema(
         name: "accessibility-action",
         category: .element,
-        arguments: [ArgumentSchema(name: "title", type: .string, doc: "Titel der VoiceOver-Aktion.")],
+        arguments: [ArgumentSchema(name: "title", type: .string, doc: "Title of the VoiceOver action.")],
         childContext: .actions,
         contexts: [.elementBody],
-        doc: "gibt einem Element eine benannte VoiceOver-Aktion.",
+        doc: "Gives an element a named VoiceOver action.",
         example: "accessibility-action \"Move Up\" { list.move \"items\" from=1 to=0 }"
     )
 }

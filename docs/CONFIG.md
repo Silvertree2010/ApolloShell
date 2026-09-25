@@ -11,11 +11,11 @@ Blocks, surfaces and the other nodes a config file is made of.
 
 ### `accessibility-action` (node)
 
-gibt einem Element eine benannte VoiceOver-Aktion.
+Gives an element a named VoiceOver action.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `title` | string | required | Titel der VoiceOver-Aktion. |
+| argument | `title` | string | required | Title of the VoiceOver action. |
 
 ```kdl
 accessibility-action "Move Up" { list.move "items" from=1 to=0 }
@@ -28,17 +28,17 @@ zeichnet das Symbol einer App.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `app` | value | required | Bundle-ID oder App-Record. |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `badge` | value | `null` | Plakette, String oder Zahl. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
@@ -93,17 +93,17 @@ auslösbarer Knopf, Leertaste und Return lösen on-click aus.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -142,17 +142,17 @@ ordnet Kinder untereinander an, Flexbox-Richtung Spalte.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -311,17 +311,17 @@ Bereich, der aus der eigenen Oberfläche neben einem Element herauswächst.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `anchor` | identifier | required | id des Elements, neben dem der Flyout wächst. |
 | property | `side` | "right"\|"left"\|"top"\|"bottom" | `null` | Wachstumsrichtung. |
 | property | `open` | bool | required | ob der Flyout offen ist. |
@@ -366,17 +366,17 @@ Bogen von -135° bis 135°.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `value` | number | required | Füllstand 0…1. |
 | property | `ticks` | number | `0` | Anzahl Markierungen. |
 
@@ -392,17 +392,17 @@ zeichnet einen Verlauf, etwa CPU-Historie.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `values` | list | required | Liste von Zahlen. |
 | property | `min` | number | `0` | unterer Rand. |
 | property | `max` | number | `null` | oberer Rand, Vorgabe grösster Wert. |
@@ -421,17 +421,17 @@ ordnet Kinder in einem Raster an.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `columns` | number | `null` | Anzahl der Spalten. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
@@ -447,17 +447,17 @@ zeichnet ein Symbol.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `name` | string | required | Name aus dem Theme oder SF-Symbol. |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `fallback` | string | `null` | SF Symbol, falls der Name nicht gefunden wird. |
 | property | `variable` | number | `null` | Wert 0…1 für SF-Symbole mit Stufen. |
 
@@ -474,17 +474,17 @@ zeichnet ein Bild.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `source` | path | required | Pfad oder Bildwert eines Providers. |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `fit` | "fill"\|"fit"\|"stretch"\|"center" | `null` | wie das Bild in den Rahmen passt. |
 | property | `placeholder` | string | `null` | Icon-Name, solange nichts da ist. |
 
@@ -513,17 +513,17 @@ Texteingabe.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `value` | string | `null` | Textinhalt. |
 | property | `bind` | string | `null` | var.<name>, liest und schreibt das var direkt. |
 | property | `placeholder` | string | `null` | Platzhaltertext. |
@@ -567,17 +567,17 @@ nimmt eine Tastenkombination auf.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `value` | string | `null` | aufgenommene Kombination als String. |
 | property | `placeholder` | string | `null` | Platzhaltertext. |
 | property | `reject` | value | `null` | Liste von Kombinationen, die abgelehnt werden. |
@@ -630,17 +630,17 @@ das animierte ApolloShell-Emblem.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `state` | "idle"\|"farewell"\|"sleep"\|"think" | `null` | Grundstimmung des Emblems. |
 | property | `greet` | bool | `true` | spielt beim Erscheinen die Begrüssung. |
 | property | `color` | string | `null` | Akzentfarbe. |
@@ -665,12 +665,12 @@ marketplace enabled=#false
 
 ### `menu` (node)
 
-gibt einem Element ein natives Kontextmenü.
+Gives an element a native context menu.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `side` | "pointer"\|"right"\|"left"\|"below" | `"pointer"` | wo das Menü aufgeht. |
-| property | `offset` | number | `6` | Abstand in pt beim Aufgehen neben dem Element. |
+| property | `side` | "pointer"\|"right"\|"left"\|"below" | `"pointer"` | Where the menu opens. |
+| property | `offset` | number | `6` | Distance in pt when opening next to the element. |
 
 ```kdl
 menu { item "Copy" { clipboard.copy "{system.full-name}" } }
@@ -695,32 +695,32 @@ kurze Rückmeldung wie eine Lautstärkeanzeige.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier | required | Kennung, je Oberfläche eindeutig; Ziel für flyout, popup und each. |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `override` | bool | `false` | ersetzt eine gleichnamige Oberfläche aus einer eingebundenen Datei. |
-| property | `screen` | string | `null` | auf welchem Bildschirm es Instanzen gibt. |
-| property | `anchor` | "top"\|"bottom"\|"left"\|"right"\|"top-left"\|"top-right"\|"bottom-left"\|"bottom-right"\|"center"\|"fill" | `"center"` | woran die Oberfläche klebt. |
-| property | `area` | "full"\|"below-menubar"\|"visible" | `"below-menubar"` | Bezugsrechteck der Verankerung. |
-| property | `layer` | string | `null` | Fensterebene, Vorgabe je Oberflächen-Art. |
-| property | `keyboard` | bool | `false` | ob die Oberfläche Tastatureingaben annimmt. |
-| property | `click-through` | bool\|"auto" | `false` | ob Mausereignisse durchgehen; bool oder "auto" (nur dort nicht, wo ein Element mit Handler oder sichtbarem Hintergrund liegt). |
-| property | `offset-x` | number | `0` | Verschiebung entlang x gegenüber der verankerten Lage. |
-| property | `offset-y` | number | `0` | Verschiebung entlang y gegenüber der verankerten Lage. |
-| property | `sticky` | bool | `true` | auf allen Spaces und im eigenen Space. |
-| property | `fullscreen` | "hide"\|"show" | `null` | Verhalten auf einem Bildschirm mit Vollbild-App. |
-| property | `overhang` | bool | `false` | ragt um den Eckenradius über die verankerten Kanten. |
-| property | `safe-area` | bool | `true` | Inhalt beginnt unter Menüleiste und Notch. |
-| property | `shape` | "rect"\|"fused" | `"rect"` | ob offene flyout eine gemeinsame Form mit dem Hintergrund bilden. |
-| property | `fuse-group` | string | `null` | verschmilzt Oberflächen zu einer Fläche, reserviert für 0.2.1. |
+| argument | `id` | identifier | required | Id, unique per surface; target for flyout, popup and each. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `override` | bool | `false` | Replaces a surface of the same name from an included file. |
+| property | `screen` | string | `null` | Which screens get instances. |
+| property | `anchor` | "top"\|"bottom"\|"left"\|"right"\|"top-left"\|"top-right"\|"bottom-left"\|"bottom-right"\|"center"\|"fill" | `"center"` | What the surface sticks to. |
+| property | `area` | "full"\|"below-menubar"\|"visible" | `"below-menubar"` | Reference rectangle for anchoring. |
+| property | `layer` | string | `null` | Window level, default per surface kind. |
+| property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
+| property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
+| property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
+| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
+| property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
+| property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
+| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
 | property | `timeout` | duration | `"2s"` | Anzeigedauer. |
 | property | `motion` | "slide"\|"grow"\|"fade"\|"none" | `"slide"` | Auf- und Zugehen. |
 
@@ -736,32 +736,32 @@ deckt den ganzen Bildschirm ab, standardmässig durchklickbar.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier | required | Kennung, je Oberfläche eindeutig; Ziel für flyout, popup und each. |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `override` | bool | `false` | ersetzt eine gleichnamige Oberfläche aus einer eingebundenen Datei. |
-| property | `screen` | string | `null` | auf welchem Bildschirm es Instanzen gibt. |
-| property | `anchor` | "top"\|"bottom"\|"left"\|"right"\|"top-left"\|"top-right"\|"bottom-left"\|"bottom-right"\|"center"\|"fill" | `"center"` | woran die Oberfläche klebt. |
-| property | `area` | "full"\|"below-menubar"\|"visible" | `"below-menubar"` | Bezugsrechteck der Verankerung. |
-| property | `layer` | string | `null` | Fensterebene, Vorgabe je Oberflächen-Art. |
-| property | `keyboard` | bool | `false` | ob die Oberfläche Tastatureingaben annimmt. |
-| property | `click-through` | bool\|"auto" | `false` | ob Mausereignisse durchgehen; bool oder "auto" (nur dort nicht, wo ein Element mit Handler oder sichtbarem Hintergrund liegt). |
-| property | `offset-x` | number | `0` | Verschiebung entlang x gegenüber der verankerten Lage. |
-| property | `offset-y` | number | `0` | Verschiebung entlang y gegenüber der verankerten Lage. |
-| property | `sticky` | bool | `true` | auf allen Spaces und im eigenen Space. |
-| property | `fullscreen` | "hide"\|"show" | `null` | Verhalten auf einem Bildschirm mit Vollbild-App. |
-| property | `overhang` | bool | `false` | ragt um den Eckenradius über die verankerten Kanten. |
-| property | `safe-area` | bool | `true` | Inhalt beginnt unter Menüleiste und Notch. |
-| property | `shape` | "rect"\|"fused" | `"rect"` | ob offene flyout eine gemeinsame Form mit dem Hintergrund bilden. |
-| property | `fuse-group` | string | `null` | verschmilzt Oberflächen zu einer Fläche, reserviert für 0.2.1. |
+| argument | `id` | identifier | required | Id, unique per surface; target for flyout, popup and each. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `override` | bool | `false` | Replaces a surface of the same name from an included file. |
+| property | `screen` | string | `null` | Which screens get instances. |
+| property | `anchor` | "top"\|"bottom"\|"left"\|"right"\|"top-left"\|"top-right"\|"bottom-left"\|"bottom-right"\|"center"\|"fill" | `"center"` | What the surface sticks to. |
+| property | `area` | "full"\|"below-menubar"\|"visible" | `"below-menubar"` | Reference rectangle for anchoring. |
+| property | `layer` | string | `null` | Window level, default per surface kind. |
+| property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
+| property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
+| property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
+| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
+| property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
+| property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
+| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
 
@@ -775,32 +775,32 @@ dauerhaft sichtbare Oberfläche wie Leisten, Docks, Desktop-Widgets.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier | required | Kennung, je Oberfläche eindeutig; Ziel für flyout, popup und each. |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `override` | bool | `false` | ersetzt eine gleichnamige Oberfläche aus einer eingebundenen Datei. |
-| property | `screen` | string | `null` | auf welchem Bildschirm es Instanzen gibt. |
-| property | `anchor` | "top"\|"bottom"\|"left"\|"right"\|"top-left"\|"top-right"\|"bottom-left"\|"bottom-right"\|"center"\|"fill" | `"center"` | woran die Oberfläche klebt. |
-| property | `area` | "full"\|"below-menubar"\|"visible" | `"below-menubar"` | Bezugsrechteck der Verankerung. |
-| property | `layer` | string | `null` | Fensterebene, Vorgabe je Oberflächen-Art. |
-| property | `keyboard` | bool | `false` | ob die Oberfläche Tastatureingaben annimmt. |
-| property | `click-through` | bool\|"auto" | `false` | ob Mausereignisse durchgehen; bool oder "auto" (nur dort nicht, wo ein Element mit Handler oder sichtbarem Hintergrund liegt). |
-| property | `offset-x` | number | `0` | Verschiebung entlang x gegenüber der verankerten Lage. |
-| property | `offset-y` | number | `0` | Verschiebung entlang y gegenüber der verankerten Lage. |
-| property | `sticky` | bool | `true` | auf allen Spaces und im eigenen Space. |
-| property | `fullscreen` | "hide"\|"show" | `null` | Verhalten auf einem Bildschirm mit Vollbild-App. |
-| property | `overhang` | bool | `false` | ragt um den Eckenradius über die verankerten Kanten. |
-| property | `safe-area` | bool | `true` | Inhalt beginnt unter Menüleiste und Notch. |
-| property | `shape` | "rect"\|"fused" | `"rect"` | ob offene flyout eine gemeinsame Form mit dem Hintergrund bilden. |
-| property | `fuse-group` | string | `null` | verschmilzt Oberflächen zu einer Fläche, reserviert für 0.2.1. |
+| argument | `id` | identifier | required | Id, unique per surface; target for flyout, popup and each. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `override` | bool | `false` | Replaces a surface of the same name from an included file. |
+| property | `screen` | string | `null` | Which screens get instances. |
+| property | `anchor` | "top"\|"bottom"\|"left"\|"right"\|"top-left"\|"top-right"\|"bottom-left"\|"bottom-right"\|"center"\|"fill" | `"center"` | What the surface sticks to. |
+| property | `area` | "full"\|"below-menubar"\|"visible" | `"below-menubar"` | Reference rectangle for anchoring. |
+| property | `layer` | string | `null` | Window level, default per surface kind. |
+| property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
+| property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
+| property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
+| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
+| property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
+| property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
+| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
 | property | `reserve` | bool | `false` | hält App-Fenster aus dem Streifen der Oberfläche, nur bei left/right/top/bottom. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
@@ -847,32 +847,32 @@ geht auf Aktion auf und zu, etwa Dashboard oder Launcher.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier | required | Kennung, je Oberfläche eindeutig; Ziel für flyout, popup und each. |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `override` | bool | `false` | ersetzt eine gleichnamige Oberfläche aus einer eingebundenen Datei. |
-| property | `screen` | string | `null` | auf welchem Bildschirm es Instanzen gibt. |
-| property | `anchor` | "top"\|"bottom"\|"left"\|"right"\|"top-left"\|"top-right"\|"bottom-left"\|"bottom-right"\|"center"\|"fill" | `"center"` | woran die Oberfläche klebt. |
-| property | `area` | "full"\|"below-menubar"\|"visible" | `"below-menubar"` | Bezugsrechteck der Verankerung. |
-| property | `layer` | string | `null` | Fensterebene, Vorgabe je Oberflächen-Art. |
-| property | `keyboard` | bool | `false` | ob die Oberfläche Tastatureingaben annimmt. |
-| property | `click-through` | bool\|"auto" | `false` | ob Mausereignisse durchgehen; bool oder "auto" (nur dort nicht, wo ein Element mit Handler oder sichtbarem Hintergrund liegt). |
-| property | `offset-x` | number | `0` | Verschiebung entlang x gegenüber der verankerten Lage. |
-| property | `offset-y` | number | `0` | Verschiebung entlang y gegenüber der verankerten Lage. |
-| property | `sticky` | bool | `true` | auf allen Spaces und im eigenen Space. |
-| property | `fullscreen` | "hide"\|"show" | `null` | Verhalten auf einem Bildschirm mit Vollbild-App. |
-| property | `overhang` | bool | `false` | ragt um den Eckenradius über die verankerten Kanten. |
-| property | `safe-area` | bool | `true` | Inhalt beginnt unter Menüleiste und Notch. |
-| property | `shape` | "rect"\|"fused" | `"rect"` | ob offene flyout eine gemeinsame Form mit dem Hintergrund bilden. |
-| property | `fuse-group` | string | `null` | verschmilzt Oberflächen zu einer Fläche, reserviert für 0.2.1. |
+| argument | `id` | identifier | required | Id, unique per surface; target for flyout, popup and each. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `override` | bool | `false` | Replaces a surface of the same name from an included file. |
+| property | `screen` | string | `null` | Which screens get instances. |
+| property | `anchor` | "top"\|"bottom"\|"left"\|"right"\|"top-left"\|"top-right"\|"bottom-left"\|"bottom-right"\|"center"\|"fill" | `"center"` | What the surface sticks to. |
+| property | `area` | "full"\|"below-menubar"\|"visible" | `"below-menubar"` | Reference rectangle for anchoring. |
+| property | `layer` | string | `null` | Window level, default per surface kind. |
+| property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
+| property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
+| property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
+| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
+| property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
+| property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
+| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
 | property | `motion` | "slide"\|"grow"\|"fade"\|"none" | `null` | Auf- und Zugehen. |
 | property | `scrim` | number | `null` | dunkelt den Bildschirm dahinter ab, 0…1. |
 | property | `close-on` | string | `"outside-click escape focus-loss"` | Liste, was das Popup schliesst. |
@@ -895,17 +895,17 @@ Fortschrittsbalken.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `value` | number | `null` | 0…1 oder #null für unbestimmt. |
 | property | `vertical` | bool | `false` | senkrechte Ausrichtung. |
 
@@ -921,17 +921,17 @@ Container, dessen Kinder aus genau einem each per Ziehen umsortiert werden.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `axis` | "vertical"\|"horizontal"\|"grid" | `null` | Zieh-Richtung. |
 | property | `enabled` | bool | `null` | nur dann ist Ziehen möglich. |
 | property | `accept` | "apps"\|"files" | `null` | fremde Objekte, die hineingezogen werden dürfen. |
@@ -1001,17 +1001,17 @@ Kreisring oder Bogen.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `value` | number | required | Füllstand 0…1. |
 | property | `gap` | number | `0` | Anteil Abstand zwischen Füllung und Spur. |
 
@@ -1027,17 +1027,17 @@ ordnet Kinder nebeneinander an, Flexbox-Richtung Zeile.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -1077,17 +1077,17 @@ scrollbarer Bereich.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `axis` | "vertical"\|"horizontal"\|"both" | `"vertical"` | Scrollrichtung. |
 | property | `reveal` | value | `null` | Schlüssel oder id, die sichtbar gescrollt wird, sobald sich der Wert ändert. |
 | property | `indicators` | bool | `false` | ob Scrollbalken sichtbar sind. |
@@ -1126,17 +1126,17 @@ zeichnet eine einfache Form, Füllung und Grösse per CSS.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `kind` | "circle"\|"capsule"\|"scallop" | required | Art der Form. |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `count` | number | `null` | Anzahl Wellen bei scallop. |
 | property | `depth` | number | `null` | Tiefe der Wellen 0…1 bei scallop. |
 
@@ -1152,17 +1152,17 @@ Schieberegler, benannter Slot fill "thumb" zeichnet Inhalt im Griff.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `value` | number | required | aktueller Wert. |
 | property | `min` | number | `0` | unterer Rand. |
 | property | `max` | number | `1` | oberer Rand. |
@@ -1206,17 +1206,17 @@ füllt freien Platz in row/column, oder ein fester Abstand.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `size` | number | `null` | fester Abstand in pt, sonst füllt der spacer den freien Platz. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
@@ -1244,17 +1244,17 @@ ordnet Kinder auf der z-Achse übereinander, darf leer sein.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -1329,17 +1329,17 @@ zeichnet Text.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `content` | string | required | Inhalt, Vorlage erlaubt. |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `lines` | number | `1` | Zeilen, 0 = unbegrenzt. |
 | property | `truncate` | "tail"\|"middle"\|"head" | `null` | wo abgeschnitten wird. |
 
@@ -1367,17 +1367,17 @@ zeichnet die feste Vorschau-Szene eines Themes.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `theme` | string\|record | required | Theme-Kennung oder Record mit `css` (Marketplace-Eintrag, vorher wie ein installiertes Theme geprüft). |
 | property | `appearance` | "light"\|"dark" | `null` | erzwungenes Erscheinungsbild der Vorschau. |
 
@@ -1394,31 +1394,31 @@ legt fest, wie eine Benachrichtigung der Aktion notify aussieht.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `style` | identifier | required | Stilname, Ziel der notify-Aktion. |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `override` | bool | `false` | ersetzt eine gleichnamige Oberfläche aus einer eingebundenen Datei. |
-| property | `screen` | string | `null` | auf welchem Bildschirm es Instanzen gibt. |
-| property | `anchor` | "top"\|"bottom"\|"left"\|"right"\|"top-left"\|"top-right"\|"bottom-left"\|"bottom-right"\|"center"\|"fill" | `"center"` | woran die Oberfläche klebt. |
-| property | `area` | "full"\|"below-menubar"\|"visible" | `"below-menubar"` | Bezugsrechteck der Verankerung. |
-| property | `layer` | string | `null` | Fensterebene, Vorgabe je Oberflächen-Art. |
-| property | `keyboard` | bool | `false` | ob die Oberfläche Tastatureingaben annimmt. |
-| property | `click-through` | bool\|"auto" | `false` | ob Mausereignisse durchgehen; bool oder "auto" (nur dort nicht, wo ein Element mit Handler oder sichtbarem Hintergrund liegt). |
-| property | `offset-x` | number | `0` | Verschiebung entlang x gegenüber der verankerten Lage. |
-| property | `offset-y` | number | `0` | Verschiebung entlang y gegenüber der verankerten Lage. |
-| property | `sticky` | bool | `true` | auf allen Spaces und im eigenen Space. |
-| property | `fullscreen` | "hide"\|"show" | `null` | Verhalten auf einem Bildschirm mit Vollbild-App. |
-| property | `overhang` | bool | `false` | ragt um den Eckenradius über die verankerten Kanten. |
-| property | `safe-area` | bool | `true` | Inhalt beginnt unter Menüleiste und Notch. |
-| property | `shape` | "rect"\|"fused" | `"rect"` | ob offene flyout eine gemeinsame Form mit dem Hintergrund bilden. |
-| property | `fuse-group` | string | `null` | verschmilzt Oberflächen zu einer Fläche, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `override` | bool | `false` | Replaces a surface of the same name from an included file. |
+| property | `screen` | string | `null` | Which screens get instances. |
+| property | `anchor` | "top"\|"bottom"\|"left"\|"right"\|"top-left"\|"top-right"\|"bottom-left"\|"bottom-right"\|"center"\|"fill" | `"center"` | What the surface sticks to. |
+| property | `area` | "full"\|"below-menubar"\|"visible" | `"below-menubar"` | Reference rectangle for anchoring. |
+| property | `layer` | string | `null` | Window level, default per surface kind. |
+| property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
+| property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
+| property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
+| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
+| property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
+| property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
+| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
 | property | `max` | number | `4` | gleichzeitig sichtbare Meldungen. |
 | property | `duration` | duration | `"5s"` | Anzeigedauer. |
 | property | `newest` | "last"\|"first" | `"last"` | wo die neueste Meldung erscheint. |
@@ -1435,17 +1435,17 @@ An-/Aus-Schalter.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `drag-value` | value | `null` | macht das Element zur Ziehquelle, reserviert für 0.2.1. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
 | property | `checked` | bool | required | Zustand des Schalters. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`, `on-change`
@@ -1513,32 +1513,32 @@ ein normales macOS-Fenster mit Titelleiste.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier | required | Kennung, je Oberfläche eindeutig; Ziel für flyout, popup und each. |
-| property | `id` | identifier | `null` | Kennung, je Oberfläche eindeutig, Vorlage erlaubt. |
-| property | `class` | string | `null` | CSS-Klassen, durch Leerzeichen getrennt. |
-| property | `style` | string | `null` | CSS-Deklarationen nur für diesen Knoten. |
-| property | `visible` | bool | `true` | versteckt den Knoten, ohne Zustand zu verlieren. |
-| property | `tooltip` | string | `null` | Hilfetext beim Verweilen. |
-| property | `label` | string | `null` | Text für VoiceOver, Vorgabe aus tooltip oder Inhalt. |
-| property | `checked` | bool | `false` | setzt die Pseudoklasse :checked. |
-| property | `disabled` | bool | `false` | keine Eingaben, Pseudoklasse :disabled. |
-| property | `match-id` | string | `null` | Elemente mit gleicher match-id gleiten beim Erscheinen ineinander. |
-| property | `menu-on` | string | `"right-click"` | was das Kontextmenü öffnet, mehrere durch Leerzeichen getrennt. |
-| property | `override` | bool | `false` | ersetzt eine gleichnamige Oberfläche aus einer eingebundenen Datei. |
-| property | `screen` | string | `null` | auf welchem Bildschirm es Instanzen gibt. |
-| property | `anchor` | "top"\|"bottom"\|"left"\|"right"\|"top-left"\|"top-right"\|"bottom-left"\|"bottom-right"\|"center"\|"fill" | `"center"` | woran die Oberfläche klebt. |
-| property | `area` | "full"\|"below-menubar"\|"visible" | `"below-menubar"` | Bezugsrechteck der Verankerung. |
-| property | `layer` | string | `null` | Fensterebene, Vorgabe je Oberflächen-Art. |
-| property | `keyboard` | bool | `false` | ob die Oberfläche Tastatureingaben annimmt. |
-| property | `click-through` | bool\|"auto" | `false` | ob Mausereignisse durchgehen; bool oder "auto" (nur dort nicht, wo ein Element mit Handler oder sichtbarem Hintergrund liegt). |
-| property | `offset-x` | number | `0` | Verschiebung entlang x gegenüber der verankerten Lage. |
-| property | `offset-y` | number | `0` | Verschiebung entlang y gegenüber der verankerten Lage. |
-| property | `sticky` | bool | `true` | auf allen Spaces und im eigenen Space. |
-| property | `fullscreen` | "hide"\|"show" | `null` | Verhalten auf einem Bildschirm mit Vollbild-App. |
-| property | `overhang` | bool | `false` | ragt um den Eckenradius über die verankerten Kanten. |
-| property | `safe-area` | bool | `true` | Inhalt beginnt unter Menüleiste und Notch. |
-| property | `shape` | "rect"\|"fused" | `"rect"` | ob offene flyout eine gemeinsame Form mit dem Hintergrund bilden. |
-| property | `fuse-group` | string | `null` | verschmilzt Oberflächen zu einer Fläche, reserviert für 0.2.1. |
+| argument | `id` | identifier | required | Id, unique per surface; target for flyout, popup and each. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `override` | bool | `false` | Replaces a surface of the same name from an included file. |
+| property | `screen` | string | `null` | Which screens get instances. |
+| property | `anchor` | "top"\|"bottom"\|"left"\|"right"\|"top-left"\|"top-right"\|"bottom-left"\|"bottom-right"\|"center"\|"fill" | `"center"` | What the surface sticks to. |
+| property | `area` | "full"\|"below-menubar"\|"visible" | `"below-menubar"` | Reference rectangle for anchoring. |
+| property | `layer` | string | `null` | Window level, default per surface kind. |
+| property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
+| property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
+| property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
+| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
+| property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
+| property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
+| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
 | property | `title` | string | `""` | Fenstertitel. |
 | property | `title-visible` | bool | `true` | ob die Titelleiste den Titel zeigt. |
 | property | `resizable` | bool | `true` | ob sich die Grösse ändern lässt. |
