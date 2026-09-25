@@ -159,7 +159,7 @@ struct FixtureFieldCheckTests {
             #expect(weather.contains(text), "\(text)")
         }
         let airpods = try #require(sidebar.firstIndex(of: "AirPods Pro"))
-        #expect(Array(sidebar[airpods...].prefix(9)) == ["AirPods Pro", "L", "80%", "R", "15%", "Case", "55%", "Magic Keyboard", "64%"])
+        #expect(Array(sidebar[airpods...].prefix(9)) == ["AirPods Pro", "L", "80 %", "R", "15 %", "Case", "55 %", "Magic Keyboard", "64 %"])
         #expect(session.diagnostics.map(\.message) == [])
     }
 
