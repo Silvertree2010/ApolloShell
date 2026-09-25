@@ -49,11 +49,11 @@ app-icon "{app}"
 
 ### `apple-desktops` (node)
 
-ob der Fenstermanager Apples Spaces oder eigene Arbeitsbereiche nutzt.
+Whether the window manager uses Apple's Spaces or its own workspaces.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `enabled` | bool | required | ob wm.desktop Apples Spaces schaltet. |
+| argument | `enabled` | bool | required | Whether wm.desktop switches Apple's Spaces. |
 
 ```kdl
 apple-desktops #true
@@ -113,12 +113,12 @@ button { on-click { toggle "launcher" } }
 
 ### `canvas` (node)
 
-Einstellungen des Canvas-Layouts.
+Settings of the canvas layout.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `column-width` | number | `0.5` | Anteil 0…1 der Spaltenbreite. |
-| property | `center-focused` | bool | `false` | zentriert das fokussierte Fenster. |
+| property | `column-width` | number | `0.5` | Share 0…1 of the column width. |
+| property | `center-focused` | bool | `false` | Centers the focused window. |
 
 ```kdl
 canvas column-width=0.5
@@ -233,14 +233,14 @@ disable bind="alt+space"
 
 ### `drag` (node)
 
-Mausbedienung des Fenstermanagers.
+Mouse control of the window manager.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `super` | string | `"hyper"` | Modifikatoren für Ziehen und Grösse ändern. |
-| property | `scroll-pans` | bool | `true` | Scrollen schiebt den Canvas-Streifen. |
-| property | `scroll-speed` | number | `1.5` | Geschwindigkeit des Canvas-Schiebens. |
-| property | `invert-scroll` | bool | `false` | kehrt die Scrollrichtung um. |
+| property | `super` | string | `"hyper"` | Modifiers for dragging and resizing. |
+| property | `scroll-pans` | bool | `true` | Scrolling pans the canvas strip. |
+| property | `scroll-speed` | number | `1.5` | Speed of canvas panning. |
+| property | `invert-scroll` | bool | `false` | Reverses the scroll direction. |
 
 ```kdl
 drag super="hyper" scroll-pans=#true
@@ -335,13 +335,13 @@ flyout anchor="status-icon" open="{var.popout-open}" { text "Details" }
 
 ### `focus-follows-mouse` (node)
 
-ob und wie der Fokus dem Mauszeiger folgt.
+Whether and how focus follows the mouse pointer.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `enabled` | bool | required | ob Fokus dem Zeiger folgt. |
-| property | `delay` | duration | `"25ms"` | Verzögerung, bevor der Fokus folgt. |
-| property | `suspend-with` | string | `null` | Modifikatoren, die die Funktion vorübergehend abschalten. |
+| argument | `enabled` | bool | required | Whether focus follows the pointer. |
+| property | `delay` | duration | `"25ms"` | Delay before focus follows. |
+| property | `suspend-with` | string | `null` | Modifiers that temporarily disable the feature. |
 
 ```kdl
 focus-follows-mouse #true delay="25ms"
@@ -349,12 +349,12 @@ focus-follows-mouse #true delay="25ms"
 
 ### `gaps` (node)
 
-Abstände zwischen und um gekachelte Fenster.
+Spacing between and around tiled windows.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `inner` | number | `10` | Abstand zwischen Fenstern in pt. |
-| property | `outer` | number | `12` | Abstand zum Bildschirmrand in pt. |
+| property | `inner` | number | `10` | Spacing between windows in pt. |
+| property | `outer` | number | `12` | Spacing to the screen edge in pt. |
 
 ```kdl
 gaps inner=10 outer=12
@@ -590,11 +590,11 @@ key-recorder value="{var.launcher-key}"
 
 ### `layout` (node)
 
-wählt das Standard-Layout des Fenstermanagers.
+Selects the default layout of the window manager.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `kind` | "dwindle"\|"canvas" | required | Vorgabe-Layout. |
+| argument | `kind` | "dwindle"\|"canvas" | required | Default layout. |
 
 ```kdl
 layout "dwindle"
@@ -957,15 +957,15 @@ require "0.2.0"
 
 ### `reserve` (node)
 
-zusätzlicher reservierter Streifen für fremde Leisten, mehrfach erlaubt.
+Additional reserved strip for third-party bars, allowed more than once.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `top` | number | `null` | reservierter Streifen oben in pt. |
-| property | `left` | number | `null` | reservierter Streifen links in pt. |
-| property | `bottom` | number | `null` | reservierter Streifen unten in pt. |
-| property | `right` | number | `null` | reservierter Streifen rechts in pt. |
-| property | `screen` | string | `null` | auf welchem Bildschirm die Reservierung gilt. |
+| property | `top` | number | `null` | Reserved strip at the top in pt. |
+| property | `left` | number | `null` | Reserved strip on the left in pt. |
+| property | `bottom` | number | `null` | Reserved strip at the bottom in pt. |
+| property | `right` | number | `null` | Reserved strip on the right in pt. |
+| property | `screen` | string | `null` | Which screen the reservation applies to. |
 
 ```kdl
 reserve top=24
@@ -973,11 +973,11 @@ reserve top=24
 
 ### `reserve-panels` (node)
 
-ob Panels mit reserve den Kachelbereich verkleinern.
+Whether panels with reserve shrink the tiling area.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `enabled` | bool | required | ob Streifen von panel reserve=#true freigehalten werden. |
+| argument | `enabled` | bool | required | Whether strips of panel reserve=#true are kept free. |
 
 ```kdl
 reserve-panels #true
@@ -985,11 +985,11 @@ reserve-panels #true
 
 ### `resize-animation` (node)
 
-wie Fenster ihre Grösse ändern.
+How windows change their size.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `kind` | "smooth"\|"snap"\|"proxy" | required | Art der Grössenänderungs-Animation. |
+| argument | `kind` | "smooth"\|"snap"\|"proxy" | required | Kind of resize animation. |
 
 ```kdl
 resize-animation "smooth"
@@ -1047,13 +1047,13 @@ row class="toolbar" { text "Left" }
 
 ### `rule` (node)
 
-Regel für einzelne Fenster nach App oder Titel.
+Rule for individual windows by app or title.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `kind` | "float"\|"tile"\|"ignore" | required | wie passende Fenster behandelt werden. |
-| property | `app` | string | `null` | Bundle-ID oder App-Name ohne Gross-/Kleinschreibung. |
-| property | `title` | string | `null` | Teiltext des Fenstertitels. |
+| argument | `kind` | "float"\|"tile"\|"ignore" | required | How matching windows are treated. |
+| property | `app` | string | `null` | Bundle ID or app name, case-insensitive. |
+| property | `title` | string | `null` | Part of the window title. |
 
 ```kdl
 rule "float" app="com.apple.calculator"
@@ -1061,11 +1061,11 @@ rule "float" app="com.apple.calculator"
 
 ### `scratchpad` (node)
 
-Grösse des Scratchpads.
+Size of the scratchpad.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `share` | number | `0.7` | Anteil 0…1 des Bildschirms. |
+| property | `share` | number | `0.7` | Share 0…1 of the screen. |
 
 ```kdl
 scratchpad share=0.7
@@ -1227,12 +1227,12 @@ spacer
 
 ### `spring` (node)
 
-Federparameter der Kachel-Animationen.
+Spring parameters of the tiling animations.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `response` | number | `0.28` | Federantwortzeit in s. |
-| property | `frame-rate` | number | `120` | Bildrate der Animation. |
+| property | `response` | number | `0.28` | Spring response time in s. |
+| property | `frame-rate` | number | `120` | Frame rate of the animation. |
 
 ```kdl
 spring response=0.28
@@ -1300,11 +1300,11 @@ switch "{var.tab}" { case "a" { text "A" } }
 
 ### `tab-bar` (node)
 
-Grösse der Tab-Leiste gruppierter Fenster.
+Size of the tab bar of grouped windows.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `height` | number | `30` | Höhe der Tab-Leiste in pt. |
+| property | `height` | number | `30` | Height of the tab bar in pt. |
 
 ```kdl
 tab-bar height=30
@@ -1312,11 +1312,11 @@ tab-bar height=30
 
 ### `terminal` (node)
 
-wählt das Terminal für wm.terminal.
+Selects the terminal for wm.terminal.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `bundleIDs`... | string | required | Bundle-IDs, die erste installierte gewinnt. |
+| argument | `bundleIDs`... | string | required | Bundle IDs, the first installed one wins. |
 
 ```kdl
 terminal "com.mitchellh.ghostty" "com.apple.Terminal"
