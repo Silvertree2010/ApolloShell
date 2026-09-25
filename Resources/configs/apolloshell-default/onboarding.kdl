@@ -1,5 +1,12 @@
 var onboarding-step 0
 
+let onboarding-features {
+    - symbol="sidebar.left" tint="blue" title="Bar" text="Spaces, Dock, clock and status on the left edge"
+    - symbol="magnifyingglass" tint="purple" title="Launcher" text="Search and open apps – with a keyboard shortcut"
+    - symbol="square.grid.2x2.fill" tint="indigo" title="Dashboard" text="Weather, calendar, media and performance"
+    - symbol="slider.horizontal.3" tint="green" title="Quick Actions" text="Keep Awake, sound and quick toggles, bottom right"
+}
+
 on "shell.started" when="{!var.onboarding-done}" { open "onboarding" }
 
 define "onboarding-permission" {
@@ -31,9 +38,24 @@ window "onboarding" title="Welcome to ApolloShell" resizable=#false {
         switch "{var.onboarding-step}" {
             case 0 {
                 column class="onboarding-page" {
-                    mark state="idle" greet=#true class="onboarding-mark"
-                    text "Welcome to ApolloShell" class="onboarding-title"
-                    text "A sidebar, a dock, a launcher and a dashboard for your Mac." class="onboarding-body"
+                    column class="onboarding-header" {
+                        stack class="onboarding-tile" {
+                            icon "sidebar.left" class="onboarding-tile-glyph"
+                        }
+                        text "Welcome to ApolloShell" class="onboarding-title"
+                        text "A desktop shell for macOS modelled on Caelestia. It complements the Mac instead of replacing it – everything can be set up in Settings." lines=0 class="onboarding-body"
+                    }
+                    column class="onboarding-features" {
+                        each feature in="{onboarding-features}" {
+                            row class="onboarding-feature" {
+                                icon "{feature.symbol}" class="onboarding-feature-glyph tint-{feature.tint}"
+                                column class="onboarding-feature-text" {
+                                    text "{feature.title}" class="onboarding-feature-title"
+                                    text "{feature.text}" class="onboarding-feature-detail"
+                                }
+                            }
+                        }
+                    }
                 }
             }
             case 1 {
@@ -72,36 +94,32 @@ window "onboarding" title="Welcome to ApolloShell" resizable=#false {
                 }
             }
         }
-        row class="onboarding-footer" {
-            when "{var.onboarding-step < 3}" {
-                button class="onboarding-skip" {
-                    on-click { set "onboarding-done" #true; close "onboarding" }
-                    text "Skip"
+        stack class="onboarding-footer" {
+            row class="onboarding-actions" {
+                when "{var.onboarding-step < 3}" {
+                    button class="onboarding-skip" {
+                        on-click { set "onboarding-done" #true; close "onboarding" }
+                        text "Skip"
+                    }
+                }
+                spacer
+                when "{var.onboarding-step > 0}" {
+                    button class="onboarding-back" {
+                        on-click { set "onboarding-step" "{var.onboarding-step - 1}" }
+                        text "Back"
+                    }
+                }
+                button class="onboarding-next" {
+                    on-click {
+                        when "{var.onboarding-step < 3}" { set "onboarding-step" "{var.onboarding-step + 1}" }
+                        else { set "onboarding-done" #true; close "onboarding" }
+                    }
+                    text "{['Get Started', 'Continue', 'Continue', 'Done'] | at var.onboarding-step}"
                 }
             }
-            spacer
             row class="onboarding-dots" {
                 each dot in="{[0, 1, 2, 3]}" {
                     stack class="onboarding-dot {dot == var.onboarding-step ? 'current' : ''}"
-                }
-            }
-            spacer
-            when "{var.onboarding-step > 0}" {
-                button class="onboarding-back" {
-                    on-click { set "onboarding-step" "{var.onboarding-step - 1}" }
-                    text "Back"
-                }
-            }
-            when "{var.onboarding-step < 3}" {
-                button class="onboarding-next" {
-                    on-click { set "onboarding-step" "{var.onboarding-step + 1}" }
-                    text "Continue"
-                }
-            }
-            else {
-                button class="onboarding-next" {
-                    on-click { set "onboarding-done" #true; close "onboarding" }
-                    text "Done"
                 }
             }
         }

@@ -111,4 +111,14 @@ struct DefaultRenderTests {
         let empty = try Self.shot("launcher", state: "launcher-no-results")
         #expect(empty.bounds { $0.b > 230 && $0.g > 100 && $0.g < 160 && $0.r < 40 } == nil)
     }
+
+    @Test("Einführung Schritt 0: Kachel 60 pt oben bei 40 pt, Seite oben bündig in 620 × 560")
+    func onboardingWelcome() throws {
+        let shot = try Self.shot("onboarding", state: "onboarding-0")
+        #expect(shot.size == CGSize(width: 620, height: 560))
+        let tile = try #require(shot.bounds { $0.b > 200 && $0.r < 140 && $0.g < 130 && $0.b - $0.r > 100 })
+        #expect(abs(tile.minY - 40) <= 1.5, "\(tile)")
+        #expect(shot.pixel(310, 96).b - shot.pixel(310, 96).r > 100)
+        #expect(shot.pixel(310, 104).b - shot.pixel(310, 104).r < 40)
+    }
 }
