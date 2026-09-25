@@ -116,7 +116,9 @@ final class RenderSession {
             flush()
         }
         for name in renderVars.keys where assembly.actions.vars.isDeclared(name) {
-            if let value = renderVars[name] { assembly.actions.vars.set(name, value) }
+            guard var value = renderVars[name] else { continue }
+            if case .record(let record) = value, record.keys.isEmpty, case .list = assembly.actions.vars.value(name) { value = .list([]) }
+            assembly.actions.vars.set(name, value)
         }
         if renderVars.count > 0 { flush() }
         let hosting = mount(surface)
