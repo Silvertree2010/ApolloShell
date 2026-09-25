@@ -691,7 +691,7 @@ on "audio.volume-changed" { osd.show "volume" }
 
 ### `osd` (node)
 
-kurze Rückmeldung wie eine Lautstärkeanzeige.
+Short feedback such as a volume indicator.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -721,8 +721,8 @@ kurze Rückmeldung wie eine Lautstärkeanzeige.
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
 | property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
-| property | `timeout` | duration | `"2s"` | Anzeigedauer. |
-| property | `motion` | "slide"\|"grow"\|"fade"\|"none" | `"slide"` | Auf- und Zugehen. |
+| property | `timeout` | duration | `"2s"` | Display duration. |
+| property | `motion` | "slide"\|"grow"\|"fade"\|"none" | `"slide"` | Opening and closing. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
 
@@ -732,7 +732,7 @@ osd "volume" { }
 
 ### `overlay` (node)
 
-deckt den ganzen Bildschirm ab, standardmässig durchklickbar.
+Covers the whole screen, click-through by default.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -771,7 +771,7 @@ overlay "screen-corners" { }
 
 ### `panel` (node)
 
-dauerhaft sichtbare Oberfläche wie Leisten, Docks, Desktop-Widgets.
+Always-visible surface such as bars, docks, desktop widgets.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -801,7 +801,7 @@ dauerhaft sichtbare Oberfläche wie Leisten, Docks, Desktop-Widgets.
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
 | property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
-| property | `reserve` | bool | `false` | hält App-Fenster aus dem Streifen der Oberfläche, nur bei left/right/top/bottom. |
+| property | `reserve` | bool | `false` | Keeps app windows out of the surface's strip, only with left/right/top/bottom. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
 
@@ -843,7 +843,7 @@ poll "vpn" command="scutil --nc status Mullvad | head -1"
 
 ### `popup` (node)
 
-geht auf Aktion auf und zu, etwa Dashboard oder Launcher.
+Opens and closes on an action, such as a dashboard or launcher.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -873,15 +873,15 @@ geht auf Aktion auf und zu, etwa Dashboard oder Launcher.
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
 | property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
-| property | `motion` | "slide"\|"grow"\|"fade"\|"none" | `null` | Auf- und Zugehen. |
-| property | `scrim` | number | `null` | dunkelt den Bildschirm dahinter ab, 0…1. |
-| property | `close-on` | string | `"outside-click escape focus-loss"` | Liste, was das Popup schliesst. |
-| property | `hover-edge` | bool | `false` | öffnet, wenn der Zeiger die verankerte Kante berührt. |
-| property | `hover-margin` | number | `0` | Randzone in pt, in der das Popup beim Hover offen bleibt. |
-| property | `hover-gap` | number | `0` | Abstand zur Ecke ohne Auslöser, nur bei Eck-Ankern. |
-| property | `group` | string | `null` | schliesst andere Popups derselben Gruppe. |
-| property | `attach` | string | `null` | neben einem Element einer anderen Oberfläche statt an einer Kante. |
-| property | `side` | "top"\|"bottom"\|"left"\|"right" | `"right"` | Seite bei attach. |
+| property | `motion` | "slide"\|"grow"\|"fade"\|"none" | `null` | Opening and closing. |
+| property | `scrim` | number | `null` | Dims the screen behind it, 0…1. |
+| property | `close-on` | string | `"outside-click escape focus-loss"` | List of what closes the popup. |
+| property | `hover-edge` | bool | `false` | Opens when the pointer touches the anchored edge. |
+| property | `hover-margin` | number | `0` | Edge zone in pt in which the popup stays open on hover. |
+| property | `hover-gap` | number | `0` | Distance from the corner without a trigger, only with corner anchors. |
+| property | `group` | string | `null` | Closes other popups of the same group. |
+| property | `attach` | string | `null` | Next to an element of another surface instead of at an edge. |
+| property | `side` | "top"\|"bottom"\|"left"\|"right" | `"right"` | Side for attach. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
 
@@ -1389,11 +1389,11 @@ theme-preview theme="{item.slug}"
 
 ### `toast` (node)
 
-legt fest, wie eine Benachrichtigung der Aktion notify aussieht.
+Defines how a notification from the notify action looks.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `style` | identifier | required | Stilname, Ziel der notify-Aktion. |
+| argument | `style` | identifier | required | Style name, target of the notify action. |
 | property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
 | property | `class` | string | `null` | CSS classes, separated by spaces. |
 | property | `style` | string | `null` | CSS declarations for this node only. |
@@ -1419,9 +1419,9 @@ legt fest, wie eine Benachrichtigung der Aktion notify aussieht.
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
 | property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
-| property | `max` | number | `4` | gleichzeitig sichtbare Meldungen. |
-| property | `duration` | duration | `"5s"` | Anzeigedauer. |
-| property | `newest` | "last"\|"first" | `"last"` | wo die neueste Meldung erscheint. |
+| property | `max` | number | `4` | Toasts visible at the same time. |
+| property | `duration` | duration | `"5s"` | Display duration. |
+| property | `newest` | "last"\|"first" | `"last"` | Where the newest toast appears. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
 
@@ -1509,7 +1509,7 @@ when "{battery.present}" { text "{battery.percent}" }
 
 ### `window` (node)
 
-ein normales macOS-Fenster mit Titelleiste.
+A regular macOS window with a title bar.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -1539,12 +1539,12 @@ ein normales macOS-Fenster mit Titelleiste.
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
 | property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
-| property | `title` | string | `""` | Fenstertitel. |
-| property | `title-visible` | bool | `true` | ob die Titelleiste den Titel zeigt. |
-| property | `resizable` | bool | `true` | ob sich die Grösse ändern lässt. |
-| property | `closable` | bool | `true` | ob das Fenster schliessbar ist. |
-| property | `miniaturizable` | bool | `false` | ob das Fenster minimierbar ist. |
-| property | `autosave` | string | `null` | merkt sich Grösse und Lage unter diesem Namen. |
+| property | `title` | string | `""` | Window title. |
+| property | `title-visible` | bool | `true` | Whether the title bar shows the title. |
+| property | `resizable` | bool | `true` | Whether the window can be resized. |
+| property | `closable` | bool | `true` | Whether the window can be closed. |
+| property | `miniaturizable` | bool | `false` | Whether the window can be minimized. |
+| property | `autosave` | string | `null` | Remembers size and position under this name. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
 
