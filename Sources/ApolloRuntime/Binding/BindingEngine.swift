@@ -22,6 +22,9 @@ struct BindingScope: EvaluationScope {
         case "surfaces":
             guard case .string(let key)? = locals[ContextScopeKeys.screenKey] else { break }
             return snapshot.value("surfaces:" + key, fields)
+        case "screen":
+            guard case .string(let key)? = locals[ContextScopeKeys.screenKey] else { break }
+            return snapshot.value("screen:" + key, fields)
         case "event":
             guard let event else { break }
             return SignalStore.read(.record(event), fields)
@@ -43,6 +46,9 @@ func rewrittenPath(_ path: DependencyPath, locals: LocalScope) -> DependencyPath
     case "surfaces":
         guard case .string(let key)? = locals[ContextScopeKeys.screenKey] else { return path }
         return DependencyPath("surfaces:" + key, path.fields)
+    case "screen":
+        guard case .string(let key)? = locals[ContextScopeKeys.screenKey] else { return path }
+        return DependencyPath("screen:" + key, path.fields)
     default:
         return path
     }

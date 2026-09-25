@@ -119,4 +119,21 @@ struct ProviderSettingsTests {
         let instance = try #require(shell.runtime.surface("bar", screenKey: "B"))
         #expect(instance.isVisible == false)
     }
+
+    @Test("screen.* in einer Oberfläche liest den eigenen Bildschirm")
+    func screenRootPerSurface() async throws {
+        let shell = KDLShell()
+        shell.fixture.store.set(DependencyPath("screen:A", []), .record(Record([("id", .string("A")), ("name", .string("Built-in"))])))
+        shell.fixture.store.set(DependencyPath("screen:B", []), .record(Record([("id", .string("B")), ("name", .string("DELL"))])))
+        shell.apply(try await shell.load("""
+        panel "bar" { text "{screen.name}" }
+        """), screens: ["A", "B"])
+        shell.fixture.flush()
+        func text(_ key: String) -> Value? { shell.runtime.surface("bar", screenKey: key)?.root.first?.arguments.first?.value }
+        #expect(text("A") == .string("Built-in"))
+        #expect(text("B") == .string("DELL"))
+        shell.fixture.store.set(DependencyPath("screen:B", []), .record(Record([("id", .string("B")), ("name", .string("LG"))])))
+        shell.fixture.flush()
+        #expect(text("B") == .string("LG"))
+    }
 }

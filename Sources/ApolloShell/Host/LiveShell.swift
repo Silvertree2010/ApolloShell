@@ -87,7 +87,7 @@ final class LiveShell: WindowHostLink {
     let globalEffects = GlobalActionEffects()
     var interactive = true
     var currentScreens: @MainActor () -> [String: ScreenGeometry] = {
-        Dictionary(ShellScreens.current().map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame)) }, uniquingKeysWith: { first, _ in first })
+        Dictionary(ShellScreens.current().map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame, name: $0.info.name, notch: $0.screen.safeAreaInsets.top > 0)) }, uniquingKeysWith: { first, _ in first })
     }
     var pointerScreen: @MainActor () -> String? = { ShellScreens.underPointer()?.info.key }
 
@@ -241,6 +241,7 @@ final class LiveShell: WindowHostLink {
         host.context = makeContext(result.ir)
         steps.append("surfaces")
         refreshScreens()
+        publishScreens(host.screens)
         shell = Record([("config", .string(location.id)), ("version", .string(ShellVersion.current)), ("fresh-install", .bool(freshInstall))] + loginItemFields() + catalogFields() + [
             ("features", .list(SchemaRegistry.builtin.features.keys.sorted().map(Value.string))),
             ("install-kind", .string(InstallKind.detect(resourcesURL: Bundle.main.resourceURL) == .homebrew ? "homebrew" : "dmg")),
@@ -269,6 +270,16 @@ final class LiveShell: WindowHostLink {
         Self.log("started: config \(location.root.path), providers \(options.fixture == nil ? "system" : "fixture"), \(host.controllers.count) window(s)")
     }
 
+    func publishScreens(_ screens: [String: ScreenGeometry]) {
+        guard let store = assembly?.store else { return }
+        for (key, screen) in screens {
+            store.set(DependencyPath("screen:" + key, []), .record(Record([
+                ("id", .string(key)), ("name", .string(screen.name ?? key)), ("main", .bool(screen.frame.origin == .zero)),
+                ("width", .number(Double(screen.frame.width))), ("height", .number(Double(screen.frame.height))), ("notch", .bool(screen.notch)),
+            ])))
+        }
+    }
+
     static func screenOrder(_ screens: [String: ScreenGeometry]) -> [String] {
         func primary(_ key: String) -> Bool { screens[key]?.frame.origin == .zero }
         return screens.keys.sorted { a, b in
@@ -279,6 +290,7 @@ final class LiveShell: WindowHostLink {
     func screensDidChange(_ screens: [String: ScreenGeometry]) {
         guard let assembly, !screens.isEmpty else { return }
         host.screens = screens
+        publishScreens(screens)
         assembly.runtime.setScreens(Self.screenOrder(screens))
         host.screensChanged(screens)
         fullscreen.setScreens(Array(screens.keys))
