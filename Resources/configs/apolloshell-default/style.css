@@ -187,29 +187,57 @@
 .utilities { width: 430px; padding: 16px; gap: 12px; transition: all 200ms effects; }
 .utilities-card {
   padding: 14px;
-  border-radius: var(--apollo-card-radius, 18px);
+  border-radius: var(--apollo-card-radius, 16px);
   background: var(--apollo-card-fill, rgb(from -apple-system-label r g b / 0.06));
   border: var(--apollo-border-width, 0px) solid var(--apollo-border-color, -apple-system-separator);
 }
-.utilities-card-title { font-size: 13px; font-weight: 600; }
+.utilities-card-title { font-size: 14px; font-weight: 500; }
 .utilities-card-detail { font-size: 12px; color: -apple-system-secondary-label; }
+.keep-awake { gap: 12px; align-items: center; }
+.keep-awake-chip { width: 40px; height: 40px; border-radius: 9999px; align-items: center; justify-content: center; background: rgb(from -apple-system-label r g b / 0.10); color: -apple-system-secondary-label; transition: all 200ms effects; }
+.keep-awake-chip.on { background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.keep-awake-glyph { font-size: 16px; font-weight: 500; }
+.keep-awake-text { gap: 2px; }
+.audio { gap: 10px; }
+.audio-head { align-items: end; }
+.audio-level { font-size: 12px; font-variant-numeric: tabular-nums; color: -apple-system-secondary-label; }
 .audio-volume { gap: 10px; align-items: center; }
 .audio-mute {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--apollo-control-radius, 12px);
-  background: var(--apollo-accent-fill, var(--apollo-accent-color, -apple-system-control-accent));
-  color: var(--apollo-on-accent-color, white);
-  box-shadow: 0 2px 6px rgb(0 0 0 / var(--apollo-shadow-opacity, 0.25));
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  align-items: center;
+  justify-content: center;
+  background: rgb(from -apple-system-label r g b / 0.10);
+  color: -apple-system-label;
 }
-.audio-mute-glyph { -apollo-content-transition: symbol; }
-.audio-slider { flex-grow: 1; -apollo-fill-mode: inside-linear; -apollo-thumb-color: white; -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); }
-.audio-devices { gap: 8px; }
-.audio-device { flex-grow: 1; padding: 8px 10px; border-radius: var(--apollo-control-radius, 12px); background: rgb(from -apple-system-label r g b / 0.08); }
-.quick-toggles { gap: 8px; }
-.quick-toggle { width: 64px; height: 52px; border-radius: 14px; background: rgb(from -apple-system-label r g b / 0.08); transition: all 200ms effects; }
-.quick-toggle:checked { background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.audio-mute-glyph { width: 16px; height: 16px; font-size: 13px; font-weight: 600; -apollo-content-transition: symbol; }
+.audio-slider {
+  flex-grow: 1;
+  height: 24px;
+  -apollo-fill-mode: inside-linear;
+  -apollo-track-color: var(--apollo-card-fill, rgb(from -apple-system-label r g b / 0.10));
+  -apollo-fill-color: var(--apollo-accent-fill, var(--apollo-accent-color, -apple-system-control-accent));
+  -apollo-thumb-size: 20px 20px;
+  -apollo-thumb-color: var(--apollo-on-accent-color, white);
+  -apollo-thumb-shadow: 0 0.5px 3px rgb(0 0 0 / var(--apollo-shadow-opacity, 0.25));
+}
+.audio-devices { gap: 8px; grid-template-columns: repeat(2, 1fr); }
+.audio-device { height: 44px; padding: 0 10px; border-radius: var(--apollo-control-radius, 12px); background: rgb(from -apple-system-label r g b / 0.10); color: -apple-system-label; }
+.audio-device-row { gap: 8px; align-items: center; }
+.audio-device-glyph { width: 18px; font-size: 13px; font-weight: 600; color: -apple-system-secondary-label; }
+.audio-device-text { gap: 1px; flex-shrink: 1; min-width: 0; }
+.audio-device-title { font-size: 11px; color: -apple-system-secondary-label; }
+.audio-device-name { font-size: 12px; font-weight: 500; }
+.audio-device-chevron { font-size: 10px; font-weight: 600; color: -apple-system-secondary-label; }
+.quick-toggles-card { gap: 12px; }
+.quick-toggles { gap: 8px; grid-template-columns: repeat(5, 1fr); }
+.quick-toggle { height: 48px; border-radius: 24px; align-items: center; justify-content: center; background: rgb(from -apple-system-label r g b / 0.10); color: -apple-system-secondary-label; transition: all 200ms effects; }
+.quick-toggle:checked { border-radius: 12px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
 .quick-toggle:disabled { opacity: 0.4; }
+.quick-toggle-glyph { font-size: 17px; font-weight: 600; }
+.quick-toggle-glyph.rune { font-size: 14.5px; }
+.quick-toggle-filler { height: 48px; }
 
 .launcher { width: 560px; height: 520px; }
 .launcher-search { gap: 10px; padding: 14px 18px; align-items: center; }

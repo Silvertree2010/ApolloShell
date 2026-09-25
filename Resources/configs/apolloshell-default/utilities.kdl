@@ -7,8 +7,9 @@ define "quick-toggle" {
     param "tooltip" default=""
     param "active" default=#false
     param "enabled" default=#true
+    param "glyph" default=""
     button class="quick-toggle" checked="{active}" disabled="{!enabled}" tooltip="{tooltip}" {
-        icon "{icon}" fallback="{fallback}" class="quick-toggle-glyph"
+        icon "{icon}" fallback="{fallback}" class="quick-toggle-glyph {glyph}"
         slot
     }
 }
@@ -29,7 +30,7 @@ define "toggle-microphone" {
 
 define "toggle-bluetooth" {
     param "toggle"
-    use "quick-toggle" icon="{bluetooth.on == false ? 'status-bluetooth-off' : 'status-bluetooth'}" fallback="builtin:bluetooth-rune" tooltip="Bluetooth" active="{bluetooth.on == true}" {
+    use "quick-toggle" icon="{bluetooth.on == false ? 'status-bluetooth-off' : 'status-bluetooth'}" fallback="builtin:bluetooth-rune" glyph="rune" tooltip="Bluetooth" active="{bluetooth.on == true}" {
         on-click { bluetooth.open-settings }
     }
 }
@@ -43,7 +44,7 @@ define "toggle-dark-mode" {
 
 define "toggle-night-shift" {
     param "toggle"
-    use "quick-toggle" icon="sun.max.fill" tooltip="{system.night-shift == null ? 'Night Shift Unavailable' : 'Night Shift'}" active="{system.night-shift == true}" enabled="{system.night-shift != null}" {
+    use "quick-toggle" icon="sunset.fill" tooltip="{system.night-shift == null ? 'Night Shift Unavailable' : 'Night Shift'}" active="{system.night-shift == true}" enabled="{system.night-shift != null}" {
         on-click { system.toggle-night-shift }
     }
 }
@@ -57,7 +58,7 @@ define "toggle-screenshot" {
 
 define "toggle-show-desktop" {
     param "toggle"
-    use "quick-toggle" icon="menubar.dock.rectangle" tooltip="{system.show-desktop-available ? 'Show Desktop' : 'Show Desktop Shortcut Is Off'}" enabled="{system.show-desktop-available}" {
+    use "quick-toggle" icon="desktopcomputer" tooltip="{system.show-desktop-available ? 'Show Desktop' : 'Show Desktop Shortcut Is Off'}" enabled="{system.show-desktop-available}" {
         on-click { system.show-desktop }
     }
 }
@@ -120,9 +121,12 @@ define "toggle-run-shortcut" {
 
 define "card-keep-awake" {
     row class="utilities-card keep-awake" {
+        stack class="keep-awake-chip {power.keep-awake ? 'on' : ''}" {
+            icon "cup.and.saucer.fill" class="keep-awake-glyph"
+        }
         column class="keep-awake-text" {
             text "Keep Awake" class="utilities-card-title"
-            text "{power.keep-awake-text}" class="utilities-card-detail"
+            text "{power.keep-awake-text}" class="utilities-card-detail" lines=1
         }
         spacer
         toggle checked="{power.keep-awake}" class="keep-awake-switch" {
@@ -132,6 +136,7 @@ define "card-keep-awake" {
 }
 
 define "audio-device-tile" {
+    param "symbol"
     param "title"
     param "devices"
     param "current"
@@ -148,38 +153,51 @@ define "audio-device-tile" {
                 }
             }
         }
-        column class="audio-device-text" {
-            text "{title}" class="audio-device-title"
-            text "{current.name ?? 'No Devices'}" class="audio-device-name" lines=1 truncate="tail"
+        row class="audio-device-row" {
+            icon "{symbol}" class="audio-device-glyph"
+            column class="audio-device-text" {
+                text "{title}" class="audio-device-title" lines=1
+                text "{current.name ?? 'No Device'}" class="audio-device-name" lines=1 truncate="tail"
+            }
+            spacer
+            icon "chevron.up.chevron.down" class="audio-device-chevron"
         }
     }
 }
 
 define "card-audio" {
     column class="utilities-card audio" {
+        row class="audio-head" {
+            text "Sound" class="utilities-card-title"
+            spacer
+            text "{audio.muted ? 'Muted' : (audio.volume * 100 | round) + ' %'}" class="audio-level"
+        }
         row class="audio-volume" {
             button class="audio-mute" tooltip="{audio.muted ? 'Unmute' : 'Mute'}" {
                 on-click { audio.toggle-mute }
                 icon "{audio.muted ? 'status-volume-muted' : 'status-volume'}" fallback="{audio.symbol}" class="audio-mute-glyph"
             }
-            slider value="{audio.volume}" step=0 key-step=0.0625 class="audio-slider" {
+            slider value="{audio.muted ? 0 : audio.volume}" step=0 key-step=0.0625 class="audio-slider" {
                 on-change { audio.set-volume "{event.value}" }
             }
         }
-        row class="audio-devices" {
-            use "audio-device-tile" title="Output" devices="{audio.outputs}" current="{audio.output}" kind="output"
-            use "audio-device-tile" title="Input" devices="{audio.inputs}" current="{audio.input}" kind="input"
+        grid columns=2 class="audio-devices" {
+            use "audio-device-tile" symbol="speaker.wave.2.fill" title="Output" devices="{audio.outputs}" current="{audio.output}" kind="output"
+            use "audio-device-tile" symbol="mic.fill" title="Input" devices="{audio.inputs}" current="{audio.input}" kind="input"
         }
     }
 }
 
 define "card-quick-toggles" {
-    grid columns=5 class="utilities-card quick-toggles" {
-        each toggle in="{var.utilities-toggles}" key="{toggle.id}" {
-            use "toggle-{toggle.kind}" toggle="{toggle}"
-        }
-        each filler in="{[0, 1, 2, 3, 4] | take ((5 - (var.utilities-toggles | count) % 5) % 5)}" {
-            stack class="quick-toggle-filler"
+    column class="utilities-card quick-toggles-card" {
+        text "Quick Toggles" class="utilities-card-title" lines=1
+        grid columns=5 class="quick-toggles" {
+            each toggle in="{var.utilities-toggles}" key="{toggle.id}" {
+                use "toggle-{toggle.kind}" toggle="{toggle}"
+            }
+            each filler in="{[0, 1, 2, 3, 4] | take ((5 - (var.utilities-toggles | count) % 5) % 5)}" {
+                stack class="quick-toggle-filler"
+            }
         }
     }
 }

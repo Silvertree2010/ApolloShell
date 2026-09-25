@@ -128,8 +128,8 @@ struct IconElement: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: text.size * 1.2, height: text.size * 1.2)
-            } else if name.hasPrefix("builtin:") {
-                builtin(name, size: text.size)
+            } else if let target = Self.builtinTarget(name, fallback: fallback) {
+                builtin(target, size: text.size)
             } else {
                 Image(systemName: Self.symbol(name, fallback: fallback), variableValue: variable)
                     .font(text.font)
@@ -155,6 +155,13 @@ struct IconElement: View {
         default:
             Image(systemName: Self.symbol("", fallback: fallback)).font(TextStyle(style).font)
         }
+    }
+
+    static func builtinTarget(_ name: String, fallback: String?) -> String? {
+        if name.hasPrefix("builtin:") { return name }
+        guard let fallback, fallback.hasPrefix("builtin:") else { return nil }
+        if !name.isEmpty, NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil { return nil }
+        return fallback
     }
 
     static func symbol(_ name: String, fallback: String?) -> String {

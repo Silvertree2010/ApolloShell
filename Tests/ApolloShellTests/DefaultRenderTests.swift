@@ -144,4 +144,14 @@ struct DefaultRenderTests {
         #expect(!shot.pixel(60, 215).near(.white, tolerance: 4))
         #expect(shot.pixel(30, 215).near(.white, tolerance: 4))
     }
+
+    @Test("icon: fehlt der Name im Theme und als SF-Symbol, gilt ein builtin-Fallback (blocks.md 4.1)")
+    func iconFallsBackToBuiltin() throws {
+        let css = "#p { width: 80px; height: 80px; } .i { font-size: 40px; color: rgb(255 0 0); }"
+        let red: (RGBA) -> Bool = { $0.r > 200 && $0.g < 90 && $0.b < 90 }
+        let direct = try #require(try RenderProbe.render("panel \"p\" anchor=\"left\" { icon \"builtin:bluetooth-rune\" class=\"i\" }", css: css).bounds(where: red))
+        let viaFallback = try #require(try RenderProbe.render("panel \"p\" anchor=\"left\" { icon \"status-bluetooth-off\" fallback=\"builtin:bluetooth-rune\" class=\"i\" }", css: css).bounds(where: red))
+        #expect(viaFallback == direct, "\(viaFallback) \(direct)")
+        #expect(IconElement.builtinTarget("wifi", fallback: "builtin:bluetooth-rune") == nil)
+    }
 }

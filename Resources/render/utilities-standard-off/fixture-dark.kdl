@@ -1,15 +1,15 @@
 fixture {
-    power keep-awake=#true keep-awake-text="Active since 09:11"
+    power keep-awake=#false keep-awake-text="Mac sleeps normally"
     clock now="2026-09-24T09:41:00+02:00"
     battery present=#true percent=0.76 charging=#false on-power=#false
     network {
-        wifi on=#true connected=#true rssi=-52 bars=3
+        wifi on=#false connected=#false
     }
-    bluetooth on=#true status="ready" paired=2 connected=1
-    audio volume=0.35 muted=#false symbol="speaker.wave.2.fill" {
+    bluetooth on=#false status="ready" paired=2 connected=1
+    audio volume=0 muted=#true symbol="speaker.slash.fill" {
         output id="builtin" name="MacBook Pro Speakers"
     }
-    system user-name="Andrin Example" full-name="Andrin Example" uptime=11520 macos-version="26.6.2" chip="Apple M4 Pro" microphone-muted=#false night-shift=#false dark-mode=#false show-desktop-available=#true
+    system user-name="Andrin Example" full-name="Andrin Example" uptime=11520 macos-version="26.6.2" chip="Apple M4 Pro" microphone-muted=#true night-shift=#true dark-mode=#true show-desktop-available=#false
     perf cpu=0.42 chip="Apple M4 Pro" cores=14 gpu-cores=20 {
         live cpu=0.42 memory=0.61
     }

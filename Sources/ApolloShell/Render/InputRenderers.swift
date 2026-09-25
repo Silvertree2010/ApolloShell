@@ -55,11 +55,45 @@ struct ToggleElement: View {
         Toggle("", isOn: Binding(get: { checked }, set: { value in
             context.fire("on-change", element, Record([("value", .bool(value))]))
         }))
-        .toggleStyle(.switch)
+        .toggleStyle(AccentSwitchStyle(accent: Self.accent(style)))
         .labelsHidden()
-        .modifier(AccentTint(style: style))
         .disabled(element.property("disabled").isTruthy)
         .overlay { PassiveZone(element: element, context: context) }
+    }
+
+    static func accent(_ style: ComputedStyle) -> Color {
+        if case .color(let color)? = style["accent-color"] { return StyleValues.color(color) }
+        return Color(nsColor: .controlAccentColor)
+    }
+}
+
+struct AccentSwitchStyle: ToggleStyle {
+    let accent: Color
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        let on = configuration.isOn
+        Button {
+            configuration.isOn.toggle()
+        } label: {
+            Capsule()
+                .fill(on ? AnyShapeStyle(accent) : AnyShapeStyle(Color.primary.opacity(0.10)))
+                .frame(width: 54, height: 24)
+                .overlay {
+                    Capsule()
+                        .fill(colorScheme == .dark ? Color(white: 0.91) : Color.white)
+                        .shadow(color: .black.opacity(0.18), radius: 1, y: 0.5)
+                        .frame(width: 32, height: 20)
+                        .offset(x: on ? 9 : -9)
+                }
+                .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
+        .opacity(isEnabled ? 1 : 0.4)
+        .animation(.timingCurve(0.34, 0.8, 0.34, 1, duration: 0.2), value: on)
+        .accessibilityAddTraits(.isToggle)
+        .accessibilityValue(on ? "on" : "off")
     }
 }
 
@@ -160,6 +194,7 @@ struct SliderElement: View {
                 Capsule().fill(trackColor)
                 BackgroundLayers(style: ComputedStyle(values: ["background": fillLayers]), shape: AnyShape(Capsule()), context: scope.context)
                     .frame(width: vertical ? nil : geometry.fill, height: vertical ? geometry.fill : nil)
+                    .opacity(fillMode == .insideLinear && geometry.fraction <= 0 ? 0 : 1)
                 if extent > 0 {
                     thumbView(thumb)
                         .offset(x: vertical ? 0 : center - thumb.width / 2, y: vertical ? -(center - thumb.height / 2) : 0)
