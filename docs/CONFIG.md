@@ -1908,73 +1908,73 @@ Actions and events: `apps.click`, `apps.launch`, `apps.new-window`, `apps.cycle-
 
 ### `audio` (provider)
 
-Lautstärke, Geräte.
+Volume, devices.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `volume` | number | | Lautstärke 0…1. |
-| field | `muted` | bool | | ob stumm. |
-| field | `output` | record | | Ausgabegerät. |
-| field | `input` | record | | Eingabegerät. |
-| field | `outputs` | list | | verfügbare Ausgabegeräte. |
-| field | `inputs` | list | | verfügbare Eingabegeräte. |
-| field | `symbol` | string | | SF-Symbol. |
+| field | `volume` | number | | Volume 0…1. |
+| field | `muted` | bool | | Whether muted. |
+| field | `output` | record | | Output device. |
+| field | `input` | record | | Input device. |
+| field | `outputs` | list | | Available output devices. |
+| field | `inputs` | list | | Available input devices. |
+| field | `symbol` | string | | SF Symbol. |
 
 Actions and events: `audio.set-volume`, `audio.change-volume`, `audio.set-muted`, `audio.toggle-mute`, `audio.select-output`, `audio.select-input`, `audio.set-input-volume`, `audio.set-input-muted`, `audio.volume-changed`, `audio.output-changed`, `audio.input-changed`
 
 ### `battery` (provider)
 
-Akku.
+Battery.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `present` | bool | | ob ein Akku vorhanden ist. |
-| field | `percent` | number | | Ladestand 0…1. |
-| field | `charging` | bool | | ob geladen wird. |
-| field | `on-power` | bool | | ob am Netz. |
-| field | `full` | bool | | ob voll. |
-| field | `minutes-to-empty` | number or null | | Minuten bis leer. |
-| field | `minutes-to-full` | number or null | | Minuten bis voll. |
-| field | `state-text` | string | | Text zum Zustand. |
-| field | `time-text` | string | | Text zur verbleibenden Zeit. |
-| field | `health` | number or null | | Gesundheit 0…1. |
-| field | `cycles` | number or null | | Ladezyklen. |
-| field | `low-power-mode` | bool | | Stromsparmodus. |
-| field | `symbol` | string | | SF-Symbol für den Stand. |
-| field | `tank-text` | string | | Text für den Akku-Tank. |
+| field | `present` | bool | | Whether a battery is present. |
+| field | `percent` | number | | Charge level 0…1. |
+| field | `charging` | bool | | Whether it is charging. |
+| field | `on-power` | bool | | Whether on power adapter. |
+| field | `full` | bool | | Whether full. |
+| field | `minutes-to-empty` | number or null | | Minutes until empty. |
+| field | `minutes-to-full` | number or null | | Minutes until full. |
+| field | `state-text` | string | | Text for the state. |
+| field | `time-text` | string | | Text for the remaining time. |
+| field | `health` | number or null | | Health 0…1. |
+| field | `cycles` | number or null | | Charge cycles. |
+| field | `low-power-mode` | bool | | Low power mode. |
+| field | `symbol` | string | | SF Symbol for the level. |
+| field | `tank-text` | string | | Text for the battery tank. |
 
 Actions and events: `battery.charger-connected`, `battery.charger-disconnected`, `battery.warning`
 
 ### `bluetooth` (provider)
 
-Bluetooth und Geräte.
+Bluetooth and devices.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `on` | bool or null | | ob Bluetooth an ist. |
-| field | `status` | string | | reading, ready oder unavailable. |
-| field | `paired` | number | | Anzahl gekoppelter Geräte. |
-| field | `connected` | number | | Anzahl verbundener Geräte. |
-| field | `devices` | list | | verbundene Geräte. |
+| field | `on` | bool or null | | Whether Bluetooth is on. |
+| field | `status` | string | | reading, ready or unavailable. |
+| field | `paired` | number | | Number of paired devices. |
+| field | `connected` | number | | Number of connected devices. |
+| field | `devices` | list | | Connected devices. |
 
 Actions and events: `bluetooth.open-settings`, `bluetooth.changed`
 
 ### `clock` (provider)
 
-Zeit, Datum, Kalenderraster.
+Time, date, calendar grid.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `first-weekday` | "monday"\|"sunday"\|"system" | `"system"` | erster Wochentag des Kalenderrasters. |
-| field | `now` | value | | aktueller Zeitpunkt. |
-| field | `hour` | number | | Stunde. |
+| property | `first-weekday` | "monday"\|"sunday"\|"system" | `"system"` | First day of the week in the calendar grid. |
+| field | `now` | value | | Current time. |
+| field | `hour` | number | | Hour. |
 | field | `minute` | number | | Minute. |
-| field | `second` | number | | Sekunde. |
-| field | `day` | number | | Tag. |
-| field | `month` | number | | Monat. |
-| field | `year` | number | | Jahr. |
-| field | `weekday` | number | | Wochentag, 1 = Montag. |
-| field | `time-zone` | string | | aktive Zeitzone. |
+| field | `second` | number | | Second. |
+| field | `day` | number | | Day. |
+| field | `month` | number | | Month. |
+| field | `year` | number | | Year. |
+| field | `weekday` | number | | Day of the week, 1 = Monday. |
+| field | `time-zone` | string | | Active time zone. |
 
 ### `keyboard` (provider)
 
@@ -2010,77 +2010,77 @@ Actions and events: `marketplace.refresh`, `marketplace.get`, `marketplace.updat
 
 ### `media` (provider)
 
-was gerade läuft.
+What is playing.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `available` | bool | | ob der Adapter läuft. |
-| field | `playing` | bool | | ob etwas läuft. |
-| field | `title` | string or null | | Titel. |
-| field | `artist` | string or null | | Interpret. |
+| field | `available` | bool | | Whether the adapter is running. |
+| field | `playing` | bool | | Whether something is playing. |
+| field | `title` | string or null | | Title. |
+| field | `artist` | string or null | | Artist. |
 | field | `album` | string or null | | Album. |
 | field | `artwork` | value or null | | Cover. |
-| field | `duration` | number or null | | Dauer in s. |
-| field | `elapsed` | number or null | | vergangene Zeit in s. |
-| field | `progress` | number or null | | Fortschritt 0…1. |
-| field | `unavailable` | string or null | | Grund der Nichtverfügbarkeit. |
-| field | `app` | string or null | | Quelle. |
-| field | `app-name` | string or null | | Name der Quelle. |
-| field | `app-icon` | value or null | | Symbol der Quelle. |
-| field | `kind` | string | | music oder video. |
+| field | `duration` | number or null | | Duration in s. |
+| field | `elapsed` | number or null | | Elapsed time in s. |
+| field | `progress` | number or null | | Progress 0…1. |
+| field | `unavailable` | string or null | | Reason for unavailability. |
+| field | `app` | string or null | | Source. |
+| field | `app-name` | string or null | | Name of the source. |
+| field | `app-icon` | value or null | | Symbol of the source. |
+| field | `kind` | string | | music or video. |
 
 Actions and events: `media.play-pause`, `media.next`, `media.previous`, `media.seek`, `media.open-app`, `media.track-changed`
 
 ### `network` (provider)
 
-WLAN, Kabel.
+Wi-Fi, Ethernet.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `wifi.on` | bool or null | | ob WLAN an ist. |
-| field | `wifi.connected` | bool | | ob verbunden. |
-| field | `wifi.rssi` | number or null | | Signalstärke in dBm. |
-| field | `wifi.noise` | number or null | | Rauschen in dBm. |
-| field | `wifi.snr` | number or null | | Signal-Rausch-Verhältnis. |
-| field | `wifi.bars` | number | | Balken 0…3. |
-| field | `wifi.quality` | string | | Qualität als Text. |
-| field | `wifi.tx-rate` | number or null | | Senderate in Mbit/s. |
-| field | `wifi.standard` | string or null | | WLAN-Standard. |
-| field | `wifi.band` | string or null | | Frequenzband. |
-| field | `wifi.channel` | string or null | | Kanal. |
-| field | `wifi.interface` | string or null | | Interface-Name. |
-| field | `wifi.symbol` | string | | SF-Symbol. |
+| field | `wifi.on` | bool or null | | Whether Wi-Fi is on. |
+| field | `wifi.connected` | bool | | Whether connected. |
+| field | `wifi.rssi` | number or null | | Signal strength in dBm. |
+| field | `wifi.noise` | number or null | | Noise in dBm. |
+| field | `wifi.snr` | number or null | | Signal-to-noise ratio. |
+| field | `wifi.bars` | number | | Bars 0…3. |
+| field | `wifi.quality` | string | | Quality as text. |
+| field | `wifi.tx-rate` | number or null | | Transmit rate in Mbit/s. |
+| field | `wifi.standard` | string or null | | Wi-Fi standard. |
+| field | `wifi.band` | string or null | | Frequency band. |
+| field | `wifi.channel` | string or null | | Channel. |
+| field | `wifi.interface` | string or null | | Interface name. |
+| field | `wifi.symbol` | string | | SF Symbol. |
 
 Actions and events: `network.set-wifi`, `network.toggle-wifi`, `network.open-settings`, `network.wifi-changed`
 
 ### `perf` (provider)
 
-CPU, GPU, Speicher, Platte, Netzwerktempo.
+CPU, GPU, memory, disk, network speed.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `cpu` | number | | CPU-Last 0…1. |
-| field | `memory` | number | | Speicherlast 0…1. |
-| field | `net-down` | number | | Bytes/s herunter. |
-| field | `net-up` | number | | Bytes/s hinauf. |
-| field | `live.cpu` | number | | CPU-Last live. |
-| field | `live.gpu` | number or null | | GPU-Last live. |
-| field | `live.cpu-history` | list | | letzte 30 CPU-Werte. |
-| field | `live.gpu-history` | list | | letzte 30 GPU-Werte. |
-| field | `live.memory-used` | number | | belegter Speicher in Bytes. |
-| field | `live.memory-total` | number | | gesamter Speicher in Bytes. |
-| field | `live.memory` | number | | Speicherlast 0…1. |
-| field | `live.disk-used` | number | | belegter Platz in Bytes. |
-| field | `live.disk-total` | number | | gesamter Platz in Bytes. |
-| field | `live.disk` | number | | Plattenauslastung 0…1. |
-| field | `live.net-down` | number | | Bytes/s herunter. |
-| field | `live.net-up` | number | | Bytes/s hinauf. |
-| field | `live.net-history` | list | | letzte 30 Netzwerk-Records. |
-| field | `live.net-total-down` | number | | Bytes seit erster Nachfrage. |
-| field | `live.net-total-up` | number | | Bytes seit erster Nachfrage. |
-| field | `chip` | string | | Chipname. |
-| field | `cores` | number | | Kerne. |
-| field | `gpu-cores` | number or null | | GPU-Kerne. |
+| field | `cpu` | number | | CPU load 0…1. |
+| field | `memory` | number | | Memory load 0…1. |
+| field | `net-down` | number | | Bytes/s down. |
+| field | `net-up` | number | | Bytes/s up. |
+| field | `live.cpu` | number | | Live CPU load. |
+| field | `live.gpu` | number or null | | Live GPU load. |
+| field | `live.cpu-history` | list | | Last 30 CPU values. |
+| field | `live.gpu-history` | list | | Last 30 GPU values. |
+| field | `live.memory-used` | number | | Used memory in bytes. |
+| field | `live.memory-total` | number | | Total memory in bytes. |
+| field | `live.memory` | number | | Memory load 0…1. |
+| field | `live.disk-used` | number | | Used space in bytes. |
+| field | `live.disk-total` | number | | Total space in bytes. |
+| field | `live.disk` | number | | Disk usage 0…1. |
+| field | `live.net-down` | number | | Bytes/s down. |
+| field | `live.net-up` | number | | Bytes/s up. |
+| field | `live.net-history` | list | | Last 30 network records. |
+| field | `live.net-total-down` | number | | Bytes since the first request. |
+| field | `live.net-total-up` | number | | Bytes since the first request. |
+| field | `chip` | string | | Chip name. |
+| field | `cores` | number | | Cores. |
+| field | `gpu-cores` | number or null | | GPU cores. |
 
 ### `permissions` (provider)
 
@@ -2634,52 +2634,52 @@ App beendet.
 
 ### `audio.input-changed` (event)
 
-Eingabegerät geändert.
+Input device changed.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `name` | string | | neues Gerät. |
+| field | `name` | string | | New device. |
 
 ### `audio.output-changed` (event)
 
-Ausgabegerät geändert.
+Output device changed.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `name` | string | | neues Gerät. |
+| field | `name` | string | | New device. |
 
 ### `audio.volume-changed` (event)
 
-Lautstärke oder Stumm geändert.
+Volume or mute changed.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `volume` | number | | neue Lautstärke. |
-| field | `muted` | bool | | neuer Stummzustand. |
+| field | `volume` | number | | New volume. |
+| field | `muted` | bool | | New mute state. |
 
 ### `battery.charger-connected` (event)
 
-Ladegerät angeschlossen.
+Charger connected.
 
 ### `battery.charger-disconnected` (event)
 
-Ladegerät entfernt.
+Charger disconnected.
 
 ### `battery.warning` (event)
 
-Akku unter einer Schwelle im Akkubetrieb.
+Battery below a threshold while on battery power.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `level` | string | | Warnstufe. |
-| field | `percent` | number | | Ladestand. |
-| field | `title` | string | | Titel der Meldung. |
-| field | `body` | string | | Text der Meldung. |
-| field | `critical` | bool | | ob kritisch. |
+| field | `level` | string | | Warning level. |
+| field | `percent` | number | | Charge level. |
+| field | `title` | string | | Title of the notice. |
+| field | `body` | string | | Text of the notice. |
+| field | `critical` | bool | | Whether critical. |
 
 ### `bluetooth.changed` (event)
 
-Zustand geändert.
+State changed.
 
 ### `config.failed` (event)
 
@@ -2712,11 +2712,11 @@ Eingabequelle geändert.
 
 ### `media.track-changed` (event)
 
-Titel geändert.
+Track changed.
 
 ### `network.wifi-changed` (event)
 
-WLAN-Zustand geändert.
+Wi-Fi state changed.
 
 ### `power.keep-awake-stopped` (event)
 
