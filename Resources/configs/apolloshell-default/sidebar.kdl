@@ -38,7 +38,7 @@ define "sidebar-power" {
 
 define "sidebar-media-button" {
     param "module"
-    use "sidebar-icon" icon="panel-media" fallback="music.note" tooltip="Media" {
+    use "sidebar-icon" icon="panel-media" fallback="music.note" tooltip="Media" glyph="sidebar-media-glyph" {
         on-click { set "dashboard-tab" "media"; open "dashboard" }
     }
 }
@@ -136,8 +136,10 @@ define "sidebar-battery" {
     when "{battery.present}" {
         button class="sidebar-tile sidebar-battery {battery.percent < 0.2 && !battery.charging ? 'low' : ''}" {
             on-click { set "dashboard-tab" "performance"; open "dashboard" }
-            when "{module.show-icon}" { icon "{battery.charging ? 'status-battery-charging' : 'status-battery'}" fallback="{battery.symbol}" class="battery-glyph" }
-            text "{battery.percent | percent}" class="sidebar-tile-value"
+            column class="sidebar-tile-stack" {
+                when "{module.show-icon}" { icon "{battery.charging ? 'status-battery-charging' : 'status-battery'}" fallback="{battery.symbol}" class="battery-glyph" }
+                text "{battery.percent | percent}" class="sidebar-tile-value"
+            }
         }
     }
 }
@@ -148,8 +150,10 @@ define "sidebar-cpu" {
         on-click { set "dashboard-tab" "performance"; open "dashboard" }
         switch "{module.style}" {
             case "percent" {
-                icon "panel-cpu" fallback="cpu" class="sidebar-tile-glyph"
-                text "{perf.cpu | percent}" class="sidebar-tile-value"
+                column class="sidebar-tile-stack" {
+                    icon "panel-cpu" fallback="cpu" class="sidebar-tile-glyph"
+                    text "{perf.cpu | percent}" class="sidebar-tile-value"
+                }
             }
             default {
                 stack {
@@ -165,8 +169,10 @@ define "sidebar-weather" {
     param "module"
     button class="sidebar-tile sidebar-weather" {
         on-click { set "dashboard-tab" "weather"; open "dashboard" }
-        icon "{weather.current.symbol ?? 'cloud.sun.fill'}" class="weather-glyph"
-        when "{module.show-temperature && weather.status == 'ready'}" { text "{weather.current.temperature | temperature}" class="sidebar-tile-value" }
+        column class="sidebar-tile-stack" {
+            icon "{weather.current.symbol ?? 'cloud.sun.fill'}" class="weather-glyph"
+            when "{module.show-temperature && weather.status == 'ready'}" { text "{weather.current.temperature | temperature}" class="sidebar-tile-value" }
+        }
     }
 }
 
