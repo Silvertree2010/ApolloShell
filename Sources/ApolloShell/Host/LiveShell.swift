@@ -1109,13 +1109,21 @@ final class LiveShellControl: ShellControl, @unchecked Sendable {
 
     func quit() async {
         await MainActor.run {
-            shell?.shutdown()
-            NSApp.terminate(nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak shell] in
+                MainActor.assumeIsolated {
+                    shell?.shutdown()
+                    shell?.terminateApp()
+                }
+            }
         }
     }
 
     func restart() async {
-        await MainActor.run { shell?.restart() }
+        await MainActor.run {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak shell] in
+                MainActor.assumeIsolated { shell?.restart() }
+            }
+        }
     }
 
     func openCommandCenter() async {
