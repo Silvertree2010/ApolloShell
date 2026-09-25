@@ -98,6 +98,25 @@ struct ElementRenderTests {
         #expect(shot.bounds { $0.near(.green) } == CGRect(x: 0, y: 20, width: 100, height: 10))
     }
 
+    @Test("grid-row: span belegt Zeilen, folgende Kinder weichen aus")
+    func gridRowSpan() throws {
+        let shot = try panel("""
+            grid class="g" columns=2 {
+                stack class="a"
+                stack class="b"
+                stack class="c"
+            }
+            """, """
+            .g { width: 100px; gap: 10px; }
+            .a { height: 30px; background: #ff0000; grid-row: span 2; }
+            .b { height: 10px; background: #0000ff; }
+            .c { height: 10px; background: #00ff00; }
+            """)
+        #expect(shot.bounds { $0.near(.red) } == CGRect(x: 0, y: 0, width: 45, height: 30))
+        #expect(shot.bounds { $0.near(.blue) } == CGRect(x: 55, y: 0, width: 45, height: 10))
+        #expect(shot.bounds { $0.near(.green) } == CGRect(x: 55, y: 20, width: 45, height: 10))
+    }
+
     @Test("app-icon zeichnet das Fixture-Symbol mit Plakette")
     func appIcon() throws {
         let shot = try panel("app-icon \"com.apple.Safari\" badge=\"2\" class=\"i\"",

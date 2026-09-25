@@ -65,13 +65,30 @@ struct ScrollElement: View {
         let indicators = element.property("indicators") == .bool(true)
         let fade = StyleValues.fadeEdges(style["-apollo-fade-edges"])
         let overflowing = element.pseudo.contains(.overflowing)
+        let gap = style["gap"].map { StyleValues.gap($0) } ?? 0
+        let reveal = element.property("reveal")
         ScrollFit(horizontal: horizontal, fills: StyleValues.keyword(style["justify-content"]) == "start") {
-            ScrollView(axis, showsIndicators: indicators) {
-                VStack(spacing: 0) {
-                    ElementChildren(children: element.children, scope: scope)
+            ScrollViewReader { proxy in
+                ScrollView(axis, showsIndicators: indicators) {
+                    Group {
+                        if horizontal {
+                            HStack(spacing: gap) { ElementChildren(children: element.children, scope: scope) }
+                        } else {
+                            VStack(spacing: gap) { ElementChildren(children: element.children, scope: scope) }
+                        }
+                    }
+                    .frame(maxWidth: horizontal ? nil : .infinity, maxHeight: horizontal ? .infinity : nil)
+                    .padding(StyleValues.sides(style["padding"]))
+                    .environment(\.revealScope, element.ir.properties["reveal"] != nil)
                 }
-                .frame(maxWidth: horizontal ? nil : .infinity, maxHeight: horizontal ? .infinity : nil)
-                .padding(StyleValues.sides(style["padding"]))
+                .onChange(of: reveal) { _, target in
+                    guard target != .null else { return }
+                    proxy.scrollTo(target)
+                }
+                .onAppear {
+                    guard reveal != .null else { return }
+                    proxy.scrollTo(reveal)
+                }
             }
             .scrollBounceBehavior(.basedOnSize, axes: axis)
             .scrollClipDisabled(!overflowing)
@@ -91,6 +108,36 @@ struct ScrollElement: View {
                 }
             }
         }
+    }
+}
+
+struct RevealID: ViewModifier {
+    let element: ElementInstance
+    @Environment(\.revealScope) private var revealScope
+
+    func body(content: Content) -> some View {
+        if revealScope, let id = Self.id(element) {
+            content.id(id)
+        } else {
+            content
+        }
+    }
+
+    static func id(_ element: ElementInstance) -> Value? {
+        if let key = element.entryKey { return key }
+        if case .string(let id) = element.property("id"), !id.isEmpty { return .string(id) }
+        return nil
+    }
+}
+
+private struct RevealScopeKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var revealScope: Bool {
+        get { self[RevealScopeKey.self] }
+        set { self[RevealScopeKey.self] = newValue }
     }
 }
 

@@ -148,6 +148,7 @@ struct ElementView: View {
                                               needed: Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil, stateStyled: hover || press)))
                 .modifier(Motion(element: element, style: style, context: scope.context, dynamicInline: animated))
                 .transformEnvironment(\.elementInteractive) { if StyleValues.keyword(style["pointer-events"]) == "none" { $0 = false } }
+                .modifier(RevealID(element: element))
                 .layoutValue(key: ChildMetricsKey.self, value: ChildMetrics(style, spacer: spacer))
         }
     }

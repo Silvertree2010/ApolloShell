@@ -12,6 +12,7 @@ struct ChildMetrics: Equatable {
     var marginH: CGFloat = 0
     var marginV: CGFloat = 0
     var span = 1
+    var rowSpan = 1
 
     init() {}
 
@@ -24,6 +25,7 @@ struct ChildMetrics: Equatable {
         alignSelf = StyleValues.keyword(style["align-self"])
         justifySelf = StyleValues.keyword(style["justify-self"])
         if case .span(let count)? = style["grid-column"] { span = max(1, count) }
+        if case .span(let count)? = style["grid-row"] { rowSpan = max(1, count) }
         let margin = StyleValues.sides(style["margin"])
         marginH = margin.leading + margin.trailing
         marginV = margin.top + margin.bottom
@@ -260,20 +262,34 @@ struct GridLayout: Layout {
         var row: Int
         var column: Int
         var span: Int
+        var rowSpan = 1
     }
 
     func cells(_ subviews: Subviews) -> [Cell] {
         var result: [Cell] = []
+        var occupied: Set<Int> = []
         var row = 0, column = 0
         let count = max(1, columns.count)
         for (index, subview) in subviews.enumerated() {
-            let span = min(count, subview[ChildMetricsKey.self].span)
-            if column + span > count { row += 1; column = 0 }
-            result.append(Cell(index: index, row: row, column: column, span: span))
+            let metrics = subview[ChildMetricsKey.self]
+            let span = min(count, metrics.span)
+            while true {
+                if column + span > count { row += 1; column = 0; continue }
+                if (column..<(column + span)).allSatisfy({ !occupied.contains(row * count + $0) }) { break }
+                column += 1
+            }
+            result.append(Cell(index: index, row: row, column: column, span: span, rowSpan: metrics.rowSpan))
+            for spanned in row..<(row + metrics.rowSpan) {
+                for spannedColumn in column..<(column + span) { occupied.insert(spanned * count + spannedColumn) }
+            }
             column += span
             if column >= count { row += 1; column = 0 }
         }
         return result
+    }
+
+    func rowSpanHeight(_ cell: Cell, _ heights: [CGFloat]) -> CGFloat {
+        heights[cell.row..<min(heights.count, cell.row + cell.rowSpan)].reduce(0, +) + rowGap * CGFloat(cell.rowSpan - 1)
     }
 
     func widths(_ total: CGFloat?, subviews: Subviews) -> [CGFloat] {
@@ -295,12 +311,17 @@ struct GridLayout: Layout {
     }
 
     func rows(_ cells: [Cell], _ widths: [CGFloat], _ subviews: Subviews) -> [CGFloat] {
-        let count = (cells.map(\.row).max() ?? -1) + 1
+        let count = cells.map { $0.row + $0.rowSpan }.max() ?? 0
         var heights = [CGFloat](repeating: rowHeight ?? 0, count: count)
         guard rowHeight == nil else { return heights }
-        for cell in cells {
+        for cell in cells where cell.rowSpan == 1 {
             let size = subviews[cell.index].sizeThatFits(ProposedViewSize(width: spanWidth(cell, widths), height: nil))
             heights[cell.row] = max(heights[cell.row], size.height)
+        }
+        for cell in cells where cell.rowSpan > 1 {
+            let size = subviews[cell.index].sizeThatFits(ProposedViewSize(width: spanWidth(cell, widths), height: nil))
+            let missing = size.height - rowSpanHeight(cell, heights)
+            if missing > 0 { heights[cell.row + cell.rowSpan - 1] += missing }
         }
         return heights
     }
@@ -321,7 +342,7 @@ struct GridLayout: Layout {
             let x = bounds.minX + widths[0..<cell.column].reduce(0, +) + columnGap * CGFloat(cell.column)
             let y = bounds.minY + heights[0..<cell.row].reduce(0, +) + rowGap * CGFloat(cell.row)
             subviews[cell.index].place(at: CGPoint(x: x, y: y), anchor: .topLeading,
-                                       proposal: ProposedViewSize(width: spanWidth(cell, widths), height: heights[cell.row]))
+                                       proposal: ProposedViewSize(width: spanWidth(cell, widths), height: rowSpanHeight(cell, heights)))
         }
     }
 }
