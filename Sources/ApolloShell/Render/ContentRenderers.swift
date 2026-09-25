@@ -309,13 +309,17 @@ struct MarkElement: View {
         shown ? EmblemTimeline(greet ? .greet : reaction, at: time) : nil
     }
 
+    var opening: EmblemReaction {
+        greet && !(renderMode && reaction != .idle) ? .greet : reaction
+    }
+
     var body: some View {
-        let current = timeline ?? EmblemTimeline(greet ? .greet : reaction, at: 0)
+        let current = timeline ?? EmblemTimeline(opening, at: 0)
         SessionEmblem(timeline: current, size: size, animating: !renderMode && shown,
                       fixedTime: renderMode ? current.startTime + markRenderTime : nil, accent: accent, track: track)
             .onAppear {
                 if timeline == nil {
-                    timeline = EmblemTimeline(greet ? .greet : reaction, at: Date.timeIntervalSinceReferenceDate)
+                    timeline = EmblemTimeline(opening, at: Date.timeIntervalSinceReferenceDate)
                 }
             }
             .onChange(of: shown) { _, now in

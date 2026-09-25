@@ -510,7 +510,7 @@
 
 .session { width: 102px; height: 496px; padding: 16px 6px 16px 16px; gap: 16px; align-items: start; }
 .session-button { width: 80px; height: 80px; border-radius: 20px; background: rgb(from -apple-system-label r g b / 0.08); }
-.session-button.hovered { background: rgb(from -apple-system-label r g b / 0.08); }
+.session-button.hovered { background: rgb(from -apple-system-label r g b / 0.08), rgb(from -apple-system-label r g b / 0.08); }
 .session-button:checked { background: rgb(from -apple-system-label r g b / 0.14); }
 .session-glyph { width: 30px; height: 30px; font-size: 28px; font-weight: 500; }
 .session-emblem { width: 80px; height: 80px; }
