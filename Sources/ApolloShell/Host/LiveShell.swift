@@ -77,6 +77,8 @@ final class LiveShell: WindowHostLink {
     var terminateApp: @MainActor () -> Void = { NSApp.terminate(nil) }
     var relaunch: @MainActor (URL, Int32) -> Void = LiveShell.relaunchAfterExit
     var registrar: any HotKeyRegistering = CarbonHotKeys()
+    var legacyDefaults: (String) -> Any? = { UserDefaults.standard.object(forKey: $0) }
+    private(set) var legacyNotes: [Diagnostic] = []
     var interactive = true
     var currentScreens: @MainActor () -> [String: ScreenGeometry] = {
         Dictionary(ShellScreens.current().map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame)) }, uniquingKeysWith: { first, _ in first })
@@ -156,8 +158,19 @@ final class LiveShell: WindowHostLink {
         return values
     }
 
+    func importLegacySettings() {
+        let disk = DiskFileSystem()
+        guard LegacyImport.isNeeded(paths: paths, fileSystem: disk) else { return }
+        let result = LegacyImport.run(paths: paths, fileSystem: disk, defaults: legacyDefaults)
+        legacyNotes = result.diagnostics
+        Self.log("imported the 0.1.4.2 settings from \(LegacyImport.settingsJSON(paths).path)")
+        Self.report(result.diagnostics)
+        _ = settings.reload()
+    }
+
     func start() async throws {
         steps.append("settings")
+        importLegacySettings()
         let names = keyNames
         let assembly = ShellAssembly(host: host, scheduler: RunLoopFlushScheduler(), filterContext: {
             FilterContext(now: Date(), locale: .current, timeZone: .current, services: LayoutFilterServices(keyName: { names.name($0) }))
@@ -200,6 +213,7 @@ final class LiveShell: WindowHostLink {
         })
         steps.append("config")
         var (location, failed) = resolveActive()
+        failed = legacyNotes + failed
         var result = await load(location)
         if result.ir == nil {
             failed += result.diagnostics
@@ -448,7 +462,8 @@ final class LiveShell: WindowHostLink {
     private func activeLocationForReload() -> (ConfigLocation, [Diagnostic])? {
         guard let location else { return nil }
         _ = settings.reload()
-        return resolveActive()
+        let (resolved, notes) = resolveActive()
+        return (resolved, legacyNotes + notes)
     }
 
     private func startServices() {
