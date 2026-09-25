@@ -38,7 +38,7 @@ struct SurfaceView: View {
 
     var body: some View {
         let subject = StyleResolver.subject(for: surface)
-        let resolved = context.styles.resolve(subject, ancestors: [], parent: nil)
+        let resolved = context.styles.resolve(surface: surface)
         let (style, painted) = SurfaceBackground.resolve(painter, surface: surface, style: resolved)
         let scope = RenderScope(context: context, ancestors: [subject], parentStyle: style, parentKind: "column")
         LayoutRenderers.flex(horizontal: false, style: style) {

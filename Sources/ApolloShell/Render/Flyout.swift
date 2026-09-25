@@ -348,7 +348,7 @@ struct FlyoutView: View {
     static func resolve(_ entry: FlyoutEntry, surface: SurfaceInstance, context: RenderContext) -> (ComputedStyle, RenderScope) {
         let styles = context.styles
         let surfaceSubject = StyleResolver.subject(for: surface)
-        var parent = styles.resolve(surfaceSubject, ancestors: [], parent: nil)
+        var parent = styles.resolve(surface: surface)
         var subjects = [surfaceSubject]
         for ancestor in entry.ancestors {
             let subject = StyleResolver.subject(for: ancestor)

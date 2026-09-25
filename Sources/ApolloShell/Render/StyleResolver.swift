@@ -184,3 +184,9 @@ enum ClassCandidates {
         Set(text.split(whereSeparator: \.isWhitespace).map(String.init))
     }
 }
+
+extension StyleResolver {
+    func resolve(surface: SurfaceInstance) -> ComputedStyle {
+        resolve(Self.subject(for: surface), ancestors: [], parent: nil, inline: surface.property("style").plainText)
+    }
+}
