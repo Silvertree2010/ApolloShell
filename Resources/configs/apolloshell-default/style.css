@@ -201,7 +201,22 @@
 .card-media-progress { -apollo-sweep-angle: 180deg; transition: value 600ms emphasized; }
 .card-media-round { width: 132px; height: 132px; border-radius: 9999px; }
 .card-media-round.card-media-small { width: 96px; height: 96px; }
-.card-media-bar { transition: value 600ms emphasized; }
+.card-media.zone-top { flex-grow: 1; border-radius: var(--apollo-card-radius, 28px); }
+.card-media-strip { align-self: stretch; flex-grow: 1; padding: 16px; gap: 16px; align-items: center; }
+.card-media-strip-cover { width: 98px; height: 98px; border-radius: var(--apollo-card-radius, 18px); background: rgb(from -apple-system-label r g b / 0.08); }
+.card-media-strip-placeholder { font-size: 31.36px; font-weight: 300; color: -apple-system-tertiary-label; }
+.card-media-strip-art { width: 98px; height: 98px; border-radius: var(--apollo-card-radius, 18px); }
+.card-media-text { flex-grow: 1; gap: 3px; align-items: start; }
+.card-media-strip-title { font-size: 14px; font-weight: 600; color: -apollo-accent-text; }
+.card-media-strip-title.idle { color: -apple-system-label; }
+.card-media-strip-artist { font-size: 12px; color: -apple-system-secondary-label; }
+.card-media-bar-row { align-self: stretch; padding: 6px 0 0; }
+.card-media-bar { align-self: stretch; flex-grow: 1; height: 6px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.12); -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 600ms emphasized; }
+.card-media-text .media-controls { width: 200px; padding: 8px 0 0; gap: 4px; }
+.card-media-text .media-button { width: 34px; height: 34px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-label; }
+.card-media-text .media-glyph { font-size: 13px; font-weight: 600; }
+.card-media-text .media-play { width: auto; flex-grow: 1; border-radius: 10.88px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.card-media-text .media-play-glyph { font-size: 15px; }
 .card-media-tall { align-self: stretch; flex-grow: 1; align-items: center; padding: 22px 0; }
 .card-media-cover { width: 164px; height: 164px; }
 .card-media-arc { width: 164px; height: 164px; -apollo-start-angle: 180deg; -apollo-sweep-angle: 180deg; -apollo-stroke-width: 6px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.12); color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 600ms emphasized; }

@@ -199,11 +199,20 @@ define "card-media" {
             }
             default {
                 row class="card-media-strip" {
-                    image "{media.artwork}" placeholder="music.note" fit="fill" class="card-media-artwork"
+                    stack class="card-media-strip-cover" {
+                        icon "music.note" class="card-media-strip-placeholder"
+                        image "{media.artwork}" fit="fill" class="card-media-strip-art"
+                    }
                     column class="card-media-text" {
-                        text "{media.playing ? media.title : 'Nothing Playing'}" class="card-media-title" lines=1 truncate="tail"
-                        text "{media.artist}{card.show-album && media.album != null ? ' · ' + media.album : ''}" class="card-media-artist" lines=1 truncate="tail"
-                        progress value="{media.progress}" class="card-media-bar"
+                        when "{media.title != null}" {
+                            text "{media.title}" class="card-media-strip-title" lines=1 truncate="tail"
+                            text "{media.artist ?? 'Unknown Artist'}{card.show-album && media.album != null ? ' · ' + media.album : ''}" class="card-media-strip-artist" lines=1 truncate="tail"
+                        }
+                        else {
+                            text "Nothing Playing" class="card-media-strip-title idle"
+                            text "Play Something" class="card-media-strip-artist"
+                        }
+                        stack class="card-media-bar-row" { progress value="{media.progress ?? 0}" class="card-media-bar" }
                         use "media-controls"
                     }
                 }
