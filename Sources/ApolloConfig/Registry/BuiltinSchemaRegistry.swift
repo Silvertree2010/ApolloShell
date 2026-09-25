@@ -40,18 +40,18 @@ enum BuiltinSchemaRegistry {
     static var filterNameDuplicates: [String] { filtersResult.duplicates }
 
     static let allEvents: [EventSchema] = allProviders.flatMap(\.events) + [
-        EventSchema(name: "shell.started", doc: "die Shell ist bereit."),
-        EventSchema(name: "config.loaded", fields: [ProviderSupport.field("warnings", .number, update: .once, doc: "Anzahl Warnungen.")], doc: "eine Config wurde ohne Fehler geladen."),
-        EventSchema(name: "config.failed", fields: [ProviderSupport.field("errors", .number, update: .once, doc: "Anzahl Fehler.")], doc: "eine Config konnte nicht geladen werden."),
-        EventSchema(name: "theme.changed", fields: [ProviderSupport.field("id", .string, update: .once, doc: "neue Theme-Kennung.")], doc: "das Theme wurde gewechselt."),
-        EventSchema(name: "system.will-sleep", doc: "der Rechner schläft gleich ein."),
-        EventSchema(name: "system.did-wake", doc: "der Rechner ist aufgewacht."),
+        EventSchema(name: "shell.started", doc: "The shell is ready."),
+        EventSchema(name: "config.loaded", fields: [ProviderSupport.field("warnings", .number, update: .once, doc: "Number of warnings.")], doc: "A config loaded without errors."),
+        EventSchema(name: "config.failed", fields: [ProviderSupport.field("errors", .number, update: .once, doc: "Number of errors.")], doc: "A config failed to load."),
+        EventSchema(name: "theme.changed", fields: [ProviderSupport.field("id", .string, update: .once, doc: "New theme id.")], doc: "The theme changed."),
+        EventSchema(name: "system.will-sleep", doc: "The computer is about to sleep."),
+        EventSchema(name: "system.did-wake", doc: "The computer woke up."),
         EventSchema(name: "fullscreen.changed", fields: [
-            ProviderSupport.field("screen", .string, update: .once, doc: "betroffener Bildschirm."),
-            ProviderSupport.field("active", .bool, update: .once, doc: "ob Vollbild aktiv ist."),
-        ], doc: "eine Vollbild-App wurde geöffnet oder verlassen."),
-        EventSchema(name: "system.session-inactive", doc: "schneller Benutzerwechsel weg."),
-        EventSchema(name: "system.session-active", doc: "schneller Benutzerwechsel zurück."),
+            ProviderSupport.field("screen", .string, update: .once, doc: "Affected screen."),
+            ProviderSupport.field("active", .bool, update: .once, doc: "Whether full screen is active."),
+        ], doc: "A full-screen app was entered or left."),
+        EventSchema(name: "system.session-inactive", doc: "Fast user switch away."),
+        EventSchema(name: "system.session-active", doc: "Fast user switch back."),
     ]
 
     static let eventsResult = RegistryBuilder.dictionary(allEvents, name: { $0.name })

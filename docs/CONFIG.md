@@ -2683,28 +2683,28 @@ Zustand geändert.
 
 ### `config.failed` (event)
 
-eine Config konnte nicht geladen werden.
+A config failed to load.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `errors` | number | | Anzahl Fehler. |
+| field | `errors` | number | | Number of errors. |
 
 ### `config.loaded` (event)
 
-eine Config wurde ohne Fehler geladen.
+A config loaded without errors.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `warnings` | number | | Anzahl Warnungen. |
+| field | `warnings` | number | | Number of warnings. |
 
 ### `fullscreen.changed` (event)
 
-eine Vollbild-App wurde geöffnet oder verlassen.
+A full-screen app was entered or left.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `screen` | string | | betroffener Bildschirm. |
-| field | `active` | bool | | ob Vollbild aktiv ist. |
+| field | `screen` | string | | Affected screen. |
+| field | `active` | bool | | Whether full screen is active. |
 
 ### `keyboard.source-changed` (event)
 
@@ -2740,7 +2740,7 @@ Bildschirme geändert.
 
 ### `shell.started` (event)
 
-die Shell ist bereit.
+The shell is ready.
 
 ### `shortcuts.failed` (event)
 
@@ -2768,27 +2768,27 @@ Farbe kopiert.
 
 ### `system.did-wake` (event)
 
-der Rechner ist aufgewacht.
+The computer woke up.
 
 ### `system.session-active` (event)
 
-schneller Benutzerwechsel zurück.
+Fast user switch back.
 
 ### `system.session-inactive` (event)
 
-schneller Benutzerwechsel weg.
+Fast user switch away.
 
 ### `system.will-sleep` (event)
 
-der Rechner schläft gleich ein.
+The computer is about to sleep.
 
 ### `theme.changed` (event)
 
-das Theme wurde gewechselt.
+The theme changed.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `id` | string | | neue Theme-Kennung. |
+| field | `id` | string | | New theme id. |
 
 ### `wm.focus-changed` (event)
 
