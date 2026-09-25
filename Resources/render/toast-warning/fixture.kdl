@@ -38,6 +38,6 @@ fixture {
         }
     }
     toasts {
-        - title="Battery Low" body="20 % left" kind="warning" icon="toast-warning"
+        - title="Battery Low" body="20 % left" kind="warning" icon="battery.25percent"
     }
 }

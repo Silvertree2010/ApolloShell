@@ -532,21 +532,29 @@
 .osd-glyph { width: 13px; height: 13px; font-size: 11px; font-weight: 600; }
 .osd-percent { font-size: 10px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
 
+#default { margin: 8px; }
 .toast-card {
   width: 406px;
-  padding: 10px 12px;
-  border-radius: var(--apollo-toast-radius, 18px);
-  background: var(--apollo-toast-fill, glass(regular, rgb(from -apple-system-window-background r g b / 0.22)));
+  height: 56px;
+  padding: 8px 12px;
+  border-radius: var(--apollo-toast-radius, 16px);
+  background: var(--apollo-toast-fill, glass(regular));
   color: var(--apollo-toast-text-color, -apple-system-label);
-  border: 1px solid rgb(from -apple-system-separator r g b / 0.3);
+  border: 1px solid rgb(from -apple-system-label r g b / 0.08);
+  --render-glass: clear;
 }
+.toast-card.kind-success { background: var(--apollo-toast-fill, glass(regular, rgb(from var(--apollo-success-color, -apple-system-green) r g b / 0.22))); border: 1px solid rgb(from var(--apollo-success-color, -apple-system-green) r g b / 0.3); }
+.toast-card.kind-warning { background: var(--apollo-toast-fill, glass(regular, rgb(from var(--apollo-warning-color, -apple-system-orange) r g b / 0.22))); border: 1px solid rgb(from var(--apollo-warning-color, -apple-system-orange) r g b / 0.3); }
+.toast-card.kind-error { background: var(--apollo-toast-fill, glass(regular, rgb(from var(--apollo-danger-color, -apple-system-red) r g b / 0.22))); border: 1px solid rgb(from var(--apollo-danger-color, -apple-system-red) r g b / 0.3); }
 .toast-row { gap: 12px; align-items: center; }
 .toast-chip { width: 40px; height: 40px; border-radius: var(--apollo-control-radius, 12px); color: var(--apollo-on-accent-color, white); }
-.kind-info .toast-chip { background: var(--apollo-accent-color, -apple-system-control-accent); }
+.kind-info .toast-chip { background: rgb(from -apple-system-label r g b / 0.10); color: -apple-system-secondary-label; }
 .kind-success .toast-chip { background: var(--apollo-success-color, -apple-system-green); }
 .kind-warning .toast-chip { background: var(--apollo-warning-color, -apple-system-orange); }
 .kind-error .toast-chip { background: var(--apollo-danger-color, -apple-system-red); }
-.toast-title { font-size: 13px; font-weight: 600; }
+.toast-glyph { width: 20px; height: 20px; font-size: 18px; font-weight: 600; }
+.toast-text { gap: 0; align-items: start; }
+.toast-title { font-size: 14px; font-weight: 500; }
 .toast-body { font-size: 12px; opacity: 0.8; }
 
 #desktop-clock { margin: 8px; }

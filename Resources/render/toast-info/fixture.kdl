@@ -38,6 +38,6 @@ fixture {
         }
     }
     toasts {
-        - title="Charger Connected" body="Battery is charging" kind="info" icon="toast-info"
+        - title="Charger Connected" body="Battery is charging" kind="info" icon="bolt.fill"
     }
 }

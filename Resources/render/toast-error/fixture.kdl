@@ -38,6 +38,6 @@ fixture {
         }
     }
     toasts {
-        - title="Keep Awake Failed" body="No administrator rights" kind="error" icon="toast-error"
+        - title="Keep Awake Failed" body="No administrator rights" kind="error" icon="xmark"
     }
 }

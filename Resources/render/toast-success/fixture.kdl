@@ -38,6 +38,6 @@ fixture {
         }
     }
     toasts {
-        - title="Colour Copied" body="#3A302A" kind="success" icon="toast-success"
+        - title="Colour Copied" body="#3A302A" kind="success" icon="checkmark"
     }
 }
