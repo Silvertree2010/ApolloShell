@@ -240,7 +240,11 @@ final class LiveShell: WindowHostLink {
         host.context = makeContext(result.ir)
         steps.append("surfaces")
         refreshScreens()
-        shell = Record([("config", .string(location.id)), ("version", .string(ShellVersion.current)), ("fresh-install", .bool(freshInstall))] + loginItemFields())
+        shell = Record([("config", .string(location.id)), ("version", .string(ShellVersion.current)), ("fresh-install", .bool(freshInstall))] + loginItemFields() + catalogFields() + [
+            ("features", .list(SchemaRegistry.builtin.features.keys.sorted().map(Value.string))),
+            ("install-kind", .string(InstallKind.detect(resourcesURL: Bundle.main.resourceURL) == .homebrew ? "homebrew" : "dmg")),
+            ("update", updateField()),
+        ])
         guard assembly.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Self.screenOrder(host.screens), shell: shell, writer: writer(for: location)) else {
             throw RenderError.config("config \(location.root.path) did not load")
         }
@@ -376,6 +380,8 @@ final class LiveShell: WindowHostLink {
 
     private func configApplied(_ ir: ConfigIR) {
         lastIR = ir
+        let catalog = catalogFields()
+        if catalog.contains(where: { shell[$0.0] != $0.1 }) { setShell(catalog) }
         applyCommandCenterVisibility(ir)
         if host.context != nil, reloading {
             host.restyle(makeContext(ir))
@@ -394,6 +400,42 @@ final class LiveShell: WindowHostLink {
         let fields = shell.keys.filter { !names.contains($0) }.map { ($0, shell[$0] ?? .null) } + changes
         shell = Record(fields)
         assembly?.store.set(DependencyPath("shell", []), .record(shell))
+    }
+
+    func catalogFields() -> [(String, Value)] {
+        let configs = catalog.list().map { entry in
+            Value.record(Record([("id", .string(entry.id)), ("name", .string(entry.id)), ("source", .string(entry.isBuiltin ? "builtin" : "user"))]))
+        }
+        var seen: Set<String> = []
+        var themes: [Value] = []
+        for folder in [paths.themesDirectory, paths.legacyThemesDirectory] {
+            for theme in ThemeLoader.themes(in: folder) where seen.insert(theme.identifier).inserted {
+                themes.append(.record(Record([
+                    ("id", .string(theme.identifier)), ("name", .string(theme.title)), ("author", .string(theme.author)),
+                    ("description", .string(theme.details)), ("issues", .list(theme.issues.map { .string($0.description) })),
+                ])))
+            }
+        }
+        return [("configs", .list(configs)), ("themes", .list(themes))]
+    }
+
+    func updateField() -> Value {
+        let status = updates?.status ?? .idle
+        let name: String
+        var version: Value = .null
+        var error: Value = .null
+        switch status {
+        case .idle, .upToDate: name = "idle"
+        case .checking: name = "checking"
+        case .available(let value): name = "available"; version = .string(value)
+        case .ready(let value): name = "ready"; version = .string(value)
+        case .failed(let message): name = "failed"; error = .string(message)
+        case .unavailable: name = "unavailable"
+        }
+        return .record(Record([
+            ("status", .string(name)), ("version", version), ("notes-url", updates?.releaseNotes.map { .string($0.absoluteString) } ?? .null),
+            ("last-check", updates?.lastCheck.map(Value.date) ?? .null), ("error", error),
+        ]))
     }
 
     private func loginItemFields() -> [(String, Value)] {
@@ -534,7 +576,13 @@ final class LiveShell: WindowHostLink {
         } catch {
             Self.log("control socket failed: \(error)")
         }
-        updates = UpdateController(settings: settings, machine: machine)
+        let controller = UpdateController(settings: settings, machine: machine)
+        updates = controller
+        controller.onChange = { [weak self] in
+            guard let self else { return }
+            setShell([("update", updateField())])
+        }
+        setShell([("update", updateField())])
         fullscreen.observe()
         reservesChanged()
         installTermination()

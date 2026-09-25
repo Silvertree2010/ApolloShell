@@ -42,4 +42,20 @@ struct GlobalActionsTests {
         #expect(shell.settings.settings.config == "launcher-only")
         #expect(!shell.overlay.problems.contains { $0.message.contains("unknown action") })
     }
+
+    @Test("shell.* aus der Registry ist live belegt: features, configs, themes, install-kind, update")
+    func shellFields() async throws {
+        let (home, shell) = try await CommandCenterWiringTests.started()
+        defer { shell.shutdown(); try? FileManager.default.removeItem(at: home.root) }
+        let store = try #require(shell.assembly?.store)
+        func field(_ path: String...) -> Value { store.value(DependencyPath("shell", path)) }
+        guard case .list(let features) = field("features"), case .list(let configs) = field("configs"), case .list = field("themes") else {
+            Issue.record("missing lists")
+            return
+        }
+        #expect(features.contains(.string("script-sources")))
+        #expect(configs.contains { if case .record(let record) = $0 { record["id"] == .string("apolloshell-default") } else { false } })
+        #expect(field("install-kind") == .string("dmg"))
+        #expect(field("update", "status") != .null)
+    }
 }
