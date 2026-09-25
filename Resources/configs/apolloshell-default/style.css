@@ -20,6 +20,7 @@
   transition: all 500ms spatial;
 }
 .sidebar-modules > .dock, .sidebar-spacer { flex-grow: 1; }
+.sidebar-modules > .dock { height: auto; }
 
 .sidebar-icon {
   width: 32px;
@@ -33,21 +34,43 @@
 .power-glyph { font-size: 15px; }
 .sidebar-app-icon { width: 24px; height: 24px; }
 
-.sidebar-spaces { gap: 6px; align-items: center; }
-.space { width: 32px; height: 14px; border-radius: 9999px; }
+.sidebar-spaces {
+  width: 32px;
+  gap: 3px;
+  padding: 3px 0;
+  align-items: center;
+  border-radius: 9999px;
+  background: rgb(from -apple-system-label r g b / 0.08);
+}
+.space { width: 26px; height: 26px; border-radius: 9999px; }
+.space > stack { width: 100%; height: 100%; }
 .space-pill {
-  width: 8px;
-  height: 14px;
+  width: 26px;
+  height: 26px;
   border-radius: 9999px;
   background: var(--apollo-accent-color, -apple-system-control-accent);
   transition: all 500ms spatial;
 }
-.space-number { font-size: 11px; font-weight: 600; color: var(--apollo-on-accent-color, white); }
+.space-dot {
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 9999px;
+  background: rgb(from -apple-system-label r g b / 0.4);
+}
+.space:checked .space-dot {
+  width: 17.3333px;
+  height: 17.3333px;
+  border-radius: 5.2px;
+  background: var(--apollo-on-accent-color, white);
+}
+.space-number { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(from -apple-system-label r g b / 0.6); }
+.space:checked .space-number { color: var(--apollo-on-accent-color, white); }
 
-.sidebar-clock { width: 32px; border-radius: 9px; color: var(--apollo-bar-text-color, -apple-system-label); }
+.sidebar-clock { width: 32px; color: var(--apollo-bar-text-color, -apple-system-purple); }
 .sidebar-clock > column { align-items: center; gap: 0; }
-.sidebar-clock-icon { font-size: 12px; margin: 0 0 4px 0; -apollo-font-scale: none; }
-.sidebar-clock-hour, .sidebar-clock-minute { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sidebar-clock-icon { font-size: 14px; font-weight: 600; width: 16px; height: 16px; margin: 0 0 3px 0; -apollo-font-scale: none; }
+.sidebar-clock-hour, .sidebar-clock-minute { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sidebar-clock-minute { margin: -4px 0 0 0; }
 .sidebar-clock-date { font-size: 11px; font-weight: 600; }
 
 .status-capsule {

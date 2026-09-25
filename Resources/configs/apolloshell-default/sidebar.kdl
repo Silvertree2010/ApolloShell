@@ -49,8 +49,11 @@ define "sidebar-spaces" {
         each space in="{spaces.list | where 'fullscreen' false}" key="{space.id}" {
             button class="space" checked="{space.active}" tooltip="Desktop {space.index}" {
                 on-click { spaces.switch "{space.index}" }
-                when "{space.active}" { stack class="space-pill" match-id="space-pill" }
-                when "{module.style == 'numbers'}" { text "{space.index}" class="space-number" }
+                stack {
+                    when "{space.active}" { stack class="space-pill" match-id="space-pill" }
+                    when "{module.style == 'numbers'}" { text "{space.index}" class="space-number" }
+                    else { stack class="space-dot" }
+                }
             }
         }
     }
