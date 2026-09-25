@@ -6,6 +6,7 @@ import ApolloProviders
 final class SystemKeyboardSource: KeyboardSource {
     private var observer: NSObjectProtocol?
     private var monitors: [Any] = []
+    private var lastCapsLock = false
 
     var current: KeyboardInputSource? {
         TISCopyCurrentKeyboardInputSource().map { Self.describe($0.takeRetainedValue()) } ?? nil
@@ -23,17 +24,25 @@ final class SystemKeyboardSource: KeyboardSource {
         observer = DistributedNotificationCenter.default().addObserver(forName: name, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated { handler() }
         }
-        if let global = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged, handler: { _ in
-            MainActor.assumeIsolated { handler() }
+        lastCapsLock = capsLock
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged, handler: { [weak self] _ in
+            MainActor.assumeIsolated { self?.capsLockMayHaveChanged(handler) }
         }) {
             monitors.append(global)
         }
-        if let local = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged, handler: { event in
-            MainActor.assumeIsolated { handler() }
+        if let local = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged, handler: { [weak self] event in
+            MainActor.assumeIsolated { self?.capsLockMayHaveChanged(handler) }
             return event
         }) {
             monitors.append(local)
         }
+    }
+
+    private func capsLockMayHaveChanged(_ handler: @MainActor () -> Void) {
+        let now = capsLock
+        guard now != lastCapsLock else { return }
+        lastCapsLock = now
+        handler()
     }
 
     func stopObserving() {
