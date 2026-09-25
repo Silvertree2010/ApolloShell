@@ -26,6 +26,14 @@ struct CSSBoxPropertiesTests {
               ("padding", "1px 2px 3px", points(1, 2, 3, 2)),
               ("margin", "-4px", points(-4, -4, -4, -4)),
               ("margin", "1px 2px 3px 4px", points(1, 2, 3, 4)),
+              ("padding-top", "4px", .length(CSSLength(4, .points))),
+              ("padding-right", "10%", .length(CSSLength(10, .percent))),
+              ("padding-bottom", "0", .length(CSSLength(0, .points))),
+              ("padding-left", "calc(2px * 3)", .length(CSSLength(6, .points))),
+              ("margin-top", "-4px", .length(CSSLength(-4, .points))),
+              ("margin-right", "2px", .length(CSSLength(2, .points))),
+              ("margin-bottom", "5%", .length(CSSLength(5, .percent))),
+              ("margin-left", "8px", .length(CSSLength(8, .points))),
               ("gap", "8px", .length(CSSLength(8, .points))),
               ("row-gap", "calc(4px * 2)", .length(CSSLength(8, .points))),
               ("column-gap", "0", .length(CSSLength(0, .points))),
@@ -59,6 +67,7 @@ struct CSSBoxPropertiesTests {
               ("width", "-1px"), ("width", "red"), ("width", "1fr"), ("width", "1px 2px"),
               ("aspect-ratio", "0 / 1"), ("aspect-ratio", "16 /"),
               ("padding", "1px 2px 3px 4px 5px"), ("padding", "-1px"),
+              ("padding-top", "-1px"), ("padding-left", "1px 2px"), ("margin-bottom", "auto"), ("margin-right", "red"),
               ("gap", "50%"), ("flex-grow", "-1"), ("align-items", "middle"),
               ("justify-content", "stretch"),
               ("grid-template-columns", "repeat(0, 1fr)"), ("grid-template-columns", "1fr 2em"),
@@ -72,7 +81,8 @@ struct CSSBoxPropertiesTests {
     @Test("alle Eigenschaften aus 3.1 sind eingetragen, cursor und pointer-events erben")
     func registry() {
         let names = ["width", "height", "min-width", "max-width", "min-height", "max-height", "aspect-ratio",
-                     "padding", "margin", "gap", "row-gap", "column-gap", "flex-grow", "flex-shrink",
+                     "padding", "margin", "padding-top", "padding-right", "padding-bottom", "padding-left",
+                     "margin-top", "margin-right", "margin-bottom", "margin-left", "gap", "row-gap", "column-gap", "flex-grow", "flex-shrink",
                      "align-items", "align-self", "justify-content", "grid-template-columns", "grid-auto-rows",
                      "grid-column", "grid-row", "overflow", "z-index", "pointer-events", "cursor"]
         for name in names {

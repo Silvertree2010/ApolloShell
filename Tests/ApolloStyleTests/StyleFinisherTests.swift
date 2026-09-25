@@ -29,6 +29,24 @@ struct StyleFinisherTests {
         #expect(style(".x { width: 1px }")["background"] == nil)
     }
 
+    @Test("padding und margin: Längsform und Kurzform, die spätere bzw. stärkere Deklaration gewinnt je Seite")
+    func sideLonghands() {
+        let pt = { (values: [Double]) in CSSValue.lengths(values.map { CSSLength($0, .points) }) }
+        #expect(style(".x { padding: 4px; padding-top: 10px }")["padding"] == pt([10, 4, 4, 4]))
+        #expect(style(".x { padding-top: 10px; padding: 4px }")["padding"] == pt([4, 4, 4, 4]))
+        #expect(style(".x { padding-left: 3px }")["padding"] == pt([0, 0, 0, 3]))
+        #expect(style(".x.y { padding: 4px } .x { padding-right: 9px }")["padding"] == pt([4, 4, 4, 4]))
+        #expect(style(".x { padding: 4px } .x { padding-bottom: 7px }")["padding"] == pt([4, 4, 7, 4]))
+        #expect(style(".x { padding-bottom: 7px } .x { padding: 1px 2px }")["padding"] == pt([1, 2, 1, 2]))
+        #expect(style(".x { margin: 1px 2px 3px 4px; margin-right: -5px; margin-top: 6px }")["margin"] == pt([6, -5, 3, 4]))
+        #expect(style(".x { margin-left: 2px } .x { margin: 0 }")["margin"] == pt([0, 0, 0, 0]))
+        #expect(style(".x { padding-top: 1px !important; padding: 4px }")["padding"] == pt([1, 4, 4, 4]))
+        #expect(style(".x { padding: 4px; padding-top: bad }")["padding"] == pt([4, 4, 4, 4]))
+        #expect(style(".x { padding-top: 10px }")["padding-top"] == nil)
+        #expect(style(".x { width: 1px }")["padding"] == nil)
+        #expect(style(".x { width: 1px }")["margin"] == nil)
+    }
+
     @Test("border setzt sich aus Kurzschreibweise und Einzelwerten nach Rang zusammen")
     func borderComposition() {
         #expect(style(".x { border: 1px solid red } .x.y { border-color: blue }")["border"] == .border(width: 1, dashed: false, color: blue))

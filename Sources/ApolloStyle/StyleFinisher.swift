@@ -7,6 +7,8 @@ enum StyleFinisher {
                        environment: StyleEnvironment) {
         composeBackground(&values, winners: winners)
         composeBorder(&values, winners: winners)
+        composeSides("padding", &values, winners: winners)
+        composeSides("margin", &values, winners: winners)
         scaleFont(&values, declared: declared, tokens: environment.tokens)
         applyMotion(&values, environment: environment)
         applySurfaces(&values, environment: environment)
@@ -58,6 +60,24 @@ enum StyleFinisher {
         } else {
             values["border"] = nil
         }
+    }
+
+    private static func composeSides(_ box: String, _ values: inout [String: CSSValue], winners: [String: CascadeRank]) {
+        let names = CSSBoxProperties.sides.map { "\(box)-\($0)" }
+        var sides = [CSSLength](repeating: CSSLength(0, .points), count: 4)
+        var present = false
+        if case let .lengths(found)? = values[box], found.count == 4 {
+            sides = found
+            present = true
+        }
+        for (index, name) in names.enumerated() {
+            if case let .length(length)? = values[name], outranks(winners[name], winners[box]) {
+                sides[index] = length
+                present = true
+            }
+            values[name] = nil
+        }
+        if present { values[box] = .lengths(sides) }
     }
 
     private static func outranks(_ candidate: CascadeRank?, _ current: CascadeRank?) -> Bool {

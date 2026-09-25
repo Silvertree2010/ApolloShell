@@ -1,7 +1,17 @@
 enum CSSBoxProperties {
     static let flexAliases = ["flex-start": "start", "flex-end": "end"]
 
-    static let entries: [CSSPropertyEntry] = [
+    static let sides = ["top", "right", "bottom", "left"]
+
+    static let sideEntries: [CSSPropertyEntry] = ["padding", "margin"].flatMap { box in
+        sides.map { side in
+            CSSPropertyEntry("\(box)-\(side)") { components, _ in
+                .length(try CSSRead.length(CSSRead.single(components), percent: true, negative: box == "margin"))
+            }
+        }
+    }
+
+    static let entries: [CSSPropertyEntry] = sideEntries + [
         CSSPropertyEntry("width") { components, _ in try size(components) },
         CSSPropertyEntry("height") { components, _ in try size(components) },
         CSSPropertyEntry("min-width") { components, _ in try size(components) },

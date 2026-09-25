@@ -26,6 +26,14 @@ struct StyleRenderTests {
         #expect(shot.bounds { $0.near(.red) } == CGRect(x: 4, y: 4, width: 10, height: 10))
     }
 
+    @Test("padding-left und margin-top wirken wie die Kurzform")
+    func sideLonghands() throws {
+        let shot = try box(".a { padding: 4px; padding-left: 8px; margin-top: 3px; background: #0000ff; } .b { width: 10px; height: 10px; background: #ff0000; }",
+                           children: "stack class=\"a\" { stack class=\"b\" }")
+        #expect(shot.bounds { $0.near(.blue) } == CGRect(x: 0, y: 3, width: 22, height: 18))
+        #expect(shot.bounds { $0.near(.red) } == CGRect(x: 8, y: 7, width: 10, height: 10))
+    }
+
     @Test("row: flex-grow teilt den Rest, Prozentbreite vom Elternelement")
     func flex() throws {
         let shot = try box("""
