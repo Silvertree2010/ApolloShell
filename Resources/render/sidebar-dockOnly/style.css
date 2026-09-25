@@ -1,0 +1,5 @@
+#sidebar.bg-material { height: 900px; background: rgb(242 242 242); }
+.sidebar-modules { height: 900px; }
+@media (prefers-color-scheme: dark) {
+  #sidebar.bg-material { background: rgb(43 43 43); }
+}
