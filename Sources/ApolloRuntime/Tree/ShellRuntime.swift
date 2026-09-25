@@ -21,6 +21,8 @@ public final class ShellRuntime: SurfaceControlling {
     var elements: [Identity: ElementNode] = [:]
     private var configTokens: [SubscriptionToken] = []
     private var awakeTokens: [SubscriptionToken] = []
+    private var providerSettingHandles: [BindingHandle] = []
+    private var providerSettingValues: [String: [String: Value]] = [:]
     private var inSession = false
     private var queue: [@MainActor () -> Void] = []
     private var dirtyContainers: [ObjectIdentifier: Container] = [:]
@@ -109,6 +111,7 @@ public final class ShellRuntime: SurfaceControlling {
         }
         vars.declare(ir.vars, persisted: persisted, shell: shell)
         registerConfigDemand(ir)
+        bindProviderSettings(ir)
         var added: [SurfaceNode] = []
         withSession {
             for surfaceIR in ir.surfaces {
@@ -141,6 +144,9 @@ public final class ShellRuntime: SurfaceControlling {
                 vars.declare(ir.vars, persisted: persisted, shell: shell)
             }
             config = ir
+            if old.blocks != ir.blocks {
+                bindProviderSettings(ir)
+            }
             if old.events != ir.events || old.binds != ir.binds {
                 let staleConfig = configTokens
                 let staleAwake = awakeTokens
@@ -433,6 +439,61 @@ public final class ShellRuntime: SurfaceControlling {
         }
     }
 
+    private func bindProviderSettings(_ ir: ConfigIR) {
+        providerSettingHandles.forEach { $0.cancel() }
+        providerSettingHandles.removeAll()
+        let previous = Set(providerSettingValues.keys)
+        providerSettingValues.removeAll()
+        let ids = ir.blocks.keys.filter { providers.provider($0) != nil }.sorted()
+        for id in ids {
+            providerSettingValues[id] = [:]
+            for block in ir.blocks[id] ?? [] {
+                for key in block.compiled.keys.sorted() {
+                    guard let compiled = block.compiled[key] else { continue }
+                    let handle = bindings.bind(compiled, scope: LocalScope(), active: true) { [weak self] value in
+                        self?.providerSettingChanged(id, key, value)
+                    }
+                    providerSettingHandles.append(handle)
+                }
+            }
+            pushProviderSettings(id)
+        }
+        for id in previous.subtracting(ids) {
+            providers.configure(id, Record())
+        }
+    }
+
+    private func providerSettingChanged(_ id: String, _ key: String, _ value: Value) {
+        guard providerSettingValues[id] != nil, providerSettingValues[id]?[key] != value else { return }
+        providerSettingValues[id]?[key] = value
+        pushProviderSettings(id)
+    }
+
+    private func pushProviderSettings(_ id: String) {
+        guard let flat = providerSettingValues[id] else { return }
+        providers.configure(id, Self.nestedRecord(flat))
+    }
+
+    static func nestedRecord(_ flat: [String: Value]) -> Record {
+        var direct: [(String, Value)] = []
+        var nested: [String: [String: Value]] = [:]
+        var order: [String] = []
+        for key in flat.keys.sorted() {
+            guard let value = flat[key] else { continue }
+            if let dot = key.firstIndex(of: ".") {
+                let head = String(key[..<dot])
+                if nested[head] == nil { order.append(head) }
+                nested[head, default: [:]][String(key[key.index(after: dot)...])] = value
+            } else {
+                direct.append((key, value))
+            }
+        }
+        for head in order where !direct.contains(where: { $0.0 == head }) {
+            direct.append((head, .record(nestedRecord(nested[head] ?? [:]))))
+        }
+        return Record(direct)
+    }
+
     func registerConfigDemand(_ ir: ConfigIR) {
         for handler in ir.events {
             if let when = handler.when, !when.dependencies.isEmpty {
@@ -456,6 +517,8 @@ public final class ShellRuntime: SurfaceControlling {
             }
         }
         releaseConfigDemand()
+        providerSettingHandles.forEach { $0.cancel() }
+        providerSettingHandles.removeAll()
         config = nil
     }
 
