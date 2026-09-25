@@ -1,7 +1,7 @@
 let session-actions {
     - id="logout" title="Log Out" icon="session-logout" symbol="rectangle.portrait.and.arrow.right" mood="think"
     - id="shutdown" title="Shut Down" icon="session-shutdown" symbol="power" mood="farewell"
-    - id="sleep" title="Sleep" icon="session-sleep" symbol="moon.fill" mood="sleep"
+    - id="sleep" title="Sleep" icon="session-sleep" symbol="moon.zzz" mood="sleep"
     - id="restart" title="Restart" icon="session-restart" symbol="arrow.clockwise" mood="farewell"
 }
 
@@ -43,12 +43,7 @@ popup "session" anchor="right" scrim=0.15 overhang=#true {
         use "session-button" action="{session-actions | at 0}" index=0
         use "session-button" action="{session-actions | at 1}" index=1
         stack class="session-emblem" {
-            switch "{var.session-mood}" {
-                case "farewell" { mark state="farewell" greet=#true class="session-mark" }
-                case "sleep" { mark state="sleep" greet=#true class="session-mark" }
-                case "think" { mark state="think" greet=#true class="session-mark" }
-                default { mark state="idle" greet=#true class="session-mark" }
-            }
+            mark state="{var.session-mood}" greet=#true class="session-mark"
         }
         use "session-button" action="{session-actions | at 2}" index=2
         use "session-button" action="{session-actions | at 3}" index=3

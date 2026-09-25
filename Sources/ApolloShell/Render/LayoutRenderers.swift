@@ -65,7 +65,7 @@ struct ScrollElement: View {
         let indicators = element.property("indicators") == .bool(true)
         let fade = StyleValues.fadeEdges(style["-apollo-fade-edges"])
         let overflowing = element.pseudo.contains(.overflowing)
-        ScrollFit(horizontal: horizontal) {
+        ScrollFit(horizontal: horizontal, fills: StyleValues.keyword(style["justify-content"]) == "start") {
             ScrollView(axis, showsIndicators: indicators) {
                 VStack(spacing: 0) {
                     ElementChildren(children: element.children, scope: scope)
@@ -96,10 +96,12 @@ struct ScrollElement: View {
 
 struct ScrollFit: Layout {
     let horizontal: Bool
+    var fills = false
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         guard let subview = subviews.first else { return .zero }
         let fitted = subview.sizeThatFits(proposal)
+        if fills { return fitted }
         let ideal = subview.sizeThatFits(horizontal ? ProposedViewSize(width: nil, height: proposal.height) : ProposedViewSize(width: proposal.width, height: nil))
         return horizontal ? CGSize(width: min(fitted.width, ideal.width), height: fitted.height)
             : CGSize(width: fitted.width, height: min(fitted.height, ideal.height))

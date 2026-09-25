@@ -18,38 +18,58 @@ define "media-controls" {
 define "dashboard-media" {
     stack class="media-tab" {
         image "{media.artwork}" fit="fill" class="media-backdrop"
-        switch "{media.unavailable != null && media.unavailable != '' ? 'unavailable' : (media.playing || media.title != null ? 'playing' : 'idle')}" {
-            case "unavailable" {
-                column class="media-empty" {
-                    text "{media.available ? 'Media Not Available' : 'Adapter Not Running'}" class="media-empty-title"
-                    text "{media.unavailable}" class="media-empty-detail"
+        row class="media-now" {
+            column class="media-cover-section" {
+                stack class="media-artwork" {
+                    icon "music.note" class="media-artwork-placeholder"
+                    image "{media.artwork}" fit="fill" class="media-artwork-image"
                 }
             }
-            case "idle" {
-                column class="media-empty" {
-                    icon "music.note" class="media-empty-glyph"
-                    text "Nothing Playing" class="media-empty-title"
+            switch "{media.unavailable != null && media.unavailable != '' ? 'unavailable' : (media.playing || media.title != null ? 'playing' : 'idle')}" {
+                case "unavailable" {
+                    column class="media-empty" {
+                        stack class="media-empty-badge" { icon "exclamationmark.triangle" class="media-empty-glyph" }
+                        text "Media Not Available" class="media-empty-title"
+                        text "The Now Playing adapter isn't running." class="media-empty-detail"
+                    }
                 }
-            }
-            default {
-                row class="media-now" {
-                    image "{media.artwork}" placeholder="music.note" fit="fill" class="media-artwork"
-                    column class="media-info" {
-                        text "{media.title}" class="media-title" lines=1 truncate="tail"
-                        text "{media.artist}" class="media-artist" lines=1 truncate="tail"
-                        text "{media.album}" class="media-album" lines=1 truncate="tail"
-                        progress value="{media.progress}" class="media-timeline"
-                        row class="media-times" {
-                            text "{media.elapsed | duration 'clock'}" class="media-time"
-                            spacer
-                            text "{media.duration | duration 'clock'}" class="media-time"
+                case "idle" {
+                    column class="media-empty" {
+                        stack class="media-empty-badge" { icon "music.note.list" class="media-empty-glyph" }
+                        text "Nothing Playing" class="media-empty-title"
+                        text "Play something, and it will appear here." class="media-empty-detail"
+                    }
+                }
+                default {
+                    row class="media-main" {
+                        column class="media-info" {
+                            text "{media.title}" class="media-title" lines=1 truncate="tail"
+                            text "{media.artist ?? 'Unknown Artist'}" class="media-artist" lines=1 truncate="tail"
+                            when "{media.album != null}" { text "{media.album}" class="media-album" lines=1 truncate="tail" }
+                            row class="media-times" {
+                                text "{(media.elapsed ?? 0) | duration 'clock'}" class="media-time"
+                                progress value="{media.progress ?? 0}" class="media-timeline"
+                                text "{media.duration != null ? '-' + ((media.duration - (media.elapsed ?? 0)) | duration 'clock') : '--:--'}" class="media-time"
+                            }
+                            use "media-controls"
                         }
-                        use "media-controls"
-                        button class="media-source" {
-                            on-click { media.open-app }
-                            app-icon "{media.app}" class="media-source-icon"
-                            text "{media.app-name}" class="media-source-name"
-                            icon "waveform" class="media-source-wave"
+                        column class="media-source-panel" {
+                            row class="media-source-head" {
+                                icon "hifispeaker.fill" class="media-source-head-glyph"
+                                text "Source" class="media-source-head-title"
+                            }
+                            button class="media-source" {
+                                on-click { media.open-app }
+                                column class="media-source-body" {
+                                    when "{media.app != null}" { app-icon "{media.app}" class="media-source-icon" }
+                                    else { icon "app.dashed" class="media-source-fallback" }
+                                    text "{media.app-name ?? 'Unknown App'}" class="media-source-name" lines=1
+                                    row class="media-source-state" {
+                                        icon "{media.playing ? 'waveform' : 'pause.fill'}" class="media-source-wave"
+                                        text "{media.playing ? 'Playing' : 'Paused'}" class="media-source-state-text"
+                                    }
+                                }
+                            }
                         }
                     }
                 }

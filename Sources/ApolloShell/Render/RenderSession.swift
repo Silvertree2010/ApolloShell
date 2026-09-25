@@ -16,7 +16,10 @@ final class RenderSession {
     let canvas: OffscreenCanvas
     let dark: Bool
     let actionLog = ActionLog()
+    var markRenderTime: TimeInterval = 0
     var actions: [String] { actionLog.entries }
+    let renderVars: Record
+    let renderToasts: [Value]
 
     init(config: URL, resources: URL, fixture: ProviderFixture, fixtureRoot: URL?, dark: Bool, scale: CGFloat, theme themeURL: URL? = nil,
          log: @escaping ([Diagnostic]) -> Void = { _ in }) throws {
@@ -26,6 +29,8 @@ final class RenderSession {
         NSApplication.shared.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         self.dark = dark
         var fixture = fixture
+        renderVars = fixture.vars
+        renderToasts = fixture.toasts
         let extracted = FixtureIcons.extract(fixture.values)
         fixture.values = extracted.values
         var now = Date()
@@ -39,7 +44,7 @@ final class RenderSession {
         let loaded = ConfigSource.load(config, builtinConfigs: resources.appendingPathComponent("configs"), id: "render")
         log(loaded.diagnostics)
         guard let ir = loaded.ir else { throw RenderError.config("config \(config.path) did not load") }
-        assembly.apply(ir, screens: ["render"])
+        assembly.apply(ir, screens: ["render"], shell: fixture.shell)
         for _ in 0..<50 { scheduler.runPending() }
         log(assembly.warnings)
         let (sheets, sheetDiagnostics) = StyleSheets.load(ir)
@@ -98,6 +103,7 @@ final class RenderSession {
             .environment(\.colorScheme, appearance)
             .environment(\._accessibilityReduceTransparency, true)
             .environment(\.renderMode, true)
+            .environment(\.markRenderTime, markRenderTime)
             .background(dark ? Color.black : Color.white)
             .transaction { transaction in
                 transaction.animation = nil
@@ -106,9 +112,40 @@ final class RenderSession {
     }
 
     func capture(_ surface: SurfaceInstance, name: String) throws -> Data {
+        var opened = Self.opensForCapture(surface)
+        if surface.ir.kind == "toast", !surface.isOpen, !renderToasts.isEmpty {
+            let records = renderToasts.enumerated().map { index, value -> Value in
+                var record = Record([("id", .string("toast-\(index + 1)")), ("remaining", .number(5)), ("queued", .bool(false))])
+                if case .record(let fields) = value { for key in fields.keys { record[key] = fields[key] } }
+                if record["kind"] == nil { record["kind"] = .string("info") }
+                return .record(record)
+            }
+            assembly.runtime.setToasts(surface.id, screenKey: surface.screenKey, records)
+            opened = true
+        }
+        if opened {
+            assembly.runtime.open(surface.id, screenKey: surface.screenKey)
+            flush()
+        }
+        for name in renderVars.keys where assembly.actions.vars.isDeclared(name) {
+            guard var value = renderVars[name] else { continue }
+            if case .record(let record) = value, record.keys.isEmpty, case .list = assembly.actions.vars.value(name) { value = .list([]) }
+            assembly.actions.vars.set(name, value)
+        }
+        if renderVars.count > 0 { flush() }
         let hosting = mount(surface)
-        defer { canvas.window.contentView = nil }
+        defer {
+            canvas.window.contentView = nil
+            if opened {
+                assembly.runtime.close(surface.id)
+                flush()
+            }
+        }
         return try canvas.stableCapture(hosting, name: name)
+    }
+
+    static func opensForCapture(_ surface: SurfaceInstance) -> Bool {
+        !surface.isOpen && !["panel", "toast"].contains(surface.ir.kind)
     }
 }
 
@@ -121,6 +158,10 @@ private struct RenderModeKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct MarkRenderTimeKey: EnvironmentKey {
+    static let defaultValue: TimeInterval = 0
+}
+
 private struct SurfaceShownKey: EnvironmentKey {
     static let defaultValue = true
 }
@@ -129,6 +170,11 @@ extension EnvironmentValues {
     var surfaceShown: Bool {
         get { self[SurfaceShownKey.self] }
         set { self[SurfaceShownKey.self] = newValue }
+    }
+
+    var markRenderTime: TimeInterval {
+        get { self[MarkRenderTimeKey.self] }
+        set { self[MarkRenderTimeKey.self] = newValue }
     }
 
     var renderMode: Bool {

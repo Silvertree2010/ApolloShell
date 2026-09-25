@@ -7,7 +7,7 @@ define "settings-hotkey" {
         spacer
         column class="settings-hotkey" {
             key-recorder value="{value}" class="settings-recorder" {
-                on-change { set "{name}" "{event.value}" }
+                on-change { set "{name}" "{event.chord}" }
             }
             when "{(value | hotkey-warning) != null}" { text "{value | hotkey-warning}" class="settings-warning" }
         }

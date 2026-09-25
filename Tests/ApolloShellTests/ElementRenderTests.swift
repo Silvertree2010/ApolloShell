@@ -139,14 +139,14 @@ struct ElementRenderTests {
         panel "t" anchor="left" { mark id="m" state="{var.mood}" greet=#false class="m" color="#ff0000" { on-appear { set "appeared" "{var.appeared + 1}" } } }
         """
         let css = "#t { width: 60px; height: 60px; background: #ffffff; } .m { width: 50px; height: 50px; }"
-        let mounted = try Mounted.mount(config, css: css)
+        let mounted = try Mounted.mount(config, css: css, markTime: 30)
         let canvas = mounted.session.canvas
         let before = try canvas.snapshot(mounted.view, name: "idle")
         mounted.session.context.runtime?.setVariable("mood", .string("sleep"))
         await mounted.settle()
         mounted.pump()
         let after = try canvas.snapshot(mounted.view, name: "sleep")
-        let reference = try Mounted.mount(config.replacingOccurrences(of: "var mood \"idle\"", with: "var mood \"sleep\""), css: css)
+        let reference = try Mounted.mount(config.replacingOccurrences(of: "var mood \"idle\"", with: "var mood \"sleep\""), css: css, markTime: 30)
         let fresh = try reference.session.canvas.snapshot(reference.view, name: "fresh")
         let shots = try [before, after, fresh].map { Snapshot(rep: try #require(NSBitmapImageRep(data: $0)), scale: 1) }
         func differing(_ a: Snapshot, _ b: Snapshot) -> Int {

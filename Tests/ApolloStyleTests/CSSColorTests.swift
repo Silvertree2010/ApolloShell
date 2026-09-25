@@ -41,7 +41,7 @@ struct CSSColorTests {
 
     @Test("die Liste der Systemfarben ist vollständig")
     func systemColorCount() {
-        #expect(CSSColorParser.systemColorNames.count == 23)
+        #expect(CSSColorParser.systemColorNames.count == 24)
         #expect(CSSColorParser.systemColorNames.contains("-apple-system-selected-content-background"))
         #expect(CSSColorParser.systemColorNames.contains("-apple-system-mint"))
     }

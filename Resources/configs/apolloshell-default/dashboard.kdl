@@ -8,10 +8,10 @@ var dashboard-visible-tabs from="{var.dashboard-tabs | where 'visible' true}"
 var dashboard-active-tab from="{(var.dashboard-visible-tabs | where 'id' var.dashboard-tab | count) > 0 ? var.dashboard-tab : (var.dashboard-visible-tabs | first).id}"
 
 let dashboard-tab-looks {
-    - id="dashboard" title="Dashboard" icon="bar-dashboard" symbol="square.grid.2x2"
-    - id="media" title="Media" icon="panel-media" symbol="music.note"
-    - id="performance" title="Performance" icon="panel-performance" symbol="gauge.with.dots.needle.33percent"
-    - id="weather" title="Weather" icon="panel-weather" symbol="cloud.sun.fill"
+    - id="dashboard" title="Dashboard" icon="bar-dashboard" symbol="square.grid.2x2" selected=".fill"
+    - id="media" title="Media" icon="panel-media" symbol="music.note.list" selected=""
+    - id="performance" title="Performance" icon="panel-performance" symbol="gauge.with.dots.needle.67percent" selected=""
+    - id="weather" title="Weather" icon="panel-weather" symbol="cloud.sun" selected=".fill"
 }
 
 include "dashboard-cards.kdl"
@@ -64,19 +64,22 @@ popup "dashboard" anchor="top" motion="slide" hover-edge=#true overhang=#true ar
             each tab in="{var.dashboard-visible-tabs}" key="{tab.id}" {
                 button class="dashboard-tab" checked="{tab.id == var.dashboard-active-tab}" {
                     on-click { set "dashboard-tab" "{tab.id}" }
-                    when "{tab.id == var.dashboard-active-tab}" { stack class="dashboard-tab-pill" match-id="dashboard-tab" }
-                    row class="dashboard-tab-label" {
-                        icon "{(dashboard-tab-looks | where 'id' tab.id | first).icon}" fallback="{(dashboard-tab-looks | where 'id' tab.id | first).symbol}" class="dashboard-tab-glyph"
+                    column class="dashboard-tab-label" {
+                        icon "{(dashboard-tab-looks | where 'id' tab.id | first).icon}" fallback="{(dashboard-tab-looks | where 'id' tab.id | first).symbol}{tab.id == var.dashboard-active-tab ? (dashboard-tab-looks | where 'id' tab.id | first).selected : ''}" class="dashboard-tab-glyph"
                         text "{(dashboard-tab-looks | where 'id' tab.id | first).title}" class="dashboard-tab-title"
                     }
+                    when "{tab.id == var.dashboard-active-tab}" { stack class="dashboard-tab-pill" match-id="dashboard-tab" }
                 }
             }
         }
-        switch "{var.dashboard-active-tab}" {
-            case "dashboard" { use "dashboard-overview" }
-            case "media" { use "dashboard-media" }
-            case "performance" { use "dashboard-performance" }
-            case "weather" { use "dashboard-weather" }
+        stack class="dashboard-divider"
+        column class="dashboard-page" {
+            switch "{var.dashboard-active-tab}" {
+                case "dashboard" { use "dashboard-overview" }
+                case "media" { use "dashboard-media" }
+                case "performance" { use "dashboard-performance" }
+                case "weather" { use "dashboard-weather" }
+            }
         }
     }
 }

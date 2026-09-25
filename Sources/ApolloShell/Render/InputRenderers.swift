@@ -55,11 +55,45 @@ struct ToggleElement: View {
         Toggle("", isOn: Binding(get: { checked }, set: { value in
             context.fire("on-change", element, Record([("value", .bool(value))]))
         }))
-        .toggleStyle(.switch)
+        .toggleStyle(AccentSwitchStyle(accent: Self.accent(style)))
         .labelsHidden()
-        .modifier(AccentTint(style: style))
         .disabled(element.property("disabled").isTruthy)
         .overlay { PassiveZone(element: element, context: context) }
+    }
+
+    static func accent(_ style: ComputedStyle) -> Color {
+        if case .color(let color)? = style["accent-color"] { return StyleValues.color(color) }
+        return Color(nsColor: .controlAccentColor)
+    }
+}
+
+struct AccentSwitchStyle: ToggleStyle {
+    let accent: Color
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        let on = configuration.isOn
+        Button {
+            configuration.isOn.toggle()
+        } label: {
+            Capsule()
+                .fill(on ? AnyShapeStyle(accent) : AnyShapeStyle(Color.primary.opacity(0.10)))
+                .frame(width: 54, height: 24)
+                .overlay {
+                    Capsule()
+                        .fill(colorScheme == .dark ? Color(white: 0.91) : Color.white)
+                        .shadow(color: .black.opacity(0.18), radius: 1, y: 0.5)
+                        .frame(width: 32, height: 20)
+                        .offset(x: on ? 9 : -9)
+                }
+                .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
+        .opacity(isEnabled ? 1 : 0.4)
+        .animation(.timingCurve(0.34, 0.8, 0.34, 1, duration: 0.2), value: on)
+        .accessibilityAddTraits(.isToggle)
+        .accessibilityValue(on ? "on" : "off")
     }
 }
 
@@ -96,6 +130,46 @@ struct SliderMetrics: Equatable {
     }
 }
 
+enum SliderFillMode: String, Equatable {
+    case center
+    case inside
+    case insideLinear = "inside-linear"
+}
+
+struct SliderGeometry: Equatable {
+    var length: CGFloat
+    var cross: CGFloat
+    var thumb: CGFloat
+    var thumbCross: CGFloat
+    var fraction: Double
+    var mode: SliderFillMode = .center
+
+    var travel: CGFloat { Swift.max(0, length - thumb) }
+
+    var fill: CGFloat {
+        switch mode {
+        case .center: return Swift.max(thumb > 0 ? thumbCenter : 0, fraction * length)
+        case .inside: return Swift.min(length, Swift.max(cross, fraction * length))
+        case .insideLinear: return Swift.min(length, cross + fraction * Swift.max(0, length - cross))
+        }
+    }
+
+    var thumbCenter: CGFloat {
+        switch mode {
+        case .center: return thumb / 2 + fraction * travel
+        case .inside, .insideLinear: return fill - cross / 2
+        }
+    }
+
+    func fraction(at position: CGFloat) -> Double {
+        switch mode {
+        case .center: return travel > 0 ? Double((position - thumb / 2) / travel) : 0
+        case .inside: return length > 0 ? Double(position / length) : 0
+        case .insideLinear: return length > cross ? Double((position - cross / 2) / (length - cross)) : 0
+        }
+    }
+}
+
 struct SliderElement: View {
     let element: ElementInstance
     let style: ComputedStyle
@@ -111,14 +185,16 @@ struct SliderElement: View {
         let keyStep = StyleValues.numberValue(element.property("key-step")) ?? (metrics.step > 0 ? metrics.step : (metrics.max - metrics.min) / 20)
         GeometryReader { proxy in
             let length = vertical ? proxy.size.height : proxy.size.width
+            let cross = vertical ? proxy.size.width : proxy.size.height
             let extent = vertical ? thumb.height : thumb.width
-            let travel = Swift.max(0, length - extent)
-            let center = extent / 2 + metrics.fraction(shown) * travel
+            let geometry = SliderGeometry(length: length, cross: cross, thumb: extent, thumbCross: vertical ? thumb.width : thumb.height,
+                                          fraction: metrics.fraction(shown), mode: fillMode)
+            let center = geometry.thumbCenter
             ZStack(alignment: vertical ? .bottom : .leading) {
                 Capsule().fill(trackColor)
                 BackgroundLayers(style: ComputedStyle(values: ["background": fillLayers]), shape: AnyShape(Capsule()), context: scope.context)
-                    .frame(width: vertical ? nil : Swift.max(extent > 0 ? center : 0, metrics.fraction(shown) * length),
-                           height: vertical ? Swift.max(extent > 0 ? center : 0, metrics.fraction(shown) * length) : nil)
+                    .frame(width: vertical ? nil : geometry.fill, height: vertical ? geometry.fill : nil)
+                    .opacity(fillMode == .insideLinear && geometry.fraction <= 0 ? 0 : 1)
                 if extent > 0 {
                     thumbView(thumb)
                         .offset(x: vertical ? 0 : center - thumb.width / 2, y: vertical ? -(center - thumb.height / 2) : 0)
@@ -129,7 +205,7 @@ struct SliderElement: View {
             .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
                 guard !element.property("disabled").isTruthy else { return }
                 let position = vertical ? length - drag.location.y : drag.location.x
-                let value = metrics.value(fraction: travel > 0 ? (position - extent / 2) / travel : 0)
+                let value = metrics.value(fraction: geometry.fraction(at: position))
                 if value != dragValue {
                     dragValue = value
                     scope.context.fire("on-change", element, Record([("value", .number(value))]))
@@ -156,6 +232,11 @@ struct SliderElement: View {
             return CGSize(width: list[0].value, height: list[1].value)
         }
         return .zero
+    }
+
+    var fillMode: SliderFillMode {
+        if case .keyword(let name)? = style["-apollo-fill-mode"], let mode = SliderFillMode(rawValue: name) { return mode }
+        return .center
     }
 
     var trackColor: Color {

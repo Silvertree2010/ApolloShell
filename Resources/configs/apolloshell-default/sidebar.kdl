@@ -38,7 +38,7 @@ define "sidebar-power" {
 
 define "sidebar-media-button" {
     param "module"
-    use "sidebar-icon" icon="panel-media" fallback="music.note" tooltip="Media" {
+    use "sidebar-icon" icon="panel-media" fallback="music.note" tooltip="Media" glyph="sidebar-media-glyph" {
         on-click { set "dashboard-tab" "media"; open "dashboard" }
     }
 }
@@ -49,8 +49,11 @@ define "sidebar-spaces" {
         each space in="{spaces.list | where 'fullscreen' false}" key="{space.id}" {
             button class="space" checked="{space.active}" tooltip="Desktop {space.index}" {
                 on-click { spaces.switch "{space.index}" }
-                when "{space.active}" { stack class="space-pill" match-id="space-pill" }
-                when "{module.style == 'numbers'}" { text "{space.index}" class="space-number" }
+                stack {
+                    when "{space.active}" { stack class="space-pill" match-id="space-pill" }
+                    when "{module.style == 'numbers'}" { text "{space.index}" class="space-number" }
+                    else { stack class="space-dot" }
+                }
             }
         }
     }
@@ -133,8 +136,10 @@ define "sidebar-battery" {
     when "{battery.present}" {
         button class="sidebar-tile sidebar-battery {battery.percent < 0.2 && !battery.charging ? 'low' : ''}" {
             on-click { set "dashboard-tab" "performance"; open "dashboard" }
-            when "{module.show-icon}" { icon "{battery.charging ? 'status-battery-charging' : 'status-battery'}" fallback="{battery.symbol}" class="battery-glyph" }
-            text "{battery.percent | percent}" class="sidebar-tile-value"
+            column class="sidebar-tile-stack" {
+                when "{module.show-icon}" { icon "{battery.charging ? 'status-battery-charging' : 'status-battery'}" fallback="{battery.symbol}" class="battery-glyph" }
+                text "{battery.percent | percent}" class="sidebar-tile-value"
+            }
         }
     }
 }
@@ -145,8 +150,10 @@ define "sidebar-cpu" {
         on-click { set "dashboard-tab" "performance"; open "dashboard" }
         switch "{module.style}" {
             case "percent" {
-                icon "panel-cpu" fallback="cpu" class="sidebar-tile-glyph"
-                text "{perf.cpu | percent}" class="sidebar-tile-value"
+                column class="sidebar-tile-stack" {
+                    icon "panel-cpu" fallback="cpu" class="sidebar-tile-glyph"
+                    text "{perf.cpu | percent}" class="sidebar-tile-value"
+                }
             }
             default {
                 stack {
@@ -162,8 +169,10 @@ define "sidebar-weather" {
     param "module"
     button class="sidebar-tile sidebar-weather" {
         on-click { set "dashboard-tab" "weather"; open "dashboard" }
-        icon "{weather.current.symbol ?? 'cloud.sun.fill'}" class="weather-glyph"
-        when "{module.show-temperature && weather.status == 'ready'}" { text "{weather.current.temperature | temperature}" class="sidebar-tile-value" }
+        column class="sidebar-tile-stack" {
+            icon "{weather.current.symbol ?? 'cloud.sun.fill'}" class="weather-glyph"
+            when "{module.show-temperature && weather.status == 'ready'}" { text "{weather.current.temperature | temperature}" class="sidebar-tile-value" }
+        }
     }
 }
 
@@ -201,6 +210,34 @@ define "popout-row" {
     }
 }
 
+define "popout-lead" {
+    param "symbol"
+    param "strength" default=1
+    param "active" default=#true
+    param "title"
+    param "subtitle" default=""
+    row class="popout-status" {
+        stack class="popout-status-circle {active ? '' : 'off'}" {
+            icon "{symbol}" variable="{strength}" class="popout-status-glyph"
+        }
+        column class="popout-status-text" {
+            text "{title}" class="popout-status-title" lines=1
+            when "{subtitle != ''}" { text "{subtitle}" class="popout-status-subtitle" lines=1 }
+        }
+    }
+}
+
+define "popout-link" {
+    param "title"
+    button class="popout-link" {
+        slot
+        row class="popout-link-content" {
+            icon "gearshape" class="popout-link-glyph"
+            text "{title}"
+        }
+    }
+}
+
 define "popout-wifi" {
     column class="popout popout-wifi" {
         row class="popout-header" {
@@ -211,30 +248,21 @@ define "popout-wifi" {
             }
         }
         when "{network.wifi.on && network.wifi.connected}" {
-            row class="popout-status" {
-                stack class="popout-status-circle" {
-                    icon "wifi" variable="{network.wifi.bars / 3}" class="popout-status-glyph"
-                }
-                column class="popout-status-text" {
-                    text "Connected" class="popout-status-title"
-                    text "Network name needs Location Services" class="popout-hint"
-                }
-            }
+            use "popout-lead" symbol="wifi" strength="{network.wifi.bars / 3}" title="Connected" subtitle="Network name needs Location Services"
             column class="popout-card" {
-                use "popout-row" title="Signal" value="{network.wifi.rssi != null ? network.wifi.rssi + ' dBm (' + network.wifi.quality + ')' : null}"
-                use "popout-row" title="Noise" value="{network.wifi.noise != null ? network.wifi.noise + ' dBm, SNR ' + network.wifi.snr + ' dB' : null}"
-                use "popout-row" title="Tx Rate" value="{network.wifi.tx-rate != null ? (network.wifi.tx-rate | round) + ' Mbit/s' : null}"
+                use "popout-row" title="Signal" value="{network.wifi.rssi != null ? network.wifi.rssi + ' dBm · ' + network.wifi.quality : null}"
+                use "popout-row" title="Noise" value="{network.wifi.noise != null ? network.wifi.noise + ' dBm' + (network.wifi.snr != null ? ' · SNR ' + network.wifi.snr + ' dB' : '') : null}"
+                use "popout-row" title="Transmit Rate" value="{network.wifi.tx-rate != null ? (network.wifi.tx-rate | round) + ' Mbit/s' : null}"
                 use "popout-row" title="Standard" value="{network.wifi.standard}"
-                use "popout-row" title="Channel" value="{network.wifi.channel != null ? network.wifi.channel + ' (' + network.wifi.band + ')' : null}"
+                use "popout-row" title="Channel" value="{network.wifi.channel != null ? network.wifi.channel + (network.wifi.band != null ? ' · ' + network.wifi.band : '') : null}"
                 use "popout-row" title="Interface" value="{network.wifi.interface}"
             }
         }
         else {
-            text "{network.wifi.on ? 'Not connected to a network.' : 'Wi-Fi is turned off.'}" class="popout-hint"
+            use "popout-lead" symbol="{network.wifi.on ? 'wifi' : 'wifi.slash'}" strength=0 active=#false title="{network.wifi.on ? 'Not Connected' : 'Wi-Fi Is Off'}" subtitle="{network.wifi.on ? 'No Network in Range Connected' : ''}"
         }
-        button class="popout-link" {
+        use "popout-link" title="Wi-Fi Settings…" {
             on-click { network.open-settings; set "status-popout" "" }
-            text "Wi-Fi Settings…"
         }
     }
 }
@@ -245,34 +273,38 @@ define "popout-bluetooth" {
             text "Bluetooth" class="popout-title"
             spacer
             stack class="popout-capsule {bluetooth.on ? 'on' : 'off'}" tooltip="{bluetooth.on ? 'Bluetooth is on' : 'Bluetooth is off'}" {
-                text "{bluetooth.on ? 'On' : 'Off'}" class="popout-capsule-text"
+                text "{bluetooth.on == null ? '–' : (bluetooth.on ? 'On' : 'Off')}" class="popout-capsule-text"
             }
         }
         switch "{bluetooth.status}" {
             case "reading" { text "Reading devices…" class="popout-hint" }
             case "unavailable" { text "Bluetooth state unavailable" class="popout-hint" }
             default {
-                text "{bluetooth.paired > 0 ? bluetooth.paired + ' paired devices, ' + bluetooth.connected + ' connected' : 'No paired devices'}" class="popout-hint"
+                text "{bluetooth.paired == 0 ? 'No paired devices' : (bluetooth.paired == 1 ? '1 paired device' : bluetooth.paired + ' paired devices') + (bluetooth.connected == 0 ? ', none connected' : ', ' + bluetooth.connected + ' connected')}" class="popout-hint"
             }
         }
         when "{(bluetooth.devices | count) > 0}" {
-            column class="popout-card popout-devices" {
+            column class="popout-devices" {
                 each device in="{bluetooth.devices}" key="{device.name + device.kind}" {
-                    row class="popout-device" {
-                        icon "{device.symbol}" fallback="headphones" class="popout-device-glyph"
-                        text "{device.name}" class="popout-device-name" lines=1 truncate="tail"
-                        spacer
-                        use "popout-device-battery" label="" level="{device.battery.main}"
-                        use "popout-device-battery" label="L" level="{device.battery.left}"
-                        use "popout-device-battery" label="R" level="{device.battery.right}"
-                        use "popout-device-battery" label="Case" level="{device.battery.case}"
+                    row class="popout-status popout-device" {
+                        stack class="popout-status-circle" {
+                            icon "{device.symbol}" fallback="headphones" class="popout-device-glyph"
+                        }
+                        column class="popout-status-text" {
+                            text "{device.name}" class="popout-status-title" lines=1 truncate="tail"
+                            row class="popout-device-batteries" {
+                                use "popout-device-battery" label="" level="{device.battery.main}"
+                                use "popout-device-battery" label="L" level="{device.battery.left}"
+                                use "popout-device-battery" label="R" level="{device.battery.right}"
+                                use "popout-device-battery" label="Case" level="{device.battery.case}"
+                            }
+                        }
                     }
                 }
             }
         }
-        button class="popout-link" {
+        use "popout-link" title="Bluetooth Settings…" {
             on-click { bluetooth.open-settings; set "status-popout" "" }
-            text "Bluetooth Settings…"
         }
     }
 }
@@ -283,7 +315,7 @@ define "popout-device-battery" {
     when "{level != null}" {
         row class="popout-device-battery-part" {
             when "{label != ''}" { text "{label}" class="popout-device-battery-label" }
-            text "{level | percent}" class="popout-device-battery {level < 0.2 ? 'low' : ''}"
+            text "{(level * 100 | round) + ' %'}" class="popout-device-battery {level < 0.2 ? 'low' : ''}"
         }
     }
 }
@@ -291,23 +323,22 @@ define "popout-device-battery" {
 define "popout-battery" {
     column class="popout popout-battery" {
         row class="popout-battery-head" {
-            text "{battery.percent | percent}" class="popout-battery-percent"
+            text "{battery.percent * 100 | round}" class="popout-battery-percent"
+            text "%" class="popout-battery-unit"
             spacer
-            stack class="popout-battery-icon" {
-                icon "{battery.symbol}" fallback="battery.100" class="popout-battery-glyph"
-                when "{battery.charging}" { icon "bolt.fill" class="popout-battery-bolt" }
-            }
+            icon "{battery.symbol}" fallback="battery.100" class="popout-battery-glyph {battery.charging ? 'popout-battery-bolt' : ''}"
         }
-        text "{battery.state-text}" class="popout-status-title"
-        when "{battery.time-text != null && battery.time-text != ''}" { text "{battery.time-text}" class="popout-hint" }
+        column class="popout-status-text" {
+            text "{battery.state-text}" class="popout-battery-state"
+            when "{battery.time-text != null && battery.time-text != ''}" { text "{battery.time-text}" class="popout-hint" }
+        }
         column class="popout-card" {
             use "popout-row" title="Low Power Mode" value="{battery.low-power-mode ? 'On' : 'Off'}"
-            use "popout-row" title="Maximum Capacity" value="{battery.health != null ? (battery.health | percent) : null}"
-            use "popout-row" title="Cycle Count" value="{battery.cycles}"
+            use "popout-row" title="Maximum Capacity" value="{battery.health != null ? (battery.health * 100 | round) + ' %' : null}"
+            use "popout-row" title="Charge Cycles" value="{battery.cycles}"
         }
-        button class="popout-link" {
+        use "popout-link" title="Battery Settings…" {
             on-click { system.open-settings "battery"; set "status-popout" "" }
-            text "Battery Settings…"
         }
     }
 }

@@ -156,19 +156,19 @@ struct DefaultConfigTests {
         "--apollo-background-fill": ["--apollo-background-color", "--apollo-background-gradient"],
     ]
 
-    static let cards = [".card", ".popout-card", ".utilities-card", ".onboarding-card"]
+    static let cards = [".card", ".card-weather", ".card-user", ".card-clock", ".card-calendar", ".card-resources", ".card-media", ".media-source", ".popout-card", ".utilities-card", ".onboarding-card", ".weather-hero", ".weather-hours", ".weather-day"]
     static let panels = ["#dashboard", "#utilities", "#launcher", "#session"]
 
     static let allowedPlaces: [String: [String]] = [
         "--apollo-separator-color": [".launcher-separator"],
         "--apollo-border-color": cards,
         "--apollo-border-width": cards,
-        "--apollo-shadow-opacity": [".audio-mute", ".osd-slider"],
+        "--apollo-shadow-opacity": [".audio-mute", ".osd-slider", ".audio-slider"],
         "--apollo-text-color": [".launcher-"],
         "--apollo-secondary-text-color": [".launcher-"],
-        "--apollo-on-accent-color": [".space-number", ".popout-status-circle", ".popout-capsule", ".dashboard-tab", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-badge-text", ".weather-place", ".audio-mute", ".quick-toggle", ".osd-percent", ".osd-glyph", ".toast-chip"],
-        "--apollo-accent-color": [":root", ".space-pill", ".popout-status-circle", ".popout-capsule", ".popout-battery-bolt", ".dashboard-tab-pill", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-graph", ".perf-badge-shape", ".weather-place", ".audio-mute", ".audio-slider", ".quick-toggle", ".session-mark", ".osd-slider", ".toast-chip", ".onboarding-dot"],
-        "--apollo-accent-gradient": [".audio-mute", ".osd-slider"],
+        "--apollo-on-accent-color": [".space-number", ".space-dot", ".popout-status-circle", ".popout-capsule", ".dashboard-tab", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-badge-text", ".perf-tank-bolt", ".perf-tank-percent", ".perf-tank-status", ".weather-place", ".weather-day-name", ".audio-mute", ".quick-toggle", ".osd-slider", ".toast-chip", ".audio-slider", ".keep-awake-chip"],
+        "--apollo-accent-color": [":root", ".space-pill", ".popout-status-circle", ".popout-capsule", ".popout-battery-bolt", ".dashboard-tab-pill", ".card-user-avatar", ".card-calendar-day", ".media-play", ".perf-graph", ".perf-badge-shape", ".perf-ring", ".perf-hero-title", ".perf-gauge", ".perf-storage-glyph", ".perf-memory-glyph", ".perf-network-glyph", ".perf-net-down", ".perf-rate-glyph", ".perf-tank", ".perf-tank-head", ".weather-place", ".weather-day-name", ".audio-mute", ".audio-slider", ".quick-toggle", ".session-mark", ".osd-slider", ".toast-chip", ".onboarding-dot", ".keep-awake-chip", ".dashboard-tab", ".card-resource-ring", ".card-media-arc", ".media-empty-badge", ".media-timeline", ".card-media-bar"],
+        "--apollo-accent-gradient": [".audio-mute", ".osd-slider", ".audio-slider"],
         "--apollo-success-color": [".kind-success"],
         "--apollo-warning-color": [".kind-warning"],
         "--apollo-danger-color": [".kind-error", ".dock-icon"],
@@ -187,9 +187,9 @@ struct DefaultConfigTests {
         "--apollo-panel-gradient": panels,
         "--apollo-panel-opacity": panels,
         "--apollo-panel-radius": panels,
-        "--apollo-card-color": cards + [".osd-slider"],
-        "--apollo-card-gradient": cards + [".osd-slider"],
-        "--apollo-card-radius": cards + [".card-media-artwork", ".media-artwork", ".perf-card"],
+        "--apollo-card-color": cards + [".osd-slider", ".audio-slider"],
+        "--apollo-card-gradient": cards + [".osd-slider", ".audio-slider"],
+        "--apollo-card-radius": cards + [".card-media-artwork", ".media-artwork", ".media-artwork-image", ".media-empty-badge", ".media-tab", ".card-media-strip-cover", ".card-media-strip-art", ".perf-card", ".perf-hero", ".perf-storage", ".perf-memory", ".perf-network", ".perf-battery"],
         "--apollo-launcher-highlight-color": [".launcher-row"],
         "--apollo-launcher-highlight-gradient": [".launcher-row"],
         "--apollo-launcher-row-height": [".launcher-row"],

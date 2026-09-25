@@ -44,6 +44,7 @@ struct CSSTextPropertiesTests {
               ("-apollo-thumb-color", "white", .color(.rgba(red: 1, green: 1, blue: 1, alpha: 1))),
               ("-apollo-thumb-size", "20px", .lengths([CSSLength(20, .points), CSSLength(20, .points)])),
               ("-apollo-thumb-size", "28px 20px", .lengths([CSSLength(28, .points), CSSLength(20, .points)])),
+              ("-apollo-fill-mode", "inside-linear", .keyword("inside-linear")),
               ("-apollo-thumb-shadow", "0 1px 2px rgb(0 0 0 / 20%)", .shadows([Shadow(x: 0, y: 1, blur: 2, spread: 0,
                   color: CSSColorParser.rgba(.init(red: 0, green: 0, blue: 0, alpha: 0.2)))])),
               ("-apollo-sweep-angle", "180deg", .angle(180)),
@@ -61,7 +62,7 @@ struct CSSTextPropertiesTests {
               ("font-style", "oblique"), ("font-variant-numeric", "oldstyle-nums"), ("line-height", "-1"),
               ("text-align", "justify"), ("-apollo-font-scale", "half"), ("-apollo-symbol-effect", "wiggle"),
               ("-apollo-fill-color", "material(regular)"), ("-apollo-fill", "red, blue"),
-              ("-apollo-thumb-size", "1px 2px 3px"), ("-apollo-sweep-angle", "180"), ("-apollo-stroke-width", "-1px"),
+              ("-apollo-thumb-size", "1px 2px 3px"), ("-apollo-fill-mode", "outside"), ("-apollo-sweep-angle", "180"), ("-apollo-stroke-width", "-1px"),
           ])
     func invalid(property: String, text: String) {
         #expect(throws: CSSValueError.self) { try parse(property, text) }
@@ -75,11 +76,12 @@ struct CSSTextPropertiesTests {
         }
         for name in ["-apollo-image-rendering", "-apollo-symbol-effect", "-apollo-content-transition",
                      "-apollo-track-color", "-apollo-fill-color", "-apollo-thumb-color", "-apollo-thumb-size",
-                     "-apollo-thumb-shadow", "-apollo-sweep-angle", "-apollo-stroke-width", "-apollo-start-angle", "-apollo-fill"] {
+                     "-apollo-thumb-shadow", "-apollo-fill-mode", "-apollo-sweep-angle", "-apollo-stroke-width", "-apollo-start-angle", "-apollo-fill"] {
             #expect(CSSPropertyRegistry.builtin[name]?.inherits == false, "\(name)")
         }
         #expect(CSSPropertyRegistry.builtin["-apollo-font-scale"]?.initial == .keyword("auto"))
         #expect(CSSPropertyRegistry.builtin["-apollo-image-rendering"]?.initial == .keyword("original"))
+        #expect(CSSPropertyRegistry.builtin["-apollo-fill-mode"]?.initial == .keyword("center"))
         #expect(CSSPropertyRegistry.builtin["-apollo-sweep-angle"]?.initial == .angle(360))
         #expect(CSSPropertyRegistry.builtin["-apollo-start-angle"]?.initial == .angle(-90))
     }

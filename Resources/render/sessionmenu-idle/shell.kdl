@@ -1,0 +1,3 @@
+include "builtin:apolloshell-default/session.kdl"
+style "builtin:apolloshell-default/style.css"
+style "style.css"

@@ -40,8 +40,17 @@ enum StyleValues {
         case "-apple-system-pink": .pink
         case "-apple-system-brown": .brown
         case "-apple-system-gray": .gray
+        case "-apollo-accent-text": Color(nsColor: accentText)
         default: .primary
         }
+    }
+
+    static let accentText = NSColor(name: nil) { appearance in
+        if appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua { return .controlAccentColor }
+        var environment = EnvironmentValues()
+        environment.colorScheme = .light
+        let mixed = Color(nsColor: .controlAccentColor).mix(with: .black, by: 0.4).resolve(in: environment)
+        return NSColor(cgColor: mixed.cgColor) ?? .controlAccentColor
     }
 
     static func length(_ value: CSSValue?) -> CSSLength? {

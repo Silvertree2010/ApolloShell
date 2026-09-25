@@ -34,6 +34,8 @@ enum CSSTextProperties {
         CSSPropertyEntry("-apollo-thumb-color") { components, _ in .color(try CSSColorParser.color(components)) },
         CSSPropertyEntry("-apollo-thumb-size") { components, _ in try thumbSize(components) },
         CSSPropertyEntry("-apollo-thumb-shadow") { components, _ in .shadows(try CSSEffects.shadows(components)) },
+        CSSPropertyEntry("-apollo-fill-mode", initial: .keyword("center"),
+                         parse: CSSKeywordParser.keyword(["center", "inside", "inside-linear"])),
         CSSPropertyEntry("-apollo-sweep-angle", initial: .angle(360)) { components, _ in
             .angle(try CSSRead.angle(CSSRead.single(components)))
         },

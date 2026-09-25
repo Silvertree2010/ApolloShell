@@ -128,8 +128,8 @@ struct IconElement: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: text.size * 1.2, height: text.size * 1.2)
-            } else if name.hasPrefix("builtin:") {
-                builtin(name, size: text.size)
+            } else if let target = Self.builtinTarget(name, fallback: fallback) {
+                builtin(target, size: text.size)
             } else {
                 Image(systemName: Self.symbol(name, fallback: fallback), variableValue: variable)
                     .font(text.font)
@@ -155,6 +155,13 @@ struct IconElement: View {
         default:
             Image(systemName: Self.symbol("", fallback: fallback)).font(TextStyle(style).font)
         }
+    }
+
+    static func builtinTarget(_ name: String, fallback: String?) -> String? {
+        if name.hasPrefix("builtin:") { return name }
+        guard let fallback, fallback.hasPrefix("builtin:") else { return nil }
+        if !name.isEmpty, NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil { return nil }
+        return fallback
     }
 
     static func symbol(_ name: String, fallback: String?) -> String {
@@ -268,7 +275,7 @@ struct ScallopShape: Shape {
         for step in 0...steps {
             let angle = Double(step) / Double(steps) * 2 * .pi - .pi / 2
             let wave = (1 + cos(Double(count) * (angle + .pi / 2))) / 2
-            let r = radius * (1 - depth * 0.5 * (1 - wave))
+            let r = radius * (1 - depth * (1 - wave))
             let point = CGPoint(x: center.x + r * cos(angle), y: center.y + r * sin(angle))
             if step == 0 { path.move(to: point) } else { path.addLine(to: point) }
         }
@@ -295,19 +302,24 @@ struct MarkElement: View {
     let size: CGFloat
     @State private var timeline: EmblemTimeline?
     @Environment(\.renderMode) private var renderMode
+    @Environment(\.markRenderTime) private var markRenderTime
     @Environment(\.surfaceShown) private var shown
 
     static func onShow(_ shown: Bool, greet: Bool, reaction: EmblemReaction, at time: TimeInterval) -> EmblemTimeline? {
         shown ? EmblemTimeline(greet ? .greet : reaction, at: time) : nil
     }
 
+    var opening: EmblemReaction {
+        greet && !(renderMode && reaction != .idle) ? .greet : reaction
+    }
+
     var body: some View {
-        let current = timeline ?? EmblemTimeline(greet ? .greet : reaction, at: 0)
+        let current = timeline ?? EmblemTimeline(opening, at: 0)
         SessionEmblem(timeline: current, size: size, animating: !renderMode && shown,
-                      fixedTime: renderMode ? current.startTime + 30 : nil, accent: accent, track: track)
+                      fixedTime: renderMode ? current.startTime + markRenderTime : nil, accent: accent, track: track)
             .onAppear {
                 if timeline == nil {
-                    timeline = EmblemTimeline(greet ? .greet : reaction, at: Date.timeIntervalSinceReferenceDate)
+                    timeline = EmblemTimeline(opening, at: Date.timeIntervalSinceReferenceDate)
                 }
             }
             .onChange(of: shown) { _, now in
