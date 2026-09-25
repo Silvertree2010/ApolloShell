@@ -49,7 +49,7 @@ final class LiveShell: WindowHostLink {
     private var shell = Record()
     private var overlayWindow: ErrorOverlayWindow?
     private var watcher: FolderWatcher?
-    let debouncer = ReloadDebouncer()
+    let debouncer: ReloadDebouncer
     private var socket: ControlSocketServer?
     private var updates: UpdateController?
     private var crashes: CrashReporter?
@@ -77,14 +77,17 @@ final class LiveShell: WindowHostLink {
     var terminateApp: @MainActor () -> Void = { NSApp.terminate(nil) }
     var relaunch: @MainActor (URL, Int32) -> Void = LiveShell.relaunchAfterExit
     var registrar: any HotKeyRegistering = CarbonHotKeys()
+    var legacyDefaults: (String) -> Any? = { UserDefaults.standard.object(forKey: $0) }
+    private(set) var legacyNotes: [Diagnostic] = []
     var interactive = true
     var currentScreens: @MainActor () -> [String: ScreenGeometry] = {
         Dictionary(ShellScreens.current().map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame)) }, uniquingKeysWith: { first, _ in first })
     }
     var pointerScreen: @MainActor () -> String? = { ShellScreens.underPointer()?.info.key }
 
-    init(options: Options, host: WindowHost = WindowHost(), environment: [String: String] = ProcessInfo.processInfo.environment, home: URL = FileManager.default.homeDirectoryForCurrentUser, fullscreen: FullscreenMonitor? = nil) {
+    init(options: Options, host: WindowHost = WindowHost(), environment: [String: String] = ProcessInfo.processInfo.environment, home: URL = FileManager.default.homeDirectoryForCurrentUser, fullscreen: FullscreenMonitor? = nil, debouncer: ReloadDebouncer? = nil) {
         self.options = options
+        self.debouncer = debouncer ?? ReloadDebouncer()
         self.host = host
         self.fullscreen = fullscreen ?? FullscreenMonitor.live()
         paths = ConfigPaths.standard(environment: environment, home: home, bundleResources: options.resources)
@@ -92,7 +95,7 @@ final class LiveShell: WindowHostLink {
         themes = LiveThemes(folders: [paths.themesDirectory, paths.legacyThemesDirectory])
         host.log = Self.log
         host.link = self
-        debouncer.fire = { [weak self] in self?.reload() }
+        self.debouncer.fire = { [weak self] in self?.reload() }
     }
 
     static func log(_ line: String) {
@@ -155,8 +158,19 @@ final class LiveShell: WindowHostLink {
         return values
     }
 
+    func importLegacySettings() {
+        let disk = DiskFileSystem()
+        guard LegacyImport.isNeeded(paths: paths, fileSystem: disk) else { return }
+        let result = LegacyImport.run(paths: paths, fileSystem: disk, defaults: legacyDefaults)
+        legacyNotes = result.diagnostics
+        Self.log("imported the 0.1.4.2 settings from \(LegacyImport.settingsJSON(paths).path)")
+        Self.report(result.diagnostics)
+        _ = settings.reload()
+    }
+
     func start() async throws {
         steps.append("settings")
+        importLegacySettings()
         let names = keyNames
         let assembly = ShellAssembly(host: host, scheduler: RunLoopFlushScheduler(), filterContext: {
             FilterContext(now: Date(), locale: .current, timeZone: .current, services: LayoutFilterServices(keyName: { names.name($0) }))
@@ -199,6 +213,7 @@ final class LiveShell: WindowHostLink {
         })
         steps.append("config")
         var (location, failed) = resolveActive()
+        failed = legacyNotes + failed
         var result = await load(location)
         if result.ir == nil {
             failed += result.diagnostics
@@ -447,7 +462,8 @@ final class LiveShell: WindowHostLink {
     private func activeLocationForReload() -> (ConfigLocation, [Diagnostic])? {
         guard let location else { return nil }
         _ = settings.reload()
-        return resolveActive()
+        let (resolved, notes) = resolveActive()
+        return (resolved, legacyNotes + notes)
     }
 
     private func startServices() {

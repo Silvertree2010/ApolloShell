@@ -453,7 +453,7 @@ struct ActionDispatcherTests {
         fixture.providers.register(provider)
         await fixture.trigger([IR.call("media.seek", [IR.number(30)], properties: ["wait": IR.literal(.bool(true)), "relative": IR.literal(.bool(true))])])?.value
         #expect(provider.performed.count == 1)
-        #expect(provider.performed.first?.0 == "seek")
+        #expect(provider.performed.first?.0 == "media.seek")
         #expect(provider.performed.first?.1 == [.number(30)])
         #expect(provider.performed.first?.2["relative"] == .bool(true))
     }

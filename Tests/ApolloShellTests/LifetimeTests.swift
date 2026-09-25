@@ -67,14 +67,23 @@ struct LifetimeTests {
     func reorderDebounced() async throws {
         let mounted = try Mounted.mount(Self.reorderConfig, css: MenuReorderTests.reorderCSS)
         let context = mounted.session.context
+        let clock = FakeGateClock()
+        context.clock = clock
         let list = try #require(context.reorders.values.first)
         let a = list.entry(for: list.container.children[0], index: 0)
         let c = list.entry(for: list.container.children[2], index: 2)
         #expect(list.drop(token: a.token, on: c))
-        try await Task.sleep(for: .milliseconds(420))
+        #expect(clock.scheduled.count == 1)
+        try await Task.sleep(for: .milliseconds(600))
+        #expect(mounted.variable("log") == .string(""))
         #expect(list.preview != nil)
-        for _ in 0..<60 where mounted.variable("log") == .string("") { try await Task.sleep(for: .milliseconds(25)) }
+        clock.advance(0.499)
+        #expect(mounted.variable("log") == .string(""))
+        clock.advance(0.001)
+        for _ in 0..<80 where mounted.variable("log") == .string("") { try await Task.sleep(for: .milliseconds(25)) }
         #expect(mounted.variable("log") == .string("0>3 a a>c"))
+        for _ in 0..<80 where list.preview != nil { try await Task.sleep(for: .milliseconds(25)) }
+        #expect(list.preview == nil)
     }
 
     @Test("reorderable ohne on-reorder: Vorschau springt zurück")

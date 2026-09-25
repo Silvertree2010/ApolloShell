@@ -11,7 +11,7 @@ current behaviour.
 ## Where themes live
 
 ```
-~/Library/Application Support/ApolloShell/themes/
+~/.config/apolloshell/themes/
 ├── Minimal.css            ← a theme in a single file
 └── Everything/            ← a theme with files of its own
     ├── theme.css          ← must be called exactly this
@@ -30,6 +30,15 @@ again.
 
 Only a folder theme can use images. A single file has no folder of its own,
 and letting it reach into the themes folder would let it read its neighbours.
+
+If `XDG_CONFIG_HOME` is set, the folder is `$XDG_CONFIG_HOME/apolloshell/themes`
+instead. Themes from 0.1 in `~/Library/Application Support/ApolloShell/themes/`
+are still read, so nothing has to be moved.
+
+The chosen theme is stored as `theme "<identifier>"` in
+`~/.config/apolloshell/settings.kdl`. `apollo theme list` shows what is
+installed, `apollo theme select <identifier>` switches, and
+`apollo theme select --none` goes back to the built-in look.
 
 ## Anatomy
 
@@ -309,6 +318,49 @@ within the size limit.
 | `panel-cpu` | `cpu` | Processor load |
 | `panel-memory` | `memorychip` | Memory in use |
 | `panel-disk` | `internaldrive` | Disk in use |
+
+## Themes and config styles
+
+Since 0.2 the shell itself is a config: KDL files that say what exists and a
+`style.css` that says how it looks. The two kinds of CSS have different jobs.
+
+- A **theme** stays what it was: `--apollo-*` tokens and nothing else. Every
+  token in this document keeps its name and meaning.
+- A config's **`style.css`** uses selectors, ordinary CSS properties and the
+  tokens, as `var(--apollo-accent-color)` or with a fallback,
+  `var(--apollo-on-accent-color, white)`. The built-in config reads its
+  colours, sizes and fonts this way, which is why a theme restyles it.
+
+A config's `style.css` can also use properties that CSS has no word for. They
+start with `-apollo-` and are not valid in a theme.
+
+| Property | Values | What it does |
+| --- | --- | --- |
+| `-apollo-appear` | `none`, or effects (`fade`, `scale(<n>)`, `slide(<edge> [<length>])`, `blur(<length>)`) followed by a duration and a timing function | how an element enters; several comma-separated sets are allowed |
+| `-apollo-disappear` | same as `-apollo-appear` | how an element leaves |
+| `-apollo-badge-appear` | same as `-apollo-appear` | how an icon badge enters |
+| `-apollo-badge-color` | colour | badge colour, red by default |
+| `-apollo-badge-offset` | two lengths | badge position, x then y |
+| `-apollo-corner-shape` | `continuous` (default), `circular` | corner curve for `border-radius` |
+| `-apollo-join-radius` | length | radius where a popout meets the panel it grows out of |
+| `-apollo-fade-edges` | length or percentage | fades the edges of a scrolling area |
+| `-apollo-font-scale` | `auto` (default), `none` | `none` keeps `font-size` out of the theme's font scale; inherited |
+| `-apollo-content-transition` | `none`, `opacity`, `numeric`, `symbol` | how changing text or symbols animate |
+| `-apollo-symbol-rendering` | `monochrome`, `hierarchical`, `palette`, `multicolor` | SF Symbol rendering mode; inherited |
+| `-apollo-symbol-effect` | `none`, `variable-color`, `pulse`, `bounce` | SF Symbol effect |
+| `-apollo-image-rendering` | `original` (default), `template` | `template` tints an image with `color` |
+| `-apollo-fill` | colour or gradient | area under a `graph` |
+| `-apollo-fill-color` | colour or gradient | filled part of `progress` and `slider` |
+| `-apollo-track-color` | colour | unfilled track of ring, gauge, progress and slider |
+| `-apollo-thumb-color` | colour | slider knob |
+| `-apollo-thumb-size` | one length, or width and height | slider knob size |
+| `-apollo-thumb-shadow` | shadow, as `box-shadow` | slider knob shadow |
+| `-apollo-stroke-width` | length, default `4px` | line width of ring, gauge and graph |
+| `-apollo-start-angle` | angle, default `-90deg` | where a ring or gauge starts |
+| `-apollo-sweep-angle` | angle, default `360deg` | how far a ring or gauge reaches |
+
+A property the shell does not know is reported in "Show Problems" with the
+closest known name, and the rest of the file still applies.
 
 ## The compatibility promise
 
