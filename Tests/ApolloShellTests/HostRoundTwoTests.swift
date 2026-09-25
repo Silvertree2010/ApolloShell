@@ -36,6 +36,7 @@ final class ShellHarness {
     var fullscreenKeys: Set<String> = []
     var pointerKey: String?
     var scheduledChecks = 0
+    var reloadTimers: [(delay: TimeInterval, work: @MainActor () -> Void)] = []
 
     init(_ source: String, settings: String? = nil, useConfigFolder: Bool = true) throws {
         home = FileManager.default.temporaryDirectory.appendingPathComponent("round2-\(UUID().uuidString)")
@@ -51,7 +52,8 @@ final class ShellHarness {
         let options = LiveShell.Options(config: useConfigFolder ? config : nil, resources: resources, fixture: resources.appendingPathComponent("render/fixture.kdl"))
         var sink: ShellHarness?
         let monitor = FullscreenMonitor(read: { sink?.fullscreenKeys }, schedule: { _, _ in sink?.scheduledChecks += 1 })
-        shell = LiveShell(options: options, host: WindowHost(factory: factory), environment: ["XDG_CONFIG_HOME": home.path], home: home, fullscreen: monitor)
+        let debouncer = ReloadDebouncer(schedule: { delay, work in MainActor.assumeIsolated { sink?.reloadTimers.append((delay, work)) } })
+        shell = LiveShell(options: options, host: WindowHost(factory: factory), environment: ["XDG_CONFIG_HOME": home.path], home: home, fullscreen: monitor, debouncer: debouncer)
         shell.interactive = false
         shell.registrar = FakeRegistrar()
         sink = self
@@ -70,6 +72,12 @@ final class ShellHarness {
         RunLoop.main.add(wake, forMode: .default)
         for _ in 0..<5 { RunLoop.main.run(until: Date().addingTimeInterval(0.01)) }
         wake.invalidate()
+    }
+
+    func elapseReloadDelay() {
+        let due = reloadTimers
+        reloadTimers.removeAll()
+        due.forEach { $0.work() }
     }
 
     func write(_ source: String) throws {
@@ -300,6 +308,7 @@ struct HostStartIPCTests {
         try "tab \"d\"\n".write(to: state, atomically: true, encoding: .utf8)
         harness.shell.filesChanged([state.path])
         #expect(try harness.shell.variable("tab") == .string("d"))
+        #expect(harness.shell.debouncer.pokes == 0)
         #expect(harness.shell.debouncer.fired == 0)
         harness.shell.shutdown()
     }
@@ -355,11 +364,14 @@ struct ReviewFocusTests {
         let hides = (bar.hides, menu.hides)
         try harness.write("")
         harness.shell.filesChanged([harness.config.appendingPathComponent("shell.kdl").path])
-        try await Task.sleep(for: .milliseconds(20))
+        #expect(harness.shell.debouncer.fired == 0)
         try harness.write(Self.source.replacingOccurrences(of: "row {}", with: "row { text \"x\" }"))
         harness.shell.filesChanged([harness.config.appendingPathComponent("shell.kdl").path])
-        for _ in 0..<40 where harness.shell.reloadsApplied == 0 {
-            try await Task.sleep(for: .milliseconds(25))
+        #expect(harness.reloadTimers.map(\.delay).allSatisfy { $0 == 0.15 })
+        #expect(harness.shell.debouncer.fired == 0)
+        harness.elapseReloadDelay()
+        for _ in 0..<400 where harness.shell.reloadsApplied == 0 {
+            try await Task.sleep(for: .milliseconds(10))
         }
         harness.settle()
         #expect(harness.shell.debouncer.fired == 1)

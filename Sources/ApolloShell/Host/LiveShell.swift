@@ -49,7 +49,7 @@ final class LiveShell: WindowHostLink {
     private var shell = Record()
     private var overlayWindow: ErrorOverlayWindow?
     private var watcher: FolderWatcher?
-    let debouncer = ReloadDebouncer()
+    let debouncer: ReloadDebouncer
     private var socket: ControlSocketServer?
     private var updates: UpdateController?
     private var crashes: CrashReporter?
@@ -83,8 +83,9 @@ final class LiveShell: WindowHostLink {
     }
     var pointerScreen: @MainActor () -> String? = { ShellScreens.underPointer()?.info.key }
 
-    init(options: Options, host: WindowHost = WindowHost(), environment: [String: String] = ProcessInfo.processInfo.environment, home: URL = FileManager.default.homeDirectoryForCurrentUser, fullscreen: FullscreenMonitor? = nil) {
+    init(options: Options, host: WindowHost = WindowHost(), environment: [String: String] = ProcessInfo.processInfo.environment, home: URL = FileManager.default.homeDirectoryForCurrentUser, fullscreen: FullscreenMonitor? = nil, debouncer: ReloadDebouncer? = nil) {
         self.options = options
+        self.debouncer = debouncer ?? ReloadDebouncer()
         self.host = host
         self.fullscreen = fullscreen ?? FullscreenMonitor.live()
         paths = ConfigPaths.standard(environment: environment, home: home, bundleResources: options.resources)
@@ -92,7 +93,7 @@ final class LiveShell: WindowHostLink {
         themes = LiveThemes(folders: [paths.themesDirectory, paths.legacyThemesDirectory])
         host.log = Self.log
         host.link = self
-        debouncer.fire = { [weak self] in self?.reload() }
+        self.debouncer.fire = { [weak self] in self?.reload() }
     }
 
     static func log(_ line: String) {
