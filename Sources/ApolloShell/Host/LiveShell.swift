@@ -174,6 +174,9 @@ final class LiveShell: WindowHostLink {
         steps.append("settings")
         freshInstall = LegacyImport.freshInstall(paths: paths, fileSystem: DiskFileSystem())
         importLegacySettings()
+        for folder in [paths.stateDirectory, paths.themesDirectory] {
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        }
         let names = keyNames
         let assembly = ShellAssembly(host: host, scheduler: RunLoopFlushScheduler(), filterContext: {
             FilterContext(now: Date(), locale: .current, timeZone: .current, services: LayoutFilterServices(keyName: { names.name($0) }))
@@ -414,7 +417,8 @@ final class LiveShell: WindowHostLink {
 
     func watch() {
         guard let location else { return }
-        let wanted = Array(Set(([location.root.path, paths.userConfig.path, paths.stateDirectory.path] + themes.folders.map(\.path) + watchedFiles.map { $0.deletingLastPathComponent().path })
+        let themeFolders = themes.folders.filter { $0 == paths.themesDirectory || FileManager.default.fileExists(atPath: $0.path) }
+        let wanted = Array(Set(([location.root.path, paths.userConfig.path, paths.stateDirectory.path] + themeFolders.map(\.path) + watchedFiles.map { $0.deletingLastPathComponent().path })
             .map(FolderWatcher.existingAncestor))).sorted()
         guard wanted != watchedPaths || watcher == nil else { return }
         watchedPaths = wanted

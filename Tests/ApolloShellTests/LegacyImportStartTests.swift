@@ -66,6 +66,9 @@ struct LegacyImportStartTests {
         #expect(shell.assembly?.vars.value("onboarding-done") == .bool(false))
         #expect(shell.assembly?.vars.value("hotkey-launcher") == .string("alt+space"))
         #expect(shell.assembly?.store.value(DependencyPath("shell", ["login-item-available"])) != nil)
+        let root = fresh.root.standardizedFileURL.path
+        #expect(shell.watchedPaths.allSatisfy { $0.hasPrefix(root + "/apolloshell") || !$0.hasPrefix(root) })
+        #expect(!shell.watchedPaths.contains(root))
         shell.shutdown()
 
         let again = try Self.shell(fresh)
