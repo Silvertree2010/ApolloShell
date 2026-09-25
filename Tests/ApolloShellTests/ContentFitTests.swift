@@ -21,4 +21,24 @@ struct ContentFitTests {
         #expect(window.frame.size.height > small.height)
         #expect(window.frame.size.width >= 406)
     }
+
+    @Test("Nach einem sync misst der Host nach dem Layout erneut, auch ohne Meldung des Hosting-Views")
+    func remeasuresAfterLayout() throws {
+        let fixture = try HostFixture("""
+        panel "bar" { text "x" }
+        """)
+        var pending: [@MainActor () -> Void] = []
+        fixture.host.afterLayout = { pending.append($0) }
+        let window = try #require(fixture.window("bar"))
+        fixture.host.controllers.values.forEach { $0.remeasurePending = false }
+        fixture.host.resync()
+        fixture.flush()
+        #expect(!pending.isEmpty)
+        window.fittingSize = CGSize(width: 406, height: 180)
+        let scheduled = pending
+        pending = []
+        scheduled.forEach { $0() }
+        fixture.flush()
+        #expect(window.frame.size.width >= 406)
+    }
 }

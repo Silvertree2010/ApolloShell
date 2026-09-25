@@ -35,6 +35,7 @@ final class SurfaceWindowController {
     var offset: CGPoint?
     var observing = false
     var fitPending = false
+    var remeasurePending = false
     var lastFitting: CGSize?
     var flyout = EdgeInsets()
     var pendingContent: AnyView?
@@ -80,6 +81,9 @@ final class WindowHost: SurfaceHosting {
     var pointer: @MainActor () -> CGPoint = { NSEvent.mouseLocation }
     var scheduleTimer: @MainActor (TimeInterval, DispatchWorkItem) -> Void = { delay, work in
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+    var afterLayout: @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { MainActor.assumeIsolated { work() } }
     }
     var later: @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
         DispatchQueue.main.async { MainActor.assumeIsolated { work() } }
@@ -254,6 +258,17 @@ final class WindowHost: SurfaceHosting {
         controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
     }
 
+    private func remeasure(_ key: String) {
+        guard let controller = controllers[key], controller.spec.kind != "window", !controller.remeasurePending else { return }
+        controller.remeasurePending = true
+        afterLayout { [weak self, weak controller] in
+            guard let self, let controller, self.controllers[key] === controller else { return }
+            controller.remeasurePending = false
+            guard controller.window.fittingSize != controller.lastFitting else { return }
+            self.sync(key)
+        }
+    }
+
     private func fittingChanged(_ key: String) {
         guard let controller = controllers[key], controller.spec.kind != "window", !controller.fitPending else { return }
         controller.fitPending = true
@@ -299,6 +314,7 @@ final class WindowHost: SurfaceHosting {
         let style = context.styles.resolve(StyleResolver.subject(for: surface), ancestors: [], parent: nil)
         let placement = SurfacePlacement(kind: surface.ir.kind, property: surface.property, style: style)
         let fit = controller.window.fittingSize, flyout = controller.flyout
+        controller.lastFitting = fit
         let fitting = CGSize(width: max(0, fit.width - flyout.leading - flyout.trailing), height: max(0, fit.height - flyout.top - flyout.bottom))
         let layout = SurfaceLayout.compute(placement: placement, spec: spec, radius: StyleValues.radius(style["border-radius"]), screen: screen, fitting: fitting)
         if layout.insets != controller.insets {
@@ -332,6 +348,7 @@ final class WindowHost: SurfaceHosting {
                 controller.window.setFrame(Self.expand(frame, by: flyout), glide: glide)
             }
         }
+        if surface.isVisible { remeasure(key) }
         let opening = surface.isOpen && !controller.wasOpen
         let closing = !surface.isOpen && controller.wasOpen
         controller.wasOpen = surface.isOpen
