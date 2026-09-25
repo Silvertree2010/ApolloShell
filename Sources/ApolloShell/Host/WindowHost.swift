@@ -165,7 +165,7 @@ final class WindowHost: SurfaceHosting {
         let occluded = context.occluded.contains(SurfaceHost.key(surface.id, surface.screenKey))
         let view = SurfaceView(surface: surface, context: context, insets: insets, painter: backgroundPainter, occluded: occluded).padding(flyout)
         guard surface.ir.kind != "window" else { return AnyView(view) }
-        let style = context.styles.resolve(StyleResolver.subject(for: surface), ancestors: [], parent: nil)
+        let style = context.styles.resolve(surface: surface)
         let anchor = SurfacePlacement(kind: surface.ir.kind, property: surface.property, style: style).anchor
         return AnyView(view.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: Self.alignment(anchor)))
     }
@@ -330,7 +330,7 @@ final class WindowHost: SurfaceHosting {
             return
         }
         observeProperties(controller, key: key)
-        let style = context.styles.resolve(StyleResolver.subject(for: surface), ancestors: [], parent: nil)
+        let style = context.styles.resolve(surface: surface)
         let placement = SurfacePlacement(kind: surface.ir.kind, property: surface.property, style: style)
         let fit = controller.window.fittingSize, flyout = controller.flyout
         controller.lastFitting = fit

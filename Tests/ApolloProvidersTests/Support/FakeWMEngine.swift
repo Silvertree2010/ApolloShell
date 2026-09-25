@@ -16,7 +16,7 @@ final class FakeWMEngine: WMEngine {
     private(set) var commands: [Command] = []
     private(set) var layouts: [WMSettings.Layout] = []
     private(set) var focusedWindows: [UInt32] = []
-    private(set) var reserved: [[String: WMInsets]] = []
+    private(set) var reserved: [[String: WMReserved]] = []
 
     func start(_ settings: WMSettings) -> Bool {
         starts.append(settings)
@@ -39,7 +39,7 @@ final class FakeWMEngine: WMEngine {
         return true
     }
 
-    func setReserved(_ insets: [String: WMInsets]) { reserved.append(insets) }
+    func setReserved(_ insets: [String: WMReserved]) { reserved.append(insets) }
     func state() -> WMState { current }
 
     func change(_ update: (inout WMState) -> Void) {

@@ -14,7 +14,7 @@ public final class WMProvider: BaseProvider {
     private var requested = false
     private var toggled = false
     private var panels: [PanelReserve] = []
-    private var sentReserve: [String: WMInsets]?
+    private var sentReserve: [String: WMReserved]?
     private var last: WMState?
     private var proxyFallback = false
     private var proxyFallbackWarned = false

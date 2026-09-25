@@ -40,6 +40,7 @@ public final class TilingEngine {
         public var reserved = NSEdgeInsets()
         public var reservedOnEveryDisplay = true
         public var reservedByDisplay: [String: NSEdgeInsets]?
+        public var visibleReservedByDisplay: [String: NSEdgeInsets] = [:]
 
         public init() {}
     }
@@ -51,7 +52,7 @@ public final class TilingEngine {
         screens.first?.bounds ?? screenArea
     }
 
-    public var area: CGRect { usable(visible: screenArea, bounds: screenBounds, insets: reserved(on: screens.first?.uuid)) }
+    public var area: CGRect { usable(visible: screenArea, bounds: screenBounds, uuid: screens.first?.uuid) }
 
     private func reserved(on uuid: String?) -> NSEdgeInsets {
         if let byDisplay = options.reservedByDisplay {
@@ -61,12 +62,9 @@ public final class TilingEngine {
         return isMain || options.reservedOnEveryDisplay ? options.reserved : NSEdgeInsets()
     }
 
-    private func usable(visible: CGRect, bounds: CGRect, insets r: NSEdgeInsets) -> CGRect {
-        let left = max(visible.minX, bounds.minX + r.left)
-        let top = max(visible.minY, bounds.minY + r.top)
-        let right = min(visible.maxX, bounds.maxX - r.right)
-        let bottom = min(visible.maxY, bounds.maxY - r.bottom)
-        return CGRect(x: left, y: top, width: right - left, height: bottom - top)
+    private func usable(visible: CGRect, bounds: CGRect, uuid: String?) -> CGRect {
+        let extra = uuid.flatMap { options.visibleReservedByDisplay[$0] } ?? NSEdgeInsets()
+        return UsableArea.rect(visible: visible, bounds: bounds, edge: reserved(on: uuid), extra: extra)
     }
 
     public struct Screen: Sendable, Equatable {
@@ -151,7 +149,7 @@ public final class TilingEngine {
     public func area(of desk: Desk) -> CGRect {
         guard let uuid = displayOfSpace[desk.space], let screen = screens.first(where: { $0.uuid == uuid }),
               screen != screens.first else { return area }
-        return usable(visible: screen.visible, bounds: screen.bounds, insets: reserved(on: uuid))
+        return usable(visible: screen.visible, bounds: screen.bounds, uuid: uuid)
     }
 
     private func fullArea(of desk: Desk) -> CGRect {

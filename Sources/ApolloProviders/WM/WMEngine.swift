@@ -21,6 +21,18 @@ public struct WMInsets: Sendable, Equatable {
     }
 }
 
+public struct WMReserved: Sendable, Equatable {
+    public var edge: WMInsets
+    public var visible: WMInsets
+
+    public init(edge: WMInsets = .zero, visible: WMInsets = .zero) {
+        self.edge = edge
+        self.visible = visible
+    }
+
+    public static let zero = WMReserved()
+}
+
 public struct WMScreen: Sendable, Equatable {
     public var key: String
     public var isMain: Bool
@@ -119,6 +131,6 @@ public protocol WMEngine: AnyObject {
     func perform(_ command: Command)
     func setLayout(_ layout: WMSettings.Layout)
     func focusWindow(_ id: UInt32) -> Bool
-    func setReserved(_ insets: [String: WMInsets])
+    func setReserved(_ insets: [String: WMReserved])
     func state() -> WMState
 }

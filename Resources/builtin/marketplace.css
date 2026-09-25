@@ -55,6 +55,7 @@
 .marketplace-banner-error { background: rgb(from -apple-system-red r g b / 0.12); }
 .marketplace-banner-message { background: rgb(from -apple-system-control-accent r g b / 0.12); }
 .marketplace-banner-text { gap: 2px; }
+.marketplace-offline { gap: 8px; padding: 4px 16px; align-items: center; font-size: 11px; }
 .marketplace-banner-title { font-size: 13px; font-weight: 600; }
 .marketplace-scrim { width: 100%; height: 100%; background: rgb(0 0 0 / 0.2); align-items: center; justify-content: center; }
 .marketplace-sheet { gap: 14px; padding: 20px; border-radius: 12px; background: -apple-system-window-background; align-self: center; justify-self: center; }

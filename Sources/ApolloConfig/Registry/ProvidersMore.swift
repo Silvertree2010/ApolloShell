@@ -234,6 +234,7 @@ enum ProvidersMore {
             S.field("status", .string, update: .push, doc: "idle, loading, loaded or failed."),
             S.field("error", .string, nullable: true, update: .push, doc: "Last error of an action, until marketplace.dismiss."),
             S.field("load-error", .string, nullable: true, update: .push, doc: "Why the list could not be loaded, only with status failed."),
+            S.field("offline", .bool, update: .push, doc: "True while error is the note that a refresh failed and the loaded list may be outdated."),
             S.field("items", .list, update: .push, doc: "Available entries."),
             S.field("user", .record, nullable: true, update: .push, doc: "Signed-in user."),
             S.field("sign-in", .record, update: .push, doc: "Sign-in status."),
