@@ -23,11 +23,11 @@ accessibility-action "Move Up" { list.move "items" from=1 to=0 }
 
 ### `app-icon` (node)
 
-zeichnet das Symbol einer App.
+Draws the icon of an app.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `app` | value | required | Bundle-ID oder App-Record. |
+| argument | `app` | value | required | Bundle ID or app record. |
 | property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
 | property | `class` | string | `null` | CSS classes, separated by spaces. |
 | property | `style` | string | `null` | CSS declarations for this node only. |
@@ -39,7 +39,7 @@ zeichnet das Symbol einer App.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `badge` | value | `null` | Plakette, String oder Zahl. |
+| property | `badge` | value | `null` | Badge, string or number. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -89,7 +89,7 @@ builtin "reload-config"
 
 ### `button` (node)
 
-auslösbarer Knopf, Leertaste und Return lösen on-click aus.
+Clickable button, Space and Return trigger on-click.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -307,7 +307,7 @@ fill "header" { text "Title" }
 
 ### `flyout` (node)
 
-Bereich, der aus der eigenen Oberfläche neben einem Element herauswächst.
+Area that grows out of its own surface next to an element.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -322,10 +322,10 @@ Bereich, der aus der eigenen Oberfläche neben einem Element herauswächst.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `anchor` | identifier | required | id des Elements, neben dem der Flyout wächst. |
-| property | `side` | "right"\|"left"\|"top"\|"bottom" | `null` | Wachstumsrichtung. |
-| property | `open` | bool | required | ob der Flyout offen ist. |
-| property | `join` | bool | `true` | wird bei shape=fused Teil der Form der Oberfläche. |
+| property | `anchor` | identifier | required | Id of the element next to which the flyout grows. |
+| property | `side` | "right"\|"left"\|"top"\|"bottom" | `null` | Growth direction. |
+| property | `open` | bool | required | Whether the flyout is open. |
+| property | `join` | bool | `true` | With shape=fused, becomes part of the surface shape. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`, `on-close`
 
@@ -362,7 +362,7 @@ gaps inner=10 outer=12
 
 ### `gauge` (node)
 
-Bogen von -135° bis 135°.
+Arc from -135° to 135°.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -377,8 +377,8 @@ Bogen von -135° bis 135°.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `value` | number | required | Füllstand 0…1. |
-| property | `ticks` | number | `0` | Anzahl Markierungen. |
+| property | `value` | number | required | Fill level 0…1. |
+| property | `ticks` | number | `0` | Number of tick marks. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -388,7 +388,7 @@ gauge value="{audio.volume}"
 
 ### `graph` (node)
 
-zeichnet einen Verlauf, etwa CPU-Historie.
+Draws a history, such as CPU history.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -403,11 +403,11 @@ zeichnet einen Verlauf, etwa CPU-Historie.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `values` | list | required | Liste von Zahlen. |
-| property | `min` | number | `0` | unterer Rand. |
-| property | `max` | number | `null` | oberer Rand, Vorgabe grösster Wert. |
-| property | `kind` | "line"\|"area"\|"bars" | `null` | Darstellung. |
-| property | `capacity` | number | `null` | Anzahl Punkte, ältere fallen weg. |
+| property | `values` | list | required | List of numbers. |
+| property | `min` | number | `0` | Lower bound. |
+| property | `max` | number | `null` | Upper bound, default largest value. |
+| property | `kind` | "line"\|"area"\|"bars" | `null` | Style. |
+| property | `capacity` | number | `null` | Number of points, older ones drop out. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -442,11 +442,11 @@ grid columns=3 { text "1" }
 
 ### `icon` (node)
 
-zeichnet ein Symbol.
+Draws a symbol.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | string | required | Name aus dem Theme oder SF-Symbol. |
+| argument | `name` | string | required | Name from the theme or SF Symbol. |
 | property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
 | property | `class` | string | `null` | CSS classes, separated by spaces. |
 | property | `style` | string | `null` | CSS declarations for this node only. |
@@ -458,8 +458,8 @@ zeichnet ein Symbol.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `fallback` | string | `null` | SF Symbol, falls der Name nicht gefunden wird. |
-| property | `variable` | number | `null` | Wert 0…1 für SF-Symbole mit Stufen. |
+| property | `fallback` | string | `null` | SF Symbol if the name is not found. |
+| property | `variable` | number | `null` | Value 0…1 for SF Symbols with levels. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -469,11 +469,11 @@ icon "bar-power" fallback="power"
 
 ### `image` (node)
 
-zeichnet ein Bild.
+Draws an image.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `source` | path | required | Pfad oder Bildwert eines Providers. |
+| argument | `source` | path | required | Path or image value of a provider. |
 | property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
 | property | `class` | string | `null` | CSS classes, separated by spaces. |
 | property | `style` | string | `null` | CSS declarations for this node only. |
@@ -485,8 +485,8 @@ zeichnet ein Bild.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `fit` | "fill"\|"fit"\|"stretch"\|"center" | `null` | wie das Bild in den Rahmen passt. |
-| property | `placeholder` | string | `null` | Icon-Name, solange nichts da ist. |
+| property | `fit` | "fill"\|"fit"\|"stretch"\|"center" | `null` | How the image fits its frame. |
+| property | `placeholder` | string | `null` | Icon name while nothing is loaded. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -509,7 +509,7 @@ include "sidebar-modules.kdl"
 
 ### `input` (node)
 
-Texteingabe.
+Text input.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -524,11 +524,11 @@ Texteingabe.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `value` | string | `null` | Textinhalt. |
-| property | `bind` | string | `null` | var.<name>, liest und schreibt das var direkt. |
-| property | `placeholder` | string | `null` | Platzhaltertext. |
-| property | `focus` | bool | `null` | bekommt den Fokus, sobald der Ausdruck wahr wird. |
-| property | `secure` | bool | `false` | verdeckte Eingabe. |
+| property | `value` | string | `null` | Text content. |
+| property | `bind` | string | `null` | var.<name>, reads and writes the var directly. |
+| property | `placeholder` | string | `null` | Placeholder text. |
+| property | `focus` | bool | `null` | Takes focus as soon as the expression becomes true. |
+| property | `secure` | bool | `false` | Hidden input. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`, `on-change`, `on-submit`, `key`
 
@@ -563,7 +563,7 @@ items { builtin "reload-config" }
 
 ### `key-recorder` (node)
 
-nimmt eine Tastenkombination auf.
+Records a key combination.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -578,9 +578,9 @@ nimmt eine Tastenkombination auf.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `value` | string | `null` | aufgenommene Kombination als String. |
-| property | `placeholder` | string | `null` | Platzhaltertext. |
-| property | `reject` | value | `null` | Liste von Kombinationen, die abgelehnt werden. |
+| property | `value` | string | `null` | Recorded combination as a string. |
+| property | `placeholder` | string | `null` | Placeholder text. |
+| property | `reject` | value | `null` | List of combinations that are rejected. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`, `on-change`
 
@@ -626,7 +626,7 @@ listen "watch-space" command="~/bin/watch-space.sh" format="json"
 
 ### `mark` (node)
 
-das animierte ApolloShell-Emblem.
+The animated ApolloShell emblem.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -641,9 +641,9 @@ das animierte ApolloShell-Emblem.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `state` | "idle"\|"farewell"\|"sleep"\|"think" | `null` | Grundstimmung des Emblems. |
-| property | `greet` | bool | `true` | spielt beim Erscheinen die Begrüssung. |
-| property | `color` | string | `null` | Akzentfarbe. |
+| property | `state` | "idle"\|"farewell"\|"sleep"\|"think" | `null` | Base mood of the emblem. |
+| property | `greet` | bool | `true` | Plays the greeting when it appears. |
+| property | `color` | string | `null` | Accent color. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -891,7 +891,7 @@ popup "launcher" anchor="center" { }
 
 ### `progress` (node)
 
-Fortschrittsbalken.
+Progress bar.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -906,8 +906,8 @@ Fortschrittsbalken.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `value` | number | `null` | 0…1 oder #null für unbestimmt. |
-| property | `vertical` | bool | `false` | senkrechte Ausrichtung. |
+| property | `value` | number | `null` | 0…1 or #null for indeterminate. |
+| property | `vertical` | bool | `false` | Vertical orientation. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -917,7 +917,7 @@ progress value="{weather.current.humidity}"
 
 ### `reorderable` (node)
 
-Container, dessen Kinder aus genau einem each per Ziehen umsortiert werden.
+Container whose children from exactly one each can be reordered by dragging.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -932,9 +932,9 @@ Container, dessen Kinder aus genau einem each per Ziehen umsortiert werden.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `axis` | "vertical"\|"horizontal"\|"grid" | `null` | Zieh-Richtung. |
-| property | `enabled` | bool | `null` | nur dann ist Ziehen möglich. |
-| property | `accept` | "apps"\|"files" | `null` | fremde Objekte, die hineingezogen werden dürfen. |
+| property | `axis` | "vertical"\|"horizontal"\|"grid" | `null` | Drag direction. |
+| property | `enabled` | bool | `null` | Dragging is only possible when set. |
+| property | `accept` | "apps"\|"files" | `null` | External objects that may be dragged in. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`, `on-reorder`, `on-drop`, `on-drag-out`
 
@@ -997,7 +997,7 @@ resize-animation "smooth"
 
 ### `ring` (node)
 
-Kreisring oder Bogen.
+Circular ring or arc.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -1012,8 +1012,8 @@ Kreisring oder Bogen.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `value` | number | required | Füllstand 0…1. |
-| property | `gap` | number | `0` | Anteil Abstand zwischen Füllung und Spur. |
+| property | `value` | number | required | Fill level 0…1. |
+| property | `gap` | number | `0` | Share of spacing between fill and track. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -1121,11 +1121,11 @@ separator
 
 ### `shape` (node)
 
-zeichnet eine einfache Form, Füllung und Grösse per CSS.
+Draws a simple shape, fill and size via CSS.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `kind` | "circle"\|"capsule"\|"scallop" | required | Art der Form. |
+| argument | `kind` | "circle"\|"capsule"\|"scallop" | required | Kind of shape. |
 | property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
 | property | `class` | string | `null` | CSS classes, separated by spaces. |
 | property | `style` | string | `null` | CSS declarations for this node only. |
@@ -1137,8 +1137,8 @@ zeichnet eine einfache Form, Füllung und Grösse per CSS.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `count` | number | `null` | Anzahl Wellen bei scallop. |
-| property | `depth` | number | `null` | Tiefe der Wellen 0…1 bei scallop. |
+| property | `count` | number | `null` | Number of waves for scallop. |
+| property | `depth` | number | `null` | Depth of the waves 0…1 for scallop. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -1148,7 +1148,7 @@ shape "circle"
 
 ### `slider` (node)
 
-Schieberegler, benannter Slot fill "thumb" zeichnet Inhalt im Griff.
+Slider, the named slot fill "thumb" draws content in the thumb.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -1163,12 +1163,12 @@ Schieberegler, benannter Slot fill "thumb" zeichnet Inhalt im Griff.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `value` | number | required | aktueller Wert. |
-| property | `min` | number | `0` | unterer Rand. |
-| property | `max` | number | `1` | oberer Rand. |
-| property | `step` | number | `0` | Rasterung, 0 = stufenlos. |
-| property | `key-step` | number | `null` | Schritt für Pfeiltasten und VoiceOver, Vorgabe step. |
-| property | `vertical` | bool | `false` | senkrechte Ausrichtung. |
+| property | `value` | number | required | Current value. |
+| property | `min` | number | `0` | Lower bound. |
+| property | `max` | number | `1` | Upper bound. |
+| property | `step` | number | `0` | Step size, 0 = continuous. |
+| property | `key-step` | number | `null` | Step for arrow keys and VoiceOver, default step. |
+| property | `vertical` | bool | `false` | Vertical orientation. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`, `on-change`, `on-commit`
 
@@ -1324,11 +1324,11 @@ terminal "com.mitchellh.ghostty" "com.apple.Terminal"
 
 ### `text` (node)
 
-zeichnet Text.
+Draws text.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `content` | string | required | Inhalt, Vorlage erlaubt. |
+| argument | `content` | string | required | Content, template allowed. |
 | property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
 | property | `class` | string | `null` | CSS classes, separated by spaces. |
 | property | `style` | string | `null` | CSS declarations for this node only. |
@@ -1340,8 +1340,8 @@ zeichnet Text.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `lines` | number | `1` | Zeilen, 0 = unbegrenzt. |
-| property | `truncate` | "tail"\|"middle"\|"head" | `null` | wo abgeschnitten wird. |
+| property | `lines` | number | `1` | Lines, 0 = unlimited. |
+| property | `truncate` | "tail"\|"middle"\|"head" | `null` | Where text is truncated. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -1363,7 +1363,7 @@ theme "Afterglow"
 
 ### `theme-preview` (node)
 
-zeichnet die feste Vorschau-Szene eines Themes.
+Draws the fixed preview scene of a theme.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -1378,8 +1378,8 @@ zeichnet die feste Vorschau-Szene eines Themes.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `theme` | string\|record | required | Theme-Kennung oder Record mit `css` (Marketplace-Eintrag, vorher wie ein installiertes Theme geprüft). |
-| property | `appearance` | "light"\|"dark" | `null` | erzwungenes Erscheinungsbild der Vorschau. |
+| property | `theme` | string\|record | required | Theme id or record with `css` (Marketplace entry, checked like an installed theme first). |
+| property | `appearance` | "light"\|"dark" | `null` | Forced appearance of the preview. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -1431,7 +1431,7 @@ toast "default" { }
 
 ### `toggle` (node)
 
-An-/Aus-Schalter.
+On/off switch.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -1446,7 +1446,7 @@ An-/Aus-Schalter.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `checked` | bool | required | Zustand des Schalters. |
+| property | `checked` | bool | required | State of the switch. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`, `on-change`
 
