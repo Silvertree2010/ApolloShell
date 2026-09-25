@@ -29,13 +29,25 @@ enum KeyNameTable {
     static func canonical(_ text: String) -> String? { KeyChord.parse(text)?.canonical }
 }
 
+final class FirstWeekdaySetting: @unchecked Sendable {
+    private let lock = NSLock()
+    private var current = "system"
+
+    var value: String {
+        get { lock.withLock { current } }
+        set { lock.withLock { current = newValue } }
+    }
+}
+
 struct LayoutFilterServices: FilterServices {
     let base: DefaultFilterServices
     let keyName: @Sendable (UInt32) -> String?
+    let firstWeekday: FirstWeekdaySetting?
 
-    init(base: DefaultFilterServices = DefaultFilterServices(), keyName: @escaping @Sendable (UInt32) -> String?) {
+    init(base: DefaultFilterServices = DefaultFilterServices(), keyName: @escaping @Sendable (UInt32) -> String?, firstWeekday: FirstWeekdaySetting? = nil) {
         self.base = base
         self.keyName = keyName
+        self.firstWeekday = firstWeekday
     }
 
     func chordDisplay(_ chord: String) -> String {
@@ -45,7 +57,10 @@ struct LayoutFilterServices: FilterServices {
     }
 
     func appSearch(_ apps: [Value], query: String) -> [Value] { base.appSearch(apps, query: query) }
-    func monthGrid(_ date: Date, offset: Int, firstWeekday: String) -> Value { base.monthGrid(date, offset: offset, firstWeekday: firstWeekday) }
+    func monthGrid(_ date: Date, offset: Int, firstWeekday: String) -> Value {
+        let configured = firstWeekday == "system" ? (self.firstWeekday?.value ?? "system") : firstWeekday
+        return base.monthGrid(date, offset: offset, firstWeekday: configured)
+    }
     func uptimeText(_ seconds: Double) -> String { base.uptimeText(seconds) }
     func normalizedURL(_ text: String) -> String? { base.normalizedURL(text) }
     func symbolExists(_ name: String) -> Bool { base.symbolExists(name) }

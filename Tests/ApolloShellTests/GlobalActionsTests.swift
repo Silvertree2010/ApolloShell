@@ -58,4 +58,21 @@ struct GlobalActionsTests {
         #expect(field("install-kind") == .string("dmg"))
         #expect(field("update", "status") != .null)
     }
+
+    @Test("clock first-weekday gilt als Vorgabe für month-grid")
+    func firstWeekdaySetting() throws {
+        let root = URL(fileURLWithPath: "/t")
+        let fileSystem = MemoryFileSystem(["/t/shell.kdl": "clock first-weekday=\"sunday\"\n"])
+        let loader = ConfigLoader(fileSystem: fileSystem, paths: ConfigPaths(builtinConfigs: root, userConfig: root, applicationSupport: root), registry: .builtin, filters: .builtin, shellVersion: ShellVersion.current)
+        let ir = try #require(loader.load(ConfigLocation(id: "t", root: root, isBuiltin: false)).ir)
+        let shell = LiveShell(options: LiveShell.Options(config: nil, resources: PackageResources.root.appendingPathComponent("Resources"), fixture: nil))
+        shell.applyFirstWeekday(ir)
+        #expect(shell.firstWeekday.value == "sunday")
+        let services = LayoutFilterServices(keyName: { _ in nil }, firstWeekday: shell.firstWeekday)
+        let date = Date(timeIntervalSince1970: 1_790_235_660)
+        #expect(services.monthGrid(date, offset: 0, firstWeekday: "system") == DefaultFilterServices().monthGrid(date, offset: 0, firstWeekday: "sunday"))
+        #expect(services.monthGrid(date, offset: 0, firstWeekday: "monday") == DefaultFilterServices().monthGrid(date, offset: 0, firstWeekday: "monday"))
+        shell.applyFirstWeekday(nil)
+        #expect(shell.firstWeekday.value == "system")
+    }
 }

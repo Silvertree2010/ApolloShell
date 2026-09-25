@@ -85,6 +85,7 @@ final class LiveShell: WindowHostLink {
     private(set) var freshInstall = false
     var loginItem = LoginItem.live()
     let globalEffects = GlobalActionEffects()
+    let firstWeekday = FirstWeekdaySetting()
     var interactive = true
     var currentScreens: @MainActor () -> [String: ScreenGeometry] = {
         Dictionary(ShellScreens.current().map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame, name: $0.info.name, notch: $0.screen.safeAreaInsets.top > 0)) }, uniquingKeysWith: { first, _ in first })
@@ -183,8 +184,9 @@ final class LiveShell: WindowHostLink {
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         }
         let names = keyNames
+        let weekday = firstWeekday
         let assembly = ShellAssembly(host: host, scheduler: RunLoopFlushScheduler(), filterContext: {
-            FilterContext(now: Date(), locale: .current, timeZone: .current, services: LayoutFilterServices(keyName: { names.name($0) }))
+            FilterContext(now: Date(), locale: .current, timeZone: .current, services: LayoutFilterServices(keyName: { names.name($0) }, firstWeekday: weekday))
         })
         self.assembly = assembly
         assembly.actions.register("osd.show", OSDShowAction(shell: self))
@@ -247,6 +249,7 @@ final class LiveShell: WindowHostLink {
             ("install-kind", .string(InstallKind.detect(resourcesURL: Bundle.main.resourceURL) == .homebrew ? "homebrew" : "dmg")),
             ("update", updateField()),
         ])
+        applyFirstWeekday(result.ir)
         guard assembly.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Self.screenOrder(host.screens), shell: shell, writer: writer(for: location)) else {
             throw RenderError.config("config \(location.root.path) did not load")
         }
@@ -268,6 +271,13 @@ final class LiveShell: WindowHostLink {
         steps.append("started")
         assembly.runtime.emit("shell.started", Record())
         Self.log("started: config \(location.root.path), providers \(options.fixture == nil ? "system" : "fixture"), \(host.controllers.count) window(s)")
+    }
+
+    func applyFirstWeekday(_ ir: ConfigIR?) {
+        switch ir?.blocks["clock"]?.last?.compiled["first-weekday"]?.template {
+        case .literal(let value)?, .whole(.literal(.string(let value)))?: firstWeekday.value = value
+        default: firstWeekday.value = "system"
+        }
     }
 
     func publishScreens(_ screens: [String: ScreenGeometry]) {
@@ -553,6 +563,7 @@ final class LiveShell: WindowHostLink {
                 watchedFiles = result.files
             }
             reloading = true
+            applyFirstWeekday(result.ir)
             if assembly?.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Self.screenOrder(host.screens), shell: shell, writer: writer(for: location)) == true {
                 reloadsApplied += 1
             }
