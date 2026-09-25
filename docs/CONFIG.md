@@ -538,16 +538,16 @@ input bind="var.launcher-query" placeholder="Search"
 
 ### `item` (node)
 
-ein Eintrag in einem nativen Menü.
+An item in a native menu.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `title` | string | required | Titel des Eintrags. |
-| property | `icon` | string | `null` | Symbol des Eintrags. |
-| property | `checked` | bool | `false` | Häkchen am Eintrag. |
-| property | `disabled` | bool | `false` | Eintrag nicht auswählbar. |
-| property | `shortcut` | string | `null` | nur zur Anzeige, kein aktives Tastenkürzel. |
-| property | `alternate` | bool | `false` | erscheint nur bei gehaltener Wahltaste anstelle des vorigen Eintrags. |
+| argument | `title` | string | required | Title of the item. |
+| property | `icon` | string | `null` | Symbol of the item. |
+| property | `checked` | bool | `false` | Checkmark on the item. |
+| property | `disabled` | bool | `false` | Item cannot be selected. |
+| property | `shortcut` | string | `null` | Display only, not an active keyboard shortcut. |
+| property | `alternate` | bool | `false` | Appears only while Option is held, in place of the previous item. |
 
 ```kdl
 item "Copy" { clipboard.copy "{system.full-name}" }
@@ -1101,11 +1101,11 @@ scroll axis="vertical" { column { } }
 
 ### `section` (node)
 
-eine Überschrift in einem nativen Menü.
+A heading in a native menu.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `title` | string | required | Überschrift des Abschnitts. |
+| argument | `title` | string | required | Heading of the section. |
 
 ```kdl
 section "Recent"
@@ -1113,7 +1113,7 @@ section "Recent"
 
 ### `separator` (node)
 
-eine Trennlinie in einem nativen Menü.
+A separator in a native menu.
 
 ```kdl
 separator
@@ -1190,11 +1190,11 @@ slot
 
 ### `source` (node)
 
-fügt Einträge ein, die eine Menü-Quelle der Registry liefert.
+Inserts items supplied by a menu source from the registry.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `kind` | identifier | required | Name der Menü-Quelle aus der Registry. |
+| argument | `kind` | identifier | required | Name of the menu source from the registry. |
 
 ```kdl
 source "app-dock" app="{app}"
@@ -1276,11 +1276,11 @@ style "theme.css"
 
 ### `submenu` (node)
 
-ein Untermenü mit eigenen Einträgen.
+A submenu with its own items.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `title` | string | required | Titel des Untermenüs. |
+| argument | `title` | string | required | Title of the submenu. |
 
 ```kdl
 submenu "More" { item "Details" { } }

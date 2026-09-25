@@ -3,49 +3,49 @@ enum MenuNodes {
         NodeSchema(
             name: "item",
             category: .menuItem,
-            arguments: [ArgumentSchema(name: "title", type: .string, doc: "Titel des Eintrags.")],
+            arguments: [ArgumentSchema(name: "title", type: .string, doc: "Title of the item.")],
             properties: [
-                PropertySchema(name: "icon", type: .string, defaultValue: .null, doc: "Symbol des Eintrags."),
-                PropertySchema(name: "checked", type: .bool, defaultValue: .bool(false), doc: "Häkchen am Eintrag."),
-                PropertySchema(name: "disabled", type: .bool, defaultValue: .bool(false), doc: "Eintrag nicht auswählbar."),
-                PropertySchema(name: "shortcut", type: .string, defaultValue: .null, allowsExpression: false, doc: "nur zur Anzeige, kein aktives Tastenkürzel."),
-                PropertySchema(name: "alternate", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "erscheint nur bei gehaltener Wahltaste anstelle des vorigen Eintrags."),
+                PropertySchema(name: "icon", type: .string, defaultValue: .null, doc: "Symbol of the item."),
+                PropertySchema(name: "checked", type: .bool, defaultValue: .bool(false), doc: "Checkmark on the item."),
+                PropertySchema(name: "disabled", type: .bool, defaultValue: .bool(false), doc: "Item cannot be selected."),
+                PropertySchema(name: "shortcut", type: .string, defaultValue: .null, allowsExpression: false, doc: "Display only, not an active keyboard shortcut."),
+                PropertySchema(name: "alternate", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Appears only while Option is held, in place of the previous item."),
             ],
             childContext: .actions,
             contexts: [.menu, .commandCenterItems],
-            doc: "ein Eintrag in einem nativen Menü.",
+            doc: "An item in a native menu.",
             example: "item \"Copy\" { clipboard.copy \"{system.full-name}\" }"
         ),
         NodeSchema(
             name: "separator",
             category: .menuItem,
             contexts: [.menu, .commandCenterItems],
-            doc: "eine Trennlinie in einem nativen Menü.",
+            doc: "A separator in a native menu.",
             example: "separator"
         ),
         NodeSchema(
             name: "section",
             category: .menuItem,
-            arguments: [ArgumentSchema(name: "title", type: .string, doc: "Überschrift des Abschnitts.")],
+            arguments: [ArgumentSchema(name: "title", type: .string, doc: "Heading of the section.")],
             contexts: [.menu],
-            doc: "eine Überschrift in einem nativen Menü.",
+            doc: "A heading in a native menu.",
             example: "section \"Recent\""
         ),
         NodeSchema(
             name: "submenu",
             category: .menuItem,
-            arguments: [ArgumentSchema(name: "title", type: .string, doc: "Titel des Untermenüs.")],
+            arguments: [ArgumentSchema(name: "title", type: .string, doc: "Title of the submenu.")],
             childContext: .menu,
             contexts: [.menu, .commandCenterItems],
-            doc: "ein Untermenü mit eigenen Einträgen.",
+            doc: "A submenu with its own items.",
             example: "submenu \"More\" { item \"Details\" { } }"
         ),
         NodeSchema(
             name: "source",
             category: .menuItem,
-            arguments: [ArgumentSchema(name: "kind", type: .identifier, allowsExpression: false, doc: "Name der Menü-Quelle aus der Registry.")],
+            arguments: [ArgumentSchema(name: "kind", type: .identifier, allowsExpression: false, doc: "Name of the menu source from the registry.")],
             contexts: [.menu],
-            doc: "fügt Einträge ein, die eine Menü-Quelle der Registry liefert.",
+            doc: "Inserts items supplied by a menu source from the registry.",
             example: "source \"app-dock\" app=\"{app}\""
         ),
     ]
