@@ -23,6 +23,8 @@ public final class ShellRuntime: SurfaceControlling {
     private var awakeTokens: [SubscriptionToken] = []
     private var providerSettingHandles: [BindingHandle] = []
     private var providerSettingValues: [String: [String: Value]] = [:]
+    private var providerSettingsPushed: [String: Record] = [:]
+    static let namedBlockProviders: Set<String> = ["poll", "listen"]
     private var inSession = false
     private var queue: [@MainActor () -> Void] = []
     private var dirtyContainers: [ObjectIdentifier: Container] = [:]
@@ -448,10 +450,17 @@ public final class ShellRuntime: SurfaceControlling {
         for id in ids {
             providerSettingValues[id] = [:]
             for block in ir.blocks[id] ?? [] {
+                var prefix = ""
+                if Self.namedBlockProviders.contains(id) {
+                    guard let name = block.compiled["#0"], case .string(let text) = bindings.evaluateOnce(name, scope: LocalScope()), !text.isEmpty else { continue }
+                    prefix = "\(text)."
+                }
                 for key in block.compiled.keys.sorted() {
                     guard let compiled = block.compiled[key] else { continue }
+                    let path = prefix + key
+                    providerSettingValues[id]?[path] = bindings.evaluateOnce(compiled, scope: LocalScope())
                     let handle = bindings.bind(compiled, scope: LocalScope(), active: true) { [weak self] value in
-                        self?.providerSettingChanged(id, key, value)
+                        self?.providerSettingChanged(id, path, value)
                     }
                     providerSettingHandles.append(handle)
                 }
@@ -459,6 +468,7 @@ public final class ShellRuntime: SurfaceControlling {
             pushProviderSettings(id)
         }
         for id in previous.subtracting(ids) {
+            providerSettingsPushed[id] = nil
             providers.configure(id, Record())
         }
     }
@@ -471,7 +481,10 @@ public final class ShellRuntime: SurfaceControlling {
 
     private func pushProviderSettings(_ id: String) {
         guard let flat = providerSettingValues[id] else { return }
-        providers.configure(id, Self.nestedRecord(flat))
+        let record = Self.nestedRecord(flat)
+        guard providerSettingsPushed[id] != record else { return }
+        providerSettingsPushed[id] = record
+        providers.configure(id, record)
     }
 
     static func nestedRecord(_ flat: [String: Value]) -> Record {

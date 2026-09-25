@@ -26,6 +26,7 @@ public final class ScriptSourcesProvider: BaseProvider {
     public let kind: ScriptKind
     private let runner: any ScriptRunner
     private var entries: [Entry]
+    private var configuredSources = false
 
     public init(kind: ScriptKind, sources: [ScriptSourceSpec], runner: any ScriptRunner, clock: any RuntimeClock) {
         self.kind = kind
@@ -62,11 +63,61 @@ public final class ScriptSourcesProvider: BaseProvider {
     }
 
     override func didConfigure(_ settings: Record) {
+        let specs = Self.specs(settings)
+        if !specs.isEmpty || configuredSources {
+            configuredSources = true
+            setSources(specs)
+        }
         for entry in entries {
             guard case .record(let options) = settings[entry.spec.name] ?? .null else { continue }
             if case .bool(let flag) = options["when"] ?? .null { entry.when = flag }
         }
         if isRunning { reconcile() }
+    }
+
+    public var sources: [ScriptSourceSpec] {
+        entries.map(\.spec)
+    }
+
+    static func specs(_ settings: Record) -> [ScriptSourceSpec] {
+        settings.keys.compactMap { name in
+            guard case .record(let options)? = settings[name], case .string(let command)? = options["command"] else { return nil }
+            var format = ScriptFormat.text
+            if case .string(let text)? = options["format"], let parsed = ScriptFormat(rawValue: text) { format = parsed }
+            return ScriptSourceSpec(
+                name: name,
+                command: command,
+                interval: RuntimeDuration.seconds(options["interval"]) ?? 5,
+                format: format,
+                initial: options["initial"] ?? .null,
+                timeout: RuntimeDuration.seconds(options["timeout"]) ?? 10
+            )
+        }
+    }
+
+    func setSources(_ specs: [ScriptSourceSpec]) {
+        guard specs != entries.map(\.spec) else { return }
+        let old = entries
+        var next: [Entry] = []
+        for spec in specs {
+            if let entry = old.first(where: { $0.spec == spec }), !next.contains(where: { $0 === entry }) {
+                next.append(entry)
+            } else {
+                next.append(Entry(spec))
+            }
+        }
+        for entry in old where !next.contains(where: { $0 === entry }) {
+            halt(entry)
+            timers.cancel("run.\(entry.spec.name)")
+            if isRunning, !specs.contains(where: { $0.name == entry.spec.name }) {
+                publish(entry.spec.name, .null)
+                publish(Self.errorField(entry.spec.name), .null)
+            }
+        }
+        entries = next
+        for entry in next where !old.contains(where: { $0 === entry }) {
+            publish(entry)
+        }
     }
 
     override func didStop() {

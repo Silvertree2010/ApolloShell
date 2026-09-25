@@ -55,6 +55,7 @@ public struct ConfigLoader: Sendable {
         if featured.nodes.isEmpty, !included.nodes.isEmpty, hasErrors(featured.diagnostics) {
             return finish(nil, files: included.files)
         }
+        let registry = self.registry.addingScriptSources(Self.scriptSourceNames(featured.nodes))
         let lets = LetStage.run(featured.nodes, registry: registry, filters: filters)
         collect(lets.diagnostics, stage: "let")
         let used = UseStage.run(lets.nodes, registry: registry)

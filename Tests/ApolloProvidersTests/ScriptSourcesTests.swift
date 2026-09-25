@@ -88,6 +88,36 @@ struct ScriptSourcesTests {
         #expect(harness.value("poll", "brew-error") != .null)
     }
 
+    @Test("Quellen aus der Config: Einstellungen je Name bauen die Quellen, Entfernen setzt den Wert auf null")
+    func sourcesFromSettings() {
+        let (harness, runner, provider) = make(.poll, [])
+        func source(_ command: String, _ extra: [(String, Value)] = []) -> Value {
+            .record(Record([("#0", .string("x")), ("command", .string(command))] + extra))
+        }
+        provider.configure(Record([
+            ("vpn", source("scutil", [("interval", .string("10s")), ("initial", .string("?")), ("format", .string("lines"))])),
+            ("brew", source("brew outdated", [("when", .bool(false)), ("timeout", .string("500ms"))])),
+        ]))
+        #expect(provider.sources.map(\.name) == ["vpn", "brew"])
+        #expect(provider.sources[0] == ScriptSourceSpec(name: "vpn", command: "scutil", interval: 10, format: .lines, initial: .string("?")))
+        #expect(provider.sources[1].timeout == 0.5)
+        runner.answersImmediately = false
+        _ = harness.demand("poll", "vpn", "brew")
+        #expect(harness.value("poll", "vpn") == .string("?"))
+        #expect(runner.runs == ["scutil"])
+        runner.last.completion?(0, "a\nb\n")
+        harness.flush()
+        #expect(harness.value("poll", "vpn") == .list([.string("a"), .string("b")]))
+
+        provider.configure(Record([("vpn", source("scutil", [("interval", .string("10s")), ("initial", .string("?")), ("format", .string("lines"))]))]))
+        #expect(provider.sources.map(\.name) == ["vpn"])
+        #expect(harness.value("poll", "vpn") == .list([.string("a"), .string("b")]))
+        #expect(harness.value("poll", "brew") == .null)
+        provider.configure(Record())
+        #expect(provider.sources.isEmpty)
+        #expect(harness.value("poll", "vpn") == .null)
+    }
+
     @Test("when schaltet die Quelle ab und wieder an")
     func whenCondition() {
         let (harness, runner, provider) = make(.poll, [ScriptSourceSpec(name: "vpn", command: "scutil")])
