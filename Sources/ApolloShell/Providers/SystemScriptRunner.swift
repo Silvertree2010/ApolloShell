@@ -43,6 +43,7 @@ enum ProcessTree {
 }
 
 final class LineBuffer: @unchecked Sendable {
+    static let limit = 1 << 20
     private let lock = NSLock()
     private var pending = Data()
 
@@ -54,6 +55,10 @@ final class LineBuffer: @unchecked Sendable {
         while let index = pending.firstIndex(of: 0x0A) {
             lines.append(String(decoding: pending[pending.startIndex..<index], as: UTF8.self))
             pending.removeSubrange(pending.startIndex...index)
+        }
+        if pending.count > Self.limit {
+            lines.append(String(decoding: pending, as: UTF8.self))
+            pending.removeAll()
         }
         return lines
     }
