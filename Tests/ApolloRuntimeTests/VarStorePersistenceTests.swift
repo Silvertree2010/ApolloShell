@@ -115,6 +115,22 @@ struct VarStorePersistenceTests {
         #expect((try? fileSystem.read(URL(fileURLWithPath: "/state/test.kdl"))) == original)
     }
 
+    @Test("Unlesbare Statusdatei: erste Änderung sichert sie als .unreadable und schreibt neu, spätere Änderungen landen weiter")
+    func unreadableFileIsReplacedOnWrite() throws {
+        let broken = "count 1\nname \"open\n"
+        let fileSystem = MemoryFileSystem(["/state/test.kdl": broken])
+        let writer = StateWriter(file: URL(fileURLWithPath: "/state/test.kdl"), fileSystem: fileSystem)
+        let warnings = Mutex<[Diagnostic]>([])
+        writer.setWarningHandler { diagnostic in warnings.withLock { $0.append(diagnostic) } }
+        writer.enqueue(["count": .number(2)])
+        writer.enqueue(["count": .number(3), "other": .bool(true)])
+        writer.flushSync()
+        #expect(try fileSystem.read(URL(fileURLWithPath: "/state/test.kdl.unreadable")) == broken)
+        let text = try fileSystem.read(URL(fileURLWithPath: "/state/test.kdl"))
+        #expect(VarStateFile.readAll(text, file: "test.kdl").0 == ["count": .number(3), "other": .bool(true)])
+        #expect(warnings.withLock { $0 }.count == 1)
+    }
+
     @Test("Zwei schnelle Schreibvorgänge landen in Reihenfolge und ausserhalb des Main Threads")
     func writesAreSerialAndOffMain() {
         let fileSystem = RecordingFileSystem(MemoryFileSystem(), slowFirstWrite: 0.05)

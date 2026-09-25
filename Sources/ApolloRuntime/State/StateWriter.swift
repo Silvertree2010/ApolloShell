@@ -63,8 +63,20 @@ public final class StateWriter: Sendable {
     }
 
     func write(_ values: [String: Value]) -> Diagnostic? {
-        let existingText = fileSystem.exists(file) ? ((try? fileSystem.read(file)) ?? "") : ""
-        let baseline = state.withLock { $0.known }
+        var existingText = fileSystem.exists(file) ? ((try? fileSystem.read(file)) ?? "") : ""
+        var baseline = state.withLock { $0.known }
+        var replaced: Diagnostic?
+        if (try? KDLDocument.parse(existingText, file: file.path)) == nil {
+            let backup = file.deletingLastPathComponent().appendingPathComponent(file.lastPathComponent + ".unreadable")
+            do {
+                try fileSystem.write(existingText, to: backup)
+            } catch {
+                return Diagnostic(.warning, "\(file.lastPathComponent) could not be read and its copy could not be saved, so it was left as it is.")
+            }
+            replaced = Diagnostic(.warning, "\(file.lastPathComponent) could not be read. It was saved as \(backup.lastPathComponent) and started anew.")
+            existingText = ""
+            baseline = nil
+        }
         var accepted = values
         if let baseline, baseline != existingText {
             let before = Self.rawValues(baseline)
@@ -81,7 +93,7 @@ public final class StateWriter: Sendable {
                 $0.lastWritten = newText
                 $0.warned = false
             }
-            return nil
+            return replaced
         } catch {
             let alreadyWarned = state.withLock { current -> Bool in
                 let was = current.warned
