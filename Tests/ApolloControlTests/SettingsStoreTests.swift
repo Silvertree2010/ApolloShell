@@ -102,4 +102,21 @@ struct SettingsStoreTests {
         try fileSystem.write("crash-reports \"sometimes\"", to: Self.file)
         #expect(SettingsStore(file: Self.file, fileSystem: fileSystem).crashReportMode == CrashReportSettings.Mode.ask)
     }
+
+    @Test("Gleichzeitige Änderungen aus zwei Threads gehen nicht verloren")
+    func concurrentApply() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("settings-race-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = SettingsStore(file: folder.appendingPathComponent("settings.kdl"))
+        await withTaskGroup(of: Void.self) { group in
+            for round in 0..<40 {
+                group.addTask { try? store.apply(round % 2 == 0 ? .theme("t\(round)") : .config("c\(round)")) }
+            }
+        }
+        let text = try String(contentsOf: folder.appendingPathComponent("settings.kdl"), encoding: .utf8)
+        let parsed = ShellSettingsFile.parse(text, file: "settings.kdl").0
+        #expect(parsed.theme != nil)
+        #expect(parsed.config != nil)
+        #expect(parsed == store.settings)
+    }
 }

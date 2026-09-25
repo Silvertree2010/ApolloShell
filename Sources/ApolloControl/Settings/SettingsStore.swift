@@ -32,6 +32,7 @@ public final class SettingsStore: @unchecked Sendable {
     public let file: URL
     private let fileSystem: any ConfigFileSystem
     private let lock = NSLock()
+    private let writeLock = NSLock()
     private var text: String?
     private var current = ShellSettingsFile()
     private var currentDiagnostics: [Diagnostic] = []
@@ -71,6 +72,8 @@ public final class SettingsStore: @unchecked Sendable {
     }
 
     public func apply(_ change: ShellSettingsChange) throws {
+        writeLock.lock()
+        defer { writeLock.unlock() }
         let base = fileSystem.exists(file) ? try fileSystem.read(file) : ""
         let updated: String
         do {
