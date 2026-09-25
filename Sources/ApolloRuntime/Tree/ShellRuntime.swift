@@ -106,6 +106,7 @@ public final class ShellRuntime: SurfaceControlling {
         }
         teardownAll()
         warned.removeAll()
+        actions.forgetWarnings()
         config = ir
         self.screens = screens
         store.set(DependencyPath("shell", []), .record(shell))
@@ -130,6 +131,7 @@ public final class ShellRuntime: SurfaceControlling {
 
     private func reload(from old: ConfigIR, to ir: ConfigIR, persisted: [String: Value], screens: [String], shell: Record, writer: StateWriter?) {
         warned.removeAll()
+        actions.forgetWarnings()
         let diff = IRDiff.surfaces(old: old, new: ir)
         let changedIDs = Set(diff.changed.map(\.id))
         var added: [SurfaceNode] = []

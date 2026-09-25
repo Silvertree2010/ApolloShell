@@ -78,6 +78,7 @@ public final class StateWriter: Sendable {
             baseline = nil
         }
         var accepted = values
+        let foreign = baseline.map { $0 != existingText } ?? false
         if let baseline, baseline != existingText {
             let before = Self.rawValues(baseline)
             let now = Self.rawValues(existingText)
@@ -90,7 +91,7 @@ public final class StateWriter: Sendable {
             }
             state.withLock {
                 $0.known = newText
-                $0.lastWritten = newText
+                $0.lastWritten = foreign ? nil : newText
                 $0.warned = false
             }
             return replaced

@@ -131,6 +131,21 @@ struct VarStorePersistenceTests {
         #expect(warnings.withLock { $0 }.count == 1)
     }
 
+    @Test("Handänderung zwischen zwei Speichern: gilt nicht als eigener Schreibvorgang, damit sie im Speicher ankommt")
+    func foreignEditIsNotOwnWrite() throws {
+        let fileSystem = MemoryFileSystem(["/state/test.kdl": "a 1\n"])
+        let writer = StateWriter(file: URL(fileURLWithPath: "/state/test.kdl"), fileSystem: fileSystem)
+        try fileSystem.write("a 2\n", to: URL(fileURLWithPath: "/state/test.kdl"))
+        writer.enqueue(["a": .number(1), "b": .bool(true)])
+        writer.flushSync()
+        let text = try fileSystem.read(URL(fileURLWithPath: "/state/test.kdl"))
+        #expect(VarStateFile.readAll(text, file: "test.kdl").0 == ["a": .number(2), "b": .bool(true)])
+        #expect(writer.lastWrittenText == nil)
+        writer.enqueue(["b": .bool(false)])
+        writer.flushSync()
+        #expect(writer.lastWrittenText != nil)
+    }
+
     @Test("Zwei schnelle Schreibvorgänge landen in Reihenfolge und ausserhalb des Main Threads")
     func writesAreSerialAndOffMain() {
         let fileSystem = RecordingFileSystem(MemoryFileSystem(), slowFirstWrite: 0.05)
