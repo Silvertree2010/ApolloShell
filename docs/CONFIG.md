@@ -174,11 +174,11 @@ command-center { builtin "reload-config" }
 
 ### `config` (node)
 
-wählt die aktive Config.
+Selects the active config.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier | required | Kennung der aktiven Config. |
+| argument | `id` | identifier | required | Id of the active config. |
 
 ```kdl
 config "apolloshell-default"
@@ -186,11 +186,11 @@ config "apolloshell-default"
 
 ### `crash-reports` (node)
 
-Einstellung für Absturzberichte.
+Setting for crash reports.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `mode` | "ask"\|"always"\|"never" | required | wie mit Absturzberichten verfahren wird. |
+| argument | `mode` | "ask"\|"always"\|"never" | required | How crash reports are handled. |
 
 ```kdl
 crash-reports "ask"
@@ -263,11 +263,11 @@ each app in="{apps.running}" { text "{app.name}" }
 
 ### `editor` (node)
 
-Editor-Befehl für shell.edit.
+Editor command for shell.edit.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `command` | string | required | Befehl zum Öffnen einer Datei, Platzhalter {file} {line} {column}. |
+| argument | `command` | string | required | Command to open a file, placeholders {file} {line} {column}. |
 
 ```kdl
 editor "code -g {file}:{line}:{column}"
@@ -1351,11 +1351,11 @@ text "{clock.now | date 'HH:mm'}"
 
 ### `theme` (node)
 
-wählt das aktive Theme.
+Selects the active theme.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier |  | Theme-Kennung oder #null für kein Theme. |
+| argument | `id` | identifier |  | Theme id or #null for no theme. |
 
 ```kdl
 theme "Afterglow"
@@ -1456,12 +1456,12 @@ toggle checked="{var.dark-mode}"
 
 ### `updates` (node)
 
-Update-Einstellungen der Shell.
+Update settings of the shell.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `auto-check` | bool | `true` | prüft automatisch auf Updates. |
-| property | `auto-install` | bool | `true` | installiert Updates automatisch. |
+| property | `auto-check` | bool | `true` | Checks for updates automatically. |
+| property | `auto-install` | bool | `true` | Installs updates automatically. |
 
 ```kdl
 updates auto-check=#true auto-install=#true

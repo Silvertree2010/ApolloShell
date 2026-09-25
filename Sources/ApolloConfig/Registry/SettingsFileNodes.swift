@@ -3,44 +3,44 @@ enum SettingsFileNodes {
         NodeSchema(
             name: "config",
             category: .providerSettings,
-            arguments: [ArgumentSchema(name: "id", type: .identifier, allowsExpression: false, doc: "Kennung der aktiven Config.")],
+            arguments: [ArgumentSchema(name: "id", type: .identifier, allowsExpression: false, doc: "Id of the active config.")],
             contexts: [.settingsFile],
-            doc: "wählt die aktive Config.",
+            doc: "Selects the active config.",
             example: "config \"apolloshell-default\""
         ),
         NodeSchema(
             name: "theme",
             category: .providerSettings,
-            arguments: [ArgumentSchema(name: "id", type: .identifier, required: false, allowsExpression: false, doc: "Theme-Kennung oder #null für kein Theme.")],
+            arguments: [ArgumentSchema(name: "id", type: .identifier, required: false, allowsExpression: false, doc: "Theme id or #null for no theme.")],
             contexts: [.settingsFile],
-            doc: "wählt das aktive Theme.",
+            doc: "Selects the active theme.",
             example: "theme \"Afterglow\""
         ),
         NodeSchema(
             name: "updates",
             category: .providerSettings,
             properties: [
-                PropertySchema(name: "auto-check", type: .bool, defaultValue: .bool(true), allowsExpression: false, doc: "prüft automatisch auf Updates."),
-                PropertySchema(name: "auto-install", type: .bool, defaultValue: .bool(true), allowsExpression: false, doc: "installiert Updates automatisch."),
+                PropertySchema(name: "auto-check", type: .bool, defaultValue: .bool(true), allowsExpression: false, doc: "Checks for updates automatically."),
+                PropertySchema(name: "auto-install", type: .bool, defaultValue: .bool(true), allowsExpression: false, doc: "Installs updates automatically."),
             ],
             contexts: [.settingsFile],
-            doc: "Update-Einstellungen der Shell.",
+            doc: "Update settings of the shell.",
             example: "updates auto-check=#true auto-install=#true"
         ),
         NodeSchema(
             name: "crash-reports",
             category: .providerSettings,
-            arguments: [ArgumentSchema(name: "mode", type: .enumeration(["ask", "always", "never"]), allowsExpression: false, doc: "wie mit Absturzberichten verfahren wird.")],
+            arguments: [ArgumentSchema(name: "mode", type: .enumeration(["ask", "always", "never"]), allowsExpression: false, doc: "How crash reports are handled.")],
             contexts: [.settingsFile],
-            doc: "Einstellung für Absturzberichte.",
+            doc: "Setting for crash reports.",
             example: "crash-reports \"ask\""
         ),
         NodeSchema(
             name: "editor",
             category: .providerSettings,
-            arguments: [ArgumentSchema(name: "command", type: .string, allowsExpression: false, doc: "Befehl zum Öffnen einer Datei, Platzhalter {file} {line} {column}.")],
+            arguments: [ArgumentSchema(name: "command", type: .string, allowsExpression: false, doc: "Command to open a file, placeholders {file} {line} {column}.")],
             contexts: [.settingsFile],
-            doc: "Editor-Befehl für shell.edit.",
+            doc: "Editor command for shell.edit.",
             example: "editor \"code -g {file}:{line}:{column}\""
         ),
     ]
