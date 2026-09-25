@@ -44,7 +44,10 @@ public final class SystemProvider: BaseProvider {
         refresh()
     }
 
+    static let polledFields = ["night-shift", "microphone-muted", "show-desktop-available", "apple-dock-hidden"]
+
     override func didChangeDemand() {
+        source.setPolling(demand.wantsAny(Self.polledFields))
         timers.set("uptime", every: Self.uptimeInterval, active: demand.wants("uptime"), immediately: true) { [weak self] in
             guard let self else { return }
             self.publish("uptime", ProviderValue.number(self.source.uptime))

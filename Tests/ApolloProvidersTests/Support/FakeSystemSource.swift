@@ -54,6 +54,12 @@ final class FakeSystemSource: SystemSource {
         self.handler = handler
     }
 
+    var polling = false
+
+    func setPolling(_ active: Bool) {
+        polling = active
+    }
+
     func stopObserving() {
         observing = false
         handler = nil

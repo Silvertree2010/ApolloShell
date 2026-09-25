@@ -142,6 +142,15 @@ final class SystemMacSource: SystemSource {
         distributed.append(DistributedNotificationCenter.default().addObserver(forName: Notification.Name("AppleInterfaceThemeChangedNotification"), object: nil, queue: .main, using: notify))
         local.append(NotificationCenter.default.addObserver(forName: NSColor.systemColorsDidChangeNotification, object: nil, queue: .main, using: notify))
         workspace.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main, using: notify))
+    }
+
+    func setPolling(_ active: Bool) {
+        guard active, handler != nil else {
+            poll?.invalidate()
+            poll = nil
+            return
+        }
+        guard poll == nil else { return }
         poll = Timer.scheduledTimer(withTimeInterval: Self.pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.handler?() }
         }

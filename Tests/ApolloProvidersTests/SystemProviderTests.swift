@@ -24,6 +24,18 @@ struct SystemProviderTests {
         #expect(harness.value("system", "accent-color") == .string("#007AFF"))
     }
 
+    @Test("Pollt nur, solange ein nur per Abfrage erkennbares Feld gefragt ist")
+    func pollsOnlyOnDemand() {
+        let (harness, source) = make()
+        let dark = harness.demand("system", "dark-mode")
+        #expect(!source.polling)
+        let night = harness.demand("system", "night-shift")
+        #expect(source.polling)
+        harness.release(night)
+        #expect(!source.polling)
+        harness.release(dark)
+    }
+
     @Test("Null-Felder: kein Night Shift, kein schaltbares Mikrofon, kein Profilbild")
     func nullableFields() async throws {
         let (harness, source) = make()

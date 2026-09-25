@@ -51,6 +51,7 @@ public protocol SystemSource: AnyObject {
     func run(_ command: SystemCommand)
     func pickColor(_ completion: @escaping @MainActor (String?) -> Void)
     func observeChanges(_ handler: @escaping @MainActor () -> Void)
+    func setPolling(_ active: Bool)
     func stopObserving()
     func userImageData() -> Data?
 }
@@ -91,4 +92,8 @@ public enum SystemSettingsPane {
     public static func identifier(_ pane: String) -> String? {
         identifiers[pane]
     }
+}
+
+public extension SystemSource {
+    func setPolling(_ active: Bool) {}
 }
