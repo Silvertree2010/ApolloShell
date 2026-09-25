@@ -25,28 +25,54 @@ final class EdgeHoverController {
     var makeTimer: @MainActor (TimeInterval, @escaping @MainActor () -> Void) -> Timer? = { interval, tick in
         ShellTimer.repeating(interval, tick)
     }
+    var makeMonitor: @MainActor (@escaping @MainActor () -> Void) -> Any? = { moved in
+        NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { _ in
+            MainActor.assumeIsolated { moved() }
+        }
+    }
+    var removeMonitor: @MainActor (Any) -> Void = { NSEvent.removeMonitor($0) }
     private(set) var states: [String: EdgeHoverState] = [:]
     private var timer: Timer?
+    private var monitor: Any?
     private(set) var running = false
+    private(set) var polling = false
 
     func refresh() {
         let wanted = !targets().isEmpty
-        guard wanted != running else { return }
-        running = wanted
-        timer?.invalidate()
-        timer = nil
-        if wanted {
-            timer = makeTimer(Self.interval) { [weak self] in self?.tick() }
-        } else {
-            states = [:]
+        guard wanted != running else {
+            updatePolling()
+            return
         }
+        running = wanted
+        if wanted {
+            monitor = makeMonitor { [weak self] in self?.tick() }
+            updatePolling()
+        } else {
+            stop()
+        }
+    }
+
+    func openChanged() {
+        guard running else { return }
+        updatePolling()
     }
 
     func stop() {
         timer?.invalidate()
         timer = nil
+        polling = false
+        if let monitor { removeMonitor(monitor) }
+        monitor = nil
         running = false
         states = [:]
+    }
+
+    private func updatePolling() {
+        let wanted = running && (states.values.contains(where: \.visible) || targets().contains(where: \.isOpen))
+        guard wanted != polling else { return }
+        polling = wanted
+        timer?.invalidate()
+        timer = wanted ? makeTimer(Self.interval) { [weak self] in self?.tick() } : nil
     }
 
     func tick() {
@@ -71,6 +97,7 @@ final class EdgeHoverController {
                 close(target.surfaceID)
             }
         }
+        updatePolling()
     }
 
     static func area(_ target: Target, open: Bool) -> CGRect {

@@ -214,9 +214,13 @@ struct HostRoundTwoTests {
         hover.open = { runtime.open($0, screenKey: $1) }
         hover.close = { runtime.close($0) }
         var ticking = false
+        var watching = false
         hover.makeTimer = { _, _ in ticking = true; return nil }
+        hover.makeMonitor = { _ in watching = true; return "m" }
+        hover.removeMonitor = { _ in }
         hover.refresh()
-        #expect(ticking)
+        #expect(watching)
+        #expect(!ticking)
         let target = try #require(fixture.host.hoverTargets().first)
         #expect(target.anchor == .left)
         func isOpen() -> Bool { runtime.surface("drawer", screenKey: HostFixture.screen.key)?.isOpen == true }

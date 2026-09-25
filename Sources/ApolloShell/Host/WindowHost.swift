@@ -82,6 +82,7 @@ final class WindowHost: SurfaceHosting {
     var scheduleTimer: @MainActor (TimeInterval, DispatchWorkItem) -> Void = { delay, work in
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
     }
+    var onOpenChanged: @MainActor () -> Void = {}
     var afterLayout: @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { MainActor.assumeIsolated { work() } }
     }
@@ -370,6 +371,7 @@ final class WindowHost: SurfaceHosting {
         let opening = surface.isOpen && !controller.wasOpen
         let closing = !surface.isOpen && controller.wasOpen
         controller.wasOpen = surface.isOpen
+        if opening || closing { onOpenChanged() }
         if surface.isVisible && !controller.shown {
             controller.shown = true
             present(controller, key: key, placement: placement, screen: screen, focus: opening)
