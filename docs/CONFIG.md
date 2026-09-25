@@ -1570,7 +1570,7 @@ What a handler such as `on-click` can do.
 
 ### `clipboard.copy` (action)
 
-kopiert Text in die Zwischenablage.
+Copies text to the clipboard.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -1578,312 +1578,312 @@ kopiert Text in die Zwischenablage.
 
 ### `close` (action)
 
-schliesst eine Oberfläche.
+Closes a surface.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier | required | Kennung der Oberfläche. |
-| property | `wait` | bool | `false` | folgende Aktionen erst nach dem Schliessen. |
+| argument | `id` | identifier | required | Surface id. |
+| property | `wait` | bool | `false` | Runs the following actions only after closing. |
 
 ### `close-group` (action)
 
-schliesst alle Oberflächen einer Gruppe.
+Closes all surfaces of a group.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `group` | string | required | Gruppenname. |
+| argument | `group` | string | required | Group name. |
 
 ### `command-center.open` (action)
 
-öffnet das Menü der Kommandozentrale.
+Opens the command center menu.
 
 ### `config.select` (action)
 
-wechselt die Config.
+Switches the config.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier | required | Config-Kennung. |
+| argument | `id` | identifier | required | Config id. |
 
 ### `exec` (action)
 
-startet ein beliebiges Programm.
+Starts any program.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `command` | string | required | Befehl über /bin/sh -c. |
-| property | `timeout` | duration | `"30s"` | Zeitlimit. |
+| argument | `command` | string | required | Command run via /bin/sh -c. |
+| property | `timeout` | duration | `"30s"` | Timeout. |
 
 ### `list.insert` (action)
 
-fügt einen Eintrag in eine var-Liste ein.
+Inserts an entry into a var list.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `variable` | identifier | required | Name der var-Liste. |
-| property | `at` | number | `null` | Einfügestelle, Vorgabe hinten. |
-| property | `id-from` | string | `null` | Feld für eine eindeutige id. |
-| property | `in` | value | `null` | wirkt auf eine Liste im Feld eines Eintrags. |
-| property | `field` | string | `null` | Feldname dieser Liste. |
+| argument | `variable` | identifier | required | Name of the var list. |
+| property | `at` | number | `null` | Insert position, default at the end. |
+| property | `id-from` | string | `null` | Field holding a unique id. |
+| property | `in` | value | `null` | Acts on a list in a field of an entry. |
+| property | `field` | string | `null` | Field name of this list. |
 
 ### `list.move` (action)
 
-sortiert einen Eintrag einer var-Liste um.
+Moves an entry within a var list.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `variable` | identifier | required | Name der var-Liste. |
-| property | `from` | number | `null` | Quellstelle. |
-| property | `to` | number | `null` | Zielstelle. |
-| property | `key` | value | `null` | Schlüssel statt from. |
+| argument | `variable` | identifier | required | Name of the var list. |
+| property | `from` | number | `null` | Source position. |
+| property | `to` | number | `null` | Target position. |
+| property | `key` | value | `null` | Key instead of from. |
 
 ### `list.move-to` (action)
 
-verschiebt einen Eintrag zwischen zwei var-Listen.
+Moves an entry between two var lists.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `fromVariable` | identifier | required | Quell-Liste. |
-| argument | `toVariable` | identifier | required | Ziel-Liste. |
-| property | `from` | number | `null` | Quellstelle. |
-| property | `to` | number | `null` | Zielstelle. |
+| argument | `fromVariable` | identifier | required | Source list. |
+| argument | `toVariable` | identifier | required | Target list. |
+| property | `from` | number | `null` | Source position. |
+| property | `to` | number | `null` | Target position. |
 
 ### `list.remove` (action)
 
-entfernt einen Eintrag aus einer var-Liste.
+Removes an entry from a var list.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `variable` | identifier | required | Name der var-Liste. |
-| property | `at` | number | `null` | Stelle. |
-| property | `key` | value | `null` | Schlüssel des Eintrags. |
+| argument | `variable` | identifier | required | Name of the var list. |
+| property | `at` | number | `null` | Position. |
+| property | `key` | value | `null` | Key of the entry. |
 
 ### `list.swap` (action)
 
-tauscht zwei Einträge.
+Swaps two entries.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `variable` | identifier | required | erste var-Liste. |
-| argument | `index` | number | required | Stelle. |
-| argument | `otherVariable` | identifier | required | zweite var-Liste. |
-| argument | `otherIndex` | number | required | Stelle. |
+| argument | `variable` | identifier | required | First var list. |
+| argument | `index` | number | required | Position. |
+| argument | `otherVariable` | identifier | required | Second var list. |
+| argument | `otherIndex` | number | required | Position. |
 
 ### `list.update` (action)
 
-mischt Felder in einen Record einer var-Liste.
+Merges fields into a record of a var list.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `variable` | identifier | required | Name der var-Liste. |
-| property | `at` | number | `null` | Stelle. |
-| property | `key` | value | `null` | Schlüssel statt at. |
+| argument | `variable` | identifier | required | Name of the var list. |
+| property | `at` | number | `null` | Position. |
+| property | `key` | value | `null` | Key instead of at. |
 
 ### `marketplace.open` (action)
 
-öffnet das Marketplace-Fenster.
+Opens the Marketplace window.
 
 ### `notify` (action)
 
-zeigt eine Toast-Meldung.
+Shows a toast.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `title` | string | `null` | Titel. |
+| property | `title` | string | `null` | Title. |
 | property | `body` | string | `null` | Text. |
 | property | `icon` | string | `null` | Symbol. |
-| property | `kind` | string | `null` | Art. |
-| property | `style` | string | `"default"` | toast-Stil. |
-| property | `duration` | duration | `null` | Anzeigedauer. |
+| property | `kind` | string | `null` | Kind. |
+| property | `style` | string | `"default"` | Toast style. |
+| property | `duration` | duration | `null` | Display duration. |
 
 ### `open` (action)
 
-öffnet eine Oberfläche.
+Opens a surface.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier | required | Kennung der Oberfläche. |
-| property | `screen` | string | `null` | überschreibt die Bildschirmwahl. |
+| argument | `id` | identifier | required | Surface id. |
+| property | `screen` | string | `null` | Overrides the screen choice. |
 
 ### `open-app` (action)
 
-startet eine App oder holt sie nach vorne.
+Launches an app or brings it to the front.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `bundleID` | string | required | Bundle-ID. |
+| argument | `bundleID` | string | required | Bundle ID. |
 
 ### `open-file` (action)
 
-öffnet eine Datei.
+Opens a file.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `path` | path | required | Pfad. |
-| property | `app` | string | `null` | bestimmte App. |
+| argument | `path` | path | required | Path. |
+| property | `app` | string | `null` | Specific app. |
 
 ### `open-url` (action)
 
-öffnet eine Adresse.
+Opens a URL.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `url` | string | required | Adresse. |
+| argument | `url` | string | required | URL. |
 
 ### `osd.show` (action)
 
-zeigt eine OSD und startet ihren Timer neu.
+Shows an OSD and restarts its timer.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier | required | Kennung des osd. |
+| argument | `id` | identifier | required | Id of the osd. |
 
 ### `pick-file` (action)
 
-öffnet eine Dateiauswahl.
+Opens a file picker.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `variable` | identifier | required | Ziel-var für den Pfad. |
-| property | `folders` | bool | `false` | Ordner statt Dateien. |
-| property | `types` | list | `null` | erlaubte Endungen. |
+| argument | `variable` | identifier | required | Target var for the path. |
+| property | `folders` | bool | `false` | Folders instead of files. |
+| property | `types` | list | `null` | Allowed extensions. |
 
 ### `repeat` (action)
 
-führt die Kinder mehrmals aus.
+Runs the children several times.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `count` | number | required | Wiederholungen, höchstens 100. |
+| argument | `count` | number | required | Repetitions, at most 100. |
 
 ### `reset` (action)
 
-setzt ein var auf seinen Vorgabewert.
+Resets a var to its default value.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `variable` | identifier | required | Name des var. |
+| argument | `variable` | identifier | required | Name of the var. |
 
 ### `reveal-file` (action)
 
-zeigt eine Datei im Finder.
+Reveals a file in Finder.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `path` | path | required | Pfad. |
+| argument | `path` | path | required | Path. |
 
 ### `run-shortcut` (action)
 
-führt einen Kurzbefehl aus.
+Runs a shortcut.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | string | required | Name des Kurzbefehls. |
+| argument | `name` | string | required | Name of the shortcut. |
 
 ### `set` (action)
 
-setzt den Wert eines var.
+Sets the value of a var.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `variable` | identifier | required | Name des var. |
-| argument | `value` | value |  | neuer Wert. |
-| property | `for` | duration | `null` | nur vorübergehend setzen. |
-| property | `in` | value | `null` | wirkt auf einen Eintrag einer var-Liste. |
-| property | `field` | string | `null` | Feld dieses Eintrags. |
+| argument | `variable` | identifier | required | Name of the var. |
+| argument | `value` | value |  | New value. |
+| property | `for` | duration | `null` | Set only temporarily. |
+| property | `in` | value | `null` | Acts on an entry of a var list. |
+| property | `field` | string | `null` | Field of this entry. |
 
 ### `shell.check-updates` (action)
 
-prüft jetzt auf Updates.
+Checks for updates now.
 
 ### `shell.edit` (action)
 
-öffnet eine Datei im Editor aus settings.kdl.
+Opens a file in the editor from settings.kdl.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `file` | path | required | Datei. |
-| property | `line` | number | `null` | Zeile. |
+| argument | `file` | path | required | File. |
+| property | `line` | number | `null` | Line. |
 
 ### `shell.install-update` (action)
 
-installiert ein bereitliegendes Update und startet neu.
+Installs a downloaded update and restarts.
 
 ### `shell.open-config-folder` (action)
 
-öffnet den Ordner der aktiven Config.
+Opens the folder of the active config.
 
 ### `shell.quit` (action)
 
-beendet die Shell.
+Quits the shell.
 
 ### `shell.reload-config` (action)
 
-lädt die Config neu.
+Reloads the config.
 
 ### `shell.restart` (action)
 
-startet den Prozess neu.
+Restarts the process.
 
 ### `shell.set-login-item` (action)
 
-Anmeldeobjekt setzen.
+Set the login item.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `value` | bool | required | Zustand. |
+| argument | `value` | bool | required | State. |
 
 ### `sound` (action)
 
-spielt einen Systemklang.
+Plays a system sound.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | string | required | Systemklangname. |
+| argument | `name` | string | required | System sound name. |
 
 ### `theme.import` (action)
 
-importiert eine Theme-Datei oder einen Ordner.
+Imports a theme file or folder.
 
 ### `theme.open-folder` (action)
 
-öffnet den Themes-Ordner im Finder.
+Opens the themes folder in Finder.
 
 ### `theme.select` (action)
 
-wechselt das Theme.
+Switches the theme.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier |  | Theme-Kennung oder #null. |
+| argument | `id` | identifier |  | Theme id or #null. |
 
 ### `toast.dismiss` (action)
 
-schliesst die angeklickte Meldung im Toast-Inhalt.
+Closes the clicked toast from inside its content.
 
 ### `toggle` (action)
 
-öffnet oder schliesst eine Oberfläche.
+Opens or closes a surface.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `id` | identifier | required | Kennung der Oberfläche. |
+| argument | `id` | identifier | required | Surface id. |
 
 ### `toggle-var` (action)
 
-kehrt einen bool-Wert um.
+Inverts a bool value.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `variable` | identifier | required | Name des var. |
+| argument | `variable` | identifier | required | Name of the var. |
 
 ### `wait` (action)
 
-wartet, bevor die nächste Aktion läuft.
+Waits before the next action runs.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `duration` | duration | required | Wartezeit, höchstens 10s. |
+| argument | `duration` | duration | required | Wait time, at most 10s. |
 
 ## Providers
 
