@@ -135,6 +135,7 @@ public final class MarketplaceProvider: BaseProvider {
             themes = Self.usable(list) { [weak self] in self?.note($0) }
             status = "loaded"
             loadError = nil
+            if actionError == Self.offlineNote { actionError = nil }
         } catch {
             guard generation == refreshGeneration else { return }
             if themes.isEmpty {
@@ -142,6 +143,7 @@ public final class MarketplaceProvider: BaseProvider {
                 loadError = error.localizedDescription
             } else {
                 status = "loaded"
+                actionError = Self.offlineNote
             }
         }
         local = host.localThemes()
@@ -185,6 +187,8 @@ public final class MarketplaceProvider: BaseProvider {
             actionError = Self.text(error)
         }
     }
+
+    static let offlineNote = "Offline, list may be outdated."
 
     static func text(_ error: Error) -> String {
         if let problem = error as? MarketInstallProblem { return problem.description }
@@ -446,6 +450,7 @@ public final class MarketplaceProvider: BaseProvider {
         let index = host.installer.index()
         publish("status", .string(status))
         publish("error", ProviderValue.string(actionError))
+        publish("offline", .bool(actionError == Self.offlineNote))
         publish("load-error", ProviderValue.string(status == "failed" ? loadError : nil))
         publish("items", .list(themes.map { Self.item($0, state: host.installer.state(of: $0, index: index)) }))
         publish("user", user.map { .record(Record([("id", .string($0.id)), ("login", .string($0.login)), ("is-admin", .bool($0.isAdmin))])) } ?? .null)

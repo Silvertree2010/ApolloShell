@@ -1998,6 +1998,7 @@ Themes, configs and packages from the Marketplace.
 | field | `status` | string | | idle, loading, loaded or failed. |
 | field | `error` | string or null | | Last error of an action, until marketplace.dismiss. |
 | field | `load-error` | string or null | | Why the list could not be loaded, only with status failed. |
+| field | `offline` | bool | | True while error is the note that a refresh failed and the loaded list may be outdated. |
 | field | `items` | list | | Available entries. |
 | field | `user` | record or null | | Signed-in user. |
 | field | `sign-in` | record | | Sign-in status. |

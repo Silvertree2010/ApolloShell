@@ -184,6 +184,36 @@ struct MarketplaceProviderTests {
         #expect(setup.field("items") == .list([]))
     }
 
+    @Test("server gone after a loaded list: list stays, error says offline, next good refresh clears it (W6)")
+    func offlineKeepsList() async throws {
+        let setup = try Setup()
+        try await setup.run("refresh")
+        setup.fake.themesAnswer = (500, "<html>")
+        try await setup.run("refresh")
+        #expect(setup.field("status") == .string("loaded"))
+        guard case .list(let items) = setup.field("items") else { Issue.record("no items"); return }
+        #expect(items.count == 1)
+        #expect(setup.field("error") == .string("Offline, list may be outdated."))
+        #expect(setup.field("offline") == .bool(true))
+        #expect(setup.field("load-error") == .null)
+        #expect(setup.harness.conformanceProblems(BuiltinProviderSchemas.schema("marketplace"), strict: true).isEmpty)
+        setup.fake.themesAnswer = (200, MarketFake.json(["themes": []]))
+        try await setup.run("refresh")
+        #expect(setup.field("error") == .null)
+        #expect(setup.field("offline") == .bool(false))
+    }
+
+    @Test("an action error replaces the offline note and is not treated as offline")
+    func actionErrorOverridesOffline() async throws {
+        let setup = try Setup()
+        try await setup.run("refresh")
+        setup.fake.themesAnswer = (500, "<html>")
+        try await setup.run("refresh")
+        try await setup.run("report", [.string("t1"), .string("copied")])
+        #expect(setup.field("error") == .string("Too many reports today."))
+        #expect(setup.field("offline") == .bool(false))
+    }
+
     @Test("get, update, use and remove go through the installer and the host")
     func install() async throws {
         let setup = try Setup()
