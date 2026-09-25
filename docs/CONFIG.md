@@ -2228,381 +2228,381 @@ Transformations inside expressions, written `value | filter`.
 
 ### `abs` (filter)
 
-Betrag einer Zahl.
+Absolute value of a number.
 
 ### `app-search` (filter)
 
-unscharfe App-Suche mit Nutzungsrang.
+Fuzzy app search with usage ranking.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `query` | string | required | Suchtext. |
+| argument | `query` | string | required | Search text. |
 
 ### `at` (filter)
 
-Element an einer Stelle.
+Element at a position.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `index` | number | required | Stelle. |
+| argument | `index` | number | required | Position. |
 
 ### `bool` (filter)
 
-Wahrheitswert eines Werts.
+Truth value of a value.
 
 ### `bytes` (filter)
 
-Byte-Anzahl lesbar formatiert.
+Byte count, formatted for reading.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `unit` | "binary"\|"decimal" |  | Einheitensystem, Vorgabe decimal. |
+| argument | `unit` | "binary"\|"decimal" |  | Unit system, default decimal. |
 
 ### `bytes-per-second` (filter)
 
-wie bytes, mit /s.
+Like bytes, with /s.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `unit` | "binary"\|"decimal" |  | Einheitensystem, Vorgabe decimal. |
+| argument | `unit` | "binary"\|"decimal" |  | Unit system, default decimal. |
 
 ### `capitalize` (filter)
 
-erster Buchstabe grossgeschrieben.
+First letter capitalized.
 
 ### `ceil` (filter)
 
-rundet auf.
+Rounds up.
 
 ### `chord` (filter)
 
-zeigt eine Tastenkombination mit Symbolen an.
+Shows a key combination with symbols.
 
 ### `clamp` (filter)
 
-begrenzt eine Zahl.
+Clamps a number.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `low` | number | required | untere Grenze. |
-| argument | `high` | number | required | obere Grenze. |
+| argument | `low` | number | required | Lower bound. |
+| argument | `high` | number | required | Upper bound. |
 
 ### `contains` (filter)
 
-prüft, ob ein Wert enthalten ist.
+Checks whether a value is contained.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `value` | any | required | gesuchter Wert. |
+| argument | `value` | any | required | Value to find. |
 
 ### `count` (filter)
 
-Länge einer Liste, eines Strings oder Records.
+Length of a list, string or record.
 
 ### `date` (filter)
 
-Datum nach einem Muster formatiert.
+Date formatted with a pattern.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `pattern` | string | required | ICU-Muster. |
+| argument | `pattern` | string | required | ICU pattern. |
 
 ### `default` (filter)
 
-wie ??, Ersatz für null.
+Like ??, fallback for null.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `fallback` | any | required | Ersatzwert für null. |
+| argument | `fallback` | any | required | Fallback value for null. |
 
 ### `duration` (filter)
 
-Sekunden lesbar formatiert.
+Seconds, formatted for reading.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `style` | "short"\|"clock" |  | Darstellung, Vorgabe clock. |
+| argument | `style` | "short"\|"clock" |  | Style, default clock. |
 
 ### `ends-with` (filter)
 
-prüft das Ende eines Strings.
+Checks the end of a string.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `suffix` | string | required | gesuchtes Suffix. |
+| argument | `suffix` | string | required | Suffix to find. |
 
 ### `first` (filter)
 
-erstes Element oder Zeichen.
+First element or character.
 
 ### `fixed` (filter)
 
-String mit genau n Nachkommastellen.
+String with exactly n decimal places.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `digits` | number | required | genaue Anzahl Nachkommastellen. |
+| argument | `digits` | number | required | Exact number of decimal places. |
 
 ### `floor` (filter)
 
-rundet ab.
+Rounds down.
 
 ### `fuzzy` (filter)
 
-unscharfe Suche über eine Liste.
+Fuzzy search over a list.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `query` | string | required | Suchtext. |
-| argument | `field` | string |  | Feldname, Vorgabe name. |
+| argument | `query` | string | required | Search text. |
+| argument | `field` | string |  | Field name, default name. |
 
 ### `grouped` (filter)
 
-Zahl mit Tausendertrennung nach Locale.
+Number with thousands separators per locale.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `digits` | number |  | Nachkommastellen, Vorgabe 0. |
+| argument | `digits` | number |  | Decimal places, default 0. |
 
 ### `hotkey-warning` (filter)
 
-Warntext zu einer Tastenkombination oder null.
+Warning text for a key combination or null.
 
 ### `index-of` (filter)
 
-Stelle eines Werts oder null.
+Position of a value or null.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `value` | any | required | gesuchter Wert. |
+| argument | `value` | any | required | Value to find. |
 
 ### `index-where` (filter)
 
-Stelle des ersten oder letzten passenden Records.
+Position of the first or last matching record.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `field` | string | required | Feldname. |
-| argument | `values` | list | required | gesuchte Werte. |
-| argument | `order` | "last" |  | letzten statt ersten Treffer nehmen. |
+| argument | `field` | string | required | Field name. |
+| argument | `values` | list | required | Values to find. |
+| argument | `order` | "last" |  | Take the last match instead of the first. |
 
 ### `join` (filter)
 
-verbindet eine Liste zu einem String.
+Joins a list into a string.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `separator` | string | required | Trenner. |
+| argument | `separator` | string | required | Separator. |
 
 ### `json` (filter)
 
-liest einen String als JSON.
+Parses a string as JSON.
 
 ### `keys` (filter)
 
-Schlüssel eines Records als Liste.
+Keys of a record as a list.
 
 ### `last` (filter)
 
-letztes Element oder Zeichen.
+Last element or character.
 
 ### `lower` (filter)
 
-in Kleinbuchstaben.
+In lowercase.
 
 ### `map` (filter)
 
-zieht ein Feld aus jedem Record.
+Takes a field from each record.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `field` | string | required | Feldname. |
+| argument | `field` | string | required | Field name. |
 
 ### `max` (filter)
 
-grösserer Wert.
+Larger value.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `other` | number | required | Vergleichswert. |
+| argument | `other` | number | required | Comparison value. |
 
 ### `min` (filter)
 
-kleinerer Wert.
+Smaller value.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `other` | number | required | Vergleichswert. |
+| argument | `other` | number | required | Comparison value. |
 
 ### `month-grid` (filter)
 
-Wochen eines Monats als Liste von Listen.
+Weeks of a month as a list of lists.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `offset` | number |  | Monatsversatz. |
-| argument | `firstWeekday` | string |  | erster Wochentag. |
+| argument | `offset` | number |  | Month offset. |
+| argument | `firstWeekday` | string |  | First day of the week. |
 
 ### `number` (filter)
 
-liest einen String als Zahl.
+Parses a string as a number.
 
 ### `pad` (filter)
 
-füllt links auf.
+Pads on the left.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `length` | number | required | Zielbreite. |
-| argument | `character` | string |  | Füllzeichen, Vorgabe Leerzeichen. |
+| argument | `length` | number | required | Target width. |
+| argument | `character` | string |  | Padding character, default space. |
 
 ### `percent` (filter)
 
-0…1 als Prozent-String.
+0…1 as a percent string.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `digits` | number |  | Nachkommastellen, Vorgabe 0. |
+| argument | `digits` | number |  | Decimal places, default 0. |
 
 ### `relative` (filter)
 
-Datum relativ zu jetzt.
+Date relative to now.
 
 ### `replace` (filter)
 
-ersetzt einen Teiltext.
+Replaces part of a text.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `search` | string | required | gesuchter Text. |
-| argument | `replacement` | string | required | Ersatztext. |
+| argument | `search` | string | required | Text to find. |
+| argument | `replacement` | string | required | Fallback text. |
 
 ### `reverse` (filter)
 
-dreht eine Liste oder einen String um.
+Reverses a list or string.
 
 ### `round` (filter)
 
-rundet eine Zahl.
+Rounds a number.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `digits` | number |  | Nachkommastellen, Vorgabe 0. |
+| argument | `digits` | number |  | Decimal places, default 0. |
 
 ### `scale` (filter)
 
-bildet einen Bereich linear auf einen anderen ab.
+Maps a range linearly onto another.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `fromLow` | number | required | untere Eingangsgrenze. |
-| argument | `fromHigh` | number | required | obere Eingangsgrenze. |
-| argument | `toLow` | number | required | untere Ausgangsgrenze. |
-| argument | `toHigh` | number | required | obere Ausgangsgrenze. |
+| argument | `fromLow` | number | required | Lower input bound. |
+| argument | `fromHigh` | number | required | Upper input bound. |
+| argument | `toLow` | number | required | Lower output bound. |
+| argument | `toHigh` | number | required | Upper output bound. |
 
 ### `skip` (filter)
 
-überspringt die ersten n Elemente.
+Skips the first n elements.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `count` | number | required | Anzahl. |
+| argument | `count` | number | required | Count. |
 
 ### `slice` (filter)
 
-Ausschnitt einer Liste oder eines Strings.
+Slice of a list or string.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `start` | number | required | erste Stelle. |
-| argument | `end` | number | required | Stelle danach. |
+| argument | `start` | number | required | First position. |
+| argument | `end` | number | required | Position after the end. |
 
 ### `sort` (filter)
 
-sortiert eine Liste.
+Sorts a list.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `field` | string |  | Feld, nach dem sortiert wird. |
-| argument | `direction` | "desc" |  | absteigend, wenn gesetzt. |
+| argument | `field` | string |  | Field to sort by. |
+| argument | `direction` | "desc" |  | Descending when set. |
 
 ### `split` (filter)
 
-zerlegt einen String in eine Liste.
+Splits a string into a list.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `separator` | string | required | Trenner. |
+| argument | `separator` | string | required | Separator. |
 
 ### `starts-with` (filter)
 
-prüft den Anfang eines Strings.
+Checks the start of a string.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `prefix` | string | required | gesuchtes Präfix. |
+| argument | `prefix` | string | required | Prefix to find. |
 
 ### `string` (filter)
 
-wandelt einen Wert in einen String um.
+Converts a value to a string.
 
 ### `symbol-exists` (filter)
 
-prüft, ob ein SF-Symbol existiert.
+Checks whether an SF Symbol exists.
 
 ### `take` (filter)
 
-erste n Elemente.
+First n elements.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `count` | number | required | Anzahl. |
+| argument | `count` | number | required | Count. |
 
 ### `temperature` (filter)
 
-Grad nach der Einheit des Wetter-Providers.
+Degrees in the unit of the weather provider.
 
 ### `truncate` (filter)
 
-schneidet nach n Zeichen mit … ab.
+Truncates after n characters with ….
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `length` | number | required | Anzahl Zeichen. |
+| argument | `length` | number | required | Number of characters. |
 
 ### `unique` (filter)
 
-entfernt Doppelte, erste bleibt.
+Removes duplicates, the first one stays.
 
 ### `upper` (filter)
 
-in Grossbuchstaben.
+In uppercase.
 
 ### `url` (filter)
 
-normalisiert eine Adresse oder liefert null.
+Normalizes a URL or returns null.
 
 ### `values` (filter)
 
-Werte eines Records als Liste.
+Values of a record as a list.
 
 ### `where` (filter)
 
-filtert Records nach Gleichheit eines Felds.
+Filters records by equality of a field.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `field` | string | required | Feldname. |
-| argument | `value` | any | required | gesuchter Wert. |
+| argument | `field` | string | required | Field name. |
+| argument | `value` | any | required | Value to find. |
 
 ### `where-not` (filter)
 
-filtert Records nach Ungleichheit eines Felds.
+Filters records by inequality of a field.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `field` | string | required | Feldname. |
-| argument | `value` | any | required | ausgeschlossener Wert. |
+| argument | `field` | string | required | Field name. |
+| argument | `value` | any | required | Excluded value. |
 
 ## Events
 
