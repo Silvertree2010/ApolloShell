@@ -44,12 +44,13 @@ final class RenderSession {
         let loaded = ConfigSource.load(config, builtinConfigs: resources.appendingPathComponent("configs"), id: "render")
         log(loaded.diagnostics)
         guard let ir = loaded.ir else { throw RenderError.config("config \(config.path) did not load") }
+        let tokens = theme.map { ThemeTokenBridge.environment(for: $0, appearance: dark ? .dark : .light) } ?? .empty
+        assembly.store.set(DependencyPath("theme", []), ThemeRoot.value(theme: theme, tokens: tokens, dark: dark))
         assembly.apply(ir, screens: ["render"], shell: fixture.shell)
         for _ in 0..<50 { scheduler.runPending() }
         log(assembly.warnings)
         let (sheets, sheetDiagnostics) = StyleSheets.load(ir)
         log(sheetDiagnostics)
-        let tokens = theme.map { ThemeTokenBridge.environment(for: $0, appearance: dark ? .dark : .light) } ?? .empty
         let styles = StyleResolver(sheets: sheets, environment: StyleSheets.environment(dark: dark, tokens: tokens), assetRoot: config)
         let assembly = assembly
         context = RenderContext(styles: styles, icons: FixtureAppIcons(files: extracted.icons, root: fixtureRoot), trigger: { name, identity, event in

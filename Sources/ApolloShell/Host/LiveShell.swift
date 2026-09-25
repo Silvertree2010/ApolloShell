@@ -388,6 +388,10 @@ final class LiveShell: WindowHostLink {
         let theme = themes.active
         let dark = theme.map { ThemeTokenBridge.effectiveAppearance(theme: $0, system: appearance) == .dark } ?? system
         let tokens = theme.map { ThemeTokenBridge.environment(for: $0, appearance: appearance) } ?? .empty
+        let themeValue = ThemeRoot.value(theme: theme, tokens: tokens, dark: dark)
+        if let store = assembly?.store, store.value(DependencyPath("theme", [])) != themeValue {
+            store.set(DependencyPath("theme", []), themeValue)
+        }
         let root = location?.root
         let environment = StyleSheets.liveEnvironment(dark: dark, tokens: tokens, accessibility: accessibility())
         let styles = StyleResolver(sheets: sheets, environment: environment, assetRoot: root)

@@ -1,52 +1,26 @@
 import Testing
-import AppKit
-import ApolloShellCore
+import Foundation
+import ApolloConfig
+import ApolloProviders
 @testable import ApolloShell
 
 @MainActor
-@Suite("Theme-Symbole nur aus dem eigenen Theme-Ordner (N-2)")
+@Suite("Kontextwurzel theme")
 struct ThemeRootTests {
-    static func theme(_ folder: URL, icons: [String]) throws {
-        let manager = FileManager.default
-        try manager.createDirectory(at: folder.appendingPathComponent("icons"), withIntermediateDirectories: true)
-        try ":root {\n  --apollo-theme-format: 1;\n  --apollo-theme-name: \"T\";\n}\n"
-            .write(to: folder.appendingPathComponent("theme.css"), atomically: true, encoding: .utf8)
-        for icon in icons { try TestPNG.data().write(to: folder.appendingPathComponent("icons/\(icon).png")) }
-    }
-
-    static func scratch() throws -> URL {
-        let base = FileManager.default.temporaryDirectory.appendingPathComponent("theme-root-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
-        return base
-    }
-
-    @Test("Nach dem Laden auf ein Nachbar-Theme getauschter Symlink liefert nil")
-    func neighbourSymlink() throws {
-        let base = try Self.scratch()
-        defer { try? FileManager.default.removeItem(at: base) }
-        let themes = base.appendingPathComponent("themes")
-        try Self.theme(themes.appendingPathComponent("a"), icons: ["bar-power", "bar-clock"])
-        try Self.theme(themes.appendingPathComponent("b"), icons: ["bar-power"])
-        let live = LiveThemes(folders: [themes])
-        live.reload(activeID: "a")
-        let power = themes.appendingPathComponent("a/icons/bar-power.png")
-        try FileManager.default.removeItem(at: power)
-        try FileManager.default.createSymbolicLink(atPath: power.path, withDestinationPath: "../../b/icons/bar-power.png")
-        #expect(live.icon("bar-clock") != nil)
-        #expect(live.icon("bar-power") == nil)
-    }
-
-    @Test("Ein Theme-Ordner, der selbst ein Symlink ist, lädt seine Symbole")
-    func symlinkedThemeFolder() throws {
-        let base = try Self.scratch()
-        defer { try? FileManager.default.removeItem(at: base) }
-        let themes = base.appendingPathComponent("themes")
-        try FileManager.default.createDirectory(at: themes, withIntermediateDirectories: true)
-        try Self.theme(base.appendingPathComponent("dev/nacht"), icons: ["bar-power"])
-        try FileManager.default.createSymbolicLink(at: themes.appendingPathComponent("nacht"), withDestinationURL: base.appendingPathComponent("dev/nacht"))
-        let live = LiveThemes(folders: [themes])
-        live.reload(activeID: "nacht")
-        #expect(live.active?.identifier == "nacht")
-        #expect(live.icon("bar-power") != nil)
+    @Test("theme.set nennt die Tokens des Themes ohne --apollo-, ohne Theme bleibt set leer")
+    func themeSet() throws {
+        let config = try RenderProbe.folder(["shell.kdl": Data("panel \"p\" anchor=\"left\" { text \"x\" }\n".utf8),
+                                             "red.css": Data(":root { --apollo-theme-name: \"Red\"; --apollo-bar-color: #ff0000; }\n".utf8)])
+        let fixture = ProviderFixture.load(PackageResources.root.appendingPathComponent("Resources/render/fixture.kdl"))
+        let resources = PackageResources.root.appendingPathComponent("Resources")
+        let themed = try RenderSession(config: config, resources: resources, fixture: fixture, fixtureRoot: config, dark: false, scale: 1,
+                                       theme: config.appendingPathComponent("red.css"))
+        #expect(themed.assembly.store.value(DependencyPath("theme", ["set", "bar-color"])) == .bool(true))
+        #expect(themed.assembly.store.value(DependencyPath("theme", ["name"])) == .string("Red"))
+        #expect(themed.assembly.store.value(DependencyPath("theme", ["dark"])) == .bool(false))
+        let plain = try RenderSession(config: config, resources: resources, fixture: fixture, fixtureRoot: config, dark: true, scale: 1)
+        #expect(plain.assembly.store.value(DependencyPath("theme", ["set", "bar-color"])) == .null)
+        #expect(plain.assembly.store.value(DependencyPath("theme", ["id"])) == .null)
+        #expect(plain.assembly.store.value(DependencyPath("theme", ["appearance"])) == .string("dark"))
     }
 }
