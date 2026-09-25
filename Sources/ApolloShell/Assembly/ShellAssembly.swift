@@ -43,8 +43,8 @@ final class ShellAssembly {
         }
     }
 
-    func apply(_ ir: ConfigIR, screens: [String]) {
-        runtime.apply(ir, persisted: [:], screens: screens, shell: Record())
+    func apply(_ ir: ConfigIR, screens: [String], shell: Record = Record()) {
+        runtime.apply(ir, persisted: [:], screens: screens, shell: shell)
     }
 
     static func fixedContext(now: Date) -> @Sendable () -> FilterContext {

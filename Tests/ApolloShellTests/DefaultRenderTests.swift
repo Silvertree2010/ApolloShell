@@ -154,4 +154,15 @@ struct DefaultRenderTests {
         #expect(viaFallback == direct, "\(viaFallback) \(direct)")
         #expect(IconElement.builtinTarget("wifi", fallback: "builtin:bluetooth-rune") == nil)
     }
+
+    @Test("Fixture-Abschnitt shell setzt shell-Felder im Render: Schalter der Einführung Schritt 3 aktiv wie die Referenz")
+    func fixtureShell() throws {
+        let fixture = ProviderFixture.parse("fixture {\n shell login-item=#false login-item-available=#true\n}", file: "f.kdl")
+        #expect(fixture.shell["login-item-available"] == .bool(true))
+        #expect(fixture.diagnostics.isEmpty)
+        let enabled = try RenderProbe.render("panel \"p\" anchor=\"left\" { toggle checked=#false disabled=\"{!shell.login-item-available}\" }", css: "#p { width: 60px; height: 30px; }",
+                                            fixture: "fixture {\n shell login-item-available=#true\n}")
+        let disabled = try RenderProbe.render("panel \"p\" anchor=\"left\" { toggle checked=#false disabled=\"{!shell.login-item-available}\" }", css: "#p { width: 60px; height: 30px; }")
+        #expect(enabled.count { $0.r > 250 && $0.g > 250 && $0.b > 250 } != disabled.count { $0.r > 250 && $0.g > 250 && $0.b > 250 })
+    }
 }

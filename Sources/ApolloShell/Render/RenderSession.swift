@@ -42,7 +42,7 @@ final class RenderSession {
         let loaded = ConfigSource.load(config, builtinConfigs: resources.appendingPathComponent("configs"), id: "render")
         log(loaded.diagnostics)
         guard let ir = loaded.ir else { throw RenderError.config("config \(config.path) did not load") }
-        assembly.apply(ir, screens: ["render"])
+        assembly.apply(ir, screens: ["render"], shell: fixture.shell)
         for _ in 0..<50 { scheduler.runPending() }
         log(assembly.warnings)
         let (sheets, sheetDiagnostics) = StyleSheets.load(ir)

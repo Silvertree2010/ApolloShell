@@ -6,6 +6,7 @@ import ApolloConfig
 public struct ProviderFixture: Sendable {
     public var values: [String: Record]
     public var vars = Record()
+    public var shell = Record()
     public var diagnostics: [Diagnostic]
 
     public init(values: [String: Record] = [:], diagnostics: [Diagnostic] = []) {
@@ -36,6 +37,10 @@ public struct ProviderFixture: Sendable {
             for node in root.children ?? [] {
                 if node.name == "vars" {
                     if case .record(let record) = ValueKDLMapping.value(from: node, expectedType: .record) { fixture.vars = record }
+                    continue
+                }
+                if node.name == "shell" {
+                    if case .record(let record) = ValueKDLMapping.value(from: node, expectedType: .record) { fixture.shell = record }
                     continue
                 }
                 guard let schema = registry.providers[node.name] else {
