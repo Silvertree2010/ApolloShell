@@ -14,7 +14,7 @@ final class SystemWMEngine: WMEngine {
     private var drags: DragTracker?
     private var commands: WMCommands?
     private var focus: FocusFollowsMouse?
-    private var reserved: [String: WMInsets] = [:]
+    private var reserved: [String: WMReserved] = [:]
 
     var onChange: (@MainActor () -> Void)?
 
@@ -44,7 +44,8 @@ final class SystemWMEngine: WMEngine {
             log.notice("Stage Manager is on; it fights tiling")
         }
         var options = TilingEngine.Options()
-        options.reservedByDisplay = reservedByDisplay()
+        options.reservedByDisplay = reservedByDisplay(\.edge)
+        options.visibleReservedByDisplay = reservedByDisplay(\.visible)
         let engine = TilingEngine(area: area, options: options)
         engine.log = { [log] message in log.debug("\(message, privacy: .public)") }
         if let data = try? Data(contentsOf: layoutFile),
@@ -60,7 +61,8 @@ final class SystemWMEngine: WMEngine {
         }
         engine.onDisplaysChanged = { [weak self, weak engine] in
             guard let self, let engine else { return }
-            engine.options.reservedByDisplay = reservedByDisplay()
+            engine.options.reservedByDisplay = reservedByDisplay(\.edge)
+            engine.options.visibleReservedByDisplay = reservedByDisplay(\.visible)
             onChange?()
         }
         engine.onActiveWindowChanged = { [weak self] _ in self?.onChange?() }
@@ -108,7 +110,8 @@ final class SystemWMEngine: WMEngine {
         case .smooth: .smooth
         case .snap: .snap
         }
-        engine.options.reservedByDisplay = reservedByDisplay()
+        engine.options.reservedByDisplay = reservedByDisplay(\.edge)
+        engine.options.visibleReservedByDisplay = reservedByDisplay(\.visible)
         drags?.superFlags = Self.flags(settings.dragModifiers)
         drags?.scrollPans = settings.scrollPans
         drags?.scrollSpeed = settings.scrollSpeed
@@ -163,11 +166,12 @@ final class SystemWMEngine: WMEngine {
         return true
     }
 
-    func setReserved(_ insets: [String: WMInsets]) {
+    func setReserved(_ insets: [String: WMReserved]) {
         guard insets != reserved else { return }
         reserved = insets
         guard let engine else { return }
-        engine.options.reservedByDisplay = reservedByDisplay()
+        engine.options.reservedByDisplay = reservedByDisplay(\.edge)
+        engine.options.visibleReservedByDisplay = reservedByDisplay(\.visible)
         engine.relayout()
     }
 
@@ -238,11 +242,11 @@ final class SystemWMEngine: WMEngine {
         return result
     }
 
-    private func reservedByDisplay() -> [String: NSEdgeInsets] {
+    private func reservedByDisplay(_ part: KeyPath<WMReserved, WMInsets>) -> [String: NSEdgeInsets] {
         var result: [String: NSEdgeInsets] = [:]
         for screen in NSScreen.screens {
             guard let uuid = Spaces.uuid(of: screen),
-                  let insets = reserved[ScreenInfo.key(name: screen.localizedName, frame: screen.frame)] else { continue }
+                  let insets = reserved[ScreenInfo.key(name: screen.localizedName, frame: screen.frame)]?[keyPath: part] else { continue }
             result[uuid] = NSEdgeInsets(top: insets.top, left: insets.left, bottom: insets.bottom, right: insets.right)
         }
         return result

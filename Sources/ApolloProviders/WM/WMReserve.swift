@@ -17,8 +17,8 @@ public struct PanelReserve: Sendable, Equatable {
 }
 
 public enum WMReserve {
-    public static func insets(panels: [PanelReserve], settings: WMSettings, screens: [WMScreen]) -> [String: WMInsets] {
-        var result: [String: WMInsets] = [:]
+    public static func insets(panels: [PanelReserve], settings: WMSettings, screens: [WMScreen]) -> [String: WMReserved] {
+        var result: [String: WMReserved] = [:]
         for screen in screens {
             result[screen.key] = .zero
         }
@@ -31,13 +31,13 @@ public enum WMReserve {
                 case .bottom: add.bottom = panel.size
                 case .right: add.right = panel.size
                 }
-                result[panel.screen] = result[panel.screen, default: .zero] + add
+                result[panel.screen, default: .zero].edge = result[panel.screen, default: .zero].edge + add
             }
         }
         for reserve in settings.reserves {
             let add = WMInsets(top: reserve.top, left: reserve.left, bottom: reserve.bottom, right: reserve.right)
             for key in targets(reserve.screen, screens: screens) {
-                result[key] = result[key, default: .zero] + add
+                result[key, default: .zero].visible = result[key, default: .zero].visible + add
             }
         }
         return result
