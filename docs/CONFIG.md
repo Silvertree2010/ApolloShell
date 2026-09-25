@@ -1891,18 +1891,18 @@ Live data from the system, read in expressions as `<provider>.<field>`.
 
 ### `apps` (provider)
 
-installierte, laufende, angeheftete Apps, Dock-Verhalten.
+Installed, running and pinned apps, Dock behavior.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `file-manager` | string | `null` | bevorzugter Dateimanager, #null für automatisch. |
-| field | `all` | list | | installierte Apps. |
-| field | `running` | list | | laufende Apps. |
-| field | `dock` | list | | Dock-Liste. |
-| field | `favorites` | list | | Launcher-Favoriten. |
-| field | `frontmost` | record or null | | vorderste App. |
-| field | `file-manager` | record | | aufgelöster Dateimanager. |
-| field | `file-managers` | list | | erkannte Dateimanager. |
+| property | `file-manager` | string | `null` | Preferred file manager, #null for automatic. |
+| field | `all` | list | | Installed apps. |
+| field | `running` | list | | Running apps. |
+| field | `dock` | list | | Dock list. |
+| field | `favorites` | list | | Launcher favorites. |
+| field | `frontmost` | record or null | | Frontmost app. |
+| field | `file-manager` | record | | Resolved file manager. |
+| field | `file-managers` | list | | Detected file managers. |
 
 Actions and events: `apps.click`, `apps.launch`, `apps.new-window`, `apps.cycle-windows`, `apps.open-files`, `apps.show-all-windows`, `apps.hide`, `apps.unhide`, `apps.quit`, `apps.force-quit`, `apps.reveal`, `apps.refresh`, `apps.dock-move`, `apps.dock-pin`, `apps.dock-unpin`, `apps.favorite-add`, `apps.favorite-remove`, `apps.favorite-move`, `apps.run-command`, `apps.launched`, `apps.terminated`, `apps.activated`
 
@@ -1978,33 +1978,33 @@ Time, date, calendar grid.
 
 ### `keyboard` (provider)
 
-Eingabequelle.
+Input source.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `source` | record | | aktive Eingabequelle. |
-| field | `sources` | list | | verfügbare Eingabequellen. |
-| field | `caps-lock` | bool | | ob Feststelltaste aktiv ist. |
+| field | `source` | record | | Active input source. |
+| field | `sources` | list | | Available input sources. |
+| field | `caps-lock` | bool | | Whether Caps Lock is on. |
 
 Actions and events: `keyboard.next-source`, `keyboard.select`, `keyboard.source-changed`
 
 ### `marketplace` (provider)
 
-Themes, Configs und Pakete aus dem Marketplace.
+Themes, configs and packages from the Marketplace.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `enabled` | bool | `true` | schaltet den Marketplace ein oder aus. |
-| field | `status` | string | | idle, loading, loaded oder failed. |
-| field | `error` | string or null | | letzter Fehler einer Aktion, bis marketplace.dismiss. |
-| field | `load-error` | string or null | | warum die Liste nicht geladen werden konnte, nur bei status failed. |
-| field | `items` | list | | verfügbare Einträge. |
-| field | `user` | record or null | | angemeldeter Benutzer. |
-| field | `sign-in` | record | | Status der Anmeldung. |
-| field | `mine` | list | | eigene Einreichungen. |
-| field | `queue` | list | | Warteschlange für Admins. |
-| field | `message` | string or null | | letzte Meldung. |
-| field | `local` | list | | lokale Themes zum Einreichen: id, name, problem, css. |
+| property | `enabled` | bool | `true` | Turns the Marketplace on or off. |
+| field | `status` | string | | idle, loading, loaded or failed. |
+| field | `error` | string or null | | Last error of an action, until marketplace.dismiss. |
+| field | `load-error` | string or null | | Why the list could not be loaded, only with status failed. |
+| field | `items` | list | | Available entries. |
+| field | `user` | record or null | | Signed-in user. |
+| field | `sign-in` | record | | Sign-in status. |
+| field | `mine` | list | | Own submissions. |
+| field | `queue` | list | | Queue for admins. |
+| field | `message` | string or null | | Last message. |
+| field | `local` | list | | Local themes to submit: id, name, problem, css. |
 
 Actions and events: `marketplace.refresh`, `marketplace.get`, `marketplace.update`, `marketplace.use`, `marketplace.remove`, `marketplace.sign-in`, `marketplace.cancel-sign-in`, `marketplace.copy-code`, `marketplace.sign-out`, `marketplace.delete-account`, `marketplace.submit`, `marketplace.new-version`, `marketplace.delete`, `marketplace.report`, `marketplace.approve`, `marketplace.reject`, `marketplace.hide`, `marketplace.unhide`, `marketplace.ban`, `marketplace.dismiss`, `marketplace.open`
 
@@ -2084,141 +2084,141 @@ CPU, GPU, memory, disk, network speed.
 
 ### `permissions` (provider)
 
-Berechtigungen.
+Permissions.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `accessibility` | bool | | Bedienungshilfen erlaubt. |
-| field | `automation` | bool or null | | Automation erlaubt. |
-| field | `screen-recording` | bool | | Bildschirmaufnahme erlaubt. |
+| field | `accessibility` | bool | | Accessibility allowed. |
+| field | `automation` | bool or null | | Automation allowed. |
+| field | `screen-recording` | bool | | Screen recording allowed. |
 
 Actions and events: `permissions.request-accessibility`, `permissions.open`
 
 ### `power` (provider)
 
-Wachhalten, auch mit geschlossenem Deckel.
+Keep-awake, also with the lid closed.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `lid-closed` | bool | `null` | Wachhalten auch bei geschlossenem Deckel. |
-| field | `keep-awake` | bool | | ob wachgehalten wird. |
-| field | `keep-awake-since` | value or null | | seit wann. |
-| field | `lid` | string | | off, on, pending oder declined. |
-| field | `keep-awake-text` | string | | Unterzeile wie in 0.1.4.2. |
-| field | `lid-rule-installed` | bool | | ob die sudoers-Regel installiert ist. |
+| property | `lid-closed` | bool | `null` | Keep awake with the lid closed too. |
+| field | `keep-awake` | bool | | Whether the Mac is kept awake. |
+| field | `keep-awake-since` | value or null | | Since when. |
+| field | `lid` | string | | off, on, pending or declined. |
+| field | `keep-awake-text` | string | | Subtitle as in 0.1.4.2. |
+| field | `lid-rule-installed` | bool | | Whether the sudoers rule is installed. |
 
 Actions and events: `power.set-keep-awake`, `power.toggle-keep-awake`, `power.remove-lid-rule`, `power.keep-awake-stopped`, `power.lid-still-awake`
 
 ### `screens` (provider)
 
-Bildschirme.
+Screens.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `list` | list | | Bildschirme. |
-| field | `main` | record | | Hauptbildschirm. |
+| field | `list` | list | | Screens. |
+| field | `main` | record | | Main screen. |
 
 Actions and events: `screens.changed`
 
 ### `session` (provider)
 
-Abmelden, Ruhezustand, Neustart, Ausschalten, Sperren.
+Log out, sleep, restart, shut down, lock.
 
 Actions and events: `session.logout`, `session.restart`, `session.shutdown`, `session.sleep`, `session.lock`
 
 ### `shortcuts` (provider)
 
-Kurzbefehle der Kurzbefehle-App.
+Shortcuts from the Shortcuts app.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `list` | list | | Kurzbefehle der Kurzbefehle-App. |
+| field | `list` | list | | Shortcuts from the Shortcuts app. |
 
 ### `spaces` (provider)
 
-Schreibtische je Bildschirm.
+Desktops per screen.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `list` | list | | Schreibtische des Kontexts. |
-| field | `current` | number | | Index des aktiven Schreibtischs. |
-| field | `count` | number | | Anzahl Schreibtische. |
+| field | `list` | list | | Desktops of the context. |
+| field | `current` | number | | Index of the active desktop. |
+| field | `count` | number | | Number of desktops. |
 
 Actions and events: `spaces.switch`, `spaces.next`, `spaces.previous`, `spaces.mission-control`, `spaces.changed`
 
 ### `system` (provider)
 
-Erscheinungsbild, Night Shift, Mikrofon, Benutzer, Rechner, Systemaktionen.
+Appearance, Night Shift, microphone, user, computer, system actions.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `dark-mode` | bool | | ob Dunkelmodus aktiv ist. |
+| field | `dark-mode` | bool | | Whether dark mode is on. |
 | field | `night-shift` | bool or null | | Night Shift. |
-| field | `microphone-muted` | bool or null | | ob Mikrofon stumm ist. |
-| field | `show-desktop-available` | bool | | ob der Kurzbefehl aktiv ist. |
-| field | `accent-color` | string | | Systemakzentfarbe als Hex. |
-| field | `reduce-motion` | bool | | Bewegung reduzieren. |
-| field | `reduce-transparency` | bool | | Transparenz reduzieren. |
-| field | `user-name` | string | | Kurzname. |
-| field | `full-name` | string | | voller Name. |
-| field | `user-image` | value or null | | Profilbild. |
-| field | `host-name` | string | | Rechnername. |
-| field | `model` | string | | Modell. |
+| field | `microphone-muted` | bool or null | | Whether the microphone is muted. |
+| field | `show-desktop-available` | bool | | Whether the shortcut is active. |
+| field | `accent-color` | string | | System accent color as hex. |
+| field | `reduce-motion` | bool | | Reduce motion. |
+| field | `reduce-transparency` | bool | | Reduce transparency. |
+| field | `user-name` | string | | Short name. |
+| field | `full-name` | string | | Full name. |
+| field | `user-image` | value or null | | Profile picture. |
+| field | `host-name` | string | | Computer name. |
+| field | `model` | string | | Model. |
 | field | `chip` | string | | Chip. |
-| field | `macos-version` | string | | macOS-Version. |
-| field | `kernel-version` | string | | Kernel-Version. |
-| field | `uptime` | number | | Laufzeit in s. |
-| field | `apple-dock-hidden` | bool | | ob Apples Dock versteckt ist. |
+| field | `macos-version` | string | | macOS version. |
+| field | `kernel-version` | string | | Kernel version. |
+| field | `uptime` | number | | Uptime in s. |
+| field | `apple-dock-hidden` | bool | | Whether Apple's Dock is hidden. |
 
 Actions and events: `system.set-dark-mode`, `system.toggle-dark-mode`, `system.set-night-shift`, `system.toggle-night-shift`, `system.set-microphone-muted`, `system.toggle-microphone`, `system.screenshot`, `system.color-picker`, `system.show-desktop`, `system.lock`, `system.display-sleep`, `system.hide-apps`, `system.open-settings`, `system.hide-apple-dock`, `system.appearance-changed`, `system.color-copied`, `shortcuts.failed`
 
 ### `weather` (provider)
 
-Wetter von drei Anbietern, Ortssuche.
+Weather from three providers, place search.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `source` | "open-meteo"\|"met-norway"\|"wttr" | `"open-meteo"` | Wetteranbieter. |
-| property | `place` | record | `null` | Record name/latitude/longitude oder #null. |
-| field | `status` | string | | no-place, loading, ready oder failed. |
-| field | `place` | record or null | | gewählter Ort. |
-| field | `current` | record or null | | aktuelles Wetter. |
-| field | `today` | record or null | | Tageswerte. |
-| field | `hourly-strip` | list | | 12 Einträge im Abstand von 2 h. |
-| field | `days` | list | | nächste 7 Tage. |
-| field | `updated` | value or null | | letzter Abruf. |
-| field | `stale` | bool | | ob die Daten veraltet sind. |
-| field | `attribution` | record | | Quellenangabe. |
-| field | `capabilities` | record | | was der Anbieter liefert. |
-| field | `search-results` | list | | gefundene Orte. |
-| field | `search-status` | string | | idle, searching, done oder failed. |
+| property | `source` | "open-meteo"\|"met-norway"\|"wttr" | `"open-meteo"` | Weather provider. |
+| property | `place` | record | `null` | Record name/latitude/longitude or #null. |
+| field | `status` | string | | no-place, loading, ready or failed. |
+| field | `place` | record or null | | Selected place. |
+| field | `current` | record or null | | Current weather. |
+| field | `today` | record or null | | Daily values. |
+| field | `hourly-strip` | list | | 12 entries 2 h apart. |
+| field | `days` | list | | Next 7 days. |
+| field | `updated` | value or null | | Last fetch. |
+| field | `stale` | bool | | Whether the data is stale. |
+| field | `attribution` | record | | Attribution. |
+| field | `capabilities` | record | | What the provider supplies. |
+| field | `search-results` | list | | Places found. |
+| field | `search-status` | string | | idle, searching, done or failed. |
 
 Actions and events: `weather.refresh`, `weather.search`, `weather.clear-search`
 
 ### `window` (provider)
 
-vorderstes Fenster.
+Frontmost window.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `app` | record or null | | App des vordersten Fensters. |
-| field | `title` | string or null | | Fenstertitel. |
-| field | `fullscreen` | bool | | ob Vollbild aktiv ist. |
+| field | `app` | record or null | | App of the frontmost window. |
+| field | `title` | string or null | | Window title. |
+| field | `fullscreen` | bool | | Whether full screen is active. |
 
 ### `wm` (provider)
 
-Tiling-Fenstermanager.
+Tiling window manager.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `enabled` | bool | | ob der Fenstermanager läuft. |
-| field | `layout` | string | | aktives Layout. |
-| field | `focused` | record or null | | fokussiertes Fenster. |
-| field | `windows` | list | | alle Fenster. |
-| field | `desktop` | number | | aktueller Desktop. |
-| field | `workspace` | number | | aktueller Arbeitsbereich. |
-| field | `workspaces` | list | | Arbeitsbereiche, nur bei apple-desktops=#false. |
-| field | `tab-bars` | list | | Tab-Leisten. |
+| field | `enabled` | bool | | Whether the window manager is running. |
+| field | `layout` | string | | Active layout. |
+| field | `focused` | record or null | | Focused window. |
+| field | `windows` | list | | All windows. |
+| field | `desktop` | number | | Current desktop. |
+| field | `workspace` | number | | Current workspace. |
+| field | `workspaces` | list | | Workspaces, only with apple-desktops=#false. |
+| field | `tab-bars` | list | | Tab bars. |
 
 Actions and events: `wm.focus`, `wm.swap`, `wm.split`, `wm.equalize`, `wm.grow`, `wm.terminal`, `wm.group`, `wm.tab`, `wm.tab-move`, `wm.group-app`, `wm.float`, `wm.fullscreen`, `wm.close`, `wm.desktop`, `wm.send`, `wm.scratchpad`, `wm.display`, `wm.move-display`, `wm.layout`, `wm.toggle`, `wm.focus-window`, `wm.focus-changed`, `wm.layout-changed`, `wm.window-opened`, `wm.window-closed`, `wm.workspace-changed`
 
@@ -2610,27 +2610,27 @@ Events that `on "<event>"` can react to.
 
 ### `apps.activated` (event)
 
-App aktiviert.
+App activated.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `app` | value | | aktivierte App. |
+| field | `app` | value | | Activated app. |
 
 ### `apps.launched` (event)
 
-App gestartet.
+App launched.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `app` | value | | gestartete App. |
+| field | `app` | value | | Launched app. |
 
 ### `apps.terminated` (event)
 
-App beendet.
+App quit.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `app` | value | | beendete App. |
+| field | `app` | value | | Quit app. |
 
 ### `audio.input-changed` (event)
 
@@ -2708,7 +2708,7 @@ A full-screen app was entered or left.
 
 ### `keyboard.source-changed` (event)
 
-Eingabequelle geändert.
+Input source changed.
 
 ### `media.track-changed` (event)
 
@@ -2720,23 +2720,23 @@ Wi-Fi state changed.
 
 ### `power.keep-awake-stopped` (event)
 
-Wachhalten beendet.
+Keep-awake ended.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `reason` | string | | Grund, z. B. battery. |
+| field | `reason` | string | | Reason, e.g. battery. |
 
 ### `power.lid-still-awake` (event)
 
-Deckel-Ausschalten abgelehnt.
+Closed-lid mode declined.
 
 ### `screens.changed` (event)
 
-Bildschirme geändert.
+Screens changed.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `screens` | list | | neue Bildschirmliste. |
+| field | `screens` | list | | New screen list. |
 
 ### `shell.started` (event)
 
@@ -2744,27 +2744,27 @@ The shell is ready.
 
 ### `shortcuts.failed` (event)
 
-run-shortcut fehlgeschlagen.
+run-shortcut failed.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `name` | string | | Name des Kurzbefehls. |
+| field | `name` | string | | Name of the shortcut. |
 
 ### `spaces.changed` (event)
 
-Schreibtisch gewechselt.
+Desktop changed.
 
 ### `system.appearance-changed` (event)
 
-Erscheinungsbild geändert.
+Appearance changed.
 
 ### `system.color-copied` (event)
 
-Farbe kopiert.
+Color copied.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `hex` | string | | kopierte Farbe. |
+| field | `hex` | string | | Copied color. |
 
 ### `system.did-wake` (event)
 
@@ -2792,20 +2792,20 @@ The theme changed.
 
 ### `wm.focus-changed` (event)
 
-Fokus geändert.
+Focus changed.
 
 ### `wm.layout-changed` (event)
 
-Layout geändert.
+Layout changed.
 
 ### `wm.window-closed` (event)
 
-Fenster geschlossen.
+Window closed.
 
 ### `wm.window-opened` (event)
 
-Fenster geöffnet.
+Window opened.
 
 ### `wm.workspace-changed` (event)
 
-Arbeitsbereich geändert.
+Workspace changed.
