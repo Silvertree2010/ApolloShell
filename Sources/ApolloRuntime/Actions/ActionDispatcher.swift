@@ -172,7 +172,7 @@ public final class ActionDispatcher: ActionRuntime {
         if let implementation = implementations[call.name] {
             operation = { [self] in try await implementation.perform(call, environment: environment, runtime: self) }
         } else if let dot = call.name.firstIndex(of: "."), let provider = providers.provider(String(call.name[..<dot])) {
-            let action = String(call.name[call.name.index(after: dot)...])
+            let action = call.name
             operation = { _ = try await provider.perform(action, arguments: call.arguments, properties: call.properties) }
         } else {
             throw ActionFailure("unknown action '\(call.name)'")
