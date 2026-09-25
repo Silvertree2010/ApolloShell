@@ -126,11 +126,11 @@ canvas column-width=0.5
 
 ### `case` (node)
 
-Zweig eines switch, gilt beim ersten passenden Wert.
+Branch of a switch, applies on the first matching value.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `values`... | value | required | ein oder mehrere Werte, die diesen Zweig auswählen. |
+| argument | `values`... | value | required | One or more values that select this branch. |
 
 ```kdl
 case "a" "b" { text "A or B" }
@@ -198,7 +198,7 @@ crash-reports "ask"
 
 ### `default` (node)
 
-Zweig eines switch, der greift, wenn kein case passt.
+Branch of a switch that applies when no case matches.
 
 ```kdl
 default { text "Unknown" }
@@ -206,12 +206,12 @@ default { text "Unknown" }
 
 ### `define` (node)
 
-beschreibt einen wiederverwendbaren Baustein.
+Describes a reusable component.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | identifier | required | Name des eigenen Bausteins, kebab-case, global eindeutig. |
-| property | `override` | bool | `false` | ersetzt ein gleichnamiges define aus einer eingebundenen Datei. |
+| argument | `name` | identifier | required | Name of the custom component, kebab-case, globally unique. |
+| property | `override` | bool | `false` | Replaces a define of the same name from an included file. |
 
 ```kdl
 define "labeled-icon" { param "icon"; icon "{icon}" }
@@ -219,13 +219,13 @@ define "labeled-icon" { param "icon"; icon "{icon}" }
 
 ### `disable` (node)
 
-schaltet eine eingebundene Oberfläche, ein bind oder einen Handler ab.
+Disables an included surface, a bind or a handler.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `surface` | identifier | `null` | Kennung einer Oberfläche, die abgeschaltet wird. |
-| property | `bind` | key-chord | `null` | Tastenkombination, die abgeschaltet wird. |
-| property | `on` | identifier | `null` | Ereignisname, dessen Handler abgeschaltet werden. |
+| property | `surface` | identifier | `null` | Id of a surface to disable. |
+| property | `bind` | key-chord | `null` | Key combination to disable. |
+| property | `on` | identifier | `null` | Event name whose handlers are disabled. |
 
 ```kdl
 disable bind="alt+space"
@@ -248,14 +248,14 @@ drag super="hyper" scroll-pans=#true
 
 ### `each` (node)
 
-erzeugt Kinder je Eintrag einer Liste.
+Creates children for each entry of a list.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `variable` | identifier | required | Name der Schleifenvariable. |
-| property | `in` | list | required | Ausdruck, der eine Liste liefert. |
-| property | `key` | value | `null` | Schlüssel eines Eintrags, Vorgabe id oder Stelle. |
-| property | `index` | identifier | `null` | Name der Index-Schleifenvariable. |
+| argument | `variable` | identifier | required | Name of the loop variable. |
+| property | `in` | list | required | Expression that yields a list. |
+| property | `key` | value | `null` | Key of an entry, default id or position. |
+| property | `index` | identifier | `null` | Name of the index loop variable. |
 
 ```kdl
 each app in="{apps.running}" { text "{app.name}" }
@@ -275,7 +275,7 @@ editor "code -g {file}:{line}:{column}"
 
 ### `else` (node)
 
-Gegenzweig eines direkt vorangehenden when oder feature.
+Alternative branch of a directly preceding when or feature.
 
 ```kdl
 else { text "No battery" }
@@ -283,11 +283,11 @@ else { text "No battery" }
 
 ### `feature` (node)
 
-beschränkt den Rumpf auf Shells, die dieses Feature kennen.
+Limits the body to shells that know this feature.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | identifier | required | Name des benötigten Features. |
+| argument | `name` | identifier | required | Name of the required feature. |
 
 ```kdl
 feature "wm" { text "Tiling" }
@@ -295,11 +295,11 @@ feature "wm" { text "Tiling" }
 
 ### `fill` (node)
 
-füllt einen benannten Slot eines use.
+Fills a named slot of a use.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | identifier | required | Name des Slots, der beim use befüllt wird. |
+| argument | `name` | identifier | required | Name of the slot filled at use. |
 
 ```kdl
 fill "header" { text "Title" }
@@ -496,12 +496,12 @@ image "{media.artwork}"
 
 ### `include` (node)
 
-bindet die obersten Knoten einer anderen Datei an dieser Stelle ein.
+Includes the top-level nodes of another file at this point.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `path` | path | required | Pfad relativ zur einbindenden Datei, oder builtin:/pkg:. |
-| property | `optional` | bool | `false` | fehlende Datei ist kein Fehler. |
+| argument | `path` | path | required | Path relative to the including file, or builtin:/pkg:. |
+| property | `optional` | bool | `false` | A missing file is not an error. |
 
 ```kdl
 include "sidebar-modules.kdl"
@@ -602,7 +602,7 @@ layout "dwindle"
 
 ### `let` (node)
 
-deklariert eine oder mehrere zur Ladezeit ausgewertete Konstanten.
+Declares one or more constants evaluated at load time.
 
 ```kdl
 let gap=8 radius=12
@@ -811,13 +811,13 @@ panel "sidebar" anchor="left" { }
 
 ### `param` (node)
 
-deklariert einen Parameter eines define.
+Declares a parameter of a define.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | identifier | required | Name des Parameters, im Rumpf als Ausdruck sichtbar. |
-| property | `default` | value | `null` | macht den Parameter optional. |
-| property | `type` | "string"\|"number"\|"bool"\|"list"\|"record"\|"any" | `null` | Typ des Parameters, Vorgabe any. |
+| argument | `name` | identifier | required | Name of the parameter, visible as an expression in the body. |
+| property | `default` | value | `null` | Makes the parameter optional. |
+| property | `type` | "string"\|"number"\|"bool"\|"list"\|"record"\|"any" | `null` | Type of the parameter, default any. |
 
 ```kdl
 param "icon"
@@ -944,12 +944,12 @@ reorderable axis="vertical" { each item in="{var.items}" { text "{item.name}" } 
 
 ### `require` (node)
 
-bricht das Laden sauber ab, wenn die Shell zu alt ist oder ein Feature fehlt.
+Stops loading cleanly if the shell is too old or a feature is missing.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `version` | string |  | Mindestversion der Shell. |
-| property | `feature` | identifier | `null` | Name eines benötigten Features. |
+| argument | `version` | string |  | Minimum shell version. |
+| property | `feature` | identifier | `null` | Name of a required feature. |
 
 ```kdl
 require "0.2.0"
@@ -1178,11 +1178,11 @@ slider value="{audio.volume}" { on-change { audio.set-volume "{event.value}" } }
 
 ### `slot` (node)
 
-Stelle, an der die Kinder eines use eingesetzt werden.
+Place where the children of a use are inserted.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | identifier |  | Name des benannten Slots, sonst der unbenannte Slot. |
+| argument | `name` | identifier |  | Name of the named slot, otherwise the unnamed slot. |
 
 ```kdl
 slot
@@ -1264,11 +1264,11 @@ stack class="divider" { }
 
 ### `style` (node)
 
-bindet ein Stylesheet ein.
+Includes a stylesheet.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `path` | path | required | Pfad zu einer Stylesheet-Datei. |
+| argument | `path` | path | required | Path to a stylesheet file. |
 
 ```kdl
 style "theme.css"
@@ -1288,11 +1288,11 @@ submenu "More" { item "Details" { } }
 
 ### `switch` (node)
 
-wählt einen von mehreren Zweigen nach Gleichheit aus.
+Selects one of several branches by equality.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `subject` | value | required | Ausdruck, dessen Wert die Zweige auswählt. |
+| argument | `subject` | value | required | Expression whose value selects the branch. |
 
 ```kdl
 switch "{var.tab}" { case "a" { text "A" } }
@@ -1469,11 +1469,11 @@ updates auto-check=#true auto-install=#true
 
 ### `use` (node)
 
-setzt einen mit define beschriebenen Baustein ein.
+Inserts a component described with define.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | identifier | required | Name eines define, statisch oder als Ausdruck zur Laufzeit. |
+| argument | `name` | identifier | required | Name of a define, static or as an expression at runtime. |
 
 ```kdl
 use "labeled-icon" icon="bar-power"
@@ -1481,15 +1481,15 @@ use "labeled-icon" icon="bar-power"
 
 ### `var` (node)
 
-deklariert Laufzeitzustand, auf Wunsch gespeichert.
+Declares runtime state, optionally persisted.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | identifier | required | Name des Zustands. |
-| argument | `default` | value |  | Vorgabewert. |
-| property | `persist` | bool | `false` | speichert den Wert in der Statusdatei der Config. |
-| property | `type` | "string"\|"number"\|"bool"\|"list"\|"record"\|"any" | `null` | Typ des Werts, Vorgabe aus dem Vorgabewert. |
-| property | `from` | value | `null` | macht das var abgeleitet, nicht setzbar. |
+| argument | `name` | identifier | required | Name of the state. |
+| argument | `default` | value |  | Default value. |
+| property | `persist` | bool | `false` | Stores the value in the config's state file. |
+| property | `type` | "string"\|"number"\|"bool"\|"list"\|"record"\|"any" | `null` | Type of the value, default from the default value. |
+| property | `from` | value | `null` | Makes the var derived, not settable. |
 
 ```kdl
 var launcher-query ""
@@ -1497,11 +1497,11 @@ var launcher-query ""
 
 ### `when` (node)
 
-erzeugt Kinder, solange eine Bedingung wahr ist.
+Creates children while a condition is true.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `condition` | bool | required | Bedingung, der Rumpf existiert nur, solange sie wahr ist. |
+| argument | `condition` | bool | required | Condition; the body exists only while it is true. |
 
 ```kdl
 when "{battery.present}" { text "{battery.percent}" }
