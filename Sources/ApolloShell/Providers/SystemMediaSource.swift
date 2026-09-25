@@ -23,6 +23,7 @@ final class SystemMediaSource: MediaSource {
     private let log = Logger(category: "media")
     private var stream: Process?
     private var names: [String: String] = [:]
+    private var streamGeneration = 0
 
     var adapterAvailable: Bool { Self.adapter != nil }
 
@@ -31,6 +32,8 @@ final class SystemMediaSource: MediaSource {
     func startStream(_ handler: @escaping @MainActor (MediaStreamEvent) -> Void) -> Bool {
         guard let adapter = Self.adapter else { return false }
         stopStream()
+        streamGeneration += 1
+        let generation = streamGeneration
         let reader = MediaLineReader()
         let process = Subprocess.stream(
             Self.perl, [adapter.script.path, adapter.framework.path] + MediaAdapter.streamArguments,
@@ -42,7 +45,7 @@ final class SystemMediaSource: MediaSource {
                 }
             },
             onExit: { [weak self] status in
-                self?.stream = nil
+                if self?.streamGeneration == generation { self?.stream = nil }
                 handler(.exited(status))
             }
         )

@@ -49,7 +49,7 @@ public final class MediaProvider: BaseProvider {
         guard schema.actions.contains(where: { $0.name == action }) else {
             throw ProviderActionError.unknownAction(action)
         }
-        guard source.adapterAvailable else {
+        guard source.adapterAvailable || action == "media.open-app" else {
             warn("\(action): the media adapter is missing")
             return .null
         }
