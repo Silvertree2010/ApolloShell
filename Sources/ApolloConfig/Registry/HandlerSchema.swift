@@ -1,7 +1,7 @@
 enum HandlerSchema {
     static let common: [PropertySchema] = [
-        PropertySchema(name: "debounce", type: .duration, defaultValue: .null, allowsExpression: false, doc: "löst erst aus, wenn so lange nichts Neues kam."),
-        PropertySchema(name: "throttle", type: .duration, defaultValue: .null, allowsExpression: false, doc: "löst höchstens einmal je Dauer aus."),
+        PropertySchema(name: "debounce", type: .duration, defaultValue: .null, allowsExpression: false, doc: "Fires only after nothing new arrived for this long."),
+        PropertySchema(name: "throttle", type: .duration, defaultValue: .null, allowsExpression: false, doc: "Fires at most once per duration."),
     ]
 
     static func synthesize(_ name: String) -> NodeSchema {
@@ -9,16 +9,16 @@ enum HandlerSchema {
         var properties = common
         switch name {
         case "key":
-            arguments = [ArgumentSchema(name: "chord", type: .keyChord, allowsExpression: false, doc: "Tastenkombination.")]
+            arguments = [ArgumentSchema(name: "chord", type: .keyChord, allowsExpression: false, doc: "Key combination.")]
         case "on-drop":
-            properties.append(PropertySchema(name: "accept", type: .enumeration(["files", "apps", "text"]), required: true, allowsExpression: false, doc: "welche Art abgelegter Inhalte."))
+            properties.append(PropertySchema(name: "accept", type: .enumeration(["files", "apps", "text"]), required: true, allowsExpression: false, doc: "Which kind of dropped content."))
         case "on-scroll":
             properties.append(contentsOf: [
-                PropertySchema(name: "step", type: .number, defaultValue: .null, doc: "Scrollweg, bis ausgelöst wird."),
-                PropertySchema(name: "cooldown", type: .duration, defaultValue: .null, allowsExpression: false, doc: "Pause nach dem Auslösen."),
+                PropertySchema(name: "step", type: .number, defaultValue: .null, doc: "Scroll distance until it fires."),
+                PropertySchema(name: "cooldown", type: .duration, defaultValue: .null, allowsExpression: false, doc: "Pause after firing."),
             ])
         case "on-long-press":
-            properties.append(PropertySchema(name: "delay", type: .duration, defaultValue: .string("500ms"), allowsExpression: false, doc: "Verzögerung bis zum Auslösen."))
+            properties.append(PropertySchema(name: "delay", type: .duration, defaultValue: .string("500ms"), allowsExpression: false, doc: "Delay until it fires."))
         default:
             break
         }
