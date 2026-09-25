@@ -30,9 +30,20 @@ define "card-user" {
         }
         column class="card-user-text" {
             text "{system.full-name}" class="card-user-name" lines=1 truncate="tail"
-            when "{card.show-system}" { text "macOS {system.macos-version}" class="card-user-detail" }
-            when "{card.show-uptime}" { text "Up {system.uptime | duration 'short'}" class="card-user-detail" }
+            when "{card.show-system}" {
+                row class="card-user-badge" {
+                    icon "apple.logo" class="card-user-badge-glyph"
+                    text "macOS {system.macos-version}" class="card-user-badge-text" lines=1
+                }
+            }
+            when "{card.show-uptime}" {
+                row class="card-user-badge" {
+                    icon "clock.arrow.circlepath" class="card-user-badge-glyph"
+                    text "running since {system.uptime | duration 'short'}" class="card-user-badge-text" lines=1
+                }
+            }
         }
+        spacer
     }
 }
 
@@ -43,8 +54,11 @@ define "card-clock" {
         switch "{card.style}" {
             case "inline" { text "{clock.now | date 'HH:mm'}" class="card-clock-inline" }
             default {
-                text "{clock.now | date 'HH'}" class="card-clock-hour"
-                text "{clock.now | date 'mm'}" class="card-clock-minute"
+                column class="card-clock-stack" {
+                    text "{clock.now | date 'HH'}" class="card-clock-hour"
+                    text "•••" class="card-clock-dots"
+                    text "{clock.now | date 'mm'}" class="card-clock-minute"
+                }
             }
         }
         when "{card.show-date}" { text "{clock.now | date 'EEE d MMM'}" class="card-clock-date" }
@@ -79,10 +93,13 @@ define "card-calendar" {
             each week in="{clock.now | month-grid var.calendar-offset card.first-weekday}" key="{(week | first).week}" {
                 when "{card.show-week-numbers}" { text "{(week | first).week}" class="card-calendar-week" }
                 each day in="{week}" key="{day.date}" {
-                    text "{day.day}" class="card-calendar-day {day.today ? 'today' : ''} {!day.in-month ? 'outside' : ''}"
+                    column class="card-calendar-cell" {
+                        text "{day.day}" class="card-calendar-day {day.today ? 'today' : ''} {!day.in-month ? 'outside' : ''}"
+                    }
                 }
             }
         }
+        spacer
     }
 }
 
@@ -128,17 +145,31 @@ define "card-media" {
             case "side" {
                 column class="card-media-tall" {
                     stack class="card-media-cover" {
-                        image "{media.artwork}" placeholder="music.note" fit="fill" class="card-media-artwork card-media-round"
-                        ring value="{media.progress}" class="card-media-progress"
+                        ring value="{media.progress ?? 0}" gap=0.06 class="card-media-arc"
+                        stack class="card-media-disc" {
+                            icon "music.note" class="card-media-placeholder"
+                            image "{media.artwork}" fit="fill" class="card-media-disc-art"
+                        }
                     }
-                    text "{media.playing ? media.title : 'Nothing Playing'}" class="card-media-title" lines=1 truncate="tail"
-                    when "{card.show-album}" { text "{media.album}" class="card-media-album" lines=1 truncate="tail" }
-                    text "{media.artist}" class="card-media-artist" lines=1 truncate="tail"
+                    column class="card-media-texts" {
+                        when "{media.playing != null && media.title != null}" {
+                            text "{media.title}" class="card-media-title" lines=1 truncate="tail"
+                            when "{card.show-album && media.album != null}" { text "{media.album}" class="card-media-album" lines=1 truncate="tail" }
+                            text "{media.artist ?? 'Unknown Artist'}" class="card-media-artist" lines=1 truncate="tail"
+                        }
+                        else {
+                            text "Nothing Playing" class="card-media-title idle"
+                            text "Play Something" class="card-media-artist"
+                        }
+                    }
                     use "media-controls"
-                    when "{card.show-source && media.app != null}" {
+                    spacer
+                    when "{card.show-source && media.title != null}" {
                         row class="card-media-source" {
-                            app-icon "{media.app}" class="card-media-source-icon"
-                            text "{media.app-name}" class="card-media-source-name" lines=1 truncate="tail"
+                            when "{media.app != null}" { app-icon "{media.app}" class="card-media-source-icon" }
+                            else { icon "app.dashed" class="card-media-source-fallback" }
+                            text "{media.app-name ?? 'Music'}" class="card-media-source-name" lines=1 truncate="tail"
+                            icon "{media.playing ? 'waveform' : 'pause.fill'}" class="card-media-source-state"
                         }
                     }
                 }

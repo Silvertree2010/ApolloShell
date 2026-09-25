@@ -134,6 +134,7 @@
   height: 3px;
   border-radius: 9999px;
   background: var(--apollo-accent-color, -apple-system-control-accent);
+  justify-self: end;
   transition: all 500ms spatial;
 }
 .dashboard-tab-label { gap: 4px; padding: 12px 0 8px; align-items: center; }
@@ -153,25 +154,68 @@
 .card-resources.zone-bottom { width: 90px; }
 .zone-side > .card { flex-grow: 1; }
 .dashboard-empty, .weather-empty, .utilities-empty { padding: 24px; gap: 10px; align-items: center; }
-.card-user-avatar { width: 56px; height: 56px; border-radius: 9999px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
-.card-user-initial { font-size: 24px; font-weight: 700; }
-.card-clock-hour, .card-clock-minute { font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.card-calendar-day.today { border-radius: 9999px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
-.card-calendar-day.outside { opacity: 0.35; }
-.card-calendar-weekday { font-size: 11px; font-weight: 600; opacity: 0.6; }
-.card-resources { gap: 16px; align-items: center; justify-content: center; }
+.card-weather { padding: 0 26px; border-radius: var(--apollo-card-radius, 42px); align-items: center; justify-content: center; }
+.card-weather-body { gap: 16px; align-items: center; }
+.card-weather-glyph { font-size: 46px; -apollo-symbol-rendering: multicolor; }
+.card-weather-text { gap: 1px; }
+.card-weather-temperature { font-size: 34px; font-weight: 600; font-family: ui-rounded; }
+.card-weather-condition { font-size: 13px; font-weight: 500; }
+.card-weather-range { font-size: 11px; color: -apple-system-secondary-label; }
+.card-user { padding: 0 18px; gap: 14px; align-items: center; border-radius: var(--apollo-card-radius, 28px); }
+.card-user-avatar { width: 72px; height: 72px; border-radius: 9999px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.card-user-initial { font-size: 30px; font-weight: 600; font-family: ui-rounded; }
+.card-user-text { gap: 6px; align-items: start; }
+.card-user-name { font-size: 17px; font-weight: 600; }
+.card-user-badge { gap: 5px; padding: 3px 8px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.07); color: -apple-system-secondary-label; align-items: center; }
+.card-user-badge-glyph { font-size: 10px; font-weight: 600; }
+.card-user-badge-text { font-size: 11px; font-weight: 500; }
+.card-clock { padding: 0; gap: 12px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 16px); }
+.card-clock-stack { gap: 6px; align-items: center; }
+.card-clock-hour, .card-clock-minute, .card-clock-inline { font-size: 30px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.card-clock-dots { font-size: 14px; font-weight: 700; color: -apple-system-secondary-label; }
+.card-clock-date { font-size: 12px; font-weight: 600; }
+.card-calendar { padding: 14px; gap: 8px; justify-content: start; border-radius: var(--apollo-card-radius, 28px); }
+.card-calendar-head { align-self: stretch; align-items: center; color: -apple-system-secondary-label; }
+.card-calendar-title { font-size: 14px; font-weight: 600; color: -apple-system-secondary-label; }
+.card-calendar-arrow-glyph { color: -apple-system-secondary-label; }
+.card-calendar-grid { align-self: stretch; column-gap: 4px; row-gap: 2px; }
+.card-calendar-cell { align-items: center; }
+.card-calendar-day { width: 26px; height: 26px; font-size: 12px; text-align: center; }
+.card-calendar-day.today { font-weight: 700; border-radius: 9999px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.card-calendar-day.outside { color: -apple-system-secondary-label; opacity: 0.5; }
+.card-calendar-weekday { font-size: 11px; font-weight: 600; color: -apple-system-secondary-label; text-align: center; }
+.card-resources { padding: 0; gap: 16px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 16px); }
 .card-resources.zone-bottom { gap: 14px; }
 .card-resource { width: 56px; height: 56px; align-items: center; justify-content: center; }
-.card-resource-ring { width: 56px; height: 56px; -apollo-stroke-width: 6px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 600ms ease-out; }
+.card-resource-ring { width: 62px; height: 62px; -apollo-stroke-width: 6px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 600ms ease-out; }
 .card-resource-glyph { width: 16px; height: 16px; font-size: 14px; font-weight: 500; }
+.card-media { padding: 0; border-radius: var(--apollo-card-radius, 56px); }
 .card-media-artwork { border-radius: var(--apollo-card-radius, 14px); }
 .card-media-progress { -apollo-sweep-angle: 180deg; transition: value 600ms emphasized; }
 .card-media-round { width: 132px; height: 132px; border-radius: 9999px; }
 .card-media-round.card-media-small { width: 96px; height: 96px; }
 .card-media-bar { transition: value 600ms emphasized; }
-.card-media-source { gap: 6px; padding: 4px 10px; border-radius: 9999px; background: rgba(127, 127, 127, 0.18); }
-.card-media-source-icon { width: 16px; height: 16px; }
+.card-media-tall { align-self: stretch; flex-grow: 1; align-items: center; padding: 22px 0; }
+.card-media-cover { width: 164px; height: 164px; }
+.card-media-arc { width: 164px; height: 164px; -apollo-start-angle: 180deg; -apollo-sweep-angle: 180deg; -apollo-stroke-width: 6px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.12); color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 600ms emphasized; }
+.card-media-disc { width: 144px; height: 144px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); }
+.card-media-placeholder { font-size: 40px; font-weight: 300; color: -apple-system-tertiary-label; }
+.card-media-disc-art { width: 144px; height: 144px; border-radius: 9999px; }
+.card-media-texts { align-self: stretch; padding: 14px 16px 0; gap: 4px; align-items: center; }
+.card-media-title { font-size: 14px; font-weight: 600; color: -apollo-accent-text; text-align: center; }
+.card-media-title.idle { color: -apple-system-label; }
+.card-media-album { font-size: 12px; color: -apple-system-tertiary-label; text-align: center; }
+.card-media-artist { font-size: 12px; color: -apple-system-secondary-label; text-align: center; }
+.card-media-tall .media-controls { align-self: stretch; padding: 14px 16px 0; gap: 4px; }
+.card-media-tall .media-button { width: 40px; height: 40px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-label; }
+.card-media-tall .media-glyph { font-size: 15px; font-weight: 600; }
+.card-media-tall .media-play { width: auto; flex-grow: 1; border-radius: 12.8px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.card-media-tall .media-play-glyph { font-size: 17px; }
+.card-media-source { gap: 6px; padding: 5px 10px 5px 6px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.07); color: -apple-system-secondary-label; align-items: center; }
+.card-media-source-icon { width: 18px; height: 18px; }
+.card-media-source-fallback { width: 18px; height: 18px; font-size: 12.6px; font-weight: 300; color: -apple-system-secondary-label; }
 .card-media-source-name { font-size: 11px; font-weight: 500; }
+.card-media-source-state { font-size: 10px; font-weight: 600; }
 
 .media-backdrop { filter: blur(40px); opacity: 0.5; }
 .media-artwork { width: 220px; height: 220px; border-radius: var(--apollo-card-radius, 28px); }
