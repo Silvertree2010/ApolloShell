@@ -61,15 +61,15 @@ apple-desktops #true
 
 ### `bind` (node)
 
-meldet ein globales Tastenkürzel an.
+Registers a global keyboard shortcut.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `chord` | key-chord | required | Tastenkombination, darf ein Ausdruck sein. |
-| property | `id` | identifier | `null` | Kennung für disable, override und Konfliktmeldungen, Vorgabe die Kombination. |
-| property | `repeat` | bool | `false` | löst aus, solange die Kombination gehalten wird. |
-| property | `when` | bool | `null` | bind ist nur aktiv, solange der Ausdruck wahr ist. |
-| property | `override` | bool | `false` | erlaubt eine zweite statisch gleiche Kombination. |
+| argument | `chord` | key-chord | required | Key combination, may be an expression. |
+| property | `id` | identifier | `null` | Id for disable, override and conflict reports, default the combination. |
+| property | `repeat` | bool | `false` | Fires while the combination is held. |
+| property | `when` | bool | `null` | The bind is active only while the expression is true. |
+| property | `override` | bool | `false` | Allows a second statically identical combination. |
 
 ```kdl
 bind "alt+space" { toggle "launcher" }
@@ -162,11 +162,11 @@ column class="stack" { text "Top" }
 
 ### `command-center` (node)
 
-passt die Einträge des nativen Statusmenüs an.
+Customizes the items of the native status menu.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `visible` | bool | `true` | versteckt das Symbol der Kommandozentrale. |
+| property | `visible` | bool | `true` | Hides the command center icon. |
 
 ```kdl
 command-center { builtin "reload-config" }
@@ -610,15 +610,15 @@ let gap=8 radius=12
 
 ### `listen` (node)
 
-liest eine dauerhaft laufende Datenquelle aus einem Prozess.
+Reads a long-running data source from a process.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | identifier | required | Name der Quelle unter listen.<name>. |
-| property | `command` | string | required | Befehl, dessen Ausgabe zeilenweise gelesen wird. |
-| property | `format` | "text"\|"json"\|"lines" | `"text"` | wie jede Zeile gelesen wird. |
-| property | `initial` | value | `null` | Wert bis zum ersten Ergebnis. |
-| property | `when` | bool | `null` | die Quelle läuft nur, solange der Ausdruck wahr ist. |
+| argument | `name` | identifier | required | Name of the source under listen.<name>. |
+| property | `command` | string | required | Command whose output is read line by line. |
+| property | `format` | "text"\|"json"\|"lines" | `"text"` | How each line is read. |
+| property | `initial` | value | `null` | Value until the first result. |
+| property | `when` | bool | `null` | The source runs only while the expression is true. |
 
 ```kdl
 listen "watch-space" command="~/bin/watch-space.sh" format="json"
@@ -653,11 +653,11 @@ mark state="idle"
 
 ### `marketplace` (node)
 
-schaltet den eingebauten Marketplace ein oder aus.
+Turns the built-in Marketplace on or off.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `enabled` | bool | `true` | schaltet den Marketplace ein oder aus. |
+| property | `enabled` | bool | `true` | Turns the Marketplace on or off. |
 
 ```kdl
 marketplace enabled=#false
@@ -678,12 +678,12 @@ menu { item "Copy" { clipboard.copy "{system.full-name}" } }
 
 ### `on` (node)
 
-reagiert auf ein Ereignis der Shell oder eines Providers.
+Reacts to an event of the shell or a provider.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `event` | identifier | required | Name des Ereignisses. |
-| property | `when` | bool | `null` | filtert, wann der Handler läuft. |
+| argument | `event` | identifier | required | Name of the event. |
+| property | `when` | bool | `null` | Filters when the handler runs. |
 
 ```kdl
 on "audio.volume-changed" { osd.show "volume" }
@@ -825,17 +825,17 @@ param "icon"
 
 ### `poll` (node)
 
-liest wiederholt die Ausgabe eines Befehls als Datenquelle.
+Repeatedly reads the output of a command as a data source.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | identifier | required | Name der Quelle unter poll.<name>. |
-| property | `command` | string | required | Befehl, ausgeführt über /bin/sh -c. |
-| property | `interval` | duration | `"5s"` | Abstand zwischen zwei Läufen. |
-| property | `format` | "text"\|"json"\|"lines" | `"text"` | wie die Ausgabe gelesen wird. |
-| property | `initial` | value | `null` | Wert bis zum ersten Ergebnis. |
-| property | `when` | bool | `null` | die Quelle läuft nur, solange der Ausdruck wahr ist. |
-| property | `timeout` | duration | `"10s"` | danach wird der Prozess beendet. |
+| argument | `name` | identifier | required | Name of the source under poll.<name>. |
+| property | `command` | string | required | Command, run via /bin/sh -c. |
+| property | `interval` | duration | `"5s"` | Interval between two runs. |
+| property | `format` | "text"\|"json"\|"lines" | `"text"` | How the output is read. |
+| property | `initial` | value | `null` | Value until the first result. |
+| property | `when` | bool | `null` | The source runs only while the expression is true. |
+| property | `timeout` | duration | `"10s"` | The process is terminated after this. |
 
 ```kdl
 poll "vpn" command="scutil --nc status Mullvad | head -1"
@@ -1554,11 +1554,11 @@ window "settings" { }
 
 ### `wm` (node)
 
-beschreibt den Tiling-Fenstermanager.
+Describes the tiling window manager.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| property | `enabled` | bool | `false` | schaltet den Fenstermanager ein. |
+| property | `enabled` | bool | `false` | Turns the window manager on. |
 
 ```kdl
 wm enabled=#true { layout "dwindle" }
