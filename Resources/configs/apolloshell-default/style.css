@@ -664,7 +664,7 @@
 .settings-favorite-index { width: 20px; color: -apple-system-secondary-label; }
 .settings-search { padding: 6px 8px; border-radius: 6px; background: rgb(from -apple-system-label r g b / 0.06); }
 .settings-about-head { align-items: center; padding: 20px; }
-.settings-about-mark { width: 48px; height: 48px; color: -apple-system-control-accent; }
+.settings-about-mark { width: 48px; height: 48px; font-size: 40px; color: -apple-system-control-accent; }
 .settings-about-name { font-size: 18px; font-weight: 700; }
 .settings-group-title { font-weight: 600; }
 .settings-button, .settings-popup-button { gap: 6px; padding: 4px 10px; border-radius: 6px; align-items: center; background: rgb(from -apple-system-label r g b / 0.08); }
