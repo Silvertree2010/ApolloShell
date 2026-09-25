@@ -7,6 +7,7 @@ public struct ProviderFixture: Sendable {
     public var values: [String: Record]
     public var vars = Record()
     public var shell = Record()
+    public var toasts: [Value] = []
     public var diagnostics: [Diagnostic]
 
     public init(values: [String: Record] = [:], diagnostics: [Diagnostic] = []) {
@@ -37,6 +38,10 @@ public struct ProviderFixture: Sendable {
             for node in root.children ?? [] {
                 if node.name == "vars" {
                     if case .record(let record) = ValueKDLMapping.value(from: node, expectedType: .record) { fixture.vars = record }
+                    continue
+                }
+                if node.name == "toasts" {
+                    if case .list(let list) = ValueKDLMapping.value(from: node, expectedType: .list) { fixture.toasts = list }
                     continue
                 }
                 if node.name == "shell" {

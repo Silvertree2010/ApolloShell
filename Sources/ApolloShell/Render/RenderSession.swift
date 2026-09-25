@@ -19,6 +19,7 @@ final class RenderSession {
     var markRenderTime: TimeInterval = 0
     var actions: [String] { actionLog.entries }
     let renderVars: Record
+    let renderToasts: [Value]
 
     init(config: URL, resources: URL, fixture: ProviderFixture, fixtureRoot: URL?, dark: Bool, scale: CGFloat, theme themeURL: URL? = nil,
          log: @escaping ([Diagnostic]) -> Void = { _ in }) throws {
@@ -29,6 +30,7 @@ final class RenderSession {
         self.dark = dark
         var fixture = fixture
         renderVars = fixture.vars
+        renderToasts = fixture.toasts
         let extracted = FixtureIcons.extract(fixture.values)
         fixture.values = extracted.values
         var now = Date()
@@ -110,7 +112,17 @@ final class RenderSession {
     }
 
     func capture(_ surface: SurfaceInstance, name: String) throws -> Data {
-        let opened = Self.opensForCapture(surface)
+        var opened = Self.opensForCapture(surface)
+        if surface.ir.kind == "toast", !surface.isOpen, !renderToasts.isEmpty {
+            let records = renderToasts.enumerated().map { index, value -> Value in
+                var record = Record([("id", .string("toast-\(index + 1)")), ("remaining", .number(5)), ("queued", .bool(false))])
+                if case .record(let fields) = value { for key in fields.keys { record[key] = fields[key] } }
+                if record["kind"] == nil { record["kind"] = .string("info") }
+                return .record(record)
+            }
+            assembly.runtime.setToasts(surface.id, screenKey: surface.screenKey, records)
+            opened = true
+        }
         if opened {
             assembly.runtime.open(surface.id, screenKey: surface.screenKey)
             flush()
