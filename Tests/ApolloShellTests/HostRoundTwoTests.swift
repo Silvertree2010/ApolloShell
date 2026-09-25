@@ -450,4 +450,12 @@ struct ReviewFocusTests {
         #expect(shell.host.stats.windowsCreated == 6)
         shell.shutdown()
     }
+
+    @Test("Hauptbildschirm (Ursprung 0,0) steht vorn, auch wenn sein Name alphabetisch später kommt")
+    func primaryScreenFirst() {
+        let builtIn = ScreenGeometry(key: "Built-in Retina Display 1512x982", frame: CGRect(x: -1512, y: 0, width: 1512, height: 982), visible: .zero)
+        let dell = ScreenGeometry(key: "DELL U2720Q 2560x1440", frame: CGRect(x: 0, y: 0, width: 2560, height: 1440), visible: .zero)
+        let lg = ScreenGeometry(key: "LG 1920x1080", frame: CGRect(x: 2560, y: 0, width: 1920, height: 1080), visible: .zero)
+        #expect(LiveShell.screenOrder([builtIn.key: builtIn, dell.key: dell, lg.key: lg]) == [dell.key, builtIn.key, lg.key])
+    }
 }

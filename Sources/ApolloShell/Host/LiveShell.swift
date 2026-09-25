@@ -191,7 +191,7 @@ final class LiveShell: WindowHostLink {
         toasts.targetScreen = { [weak self] in
             guard let self else { return nil }
             if let key = self.pointerScreen(), self.host.screens[key] != nil { return key }
-            return self.host.screens.keys.sorted().first
+            return Self.screenOrder(self.host.screens).first
         }
         installProviders(assembly)
         assembly.runtime.onDiagnostics = { [weak self] diagnostics in
@@ -232,7 +232,7 @@ final class LiveShell: WindowHostLink {
         steps.append("surfaces")
         refreshScreens()
         shell = Record([("config", .string(location.id)), ("version", .string(ShellVersion.current)), ("fresh-install", .bool(freshInstall))] + loginItemFields())
-        guard assembly.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Array(host.screens.keys).sorted(), shell: shell, writer: writer(for: location)) else {
+        guard assembly.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Self.screenOrder(host.screens), shell: shell, writer: writer(for: location)) else {
             throw RenderError.config("config \(location.root.path) did not load")
         }
         host.observeSpaces()
@@ -252,10 +252,17 @@ final class LiveShell: WindowHostLink {
         Self.log("started: config \(location.root.path), providers \(options.fixture == nil ? "system" : "fixture"), \(host.controllers.count) window(s)")
     }
 
+    static func screenOrder(_ screens: [String: ScreenGeometry]) -> [String] {
+        func primary(_ key: String) -> Bool { screens[key]?.frame.origin == .zero }
+        return screens.keys.sorted { a, b in
+            primary(a) != primary(b) ? primary(a) : a < b
+        }
+    }
+
     func screensDidChange(_ screens: [String: ScreenGeometry]) {
         guard let assembly, !screens.isEmpty else { return }
         host.screens = screens
-        assembly.runtime.setScreens(Array(screens.keys).sorted())
+        assembly.runtime.setScreens(Self.screenOrder(screens))
         host.screensChanged(screens)
         fullscreen.setScreens(Array(screens.keys))
         system?.wm.screensChanged()
@@ -472,7 +479,7 @@ final class LiveShell: WindowHostLink {
                 watchedFiles = result.files
             }
             reloading = true
-            if assembly?.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Array(host.screens.keys).sorted(), shell: shell, writer: writer(for: location)) == true {
+            if assembly?.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Self.screenOrder(host.screens), shell: shell, writer: writer(for: location)) == true {
                 reloadsApplied += 1
             }
             reloading = false
