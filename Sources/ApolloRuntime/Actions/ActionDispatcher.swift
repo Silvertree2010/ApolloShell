@@ -34,6 +34,14 @@ public final class ActionDispatcher: ActionRuntime {
         implementations[name] = implementation
     }
 
+    public static let builtinNames: Set<String> = ["open", "close", "toggle", "close-group", "wait", "repeat"]
+
+    public func handles(_ name: String) -> Bool {
+        if Self.builtinNames.contains(name) || StateActions.names.contains(name) || implementations[name] != nil { return true }
+        guard let dot = name.firstIndex(of: ".") else { return false }
+        return providers.provider(String(name[..<dot])) != nil
+    }
+
     public func isRunning(site: String) -> Bool {
         runningSites[site, default: 0] > 0
     }

@@ -83,6 +83,7 @@ final class LiveShell: WindowHostLink {
     private(set) var legacyNotes: [Diagnostic] = []
     private(set) var freshInstall = false
     var loginItem = LoginItem.live()
+    let globalEffects = GlobalActionEffects()
     var interactive = true
     var currentScreens: @MainActor () -> [String: ScreenGeometry] = {
         Dictionary(ShellScreens.current().map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame)) }, uniquingKeysWith: { first, _ in first })
@@ -191,6 +192,7 @@ final class LiveShell: WindowHostLink {
         assembly.actions.register("marketplace.open", MarketplaceOpenAction(shell: self))
         assembly.actions.register("shell.set-login-item", LoginItemAction(shell: self))
         assembly.actions.register("command-center.open", ClosureAction { [weak self] _ in self?.commandCenterPopUp() })
+        registerGlobalActions(assembly)
         toasts.runtime = assembly.runtime
         host.publishSize = { [weak assembly] id, screen, size in
             assembly?.runtime.setSurfaceSize(id, screenKey: screen, width: Double(size.width), height: Double(size.height))
