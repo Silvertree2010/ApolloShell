@@ -7,7 +7,7 @@ enum Layout {
             handlers: CommonProperties.elementHandlers,
             childContext: .elementBody,
             contexts: [.surfaceBody, .elementBody],
-            doc: "ordnet Kinder nebeneinander an, Flexbox-Richtung Zeile.",
+            doc: "Lays out children side by side, flexbox direction row.",
             example: "row class=\"toolbar\" { text \"Left\" }"
         ),
         NodeSchema(
@@ -17,19 +17,19 @@ enum Layout {
             handlers: CommonProperties.elementHandlers,
             childContext: .elementBody,
             contexts: [.surfaceBody, .elementBody],
-            doc: "ordnet Kinder untereinander an, Flexbox-Richtung Spalte.",
+            doc: "Lays out children top to bottom, flexbox direction column.",
             example: "column class=\"stack\" { text \"Top\" }"
         ),
         NodeSchema(
             name: "grid",
             category: .layout,
             properties: CommonProperties.elementProperties + [
-                PropertySchema(name: "columns", type: .number, defaultValue: .null, doc: "Anzahl der Spalten."),
+                PropertySchema(name: "columns", type: .number, defaultValue: .null, doc: "Number of columns."),
             ],
             handlers: CommonProperties.elementHandlers,
             childContext: .elementBody,
             contexts: [.surfaceBody, .elementBody],
-            doc: "ordnet Kinder in einem Raster an.",
+            doc: "Lays out children in a grid.",
             example: "grid columns=3 { text \"1\" }"
         ),
         NodeSchema(
@@ -39,33 +39,33 @@ enum Layout {
             handlers: CommonProperties.elementHandlers,
             childContext: .elementBody,
             contexts: [.surfaceBody, .elementBody],
-            doc: "ordnet Kinder auf der z-Achse übereinander, darf leer sein.",
+            doc: "Stacks children on the z axis, may be empty.",
             example: "stack class=\"divider\" { }"
         ),
         NodeSchema(
             name: "scroll",
             category: .layout,
             properties: CommonProperties.elementProperties + [
-                PropertySchema(name: "axis", type: .enumeration(["vertical", "horizontal", "both"]), defaultValue: .string("vertical"), doc: "Scrollrichtung."),
-                PropertySchema(name: "reveal", type: .value, defaultValue: .null, doc: "Schlüssel oder id, die sichtbar gescrollt wird, sobald sich der Wert ändert."),
-                PropertySchema(name: "indicators", type: .bool, defaultValue: .bool(false), doc: "ob Scrollbalken sichtbar sind."),
-                PropertySchema(name: "lazy", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Kinder werden erst gebaut, wenn sie sichtbar werden."),
+                PropertySchema(name: "axis", type: .enumeration(["vertical", "horizontal", "both"]), defaultValue: .string("vertical"), doc: "Scroll direction."),
+                PropertySchema(name: "reveal", type: .value, defaultValue: .null, doc: "Key or id scrolled into view whenever the value changes."),
+                PropertySchema(name: "indicators", type: .bool, defaultValue: .bool(false), doc: "Whether scroll bars are visible."),
+                PropertySchema(name: "lazy", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Children are built only when they become visible."),
             ],
             handlers: CommonProperties.elementHandlers,
             childContext: .elementBody,
             contexts: [.surfaceBody, .elementBody],
-            doc: "scrollbarer Bereich.",
+            doc: "Scrollable area.",
             example: "scroll axis=\"vertical\" { column { } }"
         ),
         NodeSchema(
             name: "spacer",
             category: .layout,
             properties: CommonProperties.elementProperties + [
-                PropertySchema(name: "size", type: .number, defaultValue: .null, doc: "fester Abstand in pt, sonst füllt der spacer den freien Platz."),
+                PropertySchema(name: "size", type: .number, defaultValue: .null, doc: "Fixed spacing in pt, otherwise the spacer fills the free space."),
             ],
             handlers: CommonProperties.elementHandlers,
             contexts: [.surfaceBody, .elementBody],
-            doc: "füllt freien Platz in row/column, oder ein fester Abstand.",
+            doc: "Fills free space in row/column, or a fixed spacing.",
             example: "spacer"
         ),
     ]

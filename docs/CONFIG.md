@@ -138,7 +138,7 @@ case "a" "b" { text "A or B" }
 
 ### `column` (node)
 
-ordnet Kinder untereinander an, Flexbox-Richtung Spalte.
+Lays out children top to bottom, flexbox direction column.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -417,7 +417,7 @@ graph values="{perf.live.cpu-history}" kind="line"
 
 ### `grid` (node)
 
-ordnet Kinder in einem Raster an.
+Lays out children in a grid.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -432,7 +432,7 @@ ordnet Kinder in einem Raster an.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `columns` | number | `null` | Anzahl der Spalten. |
+| property | `columns` | number | `null` | Number of columns. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -1023,7 +1023,7 @@ ring value="{perf.cpu}"
 
 ### `row` (node)
 
-ordnet Kinder nebeneinander an, Flexbox-Richtung Zeile.
+Lays out children side by side, flexbox direction row.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -1073,7 +1073,7 @@ scratchpad share=0.7
 
 ### `scroll` (node)
 
-scrollbarer Bereich.
+Scrollable area.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -1088,10 +1088,10 @@ scrollbarer Bereich.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `axis` | "vertical"\|"horizontal"\|"both" | `"vertical"` | Scrollrichtung. |
-| property | `reveal` | value | `null` | Schlüssel oder id, die sichtbar gescrollt wird, sobald sich der Wert ändert. |
-| property | `indicators` | bool | `false` | ob Scrollbalken sichtbar sind. |
-| property | `lazy` | bool | `false` | Kinder werden erst gebaut, wenn sie sichtbar werden. |
+| property | `axis` | "vertical"\|"horizontal"\|"both" | `"vertical"` | Scroll direction. |
+| property | `reveal` | value | `null` | Key or id scrolled into view whenever the value changes. |
+| property | `indicators` | bool | `false` | Whether scroll bars are visible. |
+| property | `lazy` | bool | `false` | Children are built only when they become visible. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -1202,7 +1202,7 @@ source "app-dock" app="{app}"
 
 ### `spacer` (node)
 
-füllt freien Platz in row/column, oder ein fester Abstand.
+Fills free space in row/column, or a fixed spacing.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -1217,7 +1217,7 @@ füllt freien Platz in row/column, oder ein fester Abstand.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
-| property | `size` | number | `null` | fester Abstand in pt, sonst füllt der spacer den freien Platz. |
+| property | `size` | number | `null` | Fixed spacing in pt, otherwise the spacer fills the free space. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -1240,7 +1240,7 @@ spring response=0.28
 
 ### `stack` (node)
 
-ordnet Kinder auf der z-Achse übereinander, darf leer sein.
+Stacks children on the z axis, may be empty.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
