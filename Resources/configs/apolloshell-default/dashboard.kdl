@@ -73,11 +73,13 @@ popup "dashboard" anchor="top" motion="slide" hover-edge=#true overhang=#true ar
             }
         }
         stack class="dashboard-divider"
-        switch "{var.dashboard-active-tab}" {
-            case "dashboard" { use "dashboard-overview" }
-            case "media" { use "dashboard-media" }
-            case "performance" { use "dashboard-performance" }
-            case "weather" { use "dashboard-weather" }
+        column class="dashboard-page" {
+            switch "{var.dashboard-active-tab}" {
+                case "dashboard" { use "dashboard-overview" }
+                case "media" { use "dashboard-media" }
+                case "performance" { use "dashboard-performance" }
+                case "weather" { use "dashboard-weather" }
+            }
         }
     }
 }

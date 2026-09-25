@@ -141,7 +141,8 @@
 .dashboard-tab-glyph { width: 18px; height: 18px; font-size: 16px; font-weight: 500; }
 .dashboard-tab-title { font-size: 12px; font-weight: 500; }
 .dashboard-divider { height: 1px; align-self: stretch; background: -apple-system-separator; opacity: 0.5; }
-.dashboard-overview { height: 392px; margin: 16px; gap: 12px; }
+.dashboard-page { width: 871px; height: 424px; padding: 16px; }
+.dashboard-overview { flex-grow: 1; align-self: stretch; gap: 12px; }
 .dashboard-main { flex-grow: 1; gap: 12px; }
 .dashboard-zone { gap: 12px; }
 .dashboard-zone.zone-top { height: 130px; }
@@ -217,12 +218,45 @@
 .card-media-source-name { font-size: 11px; font-weight: 500; }
 .card-media-source-state { font-size: 10px; font-weight: 600; }
 
-.media-backdrop { filter: blur(40px); opacity: 0.5; }
-.media-artwork { width: 220px; height: 220px; border-radius: var(--apollo-card-radius, 28px); }
-.media-timeline { transition: value 600ms emphasized; }
+.media-tab { align-self: stretch; flex-grow: 1; border-radius: var(--apollo-card-radius, 28px); background: rgb(from -apple-system-label r g b / 0.06); }
+.media-backdrop { filter: blur(40px); opacity: 0.35; }
+.media-now { align-self: stretch; flex-grow: 1; padding: 20px 20px 20px 18px; gap: 24px; align-items: center; }
+.media-cover-section { width: 252px; align-items: center; }
+.media-artwork { width: 244px; height: 244px; border-radius: var(--apollo-card-radius, 28px); background: rgb(from -apple-system-label r g b / 0.08); }
+.media-artwork-placeholder { font-size: 64px; font-weight: 300; color: -apple-system-tertiary-label; }
+.media-artwork-image { width: 244px; height: 244px; border-radius: var(--apollo-card-radius, 28px); }
+.media-main { flex-grow: 1; gap: 24px; align-items: center; }
+.media-info { flex-grow: 1; gap: 4px; align-items: start; }
+.media-title { font-size: 22px; font-weight: 600; }
+.media-artist { font-size: 16px; font-weight: 500; color: -apple-system-secondary-label; }
+.media-album { font-size: 16px; font-weight: 500; color: -apollo-accent-text; }
+.media-times { align-self: stretch; padding: 26px 0 0; gap: 10px; align-items: center; }
+.media-time { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; color: -apple-system-secondary-label; }
+.media-timeline { flex-grow: 1; height: 6px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.12); -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 600ms emphasized; }
+.media-info .media-controls { align-self: stretch; padding: 18px 0 0; gap: 6px; }
+.media-info .media-button { width: 52px; height: 52px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-label; }
+.media-info .media-glyph { font-size: 20px; font-weight: 600; }
+.media-info .media-play { width: auto; flex-grow: 1; border-radius: 16.64px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.media-info .media-play-glyph { font-size: 22px; }
 .media-play { background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); border-radius: 9999px; }
 .media-play-glyph { -apollo-content-transition: symbol; }
-.media-source-wave { -apollo-symbol-effect: variable-color; }
+.media-source-panel { width: 200px; height: 244px; gap: 10px; align-items: start; }
+.media-source-head { gap: 8px; padding: 0 0 0 6px; align-items: center; }
+.media-source-head-glyph { font-size: 14px; }
+.media-source-head-title { font-size: 16px; font-weight: 500; }
+.media-source { align-self: stretch; flex-grow: 1; padding: 14px; border-radius: var(--apollo-card-radius, 24px); background: var(--apollo-card-fill, rgb(from -apple-system-label r g b / 0.06)); }
+.media-source-icon { width: 64px; height: 64px; }
+.media-source-fallback { width: 64px; height: 64px; font-size: 44.8px; font-weight: 300; color: -apple-system-secondary-label; }
+.media-source-name { font-size: 15px; font-weight: 600; }
+.media-source-state { gap: 5px; align-items: center; color: -apple-system-secondary-label; }
+.media-source-wave { font-size: 12px; font-weight: 500; -apollo-symbol-effect: variable-color; }
+.media-source-state-text { font-size: 12px; font-weight: 500; }
+.media-empty-badge { width: 96px; height: 96px; margin: 0 0 8px; border-radius: var(--apollo-card-radius, 30px); background: rgb(from var(--apollo-accent-color, -apple-system-control-accent) r g b / 0.16); }
+.media-empty-glyph { font-size: 40px; font-weight: 500; color: -apollo-accent-text; }
+.media-empty { flex-grow: 1; gap: 8px; align-items: center; justify-content: center; }
+.media-source-body { gap: 8px; align-items: center; justify-content: center; }
+.media-empty-title { font-size: 22px; font-weight: 600; }
+.media-empty-detail { font-size: 14px; color: -apple-system-secondary-label; }
 
 .performance { gap: 12px; }
 .performance-row { gap: 12px; }
