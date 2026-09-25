@@ -265,11 +265,13 @@ final class LiveShell: WindowHostLink {
             return
         }
         let marketplace = SystemMarketplaceHost(paths: paths, settings: settings)
-        marketplace.onThemesChanged = { [weak self] in self?.reload() }
+        marketplace.onThemesChanged = { [weak self] in
+            self?.themes.invalidate()
+            self?.reload()
+        }
         let system = SystemProviders(directory: paths.applicationSupport, socketPath: socketPath, polls: [], listens: [], marketplace: marketplace, clock: DispatchRuntimeClock())
         self.system = system
-        let media = system.providers.compactMap { $0 as? MediaProvider }.first
-        providerImages.data = { ref in ref.source == "media" ? media?.artworkData(ref.id) : nil }
+        providerImages.data = Self.imageData(system.providers)
         providerIDs = system.providers.map(\.schema.id)
         assembly.install(system.providers)
         let wm = system.wm
@@ -315,7 +317,7 @@ final class LiveShell: WindowHostLink {
         }
         let system = isDark()
         lastDark = system
-        themes.reload(activeID: settings.settings.theme)
+        themes.refresh(activeID: settings.settings.theme)
         let appearance: Appearance = system ? .dark : .light
         let theme = themes.active
         let dark = theme.map { ThemeTokenBridge.effectiveAppearance(theme: $0, system: appearance) == .dark } ?? system
@@ -361,7 +363,7 @@ final class LiveShell: WindowHostLink {
 
     func watch() {
         guard let location else { return }
-        let wanted = Array(Set(([location.root.path, paths.userConfig.path, paths.stateDirectory.path] + watchedFiles.map { $0.deletingLastPathComponent().path })
+        let wanted = Array(Set(([location.root.path, paths.userConfig.path, paths.stateDirectory.path] + themes.folders.map(\.path) + watchedFiles.map { $0.deletingLastPathComponent().path })
             .map(FolderWatcher.existingAncestor))).sorted()
         guard wanted != watchedPaths || watcher == nil else { return }
         watchedPaths = wanted
@@ -374,7 +376,8 @@ final class LiveShell: WindowHostLink {
     }
 
     func filesChanged(_ all: [String]) {
-        let roots = ([location?.root, paths.userConfig, paths.stateDirectory].compactMap { $0 } + watchedFiles.map { $0.deletingLastPathComponent() }).map { Self.comparable($0.path) + "/" }
+        if all.contains(where: themes.covers) { themes.invalidate() }
+        let roots = ([location?.root, paths.userConfig, paths.stateDirectory].compactMap { $0 } + themes.folders + watchedFiles.map { $0.deletingLastPathComponent() }).map { Self.comparable($0.path) + "/" }
         let changed = all.filter { path in
             let candidate = Self.comparable(path) + "/"
             return roots.contains { candidate.hasPrefix($0) }
@@ -618,6 +621,18 @@ final class LiveShell: WindowHostLink {
     func variable(_ name: String) throws -> Value {
         guard let vars = assembly?.vars, vars.isDeclared(name) else { throw ShellControlError("no var named '\(name)'") }
         return vars.value(name)
+    }
+
+    static func imageData(_ providers: [any ProviderInstance]) -> @MainActor (ImageRef) -> Data? {
+        let media = providers.compactMap { $0 as? MediaProvider }.first
+        let system = providers.compactMap { $0 as? SystemProvider }.first
+        return { ref in
+            switch ref.source {
+            case "media": media?.artworkData(ref.id)
+            case "user-image": system?.userImageData(ref.id)
+            default: nil
+            }
+        }
     }
 
     func setVariable(_ name: String, _ value: Value) throws {

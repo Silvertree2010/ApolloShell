@@ -173,6 +173,27 @@ final class SystemMacSource: SystemSource {
         )
     }
 
+    func userImageData() -> Data? {
+        guard let result = Subprocess.runAndWait("/usr/bin/dscl", [".", "-read", "/Users/\(NSUserName())", "JPEGPhoto"]), result.status == 0 else { return nil }
+        return Self.photoData(String(decoding: result.output, as: UTF8.self))
+    }
+
+    static func photoData(_ output: String) -> Data? {
+        guard let range = output.range(of: "JPEGPhoto:"), output.hasPrefix("JPEGPhoto:") else { return nil }
+        let hex = output[range.upperBound...].filter(\.isHexDigit)
+        guard !hex.isEmpty, hex.count.isMultiple(of: 2) else { return nil }
+        var bytes: [UInt8] = []
+        bytes.reserveCapacity(hex.count / 2)
+        var index = hex.startIndex
+        while index < hex.endIndex {
+            let next = hex.index(index, offsetBy: 2)
+            guard let byte = UInt8(hex[index..<next], radix: 16) else { return nil }
+            bytes.append(byte)
+            index = next
+        }
+        return Data(bytes)
+    }
+
     private static func userImageExists() -> Bool {
         let result = Subprocess.runAndWait("/usr/bin/dscl", [".", "-read", "/Users/\(NSUserName())", "JPEGPhoto"])
         return result?.status == 0 && !(result?.output.isEmpty ?? true)

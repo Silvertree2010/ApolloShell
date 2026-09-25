@@ -76,8 +76,8 @@ struct SurfacePlacement: Equatable {
         case .bottom: origin = CGPoint(x: rect.minX, y: rect.minY - size.height)
         case .top: origin = CGPoint(x: rect.minX, y: rect.maxY)
         }
-        origin.x += offset.x
-        origin.y -= offset.y
+        origin.x += side == .left ? -offset.x : offset.x
+        origin.y += side == .top ? offset.y : -offset.y
         origin.x = min(max(origin.x, visible.minX), max(visible.minX, visible.maxX - size.width))
         origin.y = min(max(origin.y, visible.minY), max(visible.minY, visible.maxY - size.height))
         return CGRect(origin: origin, size: size)

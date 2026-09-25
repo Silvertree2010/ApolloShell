@@ -13,7 +13,10 @@ struct AttachTests {
         let size = CGSize(width: 200, height: 100)
         #expect(SurfacePlacement.attached(size: size, to: rect, side: .right, offset: .zero, visible: visible) == CGRect(x: 140, y: 420, width: 200, height: 100))
         #expect(SurfacePlacement.attached(size: size, to: rect, side: .bottom, offset: .zero, visible: visible) == CGRect(x: 100, y: 400, width: 200, height: 100))
-        #expect(SurfacePlacement.attached(size: size, to: rect, side: .top, offset: CGPoint(x: 5, y: 3), visible: visible) == CGRect(x: 105, y: 517, width: 200, height: 100))
+        #expect(SurfacePlacement.attached(size: size, to: rect, side: .top, offset: CGPoint(x: 5, y: 3), visible: visible) == CGRect(x: 105, y: 523, width: 200, height: 100))
+        #expect(SurfacePlacement.attached(size: size, to: CGRect(x: 300, y: 420, width: 40, height: 100), side: .left, offset: CGPoint(x: 10, y: 0), visible: visible).minX == 90)
+        #expect(SurfacePlacement.attached(size: size, to: rect, side: .right, offset: CGPoint(x: 10, y: 0), visible: visible).minX == 150)
+        #expect(SurfacePlacement.attached(size: size, to: rect, side: .bottom, offset: CGPoint(x: 0, y: 10), visible: visible).minY == 390)
         #expect(SurfacePlacement.attached(size: size, to: rect, side: .left, offset: .zero, visible: visible).minX == 0)
     }
 

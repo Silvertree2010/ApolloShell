@@ -35,6 +35,7 @@ final class SurfaceWindowController {
     var offset: CGPoint?
     var observing = false
     var flyout = EdgeInsets()
+    var pendingContent: AnyView?
     var flyoutShrink: DispatchWorkItem?
 
     init(surface: SurfaceInstance, window: any HostWindow, spec: SurfaceWindowSpec) {
@@ -154,7 +155,8 @@ final class WindowHost: SurfaceHosting {
 
     private func content(_ surface: SurfaceInstance, insets: EdgeInsets, flyout: EdgeInsets = EdgeInsets()) -> AnyView {
         guard let context else { return AnyView(EmptyView()) }
-        return AnyView(SurfaceView(surface: surface, context: context, insets: insets, painter: backgroundPainter).padding(flyout))
+        let occluded = context.occluded.contains(SurfaceHost.key(surface.id, surface.screenKey))
+        return AnyView(SurfaceView(surface: surface, context: context, insets: insets, painter: backgroundPainter, occluded: occluded).padding(flyout))
     }
 
     func flyoutExtent(_ key: String, _ extent: EdgeInsets) {
@@ -176,8 +178,12 @@ final class WindowHost: SurfaceHosting {
     private func applyFlyout(_ key: String, _ extent: EdgeInsets) {
         guard let controller = controllers[key], controller.flyout != extent else { return }
         controller.flyout = extent
-        controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: extent))
+        controller.pendingContent = content(controller.surface, insets: controller.insets, flyout: extent)
         sync(key)
+        if let pending = controller.pendingContent {
+            controller.pendingContent = nil
+            controller.window.setContent(pending)
+        }
     }
 
     static func expand(_ frame: CGRect, by extent: EdgeInsets) -> CGRect {
@@ -197,6 +203,8 @@ final class WindowHost: SurfaceHosting {
         let id = surface.id, screenKey = surface.screenKey
         window.onCloseRequest = { [weak self] in self?.link?.close(id, screenKey: screenKey) }
         window.onKey = { [weak self] chord in self?.link?.keyPressed(chord, surfaceID: id, screenKey: screenKey) ?? false }
+        window.onResize = { [weak self] in self?.userResized(key) }
+        window.onOcclusion = { [weak self] visible in self?.occlusionChanged(key, visible: visible) }
         controllers[key] = controller
         sync(key)
     }
@@ -237,6 +245,23 @@ final class WindowHost: SurfaceHosting {
         }
     }
 
+    private func occlusionChanged(_ key: String, visible: Bool) {
+        guard let controller = controllers[key], let context else { return }
+        if visible { context.occluded.remove(key) } else { context.occluded.insert(key) }
+        controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
+    }
+
+    private func userResized(_ key: String) {
+        guard let controller = controllers[key], controller.spec.kind == "window", controller.shown else { return }
+        let frame = controller.window.frame
+        guard frame != controller.openFrame else { return }
+        let resized = frame.size != controller.openFrame.size
+        controller.openFrame = frame
+        frames.publish(key, frame)
+        if resized { publishSize(controller.surface.id, controller.surface.screenKey, frame.size) }
+        if !attachSyncing.contains(key) { syncAttached(to: key) }
+    }
+
     private func sync(_ key: String) {
         guard let controller = controllers[key], let context else { return }
         let surface = controller.surface
@@ -262,7 +287,7 @@ final class WindowHost: SurfaceHosting {
         let layout = SurfaceLayout.compute(placement: placement, spec: spec, radius: StyleValues.radius(style["border-radius"]), screen: screen, fitting: fitting)
         if layout.insets != controller.insets {
             controller.insets = layout.insets
-            controller.window.setContent(content(surface, insets: layout.insets, flyout: flyout))
+            controller.pendingContent = content(surface, insets: layout.insets, flyout: flyout)
         }
         var frame = layout.frame
         if let attach = SurfacePlacement.attachment(surface.property), let target = attachedRect(attach, screenKey: surface.screenKey) {
@@ -275,12 +300,21 @@ final class WindowHost: SurfaceHosting {
                 if !controller.window.restoreFrame() { controller.window.setFrame(frame) }
             }
             controller.openFrame = controller.window.frame
+            if let pending = controller.pendingContent {
+                controller.pendingContent = nil
+                controller.window.setContent(pending)
+            }
         } else {
             let offset = CGPoint(x: placement.offsetX, y: placement.offsetY)
             let glide = controller.shown && controller.offset != nil && controller.offset != offset
             controller.offset = offset
             controller.openFrame = frame
-            controller.window.setFrame(Self.expand(frame, by: flyout), glide: glide)
+            if let pending = controller.pendingContent {
+                controller.pendingContent = nil
+                controller.window.setContent(pending, frame: Self.expand(frame, by: flyout), glide: glide)
+            } else {
+                controller.window.setFrame(Self.expand(frame, by: flyout), glide: glide)
+            }
         }
         let opening = surface.isOpen && !controller.wasOpen
         let closing = !surface.isOpen && controller.wasOpen

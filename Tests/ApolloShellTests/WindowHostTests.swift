@@ -15,10 +15,13 @@ final class FakeWindow: HostWindow {
     var fittingSize = CGSize(width: 100, height: 50)
     var onCloseRequest: (@MainActor () -> Void)?
     var onKey: (@MainActor (String) -> Bool)?
+    var onResize: (@MainActor () -> Void)?
+    var onOcclusion: (@MainActor (Bool) -> Void)?
     var windowNumber = 1
     var spec: SurfaceWindowSpec
     var level: NSWindow.Level
     var contentSets = 0
+    var calls: [String] = []
     var frameSets = 0
     var closed = false
     var hides = 0
@@ -51,7 +54,19 @@ final class FakeWindow: HostWindow {
         guard frame != self.frame else { return }
         self.frame = frame
         frameSets += 1
+        calls.append("frame")
         if glide { glides.append(frame) }
+    }
+
+    func setContent(_ view: AnyView, frame: CGRect, glide: Bool) {
+        contentSets += 1
+        content = view
+        calls.append("content+frame")
+        if frame != self.frame {
+            self.frame = frame
+            frameSets += 1
+            if glide { glides.append(frame) }
+        }
     }
 
     func setMinSize(_ size: CGSize) { minSize = size }
@@ -65,6 +80,7 @@ final class FakeWindow: HostWindow {
     func setContent(_ view: AnyView) {
         contentSets += 1
         content = view
+        calls.append("content")
     }
     func show(focus: Bool) {
         isShown = true

@@ -120,6 +120,52 @@ struct IdentityTests {
         #expect(!press.pseudo.contains(.active))
     }
 
+    static let launchConfig = """
+    var appeared 0
+    var gone 0
+    var launching #false
+    panel "t" anchor="left" {
+        stack class="dock-item {var.launching ? 'launching' : ''}" {
+            stack id="icon" class="dock-icon {var.launching ? 'lit' : ''}" {
+                on-appear { set "appeared" "{var.appeared + 1}" }
+                on-disappear { set "gone" "{var.gone + 1}" }
+                stack class="badge"
+            }
+        }
+    }
+    """
+    static let launchCSS = """
+    #t { width: 60px; height: 60px; align-items: start; }
+    .dock-item { width: 40px; height: 40px; }
+    .dock-icon { width: 30px; height: 30px; }
+    .dock-item.launching .dock-icon { animation: bounce 1s infinite; }
+    .dock-icon.lit:checked { filter: blur(1px); }
+    .badge { width: 10px; height: 10px; }
+    @keyframes bounce { from { opacity: 1; } to { opacity: 0.5; } }
+    """
+
+    @Test("Ancestor- und eigene Ausdrucksklasse an und aus: Dock-Symbol behält seine Identität")
+    func dynamicClassKeepsIdentity() async throws {
+        let mounted = try Mounted.mount(Self.launchConfig, css: Self.launchCSS)
+        await mounted.settle()
+        #expect(mounted.variable("appeared") == .number(1))
+        let runtime = try #require(mounted.session.context.runtime)
+        for _ in 0..<3 {
+            for state in [true, false] {
+                runtime.setVariable("launching", .bool(state))
+                mounted.pump(5)
+                await mounted.settle()
+                if let icon = Self.find("icon", in: mounted) {
+                    if state { icon.pseudo.insert(.checked) } else { icon.pseudo.remove(.checked) }
+                }
+                mounted.pump(5)
+                await mounted.settle()
+            }
+        }
+        #expect(mounted.variable("appeared") == .number(1))
+        #expect(mounted.variable("gone") == .number(0))
+    }
+
     static func all(in mounted: Mounted) -> [ElementInstance] {
         func walk(_ list: [ElementInstance]) -> [ElementInstance] { list.flatMap { [$0] + walk($0.children) } }
         return walk(mounted.session.surfaces.first?.root ?? [])

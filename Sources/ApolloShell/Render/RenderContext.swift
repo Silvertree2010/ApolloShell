@@ -25,21 +25,25 @@ final class RenderContext {
     var pending: [Int: Task<Void, Never>] = [:]
     var nextPending = 0
     var flyoutExtents: [String: EdgeInsets] = [:]
+    var occluded: Set<String> = []
     var onFlyoutExtent: @MainActor (String, EdgeInsets) -> Void = { _, _ in }
     let hits = HitRegions()
     let elementFrames = ElementFrames()
     private var images = BoundedCache<String, NSImage>(limit: 128)
-    private var previews = BoundedCache<String, Theme>(limit: 32)
+    static let previewLimit = 128
+    private var previews = BoundedCache<String, (css: String, theme: Theme)>(limit: RenderContext.previewLimit)
+    private(set) var previewParses = 0
 
     func previewTheme(_ value: Value) -> Theme {
         guard case .record(let record) = value, case .string(let css)? = record["css"] else {
             return theme(value.plainText ?? "default") ?? .standard
         }
         let identifier = record["slug"]?.plainText ?? record["id"]?.plainText ?? "preview"
-        let key = identifier + "\u{0}" + css
-        if let cached = previews[key] { return cached }
+        let key = [identifier, record["version"]?.plainText ?? "", record["updated"]?.plainText ?? "", String(css.utf8.count)].joined(separator: "\u{0}")
+        if let cached = previews[key], cached.css == css { return cached.theme }
         let built = ThemeLoader.load(css: css, identifier: identifier)
-        previews[key] = built
+        previewParses += 1
+        previews[key] = (css, built)
         return built
     }
 
@@ -130,13 +134,12 @@ struct ElementView: View {
             let spacer = element.kind == "spacer" && element.property("size") == .null
             let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
             let mouse = MouseConfig(element, reorder: reorderEntry)
-            let hover = element.kind == "button" || SelfState.uses(element, "hover")
-                || styles.sensitive(to: .hover, subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
-            let press = SelfState.uses(element, "pressed")
-                || styles.sensitive(to: .active, subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
+            let fixed = StyleResolver.staticSubject(for: element)
+            let hover = element.kind == "button" || SelfState.uses(element, "hover") || styles.stateStyled(.hover, fixed)
+            let press = SelfState.uses(element, "pressed") || styles.stateStyled(.active, fixed)
             let inlineStyle = element.ir.properties["style"] != nil
-            let filters = inlineStyle || styles.declares("filter", subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
-            let animated = inlineStyle || styles.declares("animation", subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
+            let filters = inlineStyle || styles.declares("filter", fixed)
+            let animated = inlineStyle || styles.declares("animation", fixed)
             ElementRenderers.view(for: element, style: style, scope: inner)
                 .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: filters))
                 .modifier(HitRegionMarker(active: !mouse.isEmpty || StyleValues.visibleBackground(style), identity: element.identity))

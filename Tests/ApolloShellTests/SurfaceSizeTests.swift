@@ -30,6 +30,28 @@ struct SurfaceSizeTests {
 }
 
 @MainActor
+@Suite("window: Grössenänderung durch den User veröffentlicht surfaces.<id>.width/height")
+struct WindowResizeTests {
+    @Test("Rahmen ändern und melden: Breite, Höhe und abhängiger Ausdruck folgen")
+    func resizePublishes() async throws {
+        let harness = try ShellHarness("window \"notes\" class=\"{surfaces.notes.width > 600 ? 'wide' : 'narrow'}\" { column { text \"n\" } }")
+        try await harness.start()
+        let key = ShellHarness.a.key
+        harness.runtime.open("notes", screenKey: key)
+        harness.settle()
+        let notes = try #require(harness.window("notes"))
+        let surface = try #require(harness.shell.host.model.surfaces[SurfaceHost.key("notes", key)])
+        #expect(surface.property("class") == .string("narrow"))
+        notes.frame = CGRect(x: notes.frame.minX, y: notes.frame.minY, width: 900, height: 640)
+        notes.onResize?()
+        harness.settle()
+        #expect(harness.runtime.surfaceValue("notes", screenKey: key, "width") == .number(900))
+        #expect(harness.runtime.surfaceValue("notes", screenKey: key, "height") == .number(640))
+        #expect(surface.property("class") == .string("wide"))
+    }
+}
+
+@MainActor
 @Suite("Oberflächen der Art window entstehen erst beim ersten Öffnen (11-11)")
 struct LazyWindowTests {
     @Test("Marketplace und eigenes window: kein Fenster vor dem Öffnen, danach bleibt es")

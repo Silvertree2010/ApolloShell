@@ -10,6 +10,8 @@ protocol HostWindow: AnyObject {
     var fittingSize: CGSize { get }
     var onCloseRequest: (@MainActor () -> Void)? { get set }
     var onKey: (@MainActor (String) -> Bool)? { get set }
+    var onResize: (@MainActor () -> Void)? { get set }
+    var onOcclusion: (@MainActor (Bool) -> Void)? { get set }
     var windowNumber: Int { get }
     func apply(_ spec: SurfaceWindowSpec)
     func setLevel(_ level: NSWindow.Level)
@@ -18,6 +20,7 @@ protocol HostWindow: AnyObject {
     func setIgnoresMouse(_ ignores: Bool)
     func restoreFrame() -> Bool
     func setContent(_ view: AnyView)
+    func setContent(_ view: AnyView, frame: CGRect, glide: Bool)
     func show(focus: Bool)
     func hide()
     func animate(opening: Bool, focus: Bool, animator: any SurfaceAnimator, geometry: MotionGeometry, scrim: Double?, screen: CGRect, completion: @escaping @MainActor () -> Void)
@@ -142,6 +145,8 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     let stage: any WindowStage
     var onCloseRequest: (@MainActor () -> Void)?
     var onKey: (@MainActor (String) -> Bool)?
+    var onResize: (@MainActor () -> Void)?
+    var onOcclusion: (@MainActor (Bool) -> Void)?
 
     init(spec: SurfaceWindowSpec, content: AnyView, stage: any WindowStage = SystemStage.shared) {
         self.spec = spec
@@ -244,6 +249,16 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
 
     func setContent(_ view: AnyView) {
         hosting.rootView = view
+    }
+
+    func setContent(_ view: AnyView, frame: CGRect, glide: Bool) {
+        window.disableScreenUpdatesUntilFlush()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        hosting.rootView = view
+        setFrame(frame, glide: glide)
+        hosting.layoutSubtreeIfNeeded()
+        CATransaction.commit()
     }
 
     func show(focus: Bool) {
@@ -382,6 +397,14 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
 
     func windowDidResignKey(_ notification: Notification) {
         if spec.closeOn.contains(.focusLoss) { onCloseRequest?() }
+    }
+
+    func windowDidChangeOcclusionState(_ notification: Notification) {
+        onOcclusion?(window.occlusionState.contains(.visible))
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        onResize?()
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
