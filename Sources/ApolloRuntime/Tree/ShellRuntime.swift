@@ -24,6 +24,7 @@ public final class ShellRuntime: SurfaceControlling {
     private var providerSettingHandles: [BindingHandle] = []
     private var providerSettingValues: [String: [String: Value]] = [:]
     private var providerSettingsPushed: [String: Record] = [:]
+    private var screensPending = false
     static let namedBlockProviders: Set<String> = ["poll", "listen"]
     private var inSession = false
     private var queue: [@MainActor () -> Void] = []
@@ -619,8 +620,18 @@ public final class ShellRuntime: SurfaceControlling {
 
     func bindSurfaceProperty(_ node: SurfaceNode, _ name: String, _ compiled: CompiledValue, _ cell: PropertyCell) -> BindingHandle {
         let isVisibility = name == "visible"
+        let isScreen = name == "screen"
         return bindings.bind(compiled, scope: node.scope, rank: isVisibility ? .structure(depth: -1) : .property, active: true) { [weak self, weak node, weak cell] value in
+            let previous = cell?.value
             cell?.update(value)
+            if isScreen, let self, let node, node.isConfigured, previous != value, !self.screensPending {
+                self.screensPending = true
+                self.enqueue { [weak self] in
+                    guard let self else { return }
+                    self.screensPending = false
+                    self.setScreens(self.screens)
+                }
+            }
             guard isVisibility, let self, let node else { return }
             node.visibleProperty = value.isTruthy
             if node.isConfigured, self.updateVisibility(node) {

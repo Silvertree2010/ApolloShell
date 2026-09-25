@@ -87,4 +87,21 @@ struct ProviderSettingsTests {
         guard case .record(let changed)? = poll.configuredSettings.last?["brew"] else { return }
         #expect(changed["when"] == .bool(false))
     }
+
+    @Test("screen= als Ausdruck: Änderung baut die Instanzen live um")
+    func screenExpressionIsLive() async throws {
+        let shell = KDLShell()
+        shell.apply(try await shell.load("""
+        var where "all"
+        panel "bar" screen="{var.where}" { text "bar" }
+        """), screens: ["A", "B"])
+        shell.fixture.flush()
+        #expect(shell.runtime.surface("bar", screenKey: "A") != nil && shell.runtime.surface("bar", screenKey: "B") != nil)
+        _ = shell.vars.set("where", .string("main"), for: nil)
+        shell.fixture.flush()
+        #expect(shell.runtime.surface("bar", screenKey: "A") != nil && shell.runtime.surface("bar", screenKey: "B") == nil)
+        _ = shell.vars.set("where", .string("all"), for: nil)
+        shell.fixture.flush()
+        #expect(shell.runtime.surface("bar", screenKey: "A") != nil && shell.runtime.surface("bar", screenKey: "B") != nil)
+    }
 }
