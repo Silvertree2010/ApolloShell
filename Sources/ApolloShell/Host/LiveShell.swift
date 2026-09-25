@@ -34,6 +34,7 @@ final class LiveShell: WindowHostLink {
     let options: Options
     let host: WindowHost
     let paths: ConfigPaths
+    let home: URL
     let settings: SettingsStore
     let overlay = ErrorOverlayModel()
     let fullscreen: FullscreenMonitor
@@ -54,6 +55,7 @@ final class LiveShell: WindowHostLink {
     private var updates: UpdateController?
     private var crashes: CrashReporter?
     private var commandCenter: CommandCenterController?
+    private var commandCenterHandlers: [String: (actions: [ActionIR], locals: [String: Value])] = [:]
     private var windowGuard: WindowGuard?
     private var writers: [String: StateWriter] = [:]
     private var reloading = false
@@ -92,6 +94,7 @@ final class LiveShell: WindowHostLink {
         self.debouncer = debouncer ?? ReloadDebouncer()
         self.host = host
         self.fullscreen = fullscreen ?? FullscreenMonitor.live()
+        self.home = home
         paths = ConfigPaths.standard(environment: environment, home: home, bundleResources: options.resources)
         settings = SettingsStore(file: paths.userConfig.appendingPathComponent("settings.kdl"))
         themes = LiveThemes(folders: [paths.themesDirectory, paths.legacyThemesDirectory])
@@ -187,6 +190,7 @@ final class LiveShell: WindowHostLink {
         assembly.actions.register("toast.dismiss", ToastDismissAction(center: toasts))
         assembly.actions.register("marketplace.open", MarketplaceOpenAction(shell: self))
         assembly.actions.register("shell.set-login-item", LoginItemAction(shell: self))
+        assembly.actions.register("command-center.open", ClosureAction { [weak self] _ in self?.commandCenterPopUp() })
         toasts.runtime = assembly.runtime
         host.publishSize = { [weak assembly] id, screen, size in
             assembly?.runtime.setSurfaceSize(id, screenKey: screen, width: Double(size.width), height: Double(size.height))
@@ -370,6 +374,7 @@ final class LiveShell: WindowHostLink {
 
     private func configApplied(_ ir: ConfigIR) {
         lastIR = ir
+        applyCommandCenterVisibility(ir)
         if host.context != nil, reloading {
             host.restyle(makeContext(ir))
         }
@@ -518,6 +523,7 @@ final class LiveShell: WindowHostLink {
         commandCenter = CommandCenterController(entries: { [weak self] in self?.commandCenterEntries() ?? [] }, perform: { [weak self] command in
             self?.perform(command)
         })
+        if let lastIR { applyCommandCenterVisibility(lastIR) }
         let control = LiveShellControl(shell: self)
         let server = ControlSocketServer(path: socketPath, service: ControlRouter(shell: control, configs: catalog, themes: ThemeCatalog(paths: paths, settings: settings)))
         do {
@@ -609,7 +615,168 @@ final class LiveShell: WindowHostLink {
                                        themes: themes.map { .init(id: $0.id, issueCount: $0.issueCount, isActive: $0.isActive) })
         state.problemCount = overlay.problems.count
         state.marketplaceEnabled = marketplaceEnabled
-        return CommandCenterModel.build(nil, state: state)
+        if let updates {
+            state.update = updates.status
+            state.lastUpdateCheck = updates.lastCheck
+            state.releaseNotes = updates.releaseNotes
+            state.installKind = updates.installKind
+        }
+        state.autoCheck = settings.settings.autoCheckUpdates
+        state.autoInstall = settings.settings.autoInstallUpdates
+        state.crashReports = settings.crashReportMode
+        state.startsAtLogin = loginItem.state.isOn
+        state.cliInstalled = commandLineTool.isInstalled
+        commandCenterHandlers.removeAll()
+        let spec = lastIR?.commandCenter?.items.map { CommandCenterSpec(entries: commandCenterSpecEntries($0, locals: [:])) }
+        return CommandCenterModel.build(spec, state: state)
+    }
+
+    func commandCenterSpecEntries(_ items: [MenuItemIR], locals: [String: Value]) -> [CommandCenterEntry] {
+        guard let runtime = assembly?.runtime else { return [] }
+        func value(_ compiled: CompiledValue) -> Value { runtime.evaluate(compiled, locals: locals) }
+        var result: [CommandCenterEntry] = []
+        for item in items {
+            switch item {
+            case .builtin(let name):
+                result.append(.builtin(name))
+            case .separator:
+                result.append(.separator)
+            case let .item(title, properties, actions):
+                let handler = "item-\(commandCenterHandlers.count + 1)"
+                commandCenterHandlers[handler] = (actions, locals)
+                result.append(.item(MenuItemSpec(
+                    title: value(title).stringified,
+                    icon: properties["icon"].map(value)?.plainText,
+                    shortcut: properties["shortcut"].map(value)?.plainText,
+                    checked: properties["checked"].map(value)?.isTruthy ?? false,
+                    disabled: properties["disabled"].map(value)?.isTruthy ?? false,
+                    handler: handler
+                )))
+            case let .submenu(title, children):
+                result.append(.submenu(title: value(title).stringified, entries: commandCenterSpecEntries(children, locals: locals)))
+            case let .each(variable, index, list, _, body):
+                guard case .list(let values) = value(list) else { continue }
+                for (offset, entry) in values.enumerated() {
+                    var inner = locals
+                    inner[variable] = entry
+                    if let index { inner[index] = .number(Double(offset)) }
+                    result += commandCenterSpecEntries(body, locals: inner)
+                }
+            case let .when(condition, then, otherwise):
+                result += commandCenterSpecEntries(value(condition).isTruthy ? then : otherwise, locals: locals)
+            case .section, .source:
+                continue
+            }
+        }
+        return result
+    }
+
+    func applyCommandCenterVisibility(_ ir: ConfigIR) {
+        guard let commandCenter else { return }
+        commandCenter.visible = ir.commandCenter?.visible.map { assembly?.runtime.evaluate($0, locals: [:]).isTruthy ?? true } ?? true
+    }
+
+    var commandLineTool: CommandLineToolInstaller {
+        CommandLineToolInstaller(home: home, helper: Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/apollo"))
+    }
+
+    func notice(_ title: String, _ body: String? = nil, kind: String = "info") {
+        var fields: [(String, Value)] = [("title", .string(title)), ("kind", .string(kind))]
+        if let body { fields.append(("body", .string(body))) }
+        if toasts.post(style: "default", fields: Record(fields), duration: nil) == nil {
+            overlay.add(Diagnostic(kind == "error" ? .warning : .note, body.map { "\(title): \($0)" } ?? title))
+        }
+    }
+
+    func copyToOwnConfig() {
+        guard let location else { return }
+        let base = location.id.hasSuffix("-copy") ? location.id : location.id + "-copy"
+        let taken = Set(catalog.list().map(\.id))
+        var id = base
+        var number = 2
+        while taken.contains(id) {
+            id = "\(base)-\(number)"
+            number += 1
+        }
+        do {
+            try catalog.fork(location.id, as: id)
+            reload()
+            if let root = paths.configRoot(for: id) { openFolder(root) }
+        } catch {
+            overlay.add(Diagnostic(.warning, "\(error)"))
+        }
+    }
+
+    var openFolder: @MainActor (URL) -> Void = { NSWorkspace.shared.open($0) }
+    var loginShellPath: @MainActor (String) -> String? = { LiveShell.loginShellPath($0) }
+
+    func showThemeIssues(_ id: String) {
+        for folder in [paths.themesDirectory, paths.legacyThemesDirectory] {
+            guard let theme = ThemeLoader.themes(in: folder).first(where: { $0.identifier == id }) else { continue }
+            overlay.show(theme.issues.map { Diagnostic(.warning, "theme \(id): \($0)") })
+            return
+        }
+    }
+
+    func addTheme() {
+        let panel = NSOpenPanel()
+        panel.title = "Add Theme"
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.init(filenameExtension: "css") ?? .data, .folder]
+        NSApp.activate()
+        guard panel.runModal() == .OK, let source = panel.url else { return }
+        addTheme(from: source)
+    }
+
+    func addTheme(from source: URL) {
+        let target = paths.themesDirectory.appendingPathComponent(source.lastPathComponent)
+        do {
+            try FileManager.default.createDirectory(at: paths.themesDirectory, withIntermediateDirectories: true)
+            if FileManager.default.fileExists(atPath: target.path) { try FileManager.default.removeItem(at: target) }
+            try FileManager.default.copyItem(at: source, to: target)
+        } catch {
+            overlay.add(Diagnostic(.warning, "could not add the theme \(source.lastPathComponent): \(error.localizedDescription)"))
+            return
+        }
+        let catalog = ThemeCatalog(paths: paths, settings: settings)
+        let added = ThemeLoader.themes(in: paths.themesDirectory).first { theme in
+            theme.identifier == source.deletingPathExtension().lastPathComponent || theme.identifier == source.lastPathComponent
+        }
+        guard let added else {
+            overlay.add(Diagnostic(.warning, "\(source.lastPathComponent) is not a theme (a .css file or a folder with theme.css)"))
+            return
+        }
+        do { try catalog.select(added.identifier); reload() } catch { overlay.add(Diagnostic(.warning, "\(error)")) }
+    }
+
+    func installCommandLineTool() {
+        let tool = commandLineTool
+        do {
+            try tool.install()
+        } catch {
+            notice("Command line tool not installed", "\(error)", kind: "error")
+            return
+        }
+        let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
+        let hint = CommandLineToolInstaller.pathHint(path: loginShellPath(shell) ?? "", shell: shell, home: tool.home)
+        notice("apollo installed in ~/.local/bin", hint, kind: "success")
+    }
+
+    static func loginShellPath(_ shell: String) -> String? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: shell)
+        process.arguments = ["-l", "-c", "echo $PATH"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do { try process.run() } catch { return nil }
+        let deadline = Date().addingTimeInterval(2)
+        while process.isRunning, Date() < deadline { usleep(20_000) }
+        if process.isRunning { process.terminate(); return nil }
+        let text = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        return text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: ":")
     }
 
     func perform(_ command: MenuCommand) {
@@ -632,8 +799,28 @@ final class LiveShell: WindowHostLink {
             terminateApp()
         case .restart:
             restart()
-        case .custom(let name): _ = assembly?.runtime.emit("command-center." + name, Record())
-        default: Self.log("command center: \(command) is not wired yet")
+        case .copyToOwnConfig: copyToOwnConfig()
+        case .showThemeIssues(let id): showThemeIssues(id)
+        case .addTheme: addTheme()
+        case .installUpdate: updates?.installNowIfReady()
+        case .releaseNotes(let url): NSWorkspace.shared.open(url)
+        case .setAutoCheck(let on):
+            do { try settings.apply(.updates(autoCheck: on, autoInstall: settings.settings.autoInstallUpdates)) } catch { overlay.add(Diagnostic(.warning, "\(error)")) }
+        case .setAutoInstall(let on):
+            do { try settings.apply(.updates(autoCheck: settings.settings.autoCheckUpdates, autoInstall: on)) } catch { overlay.add(Diagnostic(.warning, "\(error)")) }
+        case .copyBrewUpgrade:
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(InstallKind.homebrewUpgradeCommand, forType: .string)
+        case .crashReports(let mode):
+            do { try settings.apply(.crashReports(mode.rawValue)) } catch { overlay.add(Diagnostic(.warning, "\(error)")) }
+        case .setStartAtLogin(let on): setLoginItem(on)
+        case .installCommandLineTool: installCommandLineTool()
+        case .custom(let name):
+            if let handler = commandCenterHandlers[name] {
+                _ = assembly?.actions.trigger(handler.actions, site: "command-center#\(name)", environment: ActionEnvironment(scope: LocalScope(handler.locals)))
+            } else {
+                _ = assembly?.runtime.emit("command-center." + name, Record())
+            }
         }
     }
 

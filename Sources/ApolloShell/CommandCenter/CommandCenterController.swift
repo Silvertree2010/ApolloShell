@@ -34,6 +34,11 @@ final class CommandCenterController: NSObject, NSMenuDelegate {
         for item in items { menu.addItem(item) }
     }
 
+    var visible: Bool {
+        get { statusItem.isVisible }
+        set { if statusItem.isVisible != newValue { statusItem.isVisible = newValue } }
+    }
+
     func popUpUnderPointer() {
         guard let builder else { return }
         builder.make(entries()).popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)

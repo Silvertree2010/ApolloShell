@@ -16,4 +16,15 @@ public indirect enum MenuItemIR: Sendable, Hashable {
     case source(kind: String, properties: [String: CompiledValue])
     case each(variable: String, index: String?, list: CompiledValue, key: CompiledValue?, body: [MenuItemIR])
     case when(condition: CompiledValue, then: [MenuItemIR], otherwise: [MenuItemIR])
+    case builtin(String)
+}
+
+public struct CommandCenterIR: Sendable, Hashable {
+    public var visible: CompiledValue?
+    public var items: [MenuItemIR]?
+
+    public init(visible: CompiledValue? = nil, items: [MenuItemIR]? = nil) {
+        self.visible = visible
+        self.items = items
+    }
 }

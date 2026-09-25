@@ -109,6 +109,19 @@ final class LoginItem {
 }
 
 @MainActor
+final class ClosureAction: ActionImplementation {
+    let body: @MainActor (ResolvedActionCall) throws -> Void
+
+    init(_ body: @escaping @MainActor (ResolvedActionCall) throws -> Void) {
+        self.body = body
+    }
+
+    func perform(_ call: ResolvedActionCall, environment: ActionEnvironment, runtime: any ActionRuntime) async throws {
+        try body(call)
+    }
+}
+
+@MainActor
 final class LoginItemAction: ActionImplementation {
     weak var shell: LiveShell?
 

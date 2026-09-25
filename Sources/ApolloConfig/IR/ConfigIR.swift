@@ -89,6 +89,7 @@ public struct ConfigIR: Sendable, Hashable {
     public var events: [EventHandlerIR]
     public var defines: [String: DefineIR]
     public var blocks: [String: [BlockIR]]
+    public var commandCenter: CommandCenterIR?
 
     public init(
         id: String,
@@ -102,7 +103,8 @@ public struct ConfigIR: Sendable, Hashable {
         binds: [BindIR] = [],
         events: [EventHandlerIR] = [],
         defines: [String: DefineIR] = [:],
-        blocks: [String: [BlockIR]] = [:]
+        blocks: [String: [BlockIR]] = [:],
+        commandCenter: CommandCenterIR? = nil
     ) {
         self.id = id
         self.root = root
@@ -116,6 +118,7 @@ public struct ConfigIR: Sendable, Hashable {
         self.events = events
         self.defines = defines
         self.blocks = blocks
+        self.commandCenter = commandCenter
     }
 
     public func surface(_ id: String) -> SurfaceIR? {

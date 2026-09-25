@@ -90,6 +90,8 @@ enum MenuModel {
                 }
             case let .when(condition, then, otherwise):
                 result += await build(value(condition).isTruthy ? then : otherwise, element: element, context: context, locals: locals)
+            case .builtin:
+                continue
             }
         }
         return result

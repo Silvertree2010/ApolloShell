@@ -147,6 +147,8 @@ private extension MenuItemIR {
             return .each(variable: variable, index: index, list: list.withoutSpans, key: key?.withoutSpans, body: body.map(\.withoutSpans))
         case .when(let condition, let then, let otherwise):
             return .when(condition: condition.withoutSpans, then: then.map(\.withoutSpans), otherwise: otherwise.map(\.withoutSpans))
+        case .builtin:
+            return self
         }
     }
 }

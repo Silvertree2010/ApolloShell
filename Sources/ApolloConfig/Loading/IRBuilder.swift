@@ -112,9 +112,25 @@ enum IRBuilder {
                 }
             }
             ir.blocks = buildBlocks(blockNodes, state: state)
+            ir.commandCenter = buildCommandCenter(blockNodes, state: state)
             ir.defines = buildDefines(defines, state: state)
             return IRBuildResult(ir: ir, diagnostics: state.diagnostics)
         }
+    }
+
+    private static func buildCommandCenter(_ nodes: [ExpandedNode], state: IRBuildState) -> CommandCenterIR? {
+        let blocks = nodes.filter { $0.kdl.name == "command-center" }
+        guard !blocks.isEmpty else { return nil }
+        var result = CommandCenterIR()
+        for node in blocks {
+            if let visible = node.kdl.property("visible")?.value {
+                result.visible = compile(visible, node: node, scope: [], state: state)
+            }
+            if let items = node.children.last(where: { $0.kdl.name == "items" && !$0.isExpansionMarker }) {
+                result.items = buildMenu(items.children, scope: [], state: state)
+            }
+        }
+        return result
     }
 
     private static func applyRequires(_ requires: [ExpandedNode], to ir: inout ConfigIR) {
@@ -579,6 +595,8 @@ enum IRBuilder {
                 ))
             case "separator":
                 result.append(.separator)
+            case "builtin":
+                if let name = firstString(node) { result.append(.builtin(name)) }
             case "section":
                 if let title = compileArgument(node, at: 0, scope: scope, state: state) {
                     result.append(.section(title))

@@ -618,6 +618,10 @@ public final class ShellRuntime: SurfaceControlling {
         BuildContext(surface: node, scope: node.scope, path: node.identity, depth: 0, useDepth: 0, active: node.instance.isVisible, container: root)
     }
 
+    public func evaluate(_ value: CompiledValue, locals: [String: Value]) -> Value {
+        bindings.evaluateOnce(value, scope: LocalScope(locals))
+    }
+
     func bindSurfaceProperty(_ node: SurfaceNode, _ name: String, _ compiled: CompiledValue, _ cell: PropertyCell) -> BindingHandle {
         let isVisibility = name == "visible"
         let isScreen = name == "screen"
