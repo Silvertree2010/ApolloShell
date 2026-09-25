@@ -24,14 +24,16 @@ enum DisplayRenderers {
     static func graph(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
         var values: [Double] = []
         if case .list(let list) = element.property("values") { values = list.compactMap(StyleValues.numberValue) }
-        if let capacity = StyleValues.numberValue(element.property("capacity")), capacity >= 0, values.count > Int(capacity) {
-            values = Array(values.suffix(Int(capacity)))
+        var slots: Int?
+        if let capacity = StyleValues.numberValue(element.property("capacity")), capacity >= 0 {
+            slots = Int(capacity)
+            if values.count > Int(capacity) { values = Array(values.suffix(Int(capacity))) }
         }
         let scale = GraphScale(values: values, min: StyleValues.numberValue(element.property("min")), max: StyleValues.numberValue(element.property("max")))
         let kind = element.property("kind").plainText ?? "line"
         var fill: [BackgroundLayer] = []
         if case .layers(let list)? = style["-apollo-fill"] { fill = list }
-        return AnyView(GraphView(values: values, scale: scale, kind: kind, fill: fill, style: DisplayStyle(style), context: scope.context)
+        return AnyView(GraphView(values: values, slots: slots, scale: scale, kind: kind, fill: fill, style: DisplayStyle(style), context: scope.context)
             .animation(StyleMotion.valueAnimation(style), value: scale))
     }
 
@@ -41,7 +43,8 @@ enum DisplayRenderers {
         let vertical = element.property("vertical").isTruthy
         var fill: [BackgroundLayer] = [.color(.system(name: "-apple-system-control-accent", alpha: 1))]
         if case .layers(let list)? = style["-apollo-fill-color"] { fill = list }
-        return AnyView(ProgressBar(value: value, vertical: vertical, fill: fill, track: DisplayStyle(style).track, context: scope.context)
+        let shape = style["border-radius"] != nil ? AnyShape(StyleShape(style)) : AnyShape(Capsule())
+        return AnyView(ProgressBar(value: value, vertical: vertical, fill: fill, track: DisplayStyle(style).track, shape: shape, squared: style["border-radius"] != nil, context: scope.context)
             .animation(StyleMotion.valueAnimation(style), value: value))
     }
 
@@ -170,19 +173,23 @@ struct GraphScale: Equatable {
 
 struct GraphLine: Shape {
     var points: [Double]
+    var slots: Int? = nil
     var closed: Bool
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
         guard !points.isEmpty else { return path }
-        let step = points.count > 1 ? rect.width / CGFloat(points.count - 1) : 0
+        if slots != nil, points.count < 2 { return path }
+        let count = max(slots ?? points.count, points.count)
+        let offset = count - points.count
+        let step = count > 1 ? rect.width / CGFloat(count - 1) : 0
         func point(_ index: Int) -> CGPoint {
-            CGPoint(x: rect.minX + CGFloat(index) * step, y: rect.maxY - CGFloat(points[index]) * rect.height)
+            CGPoint(x: rect.minX + CGFloat(offset + index) * step, y: rect.maxY - CGFloat(points[index]) * rect.height)
         }
-        if closed { path.move(to: CGPoint(x: rect.minX, y: rect.maxY)); path.addLine(to: point(0)) } else { path.move(to: point(0)) }
+        if closed { path.move(to: CGPoint(x: point(0).x, y: rect.maxY)); path.addLine(to: point(0)) } else { path.move(to: point(0)) }
         for index in points.indices.dropFirst() { path.addLine(to: point(index)) }
         if closed {
-            path.addLine(to: CGPoint(x: rect.minX + CGFloat(points.count - 1) * step, y: rect.maxY))
+            path.addLine(to: CGPoint(x: point(points.count - 1).x, y: rect.maxY))
             path.closeSubpath()
         }
         return path
@@ -207,6 +214,7 @@ struct GraphBars: Shape {
 
 struct GraphView: View {
     var values: [Double]
+    var slots: Int?
     var scale: GraphScale
     var kind: String
     var fill: [BackgroundLayer]
@@ -221,10 +229,10 @@ struct GraphView: View {
                 GraphBars(points: points).fill(style.stroke)
             case "area":
                 BackgroundLayers(style: ComputedStyle(values: ["background": .layers(fill.isEmpty ? [.color(.system(name: "-apple-system-control-accent", alpha: 0.3))] : fill)]),
-                                 shape: AnyShape(GraphLine(points: points, closed: true)), context: context)
-                GraphLine(points: points, closed: false).stroke(style.stroke, style: StrokeStyle(lineWidth: style.width, lineCap: .round, lineJoin: .round))
+                                 shape: AnyShape(GraphLine(points: points, slots: slots, closed: true)), context: context)
+                GraphLine(points: points, slots: slots, closed: false).stroke(style.stroke, style: StrokeStyle(lineWidth: style.width, lineCap: .round, lineJoin: .round))
             default:
-                GraphLine(points: points, closed: false).stroke(style.stroke, style: StrokeStyle(lineWidth: style.width, lineCap: .round, lineJoin: .round))
+                GraphLine(points: points, slots: slots, closed: false).stroke(style.stroke, style: StrokeStyle(lineWidth: style.width, lineCap: .round, lineJoin: .round))
             }
         }
         .frame(minWidth: 10, minHeight: 10)
@@ -236,6 +244,8 @@ struct ProgressBar: View {
     var vertical: Bool
     var fill: [BackgroundLayer]
     var track: Color
+    var shape: AnyShape = AnyShape(Capsule())
+    var squared = false
     var context: RenderContext
     @Environment(\.renderMode) private var renderMode
     @Environment(\.surfaceShown) private var shown
@@ -244,7 +254,7 @@ struct ProgressBar: View {
         GeometryReader { proxy in
             let length = vertical ? proxy.size.height : proxy.size.width
             ZStack(alignment: vertical ? .bottom : .leading) {
-                Capsule().fill(track)
+                shape.fill(track)
                 if let value {
                     paint.frame(width: vertical ? nil : length * value, height: vertical ? length * value : nil)
                 } else {
@@ -255,13 +265,13 @@ struct ProgressBar: View {
                     }
                 }
             }
-            .clipShape(Capsule())
+            .clipShape(shape)
         }
         .frame(minWidth: vertical ? 4 : 20, minHeight: vertical ? 20 : 4)
         .accessibilityValue(Text(value.map { "\(Int(($0 * 100).rounded())) %" } ?? ""))
     }
 
     var paint: some View {
-        BackgroundLayers(style: ComputedStyle(values: ["background": .layers(fill)]), shape: AnyShape(Capsule()), context: context)
+        BackgroundLayers(style: ComputedStyle(values: ["background": .layers(fill)]), shape: squared ? AnyShape(Rectangle()) : AnyShape(Capsule()), context: context)
     }
 }

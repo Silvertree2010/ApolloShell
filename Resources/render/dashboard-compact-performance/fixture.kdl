@@ -1,6 +1,6 @@
 fixture {
     clock now="2026-09-24T09:41:00+02:00"
-    battery present=#true percent=0.76 charging=#false on-power=#false
+    battery present=#true percent=0.76 charging=#false on-power=#false tank-text="3h 30m Left" symbol="battery.75percent"
     network {
         wifi on=#true connected=#true rssi=-52 bars=3
     }
@@ -9,8 +9,19 @@ fixture {
         output id="builtin" name="MacBook Pro Speakers"
     }
     system user-name="Andrin Example" full-name="Andrin Example" uptime=11520 macos-version="26.6.2" chip="Apple M4 Pro"
-    perf cpu=0.42 memory=0.61 chip="Apple M4 Pro" cores=14 gpu-cores=20 {
-        live cpu=0.42 memory=0.61 disk=0.5
+    perf cpu=0.52 memory=0.375 chip="Apple M4 Pro" cores=14 gpu-cores=20 {
+        live cpu=0.52 gpu=0.3 memory=0.375 memory-used=12000000000 memory-total=32000000000 disk=0.5 disk-used=250000000000 disk-total=500000000000 net-down=1000000 net-up=200000 net-total-down=1000000 net-total-up=200000 {
+            cpu-history {
+                - 0.52
+            }
+            gpu-history {
+                - 0.3
+                - 0.3
+            }
+            net-history {
+                - down=1000000 up=200000
+            }
+        }
     }
     weather status="ready" {
         place name="Chur" latitude=46.85 longitude=9.53

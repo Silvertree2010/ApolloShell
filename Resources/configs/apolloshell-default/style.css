@@ -279,15 +279,69 @@
 .media-empty-title { font-size: 22px; font-weight: 600; }
 .media-empty-detail { font-size: 14px; color: -apple-system-secondary-label; }
 
-.performance { gap: 12px; }
-.performance-row { gap: 12px; }
-.perf-card { flex-grow: 1; gap: 8px; border-radius: var(--apollo-card-radius, 30px); }
-.perf-ring { width: 72px; height: 72px; }
-.perf-graph { height: 60px; flex-grow: 1; color: var(--apollo-accent-color, -apple-system-control-accent); }
-.perf-badge-shape { width: 44px; height: 44px; background: var(--apollo-accent-color, -apple-system-control-accent); }
-.perf-badge-text { font-size: 11px; font-weight: 700; color: var(--apollo-on-accent-color, white); -apollo-content-transition: numeric; }
-.perf-gauge { width: 90px; height: 90px; }
-.perf-tank { width: 40px; height: 90px; }
+
+.performance { flex-grow: 1; align-self: stretch; gap: 12px; }
+.performance-main { flex-grow: 1; align-self: stretch; gap: 12px; }
+.performance-top { flex-grow: 1; align-self: stretch; gap: 12px; }
+.performance-bottom { height: 189px; align-self: stretch; gap: 12px; }
+.perf-hero { flex-grow: 1; align-self: stretch; padding: 14px; border-radius: var(--apollo-card-radius, 24px); }
+.perf-hero-head { gap: 12px; align-items: center; align-self: stretch; justify-content: start; }
+.perf-hero-ring { width: 46px; height: 46px; padding: 2px; align-items: center; justify-content: center; }
+.perf-ring { width: 42px; height: 42px; -apollo-stroke-width: 4px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 500ms spatial; }
+.perf-ring-glyph { width: 19px; height: 19px; font-size: 17px; font-weight: 500; }
+.perf-hero-titles { gap: 2px; align-items: start; }
+.perf-hero-title { font-size: 19px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.perf-hero-subtitle { font-size: 12px; color: -apple-system-secondary-label; }
+.perf-hero-foot { gap: 14px; align-items: end; align-self: stretch; }
+.perf-history { flex-grow: 1; gap: 4px; align-items: stretch; }
+.perf-history-label { font-size: 10px; font-weight: 500; color: -apple-system-tertiary-label; }
+.perf-history-graph { height: 40px; }
+.perf-baseline { width: 100%; height: 1px; justify-self: end; background: rgb(from -apple-system-label r g b / 0.08); }
+.perf-graph { margin: 1px 0 0; -apollo-stroke-width: 1.5px; color: var(--apollo-accent-color, -apple-system-control-accent); -apollo-fill: rgb(from var(--apollo-accent-color, -apple-system-control-accent) r g b / 0.18); }
+.perf-badge { width: 92px; height: 92px; align-items: center; justify-content: center; }
+.perf-badge-shape { width: 92px; height: 92px; background: var(--apollo-accent-color, -apple-system-control-accent); }
+.perf-badge-text { font-size: 24px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; color: var(--apollo-on-accent-color, white); -apollo-content-transition: numeric; }
+.perf-storage, .perf-memory { flex-grow: 1; align-self: stretch; padding: 0 12px; align-items: center; justify-content: center; }
+.perf-storage { border-radius: var(--apollo-card-radius, 41px); }
+.perf-memory { border-radius: var(--apollo-card-radius, 10px); }
+.perf-gauge-column { gap: 6px; align-items: center; }
+.perf-gauge-stack { align-items: center; justify-content: center; }
+.perf-storage-gauge { width: 122px; height: 122px; }
+.perf-memory-gauge { width: 110px; height: 110px; }
+.perf-gauge { -apollo-stroke-width: 8px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 500ms spatial; }
+.perf-storage-label { margin: 0 0 4px; align-items: center; }
+.perf-storage-glyph { width: 17px; height: 17px; font-size: 15px; font-weight: 500; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.perf-gauge-text { font-size: 28px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; -apollo-content-transition: numeric; }
+.perf-gauge-caption { justify-self: end; font-size: 11px; font-weight: 500; color: -apple-system-secondary-label; }
+.perf-gauge-detail { font-size: 11px; color: -apple-system-secondary-label; }
+.perf-memory-head { gap: 6px; align-items: center; }
+.perf-memory-glyph { width: 15px; height: 15px; font-size: 13px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.perf-memory-title { font-size: 13px; font-weight: 600; }
+.perf-network { width: 335px; align-self: stretch; padding: 14px; gap: 0; border-radius: var(--apollo-card-radius, 24px); }
+.perf-network-head { gap: 6px; align-items: center; align-self: stretch; }
+.perf-network-glyph { font-size: 13px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.perf-network-title { font-size: 15px; font-weight: 600; }
+.perf-network-max { font-size: 10px; font-weight: 500; font-variant-numeric: tabular-nums; color: -apple-system-tertiary-label; }
+.perf-network-graph { flex-grow: 1; align-self: stretch; margin: 10px 0 8px; }
+.perf-net-up { color: -apple-system-orange; -apollo-fill: rgb(from -apple-system-orange r g b / 0.15); }
+.perf-net-down { -apollo-fill: rgb(from var(--apollo-accent-color, -apple-system-control-accent) r g b / 0.2); }
+.perf-rates { gap: 4px; align-self: stretch; }
+.perf-rate { gap: 6px; align-items: center; align-self: stretch; }
+.perf-rate-glyph { width: 14px; font-size: 11px; font-weight: 700; }
+.perf-rate-glyph.down { color: var(--apollo-accent-color, -apple-system-control-accent); }
+.perf-rate-glyph.up { color: -apple-system-orange; }
+.perf-rate-glyph.total { color: -apple-system-secondary-label; }
+.perf-rate-title { font-size: 12px; color: -apple-system-secondary-label; }
+.perf-rate-value { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.perf-battery { width: 129px; align-self: stretch; border-radius: var(--apollo-card-radius, 14px); overflow: hidden; }
+.perf-tank { align-self: stretch; justify-self: stretch; border-radius: 0; -apollo-track-color: rgb(from -apple-system-label r g b / 0.06); -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 500ms spatial; }
+.perf-tank-contents { align-self: stretch; justify-self: stretch; padding: 14px; gap: 2px; align-items: start; }
+.perf-tank-head { gap: 6px; align-items: center; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.perf-tank-glyph { font-size: 14px; font-weight: 500; }
+.perf-tank-title { font-size: 15px; font-weight: 600; }
+.perf-tank-bolt { font-size: 20px; font-weight: 600; color: var(--apollo-on-accent-color, white); }
+.perf-tank-percent { font-size: 30px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; color: var(--apollo-on-accent-color, white); -apollo-content-transition: numeric; }
+.perf-tank-status { font-size: 12px; color: rgb(from var(--apollo-on-accent-color, white) r g b / 0.85); }
 
 .weather { flex-grow: 1; align-self: stretch; gap: 12px; }
 .weather-glyph { -apollo-symbol-rendering: multicolor; }
