@@ -151,10 +151,12 @@ define "settings-module-options" {
                     each app in="{apps.all | fuzzy var.settings-sidebar-app-query | take 8}" key="{app.bundle-id}" {
                         button class="settings-row settings-result" checked="{app.bundle-id == module.bundle-id}" {
                             on-click { list.update "sidebar-modules" key="{module.id}" { - bundle-id="{app.bundle-id}" }; set "settings-sidebar-app-query" "" }
-                            app-icon "{app.bundle-id}" class="settings-app-icon"
-                            text "{app.name}" class="settings-row-title"
-                            spacer
-                            when "{app.bundle-id == module.bundle-id}" { icon "checkmark" class="settings-choice-glyph" }
+                            row class="button-content" {
+                                app-icon "{app.bundle-id}" class="settings-app-icon"
+                                text "{app.name}" class="settings-row-title"
+                                spacer
+                                when "{app.bundle-id == module.bundle-id}" { icon "checkmark" class="settings-choice-glyph" }
+                            }
                         }
                     }
                 }
@@ -241,8 +243,10 @@ define "settings-page-sidebar" {
                 row class="settings-actions" {
                     button class="settings-button" checked="{var.settings-sidebar-gallery}" {
                         on-click { toggle-var "settings-sidebar-gallery" }
-                        icon "plus"
-                        text "Add…"
+                        row class="button-content" {
+                            icon "plus"
+                            text "Add…"
+                        }
                     }
                     spacer
                     button class="settings-button" menu-on="click" {

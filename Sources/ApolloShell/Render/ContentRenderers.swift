@@ -248,7 +248,6 @@ struct ImageElement: View {
                 switch fit {
                 case "fill":
                     Color.clear
-                        .frame(idealWidth: image.size.width, idealHeight: image.size.height)
                         .overlay { base.resizable().scaledToFill() }
                 case "stretch": base.resizable()
                 case "center": base

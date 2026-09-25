@@ -156,8 +156,10 @@ define "settings-toggle-options" {
                     each app in="{apps.all | fuzzy var.settings-toggle-query | take 8}" key="{app.bundle-id}" {
                         button class="settings-row settings-result" checked="{app.bundle-id == toggle.bundle-id}" {
                             on-click { list.update "utilities-toggles" key="{toggle.id}" { - bundle-id="{app.bundle-id}" }; set "settings-toggle-query" "" }
-                            app-icon "{app.bundle-id}" class="settings-app-icon"
-                            text "{app.name}" class="settings-row-title"
+                            row class="button-content" {
+                                app-icon "{app.bundle-id}" class="settings-app-icon"
+                                text "{app.name}" class="settings-row-title"
+                            }
                         }
                     }
                 }
@@ -183,9 +185,11 @@ define "settings-toggle-options" {
                 each shortcut in="{var.settings-toggle-query == '' ? (shortcuts.list | take 8) : (shortcuts.list | fuzzy var.settings-toggle-query 'name' | take 8)}" key="{shortcut.id}" {
                     button class="settings-row settings-result" checked="{shortcut.name == toggle.name}" {
                         on-click { list.update "utilities-toggles" key="{toggle.id}" { - name="{shortcut.name}" identifier="{shortcut.id}" }; set "settings-toggle-query" "" }
-                        text "{shortcut.name}" class="settings-row-title"
-                        spacer
-                        when "{shortcut.name == toggle.name}" { icon "checkmark" class="settings-choice-glyph" }
+                        row class="button-content" {
+                            text "{shortcut.name}" class="settings-row-title"
+                            spacer
+                            when "{shortcut.name == toggle.name}" { icon "checkmark" class="settings-choice-glyph" }
+                        }
                     }
                 }
             }
@@ -202,8 +206,10 @@ define "settings-toggle-options" {
                 spacer
                 button class="settings-popup-button" checked="{var.settings-toggle-symbols-open}" {
                     on-click { toggle-var "settings-toggle-symbols-open" }
-                    icon "{toggle.symbol != null && toggle.symbol != '' ? toggle.symbol : look.symbol}"
-                    text "{toggle.symbol != null && toggle.symbol != '' ? 'Custom' : 'Automatic'}"
+                    row class="button-content" {
+                        icon "{toggle.symbol != null && toggle.symbol != '' ? toggle.symbol : look.symbol}"
+                        text "{toggle.symbol != null && toggle.symbol != '' ? 'Custom' : 'Automatic'}"
+                    }
                 }
             }
             when "{var.settings-toggle-symbols-open}" {
@@ -310,8 +316,10 @@ define "settings-page-control-centre" {
         row class="settings-actions" {
             button class="settings-button" checked="{var.settings-toggle-gallery}" {
                 on-click { toggle-var "settings-toggle-gallery" }
-                icon "plus"
-                text "Add Button…"
+                row class="button-content" {
+                    icon "plus"
+                    text "Add Button…"
+                }
             }
             spacer
             button class="settings-button" menu-on="click" {

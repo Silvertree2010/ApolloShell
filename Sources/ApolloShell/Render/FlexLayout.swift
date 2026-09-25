@@ -97,6 +97,13 @@ struct FlexLayout: Layout {
         return own
     }
 
+    private func crossFor(_ subview: LayoutSubview, _ metrics: ChildMetrics, main: CGFloat?, available: CGFloat?) -> CGFloat? {
+        if let proposal = crossProposal(metrics, available: available) { return proposal }
+        guard let available, available.isFinite else { return nil }
+        let ideal = cross(subview.sizeThatFits(size(main: main, cross: nil)))
+        return ideal > available ? available : nil
+    }
+
     private func crossProposal(_ metrics: ChildMetrics, available: CGFloat?) -> CGFloat? {
         if let (fraction, margin) = percentCross(metrics), let available { return available * fraction + margin }
         if alignment(metrics) == "stretch" { return available }
@@ -110,7 +117,7 @@ struct FlexLayout: Layout {
             let metrics = subview[ChildMetricsKey.self]
             if let basis = basisMain(metrics, available: available) { return basis }
             if let (fraction, margin) = percentMain(metrics), let available { return available * fraction + margin }
-            return main(subview.sizeThatFits(size(main: nil, cross: crossProposal(metrics, available: crossAvailable))))
+            return main(subview.sizeThatFits(size(main: nil, cross: crossFor(subview, metrics, main: nil, available: crossAvailable))))
         }
         guard let available, available.isFinite else { return sizes }
         let used = sizes.reduce(0, +) + gap * CGFloat(max(0, subviews.count - 1))
@@ -129,6 +136,10 @@ struct FlexLayout: Layout {
                 for index in sizes.indices where metrics[index].shrink > 0 {
                     sizes[index] = max(0, sizes[index] - over * metrics[index].shrink * sizes[index] / shrinking)
                 }
+            } else if over < 0, growth > 0 {
+                for index in sizes.indices where metrics[index].grow > 0 {
+                    sizes[index] = -over * metrics[index].grow / growth
+                }
             }
         }
         return sizes
@@ -141,7 +152,7 @@ struct FlexLayout: Layout {
         var crossSize: CGFloat = 0
         for (index, subview) in subviews.enumerated() {
             let metrics = subview[ChildMetricsKey.self]
-            let measured = subview.sizeThatFits(size(main: sizes[index], cross: crossProposal(metrics, available: crossAvailable)))
+            let measured = subview.sizeThatFits(size(main: sizes[index], cross: crossFor(subview, metrics, main: sizes[index], available: crossAvailable)))
             crossSize = max(crossSize, cross(measured))
         }
         var mainSize = sizes.reduce(0, +) + gap * CGFloat(subviews.count - 1)
@@ -171,7 +182,7 @@ struct FlexLayout: Layout {
         let crossLength = cross(bounds.size)
         for (index, subview) in subviews.enumerated() {
             let metrics = subview[ChildMetricsKey.self]
-            let proposed = size(main: sizes[index], cross: crossProposal(metrics, available: crossLength))
+            let proposed = size(main: sizes[index], cross: crossFor(subview, metrics, main: sizes[index], available: crossLength))
             let measured = subview.sizeThatFits(proposed)
             let offset: CGFloat
             switch alignment(metrics) {
@@ -198,10 +209,12 @@ struct StackLayout: Layout {
         var result = CGSize.zero
         for subview in subviews {
             let metrics = subview[ChildMetricsKey.self]
-            if metrics.width != nil && metrics.height != nil { continue }
+            let countsWidth = metrics.width == nil || proposal.width != nil
+            let countsHeight = metrics.height == nil || proposal.height != nil
+            if !countsWidth && !countsHeight { continue }
             let measured = subview.sizeThatFits(childProposal(metrics, in: proposal))
-            result.width = max(result.width, metrics.width == nil ? measured.width : 0)
-            result.height = max(result.height, metrics.height == nil ? measured.height : 0)
+            if countsWidth { result.width = max(result.width, measured.width) }
+            if countsHeight { result.height = max(result.height, measured.height) }
         }
         return definite.apply(result, proposal)
     }

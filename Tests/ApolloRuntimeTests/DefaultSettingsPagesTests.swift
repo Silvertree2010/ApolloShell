@@ -64,7 +64,7 @@ struct DefaultSettingsPagesTests {
     }
 
     static func row(_ shell: KDLShell, _ title: String) throws -> ElementInstance {
-        let rows = all(shell.fixture.surface("settings").root).filter { $0.kind == "row" && texts($0).first == title }
+        let rows = all(shell.fixture.surface("settings").root).filter { $0.kind == "row" && !classes($0).contains("button-content") && texts($0).first == title }
         return try #require(rows.first, "no row \(title)")
     }
 

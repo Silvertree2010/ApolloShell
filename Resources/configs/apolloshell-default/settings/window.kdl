@@ -33,12 +33,14 @@ define "settings-link" {
     param "area"
     button class="settings-group settings-row settings-link-row" {
         on-click { system.open-settings "{area}" }
-        column class="settings-row-text" {
-            text "{title}" class="settings-row-title"
-            when "{detail != ''}" { text "{detail}" class="settings-row-detail" }
+        row class="button-content" {
+            column class="settings-row-text" {
+                text "{title}" class="settings-row-title"
+                when "{detail != ''}" { text "{detail}" class="settings-row-detail" }
+            }
+            spacer
+            icon "arrow.up.forward.app" class="settings-link-glyph"
         }
-        spacer
-        icon "arrow.up.forward.app" class="settings-link-glyph"
     }
 }
 
@@ -66,8 +68,10 @@ window "settings" title="Settings" autosave="Settings" {
                 each page in="{settings-pages}" key="{page.id}" {
                     button class="settings-nav-item" checked="{page.id == var.settings-page}" {
                         on-click { set "settings-page" "{page.id}" }
-                        icon "{page.symbol}" class="settings-nav-glyph"
-                        text "{page.title}" class="settings-nav-title"
+                        row class="button-content" {
+                            icon "{page.symbol}" class="settings-nav-glyph"
+                            text "{page.title}" class="settings-nav-title"
+                        }
                     }
                 }
             }

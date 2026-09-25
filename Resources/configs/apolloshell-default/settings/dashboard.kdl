@@ -238,8 +238,10 @@ define "settings-page-dashboard" {
     row class="settings-actions" {
         button class="settings-button" checked="{var.settings-dashboard-gallery}" {
             on-click { toggle-var "settings-dashboard-gallery" }
-            icon "plus"
-            text "Add…"
+            row class="button-content" {
+                icon "plus"
+                text "Add…"
+            }
         }
         spacer
         button class="settings-button" menu-on="click" {

@@ -27,10 +27,12 @@ define "settings-page-system-settings" {
             each pane in="{group.panes}" key="{pane.area}" {
                 button class="settings-row settings-link-row" {
                     on-click { system.open-settings "{pane.area}" }
-                    icon "{pane.symbol}" class="settings-row-glyph"
-                    text "{pane.title}" class="settings-row-title"
-                    spacer
-                    icon "arrow.up.forward.app" class="settings-link-glyph"
+                    row class="button-content" {
+                        icon "{pane.symbol}" class="settings-row-glyph"
+                        text "{pane.title}" class="settings-row-title"
+                        spacer
+                        icon "arrow.up.forward.app" class="settings-link-glyph"
+                    }
                 }
             }
         }

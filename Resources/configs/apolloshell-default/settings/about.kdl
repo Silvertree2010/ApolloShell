@@ -27,9 +27,11 @@ define "settings-page-about" {
         text "Software" class="settings-group-title"
         button class="settings-row settings-link-row" {
             on-click { open-url "https://github.com/caelestia-dots/shell" }
-            text "Based On" class="settings-row-title"
-            spacer
-            text "Caelestia Shell" class="settings-row-value"
+            row class="button-content" {
+                text "Based On" class="settings-row-title"
+                spacer
+                text "Caelestia Shell" class="settings-row-value"
+            }
         }
     }
     row class="settings-actions" {

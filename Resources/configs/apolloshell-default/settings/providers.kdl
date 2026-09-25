@@ -57,16 +57,20 @@ define "settings-page-providers" {
         }
         button class="settings-disclosure" checked="{var.settings-file-manager-other}" {
             on-click { toggle-var "settings-file-manager-other" }
-            icon "{var.settings-file-manager-other ? 'chevron.down' : 'chevron.right'}" class="settings-disclosure-glyph"
-            text "Other App…" class="settings-row-title"
+            row class="button-content" {
+                icon "{var.settings-file-manager-other ? 'chevron.down' : 'chevron.right'}" class="settings-disclosure-glyph"
+                text "Other App…" class="settings-row-title"
+            }
         }
         when "{var.settings-file-manager-other}" {
             input bind="var.settings-file-manager-query" placeholder="Search Apps" class="settings-search"
             each app in="{apps.all | fuzzy var.settings-file-manager-query | take 8}" key="{app.bundle-id}" {
                 button class="settings-row settings-result" {
                     on-click { set "file-manager" "{app.bundle-id}"; set "settings-file-manager-other" #false; set "settings-file-manager-query" "" }
-                    app-icon "{app.bundle-id}" class="settings-app-icon"
-                    text "{app.name}" class="settings-row-title"
+                    row class="button-content" {
+                        app-icon "{app.bundle-id}" class="settings-app-icon"
+                        text "{app.name}" class="settings-row-title"
+                    }
                 }
             }
         }
