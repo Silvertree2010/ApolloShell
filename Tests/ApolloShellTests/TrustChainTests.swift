@@ -53,4 +53,19 @@ struct TrustChainTests {
         #expect(result.ir == nil)
         #expect(result.diagnostics.contains { $0.message == "'theme' is not valid here" })
     }
+
+    @Test("exec: eingesetzte Werte bleiben ein Wort, Befehlstrenner im Wert laufen nicht")
+    func execInterpolationIsQuoted() async throws {
+        let (home, shell) = try await CommandCenterWiringTests.started()
+        defer { shell.shutdown(); try? FileManager.default.removeItem(at: home.root) }
+        let marker = home.root.appendingPathComponent("injected")
+        let output = home.root.appendingPathComponent("out.txt")
+        let value = "it's; touch '\(marker.path)' && echo $HOME `id`"
+        _ = try await shell.runActions("set \"file-manager\" \"\(value.replacingOccurrences(of: "\"", with: "\\\""))\"")
+        _ = try await shell.runActions("exec \"printf %s {var.file-manager} > '\(output.path)'\"")
+        for _ in 0..<100 where !FileManager.default.fileExists(atPath: output.path) { RunLoopPump.run(0.02) }
+        RunLoopPump.run(0.1)
+        #expect(!FileManager.default.fileExists(atPath: marker.path))
+        #expect((try? String(contentsOf: output, encoding: .utf8)) == value)
+    }
 }

@@ -106,6 +106,8 @@ enum IRBuilder {
                         if let surface = buildSurface(node, schema: schema, state: state) {
                             ir.surfaces.append(surface)
                         }
+                    } else if SchemaRegistry.scriptSourceKinds.contains(name), case .pkg(let package) = node.origin {
+                        state.report(Diagnostic(.error, "package '\(package)' may not declare '\(name)': it starts programs", span: node.kdl.span), node: node)
                     } else if registry.node(name)?.contexts.contains(.topLevel) == true || SchemaStage.providerSettingsSchema(name, registry: registry) != nil {
                         blockNodes.append(node)
                     }
@@ -540,6 +542,10 @@ enum IRBuilder {
                 continue
             default:
                 guard let schema = state.registry.action(node.kdl.name) else { continue }
+                if schema.startsProgramsOrControlsApps, case .pkg(let package) = node.origin {
+                    state.report(Diagnostic(.error, "package '\(package)' may not use '\(node.kdl.name)': it starts programs or controls apps", span: node.kdl.span), node: node)
+                    continue
+                }
                 var children: [ValueTemplate] = []
                 for child in node.children where !child.isExpansionMarker && schema.acceptsChildren {
                     guard child.kdl.name == "-" else {
@@ -548,14 +554,38 @@ enum IRBuilder {
                     }
                     children.append(valueTemplate(node: child, scope: scope, state: state))
                 }
+                var arguments = compileArguments(node, schema: schema.arguments, scope: scope, state: state)
+                for position in arguments.indices where position < schema.arguments.count && schema.arguments[position].shellQuoted {
+                    arguments[position] = shellQuoted(arguments[position])
+                }
                 result.append(.call(ActionCallIR(
                     name: node.kdl.name,
-                    arguments: compileArguments(node, schema: schema.arguments, scope: scope, state: state),
+                    arguments: arguments,
                     properties: compileProperties(node, schema: schema.properties, scope: scope, state: state),
                     children: children,
                     span: node.kdl.span
                 )))
             }
+        }
+        return result
+    }
+
+    static func shellQuoted(_ value: CompiledValue) -> CompiledValue {
+        func quote(_ expr: Expr) -> Expr {
+            if case .literal = expr { return expr }
+            return .pipe(expr, FilterCall(name: "shell-quote", span: value.span))
+        }
+        var result = value
+        switch value.template {
+        case .literal:
+            return value
+        case .whole(let expr):
+            result.template = .whole(quote(expr))
+        case .parts(let parts):
+            result.template = .parts(parts.map { part in
+                if case .expression(let expr) = part { return .expression(quote(expr)) }
+                return part
+            })
         }
         return result
     }

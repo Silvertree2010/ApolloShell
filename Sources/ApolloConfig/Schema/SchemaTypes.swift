@@ -47,6 +47,7 @@ public struct ArgumentSchema: Sendable, Hashable {
     public var required: Bool
     public var variadic: Bool
     public var allowsExpression: Bool
+    public var shellQuoted: Bool
     public var doc: String
 
     public init(
@@ -55,6 +56,7 @@ public struct ArgumentSchema: Sendable, Hashable {
         required: Bool = true,
         variadic: Bool = false,
         allowsExpression: Bool = true,
+        shellQuoted: Bool = false,
         doc: String
     ) {
         self.name = name
@@ -62,6 +64,7 @@ public struct ArgumentSchema: Sendable, Hashable {
         self.required = required
         self.variadic = variadic
         self.allowsExpression = allowsExpression
+        self.shellQuoted = shellQuoted
         self.doc = doc
     }
 }

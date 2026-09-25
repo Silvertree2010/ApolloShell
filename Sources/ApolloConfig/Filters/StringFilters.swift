@@ -5,6 +5,9 @@ enum StringFilters {
         BuiltinFilter("string", arity: FilterArity(0, 0), nullInput: .accept) { input, _, _ in
             .string(input.stringified)
         },
+        BuiltinFilter("shell-quote", arity: FilterArity(0, 0)) { input, _, _ in
+            .string(ShellQuote.word(input.stringified))
+        },
         BuiltinFilter("upper", arity: FilterArity(0, 0)) { input, _, context in
             .string(try input.textInput("upper").uppercased(with: context.locale))
         },
@@ -67,4 +70,10 @@ enum StringFilters {
             }
         },
     ]
+}
+
+public enum ShellQuote {
+    public static func word(_ text: String) -> String {
+        "'" + text.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
 }

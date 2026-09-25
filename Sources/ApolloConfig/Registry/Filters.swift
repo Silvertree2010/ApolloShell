@@ -26,6 +26,7 @@ enum Filters {
         FilterSchema(name: "date", arguments: [arg("pattern", .string, doc: "ICU pattern.")], doc: "Date formatted with a pattern."),
         FilterSchema(name: "relative", doc: "Date relative to now."),
         FilterSchema(name: "string", doc: "Converts a value to a string."),
+        FilterSchema(name: "shell-quote", doc: "One shell word in single quotes, safe to insert into a /bin/sh command."),
         FilterSchema(name: "upper", doc: "In uppercase."),
         FilterSchema(name: "lower", doc: "In lowercase."),
         FilterSchema(name: "capitalize", doc: "First letter capitalized."),

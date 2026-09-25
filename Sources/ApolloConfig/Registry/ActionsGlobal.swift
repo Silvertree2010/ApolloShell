@@ -39,7 +39,7 @@ enum ActionsGlobal {
         ], acceptsChildren: true, doc: "Merges fields into a record of a var list."),
         ActionSchema(name: "wait", arguments: [S.arg("duration", .duration, doc: "Wait time, at most 10s.")], waits: true, doc: "Waits before the next action runs."),
         ActionSchema(name: "repeat", arguments: [S.arg("count", .number, doc: "Repetitions, at most 100.")], acceptsChildren: true, doc: "Runs the children several times."),
-        ActionSchema(name: "exec", arguments: [S.arg("command", .string, doc: "Command run via /bin/sh -c.")], properties: [PropertySchema(name: "timeout", type: .duration, defaultValue: .string("30s"), allowsExpression: false, doc: "Timeout.")], startsProgramsOrControlsApps: true, doc: "Starts any program."),
+        ActionSchema(name: "exec", arguments: [ArgumentSchema(name: "command", type: .string, shellQuoted: true, doc: "Command run via /bin/sh -c; each {…} is inserted as one quoted word.")], properties: [PropertySchema(name: "timeout", type: .duration, defaultValue: .string("30s"), allowsExpression: false, doc: "Timeout.")], startsProgramsOrControlsApps: true, doc: "Starts any program."),
         ActionSchema(name: "open-app", arguments: [S.arg("bundleID", .string, doc: "Bundle ID.")], startsProgramsOrControlsApps: true, doc: "Launches an app or brings it to the front."),
         ActionSchema(name: "open-url", arguments: [S.arg("url", .string, doc: "URL.")], startsProgramsOrControlsApps: true, doc: "Opens a URL."),
         ActionSchema(name: "open-file", arguments: [S.arg("path", .path, doc: "Path.")], properties: [PropertySchema(name: "app", type: .string, defaultValue: .null, doc: "Specific app.")], startsProgramsOrControlsApps: true, doc: "Opens a file."),

@@ -1611,7 +1611,7 @@ Starts any program.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `command` | string | required | Command run via /bin/sh -c. |
+| argument | `command` | string | required | Command run via /bin/sh -c; each {…} is inserted as one quoted word. |
 | property | `timeout` | duration | `"30s"` | Timeout. |
 
 ### `list.insert` (action)
@@ -2500,6 +2500,10 @@ Maps a range linearly onto another.
 | argument | `fromHigh` | number | required | Upper input bound. |
 | argument | `toLow` | number | required | Lower output bound. |
 | argument | `toHigh` | number | required | Upper output bound. |
+
+### `shell-quote` (filter)
+
+One shell word in single quotes, safe to insert into a /bin/sh command.
 
 ### `skip` (filter)
 
