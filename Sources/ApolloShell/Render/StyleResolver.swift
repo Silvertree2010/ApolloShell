@@ -20,6 +20,7 @@ final class StyleResolver {
     private(set) var diagnostics: [Diagnostic] = []
     private(set) var lookups = 0
     private(set) var computed = 0
+    private(set) static var computedTotal = 0
     static let cacheLimit = 4096
     var cachedCount: Int { cache.count }
 
@@ -119,6 +120,7 @@ final class StyleResolver {
         lookups += 1
         if let cached = cache[key] { return cached }
         computed += 1
+        Self.computedTotal += 1
         var declarations: [Declaration] = []
         if let inline, !inline.isEmpty {
             let parsed = StyleEngine.parseInline(inline, span: .synthetic("style"))

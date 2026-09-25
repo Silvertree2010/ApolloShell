@@ -804,6 +804,8 @@ final class LiveShellControl: ShellControl, @unchecked Sendable {
                 ("bindings-evaluated", .number(Double(stats.bindingsEvaluated))),
                 ("providers-running", .number(Double(stats.providersRunning))),
                 ("space-changes", .number(Double(host.spaceChanges))),
+                ("styles-computed", .number(Double(StyleResolver.computedTotal))),
+                ("longest-block-ms", .number(MainBlockObserver.shared.takeLongest())),
             ]))
         }
     }
