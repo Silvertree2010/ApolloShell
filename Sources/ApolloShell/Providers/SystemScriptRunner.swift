@@ -10,7 +10,35 @@ final class SystemScriptHandle: ScriptHandle {
     }
 
     func terminate() {
-        if process.isRunning { process.terminate() }
+        guard process.isRunning else { return }
+        let descendants = ProcessTree.descendants(of: process.processIdentifier)
+        process.terminate()
+        for pid in descendants { kill(pid, SIGTERM) }
+    }
+}
+
+enum ProcessTree {
+    static func descendants(of root: pid_t) -> [pid_t] {
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL]
+        var size = 0
+        guard sysctl(&mib, 3, nil, &size, nil, 0) == 0, size > 0 else { return [] }
+        let stride = MemoryLayout<kinfo_proc>.stride
+        var processes = [kinfo_proc](repeating: kinfo_proc(), count: size / stride + 32)
+        size = processes.count * stride
+        guard sysctl(&mib, 3, &processes, &size, nil, 0) == 0 else { return [] }
+        var children: [pid_t: [pid_t]] = [:]
+        for entry in processes.prefix(size / stride) {
+            children[entry.kp_eproc.e_ppid, default: []].append(entry.kp_proc.p_pid)
+        }
+        var result: [pid_t] = []
+        var pending = [root]
+        while let current = pending.popLast() {
+            for child in children[current] ?? [] where child != root {
+                result.append(child)
+                pending.append(child)
+            }
+        }
+        return result
     }
 }
 
