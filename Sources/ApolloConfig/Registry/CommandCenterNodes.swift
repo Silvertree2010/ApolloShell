@@ -10,15 +10,15 @@ enum CommandCenterNodes {
             category: .commandCenterItem,
             childContext: .commandCenterItems,
             contexts: [.commandCenterItems],
-            doc: "ersetzt die ganze Liste der Kommandozentrale.",
+            doc: "Replaces the whole command center list.",
             example: "items { builtin \"reload-config\" }"
         ),
         NodeSchema(
             name: "builtin",
             category: .commandCenterItem,
-            arguments: [ArgumentSchema(name: "name", type: .enumeration(builtinNames), allowsExpression: false, doc: "Name eines eingebauten Eintrags der Kommandozentrale.")],
+            arguments: [ArgumentSchema(name: "name", type: .enumeration(builtinNames), allowsExpression: false, doc: "Name of a built-in command center entry.")],
             contexts: [.commandCenterItems],
-            doc: "fügt einen eingebauten Eintrag der Kommandozentrale ein.",
+            doc: "Inserts a built-in command center entry.",
             example: "builtin \"reload-config\""
         ),
     ]

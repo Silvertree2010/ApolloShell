@@ -77,11 +77,11 @@ bind "alt+space" { toggle "launcher" }
 
 ### `builtin` (node)
 
-fügt einen eingebauten Eintrag der Kommandozentrale ein.
+Inserts a built-in command center entry.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `name` | "reload-config"\|"restart"\|"problems"\|"configs"\|"themes"\|"marketplace"\|"updates"\|"crash-reports"\|"login-item"\|"install-cli"\|"about"\|"quit" | required | Name eines eingebauten Eintrags der Kommandozentrale. |
+| argument | `name` | "reload-config"\|"restart"\|"problems"\|"configs"\|"themes"\|"marketplace"\|"updates"\|"crash-reports"\|"login-item"\|"install-cli"\|"about"\|"quit" | required | Name of a built-in command center entry. |
 
 ```kdl
 builtin "reload-config"
@@ -555,7 +555,7 @@ item "Copy" { clipboard.copy "{system.full-name}" }
 
 ### `items` (node)
 
-ersetzt die ganze Liste der Kommandozentrale.
+Replaces the whole command center list.
 
 ```kdl
 items { builtin "reload-config" }
