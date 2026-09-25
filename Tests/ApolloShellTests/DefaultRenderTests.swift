@@ -100,14 +100,14 @@ struct DefaultRenderTests {
         #expect(hugging.minY > 50)
     }
 
-    @Test("Fixture-Abschnitt vars setzt Variablen nach on-open: Auswahl Zeile 3 und Suche ohne Treffer")
+    @Test("Fixture-Abschnitt vars setzt Variablen nach on-open: Auswahl Zeile 1 wie die Referenz (9b-P2-10) und Suche ohne Treffer")
     func fixtureVars() throws {
         let fixture = ProviderFixture.parse("fixture {\n    vars launcher-selection=2 launcher-query=\"x\"\n}", file: "f.kdl")
         #expect(fixture.vars["launcher-selection"] == .number(2))
         #expect(fixture.diagnostics.isEmpty)
         let selected = try Self.shot("launcher", state: "launcher-selected-row-3")
-        #expect(selected.pixel(300, 82).near(.white))
-        #expect(!selected.pixel(300, 174).near(.white, tolerance: 6))
+        #expect(!selected.pixel(300, 82).near(.white, tolerance: 6))
+        #expect(selected.pixel(300, 174).near(.white))
         let empty = try Self.shot("launcher", state: "launcher-no-results")
         #expect(empty.bounds { $0.b > 230 && $0.g > 100 && $0.g < 160 && $0.r < 40 } == nil)
     }
