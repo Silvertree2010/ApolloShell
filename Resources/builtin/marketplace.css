@@ -1,14 +1,15 @@
 #marketplace { width: 780px; height: 620px; min-width: 640px; min-height: 480px; }
 .marketplace { width: 100%; height: 100%; }
 .marketplace-main { width: 100%; height: 100%; }
-.marketplace-header { padding: 16px; gap: 12px; align-items: center; border-bottom: 1px solid rgb(from -apple-system-separator r g b / 1); }
+.marketplace-header { padding: 16px; gap: 12px; align-items: center; }
 .marketplace-title { font-size: 22px; font-weight: 700; }
 .marketplace-tabs { padding: 2px; gap: 2px; border-radius: 7px; background: rgb(from -apple-system-label r g b / 0.06); }
 .marketplace-tab { padding: 3px 12px; border-radius: 5px; font-size: 13px; }
 .marketplace-tab:checked { background: -apple-system-control-background; font-weight: 600; }
 .marketplace-body { flex-grow: 1; }
-.marketplace-footer { padding: 12px; gap: 12px; align-items: center; font-size: 13px; border-top: 1px solid rgb(from -apple-system-separator r g b / 1); }
-.marketplace-link { color: -apple-system-link; }
+.marketplace-footer { padding: 12px; gap: 12px; align-items: center; font-size: 13px; }
+.marketplace-link { color: -apple-system-blue; }
+.marketplace-rule { height: 1px; width: 100%; background: rgb(from -apple-system-separator r g b / 1); }
 .marketplace-button { padding: 4px 12px; border-radius: 6px; font-size: 13px; background: rgb(from -apple-system-label r g b / 0.08); }
 .marketplace-button:hover { background: rgb(from -apple-system-label r g b / 0.12); }
 .marketplace-button:disabled { opacity: 0.4; }
@@ -27,7 +28,7 @@
 .marketplace-empty-glyph { font-size: 36px; color: -apple-system-secondary-label; }
 .marketplace-empty-title { font-size: 17px; font-weight: 700; }
 .marketplace-empty-detail { color: -apple-system-secondary-label; font-size: 13px; max-width: 360px; text-align: center; }
-.marketplace-scroll { flex-grow: 1; }
+.marketplace-scroll { flex-grow: 1; justify-content: start; }
 .marketplace-grid { padding: 16px; gap: 16px; grid-template-columns: repeat(3, 1fr); }
 .marketplace-card { gap: 8px; }
 .marketplace-card-footer { gap: 8px; align-items: center; }

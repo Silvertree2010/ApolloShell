@@ -503,6 +503,7 @@ window "marketplace" title="Marketplace" autosave="Marketplace" miniaturizable=#
                     }
                 }
             }
+            stack class="marketplace-rule"
             column class="marketplace-body" {
                 switch "{(var.marketplace-tab == 'review' && !(marketplace.user.is-admin ?? false)) ? 'browse' : var.marketplace-tab}" {
                     case "mine" { use "marketplace-mine" }
@@ -510,6 +511,7 @@ window "marketplace" title="Marketplace" autosave="Marketplace" miniaturizable=#
                     default { use "marketplace-browse" }
                 }
             }
+            stack class="marketplace-rule"
             row class="marketplace-footer" {
                 button class="marketplace-link" {
                     on-click { open-url "https://silvertree2010.github.io/ApolloShell/terms.html" }
