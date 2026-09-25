@@ -4,6 +4,7 @@ import ApolloStyle
 struct ChildMetrics: Equatable {
     var grow: CGFloat = 0
     var shrink: CGFloat = 0
+    var shrinkDeclared = false
     var basis: CSSLength?
     var width: CGFloat?
     var height: CGFloat?
@@ -18,7 +19,9 @@ struct ChildMetrics: Equatable {
 
     init(_ style: ComputedStyle, spacer: Bool = false) {
         grow = CGFloat(StyleValues.number(style["flex-grow"]) ?? (spacer ? 1 : 0))
-        shrink = CGFloat(StyleValues.number(style["flex-shrink"]) ?? 0)
+        let declaredShrink = StyleValues.number(style["flex-shrink"])
+        shrink = CGFloat(declaredShrink ?? 0)
+        shrinkDeclared = declaredShrink != nil
         if let length = StyleValues.length(style["flex-basis"]), length.unit != .auto { basis = length }
         width = StyleValues.percent(style["width"])
         height = StyleValues.percent(style["height"])
@@ -137,6 +140,20 @@ struct FlexLayout: Layout {
             if over > 0, shrinking > 0 {
                 for index in sizes.indices where metrics[index].shrink > 0 {
                     sizes[index] = max(0, sizes[index] - over * metrics[index].shrink * sizes[index] / shrinking)
+                }
+            } else if over > 0, !metrics.contains(where: \.shrinkDeclared) {
+                let crossAvailable = horizontal ? proposal.height : proposal.width
+                let slack: [CGFloat] = subviews.indices.map { index in
+                    guard metrics[index].grow == 0, metrics[index].basis == nil, percentMain(metrics[index]) == nil else { return 0 }
+                    let smallest = main(subviews[index].sizeThatFits(size(main: 0, cross: crossFor(subviews[index], metrics[index], main: 0, available: crossAvailable))))
+                    return max(0, sizes[index] - smallest)
+                }
+                let total = slack.reduce(0, +)
+                if total > 0 {
+                    let taken = min(over, total)
+                    for index in sizes.indices where slack[index] > 0 {
+                        sizes[index] -= taken * slack[index] / total
+                    }
                 }
             } else if over < 0, growth > 0 {
                 for index in sizes.indices where metrics[index].grow > 0 {

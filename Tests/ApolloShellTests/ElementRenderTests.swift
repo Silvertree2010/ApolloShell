@@ -117,6 +117,26 @@ struct ElementRenderTests {
         #expect(shot.bounds { $0.near(.green) } == CGRect(x: 55, y: 20, width: 45, height: 10))
     }
 
+    @Test("Überlauf in einer Zeile: kürzbarer Text schrumpft, feste Kinder behalten Platz und Lage")
+    func overflowShrinksText() throws {
+        let shot = try panel("""
+            row class="r" {
+                stack class="a"
+                text "Ein sehr langer Text, der nie in diese schmale Zeile passt" class="t" lines=1 truncate="tail"
+                stack class="b"
+            }
+            """, """
+            .r { width: 120px; gap: 4px; align-items: center; }
+            .a { width: 20px; height: 20px; background: #ff0000; }
+            .b { width: 20px; height: 20px; background: #0000ff; }
+            .t { font-size: 12px; color: #000000; }
+            """)
+        #expect(shot.bounds { $0.near(.red) } == CGRect(x: 0, y: 0, width: 20, height: 20))
+        #expect(shot.bounds { $0.near(.blue) } == CGRect(x: 100, y: 0, width: 20, height: 20))
+        let text = try #require(shot.bounds { $0.near(.black, tolerance: 120) })
+        #expect(text.minX >= 24 && text.maxX <= 96)
+    }
+
     @Test("app-icon zeichnet das Fixture-Symbol mit Plakette")
     func appIcon() throws {
         let shot = try panel("app-icon \"com.apple.Safari\" badge=\"2\" class=\"i\"",
