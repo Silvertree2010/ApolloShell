@@ -275,7 +275,7 @@ struct ScallopShape: Shape {
         for step in 0...steps {
             let angle = Double(step) / Double(steps) * 2 * .pi - .pi / 2
             let wave = (1 + cos(Double(count) * (angle + .pi / 2))) / 2
-            let r = radius * (1 - depth * 0.5 * (1 - wave))
+            let r = radius * (1 - depth * (1 - wave))
             let point = CGPoint(x: center.x + r * cos(angle), y: center.y + r * sin(angle))
             if step == 0 { path.move(to: point) } else { path.addLine(to: point) }
         }

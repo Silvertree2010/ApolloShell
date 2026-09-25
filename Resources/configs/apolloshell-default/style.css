@@ -284,10 +284,10 @@
 .performance-main { flex-grow: 1; align-self: stretch; gap: 12px; }
 .performance-top { flex-grow: 1; align-self: stretch; gap: 12px; }
 .performance-bottom { height: 189px; align-self: stretch; gap: 12px; }
-.perf-hero { flex-grow: 1; align-self: stretch; padding: 14px; border-radius: var(--apollo-card-radius, 24px); }
+.perf-hero { width: 49.1404%; align-self: stretch; padding: 14px; border-radius: var(--apollo-card-radius, 24px); }
 .perf-hero-head { gap: 12px; align-items: center; align-self: stretch; justify-content: start; }
-.perf-hero-ring { width: 46px; height: 46px; padding: 2px; align-items: center; justify-content: center; }
-.perf-ring { width: 42px; height: 42px; -apollo-stroke-width: 4px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 500ms spatial; }
+.perf-hero-ring { width: 46px; height: 46px; align-items: center; justify-content: center; }
+.perf-ring { width: 46px; height: 46px; -apollo-stroke-width: 4px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 500ms spatial; }
 .perf-ring-glyph { width: 19px; height: 19px; font-size: 17px; font-weight: 500; }
 .perf-hero-titles { gap: 2px; align-items: start; }
 .perf-hero-title { font-size: 19px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
@@ -301,7 +301,7 @@
 .perf-badge { width: 92px; height: 92px; align-items: center; justify-content: center; }
 .perf-badge-shape { width: 92px; height: 92px; background: var(--apollo-accent-color, -apple-system-control-accent); }
 .perf-badge-text { font-size: 24px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; color: var(--apollo-on-accent-color, white); -apollo-content-transition: numeric; }
-.perf-storage, .perf-memory { flex-grow: 1; align-self: stretch; padding: 0 12px; align-items: center; justify-content: center; }
+.perf-storage, .perf-memory { width: 24.2837%; align-self: stretch; padding: 0 12px; align-items: center; justify-content: center; }
 .perf-storage { border-radius: var(--apollo-card-radius, 41px); }
 .perf-memory { border-radius: var(--apollo-card-radius, 10px); }
 .perf-gauge-column { gap: 6px; align-items: center; }
@@ -334,8 +334,8 @@
 .perf-rate-title { font-size: 12px; color: -apple-system-secondary-label; }
 .perf-rate-value { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .perf-battery { width: 129px; align-self: stretch; border-radius: var(--apollo-card-radius, 14px); overflow: hidden; }
-.perf-tank { align-self: stretch; justify-self: stretch; border-radius: 0; -apollo-track-color: rgb(from -apple-system-label r g b / 0.06); -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 500ms spatial; }
-.perf-tank-contents { align-self: stretch; justify-self: stretch; padding: 14px; gap: 2px; align-items: start; }
+.perf-tank { align-self: stretch; border-radius: 0; -apollo-track-color: rgb(from -apple-system-label r g b / 0.06); -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 500ms spatial; }
+.perf-tank-contents { width: 100%; height: 100%; padding: 14px; gap: 2px; align-items: start; }
 .perf-tank-head { gap: 6px; align-items: center; color: var(--apollo-accent-color, -apple-system-control-accent); }
 .perf-tank-glyph { font-size: 14px; font-weight: 500; }
 .perf-tank-title { font-size: 15px; font-weight: 600; }

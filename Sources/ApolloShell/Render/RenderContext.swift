@@ -201,7 +201,7 @@ extension ElementView {
         case "capsule": return AnyShape(Capsule())
         case "scallop":
             let count = StyleValues.numberValue(element.property("count")).map(Int.init) ?? 8
-            let depth = StyleValues.numberValue(element.property("depth")) ?? 0.2
+            let depth = StyleValues.numberValue(element.property("depth")) ?? 0.1
             return AnyShape(ScallopShape(count: count, depth: depth))
         default: return nil
         }
