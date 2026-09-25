@@ -645,6 +645,7 @@
 .settings-nav { padding: 12px 8px; gap: 2px; }
 .settings-nav-item { gap: 8px; padding: 6px 10px; border-radius: 8px; align-items: center; }
 .settings-nav-item:checked { background: rgb(from -apple-system-label r g b / 0.1); }
+.settings-nav-glyph { width: 20px; }
 .settings-content { flex-grow: 1; justify-content: start; }
 .settings-page { padding: 24px; gap: 16px; }
 .settings-page-title { font-size: 20px; font-weight: 700; }
