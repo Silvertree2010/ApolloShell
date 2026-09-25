@@ -86,27 +86,35 @@ define "card-calendar" {
     }
 }
 
+define "card-resource-ring" {
+    param "value"
+    param "symbol"
+    param "icon"
+    param "tip"
+    stack class="card-resource" tooltip="{tip} {value * 100 | round}%" {
+        ring value="{value}" class="card-resource-ring"
+        icon "{icon}" fallback="{symbol}" class="card-resource-glyph"
+    }
+}
+
+define "card-resource-rings" {
+    param "card"
+    when "{card.show-cpu}" { use "card-resource-ring" value="{perf.cpu}" symbol="cpu" icon="panel-cpu" tip="CPU" }
+    when "{card.show-memory}" { use "card-resource-ring" value="{perf.memory}" symbol="memorychip" icon="panel-memory" tip="Memory" }
+    when "{card.show-storage}" { use "card-resource-ring" value="{perf.live.disk}" symbol="internaldrive" icon="panel-disk" tip="Storage" }
+}
+
 define "card-resources" {
     param "card"
     param "zone"
-    row class="card card-resources zone-{zone}" {
-        when "{card.show-cpu}" {
-            column class="card-resource" {
-                ring value="{perf.cpu}" class="card-resource-ring"
-                text "CPU" class="card-resource-label"
-            }
+    when "{zone == 'bottom'}" {
+        column class="card card-resources zone-{zone}" {
+            use "card-resource-rings" card="{card}"
         }
-        when "{card.show-memory}" {
-            column class="card-resource" {
-                ring value="{perf.memory}" class="card-resource-ring"
-                text "Memory" class="card-resource-label"
-            }
-        }
-        when "{card.show-storage}" {
-            column class="card-resource" {
-                ring value="{perf.live.disk}" class="card-resource-ring"
-                text "Storage" class="card-resource-label"
-            }
+    }
+    else {
+        row class="card card-resources zone-{zone}" {
+            use "card-resource-rings" card="{card}"
         }
     }
 }
