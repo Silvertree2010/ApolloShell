@@ -121,4 +121,27 @@ struct DefaultRenderTests {
         #expect(shot.pixel(310, 96).b - shot.pixel(310, 96).r > 100)
         #expect(shot.pixel(310, 104).b - shot.pixel(310, 104).r < 40)
     }
+
+    @Test("Gestreckter Text folgt text-align: start links, center mittig, end rechts")
+    func stretchedTextFollowsTextAlign() throws {
+        let kdl = "panel \"p\" anchor=\"left\" { column class=\"c\" { text \"MMMM\" class=\"t\" } }"
+        let base = "#p { width: 200px; height: 40px; } .c { width: 200px; height: 40px; align-items: stretch; } .t { font-size: 20px; color: rgb(255 0 0); "
+        let red: (RGBA) -> Bool = { $0.r > 200 && $0.g < 90 && $0.b < 90 }
+        let start = try #require(try RenderProbe.render(kdl, css: base + "}").bounds(where: red))
+        let center = try #require(try RenderProbe.render(kdl, css: base + "text-align: center; }").bounds(where: red))
+        let end = try #require(try RenderProbe.render(kdl, css: base + "text-align: end; }").bounds(where: red))
+        #expect(start.minX < 6, "\(start)")
+        #expect(abs(center.midX - 100) <= 2, "\(center)")
+        #expect(end.maxX > 194, "\(end)")
+    }
+
+    @Test("Einführung Schritte 1–3 wie 0.1.4.2: Kachel oben bei 40 pt, Karte ab 204 pt über die Breite 44–576", arguments: [1, 2, 3])
+    func onboardingSteps(step: Int) throws {
+        let shot = try Self.shot("onboarding", state: "onboarding-\(step)")
+        #expect(shot.size == CGSize(width: 620, height: 560))
+        let tile = try #require(shot.bounds { max($0.r, $0.g, $0.b) - min($0.r, $0.g, $0.b) > 120 && $0.b > 150 || $0.g > 150 && $0.r < 120 && $0.b < 150 })
+        #expect(abs(tile.minY - 40) <= 1.5, "\(tile)")
+        #expect(!shot.pixel(60, 215).near(.white, tolerance: 4))
+        #expect(shot.pixel(30, 215).near(.white, tolerance: 4))
+    }
 }

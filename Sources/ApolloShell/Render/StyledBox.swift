@@ -11,6 +11,7 @@ struct StyledBox: ViewModifier {
     var flyouts: AnyView?
     var anchorID: String?
     var dynamicInline = false
+    var alignment: Alignment = .center
 
     func body(content: Content) -> some View {
         let width = style["width"], height = style["height"]
@@ -18,9 +19,9 @@ struct StyledBox: ViewModifier {
         let fillsWidth = fill.width || StyleValues.percent(width) != nil, fillsHeight = fill.height || StyleValues.percent(height) != nil
         content
             .padding(padded ? StyleValues.sides(style["padding"]) : EdgeInsets())
-            .frame(width: StyleValues.points(width), height: StyleValues.points(height))
+            .frame(width: StyleValues.points(width), height: StyleValues.points(height), alignment: alignment)
             .frame(minWidth: StyleValues.points(style["min-width"]), maxWidth: fillsWidth ? .infinity : StyleValues.points(style["max-width"]),
-                   minHeight: StyleValues.points(style["min-height"]), maxHeight: fillsHeight ? .infinity : StyleValues.points(style["max-height"]))
+                   minHeight: StyleValues.points(style["min-height"]), maxHeight: fillsHeight ? .infinity : StyleValues.points(style["max-height"]), alignment: alignment)
             .modifier(AspectRatio(ratio: StyleValues.number(style["aspect-ratio"])))
             .background { BackgroundLayers(style: style, shape: shape, context: context) }
             .overlay { BorderLayer(style: style, shape: shape) }
