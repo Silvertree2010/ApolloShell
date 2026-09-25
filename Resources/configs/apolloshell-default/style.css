@@ -123,7 +123,7 @@
 .popout-status-circle.off { background: rgb(from -apple-system-label r g b / 0.10); color: -apple-system-secondary-label; }
 .popout-status-glyph { font-size: 14px; font-weight: 600; }
 .popout-device-glyph { font-size: 13px; font-weight: 500; }
-.popout-status-text { gap: 1px; }
+.popout-status-text { gap: 1px; flex-shrink: 1; }
 .popout-status-title { font-size: 13px; font-weight: 500; }
 .popout-status-subtitle { font-size: 11px; color: -apple-system-secondary-label; }
 .popout-card {
@@ -205,7 +205,7 @@
 .card-weather { padding: 0 26px; border-radius: var(--apollo-card-radius, 42px); align-items: center; justify-content: center; }
 .card-weather-body { gap: 16px; align-items: center; }
 .card-weather-glyph { font-size: 46px; -apollo-symbol-rendering: multicolor; }
-.card-weather-text { gap: 1px; }
+.card-weather-text { gap: 1px; flex-shrink: 1; }
 .card-weather.zone-side { padding: 0 16px; }
 .card-weather-body.vertical { gap: 8px; align-items: center; }
 .card-weather-text.vertical { align-items: center; }
@@ -216,7 +216,7 @@
 .card-user { padding: 0 18px; gap: 14px; align-items: center; border-radius: var(--apollo-card-radius, 28px); }
 .card-user-avatar { width: 72px; height: 72px; border-radius: 9999px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
 .card-user-initial { font-size: 30px; font-weight: 600; font-family: ui-rounded; }
-.card-user-text { gap: 6px; align-items: start; }
+.card-user-text { gap: 6px; align-items: start; flex-shrink: 1; }
 .card-user-name { font-size: 17px; font-weight: 600; }
 .card-user-badge { gap: 5px; padding: 3px 8px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.07); color: -apple-system-secondary-label; align-items: center; }
 .card-user-badge-glyph { font-size: 10px; font-weight: 600; }
@@ -400,7 +400,7 @@
 .weather-hero-glyph-frame { width: 72px; align-items: center; justify-content: center; }
 .weather-hero-glyph { font-size: 56px; }
 .weather-hero-temperature { font-size: 60px; font-weight: 500; font-family: ui-rounded; }
-.weather-hero-text { gap: 3px; align-items: start; }
+.weather-hero-text { gap: 3px; align-items: start; flex-shrink: 1; }
 .weather-hero-condition { font-size: 19px; font-weight: 600; }
 .weather-hero-summary { font-size: 13px; color: -apple-system-secondary-label; }
 .weather-places { gap: 5px; margin: 3px 0 0; }
