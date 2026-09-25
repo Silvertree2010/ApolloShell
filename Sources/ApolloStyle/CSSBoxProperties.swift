@@ -26,6 +26,8 @@ enum CSSBoxProperties {
         CSSPropertyEntry("column-gap") { components, _ in try gap(components) },
         CSSPropertyEntry("flex-grow") { components, _ in .number(try CSSRead.number(CSSRead.single(components), minimum: 0)) },
         CSSPropertyEntry("flex-shrink") { components, _ in .number(try CSSRead.number(CSSRead.single(components), minimum: 0)) },
+        CSSPropertyEntry("flex-basis") { components, _ in try size(components) },
+        CSSPropertyEntry("flex") { components, _ in try flex(components) },
         CSSPropertyEntry("align-items", parse: CSSKeywordParser.keyword(["start", "center", "end", "stretch"], aliases: flexAliases)),
         CSSPropertyEntry("align-self", parse: CSSKeywordParser.keyword(["auto", "start", "center", "end", "stretch"], aliases: flexAliases)),
         CSSPropertyEntry("justify-self", parse: CSSKeywordParser.keyword(["auto", "start", "center", "end"], aliases: flexAliases)),
@@ -62,6 +64,35 @@ extension CSSRead {
 
 private func size(_ components: [CSSComponent]) throws -> CSSValue {
     .length(try CSSRead.length(CSSRead.single(components), percent: true, auto: true, negative: false))
+}
+
+private func flex(_ components: [CSSComponent]) throws -> CSSValue {
+    let words = CSSList.words(components)
+    let auto = CSSLength(0, .auto)
+    func parts(_ grow: Double, _ shrink: Double, _ basis: CSSLength) -> CSSValue {
+        .lengths([CSSLength(grow, .points), CSSLength(shrink, .points), basis])
+    }
+    if words.count == 1, words[0].lowercasedIdent == "none" { return parts(0, 0, auto) }
+    if words.count == 1, words[0].lowercasedIdent == "auto" { return parts(1, 1, auto) }
+    guard (1...3).contains(words.count) else { throw CSSValueError("flex takes 1 to 3 values") }
+    let plain: (CSSComponent) -> Bool = { word in (try? CSSNumbers.numeric(word))??.dimension == .number }
+    var index = 0
+    var basis: CSSLength?
+    if !plain(words[0]) {
+        basis = try CSSRead.length(words[0], percent: true, auto: true, negative: false)
+        index = 1
+    }
+    var numbers: [Double] = []
+    while index < words.count, numbers.count < 2, plain(words[index]) {
+        numbers.append(try CSSRead.number(words[index], minimum: 0))
+        index += 1
+    }
+    if basis == nil, index < words.count {
+        basis = try CSSRead.length(words[index], percent: true, auto: true, negative: false)
+        index += 1
+    }
+    guard index == words.count else { throw CSSValueError("flex is <grow> <shrink>? <basis>?") }
+    return parts(numbers.first ?? 1, numbers.count > 1 ? numbers[1] : 1, basis ?? CSSLength(0, .points))
 }
 
 private func maximumSize(_ components: [CSSComponent]) throws -> CSSValue {

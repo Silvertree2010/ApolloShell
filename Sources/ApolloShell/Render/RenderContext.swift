@@ -216,7 +216,8 @@ extension ElementView {
             return Definite(width: !own.width, height: !own.height)
         default: return Definite()
         }
-        let grows = (StyleValues.number(style["flex-grow"]) ?? 0) > 0 || spacer
+        let based = StyleValues.length(style["flex-basis"]).map { $0.unit != .auto } ?? false
+        let grows = (StyleValues.number(style["flex-grow"]) ?? 0) > 0 || spacer || based
         let own = StyleValues.keyword(style["align-self"])
         let inherited = StyleValues.keyword(parentStyle?["align-items"]) ?? "stretch"
         let stretches = (own == nil || own == "auto" ? inherited : own) == "stretch"

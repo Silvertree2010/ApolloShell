@@ -4,6 +4,7 @@ import ApolloStyle
 struct ChildMetrics: Equatable {
     var grow: CGFloat = 0
     var shrink: CGFloat = 0
+    var basis: CSSLength?
     var width: CGFloat?
     var height: CGFloat?
     var alignSelf: String?
@@ -17,6 +18,7 @@ struct ChildMetrics: Equatable {
     init(_ style: ComputedStyle, spacer: Bool = false) {
         grow = CGFloat(StyleValues.number(style["flex-grow"]) ?? (spacer ? 1 : 0))
         shrink = CGFloat(StyleValues.number(style["flex-shrink"]) ?? 0)
+        if let length = StyleValues.length(style["flex-basis"]), length.unit != .auto { basis = length }
         width = StyleValues.percent(style["width"])
         height = StyleValues.percent(style["height"])
         alignSelf = StyleValues.keyword(style["align-self"])
@@ -73,6 +75,17 @@ struct FlexLayout: Layout {
         return nil
     }
 
+    private func basisMain(_ metrics: ChildMetrics, available: CGFloat?) -> CGFloat? {
+        guard let basis = metrics.basis else { return nil }
+        let margin = horizontal ? metrics.marginH : metrics.marginV
+        let finite = available.map(\.isFinite) ?? false
+        switch basis.unit {
+        case .points where finite || metrics.grow == 0: return CGFloat(basis.value) + margin
+        case .percent where finite: return (available ?? 0) * CGFloat(basis.value / 100) + margin
+        default: return nil
+        }
+    }
+
     private func percentCross(_ metrics: ChildMetrics) -> (CGFloat, CGFloat)? {
         if horizontal, let height = metrics.height { return (height, metrics.marginV) }
         if !horizontal, let width = metrics.width { return (width, metrics.marginH) }
@@ -95,6 +108,7 @@ struct FlexLayout: Layout {
         let crossAvailable = horizontal ? proposal.height : proposal.width
         var sizes: [CGFloat] = subviews.map { subview in
             let metrics = subview[ChildMetricsKey.self]
+            if let basis = basisMain(metrics, available: available) { return basis }
             if let (fraction, margin) = percentMain(metrics), let available { return available * fraction + margin }
             return main(subview.sizeThatFits(size(main: nil, cross: crossProposal(metrics, available: crossAvailable))))
         }

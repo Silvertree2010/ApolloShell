@@ -47,6 +47,28 @@ struct StyleFinisherTests {
         #expect(style(".x { width: 1px }")["margin"] == nil)
     }
 
+    @Test("flex setzt flex-grow, flex-shrink und flex-basis wie in CSS, die spätere Deklaration gewinnt je Wert")
+    func flexShorthand() {
+        let auto = CSSValue.length(CSSLength(0, .auto))
+        let zero = CSSValue.length(CSSLength(0, .points))
+        func triple(_ css: String) -> [CSSValue?] {
+            let computed = style(css)
+            return [computed["flex-grow"], computed["flex-shrink"], computed["flex-basis"]]
+        }
+        #expect(triple(".x { flex: 1 }") == [.number(1), .number(1), zero])
+        #expect(triple(".x { flex: 2 0 40px }") == [.number(2), .number(0), .length(CSSLength(40, .points))])
+        #expect(triple(".x { flex: 2 3 }") == [.number(2), .number(3), zero])
+        #expect(triple(".x { flex: 1 50px }") == [.number(1), .number(1), .length(CSSLength(50, .points))])
+        #expect(triple(".x { flex: 30% }") == [.number(1), .number(1), .length(CSSLength(30, .percent))])
+        #expect(triple(".x { flex: none }") == [.number(0), .number(0), auto])
+        #expect(triple(".x { flex: auto }") == [.number(1), .number(1), auto])
+        #expect(triple(".x { flex: 1; flex-grow: 3 }") == [.number(3), .number(1), zero])
+        #expect(triple(".x { flex-grow: 3; flex-basis: 10px; flex: 2 }") == [.number(2), .number(1), zero])
+        #expect(triple(".x.y { flex: 2 } .x { flex-basis: 10px }") == [.number(2), .number(1), zero])
+        #expect(triple(".x { flex-basis: 10px }") == [nil, nil, .length(CSSLength(10, .points))])
+        #expect(style(".x { flex: 1 }")["flex"] == nil)
+    }
+
     @Test("border setzt sich aus Kurzschreibweise und Einzelwerten nach Rang zusammen")
     func borderComposition() {
         #expect(style(".x { border: 1px solid red } .x.y { border-color: blue }")["border"] == .border(width: 1, dashed: false, color: blue))

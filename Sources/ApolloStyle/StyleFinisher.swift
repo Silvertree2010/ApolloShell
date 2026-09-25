@@ -9,6 +9,7 @@ enum StyleFinisher {
         composeBorder(&values, winners: winners)
         composeSides("padding", &values, winners: winners)
         composeSides("margin", &values, winners: winners)
+        composeFlex(&values, winners: winners)
         scaleFont(&values, declared: declared, tokens: environment.tokens)
         applyMotion(&values, environment: environment)
         applySurfaces(&values, environment: environment)
@@ -78,6 +79,18 @@ enum StyleFinisher {
             values[name] = nil
         }
         if present { values[box] = .lengths(sides) }
+    }
+
+    private static func composeFlex(_ values: inout [String: CSSValue], winners: [String: CascadeRank]) {
+        defer { values["flex"] = nil }
+        guard let rank = winners["flex"] else { return }
+        var parts: [CSSValue]?
+        if case let .lengths(found)? = values["flex"], found.count == 3 {
+            parts = [.number(found[0].value), .number(found[1].value), .length(found[2])]
+        }
+        for (index, name) in ["flex-grow", "flex-shrink", "flex-basis"].enumerated() where !outranks(winners[name], rank) {
+            values[name] = parts?[index]
+        }
     }
 
     private static func outranks(_ candidate: CascadeRank?, _ current: CascadeRank?) -> Bool {

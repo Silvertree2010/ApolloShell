@@ -47,6 +47,29 @@ struct StyleRenderTests {
         #expect(shot.bounds { $0.near(.green) } == CGRect(x: 90, y: 0, width: 10, height: 10))
     }
 
+    @Test("row: flex: 1 gibt gleich breite Spalten unabhängig vom Inhalt, flex-basis setzt die Ausgangsbreite")
+    func flexBasis() throws {
+        let equal = try box("""
+            .r { width: 100px; height: 10px; gap: 5px; }
+            .f { flex: 1; height: 10px; }
+            .wide { width: 24px; height: 4px; }
+            .narrow { width: 4px; height: 4px; }
+            .red { background: #ff0000; } .blue { background: #0000ff; } .green { background: #00ff00; }
+            """, children: "row class=\"r\" { stack class=\"f red\" { stack class=\"wide\" }; stack class=\"f blue\" { stack class=\"narrow\" }; stack class=\"f green\" }")
+        #expect(equal.bounds { $0.near(.red) } == CGRect(x: 0, y: 0, width: 30, height: 10))
+        #expect(equal.bounds { $0.near(.blue) } == CGRect(x: 35, y: 0, width: 30, height: 10))
+        #expect(equal.bounds { $0.near(.green) } == CGRect(x: 70, y: 0, width: 30, height: 10))
+        let basis = try box("""
+            .r { width: 100px; height: 10px; }
+            .b { flex-basis: 20px; height: 10px; background: #ff0000; }
+            .p { flex: 0 0 25%; height: 10px; background: #0000ff; }
+            .g { flex-grow: 1; height: 10px; background: #00ff00; }
+            """, children: "row class=\"r\" { stack class=\"b\"; stack class=\"p\"; stack class=\"g\" }")
+        #expect(basis.bounds { $0.near(.red) } == CGRect(x: 0, y: 0, width: 20, height: 10))
+        #expect(basis.bounds { $0.near(.blue) } == CGRect(x: 20, y: 0, width: 25, height: 10))
+        #expect(basis.bounds { $0.near(.green) } == CGRect(x: 45, y: 0, width: 55, height: 10))
+    }
+
     @Test("justify-content und align-items in column")
     func justify() throws {
         let shot = try box("""

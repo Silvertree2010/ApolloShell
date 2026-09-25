@@ -39,6 +39,10 @@ struct CSSBoxPropertiesTests {
               ("column-gap", "0", .length(CSSLength(0, .points))),
               ("flex-grow", "1", .number(1)),
               ("flex-shrink", "0", .number(0)),
+              ("flex-basis", "0", .length(CSSLength(0, .points))),
+              ("flex-basis", "120px", .length(CSSLength(120, .points))),
+              ("flex-basis", "25%", .length(CSSLength(25, .percent))),
+              ("flex-basis", "auto", .length(CSSLength(0, .auto))),
               ("align-items", "center", .keyword("center")),
               ("align-items", "flex-start", .keyword("start")),
               ("align-self", "auto", .keyword("auto")),
@@ -68,7 +72,8 @@ struct CSSBoxPropertiesTests {
               ("aspect-ratio", "0 / 1"), ("aspect-ratio", "16 /"),
               ("padding", "1px 2px 3px 4px 5px"), ("padding", "-1px"),
               ("padding-top", "-1px"), ("padding-left", "1px 2px"), ("margin-bottom", "auto"), ("margin-right", "red"),
-              ("gap", "50%"), ("flex-grow", "-1"), ("align-items", "middle"),
+              ("gap", "50%"), ("flex-grow", "-1"), ("flex-basis", "-1px"), ("flex-basis", "1fr"),
+              ("flex", "-1"), ("flex", "1 2 3px 4"), ("flex", "red"), ("flex", "1px 2px"), ("flex", "1 -2"), ("align-items", "middle"),
               ("justify-content", "stretch"),
               ("grid-template-columns", "repeat(0, 1fr)"), ("grid-template-columns", "1fr 2em"),
               ("grid-column", "2"), ("grid-column", "span 0"),
@@ -82,7 +87,7 @@ struct CSSBoxPropertiesTests {
     func registry() {
         let names = ["width", "height", "min-width", "max-width", "min-height", "max-height", "aspect-ratio",
                      "padding", "margin", "padding-top", "padding-right", "padding-bottom", "padding-left",
-                     "margin-top", "margin-right", "margin-bottom", "margin-left", "gap", "row-gap", "column-gap", "flex-grow", "flex-shrink",
+                     "margin-top", "margin-right", "margin-bottom", "margin-left", "gap", "row-gap", "column-gap", "flex-grow", "flex-shrink", "flex-basis", "flex",
                      "align-items", "align-self", "justify-content", "grid-template-columns", "grid-auto-rows",
                      "grid-column", "grid-row", "overflow", "z-index", "pointer-events", "cursor"]
         for name in names {
