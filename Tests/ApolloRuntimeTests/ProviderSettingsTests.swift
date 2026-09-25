@@ -104,4 +104,19 @@ struct ProviderSettingsTests {
         shell.fixture.flush()
         #expect(shell.runtime.surface("bar", screenKey: "A") != nil && shell.runtime.surface("bar", screenKey: "B") != nil)
     }
+
+    @Test("Neu gebaute Oberfläche auf einem Bildschirm mit Vollbild-App bleibt versteckt")
+    func newSurfaceInheritsFullscreen() async throws {
+        let shell = KDLShell()
+        shell.apply(try await shell.load("""
+        var where "main"
+        panel "bar" screen="{var.where}" { text "bar" }
+        """), screens: ["A", "B"])
+        shell.fixture.flush()
+        shell.runtime.setHiddenByFullscreen(true, screenKey: "B")
+        _ = shell.vars.set("where", .string("all"), for: nil)
+        shell.fixture.flush()
+        let instance = try #require(shell.runtime.surface("bar", screenKey: "B"))
+        #expect(instance.isVisible == false)
+    }
 }

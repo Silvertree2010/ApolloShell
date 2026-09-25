@@ -25,6 +25,7 @@ public final class ShellRuntime: SurfaceControlling {
     private var providerSettingValues: [String: [String: Value]] = [:]
     private var providerSettingsPushed: [String: Record] = [:]
     private var screensPending = false
+    private var fullscreenScreens: Set<String> = []
     static let namedBlockProviders: Set<String> = ["poll", "listen"]
     private var inSession = false
     private var queue: [@MainActor () -> Void] = []
@@ -315,6 +316,7 @@ public final class ShellRuntime: SurfaceControlling {
     }
 
     public func setHiddenByFullscreen(_ hidden: Bool, screenKey: String) {
+        if hidden { fullscreenScreens.insert(screenKey) } else { fullscreenScreens.remove(screenKey) }
         for key in surfaceOrder {
             guard let node = surfaceNodes[key], node.instance.screenKey == screenKey, node.hiddenByFullscreen != hidden else { continue }
             node.hiddenByFullscreen = hidden
@@ -593,6 +595,7 @@ public final class ShellRuntime: SurfaceControlling {
     func buildSurface(_ ir: SurfaceIR, screen: String) -> SurfaceNode {
         let instance = SurfaceInstance(id: ir.id, screenKey: screen, ir: ir, isOpen: Self.opensByDefault(ir.kind))
         let node = SurfaceNode(instance: instance)
+        node.hiddenByFullscreen = fullscreenScreens.contains(screen)
         surfaceNodes[node.surfaceKey] = node
         surfaceOrder.append(node.surfaceKey)
         surfacesBuilt += 1
