@@ -33,11 +33,13 @@ define "dashboard-weather" {
                         column class="weather-hero-text" {
                             text "{weather.current.description}" class="weather-hero-condition" lines=1
                             text "{((weather.current.apparent != null ? ' · Feels like ' + (weather.current.apparent | temperature) : '') + (weather.today != null ? ' · H:' + (weather.today.max | temperature) + ' L:' + (weather.today.min | temperature) : '')) | skip 3}" class="weather-hero-summary" lines=1
-                            row class="weather-places" {
-                                each place in="{var.weather-places}" key="{place.id}" {
-                                    button class="weather-place" checked="{place.id == var.weather-selected}" {
-                                        on-click { set "weather-selected" "{place.id}" }
-                                        text "{place.name}" class="weather-place-name"
+                            scroll class="weather-places-scroll" axis="horizontal" reveal="{var.weather-selected}" {
+                                row class="weather-places" {
+                                    each place in="{var.weather-places}" key="{place.id}" {
+                                        button class="weather-place" checked="{place.id == var.weather-selected}" {
+                                            on-click { set "weather-selected" "{place.id}" }
+                                            text "{place.name}" class="weather-place-name"
+                                        }
                                     }
                                 }
                             }

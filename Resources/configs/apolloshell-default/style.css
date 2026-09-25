@@ -404,6 +404,7 @@
 .weather-hero-condition { font-size: 19px; font-weight: 600; }
 .weather-hero-summary { font-size: 13px; color: -apple-system-secondary-label; }
 .weather-places { gap: 5px; margin: 3px 0 0; }
+.weather-places-scroll { -apollo-fade-edges: 6%; }
 .weather-place { padding: 4px 9px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-secondary-label; transition: background 150ms ease-out; }
 .weather-place:checked { background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
 .weather-place-name { font-size: 11px; font-weight: 600; }
