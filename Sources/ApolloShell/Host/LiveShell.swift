@@ -55,6 +55,7 @@ final class LiveShell: WindowHostLink {
     private var updates: UpdateController?
     private var crashes: CrashReporter?
     private var commandCenter: CommandCenterController?
+    private var appliedTheme: String??
     private var commandCenterHandlers: [String: (actions: [ActionIR], locals: [String: Value])] = [:]
     private var windowGuard: WindowGuard?
     private var writers: [String: StateWriter] = [:]
@@ -250,7 +251,10 @@ final class LiveShell: WindowHostLink {
         }
         host.observeSpaces()
         host.onSpaceChange = { [weak self] in self?.fullscreen.poke() }
-        fullscreen.apply = { [weak self] hidden, key in self?.assembly?.runtime.setHiddenByFullscreen(hidden, screenKey: key) }
+        fullscreen.apply = { [weak self] hidden, key in
+            self?.assembly?.runtime.setHiddenByFullscreen(hidden, screenKey: key)
+            _ = self?.assembly?.runtime.emit("fullscreen.changed", Record([("screen", .string(key)), ("active", .bool(hidden))]))
+        }
         fullscreen.setScreens(Array(host.screens.keys))
         setUpEdgeHover()
         ShellScreens.onChange { [weak self] in
@@ -380,6 +384,11 @@ final class LiveShell: WindowHostLink {
 
     private func configApplied(_ ir: ConfigIR) {
         lastIR = ir
+        let theme = settings.settings.theme
+        if let appliedTheme, appliedTheme != theme {
+            _ = assembly?.runtime.emit("theme.changed", Record([("id", theme.map(Value.string) ?? .null)]))
+        }
+        appliedTheme = theme
         let catalog = catalogFields()
         if catalog.contains(where: { shell[$0.0] != $0.1 }) { setShell(catalog) }
         applyCommandCenterVisibility(ir)
@@ -610,6 +619,12 @@ final class LiveShell: WindowHostLink {
         environmentObservers.append((workspace, workspace.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.hotKeys?.retryFailed() }
         }))
+        for (name, event) in [(NSWorkspace.willSleepNotification, "system.will-sleep"), (NSWorkspace.didWakeNotification, "system.did-wake"),
+                              (NSWorkspace.sessionDidResignActiveNotification, "system.session-inactive"), (NSWorkspace.sessionDidBecomeActiveNotification, "system.session-active")] {
+            environmentObservers.append((workspace, workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { _ = self?.assembly?.runtime.emit(event, Record()) }
+            }))
+        }
         environmentObservers.append((workspace, workspace.addObserver(forName: NSWorkspace.didDeactivateApplicationNotification, object: nil, queue: .main) { [weak self] note in
             let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
             guard app?.bundleIdentifier == "com.apple.systempreferences" else { return }
