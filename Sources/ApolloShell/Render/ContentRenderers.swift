@@ -246,14 +246,17 @@ struct ImageElement: View {
             let base = Image(nsImage: image).renderingMode(template ? .template : .original)
             Group {
                 switch fit {
-                case "fill": base.resizable().scaledToFill()
+                case "fill":
+                    Color.clear
+                        .frame(idealWidth: image.size.width, idealHeight: image.size.height)
+                        .overlay { base.resizable().scaledToFill() }
                 case "stretch": base.resizable()
                 case "center": base
                 default: base.resizable().scaledToFit()
                 }
             }
             .foregroundStyle(TextStyle(style).color)
-            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: StyleValues.radius(style["border-radius"]), style: .continuous))
         } else if let placeholder {
             IconElement(name: placeholder, fallback: nil, variable: nil, style: style, context: context)
         } else {
