@@ -162,7 +162,25 @@ final class WindowHost: SurfaceHosting {
     private func content(_ surface: SurfaceInstance, insets: EdgeInsets, flyout: EdgeInsets = EdgeInsets()) -> AnyView {
         guard let context else { return AnyView(EmptyView()) }
         let occluded = context.occluded.contains(SurfaceHost.key(surface.id, surface.screenKey))
-        return AnyView(SurfaceView(surface: surface, context: context, insets: insets, painter: backgroundPainter, occluded: occluded).padding(flyout))
+        let view = SurfaceView(surface: surface, context: context, insets: insets, painter: backgroundPainter, occluded: occluded).padding(flyout)
+        guard surface.ir.kind != "window" else { return AnyView(view) }
+        let style = context.styles.resolve(StyleResolver.subject(for: surface), ancestors: [], parent: nil)
+        let anchor = SurfacePlacement(kind: surface.ir.kind, property: surface.property, style: style).anchor
+        return AnyView(view.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: Self.alignment(anchor)))
+    }
+
+    static func alignment(_ anchor: SurfacePlacement.Anchor) -> Alignment {
+        switch anchor {
+        case .top: .top
+        case .bottom: .bottom
+        case .left: .leading
+        case .right: .trailing
+        case .topLeft: .topLeading
+        case .topRight: .topTrailing
+        case .bottomLeft: .bottomLeading
+        case .bottomRight: .bottomTrailing
+        case .center, .fill: .center
+        }
     }
 
     func flyoutExtent(_ key: String, _ extent: EdgeInsets) {

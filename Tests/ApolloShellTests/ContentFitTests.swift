@@ -42,3 +42,15 @@ struct ContentFitTests {
         #expect(window.frame.size.width >= 406)
     }
 }
+
+@MainActor
+@Suite("Inhalt an der verankerten Kante")
+struct AnchorAlignmentTests {
+    @Test("Eine links verankerte Oberfläche richtet ihren Inhalt links aus, damit er beim Wachsen für ein Flyout nicht springt")
+    func alignment() {
+        #expect(WindowHost.alignment(.left) == .leading)
+        #expect(WindowHost.alignment(.right) == .trailing)
+        #expect(WindowHost.alignment(.bottomRight) == .bottomTrailing)
+        #expect(WindowHost.alignment(.center) == .center)
+    }
+}
