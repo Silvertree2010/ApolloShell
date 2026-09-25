@@ -159,6 +159,10 @@
 .card-weather-body { gap: 16px; align-items: center; }
 .card-weather-glyph { font-size: 46px; -apollo-symbol-rendering: multicolor; }
 .card-weather-text { gap: 1px; }
+.card-weather.zone-side { padding: 0 16px; }
+.card-weather-body.vertical { gap: 8px; align-items: center; }
+.card-weather-text.vertical { align-items: center; }
+.card-weather-text.vertical > text { text-align: center; }
 .card-weather-temperature { font-size: 34px; font-weight: 600; font-family: ui-rounded; }
 .card-weather-condition { font-size: 13px; font-weight: 500; }
 .card-weather-range { font-size: 11px; color: -apple-system-secondary-label; }
@@ -180,6 +184,8 @@
 .card-calendar-title { font-size: 14px; font-weight: 600; color: -apple-system-secondary-label; }
 .card-calendar-arrow-glyph { color: -apple-system-secondary-label; }
 .card-calendar-grid { align-self: stretch; column-gap: 4px; row-gap: 2px; }
+.card-calendar.tall { gap: 16px; }
+.card-calendar.tall .card-calendar-grid { row-gap: 14px; }
 .card-calendar-cell { align-items: center; }
 .card-calendar-day { width: 26px; height: 26px; font-size: 12px; text-align: center; }
 .card-calendar-day.today { font-weight: 700; border-radius: 9999px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }

@@ -5,12 +5,24 @@ define "card-weather" {
         on-click { set "dashboard-tab" "weather" }
         switch "{weather.status}" {
             case "ready" {
-                row class="card-weather-body" {
-                    icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph card-weather-glyph"
-                    column class="card-weather-text" {
-                        text "{weather.current.temperature | temperature}" class="card-weather-temperature"
-                        when "{card.show-condition}" { text "{weather.current.description}" class="card-weather-condition" }
-                        when "{card.show-range && weather.today != null}" { text "H:{weather.today.max | temperature} L:{weather.today.min | temperature}" class="card-weather-range" }
+                when "{zone == 'side'}" {
+                    column class="card-weather-body vertical" {
+                        icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph card-weather-glyph"
+                        column class="card-weather-text vertical" {
+                            text "{weather.current.temperature | temperature}" class="card-weather-temperature"
+                            when "{card.show-condition}" { text "{weather.current.description}" class="card-weather-condition" }
+                            when "{card.show-range && weather.today != null}" { text "H:{weather.today.max | temperature} L:{weather.today.min | temperature}" class="card-weather-range" }
+                        }
+                    }
+                }
+                else {
+                    row class="card-weather-body" {
+                        icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph card-weather-glyph"
+                        column class="card-weather-text" {
+                            text "{weather.current.temperature | temperature}" class="card-weather-temperature"
+                            when "{card.show-condition}" { text "{weather.current.description}" class="card-weather-condition" }
+                            when "{card.show-range && weather.today != null}" { text "H:{weather.today.max | temperature} L:{weather.today.min | temperature}" class="card-weather-range" }
+                        }
                     }
                 }
             }
@@ -68,7 +80,7 @@ define "card-clock" {
 define "card-calendar" {
     param "card"
     param "zone"
-    column class="card card-calendar zone-{zone}" {
+    column class="card card-calendar zone-{zone} {(var.dashboard-cards-top | count) == 0 ? 'tall' : ''}" {
         row class="card-calendar-head" {
             button class="card-calendar-arrow" tooltip="Previous Month" {
                 on-click { set "calendar-offset" "{var.calendar-offset - 1}" }
