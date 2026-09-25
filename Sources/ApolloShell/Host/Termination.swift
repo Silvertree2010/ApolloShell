@@ -1,4 +1,6 @@
 import AppKit
+import ApolloShellCore
+import ServiceManagement
 import ApolloBase
 import ApolloRuntime
 
@@ -58,6 +60,65 @@ final class OSDShowAction: ActionImplementation {
     func perform(_ call: ResolvedActionCall, environment: ActionEnvironment, runtime: any ActionRuntime) async throws {
         guard case .string(let id)? = call.arguments.first, !id.isEmpty else { throw ActionFailure("osd.show needs an osd id") }
         shell?.showOSD(id)
+    }
+}
+
+@MainActor
+final class LoginItem {
+    var status: @MainActor () -> OnboardingAutostart.Status
+    var change: @MainActor (Bool) throws -> Void
+    let launchdLabel: String?
+    let isAppBundle: Bool
+    private(set) var error: String?
+
+    init(status: @escaping @MainActor () -> OnboardingAutostart.Status, change: @escaping @MainActor (Bool) throws -> Void, launchdLabel: String?, isAppBundle: Bool) {
+        self.status = status
+        self.change = change
+        self.launchdLabel = launchdLabel
+        self.isAppBundle = isAppBundle
+    }
+
+    static func live() -> LoginItem {
+        LoginItem(status: {
+            switch SMAppService.mainApp.status {
+            case .enabled: .enabled
+            case .requiresApproval: .requiresApproval
+            case .notRegistered: .notRegistered
+            default: .notFound
+            }
+        }, change: { on in
+            if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+        }, launchdLabel: OnboardingAutostart.launchdLabel(environment: ProcessInfo.processInfo.environment),
+           isAppBundle: Bundle.main.bundleURL.pathExtension == "app")
+    }
+
+    var state: OnboardingAutostart.State {
+        OnboardingAutostart.state(status: status(), launchdLabel: launchdLabel, isAppBundle: isAppBundle)
+    }
+
+    func setEnabled(_ on: Bool) {
+        let current = state
+        guard current.canToggle, on != current.isOn else { return }
+        do {
+            try change(on)
+            error = nil
+        } catch {
+            self.error = "macOS declined: \(error.localizedDescription)"
+        }
+    }
+}
+
+@MainActor
+final class LoginItemAction: ActionImplementation {
+    weak var shell: LiveShell?
+
+    init(shell: LiveShell) {
+        self.shell = shell
+    }
+
+    func perform(_ call: ResolvedActionCall, environment: ActionEnvironment, runtime: any ActionRuntime) async throws {
+        guard case .bool(let on)? = call.arguments.first else { throw ActionFailure("shell.set-login-item needs #true or #false") }
+        shell?.setLoginItem(on)
     }
 }
 

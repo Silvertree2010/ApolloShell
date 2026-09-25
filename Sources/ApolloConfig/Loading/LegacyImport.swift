@@ -40,6 +40,20 @@ public enum LegacyImport {
         fileSystem.exists(settingsJSON(paths)) && !fileSystem.exists(paths.stateDirectory)
     }
 
+    public static func freshInstallFile(_ paths: ConfigPaths) -> URL {
+        paths.applicationSupport.appendingPathComponent("fresh-install")
+    }
+
+    public static func freshInstall(paths: ConfigPaths, fileSystem: any ConfigFileSystem) -> Bool {
+        let file = freshInstallFile(paths)
+        if fileSystem.exists(file), let text = try? fileSystem.read(file) {
+            return text.trimmingCharacters(in: .whitespacesAndNewlines) == "true"
+        }
+        let fresh = !fileSystem.exists(settingsJSON(paths)) && !fileSystem.exists(paths.stateDirectory)
+        try? fileSystem.write(fresh ? "true\n" : "false\n", to: file)
+        return fresh
+    }
+
     public static func run(
         paths: ConfigPaths,
         fileSystem: any ConfigFileSystem,

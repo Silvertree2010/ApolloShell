@@ -473,6 +473,22 @@ struct LegacyImportFileTests {
         ])))
     }
 
+    @Test("fresh-install: einmal bestimmt, vor der Übernahme, danach aus Application Support")
+    func freshInstall() {
+        let paths = Self.paths(URL(fileURLWithPath: "/r"))
+        let empty = MemoryFileSystem([:])
+        #expect(LegacyImport.freshInstall(paths: paths, fileSystem: empty))
+        _ = try? empty.write("", to: LegacyImport.stateFile(paths))
+        #expect(LegacyImport.freshInstall(paths: paths, fileSystem: empty))
+
+        let upgrade = MemoryFileSystem(["/r/Application Support/ApolloShell/settings.json": "{}"])
+        #expect(!LegacyImport.freshInstall(paths: paths, fileSystem: upgrade))
+        _ = LegacyImport.run(paths: paths, fileSystem: upgrade, defaults: { _ in nil })
+        #expect(!LegacyImport.freshInstall(paths: paths, fileSystem: upgrade))
+
+        #expect(!LegacyImport.freshInstall(paths: paths, fileSystem: MemoryFileSystem(["/r/config/state/apolloshell-default.kdl": ""])))
+    }
+
     @Test("leere Übernahme legt den state-Ordner trotzdem an, settings.kdl bleibt unberührt")
     func emptyImportMarksDone() {
         let paths = Self.paths(URL(fileURLWithPath: "/r"))

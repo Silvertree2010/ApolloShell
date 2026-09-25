@@ -183,7 +183,7 @@ struct PermissionsShortcutsTests {
         let token = harness.demand("permissions")
         #expect(harness.conformanceProblems(BuiltinProviderSchemas.schema("permissions")).isEmpty)
         #expect(harness.value("permissions", "automation") == .null)
-        #expect(harness.value("permissions", "shell.login-item") == .bool(false))
+        #expect(harness.value("permissions", "shell") == .null)
         source.accessibility = true
         harness.advance(2)
         #expect(harness.value("permissions", "accessibility") == .bool(true))
@@ -192,11 +192,9 @@ struct PermissionsShortcutsTests {
         await #expect(throws: ProviderActionError.self) {
             try await harness.perform("permissions", "permissions.open", [.string("camera")])
         }
-        _ = try await harness.perform("permissions", "shell.set-login-item", [.bool(true)])
-        #expect(harness.value("permissions", "shell.login-item") == .bool(true))
-        source.loginItemWorks = false
-        _ = try await harness.perform("permissions", "shell.set-login-item", [.bool(false)])
-        #expect(harness.warnings.count == 1)
+        await #expect(throws: ProviderActionError.self) {
+            try await harness.perform("permissions", "shell.set-login-item", [.bool(true)])
+        }
         #expect(source.requests == 1)
         #expect(source.opened == ["screen-recording"])
         harness.release(token)

@@ -79,6 +79,8 @@ final class LiveShell: WindowHostLink {
     var registrar: any HotKeyRegistering = CarbonHotKeys()
     var legacyDefaults: (String) -> Any? = { UserDefaults.standard.object(forKey: $0) }
     private(set) var legacyNotes: [Diagnostic] = []
+    private(set) var freshInstall = false
+    var loginItem = LoginItem.live()
     var interactive = true
     var currentScreens: @MainActor () -> [String: ScreenGeometry] = {
         Dictionary(ShellScreens.current().map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame)) }, uniquingKeysWith: { first, _ in first })
@@ -170,6 +172,7 @@ final class LiveShell: WindowHostLink {
 
     func start() async throws {
         steps.append("settings")
+        freshInstall = LegacyImport.freshInstall(paths: paths, fileSystem: DiskFileSystem())
         importLegacySettings()
         let names = keyNames
         let assembly = ShellAssembly(host: host, scheduler: RunLoopFlushScheduler(), filterContext: {
@@ -180,6 +183,7 @@ final class LiveShell: WindowHostLink {
         assembly.actions.register("notify", NotifyAction(center: toasts))
         assembly.actions.register("toast.dismiss", ToastDismissAction(center: toasts))
         assembly.actions.register("marketplace.open", MarketplaceOpenAction(shell: self))
+        assembly.actions.register("shell.set-login-item", LoginItemAction(shell: self))
         toasts.runtime = assembly.runtime
         host.publishSize = { [weak assembly] id, screen, size in
             assembly?.runtime.setSurfaceSize(id, screenKey: screen, width: Double(size.width), height: Double(size.height))
@@ -227,7 +231,7 @@ final class LiveShell: WindowHostLink {
         host.context = makeContext(result.ir)
         steps.append("surfaces")
         refreshScreens()
-        shell = Record([("config", .string(location.id)), ("version", .string(ShellVersion.current))])
+        shell = Record([("config", .string(location.id)), ("version", .string(ShellVersion.current)), ("fresh-install", .bool(freshInstall))] + loginItemFields())
         guard assembly.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Array(host.screens.keys).sorted(), shell: shell, writer: writer(for: location)) else {
             throw RenderError.config("config \(location.root.path) did not load")
         }
@@ -365,10 +369,34 @@ final class LiveShell: WindowHostLink {
     }
 
     private func setShell(_ name: String, _ value: Value) {
-        var fields = shell.keys.filter { $0 != name }.map { ($0, shell[$0] ?? .null) }
-        fields.append((name, value))
+        setShell([(name, value)])
+    }
+
+    private func setShell(_ changes: [(String, Value)]) {
+        let names = Set(changes.map(\.0))
+        let fields = shell.keys.filter { !names.contains($0) }.map { ($0, shell[$0] ?? .null) } + changes
         shell = Record(fields)
         assembly?.store.set(DependencyPath("shell", []), .record(shell))
+    }
+
+    private func loginItemFields() -> [(String, Value)] {
+        let state = loginItem.state
+        return [
+            ("login-item", .bool(state.isOn)),
+            ("login-item-available", .bool(state.canToggle)),
+            ("login-item-note", (loginItem.error ?? state.note).map(Value.string) ?? .null),
+        ]
+    }
+
+    func setLoginItem(_ on: Bool) {
+        loginItem.setEnabled(on)
+        setShell(loginItemFields())
+    }
+
+    func refreshLoginItem() {
+        let fields = loginItemFields()
+        guard fields.contains(where: { shell[$0.0] != $0.1 }) else { return }
+        setShell(fields)
     }
 
     private func refreshScreens() {
@@ -514,6 +542,11 @@ final class LiveShell: WindowHostLink {
         }))
         environmentObservers.append((workspace, workspace.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.hotKeys?.retryFailed() }
+        }))
+        environmentObservers.append((workspace, workspace.addObserver(forName: NSWorkspace.didDeactivateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            guard app?.bundleIdentifier == "com.apple.systempreferences" else { return }
+            MainActor.assumeIsolated { self?.refreshLoginItem() }
         }))
     }
 

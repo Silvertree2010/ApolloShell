@@ -2,6 +2,7 @@ import Testing
 import Foundation
 import ApolloBase
 import ApolloConfig
+import ApolloShellCore
 @testable import ApolloShell
 
 @MainActor
@@ -51,6 +52,56 @@ struct LegacyImportStartTests {
 
     static func state(_ file: URL) throws -> [String: Value] {
         VarStateFile.readAll(try String(contentsOf: file, encoding: .utf8), file: file.path).0
+    }
+
+    @Test("frische Installation: shell.fresh-install wahr, Vorgaben für neue Nutzer; Update von 0.1.4.2: falsch")
+    func freshInstallDefaults() async throws {
+        let fresh = Home(root: FileManager.default.temporaryDirectory.appendingPathComponent("legacy-start-\(UUID().uuidString)"))
+        try FileManager.default.createDirectory(at: fresh.root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: fresh.root) }
+        let shell = try Self.shell(fresh)
+        try await shell.start()
+        #expect(shell.freshInstall)
+        #expect(shell.assembly?.store.value(DependencyPath("shell", ["fresh-install"])) == .bool(true))
+        #expect(shell.assembly?.vars.value("onboarding-done") == .bool(false))
+        #expect(shell.assembly?.vars.value("hotkey-launcher") == .string("alt+space"))
+        #expect(shell.assembly?.store.value(DependencyPath("shell", ["login-item-available"])) != nil)
+        shell.shutdown()
+
+        let again = try Self.shell(fresh)
+        try await again.start()
+        #expect(again.freshInstall)
+        again.shutdown()
+
+        let upgrade = try Self.home(settings: "settings-full.json")
+        defer { try? FileManager.default.removeItem(at: upgrade.root) }
+        let upgraded = try Self.shell(upgrade)
+        try await upgraded.start()
+        defer { upgraded.shutdown() }
+        #expect(!upgraded.freshInstall)
+        #expect(upgraded.assembly?.store.value(DependencyPath("shell", ["fresh-install"])) == .bool(false))
+    }
+
+    @Test("Start at Login: shell.login-item* unter shell, shell.set-login-item läuft über die Shell")
+    func loginItem() async throws {
+        let home = Home(root: FileManager.default.temporaryDirectory.appendingPathComponent("legacy-start-\(UUID().uuidString)"))
+        try FileManager.default.createDirectory(at: home.root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: home.root) }
+        let shell = try Self.shell(home)
+        var status = OnboardingAutostart.Status.notRegistered
+        var calls: [Bool] = []
+        shell.loginItem = LoginItem(status: { status }, change: { on in
+            calls.append(on)
+            status = on ? .enabled : .notRegistered
+        }, launchdLabel: nil, isAppBundle: true)
+        try await shell.start()
+        defer { shell.shutdown() }
+        let store = try #require(shell.assembly?.store)
+        #expect(store.value(DependencyPath("shell", ["login-item"])) == .bool(false))
+        #expect(store.value(DependencyPath("shell", ["login-item-available"])) == .bool(true))
+        _ = try await shell.runActions("shell.set-login-item #true")
+        #expect(calls == [true])
+        #expect(store.value(DependencyPath("shell", ["login-item"])) == .bool(true))
     }
 
     @Test("erster Start: Werte landen in state/apolloshell-default.kdl, das Theme in settings.kdl")

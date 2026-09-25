@@ -232,10 +232,6 @@ public final class PermissionsProvider: BaseProvider {
         super.init(schema: BuiltinProviderSchemas.schema("permissions"), clock: clock)
     }
 
-    override func didStart() {
-        publish("shell.login-item", .bool(source.loginItem))
-    }
-
     override func didChangeDemand() {
         timers.set("read", every: Self.interval, active: demand.wantsAny(Self.kinds), immediately: true) { [weak self] in
             self?.read()
@@ -252,9 +248,6 @@ public final class PermissionsProvider: BaseProvider {
                 throw ProviderActionError.invalidArgument(action: arguments.action, message: "unknown permission \"\(kind)\"")
             }
             source.open(kind)
-        case "shell.set-login-item":
-            if !source.setLoginItem(try arguments.bool(0)) { warn("shell.set-login-item: the login item could not be changed") }
-            publish("shell.login-item", .bool(source.loginItem))
         default:
             throw ProviderActionError.unknownAction(arguments.action)
         }
