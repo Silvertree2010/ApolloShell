@@ -63,7 +63,7 @@ struct LayoutFilterServices: FilterServices {
     }
     func uptimeText(_ seconds: Double) -> String { base.uptimeText(seconds) }
     func normalizedURL(_ text: String) -> String? { base.normalizedURL(text) }
-    func symbolExists(_ name: String) -> Bool { base.symbolExists(name) }
+    func symbolExists(_ name: String) -> Bool { !name.isEmpty && NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil }
     func hotkeyWarning(_ chord: String) -> String? { base.hotkeyWarning(chord) }
     func temperatureText(_ celsius: Double) -> String { base.temperatureText(celsius) }
 }

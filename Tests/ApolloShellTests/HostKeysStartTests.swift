@@ -134,6 +134,14 @@ struct HostKeyTests {
         #expect(none.chordDisplay("shift+a") == "⇧A")
     }
 
+    @Test("Filter symbol-exists prüft live, ob es das SF-Symbol gibt")
+    func symbolExistsFilter() {
+        let services = LayoutFilterServices(keyName: { _ in nil })
+        #expect(services.symbolExists("star.fill"))
+        #expect(!services.symbolExists("apollo.no-such-symbol"))
+        #expect(!services.symbolExists(""))
+    }
+
     @Test("key in einer Oberfläche: Tastenname aus dem Ereignis, Kanon wie bind")
     func keyNames() {
         #expect(KeyNameTable.name(for: 0x7E) == "up")
