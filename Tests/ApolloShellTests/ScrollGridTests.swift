@@ -15,6 +15,17 @@ struct ScrollGridTests {
         #expect((bounds?.height ?? 0) >= 80)
     }
 
+    @Test("axis both: breiter Inhalt beginnt links statt in der Mitte abgeschnitten")
+    func bothAxes() throws {
+        let css = "#p { width: 100px; height: 40px; align-items: start; } .s { width: 100px; height: 40px; } .r { width: 300px; height: 80px; } .a { width: 100px; height: 80px; background: rgb(255 0 0); } .b { width: 100px; height: 80px; background: rgb(0 255 0); } .d { width: 100px; height: 80px; background: rgb(0 0 255); }"
+        func shot(_ axis: String) throws -> Snapshot {
+            try RenderProbe.render("panel \"p\" anchor=\"left\" { scroll class=\"s\" axis=\"\(axis)\" { row class=\"r\" { stack class=\"a\"; stack class=\"b\"; stack class=\"d\" } } }", css: css)
+        }
+        let both = try shot("both")
+        #expect(both.pixel(50, 20).near(.red, tolerance: 30))
+        #expect(both.pixel(50, 20) != (try shot("vertical")).pixel(50, 20))
+    }
+
     @Test("Ein grid mit each im scroll ist sichtbar")
     func eachGridInScroll() throws {
         let kdl = """
