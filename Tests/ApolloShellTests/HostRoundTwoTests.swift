@@ -299,6 +299,17 @@ struct HostStartIPCTests {
         named.shell.shutdown()
     }
 
+    @Test("Warnungen zu settings.kdl erreichen das Overlay beim Start und beim Reload")
+    func settingsWarnings() async throws {
+        let harness = try ShellHarness("panel \"x\" { row {} }", settings: "bogus 1\n", useConfigFolder: false)
+        try await harness.start()
+        #expect(harness.shell.overlay.problems.contains { $0.message.contains("unknown settings.kdl node 'bogus'") })
+        try "config \"x\n".write(to: harness.home.appendingPathComponent("apolloshell/settings.kdl"), atomically: true, encoding: .utf8)
+        await harness.shell.reload()?.value
+        #expect(harness.shell.overlay.problems.contains { $0.message.contains("settings.kdl could not be parsed") })
+        harness.shell.shutdown()
+    }
+
     @Test("var persist: Wert aus state/<config>.kdl geladen, set schreibt zurück")
     func persistedVars() async throws {
         let harness = try ShellHarness("var tab \"a\" persist=#true\npanel \"bar\" { text \"{var.tab}\" }")

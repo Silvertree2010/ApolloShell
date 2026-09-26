@@ -229,7 +229,7 @@ final class LiveShell: WindowHostLink {
         })
         steps.append("config")
         var (location, failed) = resolveActive()
-        failed = legacyNotes + failed
+        failed = legacyNotes + settings.diagnostics + failed
         var result = await load(location)
         if result.ir == nil {
             failed += result.diagnostics
@@ -588,7 +588,7 @@ final class LiveShell: WindowHostLink {
         guard let location else { return nil }
         _ = settings.reload()
         let (resolved, notes) = resolveActive()
-        return (resolved, legacyNotes + notes)
+        return (resolved, legacyNotes + settings.diagnostics + notes)
     }
 
     private func startServices() {
