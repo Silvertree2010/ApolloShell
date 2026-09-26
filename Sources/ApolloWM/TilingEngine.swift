@@ -806,6 +806,7 @@ public final class TilingEngine {
         }
         let here = desk(at: point)
         if let id = fullscreen[here], layouts[here].contains(id) { return id }
+        if isCanvas { return canvasFrames(on: here).first { $0.value.contains(point) }?.key }
         return layouts[here].id(at: point, in: area(of: here), gaps: options.gaps,
                                 minimums: layoutMinimums, maximums: maximums)
     }
