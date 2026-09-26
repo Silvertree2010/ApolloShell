@@ -238,11 +238,13 @@ public final class AppsProvider: BaseProvider {
         case "apps.dock-move":
             move(try arguments.string(0), onto: try arguments.string(1))
         case "apps.favorite-move":
-            let from = Int(try arguments.number(0))
-            let to = Int(try arguments.number(1))
-            guard favorites.ids.indices.contains(from), to >= 0 else {
+            let fromNumber = try arguments.number(0)
+            let toNumber = try arguments.number(1)
+            guard fromNumber >= 0, fromNumber < Double(favorites.ids.count), toNumber >= 0 else {
                 throw ProviderActionError.invalidArgument(action: action, message: "position out of range")
             }
+            let from = Int(fromNumber)
+            let to = Int(min(toNumber, Double(favorites.ids.count)))
             favorites.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? min(to + 1, favorites.ids.count) : to)
             saveFavorites()
         default:
