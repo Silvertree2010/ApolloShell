@@ -15,6 +15,8 @@ final class ShellAssembly {
     let actions: ActionDispatcher
     let runtime: ShellRuntime
     private(set) var warnings: [Diagnostic] = []
+    private var seenWarnings: Set<Diagnostic> = []
+    static let warningLimit = 256
     var onWarning: (@MainActor (Diagnostic) -> Void)?
 
     init(host: any SurfaceHosting, scheduler: any FlushScheduler, clock: any RuntimeClock = DispatchRuntimeClock(), filterContext: @escaping @Sendable () -> FilterContext) {
@@ -33,7 +35,9 @@ final class ShellAssembly {
     }
 
     private func warned(_ diagnostic: Diagnostic) {
-        warnings.append(diagnostic)
+        if warnings.count < Self.warningLimit, seenWarnings.insert(diagnostic).inserted {
+            warnings.append(diagnostic)
+        }
         onWarning?(diagnostic)
     }
 
