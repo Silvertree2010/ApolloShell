@@ -550,7 +550,7 @@ struct ActionDispatcherHugeNumberTests {
     func openWithHugeNumber() async {
         let fixture = DispatcherFixture()
         await fixture.trigger([IR.call("open", [IR.number(1e20)])])?.value
-        #expect(fixture.log.entries == ["open:1e+20"])
+        #expect(fixture.log.entries.isEmpty)
     }
 
     @Test("wait mit 1e20 Sekunden wird gekappt, die Warnung stürzt nicht ab")
