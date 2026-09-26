@@ -1100,8 +1100,9 @@ final class LiveShellControl: ShellControl, @unchecked Sendable {
     }
 
     func surface(_ operation: SurfaceOperation, _ id: String) async throws {
-        await MainActor.run {
-            guard let runtime = shell?.assembly?.runtime else { return }
+        try await MainActor.run {
+            guard let shell, let runtime = shell.assembly?.runtime else { return }
+            guard shell.host.controllers.values.contains(where: { $0.surface.id == id }) else { throw ShellControlError("unknown surface '\(id)'") }
             switch operation {
             case .open: runtime.open(id, screenKey: nil)
             case .close: runtime.close(id)

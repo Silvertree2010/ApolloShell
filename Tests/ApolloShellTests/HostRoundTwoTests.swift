@@ -2,6 +2,7 @@ import Testing
 import AppKit
 import ApolloBase
 import ApolloConfig
+import ApolloControl
 import ApolloRuntime
 import ApolloShellCore
 @testable import ApolloShell
@@ -307,6 +308,19 @@ struct HostStartIPCTests {
         try "config \"x\n".write(to: harness.home.appendingPathComponent("apolloshell/settings.kdl"), atomically: true, encoding: .utf8)
         await harness.shell.reload()?.value
         #expect(harness.shell.overlay.problems.contains { $0.message.contains("settings.kdl could not be parsed") })
+        harness.shell.shutdown()
+    }
+
+    @Test("apollo open/close/toggle mit unbekannter Oberfläche meldet dem Client einen Fehler")
+    func unknownSurfaceFails() async throws {
+        let harness = try ShellHarness("popup \"menu\" { row {} }")
+        try await harness.start()
+        let control = LiveShellControl(shell: harness.shell)
+        for operation in [SurfaceOperation.open, .close, .toggle] {
+            await #expect(throws: ShellControlError.self) { try await control.surface(operation, "nope") }
+        }
+        try await control.surface(.open, "menu")
+        #expect(harness.runtime.surface("menu", screenKey: ShellHarness.a.key)?.isOpen == true)
         harness.shell.shutdown()
     }
 
