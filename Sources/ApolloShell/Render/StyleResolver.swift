@@ -18,10 +18,12 @@ final class StyleResolver {
     let environment: StyleEnvironment
     private var cache = BoundedCache<Key, ComputedStyle>(limit: StyleResolver.cacheLimit)
     private(set) var diagnostics: [Diagnostic] = []
+    private var seenDiagnostics: Set<Diagnostic> = []
     private(set) var lookups = 0
     private(set) var computed = 0
     private(set) static var computedTotal = 0
     static let cacheLimit = 4096
+    static let diagnosticLimit = 256
     var cachedCount: Int { cache.count }
 
     let assetRoot: URL?
@@ -125,12 +127,18 @@ final class StyleResolver {
         if let inline, !inline.isEmpty {
             let parsed = StyleEngine.parseInline(inline, span: .synthetic("style"))
             declarations = parsed.0
-            diagnostics += parsed.1
+            note(parsed.1)
         }
         let (style, found) = engine.computedStyle(for: subject, ancestors: ancestors, parent: parent, inline: declarations, environment: environment)
-        diagnostics += found
+        note(found)
         cache[key] = style
         return style
+    }
+
+    private func note(_ found: [Diagnostic]) {
+        for diagnostic in found where diagnostics.count < Self.diagnosticLimit && seenDiagnostics.insert(diagnostic).inserted {
+            diagnostics.append(diagnostic)
+        }
     }
 }
 
