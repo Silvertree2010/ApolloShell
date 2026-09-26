@@ -355,6 +355,7 @@ start with `-apollo-` and are not valid in a theme.
 | `-apollo-thumb-color` | colour | slider knob |
 | `-apollo-thumb-size` | one length, or width and height | slider knob size |
 | `-apollo-thumb-shadow` | shadow, as `box-shadow` | slider knob shadow |
+| `-apollo-fill-mode` | `center` (default), `inside`, `inside-linear` | where the slider knob sits: centred on the end of the fill, inside the fill, or inside a fill that grows linearly from the track's thickness to its length |
 | `-apollo-stroke-width` | length, default `4px` | line width of ring, gauge and graph |
 | `-apollo-start-angle` | angle, default `-90deg` | where a ring starts |
 | `-apollo-sweep-angle` | angle, default `360deg` | how far a ring reaches |
