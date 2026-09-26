@@ -512,3 +512,35 @@ struct CompiledValueBindingTests {
         #expect(handle.currentValue == .string("app-y"))
     }
 }
+
+@MainActor
+@Suite("ActionDispatcher: sehr grosse Zahlen")
+struct ActionDispatcherHugeNumberTests {
+    typealias IR = RuntimeIR
+
+    @Test("open mit 1e20 als Oberflächen-ID stürzt nicht ab")
+    func openWithHugeNumber() async {
+        let fixture = DispatcherFixture()
+        await fixture.trigger([IR.call("open", [IR.number(1e20)])])?.value
+        #expect(fixture.log.entries == ["open:1e+20"])
+    }
+
+    @Test("wait mit 1e20 Sekunden wird gekappt, die Warnung stürzt nicht ab")
+    func waitWithHugeNumber() async {
+        let fixture = DispatcherFixture()
+        let task = fixture.trigger([IR.call("wait", [IR.number(1e20)]), IR.log("done")])
+        await settle()
+        fixture.clock.advance(by: 10)
+        await task?.value
+        #expect(fixture.log.entries == ["done"])
+        #expect(fixture.warnings.first?.message.contains("1e+20s") == true)
+    }
+
+    @Test("repeat mit 1e20 wird auf 100 gekappt")
+    func repeatWithHugeNumber() async {
+        let fixture = DispatcherFixture(vars: [IR.plainVar("n", .number, .number(0))])
+        await fixture.trigger([.repeatBlock(count: IR.number(1e20), body: [IR.call("set", [IR.string("n"), IR.value("{var.n + 1}")])])])?.value
+        #expect(fixture.vars.value("n") == .number(100))
+        #expect(fixture.warnings.filter { $0.message.contains("repeat") }.count == 1)
+    }
+}
