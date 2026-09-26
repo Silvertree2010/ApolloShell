@@ -178,7 +178,19 @@ struct VarStoreTests {
         vars.set("base", .number(5), for: nil)
         scheduler.runPending()
         #expect(engine.evaluationCount == 0)
-        #expect(vars.value("doubled") == .null)
+    }
+
+    @Test("Lesen eines abgeleiteten var ohne Nachfrage (apollo get) liefert den aktuellen Wert, auch nach Änderung")
+    func derivedVarReadWithoutDemand() {
+        let (_, scheduler, _, vars, _) = makeStore()
+        vars.declare([
+            decl("base", type: .number, defaultText: "1"),
+            decl("doubled", type: .number, defaultText: "0", derived: "var.base * 2")
+        ], persisted: [:], shell: Record())
+        #expect(vars.value("doubled") == .number(2))
+        vars.set("base", .number(5), for: nil)
+        scheduler.runPending()
+        #expect(vars.value("doubled") == .number(10))
     }
 
     @Test("Abgeleitetes var wird einmal für 10 Leser ausgewertet")

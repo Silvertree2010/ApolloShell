@@ -232,6 +232,7 @@ public final class VarStore {
     public func value(_ name: String) -> Value {
         if let slot = plain[name] { return slot.value }
         if let slot = derived[name] {
+            freshen([DependencyPath("var", [name])])
             return slot.handle?.currentValue ?? .null
         }
         return .null
