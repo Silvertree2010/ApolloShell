@@ -41,6 +41,20 @@ struct VarStorePersistenceTests {
         #expect((try? fileSystem.read(URL(fileURLWithPath: "/state/test.kdl"))) == "count 49\n")
     }
 
+    @Test("Ein set schreibt nur sein var, die Vorgaben der anderen bleiben ungespeichert und folgen später geänderten Vorgaben")
+    func setWritesOnlyItsOwnVar() {
+        let fileSystem = MemoryFileSystem()
+        let (_, _, vars, clock, writer) = makeStore(fileSystem: fileSystem)
+        vars.declare([
+            decl("count", type: .number, defaultText: "0"),
+            decl("hotkey", type: .string, defaultText: "'f20'"),
+        ], persisted: [:], shell: Record())
+        _ = vars.set("count", .number(3), for: nil)
+        clock.advance(by: 0.5)
+        writer.flushSync()
+        #expect((try? fileSystem.read(URL(fileURLWithPath: "/state/test.kdl"))) == "count 3\n")
+    }
+
     @Test("Dauerfeuer alle 100 ms über 3 s schreibt spätestens alle 500 ms")
     func steadyFireWritesAtLeastEvery500ms() {
         let fileSystem = MemoryFileSystem()

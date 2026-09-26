@@ -297,8 +297,9 @@ public final class VarStore {
         pendingPersistWork?.cancel()
         pendingPersistWork = nil
         if !pendingPersistNames.isEmpty {
+            let names = pendingPersistNames
             pendingPersistNames.removeAll()
-            persist(persistSnapshot())
+            persist(persistSnapshot(names))
         }
         writer?.flushSync()
     }
@@ -454,8 +455,9 @@ public final class VarStore {
     private func firePersist() {
         pendingPersistWork = nil
         guard !pendingPersistNames.isEmpty else { return }
+        let names = pendingPersistNames
         pendingPersistNames.removeAll()
-        persist(persistSnapshot())
+        persist(persistSnapshot(names))
     }
 
     private func persist(_ snapshot: [String: Value]) {
@@ -464,10 +466,11 @@ public final class VarStore {
         writer?.enqueue(snapshot)
     }
 
-    private func persistSnapshot() -> [String: Value] {
+    private func persistSnapshot(_ names: Set<String>) -> [String: Value] {
         var result: [String: Value] = [:]
-        for slot in plain.values where slot.decl.persist {
-            result[slot.decl.name] = slot.transient?.baseValue ?? slot.value
+        for name in names {
+            guard let slot = plain[name], slot.decl.persist else { continue }
+            result[name] = slot.transient?.baseValue ?? slot.value
         }
         return result
     }
