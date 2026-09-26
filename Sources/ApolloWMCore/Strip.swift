@@ -60,6 +60,7 @@ public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equa
         column.windows.removeAll { $0 == id }
         if column.windows.isEmpty {
             columns.remove(at: index)
+            if index < focusedColumn { focusedColumn -= 1 }
             focusedColumn = min(focusedColumn, max(columns.count - 1, 0))
         } else {
             if column.active == id { column.active = column.windows[0] }

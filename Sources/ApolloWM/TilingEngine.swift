@@ -806,6 +806,7 @@ public final class TilingEngine {
         }
         let here = desk(at: point)
         if let id = fullscreen[here], layouts[here].contains(id) { return id }
+        if isCanvas { return canvasFrames(on: here).first { $0.value.contains(point) }?.key }
         return layouts[here].id(at: point, in: area(of: here), gaps: options.gaps,
                                 minimums: layoutMinimums, maximums: maximums)
     }
@@ -890,7 +891,7 @@ public final class TilingEngine {
                                width: tile.width, height: max(tile.height - options.tabBarHeight, 1))
             for member in group.members where windows[member] != nil { frames[member] = below }
         }
-        return frames
+        return frames.filter { [$0.value.minX, $0.value.minY, $0.value.width, $0.value.height].allSatisfy(\.isFinite) }
     }
 
     private func shownDesk(onDisplay index: Int) -> Desk? {

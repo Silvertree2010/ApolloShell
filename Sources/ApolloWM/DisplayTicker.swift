@@ -14,7 +14,7 @@ final class DisplayTicker: NSObject {
     func start() {
         guard link == nil, let screen = NSScreen.screens.first else { return }
         let link = screen.displayLink(target: self, selector: #selector(fire))
-        link.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: frameRate, preferred: frameRate)
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: min(60, frameRate), maximum: frameRate, preferred: frameRate)
         link.add(to: .main, forMode: .common)
         self.link = link
     }
