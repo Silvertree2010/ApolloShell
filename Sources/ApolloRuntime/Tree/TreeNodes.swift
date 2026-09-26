@@ -321,6 +321,7 @@ final class SurfaceNode {
     var visibleProperty = true
     var hiddenByFullscreen = false
     var isClosing = false
+    var isOpening = false
     var isConfigured = false
     var elementCount = 0
     var ids: [String: ElementNode] = [:]

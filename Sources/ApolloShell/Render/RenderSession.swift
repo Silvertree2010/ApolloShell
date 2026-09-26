@@ -126,6 +126,7 @@ final class RenderSession {
         }
         if opened {
             assembly.runtime.open(surface.id, screenKey: surface.screenKey)
+            assembly.runtime.surfaceDidFinishOpening(id: surface.id, screenKey: surface.screenKey)
             flush()
         }
         for name in renderVars.keys where assembly.actions.vars.isDeclared(name) {

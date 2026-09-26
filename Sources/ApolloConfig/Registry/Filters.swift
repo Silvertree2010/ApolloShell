@@ -32,7 +32,7 @@ enum Filters {
         FilterSchema(name: "capitalize", doc: "First letter capitalized."),
         FilterSchema(name: "truncate", arguments: [arg("length", .number, doc: "Number of characters.")], doc: "Truncates after n characters with …."),
         FilterSchema(name: "pad", arguments: [arg("length", .number, doc: "Target width."), optionalArg("character", .string, doc: "Padding character, default space.")], doc: "Pads on the left."),
-        FilterSchema(name: "replace", arguments: [arg("search", .string, doc: "Text to find."), arg("replacement", .string, doc: "Fallback text.")], doc: "Replaces part of a text."),
+        FilterSchema(name: "replace", arguments: [arg("search", .string, doc: "Text to find."), arg("replacement", .string, doc: "Text to put in its place.")], doc: "Replaces part of a text."),
         FilterSchema(name: "split", arguments: [arg("separator", .string, doc: "Separator.")], doc: "Splits a string into a list."),
         FilterSchema(name: "starts-with", arguments: [arg("prefix", .string, doc: "Prefix to find.")], doc: "Checks the start of a string."),
         FilterSchema(name: "ends-with", arguments: [arg("suffix", .string, doc: "Suffix to find.")], doc: "Checks the end of a string."),

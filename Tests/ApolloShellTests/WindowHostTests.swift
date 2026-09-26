@@ -146,6 +146,10 @@ final class RuntimeLink: WindowHostLink {
 
     func close(_ surfaceID: String, screenKey: String) { runtime?.close(surfaceID, screenKey: screenKey) }
 
+    func surfaceDidFinishOpening(id: String, screenKey: String) {
+        runtime?.surfaceDidFinishOpening(id: id, screenKey: screenKey)
+    }
+
     func surfaceDidFinishClosing(id: String, screenKey: String) {
         finished.append(id)
         runtime?.surfaceDidFinishClosing(id: id, screenKey: screenKey)
@@ -348,6 +352,27 @@ struct WindowHostTests {
         #expect(quick.animations.isEmpty)
         #expect(fixture.link.finished == ["menu", "quick"])
         #expect(fixture.host.stats.windowsCreated == 5)
+    }
+
+    @Test("surface.opening gilt bis zum Ende der Öffnungsbewegung")
+    func openingFlag() throws {
+        let fixture = try HostFixture(Self.shell, css: Self.css)
+        func opening(_ id: String) -> Value {
+            fixture.assembly.store.value(DependencyPath("surface:" + id + "@" + HostFixture.screen.key, ["opening"]))
+        }
+        let menu = try #require(fixture.window("menu"))
+        fixture.assembly.runtime.open("menu", screenKey: nil)
+        #expect(opening("menu") == .bool(true))
+        fixture.flush()
+        #expect(opening("menu") == .bool(true))
+        menu.finishAnimations()
+        #expect(opening("menu") == .bool(false))
+        fixture.assembly.runtime.open("quick", screenKey: nil)
+        fixture.flush()
+        #expect(opening("quick") == .bool(false))
+        fixture.assembly.runtime.open("settings", screenKey: nil)
+        fixture.flush()
+        #expect(opening("settings") == .bool(false))
     }
 
     @Test("close-on fragt die Runtime, window-Art schliesst über die Runtime")

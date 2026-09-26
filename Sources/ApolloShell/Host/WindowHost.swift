@@ -8,6 +8,7 @@ import ApolloShellCore
 @MainActor
 protocol WindowHostLink: AnyObject {
     func close(_ surfaceID: String, screenKey: String)
+    func surfaceDidFinishOpening(id: String, screenKey: String)
     func surfaceDidFinishClosing(id: String, screenKey: String)
     func keyPressed(_ chord: String, surfaceID: String, screenKey: String) -> Bool
 }
@@ -375,6 +376,8 @@ final class WindowHost: SurfaceHosting {
         if surface.isVisible && !controller.shown {
             controller.shown = true
             present(controller, key: key, placement: placement, screen: screen, focus: opening)
+        } else if opening {
+            finishOpening(controller)
         } else if !surface.isVisible && controller.shown {
             controller.shown = false
             dismiss(controller, key: key, placement: placement, screen: screen, closing: closing)
@@ -453,13 +456,16 @@ final class WindowHost: SurfaceHosting {
             controller.window.show(focus: focus)
             frames.publish(key, controller.openFrame)
             scheduleTimeout(controller)
+            if focus { finishOpening(controller) }
             return
         }
         let animator = animators.animator(motion)
         let geometry = geometry(controller, placement: placement, screen: screen)
         track(controller, key: key, animator: animator, geometry: geometry, opening: true)
         controller.window.animate(opening: true, focus: focus, animator: animator, geometry: geometry, scrim: spec.scrim, screen: screen.frame) { [weak self, weak controller] in
-            guard let self, let controller, controller.shown, controller.ticker == nil else { return }
+            guard let self, let controller, controller.shown else { return }
+            if focus { self.finishOpening(controller) }
+            guard controller.ticker == nil else { return }
             self.frames.publish(key, controller.openFrame)
         }
         scheduleTimeout(controller)
@@ -484,6 +490,10 @@ final class WindowHost: SurfaceHosting {
             self.frames.publish(key, nil)
             self.finishClosing(controller, key: key)
         }
+    }
+
+    private func finishOpening(_ controller: SurfaceWindowController) {
+        link?.surfaceDidFinishOpening(id: controller.surface.id, screenKey: controller.surface.screenKey)
     }
 
     private func finishClosing(_ controller: SurfaceWindowController, key: String) {

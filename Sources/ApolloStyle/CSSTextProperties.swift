@@ -29,7 +29,11 @@ enum CSSTextProperties {
                          parse: CSSKeywordParser.keyword(["monochrome", "hierarchical", "palette", "multicolor"])),
         CSSPropertyEntry("-apollo-symbol-effect", parse: CSSKeywordParser.keyword(["none", "variable-color", "pulse", "bounce"])),
         CSSPropertyEntry("-apollo-content-transition", parse: CSSKeywordParser.keyword(["none", "opacity", "numeric", "symbol"])),
-        CSSPropertyEntry("-apollo-track-color") { components, _ in .color(try CSSColorParser.color(components)) },
+        CSSPropertyEntry("-apollo-track-color") { components, _ in
+            let layers = try CSSBackgroundParser.paint(components)
+            if layers.count == 1, case .color(let color) = layers[0] { return .color(color) }
+            return .layers(layers)
+        },
         CSSPropertyEntry("-apollo-fill-color") { components, _ in .layers(try CSSBackgroundParser.paint(components)) },
         CSSPropertyEntry("-apollo-thumb-color") { components, _ in .color(try CSSColorParser.color(components)) },
         CSSPropertyEntry("-apollo-thumb-size") { components, _ in try thumbSize(components) },

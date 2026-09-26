@@ -61,7 +61,8 @@ struct ScrollElement: View {
 
     var body: some View {
         let horizontal = element.property("axis").plainText == "horizontal"
-        let axis: Axis.Set = horizontal ? .horizontal : .vertical
+        let both = element.property("axis").plainText == "both"
+        let axis: Axis.Set = both ? [.horizontal, .vertical] : horizontal ? .horizontal : .vertical
         let indicators = element.property("indicators") == .bool(true)
         let fade = StyleValues.fadeEdges(style["-apollo-fade-edges"])
         let overflowing = element.pseudo.contains(.overflowing)
@@ -77,7 +78,7 @@ struct ScrollElement: View {
                             VStack(spacing: gap) { ElementChildren(children: element.children, scope: scope) }
                         }
                     }
-                    .frame(maxWidth: horizontal ? nil : .infinity, maxHeight: horizontal ? .infinity : nil)
+                    .frame(maxWidth: horizontal || both ? nil : .infinity, maxHeight: horizontal ? .infinity : nil)
                     .padding(StyleValues.sides(style["padding"]))
                     .environment(\.revealScope, element.ir.properties["reveal"] != nil)
                 }
@@ -95,8 +96,8 @@ struct ScrollElement: View {
             .modifier(HitRegionClip(active: true))
             .modifier(HitRegionMarker(active: overflowing, identity: element.identity))
             .onScrollGeometryChange(for: Bool.self) { geometry in
-                horizontal ? geometry.contentSize.width > geometry.containerSize.width + 0.5
-                    : geometry.contentSize.height > geometry.containerSize.height + 0.5
+                (horizontal || both) && geometry.contentSize.width > geometry.containerSize.width + 0.5
+                    || !horizontal && geometry.contentSize.height > geometry.containerSize.height + 0.5
             } action: { _, now in
                 if now { element.pseudo.insert(.overflowing) } else { element.pseudo.remove(.overflowing) }
             }
