@@ -1091,7 +1091,7 @@ Scrollable area.
 | property | `axis` | "vertical"\|"horizontal"\|"both" | `"vertical"` | Scroll direction. |
 | property | `reveal` | value | `null` | Key or id scrolled into view whenever the value changes. |
 | property | `indicators` | bool | `false` | Whether scroll bars are visible. |
-| property | `lazy` | bool | `false` | Children are built only when they become visible. |
+| property | `lazy` | bool | `false` | Reserved: children are currently all built at once, lazy building crashed on macOS 26. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 

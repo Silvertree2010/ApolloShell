@@ -49,7 +49,7 @@ enum Layout {
                 PropertySchema(name: "axis", type: .enumeration(["vertical", "horizontal", "both"]), defaultValue: .string("vertical"), doc: "Scroll direction."),
                 PropertySchema(name: "reveal", type: .value, defaultValue: .null, doc: "Key or id scrolled into view whenever the value changes."),
                 PropertySchema(name: "indicators", type: .bool, defaultValue: .bool(false), doc: "Whether scroll bars are visible."),
-                PropertySchema(name: "lazy", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Children are built only when they become visible."),
+                PropertySchema(name: "lazy", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Reserved: children are currently all built at once, lazy building crashed on macOS 26."),
             ],
             handlers: CommonProperties.elementHandlers,
             childContext: .elementBody,
