@@ -2,6 +2,9 @@ import Testing
 import Foundation
 import AppKit
 import SwiftUI
+import ApolloBase
+import ApolloConfig
+import ApolloRuntime
 @testable import ApolloShell
 
 @MainActor
@@ -67,5 +70,30 @@ struct InteractionRoundFourTests {
         mounted.pump(3)
         await mounted.settle()
         #expect(mounted.variable("hits") == .number(1))
+    }
+
+    func press(_ chord: String, surface id: String, in session: RenderSession) async throws {
+        let surface = try #require(session.surface(id))
+        let canonical = try #require(KeyNameTable.canonical(chord))
+        for (index, handler) in surface.ir.keyHandlers.enumerated() where KeyNameTable.canonical(handler.chord) == canonical {
+            _ = session.assembly.actions.trigger(handler.actions, site: "\(id)@\(surface.screenKey)#key#\(index)",
+                                                 environment: ActionEnvironment(scope: LocalScope(), surfaceID: id, screenKey: surface.screenKey, event: Record([("chord", .string(canonical))])))
+        }
+        await session.context.settle()
+        session.flush()
+    }
+
+    @Test("session: ↑ ohne Auswahl wählt wie 0.1.4.2 den letzten Eintrag, ↓ den ersten")
+    func sessionArrowsFromNothing() async throws {
+        let url = PackageResources.root.appendingPathComponent("Resources/configs/apolloshell-default/session.kdl")
+        let (session, _) = try RenderProbe.session(try String(contentsOf: url, encoding: .utf8))
+        let vars = session.assembly.actions.vars
+        try await press("up", surface: "session", in: session)
+        #expect(vars.value("session-selection") == .number(3))
+        try await press("up", surface: "session", in: session)
+        #expect(vars.value("session-selection") == .number(2))
+        vars.set("session-selection", .null)
+        try await press("down", surface: "session", in: session)
+        #expect(vars.value("session-selection") == .number(0))
     }
 }

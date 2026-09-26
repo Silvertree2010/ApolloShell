@@ -28,7 +28,7 @@ define "session-button" {
 
 popup "session" anchor="right" scrim=0.15 overhang=#true {
     on-open { reset "session-selection"; reset "session-hover" }
-    key "up" { set "session-selection" "{var.session-selection == null ? 0 : (var.session-selection - 1 | max 0)}" }
+    key "up" { set "session-selection" "{var.session-selection == null ? 3 : (var.session-selection - 1 | max 0)}" }
     key "down" { set "session-selection" "{var.session-selection == null ? 0 : (var.session-selection + 1 | min 3)}" }
     key "return" {
         when "{var.session-selection != null}" {
