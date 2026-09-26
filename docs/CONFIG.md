@@ -2476,7 +2476,7 @@ Replaces part of a text.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `search` | string | required | Text to find. |
-| argument | `replacement` | string | required | Fallback text. |
+| argument | `replacement` | string | required | Text to put in its place. |
 
 ### `reverse` (filter)
 
