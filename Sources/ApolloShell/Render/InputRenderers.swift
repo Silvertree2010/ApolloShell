@@ -191,7 +191,11 @@ struct SliderElement: View {
                                           fraction: metrics.fraction(shown), mode: fillMode)
             let center = geometry.thumbCenter
             ZStack(alignment: vertical ? .bottom : .leading) {
-                Capsule().fill(trackColor)
+                if case .layers(let track)? = style["-apollo-track-color"] {
+                    BackgroundLayers(style: ComputedStyle(values: ["background": .layers(track)]), shape: AnyShape(Capsule()), context: scope.context)
+                } else {
+                    Capsule().fill(trackColor)
+                }
                 BackgroundLayers(style: ComputedStyle(values: ["background": fillLayers]), shape: AnyShape(Capsule()), context: scope.context)
                     .frame(width: vertical ? nil : geometry.fill, height: vertical ? geometry.fill : nil)
                     .opacity(fillMode == .insideLinear && geometry.fraction <= 0 ? 0 : 1)

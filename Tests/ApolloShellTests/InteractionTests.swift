@@ -281,6 +281,15 @@ struct InteractionTests {
         #expect(shot.pixel(150, 10).near(.blue))
     }
 
+    @Test("slider: -apollo-track-color nimmt den Verlauf von --apollo-card-fill wie die Karten-Spur in 0.1.4.2")
+    func sliderGradientTrack() throws {
+        let shot = try RenderProbe.render("panel \"t\" anchor=\"left\" { slider class=\"s\" value=0.25 }", css: """
+        #t { width: 200px; height: 40px; align-items: start; }
+        .s { width: 200px; height: 20px; -apollo-track-color: linear-gradient(90deg, #0000ff 0%, #0000ff 100%); -apollo-fill-color: #ff0000; }
+        """)
+        #expect(shot.pixel(150, 10).near(.blue))
+    }
+
     @Test("input zeigt value und Platzhalter, key-recorder zeigt die Kombination mit Symbolen")
     func textInputs() throws {
         let css = "#t { width: 160px; height: 40px; align-items: start; } .i { width: 150px; color: #ff0000; font-size: 16px; }"

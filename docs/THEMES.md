@@ -351,7 +351,7 @@ start with `-apollo-` and are not valid in a theme.
 | `-apollo-image-rendering` | `original` (default), `template` | `template` tints an image with `color` |
 | `-apollo-fill` | colour or gradient | area under a `graph` |
 | `-apollo-fill-color` | colour or gradient | filled part of `progress` and `slider` |
-| `-apollo-track-color` | colour | unfilled track of ring, gauge, progress and slider |
+| `-apollo-track-color` | colour, for `slider` also a gradient | unfilled track of ring, gauge, progress and slider |
 | `-apollo-thumb-color` | colour | slider knob |
 | `-apollo-thumb-size` | one length, or width and height | slider knob size |
 | `-apollo-thumb-shadow` | shadow, as `box-shadow` | slider knob shadow |
