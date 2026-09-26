@@ -2,6 +2,7 @@ import ApolloShellCore
 
 enum CSSVariables {
     static let maximumDepth = 32
+    static let maximumLength = 65_536
 
     static func containsVar(_ text: String) -> Bool {
         text.range(of: "var(", options: .caseInsensitive) != nil
@@ -20,6 +21,9 @@ enum CSSVariables {
             switch component {
             case let .function(name, arguments, _) where name.lowercased() == "var":
                 result += try resolve(arguments, lookup: lookup, depth: depth)
+                guard result.utf8.count <= maximumLength else {
+                    throw CSSValueError("var() expands to more than \(maximumLength) bytes")
+                }
             case let .function(_, arguments, opening):
                 result += opening.text + (try substitute(arguments, lookup: lookup, depth: depth)) + ")"
             case let .block(kind, contents, opening):
