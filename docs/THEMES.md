@@ -356,8 +356,8 @@ start with `-apollo-` and are not valid in a theme.
 | `-apollo-thumb-size` | one length, or width and height | slider knob size |
 | `-apollo-thumb-shadow` | shadow, as `box-shadow` | slider knob shadow |
 | `-apollo-stroke-width` | length, default `4px` | line width of ring, gauge and graph |
-| `-apollo-start-angle` | angle, default `-90deg` | where a ring or gauge starts |
-| `-apollo-sweep-angle` | angle, default `360deg` | how far a ring or gauge reaches |
+| `-apollo-start-angle` | angle, default `-90deg` | where a ring starts |
+| `-apollo-sweep-angle` | angle, default `360deg` | how far a ring reaches |
 
 A property the shell does not know is reported in "Show Problems" with the
 closest known name, and the rest of the file still applies.
