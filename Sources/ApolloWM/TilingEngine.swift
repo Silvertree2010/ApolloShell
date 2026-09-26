@@ -891,7 +891,7 @@ public final class TilingEngine {
                                width: tile.width, height: max(tile.height - options.tabBarHeight, 1))
             for member in group.members where windows[member] != nil { frames[member] = below }
         }
-        return frames
+        return frames.filter { [$0.value.minX, $0.value.minY, $0.value.width, $0.value.height].allSatisfy(\.isFinite) }
     }
 
     private func shownDesk(onDisplay index: Int) -> Desk? {

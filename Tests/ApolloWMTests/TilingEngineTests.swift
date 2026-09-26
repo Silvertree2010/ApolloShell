@@ -24,4 +24,13 @@ struct TilingEngineTests {
         #expect(engine.window(at: CGPoint(x: second.midX, y: second.maxY - 5)) == 2)
         #expect(engine.window(at: CGPoint(x: second.midX, y: second.minY + 5)) == 2)
     }
+
+    @Test("Zu grosse Abstände liefern keine unendlichen Ziele", arguments: [LayoutMode.dwindle, .canvas])
+    func oversizedGaps(_ layout: LayoutMode) {
+        let engine = engine([1, 2])
+        engine.options.layout = layout
+        engine.options.gaps = Gaps(outer: 100_000, inner: 10)
+        let frames = engine.frames(on: engine.desk)
+        #expect(frames.values.allSatisfy { [$0.minX, $0.minY, $0.width, $0.height].allSatisfy(\.isFinite) })
+    }
 }
