@@ -132,7 +132,7 @@ extension LiveShell {
         register("shell.edit") { [weak self] call in
             guard let self else { return }
             let file = try path(call)
-            let line = call.properties["line"].flatMap { if case .number(let number) = $0 { Int(number) } else { nil } } ?? 1
+            let line = call.properties["line"].flatMap { if case .number(let number) = $0, number.isFinite { Int(min(max(number, -1_000_000_000), 1_000_000_000)) } else { nil } } ?? 1
             openInEditor(Diagnostic(.note, "edit", span: SourceSpan(file: file.path, start: SourcePosition(offset: 0, line: line, column: 1), end: SourcePosition(offset: 0, line: line, column: 1))))
         }
     }

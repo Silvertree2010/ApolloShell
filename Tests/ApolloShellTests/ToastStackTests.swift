@@ -112,4 +112,21 @@ struct ToastStackTests {
         #expect(harness.shell.overlay.problems.contains { $0.message.contains("toast \"missing\"") })
         harness.shell.shutdown()
     }
+
+    @Test("max mit riesiger Zahl stürzt nicht ab und zeigt alle")
+    func hugeMax() async throws {
+        let harness = try ShellHarness("""
+        toast "default" max=1e20 {
+            row { text "{toast.title}" }
+        }
+        """)
+        let clock = ToastClock()
+        clock.install(harness.shell.toasts)
+        try await harness.start()
+        _ = try await harness.shell.runActions("notify title=\"A\"")
+        _ = try await harness.shell.runActions("notify title=\"B\"")
+        harness.settle()
+        #expect(titles(harness) == ["A", "B"])
+        harness.shell.shutdown()
+    }
 }

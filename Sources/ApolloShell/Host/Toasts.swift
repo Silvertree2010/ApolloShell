@@ -113,7 +113,7 @@ final class ToastCenter {
 
     static func limit(_ surface: SurfaceInstance) -> Int {
         guard case .number(let number) = surface.property("max"), number.isFinite, number >= 1 else { return defaultMax }
-        return Int(number)
+        return Int(min(number, 1_000_000))
     }
 
     static func record(_ entry: Entry, now: Date) -> Value {
