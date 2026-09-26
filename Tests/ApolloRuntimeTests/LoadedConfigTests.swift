@@ -72,6 +72,20 @@ struct KDLShell {
 @MainActor
 @Suite("Echte KDL durch die Runtime")
 struct LoadedConfigTests {
+    @Test("on \"user.<name>\" lädt ohne Fehler und feuert bei emit mit event")
+    func userEventFires() async throws {
+        let shell = KDLShell()
+        let result = try await shell.load("""
+        var got ""
+        on "user.ping" {
+            set "got" "{event.n}"
+        }
+        """)
+        shell.apply(result)
+        for task in shell.runtime.emit("user.ping", Record([("n", .string("7"))])) { await task.value }
+        #expect(shell.vars.value("got") == .string("7"))
+    }
+
     @Test("abgeleitetes var, das nur eine Aktion liest, hat beim Lesen seinen Wert (9b-5)")
     func derivedVarReadOnlyInAction() async throws {
         let shell = KDLShell()

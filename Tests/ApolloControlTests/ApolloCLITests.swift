@@ -100,7 +100,8 @@ struct ApolloCLITests {
         let harness = try CLIHarness()
         #expect(harness.run(["emit", "ping"]).exitCode == 0)
         #expect(harness.run(["emit", "ping", #"{"n":1}"#]).exitCode == 0)
-        #expect(harness.shell.calls == ["emit ping null", #"emit ping {"n":1}"#])
+        #expect(harness.run(["emit", "user.ping"]).exitCode == 0)
+        #expect(harness.shell.calls == ["emit user.ping null", #"emit user.ping {"n":1}"#, "emit user.ping null"])
     }
 
     @Test("config list, select, fork und path")

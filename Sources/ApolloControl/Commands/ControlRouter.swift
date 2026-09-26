@@ -58,7 +58,8 @@ public struct ControlRouter: ControlService {
             try await shell.setVariable(args.string("name"), to: FiniteValues.clean(try args.value("value")))
             return .success(.null)
         case "emit":
-            try await shell.emit(args.string("name"), event: FiniteValues.clean(args.optionalValue("event") ?? .null))
+            let name = try args.string("name")
+            try await shell.emit(name.hasPrefix("user.") ? name : "user." + name, event: FiniteValues.clean(args.optionalValue("event") ?? .null))
             return .success(.null)
         case "config.list":
             return .success(.list(configs.list().map { entry in
