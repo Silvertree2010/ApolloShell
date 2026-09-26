@@ -38,12 +38,12 @@ public struct WttrProvider: WeatherProvider {
             guard let text = day.date, let date = OpenMeteo.localDate(text, calendar: calendar) else { continue }
             var dayHours: [HourForecast] = []
             for hour in day.hourly ?? [] {
-                guard let clock = hour.time?.value.map(Int.init),
+                guard let clock = hour.time?.value.flatMap({ WeatherNumber.whole($0.rounded(.towardZero)) }),
                       let time = calendar.date(bySettingHour: clock / 100, minute: clock % 100, second: 0, of: date),
                       let temperature = hour.tempC?.value,
                       let code = hour.weatherCode?.value
                 else { continue }
-                dayHours.append(HourForecast(time: time, temperature: temperature, code: WttrCode.wmo(Int(code)),
+                dayHours.append(HourForecast(time: time, temperature: temperature, code: WttrCode.wmo(WeatherNumber.whole(code.rounded(.towardZero)) ?? WeatherCondition.unknownCode),
                                              precipitationProbability: Self.chance(hour)))
             }
             hours += dayHours
@@ -68,7 +68,7 @@ public struct WttrProvider: WeatherProvider {
             current: CurrentWeather(
                 time: c.observationTime.flatMap { Self.observation($0, now: now) } ?? now,
                 temperature: temperature, apparentTemperature: c.feelsLikeC?.value,
-                humidity: c.humidity?.value.map { Int($0.rounded()) }, code: WttrCode.wmo(Int(code)),
+                humidity: c.humidity?.value.flatMap(WeatherNumber.whole), code: WttrCode.wmo(WeatherNumber.whole(code.rounded(.towardZero)) ?? WeatherCondition.unknownCode),
                 windSpeed: c.windspeedKmph?.value, isDay: true
             ),
             hours: hours, days: days, timeZone: timeZone
@@ -79,7 +79,7 @@ public struct WttrProvider: WeatherProvider {
 
     private static func chance(_ hour: Raw.Hour) -> Int? {
         let values = [hour.chanceofrain?.value, hour.chanceofsnow?.value].compactMap { $0 }
-        return values.max().map { Int($0.rounded()) }
+        return values.max().flatMap(WeatherNumber.whole)
     }
 
     static func time(_ text: String, on date: Date, calendar: Calendar) -> Date? {

@@ -412,3 +412,32 @@ struct WttrProviderTests {
         #expect(WeatherCondition.symbol(code: code, isDay: true) != "thermometer.medium")
     }
 }
+
+@Suite("Wetteranbieter: unsinnige Zahlen vom Server")
+struct WeatherProviderHugeNumberTests {
+    @Test("wttr: riesige, nan- und inf-Zahlen stürzen nicht ab")
+    func wttr() throws {
+        let json = #"{"current_condition":[{"temp_C":"20","humidity":"1e300","weatherCode":"1e20"}],"weather":[{"date":"2026-09-14","maxtempC":"21","mintempC":"14","hourly":[{"time":"1e20","tempC":"17","weatherCode":"119"},{"time":"nan","tempC":"17","weatherCode":"119"},{"time":"300","tempC":"16","weatherCode":"inf","chanceofrain":"1e300"}]}]}"#
+        let r = try WttrProvider(timeZone: berlinZone).decode([data(json)], now: fetched)
+        #expect(r.current.humidity == nil)
+        #expect(r.current.code == WeatherCondition.unknownCode)
+        #expect(r.hours.count == 1)
+        #expect(r.hours.first?.code == WeatherCondition.unknownCode)
+        #expect(r.hours.first?.precipitationProbability == nil)
+    }
+
+    @Test("MET Norway: riesige Luftfeuchte stürzt nicht ab")
+    func metNorway() throws {
+        let json = #"{"properties":{"timeseries":[{"time":"2026-09-14T16:00:00Z","data":{"instant":{"details":{"air_temperature":17.8,"relative_humidity":1e300,"wind_speed":2.3}},"next_1_hours":{"summary":{"symbol_code":"clearsky_day"}}}}]}}"#
+        let r = try MetNorwayProvider(timeZone: berlinZone).decode([data(json), nil], now: fetched)
+        #expect(r.current.humidity == nil)
+    }
+
+    @Test("Open-Meteo: riesige Luftfeuchte stürzt nicht ab")
+    func openMeteo() throws {
+        let json = #"{"timezone":"Europe/Berlin","current":{"time":"2026-09-14T18:15","temperature_2m":17.6,"relative_humidity_2m":1e300,"weather_code":2}}"#
+        let r = try OpenMeteo.decode(data(json))
+        #expect(r.current.humidity == nil)
+    }
+}
+

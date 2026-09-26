@@ -274,7 +274,7 @@ public enum OpenMeteo {
             time: time,
             temperature: temperature,
             apparentTemperature: c.apparentTemperature,
-            humidity: c.relativeHumidity2m.map { Int($0.rounded()) },
+            humidity: c.relativeHumidity2m.flatMap(WeatherNumber.whole),
             code: code,
             windSpeed: c.windSpeed10m,
             isDay: (c.isDay ?? 1) != 0
@@ -448,6 +448,12 @@ public enum WeatherCondition {
         case 96, 99: String(localized: "Thunderstorm with Hail")
         default: String(localized: "Unknown")
         }
+    }
+}
+
+enum WeatherNumber {
+    static func whole(_ value: Double) -> Int? {
+        value.isFinite && abs(value) < 1e9 ? Int(value.rounded()) : nil
     }
 }
 
