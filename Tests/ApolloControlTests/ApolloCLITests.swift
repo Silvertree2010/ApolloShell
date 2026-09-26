@@ -104,6 +104,29 @@ struct ApolloCLITests {
         #expect(harness.shell.calls == ["emit user.ping null", #"emit user.ping {"n":1}"#, "emit user.ping null"])
     }
 
+    @Test("fork der Config user kopiert nur die Config-Dateien, nicht \\$CONFIG samt configs, state und settings in sich selbst")
+    func forkUserConfig() throws {
+        let harness = try CLIHarness()
+        let files = FileManager.default
+        let root = harness.paths.userConfig
+        try "panel \"mine\"\n".write(to: root.appendingPathComponent("shell.kdl"), atomically: true, encoding: .utf8)
+        try "bar {}\n".write(to: root.appendingPathComponent("bar.css"), atomically: true, encoding: .utf8)
+        try files.createDirectory(at: root.appendingPathComponent("state"), withIntermediateDirectories: true)
+        try "x 1\n".write(to: root.appendingPathComponent("state/user.kdl"), atomically: true, encoding: .utf8)
+        try files.createDirectory(at: root.appendingPathComponent("configs/other"), withIntermediateDirectories: true)
+        try "panel \"other\"\n".write(to: root.appendingPathComponent("configs/other/shell.kdl"), atomically: true, encoding: .utf8)
+        let run = harness.run(["config", "fork", "user", "copy"])
+        #expect(run.exitCode == 0, "\(run.stderr)")
+        let copy = root.appendingPathComponent("configs/copy")
+        #expect(files.fileExists(atPath: copy.appendingPathComponent("shell.kdl").path))
+        #expect(files.fileExists(atPath: copy.appendingPathComponent("bar.css").path))
+        #expect(!files.fileExists(atPath: copy.appendingPathComponent("configs").path))
+        #expect(!files.fileExists(atPath: copy.appendingPathComponent("state").path))
+        #expect(!files.fileExists(atPath: copy.appendingPathComponent("themes").path))
+        #expect(!files.fileExists(atPath: copy.appendingPathComponent("settings.kdl").path))
+        #expect(harness.settings.settings.config == "copy")
+    }
+
     @Test("config list, select, fork und path")
     func configs() throws {
         let harness = try CLIHarness()

@@ -67,12 +67,20 @@ public struct ConfigCatalog: Sendable {
             throw ShellControlError("\(newID) already exists in \(paths.userConfig.appendingPathComponent("configs").path)")
         }
         do {
-            try fileSystem.copyItem(source.root, to: target)
+            if source.root.standardizedFileURL == paths.userConfig.standardizedFileURL {
+                for child in try fileSystem.contentsOfDirectory(source.root) where !Self.shellOwned.contains(child.lastPathComponent) {
+                    try fileSystem.copyItem(child, to: target.appendingPathComponent(child.lastPathComponent))
+                }
+            } else {
+                try fileSystem.copyItem(source.root, to: target)
+            }
         } catch {
             throw ShellControlError("could not copy \(source.root.path) to \(target.path): \(error)")
         }
         try settings.apply(.config(newID))
     }
+
+    static let shellOwned: Set<String> = ["configs", "state", "themes", "packages", "settings.kdl", "user.css"]
 
     static func isValidID(_ id: String) -> Bool {
         guard !id.isEmpty, id != "user", !id.hasPrefix("."), id.count <= 64 else { return false }
