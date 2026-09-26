@@ -138,9 +138,10 @@ public final class ActionDispatcher: ActionRuntime {
                 fail(ActionFailure("repeat needs a number, got \(value.typeName)"), span: count.span)
                 return
             }
-            var times = max(0, Int(number.rounded(.down)))
-            if times > Self.maximumRepeat {
-                warn(Diagnostic(.warning, "repeat is capped at \(Self.maximumRepeat), got \(times)", span: count.span))
+            let requested = max(0, number.rounded(.down))
+            var times = Int(min(requested, Double(Self.maximumRepeat)))
+            if requested > Double(Self.maximumRepeat) {
+                warn(Diagnostic(.warning, "repeat is capped at \(Self.maximumRepeat), got \(RuntimeDuration.whole(requested))", span: count.span))
                 times = Self.maximumRepeat
             }
             for _ in 0..<times {
@@ -271,7 +272,7 @@ public final class ActionDispatcher: ActionRuntime {
     static func text(_ value: Value) -> String? {
         switch value {
         case .string(let text): text
-        case .number(let number) where number == number.rounded(): String(Int(number))
+        case .number(let number) where number == number.rounded() && abs(number) < 1e15: String(Int(number))
         default: nil
         }
     }
@@ -279,6 +280,10 @@ public final class ActionDispatcher: ActionRuntime {
 
 extension RuntimeDuration {
     static func describe(_ seconds: Double) -> String {
-        seconds == seconds.rounded() ? "\(Int(seconds))s" : "\(seconds)s"
+        seconds == seconds.rounded() ? "\(whole(seconds))s" : "\(seconds)s"
+    }
+
+    static func whole(_ number: Double) -> String {
+        abs(number) < 1e15 ? String(Int(number)) : "\(number)"
     }
 }

@@ -318,6 +318,34 @@ struct ActionDispatcherTests {
         #expect(fixture.warnings.first?.span == RuntimeIR.span(4))
     }
 
+    @Test("Riesige Zahlen in repeat, wait und Oberflächen-Namen werden gekappt oder abgelehnt statt abzustürzen")
+    func hugeNumbersDoNotTrap() async throws {
+        let shell = KDLShell()
+        let result = try await shell.load("""
+        var n 0
+        var big 1e20
+        var long 1e300
+        on "user.go" {
+            repeat 1e20 {
+                set "n" "{var.n + 1}"
+            }
+            wait "{var.long}"
+            open "{var.big}"
+        }
+        """)
+        shell.apply(result)
+        let tasks = shell.runtime.emit("user.go", Record())
+        #expect(tasks.count == 1)
+        await settle()
+        shell.fixture.clock.advance(by: 10)
+        for task in tasks { await task.value }
+        #expect(shell.vars.value("n") == .number(100))
+        let messages = shell.fixture.warnings.map(\.message)
+        #expect(messages.contains { $0.contains("repeat is capped at 100") })
+        #expect(messages.contains { $0.contains("wait is capped at 10s") })
+        #expect(messages.contains { $0.contains("open needs a surface id") })
+    }
+
     @Test("wait versteht ms, s, m und Zahlen in Sekunden")
     func waitUnits() async {
         let fixture = DispatcherFixture()
