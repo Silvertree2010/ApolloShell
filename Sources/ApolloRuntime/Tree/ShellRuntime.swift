@@ -211,6 +211,7 @@ public final class ShellRuntime: SurfaceControlling {
 
     public func setScreens(_ screenKeys: [String]) {
         screens = screenKeys
+        fullscreenScreens.formIntersection(screenKeys)
         guard let config else { return }
         var desired: [(key: String, ir: SurfaceIR, screen: String)] = []
         for surfaceIR in config.surfaces {
