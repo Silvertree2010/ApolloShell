@@ -95,6 +95,26 @@ struct SettingsStoreTests {
         #expect(store.reload() == false)
     }
 
+    @Test("Tippfehler beim Bearbeiten: der letzte lesbare Stand bleibt aktiv, mit Warnung, und nach der Korrektur gilt der neue")
+    func brokenEditKeepsLastGood() throws {
+        let fileSystem = MemoryFileSystem([Self.file.path: "config \"mine\"\ntheme \"Afterglow\"\n"])
+        let store = SettingsStore(file: Self.file, fileSystem: fileSystem)
+        let log = ChangeLog()
+        let token = store.observe { log.add($0, $1) }
+        defer { token.cancel() }
+        try fileSystem.write("config \"mine\"\ntheme \"Afterglow\n", to: Self.file)
+        #expect(store.reload() == false)
+        #expect(store.settings.config == "mine")
+        #expect(store.settings.theme == "Afterglow")
+        #expect(store.diagnostics.contains { $0.message.contains("could not be parsed") })
+        #expect(log.all.isEmpty)
+        try fileSystem.write("config \"mine\"\ntheme \"Nord\"\n", to: Self.file)
+        #expect(store.reload() == true)
+        #expect(store.settings.theme == "Nord")
+        #expect(store.diagnostics.isEmpty)
+        #expect(log.all.count == 1)
+    }
+
     @Test("Crash-Report-Modus wird gelesen, Unbekanntes gilt als ask")
     func crashMode() throws {
         let fileSystem = MemoryFileSystem([Self.file.path: "crash-reports \"always\""])

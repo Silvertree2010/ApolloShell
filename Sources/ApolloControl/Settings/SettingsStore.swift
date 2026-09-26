@@ -1,6 +1,7 @@
 import Foundation
 import ApolloBase
 import ApolloConfig
+import ApolloKDL
 import ApolloShellCore
 
 public struct SettingsStoreError: Error, Sendable, Hashable, CustomStringConvertible {
@@ -96,6 +97,10 @@ public final class SettingsStore: @unchecked Sendable {
             }
             text = latest
             let (parsed, diagnostics) = ShellSettingsFile.parse(latest ?? "", file: file.path)
+            if let latest, (try? KDLDocument.parse(latest, file: file.path)) == nil {
+                currentDiagnostics = diagnostics
+                return (old, old, [])
+            }
             current = parsed
             currentDiagnostics = diagnostics
             return (old, parsed, parsed == old ? [] : Array(observers.values))
