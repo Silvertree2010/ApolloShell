@@ -91,6 +91,17 @@ struct AppsProviderTests {
         #expect(harness.warnings.filter { $0.severity == .warning }.count == 2)
     }
 
+    @Test("apps.favorite-move mit 1e20 meldet einen Fehler statt abzustürzen")
+    func favoriteMoveWithHugeNumbers() async throws {
+        let (harness, _, _) = make()
+        harness.demand("apps", "favorites")
+        await #expect(throws: ProviderActionError.self) {
+            _ = try await harness.perform("apps", "apps.favorite-move", [.number(1e20), .number(0)])
+        }
+        _ = try await harness.perform("apps", "apps.favorite-move", [.number(0), .number(1e20)])
+        #expect(list(harness, "favorites").map { $0["bundle-id"] } == [.string("org.gone.App"), .string("com.apple.mail")])
+    }
+
     @Test("Unlesbare pinned.json wird gesichert und als leer gelesen")
     func unreadableFavorites() {
         let (harness, source, _) = make { $0.favoritesData = Data("{kaputt".utf8) }

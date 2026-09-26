@@ -65,7 +65,7 @@ public struct MetNorwayProvider: WeatherProvider {
         var report = WeatherReport(
             current: CurrentWeather(
                 time: step.time, temperature: temperature, apparentTemperature: nil,
-                humidity: step.humidity.map { Int($0.rounded()) }, code: condition.code,
+                humidity: step.humidity.flatMap(WeatherNumber.whole), code: condition.code,
                 windSpeed: step.windSpeed.map { $0 * 3.6 }, isDay: condition.isDay ?? true
             ),
             hours: hours,

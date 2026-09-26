@@ -39,11 +39,12 @@ public final class SpacesProvider: BaseProvider {
     override func handle(_ arguments: ActionArguments) async throws -> Value {
         switch arguments.action {
         case "spaces.switch":
-            let index = Int(try arguments.number(0))
-            guard let active = activeIndex() else {
+            let number = try arguments.number(0)
+            guard let active = activeIndex(), let count = current?.spaces.count else {
                 warn("spaces.switch: spaces are unavailable")
                 return .null
             }
+            let index = Int(min(max(number, 1), Double(count)))
             step(index - active, action: arguments.action)
         case "spaces.next":
             step(1, action: arguments.action)

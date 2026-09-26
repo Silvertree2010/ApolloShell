@@ -95,4 +95,16 @@ struct SpacesProviderTests {
         _ = try await harness.perform("spaces", "spaces.next")
         #expect(source.steps.isEmpty)
     }
+
+    @Test("spaces.switch mit 1e20 oder -1e20 stürzt nicht ab und läuft höchstens bis zum Rand")
+    func switchWithHugeIndex() async throws {
+        let (harness, source) = make()
+        harness.demand("spaces", "current")
+        _ = try await harness.perform("spaces", "spaces.switch", [.number(1e20)])
+        harness.advance(1)
+        #expect(source.steps == [true, true])
+        _ = try await harness.perform("spaces", "spaces.switch", [.number(-1e20)])
+        harness.advance(1)
+        #expect(source.steps == [true, true, false])
+    }
 }
