@@ -619,6 +619,7 @@ final class LiveShell: WindowHostLink {
             setShell([("update", updateField())])
         }
         setShell([("update", updateField())])
+        controller.checkInBackgroundIfDue()
         fullscreen.observe()
         reservesChanged()
         installTermination()
