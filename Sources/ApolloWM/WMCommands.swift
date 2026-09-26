@@ -153,7 +153,12 @@ public final class WMCommands {
         case .moveTab(let forward): engine.moveTab(id, forward: forward)
         case .groupApp: engine.groupApp(of: id)
         case .grow(let fraction): engine.grow(id, by: fraction)
-        case .sendToDesktop(let number): send(id, toDesktop: number)
+        case .sendToDesktop(let number):
+            if useAppleDesktops {
+                send(id, toDesktop: number)
+            } else {
+                engine.moveWindow(id, toWorkspace: number)
+            }
         case .sendToDisplay(let next): engine.sendToDisplay(id, next: next)
         case .toggleFloating: engine.toggleFloating(id)
         case .toggleFullscreen: engine.toggleFullscreen(id)
