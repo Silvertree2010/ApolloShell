@@ -288,6 +288,7 @@ struct FlyoutView: View {
     let container: CGSize
     @State private var size: CGSize?
     @State private var monitor = FlyoutOutsideMonitor()
+    @State private var slot = WindowSlot()
     @Environment(\.renderMode) private var renderMode
 
     var body: some View {
@@ -320,14 +321,15 @@ struct FlyoutView: View {
                 .preference(key: FlyoutBulgeKey.self, value: [FlyoutBulge(key: element.identity.description, rect: bulge, side: side, radius: radius, join: join, joined: joined, open: open, container: container)])
                 .animation(spatial, value: measured)
         }
+        .background { WindowSlotReader(slot: slot) }
         .onChange(of: open) { _, now in
-            if now, !renderMode { monitor.start { context.fire("on-close", element) } } else { monitor.stop() }
+            if now, !renderMode { monitor.start(inside: { [slot] in slot.window }) { context.fire("on-close", element) } } else { monitor.stop() }
         }
         .onChange(of: container) { old, new in
             guard open, Self.thicknessChanged(old, new, anchor: surface.property("anchor").plainText) else { return }
             context.fire("on-close", element)
         }
-        .onAppear { if open, !renderMode { monitor.start { context.fire("on-close", element) } } }
+        .onAppear { if open, !renderMode { monitor.start(inside: { [slot] in slot.window }) { context.fire("on-close", element) } } }
         .onDisappear { monitor.stop() }
     }
 
@@ -408,6 +410,7 @@ extension EnvironmentValues {
 @MainActor
 final class FlyoutOutsideMonitor {
     private var token: Any?
+    private var localToken: Any?
     private let install: (NSEvent.EventTypeMask, @escaping (NSEvent) -> Void) -> Any?
     private let remove: (Any) -> Void
 
@@ -417,15 +420,25 @@ final class FlyoutOutsideMonitor {
         self.remove = remove
     }
 
-    func start(_ onOutside: @escaping @MainActor () -> Void) {
+    func start(inside window: @escaping @MainActor () -> NSWindow? = { nil }, _ onOutside: @escaping @MainActor () -> Void) {
         stop()
-        token = install([.leftMouseDown, .rightMouseDown, .otherMouseDown]) { _ in
+        let mask: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        token = install(mask) { _ in
             Task { @MainActor in onOutside() }
+        }
+        localToken = NSEvent.addLocalMonitorForEvents(matching: mask) { event in
+            nonisolated(unsafe) let captured = event
+            MainActor.assumeIsolated {
+                if let own = window(), captured.window !== own { onOutside() }
+            }
+            return event
         }
     }
 
     func stop() {
         if let token { remove(token) }
         token = nil
+        if let localToken { NSEvent.removeMonitor(localToken) }
+        localToken = nil
     }
 }

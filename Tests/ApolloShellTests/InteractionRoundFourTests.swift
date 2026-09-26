@@ -96,4 +96,33 @@ struct InteractionRoundFourTests {
         try await press("down", surface: "session", in: session)
         #expect(vars.value("session-selection") == .number(0))
     }
+
+    func click(window: NSWindow) -> NSEvent {
+        NSEvent.mouseEvent(with: .leftMouseDown, location: NSPoint(x: 5, y: 5), modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber,
+                           context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
+    }
+
+    @Test("flyout: Klick in ein anderes Fenster der Shell schliesst, Klick in die eigene Oberfläche nicht")
+    func flyoutClosesOnClickInOtherShellWindow() async throws {
+        let (session, _) = try RenderProbe.session(FlyoutTests.config, css: FlyoutTests.css)
+        let surface = try #require(session.surfaces.first)
+        let own = NSWindow(contentRect: NSRect(x: -30000, y: -30000, width: 200, height: 200), styleMask: [.titled], backing: .buffered, defer: false)
+        own.isReleasedWhenClosed = false
+        defer { own.close() }
+        let hosting = NSHostingView(rootView: AnyView(SurfaceView(surface: surface, context: session.context)))
+        own.contentView = hosting
+        let mounted = Mounted(session: session, view: hosting)
+        mounted.pump(10)
+        let other = NSWindow(contentRect: NSRect(x: -30000, y: -30000, width: 50, height: 50), styleMask: [.titled], backing: .buffered, defer: false)
+        other.isReleasedWhenClosed = false
+        defer { other.close() }
+        NSApp.sendEvent(click(window: own))
+        mounted.pump(3)
+        await mounted.settle()
+        #expect(mounted.variable("open") == .bool(true))
+        NSApp.sendEvent(click(window: other))
+        mounted.pump(3)
+        await mounted.settle()
+        #expect(mounted.variable("open") == .bool(false))
+    }
 }
