@@ -1024,6 +1024,10 @@ final class LiveShell: WindowHostLink {
         assembly?.runtime.close(surfaceID, screenKey: screenKey)
     }
 
+    func surfaceDidFinishOpening(id: String, screenKey: String) {
+        assembly?.runtime.surfaceDidFinishOpening(id: id, screenKey: screenKey)
+    }
+
     func surfaceDidFinishClosing(id: String, screenKey: String) {
         assembly?.runtime.surfaceDidFinishClosing(id: id, screenKey: screenKey)
     }

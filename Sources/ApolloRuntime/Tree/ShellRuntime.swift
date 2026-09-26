@@ -253,6 +253,7 @@ public final class ShellRuntime: SurfaceControlling {
         }
         target.instance.isOpen = true
         target.isClosing = false
+        target.isOpening = true
         resumeWaiters(target)
         publishSurface(target)
         updateVisibility(target)
@@ -305,6 +306,12 @@ public final class ShellRuntime: SurfaceControlling {
             guard let node = surfaceNodes[key], groupName(node) == group else { continue }
             closeNode(node)
         }
+    }
+
+    public func surfaceDidFinishOpening(id: String, screenKey: String) {
+        guard let node = surfaceNodes[id + "@" + screenKey], node.isOpening else { return }
+        node.isOpening = false
+        publishSurface(node)
     }
 
     public func surfaceDidFinishClosing(id: String, screenKey: String) {
@@ -432,6 +439,7 @@ public final class ShellRuntime: SurfaceControlling {
         guard node.instance.isOpen else { return }
         node.instance.isOpen = false
         node.isClosing = true
+        node.isOpening = false
         publishSurface(node)
         updateVisibility(node)
         host.surfaceChanged(node.instance)
@@ -720,7 +728,7 @@ public final class ShellRuntime: SurfaceControlling {
         var fields: [(String, Value)] = [
             ("id", .string(instance.id)),
             ("open", .bool(instance.isOpen)),
-            ("opening", .bool(false)),
+            ("opening", .bool(node.isOpening)),
             ("closing", .bool(node.isClosing)),
         ]
         if node.kind == "toast" { fields.append(("toasts", .list(node.toasts))) }
