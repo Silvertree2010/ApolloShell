@@ -245,7 +245,7 @@ public final class AppsProvider: BaseProvider {
             }
             let from = Int(fromNumber)
             let to = Int(min(toNumber, Double(favorites.ids.count)))
-            favorites.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? min(to + 1, favorites.ids.count) : to)
+            favorites.move(fromOffsets: IndexSet(integer: from), toOffset: to)
             saveFavorites()
         default:
             try perform(action, app: try Self.appID(arguments), arguments: arguments)
