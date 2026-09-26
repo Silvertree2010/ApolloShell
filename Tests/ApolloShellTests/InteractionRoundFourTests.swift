@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 import AppKit
+import SwiftUI
 @testable import ApolloShell
 
 @MainActor
@@ -29,5 +30,42 @@ struct InteractionRoundFourTests {
         #expect(shot.pixel(100, 50).near(.red))
         #expect(shot.pixel(599, 69).near(.red))
         #expect(!shot.pixel(350, 55).near(.red))
+    }
+
+    func keyDown(_ keyCode: UInt16, window: Int) -> NSEvent {
+        NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: window, context: nil,
+                         characters: "\u{F701}", charactersIgnoringModifiers: "\u{F701}", isARepeat: false, keyCode: keyCode)!
+    }
+
+    @Test("input: key-Handler greift nur für Tasten im eigenen Fenster, nicht für ein anderes Fenster der App")
+    func inputKeysStayInOwnWindow() async throws {
+        let (session, _) = try RenderProbe.session("""
+        var q ""
+        var hits 0
+        panel "t" anchor="left" {
+            input bind="var.q" focus=#true {
+                key "down" { set "hits" "{var.hits + 1}" }
+            }
+        }
+        """, css: "#t { width: 120px; height: 30px; }")
+        let surface = try #require(session.surfaces.first)
+        let own = NSWindow(contentRect: NSRect(x: -30000, y: -30000, width: 120, height: 30), styleMask: [.titled], backing: .buffered, defer: false)
+        own.isReleasedWhenClosed = false
+        defer { own.close() }
+        let hosting = NSHostingView(rootView: session.root(surface, reserve: EdgeInsets()))
+        own.contentView = hosting
+        let mounted = Mounted(session: session, view: hosting)
+        mounted.pump(10)
+        let other = NSWindow(contentRect: NSRect(x: -30000, y: -30000, width: 50, height: 50), styleMask: [.titled], backing: .buffered, defer: false)
+        other.isReleasedWhenClosed = false
+        defer { other.close() }
+        NSApp.sendEvent(keyDown(125, window: other.windowNumber))
+        mounted.pump(3)
+        await mounted.settle()
+        #expect(mounted.variable("hits") == .number(0))
+        NSApp.sendEvent(keyDown(125, window: own.windowNumber))
+        mounted.pump(3)
+        await mounted.settle()
+        #expect(mounted.variable("hits") == .number(1))
     }
 }
