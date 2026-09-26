@@ -62,6 +62,7 @@ enum KDLNumberLiteral {
         for byte in digits {
             if byte == UInt8(ascii: "_") { continue }
             guard let digit = digitValue(byte), digit < radix else { return nil }
+            guard limbs.count <= 35 else { continue }
             var carry = UInt64(digit)
             for index in limbs.indices {
                 let product = limbs[index] * UInt64(radix) + carry
@@ -73,6 +74,7 @@ enum KDLNumberLiteral {
                 carry /= limbBase
             }
         }
+        guard limbs.count <= 35 else { return .infinity }
         var text = String(limbs[limbs.count - 1])
         for limb in limbs.dropLast().reversed() {
             let part = String(limb)

@@ -181,4 +181,23 @@ struct KDLParserTests {
         #expect(node.properties[0].span.end.column == 19)
         #expect(node.childrenBlock == 19..<24)
     }
+
+    func firstNumber(_ text: String) throws -> Double? {
+        guard case .number(let value, _)? = try parse(text).first?.arguments.first?.scalar else { return nil }
+        return value
+    }
+
+    @Test("Hex- und Binärzahlen mit sehr vielen Ziffern werden schnell zu inf")
+    func longRadixNumbers() throws {
+        let start = ContinuousClock.now
+        let hex = try firstNumber("n 0x" + String(repeating: "f", count: 100_000))
+        let binary = try firstNumber("n 0b" + String(repeating: "1", count: 400_000))
+        let elapsed = ContinuousClock.now - start
+        #expect(hex == .infinity)
+        #expect(binary == .infinity)
+        #expect(try firstNumber("n 0x" + String(repeating: "0", count: 100_000) + "ff") == 255)
+        #expect(try firstNumber("n -0x" + String(repeating: "f", count: 300)) == -.infinity)
+        #expect(try firstNumber("n 0x" + String(repeating: "f", count: 200)) == Double("0x" + String(repeating: "f", count: 200)))
+        #expect(elapsed < .seconds(1))
+    }
 }
