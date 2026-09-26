@@ -27,7 +27,7 @@ toast "default" anchor="bottom-right" max=4 duration="5s" newest="last" click-th
 
 on "battery.charger-connected" when="{var.toast-charging}" { notify title="Charger Connected" body="Battery is charging" kind="info" icon="bolt.fill" }
 on "battery.charger-disconnected" when="{var.toast-charging}" { notify title="Charger Unplugged" body="Battery is discharging" kind="info" icon="bolt.slash.fill" }
-on "battery.warning" when="{var.toast-battery}" { notify title="{event.title}" body="{event.body}" kind="{event.critical ? 'error' : 'warning'}" icon="{event.critical ? 'minus.plus.batteryblock.exclamationmark.fill' : 'battery.25percent'}" }
+on "battery.warning" when="{var.toast-battery}" { notify title="{event.title}" body="{event.body}" kind="{event.critical ? 'error' : 'warning'}" icon="{event.critical ? 'minus.plus.batteryblock.exclamationmark.fill' : (event.level == '10' ? 'battery.0percent' : 'battery.25percent')}" }
 on "audio.output-changed" when="{var.toast-audio-output}" { notify title="Audio Output Changed" body="Now using {event.name}" kind="info" icon="speaker.wave.2.fill" }
 on "audio.input-changed" when="{var.toast-audio-input}" { notify title="Audio Input Changed" body="Now using {event.name}" kind="info" icon="mic.fill" }
 on "power.keep-awake-stopped" { notify title="Keep Awake Ended" body="Battery is low" kind="warning" icon="battery.25percent" }
