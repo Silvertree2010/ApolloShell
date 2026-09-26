@@ -114,6 +114,10 @@ final class ControlConnection: @unchecked Sendable {
     private var source: (any DispatchSourceRead)?
     private var tasks: [Int: Task<Void, Never>] = [:]
     private var nextTask = 0
+    private var active = 0
+    private var streaming: Set<Int> = []
+    private var inputClosed = false
+    private var suspended = false
     private var closed = false
     private let onFinish: @Sendable (ControlConnection) -> Void
 
@@ -133,16 +137,32 @@ final class ControlConnection: @unchecked Sendable {
     }
 
     func shutdown() {
-        let (source, running) = lock.withLock { () -> ((any DispatchSourceRead)?, [Task<Void, Never>]) in
+        let (source, running, wasSuspended) = lock.withLock { () -> ((any DispatchSourceRead)?, [Task<Void, Never>], Bool) in
             closed = true
-            let result = (self.source, Array(tasks.values))
+            let result = (self.source, Array(tasks.values), suspended)
             self.source = nil
             tasks = [:]
+            suspended = false
             return result
         }
         for task in running { task.cancel() }
         source?.cancel()
+        if wasSuspended { source?.resume() }
         onFinish(self)
+    }
+
+    private func inputEnded() {
+        let (idle, streams) = lock.withLock { () -> (Bool, [Task<Void, Never>]) in
+            inputClosed = true
+            guard active > 0 else { return (true, []) }
+            if let source, !suspended {
+                source.suspend()
+                suspended = true
+            }
+            return (false, streaming.compactMap { tasks[$0] })
+        }
+        if idle { shutdown() }
+        for task in streams { task.cancel() }
     }
 
     private func readAvailable() {
@@ -150,7 +170,11 @@ final class ControlConnection: @unchecked Sendable {
         let count = chunk.withUnsafeMutableBytes { read(fd, $0.baseAddress, $0.count) }
         guard count > 0 else {
             if count < 0, errno == EINTR || errno == EAGAIN { return }
-            shutdown()
+            if count == 0 {
+                inputEnded()
+            } else {
+                shutdown()
+            }
             return
         }
         let lines = buffer.append(chunk[..<count])
@@ -166,12 +190,19 @@ final class ControlConnection: @unchecked Sendable {
         case .success(let request):
             let key = lock.withLock { () -> Int in
                 nextTask += 1
+                active += 1
                 return nextTask
             }
             let task = Task { [weak self] in
                 guard let self else { return }
-                await self.serve(request)
-                _ = self.lock.withLock { self.tasks.removeValue(forKey: key) }
+                await self.serve(request, key: key)
+                let drained = self.lock.withLock { () -> Bool in
+                    self.tasks.removeValue(forKey: key)
+                    self.streaming.remove(key)
+                    self.active -= 1
+                    return self.inputClosed && self.active == 0 && !self.closed
+                }
+                if drained { self.shutdown() }
             }
             lock.withLock {
                 if closed { task.cancel() } else { tasks[key] = task }
@@ -179,13 +210,19 @@ final class ControlConnection: @unchecked Sendable {
         }
     }
 
-    private func serve(_ request: ControlRequest) async {
+    private func serve(_ request: ControlRequest, key: Int) async {
         switch await service.reply(to: request) {
         case .success(let value):
             _ = write(ControlResponse(id: request.id, outcome: .success(value)))
         case .failure(let message):
             _ = write(ControlResponse(id: request.id, outcome: .failure(message)))
         case .stream(let stream):
+            let ended = lock.withLock { () -> Bool in
+                guard !inputClosed else { return true }
+                streaming.insert(key)
+                return false
+            }
+            guard !ended else { return }
             for await value in stream {
                 guard write(ControlResponse(id: request.id, outcome: .success(value))) else { break }
             }

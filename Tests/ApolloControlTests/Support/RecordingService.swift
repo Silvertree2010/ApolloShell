@@ -39,6 +39,9 @@ struct EchoService: ControlService {
             return .success(.list([.number(.nan), .number(.infinity), .number(1.5)]))
         case "watch":
             return .stream(probe.makeStream())
+        case "slow":
+            try? await Task.sleep(for: .milliseconds(200))
+            return .success(.string("late"))
         default:
             return .failure("unknown command '\(request.cmd)'")
         }

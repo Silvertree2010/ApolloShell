@@ -151,6 +151,36 @@ struct ControlSocketTests {
         #expect(waitUntil { probe.wasTerminated })
     }
 
+    @Test("Schliesst der Client nach der Anfrage seine Schreibseite, kommt die Antwort trotzdem, danach trennt der Server")
+    func halfClose() throws {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        let server = ControlSocketServer(path: folder.socketPath, service: EchoService(probe: StreamProbe()))
+        try server.start()
+        defer { server.stop() }
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        defer { close(fd) }
+        #expect(try SocketAddress.connect(fd, folder.socketPath) == 0)
+        var timeout = timeval(tv_sec: 5, tv_usec: 0)
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+        #expect(SocketAddress.writeAll(fd, ControlRequest(id: 4, cmd: "slow").line + "\n"))
+        #expect(shutdown(fd, SHUT_WR) == 0)
+        var buffer = LineBuffer()
+        var lines: [String] = []
+        var chunk = [UInt8](repeating: 0, count: 4096)
+        var sawEnd = false
+        while !sawEnd {
+            let count = chunk.withUnsafeMutableBytes { read(fd, $0.baseAddress, $0.count) }
+            if count <= 0 {
+                sawEnd = count == 0
+                break
+            }
+            lines += buffer.append(chunk[..<count])
+        }
+        #expect(lines.map(ControlResponse.parse) == [ControlResponse(id: 4, outcome: .success(.string("late")))])
+        #expect(sawEnd)
+    }
+
     @Test("Pfad kommt aus APOLLO_SOCKET, sonst aus Application Support")
     func socketPath() {
         let home = URL(fileURLWithPath: "/Users/x")
