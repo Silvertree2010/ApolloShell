@@ -48,6 +48,31 @@ struct WeatherProviderTests {
         #expect(harness.value("weather", "search-status") == .string("idle"))
     }
 
+    static func report(zone: String, locale: String) -> WeatherReport {
+        let timeZone = TimeZone(identifier: zone)!
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let today = calendar.startOfDay(for: FakeWeatherSource.start)
+        let hours = (0..<48).map { HourForecast(time: today.addingTimeInterval(Double($0) * 3600), temperature: 10, code: 2, precipitationProbability: nil, isDay: true) }
+        let days = (0..<8).map { DayForecast(date: calendar.date(byAdding: .day, value: $0, to: today)!, code: 61, maxTemperature: 18, minTemperature: 7, sunrise: calendar.date(byAdding: .hour, value: 24 * $0 + 6, to: today), sunset: calendar.date(byAdding: .hour, value: 24 * $0 + 18, to: today), precipitationProbability: nil) }
+        return WeatherReport(current: CurrentWeather(time: FakeWeatherSource.start, temperature: 14, apparentTemperature: 13, humidity: 50, code: 2, windSpeed: 5, isDay: true), hours: hours, days: days, timeZone: timeZone, locale: Locale(identifier: locale))
+    }
+
+    func days(zone: String, locale: String) -> [Record] {
+        let (harness, source, _) = make()
+        source.answer = Self.report(zone: zone, locale: locale)
+        harness.demand("weather")
+        guard case .list(let days) = harness.value("weather", "days") else { return [] }
+        return days.compactMap { if case .record(let record) = $0 { record } else { nil } }
+    }
+
+    @Test("Tagesdatum folgt der Locale wie 0.1.4.2: en_CH 25.9., en_US 9/25")
+    func dayDateFollowsLocale() {
+        #expect(days(zone: "Europe/Zurich", locale: "en_CH")[1]["date-text"] == .string("25.9."))
+        #expect(days(zone: "Europe/Zurich", locale: "de_CH")[1]["date-text"] == .string("25.9."))
+        #expect(days(zone: "Europe/Zurich", locale: "en_US")[1]["date-text"] == .string("9/25"))
+    }
+
     @Test("Ohne Ort kein Abruf, Status no-place")
     func noPlace() {
         let (harness, source, _) = make(place: .null)
