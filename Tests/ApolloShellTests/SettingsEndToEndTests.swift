@@ -194,4 +194,68 @@ struct SettingsEndToEndTests {
         }
         #expect(try await Self.disabledResets(again) == [true, true, true])
     }
+
+    static func checked(_ entries: [MenuEntry], _ menu: String) -> [String] {
+        (entries.first { $0.title == menu }?.children ?? []).filter(\.checked).map(\.title)
+    }
+
+    @Test("Kommandozentrale: Theme und Config wählen, Häkchen stimmen nach Reload und Neustart")
+    func commandCenterChecks() async throws {
+        let home = try Self.freshHome()
+        defer { try? FileManager.default.removeItem(at: home.root) }
+        let folder = home.config.appendingPathComponent("themes/nacht")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try ":root {\n  --apollo-theme-format: 1;\n  --apollo-theme-name: \"Nacht\";\n}\n".write(to: folder.appendingPathComponent("theme.css"), atomically: true, encoding: .utf8)
+        let shell = try await Self.start(home)
+        #expect(Self.checked(shell.commandCenterEntries(), "Theme") == ["None"])
+        #expect(Self.checked(shell.commandCenterEntries(), "Config") == ["apolloshell-default"])
+        shell.perform(.selectTheme("nacht"))
+        await shell.reload()?.value
+        #expect(Self.checked(shell.commandCenterEntries(), "Theme") == ["nacht"])
+        shell.perform(.selectConfig("launcher-only"))
+        await shell.reload()?.value
+        #expect(shell.location?.id == "launcher-only")
+        #expect(Self.checked(shell.commandCenterEntries(), "Config") == ["launcher-only"])
+        shell.shutdown()
+        let again = try await Self.start(home)
+        #expect(again.location?.id == "launcher-only")
+        #expect(Self.checked(again.commandCenterEntries(), "Theme") == ["nacht"])
+        #expect(Self.checked(again.commandCenterEntries(), "Config") == ["launcher-only"])
+        again.perform(.selectTheme(nil))
+        again.perform(.selectConfig("apolloshell-default"))
+        await again.reload()?.value
+        #expect(Self.checked(again.commandCenterEntries(), "Theme") == ["None"])
+        #expect(Self.checked(again.commandCenterEntries(), "Config") == ["apolloshell-default"])
+        again.shutdown()
+    }
+
+    @Test("Tastenkürzel-Seite: Aufnehmen, Default und Hyper Key schreiben die richtigen var und registrieren")
+    func shortcutsPage() async throws {
+        let home = try Self.freshHome()
+        defer { try? FileManager.default.removeItem(at: home.root) }
+        let shell = try await Self.start(home)
+        defer { shell.shutdown() }
+        let runtime = try #require(shell.assembly?.runtime)
+        runtime.open("settings", screenKey: nil)
+        _ = shell.assembly?.vars.set("settings-page", .string("shortcuts"))
+        await Self.settle(shell)
+        let recorders = Self.all(try #require(Self.surface(shell, "settings")).root).filter { $0.kind == "key-recorder" }
+        #expect(recorders.count == 4)
+        let chords = ["cmd+alt+1", "cmd+alt+2", "cmd+alt+3", "cmd+alt+4"]
+        for (recorder, chord) in zip(recorders, chords) {
+            await runtime.trigger("on-change", on: recorder.identity, event: Record([("chord", .string(chord))]))?.value
+        }
+        await Self.settle(shell)
+        #expect(["hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-settings"].map { Self.value(shell, $0) } == chords.map { .string($0) })
+        let after = Self.all(try #require(Self.surface(shell, "settings")).root).filter { $0.kind == "key-recorder" }
+        #expect(after.map { $0.property("value") } == chords.map { .string($0) })
+        let registrar = try #require(shell.registrar as? FakeRegistrar)
+        for chord in chords { #expect(registrar.active[try #require(KeyChord.parse(chord)).canonical] != nil, "\(chord)") }
+        let buttons = Self.all(try #require(Self.surface(shell, "settings")).root).filter { element in
+            element.kind == "button" && Self.all([element]).contains { $0.kind == "text" && ($0.arguments.first?.value == .string("Hyper Key")) }
+        }
+        await runtime.trigger("on-click", on: try #require(buttons.last).identity, event: Record())?.value
+        await Self.settle(shell)
+        #expect(["hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-settings"].map { Self.value(shell, $0) } == ["f20", "hyper+d", "hyper+u", "hyper+comma"].map { .string($0) })
+    }
 }
