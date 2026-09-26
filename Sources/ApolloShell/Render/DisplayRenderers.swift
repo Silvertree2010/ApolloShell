@@ -16,7 +16,7 @@ enum DisplayRenderers {
 
     static func gauge(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
         let value = clamp(StyleValues.numberValue(element.property("value")) ?? 0)
-        let ticks = max(0, Int(StyleValues.numberValue(element.property("ticks")) ?? 0))
+        let ticks = max(0, StyleValues.count(element.property("ticks"), limit: 1000) ?? 0)
         return AnyView(GaugeView(value: value, ticks: ticks, style: DisplayStyle(style))
             .animation(StyleMotion.valueAnimation(style), value: value))
     }
@@ -26,8 +26,9 @@ enum DisplayRenderers {
         if case .list(let list) = element.property("values") { values = list.compactMap(StyleValues.numberValue) }
         var slots: Int?
         if let capacity = StyleValues.numberValue(element.property("capacity")), capacity >= 0 {
-            slots = Int(capacity)
-            if values.count > Int(capacity) { values = Array(values.suffix(Int(capacity))) }
+            let capacity = Int(min(capacity, 100_000))
+            slots = capacity
+            if values.count > capacity { values = Array(values.suffix(capacity)) }
         }
         let scale = GraphScale(values: values, min: StyleValues.numberValue(element.property("min")), max: StyleValues.numberValue(element.property("max")))
         let kind = element.property("kind").plainText ?? "line"

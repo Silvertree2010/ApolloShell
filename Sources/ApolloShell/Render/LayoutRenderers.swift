@@ -34,7 +34,7 @@ enum LayoutRenderers {
         if case .gridColumns(let list)? = style["grid-template-columns"] {
             columns = list
         } else {
-            let count = max(1, StyleValues.numberValue(element.property("columns")).map(Int.init) ?? 1)
+            let count = max(1, StyleValues.count(element.property("columns"), limit: 1000) ?? 1)
             columns = Array(repeating: CSSLength(1, .fraction), count: count)
         }
         let gap = StyleValues.gap(style["gap"])

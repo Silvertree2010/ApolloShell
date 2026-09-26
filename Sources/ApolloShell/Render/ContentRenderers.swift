@@ -67,7 +67,7 @@ struct TextElement: View {
 
     var body: some View {
         let text = TextStyle(style)
-        let lines = StyleValues.numberValue(element.property("lines")).map(Int.init) ?? 1
+        let lines = StyleValues.count(element.property("lines"), limit: 100_000) ?? 1
         Text(content)
             .font(text.font)
             .foregroundStyle(text.color)

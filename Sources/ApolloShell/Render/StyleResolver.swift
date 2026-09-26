@@ -138,7 +138,7 @@ extension Value {
     var plainText: String? {
         switch self {
         case .string(let text): text.isEmpty ? nil : text
-        case .number(let number): number == number.rounded() ? String(Int(number)) : String(number)
+        case .number(let number): number == number.rounded() && abs(number) < 1e15 ? String(Int(number)) : String(number)
         default: nil
         }
     }
