@@ -119,6 +119,15 @@ struct MediaProviderTests {
         #expect(source.opened == ["com.spotify.client"])
     }
 
+    @Test("media.seek mit riesiger Zahl stürzt nicht ab")
+    func hugeSeek() async throws {
+        let (harness, source, _) = make()
+        harness.demand("media", "title")
+        source.playing(title: "Blinding Lights")
+        _ = try await harness.perform("media", "media.seek", [.number(1e20)])
+        #expect(source.seeks == [1_000_000_000_000_000])
+    }
+
     @Test("Leere Nachricht räumt erst nach 0,6 s ab")
     func emptyAfterDelay() {
         let (harness, source, _) = make()

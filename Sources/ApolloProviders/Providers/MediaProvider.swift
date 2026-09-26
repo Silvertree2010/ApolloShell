@@ -59,7 +59,7 @@ public final class MediaProvider: BaseProvider {
         case "media.previous": source.send(.previousTrack)
         case "media.seek":
             let seconds = try arguments.number(0)
-            source.seek(microseconds: Int((max(seconds, 0) * 1_000_000).rounded()))
+            source.seek(microseconds: Int((min(max(seconds, 0), 1_000_000_000) * 1_000_000).rounded()))
         default:
             guard let app = shown?.sourceBundleIdentifier else {
                 note("\(action): nothing is playing")
