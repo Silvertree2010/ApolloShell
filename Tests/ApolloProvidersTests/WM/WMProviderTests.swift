@@ -90,6 +90,19 @@ struct WMProviderTests {
         #expect(engine.configures.count == 1)
     }
 
+    @Test("enabled weglassen oder den wm-Block entfernen stoppt die Engine")
+    func removedEnabledStops() {
+        let (_, engine, provider) = make()
+        #expect(provider.isEngineRunning)
+        provider.configure(Record())
+        #expect(!provider.isEngineRunning && engine.stops == 1)
+        provider.configure(Record([("enabled", .bool(true))]))
+        #expect(provider.isEngineRunning)
+        provider.apply(nil)
+        provider.configure(Record())
+        #expect(!provider.isEngineRunning && engine.stops == 2)
+    }
+
     @Test("wm.toggle schaltet um, bis enabled sich ändert")
     func toggle() async throws {
         let (harness, engine, provider) = make()

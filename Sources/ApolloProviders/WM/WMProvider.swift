@@ -64,7 +64,12 @@ public final class WMProvider: BaseProvider {
     }
 
     override func didConfigure(_ settings: Record) {
-        guard case .bool(let enabled) = settings["enabled"] ?? .null else { return }
+        let enabled: Bool
+        switch settings["enabled"] {
+        case .bool(let flag)?: enabled = flag
+        case nil: enabled = false
+        default: return
+        }
         if enabled != requested { toggled = false }
         requested = enabled
         reconcile()
