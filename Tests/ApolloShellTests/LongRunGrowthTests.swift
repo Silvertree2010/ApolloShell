@@ -26,4 +26,15 @@ struct LongRunGrowthTests {
         }
         #expect(styles.diagnostics.count <= StyleResolver.diagnosticLimit)
     }
+
+    @Test("dieselbe Warnung tausendfach: die Warnungsliste der Assembly wächst nicht mit")
+    func repeatedWarningsStayBounded() throws {
+        let (session, _) = try RenderProbe.session("panel \"t\" anchor=\"left\" { stack {} }")
+        let assembly = session.assembly
+        let start = assembly.warnings.count
+        for _ in 0..<1000 {
+            assembly.vars.set("nirgends", .number(1))
+        }
+        #expect(assembly.warnings.count - start <= 1)
+    }
 }
