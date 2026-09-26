@@ -91,6 +91,18 @@ struct AppsProviderTests {
         #expect(harness.warnings.filter { $0.severity == .warning }.count == 2)
     }
 
+    @Test("favorite-move nimmt die Einfügestelle wie list.move: Move Down (+2) und Ziehen nach unten verschieben um genau die gezeigte Stelle")
+    func favoriteMoveDown() async throws {
+        let (harness, source, _) = make { $0.favoritesData = PinnedList(["a", "b", "c", "d"]).encoded() }
+        harness.demand("apps", "favorites")
+        _ = try await harness.perform("apps", "apps.favorite-move", [.number(0), .number(2)])
+        #expect(PinnedList.load(from: source.favoritesData).ids == ["b", "a", "c", "d"])
+        _ = try await harness.perform("apps", "apps.favorite-move", [.number(0), .number(3)])
+        #expect(PinnedList.load(from: source.favoritesData).ids == ["a", "c", "b", "d"])
+        _ = try await harness.perform("apps", "apps.favorite-move", [.number(3), .number(1)])
+        #expect(PinnedList.load(from: source.favoritesData).ids == ["a", "d", "c", "b"])
+    }
+
     @Test("Unlesbare pinned.json wird gesichert und als leer gelesen")
     func unreadableFavorites() {
         let (harness, source, _) = make { $0.favoritesData = Data("{kaputt".utf8) }
