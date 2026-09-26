@@ -1,5 +1,6 @@
 import Foundation
 import ApolloBase
+import ApolloKDL
 import ApolloShellCore
 
 public struct LegacyImportResult: Sendable, Hashable {
@@ -7,6 +8,9 @@ public struct LegacyImportResult: Sendable, Hashable {
     public var theme: String?
     public var launcherOnly: Bool
     public var diagnostics: [Diagnostic]
+    public var autoCheckUpdates: Bool?
+    public var autoInstallUpdates: Bool?
+    public var crashReports: String?
 
     public init(state: [String: Value] = [:], theme: String? = nil, launcherOnly: Bool = false, diagnostics: [Diagnostic] = []) {
         self.state = state
@@ -98,7 +102,17 @@ public enum LegacyImport {
             if result.launcherOnly, current.config == nil {
                 text = try ShellSettingsFile.updating(text, file: settingsKDL.path, set: .config(launcherOnlyConfigID))
             }
-            if result.theme != nil || result.launcherOnly {
+            let present = Set(((try? KDLDocument.parse(text, file: settingsKDL.path))?.nodes ?? []).map(\.name))
+            var changed = result.theme != nil || result.launcherOnly
+            if !present.contains("updates"), result.autoCheckUpdates != nil || result.autoInstallUpdates != nil {
+                text = try ShellSettingsFile.updating(text, file: settingsKDL.path, set: .updates(autoCheck: result.autoCheckUpdates ?? true, autoInstall: result.autoInstallUpdates ?? true))
+                changed = true
+            }
+            if !present.contains("crash-reports"), let mode = result.crashReports {
+                text = try ShellSettingsFile.updating(text, file: settingsKDL.path, set: .crashReports(mode))
+                changed = true
+            }
+            if changed {
                 try fileSystem.write(text, to: settingsKDL)
             }
         } catch {
@@ -329,6 +343,15 @@ extension LegacyImport {
             result.state[name] = .bool(flag)
         }
 
+        mutating func optionalBool(_ object: [String: Any], _ key: String, path: String) -> Bool? {
+            guard let value = object[key] else { return nil }
+            guard let flag = Self.bool(value) else {
+                report("'\(path)' is not true or false, skipped")
+                return nil
+            }
+            return flag
+        }
+
         mutating func importSettings(_ root: [String: Any], into result: inout LegacyImportResult) {
             if let bar = section(root, "bar") {
                 importBar(bar, into: &result)
@@ -362,6 +385,17 @@ extension LegacyImport {
             }
             if let onboarding = section(root, "onboarding") {
                 importBool(onboarding, "completed", path: "onboarding.completed", as: "onboarding-done", into: &result)
+            }
+            if let updates = section(root, "updates") {
+                result.autoCheckUpdates = optionalBool(updates, "checkAutomatically", path: "updates.checkAutomatically")
+                result.autoInstallUpdates = optionalBool(updates, "installAutomatically", path: "updates.installAutomatically")
+            }
+            if let crashReports = section(root, "crashReports"), let raw = crashReports["mode"] {
+                if let mode = Self.string(raw), ["ask", "always", "never"].contains(mode) {
+                    result.crashReports = mode
+                } else {
+                    report("'crashReports.mode' is not ask, always or never, skipped")
+                }
             }
             if let theme = section(root, "theme"), let raw = theme["name"], !Self.isNull(raw) {
                 if let name = Self.string(raw) {

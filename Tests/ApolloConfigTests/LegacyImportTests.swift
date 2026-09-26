@@ -500,6 +500,35 @@ struct LegacyImportFileTests {
         #expect(!LegacyImport.isNeeded(paths: paths, fileSystem: fs))
     }
 
+    @Test("Update-Schalter und Absturzbericht-Modus aus settings.json landen in settings.kdl")
+    func importsUpdatesAndCrashReports() throws {
+        let paths = Self.paths(URL(fileURLWithPath: "/r"))
+        let fs = MemoryFileSystem([
+            "/r/Application Support/ApolloShell/settings.json": #"{"updates": {"checkAutomatically": true, "installAutomatically": false}, "crashReports": {"mode": "never"}}"#,
+        ])
+        _ = LegacyImport.run(paths: paths, fileSystem: fs, defaults: { _ in nil })
+        let (settings, _) = ShellSettingsFile.parse(try fs.read(paths.settingsFile), file: paths.settingsFile.path)
+        #expect(settings.autoCheckUpdates == true)
+        #expect(settings.autoInstallUpdates == false)
+        #expect(settings.crashReports == "never")
+    }
+
+    @Test("Update-Schalter und Absturzbericht-Modus: vorhandene Knoten in settings.kdl bleiben, Unlesbares gilt als Vorgabe")
+    func keepsExistingUpdatesAndCrashReports() throws {
+        let paths = Self.paths(URL(fileURLWithPath: "/r"))
+        let existing = "updates auto-check=#true auto-install=#true\ncrash-reports \"always\"\n"
+        let fs = MemoryFileSystem([
+            "/r/Application Support/ApolloShell/settings.json": #"{"updates": {"installAutomatically": false}, "crashReports": {"mode": "never"}}"#,
+            paths.settingsFile.path: existing,
+        ])
+        _ = LegacyImport.run(paths: paths, fileSystem: fs, defaults: { _ in nil })
+        #expect(try fs.read(paths.settingsFile) == existing)
+        let broken = LegacyImport.convert(settings: #"{"updates": {"checkAutomatically": "no"}, "crashReports": {"mode": "sometimes"}}"#, weather: nil, launcherOnly: false)
+        #expect(broken.autoCheckUpdates == nil)
+        #expect(broken.autoInstallUpdates == nil)
+        #expect(broken.crashReports == nil)
+    }
+
     @Test("vorhandene Wahl in settings.kdl wird nicht überschrieben")
     func keepsExistingSettings() throws {
         let paths = Self.paths(URL(fileURLWithPath: "/r"))
