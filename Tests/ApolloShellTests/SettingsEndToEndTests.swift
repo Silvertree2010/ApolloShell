@@ -258,4 +258,75 @@ struct SettingsEndToEndTests {
         await Self.settle(shell)
         #expect(["hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-settings"].map { Self.value(shell, $0) } == ["f20", "hyper+d", "hyper+u", "hyper+comma"].map { .string($0) })
     }
+
+    static func ids(_ shell: LiveShell, _ name: String) -> [Value] {
+        guard case .list(let items)? = value(shell, name) else { return [] }
+        return items.compactMap { if case .record(let record) = $0 { record["id"] } else { nil } }
+    }
+
+    @Test("Jede Einstellungsseite, jede Option, jede Rückfrage und jeder Einführungsschritt ohne Warnung")
+    func sweepWithoutWarnings() async throws {
+        let home = try Self.freshHome()
+        defer { try? FileManager.default.removeItem(at: home.root) }
+        let shell = try await Self.start(home)
+        defer { shell.shutdown() }
+        let vars = try #require(shell.assembly?.vars)
+        let runtime = try #require(shell.assembly?.runtime)
+        let before = shell.overlay.problems.map(\.message) + (shell.assembly?.warnings.map(\.message) ?? [])
+        #expect(before.isEmpty, "\(before)")
+        for step in 0...3 {
+            _ = vars.set("onboarding-step", .number(Double(step)))
+            await Self.settle(shell)
+        }
+        runtime.open("settings", screenKey: nil)
+        for page in ["general", "shortcuts", "sidebar", "control-centre", "launcher", "dashboard", "desktop", "toasts", "providers", "system-settings", "about"] {
+            _ = vars.set("settings-page", .string(page))
+            await Self.settle(shell)
+        }
+        _ = vars.set("settings-page", .string("sidebar"))
+        _ = vars.set("settings-sidebar-gallery", .bool(true))
+        for id in Self.ids(shell, "sidebar-modules") {
+            _ = vars.set("settings-sidebar-expanded", id)
+            await Self.settle(shell)
+        }
+        _ = vars.set("settings-page", .string("control-centre"))
+        _ = vars.set("settings-toggle-gallery", .bool(true))
+        for id in Self.ids(shell, "utilities-toggles") {
+            _ = vars.set("settings-toggle-selected", id)
+            await Self.settle(shell)
+        }
+        _ = vars.set("settings-page", .string("dashboard"))
+        _ = vars.set("settings-dashboard-gallery", .bool(true))
+        for zone in ["top", "bottom", "side"] {
+            for id in Self.ids(shell, "dashboard-cards-" + zone) {
+                _ = vars.set("settings-dashboard-expanded", id)
+                await Self.settle(shell)
+            }
+        }
+        let areas: [(page: String, confirm: String, presets: [String], lists: [String], expand: String)] = [
+            ("sidebar", "settings-sidebar-confirm", ["minimal", "dock-only", "everything", "reset"], ["sidebar-modules"], "settings-sidebar-expanded"),
+            ("control-centre", "settings-utilities-confirm", ["minimal", "audio", "everything", "reset"], ["utilities-toggles"], "settings-toggle-selected"),
+            ("dashboard", "settings-dashboard-confirm", ["compact", "calendar-weather", "caelestia", "reset"], ["dashboard-cards-top", "dashboard-cards-bottom", "dashboard-cards-side"], "settings-dashboard-expanded"),
+        ]
+        for area in areas {
+            _ = vars.set("settings-page", .string(area.page))
+            for preset in area.presets {
+                let previous = area.lists.map { vars.value($0) }
+                _ = vars.set(area.confirm, .string(preset))
+                runtime.open("settings-confirm", screenKey: nil)
+                await Self.settle(shell)
+                try await Self.click(shell, "settings-confirm", "settings-default-button")
+                #expect(!Self.isOpen(shell, "settings-confirm"))
+                if preset != "reset" { #expect(area.lists.map { vars.value($0) } != previous, "\(area.page) \(preset)") }
+                for list in area.lists {
+                    for id in Self.ids(shell, list) {
+                        _ = vars.set(area.expand, id)
+                        await Self.settle(shell)
+                    }
+                }
+            }
+        }
+        let after = shell.overlay.problems.map(\.message) + (shell.assembly?.warnings.map(\.message) ?? [])
+        #expect(after.isEmpty, "\(after)")
+    }
 }
