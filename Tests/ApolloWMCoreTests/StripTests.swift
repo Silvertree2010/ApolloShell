@@ -23,6 +23,13 @@ struct StripTests {
         #expect(strip.focused == 3)
     }
 
+    @Test func removingAColumnLeftOfTheFocusedOneKeepsTheFocus() {
+        var strip = strip(4)
+        strip.focus(3)
+        strip.remove(1)
+        #expect(strip.focused == 3)
+    }
+
     @Test func stackingPutsAWindowUnderAnotherInItsColumn() {
         var strip = strip(2)
         strip.stack(3, intoColumnOf: 1)
