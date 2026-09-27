@@ -8,6 +8,7 @@ struct ExpressionEnvironment: Sendable {
     var locals: Set<String>
     var context: NodeContext
     var templates: TemplateCache? = nil
+    var declaredVars: Set<String>? = nil
 }
 
 enum ExpressionText {
@@ -214,6 +215,12 @@ private struct ExpressionValidator {
         let position = Self.rootsKeyedById.contains(root) ? 1 : 0
         guard position < members.count, case .field(let first) = members[position] else { return }
         let span = position < fieldSpans.count ? fieldSpans[position] : fallback
+        if root == "var", let declared = env.declaredVars {
+            guard !declared.contains(first) else { return }
+            let suggestion = Suggestion.closest(to: first, among: Array(declared))
+            diagnostics.append(Diagnostic(.warning, "unknown var '\(first)'", span: span, help: suggestion.map { "did you mean '\($0)'?" }))
+            return
+        }
         let fields: [FieldSchema]
         if let provider = env.registry.providers[root] {
             fields = provider.fields
