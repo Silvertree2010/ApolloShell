@@ -18,7 +18,6 @@ public final class ActionDispatcher: ActionRuntime {
     private var implementations: [String: any ActionImplementation] = [:]
     private var runningSites: [String: Int] = [:]
     private var epoch = 0
-    private var emitDepth = 0
     private var warnedSites: Set<String> = []
     private let warningBuffer = WarningBuffer()
     #if canImport(os)
@@ -28,7 +27,7 @@ public final class ActionDispatcher: ActionRuntime {
     public let vars: VarStore
     public let providers: ProviderHost
     public weak var surfaces: (any SurfaceControlling)?
-    public var emitter: (@MainActor (String, Record) -> Void)?
+    public var emitter: (@MainActor (String, Record, EmitChain) -> Void)?
     public var onWarning: (@MainActor (Diagnostic) -> Void)?
 
     public init(evaluator: Evaluator, vars: VarStore, providers: ProviderHost, store: SignalStore, clock: any RuntimeClock = DispatchRuntimeClock()) {
@@ -64,7 +63,11 @@ public final class ActionDispatcher: ActionRuntime {
             runningSites[site, default: 0] += 1
         }
         let started = epoch
-        return Task.immediate { @MainActor [self] in
+        var environment = environment
+        if environment.emitChain == nil {
+            environment.emitChain = EmitChain(depth: 0, budget: EmitBudget())
+        }
+        return Task.immediate { @MainActor [self, environment] in
             await self.run(actions, environment: environment, epoch: started)
             if let site, self.epoch == started {
                 self.release(site)
@@ -192,7 +195,7 @@ public final class ActionDispatcher: ActionRuntime {
             case "wait":
                 try await waitAction(resolved)
             case "emit":
-                try emit(resolved)
+                try emit(resolved, environment)
             case _ where StateActions.names.contains(call.name):
                 try StateActions(vars: vars).perform(resolved)
             default:
@@ -227,7 +230,7 @@ public final class ActionDispatcher: ActionRuntime {
         }
     }
 
-    private func emit(_ call: ResolvedActionCall) throws {
+    private func emit(_ call: ResolvedActionCall, _ environment: ActionEnvironment) throws {
         let name = try string(call, 0, "event name")
         let fields: Record
         switch call.properties["event"] ?? .null {
@@ -235,12 +238,14 @@ public final class ActionDispatcher: ActionRuntime {
         case .record(let record): fields = record
         case let other: throw ActionFailure("emit needs a record for event, got \(other.typeName)")
         }
-        guard emitDepth < Self.maximumEmitDepth else {
+        let chain = environment.emitChain ?? EmitChain(depth: 0, budget: EmitBudget())
+        guard chain.depth < Self.maximumEmitDepth else {
             throw ActionFailure("emit is nested deeper than \(Self.maximumEmitDepth) levels, '\(name)' is not sent")
         }
-        emitDepth += 1
-        defer { emitDepth -= 1 }
-        emitter?(name.hasPrefix("user.") ? name : "user." + name, fields)
+        guard chain.budget.take() else {
+            throw ActionFailure("one chain of emits may send at most \(EmitBudget.total) events, '\(name)' is not sent")
+        }
+        emitter?(name.hasPrefix("user.") ? name : "user." + name, fields, EmitChain(depth: chain.depth + 1, budget: chain.budget))
     }
 
     private func waitAction(_ call: ResolvedActionCall) async throws {

@@ -62,8 +62,8 @@ public final class ShellRuntime: SurfaceControlling {
         self.actions = actions
         self.host = host
         actions.surfaces = self
-        actions.emitter = { [weak self] name, fields in
-            _ = self?.emit(name, fields)
+        actions.emitter = { [weak self] name, fields, chain in
+            _ = self?.emit(name, fields, chain: chain)
         }
         providers.onEvent = { [weak self] event, fields in
             _ = self?.emit(event, fields)
@@ -344,14 +344,14 @@ public final class ShellRuntime: SurfaceControlling {
     }
 
     @discardableResult
-    public func emit(_ event: String, _ fields: Record) -> [Task<Void, Never>] {
+    public func emit(_ event: String, _ fields: Record, chain: EmitChain? = nil) -> [Task<Void, Never>] {
         guard let config else { return [] }
         var tasks: [Task<Void, Never>] = []
         for handler in config.events where handler.event == event {
             if let when = handler.when, !bindings.evaluateOnce(when, scope: LocalScope(), event: fields).isTruthy {
                 continue
             }
-            if let task = actions.trigger(handler.actions, site: "on@\(handler.span.file):\(handler.span.start.line):\(handler.span.start.column):\(handler.span.start.offset)", environment: ActionEnvironment(event: fields)) {
+            if let task = actions.trigger(handler.actions, site: "on@\(handler.span.file):\(handler.span.start.line):\(handler.span.start.column):\(handler.span.start.offset)", environment: ActionEnvironment(event: fields, emitChain: chain)) {
                 tasks.append(task)
             }
         }
