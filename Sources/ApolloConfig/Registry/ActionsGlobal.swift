@@ -39,7 +39,7 @@ enum ActionsGlobal {
         ], acceptsChildren: true, doc: "Merges fields into a record of a var list."),
         ActionSchema(name: "emit", arguments: [S.arg("name", .string, doc: "Event name, sent as user.<name>.")], properties: [
             PropertySchema(name: "event", type: .value, defaultValue: .null, doc: "Record the handlers read as event.<field>."),
-        ], doc: "Sends an event to the config's own on handlers, like apollo emit."),
+        ], doc: "Sends an event to the config's own on handlers, like apollo emit; a chain of emits stops after 16 levels or 256 events."),
         ActionSchema(name: "wait", arguments: [S.arg("duration", .duration, doc: "Wait time, at most 10s.")], waits: true, doc: "Waits before the next action runs."),
         ActionSchema(name: "repeat", arguments: [S.arg("count", .number, doc: "Repetitions, at most 100.")], acceptsChildren: true, doc: "Runs the children several times."),
         ActionSchema(name: "exec", arguments: [ArgumentSchema(name: "command", type: .string, shellQuoted: true, doc: "Command run via /bin/sh -c; each {…} is inserted as one quoted word.")], properties: [PropertySchema(name: "timeout", type: .duration, defaultValue: .string("30s"), allowsExpression: false, doc: "Timeout.")], startsProgramsOrControlsApps: true, doc: "Starts any program."),

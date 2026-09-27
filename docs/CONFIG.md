@@ -1621,7 +1621,7 @@ Switches the config.
 
 ### `emit` (action)
 
-Sends an event to the config's own on handlers, like apollo emit.
+Sends an event to the config's own on handlers, like apollo emit; a chain of emits stops after 16 levels or 256 events.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
