@@ -491,6 +491,8 @@ struct HostHookTests {
     @Test("SurfaceFrames: Rahmen während der Bewegung je Frame, ohne Beobachter kein Ticker")
     func surfaceFrames() throws {
         let fixture = try HostFixture(WindowHostTests.shell, css: WindowHostTests.css)
+        fixture.host.animators.register(SlideAnimator(reduceMotion: { false }))
+        fixture.host.animators.register(GrowAnimator(reduceMotion: { false }))
         var tickers: [ManualTicker] = []
         fixture.host.makeTicker = { _ in
             let ticker = ManualTicker()
@@ -516,6 +518,17 @@ struct HostHookTests {
         #expect(abs(seen.last!.minY - open.minY) < 0.5)
         token.cancel()
         #expect(!fixture.host.frames.hasObservers)
+    }
+
+    @Test("Bewegung reduzieren: slide und grow bleiben am Platz und blenden nur")
+    func reducedMotionKeepsFrame() {
+        let geometry = MotionGeometry(edge: .top, size: CGSize(width: 200, height: 100), topInset: 24, flipped: false)
+        let open = CGRect(x: 10, y: 700, width: 200, height: 100)
+        for animator in [SlideAnimator(reduceMotion: { true }), GrowAnimator(reduceMotion: { true })] as [any SurfaceAnimator] {
+            #expect(CATransform3DIsIdentity(animator.closedTransform(geometry)))
+            #expect(animator.visibleFrame(open: open, geometry: geometry, progress: 0) == open)
+        }
+        #expect(SlideAnimator(reduceMotion: { false }).visibleFrame(open: open, geometry: geometry, progress: 0).minY > open.minY)
     }
 
     @Test("Animator als Registry-Eintrag: eigene Umsetzung ersetzt slide")

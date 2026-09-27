@@ -54,9 +54,14 @@ extension SurfaceAnimator {
 @MainActor
 final class SlideAnimator: SurfaceAnimator {
     let name = "slide"
+    let reduceMotion: @MainActor () -> Bool
+
+    init(reduceMotion: @escaping @MainActor () -> Bool = { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }) {
+        self.reduceMotion = reduceMotion
+    }
 
     func closedTransform(_ geometry: MotionGeometry) -> CATransform3D {
-        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return CATransform3DIdentity }
+        if reduceMotion() { return CATransform3DIdentity }
         let size = geometry.size
         switch geometry.edge {
         case .top: return CATransform3DMakeTranslation(0, size.height + geometry.topInset + 5, 0)
@@ -99,8 +104,14 @@ final class GrowAnimator: SurfaceAnimator {
     static let closedScale: CGFloat = 0.92
     static var easeOut: CAMediaTimingFunction { CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1) }
 
+    let reduceMotion: @MainActor () -> Bool
+
+    init(reduceMotion: @escaping @MainActor () -> Bool = { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }) {
+        self.reduceMotion = reduceMotion
+    }
+
     func closedTransform(_ geometry: MotionGeometry) -> CATransform3D {
-        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return CATransform3DIdentity }
+        if reduceMotion() { return CATransform3DIdentity }
         let size = geometry.size
         let pivot = CGPoint(x: size.width / 2, y: size.height / 2)
         let bottomCenter = CGPoint(x: size.width / 2, y: geometry.flipped ? size.height : 0)
