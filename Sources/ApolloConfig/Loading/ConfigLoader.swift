@@ -66,12 +66,12 @@ public struct ConfigLoader: Sendable {
         let disabled = DisableStage.run(used.nodes, registry: registry)
         collect(disabled.diagnostics, stage: "disable")
         let templates = TemplateCache()
-        let filtered = FilterStage.run(disabled.nodes, registry: registry, templates: templates)
-        collect(filtered.diagnostics, stage: "filter")
-        let declaredVars = Set(filtered.nodes.compactMap { node -> String? in
+        let declaredVars = Set(disabled.nodes.compactMap { node -> String? in
             guard node.kdl.name == "var", case .string(let name)? = node.kdl.arguments.first?.scalar else { return nil }
             return name
         })
+        let filtered = FilterStage.run(disabled.nodes, registry: registry, templates: templates, declaredVars: declaredVars)
+        collect(filtered.diagnostics, stage: "filter")
         let checked = SchemaStage.run(filtered.nodes, defines: used.defines, registry: registry, templates: templates, declaredVars: declaredVars)
         collect(checked.diagnostics, stage: "schema")
         let built = IRBuilder.build(

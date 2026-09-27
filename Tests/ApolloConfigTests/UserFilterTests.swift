@@ -99,4 +99,10 @@ struct UserFilterTests {
         let (result, _) = Self.texts("filter \"dbl\" \"{value * 2}\" { text \"junk\" }\n")
         #expect(result.diagnostics.contains { $0.message == "filter has no children" })
     }
+
+    @Test("Tippfehler bei var im Filter-Körper wird gemeldet")
+    func bodyVarTypoWarns() {
+        let (result, _) = Self.texts("var limit 5\nfilter \"capped\" \"{value > var.limt ? var.limit : value}\"\n")
+        #expect(result.diagnostics.contains { $0.severity == .warning && $0.message == "unknown var 'limt'" && $0.help == "did you mean 'limit'?" })
+    }
 }

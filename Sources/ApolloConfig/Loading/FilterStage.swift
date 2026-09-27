@@ -10,7 +10,7 @@ struct FilterStageResult: Sendable {
 enum FilterStage {
     static let nodeName = "filter"
 
-    static func run(_ nodes: [ExpandedNode], registry: SchemaRegistry, templates: TemplateCache) -> FilterStageResult {
+    static func run(_ nodes: [ExpandedNode], registry: SchemaRegistry, templates: TemplateCache, declaredVars: Set<String>? = nil) -> FilterStageResult {
         var remaining: [ExpandedNode] = []
         var filters: [String: UserFilter] = [:]
         var diagnostics: [Diagnostic] = []
@@ -20,7 +20,7 @@ enum FilterStage {
                 continue
             }
             var problems: [Diagnostic] = []
-            if let (name, filter) = declare(node, registry: registry, templates: templates, known: filters, problems: &problems) {
+            if let (name, filter) = declare(node, registry: registry, templates: templates, declaredVars: declaredVars, known: filters, problems: &problems) {
                 filters[name] = filter
                 templates.userFilters = filters
             }
@@ -33,6 +33,7 @@ enum FilterStage {
         _ node: ExpandedNode,
         registry: SchemaRegistry,
         templates: TemplateCache,
+        declaredVars: Set<String>?,
         known: [String: UserFilter],
         problems: inout [Diagnostic]
     ) -> (String, UserFilter)? {
@@ -80,7 +81,8 @@ enum FilterStage {
             poisonedLets: node.poisonedLets,
             locals: Set(parameters + [UserFilterExpansion.input]),
             context: .topLevel,
-            templates: templates
+            templates: templates,
+            declaredVars: declaredVars
         )
         let (compiled, compileProblems) = ExpressionCompiler.compile(kdl.arguments[1], env: env, allowsExpression: true)
         problems += compileProblems
