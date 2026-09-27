@@ -55,4 +55,33 @@ struct MachineStateTests {
         let state = MachineState(folder: folder.url)
         #expect(state.crashReportsHandledUntil == nil)
     }
+
+    @Test("eine settings.json, die keine Datei ist, blockiert nicht und ergibt leeren Zustand")
+    func legacyFifoDoesNotBlock() throws {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        #expect(mkfifo(folder.path("settings.json").path, 0o600) == 0)
+        final class Box: @unchecked Sendable { var state: MachineState? }
+        let box = Box()
+        let done = DispatchSemaphore(value: 0)
+        let url = folder.url
+        Thread {
+            box.state = MachineState(folder: url)
+            done.signal()
+        }.start()
+        #expect(done.wait(timeout: .now() + 5) == .success)
+        #expect(box.state?.lastUpdateCheck == nil)
+    }
+
+    @Test("eine übergroße settings.json wird nicht gelesen")
+    func oversizedLegacyIsIgnored() throws {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        var legacy = try Self.legacyJSON()
+        legacy.append(Data(repeating: 0x20, count: MachineState.maxBytes))
+        try legacy.write(to: folder.path("settings.json"))
+        #expect(MachineState(folder: folder.url).lastUpdateCheck == nil)
+        try Self.legacyJSON().write(to: folder.path("settings.json"))
+        #expect(MachineState(folder: folder.url).lastUpdateCheck == Self.checked)
+    }
 }
