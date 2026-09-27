@@ -349,6 +349,11 @@ extension ShellRuntime {
         case (.use(let before), .use(let after)):
             let name = rebind(node, node.subject, before.name, after.name, scopeChanged: scopeChanged)
             node.subject = name.handle
+            if scopeChanged {
+                for handle in node.defaultBindings?.handles ?? [] {
+                    handle.updateScope(node.context.scope)
+                }
+            }
             var argumentReplaced = false
             for parameter in Set(before.arguments.keys).union(after.arguments.keys).sorted() {
                 switch (before.arguments[parameter], after.arguments[parameter]) {

@@ -373,6 +373,25 @@ struct ShellRuntimeTests {
         #expect(fixture.warnings.contains { $0.message.contains("unknown parameter 'legacy'") })
     }
 
+    @Test("Laufzeit-use: Vorgabe mit Abhängigkeit folgt ihr wie beim statischen use")
+    func dynamicUseLiveDefault() {
+        let fixture = ShellFixture()
+        let card = DefineIR(name: "card", parameters: [
+            ParameterIR(name: "label", type: .string, defaultValue: .scalar(IR.value("{var.title}"))),
+        ], body: [T.text("0", IR.value("{label}", locals: ["label"]))], span: IR.span(40))
+        fixture.apply([T.surface("panel", "side", children: [
+            .dynamicUse(DynamicUseIR(key: "0", name: IR.value("{var.which}", line: 41), arguments: [:])),
+        ])], vars: [
+            IR.plainVar("which", .string, .string("card")),
+            IR.plainVar("title", .string, .string("first")),
+        ], defines: [card])
+        fixture.flush()
+        #expect(fixture.surface("side").root.first?.arguments.first?.value == .string("first"))
+        fixture.vars.set("title", .string("second"), for: nil)
+        fixture.flush()
+        #expect(fixture.surface("side").root.first?.arguments.first?.value == .string("second"))
+    }
+
     @Test("Laufzeit-use füllt unbenannten und benannten Slot mit dem Inhalt der Aufrufstelle")
     func dynamicUseSlots() {
         let fixture = ShellFixture()

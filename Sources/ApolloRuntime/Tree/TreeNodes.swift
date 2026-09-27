@@ -183,6 +183,7 @@ final class StructureNode: TreeNode {
     var subject: BindingHandle?
     var caseBindings: [[BindingHandle]] = []
     var argumentBindings: [String: BindingHandle] = [:]
+    var defaultBindings: (parameters: [ParameterIR], arguments: Set<String>, handles: [BindingHandle])?
     var regions: [Region] = [] {
         didSet { entryLookup = nil }
     }
@@ -207,6 +208,7 @@ final class StructureNode: TreeNode {
         for name in argumentBindings.keys.sorted() {
             if let handle = argumentBindings[name] { handles.append(handle) }
         }
+        if let defaults = defaultBindings { handles.append(contentsOf: defaults.handles) }
         return handles
     }
 
