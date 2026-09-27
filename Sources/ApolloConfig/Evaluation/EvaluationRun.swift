@@ -62,6 +62,7 @@ struct EvaluationRun {
 
     func path(_ root: String, _ members: [PathMember]) -> Value {
         if let local = scope.local(root) {
+            if members.isEmpty { return local }
             return apply(members[...], to: local, label: String(root.prefix { $0 != "#" }))
         }
         var fields: [String] = []
@@ -74,6 +75,7 @@ struct EvaluationRun {
         if case .null = base, !fields.isEmpty, evaluator.missingField != nil, !tolerant {
             checkGlobal(root, fields)
         }
+        if rest.isEmpty { return base }
         return apply(rest, to: base, label: ([root] + fields).joined(separator: "."))
     }
 
