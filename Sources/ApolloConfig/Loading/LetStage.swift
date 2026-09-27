@@ -174,10 +174,31 @@ enum LetStage {
                 return
             }
             let value = template.evaluate(with: evaluator, scope: LetEvalScope(values: scope.values))
+            if isNested(value, deeperThan: ConfigLimits.maxExpandedDepth) {
+                report(Diagnostic(.error, "'let' '\(name)' is nested deeper than \(ConfigLimits.maxExpandedDepth) levels", span: nameSpan))
+                poison()
+                return
+            }
             scope.values[name] = value
             scope.poisoned.remove(name)
             values[name] = value
         }
+    }
+
+    private static func isNested(_ value: Value, deeperThan limit: Int) -> Bool {
+        var pending: [(value: Value, depth: Int)] = [(value, 0)]
+        while let (current, depth) = pending.popLast() {
+            let children: [Value]
+            switch current {
+            case .list(let items): children = items
+            case .record(let record): children = record.values
+            default: continue
+            }
+            guard !children.isEmpty else { continue }
+            guard depth < limit else { return true }
+            pending.append(contentsOf: children.map { ($0, depth + 1) })
+        }
+        return false
     }
 
     static func fixedContext() -> FilterContext {
