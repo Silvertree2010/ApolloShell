@@ -27,6 +27,7 @@ struct PerformanceMathTests {
         #expect(NetworkMath.rate(from: old, to: NetCounters(received: 20_000, sent: 20_000), seconds: -1) == nil)
     }
 
+    #if canImport(Darwin)
     @Test("Nur echte Schnittstellen zaehlen: kein Loopback, kein VPN-Tunnel, keine Bruecke")
     func countedInterfaces() {
         #expect(NetworkMath.counts(flags: IFF_UP | IFF_BROADCAST, type: UInt8(IFT_ETHER)))
@@ -34,6 +35,7 @@ struct PerformanceMathTests {
         #expect(!NetworkMath.counts(flags: IFF_UP | IFF_POINTOPOINT, type: UInt8(IFT_OTHER)))
         #expect(!NetworkMath.counts(flags: IFF_UP | IFF_BROADCAST, type: UInt8(IFT_BRIDGE)))
     }
+    #endif
 
     @Test("Messer: erste Messung ohne Rate, danach Rate und Summe")
     func meterBasics() {
