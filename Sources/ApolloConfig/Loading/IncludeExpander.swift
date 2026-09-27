@@ -217,7 +217,7 @@ enum IncludeExpander {
                 emit(Diagnostic(.error, "unknown property '\(property.name)' on 'include'", span: property.span), chain: chain, state: state)
             }
         }
-        if raw.contains("{") {
+        if raw.utf8.contains(UInt8(ascii: "{")) {
             emit(Diagnostic(.error, "include path cannot contain an expression", span: node.arguments[0].span), chain: chain, state: state)
             return []
         }
@@ -274,7 +274,7 @@ enum IncludeExpander {
         fileSystem: any ConfigFileSystem,
         paths: ConfigPaths
     ) -> Result<[URL], Diagnostic> {
-        if raw.contains("{") {
+        if raw.utf8.contains(UInt8(ascii: "{")) {
             return .failure(Diagnostic(.error, "style path cannot contain an expression"))
         }
         let boundary: URL

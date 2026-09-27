@@ -51,7 +51,7 @@ enum TypeChecker {
     }
 
     private static func isDuration(_ text: String) -> Bool {
-        guard text.contains("{") else {
+        guard text.utf8.contains(UInt8(ascii: "{")) else {
             let digits = text.prefix { $0.isNumber }
             guard !digits.isEmpty else { return false }
             let suffix = text.dropFirst(digits.count)

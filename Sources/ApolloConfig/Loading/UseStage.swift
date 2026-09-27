@@ -343,7 +343,7 @@ enum UseStage {
             reportUnlessQuiet(Diagnostic(.error, "'use' needs exactly one define name", span: kdl.span), at: node, context: context, state: state)
             return
         }
-        if name.contains("{") {
+        if name.utf8.contains(UInt8(ascii: "{")) {
             built.merge(expandRuntimeUse(node, context: context, state: state))
             return
         }
@@ -512,7 +512,7 @@ enum UseStage {
         let literalType: ValueType
         switch value.scalar {
         case .string(let text):
-            if text.contains("{") { return true }
+            if text.utf8.contains(UInt8(ascii: "{")) { return true }
             literalType = .string
         case .number:
             literalType = .number
