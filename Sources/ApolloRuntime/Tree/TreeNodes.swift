@@ -341,6 +341,7 @@ final class SurfaceNode {
     var isOpening = false
     var isConfigured = false
     var elementCount = 0
+    var parkedElements: (generation: Int, pending: Int, count: Int)?
     var ids: [String: ElementNode] = [:]
     var closeWaiters: [CloseWaiter] = []
     var toasts: [Value] = []
