@@ -50,6 +50,45 @@ extension Expr {
         }
     }
 
+    func collectPathRoots(into result: inout Set<String>) {
+        switch self {
+        case .literal:
+            break
+        case .list(let items):
+            for item in items {
+                item.collectPathRoots(into: &result)
+            }
+        case .path(let root, let members):
+            result.insert(root)
+            Self.collectIndexRoots(members, into: &result)
+        case .access(let base, let members):
+            base.collectPathRoots(into: &result)
+            Self.collectIndexRoots(members, into: &result)
+        case .unary(_, let operand):
+            operand.collectPathRoots(into: &result)
+        case .binary(_, let lhs, let rhs), .coalesce(let lhs, let rhs):
+            lhs.collectPathRoots(into: &result)
+            rhs.collectPathRoots(into: &result)
+        case .conditional(let condition, let then, let otherwise):
+            condition.collectPathRoots(into: &result)
+            then.collectPathRoots(into: &result)
+            otherwise.collectPathRoots(into: &result)
+        case .pipe(let input, let call):
+            input.collectPathRoots(into: &result)
+            for argument in call.arguments {
+                argument.collectPathRoots(into: &result)
+            }
+        }
+    }
+
+    static func collectIndexRoots(_ members: [PathMember], into result: inout Set<String>) {
+        for member in members {
+            if case .index(let index) = member {
+                index.collectPathRoots(into: &result)
+            }
+        }
+    }
+
     static func collectIndexDependencies(_ members: [PathMember], locals: Set<String>, into result: inout Set<DependencyPath>) {
         for member in members {
             if case .index(let index) = member {
@@ -81,5 +120,24 @@ extension StringTemplate {
 
     public var isConstant: Bool {
         dependencies(locals: []).isEmpty
+    }
+
+    public var pathRoots: Set<String> {
+        StackHeadroom.run {
+            var result = Set<String>()
+            switch self {
+            case .literal:
+                break
+            case .whole(let expr):
+                expr.collectPathRoots(into: &result)
+            case .parts(let parts):
+                for part in parts {
+                    if case .expression(let expr) = part {
+                        expr.collectPathRoots(into: &result)
+                    }
+                }
+            }
+            return result
+        }
     }
 }
