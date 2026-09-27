@@ -229,7 +229,7 @@ final class LiveShell: WindowHostLink {
         })
         steps.append("config")
         var (location, failed) = resolveActive()
-        failed = legacyNotes + failed
+        failed = legacyNotes + settings.diagnostics + failed
         var result = await load(location)
         if result.ir == nil {
             failed += result.diagnostics
@@ -588,7 +588,7 @@ final class LiveShell: WindowHostLink {
         guard let location else { return nil }
         _ = settings.reload()
         let (resolved, notes) = resolveActive()
-        return (resolved, legacyNotes + notes)
+        return (resolved, legacyNotes + settings.diagnostics + notes)
     }
 
     private func startServices() {
@@ -1105,8 +1105,9 @@ final class LiveShellControl: ShellControl, @unchecked Sendable {
     }
 
     func surface(_ operation: SurfaceOperation, _ id: String) async throws {
-        await MainActor.run {
-            guard let runtime = shell?.assembly?.runtime else { return }
+        try await MainActor.run {
+            guard let shell, let runtime = shell.assembly?.runtime else { return }
+            guard shell.host.controllers.values.contains(where: { $0.surface.id == id }) else { throw ShellControlError("unknown surface '\(id)'") }
             switch operation {
             case .open: runtime.open(id, screenKey: nil)
             case .close: runtime.close(id)

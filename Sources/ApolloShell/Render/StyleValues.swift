@@ -137,6 +137,11 @@ enum StyleValues {
         }
     }
 
+    static func count(_ value: Value, limit: Double) -> Int? {
+        guard let number = numberValue(value), number.isFinite else { return nil }
+        return Int(min(max(number, -limit), limit))
+    }
+
     static func keyword(_ value: CSSValue?) -> String? {
         if case .keyword(let word)? = value { return word }
         return nil
