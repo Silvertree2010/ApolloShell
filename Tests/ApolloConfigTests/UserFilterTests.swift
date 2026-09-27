@@ -106,3 +106,26 @@ struct UserFilterTests {
         #expect(result.diagnostics.contains { $0.severity == .warning && $0.message == "unknown var 'limt'" && $0.help == "did you mean 'limit'?" })
     }
 }
+
+@Suite("Konstante var-Vorgaben")
+struct VarDefaultFoldingTests {
+    @Test("Listen und Records aus lauter Konstanten werden beim Laden zu einem Wert, mit Ausdrücken bleiben sie Vorlagen")
+    func folds() throws {
+        let result = LoaderHarness.load(["/config/shell.kdl": """
+        var nums { - 1; - 2; - 3 }
+        var rec { a 1; b "x"; c { - #true } }
+        var mixed { - 1; - "{var.nums}" }
+        var empty type="list"
+        """])
+        let vars = try #require(result.ir?.vars)
+        func value(_ name: String) -> ValueTemplate? { vars.first { $0.name == name }?.defaultValue }
+        guard case .scalar(let nums)? = value("nums"), case .scalar(let rec)? = value("rec") else { Issue.record("not folded"); return }
+        #expect(nums.template.literalValue == .list([.number(1), .number(2), .number(3)]))
+        #expect(rec.template.literalValue == .record(Record([("a", .number(1)), ("b", .string("x")), ("c", .list([.bool(true)]))])))
+        guard case .record(let recValue)? = rec.template.literalValue else { return }
+        #expect(recValue.keys == ["a", "b", "c"])
+        guard case .list(let mixed)? = value("mixed") else { Issue.record("mixed folded"); return }
+        #expect(mixed.count == 2)
+        #expect(value("empty") != nil)
+    }
+}

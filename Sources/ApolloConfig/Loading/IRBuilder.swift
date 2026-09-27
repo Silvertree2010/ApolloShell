@@ -162,9 +162,38 @@ enum IRBuilder {
             state.report(diagnostic, node: node)
         }
         guard var result = declaration else { return nil }
-        result.defaultValue = substitutingLets(result.defaultValue, node: node, state: state)
+        result.defaultValue = folded(substitutingLets(result.defaultValue, node: node, state: state))
         result.derived = result.derived.map { substitutingLets($0, node: node, state: state) }
         return result
+    }
+
+    static func folded(_ template: ValueTemplate) -> ValueTemplate {
+        switch template {
+        case .scalar:
+            return template
+        case .list(let items):
+            guard let first = items.first else { return template }
+            let parts = items.map(folded)
+            let values = parts.compactMap(literal)
+            guard values.count == parts.count, case .scalar(let head) = first else { return .list(parts) }
+            return .scalar(CompiledValueBuilder.literal(.list(values), span: head.span))
+        case .record(let fields):
+            guard !fields.isEmpty else { return template }
+            let parts = fields.map { ValueTemplateField(name: $0.name, value: folded($0.value)) }
+            let values = parts.compactMap { field in literal(field.value).map { (field.name, $0) } }
+            guard values.count == parts.count, let span = firstSpan(parts[0].value) else { return .record(parts) }
+            return .scalar(CompiledValueBuilder.literal(.record(Record(values)), span: span))
+        }
+    }
+
+    private static func literal(_ template: ValueTemplate) -> Value? {
+        guard case .scalar(let compiled) = template, compiled.dependencies.isEmpty else { return nil }
+        return compiled.template.literalValue
+    }
+
+    private static func firstSpan(_ template: ValueTemplate) -> SourceSpan? {
+        guard case .scalar(let compiled) = template else { return nil }
+        return compiled.span
     }
 
     private static func substitutingLets(_ template: ValueTemplate, node: ExpandedNode, state: IRBuildState) -> ValueTemplate {
