@@ -37,6 +37,7 @@ enum ListSearchFilters {
                 return items.firstIndex(of: arguments.value(0)).map { Value.number(Double($0)) } ?? .null
             case .string(let text):
                 let needle = try needleText(arguments, filter: "index-of")
+                guard !needle.isEmpty else { return .number(0) }
                 guard let range = text.range(of: needle) else { return .null }
                 return .number(Double(text.distance(from: text.startIndex, to: range.lowerBound)))
             default:
