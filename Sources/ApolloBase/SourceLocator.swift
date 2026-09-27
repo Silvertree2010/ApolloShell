@@ -6,26 +6,45 @@ public struct SourceLocator: Sendable {
 
     public init(_ text: String) {
         self.text = text
-        self.utf8 = Array(text.utf8)
+        let bytes = Array(text.utf8)
+        self.utf8 = bytes
         var starts = [0]
         var ends: [Int] = []
-        var offset = 0
-        for character in text {
-            let length = character.utf8.count
-            if SourceLocator.isLineBreak(character) {
-                ends.append(offset)
-                starts.append(offset + length)
+        var index = 0
+        while index < bytes.count {
+            let length = SourceLocator.lineBreakLength(bytes, at: index)
+            if length > 0 {
+                ends.append(index)
+                starts.append(index + length)
+                index += length
+            } else {
+                index += 1
             }
-            offset += length
         }
-        ends.append(offset)
+        ends.append(bytes.count)
         self.lineStarts = starts
         self.lineEnds = ends
     }
 
+    static func lineBreakLength(_ bytes: [UInt8], at index: Int) -> Int {
+        switch bytes[index] {
+        case 0x0A, 0x0C:
+            return 1
+        case 0x0D:
+            return index + 1 < bytes.count && bytes[index + 1] == 0x0A ? 2 : 1
+        case 0xC2:
+            return index + 1 < bytes.count && bytes[index + 1] == 0x85 ? 2 : 0
+        case 0xE2:
+            guard index + 2 < bytes.count, bytes[index + 1] == 0x80 else { return 0 }
+            return bytes[index + 2] == 0xA8 || bytes[index + 2] == 0xA9 ? 3 : 0
+        default:
+            return 0
+        }
+    }
+
     public static func isLineBreak(_ character: Character) -> Bool {
-        switch character {
-        case "\n", "\r", "\r\n", "\u{85}", "\u{0C}", "\u{2028}", "\u{2029}":
+        switch character.unicodeScalars.first?.value {
+        case 0x0A, 0x0D, 0x0C, 0x85, 0x2028, 0x2029:
             return true
         default:
             return false
