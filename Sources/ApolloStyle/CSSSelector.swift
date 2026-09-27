@@ -56,28 +56,34 @@ struct ComplexSelector: Sendable, Hashable {
 
     func matches(_ subject: StyleSubject, ancestors: [StyleSubject]) -> Bool {
         guard let last = compounds.last, last.matches(subject, isRoot: ancestors.isEmpty) else { return false }
-        return matchAncestors(compoundIndex: compounds.count - 2, limit: ancestors.count, ancestors: ancestors)
+        var failed = Set<Int>()
+        return matchAncestors(compoundIndex: compounds.count - 2, limit: ancestors.count, ancestors: ancestors, failed: &failed)
     }
 
-    private func matchAncestors(compoundIndex: Int, limit: Int, ancestors: [StyleSubject]) -> Bool {
+    private func matchAncestors(compoundIndex: Int, limit: Int, ancestors: [StyleSubject], failed: inout Set<Int>) -> Bool {
         guard compoundIndex >= 0 else { return true }
+        let key = compoundIndex * (ancestors.count + 1) + limit
+        guard !failed.contains(key) else { return false }
         let compound = compounds[compoundIndex]
         switch combinators[compoundIndex] {
         case .child:
             let candidate = limit - 1
-            guard candidate >= 0, compound.matches(ancestors[candidate], isRoot: candidate == 0) else { return false }
-            return matchAncestors(compoundIndex: compoundIndex - 1, limit: candidate, ancestors: ancestors)
+            if candidate >= 0, compound.matches(ancestors[candidate], isRoot: candidate == 0),
+               matchAncestors(compoundIndex: compoundIndex - 1, limit: candidate, ancestors: ancestors, failed: &failed) {
+                return true
+            }
         case .descendant:
             var candidate = limit - 1
             while candidate >= 0 {
                 if compound.matches(ancestors[candidate], isRoot: candidate == 0),
-                   matchAncestors(compoundIndex: compoundIndex - 1, limit: candidate, ancestors: ancestors) {
+                   matchAncestors(compoundIndex: compoundIndex - 1, limit: candidate, ancestors: ancestors, failed: &failed) {
                     return true
                 }
                 candidate -= 1
             }
-            return false
         }
+        failed.insert(key)
+        return false
     }
 }
 
