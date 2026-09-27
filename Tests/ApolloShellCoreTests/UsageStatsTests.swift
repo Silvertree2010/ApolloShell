@@ -54,4 +54,19 @@ struct UsageStatsTests {
         let decoded = try JSONDecoder().decode(UsageStats.self, from: data)
         #expect(decoded == stats)
     }
+
+    @Test("kaputte Halbwertszeit oder Punktzahl aus der Datei ergibt endliche Gewichte", arguments: [0, -1, .nan, .infinity] as [Double])
+    func invalidHalfLife(halfLife: Double) {
+        var stats = UsageStats(halfLife: halfLife)
+        stats.record("a", at: t0)
+        stats.record("a", at: t0 + week)
+        #expect(abs(stats.weight(for: "a", at: t0 + week) - 1.5) < 1e-9)
+        #expect(stats.weight(for: "a", at: t0 + week * 1000).isFinite)
+    }
+
+    @Test("nicht endliche Punktzahl zaehlt als 0", arguments: [.nan, .infinity, -.infinity] as [Double])
+    func invalidScore(score: Double) {
+        let stats = UsageStats(weights: ["a": score], at: t0)
+        #expect(stats.weight(for: "a", at: t0) == 0)
+    }
 }

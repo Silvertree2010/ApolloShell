@@ -21,9 +21,10 @@ public struct UsageStats: Codable, Sendable, Equatable {
     }
 
     public func weight(for key: String, at date: Date = Date()) -> Double {
-        guard let entry = entries[key] else { return 0 }
+        guard let entry = entries[key], entry.score.isFinite, entry.score > 0 else { return 0 }
+        let life = halfLife.isFinite && halfLife > 0 ? halfLife : Self.defaultHalfLife
         let age = max(0, date.timeIntervalSince(entry.updated))
-        return entry.score * pow(0.5, age / halfLife)
+        return age.isFinite ? entry.score * pow(0.5, age / life) : 0
     }
 }
 
