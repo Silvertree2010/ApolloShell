@@ -50,7 +50,10 @@ public final class SignalStore {
     }
 
     public func set(_ path: DependencyPath, _ value: Value) {
-        let sanitized = SignalStore.sanitize(value)
+        set(path, sanitized: SignalStore.sanitize(value))
+    }
+
+    func set(_ path: DependencyPath, sanitized: Value) {
         guard !self.value(path).isEqualInOrder(sanitized) else { return }
         let base = roots[path.root] ?? .record(Record())
         roots[path.root] = SignalStore.write(base, path.fields, sanitized)
