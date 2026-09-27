@@ -92,32 +92,52 @@ public struct SourceLocator: Sendable {
     }
 
     public func positions(atByteOffsets offsets: [Int]) -> [Int: SourcePosition] {
-        let wanted = Set(offsets.map { max(0, min($0, utf8.count)) }).sorted()
         var result: [Int: SourcePosition] = [:]
-        result.reserveCapacity(wanted.count)
-        var next = 0
-        var offset = 0
-        var line = 1
-        var column = 1
-        for character in text {
-            if next == wanted.count { break }
-            let length = character.utf8.count
-            while next < wanted.count, wanted[next] < offset + length {
-                result[wanted[next]] = SourcePosition(offset: wanted[next], line: line, column: column)
-                next += 1
-            }
-            offset += length
-            if SourceLocator.isLineBreak(character) {
-                line += 1
-                column = 1
+        result.reserveCapacity(offsets.count)
+        var graphemeEnds: [Int: [Int]?] = [:]
+        for raw in offsets {
+            let offset = max(0, min(raw, utf8.count))
+            if result[offset] != nil { continue }
+            let line = lineNumber(atByteOffset: offset)
+            let start = lineStarts[line - 1]
+            let end = lineEnds[line - 1]
+            let relative = min(offset, end) - start
+            let column: Int
+            let ends: [Int]?
+            if let cached = graphemeEnds[line] {
+                ends = cached
             } else {
-                column += 1
+                ends = lineGraphemeEnds(start: start, end: end)
+                graphemeEnds[line] = .some(ends)
             }
-        }
-        while next < wanted.count {
-            result[wanted[next]] = SourcePosition(offset: wanted[next], line: line, column: column)
-            next += 1
+            if let ends {
+                var low = 0
+                var high = ends.count
+                while low < high {
+                    let middle = (low + high) / 2
+                    if ends[middle] <= relative {
+                        low = middle + 1
+                    } else {
+                        high = middle
+                    }
+                }
+                column = low + 1
+            } else {
+                column = relative + 1
+            }
+            result[offset] = SourcePosition(offset: offset, line: line, column: column)
         }
         return result
+    }
+
+    private func lineGraphemeEnds(start: Int, end: Int) -> [Int]? {
+        guard utf8[start..<end].contains(where: { $0 >= 0x80 }) else { return nil }
+        var ends: [Int] = []
+        var consumed = 0
+        for character in String(decoding: utf8[start..<end], as: UTF8.self) {
+            consumed += character.utf8.count
+            ends.append(consumed)
+        }
+        return ends
     }
 }
