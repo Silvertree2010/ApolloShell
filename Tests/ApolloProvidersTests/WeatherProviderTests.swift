@@ -79,6 +79,7 @@ struct WeatherProviderTests {
         let report = Self.report(zone: zone, locale: "en_US")
         source.answer = report
         harness.demand("weather")
+        #expect(harness.value("weather", "time-zone") == .string(zone))
         #expect(harness.value("weather", "today.sunrise-text") == .string("06:00"))
         #expect(harness.value("weather", "today.sunset-text") == .string("18:00"))
         guard case .list(let strip) = harness.value("weather", "hourly-strip"), case .record(let second) = strip[1] else {

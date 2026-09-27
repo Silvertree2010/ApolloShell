@@ -2188,6 +2188,7 @@ Weather from three providers, place search.
 | field | `hourly-strip` | list | | 12 entries 2 h apart. |
 | field | `days` | list | | Next 7 days. |
 | field | `updated` | value or null | | Last fetch. |
+| field | `time-zone` | string or null | | Time zone of the place, for the zone argument of the date filter. |
 | field | `stale` | bool | | Whether the data is stale. |
 | field | `attribution` | record | | Attribution. |
 | field | `capabilities` | record | | What the provider supplies. |

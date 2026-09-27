@@ -150,6 +150,7 @@ public final class WeatherReportProvider: BaseProvider {
         publish("hourly-strip", .list(report.map { report in report.hourlyStrip(now: now).map { Self.slot($0, report: report) } } ?? []))
         publish("days", .list(report.map { report in report.upcomingDays(now: now).map { Self.day($0, report: report, now: now) } } ?? []))
         publish("updated", fetchedAt.map(Value.date) ?? .null)
+        publish("time-zone", report.map { .string($0.calendar.timeZone.identifier) } ?? .null)
         publish("stale", .bool(WeatherRefresh.showsStand(fetchedAt: fetchedAt, lastAttemptFailed: lastAttemptFailed, now: now)))
         let attribution = reportSource.provider().attribution
         publish("attribution", .record(Record([("text", .string(attribution.text)), ("url", .string(attribution.url.absoluteString))])))

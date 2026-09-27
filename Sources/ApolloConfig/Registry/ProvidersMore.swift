@@ -72,6 +72,7 @@ enum ProvidersMore {
             S.field("hourly-strip", .list, update: .push, doc: "12 entries 2 h apart."),
             S.field("days", .list, update: .push, doc: "Next 7 days."),
             S.field("updated", .value, nullable: true, update: .push, doc: "Last fetch."),
+            S.field("time-zone", .string, nullable: true, update: .push, doc: "Time zone of the place, for the zone argument of the date filter."),
             S.field("stale", .bool, update: .push, doc: "Whether the data is stale."),
             S.field("attribution", .record, update: .push, doc: "Attribution."),
             S.field("capabilities", .record, update: .push, doc: "What the provider supplies."),
