@@ -164,14 +164,17 @@ enum WeatherTime {
             body.removeLast()
         } else if let sign = body[t...].lastIndex(where: { $0 == "+" || $0 == "-" }) {
             let zone = body[body.index(after: sign)...].split(separator: ":").compactMap { Int($0) }
-            guard zone.count == 2 else { return nil }
+            guard zone.count == 2, (0...18).contains(zone[0]), (0...59).contains(zone[1]) else { return nil }
             offset = (zone[0] * 3600 + zone[1] * 60) * (body[sign] == "-" ? -1 : 1)
             body = body[..<sign]
         } else {
             return nil
         }
         let parts = body.split(whereSeparator: { !$0.isASCII || !$0.isNumber }).compactMap { Int($0) }
-        guard parts.count == 5 || parts.count == 6, let zone = TimeZone(secondsFromGMT: offset) else { return nil }
+        guard parts.count == 5 || parts.count == 6, let zone = TimeZone(secondsFromGMT: offset),
+              (1...9999).contains(parts[0]), (1...12).contains(parts[1]), (1...31).contains(parts[2]),
+              (0...24).contains(parts[3]), (0...59).contains(parts[4]), parts.count == 5 || (0...60).contains(parts[5])
+        else { return nil }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone
         return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2], hour: parts[3],

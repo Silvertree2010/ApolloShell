@@ -133,6 +133,8 @@ struct WeatherProviderCommonTests {
 
     @Test("ISO-Zeit ohne Zone oder kaputt: nil", arguments: [
         "2026-09-14T06:38", "2026-09-14", "kaputt", "2026-09-14T06:38+2", "",
+        "2026-09-14T06:38+9223372036854775807:00", "2026-09-14T06:38+00:9223372036854775807",
+        "9223372036854775807-09-14T06:38Z", "2026-13-14T06:38Z", "2026-09-14T99:38Z",
     ])
     func isoDateInvalid(text: String) {
         #expect(WeatherTime.isoDate(text) == nil)
