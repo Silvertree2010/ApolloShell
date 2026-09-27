@@ -23,7 +23,7 @@ enum Filters {
         FilterSchema(name: "bytes-per-second", arguments: [optionalArg("unit", .enumeration(["binary", "decimal"]), doc: "Unit system, default decimal.")], doc: "Like bytes, with /s."),
         FilterSchema(name: "temperature", doc: "Degrees in the unit of the weather provider."),
         FilterSchema(name: "duration", arguments: [optionalArg("style", .enumeration(["short", "clock"]), doc: "Style, default clock.")], doc: "Seconds, formatted for reading."),
-        FilterSchema(name: "date", arguments: [arg("pattern", .string, doc: "ICU pattern.")], doc: "Date formatted with a pattern."),
+        FilterSchema(name: "date", arguments: [arg("pattern", .string, doc: "ICU pattern."), optionalArg("zone", .string, doc: "Time zone like Europe/Zurich, default the one of the system.")], doc: "Date formatted with a pattern."),
         FilterSchema(name: "relative", doc: "Date relative to now."),
         FilterSchema(name: "string", doc: "Converts a value to a string."),
         FilterSchema(name: "shell-quote", doc: "One shell word in single quotes, safe to insert into a /bin/sh command."),

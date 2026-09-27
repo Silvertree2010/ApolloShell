@@ -2307,6 +2307,7 @@ Date formatted with a pattern.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `pattern` | string | required | ICU pattern. |
+| argument | `zone` | string |  | Time zone like Europe/Zurich, default the one of the system. |
 
 ### `default` (filter)
 
