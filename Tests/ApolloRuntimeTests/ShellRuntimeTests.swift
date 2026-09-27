@@ -464,6 +464,20 @@ struct ShellRuntimeTests {
         #expect(fixture.warnings.filter { $0.message.contains("5000") }.count == 1)
     }
 
+    @Test("späte Grösse einer entfernten Oberfläche legt keinen Eintrag unter surfaces an")
+    func lateSizeOfRemovedSurface() {
+        let fixture = ShellFixture()
+        fixture.apply([T.surface("panel", "bar", children: [])])
+        fixture.runtime.setSurfaceSize("bar", screenKey: "A", width: 800, height: 30)
+        #expect(fixture.runtime.surfaceValue("bar", screenKey: "A", "width") == .number(800))
+        fixture.apply([], id: "other")
+        fixture.flush()
+        fixture.runtime.setSurfaceSize("bar", screenKey: "A", width: 800, height: 31)
+        #expect(fixture.store.value(DependencyPath("surfaces:A", ["bar"])) == .null)
+        fixture.runtime.setSurfaceSize("ghost", screenKey: "A", width: 1, height: 1)
+        #expect(fixture.store.value(DependencyPath("surfaces:A", ["ghost"])) == .null)
+    }
+
     @Test("setScreens mit gleicher Liste baut 0 Oberflächen, neue Bildschirme bauen nur ihre")
     func setScreens() {
         let fixture = ShellFixture()

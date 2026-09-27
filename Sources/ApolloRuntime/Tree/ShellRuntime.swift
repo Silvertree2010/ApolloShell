@@ -715,6 +715,7 @@ public final class ShellRuntime: SurfaceControlling {
     }
 
     public func setSurfaceSize(_ surfaceID: String, screenKey: String, width: Double, height: Double) {
+        guard surfaceNodes[surfaceID + "@" + screenKey] != nil else { return }
         let base = "surfaces:" + screenKey
         let old = store.value(DependencyPath(base, [surfaceID]))
         if case .record(let record) = old, record["width"] == .number(width), record["height"] == .number(height) { return }
