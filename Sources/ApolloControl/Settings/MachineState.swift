@@ -18,6 +18,7 @@ public final class MachineState: @unchecked Sendable {
 
     public let file: URL
     private let lock = NSLock()
+    private let writeLock = NSLock()
     private var values: Values
 
     public init(folder: URL) {
@@ -53,14 +54,14 @@ public final class MachineState: @unchecked Sendable {
     }
 
     private func update(_ change: (inout Values) -> Void) {
-        let snapshot = lock.withLock { () -> Values in
-            change(&values)
-            return values
+        lock.withLock { change(&values) }
+        writeLock.withLock {
+            let snapshot = lock.withLock { values }
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            guard let data = try? encoder.encode(snapshot) else { return }
+            try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? data.write(to: file, options: .atomic)
         }
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        guard let data = try? encoder.encode(snapshot) else { return }
-        try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? data.write(to: file, options: .atomic)
     }
 }
