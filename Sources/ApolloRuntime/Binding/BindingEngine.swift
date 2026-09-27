@@ -206,6 +206,7 @@ public final class BindingEngine {
         guard !isFlushing else { return }
         isFlushing = true
         flushCount += 1
+        let outer = flushEvaluator
         flushEvaluator = pinnedEvaluator()
         var rounds = 0
         while !dirty.isEmpty {
@@ -232,7 +233,7 @@ public final class BindingEngine {
                 batch[index...].sort(by: Self.precedes)
             }
         }
-        flushEvaluator = nil
+        flushEvaluator = outer
         isFlushing = false
         if !dirty.isEmpty {
             store.requestFlush()
@@ -368,6 +369,17 @@ public final class BindingEngine {
     private func render(_ binding: Binding, with evaluator: Evaluator) -> Value {
         let scope = BindingScope(snapshot: store.snapshot(), locals: binding.scope)
         return evaluator.render(binding.source.template, in: scope, at: binding.source.span)
+    }
+
+    func batch(_ body: () -> Void) {
+        guard flushEvaluator == nil else {
+            body()
+            return
+        }
+        flushEvaluator = pinnedEvaluator()
+        body()
+        flushEvaluator = nil
+        deliverWarnings()
     }
 
     private func pinnedEvaluator() -> Evaluator {

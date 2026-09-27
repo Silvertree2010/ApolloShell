@@ -766,18 +766,20 @@ public final class ShellRuntime: SurfaceControlling {
         }
         inSession = true
         generation += 1
-        body()
-        var head = 0
-        while true {
-            while head < queue.count {
-                let work = queue[head]
-                head += 1
-                work()
+        bindings.batch {
+            body()
+            var head = 0
+            while true {
+                while head < queue.count {
+                    let work = queue[head]
+                    head += 1
+                    work()
+                }
+                guard !pendingTeardown.isEmpty else { break }
+                let pending = pendingTeardown
+                pendingTeardown.removeAll()
+                teardown(pending.filter(\.isParked))
             }
-            guard !pendingTeardown.isEmpty else { break }
-            let pending = pendingTeardown
-            pendingTeardown.removeAll()
-            teardown(pending.filter(\.isParked))
         }
         queue.removeAll()
         inSession = false
