@@ -39,25 +39,29 @@ public struct Evaluator: Sendable {
     }
 
     public func evaluate(_ expr: Expr, in scope: any EvaluationScope) -> Value {
-        StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
+        if case .literal(let constant) = expr { return constant }
+        return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
             EvaluationRun(evaluator: self, scope: scope, span: nil).value(expr)
         }
     }
 
     public func evaluate(_ expr: Expr, in scope: any EvaluationScope, at span: SourceSpan) -> Value {
-        StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
+        if case .literal(let constant) = expr { return constant }
+        return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
             EvaluationRun(evaluator: self, scope: scope, span: span).value(expr)
         }
     }
 
     public func render(_ template: StringTemplate, in scope: any EvaluationScope) -> Value {
-        StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
+        if let constant = template.literalValue { return constant }
+        return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
             EvaluationRun(evaluator: self, scope: scope, span: nil).render(template)
         }
     }
 
     public func render(_ template: StringTemplate, in scope: any EvaluationScope, at span: SourceSpan) -> Value {
-        StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
+        if let constant = template.literalValue { return constant }
+        return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
             EvaluationRun(evaluator: self, scope: scope, span: span).render(template)
         }
     }
@@ -66,6 +70,16 @@ public struct Evaluator: Sendable {
         let diagnostic = Diagnostic(.warning, message, span: span)
         if gate.admit(diagnostic) {
             warn(diagnostic)
+        }
+    }
+}
+
+extension StringTemplate {
+    var literalValue: Value? {
+        switch self {
+        case .literal(let text): .string(text)
+        case .whole(.literal(let value)): value
+        default: nil
         }
     }
 }
