@@ -85,17 +85,29 @@ enum SocketAddress {
 }
 
 struct LineBuffer {
+    static let limit = 16 * 1024 * 1024
+
     private var pending: [UInt8] = []
+    private(set) var overflowed = false
 
     mutating func append(_ bytes: ArraySlice<UInt8>) -> [String] {
+        guard !overflowed else { return [] }
+        var scan = pending.count
         pending.append(contentsOf: bytes)
         var lines: [String] = []
-        while let newline = pending.firstIndex(of: 10) {
-            let line = String(decoding: pending[..<newline], as: UTF8.self)
-            pending.removeSubrange(...newline)
+        var start = pending.startIndex
+        while let newline = pending.withUnsafeBufferPointer({ buffer in buffer[scan...].firstIndex(of: 10) }) {
+            let line = String(decoding: pending[start..<newline], as: UTF8.self)
+            start = newline + 1
+            scan = start
             if !line.trimmingCharacters(in: .whitespaces).isEmpty {
                 lines.append(line)
             }
+        }
+        pending.removeSubrange(..<start)
+        if pending.count > Self.limit {
+            pending = []
+            overflowed = true
         }
         return lines
     }

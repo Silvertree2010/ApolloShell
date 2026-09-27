@@ -178,6 +178,11 @@ final class ControlConnection: @unchecked Sendable {
             return
         }
         let lines = buffer.append(chunk[..<count])
+        guard !buffer.overflowed else {
+            _ = write(ControlResponse(id: nil, outcome: .failure("Request line too long.")))
+            shutdown()
+            return
+        }
         for line in lines {
             handle(line)
         }

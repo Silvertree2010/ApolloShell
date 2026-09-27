@@ -56,6 +56,7 @@ public final class ControlSocketClient {
             }
             if count == 0 { return nil }
             ready.append(contentsOf: buffer.append(chunk[..<count]))
+            if buffer.overflowed { throw ControlSocketError.system("read", EMSGSIZE) }
         }
     }
 
