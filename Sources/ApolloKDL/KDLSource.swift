@@ -5,17 +5,15 @@ struct KDLSource: Sendable {
     }
 
     let bytes: [UInt8]
+    let bomLength: Int
 
     init(_ text: String) {
         bytes = Array(text.utf8)
+        bomLength = bytes.starts(with: [0xEF, 0xBB, 0xBF]) ? 3 : 0
     }
 
     var count: Int {
         bytes.count
-    }
-
-    var bomLength: Int {
-        bytes.starts(with: [0xEF, 0xBB, 0xBF]) ? 3 : 0
     }
 
     func byte(at offset: Int) -> UInt8? {
