@@ -85,7 +85,7 @@ enum ExpressionCompiler {
         case .null:
             return (CompiledValueBuilder.literal(.null, span: kdlValue.span), diagnostics)
         case .string(let text):
-            guard text.contains("{"), allowsExpression || ExpressionText.containsExpression(text) else {
+            guard text.utf8.contains(UInt8(ascii: "{")), allowsExpression || ExpressionText.containsExpression(text) else {
                 return (CompiledValueBuilder.literal(.string(text), span: kdlValue.span), diagnostics)
             }
             if !allowsExpression {

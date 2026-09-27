@@ -2,7 +2,7 @@ import ApolloBase
 
 extension ExpressionParser {
     public static func parseTemplate(_ text: String, span: SourceSpan) -> Result<StringTemplate, Diagnostic> {
-        guard text.contains("{") else { return .success(.literal(text)) }
+        guard text.utf8.contains(UInt8(ascii: "{")) else { return .success(.literal(text)) }
         let characters = Array(text)
         let mapper = ExpressionSpanMapper(base: span, characters: characters, origin: 0)
         var parts: [TemplatePart] = []
