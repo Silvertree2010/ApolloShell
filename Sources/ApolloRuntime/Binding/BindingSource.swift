@@ -17,8 +17,7 @@ struct BindingSource: Sendable {
     init(compiled: CompiledValue) {
         template = compiled.template
         dependencies = compiled.dependencies
-        let globalRoots = Set(compiled.dependencies.map(\.root))
-        localNames = compiled.pathRoots.subtracting(globalRoots)
+        localNames = compiled.localRoots
         span = compiled.span
     }
 
