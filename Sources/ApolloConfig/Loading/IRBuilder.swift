@@ -179,6 +179,7 @@ enum IRBuilder {
     }
 
     private static func substitutingLets(_ compiled: CompiledValue, node: ExpandedNode, state: IRBuildState) -> CompiledValue {
+        if compiled.template.literalValue != nil, compiled.dependencies.isEmpty { return compiled }
         let locals = Set(node.useFrame?.bindings.keys.map { $0 } ?? [])
         var raw = compiled
         raw.template = LetSubstitution.apply(compiled.template, lets: node.letValues, locals: locals)
