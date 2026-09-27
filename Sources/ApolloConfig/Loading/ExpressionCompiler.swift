@@ -108,7 +108,11 @@ enum ExpressionCompiler {
                 guard validates else {
                     return (CompiledValue(template: expanded, dependencies: [], span: kdlValue.span), diagnostics)
                 }
-                var validator = ExpressionValidator(env: env, userFilters: userFilters, fallback: kdlValue.span, occurrences: env.templates?.occurrences(in: text, span: kdlValue.span) ?? NameLocator.occurrences(in: text, span: kdlValue.span))
+                let span = kdlValue.span
+                let templates = env.templates
+                var validator = ExpressionValidator(env: env, userFilters: userFilters, fallback: span) {
+                    templates?.occurrences(in: text, span: span) ?? NameLocator.occurrences(in: text, span: span)
+                }
                 validator.validate(substituted)
                 diagnostics.append(contentsOf: validator.diagnostics)
                 let dependencies = expanded.dependencies(locals: env.locals)
@@ -122,15 +126,16 @@ private struct ExpressionValidator {
     let env: ExpressionEnvironment
     let userFilters: [String: UserFilter]
     let fallback: SourceSpan
-    let occurrences: [String: [NameOccurrence]]
+    let locate: () -> [String: [NameOccurrence]]
+    var located: [String: [NameOccurrence]]?
     var visits: [String: Int] = [:]
     var diagnostics: [Diagnostic] = []
 
-    init(env: ExpressionEnvironment, userFilters: [String: UserFilter] = [:], fallback: SourceSpan, occurrences: [String: [NameOccurrence]]) {
+    init(env: ExpressionEnvironment, userFilters: [String: UserFilter] = [:], fallback: SourceSpan, locate: @escaping () -> [String: [NameOccurrence]]) {
         self.env = env
         self.userFilters = userFilters
         self.fallback = fallback
-        self.occurrences = occurrences
+        self.locate = locate
     }
 
     mutating func validate(_ template: StringTemplate) {
@@ -155,9 +160,10 @@ private struct ExpressionValidator {
         case .list(let items):
             items.forEach { validate($0) }
         case .path(let root, let members):
-            let occurrence = nextOccurrence(of: root)
-            validateRoot(root, span: occurrence?.root ?? fallback)
-            validateFirstField(root: root, members: members, fieldSpans: occurrence?.fields ?? [])
+            let visit = visits[root, default: 0]
+            visits[root] = visit + 1
+            validateRoot(root, visit: visit)
+            validateFirstField(root: root, members: members, visit: visit)
             members.forEach { validate($0) }
         case .access(let base, let members):
             validate(base)
@@ -177,11 +183,14 @@ private struct ExpressionValidator {
         }
     }
 
-    private mutating func nextOccurrence(of root: String) -> NameOccurrence? {
-        let index = visits[root, default: 0]
-        visits[root] = index + 1
-        guard let list = occurrences[root], index < list.count else { return nil }
-        return list[index]
+    private mutating func occurrence(of root: String, visit: Int) -> NameOccurrence? {
+        if located == nil { located = locate() }
+        guard let list = located?[root], visit < list.count else { return nil }
+        return list[visit]
+    }
+
+    private mutating func rootSpan(_ root: String, visit: Int) -> SourceSpan {
+        occurrence(of: root, visit: visit)?.root ?? fallback
     }
 
     private mutating func validate(_ member: PathMember) {
@@ -189,40 +198,44 @@ private struct ExpressionValidator {
         validate(expr)
     }
 
-    private mutating func validateRoot(_ root: String, span: SourceSpan) {
+    private mutating func validateRoot(_ root: String, visit: Int) {
         if env.locals.contains(root) || env.poisonedLets.contains(root) || root == "var" { return }
         if let provider = env.registry.providers[root] {
             if provider.stability == .experimental {
-                diagnostics.append(Diagnostic(.note, "'\(root)' is experimental and may change", span: span))
+                diagnostics.append(Diagnostic(.note, "'\(root)' is experimental and may change", span: rootSpan(root, visit: visit)))
             }
             return
         }
         if let contextRoot = env.registry.contextRoots[root] {
             if !contextRoot.validIn.contains(env.context.rawValue) {
-                diagnostics.append(Diagnostic(.error, "'\(root)' is not valid here", span: span))
+                diagnostics.append(Diagnostic(.error, "'\(root)' is not valid here", span: rootSpan(root, visit: visit)))
             }
             return
         }
         if env.registry.reservedProviderNames.contains(root) {
-            diagnostics.append(Diagnostic(.error, "unknown root '\(root)'", span: span, help: "'\(root)' will be a provider in a later version"))
+            diagnostics.append(Diagnostic(.error, "unknown root '\(root)'", span: rootSpan(root, visit: visit), help: "'\(root)' will be a provider in a later version"))
             return
         }
         let candidates = Array(env.locals) + Array(env.registry.providers.keys) + Array(env.registry.contextRoots.keys) + ["var"]
         let suggestion = Suggestion.closest(to: root, among: candidates)
-        diagnostics.append(Diagnostic(.error, "unknown root '\(root)'", span: span, help: suggestion.map { "did you mean '\($0)'?" }))
+        diagnostics.append(Diagnostic(.error, "unknown root '\(root)'", span: rootSpan(root, visit: visit), help: suggestion.map { "did you mean '\($0)'?" }))
     }
 
     static let rootsKeyedById: Set<String> = ["surfaces"]
 
-    private mutating func validateFirstField(root: String, members: [PathMember], fieldSpans: [SourceSpan]) {
+    private mutating func fieldSpan(_ root: String, visit: Int, position: Int) -> SourceSpan {
+        let fields = occurrence(of: root, visit: visit)?.fields ?? []
+        return position < fields.count ? fields[position] : fallback
+    }
+
+    private mutating func validateFirstField(root: String, members: [PathMember], visit: Int) {
         guard !env.locals.contains(root) else { return }
         let position = Self.rootsKeyedById.contains(root) ? 1 : 0
         guard position < members.count, case .field(let first) = members[position] else { return }
-        let span = position < fieldSpans.count ? fieldSpans[position] : fallback
         if root == "var", let declared = env.declaredVars {
             guard !declared.contains(first) else { return }
             let suggestion = Suggestion.closest(to: first, among: Array(declared))
-            diagnostics.append(Diagnostic(.warning, "unknown var '\(first)'", span: span, help: suggestion.map { "did you mean '\($0)'?" }))
+            diagnostics.append(Diagnostic(.warning, "unknown var '\(first)'", span: fieldSpan(root, visit: visit, position: position), help: suggestion.map { "did you mean '\($0)'?" }))
             return
         }
         let fields: [FieldSchema]
@@ -237,7 +250,7 @@ private struct ExpressionValidator {
         let names = Set(fields.map { $0.path[0] })
         if names.contains(first) { return }
         let suggestion = Suggestion.closest(to: first, among: Array(names))
-        diagnostics.append(Diagnostic(.error, "unknown field '\(first)' on '\(root)'", span: span, help: suggestion.map { "did you mean '\($0)'?" }))
+        diagnostics.append(Diagnostic(.error, "unknown field '\(first)' on '\(root)'", span: fieldSpan(root, visit: visit, position: position), help: suggestion.map { "did you mean '\($0)'?" }))
     }
 
     private mutating func validate(_ call: FilterCall) {
