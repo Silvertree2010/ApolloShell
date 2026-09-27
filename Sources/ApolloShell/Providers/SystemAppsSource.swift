@@ -179,7 +179,8 @@ final class SystemAppsSource: AppsSource {
     }
 
     func launch(_ bundleID: String) -> Bool {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return false }
+        let path = bundleID.hasPrefix("/") ? URL(fileURLWithPath: bundleID) : nil
+        guard let url = path ?? NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return false }
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.activates = true
         NSWorkspace.shared.openApplication(at: url, configuration: configuration) { [log] _, error in
