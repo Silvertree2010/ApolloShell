@@ -1,4 +1,5 @@
 import Foundation
+import ApolloBase
 import ApolloConfig
 
 public struct ApolloCLI: Sendable {
@@ -186,7 +187,9 @@ public struct ApolloCLI: Sendable {
             }
         }
         guard let lines = SchemaText.render(registry, name: name, format: format) else {
-            err("apollo: nothing in the registry is named '\(name ?? "")'")
+            let known = SchemaText.entries(registry).map(\.name)
+            let hint = Suggestion.closest(to: name ?? "", among: known).map { ", did you mean '\($0)'?" } ?? ""
+            err("apollo: nothing in the registry is named '\(name ?? "")'\(hint)")
             return Exit.failure
         }
         lines.forEach(out)

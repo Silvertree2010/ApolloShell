@@ -183,6 +183,9 @@ struct ApolloCLITests {
         #expect(markdown.stdout.first?.hasPrefix("### `text`") == true)
         #expect(harness.run(["schema"], socket: socketless).stdout.count > 20)
         #expect(harness.run(["schema", "no-such-thing"], socket: socketless).exitCode == 1)
+        let typo = harness.run(["schema", "colum"], socket: socketless)
+        #expect(typo.exitCode == 1)
+        #expect(typo.stderr == ["apollo: nothing in the registry is named 'colum', did you mean 'column'?"])
         #expect(harness.run(["schema", "--yaml"], socket: socketless).exitCode == 2)
     }
 
