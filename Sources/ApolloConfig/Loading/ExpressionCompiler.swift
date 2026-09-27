@@ -103,14 +103,16 @@ enum ExpressionCompiler {
                 return (CompiledValueBuilder.literal(.null, span: kdlValue.span), diagnostics)
             case .success(let template):
                 let substituted = LetSubstitution.apply(template, lets: env.letValues, locals: env.locals)
+                let userFilters = env.templates?.userFilters ?? [:]
+                let expanded = UserFilterExpansion.apply(substituted, filters: userFilters)
                 guard validates else {
-                    return (CompiledValue(template: substituted, dependencies: [], span: kdlValue.span), diagnostics)
+                    return (CompiledValue(template: expanded, dependencies: [], span: kdlValue.span), diagnostics)
                 }
-                var validator = ExpressionValidator(env: env, fallback: kdlValue.span, occurrences: env.templates?.occurrences(in: text, span: kdlValue.span) ?? NameLocator.occurrences(in: text, span: kdlValue.span))
+                var validator = ExpressionValidator(env: env, userFilters: userFilters, fallback: kdlValue.span, occurrences: env.templates?.occurrences(in: text, span: kdlValue.span) ?? NameLocator.occurrences(in: text, span: kdlValue.span))
                 validator.validate(substituted)
                 diagnostics.append(contentsOf: validator.diagnostics)
-                let dependencies = substituted.dependencies(locals: env.locals)
-                return (CompiledValue(template: substituted, dependencies: dependencies, span: kdlValue.span), diagnostics)
+                let dependencies = expanded.dependencies(locals: env.locals)
+                return (CompiledValue(template: expanded, dependencies: dependencies, span: kdlValue.span), diagnostics)
             }
         }
     }
@@ -118,13 +120,15 @@ enum ExpressionCompiler {
 
 private struct ExpressionValidator {
     let env: ExpressionEnvironment
+    let userFilters: [String: UserFilter]
     let fallback: SourceSpan
     let occurrences: [String: [NameOccurrence]]
     var visits: [String: Int] = [:]
     var diagnostics: [Diagnostic] = []
 
-    init(env: ExpressionEnvironment, fallback: SourceSpan, occurrences: [String: [NameOccurrence]]) {
+    init(env: ExpressionEnvironment, userFilters: [String: UserFilter] = [:], fallback: SourceSpan, occurrences: [String: [NameOccurrence]]) {
         self.env = env
+        self.userFilters = userFilters
         self.fallback = fallback
         self.occurrences = occurrences
     }
@@ -242,8 +246,15 @@ private struct ExpressionValidator {
             diagnostics.append(Diagnostic(.error, "Lua scripting comes in a later version", span: call.span))
             return
         }
+        if let filter = userFilters[call.name] {
+            if call.arguments.count != filter.parameters.count {
+                let count = filter.parameters.count
+                diagnostics.append(Diagnostic(.error, "'\(call.name)' expects \(count) argument\(count == 1 ? "" : "s")", span: call.span))
+            }
+            return
+        }
         guard let schema = env.registry.filters[call.name] else {
-            let suggestion = Suggestion.closest(to: call.name, among: Array(env.registry.filters.keys))
+            let suggestion = Suggestion.closest(to: call.name, among: Array(env.registry.filters.keys) + Array(userFilters.keys))
             diagnostics.append(Diagnostic(.error, "unknown filter '\(call.name)'", span: call.span, help: suggestion.map { "did you mean '\($0)'?" }))
             return
         }

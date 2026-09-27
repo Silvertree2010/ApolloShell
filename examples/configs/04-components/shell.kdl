@@ -1,5 +1,7 @@
 style "style.css"
 
+filter "mbit" "{(value * 8 / 1000000) | round 1}"
+
 define "stat" {
     param "label"
     param "value"
@@ -13,6 +15,6 @@ panel "stats" anchor="bottom-right" {
     column class="card" {
         use "stat" label="CPU" value="{perf.cpu | percent}"
         use "stat" label="Memory" value="{perf.memory | percent}"
-        use "stat" label="Down" value="{perf.net-down | bytes-per-second}"
+        use "stat" label="Down" value="{perf.net-down | mbit} Mbit/s"
     }
 }
