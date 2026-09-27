@@ -101,13 +101,18 @@ public struct SourceLocator: Sendable {
     }
 
     public func positionList(atByteOffsets offsets: [Int]) -> [SourcePosition] {
+        let lineStarts = self.lineStarts
+        let lineEnds = self.lineEnds
+        let byteCount = utf8.count
         var result: [SourcePosition] = []
         result.reserveCapacity(offsets.count)
-        var graphemeEnds: [Int: [Int]?] = [:]
+        var graphemeEnds = [[Int]??](repeating: nil, count: lineStarts.count)
         var lastLine = 0
         var lastEnds: [Int]?
-        for raw in offsets {
-            let offset = max(0, min(raw, utf8.count))
+        var position = 0
+        while position < offsets.count {
+            let offset = max(0, min(offsets[position], byteCount))
+            position += 1
             let line: Int
             if lastLine > 0, lineStarts[lastLine - 1] <= offset, lastLine == lineStarts.count || offset < lineStarts[lastLine] {
                 line = lastLine
@@ -118,11 +123,11 @@ public struct SourceLocator: Sendable {
             let end = lineEnds[line - 1]
             let relative = min(offset, end) - start
             if line != lastLine {
-                if let cached = graphemeEnds[line] {
+                if let cached = graphemeEnds[line - 1] {
                     lastEnds = cached
                 } else {
                     lastEnds = lineGraphemeEnds(start: start, end: end)
-                    graphemeEnds[line] = .some(lastEnds)
+                    graphemeEnds[line - 1] = .some(lastEnds)
                 }
                 lastLine = line
             }
