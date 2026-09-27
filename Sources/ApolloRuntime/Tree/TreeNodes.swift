@@ -258,6 +258,20 @@ struct EntryKey: Hashable {
         }
     }
 
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(kind)
+        hasher.combine(ordinal)
+        switch kind {
+        case .position, .number, .bool:
+            hasher.combine(number)
+        case .string:
+            hasher.combine(text)
+        case .other:
+            hasher.combine(typeName)
+            hasher.combine(text)
+        }
+    }
+
     var component: String {
         var result: String
         switch kind {
