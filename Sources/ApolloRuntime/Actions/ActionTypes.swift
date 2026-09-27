@@ -2,17 +2,49 @@ import Foundation
 import ApolloBase
 import ApolloConfig
 
+public final class EmitBudget: @unchecked Sendable, Hashable {
+    public static let total = 256
+
+    private var remaining = EmitBudget.total
+
+    public init() {}
+
+    func take() -> Bool {
+        guard remaining > 0 else { return false }
+        remaining -= 1
+        return true
+    }
+
+    public static func == (lhs: EmitBudget, rhs: EmitBudget) -> Bool { lhs === rhs }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(ObjectIdentifier(self))
+    }
+}
+
+public struct EmitChain: Sendable, Hashable {
+    public var depth: Int
+    public var budget: EmitBudget
+
+    public init(depth: Int, budget: EmitBudget) {
+        self.depth = depth
+        self.budget = budget
+    }
+}
+
 public struct ActionEnvironment: Sendable, Hashable {
     public var scope: LocalScope
     public var surfaceID: String?
     public var screenKey: String?
     public var event: Record
+    public var emitChain: EmitChain?
 
-    public init(scope: LocalScope = LocalScope(), surfaceID: String? = nil, screenKey: String? = nil, event: Record = Record()) {
+    public init(scope: LocalScope = LocalScope(), surfaceID: String? = nil, screenKey: String? = nil, event: Record = Record(), emitChain: EmitChain? = nil) {
         self.scope = scope
         self.surfaceID = surfaceID
         self.screenKey = screenKey
         self.event = event
+        self.emitChain = emitChain
     }
 }
 
