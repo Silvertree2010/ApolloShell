@@ -75,7 +75,7 @@ public struct Evaluator: Sendable {
 }
 
 extension StringTemplate {
-    var literalValue: Value? {
+    public var literalValue: Value? {
         switch self {
         case .literal(let text): .string(text)
         case .whole(.literal(let value)): value

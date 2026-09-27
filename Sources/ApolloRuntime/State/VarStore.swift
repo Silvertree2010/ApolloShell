@@ -520,6 +520,7 @@ public final class VarStore {
     private func evaluateTemplate(_ template: ValueTemplate, scope: any EvaluationScope) -> Value {
         switch template {
         case .scalar(let compiled):
+            if let constant = compiled.template.literalValue { return constant }
             return bindings.sharedEvaluator.render(compiled.template, in: scope, at: compiled.span)
         case .list(let items):
             return .list(items.map { evaluateTemplate($0, scope: scope) })
