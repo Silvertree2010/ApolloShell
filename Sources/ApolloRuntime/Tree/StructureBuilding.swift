@@ -173,10 +173,15 @@ extension ShellRuntime {
         var lookup: [EntryKey: Region] = [:]
         var fresh: [Region] = []
         if eachKeyLookup == .dictionary {
-            lookup.reserveCapacity(max(old.count, count))
-            for region in old {
-                if let key = region.entryKey {
-                    lookup[key] = region
+            if let cached = node.entryLookup {
+                lookup = cached
+                node.entryLookup = nil
+            } else {
+                lookup.reserveCapacity(max(old.count, count))
+                for region in old {
+                    if let key = region.entryKey {
+                        lookup[key] = region
+                    }
                 }
             }
         }
@@ -234,8 +239,14 @@ extension ShellRuntime {
             park(region.parts)
             region.parts.removeAll()
             region.context = nil
+            if let key = region.entryKey, lookup[key] === region {
+                lookup[key] = nil
+            }
         }
         node.regions = regions
+        if eachKeyLookup == .dictionary {
+            node.entryLookup = lookup
+        }
         node.selection = nil
         for region in fresh {
             if let key = region.entryKey {
