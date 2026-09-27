@@ -52,6 +52,19 @@ public struct Record: Sendable, Hashable {
     }
 }
 
+extension Value {
+    public func isEqualInOrder(_ other: Value) -> Bool {
+        switch (self, other) {
+        case (.record(let left), .record(let right)):
+            return left.keys == right.keys && zip(left.values, right.values).allSatisfy { $0.isEqualInOrder($1) }
+        case (.list(let left), .list(let right)):
+            return left.count == right.count && zip(left, right).allSatisfy { $0.isEqualInOrder($1) }
+        default:
+            return self == other
+        }
+    }
+}
+
 public enum Value: Sendable, Hashable {
     case null
     case bool(Bool)
