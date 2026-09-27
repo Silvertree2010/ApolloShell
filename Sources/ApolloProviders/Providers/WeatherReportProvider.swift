@@ -218,6 +218,7 @@ public final class WeatherReportProvider: BaseProvider {
     static func day(_ day: DayForecast, report: WeatherReport, now: Date) -> Value {
         .record(Record([
             ("date", .date(day.date)),
+            ("date-text", .string(WeatherText.shortDate(day.date, calendar: report.calendar, locale: report.calendar.locale ?? .current))),
             ("today", .bool(report.calendar.isDate(day.date, inSameDayAs: now))),
             ("min", ProviderValue.number(day.minTemperature)),
             ("max", ProviderValue.number(day.maxTemperature)),

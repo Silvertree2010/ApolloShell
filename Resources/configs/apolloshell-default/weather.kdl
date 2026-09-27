@@ -78,7 +78,7 @@ define "dashboard-weather" {
                     each day in="{weather.days}" key="{day.date}" {
                         column class="card weather-day" {
                             text "{day.today ? 'Today' : (day.date | date 'EEEEEE')}" class="weather-day-name{day.today ? ' today' : ''}"
-                            text "{day.date | date 'M/d'}" class="weather-day-date"
+                            text "{day.date-text ?? (day.date | date 'M/d')}" class="weather-day-date"
                             stack class="weather-day-glyph-frame" {
                                 icon "{day.symbol}" class="weather-glyph weather-day-glyph"
                             }
