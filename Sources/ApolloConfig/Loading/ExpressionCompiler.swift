@@ -7,6 +7,7 @@ struct ExpressionEnvironment: Sendable {
     var poisonedLets: Set<String> = []
     var locals: Set<String>
     var context: NodeContext
+    var templates: TemplateCache? = nil
 }
 
 enum ExpressionText {
@@ -92,7 +93,7 @@ enum ExpressionCompiler {
                 diagnostics.append(Diagnostic(.error, "no expression allowed here", span: kdlValue.span))
                 return (CompiledValueBuilder.literal(.string(text), span: kdlValue.span), diagnostics)
             }
-            switch ExpressionParser.parseTemplate(text, span: kdlValue.span) {
+            switch env.templates?.template(text, span: kdlValue.span) ?? ExpressionParser.parseTemplate(text, span: kdlValue.span) {
             case .failure(var diagnostic):
                 if !ExpressionText.isPlainQuoted(text, span: kdlValue.span) {
                     diagnostic.span = kdlValue.span
@@ -104,7 +105,7 @@ enum ExpressionCompiler {
                 guard validates else {
                     return (CompiledValue(template: substituted, dependencies: [], span: kdlValue.span), diagnostics)
                 }
-                var validator = ExpressionValidator(env: env, fallback: kdlValue.span, occurrences: NameLocator.occurrences(in: text, span: kdlValue.span))
+                var validator = ExpressionValidator(env: env, fallback: kdlValue.span, occurrences: env.templates?.occurrences(in: text, span: kdlValue.span) ?? NameLocator.occurrences(in: text, span: kdlValue.span))
                 validator.validate(substituted)
                 diagnostics.append(contentsOf: validator.diagnostics)
                 let dependencies = substituted.dependencies(locals: env.locals)
