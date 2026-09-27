@@ -32,6 +32,19 @@ struct KDLLexicalTests {
         #expect(KDLNumberLiteral.value(of: raw) == nil)
     }
 
+    @Test("ASCII-Tabelle für Namenszeichen entspricht der Regel")
+    func identifierTable() {
+        for value in UInt8(0)..<0x80 {
+            let scalar = Unicode.Scalar(value)
+            #expect(KDLCharacters.isIdentifierCharacter(scalar) == KDLCharacters.classifiesAsIdentifierCharacter(scalar), "\(value)")
+        }
+        #expect(!KDLCharacters.isIdentifierCharacter("="))
+        #expect(!KDLCharacters.isIdentifierCharacter(" "))
+        #expect(KDLCharacters.isIdentifierCharacter("a"))
+        #expect(KDLCharacters.isIdentifierCharacter("-"))
+        #expect(KDLCharacters.isIdentifierCharacter("é"))
+    }
+
     @Test("Zeilenumbrüche nach 2.0.0, VT ist Leerraum")
     func newlines() {
         for value: UInt32 in [0x0A, 0x0C, 0x0D, 0x85, 0x2028, 0x2029] {

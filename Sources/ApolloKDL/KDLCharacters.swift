@@ -32,7 +32,18 @@ enum KDLCharacters {
         }
     }
 
+    private static let asciiIdentifierCharacters: [Bool] = (0..<128).map { value in
+        classifiesAsIdentifierCharacter(Unicode.Scalar(UInt8(value)))
+    }
+
     static func isIdentifierCharacter(_ scalar: Unicode.Scalar) -> Bool {
+        if scalar.value < 0x80 {
+            return asciiIdentifierCharacters[Int(scalar.value)]
+        }
+        return classifiesAsIdentifierCharacter(scalar)
+    }
+
+    static func classifiesAsIdentifierCharacter(_ scalar: Unicode.Scalar) -> Bool {
         if isUnicodeSpace(scalar) || isNewline(scalar) || isDisallowed(scalar) {
             return false
         }
