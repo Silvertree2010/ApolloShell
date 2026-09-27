@@ -54,6 +54,7 @@ public struct Evaluator: Sendable {
 
     public func render(_ template: StringTemplate, in scope: any EvaluationScope) -> Value {
         if let constant = template.literalValue { return constant }
+        if let local = template.localValue(in: scope) { return local }
         return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
             EvaluationRun(evaluator: self, scope: scope, span: nil).render(template)
         }
@@ -61,6 +62,7 @@ public struct Evaluator: Sendable {
 
     public func render(_ template: StringTemplate, in scope: any EvaluationScope, at span: SourceSpan) -> Value {
         if let constant = template.literalValue { return constant }
+        if let local = template.localValue(in: scope) { return local }
         return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
             EvaluationRun(evaluator: self, scope: scope, span: span).render(template)
         }
@@ -79,6 +81,11 @@ public struct Evaluator: Sendable {
 }
 
 extension StringTemplate {
+    func localValue(in scope: any EvaluationScope) -> Value? {
+        guard case .whole(.path(let root, let members)) = self, members.isEmpty else { return nil }
+        return scope.local(root)
+    }
+
     public var literalValue: Value? {
         switch self {
         case .literal(let text): .string(text)
