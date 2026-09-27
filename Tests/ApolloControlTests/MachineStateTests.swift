@@ -84,4 +84,24 @@ struct MachineStateTests {
         try Self.legacyJSON().write(to: folder.path("settings.json"))
         #expect(MachineState(folder: folder.url).lastUpdateCheck == Self.checked)
     }
+
+    @Test("gleichzeitige Änderungen: die Datei trägt am Ende den letzten Stand")
+    func concurrentUpdatesLeaveLatestOnDisk() {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        let state = MachineState(folder: folder.url)
+        for _ in 0..<5 {
+            DispatchQueue.concurrentPerform(iterations: 64) { index in
+                let date = Date(timeIntervalSinceReferenceDate: Double(index))
+                if index.isMultiple(of: 2) {
+                    state.lastUpdateCheck = date
+                } else {
+                    state.crashReportsHandledUntil = date
+                }
+            }
+            let reread = MachineState(folder: folder.url)
+            #expect(reread.lastUpdateCheck == state.lastUpdateCheck)
+            #expect(reread.crashReportsHandledUntil == state.crashReportsHandledUntil)
+        }
+    }
 }
