@@ -94,7 +94,7 @@ signal(SIGINT, SIG_IGN)
 signal(SIGTERM, SIG_IGN)
 let signalSources = [SIGINT, SIGTERM].map { sig in
     let source = DispatchSource.makeSignalSource(signal: sig, queue: .main)
-    source.setEventHandler { MainActor.assumeIsolated { restoreAndExit(0) } }
+    source.setEventHandler { MainActor.assumeIsolated { () -> Void in restoreAndExit(0) } }
     source.resume()
     return source
 }
