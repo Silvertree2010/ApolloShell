@@ -395,7 +395,7 @@ public final class VarStore {
                 let (initial, defaultValue) = computeInitial(decl: decl, persisted: persisted, shell: shell)
                 nextToken += 1
                 plain[decl.name] = PlainSlot(decl: decl, value: initial, defaultValue: defaultValue, token: nextToken)
-                store.set(DependencyPath("var", [decl.name]), initial)
+                store.set(DependencyPath("var", [decl.name]), sanitized: initial)
             }
         }
 
@@ -523,7 +523,16 @@ public final class VarStore {
             if let constant = compiled.template.literalValue { return constant }
             return bindings.sharedEvaluator.render(compiled.template, in: scope, at: compiled.span)
         case .list(let items):
-            return .list(items.map { evaluateTemplate($0, scope: scope) })
+            var values: [Value] = []
+            values.reserveCapacity(items.count)
+            for item in items {
+                if case .scalar(let compiled) = item, let constant = compiled.template.literalValue {
+                    values.append(constant)
+                } else {
+                    values.append(evaluateTemplate(item, scope: scope))
+                }
+            }
+            return .list(values)
         case .record(let fields):
             var record = Record()
             for field in fields {
