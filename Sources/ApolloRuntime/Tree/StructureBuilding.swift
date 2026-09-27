@@ -159,7 +159,7 @@ extension ShellRuntime {
         var count = min(items.count, RuntimeLimits.eachEntries)
         if old.isEmpty {
             let surface = context.surface
-            let left = max(RuntimeLimits.elementsPerSurface - surface.elementCount, 0)
+            let left = max(RuntimeLimits.elementsPerSurface - liveElementCount(surface), 0)
             if left < count {
                 count = left
                 if !surface.budgetWarned {

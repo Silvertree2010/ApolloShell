@@ -850,7 +850,7 @@ public final class ShellRuntime: SurfaceControlling {
 
     private func buildElement(_ ir: ElementIR, _ context: BuildContext, runtimeID: String?) -> ElementNode? {
         let surface = context.surface
-        guard surface.elementCount < RuntimeLimits.elementsPerSurface else {
+        guard surface.elementCount < RuntimeLimits.elementsPerSurface || liveElementCount(surface) < RuntimeLimits.elementsPerSurface else {
             if !surface.budgetWarned {
                 surface.budgetWarned = true
                 warn(key: "budget|" + surface.surfaceKey, Diagnostic(.warning, "surface '\(surface.instance.id)' reached \(RuntimeLimits.elementsPerSurface) elements, further elements are not built", span: ir.span))
@@ -1012,6 +1012,24 @@ public final class ShellRuntime: SurfaceControlling {
                 }
             }
         }
+    }
+
+    func liveElementCount(_ surface: SurfaceNode) -> Int {
+        guard inSession, !pendingTeardown.isEmpty else { return surface.elementCount }
+        if let cached = surface.parkedElements, cached.generation == generation, cached.pending == pendingTeardown.count {
+            return surface.elementCount - cached.count
+        }
+        var parked = 0
+        var stack = pendingTeardown.filter { $0.isParked && !$0.isDead && $0.surfaceNode === surface }
+        while let node = stack.popLast() {
+            guard !node.isDead else { continue }
+            if node is ElementNode { parked += 1 }
+            for region in node.innerRegions {
+                stack.append(contentsOf: region.parts)
+            }
+        }
+        surface.parkedElements = (generation, pendingTeardown.count, parked)
+        return surface.elementCount - parked
     }
 
     func park(_ parts: [TreeNode]) {
