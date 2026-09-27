@@ -57,6 +57,7 @@ private final class SchemaWalkState {
 }
 
 enum SchemaStage {
+    static let varActions: Set<String> = ["set", "toggle-var", "reset"]
     static let contextInheritingNodes: Set<String> = ["each", "when", "else", "switch", "case", "default", "feature"]
 
     static func run(_ nodes: [ExpandedNode], defines: [DefineDecl] = [], registry: SchemaRegistry, context: NodeContext = .topLevel, templates: TemplateCache? = nil, declaredVars: Set<String>? = nil) -> SchemaStageResult {
@@ -298,6 +299,12 @@ enum SchemaStage {
         }
         let (arguments, argumentDiagnostics) = checkArguments(schema.arguments, kdl.arguments, nodeName: kdl.name, nodeSpan: kdl.span, env: env)
         for diagnostic in argumentDiagnostics { state.report(diagnostic, node: node) }
+        if Self.varActions.contains(kdl.name), let declared = env.declaredVars,
+           let first = kdl.arguments.first, case .string(let name) = first.scalar,
+           !name.utf8.contains(UInt8(ascii: "{")), !declared.contains(name) {
+            let suggestion = Suggestion.closest(to: name, among: Array(declared))
+            state.report(Diagnostic(.warning, "unknown var '\(name)'", span: first.span, help: suggestion.map { "did you mean '\($0)'?" }), node: node)
+        }
         let (properties, propertyDiagnostics) = checkProperties(schema.properties, kdl.properties, nodeName: kdl.name, nodeSpan: kdl.span, env: env)
         for diagnostic in propertyDiagnostics { state.report(diagnostic, node: node) }
 
