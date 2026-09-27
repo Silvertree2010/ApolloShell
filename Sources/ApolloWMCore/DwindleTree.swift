@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 
 public struct Gaps: Sendable, Equatable, Codable {
     public var outer: CGFloat

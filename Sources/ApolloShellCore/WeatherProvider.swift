@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 public enum WeatherProviderID: String, Codable, CaseIterable, Sendable, Identifiable {
     case openMeteo

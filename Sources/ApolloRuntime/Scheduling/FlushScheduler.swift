@@ -24,6 +24,7 @@ public final class ManualFlushScheduler: FlushScheduler {
     }
 }
 
+#if canImport(Darwin)
 @MainActor
 public final class RunLoopFlushScheduler: FlushScheduler {
     private static let flushOrder: CFIndex = 1_000_000
@@ -68,3 +69,4 @@ public final class RunLoopFlushScheduler: FlushScheduler {
         }
     }
 }
+#endif

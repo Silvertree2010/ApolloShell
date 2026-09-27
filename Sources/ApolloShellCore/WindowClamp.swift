@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 
 public enum WindowClamp {
     public static let tolerance: CGFloat = 0.5

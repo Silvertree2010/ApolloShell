@@ -1,3 +1,4 @@
+#if canImport(Darwin)
 import Foundation
 
 public final class SettingsFileWatcher: @unchecked Sendable {
@@ -80,3 +81,4 @@ public final class SettingsFileWatcher: @unchecked Sendable {
         return "/"
     }
 }
+#endif

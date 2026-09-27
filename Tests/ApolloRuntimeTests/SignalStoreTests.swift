@@ -137,6 +137,7 @@ struct SignalStoreTests {
         #expect(innerRuns == 1)
     }
 
+    #if canImport(Darwin)
     @Test("RunLoop-Durchlauf liefert genau einen Flush, auch in eventTracking")
     func runLoopDeliversOneFlush() {
         let scheduler = RunLoopFlushScheduler()
@@ -170,4 +171,5 @@ struct SignalStoreTests {
         eventTrackingKeepAlive.invalidate()
         #expect(flushes == 1)
     }
+    #endif
 }
