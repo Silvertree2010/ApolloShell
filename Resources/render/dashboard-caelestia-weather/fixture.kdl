@@ -15,30 +15,30 @@ fixture {
     weather status="ready" stale=#false {
         place name="Chur" latitude=46.85 longitude=9.53
         current temperature=14 apparent=13 humidity=0.55 wind=6 code=2 symbol="cloud.sun.fill" description="Partly Cloudy" is-day=#true
-        today max=18 min=10 sunrise=#null sunset=#null
+        today max=18 min=10 sunrise=#null sunset=#null sunrise-text=#null sunset-text=#null
         attribution text="Weather data: Open-Meteo" url="https://open-meteo.com"
         hourly-strip {
-            - time="2026-09-24T09:41:00+02:00" now=#true temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
-            - time="2026-09-24T11:41:00+02:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
-            - time="2026-09-24T13:41:00+02:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
-            - time="2026-09-24T15:41:00+02:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
-            - time="2026-09-24T17:41:00+02:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
-            - time="2026-09-24T19:41:00+02:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
-            - time="2026-09-24T21:41:00+02:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
-            - time="2026-09-24T23:41:00+02:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
-            - time="2026-09-25T01:41:00+02:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
-            - time="2026-09-25T03:41:00+02:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
-            - time="2026-09-25T05:41:00+02:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
-            - time="2026-09-25T07:41:00+02:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T09:41:00+02:00" time-text="Now" now=#true temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T11:41:00+02:00" time-text="11:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T13:41:00+02:00" time-text="13:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T15:41:00+02:00" time-text="15:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T17:41:00+02:00" time-text="17:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T19:41:00+02:00" time-text="19:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T21:41:00+02:00" time-text="21:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T23:41:00+02:00" time-text="23:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-25T01:41:00+02:00" time-text="1:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-25T03:41:00+02:00" time-text="3:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-25T05:41:00+02:00" time-text="5:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-25T07:41:00+02:00" time-text="7:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
         }
         days {
-            - date="2026-09-24T09:41:00+02:00" date-text="9/24" today=#true min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
-            - date="2026-09-25T09:41:00+02:00" date-text="9/25" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
-            - date="2026-09-26T09:41:00+02:00" date-text="9/26" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
-            - date="2026-09-27T09:41:00+02:00" date-text="9/27" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
-            - date="2026-09-28T09:41:00+02:00" date-text="9/28" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
-            - date="2026-09-29T09:41:00+02:00" date-text="9/29" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
-            - date="2026-09-30T09:41:00+02:00" date-text="9/30" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-24T09:41:00+02:00" date-text="9/24" name-text="Today" today=#true min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-25T09:41:00+02:00" date-text="9/25" name-text="Fr" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-26T09:41:00+02:00" date-text="9/26" name-text="Sa" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-27T09:41:00+02:00" date-text="9/27" name-text="Su" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-28T09:41:00+02:00" date-text="9/28" name-text="Mo" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-29T09:41:00+02:00" date-text="9/29" name-text="Tu" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-30T09:41:00+02:00" date-text="9/30" name-text="We" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
         }
     }
     media available=#true playing=#true progress=0.391304 duration=230 elapsed=90 app-name="Music" title="Starboy" artist="The Weeknd" album="Starboy" kind="music"

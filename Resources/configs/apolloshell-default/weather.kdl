@@ -52,8 +52,8 @@ define "dashboard-weather" {
                                 use "weather-detail" title="Wind" value="{weather.current.wind != null ? (weather.current.wind | round) + ' km/h' : '–'}" icon="wind"
                             }
                             column class="weather-details-column" {
-                                use "weather-detail" title="Sunrise" value="{(weather.today.sunrise | date 'HH:mm') ?? '–'}" icon="sunrise.fill"
-                                use "weather-detail" title="Sunset" value="{(weather.today.sunset | date 'HH:mm') ?? '–'}" icon="sunset.fill"
+                                use "weather-detail" title="Sunrise" value="{weather.today.sunrise-text ?? (weather.today.sunrise | date 'HH:mm') ?? '–'}" icon="sunrise.fill"
+                                use "weather-detail" title="Sunset" value="{weather.today.sunset-text ?? (weather.today.sunset | date 'HH:mm') ?? '–'}" icon="sunset.fill"
                             }
                         }
                     }
@@ -65,7 +65,7 @@ define "dashboard-weather" {
                 row class="card weather-hours" {
                     each hour in="{weather.hourly-strip}" key="{hour.time}" {
                         column class="weather-hour{hour.now ? ' now' : ''}" {
-                            text "{hour.now ? 'Now' : (hour.time | date 'H:00')}" class="weather-hour-time"
+                            text "{hour.time-text ?? (hour.now ? 'Now' : (hour.time | date 'H:00'))}" class="weather-hour-time"
                             stack class="weather-hour-glyph-frame" {
                                 icon "{hour.symbol}" class="weather-glyph weather-hour-glyph"
                             }
@@ -77,7 +77,7 @@ define "dashboard-weather" {
                 row class="weather-days" {
                     each day in="{weather.days}" key="{day.date}" {
                         column class="card weather-day" {
-                            text "{day.today ? 'Today' : (day.date | date 'EEEEEE')}" class="weather-day-name{day.today ? ' today' : ''}"
+                            text "{day.name-text ?? (day.today ? 'Today' : (day.date | date 'EEEEEE'))}" class="weather-day-name{day.today ? ' today' : ''}"
                             text "{day.date-text ?? (day.date | date 'M/d')}" class="weather-day-date"
                             stack class="weather-day-glyph-frame" {
                                 icon "{day.symbol}" class="weather-glyph weather-day-glyph"
