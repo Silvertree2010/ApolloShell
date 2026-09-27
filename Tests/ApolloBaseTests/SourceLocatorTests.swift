@@ -114,4 +114,23 @@ struct SourceLocatorTests {
             #expect(locator.positions(atByteOffsets: Array(expected.keys)) == expected)
         }
     }
+
+    @Test("Sammelabfrage gleicht der Einzelabfrage für jeden Byte-Offset, auch mitten im Graphem")
+    func batchMatchesSingleForEveryOffset() {
+        let texts = [
+            "ab\r\ncd\u{E4}e\u{308}f\n\u{1F468}\u{200D}\u{1F469} x\u{2028}y",
+            "\u{1F1E8}\u{1F1ED}\r\u{85}\u{0C}\t\u{C0}",
+            String(repeating: "x", count: 300) + "\u{1F389}y\nz",
+            "",
+        ]
+        for text in texts {
+            let locator = SourceLocator(text)
+            let offsets = Array(-2...(text.utf8.count + 2))
+            let batch = locator.positions(atByteOffsets: offsets.reversed())
+            for offset in offsets {
+                let clamped = max(0, min(offset, text.utf8.count))
+                #expect(batch[clamped] == locator.position(atByteOffset: offset), "\(text.debugDescription) @ \(offset)")
+            }
+        }
+    }
 }
