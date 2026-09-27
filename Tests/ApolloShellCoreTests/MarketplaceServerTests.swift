@@ -1,4 +1,8 @@
+#if canImport(Network)
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import ApolloShellCore
 
@@ -169,3 +173,4 @@ struct MarketplaceServerTests {
         }
     }
 }
+#endif
