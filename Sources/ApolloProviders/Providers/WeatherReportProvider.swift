@@ -146,8 +146,8 @@ public final class WeatherReportProvider: BaseProvider {
         publish("status", .string(status))
         publish("place", place.map { .record(Record([("name", .string($0.name)), ("latitude", ProviderValue.number($0.latitude)), ("longitude", ProviderValue.number($0.longitude))])) } ?? .null)
         publish("current", report.map { Self.current($0.current) } ?? .null)
-        publish("today", report.flatMap { $0.today(now: now) }.map(Self.today) ?? .null)
-        publish("hourly-strip", .list(report?.hourlyStrip(now: now).map(Self.slot) ?? []))
+        publish("today", report.flatMap { report in report.today(now: now).map { Self.today($0, report: report) } } ?? .null)
+        publish("hourly-strip", .list(report.map { report in report.hourlyStrip(now: now).map { Self.slot($0, report: report) } } ?? []))
         publish("days", .list(report.map { report in report.upcomingDays(now: now).map { Self.day($0, report: report, now: now) } } ?? []))
         publish("updated", fetchedAt.map(Value.date) ?? .null)
         publish("stale", .bool(WeatherRefresh.showsStand(fetchedAt: fetchedAt, lastAttemptFailed: lastAttemptFailed, now: now)))
@@ -195,18 +195,21 @@ public final class WeatherReportProvider: BaseProvider {
         ]))
     }
 
-    static func today(_ day: DayForecast) -> Value {
+    static func today(_ day: DayForecast, report: WeatherReport) -> Value {
         .record(Record([
             ("min", ProviderValue.number(day.minTemperature)),
             ("max", ProviderValue.number(day.maxTemperature)),
             ("sunrise", day.sunrise.map(Value.date) ?? .null),
             ("sunset", day.sunset.map(Value.date) ?? .null),
+            ("sunrise-text", day.sunrise.map { .string(WeatherText.clock($0, calendar: report.calendar)) } ?? .null),
+            ("sunset-text", day.sunset.map { .string(WeatherText.clock($0, calendar: report.calendar)) } ?? .null),
         ]))
     }
 
-    static func slot(_ slot: HourSlot) -> Value {
+    static func slot(_ slot: HourSlot, report: WeatherReport) -> Value {
         .record(Record([
             ("time", .date(slot.time)),
+            ("time-text", .string(WeatherText.hourLabel(slot.time, isNow: slot.isNow, calendar: report.calendar))),
             ("now", .bool(slot.isNow)),
             ("temperature", ProviderValue.number(slot.temperature)),
             ("symbol", .string(WeatherCondition.symbol(code: slot.code, isDay: slot.isDay))),
@@ -219,6 +222,7 @@ public final class WeatherReportProvider: BaseProvider {
         .record(Record([
             ("date", .date(day.date)),
             ("date-text", .string(WeatherText.shortDate(day.date, calendar: report.calendar, locale: report.calendar.locale ?? .current))),
+            ("name-text", .string(WeatherText.dayLabel(day.date, today: now, calendar: report.calendar))),
             ("today", .bool(report.calendar.isDate(day.date, inSameDayAs: now))),
             ("min", ProviderValue.number(day.minTemperature)),
             ("max", ProviderValue.number(day.maxTemperature)),
