@@ -214,7 +214,8 @@ enum IncludeExpander {
                     emit(Diagnostic(.error, "'optional' must be a bool", span: property.value.span), chain: chain, state: state)
                 }
             } else {
-                emit(Diagnostic(.error, "unknown property '\(property.name)' on 'include'", span: property.span), chain: chain, state: state)
+                let suggestion = Suggestion.closest(to: property.name, among: ["optional"])
+                emit(Diagnostic(.error, "unknown property '\(property.name)' on 'include'", span: property.span, help: suggestion.map { "did you mean '\($0)'?" }), chain: chain, state: state)
             }
         }
         if raw.utf8.contains(UInt8(ascii: "{")) {
