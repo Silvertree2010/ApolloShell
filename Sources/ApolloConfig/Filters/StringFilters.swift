@@ -38,6 +38,18 @@ enum StringFilters {
             let target = try arguments.string(0)
             let replacement = try arguments.string(1)
             guard !target.isEmpty else { throw FilterFailure("'replace' needs a non-empty text to replace") }
+            let growth = replacement.utf8.count - target.utf8.count
+            if growth > 0, text.utf8.count + text.utf8.count / target.utf8.count * growth > ExpressionLimits.maxTextBytes {
+                var occurrences = 0
+                var searchStart = text.startIndex
+                while let found = text.range(of: target, range: searchStart..<text.endIndex) {
+                    occurrences += 1
+                    searchStart = found.upperBound
+                }
+                guard text.utf8.count + occurrences * growth <= ExpressionLimits.maxTextBytes else {
+                    throw FilterFailure("'replace' would produce text longer than \(ExpressionLimits.maxTextBytes) bytes")
+                }
+            }
             return .string(text.replacingOccurrences(of: target, with: replacement))
         },
         BuiltinFilter("split", arity: FilterArity(1, 1)) { input, arguments, _ in
