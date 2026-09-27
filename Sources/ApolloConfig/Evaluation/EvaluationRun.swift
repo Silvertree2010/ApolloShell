@@ -16,10 +16,16 @@ struct EvaluationRun {
         case .parts(let parts):
             var text = ""
             for part in parts {
+                let piece: String
                 switch part {
-                case .text(let literal): text += literal
-                case .expression(let expr): text += value(expr).stringified
+                case .text(let literal): piece = literal
+                case .expression(let expr): piece = value(expr).stringified
                 }
+                guard text.utf8.count + piece.utf8.count <= ExpressionLimits.maxTextBytes else {
+                    report("text would be longer than \(ExpressionLimits.maxTextBytes) bytes")
+                    return .null
+                }
+                text += piece
             }
             return .string(text)
         }
@@ -223,7 +229,13 @@ struct EvaluationRun {
     func add(_ left: Value, _ right: Value) -> Value {
         switch (left, right) {
         case (.string, _), (_, .string):
-            return .string(left.stringified + right.stringified)
+            let leftText = left.stringified
+            let rightText = right.stringified
+            guard leftText.utf8.count + rightText.utf8.count <= ExpressionLimits.maxTextBytes else {
+                report("text would be longer than \(ExpressionLimits.maxTextBytes) bytes")
+                return .null
+            }
+            return .string(leftText + rightText)
         case (.null, _), (_, .null):
             return .null
         case (.number(let a), .number(let b)):
