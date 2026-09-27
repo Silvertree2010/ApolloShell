@@ -331,4 +331,16 @@ struct MediaAdapterTests {
         let empty = MediaNowPlaying(fields: ["title": .string("T"), "mediaType": .string("")])
         #expect(empty?.mediaType == nil)
     }
+
+    @Test("Diff-Nachrichten mit immer neuen Schlüsseln füllen den Zustand nur bis zur Obergrenze, bekannte Felder bleiben aktuell")
+    func fieldsAreBounded() {
+        var state = MediaStreamState()
+        state.apply(MediaStreamMessage(diff: false, payload: ["title": .string("A")]))
+        for index in 0..<1_000 {
+            state.apply(MediaStreamMessage(diff: true, payload: ["junk\(index)": .number(Double(index))]))
+        }
+        #expect(state.fields.count == MediaStreamState.maximumFields)
+        state.apply(MediaStreamMessage(diff: true, payload: ["title": .string("B")]))
+        #expect(state.nowPlaying?.title == "B")
+    }
 }

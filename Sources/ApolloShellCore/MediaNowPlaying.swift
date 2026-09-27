@@ -120,6 +120,8 @@ public struct MediaLineBuffer: Sendable {
 }
 
 public struct MediaStreamState: Sendable {
+    public static let maximumFields = 256
+
     public private(set) var fields: [String: MediaValue] = [:]
     public private(set) var artwork: Data?
     public private(set) var artworkRevision = 0
@@ -131,7 +133,7 @@ public struct MediaStreamState: Sendable {
         for (key, value) in message.payload where key != MediaKey.artworkData {
             if value == .null {
                 fields.removeValue(forKey: key)
-            } else {
+            } else if fields[key] != nil || fields.count < Self.maximumFields {
                 fields[key] = value
             }
         }
