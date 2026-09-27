@@ -154,6 +154,28 @@ struct AppsProviderTests {
         #expect(source.scans == 3)
     }
 
+    @Test("Apps ohne Bundle-ID stehen wie in 0.1.4.2 in all, mit ihrem Pfad als Kennung, und lassen sich starten")
+    func appsWithoutBundleID() async throws {
+        let (harness, source, _) = make()
+        source.catalog.append(AppEntry(name: "Legacy Tool", url: URL(fileURLWithPath: "/Applications/Legacy Tool.app"), bundleID: nil))
+        harness.demand("apps", "all")
+        guard case .list(let all) = harness.value("apps", "all") else {
+            Issue.record("all fehlt")
+            return
+        }
+        let legacy = all.compactMap { value -> Record? in
+            guard case .record(let record) = value, record["name"] == .string("Legacy Tool") else { return nil }
+            return record
+        }
+        #expect(all.count == source.catalog.count)
+        #expect(legacy.count == 1)
+        #expect(legacy.first?["bundle-id"] == .string("/Applications/Legacy Tool.app"))
+        #expect(legacy.first?["path"] == .string("/Applications/Legacy Tool.app"))
+        #expect(legacy.first?["installed"] == .bool(true))
+        _ = try await harness.perform("apps", "apps.launch", [.string("/Applications/Legacy Tool.app")])
+        #expect(source.launches == ["/Applications/Legacy Tool.app"])
+    }
+
     @Test("Ereignisse launched, terminated, activated mit App-Record")
     func events() {
         let (harness, source, _) = make()
