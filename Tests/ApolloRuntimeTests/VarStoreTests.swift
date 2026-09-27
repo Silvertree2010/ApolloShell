@@ -220,6 +220,23 @@ struct VarStoreTests {
         }
     }
 
+    @Test("lange Kette abgeleiteter vars kommt in einem Flush ohne Warnung zur Ruhe", arguments: [8, 40])
+    func longDerivedChainSettlesInOneFlush(length: Int) {
+        let (_, scheduler, engine, vars, _) = makeStore()
+        var warnings: [Diagnostic] = []
+        engine.onWarning = { warnings.append($0) }
+        vars.declare([decl("d0", type: .number, defaultText: "0")] + (1...length).map {
+            decl("d\($0)", type: .number, defaultText: "0", derived: "var.d\($0 - 1) + 1")
+        }, persisted: [:], shell: Record())
+        var seen: [Value] = []
+        let handle = engine.bind(BindingTestHarness.source("{var.d\(length)}"), scope: LocalScope(), active: true) { seen.append($0) }
+        vars.set("d0", .number(100), for: nil)
+        scheduler.runPending()
+        #expect(seen == [.number(Double(length)), .number(Double(100 + length))])
+        #expect(warnings.isEmpty)
+        _ = handle
+    }
+
     @Test("Abgeleitetes var wird ohne Nachfrage inaktiv und Kette A←B←C bleibt in einem Flush konsistent")
     func derivedChainStaysConsistentInOneFlush() {
         let (store, scheduler, engine, vars, _) = makeStore()
