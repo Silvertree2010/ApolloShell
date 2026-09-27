@@ -30,6 +30,21 @@ struct ConfigFileSystemTests {
         #expect(try fileSystem.read(file) == "theme \"Afterglow\"\n")
     }
 
+    @Test("DiskFileSystem schreibt durch einen Symlink ins Ziel, der Link bleibt")
+    func diskFileSystemKeepsSymlink() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let fileSystem = DiskFileSystem()
+        let real = directory.appendingPathComponent("dotfiles/settings.kdl")
+        try fileSystem.write("theme \"Old\"\n", to: real)
+        let link = directory.appendingPathComponent("config/settings.kdl")
+        try FileManager.default.createDirectory(at: link.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+        try fileSystem.write("theme \"New\"\n", to: link)
+        #expect(try FileManager.default.destinationOfSymbolicLink(atPath: link.path) == real.path)
+        #expect(try fileSystem.read(real) == "theme \"New\"\n")
+    }
+
     @Test("DiskFileSystem liest keine Nicht-Dateien und höchstens 1 MB, die Grössenmeldung bleibt")
     func diskFileSystemReadsBounded() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

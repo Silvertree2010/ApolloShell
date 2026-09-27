@@ -59,8 +59,9 @@ public struct DiskFileSystem: ConfigFileSystem {
     }
 
     public func write(_ text: String, to url: URL) throws {
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try Data(text.utf8).write(to: url, options: .atomic)
+        let target = url.resolvingSymlinksInPath()
+        try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(text.utf8).write(to: target, options: .atomic)
     }
 
     public func copyItem(_ source: URL, to destination: URL) throws {
