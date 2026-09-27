@@ -855,7 +855,8 @@ public final class ShellRuntime: SurfaceControlling {
             return nil
         }
         let identity = runtimeID.map { surface.identity.appending("#" + $0) } ?? context.path.appending(ir.key)
-        let scope = context.scope.adding(ContextScopeKeys.selfIdentity, .string(identity.description))
+        let identityText = identity.description
+        let scope = context.scope.adding(ContextScopeKeys.selfIdentity, .string(identityText))
         let instance = ElementInstance(identity: identity, kind: ir.kind, ir: ir, scope: scope)
         instance.entryKey = context.entryKey
         let node = ElementNode(instance: instance, surface: surface, runtimeID: runtimeID, context: context)
@@ -892,7 +893,7 @@ public final class ShellRuntime: SurfaceControlling {
         }
         instance.arguments = arguments
 
-        let selfRoot = "self:" + identity.description
+        let selfRoot = "self:" + identityText
         instance.onPseudoChange = { [weak self] state in
             self?.publishPseudo(selfRoot, state)
         }
