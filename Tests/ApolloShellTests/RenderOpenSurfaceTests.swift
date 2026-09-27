@@ -48,7 +48,8 @@ struct RenderOpenSurfaceTests {
         #expect(outside.thumbCenter == 50)
         #expect(outside.fill == 50)
         let thin = SliderGeometry(length: 150, cross: 30, thumb: 26, thumbCross: 26, fraction: 0.35)
-        #expect(thin.thumbCenter == 13 + 0.35 * 124)
+        let expectedCenter: CGFloat = 13 + 0.35 * 124
+        #expect(thin.thumbCenter == expectedCenter)
     }
 
     @Test("ohne -apollo-fill-mode liegt die Griffmitte am Füllungsende, mit inside innen")
