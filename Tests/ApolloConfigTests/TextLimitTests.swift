@@ -34,15 +34,18 @@ struct TextLimitTests {
         #expect(sink.diagnostics.map(\.message) == ["text would be longer than 1000000 bytes"])
     }
 
-    @Test("replace und join brechen vor dem Erzeugen zu langer Texte ab", arguments: [
-        FilterCase.fails("replace", .string(String(repeating: "x", count: 1_000)), [.string("x"), .string(String(repeating: "y", count: 1_001))]),
-        FilterCase.ok("replace", .string(String(repeating: "x", count: 1_000)), [.string("x"), .string(String(repeating: "y", count: 1_000))], .string(String(repeating: "y", count: 1_000_000))),
-        FilterCase.ok("replace", .string("a" + String(repeating: "x", count: 999_998)), [.string("a"), .string("bb")], .string("bb" + String(repeating: "x", count: 999_998))),
-        FilterCase.fails("join", .list(Array(repeating: .string("x"), count: 1_000)), [.string(String(repeating: "-", count: 1_001))]),
-        FilterCase.ok("join", .list([.string("a"), .string("b")]), [.string("-")], .string("a-b")),
-    ])
-    func filters(_ testCase: FilterCase) {
-        FilterHarness.check(testCase)
+    @Test("replace und join brechen vor dem Erzeugen zu langer Texte ab")
+    func filters() {
+        let cases = [
+            FilterCase.fails("replace", .string(String(repeating: "x", count: 1_000)), [.string("x"), .string(String(repeating: "y", count: 1_001))]),
+            FilterCase.ok("replace", .string(String(repeating: "x", count: 1_000)), [.string("x"), .string(String(repeating: "y", count: 1_000))], .string(String(repeating: "y", count: 1_000_000))),
+            FilterCase.ok("replace", .string("a" + String(repeating: "x", count: 999_998)), [.string("a"), .string("bb")], .string("bb" + String(repeating: "x", count: 999_998))),
+            FilterCase.fails("join", .list(Array(repeating: .string("x"), count: 1_000)), [.string(String(repeating: "-", count: 1_001))]),
+            FilterCase.ok("join", .list([.string("a"), .string("b")]), [.string("-")], .string("a-b")),
+        ]
+        for testCase in cases {
+            FilterHarness.check(testCase)
+        }
     }
 
     @Test("Verdoppeln per let endet an der Grenze statt den Speicher zu füllen")
