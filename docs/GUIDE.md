@@ -134,7 +134,9 @@ var hotkey "ctrl+alt+space" persist=#true
 
 poll "uptime" command="uptime" interval="60s"
 
-bind "{var.hotkey}" { toggle "info" }
+bind "{var.hotkey}" { emit "show-info" }
+
+on "user.show-info" { toggle "info" }
 
 popup "info" anchor="center" motion="grow" {
     column class="card" {
@@ -151,6 +153,9 @@ popup "info" anchor="center" motion="grow" {
 - A `popup` opens and closes on actions (`open`, `close`, `toggle`) and closes
   by itself on a click outside or Escape.
 - `bind` runs actions on a keyboard shortcut.
+- `emit "show-info"` sends the event `user.show-info` to your own `on`
+  handlers. Put an action sequence there once and trigger it from buttons,
+  shortcuts or the terminal with `apollo emit show-info`.
 - `poll` runs a command every `interval` and exposes its output as
   `poll.<name>`; `format="json"` parses it. `listen` reads a long-running
   command line by line instead.

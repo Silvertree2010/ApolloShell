@@ -1605,6 +1605,15 @@ Switches the config.
 | --- | --- | --- | --- | --- |
 | argument | `id` | identifier | required | Config id. |
 
+### `emit` (action)
+
+Sends an event to the config's own on handlers, like apollo emit.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `name` | string | required | Event name, sent as user.<name>. |
+| property | `event` | value | `null` | Record the handlers read as event.<field>. |
+
 ### `exec` (action)
 
 Starts any program.

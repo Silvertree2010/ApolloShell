@@ -10,6 +10,7 @@ public final class ActionDispatcher: ActionRuntime {
     static let maximumWait: Double = 10
     static let maximumRepeat = 100
     static let maximumWarnedSites = 1_000
+    static let maximumEmitDepth = 16
 
     private let evaluator: Evaluator
     private let store: SignalStore
@@ -17,6 +18,7 @@ public final class ActionDispatcher: ActionRuntime {
     private var implementations: [String: any ActionImplementation] = [:]
     private var runningSites: [String: Int] = [:]
     private var epoch = 0
+    private var emitDepth = 0
     private var warnedSites: Set<String> = []
     private let warningBuffer = WarningBuffer()
     #if canImport(os)
@@ -26,6 +28,7 @@ public final class ActionDispatcher: ActionRuntime {
     public let vars: VarStore
     public let providers: ProviderHost
     public weak var surfaces: (any SurfaceControlling)?
+    public var emitter: (@MainActor (String, Record) -> Void)?
     public var onWarning: (@MainActor (Diagnostic) -> Void)?
 
     public init(evaluator: Evaluator, vars: VarStore, providers: ProviderHost, store: SignalStore, clock: any RuntimeClock = DispatchRuntimeClock()) {
@@ -40,7 +43,7 @@ public final class ActionDispatcher: ActionRuntime {
         implementations[name] = implementation
     }
 
-    public static let builtinNames: Set<String> = ["open", "close", "toggle", "close-group", "wait", "repeat"]
+    public static let builtinNames: Set<String> = ["open", "close", "toggle", "close-group", "wait", "repeat", "emit"]
 
     public func handles(_ name: String) -> Bool {
         if Self.builtinNames.contains(name) || StateActions.names.contains(name) || implementations[name] != nil { return true }
@@ -188,6 +191,8 @@ public final class ActionDispatcher: ActionRuntime {
                 surfaces?.closeGroup(try string(resolved, 0, "group"))
             case "wait":
                 try await waitAction(resolved)
+            case "emit":
+                try emit(resolved)
             case _ where StateActions.names.contains(call.name):
                 try StateActions(vars: vars).perform(resolved)
             default:
@@ -220,6 +225,22 @@ public final class ActionDispatcher: ActionRuntime {
                 self.fail(error, span: span)
             }
         }
+    }
+
+    private func emit(_ call: ResolvedActionCall) throws {
+        let name = try string(call, 0, "event name")
+        let fields: Record
+        switch call.properties["event"] ?? .null {
+        case .null: fields = Record()
+        case .record(let record): fields = record
+        case let other: throw ActionFailure("emit needs a record for event, got \(other.typeName)")
+        }
+        guard emitDepth < Self.maximumEmitDepth else {
+            throw ActionFailure("emit is nested deeper than \(Self.maximumEmitDepth) levels, '\(name)' is not sent")
+        }
+        emitDepth += 1
+        defer { emitDepth -= 1 }
+        emitter?(name.hasPrefix("user.") ? name : "user." + name, fields)
     }
 
     private func waitAction(_ call: ResolvedActionCall) async throws {

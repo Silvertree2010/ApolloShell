@@ -62,6 +62,9 @@ public final class ShellRuntime: SurfaceControlling {
         self.actions = actions
         self.host = host
         actions.surfaces = self
+        actions.emitter = { [weak self] name, fields in
+            _ = self?.emit(name, fields)
+        }
         providers.onEvent = { [weak self] event, fields in
             _ = self?.emit(event, fields)
         }
