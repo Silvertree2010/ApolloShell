@@ -9,6 +9,7 @@ import ApolloConfig
 public final class ActionDispatcher: ActionRuntime {
     static let maximumWait: Double = 10
     static let maximumRepeat = 100
+    static let maximumWarnedSites = 1_000
 
     private let evaluator: Evaluator
     private let store: SignalStore
@@ -74,7 +75,7 @@ public final class ActionDispatcher: ActionRuntime {
 
     public func warn(_ diagnostic: Diagnostic) {
         let site = diagnostic.span.map { "\($0.file):\($0.start.offset):\($0.start.line):\($0.start.column)" } ?? ""
-        guard warnedSites.insert(site + "|" + diagnostic.message).inserted else { return }
+        guard warnedSites.count < Self.maximumWarnedSites, warnedSites.insert(site + "|" + diagnostic.message).inserted else { return }
         onWarning?(diagnostic)
     }
 
