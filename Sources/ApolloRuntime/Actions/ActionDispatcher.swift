@@ -16,6 +16,7 @@ public final class ActionDispatcher: ActionRuntime {
     let clock: any RuntimeClock
     private var implementations: [String: any ActionImplementation] = [:]
     private var runningSites: [String: Int] = [:]
+    private var epoch = 0
     private var warnedSites: Set<String> = []
     private let warningBuffer = WarningBuffer()
     #if canImport(os)
@@ -59,17 +60,28 @@ public final class ActionDispatcher: ActionRuntime {
             }
             runningSites[site, default: 0] += 1
         }
+        let started = epoch
         return Task.immediate { @MainActor [self] in
-            await self.run(actions, environment: environment)
-            if let site {
+            await self.run(actions, environment: environment, epoch: started)
+            if let site, self.epoch == started {
                 self.release(site)
             }
         }
     }
 
     public func run(_ actions: [ActionIR], environment: ActionEnvironment) async {
+        await run(actions, environment: environment, epoch: epoch)
+    }
+
+    public func abandonRunning() {
+        epoch += 1
+        runningSites.removeAll()
+    }
+
+    private func run(_ actions: [ActionIR], environment: ActionEnvironment, epoch started: Int) async {
         for action in actions {
-            await execute(action, environment)
+            guard epoch == started else { return }
+            await execute(action, environment, epoch: started)
         }
     }
 
@@ -112,16 +124,16 @@ public final class ActionDispatcher: ActionRuntime {
         }
     }
 
-    private func execute(_ action: ActionIR, _ environment: ActionEnvironment) async {
+    private func execute(_ action: ActionIR, _ environment: ActionEnvironment, epoch started: Int) async {
         switch action {
         case .call(let call):
             await perform(call, environment)
         case .when(let condition, let then, let otherwise):
-            await run(evaluate(condition, environment).isTruthy ? then : otherwise, environment: environment)
+            await run(evaluate(condition, environment).isTruthy ? then : otherwise, environment: environment, epoch: started)
         case .switchOn(let subject, let cases, let otherwise):
             let value = evaluate(subject, environment)
             let chosen = cases.first { item in item.values.contains { evaluate($0, environment) == value } }
-            await run(chosen?.body ?? otherwise, environment: environment)
+            await run(chosen?.body ?? otherwise, environment: environment, epoch: started)
         case .each(let variable, let index, let list, let body):
             let value = evaluate(list, environment)
             guard case .list(let items) = value else {
@@ -136,7 +148,7 @@ public final class ActionDispatcher: ActionRuntime {
                 if let index {
                     inner.scope = inner.scope.adding(index, .number(Double(position)))
                 }
-                await run(body, environment: inner)
+                await run(body, environment: inner, epoch: started)
             }
         case .repeatBlock(let count, let body):
             let value = evaluate(count, environment)
@@ -151,7 +163,7 @@ public final class ActionDispatcher: ActionRuntime {
                 times = Self.maximumRepeat
             }
             for _ in 0..<times {
-                await run(body, environment: environment)
+                await run(body, environment: environment, epoch: started)
             }
         }
     }

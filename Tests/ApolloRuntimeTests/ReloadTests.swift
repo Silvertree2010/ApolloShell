@@ -141,6 +141,27 @@ struct ReloadTests {
         #expect(fixture.log.entries == ["new"])
     }
 
+    @Test("Wechsel der Config: laufende Handler der alten enden, der erste Handler der neuen läuft trotz gleicher Position")
+    func configSwitchAbandonsRunningHandlers() async {
+        let fixture = ShellFixture()
+        fixture.apply([], events: [EventHandlerIR(event: "foo", actions: [
+            IR.call("close", [IR.string("menu")]), IR.call("wait", [IR.string("2s")]), IR.log("old"),
+        ], span: IR.span(11))], id: "a")
+        fixture.flush()
+        #expect(fixture.runtime.emit("foo", Record()).count == 1)
+        await settle()
+        fixture.apply([T.surface("popup", "menu", children: [])], events: [
+            EventHandlerIR(event: "foo", actions: [IR.call("toggle", [IR.string("menu")])], span: IR.span(11)),
+        ], id: "b")
+        fixture.flush()
+        #expect(fixture.runtime.emit("foo", Record()).count == 1)
+        await settle()
+        #expect(fixture.surface("menu").isOpen)
+        fixture.clock.advance(by: 2)
+        await settle()
+        #expect(!fixture.log.entries.contains("old"))
+    }
+
     static func labelled(_ labels: [String], ids: Bool) -> [SurfaceIR] {
         [T.surface("panel", "bar", children: labels.enumerated().map { index, label in
             T.text(ids ? label : String(index), IR.string(label), properties: ids ? ["id": IR.string(label)] : [:])

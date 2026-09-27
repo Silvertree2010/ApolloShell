@@ -107,6 +107,7 @@ public final class ShellRuntime: SurfaceControlling {
         }
         teardownAll()
         warned.removeAll()
+        actions.abandonRunning()
         actions.forgetWarnings()
         bindings.forgetWarnings()
         config = ir
@@ -133,6 +134,9 @@ public final class ShellRuntime: SurfaceControlling {
 
     private func reload(from old: ConfigIR, to ir: ConfigIR, persisted: [String: Value], screens: [String], shell: Record, writer: StateWriter?) {
         warned.removeAll()
+        if old.id != ir.id {
+            actions.abandonRunning()
+        }
         actions.forgetWarnings()
         bindings.forgetWarnings()
         let diff = IRDiff.surfaces(old: old, new: ir)
@@ -340,11 +344,11 @@ public final class ShellRuntime: SurfaceControlling {
     public func emit(_ event: String, _ fields: Record) -> [Task<Void, Never>] {
         guard let config else { return [] }
         var tasks: [Task<Void, Never>] = []
-        for (index, handler) in config.events.enumerated() where handler.event == event {
+        for handler in config.events where handler.event == event {
             if let when = handler.when, !bindings.evaluateOnce(when, scope: LocalScope(), event: fields).isTruthy {
                 continue
             }
-            if let task = actions.trigger(handler.actions, site: "on#\(index)", environment: ActionEnvironment(event: fields)) {
+            if let task = actions.trigger(handler.actions, site: "on@\(handler.span.file):\(handler.span.start.line):\(handler.span.start.column):\(handler.span.start.offset)", environment: ActionEnvironment(event: fields)) {
                 tasks.append(task)
             }
         }
