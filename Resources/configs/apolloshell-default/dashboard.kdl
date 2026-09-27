@@ -59,6 +59,7 @@ define "dashboard-overview" {
 }
 
 popup "dashboard" anchor="top" motion="slide" hover-edge=#true overhang=#true area="full" safe-area=#true {
+    on-open { set "calendar-offset" 0 }
     column class="dashboard" {
         row class="dashboard-tabs" {
             each tab in="{var.dashboard-visible-tabs}" key="{tab.id}" {
