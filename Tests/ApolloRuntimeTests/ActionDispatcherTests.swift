@@ -571,4 +571,16 @@ struct ActionDispatcherHugeNumberTests {
         #expect(fixture.vars.value("n") == .number(100))
         #expect(fixture.warnings.filter { $0.message.contains("repeat") }.count == 1)
     }
+
+    @Test("Gemerkte Warnstellen wachsen nicht unbegrenzt bis zum Reload, danach warnt es wieder")
+    func warnedSitesAreBounded() {
+        let fixture = DispatcherFixture()
+        for index in 0..<(ActionDispatcher.maximumWarnedSites + 500) {
+            fixture.dispatcher.warn(Diagnostic(.warning, "problem \(index)"))
+        }
+        #expect(fixture.warnings.count == ActionDispatcher.maximumWarnedSites)
+        fixture.dispatcher.forgetWarnings()
+        fixture.dispatcher.warn(Diagnostic(.warning, "problem 0"))
+        #expect(fixture.warnings.count == ActionDispatcher.maximumWarnedSites + 1)
+    }
 }

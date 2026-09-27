@@ -176,6 +176,20 @@ struct HostOverlayStartTests {
         #expect(model.state == .hidden)
     }
 
+    @Test("Laufzeit-Warnungen füllen die Problemliste nur bis zur Obergrenze")
+    func overlayProblemsAreBounded() {
+        let model = ErrorOverlayModel()
+        model.schedule = { _, _ in }
+        for index in 0..<(ErrorOverlayModel.problemLimit + 50) {
+            model.add(Diagnostic(.warning, "warning \(index)"))
+        }
+        #expect(model.problems.count == ErrorOverlayModel.problemLimit)
+        #expect(model.state == .badge(ErrorOverlayModel.problemLimit))
+        model.show([])
+        model.add(Diagnostic(.warning, "after reload"))
+        #expect(model.problems.map(\.message) == ["after reload"])
+    }
+
     @Test("Änderungen innerhalb von 150 ms ergeben einen Reload")
     func debounce() {
         var scheduled: [@MainActor () -> Void] = []
