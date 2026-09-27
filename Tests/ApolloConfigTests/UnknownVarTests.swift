@@ -19,4 +19,12 @@ struct UnknownVarTests {
         #expect(warnings.first?.help == "did you mean 'launcher-query'?")
         #expect(warnings.first?.span?.start.line == 3)
     }
+
+    @Test("Ein vertippter Aufzählungswert bekommt einen Vorschlag")
+    func enumerationSuggestion() {
+        let result = LoaderHarness.load(["/config/shell.kdl": "panel \"p\" anchor=\"lft\" {\n    text \"x\"\n}"])
+        let error = result.diagnostics.first { $0.severity == .error }
+        #expect(error?.message.hasPrefix("property 'anchor' expects") == true)
+        #expect(error?.help == "did you mean 'left'?")
+    }
 }
