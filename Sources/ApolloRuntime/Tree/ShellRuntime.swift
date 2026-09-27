@@ -1159,7 +1159,7 @@ public final class ShellRuntime: SurfaceControlling {
     private nonisolated static func sameBytes<T>(_ lhs: T, _ rhs: T) -> Bool {
         withUnsafeBytes(of: lhs) { left in
             withUnsafeBytes(of: rhs) { right in
-                left.elementsEqual(right)
+                left.count == 0 || memcmp(left.baseAddress!, right.baseAddress!, left.count) == 0
             }
         }
     }
