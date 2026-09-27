@@ -181,6 +181,44 @@ struct ControlSocketTests {
         #expect(sawEnd)
     }
 
+    @Test("zu lange Zeile ohne Zeilenende: Fehlerantwort, dann trennt der Server")
+    func overlongLine() throws {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        let server = ControlSocketServer(path: folder.socketPath, service: EchoService(probe: StreamProbe()))
+        try server.start()
+        defer { server.stop() }
+        let client = try ControlSocketClient.connect(path: folder.socketPath)
+        defer { client.close() }
+        let block = String(repeating: "x", count: 1 << 20)
+        for _ in 0..<(LineBuffer.limit >> 20) {
+            try client.sendRaw(block)
+        }
+        try client.sendRaw("x")
+        let response = try #require(try client.readResponse())
+        #expect(response == ControlResponse(id: nil, outcome: .failure("Request line too long.")))
+        #expect(try client.readResponse() == nil)
+    }
+
+    @Test("viele Zeilen in einem Stück: alle kommen an, Rest wartet auf sein Zeilenende")
+    func manyLines() {
+        var buffer = LineBuffer()
+        let text = String(repeating: "abc\n", count: 200_000) + "de"
+        let lines = buffer.append(ArraySlice(Array(text.utf8)))
+        #expect(lines.count == 200_000)
+        #expect(lines.allSatisfy { $0 == "abc" })
+        #expect(buffer.append(ArraySlice(Array("f\n".utf8))) == ["def"])
+        #expect(!buffer.overflowed)
+    }
+
+    @Test("Puffer über der Grenze ohne Zeilenende läuft über und nimmt nichts mehr an")
+    func overflow() {
+        var buffer = LineBuffer()
+        #expect(buffer.append(ArraySlice([UInt8](repeating: 65, count: LineBuffer.limit + 1))).isEmpty)
+        #expect(buffer.overflowed)
+        #expect(buffer.append(ArraySlice(Array("ok\n".utf8))).isEmpty)
+    }
+
     @Test("Pfad kommt aus APOLLO_SOCKET, sonst aus Application Support")
     func socketPath() {
         let home = URL(fileURLWithPath: "/Users/x")
