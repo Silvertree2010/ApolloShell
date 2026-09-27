@@ -78,7 +78,7 @@ struct KDLParser {
     func checkCodePoints() throws(KDLSyntaxError) {
         var offset = 0
         for scalar in text.unicodeScalars {
-            let length = String(scalar).utf8.count
+            let length = scalar.utf8.count
             if KDLCharacters.isDisallowed(scalar), !(scalar.value == 0xFEFF && offset == 0) {
                 let code = String(scalar.value, radix: 16, uppercase: true)
                 let padded = String(repeating: "0", count: max(0, 4 - code.count)) + code

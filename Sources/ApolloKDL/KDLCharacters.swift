@@ -49,12 +49,12 @@ enum KDLCharacters {
     }
 
     static func classify(_ word: String) -> BareWord {
-        let scalars = Array(word.unicodeScalars)
-        guard let first = scalars.first else {
+        var scalars = word.unicodeScalars.makeIterator()
+        guard let first = scalars.next() else {
             return .invalid("expected a value")
         }
-        let second: Unicode.Scalar? = scalars.count > 1 ? scalars[1] : nil
-        let third: Unicode.Scalar? = scalars.count > 2 ? scalars[2] : nil
+        let second = scalars.next()
+        let third = scalars.next()
         let signed = first == "+" || first == "-"
         if isDigit(first) || (signed && second.map(isDigit) == true) {
             return .number

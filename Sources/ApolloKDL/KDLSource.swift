@@ -47,10 +47,11 @@ struct KDLSource: Sendable {
     }
 
     func hasPrefix(_ literal: String, at offset: Int) -> Bool {
-        let pattern = Array(literal.utf8)
-        guard offset >= 0, offset + pattern.count <= bytes.count else { return false }
-        for index in pattern.indices where bytes[offset + index] != pattern[index] {
-            return false
+        guard offset >= 0 else { return false }
+        var index = offset
+        for byte in literal.utf8 {
+            guard index < bytes.count, bytes[index] == byte else { return false }
+            index += 1
         }
         return true
     }
