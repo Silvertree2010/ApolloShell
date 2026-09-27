@@ -347,7 +347,7 @@ enum SchemaStage {
 
     private static func checkOneArgument(_ argument: ArgumentSchema, _ value: KDLValue, env: ExpressionEnvironment, diagnostics: inout [Diagnostic]) -> [CompiledValue] {
         if !isExpression(value), !TypeChecker.literalMatches(value, argument.type) {
-            diagnostics.append(Diagnostic(.error, "argument '\(argument.name)' expects \(TypeChecker.typeName(argument.type))", span: value.span))
+            diagnostics.append(Diagnostic(.error, "argument '\(argument.name)' expects \(TypeChecker.typeName(argument.type))", span: value.span, help: TypeChecker.suggestion(for: value, argument.type)))
         }
         let (compiledValue, more) = ExpressionCompiler.compile(value, env: env, allowsExpression: argument.allowsExpression)
         diagnostics.append(contentsOf: more)
@@ -382,7 +382,7 @@ enum SchemaStage {
                 diagnostics.append(Diagnostic(.note, "'\(property.name)' is experimental and may change", span: property.span))
             }
             if !isExpression(property.value), !TypeChecker.literalMatches(property.value, propertySchema.type) {
-                diagnostics.append(Diagnostic(.error, "property '\(property.name)' expects \(TypeChecker.typeName(propertySchema.type))", span: property.value.span))
+                diagnostics.append(Diagnostic(.error, "property '\(property.name)' expects \(TypeChecker.typeName(propertySchema.type))", span: property.value.span, help: TypeChecker.suggestion(for: property.value, propertySchema.type)))
             }
             let (compiledValue, more) = ExpressionCompiler.compile(property.value, env: overrides[property.name] ?? env, allowsExpression: propertySchema.allowsExpression)
             diagnostics.append(contentsOf: more)

@@ -1,3 +1,4 @@
+import ApolloBase
 import ApolloKDL
 
 enum TypeChecker {
@@ -29,6 +30,12 @@ enum TypeChecker {
         case .oneOf(let types):
             return types.contains { literalMatches(value, $0) }
         }
+    }
+
+    static func suggestion(for value: KDLValue, _ type: ValueType) -> String? {
+        guard case .enumeration(let cases) = type, case .string(let text) = value.scalar,
+              let closest = Suggestion.closest(to: text, among: cases) else { return nil }
+        return "did you mean '\(closest)'?"
     }
 
     static func typeName(_ type: ValueType) -> String {
