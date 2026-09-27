@@ -318,12 +318,42 @@ final class KeyInterceptor {
     }
 }
 
+@MainActor
+final class WindowSlot {
+    weak var window: NSWindow?
+}
+
+struct WindowSlotReader: NSViewRepresentable {
+    let slot: WindowSlot
+
+    final class Probe: NSView {
+        var slot: WindowSlot?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            slot?.window = window
+        }
+    }
+
+    func makeNSView(context: Context) -> Probe {
+        let probe = Probe()
+        probe.slot = slot
+        return probe
+    }
+
+    func updateNSView(_ view: Probe, context: Context) {
+        view.slot = slot
+        slot.window = view.window
+    }
+}
+
 struct InputElement: View {
     let element: ElementInstance
     let style: ComputedStyle
     let context: RenderContext
     @State private var text = ""
     @State private var interceptor = KeyInterceptor()
+    @State private var slot = WindowSlot()
     @State private var watcher = VarWatcher()
     @FocusState private var focused: Bool
 
@@ -386,10 +416,11 @@ struct InputElement: View {
             watcher.stop()
         }
         .overlay { PassiveZone(element: element, context: context) }
+        .background { WindowSlotReader(slot: slot) }
     }
 
     func intercept(_ event: NSEvent) -> Bool {
-        guard event.type == .keyDown else { return false }
+        guard event.type == .keyDown, let window = slot.window, event.window === window else { return false }
         for (index, handler) in element.ir.keyHandlers.enumerated() {
             guard let chord = KeyChord.parse(handler.chord), KeyMatch.matches(chord, keyCode: event.keyCode, flags: event.modifierFlags) else { continue }
             if let task = context.runtime?.run(handler.actions, on: element.identity, site: "key#\(index)", event: Record([("chord", .string(chord.canonical))]), locals: [:]) {
