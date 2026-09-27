@@ -183,7 +183,10 @@ final class StructureNode: TreeNode {
     var subject: BindingHandle?
     var caseBindings: [[BindingHandle]] = []
     var argumentBindings: [String: BindingHandle] = [:]
-    var regions: [Region] = []
+    var regions: [Region] = [] {
+        didSet { entryLookup = nil }
+    }
+    var entryLookup: [EntryKey: Region]?
     var selection: String?
     var define: DefineIR?
     var rebuildQueued = false
