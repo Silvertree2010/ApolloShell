@@ -284,6 +284,7 @@ extension ShellRuntime {
     func useScope(_ node: StructureNode, _ use: DynamicUseIR, _ define: DefineIR, _ base: LocalScope) -> LocalScope {
         let name = define.name
         var scope = base
+        bindDefaults(node, define)
         for parameter in define.parameters {
             if let handle = node.argumentBindings[parameter.name] {
                 scope = scope.adding(parameter.name, handle.currentValue)
@@ -295,6 +296,29 @@ extension ShellRuntime {
             }
         }
         return scope
+    }
+
+    private func bindDefaults(_ node: StructureNode, _ define: DefineIR) {
+        guard case .use(let use) = node.kind else { return }
+        let arguments = Set(use.arguments.keys)
+        if let current = node.defaultBindings, current.parameters == define.parameters, current.arguments == arguments { return }
+        for handle in node.defaultBindings?.handles ?? [] { handle.cancel() }
+        var handles: [BindingHandle] = []
+        for parameter in define.parameters where use.arguments[parameter.name] == nil {
+            guard let defaultValue = parameter.defaultValue else { continue }
+            var pending = [defaultValue]
+            while let template = pending.popLast() {
+                switch template {
+                case .scalar(let compiled):
+                    if !compiled.isConstant { handles.append(bindStructure(node, compiled)) }
+                case .list(let items):
+                    pending.append(contentsOf: items)
+                case .record(let fields):
+                    pending.append(contentsOf: fields.map(\.value))
+                }
+            }
+        }
+        node.defaultBindings = (define.parameters, arguments, handles)
     }
 
     func regionScope(_ node: StructureNode, _ region: Region) -> LocalScope {
