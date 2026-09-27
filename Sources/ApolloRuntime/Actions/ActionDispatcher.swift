@@ -81,6 +81,7 @@ public final class ActionDispatcher: ActionRuntime {
 
     public func forgetWarnings() {
         warnedSites.removeAll()
+        evaluator.forgetWarnings()
     }
 
     static func guardsAgainstRepeat(_ actions: [ActionIR]) -> Bool {

@@ -66,6 +66,10 @@ public struct Evaluator: Sendable {
         }
     }
 
+    public func forgetWarnings() {
+        gate.reset()
+    }
+
     func report(_ message: String, span: SourceSpan?) {
         let diagnostic = Diagnostic(.warning, message, span: span)
         if gate.admit(diagnostic) {

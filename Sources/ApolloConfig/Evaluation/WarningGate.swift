@@ -17,4 +17,8 @@ final class WarningGate: Sendable {
             return keys.insert(WarningKey(message: diagnostic.message, span: diagnostic.span)).inserted
         }
     }
+
+    func reset() {
+        seen.withLock { $0.removeAll() }
+    }
 }
