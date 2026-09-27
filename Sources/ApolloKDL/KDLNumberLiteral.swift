@@ -1,5 +1,12 @@
 enum KDLNumberLiteral {
     static func value(of raw: String) -> Double? {
+        if raw.utf8.first == UInt8(ascii: "#") {
+            return special(raw)
+        }
+        return finite(raw)
+    }
+
+    private static func special(_ raw: String) -> Double? {
         switch raw {
         case "#inf":
             return .infinity
@@ -8,8 +15,11 @@ enum KDLNumberLiteral {
         case "#nan":
             return .nan
         default:
-            break
+            return nil
         }
+    }
+
+    private static func finite(_ raw: String) -> Double? {
         var bytes = Array(raw.utf8)
         var negative = false
         if let first = bytes.first, first == UInt8(ascii: "+") || first == UInt8(ascii: "-") {
@@ -84,6 +94,15 @@ enum KDLNumberLiteral {
     }
 
     private static func decimalValue(_ bytes: [UInt8]) -> Double? {
+        if bytes.count <= 15 {
+            var whole = 0
+            var index = 0
+            while index < bytes.count, bytes[index] >= UInt8(ascii: "0"), bytes[index] <= UInt8(ascii: "9") {
+                whole = whole * 10 + Int(bytes[index] - UInt8(ascii: "0"))
+                index += 1
+            }
+            if index == bytes.count { return Double(whole) }
+        }
         var index = 0
         var cleaned = ""
         func isDigit(_ byte: UInt8) -> Bool {
