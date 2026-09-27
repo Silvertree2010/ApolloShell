@@ -1,0 +1,18 @@
+style "style.css"
+
+define "stat" {
+    param "label"
+    param "value"
+    row class="stat" {
+        text "{label}" class="stat-label"
+        text "{value}" class="stat-value"
+    }
+}
+
+panel "stats" anchor="bottom-right" {
+    column class="card" {
+        use "stat" label="CPU" value="{perf.cpu | percent}"
+        use "stat" label="Memory" value="{perf.memory | percent}"
+        use "stat" label="Down" value="{perf.net-down | bytes-per-second}"
+    }
+}
