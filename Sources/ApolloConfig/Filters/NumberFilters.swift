@@ -51,7 +51,8 @@ enum NumberFilters {
         BuiltinFilter("percent", arity: FilterArity(0, 1)) { input, arguments, _ in
             let number = try input.numberInput("percent")
             let digits = try arguments.optionalInteger(0, default: 0, range: digitRange)
-            return .string(NumberText.fixed(number * 100, digits: digits) + "%")
+            let scaled = number * 100
+            return scaled.isFinite ? .string(NumberText.fixed(scaled, digits: digits) + "%") : .null
         },
         BuiltinFilter("grouped", arity: FilterArity(0, 1)) { input, arguments, context in
             let number = try input.numberInput("grouped")

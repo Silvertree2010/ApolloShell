@@ -51,6 +51,8 @@ struct NumberFilterTests {
         .ok("percent", .number(0.42), [], .string("42%")),
         .ok("percent", .number(0.4256), [.number(1)], .string("42.6%")),
         .ok("percent", .number(1), [], .string("100%")),
+        .ok("percent", .number(1e307), [], .null),
+        .ok("percent", .number(-1e307), [.number(2)], .null),
         .ok("percent", .number(0.29), [], .string("29%")),
         .fails("percent", .string("x"), []),
         .fails("percent", .number(0.5), [.number(-1)]),
