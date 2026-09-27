@@ -874,7 +874,7 @@ public final class ShellRuntime: SurfaceControlling {
             cells["visible"] = cell
             node.visibleBinding = bindVisible(node, visible, cell)
         }
-        for name in ir.properties.keys.sorted() where name != "visible" {
+        for name in ir.properties.isEmpty ? [] : ir.properties.keys.sorted() where name != "visible" {
             guard let compiled = ir.properties[name] else { continue }
             if name == "id" {
                 cells[name] = PropertyCell(runtimeID.map { .string($0) } ?? .null)
@@ -886,7 +886,8 @@ public final class ShellRuntime: SurfaceControlling {
         }
         instance.properties = cells
         var arguments: [PropertyCell] = []
-        for (index, compiled) in ir.arguments.enumerated() {
+        for index in ir.arguments.indices {
+            let compiled = ir.arguments[index]
             let cell = PropertyCell(.null)
             arguments.append(cell)
             node.argumentBindings[index] = fill(cell, compiled, node: node)
@@ -903,7 +904,7 @@ public final class ShellRuntime: SurfaceControlling {
         let childContext = node.childContext(childContainer, path: identity)
         childContainer.region.context = childContext
         scheduleBuild(node, ir.children, childContext)
-        for name in ir.slots.keys.sorted() {
+        for name in ir.slots.isEmpty ? [] : ir.slots.keys.sorted() {
             addSlot(node, name, ir.slots[name] ?? [])
         }
         node.isConfigured = true
