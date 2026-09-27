@@ -30,6 +30,19 @@ struct CSSVariablesTests {
         #expect(throws: CSSValueError.self) { try substitute(text, [:]) }
     }
 
+    @Test("sich verdoppelnde Custom Properties werden schnell ungültig statt die Shell anzuhalten")
+    func doubling() {
+        var own = ["--a0": "1px"]
+        for level in 1...18 { own["--a\(level)"] = "var(--a\(level - 1)) var(--a\(level - 1))" }
+        let start = ContinuousClock.now
+        let resolver = CustomPropertyResolver(own: own, inherited: [:], tokens: .empty)
+        let result = resolver.resolveAll()
+        #expect(ContinuousClock.now - start < .seconds(1))
+        #expect(result["--a18"] == nil)
+        #expect(result["--a4"] == Array(repeating: "1px", count: 16).joined(separator: " "))
+        #expect(resolver.failures.contains { $0.name == "--a18" })
+    }
+
     @Test("Token nicht gesetzt: Ersatz; Theme setzt es: Themewert; Verlauf none: Ersatz")
     func themeTokens() throws {
         func tokens(_ css: String) -> TokenEnvironment {
