@@ -121,6 +121,34 @@ struct SignalStoreTests {
         #expect(!ShellRuntime.identical(sanitized, dirty))
     }
 
+    static func depth(of value: Value) -> Int {
+        var current = value
+        var depth = 0
+        while case .list(let items) = current, let first = items.first {
+            depth += 1
+            current = first
+        }
+        return depth
+    }
+
+    @Test("Werte tiefer als 256 Ebenen werden beim Eintritt abgeschnitten, auch wenn sie immer wieder eingepackt werden")
+    func deepValuesAreCut() {
+        let store = SignalStore(scheduler: ManualFlushScheduler())
+        let path = DependencyPath("data", ["x"])
+        store.set(path, .number(1))
+        for _ in 0..<1_000 {
+            store.set(path, .list([store.value(path)]))
+        }
+        let stored = store.value(path)
+        #expect(Self.depth(of: stored) == RuntimeLimits.valueDepth)
+        var innermost = stored
+        while case .list(let items) = innermost, let first = items.first { innermost = first }
+        #expect(innermost == .null)
+        var shallow = Value.number(1)
+        for _ in 0..<RuntimeLimits.valueDepth { shallow = .list([shallow]) }
+        #expect(ShellRuntime.identical(SignalStore.sanitize(shallow), shallow))
+    }
+
     @Test("Verschachteltes requestFlush während eines Flushs stösst einen neuen Durchlauf an")
     func nestedRequestFlushSchedulesNewPass() {
         let scheduler = ManualFlushScheduler()

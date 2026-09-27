@@ -204,32 +204,35 @@ public final class SignalStore {
     }
 
     nonisolated static func sanitize(_ value: Value) -> Value {
-        isFinite(value) ? value : rebuiltFinite(value)
+        isClean(value, depth: 0) ? value : rebuiltClean(value, depth: 0)
     }
 
-    private nonisolated static func isFinite(_ value: Value) -> Bool {
+    private nonisolated static func isClean(_ value: Value, depth: Int) -> Bool {
         switch value {
         case .number(let number):
             return number.isFinite
         case .list(let items):
-            return items.allSatisfy(isFinite)
+            return depth < RuntimeLimits.valueDepth && items.allSatisfy { isClean($0, depth: depth + 1) }
         case .record(let record):
-            return record.keys.allSatisfy { isFinite(record[$0] ?? .null) }
+            return depth < RuntimeLimits.valueDepth && record.keys.allSatisfy { isClean(record[$0] ?? .null, depth: depth + 1) }
         default:
             return true
         }
     }
 
-    private nonisolated static func rebuiltFinite(_ value: Value) -> Value {
+    private nonisolated static func rebuiltClean(_ value: Value, depth: Int) -> Value {
         switch value {
         case .number(let number):
             return number.isFinite ? value : .null
         case .list(let items):
-            return .list(items.map(sanitize))
+            guard depth < RuntimeLimits.valueDepth else { return .null }
+            return .list(items.map { isClean($0, depth: depth + 1) ? $0 : rebuiltClean($0, depth: depth + 1) })
         case .record(let record):
+            guard depth < RuntimeLimits.valueDepth else { return .null }
             var sanitized = Record()
             for key in record.keys {
-                sanitized[key] = sanitize(record[key] ?? .null)
+                let child = record[key] ?? .null
+                sanitized[key] = isClean(child, depth: depth + 1) ? child : rebuiltClean(child, depth: depth + 1)
             }
             return .record(sanitized)
         default:
