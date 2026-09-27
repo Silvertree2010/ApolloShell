@@ -32,13 +32,20 @@ final class Region {
     }
 
     private func append(into result: inout [ElementInstance]) {
-        for part in parts {
-            if let element = part as? ElementNode {
-                result.append(element.instance)
-            } else if let structure = part as? StructureNode {
-                for region in structure.regions {
-                    region.append(into: &result)
-                }
+        let parts = self.parts
+        var index = 0
+        while index < parts.count {
+            let part = parts[index]
+            index += 1
+            if let element = part.flatInstance {
+                result.append(element)
+                continue
+            }
+            let regions = part.innerRegions
+            var inner = 0
+            while inner < regions.count {
+                regions[inner].append(into: &result)
+                inner += 1
             }
         }
     }
@@ -51,6 +58,8 @@ class TreeNode {
     var outerActive: Bool
     weak var region: Region?
     var stamp = 0
+
+    var flatInstance: ElementInstance? { nil }
 
     init(outerActive: Bool) {
         self.outerActive = outerActive
@@ -86,6 +95,8 @@ struct BuildContext {
 @MainActor
 final class ElementNode: TreeNode {
     let instance: ElementInstance
+
+    override var flatInstance: ElementInstance? { instance }
     unowned let surface: SurfaceNode
     let runtimeID: String?
     var selfVisible = true
