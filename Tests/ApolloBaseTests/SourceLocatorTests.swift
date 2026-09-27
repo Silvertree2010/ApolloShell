@@ -81,4 +81,37 @@ struct SourceLocatorTests {
         #expect(SourceSpan.synthetic("x.kdl").file == "x.kdl")
         #expect(SourcePosition(offset: 1, line: 1, column: 2) < SourcePosition(offset: 2, line: 1, column: 3))
     }
+
+    @Test("Byte-Scan der Zeilen gleicht der Zeichen-Referenz auf Zufallstexten")
+    func byteScanMatchesCharacterReference() {
+        let pieces = ["a", "\n", "\r", "\r\n", "\u{85}", "\u{2028}", "\u{2029}", "\u{0C}", "\u{0B}", "\u{308}", "\u{1F1E8}\u{1F1ED}", "\u{E4}", "\u{2027}", "\u{C0}", "\t", " "]
+        var state: UInt64 = 0x9E37_79B9_7F4A_7C15
+        for _ in 0..<500 {
+            var text = ""
+            for _ in 0..<40 {
+                state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+                text += pieces[Int(state >> 33) % pieces.count]
+            }
+            var line = 1
+            var column = 1
+            var offset = 0
+            var expected: [Int: SourcePosition] = [:]
+            for character in text {
+                expected[offset] = SourcePosition(offset: offset, line: line, column: column)
+                offset += character.utf8.count
+                if character.unicodeScalars.contains(where: { [0x0A, 0x0D, 0x0C, 0x85, 0x2028, 0x2029].contains($0.value) }) {
+                    line += 1
+                    column = 1
+                } else {
+                    column += 1
+                }
+            }
+            let locator = SourceLocator(text)
+            #expect(locator.lineCount == line, "\(text.debugDescription)")
+            for (offset, position) in expected {
+                #expect(locator.position(atByteOffset: offset) == position, "\(text.debugDescription) @ \(offset)")
+            }
+            #expect(locator.positions(atByteOffsets: Array(expected.keys)) == expected)
+        }
+    }
 }
