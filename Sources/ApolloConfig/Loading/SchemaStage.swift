@@ -32,21 +32,23 @@ private struct WalkContext {
         return names
     }
 
-    func environment(for node: ExpandedNode, registry: SchemaRegistry, templates: TemplateCache?) -> ExpressionEnvironment {
-        ExpressionEnvironment(registry: registry, letValues: node.letValues, poisonedLets: node.poisonedLets, locals: locals(for: node), context: context, templates: templates)
+    func environment(for node: ExpandedNode, registry: SchemaRegistry, templates: TemplateCache?, declaredVars: Set<String>?) -> ExpressionEnvironment {
+        ExpressionEnvironment(registry: registry, letValues: node.letValues, poisonedLets: node.poisonedLets, locals: locals(for: node), context: context, templates: templates, declaredVars: declaredVars)
     }
 }
 
 private final class SchemaWalkState {
     let registry: SchemaRegistry
     let templates: TemplateCache?
+    let declaredVars: Set<String>?
     var diagnostics: [Diagnostic] = []
     var validatedFrames: Set<ObjectIdentifier> = []
     var instantiatedDefines: Set<String> = []
 
-    init(registry: SchemaRegistry, templates: TemplateCache?) {
+    init(registry: SchemaRegistry, templates: TemplateCache?, declaredVars: Set<String>?) {
         self.registry = registry
         self.templates = templates
+        self.declaredVars = declaredVars
     }
 
     func report(_ diagnostic: Diagnostic, node: ExpandedNode) {
@@ -57,9 +59,9 @@ private final class SchemaWalkState {
 enum SchemaStage {
     static let contextInheritingNodes: Set<String> = ["each", "when", "else", "switch", "case", "default", "feature"]
 
-    static func run(_ nodes: [ExpandedNode], defines: [DefineDecl] = [], registry: SchemaRegistry, context: NodeContext = .topLevel, templates: TemplateCache? = nil) -> SchemaStageResult {
+    static func run(_ nodes: [ExpandedNode], defines: [DefineDecl] = [], registry: SchemaRegistry, context: NodeContext = .topLevel, templates: TemplateCache? = nil, declaredVars: Set<String>? = nil) -> SchemaStageResult {
         StackHeadroom.run {
-            let state = SchemaWalkState(registry: registry, templates: templates)
+            let state = SchemaWalkState(registry: registry, templates: templates, declaredVars: declaredVars)
             let walk = WalkContext(context: context, handlerNames: [], eachStack: [])
             let checked = self.walkNodes(nodes, walk: walk, state: state)
             self.checkDefineBodies(defines, state: state)
@@ -113,7 +115,7 @@ enum SchemaStage {
         validateCallSites(of: frame.parent, walk: walk, state: state)
         guard let callSite = frame.callSite else { return }
         state.instantiatedDefines.insert(frame.defineName)
-        let env = walk.environment(for: callSite, registry: state.registry, templates: state.templates)
+        let env = walk.environment(for: callSite, registry: state.registry, templates: state.templates, declaredVars: state.declaredVars)
         for property in callSite.kdl.properties {
             guard case .argument? = frame.bindings[property.name] else { continue }
             let (_, diagnostics) = ExpressionCompiler.compile(property.value, env: env, allowsExpression: true)
@@ -126,7 +128,7 @@ enum SchemaStage {
         if node.isExpansionMarker { return nil }
         let registry = state.registry
         let kdl = node.kdl
-        let env = walk.environment(for: node, registry: registry, templates: state.templates)
+        let env = walk.environment(for: node, registry: registry, templates: state.templates, declaredVars: state.declaredVars)
 
         if kdl.name == "script" {
             state.report(Diagnostic(.error, "Lua scripting comes in a later version", span: kdl.span), node: node)
