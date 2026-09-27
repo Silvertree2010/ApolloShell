@@ -148,7 +148,15 @@ public struct SourceLocator: Sendable {
     }
 
     private func lineGraphemeEnds(start: Int, end: Int) -> [Int]? {
-        guard utf8[start..<end].contains(where: { $0 >= 0x80 }) else { return nil }
+        let hasWideCharacters = utf8.withUnsafeBufferPointer { buffer in
+            var index = start
+            while index < end {
+                if buffer[index] >= 0x80 { return true }
+                index += 1
+            }
+            return false
+        }
+        guard hasWideCharacters else { return nil }
         var ends: [Int] = []
         var consumed = 0
         for character in String(decoding: utf8[start..<end], as: UTF8.self) {
