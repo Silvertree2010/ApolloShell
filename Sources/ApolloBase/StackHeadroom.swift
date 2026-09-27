@@ -17,13 +17,7 @@ public enum StackHeadroom {
         let size = UInt(pthread_get_stacksize_np(thread))
         let bottom = base - size
         #else
-        var attributes = pthread_attr_t()
-        guard stackHeadroomGetAttributes(pthread_self(), &attributes) == 0 else { return 0 }
-        defer { pthread_attr_destroy(&attributes) }
-        var address: UnsafeMutableRawPointer?
-        var size = 0
-        guard pthread_attr_getstack(&attributes, &address, &size) == 0 else { return 0 }
-        let bottom = UInt(bitPattern: address)
+        guard let bottom = linuxStackBottom() else { return 0 }
         #endif
         var marker: UInt8 = 0
         let current = withUnsafePointer(to: &marker) { UInt(bitPattern: $0) }
@@ -54,6 +48,26 @@ private final class StackHeadroomResultBox<Value>: @unchecked Sendable {
 }
 
 #if !canImport(Darwin)
+private let stackHeadroomBottomKey: pthread_key_t = {
+    var key = pthread_key_t()
+    pthread_key_create(&key, nil)
+    return key
+}()
+
+private func linuxStackBottom() -> UInt? {
+    if let cached = pthread_getspecific(stackHeadroomBottomKey) {
+        return UInt(bitPattern: cached)
+    }
+    var attributes = pthread_attr_t()
+    guard stackHeadroomGetAttributes(pthread_self(), &attributes) == 0 else { return nil }
+    defer { pthread_attr_destroy(&attributes) }
+    var address: UnsafeMutableRawPointer?
+    var size = 0
+    guard pthread_attr_getstack(&attributes, &address, &size) == 0, let address else { return nil }
+    pthread_setspecific(stackHeadroomBottomKey, address)
+    return UInt(bitPattern: address)
+}
+
 @_silgen_name("pthread_getattr_np")
 private func stackHeadroomGetAttributes(_ thread: pthread_t, _ attributes: UnsafeMutablePointer<pthread_attr_t>) -> Int32
 #endif
