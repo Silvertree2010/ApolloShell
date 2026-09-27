@@ -14,7 +14,7 @@ struct SchemaRegistryTests {
 
     static let languageNames: Set<String> = [
         "include", "let", "var", "define", "param", "slot", "fill", "use",
-        "each", "when", "else", "switch", "case", "default", "feature", "disable", "require", "style",
+        "each", "when", "else", "switch", "case", "default", "feature", "disable", "require", "style", "filter",
     ]
 
     static let topLevelBlockNames: Set<String> = ["bind", "on", "poll", "listen", "wm", "command-center", "marketplace"]

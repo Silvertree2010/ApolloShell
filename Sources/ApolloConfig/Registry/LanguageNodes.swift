@@ -21,6 +21,18 @@ enum LanguageNodes {
             example: "let gap=8 radius=12"
         ),
         NodeSchema(
+            name: "filter",
+            category: .language,
+            arguments: [
+                ArgumentSchema(name: "name", type: .identifier, allowsExpression: false, doc: "Name used after | in expressions."),
+                ArgumentSchema(name: "body", type: .string, allowsExpression: false, doc: "One {…} expression over value and the arguments."),
+            ],
+            properties: [PropertySchema(name: "args", type: .string, defaultValue: .null, allowsExpression: false, doc: "Names of extra arguments, separated by spaces.")],
+            contexts: [.topLevel],
+            doc: "Declares a filter made of an expression; value is the piped input.",
+            example: "filter \"fahrenheit\" \"{value * 9 / 5 + 32}\""
+        ),
+        NodeSchema(
             name: "var",
             category: .language,
             arguments: [

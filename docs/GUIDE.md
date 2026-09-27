@@ -103,6 +103,8 @@ panel "running" anchor="left" {
 component once and uses it three times.
 
 ```kdl
+filter "mbit" "{(value * 8 / 1000000) | round 1}"
+
 define "stat" {
     param "label"
     param "value"
@@ -116,13 +118,16 @@ panel "stats" anchor="bottom-right" {
     column class="card" {
         use "stat" label="CPU" value="{perf.cpu | percent}"
         use "stat" label="Memory" value="{perf.memory | percent}"
-        use "stat" label="Down" value="{perf.net-down | bytes-per-second}"
+        use "stat" label="Down" value="{perf.net-down | mbit} Mbit/s"
     }
 }
 ```
 
 `define` declares parameters with `param`; `use` fills them. A define whose
 body is a list of actions can be used inside a handler, too.
+
+`filter` names an expression you use after `|`. Inside it, `value` is the
+piped input; `args="lo hi"` adds arguments, as in `{x | between 1 9}`.
 
 ## 5. Popups, shortcuts and your own data
 

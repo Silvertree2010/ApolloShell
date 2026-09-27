@@ -10,6 +10,7 @@ final class TemplateCache: Sendable {
     private struct Storage {
         var templates: [Key: Result<StringTemplate, Diagnostic>] = [:]
         var occurrences: [Key: [String: [NameOccurrence]]] = [:]
+        var userFilters: [String: UserFilter] = [:]
     }
 
     private let storage = Mutex(Storage())
@@ -20,6 +21,11 @@ final class TemplateCache: Sendable {
         let parsed = ExpressionParser.parseTemplate(text, span: span)
         storage.withLock { $0.templates[key] = parsed }
         return parsed
+    }
+
+    var userFilters: [String: UserFilter] {
+        get { storage.withLock { $0.userFilters } }
+        set { storage.withLock { $0.userFilters = newValue } }
     }
 
     func occurrences(in text: String, span: SourceSpan) -> [String: [NameOccurrence]] {

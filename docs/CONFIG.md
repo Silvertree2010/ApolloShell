@@ -305,6 +305,20 @@ Fills a named slot of a use.
 fill "header" { text "Title" }
 ```
 
+### `filter` (node)
+
+Declares a filter made of an expression; value is the piped input.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `name` | identifier | required | Name used after \| in expressions. |
+| argument | `body` | string | required | One {…} expression over value and the arguments. |
+| property | `args` | string | `null` | Names of extra arguments, separated by spaces. |
+
+```kdl
+filter "fahrenheit" "{value * 9 / 5 + 32}"
+```
+
 ### `flyout` (node)
 
 Area that grows out of its own surface next to an element.
