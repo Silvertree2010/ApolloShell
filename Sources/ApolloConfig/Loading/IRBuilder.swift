@@ -35,14 +35,16 @@ private struct SwitchBranches {
 
 private final class IRBuildState {
     let registry: SchemaRegistry
+    let templates: TemplateCache?
     let definesByName: [String: DefineDecl]
     var diagnostics: [Diagnostic] = []
     var argumentCache: [ArgumentKey: StringTemplate] = [:]
     var ids: [String: SourceSpan] = [:]
     var surfaceID: String?
 
-    init(registry: SchemaRegistry, defines: [DefineDecl]) {
+    init(registry: SchemaRegistry, defines: [DefineDecl], templates: TemplateCache?) {
         self.registry = registry
+        self.templates = templates
         var byName: [String: DefineDecl] = [:]
         for define in defines {
             byName[define.name] = define
@@ -66,10 +68,11 @@ enum IRBuilder {
         files: [URL],
         registry: SchemaRegistry,
         fileSystem: any ConfigFileSystem,
-        paths: ConfigPaths
+        paths: ConfigPaths,
+        templates: TemplateCache? = nil
     ) -> IRBuildResult {
         StackHeadroom.run {
-            let state = IRBuildState(registry: registry, defines: defines)
+            let state = IRBuildState(registry: registry, defines: defines, templates: templates)
             var ir = ConfigIR(id: location.id, root: location.root, files: files)
             applyRequires(requires, to: &ir)
             var blockNodes: [ExpandedNode] = []
@@ -775,7 +778,7 @@ enum IRBuilder {
         if let frame {
             locals.formUnion(frame.bindings.keys)
         }
-        let environment = ExpressionEnvironment(registry: state.registry, letValues: node.letValues, poisonedLets: node.poisonedLets, locals: locals, context: validation ?? .elementBody)
+        let environment = ExpressionEnvironment(registry: state.registry, letValues: node.letValues, poisonedLets: node.poisonedLets, locals: locals, context: validation ?? .elementBody, templates: state.templates)
         let (compiled, diagnostics) = ExpressionCompiler.compile(value, env: environment, allowsExpression: allowsExpression, validates: validation != nil)
         for diagnostic in diagnostics where validation != nil {
             state.report(diagnostic, node: node)

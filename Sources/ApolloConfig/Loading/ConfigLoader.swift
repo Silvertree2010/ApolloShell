@@ -65,7 +65,8 @@ public struct ConfigLoader: Sendable {
         }
         let disabled = DisableStage.run(used.nodes, registry: registry)
         collect(disabled.diagnostics, stage: "disable")
-        let checked = SchemaStage.run(disabled.nodes, defines: used.defines, registry: registry)
+        let templates = TemplateCache()
+        let checked = SchemaStage.run(disabled.nodes, defines: used.defines, registry: registry, templates: templates)
         collect(checked.diagnostics, stage: "schema")
         let built = IRBuilder.build(
             disabled.nodes,
@@ -75,7 +76,8 @@ public struct ConfigLoader: Sendable {
             files: included.files,
             registry: registry,
             fileSystem: fileSystem,
-            paths: paths
+            paths: paths,
+            templates: templates
         )
         collect(built.diagnostics, stage: "ir")
         return finish(built.ir, files: included.files)
