@@ -104,7 +104,7 @@ public enum CrashReportSanitizer {
             cleanBody["usedImages"] = images.map { $0.filter { imageKeys.contains($0.key) } }
         }
 
-        guard let headerText = json(cleanHeader), let bodyText = json(cleanBody) else { return nil }
+        guard let headerText = json(cleanHeader), let bodyText = json(cleanBody.mapValues(redacted)) else { return nil }
         let osVersion = body["osVersion"] as? [String: Any]
         let os = (header["os_version"] as? String)
             ?? [osVersion?["train"], osVersion?["build"]].compactMap { $0 as? String }.joined(separator: " ")
@@ -119,6 +119,33 @@ public enum CrashReportSanitizer {
             pid: body["pid"] as? Int,
             launchedAt: date(body["procLaunch"])
         )
+    }
+
+    static func redacted(_ value: Any) -> Any {
+        switch value {
+        case let text as String:
+            return redactedPaths(text)
+        case let list as [Any]:
+            return list.map(redacted)
+        case let object as [String: Any]:
+            return object.mapValues(redacted)
+        default:
+            return value
+        }
+    }
+
+    static func redactedPaths(_ text: String) -> String {
+        guard text.contains("/Users/") else { return text }
+        var result = ""
+        var rest = Substring(text)
+        while let range = rest.range(of: "/Users/") {
+            result += rest[..<range.upperBound]
+            rest = rest[range.upperBound...]
+            let name = rest.prefix { $0 != "/" && $0 != "\"" && $0 != "'" && !$0.isWhitespace }
+            if !name.isEmpty { result += "~" }
+            rest = rest.dropFirst(name.count)
+        }
+        return result + rest
     }
 
     private static func cleanThread(_ thread: [String: Any]) -> [String: Any] {
