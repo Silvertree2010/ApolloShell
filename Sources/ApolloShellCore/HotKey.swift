@@ -349,9 +349,15 @@ public enum HotKeyText {
     }
 
     public static func registrationFailed(alreadyTaken: Bool, status: Int32) -> String {
+        #if canImport(Darwin)
         alreadyTaken
             ? String(localized: "Not active: Another app already uses this shortcut.")
             : String(localized: "Not active: macOS declined the shortcut (error \(status, format: .number.grouping(.never))).")
+        #else
+        alreadyTaken
+            ? String(localized: "Not active: Another app already uses this shortcut.")
+            : String(localized: "Not active: macOS declined the shortcut (error \(status)).")
+        #endif
     }
 
     public static let recordingPrompt = String(localized: "Press a shortcut…")

@@ -23,11 +23,13 @@ public struct NetRate: Equatable, Sendable {
 }
 
 public enum NetworkMath {
+    #if canImport(Darwin)
     public static func counts(flags: Int32, type: UInt8) -> Bool {
         if flags & IFF_LOOPBACK != 0 { return false }
         if flags & IFF_POINTOPOINT != 0 { return false }
         return Int32(type) != IFT_BRIDGE
     }
+    #endif
 
     public static func delta(from old: NetCounters, to new: NetCounters) -> NetCounters? {
         guard new.received >= old.received, new.sent >= old.sent else { return nil }

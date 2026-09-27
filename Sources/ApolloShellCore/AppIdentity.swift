@@ -1,4 +1,6 @@
+#if canImport(os)
 import os
+#endif
 
 public enum AppIdentity {
     public static let bundleID = "io.github.silvertree2010.apolloshell"
@@ -10,8 +12,10 @@ public enum AppIdentity {
     }
 }
 
+#if canImport(os)
 public extension Logger {
     init(category: String) {
         self.init(subsystem: AppIdentity.logSubsystem, category: category)
     }
 }
+#endif

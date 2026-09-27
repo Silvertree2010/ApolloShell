@@ -303,8 +303,12 @@ extension LegacyImport {
         }
 
         static func isBool(_ value: Any) -> Bool {
+            #if canImport(Darwin)
             guard let number = value as? NSNumber else { return false }
             return CFGetTypeID(number) == CFBooleanGetTypeID()
+            #else
+            return type(of: value) == type(of: NSNumber(value: true))
+            #endif
         }
 
         static func bool(_ value: Any?) -> Bool? {

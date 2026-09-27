@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 
 public struct Strip<ID: Hashable & Sendable>: Sendable, Equatable where ID: Equatable {
     public struct Column: Sendable, Equatable {

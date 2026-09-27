@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(os)
 import os
+#endif
 import ApolloBase
 import ApolloConfig
 
@@ -15,7 +17,9 @@ public final class ActionDispatcher: ActionRuntime {
     private var runningSites: [String: Int] = [:]
     private var warnedSites: Set<String> = []
     private let warningBuffer = WarningBuffer()
+    #if canImport(os)
     private let logger = Logger(subsystem: "ApolloShell", category: "actions")
+    #endif
 
     public let vars: VarStore
     public let providers: ProviderHost
@@ -258,7 +262,9 @@ public final class ActionDispatcher: ActionRuntime {
         default:
             message = "action failed: \(error)"
         }
+        #if canImport(os)
         logger.warning("\(span.file, privacy: .public):\(span.start.line): \(message, privacy: .public)")
+        #endif
         warn(Diagnostic(.warning, message, span: span))
     }
 

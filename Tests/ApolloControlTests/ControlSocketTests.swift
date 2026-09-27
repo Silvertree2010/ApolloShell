@@ -164,7 +164,7 @@ struct ControlSocketTests {
         var timeout = timeval(tv_sec: 5, tv_usec: 0)
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
         #expect(SocketAddress.writeAll(fd, ControlRequest(id: 4, cmd: "slow").line + "\n"))
-        #expect(shutdown(fd, SHUT_WR) == 0)
+        #expect(shutdown(fd, Int32(SHUT_WR)) == 0)
         var buffer = LineBuffer()
         var lines: [String] = []
         var chunk = [UInt8](repeating: 0, count: 4096)

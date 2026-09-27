@@ -2,7 +2,13 @@ import Foundation
 
 enum CPUTime {
     static func now() -> UInt64 {
+        #if canImport(Darwin)
         clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)
+        #else
+        var time = timespec()
+        clock_gettime(CLOCK_THREAD_CPUTIME_ID, &time)
+        return UInt64(time.tv_sec) * 1_000_000_000 + UInt64(time.tv_nsec)
+        #endif
     }
 
     static func measure(_ body: () -> Void) -> Double {

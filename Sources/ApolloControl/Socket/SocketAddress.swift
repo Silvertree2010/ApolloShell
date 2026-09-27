@@ -31,7 +31,9 @@ enum SocketAddress {
             buffer.copyBytes(from: bytes)
             buffer[bytes.count] = 0
         }
+        #if canImport(Darwin)
         address.sun_len = UInt8(MemoryLayout<sockaddr_un>.size)
+        #endif
         return address
     }
 
@@ -54,8 +56,10 @@ enum SocketAddress {
     }
 
     static func noSigPipe(_ fd: Int32) {
+        #if canImport(Darwin)
         var on: Int32 = 1
         setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, socklen_t(MemoryLayout<Int32>.size))
+        #endif
     }
 
     static func sendTimeout(_ fd: Int32, seconds: Int) {
