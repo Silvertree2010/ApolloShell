@@ -4,7 +4,9 @@ var hotkey "ctrl+alt+space" persist=#true
 
 poll "uptime" command="uptime" interval="60s"
 
-bind "{var.hotkey}" { toggle "info" }
+bind "{var.hotkey}" { emit "show-info" }
+
+on "user.show-info" { toggle "info" }
 
 popup "info" anchor="center" motion="grow" {
     column class="card" {
