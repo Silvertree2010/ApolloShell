@@ -104,7 +104,12 @@ enum ExpressionCompiler {
             case .success(let template):
                 let substituted = LetSubstitution.apply(template, lets: env.letValues, locals: env.locals)
                 let userFilters = env.templates?.userFilters ?? [:]
-                let expanded = UserFilterExpansion.apply(substituted, filters: userFilters)
+                var overflowed = false
+                let expanded = UserFilterExpansion.apply(substituted, filters: userFilters, overflowed: &overflowed)
+                if overflowed {
+                    diagnostics.append(Diagnostic(.error, "this expression grows past \(UserFilterExpansion.maximumNodes) parts once its filters are expanded", span: kdlValue.span))
+                    return (CompiledValueBuilder.literal(.null, span: kdlValue.span), diagnostics)
+                }
                 guard validates else {
                     return (CompiledValue(template: expanded, dependencies: [], span: kdlValue.span), diagnostics)
                 }

@@ -56,4 +56,47 @@ struct UserFilterTests {
         let (result, _) = Self.texts(source)
         #expect(result.diagnostics.contains { $0.severity == .error && $0.message == message }, "\(result.diagnostics.map(\.message))")
     }
+
+    @Test("Filter, die sich beim Einsetzen aufblähen, werden beim Laden abgelehnt statt hängen zu bleiben")
+    func expansionIsBounded() {
+        var source = "filter \"f1\" \"{value + value}\"\n"
+        for level in 2...12 {
+            source += "filter \"f\(level)\" \"{value | f\(level - 1) | f\(level - 1)}\"\n"
+        }
+        source += "panel \"p\" anchor=\"left\" { text \"{1 | f12}\" }\n"
+        let (result, _) = Self.texts(source)
+        #expect(result.diagnostics.contains { $0.severity == .error && $0.message.contains("grows past 4096 parts") })
+        let chained = "filter \"d\" \"{value + value}\"\npanel \"p\" anchor=\"left\" { text \"{1\(String(repeating: " | d", count: 30))}\" }\n"
+        #expect(Self.texts(chained).0.diagnostics.contains { $0.message.contains("grows past 4096 parts") })
+    }
+
+    @Test("Eigene Filter wirken auch in var-Vorgaben und from=")
+    func varsUseFilters() throws {
+        let result = LoaderHarness.load(["/config/shell.kdl": """
+        filter "dbl" "{value * 2}"
+        var a 5
+        var b from="{var.a | dbl}"
+        var c "{3 | dbl}"
+        """])
+        let vars = try #require(result.ir?.vars)
+        let b = try #require(vars.first { $0.name == "b" }?.derived)
+        let c = try #require(vars.first { $0.name == "c" }?.defaultValue)
+        #expect(Self.render(b, globals: ["var": .record(Record([("a", .number(5))]))]) == .number(10))
+        guard case .scalar(let compiled) = c else { Issue.record("no scalar"); return }
+        #expect(Self.render(compiled) == .number(6))
+    }
+
+    @Test("let mit unbekanntem Filter ist ein Fehler statt still null")
+    func letNeedsBuiltinFilters() {
+        let (result, _) = Self.texts("filter \"dbl\" \"{value * 2}\"\nlet x=\"{5 | dbl}\"\nlet y=\"{'a' | upperr}\"\n")
+        let errors = result.diagnostics.filter { $0.severity == .error }.map(\.message)
+        #expect(errors.contains("unknown filter 'dbl' in 'let'"))
+        #expect(errors.contains("unknown filter 'upperr' in 'let'"))
+    }
+
+    @Test("filter mit Kindern ist ein Fehler")
+    func noChildren() {
+        let (result, _) = Self.texts("filter \"dbl\" \"{value * 2}\" { text \"junk\" }\n")
+        #expect(result.diagnostics.contains { $0.message == "filter has no children" })
+    }
 }

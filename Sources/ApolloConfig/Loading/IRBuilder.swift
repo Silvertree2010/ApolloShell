@@ -183,6 +183,8 @@ enum IRBuilder {
         let locals = Set(node.useFrame?.bindings.keys.map { $0 } ?? [])
         var raw = compiled
         raw.template = LetSubstitution.apply(compiled.template, lets: node.letValues, locals: locals)
+        var overflowed = false
+        raw.template = UserFilterExpansion.apply(raw.template, filters: state.templates?.userFilters ?? [:], overflowed: &overflowed)
         return finish(raw, frame: node.useFrame, scope: [], state: state)
     }
 

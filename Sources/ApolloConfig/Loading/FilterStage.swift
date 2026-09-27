@@ -70,7 +70,7 @@ enum FilterStage {
                 return nil
             }
         }
-        if kdl.children?.isEmpty == false {
+        if !node.children.isEmpty {
             problems.append(Diagnostic(.error, "filter has no children", span: kdl.span))
             return nil
         }
