@@ -27,4 +27,24 @@ struct UnknownVarTests {
         #expect(error?.message.hasPrefix("property 'anchor' expects") == true)
         #expect(error?.help == "did you mean 'left'?")
     }
+
+    @Test("set, toggle-var und reset auf eine nicht deklarierte var warnen beim Laden")
+    func unknownVarInActions() {
+        let result = LoaderHarness.load(["/config/shell.kdl": """
+        var open #false
+        panel "p" anchor="left" {
+            button {
+                on-click {
+                    set "opne" #true
+                    toggle-var "open"
+                    reset "closed"
+                }
+            }
+        }
+        """])
+        #expect(result.ir != nil)
+        let warnings = result.diagnostics.filter { $0.severity == .warning }
+        #expect(warnings.map(\.message) == ["unknown var 'opne'", "unknown var 'closed'"])
+        #expect(warnings.first?.help == "did you mean 'open'?")
+    }
 }
