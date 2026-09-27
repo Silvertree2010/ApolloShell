@@ -1,0 +1,16 @@
+style "style.css"
+
+var expanded #false persist=#true
+
+panel "status" anchor="bottom-left" {
+    column class="card" {
+        button class="header" {
+            on-click { toggle-var "expanded" }
+            text "{var.expanded ? 'Less' : 'More'}"
+        }
+        when "{var.expanded}" {
+            text "CPU {perf.cpu | percent}"
+            text "Memory {perf.memory | percent}"
+        }
+    }
+}

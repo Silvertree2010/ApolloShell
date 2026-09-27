@@ -1,0 +1,16 @@
+.card {
+    padding: 12px;
+    gap: 6px;
+    border-radius: var(--apollo-card-radius);
+    background: var(--apollo-card-fill);
+}
+
+.header {
+    padding: 4px 8px;
+    border-radius: var(--apollo-control-radius);
+}
+
+.header:hover {
+    background: var(--apollo-accent-color);
+    color: var(--apollo-on-accent-color);
+}

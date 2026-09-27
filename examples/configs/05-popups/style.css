@@ -1,0 +1,20 @@
+.card {
+    width: 360px;
+    padding: 20px;
+    gap: 10px;
+    border-radius: var(--apollo-card-radius);
+    background: var(--apollo-card-fill);
+}
+
+.title {
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.close {
+    align-self: end;
+    padding: 4px 10px;
+    border-radius: var(--apollo-control-radius);
+    background: var(--apollo-accent-color);
+    color: var(--apollo-on-accent-color);
+}

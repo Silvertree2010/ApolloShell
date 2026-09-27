@@ -1,0 +1,12 @@
+style "style.css"
+
+panel "running" anchor="left" {
+    column class="apps" {
+        each app in="{apps.running}" key="{app.bundle-id}" {
+            button class="app" checked="{app.active}" tooltip="{app.name}" {
+                on-click { apps.launch "{app}" }
+                app-icon "{app}"
+            }
+        }
+    }
+}
