@@ -219,6 +219,46 @@ struct ControlSocketTests {
         #expect(buffer.append(ArraySlice(Array("ok\n".utf8))).isEmpty)
     }
 
+    @Test("liest der Client nicht mehr, trennt der Server nach der Sendefrist statt eine halbe Zeile stehen zu lassen")
+    func stalledReaderIsDisconnected() throws {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        let probe = StreamProbe()
+        let server = ControlSocketServer(path: folder.socketPath, service: EchoService(probe: probe), sendTimeout: 1)
+        try server.start()
+        defer { server.stop() }
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        defer { close(fd) }
+        #expect(try SocketAddress.connect(fd, folder.socketPath) == 0)
+        var small: Int32 = 4096
+        setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &small, socklen_t(MemoryLayout<Int32>.size))
+        #expect(SocketAddress.writeAll(fd, ControlRequest(id: 5, cmd: "watch").line + "\n"))
+        #expect(waitUntil { probe.hasSubscriber })
+        let big = Value.string(String(repeating: "x", count: 1 << 20))
+        for _ in 0..<8 { probe.yield(big) }
+        #expect(waitUntil(10) { probe.wasTerminated })
+        var timeout = timeval(tv_sec: 5, tv_usec: 0)
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+        var chunk = [UInt8](repeating: 0, count: 1 << 16)
+        var last = 1
+        while last > 0 {
+            last = chunk.withUnsafeMutableBytes { read(fd, $0.baseAddress, $0.count) }
+        }
+        #expect(last == 0)
+    }
+
+    @Test("nach stop angenommene Verbindungen werden sofort geschlossen")
+    func noConnectionsAfterStop() throws {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        let server = ControlSocketServer(path: folder.socketPath, service: EchoService(probe: StreamProbe()))
+        try server.start()
+        let client = try ControlSocketClient.connect(path: folder.socketPath)
+        defer { client.close() }
+        server.stop()
+        #expect((try? client.readResponse()) == nil)
+    }
+
     @Test("Pfad kommt aus APOLLO_SOCKET, sonst aus Application Support")
     func socketPath() {
         let home = URL(fileURLWithPath: "/Users/x")
