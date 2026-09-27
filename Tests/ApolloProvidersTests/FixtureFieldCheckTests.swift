@@ -1,6 +1,8 @@
 import Testing
 import Foundation
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 import ApolloBase
 import ApolloConfig
 @testable import ApolloRuntime
