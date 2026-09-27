@@ -50,6 +50,10 @@ public final class MarketplaceProvider: BaseProvider {
 
     override func didStop() {
         signInGeneration += 1
+        switch signIn {
+        case .starting, .waiting: signIn = .idle
+        case .idle, .done, .failed: break
+        }
     }
 
     override func handle(_ arguments: ActionArguments) async throws -> Value {
