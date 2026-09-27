@@ -513,43 +513,57 @@ struct KDLParser {
         for node in nodes {
             collectOffsets(node, into: &offsets)
         }
-        let table = SourceLocator(text).positions(atByteOffsets: offsets)
-        return nodes.map { resolved($0, table) }
+        let positions = SourceLocator(text).positionList(atByteOffsets: offsets)
+        var cursor = 0
+        return nodes.map { resolved($0, positions, &cursor) }
     }
 
     func collectOffsets(_ node: KDLNode, into offsets: inout [Int]) {
-        offsets += [node.span.start.offset, node.span.end.offset, node.nameSpan.start.offset, node.nameSpan.end.offset]
+        offsets.append(node.span.start.offset)
+        offsets.append(node.span.end.offset)
+        offsets.append(node.nameSpan.start.offset)
+        offsets.append(node.nameSpan.end.offset)
         for value in node.arguments {
-            offsets += [value.span.start.offset, value.span.end.offset]
+            offsets.append(value.span.start.offset)
+            offsets.append(value.span.end.offset)
         }
         for property in node.properties {
-            offsets += [property.span.start.offset, property.span.end.offset, property.value.span.start.offset, property.value.span.end.offset]
+            offsets.append(property.span.start.offset)
+            offsets.append(property.span.end.offset)
+            offsets.append(property.value.span.start.offset)
+            offsets.append(property.value.span.end.offset)
         }
         for child in node.children ?? [] {
             collectOffsets(child, into: &offsets)
         }
     }
 
-    func resolved(_ node: KDLNode, _ table: [Int: SourcePosition]) -> KDLNode {
+    func resolved(_ node: KDLNode, _ positions: [SourcePosition], _ cursor: inout Int) -> KDLNode {
         var copy = node
-        copy.span = resolvedSpan(node.span, table)
-        copy.nameSpan = resolvedSpan(node.nameSpan, table)
-        copy.arguments = node.arguments.map { argument in
-            var value = argument
-            value.span = resolvedSpan(argument.span, table)
-            return value
+        copy.span = resolvedSpan(node.span, positions, &cursor)
+        copy.nameSpan = resolvedSpan(node.nameSpan, positions, &cursor)
+        for index in copy.arguments.indices {
+            copy.arguments[index].span = resolvedSpan(node.arguments[index].span, positions, &cursor)
         }
-        copy.properties = node.properties.map { original in
-            var property = original
-            property.span = resolvedSpan(original.span, table)
-            property.value.span = resolvedSpan(original.value.span, table)
-            return property
+        for index in copy.properties.indices {
+            copy.properties[index].span = resolvedSpan(node.properties[index].span, positions, &cursor)
+            copy.properties[index].value.span = resolvedSpan(node.properties[index].value.span, positions, &cursor)
         }
-        copy.children = node.children?.map { resolved($0, table) }
+        if let children = node.children {
+            var resolvedChildren: [KDLNode] = []
+            resolvedChildren.reserveCapacity(children.count)
+            for child in children {
+                resolvedChildren.append(resolved(child, positions, &cursor))
+            }
+            copy.children = resolvedChildren
+        }
         return copy
     }
 
-    func resolvedSpan(_ span: SourceSpan, _ table: [Int: SourcePosition]) -> SourceSpan {
-        SourceSpan(file: span.file, start: table[span.start.offset] ?? span.start, end: table[span.end.offset] ?? span.end)
+    func resolvedSpan(_ span: SourceSpan, _ positions: [SourcePosition], _ cursor: inout Int) -> SourceSpan {
+        let start = positions[cursor]
+        let end = positions[cursor + 1]
+        cursor += 2
+        return SourceSpan(file: span.file, start: start, end: end)
     }
 }

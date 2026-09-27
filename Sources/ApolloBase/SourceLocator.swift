@@ -94,23 +94,40 @@ public struct SourceLocator: Sendable {
     public func positions(atByteOffsets offsets: [Int]) -> [Int: SourcePosition] {
         var result: [Int: SourcePosition] = [:]
         result.reserveCapacity(offsets.count)
+        for position in positionList(atByteOffsets: offsets) {
+            result[position.offset] = position
+        }
+        return result
+    }
+
+    public func positionList(atByteOffsets offsets: [Int]) -> [SourcePosition] {
+        var result: [SourcePosition] = []
+        result.reserveCapacity(offsets.count)
         var graphemeEnds: [Int: [Int]?] = [:]
+        var lastLine = 0
+        var lastEnds: [Int]?
         for raw in offsets {
             let offset = max(0, min(raw, utf8.count))
-            if result[offset] != nil { continue }
-            let line = lineNumber(atByteOffset: offset)
+            let line: Int
+            if lastLine > 0, lineStarts[lastLine - 1] <= offset, lastLine == lineStarts.count || offset < lineStarts[lastLine] {
+                line = lastLine
+            } else {
+                line = lineNumber(atByteOffset: offset)
+            }
             let start = lineStarts[line - 1]
             let end = lineEnds[line - 1]
             let relative = min(offset, end) - start
-            let column: Int
-            let ends: [Int]?
-            if let cached = graphemeEnds[line] {
-                ends = cached
-            } else {
-                ends = lineGraphemeEnds(start: start, end: end)
-                graphemeEnds[line] = .some(ends)
+            if line != lastLine {
+                if let cached = graphemeEnds[line] {
+                    lastEnds = cached
+                } else {
+                    lastEnds = lineGraphemeEnds(start: start, end: end)
+                    graphemeEnds[line] = .some(lastEnds)
+                }
+                lastLine = line
             }
-            if let ends {
+            let column: Int
+            if let ends = lastEnds {
                 var low = 0
                 var high = ends.count
                 while low < high {
@@ -125,7 +142,7 @@ public struct SourceLocator: Sendable {
             } else {
                 column = relative + 1
             }
-            result[offset] = SourcePosition(offset: offset, line: line, column: column)
+            result.append(SourcePosition(offset: offset, line: line, column: column))
         }
         return result
     }
