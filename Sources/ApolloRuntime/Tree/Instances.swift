@@ -8,6 +8,7 @@ public enum RuntimeLimits {
     public static let elementsPerSurface = 10_000
     public static let elementDepth = 256
     public static let valueDepth = 256
+    public static let rememberedWarnings = 1_000
     public static let closeFeedbackTimeout: Double = 5
 }
 

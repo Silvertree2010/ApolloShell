@@ -356,4 +356,23 @@ struct BindingEngineTests {
         engine.flush()
         #expect(values == [.bool(true), .bool(false)])
     }
+
+    @Test("Gemerkte Binding-Warnungen wachsen nicht unbegrenzt, nach dem Vergessen kommen sie wieder")
+    func rememberedWarningsAreBounded() throws {
+        let (store, _, engine) = makeEngine()
+        var warnings: [Diagnostic] = []
+        engine.onWarning = { warnings.append($0) }
+        for index in 0..<(RuntimeLimits.rememberedWarnings + 200) {
+            let span = SourceSpan.synthetic("binding-\(index)")
+            let template = try ExpressionParser.parseTemplate("{x.value | round}", span: span).get()
+            engine.bind(BindingSource(template: template, span: span), scope: LocalScope(), active: true) { _ in }
+        }
+        store.set(DependencyPath("x", ["value"]), .string("abc"))
+        engine.flush()
+        #expect(warnings.count == RuntimeLimits.rememberedWarnings)
+        engine.forgetWarnings()
+        store.set(DependencyPath("x", ["value"]), .string("def"))
+        engine.flush()
+        #expect(warnings.count == 2 * RuntimeLimits.rememberedWarnings)
+    }
 }

@@ -361,8 +361,14 @@ public final class BindingEngine {
     }
 
     private func deliverWarnings() {
-        for diagnostic in warningBuffer.drain() where seenWarnings.insert(diagnostic).inserted {
+        for diagnostic in warningBuffer.drain() {
+            guard seenWarnings.count < RuntimeLimits.rememberedWarnings, seenWarnings.insert(diagnostic).inserted else { continue }
             onWarning?(diagnostic)
         }
+    }
+
+    func forgetWarnings() {
+        seenWarnings.removeAll()
+        evaluator.forgetWarnings()
     }
 }
