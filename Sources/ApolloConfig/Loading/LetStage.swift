@@ -160,6 +160,11 @@ enum LetStage {
             report(diagnostic)
             poison()
         case .success(let template):
+            if let unknown = UserFilterExpansion.filterNames(in: template).first(where: { registry.filters[$0] == nil }) {
+                report(Diagnostic(.error, "unknown filter '\(unknown)' in 'let'", span: nameSpan, help: "a 'let' is computed before 'filter' declarations and can use built-in filters only"))
+                poison()
+                return
+            }
             let dependencies = template.dependencies
             if !dependencies.isEmpty {
                 let offending = dependencies.map(\.root).filter { !scope.poisoned.contains($0) }.sorted()
