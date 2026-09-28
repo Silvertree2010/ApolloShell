@@ -602,14 +602,6 @@ Selects the default layout of the window manager.
 layout "dwindle"
 ```
 
-### `let` (node)
-
-Declares one or more constants evaluated at load time.
-
-```kdl
-let gap=8 radius=12
-```
-
 ### `listen` (node)
 
 Reads a long-running data source from a process.
@@ -1482,12 +1474,12 @@ use "labeled-icon" icon="bar-power"
 
 ### `var` (node)
 
-Declares runtime state, optionally persisted.
+Declares state, optionally persisted; a var nothing sets is a constant.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `name` | identifier | required | Name of the state. |
-| argument | `default` | value |  | Default value. |
+| argument | `default` | value |  | Default value, may read other vars. |
 | property | `persist` | bool | `false` | Stores the value in the config's state file. |
 | property | `type` | "string"\|"number"\|"bool"\|"list"\|"record"\|"any" | `null` | Type of the value, default from the default value. |
 | property | `from` | value | `null` | Makes the var derived, not settable. |

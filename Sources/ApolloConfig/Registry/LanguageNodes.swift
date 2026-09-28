@@ -12,15 +12,6 @@ enum LanguageNodes {
             example: "include \"sidebar-modules.kdl\""
         ),
         NodeSchema(
-            name: "let",
-            category: .language,
-            arguments: [],
-            properties: [],
-            contexts: [.topLevel, .surfaceBody, .elementBody],
-            doc: "Declares one or more constants evaluated at load time.",
-            example: "let gap=8 radius=12"
-        ),
-        NodeSchema(
             name: "filter",
             category: .language,
             arguments: [
@@ -37,7 +28,7 @@ enum LanguageNodes {
             category: .language,
             arguments: [
                 ArgumentSchema(name: "name", type: .identifier, allowsExpression: false, doc: "Name of the state."),
-                ArgumentSchema(name: "default", type: .value, required: false, doc: "Default value."),
+                ArgumentSchema(name: "default", type: .value, required: false, doc: "Default value, may read other vars."),
             ],
             properties: [
                 PropertySchema(name: "persist", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Stores the value in the config's state file."),
@@ -45,7 +36,7 @@ enum LanguageNodes {
                 PropertySchema(name: "from", type: .value, defaultValue: .null, doc: "Makes the var derived, not settable."),
             ],
             contexts: [.topLevel],
-            doc: "Declares runtime state, optionally persisted.",
+            doc: "Declares state, optionally persisted; a var nothing sets is a constant.",
             example: "var launcher-query \"\""
         ),
         NodeSchema(

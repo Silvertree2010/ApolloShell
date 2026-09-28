@@ -17,8 +17,7 @@ enum IRHarness {
         let included = IncludeExpander.expand(root: root, origin: .user, fileSystem: fs, paths: UseStageTests.paths)
         let requires = included.nodes.filter { $0.kdl.name == "require" }
         let featured = RequireStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
-        let lets = LetStage.run(featured.nodes, registry: .builtin)
-        let used = UseStage.run(lets.nodes, registry: .builtin)
+        let used = UseStage.run(featured.nodes, registry: .builtin)
         let disabled = DisableStage.run(used.nodes, registry: .builtin)
         let checked = SchemaStage.run(disabled.nodes, defines: used.defines, registry: .builtin)
         let built = IRBuilder.build(
@@ -31,7 +30,7 @@ enum IRHarness {
             fileSystem: fs,
             paths: UseStageTests.paths
         )
-        let diagnostics = included.diagnostics + featured.diagnostics + lets.diagnostics + used.diagnostics + disabled.diagnostics + checked.diagnostics + built.diagnostics
+        let diagnostics = included.diagnostics + featured.diagnostics + used.diagnostics + disabled.diagnostics + checked.diagnostics + built.diagnostics
         return (built.ir, diagnostics)
     }
 
@@ -385,11 +384,11 @@ struct IRBuilderTests {
     func largeConstantEach() throws {
         let entries = (0..<50_000).map { "    - \($0)" }.joined(separator: "\n")
         let ir = IRHarness.clean("""
-        let numbers {
+        var numbers {
         \(entries)
         }
         panel "bar" {
-            each n in="{numbers}" {
+            each n in="{var.numbers}" {
                 text "{n}"
             }
         }
@@ -401,7 +400,8 @@ struct IRBuilderTests {
             return
         }
         #expect(each.body.count == 1)
-        guard case .list(let items) = IRHarness.render(each.list) else {
+        let evaluator = EvaluationHarness.evaluator(sink: WarningSink())
+        guard case .list(let items) = ir.vars.first?.defaultValue.evaluate(with: evaluator, scope: TestScope()) else {
             Issue.record("list expected")
             return
         }
@@ -551,9 +551,8 @@ struct IRTopLevelTests {
         let result = IRHarness.build([
             "/config/shell.kdl": """
             require "0.2.0"
-            let gap=8
             style "style.css"
-            var gap-size "{gap}"
+            var gap-size "{4 + 4}"
             var tab "media" persist=#true
             bind "option+space" when="{var.tab == 'media'}" repeat=#true { toggle "bar" }
             bind "cmd+k" id="palette" { toggle "bar" }

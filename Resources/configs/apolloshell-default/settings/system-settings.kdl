@@ -1,4 +1,4 @@
-let settings-system-groups {
+var settings-system-groups {
     - title="Style" {
         panes {
             - title="Wallpaper" area="wallpaper" symbol="photo"
@@ -21,7 +21,7 @@ let settings-system-groups {
 }
 
 define "settings-page-system-settings" {
-    each group in="{settings-system-groups}" key="{group.title}" {
+    each group in="{var.settings-system-groups}" key="{group.title}" {
         column class="settings-group" {
             text "{group.title}" class="settings-group-title"
             each pane in="{group.panes}" key="{pane.area}" {

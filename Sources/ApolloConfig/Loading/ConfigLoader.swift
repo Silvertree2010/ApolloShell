@@ -56,9 +56,7 @@ public struct ConfigLoader: Sendable {
             return finish(nil, files: included.files)
         }
         let registry = self.registry.addingScriptSources(Self.scriptSourceNames(featured.nodes))
-        let lets = LetStage.run(featured.nodes, registry: registry, filters: filters)
-        collect(lets.diagnostics, stage: "let")
-        let used = UseStage.run(lets.nodes, registry: registry)
+        let used = UseStage.run(featured.nodes, registry: registry)
         collect(used.diagnostics, stage: "use")
         if used.nodeCount > ConfigLimits.maxExpansionBudget {
             return finish(nil, files: included.files)

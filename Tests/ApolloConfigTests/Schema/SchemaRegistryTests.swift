@@ -13,7 +13,7 @@ struct SchemaRegistryTests {
     }
 
     static let languageNames: Set<String> = [
-        "include", "let", "var", "define", "param", "slot", "fill", "use",
+        "include", "var", "define", "param", "slot", "fill", "use",
         "each", "when", "else", "switch", "case", "default", "disable", "require", "style", "filter",
     ]
 

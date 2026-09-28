@@ -1,4 +1,4 @@
-let session-actions {
+var session-actions {
     - id="logout" title="Log Out" icon="session-logout" symbol="rectangle.portrait.and.arrow.right" mood="think"
     - id="shutdown" title="Shut Down" icon="session-shutdown" symbol="power" mood="farewell"
     - id="sleep" title="Sleep" icon="session-sleep" symbol="moon.zzz" mood="sleep"
@@ -7,7 +7,7 @@ let session-actions {
 
 var session-selection #null type="any"
 var session-hover #null type="any"
-var session-mood from="{var.session-hover != null ? (session-actions | where 'id' var.session-hover | first).mood : (var.session-selection != null ? (session-actions | at var.session-selection).mood : 'idle')}"
+var session-mood from="{var.session-hover != null ? (var.session-actions | where 'id' var.session-hover | first).mood : (var.session-selection != null ? (var.session-actions | at var.session-selection).mood : 'idle')}"
 
 define "session-button" {
     param "action"
@@ -40,12 +40,12 @@ popup "session" anchor="right" scrim=0.15 overhang=#true {
         }
     }
     column class="session" {
-        use "session-button" action="{session-actions | at 0}" index=0
-        use "session-button" action="{session-actions | at 1}" index=1
+        use "session-button" action="{var.session-actions | at 0}" index=0
+        use "session-button" action="{var.session-actions | at 1}" index=1
         stack class="session-emblem" {
             mark state="{var.session-mood}" greet=#true class="session-mark"
         }
-        use "session-button" action="{session-actions | at 2}" index=2
-        use "session-button" action="{session-actions | at 3}" index=3
+        use "session-button" action="{var.session-actions | at 2}" index=2
+        use "session-button" action="{var.session-actions | at 3}" index=3
     }
 }

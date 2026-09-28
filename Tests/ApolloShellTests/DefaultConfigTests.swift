@@ -120,7 +120,7 @@ struct DefaultConfigTests {
         }
         let presets = try String(contentsOf: Self.defaultFolder.appendingPathComponent("presets.kdl"), encoding: .utf8)
         for name in Self.presetLets.values.flatMap({ $0 }) + ["hotkeys-default", "hotkeys-hyper"] {
-            #expect(presets.contains("let \(name) {"), "\(name)")
+            #expect(presets.contains("var \(name) {"), "\(name)")
         }
     }
 

@@ -58,7 +58,7 @@ private final class IRBuildState {
 }
 
 enum IRBuilder {
-    static let skippedTopLevelNodes: Set<String> = ["define", "let", "include", "require", "else", "disable", "param", "slot", "fill"]
+    static let skippedTopLevelNodes: Set<String> = ["define", "include", "require", "else", "disable", "param", "slot", "fill"]
 
     static func build(
         _ nodes: [ExpandedNode],
@@ -159,8 +159,8 @@ enum IRBuilder {
             state.report(diagnostic, node: node)
         }
         guard var result = declaration else { return nil }
-        result.defaultValue = folded(substitutingLets(result.defaultValue, node: node, state: state))
-        result.derived = result.derived.map { substitutingLets($0, node: node, state: state) }
+        result.defaultValue = folded(expandingFilters(result.defaultValue, node: node, state: state))
+        result.derived = result.derived.map { expandingFilters($0, node: node, state: state) }
         return result
     }
 
@@ -193,22 +193,20 @@ enum IRBuilder {
         return compiled.span
     }
 
-    private static func substitutingLets(_ template: ValueTemplate, node: ExpandedNode, state: IRBuildState) -> ValueTemplate {
+    private static func expandingFilters(_ template: ValueTemplate, node: ExpandedNode, state: IRBuildState) -> ValueTemplate {
         switch template {
         case .scalar(let compiled):
-            return .scalar(substitutingLets(compiled, node: node, state: state))
+            return .scalar(expandingFilters(compiled, node: node, state: state))
         case .list(let items):
-            return .list(items.map { substitutingLets($0, node: node, state: state) })
+            return .list(items.map { expandingFilters($0, node: node, state: state) })
         case .record(let fields):
-            return .record(fields.map { ValueTemplateField(name: $0.name, value: substitutingLets($0.value, node: node, state: state)) })
+            return .record(fields.map { ValueTemplateField(name: $0.name, value: expandingFilters($0.value, node: node, state: state)) })
         }
     }
 
-    private static func substitutingLets(_ compiled: CompiledValue, node: ExpandedNode, state: IRBuildState) -> CompiledValue {
+    private static func expandingFilters(_ compiled: CompiledValue, node: ExpandedNode, state: IRBuildState) -> CompiledValue {
         if compiled.template.literalValue != nil, compiled.dependencies.isEmpty { return compiled }
-        let locals = Set(node.useFrame?.bindings.keys.map { $0 } ?? [])
         var raw = compiled
-        raw.template = LetSubstitution.apply(compiled.template, lets: node.letValues, locals: locals)
         var overflowed = false
         raw.template = UserFilterExpansion.apply(raw.template, filters: state.templates?.userFilters ?? [:], overflowed: &overflowed)
         return finish(raw, frame: node.useFrame, scope: [], state: state)
@@ -313,10 +311,7 @@ enum IRBuilder {
     }
 
     private static func defaultNode(for define: DefineDecl?) -> ExpandedNode {
-        var node = ExpandedNode(kdl: KDLNode(name: "param"), file: define?.span.file ?? "", includeChain: define?.includeChain ?? [], children: [])
-        node.letValues = define?.letValues ?? [:]
-        node.poisonedLets = define?.poisonedLets ?? []
-        return node
+        ExpandedNode(kdl: KDLNode(name: "param"), file: define?.span.file ?? "", includeChain: define?.includeChain ?? [], children: [])
     }
 
     private static func buildBody(_ nodes: [ExpandedNode], handlerNames: Set<String>, scope: [LocalBinding], state: IRBuildState) -> Body {
@@ -359,7 +354,7 @@ enum IRBuilder {
                 if let slot = firstString(node) {
                     body.slots[slot] = buildBody(node.children, handlerNames: [], scope: scope, state: state).children
                 }
-            case "else", "let", "define", "param":
+            case "else", "define", "param":
                 continue
             default:
                 var elseNode: ExpandedNode?
@@ -807,7 +802,7 @@ enum IRBuilder {
         if let frame {
             locals.formUnion(frame.bindings.keys)
         }
-        let environment = ExpressionEnvironment(registry: state.registry, letValues: node.letValues, poisonedLets: node.poisonedLets, locals: locals, context: validation ?? .elementBody, templates: state.templates)
+        let environment = ExpressionEnvironment(registry: state.registry, locals: locals, context: validation ?? .elementBody, templates: state.templates)
         let (compiled, diagnostics) = ExpressionCompiler.compile(value, env: environment, allowsExpression: allowsExpression, validates: validation != nil)
         for diagnostic in diagnostics where validation != nil {
             state.report(diagnostic, node: node)

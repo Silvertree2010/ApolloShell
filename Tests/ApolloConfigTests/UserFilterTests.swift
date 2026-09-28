@@ -86,12 +86,13 @@ struct UserFilterTests {
         #expect(Self.render(compiled) == .number(6))
     }
 
-    @Test("let mit unbekanntem Filter ist ein Fehler statt still null")
-    func letNeedsBuiltinFilters() {
-        let (result, _) = Self.texts("filter \"dbl\" \"{value * 2}\"\nlet x=\"{5 | dbl}\"\nlet y=\"{'a' | upperr}\"\n")
-        let errors = result.diagnostics.filter { $0.severity == .error }.map(\.message)
-        #expect(errors.contains("unknown filter 'dbl' in 'let'"))
-        #expect(errors.contains("unknown filter 'upperr' in 'let'"))
+    @Test("Vorgabe einer var darf eigene Filter nutzen")
+    func varDefaultUsesUserFilters() throws {
+        let (result, _) = Self.texts("filter \"dbl\" \"{value * 2}\"\nvar x \"{5 | dbl}\"\n")
+        #expect(result.diagnostics.isEmpty, "\(result.diagnostics.map(\.message))")
+        let x = try #require(result.ir?.vars.first)
+        guard case .scalar(let compiled) = x.defaultValue else { Issue.record("no scalar"); return }
+        #expect(Self.render(compiled) == .number(10))
     }
 
     @Test("filter mit Kindern ist ein Fehler")

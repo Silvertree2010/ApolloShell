@@ -33,7 +33,7 @@ private struct WalkContext {
     }
 
     func environment(for node: ExpandedNode, registry: SchemaRegistry, templates: TemplateCache?, declaredVars: Set<String>?) -> ExpressionEnvironment {
-        ExpressionEnvironment(registry: registry, letValues: node.letValues, poisonedLets: node.poisonedLets, locals: locals(for: node), context: context, templates: templates, declaredVars: declaredVars)
+        ExpressionEnvironment(registry: registry, locals: locals(for: node), context: context, templates: templates, declaredVars: declaredVars)
     }
 }
 
