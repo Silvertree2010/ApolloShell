@@ -17,6 +17,20 @@ struct ApolloCLITests {
         #expect(harness.shell.calls.isEmpty)
     }
 
+    @Test("explain erklärt eine Kennung lokal, auch klein geschrieben, ohne Shell")
+    func explain() throws {
+        let harness = try CLIHarness()
+        let none = harness.folder.url.appendingPathComponent("none").path
+        let known = harness.run(["explain", "a201"], socket: none)
+        #expect(known.exitCode == 0)
+        #expect(known.stdout == ["A201: The node name is not known here."])
+        let unknown = harness.run(["explain", "B7"], socket: none)
+        #expect(unknown.exitCode == 2)
+        #expect(unknown.stderr.first?.contains("not a diagnostic code") == true)
+        #expect(harness.run(["explain"], socket: none).exitCode == 2)
+        #expect(harness.shell.calls.isEmpty)
+    }
+
     @Test("reload gibt Diagnosen aus, Exit 1 nur bei Fehlern")
     func reload() throws {
         let harness = try CLIHarness()

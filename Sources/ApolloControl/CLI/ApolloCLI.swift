@@ -20,6 +20,7 @@ public struct ApolloCLI: Sendable {
           theme list|select <id>|select --none
           wm <command ...>                 window manager commands like twmctl
           schema [--json|--markdown] [<name>]
+          explain <code>                   what a diagnostic code such as A201 means
           providers                        every provider field with its current value
           tree [<surface>]                 element tree with identities
           command-center                   open the command center menu
@@ -66,6 +67,14 @@ public struct ApolloCLI: Sendable {
             return result.exitCode
         case "schema":
             return schema(rest, out: out, err: err)
+        case "explain":
+            guard rest.count == 1 else { return context.usage("explain needs one code, for example: apollo explain A201") }
+            guard let code = DiagnosticCode(rawValue: rest[0].uppercased()) else {
+                err("'\(rest[0])' is not a diagnostic code; the codes run from A001 to \(DiagnosticCode.allCases.last!.rawValue)")
+                return Exit.usage
+            }
+            out("\(code.rawValue): \(code.summary)")
+            return Exit.ok
         case "version":
             out("apollo \(version)")
             if case .success(.string(let shell))? = try? transport.call("version", Record()) {
