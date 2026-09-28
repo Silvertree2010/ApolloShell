@@ -185,7 +185,7 @@ enum Elements {
                 PropertySchema(name: "values", type: .list, required: true, doc: "List of numbers."),
                 PropertySchema(name: "min", type: .number, defaultValue: .number(0), doc: "Lower bound."),
                 PropertySchema(name: "max", type: .number, defaultValue: .null, doc: "Upper bound, default largest value."),
-                PropertySchema(name: "kind", type: .enumeration(["line", "area", "bars"]), defaultValue: .null, allowsExpression: false, doc: "Style."),
+                PropertySchema(name: "kind", type: .enumeration(["line", "area", "bars"]), defaultValue: .null, allowsExpression: false, doc: "How the values are drawn: line, area or bars."),
                 PropertySchema(name: "capacity", type: .number, defaultValue: .null, doc: "Number of points, older ones drop out."),
             ],
             handlers: CommonProperties.elementHandlers,
