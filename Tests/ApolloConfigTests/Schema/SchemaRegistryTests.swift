@@ -182,6 +182,12 @@ struct SchemaRegistryTests {
         }
     }
 
+    @Test("Apps startet nur apps.launch, eine zweite Aktion open-app gibt es nicht")
+    func appsLaunchIsTheOnlyLauncher() {
+        #expect(!BuiltinSchemaRegistry.allActions.contains { $0.name == "open-app" })
+        #expect(BuiltinSchemaRegistry.allProviders.flatMap(\.actions).contains { $0.name == "apps.launch" })
+    }
+
     @Test("jede Property hat Typ und Vorgabe oder ist required")
     func propertiesHaveTypeAndDefaultOrRequired() {
         for node in BuiltinSchemaRegistry.allNodes {
