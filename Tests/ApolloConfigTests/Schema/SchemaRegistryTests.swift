@@ -149,6 +149,39 @@ struct SchemaRegistryTests {
         }
     }
 
+    @Test("jede Beschreibung in der Registry sagt mehr als ein Wort")
+    func docsSayMoreThanOneWord() {
+        var docs: [(String, String)] = []
+        func add(_ owner: String, _ arguments: [ArgumentSchema], _ properties: [PropertySchema]) {
+            docs += arguments.map { ("\(owner) \($0.name)", $0.doc) } + properties.map { ("\(owner) \($0.name)", $0.doc) }
+        }
+        for node in BuiltinSchemaRegistry.allNodes {
+            docs.append((node.name, node.doc))
+            add(node.name, node.arguments, node.properties)
+        }
+        let providerActions = BuiltinSchemaRegistry.allProviders.flatMap(\.actions)
+        for action in BuiltinSchemaRegistry.allActions + providerActions {
+            docs.append((action.name, action.doc))
+            add(action.name, action.arguments, action.properties)
+        }
+        for filter in BuiltinSchemaRegistry.allFilters {
+            docs.append((filter.name, filter.doc))
+            add(filter.name, filter.arguments, [])
+        }
+        for provider in BuiltinSchemaRegistry.allProviders {
+            docs.append((provider.id, provider.doc))
+            add(provider.id, [], provider.settings)
+            docs += provider.fields.map { ("\(provider.id) \($0.path.joined(separator: "."))", $0.doc) }
+        }
+        for event in BuiltinSchemaRegistry.allEvents {
+            docs.append((event.name, event.doc))
+            docs += event.fields.map { ("\(event.name) \($0.path.joined(separator: "."))", $0.doc) }
+        }
+        for (owner, doc) in docs {
+            #expect(doc.split(separator: " ").count >= 2, "\(owner): \"\(doc)\" says too little")
+        }
+    }
+
     @Test("jede Property hat Typ und Vorgabe oder ist required")
     func propertiesHaveTypeAndDefaultOrRequired() {
         for node in BuiltinSchemaRegistry.allNodes {
