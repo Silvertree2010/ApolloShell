@@ -1382,11 +1382,11 @@ theme-preview theme="{item.slug}"
 
 ### `toast` (node)
 
-Defines how a notification from the notify action looks.
+Defines how a notification from the toast.show action looks.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `style` | identifier | required | Style name, target of the notify action. |
+| argument | `style` | identifier | required | Style name, target of the toast.show action. |
 | property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
 | property | `class` | string | `null` | CSS classes, separated by spaces. |
 | property | `style` | string | `null` | CSS declarations for this node only. |
@@ -1685,19 +1685,6 @@ Merges fields into a record of a var list.
 
 Opens the Marketplace window.
 
-### `notify` (action)
-
-Shows a toast.
-
-| | Name | Type | Default | |
-| --- | --- | --- | --- | --- |
-| property | `title` | string | `null` | First line, read as toast.title. |
-| property | `body` | string | `null` | Text under the title, read as toast.body. |
-| property | `icon` | string | `null` | SF Symbol name, read as toast.icon. |
-| property | `kind` | string | `null` | Free word the toast can style by, read as toast.kind; default info. |
-| property | `style` | string | `"default"` | Toast style. |
-| property | `duration` | duration | `null` | Display duration. |
-
 ### `open` (action)
 
 Opens a surface.
@@ -1854,6 +1841,19 @@ Switches the theme.
 ### `toast.dismiss` (action)
 
 Closes the clicked toast from inside its content.
+
+### `toast.show` (action)
+
+Shows a toast.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| property | `title` | string | `null` | First line, read as toast.title. |
+| property | `body` | string | `null` | Text under the title, read as toast.body. |
+| property | `icon` | string | `null` | SF Symbol name, read as toast.icon. |
+| property | `kind` | string | `null` | Free word the toast can style by, read as toast.kind; default info. |
+| property | `style` | string | `"default"` | Toast style. |
+| property | `duration` | duration | `null` | Display duration. |
 
 ### `toggle` (action)
 

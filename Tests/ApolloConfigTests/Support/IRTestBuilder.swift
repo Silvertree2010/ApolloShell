@@ -118,7 +118,7 @@ enum IRTestBuilder {
             ],
             surfaces: [bar],
             binds: [BindIR(id: "alt+space", chord: literal(.string("alt+space"), line: 60), actions: [action("toggle", [literal(.string("launcher"), line: 60)], line: 60)], span: span(line: 60))],
-            events: [EventHandlerIR(event: "config.loaded", actions: [action("notify", [literal(.string("Loaded"), line: 61)], line: 61)], span: span(line: 61))],
+            events: [EventHandlerIR(event: "config.loaded", actions: [action("toast.show", [literal(.string("Loaded"), line: 61)], line: 61)], span: span(line: 61))],
             defines: [weather.name: weather],
             blocks: ["poll": [BlockIR(name: "poll", nodes: [KDLNode(name: "poll", arguments: [KDLValue(.string("uptime"))])], compiled: ["interval": literal(.string("5s"), line: 70)])]]
         )

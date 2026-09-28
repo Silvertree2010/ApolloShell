@@ -52,7 +52,7 @@ enum ActionsGlobal {
             PropertySchema(name: "folders", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Folders instead of files."),
             PropertySchema(name: "types", type: .list, defaultValue: .null, allowsExpression: false, doc: "Allowed extensions."),
         ], doc: "Opens a file picker."),
-        ActionSchema(name: "notify", properties: [
+        ActionSchema(name: "toast.show", properties: [
             PropertySchema(name: "title", type: .string, defaultValue: .null, doc: "First line, read as toast.title."),
             PropertySchema(name: "body", type: .string, defaultValue: .null, doc: "Text under the title, read as toast.body."),
             PropertySchema(name: "icon", type: .string, defaultValue: .null, doc: "SF Symbol name, read as toast.icon."),

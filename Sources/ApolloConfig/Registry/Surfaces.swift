@@ -48,7 +48,7 @@ enum Surfaces {
         NodeSchema(
             name: "toast",
             category: .surface,
-            arguments: [ArgumentSchema(name: "style", type: .identifier, doc: "Style name, target of the notify action.")],
+            arguments: [ArgumentSchema(name: "style", type: .identifier, doc: "Style name, target of the toast.show action.")],
             properties: CommonProperties.surfaceProperties + [
                 PropertySchema(name: "max", type: .number, defaultValue: .number(4), allowsExpression: false, doc: "Toasts visible at the same time."),
                 PropertySchema(name: "duration", type: .duration, defaultValue: .string("5s"), doc: "Display duration."),
@@ -57,7 +57,7 @@ enum Surfaces {
             handlers: CommonProperties.surfaceHandlers,
             childContext: .surfaceBody,
             contexts: [.topLevel],
-            doc: "Defines how a notification from the notify action looks.",
+            doc: "Defines how a notification from the toast.show action looks.",
             example: "toast \"default\" { }"
         ),
         NodeSchema(
