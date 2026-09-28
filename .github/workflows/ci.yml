@@ -3,7 +3,11 @@ name: CI
 on:
   push:
     branches: [main, framework]
+    paths-ignore:
+      - "docs/**"
   pull_request:
+    paths-ignore:
+      - "docs/**"
 
 permissions:
   contents: read
