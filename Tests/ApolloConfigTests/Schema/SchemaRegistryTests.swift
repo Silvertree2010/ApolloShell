@@ -124,7 +124,7 @@ struct SchemaRegistryTests {
         let nodeNames = BuiltinSchemaRegistry.allNodes.flatMap { node in
             node.arguments.map { "\(node.name) \($0.name)" } + node.properties.map { "\(node.name) \($0.name)" }
         }
-        let actionNames = BuiltinSchemaRegistry.allActions.flatMap { action in
+        let actionNames = (BuiltinSchemaRegistry.allActions + BuiltinSchemaRegistry.allProviders.flatMap(\.actions)).flatMap { action in
             action.arguments.map { "\(action.name) \($0.name)" } + action.properties.map { "\(action.name) \($0.name)" }
         }
         for entry in nodeNames + actionNames {
