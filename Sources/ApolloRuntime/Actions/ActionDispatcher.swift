@@ -165,7 +165,7 @@ public final class ActionDispatcher: ActionRuntime {
             let requested = max(0, number.rounded(.down))
             var times = Int(min(requested, Double(Self.maximumRepeat)))
             if requested > Double(Self.maximumRepeat) {
-                warn(Diagnostic(.warning, "repeat is capped at \(Self.maximumRepeat), got \(RuntimeDuration.whole(requested))", span: count.span))
+                warn(Diagnostic(.warning, "repeat is capped at \(Self.maximumRepeat), got \(RuntimeDuration.whole(requested))", span: count.span, code: .actionCapped))
                 times = Self.maximumRepeat
             }
             for _ in 0..<times {
@@ -253,7 +253,7 @@ public final class ActionDispatcher: ActionRuntime {
             throw ActionFailure("wait needs a duration like \"500ms\" or \"2s\"")
         }
         if seconds > Self.maximumWait {
-            warn(Diagnostic(.warning, "wait is capped at 10s, got \(RuntimeDuration.describe(seconds))", span: call.span))
+            warn(Diagnostic(.warning, "wait is capped at 10s, got \(RuntimeDuration.describe(seconds))", span: call.span, code: .actionCapped))
             seconds = Self.maximumWait
         }
         guard seconds > 0 else { return }
@@ -305,7 +305,7 @@ public final class ActionDispatcher: ActionRuntime {
         #if canImport(os)
         logger.warning("\(span.file, privacy: .public):\(span.start.line): \(message, privacy: .public)")
         #endif
-        warn(Diagnostic(.warning, message, span: span))
+        warn(Diagnostic(.warning, message, span: span, code: .actionFailed))
     }
 
     private func string(_ call: ResolvedActionCall, _ index: Int, _ label: String) throws -> String {

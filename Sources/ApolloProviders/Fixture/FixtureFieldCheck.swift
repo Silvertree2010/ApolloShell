@@ -215,7 +215,7 @@ final class FieldCheckSink: Sendable {
     private let state = Mutex<(seen: Set<String>, diagnostics: [Diagnostic])>(([], []))
 
     func missing(_ path: String, _ span: SourceSpan?) {
-        add(Diagnostic(.warning, "'\(path)' does not exist in the fixture record", span: span))
+        add(Diagnostic(.warning, "'\(path)' does not exist in the fixture record", span: span, code: .fixtureContent))
     }
 
     func warning(_ diagnostic: Diagnostic) {

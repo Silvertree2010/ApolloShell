@@ -17,7 +17,7 @@ public struct ProviderFixture: Sendable {
 
     public static func load(_ url: URL, registry: SchemaRegistry = .builtin) -> ProviderFixture {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else {
-            return ProviderFixture(diagnostics: [Diagnostic(.error, "cannot read fixture \(url.path)", span: .synthetic(url.path))])
+            return ProviderFixture(diagnostics: [Diagnostic(.error, "cannot read fixture \(url.path)", span: .synthetic(url.path), code: .checkFixture)])
         }
         return parse(text, file: url.path, registry: registry)
     }
@@ -27,12 +27,12 @@ public struct ProviderFixture: Sendable {
         do {
             document = try KDLDocument.parse(text, file: file)
         } catch {
-            return ProviderFixture(diagnostics: [Diagnostic(.error, error.message, span: error.span)])
+            return ProviderFixture(diagnostics: [Diagnostic(.error, error.message, span: error.span, code: .checkFixture)])
         }
         var fixture = ProviderFixture()
         for root in document.nodes {
             guard root.name == "fixture" else {
-                fixture.diagnostics.append(Diagnostic(.warning, "unknown node '\(root.name)' in fixture, expected 'fixture'", span: root.nameSpan))
+                fixture.diagnostics.append(Diagnostic(.warning, "unknown node '\(root.name)' in fixture, expected 'fixture'", span: root.nameSpan, code: .fixtureContent))
                 continue
             }
             for node in root.children ?? [] {
@@ -49,7 +49,7 @@ public struct ProviderFixture: Sendable {
                     continue
                 }
                 guard let schema = registry.providers[node.name] else {
-                    fixture.diagnostics.append(Diagnostic(.warning, "unknown provider '\(node.name)' in fixture", span: node.nameSpan))
+                    fixture.diagnostics.append(Diagnostic(.warning, "unknown provider '\(node.name)' in fixture", span: node.nameSpan, code: .fixtureContent))
                     continue
                 }
                 fixture.diagnostics += unknownFields(node, schema: schema, prefix: [])
@@ -64,14 +64,14 @@ public struct ProviderFixture: Sendable {
         var diagnostics: [Diagnostic] = []
         for property in node.properties {
             if classify(prefix + [property.name], schema) == .unknown {
-                diagnostics.append(Diagnostic(.warning, "unknown field '\(fieldName(schema, prefix + [property.name]))' in fixture", span: property.span))
+                diagnostics.append(Diagnostic(.warning, "unknown field '\(fieldName(schema, prefix + [property.name]))' in fixture", span: property.span, code: .fixtureContent))
             }
         }
         for child in node.children ?? [] where child.name != "-" {
             let path = prefix + [child.name]
             switch classify(path, schema) {
             case .unknown:
-                diagnostics.append(Diagnostic(.warning, "unknown field '\(fieldName(schema, path))' in fixture", span: child.nameSpan))
+                diagnostics.append(Diagnostic(.warning, "unknown field '\(fieldName(schema, path))' in fixture", span: child.nameSpan, code: .fixtureContent))
             case .group:
                 diagnostics += unknownFields(child, schema: schema, prefix: path)
             case .field:

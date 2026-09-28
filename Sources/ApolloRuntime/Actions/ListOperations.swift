@@ -125,7 +125,7 @@ public enum ListOperations {
         return extractList(value, span: span).flatMap { items in
             resolveIndex(entryKey, in: items, span: span).flatMap { index in
                 guard case .record(let record) = items[index] else {
-                    return .failure(Diagnostic(.warning, "list locator entry is not a record", span: span))
+                    return .failure(Diagnostic(.warning, "list locator entry is not a record", span: span, code: .listOperation))
                 }
                 if let field = locator.field {
                     let fieldValue = record[field] ?? .list([])
@@ -185,7 +185,7 @@ public enum ListOperations {
         case .update(let at, let fields):
             return resolveIndex(at, in: items, span: span).flatMap { index in
                 guard case .record(var record) = items[index] else {
-                    return .failure(Diagnostic(.warning, "list.update needs a record entry", span: span))
+                    return .failure(Diagnostic(.warning, "list.update needs a record entry", span: span, code: .listOperation))
                 }
                 for key in fields.keys {
                     record[key] = fields[key]
@@ -200,10 +200,10 @@ public enum ListOperations {
     private static func resolveInsertItem(_ item: Value, idFrom: String?, existing: [Value], span: SourceSpan) -> Result<Value, Diagnostic> {
         guard let field = idFrom else { return .success(item) }
         guard case .record(var record) = item else {
-            return .failure(Diagnostic(.warning, "id-from requires a record item", span: span))
+            return .failure(Diagnostic(.warning, "id-from requires a record item", span: span, code: .listOperation))
         }
         guard case .string(let base)? = record[field], !base.isEmpty else {
-            return .failure(Diagnostic(.warning, "id-from field \"\(field)\" is missing or empty", span: span))
+            return .failure(Diagnostic(.warning, "id-from field \"\(field)\" is missing or empty", span: span, code: .listOperation))
         }
         let taken = Set(existing.compactMap { entry -> String? in
             guard case .record(let entryRecord) = entry, case .string(let id)? = entryRecord["id"] else { return nil }
@@ -224,7 +224,7 @@ public enum ListOperations {
         switch key {
         case .index(let index):
             guard index >= 0 else {
-                return .failure(Diagnostic(.warning, "list index must not be negative", span: span))
+                return .failure(Diagnostic(.warning, "list index must not be negative", span: span, code: .listOperation))
             }
             guard index < items.count else {
                 return .failure(outOfRange("list index", index, upTo: items.count, span: span))
@@ -234,7 +234,7 @@ public enum ListOperations {
             if let found = items.firstIndex(where: { matches($0, id) }) {
                 return .success(found)
             }
-            return .failure(Diagnostic(.warning, "no list entry with key \"\(id)\"", span: span))
+            return .failure(Diagnostic(.warning, "no list entry with key \"\(id)\"", span: span, code: .listOperation))
         }
     }
 
@@ -250,12 +250,12 @@ public enum ListOperations {
 
     private static func extractList(_ value: Value, span: SourceSpan) -> Result<[Value], Diagnostic> {
         guard case .list(let items) = value else {
-            return .failure(Diagnostic(.warning, "expected a list, got \(value.typeName)", span: span))
+            return .failure(Diagnostic(.warning, "expected a list, got \(value.typeName)", span: span, code: .listOperation))
         }
         return .success(items)
     }
 
     private static func outOfRange(_ label: String, _ index: Int, upTo count: Int, span: SourceSpan) -> Diagnostic {
-        Diagnostic(.warning, "\(label) \(index) out of range (0...\(count))", span: span)
+        Diagnostic(.warning, "\(label) \(index) out of range (0...\(count))", span: span, code: .listOperation)
     }
 }

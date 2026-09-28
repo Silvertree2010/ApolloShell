@@ -10,7 +10,7 @@ enum StyleSheets {
         var diagnostics: [Diagnostic] = []
         for ref in ir.styleSheets {
             guard let text = try? String(contentsOf: ref.url, encoding: .utf8) else {
-                diagnostics.append(Diagnostic(.warning, "cannot read style sheet \(ref.url.path)", span: ref.span))
+                diagnostics.append(Diagnostic(.warning, "cannot read style sheet \(ref.url.path)", span: ref.span, code: .fileUnreadable))
                 continue
             }
             let (sheet, found) = StyleSheet.parse(text, file: ref.url.path, origin: .config, assetRoot: ref.url.deletingLastPathComponent())

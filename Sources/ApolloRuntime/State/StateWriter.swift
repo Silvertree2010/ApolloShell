@@ -53,7 +53,7 @@ public final class StateWriter: Sendable {
             do {
                 try fileSystem.write(text, to: backup)
             } catch {
-                deliver(Diagnostic(.warning, "could not copy the unreadable state file '\(file.path)'", span: .synthetic(file.path)))
+                deliver(Diagnostic(.warning, "could not copy the unreadable state file '\(file.path)'", span: .synthetic(file.path), code: .stateCopy))
             }
         }
     }
@@ -71,9 +71,9 @@ public final class StateWriter: Sendable {
             do {
                 try fileSystem.write(existingText, to: backup)
             } catch {
-                return Diagnostic(.warning, "\(file.lastPathComponent) could not be read and its copy could not be saved, so it was left as it is.")
+                return Diagnostic(.warning, "\(file.lastPathComponent) could not be read and its copy could not be saved, so it was left as it is.", code: .stateSyntax)
             }
-            replaced = Diagnostic(.warning, "\(file.lastPathComponent) could not be read. It was saved as \(backup.lastPathComponent) and started anew.")
+            replaced = Diagnostic(.warning, "\(file.lastPathComponent) could not be read. It was saved as \(backup.lastPathComponent) and started anew.", code: .stateSyntax)
             existingText = ""
             baseline = nil
         }
@@ -102,7 +102,7 @@ public final class StateWriter: Sendable {
                 return was
             }
             if alreadyWarned { return nil }
-            return Diagnostic(.warning, "\(file.lastPathComponent) could not be saved. The change only applies until the next restart.")
+            return Diagnostic(.warning, "\(file.lastPathComponent) could not be saved. The change only applies until the next restart.", code: .stateWrite)
         }
     }
 

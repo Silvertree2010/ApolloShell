@@ -142,10 +142,10 @@ extension LiveShell {
         var finished = false
         let handle = runner.run(command) { [weak self] status, _ in
             finished = true
-            if status != 0 { self?.overlay.add(Diagnostic(.warning, "exec \"\(command)\" ended with status \(status)")) }
+            if status != 0 { self?.overlay.add(Diagnostic(.warning, "exec \"\(command)\" ended with status \(status)", code: .actionFailed)) }
         }
         guard let handle else {
-            overlay.add(Diagnostic(.warning, "exec could not start \"\(command)\""))
+            overlay.add(Diagnostic(.warning, "exec could not start \"\(command)\"", code: .actionFailed))
             return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + max(0.1, timeout)) {
