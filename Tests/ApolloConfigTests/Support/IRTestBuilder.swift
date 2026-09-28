@@ -56,7 +56,7 @@ enum IRTestBuilder {
                     kind: "button",
                     key: "0",
                     properties: ["id": value("app-{app.bundle-id}", locals: ["app", "i"], line: 21)],
-                    handlers: [HandlerIR(name: "on-click", actions: [action("open-app", [value("{app.bundle-id}", locals: ["app", "i"], line: 22)], line: 22)], span: span(line: 22))],
+                    handlers: [HandlerIR(name: "on-click", actions: [action("apps.launch", [value("{app.bundle-id}", locals: ["app", "i"], line: 22)], line: 22)], span: span(line: 22))],
                     menu: MenuIR(items: [
                         .item(title: literal(.string("Quit"), line: 23), properties: [:], actions: [action("apps.quit", [value("{app.bundle-id}", locals: ["app", "i"], line: 23)], line: 23)]),
                         .separator,

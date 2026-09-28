@@ -1707,14 +1707,6 @@ Opens a surface.
 | argument | `id` | identifier | required | Surface id. |
 | property | `screen` | string | `null` | Overrides the screen choice. |
 
-### `open-app` (action)
-
-Launches an app or brings it to the front.
-
-| | Name | Type | Default | |
-| --- | --- | --- | --- | --- |
-| argument | `bundle-id` | string | required | Bundle ID. |
-
 ### `open-file` (action)
 
 Opens a file.

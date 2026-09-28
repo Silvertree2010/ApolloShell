@@ -9,13 +9,6 @@ import ApolloRuntime
 @MainActor
 final class GlobalActionEffects {
     var openURL: @MainActor (URL) -> Bool = { NSWorkspace.shared.open($0) }
-    var openApp: @MainActor (String) -> Bool = { bundleID in
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return false }
-        let configuration = NSWorkspace.OpenConfiguration()
-        configuration.activates = true
-        NSWorkspace.shared.openApplication(at: url, configuration: configuration)
-        return true
-    }
     var openFile: @MainActor (URL, String?) -> Bool = { file, app in
         guard let app else { return NSWorkspace.shared.open(file) }
         guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app) ?? GlobalActionEffects.appPath(app) else { return false }
@@ -67,10 +60,6 @@ extension LiveShell {
             let raw = try text(call, 0, "a URL")
             guard let url = URL(string: raw), url.scheme != nil else { throw ActionFailure("open-url: \"\(raw)\" is not a URL") }
             if !effects.openURL(url) { throw ActionFailure("open-url: nothing opens \"\(raw)\"") }
-        }
-        register("open-app") { call in
-            let id = try text(call, 0, "a bundle id")
-            if !effects.openApp(id) { throw ActionFailure("open-app: no app with bundle id \"\(id)\"") }
         }
         register("open-file") { call in
             let file = try path(call)
