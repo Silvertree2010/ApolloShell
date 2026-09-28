@@ -29,8 +29,12 @@ public struct WttrProvider: WeatherProvider {
 
     public func decode(_ bodies: [Data?], now: Date) throws -> WeatherReport {
         let raw = try JSONDecoder().decode(Raw.self, from: primary(bodies))
+        let observed = raw.currentCondition?.first?.observationTime.flatMap { Self.observation($0, now: now) }
+        let zone = observed.flatMap { observed in
+            raw.currentCondition?.first?.localObsDateTime.flatMap { Self.placeZone(local: $0, observed: observed) }
+        } ?? timeZone
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
+        calendar.timeZone = zone
 
         var hours: [HourForecast] = []
         var days: [DayForecast] = []
@@ -66,12 +70,12 @@ public struct WttrProvider: WeatherProvider {
         else { throw WeatherProviderError.noCurrentWeather }
         var report = WeatherReport(
             current: CurrentWeather(
-                time: c.observationTime.flatMap { Self.observation($0, now: now) } ?? now,
+                time: observed ?? now,
                 temperature: temperature, apparentTemperature: c.feelsLikeC?.value,
                 humidity: c.humidity?.value.flatMap(WeatherNumber.whole), code: WttrCode.wmo(WeatherNumber.whole(code.rounded(.towardZero)) ?? WeatherCondition.unknownCode),
                 windSpeed: c.windspeedKmph?.value, isDay: true
             ),
-            hours: hours, days: days, timeZone: timeZone
+            hours: hours, days: days, timeZone: zone
         )
         report.current.isDay = report.isDay(at: report.current.time)
         return report
@@ -93,6 +97,19 @@ public struct WttrProvider: WeatherProvider {
         utc.timeZone = TimeZone(identifier: "UTC")!
         guard let sameDay = utc.date(bySettingHour: hour, minute: minute, second: 0, of: now) else { return nil }
         return sameDay > now.addingTimeInterval(3600) ? sameDay.addingTimeInterval(-86400) : sameDay
+    }
+
+    static func placeZone(local text: String, observed: Date) -> TimeZone? {
+        let parts = text.trimmingCharacters(in: .whitespaces).split(separator: " ", maxSplits: 1)
+        guard parts.count == 2, let (hour, minute) = clock12(String(parts[1])) else { return nil }
+        let day = parts[0].split(separator: "-").compactMap { Int($0) }
+        guard day.count == 3, (1...9999).contains(day[0]), (1...12).contains(day[1]), (1...31).contains(day[2]) else { return nil }
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        guard let wall = utc.date(from: DateComponents(year: day[0], month: day[1], day: day[2], hour: hour, minute: minute)) else { return nil }
+        let quarters = (wall.timeIntervalSince(observed) / 900).rounded()
+        guard quarters.isFinite, (-48...56).contains(quarters) else { return nil }
+        return TimeZone(secondsFromGMT: Int(quarters) * 900)
     }
 
     static func clock12(_ text: String) -> (Int, Int)? {
@@ -121,6 +138,7 @@ public struct WttrProvider: WeatherProvider {
     private struct Raw: Decodable {
         struct Current: Decodable {
             let observationTime: String?
+            let localObsDateTime: String?
             let tempC: Number?
             let feelsLikeC: Number?
             let humidity: Number?
@@ -128,7 +146,7 @@ public struct WttrProvider: WeatherProvider {
             let windspeedKmph: Number?
 
             enum CodingKeys: String, CodingKey {
-                case humidity, weatherCode, windspeedKmph
+                case humidity, weatherCode, windspeedKmph, localObsDateTime
                 case observationTime = "observation_time"
                 case tempC = "temp_C"
                 case feelsLikeC = "FeelsLikeC"

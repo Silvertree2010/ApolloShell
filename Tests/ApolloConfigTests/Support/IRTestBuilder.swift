@@ -56,7 +56,7 @@ enum IRTestBuilder {
                     kind: "button",
                     key: "0",
                     properties: ["id": value("app-{app.bundle-id}", locals: ["app", "i"], line: 21)],
-                    handlers: [HandlerIR(name: "on-click", actions: [action("open-app", [value("{app.bundle-id}", locals: ["app", "i"], line: 22)], line: 22)], span: span(line: 22))],
+                    handlers: [HandlerIR(name: "on-click", actions: [action("apps.launch", [value("{app.bundle-id}", locals: ["app", "i"], line: 22)], line: 22)], span: span(line: 22))],
                     menu: MenuIR(items: [
                         .item(title: literal(.string("Quit"), line: 23), properties: [:], actions: [action("apps.quit", [value("{app.bundle-id}", locals: ["app", "i"], line: 23)], line: 23)]),
                         .separator,
@@ -112,14 +112,13 @@ enum IRTestBuilder {
             files: [URL(fileURLWithPath: file)],
             styleSheets: [StyleRef(url: URL(fileURLWithPath: "/config/shell.css"), span: span(line: 2))],
             requiredVersion: "0.2.0",
-            requiredFeatures: ["core"],
             vars: [
                 VarDecl(name: "dashboard-tab", type: .string, defaultValue: .scalar(literal(.string("media"), line: 3)), persist: true, derived: nil, span: span(line: 3)),
                 VarDecl(name: "clock-seconds", type: .bool, defaultValue: .scalar(literal(.bool(false), line: 4)), persist: false, derived: nil, span: span(line: 4)),
             ],
             surfaces: [bar],
             binds: [BindIR(id: "alt+space", chord: literal(.string("alt+space"), line: 60), actions: [action("toggle", [literal(.string("launcher"), line: 60)], line: 60)], span: span(line: 60))],
-            events: [EventHandlerIR(event: "config.loaded", actions: [action("notify", [literal(.string("Loaded"), line: 61)], line: 61)], span: span(line: 61))],
+            events: [EventHandlerIR(event: "config.loaded", actions: [action("toast.show", [literal(.string("Loaded"), line: 61)], line: 61)], span: span(line: 61))],
             defines: [weather.name: weather],
             blocks: ["poll": [BlockIR(name: "poll", nodes: [KDLNode(name: "poll", arguments: [KDLValue(.string("uptime"))])], compiled: ["interval": literal(.string("5s"), line: 70)])]]
         )

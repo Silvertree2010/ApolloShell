@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(os)
 import os
+#endif
 import ApolloBase
 import ApolloConfig
 
@@ -7,19 +9,25 @@ import ApolloConfig
 public final class ActionDispatcher: ActionRuntime {
     static let maximumWait: Double = 10
     static let maximumRepeat = 100
+    static let maximumWarnedSites = 1_000
+    static let maximumEmitDepth = 16
 
     private let evaluator: Evaluator
     private let store: SignalStore
     let clock: any RuntimeClock
     private var implementations: [String: any ActionImplementation] = [:]
     private var runningSites: [String: Int] = [:]
+    private var epoch = 0
     private var warnedSites: Set<String> = []
     private let warningBuffer = WarningBuffer()
+    #if canImport(os)
     private let logger = Logger(subsystem: "ApolloShell", category: "actions")
+    #endif
 
     public let vars: VarStore
     public let providers: ProviderHost
     public weak var surfaces: (any SurfaceControlling)?
+    public var emitter: (@MainActor (String, Record, EmitChain) -> Void)?
     public var onWarning: (@MainActor (Diagnostic) -> Void)?
 
     public init(evaluator: Evaluator, vars: VarStore, providers: ProviderHost, store: SignalStore, clock: any RuntimeClock = DispatchRuntimeClock()) {
@@ -34,7 +42,7 @@ public final class ActionDispatcher: ActionRuntime {
         implementations[name] = implementation
     }
 
-    public static let builtinNames: Set<String> = ["open", "close", "toggle", "close-group", "wait", "repeat"]
+    public static let builtinNames: Set<String> = ["open", "close", "toggle", "close-group", "wait", "repeat", "emit"]
 
     public func handles(_ name: String) -> Bool {
         if Self.builtinNames.contains(name) || StateActions.names.contains(name) || implementations[name] != nil { return true }
@@ -54,28 +62,44 @@ public final class ActionDispatcher: ActionRuntime {
             }
             runningSites[site, default: 0] += 1
         }
-        return Task.immediate { @MainActor [self] in
-            await self.run(actions, environment: environment)
-            if let site {
+        let started = epoch
+        var environment = environment
+        if environment.emitChain == nil {
+            environment.emitChain = EmitChain(depth: 0, budget: EmitBudget())
+        }
+        return Task.immediate { @MainActor [self, environment] in
+            await self.run(actions, environment: environment, epoch: started)
+            if let site, self.epoch == started {
                 self.release(site)
             }
         }
     }
 
     public func run(_ actions: [ActionIR], environment: ActionEnvironment) async {
+        await run(actions, environment: environment, epoch: epoch)
+    }
+
+    public func abandonRunning() {
+        epoch += 1
+        runningSites.removeAll()
+    }
+
+    private func run(_ actions: [ActionIR], environment: ActionEnvironment, epoch started: Int) async {
         for action in actions {
-            await execute(action, environment)
+            guard epoch == started else { return }
+            await execute(action, environment, epoch: started)
         }
     }
 
     public func warn(_ diagnostic: Diagnostic) {
         let site = diagnostic.span.map { "\($0.file):\($0.start.offset):\($0.start.line):\($0.start.column)" } ?? ""
-        guard warnedSites.insert(site + "|" + diagnostic.message).inserted else { return }
+        guard warnedSites.count < Self.maximumWarnedSites, warnedSites.insert(site + "|" + diagnostic.message).inserted else { return }
         onWarning?(diagnostic)
     }
 
     public func forgetWarnings() {
         warnedSites.removeAll()
+        evaluator.forgetWarnings()
     }
 
     static func guardsAgainstRepeat(_ actions: [ActionIR]) -> Bool {
@@ -106,16 +130,16 @@ public final class ActionDispatcher: ActionRuntime {
         }
     }
 
-    private func execute(_ action: ActionIR, _ environment: ActionEnvironment) async {
+    private func execute(_ action: ActionIR, _ environment: ActionEnvironment, epoch started: Int) async {
         switch action {
         case .call(let call):
             await perform(call, environment)
         case .when(let condition, let then, let otherwise):
-            await run(evaluate(condition, environment).isTruthy ? then : otherwise, environment: environment)
+            await run(evaluate(condition, environment).isTruthy ? then : otherwise, environment: environment, epoch: started)
         case .switchOn(let subject, let cases, let otherwise):
             let value = evaluate(subject, environment)
             let chosen = cases.first { item in item.values.contains { evaluate($0, environment) == value } }
-            await run(chosen?.body ?? otherwise, environment: environment)
+            await run(chosen?.body ?? otherwise, environment: environment, epoch: started)
         case .each(let variable, let index, let list, let body):
             let value = evaluate(list, environment)
             guard case .list(let items) = value else {
@@ -130,7 +154,7 @@ public final class ActionDispatcher: ActionRuntime {
                 if let index {
                     inner.scope = inner.scope.adding(index, .number(Double(position)))
                 }
-                await run(body, environment: inner)
+                await run(body, environment: inner, epoch: started)
             }
         case .repeatBlock(let count, let body):
             let value = evaluate(count, environment)
@@ -141,11 +165,11 @@ public final class ActionDispatcher: ActionRuntime {
             let requested = max(0, number.rounded(.down))
             var times = Int(min(requested, Double(Self.maximumRepeat)))
             if requested > Double(Self.maximumRepeat) {
-                warn(Diagnostic(.warning, "repeat is capped at \(Self.maximumRepeat), got \(RuntimeDuration.whole(requested))", span: count.span))
+                warn(Diagnostic(.warning, "repeat is capped at \(Self.maximumRepeat), got \(RuntimeDuration.whole(requested))", span: count.span, code: .actionCapped))
                 times = Self.maximumRepeat
             }
             for _ in 0..<times {
-                await run(body, environment: environment)
+                await run(body, environment: environment, epoch: started)
             }
         }
     }
@@ -170,6 +194,8 @@ public final class ActionDispatcher: ActionRuntime {
                 surfaces?.closeGroup(try string(resolved, 0, "group"))
             case "wait":
                 try await waitAction(resolved)
+            case "emit":
+                try emit(resolved, environment)
             case _ where StateActions.names.contains(call.name):
                 try StateActions(vars: vars).perform(resolved)
             default:
@@ -204,12 +230,30 @@ public final class ActionDispatcher: ActionRuntime {
         }
     }
 
+    private func emit(_ call: ResolvedActionCall, _ environment: ActionEnvironment) throws {
+        let name = try string(call, 0, "event name")
+        let fields: Record
+        switch call.properties["event"] ?? .null {
+        case .null: fields = Record()
+        case .record(let record): fields = record
+        case let other: throw ActionFailure("emit needs a record for event, got \(other.typeName)")
+        }
+        let chain = environment.emitChain ?? EmitChain(depth: 0, budget: EmitBudget())
+        guard chain.depth < Self.maximumEmitDepth else {
+            throw ActionFailure("emit is nested deeper than \(Self.maximumEmitDepth) levels, '\(name)' is not sent")
+        }
+        guard chain.budget.take() else {
+            throw ActionFailure("one chain of emits may send at most \(EmitBudget.total) events, '\(name)' is not sent")
+        }
+        emitter?(name.hasPrefix("user.") ? name : "user." + name, fields, EmitChain(depth: chain.depth + 1, budget: chain.budget))
+    }
+
     private func waitAction(_ call: ResolvedActionCall) async throws {
         guard var seconds = RuntimeDuration.seconds(call.arguments.first), seconds >= 0 else {
             throw ActionFailure("wait needs a duration like \"500ms\" or \"2s\"")
         }
         if seconds > Self.maximumWait {
-            warn(Diagnostic(.warning, "wait is capped at 10s, got \(RuntimeDuration.describe(seconds))", span: call.span))
+            warn(Diagnostic(.warning, "wait is capped at 10s, got \(RuntimeDuration.describe(seconds))", span: call.span, code: .actionCapped))
             seconds = Self.maximumWait
         }
         guard seconds > 0 else { return }
@@ -258,8 +302,10 @@ public final class ActionDispatcher: ActionRuntime {
         default:
             message = "action failed: \(error)"
         }
+        #if canImport(os)
         logger.warning("\(span.file, privacy: .public):\(span.start.line): \(message, privacy: .public)")
-        warn(Diagnostic(.warning, message, span: span))
+        #endif
+        warn(Diagnostic(.warning, message, span: span, code: .actionFailed))
     }
 
     private func string(_ call: ResolvedActionCall, _ index: Int, _ label: String) throws -> String {

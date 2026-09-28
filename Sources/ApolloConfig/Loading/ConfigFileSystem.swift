@@ -21,8 +21,24 @@ public struct ConfigFileSystemError: Error, Sendable, Hashable {
 public struct DiskFileSystem: ConfigFileSystem {
     public init() {}
 
+    public static let maxReadBytes = 1 << 20
+
     public func read(_ url: URL) throws -> String {
-        try String(contentsOf: url, encoding: .utf8)
+        let resolved = url.resolvingSymlinksInPath()
+        let attributes = try FileManager.default.attributesOfItem(atPath: resolved.path)
+        guard (attributes[.type] as? FileAttributeType) == .typeRegular else {
+            throw ConfigFileSystemError("\(url.path) is not a regular file")
+        }
+        let handle = try FileHandle(forReadingFrom: resolved)
+        defer { try? handle.close() }
+        let data = try handle.read(upToCount: Self.maxReadBytes + 1) ?? Data()
+        guard data.count <= Self.maxReadBytes else {
+            return String(decoding: data, as: UTF8.self)
+        }
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw ConfigFileSystemError("\(url.path) is not UTF-8 text")
+        }
+        return text
     }
 
     public func contentsOfDirectory(_ url: URL) throws -> [URL] {
@@ -43,8 +59,9 @@ public struct DiskFileSystem: ConfigFileSystem {
     }
 
     public func write(_ text: String, to url: URL) throws {
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try Data(text.utf8).write(to: url, options: .atomic)
+        let target = url.resolvingSymlinksInPath()
+        try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(text.utf8).write(to: target, options: .atomic)
     }
 
     public func copyItem(_ source: URL, to destination: URL) throws {

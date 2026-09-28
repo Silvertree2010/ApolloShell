@@ -164,7 +164,7 @@ struct ControlSocketTests {
         var timeout = timeval(tv_sec: 5, tv_usec: 0)
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
         #expect(SocketAddress.writeAll(fd, ControlRequest(id: 4, cmd: "slow").line + "\n"))
-        #expect(shutdown(fd, SHUT_WR) == 0)
+        #expect(shutdown(fd, Int32(SHUT_WR)) == 0)
         var buffer = LineBuffer()
         var lines: [String] = []
         var chunk = [UInt8](repeating: 0, count: 4096)
@@ -179,6 +179,84 @@ struct ControlSocketTests {
         }
         #expect(lines.map(ControlResponse.parse) == [ControlResponse(id: 4, outcome: .success(.string("late")))])
         #expect(sawEnd)
+    }
+
+    @Test("zu lange Zeile ohne Zeilenende: Fehlerantwort, dann trennt der Server")
+    func overlongLine() throws {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        let server = ControlSocketServer(path: folder.socketPath, service: EchoService(probe: StreamProbe()))
+        try server.start()
+        defer { server.stop() }
+        let client = try ControlSocketClient.connect(path: folder.socketPath)
+        defer { client.close() }
+        let block = String(repeating: "x", count: 1 << 20)
+        for _ in 0..<(LineBuffer.limit >> 20) {
+            try client.sendRaw(block)
+        }
+        try client.sendRaw("x")
+        let response = try #require(try client.readResponse())
+        #expect(response == ControlResponse(id: nil, outcome: .failure("Request line too long.")))
+        #expect(try client.readResponse() == nil)
+    }
+
+    @Test("viele Zeilen in einem Stück: alle kommen an, Rest wartet auf sein Zeilenende")
+    func manyLines() {
+        var buffer = LineBuffer()
+        let text = String(repeating: "abc\n", count: 200_000) + "de"
+        let lines = buffer.append(ArraySlice(Array(text.utf8)))
+        #expect(lines.count == 200_000)
+        #expect(lines.allSatisfy { $0 == "abc" })
+        #expect(buffer.append(ArraySlice(Array("f\n".utf8))) == ["def"])
+        #expect(!buffer.overflowed)
+    }
+
+    @Test("Puffer über der Grenze ohne Zeilenende läuft über und nimmt nichts mehr an")
+    func overflow() {
+        var buffer = LineBuffer()
+        #expect(buffer.append(ArraySlice([UInt8](repeating: 65, count: LineBuffer.limit + 1))).isEmpty)
+        #expect(buffer.overflowed)
+        #expect(buffer.append(ArraySlice(Array("ok\n".utf8))).isEmpty)
+    }
+
+    @Test("liest der Client nicht mehr, trennt der Server nach der Sendefrist statt eine halbe Zeile stehen zu lassen")
+    func stalledReaderIsDisconnected() throws {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        let probe = StreamProbe()
+        let server = ControlSocketServer(path: folder.socketPath, service: EchoService(probe: probe), sendTimeout: 1)
+        try server.start()
+        defer { server.stop() }
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        defer { close(fd) }
+        #expect(try SocketAddress.connect(fd, folder.socketPath) == 0)
+        var small: Int32 = 4096
+        setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &small, socklen_t(MemoryLayout<Int32>.size))
+        #expect(SocketAddress.writeAll(fd, ControlRequest(id: 5, cmd: "watch").line + "\n"))
+        #expect(waitUntil { probe.hasSubscriber })
+        let big = Value.string(String(repeating: "x", count: 1 << 20))
+        for _ in 0..<8 { probe.yield(big) }
+        #expect(waitUntil(10) { probe.wasTerminated })
+        var timeout = timeval(tv_sec: 5, tv_usec: 0)
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+        var chunk = [UInt8](repeating: 0, count: 1 << 16)
+        var last = 1
+        while last > 0 {
+            last = chunk.withUnsafeMutableBytes { read(fd, $0.baseAddress, $0.count) }
+        }
+        #expect(last == 0)
+    }
+
+    @Test("nach stop angenommene Verbindungen werden sofort geschlossen")
+    func noConnectionsAfterStop() throws {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        let server = ControlSocketServer(path: folder.socketPath, service: EchoService(probe: StreamProbe()))
+        try server.start()
+        let client = try ControlSocketClient.connect(path: folder.socketPath)
+        defer { client.close() }
+        server.stop()
+        #expect((try? client.readResponse()) == nil)
     }
 
     @Test("Pfad kommt aus APOLLO_SOCKET, sonst aus Application Support")

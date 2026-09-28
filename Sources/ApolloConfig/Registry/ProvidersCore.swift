@@ -5,12 +5,12 @@ enum ProvidersCore {
         id: "clock",
         fields: [
             S.field("now", .value, update: .tick, doc: "Current time."),
-            S.field("hour", .number, update: .tick, doc: "Hour."),
-            S.field("minute", .number, update: .tick, doc: "Minute."),
-            S.field("second", .number, update: .tick, doc: "Second."),
-            S.field("day", .number, update: .tick, doc: "Day."),
-            S.field("month", .number, update: .tick, doc: "Month."),
-            S.field("year", .number, update: .tick, doc: "Year."),
+            S.field("hour", .number, update: .tick, doc: "Hour of the day, 0 to 23."),
+            S.field("minute", .number, update: .tick, doc: "Minute, 0 to 59."),
+            S.field("second", .number, update: .tick, doc: "Second, 0 to 59."),
+            S.field("day", .number, update: .tick, doc: "Day of the month, from 1."),
+            S.field("month", .number, update: .tick, doc: "Month, 1 to 12."),
+            S.field("year", .number, update: .tick, doc: "Year, four digits."),
             S.field("weekday", .number, update: .tick, doc: "Day of the week, 1 = Monday."),
             S.field("time-zone", .string, update: .push, doc: "Active time zone."),
         ],
@@ -49,7 +49,7 @@ enum ProvidersCore {
                 S.field("critical", .bool, update: .once, doc: "Whether critical."),
             ], doc: "Battery below a threshold while on battery power."),
         ],
-        doc: "Battery."
+        doc: "Charge, charging state and time left."
     )
 
     static let network = ProviderSchema(
@@ -65,7 +65,7 @@ enum ProvidersCore {
             S.field("wifi.tx-rate", .number, nullable: true, update: .poll(seconds: 2), doc: "Transmit rate in Mbit/s."),
             S.field("wifi.standard", .string, nullable: true, update: .poll(seconds: 2), doc: "Wi-Fi standard."),
             S.field("wifi.band", .string, nullable: true, update: .poll(seconds: 2), doc: "Frequency band."),
-            S.field("wifi.channel", .string, nullable: true, update: .poll(seconds: 2), doc: "Channel."),
+            S.field("wifi.channel", .string, nullable: true, update: .poll(seconds: 2), doc: "Wi-Fi channel number, #null when not connected."),
             S.field("wifi.interface", .string, nullable: true, update: .poll(seconds: 2), doc: "Interface name."),
             S.field("wifi.symbol", .string, update: .poll(seconds: 5), doc: "SF Symbol."),
         ],
@@ -104,13 +104,13 @@ enum ProvidersCore {
             S.field("symbol", .string, update: .push, doc: "SF Symbol."),
         ],
         actions: [
-            S.action("audio.set-volume", [S.arg("value", .number, doc: "0…1.")], doc: "Sets the volume."),
-            S.action("audio.change-volume", [S.arg("delta", .number, doc: "Change.")], doc: "Changes the volume."),
+            S.action("audio.set-volume", [S.arg("value", .number, doc: "Volume from 0 to 1.")], doc: "Sets the volume."),
+            S.action("audio.change-volume", [S.arg("delta", .number, doc: "Added to the volume, such as 0.1 or -0.1; the result stays within 0 to 1.")], doc: "Changes the volume."),
             S.action("audio.set-muted", [S.arg("value", .bool, doc: "Muted or not.")], doc: "Sets mute."),
             S.action("audio.toggle-mute", doc: "Toggles mute."),
             S.action("audio.select-output", [S.arg("id", .string, doc: "Device ID.")], doc: "Selects the output device."),
             S.action("audio.select-input", [S.arg("id", .string, doc: "Device ID.")], doc: "Selects the input device."),
-            S.action("audio.set-input-volume", [S.arg("value", .number, doc: "0…1.")], doc: "Sets the input volume."),
+            S.action("audio.set-input-volume", [S.arg("value", .number, doc: "Input volume from 0 to 1.")], doc: "Sets the input volume."),
             S.action("audio.set-input-muted", [S.arg("value", .bool, doc: "Muted or not.")], doc: "Mutes the input."),
         ],
         events: [
@@ -129,15 +129,15 @@ enum ProvidersCore {
         fields: [
             S.field("available", .bool, update: .push, doc: "Whether the adapter is running."),
             S.field("playing", .bool, update: .push, doc: "Whether something is playing."),
-            S.field("title", .string, nullable: true, update: .push, doc: "Title."),
-            S.field("artist", .string, nullable: true, update: .push, doc: "Artist."),
-            S.field("album", .string, nullable: true, update: .push, doc: "Album."),
-            S.field("artwork", .value, nullable: true, update: .push, doc: "Cover."),
+            S.field("title", .string, nullable: true, update: .push, doc: "Title of the playing track, #null when nothing plays."),
+            S.field("artist", .string, nullable: true, update: .push, doc: "Artist of the playing track."),
+            S.field("album", .string, nullable: true, update: .push, doc: "Album of the playing track."),
+            S.field("artwork", .value, nullable: true, update: .push, doc: "Cover image for image or background-image, #null without one."),
             S.field("duration", .number, nullable: true, update: .push, doc: "Duration in s."),
             S.field("elapsed", .number, nullable: true, update: .tick, doc: "Elapsed time in s."),
             S.field("progress", .number, nullable: true, update: .push, doc: "Progress 0…1."),
             S.field("unavailable", .string, nullable: true, update: .push, doc: "Reason for unavailability."),
-            S.field("app", .string, nullable: true, update: .push, doc: "Source."),
+            S.field("app", .string, nullable: true, update: .push, doc: "Bundle id of the app that plays."),
             S.field("app-name", .string, nullable: true, update: .push, doc: "Name of the source."),
             S.field("app-icon", .value, nullable: true, update: .push, doc: "Symbol of the source."),
             S.field("kind", .string, update: .push, doc: "music or video."),
@@ -176,7 +176,7 @@ enum ProvidersCore {
             S.field("live.net-total-down", .number, update: .tick, doc: "Bytes since the first request."),
             S.field("live.net-total-up", .number, update: .tick, doc: "Bytes since the first request."),
             S.field("chip", .string, update: .once, doc: "Chip name."),
-            S.field("cores", .number, update: .once, doc: "Cores."),
+            S.field("cores", .number, update: .once, doc: "Number of active CPU cores."),
             S.field("gpu-cores", .number, nullable: true, update: .once, doc: "GPU cores."),
         ],
         doc: "CPU, GPU, memory, disk, network speed."

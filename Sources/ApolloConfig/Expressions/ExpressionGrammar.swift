@@ -3,13 +3,13 @@ import ApolloBase
 struct ExpressionGrammar {
     static let maximumNesting = 32
 
-    static let binaryLevels: [[String: BinaryOperator]] = [
-        ["||": .or],
-        ["&&": .and],
-        ["==": .equal, "!=": .notEqual],
-        ["<": .less, "<=": .lessOrEqual, ">": .greater, ">=": .greaterOrEqual],
-        ["+": .add, "-": .subtract],
-        ["*": .multiply, "/": .divide, "%": .remainder],
+    static let binaryOperators: [String: (op: BinaryOperator, level: Int)] = [
+        "||": (.or, 0),
+        "&&": (.and, 1),
+        "==": (.equal, 2), "!=": (.notEqual, 2),
+        "<": (.less, 3), "<=": (.lessOrEqual, 3), ">": (.greater, 3), ">=": (.greaterOrEqual, 3),
+        "+": (.add, 4), "-": (.subtract, 4),
+        "*": (.multiply, 5), "/": (.divide, 5), "%": (.remainder, 5),
     ]
 
     let tokens: [ExpressionToken]
@@ -123,11 +123,23 @@ struct ExpressionGrammar {
     }
 
     mutating func parseBinary(level: Int) throws(ExpressionSyntaxError) -> Expr {
-        guard level < Self.binaryLevels.count else { return try parseUnary() }
-        var expr = try parseBinary(level: level + 1)
-        while case .symbol(let symbol) = current.kind, let op = Self.binaryLevels[level][symbol] {
+        try climb(parseUnary(), minimum: level)
+    }
+
+    private var currentBinary: (op: BinaryOperator, level: Int)? {
+        guard case .symbol(let symbol) = current.kind else { return nil }
+        return Self.binaryOperators[symbol]
+    }
+
+    private mutating func climb(_ start: Expr, minimum: Int) throws(ExpressionSyntaxError) -> Expr {
+        var expr = start
+        while let binary = currentBinary, binary.level >= minimum {
             advance()
-            expr = .binary(op, expr, try parseBinary(level: level + 1))
+            var right = try parseUnary()
+            while let next = currentBinary, next.level > binary.level {
+                right = try climb(right, minimum: binary.level + 1)
+            }
+            expr = .binary(binary.op, expr, right)
         }
         return expr
     }

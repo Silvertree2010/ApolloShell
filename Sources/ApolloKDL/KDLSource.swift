@@ -5,17 +5,15 @@ struct KDLSource: Sendable {
     }
 
     let bytes: [UInt8]
+    let bomLength: Int
 
     init(_ text: String) {
         bytes = Array(text.utf8)
+        bomLength = bytes.starts(with: [0xEF, 0xBB, 0xBF]) ? 3 : 0
     }
 
     var count: Int {
         bytes.count
-    }
-
-    var bomLength: Int {
-        bytes.starts(with: [0xEF, 0xBB, 0xBF]) ? 3 : 0
     }
 
     func byte(at offset: Int) -> UInt8? {
@@ -47,10 +45,11 @@ struct KDLSource: Sendable {
     }
 
     func hasPrefix(_ literal: String, at offset: Int) -> Bool {
-        let pattern = Array(literal.utf8)
-        guard offset >= 0, offset + pattern.count <= bytes.count else { return false }
-        for index in pattern.indices where bytes[offset + index] != pattern[index] {
-            return false
+        guard offset >= 0 else { return false }
+        var index = offset
+        for byte in literal.utf8 {
+            guard index < bytes.count, bytes[index] == byte else { return false }
+            index += 1
         }
         return true
     }

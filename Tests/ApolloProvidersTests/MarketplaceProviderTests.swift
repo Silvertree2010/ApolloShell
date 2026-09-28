@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 import ApolloConfig
 import ApolloRuntime
@@ -269,6 +272,28 @@ struct MarketplaceProviderTests {
         #expect(!setup.fake.requests.contains("POST /login/oauth/access_token"))
         guard case .record(let state) = setup.field("sign-in") else { Issue.record("no sign-in"); return }
         #expect(state["status"] == .string("idle"))
+    }
+
+    @Test("a sign-in cut off by a provider stop can start again after the restart")
+    func signInAfterRestart() async throws {
+        let harness = ProviderHarness()
+        let host = try FakeMarketplaceHost()
+        let fake = MarketFake()
+        let provider = MarketplaceProvider(host: host, transport: fake.transport, clock: harness.clock)
+        harness.register(provider)
+        let token = harness.demand("marketplace")
+        _ = try await harness.perform("marketplace", "sign-in")
+        harness.release(token)
+        harness.advance(60)
+        for _ in 0..<20 { await Task.yield() }
+        harness.demand("marketplace")
+        guard case .record(let stopped) = harness.value("marketplace", "sign-in") else { Issue.record("no sign-in"); return }
+        #expect(stopped["status"] == .string("idle"))
+        _ = try await harness.perform("marketplace", "sign-in")
+        for _ in 0..<20 where host.opened.count < 2 { await Task.yield() }
+        harness.flush()
+        guard case .record(let waiting) = harness.value("marketplace", "sign-in") else { Issue.record("no sign-in"); return }
+        #expect(waiting["status"] == .string("waiting"))
     }
 
     @Test("mine and queue for an admin with a stored session")

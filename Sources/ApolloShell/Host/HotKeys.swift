@@ -346,7 +346,7 @@ final class BindHotKeys {
 
     private func warnOnce(_ key: String, _ message: String) {
         guard warned.insert(key).inserted else { return }
-        warn(Diagnostic(.warning, message))
+        warn(Diagnostic(.warning, message, code: .hotkey))
     }
 
     func removeAll() {

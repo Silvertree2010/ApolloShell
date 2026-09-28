@@ -10,7 +10,7 @@ struct EachBudgetTests {
     typealias F = EachFixture
 
     static let debugFactor: Double = 4
-    static var factor: Double { CPUTime.isDebug ? debugFactor : 1 }
+    static var factor: Double { (CPUTime.isDebug ? debugFactor : 1) * CPUTime.machineFactor }
     static let firstBuildBudget = 50.0
     static let changeBudget = 5.0
     static let hostile = 50_000

@@ -1,0 +1,11 @@
+style "style.css"
+
+panel "hello" anchor="top-right" layer="desktop" click-through=#true {
+    column class="card" {
+        text "{clock.now | date 'HH:mm'}" class="time"
+        text "{clock.now | date 'EEEE, d MMMM'}"
+        when "{battery.present}" {
+            text "Battery {battery.percent | percent}"
+        }
+    }
+}

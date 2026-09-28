@@ -10,11 +10,9 @@ struct SchemaStageTests {
         let fs = MemoryFileSystem(["/config/shell.kdl": text])
         let included = IncludeExpander.expand(root: URL(fileURLWithPath: "/config"), origin: .user, fileSystem: fs, paths: UseStageTests.paths)
         #expect(included.diagnostics.isEmpty, sourceLocation: sourceLocation)
-        let featured = FeatureStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
+        let featured = RequireStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
         #expect(featured.diagnostics.isEmpty, sourceLocation: sourceLocation)
-        let lets = LetStage.run(featured.nodes, registry: .builtin)
-        #expect(lets.diagnostics.isEmpty, sourceLocation: sourceLocation)
-        let used = UseStage.run(lets.nodes, registry: .builtin)
+        let used = UseStage.run(featured.nodes, registry: .builtin)
         #expect(used.diagnostics.isEmpty, sourceLocation: sourceLocation)
         let disabled = DisableStage.run(used.nodes, registry: .builtin)
         #expect(disabled.diagnostics.isEmpty, sourceLocation: sourceLocation)
@@ -167,24 +165,6 @@ struct SchemaStageTests {
         #expect(result.diagnostics.count == 1)
         #expect(result.diagnostics[0].severity == .note)
         #expect(result.diagnostics[0].message.contains("experimental"))
-    }
-
-    @Test("let wird als Literal in einen Ausdruck eingesetzt")
-    func letValueIsInlinedIntoExpression() {
-        let result = Self.pipeline("""
-        let gap=8
-        panel "sidebar" offset-x="{gap}" {
-        }
-        """)
-        #expect(result.diagnostics.isEmpty)
-        let panel = result.nodes.first { $0.name == "panel" }
-        let offsetX = panel?.properties["offset-x"]
-        #expect(offsetX?.isConstant == true)
-        if case .whole(.access(.literal(let value), _)) = offsetX?.template {
-            #expect(value == .number(8))
-        } else {
-            Issue.record("expected a literal after let substitution")
-        }
     }
 
     @Test("each-Variable ist innerhalb des each als Ausdruck gueltig")

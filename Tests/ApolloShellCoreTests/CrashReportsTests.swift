@@ -1,4 +1,4 @@
-import ApolloShellCore
+@testable import ApolloShellCore
 import Foundation
 import Testing
 
@@ -17,6 +17,25 @@ struct CrashReportSanitizerTests {
                        "/Users/someone", "threadState", "4267754718184", "43684"] {
             #expect(!report.text.contains(secret), "\(secret) steht noch drin")
         }
+    }
+
+    @Test("Benutzerordner in Textfeldern wie asi, vmRegionInfo, ktriageinfo und legacyInfo werden unkenntlich")
+    func redactsHomeFolders() throws {
+        let body = #"{"captureTime":"2026-09-22 12:32:18.1997 +0200","asi":{"libswiftCore.dylib":["Fatal error: file /Users/someone/src/A.swift, line 3"]},"vmRegionInfo":"0x0 is not in any region.  REGION TYPE START - END\n  mapped file 1000-2000 [4K] r--/r-- SM=COW  /Users/someone/Library/x.db","ktriageinfo":"VM - /Users/someone/y\n","legacyInfo":{"threadTriggered":{"queue":"/Users/someone"}}}"#
+        let raw = sampleIPS.split(separator: "\n")[0] + "\n" + body
+        let report = try #require(CrashReportSanitizer.sanitize(String(raw)))
+        let text = report.text.replacingOccurrences(of: "\\/", with: "/")
+        #expect(!text.contains("someone"))
+        #expect(text.contains("/Users/~/src/A.swift"))
+        #expect(text.contains("/Users/~/Library/x.db"))
+    }
+
+    @Test("Pfad-Schwärzung", arguments: [
+        ("/Users/a/b", "/Users/~/b"), ("x /Users/a", "x /Users/~"), ("/Users/", "/Users/"), ("kein Pfad", "kein Pfad"),
+        ("/Users/a b /Users/c/d", "/Users/~ b /Users/~/d"),
+    ])
+    func redactedPaths(input: String, output: String) {
+        #expect(CrashReportSanitizer.redactedPaths(input) == output)
     }
 
     @Test("Was zur Fehlersuche noetig ist, bleibt")

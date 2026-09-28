@@ -1,3 +1,4 @@
+#if canImport(Carbon)
 import ApolloShellCore
 import Carbon.HIToolbox
 import Foundation
@@ -134,3 +135,4 @@ struct HotKeyTests {
         #expect(HotKeyText.registrationFailed(alreadyTaken: taken, status: Int32(status)).contains(fragment))
     }
 }
+#endif

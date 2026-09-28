@@ -62,6 +62,9 @@ public final class ShellRuntime: SurfaceControlling {
         self.actions = actions
         self.host = host
         actions.surfaces = self
+        actions.emitter = { [weak self] name, fields, chain in
+            _ = self?.emit(name, fields, chain: chain)
+        }
         providers.onEvent = { [weak self] event, fields in
             _ = self?.emit(event, fields)
         }
@@ -107,7 +110,9 @@ public final class ShellRuntime: SurfaceControlling {
         }
         teardownAll()
         warned.removeAll()
+        actions.abandonRunning()
         actions.forgetWarnings()
+        bindings.forgetWarnings()
         config = ir
         self.screens = screens
         store.set(DependencyPath("shell", []), .record(shell))
@@ -132,7 +137,11 @@ public final class ShellRuntime: SurfaceControlling {
 
     private func reload(from old: ConfigIR, to ir: ConfigIR, persisted: [String: Value], screens: [String], shell: Record, writer: StateWriter?) {
         warned.removeAll()
+        if old.id != ir.id {
+            actions.abandonRunning()
+        }
         actions.forgetWarnings()
+        bindings.forgetWarnings()
         let diff = IRDiff.surfaces(old: old, new: ir)
         let changedIDs = Set(diff.changed.map(\.id))
         var added: [SurfaceNode] = []
@@ -240,7 +249,7 @@ public final class ShellRuntime: SurfaceControlling {
     public func open(_ surfaceID: String, screenKey: String?) {
         let candidates = nodes(for: surfaceID)
         guard !candidates.isEmpty else {
-            warn(key: "unknown-surface|" + surfaceID, Diagnostic(.warning, "unknown surface '\(surfaceID)'"))
+            warn(key: "unknown-surface|" + surfaceID, Diagnostic(.warning, "unknown surface '\(surfaceID)'", code: .unknownTarget))
             return
         }
         let preferred = screenKey ?? preferredScreen?() ?? screens.first
@@ -265,7 +274,7 @@ public final class ShellRuntime: SurfaceControlling {
     public func close(_ surfaceID: String) {
         let candidates = nodes(for: surfaceID)
         guard !candidates.isEmpty else {
-            warn(key: "unknown-surface|" + surfaceID, Diagnostic(.warning, "unknown surface '\(surfaceID)'"))
+            warn(key: "unknown-surface|" + surfaceID, Diagnostic(.warning, "unknown surface '\(surfaceID)'", code: .unknownTarget))
             return
         }
         for node in candidates {
@@ -287,7 +296,7 @@ public final class ShellRuntime: SurfaceControlling {
                 target.closeWaiters.append(waiter)
                 waiter.work = actions.clock.schedule(after: RuntimeLimits.closeFeedbackTimeout) { [weak self, weak waiter] in
                     guard let waiter, !waiter.resumed else { return }
-                    self?.warn(key: "close-feedback|" + surfaceID, Diagnostic(.warning, "surface '\(surfaceID)' did not report the end of closing"))
+                    self?.warn(key: "close-feedback|" + surfaceID, Diagnostic(.warning, "surface '\(surfaceID)' did not report the end of closing", code: .closeFeedback))
                     waiter.resume()
                 }
             }
@@ -335,14 +344,14 @@ public final class ShellRuntime: SurfaceControlling {
     }
 
     @discardableResult
-    public func emit(_ event: String, _ fields: Record) -> [Task<Void, Never>] {
+    public func emit(_ event: String, _ fields: Record, chain: EmitChain? = nil) -> [Task<Void, Never>] {
         guard let config else { return [] }
         var tasks: [Task<Void, Never>] = []
-        for (index, handler) in config.events.enumerated() where handler.event == event {
+        for handler in config.events where handler.event == event {
             if let when = handler.when, !bindings.evaluateOnce(when, scope: LocalScope(), event: fields).isTruthy {
                 continue
             }
-            if let task = actions.trigger(handler.actions, site: "on#\(index)", environment: ActionEnvironment(event: fields)) {
+            if let task = actions.trigger(handler.actions, site: "on@\(handler.span.file):\(handler.span.start.line):\(handler.span.start.column):\(handler.span.start.offset)", environment: ActionEnvironment(event: fields, emitChain: chain)) {
                 tasks.append(task)
             }
         }
@@ -352,7 +361,7 @@ public final class ShellRuntime: SurfaceControlling {
     @discardableResult
     public func triggerBind(_ id: String, event: Record) -> Task<Void, Never>? {
         guard let bind = config?.binds.first(where: { $0.id == id }) else {
-            warn(key: "unknown-bind|" + id, Diagnostic(.warning, "no bind '\(id)'"))
+            warn(key: "unknown-bind|" + id, Diagnostic(.warning, "no bind '\(id)'", code: .unknownTarget))
             return nil
         }
         if let when = bind.when, !bindings.evaluateOnce(when, scope: LocalScope(), event: event).isTruthy {
@@ -367,7 +376,7 @@ public final class ShellRuntime: SurfaceControlling {
             return runHandlers(node.instance.ir.handlers, named: handler, scope: node.scope, surface: node, site: identity.description, event: event)
         }
         guard let element = elements[identity], !element.isDead else {
-            warn(key: "unknown-element|" + identity.description, Diagnostic(.warning, "no element '\(identity.description)' for \(handler)"))
+            warn(key: "unknown-element|" + identity.description, Diagnostic(.warning, "no element '\(identity.description)' for \(handler)", code: .unknownTarget))
             return nil
         }
         return runHandlers(element.instance.ir.handlers, named: handler, scope: element.instance.scope, surface: element.surface, site: identity.description, event: event)
@@ -421,7 +430,7 @@ public final class ShellRuntime: SurfaceControlling {
     }
 
     func warn(key: String, _ diagnostic: Diagnostic) {
-        guard warned.insert(key).inserted else { return }
+        guard warned.count < RuntimeLimits.rememberedWarnings, warned.insert(key).inserted else { return }
         onWarning?(diagnostic)
     }
 
@@ -713,6 +722,7 @@ public final class ShellRuntime: SurfaceControlling {
     }
 
     public func setSurfaceSize(_ surfaceID: String, screenKey: String, width: Double, height: Double) {
+        guard surfaceNodes[surfaceID + "@" + screenKey] != nil else { return }
         let base = "surfaces:" + screenKey
         let old = store.value(DependencyPath(base, [surfaceID]))
         if case .record(let record) = old, record["width"] == .number(width), record["height"] == .number(height) { return }
@@ -759,18 +769,20 @@ public final class ShellRuntime: SurfaceControlling {
         }
         inSession = true
         generation += 1
-        body()
-        var head = 0
-        while true {
-            while head < queue.count {
-                let work = queue[head]
-                head += 1
-                work()
+        bindings.batch {
+            body()
+            var head = 0
+            while true {
+                while head < queue.count {
+                    let work = queue[head]
+                    head += 1
+                    work()
+                }
+                guard !pendingTeardown.isEmpty else { break }
+                let pending = pendingTeardown
+                pendingTeardown.removeAll()
+                teardown(pending.filter(\.isParked))
             }
-            guard !pendingTeardown.isEmpty else { break }
-            let pending = pendingTeardown
-            pendingTeardown.removeAll()
-            teardown(pending.filter(\.isParked))
         }
         queue.removeAll()
         inSession = false
@@ -817,7 +829,7 @@ public final class ShellRuntime: SurfaceControlling {
     func placeElement(_ ir: ElementIR, _ context: BuildContext, reuse positional: [String: TreeNode]?) -> ElementNode? {
         let surface = context.surface
         guard context.depth < RuntimeLimits.elementDepth else {
-            warn(key: "depth|\(ir.span)", Diagnostic(.warning, "elements nested deeper than \(RuntimeLimits.elementDepth) levels are not built", span: ir.span))
+            warn(key: "depth|\(ir.span)", Diagnostic(.warning, "elements nested deeper than \(RuntimeLimits.elementDepth) levels are not built", span: ir.span, code: .elementDepth))
             return nil
         }
         var runtimeID: String?
@@ -832,7 +844,7 @@ public final class ShellRuntime: SurfaceControlling {
                     surface.ids[text] = nil
                     runtimeID = text
                 } else {
-                    warn(key: "duplicate-id|\(template.span)|\(text)", Diagnostic(.warning, "duplicate id '\(text)' in surface '\(surface.instance.id)', the later element loses it", span: template.span))
+                    warn(key: "duplicate-id|\(template.span)|\(text)", Diagnostic(.warning, "duplicate id '\(text)' in surface '\(surface.instance.id)', the later element loses it", span: template.span, code: .duplicateID))
                 }
             } else {
                 runtimeID = text
@@ -847,15 +859,16 @@ public final class ShellRuntime: SurfaceControlling {
 
     private func buildElement(_ ir: ElementIR, _ context: BuildContext, runtimeID: String?) -> ElementNode? {
         let surface = context.surface
-        guard surface.elementCount < RuntimeLimits.elementsPerSurface else {
+        guard surface.elementCount < RuntimeLimits.elementsPerSurface || liveElementCount(surface) < RuntimeLimits.elementsPerSurface else {
             if !surface.budgetWarned {
                 surface.budgetWarned = true
-                warn(key: "budget|" + surface.surfaceKey, Diagnostic(.warning, "surface '\(surface.instance.id)' reached \(RuntimeLimits.elementsPerSurface) elements, further elements are not built", span: ir.span))
+                warn(key: "budget|" + surface.surfaceKey, Diagnostic(.warning, "surface '\(surface.instance.id)' reached \(RuntimeLimits.elementsPerSurface) elements, further elements are not built", span: ir.span, code: .elementBudget))
             }
             return nil
         }
         let identity = runtimeID.map { surface.identity.appending("#" + $0) } ?? context.path.appending(ir.key)
-        let scope = context.scope.adding(ContextScopeKeys.selfIdentity, .string(identity.description))
+        let identityText = identity.description
+        let scope = context.scope.adding(ContextScopeKeys.selfIdentity, .string(identityText))
         let instance = ElementInstance(identity: identity, kind: ir.kind, ir: ir, scope: scope)
         instance.entryKey = context.entryKey
         let node = ElementNode(instance: instance, surface: surface, runtimeID: runtimeID, context: context)
@@ -873,7 +886,7 @@ public final class ShellRuntime: SurfaceControlling {
             cells["visible"] = cell
             node.visibleBinding = bindVisible(node, visible, cell)
         }
-        for name in ir.properties.keys.sorted() where name != "visible" {
+        for name in ir.properties.isEmpty ? [] : ir.properties.keys.sorted() where name != "visible" {
             guard let compiled = ir.properties[name] else { continue }
             if name == "id" {
                 cells[name] = PropertyCell(runtimeID.map { .string($0) } ?? .null)
@@ -885,14 +898,15 @@ public final class ShellRuntime: SurfaceControlling {
         }
         instance.properties = cells
         var arguments: [PropertyCell] = []
-        for (index, compiled) in ir.arguments.enumerated() {
+        for index in ir.arguments.indices {
+            let compiled = ir.arguments[index]
             let cell = PropertyCell(.null)
             arguments.append(cell)
             node.argumentBindings[index] = fill(cell, compiled, node: node)
         }
         instance.arguments = arguments
 
-        let selfRoot = "self:" + identity.description
+        let selfRoot = "self:" + identityText
         instance.onPseudoChange = { [weak self] state in
             self?.publishPseudo(selfRoot, state)
         }
@@ -902,7 +916,7 @@ public final class ShellRuntime: SurfaceControlling {
         let childContext = node.childContext(childContainer, path: identity)
         childContainer.region.context = childContext
         scheduleBuild(node, ir.children, childContext)
-        for name in ir.slots.keys.sorted() {
+        for name in ir.slots.isEmpty ? [] : ir.slots.keys.sorted() {
             addSlot(node, name, ir.slots[name] ?? [])
         }
         node.isConfigured = true
@@ -1007,6 +1021,24 @@ public final class ShellRuntime: SurfaceControlling {
                 }
             }
         }
+    }
+
+    func liveElementCount(_ surface: SurfaceNode) -> Int {
+        guard inSession, !pendingTeardown.isEmpty else { return surface.elementCount }
+        if let cached = surface.parkedElements, cached.generation == generation, cached.pending == pendingTeardown.count {
+            return surface.elementCount - cached.count
+        }
+        var parked = 0
+        var stack = pendingTeardown.filter { $0.isParked && !$0.isDead && $0.surfaceNode === surface }
+        while let node = stack.popLast() {
+            guard !node.isDead else { continue }
+            if node is ElementNode { parked += 1 }
+            for region in node.innerRegions {
+                stack.append(contentsOf: region.parts)
+            }
+        }
+        surface.parkedElements = (generation, pendingTeardown.count, parked)
+        return surface.elementCount - parked
     }
 
     func park(_ parts: [TreeNode]) {
@@ -1159,7 +1191,7 @@ public final class ShellRuntime: SurfaceControlling {
     private nonisolated static func sameBytes<T>(_ lhs: T, _ rhs: T) -> Bool {
         withUnsafeBytes(of: lhs) { left in
             withUnsafeBytes(of: rhs) { right in
-                left.elementsEqual(right)
+                left.count == 0 || memcmp(left.baseAddress!, right.baseAddress!, left.count) == 0
             }
         }
     }

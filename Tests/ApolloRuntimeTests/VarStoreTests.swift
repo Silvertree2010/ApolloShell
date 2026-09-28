@@ -54,6 +54,73 @@ struct VarStoreTests {
         #expect(vars.value("key") == .string("alt+space"))
     }
 
+    @Test("Vorgabe liest andere var, egal in welcher Reihenfolge sie stehen")
+    func defaultReadsOtherVars() {
+        let (_, _, _, vars, _) = makeStore()
+        vars.declare([
+            decl("double", type: .number, defaultText: "var.base * 2"),
+            decl("base", type: .number, defaultText: "var.presets | first"),
+            decl("presets", type: .list, defaultText: "[3, 4]"),
+        ], persisted: [:], shell: Record())
+        #expect(vars.value("base") == .number(3))
+        #expect(vars.value("double") == .number(6))
+    }
+
+    @Test("Vorgabe liest den gespeicherten Wert der anderen var")
+    func defaultReadsPersistedOtherVar() {
+        let (_, _, _, vars, _) = makeStore()
+        vars.declare([
+            decl("double", type: .number, defaultText: "var.base * 2"),
+            decl("base", type: .number, defaultText: "3", persist: true),
+        ], persisted: ["base": .number(5)], shell: Record())
+        #expect(vars.value("double") == .number(10))
+    }
+
+    @Test("Vorgaben, die sich gegenseitig lesen, warnen einmal und bleiben null")
+    func defaultCycleWarns() {
+        let (_, _, _, vars, _) = makeStore()
+        var warnings: [String] = []
+        vars.onWarning = { warnings.append($0.message) }
+        vars.declare([
+            decl("a", type: .any, defaultText: "var.b"),
+            decl("b", type: .any, defaultText: "var.a"),
+        ], persisted: [:], shell: Record())
+        #expect(warnings == ["the default of 'a' reads itself"])
+        #expect(vars.value("a") == .null && vars.value("b") == .null)
+    }
+
+    @Test("Eine Kette von Vorgaben tiefer als 64 endet mit Warnung, 64 bleiben erlaubt")
+    func defaultChainDepth() {
+        func chain(_ count: Int) -> [VarDecl] {
+            (0..<count).reversed().map { index in
+                decl("v\(index)", type: .any, defaultText: index == 0 ? "1" : "[var.v\(index - 1)]")
+            }
+        }
+        let (_, _, _, allowed, _) = makeStore()
+        var allowedWarnings: [String] = []
+        allowed.onWarning = { allowedWarnings.append($0.message) }
+        allowed.declare(chain(64), persisted: [:], shell: Record())
+        #expect(allowedWarnings.isEmpty)
+        #expect(allowed.value("v1") == .list([.number(1)]))
+        let (_, _, _, refused, _) = makeStore()
+        var refusedWarnings: [String] = []
+        refused.onWarning = { refusedWarnings.append($0.message) }
+        refused.declare(chain(20_000), persisted: [:], shell: Record())
+        #expect(refusedWarnings.first == "the default of 'v19935' is read through more than 64 other defaults")
+    }
+
+    @Test("Verdoppeln über Vorgaben endet an der Textgrenze statt den Speicher zu füllen")
+    func doublingDefaults() {
+        let (_, _, _, vars, _) = makeStore()
+        var decls = [decl("v0", type: .any, defaultText: "'x'")]
+        for index in 1...64 {
+            decls.append(decl("v\(index)", type: .any, defaultText: "var.v\(index - 1) + var.v\(index - 1)"))
+        }
+        vars.declare(decls, persisted: [:], shell: Record())
+        #expect(vars.value("v19") == .string(String(repeating: "x", count: 1 << 19)))
+        #expect(vars.value("v20") == .null)
+    }
+
     @Test("set mit richtigem Typ ändert den Wert")
     func setChangesValue() {
         let (_, _, _, vars, _) = makeStore()
@@ -218,6 +285,23 @@ struct VarStoreTests {
         for result in results {
             #expect(result == [.number(2), .number(8)])
         }
+    }
+
+    @Test("lange Kette abgeleiteter vars kommt in einem Flush ohne Warnung zur Ruhe", arguments: [8, 40])
+    func longDerivedChainSettlesInOneFlush(length: Int) {
+        let (_, scheduler, engine, vars, _) = makeStore()
+        var warnings: [Diagnostic] = []
+        engine.onWarning = { warnings.append($0) }
+        vars.declare([decl("d0", type: .number, defaultText: "0")] + (1...length).map {
+            decl("d\($0)", type: .number, defaultText: "0", derived: "var.d\($0 - 1) + 1")
+        }, persisted: [:], shell: Record())
+        var seen: [Value] = []
+        let handle = engine.bind(BindingTestHarness.source("{var.d\(length)}"), scope: LocalScope(), active: true) { seen.append($0) }
+        vars.set("d0", .number(100), for: nil)
+        scheduler.runPending()
+        #expect(seen == [.number(Double(length)), .number(Double(100 + length))])
+        #expect(warnings.isEmpty)
+        _ = handle
     }
 
     @Test("Abgeleitetes var wird ohne Nachfrage inaktiv und Kette A←B←C bleibt in einem Flush konsistent")
@@ -437,7 +521,8 @@ struct VarStoreTests {
                 .error,
                 "cyclic derived var: \(a) -> \(b) -> \(c) -> \(a)",
                 span: span(a),
-                notes: [DiagnosticNote("'\(d)' is part of the same cycle", span: span(d))]
+                notes: [DiagnosticNote("'\(d)' is part of the same cycle", span: span(d))],
+                code: .varCycle
             )
             if warnings != [expected] { failures.append("\(variant): \(warnings.map(\.message)) \(warnings.map(\.notes))") }
             if vars.value("ok") != .number(5) { failures.append("\(variant): ok") }

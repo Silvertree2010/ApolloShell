@@ -147,24 +147,24 @@ extension ShellRuntime {
         let value = node.subject?.currentValue ?? .null
         guard case .list(let items) = value else {
             if value != .null {
-                warn(key: "each-type|\(each.list.span)", Diagnostic(.warning, "each needs a list, got \(value.typeName)", span: each.list.span))
+                warn(key: "each-type|\(each.list.span)", Diagnostic(.warning, "each needs a list, got \(value.typeName)", span: each.list.span, code: .eachNotList))
             }
             replace(node, selection: nil, bodies: [])
             return
         }
         if items.count > RuntimeLimits.eachEntries {
-            warn(key: "each-limit|\(each.list.span)", Diagnostic(.warning, "each builds at most \(RuntimeLimits.eachEntries) entries, got \(items.count)", span: each.list.span))
+            warn(key: "each-limit|\(each.list.span)", Diagnostic(.warning, "each builds at most \(RuntimeLimits.eachEntries) entries, got \(items.count)", span: each.list.span, code: .eachLimit))
         }
         let old = node.regions
         var count = min(items.count, RuntimeLimits.eachEntries)
         if old.isEmpty {
             let surface = context.surface
-            let left = max(RuntimeLimits.elementsPerSurface - surface.elementCount, 0)
+            let left = max(RuntimeLimits.elementsPerSurface - liveElementCount(surface), 0)
             if left < count {
                 count = left
                 if !surface.budgetWarned {
                     surface.budgetWarned = true
-                    warn(key: "budget|" + surface.surfaceKey, Diagnostic(.warning, "surface '\(surface.instance.id)' reached \(RuntimeLimits.elementsPerSurface) elements, further elements are not built", span: each.list.span))
+                    warn(key: "budget|" + surface.surfaceKey, Diagnostic(.warning, "surface '\(surface.instance.id)' reached \(RuntimeLimits.elementsPerSurface) elements, further elements are not built", span: each.list.span, code: .elementBudget))
                 }
             }
         }
@@ -173,10 +173,15 @@ extension ShellRuntime {
         var lookup: [EntryKey: Region] = [:]
         var fresh: [Region] = []
         if eachKeyLookup == .dictionary {
-            lookup.reserveCapacity(max(old.count, count))
-            for region in old {
-                if let key = region.entryKey {
-                    lookup[key] = region
+            if let cached = node.entryLookup {
+                lookup = cached
+                node.entryLookup = nil
+            } else {
+                lookup.reserveCapacity(max(old.count, count))
+                for region in old {
+                    if let key = region.entryKey {
+                        lookup[key] = region
+                    }
                 }
             }
         }
@@ -196,7 +201,7 @@ extension ShellRuntime {
             var key = entryKey(each, item: item, index: index, base: context.scope)
             var found = find(key)
             if found?.stamp == pass {
-                warn(key: "each-duplicate|\(each.list.span)", Diagnostic(.warning, "each has duplicate keys, later entries get a suffix", span: (each.itemKey ?? each.list).span))
+                warn(key: "each-duplicate|\(each.list.span)", Diagnostic(.warning, "each has duplicate keys, later entries get a suffix", span: (each.itemKey ?? each.list).span, code: .eachDuplicateKey))
                 let base = key
                 var ordinal = nextOrdinal[base] ?? 2
                 repeat {
@@ -234,8 +239,14 @@ extension ShellRuntime {
             park(region.parts)
             region.parts.removeAll()
             region.context = nil
+            if let key = region.entryKey, lookup[key] === region {
+                lookup[key] = nil
+            }
         }
         node.regions = regions
+        if eachKeyLookup == .dictionary {
+            node.entryLookup = lookup
+        }
         node.selection = nil
         for region in fresh {
             if let key = region.entryKey {
@@ -259,7 +270,7 @@ extension ShellRuntime {
         if let itemKey = each.itemKey {
             let key = bindings.evaluateOnce(itemKey, scope: entryScope(each, base, item: item, index: index))
             if key == .null {
-                warn(key: "each-null-key|\(itemKey.span)", Diagnostic(.warning, "each key is null, using the position instead", span: itemKey.span))
+                warn(key: "each-null-key|\(itemKey.span)", Diagnostic(.warning, "each key is null, using the position instead", span: itemKey.span, code: .eachNullKey))
                 return EntryKey(value: nil, index: index)
             }
             return EntryKey(value: key, index: index)
@@ -273,17 +284,41 @@ extension ShellRuntime {
     func useScope(_ node: StructureNode, _ use: DynamicUseIR, _ define: DefineIR, _ base: LocalScope) -> LocalScope {
         let name = define.name
         var scope = base
+        bindDefaults(node, define)
         for parameter in define.parameters {
             if let handle = node.argumentBindings[parameter.name] {
                 scope = scope.adding(parameter.name, handle.currentValue)
             } else if let defaultValue = parameter.defaultValue {
                 scope = scope.adding(parameter.name, TemplateValues.evaluate(defaultValue) { bindings.evaluateOnce($0, scope: base) })
             } else {
-                warn(key: "use-missing|\(use.name.span)|\(name)|\(parameter.name)", Diagnostic(.warning, "block '\(name)' needs parameter '\(parameter.name)'", span: use.name.span))
+                warn(key: "use-missing|\(use.name.span)|\(name)|\(parameter.name)", Diagnostic(.warning, "block '\(name)' needs parameter '\(parameter.name)'", span: use.name.span, code: .runtimeUse))
                 scope = scope.adding(parameter.name, .null)
             }
         }
         return scope
+    }
+
+    private func bindDefaults(_ node: StructureNode, _ define: DefineIR) {
+        guard case .use(let use) = node.kind else { return }
+        let arguments = Set(use.arguments.keys)
+        if let current = node.defaultBindings, current.parameters == define.parameters, current.arguments == arguments { return }
+        for handle in node.defaultBindings?.handles ?? [] { handle.cancel() }
+        var handles: [BindingHandle] = []
+        for parameter in define.parameters where use.arguments[parameter.name] == nil {
+            guard let defaultValue = parameter.defaultValue else { continue }
+            var pending = [defaultValue]
+            while let template = pending.popLast() {
+                switch template {
+                case .scalar(let compiled):
+                    if !compiled.isConstant { handles.append(bindStructure(node, compiled)) }
+                case .list(let items):
+                    pending.append(contentsOf: items)
+                case .record(let fields):
+                    pending.append(contentsOf: fields.map(\.value))
+                }
+            }
+        }
+        node.defaultBindings = (define.parameters, arguments, handles)
     }
 
     func regionScope(_ node: StructureNode, _ region: Region) -> LocalScope {
@@ -304,24 +339,24 @@ extension ShellRuntime {
         let nameValue = node.subject?.currentValue ?? .null
         guard case .string(let name) = nameValue, !name.isEmpty else {
             if nameValue != .null {
-                warn(key: "use-name|\(use.name.span)", Diagnostic(.warning, "use needs a block name, got \(nameValue.typeName)", span: use.name.span))
+                warn(key: "use-name|\(use.name.span)", Diagnostic(.warning, "use needs a block name, got \(nameValue.typeName)", span: use.name.span, code: .runtimeUse))
             }
             replace(node, selection: nil, bodies: [])
             return
         }
         guard context.useDepth < ConfigLimits.useDepth else {
-            warn(key: "use-depth|\(use.name.span)", Diagnostic(.warning, "runtime use nested deeper than \(ConfigLimits.useDepth) levels is not expanded", span: use.name.span))
+            warn(key: "use-depth|\(use.name.span)", Diagnostic(.warning, "runtime use nested deeper than \(ConfigLimits.useDepth) levels is not expanded", span: use.name.span, code: .runtimeUse))
             replace(node, selection: nil, bodies: [])
             return
         }
         guard let define = config?.defines[name] else {
-            warn(key: "use-unknown|\(use.name.span)|\(name)", Diagnostic(.warning, "unknown block '\(name)'", span: use.name.span))
+            warn(key: "use-unknown|\(use.name.span)|\(name)", Diagnostic(.warning, "unknown block '\(name)'", span: use.name.span, code: .runtimeUse))
             replace(node, selection: nil, bodies: [])
             return
         }
         let known = Set(define.parameters.map(\.name))
         for argument in use.arguments.keys.sorted() where !known.contains(argument) {
-            warn(key: "use-parameter|\(use.name.span)|\(name)|\(argument)", Diagnostic(.warning, "unknown parameter '\(argument)' for block '\(name)'", span: use.arguments[argument]?.span ?? use.name.span))
+            warn(key: "use-parameter|\(use.name.span)|\(name)|\(argument)", Diagnostic(.warning, "unknown parameter '\(argument)' for block '\(name)'", span: use.arguments[argument]?.span ?? use.name.span, code: .runtimeUse))
         }
         node.define = define
         let scope = useScope(node, use, define, context.scope)

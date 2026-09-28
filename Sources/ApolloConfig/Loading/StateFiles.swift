@@ -13,7 +13,7 @@ enum StateFiles {
             do {
                 try fileSystem.copyItem(url, to: backup)
             } catch {
-                result.append(Diagnostic(.warning, "could not copy the unreadable state file '\(url.path)'", span: .synthetic(url.path)))
+                result.append(Diagnostic(.warning, "could not copy the unreadable state file '\(url.path)'", span: .synthetic(url.path), code: .stateCopy))
             }
         }
         return (values, result)

@@ -3,7 +3,7 @@ import ApolloConfig
 
 private struct DefaultScope: EvaluationScope {
     let shell: Record
-    let persisted: [String: Value]
+    let defaults: PlainDefaults
 
     func local(_ name: String) -> Value? { nil }
 
@@ -13,11 +13,73 @@ private struct DefaultScope: EvaluationScope {
             return SignalStore.read(.record(shell), fields)
         case "var":
             guard let first = fields.first else { return .null }
-            let base = persisted[first] ?? .null
-            return SignalStore.read(base, Array(fields.dropFirst()))
+            return SignalStore.read(defaults.value(of: first), Array(fields.dropFirst()))
         default:
             return .null
         }
+    }
+}
+
+private final class PlainDefaults: @unchecked Sendable {
+    private let decls: [String: VarDecl]
+    private let persisted: [String: Value]
+    private let current: [String: (ValueType, Value)]
+    private let shell: Record
+    private let evaluate: (VarDecl, DefaultScope) -> Value
+    private let initial: (VarDecl, Value) -> Value
+    private let cycle: (VarDecl) -> Void
+    private let tooDeep: (VarDecl) -> Void
+    private var resolved: [String: (initial: Value, fallback: Value)] = [:]
+    private var visiting: Set<String> = []
+    private var reported: Set<String> = []
+
+    init(
+        decls: [VarDecl],
+        persisted: [String: Value],
+        current: [String: (ValueType, Value)],
+        shell: Record,
+        evaluate: @escaping (VarDecl, DefaultScope) -> Value,
+        initial: @escaping (VarDecl, Value) -> Value,
+        cycle: @escaping (VarDecl) -> Void,
+        tooDeep: @escaping (VarDecl) -> Void
+    ) {
+        self.decls = Dictionary(decls.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
+        self.persisted = persisted
+        self.current = current
+        self.shell = shell
+        self.evaluate = evaluate
+        self.initial = initial
+        self.cycle = cycle
+        self.tooDeep = tooDeep
+    }
+
+    func resolve(_ name: String) -> (initial: Value, fallback: Value)? {
+        if let known = resolved[name] { return known }
+        guard let decl = decls[name] else { return nil }
+        guard visiting.count < ConfigLimits.maxExpandedDepth else {
+            if reported.insert(name).inserted { tooDeep(decl) }
+            return nil
+        }
+        guard visiting.insert(name).inserted else {
+            if reported.insert(name).inserted { cycle(decl) }
+            return nil
+        }
+        let scope = DefaultScope(shell: shell, defaults: self)
+        let fallback = evaluate(decl, scope)
+        visiting.remove(name)
+        let start: Value
+        if let (type, value) = current[name], type == decl.type {
+            start = value
+        } else {
+            start = initial(decl, fallback)
+        }
+        resolved[name] = (start, fallback)
+        return (start, fallback)
+    }
+
+    func value(of name: String) -> Value {
+        if let (start, _) = resolve(name) { return start }
+        return persisted[name].map(SignalStore.sanitize) ?? .null
     }
 }
 
@@ -90,7 +152,8 @@ struct DerivedGraphAnalysis {
                 .error,
                 "cyclic derived var: \(chain.joined(separator: " -> "))",
                 span: spans[first],
-                notes: notes
+                notes: notes,
+                code: .varCycle
             ))
         }
     }
@@ -250,15 +313,15 @@ public final class VarStore {
     public func set(_ name: String, _ value: Value, for duration: Double? = nil) -> Bool {
         guard let slot = plain[name] else {
             if let slot = derived[name] {
-                warn(Diagnostic(.warning, "'\(name)' is derived and cannot be set", span: slot.decl.span))
+                warn(Diagnostic(.warning, "'\(name)' is derived and cannot be set", span: slot.decl.span, code: .derivedSet))
             } else {
-                warn(Diagnostic(.warning, "unknown var '\(name)'"))
+                warn(Diagnostic(.warning, "unknown var '\(name)'", code: .unknownVar))
             }
             return false
         }
         let sanitized = SignalStore.sanitize(value)
         guard matchesType(slot.decl.type, sanitized) else {
-            warn(Diagnostic(.warning, "'\(name)' expects \(slot.decl.type) but got \(value.typeName)", span: slot.decl.span))
+            warn(Diagnostic(.warning, "'\(name)' expects \(slot.decl.type) but got \(value.typeName)", span: slot.decl.span, code: .varType))
             return false
         }
         if let duration, duration > 0 {
@@ -283,7 +346,7 @@ public final class VarStore {
 
     public func reset(_ name: String) {
         guard let slot = plain[name] else {
-            warn(Diagnostic(.warning, "unknown var '\(name)'"))
+            warn(Diagnostic(.warning, "unknown var '\(name)'", code: .unknownVar))
             return
         }
         slot.transient?.work.cancel()
@@ -316,7 +379,7 @@ public final class VarStore {
             guard fileValues[name] != value else { continue }
             fileValues[name] = value
             guard matchesType(slot.decl.type, value) else {
-                warn(Diagnostic(.warning, "'\(name)' in state file has the wrong type, keeping the current value", span: slot.decl.span, kind: .valueDiscarded))
+                warn(Diagnostic(.warning, "'\(name)' in state file has the wrong type, keeping the current value", span: slot.decl.span, kind: .valueDiscarded, code: .stateType))
                 needsBackup = true
                 continue
             }
@@ -355,6 +418,18 @@ public final class VarStore {
         }
         let analysis = DerivedGraphAnalysis(names: Array(derivedDecls.keys), edges: edges, spans: derivedDecls.mapValues(\.span))
         for diagnostic in analysis.diagnostics { warn(diagnostic) }
+        let defaults = PlainDefaults(
+            decls: decls.filter { $0.derived == nil },
+            persisted: persisted,
+            current: previousPlain.mapValues { ($0.decl.type, $0.value) },
+            shell: shell,
+            evaluate: { [unowned self] decl, scope in SignalStore.sanitize(self.evaluateTemplate(decl.defaultValue, scope: scope)) },
+            initial: { [unowned self] decl, fallback in self.initialValue(decl: decl, fallback: fallback, persisted: persisted) },
+            cycle: { [unowned self] decl in self.warn(Diagnostic(.warning, "the default of '\(decl.name)' reads itself", span: decl.span, code: .varCycle)) },
+            tooDeep: { [unowned self] decl in
+                self.warn(Diagnostic(.warning, "the default of '\(decl.name)' is read through more than \(ConfigLimits.maxExpandedDepth) other defaults", span: decl.span, code: .varCycle))
+            }
+        )
 
         for decl in decls {
             if let source = sources[decl.name], derived[decl.name] == nil, plain[decl.name] == nil {
@@ -384,18 +459,18 @@ public final class VarStore {
                     paths: source.dependencies.filter { $0.root == "var" }
                 )
             } else if decl.derived == nil, derived[decl.name] == nil, plain[decl.name] == nil {
+                guard let (initial, defaultValue) = defaults.resolve(decl.name) else { continue }
                 if let prior = previousPlain[decl.name], prior.decl.type == decl.type {
                     prior.decl = decl
-                    prior.defaultValue = computeDefault(decl: decl, persisted: persisted, shell: shell)
+                    prior.defaultValue = defaultValue
                     plain[decl.name] = prior
                     store.set(DependencyPath("var", [decl.name]), prior.value)
                     continue
                 }
                 previousPlain[decl.name]?.transient?.work.cancel()
-                let (initial, defaultValue) = computeInitial(decl: decl, persisted: persisted, shell: shell)
                 nextToken += 1
                 plain[decl.name] = PlainSlot(decl: decl, value: initial, defaultValue: defaultValue, token: nextToken)
-                store.set(DependencyPath("var", [decl.name]), initial)
+                store.set(DependencyPath("var", [decl.name]), sanitized: initial)
             }
         }
 
@@ -520,9 +595,19 @@ public final class VarStore {
     private func evaluateTemplate(_ template: ValueTemplate, scope: any EvaluationScope) -> Value {
         switch template {
         case .scalar(let compiled):
+            if let constant = compiled.template.literalValue { return constant }
             return bindings.sharedEvaluator.render(compiled.template, in: scope, at: compiled.span)
         case .list(let items):
-            return .list(items.map { evaluateTemplate($0, scope: scope) })
+            var values: [Value] = []
+            values.reserveCapacity(items.count)
+            for item in items {
+                if case .scalar(let compiled) = item, let constant = compiled.template.literalValue {
+                    values.append(constant)
+                } else {
+                    values.append(evaluateTemplate(item, scope: scope))
+                }
+            }
+            return .list(values)
         case .record(let fields):
             var record = Record()
             for field in fields {
@@ -532,18 +617,12 @@ public final class VarStore {
         }
     }
 
-    private func computeDefault(decl: VarDecl, persisted: [String: Value], shell: Record) -> Value {
-        let scope = DefaultScope(shell: shell, persisted: persisted)
-        return SignalStore.sanitize(evaluateTemplate(decl.defaultValue, scope: scope))
-    }
-
-    private func computeInitial(decl: VarDecl, persisted: [String: Value], shell: Record) -> (initial: Value, fallback: Value) {
-        let fallback = computeDefault(decl: decl, persisted: persisted, shell: shell)
-        guard let saved = persisted[decl.name] else { return (fallback, fallback) }
+    private func initialValue(decl: VarDecl, fallback: Value, persisted: [String: Value]) -> Value {
+        guard let saved = persisted[decl.name] else { return fallback }
         let sanitizedSaved = SignalStore.sanitize(saved)
-        if matchesType(decl.type, sanitizedSaved) { return (sanitizedSaved, fallback) }
-        warn(Diagnostic(.warning, "'\(decl.name)' in state file has the wrong type, using the default", span: decl.span))
-        return (fallback, fallback)
+        if matchesType(decl.type, sanitizedSaved) { return sanitizedSaved }
+        warn(Diagnostic(.warning, "'\(decl.name)' in state file has the wrong type, using the default", span: decl.span, code: .stateType))
+        return fallback
     }
 
     private func matchesType(_ type: ValueType, _ value: Value) -> Bool {

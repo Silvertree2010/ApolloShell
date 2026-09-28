@@ -82,7 +82,6 @@ public struct ConfigIR: Sendable, Hashable {
     public var files: [URL]
     public var styleSheets: [StyleRef]
     public var requiredVersion: String?
-    public var requiredFeatures: [String]
     public var vars: [VarDecl]
     public var surfaces: [SurfaceIR]
     public var binds: [BindIR]
@@ -97,7 +96,6 @@ public struct ConfigIR: Sendable, Hashable {
         files: [URL] = [],
         styleSheets: [StyleRef] = [],
         requiredVersion: String? = nil,
-        requiredFeatures: [String] = [],
         vars: [VarDecl] = [],
         surfaces: [SurfaceIR] = [],
         binds: [BindIR] = [],
@@ -111,7 +109,6 @@ public struct ConfigIR: Sendable, Hashable {
         self.files = files
         self.styleSheets = styleSheets
         self.requiredVersion = requiredVersion
-        self.requiredFeatures = requiredFeatures
         self.vars = vars
         self.surfaces = surfaces
         self.binds = binds

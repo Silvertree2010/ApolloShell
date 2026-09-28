@@ -13,7 +13,12 @@ public enum JSONValue {
         case is NSNull:
             return .null
         case let number as NSNumber:
-            if CFGetTypeID(number) == CFBooleanGetTypeID() {
+            #if canImport(Darwin)
+            let isBool = CFGetTypeID(number) == CFBooleanGetTypeID()
+            #else
+            let isBool = type(of: number) == type(of: NSNumber(value: true))
+            #endif
+            if isBool {
                 return .bool(number.boolValue)
             }
             let double = number.doubleValue

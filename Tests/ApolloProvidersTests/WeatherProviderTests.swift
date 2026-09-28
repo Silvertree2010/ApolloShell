@@ -73,6 +73,28 @@ struct WeatherProviderTests {
         #expect(days(zone: "Europe/Zurich", locale: "en_US")[1]["date-text"] == .string("9/25"))
     }
 
+    @Test("Uhrzeiten und Wochentage folgen der Zeitzone des Orts wie 0.1.4.2, nicht der des Systems", arguments: ["Asia/Tokyo", "America/Los_Angeles", "Europe/Zurich"])
+    func timesFollowPlaceZone(zone: String) {
+        let (harness, source, _) = make()
+        let report = Self.report(zone: zone, locale: "en_US")
+        source.answer = report
+        harness.demand("weather")
+        #expect(harness.value("weather", "time-zone") == .string(zone))
+        #expect(harness.value("weather", "today.sunrise-text") == .string("06:00"))
+        #expect(harness.value("weather", "today.sunset-text") == .string("18:00"))
+        guard case .list(let strip) = harness.value("weather", "hourly-strip"), case .record(let second) = strip[1] else {
+            Issue.record("keine Stunden")
+            return
+        }
+        guard case .date(let time)? = second["time"] else { Issue.record("keine Zeit"); return }
+        #expect(second["time-text"] == .string("\(report.calendar.component(.hour, from: time)):00"))
+        let day = days(zone: zone, locale: "en_US")[1]
+        guard case .date(let date)? = day["date"] else { Issue.record("kein Datum"); return }
+        #expect(report.calendar.component(.hour, from: date) == 0)
+        let weekday = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"][report.calendar.component(.weekday, from: date) - 1]
+        #expect(day["name-text"] == .string(weekday))
+    }
+
     @Test("Ohne Ort kein Abruf, Status no-place")
     func noPlace() {
         let (harness, source, _) = make(place: .null)

@@ -16,11 +16,9 @@ struct UseStageTests {
         let fs = MemoryFileSystem(files)
         let included = IncludeExpander.expand(root: URL(fileURLWithPath: root), origin: origin, fileSystem: fs, paths: paths)
         #expect(included.diagnostics.isEmpty, sourceLocation: sourceLocation)
-        let featured = FeatureStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
+        let featured = RequireStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
         #expect(featured.diagnostics.isEmpty, sourceLocation: sourceLocation)
-        let lets = LetStage.run(featured.nodes, registry: .builtin)
-        #expect(lets.diagnostics.isEmpty, sourceLocation: sourceLocation)
-        return UseStage.run(lets.nodes, registry: .builtin)
+        return UseStage.run(featured.nodes, registry: .builtin)
     }
 
     static func run(_ text: String, sourceLocation: SourceLocation = #_sourceLocation) -> UseStageResult {
@@ -303,25 +301,6 @@ struct UseStageTests {
         #expect(result.diagnostics.first?.severity == .note)
     }
 
-    @Test("Parameter verdeckt ein let gleichen Namens")
-    func parameterHidesLet() throws {
-        let result = Self.run("""
-        let icon="from-let"
-        define "card" {
-            param "icon"
-            text "{icon}"
-        }
-        panel "p" {
-            use "card" icon="from-use"
-        }
-        """)
-        #expect(result.diagnostics.isEmpty)
-        let text = try #require(Self.find("text", in: result.nodes))
-        let resolved = try #require(text.useFrame?.resolve("icon"))
-        #expect(Self.scalarText(resolved.value) == "from-use")
-        #expect(resolved.scope == nil)
-    }
-
     @Test("Argument eines inneren use wird im Rahmen des aeusseren aufgeloest")
     func nestedArgumentResolvesInOuterFrame() throws {
         let result = Self.run("""
@@ -448,9 +427,8 @@ struct UseStageTests {
         let root = URL(fileURLWithPath: DiagnosticGolden.file("use-zyklus", "shell.kdl")).deletingLastPathComponent()
         let included = IncludeExpander.expand(root: root, origin: .user, fileSystem: DiskFileSystem(), paths: Self.paths)
         #expect(included.diagnostics.isEmpty, "\(included.diagnostics)")
-        let featured = FeatureStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
-        let lets = LetStage.run(featured.nodes, registry: .builtin)
-        let result = UseStage.run(lets.nodes, registry: .builtin)
+        let featured = RequireStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
+        let result = UseStage.run(featured.nodes, registry: .builtin)
         var collector = DiagnosticCollector()
         for diagnostic in result.diagnostics {
             collector.add(diagnostic, stage: "use")

@@ -141,6 +141,100 @@ struct ReloadTests {
         #expect(fixture.log.entries == ["new"])
     }
 
+    @Test("Wechsel der Config: laufende Handler der alten enden, der erste Handler der neuen läuft trotz gleicher Position")
+    func configSwitchAbandonsRunningHandlers() async {
+        let fixture = ShellFixture()
+        fixture.apply([], events: [EventHandlerIR(event: "foo", actions: [
+            IR.call("close", [IR.string("menu")]), IR.call("wait", [IR.string("2s")]), IR.log("old"),
+        ], span: IR.span(11))], id: "a")
+        fixture.flush()
+        #expect(fixture.runtime.emit("foo", Record()).count == 1)
+        await settle()
+        fixture.apply([T.surface("popup", "menu", children: [])], events: [
+            EventHandlerIR(event: "foo", actions: [IR.call("toggle", [IR.string("menu")])], span: IR.span(11)),
+        ], id: "b")
+        fixture.flush()
+        #expect(fixture.runtime.emit("foo", Record()).count == 1)
+        await settle()
+        #expect(fixture.surface("menu").isOpen)
+        fixture.clock.advance(by: 2)
+        await settle()
+        #expect(!fixture.log.entries.contains("old"))
+    }
+
+    @Test("emit schickt user.<name> mit event-Feldern an die eigenen on-Handler")
+    func emitReachesOwnHandlers() async {
+        let fixture = ShellFixture()
+        fixture.apply([], events: [
+            EventHandlerIR(event: "foo", actions: [
+                IR.call("emit", [IR.string("refresh")], properties: ["event": IR.literal(.record(Record([("n", .number(3))])))]),
+                IR.call("emit", [IR.string("user.refresh")]),
+            ], span: IR.span(11)),
+            EventHandlerIR(event: "user.refresh", actions: [IR.log("got {event.n}")], span: IR.span(12)),
+        ])
+        fixture.flush()
+        fixture.runtime.emit("foo", Record())
+        await settle()
+        #expect(fixture.log.entries == ["got 3", "got "])
+    }
+
+    @Test("ein Handler, der sich selbst emittiert, endet nach 16 Ebenen mit Warnung statt Stapelüberlauf")
+    func emitLoopStops() async {
+        let fixture = ShellFixture()
+        fixture.apply([], events: [
+            EventHandlerIR(event: "user.loop", actions: [IR.log("l"), IR.call("emit", [IR.string("loop")], line: 13)], span: IR.span(12)),
+        ])
+        fixture.flush()
+        fixture.runtime.emit("user.loop", Record())
+        await settle()
+        #expect(fixture.log.entries.count == ActionDispatcher.maximumEmitDepth + 1)
+        #expect(fixture.warnings.contains { $0.message.contains("emit is nested deeper than 16 levels") })
+    }
+
+    @Test("die Tiefe einer emit-Kette zählt auch über wait hinweg")
+    func emitLoopAcrossWaitStops() async {
+        let fixture = ShellFixture()
+        fixture.apply([], events: [
+            EventHandlerIR(event: "user.loop", actions: [IR.log("l"), IR.call("wait", [IR.string("10ms")]), IR.call("emit", [IR.string("loop")], line: 13)], span: IR.span(12)),
+        ])
+        fixture.flush()
+        fixture.runtime.emit("user.loop", Record())
+        for _ in 0..<40 {
+            await settle()
+            fixture.clock.advance(by: 0.01)
+        }
+        await settle()
+        #expect(fixture.log.entries.count == ActionDispatcher.maximumEmitDepth + 1)
+        #expect(fixture.warnings.contains { $0.message.contains("emit is nested deeper than 16 levels") })
+    }
+
+    @Test("eine verzweigende emit-Kette endet nach dem Budget der Kette")
+    func emitFanOutStops() async {
+        let fixture = ShellFixture()
+        fixture.apply([], events: [
+            EventHandlerIR(event: "user.loop", actions: [IR.log("l"), IR.call("emit", [IR.string("loop")], line: 13), IR.call("emit", [IR.string("loop")], line: 14)], span: IR.span(12)),
+        ])
+        fixture.flush()
+        fixture.runtime.emit("user.loop", Record())
+        await settle()
+        #expect(fixture.log.entries.count == EmitBudget.total + 1)
+        #expect(fixture.warnings.contains { $0.message.contains("at most \(EmitBudget.total) events") })
+    }
+
+    @Test("emit ohne Record als event warnt und schickt nichts")
+    func emitNeedsRecord() async {
+        let fixture = ShellFixture()
+        fixture.apply([], events: [
+            EventHandlerIR(event: "foo", actions: [IR.call("emit", [IR.string("x")], properties: ["event": IR.literal(.number(1))])], span: IR.span(11)),
+            EventHandlerIR(event: "user.x", actions: [IR.log("x")], span: IR.span(12)),
+        ])
+        fixture.flush()
+        fixture.runtime.emit("foo", Record())
+        await settle()
+        #expect(fixture.log.entries.isEmpty)
+        #expect(fixture.warnings.contains { $0.message.contains("emit needs a record for event, got number") })
+    }
+
     static func labelled(_ labels: [String], ids: Bool) -> [SurfaceIR] {
         [T.surface("panel", "bar", children: labels.enumerated().map { index, label in
             T.text(ids ? label : String(index), IR.string(label), properties: ids ? ["id": IR.string(label)] : [:])

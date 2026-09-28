@@ -159,7 +159,7 @@ public final class AppsProvider: BaseProvider {
         let pinnedInDock = Set(slots.filter { $0.pinned && $0.bundleID != fm }.map(\.bundleID))
         let context = RecordContext(running: byID, pinnedInDock: pinnedInDock, fileManager: fm)
 
-        publish("all", .list(catalog.compactMap { $0.bundleID }.map { record($0, context) }))
+        publish("all", .list(catalog.map { record($0.bundleID ?? $0.url.path, context) }))
         publish("running", .list(running.map { record($0.bundleID, context) }))
         publish("dock", .list(slots.enumerated().map { index, slot in
             var app = recordValue(slot.bundleID, context)
@@ -199,7 +199,7 @@ public final class AppsProvider: BaseProvider {
 
     private func recordValue(_ id: String, _ context: RecordContext) -> Record {
         let app = context.running[id]
-        let entry = catalog.first { $0.bundleID == id }
+        let entry = catalog.first { ($0.bundleID ?? $0.url.path) == id }
         let installed = entry != nil || source.isInstalled(id)
         let favoriteIndex = favorites.ids.firstIndex(of: id)
         return Record([

@@ -2,7 +2,7 @@ import ApolloBase
 
 extension ExpressionParser {
     public static func parseTemplate(_ text: String, span: SourceSpan) -> Result<StringTemplate, Diagnostic> {
-        guard text.contains("{") else { return .success(.literal(text)) }
+        guard text.utf8.contains(UInt8(ascii: "{")) else { return .success(.literal(text)) }
         let characters = Array(text)
         let mapper = ExpressionSpanMapper(base: span, characters: characters, origin: 0)
         var parts: [TemplatePart] = []
@@ -22,7 +22,8 @@ extension ExpressionParser {
                     .error,
                     "unmatched '}'",
                     span: mapper.span(from: index, to: index + 1),
-                    help: "write '}}' for a literal brace"
+                    help: "write '}}' for a literal brace",
+                    code: .expressionSyntax
                 ))
             } else if character == "{" {
                 let close: Int
@@ -38,7 +39,8 @@ extension ExpressionParser {
                         .error,
                         "empty expression",
                         span: mapper.span(from: index, to: close + 1),
-                        help: "write '{{}}' for literal braces"
+                        help: "write '{{}}' for literal braces",
+                        code: .expressionSyntax
                     ))
                 }
                 switch parse(inner, mapper: mapper.shifted(to: index + 1)) {

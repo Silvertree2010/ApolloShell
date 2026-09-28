@@ -39,7 +39,7 @@ struct DiagnosticCollector {
             result = Array(result.prefix(limit))
         }
         if total > limit {
-            result.append(Diagnostic(.note, "and \(total - limit) more"))
+            result.append(Diagnostic(.note, "and \(total - limit) more", code: .moreHidden))
         }
         return DiagnosticReport(diagnostics: result, stageCounts: stageCounts, totalCounts: totalCounts)
     }

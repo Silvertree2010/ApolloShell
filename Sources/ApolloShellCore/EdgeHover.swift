@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 
 public struct EdgeHoverState: Equatable, Sendable {
     public var visible: Bool

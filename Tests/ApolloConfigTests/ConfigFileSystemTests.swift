@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import ApolloKDL
 @testable import ApolloConfig
 
 @Suite("ConfigFileSystem")
@@ -27,5 +28,42 @@ struct ConfigFileSystemTests {
         try fileSystem.write("theme \"Afterglow\"\n", to: file)
         #expect(fileSystem.exists(file))
         #expect(try fileSystem.read(file) == "theme \"Afterglow\"\n")
+    }
+
+    @Test("DiskFileSystem schreibt durch einen Symlink ins Ziel, der Link bleibt")
+    func diskFileSystemKeepsSymlink() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let fileSystem = DiskFileSystem()
+        let real = directory.appendingPathComponent("dotfiles/settings.kdl")
+        try fileSystem.write("theme \"Old\"\n", to: real)
+        let link = directory.appendingPathComponent("config/settings.kdl")
+        try FileManager.default.createDirectory(at: link.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+        try fileSystem.write("theme \"New\"\n", to: link)
+        #expect(try FileManager.default.destinationOfSymbolicLink(atPath: link.path) == real.path)
+        #expect(try fileSystem.read(real) == "theme \"New\"\n")
+    }
+
+    @Test("DiskFileSystem liest keine Nicht-Dateien und höchstens 1 MB, die Grössenmeldung bleibt")
+    func diskFileSystemReadsBounded() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let fileSystem = DiskFileSystem()
+        let fifo = directory.appendingPathComponent("state.kdl")
+        #expect(mkfifo(fifo.path, 0o600) == 0)
+        #expect(throws: ConfigFileSystemError.self) { try fileSystem.read(fifo) }
+        let huge = directory.appendingPathComponent("huge.kdl")
+        try Data(repeating: 0x61, count: 8 << 20).write(to: huge)
+        #expect(try fileSystem.read(huge).utf8.count == DiskFileSystem.maxReadBytes + 1)
+        let binary = directory.appendingPathComponent("binary.kdl")
+        try Data([0xFF, 0xFE, 0x00]).write(to: binary)
+        #expect(throws: ConfigFileSystemError.self) { try fileSystem.read(binary) }
+        let shell = directory.appendingPathComponent("shell.kdl")
+        try "include \"huge.kdl\"\n".write(to: shell, atomically: true, encoding: .utf8)
+        let paths = ConfigPaths(builtinConfigs: directory, userConfig: directory, applicationSupport: directory)
+        let result = IncludeExpander.expand(root: directory, origin: .user, fileSystem: fileSystem, paths: paths)
+        #expect(result.diagnostics.map(\.message).contains { $0.hasSuffix("is larger than \(KDLLimits.maxBytes) bytes") })
     }
 }

@@ -1,13 +1,13 @@
-var dashboard-tabs "{dashboard-caelestia.tabs}" type="list" persist=#true
-var dashboard-cards-top "{dashboard-caelestia.top}" type="list" persist=#true
-var dashboard-cards-bottom "{dashboard-caelestia.bottom}" type="list" persist=#true
-var dashboard-cards-side "{dashboard-caelestia.side}" type="list" persist=#true
+var dashboard-tabs "{var.dashboard-caelestia.tabs}" type="list" persist=#true
+var dashboard-cards-top "{var.dashboard-caelestia.top}" type="list" persist=#true
+var dashboard-cards-bottom "{var.dashboard-caelestia.bottom}" type="list" persist=#true
+var dashboard-cards-side "{var.dashboard-caelestia.side}" type="list" persist=#true
 var dashboard-tab "dashboard"
 var calendar-offset 0
 var dashboard-visible-tabs from="{var.dashboard-tabs | where 'visible' true}"
 var dashboard-active-tab from="{(var.dashboard-visible-tabs | where 'id' var.dashboard-tab | count) > 0 ? var.dashboard-tab : (var.dashboard-visible-tabs | first).id}"
 
-let dashboard-tab-looks {
+var dashboard-tab-looks {
     - id="dashboard" title="Dashboard" icon="bar-dashboard" symbol="square.grid.2x2" selected=".fill"
     - id="media" title="Media" icon="panel-media" symbol="music.note.list" selected=""
     - id="performance" title="Performance" icon="panel-performance" symbol="gauge.with.dots.needle.67percent" selected=""
@@ -66,8 +66,8 @@ popup "dashboard" anchor="top" motion="slide" hover-edge=#true overhang=#true ar
                 button class="dashboard-tab" checked="{tab.id == var.dashboard-active-tab}" {
                     on-click { set "dashboard-tab" "{tab.id}" }
                     column class="dashboard-tab-label" {
-                        icon "{(dashboard-tab-looks | where 'id' tab.id | first).icon}" fallback="{(dashboard-tab-looks | where 'id' tab.id | first).symbol}{tab.id == var.dashboard-active-tab ? (dashboard-tab-looks | where 'id' tab.id | first).selected : ''}" class="dashboard-tab-glyph"
-                        text "{(dashboard-tab-looks | where 'id' tab.id | first).title}" class="dashboard-tab-title"
+                        icon "{(var.dashboard-tab-looks | where 'id' tab.id | first).icon}" fallback="{(var.dashboard-tab-looks | where 'id' tab.id | first).symbol}{tab.id == var.dashboard-active-tab ? (var.dashboard-tab-looks | where 'id' tab.id | first).selected : ''}" class="dashboard-tab-glyph"
+                        text "{(var.dashboard-tab-looks | where 'id' tab.id | first).title}" class="dashboard-tab-title"
                     }
                     when "{tab.id == var.dashboard-active-tab}" { stack class="dashboard-tab-pill" match-id="dashboard-tab" }
                 }

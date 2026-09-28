@@ -275,22 +275,10 @@ editor "code -g {file}:{line}:{column}"
 
 ### `else` (node)
 
-Alternative branch of a directly preceding when or feature.
+Alternative branch of a directly preceding when.
 
 ```kdl
 else { text "No battery" }
-```
-
-### `feature` (node)
-
-Limits the body to shells that know this feature.
-
-| | Name | Type | Default | |
-| --- | --- | --- | --- | --- |
-| argument | `name` | identifier | required | Name of the required feature. |
-
-```kdl
-feature "wm" { text "Tiling" }
 ```
 
 ### `fill` (node)
@@ -303,6 +291,20 @@ Fills a named slot of a use.
 
 ```kdl
 fill "header" { text "Title" }
+```
+
+### `filter` (node)
+
+Declares a filter made of an expression; value is the piped input.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `name` | identifier | required | Name used after \| in expressions. |
+| argument | `body` | string | required | One {…} expression over value and the arguments. |
+| property | `args` | string | `null` | Names of extra arguments, separated by spaces. |
+
+```kdl
+filter "fahrenheit" "{value * 9 / 5 + 32}"
 ```
 
 ### `flyout` (node)
@@ -406,7 +408,7 @@ Draws a history, such as CPU history.
 | property | `values` | list | required | List of numbers. |
 | property | `min` | number | `0` | Lower bound. |
 | property | `max` | number | `null` | Upper bound, default largest value. |
-| property | `kind` | "line"\|"area"\|"bars" | `null` | Style. |
+| property | `kind` | "line"\|"area"\|"bars" | `null` | How the values are drawn: line, area or bars. |
 | property | `capacity` | number | `null` | Number of points, older ones drop out. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
@@ -598,14 +600,6 @@ Selects the default layout of the window manager.
 
 ```kdl
 layout "dwindle"
-```
-
-### `let` (node)
-
-Declares one or more constants evaluated at load time.
-
-```kdl
-let gap=8 radius=12
 ```
 
 ### `listen` (node)
@@ -944,12 +938,11 @@ reorderable axis="vertical" { each item in="{var.items}" { text "{item.name}" } 
 
 ### `require` (node)
 
-Stops loading cleanly if the shell is too old or a feature is missing.
+Stops loading cleanly if the shell is too old.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `version` | string |  | Minimum shell version. |
-| property | `feature` | identifier | `null` | Name of a required feature. |
+| argument | `version` | string | required | Minimum shell version. |
 
 ```kdl
 require "0.2.0"
@@ -1316,7 +1309,7 @@ Selects the terminal for wm.terminal.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `bundleIDs`... | string | required | Bundle IDs, the first installed one wins. |
+| argument | `bundle-ids`... | string | required | Bundle IDs, the first installed one wins. |
 
 ```kdl
 terminal "com.mitchellh.ghostty" "com.apple.Terminal"
@@ -1389,11 +1382,11 @@ theme-preview theme="{item.slug}"
 
 ### `toast` (node)
 
-Defines how a notification from the notify action looks.
+Defines how a notification from the toast.show action looks.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `style` | identifier | required | Style name, target of the notify action. |
+| argument | `style` | identifier | required | Style name, target of the toast.show action. |
 | property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
 | property | `class` | string | `null` | CSS classes, separated by spaces. |
 | property | `style` | string | `null` | CSS declarations for this node only. |
@@ -1481,12 +1474,12 @@ use "labeled-icon" icon="bar-power"
 
 ### `var` (node)
 
-Declares runtime state, optionally persisted.
+Declares state, optionally persisted; a var nothing sets is a constant.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `name` | identifier | required | Name of the state. |
-| argument | `default` | value |  | Default value. |
+| argument | `default` | value |  | Default value, may read other vars. |
 | property | `persist` | bool | `false` | Stores the value in the config's state file. |
 | property | `type` | "string"\|"number"\|"bool"\|"list"\|"record"\|"any" | `null` | Type of the value, default from the default value. |
 | property | `from` | value | `null` | Makes the var derived, not settable. |
@@ -1574,7 +1567,7 @@ Copies text to the clipboard.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `text` | string | required | Text. |
+| argument | `text` | string | required | Text put on the clipboard as plain text. |
 
 ### `close` (action)
 
@@ -1605,6 +1598,15 @@ Switches the config.
 | --- | --- | --- | --- | --- |
 | argument | `id` | identifier | required | Config id. |
 
+### `emit` (action)
+
+Sends an event to the config's own on handlers, like apollo emit; a chain of emits stops after 16 levels or 256 events.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `name` | string | required | Event name, sent as user.<name>. |
+| property | `event` | value | `null` | Record the handlers read as event.<field>. |
+
 ### `exec` (action)
 
 Starts any program.
@@ -1612,7 +1614,7 @@ Starts any program.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `command` | string | required | Command run via /bin/sh -c; each {…} is inserted as one quoted word. |
-| property | `timeout` | duration | `"30s"` | Timeout. |
+| property | `timeout` | duration | `"30s"` | The program is stopped after this time. |
 
 ### `list.insert` (action)
 
@@ -1643,8 +1645,8 @@ Moves an entry between two var lists.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `fromVariable` | identifier | required | Source list. |
-| argument | `toVariable` | identifier | required | Target list. |
+| argument | `from-variable` | identifier | required | Source list. |
+| argument | `to-variable` | identifier | required | Target list. |
 | property | `from` | number | `null` | Source position. |
 | property | `to` | number | `null` | Target position. |
 
@@ -1655,7 +1657,7 @@ Removes an entry from a var list.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `variable` | identifier | required | Name of the var list. |
-| property | `at` | number | `null` | Position. |
+| property | `at` | number | `null` | Position from 0. |
 | property | `key` | value | `null` | Key of the entry. |
 
 ### `list.swap` (action)
@@ -1665,9 +1667,9 @@ Swaps two entries.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `variable` | identifier | required | First var list. |
-| argument | `index` | number | required | Position. |
-| argument | `otherVariable` | identifier | required | Second var list. |
-| argument | `otherIndex` | number | required | Position. |
+| argument | `index` | number | required | Position in the first list, from 0. |
+| argument | `other-variable` | identifier | required | Second var list. |
+| argument | `other-index` | number | required | Position in the second list, from 0. |
 
 ### `list.update` (action)
 
@@ -1676,25 +1678,12 @@ Merges fields into a record of a var list.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `variable` | identifier | required | Name of the var list. |
-| property | `at` | number | `null` | Position. |
+| property | `at` | number | `null` | Position from 0. |
 | property | `key` | value | `null` | Key instead of at. |
 
 ### `marketplace.open` (action)
 
 Opens the Marketplace window.
-
-### `notify` (action)
-
-Shows a toast.
-
-| | Name | Type | Default | |
-| --- | --- | --- | --- | --- |
-| property | `title` | string | `null` | Title. |
-| property | `body` | string | `null` | Text. |
-| property | `icon` | string | `null` | Symbol. |
-| property | `kind` | string | `null` | Kind. |
-| property | `style` | string | `"default"` | Toast style. |
-| property | `duration` | duration | `null` | Display duration. |
 
 ### `open` (action)
 
@@ -1705,21 +1694,13 @@ Opens a surface.
 | argument | `id` | identifier | required | Surface id. |
 | property | `screen` | string | `null` | Overrides the screen choice. |
 
-### `open-app` (action)
-
-Launches an app or brings it to the front.
-
-| | Name | Type | Default | |
-| --- | --- | --- | --- | --- |
-| argument | `bundleID` | string | required | Bundle ID. |
-
 ### `open-file` (action)
 
 Opens a file.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `path` | path | required | Path. |
+| argument | `path` | path | required | File to open, ~ is the home folder. |
 | property | `app` | string | `null` | Specific app. |
 
 ### `open-url` (action)
@@ -1728,7 +1709,7 @@ Opens a URL.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `url` | string | required | URL. |
+| argument | `url` | string | required | Address with a scheme, such as https:// or mailto:. |
 
 ### `osd.show` (action)
 
@@ -1770,7 +1751,7 @@ Reveals a file in Finder.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `path` | path | required | Path. |
+| argument | `path` | path | required | File or folder to select in Finder. |
 
 ### `run-shortcut` (action)
 
@@ -1802,8 +1783,8 @@ Opens a file in the editor from settings.kdl.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `file` | path | required | File. |
-| property | `line` | number | `null` | Line. |
+| argument | `file` | path | required | File to open, ~ is the home folder. |
+| property | `line` | number | `null` | Line to jump to, from 1. |
 
 ### `shell.install-update` (action)
 
@@ -1827,11 +1808,11 @@ Restarts the process.
 
 ### `shell.set-login-item` (action)
 
-Set the login item.
+Adds or removes the shell as a login item.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `value` | bool | required | State. |
+| argument | `value` | bool | required | #true starts the shell at login. |
 
 ### `sound` (action)
 
@@ -1860,6 +1841,19 @@ Switches the theme.
 ### `toast.dismiss` (action)
 
 Closes the clicked toast from inside its content.
+
+### `toast.show` (action)
+
+Shows a toast.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| property | `title` | string | `null` | First line, read as toast.title. |
+| property | `body` | string | `null` | Text under the title, read as toast.body. |
+| property | `icon` | string | `null` | SF Symbol name, read as toast.icon. |
+| property | `kind` | string | `null` | Free word the toast can style by, read as toast.kind; default info. |
+| property | `style` | string | `"default"` | Toast style. |
+| property | `duration` | duration | `null` | Display duration. |
 
 ### `toggle` (action)
 
@@ -1924,7 +1918,7 @@ Actions and events: `audio.set-volume`, `audio.change-volume`, `audio.set-muted`
 
 ### `battery` (provider)
 
-Battery.
+Charge, charging state and time left.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -1967,12 +1961,12 @@ Time, date, calendar grid.
 | --- | --- | --- | --- | --- |
 | property | `first-weekday` | "monday"\|"sunday"\|"system" | `"system"` | First day of the week in the calendar grid. |
 | field | `now` | value | | Current time. |
-| field | `hour` | number | | Hour. |
-| field | `minute` | number | | Minute. |
-| field | `second` | number | | Second. |
-| field | `day` | number | | Day. |
-| field | `month` | number | | Month. |
-| field | `year` | number | | Year. |
+| field | `hour` | number | | Hour of the day, 0 to 23. |
+| field | `minute` | number | | Minute, 0 to 59. |
+| field | `second` | number | | Second, 0 to 59. |
+| field | `day` | number | | Day of the month, from 1. |
+| field | `month` | number | | Month, 1 to 12. |
+| field | `year` | number | | Year, four digits. |
 | field | `weekday` | number | | Day of the week, 1 = Monday. |
 | field | `time-zone` | string | | Active time zone. |
 
@@ -2017,15 +2011,15 @@ What is playing.
 | --- | --- | --- | --- | --- |
 | field | `available` | bool | | Whether the adapter is running. |
 | field | `playing` | bool | | Whether something is playing. |
-| field | `title` | string or null | | Title. |
-| field | `artist` | string or null | | Artist. |
-| field | `album` | string or null | | Album. |
-| field | `artwork` | value or null | | Cover. |
+| field | `title` | string or null | | Title of the playing track, #null when nothing plays. |
+| field | `artist` | string or null | | Artist of the playing track. |
+| field | `album` | string or null | | Album of the playing track. |
+| field | `artwork` | value or null | | Cover image for image or background-image, #null without one. |
 | field | `duration` | number or null | | Duration in s. |
 | field | `elapsed` | number or null | | Elapsed time in s. |
 | field | `progress` | number or null | | Progress 0…1. |
 | field | `unavailable` | string or null | | Reason for unavailability. |
-| field | `app` | string or null | | Source. |
+| field | `app` | string or null | | Bundle id of the app that plays. |
 | field | `app-name` | string or null | | Name of the source. |
 | field | `app-icon` | value or null | | Symbol of the source. |
 | field | `kind` | string | | music or video. |
@@ -2048,7 +2042,7 @@ Wi-Fi, Ethernet.
 | field | `wifi.tx-rate` | number or null | | Transmit rate in Mbit/s. |
 | field | `wifi.standard` | string or null | | Wi-Fi standard. |
 | field | `wifi.band` | string or null | | Frequency band. |
-| field | `wifi.channel` | string or null | | Channel. |
+| field | `wifi.channel` | string or null | | Wi-Fi channel number, #null when not connected. |
 | field | `wifi.interface` | string or null | | Interface name. |
 | field | `wifi.symbol` | string | | SF Symbol. |
 
@@ -2080,12 +2074,12 @@ CPU, GPU, memory, disk, network speed.
 | field | `live.net-total-down` | number | | Bytes since the first request. |
 | field | `live.net-total-up` | number | | Bytes since the first request. |
 | field | `chip` | string | | Chip name. |
-| field | `cores` | number | | Cores. |
+| field | `cores` | number | | Number of active CPU cores. |
 | field | `gpu-cores` | number or null | | GPU cores. |
 
 ### `permissions` (provider)
 
-Permissions.
+Which macOS permissions the shell has.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
@@ -2112,11 +2106,11 @@ Actions and events: `power.set-keep-awake`, `power.toggle-keep-awake`, `power.re
 
 ### `screens` (provider)
 
-Screens.
+Connected screens and their frames.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| field | `list` | list | | Screens. |
+| field | `list` | list | | One record per screen: id, name, main, index, frame and visible frame, scale. |
 | field | `main` | record | | Main screen. |
 
 Actions and events: `screens.changed`
@@ -2164,8 +2158,8 @@ Appearance, Night Shift, microphone, user, computer, system actions.
 | field | `full-name` | string | | Full name. |
 | field | `user-image` | value or null | | Profile picture. |
 | field | `host-name` | string | | Computer name. |
-| field | `model` | string | | Model. |
-| field | `chip` | string | | Chip. |
+| field | `model` | string | | Product name of the Mac, such as MacBook Pro. |
+| field | `chip` | string | | Name of the processor, such as Apple M3. |
 | field | `macos-version` | string | | macOS version. |
 | field | `kernel-version` | string | | Kernel version. |
 | field | `uptime` | number | | Uptime in s. |
@@ -2188,8 +2182,9 @@ Weather from three providers, place search.
 | field | `hourly-strip` | list | | 12 entries 2 h apart. |
 | field | `days` | list | | Next 7 days. |
 | field | `updated` | value or null | | Last fetch. |
+| field | `time-zone` | string or null | | Time zone of the place, for the zone argument of the date filter. |
 | field | `stale` | bool | | Whether the data is stale. |
-| field | `attribution` | record | | Attribution. |
+| field | `attribution` | record | | Data source to credit, with text and url. |
 | field | `capabilities` | record | | What the provider supplies. |
 | field | `search-results` | list | | Places found. |
 | field | `search-status` | string | | idle, searching, done or failed. |
@@ -2245,7 +2240,7 @@ Element at a position.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `index` | number | required | Position. |
+| argument | `index` | number | required | Position from 0; negative counts from the end, -1 is the last. |
 
 ### `bool` (filter)
 
@@ -2307,6 +2302,7 @@ Date formatted with a pattern.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `pattern` | string | required | ICU pattern. |
+| argument | `zone` | string |  | Time zone like Europe/Zurich, default the one of the system. |
 
 ### `default` (filter)
 
@@ -2393,7 +2389,7 @@ Joins a list into a string.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `separator` | string | required | Separator. |
+| argument | `separator` | string | required | Text put between two elements. |
 
 ### `json` (filter)
 
@@ -2442,7 +2438,7 @@ Weeks of a month as a list of lists.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `offset` | number |  | Month offset. |
-| argument | `firstWeekday` | string |  | First day of the week. |
+| argument | `first-weekday` | string |  | First day of the week. |
 
 ### `number` (filter)
 
@@ -2496,10 +2492,10 @@ Maps a range linearly onto another.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `fromLow` | number | required | Lower input bound. |
-| argument | `fromHigh` | number | required | Upper input bound. |
-| argument | `toLow` | number | required | Lower output bound. |
-| argument | `toHigh` | number | required | Upper output bound. |
+| argument | `from-low` | number | required | Lower input bound. |
+| argument | `from-high` | number | required | Upper input bound. |
+| argument | `to-low` | number | required | Lower output bound. |
+| argument | `to-high` | number | required | Upper output bound. |
 
 ### `shell-quote` (filter)
 
@@ -2511,7 +2507,7 @@ Skips the first n elements.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `count` | number | required | Count. |
+| argument | `count` | number | required | Number of elements to drop, 0 or more. |
 
 ### `slice` (filter)
 
@@ -2537,7 +2533,7 @@ Splits a string into a list.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `separator` | string | required | Separator. |
+| argument | `separator` | string | required | Text between the parts, not kept in the result. |
 
 ### `starts-with` (filter)
 
@@ -2561,7 +2557,7 @@ First n elements.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `count` | number | required | Count. |
+| argument | `count` | number | required | Number of elements to keep, 0 or more. |
 
 ### `temperature` (filter)
 

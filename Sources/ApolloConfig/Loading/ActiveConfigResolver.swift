@@ -28,7 +28,7 @@ public enum ActiveConfigResolver {
             if let location = firstExisting(for: id, paths: paths, fileSystem: fileSystem) {
                 return (location, [])
             }
-            let diagnostic = Diagnostic(.error, "settings.kdl names config '\(id)' which does not exist, falling back to apolloshell-default")
+            let diagnostic = Diagnostic(.error, "settings.kdl names config '\(id)' which does not exist, falling back to apolloshell-default", code: .configMissing)
             return (defaultLocation(paths), [diagnostic])
         }
         if hasShellFile(paths.userConfig, fileSystem: fileSystem) {

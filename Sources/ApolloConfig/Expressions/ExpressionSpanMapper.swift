@@ -25,7 +25,7 @@ struct ExpressionSpanMapper: Sendable {
     }
 
     func diagnostic(for error: ExpressionSyntaxError) -> Diagnostic {
-        Diagnostic(.error, error.message, span: span(from: error.start, to: error.end), help: error.help)
+        Diagnostic(.error, error.message, span: span(from: error.start, to: error.end), help: error.help, code: .expressionSyntax)
     }
 
     static func utf8Length(_ characters: ArraySlice<Character>) -> Int {

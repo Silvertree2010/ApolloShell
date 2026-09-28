@@ -66,11 +66,11 @@ public class BaseProvider: ProviderInstance {
     }
 
     func note(_ message: String) {
-        context?.warn(Diagnostic(.note, message, span: .synthetic(schema.id)))
+        context?.warn(Diagnostic(.note, message, span: .synthetic(schema.id), code: .providerMessage))
     }
 
     func warn(_ message: String) {
-        context?.warn(Diagnostic(.warning, message, span: .synthetic(schema.id)))
+        context?.warn(Diagnostic(.warning, message, span: .synthetic(schema.id), code: .providerMessage))
     }
 }
 

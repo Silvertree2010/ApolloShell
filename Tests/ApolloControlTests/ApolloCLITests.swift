@@ -17,6 +17,20 @@ struct ApolloCLITests {
         #expect(harness.shell.calls.isEmpty)
     }
 
+    @Test("explain erklärt eine Kennung lokal, auch klein geschrieben, ohne Shell")
+    func explain() throws {
+        let harness = try CLIHarness()
+        let none = harness.folder.url.appendingPathComponent("none").path
+        let known = harness.run(["explain", "a201"], socket: none)
+        #expect(known.exitCode == 0)
+        #expect(known.stdout == ["A201: The node name is not known here."])
+        let unknown = harness.run(["explain", "B7"], socket: none)
+        #expect(unknown.exitCode == 2)
+        #expect(unknown.stderr.first?.contains("not a diagnostic code") == true)
+        #expect(harness.run(["explain"], socket: none).exitCode == 2)
+        #expect(harness.shell.calls.isEmpty)
+    }
+
     @Test("reload gibt Diagnosen aus, Exit 1 nur bei Fehlern")
     func reload() throws {
         let harness = try CLIHarness()
@@ -183,6 +197,9 @@ struct ApolloCLITests {
         #expect(markdown.stdout.first?.hasPrefix("### `text`") == true)
         #expect(harness.run(["schema"], socket: socketless).stdout.count > 20)
         #expect(harness.run(["schema", "no-such-thing"], socket: socketless).exitCode == 1)
+        let typo = harness.run(["schema", "colum"], socket: socketless)
+        #expect(typo.exitCode == 1)
+        #expect(typo.stderr == ["apollo: nothing in the registry is named 'colum', did you mean 'column'?"])
         #expect(harness.run(["schema", "--yaml"], socket: socketless).exitCode == 2)
     }
 

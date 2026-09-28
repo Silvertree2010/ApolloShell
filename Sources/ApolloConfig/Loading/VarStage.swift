@@ -23,7 +23,7 @@ enum VarStage {
     static func declaration(for node: ExpandedNode, diagnostics: inout [Diagnostic]) -> VarDecl? {
         let kdl = node.kdl
         guard let first = kdl.arguments.first, case .string(let name) = first.scalar else {
-            diagnostics.append(Diagnostic(.error, "'var' needs a name", span: kdl.span))
+            diagnostics.append(Diagnostic(.error, "'var' needs a name", span: kdl.span, code: .varSyntax))
             return nil
         }
         let persist = boolProperty(kdl, "persist") ?? false
@@ -38,7 +38,7 @@ enum VarStage {
             }
         }
         if derived != nil, persist {
-            diagnostics.append(Diagnostic(.error, "a derived 'var' (with 'from=') cannot persist", span: kdl.span))
+            diagnostics.append(Diagnostic(.error, "a derived 'var' (with 'from=') cannot persist", span: kdl.span, code: .derivedPersist))
         }
         var defaultValue: ValueTemplate
         if derived != nil {
@@ -64,7 +64,7 @@ enum VarStage {
             if case .string(let text) = typeProperty.value.scalar, let parsed = parseType(text) {
                 type = parsed
             } else {
-                diagnostics.append(Diagnostic(.error, "'type=' must be one of string, number, bool, list, record, any", span: typeProperty.span))
+                diagnostics.append(Diagnostic(.error, "'type=' must be one of string, number, bool, list, record, any", span: typeProperty.span, code: .unknownType))
                 type = .any
             }
         } else {

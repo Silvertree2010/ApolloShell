@@ -1,7 +1,7 @@
 var settings-file-manager-query ""
 var settings-file-manager-other #false
 
-let settings-weather-sources {
+var settings-weather-sources {
     - id="open-meteo" title="Open-Meteo" detail="Forecast for 7 days, hourly, worldwide. No account."
     - id="met-norway" title="MET Norway" detail="Norwegian Meteorological Institute, worldwide. No account."
     - id="wttr" title="wttr.in" detail="Compact forecast for 3 days. No account."
@@ -24,7 +24,7 @@ define "settings-choice" {
 define "settings-page-providers" {
     column class="settings-group" {
         text "Weather" class="settings-group-title"
-        each source in="{settings-weather-sources}" key="{source.id}" {
+        each source in="{var.settings-weather-sources}" key="{source.id}" {
             button class="settings-choice-button" checked="{source.id == var.weather-source}" {
                 on-click { set "weather-source" "{source.id}" }
                 use "settings-choice" title="{source.title}" detail="{source.detail}" checked="{source.id == var.weather-source}"

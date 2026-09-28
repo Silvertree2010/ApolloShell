@@ -1,3 +1,4 @@
+#if canImport(Darwin)
 import Testing
 import Foundation
 import ApolloConfig
@@ -52,3 +53,4 @@ struct SettingsWatcherTests {
         #expect(waitUntil { store.settings.theme == "B" })
     }
 }
+#endif

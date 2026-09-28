@@ -20,7 +20,7 @@ enum ActionsGlobal {
             PropertySchema(name: "field", type: .string, defaultValue: .null, allowsExpression: false, doc: "Field name of this list."),
         ], acceptsChildren: true, doc: "Inserts an entry into a var list."),
         ActionSchema(name: "list.remove", arguments: [S.arg("variable", .identifier, doc: "Name of the var list.")], properties: [
-            PropertySchema(name: "at", type: .number, defaultValue: .null, doc: "Position."),
+            PropertySchema(name: "at", type: .number, defaultValue: .null, doc: "Position from 0."),
             PropertySchema(name: "key", type: .value, defaultValue: .null, doc: "Key of the entry."),
         ], doc: "Removes an entry from a var list."),
         ActionSchema(name: "list.move", arguments: [S.arg("variable", .identifier, doc: "Name of the var list.")], properties: [
@@ -28,33 +28,35 @@ enum ActionsGlobal {
             PropertySchema(name: "to", type: .number, defaultValue: .null, doc: "Target position."),
             PropertySchema(name: "key", type: .value, defaultValue: .null, doc: "Key instead of from."),
         ], doc: "Moves an entry within a var list."),
-        ActionSchema(name: "list.move-to", arguments: [S.arg("fromVariable", .identifier, doc: "Source list."), S.arg("toVariable", .identifier, doc: "Target list.")], properties: [
+        ActionSchema(name: "list.move-to", arguments: [S.arg("from-variable", .identifier, doc: "Source list."), S.arg("to-variable", .identifier, doc: "Target list.")], properties: [
             PropertySchema(name: "from", type: .number, defaultValue: .null, doc: "Source position."),
             PropertySchema(name: "to", type: .number, defaultValue: .null, doc: "Target position."),
         ], doc: "Moves an entry between two var lists."),
-        ActionSchema(name: "list.swap", arguments: [S.arg("variable", .identifier, doc: "First var list."), S.arg("index", .number, doc: "Position."), S.arg("otherVariable", .identifier, doc: "Second var list."), S.arg("otherIndex", .number, doc: "Position.")], doc: "Swaps two entries."),
+        ActionSchema(name: "list.swap", arguments: [S.arg("variable", .identifier, doc: "First var list."), S.arg("index", .number, doc: "Position in the first list, from 0."), S.arg("other-variable", .identifier, doc: "Second var list."), S.arg("other-index", .number, doc: "Position in the second list, from 0.")], doc: "Swaps two entries."),
         ActionSchema(name: "list.update", arguments: [S.arg("variable", .identifier, doc: "Name of the var list.")], properties: [
-            PropertySchema(name: "at", type: .number, defaultValue: .null, doc: "Position."),
+            PropertySchema(name: "at", type: .number, defaultValue: .null, doc: "Position from 0."),
             PropertySchema(name: "key", type: .value, defaultValue: .null, doc: "Key instead of at."),
         ], acceptsChildren: true, doc: "Merges fields into a record of a var list."),
+        ActionSchema(name: "emit", arguments: [S.arg("name", .string, doc: "Event name, sent as user.<name>.")], properties: [
+            PropertySchema(name: "event", type: .value, defaultValue: .null, doc: "Record the handlers read as event.<field>."),
+        ], doc: "Sends an event to the config's own on handlers, like apollo emit; a chain of emits stops after 16 levels or 256 events."),
         ActionSchema(name: "wait", arguments: [S.arg("duration", .duration, doc: "Wait time, at most 10s.")], waits: true, doc: "Waits before the next action runs."),
         ActionSchema(name: "repeat", arguments: [S.arg("count", .number, doc: "Repetitions, at most 100.")], acceptsChildren: true, doc: "Runs the children several times."),
-        ActionSchema(name: "exec", arguments: [ArgumentSchema(name: "command", type: .string, shellQuoted: true, doc: "Command run via /bin/sh -c; each {…} is inserted as one quoted word.")], properties: [PropertySchema(name: "timeout", type: .duration, defaultValue: .string("30s"), allowsExpression: false, doc: "Timeout.")], startsProgramsOrControlsApps: true, doc: "Starts any program."),
-        ActionSchema(name: "open-app", arguments: [S.arg("bundleID", .string, doc: "Bundle ID.")], startsProgramsOrControlsApps: true, doc: "Launches an app or brings it to the front."),
-        ActionSchema(name: "open-url", arguments: [S.arg("url", .string, doc: "URL.")], startsProgramsOrControlsApps: true, doc: "Opens a URL."),
-        ActionSchema(name: "open-file", arguments: [S.arg("path", .path, doc: "Path.")], properties: [PropertySchema(name: "app", type: .string, defaultValue: .null, doc: "Specific app.")], startsProgramsOrControlsApps: true, doc: "Opens a file."),
-        ActionSchema(name: "reveal-file", arguments: [S.arg("path", .path, doc: "Path.")], doc: "Reveals a file in Finder."),
+        ActionSchema(name: "exec", arguments: [ArgumentSchema(name: "command", type: .string, shellQuoted: true, doc: "Command run via /bin/sh -c; each {…} is inserted as one quoted word.")], properties: [PropertySchema(name: "timeout", type: .duration, defaultValue: .string("30s"), allowsExpression: false, doc: "The program is stopped after this time.")], startsProgramsOrControlsApps: true, doc: "Starts any program."),
+        ActionSchema(name: "open-url", arguments: [S.arg("url", .string, doc: "Address with a scheme, such as https:// or mailto:.")], startsProgramsOrControlsApps: true, doc: "Opens a URL."),
+        ActionSchema(name: "open-file", arguments: [S.arg("path", .path, doc: "File to open, ~ is the home folder.")], properties: [PropertySchema(name: "app", type: .string, defaultValue: .null, doc: "Specific app.")], startsProgramsOrControlsApps: true, doc: "Opens a file."),
+        ActionSchema(name: "reveal-file", arguments: [S.arg("path", .path, doc: "File or folder to select in Finder.")], doc: "Reveals a file in Finder."),
         ActionSchema(name: "run-shortcut", arguments: [S.arg("name", .string, doc: "Name of the shortcut.")], startsProgramsOrControlsApps: true, doc: "Runs a shortcut."),
-        ActionSchema(name: "clipboard.copy", arguments: [S.arg("text", .string, doc: "Text.")], doc: "Copies text to the clipboard."),
+        ActionSchema(name: "clipboard.copy", arguments: [S.arg("text", .string, doc: "Text put on the clipboard as plain text.")], doc: "Copies text to the clipboard."),
         ActionSchema(name: "pick-file", arguments: [S.arg("variable", .identifier, doc: "Target var for the path.")], properties: [
             PropertySchema(name: "folders", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Folders instead of files."),
             PropertySchema(name: "types", type: .list, defaultValue: .null, allowsExpression: false, doc: "Allowed extensions."),
         ], doc: "Opens a file picker."),
-        ActionSchema(name: "notify", properties: [
-            PropertySchema(name: "title", type: .string, defaultValue: .null, doc: "Title."),
-            PropertySchema(name: "body", type: .string, defaultValue: .null, doc: "Text."),
-            PropertySchema(name: "icon", type: .string, defaultValue: .null, doc: "Symbol."),
-            PropertySchema(name: "kind", type: .string, defaultValue: .null, doc: "Kind."),
+        ActionSchema(name: "toast.show", properties: [
+            PropertySchema(name: "title", type: .string, defaultValue: .null, doc: "First line, read as toast.title."),
+            PropertySchema(name: "body", type: .string, defaultValue: .null, doc: "Text under the title, read as toast.body."),
+            PropertySchema(name: "icon", type: .string, defaultValue: .null, doc: "SF Symbol name, read as toast.icon."),
+            PropertySchema(name: "kind", type: .string, defaultValue: .null, doc: "Free word the toast can style by, read as toast.kind; default info."),
             PropertySchema(name: "style", type: .string, defaultValue: .string("default"), doc: "Toast style."),
             PropertySchema(name: "duration", type: .duration, defaultValue: .null, doc: "Display duration."),
         ], doc: "Shows a toast."),
@@ -73,7 +75,7 @@ enum ActionsGlobal {
         ActionSchema(name: "shell.check-updates", doc: "Checks for updates now."),
         ActionSchema(name: "shell.install-update", doc: "Installs a downloaded update and restarts."),
         ActionSchema(name: "shell.open-config-folder", doc: "Opens the folder of the active config."),
-        ActionSchema(name: "shell.edit", arguments: [S.arg("file", .path, doc: "File.")], properties: [PropertySchema(name: "line", type: .number, defaultValue: .null, doc: "Line.")], startsProgramsOrControlsApps: true, doc: "Opens a file in the editor from settings.kdl."),
-        ActionSchema(name: "shell.set-login-item", arguments: [S.arg("value", .bool, doc: "State.")], doc: "Set the login item."),
+        ActionSchema(name: "shell.edit", arguments: [S.arg("file", .path, doc: "File to open, ~ is the home folder.")], properties: [PropertySchema(name: "line", type: .number, defaultValue: .null, doc: "Line to jump to, from 1.")], startsProgramsOrControlsApps: true, doc: "Opens a file in the editor from settings.kdl."),
+        ActionSchema(name: "shell.set-login-item", arguments: [S.arg("value", .bool, doc: "#true starts the shell at login.")], doc: "Adds or removes the shell as a login item."),
     ]
 }

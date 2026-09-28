@@ -55,4 +55,53 @@ struct MachineStateTests {
         let state = MachineState(folder: folder.url)
         #expect(state.crashReportsHandledUntil == nil)
     }
+
+    @Test("eine settings.json, die keine Datei ist, blockiert nicht und ergibt leeren Zustand")
+    func legacyFifoDoesNotBlock() throws {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        #expect(mkfifo(folder.path("settings.json").path, 0o600) == 0)
+        final class Box: @unchecked Sendable { var state: MachineState? }
+        let box = Box()
+        let done = DispatchSemaphore(value: 0)
+        let url = folder.url
+        Thread {
+            box.state = MachineState(folder: url)
+            done.signal()
+        }.start()
+        #expect(done.wait(timeout: .now() + 5) == .success)
+        #expect(box.state?.lastUpdateCheck == nil)
+    }
+
+    @Test("eine übergroße settings.json wird nicht gelesen")
+    func oversizedLegacyIsIgnored() throws {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        var legacy = try Self.legacyJSON()
+        legacy.append(Data(repeating: 0x20, count: MachineState.maxBytes))
+        try legacy.write(to: folder.path("settings.json"))
+        #expect(MachineState(folder: folder.url).lastUpdateCheck == nil)
+        try Self.legacyJSON().write(to: folder.path("settings.json"))
+        #expect(MachineState(folder: folder.url).lastUpdateCheck == Self.checked)
+    }
+
+    @Test("gleichzeitige Änderungen: die Datei trägt am Ende den letzten Stand")
+    func concurrentUpdatesLeaveLatestOnDisk() {
+        let folder = TempFolder()
+        defer { folder.remove() }
+        let state = MachineState(folder: folder.url)
+        for _ in 0..<5 {
+            DispatchQueue.concurrentPerform(iterations: 64) { index in
+                let date = Date(timeIntervalSinceReferenceDate: Double(index))
+                if index.isMultiple(of: 2) {
+                    state.lastUpdateCheck = date
+                } else {
+                    state.crashReportsHandledUntil = date
+                }
+            }
+            let reread = MachineState(folder: folder.url)
+            #expect(reread.lastUpdateCheck == state.lastUpdateCheck)
+            #expect(reread.crashReportsHandledUntil == state.crashReportsHandledUntil)
+        }
+    }
 }

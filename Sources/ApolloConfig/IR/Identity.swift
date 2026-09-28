@@ -6,7 +6,9 @@ public struct Identity: Sendable, Hashable, CustomStringConvertible {
     }
 
     public func appending(_ component: String) -> Identity {
-        Identity(components + [component])
+        var copy = components
+        copy.append(component)
+        return Identity(copy)
     }
 
     public var description: String {

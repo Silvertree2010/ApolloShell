@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 public struct ReleaseInfo: Equatable, Sendable {
     public let version: AppVersion

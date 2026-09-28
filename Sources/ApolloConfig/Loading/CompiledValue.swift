@@ -1,9 +1,15 @@
 import ApolloBase
+import Synchronization
 
 public struct CompiledValue: Sendable, Hashable {
-    public var template: StringTemplate
-    public var dependencies: Set<DependencyPath>
+    public var template: StringTemplate {
+        didSet { roots = PathRootsCache() }
+    }
+    public var dependencies: Set<DependencyPath> {
+        didSet { roots = PathRootsCache() }
+    }
     public var span: SourceSpan
+    private var roots = PathRootsCache()
 
     public init(template: StringTemplate, dependencies: Set<DependencyPath>, span: SourceSpan) {
         self.template = template
@@ -13,6 +19,46 @@ public struct CompiledValue: Sendable, Hashable {
 
     public var isConstant: Bool {
         dependencies.isEmpty
+    }
+
+    public var pathRoots: Set<String> {
+        roots.value { template.pathRoots }
+    }
+
+    public var localRoots: Set<String> {
+        roots.locals {
+            let globalRoots = Set(dependencies.map(\.root))
+            return pathRoots.subtracting(globalRoots)
+        }
+    }
+
+    public static func == (lhs: CompiledValue, rhs: CompiledValue) -> Bool {
+        lhs.template == rhs.template && lhs.dependencies == rhs.dependencies && lhs.span == rhs.span
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(template)
+        hasher.combine(dependencies)
+        hasher.combine(span)
+    }
+}
+
+private final class PathRootsCache: Sendable {
+    private let stored = Mutex<Set<String>?>(nil)
+    private let storedLocals = Mutex<Set<String>?>(nil)
+
+    func value(_ compute: () -> Set<String>) -> Set<String> {
+        if let cached = stored.withLock({ $0 }) { return cached }
+        let computed = compute()
+        stored.withLock { $0 = computed }
+        return computed
+    }
+
+    func locals(_ compute: () -> Set<String>) -> Set<String> {
+        if let cached = storedLocals.withLock({ $0 }) { return cached }
+        let computed = compute()
+        storedLocals.withLock { $0 = computed }
+        return computed
     }
 }
 

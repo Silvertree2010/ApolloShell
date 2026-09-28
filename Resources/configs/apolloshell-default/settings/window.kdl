@@ -1,6 +1,6 @@
 var settings-page "general"
 
-let settings-pages {
+var settings-pages {
     - id="general" title="General" symbol="gearshape"
     - id="shortcuts" title="Keyboard Shortcuts" symbol="keyboard"
     - id="sidebar" title="Sidebar" symbol="sidebar.left"
@@ -65,7 +65,7 @@ window "settings" title="Settings" autosave="Settings" {
     row class="settings" {
         scroll class="settings-sidebar" axis="vertical" {
             column class="settings-nav" {
-                each page in="{settings-pages}" key="{page.id}" {
+                each page in="{var.settings-pages}" key="{page.id}" {
                     button class="settings-nav-item" checked="{page.id == var.settings-page}" {
                         on-click { set "settings-page" "{page.id}" }
                         row class="button-content" {
@@ -78,7 +78,7 @@ window "settings" title="Settings" autosave="Settings" {
         }
         scroll class="settings-content" axis="vertical" {
             column class="settings-page" {
-                text "{(settings-pages | where 'id' var.settings-page | first).title}" class="settings-page-title"
+                text "{(var.settings-pages | where 'id' var.settings-page | first).title}" class="settings-page-title"
                 use "settings-page-{var.settings-page}"
             }
         }

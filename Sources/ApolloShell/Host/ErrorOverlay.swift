@@ -13,6 +13,7 @@ final class ErrorOverlayModel {
     }
 
     static let visibleLimit = 20
+    static let problemLimit = 200
     static let badgeSeconds: TimeInterval = 8
 
     private(set) var state: State = .hidden
@@ -43,7 +44,7 @@ final class ErrorOverlayModel {
     }
 
     func add(_ diagnostic: Diagnostic) {
-        guard !problems.contains(where: { $0.message == diagnostic.message && $0.span == diagnostic.span && $0.severity == diagnostic.severity }) else { return }
+        guard problems.count < Self.problemLimit, !problems.contains(where: { $0.message == diagnostic.message && $0.span == diagnostic.span && $0.severity == diagnostic.severity }) else { return }
         show(problems + [diagnostic])
     }
 
@@ -114,6 +115,9 @@ struct ErrorOverlayView: View {
                     .foregroundStyle(diagnostic.severity == .error ? Color.red : Color.orange)
                 if let location = ErrorOverlayModel.location(diagnostic) {
                     Text(location).font(.caption.monospaced()).foregroundStyle(.secondary)
+                }
+                if let code = diagnostic.code {
+                    Text(code.rawValue).font(.caption.monospaced()).foregroundStyle(.secondary)
                 }
             }
             Text(diagnostic.message).font(.callout)

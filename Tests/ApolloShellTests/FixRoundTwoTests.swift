@@ -133,7 +133,7 @@ struct FixRoundTwoTests {
         let clock = ToastClock()
         clock.install(harness.shell.toasts)
         try await harness.start()
-        _ = try await harness.shell.runActions("notify title=\"A\"")
+        _ = try await harness.shell.runActions("toast.show title=\"A\"")
         harness.settle()
         let surface = try #require(harness.runtime.surface("default", screenKey: ShellHarness.a.key))
         #expect(surface.isVisible)

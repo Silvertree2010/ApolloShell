@@ -62,6 +62,61 @@ final class LineBuffer: @unchecked Sendable {
         }
         return lines
     }
+
+    func finish() -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !pending.isEmpty else { return [] }
+        let line = String(decoding: pending, as: UTF8.self)
+        pending.removeAll()
+        return [line]
+    }
+}
+
+final class StreamEnd: @unchecked Sendable {
+    private let lock = NSLock()
+    private var outputClosed = false
+    private var status: Int32?
+    private var reported = false
+
+    func closeOutput() -> Int32? {
+        lock.lock()
+        defer { lock.unlock() }
+        outputClosed = true
+        return claim()
+    }
+
+    func exit(_ code: Int32) -> Int32? {
+        lock.lock()
+        defer { lock.unlock() }
+        status = code
+        return outputClosed ? claim() : nil
+    }
+
+    func giveUpWaiting() -> Int32? {
+        lock.lock()
+        defer { lock.unlock() }
+        return claim()
+    }
+
+    private func claim() -> Int32? {
+        guard let status, !reported else { return nil }
+        reported = true
+        return status
+    }
+}
+
+enum ScriptOutput {
+    static let limit = 1 << 20
+
+    static func read(_ handle: FileHandle) -> Data {
+        var data = Data()
+        while true {
+            let chunk = handle.readData(ofLength: 65_536)
+            if chunk.isEmpty { return data }
+            if data.count < limit { data.append(chunk.prefix(limit - data.count)) }
+        }
+    }
 }
 
 @MainActor
@@ -85,13 +140,15 @@ final class SystemScriptRunner: ScriptRunner {
         }
         let reader = pipe.fileHandleForReading
         let running = UnsafeProcess(process)
-        DispatchQueue.global(qos: .utility).async {
-            let data = reader.readDataToEndOfFile()
+        let thread = Thread {
+            let data = ScriptOutput.read(reader)
             running.process.waitUntilExit()
             let status = running.process.terminationStatus
             let text = String(decoding: data, as: UTF8.self)
             Task { @MainActor in completion(status, text) }
         }
+        thread.qualityOfService = .utility
+        thread.start()
         return SystemScriptHandle(process)
     }
 
@@ -100,26 +157,40 @@ final class SystemScriptRunner: ScriptRunner {
         let pipe = Pipe()
         process.standardOutput = pipe
         let buffer = LineBuffer()
-        pipe.fileHandleForReading.readabilityHandler = { handle in
-            let chunk = handle.availableData
-            guard !chunk.isEmpty else {
-                handle.readabilityHandler = nil
+        let end = StreamEnd()
+        let reader = pipe.fileHandleForReading
+        let thread = Thread {
+            while true {
+                let chunk = reader.readData(ofLength: 65_536)
+                guard !chunk.isEmpty else { break }
+                let lines = buffer.append(chunk)
+                guard !lines.isEmpty else { continue }
+                Task { @MainActor in for line in lines { onLine(line) } }
+            }
+            let rest = buffer.finish()
+            let status = end.closeOutput()
+            Task { @MainActor in
+                for line in rest { onLine(line) }
+                if let status { onExit(status) }
+            }
+        }
+        thread.qualityOfService = .utility
+        process.terminationHandler = { finished in
+            if let status = end.exit(finished.terminationStatus) {
+                Task { @MainActor in onExit(status) }
                 return
             }
-            let lines = buffer.append(chunk)
-            guard !lines.isEmpty else { return }
-            Task { @MainActor in for line in lines { onLine(line) } }
-        }
-        process.terminationHandler = { finished in
-            let status = finished.terminationStatus
-            Task { @MainActor in onExit(status) }
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1) {
+                guard let status = end.giveUpWaiting() else { return }
+                Task { @MainActor in onExit(status) }
+            }
         }
         do {
             try process.run()
         } catch {
-            pipe.fileHandleForReading.readabilityHandler = nil
             return nil
         }
+        thread.start()
         return SystemScriptHandle(process)
     }
 

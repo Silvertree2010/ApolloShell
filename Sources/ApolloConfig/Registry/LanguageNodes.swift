@@ -12,20 +12,23 @@ enum LanguageNodes {
             example: "include \"sidebar-modules.kdl\""
         ),
         NodeSchema(
-            name: "let",
+            name: "filter",
             category: .language,
-            arguments: [],
-            properties: [],
-            contexts: [.topLevel, .surfaceBody, .elementBody],
-            doc: "Declares one or more constants evaluated at load time.",
-            example: "let gap=8 radius=12"
+            arguments: [
+                ArgumentSchema(name: "name", type: .identifier, allowsExpression: false, doc: "Name used after | in expressions."),
+                ArgumentSchema(name: "body", type: .string, allowsExpression: false, doc: "One {…} expression over value and the arguments."),
+            ],
+            properties: [PropertySchema(name: "args", type: .string, defaultValue: .null, allowsExpression: false, doc: "Names of extra arguments, separated by spaces.")],
+            contexts: [.topLevel],
+            doc: "Declares a filter made of an expression; value is the piped input.",
+            example: "filter \"fahrenheit\" \"{value * 9 / 5 + 32}\""
         ),
         NodeSchema(
             name: "var",
             category: .language,
             arguments: [
                 ArgumentSchema(name: "name", type: .identifier, allowsExpression: false, doc: "Name of the state."),
-                ArgumentSchema(name: "default", type: .value, required: false, doc: "Default value."),
+                ArgumentSchema(name: "default", type: .value, required: false, doc: "Default value, may read other vars."),
             ],
             properties: [
                 PropertySchema(name: "persist", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Stores the value in the config's state file."),
@@ -33,7 +36,7 @@ enum LanguageNodes {
                 PropertySchema(name: "from", type: .value, defaultValue: .null, doc: "Makes the var derived, not settable."),
             ],
             contexts: [.topLevel],
-            doc: "Declares runtime state, optionally persisted.",
+            doc: "Declares state, optionally persisted; a var nothing sets is a constant.",
             example: "var launcher-query \"\""
         ),
         NodeSchema(
@@ -113,7 +116,7 @@ enum LanguageNodes {
             category: .language,
             childContext: .elementBody,
             contexts: structural,
-            doc: "Alternative branch of a directly preceding when or feature.",
+            doc: "Alternative branch of a directly preceding when.",
             example: "else { text \"No battery\" }"
         ),
         NodeSchema(
@@ -143,15 +146,6 @@ enum LanguageNodes {
             example: "default { text \"Unknown\" }"
         ),
         NodeSchema(
-            name: "feature",
-            category: .language,
-            arguments: [ArgumentSchema(name: "name", type: .identifier, allowsExpression: false, doc: "Name of the required feature.")],
-            childContext: .elementBody,
-            contexts: [.topLevel, .surfaceBody, .elementBody, .actions, .menu, .commandCenterItems],
-            doc: "Limits the body to shells that know this feature.",
-            example: "feature \"wm\" { text \"Tiling\" }"
-        ),
-        NodeSchema(
             name: "disable",
             category: .language,
             properties: [
@@ -166,10 +160,9 @@ enum LanguageNodes {
         NodeSchema(
             name: "require",
             category: .language,
-            arguments: [ArgumentSchema(name: "version", type: .string, required: false, allowsExpression: false, doc: "Minimum shell version.")],
-            properties: [PropertySchema(name: "feature", type: .identifier, defaultValue: .null, allowsExpression: false, doc: "Name of a required feature.")],
+            arguments: [ArgumentSchema(name: "version", type: .string, allowsExpression: false, doc: "Minimum shell version.")],
             contexts: [.topLevel],
-            doc: "Stops loading cleanly if the shell is too old or a feature is missing.",
+            doc: "Stops loading cleanly if the shell is too old.",
             example: "require \"0.2.0\""
         ),
         NodeSchema(

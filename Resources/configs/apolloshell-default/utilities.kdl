@@ -1,5 +1,5 @@
-var utilities-cards "{utilities-standard.cards}" type="list" persist=#true
-var utilities-toggles "{utilities-standard.toggles}" type="list" persist=#true
+var utilities-cards "{var.utilities-standard.cards}" type="list" persist=#true
+var utilities-toggles "{var.utilities-standard.toggles}" type="list" persist=#true
 
 define "quick-toggle" {
     param "icon"

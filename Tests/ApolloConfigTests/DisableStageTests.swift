@@ -10,9 +10,8 @@ struct DisableStageTests {
         let fs = MemoryFileSystem(["/config/shell.kdl": text])
         let included = IncludeExpander.expand(root: URL(fileURLWithPath: "/config"), origin: .user, fileSystem: fs, paths: UseStageTests.paths)
         #expect(included.diagnostics.isEmpty)
-        let featured = FeatureStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
-        let lets = LetStage.run(featured.nodes, registry: .builtin)
-        let used = UseStage.run(lets.nodes, registry: .builtin)
+        let featured = RequireStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
+        let used = UseStage.run(featured.nodes, registry: .builtin)
         let disabled = DisableStage.run(used.nodes, registry: .builtin)
         return (disabled.nodes, featured.diagnostics, used.diagnostics, disabled.diagnostics)
     }

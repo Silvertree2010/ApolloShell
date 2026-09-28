@@ -140,6 +140,7 @@ public final class BindingEngine {
     private var bindings: [Int: Binding] = [:]
     private var nextID = 0
     private var dirty: Set<Int> = []
+    private var arrivals: [Int] = []
     private var isFlushing = false
     private var flushEvaluator: Evaluator?
     private let warningBuffer = WarningBuffer()
@@ -197,25 +198,42 @@ public final class BindingEngine {
         return BindingHandle(engine: self, id: binding.id)
     }
 
+    private static func precedes(_ lhs: Binding, _ rhs: Binding) -> Bool {
+        (lhs.rank, lhs.id) < (rhs.rank, rhs.id)
+    }
+
     public func flush() {
         guard !isFlushing else { return }
         isFlushing = true
         flushCount += 1
+        let outer = flushEvaluator
         flushEvaluator = pinnedEvaluator()
         var rounds = 0
         while !dirty.isEmpty {
             if rounds == Self.maximumRounds {
-                report(Diagnostic(.warning, "flush did not settle within \(Self.maximumRounds) rounds"))
+                report(Diagnostic(.warning, "flush did not settle within \(Self.maximumRounds) rounds", code: .flushUnsettled))
                 break
             }
             rounds += 1
-            let batch = dirty.compactMap { bindings[$0] }.sorted { ($0.rank, $0.id) < ($1.rank, $1.id) }
+            var batch = dirty.compactMap { bindings[$0] }.sorted(by: Self.precedes)
             dirty.removeAll()
-            for binding in batch where !binding.isCancelled && binding.isActive && binding.isDirty {
-                evaluate(binding)
+            arrivals.removeAll()
+            var index = 0
+            while index < batch.count {
+                let binding = batch[index]
+                index += 1
+                if !binding.isCancelled && binding.isActive && binding.isDirty {
+                    evaluate(binding)
+                }
+                guard !arrivals.isEmpty else { continue }
+                let later = arrivals.compactMap { bindings[$0] }.filter { Self.precedes(binding, $0) && dirty.remove($0.id) != nil }
+                arrivals.removeAll()
+                guard !later.isEmpty else { continue }
+                batch.append(contentsOf: later)
+                batch[index...].sort(by: Self.precedes)
             }
         }
-        flushEvaluator = nil
+        flushEvaluator = outer
         isFlushing = false
         if !dirty.isEmpty {
             store.requestFlush()
@@ -315,8 +333,10 @@ public final class BindingEngine {
         guard let binding = bindings[id], !binding.isCancelled else { return }
         binding.isDirty = true
         guard binding.isActive else { return }
-        dirty.insert(id)
-        if !isFlushing {
+        if isFlushing {
+            if dirty.insert(id).inserted { arrivals.append(id) }
+        } else {
+            dirty.insert(id)
             store.requestFlush()
         }
     }
@@ -324,7 +344,7 @@ public final class BindingEngine {
     private func evaluateOrDefer(_ binding: Binding) {
         if deferring > 0 {
             binding.isDirty = true
-            dirty.insert(binding.id)
+            if dirty.insert(binding.id).inserted && isFlushing { arrivals.append(binding.id) }
         } else {
             evaluate(binding)
         }
@@ -351,6 +371,17 @@ public final class BindingEngine {
         return evaluator.render(binding.source.template, in: scope, at: binding.source.span)
     }
 
+    func batch(_ body: () -> Void) {
+        guard flushEvaluator == nil else {
+            body()
+            return
+        }
+        flushEvaluator = pinnedEvaluator()
+        body()
+        flushEvaluator = nil
+        deliverWarnings()
+    }
+
     private func pinnedEvaluator() -> Evaluator {
         let buffer = warningBuffer
         return evaluator.pinningContext(warn: { buffer.append($0) })
@@ -361,8 +392,14 @@ public final class BindingEngine {
     }
 
     private func deliverWarnings() {
-        for diagnostic in warningBuffer.drain() where seenWarnings.insert(diagnostic).inserted {
+        for diagnostic in warningBuffer.drain() {
+            guard seenWarnings.count < RuntimeLimits.rememberedWarnings, seenWarnings.insert(diagnostic).inserted else { continue }
             onWarning?(diagnostic)
         }
+    }
+
+    func forgetWarnings() {
+        seenWarnings.removeAll()
+        evaluator.forgetWarnings()
     }
 }

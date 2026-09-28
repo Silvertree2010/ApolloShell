@@ -24,7 +24,7 @@ final class ToastClock {
 }
 
 @MainActor
-@Suite("Befund 4: notify und Toast-Stapel")
+@Suite("Befund 4: toast.show und Toast-Stapel")
 struct ToastStackTests {
     static let config = """
     toast "default" max=2 duration="3s" {
@@ -59,7 +59,7 @@ struct ToastStackTests {
         try await harness.start()
         for (second, title) in [(0.0, "A"), (1.0, "B"), (2.0, "C")] {
             clock.time = Date(timeIntervalSinceReferenceDate: second)
-            _ = try await harness.shell.runActions("notify title=\"\(title)\" kind=\"success\"")
+            _ = try await harness.shell.runActions("toast.show title=\"\(title)\" kind=\"success\"")
         }
         harness.settle()
         #expect(harness.runtime.surface("default", screenKey: ShellHarness.a.key)?.isOpen == true)
@@ -99,15 +99,15 @@ struct ToastStackTests {
         let clock = ToastClock()
         clock.install(harness.shell.toasts)
         try await harness.start()
-        _ = try await harness.shell.runActions("notify title=\"A\" duration=\"10s\"")
-        _ = try await harness.shell.runActions("notify title=\"B\"")
+        _ = try await harness.shell.runActions("toast.show title=\"A\" duration=\"10s\"")
+        _ = try await harness.shell.runActions("toast.show title=\"B\"")
         harness.settle()
         #expect(titles(harness) == ["B", "A"])
         clock.advance(to: 2)
         harness.settle()
         #expect(titles(harness) == ["A"])
         #expect(harness.shell.overlay.problems.isEmpty)
-        _ = try await harness.shell.runActions("notify title=\"X\" style=\"missing\"")
+        _ = try await harness.shell.runActions("toast.show title=\"X\" style=\"missing\"")
         harness.settle()
         #expect(harness.shell.overlay.problems.contains { $0.message.contains("toast \"missing\"") })
         harness.shell.shutdown()
@@ -123,8 +123,8 @@ struct ToastStackTests {
         let clock = ToastClock()
         clock.install(harness.shell.toasts)
         try await harness.start()
-        _ = try await harness.shell.runActions("notify title=\"A\"")
-        _ = try await harness.shell.runActions("notify title=\"B\"")
+        _ = try await harness.shell.runActions("toast.show title=\"A\"")
+        _ = try await harness.shell.runActions("toast.show title=\"B\"")
         harness.settle()
         #expect(titles(harness) == ["A", "B"])
         harness.shell.shutdown()

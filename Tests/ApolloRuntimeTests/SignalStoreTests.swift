@@ -109,6 +109,28 @@ struct SignalStoreTests {
         #expect(store.value(DependencyPath("perf", ["load", "value"])) == .null)
     }
 
+    @Test("gleiche Felder in neuer Reihenfolge sind eine Änderung, gleiche Reihenfolge nicht")
+    func recordReorderNotifies() {
+        let scheduler = ManualFlushScheduler()
+        let store = SignalStore(scheduler: scheduler)
+        let path = DependencyPath("data", ["r"])
+        store.set(path, .record(Record([("a", .number(2)), ("b", .number(1))])))
+        var notified = 0
+        let token = store.subscribe(path) { notified += 1 }
+        store.set(path, .record(Record([("a", .number(2)), ("b", .number(1))])))
+        #expect(notified == 0)
+        store.set(path, .record(Record([("b", .number(1)), ("a", .number(2))])))
+        #expect(notified == 1)
+        guard case .record(let stored) = store.value(path) else { Issue.record("no record"); return }
+        #expect(stored.keys == ["b", "a"])
+        store.set(DependencyPath("data", ["l"]), .list([.record(Record([("x", .null), ("y", .null)]))]))
+        let listToken = store.subscribe(DependencyPath("data", ["l"])) { notified += 1 }
+        store.set(DependencyPath("data", ["l"]), .list([.record(Record([("y", .null), ("x", .null)]))]))
+        #expect(notified == 2)
+        store.unsubscribe(token)
+        store.unsubscribe(listToken)
+    }
+
     @Test("Saubere Werte bleiben beim Eintritt dieselben Speicherobjekte, NaN in der Tiefe wird null")
     func sanitizeKeepsSharing() {
         let record = Value.record(Record([("id", .string("a")), ("n", .number(1))]))
@@ -119,6 +141,34 @@ struct SignalStoreTests {
         let sanitized = SignalStore.sanitize(dirty)
         #expect(sanitized == .list([record, .record(Record([("n", .null)]))]))
         #expect(!ShellRuntime.identical(sanitized, dirty))
+    }
+
+    static func depth(of value: Value) -> Int {
+        var current = value
+        var depth = 0
+        while case .list(let items) = current, let first = items.first {
+            depth += 1
+            current = first
+        }
+        return depth
+    }
+
+    @Test("Werte tiefer als 256 Ebenen werden beim Eintritt abgeschnitten, auch wenn sie immer wieder eingepackt werden")
+    func deepValuesAreCut() {
+        let store = SignalStore(scheduler: ManualFlushScheduler())
+        let path = DependencyPath("data", ["x"])
+        store.set(path, .number(1))
+        for _ in 0..<1_000 {
+            store.set(path, .list([store.value(path)]))
+        }
+        let stored = store.value(path)
+        #expect(Self.depth(of: stored) == RuntimeLimits.valueDepth)
+        var innermost = stored
+        while case .list(let items) = innermost, let first = items.first { innermost = first }
+        #expect(innermost == .null)
+        var shallow = Value.number(1)
+        for _ in 0..<RuntimeLimits.valueDepth { shallow = .list([shallow]) }
+        #expect(ShellRuntime.identical(SignalStore.sanitize(shallow), shallow))
     }
 
     @Test("Verschachteltes requestFlush während eines Flushs stösst einen neuen Durchlauf an")
@@ -137,6 +187,7 @@ struct SignalStoreTests {
         #expect(innerRuns == 1)
     }
 
+    #if canImport(Darwin)
     @Test("RunLoop-Durchlauf liefert genau einen Flush, auch in eventTracking")
     func runLoopDeliversOneFlush() {
         let scheduler = RunLoopFlushScheduler()
@@ -170,4 +221,5 @@ struct SignalStoreTests {
         eventTrackingKeepAlive.invalidate()
         #expect(flushes == 1)
     }
+    #endif
 }

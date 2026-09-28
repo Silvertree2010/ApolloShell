@@ -9,12 +9,11 @@ struct SchemaStageScopeTests {
     static func all(_ text: String) -> [Diagnostic] {
         let fs = MemoryFileSystem(["/config/shell.kdl": text])
         let included = IncludeExpander.expand(root: URL(fileURLWithPath: "/config"), origin: .user, fileSystem: fs, paths: UseStageTests.paths)
-        let featured = FeatureStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
-        let lets = LetStage.run(featured.nodes, registry: .builtin)
-        let used = UseStage.run(lets.nodes, registry: .builtin)
+        let featured = RequireStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
+        let used = UseStage.run(featured.nodes, registry: .builtin)
         let disabled = DisableStage.run(used.nodes, registry: .builtin)
         let checked = SchemaStage.run(disabled.nodes, defines: used.defines, registry: .builtin)
-        return included.diagnostics + featured.diagnostics + lets.diagnostics + used.diagnostics + disabled.diagnostics + checked.diagnostics
+        return included.diagnostics + featured.diagnostics + used.diagnostics + disabled.diagnostics + checked.diagnostics
     }
 
     static func errors(_ text: String, sourceLocation: SourceLocation = #_sourceLocation) -> [Diagnostic] {
@@ -123,23 +122,6 @@ struct SchemaStageScopeTests {
         #expect(result.diagnostics.isEmpty)
     }
 
-    @Test("ein let gilt erst ab seiner Stelle")
-    func letIsNotVisibleBeforeItsPosition() {
-        let errors = Self.errors("""
-        panel "sidebar" {
-            text "{gap}"
-            row {
-                text "{gap}"
-            }
-            let gap=8
-            text "{gap}"
-        }
-        """)
-        #expect(errors.count == 2)
-        #expect(errors.allSatisfy { $0.message.contains("unknown root 'gap'") })
-        #expect(errors.map { $0.span?.start.line } == [2, 4])
-    }
-
     @Test("Schleifenvariable mit dem Namen eines Providers ist reserviert")
     func eachVariableWithProviderNameIsReserved() {
         let diagnostics = Self.all("""
@@ -199,17 +181,17 @@ struct SchemaStageScopeTests {
         #expect(errors.first?.span?.start.line == 6)
     }
 
-    @Test("Argumente eines use sehen let und each der Aufrufstelle")
-    func useArgumentsSeeCallSiteLetAndEach() {
+    @Test("Argumente eines use sehen var und each der Aufrufstelle")
+    func useArgumentsSeeCallSiteVarAndEach() {
         let result = SchemaStageTests.pipeline("""
+        var prefix "App"
         define "card" {
             param "title"
             text "{title}"
         }
         panel "sidebar" {
-            let prefix="App"
             each item in="{apps.dock}" {
-                use "card" title="{prefix} {item.name}"
+                use "card" title="{var.prefix} {item.name}"
             }
         }
         """)
@@ -294,18 +276,6 @@ struct SchemaStageScopeTests {
         """)
         #expect(errors.count == 1)
         #expect(errors.first?.message.contains("unknown field 'dokc' on 'apps'") == true)
-    }
-
-    @Test("ein fehlgeschlagenes let loest keine Folgefehler aus")
-    func failedLetDoesNotCascade() {
-        let diagnostics = Self.all("""
-        let a="{1 +}"
-        let b="{a * 2}"
-        panel "sidebar" {
-            text "{a} {b}"
-        }
-        """)
-        #expect(diagnostics.filter { $0.severity == .error }.count == 1)
     }
 
     @Test("Tastenkombinationen werden mit KeyChord geprueft")

@@ -24,10 +24,17 @@ enum UnitFilters {
             let style = try arguments.optionalChoice(0, among: ["short", "clock"]) ?? "clock"
             return .string(style == "short" ? context.services.uptimeText(seconds) : DurationText.clock(seconds))
         },
-        BuiltinFilter("date", arity: FilterArity(1, 1)) { input, arguments, context in
+        BuiltinFilter("date", arity: FilterArity(1, 2)) { input, arguments, context in
             let date = try input.dateInput("date")
             let pattern = try arguments.string(0)
-            return .string(DateText.format(date, pattern: pattern, locale: context.locale, timeZone: context.timeZone))
+            var timeZone = context.timeZone
+            if let identifier = try arguments.optionalString(1) {
+                guard let zone = TimeZone(identifier: identifier) else {
+                    throw FilterFailure("'date' does not know the time zone '\(identifier)'")
+                }
+                timeZone = zone
+            }
+            return .string(DateText.format(date, pattern: pattern, locale: context.locale, timeZone: timeZone))
         },
         BuiltinFilter("relative", arity: FilterArity(0, 0)) { input, _, context in
             .string(DateText.relative(try input.dateInput("relative"), now: context.now))

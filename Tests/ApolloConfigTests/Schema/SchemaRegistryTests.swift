@@ -13,8 +13,8 @@ struct SchemaRegistryTests {
     }
 
     static let languageNames: Set<String> = [
-        "include", "let", "var", "define", "param", "slot", "fill", "use",
-        "each", "when", "else", "switch", "case", "default", "feature", "disable", "require", "style",
+        "include", "var", "define", "param", "slot", "fill", "use",
+        "each", "when", "else", "switch", "case", "default", "disable", "require", "style", "filter",
     ]
 
     static let topLevelBlockNames: Set<String> = ["bind", "on", "poll", "listen", "wm", "command-center", "marketplace"]
@@ -41,7 +41,7 @@ struct SchemaRegistryTests {
     static let settingsFileNames: Set<String> = ["config", "theme", "updates", "crash-reports", "editor"]
 
     static let nodesWithChildren: Set<String> = [
-        "define", "fill", "use", "each", "when", "else", "switch", "case", "default", "feature",
+        "define", "fill", "use", "each", "when", "else", "switch", "case", "default",
         "bind", "on", "wm", "command-center", "items",
         "panel", "popup", "overlay", "toast", "osd", "window",
         "row", "column", "grid", "stack", "scroll",
@@ -117,6 +117,82 @@ struct SchemaRegistryTests {
         for node in BuiltinSchemaRegistry.allNodes {
             #expect(Self.isKebabCase(node.name), "\(node.name) is not kebab-case")
         }
+    }
+
+    @Test("jedes Argument und jede Property von Knoten und Aktionen ist kebab-case")
+    func argumentAndPropertyNamesAreKebabCase() {
+        let nodeNames = BuiltinSchemaRegistry.allNodes.flatMap { node in
+            node.arguments.map { "\(node.name) \($0.name)" } + node.properties.map { "\(node.name) \($0.name)" }
+        }
+        let actionNames = (BuiltinSchemaRegistry.allActions + BuiltinSchemaRegistry.allProviders.flatMap(\.actions)).flatMap { action in
+            action.arguments.map { "\(action.name) \($0.name)" } + action.properties.map { "\(action.name) \($0.name)" }
+        }
+        for entry in nodeNames + actionNames {
+            let name = String(entry.split(separator: " ").last!)
+            #expect(Self.isKebabCase(name), "\(entry) is not kebab-case")
+        }
+    }
+
+    @Test("jedes Filter-Argument und jedes Feld von Providern und Ereignissen ist kebab-case")
+    func filterArgumentsAndFieldsAreKebabCase() {
+        for filter in BuiltinSchemaRegistry.allFilters {
+            for argument in filter.arguments {
+                #expect(Self.isKebabCase(argument.name), "\(filter.name) \(argument.name) is not kebab-case")
+            }
+        }
+        let fields = BuiltinSchemaRegistry.allProviders.flatMap { provider in provider.fields.map { (provider.id, $0.path) } }
+            + BuiltinSchemaRegistry.allEvents.flatMap { event in event.fields.map { (event.name, $0.path) } }
+        for (owner, path) in fields {
+            for segment in path where segment != "*" {
+                #expect(Self.isKebabCase(segment), "\(owner) \(path.joined(separator: ".")) is not kebab-case")
+            }
+        }
+    }
+
+    @Test("jede Beschreibung in der Registry sagt mehr als ein Wort")
+    func docsSayMoreThanOneWord() {
+        var docs: [(String, String)] = []
+        func add(_ owner: String, _ arguments: [ArgumentSchema], _ properties: [PropertySchema]) {
+            docs += arguments.map { ("\(owner) \($0.name)", $0.doc) } + properties.map { ("\(owner) \($0.name)", $0.doc) }
+        }
+        for node in BuiltinSchemaRegistry.allNodes {
+            docs.append((node.name, node.doc))
+            add(node.name, node.arguments, node.properties)
+        }
+        let providerActions = BuiltinSchemaRegistry.allProviders.flatMap(\.actions)
+        for action in BuiltinSchemaRegistry.allActions + providerActions {
+            docs.append((action.name, action.doc))
+            add(action.name, action.arguments, action.properties)
+        }
+        for filter in BuiltinSchemaRegistry.allFilters {
+            docs.append((filter.name, filter.doc))
+            add(filter.name, filter.arguments, [])
+        }
+        for provider in BuiltinSchemaRegistry.allProviders {
+            docs.append((provider.id, provider.doc))
+            add(provider.id, [], provider.settings)
+            docs += provider.fields.map { ("\(provider.id) \($0.path.joined(separator: "."))", $0.doc) }
+        }
+        for event in BuiltinSchemaRegistry.allEvents {
+            docs.append((event.name, event.doc))
+            docs += event.fields.map { ("\(event.name) \($0.path.joined(separator: "."))", $0.doc) }
+        }
+        for (owner, doc) in docs {
+            #expect(doc.split(separator: " ").count >= 2, "\(owner): \"\(doc)\" says too little")
+        }
+    }
+
+    @Test("Apps startet nur apps.launch, eine zweite Aktion open-app gibt es nicht")
+    func appsLaunchIsTheOnlyLauncher() {
+        #expect(!BuiltinSchemaRegistry.allActions.contains { $0.name == "open-app" })
+        #expect(BuiltinSchemaRegistry.allProviders.flatMap(\.actions).contains { $0.name == "apps.launch" })
+    }
+
+    @Test("Toasts zeigt toast.show neben toast.dismiss und osd.show, notify gibt es nicht mehr")
+    func toastShowPairsWithDismiss() {
+        let names = Set(BuiltinSchemaRegistry.allActions.map(\.name))
+        #expect(names.isSuperset(of: ["toast.show", "toast.dismiss", "osd.show"]))
+        #expect(!names.contains("notify"))
     }
 
     @Test("jede Property hat Typ und Vorgabe oder ist required")

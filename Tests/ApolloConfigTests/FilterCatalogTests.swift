@@ -26,7 +26,7 @@ struct FilterCatalogTests {
         let expected: [String: FilterArity] = [
             "round": FilterArity(0, 1), "fixed": FilterArity(1, 1), "clamp": FilterArity(2, 2), "scale": FilterArity(4, 4),
             "percent": FilterArity(0, 1), "grouped": FilterArity(0, 1), "bytes": FilterArity(0, 1), "duration": FilterArity(0, 1),
-            "date": FilterArity(1, 1), "relative": FilterArity(0, 0), "truncate": FilterArity(1, 1), "pad": FilterArity(1, 2),
+            "date": FilterArity(1, 2), "relative": FilterArity(0, 0), "truncate": FilterArity(1, 1), "pad": FilterArity(1, 2),
             "replace": FilterArity(2, 2), "sort": FilterArity(0, 2), "where": FilterArity(2, 2), "slice": FilterArity(2, 2),
             "index-where": FilterArity(2, 3), "fuzzy": FilterArity(1, 2), "app-search": FilterArity(1, 1),
             "month-grid": FilterArity(0, 2), "default": FilterArity(1, 1), "join": FilterArity(1, 1), "chord": FilterArity(0, 0),

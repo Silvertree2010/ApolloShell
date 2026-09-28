@@ -63,7 +63,7 @@ public final class StyleEngine: Sendable {
         let custom = resolver.resolveAll()
         for failure in resolver.failures {
             diagnostics.add(Diagnostic(.warning, "custom property \(failure.name) is invalid: \(failure.message)",
-                                       span: customSpans[failure.name]))
+                                       span: customSpans[failure.name], code: .styleValue))
         }
         let lookup: (String) -> String? = { name in
             name.lowercased().hasPrefix(ThemeTokenCatalog.prefix) ? tokens.value(name) : custom[name]
@@ -96,7 +96,7 @@ public final class StyleEngine: Sendable {
                     break attempts
                 } catch {
                     let reason = (error as? CSSValueError)?.message ?? "unreadable value"
-                    diagnostics.add(Diagnostic(.warning, "invalid value for '\(name)': \(reason)", span: candidate.declaration.span))
+                    diagnostics.add(Diagnostic(.warning, "invalid value for '\(name)': \(reason)", span: candidate.declaration.span, code: .styleValue))
                 }
             }
         }

@@ -160,7 +160,7 @@ final class LiveShell: WindowHostLink {
     }
 
     func persisted(for location: ConfigLocation, ir: ConfigIR?) -> [String: Value] {
-        guard let ir, let text = try? String(contentsOf: stateFile(location), encoding: .utf8) else { return [:] }
+        guard let ir, let text = try? DiskFileSystem().read(stateFile(location)) else { return [:] }
         let (values, diagnostics) = VarStateFile.read(text, file: stateFile(location).path, declarations: ir.vars)
         for diagnostic in diagnostics { overlay.add(diagnostic) }
         return values
@@ -190,7 +190,7 @@ final class LiveShell: WindowHostLink {
         })
         self.assembly = assembly
         assembly.actions.register("osd.show", OSDShowAction(shell: self))
-        assembly.actions.register("notify", NotifyAction(center: toasts))
+        assembly.actions.register("toast.show", ToastShowAction(center: toasts))
         assembly.actions.register("toast.dismiss", ToastDismissAction(center: toasts))
         assembly.actions.register("marketplace.open", MarketplaceOpenAction(shell: self))
         assembly.actions.register("shell.set-login-item", LoginItemAction(shell: self))
@@ -541,7 +541,7 @@ final class LiveShell: WindowHostLink {
 
     func stateChanged() {
         guard let location, let assembly, let writer = writers[location.id],
-              let text = try? String(contentsOf: stateFile(location), encoding: .utf8),
+              let text = try? DiskFileSystem().read(stateFile(location)),
               text != writer.lastWrittenText else { return }
         assembly.vars.applyExternal(text: text)
     }

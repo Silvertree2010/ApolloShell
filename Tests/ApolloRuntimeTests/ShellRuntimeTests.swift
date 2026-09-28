@@ -373,6 +373,25 @@ struct ShellRuntimeTests {
         #expect(fixture.warnings.contains { $0.message.contains("unknown parameter 'legacy'") })
     }
 
+    @Test("Laufzeit-use: Vorgabe mit Abhängigkeit folgt ihr wie beim statischen use")
+    func dynamicUseLiveDefault() {
+        let fixture = ShellFixture()
+        let card = DefineIR(name: "card", parameters: [
+            ParameterIR(name: "label", type: .string, defaultValue: .scalar(IR.value("{var.title}"))),
+        ], body: [T.text("0", IR.value("{label}", locals: ["label"]))], span: IR.span(40))
+        fixture.apply([T.surface("panel", "side", children: [
+            .dynamicUse(DynamicUseIR(key: "0", name: IR.value("{var.which}", line: 41), arguments: [:])),
+        ])], vars: [
+            IR.plainVar("which", .string, .string("card")),
+            IR.plainVar("title", .string, .string("first")),
+        ], defines: [card])
+        fixture.flush()
+        #expect(fixture.surface("side").root.first?.arguments.first?.value == .string("first"))
+        fixture.vars.set("title", .string("second"), for: nil)
+        fixture.flush()
+        #expect(fixture.surface("side").root.first?.arguments.first?.value == .string("second"))
+    }
+
     @Test("Laufzeit-use füllt unbenannten und benannten Slot mit dem Inhalt der Aufrufstelle")
     func dynamicUseSlots() {
         let fixture = ShellFixture()
@@ -462,6 +481,37 @@ struct ShellRuntimeTests {
         #expect(fixture.surface("list").root.count == RuntimeLimits.eachEntries)
         #expect(fixture.warnings.filter { $0.message.contains("\(RuntimeLimits.elementsPerSurface) elements") }.count == 1)
         #expect(fixture.warnings.filter { $0.message.contains("5000") }.count == 1)
+    }
+
+    @Test("späte Grösse einer entfernten Oberfläche legt keinen Eintrag unter surfaces an")
+    func lateSizeOfRemovedSurface() {
+        let fixture = ShellFixture()
+        fixture.apply([T.surface("panel", "bar", children: [])])
+        fixture.runtime.setSurfaceSize("bar", screenKey: "A", width: 800, height: 30)
+        #expect(fixture.runtime.surfaceValue("bar", screenKey: "A", "width") == .number(800))
+        fixture.apply([], id: "other")
+        fixture.flush()
+        fixture.runtime.setSurfaceSize("bar", screenKey: "A", width: 800, height: 31)
+        #expect(fixture.store.value(DependencyPath("surfaces:A", ["bar"])) == .null)
+        fixture.runtime.setSurfaceSize("ghost", screenKey: "A", width: 1, height: 1)
+        #expect(fixture.store.value(DependencyPath("surfaces:A", ["ghost"])) == .null)
+    }
+
+    @Test("neue Schlüssel in einer grossen Liste: ersetzte Elemente zählen nicht mehr zum Budget")
+    func replacedEntriesLeaveTheBudget() {
+        let fixture = ShellFixture()
+        let body = T.box("0", children: [T.text("0", IR.value("{item}"))])
+        let each = EachIR(key: "0", variable: "item", list: IR.value("{var.items}"), itemKey: IR.value("{item}"), body: [body])
+        let names: (String) -> Value = { prefix in .list((0..<4_000).map { .string(prefix + String($0)) }) }
+        fixture.apply([T.surface("panel", "list", children: [.each(each)])], vars: [IR.plainVar("items", .list, names("a"))])
+        #expect(fixture.surface("list").root.count == 4_000)
+        fixture.vars.set("items", names("b"), for: nil)
+        fixture.flush()
+        let root = fixture.surface("list").root
+        #expect(root.count == 4_000)
+        #expect(root.allSatisfy { $0.children.count == 1 })
+        #expect(root.last?.children.first?.arguments.first?.value == .string("b3999"))
+        #expect(fixture.warnings.filter { $0.message.contains("elements") }.isEmpty)
     }
 
     @Test("setScreens mit gleicher Liste baut 0 Oberflächen, neue Bildschirme bauen nur ihre")

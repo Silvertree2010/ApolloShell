@@ -3,15 +3,17 @@ import Foundation
 public final class ControlSocketServer: @unchecked Sendable {
     public let path: String
     private let service: any ControlService
+    private let sendTimeout: Int
     private let queue = DispatchQueue(label: "apollo.control.accept")
     private let lock = NSLock()
     private var listener: Int32 = -1
     private var source: (any DispatchSourceRead)?
     private var connections: [ObjectIdentifier: ControlConnection] = [:]
 
-    public init(path: String, service: any ControlService) {
+    public init(path: String, service: any ControlService, sendTimeout: Int = 5) {
         self.path = path
         self.service = service
+        self.sendTimeout = sendTimeout
     }
 
     public func start() throws {
@@ -94,12 +96,20 @@ public final class ControlSocketServer: @unchecked Sendable {
             guard client >= 0 else { return }
             _ = fcntl(client, F_SETFL, fcntl(client, F_GETFL) & ~O_NONBLOCK)
             SocketAddress.noSigPipe(client)
-            SocketAddress.sendTimeout(client, seconds: 5)
+            SocketAddress.sendTimeout(client, seconds: sendTimeout)
             let connection = ControlConnection(fd: client, service: service) { [weak self] finished in
                 guard let self else { return }
                 _ = self.lock.withLock { self.connections.removeValue(forKey: ObjectIdentifier(finished)) }
             }
-            lock.withLock { connections[ObjectIdentifier(connection)] = connection }
+            let accepted = lock.withLock { () -> Bool in
+                guard listener >= 0 else { return false }
+                connections[ObjectIdentifier(connection)] = connection
+                return true
+            }
+            guard accepted else {
+                close(client)
+                return
+            }
             connection.start()
         }
     }
@@ -178,6 +188,11 @@ final class ControlConnection: @unchecked Sendable {
             return
         }
         let lines = buffer.append(chunk[..<count])
+        guard !buffer.overflowed else {
+            _ = write(ControlResponse(id: nil, outcome: .failure("Request line too long.")))
+            shutdown()
+            return
+        }
         for line in lines {
             handle(line)
         }
@@ -230,9 +245,13 @@ final class ControlConnection: @unchecked Sendable {
     }
 
     private func write(_ response: ControlResponse) -> Bool {
-        lock.withLock {
-            guard !closed else { return false }
+        let written = lock.withLock { () -> Bool? in
+            guard !closed else { return nil }
             return SocketAddress.writeAll(fd, response.line + "\n")
         }
+        if written == false {
+            shutdown()
+        }
+        return written == true
     }
 }

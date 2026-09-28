@@ -39,33 +39,58 @@ public struct Evaluator: Sendable {
     }
 
     public func evaluate(_ expr: Expr, in scope: any EvaluationScope) -> Value {
-        StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
+        if case .literal(let constant) = expr { return constant }
+        return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
             EvaluationRun(evaluator: self, scope: scope, span: nil).value(expr)
         }
     }
 
     public func evaluate(_ expr: Expr, in scope: any EvaluationScope, at span: SourceSpan) -> Value {
-        StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
+        if case .literal(let constant) = expr { return constant }
+        return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
             EvaluationRun(evaluator: self, scope: scope, span: span).value(expr)
         }
     }
 
     public func render(_ template: StringTemplate, in scope: any EvaluationScope) -> Value {
-        StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
+        if let constant = template.literalValue { return constant }
+        if let local = template.localValue(in: scope) { return local }
+        return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
             EvaluationRun(evaluator: self, scope: scope, span: nil).render(template)
         }
     }
 
     public func render(_ template: StringTemplate, in scope: any EvaluationScope, at span: SourceSpan) -> Value {
-        StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
+        if let constant = template.literalValue { return constant }
+        if let local = template.localValue(in: scope) { return local }
+        return StackHeadroom.run(minimum: ExpressionLimits.headroomMinimum, stackSize: ExpressionLimits.headroomStackSize) {
             EvaluationRun(evaluator: self, scope: scope, span: span).render(template)
         }
     }
 
+    public func forgetWarnings() {
+        gate.reset()
+    }
+
     func report(_ message: String, span: SourceSpan?) {
-        let diagnostic = Diagnostic(.warning, message, span: span)
+        let diagnostic = Diagnostic(.warning, message, span: span, code: .evaluation)
         if gate.admit(diagnostic) {
             warn(diagnostic)
+        }
+    }
+}
+
+extension StringTemplate {
+    func localValue(in scope: any EvaluationScope) -> Value? {
+        guard case .whole(.path(let root, let members)) = self, members.isEmpty else { return nil }
+        return scope.local(root)
+    }
+
+    public var literalValue: Value? {
+        switch self {
+        case .literal(let text): .string(text)
+        case .whole(.literal(let value)): value
+        default: nil
         }
     }
 }

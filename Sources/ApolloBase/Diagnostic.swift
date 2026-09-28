@@ -38,13 +38,15 @@ public struct Diagnostic: Error, Sendable, Hashable {
     public var help: String?
     public var notes: [DiagnosticNote]
     public var kind: DiagnosticKind?
+    public var code: DiagnosticCode?
 
-    public init(_ severity: Severity, _ message: String, span: SourceSpan? = nil, help: String? = nil, notes: [DiagnosticNote] = [], kind: DiagnosticKind? = nil) {
+    public init(_ severity: Severity, _ message: String, span: SourceSpan? = nil, help: String? = nil, notes: [DiagnosticNote] = [], kind: DiagnosticKind? = nil, code: DiagnosticCode? = nil) {
         self.severity = severity
         self.message = message
         self.span = span
         self.help = help
         self.notes = notes
         self.kind = kind
+        self.code = code
     }
 }

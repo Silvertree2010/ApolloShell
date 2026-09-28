@@ -22,4 +22,5 @@ public enum ExpressionParser {
 enum ExpressionLimits {
     static let headroomMinimum = 1 << 20
     static let headroomStackSize = 8 << 20
+    static let maxTextBytes = 1_000_000
 }

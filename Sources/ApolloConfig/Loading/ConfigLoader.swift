@@ -50,32 +50,38 @@ public struct ConfigLoader: Sendable {
             return finish(nil, files: included.files)
         }
         let requires = included.nodes.filter { $0.kdl.name == "require" }
-        let featured = FeatureStage.run(included.nodes, shellVersion: shellVersion, registry: registry)
-        collect(featured.diagnostics, stage: "feature")
+        let featured = RequireStage.run(included.nodes, shellVersion: shellVersion, registry: registry)
+        collect(featured.diagnostics, stage: "require")
         if featured.nodes.isEmpty, !included.nodes.isEmpty, hasErrors(featured.diagnostics) {
             return finish(nil, files: included.files)
         }
         let registry = self.registry.addingScriptSources(Self.scriptSourceNames(featured.nodes))
-        let lets = LetStage.run(featured.nodes, registry: registry, filters: filters)
-        collect(lets.diagnostics, stage: "let")
-        let used = UseStage.run(lets.nodes, registry: registry)
+        let used = UseStage.run(featured.nodes, registry: registry)
         collect(used.diagnostics, stage: "use")
         if used.nodeCount > ConfigLimits.maxExpansionBudget {
             return finish(nil, files: included.files)
         }
         let disabled = DisableStage.run(used.nodes, registry: registry)
         collect(disabled.diagnostics, stage: "disable")
-        let checked = SchemaStage.run(disabled.nodes, defines: used.defines, registry: registry)
+        let templates = TemplateCache()
+        let declaredVars = Set(disabled.nodes.compactMap { node -> String? in
+            guard node.kdl.name == "var", case .string(let name)? = node.kdl.arguments.first?.scalar else { return nil }
+            return name
+        })
+        let filtered = FilterStage.run(disabled.nodes, registry: registry, templates: templates, declaredVars: declaredVars)
+        collect(filtered.diagnostics, stage: "filter")
+        let checked = SchemaStage.run(filtered.nodes, defines: used.defines, registry: registry, templates: templates, declaredVars: declaredVars)
         collect(checked.diagnostics, stage: "schema")
         let built = IRBuilder.build(
-            disabled.nodes,
+            filtered.nodes,
             defines: used.defines,
             requires: requires,
             location: location,
             files: included.files,
             registry: registry,
             fileSystem: fileSystem,
-            paths: paths
+            paths: paths,
+            templates: templates
         )
         collect(built.diagnostics, stage: "ir")
         return finish(built.ir, files: included.files)

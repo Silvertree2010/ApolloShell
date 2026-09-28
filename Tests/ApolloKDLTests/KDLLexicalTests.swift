@@ -8,6 +8,8 @@ struct KDLLexicalTests {
         ("1.5", 1.5), ("1_1.0", 11), ("1.0_2", 1.02), ("1e10", 1e10), ("1.0E-10", 1e-10), ("1.0e-10_0", 1e-100),
         ("0x10", 16), ("0xABC_def_0123", 737_894_400_291), ("0x123abc_", 1_194_684), ("0o76543210", 16_434_824),
         ("0o012_3456_7", 342_391), ("0b10_", 2), ("0b1_0", 2), ("-0o7", -7), ("#inf", .infinity), ("#-inf", -.infinity),
+        ("0", 0), ("007", 7), ("-42", -42), ("+42", 42), ("123456789012345", 123_456_789_012_345),
+        ("1234567890123456", 1_234_567_890_123_456), ("99999999999999999999", 1e20), ("1_000", 1000),
     ] as [(String, Double)])
     func validNumbers(raw: String, expected: Double) {
         #expect(KDLNumberLiteral.value(of: raw) == expected)
@@ -24,10 +26,23 @@ struct KDLLexicalTests {
 
     @Test("ungültige Zahlen", arguments: [
         "1.", "1.e7", "1._7", ".1", "0x", "0x_10", "0xx10", "0x10g10", "0bx01", "0o45678",
-        "1.0.0", "1.0E10e10", "1e", "+", "0n", "", "0X10", "1e_5",
+        "1.0.0", "1.0E10e10", "1e", "+", "0n", "", "0X10", "1e_5", "#", "#infinity", "12a", "-",
     ])
     func invalidNumbers(raw: String) {
         #expect(KDLNumberLiteral.value(of: raw) == nil)
+    }
+
+    @Test("ASCII-Tabelle für Namenszeichen entspricht der Regel")
+    func identifierTable() {
+        for value in UInt8(0)..<0x80 {
+            let scalar = Unicode.Scalar(value)
+            #expect(KDLCharacters.isIdentifierCharacter(scalar) == KDLCharacters.classifiesAsIdentifierCharacter(scalar), "\(value)")
+        }
+        #expect(!KDLCharacters.isIdentifierCharacter("="))
+        #expect(!KDLCharacters.isIdentifierCharacter(" "))
+        #expect(KDLCharacters.isIdentifierCharacter("a"))
+        #expect(KDLCharacters.isIdentifierCharacter("-"))
+        #expect(KDLCharacters.isIdentifierCharacter("é"))
     }
 
     @Test("Zeilenumbrüche nach 2.0.0, VT ist Leerraum")

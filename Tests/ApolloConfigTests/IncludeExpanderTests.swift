@@ -31,6 +31,14 @@ struct IncludeExpanderTests {
         #expect(result.files.count == 2)
     }
 
+    @Test("Tippfehler bei einer Eigenschaft von include schlägt optional vor")
+    func includePropertyTypo() {
+        let fs = MemoryFileSystem(["/config/shell.kdl": "include \"sidebar.kdl\" optinal=#true", "/config/sidebar.kdl": ""])
+        let result = IncludeExpander.expand(root: URL(fileURLWithPath: "/config"), origin: .user, fileSystem: fs, paths: Self.paths())
+        #expect(result.diagnostics.map(\.message) == ["unknown property 'optinal' on 'include'"])
+        #expect(result.diagnostics.first?.help == "did you mean 'optional'?")
+    }
+
     @Test("include innerhalb eines Blocks wird Kind des Blocks")
     func includeInBlock() {
         let files = [

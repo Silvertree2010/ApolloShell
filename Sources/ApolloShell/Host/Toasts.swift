@@ -130,7 +130,7 @@ final class ToastCenter {
 }
 
 @MainActor
-final class NotifyAction: ActionImplementation {
+final class ToastShowAction: ActionImplementation {
     let center: ToastCenter
 
     init(center: ToastCenter) {
@@ -141,7 +141,7 @@ final class NotifyAction: ActionImplementation {
         let style: String = if case .string(let text)? = call.properties["style"], !text.isEmpty { text } else { "default" }
         let duration = call.properties["duration"].flatMap(SurfaceWindowSpec.seconds)
         if center.post(style: style, fields: call.properties, duration: duration) == nil {
-            runtime.warn(Diagnostic(.warning, "notify shows nothing: there is no toast \"\(style)\"", span: call.span))
+            runtime.warn(Diagnostic(.warning, "toast.show shows nothing: there is no toast \"\(style)\"", span: call.span, code: .unknownTarget))
         }
     }
 }

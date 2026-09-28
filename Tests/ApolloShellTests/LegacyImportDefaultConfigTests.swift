@@ -21,7 +21,7 @@ struct LegacyImportDefaultConfigTests {
     static func presetValues() throws -> [String: Value] {
         let document = try KDLDocument.parse(try String(contentsOf: presets, encoding: .utf8), file: presets.path)
         var values: [String: Value] = [:]
-        for node in document.nodes where node.name == "let" {
+        for node in document.nodes where node.name == "var" {
             guard case .string(let name)? = node.arguments.first?.scalar else { continue }
             let body = KDLNode(name: name, children: node.children)
             values[name] = ValueKDLMapping.value(from: body)

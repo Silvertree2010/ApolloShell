@@ -25,7 +25,8 @@ final class WorkspaceAppIcons: AppIconSource {
     func icon(for app: Value) -> NSImage? {
         guard let id = AppIconKey.bundleID(app) else { return nil }
         if let cached = cache[id] { return cached }
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else { return nil }
+        let path = id.hasPrefix("/") ? URL(fileURLWithPath: id) : nil
+        guard let url = path ?? NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else { return nil }
         let image = NSWorkspace.shared.icon(forFile: url.path)
         cache[id] = image
         return image

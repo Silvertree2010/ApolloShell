@@ -6,26 +6,45 @@ public struct SourceLocator: Sendable {
 
     public init(_ text: String) {
         self.text = text
-        self.utf8 = Array(text.utf8)
+        let bytes = Array(text.utf8)
+        self.utf8 = bytes
         var starts = [0]
         var ends: [Int] = []
-        var offset = 0
-        for character in text {
-            let length = character.utf8.count
-            if SourceLocator.isLineBreak(character) {
-                ends.append(offset)
-                starts.append(offset + length)
+        var index = 0
+        while index < bytes.count {
+            let length = SourceLocator.lineBreakLength(bytes, at: index)
+            if length > 0 {
+                ends.append(index)
+                starts.append(index + length)
+                index += length
+            } else {
+                index += 1
             }
-            offset += length
         }
-        ends.append(offset)
+        ends.append(bytes.count)
         self.lineStarts = starts
         self.lineEnds = ends
     }
 
+    static func lineBreakLength(_ bytes: [UInt8], at index: Int) -> Int {
+        switch bytes[index] {
+        case 0x0A, 0x0C:
+            return 1
+        case 0x0D:
+            return index + 1 < bytes.count && bytes[index + 1] == 0x0A ? 2 : 1
+        case 0xC2:
+            return index + 1 < bytes.count && bytes[index + 1] == 0x85 ? 2 : 0
+        case 0xE2:
+            guard index + 2 < bytes.count, bytes[index + 1] == 0x80 else { return 0 }
+            return bytes[index + 2] == 0xA8 || bytes[index + 2] == 0xA9 ? 3 : 0
+        default:
+            return 0
+        }
+    }
+
     public static func isLineBreak(_ character: Character) -> Bool {
-        switch character {
-        case "\n", "\r", "\r\n", "\u{85}", "\u{0C}", "\u{2028}", "\u{2029}":
+        switch character.unicodeScalars.first?.value {
+        case 0x0A, 0x0D, 0x0C, 0x85, 0x2028, 0x2029:
             return true
         default:
             return false
@@ -73,32 +92,82 @@ public struct SourceLocator: Sendable {
     }
 
     public func positions(atByteOffsets offsets: [Int]) -> [Int: SourcePosition] {
-        let wanted = Set(offsets.map { max(0, min($0, utf8.count)) }).sorted()
         var result: [Int: SourcePosition] = [:]
-        result.reserveCapacity(wanted.count)
-        var next = 0
-        var offset = 0
-        var line = 1
-        var column = 1
-        for character in text {
-            if next == wanted.count { break }
-            let length = character.utf8.count
-            while next < wanted.count, wanted[next] < offset + length {
-                result[wanted[next]] = SourcePosition(offset: wanted[next], line: line, column: column)
-                next += 1
-            }
-            offset += length
-            if SourceLocator.isLineBreak(character) {
-                line += 1
-                column = 1
-            } else {
-                column += 1
-            }
-        }
-        while next < wanted.count {
-            result[wanted[next]] = SourcePosition(offset: wanted[next], line: line, column: column)
-            next += 1
+        result.reserveCapacity(offsets.count)
+        for position in positionList(atByteOffsets: offsets) {
+            result[position.offset] = position
         }
         return result
+    }
+
+    public func positionList(atByteOffsets offsets: [Int]) -> [SourcePosition] {
+        let lineStarts = self.lineStarts
+        let lineEnds = self.lineEnds
+        let byteCount = utf8.count
+        var result: [SourcePosition] = []
+        result.reserveCapacity(offsets.count)
+        var graphemeEnds = [[Int]??](repeating: nil, count: lineStarts.count)
+        var lastLine = 0
+        var lastEnds: [Int]?
+        var position = 0
+        while position < offsets.count {
+            let offset = max(0, min(offsets[position], byteCount))
+            position += 1
+            let line: Int
+            if lastLine > 0, lineStarts[lastLine - 1] <= offset, lastLine == lineStarts.count || offset < lineStarts[lastLine] {
+                line = lastLine
+            } else {
+                line = lineNumber(atByteOffset: offset)
+            }
+            let start = lineStarts[line - 1]
+            let end = lineEnds[line - 1]
+            let relative = min(offset, end) - start
+            if line != lastLine {
+                if let cached = graphemeEnds[line - 1] {
+                    lastEnds = cached
+                } else {
+                    lastEnds = lineGraphemeEnds(start: start, end: end)
+                    graphemeEnds[line - 1] = .some(lastEnds)
+                }
+                lastLine = line
+            }
+            let column: Int
+            if let ends = lastEnds {
+                var low = 0
+                var high = ends.count
+                while low < high {
+                    let middle = (low + high) / 2
+                    if ends[middle] <= relative {
+                        low = middle + 1
+                    } else {
+                        high = middle
+                    }
+                }
+                column = low + 1
+            } else {
+                column = relative + 1
+            }
+            result.append(SourcePosition(offset: offset, line: line, column: column))
+        }
+        return result
+    }
+
+    private func lineGraphemeEnds(start: Int, end: Int) -> [Int]? {
+        let hasWideCharacters = utf8.withUnsafeBufferPointer { buffer in
+            var index = start
+            while index < end {
+                if buffer[index] >= 0x80 { return true }
+                index += 1
+            }
+            return false
+        }
+        guard hasWideCharacters else { return nil }
+        var ends: [Int] = []
+        var consumed = 0
+        for character in String(decoding: utf8[start..<end], as: UTF8.self) {
+            consumed += character.utf8.count
+            ends.append(consumed)
+        }
+        return ends
     }
 }

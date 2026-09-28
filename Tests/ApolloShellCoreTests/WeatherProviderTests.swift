@@ -133,6 +133,8 @@ struct WeatherProviderCommonTests {
 
     @Test("ISO-Zeit ohne Zone oder kaputt: nil", arguments: [
         "2026-09-14T06:38", "2026-09-14", "kaputt", "2026-09-14T06:38+2", "",
+        "2026-09-14T06:38+9223372036854775807:00", "2026-09-14T06:38+00:9223372036854775807",
+        "9223372036854775807-09-14T06:38Z", "2026-13-14T06:38Z", "2026-09-14T99:38Z",
     ])
     func isoDateInvalid(text: String) {
         #expect(WeatherTime.isoDate(text) == nil)
@@ -360,6 +362,23 @@ struct WttrProviderTests {
         #expect(r.current.time == utc(14, 23, 50))
         #expect(r.current.apparentTemperature == nil && r.current.humidity == nil)
         #expect(r.days.isEmpty && r.hours.isEmpty)
+    }
+
+    @Test("Zeitzone des Ortes aus lokaler und UTC-Beobachtungszeit, nicht aus der des Rechners")
+    func placeZone() throws {
+        let json = #"{"current_condition":[{"temp_C":"25","weatherCode":"113","observation_time":"04:09 PM","localObsDateTime":"2026-09-15 01:09 AM"}],"weather":[{"date":"2026-09-15","maxtempC":"28","mintempC":"20","astronomy":[{"sunrise":"05:23 AM","sunset":"05:41 PM"}],"hourly":[{"time":"0","tempC":"21","weatherCode":"113"},{"time":"1200","tempC":"27","weatherCode":"113"}]}]}"#
+        let r = try WttrProvider(timeZone: berlinZone).decode([data(json)], now: fetched)
+        #expect(r.calendar.timeZone.secondsFromGMT(for: fetched) == 9 * 3600)
+        #expect(r.hours.map(\.time) == [utc(14, 15), utc(15, 3)])
+        #expect(r.days.first?.sunrise == utc(14, 20, 23))
+        #expect(!r.current.isDay)
+    }
+
+    @Test("lokale Beobachtungszeit fehlt oder passt nicht: Zone des Rechners", arguments: [
+        "", "kaputt", "2026-09-15 13:09 PM", "2026-09-20 04:09 PM", "2026-13-15 01:09 AM",
+    ])
+    func placeZoneFallback(local: String) {
+        #expect(WttrProvider.placeZone(local: local, observed: utc(14, 16, 9)) == nil)
     }
 
     @Test("Beobachtungszeit: juengster Zeitpunkt bis kurz nach jetzt", arguments: [

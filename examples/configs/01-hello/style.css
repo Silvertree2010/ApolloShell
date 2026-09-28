@@ -1,0 +1,11 @@
+.card {
+    padding: 16px;
+    gap: 4px;
+    border-radius: var(--apollo-card-radius);
+    background: var(--apollo-card-fill);
+}
+
+.time {
+    font-size: 32px;
+    font-weight: 700;
+}

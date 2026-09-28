@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 
 public enum Direction: Sendable, CaseIterable {
     case left, right, up, down

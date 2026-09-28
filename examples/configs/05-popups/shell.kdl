@@ -1,0 +1,20 @@
+style "style.css"
+
+var hotkey "ctrl+alt+space" persist=#true
+
+poll "uptime" command="uptime" interval="60s"
+
+bind "{var.hotkey}" { emit "show-info" }
+
+on "user.show-info" { toggle "info" }
+
+popup "info" anchor="center" motion="grow" {
+    column class="card" {
+        text "Uptime" class="title"
+        text "{poll.uptime ?? '…'}"
+        button class="close" {
+            on-click { close "info" }
+            text "Close"
+        }
+    }
+}

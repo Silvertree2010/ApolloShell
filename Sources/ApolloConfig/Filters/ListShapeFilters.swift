@@ -76,7 +76,12 @@ enum ListShapeFilters {
         BuiltinFilter("join", arity: FilterArity(1, 1)) { input, arguments, _ in
             let items = try input.listInput("join")
             let separator = try arguments.string(0)
-            return .string(items.map(\.stringified).joined(separator: separator))
+            let texts = items.map(\.stringified)
+            let length = texts.reduce(separator.utf8.count * max(texts.count - 1, 0)) { $0 + $1.utf8.count }
+            guard length <= ExpressionLimits.maxTextBytes else {
+                throw FilterFailure("'join' would produce text longer than \(ExpressionLimits.maxTextBytes) bytes")
+            }
+            return .string(texts.joined(separator: separator))
         },
     ]
 

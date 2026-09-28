@@ -32,19 +32,23 @@ private struct WalkContext {
         return names
     }
 
-    func environment(for node: ExpandedNode, registry: SchemaRegistry) -> ExpressionEnvironment {
-        ExpressionEnvironment(registry: registry, letValues: node.letValues, poisonedLets: node.poisonedLets, locals: locals(for: node), context: context)
+    func environment(for node: ExpandedNode, registry: SchemaRegistry, templates: TemplateCache?, declaredVars: Set<String>?) -> ExpressionEnvironment {
+        ExpressionEnvironment(registry: registry, locals: locals(for: node), context: context, templates: templates, declaredVars: declaredVars)
     }
 }
 
 private final class SchemaWalkState {
     let registry: SchemaRegistry
+    let templates: TemplateCache?
+    let declaredVars: Set<String>?
     var diagnostics: [Diagnostic] = []
     var validatedFrames: Set<ObjectIdentifier> = []
     var instantiatedDefines: Set<String> = []
 
-    init(registry: SchemaRegistry) {
+    init(registry: SchemaRegistry, templates: TemplateCache?, declaredVars: Set<String>?) {
         self.registry = registry
+        self.templates = templates
+        self.declaredVars = declaredVars
     }
 
     func report(_ diagnostic: Diagnostic, node: ExpandedNode) {
@@ -53,11 +57,12 @@ private final class SchemaWalkState {
 }
 
 enum SchemaStage {
-    static let contextInheritingNodes: Set<String> = ["each", "when", "else", "switch", "case", "default", "feature"]
+    static let varActions: Set<String> = ["set", "toggle-var", "reset"]
+    static let contextInheritingNodes: Set<String> = ["each", "when", "else", "switch", "case", "default"]
 
-    static func run(_ nodes: [ExpandedNode], defines: [DefineDecl] = [], registry: SchemaRegistry, context: NodeContext = .topLevel) -> SchemaStageResult {
+    static func run(_ nodes: [ExpandedNode], defines: [DefineDecl] = [], registry: SchemaRegistry, context: NodeContext = .topLevel, templates: TemplateCache? = nil, declaredVars: Set<String>? = nil) -> SchemaStageResult {
         StackHeadroom.run {
-            let state = SchemaWalkState(registry: registry)
+            let state = SchemaWalkState(registry: registry, templates: templates, declaredVars: declaredVars)
             let walk = WalkContext(context: context, handlerNames: [], eachStack: [])
             let checked = self.walkNodes(nodes, walk: walk, state: state)
             self.checkDefineBodies(defines, state: state)
@@ -111,7 +116,7 @@ enum SchemaStage {
         validateCallSites(of: frame.parent, walk: walk, state: state)
         guard let callSite = frame.callSite else { return }
         state.instantiatedDefines.insert(frame.defineName)
-        let env = walk.environment(for: callSite, registry: state.registry)
+        let env = walk.environment(for: callSite, registry: state.registry, templates: state.templates, declaredVars: state.declaredVars)
         for property in callSite.kdl.properties {
             guard case .argument? = frame.bindings[property.name] else { continue }
             let (_, diagnostics) = ExpressionCompiler.compile(property.value, env: env, allowsExpression: true)
@@ -124,10 +129,10 @@ enum SchemaStage {
         if node.isExpansionMarker { return nil }
         let registry = state.registry
         let kdl = node.kdl
-        let env = walk.environment(for: node, registry: registry)
+        let env = walk.environment(for: node, registry: registry, templates: state.templates, declaredVars: state.declaredVars)
 
         if kdl.name == "script" {
-            state.report(Diagnostic(.error, "Lua scripting comes in a later version", span: kdl.span), node: node)
+            state.report(Diagnostic(.error, "Lua scripting comes in a later version", span: kdl.span, code: .luaReserved), node: node)
             return nil
         }
 
@@ -141,7 +146,7 @@ enum SchemaStage {
                     schema.properties += source.properties
                 } else {
                     let suggestion = Suggestion.closest(to: kind, among: Array(registry.menuSources.keys))
-                    state.report(Diagnostic(.error, "unknown menu source '\(kind)'", span: first.span, help: suggestion.map { "did you mean '\($0)'?" }), node: node)
+                    state.report(Diagnostic(.error, "unknown menu source '\(kind)'", span: first.span, help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownMenuSource), node: node)
                     return nil
                 }
             }
@@ -162,7 +167,7 @@ enum SchemaStage {
         }
 
         if walk.context != .actions, kdl.name.contains("."), registry.action(kdl.name) != nil {
-            state.report(Diagnostic(.error, "'\(kdl.name)' is only valid inside a handler", span: kdl.span), node: node)
+            state.report(Diagnostic(.error, "'\(kdl.name)' is only valid inside a handler", span: kdl.span, code: .wrongPlace), node: node)
             return nil
         }
 
@@ -172,7 +177,7 @@ enum SchemaStage {
             candidates.append(contentsOf: registry.actions.keys)
         }
         let suggestion = Suggestion.closest(to: kdl.name, among: candidates)
-        state.report(Diagnostic(.error, "unknown node '\(kdl.name)'", span: kdl.span, help: suggestion.map { "did you mean '\($0)'?" }), node: node)
+        state.report(Diagnostic(.error, "unknown node '\(kdl.name)'", span: kdl.span, help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownNode), node: node)
         return nil
     }
 
@@ -202,9 +207,9 @@ enum SchemaStage {
         guard case .string(let name) = value.scalar else { return nil }
         let registry = state.registry
         if registry.fixedRoots.contains(name) || registry.providers[name] != nil {
-            state.report(Diagnostic(.error, "'\(name)' is reserved", span: value.span), node: node)
+            state.report(Diagnostic(.error, "'\(name)' is reserved", span: value.span, code: .reservedName), node: node)
         } else if registry.reservedProviderNames.contains(name) {
-            state.report(Diagnostic(.note, "'\(name)' hides provider '\(name)'", span: value.span), node: node)
+            state.report(Diagnostic(.note, "'\(name)' hides provider '\(name)'", span: value.span, code: .hidesProvider), node: node)
         }
         return name
     }
@@ -232,7 +237,7 @@ enum SchemaStage {
             }
         }
         if schema.stability == .experimental {
-            state.report(Diagnostic(.note, "'\(kdl.name)' is experimental and may change", span: kdl.span), node: node)
+            state.report(Diagnostic(.note, "'\(kdl.name)' is experimental and may change", span: kdl.span, code: .experimental), node: node)
         }
         let (arguments, argumentDiagnostics) = checkArguments(schema.arguments, kdl.arguments, nodeName: kdl.name, nodeSpan: kdl.span, env: env)
         for diagnostic in argumentDiagnostics { state.report(diagnostic, node: node) }
@@ -261,7 +266,7 @@ enum SchemaStage {
             nextWalk.eachStack.append(contentsOf: loopLocals)
             children = walkNodes(node.children, walk: nextWalk, state: state)
         } else if !node.children.isEmpty, !isVar {
-            state.report(Diagnostic(.error, "'\(kdl.name)' cannot have children", span: kdl.span), node: node)
+            state.report(Diagnostic(.error, "'\(kdl.name)' cannot have children", span: kdl.span, code: .noChildren), node: node)
         }
 
         return CheckedNode(name: kdl.name, span: kdl.span, arguments: arguments, properties: properties, children: children)
@@ -290,10 +295,16 @@ enum SchemaStage {
     ) -> CheckedNode {
         let kdl = node.kdl
         if schema.stability == .experimental {
-            state.report(Diagnostic(.note, "'\(kdl.name)' is experimental and may change", span: kdl.span), node: node)
+            state.report(Diagnostic(.note, "'\(kdl.name)' is experimental and may change", span: kdl.span, code: .experimental), node: node)
         }
         let (arguments, argumentDiagnostics) = checkArguments(schema.arguments, kdl.arguments, nodeName: kdl.name, nodeSpan: kdl.span, env: env)
         for diagnostic in argumentDiagnostics { state.report(diagnostic, node: node) }
+        if Self.varActions.contains(kdl.name), let declared = env.declaredVars,
+           let first = kdl.arguments.first, case .string(let name) = first.scalar,
+           !name.utf8.contains(UInt8(ascii: "{")), !declared.contains(name) {
+            let suggestion = Suggestion.closest(to: name, among: Array(declared))
+            state.report(Diagnostic(.warning, "unknown var '\(name)'", span: first.span, help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownVar), node: node)
+        }
         let (properties, propertyDiagnostics) = checkProperties(schema.properties, kdl.properties, nodeName: kdl.name, nodeSpan: kdl.span, env: env)
         for diagnostic in propertyDiagnostics { state.report(diagnostic, node: node) }
 
@@ -305,7 +316,7 @@ enum SchemaStage {
                 children = walkNodes(node.children, walk: nextWalk, state: state)
             }
         } else if !node.children.isEmpty {
-            state.report(Diagnostic(.error, "'\(kdl.name)' cannot have children", span: kdl.span), node: node)
+            state.report(Diagnostic(.error, "'\(kdl.name)' cannot have children", span: kdl.span, code: .noChildren), node: node)
         }
 
         return CheckedNode(name: kdl.name, span: kdl.span, arguments: arguments, properties: properties, children: children)
@@ -318,7 +329,7 @@ enum SchemaStage {
         for argument in schema {
             if argument.variadic {
                 if index >= values.count, argument.required {
-                    diagnostics.append(Diagnostic(.error, "'\(nodeName)' needs at least one '\(argument.name)'", span: nodeSpan))
+                    diagnostics.append(Diagnostic(.error, "'\(nodeName)' needs at least one '\(argument.name)'", span: nodeSpan, code: .missingArgument))
                 }
                 while index < values.count {
                     compiled.append(contentsOf: checkOneArgument(argument, values[index], env: env, diagnostics: &diagnostics))
@@ -328,7 +339,7 @@ enum SchemaStage {
             }
             if index >= values.count {
                 if argument.required {
-                    diagnostics.append(Diagnostic(.error, "'\(nodeName)' is missing argument '\(argument.name)'", span: nodeSpan))
+                    diagnostics.append(Diagnostic(.error, "'\(nodeName)' is missing argument '\(argument.name)'", span: nodeSpan, code: .missingArgument))
                 }
                 continue
             }
@@ -336,14 +347,14 @@ enum SchemaStage {
             index += 1
         }
         if index < values.count {
-            diagnostics.append(Diagnostic(.error, "'\(nodeName)' takes too many arguments", span: values[index].span))
+            diagnostics.append(Diagnostic(.error, "'\(nodeName)' takes too many arguments", span: values[index].span, code: .tooManyArguments))
         }
         return (compiled, diagnostics)
     }
 
     private static func checkOneArgument(_ argument: ArgumentSchema, _ value: KDLValue, env: ExpressionEnvironment, diagnostics: inout [Diagnostic]) -> [CompiledValue] {
         if !isExpression(value), !TypeChecker.literalMatches(value, argument.type) {
-            diagnostics.append(Diagnostic(.error, "argument '\(argument.name)' expects \(TypeChecker.typeName(argument.type))", span: value.span))
+            diagnostics.append(Diagnostic(.error, "argument '\(argument.name)' expects \(TypeChecker.typeName(argument.type))", span: value.span, help: TypeChecker.suggestion(for: value, argument.type), code: .argumentType))
         }
         let (compiledValue, more) = ExpressionCompiler.compile(value, env: env, allowsExpression: argument.allowsExpression)
         diagnostics.append(contentsOf: more)
@@ -370,22 +381,22 @@ enum SchemaStage {
         for property in properties {
             guard let propertySchema = schema.first(where: { $0.name == property.name }) else {
                 let suggestion = Suggestion.closest(to: property.name, among: known)
-                diagnostics.append(Diagnostic(.error, "unknown property '\(property.name)' on '\(nodeName)'", span: property.span, help: suggestion.map { "did you mean '\($0)'?" }))
+                diagnostics.append(Diagnostic(.error, "unknown property '\(property.name)' on '\(nodeName)'", span: property.span, help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownProperty))
                 continue
             }
             seen.insert(property.name)
             if propertySchema.stability == .experimental {
-                diagnostics.append(Diagnostic(.note, "'\(property.name)' is experimental and may change", span: property.span))
+                diagnostics.append(Diagnostic(.note, "'\(property.name)' is experimental and may change", span: property.span, code: .experimental))
             }
             if !isExpression(property.value), !TypeChecker.literalMatches(property.value, propertySchema.type) {
-                diagnostics.append(Diagnostic(.error, "property '\(property.name)' expects \(TypeChecker.typeName(propertySchema.type))", span: property.value.span))
+                diagnostics.append(Diagnostic(.error, "property '\(property.name)' expects \(TypeChecker.typeName(propertySchema.type))", span: property.value.span, help: TypeChecker.suggestion(for: property.value, propertySchema.type), code: .propertyType))
             }
             let (compiledValue, more) = ExpressionCompiler.compile(property.value, env: overrides[property.name] ?? env, allowsExpression: propertySchema.allowsExpression)
             diagnostics.append(contentsOf: more)
             compiled[property.name] = compiledValue
         }
         for propertySchema in schema where propertySchema.required && !seen.contains(propertySchema.name) {
-            diagnostics.append(Diagnostic(.error, "'\(nodeName)' is missing property '\(propertySchema.name)'", span: nodeSpan))
+            diagnostics.append(Diagnostic(.error, "'\(nodeName)' is missing property '\(propertySchema.name)'", span: nodeSpan, code: .missingProperty))
         }
         return (compiled, diagnostics)
     }

@@ -28,7 +28,9 @@ jobs:
           - name: Intel
             runner: macos-26-intel
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 45
+    env:
+      TIMING_TESTS: MainBlockObserverTests|longChainWithReaderIsFast|EachBudgetTests|HostileConfigTests|ReloadBudgetTests|loadsDefaultSizedConfigInBudget|largeListReadsWithinBudget|largeListWithOneChangedEntryWithinBudget
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
@@ -42,7 +44,11 @@ jobs:
         run: swift build -c release --product ApolloShell && swift build -c release --product apollo
 
       - name: Test
-        run: ./test.sh
+        run: ./test.sh --skip "$TIMING_TESTS"
+
+      - name: Timing budgets, one test at a time
+        if: success() || failure()
+        run: ./test.sh --no-parallel --filter "$TIMING_TESTS"
 
       - name: Assemble and verify the app bundle
         run: |

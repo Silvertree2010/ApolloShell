@@ -39,6 +39,8 @@ struct ListSearchFilterTests {
         .ok("index-of", .list([.string("a"), .string("b")]), [.string("z")], .null),
         .ok("index-of", .string("héllo"), [.string("l")], .number(2)),
         .ok("index-of", .string("hello"), [.string("z")], .null),
+        .ok("index-of", .string("abc"), [.string("")], .number(0)),
+        .ok("index-of", .string(""), [.string("")], .number(0)),
         .fails("index-of", .number(1), [.number(1)]),
         .ok("index-where", modules, [.string("id"), .string("b")], .number(1)),
         .ok("index-where", modules, [.string("id"), .list([.string("x"), .string("c")])], .number(2)),

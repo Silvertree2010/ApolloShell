@@ -32,13 +32,20 @@ final class Region {
     }
 
     private func append(into result: inout [ElementInstance]) {
-        for part in parts {
-            if let element = part as? ElementNode {
-                result.append(element.instance)
-            } else if let structure = part as? StructureNode {
-                for region in structure.regions {
-                    region.append(into: &result)
-                }
+        let parts = self.parts
+        var index = 0
+        while index < parts.count {
+            let part = parts[index]
+            index += 1
+            if let element = part.flatInstance {
+                result.append(element)
+                continue
+            }
+            let regions = part.innerRegions
+            var inner = 0
+            while inner < regions.count {
+                regions[inner].append(into: &result)
+                inner += 1
             }
         }
     }
@@ -51,6 +58,8 @@ class TreeNode {
     var outerActive: Bool
     weak var region: Region?
     var stamp = 0
+
+    var flatInstance: ElementInstance? { nil }
 
     init(outerActive: Bool) {
         self.outerActive = outerActive
@@ -86,6 +95,8 @@ struct BuildContext {
 @MainActor
 final class ElementNode: TreeNode {
     let instance: ElementInstance
+
+    override var flatInstance: ElementInstance? { instance }
     unowned let surface: SurfaceNode
     let runtimeID: String?
     var selfVisible = true
@@ -183,7 +194,11 @@ final class StructureNode: TreeNode {
     var subject: BindingHandle?
     var caseBindings: [[BindingHandle]] = []
     var argumentBindings: [String: BindingHandle] = [:]
-    var regions: [Region] = []
+    var defaultBindings: (parameters: [ParameterIR], arguments: Set<String>, handles: [BindingHandle])?
+    var regions: [Region] = [] {
+        didSet { entryLookup = nil }
+    }
+    var entryLookup: [EntryKey: Region]?
     var selection: String?
     var define: DefineIR?
     var rebuildQueued = false
@@ -204,6 +219,7 @@ final class StructureNode: TreeNode {
         for name in argumentBindings.keys.sorted() {
             if let handle = argumentBindings[name] { handles.append(handle) }
         }
+        if let defaults = defaultBindings { handles.append(contentsOf: defaults.handles) }
         return handles
     }
 
@@ -255,6 +271,20 @@ struct EntryKey: Hashable {
             text = EntryKey.text(other)
             number = 0
             typeName = other.typeName
+        }
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(kind)
+        hasher.combine(ordinal)
+        switch kind {
+        case .position, .number, .bool:
+            hasher.combine(number)
+        case .string:
+            hasher.combine(text)
+        case .other:
+            hasher.combine(typeName)
+            hasher.combine(text)
         }
     }
 
@@ -324,6 +354,7 @@ final class SurfaceNode {
     var isOpening = false
     var isConfigured = false
     var elementCount = 0
+    var parkedElements: (generation: Int, pending: Int, count: Int)?
     var ids: [String: ElementNode] = [:]
     var closeWaiters: [CloseWaiter] = []
     var toasts: [Value] = []

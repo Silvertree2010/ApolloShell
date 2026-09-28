@@ -31,7 +31,9 @@ enum SocketAddress {
             buffer.copyBytes(from: bytes)
             buffer[bytes.count] = 0
         }
+        #if canImport(Darwin)
         address.sun_len = UInt8(MemoryLayout<sockaddr_un>.size)
+        #endif
         return address
     }
 
@@ -54,8 +56,10 @@ enum SocketAddress {
     }
 
     static func noSigPipe(_ fd: Int32) {
+        #if canImport(Darwin)
         var on: Int32 = 1
         setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, socklen_t(MemoryLayout<Int32>.size))
+        #endif
     }
 
     static func sendTimeout(_ fd: Int32, seconds: Int) {
@@ -81,17 +85,29 @@ enum SocketAddress {
 }
 
 struct LineBuffer {
+    static let limit = 16 * 1024 * 1024
+
     private var pending: [UInt8] = []
+    private(set) var overflowed = false
 
     mutating func append(_ bytes: ArraySlice<UInt8>) -> [String] {
+        guard !overflowed else { return [] }
+        var scan = pending.count
         pending.append(contentsOf: bytes)
         var lines: [String] = []
-        while let newline = pending.firstIndex(of: 10) {
-            let line = String(decoding: pending[..<newline], as: UTF8.self)
-            pending.removeSubrange(...newline)
+        var start = pending.startIndex
+        while let newline = pending.withUnsafeBufferPointer({ buffer in buffer[scan...].firstIndex(of: 10) }) {
+            let line = String(decoding: pending[start..<newline], as: UTF8.self)
+            start = newline + 1
+            scan = start
             if !line.trimmingCharacters(in: .whitespaces).isEmpty {
                 lines.append(line)
             }
+        }
+        pending.removeSubrange(..<start)
+        if pending.count > Self.limit {
+            pending = []
+            overflowed = true
         }
         return lines
     }

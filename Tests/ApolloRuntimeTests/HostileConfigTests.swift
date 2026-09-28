@@ -9,7 +9,7 @@ import ApolloConfig
 struct HostileConfigTests {
     static let applyBudget = 50.0
     static let setBudget = 16.7
-    static var factor: Double { CPUTime.isDebug ? EachBudgetTests.debugFactor : 1 }
+    static var factor: Double { EachBudgetTests.factor }
 
     static func source() -> String {
         var text = "var n 0\nvar rec-name \"rec\"\nvar big {\n"
