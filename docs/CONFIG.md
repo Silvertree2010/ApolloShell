@@ -2446,7 +2446,7 @@ Weeks of a month as a list of lists.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `offset` | number |  | Month offset. |
-| argument | `firstWeekday` | string |  | First day of the week. |
+| argument | `first-weekday` | string |  | First day of the week. |
 
 ### `number` (filter)
 
@@ -2500,10 +2500,10 @@ Maps a range linearly onto another.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `fromLow` | number | required | Lower input bound. |
-| argument | `fromHigh` | number | required | Upper input bound. |
-| argument | `toLow` | number | required | Lower output bound. |
-| argument | `toHigh` | number | required | Upper output bound. |
+| argument | `from-low` | number | required | Lower input bound. |
+| argument | `from-high` | number | required | Upper input bound. |
+| argument | `to-low` | number | required | Lower output bound. |
+| argument | `to-high` | number | required | Upper output bound. |
 
 ### `shell-quote` (filter)
 
