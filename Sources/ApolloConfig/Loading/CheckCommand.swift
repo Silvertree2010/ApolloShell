@@ -45,10 +45,10 @@ public enum CheckCommand {
         if let argument = arguments.first {
             let folder = fileSystem.resolvingSymlinks(URL(fileURLWithPath: argument).standardizedFileURL)
             guard fileSystem.exists(folder) else {
-                return render([Diagnostic(.error, "'\(folder.path)' does not exist")], fileSystem: fileSystem, home: home)
+                return render([Diagnostic(.error, "'\(folder.path)' does not exist", code: .checkFolder)], fileSystem: fileSystem, home: home)
             }
             guard fileSystem.isDirectory(folder) else {
-                let text = render([Diagnostic(.error, "'\(folder.path)' is not a folder")], fileSystem: fileSystem, home: home).output
+                let text = render([Diagnostic(.error, "'\(folder.path)' is not a folder", code: .checkFolder)], fileSystem: fileSystem, home: home).output
                 return (text + "\n\n" + usage, Exit.usage)
             }
             location = ActiveConfigResolver.resolve(cliOverride: folder, settings: ShellSettingsFile(), paths: paths, fileSystem: fileSystem).0
@@ -67,7 +67,7 @@ public enum CheckCommand {
         diagnostics += result.diagnostics
         if let fixture, let ir = result.ir, let fixtureCheck {
             guard fileSystem.exists(fixture) else {
-                return render(diagnostics + [Diagnostic(.error, "fixture '\(fixture.path)' does not exist")], fileSystem: fileSystem, home: home)
+                return render(diagnostics + [Diagnostic(.error, "fixture '\(fixture.path)' does not exist", code: .checkFixture)], fileSystem: fileSystem, home: home)
             }
             diagnostics += fixtureCheck(ir, fixture)
         }
@@ -92,7 +92,7 @@ public enum CheckCommand {
         let file = paths.settingsFile
         guard fileSystem.exists(file) else { return (ShellSettingsFile(), []) }
         guard let text = try? fileSystem.read(file) else {
-            return (ShellSettingsFile(), [Diagnostic(.warning, "cannot read '\(file.path)', using defaults")])
+            return (ShellSettingsFile(), [Diagnostic(.warning, "cannot read '\(file.path)', using defaults", code: .checkUnreadable)])
         }
         return ShellSettingsFile.parse(text, file: file.path)
     }
@@ -100,13 +100,13 @@ public enum CheckCommand {
     static func entryProblem(_ location: ConfigLocation, fileSystem: any ConfigFileSystem) -> Diagnostic? {
         let root = location.root
         if location.isBuiltin, !fileSystem.exists(root.appendingPathComponent("shell.kdl")) {
-            return Diagnostic(.error, "built-in config '\(location.id)' is missing at '\(root.path)'")
+            return Diagnostic(.error, "built-in config '\(location.id)' is missing at '\(root.path)'", code: .checkFolder)
         }
         if fileSystem.isDirectory(root), (try? fileSystem.contentsOfDirectory(root)) == nil {
-            return Diagnostic(.error, "cannot read folder '\(root.path)'")
+            return Diagnostic(.error, "cannot read folder '\(root.path)'", code: .checkFolder)
         }
         if !fileSystem.exists(root.appendingPathComponent("shell.kdl")) {
-            return Diagnostic(.error, "'\(root.path)' has no shell.kdl")
+            return Diagnostic(.error, "'\(root.path)' has no shell.kdl", code: .checkFolder)
         }
         return nil
     }

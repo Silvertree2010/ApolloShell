@@ -30,13 +30,13 @@ public struct ShellSettingsFile: Sendable, Hashable {
     public static func parse(_ text: String, file: String) -> (ShellSettingsFile, [Diagnostic]) {
         var result = ShellSettingsFile()
         guard let document = try? KDLDocument.parse(text, file: file) else {
-            return (result, [Diagnostic(.warning, "settings.kdl could not be parsed, using defaults", span: .synthetic(file))])
+            return (result, [Diagnostic(.warning, "settings.kdl could not be parsed, using defaults", span: .synthetic(file), code: .settingsSyntax)])
         }
         var diagnostics: [Diagnostic] = []
         var seen: Set<String> = []
         for node in document.nodes {
             if seen.contains(node.name) {
-                diagnostics.append(Diagnostic(.warning, "duplicate '\(node.name)' node in settings.kdl, using the last one", span: node.span))
+                diagnostics.append(Diagnostic(.warning, "duplicate '\(node.name)' node in settings.kdl, using the last one", span: node.span, code: .settingsDuplicate))
             }
             seen.insert(node.name)
             switch node.name {
@@ -44,7 +44,7 @@ public struct ShellSettingsFile: Sendable, Hashable {
                 if case .string(let id)? = node.arguments.first?.scalar {
                     result.config = id
                 } else {
-                    diagnostics.append(Diagnostic(.warning, "'config' expects a string argument", span: node.span))
+                    diagnostics.append(Diagnostic(.warning, "'config' expects a string argument", span: node.span, code: .settingsValue))
                 }
             case "theme":
                 switch node.arguments.first?.scalar {
@@ -53,7 +53,7 @@ public struct ShellSettingsFile: Sendable, Hashable {
                 case .string(let name):
                     result.theme = name
                 default:
-                    diagnostics.append(Diagnostic(.warning, "'theme' expects a string or #null", span: node.span))
+                    diagnostics.append(Diagnostic(.warning, "'theme' expects a string or #null", span: node.span, code: .settingsValue))
                 }
             case "updates":
                 if case .bool(let value)? = node.property("auto-check")?.value.scalar {
@@ -66,16 +66,16 @@ public struct ShellSettingsFile: Sendable, Hashable {
                 if case .string(let mode)? = node.arguments.first?.scalar {
                     result.crashReports = mode
                 } else {
-                    diagnostics.append(Diagnostic(.warning, "'crash-reports' expects a string argument", span: node.span))
+                    diagnostics.append(Diagnostic(.warning, "'crash-reports' expects a string argument", span: node.span, code: .settingsValue))
                 }
             case "editor":
                 if case .string(let command)? = node.arguments.first?.scalar {
                     result.editor = command
                 } else {
-                    diagnostics.append(Diagnostic(.warning, "'editor' expects a string argument", span: node.span))
+                    diagnostics.append(Diagnostic(.warning, "'editor' expects a string argument", span: node.span, code: .settingsValue))
                 }
             default:
-                diagnostics.append(Diagnostic(.warning, "unknown settings.kdl node '\(node.name)'", span: node.nameSpan))
+                diagnostics.append(Diagnostic(.warning, "unknown settings.kdl node '\(node.name)'", span: node.nameSpan, code: .settingsUnknown))
             }
         }
         return (result, diagnostics)

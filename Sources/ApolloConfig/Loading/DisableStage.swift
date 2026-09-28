@@ -50,7 +50,8 @@ enum DisableStage {
                             .error,
                             "duplicate \(describe(identity)); add override=#true to replace it",
                             span: node.kdl.span,
-                            notes: [DiagnosticNote("first defined here", span: result[existingIndex].kdl.span)]
+                            notes: [DiagnosticNote("first defined here", span: result[existingIndex].kdl.span)],
+                            code: .duplicateDefinition
                         ),
                         node: node
                     ))
@@ -58,7 +59,7 @@ enum DisableStage {
             } else {
                 if isOverride {
                     diagnostics.append(DiagnosticCollector.withExpansionChain(
-                        Diagnostic(.warning, "override=#true on \(describe(identity)) without a previous definition", span: node.kdl.span),
+                        Diagnostic(.warning, "override=#true on \(describe(identity)) without a previous definition", span: node.kdl.span, code: .overrideWithoutTarget),
                         node: node
                     ))
                 }
@@ -86,7 +87,7 @@ enum DisableStage {
                 identity = .on(event)
             } else {
                 diagnostics.append(DiagnosticCollector.withExpansionChain(
-                    Diagnostic(.error, "'disable' needs 'surface=', 'bind=' or 'on='", span: node.kdl.span),
+                    Diagnostic(.error, "'disable' needs 'surface=', 'bind=' or 'on='", span: node.kdl.span, code: .disableSyntax),
                     node: node
                 ))
                 continue
@@ -109,7 +110,7 @@ enum DisableStage {
         for identity in targetOrder where !matched.contains(identity) {
             guard let node = targets[identity] else { continue }
             diagnostics.append(DiagnosticCollector.withExpansionChain(
-                Diagnostic(.warning, "unknown target for disable: \(describe(identity))", span: node.kdl.span),
+                Diagnostic(.warning, "unknown target for disable: \(describe(identity))", span: node.kdl.span, code: .disableUnknown),
                 node: node
             ))
         }

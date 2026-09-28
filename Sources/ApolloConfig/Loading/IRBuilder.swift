@@ -103,14 +103,14 @@ enum IRBuilder {
                         ir.events.append(handler)
                     }
                 case "use":
-                    state.report(Diagnostic(.error, "a 'use' with an expression as name is only allowed where children are allowed", span: node.kdl.span), node: node)
+                    state.report(Diagnostic(.error, "a 'use' with an expression as name is only allowed where children are allowed", span: node.kdl.span, code: .dynamicUsePlace), node: node)
                 default:
                     if let schema = registry.node(name), schema.category == .surface {
                         if let surface = buildSurface(node, schema: schema, state: state) {
                             ir.surfaces.append(surface)
                         }
                     } else if SchemaRegistry.scriptSourceKinds.contains(name), case .pkg(let package) = node.origin {
-                        state.report(Diagnostic(.error, "package '\(package)' may not declare '\(name)': it starts programs", span: node.kdl.span), node: node)
+                        state.report(Diagnostic(.error, "package '\(package)' may not declare '\(name)': it starts programs", span: node.kdl.span, code: .packageStartsPrograms), node: node)
                     } else if registry.node(name)?.contexts.contains(.topLevel) == true || SchemaStage.providerSettingsSchema(name, registry: registry) != nil {
                         blockNodes.append(node)
                     }
@@ -224,14 +224,14 @@ enum IRBuilder {
             return []
         case .success(let urls):
             if urls.isEmpty {
-                state.report(Diagnostic(.warning, "glob '\(raw)' matched no files", span: node.kdl.span), node: node)
+                state.report(Diagnostic(.warning, "glob '\(raw)' matched no files", span: node.kdl.span, code: .globEmpty), node: node)
             }
             var result: [StyleRef] = []
             for url in urls {
                 if fileSystem.exists(url) {
                     result.append(StyleRef(url: url, span: node.kdl.span))
                 } else {
-                    state.report(Diagnostic(.warning, "stylesheet '\(raw)' does not exist", span: argumentSpan), node: node)
+                    state.report(Diagnostic(.warning, "stylesheet '\(raw)' does not exist", span: argumentSpan, code: .stylesheetMissing), node: node)
                 }
             }
             return result
@@ -272,7 +272,7 @@ enum IRBuilder {
     private static func buildSurface(_ node: ExpandedNode, schema: NodeSchema, state: IRBuildState) -> SurfaceIR? {
         guard let id = firstString(node) else { return nil }
         if ExpressionText.containsExpression(id) {
-            state.report(Diagnostic(.error, "a surface id cannot be an expression", span: node.kdl.arguments[0].span), node: node)
+            state.report(Diagnostic(.error, "a surface id cannot be an expression", span: node.kdl.arguments[0].span, code: .expressionNotAllowed), node: node)
             return nil
         }
         state.ids = [:]
@@ -338,7 +338,7 @@ enum IRBuilder {
             switch name {
             case "menu":
                 if body.menu != nil {
-                    state.report(Diagnostic(.error, "an element can have only one 'menu'", span: node.kdl.span), node: node)
+                    state.report(Diagnostic(.error, "an element can have only one 'menu'", span: node.kdl.span, code: .oneMenu), node: node)
                     continue
                 }
                 body.menu = MenuIR(
@@ -443,7 +443,7 @@ enum IRBuilder {
         var elementKey = key
         if let id = properties["id"], let text = staticText(id) {
             if !text.isEmpty, text.allSatisfy({ $0.isASCII && $0.isNumber }) {
-                state.report(Diagnostic(.error, "an id cannot consist only of digits", span: id.span), node: node)
+                state.report(Diagnostic(.error, "an id cannot consist only of digits", span: id.span, code: .numericID), node: node)
             } else {
                 elementKey = text
                 register(id: text, span: id.span, node: node, state: state)
@@ -468,7 +468,7 @@ enum IRBuilder {
     private static func register(id: String, span: SourceSpan, node: ExpandedNode, state: IRBuildState) {
         guard let surface = state.surfaceID else { return }
         if let first = state.ids[id] {
-            state.report(Diagnostic(.error, "duplicate id '\(id)' in surface '\(surface)'", span: span, notes: [DiagnosticNote("first used here", span: first)]), node: node)
+            state.report(Diagnostic(.error, "duplicate id '\(id)' in surface '\(surface)'", span: span, notes: [DiagnosticNote("first used here", span: first)], code: .duplicateID), node: node)
             return
         }
         state.ids[id] = span
@@ -490,26 +490,26 @@ enum IRBuilder {
             switch child.kdl.name {
             case "case":
                 if sawDefault {
-                    state.report(Diagnostic(.error, "'default' must be the last branch of 'switch'", span: child.kdl.span), node: child)
+                    state.report(Diagnostic(.error, "'default' must be the last branch of 'switch'", span: child.kdl.span, code: .switchShape), node: child)
                 }
                 let values = compileArguments(child, schema: [], scope: scope, state: state)
                 branches.cases.append((values, child.children))
             case "default":
                 if sawDefault {
-                    state.report(Diagnostic(.error, "'switch' has more than one 'default'", span: child.kdl.span), node: child)
+                    state.report(Diagnostic(.error, "'switch' has more than one 'default'", span: child.kdl.span, code: .switchShape), node: child)
                     continue
                 }
                 sawDefault = true
                 branches.otherwise = child.children
             default:
-                state.report(Diagnostic(.error, "'switch' can only contain 'case' and 'default'", span: child.kdl.span), node: child)
+                state.report(Diagnostic(.error, "'switch' can only contain 'case' and 'default'", span: child.kdl.span, code: .switchShape), node: child)
             }
         }
         return branches
     }
 
     private static func reportMisplacedBranch(_ node: ExpandedNode, state: IRBuildState) {
-        state.report(Diagnostic(.error, "'\(node.kdl.name)' is only allowed inside 'switch'", span: node.kdl.span), node: node)
+        state.report(Diagnostic(.error, "'\(node.kdl.name)' is only allowed inside 'switch'", span: node.kdl.span, code: .wrongPlace), node: node)
     }
 
     private static func entering(_ node: ExpandedNode, variable: String, scope: [LocalBinding]) -> ([LocalBinding], String, String?) {
@@ -564,19 +564,19 @@ enum IRBuilder {
             case "case", "default":
                 reportMisplacedBranch(node, state: state)
             case "use":
-                state.report(Diagnostic(.error, "a 'use' with an expression as name is not allowed in actions", span: node.kdl.span), node: node)
+                state.report(Diagnostic(.error, "a 'use' with an expression as name is not allowed in actions", span: node.kdl.span, code: .dynamicUsePlace), node: node)
             case "else":
                 continue
             default:
                 guard let schema = state.registry.action(node.kdl.name) else { continue }
                 if schema.startsProgramsOrControlsApps, case .pkg(let package) = node.origin {
-                    state.report(Diagnostic(.error, "package '\(package)' may not use '\(node.kdl.name)': it starts programs or controls apps", span: node.kdl.span), node: node)
+                    state.report(Diagnostic(.error, "package '\(package)' may not use '\(node.kdl.name)': it starts programs or controls apps", span: node.kdl.span, code: .packageStartsPrograms), node: node)
                     continue
                 }
                 var children: [ValueTemplate] = []
                 for child in node.children where !child.isExpansionMarker && schema.acceptsChildren {
                     guard child.kdl.name == "-" else {
-                        state.report(Diagnostic(.error, "children of '\(node.kdl.name)' must be '-' entries", span: child.kdl.span), node: child)
+                        state.report(Diagnostic(.error, "children of '\(node.kdl.name)' must be '-' entries", span: child.kdl.span, code: .listEntries), node: child)
                         break
                     }
                     children.append(valueTemplate(node: child, scope: scope, state: state))
@@ -697,7 +697,7 @@ enum IRBuilder {
             case "case", "default":
                 reportMisplacedBranch(node, state: state)
             case "use":
-                state.report(Diagnostic(.error, "a 'use' with an expression as name is not allowed in a menu", span: node.kdl.span), node: node)
+                state.report(Diagnostic(.error, "a 'use' with an expression as name is not allowed in a menu", span: node.kdl.span, code: .dynamicUsePlace), node: node)
             default:
                 continue
             }
@@ -728,7 +728,7 @@ enum IRBuilder {
                 node.children = []
             }
             if errorSuffixedSourceKinds.contains(node.kdl.name), let name = node.kdl.arguments.first, case .string(let text) = name.scalar, text.hasSuffix("-error") {
-                state.report(Diagnostic(.error, "'\(node.kdl.name)' name '\(text)' cannot end with '-error', that suffix is reserved for the load error field", span: name.span), node: node)
+                state.report(Diagnostic(.error, "'\(node.kdl.name)' name '\(text)' cannot end with '-error', that suffix is reserved for the load error field", span: name.span, code: .reservedSuffix), node: node)
             }
             let schema = state.registry.node(node.kdl.name) ?? SchemaStage.providerSettingsSchema(node.kdl.name, registry: state.registry)
             var compiled: [String: CompiledValue] = [:]

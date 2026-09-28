@@ -81,7 +81,7 @@ public enum LegacyImport {
             let existing = fileSystem.exists(stateURL) ? try fileSystem.read(stateURL) : ""
             try fileSystem.write(try VarStateFile.writing(result.state, into: existing, file: stateURL.path), to: stateURL)
         } catch {
-            result.diagnostics.append(Diagnostic(.error, "could not write the imported settings to '\(stateURL.path)'", span: .synthetic(stateURL.path)))
+            result.diagnostics.append(Diagnostic(.error, "could not write the imported settings to '\(stateURL.path)'", span: .synthetic(stateURL.path), code: .legacyImport))
         }
         if result.launcherOnly, let hotkey = result.state["hotkey-launcher"] {
             let launcherURL = launcherOnlyStateFile(paths)
@@ -89,7 +89,7 @@ public enum LegacyImport {
                 let existing = fileSystem.exists(launcherURL) ? try fileSystem.read(launcherURL) : ""
                 try fileSystem.write(try VarStateFile.writing(["hotkey-launcher": hotkey], into: existing, file: launcherURL.path), to: launcherURL)
             } catch {
-                result.diagnostics.append(Diagnostic(.error, "could not write the imported launcher shortcut to '\(launcherURL.path)'", span: .synthetic(launcherURL.path)))
+                result.diagnostics.append(Diagnostic(.error, "could not write the imported launcher shortcut to '\(launcherURL.path)'", span: .synthetic(launcherURL.path), code: .legacyImport))
             }
         }
         let settingsKDL = paths.settingsFile
@@ -116,7 +116,7 @@ public enum LegacyImport {
                 try fileSystem.write(text, to: settingsKDL)
             }
         } catch {
-            result.diagnostics.append(Diagnostic(.error, "could not write '\(settingsKDL.path)'", span: .synthetic(settingsKDL.path)))
+            result.diagnostics.append(Diagnostic(.error, "could not write '\(settingsKDL.path)'", span: .synthetic(settingsKDL.path), code: .legacyImport))
         }
         return result
     }
@@ -286,7 +286,7 @@ extension LegacyImport {
         }
 
         mutating func report(_ message: String) {
-            diagnostics.append(Diagnostic(.warning, "\((file as NSString).lastPathComponent): \(message)", span: .synthetic(file), help: "the default of the setting applies"))
+            diagnostics.append(Diagnostic(.warning, "\((file as NSString).lastPathComponent): \(message)", span: .synthetic(file), help: "the default of the setting applies", code: .legacyImport))
         }
 
         mutating func object(_ text: String) -> [String: Any]? {

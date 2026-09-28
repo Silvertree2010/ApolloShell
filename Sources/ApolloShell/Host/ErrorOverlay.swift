@@ -116,6 +116,9 @@ struct ErrorOverlayView: View {
                 if let location = ErrorOverlayModel.location(diagnostic) {
                     Text(location).font(.caption.monospaced()).foregroundStyle(.secondary)
                 }
+                if let code = diagnostic.code {
+                    Text(code.rawValue).font(.caption.monospaced()).foregroundStyle(.secondary)
+                }
             }
             Text(diagnostic.message).font(.callout)
             if let help = diagnostic.help {

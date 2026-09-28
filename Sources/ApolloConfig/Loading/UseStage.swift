@@ -136,18 +136,18 @@ enum UseStage {
     private static func collectDefinition(_ node: ExpandedNode, state: UseExpansionState) {
         let kdl = node.kdl
         guard kdl.arguments.count == 1, case .string(let name) = kdl.arguments[0].scalar else {
-            state.report(Diagnostic(.error, "'define' needs exactly one name", span: kdl.span), at: node, frame: nil)
+            state.report(Diagnostic(.error, "'define' needs exactly one name", span: kdl.span, code: .badName), at: node, frame: nil)
             return
         }
         guard isValidDefineName(name) else {
-            state.report(Diagnostic(.error, "invalid define name '\(name)'", span: kdl.arguments[0].span, help: "use kebab-case, optionally with a package prefix like 'package-id/name'"), at: node, frame: nil)
+            state.report(Diagnostic(.error, "invalid define name '\(name)'", span: kdl.arguments[0].span, help: "use kebab-case, optionally with a package prefix like 'package-id/name'", code: .badName), at: node, frame: nil)
             return
         }
         for property in kdl.properties where property.name != "override" {
             reportUnknownProperty(property, on: "define", known: ["override"], node: node, state: state)
         }
         if case .pkg(let packageID) = node.origin, !name.hasPrefix(packageID + "/") {
-            state.report(Diagnostic(.warning, "define '\(name)' in package '\(packageID)' should be named '\(packageID)/\(name)'", span: kdl.arguments[0].span), at: node, frame: nil)
+            state.report(Diagnostic(.warning, "define '\(name)' in package '\(packageID)' should be named '\(packageID)/\(name)'", span: kdl.arguments[0].span, code: .packageDefineName), at: node, frame: nil)
         }
         var parameters: [ParameterDecl] = []
         var rawBody: [ExpandedNode] = []
@@ -180,44 +180,44 @@ enum UseStage {
     private static func parameter(from node: ExpandedNode, existing: [ParameterDecl], state: UseExpansionState) -> ParameterDecl? {
         let kdl = node.kdl
         guard kdl.arguments.count == 1, case .string(let name) = kdl.arguments[0].scalar else {
-            state.report(Diagnostic(.error, "'param' needs exactly one name", span: kdl.span), at: node, frame: nil)
+            state.report(Diagnostic(.error, "'param' needs exactly one name", span: kdl.span, code: .badName), at: node, frame: nil)
             return nil
         }
         let nameSpan = kdl.arguments[0].span
         guard isValidLocalName(name) else {
-            state.report(Diagnostic(.error, "invalid parameter name '\(name)'", span: nameSpan, help: "names are lowercase kebab-case"), at: node, frame: nil)
+            state.report(Diagnostic(.error, "invalid parameter name '\(name)'", span: nameSpan, help: "names are lowercase kebab-case", code: .badName), at: node, frame: nil)
             return nil
         }
         if ["true", "false", "null"].contains(name) {
-            state.report(Diagnostic(.error, "'\(name)' is a keyword", span: nameSpan), at: node, frame: nil)
+            state.report(Diagnostic(.error, "'\(name)' is a keyword", span: nameSpan, code: .reservedName), at: node, frame: nil)
             return nil
         }
         if state.registry.fixedRoots.contains(name) || state.registry.providers[name] != nil {
-            state.report(Diagnostic(.error, "'\(name)' is reserved", span: nameSpan), at: node, frame: nil)
+            state.report(Diagnostic(.error, "'\(name)' is reserved", span: nameSpan, code: .reservedName), at: node, frame: nil)
         } else if state.registry.reservedProviderNames.contains(name) {
-            state.report(Diagnostic(.note, "'\(name)' hides provider '\(name)'", span: nameSpan), at: node, frame: nil)
+            state.report(Diagnostic(.note, "'\(name)' hides provider '\(name)'", span: nameSpan, code: .hidesProvider), at: node, frame: nil)
         }
         if existing.contains(where: { $0.name == name }) {
-            state.report(Diagnostic(.error, "duplicate parameter '\(name)'", span: nameSpan), at: node, frame: nil)
+            state.report(Diagnostic(.error, "duplicate parameter '\(name)'", span: nameSpan, code: .duplicateParameter), at: node, frame: nil)
             return nil
         }
         for property in kdl.properties where !parameterProperties.contains(property.name) {
             reportUnknownProperty(property, on: "param", known: parameterProperties, node: node, state: state)
         }
         if !node.children.isEmpty {
-            state.report(Diagnostic(.error, "'param' cannot have children", span: kdl.span), at: node, frame: nil)
+            state.report(Diagnostic(.error, "'param' cannot have children", span: kdl.span, code: .noChildren), at: node, frame: nil)
         }
         var type = ValueType.any
         if let typeProperty = kdl.property("type") {
             if case .string(let text) = typeProperty.value.scalar, let parsed = parseType(text) {
                 type = parsed
             } else {
-                state.report(Diagnostic(.error, "'type=' must be one of string, number, bool, list, record, any", span: typeProperty.span), at: node, frame: nil)
+                state.report(Diagnostic(.error, "'type=' must be one of string, number, bool, list, record, any", span: typeProperty.span, code: .unknownType), at: node, frame: nil)
             }
         }
         let defaultValue = kdl.property("default")?.value
         if let defaultValue, !literal(defaultValue, matches: type) {
-            state.report(Diagnostic(.error, "default of parameter '\(name)' does not match type \(typeName(type))", span: defaultValue.span), at: node, frame: nil)
+            state.report(Diagnostic(.error, "default of parameter '\(name)' does not match type \(typeName(type))", span: defaultValue.span, code: .parameterDefault), at: node, frame: nil)
         }
         return ParameterDecl(name: name, type: type, defaultValue: defaultValue, span: kdl.span)
     }
@@ -244,13 +244,13 @@ enum UseStage {
         let kdl = node.kdl
         let hasValidName = kdl.arguments.isEmpty || (kdl.arguments.count == 1 && isValidSlotName(kdl.arguments[0]))
         if !hasValidName {
-            state.report(Diagnostic(.error, "'slot' takes at most one name", span: kdl.span), at: node, frame: nil)
+            state.report(Diagnostic(.error, "'slot' takes at most one name", span: kdl.span, code: .badName), at: node, frame: nil)
         }
         for property in kdl.properties {
             reportUnknownProperty(property, on: "slot", known: [], node: node, state: state)
         }
         if !node.children.isEmpty {
-            state.report(Diagnostic(.error, "'slot' cannot have children", span: kdl.span), at: node, frame: nil)
+            state.report(Diagnostic(.error, "'slot' cannot have children", span: kdl.span, code: .noChildren), at: node, frame: nil)
         }
     }
 
@@ -281,11 +281,11 @@ enum UseStage {
             switch node.kdl.name {
             case "define":
                 if context.isTopLevel { continue }
-                reportUnlessQuiet(Diagnostic(.error, "'define' is only allowed at the top level", span: node.kdl.span), at: node, context: context, state: state)
+                reportUnlessQuiet(Diagnostic(.error, "'define' is only allowed at the top level", span: node.kdl.span, code: .wrongPlace), at: node, context: context, state: state)
             case "param":
-                reportUnlessQuiet(Diagnostic(.error, "'param' is only allowed directly inside 'define'", span: node.kdl.span), at: node, context: context, state: state)
+                reportUnlessQuiet(Diagnostic(.error, "'param' is only allowed directly inside 'define'", span: node.kdl.span, code: .wrongPlace), at: node, context: context, state: state)
             case "fill" where !context.allowsFill:
-                reportUnlessQuiet(Diagnostic(.error, "'fill' is only allowed directly inside 'use'", span: node.kdl.span), at: node, context: context, state: state)
+                reportUnlessQuiet(Diagnostic(.error, "'fill' is only allowed directly inside 'use'", span: node.kdl.span, code: .wrongPlace), at: node, context: context, state: state)
             case "slot":
                 insertSlot(node, context: context, state: state, into: &built)
             case "use":
@@ -310,7 +310,7 @@ enum UseStage {
     private static func insertSlot(_ node: ExpandedNode, context: ExpansionContext, state: UseExpansionState, into built: inout Built) {
         switch context.slots {
         case .notAllowed:
-            reportUnlessQuiet(Diagnostic(.error, "'slot' is only allowed inside 'define'", span: node.kdl.span), at: node, context: context, state: state)
+            reportUnlessQuiet(Diagnostic(.error, "'slot' is only allowed inside 'define'", span: node.kdl.span, code: .wrongPlace), at: node, context: context, state: state)
         case .placeholder:
             guard countNode(node, frame: context.frame, state: state) else { return }
             var copy = node
@@ -336,7 +336,7 @@ enum UseStage {
     private static func expandUse(_ node: ExpandedNode, context: ExpansionContext, state: UseExpansionState, into built: inout Built) {
         let kdl = node.kdl
         guard kdl.arguments.count == 1, case .string(let name) = kdl.arguments[0].scalar else {
-            reportUnlessQuiet(Diagnostic(.error, "'use' needs exactly one define name", span: kdl.span), at: node, context: context, state: state)
+            reportUnlessQuiet(Diagnostic(.error, "'use' needs exactly one define name", span: kdl.span, code: .badName), at: node, context: context, state: state)
             return
         }
         if name.utf8.contains(UInt8(ascii: "{")) {
@@ -345,7 +345,7 @@ enum UseStage {
         }
         guard let definition = state.definitions[name] else {
             let suggestion = Suggestion.closest(to: name, among: state.order)
-            reportUnlessQuiet(Diagnostic(.error, "unknown define '\(name)'", span: kdl.arguments[0].span, help: suggestion.map { "did you mean '\($0)'?" }), at: node, context: context, state: state)
+            reportUnlessQuiet(Diagnostic(.error, "unknown define '\(name)'", span: kdl.arguments[0].span, help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownDefine), at: node, context: context, state: state)
             return
         }
         if let frame = context.frame {
@@ -356,14 +356,14 @@ enum UseStage {
                 let key = Array(Set(cycle)).sorted()
                 if !state.reportedCycles.contains(key) {
                     state.reportedCycles.insert(key)
-                    state.report(Diagnostic(.error, "use cycle: \(cycle.joined(separator: " -> "))", span: kdl.span), at: node, frame: frame)
+                    state.report(Diagnostic(.error, "use cycle: \(cycle.joined(separator: " -> "))", span: kdl.span, code: .useCycle), at: node, frame: frame)
                 }
                 return
             }
             if frame.nesting >= ConfigLimits.maxExpandedDepth {
                 if !state.nestingHit {
                     state.nestingHit = true
-                    state.report(Diagnostic(.error, "use is nested deeper than \(ConfigLimits.maxExpandedDepth) levels", span: kdl.span), at: node, frame: frame)
+                    state.report(Diagnostic(.error, "use is nested deeper than \(ConfigLimits.maxExpandedDepth) levels", span: kdl.span, code: .expansionLimit), at: node, frame: frame)
                 }
                 return
             }
@@ -377,12 +377,12 @@ enum UseStage {
             guard let parameter = declaration.parameters.first(where: { $0.name == property.name }) else {
                 hasErrors = true
                 let suggestion = Suggestion.closest(to: property.name, among: parameterNames)
-                reportUnlessQuiet(Diagnostic(.error, "unknown parameter '\(property.name)' for '\(name)'", span: property.span, help: suggestion.map { "did you mean '\($0)'?" }), at: node, context: context, state: state)
+                reportUnlessQuiet(Diagnostic(.error, "unknown parameter '\(property.name)' for '\(name)'", span: property.span, help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownParameter), at: node, context: context, state: state)
                 continue
             }
             if !literal(property.value, matches: parameter.type) {
                 hasErrors = true
-                reportUnlessQuiet(Diagnostic(.error, "parameter '\(parameter.name)' of '\(name)' expects \(typeName(parameter.type))", span: property.value.span), at: node, context: context, state: state)
+                reportUnlessQuiet(Diagnostic(.error, "parameter '\(parameter.name)' of '\(name)' expects \(typeName(parameter.type))", span: property.value.span, code: .parameterType), at: node, context: context, state: state)
             }
             bindings[parameter.name] = .argument(property.value)
         }
@@ -391,7 +391,7 @@ enum UseStage {
                 bindings[parameter.name] = .defaultValue(defaultValue)
             } else {
                 hasErrors = true
-                reportUnlessQuiet(Diagnostic(.error, "missing parameter '\(parameter.name)' for '\(name)'", span: kdl.span), at: node, context: context, state: state)
+                reportUnlessQuiet(Diagnostic(.error, "missing parameter '\(parameter.name)' for '\(name)'", span: kdl.span, code: .missingParameter), at: node, context: context, state: state)
             }
         }
         var fills: [(String, ExpandedNode)] = []
@@ -403,25 +403,25 @@ enum UseStage {
             }
             guard let slot = slotName(child), child.kdl.arguments.count == 1 else {
                 hasErrors = true
-                reportUnlessQuiet(Diagnostic(.error, "'fill' needs exactly one slot name", span: child.kdl.span), at: child, context: context, state: state)
+                reportUnlessQuiet(Diagnostic(.error, "'fill' needs exactly one slot name", span: child.kdl.span, code: .badName), at: child, context: context, state: state)
                 continue
             }
             if !declaration.namedSlots.contains(slot) {
                 hasErrors = true
                 let suggestion = Suggestion.closest(to: slot, among: declaration.namedSlots)
-                reportUnlessQuiet(Diagnostic(.error, "'\(name)' has no slot '\(slot)'", span: child.kdl.arguments[0].span, help: suggestion.map { "did you mean '\($0)'?" }), at: child, context: context, state: state)
+                reportUnlessQuiet(Diagnostic(.error, "'\(name)' has no slot '\(slot)'", span: child.kdl.arguments[0].span, help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownSlot), at: child, context: context, state: state)
                 continue
             }
             if fills.contains(where: { $0.0 == slot }) {
                 hasErrors = true
-                reportUnlessQuiet(Diagnostic(.error, "duplicate fill '\(slot)'", span: child.kdl.span), at: child, context: context, state: state)
+                reportUnlessQuiet(Diagnostic(.error, "duplicate fill '\(slot)'", span: child.kdl.span, code: .duplicateFill), at: child, context: context, state: state)
                 continue
             }
             fills.append((slot, child))
         }
         if let first = unnamed.first, !declaration.hasUnnamedSlot {
             hasErrors = true
-            reportUnlessQuiet(Diagnostic(.error, "'\(name)' has no slot, so 'use' cannot have children", span: first.kdl.span), at: first, context: context, state: state)
+            reportUnlessQuiet(Diagnostic(.error, "'\(name)' has no slot, so 'use' cannot have children", span: first.kdl.span, code: .unknownSlot), at: first, context: context, state: state)
         }
         var contentContext = context
         contentContext.isTopLevel = false
@@ -481,7 +481,7 @@ enum UseStage {
         guard state.nodeCount + amount <= ConfigLimits.maxExpansionBudget else {
             state.nodeCount = ConfigLimits.maxExpansionBudget + 1
             state.budgetHit = true
-            state.report(Diagnostic(.error, "config expands to more than \(ConfigLimits.maxExpansionBudget) nodes", span: node.kdl.span), at: node, frame: frame)
+            state.report(Diagnostic(.error, "config expands to more than \(ConfigLimits.maxExpansionBudget) nodes", span: node.kdl.span, code: .expansionLimit), at: node, frame: frame)
             return false
         }
         state.nodeCount += amount
@@ -491,7 +491,7 @@ enum UseStage {
     private static func reportDepth(at node: ExpandedNode, frame: UseFrame?, state: UseExpansionState) {
         guard !state.depthHit else { return }
         state.depthHit = true
-        state.report(Diagnostic(.error, "config is nested deeper than \(ConfigLimits.maxExpandedDepth) levels after use", span: node.kdl.span), at: node, frame: frame)
+        state.report(Diagnostic(.error, "config is nested deeper than \(ConfigLimits.maxExpandedDepth) levels after use", span: node.kdl.span, code: .expansionLimit), at: node, frame: frame)
     }
 
     private static func reportUnlessQuiet(_ diagnostic: Diagnostic, at node: ExpandedNode, context: ExpansionContext, state: UseExpansionState) {
@@ -501,7 +501,7 @@ enum UseStage {
 
     private static func reportUnknownProperty(_ property: KDLProperty, on nodeName: String, known: [String], node: ExpandedNode, state: UseExpansionState) {
         let suggestion = Suggestion.closest(to: property.name, among: known)
-        state.report(Diagnostic(.error, "unknown property '\(property.name)' on '\(nodeName)'", span: property.span, help: suggestion.map { "did you mean '\($0)'?" }), at: node, frame: nil)
+        state.report(Diagnostic(.error, "unknown property '\(property.name)' on '\(nodeName)'", span: property.span, help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownProperty), at: node, frame: nil)
     }
 
     private static func literal(_ value: KDLValue, matches type: ValueType) -> Bool {

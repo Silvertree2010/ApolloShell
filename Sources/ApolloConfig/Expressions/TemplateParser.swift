@@ -22,7 +22,8 @@ extension ExpressionParser {
                     .error,
                     "unmatched '}'",
                     span: mapper.span(from: index, to: index + 1),
-                    help: "write '}}' for a literal brace"
+                    help: "write '}}' for a literal brace",
+                    code: .expressionSyntax
                 ))
             } else if character == "{" {
                 let close: Int
@@ -38,7 +39,8 @@ extension ExpressionParser {
                         .error,
                         "empty expression",
                         span: mapper.span(from: index, to: close + 1),
-                        help: "write '{{}}' for literal braces"
+                        help: "write '{{}}' for literal braces",
+                        code: .expressionSyntax
                     ))
                 }
                 switch parse(inner, mapper: mapper.shifted(to: index + 1)) {

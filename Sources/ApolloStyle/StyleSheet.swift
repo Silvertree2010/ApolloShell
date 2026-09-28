@@ -76,7 +76,7 @@ struct DiagnosticLog {
         guard dropped > 0 else { return kept }
         let shown = Array(kept.prefix(limit - 1))
         let hidden = kept.count - shown.count + dropped
-        return shown + [Diagnostic(.note, "\(hidden) more problems are not shown", span: kept.last?.span)]
+        return shown + [Diagnostic(.note, "\(hidden) more problems are not shown", span: kept.last?.span, code: .moreHidden)]
     }
 }
 
@@ -118,19 +118,19 @@ public struct StyleSheet: Sendable, Hashable {
         guard bytes <= maximumBytes else {
             let start = SourcePosition(offset: 0, line: 1, column: 1)
             let diagnostic = Diagnostic(.error, "style sheet is \(bytes) bytes, the limit is \(maximumBytes); it is not used",
-                                        span: SourceSpan(file: file, start: start, end: start))
+                                        span: SourceSpan(file: file, start: start, end: start), code: .styleTooLarge)
             return (sheet, [diagnostic])
         }
         var parser = StyleSheetParser(file: file, context: CSSParseContext(assetRoot: assetRoot))
         let (tokens, problems) = CSSTokenizer.tokenize(text)
         for problem in problems {
             parser.log.add(Diagnostic(.warning, problem.message,
-                                      span: SourceSpan(file: file, start: problem.position, end: problem.position)))
+                                      span: SourceSpan(file: file, start: problem.position, end: problem.position), code: .styleSyntax))
         }
         if let excess = CSSNestingGuard.firstExcess(tokens) {
             parser.log.add(Diagnostic(.warning,
                 "nesting is deeper than \(CSSComponentParser.maximumNestingDepth) levels; the deeper parts are read as flat text",
-                span: SourceSpan(file: file, start: excess, end: excess)))
+                span: SourceSpan(file: file, start: excess, end: excess), code: .styleNesting))
         }
         parser.ruleList(CSSComponentParser.parse(tokens), media: [])
         sheet.rules = parser.rules
@@ -173,12 +173,12 @@ struct StyleSheetParser {
         var parser = StyleSheetParser(file: span.file, context: context)
         parser.fixedSpan = span
         let (tokens, problems) = CSSTokenizer.tokenize(text)
-        for problem in problems { parser.log.add(Diagnostic(.warning, problem.message, span: span)) }
+        for problem in problems { parser.log.add(Diagnostic(.warning, problem.message, span: span, code: .styleSyntax)) }
         if let excess = CSSNestingGuard.firstExcess(tokens) {
             _ = excess
             parser.log.add(Diagnostic(.warning,
                 "nesting is deeper than \(CSSComponentParser.maximumNestingDepth) levels; the deeper parts are read as flat text",
-                span: span))
+                span: span, code: .styleNesting))
         }
         let declarations = parser.declarationList(CSSComponentParser.parse(tokens))
         return (declarations, parser.log.finished())
@@ -195,7 +195,7 @@ struct StyleSheetParser {
     }
 
     mutating func warn(_ message: String, _ components: [CSSComponent], help: String? = nil) {
-        log.add(Diagnostic(.warning, message, span: span(components), help: help))
+        log.add(Diagnostic(.warning, message, span: span(components), help: help, code: .styleValue))
     }
 
     mutating func ruleList(_ components: [CSSComponent], media: [MediaCondition]) {

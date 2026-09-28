@@ -44,7 +44,7 @@ public enum BuiltinSurfaces {
         guard let ir = result.ir, marketplaceEnabled(ir) else { return result }
         let loaded = builtin()
         guard let builtinIR = loaded.ir else {
-            let notes = loaded.diagnostics.map { Diagnostic(.warning, "built-in Marketplace did not load: \($0.message)", span: $0.span) }
+            let notes = loaded.diagnostics.map { Diagnostic(.warning, "built-in Marketplace did not load: \($0.message)", span: $0.span, code: .builtinMarketplace) }
             return ConfigLoadResult(ir: ir, diagnostics: result.diagnostics + notes, files: result.files)
         }
         return ConfigLoadResult(ir: merge(builtinIR, into: ir), diagnostics: result.diagnostics, files: result.files)

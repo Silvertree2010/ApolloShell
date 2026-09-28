@@ -89,7 +89,7 @@ enum ExpressionCompiler {
                 return (CompiledValueBuilder.literal(.string(text), span: kdlValue.span), diagnostics)
             }
             if !allowsExpression {
-                diagnostics.append(Diagnostic(.error, "no expression allowed here", span: kdlValue.span))
+                diagnostics.append(Diagnostic(.error, "no expression allowed here", span: kdlValue.span, code: .expressionNotAllowed))
                 return (CompiledValueBuilder.literal(.string(text), span: kdlValue.span), diagnostics)
             }
             switch env.templates?.template(text, span: kdlValue.span) ?? ExpressionParser.parseTemplate(text, span: kdlValue.span) {
@@ -104,7 +104,7 @@ enum ExpressionCompiler {
                 var overflowed = false
                 let expanded = UserFilterExpansion.apply(template, filters: userFilters, overflowed: &overflowed)
                 if overflowed {
-                    diagnostics.append(Diagnostic(.error, "this expression grows past \(UserFilterExpansion.maximumNodes) parts once its filters are expanded", span: kdlValue.span))
+                    diagnostics.append(Diagnostic(.error, "this expression grows past \(UserFilterExpansion.maximumNodes) parts once its filters are expanded", span: kdlValue.span, code: .expressionTooLarge))
                     return (CompiledValueBuilder.literal(.null, span: kdlValue.span), diagnostics)
                 }
                 guard validates else {
@@ -204,23 +204,23 @@ private struct ExpressionValidator {
         if env.locals.contains(root) || root == "var" { return }
         if let provider = env.registry.providers[root] {
             if provider.stability == .experimental {
-                diagnostics.append(Diagnostic(.note, "'\(root)' is experimental and may change", span: rootSpan(root, visit: visit)))
+                diagnostics.append(Diagnostic(.note, "'\(root)' is experimental and may change", span: rootSpan(root, visit: visit), code: .experimental))
             }
             return
         }
         if let contextRoot = env.registry.contextRoots[root] {
             if !contextRoot.validIn.contains(env.context.rawValue) {
-                diagnostics.append(Diagnostic(.error, "'\(root)' is not valid here", span: rootSpan(root, visit: visit)))
+                diagnostics.append(Diagnostic(.error, "'\(root)' is not valid here", span: rootSpan(root, visit: visit), code: .unknownRoot))
             }
             return
         }
         if env.registry.reservedProviderNames.contains(root) {
-            diagnostics.append(Diagnostic(.error, "unknown root '\(root)'", span: rootSpan(root, visit: visit), help: "'\(root)' will be a provider in a later version"))
+            diagnostics.append(Diagnostic(.error, "unknown root '\(root)'", span: rootSpan(root, visit: visit), help: "'\(root)' will be a provider in a later version", code: .unknownRoot))
             return
         }
         let candidates = Array(env.locals) + Array(env.registry.providers.keys) + Array(env.registry.contextRoots.keys) + ["var"]
         let suggestion = Suggestion.closest(to: root, among: candidates)
-        diagnostics.append(Diagnostic(.error, "unknown root '\(root)'", span: rootSpan(root, visit: visit), help: suggestion.map { "did you mean '\($0)'?" }))
+        diagnostics.append(Diagnostic(.error, "unknown root '\(root)'", span: rootSpan(root, visit: visit), help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownRoot))
     }
 
     static let rootsKeyedById: Set<String> = ["surfaces"]
@@ -237,7 +237,7 @@ private struct ExpressionValidator {
         if root == "var", let declared = env.declaredVars {
             guard !declared.contains(first) else { return }
             let suggestion = Suggestion.closest(to: first, among: Array(declared))
-            diagnostics.append(Diagnostic(.warning, "unknown var '\(first)'", span: fieldSpan(root, visit: visit, position: position), help: suggestion.map { "did you mean '\($0)'?" }))
+            diagnostics.append(Diagnostic(.warning, "unknown var '\(first)'", span: fieldSpan(root, visit: visit, position: position), help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownVar))
             return
         }
         let fields: [FieldSchema]
@@ -252,35 +252,35 @@ private struct ExpressionValidator {
         let names = Set(fields.map { $0.path[0] })
         if names.contains(first) { return }
         let suggestion = Suggestion.closest(to: first, among: Array(names))
-        diagnostics.append(Diagnostic(.error, "unknown field '\(first)' on '\(root)'", span: fieldSpan(root, visit: visit, position: position), help: suggestion.map { "did you mean '\($0)'?" }))
+        diagnostics.append(Diagnostic(.error, "unknown field '\(first)' on '\(root)'", span: fieldSpan(root, visit: visit, position: position), help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownField))
     }
 
     private mutating func validate(_ call: FilterCall) {
         call.arguments.forEach { validate($0) }
         if call.name == "lua" {
-            diagnostics.append(Diagnostic(.error, "Lua scripting comes in a later version", span: call.span))
+            diagnostics.append(Diagnostic(.error, "Lua scripting comes in a later version", span: call.span, code: .luaReserved))
             return
         }
         if let filter = userFilters[call.name] {
             if call.arguments.count != filter.parameters.count {
                 let count = filter.parameters.count
-                diagnostics.append(Diagnostic(.error, "'\(call.name)' expects \(count) argument\(count == 1 ? "" : "s")", span: call.span))
+                diagnostics.append(Diagnostic(.error, "'\(call.name)' expects \(count) argument\(count == 1 ? "" : "s")", span: call.span, code: .filterArguments))
             }
             return
         }
         guard let schema = env.registry.filters[call.name] else {
             let suggestion = Suggestion.closest(to: call.name, among: Array(env.registry.filters.keys) + Array(userFilters.keys))
-            diagnostics.append(Diagnostic(.error, "unknown filter '\(call.name)'", span: call.span, help: suggestion.map { "did you mean '\($0)'?" }))
+            diagnostics.append(Diagnostic(.error, "unknown filter '\(call.name)'", span: call.span, help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownFilter))
             return
         }
         if schema.stability == .experimental {
-            diagnostics.append(Diagnostic(.note, "'\(call.name)' is experimental and may change", span: call.span))
+            diagnostics.append(Diagnostic(.note, "'\(call.name)' is experimental and may change", span: call.span, code: .experimental))
         }
         let minimum = schema.arguments.filter(\.required).count
         let maximum = schema.arguments.count
         if call.arguments.count < minimum || call.arguments.count > maximum {
             let phrase = minimum == maximum ? "\(minimum) argument\(minimum == 1 ? "" : "s")" : "\(minimum) to \(maximum) arguments"
-            diagnostics.append(Diagnostic(.error, "'\(call.name)' expects \(phrase)", span: call.span))
+            diagnostics.append(Diagnostic(.error, "'\(call.name)' expects \(phrase)", span: call.span, code: .filterArguments))
         }
     }
 }

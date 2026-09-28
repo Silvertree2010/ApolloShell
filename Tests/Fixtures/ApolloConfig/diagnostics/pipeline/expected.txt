@@ -1,23 +1,23 @@
-<fixtures>/pipeline/shell.kdl:4:12: error: duplicate id 'clock' in surface 'bar'
+<fixtures>/pipeline/shell.kdl:4:12: error[A507]: duplicate id 'clock' in surface 'bar'
     4 |     row id="clock" {
       |            ^^^^^^^
       = note: first used here (<fixtures>/pipeline/shell.kdl:3:17)
 
-<fixtures>/pipeline/shell.kdl:11:9: error: 'default' must be the last branch of 'switch'
+<fixtures>/pipeline/shell.kdl:11:9: error[A508]: 'default' must be the last branch of 'switch'
    11 |         case "a" {
       |         ^^^^^^^^^^
 
-<fixtures>/pipeline/shell.kdl:15:5: error: unknown node 'buton'
+<fixtures>/pipeline/shell.kdl:15:5: error[A201]: unknown node 'buton'
    15 |     buton {
       |     ^^^^^^^
       = help: did you mean 'button'?
 
-<fixtures>/pipeline/widgets.kdl:2:34: error: unknown field 'dokc' on 'apps'
+<fixtures>/pipeline/widgets.kdl:2:34: error[A405]: unknown field 'dokc' on 'apps'
     2 |     param "title" default="{apps.dokc}"
       |                                  ^^^^
       = help: did you mean 'dock'?
       = note: included from <fixtures>/pipeline/shell.kdl:1:1 (<fixtures>/pipeline/shell.kdl:1:1)
 
-<fixtures>/pipeline/shell.kdl:18:1: warning: override=#true on surface 'extra' without a previous definition
+<fixtures>/pipeline/shell.kdl:18:1: warning[A502]: override=#true on surface 'extra' without a previous definition
    18 | panel "extra" override=#true {
       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

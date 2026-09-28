@@ -42,7 +42,8 @@ public enum DiagnosticFormatter {
     }
 
     static func header(_ diagnostic: Diagnostic) -> String {
-        let text = diagnostic.severity.label + ": " + diagnostic.message
+        let label = diagnostic.code.map { diagnostic.severity.label + "[" + $0.rawValue + "]" } ?? diagnostic.severity.label
+        let text = label + ": " + diagnostic.message
         guard let span = diagnostic.span else { return text }
         return location(span) + ": " + text
     }

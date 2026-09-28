@@ -73,7 +73,7 @@ public struct Evaluator: Sendable {
     }
 
     func report(_ message: String, span: SourceSpan?) {
-        let diagnostic = Diagnostic(.warning, message, span: span)
+        let diagnostic = Diagnostic(.warning, message, span: span, code: .evaluation)
         if gate.admit(diagnostic) {
             warn(diagnostic)
         }
