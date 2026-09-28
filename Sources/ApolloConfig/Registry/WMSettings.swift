@@ -107,7 +107,7 @@ enum WMSettings {
             name: "terminal",
             category: .wmSetting,
             feature: "wm",
-            arguments: [ArgumentSchema(name: "bundleIDs", type: .string, variadic: true, allowsExpression: false, doc: "Bundle IDs, the first installed one wins.")],
+            arguments: [ArgumentSchema(name: "bundle-ids", type: .string, variadic: true, allowsExpression: false, doc: "Bundle IDs, the first installed one wins.")],
             contexts: [.wmBlock],
             doc: "Selects the terminal for wm.terminal.",
             example: "terminal \"com.mitchellh.ghostty\" \"com.apple.Terminal\""

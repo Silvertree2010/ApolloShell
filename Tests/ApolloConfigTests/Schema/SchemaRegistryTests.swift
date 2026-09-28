@@ -119,6 +119,20 @@ struct SchemaRegistryTests {
         }
     }
 
+    @Test("jedes Argument und jede Property von Knoten und Aktionen ist kebab-case")
+    func argumentAndPropertyNamesAreKebabCase() {
+        let nodeNames = BuiltinSchemaRegistry.allNodes.flatMap { node in
+            node.arguments.map { "\(node.name) \($0.name)" } + node.properties.map { "\(node.name) \($0.name)" }
+        }
+        let actionNames = BuiltinSchemaRegistry.allActions.flatMap { action in
+            action.arguments.map { "\(action.name) \($0.name)" } + action.properties.map { "\(action.name) \($0.name)" }
+        }
+        for entry in nodeNames + actionNames {
+            let name = String(entry.split(separator: " ").last!)
+            #expect(Self.isKebabCase(name), "\(entry) is not kebab-case")
+        }
+    }
+
     @Test("jede Property hat Typ und Vorgabe oder ist required")
     func propertiesHaveTypeAndDefaultOrRequired() {
         for node in BuiltinSchemaRegistry.allNodes {

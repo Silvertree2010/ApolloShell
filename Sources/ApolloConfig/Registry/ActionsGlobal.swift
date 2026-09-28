@@ -28,11 +28,11 @@ enum ActionsGlobal {
             PropertySchema(name: "to", type: .number, defaultValue: .null, doc: "Target position."),
             PropertySchema(name: "key", type: .value, defaultValue: .null, doc: "Key instead of from."),
         ], doc: "Moves an entry within a var list."),
-        ActionSchema(name: "list.move-to", arguments: [S.arg("fromVariable", .identifier, doc: "Source list."), S.arg("toVariable", .identifier, doc: "Target list.")], properties: [
+        ActionSchema(name: "list.move-to", arguments: [S.arg("from-variable", .identifier, doc: "Source list."), S.arg("to-variable", .identifier, doc: "Target list.")], properties: [
             PropertySchema(name: "from", type: .number, defaultValue: .null, doc: "Source position."),
             PropertySchema(name: "to", type: .number, defaultValue: .null, doc: "Target position."),
         ], doc: "Moves an entry between two var lists."),
-        ActionSchema(name: "list.swap", arguments: [S.arg("variable", .identifier, doc: "First var list."), S.arg("index", .number, doc: "Position."), S.arg("otherVariable", .identifier, doc: "Second var list."), S.arg("otherIndex", .number, doc: "Position.")], doc: "Swaps two entries."),
+        ActionSchema(name: "list.swap", arguments: [S.arg("variable", .identifier, doc: "First var list."), S.arg("index", .number, doc: "Position."), S.arg("other-variable", .identifier, doc: "Second var list."), S.arg("other-index", .number, doc: "Position.")], doc: "Swaps two entries."),
         ActionSchema(name: "list.update", arguments: [S.arg("variable", .identifier, doc: "Name of the var list.")], properties: [
             PropertySchema(name: "at", type: .number, defaultValue: .null, doc: "Position."),
             PropertySchema(name: "key", type: .value, defaultValue: .null, doc: "Key instead of at."),
@@ -43,7 +43,7 @@ enum ActionsGlobal {
         ActionSchema(name: "wait", arguments: [S.arg("duration", .duration, doc: "Wait time, at most 10s.")], waits: true, doc: "Waits before the next action runs."),
         ActionSchema(name: "repeat", arguments: [S.arg("count", .number, doc: "Repetitions, at most 100.")], acceptsChildren: true, doc: "Runs the children several times."),
         ActionSchema(name: "exec", arguments: [ArgumentSchema(name: "command", type: .string, shellQuoted: true, doc: "Command run via /bin/sh -c; each {…} is inserted as one quoted word.")], properties: [PropertySchema(name: "timeout", type: .duration, defaultValue: .string("30s"), allowsExpression: false, doc: "Timeout.")], startsProgramsOrControlsApps: true, doc: "Starts any program."),
-        ActionSchema(name: "open-app", arguments: [S.arg("bundleID", .string, doc: "Bundle ID.")], startsProgramsOrControlsApps: true, doc: "Launches an app or brings it to the front."),
+        ActionSchema(name: "open-app", arguments: [S.arg("bundle-id", .string, doc: "Bundle ID.")], startsProgramsOrControlsApps: true, doc: "Launches an app or brings it to the front."),
         ActionSchema(name: "open-url", arguments: [S.arg("url", .string, doc: "URL.")], startsProgramsOrControlsApps: true, doc: "Opens a URL."),
         ActionSchema(name: "open-file", arguments: [S.arg("path", .path, doc: "Path.")], properties: [PropertySchema(name: "app", type: .string, defaultValue: .null, doc: "Specific app.")], startsProgramsOrControlsApps: true, doc: "Opens a file."),
         ActionSchema(name: "reveal-file", arguments: [S.arg("path", .path, doc: "Path.")], doc: "Reveals a file in Finder."),

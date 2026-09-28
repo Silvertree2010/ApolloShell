@@ -1309,7 +1309,7 @@ Selects the terminal for wm.terminal.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `bundleIDs`... | string | required | Bundle IDs, the first installed one wins. |
+| argument | `bundle-ids`... | string | required | Bundle IDs, the first installed one wins. |
 
 ```kdl
 terminal "com.mitchellh.ghostty" "com.apple.Terminal"
@@ -1645,8 +1645,8 @@ Moves an entry between two var lists.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `fromVariable` | identifier | required | Source list. |
-| argument | `toVariable` | identifier | required | Target list. |
+| argument | `from-variable` | identifier | required | Source list. |
+| argument | `to-variable` | identifier | required | Target list. |
 | property | `from` | number | `null` | Source position. |
 | property | `to` | number | `null` | Target position. |
 
@@ -1668,8 +1668,8 @@ Swaps two entries.
 | --- | --- | --- | --- | --- |
 | argument | `variable` | identifier | required | First var list. |
 | argument | `index` | number | required | Position. |
-| argument | `otherVariable` | identifier | required | Second var list. |
-| argument | `otherIndex` | number | required | Position. |
+| argument | `other-variable` | identifier | required | Second var list. |
+| argument | `other-index` | number | required | Position. |
 
 ### `list.update` (action)
 
@@ -1713,7 +1713,7 @@ Launches an app or brings it to the front.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `bundleID` | string | required | Bundle ID. |
+| argument | `bundle-id` | string | required | Bundle ID. |
 
 ### `open-file` (action)
 
