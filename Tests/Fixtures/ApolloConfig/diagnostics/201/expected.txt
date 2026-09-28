@@ -398,4 +398,4 @@ many.kdl:199:1: error: problem 198
 
 many.kdl:200:1: error: problem 199
 
-note: and 1 more
+note[A001]: and 1 more

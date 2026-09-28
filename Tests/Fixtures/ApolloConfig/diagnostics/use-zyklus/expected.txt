@@ -1,4 +1,4 @@
-<fixtures>/use-zyklus/bausteine.kdl:7:5: error: use cycle: a -> b -> a
+<fixtures>/use-zyklus/bausteine.kdl:7:5: error[A307]: use cycle: a -> b -> a
     7 |     use "a"
       |     ^^^^^^^
       = note: included from <fixtures>/use-zyklus/shell.kdl:1:1 (<fixtures>/use-zyklus/shell.kdl:1:1)

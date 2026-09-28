@@ -398,4 +398,4 @@ many.kdl:198:1: note: note 197
 
 many.kdl:199:1: note: note 198
 
-note: and 101 more
+note[A001]: and 101 more

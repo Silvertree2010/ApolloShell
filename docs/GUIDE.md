@@ -13,7 +13,8 @@ apollo check ~/.config/apolloshell/configs/<name>
 ```
 
 Saving a file reloads the shell. Mistakes show up with file, line and a
-suggestion, and the rest keeps working.
+suggestion, and the rest keeps working. Each one carries a code such as
+`error[A201]`; [DIAGNOSTICS.md](DIAGNOSTICS.md) lists what every code means.
 
 ## 1. A surface with live data
 

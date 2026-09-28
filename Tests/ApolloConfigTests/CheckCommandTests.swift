@@ -58,7 +58,7 @@ struct CheckCommandTests {
     func warningsOnly() {
         let result = CheckHarness.run(["/work/bar"], files: ["/work/bar/shell.kdl": "panel \"bar\" override=#true {\n}\n"])
         #expect(result.exitCode == 0)
-        #expect(result.output.hasPrefix("/work/bar/shell.kdl:1:1: warning: "))
+        #expect(result.output.hasPrefix("/work/bar/shell.kdl:1:1: warning[A502]: "))
     }
 
     @Test("mehr als 200 Diagnosen mit dem Fehler ganz hinten ergeben Exit 1")
@@ -70,29 +70,29 @@ struct CheckCommandTests {
         shell += "pannel \"last\" {\n}\n"
         let result = CheckHarness.run(["/work/many"], files: ["/work/many/shell.kdl": shell])
         #expect(result.exitCode == 1)
-        #expect(result.output.hasPrefix("/work/many/shell.kdl:501:1: error: unknown node 'pannel'"))
-        #expect(result.output.hasSuffix("note: and 51 more"))
+        #expect(result.output.hasPrefix("/work/many/shell.kdl:501:1: error[A201]: unknown node 'pannel'"))
+        #expect(result.output.hasSuffix("note[A001]: and 51 more"))
     }
 
     @Test("Ordner ohne shell.kdl ist ein Fehler")
     func folderWithoutShellFile() {
         let result = CheckHarness.run(["/work/empty"], files: ["/work/empty/notes.txt": "x"])
         #expect(result.exitCode == 1)
-        #expect(result.output == "error: '/work/empty' has no shell.kdl")
+        #expect(result.output == "error[A801]: '/work/empty' has no shell.kdl")
     }
 
     @Test("Ordner, den es nicht gibt, ist ein Fehler")
     func missingFolder() {
         let result = CheckHarness.run(["/work/nowhere"])
         #expect(result.exitCode == 1)
-        #expect(result.output == "error: '/work/nowhere' does not exist")
+        #expect(result.output == "error[A801]: '/work/nowhere' does not exist")
     }
 
     @Test("Datei statt Ordner ist falsche Benutzung")
     func fileInsteadOfFolder() {
         let result = CheckHarness.run(["/work/bar/shell.kdl"], files: ["/work/bar/shell.kdl": ""])
         #expect(result.exitCode == 2)
-        #expect(result.output.hasPrefix("error: '/work/bar/shell.kdl' is not a folder"))
+        #expect(result.output.hasPrefix("error[A801]: '/work/bar/shell.kdl' is not a folder"))
     }
 
     @Test("nicht lesbarer Ordner ist ein Fehler ohne Absturz")
@@ -103,7 +103,7 @@ struct CheckCommandTests {
         defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path) }
         let result = CheckHarness.runOnDisk([folder.path])
         #expect(result.exitCode == 1)
-        #expect(result.output == "error: cannot read folder '\(folder.resolvingSymlinksInPath().path)'")
+        #expect(result.output == "error[A801]: cannot read folder '\(folder.resolvingSymlinksInPath().path)'")
     }
 
     @Test("Pfad mit Leerzeichen und Umlauten")
@@ -113,7 +113,7 @@ struct CheckCommandTests {
         let result = CheckHarness.runOnDisk([folder.path])
         let file = folder.resolvingSymlinksInPath().appendingPathComponent("shell.kdl").path
         #expect(result.exitCode == 1)
-        #expect(result.output.hasPrefix("\(file):2:5: error: unknown node 'buton'\n    2 |     buton\n"))
+        #expect(result.output.hasPrefix("\(file):2:5: error[A201]: unknown node 'buton'\n    2 |     buton\n"))
         let valid = try CheckHarness.temporaryDirectory("Zweite Größe")
         try "panel \"bar\" {\n}\n".write(to: valid.appendingPathComponent("shell.kdl"), atomically: true, encoding: .utf8)
         #expect(CheckHarness.runOnDisk([valid.path]).exitCode == 0)
@@ -123,7 +123,7 @@ struct CheckCommandTests {
     func plainOutputWithTilde() {
         let result = CheckHarness.run(["/Users/tester/dev/bar"], files: ["/Users/tester/dev/bar/shell.kdl": "buton\n"])
         #expect(result.exitCode == 1)
-        #expect(result.output.hasPrefix("~/dev/bar/shell.kdl:1:1: error: unknown node 'buton'"))
+        #expect(result.output.hasPrefix("~/dev/bar/shell.kdl:1:1: error[A201]: unknown node 'buton'"))
         #expect(!result.output.contains("\u{1B}"))
     }
 
@@ -145,14 +145,14 @@ struct CheckCommandTests {
     func activeUserConfig() {
         let result = CheckHarness.run([], files: ["/Users/tester/.config/apolloshell/shell.kdl": "buton\n"])
         #expect(result.exitCode == 1)
-        #expect(result.output.hasPrefix("~/.config/apolloshell/shell.kdl:1:1: error: unknown node 'buton'"))
+        #expect(result.output.hasPrefix("~/.config/apolloshell/shell.kdl:1:1: error[A201]: unknown node 'buton'"))
     }
 
     @Test("ohne Ordner zaehlt XDG_CONFIG_HOME")
     func activeConfigHonoursXDG() {
         let environment = ["HOME": "/Users/tester", "XDG_CONFIG_HOME": "/xdg"]
         let result = CheckHarness.run([], files: ["/xdg/apolloshell/shell.kdl": "buton\n"], environment: environment)
-        #expect(result.output.hasPrefix("/xdg/apolloshell/shell.kdl:1:1: error: unknown node 'buton'"))
+        #expect(result.output.hasPrefix("/xdg/apolloshell/shell.kdl:1:1: error[A201]: unknown node 'buton'"))
     }
 
     @Test("ohne Ordner und ohne eigene Config die eingebaute neben dem Programm")
@@ -161,7 +161,7 @@ struct CheckCommandTests {
         #expect(CheckHarness.run([], files: files).exitCode == 0)
         let missing = CheckHarness.run([])
         #expect(missing.exitCode == 1)
-        #expect(missing.output == "error: built-in config 'apolloshell-default' is missing at '\(CheckHarness.builtinRoot)/apolloshell-default'")
+        #expect(missing.output == "error[A801]: built-in config 'apolloshell-default' is missing at '\(CheckHarness.builtinRoot)/apolloshell-default'")
     }
 
     @Test("APOLLO_BUILTIN_CONFIGS ersetzt den Ordner der eingebauten Configs")
@@ -169,7 +169,7 @@ struct CheckCommandTests {
         let environment = ["HOME": "/Users/tester", "APOLLO_BUILTIN_CONFIGS": "/dev/configs"]
         let result = CheckHarness.run([], files: ["/dev/configs/apolloshell-default/shell.kdl": "buton\n"], environment: environment)
         #expect(result.exitCode == 1)
-        #expect(result.output.hasPrefix("/dev/configs/apolloshell-default/shell.kdl:1:1: error: unknown node 'buton'"))
+        #expect(result.output.hasPrefix("/dev/configs/apolloshell-default/shell.kdl:1:1: error[A201]: unknown node 'buton'"))
     }
 
     @Test("settings.kdl waehlt die Config, Warnungen daraus erscheinen")
@@ -181,7 +181,7 @@ struct CheckCommandTests {
         ]
         let result = CheckHarness.run([], files: files)
         #expect(result.exitCode == 0)
-        #expect(result.output.hasPrefix("~/.config/apolloshell/settings.kdl:2:1: warning: "))
+        #expect(result.output.hasPrefix("~/.config/apolloshell/settings.kdl:2:1: warning[A704]: "))
     }
 
     @Test("settings.kdl nennt eine fehlende Config: Fehler und Rueckfall")
@@ -192,7 +192,7 @@ struct CheckCommandTests {
         ]
         let result = CheckHarness.run([], files: files)
         #expect(result.exitCode == 1)
-        #expect(result.output == "error: settings.kdl names config 'gone' which does not exist, falling back to apolloshell-default")
+        #expect(result.output == "error[A705]: settings.kdl names config 'gone' which does not exist, falling back to apolloshell-default")
     }
 
     @Test("Symlink auf das Programm fuehrt zu den Resources der App")
@@ -209,6 +209,6 @@ struct CheckCommandTests {
         let home = app.deletingLastPathComponent().appendingPathComponent("home")
         let result = CheckCommand.run(arguments: [], environment: ["HOME": home.path], fileSystem: DiskFileSystem(), executableURL: link)
         #expect(result.exitCode == 1)
-        #expect(result.output.contains("error: unknown node 'buton'"), "\(result.output)")
+        #expect(result.output.contains("error[A201]: unknown node 'buton'"), "\(result.output)")
     }
 }

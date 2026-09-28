@@ -47,7 +47,7 @@ public enum ThemeTokenBridge {
         let known = Set(declared.map { $0.lowercased() })
         let names = Set(theme.foreignLightValues.keys).union(theme.foreignDarkValues.keys)
         return names.filter { !known.contains($0) }.sorted().map {
-            Diagnostic(.note, "the theme sets \($0), but the active config does not declare it in :root; it has no effect")
+            Diagnostic(.note, "the theme sets \($0), but the active config does not declare it in :root; it has no effect", code: .themeToken)
         }
     }
 

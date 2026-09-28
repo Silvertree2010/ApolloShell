@@ -4,7 +4,7 @@ import ApolloKDL
 public enum VarStateFile {
     public static func read(_ text: String, file: String, declarations: [VarDecl]) -> ([String: Value], [Diagnostic]) {
         guard let document = try? KDLDocument.parse(text, file: file) else {
-            return ([:], [Diagnostic(.warning, "state file could not be parsed, using defaults", span: .synthetic(file), kind: .stateFileUnreadable)])
+            return ([:], [Diagnostic(.warning, "state file could not be parsed, using defaults", span: .synthetic(file), kind: .stateFileUnreadable, code: .stateSyntax)])
         }
         let byName = Dictionary(uniqueKeysWithValues: declarations.map { ($0.name, $0) })
         var values: [String: Value] = [:]
@@ -14,12 +14,12 @@ public enum VarStateFile {
             guard let declaration = byName[node.name] else { continue }
             if declaration.derived != nil { continue }
             if seen.contains(node.name) {
-                diagnostics.append(Diagnostic(.warning, "duplicate '\(node.name)' in state file, using the last one", span: node.span))
+                diagnostics.append(Diagnostic(.warning, "duplicate '\(node.name)' in state file, using the last one", span: node.span, code: .stateDuplicate))
             }
             seen.insert(node.name)
             let value = ValueKDLMapping.value(from: node, expectedType: declaration.type)
             if declaration.type != .any, !matches(declaration.type, value) {
-                diagnostics.append(Diagnostic(.warning, "'\(node.name)' in state file has the wrong type, using the default", span: node.span, kind: .valueDiscarded))
+                diagnostics.append(Diagnostic(.warning, "'\(node.name)' in state file has the wrong type, using the default", span: node.span, kind: .valueDiscarded, code: .stateType))
                 values.removeValue(forKey: node.name)
                 continue
             }
@@ -30,13 +30,13 @@ public enum VarStateFile {
 
     public static func readAll(_ text: String, file: String) -> ([String: Value], [Diagnostic]) {
         guard let document = try? KDLDocument.parse(text, file: file) else {
-            return ([:], [Diagnostic(.warning, "state file could not be parsed, using defaults", span: .synthetic(file), kind: .stateFileUnreadable)])
+            return ([:], [Diagnostic(.warning, "state file could not be parsed, using defaults", span: .synthetic(file), kind: .stateFileUnreadable, code: .stateSyntax)])
         }
         var values: [String: Value] = [:]
         var diagnostics: [Diagnostic] = []
         for node in document.nodes {
             if values[node.name] != nil {
-                diagnostics.append(Diagnostic(.warning, "duplicate '\(node.name)' in state file, using the last one", span: node.span))
+                diagnostics.append(Diagnostic(.warning, "duplicate '\(node.name)' in state file, using the last one", span: node.span, code: .stateDuplicate))
             }
             values[node.name] = ValueKDLMapping.value(from: node)
         }

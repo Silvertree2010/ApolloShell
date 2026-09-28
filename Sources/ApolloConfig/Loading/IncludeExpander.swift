@@ -63,19 +63,19 @@ enum IncludeExpander {
     ) -> [ExpandedNode] {
         let resolved = fileSystem.resolvingSymlinks(url)
         guard isWithin(resolved, boundary: boundary) else {
-            emit(Diagnostic(.error, "include path escapes the config folder", span: chain.last), chain: chain, state: state)
+            emit(Diagnostic(.error, "include path escapes the config folder", span: chain.last, code: .includeEscapes), chain: chain, state: state)
             return []
         }
         if ancestorFiles.contains(resolved.path) {
             let names = (ancestorFiles + [resolved.path]).map { URL(fileURLWithPath: $0).lastPathComponent }
-            emit(Diagnostic(.error, "include cycle: \(names.joined(separator: " -> "))", span: chain.last), chain: chain, state: state)
+            emit(Diagnostic(.error, "include cycle: \(names.joined(separator: " -> "))", span: chain.last, code: .includeCycle), chain: chain, state: state)
             return []
         }
         state.insertions += 1
         if state.insertions > ConfigLimits.maxFileInsertions {
             if !state.insertionLimitHit {
                 state.insertionLimitHit = true
-                emit(Diagnostic(.error, "config includes more than \(ConfigLimits.maxFileInsertions) files", span: chain.last), chain: chain, state: state)
+                emit(Diagnostic(.error, "config includes more than \(ConfigLimits.maxFileInsertions) files", span: chain.last, code: .tooManyFiles), chain: chain, state: state)
             }
             return []
         }
@@ -83,18 +83,18 @@ enum IncludeExpander {
         do {
             text = try fileSystem.read(resolved)
         } catch {
-            emit(Diagnostic(.error, "cannot read '\(resolved.path)'", span: chain.last), chain: chain, state: state)
+            emit(Diagnostic(.error, "cannot read '\(resolved.path)'", span: chain.last, code: .fileUnreadable), chain: chain, state: state)
             return []
         }
         guard text.utf8.count <= KDLLimits.maxBytes else {
-            emit(Diagnostic(.error, "'\(resolved.path)' is larger than \(KDLLimits.maxBytes) bytes", span: chain.last), chain: chain, state: state)
+            emit(Diagnostic(.error, "'\(resolved.path)' is larger than \(KDLLimits.maxBytes) bytes", span: chain.last, code: .fileTooLarge), chain: chain, state: state)
             return []
         }
         let document: KDLDocument
         do throws(KDLParseError) {
             document = try KDLDocument.parse(text, file: resolved.path)
         } catch {
-            emit(Diagnostic(.error, error.message, span: error.span), chain: chain, state: state)
+            emit(Diagnostic(.error, error.message, span: error.span, code: .kdlSyntax), chain: chain, state: state)
             return []
         }
         if !state.seenFiles.contains(resolved.path) {
@@ -130,7 +130,7 @@ enum IncludeExpander {
         guard depth <= ConfigLimits.maxExpandedDepth else {
             if !state.depthLimitHit {
                 state.depthLimitHit = true
-                emit(Diagnostic(.error, "config is nested deeper than \(ConfigLimits.maxExpandedDepth) levels across include", span: kdlNodes.first?.span ?? chain.last), chain: chain, state: state)
+                emit(Diagnostic(.error, "config is nested deeper than \(ConfigLimits.maxExpandedDepth) levels across include", span: kdlNodes.first?.span ?? chain.last, code: .expansionLimit), chain: chain, state: state)
             }
             return []
         }
@@ -139,10 +139,10 @@ enum IncludeExpander {
         for node in kdlNodes {
             if state.budgetHit { break }
             if node.annotation != nil {
-                emit(Diagnostic(.error, "type annotations are reserved", span: node.span), chain: chain, state: state)
+                emit(Diagnostic(.error, "type annotations are reserved", span: node.span, code: .typeAnnotation), chain: chain, state: state)
             }
             for value in node.arguments + node.properties.map(\.value) where value.annotation != nil {
-                emit(Diagnostic(.error, "type annotations are reserved", span: value.span), chain: chain, state: state)
+                emit(Diagnostic(.error, "type annotations are reserved", span: value.span, code: .typeAnnotation), chain: chain, state: state)
             }
             if node.name == "include" {
                 result.append(contentsOf: handleInclude(
@@ -163,7 +163,7 @@ enum IncludeExpander {
             if state.nodeCount > ConfigLimits.maxExpansionBudget {
                 if !state.budgetHit {
                     state.budgetHit = true
-                    emit(Diagnostic(.error, "config expands to more than \(ConfigLimits.maxExpansionBudget) nodes", span: node.span), chain: chain, state: state)
+                    emit(Diagnostic(.error, "config expands to more than \(ConfigLimits.maxExpansionBudget) nodes", span: node.span, code: .expansionLimit), chain: chain, state: state)
                 }
                 break
             }
@@ -202,7 +202,7 @@ enum IncludeExpander {
         state: ExpansionState
     ) -> [ExpandedNode] {
         guard node.arguments.count == 1, case .string(let raw) = node.arguments[0].scalar else {
-            emit(Diagnostic(.error, "include requires exactly one string argument", span: node.span), chain: chain, state: state)
+            emit(Diagnostic(.error, "include requires exactly one string argument", span: node.span, code: .includeSyntax), chain: chain, state: state)
             return []
         }
         var optional = false
@@ -211,15 +211,15 @@ enum IncludeExpander {
                 if case .bool(let flag) = property.value.scalar {
                     optional = flag
                 } else {
-                    emit(Diagnostic(.error, "'optional' must be a bool", span: property.value.span), chain: chain, state: state)
+                    emit(Diagnostic(.error, "'optional' must be a bool", span: property.value.span, code: .propertyType), chain: chain, state: state)
                 }
             } else {
                 let suggestion = Suggestion.closest(to: property.name, among: ["optional"])
-                emit(Diagnostic(.error, "unknown property '\(property.name)' on 'include'", span: property.span, help: suggestion.map { "did you mean '\($0)'?" }), chain: chain, state: state)
+                emit(Diagnostic(.error, "unknown property '\(property.name)' on 'include'", span: property.span, help: suggestion.map { "did you mean '\($0)'?" }, code: .unknownProperty), chain: chain, state: state)
             }
         }
         if raw.utf8.contains(UInt8(ascii: "{")) {
-            emit(Diagnostic(.error, "include path cannot contain an expression", span: node.arguments[0].span), chain: chain, state: state)
+            emit(Diagnostic(.error, "include path cannot contain an expression", span: node.arguments[0].span, code: .expressionNotAllowed), chain: chain, state: state)
             return []
         }
         let resolution = resolveIncludeTargets(
@@ -239,7 +239,7 @@ enum IncludeExpander {
         case .success(let targets):
             if targets.isEmpty {
                 if !optional {
-                    emit(Diagnostic(.warning, "glob '\(raw)' matched no files", span: node.span), chain: chain, state: state)
+                    emit(Diagnostic(.warning, "glob '\(raw)' matched no files", span: node.span, code: .globEmpty), chain: chain, state: state)
                 }
                 return []
             }
@@ -248,7 +248,7 @@ enum IncludeExpander {
             for target in targets {
                 if !fileSystem.exists(target.url) {
                     if optional { continue }
-                    emit(Diagnostic(.error, "included file '\(raw)' does not exist", span: node.span), chain: chain, state: state)
+                    emit(Diagnostic(.error, "included file '\(raw)' does not exist", span: node.span, code: .includeNotFound), chain: chain, state: state)
                     continue
                 }
                 result.append(contentsOf: expandFile(
@@ -276,7 +276,7 @@ enum IncludeExpander {
         paths: ConfigPaths
     ) -> Result<[URL], Diagnostic> {
         if raw.utf8.contains(UInt8(ascii: "{")) {
-            return .failure(Diagnostic(.error, "style path cannot contain an expression"))
+            return .failure(Diagnostic(.error, "style path cannot contain an expression", code: .expressionNotAllowed))
         }
         let boundary: URL
         switch origin {
@@ -304,7 +304,7 @@ enum IncludeExpander {
         if raw.hasPrefix("builtin:") {
             let rest = String(raw.dropFirst("builtin:".count))
             guard let slash = rest.firstIndex(of: "/") else {
-                return .failure(Diagnostic(.error, "'builtin:' needs a config id and a path"))
+                return .failure(Diagnostic(.error, "'builtin:' needs a config id and a path", code: .includePrefix))
             }
             let id = String(rest[rest.startIndex..<slash])
             let path = String(rest[rest.index(after: slash)...])
@@ -314,21 +314,21 @@ enum IncludeExpander {
         if raw.hasPrefix("pkg:") {
             let rest = String(raw.dropFirst("pkg:".count))
             guard let slash = rest.firstIndex(of: "/") else {
-                return .failure(Diagnostic(.error, "'pkg:' needs a package id and a path"))
+                return .failure(Diagnostic(.error, "'pkg:' needs a package id and a path", code: .includePrefix))
             }
             let id = String(rest[rest.startIndex..<slash])
             let path = String(rest[rest.index(after: slash)...])
             if case .pkg(let currentId) = currentOrigin, currentId != id {
-                return .failure(Diagnostic(.error, "a file inside package '\(currentId)' can only include files from the same package or 'builtin:'"))
+                return .failure(Diagnostic(.error, "a file inside package '\(currentId)' can only include files from the same package or 'builtin:'", code: .packageInclude))
             }
             let boundary = paths.packagesDirectory.appendingPathComponent(id)
             return resolveWithinBoundary(path, boundary: boundary, origin: .pkg(id), fileSystem: fileSystem)
         }
         if raw.hasPrefix("/") {
-            return .failure(Diagnostic(.error, "include path must be relative, not absolute"))
+            return .failure(Diagnostic(.error, "include path must be relative, not absolute", code: .includePathForm))
         }
         if raw.hasPrefix("~") {
-            return .failure(Diagnostic(.error, "include path must not use '~'"))
+            return .failure(Diagnostic(.error, "include path must not use '~'", code: .includePathForm))
         }
         let currentDirectory = URL(fileURLWithPath: currentFile).deletingLastPathComponent()
         return resolveWithinBoundary(raw, baseDirectory: currentDirectory, boundary: currentBoundary, origin: currentOrigin, fileSystem: fileSystem)
@@ -353,11 +353,11 @@ enum IncludeExpander {
         let combined = baseDirectory.appendingPathComponent(path)
         let normalized = normalize(combined)
         guard isWithin(normalized, boundary: boundary) else {
-            return .failure(Diagnostic(.error, "include path escapes the config folder"))
+            return .failure(Diagnostic(.error, "include path escapes the config folder", code: .includeEscapes))
         }
         let resolved = fileSystem.resolvingSymlinks(normalized)
         guard isWithin(resolved, boundary: boundary) else {
-            return .failure(Diagnostic(.error, "include path escapes the config folder via a symlink"))
+            return .failure(Diagnostic(.error, "include path escapes the config folder via a symlink", code: .includeEscapes))
         }
         let lastComponent = normalized.lastPathComponent
         guard lastComponent.contains("*") else {
