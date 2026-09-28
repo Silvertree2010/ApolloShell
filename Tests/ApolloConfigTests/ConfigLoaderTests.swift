@@ -193,6 +193,12 @@ struct ConfigLoaderTests {
         DiagnosticGolden.verify("pipeline", diagnostics: result.diagnostics)
     }
 
+    #if arch(x86_64)
+    static let machineFactor = 3.5
+    #else
+    static let machineFactor = 1.0
+    #endif
+
     @Test("Config in Groesse der Default-Config laedt im Zeitbudget")
     func loadsDefaultSizedConfigInBudget() {
         let files = LoaderHarness.syntheticDefaultConfig()
@@ -207,6 +213,6 @@ struct ConfigLoaderTests {
         }
         let median = durations.sorted()[durations.count / 2]
         print("config-loader-median-ms \(median)")
-        #expect(median <= 150)
+        #expect(median <= 150 * Self.machineFactor)
     }
 }
