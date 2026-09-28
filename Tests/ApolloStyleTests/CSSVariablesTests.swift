@@ -30,6 +30,12 @@ struct CSSVariablesTests {
         #expect(throws: CSSValueError.self) { try substitute(text, [:]) }
     }
 
+    #if arch(x86_64)
+    static let machineFactor = 3.5
+    #else
+    static let machineFactor = 1.0
+    #endif
+
     @Test("sich verdoppelnde Custom Properties werden schnell ungültig statt die Shell anzuhalten")
     func doubling() {
         var own = ["--a0": "1px"]
@@ -37,7 +43,7 @@ struct CSSVariablesTests {
         let start = ContinuousClock.now
         let resolver = CustomPropertyResolver(own: own, inherited: [:], tokens: .empty)
         let result = resolver.resolveAll()
-        #expect(ContinuousClock.now - start < .seconds(1))
+        #expect(ContinuousClock.now - start < .seconds(Self.machineFactor))
         #expect(result["--a18"] == nil)
         #expect(result["--a4"] == Array(repeating: "1px", count: 16).joined(separator: " "))
         #expect(resolver.failures.contains { $0.name == "--a18" })

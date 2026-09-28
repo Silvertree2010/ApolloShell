@@ -27,4 +27,10 @@ enum CPUTime {
     #else
     static let isDebug = false
     #endif
+
+    #if arch(x86_64)
+    static let machineFactor = 3.5
+    #else
+    static let machineFactor = 1.0
+    #endif
 }

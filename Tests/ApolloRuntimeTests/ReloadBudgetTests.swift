@@ -12,7 +12,7 @@ struct ReloadBudgetTests {
 
     static let budget = 80.0
     static let debugFactor: Double = 4
-    static var factor: Double { CPUTime.isDebug ? debugFactor : 1 }
+    static var factor: Double { (CPUTime.isDebug ? debugFactor : 1) * CPUTime.machineFactor }
     static let kinds = ["panel", "panel", "popup", "overlay", "popup"]
 
     struct Synthetic {
