@@ -190,7 +190,7 @@ final class LiveShell: WindowHostLink {
         })
         self.assembly = assembly
         assembly.actions.register("osd.show", OSDShowAction(shell: self))
-        assembly.actions.register("notify", NotifyAction(center: toasts))
+        assembly.actions.register("toast.show", ToastShowAction(center: toasts))
         assembly.actions.register("toast.dismiss", ToastDismissAction(center: toasts))
         assembly.actions.register("marketplace.open", MarketplaceOpenAction(shell: self))
         assembly.actions.register("shell.set-login-item", LoginItemAction(shell: self))

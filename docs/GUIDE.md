@@ -75,7 +75,7 @@ panel "status" anchor="bottom-left" {
 - A `var` nothing sets is simply a constant. Its default can read other vars,
   as in `var gap 8` and `var wide "{var.gap * 2}"`.
 - `on-click { … }` is a **handler**; inside it go **actions** such as
-  `toggle-var`, `set "expanded" #true`, `open "surface"` or `notify title="Hi"`.
+  `toggle-var`, `set "expanded" #true`, `open "surface"` or `toast.show title="Hi"`.
 - `?:`, `??`, `&&`, `||`, `+` and friends work as in most languages.
 
 ## 3. Lists

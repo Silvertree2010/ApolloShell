@@ -188,6 +188,13 @@ struct SchemaRegistryTests {
         #expect(BuiltinSchemaRegistry.allProviders.flatMap(\.actions).contains { $0.name == "apps.launch" })
     }
 
+    @Test("Toasts zeigt toast.show neben toast.dismiss und osd.show, notify gibt es nicht mehr")
+    func toastShowPairsWithDismiss() {
+        let names = Set(BuiltinSchemaRegistry.allActions.map(\.name))
+        #expect(names.isSuperset(of: ["toast.show", "toast.dismiss", "osd.show"]))
+        #expect(!names.contains("notify"))
+    }
+
     @Test("jede Property hat Typ und Vorgabe oder ist required")
     func propertiesHaveTypeAndDefaultOrRequired() {
         for node in BuiltinSchemaRegistry.allNodes {
