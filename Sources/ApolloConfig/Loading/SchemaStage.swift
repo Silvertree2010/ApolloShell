@@ -58,7 +58,7 @@ private final class SchemaWalkState {
 
 enum SchemaStage {
     static let varActions: Set<String> = ["set", "toggle-var", "reset"]
-    static let contextInheritingNodes: Set<String> = ["each", "when", "else", "switch", "case", "default", "feature"]
+    static let contextInheritingNodes: Set<String> = ["each", "when", "else", "switch", "case", "default"]
 
     static func run(_ nodes: [ExpandedNode], defines: [DefineDecl] = [], registry: SchemaRegistry, context: NodeContext = .topLevel, templates: TemplateCache? = nil, declaredVars: Set<String>? = nil) -> SchemaStageResult {
         StackHeadroom.run {

@@ -58,7 +58,7 @@ private final class IRBuildState {
 }
 
 enum IRBuilder {
-    static let skippedTopLevelNodes: Set<String> = ["define", "let", "include", "require", "feature", "else", "disable", "param", "slot", "fill"]
+    static let skippedTopLevelNodes: Set<String> = ["define", "let", "include", "require", "else", "disable", "param", "slot", "fill"]
 
     static func build(
         _ nodes: [ExpandedNode],
@@ -148,9 +148,6 @@ enum IRBuilder {
                 } else {
                     ir.requiredVersion = version
                 }
-            }
-            if let feature = stringProperty(node, "feature"), !ir.requiredFeatures.contains(feature) {
-                ir.requiredFeatures.append(feature)
             }
         }
     }

@@ -50,8 +50,8 @@ public struct ConfigLoader: Sendable {
             return finish(nil, files: included.files)
         }
         let requires = included.nodes.filter { $0.kdl.name == "require" }
-        let featured = FeatureStage.run(included.nodes, shellVersion: shellVersion, registry: registry)
-        collect(featured.diagnostics, stage: "feature")
+        let featured = RequireStage.run(included.nodes, shellVersion: shellVersion, registry: registry)
+        collect(featured.diagnostics, stage: "require")
         if featured.nodes.isEmpty, !included.nodes.isEmpty, hasErrors(featured.diagnostics) {
             return finish(nil, files: included.files)
         }

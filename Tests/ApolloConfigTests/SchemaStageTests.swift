@@ -10,7 +10,7 @@ struct SchemaStageTests {
         let fs = MemoryFileSystem(["/config/shell.kdl": text])
         let included = IncludeExpander.expand(root: URL(fileURLWithPath: "/config"), origin: .user, fileSystem: fs, paths: UseStageTests.paths)
         #expect(included.diagnostics.isEmpty, sourceLocation: sourceLocation)
-        let featured = FeatureStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
+        let featured = RequireStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
         #expect(featured.diagnostics.isEmpty, sourceLocation: sourceLocation)
         let lets = LetStage.run(featured.nodes, registry: .builtin)
         #expect(lets.diagnostics.isEmpty, sourceLocation: sourceLocation)
