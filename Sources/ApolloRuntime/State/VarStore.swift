@@ -152,7 +152,8 @@ struct DerivedGraphAnalysis {
                 .error,
                 "cyclic derived var: \(chain.joined(separator: " -> "))",
                 span: spans[first],
-                notes: notes
+                notes: notes,
+                code: .varCycle
             ))
         }
     }
@@ -312,15 +313,15 @@ public final class VarStore {
     public func set(_ name: String, _ value: Value, for duration: Double? = nil) -> Bool {
         guard let slot = plain[name] else {
             if let slot = derived[name] {
-                warn(Diagnostic(.warning, "'\(name)' is derived and cannot be set", span: slot.decl.span))
+                warn(Diagnostic(.warning, "'\(name)' is derived and cannot be set", span: slot.decl.span, code: .derivedSet))
             } else {
-                warn(Diagnostic(.warning, "unknown var '\(name)'"))
+                warn(Diagnostic(.warning, "unknown var '\(name)'", code: .unknownVar))
             }
             return false
         }
         let sanitized = SignalStore.sanitize(value)
         guard matchesType(slot.decl.type, sanitized) else {
-            warn(Diagnostic(.warning, "'\(name)' expects \(slot.decl.type) but got \(value.typeName)", span: slot.decl.span))
+            warn(Diagnostic(.warning, "'\(name)' expects \(slot.decl.type) but got \(value.typeName)", span: slot.decl.span, code: .varType))
             return false
         }
         if let duration, duration > 0 {
@@ -345,7 +346,7 @@ public final class VarStore {
 
     public func reset(_ name: String) {
         guard let slot = plain[name] else {
-            warn(Diagnostic(.warning, "unknown var '\(name)'"))
+            warn(Diagnostic(.warning, "unknown var '\(name)'", code: .unknownVar))
             return
         }
         slot.transient?.work.cancel()
@@ -378,7 +379,7 @@ public final class VarStore {
             guard fileValues[name] != value else { continue }
             fileValues[name] = value
             guard matchesType(slot.decl.type, value) else {
-                warn(Diagnostic(.warning, "'\(name)' in state file has the wrong type, keeping the current value", span: slot.decl.span, kind: .valueDiscarded))
+                warn(Diagnostic(.warning, "'\(name)' in state file has the wrong type, keeping the current value", span: slot.decl.span, kind: .valueDiscarded, code: .stateType))
                 needsBackup = true
                 continue
             }
@@ -424,9 +425,9 @@ public final class VarStore {
             shell: shell,
             evaluate: { [unowned self] decl, scope in SignalStore.sanitize(self.evaluateTemplate(decl.defaultValue, scope: scope)) },
             initial: { [unowned self] decl, fallback in self.initialValue(decl: decl, fallback: fallback, persisted: persisted) },
-            cycle: { [unowned self] decl in self.warn(Diagnostic(.warning, "the default of '\(decl.name)' reads itself", span: decl.span)) },
+            cycle: { [unowned self] decl in self.warn(Diagnostic(.warning, "the default of '\(decl.name)' reads itself", span: decl.span, code: .varCycle)) },
             tooDeep: { [unowned self] decl in
-                self.warn(Diagnostic(.warning, "the default of '\(decl.name)' is read through more than \(ConfigLimits.maxExpandedDepth) other defaults", span: decl.span))
+                self.warn(Diagnostic(.warning, "the default of '\(decl.name)' is read through more than \(ConfigLimits.maxExpandedDepth) other defaults", span: decl.span, code: .varCycle))
             }
         )
 
@@ -620,7 +621,7 @@ public final class VarStore {
         guard let saved = persisted[decl.name] else { return fallback }
         let sanitizedSaved = SignalStore.sanitize(saved)
         if matchesType(decl.type, sanitizedSaved) { return sanitizedSaved }
-        warn(Diagnostic(.warning, "'\(decl.name)' in state file has the wrong type, using the default", span: decl.span))
+        warn(Diagnostic(.warning, "'\(decl.name)' in state file has the wrong type, using the default", span: decl.span, code: .stateType))
         return fallback
     }
 

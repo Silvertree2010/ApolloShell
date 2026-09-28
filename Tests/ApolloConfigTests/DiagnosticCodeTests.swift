@@ -41,9 +41,9 @@ struct DiagnosticCodeTests {
         return loader.load(ConfigLocation(id: "mine", root: URL(fileURLWithPath: "/config"), isBuiltin: false))
     }
 
-    @Test("jede Diagnose in ApolloConfig und ApolloStyle trägt eine Kennung")
+    @Test("jede Diagnose in ApolloConfig, ApolloStyle, ApolloRuntime und ApolloProviders trägt eine Kennung")
     func everyLoaderDiagnosticHasCode() throws {
-        for module in ["ApolloConfig", "ApolloStyle"] {
+        for module in ["ApolloConfig", "ApolloStyle", "ApolloRuntime", "ApolloProviders"] {
             let folder = Self.root.appendingPathComponent("Sources/\(module)")
             let files = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: nil)!.compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" }
             #expect(!files.isEmpty)

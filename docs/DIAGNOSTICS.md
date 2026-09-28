@@ -92,3 +92,23 @@ Every problem ApolloShell reports about a config carries a code, such as `error[
 | `A801` | apollo check was given a folder it cannot check. |
 | `A802` | apollo check was given a fixture that does not exist. |
 | `A803` | apollo check cannot read a file and uses defaults. |
+| `A901` | each got a value that is not a list. |
+| `A902` | each got more entries than it builds. |
+| `A903` | A surface reached the element limit; the rest is not built. |
+| `A904` | Two entries of an each have the same key. |
+| `A905` | An each key is null, so the position is used. |
+| `A906` | A use whose name is computed while running could not be built. |
+| `A907` | An action names a surface, bind, element or toast that does not exist. |
+| `A908` | A surface did not report that it finished closing. |
+| `A909` | Elements nest deeper than the shell builds. |
+| `A910` | Values kept changing each other and did not settle. |
+| `A911` | A state file could not be saved. |
+| `A912` | A derived var was set; derived vars follow their from= expression. |
+| `A913` | A var was set to a value of the wrong type. |
+| `A914` | A var's default or from= expression reads itself. |
+| `A915` | An action asked for more than its limit and was capped. |
+| `A916` | An action could not run. |
+| `A917` | A list action could not find or change its entry. |
+| `A918` | A provider reports a problem. |
+| `A919` | A provider fixture names something that does not exist. |
+| `A920` | A keyboard shortcut could not be registered. |

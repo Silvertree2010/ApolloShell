@@ -249,7 +249,7 @@ public final class ShellRuntime: SurfaceControlling {
     public func open(_ surfaceID: String, screenKey: String?) {
         let candidates = nodes(for: surfaceID)
         guard !candidates.isEmpty else {
-            warn(key: "unknown-surface|" + surfaceID, Diagnostic(.warning, "unknown surface '\(surfaceID)'"))
+            warn(key: "unknown-surface|" + surfaceID, Diagnostic(.warning, "unknown surface '\(surfaceID)'", code: .unknownTarget))
             return
         }
         let preferred = screenKey ?? preferredScreen?() ?? screens.first
@@ -274,7 +274,7 @@ public final class ShellRuntime: SurfaceControlling {
     public func close(_ surfaceID: String) {
         let candidates = nodes(for: surfaceID)
         guard !candidates.isEmpty else {
-            warn(key: "unknown-surface|" + surfaceID, Diagnostic(.warning, "unknown surface '\(surfaceID)'"))
+            warn(key: "unknown-surface|" + surfaceID, Diagnostic(.warning, "unknown surface '\(surfaceID)'", code: .unknownTarget))
             return
         }
         for node in candidates {
@@ -296,7 +296,7 @@ public final class ShellRuntime: SurfaceControlling {
                 target.closeWaiters.append(waiter)
                 waiter.work = actions.clock.schedule(after: RuntimeLimits.closeFeedbackTimeout) { [weak self, weak waiter] in
                     guard let waiter, !waiter.resumed else { return }
-                    self?.warn(key: "close-feedback|" + surfaceID, Diagnostic(.warning, "surface '\(surfaceID)' did not report the end of closing"))
+                    self?.warn(key: "close-feedback|" + surfaceID, Diagnostic(.warning, "surface '\(surfaceID)' did not report the end of closing", code: .closeFeedback))
                     waiter.resume()
                 }
             }
@@ -361,7 +361,7 @@ public final class ShellRuntime: SurfaceControlling {
     @discardableResult
     public func triggerBind(_ id: String, event: Record) -> Task<Void, Never>? {
         guard let bind = config?.binds.first(where: { $0.id == id }) else {
-            warn(key: "unknown-bind|" + id, Diagnostic(.warning, "no bind '\(id)'"))
+            warn(key: "unknown-bind|" + id, Diagnostic(.warning, "no bind '\(id)'", code: .unknownTarget))
             return nil
         }
         if let when = bind.when, !bindings.evaluateOnce(when, scope: LocalScope(), event: event).isTruthy {
@@ -376,7 +376,7 @@ public final class ShellRuntime: SurfaceControlling {
             return runHandlers(node.instance.ir.handlers, named: handler, scope: node.scope, surface: node, site: identity.description, event: event)
         }
         guard let element = elements[identity], !element.isDead else {
-            warn(key: "unknown-element|" + identity.description, Diagnostic(.warning, "no element '\(identity.description)' for \(handler)"))
+            warn(key: "unknown-element|" + identity.description, Diagnostic(.warning, "no element '\(identity.description)' for \(handler)", code: .unknownTarget))
             return nil
         }
         return runHandlers(element.instance.ir.handlers, named: handler, scope: element.instance.scope, surface: element.surface, site: identity.description, event: event)
@@ -829,7 +829,7 @@ public final class ShellRuntime: SurfaceControlling {
     func placeElement(_ ir: ElementIR, _ context: BuildContext, reuse positional: [String: TreeNode]?) -> ElementNode? {
         let surface = context.surface
         guard context.depth < RuntimeLimits.elementDepth else {
-            warn(key: "depth|\(ir.span)", Diagnostic(.warning, "elements nested deeper than \(RuntimeLimits.elementDepth) levels are not built", span: ir.span))
+            warn(key: "depth|\(ir.span)", Diagnostic(.warning, "elements nested deeper than \(RuntimeLimits.elementDepth) levels are not built", span: ir.span, code: .elementDepth))
             return nil
         }
         var runtimeID: String?
@@ -844,7 +844,7 @@ public final class ShellRuntime: SurfaceControlling {
                     surface.ids[text] = nil
                     runtimeID = text
                 } else {
-                    warn(key: "duplicate-id|\(template.span)|\(text)", Diagnostic(.warning, "duplicate id '\(text)' in surface '\(surface.instance.id)', the later element loses it", span: template.span))
+                    warn(key: "duplicate-id|\(template.span)|\(text)", Diagnostic(.warning, "duplicate id '\(text)' in surface '\(surface.instance.id)', the later element loses it", span: template.span, code: .duplicateID))
                 }
             } else {
                 runtimeID = text
@@ -862,7 +862,7 @@ public final class ShellRuntime: SurfaceControlling {
         guard surface.elementCount < RuntimeLimits.elementsPerSurface || liveElementCount(surface) < RuntimeLimits.elementsPerSurface else {
             if !surface.budgetWarned {
                 surface.budgetWarned = true
-                warn(key: "budget|" + surface.surfaceKey, Diagnostic(.warning, "surface '\(surface.instance.id)' reached \(RuntimeLimits.elementsPerSurface) elements, further elements are not built", span: ir.span))
+                warn(key: "budget|" + surface.surfaceKey, Diagnostic(.warning, "surface '\(surface.instance.id)' reached \(RuntimeLimits.elementsPerSurface) elements, further elements are not built", span: ir.span, code: .elementBudget))
             }
             return nil
         }

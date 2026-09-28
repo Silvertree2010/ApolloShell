@@ -521,7 +521,8 @@ struct VarStoreTests {
                 .error,
                 "cyclic derived var: \(a) -> \(b) -> \(c) -> \(a)",
                 span: span(a),
-                notes: [DiagnosticNote("'\(d)' is part of the same cycle", span: span(d))]
+                notes: [DiagnosticNote("'\(d)' is part of the same cycle", span: span(d))],
+                code: .varCycle
             )
             if warnings != [expected] { failures.append("\(variant): \(warnings.map(\.message)) \(warnings.map(\.notes))") }
             if vars.value("ok") != .number(5) { failures.append("\(variant): ok") }

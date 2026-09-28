@@ -211,7 +211,7 @@ public final class BindingEngine {
         var rounds = 0
         while !dirty.isEmpty {
             if rounds == Self.maximumRounds {
-                report(Diagnostic(.warning, "flush did not settle within \(Self.maximumRounds) rounds"))
+                report(Diagnostic(.warning, "flush did not settle within \(Self.maximumRounds) rounds", code: .flushUnsettled))
                 break
             }
             rounds += 1
