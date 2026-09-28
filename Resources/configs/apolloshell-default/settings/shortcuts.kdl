@@ -23,11 +23,11 @@ define "settings-page-shortcuts" {
     }
     row class="settings-actions" {
         button class="settings-button" {
-            on-click { set "hotkey-launcher" "{hotkeys-default.launcher}"; set "hotkey-dashboard" "{hotkeys-default.dashboard}"; set "hotkey-utilities" "{hotkeys-default.utilities}"; set "hotkey-settings" "{hotkeys-default.settings}" }
+            on-click { set "hotkey-launcher" "{var.hotkeys-default.launcher}"; set "hotkey-dashboard" "{var.hotkeys-default.dashboard}"; set "hotkey-utilities" "{var.hotkeys-default.utilities}"; set "hotkey-settings" "{var.hotkeys-default.settings}" }
             text "Default"
         }
         button class="settings-button" {
-            on-click { set "hotkey-launcher" "{hotkeys-hyper.launcher}"; set "hotkey-dashboard" "{hotkeys-hyper.dashboard}"; set "hotkey-utilities" "{hotkeys-hyper.utilities}"; set "hotkey-settings" "{hotkeys-hyper.settings}" }
+            on-click { set "hotkey-launcher" "{var.hotkeys-hyper.launcher}"; set "hotkey-dashboard" "{var.hotkeys-hyper.dashboard}"; set "hotkey-utilities" "{var.hotkeys-hyper.utilities}"; set "hotkey-settings" "{var.hotkeys-hyper.settings}" }
             text "Hyper Key"
         }
     }

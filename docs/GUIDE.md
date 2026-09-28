@@ -70,6 +70,8 @@ panel "status" anchor="bottom-left" {
 
 - `var` declares state; `persist=#true` keeps it across restarts. Read it as
   `var.expanded`. A misspelled name is reported when the config loads.
+- A `var` nothing sets is simply a constant. Its default can read other vars,
+  as in `var gap 8` and `var wide "{var.gap * 2}"`.
 - `on-click { … }` is a **handler**; inside it go **actions** such as
   `toggle-var`, `set "expanded" #true`, `open "surface"` or `notify title="Hi"`.
 - `?:`, `??`, `&&`, `||`, `+` and friends work as in most languages.

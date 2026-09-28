@@ -47,15 +47,4 @@ struct TextLimitTests {
             FilterHarness.check(testCase)
         }
     }
-
-    @Test("Verdoppeln per let endet an der Grenze statt den Speicher zu füllen")
-    func doublingLets() {
-        var lines = ["let v0=\"x\""]
-        for index in 1...64 {
-            lines.append("let v\(index)=\"{v\(index - 1) + v\(index - 1)}\"")
-        }
-        let result = LetStageTests.run(lines.joined(separator: "\n"))
-        #expect(result.values["v19"] == .string(String(repeating: "x", count: 1 << 19)))
-        #expect(result.values["v20"] == .null)
-    }
 }

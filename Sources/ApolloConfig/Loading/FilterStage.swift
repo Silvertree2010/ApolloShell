@@ -77,8 +77,6 @@ enum FilterStage {
         }
         let env = ExpressionEnvironment(
             registry: registry,
-            letValues: node.letValues,
-            poisonedLets: node.poisonedLets,
             locals: Set(parameters + [UserFilterExpansion.input]),
             context: .topLevel,
             templates: templates,

@@ -35,8 +35,7 @@ struct LoadingGapTests {
         }
         """])
         let included = IncludeExpander.expand(root: URL(fileURLWithPath: "/config"), origin: .user, fileSystem: fs, paths: UseStageTests.paths)
-        let lets = LetStage.run(included.nodes, registry: .builtin)
-        let used = UseStage.run(lets.nodes, registry: .builtin)
+        let used = UseStage.run(included.nodes, registry: .builtin)
         let panel = used.nodes.first { $0.kdl.name == "panel" }
         #expect(panel?.children.filter { !$0.isExpansionMarker }.map(\.kdl.name) == ["text"])
         #expect(panel?.children.filter(\.isExpansionMarker).map(\.kdl.name) == ["use"])

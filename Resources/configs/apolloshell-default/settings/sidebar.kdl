@@ -4,7 +4,7 @@ var settings-sidebar-gallery #false
 var settings-sidebar-confirm ""
 var settings-sidebar-app-query ""
 
-let sidebar-module-kinds {
+var sidebar-module-kinds {
     - kind="dashboard-button" title="Dashboard" summary="Opens the Dashboard with calendar, media and weather." symbol="square.grid.2x2.fill" unique=#false options=#false {
         module kind="dashboard-button"
     }
@@ -52,14 +52,14 @@ let sidebar-module-kinds {
     }
 }
 
-let sidebar-presets {
+var sidebar-presets {
     - id="caelestia" title="Caelestia" summary="The default: Dashboard, Spaces, Dock, Clock, Control Centre, Status, Power off."
     - id="minimal" title="Minimal" summary="Spaces at the top, Clock and Power off at the bottom, nothing else."
     - id="dock-only" title="Dock Only" summary="Just the apps, spanning the full height."
     - id="everything" title="Everything" summary="Every module once, to try out and sort through."
 }
 
-let sidebar-backgrounds {
+var sidebar-backgrounds {
     - id="material" title="Material" detail="System material with a fixed color that follows light and dark."
     - id="glass" title="Liquid Glass" detail="Real glass; it takes on the color and brightness of whatever is behind it."
     - id="tinted-glass" title="Liquid Glass, Tinted" detail="Glass tinted with the window color; it shifts less, but it still shifts."
@@ -237,7 +237,7 @@ define "settings-page-sidebar" {
                 reorderable axis="vertical" enabled=#true {
                     on-reorder { list.move "sidebar-modules" from="{event.from}" to="{event.to}" }
                     each module in="{var.sidebar-modules}" key="{module.id}" index="i" {
-                        use "settings-module-row" module="{module}" index="{i}" look="{sidebar-module-kinds | where 'kind' module.kind | first}"
+                        use "settings-module-row" module="{module}" index="{i}" look="{var.sidebar-module-kinds | where 'kind' module.kind | first}"
                     }
                 }
                 row class="settings-actions" {
@@ -251,13 +251,13 @@ define "settings-page-sidebar" {
                     spacer
                     button class="settings-button" menu-on="click" {
                         menu side="below" {
-                            each preset in="{sidebar-presets}" key="{preset.id}" {
+                            each preset in="{var.sidebar-presets}" key="{preset.id}" {
                                 item "{preset.title}" { set "settings-sidebar-confirm" "{preset.id}"; open "settings-confirm" }
                             }
                         }
                         text "Load Preset…"
                     }
-                    button class="settings-button" disabled="{var.sidebar-modules == sidebar-caelestia}" {
+                    button class="settings-button" disabled="{var.sidebar-modules == var.sidebar-caelestia}" {
                         on-click { set "settings-sidebar-confirm" "reset"; open "settings-confirm" }
                         text "Reset"
                     }
@@ -268,7 +268,7 @@ define "settings-page-sidebar" {
                     text "Add Building Block" class="settings-group-title"
                     text "It's added below the Dock, or after the last flexible spacer – drag it to the right place afterwards." class="settings-row-detail" lines=0
                     grid columns=3 class="settings-gallery" {
-                        each kind in="{sidebar-module-kinds}" key="{kind.kind}" {
+                        each kind in="{var.sidebar-module-kinds}" key="{kind.kind}" {
                             button class="settings-gallery-tile" disabled="{kind.unique && (var.sidebar-modules | where 'kind' kind.kind | count) > 0}" tooltip="{kind.unique && (var.sidebar-modules | where 'kind' kind.kind | count) > 0 ? 'Only exists once, and it is already in the sidebar' : 'Add ' + kind.title}" {
                                 on-click {
                                     list.insert "sidebar-modules" at="{var.settings-sidebar-insert-at}" id-from="kind" { - "{kind.module}" }
@@ -318,7 +318,7 @@ define "settings-page-sidebar" {
             }
             column class="settings-group" {
                 text "Background" class="settings-group-title"
-                each background in="{sidebar-backgrounds}" key="{background.id}" {
+                each background in="{var.sidebar-backgrounds}" key="{background.id}" {
                     button class="settings-choice-button" checked="{background.id == var.sidebar-background}" {
                         on-click { set "sidebar-background" "{background.id}" }
                         use "settings-choice" title="{background.title}" detail="{background.detail}" checked="{background.id == var.sidebar-background}"
@@ -342,8 +342,8 @@ define "settings-page-sidebar" {
 
 define "settings-confirm-sidebar" {
     column class="settings-confirm" {
-        text "{var.settings-sidebar-confirm == 'reset' ? 'Reset the sidebar?' : 'Load preset “' + (sidebar-presets | where 'id' var.settings-sidebar-confirm | first).title + '”?'}" class="settings-row-title"
-        text "{var.settings-sidebar-confirm == 'reset' ? 'The sidebar looks like it did at the start again (Caelestia preset). The current arrangement will be replaced.' : (sidebar-presets | where 'id' var.settings-sidebar-confirm | first).summary + ' The current arrangement will be replaced.'}" class="settings-row-detail" lines=0
+        text "{var.settings-sidebar-confirm == 'reset' ? 'Reset the sidebar?' : 'Load preset “' + (var.sidebar-presets | where 'id' var.settings-sidebar-confirm | first).title + '”?'}" class="settings-row-title"
+        text "{var.settings-sidebar-confirm == 'reset' ? 'The sidebar looks like it did at the start again (Caelestia preset). The current arrangement will be replaced.' : (var.sidebar-presets | where 'id' var.settings-sidebar-confirm | first).summary + ' The current arrangement will be replaced.'}" class="settings-row-detail" lines=0
         row class="settings-actions" {
             spacer
             button class="settings-button" {
@@ -353,10 +353,10 @@ define "settings-confirm-sidebar" {
             button class="settings-button settings-default-button" {
                 on-click {
                     switch "{var.settings-sidebar-confirm}" {
-                        case "minimal" { set "sidebar-modules" "{sidebar-minimal}" }
-                        case "dock-only" { set "sidebar-modules" "{sidebar-dock-only}" }
-                        case "everything" { set "sidebar-modules" "{sidebar-everything}" }
-                        default { set "sidebar-modules" "{sidebar-caelestia}" }
+                        case "minimal" { set "sidebar-modules" "{var.sidebar-minimal}" }
+                        case "dock-only" { set "sidebar-modules" "{var.sidebar-dock-only}" }
+                        case "everything" { set "sidebar-modules" "{var.sidebar-everything}" }
+                        default { set "sidebar-modules" "{var.sidebar-caelestia}" }
                     }
                     close "settings-confirm"
                     set "settings-sidebar-expanded" ""

@@ -6,13 +6,13 @@ var settings-dashboard-free-top from="{627 - (var.dashboard-cards-top | count) *
 var settings-dashboard-free-bottom from="{627 - (var.dashboard-cards-bottom | count) * 12 - (((var.dashboard-cards-bottom | map 'kind' | contains 'weather') ? 200 : 0) + ((var.dashboard-cards-bottom | map 'kind' | contains 'user') ? 200 : 0) + ((var.dashboard-cards-bottom | map 'kind' | contains 'clock') ? 110 : 0) + ((var.dashboard-cards-bottom | map 'kind' | contains 'calendar') ? 300 : 0) + ((var.dashboard-cards-bottom | map 'kind' | contains 'resources') ? 90 : 0) + ((var.dashboard-cards-bottom | map 'kind' | contains 'media') ? 200 : 0))}"
 var settings-dashboard-free-side from="{(var.dashboard-cards-side | count) == 0 ? 200 : 0}"
 
-let dashboard-zone-looks {
+var dashboard-zone-looks {
     - id="top" title="Top Row" empty="Empty – the other row gets the full height."
     - id="bottom" title="Bottom Row" empty="Empty – the other row gets the full height."
     - id="side" title="Side Column" empty="Empty – the rows span the full width."
 }
 
-let dashboard-card-kinds {
+var dashboard-card-kinds {
     - kind="weather" title="Weather" summary="Temperature and condition for the chosen location." symbol="cloud.sun.fill" width-top=275 width-bottom=200 width-side=200 {
         zones { - "top"; - "bottom"; - "side"; }
         card id="weather" kind="weather" show-condition=#true show-range=#true
@@ -39,7 +39,7 @@ let dashboard-card-kinds {
     }
 }
 
-let dashboard-presets {
+var dashboard-presets {
     - id="caelestia" title="Caelestia" summary="Weather and user on top, clock, calendar and resources below, media at the side."
     - id="compact" title="Compact" summary="Two rows, no side column."
     - id="calendar-weather" title="Calendar & Weather" summary="Clock and calendar, the weather at the side; only the Dashboard and Weather tabs."
@@ -132,7 +132,7 @@ define "settings-card-swap-items" {
     param "others"
     each other in="{others}" key="{other.id}" index="j" {
         when "{other.id != card.id}" {
-            item "{(dashboard-card-kinds | where 'kind' other.kind | first).title ?? other.kind} · {(dashboard-zone-looks | where 'id' other-zone | first).title}" disabled="{!(other-zone == zone || ((look.zones | contains other-zone) && ((dashboard-card-kinds | where 'kind' other.kind | first).zones | contains zone) && (look['width-' + other-zone] ?? 9999) <= (other-zone == 'top' ? var.settings-dashboard-free-top : (other-zone == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side)) + ((dashboard-card-kinds | where 'kind' other.kind | first)['width-' + other-zone] ?? 0) && ((dashboard-card-kinds | where 'kind' other.kind | first)['width-' + zone] ?? 9999) <= (zone == 'top' ? var.settings-dashboard-free-top : (zone == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side)) + (look['width-' + zone] ?? 0)))}" {
+            item "{(var.dashboard-card-kinds | where 'kind' other.kind | first).title ?? other.kind} · {(var.dashboard-zone-looks | where 'id' other-zone | first).title}" disabled="{!(other-zone == zone || ((look.zones | contains other-zone) && ((var.dashboard-card-kinds | where 'kind' other.kind | first).zones | contains zone) && (look['width-' + other-zone] ?? 9999) <= (other-zone == 'top' ? var.settings-dashboard-free-top : (other-zone == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side)) + ((var.dashboard-card-kinds | where 'kind' other.kind | first)['width-' + other-zone] ?? 0) && ((var.dashboard-card-kinds | where 'kind' other.kind | first)['width-' + zone] ?? 9999) <= (zone == 'top' ? var.settings-dashboard-free-top : (zone == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side)) + (look['width-' + zone] ?? 0)))}" {
                 list.swap "dashboard-cards-{zone}" "{index}" "dashboard-cards-{other-zone}" "{j}"
             }
         }
@@ -156,7 +156,7 @@ define "settings-dashboard-card" {
                 submenu "Move To" {
                     each target in="{look.zones}" key="{target}" {
                         when "{target != zone}" {
-                            item "{(dashboard-zone-looks | where 'id' target | first).title}" disabled="{(look['width-' + target] ?? 9999) > (target == 'top' ? var.settings-dashboard-free-top : (target == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side))}" {
+                            item "{(var.dashboard-zone-looks | where 'id' target | first).title}" disabled="{(look['width-' + target] ?? 9999) > (target == 'top' ? var.settings-dashboard-free-top : (target == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side))}" {
                                 list.move-to "dashboard-cards-{zone}" "dashboard-cards-{target}" from="{index}" to="{target == 'top' ? (var.dashboard-cards-top | count) : (target == 'bottom' ? (var.dashboard-cards-bottom | count) : (var.dashboard-cards-side | count))}"
                             }
                         }
@@ -195,14 +195,14 @@ define "settings-dashboard-zone" {
     param "zone"
     param "cards"
     column class="settings-group" {
-        text "{(dashboard-zone-looks | where 'id' zone | first).title}" class="settings-group-title"
+        text "{(var.dashboard-zone-looks | where 'id' zone | first).title}" class="settings-group-title"
         when "{(cards | count) == 0}" {
-            text "{(dashboard-zone-looks | where 'id' zone | first).empty}" class="settings-row-detail"
+            text "{(var.dashboard-zone-looks | where 'id' zone | first).empty}" class="settings-row-detail"
         }
         reorderable axis="vertical" enabled=#true {
             on-reorder { list.move "dashboard-cards-{zone}" from="{event.from}" to="{event.to}" }
             each card in="{cards}" key="{card.id}" index="i" {
-                use "settings-dashboard-card" card="{card}" zone="{zone}" index="{i}" count="{cards | count}" look="{dashboard-card-kinds | where 'kind' card.kind | first}"
+                use "settings-dashboard-card" card="{card}" zone="{zone}" index="{i}" count="{cards | count}" look="{var.dashboard-card-kinds | where 'kind' card.kind | first}"
             }
         }
     }
@@ -222,10 +222,10 @@ define "settings-page-dashboard" {
                     }
                     accessibility-action "Move Left" { list.move "dashboard-tabs" from="{i}" to="{i - 1}" }
                     accessibility-action "Move Right" { list.move "dashboard-tabs" from="{i}" to="{i + 2}" }
-                    icon "{(dashboard-tab-looks | where 'id' tab.id | first).symbol}" class="settings-row-glyph"
-                    text "{(dashboard-tab-looks | where 'id' tab.id | first).title ?? tab.id}" class="settings-row-title"
+                    icon "{(var.dashboard-tab-looks | where 'id' tab.id | first).symbol}" class="settings-row-glyph"
+                    text "{(var.dashboard-tab-looks | where 'id' tab.id | first).title ?? tab.id}" class="settings-row-title"
                     spacer
-                    toggle checked="{tab.visible}" disabled="{tab.visible && (var.dashboard-tabs | where 'visible' true | count) <= 1}" class="settings-switch" label="Show {(dashboard-tab-looks | where 'id' tab.id | first).title}" {
+                    toggle checked="{tab.visible}" disabled="{tab.visible && (var.dashboard-tabs | where 'visible' true | count) <= 1}" class="settings-switch" label="Show {(var.dashboard-tab-looks | where 'id' tab.id | first).title}" {
                         on-change { list.update "dashboard-tabs" at="{i}" { - visible="{event.value}" } }
                     }
                 }
@@ -246,13 +246,13 @@ define "settings-page-dashboard" {
         spacer
         button class="settings-button" menu-on="click" {
             menu side="below" {
-                each preset in="{dashboard-presets}" key="{preset.id}" {
+                each preset in="{var.dashboard-presets}" key="{preset.id}" {
                     item "{preset.title}" { set "settings-dashboard-confirm" "{preset.id}"; open "settings-confirm" }
                 }
             }
             text "Load Preset…"
         }
-        button class="settings-button" disabled="{var.dashboard-tabs == dashboard-caelestia.tabs && var.dashboard-cards-top == dashboard-caelestia.top && var.dashboard-cards-bottom == dashboard-caelestia.bottom && var.dashboard-cards-side == dashboard-caelestia.side}" {
+        button class="settings-button" disabled="{var.dashboard-tabs == var.dashboard-caelestia.tabs && var.dashboard-cards-top == var.dashboard-caelestia.top && var.dashboard-cards-bottom == var.dashboard-caelestia.bottom && var.dashboard-cards-side == var.dashboard-caelestia.side}" {
             on-click { set "settings-dashboard-confirm" "reset"; open "settings-confirm" }
             text "Reset"
         }
@@ -262,7 +262,7 @@ define "settings-page-dashboard" {
             text "Add Card" class="settings-group-title"
             text "It goes to its spot as in Caelestia or, if that's full, to the next one with room." class="settings-row-detail" lines=0
             grid columns=3 class="settings-gallery" {
-                each kind in="{dashboard-card-kinds}" key="{kind.kind}" {
+                each kind in="{var.dashboard-card-kinds}" key="{kind.kind}" {
                     use "settings-dashboard-gallery-tile" kind="{kind}" present="{(var.dashboard-cards-top | where 'kind' kind.kind | count) + (var.dashboard-cards-bottom | where 'kind' kind.kind | count) + (var.dashboard-cards-side | where 'kind' kind.kind | count) > 0}" zone="{(var.dashboard-cards-top | where 'kind' kind.kind | count) + (var.dashboard-cards-bottom | where 'kind' kind.kind | count) + (var.dashboard-cards-side | where 'kind' kind.kind | count) > 0 ? null : (((kind['width-' + (kind.zones | at 0)] ?? 9999) <= ((kind.zones | at 0) == 'top' ? var.settings-dashboard-free-top : ((kind.zones | at 0) == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side))) ? (kind.zones | at 0) : (((kind['width-' + (kind.zones | at 1)] ?? 9999) <= ((kind.zones | at 1) == 'top' ? var.settings-dashboard-free-top : ((kind.zones | at 1) == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side))) ? (kind.zones | at 1) : (((kind['width-' + (kind.zones | at 2)] ?? 9999) <= ((kind.zones | at 2) == 'top' ? var.settings-dashboard-free-top : ((kind.zones | at 2) == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side))) ? (kind.zones | at 2) : null)))}"
                 }
             }
@@ -358,8 +358,8 @@ define "settings-dashboard-gallery-tile" {
 
 define "settings-confirm-dashboard" {
     column class="settings-confirm" {
-        text "{var.settings-dashboard-confirm == 'reset' ? 'Reset the Dashboard?' : 'Load preset “' + (dashboard-presets | where 'id' var.settings-dashboard-confirm | first).title + '”?'}" class="settings-row-title"
-        text "{var.settings-dashboard-confirm == 'reset' ? 'Tabs and cards like they were at the start again (Caelestia preset).' : (dashboard-presets | where 'id' var.settings-dashboard-confirm | first).summary} The weather location stays." class="settings-row-detail" lines=0
+        text "{var.settings-dashboard-confirm == 'reset' ? 'Reset the Dashboard?' : 'Load preset “' + (var.dashboard-presets | where 'id' var.settings-dashboard-confirm | first).title + '”?'}" class="settings-row-title"
+        text "{var.settings-dashboard-confirm == 'reset' ? 'Tabs and cards like they were at the start again (Caelestia preset).' : (var.dashboard-presets | where 'id' var.settings-dashboard-confirm | first).summary} The weather location stays." class="settings-row-detail" lines=0
         row class="settings-actions" {
             spacer
             button class="settings-button" {
@@ -369,9 +369,9 @@ define "settings-confirm-dashboard" {
             button class="settings-button settings-default-button" {
                 on-click {
                     switch "{var.settings-dashboard-confirm}" {
-                        case "compact" { set "dashboard-tabs" "{dashboard-compact.tabs}"; set "dashboard-cards-top" "{dashboard-compact.top}"; set "dashboard-cards-bottom" "{dashboard-compact.bottom}"; set "dashboard-cards-side" "{dashboard-compact.side}" }
-                        case "calendar-weather" { set "dashboard-tabs" "{dashboard-calendar-weather.tabs}"; set "dashboard-cards-top" "{dashboard-calendar-weather.top}"; set "dashboard-cards-bottom" "{dashboard-calendar-weather.bottom}"; set "dashboard-cards-side" "{dashboard-calendar-weather.side}" }
-                        default { set "dashboard-tabs" "{dashboard-caelestia.tabs}"; set "dashboard-cards-top" "{dashboard-caelestia.top}"; set "dashboard-cards-bottom" "{dashboard-caelestia.bottom}"; set "dashboard-cards-side" "{dashboard-caelestia.side}" }
+                        case "compact" { set "dashboard-tabs" "{var.dashboard-compact.tabs}"; set "dashboard-cards-top" "{var.dashboard-compact.top}"; set "dashboard-cards-bottom" "{var.dashboard-compact.bottom}"; set "dashboard-cards-side" "{var.dashboard-compact.side}" }
+                        case "calendar-weather" { set "dashboard-tabs" "{var.dashboard-calendar-weather.tabs}"; set "dashboard-cards-top" "{var.dashboard-calendar-weather.top}"; set "dashboard-cards-bottom" "{var.dashboard-calendar-weather.bottom}"; set "dashboard-cards-side" "{var.dashboard-calendar-weather.side}" }
+                        default { set "dashboard-tabs" "{var.dashboard-caelestia.tabs}"; set "dashboard-cards-top" "{var.dashboard-caelestia.top}"; set "dashboard-cards-bottom" "{var.dashboard-caelestia.bottom}"; set "dashboard-cards-side" "{var.dashboard-caelestia.side}" }
                     }
                     close "settings-confirm"
                     set "settings-dashboard-expanded" ""

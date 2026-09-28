@@ -1,4 +1,4 @@
-var sidebar-modules "{sidebar-caelestia}" type="list" persist=#true
+var sidebar-modules "{var.sidebar-caelestia}" type="list" persist=#true
 var sidebar-screens "all" persist=#true
 var sidebar-background "material" persist=#true
 var status-popout ""

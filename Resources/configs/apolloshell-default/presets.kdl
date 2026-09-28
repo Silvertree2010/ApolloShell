@@ -1,4 +1,4 @@
-let sidebar-caelestia {
+var sidebar-caelestia {
     - id="dashboard-button" kind="dashboard-button"
     - id="spaces" kind="spaces" style="dots"
     - id="dock" kind="dock" show-running=#true icon-size="medium"
@@ -8,18 +8,18 @@ let sidebar-caelestia {
     - id="power" kind="power"
 }
 
-let sidebar-minimal {
+var sidebar-minimal {
     - id="spaces" kind="spaces" style="dots"
     - id="spacer" kind="spacer"
     - id="clock" kind="clock" show-icon=#false show-date=#false
     - id="power" kind="power"
 }
 
-let sidebar-dock-only {
+var sidebar-dock-only {
     - id="dock" kind="dock" show-running=#true icon-size="medium"
 }
 
-let sidebar-everything {
+var sidebar-everything {
     - id="dashboard-button" kind="dashboard-button"
     - id="media-button" kind="media-button"
     - id="spaces" kind="spaces" style="dots"
@@ -36,14 +36,14 @@ let sidebar-everything {
     - id="power" kind="power"
 }
 
-let dashboard-tabs-all {
+var dashboard-tabs-all {
     - id="dashboard" visible=#true
     - id="media" visible=#true
     - id="performance" visible=#true
     - id="weather" visible=#true
 }
 
-let dashboard-caelestia {
+var dashboard-caelestia {
     tabs {
         - id="dashboard" visible=#true
         - id="media" visible=#true
@@ -64,7 +64,7 @@ let dashboard-caelestia {
     }
 }
 
-let dashboard-compact {
+var dashboard-compact {
     tabs {
         - id="dashboard" visible=#true
         - id="media" visible=#true
@@ -83,7 +83,7 @@ let dashboard-compact {
     side "{[]}"
 }
 
-let dashboard-calendar-weather {
+var dashboard-calendar-weather {
     tabs {
         - id="dashboard" visible=#true
         - id="weather" visible=#true
@@ -100,7 +100,7 @@ let dashboard-calendar-weather {
     }
 }
 
-let utilities-standard {
+var utilities-standard {
     cards {
         - kind="keep-awake" enabled=#true
         - kind="audio" enabled=#true
@@ -120,7 +120,7 @@ let utilities-standard {
     }
 }
 
-let utilities-minimal {
+var utilities-minimal {
     cards {
         - kind="quick-toggles" enabled=#true
         - kind="keep-awake" enabled=#false
@@ -135,7 +135,7 @@ let utilities-minimal {
     }
 }
 
-let utilities-audio {
+var utilities-audio {
     cards {
         - kind="audio" enabled=#true
         - kind="quick-toggles" enabled=#true
@@ -150,7 +150,7 @@ let utilities-audio {
     }
 }
 
-let utilities-everything {
+var utilities-everything {
     cards {
         - kind="keep-awake" enabled=#true
         - kind="audio" enabled=#true
@@ -172,13 +172,13 @@ let utilities-everything {
     }
 }
 
-let hotkeys-default {
+var hotkeys-default {
     launcher "alt+space"
     dashboard "ctrl+alt+d"
     utilities "ctrl+alt+u"
     settings "ctrl+alt+comma"
 }
-let hotkeys-hyper {
+var hotkeys-hyper {
     launcher "f20"
     dashboard "hyper+d"
     utilities "hyper+u"

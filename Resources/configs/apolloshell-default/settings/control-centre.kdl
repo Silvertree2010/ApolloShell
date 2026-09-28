@@ -7,19 +7,19 @@ var settings-toggle-gallery #false
 var settings-toggle-symbols-open #false
 var settings-utilities-confirm ""
 
-let utilities-card-kinds {
+var utilities-card-kinds {
     - kind="keep-awake" title="Keep Awake" summary="Keep the Mac awake, even with the lid closed if you want." symbol="cup.and.saucer.fill"
     - kind="audio" title="Sound" summary="Volume, mute, output and input." symbol="speaker.wave.2.fill"
     - kind="quick-toggles" title="Quick Toggles" summary="Switches and actions, five per row." symbol="square.grid.3x3.fill"
 }
 
-let utilities-toggle-groups {
+var utilities-toggle-groups {
     - id="custom" title="Custom Buttons"
     - id="actions" title="Actions"
     - id="switches" title="Switches"
 }
 
-let utilities-toggle-kinds {
+var utilities-toggle-kinds {
     - kind="wifi" group="switches" title="Wi-Fi" summary="Turn Wi-Fi on and off." symbol="wifi" unique=#true {
         toggle id="wifi" kind="wifi"
     }
@@ -67,14 +67,14 @@ let utilities-toggle-kinds {
     }
 }
 
-let utilities-presets {
+var utilities-presets {
     - id="standard" title="Standard" summary="The default: Keep Awake, Sound and ten quick toggles."
     - id="minimal" title="Minimal" summary="Just one row of quick toggles, no cards above."
     - id="audio" title="Sound & Devices" summary="Sound at the top, below that microphone, Bluetooth and what you need while listening."
     - id="everything" title="Everything" summary="Every card and every fixed button once, for trying out and sorting through."
 }
 
-let utilities-symbol-choices {
+var utilities-symbol-choices {
     - "app.fill"
     - "link"
     - "globe"
@@ -219,7 +219,7 @@ define "settings-toggle-options" {
                         use "settings-choice" title="Automatic" checked="{toggle.symbol == null || toggle.symbol == ''}"
                     }
                     grid columns=8 class="settings-symbol-grid" {
-                        each symbol in="{utilities-symbol-choices}" key="{symbol}" {
+                        each symbol in="{var.utilities-symbol-choices}" key="{symbol}" {
                             when "{symbol | symbol-exists}" {
                                 button class="settings-symbol" checked="{symbol == toggle.symbol}" tooltip="{symbol}" {
                                     on-click { list.update "utilities-toggles" key="{toggle.id}" { - symbol="{symbol}" }; set "settings-toggle-symbol" "{symbol}"; set "settings-toggle-symbols-open" #false }
@@ -258,10 +258,10 @@ define "settings-page-control-centre" {
                     }
                     accessibility-action "Move Up" { list.move "utilities-cards" from="{i}" to="{i - 1}" }
                     accessibility-action "Move Down" { list.move "utilities-cards" from="{i}" to="{i + 2}" }
-                    icon "{(utilities-card-kinds | where 'kind' card.kind | first).symbol}" class="settings-row-glyph"
+                    icon "{(var.utilities-card-kinds | where 'kind' card.kind | first).symbol}" class="settings-row-glyph"
                     column class="settings-row-text" {
-                        text "{(utilities-card-kinds | where 'kind' card.kind | first).title ?? card.kind}" class="settings-row-title"
-                        text "{(utilities-card-kinds | where 'kind' card.kind | first).summary ?? ''}" class="settings-row-detail" lines=0
+                        text "{(var.utilities-card-kinds | where 'kind' card.kind | first).title ?? card.kind}" class="settings-row-title"
+                        text "{(var.utilities-card-kinds | where 'kind' card.kind | first).summary ?? ''}" class="settings-row-detail" lines=0
                     }
                     spacer
                     toggle checked="{card.enabled}" class="settings-switch" {
@@ -296,7 +296,7 @@ define "settings-page-control-centre" {
         reorderable axis="grid" enabled=#true class="settings-toggle-grid" {
             on-reorder { list.move "utilities-toggles" from="{event.from}" to="{event.to}" }
             each toggle in="{var.utilities-toggles}" key="{toggle.id}" index="i" {
-                button class="settings-toggle-tile" checked="{toggle.id == var.settings-toggle-selected}" tooltip="{(utilities-toggle-kinds | where 'kind' toggle.kind | first).title ?? toggle.kind}" {
+                button class="settings-toggle-tile" checked="{toggle.id == var.settings-toggle-selected}" tooltip="{(var.utilities-toggle-kinds | where 'kind' toggle.kind | first).title ?? toggle.kind}" {
                     on-click { set "settings-toggle-selected" "{toggle.id}"; set "settings-toggle-title" "{toggle.title ?? ''}"; set "settings-toggle-url" "{toggle.url ?? ''}"; set "settings-toggle-symbol" "{toggle.symbol ?? ''}"; set "settings-toggle-query" ""; set "settings-toggle-symbols-open" #false }
                     menu {
                         item "Move Forward" disabled="{i == 0}" { list.move "utilities-toggles" from="{i}" to="{i - 1}" }
@@ -307,8 +307,8 @@ define "settings-page-control-centre" {
                     accessibility-action "Move Forward" { list.move "utilities-toggles" from="{i}" to="{i - 1}" }
                     accessibility-action "Move Backward" { list.move "utilities-toggles" from="{i}" to="{i + 2}" }
                     column class="settings-toggle-content" {
-                        icon "{toggle.symbol != null && toggle.symbol != '' ? toggle.symbol : (utilities-toggle-kinds | where 'kind' toggle.kind | first).symbol}" class="settings-toggle-glyph"
-                        text "{toggle.title != null && toggle.title != '' ? toggle.title : (utilities-toggle-kinds | where 'kind' toggle.kind | first).title}" class="settings-toggle-title" lines=1 truncate="tail"
+                        icon "{toggle.symbol != null && toggle.symbol != '' ? toggle.symbol : (var.utilities-toggle-kinds | where 'kind' toggle.kind | first).symbol}" class="settings-toggle-glyph"
+                        text "{toggle.title != null && toggle.title != '' ? toggle.title : (var.utilities-toggle-kinds | where 'kind' toggle.kind | first).title}" class="settings-toggle-title" lines=1 truncate="tail"
                     }
                 }
             }
@@ -324,13 +324,13 @@ define "settings-page-control-centre" {
             spacer
             button class="settings-button" menu-on="click" {
                 menu side="below" {
-                    each preset in="{utilities-presets}" key="{preset.id}" {
+                    each preset in="{var.utilities-presets}" key="{preset.id}" {
                         item "{preset.title}" { set "settings-utilities-confirm" "{preset.id}"; open "settings-confirm" }
                     }
                 }
                 text "Load Preset…"
             }
-            button class="settings-button" disabled="{var.utilities-cards == utilities-standard.cards && var.utilities-toggles == utilities-standard.toggles}" {
+            button class="settings-button" disabled="{var.utilities-cards == var.utilities-standard.cards && var.utilities-toggles == var.utilities-standard.toggles}" {
                 on-click { set "settings-utilities-confirm" "reset"; open "settings-confirm" }
                 text "Reset"
             }
@@ -339,10 +339,10 @@ define "settings-page-control-centre" {
     when "{var.settings-toggle-gallery}" {
         column class="settings-group" {
             text "Add Button" class="settings-group-title"
-            each group in="{utilities-toggle-groups}" key="{group.id}" {
+            each group in="{var.utilities-toggle-groups}" key="{group.id}" {
                 text "{group.title}" class="settings-row-title"
                 grid columns=3 class="settings-gallery" {
-                    each kind in="{utilities-toggle-kinds | where 'group' group.id}" key="{kind.kind}" {
+                    each kind in="{var.utilities-toggle-kinds | where 'group' group.id}" key="{kind.kind}" {
                         button class="settings-gallery-tile" disabled="{kind.unique && (var.utilities-toggles | where 'kind' kind.kind | count) > 0}" tooltip="{kind.unique && (var.utilities-toggles | where 'kind' kind.kind | count) > 0 ? 'Only exists once, and it is already in the grid' : 'Add ' + kind.title}" {
                             on-click {
                                 list.insert "utilities-toggles" id-from="kind" { - "{kind.toggle}" }
@@ -370,14 +370,14 @@ define "settings-page-control-centre" {
         }
     }
     when "{var.settings-toggle-selected != '' && (var.utilities-toggles | where 'id' var.settings-toggle-selected | count) > 0}" {
-        use "settings-toggle-options" toggle="{var.utilities-toggles | where 'id' var.settings-toggle-selected | first}" look="{utilities-toggle-kinds | where 'kind' (var.utilities-toggles | where 'id' var.settings-toggle-selected | first).kind | first}"
+        use "settings-toggle-options" toggle="{var.utilities-toggles | where 'id' var.settings-toggle-selected | first}" look="{var.utilities-toggle-kinds | where 'kind' (var.utilities-toggles | where 'id' var.settings-toggle-selected | first).kind | first}"
     }
 }
 
 define "settings-confirm-control-centre" {
     column class="settings-confirm" {
-        text "{var.settings-utilities-confirm == 'reset' ? 'Reset the Control Centre?' : 'Load preset “' + (utilities-presets | where 'id' var.settings-utilities-confirm | first).title + '”?'}" class="settings-row-title"
-        text "{var.settings-utilities-confirm == 'reset' ? 'Cards and buttons like they were at the start again (Standard preset).' : (utilities-presets | where 'id' var.settings-utilities-confirm | first).summary} The current arrangement will be replaced." class="settings-row-detail" lines=0
+        text "{var.settings-utilities-confirm == 'reset' ? 'Reset the Control Centre?' : 'Load preset “' + (var.utilities-presets | where 'id' var.settings-utilities-confirm | first).title + '”?'}" class="settings-row-title"
+        text "{var.settings-utilities-confirm == 'reset' ? 'Cards and buttons like they were at the start again (Standard preset).' : (var.utilities-presets | where 'id' var.settings-utilities-confirm | first).summary} The current arrangement will be replaced." class="settings-row-detail" lines=0
         row class="settings-actions" {
             spacer
             button class="settings-button" {
@@ -387,10 +387,10 @@ define "settings-confirm-control-centre" {
             button class="settings-button settings-default-button" {
                 on-click {
                     switch "{var.settings-utilities-confirm}" {
-                        case "minimal" { set "utilities-cards" "{utilities-minimal.cards}"; set "utilities-toggles" "{utilities-minimal.toggles}" }
-                        case "audio" { set "utilities-cards" "{utilities-audio.cards}"; set "utilities-toggles" "{utilities-audio.toggles}" }
-                        case "everything" { set "utilities-cards" "{utilities-everything.cards}"; set "utilities-toggles" "{utilities-everything.toggles}" }
-                        default { set "utilities-cards" "{utilities-standard.cards}"; set "utilities-toggles" "{utilities-standard.toggles}" }
+                        case "minimal" { set "utilities-cards" "{var.utilities-minimal.cards}"; set "utilities-toggles" "{var.utilities-minimal.toggles}" }
+                        case "audio" { set "utilities-cards" "{var.utilities-audio.cards}"; set "utilities-toggles" "{var.utilities-audio.toggles}" }
+                        case "everything" { set "utilities-cards" "{var.utilities-everything.cards}"; set "utilities-toggles" "{var.utilities-everything.toggles}" }
+                        default { set "utilities-cards" "{var.utilities-standard.cards}"; set "utilities-toggles" "{var.utilities-standard.toggles}" }
                     }
                     close "settings-confirm"
                     set "settings-toggle-selected" ""
