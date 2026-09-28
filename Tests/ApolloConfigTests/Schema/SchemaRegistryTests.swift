@@ -133,6 +133,22 @@ struct SchemaRegistryTests {
         }
     }
 
+    @Test("jedes Filter-Argument und jedes Feld von Providern und Ereignissen ist kebab-case")
+    func filterArgumentsAndFieldsAreKebabCase() {
+        for filter in BuiltinSchemaRegistry.allFilters {
+            for argument in filter.arguments {
+                #expect(Self.isKebabCase(argument.name), "\(filter.name) \(argument.name) is not kebab-case")
+            }
+        }
+        let fields = BuiltinSchemaRegistry.allProviders.flatMap { provider in provider.fields.map { (provider.id, $0.path) } }
+            + BuiltinSchemaRegistry.allEvents.flatMap { event in event.fields.map { (event.name, $0.path) } }
+        for (owner, path) in fields {
+            for segment in path where segment != "*" {
+                #expect(Self.isKebabCase(segment), "\(owner) \(path.joined(separator: ".")) is not kebab-case")
+            }
+        }
+    }
+
     @Test("jede Property hat Typ und Vorgabe oder ist required")
     func propertiesHaveTypeAndDefaultOrRequired() {
         for node in BuiltinSchemaRegistry.allNodes {
