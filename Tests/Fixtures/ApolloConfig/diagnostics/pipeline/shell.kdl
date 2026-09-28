@@ -1,7 +1,4 @@
 include "widgets.kdl"
-feature "hologram" {
-    text "future"
-}
 panel "bar" anchor="top" {
     text "A" id="clock"
     row id="clock" {

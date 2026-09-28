@@ -112,7 +112,6 @@ enum IRTestBuilder {
             files: [URL(fileURLWithPath: file)],
             styleSheets: [StyleRef(url: URL(fileURLWithPath: "/config/shell.css"), span: span(line: 2))],
             requiredVersion: "0.2.0",
-            requiredFeatures: ["core"],
             vars: [
                 VarDecl(name: "dashboard-tab", type: .string, defaultValue: .scalar(literal(.string("media"), line: 3)), persist: true, derived: nil, span: span(line: 3)),
                 VarDecl(name: "clock-seconds", type: .bool, defaultValue: .scalar(literal(.bool(false), line: 4)), persist: false, derived: nil, span: span(line: 4)),

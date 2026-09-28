@@ -1,14 +1,14 @@
-<fixtures>/pipeline/shell.kdl:7:12: error: duplicate id 'clock' in surface 'bar'
-    7 |     row id="clock" {
+<fixtures>/pipeline/shell.kdl:4:12: error: duplicate id 'clock' in surface 'bar'
+    4 |     row id="clock" {
       |            ^^^^^^^
-      = note: first used here (<fixtures>/pipeline/shell.kdl:6:17)
+      = note: first used here (<fixtures>/pipeline/shell.kdl:3:17)
 
-<fixtures>/pipeline/shell.kdl:14:9: error: 'default' must be the last branch of 'switch'
-   14 |         case "a" {
+<fixtures>/pipeline/shell.kdl:11:9: error: 'default' must be the last branch of 'switch'
+   11 |         case "a" {
       |         ^^^^^^^^^^
 
-<fixtures>/pipeline/shell.kdl:18:5: error: unknown node 'buton'
-   18 |     buton {
+<fixtures>/pipeline/shell.kdl:15:5: error: unknown node 'buton'
+   15 |     buton {
       |     ^^^^^^^
       = help: did you mean 'button'?
 
@@ -18,10 +18,6 @@
       = help: did you mean 'dock'?
       = note: included from <fixtures>/pipeline/shell.kdl:1:1 (<fixtures>/pipeline/shell.kdl:1:1)
 
-<fixtures>/pipeline/shell.kdl:21:1: warning: override=#true on surface 'extra' without a previous definition
-   21 | panel "extra" override=#true {
+<fixtures>/pipeline/shell.kdl:18:1: warning: override=#true on surface 'extra' without a previous definition
+   18 | panel "extra" override=#true {
       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-<fixtures>/pipeline/shell.kdl:2:1: note: unknown feature 'hologram'
-    2 | feature "hologram" {
-      | ^^^^^^^^^^^^^^^^^^^^

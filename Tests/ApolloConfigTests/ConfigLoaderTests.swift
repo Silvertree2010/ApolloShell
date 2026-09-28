@@ -107,6 +107,16 @@ struct ConfigLoaderTests {
         #expect(result.diagnostics.map(\.message) == ["this config needs ApolloShell 0.3.0 or newer"])
     }
 
+    @Test("feature und require feature= gibt es nicht mehr")
+    func featureIsGone() {
+        let block = LoaderHarness.load(["/config/shell.kdl": "feature \"wm\" {\n    panel \"bar\" {}\n}\n"])
+        #expect(block.ir == nil)
+        #expect(block.diagnostics.map(\.message) == ["unknown node 'feature'"])
+        let required = LoaderHarness.load(["/config/shell.kdl": "require \"0.2.0\" feature=\"wm\"\n"])
+        #expect(required.ir == nil)
+        #expect(required.diagnostics.count == 1 && required.diagnostics[0].message.contains("'feature'"), "\(required.diagnostics.map(\.message))")
+    }
+
     @Test("Laden ist deterministisch und laeuft ausserhalb des Main Threads")
     func deterministicOffMainThread() async {
         let files = LoaderHarness.syntheticDefaultConfig()

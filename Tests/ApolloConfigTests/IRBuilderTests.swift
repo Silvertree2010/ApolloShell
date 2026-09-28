@@ -16,7 +16,7 @@ enum IRHarness {
         let fs = MemoryFileSystem(files)
         let included = IncludeExpander.expand(root: root, origin: .user, fileSystem: fs, paths: UseStageTests.paths)
         let requires = included.nodes.filter { $0.kdl.name == "require" }
-        let featured = FeatureStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
+        let featured = RequireStage.run(included.nodes, shellVersion: "0.2.0", registry: .builtin)
         let lets = LetStage.run(featured.nodes, registry: .builtin)
         let used = UseStage.run(lets.nodes, registry: .builtin)
         let disabled = DisableStage.run(used.nodes, registry: .builtin)
@@ -551,7 +551,6 @@ struct IRTopLevelTests {
         let result = IRHarness.build([
             "/config/shell.kdl": """
             require "0.2.0"
-            require feature="core"
             let gap=8
             style "style.css"
             var gap-size "{gap}"
@@ -574,7 +573,7 @@ struct IRTopLevelTests {
         #expect(result.diagnostics.filter { $0.severity == .error }.isEmpty, "\(result.diagnostics.map(\.message))")
         #expect(ir.id == "test" && ir.root == IRHarness.root)
         #expect(ir.files == [URL(fileURLWithPath: "/config/shell.kdl")])
-        #expect(ir.requiredVersion == "0.2.0" && ir.requiredFeatures == ["core"])
+        #expect(ir.requiredVersion == "0.2.0")
         #expect(ir.styleSheets.map(\.url) == [URL(fileURLWithPath: "/config/style.css")])
         #expect(ir.vars.map(\.name) == ["gap-size", "tab"])
         let evaluator = EvaluationHarness.evaluator(sink: WarningSink())

@@ -14,7 +14,7 @@ struct SchemaRegistryTests {
 
     static let languageNames: Set<String> = [
         "include", "let", "var", "define", "param", "slot", "fill", "use",
-        "each", "when", "else", "switch", "case", "default", "feature", "disable", "require", "style", "filter",
+        "each", "when", "else", "switch", "case", "default", "disable", "require", "style", "filter",
     ]
 
     static let topLevelBlockNames: Set<String> = ["bind", "on", "poll", "listen", "wm", "command-center", "marketplace"]
@@ -41,7 +41,7 @@ struct SchemaRegistryTests {
     static let settingsFileNames: Set<String> = ["config", "theme", "updates", "crash-reports", "editor"]
 
     static let nodesWithChildren: Set<String> = [
-        "define", "fill", "use", "each", "when", "else", "switch", "case", "default", "feature",
+        "define", "fill", "use", "each", "when", "else", "switch", "case", "default",
         "bind", "on", "wm", "command-center", "items",
         "panel", "popup", "overlay", "toast", "osd", "window",
         "row", "column", "grid", "stack", "scroll",

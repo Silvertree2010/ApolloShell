@@ -275,22 +275,10 @@ editor "code -g {file}:{line}:{column}"
 
 ### `else` (node)
 
-Alternative branch of a directly preceding when or feature.
+Alternative branch of a directly preceding when.
 
 ```kdl
 else { text "No battery" }
-```
-
-### `feature` (node)
-
-Limits the body to shells that know this feature.
-
-| | Name | Type | Default | |
-| --- | --- | --- | --- | --- |
-| argument | `name` | identifier | required | Name of the required feature. |
-
-```kdl
-feature "wm" { text "Tiling" }
 ```
 
 ### `fill` (node)
@@ -958,12 +946,11 @@ reorderable axis="vertical" { each item in="{var.items}" { text "{item.name}" } 
 
 ### `require` (node)
 
-Stops loading cleanly if the shell is too old or a feature is missing.
+Stops loading cleanly if the shell is too old.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `version` | string |  | Minimum shell version. |
-| property | `feature` | identifier | `null` | Name of a required feature. |
+| argument | `version` | string | required | Minimum shell version. |
 
 ```kdl
 require "0.2.0"

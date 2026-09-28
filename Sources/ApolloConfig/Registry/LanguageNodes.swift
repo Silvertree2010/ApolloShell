@@ -125,7 +125,7 @@ enum LanguageNodes {
             category: .language,
             childContext: .elementBody,
             contexts: structural,
-            doc: "Alternative branch of a directly preceding when or feature.",
+            doc: "Alternative branch of a directly preceding when.",
             example: "else { text \"No battery\" }"
         ),
         NodeSchema(
@@ -155,15 +155,6 @@ enum LanguageNodes {
             example: "default { text \"Unknown\" }"
         ),
         NodeSchema(
-            name: "feature",
-            category: .language,
-            arguments: [ArgumentSchema(name: "name", type: .identifier, allowsExpression: false, doc: "Name of the required feature.")],
-            childContext: .elementBody,
-            contexts: [.topLevel, .surfaceBody, .elementBody, .actions, .menu, .commandCenterItems],
-            doc: "Limits the body to shells that know this feature.",
-            example: "feature \"wm\" { text \"Tiling\" }"
-        ),
-        NodeSchema(
             name: "disable",
             category: .language,
             properties: [
@@ -178,10 +169,9 @@ enum LanguageNodes {
         NodeSchema(
             name: "require",
             category: .language,
-            arguments: [ArgumentSchema(name: "version", type: .string, required: false, allowsExpression: false, doc: "Minimum shell version.")],
-            properties: [PropertySchema(name: "feature", type: .identifier, defaultValue: .null, allowsExpression: false, doc: "Name of a required feature.")],
+            arguments: [ArgumentSchema(name: "version", type: .string, allowsExpression: false, doc: "Minimum shell version.")],
             contexts: [.topLevel],
-            doc: "Stops loading cleanly if the shell is too old or a feature is missing.",
+            doc: "Stops loading cleanly if the shell is too old.",
             example: "require \"0.2.0\""
         ),
         NodeSchema(
