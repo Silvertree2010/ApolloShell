@@ -257,6 +257,15 @@ Numbers are clamped to the range in the type column.
 | `--apollo-shadows` | flag | `true` |  | Whether surfaces cast a shadow |
 | `--apollo-icon-style` | option (auto, monochrome, colorful) | `auto` |  | How status glyphs are drawn |
 
+### Fusion
+
+| Token | Type | Default | Dark | What it does |
+| --- | --- | --- | --- | --- |
+| `--apollo-fusion-style` | option (separate, rounded, square) | `separate` |  | How touching surfaces join: each on its own, one shape with round inner corners, or with square ones |
+| `--apollo-fusion-radius` | length (0px–48px) | `14px` |  | Radius of the round inner corners where surfaces meet |
+| `--apollo-fusion-screen-edge` | option (flush, rounded) | `flush` |  | Where a joined shape meets the screen border: square, or curving into it |
+| `--apollo-jelly` | option (off, subtle, strong) | `subtle` |  | How springy joined surfaces move when they open, close or change size |
+
 ### Toasts
 
 | Token | Type | Default | Dark | What it does |

@@ -31,9 +31,13 @@ protocol SurfaceAnimator: AnyObject {
     func fade(opening: Bool) -> (duration: TimeInterval, curve: CAMediaTimingFunction)
     func progress(at time: TimeInterval, opening: Bool) -> Double
     func duration(opening: Bool) -> TimeInterval
+    func fadeDelay(opening: Bool) -> TimeInterval
+    func visibleFrame(open frame: CGRect, geometry: MotionGeometry, progress: Double) -> CGRect
 }
 
 extension SurfaceAnimator {
+    func fadeDelay(opening: Bool) -> TimeInterval { 0 }
+
     func visibleFrame(open frame: CGRect, geometry: MotionGeometry, progress: Double) -> CGRect {
         let closed = closedTransform(geometry)
         let p = CGFloat(progress)

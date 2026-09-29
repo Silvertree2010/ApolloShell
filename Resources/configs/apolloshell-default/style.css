@@ -4,6 +4,7 @@
   width: var(--apollo-bar-width, 44px);
   height: 100%;
   -apollo-join-radius: 14px;
+  --fuse-radius: var(--apollo-bar-radius, var(--apollo-fusion-radius, 14px));
 }
 #sidebar.bg-material { background: material(regular); }
 #sidebar.bg-glass { background: glass(regular); }

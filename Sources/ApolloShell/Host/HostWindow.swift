@@ -349,13 +349,22 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
             layer.removeAnimation(forKey: "surface.motion")
         }
         let fade = animator.fade(opening: opening)
-        stage.fade(window, to: opening ? 1 : 0, duration: fade.duration, curve: fade.curve) { [weak self] in
+        let run: @MainActor () -> Void = { [weak self] in
             guard let self, self.generation == current else { return }
-            if !opening {
-                self.stage.out(self.window)
-                if let scrim = self.scrimWindow { self.stage.out(scrim) }
+            self.stage.fade(self.window, to: opening ? 1 : 0, duration: fade.duration, curve: fade.curve) { [weak self] in
+                guard let self, self.generation == current else { return }
+                if !opening {
+                    self.stage.out(self.window)
+                    if let scrim = self.scrimWindow { self.stage.out(scrim) }
+                }
+                completion()
             }
-            completion()
+        }
+        let delay = animator.fadeDelay(opening: opening)
+        if delay > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { MainActor.assumeIsolated { run() } }
+        } else {
+            run()
         }
     }
 

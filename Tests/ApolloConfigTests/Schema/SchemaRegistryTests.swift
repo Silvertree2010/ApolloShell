@@ -235,11 +235,14 @@ struct SchemaRegistryTests {
         #expect(panel?.properties.contains(where: { $0.name == "screen" }) == true)
     }
 
-    @Test("reservierte Properties sind experimental markiert")
+    @Test("drag-value bleibt reserviert, fuse-group und fuse-fill gehören seit 0.2.1 zum Feature fusion")
     func reservedPropertiesAreExperimental() {
         let panel = BuiltinSchemaRegistry.allNodes.first { $0.name == "panel" }
         let fuseGroup = panel?.properties.first { $0.name == "fuse-group" }
-        #expect(fuseGroup?.stability == .experimental)
+        let fuseFill = panel?.properties.first { $0.name == "fuse-fill" }
+        #expect(fuseGroup?.stability == .stable)
+        #expect(fuseGroup?.feature == "fusion")
+        #expect(fuseFill?.feature == "fusion")
         let button = BuiltinSchemaRegistry.allNodes.first { $0.name == "button" }
         let dragValue = button?.properties.first { $0.name == "drag-value" }
         #expect(dragValue?.stability == .experimental)

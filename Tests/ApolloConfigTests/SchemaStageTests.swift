@@ -159,7 +159,8 @@ struct SchemaStageTests {
     @Test("experimental markierte Property meldet eine Notiz")
     func experimentalPropertyIsANote() {
         let result = Self.pipeline("""
-        panel "sidebar" fuse-group="a" {
+        panel "sidebar" {
+            stack drag-value="a"
         }
         """)
         #expect(result.diagnostics.count == 1)

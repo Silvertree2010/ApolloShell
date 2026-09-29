@@ -3,7 +3,7 @@ var launcher-selection 0
 var launcher-results from="{apps.all | app-search var.launcher-query}"
 var hotkey-launcher "{shell.fresh-install ? 'alt+space' : 'f20'}" persist=#true
 
-popup "launcher" anchor="bottom" motion="grow" overhang=#true {
+popup "launcher" anchor="bottom" motion="grow" fuse-group="shell" overhang=#true {
     on-open { apps.refresh; set "launcher-query" ""; set "launcher-selection" 0 }
     column class="launcher" {
         row class="launcher-search" {

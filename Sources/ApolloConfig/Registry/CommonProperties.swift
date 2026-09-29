@@ -32,8 +32,15 @@ enum CommonProperties {
         name: "fuse-group",
         type: .string,
         defaultValue: .null,
-        doc: "Merges surfaces into one area, reserved for 0.2.1.",
-        stability: .experimental,
+        doc: "Surfaces of the same group that touch are drawn as one shape by a skin behind them.",
+        feature: "fusion"
+    )
+
+    static let fuseFill = PropertySchema(
+        name: "fuse-fill",
+        type: .bool,
+        defaultValue: .bool(false),
+        doc: "The skin of the fuse group takes this surface's background; without one, the first surface's.",
         feature: "fusion"
     )
 
@@ -55,6 +62,7 @@ enum CommonProperties {
         PropertySchema(name: "safe-area", type: .bool, defaultValue: .bool(true), doc: "Content starts below the menu bar and notch."),
         PropertySchema(name: "shape", type: .enumeration(["rect", "fused"]), defaultValue: .string("rect"), doc: "Whether open flyouts form one shape with the background."),
         fuseGroup,
+        fuseFill,
     ]
 
     static let surfaceProperties: [PropertySchema] = baseline + surfaceCommon

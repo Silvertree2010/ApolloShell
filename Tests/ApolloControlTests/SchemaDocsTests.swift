@@ -73,13 +73,21 @@ struct SchemaDocsTests {
         }
     }
 
+    static func grows(_ old: String, into new: String?) -> Bool {
+        guard let new, old.hasPrefix("\""), new.hasPrefix("\"") else { return false }
+        func values(_ text: String) -> Set<String> {
+            Set(text.split(separator: "|").map { $0.trimmingCharacters(in: .whitespaces) })
+        }
+        return values(old).isSubset(of: values(new))
+    }
+
     static func compare(_ old: Value?, _ now: [(String, String)], key: String, label: String, file: URL, stableOnly: Bool = false) {
         guard case .list(let items)? = old else { return }
         let types = Dictionary(now, uniquingKeysWith: { first, _ in first })
         for case .record(let item) in items {
             if stableOnly, item["stability"] == .string("experimental") { continue }
             guard case .string(let name)? = item[key], case .string(let type)? = item["type"] else { continue }
-            #expect(types[name] == type, "\(file.lastPathComponent): \(label) '\(name)' was \(type), is \(types[name] ?? "gone")")
+            #expect(types[name] == type || Self.grows(type, into: types[name]), "\(file.lastPathComponent): \(label) '\(name)' was \(type), is \(types[name] ?? "gone")")
         }
     }
 }
