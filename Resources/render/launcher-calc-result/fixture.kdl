@@ -1,11 +1,5 @@
 fixture {
-    vars launcher-query=">theme "
-    shell {
-        themes {
-            - id="minimal" name="Minimal" author="Example" description="" issues=#null
-            - id="full" name="Full" author="Example" description="" issues=#null
-        }
-    }
+    vars launcher-query=">calc 2*(3+4)^2"
     clock now="2026-09-24T09:41:00+02:00"
     battery present=#true percent=0.76 charging=#false on-power=#false
     network {

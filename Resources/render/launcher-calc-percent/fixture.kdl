@@ -1,5 +1,5 @@
 fixture {
-    vars launcher-query=">calc 2*(3+4)"
+    vars launcher-query=">calc 15% * 80"
     clock now="2026-09-24T09:41:00+02:00"
     battery present=#true percent=0.76 charging=#false on-power=#false
     network {

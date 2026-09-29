@@ -1,5 +1,5 @@
 fixture {
-    vars launcher-query=">theme "
+    vars launcher-query=">theme min"
     shell {
         themes {
             - id="minimal" name="Minimal" author="Example" description="" issues=#null
