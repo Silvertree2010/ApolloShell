@@ -186,6 +186,11 @@ final class FusionCoordinator: BackgroundPainter, AuxiliaryWindowOwner {
         return going
     }
 
+    func refresh(_ screen: String) {
+        guard isOn, fields[screen] != nil else { return }
+        publish(screen)
+    }
+
     private func settle(_ screen: String) {
         for _ in 0..<600 where !(fields[screen]?.isResting ?? true) { fields[screen]?.step(1.0 / 30) }
         publish(screen)

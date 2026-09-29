@@ -474,6 +474,7 @@ final class WindowHost: SurfaceHosting {
         updateReserves()
         updateClickThrough()
         if !attachSyncing.contains(key) { syncAttached(to: key) }
+        if fusionRegistered, !FusionCoordinator.groupName(surface).isEmpty { fusion.refresh(surface.screenKey) }
     }
 
     func attachedRect(_ attach: SurfacePlacement.Attachment, screenKey: String) -> CGRect? {

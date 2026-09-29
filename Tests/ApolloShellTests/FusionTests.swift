@@ -46,6 +46,21 @@ struct FusionTests {
         #expect(host.fusion.models[HostFixture.screen.key]?.pieces.count == 1)
     }
 
+    @Test("Klassenwechsel am fuse-fill-Mitglied erneuert die Füllung der Haut")
+    func fillFollowsClass() throws {
+        let fixture = try HostFixture("""
+        var red #false
+        panel "bar" anchor="left" fuse-group="shell" fuse-fill=#true class="{var.red ? 'red' : ''}" { row {} }
+        """, css: "#bar { width: 40px; height: 100%; background: blue; } #bar.red { background: red; }")
+        let screen = HostFixture.screen.key
+        let before = try #require(fixture.host.fusion.models[screen]?.fill["background"])
+        fixture.assembly.actions.vars.set("red", .bool(true))
+        fixture.flush()
+        for work in fixture.deferred { work() }
+        fixture.deferred.removeAll()
+        #expect(fixture.host.fusion.models[screen]?.fill["background"] != before)
+    }
+
     @Test("separate: keine Haut, kein Maler, Hintergründe wie ohne Fusion")
     func separate() throws {
         let fixture = try fixture(["--apollo-fusion-style": "separate"])
