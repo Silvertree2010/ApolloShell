@@ -172,7 +172,7 @@ define "toggle-launchpad" {
     }
 }
 
-define "toggle-airdrop" {
+define "toggle-air-drop" {
     param "toggle"
     use "quick-toggle" icon="wave.3.right.circle.fill" tooltip="AirDrop" {
         on-click { close "utilities" wait=#true; system.airdrop }

@@ -136,7 +136,7 @@ struct DefaultSettingsPagesTests {
         let shell = try await Self.loaded()
         set(shell, "settings-page", .string("control-centre"))
         await fire(shell, "on-change", try Self.toggle(in: Self.row(shell, "Sound")), Record([("value", .bool(false))]))
-        #expect(list(shell, "utilities-cards").map { $0["enabled"] } == [.bool(true), .bool(false), .bool(true)])
+        #expect(list(shell, "utilities-cards").map { $0["enabled"] } == [.bool(true), .bool(false), .bool(true), .bool(false), .bool(false), .bool(false)])
 
         set(shell, "settings-toggle-gallery", .bool(true))
         #expect(try Self.find(shell, kind: "button", withClass: "settings-gallery-tile", text: "Wi-Fi").property("disabled") == .bool(true))

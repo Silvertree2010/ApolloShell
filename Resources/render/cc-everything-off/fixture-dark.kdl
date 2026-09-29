@@ -26,7 +26,7 @@ fixture {
             - id="empty-trash" kind="empty-trash"
             - id="mission-control" kind="mission-control"
             - id="launchpad" kind="launchpad"
-            - id="airdrop" kind="airdrop"
+            - id="air-drop" kind="air-drop"
             - id="settings" kind="settings"
         }
     }

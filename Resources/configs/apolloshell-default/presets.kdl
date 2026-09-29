@@ -127,9 +127,6 @@ var utilities-minimal {
     cards {
         - kind="quick-toggles" enabled=#true
         - kind="keep-awake" enabled=#false
-        - kind="brightness" enabled=#false
-        - kind="now-playing" enabled=#false
-        - kind="timer" enabled=#false
         - kind="audio" enabled=#false
         - kind="brightness" enabled=#false
         - kind="now-playing" enabled=#false
@@ -149,6 +146,9 @@ var utilities-audio {
         - kind="audio" enabled=#true
         - kind="quick-toggles" enabled=#true
         - kind="keep-awake" enabled=#false
+        - kind="brightness" enabled=#false
+        - kind="now-playing" enabled=#false
+        - kind="timer" enabled=#false
     }
     toggles {
         - id="microphone" kind="microphone"
@@ -186,7 +186,7 @@ var utilities-everything {
         - id="empty-trash" kind="empty-trash"
         - id="mission-control" kind="mission-control"
         - id="launchpad" kind="launchpad"
-        - id="airdrop" kind="airdrop"
+        - id="air-drop" kind="air-drop"
         - id="settings" kind="settings"
     }
 }

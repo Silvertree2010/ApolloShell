@@ -77,8 +77,8 @@ var utilities-toggle-kinds {
     - kind="launchpad" group="actions" title="Launchpad" summary="Opens Launchpad, or the Apps overview where that replaced it." symbol="square.grid.3x3.fill" unique=#true {
         toggle id="launchpad" kind="launchpad"
     }
-    - kind="airdrop" group="actions" title="AirDrop" summary="Opens the AirDrop window." symbol="wave.3.right.circle.fill" unique=#true {
-        toggle id="airdrop" kind="airdrop"
+    - kind="air-drop" group="actions" title="AirDrop" summary="Opens the AirDrop window." symbol="wave.3.right.circle.fill" unique=#true {
+        toggle id="air-drop" kind="air-drop"
     }
     - kind="open-app" group="custom" title="Open App" summary="Launches a chosen app or brings it to the front." symbol="app.fill" unique=#false {
         toggle kind="open-app" bundle-id=""
