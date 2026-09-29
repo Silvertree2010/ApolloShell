@@ -213,6 +213,7 @@ define "card-now-playing" {
                 text "{media.available == false ? 'Adapter Not Running' : 'Play Something'}" class="now-playing-artist" lines=1
             }
         }
+        spacer
         use "media-controls"
     }
 }
