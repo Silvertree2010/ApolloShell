@@ -105,6 +105,9 @@ var utilities-standard {
         - kind="keep-awake" enabled=#true
         - kind="audio" enabled=#true
         - kind="quick-toggles" enabled=#true
+        - kind="brightness" enabled=#false
+        - kind="now-playing" enabled=#false
+        - kind="timer" enabled=#false
     }
     toggles {
         - id="wifi" kind="wifi"

@@ -491,6 +491,38 @@
 .quick-toggle-glyph { font-size: 17px; font-weight: 600; }
 .quick-toggle-glyph.rune { font-size: 14.5px; }
 .quick-toggle-filler { height: 48px; }
+.quick-toggle.danger:checked { background: var(--apollo-danger-color, -apple-system-red); color: white; }
+.brightness-glyph-box { width: 32px; height: 32px; align-items: center; justify-content: center; }
+.brightness-glyph { font-size: 13px; font-weight: 600; color: -apple-system-secondary-label; }
+.brightness-slider:disabled { opacity: 0.4; }
+.now-playing { gap: 12px; align-items: center; }
+.now-playing-cover { width: 48px; height: 48px; border-radius: var(--apollo-card-radius, 10px); background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; }
+.now-playing-cover.video { width: 85px; border-radius: var(--apollo-card-radius, 8px); }
+.now-playing-placeholder { font-size: 16px; color: -apple-system-tertiary-label; }
+.now-playing-art { width: 48px; height: 48px; border-radius: var(--apollo-card-radius, 10px); }
+.now-playing-cover.video .now-playing-art { width: 85px; border-radius: var(--apollo-card-radius, 8px); }
+.now-playing-text { flex-grow: 1; flex-shrink: 1; min-width: 0; gap: 2px; align-items: start; }
+.now-playing-title { font-size: 13px; font-weight: 600; color: -apollo-accent-text; }
+.now-playing-title.idle { color: -apple-system-label; }
+.now-playing-artist { font-size: 11px; color: -apple-system-secondary-label; }
+.now-playing .media-controls { width: 108px; gap: 4px; }
+.now-playing .media-button { width: 28px; height: 28px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-label; }
+.now-playing .media-glyph { font-size: 12px; font-weight: 600; }
+.now-playing .media-play { width: auto; flex-grow: 1; border-radius: 8.96px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.now-playing.paused .media-play { border-radius: 9999px; background: rgb(from var(--apollo-accent-color, -apple-system-control-accent) r g b / 0.16); color: -apollo-accent-text; }
+.now-playing .media-play-glyph { font-size: 14px; }
+.now-playing.empty .media-controls { opacity: 0.4; }
+.timer-card { gap: 12px; align-items: center; }
+.timer-ring-box { width: 44px; height: 44px; align-items: center; justify-content: center; }
+.timer-ring { width: 44px; height: 44px; -apollo-stroke-width: 4px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); color: var(--apollo-accent-color, -apple-system-control-accent); }
+.timer-ring-glyph { font-size: 16px; font-weight: 600; }
+.timer-time { font-size: 22px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.timer-preset { width: 36px; height: 30px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-label; align-items: center; justify-content: center; }
+.timer-preset-text { font-size: 13px; font-weight: 600; }
+.timer-reset { width: 30px; height: 30px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-label; align-items: center; justify-content: center; }
+.timer-reset-glyph { font-size: 12px; font-weight: 600; }
+.timer-toggle { width: 48px; height: 30px; border-radius: 9999px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); align-items: center; justify-content: center; }
+.timer-toggle-glyph { font-size: 13px; font-weight: 600; }
 
 .launcher { width: 560px; height: 520px; }
 .launcher-search { gap: 10px; padding: 14px 18px; align-items: center; }

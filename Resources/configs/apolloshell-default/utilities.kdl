@@ -1,5 +1,6 @@
 var utilities-cards "{var.utilities-standard.cards}" type="list" persist=#true
 var utilities-toggles "{var.utilities-standard.toggles}" type="list" persist=#true
+var empty-trash-armed #false
 
 define "quick-toggle" {
     param "icon"
@@ -8,7 +9,8 @@ define "quick-toggle" {
     param "active" default=#false
     param "enabled" default=#true
     param "glyph" default=""
-    button class="quick-toggle" checked="{active}" disabled="{!enabled}" tooltip="{tooltip}" {
+    param "tone" default=""
+    button class="quick-toggle {tone}" checked="{active}" disabled="{!enabled}" tooltip="{tooltip}" {
         icon "{icon}" fallback="{fallback}" class="quick-toggle-glyph {glyph}"
         slot
     }
@@ -116,6 +118,134 @@ define "toggle-run-shortcut" {
     param "toggle"
     use "quick-toggle" icon="{toggle.symbol != null && toggle.symbol != '' ? toggle.symbol : 'square.stack.3d.forward.dottedline.fill'}" tooltip="{toggle.name == null || toggle.name == '' ? 'No Shortcut Chosen Yet' : 'Run ' + (toggle.title ?? toggle.name)}" enabled="{toggle.name != null && toggle.name != ''}" {
         on-click { run-shortcut "{toggle.name}" }
+    }
+}
+
+define "toggle-mute" {
+    param "toggle"
+    use "quick-toggle" icon="{audio.muted ? 'speaker.slash.fill' : 'speaker.wave.2.fill'}" tooltip="{audio.muted ? 'Output Muted' : 'Output On'}" active="{audio.muted == false}" {
+        on-click { audio.toggle-mute }
+    }
+}
+
+define "toggle-hidden-files" {
+    param "toggle"
+    use "quick-toggle" icon="eye.fill" tooltip="{system.hidden-files == null ? 'Hidden Files' : (system.hidden-files ? 'Hidden Files Shown' : 'Hidden Files Not Shown')}" active="{system.hidden-files == true}" enabled="{system.hidden-files != null}" {
+        on-click { system.toggle-hidden-files }
+    }
+}
+
+define "toggle-low-power" {
+    param "toggle"
+    use "quick-toggle" icon="leaf.fill" tooltip="{battery.low-power-mode ? 'Low Power Mode On' : 'Low Power Mode Off'}" active="{battery.low-power-mode == true}" {
+        on-click { battery.set-low-power "{battery.low-power-mode != true}" }
+    }
+}
+
+define "toggle-empty-trash" {
+    param "toggle"
+    use "quick-toggle" icon="{var.empty-trash-armed ? 'trash.slash.fill' : 'trash.fill'}" tooltip="{var.empty-trash-armed ? 'Click Again to Empty the Trash' : 'Empty Trash'}" active="{var.empty-trash-armed}" tone="{var.empty-trash-armed ? 'danger' : ''}" {
+        on-click {
+            when "{var.empty-trash-armed}" {
+                set "empty-trash-armed" #false
+                close "utilities" wait=#true
+                system.empty-trash
+            }
+            else {
+                set "empty-trash-armed" #true for="3s"
+            }
+        }
+    }
+}
+
+define "toggle-mission-control" {
+    param "toggle"
+    use "quick-toggle" icon="square.stack.3d.up.fill" tooltip="Mission Control" {
+        on-click { close "utilities" wait=#true; system.mission-control }
+    }
+}
+
+define "toggle-launchpad" {
+    param "toggle"
+    use "quick-toggle" icon="square.grid.3x3.fill" tooltip="Launchpad" {
+        on-click { close "utilities" wait=#true; system.launchpad }
+    }
+}
+
+define "toggle-airdrop" {
+    param "toggle"
+    use "quick-toggle" icon="wave.3.right.circle.fill" tooltip="AirDrop" {
+        on-click { close "utilities" wait=#true; system.airdrop }
+    }
+}
+
+define "card-brightness" {
+    column class="utilities-card brightness" {
+        row class="audio-head" {
+            text "Brightness" class="utilities-card-title"
+            spacer
+            text "{display.brightness == null ? 'No display found that supports this' : (display.brightness * 100 | round) + ' %'}" class="audio-level" lines=1
+        }
+        row class="audio-volume" {
+            stack class="brightness-glyph-box" {
+                icon "sun.max.fill" class="brightness-glyph"
+            }
+            slider value="{display.brightness ?? 0}" step=0 key-step=0.0625 disabled="{display.brightness == null}" class="audio-slider brightness-slider" {
+                on-change { display.set-brightness "{event.value}" }
+            }
+        }
+    }
+}
+
+define "card-now-playing" {
+    row class="utilities-card now-playing {media.playing ? 'playing' : 'paused'} {media.title == null ? 'empty' : ''}" {
+        stack class="now-playing-cover {media.kind == 'video' ? 'video' : ''}" {
+            icon "{media.kind == 'video' ? 'play.rectangle' : 'music.note'}" class="now-playing-placeholder"
+            image "{media.artwork}" fit="fill" class="now-playing-art"
+        }
+        column class="now-playing-text" {
+            when "{media.title != null}" {
+                text "{media.title}" class="now-playing-title" lines=1 truncate="tail"
+                text "{media.artist ?? 'Unknown Artist'}" class="now-playing-artist" lines=1 truncate="tail"
+            }
+            else {
+                text "{media.available == false ? 'Not Available' : 'Nothing Playing'}" class="now-playing-title idle" lines=1
+                text "{media.available == false ? 'Adapter Not Running' : 'Play Something'}" class="now-playing-artist" lines=1
+            }
+        }
+        use "media-controls"
+    }
+}
+
+define "card-timer" {
+    row class="utilities-card timer-card" {
+        stack class="timer-ring-box" {
+            ring value="{timer.mode == 'stopwatch' ? (timer.elapsed % 60) / 60 : 1 - (timer.elapsed / timer.duration | min 1)}" class="timer-ring"
+            icon "timer" class="timer-ring-glyph"
+        }
+        text "{timer.remaining != null ? (timer.remaining | ceil | duration) : (timer.elapsed | floor | duration)}" class="timer-time" lines=1
+        spacer
+        when "{timer.running == false && timer.elapsed == 0}" {
+            each minutes in="{[5, 15, 25]}" {
+                button class="timer-preset" tooltip="Start {minutes} Minutes" {
+                    on-click { timer.start "{minutes}" }
+                    text "{minutes}" class="timer-preset-text"
+                }
+            }
+        }
+        else {
+            button class="timer-reset" tooltip="Reset" {
+                on-click { timer.reset }
+                icon "arrow.counterclockwise" class="timer-reset-glyph"
+            }
+            button class="timer-toggle" tooltip="{timer.running ? 'Pause' : 'Start'}" {
+                on-click {
+                    when "{timer.running}" { timer.pause }
+                    else { timer.resume }
+                }
+                icon "{timer.running ? 'pause.fill' : 'play.fill'}" class="timer-toggle-glyph"
+            }
+        }
     }
 }
 
