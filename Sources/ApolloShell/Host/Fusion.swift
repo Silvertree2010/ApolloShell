@@ -227,7 +227,7 @@ final class FusionCoordinator: BackgroundPainter, AuxiliaryWindowOwner {
     }
 
     func windows(on screen: ScreenGeometry) -> [AuxiliaryWindowSpec] {
-        guard isOn, fields[screen.key] != nil else { return [] }
+        guard isOn else { return [] }
         return [AuxiliaryWindowSpec(id: "skin", frame: screen.frame, level: raised(on: screen.key) ? Self.raisedLevel : Self.calmLevel)]
     }
 
