@@ -19,7 +19,7 @@ struct FusionSettings: Equatable {
         let style = tokens.value("--apollo-fusion-style").flatMap { FusionStyle(rawValue: $0.trimmingCharacters(in: .whitespaces).lowercased()) }
         let radius = tokens.value("--apollo-fusion-radius").flatMap { ThemeValueReader.number($0, unit: .points) }
         let edge = tokens.value("--apollo-fusion-screen-edge").flatMap { FusionScreenEdge(rawValue: $0.trimmingCharacters(in: .whitespaces).lowercased()) }
-        shape = FusionShape(style: style ?? standard.style, innerRadius: CGFloat(min(48, max(0, radius ?? Double(standard.innerRadius)))), screenEdge: edge ?? standard.screenEdge)
+        shape = FusionShape(style: style ?? .separate, innerRadius: CGFloat(min(48, max(0, radius ?? Double(standard.innerRadius)))), screenEdge: edge ?? standard.screenEdge)
         jelly = tokens.value("--apollo-jelly").flatMap { JellyStrength(rawValue: $0.trimmingCharacters(in: .whitespaces).lowercased()) } ?? .subtle
         speed = tokens.animationsEnabled ? tokens.animationSpeed : 0
         self.reduceMotion = reduceMotion
@@ -297,12 +297,23 @@ struct FusionSkinShape: Shape {
 struct FusionSkinView: View {
     let model: FusionSkinModel
     let context: RenderContext
+    @Environment(\.renderMode) private var renderMode
+
+    static func renderFill(_ style: ComputedStyle) -> ComputedStyle {
+        guard case .layers(let list)? = style["background"] else { return style }
+        var values = style.values
+        values["background"] = .layers(list.map { layer in
+            if case .material = layer { return .glass(.regular, tint: nil) }
+            return layer
+        })
+        return ComputedStyle(values: values)
+    }
 
     var body: some View {
         let screen = CGRect(origin: .zero, size: model.size)
         Color.clear
             .frame(width: model.size.width, height: model.size.height)
-            .modifier(StyledBox(style: model.fill, context: context, padded: false,
+            .modifier(StyledBox(style: renderMode ? Self.renderFill(model.fill) : model.fill, context: context, padded: false,
                                 form: AnyShape(FusionSkinShape(pieces: model.pieces, shape: model.shape, screen: screen))))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .ignoresSafeArea()

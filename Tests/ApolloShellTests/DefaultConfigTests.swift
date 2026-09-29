@@ -178,6 +178,8 @@ struct DefaultConfigTests {
         "--apollo-bar-text-color": [".sidebar-clock"],
         "--apollo-bar-icon-color": [".sidebar-icon"],
         "--apollo-bar-width": ["#sidebar"],
+        "--apollo-bar-radius": ["#sidebar"],
+        "--apollo-fusion-radius": ["#sidebar"],
         "--apollo-bar-padding": [".sidebar-modules"],
         "--apollo-bar-item-spacing": [".sidebar-modules"],
         "--apollo-dock-icon-size": [".dock-item"],

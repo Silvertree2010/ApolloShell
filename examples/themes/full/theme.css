@@ -81,7 +81,7 @@
   --apollo-shadows: true;
   --apollo-icon-style: auto;
 
-  --apollo-fusion-style: rounded;
+  --apollo-fusion-style: separate;
   --apollo-fusion-radius: 14px;
   --apollo-fusion-screen-edge: flush;
   --apollo-jelly: subtle;

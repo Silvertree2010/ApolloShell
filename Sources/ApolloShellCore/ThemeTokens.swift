@@ -515,7 +515,7 @@ public extension ThemeTokenCatalog {
         .option("--apollo-icon-style", ["auto", "monochrome", "colorful"], "auto", group: .shape,
                 "How status glyphs are drawn"),
 
-        .option("--apollo-fusion-style", ["separate", "rounded", "square"], "rounded", group: .fusion,
+        .option("--apollo-fusion-style", ["separate", "rounded", "square"], "separate", group: .fusion,
                 "How touching surfaces join: each on its own, one shape with round inner corners, or with square ones"),
         .length("--apollo-fusion-radius", 14, max: 48, group: .fusion,
                 "Radius of the round inner corners where surfaces meet"),

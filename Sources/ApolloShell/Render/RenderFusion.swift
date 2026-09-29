@@ -87,6 +87,7 @@ enum RenderFusion {
                 .environment(\.colorScheme, session.dark ? .dark : .light)
                 .environment(\._accessibilityReduceTransparency, true)
                 .environment(\.renderMode, true)
+                .background(session.dark ? Color.black : Color.white)
                 .transaction { $0.animation = nil; $0.disablesAnimations = true })
             let hosting = NSHostingView(rootView: root)
             session.canvas.host(hosting, size: hosting.fittingSize)

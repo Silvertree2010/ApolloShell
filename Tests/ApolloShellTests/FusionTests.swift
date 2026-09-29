@@ -16,7 +16,7 @@ struct FusionTests {
     """
     static let css = "#bar { width: 40px; height: 100%; background: red; } #drawer { width: 200px; height: 100px; background: blue; border-radius: 20px; } #alone { height: 20px; background: green; }"
 
-    func fixture(_ tokens: [String: String] = [:]) throws -> HostFixture {
+    func fixture(_ tokens: [String: String] = ["--apollo-fusion-style": "rounded"]) throws -> HostFixture {
         let fixture = try HostFixture(Self.shell, css: Self.css)
         if !tokens.isEmpty {
             let sheets = fixture.ir.map { StyleSheets.load($0).0 } ?? []
@@ -52,6 +52,9 @@ struct FusionTests {
         var red #false
         panel "bar" anchor="left" fuse-group="shell" fuse-fill=#true class="{var.red ? 'red' : ''}" { row {} }
         """, css: "#bar { width: 40px; height: 100%; background: blue; } #bar.red { background: red; }")
+        let sheets = fixture.ir.map { StyleSheets.load($0).0 } ?? []
+        let environment = StyleEnvironment(appearance: .light, reduceMotion: false, reduceTransparency: false, tokens: TokenEnvironment(values: ["--apollo-fusion-style": "rounded"]))
+        fixture.host.restyle(RenderContext(styles: StyleResolver(sheets: sheets, environment: environment), icons: FixtureAppIcons(), trigger: { _, _, _ in }))
         let screen = HostFixture.screen.key
         let before = try #require(fixture.host.fusion.models[screen]?.fill["background"])
         fixture.assembly.actions.vars.set("red", .bool(true))
@@ -100,7 +103,7 @@ struct FusionTests {
         #expect(settings.shape == FusionShape(style: .square, innerRadius: 30, screenEdge: .rounded))
         #expect(settings.springs == nil)
         #expect(FusionSettings(tokens: .empty, reduceMotion: true).springs == nil)
-        #expect(FusionSettings(tokens: .empty, reduceMotion: false).shape == .standard)
+        #expect(FusionSettings(tokens: .empty, reduceMotion: false).shape == FusionShape(style: .separate, innerRadius: 14, screenEdge: .flush))
         #expect(FusionSettings(tokens: TokenEnvironment(values: ["--apollo-animation-speed": "0"]), reduceMotion: false).springs == nil)
     }
 
@@ -132,5 +135,41 @@ struct FusionTests {
         field.step(1.0 / 60)
         let b = field.pieces.first { $0.id == "b" }?.piece.rect
         #expect((b?.minX ?? 40) > 40)
+    }
+}
+
+@MainActor
+@Suite("Fusion: Vorgaben wie release/0.2 und Werte wie feature/fusion")
+struct FusionDefaultTests {
+    @Test("Ohne Theme-Wert ist Fusion aus (separate), wie in release/0.2")
+    func offByDefault() throws {
+        #expect(FusionSettings(tokens: .empty, reduceMotion: false).shape.style == .separate)
+        #expect(ThemeTokenCatalog.standard.tokens.first { $0.name == "--apollo-fusion-style" }.map { "\($0)".contains("separate") } == true)
+        let fixture = try HostFixture("panel \"bar\" anchor=\"left\" fuse-group=\"shell\" { row {} }", css: "#bar { width: 40px; height: 100%; background: red; }")
+        #expect(!fixture.host.fusion.isOn)
+        #expect(fixture.host.painter == nil)
+        #expect(fixture.factory.auxiliary.isEmpty)
+    }
+
+    func radius(_ tokens: [String: String]) throws -> CGFloat? {
+        let fixture = try HostFixture("panel \"bar\" anchor=\"left\" fuse-group=\"shell\" { row {} }",
+                                      css: "#bar { width: 40px; height: 100%; --fuse-radius: var(--apollo-bar-radius, var(--apollo-fusion-radius, 14px)); }")
+        let sheets = fixture.ir.map { StyleSheets.load($0).0 } ?? []
+        let environment = StyleEnvironment(appearance: .light, reduceMotion: false, reduceTransparency: false, tokens: TokenEnvironment(values: tokens))
+        fixture.host.restyle(RenderContext(styles: StyleResolver(sheets: sheets, environment: environment), icons: FixtureAppIcons(), trigger: { _, _, _ in }))
+        return fixture.host.fusionMember("bar@" + HostFixture.screen.key)?.radius
+    }
+
+    @Test("Sidebar-Radius aus --apollo-bar-radius, sonst Hohlkehlen-Radius, sonst 14")
+    func sidebarRadius() throws {
+        #expect(try radius([:]) == 14)
+        #expect(try radius(["--apollo-fusion-radius": "30px"]) == 30)
+        #expect(try radius(["--apollo-bar-radius": "22px", "--apollo-fusion-radius": "30px"]) == 22)
+    }
+
+    @Test("Render: material der Haut wird zum Glas-Ersatz wie BarGlass im Render")
+    func renderFill() {
+        let fill = ComputedStyle(values: ["background": .layers([.material(.regular)])])
+        #expect(FusionSkinView.renderFill(fill)["background"] == .layers([.glass(.regular, tint: nil)]))
     }
 }
