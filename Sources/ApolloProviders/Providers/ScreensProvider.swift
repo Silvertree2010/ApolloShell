@@ -71,7 +71,7 @@ public final class ScreensProvider: BaseProvider {
         ]))
     }
 
-    static func area(_ rect: CGRect?, in frame: CGRect) -> Value {
+    public static func area(_ rect: CGRect?, in frame: CGRect) -> Value {
         guard let rect else { return .null }
         return .record(Record([
             ("x", .number(Double(rect.minX - frame.minX))),

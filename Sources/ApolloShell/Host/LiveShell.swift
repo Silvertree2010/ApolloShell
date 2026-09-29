@@ -88,7 +88,7 @@ final class LiveShell: WindowHostLink {
     let firstWeekday = FirstWeekdaySetting()
     var interactive = true
     var currentScreens: @MainActor () -> [String: ScreenGeometry] = {
-        Dictionary(ShellScreens.current().map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame, name: $0.info.name, notch: $0.screen.safeAreaInsets.top > 0)) }, uniquingKeysWith: { first, _ in first })
+        Dictionary(ShellScreens.current().map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame, name: $0.info.name, notch: $0.screen.safeAreaInsets.top > 0, notchLeft: SystemScreensSource.notch($0.screen)?.left, notchRight: SystemScreensSource.notch($0.screen)?.right)) }, uniquingKeysWith: { first, _ in first })
     }
     var pointerScreen: @MainActor () -> String? = { ShellScreens.underPointer()?.info.key }
 
@@ -286,6 +286,7 @@ final class LiveShell: WindowHostLink {
             store.set(DependencyPath("screen:" + key, []), .record(Record([
                 ("id", .string(key)), ("name", .string(screen.name ?? key)), ("main", .bool(screen.frame.origin == .zero)),
                 ("width", .number(Double(screen.frame.width))), ("height", .number(Double(screen.frame.height))), ("notch", .bool(screen.notch)),
+                ("notch-left", ScreensProvider.area(screen.notchLeft, in: screen.frame)), ("notch-right", ScreensProvider.area(screen.notchRight, in: screen.frame)),
             ])))
         }
     }

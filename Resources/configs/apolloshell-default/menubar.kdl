@@ -1,0 +1,572 @@
+var menubar-enabled #false persist=#true
+var menubar-screens "all" persist=#true
+var menubar-style "fill" persist=#true
+var menubar-distinct #false persist=#true
+var menubar-thickness 24 persist=#true
+var menubar-covers #true persist=#true
+var menubar-hide-apple #false persist=#true
+var menubar-status-style "icons" persist=#true
+var menubar-start "{var.menubar-macos.start}" type="list" persist=#true
+var menubar-center "{var.menubar-macos.center}" type="list" persist=#true
+var menubar-end "{var.menubar-macos.end}" type="list" persist=#true
+var menubar-popout ""
+var menubar-popout-next ""
+var menubar-capsules from="{var.menubar-style == 'islands' || var.menubar-distinct}"
+var menubar-control from="{var.menubar-thickness - (var.menubar-capsules ? 6 : 4) | min 32}"
+var menubar-active from="{var.menubar-enabled && ((var.menubar-start | count) + (var.menubar-center | count) + (var.menubar-end | count)) > 0}"
+
+var menubar-macos {
+    thickness 24
+    start {
+        - id="apple-menu" kind="apple-menu"
+        - id="app-menus" kind="app-menus"
+    }
+    center { }
+    end {
+        - id="status-items" kind="status-items"
+        - id="status-icons" kind="status-icons" wifi=#true bluetooth=#true battery=#true
+        - id="clock" kind="clock" show-icon=#false show-date=#true
+    }
+}
+
+var menubar-serpantinum {
+    thickness 34
+    start {
+        - id="dashboard-button" kind="dashboard-button"
+        - id="spaces" kind="spaces" style="dots"
+        - id="media-button" kind="media-button"
+    }
+    center {
+        - id="clock" kind="clock" show-icon=#false show-date=#true
+        - id="weather" kind="weather" show-temperature=#true joins=#true
+    }
+    end {
+        - id="status-icons" kind="status-icons" wifi=#true bluetooth=#true battery=#false
+        - id="battery" kind="battery" show-icon=#true joins=#true
+        - id="power" kind="power"
+    }
+}
+
+var menubar-minimal {
+    thickness 34
+    start {
+        - id="spaces" kind="spaces" style="dots"
+    }
+    center { }
+    end {
+        - id="clock" kind="clock" show-icon=#false show-date=#false
+    }
+}
+
+var menubar-clock-only {
+    thickness 34
+    start { }
+    center {
+        - id="clock" kind="clock" show-icon=#false show-date=#false
+    }
+    end { }
+}
+
+var menubar-presets {
+    - id="macos" title="macOS" summary="Apple menu, the app's menus, other apps' status items, the clock."
+    - id="serpantinum" title="Serpantinum" summary="Spaces and media on the left, clock and weather in the middle, status on the right."
+    - id="minimal" title="Minimal" summary="Spaces on the left, the clock on the right."
+    - id="clock-only" title="Clock Only" summary="Just the clock in the middle."
+}
+
+on "shell.started" { emit "menubar-apply" }
+on "user.menubar-apply" { system.hide-apple-menubar "{var.menubar-active && var.menubar-hide-apple}" }
+
+define "menubar-title" {
+    param "tooltip" default=""
+    param "lit" default=#false
+    button class="menubar-title" checked="{lit}" tooltip="{tooltip}" menu-on="click" {
+        slot
+    }
+}
+
+define "menubar-icon" {
+    param "icon"
+    param "fallback" default=#null
+    param "tooltip" default=""
+    param "glyph" default=""
+    button class="menubar-icon" tooltip="{tooltip}" {
+        icon "{icon}" fallback="{fallback}" class="menubar-glyph {glyph}"
+        slot
+    }
+}
+
+define "menubar-apple-menu" {
+    param "module"
+    button class="menubar-title menubar-apple" tooltip="Apple Menu" menu-on="click" {
+        menu side="below" offset=3 { source "app-menubar" index=0 }
+        icon "apple.logo" class="menubar-apple-glyph"
+    }
+}
+
+define "menubar-app-menus" {
+    param "module"
+    app-menus class="menubar-app-menus" {
+        each menu in="{menubar.menus | skip 1}" key="{menu.index}" {
+            button class="menubar-title {menu.app ? 'menubar-app-name' : ''}" tooltip="{menu.title}" menu-on="click" {
+                menu side="below" offset=3 { source "app-menubar" index="{menu.index}" }
+                text "{menu.title}" class="menubar-title-text"
+            }
+        }
+        button class="menubar-title menubar-more" tooltip="More Menus" menu-on="click" {
+            menu side="below" offset=3 { source "app-menubar" overflow=#true }
+            icon "ellipsis" class="menubar-more-glyph"
+        }
+    }
+}
+
+define "menubar-status-items" {
+    param "module"
+    row class="menubar-status-items" {
+        each item in="{status-items.list}" key="{item.id}" {
+            button class="menubar-title menubar-status-item" tooltip="{item.name == '' ? 'Status Item' : item.name}" menu-on="click" {
+                menu side="below" offset=3 { source "status-item" item="{item}" }
+                when "{item.image != null}" {
+                    image "{item.image}" class="menubar-status-image {item.monochrome ? 'template' : ''}"
+                }
+                else {
+                    when "{item.symbol != null}" {
+                        icon "{item.symbol}" class="menubar-status-symbol {item.monochrome ? 'template' : 'original'}"
+                    }
+                    else {
+                        when "{item.title != ''}" { text "{item.title}" class="menubar-status-text" }
+                        else {
+                            when "{item.app != null}" { app-icon "{item.app}" class="menubar-status-app" }
+                            else { icon "questionmark.square.dashed" class="menubar-status-symbol template" }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "menubar-status-button" {
+    param "kind"
+    param "tooltip"
+    button id="menubar-status-{kind}" class="menubar-icon menubar-status-icon" checked="{var.menubar-popout == kind}" tooltip="{tooltip}" {
+        on-click { set "menubar-popout-next" "{kind}"; emit "menubar-popout" }
+        slot
+    }
+}
+
+define "menubar-status-pill" {
+    param "kind"
+    param "tooltip"
+    param "label"
+    button id="menubar-status-{kind}" class="menubar-pill pill-{kind}" checked="{var.menubar-popout == kind}" tooltip="{tooltip}" {
+        on-click { set "menubar-popout-next" "{kind}"; emit "menubar-popout" }
+        row class="menubar-pill-body" {
+            slot
+            text "{label}" class="menubar-pill-text"
+        }
+    }
+}
+
+define "menubar-wifi-glyph" {
+    param "size" default="icon"
+    icon "{network.wifi.on == false ? 'status-wifi-off' : 'status-wifi'}" fallback="{network.wifi.symbol}" class="status-glyph menubar-wifi-glyph {size}"
+}
+
+define "menubar-battery-glyph" {
+    param "size" default="icon"
+    icon "{battery.charging ? 'status-battery-charging' : 'status-battery'}" fallback="{battery.symbol}" class="status-glyph menubar-battery-glyph {size}"
+}
+
+define "menubar-status-set" {
+    param "show-wifi"
+    param "show-bluetooth"
+    param "show-battery"
+    param "standalone" default=#false
+    switch "{var.menubar-status-style}" {
+        case "pills" {
+            when "{show-wifi || show-bluetooth || (show-battery && battery.present)}" {
+                row class="menubar-pills" {
+                    when "{show-wifi}" {
+                        use "menubar-status-pill" kind="wifi" tooltip="{!network.wifi.on ? 'Wi-Fi Off' : (network.wifi.connected ? 'Wi-Fi ' + network.wifi.rssi + ' dBm' : 'Wi-Fi On, Not Connected')}" label="{network.wifi.on == false ? 'Off' : 'Wi-Fi'}" {
+                            use "menubar-wifi-glyph" size="pill"
+                        }
+                    }
+                    when "{show-bluetooth}" {
+                        use "menubar-status-pill" kind="bluetooth" tooltip="{bluetooth.on == null ? 'Bluetooth' : (bluetooth.on ? 'Bluetooth On' : 'Bluetooth Off')}" label="{bluetooth.on == null ? '–' : (bluetooth.on ? 'On' : 'Off')}" {
+                            stack class="menubar-pill-rune" { use "bluetooth-glyph" enabled="{bluetooth.on != false}" }
+                        }
+                    }
+                    when "{show-battery && battery.present}" {
+                        use "menubar-status-pill" kind="battery" tooltip="{battery.state-text}" label="{battery.percent | percent}" {
+                            use "menubar-battery-glyph" size="pill"
+                        }
+                    }
+                }
+            }
+        }
+        default {
+            when "{show-wifi || show-bluetooth || (show-battery && battery.present)}" {
+                row class="menubar-status-capsule {standalone ? 'standalone' : ''}" {
+                    when "{show-wifi}" {
+                        use "menubar-status-button" kind="wifi" tooltip="{!network.wifi.on ? 'Wi-Fi Off' : (network.wifi.connected ? 'Wi-Fi ' + network.wifi.rssi + ' dBm' : 'Wi-Fi On, Not Connected')}" {
+                            use "menubar-wifi-glyph"
+                        }
+                    }
+                    when "{show-bluetooth}" {
+                        use "menubar-status-button" kind="bluetooth" tooltip="{bluetooth.on == null ? 'Bluetooth' : (bluetooth.on ? 'Bluetooth On' : 'Bluetooth Off')}" {
+                            use "bluetooth-glyph" enabled="{bluetooth.on != false}"
+                        }
+                    }
+                    when "{show-battery && battery.present}" {
+                        use "menubar-status-button" kind="battery" tooltip="{battery.state-text}" {
+                            use "menubar-battery-glyph"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "menubar-status-icons" {
+    param "module"
+    use "menubar-status-set" show-wifi="{module.wifi}" show-bluetooth="{module.bluetooth}" show-battery="{module.battery}"
+}
+
+define "menubar-wifi" {
+    param "module"
+    use "menubar-status-set" show-wifi=#true show-bluetooth=#false show-battery=#false standalone=#true
+}
+
+define "menubar-bluetooth" {
+    param "module"
+    use "menubar-status-set" show-wifi=#false show-bluetooth=#true show-battery=#false standalone=#true
+}
+
+define "menubar-clock-text" {
+    param "module"
+    row class="menubar-clock-line" {
+        when "{module.show-icon}" { icon "bar-clock" fallback="calendar" class="menubar-clock-icon" }
+        text "{clock.now | date 'HH:mm'}" class="menubar-clock-time"
+        when "{module.show-date}" { text "{clock.now | date 'EEE d'}" class="menubar-clock-date" }
+    }
+}
+
+define "menubar-clock" {
+    param "module"
+    button class="menubar-clock style-{module.style ?? 'line'}" tooltip="{clock.now | date 'EEEE, d. MMMM y, HH:mm'}" {
+        on-click { toggle "dashboard" }
+        switch "{module.style ?? 'line'}" {
+            case "stacked" {
+                row class="menubar-clock-line" {
+                    when "{module.show-icon}" { icon "bar-clock" fallback="calendar" class="menubar-clock-icon" }
+                    column class="menubar-clock-stack" {
+                        text "{clock.now | date 'HH'}" class="menubar-clock-small"
+                        text "{clock.now | date 'mm'}" class="menubar-clock-small second"
+                    }
+                    when "{module.show-date}" {
+                        column class="menubar-clock-stack menubar-clock-date-stack" {
+                            text "{clock.now | date 'EEE'}" class="menubar-clock-tiny"
+                            text "{clock.now | date 'd'}" class="menubar-clock-tiny second"
+                        }
+                    }
+                }
+            }
+            case "badge" {
+                stack class="menubar-clock-badge" { use "menubar-clock-text" module="{module}" }
+            }
+            default { use "menubar-clock-text" module="{module}" }
+        }
+    }
+}
+
+define "menubar-spaces" {
+    param "module"
+    switch "{module.style}" {
+        case "pills" { use "menubar-spaces-face" module="{module}" }
+        case "bars" { use "menubar-spaces-face" module="{module}" }
+        default {
+            row class="menubar-spaces style-{module.style}" {
+                each space in="{spaces.list | where 'fullscreen' false}" key="{space.id}" {
+                    button class="menubar-space" checked="{space.active}" tooltip="To Desktop {space.index}" {
+                        on-click { spaces.switch "{space.index}" }
+                        stack {
+                            when "{space.active}" { stack class="menubar-space-pill" match-id="menubar-space-pill" }
+                            when "{module.style == 'numbers'}" { text "{space.index}" class="menubar-space-number" }
+                            else { stack class="menubar-space-dot" }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "menubar-spaces-face" {
+    param "module"
+    row class="menubar-spaces face-{module.style}" {
+        each space in="{spaces.list | where 'fullscreen' false}" key="{space.id}" {
+            button class="menubar-space-face" checked="{space.active}" tooltip="To Desktop {space.index}" {
+                on-click { spaces.switch "{space.index}" }
+                stack class="menubar-space-mark"
+            }
+        }
+    }
+}
+
+define "menubar-dashboard-button" {
+    param "module"
+    use "menubar-icon" icon="bar-dashboard" fallback="square.grid.2x2" tooltip="Dashboard" {
+        on-click { toggle "dashboard" }
+    }
+}
+
+define "menubar-utilities-button" {
+    param "module"
+    use "menubar-icon" icon="bar-utilities" fallback="slider.horizontal.3" tooltip="Utilities" {
+        on-click { toggle "utilities" }
+    }
+}
+
+define "menubar-media-button" {
+    param "module"
+    use "menubar-icon" icon="panel-media" fallback="music.note" tooltip="Media" glyph="menubar-media-glyph" {
+        on-click { set "dashboard-tab" "media"; open "dashboard" }
+    }
+}
+
+define "menubar-power" {
+    param "module"
+    use "menubar-icon" icon="bar-power" fallback="power" tooltip="Session" glyph="menubar-power-glyph" {
+        on-click { toggle "session" }
+    }
+}
+
+define "menubar-spacer" {
+    param "module"
+    spacer class="menubar-spacer"
+}
+
+define "menubar-gap" {
+    param "module"
+    spacer size="{module.height ?? 16 | clamp 4 96}"
+}
+
+define "menubar-divider" {
+    param "module"
+    stack class="menubar-divider"
+}
+
+define "menubar-app-button" {
+    param "module"
+    when "{module.bundle-id != ''}" {
+        button class="menubar-icon menubar-app" tooltip="Open {(apps.all | where 'bundle-id' module.bundle-id | first).name ?? module.bundle-id}" {
+            on-click { apps.launch "{module.bundle-id}" }
+            app-icon "{module.bundle-id}" class="menubar-app-icon"
+        }
+    }
+    else {
+        stack class="menubar-icon" { icon "app.dashed" class="menubar-app-placeholder" }
+    }
+}
+
+define "menubar-battery" {
+    param "module"
+    when "{battery.present}" {
+        button class="menubar-tile menubar-battery {battery.percent <= 0.1 && !battery.charging && !battery.on-power ? 'low' : ''}" tooltip="{battery.state-text}" {
+            on-click { set "dashboard-tab" "performance"; open "dashboard" }
+            row class="menubar-tile-row" {
+                when "{module.show-icon}" { icon "{battery.symbol}" fallback="battery.100" class="menubar-tile-glyph" }
+                text "{battery.percent | percent}" class="menubar-tile-value"
+            }
+        }
+    }
+}
+
+define "menubar-cpu" {
+    param "module"
+    button class="menubar-tile menubar-cpu" tooltip="CPU {perf.cpu | percent}" {
+        on-click { set "dashboard-tab" "performance"; open "dashboard" }
+        switch "{module.style}" {
+            case "percent" {
+                row class="menubar-tile-row" {
+                    icon "cpu" class="menubar-tile-glyph"
+                    text "{perf.cpu | percent}" class="menubar-tile-value"
+                }
+            }
+            default {
+                stack class="menubar-cpu-stack" {
+                    ring value="{perf.cpu}" class="menubar-cpu-ring"
+                    text "{perf.cpu * 100 | round}" class="menubar-cpu-number"
+                }
+            }
+        }
+    }
+}
+
+define "menubar-weather" {
+    param "module"
+    button class="menubar-tile menubar-weather" tooltip="{weather.status == 'ready' ? weather.current.description + ' in ' + weather.place.name : 'Weather'}" {
+        on-click { set "dashboard-tab" "weather"; open "dashboard" }
+        row class="menubar-tile-row menubar-weather-row" {
+            when "{weather.status == 'ready'}" {
+                icon "{weather.current.symbol ?? 'cloud.sun.fill'}" class="menubar-weather-glyph"
+                when "{module.show-temperature}" { text "{weather.current.temperature | temperature}" class="menubar-weather-temperature" }
+            }
+            else {
+                icon "cloud.sun" class="menubar-weather-glyph idle"
+                when "{module.show-temperature}" { text "--°" class="menubar-weather-temperature idle" }
+            }
+        }
+    }
+}
+
+define "menubar-network-speed" {
+    param "module"
+    button class="menubar-tile menubar-network" tooltip="↓ {perf.net-down | bytes-per-second}  ↑ {perf.net-up | bytes-per-second}" {
+        on-click { set "dashboard-tab" "performance"; open "dashboard" }
+        column class="menubar-network-lines" {
+            row class="menubar-network-line" {
+                icon "arrow.down" class="menubar-network-arrow down"
+                text "{perf.net-down | bytes}" class="menubar-network-value"
+            }
+            row class="menubar-network-line" {
+                icon "arrow.up" class="menubar-network-arrow up"
+                text "{perf.net-up | bytes}" class="menubar-network-value"
+            }
+        }
+    }
+}
+
+define "menubar-window-title" {
+    param "module"
+    when "{window.app != null}" {
+        row class="menubar-window-title" {
+            when "{module.show-icon ?? true}" { app-icon "{window.app}" class="menubar-window-icon" }
+            text "{window.app.name}" class="menubar-window-app"
+            when "{(module.show-title ?? true) && window.title != null && window.title != ''}" {
+                text "{window.title | truncate (module.max-length ?? 40)}" class="menubar-window-text"
+            }
+        }
+    }
+}
+
+define "menubar-keyboard-layout" {
+    param "module"
+    button class="menubar-tile menubar-keyboard" tooltip="{keyboard.source.name}" {
+        on-click { keyboard.next-source }
+        row class="menubar-tile-row" {
+            when "{module.show-icon}" { icon "keyboard" class="menubar-tile-glyph" }
+            text "{keyboard.source.short}" class="menubar-keyboard-text"
+        }
+    }
+}
+
+define "menubar-volume" {
+    param "module"
+    button class="menubar-tile menubar-volume" tooltip="{audio.output.name}" {
+        on-click { audio.toggle-mute }
+        on-scroll step=1 { audio.change-volume "{event.direction == 'up' ? 0.05 : -0.05}" }
+        row class="menubar-tile-row" {
+            icon "{audio.symbol}" class="menubar-tile-glyph"
+            when "{module.show-percent ?? true}" { text "{audio.volume | percent}" class="menubar-tile-value" }
+            when "{module.show-device}" { text "{audio.output.name}" class="menubar-volume-device" }
+        }
+    }
+}
+
+define "menubar-system-stats" {
+    param "module"
+    button class="menubar-tile menubar-stats" tooltip="CPU {perf.cpu | percent}, Memory {perf.memory | percent}" {
+        on-click { set "dashboard-tab" "performance"; open "dashboard" }
+        row class="menubar-tile-row" {
+            when "{(module.show-cpu ?? true) || !(module.show-memory ?? true)}" {
+                icon "cpu" class="menubar-stats-glyph"
+                text "{perf.cpu | percent}" class="menubar-tile-value"
+            }
+            when "{module.show-memory ?? true}" {
+                icon "memorychip" class="menubar-stats-glyph"
+                text "{perf.memory | percent}" class="menubar-tile-value"
+            }
+        }
+    }
+}
+
+define "menubar-now-playing" {
+    param "module"
+    when "{media.title != null && media.title != ''}" {
+        row class="menubar-now-playing" {
+            button class="menubar-now-playing-title" tooltip="{media.title} · {media.artist}" {
+                on-click { set "dashboard-tab" "media"; open "dashboard" }
+                text "{(media.title + (media.artist != null && media.artist != '' ? ' · ' + media.artist : '')) | truncate (module.max-length ?? 28)}" class="menubar-now-playing-text"
+            }
+            when "{module.show-controls ?? true}" {
+                button class="menubar-now-playing-control" tooltip="Previous" {
+                    on-click { media.previous }
+                    icon "backward.fill" class="menubar-now-playing-glyph"
+                }
+                button class="menubar-now-playing-control" tooltip="{media.playing ? 'Pause' : 'Play'}" {
+                    on-click { media.play-pause }
+                    icon "{media.playing ? 'pause.fill' : 'play.fill'}" class="menubar-now-playing-glyph"
+                }
+                button class="menubar-now-playing-control" tooltip="Next" {
+                    on-click { media.next }
+                    icon "forward.fill" class="menubar-now-playing-glyph"
+                }
+            }
+        }
+    }
+}
+
+define "menubar-dock" {
+    param "module"
+    row class="menubar-dock" {
+        each app in="{apps.dock}" key="{app.bundle-id}" {
+            button class="menubar-dock-item {app.active ? 'front' : ''}" tooltip="{app.name}" menu-on="right-click long-press" {
+                on-click { apps.click "{app}" modifiers="{event.modifiers}" }
+                menu side="below" offset=6 { source "app-dock" app="{app}" fallback="full" }
+                stack {
+                    app-icon "{app}" class="menubar-dock-icon" badge="{app.badge}"
+                    when "{app.running}" { stack class="menubar-dock-running-dot" }
+                }
+            }
+        }
+    }
+}
+
+define "menubar-zone" {
+    param "zone"
+    param "modules"
+    row class="menubar-zone zone-{zone}" {
+        each group in="{modules | runs 'joins'}" key="{(group | first).id}" {
+            row class="menubar-group" {
+                each module in="{group}" key="{module.id}" {
+                    use "menubar-{module.kind}" module="{module}"
+                }
+            }
+        }
+    }
+}
+
+panel "menubar" anchor="top" area="{var.menubar-covers ? 'full' : 'below-menubar'}" layer="{var.menubar-covers ? 'status' : 'floating'}" reserve=#true fullscreen="hide" screen="{var.menubar-screens}" visible="{var.menubar-active}" class="menubar {var.menubar-style} {var.menubar-distinct ? 'distinct' : ''} status-{var.menubar-status-style} {theme.set['menubar-color'] || theme.set['menubar-gradient'] || theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-material'}" style="--menubar-thickness: {var.menubar-thickness}px; --menubar-control: {var.menubar-control}px; height: {var.menubar-thickness + (var.menubar-style == 'islands' ? 6 : 0)}px" {
+    row class="menubar-zones" notch="{var.menubar-covers ? 'avoid' : 'ignore'}" {
+        use "menubar-zone" zone="start" modules="{var.menubar-start}"
+        use "menubar-zone" zone="center" modules="{var.menubar-center}"
+        use "menubar-zone" zone="end" modules="{var.menubar-end}"
+    }
+}
+
+on "user.menubar-popout" when="{var.menubar-popout == var.menubar-popout-next}" { close "menubar-status-popout" }
+on "user.menubar-popout" when="{var.menubar-popout != var.menubar-popout-next}" { set "menubar-popout" "{var.menubar-popout-next}"; open "menubar-status-popout" }
+
+popup "menubar-status-popout" attach="{'menubar-status-' + var.menubar-popout}" side="bottom" motion="fade" {
+    on-close { set "menubar-popout" "" }
+    switch "{var.menubar-popout}" {
+        case "wifi" { use "popout-wifi" }
+        case "bluetooth" { use "popout-bluetooth" }
+        case "battery" { use "popout-battery" }
+    }
+}
+
+style "menubar.css"

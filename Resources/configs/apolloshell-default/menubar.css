@@ -1,0 +1,99 @@
+#menubar { align-items: stretch; color: var(--apollo-menubar-text-color, var(--apollo-bar-text-color, -apple-system-label)); }
+#menubar.fill { border-radius: var(--apollo-menubar-radius, 0px); }
+#menubar.fill.bg-material { background: material(regular); }
+#menubar.fill.themed { background: var(--apollo-menubar-fill), glass(regular); }
+
+.menubar-zones { align-self: stretch; height: 100%; padding: 0 var(--apollo-bar-padding, 10px); gap: 8px; align-items: stretch; }
+#menubar.islands .menubar-zones { height: var(--menubar-thickness); padding: 0 var(--apollo-menubar-island-margin, 6px); margin: var(--apollo-menubar-island-margin, 6px) 0 0 0; }
+.menubar-zone { gap: var(--apollo-menubar-group-spacing, var(--apollo-bar-item-spacing, 8px)); align-items: stretch; }
+#menubar.islands .menubar-zone, #menubar.fill.distinct .menubar-zone { gap: var(--apollo-menubar-group-spacing, 6px); }
+.zone-center { justify-self: center; }
+.zone-end { justify-self: end; }
+
+.menubar-group { gap: var(--apollo-menubar-item-spacing, 4px); align-items: center; }
+#menubar.islands .menubar-group { padding: 0 var(--apollo-menubar-padding, 6px); border-radius: var(--apollo-menubar-island-radius, 12px); }
+#menubar.islands.bg-material .menubar-group { background: material(regular); }
+#menubar.islands.themed .menubar-group { background: var(--apollo-menubar-fill), glass(regular); }
+#menubar.fill.distinct .menubar-group { padding: 0 var(--apollo-menubar-padding, 6px); margin: 3px 0; background: var(--apollo-menubar-group-color, rgb(0 0 0 / 0.08)); border-radius: var(--apollo-menubar-group-radius, 9px); }
+@media (prefers-color-scheme: dark) {
+  #menubar.fill.distinct .menubar-group { background: var(--apollo-menubar-group-color, rgb(255 255 255 / 0.08)); }
+}
+
+.menubar-title { padding: 0 7px; min-width: var(--menubar-control); height: var(--menubar-control); border-radius: 6px; transition: background 120ms ease-out; }
+.menubar-title:hover { background: rgb(from -apple-system-label r g b / 0.1); }
+.menubar-title:checked, .menubar-title:active { background: rgb(from -apple-system-label r g b / 0.18); }
+.menubar-title-text { font-size: var(--apollo-menubar-font-size, 13px); color: var(--apollo-menubar-text-color, var(--apollo-bar-text-color, -apple-system-label)); }
+.menubar-app-name .menubar-title-text { font-weight: 700; }
+.menubar-apple-glyph { font-size: 14px; font-weight: 500; color: var(--apollo-menubar-icon-color, var(--apollo-bar-icon-color, -apple-system-label)); -apollo-font-scale: none; }
+.menubar-more-glyph { font-size: 12px; font-weight: 600; color: var(--apollo-menubar-text-color, var(--apollo-bar-text-color, -apple-system-label)); -apollo-font-scale: none; }
+.menubar-app-menus { gap: 0; align-items: center; }
+
+.menubar-status-items { gap: 2px; align-items: center; }
+.menubar-status-item { padding: 0; }
+.menubar-status-symbol { font-size: 14px; font-weight: 500; -apollo-font-scale: none; }
+.menubar-status-symbol.template, .menubar-status-image.template { color: var(--apollo-menubar-icon-color, var(--apollo-bar-icon-color, -apple-system-label)); -apollo-image-rendering: template; }
+.menubar-status-text { font-size: 13px; padding: 0 7px; }
+.menubar-status-app { width: 16px; height: 16px; margin: 0 7px; }
+
+.menubar-icon { width: var(--menubar-control); height: var(--menubar-control); border-radius: 9px; transition: background 120ms ease-out; color: var(--apollo-menubar-icon-color, var(--apollo-bar-icon-color, -apple-system-label)); }
+.menubar-icon:hover { background: rgb(from -apple-system-label r g b / 0.14); }
+.menubar-glyph { font-size: 14px; font-weight: 600; width: 18px; height: 18px; -apollo-font-scale: none; }
+.menubar-media-glyph { font-size: 15px; width: auto; height: auto; }
+.menubar-power-glyph { font-size: 15px; }
+.menubar-app-icon { width: 26px; height: 26px; }
+
+.menubar-status-capsule { gap: 2px; padding: 0 4px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; }
+#menubar.islands .menubar-status-capsule, #menubar.fill.distinct .menubar-status-capsule { background: transparent; }
+.menubar-status-capsule.standalone { padding: 0; background: transparent; }
+.menubar-status-icon:checked { background: rgb(from -apple-system-label r g b / 0.14); }
+.menubar-wifi-glyph.icon { font-size: 14px; font-weight: 600; width: 16px; height: 16px; }
+.menubar-battery-glyph.icon { font-size: 13px; font-weight: 600; width: 15px; height: 15px; }
+
+.menubar-pills { gap: 4px; align-items: center; }
+.menubar-pill { height: calc(var(--menubar-control) - 8px); min-height: 16px; padding: 0 8px; border-radius: 9999px; }
+.menubar-pill-body { gap: 4px; align-items: center; }
+.menubar-pill-text { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pill-wifi { background: var(--apollo-status-wifi-color, rgb(143 211 232)); color: var(--apollo-status-pill-text-color, rgb(28 28 30)); }
+.pill-bluetooth { background: var(--apollo-status-bluetooth-color, rgb(169 184 255)); color: var(--apollo-status-pill-text-color, rgb(28 28 30)); }
+.pill-battery { background: var(--apollo-status-battery-color, rgb(158 220 154)); color: var(--apollo-status-pill-text-color, rgb(28 28 30)); }
+.menubar-pill:checked { border: 1.5px solid rgb(from var(--apollo-status-pill-text-color, rgb(28 28 30)) r g b / 0.55); }
+.menubar-wifi-glyph.pill { font-size: 11px; font-weight: 700; width: 13px; height: 13px; }
+.menubar-battery-glyph.pill { font-size: 11px; font-weight: 700; width: 15px; height: 13px; }
+.menubar-pill-rune { width: 10px; height: 13px; transform: scale(0.8); }
+
+.menubar-clock { height: var(--menubar-control); color: var(--apollo-clock-color, var(--apollo-bar-text-color, -apple-system-purple)); }
+.menubar-clock-line { gap: 5px; align-items: center; }
+.menubar-clock-icon { font-size: 14px; font-weight: 600; width: 16px; height: 16px; -apollo-font-scale: none; }
+.menubar-clock-time { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.menubar-clock-date { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; opacity: 0.8; }
+.menubar-clock-stack { gap: 0; align-items: center; }
+.menubar-clock-stack .second { margin: -3px 0 0 0; }
+.menubar-clock-small { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.menubar-clock-tiny { font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.menubar-clock-date-stack { opacity: 0.8; }
+.menubar-clock-badge { padding: 0 8px; height: calc(var(--menubar-control) - 8px); border-radius: 9999px; background: var(--apollo-clock-color, -apple-system-purple); color: white; }
+
+.menubar-spaces { gap: 3px; padding: 0 3px; height: var(--menubar-control); border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; }
+#menubar.islands .menubar-spaces, #menubar.fill.distinct .menubar-spaces { background: transparent; }
+.menubar-space { width: calc(var(--menubar-control) - 6px); height: calc(var(--menubar-control) - 6px); border-radius: 9999px; }
+.menubar-space > stack { width: 100%; height: 100%; }
+.menubar-space-pill { width: 100%; height: 100%; border-radius: 9999px; background: var(--apollo-spaces-active-color, var(--apollo-accent-color, -apple-system-control-accent)); transition: all 500ms spatial; }
+.menubar-space-dot { width: 25%; height: 25%; aspect-ratio: 1; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.4); transition: all 500ms spatial; }
+.menubar-space:checked .menubar-space-dot { width: 66.67%; height: 66.67%; border-radius: 30%; background: var(--apollo-on-accent-color, white); }
+.menubar-space-number { font-size: 12px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; color: rgb(from -apple-system-label r g b / 0.6); }
+.menubar-space:checked .menubar-space-number { color: var(--apollo-on-accent-color, white); }
+
+.menubar-divider { width: 2px; height: 18px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.18); }
+
+.menubar-tile { padding: 0 6px; height: var(--menubar-control); min-width: var(--menubar-control); border-radius: 9px; transition: background 120ms ease-out; }
+.menubar-tile:hover { background: rgb(from -apple-system-label r g b / 0.14); }
+.menubar-tile-row { gap: 4px; align-items: center; }
+.menubar-tile-glyph { font-size: 13px; font-weight: 600; }
+.menubar-tile-value { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.menubar-battery.low { color: -apple-system-red; }
+.menubar-weather-glyph { font-size: 15px; -apollo-symbol-rendering: multicolor; }
+.menubar-weather-glyph.idle { font-size: 14px; font-weight: 600; color: -apple-system-secondary-label; }
+.menubar-weather-temperature { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--apollo-weather-temperature-color, -apple-system-label); }
+.menubar-weather-temperature.idle { color: -apple-system-secondary-label; }
+.menubar-cpu-ring { width: 24px; height: 24px; -apollo-stroke-width: 3px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.15); color: -apple-system-control-accent; }
+.menubar-cpu-number { font-size: 9px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }

@@ -43,6 +43,7 @@ command-center {
 }
 
 include "sidebar.kdl"
+include "menubar.kdl"
 include "launcher.kdl"
 include "dashboard.kdl"
 include "utilities.kdl"
