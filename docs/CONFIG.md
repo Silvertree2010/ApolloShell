@@ -2224,7 +2224,7 @@ Appearance, Night Shift, microphone, user, computer, system actions.
 | field | `kernel-version` | string | | Kernel version. |
 | field | `uptime` | number | | Uptime in s. |
 | field | `apple-dock-hidden` | bool | | Whether Apple's Dock is hidden. |
-| field | `hidden-files` | bool or null | | Whether the Finder shows hidden files, #null while unknown. |
+| field | `hidden-files` | bool or null | | Whether the Finder shows hidden files, #null while unknown or never set. |
 
 Actions and events: `system.set-dark-mode`, `system.toggle-dark-mode`, `system.set-night-shift`, `system.toggle-night-shift`, `system.set-microphone-muted`, `system.toggle-microphone`, `system.screenshot`, `system.color-picker`, `system.show-desktop`, `system.lock`, `system.display-sleep`, `system.hide-apps`, `system.open-settings`, `system.hide-apple-dock`, `system.toggle-hidden-files`, `system.empty-trash`, `system.mission-control`, `system.launchpad`, `system.airdrop`, `system.appearance-changed`, `system.color-copied`, `shortcuts.failed`
 

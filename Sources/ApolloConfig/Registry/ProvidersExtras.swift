@@ -164,7 +164,7 @@ enum ProvidersExtras {
     ]
 
     static let systemFields: [FieldSchema] = [
-        S.field("hidden-files", .bool, nullable: true, update: .poll(seconds: 30), doc: "Whether the Finder shows hidden files, #null while unknown."),
+        S.field("hidden-files", .bool, nullable: true, update: .poll(seconds: 30), doc: "Whether the Finder shows hidden files, #null while unknown or never set."),
     ]
 
     static let batteryActions: [ActionSchema] = [

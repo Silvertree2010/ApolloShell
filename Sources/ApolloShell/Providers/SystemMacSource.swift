@@ -63,7 +63,7 @@ final class SystemMacSource: SystemSource {
 
     var hiddenFiles: Bool? {
         CFPreferencesAppSynchronize(Self.finderDomain)
-        guard let value = CFPreferencesCopyAppValue(Self.hiddenFilesKey, Self.finderDomain) else { return false }
+        guard let value = CFPreferencesCopyAppValue(Self.hiddenFilesKey, Self.finderDomain) else { return nil }
         if let flag = value as? Bool { return flag }
         if let text = value as? String {
             switch text.lowercased() {
