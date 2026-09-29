@@ -346,6 +346,7 @@ struct ExtraProvidersTests {
         _ = try await harness.perform("wallpaper", "wallpaper.set", [.string("/w/x.png")], properties: Record([("screen", .string("s1"))]))
         #expect(source.sets.last?.1 == "s1")
         #expect(harness.eventNames() == ["wallpaper.failed"])
+        #expect(harness.events.last?.fields["name"] == .string("x"))
     }
 
     @Test("system-extras: versteckte Dateien mit Zustand, Papierkorb, Mission Control, Launchpad, AirDrop")

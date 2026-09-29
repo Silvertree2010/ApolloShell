@@ -2904,6 +2904,7 @@ A wallpaper could not be set.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | field | `path` | string | | Picture that was not set. |
+| field | `name` | string | | Its name without the extension. |
 
 ### `wm.focus-changed` (event)
 

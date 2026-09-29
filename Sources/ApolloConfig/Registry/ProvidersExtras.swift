@@ -147,7 +147,10 @@ enum ProvidersExtras {
             S.action("wallpaper.random", doc: "Sets a random downloaded Apple wallpaper."),
         ],
         events: [
-            S.event("wallpaper.failed", [S.field("path", .string, update: .once, doc: "Picture that was not set.")], doc: "A wallpaper could not be set."),
+            S.event("wallpaper.failed", [
+                S.field("path", .string, update: .once, doc: "Picture that was not set."),
+                S.field("name", .string, update: .once, doc: "Its name without the extension."),
+            ], doc: "A wallpaper could not be set."),
         ],
         doc: "Apple wallpapers and the current one."
     ))
