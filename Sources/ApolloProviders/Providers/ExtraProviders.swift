@@ -371,11 +371,13 @@ public final class WallpaperProvider: BaseProvider {
     }
 
     private func apply(_ path: String, screen: String?) {
-        if !source.set(path, screen: screen) {
+        let ok = source.set(path, screen: screen)
+        if !ok {
             let name = wallpapers.first { $0.url?.path == path }?.name ?? ((path as NSString).lastPathComponent as NSString).deletingPathExtension
             emit("wallpaper.failed", Record([("path", .string(path)), ("name", .string(name))]))
         }
-        if isRunning { publish("current", ProviderValue.string(source.current())) }
+        guard isRunning else { return }
+        publish("current", ok && screen == nil ? .string(path) : ProviderValue.string(source.current()))
     }
 
     static func record(_ wallpaper: AppleWallpaper) -> Value {

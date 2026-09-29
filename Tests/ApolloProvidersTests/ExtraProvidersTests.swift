@@ -100,13 +100,14 @@ final class FakeWallpaperSource: WallpaperSource {
     var currentPath: String? = "/w/Old.heic"
     var sets: [(String, String?)] = []
     var works = true
+    var updatesCurrent = true
 
     func appleWallpapers() -> [AppleWallpaper] { list }
     func current() -> String? { currentPath }
 
     func set(_ path: String, screen: String?) -> Bool {
         sets.append((path, screen))
-        if works { currentPath = path }
+        if works && updatesCurrent { currentPath = path }
         return works
     }
 
@@ -342,6 +343,12 @@ struct ExtraProvidersTests {
         _ = try await harness.perform("wallpaper", "wallpaper.random")
         #expect(source.sets.map(\.0) == ["/w/Tahoe.heic"])
         #expect(harness.value("wallpaper", "current") == .string("/w/Tahoe.heic"))
+        source.currentPath = "/w/stale.heic"
+        source.works = true
+        source.updatesCurrent = false
+        _ = try await harness.perform("wallpaper", "wallpaper.set", [.string("/w/Sonoma.heic")])
+        #expect(harness.value("wallpaper", "current") == .string("/w/Sonoma.heic"))
+        source.works = false
         source.works = false
         _ = try await harness.perform("wallpaper", "wallpaper.set", [.string("/w/x.png")], properties: Record([("screen", .string("s1"))]))
         #expect(source.sets.last?.1 == "s1")
