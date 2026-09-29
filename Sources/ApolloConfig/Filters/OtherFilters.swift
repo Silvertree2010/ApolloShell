@@ -1,3 +1,5 @@
+import ApolloShellCore
+
 enum OtherFilters {
     static let all: [BuiltinFilter] = [
         BuiltinFilter("default", arity: FilterArity(1, 1), nullInput: .accept) { input, arguments, _ in
@@ -14,6 +16,11 @@ enum OtherFilters {
         },
         BuiltinFilter("values", arity: FilterArity(0, 0)) { input, _, _ in
             .list(try input.recordInput("values").values)
+        },
+        BuiltinFilter("calc", arity: FilterArity(0, 0)) { input, _, _ in
+            let text = try input.textInput("calc")
+            guard text.count <= 500, let value = LauncherCalculator.evaluate(text) else { return .null }
+            return .string(LauncherCalculator.format(value))
         },
     ]
 }

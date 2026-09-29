@@ -147,7 +147,7 @@ enum ProvidersMore {
             S.field("kernel-version", .string, update: .once, doc: "Kernel version."),
             S.field("uptime", .number, update: .tick, doc: "Uptime in s."),
             S.field("apple-dock-hidden", .bool, update: .push, doc: "Whether Apple's Dock is hidden."),
-        ],
+        ] + ProvidersExtras.systemFields,
         actions: [
             S.action("system.set-dark-mode", [S.arg("value", .bool, doc: "#true for dark, #false for light.")], doc: "Sets the appearance."),
             S.action("system.toggle-dark-mode", doc: "Toggles the appearance."),
@@ -163,7 +163,7 @@ enum ProvidersMore {
             S.action("system.hide-apps", properties: [PropertySchema(name: "keep-frontmost", type: .bool, defaultValue: .bool(false), doc: "Keeps the frontmost app.")], doc: "Hides other apps.", startsProgramsOrControlsApps: true),
             S.action("system.open-settings", [S.arg("pane", .string, required: false, doc: "Pane such as wifi, sound or battery; without it the app opens.")], doc: "Opens System Settings."),
             S.action("system.hide-apple-dock", [S.arg("value", .bool, doc: "#true hides the Dock.")], doc: "Hides Apple's Dock."),
-        ],
+        ] + ProvidersExtras.systemActions,
         events: [
             S.event("system.appearance-changed", doc: "Appearance changed."),
             S.event("system.color-copied", [S.field("hex", .string, update: .once, doc: "Copied color.")], doc: "Color copied."),

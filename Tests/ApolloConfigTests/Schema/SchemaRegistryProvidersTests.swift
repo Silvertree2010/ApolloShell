@@ -7,17 +7,20 @@ struct SchemaRegistryProvidersTests {
         "clock", "battery", "network", "bluetooth", "audio", "media", "perf", "spaces", "apps",
         "weather", "keyboard", "window", "screens", "system", "session", "power", "permissions",
         "shortcuts", "marketplace", "wm",
+        "timer", "clipboard", "files", "drives", "photos", "network-info", "display", "wallpaper",
     ]
 
     static let menuSourceNames: Set<String> = ["app-dock", "app-commands", "app-windows"]
 
     static let contextRootNames: Set<String> = ["self", "surface", "surfaces", "screen", "theme", "shell", "event", "toast"]
 
-    static let featureNames: Set<String> = ["core", "wm", "marketplace", "script-sources", "ipc"]
+    static let featureNames: Set<String> = [
+        "core", "wm", "marketplace", "script-sources", "ipc",
+        "timer", "clipboard", "recent-files", "drives", "photos", "network-info", "display", "system-extras", "calc", "wallpaper",
+    ]
 
     static let reservedProviderNames: Set<String> = [
-        "menubar", "status-items", "fusion", "timer", "clipboard", "files", "drives", "photos",
-        "network-info", "display", "wallpaper", "calendar-events", "reminders", "notifications",
+        "menubar", "status-items", "fusion", "calendar-events", "reminders", "notifications",
         "focus", "location", "lua", "plugins", "windows", "input", "camera", "microphone", "canvas",
     ]
 
@@ -39,7 +42,7 @@ struct SchemaRegistryProvidersTests {
         let registryNames = Set(BuiltinSchemaRegistry.allFilters.map(\.name))
         let tableNames = Set(FilterTable.builtin.names)
         #expect(registryNames == tableNames)
-        #expect(registryNames.count == 58)
+        #expect(registryNames.count == 59)
     }
 
     @Test("Stellenzahl jedes Filters entspricht seiner FilterArity")

@@ -66,5 +66,6 @@ enum Filters {
         FilterSchema(name: "bool", doc: "Truth value of a value."),
         FilterSchema(name: "keys", doc: "Keys of a record as a list."),
         FilterSchema(name: "values", doc: "Values of a record as a list."),
+        FilterSchema(name: "calc", feature: "calc", doc: "Result of a sum such as 2*(3+4) as text, null while the sum is incomplete."),
     ]
 }
