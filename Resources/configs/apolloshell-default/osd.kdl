@@ -5,7 +5,7 @@ on "audio.volume-changed" {
     set "osd-moving" #true for="500ms"
 }
 
-osd "volume" anchor="right" timeout="2s" {
+osd "volume" anchor="right" timeout="2s" fuse-group="shell" {
     slider value="{audio.muted ? 0 : audio.volume}" vertical=#true class="osd-slider" {
         on-change { audio.set-volume "{event.value}" }
         fill "thumb" {

@@ -11,6 +11,7 @@ public enum ThemeTokenGroup: String, Equatable, Hashable, Sendable, CaseIterable
     case launcher = "Launcher"
     case typography = "Typography"
     case shape = "Shape and motion"
+    case fusion = "Fusion"
     case feedback = "Toasts"
 }
 
@@ -285,6 +286,7 @@ public extension ThemeToken where Kind == ThemeTokenTypes.Number {
     static var animationSpeed: Self { Self("--apollo-animation-speed") }
 
     static var toastRadius: Self { Self("--apollo-toast-radius") }
+    static var fusionRadius: Self { Self("--apollo-fusion-radius") }
 }
 
 public extension ThemeToken where Kind == ThemeTokenTypes.Text {
@@ -303,6 +305,9 @@ public extension ThemeToken where Kind == ThemeTokenTypes.File {
 }
 
 public extension ThemeToken where Kind == ThemeTokenTypes.Option {
+    static var fusionStyle: Self { Self("--apollo-fusion-style") }
+    static var fusionScreenEdge: Self { Self("--apollo-fusion-screen-edge") }
+    static var jelly: Self { Self("--apollo-jelly") }
     static var appearance: Self { Self("--apollo-theme-appearance") }
     static var backgroundFit: Self { Self("--apollo-background-fit") }
     static var iconStyle: Self { Self("--apollo-icon-style") }
@@ -510,6 +515,14 @@ public extension ThemeTokenCatalog {
         .option("--apollo-icon-style", ["auto", "monochrome", "colorful"], "auto", group: .shape,
                 "How status glyphs are drawn"),
 
+        .option("--apollo-fusion-style", ["separate", "rounded", "square"], "rounded", group: .fusion,
+                "How touching surfaces join: each on its own, one shape with round inner corners, or with square ones"),
+        .length("--apollo-fusion-radius", 14, max: 48, group: .fusion,
+                "Radius of the round inner corners where surfaces meet"),
+        .option("--apollo-fusion-screen-edge", ["flush", "rounded"], "flush", group: .fusion,
+                "Where a joined shape meets the screen border: square, or curving into it"),
+        .option("--apollo-jelly", ["off", "subtle", "strong"], "subtle", group: .fusion,
+                "How springy joined surfaces move when they open, close or change size"),
         .color("--apollo-toast-color", light: 0x1C1C1E, dark: 0xF5F5F7, group: .feedback, "Backing of a toast"),
         .gradient("--apollo-toast-gradient", group: .feedback,
                   "Gradient across a toast instead of the flat toast colour"),

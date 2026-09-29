@@ -714,9 +714,10 @@ Short feedback such as a volume indicator.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `timeout` | duration | `"2s"` | Display duration. |
-| property | `motion` | "slide"\|"grow"\|"fade"\|"none" | `"slide"` | Opening and closing. |
+| property | `motion` | "slide"\|"grow"\|"fade"\|"none"\|"jelly" | `"slide"` | Opening and closing. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
 
@@ -755,7 +756,8 @@ Covers the whole screen, click-through by default.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
 
@@ -794,7 +796,8 @@ Always-visible surface such as bars, docks, desktop widgets.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `reserve` | bool | `false` | Keeps app windows out of the surface's strip, only with left/right/top/bottom. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
@@ -866,8 +869,9 @@ Opens and closes on an action, such as a dashboard or launcher.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
-| property | `motion` | "slide"\|"grow"\|"fade"\|"none" | `null` | Opening and closing. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
+| property | `motion` | "slide"\|"grow"\|"fade"\|"none"\|"jelly" | `null` | Opening and closing. |
 | property | `scrim` | number | `null` | Dims the screen behind it, 0…1. |
 | property | `close-on` | string | `"outside-click escape focus-loss"` | List of what closes the popup. |
 | property | `hover-edge` | bool | `false` | Opens when the pointer touches the anchored edge. |
@@ -1411,7 +1415,8 @@ Defines how a notification from the toast.show action looks.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `max` | number | `4` | Toasts visible at the same time. |
 | property | `duration` | duration | `"5s"` | Display duration. |
 | property | `newest` | "last"\|"first" | `"last"` | Where the newest toast appears. |
@@ -1531,7 +1536,8 @@ A regular macOS window with a title bar.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `title` | string | `""` | Window title. |
 | property | `title-visible` | bool | `true` | Whether the title bar shows the title. |
 | property | `resizable` | bool | `true` | Whether the window can be resized. |

@@ -5,6 +5,7 @@ enum Features {
         FeatureSchema(name: "marketplace", since: "0.2.0"),
         FeatureSchema(name: "script-sources", since: "0.2.0"),
         FeatureSchema(name: "ipc", since: "0.2.0"),
+        FeatureSchema(name: "fusion", since: "0.2.1"),
     ]
 
     static let reservedProviderNames: Set<String> = [

@@ -50,5 +50,6 @@ struct SurfaceView: View {
         .modifier(HitRegionCollector(surfaceKey: SurfaceHost.key(surface.id, surface.screenKey), regions: context.hits))
         .modifier(ElementFrameCollector(surfaceKey: SurfaceHost.key(surface.id, surface.screenKey), frames: context.elementFrames))
         .environment(\.surfaceShown, surface.isVisible && !occluded)
+        .environment(\.fusionOwnsBackground, painter is FusionCoordinator && (painter as? FusionCoordinator)?.isOn == true && !FusionCoordinator.groupName(surface).isEmpty)
     }
 }

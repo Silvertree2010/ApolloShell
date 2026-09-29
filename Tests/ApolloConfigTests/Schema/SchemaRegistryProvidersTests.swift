@@ -13,7 +13,7 @@ struct SchemaRegistryProvidersTests {
 
     static let contextRootNames: Set<String> = ["self", "surface", "surfaces", "screen", "theme", "shell", "event", "toast"]
 
-    static let featureNames: Set<String> = ["core", "wm", "marketplace", "script-sources", "ipc"]
+    static let featureNames: Set<String> = ["core", "wm", "marketplace", "script-sources", "ipc", "fusion"]
 
     static let reservedProviderNames: Set<String> = [
         "menubar", "status-items", "fusion", "timer", "clipboard", "files", "drives", "photos",

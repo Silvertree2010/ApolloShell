@@ -202,7 +202,7 @@ define "card-quick-toggles" {
     }
 }
 
-popup "utilities" anchor="bottom-right" hover-edge=#true hover-gap=12 overhang=#true {
+popup "utilities" anchor="bottom-right" fuse-group="shell" hover-edge=#true hover-gap=12 overhang=#true {
     column class="utilities" {
         when "{(var.utilities-cards | where 'enabled' true | count) == 0}" {
             column class="utilities-empty" {

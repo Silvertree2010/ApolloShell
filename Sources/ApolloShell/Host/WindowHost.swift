@@ -4,6 +4,7 @@ import ApolloConfig
 import ApolloRuntime
 import ApolloProviders
 import ApolloShellCore
+import ApolloStyle
 
 @MainActor
 protocol WindowHostLink: AnyObject {
@@ -58,6 +59,9 @@ final class WindowHost: SurfaceHosting {
     let frames = SurfaceFrames()
     lazy var auxiliary = AuxiliaryWindows(factory: factory)
     var backgroundPainter: (any BackgroundPainter)?
+    let fusion = FusionCoordinator()
+    private var fusionToken: SurfaceFrames.Token?
+    private var fusionRegistered = false
     var makeTicker: (any HostWindow) -> (any FrameTicker)? = { window in
         (window as? AppKitHostWindow).map { DisplayLinkTicker(view: $0.container) }
     }
@@ -66,6 +70,9 @@ final class WindowHost: SurfaceHosting {
             context?.hits.onChange = { [weak self] _ in self?.pointerMoved() }
             context?.onFlyoutExtent = { [weak self] key, extent in self?.flyoutExtent(key, extent) }
             context?.elementFrames.onChange = { [weak self] key in self?.syncAttached(to: key) }
+            context?.onFlyoutBulges = { [weak self] key, bulges in self?.flyoutBulges(key, bulges) }
+            fusion.context = context
+            updateFusion()
         }
     }
     var screens: [String: ScreenGeometry] = [:]
@@ -100,6 +107,78 @@ final class WindowHost: SurfaceHosting {
 
     init(factory: any HostWindowFactory = AppKitWindowFactory()) {
         self.factory = factory
+        animators.register(JellyAnimator(springs: { [weak self] in self?.fusion.settings.springs }))
+        fusion.member = { [weak self] key in self?.fusionMember(key) }
+        fusion.fillStyle = { [weak self] screen in self?.fusionFill(screen) ?? ComputedStyle(values: [:]) }
+        fusion.makeTicker = { [weak self] screen in
+            guard let self, let window = self.auxiliary.windows["fusion/skin@" + screen] else { return nil }
+            return self.makeTicker(window)
+        }
+    }
+
+    var painter: (any BackgroundPainter)? {
+        backgroundPainter ?? (fusionRegistered ? fusion : nil)
+    }
+
+    private var hasFusionMembers: Bool {
+        controllers.values.contains { !FusionCoordinator.groupName($0.surface).isEmpty }
+    }
+
+    func updateFusion() {
+        let next = context.map { FusionSettings(tokens: $0.styles.environment.tokens, reduceMotion: $0.styles.environment.reduceMotion) } ?? .standard
+        fusion.apply(next)
+        let wanted = next.isOn && hasFusionMembers && context != nil
+        guard wanted != fusionRegistered else { return }
+        fusionRegistered = wanted
+        let geometries = screens.values.sorted { $0.key < $1.key }
+        if wanted {
+            fusion.screensChanged(screens)
+            fusionToken = frames.observe { [weak self] key, frame in self?.fusion.frameChanged(key, frame) }
+            auxiliary.register(fusion, screens: geometries)
+        } else {
+            fusionToken?.cancel()
+            fusionToken = nil
+            auxiliary.unregister(fusion.ownerID, screens: geometries)
+        }
+        for (key, controller) in controllers {
+            controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
+            sync(key)
+        }
+    }
+
+    func fusionMember(_ key: String) -> FusionMember? {
+        guard let controller = controllers[key], let context else { return nil }
+        let surface = controller.surface
+        let group = FusionCoordinator.groupName(surface)
+        guard !group.isEmpty else { return nil }
+        let style = context.styles.resolve(surface: surface)
+        let radius = style.customProperties["--fuse-radius"].flatMap { Double($0.replacingOccurrences(of: "px", with: "").trimmingCharacters(in: .whitespaces)) }.map { CGFloat($0) }
+            ?? StyleValues.radius(style["border-radius"])
+        let order = controllers.keys.sorted().firstIndex(of: key) ?? 0
+        return FusionMember(group: group, fill: surface.property("fuse-fill").isTruthy, screenKey: surface.screenKey,
+                            side: FusionCoordinator.side(anchor: surface.property("anchor").plainText), radius: radius,
+                            calm: controller.spec.kind == "panel", level: controller.spec.level, order: order)
+    }
+
+    func fusionFill(_ screen: String) -> ComputedStyle {
+        guard let context else { return ComputedStyle(values: [:]) }
+        let members = controllers.keys.sorted().compactMap { key -> (String, FusionMember)? in
+            guard let member = fusionMember(key), member.screenKey == screen else { return nil }
+            return (key, member)
+        }
+        guard let chosen = members.first(where: { $0.1.fill }) ?? members.first, let controller = controllers[chosen.0] else { return ComputedStyle(values: [:]) }
+        let style = context.styles.resolve(surface: controller.surface)
+        return ComputedStyle(values: style.values.filter { SurfaceBackground.properties.contains($0.key) })
+    }
+
+    func flyoutBulges(_ key: String, _ bulges: [FlyoutBulge]) {
+        guard fusionRegistered, let controller = controllers[key], controller.shown else { return }
+        let open = controller.openFrame
+        let pieces = bulges.filter { $0.open && $0.joined && $0.rect.width > 0.5 && $0.rect.height > 0.5 }.map { bulge in
+            (key: bulge.key, rect: CGRect(x: open.minX + bulge.rect.minX, y: open.maxY - bulge.rect.maxY, width: bulge.rect.width, height: bulge.rect.height),
+             radius: bulge.radius, side: FusionCoordinator.side(bulge.side))
+        }
+        fusion.flyouts(key, pieces)
     }
 
     var windows: [String: any HostWindow] { controllers.mapValues(\.window) }
@@ -144,15 +223,18 @@ final class WindowHost: SurfaceHosting {
     func restyle(_ context: RenderContext) {
         self.context = context
         stats.restyles += 1
+        let wasOn = fusionRegistered
         for (key, controller) in controllers {
             controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
             sync(key)
         }
+        if wasOn, fusionRegistered { auxiliary.sync(screens.values.sorted { $0.key < $1.key }) }
     }
 
     func screensChanged(_ screens: [String: ScreenGeometry]) {
         guard !screens.isEmpty else { return }
         self.screens = screens
+        if fusionRegistered { fusion.screensChanged(screens) }
         for key in controllers.keys { sync(key) }
         auxiliary.sync(screens.values.sorted { $0.key < $1.key })
     }
@@ -164,7 +246,7 @@ final class WindowHost: SurfaceHosting {
     private func content(_ surface: SurfaceInstance, insets: EdgeInsets, flyout: EdgeInsets = EdgeInsets()) -> AnyView {
         guard let context else { return AnyView(EmptyView()) }
         let occluded = context.occluded.contains(SurfaceHost.key(surface.id, surface.screenKey))
-        let view = SurfaceView(surface: surface, context: context, insets: insets, painter: backgroundPainter, occluded: occluded).padding(flyout)
+        let view = SurfaceView(surface: surface, context: context, insets: insets, painter: painter, occluded: occluded).padding(flyout)
         guard surface.ir.kind != "window" else { return AnyView(view) }
         let style = context.styles.resolve(surface: surface)
         let anchor = SurfacePlacement(kind: surface.ir.kind, property: surface.property, style: style).anchor
@@ -234,6 +316,7 @@ final class WindowHost: SurfaceHosting {
         window.onFittingChange = { [weak self] in self?.fittingChanged(key) }
         controllers[key] = controller
         sync(key)
+        if !FusionCoordinator.groupName(surface).isEmpty, !fusionRegistered { updateFusion() }
     }
 
     private func tearDown(_ key: String) {
@@ -326,6 +409,7 @@ final class WindowHost: SurfaceHosting {
             controller.spec = spec
             controller.window.apply(spec)
         }
+        if fusionRegistered { controller.window.setLevel(fusion.level(for: key, base: spec.level)) }
         guard let screen = screens[surface.screenKey] else {
             log("surface \(surface.id): no screen \(surface.screenKey)")
             return

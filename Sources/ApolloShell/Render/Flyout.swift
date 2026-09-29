@@ -249,6 +249,7 @@ struct SurfaceBox: ViewModifier {
                 bulges = new
                 context.flyoutExtents[key] = FlyoutGeometry.extent(new)
                 context.onFlyoutExtent(key, FlyoutGeometry.extent(new))
+                context.onFlyoutBulges(key, new)
             }
     }
 
@@ -290,6 +291,7 @@ struct FlyoutView: View {
     @State private var monitor = FlyoutOutsideMonitor()
     @State private var slot = WindowSlot()
     @Environment(\.renderMode) private var renderMode
+    @Environment(\.fusionOwnsBackground) private var fusionOwnsBackground
 
     var body: some View {
         let element = entry.element
@@ -315,7 +317,7 @@ struct FlyoutView: View {
                 .frame(width: target.width, height: target.height, alignment: .topLeading)
                 .offset(x: target.minX, y: target.minY)
                 .opacity(open ? 1 : 0)
-                .animation(open ? StatusFade.fadeIn : StatusFade.fadeOut, value: open)
+                .animation(open ? (fusionOwnsBackground ? StatusFade.fadeIn.delay(StatusFade.fusedDelay) : StatusFade.fadeIn) : StatusFade.fadeOut, value: open)
                 .allowsHitTesting(open)
                 .accessibilityHidden(!open)
                 .preference(key: FlyoutBulgeKey.self, value: [FlyoutBulge(key: element.identity.description, rect: bulge, side: side, radius: radius, join: join, joined: joined, open: open, container: container)])
@@ -366,6 +368,18 @@ struct FlyoutView: View {
 enum StatusFade {
     static let fadeOut = Animation.timingCurve(0.34, 0.8, 0.34, 1, duration: 0.2)
     static let fadeIn = Animation.timingCurve(0.34, 0.88, 0.34, 1, duration: 0.3)
+    static let fusedDelay: TimeInterval = 0.15
+}
+
+private struct FusionOwnsBackgroundKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var fusionOwnsBackground: Bool {
+        get { self[FusionOwnsBackgroundKey.self] }
+        set { self[FusionOwnsBackgroundKey.self] = newValue }
+    }
 }
 
 struct AnchorResolver<Content: View>: View {

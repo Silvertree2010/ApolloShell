@@ -81,6 +81,11 @@
   --apollo-shadows: true;
   --apollo-icon-style: auto;
 
+  --apollo-fusion-style: rounded;
+  --apollo-fusion-radius: 14px;
+  --apollo-fusion-screen-edge: flush;
+  --apollo-jelly: subtle;
+
   --apollo-toast-color: #1c1c1e;
   --apollo-toast-gradient: none;
   --apollo-toast-text-color: #ffffff;
