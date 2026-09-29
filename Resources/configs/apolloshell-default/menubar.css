@@ -61,7 +61,7 @@
 .menubar-battery-glyph.pill { font-size: 11px; font-weight: 700; width: 15px; height: 13px; }
 .menubar-pill-rune { width: 10px; height: 13px; transform: scale(0.8); }
 
-.menubar-clock { height: var(--menubar-control); color: var(--apollo-clock-color, var(--apollo-bar-text-color, -apple-system-purple)); }
+.menubar-clock { height: var(--menubar-control); color: var(--apollo-clock-color, -apple-system-purple); }
 .menubar-clock-line { gap: 5px; align-items: center; }
 .menubar-clock-icon { font-size: 14px; font-weight: 600; width: 16px; height: 16px; -apollo-font-scale: none; }
 .menubar-clock-time { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -97,3 +97,13 @@
 .menubar-weather-temperature.idle { color: -apple-system-secondary-label; }
 .menubar-cpu-ring { width: 24px; height: 24px; -apollo-stroke-width: 3px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.15); color: -apple-system-control-accent; }
 .menubar-cpu-number { font-size: 9px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+
+.menubar-zone.flexible, .menubar-group.flexible, .menubar-dock, .menubar-app-menus, .menubar-spacer { flex-grow: 1; }
+.menubar-dock { gap: var(--apollo-dock-spacing, 4px); align-items: center; justify-content: center; }
+.menubar-dock-divider { width: 2px; height: 20px; margin: 0 3px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.18); }
+.menubar-dock-item { width: var(--menubar-control); height: var(--menubar-control); border-radius: 9px; transition: background 120ms ease-out; }
+.menubar-dock-item > stack { width: 100%; height: 100%; }
+.menubar-dock-item.front { background: rgb(from -apple-system-label r g b / 0.10); }
+.menubar-dock-item:hover, .menubar-dock-item:active { background: rgb(from -apple-system-label r g b / 0.14); }
+.menubar-dock-icon { width: var(--menubar-icon); height: var(--menubar-icon); -apollo-badge-color: var(--apollo-danger-color, -apple-system-red); -apollo-badge-offset: 7px -5px; -apollo-badge-appear: fade scale(0.6) 180ms ease-out; }
+.menubar-dock-running-dot { width: 4px; height: 4px; border-radius: 9999px; justify-self: end; background: var(--apollo-dock-indicator-color, rgb(from -apple-system-label r g b / 0.65)); }

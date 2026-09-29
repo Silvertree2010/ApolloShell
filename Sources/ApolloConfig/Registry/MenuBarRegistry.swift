@@ -86,6 +86,7 @@ enum MenuBarRegistry {
     ]
 
     static let notchFields: [FieldSchema] = [
+        S.field("menubar-height", .number, update: .push, doc: "Height of Apple's menu bar on this screen in pt, 0 while it is hidden."),
         S.field("notch-left", .record, nullable: true, update: .push, doc: "Room left of the notch with x, y, width and height in pt, #null without a notch."),
         S.field("notch-right", .record, nullable: true, update: .push, doc: "Room right of the notch with x, y, width and height in pt, #null without a notch."),
     ]

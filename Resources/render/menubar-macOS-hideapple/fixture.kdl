@@ -78,9 +78,9 @@ fixture {
     status-items {
         list {
             - id="1-0" app="to.apollocloud.apolloshell" name="ApolloShell" title="" image="mark.png" kind="menu" monochrome=#true symbol=#null
-            - id="100-0" app="sample.Docker" name="Docker" title="" image=#null kind="menu" monochrome=#true symbol=#null
-            - id="101-0" app="sample.Dropbox" name="Dropbox" title="" image=#null kind="menu" monochrome=#false symbol=#null
-            - id="102-0" app="sample.VPN" name="VPN" title="" image=#null kind="menu" monochrome=#true symbol=#null
+            - id="100-0" app=#null name="Docker" title="" image=#null kind="menu" monochrome=#true symbol=#null
+            - id="101-0" app=#null name="Dropbox" title="" image=#null kind="menu" monochrome=#false symbol=#null
+            - id="102-0" app=#null name="VPN" title="" image=#null kind="menu" monochrome=#true symbol=#null
             - id="103-0" app="sample.Timer" name="Timer" title="12:30" image=#null kind="menu" monochrome=#true symbol=#null
         }
     }

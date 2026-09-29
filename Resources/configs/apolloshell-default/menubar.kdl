@@ -13,6 +13,7 @@ var menubar-popout ""
 var menubar-popout-next ""
 var menubar-capsules from="{var.menubar-style == 'islands' || var.menubar-distinct}"
 var menubar-control from="{var.menubar-thickness - (var.menubar-capsules ? 6 : 4) | min 32}"
+var menubar-icon from="{var.menubar-control >= 32 ? 26 : (var.menubar-control - 4 | min 26)}"
 var menubar-active from="{var.menubar-enabled && ((var.menubar-start | count) + (var.menubar-center | count) + (var.menubar-end | count)) > 0}"
 
 var menubar-macos {
@@ -522,7 +523,8 @@ define "menubar-now-playing" {
 define "menubar-dock" {
     param "module"
     row class="menubar-dock" {
-        each app in="{apps.dock}" key="{app.bundle-id}" {
+        each app in="{module.show-running ?? true ? apps.dock : (apps.dock | where-not 'section' 'running')}" key="{app.bundle-id}" index="i" {
+            when "{app.section == 'running' && i == var.dock-first-running && i > 0}" { stack class="menubar-dock-divider" }
             button class="menubar-dock-item {app.active ? 'front' : ''}" tooltip="{app.name}" menu-on="right-click long-press" {
                 on-click { apps.click "{app}" modifiers="{event.modifiers}" }
                 menu side="below" offset=6 { source "app-dock" app="{app}" fallback="full" }
@@ -538,9 +540,9 @@ define "menubar-dock" {
 define "menubar-zone" {
     param "zone"
     param "modules"
-    row class="menubar-zone zone-{zone}" {
+    row class="menubar-zone zone-{zone} {(modules | where 'kind' 'dock' | count) + (modules | where 'kind' 'spacer' | count) + (modules | where 'kind' 'app-menus' | count) > 0 ? 'flexible' : ''}" {
         each group in="{modules | runs 'joins'}" key="{(group | first).id}" {
-            row class="menubar-group" {
+            row class="menubar-group {(group | where 'kind' 'dock' | count) + (group | where 'kind' 'spacer' | count) + (group | where 'kind' 'app-menus' | count) > 0 ? 'flexible' : ''}" {
                 each module in="{group}" key="{module.id}" {
                     use "menubar-{module.kind}" module="{module}"
                 }
@@ -549,7 +551,7 @@ define "menubar-zone" {
     }
 }
 
-panel "menubar" anchor="top" area="{var.menubar-covers ? 'full' : 'below-menubar'}" layer="{var.menubar-covers ? 'status' : 'floating'}" reserve=#true fullscreen="hide" screen="{var.menubar-screens}" visible="{var.menubar-active}" class="menubar {var.menubar-style} {var.menubar-distinct ? 'distinct' : ''} status-{var.menubar-status-style} {theme.set['menubar-color'] || theme.set['menubar-gradient'] || theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-material'}" style="--menubar-thickness: {var.menubar-thickness}px; --menubar-control: {var.menubar-control}px; height: {var.menubar-thickness + (var.menubar-style == 'islands' ? 6 : 0)}px" {
+panel "menubar" anchor="top" area="{var.menubar-covers ? 'full' : 'below-menubar'}" layer="{var.menubar-covers ? 'status' : 'floating'}" reserve=#true fullscreen="hide" screen="{var.menubar-screens}" visible="{var.menubar-active}" class="menubar {var.menubar-style} {var.menubar-distinct ? 'distinct' : ''} status-{var.menubar-status-style} {theme.set['menubar-color'] || theme.set['menubar-gradient'] || theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-material'}" style="--menubar-thickness: {var.menubar-thickness}px; --menubar-control: {var.menubar-control}px; --menubar-icon: {var.menubar-icon}px; height: {var.menubar-thickness + (var.menubar-style == 'islands' ? 6 : 0)}px" {
     row class="menubar-zones" notch="{var.menubar-covers ? 'avoid' : 'ignore'}" {
         use "menubar-zone" zone="start" modules="{var.menubar-start}"
         use "menubar-zone" zone="center" modules="{var.menubar-center}"
