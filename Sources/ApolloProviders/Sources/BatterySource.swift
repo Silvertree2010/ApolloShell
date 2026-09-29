@@ -36,4 +36,9 @@ public protocol BatterySource: AnyObject {
     func readDetails() -> BatteryDetails
     func observeChanges(_ handler: @escaping @MainActor () -> Void)
     func stopObserving()
+    func setLowPowerMode(_ on: Bool)
+}
+
+extension BatterySource {
+    public func setLowPowerMode(_ on: Bool) {}
 }

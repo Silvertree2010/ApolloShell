@@ -14,6 +14,8 @@ final class FakeSystemSource: SystemSource {
     var info = SystemInfo(userName: "andrin", fullName: "Andrin", hasUserImage: true, hostName: "apollo-mbp", model: "MacBook Pro", chip: "Apple M4", macosVersion: "26.0", kernelVersion: "25.0.0")
     var uptime = 3600.0
     var appleDockHidden = false
+    var hiddenFiles: Bool? = false
+    var hiddenFilesSets: [Bool] = []
     var observing = false
     var commands: [SystemCommand] = []
     var pickedColor: String? = "#FF8800"
@@ -38,6 +40,11 @@ final class FakeSystemSource: SystemSource {
 
     func setAppleDockHidden(_ hidden: Bool) {
         appleDockHidden = hidden
+    }
+
+    func setHiddenFiles(_ on: Bool) {
+        hiddenFilesSets.append(on)
+        hiddenFiles = on
     }
 
     func run(_ command: SystemCommand) {
