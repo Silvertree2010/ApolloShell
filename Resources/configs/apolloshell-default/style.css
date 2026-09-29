@@ -492,6 +492,7 @@
 .quick-toggle-glyph.rune { font-size: 14.5px; }
 .quick-toggle-filler { height: 48px; }
 .quick-toggle.danger:checked { background: var(--apollo-danger-color, -apple-system-red); color: white; }
+.brightness { gap: 10px; }
 .brightness-glyph-box { width: 32px; height: 32px; align-items: center; justify-content: center; }
 .brightness-glyph { font-size: 13px; font-weight: 600; color: -apple-system-secondary-label; }
 .brightness-slider:disabled { opacity: 0.4; }
@@ -513,8 +514,8 @@
 .now-playing .media-play-glyph { font-size: 14px; }
 .now-playing.empty .media-controls { opacity: 0.4; }
 .timer-card { gap: 12px; align-items: center; }
-.timer-ring-box { width: 44px; height: 44px; align-items: center; justify-content: center; }
-.timer-ring { width: 44px; height: 44px; -apollo-stroke-width: 4px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); color: var(--apollo-accent-color, -apple-system-control-accent); }
+.timer-ring-box { width: 44px; height: 48px; align-items: center; justify-content: center; }
+.timer-ring { width: 48px; height: 48px; -apollo-stroke-width: 4px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); color: var(--apollo-accent-color, -apple-system-control-accent); }
 .timer-ring-glyph { font-size: 16px; font-weight: 600; }
 .timer-time { font-size: 22px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
 .timer-preset { width: 36px; height: 30px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-label; align-items: center; justify-content: center; }
