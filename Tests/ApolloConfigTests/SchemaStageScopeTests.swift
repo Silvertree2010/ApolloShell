@@ -154,14 +154,14 @@ struct SchemaStageScopeTests {
     func eachVariableHidesFutureProviderWithNote() {
         let diagnostics = Self.all("""
         panel "sidebar" {
-            each wallpaper in="{apps.dock}" {
-                text "{wallpaper.path}"
+            each reminders in="{apps.dock}" {
+                text "{reminders.path}"
             }
         }
         """)
         #expect(diagnostics.count == 1)
         #expect(diagnostics.first?.severity == .note)
-        #expect(diagnostics.first?.message == "'wallpaper' hides provider 'wallpaper'")
+        #expect(diagnostics.first?.message == "'reminders' hides provider 'reminders'")
     }
 
     @Test("Argumente eines use werden an der Aufrufstelle geprueft")

@@ -236,13 +236,17 @@ extension LegacyImport {
         Kind("showDesktop", unique: true), Kind("colorPicker", unique: true), Kind("lockScreen", unique: true),
         Kind("settings", unique: true), Kind("displaySleep", unique: true),
         Kind("hideApps", unique: true, [Option("keepFrontmost", .bool(false))]),
+        Kind("mute", unique: true), Kind("hiddenFiles", unique: true), Kind("lowPower", unique: true),
+        Kind("emptyTrash", unique: true), Kind("missionControl", unique: true), Kind("launchpad", unique: true),
+        Kind("airDrop", unique: true),
         Kind("openApp", [Option("bundleID", "bundle-id", .text("", omitEmpty: false)), Option("title", .text("", omitEmpty: true)), Option("symbol", .text("", omitEmpty: true))]),
         Kind("openLink", [Option("url", .text("", omitEmpty: false)), Option("title", .text("", omitEmpty: true)), Option("symbol", .text("", omitEmpty: true))]),
         Kind("runShortcut", [Option("name", .text("", omitEmpty: false)), Option("identifier", .text("", omitEmpty: true)), Option("title", .text("", omitEmpty: true)), Option("symbol", .text("", omitEmpty: true))]),
     ]
 
     static let tabs = ["dashboard", "media", "performance", "weather"]
-    static let utilitiesCards = ["keepAwake", "audio", "quickToggles"]
+    static let utilitiesCards = ["keepAwake", "audio", "quickToggles", "brightness", "nowPlaying", "timer"]
+    static let utilitiesCardsOffWhenMissing: Set<String> = ["brightness", "nowPlaying", "timer"]
     static let zones = ["top", "bottom", "side"]
     static let caelestiaZones: [String: [String]] = ["top": ["weather", "user"], "bottom": ["clock", "calendar", "resources"], "side": ["media"]]
     static let zonesByCard: [String: [String]] = [
@@ -612,7 +616,7 @@ extension LegacyImport {
                         cards.append((kind, Self.bool(enabled) ?? true))
                     }
                     for kind in LegacyImport.utilitiesCards where !cards.contains(where: { $0.0 == kind }) {
-                        cards.append((kind, true))
+                        cards.append((kind, !LegacyImport.utilitiesCardsOffWhenMissing.contains(kind)))
                     }
                     result.state["utilities-cards"] = .list(cards.map { .record(Record([("kind", .string(LegacyImport.kebab($0.0))), ("enabled", .bool($0.1))])) })
                 } else {

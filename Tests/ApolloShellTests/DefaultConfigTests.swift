@@ -159,7 +159,16 @@ struct DefaultConfigTests {
     static let cards = [".card", ".card-weather", ".card-user", ".card-clock", ".card-calendar", ".card-resources", ".card-media", ".media-source", ".popout-card", ".utilities-card", ".onboarding-card", ".weather-hero", ".weather-hours", ".weather-day"]
     static let panels = ["#dashboard", "#utilities", "#launcher", "#session"]
 
-    static let allowedPlaces: [String: [String]] = [
+    static let placesFrom02: [String: [String]] = [
+        "--apollo-danger-color": [".quick-toggle"],
+        "--apollo-card-radius": [".now-playing-cover", ".now-playing-art"],
+        "--apollo-accent-color": [".timer-ring", ".timer-toggle", ".now-playing", ".brightness-slider"],
+        "--apollo-on-accent-color": [".timer-toggle", ".brightness-slider"],
+    ]
+
+    static let allowedPlaces: [String: [String]] = allowedPlaces0142.merging(placesFrom02) { $0 + $1 }
+
+    static let allowedPlaces0142: [String: [String]] = [
         "--apollo-separator-color": [".launcher-separator"],
         "--apollo-border-color": cards,
         "--apollo-border-width": cards,

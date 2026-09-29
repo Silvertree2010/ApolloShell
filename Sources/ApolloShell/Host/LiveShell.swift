@@ -967,10 +967,14 @@ final class LiveShell: WindowHostLink {
     static func imageData(_ providers: [any ProviderInstance]) -> @MainActor (ImageRef) -> Data? {
         let media = providers.compactMap { $0 as? MediaProvider }.first
         let system = providers.compactMap { $0 as? SystemProvider }.first
+        let photos = providers.compactMap { $0 as? PhotosProvider }.first
+        let wallpaper = providers.compactMap { $0 as? WallpaperProvider }.first
         return { ref in
             switch ref.source {
             case "media": media?.artworkData(ref.id)
             case "user-image": system?.userImageData(ref.id)
+            case "photos": photos?.thumbnailData(ref.id)
+            case "wallpaper": wallpaper?.thumbnailData(ref.id)
             default: nil
             }
         }

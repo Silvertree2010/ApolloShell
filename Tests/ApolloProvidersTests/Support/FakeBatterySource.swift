@@ -28,6 +28,13 @@ final class FakeBatterySource: BatterySource {
         self.handler = handler
     }
 
+    var lowPowerSets: [Bool] = []
+
+    func setLowPowerMode(_ on: Bool) {
+        lowPowerSets.append(on)
+        details.lowPowerMode = on
+    }
+
     func stopObserving() {
         observing = false
         handler = nil

@@ -45,9 +45,15 @@ public final class SystemProvider: BaseProvider {
     }
 
     static let polledFields = ["night-shift", "microphone-muted", "show-desktop-available", "apple-dock-hidden"]
+    static let hiddenFilesInterval: Double = 30
+    static let hiddenFilesReread: Double = 1
 
     override func didChangeDemand() {
         source.setPolling(demand.wantsAny(Self.polledFields))
+        timers.set("hidden-files", every: Self.hiddenFilesInterval, active: demand.wants("hidden-files"), immediately: true) { [weak self] in
+            guard let self else { return }
+            self.publish("hidden-files", ProviderValue.bool(self.source.hiddenFiles))
+        }
         timers.set("uptime", every: Self.uptimeInterval, active: demand.wants("uptime"), immediately: true) { [weak self] in
             guard let self else { return }
             self.publish("uptime", ProviderValue.number(self.source.uptime))
@@ -96,6 +102,25 @@ public final class SystemProvider: BaseProvider {
             source.run(.hideApps(keepFrontmost: try Self.keepFrontmost(arguments)))
         case "system.open-settings":
             source.run(.openSettings(try Self.pane(arguments)))
+        case "system.toggle-hidden-files":
+            guard let current = source.hiddenFiles else {
+                warn("system.toggle-hidden-files: the Finder setting could not be read")
+                return .null
+            }
+            source.setHiddenFiles(!current)
+            publish("hidden-files", .bool(!current))
+            timers.once("hidden-files-reread", after: Self.hiddenFilesReread) { [weak self] in
+                guard let self, self.isRunning else { return }
+                self.publish("hidden-files", ProviderValue.bool(self.source.hiddenFiles))
+            }
+        case "system.empty-trash":
+            source.run(.emptyTrash)
+        case "system.mission-control":
+            source.run(.missionControl)
+        case "system.launchpad":
+            source.run(.launchpad)
+        case "system.airdrop":
+            source.run(.airDrop)
         case "system.color-picker":
             source.pickColor { [weak self] hex in
                 guard let hex else { return }

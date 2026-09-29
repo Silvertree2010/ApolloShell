@@ -4,6 +4,31 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - Unreleased
+
+### Added
+
+- **Timer, stopwatch and pomodoro** as the `timer` provider. One timer for the
+  whole shell; `timer.finished` fires even with every panel closed, and the
+  default config answers it with a toast and the Glass sound.
+- **Clipboard history** (`clipboard.history`), kept in memory only and without
+  what password managers mark as secret.
+- **Recent files** (`files.recent`), **drives** (`drives`, `drives.eject`,
+  `drives.changed`), **photo folders** (`photos folders=`), **connection
+  details** (`network-info`) and **display brightness** (`display`,
+  `display.set-brightness`).
+- **Wallpapers** (`wallpaper`, `wallpaper.set`, `wallpaper.random`) and the
+  `calc` filter.
+- **System actions** `system.toggle-hidden-files`, `system.empty-trash`,
+  `system.mission-control`, `system.launchpad`, `system.airdrop` and
+  `battery.set-low-power`.
+- **Control centre:** brightness, now-playing and timer cards (off until you
+  turn them on) and the mute, hidden files, low power, empty trash, Mission
+  Control, Launchpad and AirDrop toggles.
+- **Launcher action mode:** `>` lists actions, `>calc` computes as you type,
+  `>theme` and `>wallpaper` pick one; log out, restart and shut down ask with
+  a second Return.
+
 ## [0.2.0] - Unreleased
 
 ApolloShell becomes a framework. The shell is now a config, and the built-in
