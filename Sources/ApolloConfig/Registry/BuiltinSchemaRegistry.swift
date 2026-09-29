@@ -9,7 +9,7 @@ enum BuiltinSchemaRegistry {
             + CommandCenterNodes.all
             + WMSettings.all
             + SettingsFileNodes.all
-            + [MenuBarRegistry.appMenus]
+            + [MenuBarRegistry.appMenus, MenuBarRegistry.statusItemSurface]
 
     static let nodesResult = RegistryBuilder.dictionary(allNodes, name: { $0.name })
 

@@ -14,6 +14,7 @@ var menubar-popout-next ""
 var menubar-capsules from="{var.menubar-style == 'islands' || var.menubar-distinct}"
 var menubar-control from="{var.menubar-thickness - (var.menubar-capsules ? 6 : 4) | min 32}"
 var menubar-icon from="{var.menubar-control >= 32 ? 26 : (var.menubar-control - 4 | min 26)}"
+var menubar-extent from="{var.menubar-thickness + (var.menubar-style == 'islands' ? 6 : 0)}"
 var menubar-active from="{var.menubar-enabled && ((var.menubar-start | count) + (var.menubar-center | count) + (var.menubar-end | count)) > 0}"
 
 var menubar-macos {
@@ -138,7 +139,7 @@ define "menubar-status-items" {
                         when "{item.title != ''}" { text "{item.title}" class="menubar-status-text" }
                         else {
                             when "{item.app != null}" { app-icon "{item.app}" class="menubar-status-app" }
-                            else { icon "questionmark.square.dashed" class="menubar-status-symbol template" }
+                            else { icon "questionmark.square.dashed" class="menubar-status-symbol template fallback" }
                         }
                     }
                 }
@@ -551,7 +552,7 @@ define "menubar-zone" {
     }
 }
 
-panel "menubar" anchor="top" area="{var.menubar-covers ? 'full' : 'below-menubar'}" layer="{var.menubar-covers ? 'status' : 'floating'}" reserve=#true fullscreen="hide" screen="{var.menubar-screens}" visible="{var.menubar-active}" class="menubar {var.menubar-style} {var.menubar-distinct ? 'distinct' : ''} status-{var.menubar-status-style} {theme.set['menubar-color'] || theme.set['menubar-gradient'] || theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-material'}" style="--menubar-thickness: {var.menubar-thickness}px; --menubar-control: {var.menubar-control}px; --menubar-icon: {var.menubar-icon}px; height: {var.menubar-thickness + (var.menubar-style == 'islands' ? 6 : 0)}px" {
+panel "menubar" anchor="top" area="{var.menubar-covers ? 'full' : 'below-menubar'}" layer="{var.menubar-covers ? 'status' : 'floating'}" reserve=#true fullscreen="hide" screen="{var.menubar-screens}" visible="{var.menubar-active}" class="menubar {var.menubar-style} {var.menubar-distinct ? 'distinct' : ''} status-{var.menubar-status-style} {theme.set['menubar-color'] || theme.set['menubar-gradient'] || theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-material'}" style="--menubar-thickness: {var.menubar-thickness}px; --menubar-control: {var.menubar-control}px; --menubar-icon: {var.menubar-icon}px; height: {var.menubar-covers ? (var.menubar-extent | max (screen.menubar-height ?? 0)) : var.menubar-extent}px" {
     row class="menubar-zones" notch="{var.menubar-covers ? 'avoid' : 'ignore'}" {
         use "menubar-zone" zone="start" modules="{var.menubar-start}"
         use "menubar-zone" zone="center" modules="{var.menubar-center}"
@@ -562,7 +563,7 @@ panel "menubar" anchor="top" area="{var.menubar-covers ? 'full' : 'below-menubar
 on "user.menubar-popout" when="{var.menubar-popout == var.menubar-popout-next}" { close "menubar-status-popout" }
 on "user.menubar-popout" when="{var.menubar-popout != var.menubar-popout-next}" { set "menubar-popout" "{var.menubar-popout-next}"; open "menubar-status-popout" }
 
-popup "menubar-status-popout" attach="{'menubar-status-' + var.menubar-popout}" side="bottom" motion="fade" {
+popup "menubar-status-popout" attach="{'menubar#menubar-status-' + var.menubar-popout}" side="bottom" offset-y=6 motion="fade" class="{theme.set['menubar-color'] || theme.set['menubar-gradient'] || theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-material'}" {
     on-close { set "menubar-popout" "" }
     switch "{var.menubar-popout}" {
         case "wifi" { use "popout-wifi" }

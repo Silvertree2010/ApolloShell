@@ -180,15 +180,16 @@ define "settings-menubar-zone" {
 
 define "settings-menubar-apply-preset" {
     param "preset"
-    button class="settings-choice-button" checked="{var.menubar-start == preset.value.start && var.menubar-center == preset.value.center && var.menubar-end == preset.value.end}" {
+    param "value"
+    button class="settings-choice-button" checked="{var.menubar-start == value.start && var.menubar-center == value.center && var.menubar-end == value.end}" {
         on-click {
-            set "menubar-start" "{preset.value.start}"
-            set "menubar-center" "{preset.value.center}"
-            set "menubar-end" "{preset.value.end}"
-            set "menubar-thickness" "{preset.value.thickness}"
+            set "menubar-start" "{value.start}"
+            set "menubar-center" "{value.center}"
+            set "menubar-end" "{value.end}"
+            set "menubar-thickness" "{value.thickness}"
             emit "menubar-apply"
         }
-        use "settings-choice" title="{preset.title}" detail="{preset.summary}" checked="{var.menubar-start == preset.value.start && var.menubar-center == preset.value.center && var.menubar-end == preset.value.end}"
+        use "settings-choice" title="{preset.title}" detail="{preset.summary}" checked="{var.menubar-start == value.start && var.menubar-center == value.center && var.menubar-end == value.end}"
     }
 }
 
@@ -203,7 +204,7 @@ define "settings-page-menubar" {
             text "Template" class="settings-group-title"
             text "Replaces what stands in the bar. Arrange it further below." class="settings-row-detail" lines=0
             each preset in="{var.menubar-presets}" key="{preset.id}" {
-                use "settings-menubar-apply-preset" preset="{ {id: preset.id, title: preset.title, summary: preset.summary, value: preset.id == 'macos' ? var.menubar-macos : (preset.id == 'serpantinum' ? var.menubar-serpantinum : (preset.id == 'minimal' ? var.menubar-minimal : var.menubar-clock-only))} }"
+                use "settings-menubar-apply-preset" preset="{preset}" value="{preset.id == 'macos' ? var.menubar-macos : (preset.id == 'serpantinum' ? var.menubar-serpantinum : (preset.id == 'minimal' ? var.menubar-minimal : var.menubar-clock-only))}"
             }
         }
         column class="settings-group" {

@@ -1280,6 +1280,30 @@ Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `o
 stack class="divider" { }
 ```
 
+### `status-item` (node)
+
+Symbol or text in Apple's menu bar, drawn from its children; target for popup attach="id#element".
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `id` | identifier | required | Id, unique per surface; target for flyout, popup and each. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+
+Handlers: `on-open`, `on-close`, `on-closed`, `key`
+
+```kdl
+status-item "shell" { button { on-click { command-center.open }; icon "circle.hexagongrid" } }
+```
+
 ### `style` (node)
 
 Includes a stylesheet.

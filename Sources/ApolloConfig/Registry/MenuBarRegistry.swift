@@ -57,6 +57,20 @@ enum MenuBarRegistry {
         example: "app-menus { text \"{menubar.app-name}\"; text \"File\"; text \"…\" }"
     )
 
+    static let statusItemSurface = NodeSchema(
+        name: "status-item",
+        category: .surface,
+        feature: "status-item",
+        stability: .stable,
+        arguments: [CommonProperties.idArgument],
+        properties: CommonProperties.baseline,
+        handlers: CommonProperties.surfaceHandlers,
+        childContext: .surfaceBody,
+        contexts: [.topLevel],
+        doc: "Symbol or text in Apple's menu bar, drawn from its children; target for popup attach=\"id#element\".",
+        example: "status-item \"shell\" { button { on-click { command-center.open }; icon \"circle.hexagongrid\" } }"
+    )
+
     static let menuSources: [NodeSchema] = [
         NodeSchema(
             name: "app-menubar",
@@ -113,5 +127,6 @@ enum MenuBarRegistry {
         FeatureSchema(name: "status-items", since: "0.2.1"),
         FeatureSchema(name: "notch-area", since: "0.2.1"),
         FeatureSchema(name: "runs", since: "0.2.1"),
+        FeatureSchema(name: "status-item", since: "0.2.1"),
     ]
 }

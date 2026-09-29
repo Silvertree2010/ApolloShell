@@ -96,7 +96,7 @@ final class WindowHost: SurfaceHosting {
     private var stopPointer: (@MainActor () -> Void)?
     private var attachSyncing: Set<String> = []
 
-    static let windowKinds: Set<String> = ["panel", "popup", "overlay", "toast", "osd", "window"]
+    static let windowKinds: Set<String> = ["panel", "popup", "overlay", "toast", "osd", "window", "status-item"]
 
     init(factory: any HostWindowFactory = AppKitWindowFactory()) {
         self.factory = factory

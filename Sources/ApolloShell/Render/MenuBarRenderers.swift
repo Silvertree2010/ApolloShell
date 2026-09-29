@@ -33,7 +33,7 @@ struct AppMenusLayout: Layout {
         let counted = subviews.count > 1 ? sizes.dropLast() : sizes[...]
         let natural = counted.reduce(0) { $0 + $1.width } + CGFloat(max(counted.count - 1, 0)) * spacing
         guard let width = proposal.width, width.isFinite else { return CGSize(width: natural, height: height) }
-        return CGSize(width: min(width, natural), height: height)
+        return CGSize(width: width, height: height)
     }
 
     static func fit(widths: [Double], available: Double, spacing: Double) -> (shown: Set<Int>, hidden: [Int]) {

@@ -343,7 +343,7 @@ define "popout-battery" {
     }
 }
 
-panel "sidebar" anchor="left" area="below-menubar" reserve=#true shape="fused" fullscreen="hide" screen="{var.sidebar-screens}" class="{theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-' + var.sidebar-background}" {
+panel "sidebar" anchor="left" area="below-menubar" reserve=#true shape="fused" fullscreen="hide" screen="{var.sidebar-screens}" style="{var.menubar-active && (var.menubar-screens == 'all' || var.menubar-screens == screen.id || (var.menubar-screens == 'main' && screen.main)) ? 'margin-top: ' + (var.menubar-covers ? (var.menubar-extent - (screen.menubar-height ?? 0) | max 0) : var.menubar-extent) + 'px' : ''}" class="{theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-' + var.sidebar-background}" {
     column class="sidebar-modules" {
         each module in="{var.sidebar-modules}" key="{module.id}" {
             use "sidebar-{module.kind}" module="{module}"
