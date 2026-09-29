@@ -62,6 +62,7 @@ final class WindowHost: SurfaceHosting {
     let fusion = FusionCoordinator()
     private var fusionToken: SurfaceFrames.Token?
     private var fusionRegistered = false
+    private var fusionLooks: [String: String] = [:]
     var makeTicker: (any HostWindow) -> (any FrameTicker)? = { window in
         (window as? AppKitHostWindow).map { DisplayLinkTicker(view: $0.container) }
     }
@@ -222,6 +223,7 @@ final class WindowHost: SurfaceHosting {
 
     func restyle(_ context: RenderContext) {
         self.context = context
+        fusionLooks.removeAll()
         stats.restyles += 1
         let wasOn = fusionRegistered
         for (key, controller) in controllers {
@@ -474,7 +476,13 @@ final class WindowHost: SurfaceHosting {
         updateReserves()
         updateClickThrough()
         if !attachSyncing.contains(key) { syncAttached(to: key) }
-        if fusionRegistered, !FusionCoordinator.groupName(surface).isEmpty { fusion.refresh(surface.screenKey) }
+        if fusionRegistered, !FusionCoordinator.groupName(surface).isEmpty {
+            let look = (surface.property("class").plainText ?? "") + "|" + (surface.property("style").plainText ?? "")
+            if fusionLooks[key] != look {
+                fusionLooks[key] = look
+                fusion.refresh(surface.screenKey)
+            }
+        }
     }
 
     func attachedRect(_ attach: SurfacePlacement.Attachment, screenKey: String) -> CGRect? {
