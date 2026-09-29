@@ -47,7 +47,7 @@ Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `o
 app-icon "{app}"
 ```
 
-### `app-menus` (node, *experimental*)
+### `app-menus` (node)
 
 Row that keeps its first child, shows as many of the middle children as fit and shows its last child, the overflow button, only when some did not fit.
 
@@ -68,7 +68,7 @@ Row that keeps its first child, shows as many of the middle children as fit and 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
 ```kdl
-app-menus { each menu in="{menubar.menus | skip 1}" { text "{menu.title}" }; text "…" }
+app-menus { text "{menubar.app-name}"; text "File"; text "…" }
 ```
 
 ### `apple-desktops` (node)
@@ -2051,7 +2051,7 @@ What is playing.
 
 Actions and events: `media.play-pause`, `media.next`, `media.previous`, `media.seek`, `media.open-app`, `media.track-changed`
 
-### `menubar` (provider, *experimental*)
+### `menubar` (provider)
 
 The frontmost app's menu bar, read through Accessibility on a queue of its own.
 
@@ -2180,7 +2180,7 @@ Desktops per screen.
 
 Actions and events: `spaces.switch`, `spaces.next`, `spaces.previous`, `spaces.mission-control`, `spaces.changed`
 
-### `status-items` (provider, *experimental*)
+### `status-items` (provider)
 
 Status items of other apps, their pictures captured with ScreenCaptureKit.
 
@@ -2536,7 +2536,7 @@ Rounds a number.
 | --- | --- | --- | --- | --- |
 | argument | `digits` | number |  | Decimal places, default 0. |
 
-### `runs` (filter, *experimental*)
+### `runs` (filter)
 
 Splits a list into runs, a list of lists.
 

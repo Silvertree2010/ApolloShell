@@ -45,6 +45,8 @@ struct SystemProviders {
             ScriptSourcesProvider(kind: .listen, sources: listens, runner: runner, clock: clock),
             wm,
             MarketplaceProvider(host: marketplace, clock: clock),
+            MenuBarProvider(source: SystemMenuBarSource.shared, clock: clock),
+            StatusItemsProvider(source: SystemStatusItemsSource.shared, clock: clock),
         ]
     }
 

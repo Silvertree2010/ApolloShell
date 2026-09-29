@@ -24,6 +24,7 @@ struct SchemaRegistryTests {
     static let layoutNames: Set<String> = ["row", "column", "grid", "stack", "scroll", "spacer"]
 
     static let elementNames: Set<String> = [
+        "app-menus",
         "text", "icon", "image", "app-icon", "theme-preview", "mark", "shape", "button", "toggle",
         "slider", "input", "key-recorder", "ring", "gauge", "graph", "progress", "reorderable",
         "flyout", "menu", "accessibility-action",
@@ -41,6 +42,7 @@ struct SchemaRegistryTests {
     static let settingsFileNames: Set<String> = ["config", "theme", "updates", "crash-reports", "editor"]
 
     static let nodesWithChildren: Set<String> = [
+        "app-menus",
         "define", "fill", "use", "each", "when", "else", "switch", "case", "default",
         "bind", "on", "wm", "command-center", "items",
         "panel", "popup", "overlay", "toast", "osd", "window",

@@ -16,9 +16,12 @@ protocol RenderRuntime: AnyObject {
     func watch(_ name: String, _ onChange: @escaping @MainActor () -> Void) -> (@MainActor () -> Void)?
     @discardableResult
     func perform(_ action: String, _ arguments: [String], on identity: Identity) -> Task<Void, Never>?
+    func screen(_ key: String) -> Value
 }
 
 extension RenderRuntime {
+    func screen(_ key: String) -> Value { .null }
+
     func watch(_ name: String, _ onChange: @escaping @MainActor () -> Void) -> (@MainActor () -> Void)? {
         nil
     }
@@ -61,6 +64,10 @@ final class AssemblyRenderRuntime: RenderRuntime {
 
     func bindChords() -> [(id: String, chord: String)] {
         assembly?.runtime.bindChords() ?? []
+    }
+
+    func screen(_ key: String) -> Value {
+        assembly?.store.value(DependencyPath("screen:" + key, [])) ?? .null
     }
 
     func watch(_ name: String, _ onChange: @escaping @MainActor () -> Void) -> (@MainActor () -> Void)? {

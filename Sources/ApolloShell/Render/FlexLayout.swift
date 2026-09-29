@@ -1,4 +1,5 @@
 import SwiftUI
+import ApolloShellCore
 import ApolloStyle
 
 struct ChildMetrics: Equatable {
@@ -67,6 +68,7 @@ struct FlexLayout: Layout {
     var align: String
     var justify: String
     var definite = Definite()
+    var notch: BarNotch?
 
     private func main(_ size: CGSize) -> CGFloat { horizontal ? size.width : size.height }
     private func cross(_ size: CGSize) -> CGFloat { horizontal ? size.height : size.width }
@@ -176,7 +178,8 @@ struct FlexLayout: Layout {
         }
         var mainSize = sizes.reduce(0, +) + gap * CGFloat(subviews.count - 1)
         let available = horizontal ? proposal.width : proposal.height
-        if let available, available.isFinite, justify != "start" || subviews.contains(where: { $0[ChildMetricsKey.self].grow > 0 }) {
+        if let available, available.isFinite, justify != "start" || subviews.contains(where: { $0[ChildMetricsKey.self].grow > 0 })
+            || (horizontal && ZoneRow.applies(subviews.map { $0[ChildMetricsKey.self] })) {
             mainSize = max(mainSize, available)
         }
         return definite.apply(horizontal ? CGSize(width: mainSize, height: crossSize) : CGSize(width: crossSize, height: mainSize), proposal)
@@ -184,6 +187,10 @@ struct FlexLayout: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         guard !subviews.isEmpty else { return }
+        if horizontal, ZoneRow.applies(subviews.map { $0[ChildMetricsKey.self] }) {
+            ZoneRow(gap: gap, align: align, notch: notch).place(in: bounds, subviews: subviews)
+            return
+        }
         let sizes = mains(subviews, proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
         let total = sizes.reduce(0, +) + gap * CGFloat(subviews.count - 1)
         let free = max(0, main(bounds.size) - total)

@@ -1,14 +1,15 @@
 import SwiftUI
+import ApolloShellCore
 import ApolloConfig
 import ApolloStyle
 import ApolloRuntime
 
 @MainActor
 enum LayoutRenderers {
-    static func flex(horizontal: Bool, style: ComputedStyle, @ViewBuilder content: () -> some View) -> some View {
+    static func flex(horizontal: Bool, style: ComputedStyle, notch: BarNotch? = nil, @ViewBuilder content: () -> some View) -> some View {
         let gap = StyleValues.gap(style[horizontal ? "column-gap" : "row-gap"] ?? style["gap"])
         return FlexLayout(horizontal: horizontal, gap: gap, align: StyleValues.keyword(style["align-items"]) ?? "stretch",
-                          justify: StyleValues.keyword(style["justify-content"]) ?? "start", definite: Definite(style)) {
+                          justify: StyleValues.keyword(style["justify-content"]) ?? "start", definite: Definite(style), notch: notch) {
             content()
         }
     }
@@ -18,7 +19,10 @@ enum LayoutRenderers {
     }
 
     static func row(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
-        AnyView(flex(horizontal: true, style: style) { ElementChildren(children: element.children, scope: scope) })
+        if element.property("notch").plainText == "avoid" {
+            return AnyView(NotchRow(element: element, style: style, scope: scope))
+        }
+        return AnyView(flex(horizontal: true, style: style) { ElementChildren(children: element.children, scope: scope) })
     }
 
     static func stack(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
