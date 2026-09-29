@@ -40,8 +40,10 @@ struct FusionTests {
         let aloneStyle = try #require(host.context).styles.resolve(surface: alone)
         #expect(SurfaceBackground.resolve(host.painter, surface: alone, style: aloneStyle).style["background"] != nil)
         #expect(host.fusionFill(HostFixture.screen.key)["background"] != nil)
-        let ids = host.fusion.pieces(on: HostFixture.screen.key).map(\.id)
-        #expect(ids == ["bar@" + HostFixture.screen.key])
+        let pieces = host.fusion.pieces(on: HostFixture.screen.key)
+        #expect(pieces.map(\.id) == ["bar@" + HostFixture.screen.key])
+        #expect(abs((pieces.first?.piece.rect.width ?? 0) - 40) < 0.5)
+        #expect(host.fusion.models[HostFixture.screen.key]?.pieces.count == 1)
     }
 
     @Test("separate: keine Haut, kein Maler, Hintergründe wie ohne Fusion")

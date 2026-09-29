@@ -133,8 +133,8 @@ final class WindowHost: SurfaceHosting {
         let geometries = screens.values.sorted { $0.key < $1.key }
         if wanted {
             fusion.screensChanged(screens)
-            fusionToken = frames.observe { [weak self] key, frame in self?.fusion.frameChanged(key, frame) }
             auxiliary.register(fusion, screens: geometries)
+            fusionToken = frames.observe { [weak self] key, frame in self?.fusion.frameChanged(key, frame) }
         } else {
             fusionToken?.cancel()
             fusionToken = nil

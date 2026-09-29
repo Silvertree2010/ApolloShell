@@ -159,7 +159,11 @@ final class FusionCoordinator: BackgroundPainter, AuxiliaryWindowOwner {
         if field.isResting {
             tickers[screen]?.stop()
             tickers[screen] = nil
-        } else if tickers[screen] == nil, let ticker = makeTicker(screen) {
+        } else if tickers[screen] == nil {
+            guard let ticker = makeTicker(screen) else {
+                settle(screen)
+                return
+            }
             tickers[screen] = ticker
             lastTick[screen] = nil
             ticker.start { [weak self] elapsed in
@@ -180,6 +184,11 @@ final class FusionCoordinator: BackgroundPainter, AuxiliaryWindowOwner {
             lastTick[screen] = nil
         }
         return going
+    }
+
+    private func settle(_ screen: String) {
+        for _ in 0..<600 where !(fields[screen]?.isResting ?? true) { fields[screen]?.step(1.0 / 30) }
+        publish(screen)
     }
 
     func tick(_ screen: String, by seconds: TimeInterval) {
