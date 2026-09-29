@@ -10,6 +10,7 @@ final class SystemMacSource: SystemSource {
     private static let pollInterval: TimeInterval = 2
 
     private let dock: AppleDockHidingController
+    let menuBar: AppleMenuBarHidingController
     private var nightShiftClient: UtilitiesNightShiftClient?
     private var nightShiftLookedUp = false
     private var colorSampler: NSColorSampler?
@@ -22,6 +23,8 @@ final class SystemMacSource: SystemSource {
 
     init(directory: URL) {
         dock = AppleDockHidingController(fileURL: directory.appendingPathComponent("apple-dock.json"))
+        menuBar = AppleMenuBarHidingController(fileURL: directory.appendingPathComponent("apple-menubar.json"))
+        menuBar.recoverAfterCrash()
     }
 
     var darkMode: Bool { UtilitiesAppearance.isDark() }
@@ -58,6 +61,12 @@ final class SystemMacSource: SystemSource {
 
     var appleDockHidden: Bool { dock.isHidden }
 
+    var appleMenuBarHidden: Bool { menuBar.isHidden }
+
+    func setAppleMenuBarHidden(_ hidden: Bool) {
+        menuBar.apply(hidden)
+    }
+
     func setDarkMode(_ on: Bool) {
         UtilitiesAppearance.setDark(on)
     }
@@ -78,6 +87,7 @@ final class SystemMacSource: SystemSource {
 
     func terminate() {
         dock.terminate()
+        menuBar.terminate()
     }
 
     func run(_ command: SystemCommand) {

@@ -66,6 +66,18 @@ public final class ScreensProvider: BaseProvider {
             ("notch", .bool(screen.notch)),
             ("menubar-height", ProviderValue.number(screen.menubarHeight)),
             ("fullscreen", .bool(screen.fullscreen)),
+            ("notch-left", area(screen.notchLeft, in: screen.frame)),
+            ("notch-right", area(screen.notchRight, in: screen.frame)),
+        ]))
+    }
+
+    static func area(_ rect: CGRect?, in frame: CGRect) -> Value {
+        guard let rect else { return .null }
+        return .record(Record([
+            ("x", .number(Double(rect.minX - frame.minX))),
+            ("y", .number(Double(frame.maxY - rect.maxY))),
+            ("width", .number(Double(rect.width))),
+            ("height", .number(Double(rect.height))),
         ]))
     }
 }

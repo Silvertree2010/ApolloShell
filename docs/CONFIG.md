@@ -47,6 +47,30 @@ Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `o
 app-icon "{app}"
 ```
 
+### `app-menus` (node, *experimental*)
+
+Row that keeps its first child, shows as many of the middle children as fit and shows its last child, the overflow button, only when some did not fit.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+
+Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
+
+```kdl
+app-menus { each menu in="{menubar.menus | skip 1}" { text "{menu.title}" }; text "…" }
+```
+
 ### `apple-desktops` (node)
 
 Whether the window manager uses Apple's Spaces or its own workspaces.
@@ -1031,6 +1055,7 @@ Lays out children side by side, flexbox direction row.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `notch` | "ignore"\|"avoid" | `"ignore"` | avoid keeps start children left of the notch and puts centered and end children right of it. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -2026,6 +2051,19 @@ What is playing.
 
 Actions and events: `media.play-pause`, `media.next`, `media.previous`, `media.seek`, `media.open-app`, `media.track-changed`
 
+### `menubar` (provider, *experimental*)
+
+The frontmost app's menu bar, read through Accessibility on a queue of its own.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| field | `app-name` | string | | Name the frontmost app gives its own menu, such as Finder. |
+| field | `bundle-id` | string or null | | Bundle ID of the frontmost app, #null without one. |
+| field | `menus` | list | | Top-level menus of the frontmost app, each with index, title, apple and app; entries come from the app-menubar menu source. |
+| field | `trusted` | bool | | Whether the shell may read other apps' menus (Accessibility). |
+
+Actions and events: `menubar.press`
+
 ### `network` (provider)
 
 Wi-Fi, Ethernet.
@@ -2086,6 +2124,7 @@ Which macOS permissions the shell has.
 | field | `accessibility` | bool | | Accessibility allowed. |
 | field | `automation` | bool or null | | Automation allowed. |
 | field | `screen-recording` | bool | | Screen recording allowed. |
+| field | `screen-capture-bypass` | bool | | Whether macOS lets the shell capture single windows without asking each time. |
 
 Actions and events: `permissions.request-accessibility`, `permissions.open`
 
@@ -2141,6 +2180,16 @@ Desktops per screen.
 
 Actions and events: `spaces.switch`, `spaces.next`, `spaces.previous`, `spaces.mission-control`, `spaces.changed`
 
+### `status-items` (provider, *experimental*)
+
+Status items of other apps, their pictures captured with ScreenCaptureKit.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| field | `list` | list | | Other apps' status items in Apple's order, each with id, app, name, title, image, kind (menu or popover, #null until known), monochrome and symbol (SF Symbol stand-in, only from fixtures). |
+
+Actions and events: `status-items.click`
+
 ### `system` (provider)
 
 Appearance, Night Shift, microphone, user, computer, system actions.
@@ -2164,8 +2213,9 @@ Appearance, Night Shift, microphone, user, computer, system actions.
 | field | `kernel-version` | string | | Kernel version. |
 | field | `uptime` | number | | Uptime in s. |
 | field | `apple-dock-hidden` | bool | | Whether Apple's Dock is hidden. |
+| field | `apple-menubar-hidden` | bool | | Whether the shell keeps Apple's menu bar hidden right now. |
 
-Actions and events: `system.set-dark-mode`, `system.toggle-dark-mode`, `system.set-night-shift`, `system.toggle-night-shift`, `system.set-microphone-muted`, `system.toggle-microphone`, `system.screenshot`, `system.color-picker`, `system.show-desktop`, `system.lock`, `system.display-sleep`, `system.hide-apps`, `system.open-settings`, `system.hide-apple-dock`, `system.appearance-changed`, `system.color-copied`, `shortcuts.failed`
+Actions and events: `system.set-dark-mode`, `system.toggle-dark-mode`, `system.set-night-shift`, `system.toggle-night-shift`, `system.set-microphone-muted`, `system.toggle-microphone`, `system.screenshot`, `system.color-picker`, `system.show-desktop`, `system.lock`, `system.display-sleep`, `system.hide-apps`, `system.open-settings`, `system.hide-apple-dock`, `system.hide-apple-menubar`, `system.appearance-changed`, `system.color-copied`, `shortcuts.failed`
 
 ### `weather` (provider)
 
@@ -2485,6 +2535,14 @@ Rounds a number.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `digits` | number |  | Decimal places, default 0. |
+
+### `runs` (filter, *experimental*)
+
+Splits a list into runs, a list of lists.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `field` | string | required | Field of each item; a new run starts at every item where it is false. |
 
 ### `scale` (filter)
 

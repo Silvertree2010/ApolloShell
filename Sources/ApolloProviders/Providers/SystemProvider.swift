@@ -84,6 +84,9 @@ public final class SystemProvider: BaseProvider {
         case "system.hide-apple-dock":
             source.setAppleDockHidden(try arguments.bool(0))
             refresh()
+        case "system.hide-apple-menubar":
+            source.setAppleMenuBarHidden(try arguments.bool(0))
+            refresh()
         case "system.screenshot":
             source.run(.screenshot)
         case "system.show-desktop":
@@ -143,6 +146,7 @@ public final class SystemProvider: BaseProvider {
         publish("reduce-motion", .bool(source.reduceMotion))
         publish("reduce-transparency", .bool(source.reduceTransparency))
         publish("apple-dock-hidden", .bool(source.appleDockHidden))
+        publish("apple-menubar-hidden", .bool(source.appleMenuBarHidden))
     }
 
     static func keepFrontmost(_ arguments: ActionArguments) throws -> Bool {

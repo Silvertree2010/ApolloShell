@@ -147,6 +147,7 @@ enum ProvidersMore {
             S.field("kernel-version", .string, update: .once, doc: "Kernel version."),
             S.field("uptime", .number, update: .tick, doc: "Uptime in s."),
             S.field("apple-dock-hidden", .bool, update: .push, doc: "Whether Apple's Dock is hidden."),
+            MenuBarRegistry.appleMenuBarHidden,
         ],
         actions: [
             S.action("system.set-dark-mode", [S.arg("value", .bool, doc: "#true for dark, #false for light.")], doc: "Sets the appearance."),
@@ -163,6 +164,7 @@ enum ProvidersMore {
             S.action("system.hide-apps", properties: [PropertySchema(name: "keep-frontmost", type: .bool, defaultValue: .bool(false), doc: "Keeps the frontmost app.")], doc: "Hides other apps.", startsProgramsOrControlsApps: true),
             S.action("system.open-settings", [S.arg("pane", .string, required: false, doc: "Pane such as wifi, sound or battery; without it the app opens.")], doc: "Opens System Settings."),
             S.action("system.hide-apple-dock", [S.arg("value", .bool, doc: "#true hides the Dock.")], doc: "Hides Apple's Dock."),
+            MenuBarRegistry.hideAppleMenuBar,
         ],
         events: [
             S.event("system.appearance-changed", doc: "Appearance changed."),
@@ -215,6 +217,7 @@ enum ProvidersMore {
             S.field("accessibility", .bool, update: .poll(seconds: 2), doc: "Accessibility allowed."),
             S.field("automation", .bool, nullable: true, update: .poll(seconds: 2), doc: "Automation allowed."),
             S.field("screen-recording", .bool, update: .poll(seconds: 2), doc: "Screen recording allowed."),
+            MenuBarRegistry.screenCaptureBypass,
         ],
         actions: [
             S.action("permissions.request-accessibility", doc: "Requests Accessibility access."),

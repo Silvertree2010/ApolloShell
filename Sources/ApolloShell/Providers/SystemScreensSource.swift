@@ -27,9 +27,16 @@ final class SystemScreensSource: ScreensSource {
                 primary: screen === primary,
                 notch: screen.safeAreaInsets.top > 0,
                 menubarHeight: Double(max(screen.frame.maxY - screen.visibleFrame.maxY, screen.safeAreaInsets.top)),
-                fullscreen: Self.displayID(of: screen).map(fullscreen.contains) ?? false
+                fullscreen: Self.displayID(of: screen).map(fullscreen.contains) ?? false,
+                notchLeft: Self.notch(screen)?.left,
+                notchRight: Self.notch(screen)?.right
             )
         }
+    }
+
+    static func notch(_ screen: NSScreen) -> (left: CGRect, right: CGRect)? {
+        guard let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea, right.minX - left.maxX > 1 else { return nil }
+        return (left, right)
     }
 
     func observeChanges(_ handler: @escaping @MainActor () -> Void) {

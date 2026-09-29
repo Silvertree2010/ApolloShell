@@ -48,6 +48,8 @@ public protocol SystemSource: AnyObject {
     func setNightShift(_ on: Bool) -> Bool
     func setMicrophoneMuted(_ muted: Bool) -> Bool
     func setAppleDockHidden(_ hidden: Bool)
+    var appleMenuBarHidden: Bool { get }
+    func setAppleMenuBarHidden(_ hidden: Bool)
     func run(_ command: SystemCommand)
     func pickColor(_ completion: @escaping @MainActor (String?) -> Void)
     func observeChanges(_ handler: @escaping @MainActor () -> Void)
@@ -58,6 +60,8 @@ public protocol SystemSource: AnyObject {
 
 extension SystemSource {
     public func userImageData() -> Data? { nil }
+    public var appleMenuBarHidden: Bool { false }
+    public func setAppleMenuBarHidden(_ hidden: Bool) {}
 }
 
 @MainActor
