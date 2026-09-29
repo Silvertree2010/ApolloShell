@@ -1136,6 +1136,9 @@ final class LiveShellControl: ShellControl, @unchecked Sendable {
                 ("space-changes", .number(Double(host.spaceChanges))),
                 ("styles-computed", .number(Double(StyleResolver.computedTotal))),
                 ("longest-block-ms", .number(MainBlockObserver.shared.takeLongest())),
+                ("layout-measures", .number(Double(LayoutCounter.measures.load(ordering: .relaxed)))),
+                ("layout-placements", .number(Double(LayoutCounter.placements.load(ordering: .relaxed)))),
+                ("layout-passes", .number(Double(LayoutCounter.passes.load(ordering: .relaxed)))),
             ]))
         }
     }
