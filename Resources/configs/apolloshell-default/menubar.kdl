@@ -6,9 +6,9 @@ var menubar-thickness 24 persist=#true
 var menubar-covers #true persist=#true
 var menubar-hide-apple #false persist=#true
 var menubar-status-style "icons" persist=#true
-var menubar-start "{var.menubar-macos.start}" type="list" persist=#true
-var menubar-center "{var.menubar-macos.center}" type="list" persist=#true
-var menubar-end "{var.menubar-macos.end}" type="list" persist=#true
+var menubar-start "{(var.menubar-macos.start | count) > 0 ? var.menubar-macos.start : []}" type="list" persist=#true
+var menubar-center "{(var.menubar-macos.center | count) > 0 ? var.menubar-macos.center : []}" type="list" persist=#true
+var menubar-end "{(var.menubar-macos.end | count) > 0 ? var.menubar-macos.end : []}" type="list" persist=#true
 var menubar-popout ""
 var menubar-popout-next ""
 var menubar-capsules from="{var.menubar-style == 'islands' || var.menubar-distinct}"

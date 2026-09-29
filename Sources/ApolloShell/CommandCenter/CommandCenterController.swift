@@ -23,6 +23,17 @@ final class CommandCenterController: NSObject, NSMenuDelegate {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.popUpUnderPointer() }
         }
+        SystemStatusItemsSource.shared.own = { [weak self] in self?.ownItem() }
+    }
+
+    func ownItem() -> SystemStatusItemsSource.OwnItem? {
+        guard statusItem.isVisible, let button = statusItem.button, let window = button.window, let image = button.image else { return nil }
+        let frame = window.convertToScreen(button.convert(button.bounds, to: nil))
+        return SystemStatusItemsSource.OwnItem(frame: frame, image: image, open: { [weak self] in self?.openBelow() })
+    }
+
+    private func openBelow() {
+        statusItem.button?.performClick(nil)
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -47,6 +58,7 @@ final class CommandCenterController: NSObject, NSMenuDelegate {
     func remove() {
         if let handoffObserver { DistributedNotificationCenter.default().removeObserver(handoffObserver) }
         handoffObserver = nil
+        SystemStatusItemsSource.shared.own = { nil }
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 }

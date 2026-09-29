@@ -20,6 +20,15 @@ final class SystemStatusItemsSource: StatusItemsSource {
         var kind: String?
     }
 
+    struct OwnItem {
+        var frame: CGRect
+        var image: NSImage
+        var open: @MainActor () -> Void
+    }
+
+    var own: @MainActor () -> OwnItem? = { nil }
+    private var ownOpen: (@MainActor () -> Void)?
+    private var ownPNG: Data?
     private var items: [Item] = []
     private var handler: (@MainActor ([StatusItemState]) -> Void)?
     private var timer: Timer?
@@ -59,8 +68,27 @@ final class SystemStatusItemsSource: StatusItemsSource {
         handler = nil
     }
 
+    private var icons: [pid_t: Data] = [:]
+
     func imageData(_ id: String) -> Data? {
-        items.first { $0.record.id == id }?.png
+        guard let item = items.first(where: { $0.record.id == id }) else { return nil }
+        if AXMenus.isOwn(item.record.pid) { return ownPNG }
+        return item.png ?? (item.record.title.isEmpty ? appIcon(item.record.pid) : nil)
+    }
+
+    private func appIcon(_ pid: pid_t) -> Data? {
+        if let cached = icons[pid] { return cached }
+        guard let icon = NSRunningApplication(processIdentifier: pid)?.icon else { return nil }
+        let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 32, pixelsHigh: 32, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+        guard let bitmap else { return nil }
+        bitmap.size = NSSize(width: 16, height: 16)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+        icon.draw(in: NSRect(origin: .zero, size: bitmap.size))
+        NSGraphicsContext.restoreGraphicsState()
+        let data = bitmap.representation(using: .png, properties: [:])
+        icons[pid] = data
+        return data
     }
 
     func item(_ id: String) -> StatusItemRecord? {
@@ -69,11 +97,16 @@ final class SystemStatusItemsSource: StatusItemsSource {
 
     func click(_ id: String) async -> Bool {
         guard let record = item(id) else { return false }
+        if AXMenus.isOwn(record.pid) {
+            ownOpen?()
+            return true
+        }
         return await AXMenus.pressStatusItem(pid: record.pid, index: record.index, path: [])
     }
 
     func menu(_ id: String) async -> [AppMenuNode]? {
         guard let record = item(id) else { return nil }
+        if AXMenus.isOwn(record.pid) { return nil }
         let nodes = await AXMenus.statusItemMenu(pid: record.pid, index: record.index)
         if let index = items.firstIndex(where: { $0.record.id == id }) {
             let kind = nodes == nil ? "popover" : "menu"
@@ -87,10 +120,28 @@ final class SystemStatusItemsSource: StatusItemsSource {
         Task { _ = await AXMenus.pressStatusItem(pid: record.pid, index: record.index, path: path) }
     }
 
+    static func png(_ image: NSImage) -> Data? {
+        let scale: CGFloat = 2
+        let size = image.size
+        guard size.width > 0, size.height > 0,
+              let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(size.width * scale), pixelsHigh: Int(size.height * scale), bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+        else { return nil }
+        bitmap.size = size
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+        image.draw(in: NSRect(origin: .zero, size: size))
+        NSGraphicsContext.restoreGraphicsState()
+        return bitmap.representation(using: .png, properties: [:])
+    }
+
     private func deliver() {
+        let ownPID = ProcessInfo.processInfo.processIdentifier
         handler?(items.map { item in
-            StatusItemState(id: item.record.id, app: item.record.bundleID, name: item.record.name, title: item.record.title,
-                            hasImage: item.png != nil, imageVersion: item.version, kind: item.kind, monochrome: item.monochrome)
+            if item.record.pid == ownPID {
+                return StatusItemState(id: item.record.id, app: item.record.bundleID, name: item.record.name, hasImage: ownPNG != nil, kind: "menu", monochrome: true)
+            }
+            return StatusItemState(id: item.record.id, app: item.record.bundleID, name: item.record.name, title: item.record.title,
+                            hasImage: item.png != nil || item.record.title.isEmpty, imageVersion: item.version, kind: item.kind, monochrome: item.png != nil && item.monochrome)
         })
     }
 
@@ -110,7 +161,15 @@ final class SystemStatusItemsSource: StatusItemsSource {
         lastSignature = Self.windowSignature()
         lastList = Date()
         Task { @MainActor in
-            let records = StatusItemOrder.mirrored(await AXMenus.statusItems())
+            var raw = await AXMenus.statusItems()
+            if let mine = own(), let main = NSScreen.screens.first {
+                ownOpen = mine.open
+                if ownPNG == nil { ownPNG = Self.png(mine.image) }
+                raw.append(StatusItemRecord(pid: ProcessInfo.processInfo.processIdentifier, bundleID: Bundle.main.bundleIdentifier, index: 0,
+                                            frame: CGRect(x: mine.frame.minX, y: main.frame.maxY - mine.frame.maxY, width: mine.frame.width, height: mine.frame.height),
+                                            label: "ApolloShell"))
+            }
+            let records = StatusItemOrder.mirrored(raw)
             let old = Dictionary(items.map { ($0.record.id, $0) }, uniquingKeysWith: { a, _ in a })
             items = records.map { record in
                 var item = old[record.id] ?? Item(record: record)

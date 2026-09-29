@@ -181,15 +181,15 @@ define "settings-menubar-zone" {
 define "settings-menubar-apply-preset" {
     param "preset"
     param "value"
-    button class="settings-choice-button" checked="{var.menubar-start == value.start && var.menubar-center == value.center && var.menubar-end == value.end}" {
+    button class="settings-choice-button" checked="{var.menubar-start == ((value.start | count) > 0 ? value.start : []) && var.menubar-center == ((value.center | count) > 0 ? value.center : []) && var.menubar-end == ((value.end | count) > 0 ? value.end : [])}" {
         on-click {
-            set "menubar-start" "{value.start}"
-            set "menubar-center" "{value.center}"
-            set "menubar-end" "{value.end}"
+            set "menubar-start" "{(value.start | count) > 0 ? value.start : []}"
+            set "menubar-center" "{(value.center | count) > 0 ? value.center : []}"
+            set "menubar-end" "{(value.end | count) > 0 ? value.end : []}"
             set "menubar-thickness" "{value.thickness}"
             emit "menubar-apply"
         }
-        use "settings-choice" title="{preset.title}" detail="{preset.summary}" checked="{var.menubar-start == value.start && var.menubar-center == value.center && var.menubar-end == value.end}"
+        use "settings-choice" title="{preset.title}" detail="{preset.summary}" checked="{var.menubar-start == ((value.start | count) > 0 ? value.start : []) && var.menubar-center == ((value.center | count) > 0 ? value.center : []) && var.menubar-end == ((value.end | count) > 0 ? value.end : [])}"
     }
 }
 
