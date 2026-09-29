@@ -1,5 +1,7 @@
 import Testing
 import AppKit
+import SwiftUI
+import ApolloStyle
 import ApolloBase
 import ApolloConfig
 import ApolloProviders
@@ -49,5 +51,57 @@ struct LayoutWorkTests {
             })
         }
         #expect(counts.allSatisfy { $0 < 800 }, "\(counts)")
+    }
+}
+
+private struct AnimatedRingProbe: View {
+    var value: Double
+    var animated = true
+    var kind = "ring"
+
+    var body: some View {
+        FlexLayout(horizontal: false, gap: 4, align: "center", justify: "start") {
+            FlexLayout(horizontal: true, gap: 4, align: "center", justify: "start") {
+                Text("CPU")
+                Group {
+                    switch kind {
+                    case "gauge": GaugeView(value: value, ticks: 5, style: DisplayStyle(ComputedStyle(values: [:])))
+                    default: RingView(value: value, gap: 0.05, start: -90, sweep: 360, style: DisplayStyle(ComputedStyle(values: [:])))
+                    }
+                }
+                .frame(width: 40, height: 40)
+                    .animation(animated ? .linear(duration: 0.5) : nil, value: value)
+            }
+            Text("Memory")
+        }
+    }
+}
+
+@MainActor
+@Suite("Layout während Wert-Animationen")
+struct AnimationLayoutTests {
+    static func measures(animated: Bool, kind: String) -> (Int, Int) {
+        let window = NSWindow(contentRect: NSRect(origin: OffscreenCanvas.origin, size: NSSize(width: 200, height: 200)), styleMask: [.borderless], backing: .buffered, defer: false)
+        let hosting = NSHostingView(rootView: AnimatedRingProbe(value: 0.1, animated: animated, kind: kind))
+        window.contentView = hosting
+        defer { window.contentView = nil }
+        for _ in 0..<20 { RunLoop.main.run(until: Date().addingTimeInterval(0.01)); hosting.layoutSubtreeIfNeeded() }
+        let before = LayoutCounter.measures.load(ordering: .relaxed)
+        hosting.rootView = AnimatedRingProbe(value: 0.9, animated: animated, kind: kind)
+        let end = Date().addingTimeInterval(0.7)
+        var frames = 0
+        while Date() < end {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.016))
+            hosting.layoutSubtreeIfNeeded()
+            frames += 1
+        }
+        return (LayoutCounter.measures.load(ordering: .relaxed) - before, frames)
+    }
+
+    @Test("Ring und Gauge animieren, das Layout drumherum bleibt stehen", arguments: ["ring", "gauge"])
+    func valueAnimationDoesNotRelayout(kind: String) throws {
+        let still = Self.measures(animated: false, kind: kind)
+        let moving = Self.measures(animated: true, kind: kind)
+        #expect(moving.0 <= still.0 + 20, "\(still) \(moving)")
     }
 }
