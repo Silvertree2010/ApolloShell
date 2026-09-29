@@ -552,7 +552,7 @@ define "menubar-zone" {
     }
 }
 
-panel "menubar" anchor="top" area="{var.menubar-covers ? 'full' : 'below-menubar'}" layer="{var.menubar-covers ? 'status' : 'floating'}" reserve=#true fullscreen="hide" screen="{var.menubar-screens}" visible="{var.menubar-active}" class="menubar {var.menubar-style} {var.menubar-distinct ? 'distinct' : ''} status-{var.menubar-status-style} {theme.set['menubar-color'] || theme.set['menubar-gradient'] || theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-material'}" style="--menubar-thickness: {var.menubar-thickness}px; --menubar-control: {var.menubar-control}px; --menubar-icon: {var.menubar-icon}px; height: {var.menubar-covers ? (var.menubar-extent | max (screen.menubar-height ?? 0)) : var.menubar-extent}px" {
+panel "menubar" anchor="top" safe-area=#false area="{var.menubar-covers ? 'full' : 'below-menubar'}" layer="{var.menubar-covers ? 'status' : 'floating'}" reserve=#true fullscreen="hide" screen="{var.menubar-screens}" visible="{var.menubar-active}" class="menubar {var.menubar-style} {var.menubar-distinct ? 'distinct' : ''} status-{var.menubar-status-style} {theme.set['menubar-color'] || theme.set['menubar-gradient'] || theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-material'}" style="--menubar-thickness: {var.menubar-thickness}px; --menubar-control: {var.menubar-control}px; --menubar-icon: {var.menubar-icon}px; height: {var.menubar-covers ? (var.menubar-extent | max (screen.menubar-height ?? 0)) : var.menubar-extent}px" {
     row class="menubar-zones" notch="{var.menubar-covers ? 'avoid' : 'ignore'}" {
         use "menubar-zone" zone="start" modules="{var.menubar-start}"
         use "menubar-zone" zone="center" modules="{var.menubar-center}"

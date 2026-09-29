@@ -1,4 +1,4 @@
-#menubar { align-items: stretch; color: var(--apollo-menubar-text-color, var(--apollo-bar-text-color, -apple-system-label)); }
+#menubar { width: 100%; align-items: stretch; color: var(--apollo-menubar-text-color, var(--apollo-bar-text-color, -apple-system-label)); }
 #menubar.fill { border-radius: var(--apollo-menubar-radius, 0px); }
 #menubar.fill.bg-material { background: material(regular); }
 #menubar.fill.themed { background: var(--apollo-menubar-fill), glass(regular); }
