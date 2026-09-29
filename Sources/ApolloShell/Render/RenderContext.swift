@@ -21,6 +21,7 @@ final class RenderContext {
     var keyName: @MainActor (UInt32) -> String? = KeyboardLayout.keyName
     var gates: [GateKey: EventGate] = [:]
     var reorders: [String: ReorderCoordinator] = [:]
+    var canvases: [String: CanvasCoordinator] = [:]
     var menuSources: [String: any MenuSourceProviding] = [:]
     var pending: [Int: Task<Void, Never>] = [:]
     var nextPending = 0
@@ -86,6 +87,7 @@ enum ElementRenderers {
         "row": LayoutRenderers.row,
         "stack": LayoutRenderers.stack,
         "reorderable": LayoutRenderers.reorderable,
+        "canvas": { element, style, scope in AnyView(CanvasElement(element: element, style: style, scope: scope)) },
         "toggle": InputRenderers.toggle,
         "slider": InputRenderers.slider,
         "input": InputRenderers.input,
@@ -123,6 +125,7 @@ struct ElementView: View {
     let scope: RenderScope
     var position: ChildPosition?
     var reorderEntry: ReorderEntry?
+    var canvasEntry: CanvasEntry?
 
     var body: some View {
         let styles = scope.context.styles
@@ -133,7 +136,7 @@ struct ElementView: View {
         if element.property("visible") != .bool(false) {
             let spacer = element.kind == "spacer" && element.property("size") == .null
             let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
-            let mouse = MouseConfig(element, reorder: reorderEntry)
+            let mouse = MouseConfig(element, reorder: reorderEntry, canvas: canvasEntry)
             let fixed = StyleResolver.staticSubject(for: element)
             let hover = element.kind == "button" || SelfState.uses(element, "hover") || styles.stateStyled(.hover, fixed)
             let press = SelfState.uses(element, "pressed") || styles.stateStyled(.active, fixed)
@@ -145,7 +148,7 @@ struct ElementView: View {
                                       alignment: element.kind == "text" ? TextStyle(style).frameAlignment : .center))
                 .modifier(HitRegionMarker(active: !mouse.isEmpty || StyleValues.visibleBackground(style), identity: element.identity))
                 .modifier(InteractionIfNeeded(element: element, context: scope.context, config: mouse, hover: hover, press: press,
-                                              needed: Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil, stateStyled: hover || press)))
+                                              needed: Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil || canvasEntry != nil || mouse.dragValue, stateStyled: hover || press)))
                 .modifier(Motion(element: element, style: style, context: scope.context, dynamicInline: animated))
                 .transformEnvironment(\.elementInteractive) { if StyleValues.keyword(style["pointer-events"]) == "none" { $0 = false } }
                 .modifier(RevealID(element: element))
@@ -213,7 +216,7 @@ extension ElementView {
         switch parentKind {
         case "row": horizontal = true
         case "column": horizontal = false
-        case "grid":
+        case "grid", "canvas":
             let own = Definite(style)
             return Definite(width: !own.width, height: !own.height)
         default: return Definite()
