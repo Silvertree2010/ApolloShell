@@ -10,7 +10,17 @@ enum BuiltinSchemaRegistry {
             + WMSettings.all
             + SettingsFileNodes.all
 
-    static let nodesResult = RegistryBuilder.dictionary(allNodes, name: { $0.name })
+    static let scopedNames: Set<String> = ["canvas"]
+
+    static let scopedNodes: [NodeContext: [String: NodeSchema]] = {
+        var result: [NodeContext: [String: NodeSchema]] = [:]
+        for node in WMSettings.all where scopedNames.contains(node.name) {
+            for context in node.contexts { result[context, default: [:]][node.name] = node }
+        }
+        return result
+    }()
+
+    static let nodesResult = RegistryBuilder.dictionary(allNodes.filter { !(scopedNames.contains($0.name) && $0.category == .wmSetting) }, name: { $0.name })
 
     static var nodeNameDuplicates: [String] { nodesResult.duplicates }
 
@@ -71,7 +81,7 @@ enum BuiltinSchemaRegistry {
     static var featureNameDuplicates: [String] { featuresResult.duplicates }
 
     static func make() -> SchemaRegistry {
-        SchemaRegistry(
+        var registry = SchemaRegistry(
             nodes: nodesResult.dict,
             actions: actionsResult.dict,
             providers: providersResult.dict,
@@ -83,5 +93,7 @@ enum BuiltinSchemaRegistry {
             reservedProviderNames: Features.reservedProviderNames,
             fixedRoots: Features.fixedRoots
         )
+        registry.scopedNodes = scopedNodes
+        return registry
     }
 }

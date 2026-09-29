@@ -21,7 +21,7 @@ public struct SchemaEntry: Sendable {
 public enum SchemaText {
     public static func entries(_ registry: SchemaRegistry) -> [SchemaEntry] {
         var result: [SchemaEntry] = []
-        for node in registry.nodes.values {
+        for node in registry.allNodes {
             result.append(SchemaEntry(kind: "node", name: node.name, doc: node.doc, example: node.example, arguments: node.arguments, properties: node.properties, fields: [], members: node.handlers, stability: node.stability.rawValue, feature: node.feature))
         }
         for action in registry.actions.values {

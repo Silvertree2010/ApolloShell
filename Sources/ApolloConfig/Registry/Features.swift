@@ -5,6 +5,11 @@ enum Features {
         FeatureSchema(name: "marketplace", since: "0.2.0"),
         FeatureSchema(name: "script-sources", since: "0.2.0"),
         FeatureSchema(name: "ipc", since: "0.2.0"),
+        FeatureSchema(name: "canvas-layout", since: "0.2.1"),
+        FeatureSchema(name: "drag-values", since: "0.2.1"),
+        FeatureSchema(name: "time-zones", since: "0.2.1"),
+        FeatureSchema(name: "weather-places", since: "0.2.1"),
+        FeatureSchema(name: "sun-moon", since: "0.2.1"),
     ]
 
     static let reservedProviderNames: Set<String> = [

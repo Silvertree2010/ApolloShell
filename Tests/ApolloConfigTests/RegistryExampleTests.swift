@@ -14,7 +14,7 @@ struct RegistryExample: Sendable, CustomTestStringConvertible {
 
     static var all: [RegistryExample] {
         let registry = SchemaRegistry.builtin
-        let schemas = Array(registry.nodes.values) + Array(registry.menuSources.values)
+        let schemas = registry.allNodes + Array(registry.menuSources.values)
         return schemas
             .map { schema in
                 let context = preferredContexts.first { schema.contexts.contains($0) } ?? .topLevel

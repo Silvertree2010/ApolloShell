@@ -268,6 +268,7 @@ public struct SchemaRegistry: Sendable {
     public var features: [String: FeatureSchema]
     public var reservedProviderNames: Set<String>
     public var fixedRoots: Set<String>
+    public var scopedNodes: [NodeContext: [String: NodeSchema]] = [:]
 
     public init(
         nodes: [String: NodeSchema] = [:],
@@ -299,6 +300,14 @@ public struct SchemaRegistry: Sendable {
         nodes[name]
     }
 
+    public func node(_ name: String, in context: NodeContext) -> NodeSchema? {
+        scopedNodes[context]?[name] ?? nodes[name]
+    }
+
+    public var allNodes: [NodeSchema] {
+        Array(nodes.values) + scopedNodes.keys.sorted { $0.rawValue < $1.rawValue }.flatMap { scopedNodes[$0]!.values.sorted { $0.name < $1.name } }
+    }
+
     public func action(_ name: String) -> ActionSchema? {
         if let action = actions[name] {
             return action
@@ -308,7 +317,7 @@ public struct SchemaRegistry: Sendable {
     }
 
     public func merging(_ other: SchemaRegistry) -> SchemaRegistry {
-        SchemaRegistry(
+        var merged = SchemaRegistry(
             nodes: nodes.merging(other.nodes, uniquingKeysWith: { _, new in new }),
             actions: actions.merging(other.actions, uniquingKeysWith: { _, new in new }),
             providers: providers.merging(other.providers, uniquingKeysWith: { _, new in new }),
@@ -320,6 +329,8 @@ public struct SchemaRegistry: Sendable {
             reservedProviderNames: reservedProviderNames.union(other.reservedProviderNames),
             fixedRoots: fixedRoots.union(other.fixedRoots)
         )
+        merged.scopedNodes = scopedNodes.merging(other.scopedNodes) { mine, theirs in mine.merging(theirs) { _, new in new } }
+        return merged
     }
 }
 

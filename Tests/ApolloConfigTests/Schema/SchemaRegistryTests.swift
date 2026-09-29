@@ -21,7 +21,7 @@ struct SchemaRegistryTests {
 
     static let surfaceNames: Set<String> = ["panel", "popup", "overlay", "toast", "osd", "window"]
 
-    static let layoutNames: Set<String> = ["row", "column", "grid", "stack", "scroll", "spacer"]
+    static let layoutNames: Set<String> = ["row", "column", "grid", "stack", "scroll", "spacer", "canvas"]
 
     static let elementNames: Set<String> = [
         "text", "icon", "image", "app-icon", "theme-preview", "mark", "shape", "button", "toggle",
@@ -41,6 +41,7 @@ struct SchemaRegistryTests {
     static let settingsFileNames: Set<String> = ["config", "theme", "updates", "crash-reports", "editor"]
 
     static let nodesWithChildren: Set<String> = [
+        "canvas",
         "define", "fill", "use", "each", "when", "else", "switch", "case", "default",
         "bind", "on", "wm", "command-center", "items",
         "panel", "popup", "overlay", "toast", "osd", "window",
