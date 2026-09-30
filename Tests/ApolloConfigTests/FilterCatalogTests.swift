@@ -4,7 +4,7 @@ import Testing
 @Suite("Filterkatalog")
 struct FilterCatalogTests {
     static let specNames: [String] = [
-        "first-free-frame", "drop-frame", "sun-moon",
+        "first-free-frame", "place-frame", "sun-moon",
         "round", "floor", "ceil", "abs", "fixed", "clamp", "min", "max", "scale", "percent", "grouped",
         "bytes", "bytes-per-second", "temperature", "duration", "date", "relative",
         "string", "shell-quote", "upper", "lower", "capitalize", "truncate", "pad", "replace", "split", "starts-with", "ends-with", "json", "number",

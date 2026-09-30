@@ -761,3 +761,32 @@
 .settings-nav-item .button-content { gap: 8px; }
 .settings-group .button-content { gap: 8px; }
 .settings-row-text { flex-shrink: 1; }
+
+.bento-item { align-self: stretch; }
+.bento-item.editing { animation: wiggle 260ms infinite; }
+.bento-item.editing > .card, .bento-item.editing > .weather-hero { border-radius: 24px; }
+.bento-cover { align-self: stretch; background: rgba(0, 0, 0, 0.001); border-radius: 24px; border: 2px solid transparent; }
+.bento-item.selected > .bento-cover { border: 2px solid -apple-system-control-accent; }
+@media (prefers-reduced-motion: reduce) {
+  .bento-cover { border: 1.5px dashed rgb(from -apple-system-label r g b / 0.55); }
+  .bento-item.selected > .bento-cover { border: 2px solid -apple-system-control-accent; }
+}
+.bento-corner { width: 18px; height: 18px; align-self: end; justify-self: end; margin: 0 4px 4px 0; font-size: 13px; font-weight: 700; color: rgb(from -apple-system-label r g b / 0.5); }
+.bento-badge { width: 22px; height: 22px; align-self: start; justify-self: start; margin: -10px 0 0 -10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.16); border: 1px solid rgb(from -apple-system-label r g b / 0.2); align-items: center; justify-content: center; }
+.bento-badge-glyph { font-size: 11px; font-weight: 700; }
+.dashboard-tab-add { flex-grow: 0; width: 60px; }
+.edit-toolbar { padding: 10px 14px; gap: 10px; border-radius: 22px; background: glass(regular); }
+.edit-row { gap: 8px; align-items: center; }
+.edit-button { height: 28px; min-width: 28px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; font-size: 12px; font-weight: 500; }
+.edit-button:checked { background: -apple-system-control-accent; color: white; }
+.edit-symbol { padding: 0; width: 28px; }
+.edit-done { background: -apple-system-control-accent; color: white; }
+.edit-input { width: 140px; height: 28px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); font-size: 12px; }
+.edit-separator { width: 1px; height: 18px; background: -apple-system-separator; }
+.edit-slider { width: 120px; }
+.gallery-scroll { width: 620px; height: 84px; }
+.gallery-row { gap: 8px; align-items: center; }
+.gallery-tile { width: 88px; height: 76px; gap: 6px; border-radius: 14px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; }
+.gallery-tile:disabled { opacity: 0.4; }
+.gallery-tile-glyph { font-size: 20px; }
+.gallery-tile-title { font-size: 11px; font-weight: 500; }

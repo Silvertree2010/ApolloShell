@@ -34,7 +34,7 @@ struct DefaultConfigTests {
         let ir = try #require(PackageResources.load(Self.defaultFolder, id: "apolloshell-default").ir)
         let kinds = Dictionary(uniqueKeysWithValues: ir.surfaces.map { ($0.id, $0.kind) })
         let expected = [
-            "sidebar": "panel", "desktop-clock": "panel", "dashboard": "popup", "utilities": "popup",
+            "sidebar": "panel", "desktop-clock": "panel", "dashboard": "popup", "dashboard-toolbar": "popup", "utilities": "popup",
             "launcher": "popup", "session": "popup", "volume": "osd", "default": "toast",
             "onboarding": "window", "settings": "window", "settings-confirm": "popup",
         ]

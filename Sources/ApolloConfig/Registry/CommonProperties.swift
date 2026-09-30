@@ -24,7 +24,6 @@ enum CommonProperties {
         defaultValue: .null,
         allowsExpression: true,
         doc: "Makes the element a drag source carrying this value; on-drop accept=\"value\" and reorderable accept=\"value\" receive it as event.value.",
-        stability: .experimental,
         feature: "drag-values"
     )
 

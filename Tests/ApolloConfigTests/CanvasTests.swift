@@ -10,12 +10,15 @@ struct CanvasTests {
         CanvasFrame(x: x, y: y, width: w, height: h).value
     }
 
+    static let catalogue = Value.list([.record(Record([("kind", .string("a")), ("sizes", .list([.record(Record([("min-width", .number(100)), ("max-width", .number(300)), ("height", .number(60))]))]))]))])
+
     static let cases: [FilterCase] = [
         .ok("first-free-frame", .list([]), [.number(275), .number(130)], frame(0, 0, 275, 130)),
         .ok("first-free-frame", .null, [.number(100), .number(100)], .null),
-        .ok("drop-frame", .list([]), [.number(100), .number(100), .number(50), .number(50)], frame(0, 0, 100, 100)),
-        .ok("drop-frame", .list([frame(0, 0, 100, 100)]), [.number(100), .number(100), .number(160), .number(50)], frame(112, 0, 100, 100)),
-        .ok("drop-frame", .list([frame(0, 0, 100, 100)]), [.number(100), .number(100), .number(60), .number(50)], .null),
+        .ok("place-frame", .list([]), [catalogue, .string("a")], frame(0, 0, 100, 60)),
+        .ok("place-frame", .list([frame(0, 0, 100, 60)]), [catalogue, .string("a"), .number(160), .number(30)], frame(112, 0, 100, 60)),
+        .ok("place-frame", .list([frame(0, 0, 100, 60)]), [catalogue, .string("a"), .number(60), .number(30)], frame(112, 0, 100, 60)),
+        .ok("place-frame", .list([]), [catalogue, .string("none")], .null),
         .ok("first-free-frame", .list([frame(0, 0, 275, 130)]), [.number(275), .number(130)], frame(287, 0, 275, 130)),
         .ok("first-free-frame", .list([frame(0, 0, 839, 392)]), [.number(10), .number(10)], .null),
         .ok("first-free-frame", .list([frame(0, 0, 100, 100)]), [.number(100), .number(100), .number(200), .number(250), .number(0)], frame(100, 0, 100, 100)),

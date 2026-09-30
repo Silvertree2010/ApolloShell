@@ -236,14 +236,13 @@ struct SchemaRegistryTests {
         #expect(panel?.properties.contains(where: { $0.name == "screen" }) == true)
     }
 
-    @Test("reservierte Properties sind experimental markiert")
+    @Test("reservierte Properties sind experimental markiert, drag-value ist stabil")
     func reservedPropertiesAreExperimental() {
         let panel = BuiltinSchemaRegistry.allNodes.first { $0.name == "panel" }
         let fuseGroup = panel?.properties.first { $0.name == "fuse-group" }
         #expect(fuseGroup?.stability == .experimental)
         let button = BuiltinSchemaRegistry.allNodes.first { $0.name == "button" }
-        let dragValue = button?.properties.first { $0.name == "drag-value" }
-        #expect(dragValue?.stability == .experimental)
+        #expect(button?.properties.first { $0.name == "drag-value" }?.stability == .stable)
     }
 
     @Test("click-through erlaubt Bool oder \"auto\" mit passender Bool-Vorgabe")

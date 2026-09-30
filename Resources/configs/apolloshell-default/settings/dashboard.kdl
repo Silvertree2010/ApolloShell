@@ -69,7 +69,7 @@ define "settings-page-dashboard" {
             }
             spacer
             button class="settings-button" {
-                on-click { set "shell-editing" #true; close "settings"; open "dashboard" }
+                on-click { close "settings"; use "edit-begin" }
                 text "Edit Interface…"
             }
         }

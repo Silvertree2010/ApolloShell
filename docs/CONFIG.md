@@ -2355,20 +2355,6 @@ Like ??, fallback for null.
 | --- | --- | --- | --- | --- |
 | argument | `fallback` | any | required | Fallback value for null. |
 
-### `drop-frame` (filter, *experimental*)
-
-Frame for a drop among a list of records with x, y, width, height: centred on the position, snapped to edges and neighbours, or null when it does not fit.
-
-| | Name | Type | Default | |
-| --- | --- | --- | --- | --- |
-| argument | `width` | number | required | Width of the new frame. |
-| argument | `height` | number | required | Height of the new frame. |
-| argument | `x` | number | required | Drop position, centre of the frame. |
-| argument | `y` | number | required | Drop position, centre of the frame. |
-| argument | `page-width` | number |  | Width of the canvas, default 839. |
-| argument | `page-height` | number |  | Height of the canvas, default 392. |
-| argument | `gap` | number |  | Minimum distance to the other frames, default 12. |
-
 ### `duration` (filter)
 
 Seconds, formatted for reading.
@@ -2529,6 +2515,17 @@ Pads on the left.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `digits` | number |  | Decimal places, default 0. |
+
+### `place-frame` (filter)
+
+Frame for a new item among a list of records with x, y, width, height on a 839 by 392 canvas: at the drop position snapped to edges and neighbours when given and free, otherwise the first free place, or null when the canvas is full.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `kinds` | list | required | Catalogue of records with kind and a sizes list. |
+| argument | `kind` | string | required | Kind to place, its first size counts. |
+| argument | `x` | number |  | Drop position, centre of the frame. |
+| argument | `y` | number |  | Drop position, centre of the frame. |
 
 ### `prefix-field` (filter)
 
