@@ -6,7 +6,8 @@ var dashboard-tab "dashboard"
 var calendar-offset 0
 
 var dashboard-pages "{var.dashboard-default-pages}" type="list" persist=#true
-var dashboard-widgets "{var.dashboard-default-overview | concat (battery.present == true ? var.dashboard-default-performance-battery : var.dashboard-default-performance-plain)}" type="list" persist=#true
+var dashboard-widgets "{var.dashboard-default-overview | concat var.dashboard-default-performance-plain}" type="list" persist=#true
+var dashboard-seeded #false persist=#true
 var dashboard-scale 1 persist=#true
 var shell-editing #false
 var dashboard-selected #null type="any"
@@ -30,6 +31,11 @@ include "widgets.kdl"
 
 define "dashboard-overview" {
     use "dashboard-canvas" widgets="{var.dashboard-widgets | where 'page' 'dashboard'}"
+}
+
+on "shell.started" when="{!var.dashboard-seeded}" {
+    when "{battery.present == true}" { set "dashboard-widgets" "{var.dashboard-default-widgets}" }
+    set "dashboard-seeded" #true
 }
 
 define "bento-item" {
@@ -104,7 +110,7 @@ define "dashboard-page-tab" {
             }
         }
         column class="dashboard-tab-label" {
-            icon "{page.icon ?? page.symbol}" fallback="{page.symbol}{page.id == var.dashboard-active-page && ((page.symbol + '.fill') | symbol-exists) ? '.fill' : ''}" class="dashboard-tab-glyph"
+            icon "{page.icon ?? page.symbol}" fallback="{page.symbol}{page.id == var.dashboard-active-page ? (page.template == 'dashboard' || page.template == 'weather' ? '.fill' : '') : ''}" class="dashboard-tab-glyph"
             text "{page.name}" class="dashboard-tab-title"
         }
         when "{page.id == var.dashboard-active-page}" { stack class="dashboard-tab-pill" match-id="dashboard-tab" }
@@ -113,7 +119,7 @@ define "dashboard-page-tab" {
 
 popup "dashboard" anchor="top" motion="slide" hover-edge="{!var.shell-editing}" overhang=#true area="full" safe-area=#true close-on="{var.shell-editing ? '' : 'outside-click escape focus-loss'}" scrim="{var.shell-editing ? 0.35 : 0}" {
     on-open { set "calendar-offset" 0 }
-    canvas class="dashboard-scaler" scale="{var.dashboard-scale * ((screen.width / 1512) | clamp 0.85 1.5) | min (screen.width / 871) | min (screen.usable-height / 482)}" {
+    canvas class="dashboard-scaler" scale="{var.dashboard-scale * (((screen.width ?? 1512) / 1512) | clamp 0.85 1.5) | min ((screen.width ?? 100000) / 871) | min ((screen.usable-height ?? 100000) / 482)}" {
         each frame in="{var.dashboard-frame}" key="{frame.id}" {
             column class="dashboard" {
                 row class="dashboard-tabs" {

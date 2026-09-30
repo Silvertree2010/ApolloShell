@@ -51,7 +51,7 @@ struct DefaultConfigTests {
             "utilities-toggles", "weather-source", "weather-places", "weather-selected", "file-manager",
             "toast-charging", "toast-battery", "toast-audio-output", "toast-audio-input", "desktop-clock",
             "hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-settings", "hide-apple-dock",
-            "keep-awake-lid", "onboarding-done", "dashboard-pages", "dashboard-widgets", "dashboard-scale",
+            "keep-awake-lid", "onboarding-done", "dashboard-pages", "dashboard-widgets", "dashboard-scale", "dashboard-seeded",
         ]
         #expect(persisted == expected)
     }

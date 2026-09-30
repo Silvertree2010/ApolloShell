@@ -162,5 +162,24 @@ fixture {
             - bundle-id="com.apple.mail" name="Mail" path="/System/Applications/Mail.app" usage=0 favorite-index=1
         }
     }
-    vars dashboard-tab="weather"
+    vars dashboard-tab="weather" {
+        dashboard-widgets {
+    - id="dashboard-weather" page="dashboard" kind="weather" x=0 y=0 width=275 height=130 display="standard" show-condition=#true show-range=#true
+    - id="dashboard-user" page="dashboard" kind="user" x=287 y=0 width=340 height=130 display="standard" show-system=#true show-uptime=#true
+    - id="dashboard-clock" page="dashboard" kind="clock" x=0 y=142 width=110 height=250 display="standard" style="stacked" show-date=#false
+    - id="dashboard-calendar" page="dashboard" kind="calendar" x=122 y=142 width=403 height=250 display="standard" first-weekday="monday" show-week-numbers=#false
+    - id="dashboard-resources" page="dashboard" kind="resources" x=537 y=142 width=90 height=250 display="standard" show-cpu=#true show-memory=#true show-storage=#true
+    - id="dashboard-media" page="dashboard" kind="media" x=639 y=0 width=200 height=392 display="standard" show-album=#true show-source=#true
+    - id="media-player" page="media" kind="media.player" x=0 y=0 width=839 height=392 display="standard"
+    - id="weather-hero" page="weather" kind="weather.hero" x=0 y=0 width=839 height=116 display="standard"
+    - id="weather-hourly" page="weather" kind="weather.hourly" x=0 y=128 width=839 height=108 display="standard"
+    - id="weather-daily" page="weather" kind="weather.daily" x=0 y=248 width=839 height=144 display="standard"
+    - id="performance-cpu" page="performance" kind="performance.cpu" x=0 y=0 width=343 height=191 display="standard"
+    - id="performance-gpu" page="performance" kind="performance.gpu" x=355 y=0 width=343 height=191 display="standard"
+    - id="performance-storage" page="performance" kind="performance.storage" x=0 y=203 width=169.5 height=189 display="standard"
+    - id="performance-network" page="performance" kind="performance.network" x=181.5 y=203 width=335 height=189 display="standard"
+    - id="performance-memory" page="performance" kind="performance.memory" x=528.5 y=203 width=169.5 height=189 display="standard"
+    - id="performance-battery" page="performance" kind="performance.battery" x=710 y=0 width=129 height=392 display="standard"
+        }
+    }
 }

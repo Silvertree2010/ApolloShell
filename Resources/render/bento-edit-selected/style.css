@@ -1,1 +1,4 @@
 #dashboard { background: none; }
+.bento-item.editing { animation: none; }
+.bento-cover { border: 1.5px dashed rgb(from -apple-system-label r g b / 0.55); }
+.bento-item.selected > .bento-cover { border: 2px solid -apple-system-control-accent; }
