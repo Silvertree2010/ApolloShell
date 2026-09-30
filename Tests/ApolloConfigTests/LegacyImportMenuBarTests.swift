@@ -13,7 +13,7 @@ struct LegacyImportMenuBarTests {
         "start": [{"id": "appleMenu", "kind": "appleMenu"}, {"id": "appMenu", "kind": "appMenu"}],
         "center": [{"id": "clock", "kind": "clock", "options": {"showIcon": true, "showDate": false}},
                    {"id": "weather", "kind": "weather", "joinsPrevious": true},
-                   {"id": "t", "kind": "timer"}],
+                   {"id": "t", "kind": "timer"}, {"id": "b", "kind": "bogus"}],
         "end": [{"id": "workspaces", "kind": "workspaces", "options": {"style": "pills"}}, {"kind": "statusItems"}]
     }}
     """
@@ -40,7 +40,9 @@ struct LegacyImportMenuBarTests {
         let r = run(Self.json)
         #expect(LegacyFixtures.ids(r.state["menubar-start"]) == ["apple-menu", "app-menus"])
         let c = LegacyFixtures.list(r.state["menubar-center"])
-        #expect(c.count == 2)
+        #expect(c.count == 3)
+        #expect(c[2]["kind"] == .string("timer"))
+        #expect(c[2]["id"] == .string("t"))
         #expect(c[0]["show-icon"] == .bool(true))
         #expect(c[0]["show-date"] == .bool(false))
         #expect(c[1]["joins"] == .bool(true))
@@ -49,7 +51,7 @@ struct LegacyImportMenuBarTests {
         #expect(e[0]["kind"] == .string("spaces"))
         #expect(e[0]["style"] == .string("pills"))
         #expect(e[1]["kind"] == .string("status-items"))
-        #expect(LegacyFixtures.mentions(r, "unknown kind 'timer'"))
+        #expect(LegacyFixtures.mentions(r, "unknown kind 'bogus'"))
     }
 
     @Test("Ohne apolloMenuBar bleibt die Menüleiste unberührt")

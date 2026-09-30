@@ -76,6 +76,9 @@ var menubar-module-kinds {
     - kind="network-speed" title="Network Speed" summary="Download over upload, every two seconds." symbol="arrow.up.arrow.down" unique=#false {
         module kind="network-speed"
     }
+    - kind="timer" title="Timer" summary="Ring with the time left; a click starts or pauses, the menu offers 5, 10, 15 and 25 minutes." symbol="timer" unique=#false {
+        module kind="timer"
+    }
     - kind="cpu" title="CPU" summary="Load as a ring or in percent." symbol="cpu" unique=#false {
         module kind="cpu" style="ring"
     }
