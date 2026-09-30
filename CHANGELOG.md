@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **Dashboard widgets as config.** Clock, user, weather, calendar, resources,
+  media, the performance widgets (CPU, GPU, storage, memory, network, battery)
+  and the weather pages (overview, hourly, daily) are drawn by the default
+  config in every size and display mode, with the gauge and card sizes growing
+  with the widget. Configs can use the new `contrast()` colour function and
+  the `min-scale` text property.
 - **The menu bar**, off until you turn it on in Settings > Menu Bar. It lies
   over Apple's menu bar or sits below it, at the top or the bottom, as a strip
   or as islands, with four templates. Left, middle and right zones keep the

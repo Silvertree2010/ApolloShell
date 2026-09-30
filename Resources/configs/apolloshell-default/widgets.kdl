@@ -184,7 +184,7 @@ var dashboard-default-pages {
 var dashboard-default-overview {
     - id="dashboard-weather" page="dashboard" kind="weather" x=0 y=0 width=275 height=130 display="standard" show-condition=#true show-range=#true
     - id="dashboard-user" page="dashboard" kind="user" x=287 y=0 width=340 height=130 display="standard" show-system=#true show-uptime=#true
-    - id="dashboard-clock" page="dashboard" kind="clock" x=0 y=142 width=110 height=250 display="standard" style="stacked" show-date=#false
+    - id="dashboard-clock" page="dashboard" kind="clock" x=0 y=142 width=110 height=250 display="standard" style="stacked" show-date=#false time-zone=#null
     - id="dashboard-calendar" page="dashboard" kind="calendar" x=122 y=142 width=403 height=250 display="standard" first-weekday="monday" show-week-numbers=#false
     - id="dashboard-resources" page="dashboard" kind="resources" x=537 y=142 width=90 height=250 display="standard" show-cpu=#true show-memory=#true show-storage=#true
     - id="dashboard-media" page="dashboard" kind="media" x=639 y=0 width=200 height=392 display="standard" show-album=#true show-source=#true

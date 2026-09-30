@@ -261,13 +261,13 @@ define "widget-network" {
                 when "{w.height >= 200 && w.width < 420}" {
                     column class="wp-netnum-col" {
                         use "wp-figure" w="{w}" symbol="arrow.down" tone="down" title="Download" value="{perf.live.net-down}"
-                        use "wp-figure" w="{w}" symbol="arrow.up" tone="up" title="Upload" value="{perf.live.net-up}"
+                        use "wp-figure" w="{w}" symbol="arrow.up" tone="up wp-up" title="Upload" value="{perf.live.net-up}"
                     }
                 }
                 else {
                     row class="wp-netnum-row" {
                         use "wp-figure" w="{w}" symbol="arrow.down" tone="down" title="Download" value="{perf.live.net-down}"
-                        use "wp-figure" w="{w}" symbol="arrow.up" tone="up" title="Upload" value="{perf.live.net-up}"
+                        use "wp-figure" w="{w}" symbol="arrow.up" tone="up wp-up" title="Upload" value="{perf.live.net-up}"
                         spacer
                     }
                 }
@@ -284,20 +284,20 @@ define "widget-network" {
                 }
                 stack class="perf-network-graph" {
                     stack class="perf-baseline"
-                    graph values="{perf.live.net-history | map 'up'}" kind="area" min=0 max="{((perf.live.net-history | map 'down' | sort | last) ?? 0) | max ((perf.live.net-history | map 'up' | sort | last) ?? 0) | max 10000}" capacity=30 class="perf-graph perf-net-up"
+                    graph values="{perf.live.net-history | map 'up'}" kind="area" min=0 max="{((perf.live.net-history | map 'down' | sort | last) ?? 0) | max ((perf.live.net-history | map 'up' | sort | last) ?? 0) | max 10000}" capacity=30 class="perf-graph perf-net-up wp-up"
                     graph values="{perf.live.net-history | map 'down'}" kind="area" min=0 max="{((perf.live.net-history | map 'down' | sort | last) ?? 0) | max ((perf.live.net-history | map 'up' | sort | last) ?? 0) | max 10000}" capacity=30 class="perf-graph perf-net-down"
                 }
                 when "{w.height < 150}" {
                     row class="wp-rates-compact" {
                         use "wp-rate-label" symbol="arrow.down" tone="down" value="{perf.live.net-down | bytes-per-second}"
-                        use "wp-rate-label" symbol="arrow.up" tone="up" value="{perf.live.net-up | bytes-per-second}"
+                        use "wp-rate-label" symbol="arrow.up" tone="up wp-up" value="{perf.live.net-up | bytes-per-second}"
                         spacer
                     }
                 }
                 else {
                     column class="perf-rates" {
                         use "perf-rate-row" symbol="arrow.down" tone="down" title="Download" value="{perf.live.net-down | bytes-per-second}" tooltip=""
-                        use "perf-rate-row" symbol="arrow.up" tone="up" title="Upload" value="{perf.live.net-up | bytes-per-second}" tooltip=""
+                        use "perf-rate-row" symbol="arrow.up" tone="up wp-up" title="Upload" value="{perf.live.net-up | bytes-per-second}" tooltip=""
                         use "perf-rate-row" symbol="clock.arrow.circlepath" tone="total" title="Total" value="↓ {perf.live.net-total-down | bytes}   ↑ {perf.live.net-total-up | bytes}" tooltip="Since this tab was first opened"
                     }
                 }

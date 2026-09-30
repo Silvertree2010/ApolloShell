@@ -24,7 +24,7 @@
 .wh-hour-time { font-size: 12px; font-weight: 500; color: -apple-system-secondary-label; }
 .wh-hour.now .wh-hour-time { font-weight: 600; color: -apple-system-label; }
 .wh-hour-glyph { align-items: center; justify-content: center; }
-.card.wh-hours.graph { flex-direction: column; padding: 10px; gap: 6px; }
+.card.wh-hours.graph { padding: 10px; gap: 6px; }
 .wh-hgraph-area { flex-grow: 1; align-self: stretch; }
 .wh-hgraph-line { align-self: stretch; }
 .wh-hgraph-curve { -apollo-stroke-width: 2.5px; color: var(--apollo-accent-color, -apple-system-control-accent); align-self: stretch; flex-grow: 1; }

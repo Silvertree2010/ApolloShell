@@ -64,3 +64,5 @@
 .wp-btitle { font-size: 15px; font-weight: 600; }
 .wp-bstatus { font-size: 12px; color: -apple-system-secondary-label; }
 .wp-bstatus.center { text-align: center; }
+.perf-net-up.wp-up { color: var(--apollo-secondary-accent-color, contrast(var(--apollo-accent-color, -apple-system-control-accent))); -apollo-fill: rgb(from var(--apollo-secondary-accent-color, contrast(var(--apollo-accent-color, -apple-system-control-accent))) r g b / 0.15); }
+.perf-rate-glyph.up.wp-up { color: var(--apollo-secondary-accent-color, contrast(var(--apollo-accent-color, -apple-system-control-accent))); }
