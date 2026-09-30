@@ -63,4 +63,16 @@ struct UnitFilterTests {
         FilterHarness.check(.ok("bytes", .number(1536), [], .string("1,5 KB")), context: context)
         FilterHarness.check(.ok("date", .date(Self.now), [.string("EEEE")], .string("Donnerstag")), context: context)
     }
+
+    @Test("Musterzeichen j ist die Stunde der Locale ohne am/pm")
+    func hourLetter() {
+        let at = Self.now.addingTimeInterval(10 * 3600)
+        for (id, jj, j) in [("en_US", "08", "8"), ("de_CH", "20", "20"), ("de_DE", "20", "20")] {
+            var context = FilterHarness.context
+            context.locale = Locale(identifier: id)
+            FilterHarness.check(.ok("date", .date(at), [.string("jj")], .string(jj)), context: context)
+            FilterHarness.check(.ok("date", .date(at), [.string("j")], .string(j)), context: context)
+            FilterHarness.check(.ok("date", .date(at), [.string("jj 'jj' jj")], .string("\(jj) jj \(jj)")), context: context)
+        }
+    }
 }

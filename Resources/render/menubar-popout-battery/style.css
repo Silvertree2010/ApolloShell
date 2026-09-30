@@ -1,0 +1,4 @@
+#menubar-status-popout.bg-material { background: rgb(242 242 242); }
+@media (prefers-color-scheme: dark) {
+  #menubar-status-popout.bg-material { background: rgb(43 43 43); }
+}

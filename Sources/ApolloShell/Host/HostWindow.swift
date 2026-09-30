@@ -26,9 +26,11 @@ protocol HostWindow: AnyObject {
     func hide()
     func animate(opening: Bool, focus: Bool, animator: any SurfaceAnimator, geometry: MotionGeometry, scrim: Double?, screen: CGRect, completion: @escaping @MainActor () -> Void)
     func close()
+    func watchFitting(_ on: Bool)
 }
 
 extension HostWindow {
+    func watchFitting(_ on: Bool) {}
     func setFrame(_ frame: CGRect) { setFrame(frame, glide: false) }
 }
 
@@ -93,7 +95,8 @@ final class AppKitWindowFactory: HostWindowFactory {
     }
 
     func make(spec: SurfaceWindowSpec, content: AnyView) -> any HostWindow {
-        AppKitHostWindow(spec: spec, content: content, stage: stage)
+        if spec.kind == "status-item" { return StatusItemHostWindow(content: content) }
+        return AppKitHostWindow(spec: spec, content: content, stage: stage)
     }
 
     func makeAuxiliary(content: AnyView) -> any HostWindow {
@@ -126,12 +129,14 @@ final class HostTitledWindow: NSWindow {
 
 final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
     var onInvalidate: (@MainActor () -> Void)?
+    var watchesLayout = false
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func layout() {
         LayoutCounter.passed()
         super.layout()
+        if watchesLayout { onInvalidate?() }
     }
 
     override func invalidateIntrinsicContentSize() {
@@ -251,6 +256,10 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         }
         container.frame = CGRect(origin: .zero, size: frame.size)
         hosting.frame = container.bounds
+    }
+
+    func watchFitting(_ on: Bool) {
+        hosting.watchesLayout = on
     }
 
     func setMinSize(_ size: CGSize) {

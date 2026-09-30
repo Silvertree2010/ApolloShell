@@ -4,7 +4,7 @@ import Testing
 @Suite("Filterkatalog")
 struct FilterCatalogTests {
     static let specNames: [String] = [
-        "first-free-frame", "sun-moon",
+        "first-free-frame", "sun-moon", "runs",
         "round", "floor", "ceil", "abs", "fixed", "clamp", "min", "max", "scale", "percent", "grouped",
         "bytes", "bytes-per-second", "temperature", "duration", "date", "relative",
         "string", "shell-quote", "upper", "lower", "capitalize", "truncate", "pad", "replace", "split", "starts-with", "ends-with", "json", "number",
@@ -14,12 +14,12 @@ struct FilterCatalogTests {
         "default", "bool", "keys", "values", "calc",
     ]
 
-    @Test("FilterTable.builtin enthält genau die 62 Filter aus config-language.md 4.5")
+    @Test("FilterTable.builtin enthält genau die 63 Filter aus config-language.md 4.5")
     func exactlyTheSpecFilters() {
-        #expect(Self.specNames.count == 62)
-        #expect(Set(Self.specNames).count == 62)
+        #expect(Self.specNames.count == 63)
+        #expect(Set(Self.specNames).count == 63)
         #expect(FilterTable.builtin.names == Self.specNames.sorted())
-        #expect(BuiltinFilters.all.count == 62)
+        #expect(BuiltinFilters.all.count == 63)
     }
 
     @Test("jeder eingebaute Filter hat eine Stellenzahl, die zur Spec passt")

@@ -23,20 +23,26 @@ enum DateText {
         let formatter = DateFormatter()
         formatter.locale = locale
         formatter.timeZone = timeZone
-        formatter.dateFormat = resolved(pattern, locale: locale)
+        formatter.dateFormat = expand(pattern, locale: locale)
         return formatter.string(from: date)
     }
 
-    static func resolved(_ pattern: String, locale: Locale) -> String {
+    static func expand(_ pattern: String, locale: Locale) -> String {
         guard pattern.contains("j") else { return pattern }
-        let template = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: locale) ?? "HH"
-        let twelve = template.contains("a")
-        var out = ""
-        var quoted = false
-        for c in pattern {
-            if c == "'" { quoted.toggle() }
-            out.append(c == "j" && !quoted ? (twelve ? "h" : "H") : c)
+        var out = "", quoted = false, run = 0
+        func flush() {
+            guard run > 0 else { return }
+            let skeleton = DateFormatter.dateFormat(fromTemplate: String(repeating: "j", count: run), options: 0, locale: locale) ?? ""
+            let letter = skeleton.first { "hHkK".contains($0) } ?? "H"
+            out += String(repeating: letter, count: run)
+            run = 0
         }
+        for c in pattern {
+            if c == "'" { flush(); quoted.toggle(); out.append(c) }
+            else if c == "j" && !quoted { run += 1 }
+            else { flush(); out.append(c) }
+        }
+        flush()
         return out
     }
 

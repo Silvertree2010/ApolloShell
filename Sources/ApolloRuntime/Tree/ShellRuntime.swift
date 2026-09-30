@@ -592,6 +592,7 @@ public final class ShellRuntime: SurfaceControlling {
 
     func targetScreens(_ surfaceIR: SurfaceIR) -> [String] {
         guard let main = screens.first else { return [] }
+        if surfaceIR.kind == "status-item" { return [main] }
         var choice = surfaceIR.kind == "panel" ? "all" : "pointer"
         if let compiled = surfaceIR.properties["screen"], case .string(let text) = bindings.evaluateOnce(compiled, scope: LocalScope()), !text.isEmpty {
             choice = text
@@ -607,7 +608,7 @@ public final class ShellRuntime: SurfaceControlling {
     }
 
     private static func opensByDefault(_ kind: String) -> Bool {
-        kind == "panel" || kind == "overlay"
+        kind == "panel" || kind == "overlay" || kind == "status-item"
     }
 
     func buildSurface(_ ir: SurfaceIR, screen: String) -> SurfaceNode {
@@ -672,6 +673,8 @@ public final class ShellRuntime: SurfaceControlling {
         switch node.kind {
         case "panel":
             return node.visibleProperty && !hidden
+        case "status-item":
+            return node.visibleProperty
         case "toast", "osd":
             return node.instance.isOpen && !hidden
         default:

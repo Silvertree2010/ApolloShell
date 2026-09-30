@@ -104,7 +104,7 @@ final class WindowHost: SurfaceHosting {
     private var stopPointer: (@MainActor () -> Void)?
     private var attachSyncing: Set<String> = []
 
-    static let windowKinds: Set<String> = ["panel", "popup", "overlay", "toast", "osd", "window"]
+    static let windowKinds: Set<String> = ["panel", "popup", "overlay", "toast", "osd", "window", "status-item"]
 
     init(factory: any HostWindowFactory = AppKitWindowFactory()) {
         self.factory = factory
@@ -419,6 +419,7 @@ final class WindowHost: SurfaceHosting {
         observeProperties(controller, key: key)
         let style = context.styles.resolve(surface: surface)
         let placement = SurfacePlacement(kind: surface.ir.kind, property: surface.property, style: style)
+        controller.window.watchFitting(spec.kind != "window" && (placement.width == nil || placement.height == nil))
         let fit = controller.window.fittingSize, flyout = controller.flyout
         controller.lastFitting = fit
         let fitting = CGSize(width: max(0, fit.width - flyout.leading - flyout.trailing), height: max(0, fit.height - flyout.top - flyout.bottom))

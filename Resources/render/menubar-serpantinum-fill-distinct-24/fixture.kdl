@@ -1,0 +1,109 @@
+fixture {
+    clock now="2026-09-24T09:41:00+02:00"
+    battery present=#true percent=0.76 symbol="battery.75percent" charging=#false on-power=#false
+    network {
+        wifi on=#true connected=#true rssi=-52 bars=3 symbol="wifi"
+    }
+    bluetooth on=#true status="ready" paired=2 connected=1
+    audio volume=0.35 muted=#false symbol="speaker.wave.2.fill" {
+        output id="builtin" name="MacBook Pro Speakers"
+    }
+    system user-name="Andrin Example" full-name="Andrin Example" uptime=11520 macos-version="26.6.2" chip="Apple M4 Pro"
+    perf cpu=0.42 memory=0.61 chip="Apple M4 Pro" cores=14 gpu-cores=20 {
+        live cpu=0.42 memory=0.61 disk=0.5
+    }
+    weather status="ready" stale=#false {
+        place name="Chur" latitude=46.85 longitude=9.53
+        current temperature=14 apparent=13 humidity=0.55 wind=6 code=2 symbol="cloud.sun.fill" description="Partly Cloudy" is-day=#true
+        today max=18 min=10 sunrise=#null sunset=#null sunrise-text=#null sunset-text=#null
+        attribution text="Weather data: Open-Meteo" url="https://open-meteo.com"
+        hourly-strip {
+            - time="2026-09-24T09:41:00+02:00" time-text="Now" now=#true temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T11:41:00+02:00" time-text="11:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T13:41:00+02:00" time-text="13:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T15:41:00+02:00" time-text="15:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T17:41:00+02:00" time-text="17:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T19:41:00+02:00" time-text="19:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T21:41:00+02:00" time-text="21:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T23:41:00+02:00" time-text="23:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-25T01:41:00+02:00" time-text="1:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-25T03:41:00+02:00" time-text="3:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-25T05:41:00+02:00" time-text="5:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-25T07:41:00+02:00" time-text="7:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+        }
+        days {
+            - date="2026-09-24T09:41:00+02:00" date-text="9/24" name-text="Today" today=#true min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-25T09:41:00+02:00" date-text="9/25" name-text="Fr" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-26T09:41:00+02:00" date-text="9/26" name-text="Sa" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-27T09:41:00+02:00" date-text="9/27" name-text="Su" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-28T09:41:00+02:00" date-text="9/28" name-text="Mo" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-29T09:41:00+02:00" date-text="9/29" name-text="Tu" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-30T09:41:00+02:00" date-text="9/30" name-text="We" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+        }
+    }
+    media available=#true playing=#true progress=0.391304 duration=230 elapsed=90 app-name="Music" title="Starboy" artist="The Weeknd" album="Starboy" kind="music"
+    spaces current=2 count=4 {
+        list {
+            - id=1 index=1 active=#false fullscreen=#false
+            - id=2 index=2 active=#true fullscreen=#false
+            - id=3 index=3 active=#false fullscreen=#false
+            - id=4 index=4 active=#false fullscreen=#false
+        }
+    }
+    apps {
+        dock {
+            - bundle-id="com.apple.finder" name="Finder" running=#true section="file-manager" active=#false hidden=#false launching=#false badge=#null
+            - bundle-id="com.apple.Safari" name="Safari" running=#true active=#true dock-pinned=#true section="pinned" hidden=#false launching=#false badge=#null
+            - bundle-id="com.apple.mail" name="Mail" running=#false dock-pinned=#true section="pinned" badge="3" active=#false hidden=#false launching=#false
+        }
+        all {
+            - bundle-id="com.apple.finder" name="Finder" path="/System/Library/CoreServices/Finder.app" usage=0 favorite-index=#null
+            - bundle-id="com.apple.Safari" name="Safari" path="/Applications/Safari.app" usage=0 favorite-index=0
+            - bundle-id="com.apple.mail" name="Mail" path="/System/Applications/Mail.app" usage=0 favorite-index=1
+        }
+    }
+    menubar app-name="Safari" bundle-id="com.apple.Safari" trusted=#true {
+        menus {
+            - index=0 title="Apple" apple=#true app=#false
+            - index=1 title="Safari" apple=#false app=#true
+            - index=2 title="File" apple=#false app=#false
+            - index=3 title="Edit" apple=#false app=#false
+            - index=4 title="View" apple=#false app=#false
+            - index=5 title="History" apple=#false app=#false
+            - index=6 title="Bookmarks" apple=#false app=#false
+            - index=7 title="Window" apple=#false app=#false
+            - index=8 title="Help" apple=#false app=#false
+        }
+    }
+    status-items {
+        list {
+            - id="1-0" app="to.apollocloud.apolloshell" name="ApolloShell" title="" image="mark.png" kind="menu" monochrome=#true symbol=#null
+            - id="100-0" app="sample.Docker" name="Docker" title="" image=#null kind="menu" monochrome=#true symbol="shippingbox.fill"
+            - id="101-0" app="sample.Dropbox" name="Dropbox" title="" image=#null kind="menu" monochrome=#false symbol="drop.fill"
+            - id="102-0" app="sample.VPN" name="VPN" title="" image=#null kind="menu" monochrome=#true symbol="lock.shield.fill"
+            - id="103-0" app="sample.Timer" name="Timer" title="12:30" image=#null kind="menu" monochrome=#true symbol=#null
+        }
+    }
+    vars {
+        menubar-enabled #true
+        menubar-style "fill"
+        menubar-distinct #true
+        menubar-thickness 24
+        menubar-status-style "icons"
+        menubar-hide-apple #false
+        menubar-start {
+            - id="dashboard-button" kind="dashboard-button"
+            - id="spaces" kind="spaces" style="dots"
+            - id="media-button" kind="media-button"
+        }
+        menubar-center {
+            - id="clock" kind="clock" show-icon=#false show-date=#true
+            - id="weather" kind="weather" show-temperature=#true joins=#true
+        }
+        menubar-end {
+            - id="status-icons" kind="status-icons" wifi=#true bluetooth=#true battery=#false
+            - id="battery" kind="battery" show-icon=#true joins=#true
+            - id="power" kind="power"
+        }
+    }
+}

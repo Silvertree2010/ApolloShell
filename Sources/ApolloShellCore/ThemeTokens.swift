@@ -6,6 +6,8 @@ public enum ThemeTokenGroup: String, Equatable, Hashable, Sendable, CaseIterable
     case text = "Text"
     case accent = "Accent and state"
     case bar = "Sidebar"
+    case menuBar = "Menu bar"
+    case barModules = "Bar modules"
     case dock = "Dock"
     case panel = "Panels"
     case launcher = "Launcher"
@@ -209,6 +211,7 @@ public extension ThemeToken where Kind == ThemeTokenTypes.Gradient {
     static var surface: Self { Self("--apollo-surface-gradient") }
     static var accent: Self { Self("--apollo-accent-gradient") }
     static var bar: Self { Self("--apollo-bar-gradient") }
+    static var menuBar: Self { Self("--apollo-menubar-gradient") }
     static var panel: Self { Self("--apollo-panel-gradient") }
     static var card: Self { Self("--apollo-card-gradient") }
     static var launcherHighlight: Self { Self("--apollo-launcher-highlight-gradient") }
@@ -237,6 +240,7 @@ public extension ThemeToken where Kind == ThemeTokenTypes.Color {
     static var danger: Self { Self("--apollo-danger-color") }
 
     static var bar: Self { Self("--apollo-bar-color") }
+    static var menuBar: Self { Self("--apollo-menubar-color") }
     static var barText: Self { Self("--apollo-bar-text-color") }
     static var barIcon: Self { Self("--apollo-bar-icon-color") }
 
@@ -264,6 +268,7 @@ public extension ThemeToken where Kind == ThemeTokenTypes.Number {
     static var barPadding: Self { Self("--apollo-bar-padding") }
     static var barItemSpacing: Self { Self("--apollo-bar-item-spacing") }
     static var barOpacity: Self { Self("--apollo-bar-opacity") }
+    static var menuBarOpacity: Self { Self("--apollo-menubar-opacity") }
     static var barBlur: Self { Self("--apollo-bar-blur") }
 
     static var dockIconSize: Self { Self("--apollo-dock-icon-size") }
@@ -472,6 +477,47 @@ public extension ThemeTokenCatalog {
         .length("--apollo-bar-padding", 10, max: 48, group: .bar, "Space between sidebar edge and its blocks"),
         .length("--apollo-bar-item-spacing", 8, max: 48, group: .bar, "Space between two blocks"),
         .length("--apollo-bar-blur", 24, max: 64, group: .bar, "Blur behind the sidebar"),
+
+        .color("--apollo-menubar-color", light: 0xF5F5F7, dark: 0x1C1C1E, group: .menuBar,
+               "Backing of the menu bar, the strip or each island; unset, the sidebar's"),
+        .gradient("--apollo-menubar-gradient", group: .menuBar,
+                  "Gradient along the menu bar instead of the flat colour; unset, the sidebar's"),
+        .ratio("--apollo-menubar-opacity", 1, group: .menuBar, "How opaque the menu bar backing is; unset, the sidebar's"),
+        .length("--apollo-menubar-blur", 24, max: 64, group: .menuBar, "Blur behind the menu bar; unset, the sidebar's"),
+        .color("--apollo-menubar-text-color", light: 0x1C1C1E, dark: 0xF5F5F7, group: .menuBar,
+               "Text in the menu bar; unset, the sidebar's", on: "--apollo-menubar-color"),
+        .color("--apollo-menubar-icon-color", light: 0x3C3C43, dark: 0xE5E5EA, group: .menuBar,
+               "Glyphs in the menu bar; unset, the sidebar's", on: "--apollo-menubar-color", contrast: 3),
+        .length("--apollo-menubar-radius", 0, max: 32, group: .menuBar, "Corner radius of the strip"),
+        .length("--apollo-menubar-island-radius", 12, max: 32, group: .menuBar,
+                "Corner radius of an island, at most half the bar thickness"),
+        .length("--apollo-menubar-island-margin", 6, max: 6, group: .menuBar,
+                "Gap between an island and the screen edge; the bar reserves 6 points for it"),
+        .color("--apollo-menubar-group-color", light: 0x000000, dark: 0xFFFFFF, alpha: 0.08, group: .menuBar,
+               "Capsule behind each group on a strip with distinct groups"),
+        .length("--apollo-menubar-group-radius", 9, max: 32, group: .menuBar, "Corner radius of that capsule"),
+        .length("--apollo-menubar-padding", 6, max: 24, group: .menuBar,
+                "Space inside a capsule or island before its first and after its last block"),
+        .length("--apollo-menubar-item-spacing", 4, max: 24, group: .menuBar, "Space between two blocks of one group"),
+        .length("--apollo-menubar-group-spacing", 6, max: 48, group: .menuBar,
+                "Space between two groups; a plain strip uses the sidebar item spacing instead"),
+        .text("--apollo-menubar-font-family", group: .menuBar, "Font in the menu bar; empty means the system font"),
+        .length("--apollo-menubar-font-size", 13, min: 8, max: 32, group: .menuBar, "Base text size in the menu bar"),
+
+        .color("--apollo-spaces-active-color", light: 0x007AFF, dark: 0x0A84FF, group: .barModules,
+               "Marker of the active desktop in Spaces; unset, the accent colour"),
+        .color("--apollo-clock-color", light: 0xAF52DE, dark: 0xBF5AF2, group: .barModules,
+               "Digits of the bar clock; unset, the bar text colour", on: "--apollo-menubar-color", contrast: 3),
+        .color("--apollo-weather-temperature-color", light: 0x1C1C1E, dark: 0xF5F5F7, group: .barModules,
+               "Temperature next to the weather symbol", on: "--apollo-menubar-color"),
+        .color("--apollo-status-wifi-color", light: 0x8FD3E8, group: .barModules,
+               "Wi-Fi pill when the menu bar shows status as pills"),
+        .color("--apollo-status-bluetooth-color", light: 0xA9B8FF, group: .barModules, "Bluetooth pill"),
+        .color("--apollo-status-volume-color", light: 0xD2B3F2, group: .barModules, "Volume pill, once a bar shows one"),
+        .color("--apollo-status-battery-color", light: 0x9EDC9A, group: .barModules, "Battery pill"),
+        .color("--apollo-status-keyboard-color", light: 0xF3C98B, group: .barModules, "Keyboard layout pill, once a bar shows one"),
+        .color("--apollo-status-pill-text-color", light: 0x1C1C1E, group: .barModules,
+               "Text and glyph on every status pill"),
 
         .length("--apollo-dock-icon-size", 26, min: 16, max: 128, group: .dock, "Size of the app icons"),
         .length("--apollo-dock-spacing", 4, max: 48, group: .dock, "Space between two app icons"),

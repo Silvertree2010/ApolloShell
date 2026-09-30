@@ -1,0 +1,10 @@
+#menubar { width: 760px; }
+#menubar.fill.bg-material { background: rgb(242 242 242); }
+#menubar.islands { background: rgb(115 133 158); }
+#menubar.islands.bg-material .menubar-group { background: rgb(242 242 242); }
+.menubar-status-symbol.original { color: -apple-system-blue; }
+.menubar-status-image { width: 18px; height: 18px; }
+@media (prefers-color-scheme: dark) {
+  #menubar.fill.bg-material { background: rgb(43 43 43); }
+  #menubar.islands.bg-material .menubar-group { background: rgb(43 43 43); }
+}

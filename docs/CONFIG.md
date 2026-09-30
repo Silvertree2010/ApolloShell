@@ -47,6 +47,30 @@ Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `o
 app-icon "{app}"
 ```
 
+### `app-menus` (node)
+
+Row that keeps its first child, shows as many of the middle children as fit and shows its last child, the overflow button, only when some did not fit.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
+
+Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
+
+```kdl
+app-menus { text "{menubar.app-name}"; text "File"; text "…" }
+```
+
 ### `apple-desktops` (node)
 
 Whether the window manager uses Apple's Spaces or its own workspaces.
@@ -1067,6 +1091,7 @@ Lays out children side by side, flexbox direction row.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
+| property | `notch` | "ignore"\|"avoid" | `"ignore"` | avoid keeps start children left of the notch and puts centered and end children right of it. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -1289,6 +1314,30 @@ Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `o
 
 ```kdl
 stack class="divider" { }
+```
+
+### `status-item` (node)
+
+Symbol or text in Apple's menu bar, drawn from its children; target for popup attach="id#element".
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `id` | identifier | required | Id, unique per surface; target for flyout, popup and each. |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+
+Handlers: `on-open`, `on-close`, `on-closed`, `key`
+
+```kdl
+status-item "shell" { button { on-click { command-center.open }; icon "circle.hexagongrid" } }
 ```
 
 ### `style` (node)
@@ -2104,6 +2153,19 @@ What is playing.
 
 Actions and events: `media.play-pause`, `media.next`, `media.previous`, `media.seek`, `media.open-app`, `media.track-changed`
 
+### `menubar` (provider)
+
+The frontmost app's menu bar, read through Accessibility on a queue of its own.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| field | `app-name` | string | | Name the frontmost app gives its own menu, such as Finder. |
+| field | `bundle-id` | string or null | | Bundle ID of the frontmost app, #null without one. |
+| field | `menus` | list | | Top-level menus of the frontmost app, each with index, title, apple and app; entries come from the app-menubar menu source. |
+| field | `trusted` | bool | | Whether the shell may read other apps' menus (Accessibility). |
+
+Actions and events: `menubar.press`
+
 ### `network` (provider)
 
 Wi-Fi, Ethernet.
@@ -2177,6 +2239,7 @@ Which macOS permissions the shell has.
 | field | `accessibility` | bool | | Accessibility allowed. |
 | field | `automation` | bool or null | | Automation allowed. |
 | field | `screen-recording` | bool | | Screen recording allowed. |
+| field | `screen-capture-bypass` | bool | | Whether macOS lets the shell capture single windows without asking each time. |
 
 Actions and events: `permissions.request-accessibility`, `permissions.open`
 
@@ -2241,6 +2304,16 @@ Desktops per screen.
 
 Actions and events: `spaces.switch`, `spaces.next`, `spaces.previous`, `spaces.mission-control`, `spaces.changed`
 
+### `status-items` (provider)
+
+Status items of other apps, their pictures captured with ScreenCaptureKit.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| field | `list` | list | | Other apps' status items in Apple's order, each with id, app, name, title, image, kind (menu or popover, #null until known), monochrome and symbol (SF Symbol stand-in, only from fixtures). |
+
+Actions and events: `status-items.click`
+
 ### `system` (provider)
 
 Appearance, Night Shift, microphone, user, computer, system actions.
@@ -2264,9 +2337,10 @@ Appearance, Night Shift, microphone, user, computer, system actions.
 | field | `kernel-version` | string | | Kernel version. |
 | field | `uptime` | number | | Uptime in s. |
 | field | `apple-dock-hidden` | bool | | Whether Apple's Dock is hidden. |
+| field | `apple-menubar-hidden` | bool | | Whether the shell keeps Apple's menu bar hidden right now. |
 | field | `hidden-files` | bool or null | | Whether the Finder shows hidden files, #null while unknown or never set. |
 
-Actions and events: `system.set-dark-mode`, `system.toggle-dark-mode`, `system.set-night-shift`, `system.toggle-night-shift`, `system.set-microphone-muted`, `system.toggle-microphone`, `system.screenshot`, `system.color-picker`, `system.show-desktop`, `system.lock`, `system.display-sleep`, `system.hide-apps`, `system.open-settings`, `system.hide-apple-dock`, `system.toggle-hidden-files`, `system.empty-trash`, `system.mission-control`, `system.launchpad`, `system.airdrop`, `system.appearance-changed`, `system.color-copied`, `shortcuts.failed`
+Actions and events: `system.set-dark-mode`, `system.toggle-dark-mode`, `system.set-night-shift`, `system.toggle-night-shift`, `system.set-microphone-muted`, `system.toggle-microphone`, `system.screenshot`, `system.color-picker`, `system.show-desktop`, `system.lock`, `system.display-sleep`, `system.hide-apps`, `system.open-settings`, `system.hide-apple-dock`, `system.hide-apple-menubar`, `system.toggle-hidden-files`, `system.empty-trash`, `system.mission-control`, `system.launchpad`, `system.airdrop`, `system.appearance-changed`, `system.color-copied`, `shortcuts.failed`
 
 ### `timer` (provider)
 
@@ -2441,7 +2515,7 @@ Date formatted with a pattern.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `pattern` | string | required | ICU pattern; j is the hour of the system locale, 12 or 24 hours. |
+| argument | `pattern` | string | required | ICU pattern. The extra letter j is the hour of the locale without am/pm, 12 h for en_US and 24 h for de_CH. |
 | argument | `zone` | string |  | Time zone like Europe/Zurich, default the one of the system. |
 
 ### `default` (filter)
@@ -2637,6 +2711,14 @@ Rounds a number.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `digits` | number |  | Decimal places, default 0. |
+
+### `runs` (filter)
+
+Splits a list into runs, a list of lists.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `field` | string | required | Field of each item; a new run starts at every item where it is false. |
 
 ### `scale` (filter)
 

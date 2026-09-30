@@ -21,10 +21,10 @@ enum Features {
         FeatureSchema(name: "system-extras", since: "0.2.1"),
         FeatureSchema(name: "calc", since: "0.2.1"),
         FeatureSchema(name: "wallpaper", since: "0.2.1"),
-    ]
+    ] + MenuBarRegistry.features
 
     static let reservedProviderNames: Set<String> = [
-        "menubar", "status-items", "fusion", "calendar-events", "reminders", "notifications",
+        "fusion", "calendar-events", "reminders", "notifications",
         "focus", "location", "lua", "plugins", "windows", "input", "camera", "microphone", "canvas",
     ]
 
