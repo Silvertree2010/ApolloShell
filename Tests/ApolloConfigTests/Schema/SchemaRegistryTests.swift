@@ -21,7 +21,7 @@ struct SchemaRegistryTests {
 
     static let surfaceNames: Set<String> = ["panel", "popup", "overlay", "toast", "osd", "window", "status-item"]
 
-    static let layoutNames: Set<String> = ["row", "column", "grid", "stack", "scroll", "spacer"]
+    static let layoutNames: Set<String> = ["row", "column", "grid", "stack", "scroll", "spacer", "canvas"]
 
     static let elementNames: Set<String> = [
         "app-menus",
@@ -42,6 +42,7 @@ struct SchemaRegistryTests {
     static let settingsFileNames: Set<String> = ["config", "theme", "updates", "crash-reports", "editor"]
 
     static let nodesWithChildren: Set<String> = [
+        "canvas",
         "status-item",
         "app-menus",
         "define", "fill", "use", "each", "when", "else", "switch", "case", "default",
@@ -238,7 +239,7 @@ struct SchemaRegistryTests {
         #expect(panel?.properties.contains(where: { $0.name == "screen" }) == true)
     }
 
-    @Test("drag-value bleibt reserviert, fuse-group und fuse-fill gehören seit 0.2.1 zum Feature fusion")
+    @Test("drag-value ist stabil, fuse-group und fuse-fill gehören seit 0.2.1 zum Feature fusion")
     func reservedPropertiesAreExperimental() {
         let panel = BuiltinSchemaRegistry.allNodes.first { $0.name == "panel" }
         let fuseGroup = panel?.properties.first { $0.name == "fuse-group" }
@@ -247,8 +248,7 @@ struct SchemaRegistryTests {
         #expect(fuseGroup?.feature == "fusion")
         #expect(fuseFill?.feature == "fusion")
         let button = BuiltinSchemaRegistry.allNodes.first { $0.name == "button" }
-        let dragValue = button?.properties.first { $0.name == "drag-value" }
-        #expect(dragValue?.stability == .experimental)
+        #expect(button?.properties.first { $0.name == "drag-value" }?.stability == .stable)
     }
 
     @Test("click-through erlaubt Bool oder \"auto\" mit passender Bool-Vorgabe")

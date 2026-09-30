@@ -11,10 +11,10 @@ define "weather-detail" {
     }
 }
 
-define "dashboard-weather" {
+define "weather-hero" {
     switch "{weather.status}" {
         case "no-place" {
-            column class="weather-empty" {
+            column class="card weather-empty" {
                 text "Set Location in Settings" class="weather-empty-title"
                 button class="weather-empty-button" {
                     on-click { set "settings-page" "dashboard"; open "settings"; close "dashboard" }
@@ -23,70 +23,100 @@ define "dashboard-weather" {
             }
         }
         default {
-            column class="weather" {
-                stack class="card weather-hero" {
-                    row class="weather-hero-body" {
-                        stack class="weather-hero-glyph-frame" {
-                            icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph weather-hero-glyph"
-                        }
-                        text "{weather.current.temperature | temperature}" class="weather-hero-temperature"
-                        column class="weather-hero-text" {
-                            text "{weather.current.description}" class="weather-hero-condition" lines=1
-                            text "{((weather.current.apparent != null ? ' · Feels like ' + (weather.current.apparent | temperature) : '') + (weather.today != null ? ' · H:' + (weather.today.max | temperature) + ' L:' + (weather.today.min | temperature) : '')) | skip 3}" class="weather-hero-summary" lines=1
-                            scroll class="weather-places-scroll" axis="horizontal" reveal="{var.weather-selected}" {
-                                row class="weather-places" {
-                                    each place in="{var.weather-places}" key="{place.id}" {
-                                        button class="weather-place" checked="{place.id == var.weather-selected}" {
-                                            on-click { set "weather-selected" "{place.id}" }
-                                            text "{place.name}" class="weather-place-name"
-                                        }
+            stack class="card weather-hero" {
+                row class="weather-hero-body" {
+                    stack class="weather-hero-glyph-frame" {
+                        icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph weather-hero-glyph"
+                    }
+                    text "{weather.current.temperature | temperature}" class="weather-hero-temperature"
+                    column class="weather-hero-text" {
+                        text "{weather.current.description}" class="weather-hero-condition" lines=1
+                        text "{((weather.current.apparent != null ? ' · Feels like ' + (weather.current.apparent | temperature) : '') + (weather.today != null ? ' · H:' + (weather.today.max | temperature) + ' L:' + (weather.today.min | temperature) : '')) | skip 3}" class="weather-hero-summary" lines=1
+                        scroll class="weather-places-scroll" axis="horizontal" reveal="{var.weather-selected}" {
+                            row class="weather-places" {
+                                each place in="{var.weather-places}" key="{place.id}" {
+                                    button class="weather-place" checked="{place.id == var.weather-selected}" {
+                                        on-click { set "weather-selected" "{place.id}" }
+                                        text "{place.name}" class="weather-place-name"
                                     }
                                 }
                             }
-                            when "{weather.stale}" { text "As of {weather.updated | date 'HH:mm'}" class="weather-stale" }
                         }
-                        spacer
-                        row class="weather-details" {
-                            column class="weather-details-column" {
-                                use "weather-detail" title="Humidity" value="{weather.current.humidity != null ? (weather.current.humidity * 100 | round) + ' %' : '–'}" icon="humidity.fill"
-                                use "weather-detail" title="Wind" value="{weather.current.wind != null ? (weather.current.wind | round) + ' km/h' : '–'}" icon="wind"
-                            }
-                            column class="weather-details-column" {
-                                use "weather-detail" title="Sunrise" value="{weather.today.sunrise-text ?? (weather.today.sunrise | date 'HH:mm') ?? '–'}" icon="sunrise.fill"
-                                use "weather-detail" title="Sunset" value="{weather.today.sunset-text ?? (weather.today.sunset | date 'HH:mm') ?? '–'}" icon="sunset.fill"
-                            }
+                        when "{weather.stale}" { text "As of {weather.updated | date 'HH:mm'}" class="weather-stale" }
+                    }
+                    spacer
+                    row class="weather-details" {
+                        column class="weather-details-column" {
+                            use "weather-detail" title="Humidity" value="{weather.current.humidity != null ? (weather.current.humidity * 100 | round) + ' %' : '–'}" icon="humidity.fill"
+                            use "weather-detail" title="Wind" value="{weather.current.wind != null ? (weather.current.wind | round) + ' km/h' : '–'}" icon="wind"
                         }
-                    }
-                    button class="weather-attribution" {
-                        on-click { open-url "{weather.attribution.url}" }
-                        text "{weather.attribution.text}" class="weather-attribution-text"
-                    }
-                }
-                row class="card weather-hours" {
-                    each hour in="{weather.hourly-strip}" key="{hour.time}" {
-                        column class="weather-hour{hour.now ? ' now' : ''}" {
-                            text "{hour.time-text ?? (hour.now ? 'Now' : (hour.time | date 'H:00'))}" class="weather-hour-time"
-                            stack class="weather-hour-glyph-frame" {
-                                icon "{hour.symbol}" class="weather-glyph weather-hour-glyph"
-                            }
-                            text "{hour.precipitation-text}" class="weather-precipitation"
-                            text "{hour.temperature | temperature}" class="weather-hour-temperature"
+                        column class="weather-details-column" {
+                            use "weather-detail" title="Sunrise" value="{weather.today.sunrise-text ?? (weather.today.sunrise | date 'HH:mm') ?? '–'}" icon="sunrise.fill"
+                            use "weather-detail" title="Sunset" value="{weather.today.sunset-text ?? (weather.today.sunset | date 'HH:mm') ?? '–'}" icon="sunset.fill"
                         }
                     }
                 }
-                row class="weather-days" {
-                    each day in="{weather.days}" key="{day.date}" {
-                        column class="card weather-day" {
-                            text "{day.name-text ?? (day.today ? 'Today' : (day.date | date 'EEEEEE'))}" class="weather-day-name{day.today ? ' today' : ''}"
-                            text "{day.date-text ?? (day.date | date 'M/d')}" class="weather-day-date"
-                            stack class="weather-day-glyph-frame" {
-                                icon "{day.symbol}" class="weather-glyph weather-day-glyph"
-                            }
-                            text "{day.precipitation-text}" class="weather-precipitation"
-                            row class="weather-day-range" {
-                                text "{day.max | temperature}" class="weather-day-high"
-                                text "{day.min | temperature}" class="weather-day-low"
-                            }
+                button class="weather-attribution" {
+                    on-click { open-url "{weather.attribution.url}" }
+                    text "{weather.attribution.text}" class="weather-attribution-text"
+                }
+            }
+        }
+    }
+}
+
+define "weather-hourly" {
+    switch "{weather.status}" {
+        case "no-place" {
+            column class="card weather-empty" {
+                text "Set Location in Settings" class="weather-empty-title"
+                button class="weather-empty-button" {
+                    on-click { set "settings-page" "dashboard"; open "settings"; close "dashboard" }
+                    text "Settings"
+                }
+            }
+        }
+        default {
+            row class="card weather-hours" {
+                each hour in="{weather.hourly-strip}" key="{hour.time}" {
+                    column class="weather-hour{hour.now ? ' now' : ''}" {
+                        text "{hour.time-text ?? (hour.now ? 'Now' : (hour.time | date 'H:00'))}" class="weather-hour-time"
+                        stack class="weather-hour-glyph-frame" {
+                            icon "{hour.symbol}" class="weather-glyph weather-hour-glyph"
+                        }
+                        text "{hour.precipitation-text}" class="weather-precipitation"
+                        text "{hour.temperature | temperature}" class="weather-hour-temperature"
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "weather-daily" {
+    switch "{weather.status}" {
+        case "no-place" {
+            column class="card weather-empty" {
+                text "Set Location in Settings" class="weather-empty-title"
+                button class="weather-empty-button" {
+                    on-click { set "settings-page" "dashboard"; open "settings"; close "dashboard" }
+                    text "Settings"
+                }
+            }
+        }
+        default {
+            row class="weather-days" {
+                each day in="{weather.days}" key="{day.date}" {
+                    column class="card weather-day" {
+                        text "{day.name-text ?? (day.today ? 'Today' : (day.date | date 'EEEEEE'))}" class="weather-day-name{day.today ? ' today' : ''}"
+                        text "{day.date-text ?? (day.date | date 'M/d')}" class="weather-day-date"
+                        stack class="weather-day-glyph-frame" {
+                            icon "{day.symbol}" class="weather-glyph weather-day-glyph"
+                        }
+                        text "{day.precipitation-text}" class="weather-precipitation"
+                        row class="weather-day-range" {
+                            text "{day.max | temperature}" class="weather-day-high"
+                            text "{day.min | temperature}" class="weather-day-low"
                         }
                     }
                 }

@@ -159,7 +159,7 @@ struct SettingsEndToEndTests {
     static func disabledResets(_ shell: LiveShell) async throws -> [Bool] {
         shell.assembly?.runtime.open("settings", screenKey: nil)
         var result: [Bool] = []
-        for page in ["sidebar", "control-centre", "dashboard"] {
+        for page in ["sidebar", "control-centre"] {
             _ = shell.assembly?.vars.set("settings-page", .string(page))
             await settle(shell)
             let roots = try #require(surface(shell, "settings")).root
@@ -177,22 +177,22 @@ struct SettingsEndToEndTests {
         defer { try? FileManager.default.removeItem(at: home.root) }
         let shell = try await Self.start(home)
         let vars = try #require(shell.assembly?.vars)
-        let names = ["sidebar-modules", "utilities-cards", "utilities-toggles", "dashboard-tabs", "dashboard-cards-top", "dashboard-cards-bottom", "dashboard-cards-side"]
+        let names = ["sidebar-modules", "utilities-cards", "utilities-toggles"]
         let original = names.map { vars.value($0) }
-        #expect(try await Self.disabledResets(shell) == [true, true, true])
+        #expect(try await Self.disabledResets(shell) == [true, true])
         for name in names { #expect(vars.set(name, .list([]))) }
         await Self.settle(shell)
-        #expect(try await Self.disabledResets(shell) == [false, false, false])
+        #expect(try await Self.disabledResets(shell) == [false, false])
         for (name, value) in zip(names, original) { #expect(vars.set(name, value)) }
         await Self.settle(shell)
-        #expect(try await Self.disabledResets(shell) == [true, true, true])
+        #expect(try await Self.disabledResets(shell) == [true, true])
         shell.shutdown()
         let again = try await Self.start(home)
         defer { again.shutdown() }
         for (name, value) in zip(names, original) {
             #expect(again.assembly?.vars.value(name) == value, "\(name)")
         }
-        #expect(try await Self.disabledResets(again) == [true, true, true])
+        #expect(try await Self.disabledResets(again) == [true, true])
     }
 
     static func checked(_ entries: [MenuEntry], _ menu: String) -> [String] {
@@ -295,18 +295,9 @@ struct SettingsEndToEndTests {
             _ = vars.set("settings-toggle-selected", id)
             await Self.settle(shell)
         }
-        _ = vars.set("settings-page", .string("dashboard"))
-        _ = vars.set("settings-dashboard-gallery", .bool(true))
-        for zone in ["top", "bottom", "side"] {
-            for id in Self.ids(shell, "dashboard-cards-" + zone) {
-                _ = vars.set("settings-dashboard-expanded", id)
-                await Self.settle(shell)
-            }
-        }
         let areas: [(page: String, confirm: String, presets: [String], lists: [String], expand: String)] = [
             ("sidebar", "settings-sidebar-confirm", ["minimal", "dock-only", "everything", "reset"], ["sidebar-modules"], "settings-sidebar-expanded"),
             ("control-centre", "settings-utilities-confirm", ["minimal", "audio", "everything", "reset"], ["utilities-toggles"], "settings-toggle-selected"),
-            ("dashboard", "settings-dashboard-confirm", ["compact", "calendar-weather", "caelestia", "reset"], ["dashboard-cards-top", "dashboard-cards-bottom", "dashboard-cards-side"], "settings-dashboard-expanded"),
         ]
         for area in areas {
             _ = vars.set("settings-page", .string(area.page))

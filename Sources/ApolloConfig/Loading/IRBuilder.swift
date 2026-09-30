@@ -754,7 +754,7 @@ enum IRBuilder {
             let count = occurrences[child.kdl.name, default: 0]
             occurrences[child.kdl.name] = count + 1
             let segment = count == 0 ? child.kdl.name : "\(child.kdl.name)[\(count)]"
-            flatten(child, prefix: path(segment), schema: state.registry.node(child.kdl.name), into: &compiled, state: state)
+            flatten(child, prefix: path(segment), schema: state.registry.node(child.kdl.name, in: schema?.childContext ?? .elementBody), into: &compiled, state: state)
         }
     }
 

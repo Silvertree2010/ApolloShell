@@ -3,7 +3,7 @@ import AppKit
 import ApolloStyle
 
 struct BoxParts: Equatable {
-    var padding = true, margin = true, size = true, aspect = true, paint = true, border = true, clip = true
+    var padding = true, margin = true, size = true, aspect = true, paint = true, shadow = true, border = true, clip = true
     var opacity = true, transform = true, depth = true, pointer = true, cursor = true, motion = true
 
     static let all = BoxParts()
@@ -15,7 +15,8 @@ struct BoxParts: Equatable {
         margin = has("margin")
         size = has("width", "height", "min-width", "min-height", "max-width", "max-height")
         aspect = has("aspect-ratio")
-        paint = has("background", "box-shadow")
+        paint = has("background")
+        shadow = has("box-shadow")
         border = has("border")
         clip = has("overflow")
         opacity = has("opacity")
@@ -96,6 +97,7 @@ struct BoxPaint: ViewModifier {
             .gated(parts.paint || forced) { $0.background { BackgroundLayers(style: style, shape: shape, context: context) } }
             .gated(parts.border) { $0.overlay { BorderLayer(style: style, shape: shape) } }
             .gated(parts.clip) { $0.modifier(Clip(active: StyleValues.keyword(style["overflow"]) == "hidden", shape: shape)) }
+            .gated(parts.shadow) { $0.modifier(BoxShadows(style["box-shadow"], shape: shape)) }
     }
 }
 
@@ -328,7 +330,6 @@ struct BackgroundLayers: View {
                 self.layer(layer)
             }
         }
-        .modifier(BoxShadows(style["box-shadow"], shape: shape))
     }
 
     var layers: [BackgroundLayer] {

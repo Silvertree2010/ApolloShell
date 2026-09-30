@@ -1,0 +1,53 @@
+include "builtin:apolloshell-default/dashboard-cards.kdl"
+include "builtin:apolloshell-default/media.kdl"
+include "builtin:apolloshell-default/performance.kdl"
+include "builtin:apolloshell-default/weather.kdl"
+include "builtin:apolloshell-default/widgets.kdl"
+style "builtin:apolloshell-default/style.css"
+var calendar-offset 0
+var dashboard-tab "dashboard"
+var settings-page "general"
+var weather-selected #null type="any"
+var weather-places type="list" { }
+var dashboard-cards-top type="list" { }
+
+var h0 {
+    - id="w0" page="p" kind="media.player" x=0 y=0 width=413 height=250 display="standard"  
+}
+panel "widget-media.player-standard-413x250-video" anchor="top-left" {
+    column style="padding: 8px" {
+        canvas style="width: 413px; height: 250px" in="{var.h0}" {
+            each w in="{var.h0}" key="{w.id}" { use "widget" w="{w}" }
+        }
+    }
+}
+var h1 {
+    - id="w1" page="p" kind="media.player" x=0 y=0 width=413 height=392 display="standard"  
+}
+panel "widget-media.player-standard-413x392-video" anchor="top-left" {
+    column style="padding: 8px" {
+        canvas style="width: 413px; height: 392px" in="{var.h1}" {
+            each w in="{var.h1}" key="{w.id}" { use "widget" w="{w}" }
+        }
+    }
+}
+var h2 {
+    - id="w2" page="p" kind="media.player" x=0 y=0 width=560 height=250 display="standard"  
+}
+panel "widget-media.player-standard-560x250-video" anchor="top-left" {
+    column style="padding: 8px" {
+        canvas style="width: 560px; height: 250px" in="{var.h2}" {
+            each w in="{var.h2}" key="{w.id}" { use "widget" w="{w}" }
+        }
+    }
+}
+var h3 {
+    - id="w3" page="p" kind="media.player" x=0 y=0 width=560 height=392 display="standard"  
+}
+panel "widget-media.player-standard-560x392-video" anchor="top-left" {
+    column style="padding: 8px" {
+        canvas style="width: 560px; height: 392px" in="{var.h3}" {
+            each w in="{var.h3}" key="{w.id}" { use "widget" w="{w}" }
+        }
+    }
+}

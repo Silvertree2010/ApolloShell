@@ -57,6 +57,7 @@ struct StringFilterTests {
         .ok("number", .string("abc"), [], .null),
         .ok("number", .string("nan"), [], .null),
         .ok("number", .number(4), [], .number(4)),
+        .ok("number", .date(Date(timeIntervalSince1970: 1_790_235_660)), [], .number(1_790_235_660)),
         .fails("number", .list([]), []),
     ]
 

@@ -1,0 +1,53 @@
+.wh-summary { font-size: 13px; color: -apple-system-secondary-label; }
+.wh-cond { font-weight: 600; }
+.wh-temp { font-weight: 500; font-family: ui-rounded; flex-shrink: 0; }
+.card.wh-min { padding: 0 20px; gap: 18px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 28px); }
+.card.wh-min.tall { gap: 6px; }
+.wh-min-temp { font-weight: 500; font-family: ui-rounded; flex-shrink: 0; }
+.wh-min-cond { font-weight: 600; }
+.card.wh-tall { padding: 18px; gap: 10px; align-items: start; border-radius: var(--apollo-card-radius, 28px); }
+.wh-tall-top { gap: 12px; align-items: center; align-self: stretch; justify-content: start; }
+.wh-tall-text { gap: 3px; align-items: start; align-self: stretch; }
+.wh-tall-text .wh-summary { font-size: 12px; }
+.wh-stats { column-gap: 14px; row-gap: 12px; align-self: start; }
+.wh-tall-text > text { align-self: stretch; text-align: left; }
+.wh-attribution { align-self: start; }
+.card.wh-row { padding: 0; border-radius: var(--apollo-card-radius, 28px); }
+.wh-row-body { align-self: stretch; padding: 0 28px 0 22px; gap: 18px; align-items: center; }
+.wh-row-glyph { width: 72px; align-items: center; justify-content: center; flex-shrink: 0; }
+.wh-row-text { gap: 3px; align-items: start; flex-shrink: 1; min-width: 0; padding-bottom: 6px; }
+.wh-row-text > text { align-self: stretch; text-align: left; }
+.wh-row-stats { padding: 0 0 10px; }
+.wh-row > .wh-attribution { align-self: end; justify-self: end; margin: 0 18px 7px 0; }
+.card.wh-hours { padding: 0 10px; border-radius: var(--apollo-card-radius, 24px); align-items: center; justify-content: center; gap: 0; }
+.wh-hour { flex-grow: 1; flex-basis: 0; min-width: 0; align-items: center; }
+.wh-hour-time { font-size: 12px; font-weight: 500; color: -apple-system-secondary-label; }
+.wh-hour.now .wh-hour-time { font-weight: 600; color: -apple-system-label; }
+.wh-hour-glyph { align-items: center; justify-content: center; }
+.card.wh-hours.graph { padding: 10px; gap: 6px; }
+.wh-hgraph-area { flex-grow: 1; align-self: stretch; }
+.wh-hgraph-line { align-self: stretch; }
+.wh-hgraph-curve { -apollo-stroke-width: 2.5px; color: var(--apollo-accent-color, -apple-system-control-accent); align-self: stretch; flex-grow: 1; }
+.wh-hgraph-points { align-self: stretch; align-items: start; }
+.wh-hgraph-col { flex-grow: 1; flex-basis: 0; align-items: center; gap: 2px; }
+.wh-hgraph-value { font-size: 13px; font-weight: 600; font-family: ui-rounded; }
+.wh-hgraph-dot { background: var(--apollo-accent-color, -apple-system-control-accent); }
+.wh-hgraph-labels { align-self: stretch; }
+.wh-hgraph-label { flex-grow: 1; flex-basis: 0; align-items: center; gap: 3px; }
+.wh-hgraph-time { font-size: 11px; font-weight: 500; color: -apple-system-secondary-label; }
+.wh-hgraph-label.now .wh-hgraph-time { font-weight: 600; color: -apple-system-label; }
+.wh-days { gap: 12px; }
+.card.wh-day { flex-grow: 1; flex-basis: 0; align-self: stretch; padding: 0; gap: 4px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 20px); }
+.card.wh-dlist { padding: 6px 16px; gap: 0; border-radius: var(--apollo-card-radius, 24px); }
+.wh-drow { flex-grow: 1; gap: 10px; align-items: center; align-self: stretch; }
+.wh-drow-name { width: 52px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+.wh-drow-glyph { width: 26px; align-items: center; justify-content: center; flex-shrink: 0; }
+.wh-drow-rain { width: 34px; flex-shrink: 0; }
+.wh-drow-min { width: 32px; text-align: right; font-size: 13px; font-weight: 600; font-family: ui-rounded; color: -apple-system-secondary-label; flex-shrink: 0; }
+.wh-drow-max { width: 32px; font-size: 13px; font-weight: 600; font-family: ui-rounded; flex-shrink: 0; }
+.wh-drow-bar { flex-grow: 1; height: 5px; min-width: 40px; align-items: center; }
+.wh-drow-track { align-self: stretch; height: 5px; background: rgb(from -apple-system-label r g b / 0.10); }
+.wh-drow-span { align-self: stretch; }
+.wh-drow-gap { background: transparent; }
+.wh-drow-fill { background: linear-gradient(90deg, var(--apollo-secondary-accent-color, contrast(var(--apollo-accent-color, -apple-system-control-accent))), var(--apollo-accent-color, -apple-system-control-accent)); }
+.wh-divider { align-self: stretch; height: 1px; background: rgb(from -apple-system-separator r g b / 0.5); }

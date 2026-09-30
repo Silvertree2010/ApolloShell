@@ -1,278 +1,91 @@
-var settings-dashboard-expanded ""
-var settings-dashboard-gallery #false
-var settings-dashboard-confirm ""
 var settings-weather-query ""
-var settings-dashboard-free-top from="{627 - (var.dashboard-cards-top | count) * 12 - (((var.dashboard-cards-top | map 'kind' | contains 'weather') ? 275 : 0) + ((var.dashboard-cards-top | map 'kind' | contains 'user') ? 230 : 0) + ((var.dashboard-cards-top | map 'kind' | contains 'clock') ? 110 : 0) + ((var.dashboard-cards-top | map 'kind' | contains 'calendar') ? 300 : 0) + ((var.dashboard-cards-top | map 'kind' | contains 'resources') ? 230 : 0) + ((var.dashboard-cards-top | map 'kind' | contains 'media') ? 300 : 0))}"
-var settings-dashboard-free-bottom from="{627 - (var.dashboard-cards-bottom | count) * 12 - (((var.dashboard-cards-bottom | map 'kind' | contains 'weather') ? 200 : 0) + ((var.dashboard-cards-bottom | map 'kind' | contains 'user') ? 200 : 0) + ((var.dashboard-cards-bottom | map 'kind' | contains 'clock') ? 110 : 0) + ((var.dashboard-cards-bottom | map 'kind' | contains 'calendar') ? 300 : 0) + ((var.dashboard-cards-bottom | map 'kind' | contains 'resources') ? 90 : 0) + ((var.dashboard-cards-bottom | map 'kind' | contains 'media') ? 200 : 0))}"
-var settings-dashboard-free-side from="{(var.dashboard-cards-side | count) == 0 ? 200 : 0}"
-
-var dashboard-zone-looks {
-    - id="top" title="Top Row" empty="Empty – the other row gets the full height."
-    - id="bottom" title="Bottom Row" empty="Empty – the other row gets the full height."
-    - id="side" title="Side Column" empty="Empty – the rows span the full width."
-}
-
-var dashboard-card-kinds {
-    - kind="weather" title="Weather" summary="Temperature and condition for the chosen location." symbol="cloud.sun.fill" width-top=275 width-bottom=200 width-side=200 {
-        zones { - "top"; - "bottom"; - "side"; }
-        card id="weather" kind="weather" show-condition=#true show-range=#true
-    }
-    - kind="user" title="User" summary="Name, macOS version and how long the Mac has been running." symbol="person.crop.circle.fill" width-top=230 width-bottom=200 width-side=200 {
-        zones { - "top"; - "bottom"; - "side"; }
-        card id="user" kind="user" show-system=#true show-uptime=#true
-    }
-    - kind="clock" title="Clock" summary="Hour and minute, with an optional date." symbol="clock.fill" width-top=110 width-bottom=110 width-side=200 {
-        zones { - "bottom"; - "top"; - "side"; }
-        card id="clock" kind="clock" style="stacked" show-date=#false
-    }
-    - kind="calendar" title="Calendar" summary="The month with today marked, to page through." symbol="calendar" width-bottom=300 {
-        zones { - "bottom"; }
-        card id="calendar" kind="calendar" first-weekday="monday" show-week-numbers=#false
-    }
-    - kind="resources" title="Resources" summary="CPU, memory and storage as rings." symbol="gauge.with.dots.needle.33percent" width-top=230 width-bottom=90 width-side=200 {
-        zones { - "bottom"; - "top"; - "side"; }
-        card id="resources" kind="resources" show-cpu=#true show-memory=#true show-storage=#true
-    }
-    - kind="media" title="Media" summary="What's currently playing, with cover art and buttons." symbol="music.note" width-top=300 width-bottom=200 width-side=200 {
-        zones { - "side"; - "top"; - "bottom"; }
-        card id="media" kind="media" show-album=#true show-source=#true
-    }
-}
-
-var dashboard-presets {
-    - id="caelestia" title="Caelestia" summary="Weather and user on top, clock, calendar and resources below, media at the side."
-    - id="compact" title="Compact" summary="Two rows, no side column."
-    - id="calendar-weather" title="Calendar & Weather" summary="Clock and calendar, the weather at the side; only the Dashboard and Weather tabs."
-}
-
-define "settings-card-switch" {
-    param "card"
-    param "zone"
-    param "title"
-    param "field"
-    use "settings-switch" title="{title}" checked="{card[field] ?? true}" {
-        on-change {
-            switch "{field}" {
-                case "show-condition" { list.update "dashboard-cards-{zone}" key="{card.id}" { - show-condition="{event.value}" } }
-                case "show-range" { list.update "dashboard-cards-{zone}" key="{card.id}" { - show-range="{event.value}" } }
-                case "show-system" { list.update "dashboard-cards-{zone}" key="{card.id}" { - show-system="{event.value}" } }
-                case "show-uptime" { list.update "dashboard-cards-{zone}" key="{card.id}" { - show-uptime="{event.value}" } }
-                case "show-date" { list.update "dashboard-cards-{zone}" key="{card.id}" { - show-date="{event.value}" } }
-                case "show-week-numbers" { list.update "dashboard-cards-{zone}" key="{card.id}" { - show-week-numbers="{event.value}" } }
-                case "show-cpu" { list.update "dashboard-cards-{zone}" key="{card.id}" { - show-cpu="{event.value}" } }
-                case "show-memory" { list.update "dashboard-cards-{zone}" key="{card.id}" { - show-memory="{event.value}" } }
-                case "show-storage" { list.update "dashboard-cards-{zone}" key="{card.id}" { - show-storage="{event.value}" } }
-                case "show-album" { list.update "dashboard-cards-{zone}" key="{card.id}" { - show-album="{event.value}" } }
-                case "show-source" { list.update "dashboard-cards-{zone}" key="{card.id}" { - show-source="{event.value}" } }
-            }
-        }
-    }
-}
-
-define "settings-card-options" {
-    param "card"
-    param "zone"
-    column class="settings-options" {
-        switch "{card.kind}" {
-            case "weather" {
-                use "settings-card-switch" card="{card}" zone="{zone}" title="Condition" field="show-condition"
-                use "settings-card-switch" card="{card}" zone="{zone}" title="High and Low" field="show-range"
-            }
-            case "user" {
-                use "settings-card-switch" card="{card}" zone="{zone}" title="macOS Version" field="show-system"
-                use "settings-card-switch" card="{card}" zone="{zone}" title="Uptime" field="show-uptime"
-            }
-            case "clock" {
-                row class="settings-row" {
-                    text "Style" class="settings-row-title"
-                    spacer
-                    button class="settings-popup-button" menu-on="click" {
-                        menu side="below" {
-                            item "Stacked" checked="{card.style != 'inline'}" { list.update "dashboard-cards-{zone}" key="{card.id}" { - style="stacked" } }
-                            item "In One Row" checked="{card.style == 'inline'}" { list.update "dashboard-cards-{zone}" key="{card.id}" { - style="inline" } }
-                        }
-                        text "{card.style == 'inline' ? 'In One Row' : 'Stacked'}"
-                    }
-                }
-                use "settings-card-switch" card="{card}" zone="{zone}" title="Date" field="show-date"
-            }
-            case "calendar" {
-                row class="settings-row" {
-                    text "First Weekday" class="settings-row-title"
-                    spacer
-                    button class="settings-popup-button" menu-on="click" {
-                        menu side="below" {
-                            item "Monday" checked="{card.first-weekday != 'sunday'}" { list.update "dashboard-cards-{zone}" key="{card.id}" { - first-weekday="monday" } }
-                            item "Sunday" checked="{card.first-weekday == 'sunday'}" { list.update "dashboard-cards-{zone}" key="{card.id}" { - first-weekday="sunday" } }
-                        }
-                        text "{card.first-weekday == 'sunday' ? 'Sunday' : 'Monday'}"
-                    }
-                }
-                use "settings-card-switch" card="{card}" zone="{zone}" title="Week Numbers" field="show-week-numbers"
-            }
-            case "resources" {
-                use "settings-card-switch" card="{card}" zone="{zone}" title="CPU" field="show-cpu"
-                use "settings-card-switch" card="{card}" zone="{zone}" title="Memory" field="show-memory"
-                use "settings-card-switch" card="{card}" zone="{zone}" title="Storage" field="show-storage"
-            }
-            case "media" {
-                use "settings-card-switch" card="{card}" zone="{zone}" title="Album" field="show-album"
-                use "settings-card-switch" card="{card}" zone="{zone}" title="Source" field="show-source"
-            }
-        }
-    }
-}
-
-define "settings-card-swap-items" {
-    param "card"
-    param "zone"
-    param "index"
-    param "look"
-    param "other-zone"
-    param "others"
-    each other in="{others}" key="{other.id}" index="j" {
-        when "{other.id != card.id}" {
-            item "{(var.dashboard-card-kinds | where 'kind' other.kind | first).title ?? other.kind} · {(var.dashboard-zone-looks | where 'id' other-zone | first).title}" disabled="{!(other-zone == zone || ((look.zones | contains other-zone) && ((var.dashboard-card-kinds | where 'kind' other.kind | first).zones | contains zone) && (look['width-' + other-zone] ?? 9999) <= (other-zone == 'top' ? var.settings-dashboard-free-top : (other-zone == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side)) + ((var.dashboard-card-kinds | where 'kind' other.kind | first)['width-' + other-zone] ?? 0) && ((var.dashboard-card-kinds | where 'kind' other.kind | first)['width-' + zone] ?? 9999) <= (zone == 'top' ? var.settings-dashboard-free-top : (zone == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side)) + (look['width-' + zone] ?? 0)))}" {
-                list.swap "dashboard-cards-{zone}" "{index}" "dashboard-cards-{other-zone}" "{j}"
-            }
-        }
-    }
-}
-
-define "settings-dashboard-card" {
-    param "card"
-    param "zone"
-    param "index"
-    param "count"
-    param "look"
-    column class="settings-module" {
-        row class="settings-row settings-module-row" {
-            menu {
-                when "{zone != 'side'}" {
-                    item "Move Left" disabled="{index == 0}" { list.move "dashboard-cards-{zone}" from="{index}" to="{index - 1}" }
-                    item "Move Right" disabled="{index == count - 1}" { list.move "dashboard-cards-{zone}" from="{index}" to="{index + 2}" }
-                    separator
-                }
-                submenu "Move To" {
-                    each target in="{look.zones}" key="{target}" {
-                        when "{target != zone}" {
-                            item "{(var.dashboard-zone-looks | where 'id' target | first).title}" disabled="{(look['width-' + target] ?? 9999) > (target == 'top' ? var.settings-dashboard-free-top : (target == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side))}" {
-                                list.move-to "dashboard-cards-{zone}" "dashboard-cards-{target}" from="{index}" to="{target == 'top' ? (var.dashboard-cards-top | count) : (target == 'bottom' ? (var.dashboard-cards-bottom | count) : (var.dashboard-cards-side | count))}"
-                            }
-                        }
-                    }
-                }
-                submenu "Swap With" {
-                    use "settings-card-swap-items" card="{card}" zone="{zone}" index="{index}" look="{look}" other-zone="top" others="{var.dashboard-cards-top}"
-                    use "settings-card-swap-items" card="{card}" zone="{zone}" index="{index}" look="{look}" other-zone="bottom" others="{var.dashboard-cards-bottom}"
-                    use "settings-card-swap-items" card="{card}" zone="{zone}" index="{index}" look="{look}" other-zone="side" others="{var.dashboard-cards-side}"
-                }
-                separator
-                item "Remove" { list.remove "dashboard-cards-{zone}" key="{card.id}" }
-            }
-            icon "{look.symbol ?? 'questionmark.square.dashed'}" class="settings-row-glyph"
-            column class="settings-row-text" {
-                text "{look.title ?? card.kind}" class="settings-row-title"
-                text "{look.summary ?? ''}" class="settings-row-detail" lines=0
-            }
-            spacer
-            button class="settings-icon-button" tooltip="Options" checked="{var.settings-dashboard-expanded == card.id}" {
-                on-click { set "settings-dashboard-expanded" "{var.settings-dashboard-expanded == card.id ? '' : card.id}" }
-                icon "{var.settings-dashboard-expanded == card.id ? 'chevron.down' : 'chevron.right'}" class="settings-disclosure-glyph"
-            }
-            button class="settings-icon-button" tooltip="Remove" label="Remove {look.title ?? card.kind}" {
-                on-click { list.remove "dashboard-cards-{zone}" key="{card.id}" }
-                icon "minus.circle.fill"
-            }
-        }
-        when "{var.settings-dashboard-expanded == card.id}" {
-            use "settings-card-options" card="{card}" zone="{zone}"
-        }
-    }
-}
-
-define "settings-dashboard-zone" {
-    param "zone"
-    param "cards"
-    column class="settings-group" {
-        text "{(var.dashboard-zone-looks | where 'id' zone | first).title}" class="settings-group-title"
-        when "{(cards | count) == 0}" {
-            text "{(var.dashboard-zone-looks | where 'id' zone | first).empty}" class="settings-row-detail"
-        }
-        reorderable axis="vertical" enabled=#true {
-            on-reorder { list.move "dashboard-cards-{zone}" from="{event.from}" to="{event.to}" }
-            each card in="{cards}" key="{card.id}" index="i" {
-                use "settings-dashboard-card" card="{card}" zone="{zone}" index="{i}" count="{cards | count}" look="{var.dashboard-card-kinds | where 'kind' card.kind | first}"
-            }
-        }
-    }
-}
+var settings-dashboard-rename ""
 
 define "settings-page-dashboard" {
     column class="settings-group" {
-        text "Tabs" class="settings-group-title"
-        text "The order here is the order in the Dashboard, left to right. The last visible tab stays." class="settings-row-detail" lines=0
+        text "Pages" class="settings-group-title"
+        text "The order here is the order in the Dashboard, left to right. Widgets are placed in Edit Interface." class="settings-row-detail" lines=0
         reorderable axis="vertical" enabled=#true {
-            on-reorder { list.move "dashboard-tabs" from="{event.from}" to="{event.to}" }
-            each tab in="{var.dashboard-tabs}" key="{tab.id}" index="i" {
+            on-reorder { list.move "dashboard-pages" from="{event.from}" to="{event.to}" }
+            each page in="{var.dashboard-pages}" key="{page.id}" index="i" {
                 row class="settings-row settings-module-row" {
                     menu {
-                        item "Move Left" disabled="{i == 0}" { list.move "dashboard-tabs" from="{i}" to="{i - 1}" }
-                        item "Move Right" disabled="{i == (var.dashboard-tabs | count) - 1}" { list.move "dashboard-tabs" from="{i}" to="{i + 2}" }
+                        item "Move Left" disabled="{i == 0}" { list.move "dashboard-pages" from="{i}" to="{i - 1}" }
+                        item "Move Right" disabled="{i == (var.dashboard-pages | count) - 1}" { list.move "dashboard-pages" from="{i}" to="{i + 2}" }
+                        separator
+                        item "Delete" disabled="{(var.dashboard-pages | count) <= 1}" {
+                            set "dashboard-widgets" "{var.dashboard-widgets | where-not 'page' page.id}"
+                            list.remove "dashboard-pages" key="{page.id}"
+                        }
                     }
-                    accessibility-action "Move Left" { list.move "dashboard-tabs" from="{i}" to="{i - 1}" }
-                    accessibility-action "Move Right" { list.move "dashboard-tabs" from="{i}" to="{i + 2}" }
-                    icon "{(var.dashboard-tab-looks | where 'id' tab.id | first).symbol}" class="settings-row-glyph"
-                    text "{(var.dashboard-tab-looks | where 'id' tab.id | first).title ?? tab.id}" class="settings-row-title"
+                    accessibility-action "Move Left" { list.move "dashboard-pages" from="{i}" to="{i - 1}" }
+                    accessibility-action "Move Right" { list.move "dashboard-pages" from="{i}" to="{i + 2}" }
+                    icon "{page.symbol}" class="settings-row-glyph"
+                    column class="settings-row-text" {
+                        text "{page.name}" class="settings-row-title"
+                        text "{(var.dashboard-widgets | where 'page' page.id | count) == 1 ? '1 widget' : (var.dashboard-widgets | where 'page' page.id | count) + ' widgets'}" class="settings-row-detail"
+                    }
                     spacer
-                    toggle checked="{tab.visible}" disabled="{tab.visible && (var.dashboard-tabs | where 'visible' true | count) <= 1}" class="settings-switch" label="Show {(var.dashboard-tab-looks | where 'id' tab.id | first).title}" {
-                        on-change { list.update "dashboard-tabs" at="{i}" { - visible="{event.value}" } }
+                    button class="settings-icon-button" tooltip="Delete" disabled="{(var.dashboard-pages | count) <= 1}" {
+                        on-click {
+                            set "dashboard-widgets" "{var.dashboard-widgets | where-not 'page' page.id}"
+                            list.remove "dashboard-pages" key="{page.id}"
+                        }
+                        icon "minus.circle.fill"
                     }
                 }
             }
         }
+        row class="settings-actions" {
+            button class="settings-button" {
+                on-click {
+                    list.insert "dashboard-pages" { - id="page-{clock.now | date 'yyyyMMddHHmmssSSS'}" name="Page {(var.dashboard-pages | count) + 1}" symbol="square.grid.2x2" }
+                }
+                row class="button-content" {
+                    icon "plus"
+                    text "New Page"
+                }
+            }
+            button class="settings-button" disabled="{(var.dashboard-pages | where 'id' 'dashboard' | count) > 0 && (var.dashboard-pages | where 'id' 'media' | count) > 0 && (var.dashboard-pages | where 'id' 'performance' | count) > 0 && (var.dashboard-pages | where 'id' 'weather' | count) > 0}" {
+                on-click {
+                    when "{(var.dashboard-pages | where 'id' 'dashboard' | count) == 0}" {
+                        set "dashboard-pages" "{var.dashboard-pages | concat (var.dashboard-default-pages | where 'id' 'dashboard')}"
+                        set "dashboard-widgets" "{(var.dashboard-widgets | where-not 'page' 'dashboard' | concat (var.dashboard-default-widgets | where 'page' 'dashboard'))}"
+                    }
+                    when "{(var.dashboard-pages | where 'id' 'media' | count) == 0}" {
+                        set "dashboard-pages" "{var.dashboard-pages | concat (var.dashboard-default-pages | where 'id' 'media')}"
+                        set "dashboard-widgets" "{(var.dashboard-widgets | where-not 'page' 'media' | concat (var.dashboard-default-widgets | where 'page' 'media'))}"
+                    }
+                    when "{(var.dashboard-pages | where 'id' 'performance' | count) == 0}" {
+                        set "dashboard-pages" "{var.dashboard-pages | concat (var.dashboard-default-pages | where 'id' 'performance')}"
+                        set "dashboard-widgets" "{(var.dashboard-widgets | where-not 'page' 'performance' | concat (var.dashboard-default-widgets | where 'page' 'performance'))}"
+                    }
+                    when "{(var.dashboard-pages | where 'id' 'weather' | count) == 0}" {
+                        set "dashboard-pages" "{var.dashboard-pages | concat (var.dashboard-default-pages | where 'id' 'weather')}"
+                        set "dashboard-widgets" "{(var.dashboard-widgets | where-not 'page' 'weather' | concat (var.dashboard-default-widgets | where 'page' 'weather'))}"
+                    }
+                }
+                text "Restore Default Pages"
+            }
+            spacer
+            button class="settings-button" {
+                on-click { close "settings"; use "edit-begin" }
+                text "Edit Interface…"
+            }
+        }
     }
-    use "settings-dashboard-zone" zone="top" cards="{var.dashboard-cards-top}"
-    use "settings-dashboard-zone" zone="bottom" cards="{var.dashboard-cards-bottom}"
-    use "settings-dashboard-zone" zone="side" cards="{var.dashboard-cards-side}"
-    row class="settings-actions" {
-        button class="settings-button" checked="{var.settings-dashboard-gallery}" {
-            on-click { toggle-var "settings-dashboard-gallery" }
-            row class="button-content" {
-                icon "plus"
-                text "Add…"
+    column class="settings-group" {
+        text "Size" class="settings-group-title"
+        row class="settings-row" {
+            column class="settings-row-text" {
+                text "Dashboard Size" class="settings-row-title"
+                text "Grows with the screen; this factor comes on top." class="settings-row-detail"
             }
-        }
-        spacer
-        button class="settings-button" menu-on="click" {
-            menu side="below" {
-                each preset in="{var.dashboard-presets}" key="{preset.id}" {
-                    item "{preset.title}" { set "settings-dashboard-confirm" "{preset.id}"; open "settings-confirm" }
-                }
+            spacer
+            slider value="{var.dashboard-scale}" min=0.7 max=1.5 step=0.05 class="settings-slider" label="Dashboard Size" {
+                on-change { set "dashboard-scale" "{event.value}" }
             }
-            text "Load Preset…"
-        }
-        button class="settings-button" disabled="{var.dashboard-tabs == var.dashboard-caelestia.tabs && var.dashboard-cards-top == var.dashboard-caelestia.top && var.dashboard-cards-bottom == var.dashboard-caelestia.bottom && var.dashboard-cards-side == var.dashboard-caelestia.side}" {
-            on-click { set "settings-dashboard-confirm" "reset"; open "settings-confirm" }
-            text "Reset"
-        }
-    }
-    when "{var.settings-dashboard-gallery}" {
-        column class="settings-group" {
-            text "Add Card" class="settings-group-title"
-            text "It goes to its spot as in Caelestia or, if that's full, to the next one with room." class="settings-row-detail" lines=0
-            grid columns=3 class="settings-gallery" {
-                each kind in="{var.dashboard-card-kinds}" key="{kind.kind}" {
-                    use "settings-dashboard-gallery-tile" kind="{kind}" present="{(var.dashboard-cards-top | where 'kind' kind.kind | count) + (var.dashboard-cards-bottom | where 'kind' kind.kind | count) + (var.dashboard-cards-side | where 'kind' kind.kind | count) > 0}" zone="{(var.dashboard-cards-top | where 'kind' kind.kind | count) + (var.dashboard-cards-bottom | where 'kind' kind.kind | count) + (var.dashboard-cards-side | where 'kind' kind.kind | count) > 0 ? null : (((kind['width-' + (kind.zones | at 0)] ?? 9999) <= ((kind.zones | at 0) == 'top' ? var.settings-dashboard-free-top : ((kind.zones | at 0) == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side))) ? (kind.zones | at 0) : (((kind['width-' + (kind.zones | at 1)] ?? 9999) <= ((kind.zones | at 1) == 'top' ? var.settings-dashboard-free-top : ((kind.zones | at 1) == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side))) ? (kind.zones | at 1) : (((kind['width-' + (kind.zones | at 2)] ?? 9999) <= ((kind.zones | at 2) == 'top' ? var.settings-dashboard-free-top : ((kind.zones | at 2) == 'bottom' ? var.settings-dashboard-free-bottom : var.settings-dashboard-free-side))) ? (kind.zones | at 2) : null)))}"
-                }
-            }
-            row class="settings-actions" {
-                spacer
-                button class="settings-button" {
-                    on-click { set "settings-dashboard-gallery" #false }
-                    text "Cancel"
-                }
-            }
+            text "{var.dashboard-scale * 100 | round}%" class="settings-row-detail"
         }
     }
     column class="settings-group" {
@@ -330,53 +143,6 @@ define "settings-page-dashboard" {
         stack class="settings-preview-frame settings-dashboard-frame" {
             column class="dashboard" {
                 use "dashboard-overview"
-            }
-        }
-    }
-}
-
-define "settings-dashboard-gallery-tile" {
-    param "kind"
-    param "present"
-    param "zone"
-    button class="settings-gallery-tile" disabled="{present || zone == null}" tooltip="{present ? 'Every card exists once' : (zone == null ? 'No spot has room for it - remove another card first' : 'Add ' + kind.title)}" {
-        on-click {
-            list.insert "dashboard-cards-{zone}" { - "{kind.card}" }
-            set "settings-dashboard-gallery" #false
-        }
-        column class="settings-gallery-content" {
-            icon "{kind.symbol}" class="settings-gallery-glyph"
-            text "{kind.title}" class="settings-row-title"
-            text "{kind.summary}" class="settings-row-detail" lines=0
-            when "{present}" { text "Already Added" class="settings-badge" }
-            else {
-                when "{zone == null}" { text "No Room Left" class="settings-badge" }
-            }
-        }
-    }
-}
-
-define "settings-confirm-dashboard" {
-    column class="settings-confirm" {
-        text "{var.settings-dashboard-confirm == 'reset' ? 'Reset the Dashboard?' : 'Load preset “' + (var.dashboard-presets | where 'id' var.settings-dashboard-confirm | first).title + '”?'}" class="settings-row-title"
-        text "{var.settings-dashboard-confirm == 'reset' ? 'Tabs and cards like they were at the start again (Caelestia preset).' : (var.dashboard-presets | where 'id' var.settings-dashboard-confirm | first).summary} The weather location stays." class="settings-row-detail" lines=0
-        row class="settings-actions" {
-            spacer
-            button class="settings-button" {
-                on-click { close "settings-confirm" }
-                text "Cancel"
-            }
-            button class="settings-button settings-default-button" {
-                on-click {
-                    switch "{var.settings-dashboard-confirm}" {
-                        case "compact" { set "dashboard-tabs" "{var.dashboard-compact.tabs}"; set "dashboard-cards-top" "{var.dashboard-compact.top}"; set "dashboard-cards-bottom" "{var.dashboard-compact.bottom}"; set "dashboard-cards-side" "{var.dashboard-compact.side}" }
-                        case "calendar-weather" { set "dashboard-tabs" "{var.dashboard-calendar-weather.tabs}"; set "dashboard-cards-top" "{var.dashboard-calendar-weather.top}"; set "dashboard-cards-bottom" "{var.dashboard-calendar-weather.bottom}"; set "dashboard-cards-side" "{var.dashboard-calendar-weather.side}" }
-                        default { set "dashboard-tabs" "{var.dashboard-caelestia.tabs}"; set "dashboard-cards-top" "{var.dashboard-caelestia.top}"; set "dashboard-cards-bottom" "{var.dashboard-caelestia.bottom}"; set "dashboard-cards-side" "{var.dashboard-caelestia.side}" }
-                    }
-                    close "settings-confirm"
-                    set "settings-dashboard-expanded" ""
-                }
-                text "{var.settings-dashboard-confirm == 'reset' ? 'Reset' : 'Load'}"
             }
         }
     }

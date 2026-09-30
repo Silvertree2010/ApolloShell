@@ -22,6 +22,7 @@ final class RenderContext {
     var keyName: @MainActor (UInt32) -> String? = KeyboardLayout.keyName
     var gates: [GateKey: EventGate] = [:]
     var reorders: [String: ReorderCoordinator] = [:]
+    var canvases: [String: CanvasCoordinator] = [:]
     var menuSources: [String: any MenuSourceProviding] = [:]
     var menuOverflow: [Identity: [Value]] = [:]
     var pending: [Int: Task<Void, Never>] = [:]
@@ -90,6 +91,7 @@ enum ElementRenderers {
         "app-menus": MenuBarRenderers.appMenus,
         "stack": LayoutRenderers.stack,
         "reorderable": LayoutRenderers.reorderable,
+        "canvas": { element, style, scope in AnyView(CanvasElement(element: element, style: style, scope: scope)) },
         "toggle": InputRenderers.toggle,
         "slider": InputRenderers.slider,
         "input": InputRenderers.input,
@@ -127,6 +129,7 @@ struct ElementView: View {
     let scope: RenderScope
     var position: ChildPosition?
     var reorderEntry: ReorderEntry?
+    var canvasEntry: CanvasEntry?
 
     var body: some View {
         let styles = scope.context.styles
@@ -142,7 +145,7 @@ struct ElementView: View {
             let fixed = StyleResolver.staticSubject(for: element)
             let spacer = element.kind == "spacer" && element.property("size") == .null
             let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
-            let mouse = MouseConfig(element, reorder: reorderEntry)
+            let mouse = MouseConfig(element, reorder: reorderEntry, canvas: canvasEntry)
             let hover = element.kind == "button" || SelfState.uses(element, "hover") || styles.stateStyled(.hover, fixed)
             let press = SelfState.uses(element, "pressed") || styles.stateStyled(.active, fixed)
             let filters = inlineStyle || styles.declares("filter", fixed)
@@ -152,7 +155,7 @@ struct ElementView: View {
                                       alignment: element.kind == "text" ? TextStyle(style).frameAlignment : .center, parts: parts))
                 .modifier(HitRegionMarker(active: !mouse.isEmpty || StyleValues.visibleBackground(style), identity: element.identity))
                 .modifier(InteractionIfNeeded(element: element, context: scope.context, config: mouse, hover: hover, press: press,
-                                              needed: Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil, stateStyled: hover || press)))
+                                              needed: Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil || canvasEntry != nil || mouse.dragValue, stateStyled: hover || press)))
                 .gated(motion) { $0.modifier(Motion(element: element, style: style, context: scope.context, dynamicInline: animated)) }
                 .gated(parts.pointer) { $0.transformEnvironment(\.elementInteractive) { if StyleValues.keyword(style["pointer-events"]) == "none" { $0 = false } } }
                 .gated(RevealID.id(element) != nil || element.ir.properties["id"] != nil) { $0.modifier(RevealID(element: element)) }
@@ -228,7 +231,7 @@ extension ElementView {
         switch parentKind {
         case "row": horizontal = true
         case "column": horizontal = false
-        case "grid":
+        case "grid", "canvas":
             let own = Definite(style)
             return Definite(width: !own.width, height: !own.height)
         default: return Definite()

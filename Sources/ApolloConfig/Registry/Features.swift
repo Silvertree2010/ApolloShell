@@ -16,6 +16,11 @@ enum Features {
         FeatureSchema(name: "system-extras", since: "0.2.1"),
         FeatureSchema(name: "calc", since: "0.2.1"),
         FeatureSchema(name: "wallpaper", since: "0.2.1"),
+        FeatureSchema(name: "canvas-layout", since: "0.2.1"),
+        FeatureSchema(name: "drag-values", since: "0.2.1"),
+        FeatureSchema(name: "time-zones", since: "0.2.1"),
+        FeatureSchema(name: "weather-places", since: "0.2.1"),
+        FeatureSchema(name: "sun-moon", since: "0.2.1"),
     ] + MenuBarRegistry.features
 
     static let reservedProviderNames: Set<String> = [

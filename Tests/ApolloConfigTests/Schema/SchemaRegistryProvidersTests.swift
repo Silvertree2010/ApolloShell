@@ -17,6 +17,7 @@ struct SchemaRegistryProvidersTests {
 
     static let featureNames: Set<String> = [
         "core", "wm", "marketplace", "script-sources", "ipc", "fusion",
+        "canvas-layout", "drag-values", "time-zones", "weather-places", "sun-moon",
         "timer", "clipboard", "recent-files", "drives", "photos", "network-info", "display", "system-extras", "calc", "wallpaper",
         "menu-mirror", "status-items", "notch-area", "runs", "status-item",
     ]
@@ -44,7 +45,7 @@ struct SchemaRegistryProvidersTests {
         let registryNames = Set(BuiltinSchemaRegistry.allFilters.map(\.name))
         let tableNames = Set(FilterTable.builtin.names)
         #expect(registryNames == tableNames)
-        #expect(registryNames.count == 60)
+        #expect(registryNames.count == 66)
     }
 
     @Test("Stellenzahl jedes Filters entspricht seiner FilterArity")

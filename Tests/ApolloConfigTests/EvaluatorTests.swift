@@ -126,6 +126,7 @@ struct EvaluatorTests {
 
     static let messages: [(String, String)] = [
         ("1 + true", "cannot add a number and a bool"),
+        ("[1] + [2]", "cannot add a list and a list"),
         ("'a' * 2", "cannot apply '*' to a string and a number"),
         ("-'a'", "cannot negate a string"),
         ("list[0.5]", "a list index must be a whole number"),

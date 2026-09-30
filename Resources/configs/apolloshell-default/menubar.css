@@ -96,6 +96,11 @@
 .menubar-weather-temperature { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--apollo-weather-temperature-color, -apple-system-label); }
 .menubar-weather-temperature.idle { color: -apple-system-secondary-label; }
 .menubar-cpu-ring { width: 24px; height: 24px; -apollo-stroke-width: 3px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.15); color: -apple-system-control-accent; }
+.menubar-timer-glyph { font-size: 15px; font-weight: 600; }
+.menubar-timer-stack { width: 26px; height: 26px; align-items: center; justify-content: center; }
+.menubar-timer-ring { width: 26px; height: 26px; -apollo-stroke-width: 2.5px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.15); color: -apple-system-secondary-label; }
+.menubar-timer-stack.running .menubar-timer-ring { color: var(--apollo-accent-color, -apple-system-control-accent); }
+.menubar-timer-text { font-size: 8.5px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
 .menubar-cpu-number { font-size: 9px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
 
 .menubar-zone.flexible, .menubar-group.flexible, .menubar-dock, .menubar-app-menus, .menubar-spacer { flex-grow: 1; }

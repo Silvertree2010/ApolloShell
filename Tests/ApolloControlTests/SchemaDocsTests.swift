@@ -56,13 +56,14 @@ struct SchemaDocsTests {
         let folder = Self.root.appendingPathComponent("schema")
         let files = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil).filter { $0.pathExtension == "json" }
         #expect(!files.isEmpty)
-        let current = Dictionary(SchemaText.entries(.builtin).map { ("\($0.kind) \($0.name)", $0) }, uniquingKeysWith: { first, _ in first })
+        let current = Dictionary(grouping: SchemaText.entries(.builtin), by: { "\($0.kind) \($0.name)" })
         for file in files {
             let text = try String(contentsOf: file, encoding: .utf8)
             guard case .list(let entries)? = JSONText.decode(text) else { Issue.record("\(file.lastPathComponent) is not a list"); continue }
             for case .record(let old) in entries where old["stability"] == .string("stable") {
                 guard case .string(let kind)? = old["kind"], case .string(let name)? = old["name"] else { continue }
-                guard let now = current["\(kind) \(name)"] else {
+                let candidates = current["\(kind) \(name)"] ?? []
+                guard let now = candidates.first(where: { .string($0.feature) == old["feature"] }) ?? candidates.first else {
                     Issue.record("\(file.lastPathComponent): \(kind) '\(name)' is gone")
                     continue
                 }

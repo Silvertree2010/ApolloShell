@@ -140,7 +140,7 @@ enum SchemaStage {
             return checkRuntimeUse(node, schema: schema, walk: walk, env: env, state: state)
         }
 
-        if var schema = registry.node(kdl.name), schema.contexts.contains(walk.context) {
+        if var schema = registry.node(kdl.name, in: walk.context), schema.contexts.contains(walk.context) {
             if kdl.name == "source", let first = kdl.arguments.first, case .string(let kind) = first.scalar {
                 if let source = registry.menuSources[kind] {
                     schema.properties += source.properties
@@ -171,7 +171,7 @@ enum SchemaStage {
             return nil
         }
 
-        var candidates = registry.nodes.values.filter { $0.contexts.contains(walk.context) }.map(\.name)
+        var candidates = registry.allNodes.filter { $0.contexts.contains(walk.context) }.map(\.name)
         candidates.append(contentsOf: walk.handlerNames)
         if walk.context == .actions {
             candidates.append(contentsOf: registry.actions.keys)

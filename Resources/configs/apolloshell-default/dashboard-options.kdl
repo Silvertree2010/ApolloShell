@@ -1,0 +1,336 @@
+var dashboard-options #null type="any"
+var dashboard-tz-open #false
+var dashboard-tz-query ""
+var dashboard-app-query ""
+var dashboard-app-open #false
+var dashboard-picked ""
+var dashboard-default-apps {
+    - "com.apple.finder"
+    - "com.apple.Safari"
+    - "com.apple.mail"
+    - "com.apple.Music"
+    - "com.apple.systempreferences"
+}
+var dashboard-option-kinds {
+    - kind="weather"
+    - kind="weather.hero"
+    - kind="weather.hourly"
+    - kind="weather.daily"
+    - kind="sun"
+    - kind="timer"
+    - kind="apps"
+    - kind="photos"
+    - kind="network-info"
+    - kind="clipboard"
+    - kind="user"
+    - kind="clock"
+    - kind="calendar"
+    - kind="resources"
+    - kind="media"
+}
+var dashboard-clock-styles {
+    - v="stacked" t="Stacked"
+    - v="inline" t="In One Row"
+}
+var dashboard-weekdays {
+    - v="monday" t="Monday"
+    - v="sunday" t="Sunday"
+}
+var dashboard-options-open from="{var.shell-editing && var.dashboard-options != null && var.dashboard-options == var.dashboard-selected && var.dashboard-selected-widget != null && ((var.dashboard-option-kinds | where 'kind' var.dashboard-selected-widget.kind | count) > 0)}"
+
+define "opt-set" {
+    param "i"
+    param "f"
+    param "v"
+    set "dashboard-widgets" "{(var.dashboard-widgets | where-not 'id' i) | concat (var.dashboard-widgets | where 'id' i | with-field f v)}"
+}
+
+define "opt-close" {
+    set "dashboard-options" #null
+    set "dashboard-tz-open" #false
+    set "dashboard-app-open" #false
+}
+
+define "widget-seed" {
+    param "i"
+    param "k"
+    switch "{k}" {
+        case "weather" {
+            use "opt-set" i="{i}" f="show-condition" v=#true
+            use "opt-set" i="{i}" f="show-range" v=#true
+        }
+        case "user" {
+            use "opt-set" i="{i}" f="show-system" v=#true
+            use "opt-set" i="{i}" f="show-uptime" v=#true
+        }
+        case "clock" {
+            use "opt-set" i="{i}" f="style" v="stacked"
+            use "opt-set" i="{i}" f="show-date" v=#false
+        }
+        case "calendar" {
+            use "opt-set" i="{i}" f="first-weekday" v="monday"
+            use "opt-set" i="{i}" f="show-week-numbers" v=#false
+        }
+        case "resources" {
+            use "opt-set" i="{i}" f="show-cpu" v=#true
+            use "opt-set" i="{i}" f="show-memory" v=#true
+            use "opt-set" i="{i}" f="show-storage" v=#true
+        }
+        case "media" {
+            use "opt-set" i="{i}" f="show-album" v=#true
+            use "opt-set" i="{i}" f="show-source" v=#true
+        }
+        case "timer" { use "opt-set" i="{i}" f="minutes" v=10 }
+        case "network-info" { use "opt-set" i="{i}" f="public-address" v=#true }
+    }
+}
+
+define "opt-toggle" {
+    param "t"
+    param "f"
+    param "d"
+    param "s"
+    row class="opt-row" {
+        column class="opt-text" {
+            text "{t}" class="opt-title"
+            when "{s != ''}" { text "{s}" class="opt-detail" lines=0 }
+        }
+        spacer
+        toggle checked="{var.dashboard-selected-widget[f] ?? d}" {
+            on-click { use "opt-set" i="{var.dashboard-selected}" f="{f}" v="{!(var.dashboard-selected-widget[f] ?? d)}" }
+        }
+    }
+}
+
+define "opt-choice" {
+    param "t"
+    param "f"
+    param "c"
+    column class="opt-group" {
+        text "{t}" class="opt-title"
+        row class="opt-seg" {
+            each o in="{c}" key="{o.v}" {
+                button class="edit-button opt-seg-button" checked="{(var.dashboard-selected-widget[f] ?? (c | first).v) == o.v}" {
+                    on-click { use "opt-set" i="{var.dashboard-selected}" f="{f}" v="{o.v}" }
+                    text "{o.t}"
+                }
+            }
+        }
+    }
+}
+
+define "opt-places" {
+    column class="opt-group" {
+        text "Place" class="opt-title"
+        button class="opt-pick" checked="{var.dashboard-selected-widget.place-id == null}" {
+            on-click { use "opt-set" i="{var.dashboard-selected}" f="place-id" v=#null }
+            row class="opt-pick-row" {
+                text "Selected Favorite" class="opt-pick-title"
+                icon "checkmark" visible="{var.dashboard-selected-widget.place-id == null}"
+            }
+        }
+        each place in="{var.weather-places}" key="{place.id}" {
+            button class="opt-pick" checked="{var.dashboard-selected-widget.place-id == place.id}" {
+                on-click { use "opt-set" i="{var.dashboard-selected}" f="place-id" v="{place.id}" }
+                row class="opt-pick-row" {
+                    text "{place.name ?? 'Unnamed Place'}" class="opt-pick-title" lines=1
+                    icon "checkmark" visible="{var.dashboard-selected-widget.place-id == place.id}"
+                }
+            }
+        }
+        input bind="var.settings-weather-query" placeholder="Search for a Place" class="opt-input" {
+            on-change debounce="400ms" { weather.search "{event.value}" }
+        }
+        when "{weather.search-status == 'searching'}" { text "Searching…" class="opt-detail" }
+        when "{weather.search-status == 'done' && (weather.search-results | count) == 0}" { text "No places found." class="opt-detail" }
+        each result in="{weather.search-results | take 4}" key="{result.latitude}:{result.longitude}" {
+            button class="opt-pick" {
+                on-click {
+                    when "{(var.weather-places | where 'latitude' result.latitude | where 'longitude' result.longitude | count) == 0}" {
+                        list.insert "weather-places" { - id="{result.latitude}:{result.longitude}" name="{result.name}" region="{result.region}" country="{result.country}" latitude="{result.latitude}" longitude="{result.longitude}" }
+                    }
+                    use "opt-set" i="{var.dashboard-selected}" f="place-id" v="{result.latitude}:{result.longitude}"
+                    weather.clear-search
+                }
+                row class="opt-pick-row" {
+                    text "{result.name}{result.region != null ? ', ' + result.region : ''}" class="opt-pick-title" lines=1
+                    icon "plus.circle.fill"
+                }
+            }
+        }
+    }
+}
+
+define "opt-timezone" {
+    column class="opt-group" {
+        row class="opt-row" {
+            text "Time Zone" class="opt-title"
+            spacer
+            button class="edit-button" checked="{var.dashboard-tz-open}" {
+                on-click { set "dashboard-tz-open" "{!var.dashboard-tz-open}" }
+                text "{var.dashboard-selected-widget.time-zone == null ? 'System' : ((clock.time-zones | where 'id' var.dashboard-selected-widget.time-zone | first).name ?? var.dashboard-selected-widget.time-zone)}"
+            }
+        }
+        when "{var.dashboard-tz-open}" {
+            input bind="var.dashboard-tz-query" placeholder="Search Time Zone" class="opt-input"
+            scroll axis="vertical" class="opt-scroll" {
+                column class="opt-list" {
+                    button class="opt-pick" checked="{var.dashboard-selected-widget.time-zone == null}" {
+                        on-click {
+                            use "opt-set" i="{var.dashboard-selected}" f="time-zone" v=#null
+                            set "dashboard-tz-open" #false
+                        }
+                        row class="opt-pick-row" {
+                            text "System" class="opt-pick-title"
+                            icon "checkmark" visible="{var.dashboard-selected-widget.time-zone == null}"
+                        }
+                    }
+                    each z in="{var.dashboard-tz-query == '' ? clock.time-zones : (clock.time-zones | fuzzy var.dashboard-tz-query 'name')}" key="{z.id}" {
+                        button class="opt-pick" checked="{var.dashboard-selected-widget.time-zone == z.id}" {
+                            on-click {
+                                use "opt-set" i="{var.dashboard-selected}" f="time-zone" v="{z.id}"
+                                set "dashboard-tz-open" #false
+                            }
+                            row class="opt-pick-row" {
+                                text "{z.name}" class="opt-pick-title" lines=1
+                                icon "checkmark" visible="{var.dashboard-selected-widget.time-zone == z.id}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "opt-minutes" {
+    row class="opt-row" {
+        text "Timer Starts At" class="opt-title"
+        spacer
+        button class="edit-button edit-symbol" {
+            on-click { use "opt-set" i="{var.dashboard-selected}" f="minutes" v="{(var.dashboard-selected-widget.minutes ?? 10) - 1 | max 1}" }
+            icon "minus"
+        }
+        text "{var.dashboard-selected-widget.minutes ?? 10} min" class="opt-value"
+        button class="edit-button edit-symbol" {
+            on-click { use "opt-set" i="{var.dashboard-selected}" f="minutes" v="{(var.dashboard-selected-widget.minutes ?? 10) + 1 | min 600}" }
+            icon "plus"
+        }
+    }
+}
+
+define "opt-apps" {
+    column class="opt-group" {
+        text "Apps" class="opt-title"
+        each id in="{var.dashboard-selected-widget.apps ?? var.dashboard-default-apps}" key="{id}" index="n" {
+            row class="opt-row" {
+                text "{((apps.all | where 'bundle-id' id | first).name) ?? id}" class="opt-pick-title" lines=1
+                spacer
+                button class="settings-icon-button" tooltip="Remove" {
+                    on-click { use "opt-set" i="{var.dashboard-selected}" f="apps" v="{((var.dashboard-selected-widget.apps ?? var.dashboard-default-apps) | take n) | concat ((var.dashboard-selected-widget.apps ?? var.dashboard-default-apps) | skip (n + 1))}" }
+                    icon "minus.circle.fill"
+                }
+            }
+        }
+        button class="edit-button" checked="{var.dashboard-app-open}" {
+            on-click { set "dashboard-app-open" "{!var.dashboard-app-open}" }
+            text "Add App…"
+        }
+        when "{var.dashboard-app-open}" {
+            input bind="var.dashboard-app-query" placeholder="Search Apps" class="opt-input"
+            scroll axis="vertical" class="opt-scroll" {
+                column class="opt-list" {
+                    each a in="{(apps.all | app-search var.dashboard-app-query) | take 8}" key="{a.bundle-id}" {
+                        button class="opt-pick" {
+                            on-click {
+                                use "opt-set" i="{var.dashboard-selected}" f="apps" v="{(var.dashboard-selected-widget.apps ?? var.dashboard-default-apps) | concat [a.bundle-id]}"
+                                set "dashboard-app-open" #false
+                            }
+                            text "{a.name}" class="opt-pick-title" lines=1
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "opt-folder" {
+    row class="opt-row" {
+        text "Folder" class="opt-title"
+        spacer
+        button class="edit-button" {
+            on-click {
+                pick-file "dashboard-picked" folders=#true
+                when "{var.dashboard-picked != ''}" { use "opt-set" i="{var.dashboard-selected}" f="folder" v="{var.dashboard-picked}" }
+            }
+            text "{(var.dashboard-selected-widget.folder ?? '~/Pictures') | split '/' | last}"
+        }
+    }
+}
+
+define "opt-body" {
+    param "k"
+    switch "{k}" {
+        case "weather" {
+            use "opt-toggle" t="Condition" f="show-condition" d=#true s="For example “Partly cloudy”"
+            use "opt-toggle" t="High and Low" f="show-range" d=#true s="For today"
+            use "opt-places"
+        }
+        case "weather.hero" { use "opt-places" }
+        case "weather.hourly" { use "opt-places" }
+        case "weather.daily" { use "opt-places" }
+        case "sun" { use "opt-places" }
+        case "timer" { use "opt-minutes" }
+        case "apps" { use "opt-apps" }
+        case "photos" { use "opt-folder" }
+        case "network-info" { use "opt-toggle" t="Public Address" f="public-address" d=#true s="Asked from api.ipify.org when the dashboard opens" }
+        case "clipboard" {
+            row class="opt-row" {
+                text "History" class="opt-title"
+                spacer
+                button class="edit-button" {
+                    on-click { clipboard.clear }
+                    text "Clear"
+                }
+            }
+        }
+        case "user" {
+            use "opt-toggle" t="macOS Version" f="show-system" d=#true s=""
+            use "opt-toggle" t="Uptime" f="show-uptime" d=#true s="How long the Mac has been running since starting up"
+        }
+        case "clock" {
+            use "opt-choice" t="Style" f="style" c="{var.dashboard-clock-styles}"
+            use "opt-toggle" t="Date" f="show-date" d=#false s="Weekday and day below the time"
+            use "opt-timezone"
+        }
+        case "calendar" {
+            use "opt-choice" t="Week Starts On" f="first-weekday" c="{var.dashboard-weekdays}"
+            use "opt-toggle" t="Week Numbers" f="show-week-numbers" d=#false s="To the left of each row"
+        }
+        case "resources" {
+            use "opt-toggle" t="CPU" f="show-cpu" d=#true s=""
+            use "opt-toggle" t="Memory" f="show-memory" d=#true s=""
+            use "opt-toggle" t="Storage" f="show-storage" d=#true s="Space used on the startup volume"
+        }
+        case "media" {
+            use "opt-toggle" t="Album" f="show-album" d=#true s="Not shown in the small card"
+            use "opt-toggle" t="Source" f="show-source" d=#true s="Which app is playing"
+        }
+    }
+}
+
+define "opt-panel" {
+    column class="opt-panel" {
+        use "opt-body" k="{var.dashboard-selected-widget.kind}"
+    }
+}
+
+define "dashboard-options-flyout" {
+    flyout id="widget-options-right" anchor="bi-{var.dashboard-selected}" side="right" open="{var.dashboard-options-open && (var.dashboard-selected-widget.x ?? 0) <= 420}" {
+        use "opt-panel"
+    }
+    flyout id="widget-options-left" anchor="bi-{var.dashboard-selected}" side="left" open="{var.dashboard-options-open && (var.dashboard-selected-widget.x ?? 0) > 420}" {
+        use "opt-panel"
+    }
+}

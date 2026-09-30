@@ -6,6 +6,7 @@ enum BuiltinFilters {
         + ListSearchFilters.all
         + OtherFilters.all
         + DomainFilters.all
+        + CanvasFilters.all
         + RunFilters.all
 
     static var entries: [String: FilterTable.Entry] {

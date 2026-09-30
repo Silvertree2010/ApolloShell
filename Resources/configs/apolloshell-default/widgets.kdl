@@ -1,0 +1,517 @@
+style "widgets.css"
+include "widgets-media.kdl"
+include "widgets-perf.kdl"
+include "widgets-weather.kdl"
+include "widgets-extra.kdl"
+
+var widget-kinds {
+    - kind="weather" title="Weather" symbol="cloud.sun.fill" displays="standard minimal" {
+        sizes {
+            - min-width=275 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+            - min-width=200 max-width=839 height=392
+        }
+    }
+    - kind="user" title="User" symbol="person.crop.circle.fill" displays="standard minimal" {
+        sizes {
+            - min-width=230 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+            - min-width=200 max-width=839 height=392
+        }
+    }
+    - kind="clock" title="Clock" symbol="clock.fill" displays="standard analog" {
+        sizes {
+            - min-width=110 max-width=839 height=130
+            - min-width=110 max-width=839 height=250
+            - min-width=110 max-width=839 height=392
+        }
+    }
+    - kind="calendar" title="Calendar" symbol="calendar" displays="standard today" {
+        sizes {
+            - min-width=300 max-width=839 height=250
+            - min-width=300 max-width=839 height=392
+        }
+    }
+    - kind="resources" title="Resources" symbol="gauge.with.dots.needle.33percent" displays="standard bars" {
+        sizes {
+            - min-width=230 max-width=839 height=130
+            - min-width=90 max-width=839 height=250
+            - min-width=90 max-width=839 height=392
+        }
+    }
+    - kind="media" title="Media" symbol="music.note" displays="standard cover" {
+        sizes {
+            - min-width=300 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+            - min-width=200 max-width=839 height=392
+        }
+    }
+    - kind="performance.cpu" title="CPU" symbol="cpu" displays="standard graph gauge" {
+        sizes {
+            - min-width=220 max-width=839 height=130
+            - min-width=343 max-width=839 height=191
+            - min-width=250 max-width=839 height=250
+            - min-width=250 max-width=839 height=392
+        }
+    }
+    - kind="performance.gpu" title="GPU" symbol="square.stack.3d.up" displays="standard graph gauge" {
+        sizes {
+            - min-width=220 max-width=839 height=130
+            - min-width=343 max-width=839 height=191
+            - min-width=250 max-width=839 height=250
+            - min-width=250 max-width=839 height=392
+        }
+    }
+    - kind="performance.storage" title="Storage" symbol="internaldrive" displays="standard bar" {
+        sizes {
+            - min-width=200 max-width=839 height=130
+            - min-width=169.5 max-width=420 height=189
+            - min-width=169.5 max-width=420 height=250
+            - min-width=169.5 max-width=420 height=392
+        }
+    }
+    - kind="performance.network" title="Network" symbol="network" displays="standard numbers" {
+        sizes {
+            - min-width=230 max-width=839 height=130
+            - min-width=335 max-width=839 height=189
+            - min-width=300 max-width=839 height=250
+            - min-width=300 max-width=839 height=392
+        }
+    }
+    - kind="performance.memory" title="Memory" symbol="memorychip" displays="standard bar" {
+        sizes {
+            - min-width=200 max-width=839 height=130
+            - min-width=169.5 max-width=420 height=189
+            - min-width=169.5 max-width=420 height=250
+            - min-width=169.5 max-width=420 height=392
+        }
+    }
+    - kind="performance.battery" title="Battery" symbol="battery.75percent" displays="standard ring" {
+        sizes {
+            - min-width=129 max-width=420 height=130
+            - min-width=129 max-width=420 height=250
+            - min-width=129 max-width=420 height=392
+        }
+    }
+    - kind="weather.hero" title="Weather overview" symbol="cloud.sun" displays="standard minimal" {
+        sizes {
+            - min-width=500 max-width=839 height=116
+            - min-width=275 max-width=839 height=250
+            - min-width=275 max-width=839 height=392
+        }
+    }
+    - kind="weather.hourly" title="Hourly" symbol="clock" displays="standard graph" {
+        sizes {
+            - min-width=300 max-width=839 height=108
+            - min-width=300 max-width=839 height=250
+        }
+    }
+    - kind="weather.daily" title="Next days" symbol="calendar" displays="standard list" {
+        sizes {
+            - min-width=300 max-width=839 height=144
+            - min-width=275 max-width=839 height=250
+            - min-width=200 max-width=839 height=392
+        }
+    }
+    - kind="media.player" title="Play" symbol="play.rectangle" displays="standard cover" {
+        sizes {
+            - min-width=413 max-width=839 height=250
+            - min-width=413 max-width=839 height=392
+        }
+    }
+    - kind="timer" title="Timer" symbol="timer" displays="standard stopwatch pomodoro" {
+        sizes {
+            - min-width=130 max-width=839 height=130
+            - min-width=180 max-width=839 height=250
+            - min-width=180 max-width=839 height=392
+        }
+    }
+    - kind="apps" title="Apps" symbol="square.grid.3x3.fill" displays="standard list" {
+        sizes {
+            - min-width=200 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+            - min-width=200 max-width=839 height=392
+        }
+    }
+    - kind="photos" title="Photos" symbol="photo.on.rectangle" displays="standard" {
+        sizes {
+            - min-width=130 max-width=839 height=130
+            - min-width=180 max-width=839 height=250
+            - min-width=180 max-width=839 height=392
+        }
+    }
+    - kind="network.info" title="Connection" symbol="wifi" displays="standard minimal" {
+        sizes {
+            - min-width=230 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+        }
+    }
+    - kind="files.recent" title="Recent Files" symbol="doc.on.doc" displays="standard grid" {
+        sizes {
+            - min-width=260 max-width=839 height=130
+            - min-width=230 max-width=839 height=250
+            - min-width=230 max-width=839 height=392
+        }
+    }
+    - kind="clipboard" title="Clipboard" symbol="list.clipboard" displays="standard" {
+        sizes {
+            - min-width=260 max-width=839 height=130
+            - min-width=230 max-width=839 height=250
+            - min-width=230 max-width=839 height=392
+        }
+    }
+    - kind="sun" title="Sun and Moon" symbol="sun.horizon" displays="standard minimal" {
+        sizes {
+            - min-width=230 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+        }
+    }
+    - kind="drives" title="Drives" symbol="externaldrive" displays="standard" {
+        sizes {
+            - min-width=200 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+            - min-width=200 max-width=839 height=392
+        }
+    }
+}
+
+var dashboard-default-pages {
+    - id="dashboard" name="Dashboard" symbol="square.grid.2x2" icon="bar-dashboard" template="dashboard"
+    - id="media" name="Media" symbol="music.note.list" icon="panel-media" template="media"
+    - id="performance" name="Performance" symbol="gauge.with.dots.needle.67percent" icon="panel-performance" template="performance"
+    - id="weather" name="Weather" symbol="cloud.sun" icon="panel-weather" template="weather"
+}
+
+var dashboard-default-overview {
+    - id="dashboard-weather" page="dashboard" kind="weather" x=0 y=0 width=275 height=130 display="standard" show-condition=#true show-range=#true
+    - id="dashboard-user" page="dashboard" kind="user" x=287 y=0 width=340 height=130 display="standard" show-system=#true show-uptime=#true
+    - id="dashboard-clock" page="dashboard" kind="clock" x=0 y=142 width=110 height=250 display="standard" style="stacked" show-date=#false time-zone=#null
+    - id="dashboard-calendar" page="dashboard" kind="calendar" x=122 y=142 width=403 height=250 display="standard" first-weekday="monday" show-week-numbers=#false
+    - id="dashboard-resources" page="dashboard" kind="resources" x=537 y=142 width=90 height=250 display="standard" show-cpu=#true show-memory=#true show-storage=#true
+    - id="dashboard-media" page="dashboard" kind="media" x=639 y=0 width=200 height=392 display="standard" show-album=#true show-source=#true
+    - id="media-player" page="media" kind="media.player" x=0 y=0 width=839 height=392 display="standard"
+    - id="weather-hero" page="weather" kind="weather.hero" x=0 y=0 width=839 height=116 display="standard"
+    - id="weather-hourly" page="weather" kind="weather.hourly" x=0 y=128 width=839 height=108 display="standard"
+    - id="weather-daily" page="weather" kind="weather.daily" x=0 y=248 width=839 height=144 display="standard"
+}
+
+var dashboard-default-performance-battery {
+    - id="performance-cpu" page="performance" kind="performance.cpu" x=0 y=0 width=343 height=191 display="standard"
+    - id="performance-gpu" page="performance" kind="performance.gpu" x=355 y=0 width=343 height=191 display="standard"
+    - id="performance-storage" page="performance" kind="performance.storage" x=0 y=203 width=169.5 height=189 display="standard"
+    - id="performance-network" page="performance" kind="performance.network" x=181.5 y=203 width=335 height=189 display="standard"
+    - id="performance-memory" page="performance" kind="performance.memory" x=528.5 y=203 width=169.5 height=189 display="standard"
+    - id="performance-battery" page="performance" kind="performance.battery" x=710 y=0 width=129 height=392 display="standard"
+}
+
+var dashboard-default-performance-plain {
+    - id="performance-cpu" page="performance" kind="performance.cpu" x=0 y=0 width=413.5 height=191 display="standard"
+    - id="performance-gpu" page="performance" kind="performance.gpu" x=425.5 y=0 width=413.5 height=191 display="standard"
+    - id="performance-storage" page="performance" kind="performance.storage" x=0 y=203 width=240 height=189 display="standard"
+    - id="performance-network" page="performance" kind="performance.network" x=252 y=203 width=335 height=189 display="standard"
+    - id="performance-memory" page="performance" kind="performance.memory" x=599 y=203 width=240 height=189 display="standard"
+}
+
+var dashboard-default-widgets from="{var.dashboard-default-overview | concat (battery.present == true ? var.dashboard-default-performance-battery : var.dashboard-default-performance-plain)}"
+
+define "widget" {
+    param "w"
+    switch "{w.kind}" {
+        case "weather" { use "widget-weather" w="{w}" }
+        case "user" { use "widget-user" w="{w}" }
+        case "clock" { use "widget-clock" w="{w}" }
+        case "calendar" { use "widget-calendar" w="{w}" }
+        case "resources" { use "widget-resources" w="{w}" }
+        case "media" { use "widget-media" w="{w}" }
+        case "media.player" { use "widget-media-player" w="{w}" }
+        case "performance.cpu" { use "widget-cpu" w="{w}" }
+        case "performance.gpu" { use "widget-gpu" w="{w}" }
+        case "performance.storage" { use "widget-storage" w="{w}" }
+        case "performance.network" { use "widget-network" w="{w}" }
+        case "performance.memory" { use "widget-memory" w="{w}" }
+        case "performance.battery" { use "widget-battery" w="{w}" }
+        case "weather.hero" { use "widget-weather-hero" w="{w}" }
+        case "weather.hourly" { use "widget-weather-hourly" w="{w}" }
+        case "weather.daily" { use "widget-weather-daily" w="{w}" }
+        case "timer" { use "widget-timer" w="{w}" }
+        case "apps" { use "widget-apps" w="{w}" }
+        case "photos" { use "widget-photos" w="{w}" }
+        case "network.info" { use "widget-network-info" w="{w}" }
+        case "files.recent" { use "widget-files-recent" w="{w}" }
+        case "clipboard" { use "widget-clipboard" w="{w}" }
+        case "sun" { use "widget-sun" w="{w}" }
+        case "drives" { use "widget-drives" w="{w}" }
+        default { column class="card widget-unknown" { text "{w.kind}" class="card-hint" } }
+    }
+}
+
+var dial-ticks {
+    - deg=0 major=#true
+    - deg=30 major=#false
+    - deg=60 major=#false
+    - deg=90 major=#true
+    - deg=120 major=#false
+    - deg=150 major=#false
+    - deg=180 major=#true
+    - deg=210 major=#false
+    - deg=240 major=#false
+    - deg=270 major=#true
+    - deg=300 major=#false
+    - deg=330 major=#false
+}
+
+define "widget-date" {
+    param "w"
+    column class="wg-date" {
+        text "{clock.now | date 'EEEE' w.time-zone}" class="wg-date-day" lines=1
+        text "{clock.now | date 'd MMM' w.time-zone}" class="wg-date-month" lines=1
+    }
+}
+
+define "widget-clock" {
+    param "w"
+    switch "{w.display}" {
+        case "analog" {
+            column class="card wg-clock" {
+                use "widget-dial" w="{w}" d="{(w.width - 24) | min (w.height - 24 - (w.show-date ? 34 : 0)) | max 40}"
+                when "{w.show-date}" { use "widget-date" w="{w}" }
+            }
+        }
+        default {
+            column class="card wg-clock" {
+                switch "{w.style}" {
+                    case "inline" { text "{clock.now | date 'jj:mm' w.time-zone}" class="wg-clock-digits" style="font-size: {30 * ((w.width / 110) | min (w.height / 130) | min 2.4 | max 1)}px" lines=1 }
+                    default {
+                        column class="wg-clock-stack" style="gap: {6 * ((w.width / 110) | min (w.height / 130) | min 2.4 | max 1)}px" {
+                            text "{clock.now | date 'jj' w.time-zone}" class="wg-clock-digits" style="font-size: {30 * ((w.width / 110) | min (w.height / 130) | min 2.4 | max 1)}px"
+                            text "•••" class="wg-clock-dots" style="font-size: {14 * ((w.width / 110) | min (w.height / 130) | min 2.4 | max 1)}px"
+                            text "{clock.now | date 'mm' w.time-zone}" class="wg-clock-digits" style="font-size: {30 * ((w.width / 110) | min (w.height / 130) | min 2.4 | max 1)}px"
+                        }
+                    }
+                }
+                when "{w.show-date}" { use "widget-date" w="{w}" }
+            }
+        }
+    }
+}
+
+define "widget-dial" {
+    param "w"
+    param "d"
+    stack class="wg-dial" style="width: {d}px; height: {d}px" {
+        shape "circle" class="wg-dial-face" style="width: {d}px; height: {d}px"
+        each t in="{var.dial-ticks}" key="{t.deg}" {
+            column class="wg-hand" style="width: {d}px; height: {d}px; padding-top: {d * 0.055}px; transform: rotate({t.deg}deg)" {
+                shape "capsule" class="wg-tick {t.major ? 'major' : ''}" style="width: {d * (t.major ? 0.025 : 0.018)}px; height: {d * 0.07}px"
+            }
+        }
+        column class="wg-hand" style="width: {d}px; height: {d}px; padding-top: {d * 0.23}px; transform: rotate({((clock.now | date 'H' w.time-zone | number) % 12 + (clock.now | date 'm' w.time-zone | number) / 60) * 30}deg)" {
+            shape "capsule" class="wg-hand-hour" style="width: {d * 0.045}px; height: {d * 0.27}px"
+        }
+        column class="wg-hand" style="width: {d}px; height: {d}px; padding-top: {d * 0.12}px; transform: rotate({(clock.now | date 'm' w.time-zone | number) * 6}deg)" {
+            shape "capsule" class="wg-hand-minute" style="width: {d * 0.03}px; height: {d * 0.38}px"
+        }
+        shape "circle" class="wg-dial-pin" style="width: {d * 0.07}px; height: {d * 0.07}px"
+    }
+}
+
+define "widget-avatar" {
+    param "d"
+    stack class="wg-avatar" style="width: {d}px; height: {d}px" {
+        shape "circle" class="wg-avatar-disc" style="width: {d}px; height: {d}px"
+        text "{system.full-name | first | upper}" class="wg-avatar-initial" style="font-size: {d * 0.4167}px"
+    }
+}
+
+define "widget-badges" {
+    param "w"
+    when "{w.show-system}" {
+        row class="wg-badge" {
+            icon "apple.logo" class="wg-badge-glyph"
+            text "macOS {system.macos-version}" class="wg-badge-text" lines=1
+        }
+    }
+    when "{w.show-uptime}" {
+        row class="wg-badge" {
+            icon "clock.arrow.circlepath" class="wg-badge-glyph"
+            text "running since {system.uptime | duration 'short'}" class="wg-badge-text" lines=1
+        }
+    }
+}
+
+define "widget-user" {
+    param "w"
+    switch "{w.display}" {
+        case "minimal" {
+            when "{w.height >= 200 && w.width < 300}" {
+                column class="card wg-user-min vertical" {
+                    use "widget-avatar" d="{(w.height - 40) | min (w.width * 0.45) | min 120}"
+                    text "{system.full-name}" class="wg-user-min-name vertical" lines=2 min-scale=0.7
+                }
+            }
+            else {
+                row class="card wg-user-min" {
+                    use "widget-avatar" d="{(w.height - 40) | min (w.width * 0.45) | min 120}"
+                    text "{system.full-name}" class="wg-user-min-name" lines=1 min-scale=0.7
+                }
+            }
+        }
+        default {
+            when "{w.height >= 200 && w.width < 300}" {
+                column class="card wg-user vertical" {
+                    use "widget-avatar" d=64
+                    column class="wg-user-text vertical" {
+                        text "{system.full-name}" class="wg-user-name" lines=1 truncate="tail"
+                        use "widget-badges" w="{w}"
+                    }
+                }
+            }
+            else {
+                row class="card wg-user" {
+                    use "widget-avatar" d=72
+                    column class="wg-user-text" {
+                        text "{system.full-name}" class="wg-user-name" lines=1 truncate="tail"
+                        use "widget-badges" w="{w}"
+                    }
+                    spacer
+                }
+            }
+        }
+    }
+}
+
+define "widget-weather" {
+    param "w"
+    switch "{w.display}" {
+        case "minimal" {
+            switch "{weather.status}" {
+                case "ready" {
+                    when "{w.height >= 200 && w.width < 300}" {
+                        column class="card wg-weather-min vertical" {
+                            icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph" style="font-size: 56px; -apollo-symbol-rendering: multicolor"
+                            text "{weather.current.temperature | temperature}" class="wg-weather-min-temperature" style="font-size: 64px" lines=1 min-scale=0.6
+                        }
+                    }
+                    else {
+                        row class="card wg-weather-min" {
+                            icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph" style="font-size: 44px; -apollo-symbol-rendering: multicolor"
+                            text "{weather.current.temperature | temperature}" class="wg-weather-min-temperature" style="font-size: 52px" lines=1 min-scale=0.6
+                        }
+                    }
+                }
+                default { use "card-weather" card="{w}" zone="top" }
+            }
+        }
+        default { use "card-weather" card="{w}" zone="{w.height >= 200 && w.width < 300 ? 'side' : 'top'}" }
+    }
+}
+
+define "widget-calendar" {
+    param "w"
+    switch "{w.display}" {
+        case "today" {
+            column class="card wg-today {w.height >= 250 ? 'big' : ''}" {
+                text "{clock.now | date 'EEEE'}" class="wg-today-weekday" lines=1
+                text "{clock.now | date 'd'}" class="wg-today-day" style="font-size: {w.height >= 250 ? ((w.height * 0.42) | min 150) : 64}px" lines=1 min-scale=0.5
+                text "{clock.now | date 'MMMM yyyy'}" class="wg-today-month" lines=1
+            }
+        }
+        default {
+            column class="card card-calendar zone-side {w.height > 300 ? 'tall' : ''}" {
+                row class="card-calendar-head" {
+                    button class="card-calendar-arrow" tooltip="Previous Month" {
+                        on-click { set "calendar-offset" "{var.calendar-offset - 1}" }
+                        icon "chevron.left" class="card-calendar-arrow-glyph"
+                    }
+                    spacer
+                    button class="card-calendar-month" {
+                        on-click { set "calendar-offset" 0 }
+                        text "{((clock.now | month-grid var.calendar-offset w.first-weekday) | at 1 | first).date | date 'MMMM yyyy'}" class="card-calendar-title"
+                    }
+                    spacer
+                    button class="card-calendar-arrow" tooltip="Next Month" {
+                        on-click { set "calendar-offset" "{var.calendar-offset + 1}" }
+                        icon "chevron.right" class="card-calendar-arrow-glyph"
+                    }
+                }
+                grid columns="{w.show-week-numbers ? 8 : 7}" class="card-calendar-grid" {
+                    when "{w.show-week-numbers}" { text "Wk" class="card-calendar-week" }
+                    each weekday in="{clock.now | month-grid var.calendar-offset w.first-weekday | first}" key="{weekday.weekday}" {
+                        text "{weekday.date | date 'EEEEEE'}" class="card-calendar-weekday"
+                    }
+                    each week in="{clock.now | month-grid var.calendar-offset w.first-weekday}" key="{(week | first).week}" {
+                        when "{w.show-week-numbers}" { text "{(week | first).week}" class="card-calendar-week" }
+                        each day in="{week}" key="{day.date}" {
+                            column class="card-calendar-cell" {
+                                text "{day.day}" class="card-calendar-day {day.today ? 'today' : ''} {!day.in-month ? 'outside' : ''}"
+                            }
+                        }
+                    }
+                }
+                spacer
+            }
+        }
+    }
+}
+
+define "widget-ring" {
+    param "value"
+    param "symbol"
+    param "icon"
+    param "tip"
+    param "side"
+    stack class="wg-ring" style="width: {side}px; height: {side}px" tooltip="{tip} {value * 100 | round}%" {
+        ring value="{value}" class="card-resource-ring" style="width: {side + 6}px; height: {side + 6}px"
+        icon "{icon}" fallback="{symbol}" class="card-resource-glyph" style="font-size: {side * 0.25}px; width: {side * 0.25 + 2}px; height: {side * 0.25 + 2}px"
+    }
+}
+
+define "widget-rings" {
+    param "w"
+    param "side"
+    when "{w.show-cpu}" { use "widget-ring" value="{perf.cpu}" symbol="cpu" icon="panel-cpu" tip="CPU" side="{side}" }
+    when "{w.show-memory}" { use "widget-ring" value="{perf.memory}" symbol="memorychip" icon="panel-memory" tip="Memory" side="{side}" }
+    when "{w.show-storage}" { use "widget-ring" value="{perf.live.disk}" symbol="internaldrive" icon="panel-disk" tip="Storage" side="{side}" }
+}
+
+define "widget-bar-row" {
+    param "w"
+    param "symbol"
+    param "icon"
+    param "title"
+    param "value"
+    column class="wg-bar-row" {
+        row class="wg-bar-head" {
+            icon "{icon}" fallback="{symbol}" class="wg-bar-glyph"
+            when "{w.width >= 150}" { text "{title}" class="wg-bar-title" lines=1 }
+            spacer
+            text "{value * 100 | round} %" class="wg-bar-percent" lines=1
+        }
+        progress value="{value}" class="wg-bar"
+    }
+}
+
+define "widget-resources" {
+    param "w"
+    switch "{w.display}" {
+        case "bars" {
+            column class="card wg-bars" style="gap: {w.height >= 200 ? 18 : 10}px; padding: 0 {w.width >= 150 ? 16 : 12}px" {
+                when "{w.show-cpu}" { use "widget-bar-row" w="{w}" symbol="cpu" icon="panel-cpu" title="CPU" value="{perf.cpu}" }
+                when "{w.show-memory}" { use "widget-bar-row" w="{w}" symbol="memorychip" icon="panel-memory" title="Memory" value="{perf.memory}" }
+                when "{w.show-storage}" { use "widget-bar-row" w="{w}" symbol="internaldrive" icon="panel-disk" title="Storage" value="{perf.live.disk}" }
+            }
+        }
+        default {
+            when "{w.width > w.height}" {
+                row class="card card-resources" style="gap: 16px" {
+                    use "widget-rings" w="{w}" side="{(w.width >= 200 && w.height >= 200) ? (((w.width - 40 - 16 * ((w.show-cpu ? 1 : 0) + (w.show-memory ? 1 : 0) + (w.show-storage ? 1 : 0) - 1)) / ((w.show-cpu ? 1 : 0) + (w.show-memory ? 1 : 0) + (w.show-storage ? 1 : 0))) | min (w.height - 40) | max 56 | min 120) : 56}"
+                }
+            }
+            else {
+                column class="card card-resources" style="gap: 14px" {
+                    use "widget-rings" w="{w}" side="{(w.width >= 200 && w.height >= 200) ? ((w.width - 40) | min ((w.height - 40 - 14 * ((w.show-cpu ? 1 : 0) + (w.show-memory ? 1 : 0) + (w.show-storage ? 1 : 0) - 1)) / ((w.show-cpu ? 1 : 0) + (w.show-memory ? 1 : 0) + (w.show-storage ? 1 : 0))) | max 56 | min 120) : 56}"
+                }
+            }
+        }
+    }
+}

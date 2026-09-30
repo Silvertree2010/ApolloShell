@@ -41,8 +41,17 @@ enum StyleValues {
         case "-apple-system-brown": .brown
         case "-apple-system-gray": .gray
         case "-apollo-accent-text": Color(nsColor: accentText)
+        case "-apollo-contrast-accent": Color(nsColor: contrastAccent)
         default: .primary
         }
+    }
+
+    static let contrastAccent = NSColor(name: nil) { _ in
+        guard let rgb = NSColor.controlAccentColor.usingColorSpace(.sRGB) else { return .systemOrange }
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        rgb.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        guard saturation > 0.15 else { return NSColor(white: brightness > 0.5 ? 0.35 : 0.75, alpha: 1) }
+        return NSColor(hue: (hue + 0.5).truncatingRemainder(dividingBy: 1), saturation: saturation, brightness: max(brightness, 0.85), alpha: alpha)
     }
 
     static let accentText = NSColor(name: nil) { appearance in

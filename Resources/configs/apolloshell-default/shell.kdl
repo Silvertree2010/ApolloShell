@@ -11,7 +11,7 @@ var hotkey-dashboard "{shell.fresh-install ? 'ctrl+alt+d' : 'hyper+d'}" persist=
 var hotkey-utilities "{shell.fresh-install ? 'ctrl+alt+u' : 'hyper+u'}" persist=#true
 var hotkey-settings "{shell.fresh-install ? 'ctrl+alt+comma' : 'hyper+comma'}" persist=#true
 
-weather source="{var.weather-source}" place="{var.weather-places | where 'id' var.weather-selected | first}"
+weather source="{var.weather-source}" place="{var.weather-places | where 'id' var.weather-selected | first}" places="{var.weather-places}"
 apps file-manager="{var.file-manager}"
 power lid-closed="{var.keep-awake-lid}"
 

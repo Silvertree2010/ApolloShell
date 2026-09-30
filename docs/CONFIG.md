@@ -38,7 +38,7 @@ Draws the icon of an app.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `badge` | value | `null` | Badge, string or number. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
@@ -63,7 +63,7 @@ Row that keeps its first child, shows as many of the middle children as fit and 
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -127,12 +127,44 @@ Clickable button, Space and Return trigger on-click.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
 ```kdl
 button { on-click { toggle "launcher" } }
+```
+
+### `canvas` (node)
+
+Places the children of exactly one each at the x, y, width and height of their item. While enabled, dragging an item fires on-move, dragging its corner on-resize (event.key, x, y, width, height, valid, phase changed or ended); the item shows :invalid where it does not fit and springs back unless the handler takes the new frame.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
+| property | `class` | string | `null` | CSS classes, separated by spaces. |
+| property | `style` | string | `null` | CSS declarations for this node only. |
+| property | `visible` | bool | `true` | Hides the node without losing state. |
+| property | `tooltip` | string | `null` | Help text on hover. |
+| property | `label` | string | `null` | Text for VoiceOver, default from tooltip or content. |
+| property | `checked` | bool | `false` | Sets the :checked pseudo-class. |
+| property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
+| property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
+| property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
+| property | `in` | list | `null` | Items, records with x, y, width, height in pt and optional sizes (records min-width, max-width or width, and height) that limit resizing; default the items of the each. |
+| property | `key` | string | `"id"` | Field that identifies an item, sent as event.key. |
+| property | `sizes` | list | `null` | Catalogue for items without their own sizes: records whose sizes-by field matches the item's, each with a sizes list. |
+| property | `sizes-by` | string | `"kind"` | Field that links an item to its entry in sizes. |
+| property | `enabled` | bool | `false` | Items can be moved and resized by dragging; a drag from the bottom-right 28 pt corner resizes. |
+| property | `gap` | number | `12` | Minimum distance between two items. |
+| property | `snap` | number | `8` | Distance at which an edge jumps onto the canvas edge or a neighbour. |
+| property | `scale` | number | `1` | Factor for frames and content, for example the user's factor times (screen.width / 1512 \| clamp 0.85 1.5). |
+
+Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`, `on-move`, `on-resize`
+
+```kdl
+canvas gap=12 snap=8 { each s in="{screens.list}" key="{s.id}" { text "{s.name}" } }
 ```
 
 ### `canvas` (node)
@@ -176,7 +208,7 @@ Lays out children top to bottom, flexbox direction column.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -347,7 +379,7 @@ Area that grows out of its own surface next to an element.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `anchor` | identifier | required | Id of the element next to which the flyout grows. |
 | property | `side` | "right"\|"left"\|"top"\|"bottom" | `null` | Growth direction. |
 | property | `open` | bool | required | Whether the flyout is open. |
@@ -402,7 +434,7 @@ Arc from -135° to 135°.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `value` | number | required | Fill level 0…1. |
 | property | `ticks` | number | `0` | Number of tick marks. |
 
@@ -428,7 +460,7 @@ Draws a history, such as CPU history.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `values` | list | required | List of numbers. |
 | property | `min` | number | `0` | Lower bound. |
 | property | `max` | number | `null` | Upper bound, default largest value. |
@@ -457,7 +489,7 @@ Lays out children in a grid.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `columns` | number | `null` | Number of columns. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
@@ -483,7 +515,7 @@ Draws a symbol.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `fallback` | string | `null` | SF Symbol if the name is not found. |
 | property | `variable` | number | `null` | Value 0…1 for SF Symbols with levels. |
 
@@ -510,7 +542,7 @@ Draws an image.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `fit` | "fill"\|"fit"\|"stretch"\|"center" | `null` | How the image fits its frame. |
 | property | `placeholder` | string | `null` | Icon name while nothing is loaded. |
 
@@ -549,7 +581,7 @@ Text input.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `value` | string | `null` | Text content. |
 | property | `bind` | string | `null` | var.<name>, reads and writes the var directly. |
 | property | `placeholder` | string | `null` | Placeholder text. |
@@ -603,7 +635,7 @@ Records a key combination.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `value` | string | `null` | Recorded combination as a string. |
 | property | `placeholder` | string | `null` | Placeholder text. |
 | property | `reject` | value | `null` | List of combinations that are rejected. |
@@ -658,7 +690,7 @@ The animated ApolloShell emblem.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `state` | "idle"\|"farewell"\|"sleep"\|"think" | `null` | Base mood of the emblem. |
 | property | `greet` | bool | `true` | Plays the greeting when it appears. |
 | property | `color` | string | `null` | Accent color. |
@@ -927,7 +959,7 @@ Progress bar.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `value` | number | `null` | 0…1 or #null for indeterminate. |
 | property | `vertical` | bool | `false` | Vertical orientation. |
 
@@ -953,10 +985,10 @@ Container whose children from exactly one each can be reordered by dragging.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `axis` | "vertical"\|"horizontal"\|"grid" | `null` | Drag direction. |
 | property | `enabled` | bool | `null` | Dragging is only possible when set. |
-| property | `accept` | "apps"\|"files" | `null` | External objects that may be dragged in. |
+| property | `accept` | "apps"\|"files"\|"value" | `null` | External objects that may be dragged in; value takes the drag-value of another element, with event.value and event.index in on-drop. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`, `on-reorder`, `on-drop`, `on-drag-out`
 
@@ -1032,7 +1064,7 @@ Circular ring or arc.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `value` | number | required | Fill level 0…1. |
 | property | `gap` | number | `0` | Share of spacing between fill and track. |
 
@@ -1058,7 +1090,7 @@ Lays out children side by side, flexbox direction row.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `notch` | "ignore"\|"avoid" | `"ignore"` | avoid keeps start children left of the notch and puts centered and end children right of it. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
@@ -1109,7 +1141,7 @@ Scrollable area.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `axis` | "vertical"\|"horizontal"\|"both" | `"vertical"` | Scroll direction. |
 | property | `reveal` | value | `null` | Key or id scrolled into view whenever the value changes. |
 | property | `indicators` | bool | `false` | Whether scroll bars are visible. |
@@ -1158,7 +1190,7 @@ Draws a simple shape, fill and size via CSS.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `count` | number | `null` | Number of waves for scallop. |
 | property | `depth` | number | `null` | Depth of the waves 0…1 for scallop. |
 
@@ -1184,7 +1216,7 @@ Slider, the named slot fill "thumb" draws content in the thumb.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `value` | number | required | Current value. |
 | property | `min` | number | `0` | Lower bound. |
 | property | `max` | number | `1` | Upper bound. |
@@ -1238,7 +1270,7 @@ Fills free space in row/column, or a fixed spacing.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `size` | number | `null` | Fixed spacing in pt, otherwise the spacer fills the free space. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
@@ -1276,7 +1308,7 @@ Stacks children on the z axis, may be empty.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -1385,9 +1417,10 @@ Draws text.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `lines` | number | `1` | Lines, 0 = unlimited. |
 | property | `truncate` | "tail"\|"middle"\|"head" | `null` | Where text is truncated. |
+| property | `min-scale` | number | `1` | Smallest factor 0…1 the text shrinks to before it is truncated. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -1423,7 +1456,7 @@ Draws the fixed preview scene of a theme.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `theme` | string\|record | required | Theme id or record with `css` (Marketplace entry, checked like an installed theme first). |
 | property | `appearance` | "light"\|"dark" | `null` | Forced appearance of the preview. |
 
@@ -1492,7 +1525,7 @@ On/off switch.
 | property | `disabled` | bool | `false` | No input, :disabled pseudo-class. |
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
-| property | `drag-value` | value | `null` | Makes the element a drag source, reserved for 0.2.1. |
+| property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `checked` | bool | required | State of the switch. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`, `on-change`
@@ -2034,6 +2067,7 @@ Time, date, calendar grid.
 | field | `year` | number | | Year, four digits. |
 | field | `weekday` | number | | Day of the week, 1 = Monday. |
 | field | `time-zone` | string | | Active time zone. |
+| field | `time-zones` | list | | Known time zones sorted by offset and name, records id (IANA), name (city), offset (seconds from GMT now). |
 
 ### `display` (provider)
 
@@ -2343,6 +2377,7 @@ Weather from three providers, place search.
 | --- | --- | --- | --- | --- |
 | property | `source` | "open-meteo"\|"met-norway"\|"wttr" | `"open-meteo"` | Weather provider. |
 | property | `place` | record | `null` | Record name/latitude/longitude or #null. |
+| property | `places` | list | `[]` | More places, records id/name/latitude/longitude, fetched alongside and published in by-place. |
 | field | `status` | string | | no-place, loading, ready or failed. |
 | field | `place` | record or null | | Selected place. |
 | field | `current` | record or null | | Current weather. |
@@ -2354,6 +2389,7 @@ Weather from three providers, place search.
 | field | `stale` | bool | | Whether the data is stale. |
 | field | `attribution` | record | | Data source to credit, with text and url. |
 | field | `capabilities` | record | | What the provider supplies. |
+| field | `by-place` | record | | Weather of every place in places, by place id: status, current, today, hourly-strip and days as above. |
 | field | `search-results` | list | | Places found. |
 | field | `search-status` | string | | idle, searching, done or failed. |
 
@@ -2455,6 +2491,14 @@ Clamps a number.
 | argument | `low` | number | required | Lower bound. |
 | argument | `high` | number | required | Upper bound. |
 
+### `concat` (filter)
+
+Joins two lists, this one first.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `other` | list | required | List appended at the end; null counts as empty. |
+
 ### `contains` (filter)
 
 Checks whether a value is contained.
@@ -2503,6 +2547,18 @@ Checks the end of a string.
 ### `first` (filter)
 
 First element or character.
+
+### `first-free-frame` (filter, *experimental*)
+
+First free place for a frame among a list of records with x, y, width, height: rows from the top, in them from the left, or null when the canvas is full.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `width` | number | required | Width of the new frame. |
+| argument | `height` | number | required | Height of the new frame. |
+| argument | `page-width` | number |  | Width of the canvas, default 839. |
+| argument | `page-height` | number |  | Height of the canvas, default 392. |
+| argument | `gap` | number |  | Minimum distance to the other frames, default 12. |
 
 ### `fixed` (filter)
 
@@ -2614,7 +2670,7 @@ Weeks of a month as a list of lists.
 
 ### `number` (filter)
 
-Parses a string as a number.
+Parses a string as a number, turns a date into seconds since 1970.
 
 ### `pad` (filter)
 
@@ -2632,6 +2688,26 @@ Pads on the left.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `digits` | number |  | Decimal places, default 0. |
+
+### `place-frame` (filter)
+
+Frame for a new item among a list of records with x, y, width, height on a 839 by 392 canvas: at the drop position snapped to edges and neighbours when given and free, otherwise the first free place, or null when the canvas is full.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `kinds` | list | required | Catalogue of records with kind and a sizes list. |
+| argument | `kind` | string | required | Kind to place, its first size counts. |
+| argument | `x` | number |  | Drop position, centre of the frame. |
+| argument | `y` | number |  | Drop position, centre of the frame. |
+
+### `prefix-field` (filter)
+
+Puts text in front of a field of every record of a list.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `field` | string | required | Field name. |
+| argument | `prefix` | string | required | Text put in front of the value. |
 
 ### `relative` (filter)
 
@@ -2727,6 +2803,15 @@ Checks the start of a string.
 
 Converts a value to a string.
 
+### `sun-moon` (filter)
+
+Sun and moon on a date: sunrise, sunset, noon, always-up, always-down, moonrise, moonset (null, not computed), moon-phase 0…1, moon-illumination 0…1, moon-symbol, moon-name.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `latitude` | number | required | Latitude in degrees. |
+| argument | `longitude` | number | required | Longitude in degrees. |
+
 ### `symbol-exists` (filter)
 
 Checks whether an SF Symbol exists.
@@ -2784,6 +2869,15 @@ Filters records by inequality of a field.
 | --- | --- | --- | --- | --- |
 | argument | `field` | string | required | Field name. |
 | argument | `value` | any | required | Excluded value. |
+
+### `with-field` (filter)
+
+Sets a field on every record of a list.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `field` | string | required | Field name. |
+| argument | `value` | any | required | New value. |
 
 ## Events
 

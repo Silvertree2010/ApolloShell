@@ -17,11 +17,13 @@ struct MouseConfig: Equatable {
     var passive = false
     var inert = false
     var reorder: ReorderEntry?
+    var canvas: CanvasEntry?
+    var dragValue = false
 
     init() {}
 
     @MainActor
-    init(_ element: ElementInstance, reorder: ReorderEntry?) {
+    init(_ element: ElementInstance, reorder: ReorderEntry?, canvas: CanvasEntry? = nil) {
         let names = Set(element.ir.handlers.map(\.name))
         click = names.contains("on-click")
         doubleClick = names.contains("on-double-click")
@@ -39,17 +41,19 @@ struct MouseConfig: Equatable {
         }
         disabled = element.property("disabled").isTruthy
         self.reorder = reorder
+        self.canvas = canvas?.enabled == true ? canvas : nil
+        dragValue = element.property("drag-value") != .null
     }
 
     var isEmpty: Bool {
-        !click && !doubleClick && !longPress && !right && !middle && !scroll && accepts.isEmpty && menuOn.isEmpty && reorder == nil && !passive
+        !click && !doubleClick && !longPress && !right && !middle && !scroll && accepts.isEmpty && menuOn.isEmpty && reorder == nil && canvas == nil && !dragValue && !passive
     }
 
     func claims(_ kind: MouseKind) -> Bool {
         if inert { return false }
         if passive { return kind != .scroll }
         switch kind {
-        case .left: return click || doubleClick || longPress || right || !menuOn.isEmpty || reorder != nil
+        case .left: return click || doubleClick || longPress || right || !menuOn.isEmpty || reorder != nil || canvas != nil || dragValue
         case .right: return right || menuOn.contains("right-click")
         case .middle: return middle
         case .scroll: return scroll
@@ -108,6 +112,9 @@ enum EventFields {
         case "text":
             guard let text = pasteboard.string(forType: .string), !text.isEmpty else { return nil }
             return Record([("text", .string(text))])
+        case "value":
+            guard let token = pasteboard.string(forType: .apolloValue), let value = MainActor.assumeIsolated({ DragValues.value(token) }) else { return nil }
+            return Record([("value", value)])
         default:
             return nil
         }
@@ -118,6 +125,7 @@ enum EventFields {
         if accepts.contains("files") || accepts.contains("apps") { result.append(.fileURL) }
         if accepts.contains("apps") { result.append(.apolloApp) }
         if accepts.contains("text") { result.append(.string) }
+        if accepts.contains("value") { result.append(.apolloValue) }
         return result
     }
 }
@@ -125,6 +133,7 @@ enum EventFields {
 extension NSPasteboard.PasteboardType {
     static let apolloApp = NSPasteboard.PasteboardType("to.apollocloud.apolloshell.app")
     static let apolloReorder = NSPasteboard.PasteboardType("to.apollocloud.apolloshell.reorder")
+    static let apolloValue = NSPasteboard.PasteboardType("to.apollocloud.apolloshell.value")
 }
 
 struct ElementInteraction: ViewModifier {
@@ -266,7 +275,8 @@ final class ElementMouseView: NSView, NSDraggingSource {
     var config = MouseConfig() {
         didSet {
             guard config != oldValue else { return }
-            let types = EventFields.types(config.accepts) + (config.reorder != nil ? [.apolloReorder] : [])
+            var types = EventFields.types(config.accepts) + (config.reorder != nil ? [.apolloReorder] : [])
+            if config.reorder?.coordinator?.accept == "value" { types.append(.apolloValue) }
             unregisterDraggedTypes()
             if !types.isEmpty { registerForDraggedTypes(types) }
         }
@@ -276,6 +286,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
     private var longPressed = false
     private var downPoint: NSPoint?
     private var dragging = false
+    private var canvasDrag: (resize: Bool, start: NSPoint)?
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -346,6 +357,37 @@ final class ElementMouseView: NSView, NSDraggingSource {
     }
 
     override func mouseDragged(with event: NSEvent) {
+        if let canvas = config.canvas, let start = downPoint, !longPressed {
+            let point = event.locationInWindow
+            if canvasDrag == nil {
+                guard hypot(point.x - start.x, point.y - start.y) > 2 else { return }
+                holdWork?.cancel()
+                holdWork = nil
+                dragging = true
+                element?.pseudo.remove(.active)
+                let local = convert(start, from: nil)
+                let fromBottom = isFlipped ? bounds.height - local.y : local.y
+                let grip = CanvasEntry.grip * canvas.scale
+                canvasDrag = (local.x >= bounds.width - grip && fromBottom <= grip && canvas.coordinator?.container.ir.handlers.contains { $0.name == "on-resize" } == true, start)
+            }
+            guard let drag = canvasDrag else { return }
+            canvas.coordinator?.drag(canvas.key, dx: (point.x - drag.start.x) / canvas.scale, dy: (drag.start.y - point.y) / canvas.scale, resize: drag.resize, ended: false)
+            return
+        }
+        if config.dragValue, config.reorder == nil, let element, let start = downPoint, !dragging, !longPressed {
+            let point = event.locationInWindow
+            guard hypot(point.x - start.x, point.y - start.y) > Self.dragThreshold else { return }
+            dragging = true
+            holdWork?.cancel()
+            holdWork = nil
+            element.pseudo.remove(.active)
+            let item = NSPasteboardItem()
+            item.setString(DragValues.store(element.property("drag-value")), forType: .apolloValue)
+            let dragItem = NSDraggingItem(pasteboardWriter: item)
+            dragItem.setDraggingFrame(bounds, contents: snapshot())
+            beginDraggingSession(with: [dragItem], event: event, source: self)
+            return
+        }
         guard let start = downPoint, !dragging, !longPressed, let reorder = config.reorder, reorder.enabled else { return }
         let point = event.locationInWindow
         guard hypot(point.x - start.x, point.y - start.y) > Self.dragThreshold else { return }
@@ -375,6 +417,13 @@ final class ElementMouseView: NSView, NSDraggingSource {
         holdWork = nil
         downPoint = nil
         element?.pseudo.remove(.active)
+        if let drag = canvasDrag, let canvas = config.canvas {
+            let point = event.locationInWindow
+            canvasDrag = nil
+            dragging = false
+            canvas.coordinator?.drag(canvas.key, dx: (point.x - drag.start.x) / canvas.scale, dy: (drag.start.y - point.y) / canvas.scale, resize: drag.resize, ended: true)
+            return
+        }
         if dragging {
             dragging = false
             return
@@ -461,7 +510,11 @@ final class ElementMouseView: NSView, NSDraggingSource {
             return reorder.coordinator?.drop(token: token, on: reorder) ?? false
         }
         for accept in config.accepts.sorted() {
-            if let fields = EventFields.drop(pasteboard, accept: accept) {
+            if var fields = EventFields.drop(pasteboard, accept: accept) {
+                let local = convert(sender.draggingLocation, from: nil)
+                let scale = element.kind == "canvas" ? context.canvas(for: element).scale : 1
+                fields["x"] = .number(Double(local.x) / scale)
+                fields["y"] = .number(Double(isFlipped ? local.y : bounds.height - local.y) / scale)
                 context.fire("on-drop", element, fields)
                 return true
             }

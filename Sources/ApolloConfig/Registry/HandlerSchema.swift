@@ -11,7 +11,7 @@ enum HandlerSchema {
         case "key":
             arguments = [ArgumentSchema(name: "chord", type: .keyChord, allowsExpression: false, doc: "Key combination.")]
         case "on-drop":
-            properties.append(PropertySchema(name: "accept", type: .enumeration(["files", "apps", "text"]), required: true, allowsExpression: false, doc: "Which kind of dropped content."))
+            properties.append(PropertySchema(name: "accept", type: .enumeration(["files", "apps", "text", "value"]), required: true, allowsExpression: false, doc: "Which kind of dropped content; value takes what an element with drag-value carries, as event.value."))
         case "on-scroll":
             properties.append(contentsOf: [
                 PropertySchema(name: "step", type: .number, defaultValue: .null, doc: "Scroll distance until it fires."),

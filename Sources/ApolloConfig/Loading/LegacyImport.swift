@@ -241,6 +241,7 @@ extension LegacyImport {
         Kind("volume", [Option("showPercent", .bool(true)), Option("showDevice", .bool(false))]),
         Kind("systemStats", [Option("showCPU", "show-cpu", .bool(true)), Option("showMemory", .bool(true))]),
         Kind("networkSpeed"),
+        Kind("timer"),
         Kind("cpu", [Option("style", .choice(["ring", "percent"], "ring"))]),
         Kind("dock", unique: true, [Option("showRunning", .bool(true)), Option("iconSize", .choice(["small", "medium", "large"], "medium"))]),
         Kind("appButton", [Option("bundleID", "bundle-id", .text("", omitEmpty: false))]),

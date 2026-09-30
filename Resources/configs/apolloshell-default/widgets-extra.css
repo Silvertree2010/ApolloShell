@@ -1,0 +1,108 @@
+.wx-ring { align-items: center; justify-content: center; flex-shrink: 0; }
+.wx-ring-inner { align-items: center; justify-content: center; }
+.wx-ring-fill { -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); color: var(--apollo-accent-color, -apple-system-control-accent); }
+.card.wx-timer { padding: 0; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
+.card.wx-timer.row { padding: 0 16px; gap: 14px; }
+.card.wx-timer.col { padding: 14px; gap: 12px; }
+.wx-digits { font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.wx-glyph { font-weight: 600; }
+.wx-label { font-size: 13px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wx-texts { gap: 4px; align-items: start; flex-shrink: 1; min-width: 0; }
+.wx-controls { gap: 8px; align-items: center; }
+.wx-round { border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-label; align-items: center; justify-content: center; }
+.wx-round-glyph { font-weight: 600; }
+.wx-play { border-radius: 9999px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); align-items: center; justify-content: center; }
+.wx-play-glyph { font-weight: 600; }
+.card.wx-apps { padding: 0; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
+.wx-grid { align-items: start; }
+.wx-grid-row { align-items: start; }
+.wx-app { flex-shrink: 0; }
+.wx-app-icon { flex-shrink: 0; }
+.wx-list { gap: 2px; padding: 0 14px; align-self: stretch; justify-content: center; }
+.wx-list-button { align-self: stretch; }
+.wx-list-row { gap: 10px; height: 32px; align-items: center; align-self: stretch; }
+.wx-list-icon { width: 26px; height: 26px; flex-shrink: 0; }
+.wx-list-name { font-size: 13px; font-weight: 500; flex-shrink: 1; min-width: 0; }
+.wx-empty { gap: 8px; align-items: center; padding: 14px; }
+.wx-empty-glyph { font-size: 24px; color: -apple-system-tertiary-label; }
+.wx-empty-text { font-size: 12px; color: -apple-system-secondary-label; text-align: center; }
+.card.wx-photos { padding: 0; overflow: hidden; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
+.wx-photo-frame { overflow: hidden; }
+.wx-photo-image { flex-shrink: 0; }
+.card.wx-net { padding: 16px; justify-content: center; align-items: stretch; border-radius: var(--apollo-card-radius, 24px); }
+.card.wx-net.min { padding: 0 18px; gap: 14px; align-items: center; }
+.wx-net-head { gap: 8px; align-items: center; }
+.wx-net-glyph { font-size: 14px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wx-net-title { font-size: 15px; font-weight: 600; flex-shrink: 1; min-width: 0; }
+.wx-net-chip { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; padding: 3px 8px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); flex-shrink: 0; }
+.wx-address { gap: 8px; align-items: center; }
+.wx-address-title { font-size: 12px; color: -apple-system-secondary-label; flex-shrink: 0; }
+.wx-address-value { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; flex-shrink: 1; min-width: 0; }
+.wx-net-min-glyph { font-size: 30px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); flex-shrink: 0; }
+.wx-net-min-texts { gap: 2px; align-items: start; flex-shrink: 1; min-width: 0; }
+.wx-net-min-title { font-size: 17px; font-weight: 600; }
+.wx-net-min-latency { font-size: 22px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; color: -apple-system-secondary-label; }
+.card.wx-files { padding: 0; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
+.card.wx-files.standard { align-items: stretch; justify-content: start; padding: 14px; }
+.wx-files-list { align-self: stretch; flex-grow: 1; align-items: start; }
+.wx-header { gap: 6px; align-items: center; padding-bottom: 6px; }
+.wx-header-glyph { font-size: 12px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wx-header-title { font-size: 13px; font-weight: 600; }
+.wx-files-button { align-self: stretch; }
+.wx-files-row { gap: 8px; height: 30px; align-items: center; align-self: stretch; }
+.wx-files-icon { width: 20px; height: 20px; flex-shrink: 0; }
+.wx-files-name { font-size: 13px; flex-shrink: 1; min-width: 0; }
+.wx-files-date { font-size: 11px; color: -apple-system-secondary-label; flex-shrink: 0; }
+.wx-file-cell { gap: 4px; align-items: center; }
+.wx-file-icon { flex-shrink: 0; }
+.wx-file-name { font-size: 10px; text-align: center; }
+.card.wx-clip { padding: 14px; align-items: start; justify-content: start; border-radius: var(--apollo-card-radius, 24px); }
+.wx-clip-head { align-self: stretch; align-items: start; }
+.wx-clip-clear { padding-bottom: 6px; }
+.wx-clip-clear-text { font-size: 11px; font-weight: 500; color: -apple-system-secondary-label; }
+.wx-clip-empty { font-size: 12px; color: -apple-system-secondary-label; text-align: left; }
+.wx-clip-button { align-self: stretch; }
+.wx-clip-row { gap: 8px; height: 30px; align-items: center; align-self: stretch; }
+.wx-clip-text { font-size: 13px; flex-shrink: 1; min-width: 0; }
+.wx-clip-glyph { font-size: 11px; font-weight: 600; color: -apple-system-secondary-label; flex-shrink: 0; }
+.wx-clip-glyph.done { color: var(--apollo-accent-color, -apple-system-control-accent); }
+.card.wx-sun { padding: 0; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 28px); }
+.card.wx-sun.min { padding: 0 20px; gap: 18px; }
+.card.wx-sun.min.stacked { gap: 16px; }
+.card.wx-sun.narrow { padding: 16px; gap: 6px; align-items: start; }
+.card.wx-sun.tall { padding: 16px; gap: 14px; }
+.card.wx-sun.wide { padding: 16px; gap: 16px; }
+.wx-sun-block { gap: 6px; align-items: start; min-width: 0; align-self: stretch; }
+.wide > .wx-sun-block { flex-grow: 1; }
+.wx-times { gap: 16px; flex-shrink: 0; }
+.wx-times.stacked { gap: 8px; align-items: start; }
+.wx-time { gap: 6px; align-items: center; flex-shrink: 0; }
+.wx-time-glyph { font-size: 15px; -apollo-symbol-rendering: multicolor; }
+.wx-time-text { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.wx-moon { gap: 10px; align-items: center; flex-shrink: 0; }
+.wx-moon-glyph { -apollo-symbol-rendering: hierarchical; color: rgb(from -apple-system-label r g b / 0.85); }
+.wx-moon-texts { gap: 1px; align-items: start; }
+.wx-moon-name { font-size: 13px; font-weight: 600; }
+.wx-moon-lit { font-size: 11px; color: -apple-system-secondary-label; }
+.wx-arc { align-self: stretch; min-width: 0; }
+.wx-arc-curve { align-self: stretch; }
+.wx-arc-line { align-self: stretch; -apollo-stroke-width: 1.5px; -apollo-stroke-dash: 3px 4px; color: rgb(from -apple-system-label r g b / 0.25); }
+.wx-arc-baseline { align-self: stretch; }
+.wx-arc-base { align-self: stretch; height: 1px; background: rgb(from -apple-system-label r g b / 0.15); }
+.wx-arc-dotcol { align-self: stretch; }
+.wx-arc-dotrow { align-self: stretch; }
+.wx-arc-anchor { width: 0; height: 14px; align-items: center; justify-content: center; filter: drop-shadow(0 0 6px rgb(255 149 0 / 0.6)); }
+.wx-arc-dot { width: 14px; height: 14px; flex-shrink: 0; background: -apple-system-yellow; }
+.wx-arc-badge { align-self: stretch; align-items: start; }
+.wx-arc-moon { font-size: 16px; -apollo-symbol-rendering: hierarchical; color: rgb(from -apple-system-label r g b / 0.85); }
+.card.wx-drives { padding: 14px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
+.wx-drives-list { gap: 10px; align-self: stretch; }
+.wx-drive { gap: 10px; align-items: center; align-self: stretch; }
+.wx-drive-glyph { font-size: 16px; width: 22px; color: var(--apollo-accent-color, -apple-system-control-accent); flex-shrink: 0; }
+.wx-drive-body { gap: 4px; flex-grow: 1; flex-shrink: 1; min-width: 0; align-items: stretch; }
+.wx-drive-head { gap: 6px; align-items: center; }
+.wx-drive-name { font-size: 13px; font-weight: 600; flex-shrink: 1; min-width: 0; }
+.wx-drive-free { font-size: 11px; color: -apple-system-secondary-label; flex-shrink: 1; min-width: 0; }
+.wx-drive-bar { height: 6px; align-self: stretch; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wx-drive-eject { width: 26px; height: 26px; border-radius: 13px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; flex-shrink: 0; }
+.wx-drive-eject-glyph { font-size: 11px; font-weight: 600; }

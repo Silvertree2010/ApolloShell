@@ -38,6 +38,7 @@ enum ContextRoots {
                 S.field("main", .bool, update: .push, doc: "Whether it is the main screen."),
                 S.field("width", .number, update: .push, doc: "Width."),
                 S.field("height", .number, update: .push, doc: "Height."),
+                S.field("usable-height", .number, update: .push, doc: "Height of the screen without Apple's menu bar and Dock."),
                 S.field("notch", .bool, update: .push, doc: "Whether a notch is present."),
             ] + MenuBarRegistry.notchFields,
             validIn: ["surfaceBody", "elementBody"]
