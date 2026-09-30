@@ -150,9 +150,10 @@ struct ElementInteraction: ViewModifier {
         var config = config
         config.inert = !interactive
         let pressing = pressSensitive && interactive && !config.claims(.left)
+        let hoverWatched = hoverSensitive || element.ir.handlers.contains { $0.name == "on-hover" || $0.name == "on-hover-end" }
         return content
-            .modifier(HoverTracking(element: element, context: context, active: interactive && (hoverSensitive || element.ir.handlers.contains { $0.name == "on-hover" || $0.name == "on-hover-end" })))
-            .modifier(PressTracking(element: element, including: pressing ? .all : .subviews))
+            .gated(hoverWatched) { $0.modifier(HoverTracking(element: element, context: context, active: interactive && hoverWatched)) }
+            .gated(pressSensitive) { $0.modifier(PressTracking(element: element, including: pressing ? .all : .subviews)) }
             .overlay {
                 if !config.isEmpty {
                     MouseCatcher(element: element, context: context, config: config)
