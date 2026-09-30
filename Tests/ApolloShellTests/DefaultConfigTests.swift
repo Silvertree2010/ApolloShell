@@ -37,6 +37,7 @@ struct DefaultConfigTests {
             "sidebar": "panel", "desktop-clock": "panel", "dashboard": "popup", "utilities": "popup",
             "launcher": "popup", "session": "popup", "volume": "osd", "default": "toast",
             "onboarding": "window", "settings": "window", "settings-confirm": "popup",
+            "menubar": "panel", "menubar-status-popout": "popup",
         ]
         #expect(kinds == expected)
     }
@@ -52,6 +53,8 @@ struct DefaultConfigTests {
             "toast-charging", "toast-battery", "toast-audio-output", "toast-audio-input", "desktop-clock",
             "hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-settings", "hide-apple-dock",
             "keep-awake-lid", "onboarding-done",
+            "menubar-enabled", "menubar-screens", "menubar-style", "menubar-distinct", "menubar-thickness",
+            "menubar-covers", "menubar-hide-apple", "menubar-status-style", "menubar-start", "menubar-center", "menubar-end",
         ]
         #expect(persisted == expected)
     }
@@ -268,5 +271,17 @@ struct DefaultConfigTests {
         }
         let missing = Set(Self.allowedPlaces.keys).subtracting(used)
         #expect(missing.isEmpty, "nicht gelesen: \(missing.sorted())")
+    }
+
+    @Test("Die Menüleiste ist wie im alten 0.2 aus und steht auf der Vorlage macOS")
+    func menubarDefaults() throws {
+        let ir = try #require(PackageResources.load(Self.defaultFolder, id: "apolloshell-default").ir)
+        let names = Set(ir.vars.map(\.name))
+        #expect(names.isSuperset(of: ["menubar-enabled", "menubar-macos", "menubar-serpantinum", "menubar-minimal", "menubar-clock-only"]))
+        let source = try String(contentsOf: Self.defaultFolder.appendingPathComponent("menubar.kdl"), encoding: .utf8)
+        #expect(source.contains("var menubar-enabled #false persist=#true"))
+        #expect(source.contains("var menubar-thickness 24 persist=#true"))
+        #expect(source.contains("var menubar-hide-apple #false persist=#true"))
+        #expect(source.contains("system.hide-apple-menubar"))
     }
 }

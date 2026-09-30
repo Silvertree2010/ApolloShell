@@ -3,7 +3,7 @@ enum Layout {
         NodeSchema(
             name: "row",
             category: .layout,
-            properties: CommonProperties.elementProperties,
+            properties: CommonProperties.elementProperties + [MenuBarRegistry.rowNotch],
             handlers: CommonProperties.elementHandlers,
             childContext: .elementBody,
             contexts: [.surfaceBody, .elementBody],

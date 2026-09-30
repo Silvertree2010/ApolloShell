@@ -142,6 +142,8 @@ struct ScreenGeometry: Equatable {
     var visible: CGRect
     var name: String?
     var notch = false
+    var notchLeft: CGRect?
+    var notchRight: CGRect?
 }
 
 @MainActor

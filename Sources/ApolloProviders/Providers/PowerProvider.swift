@@ -259,6 +259,7 @@ public final class PermissionsProvider: BaseProvider {
         publish("accessibility", .bool(state.accessibility))
         publish("automation", ProviderValue.bool(state.automation))
         publish("screen-recording", .bool(state.screenRecording))
+        publish("screen-capture-bypass", .bool(state.screenCaptureBypass))
     }
 }
 

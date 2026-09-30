@@ -39,7 +39,7 @@ enum ContextRoots {
                 S.field("width", .number, update: .push, doc: "Width."),
                 S.field("height", .number, update: .push, doc: "Height."),
                 S.field("notch", .bool, update: .push, doc: "Whether a notch is present."),
-            ],
+            ] + MenuBarRegistry.notchFields,
             validIn: ["surfaceBody", "elementBody"]
         ),
         ContextRootSchema(

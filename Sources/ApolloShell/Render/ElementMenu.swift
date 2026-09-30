@@ -25,6 +25,9 @@ struct ElementMenuCommand {
     var disabled = false
     var shortcut: String?
     var alternate = false
+    var mixed = false
+    var keyEquivalent: String?
+    var keyModifiers: NSEvent.ModifierFlags?
     var perform: @MainActor () -> Void
 }
 
@@ -140,7 +143,9 @@ enum NativeMenu {
             case .item(let command):
                 let item = MenuActionItem(command: command)
                 item.image = command.icon.flatMap { context.themeIcon($0) ?? NSImage(systemSymbolName: $0, accessibilityDescription: nil) }
-                if command.alternate {
+                if command.alternate, command.keyModifiers != nil {
+                    item.isAlternate = true
+                } else if command.alternate {
                     let previous = menu.items.last
                     item.keyEquivalent = previous?.keyEquivalent ?? ""
                     item.keyEquivalentModifierMask = (previous?.keyEquivalentModifierMask ?? []).union(.option)
@@ -176,10 +181,12 @@ final class MenuActionItem: NSMenuItem {
             if chord.modifiers.contains(.shift) { mask.insert(.shift) }
             if chord.modifiers.contains(.control) { mask.insert(.control) }
         }
+        if let explicit = command.keyEquivalent { equivalent = explicit }
+        if let explicit = command.keyModifiers { mask = explicit }
         super.init(title: command.title, action: #selector(run), keyEquivalent: equivalent)
         keyEquivalentModifierMask = mask
         target = self
-        state = command.checked ? .on : .off
+        state = command.mixed ? .mixed : (command.checked ? .on : .off)
         isEnabled = !command.disabled
     }
 

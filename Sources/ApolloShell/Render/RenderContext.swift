@@ -23,6 +23,7 @@ final class RenderContext {
     var gates: [GateKey: EventGate] = [:]
     var reorders: [String: ReorderCoordinator] = [:]
     var menuSources: [String: any MenuSourceProviding] = [:]
+    var menuOverflow: [Identity: [Value]] = [:]
     var pending: [Int: Task<Void, Never>] = [:]
     var nextPending = 0
     var flyoutExtents: [String: EdgeInsets] = [:]
@@ -85,6 +86,7 @@ enum ElementRenderers {
     static let table: [String: Factory] = [
         "column": LayoutRenderers.column,
         "row": LayoutRenderers.row,
+        "app-menus": MenuBarRenderers.appMenus,
         "stack": LayoutRenderers.stack,
         "reorderable": LayoutRenderers.reorderable,
         "toggle": InputRenderers.toggle,

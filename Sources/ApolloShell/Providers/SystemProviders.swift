@@ -53,6 +53,8 @@ struct SystemProviders {
             NetworkInfoProvider(source: SystemNetworkInfoSource(), clock: clock),
             DisplayProvider(source: SystemDisplaySource(), clock: clock),
             WallpaperProvider(source: SystemWallpaperSource(), clock: clock),
+            MenuBarProvider(source: SystemMenuBarSource.shared, clock: clock),
+            StatusItemsProvider(source: SystemStatusItemsSource.shared, clock: clock),
         ]
     }
 

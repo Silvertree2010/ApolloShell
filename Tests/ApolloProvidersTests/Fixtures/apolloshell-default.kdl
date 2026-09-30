@@ -74,7 +74,7 @@ fixture {
     media available=#true playing=#true title="Starboy" artist="The Weeknd" album="Starboy" artwork="artwork/starboy.png" kind="music" duration=230 elapsed=74 progress=0.32 app="com.spotify.client" app-name="Spotify" app-icon="icons/com.spotify.client.png"
     screens {
         list {
-            - id="Built-in Retina Display 1512x982" name="Built-in Retina Display" main=#true index=0 x=0 y=0 width=1512 height=982 visible-x=0 visible-y=0 visible-width=1512 visible-height=949 scale=2 notch=#true menubar-height=33 fullscreen=#false
+            - id="Built-in Retina Display 1512x982" name="Built-in Retina Display" main=#true index=0 x=0 y=0 width=1512 height=982 visible-x=0 visible-y=0 visible-width=1512 visible-height=949 scale=2 notch=#true menubar-height=33 fullscreen=#false notch-left=#null notch-right=#null
         }
     }
     spaces current=2 count=4 {

@@ -1,0 +1,274 @@
+var settings-menubar-confirm ""
+var settings-menubar-gallery ""
+var settings-menubar-expanded ""
+
+var menubar-zones {
+    - id="start" title="Left" detail="Along the left edge; with a notch it stays left of it."
+    - id="center" title="Middle" detail="In the true middle of the screen, next to the notch where there is one."
+    - id="end" title="Right" detail="Along the right edge."
+}
+
+var menubar-styles {
+    - id="fill" title="Strip" detail="One strip across the whole width"
+    - id="islands" title="Islands" detail="Every group floats on its own"
+}
+
+var menubar-status-styles {
+    - id="icons" title="Icons" detail="Glyphs side by side, as in the sidebar"
+    - id="pills" title="Pills" detail="Coloured capsules with a short text"
+}
+
+var menubar-module-kinds {
+    - kind="apple-menu" title="Apple Menu" summary="The Apple menu of the frontmost app." symbol="apple.logo" unique=#true {
+        module kind="apple-menu"
+    }
+    - kind="app-menus" title="App Menus" summary="The frontmost app's name and its menus; what does not fit folds into “…”." symbol="filemenu.and.selection" unique=#true {
+        module kind="app-menus"
+    }
+    - kind="status-items" title="App Status Items" summary="Other apps' status items, mirrored and clickable." symbol="menubar.arrow.up.rectangle" unique=#true {
+        module kind="status-items"
+    }
+    - kind="status-icons" title="Status Icons" summary="Wi-Fi, Bluetooth and battery in one capsule." symbol="wifi" unique=#true {
+        module kind="status-icons" wifi=#true bluetooth=#true battery=#true
+    }
+    - kind="wifi" title="Wi-Fi" summary="Wi-Fi on its own." symbol="wifi" unique=#false {
+        module kind="wifi"
+    }
+    - kind="bluetooth" title="Bluetooth" summary="Bluetooth on its own." symbol="dot.radiowaves.left.and.right" unique=#false {
+        module kind="bluetooth"
+    }
+    - kind="battery" title="Battery" summary="Charge in percent, with the symbol if you like." symbol="battery.75percent" unique=#false {
+        module kind="battery" show-icon=#true
+    }
+    - kind="clock" title="Clock" summary="Time on one line, the date beside it." symbol="clock.fill" unique=#false {
+        module kind="clock" show-icon=#false show-date=#true
+    }
+    - kind="spaces" title="Spaces" summary="A dot, number, pill or bar per desktop." symbol="square.stack.fill" unique=#false {
+        module kind="spaces" style="dots"
+    }
+    - kind="dashboard-button" title="Dashboard" summary="Opens the Dashboard." symbol="square.grid.2x2.fill" unique=#false {
+        module kind="dashboard-button"
+    }
+    - kind="utilities-button" title="Control Centre" summary="Opens the Control Centre." symbol="slider.horizontal.3" unique=#false {
+        module kind="utilities-button"
+    }
+    - kind="media-button" title="Media" summary="Opens the media page of the Dashboard." symbol="music.note" unique=#false {
+        module kind="media-button"
+    }
+    - kind="now-playing" title="Now Playing" summary="Title and artist with previous, play and next." symbol="play.circle.fill" unique=#false {
+        module kind="now-playing" max-length=28 show-controls=#true
+    }
+    - kind="weather" title="Weather" summary="Symbol and temperature." symbol="cloud.sun.fill" unique=#false {
+        module kind="weather" show-temperature=#true
+    }
+    - kind="window-title" title="Window Title" summary="The frontmost app and its window title." symbol="macwindow" unique=#false {
+        module kind="window-title" show-icon=#true show-title=#true max-length=40
+    }
+    - kind="keyboard-layout" title="Input Source" summary="Short name of the keyboard layout; a click switches." symbol="keyboard" unique=#false {
+        module kind="keyboard-layout" show-icon=#false
+    }
+    - kind="volume" title="Volume" summary="Volume in percent; scroll to change, click to mute." symbol="speaker.wave.2.fill" unique=#false {
+        module kind="volume" show-percent=#true show-device=#false
+    }
+    - kind="system-stats" title="System Stats" summary="CPU and memory, every two seconds." symbol="cpu" unique=#false {
+        module kind="system-stats" show-cpu=#true show-memory=#true
+    }
+    - kind="network-speed" title="Network Speed" summary="Download over upload, every two seconds." symbol="arrow.up.arrow.down" unique=#false {
+        module kind="network-speed"
+    }
+    - kind="cpu" title="CPU" summary="Load as a ring or in percent." symbol="cpu" unique=#false {
+        module kind="cpu" style="ring"
+    }
+    - kind="dock" title="Dock" summary="Pinned and running apps; takes the free room." symbol="dock.rectangle" unique=#true {
+        module kind="dock"
+    }
+    - kind="app-button" title="App" summary="Starts one app." symbol="app.fill" unique=#false {
+        module kind="app-button" bundle-id=""
+    }
+    - kind="power" title="Session" summary="Log out, restart, shut down." symbol="power" unique=#false {
+        module kind="power"
+    }
+    - kind="spacer" title="Flexible Space" summary="Takes the free room." symbol="arrow.left.and.right" unique=#false {
+        module kind="spacer"
+    }
+    - kind="gap" title="Gap" summary="A fixed gap." symbol="space" unique=#false {
+        module kind="gap" height=16
+    }
+    - kind="divider" title="Divider" summary="A thin line." symbol="line.3.horizontal" unique=#false {
+        module kind="divider"
+    }
+}
+
+define "settings-menubar-module-row" {
+    param "module"
+    param "zone"
+    param "index"
+    param "count"
+    param "look"
+    column class="settings-module" {
+        row class="settings-row settings-module-row" {
+            menu {
+                item "Move Up" disabled="{index == 0}" { list.move "menubar-{zone}" from="{index}" to="{index - 1}" }
+                item "Move Down" disabled="{index == count - 1}" { list.move "menubar-{zone}" from="{index}" to="{index + 2}" }
+                separator
+                each target in="{var.menubar-zones | where-not 'id' zone}" key="{target.id}" {
+                    item "Move to {target.title}" {
+                        list.insert "menubar-{target.id}" at=-1 { - "{module}" }
+                        list.remove "menubar-{zone}" key="{module.id}"
+                    }
+                }
+                separator
+                item "Join with Previous" checked="{module.joins ?? false}" disabled="{index == 0}" { list.update "menubar-{zone}" key="{module.id}" { - joins="{!(module.joins ?? false)}" } }
+                separator
+                item "Remove" { list.remove "menubar-{zone}" key="{module.id}" }
+            }
+            accessibility-action "Move Up" { list.move "menubar-{zone}" from="{index}" to="{index - 1}" }
+            accessibility-action "Move Down" { list.move "menubar-{zone}" from="{index}" to="{index + 2}" }
+            icon "{look.symbol ?? 'questionmark.square.dashed'}" class="settings-row-glyph"
+            column class="settings-row-text" {
+                text "{(module.joins ?? false) && index > 0 ? '+ ' : ''}{look.title ?? module.kind}" class="settings-row-title"
+                text "{look.summary ?? ''}" class="settings-row-detail" lines=0
+            }
+            spacer
+            button class="settings-icon-button" tooltip="Remove" label="Remove {look.title ?? module.kind}" {
+                on-click { list.remove "menubar-{zone}" key="{module.id}" }
+                icon "minus.circle.fill"
+            }
+        }
+    }
+}
+
+define "settings-menubar-zone" {
+    param "zone"
+    column class="settings-group" {
+        text "{zone.title}" class="settings-group-title"
+        text "{zone.detail}" class="settings-row-detail" lines=0
+        reorderable axis="vertical" enabled=#true {
+            on-reorder { list.move "menubar-{zone.id}" from="{event.from}" to="{event.to}" }
+            each module in="{zone.id == 'start' ? var.menubar-start : (zone.id == 'center' ? var.menubar-center : var.menubar-end)}" key="{module.id}" index="i" {
+                use "settings-menubar-module-row" module="{module}" zone="{zone.id}" index="{i}" count="{(zone.id == 'start' ? var.menubar-start : (zone.id == 'center' ? var.menubar-center : var.menubar-end)) | count}" look="{var.menubar-module-kinds | where 'kind' module.kind | first}"
+            }
+        }
+        row class="settings-actions" {
+            button class="settings-button" checked="{var.settings-menubar-gallery == zone.id}" {
+                on-click { set "settings-menubar-gallery" "{var.settings-menubar-gallery == zone.id ? '' : zone.id}" }
+                row class="button-content" {
+                    icon "plus"
+                    text "Add…"
+                }
+            }
+        }
+        when "{var.settings-menubar-gallery == zone.id}" {
+            grid columns=3 class="settings-gallery" {
+                each kind in="{var.menubar-module-kinds}" key="{kind.kind}" {
+                    button class="settings-gallery-tile" disabled="{kind.unique && ((var.menubar-start + var.menubar-center + var.menubar-end) | where 'kind' kind.kind | count) > 0}" tooltip="Add {kind.title}" {
+                        on-click {
+                            list.insert "menubar-{zone.id}" at=-1 id-from="kind" { - "{kind.module}" }
+                            set "settings-menubar-gallery" ""
+                        }
+                        column class="settings-gallery-content" {
+                            icon "{kind.symbol}" class="settings-gallery-glyph"
+                            text "{kind.title}" class="settings-row-title"
+                            text "{kind.summary}" class="settings-row-detail" lines=0
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "settings-menubar-apply-preset" {
+    param "preset"
+    param "value"
+    button class="settings-choice-button" checked="{var.menubar-start == ((value.start | count) > 0 ? value.start : []) && var.menubar-center == ((value.center | count) > 0 ? value.center : []) && var.menubar-end == ((value.end | count) > 0 ? value.end : [])}" {
+        on-click {
+            set "menubar-start" "{(value.start | count) > 0 ? value.start : []}"
+            set "menubar-center" "{(value.center | count) > 0 ? value.center : []}"
+            set "menubar-end" "{(value.end | count) > 0 ? value.end : []}"
+            set "menubar-thickness" "{value.thickness}"
+            emit "menubar-apply"
+        }
+        use "settings-choice" title="{preset.title}" detail="{preset.summary}" checked="{var.menubar-start == ((value.start | count) > 0 ? value.start : []) && var.menubar-center == ((value.center | count) > 0 ? value.center : []) && var.menubar-end == ((value.end | count) > 0 ? value.end : [])}"
+    }
+}
+
+define "settings-page-menubar" {
+    column class="settings-split-main" {
+        column class="settings-group" {
+            use "settings-switch" title="Show Menu Bar" detail="Across the top of the screen." checked="{var.menubar-enabled}" {
+                on-change { set "menubar-enabled" "{event.value}"; emit "menubar-apply" }
+            }
+        }
+        column class="settings-group" {
+            text "Template" class="settings-group-title"
+            text "Replaces what stands in the bar. Arrange it further below." class="settings-row-detail" lines=0
+            each preset in="{var.menubar-presets}" key="{preset.id}" {
+                use "settings-menubar-apply-preset" preset="{preset}" value="{preset.id == 'macos' ? var.menubar-macos : (preset.id == 'serpantinum' ? var.menubar-serpantinum : (preset.id == 'minimal' ? var.menubar-minimal : var.menubar-clock-only))}"
+            }
+        }
+        column class="settings-group" {
+            text "Style" class="settings-group-title"
+            each style in="{var.menubar-styles}" key="{style.id}" {
+                button class="settings-choice-button" checked="{style.id == var.menubar-style}" {
+                    on-click { set "menubar-style" "{style.id}" }
+                    use "settings-choice" title="{style.title}" detail="{style.detail}" checked="{style.id == var.menubar-style}"
+                }
+            }
+        }
+        column class="settings-group" {
+            use "settings-switch" title="Distinct Groups" detail="Every group gets its own lighter capsule on the strip." checked="{var.menubar-distinct}" disabled="{var.menubar-style == 'islands'}" {
+                on-change { set "menubar-distinct" "{event.value}" }
+            }
+        }
+        column class="settings-group" {
+            row class="settings-row" {
+                text "Thickness" class="settings-row-title"
+                spacer
+                text "{var.menubar-thickness} pt" class="settings-row-value"
+            }
+            slider value="{var.menubar-thickness}" min=24 max=64 step=1 class="settings-slider" {
+                on-change { set "menubar-thickness" "{event.value | round}" }
+            }
+        }
+        column class="settings-group" {
+            text "Status Icons" class="settings-group-title"
+            each style in="{var.menubar-status-styles}" key="{style.id}" {
+                button class="settings-choice-button" checked="{style.id == var.menubar-status-style}" {
+                    on-click { set "menubar-status-style" "{style.id}" }
+                    use "settings-choice" title="{style.title}" detail="{style.detail}" checked="{style.id == var.menubar-status-style}"
+                }
+            }
+        }
+        column class="settings-group" {
+            row class="settings-row" {
+                text "Screens" class="settings-row-title"
+                spacer
+                button class="settings-popup-button" menu-on="click" {
+                    menu side="below" {
+                        item "All Screens" checked="{var.menubar-screens == 'all'}" { set "menubar-screens" "all" }
+                        item "Main Display Only" checked="{var.menubar-screens == 'main'}" { set "menubar-screens" "main" }
+                        separator
+                        each monitor in="{screens.list}" key="{monitor.id}" {
+                            item "{monitor.name}" checked="{var.menubar-screens == monitor.id}" { set "menubar-screens" "{monitor.id}" }
+                        }
+                    }
+                    text "{var.menubar-screens == 'all' ? 'All Screens' : (var.menubar-screens == 'main' ? 'Main Display Only' : ((screens.list | where 'id' var.menubar-screens | first).name ?? var.menubar-screens + ' (not connected)'))}"
+                }
+            }
+        }
+        column class="settings-group" {
+            use "settings-switch" title="Cover Apple's Menu Bar" detail="Lie over Apple's menu bar instead of below it." checked="{var.menubar-covers}" {
+                on-change { set "menubar-covers" "{event.value}" }
+            }
+        }
+        column class="settings-group" {
+            use "settings-switch" title="Hide Apple's Menu Bar" detail="More room for windows. Other apps' status items then show without their images." checked="{var.menubar-hide-apple}" {
+                on-change { set "menubar-hide-apple" "{event.value}"; emit "menubar-apply" }
+            }
+        }
+        each zone in="{var.menubar-zones}" key="{zone.id}" {
+            use "settings-menubar-zone" zone="{zone}"
+        }
+    }
+}

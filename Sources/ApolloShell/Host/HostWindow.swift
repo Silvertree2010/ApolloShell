@@ -93,7 +93,8 @@ final class AppKitWindowFactory: HostWindowFactory {
     }
 
     func make(spec: SurfaceWindowSpec, content: AnyView) -> any HostWindow {
-        AppKitHostWindow(spec: spec, content: content, stage: stage)
+        if spec.kind == "status-item" { return StatusItemHostWindow(content: content) }
+        return AppKitHostWindow(spec: spec, content: content, stage: stage)
     }
 
     func makeAuxiliary(content: AnyView) -> any HostWindow {

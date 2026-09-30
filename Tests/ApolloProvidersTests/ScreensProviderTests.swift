@@ -22,7 +22,7 @@ struct ScreensProviderTests {
         guard case .list(let list) = harness.value("screens", "list") else { Issue.record("keine Liste"); return }
         #expect(list.count == 2)
         guard case .record(let first) = list[0], case .record(let second) = list[1] else { Issue.record("kein Record"); return }
-        #expect(first.keys == ["id", "name", "main", "index", "x", "y", "width", "height", "visible-x", "visible-y", "visible-width", "visible-height", "scale", "notch", "menubar-height", "fullscreen"])
+        #expect(first.keys == ["id", "name", "main", "index", "x", "y", "width", "height", "visible-x", "visible-y", "visible-width", "visible-height", "scale", "notch", "menubar-height", "fullscreen", "notch-left", "notch-right"])
         #expect(first["id"] == .string("Built-in Retina Display 1512x982"))
         #expect(first["index"] == .number(1))
         #expect(first["notch"] == .bool(true))
