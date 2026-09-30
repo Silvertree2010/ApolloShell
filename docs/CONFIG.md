@@ -1371,6 +1371,7 @@ Draws text.
 | property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `lines` | number | `1` | Lines, 0 = unlimited. |
 | property | `truncate` | "tail"\|"middle"\|"head" | `null` | Where text is truncated. |
+| property | `min-scale` | number | `1` | Smallest factor 0…1 the text shrinks to before it is truncated. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 

@@ -214,7 +214,7 @@ define "widget" {
     param "w"
     switch "{w.kind}" {
         case "weather" { use "card-weather" card="{w}" zone="{w.height >= 200 && w.width < 300 ? 'side' : 'top'}" }
-        case "user" { use "card-user" card="{w}" zone="{w.height >= 200 && w.width < 300 ? 'side' : 'top'}" }
+        case "user" { use "widget-user" w="{w}" }
         case "clock" { use "widget-clock" w="{w}" }
         case "calendar" { use "card-calendar" card="{w}" zone="{w.height > 300 ? 'side' : 'bottom'}" }
         case "resources" { use "card-resources" card="{w}" zone="{w.width > w.height ? 'top' : 'bottom'}" }
@@ -300,5 +300,70 @@ define "widget-dial" {
             shape "capsule" class="wg-hand-minute" style="width: {d * 0.03}px; height: {d * 0.38}px"
         }
         shape "circle" class="wg-dial-pin" style="width: {d * 0.07}px; height: {d * 0.07}px"
+    }
+}
+
+define "widget-avatar" {
+    param "d"
+    stack class="wg-avatar" style="width: {d}px; height: {d}px" {
+        shape "circle" class="wg-avatar-disc" style="width: {d}px; height: {d}px"
+        text "{system.full-name | first | upper}" class="wg-avatar-initial" style="font-size: {d * 0.4167}px"
+    }
+}
+
+define "widget-badges" {
+    param "w"
+    when "{w.show-system}" {
+        row class="wg-badge" {
+            icon "apple.logo" class="wg-badge-glyph"
+            text "macOS {system.macos-version}" class="wg-badge-text" lines=1
+        }
+    }
+    when "{w.show-uptime}" {
+        row class="wg-badge" {
+            icon "clock.arrow.circlepath" class="wg-badge-glyph"
+            text "running since {system.uptime | duration 'short'}" class="wg-badge-text" lines=1
+        }
+    }
+}
+
+define "widget-user" {
+    param "w"
+    switch "{w.display}" {
+        case "minimal" {
+            when "{w.height >= 200 && w.width < 300}" {
+                column class="card wg-user-min vertical" {
+                    use "widget-avatar" d="{(w.height - 40) | min (w.width * 0.45) | min 120}"
+                    text "{system.full-name}" class="wg-user-min-name vertical" lines=2 min-scale=0.7
+                }
+            }
+            else {
+                row class="card wg-user-min" {
+                    use "widget-avatar" d="{(w.height - 40) | min (w.width * 0.45) | min 120}"
+                    text "{system.full-name}" class="wg-user-min-name" lines=1 min-scale=0.7
+                }
+            }
+        }
+        default {
+            when "{w.height >= 200 && w.width < 300}" {
+                column class="card wg-user vertical" {
+                    use "widget-avatar" d=64
+                    column class="wg-user-text vertical" {
+                        text "{system.full-name}" class="wg-user-name" lines=1 truncate="tail"
+                        use "widget-badges" w="{w}"
+                    }
+                }
+            }
+            else {
+                row class="card wg-user" {
+                    use "widget-avatar" d=72
+                    column class="wg-user-text" {
+                        text "{system.full-name}" class="wg-user-name" lines=1 truncate="tail"
+                        use "widget-badges" w="{w}"
+                    }
+                    spacer
+                }
+            }
+        }
     }
 }

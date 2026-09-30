@@ -7,6 +7,7 @@ enum Elements {
             properties: CommonProperties.elementProperties + [
                 PropertySchema(name: "lines", type: .number, defaultValue: .number(1), allowsExpression: false, doc: "Lines, 0 = unlimited."),
                 PropertySchema(name: "truncate", type: .enumeration(["tail", "middle", "head"]), defaultValue: .null, allowsExpression: false, doc: "Where text is truncated."),
+                PropertySchema(name: "min-scale", type: .number, defaultValue: .number(1), allowsExpression: false, doc: "Smallest factor 0…1 the text shrinks to before it is truncated."),
             ],
             handlers: CommonProperties.elementHandlers,
             contexts: [.surfaceBody, .elementBody],

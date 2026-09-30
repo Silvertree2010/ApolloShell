@@ -12,3 +12,19 @@
 .wg-dial-face { background: rgb(from -apple-system-label r g b / 0.06); }
 .wg-hand-hour { background: -apple-system-label; }
 .wg-hand-minute, .wg-dial-pin { background: var(--apollo-accent-color, -apple-system-control-accent); }
+.wg-avatar { flex-shrink: 0; color: var(--apollo-on-accent-color, white); }
+.wg-avatar-disc { background: var(--apollo-accent-color, -apple-system-control-accent); }
+.wg-avatar-initial { font-weight: 600; font-family: ui-rounded; }
+.wg-badge { gap: 5px; padding: 3px 8px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.07); color: -apple-system-secondary-label; align-items: center; }
+.wg-badge-glyph { font-size: 10px; font-weight: 600; }
+.wg-badge-text { font-size: 11px; font-weight: 500; }
+.card.wg-user { padding: 0 18px; gap: 14px; align-items: center; border-radius: var(--apollo-card-radius, 28px); }
+.card.wg-user.vertical { padding: 0 14px; gap: 12px; justify-content: center; }
+.wg-user-text { gap: 6px; align-items: start; flex-shrink: 1; }
+.wg-user-text.vertical { align-items: center; }
+.wg-user-name { font-size: 17px; font-weight: 600; }
+.vertical > .wg-user-text > .wg-user-name { font-size: 16px; }
+.card.wg-user-min { padding: 0 20px; gap: 16px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 28px); }
+.card.wg-user-min.vertical { gap: 12px; padding: 0 16px; }
+.wg-user-min-name { font-size: 22px; font-weight: 600; flex-shrink: 1; }
+.wg-user-min-name.vertical { font-size: 18px; text-align: center; }
