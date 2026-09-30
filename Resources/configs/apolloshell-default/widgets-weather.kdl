@@ -1,0 +1,224 @@
+style "widgets-weather.css"
+
+define "wh-empty" {
+    column class="card weather-empty" {
+        text "Set Location in Settings" class="weather-empty-title"
+        button class="weather-empty-button" {
+            on-click { set "settings-page" "dashboard"; open "settings"; close "dashboard" }
+            text "Settings"
+        }
+    }
+}
+
+define "wh-summary" {
+    text "{((weather.current.apparent != null ? ' · Feels like ' + (weather.current.apparent | temperature) : '') + (weather.today != null ? ' · H:' + (weather.today.max | temperature) + ' L:' + (weather.today.min | temperature) : '')) | skip 3}" class="wh-summary" lines=1
+}
+
+define "wh-stats" {
+    param "gap"
+    grid columns=2 class="wh-stats" style="column-gap: {gap}px; row-gap: 12px" {
+        use "weather-detail" title="Humidity" value="{weather.current.humidity != null ? (weather.current.humidity * 100 | round) + ' %' : '–'}" icon="humidity.fill"
+        use "weather-detail" title="Sunrise" value="{weather.today.sunrise-text ?? (weather.today.sunrise | date 'HH:mm') ?? '–'}" icon="sunrise.fill"
+        use "weather-detail" title="Wind" value="{weather.current.wind != null ? (weather.current.wind | round) + ' km/h' : '–'}" icon="wind"
+        use "weather-detail" title="Sunset" value="{weather.today.sunset-text ?? (weather.today.sunset | date 'HH:mm') ?? '–'}" icon="sunset.fill"
+    }
+}
+
+define "wh-attribution" {
+    button class="wh-attribution" {
+        on-click { open-url "{weather.attribution.url}" }
+        text "{weather.attribution.text}" class="weather-attribution-text"
+    }
+}
+
+define "wh-symbol" {
+    param "size"
+    icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph" style="font-size: {size}px"
+}
+
+define "widget-weather-hero" {
+    param "w"
+    switch "{weather.status}" {
+        case "ready" {
+            switch "{w.display}" {
+                case "minimal" {
+                    when "{w.height > 200}" {
+                        column class="card wh-min tall" {
+                            use "wh-symbol" size=72
+                            text "{weather.current.temperature | temperature}" class="wh-min-temp" style="font-size: 80px" lines=1
+                            text "{weather.current.description}" class="wh-min-cond" style="font-size: 20px" lines=1
+                        }
+                    }
+                    else {
+                        row class="card wh-min" {
+                            use "wh-symbol" size=52
+                            text "{weather.current.temperature | temperature}" class="wh-min-temp" style="font-size: 56px" lines=1
+                            text "{weather.current.description}" class="wh-min-cond" style="font-size: 18px" lines=1
+                        }
+                    }
+                }
+                default {
+                    when "{w.height > 200}" {
+                        column class="card wh-tall" style="width: {w.width}px; height: {w.height}px" {
+                            row class="wh-tall-top" {
+                                use "wh-symbol" size="{w.height > 300 ? 60 : 44}"
+                                text "{weather.current.temperature | temperature}" class="wh-temp" style="font-size: {w.height > 300 ? 76 : 52}px" lines=1
+                                spacer
+                            }
+                            column class="wh-tall-text" {
+                                text "{weather.current.description}" class="wh-cond" style="font-size: {w.height > 300 ? 21 : 17}px" lines=1
+                                use "wh-summary"
+                            }
+                            spacer
+                            use "wh-stats" gap="{w.width > 400 ? 24 : 14}"
+                            when "{w.height > 300}" { use "wh-attribution" }
+                        }
+                    }
+                    else {
+                        stack class="card wh-row" style="width: {w.width}px; height: {w.height}px" {
+                            row class="wh-row-body" {
+                                stack class="wh-row-glyph" { use "wh-symbol" size=56 }
+                                text "{weather.current.temperature | temperature}" class="wh-temp" style="font-size: 60px" lines=1
+                                column class="wh-row-text" {
+                                    text "{weather.current.description}" class="wh-cond" style="font-size: 19px" lines=1
+                                    use "wh-summary"
+                                    when "{weather.stale}" { text "As of {weather.updated | date 'HH:mm'}" class="weather-stale" }
+                                }
+                                spacer
+                                when "{w.width >= 760}" {
+                                    column class="wh-row-stats" { use "wh-stats" gap=24 }
+                                }
+                            }
+                            use "wh-attribution"
+                        }
+                    }
+                }
+            }
+        }
+        default { use "wh-empty" }
+    }
+}
+
+define "widget-weather-hourly" {
+    param "w"
+    switch "{weather.status}" {
+        case "ready" {
+            switch "{w.display}" {
+                case "graph" {
+                    use "wh-hgraph" w="{w}" slots="{weather.hourly-strip | take (((w.width - 20) / 64) | floor | max 3)}"
+                }
+                default {
+                    row class="card wh-hours" style="width: {w.width}px; height: {w.height}px" {
+                        each hour in="{weather.hourly-strip | take (((w.width - 20) / 64) | floor | max 3)}" key="{hour.time}" {
+                            column class="wh-hour{hour.now ? ' now' : ''}" style="gap: {w.height > 200 ? 14 : 5}px" {
+                                text "{hour.time-text ?? (hour.now ? 'Now' : (hour.time | date 'H:00'))}" class="wh-hour-time"
+                                stack class="wh-hour-glyph" style="height: {w.height > 200 ? 36 : 26}px" {
+                                    icon "{hour.symbol}" class="weather-glyph" style="font-size: {w.height > 200 ? 28 : 20}px"
+                                }
+                                text "{hour.precipitation-text}" class="weather-precipitation"
+                                text "{hour.temperature | temperature}" class="weather-hour-temperature"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        default { use "wh-empty" }
+    }
+}
+
+define "wh-hgraph" {
+    param "w"
+    param "slots"
+    column class="card wh-hours graph" style="width: {w.width}px; height: {w.height}px" {
+        stack class="wh-hgraph-area" {
+            column class="wh-hgraph-line" style="padding: 18px {(w.width - 20) / (slots | count) / 2}px 6px" {
+                graph values="{slots | map 'temperature'}" kind="line" min="{((slots | map 'temperature' | sort | first) ?? 0) - 1}" max="{((slots | map 'temperature' | sort | last) ?? 1) + 1}" capacity="{slots | count}" class="wh-hgraph-curve"
+            }
+            row class="wh-hgraph-points" {
+                each hour in="{slots}" key="{hour.time}" {
+                    column class="wh-hgraph-col" style="padding-top: {(w.height - 20 - 6 - (w.height > 200 ? 39 : 14) - 24) * (1 - (hour.temperature - (((slots | map 'temperature' | sort | first) ?? 0) - 1)) / ((((slots | map 'temperature' | sort | last) ?? 1) + 1) - (((slots | map 'temperature' | sort | first) ?? 0) - 1) | max 1)) + 18 - 21}px" {
+                        text "{hour.temperature | temperature}" class="wh-hgraph-value"
+                        shape "circle" class="wh-hgraph-dot" style="width: 6px; height: 6px"
+                    }
+                }
+            }
+        }
+        row class="wh-hgraph-labels" {
+            each hour in="{slots}" key="{hour.time}" {
+                column class="wh-hgraph-label{hour.now ? ' now' : ''}" {
+                    when "{w.height > 200}" {
+                        stack class="wh-hour-glyph" style="height: 22px" {
+                            icon "{hour.symbol}" class="weather-glyph" style="font-size: 18px"
+                        }
+                    }
+                    text "{hour.time-text ?? (hour.now ? 'Now' : (hour.time | date 'H:00'))}" class="wh-hgraph-time"
+                }
+            }
+        }
+    }
+}
+
+define "wh-day" {
+    param "day"
+    column class="card wh-day" {
+        text "{day.name-text ?? (day.today ? 'Today' : (day.date | date 'EEEEEE'))}" class="weather-day-name{day.today ? ' today' : ''}"
+        text "{day.date-text ?? (day.date | date 'M/d')}" class="weather-day-date"
+        stack class="weather-day-glyph-frame" {
+            icon "{day.symbol}" class="weather-glyph weather-day-glyph"
+        }
+        text "{day.precipitation-text}" class="weather-precipitation"
+        row class="weather-day-range" {
+            text "{day.max | temperature}" class="weather-day-high"
+            text "{day.min | temperature}" class="weather-day-low"
+        }
+    }
+}
+
+define "wh-drow" {
+    param "w"
+    param "day"
+    param "low"
+    param "high"
+    param "last"
+    row class="wh-drow" {
+        text "{day.name-text ?? (day.today ? 'Today' : (day.date | date 'EEEEEE'))}" class="wh-drow-name"
+        stack class="wh-drow-glyph" { icon "{day.symbol}" class="weather-glyph" style="font-size: 17px" }
+        when "{w.width >= 300}" { text "{day.precipitation-text}" class="weather-precipitation wh-drow-rain" }
+        text "{day.min | temperature}" class="wh-drow-min"
+        stack class="wh-drow-bar" {
+            shape "capsule" class="wh-drow-track"
+            row class="wh-drow-span" {
+                shape "capsule" class="wh-drow-gap" style="width: {(day.min - low) / ((high - low) | max 1) * 100}%; height: 5px"
+                shape "capsule" class="wh-drow-fill" style="width: {(((day.max - low) / ((high - low) | max 1)) - ((day.min - low) / ((high - low) | max 1))) * 100}%; height: 5px; min-width: 5px"
+            }
+        }
+        text "{day.max | temperature}" class="wh-drow-max"
+    }
+    when "{!last}" { stack class="wh-divider" }
+}
+
+define "widget-weather-daily" {
+    param "w"
+    switch "{weather.status}" {
+        case "ready" {
+            switch "{w.display}" {
+                case "list" {
+                    column class="card wh-dlist" style="width: {w.width}px; height: {w.height}px" {
+                        each day in="{weather.days | take (((w.height - 20) / 30) | floor | max 2 | min 7)}" key="{day.date}" {
+                            use "wh-drow" w="{w}" day="{day}" low="{(weather.days | take (((w.height - 20) / 30) | floor | max 2 | min 7) | map 'min' | sort | first)}" high="{(weather.days | take (((w.height - 20) / 30) | floor | max 2 | min 7) | map 'max' | sort | last)}" last="{day.date == ((weather.days | take (((w.height - 20) / 30) | floor | max 2 | min 7) | last).date)}"
+                        }
+                    }
+                }
+                default {
+                    row class="wh-days" style="width: {w.width}px; height: {w.height}px" {
+                        each day in="{weather.days | take ((((w.width + 12) / 102) | floor) | max 2 | min 7)}" key="{day.date}" {
+                            use "wh-day" day="{day}"
+                        }
+                    }
+                }
+            }
+        }
+        default { use "wh-empty" }
+    }
+}
