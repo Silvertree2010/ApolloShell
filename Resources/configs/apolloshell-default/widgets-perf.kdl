@@ -35,7 +35,7 @@ define "wp-hero" {
     param "fallback"
     switch "{w.display}" {
         case "graph" {
-            stack class="card wp-graphcard" style="width: {w.width}px; height: {w.height}px" {
+            stack class="card wp-graphcard" style="width: {w.width}px" {
                 column class="wp-graphcard-body" style="width: {w.width}px; height: {w.height}px; padding-top: 44px" {
                     use "wp-graph" history="{history}" fill=0.22
                 }
@@ -138,4 +138,167 @@ define "widget-cpu" {
 define "widget-gpu" {
     param "w"
     use "wp-hero" w="{w}" title="GPU" subtitle="{perf.gpu-cores != null ? perf.chip + ' · ' + perf.gpu-cores + ' Cores' : perf.chip}" value="{perf.live.gpu}" history="{perf.live.gpu-history}" icon="square.stack.3d.up" fallback="square.stack.3d.up"
+}
+
+define "wp-utitle" {
+    param "icon"
+    param "fallback"
+    param "title"
+    row class="wp-utitle" {
+        icon "{icon}" fallback="{fallback}" class="wp-utitle-glyph"
+        text "{title}" class="wp-utitle-text" lines=1
+    }
+}
+
+define "wp-arc" {
+    param "value"
+    param "g"
+    param "fs"
+    param "caption"
+    stack class="wp-arc" style="width: {g}px; height: {g}px" {
+        gauge value="{value ?? 0}" class="perf-gauge" style="width: {g}px; height: {g}px"
+        text "{value != null ? (value * 100 | round) + ' %' : '–'}" class="wp-arc-text" style="font-size: {fs}px"
+        text "{caption}" class="perf-gauge-caption"
+    }
+}
+
+define "wp-usage" {
+    param "w"
+    param "title"
+    param "icon"
+    param "fallback"
+    param "value"
+    param "detail"
+    param "page"
+    param "rw"
+    switch "{w.display}" {
+        case "bar" {
+            column class="card wp-ubarcard" style="gap: {w.height >= 200 ? 12 : 8}px" {
+                use "wp-utitle" icon="{icon}" fallback="{fallback}" title="{title}"
+                spacer
+                text "{value != null ? (value * 100 | round) + ' %' : '–'}" class="wp-ubar-percent" style="font-size: {w.height >= 200 ? 44 : 30}px" lines=1
+                progress value="{value ?? 0}" class="wp-ubar" style="height: {w.height >= 200 ? 12 : 8}px"
+                text "{detail}" class="wp-udetail small" style="font-size: {w.height < 150 ? 8.8 : 11}px; margin-top: {w.height < 150 ? -1 : 0}px" lines=1 min-scale=0.8
+            }
+        }
+        default {
+            when "{w.height < 150}" {
+                row class="card wp-urow" style="width: {w.width < 204 ? rw : w.width}px" {
+                    use "wp-arc" value="{value}" g="{(w.width * 0.4) | min 92}" fs=19 caption=""
+                    column class="wp-urow-text" {
+                        use "wp-utitle" icon="{icon}" fallback="{fallback}" title="{title}"
+                        text "{detail}" class="wp-udetail" lines=2 min-scale=0.8
+                    }
+                    spacer
+                }
+            }
+            else {
+                when "{w.height > 200}" {
+                    column class="card wp-utall" {
+                        use "wp-utitle" icon="{icon}" fallback="{fallback}" title="{title}"
+                        use "wp-arc" value="{value}" g="{(w.width - 40) | min (w.height - 96) | min 220}" fs="{((w.width - 40) | min (w.height - 96) | min 220) * 0.26}" caption="Used"
+                        text "{detail}" class="wp-udetail" lines=1 min-scale=0.8
+                    }
+                }
+                else {
+                    switch "{page}" {
+                        case "storage" { use "perf-storage" }
+                        default { use "perf-memory" }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "widget-storage" {
+    param "w"
+    use "wp-usage" w="{w}" title="Storage" icon="panel-disk" fallback="internaldrive.fill" value="{perf.live.disk}" detail="{perf.live.disk-used | bytes} of {perf.live.disk-total | bytes}" page="storage" rw=203
+}
+
+define "widget-memory" {
+    param "w"
+    use "wp-usage" w="{w}" title="Memory" icon="panel-memory" fallback="memorychip.fill" value="{perf.live.memory}" detail="{perf.live.memory-used | bytes 'binary'} of {perf.live.memory-total | bytes 'binary'}" page="memory" rw=205
+}
+
+define "wp-rate-label" {
+    param "symbol"
+    param "tone"
+    param "value"
+    row class="wp-rate-label" {
+        icon "{symbol}" class="perf-rate-glyph {tone}"
+        text "{value}" class="wp-rate-label-value" lines=1
+    }
+}
+
+define "wp-figure" {
+    param "w"
+    param "symbol"
+    param "tone"
+    param "title"
+    param "value"
+    column class="wp-figure" {
+        row class="wp-figure-head" {
+            icon "{symbol}" class="perf-rate-glyph {tone}"
+            text "{title}" class="perf-rate-title"
+        }
+        text "{value | bytes-per-second}" class="wp-figure-value" style="font-size: {w.height >= 200 ? 34 : 26}px" lines=1 min-scale=0.6
+    }
+}
+
+define "widget-network" {
+    param "w"
+    switch "{w.display}" {
+        case "numbers" {
+            column class="card wp-netnum" {
+                row class="wp-netnum-head" {
+                    icon "arrow.up.arrow.down" class="perf-network-glyph"
+                    text "Network" class="perf-network-title"
+                }
+                spacer
+                when "{w.height >= 200 && w.width < 420}" {
+                    column class="wp-netnum-col" {
+                        use "wp-figure" w="{w}" symbol="arrow.down" tone="down" title="Download" value="{perf.live.net-down}"
+                        use "wp-figure" w="{w}" symbol="arrow.up" tone="up" title="Upload" value="{perf.live.net-up}"
+                    }
+                }
+                else {
+                    row class="wp-netnum-row" {
+                        use "wp-figure" w="{w}" symbol="arrow.down" tone="down" title="Download" value="{perf.live.net-down}"
+                        use "wp-figure" w="{w}" symbol="arrow.up" tone="up" title="Upload" value="{perf.live.net-up}"
+                    }
+                }
+                spacer
+            }
+        }
+        default {
+            column class="card perf-network" {
+                row class="perf-network-head" {
+                    icon "arrow.up.arrow.down" class="perf-network-glyph"
+                    text "Network" class="perf-network-title"
+                    spacer
+                    text "max {((perf.live.net-history | map 'down' | sort | last) ?? 0) | max ((perf.live.net-history | map 'up' | sort | last) ?? 0) | max 10000 | bytes-per-second}" class="perf-network-max"
+                }
+                stack class="perf-network-graph" {
+                    stack class="perf-baseline"
+                    graph values="{perf.live.net-history | map 'up'}" kind="area" min=0 max="{((perf.live.net-history | map 'down' | sort | last) ?? 0) | max ((perf.live.net-history | map 'up' | sort | last) ?? 0) | max 10000}" capacity=30 class="perf-graph perf-net-up"
+                    graph values="{perf.live.net-history | map 'down'}" kind="area" min=0 max="{((perf.live.net-history | map 'down' | sort | last) ?? 0) | max ((perf.live.net-history | map 'up' | sort | last) ?? 0) | max 10000}" capacity=30 class="perf-graph perf-net-down"
+                }
+                when "{w.height < 150}" {
+                    row class="wp-rates-compact" {
+                        use "wp-rate-label" symbol="arrow.down" tone="down" value="{perf.live.net-down | bytes-per-second}"
+                        use "wp-rate-label" symbol="arrow.up" tone="up" value="{perf.live.net-up | bytes-per-second}"
+                        spacer
+                    }
+                }
+                else {
+                    column class="perf-rates" {
+                        use "perf-rate-row" symbol="arrow.down" tone="down" title="Download" value="{perf.live.net-down | bytes-per-second}" tooltip=""
+                        use "perf-rate-row" symbol="arrow.up" tone="up" title="Upload" value="{perf.live.net-up | bytes-per-second}" tooltip=""
+                        use "perf-rate-row" symbol="clock.arrow.circlepath" tone="total" title="Total" value="↓ {perf.live.net-total-down | bytes}   ↑ {perf.live.net-total-up | bytes}" tooltip="Since this tab was first opened"
+                    }
+                }
+            }
+        }
+    }
 }

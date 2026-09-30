@@ -224,9 +224,9 @@ define "widget" {
         case "media.player" { use "widget-media-player" w="{w}" }
         case "performance.cpu" { use "widget-cpu" w="{w}" }
         case "performance.gpu" { use "widget-gpu" w="{w}" }
-        case "performance.storage" { use "perf-storage" }
-        case "performance.network" { use "perf-network" }
-        case "performance.memory" { use "perf-memory" }
+        case "performance.storage" { use "widget-storage" w="{w}" }
+        case "performance.network" { use "widget-network" w="{w}" }
+        case "performance.memory" { use "widget-memory" w="{w}" }
         case "performance.battery" { use "perf-battery" }
         case "weather.hero" { use "weather-hero" }
         case "weather.hourly" { use "weather-hourly" }

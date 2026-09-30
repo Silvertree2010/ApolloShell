@@ -29,3 +29,26 @@
 .wp-gauge-label { flex-shrink: 1; min-width: 0; }
 .wp-gauge-label.wide .perf-hero-subtitle { text-align: left; }
 .wp-gauge-label .wp-graphcard-title { flex-shrink: 0; }
+.wp-utitle { gap: 6px; align-items: center; flex-shrink: 0; }
+.wp-utitle-glyph { color: var(--apollo-accent-color, -apple-system-control-accent); font-size: 13px; font-weight: 600; width: 15px; height: 15px; }
+.wp-utitle-text { font-size: 13px; font-weight: 600; flex-shrink: 0; }
+.wp-arc { align-items: center; justify-content: center; flex-shrink: 0; }
+.wp-arc-text { font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.card.wp-urow { padding: 0 14px; gap: 12px; align-items: center; border-radius: var(--apollo-card-radius, 24px); }
+.wp-urow-text { gap: 4px; align-items: start; flex-shrink: 1; min-width: 0; }
+.wp-udetail { font-size: 12px; color: -apple-system-secondary-label; }
+.wp-udetail.small { font-size: 11px; }
+.card.wp-utall { padding: 0 16px; gap: 8px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 28px); }
+.card.wp-ubarcard { padding: 16px; align-items: start; border-radius: var(--apollo-card-radius, 24px); }
+.wp-ubar-percent { font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.wp-ubar { align-self: stretch; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wp-rate-label { gap: 5px; align-items: center; }
+.wp-rate-label-value { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.wp-rates-compact { gap: 14px; align-self: stretch; }
+.card.wp-netnum { padding: 16px; gap: 10px; align-items: start; border-radius: var(--apollo-card-radius, 24px); }
+.wp-netnum-head { gap: 6px; align-items: center; }
+.wp-netnum-col { gap: 14px; align-items: start; }
+.wp-netnum-row { gap: 24px; align-items: end; }
+.wp-figure { gap: 2px; align-items: start; }
+.wp-figure-head { gap: 5px; align-items: center; }
+.wp-figure-value { font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
