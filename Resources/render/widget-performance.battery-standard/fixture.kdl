@@ -1,0 +1,138 @@
+fixture {
+    clock now="2026-09-24T09:41:00+02:00"
+    battery present=#true percent=0.67 charging=#false on-power=#false minutes-to-empty=254 tank-text="4h 14m Left" symbol="battery.75percent"
+    network {
+        wifi on=#true connected=#true rssi=-52 bars=3
+    }
+    bluetooth on=#true status="ready" paired=2 connected=1
+    audio volume=0.35 muted=#false symbol="speaker.wave.2.fill" {
+        output id="builtin" name="MacBook Pro Speakers"
+    }
+    system user-name="Andrin Example" full-name="Andrin Example" uptime=11520 macos-version="26.6.2" chip="Apple M4 Pro"
+    perf cpu=0.181363 memory=0.613121 chip="Apple M4 Pro" cores=14 gpu-cores=20 {
+        live cpu=0.181363 gpu=0.436659 memory=0.613121 disk=0.414211 memory-used=15800000000 memory-total=25769803776 disk-used=412000000000 disk-total=994662584320 net-down=300000.0 net-up=90000.0 net-total-down=23040000 net-total-up=3600000 {
+            cpu-history {
+                - 0.338338
+                - 0.390782
+                - 0.431431
+                - 0.454454
+                - 0.458918
+                - 0.443443
+                - 0.610611
+                - 0.361723
+                - 0.304609
+                - 0.244489
+                - 0.188377
+                - 0.143143
+                - 0.111222
+                - 0.3003
+                - 0.107107
+                - 0.133133
+                - 0.175175
+                - 0.228457
+                - 0.288577
+                - 0.347347
+                - 0.598196
+                - 0.435872
+                - 0.456456
+                - 0.457916
+                - 0.438878
+                - 0.403403
+                - 0.353707
+                - 0.495992
+                - 0.236236
+                - 0.181363
+            }
+            gpu-history {
+                - 0.592228
+                - 0.569396
+                - 0.532922
+                - 0.485076
+                - 0.428831
+                - 0.367684
+                - 0.305438
+                - 0.245963
+                - 0.192957
+                - 0.149714
+                - 0.118924
+                - 0.102502
+                - 0.101468
+                - 0.115886
+                - 0.14486
+                - 0.186589
+                - 0.238478
+                - 0.297301
+                - 0.359401
+                - 0.420916
+                - 0.478021
+                - 0.527167
+                - 0.565298
+                - 0.590043
+                - 0.599862
+                - 0.594147
+                - 0.573252
+                - 0.538476
+                - 0.491981
+                - 0.436659
+            }
+            net-history {
+            - down=240000.0 up=120000.0
+            - down=300000.0 up=150000.0
+            - down=360000.0 up=90000.0
+            - down=180000.0 up=120000.0
+            - down=240000.0 up=150000.0
+            - down=300000.0 up=90000.0
+            - down=360000.0 up=120000.0
+            - down=180000.0 up=150000.0
+            - down=240000.0 up=90000.0
+            - down=300000.0 up=120000.0
+            - down=360000.0 up=150000.0
+            - down=180000.0 up=90000.0
+            - down=240000.0 up=120000.0
+            - down=300000.0 up=150000.0
+            - down=360000.0 up=90000.0
+            - down=180000.0 up=120000.0
+            - down=240000.0 up=150000.0
+            - down=300000.0 up=90000.0
+            - down=2400000.0 up=120000.0
+            - down=2400000.0 up=150000.0
+            - down=2400000.0 up=90000.0
+            - down=2400000.0 up=120000.0
+            - down=2400000.0 up=150000.0
+            - down=2400000.0 up=90000.0
+            - down=2400000.0 up=120000.0
+            - down=300000.0 up=150000.0
+            - down=360000.0 up=90000.0
+            - down=180000.0 up=120000.0
+            - down=240000.0 up=150000.0
+            - down=300000.0 up=90000.0
+            }
+        }
+    }
+    weather status="ready" {
+        place name="Chur" latitude=46.85 longitude=9.53
+        current temperature=14 symbol="cloud.sun.fill" description="Partly Cloudy" is-day=#true
+        today max=18 min=10
+    }
+    media available=#true playing=#true progress=0.391304 duration=230 elapsed=90 app-name="Music" title="Starboy" artist="The Weeknd" album="Starboy" kind="music"
+    spaces current=2 count=4 {
+        list {
+            - id=1 index=1 active=#false fullscreen=#false
+            - id=2 index=2 active=#true fullscreen=#false
+            - id=3 index=3 active=#false fullscreen=#false
+            - id=4 index=4 active=#false fullscreen=#false
+        }
+    }
+    apps {
+        dock {
+            - bundle-id="com.apple.finder" name="Finder" running=#true section="file-manager" active=#false hidden=#false launching=#false badge=#null
+            - bundle-id="com.apple.Safari" name="Safari" running=#true active=#true dock-pinned=#true section="pinned" hidden=#false launching=#false badge=#null
+            - bundle-id="com.apple.mail" name="Mail" running=#false dock-pinned=#true section="pinned" badge="3" active=#false hidden=#false launching=#false
+        }
+        all {
+            - bundle-id="com.apple.finder" name="Finder" path="/System/Library/CoreServices/Finder.app" usage=0 favorite-index=#null
+            - bundle-id="com.apple.Safari" name="Safari" path="/Applications/Safari.app" usage=0 favorite-index=0
+            - bundle-id="com.apple.mail" name="Mail" path="/System/Applications/Mail.app" usage=0 favorite-index=1
+        }
+    }
+}

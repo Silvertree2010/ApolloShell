@@ -305,3 +305,55 @@ define "widget-network" {
         }
     }
 }
+
+define "wp-bdial" {
+    param "ring"
+    stack class="wp-bdial" style="width: {ring}px; height: {ring}px" {
+        ring value="{battery.percent ?? 0}" class="wp-bring" style="width: {ring + 8}px; height: {ring + 8}px"
+        column class="wp-bdial-label" {
+            icon "{battery.charging ? 'bolt.fill' : (battery.symbol ?? 'battery.100percent')}" class="wp-bdial-glyph" style="font-size: {ring * 0.12}px"
+            text "{(battery.percent * 100 | round) + ' %'}" class="wp-bdial-text" style="font-size: {ring * 0.22}px"
+        }
+    }
+}
+
+define "widget-battery" {
+    param "w"
+    when "{battery.present}" {
+        switch "{w.display}" {
+            case "ring" {
+                when "{w.width > w.height * 1.3}" {
+                    row class="card wp-bcard wide" style="width: {w.width}px" {
+                        use "wp-bdial" ring="{(w.height - 32) | min 150}"
+                        column class="wp-bside" {
+                            text "Battery" class="wp-btitle"
+                            text "{battery.tank-text}" class="wp-bstatus" lines=2
+                        }
+                        spacer
+                    }
+                }
+                else {
+                    column class="card wp-bcard" style="width: {w.width}px" {
+                        use "wp-bdial" ring="{(w.width - 32) | min (w.height - 70) | min 170}"
+                        text "{battery.tank-text}" class="wp-bstatus center" lines=2
+                    }
+                }
+            }
+            default {
+                stack class="perf-battery" style="width: {w.width}px; height: {w.height}px" {
+                    progress value="{battery.percent}" vertical=#true class="perf-tank"
+                    column class="perf-tank-contents" {
+                        row class="perf-tank-head" {
+                            icon "{battery.symbol ?? 'battery.100percent'}" class="perf-tank-glyph"
+                            text "Battery" class="perf-tank-title"
+                        }
+                        spacer
+                        when "{battery.charging}" { icon "bolt.fill" class="perf-tank-bolt" }
+                        text "{(battery.percent * 100 | round) + ' %'}" class="perf-tank-percent"
+                        text "{battery.tank-text}" class="perf-tank-status"
+                    }
+                }
+            }
+        }
+    }
+}
