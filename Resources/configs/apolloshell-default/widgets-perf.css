@@ -17,7 +17,7 @@
 .wp-graphcard-title { font-size: 15px; font-weight: 600; }
 .wp-graphcard-percent { font-size: 28px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
 .card.wp-gaugecard { padding: 14px; gap: 10px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
-.card.wp-gaugecard.wide { padding: 0 18px; gap: 18px; }
+.card.wp-gaugecard.wide { padding: 0 18px; gap: 18px; justify-content: start; }
 .wp-gauge-label { gap: 1px; align-items: center; }
 .wp-gauge-label.wide { align-items: start; }
 .wp-dial { align-items: center; justify-content: center; flex-shrink: 0; }
