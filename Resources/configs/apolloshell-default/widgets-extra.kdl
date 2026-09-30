@@ -368,3 +368,42 @@ define "widget-files-recent" {
         }
     }
 }
+
+var wx-copied ""
+
+define "widget-clipboard" {
+    param "w"
+    column class="card wx-clip" {
+        row class="wx-clip-head" {
+            use "wx-header" symbol="list.clipboard" title="Clipboard"
+            spacer
+            when "{(clipboard.history | count) > 0}" {
+                button class="wx-clip-clear" {
+                    on-click { clipboard.clear }
+                    text "Clear" class="wx-clip-clear-text"
+                }
+            }
+        }
+        when "{(clipboard.history | count) == 0}" {
+            spacer
+            text "Copied text shows up here. Secrets from password managers never do." class="wx-clip-empty"
+            spacer
+        }
+        else {
+            each h in="{clipboard.history | take (1 | max (((w.height - 44) / 30) | floor))}" key="{h.text}" {
+                button class="wx-clip-button" {
+                    on-click {
+                        clipboard.copy "{h.text}"
+                        set wx-copied "{h.text}"
+                    }
+                    row class="wx-clip-row" {
+                        text "{h.text | replace '\n' ' '}" class="wx-clip-text" lines=1
+                        spacer
+                        icon "{var.wx-copied == h.text ? 'checkmark' : 'doc.on.doc'}" class="wx-clip-glyph {var.wx-copied == h.text ? 'done' : ''}"
+                    }
+                }
+            }
+            spacer
+        }
+    }
+}

@@ -56,3 +56,13 @@
 .wx-file-cell { gap: 4px; align-items: center; }
 .wx-file-icon { flex-shrink: 0; }
 .wx-file-name { font-size: 10px; text-align: center; }
+.card.wx-clip { padding: 14px; align-items: start; justify-content: start; border-radius: var(--apollo-card-radius, 24px); }
+.wx-clip-head { align-self: stretch; align-items: start; }
+.wx-clip-clear { padding-bottom: 6px; }
+.wx-clip-clear-text { font-size: 11px; font-weight: 500; color: -apple-system-secondary-label; }
+.wx-clip-empty { font-size: 12px; color: -apple-system-secondary-label; text-align: left; }
+.wx-clip-button { align-self: stretch; }
+.wx-clip-row { gap: 8px; height: 30px; align-items: center; align-self: stretch; }
+.wx-clip-text { font-size: 13px; flex-shrink: 1; min-width: 0; }
+.wx-clip-glyph { font-size: 11px; font-weight: 600; color: -apple-system-secondary-label; flex-shrink: 0; }
+.wx-clip-glyph.done { color: var(--apollo-accent-color, -apple-system-control-accent); }
