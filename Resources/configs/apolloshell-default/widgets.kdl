@@ -216,7 +216,7 @@ define "widget" {
         case "weather" { use "widget-weather" w="{w}" }
         case "user" { use "widget-user" w="{w}" }
         case "clock" { use "widget-clock" w="{w}" }
-        case "calendar" { use "card-calendar" card="{w}" zone="{w.height > 300 ? 'side' : 'bottom'}" }
+        case "calendar" { use "widget-calendar" w="{w}" }
         case "resources" { use "card-resources" card="{w}" zone="{w.width > w.height ? 'top' : 'bottom'}" }
         case "media" { use "card-media" card="{w}" zone="{w.width > w.height * 1.3 ? 'top' : (w.height >= 330 ? 'side' : 'bottom')}" }
         case "media.player" { use "dashboard-media" }
@@ -391,5 +391,53 @@ define "widget-weather" {
             }
         }
         default { use "card-weather" card="{w}" zone="{w.height >= 200 && w.width < 300 ? 'side' : 'top'}" }
+    }
+}
+
+define "widget-calendar" {
+    param "w"
+    switch "{w.display}" {
+        case "today" {
+            column class="card wg-today {w.height >= 250 ? 'big' : ''}" {
+                text "{clock.now | date 'EEEE'}" class="wg-today-weekday" lines=1
+                text "{clock.now | date 'd'}" class="wg-today-day" style="font-size: {w.height >= 250 ? ((w.height * 0.42) | min 150) : 64}px" lines=1 min-scale=0.5
+                text "{clock.now | date 'MMMM yyyy'}" class="wg-today-month" lines=1
+            }
+        }
+        default {
+            column class="card card-calendar zone-side {w.height > 300 ? 'tall' : ''}" {
+                row class="card-calendar-head" {
+                    button class="card-calendar-arrow" tooltip="Previous Month" {
+                        on-click { set "calendar-offset" "{var.calendar-offset - 1}" }
+                        icon "chevron.left" class="card-calendar-arrow-glyph"
+                    }
+                    spacer
+                    button class="card-calendar-month" {
+                        on-click { set "calendar-offset" 0 }
+                        text "{((clock.now | month-grid var.calendar-offset w.first-weekday) | at 1 | first).date | date 'MMMM yyyy'}" class="card-calendar-title"
+                    }
+                    spacer
+                    button class="card-calendar-arrow" tooltip="Next Month" {
+                        on-click { set "calendar-offset" "{var.calendar-offset + 1}" }
+                        icon "chevron.right" class="card-calendar-arrow-glyph"
+                    }
+                }
+                grid columns="{w.show-week-numbers ? 8 : 7}" class="card-calendar-grid" {
+                    when "{w.show-week-numbers}" { text "Wk" class="card-calendar-week" }
+                    each weekday in="{clock.now | month-grid var.calendar-offset w.first-weekday | first}" key="{weekday.weekday}" {
+                        text "{weekday.date | date 'EEEEEE'}" class="card-calendar-weekday"
+                    }
+                    each week in="{clock.now | month-grid var.calendar-offset w.first-weekday}" key="{(week | first).week}" {
+                        when "{w.show-week-numbers}" { text "{(week | first).week}" class="card-calendar-week" }
+                        each day in="{week}" key="{day.date}" {
+                            column class="card-calendar-cell" {
+                                text "{day.day}" class="card-calendar-day {day.today ? 'today' : ''} {!day.in-month ? 'outside' : ''}"
+                            }
+                        }
+                    }
+                }
+                spacer
+            }
+        }
     }
 }

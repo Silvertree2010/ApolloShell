@@ -31,3 +31,10 @@
 .card.wg-weather-min { padding: 0 16px; gap: 14px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 42px); }
 .card.wg-weather-min.vertical { gap: 4px; }
 .wg-weather-min-temperature { font-weight: 600; font-family: ui-rounded; }
+.card.wg-today { padding: 12px; gap: 0; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 28px); }
+.card.wg-today.big { gap: 4px; }
+.wg-today-weekday { font-size: 14px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.big > .wg-today-weekday { font-size: 18px; }
+.wg-today-day { font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.wg-today-month { font-size: 12px; font-weight: 500; color: -apple-system-secondary-label; }
+.big > .wg-today-month { font-size: 15px; }
