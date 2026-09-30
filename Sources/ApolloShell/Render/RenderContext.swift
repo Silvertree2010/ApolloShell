@@ -153,7 +153,7 @@ struct ElementView: View {
             ElementRenderers.view(for: element, style: style, scope: inner)
                 .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: filters,
                                       alignment: element.kind == "text" ? TextStyle(style).frameAlignment : .center, parts: parts))
-                .modifier(HitRegionMarker(active: !mouse.isEmpty || StyleValues.visibleBackground(style), identity: element.identity))
+                .gated(!mouse.isEmpty || StyleValues.visibleBackground(style)) { $0.modifier(HitRegionMarker(active: true, identity: element.identity)) }
                 .modifier(InteractionIfNeeded(element: element, context: scope.context, config: mouse, hover: hover, press: press,
                                               needed: Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil || canvasEntry != nil || mouse.dragValue, stateStyled: hover || press)))
                 .gated(motion) { $0.modifier(Motion(element: element, style: style, context: scope.context, dynamicInline: animated)) }
