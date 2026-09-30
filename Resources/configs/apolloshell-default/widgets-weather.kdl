@@ -135,7 +135,7 @@ define "wh-hgraph" {
             column class="wh-hgraph-line" style="padding: 18px {(w.width - 20) / (slots | count) / 2}px 6px" {
                 graph values="{slots | map 'temperature'}" kind="line" min="{((slots | map 'temperature' | sort | first) ?? 0) - 1}" max="{((slots | map 'temperature' | sort | last) ?? 1) + 1}" capacity="{slots | count}" class="wh-hgraph-curve"
             }
-            row class="wh-hgraph-points" {
+            row class="wh-hgraph-points" style="height: {w.height - 26 - (w.height > 200 ? 39 : 14)}px" {
                 each hour in="{slots}" key="{hour.time}" {
                     column class="wh-hgraph-col" style="padding-top: {(w.height - 20 - 6 - (w.height > 200 ? 39 : 14) - 24) * (1 - (hour.temperature - (((slots | map 'temperature' | sort | first) ?? 0) - 1)) / ((((slots | map 'temperature' | sort | last) ?? 1) + 1) - (((slots | map 'temperature' | sort | first) ?? 0) - 1) | max 1)) + 18 - 21}px" {
                         text "{hour.temperature | temperature}" class="wh-hgraph-value"
@@ -204,7 +204,7 @@ define "widget-weather-daily" {
         case "ready" {
             switch "{w.display}" {
                 case "list" {
-                    column class="card wh-dlist" style="width: {w.width}px; height: {w.height}px" {
+                    column class="card wh-dlist" style="width: {w.width | max 254}px; height: {w.height}px" {
                         each day in="{weather.days | take (((w.height - 20) / 30) | floor | max 2 | min 7)}" key="{day.date}" {
                             use "wh-drow" w="{w}" day="{day}" low="{(weather.days | take (((w.height - 20) / 30) | floor | max 2 | min 7) | map 'min' | sort | first)}" high="{(weather.days | take (((w.height - 20) / 30) | floor | max 2 | min 7) | map 'max' | sort | last)}" last="{day.date == ((weather.days | take (((w.height - 20) / 30) | floor | max 2 | min 7) | last).date)}"
                         }

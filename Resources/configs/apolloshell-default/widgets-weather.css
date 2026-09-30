@@ -28,7 +28,7 @@
 .wh-hgraph-area { flex-grow: 1; align-self: stretch; }
 .wh-hgraph-line { align-self: stretch; }
 .wh-hgraph-curve { -apollo-stroke-width: 2.5px; color: var(--apollo-accent-color, -apple-system-control-accent); align-self: stretch; flex-grow: 1; }
-.wh-hgraph-points { align-self: stretch; }
+.wh-hgraph-points { align-self: stretch; align-items: start; }
 .wh-hgraph-col { flex-grow: 1; flex-basis: 0; align-items: center; gap: 2px; }
 .wh-hgraph-value { font-size: 13px; font-weight: 600; font-family: ui-rounded; }
 .wh-hgraph-dot { background: var(--apollo-accent-color, -apple-system-control-accent); }
