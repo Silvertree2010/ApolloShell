@@ -95,3 +95,14 @@
 .wx-arc-dot { width: 14px; height: 14px; flex-shrink: 0; background: -apple-system-yellow; }
 .wx-arc-badge { align-self: stretch; align-items: start; }
 .wx-arc-moon { font-size: 16px; -apollo-symbol-rendering: hierarchical; color: rgb(from -apple-system-label r g b / 0.85); }
+.card.wx-drives { padding: 14px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
+.wx-drives-list { gap: 10px; align-self: stretch; }
+.wx-drive { gap: 10px; align-items: center; align-self: stretch; }
+.wx-drive-glyph { font-size: 16px; width: 22px; color: var(--apollo-accent-color, -apple-system-control-accent); flex-shrink: 0; }
+.wx-drive-body { gap: 4px; flex-grow: 1; flex-shrink: 1; min-width: 0; align-items: stretch; }
+.wx-drive-head { gap: 6px; align-items: center; }
+.wx-drive-name { font-size: 13px; font-weight: 600; flex-shrink: 1; min-width: 0; }
+.wx-drive-free { font-size: 11px; color: -apple-system-secondary-label; flex-shrink: 1; min-width: 0; }
+.wx-drive-bar { height: 6px; align-self: stretch; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wx-drive-eject { width: 26px; height: 26px; border-radius: 13px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; flex-shrink: 0; }
+.wx-drive-eject-glyph { font-size: 11px; font-weight: 600; }

@@ -630,3 +630,39 @@ define "widget-sun" {
     param "w"
     use "widget-sun-place" w="{w}" lat="{w.latitude ?? weather.place.latitude}" lon="{w.longitude ?? weather.place.longitude}"
 }
+
+define "widget-drives" {
+    param "w"
+    column class="card wx-drives" {
+        when "{(drives.list | count) == 0}" {
+            column class="wx-empty" {
+                icon "externaldrive" class="wx-empty-glyph"
+                text "No drives" class="wx-empty-text"
+            }
+        }
+        else {
+            column class="wx-drives-list" {
+                each d in="{drives.list | take (1 | max (((w.height - 28) / 50) | floor))}" key="{d.path}" {
+                    row class="wx-drive" {
+                        on-click { reveal-file "{d.path}" }
+                        icon "{d.icon}" class="wx-drive-glyph"
+                        column class="wx-drive-body" {
+                            row class="wx-drive-head" {
+                                text "{d.name}" class="wx-drive-name" lines=1
+                                spacer
+                                text "{d.free | bytes} free" class="wx-drive-free" lines=1
+                            }
+                            progress value="{d.total > 0 ? d.used / d.total : 0}" class="wx-drive-bar"
+                        }
+                        when "{d.ejectable}" {
+                            button class="wx-drive-eject" tooltip="Eject {d.name}" {
+                                on-click { drives.eject "{d.path}" }
+                                icon "eject.fill" class="wx-drive-eject-glyph"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
