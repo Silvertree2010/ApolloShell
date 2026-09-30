@@ -173,3 +173,58 @@ struct FusionDefaultTests {
         #expect(FusionSkinView.renderFill(fill)["background"] == .layers([.glass(.regular, tint: nil)]))
     }
 }
+
+@MainActor
+@Suite("Fusion: Menüleiste in der Gruppe shell")
+struct FusionMenuBarTests {
+    static let shell = """
+    panel "menubar" anchor="top" fuse-group="shell" layer="status" { row {} }
+    panel "sidebar" anchor="left" fuse-group="shell" fuse-fill=#true style="margin-top: 24px" { row {} }
+    """
+    static let css = "#menubar { height: 24px; background: red; } #sidebar { width: 40px; height: 100%; background: blue; }"
+
+    func fixture(_ tokens: [String: String]) throws -> HostFixture {
+        let fixture = try HostFixture(Self.shell, css: Self.css)
+        if !tokens.isEmpty {
+            let sheets = fixture.ir.map { StyleSheets.load($0).0 } ?? []
+            let environment = StyleEnvironment(appearance: .light, reduceMotion: false, reduceTransparency: false, tokens: TokenEnvironment(values: tokens))
+            fixture.host.restyle(RenderContext(styles: StyleResolver(sheets: sheets, environment: environment), icons: FixtureAppIcons(), trigger: { _, _, _ in }))
+        }
+        return fixture
+    }
+
+    @Test("Die Vorgabe-Config hängt die Menüleiste in die Gruppe shell")
+    func defaultConfig() throws {
+        let source = try String(contentsOf: PackageResources.root.appendingPathComponent("Resources/configs/apolloshell-default/menubar.kdl"), encoding: .utf8)
+        #expect(source.contains("panel \"menubar\" anchor=\"top\" fuse-group=\"shell\""))
+    }
+
+    @Test("Fusion aus: keine Haut, beide Hintergründe wie ohne Gruppe, Ebenen unverändert")
+    func off() throws {
+        let fixture = try fixture([:])
+        #expect(!fixture.host.fusion.isOn)
+        #expect(fixture.host.painter == nil)
+        #expect(fixture.factory.auxiliary.isEmpty)
+        let screen = HostFixture.screen.key
+        for id in ["menubar", "sidebar"] {
+            let surface = try #require(fixture.assembly.runtime.surface(id, screenKey: screen))
+            let style = try #require(fixture.host.context).styles.resolve(surface: surface)
+            #expect(SurfaceBackground.resolve(fixture.host.painter, surface: surface, style: style).style["background"] != nil)
+        }
+    }
+
+    @Test("Fusion an: Haut auf Ebene 25, Seitenleiste darüber auf 26, Hintergründe der Mitglieder weg")
+    func on() throws {
+        let fixture = try fixture(["--apollo-fusion-style": "rounded"])
+        #expect(fixture.host.fusion.isOn)
+        #expect(fixture.factory.auxiliary.first?.level == FusionCoordinator.raisedLevel)
+        #expect(fixture.host.fusion.level(for: "sidebar@" + HostFixture.screen.key, base: .floating).rawValue == 26)
+        let screen = HostFixture.screen.key
+        for id in ["menubar", "sidebar"] {
+            let surface = try #require(fixture.assembly.runtime.surface(id, screenKey: screen))
+            let style = try #require(fixture.host.context).styles.resolve(surface: surface)
+            #expect(SurfaceBackground.resolve(fixture.host.painter, surface: surface, style: style).style["background"] == nil)
+        }
+        #expect(fixture.host.fusion.pieces(on: screen).count == 2)
+    }
+}
