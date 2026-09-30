@@ -235,6 +235,7 @@ define "widget" {
         case "timer" { use "widget-timer" w="{w}" }
         case "apps" { use "widget-apps" w="{w}" }
         case "photos" { use "widget-photos" w="{w}" }
+        case "network.info" { use "widget-network-info" w="{w}" }
         default { column class="card widget-unknown" { text "{w.kind}" class="card-hint" } }
     }
 }

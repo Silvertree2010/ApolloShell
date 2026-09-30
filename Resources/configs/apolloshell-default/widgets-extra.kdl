@@ -248,3 +248,50 @@ define "widget-photos" {
     param "w"
     use "widget-photos-pictures" w="{w}" pics="{photos.by-folder[w.folder ?? '~/Pictures']}"
 }
+
+define "wx-address" {
+    param "title"
+    param "value"
+    row class="wx-address" {
+        text "{title}" class="wx-address-title" lines=1
+        spacer
+        text "{value ?? '–'}" class="wx-address-value" lines=1
+    }
+}
+
+define "widget-network-info-view" {
+    param "w"
+    param "title"
+    param "symbol"
+    when "{w.display == 'minimal'}" {
+        row class="card wx-net min" {
+            icon "{symbol}" class="wx-net-min-glyph"
+            column class="wx-net-min-texts" {
+                text "{title}" class="wx-net-min-title" lines=1
+                text "{network-info.latency != null ? network-info.latency + ' ms' : '–'}" class="wx-net-min-latency" lines=1
+            }
+            spacer
+        }
+    }
+    else {
+        column class="card wx-net" style="gap: {w.height > 200 ? 12 : 6}px" {
+            row class="wx-net-head" {
+                icon "{symbol}" class="wx-net-glyph"
+                text "{title}" class="wx-net-title" lines=1
+                spacer
+                when "{network-info.latency != null}" {
+                    text "{network-info.latency} ms" class="wx-net-chip" lines=1
+                }
+            }
+            when "{w.height > 200}" { spacer }
+            use "wx-address" title="Local" value="{network-info.local-address}"
+            use "wx-address" title="Public" value="{network-info.public-address}"
+            when "{w.height > 200}" { spacer }
+        }
+    }
+}
+
+define "widget-network-info" {
+    param "w"
+    use "widget-network-info-view" w="{w}" title="{network-info.kind == 'wifi' ? (network-info.name ?? 'Wi-Fi') : (network-info.kind == 'wired' ? 'Ethernet' : 'Offline')}" symbol="{network-info.kind == 'wifi' ? 'wifi' : (network-info.kind == 'wired' ? 'cable.connector' : 'wifi.slash')}"
+}
