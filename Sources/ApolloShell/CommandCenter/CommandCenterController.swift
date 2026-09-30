@@ -15,7 +15,7 @@ final class CommandCenterController: NSObject, NSMenuDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         super.init()
         builder = CommandCenterMenu { command in MainActor.assumeIsolated { perform(command) } }
-        statusItem.button?.image = NSImage(systemSymbolName: "circle.hexagongrid", accessibilityDescription: "ApolloShell")
+        statusItem.button?.image = ApolloMarkGeometry.menuBarImage(side: 18)
         menu.delegate = self
         statusItem.menu = menu
         handoffObserver = DistributedNotificationCenter.default().addObserver(
