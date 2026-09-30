@@ -45,6 +45,19 @@ All notable changes to this project are documented here. The format follows
 - **Launcher action mode:** `>` lists actions, `>calc` computes as you type,
   `>theme` and `>wallpaper` pick one; log out, restart and shut down ask with
   a second Return.
+- **Bento dashboard:** pages, widgets in free positions on a canvas, display
+  choices, and a dashboard that shrinks to fit the screen and stays below the
+  menu bar. Edit mode wiggles the widgets; drag them, pull the corner to
+  resize, add them from the gallery or by dragging a tile onto the page, and
+  manage pages with add, duplicate and delete. Esc closes the selection, then
+  the gallery, then asks before it discards changes. Each widget has its own
+  options next to it: time zone for the clock, places for the weather, apps,
+  photo folder, timer length and what a card shows.
+- **Registry:** the `canvas` layout with `on-move` and `on-resize`,
+  `drag-value` with `accept="value"` on `on-drop` and `reorderable`, the
+  `first-free-frame`, `place-frame`, `sun-moon`, `concat`, `with-field` and
+  `prefix-field` filters, `clock.time-zones` and `places` with `by-place` on
+  the `weather` provider.
 
 ## [0.2.0] - Unreleased
 
