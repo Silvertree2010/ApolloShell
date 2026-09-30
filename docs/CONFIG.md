@@ -2668,7 +2668,7 @@ Weeks of a month as a list of lists.
 
 ### `number` (filter)
 
-Parses a string as a number.
+Parses a string as a number, turns a date into seconds since 1970.
 
 ### `pad` (filter)
 

@@ -219,3 +219,32 @@ define "widget-apps-ids" {
         }
     }
 }
+
+define "wx-photo" {
+    param "w"
+    param "pic"
+    stack class="wx-photo-frame" style="width: {w.width}px; height: {w.height}px" {
+        image "{pic.image}" fit="fill" class="wx-photo-image" style="width: {w.width}px; height: {w.height}px"
+    }
+}
+
+define "widget-photos-pictures" {
+    param "w"
+    param "pics"
+    stack class="card wx-photos" {
+        when "{(pics | count) == 0}" {
+            column class="wx-empty" {
+                icon "photo.on.rectangle" class="wx-empty-glyph"
+                text "No pictures in {((w.folder ?? '~/Pictures') | split '/' | last)}" class="wx-empty-text"
+            }
+        }
+        else {
+            use "wx-photo" w="{w}" pic="{pics | at ((((clock.now | number) / 300) | floor) % (pics | count))}"
+        }
+    }
+}
+
+define "widget-photos" {
+    param "w"
+    use "widget-photos-pictures" w="{w}" pics="{photos.by-folder[w.folder ?? '~/Pictures']}"
+}

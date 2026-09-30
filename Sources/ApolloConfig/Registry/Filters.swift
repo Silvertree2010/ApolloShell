@@ -37,7 +37,7 @@ enum Filters {
         FilterSchema(name: "starts-with", arguments: [arg("prefix", .string, doc: "Prefix to find.")], doc: "Checks the start of a string."),
         FilterSchema(name: "ends-with", arguments: [arg("suffix", .string, doc: "Suffix to find.")], doc: "Checks the end of a string."),
         FilterSchema(name: "json", doc: "Parses a string as JSON."),
-        FilterSchema(name: "number", doc: "Parses a string as a number."),
+        FilterSchema(name: "number", doc: "Parses a string as a number, turns a date into seconds since 1970."),
         FilterSchema(name: "count", doc: "Length of a list, string or record."),
         FilterSchema(name: "first", doc: "First element or character."),
         FilterSchema(name: "last", doc: "Last element or character."),

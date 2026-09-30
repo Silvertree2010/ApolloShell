@@ -26,3 +26,6 @@
 .wx-empty { gap: 8px; align-items: center; padding: 14px; }
 .wx-empty-glyph { font-size: 24px; color: -apple-system-tertiary-label; }
 .wx-empty-text { font-size: 12px; color: -apple-system-secondary-label; text-align: center; }
+.card.wx-photos { padding: 0; overflow: hidden; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
+.wx-photo-frame { overflow: hidden; }
+.wx-photo-image { flex-shrink: 0; }
