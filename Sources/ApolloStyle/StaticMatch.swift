@@ -37,6 +37,17 @@ extension StyleEngine {
         }
     }
 
+    public func mayDeclare(anyOf properties: [String], _ subject: StaticSubject, includingNone: Bool = false) -> Bool {
+        sheets.contains { sheet in
+            sheet.rules.contains { rule in
+                rule.declarations.contains { d in
+                    properties.contains { d.property == $0 || d.property.hasPrefix($0 + "-") }
+                        && (includingNone || d.rawValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != "none")
+                } && rule.selectors.contains { $0.compounds.last?.mayMatch(subject) ?? false }
+            }
+        }
+    }
+
     public func mayMatch(_ state: PseudoState, _ subject: StaticSubject) -> Bool {
         sheets.contains { sheet in
             sheet.rules.contains { rule in

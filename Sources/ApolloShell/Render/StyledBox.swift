@@ -2,6 +2,45 @@ import SwiftUI
 import AppKit
 import ApolloStyle
 
+struct BoxParts: Equatable {
+    var padding = true, margin = true, size = true, aspect = true, paint = true, border = true, clip = true
+    var opacity = true, transform = true, depth = true, pointer = true, cursor = true, motion = true
+
+    static let all = BoxParts()
+
+    @MainActor
+    init(styles: StyleResolver, subject: StaticSubject) {
+        func has(_ names: String...) -> Bool { styles.engine.mayDeclare(anyOf: names, subject) }
+        padding = has("padding")
+        margin = has("margin")
+        size = has("width", "height", "min-width", "min-height", "max-width", "max-height")
+        aspect = has("aspect-ratio")
+        paint = has("background", "box-shadow")
+        border = has("border")
+        clip = has("overflow")
+        opacity = has("opacity")
+        transform = has("transform")
+        depth = has("z-index")
+        pointer = styles.engine.mayDeclare(anyOf: ["pointer-events"], subject, includingNone: true)
+        cursor = styles.engine.mayDeclare(anyOf: ["cursor"], subject, includingNone: true)
+        motion = has("transition", "animation", "-apollo-appear", "-apollo-disappear")
+    }
+
+    init() {}
+}
+
+struct InheritedParts: Equatable {
+    var pointer = true
+    var cursor = true
+}
+
+extension View {
+    @ViewBuilder
+    func gated<R: View>(_ on: Bool, _ apply: (Self) -> R) -> some View {
+        if on { apply(self) } else { self }
+    }
+}
+
 struct StyledBox: ViewModifier {
     let style: ComputedStyle
     let context: RenderContext
@@ -12,29 +51,72 @@ struct StyledBox: ViewModifier {
     var anchorID: String?
     var dynamicInline = false
     var alignment: Alignment = .center
+    var parts = BoxParts.all
+
+    func body(content: Content) -> some View {
+        let shape = form ?? AnyShape(StyleShape(style))
+        content
+            .modifier(BoxLayout(style: style, padded: padded, fill: fill, alignment: alignment, parts: parts, shape: shape))
+            .modifier(BoxPaint(style: style, context: context, parts: parts, shape: shape, forced: form != nil))
+            .modifier(BoxEffects(style: style, parts: parts, flyouts: flyouts, anchorID: anchorID, dynamicInline: dynamicInline))
+    }
+}
+
+struct BoxLayout: ViewModifier {
+    let style: ComputedStyle
+    let padded: Bool
+    let fill: Definite
+    let alignment: Alignment
+    let parts: BoxParts
+    let shape: AnyShape
 
     func body(content: Content) -> some View {
         let width = style["width"], height = style["height"]
-        let shape = form ?? AnyShape(StyleShape(style))
         let fillsWidth = fill.width || StyleValues.percent(width) != nil, fillsHeight = fill.height || StyleValues.percent(height) != nil
         content
-            .padding(padded ? StyleValues.sides(style["padding"]) : EdgeInsets())
-            .frame(width: StyleValues.points(width), height: StyleValues.points(height), alignment: alignment)
-            .frame(minWidth: StyleValues.points(style["min-width"]), maxWidth: fillsWidth ? .infinity : StyleValues.points(style["max-width"]),
-                   minHeight: StyleValues.points(style["min-height"]), maxHeight: fillsHeight ? .infinity : StyleValues.points(style["max-height"]), alignment: alignment)
-            .modifier(AspectRatio(ratio: StyleValues.number(style["aspect-ratio"])))
-            .background { BackgroundLayers(style: style, shape: shape, context: context) }
-            .overlay { BorderLayer(style: style, shape: shape) }
-            .modifier(Clip(active: StyleValues.keyword(style["overflow"]) == "hidden", shape: shape))
-            .modifier(FlyoutOverlay(layer: flyouts))
-            .modifier(Filters(style["filter"], enabled: dynamicInline))
-            .opacity(StyleValues.number(style["opacity"]) ?? 1)
-            .modifier(Transform(style["transform"]))
-            .modifier(AnchorReport(id: anchorID))
-            .padding(StyleValues.sides(style["margin"]))
-            .zIndex(StyleValues.number(style["z-index"]) ?? 0)
-            .allowsHitTesting(StyleValues.keyword(style["pointer-events"]) != "none")
-            .modifier(Cursor(name: StyleValues.keyword(style["cursor"])))
+            .gated(parts.padding && padded) { $0.padding(StyleValues.sides(style["padding"])) }
+            .gated(parts.size || fill.width || fill.height) {
+                $0.frame(width: StyleValues.points(width), height: StyleValues.points(height), alignment: alignment)
+                    .frame(minWidth: StyleValues.points(style["min-width"]), maxWidth: fillsWidth ? .infinity : StyleValues.points(style["max-width"]),
+                           minHeight: StyleValues.points(style["min-height"]), maxHeight: fillsHeight ? .infinity : StyleValues.points(style["max-height"]), alignment: alignment)
+            }
+            .gated(parts.aspect) { $0.modifier(AspectRatio(ratio: StyleValues.number(style["aspect-ratio"]))) }
+    }
+}
+
+struct BoxPaint: ViewModifier {
+    let style: ComputedStyle
+    let context: RenderContext
+    let parts: BoxParts
+    let shape: AnyShape
+    let forced: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .gated(parts.paint || forced) { $0.background { BackgroundLayers(style: style, shape: shape, context: context) } }
+            .gated(parts.border) { $0.overlay { BorderLayer(style: style, shape: shape) } }
+            .gated(parts.clip) { $0.modifier(Clip(active: StyleValues.keyword(style["overflow"]) == "hidden", shape: shape)) }
+    }
+}
+
+struct BoxEffects: ViewModifier {
+    let style: ComputedStyle
+    let parts: BoxParts
+    let flyouts: AnyView?
+    let anchorID: String?
+    let dynamicInline: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .gated(flyouts != nil) { $0.modifier(FlyoutOverlay(layer: flyouts)) }
+            .gated(dynamicInline) { $0.modifier(Filters(style["filter"], enabled: dynamicInline)) }
+            .gated(parts.opacity) { $0.opacity(StyleValues.number(style["opacity"]) ?? 1) }
+            .gated(parts.transform) { $0.modifier(Transform(style["transform"])) }
+            .gated(anchorID != nil) { $0.modifier(AnchorReport(id: anchorID)) }
+            .gated(parts.margin) { $0.padding(StyleValues.sides(style["margin"])) }
+            .gated(parts.depth) { $0.zIndex(StyleValues.number(style["z-index"]) ?? 0) }
+            .gated(parts.pointer) { $0.allowsHitTesting(StyleValues.keyword(style["pointer-events"]) != "none") }
+            .gated(parts.cursor) { $0.modifier(Cursor(name: StyleValues.keyword(style["cursor"]))) }
     }
 }
 

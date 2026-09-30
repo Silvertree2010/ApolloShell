@@ -82,6 +82,21 @@ final class StyleResolver {
         return slot(SlotKey(probe: property, subject: subject)) { engine.mayDeclare(property, subject) }
     }
 
+    func declaresAny(_ properties: [String], _ subject: StaticSubject, includingNone: Bool = false) -> Bool {
+        slot(SlotKey(probe: (includingNone ? "+" : "=") + properties.joined(separator: ","), subject: subject)) {
+            engine.mayDeclare(anyOf: properties, subject, includingNone: includingNone)
+        }
+    }
+
+    private var partsCache: [StaticSubject: BoxParts] = [:]
+
+    func parts(_ subject: StaticSubject) -> BoxParts {
+        if let known = partsCache[subject] { return known }
+        let made = BoxParts(styles: self, subject: subject)
+        partsCache[subject] = made
+        return made
+    }
+
     func stateStyled(_ state: PseudoState, _ subject: StaticSubject) -> Bool {
         guard !selectorPseudo.isDisjoint(with: state) else { return false }
         return slot(SlotKey(probe: ":\(state.rawValue)", subject: subject)) { engine.mayMatch(state, subject) }

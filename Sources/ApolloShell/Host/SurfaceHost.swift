@@ -40,7 +40,9 @@ struct SurfaceView: View {
         let subject = StyleResolver.subject(for: surface)
         let resolved = context.styles.resolve(surface: surface)
         let (style, painted) = SurfaceBackground.resolve(painter, surface: surface, style: resolved)
-        let scope = RenderScope(context: context, ancestors: [subject], parentStyle: style, parentKind: "column")
+        let fixed = StyleResolver.staticSubject(for: surface)
+        let scope = RenderScope(context: context, ancestors: [subject], parentStyle: style, parentKind: "column",
+                                inherits: InheritedParts(pointer: context.styles.declaresAny(["pointer-events"], fixed, includingNone: true), cursor: context.styles.declaresAny(["cursor"], fixed, includingNone: true)))
         LayoutRenderers.flex(horizontal: false, style: style) {
             ElementChildren(children: surface.root, scope: scope)
         }
