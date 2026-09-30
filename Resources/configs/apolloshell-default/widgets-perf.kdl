@@ -237,10 +237,11 @@ define "wp-figure" {
     param "tone"
     param "title"
     param "value"
-    column class="wp-figure" {
+    column class="wp-figure" style="{w.width < 254 ? 'width: ' + ((w.width - 56) / 2) + 'px' : ''}" {
         row class="wp-figure-head" {
             icon "{symbol}" class="perf-rate-glyph {tone}"
             text "{title}" class="perf-rate-title"
+            spacer
         }
         text "{value | bytes-per-second}" class="wp-figure-value" style="font-size: {w.height >= 200 ? 34 : 26}px" lines=1 min-scale=0.6
     }
@@ -250,10 +251,11 @@ define "widget-network" {
     param "w"
     switch "{w.display}" {
         case "numbers" {
-            column class="card wp-netnum" {
+            column class="card wp-netnum" style="width: {w.width}px; height: {w.height}px" {
                 row class="wp-netnum-head" {
                     icon "arrow.up.arrow.down" class="perf-network-glyph"
                     text "Network" class="perf-network-title"
+                    spacer
                 }
                 spacer
                 when "{w.height >= 200 && w.width < 420}" {
@@ -266,6 +268,7 @@ define "widget-network" {
                     row class="wp-netnum-row" {
                         use "wp-figure" w="{w}" symbol="arrow.down" tone="down" title="Download" value="{perf.live.net-down}"
                         use "wp-figure" w="{w}" symbol="arrow.up" tone="up" title="Upload" value="{perf.live.net-up}"
+                        spacer
                     }
                 }
                 spacer

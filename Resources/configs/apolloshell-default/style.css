@@ -362,13 +362,13 @@
 .perf-network-title { font-size: 15px; font-weight: 600; }
 .perf-network-max { font-size: 10px; font-weight: 500; font-variant-numeric: tabular-nums; color: -apple-system-tertiary-label; }
 .perf-network-graph { flex-grow: 1; align-self: stretch; margin: 10px 0 8px; }
-.perf-net-up { color: -apple-system-orange; -apollo-fill: rgb(from -apple-system-orange r g b / 0.15); }
+.perf-net-up { color: var(--apollo-secondary-accent-color, contrast(var(--apollo-accent-color, -apple-system-control-accent))); -apollo-fill: rgb(from var(--apollo-secondary-accent-color, contrast(var(--apollo-accent-color, -apple-system-control-accent))) r g b / 0.15); }
 .perf-net-down { -apollo-fill: rgb(from var(--apollo-accent-color, -apple-system-control-accent) r g b / 0.2); }
 .perf-rates { gap: 4px; align-self: stretch; }
 .perf-rate { gap: 6px; align-items: center; align-self: stretch; }
 .perf-rate-glyph { width: 14px; font-size: 11px; font-weight: 700; }
 .perf-rate-glyph.down { color: var(--apollo-accent-color, -apple-system-control-accent); }
-.perf-rate-glyph.up { color: -apple-system-orange; }
+.perf-rate-glyph.up { color: var(--apollo-secondary-accent-color, contrast(var(--apollo-accent-color, -apple-system-control-accent))); }
 .perf-rate-glyph.total { color: -apple-system-secondary-label; }
 .perf-rate-title { font-size: 12px; color: -apple-system-secondary-label; }
 .perf-rate-value { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
