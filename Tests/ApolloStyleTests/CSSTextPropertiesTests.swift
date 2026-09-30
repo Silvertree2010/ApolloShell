@@ -50,6 +50,7 @@ struct CSSTextPropertiesTests {
               ("-apollo-sweep-angle", "180deg", .angle(180)),
               ("-apollo-start-angle", "-90deg", .angle(-90)),
               ("-apollo-stroke-width", "4px", .length(CSSLength(4, .points))),
+              ("-apollo-stroke-dash", "3px 4px", .lengths([CSSLength(3, .points), CSSLength(4, .points)])),
           ])
     func valid(property: String, text: String, expected: CSSValue) throws {
         #expect(try parse(property, text) == expected)
@@ -62,7 +63,7 @@ struct CSSTextPropertiesTests {
               ("font-style", "oblique"), ("font-variant-numeric", "oldstyle-nums"), ("line-height", "-1"),
               ("text-align", "justify"), ("-apollo-font-scale", "half"), ("-apollo-symbol-effect", "wiggle"),
               ("-apollo-fill-color", "material(regular)"), ("-apollo-fill", "red, blue"),
-              ("-apollo-thumb-size", "1px 2px 3px"), ("-apollo-fill-mode", "outside"), ("-apollo-sweep-angle", "180"), ("-apollo-stroke-width", "-1px"),
+              ("-apollo-thumb-size", "1px 2px 3px"), ("-apollo-fill-mode", "outside"), ("-apollo-sweep-angle", "180"), ("-apollo-stroke-width", "-1px"), ("-apollo-stroke-dash", "1px 2px 3px 4px 5px"),
           ])
     func invalid(property: String, text: String) {
         #expect(throws: CSSValueError.self) { try parse(property, text) }

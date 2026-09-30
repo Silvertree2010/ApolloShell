@@ -2668,7 +2668,7 @@ Weeks of a month as a list of lists.
 
 ### `number` (filter)
 
-Parses a string as a number.
+Parses a string as a number, turns a date into seconds since 1970.
 
 ### `pad` (filter)
 
@@ -2781,7 +2781,7 @@ Checks the start of a string.
 
 Converts a value to a string.
 
-### `sun-moon` (filter, *experimental*)
+### `sun-moon` (filter)
 
 Sun and moon on a date: sunrise, sunset, noon, always-up, always-down, moonrise, moonset (null, not computed), moon-phase 0…1, moon-illumination 0…1, moon-symbol, moon-name.
 

@@ -2,6 +2,7 @@ style "widgets.css"
 include "widgets-media.kdl"
 include "widgets-perf.kdl"
 include "widgets-weather.kdl"
+include "widgets-extra.kdl"
 
 var widget-kinds {
     - kind="weather" title="Weather" symbol="cloud.sun.fill" displays="standard minimal" {
@@ -232,6 +233,14 @@ define "widget" {
         case "weather.hero" { use "widget-weather-hero" w="{w}" }
         case "weather.hourly" { use "widget-weather-hourly" w="{w}" }
         case "weather.daily" { use "widget-weather-daily" w="{w}" }
+        case "timer" { use "widget-timer" w="{w}" }
+        case "apps" { use "widget-apps" w="{w}" }
+        case "photos" { use "widget-photos" w="{w}" }
+        case "network.info" { use "widget-network-info" w="{w}" }
+        case "files.recent" { use "widget-files-recent" w="{w}" }
+        case "clipboard" { use "widget-clipboard" w="{w}" }
+        case "sun" { use "widget-sun" w="{w}" }
+        case "drives" { use "widget-drives" w="{w}" }
         default { column class="card widget-unknown" { text "{w.kind}" class="card-hint" } }
     }
 }

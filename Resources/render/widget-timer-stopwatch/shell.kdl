@@ -1,0 +1,73 @@
+include "builtin:apolloshell-default/dashboard-cards.kdl"
+include "builtin:apolloshell-default/media.kdl"
+include "builtin:apolloshell-default/performance.kdl"
+include "builtin:apolloshell-default/weather.kdl"
+include "builtin:apolloshell-default/widgets.kdl"
+style "builtin:apolloshell-default/style.css"
+var calendar-offset 0
+var dashboard-tab "dashboard"
+var settings-page "general"
+var weather-selected #null type="any"
+var weather-places type="list" { }
+var dashboard-cards-top type="list" { }
+
+var h0 {
+    - id="w0" page="p" kind="timer" x=0 y=0 width=130 height=130 display="stopwatch" minutes=10 
+}
+panel "widget-timer-stopwatch-130x130" anchor="top-left" {
+    column style="padding: 8px" {
+        canvas style="width: 130px; height: 130px" in="{var.h0}" {
+            each w in="{var.h0}" key="{w.id}" { use "widget" w="{w}" }
+        }
+    }
+}
+var h1 {
+    - id="w1" page="p" kind="timer" x=0 y=0 width=180 height=250 display="stopwatch" minutes=10 
+}
+panel "widget-timer-stopwatch-180x250" anchor="top-left" {
+    column style="padding: 8px" {
+        canvas style="width: 180px; height: 250px" in="{var.h1}" {
+            each w in="{var.h1}" key="{w.id}" { use "widget" w="{w}" }
+        }
+    }
+}
+var h2 {
+    - id="w2" page="p" kind="timer" x=0 y=0 width=180 height=392 display="stopwatch" minutes=10 
+}
+panel "widget-timer-stopwatch-180x392" anchor="top-left" {
+    column style="padding: 8px" {
+        canvas style="width: 180px; height: 392px" in="{var.h2}" {
+            each w in="{var.h2}" key="{w.id}" { use "widget" w="{w}" }
+        }
+    }
+}
+var h3 {
+    - id="w3" page="p" kind="timer" x=0 y=0 width=560 height=130 display="stopwatch" minutes=10 
+}
+panel "widget-timer-stopwatch-560x130" anchor="top-left" {
+    column style="padding: 8px" {
+        canvas style="width: 560px; height: 130px" in="{var.h3}" {
+            each w in="{var.h3}" key="{w.id}" { use "widget" w="{w}" }
+        }
+    }
+}
+var h4 {
+    - id="w4" page="p" kind="timer" x=0 y=0 width=560 height=250 display="stopwatch" minutes=10 
+}
+panel "widget-timer-stopwatch-560x250" anchor="top-left" {
+    column style="padding: 8px" {
+        canvas style="width: 560px; height: 250px" in="{var.h4}" {
+            each w in="{var.h4}" key="{w.id}" { use "widget" w="{w}" }
+        }
+    }
+}
+var h5 {
+    - id="w5" page="p" kind="timer" x=0 y=0 width=560 height=392 display="stopwatch" minutes=10 
+}
+panel "widget-timer-stopwatch-560x392" anchor="top-left" {
+    column style="padding: 8px" {
+        canvas style="width: 560px; height: 392px" in="{var.h5}" {
+            each w in="{var.h5}" key="{w.id}" { use "widget" w="{w}" }
+        }
+    }
+}
