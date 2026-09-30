@@ -832,3 +832,21 @@
 .gallery-tile:disabled { opacity: 0.4; }
 .gallery-tile-glyph { font-size: 20px; }
 .gallery-tile-title { font-size: 11px; font-weight: 500; }
+.opt-panel { width: 280px; padding: 12px; gap: 10px; border-radius: 16px; background: glass(regular); }
+.opt-row { gap: 8px; align-items: center; }
+.opt-group { gap: 6px; }
+.opt-text { gap: 1px; }
+.opt-title { font-size: 12px; font-weight: 500; }
+.opt-detail { font-size: 11px; color: -apple-system-secondary-label; }
+.opt-value { font-size: 12px; min-width: 52px; align-items: center; }
+.opt-seg { gap: 6px; }
+.opt-seg-button { flex-grow: 1; }
+.opt-pick { height: 26px; padding: 0 8px; border-radius: 8px; align-items: center; gap: 6px; }
+.opt-pick:hover { background: rgb(from -apple-system-label r g b / 0.08); }
+.opt-pick-title { font-size: 12px; flex-grow: 1; }
+.opt-input { height: 28px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); font-size: 12px; }
+.opt-scroll { height: 140px; }
+.opt-list { gap: 1px; }
+.edit-confirm { padding: 0 4px; }
+.edit-confirm-text { font-size: 12px; font-weight: 500; }
+.opt-pick-row { gap: 6px; align-items: center; flex-grow: 1; }
