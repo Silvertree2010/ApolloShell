@@ -67,7 +67,15 @@ final class CanvasCoordinator {
         var key = child.entryKey ?? .null
         if case .record(let record) = value, let field = record[keyField] { key = field }
         var sizes: [CanvasSize] = []
-        if case .record(let record) = value { sizes = CanvasSize.list(record["sizes"]) }
+        if case .record(let record) = value {
+            sizes = CanvasSize.list(record["sizes"])
+            if sizes.isEmpty, case .list(let catalogue) = container.property("sizes") {
+                let field = container.property("sizes-by").plainText ?? "kind"
+                if let own = record[field], case .record(let entry)? = catalogue.first(where: { if case .record(let r) = $0 { r[field] == own } else { false } }) {
+                    sizes = CanvasSize.list(entry["sizes"])
+                }
+            }
+        }
         return CanvasItem(key: key, frame: frame, sizes: sizes)
     }
 

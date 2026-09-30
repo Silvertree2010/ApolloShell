@@ -4,55 +4,40 @@ var dashboard-cards-bottom "{var.dashboard-caelestia.bottom}" type="list" persis
 var dashboard-cards-side "{var.dashboard-caelestia.side}" type="list" persist=#true
 var dashboard-tab "dashboard"
 var calendar-offset 0
-var dashboard-visible-tabs from="{var.dashboard-tabs | where 'visible' true}"
-var dashboard-active-tab from="{(var.dashboard-visible-tabs | where 'id' var.dashboard-tab | count) > 0 ? var.dashboard-tab : (var.dashboard-visible-tabs | first).id}"
 
-var dashboard-tab-looks {
-    - id="dashboard" title="Dashboard" icon="bar-dashboard" symbol="square.grid.2x2" selected=".fill"
-    - id="media" title="Media" icon="panel-media" symbol="music.note.list" selected=""
-    - id="performance" title="Performance" icon="panel-performance" symbol="gauge.with.dots.needle.67percent" selected=""
-    - id="weather" title="Weather" icon="panel-weather" symbol="cloud.sun" selected=".fill"
+var dashboard-pages "{var.dashboard-default-pages}" type="list" persist=#true
+var dashboard-widgets "{var.dashboard-default-overview | concat (battery.present == true ? var.dashboard-default-performance-battery : var.dashboard-default-performance-plain)}" type="list" persist=#true
+var dashboard-scale 1 persist=#true
+var shell-editing #false
+var dashboard-active-page from="{((var.dashboard-pages | where 'id' var.dashboard-tab | first) ?? (var.dashboard-pages | where 'template' var.dashboard-tab | first) ?? (var.dashboard-pages | first)).id}"
+var dashboard-page-widgets from="{var.dashboard-widgets | where 'page' var.dashboard-active-page}"
+var dashboard-frame {
+    - id="dashboard" x=0 y=0 width=871 height=482
 }
 
 include "dashboard-cards.kdl"
 include "media.kdl"
 include "performance.kdl"
 include "weather.kdl"
+include "widgets.kdl"
 
 define "dashboard-overview" {
-    when "{(var.dashboard-cards-top | count) + (var.dashboard-cards-bottom | count) + (var.dashboard-cards-side | count) == 0}" {
-        column class="dashboard-empty" {
-            text "No Cards" class="dashboard-empty-title"
-            button class="dashboard-empty-button" {
-                on-click { set "settings-page" "dashboard"; open "settings"; close "dashboard" }
-                text "Settings"
-            }
+    use "dashboard-canvas" widgets="{var.dashboard-widgets | where 'page' 'dashboard'}"
+}
+
+define "dashboard-canvas" {
+    param "widgets"
+    when "{(widgets | count) == 0}" {
+        column class="card dashboard-empty" {
+            icon "square.grid.2x2" class="dashboard-empty-glyph"
+            text "Empty page" class="dashboard-empty-title"
+            text "Settings › Edit Interface" class="dashboard-empty-detail"
         }
     }
     else {
-        row class="dashboard-overview" {
-            column class="dashboard-main" {
-                when "{(var.dashboard-cards-top | count) > 0}" {
-                    row class="dashboard-zone zone-top" {
-                        each card in="{var.dashboard-cards-top}" key="{card.id}" {
-                            use "card-{card.kind}" card="{card}" zone="top"
-                        }
-                    }
-                }
-                when "{(var.dashboard-cards-bottom | count) > 0}" {
-                    row class="dashboard-zone zone-bottom" {
-                        each card in="{var.dashboard-cards-bottom}" key="{card.id}" {
-                            use "card-{card.kind}" card="{card}" zone="bottom"
-                        }
-                    }
-                }
-            }
-            when "{(var.dashboard-cards-side | count) > 0}" {
-                column class="dashboard-zone zone-side" {
-                    each card in="{var.dashboard-cards-side}" key="{card.id}" {
-                        use "card-{card.kind}" card="{card}" zone="side"
-                    }
-                }
+        canvas class="dashboard-canvas" in="{widgets}" sizes="{var.widget-kinds}" {
+            each w in="{widgets}" key="{w.id}" {
+                use "widget" w="{w}"
             }
         }
     }
@@ -60,26 +45,25 @@ define "dashboard-overview" {
 
 popup "dashboard" anchor="top" motion="slide" hover-edge=#true overhang=#true area="full" safe-area=#true {
     on-open { set "calendar-offset" 0 }
-    column class="dashboard" {
-        row class="dashboard-tabs" {
-            each tab in="{var.dashboard-visible-tabs}" key="{tab.id}" {
-                button class="dashboard-tab" checked="{tab.id == var.dashboard-active-tab}" {
-                    on-click { set "dashboard-tab" "{tab.id}" }
-                    column class="dashboard-tab-label" {
-                        icon "{(var.dashboard-tab-looks | where 'id' tab.id | first).icon}" fallback="{(var.dashboard-tab-looks | where 'id' tab.id | first).symbol}{tab.id == var.dashboard-active-tab ? (var.dashboard-tab-looks | where 'id' tab.id | first).selected : ''}" class="dashboard-tab-glyph"
-                        text "{(var.dashboard-tab-looks | where 'id' tab.id | first).title}" class="dashboard-tab-title"
+    canvas class="dashboard-scaler" scale="{var.dashboard-scale * ((screen.width / 1512) | clamp 0.85 1.5) | min (screen.width / 871)}" {
+        each frame in="{var.dashboard-frame}" key="{frame.id}" {
+            column class="dashboard" {
+                row class="dashboard-tabs" {
+                    each page in="{var.dashboard-pages}" key="{page.id}" {
+                        button class="dashboard-tab" checked="{page.id == var.dashboard-active-page}" {
+                            on-click { set "dashboard-tab" "{page.id}" }
+                            column class="dashboard-tab-label" {
+                                icon "{page.icon ?? page.symbol}" fallback="{page.symbol}{page.id == var.dashboard-active-page && ((page.symbol + '.fill') | symbol-exists) ? '.fill' : ''}" class="dashboard-tab-glyph"
+                                text "{page.name}" class="dashboard-tab-title"
+                            }
+                            when "{page.id == var.dashboard-active-page}" { stack class="dashboard-tab-pill" match-id="dashboard-tab" }
+                        }
                     }
-                    when "{tab.id == var.dashboard-active-tab}" { stack class="dashboard-tab-pill" match-id="dashboard-tab" }
                 }
-            }
-        }
-        stack class="dashboard-divider"
-        column class="dashboard-page" {
-            switch "{var.dashboard-active-tab}" {
-                case "dashboard" { use "dashboard-overview" }
-                case "media" { use "dashboard-media" }
-                case "performance" { use "dashboard-performance" }
-                case "weather" { use "dashboard-weather" }
+                stack class="dashboard-divider"
+                column class="dashboard-page" {
+                    use "dashboard-canvas" widgets="{var.dashboard-page-widgets}"
+                }
             }
         }
     }

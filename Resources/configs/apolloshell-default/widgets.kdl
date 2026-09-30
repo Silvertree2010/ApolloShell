@@ -1,0 +1,232 @@
+var widget-kinds {
+    - kind="weather" title="Weather" symbol="cloud.sun.fill" displays="standard minimal" {
+        sizes {
+            - min-width=275 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+            - min-width=200 max-width=839 height=392
+        }
+    }
+    - kind="user" title="User" symbol="person.crop.circle.fill" displays="standard minimal" {
+        sizes {
+            - min-width=230 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+            - min-width=200 max-width=839 height=392
+        }
+    }
+    - kind="clock" title="Clock" symbol="clock.fill" displays="standard analog" {
+        sizes {
+            - min-width=110 max-width=839 height=130
+            - min-width=110 max-width=839 height=250
+            - min-width=110 max-width=839 height=392
+        }
+    }
+    - kind="calendar" title="Calendar" symbol="calendar" displays="standard today" {
+        sizes {
+            - min-width=300 max-width=839 height=250
+            - min-width=300 max-width=839 height=392
+        }
+    }
+    - kind="resources" title="Resources" symbol="gauge.with.dots.needle.33percent" displays="standard bars" {
+        sizes {
+            - min-width=230 max-width=839 height=130
+            - min-width=90 max-width=839 height=250
+            - min-width=90 max-width=839 height=392
+        }
+    }
+    - kind="media" title="Media" symbol="music.note" displays="standard cover" {
+        sizes {
+            - min-width=300 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+            - min-width=200 max-width=839 height=392
+        }
+    }
+    - kind="performance.cpu" title="CPU" symbol="cpu" displays="standard graph gauge" {
+        sizes {
+            - min-width=220 max-width=839 height=130
+            - min-width=343 max-width=839 height=191
+            - min-width=250 max-width=839 height=250
+            - min-width=250 max-width=839 height=392
+        }
+    }
+    - kind="performance.gpu" title="GPU" symbol="square.stack.3d.up" displays="standard graph gauge" {
+        sizes {
+            - min-width=220 max-width=839 height=130
+            - min-width=343 max-width=839 height=191
+            - min-width=250 max-width=839 height=250
+            - min-width=250 max-width=839 height=392
+        }
+    }
+    - kind="performance.storage" title="Storage" symbol="internaldrive" displays="standard bar" {
+        sizes {
+            - min-width=200 max-width=839 height=130
+            - min-width=169.5 max-width=420 height=189
+            - min-width=169.5 max-width=420 height=250
+            - min-width=169.5 max-width=420 height=392
+        }
+    }
+    - kind="performance.network" title="Network" symbol="network" displays="standard numbers" {
+        sizes {
+            - min-width=230 max-width=839 height=130
+            - min-width=335 max-width=839 height=189
+            - min-width=300 max-width=839 height=250
+            - min-width=300 max-width=839 height=392
+        }
+    }
+    - kind="performance.memory" title="Memory" symbol="memorychip" displays="standard bar" {
+        sizes {
+            - min-width=200 max-width=839 height=130
+            - min-width=169.5 max-width=420 height=189
+            - min-width=169.5 max-width=420 height=250
+            - min-width=169.5 max-width=420 height=392
+        }
+    }
+    - kind="performance.battery" title="Battery" symbol="battery.75percent" displays="standard ring" {
+        sizes {
+            - min-width=129 max-width=420 height=130
+            - min-width=129 max-width=420 height=250
+            - min-width=129 max-width=420 height=392
+        }
+    }
+    - kind="weather.hero" title="Weather overview" symbol="cloud.sun" displays="standard minimal" {
+        sizes {
+            - min-width=500 max-width=839 height=116
+            - min-width=275 max-width=839 height=250
+            - min-width=275 max-width=839 height=392
+        }
+    }
+    - kind="weather.hourly" title="Hourly" symbol="clock" displays="standard graph" {
+        sizes {
+            - min-width=300 max-width=839 height=108
+            - min-width=300 max-width=839 height=250
+        }
+    }
+    - kind="weather.daily" title="Next days" symbol="calendar" displays="standard list" {
+        sizes {
+            - min-width=300 max-width=839 height=144
+            - min-width=275 max-width=839 height=250
+            - min-width=200 max-width=839 height=392
+        }
+    }
+    - kind="media.player" title="Play" symbol="play.rectangle" displays="standard cover" {
+        sizes {
+            - min-width=413 max-width=839 height=250
+            - min-width=413 max-width=839 height=392
+        }
+    }
+    - kind="timer" title="Timer" symbol="timer" displays="standard stopwatch pomodoro" {
+        sizes {
+            - min-width=130 max-width=839 height=130
+            - min-width=180 max-width=839 height=250
+            - min-width=180 max-width=839 height=392
+        }
+    }
+    - kind="apps" title="Apps" symbol="square.grid.3x3.fill" displays="standard list" {
+        sizes {
+            - min-width=200 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+            - min-width=200 max-width=839 height=392
+        }
+    }
+    - kind="photos" title="Photos" symbol="photo.on.rectangle" displays="standard" {
+        sizes {
+            - min-width=130 max-width=839 height=130
+            - min-width=180 max-width=839 height=250
+            - min-width=180 max-width=839 height=392
+        }
+    }
+    - kind="network.info" title="Connection" symbol="wifi" displays="standard minimal" {
+        sizes {
+            - min-width=230 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+        }
+    }
+    - kind="files.recent" title="Recent Files" symbol="doc.on.doc" displays="standard grid" {
+        sizes {
+            - min-width=260 max-width=839 height=130
+            - min-width=230 max-width=839 height=250
+            - min-width=230 max-width=839 height=392
+        }
+    }
+    - kind="clipboard" title="Clipboard" symbol="list.clipboard" displays="standard" {
+        sizes {
+            - min-width=260 max-width=839 height=130
+            - min-width=230 max-width=839 height=250
+            - min-width=230 max-width=839 height=392
+        }
+    }
+    - kind="sun" title="Sun and Moon" symbol="sun.horizon" displays="standard minimal" {
+        sizes {
+            - min-width=230 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+        }
+    }
+    - kind="drives" title="Drives" symbol="externaldrive" displays="standard" {
+        sizes {
+            - min-width=200 max-width=839 height=130
+            - min-width=200 max-width=839 height=250
+            - min-width=200 max-width=839 height=392
+        }
+    }
+}
+
+var dashboard-default-pages {
+    - id="dashboard" name="Dashboard" symbol="square.grid.2x2" icon="bar-dashboard" template="dashboard"
+    - id="media" name="Media" symbol="music.note.list" icon="panel-media" template="media"
+    - id="performance" name="Performance" symbol="gauge.with.dots.needle.67percent" icon="panel-performance" template="performance"
+    - id="weather" name="Weather" symbol="cloud.sun" icon="panel-weather" template="weather"
+}
+
+var dashboard-default-overview {
+    - id="dashboard-weather" page="dashboard" kind="weather" x=0 y=0 width=275 height=130 display="standard" show-condition=#true show-range=#true
+    - id="dashboard-user" page="dashboard" kind="user" x=287 y=0 width=340 height=130 display="standard" show-system=#true show-uptime=#true
+    - id="dashboard-clock" page="dashboard" kind="clock" x=0 y=142 width=110 height=250 display="standard" style="stacked" show-date=#false
+    - id="dashboard-calendar" page="dashboard" kind="calendar" x=122 y=142 width=403 height=250 display="standard" first-weekday="monday" show-week-numbers=#false
+    - id="dashboard-resources" page="dashboard" kind="resources" x=537 y=142 width=90 height=250 display="standard" show-cpu=#true show-memory=#true show-storage=#true
+    - id="dashboard-media" page="dashboard" kind="media" x=639 y=0 width=200 height=392 display="standard" show-album=#true show-source=#true
+    - id="media-player" page="media" kind="media.player" x=0 y=0 width=839 height=392 display="standard"
+    - id="weather-hero" page="weather" kind="weather.hero" x=0 y=0 width=839 height=116 display="standard"
+    - id="weather-hourly" page="weather" kind="weather.hourly" x=0 y=128 width=839 height=108 display="standard"
+    - id="weather-daily" page="weather" kind="weather.daily" x=0 y=248 width=839 height=144 display="standard"
+}
+
+var dashboard-default-performance-battery {
+    - id="performance-cpu" page="performance" kind="performance.cpu" x=0 y=0 width=343 height=191 display="standard"
+    - id="performance-gpu" page="performance" kind="performance.gpu" x=355 y=0 width=343 height=191 display="standard"
+    - id="performance-storage" page="performance" kind="performance.storage" x=0 y=203 width=169.5 height=189 display="standard"
+    - id="performance-network" page="performance" kind="performance.network" x=181.5 y=203 width=335 height=189 display="standard"
+    - id="performance-memory" page="performance" kind="performance.memory" x=528.5 y=203 width=169.5 height=189 display="standard"
+    - id="performance-battery" page="performance" kind="performance.battery" x=710 y=0 width=129 height=392 display="standard"
+}
+
+var dashboard-default-performance-plain {
+    - id="performance-cpu" page="performance" kind="performance.cpu" x=0 y=0 width=413.5 height=191 display="standard"
+    - id="performance-gpu" page="performance" kind="performance.gpu" x=425.5 y=0 width=413.5 height=191 display="standard"
+    - id="performance-storage" page="performance" kind="performance.storage" x=0 y=203 width=240 height=189 display="standard"
+    - id="performance-network" page="performance" kind="performance.network" x=252 y=203 width=335 height=189 display="standard"
+    - id="performance-memory" page="performance" kind="performance.memory" x=599 y=203 width=240 height=189 display="standard"
+}
+
+var dashboard-default-widgets from="{var.dashboard-default-overview | concat (battery.present == true ? var.dashboard-default-performance-battery : var.dashboard-default-performance-plain)}"
+
+define "widget" {
+    param "w"
+    switch "{w.kind}" {
+        case "weather" { use "card-weather" card="{w}" zone="{w.height >= 200 && w.width < 300 ? 'side' : 'top'}" }
+        case "user" { use "card-user" card="{w}" zone="{w.height >= 200 && w.width < 300 ? 'side' : 'top'}" }
+        case "clock" { use "card-clock" card="{w}" zone="{w.height > 130 ? 'bottom' : 'top'}" }
+        case "calendar" { use "card-calendar" card="{w}" zone="{w.height > 300 ? 'side' : 'bottom'}" }
+        case "resources" { use "card-resources" card="{w}" zone="{w.width > w.height ? 'top' : 'bottom'}" }
+        case "media" { use "card-media" card="{w}" zone="{w.width > w.height * 1.3 ? 'top' : (w.height >= 330 ? 'side' : 'bottom')}" }
+        case "media.player" { use "dashboard-media" }
+        case "performance.cpu" { use "perf-hero-card" title="CPU" subtitle="{perf.chip} · {perf.cores} Cores" value="{perf.live.cpu}" history="{perf.live.cpu-history}" icon="panel-cpu" fallback="cpu" }
+        case "performance.gpu" { use "perf-hero-card" title="GPU" subtitle="{perf.gpu-cores != null ? perf.chip + ' · ' + perf.gpu-cores + ' Cores' : perf.chip}" value="{perf.live.gpu}" history="{perf.live.gpu-history}" icon="square.stack.3d.up" fallback="square.stack.3d.up" }
+        case "performance.storage" { use "perf-storage" }
+        case "performance.network" { use "perf-network" }
+        case "performance.memory" { use "perf-memory" }
+        case "performance.battery" { use "perf-battery" }
+        case "weather.hero" { use "weather-hero" }
+        case "weather.hourly" { use "weather-hourly" }
+        case "weather.daily" { use "weather-daily" }
+        default { column class="card widget-unknown" { text "{w.kind}" class="card-hint" } }
+    }
+}

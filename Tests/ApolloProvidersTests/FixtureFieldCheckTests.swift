@@ -220,10 +220,10 @@ struct FixtureFieldCheckTests {
         let fixture = ProviderFixture.load(Self.fixtureURL)
         let ir = try #require(Self.builtin("apolloshell-default").ir)
         let session = FixtureFieldCheck.session(ir, fixture: fixture)
-        let card = Value.record(Record([("id", .string("media")), ("kind", .string("media")), ("show-album", .bool(true)), ("show-source", .bool(true))]))
-        #expect(session.vars.set("dashboard-cards-top", .list([card])))
-        #expect(session.vars.set("dashboard-cards-bottom", .list([card])))
-        #expect(session.vars.set("dashboard-cards-side", .list([card])))
+        func w(_ id: String, _ x: Double, _ width: Double, _ height: Double) -> Value {
+            .record(Record([("id", .string(id)), ("page", .string("dashboard")), ("kind", .string("media")), ("x", .number(x)), ("y", .number(0)), ("width", .number(width)), ("height", .number(height)), ("display", .string("standard")), ("show-album", .bool(true)), ("show-source", .bool(true))]))
+        }
+        #expect(session.vars.set("dashboard-widgets", .list([w("a", 0, 552, 130), w("b", 560, 200, 392), w("c", 780, 60, 250)])))
         session.runtime.open("dashboard", screenKey: nil)
         session.flush()
         let elements = Self.all(try #require(session.runtime.surface("dashboard", screenKey: "main")).root)

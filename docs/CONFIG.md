@@ -130,6 +130,8 @@ Places the children of exactly one each at the x, y, width and height of their i
 | property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `in` | list | `null` | Items, records with x, y, width, height in pt and optional sizes (records min-width, max-width or width, and height) that limit resizing; default the items of the each. |
 | property | `key` | string | `"id"` | Field that identifies an item, sent as event.key. |
+| property | `sizes` | list | `null` | Catalogue for items without their own sizes: records whose sizes-by field matches the item's, each with a sizes list. |
+| property | `sizes-by` | string | `"kind"` | Field that links an item to its entry in sizes. |
 | property | `enabled` | bool | `false` | Items can be moved and resized by dragging; a drag from the bottom-right 28 pt corner resizes. |
 | property | `gap` | number | `12` | Minimum distance between two items. |
 | property | `snap` | number | `8` | Distance at which an edge jumps onto the canvas edge or a neighbour. |
@@ -2313,6 +2315,14 @@ Clamps a number.
 | --- | --- | --- | --- | --- |
 | argument | `low` | number | required | Lower bound. |
 | argument | `high` | number | required | Upper bound. |
+
+### `concat` (filter)
+
+Joins two lists, this one first.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `other` | list | required | List appended at the end; null counts as empty. |
 
 ### `contains` (filter)
 

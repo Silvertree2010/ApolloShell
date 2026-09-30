@@ -39,6 +39,8 @@ enum Layout {
             properties: CommonProperties.elementProperties + [
                 PropertySchema(name: "in", type: .list, defaultValue: .null, doc: "Items, records with x, y, width, height in pt and optional sizes (records min-width, max-width or width, and height) that limit resizing; default the items of the each."),
                 PropertySchema(name: "key", type: .string, defaultValue: .string("id"), allowsExpression: false, doc: "Field that identifies an item, sent as event.key."),
+                PropertySchema(name: "sizes", type: .list, defaultValue: .null, doc: "Catalogue for items without their own sizes: records whose sizes-by field matches the item's, each with a sizes list."),
+                PropertySchema(name: "sizes-by", type: .string, defaultValue: .string("kind"), allowsExpression: false, doc: "Field that links an item to its entry in sizes."),
                 PropertySchema(name: "enabled", type: .bool, defaultValue: .bool(false), doc: "Items can be moved and resized by dragging; a drag from the bottom-right 28 pt corner resizes."),
                 PropertySchema(name: "gap", type: .number, defaultValue: .number(12), doc: "Minimum distance between two items."),
                 PropertySchema(name: "snap", type: .number, defaultValue: .number(8), doc: "Distance at which an edge jumps onto the canvas edge or a neighbour."),

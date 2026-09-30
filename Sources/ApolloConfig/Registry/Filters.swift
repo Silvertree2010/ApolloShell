@@ -47,6 +47,7 @@ enum Filters {
         FilterSchema(name: "slice", arguments: [arg("start", .number, doc: "First position."), arg("end", .number, doc: "Position after the end.")], doc: "Slice of a list or string."),
         FilterSchema(name: "reverse", doc: "Reverses a list or string."),
         FilterSchema(name: "sort", arguments: [optionalArg("field", .string, doc: "Field to sort by."), optionalArg("direction", .enumeration(["desc"]), doc: "Descending when set.")], doc: "Sorts a list."),
+        FilterSchema(name: "concat", arguments: [arg("other", .list, doc: "List appended at the end; null counts as empty.")], doc: "Joins two lists, this one first."),
         FilterSchema(name: "unique", doc: "Removes duplicates, the first one stays."),
         FilterSchema(name: "join", arguments: [arg("separator", .string, doc: "Text put between two elements.")], doc: "Joins a list into a string."),
         FilterSchema(name: "where", arguments: [arg("field", .string, doc: "Field name."), arg("value", .any, doc: "Value to find.")], doc: "Filters records by equality of a field."),
