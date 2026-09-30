@@ -1,4 +1,5 @@
 style "widgets.css"
+include "widgets-media.kdl"
 
 var widget-kinds {
     - kind="weather" title="Weather" symbol="cloud.sun.fill" displays="standard minimal" {
@@ -218,8 +219,8 @@ define "widget" {
         case "clock" { use "widget-clock" w="{w}" }
         case "calendar" { use "widget-calendar" w="{w}" }
         case "resources" { use "widget-resources" w="{w}" }
-        case "media" { use "card-media" card="{w}" zone="{w.width > w.height * 1.3 ? 'top' : (w.height >= 330 ? 'side' : 'bottom')}" }
-        case "media.player" { use "dashboard-media" }
+        case "media" { use "widget-media" w="{w}" }
+        case "media.player" { use "widget-media-player" w="{w}" }
         case "performance.cpu" { use "perf-hero-card" title="CPU" subtitle="{perf.chip} · {perf.cores} Cores" value="{perf.live.cpu}" history="{perf.live.cpu-history}" icon="panel-cpu" fallback="cpu" }
         case "performance.gpu" { use "perf-hero-card" title="GPU" subtitle="{perf.gpu-cores != null ? perf.chip + ' · ' + perf.gpu-cores + ' Cores' : perf.chip}" value="{perf.live.gpu}" history="{perf.live.gpu-history}" icon="square.stack.3d.up" fallback="square.stack.3d.up" }
         case "performance.storage" { use "perf-storage" }
