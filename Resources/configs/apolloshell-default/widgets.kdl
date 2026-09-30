@@ -236,6 +236,7 @@ define "widget" {
         case "apps" { use "widget-apps" w="{w}" }
         case "photos" { use "widget-photos" w="{w}" }
         case "network.info" { use "widget-network-info" w="{w}" }
+        case "files.recent" { use "widget-files-recent" w="{w}" }
         default { column class="card widget-unknown" { text "{w.kind}" class="card-hint" } }
     }
 }

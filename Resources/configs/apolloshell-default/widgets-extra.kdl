@@ -1,5 +1,7 @@
 style "widgets-extra.css"
 
+filter "wx-ago" "{value < 60 ? 'now' : (value < 3600 ? (value / 60 | round) + ((value / 60 | round) == 1 ? ' minute ago' : ' minutes ago') : (value < 86400 ? (value / 3600 | round) + ((value / 3600 | round) == 1 ? ' hour ago' : ' hours ago') : (value / 86400 | round) + ((value / 86400 | round) == 1 ? ' day ago' : ' days ago')))}"
+
 define "wx-ring" {
     param "s"
     param "v"
@@ -294,4 +296,75 @@ define "widget-network-info-view" {
 define "widget-network-info" {
     param "w"
     use "widget-network-info-view" w="{w}" title="{network-info.kind == 'wifi' ? (network-info.name ?? 'Wi-Fi') : (network-info.kind == 'wired' ? 'Ethernet' : 'Offline')}" symbol="{network-info.kind == 'wifi' ? 'wifi' : (network-info.kind == 'wired' ? 'cable.connector' : 'wifi.slash')}"
+}
+
+define "wx-header" {
+    param "symbol"
+    param "title"
+    row class="wx-header" {
+        icon "{symbol}" class="wx-header-glyph"
+        text "{title}" class="wx-header-title" lines=1
+    }
+}
+
+define "wx-files-grid" {
+    param "fl"
+    param "icon"
+    param "cols"
+    param "rows"
+    column class="wx-grid" style="gap: 10px" {
+        each r in="{var.wx-index | take (rows | min (((fl | count) / cols) | ceil))}" key="{r}" {
+            row class="wx-grid-row" style="gap: 10px" {
+                each f in="{fl | skip (r * cols) | take cols}" key="{f.path}" {
+                    button class="wx-file" {
+                        column class="wx-file-cell" {
+                            app-icon "{f.path}" class="wx-file-icon" style="width: {icon}px; height: {icon}px"
+                            text "{f.name}" class="wx-file-name" style="width: {icon + 26}px" lines=1 truncate="middle"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "wx-files-grid-fit" {
+    param "fl"
+    param "w"
+    param "icon"
+    use "wx-files-grid" fl="{fl | take ((1 | max (((w.width - 24) / (icon + 36)) | floor)) * (1 | max (((w.height - 24) / (icon + 34)) | floor)))}" icon="{icon}" cols="{1 | max (((w.width - 24) / (icon + 36)) | floor)}" rows="{1 | max (((w.height - 24) / (icon + 34)) | floor)}"
+}
+
+define "widget-files-recent" {
+    param "w"
+    column class="card wx-files {w.display}" {
+        when "{(files.recent | count) == 0}" {
+            column class="wx-empty" {
+                icon "doc.on.doc" class="wx-empty-glyph"
+                text "Nothing opened this week" class="wx-empty-text"
+            }
+        }
+        else {
+            switch "{w.display}" {
+                case "grid" { use "wx-files-grid-fit" fl="{files.recent}" w="{w}" icon="{w.height < 150 ? 40 : 52}" }
+                default {
+                    column class="wx-files-list" {
+                        use "wx-header" symbol="clock.arrow.circlepath" title="Recent Files"
+                        each f in="{files.recent | take (1 | max (((w.height - 44) / 30) | floor))}" key="{f.path}" {
+                            button class="wx-files-button" {
+                                on-click { open-file "{f.path}" }
+                                row class="wx-files-row" {
+                                    app-icon "{f.path}" class="wx-files-icon"
+                                    text "{f.name}" class="wx-files-name" lines=1 truncate="middle"
+                                    spacer
+                                    text "{((clock.now | number) - (f.date | number)) | wx-ago}" class="wx-files-date" lines=1
+                                }
+                            }
+                        }
+                        spacer
+                    }
+                }
+            }
+        }
+    }
 }

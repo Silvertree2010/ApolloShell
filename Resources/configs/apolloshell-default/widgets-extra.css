@@ -42,3 +42,17 @@
 .wx-net-min-texts { gap: 2px; align-items: start; flex-shrink: 1; min-width: 0; }
 .wx-net-min-title { font-size: 17px; font-weight: 600; }
 .wx-net-min-latency { font-size: 22px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; color: -apple-system-secondary-label; }
+.card.wx-files { padding: 0; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
+.card.wx-files.standard { align-items: stretch; justify-content: start; padding: 14px; }
+.wx-files-list { align-self: stretch; flex-grow: 1; align-items: start; }
+.wx-header { gap: 6px; align-items: center; padding-bottom: 6px; }
+.wx-header-glyph { font-size: 12px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wx-header-title { font-size: 13px; font-weight: 600; }
+.wx-files-button { align-self: stretch; }
+.wx-files-row { gap: 8px; height: 30px; align-items: center; align-self: stretch; }
+.wx-files-icon { width: 20px; height: 20px; flex-shrink: 0; }
+.wx-files-name { font-size: 13px; flex-shrink: 1; min-width: 0; }
+.wx-files-date { font-size: 11px; color: -apple-system-secondary-label; flex-shrink: 0; }
+.wx-file-cell { gap: 4px; align-items: center; }
+.wx-file-icon { flex-shrink: 0; }
+.wx-file-name { font-size: 10px; text-align: center; }
