@@ -2781,7 +2781,7 @@ Checks the start of a string.
 
 Converts a value to a string.
 
-### `sun-moon` (filter, *experimental*)
+### `sun-moon` (filter)
 
 Sun and moon on a date: sunrise, sunset, noon, always-up, always-down, moonrise, moonset (null, not computed), moon-phase 0…1, moon-illumination 0…1, moon-symbol, moon-name.
 

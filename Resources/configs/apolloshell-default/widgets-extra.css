@@ -30,7 +30,7 @@
 .wx-photo-frame { overflow: hidden; }
 .wx-photo-image { flex-shrink: 0; }
 .card.wx-net { padding: 16px; justify-content: center; align-items: stretch; border-radius: var(--apollo-card-radius, 24px); }
-.card.wx-net.min { padding: 0 18px; gap: 14px; flex-direction: row; align-items: center; }
+.card.wx-net.min { padding: 0 18px; gap: 14px; align-items: center; }
 .wx-net-head { gap: 8px; align-items: center; }
 .wx-net-glyph { font-size: 14px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
 .wx-net-title { font-size: 15px; font-weight: 600; flex-shrink: 1; min-width: 0; }
