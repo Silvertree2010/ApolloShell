@@ -19,9 +19,9 @@ define "wm-picture" {
     param "radius"
     param "sym"
     param "note"
-    stack class="wm-picture" style="width: {width}px; height: {height}px; border-radius: {radius}px" {
+    stack class="wm-picture r{radius}" style="width: {width}px; height: {height}px" {
         icon "{note}" class="wm-picture-note" style="font-size: {sym}px"
-        image "{media.artwork}" fit="fill" class="wm-picture-image" style="width: {width}px; height: {height}px; border-radius: {radius}px"
+        image "{media.artwork}" fit="fill" class="wm-picture-image r{radius}" style="width: {width}px; height: {height}px"
     }
 }
 
@@ -180,7 +180,7 @@ define "wm-tab-body" {
     param "w"
     param "cv"
     param "pw"
-    column class="wm-shadow" style="border-radius: 22px" {
+    column class="wm-shadow r22" {
         use "wm-picture" width="{media.kind == 'video' ? pw : cv}" height="{media.kind == 'video' ? (pw * 9 / 16 | round) : cv}" radius=22 sym="{cv * 0.26}" note="{media.kind == 'video' ? 'play.rectangle' : 'music.note'}"
     }
     column class="wm-tab-rest" {

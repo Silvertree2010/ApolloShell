@@ -41,3 +41,6 @@
 .wm-times { align-self: stretch; gap: 10px; align-items: center; }
 .wm-times-bar { flex-grow: 1; }
 .wm-tab-rest { flex-grow: 1; align-self: stretch; align-items: center; justify-content: center; }
+.r14 { border-radius: var(--apollo-card-radius, 14px); }
+.r18 { border-radius: var(--apollo-card-radius, 18px); }
+.r22 { border-radius: var(--apollo-card-radius, 22px); }
