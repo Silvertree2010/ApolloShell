@@ -88,7 +88,7 @@ final class LiveShell: WindowHostLink {
     let firstWeekday = FirstWeekdaySetting()
     var interactive = true
     var currentScreens: @MainActor () -> [String: ScreenGeometry] = {
-        Dictionary(ShellScreens.current().map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame, name: $0.info.name, notch: $0.screen.safeAreaInsets.top > 0)) }, uniquingKeysWith: { first, _ in first })
+        Dictionary(ShellScreens.current().map { ($0.info.key, ScreenGeometry(key: $0.info.key, frame: $0.frame, visible: $0.visibleFrame, name: $0.info.name, notch: $0.screen.safeAreaInsets.top > 0, notchLeft: SystemScreensSource.notch($0.screen)?.left, notchRight: SystemScreensSource.notch($0.screen)?.right)) }, uniquingKeysWith: { first, _ in first })
     }
     var pointerScreen: @MainActor () -> String? = { ShellScreens.underPointer()?.info.key }
 
@@ -285,8 +285,8 @@ final class LiveShell: WindowHostLink {
         for (key, screen) in screens {
             store.set(DependencyPath("screen:" + key, []), .record(Record([
                 ("id", .string(key)), ("name", .string(screen.name ?? key)), ("main", .bool(screen.frame.origin == .zero)),
-                ("width", .number(Double(screen.frame.width))), ("height", .number(Double(screen.frame.height))),
-                ("usable-height", .number(Double(screen.visible.height > 0 ? screen.visible.height : screen.frame.height))), ("notch", .bool(screen.notch)),
+                ("width", .number(Double(screen.frame.width))), ("height", .number(Double(screen.frame.height))), ("usable-height", .number(Double(screen.visible.height > 0 ? screen.visible.height : screen.frame.height))), ("notch", .bool(screen.notch)),
+                ("menubar-height", .number(Double(max(screen.frame.maxY - screen.visible.maxY, 0)))), ("notch-left", ScreensProvider.area(screen.notchLeft, in: screen.frame)), ("notch-right", ScreensProvider.area(screen.notchRight, in: screen.frame)),
             ])))
         }
     }
@@ -968,10 +968,16 @@ final class LiveShell: WindowHostLink {
     static func imageData(_ providers: [any ProviderInstance]) -> @MainActor (ImageRef) -> Data? {
         let media = providers.compactMap { $0 as? MediaProvider }.first
         let system = providers.compactMap { $0 as? SystemProvider }.first
+        let photos = providers.compactMap { $0 as? PhotosProvider }.first
+        let wallpaper = providers.compactMap { $0 as? WallpaperProvider }.first
+        let statusItems = providers.compactMap { $0 as? StatusItemsProvider }.first
         return { ref in
             switch ref.source {
             case "media": media?.artworkData(ref.id)
+            case "status-item": statusItems?.imageData(ref.id)
             case "user-image": system?.userImageData(ref.id)
+            case "photos": photos?.thumbnailData(ref.id)
+            case "wallpaper": wallpaper?.thumbnailData(ref.id)
             default: nil
             }
         }
@@ -1137,6 +1143,9 @@ final class LiveShellControl: ShellControl, @unchecked Sendable {
                 ("space-changes", .number(Double(host.spaceChanges))),
                 ("styles-computed", .number(Double(StyleResolver.computedTotal))),
                 ("longest-block-ms", .number(MainBlockObserver.shared.takeLongest())),
+                ("layout-measures", .number(Double(LayoutCounter.measures.load(ordering: .relaxed)))),
+                ("layout-placements", .number(Double(LayoutCounter.placements.load(ordering: .relaxed)))),
+                ("layout-passes", .number(Double(LayoutCounter.passes.load(ordering: .relaxed)))),
             ]))
         }
     }

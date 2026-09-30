@@ -156,10 +156,11 @@ struct SchemaStageTests {
         #expect(errors[0].message == "Lua scripting comes in a later version")
     }
 
-    @Test("experimental markierte Property meldet eine Notiz")
-    func experimentalPropertyIsANote() {
+    @Test("experimental markierter Filter meldet eine Notiz")
+    func experimentalFilterIsANote() {
         let result = Self.pipeline("""
-        panel "sidebar" fuse-group="a" {
+        panel "sidebar" {
+            text "{clock.now | sun-moon 2 3}"
         }
         """)
         #expect(result.diagnostics.count == 1)

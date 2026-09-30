@@ -19,11 +19,12 @@ struct SchemaRegistryTests {
 
     static let topLevelBlockNames: Set<String> = ["bind", "on", "poll", "listen", "wm", "command-center", "marketplace"]
 
-    static let surfaceNames: Set<String> = ["panel", "popup", "overlay", "toast", "osd", "window"]
+    static let surfaceNames: Set<String> = ["panel", "popup", "overlay", "toast", "osd", "window", "status-item"]
 
     static let layoutNames: Set<String> = ["row", "column", "grid", "stack", "scroll", "spacer", "canvas"]
 
     static let elementNames: Set<String> = [
+        "app-menus",
         "text", "icon", "image", "app-icon", "theme-preview", "mark", "shape", "button", "toggle",
         "slider", "input", "key-recorder", "ring", "gauge", "graph", "progress", "reorderable",
         "flyout", "menu", "accessibility-action",
@@ -42,6 +43,8 @@ struct SchemaRegistryTests {
 
     static let nodesWithChildren: Set<String> = [
         "canvas",
+        "status-item",
+        "app-menus",
         "define", "fill", "use", "each", "when", "else", "switch", "case", "default",
         "bind", "on", "wm", "command-center", "items",
         "panel", "popup", "overlay", "toast", "osd", "window",
@@ -236,11 +239,14 @@ struct SchemaRegistryTests {
         #expect(panel?.properties.contains(where: { $0.name == "screen" }) == true)
     }
 
-    @Test("reservierte Properties sind experimental markiert, drag-value ist stabil")
+    @Test("drag-value ist stabil, fuse-group und fuse-fill gehören seit 0.2.1 zum Feature fusion")
     func reservedPropertiesAreExperimental() {
         let panel = BuiltinSchemaRegistry.allNodes.first { $0.name == "panel" }
         let fuseGroup = panel?.properties.first { $0.name == "fuse-group" }
-        #expect(fuseGroup?.stability == .experimental)
+        let fuseFill = panel?.properties.first { $0.name == "fuse-fill" }
+        #expect(fuseGroup?.stability == .stable)
+        #expect(fuseGroup?.feature == "fusion")
+        #expect(fuseFill?.feature == "fusion")
         let button = BuiltinSchemaRegistry.allNodes.first { $0.name == "button" }
         #expect(button?.properties.first { $0.name == "drag-value" }?.stability == .stable)
     }

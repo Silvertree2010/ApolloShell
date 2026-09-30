@@ -9,8 +9,10 @@ public struct ScreenState: Equatable, Sendable {
     public var notch: Bool
     public var menubarHeight: Double
     public var fullscreen: Bool
+    public var notchLeft: CGRect?
+    public var notchRight: CGRect?
 
-    public init(name: String, frame: CGRect, visibleFrame: CGRect, scale: Double, primary: Bool, notch: Bool, menubarHeight: Double, fullscreen: Bool) {
+    public init(name: String, frame: CGRect, visibleFrame: CGRect, scale: Double, primary: Bool, notch: Bool, menubarHeight: Double, fullscreen: Bool, notchLeft: CGRect? = nil, notchRight: CGRect? = nil) {
         self.name = name
         self.frame = frame
         self.visibleFrame = visibleFrame
@@ -19,6 +21,8 @@ public struct ScreenState: Equatable, Sendable {
         self.notch = notch
         self.menubarHeight = menubarHeight
         self.fullscreen = fullscreen
+        self.notchLeft = notchLeft
+        self.notchRight = notchRight
     }
 }
 

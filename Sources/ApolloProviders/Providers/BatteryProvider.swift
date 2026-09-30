@@ -8,6 +8,7 @@ public final class BatteryProvider: BaseProvider {
     static let baseInterval: Double = 60
     static let detailInterval: Double = 2
     static let detailFields = ["health", "cycles", "low-power-mode"]
+    static let lowPowerReread: Double = 1
 
     private let source: any BatterySource
     private var tracker: BatteryToastTracker?
@@ -32,6 +33,15 @@ public final class BatteryProvider: BaseProvider {
         timers.set("details", every: Self.detailInterval, active: demand.wantsAny(Self.detailFields), immediately: true) { [weak self] in
             self?.refreshDetails()
         }
+    }
+
+    override func handle(_ arguments: ActionArguments) async throws -> Value {
+        guard arguments.action == "battery.set-low-power" else { throw ProviderActionError.unknownAction(arguments.action) }
+        source.setLowPowerMode(try arguments.bool(0))
+        timers.once("low-power-reread", after: Self.lowPowerReread) { [weak self] in
+            self?.refreshDetails()
+        }
+        return .null
     }
 
     override func didStop() {

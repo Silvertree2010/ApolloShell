@@ -39,6 +39,7 @@ enum ProvidersCore {
             S.field("symbol", .string, update: .push, doc: "SF Symbol for the level."),
             S.field("tank-text", .string, update: .push, doc: "Text for the battery tank."),
         ],
+        actions: ProvidersExtras.batteryActions,
         events: [
             S.event("battery.charger-connected", doc: "Charger connected."),
             S.event("battery.charger-disconnected", doc: "Charger disconnected."),

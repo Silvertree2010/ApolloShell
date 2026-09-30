@@ -194,5 +194,7 @@ extension RenderContext {
         runtime = AssemblyRenderRuntime(assembly)
         let sources = AppMenuSources(system: LiveAppMenuSystem())
         for kind in AppMenuSources.kinds { menuSources[kind] = sources }
+        let menuBar = MenuBarMenuSources(menuBar: .shared, statusItems: .shared)
+        for kind in MenuBarMenuSources.kinds { menuSources[kind] = menuBar }
     }
 }

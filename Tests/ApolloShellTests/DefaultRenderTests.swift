@@ -20,6 +20,16 @@ struct DefaultRenderTests {
         return Snapshot(rep: try #require(NSBitmapImageRep(data: try session.capture(surface, name: id))), scale: 1)
     }
 
+    @Test("Leisten-Baustein timer: ruhend nur das Symbol, laufend der Ring im Akzent")
+    func menubarTimer() throws {
+        let idle = try Self.shot("menubar", state: "menubar-block-timer")
+        let run = try Self.shot("menubar", state: "menubar-block-timer-running")
+        let blue = { (c: RGBA) in max(c.r, c.g, c.b) - min(c.r, c.g, c.b) > 100 }
+        #expect(idle.bounds(where: blue) == nil)
+        let ring = try #require(run.bounds(where: blue))
+        #expect(ring.width > 20 && ring.height > 20)
+    }
+
     @Test("Desktop-Uhr: Zeile mit Zeit, Strich und Datum, 24 pt Schattenraum, Schatten sichtbar auf hellem Grund")
     func desktopClock() throws {
         let shot = try Self.shot("desktop-clock")

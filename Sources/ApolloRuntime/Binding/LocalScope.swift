@@ -72,3 +72,10 @@ enum ContextScopeKeys {
     static let surfaceKey = "$surface"
     static let screenKey = "$screen"
 }
+
+extension LocalScope {
+    public var screenKey: String? {
+        if case .string(let key)? = self[ContextScopeKeys.screenKey] { return key }
+        return nil
+    }
+}

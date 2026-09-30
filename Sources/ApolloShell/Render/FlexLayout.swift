@@ -1,4 +1,5 @@
 import SwiftUI
+import ApolloShellCore
 import ApolloStyle
 
 struct ChildMetrics: Equatable {
@@ -61,12 +62,13 @@ struct Definite: Equatable {
     }
 }
 
-struct FlexLayout: Layout {
+struct FlexLayout: GuideFreeLayout {
     var horizontal: Bool
     var gap: CGFloat
     var align: String
     var justify: String
     var definite = Definite()
+    var notch: BarNotch?
 
     private func main(_ size: CGSize) -> CGFloat { horizontal ? size.width : size.height }
     private func cross(_ size: CGSize) -> CGFloat { horizontal ? size.height : size.width }
@@ -165,6 +167,7 @@ struct FlexLayout: Layout {
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        LayoutCounter.measured()
         guard !subviews.isEmpty else { return .zero }
         let sizes = mains(subviews, proposal: proposal)
         let crossAvailable = horizontal ? proposal.height : proposal.width
@@ -176,14 +179,20 @@ struct FlexLayout: Layout {
         }
         var mainSize = sizes.reduce(0, +) + gap * CGFloat(subviews.count - 1)
         let available = horizontal ? proposal.width : proposal.height
-        if let available, available.isFinite, justify != "start" || subviews.contains(where: { $0[ChildMetricsKey.self].grow > 0 }) {
+        if let available, available.isFinite, justify != "start" || subviews.contains(where: { $0[ChildMetricsKey.self].grow > 0 })
+            || (horizontal && ZoneRow.applies(subviews.map { $0[ChildMetricsKey.self] })) {
             mainSize = max(mainSize, available)
         }
         return definite.apply(horizontal ? CGSize(width: mainSize, height: crossSize) : CGSize(width: crossSize, height: mainSize), proposal)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        LayoutCounter.placed()
         guard !subviews.isEmpty else { return }
+        if horizontal, ZoneRow.applies(subviews.map { $0[ChildMetricsKey.self] }) {
+            ZoneRow(gap: gap, align: align, notch: notch).place(in: bounds, subviews: subviews)
+            return
+        }
         let sizes = mains(subviews, proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
         let total = sizes.reduce(0, +) + gap * CGFloat(subviews.count - 1)
         let free = max(0, main(bounds.size) - total)
@@ -221,10 +230,11 @@ struct FlexLayout: Layout {
     }
 }
 
-struct StackLayout: Layout {
+struct StackLayout: GuideFreeLayout {
     var definite = Definite()
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        LayoutCounter.measured()
         var result = CGSize.zero
         for subview in subviews {
             let metrics = subview[ChildMetricsKey.self]
@@ -246,6 +256,7 @@ struct StackLayout: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        LayoutCounter.placed()
         for subview in subviews {
             let metrics = subview[ChildMetricsKey.self]
             let childProposal = childProposal(metrics, in: ProposedViewSize(bounds.size))
@@ -267,7 +278,7 @@ struct StackLayout: Layout {
     }
 }
 
-struct GridLayout: Layout {
+struct GridLayout: GuideFreeLayout {
     var columns: [CSSLength]
     var columnGap: CGFloat
     var rowGap: CGFloat
@@ -344,6 +355,7 @@ struct GridLayout: Layout {
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        LayoutCounter.measured()
         let widths = widths(proposal.width, subviews: subviews)
         let heights = rows(cells(subviews), widths, subviews)
         let width = widths.reduce(0, +) + columnGap * CGFloat(max(0, widths.count - 1))
@@ -352,6 +364,7 @@ struct GridLayout: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        LayoutCounter.placed()
         let widths = widths(bounds.width, subviews: subviews)
         let cells = cells(subviews)
         let heights = rows(cells, widths, subviews)

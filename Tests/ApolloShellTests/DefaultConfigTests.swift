@@ -37,6 +37,7 @@ struct DefaultConfigTests {
             "sidebar": "panel", "desktop-clock": "panel", "dashboard": "popup", "dashboard-toolbar": "popup", "utilities": "popup",
             "launcher": "popup", "session": "popup", "volume": "osd", "default": "toast",
             "onboarding": "window", "settings": "window", "settings-confirm": "popup",
+            "menubar": "panel", "menubar-status-popout": "popup",
         ]
         #expect(kinds == expected)
     }
@@ -52,6 +53,8 @@ struct DefaultConfigTests {
             "toast-charging", "toast-battery", "toast-audio-output", "toast-audio-input", "desktop-clock",
             "hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-settings", "hide-apple-dock",
             "keep-awake-lid", "onboarding-done", "dashboard-pages", "dashboard-widgets", "dashboard-scale", "dashboard-seeded",
+            "menubar-enabled", "menubar-screens", "menubar-style", "menubar-distinct", "menubar-thickness",
+            "menubar-covers", "menubar-hide-apple", "menubar-status-style", "menubar-start", "menubar-center", "menubar-end",
         ]
         #expect(persisted == expected)
     }
@@ -159,7 +162,16 @@ struct DefaultConfigTests {
     static let cards = [".card", ".card-weather", ".card-user", ".card-clock", ".card-calendar", ".card-resources", ".card-media", ".media-source", ".popout-card", ".utilities-card", ".onboarding-card", ".weather-hero", ".weather-hours", ".weather-day"]
     static let panels = ["#dashboard", "#utilities", "#launcher", "#session"]
 
-    static let allowedPlaces: [String: [String]] = [
+    static let placesFrom02: [String: [String]] = [
+        "--apollo-danger-color": [".quick-toggle"],
+        "--apollo-card-radius": [".now-playing-cover", ".now-playing-art"],
+        "--apollo-accent-color": [".timer-ring", ".timer-toggle", ".now-playing", ".brightness-slider"],
+        "--apollo-on-accent-color": [".timer-toggle", ".brightness-slider"],
+    ]
+
+    static let allowedPlaces: [String: [String]] = allowedPlaces0142.merging(placesFrom02) { $0 + $1 }
+
+    static let allowedPlaces0142: [String: [String]] = [
         "--apollo-separator-color": [".launcher-separator"],
         "--apollo-border-color": cards,
         "--apollo-border-width": cards,
@@ -178,6 +190,8 @@ struct DefaultConfigTests {
         "--apollo-bar-text-color": [".sidebar-clock"],
         "--apollo-bar-icon-color": [".sidebar-icon"],
         "--apollo-bar-width": ["#sidebar"],
+        "--apollo-bar-radius": ["#sidebar"],
+        "--apollo-fusion-radius": ["#sidebar"],
         "--apollo-bar-padding": [".sidebar-modules"],
         "--apollo-bar-item-spacing": [".sidebar-modules"],
         "--apollo-dock-icon-size": [".dock-item"],
@@ -257,5 +271,17 @@ struct DefaultConfigTests {
         }
         let missing = Set(Self.allowedPlaces.keys).subtracting(used)
         #expect(missing.isEmpty, "nicht gelesen: \(missing.sorted())")
+    }
+
+    @Test("Die Menüleiste ist wie im alten 0.2 aus und steht auf der Vorlage macOS")
+    func menubarDefaults() throws {
+        let ir = try #require(PackageResources.load(Self.defaultFolder, id: "apolloshell-default").ir)
+        let names = Set(ir.vars.map(\.name))
+        #expect(names.isSuperset(of: ["menubar-enabled", "menubar-macos", "menubar-serpantinum", "menubar-minimal", "menubar-clock-only"]))
+        let source = try String(contentsOf: Self.defaultFolder.appendingPathComponent("menubar.kdl"), encoding: .utf8)
+        #expect(source.contains("var menubar-enabled #false persist=#true"))
+        #expect(source.contains("var menubar-thickness 24 persist=#true"))
+        #expect(source.contains("var menubar-hide-apple #false persist=#true"))
+        #expect(source.contains("system.hide-apple-menubar"))
     }
 }

@@ -46,6 +46,7 @@ final class RenderSession {
         guard let ir = loaded.ir else { throw RenderError.config("config \(config.path) did not load") }
         let tokens = theme.map { ThemeTokenBridge.environment(for: $0, appearance: dark ? .dark : .light) } ?? .empty
         assembly.store.set(DependencyPath("theme", []), ThemeRoot.value(theme: theme, tokens: tokens, dark: dark))
+        if fixture.screen.count > 0 { assembly.store.set(DependencyPath("screen:render", []), .record(fixture.screen)) }
         assembly.apply(ir, screens: ["render"], shell: fixture.shell)
         for _ in 0..<50 { scheduler.runPending() }
         log(assembly.warnings)

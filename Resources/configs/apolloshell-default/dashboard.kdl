@@ -117,7 +117,7 @@ define "dashboard-page-tab" {
     }
 }
 
-popup "dashboard" anchor="top" motion="slide" hover-edge="{!var.shell-editing}" overhang=#true area="full" safe-area=#true close-on="{var.shell-editing ? '' : 'outside-click escape focus-loss'}" scrim="{var.shell-editing ? 0.35 : 0}" {
+popup "dashboard" anchor="top" motion="slide" fuse-group="shell" hover-edge="{!var.shell-editing}" overhang=#true area="full" safe-area=#true close-on="{var.shell-editing ? '' : 'outside-click escape focus-loss'}" scrim="{var.shell-editing ? 0.35 : 0}" {
     on-open { set "calendar-offset" 0 }
     canvas class="dashboard-scaler" scale="{var.dashboard-scale * (((screen.width ?? 1512) / 1512) | clamp 0.85 1.5) | min ((screen.width ?? 100000) / 871) | min ((screen.usable-height ?? 100000) / 482)}" {
         each frame in="{var.dashboard-frame}" key="{frame.id}" {

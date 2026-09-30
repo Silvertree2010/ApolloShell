@@ -10,6 +10,7 @@ final class SystemMacSource: SystemSource {
     private static let pollInterval: TimeInterval = 2
 
     private let dock: AppleDockHidingController
+    let menuBar: AppleMenuBarHidingController
     private var nightShiftClient: UtilitiesNightShiftClient?
     private var nightShiftLookedUp = false
     private var colorSampler: NSColorSampler?
@@ -22,6 +23,8 @@ final class SystemMacSource: SystemSource {
 
     init(directory: URL) {
         dock = AppleDockHidingController(fileURL: directory.appendingPathComponent("apple-dock.json"))
+        menuBar = AppleMenuBarHidingController(fileURL: directory.appendingPathComponent("apple-menubar.json"))
+        menuBar.recoverAfterCrash()
     }
 
     var darkMode: Bool { UtilitiesAppearance.isDark() }
@@ -58,6 +61,36 @@ final class SystemMacSource: SystemSource {
 
     var appleDockHidden: Bool { dock.isHidden }
 
+    static let finderDomain = "com.apple.finder" as CFString
+    static let hiddenFilesKey = "AppleShowAllFiles" as CFString
+
+    var hiddenFiles: Bool? {
+        CFPreferencesAppSynchronize(Self.finderDomain)
+        guard let value = CFPreferencesCopyAppValue(Self.hiddenFilesKey, Self.finderDomain) else { return nil }
+        if let flag = value as? Bool { return flag }
+        if let text = value as? String {
+            switch text.lowercased() {
+            case "1", "true", "yes": return true
+            case "0", "false", "no": return false
+            default: return nil
+            }
+        }
+        return nil
+    }
+
+    func setHiddenFiles(_ on: Bool) {
+        Subprocess.launch("/usr/bin/defaults", ["write", "com.apple.finder", "AppleShowAllFiles", "-bool", on ? "true" : "false"]) { status in
+            guard status == 0 else { return }
+            Subprocess.launch("/usr/bin/killall", ["Finder"])
+        }
+    }
+
+    var appleMenuBarHidden: Bool { menuBar.isHidden }
+
+    func setAppleMenuBarHidden(_ hidden: Bool) {
+        menuBar.apply(hidden)
+    }
+
     func setDarkMode(_ on: Bool) {
         UtilitiesAppearance.setDark(on)
     }
@@ -78,6 +111,7 @@ final class SystemMacSource: SystemSource {
 
     func terminate() {
         dock.terminate()
+        menuBar.terminate()
     }
 
     func run(_ command: SystemCommand) {
@@ -111,6 +145,19 @@ final class SystemMacSource: SystemSource {
             }
             guard let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.systempreferences") else { return }
             NSWorkspace.shared.openApplication(at: app, configuration: .init())
+        case .emptyTrash:
+            Subprocess.launch("/usr/bin/osascript", ["-e", "tell application \"Finder\" to empty the trash"])
+        case .missionControl:
+            Subprocess.launch("/usr/bin/open", ["-a", "Mission Control"])
+        case .launchpad:
+            let apps = "/System/Applications/Apps.app"
+            if FileManager.default.fileExists(atPath: apps) {
+                Subprocess.launch("/usr/bin/open", [apps])
+            } else {
+                Subprocess.launch("/usr/bin/open", ["-a", "Launchpad"])
+            }
+        case .airDrop:
+            Subprocess.launch("/usr/bin/open", ["/System/Library/CoreServices/Finder.app/Contents/Applications/AirDrop.app"])
         }
     }
 

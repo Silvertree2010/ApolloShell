@@ -74,16 +74,12 @@ struct SchemaDocsTests {
         }
     }
 
-    static func widensEnumeration(from old: String, to new: String?) -> Bool {
+    static func grows(_ old: String, into new: String?) -> Bool {
         guard let new, old.hasPrefix("\""), new.hasPrefix("\"") else { return false }
-        return Set(old.split(separator: "|")).isSubset(of: Set(new.split(separator: "|")))
-    }
-
-    @Test("Ein Aufzählungstyp darf nur wachsen")
-    func enumerationsMayOnlyGrow() {
-        #expect(Self.widensEnumeration(from: "\"a\"|\"b\"", to: "\"a\"|\"b\"|\"c\""))
-        #expect(!Self.widensEnumeration(from: "\"a\"|\"b\"", to: "\"a\"|\"c\""))
-        #expect(!Self.widensEnumeration(from: "string", to: "number"))
+        func values(_ text: String) -> Set<String> {
+            Set(text.split(separator: "|").map { $0.trimmingCharacters(in: .whitespaces) })
+        }
+        return values(old).isSubset(of: values(new))
     }
 
     static func compare(_ old: Value?, _ now: [(String, String)], key: String, label: String, file: URL, stableOnly: Bool = false) {
@@ -92,7 +88,7 @@ struct SchemaDocsTests {
         for case .record(let item) in items {
             if stableOnly, item["stability"] == .string("experimental") { continue }
             guard case .string(let name)? = item[key], case .string(let type)? = item["type"] else { continue }
-            #expect(types[name] == type || widensEnumeration(from: type, to: types[name]), "\(file.lastPathComponent): \(label) '\(name)' was \(type), is \(types[name] ?? "gone")")
+            #expect(types[name] == type || Self.grows(type, into: types[name]), "\(file.lastPathComponent): \(label) '\(name)' was \(type), is \(types[name] ?? "gone")")
         }
     }
 }

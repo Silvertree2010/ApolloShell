@@ -9,6 +9,7 @@ enum BuiltinSchemaRegistry {
             + CommandCenterNodes.all
             + WMSettings.all
             + SettingsFileNodes.all
+            + [MenuBarRegistry.appMenus, MenuBarRegistry.statusItemSurface]
 
     static let scopedNames: Set<String> = ["canvas"]
 
@@ -37,13 +38,14 @@ enum BuiltinSchemaRegistry {
         ProvidersMore.window, ProvidersMore.screens, ProvidersMore.system, ProvidersMore.session,
         ProvidersMore.power, ProvidersMore.permissions, ProvidersMore.shortcuts,
         ProvidersMore.marketplace, ProvidersMore.wm,
-    ]
+        MenuBarRegistry.menubar, MenuBarRegistry.statusItems,
+    ] + ProvidersExtras.all
 
     static let providersResult = RegistryBuilder.dictionary(allProviders, name: { $0.id })
 
     static var providerNameDuplicates: [String] { providersResult.duplicates }
 
-    static let allFilters: [FilterSchema] = Filters.all
+    static let allFilters: [FilterSchema] = Filters.all + [MenuBarRegistry.runs]
 
     static let filtersResult = RegistryBuilder.dictionary(allFilters, name: { $0.name })
 
@@ -68,7 +70,7 @@ enum BuiltinSchemaRegistry {
 
     static var eventNameDuplicates: [String] { eventsResult.duplicates }
 
-    static let menuSourcesResult = RegistryBuilder.dictionary(MenuSources.all, name: { $0.name })
+    static let menuSourcesResult = RegistryBuilder.dictionary(MenuSources.all + MenuBarRegistry.menuSources, name: { $0.name })
 
     static var menuSourceNameDuplicates: [String] { menuSourcesResult.duplicates }
 

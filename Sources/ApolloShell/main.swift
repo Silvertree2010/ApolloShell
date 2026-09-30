@@ -5,6 +5,10 @@ enum AppBanner {
     static let text = "ApolloShell \(ShellVersion.current)"
 }
 
+if CommandLine.arguments.contains("--render-fusion") {
+    exit(MainActor.assumeIsolated { RenderFusion.run(CommandLine.arguments) })
+}
+
 if CommandLine.arguments.contains("--render") {
     exit(MainActor.assumeIsolated { RenderCommand.run(CommandLine.arguments) })
 }

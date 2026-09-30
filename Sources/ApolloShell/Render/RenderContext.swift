@@ -8,6 +8,7 @@ import ApolloRuntime
 @MainActor
 final class RenderContext {
     let styles: StyleResolver
+    var onFlyoutBulges: @MainActor (String, [FlyoutBulge]) -> Void = { _, _ in }
     let icons: any AppIconSource
     let trigger: @MainActor (String, Identity, Record) -> Void
     var configRoot: URL?
@@ -23,6 +24,7 @@ final class RenderContext {
     var reorders: [String: ReorderCoordinator] = [:]
     var canvases: [String: CanvasCoordinator] = [:]
     var menuSources: [String: any MenuSourceProviding] = [:]
+    var menuOverflow: [Identity: [Value]] = [:]
     var pending: [Int: Task<Void, Never>] = [:]
     var nextPending = 0
     var flyoutExtents: [String: EdgeInsets] = [:]
@@ -85,6 +87,7 @@ enum ElementRenderers {
     static let table: [String: Factory] = [
         "column": LayoutRenderers.column,
         "row": LayoutRenderers.row,
+        "app-menus": MenuBarRenderers.appMenus,
         "stack": LayoutRenderers.stack,
         "reorderable": LayoutRenderers.reorderable,
         "canvas": { element, style, scope in AnyView(CanvasElement(element: element, style: style, scope: scope)) },

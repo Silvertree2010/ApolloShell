@@ -18,7 +18,7 @@ enum Surfaces {
             category: .surface,
             arguments: [CommonProperties.idArgument],
             properties: CommonProperties.surfaceProperties + [
-                PropertySchema(name: "motion", type: .enumeration(["slide", "grow", "fade", "none"]), defaultValue: .null, doc: "Opening and closing."),
+                PropertySchema(name: "motion", type: .enumeration(["slide", "grow", "fade", "none", "jelly"]), defaultValue: .null, doc: "Opening and closing."),
                 PropertySchema(name: "scrim", type: .number, defaultValue: .null, doc: "Dims the screen behind it, 0…1."),
                 PropertySchema(name: "close-on", type: .string, defaultValue: .string("outside-click escape focus-loss"), doc: "List of what closes the popup."),
                 PropertySchema(name: "hover-edge", type: .bool, defaultValue: .bool(false), doc: "Opens when the pointer touches the anchored edge."),
@@ -66,7 +66,7 @@ enum Surfaces {
             arguments: [CommonProperties.idArgument],
             properties: CommonProperties.surfaceProperties + [
                 PropertySchema(name: "timeout", type: .duration, defaultValue: .string("2s"), doc: "Display duration."),
-                PropertySchema(name: "motion", type: .enumeration(["slide", "grow", "fade", "none"]), defaultValue: .string("slide"), doc: "Opening and closing."),
+                PropertySchema(name: "motion", type: .enumeration(["slide", "grow", "fade", "none", "jelly"]), defaultValue: .string("slide"), doc: "Opening and closing."),
             ],
             handlers: CommonProperties.surfaceHandlers,
             childContext: .surfaceBody,

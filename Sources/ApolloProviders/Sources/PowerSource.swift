@@ -23,11 +23,13 @@ public struct PermissionsState: Equatable, Sendable {
     public var accessibility: Bool
     public var automation: Bool?
     public var screenRecording: Bool
+    public var screenCaptureBypass: Bool
 
-    public init(accessibility: Bool, automation: Bool?, screenRecording: Bool) {
+    public init(accessibility: Bool, automation: Bool?, screenRecording: Bool, screenCaptureBypass: Bool? = nil) {
         self.accessibility = accessibility
         self.automation = automation
         self.screenRecording = screenRecording
+        self.screenCaptureBypass = screenCaptureBypass ?? screenRecording
     }
 }
 

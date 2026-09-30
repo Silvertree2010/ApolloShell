@@ -26,9 +26,11 @@ protocol HostWindow: AnyObject {
     func hide()
     func animate(opening: Bool, focus: Bool, animator: any SurfaceAnimator, geometry: MotionGeometry, scrim: Double?, screen: CGRect, completion: @escaping @MainActor () -> Void)
     func close()
+    func watchFitting(_ on: Bool)
 }
 
 extension HostWindow {
+    func watchFitting(_ on: Bool) {}
     func setFrame(_ frame: CGRect) { setFrame(frame, glide: false) }
 }
 
@@ -93,7 +95,8 @@ final class AppKitWindowFactory: HostWindowFactory {
     }
 
     func make(spec: SurfaceWindowSpec, content: AnyView) -> any HostWindow {
-        AppKitHostWindow(spec: spec, content: content, stage: stage)
+        if spec.kind == "status-item" { return StatusItemHostWindow(content: content) }
+        return AppKitHostWindow(spec: spec, content: content, stage: stage)
     }
 
     func makeAuxiliary(content: AnyView) -> any HostWindow {
@@ -126,8 +129,15 @@ final class HostTitledWindow: NSWindow {
 
 final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
     var onInvalidate: (@MainActor () -> Void)?
+    var watchesLayout = false
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func layout() {
+        LayoutCounter.passed()
+        super.layout()
+        if watchesLayout { onInvalidate?() }
+    }
 
     override func invalidateIntrinsicContentSize() {
         super.invalidateIntrinsicContentSize()
@@ -248,6 +258,10 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         hosting.frame = container.bounds
     }
 
+    func watchFitting(_ on: Bool) {
+        hosting.watchesLayout = on
+    }
+
     func setMinSize(_ size: CGSize) {
         if window.contentMinSize != size { window.contentMinSize = size }
     }
@@ -344,13 +358,22 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
             layer.removeAnimation(forKey: "surface.motion")
         }
         let fade = animator.fade(opening: opening)
-        stage.fade(window, to: opening ? 1 : 0, duration: fade.duration, curve: fade.curve) { [weak self] in
+        let run: @MainActor () -> Void = { [weak self] in
             guard let self, self.generation == current else { return }
-            if !opening {
-                self.stage.out(self.window)
-                if let scrim = self.scrimWindow { self.stage.out(scrim) }
+            self.stage.fade(self.window, to: opening ? 1 : 0, duration: fade.duration, curve: fade.curve) { [weak self] in
+                guard let self, self.generation == current else { return }
+                if !opening {
+                    self.stage.out(self.window)
+                    if let scrim = self.scrimWindow { self.stage.out(scrim) }
+                }
+                completion()
             }
-            completion()
+        }
+        let delay = animator.fadeDelay(opening: opening)
+        if delay > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { MainActor.assumeIsolated { run() } }
+        } else {
+            run()
         }
     }
 

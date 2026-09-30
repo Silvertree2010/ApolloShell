@@ -67,4 +67,18 @@ final class SystemBatterySource: BatterySource {
         runLoopSource = nil
         handler = nil
     }
+
+    func setLowPowerMode(_ on: Bool) {
+        let prompt = on ? "ApolloShell would like to turn on Low Power Mode." : "ApolloShell would like to turn off Low Power Mode."
+        let command = "/usr/bin/pmset -a lowpowermode \(on ? 1 : 0)"
+        let source = "do shell script \"\(Self.escaped(command))\" with prompt \"\(Self.escaped(prompt))\" with administrator privileges"
+        Task.detached(priority: .userInitiated) {
+            var error: NSDictionary?
+            NSAppleScript(source: source)?.executeAndReturnError(&error)
+        }
+    }
+
+    nonisolated static func escaped(_ text: String) -> String {
+        text.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+    }
 }

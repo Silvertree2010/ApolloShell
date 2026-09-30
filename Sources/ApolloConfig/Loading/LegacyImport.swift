@@ -221,6 +221,36 @@ extension LegacyImport {
         Kind("mediaButton"),
     ]
 
+    static let menuBarKinds: [Kind] = [
+        Kind("appleMenu", "apple-menu", unique: true),
+        Kind("appMenu", "app-menus", unique: true),
+        Kind("statusItems", unique: true),
+        Kind("statusIcons", unique: true, [Option("showWifi", "wifi", .bool(true)), Option("showBluetooth", "bluetooth", .bool(true)), Option("showBattery", "battery", .bool(true))]),
+        Kind("wifi"),
+        Kind("bluetooth"),
+        Kind("battery", [Option("showIcon", .bool(true))]),
+        Kind("clock", [Option("showIcon", .bool(false)), Option("showDate", .bool(true))]),
+        Kind("workspaces", "spaces", [Option("style", .choice(["dots", "numbers", "pills", "bars"], "dots"))]),
+        Kind("dashboardButton"),
+        Kind("utilitiesButton"),
+        Kind("mediaButton"),
+        Kind("nowPlaying", [Option("maxLength", .clamped(8...80, 28)), Option("showControls", .bool(true))]),
+        Kind("weather", [Option("showTemperature", .bool(true))]),
+        Kind("windowTitle", [Option("showIcon", .bool(true)), Option("showTitle", .bool(true)), Option("maxLength", .clamped(8...80, 40))]),
+        Kind("keyboardLayout", [Option("showIcon", .bool(false))]),
+        Kind("volume", [Option("showPercent", .bool(true)), Option("showDevice", .bool(false))]),
+        Kind("systemStats", [Option("showCPU", "show-cpu", .bool(true)), Option("showMemory", .bool(true))]),
+        Kind("networkSpeed"),
+        Kind("timer"),
+        Kind("cpu", [Option("style", .choice(["ring", "percent"], "ring"))]),
+        Kind("dock", unique: true, [Option("showRunning", .bool(true)), Option("iconSize", .choice(["small", "medium", "large"], "medium"))]),
+        Kind("appButton", [Option("bundleID", "bundle-id", .text("", omitEmpty: false))]),
+        Kind("power"),
+        Kind("spacer"),
+        Kind("gap", [Option("height", .clamped(4...96, 16))]),
+        Kind("divider"),
+    ]
+
     static let cardKinds: [Kind] = [
         Kind("weather", [Option("showCondition", .bool(true)), Option("showRange", .bool(true))]),
         Kind("user", [Option("showSystem", .bool(true)), Option("showUptime", .bool(true))]),
@@ -236,13 +266,17 @@ extension LegacyImport {
         Kind("showDesktop", unique: true), Kind("colorPicker", unique: true), Kind("lockScreen", unique: true),
         Kind("settings", unique: true), Kind("displaySleep", unique: true),
         Kind("hideApps", unique: true, [Option("keepFrontmost", .bool(false))]),
+        Kind("mute", unique: true), Kind("hiddenFiles", unique: true), Kind("lowPower", unique: true),
+        Kind("emptyTrash", unique: true), Kind("missionControl", unique: true), Kind("launchpad", unique: true),
+        Kind("airDrop", unique: true),
         Kind("openApp", [Option("bundleID", "bundle-id", .text("", omitEmpty: false)), Option("title", .text("", omitEmpty: true)), Option("symbol", .text("", omitEmpty: true))]),
         Kind("openLink", [Option("url", .text("", omitEmpty: false)), Option("title", .text("", omitEmpty: true)), Option("symbol", .text("", omitEmpty: true))]),
         Kind("runShortcut", [Option("name", .text("", omitEmpty: false)), Option("identifier", .text("", omitEmpty: true)), Option("title", .text("", omitEmpty: true)), Option("symbol", .text("", omitEmpty: true))]),
     ]
 
     static let tabs = ["dashboard", "media", "performance", "weather"]
-    static let utilitiesCards = ["keepAwake", "audio", "quickToggles"]
+    static let utilitiesCards = ["keepAwake", "audio", "quickToggles", "brightness", "nowPlaying", "timer"]
+    static let utilitiesCardsOffWhenMissing: Set<String> = ["brightness", "nowPlaying", "timer"]
     static let zones = ["top", "bottom", "side"]
     static let caelestiaZones: [String: [String]] = ["top": ["weather", "user"], "bottom": ["clock", "calendar", "resources"], "side": ["media"]]
     static let zonesByCard: [String: [String]] = [
@@ -360,6 +394,9 @@ extension LegacyImport {
             if let bar = section(root, "bar") {
                 importBar(bar, into: &result)
             }
+            if let menuBar = section(root, "apolloMenuBar") {
+                importMenuBar(menuBar, into: &result)
+            }
             if let dashboard = section(root, "dashboard") {
                 importDashboard(dashboard, into: &result)
             }
@@ -445,6 +482,55 @@ extension LegacyImport {
             }
         }
 
+        mutating func importMenuBar(_ bar: [String: Any], into result: inout LegacyImportResult) {
+            importBool(bar, "enabled", path: "apolloMenuBar.enabled", as: "menubar-enabled", into: &result)
+            importBool(bar, "distinctGroups", path: "apolloMenuBar.distinctGroups", as: "menubar-distinct", into: &result)
+            importBool(bar, "coversMenuBar", path: "apolloMenuBar.coversMenuBar", as: "menubar-covers", into: &result)
+            importBool(bar, "hideAppleMenuBar", path: "apolloMenuBar.hideAppleMenuBar", as: "menubar-hide-apple", into: &result)
+            if let raw = bar["style"] {
+                if let name = Self.string(raw), ["fill", "islands"].contains(name) {
+                    result.state["menubar-style"] = .string(name)
+                } else {
+                    report("'apolloMenuBar.style' is not fill or islands, skipped")
+                }
+            }
+            if let raw = bar["statusStyle"] {
+                if let name = Self.string(raw), ["icons", "pills"].contains(name) {
+                    result.state["menubar-status-style"] = .string(name)
+                } else {
+                    report("'apolloMenuBar.statusStyle' is not icons or pills, skipped")
+                }
+            }
+            if let raw = bar["thickness"] {
+                if let number = Self.number(raw), number.isFinite {
+                    result.state["menubar-thickness"] = .number(min(max(number, 24), 64))
+                } else {
+                    report("'apolloMenuBar.thickness' is not a number, skipped")
+                }
+            }
+            if let raw = bar["screens"] {
+                if let screens = raw as? [String: Any], let mode = Self.string(screens["mode"]) {
+                    let key = Self.string(screens["screen"])?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    switch mode {
+                    case "all": result.state["menubar-screens"] = .string("all")
+                    case "primary": result.state["menubar-screens"] = .string("main")
+                    case "single" where !key.isEmpty: result.state["menubar-screens"] = .string(key)
+                    default: report("'apolloMenuBar.screens' has no usable screen choice, skipped")
+                    }
+                } else {
+                    report("'apolloMenuBar.screens' has no usable screen choice, skipped")
+                }
+            }
+            for zone in ["start", "center", "end"] {
+                guard let raw = bar[zone] else { continue }
+                if let list = raw as? [Any] {
+                    result.state["menubar-\(zone)"] = .list(blocks(list, kinds: LegacyImport.menuBarKinds, path: "apolloMenuBar.\(zone)", joins: true))
+                } else {
+                    report("'apolloMenuBar.\(zone)' is not a list, skipped")
+                }
+            }
+        }
+
         mutating func record(for entry: [String: Any], kind: Kind, path: String) -> Record {
             var record = Record([("kind", .string(kind.new))])
             let options = entry["options"] as? [String: Any] ?? [:]
@@ -485,7 +571,7 @@ extension LegacyImport {
             return record
         }
 
-        mutating func blocks(_ list: [Any], kinds: [Kind], path: String) -> [Value] {
+        mutating func blocks(_ list: [Any], kinds: [Kind], path: String, joins: Bool = false) -> [Value] {
             var entries: [(id: String, kind: Kind, record: Record)] = []
             var seenUnique: Set<String> = []
             for (index, raw) in list.enumerated() {
@@ -503,7 +589,9 @@ extension LegacyImport {
                     continue
                 }
                 let id = Self.string(entry["id"]).map { LegacyImport.renamedID($0, kinds: kinds) } ?? ""
-                entries.append((id, kind, record(for: entry, kind: kind, path: entryPath)))
+                var rec = record(for: entry, kind: kind, path: entryPath)
+                if joins, Self.bool(entry["joinsPrevious"]) == true { rec["joins"] = .bool(true) }
+                entries.append((id, kind, rec))
             }
             var taken = Set(entries.map(\.id))
             var used: Set<String> = []
@@ -612,7 +700,7 @@ extension LegacyImport {
                         cards.append((kind, Self.bool(enabled) ?? true))
                     }
                     for kind in LegacyImport.utilitiesCards where !cards.contains(where: { $0.0 == kind }) {
-                        cards.append((kind, true))
+                        cards.append((kind, !LegacyImport.utilitiesCardsOffWhenMissing.contains(kind)))
                     }
                     result.state["utilities-cards"] = .list(cards.map { .record(Record([("kind", .string(LegacyImport.kebab($0.0))), ("enabled", .bool($0.1))])) })
                 } else {

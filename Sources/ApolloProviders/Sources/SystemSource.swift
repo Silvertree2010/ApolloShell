@@ -30,6 +30,10 @@ public enum SystemCommand: Equatable, Sendable {
     case displaySleep
     case hideApps(keepFrontmost: Bool)
     case openSettings(String?)
+    case emptyTrash
+    case missionControl
+    case launchpad
+    case airDrop
 }
 
 @MainActor
@@ -44,10 +48,14 @@ public protocol SystemSource: AnyObject {
     var info: SystemInfo { get }
     var uptime: Double { get }
     var appleDockHidden: Bool { get }
+    var hiddenFiles: Bool? { get }
     func setDarkMode(_ on: Bool)
     func setNightShift(_ on: Bool) -> Bool
     func setMicrophoneMuted(_ muted: Bool) -> Bool
     func setAppleDockHidden(_ hidden: Bool)
+    func setHiddenFiles(_ on: Bool)
+    var appleMenuBarHidden: Bool { get }
+    func setAppleMenuBarHidden(_ hidden: Bool)
     func run(_ command: SystemCommand)
     func pickColor(_ completion: @escaping @MainActor (String?) -> Void)
     func observeChanges(_ handler: @escaping @MainActor () -> Void)
@@ -58,6 +66,10 @@ public protocol SystemSource: AnyObject {
 
 extension SystemSource {
     public func userImageData() -> Data? { nil }
+    public var hiddenFiles: Bool? { nil }
+    public func setHiddenFiles(_ on: Bool) {}
+    public var appleMenuBarHidden: Bool { false }
+    public func setAppleMenuBarHidden(_ hidden: Bool) {}
 }
 
 @MainActor

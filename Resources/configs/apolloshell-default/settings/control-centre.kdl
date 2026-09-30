@@ -11,6 +11,9 @@ var utilities-card-kinds {
     - kind="keep-awake" title="Keep Awake" summary="Keep the Mac awake, even with the lid closed if you want." symbol="cup.and.saucer.fill"
     - kind="audio" title="Sound" summary="Volume, mute, output and input." symbol="speaker.wave.2.fill"
     - kind="quick-toggles" title="Quick Toggles" summary="Switches and actions, five per row." symbol="square.grid.3x3.fill"
+    - kind="brightness" title="Brightness" summary="The brightness of the built-in and connected displays." symbol="sun.max.fill"
+    - kind="now-playing" title="Now Playing" summary="Cover, title, artist and the transport buttons." symbol="music.note"
+    - kind="timer" title="Timer" summary="The shell's timer, with quick starts for 5, 15 and 25 minutes." symbol="timer"
 }
 
 var utilities-toggle-groups {
@@ -35,6 +38,15 @@ var utilities-toggle-kinds {
     - kind="night-shift" group="switches" title="Night Shift" summary="Warmer colors in the evening." symbol="sunset.fill" unique=#true {
         toggle id="night-shift" kind="night-shift"
     }
+    - kind="mute" group="switches" title="Mute" summary="Mute the default audio output." symbol="speaker.slash.fill" unique=#true {
+        toggle id="mute" kind="mute"
+    }
+    - kind="hidden-files" group="switches" title="Hidden Files" summary="Shows hidden files in the Finder." symbol="eye.fill" unique=#true {
+        toggle id="hidden-files" kind="hidden-files"
+    }
+    - kind="low-power" group="switches" title="Low Power Mode" summary="Throttles the Mac to save battery." symbol="leaf.fill" unique=#true {
+        toggle id="low-power" kind="low-power"
+    }
     - kind="screenshot" group="actions" title="Screenshot" summary="Apple's bar for screenshot and recording." symbol="camera.viewfinder" unique=#true {
         toggle id="screenshot" kind="screenshot"
     }
@@ -55,6 +67,18 @@ var utilities-toggle-kinds {
     }
     - kind="hide-apps" group="actions" title="Hide Apps" summary="Hides all apps; the frontmost one can stay if you want." symbol="eye.slash.fill" unique=#true {
         toggle id="hide-apps" kind="hide-apps" keep-frontmost=#false
+    }
+    - kind="empty-trash" group="actions" title="Empty Trash" summary="Empties the trash - asks once before it does." symbol="trash.fill" unique=#true {
+        toggle id="empty-trash" kind="empty-trash"
+    }
+    - kind="mission-control" group="actions" title="Mission Control" summary="Opens Mission Control." symbol="square.stack.3d.up.fill" unique=#true {
+        toggle id="mission-control" kind="mission-control"
+    }
+    - kind="launchpad" group="actions" title="Launchpad" summary="Opens Launchpad, or the Apps overview where that replaced it." symbol="square.grid.3x3.fill" unique=#true {
+        toggle id="launchpad" kind="launchpad"
+    }
+    - kind="air-drop" group="actions" title="AirDrop" summary="Opens the AirDrop window." symbol="wave.3.right.circle.fill" unique=#true {
+        toggle id="air-drop" kind="air-drop"
     }
     - kind="open-app" group="custom" title="Open App" summary="Launches a chosen app or brings it to the front." symbol="app.fill" unique=#false {
         toggle kind="open-app" bundle-id=""

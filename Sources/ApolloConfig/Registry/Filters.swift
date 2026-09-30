@@ -23,7 +23,7 @@ enum Filters {
         FilterSchema(name: "bytes-per-second", arguments: [optionalArg("unit", .enumeration(["binary", "decimal"]), doc: "Unit system, default decimal.")], doc: "Like bytes, with /s."),
         FilterSchema(name: "temperature", doc: "Degrees in the unit of the weather provider."),
         FilterSchema(name: "duration", arguments: [optionalArg("style", .enumeration(["short", "clock"]), doc: "Style, default clock.")], doc: "Seconds, formatted for reading."),
-        FilterSchema(name: "date", arguments: [arg("pattern", .string, doc: "ICU pattern."), optionalArg("zone", .string, doc: "Time zone like Europe/Zurich, default the one of the system.")], doc: "Date formatted with a pattern."),
+        FilterSchema(name: "date", arguments: [arg("pattern", .string, doc: "ICU pattern. The extra letter j is the hour of the locale without am/pm, 12 h for en_US and 24 h for de_CH."), optionalArg("zone", .string, doc: "Time zone like Europe/Zurich, default the one of the system.")], doc: "Date formatted with a pattern."),
         FilterSchema(name: "relative", doc: "Date relative to now."),
         FilterSchema(name: "string", doc: "Converts a value to a string."),
         FilterSchema(name: "shell-quote", doc: "One shell word in single quotes, safe to insert into a /bin/sh command."),
@@ -72,5 +72,6 @@ enum Filters {
         FilterSchema(name: "bool", doc: "Truth value of a value."),
         FilterSchema(name: "keys", doc: "Keys of a record as a list."),
         FilterSchema(name: "values", doc: "Values of a record as a list."),
+        FilterSchema(name: "calc", feature: "calc", doc: "Result of a sum such as 2*(3+4) as text, null while the sum is incomplete."),
     ]
 }
