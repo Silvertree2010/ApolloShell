@@ -2473,7 +2473,7 @@ Date formatted with a pattern.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `pattern` | string | required | ICU pattern. |
+| argument | `pattern` | string | required | ICU pattern. The extra letter j is the hour of the locale without am/pm, 12 h for en_US and 24 h for de_CH. |
 | argument | `zone` | string |  | Time zone like Europe/Zurich, default the one of the system. |
 
 ### `default` (filter)

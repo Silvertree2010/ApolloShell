@@ -13,6 +13,8 @@ final class FakeWindow: HostWindow {
     var frame: CGRect = .zero
     var isShown = false
     var fittingSize = CGSize(width: 100, height: 50)
+    var watching = false
+    func watchFitting(_ on: Bool) { watching = on }
     var onCloseRequest: (@MainActor () -> Void)?
     var onKey: (@MainActor (String) -> Bool)?
     var onResize: (@MainActor () -> Void)?
