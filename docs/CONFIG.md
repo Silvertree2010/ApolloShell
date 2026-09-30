@@ -2208,6 +2208,7 @@ Weather from three providers, place search.
 | --- | --- | --- | --- | --- |
 | property | `source` | "open-meteo"\|"met-norway"\|"wttr" | `"open-meteo"` | Weather provider. |
 | property | `place` | record | `null` | Record name/latitude/longitude or #null. |
+| property | `places` | list | `[]` | More places, records id/name/latitude/longitude, fetched alongside and published in by-place. |
 | field | `status` | string | | no-place, loading, ready or failed. |
 | field | `place` | record or null | | Selected place. |
 | field | `current` | record or null | | Current weather. |
@@ -2219,6 +2220,7 @@ Weather from three providers, place search.
 | field | `stale` | bool | | Whether the data is stale. |
 | field | `attribution` | record | | Data source to credit, with text and url. |
 | field | `capabilities` | record | | What the provider supplies. |
+| field | `by-place` | record | | Weather of every place in places, by place id: status, current, today, hourly-strip and days as above. |
 | field | `search-results` | list | | Places found. |
 | field | `search-status` | string | | idle, searching, done or failed. |
 
