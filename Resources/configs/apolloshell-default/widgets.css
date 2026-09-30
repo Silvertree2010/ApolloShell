@@ -38,3 +38,11 @@
 .wg-today-day { font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
 .wg-today-month { font-size: 12px; font-weight: 500; color: -apple-system-secondary-label; }
 .big > .wg-today-month { font-size: 15px; }
+.wg-ring { align-items: center; justify-content: center; flex-shrink: 0; }
+.card.wg-bars { align-items: stretch; justify-content: center; border-radius: var(--apollo-card-radius, 16px); }
+.wg-bar-row { gap: 5px; }
+.wg-bar-head { gap: 6px; align-items: center; }
+.wg-bar-glyph { font-size: 11px; font-weight: 600; width: 13px; height: 13px; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wg-bar-title { font-size: 12px; font-weight: 500; }
+.wg-bar-percent { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.wg-bar { height: 6px; align-self: stretch; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); }

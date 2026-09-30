@@ -217,7 +217,7 @@ define "widget" {
         case "user" { use "widget-user" w="{w}" }
         case "clock" { use "widget-clock" w="{w}" }
         case "calendar" { use "widget-calendar" w="{w}" }
-        case "resources" { use "card-resources" card="{w}" zone="{w.width > w.height ? 'top' : 'bottom'}" }
+        case "resources" { use "widget-resources" w="{w}" }
         case "media" { use "card-media" card="{w}" zone="{w.width > w.height * 1.3 ? 'top' : (w.height >= 330 ? 'side' : 'bottom')}" }
         case "media.player" { use "dashboard-media" }
         case "performance.cpu" { use "perf-hero-card" title="CPU" subtitle="{perf.chip} · {perf.cores} Cores" value="{perf.live.cpu}" history="{perf.live.cpu-history}" icon="panel-cpu" fallback="cpu" }
@@ -437,6 +437,68 @@ define "widget-calendar" {
                     }
                 }
                 spacer
+            }
+        }
+    }
+}
+
+define "widget-ring" {
+    param "value"
+    param "symbol"
+    param "icon"
+    param "tip"
+    param "side"
+    stack class="wg-ring" style="width: {side}px; height: {side}px" tooltip="{tip} {value * 100 | round}%" {
+        ring value="{value}" class="card-resource-ring" style="width: {side + 6}px; height: {side + 6}px"
+        icon "{icon}" fallback="{symbol}" class="card-resource-glyph" style="font-size: {side * 0.25}px; width: {side * 0.25 + 2}px; height: {side * 0.25 + 2}px"
+    }
+}
+
+define "widget-rings" {
+    param "w"
+    param "side"
+    when "{w.show-cpu}" { use "widget-ring" value="{perf.cpu}" symbol="cpu" icon="panel-cpu" tip="CPU" side="{side}" }
+    when "{w.show-memory}" { use "widget-ring" value="{perf.memory}" symbol="memorychip" icon="panel-memory" tip="Memory" side="{side}" }
+    when "{w.show-storage}" { use "widget-ring" value="{perf.live.disk}" symbol="internaldrive" icon="panel-disk" tip="Storage" side="{side}" }
+}
+
+define "widget-bar-row" {
+    param "w"
+    param "symbol"
+    param "icon"
+    param "title"
+    param "value"
+    column class="wg-bar-row" {
+        row class="wg-bar-head" {
+            icon "{icon}" fallback="{symbol}" class="wg-bar-glyph"
+            when "{w.width >= 150}" { text "{title}" class="wg-bar-title" lines=1 }
+            spacer
+            text "{value * 100 | round} %" class="wg-bar-percent" lines=1
+        }
+        progress value="{value}" class="wg-bar"
+    }
+}
+
+define "widget-resources" {
+    param "w"
+    switch "{w.display}" {
+        case "bars" {
+            column class="card wg-bars" style="gap: {w.height >= 200 ? 18 : 10}px; padding: 0 {w.width >= 150 ? 16 : 12}px" {
+                when "{w.show-cpu}" { use "widget-bar-row" w="{w}" symbol="cpu" icon="panel-cpu" title="CPU" value="{perf.cpu}" }
+                when "{w.show-memory}" { use "widget-bar-row" w="{w}" symbol="memorychip" icon="panel-memory" title="Memory" value="{perf.memory}" }
+                when "{w.show-storage}" { use "widget-bar-row" w="{w}" symbol="internaldrive" icon="panel-disk" title="Storage" value="{perf.live.disk}" }
+            }
+        }
+        default {
+            when "{w.width > w.height}" {
+                row class="card card-resources" style="gap: 16px" {
+                    use "widget-rings" w="{w}" side="{(w.width >= 200 && w.height >= 200) ? (((w.width - 40 - 16 * ((w.show-cpu ? 1 : 0) + (w.show-memory ? 1 : 0) + (w.show-storage ? 1 : 0) - 1)) / ((w.show-cpu ? 1 : 0) + (w.show-memory ? 1 : 0) + (w.show-storage ? 1 : 0))) | min (w.height - 40) | max 56 | min 120) : 56}"
+                }
+            }
+            else {
+                column class="card card-resources" style="gap: 14px" {
+                    use "widget-rings" w="{w}" side="{(w.width >= 200 && w.height >= 200) ? ((w.width - 40) | min ((w.height - 40 - 14 * ((w.show-cpu ? 1 : 0) + (w.show-memory ? 1 : 0) + (w.show-storage ? 1 : 0) - 1)) / ((w.show-cpu ? 1 : 0) + (w.show-memory ? 1 : 0) + (w.show-storage ? 1 : 0))) | max 56 | min 120) : 56}"
+                }
             }
         }
     }
