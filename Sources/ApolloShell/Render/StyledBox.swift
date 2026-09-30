@@ -26,6 +26,7 @@ struct StyledBox: ViewModifier {
             .background { BackgroundLayers(style: style, shape: shape, context: context) }
             .overlay { BorderLayer(style: style, shape: shape) }
             .modifier(Clip(active: StyleValues.keyword(style["overflow"]) == "hidden", shape: shape))
+            .modifier(BoxShadows(style["box-shadow"], shape: shape))
             .modifier(FlyoutOverlay(layer: flyouts))
             .modifier(Filters(style["filter"], enabled: dynamicInline))
             .opacity(StyleValues.number(style["opacity"]) ?? 1)
@@ -246,7 +247,6 @@ struct BackgroundLayers: View {
                 self.layer(layer)
             }
         }
-        .modifier(BoxShadows(style["box-shadow"], shape: shape))
     }
 
     var layers: [BackgroundLayer] {

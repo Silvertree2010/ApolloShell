@@ -36,6 +36,22 @@ struct EngineGapTests {
         #expect(pill.pixel(25, 1).near(.blue))
     }
 
+    @Test("box-shadow wird bei overflow: hidden nicht abgeschnitten")
+    func shadowOutsideClip() throws {
+        let css = ".a { width: 20px; height: 20px; margin: 10px; background: #ffffff; overflow: hidden; box-shadow: 4px 4px 0 #000000; }"
+        let shot = try box(css, children: "stack class=\"a\"")
+        #expect(shot.pixel(32, 32).near(.black, tolerance: 30))
+        #expect(shot.pixel(20, 20) == .white)
+    }
+
+    @Test("box-shadow mit Radius folgt der Form")
+    func shadowRadius() throws {
+        let css = ".a { width: 20px; height: 20px; margin: 10px; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 6px 0 0 #000000; }"
+        let shot = try box(css, children: "stack class=\"a\"")
+        #expect(shot.pixel(34, 20).near(.black, tolerance: 30))
+        #expect(shot.pixel(34, 11) == .white)
+    }
+
     func cascade(_ kdl: String, _ files: [String: String]) throws -> Snapshot {
         try RenderProbe.render(kdl, css: "", files: files.mapValues { Data($0.utf8) })
     }
