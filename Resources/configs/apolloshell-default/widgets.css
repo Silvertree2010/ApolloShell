@@ -1,0 +1,14 @@
+.card.wg-clock { padding: 0; gap: 12px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 16px); }
+.wg-clock-stack { align-items: center; }
+.wg-clock-digits { font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.wg-clock-dots { font-weight: 700; color: -apple-system-secondary-label; }
+.wg-date { align-items: center; gap: 1px; }
+.wg-date-day { font-size: 12px; font-weight: 600; }
+.wg-date-month { font-size: 11px; font-weight: 500; color: -apple-system-secondary-label; }
+.wg-dial { align-items: center; justify-content: center; }
+.wg-hand { align-items: center; }
+.wg-tick { background: rgb(from -apple-system-label r g b / 0.25); }
+.wg-tick.major { background: rgb(from -apple-system-label r g b / 0.55); }
+.wg-dial-face { background: rgb(from -apple-system-label r g b / 0.06); }
+.wg-hand-hour { background: -apple-system-label; }
+.wg-hand-minute, .wg-dial-pin { background: var(--apollo-accent-color, -apple-system-control-accent); }

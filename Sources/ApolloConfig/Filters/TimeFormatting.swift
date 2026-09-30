@@ -23,8 +23,21 @@ enum DateText {
         let formatter = DateFormatter()
         formatter.locale = locale
         formatter.timeZone = timeZone
-        formatter.dateFormat = pattern
+        formatter.dateFormat = resolved(pattern, locale: locale)
         return formatter.string(from: date)
+    }
+
+    static func resolved(_ pattern: String, locale: Locale) -> String {
+        guard pattern.contains("j") else { return pattern }
+        let template = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: locale) ?? "HH"
+        let twelve = template.contains("a")
+        var out = ""
+        var quoted = false
+        for c in pattern {
+            if c == "'" { quoted.toggle() }
+            out.append(c == "j" && !quoted ? (twelve ? "h" : "H") : c)
+        }
+        return out
     }
 
     static func relative(_ date: Date, now: Date) -> String {

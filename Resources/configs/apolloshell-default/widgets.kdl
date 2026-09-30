@@ -1,3 +1,5 @@
+style "widgets.css"
+
 var widget-kinds {
     - kind="weather" title="Weather" symbol="cloud.sun.fill" displays="standard minimal" {
         sizes {
@@ -213,7 +215,7 @@ define "widget" {
     switch "{w.kind}" {
         case "weather" { use "card-weather" card="{w}" zone="{w.height >= 200 && w.width < 300 ? 'side' : 'top'}" }
         case "user" { use "card-user" card="{w}" zone="{w.height >= 200 && w.width < 300 ? 'side' : 'top'}" }
-        case "clock" { use "card-clock" card="{w}" zone="{w.height > 130 ? 'bottom' : 'top'}" }
+        case "clock" { use "widget-clock" w="{w}" }
         case "calendar" { use "card-calendar" card="{w}" zone="{w.height > 300 ? 'side' : 'bottom'}" }
         case "resources" { use "card-resources" card="{w}" zone="{w.width > w.height ? 'top' : 'bottom'}" }
         case "media" { use "card-media" card="{w}" zone="{w.width > w.height * 1.3 ? 'top' : (w.height >= 330 ? 'side' : 'bottom')}" }
@@ -228,5 +230,75 @@ define "widget" {
         case "weather.hourly" { use "weather-hourly" }
         case "weather.daily" { use "weather-daily" }
         default { column class="card widget-unknown" { text "{w.kind}" class="card-hint" } }
+    }
+}
+
+var dial-ticks {
+    - deg=0 major=#true
+    - deg=30 major=#false
+    - deg=60 major=#false
+    - deg=90 major=#true
+    - deg=120 major=#false
+    - deg=150 major=#false
+    - deg=180 major=#true
+    - deg=210 major=#false
+    - deg=240 major=#false
+    - deg=270 major=#true
+    - deg=300 major=#false
+    - deg=330 major=#false
+}
+
+define "widget-date" {
+    param "w"
+    column class="wg-date" {
+        text "{clock.now | date 'EEEE' w.time-zone}" class="wg-date-day" lines=1
+        text "{clock.now | date 'd MMM' w.time-zone}" class="wg-date-month" lines=1
+    }
+}
+
+define "widget-clock" {
+    param "w"
+    switch "{w.display}" {
+        case "analog" {
+            column class="card wg-clock" {
+                use "widget-dial" w="{w}" d="{(w.width - 24) | min (w.height - 24 - (w.show-date ? 34 : 0)) | max 40}"
+                when "{w.show-date}" { use "widget-date" w="{w}" }
+            }
+        }
+        default {
+            column class="card wg-clock" {
+                switch "{w.style}" {
+                    case "inline" { text "{clock.now | date 'jj:mm' w.time-zone}" class="wg-clock-digits" style="font-size: {30 * ((w.width / 110) | min (w.height / 130) | min 2.4 | max 1)}px" lines=1 }
+                    default {
+                        column class="wg-clock-stack" style="gap: {6 * ((w.width / 110) | min (w.height / 130) | min 2.4 | max 1)}px" {
+                            text "{clock.now | date 'jj' w.time-zone}" class="wg-clock-digits" style="font-size: {30 * ((w.width / 110) | min (w.height / 130) | min 2.4 | max 1)}px"
+                            text "•••" class="wg-clock-dots" style="font-size: {14 * ((w.width / 110) | min (w.height / 130) | min 2.4 | max 1)}px"
+                            text "{clock.now | date 'mm' w.time-zone}" class="wg-clock-digits" style="font-size: {30 * ((w.width / 110) | min (w.height / 130) | min 2.4 | max 1)}px"
+                        }
+                    }
+                }
+                when "{w.show-date}" { use "widget-date" w="{w}" }
+            }
+        }
+    }
+}
+
+define "widget-dial" {
+    param "w"
+    param "d"
+    stack class="wg-dial" style="width: {d}px; height: {d}px" {
+        shape "circle" class="wg-dial-face" style="width: {d}px; height: {d}px"
+        each t in="{var.dial-ticks}" key="{t.deg}" {
+            column class="wg-hand" style="width: {d}px; height: {d}px; padding-top: {d * 0.055}px; transform: rotate({t.deg}deg)" {
+                shape "capsule" class="wg-tick {t.major ? 'major' : ''}" style="width: {d * (t.major ? 0.025 : 0.018)}px; height: {d * 0.07}px"
+            }
+        }
+        column class="wg-hand" style="width: {d}px; height: {d}px; padding-top: {d * 0.23}px; transform: rotate({((clock.now | date 'H' w.time-zone | number) % 12 + (clock.now | date 'm' w.time-zone | number) / 60) * 30}deg)" {
+            shape "capsule" class="wg-hand-hour" style="width: {d * 0.045}px; height: {d * 0.27}px"
+        }
+        column class="wg-hand" style="width: {d}px; height: {d}px; padding-top: {d * 0.12}px; transform: rotate({(clock.now | date 'm' w.time-zone | number) * 6}deg)" {
+            shape "capsule" class="wg-hand-minute" style="width: {d * 0.03}px; height: {d * 0.38}px"
+        }
+        shape "circle" class="wg-dial-pin" style="width: {d * 0.07}px; height: {d * 0.07}px"
     }
 }
