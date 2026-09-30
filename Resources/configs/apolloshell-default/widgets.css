@@ -28,3 +28,6 @@
 .card.wg-user-min.vertical { gap: 12px; padding: 0 16px; }
 .wg-user-min-name { font-size: 22px; font-weight: 600; flex-shrink: 1; }
 .wg-user-min-name.vertical { font-size: 18px; text-align: center; }
+.card.wg-weather-min { padding: 0 16px; gap: 14px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 42px); }
+.card.wg-weather-min.vertical { gap: 4px; }
+.wg-weather-min-temperature { font-weight: 600; font-family: ui-rounded; }

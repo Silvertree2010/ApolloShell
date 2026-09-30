@@ -213,7 +213,7 @@ var dashboard-default-widgets from="{var.dashboard-default-overview | concat (ba
 define "widget" {
     param "w"
     switch "{w.kind}" {
-        case "weather" { use "card-weather" card="{w}" zone="{w.height >= 200 && w.width < 300 ? 'side' : 'top'}" }
+        case "weather" { use "widget-weather" w="{w}" }
         case "user" { use "widget-user" w="{w}" }
         case "clock" { use "widget-clock" w="{w}" }
         case "calendar" { use "card-calendar" card="{w}" zone="{w.height > 300 ? 'side' : 'bottom'}" }
@@ -365,5 +365,31 @@ define "widget-user" {
                 }
             }
         }
+    }
+}
+
+define "widget-weather" {
+    param "w"
+    switch "{w.display}" {
+        case "minimal" {
+            switch "{weather.status}" {
+                case "ready" {
+                    when "{w.height >= 200 && w.width < 300}" {
+                        column class="card wg-weather-min vertical" {
+                            icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph" style="font-size: 56px; -apollo-symbol-rendering: multicolor"
+                            text "{weather.current.temperature | temperature}" class="wg-weather-min-temperature" style="font-size: 64px" lines=1 min-scale=0.6
+                        }
+                    }
+                    else {
+                        row class="card wg-weather-min" {
+                            icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph" style="font-size: 44px; -apollo-symbol-rendering: multicolor"
+                            text "{weather.current.temperature | temperature}" class="wg-weather-min-temperature" style="font-size: 52px" lines=1 min-scale=0.6
+                        }
+                    }
+                }
+                default { use "card-weather" card="{w}" zone="top" }
+            }
+        }
+        default { use "card-weather" card="{w}" zone="{w.height >= 200 && w.width < 300 ? 'side' : 'top'}" }
     }
 }
