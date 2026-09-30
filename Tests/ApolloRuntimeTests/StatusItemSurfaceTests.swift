@@ -5,6 +5,9 @@ import ApolloConfig
 @MainActor
 @Suite("Oberfläche status-item")
 struct StatusItemSurfaceTests {
+    typealias IR = RuntimeIR
+    typealias T = TreeIR
+
     @Test("status-item steht einmal auf dem Hauptbildschirm, ist ohne open sichtbar und bleibt im Vollbild")
     func singleVisibleInstance() {
         let fixture = ShellFixture()

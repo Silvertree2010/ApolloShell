@@ -205,6 +205,41 @@ Numbers are clamped to the range in the type column.
 | `--apollo-bar-item-spacing` | length (0px–48px) | `8px` |  | Space between two blocks |
 | `--apollo-bar-blur` | length (0px–64px) | `24px` |  | Blur behind the sidebar |
 
+### Menu bar
+
+| Token | Type | Default | Dark | What it does |
+| --- | --- | --- | --- | --- |
+| `--apollo-menubar-color` | color | `#f5f5f7` | `#1c1c1e` | Backing of the menu bar, the strip or each island; unset, the sidebar's |
+| `--apollo-menubar-gradient` | gradient | `none` |  | Gradient along the menu bar instead of the flat colour; unset, the sidebar's |
+| `--apollo-menubar-opacity` | ratio (0–1) | `1` |  | How opaque the menu bar backing is; unset, the sidebar's |
+| `--apollo-menubar-blur` | length (0px–64px) | `24px` |  | Blur behind the menu bar; unset, the sidebar's |
+| `--apollo-menubar-text-color` | color | `#1c1c1e` | `#f5f5f7` | Text in the menu bar; unset, the sidebar's |
+| `--apollo-menubar-icon-color` | color | `#3c3c43` | `#e5e5ea` | Glyphs in the menu bar; unset, the sidebar's |
+| `--apollo-menubar-radius` | length (0px–32px) | `0px` |  | Corner radius of the strip |
+| `--apollo-menubar-island-radius` | length (0px–32px) | `12px` |  | Corner radius of an island, at most half the bar thickness |
+| `--apollo-menubar-island-margin` | length (0px–6px) | `6px` |  | Gap between an island and the screen edge; the bar reserves 6 points for it |
+| `--apollo-menubar-group-color` | color | `#00000014` | `#ffffff14` | Capsule behind each group on a strip with distinct groups |
+| `--apollo-menubar-group-radius` | length (0px–32px) | `9px` |  | Corner radius of that capsule |
+| `--apollo-menubar-padding` | length (0px–24px) | `6px` |  | Space inside a capsule or island before its first and after its last block |
+| `--apollo-menubar-item-spacing` | length (0px–24px) | `4px` |  | Space between two blocks of one group |
+| `--apollo-menubar-group-spacing` | length (0px–48px) | `6px` |  | Space between two groups; a plain strip uses the sidebar item spacing instead |
+| `--apollo-menubar-font-family` | text | `""` |  | Font in the menu bar; empty means the system font |
+| `--apollo-menubar-font-size` | length (8px–32px) | `13px` |  | Base text size in the menu bar |
+
+### Bar modules
+
+| Token | Type | Default | Dark | What it does |
+| --- | --- | --- | --- | --- |
+| `--apollo-spaces-active-color` | color | `#007aff` | `#0a84ff` | Marker of the active desktop in Spaces; unset, the accent colour |
+| `--apollo-clock-color` | color | `#af52de` | `#bf5af2` | Digits of the bar clock; unset, the bar text colour |
+| `--apollo-weather-temperature-color` | color | `#1c1c1e` | `#f5f5f7` | Temperature next to the weather symbol |
+| `--apollo-status-wifi-color` | color | `#8fd3e8` |  | Wi-Fi pill when the menu bar shows status as pills |
+| `--apollo-status-bluetooth-color` | color | `#a9b8ff` |  | Bluetooth pill |
+| `--apollo-status-volume-color` | color | `#d2b3f2` |  | Volume pill, once a bar shows one |
+| `--apollo-status-battery-color` | color | `#9edc9a` |  | Battery pill |
+| `--apollo-status-keyboard-color` | color | `#f3c98b` |  | Keyboard layout pill, once a bar shows one |
+| `--apollo-status-pill-text-color` | color | `#1c1c1e` |  | Text and glyph on every status pill |
+
 ### Dock
 
 | Token | Type | Default | Dark | What it does |
