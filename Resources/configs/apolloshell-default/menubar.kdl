@@ -407,6 +407,31 @@ define "menubar-cpu" {
     }
 }
 
+define "menubar-timer" {
+    param "module"
+    button class="menubar-tile menubar-timer" tooltip="{timer.running == false && timer.elapsed == 0 ? 'Timer' : (timer.remaining != null ? (timer.remaining | ceil | duration) : (timer.elapsed | floor | duration))}" menu-on="right-click long-press" {
+        on-click {
+            when "{timer.running}" { timer.pause }
+            else { timer.resume }
+        }
+        menu side="below" offset=3 {
+            item "Reset" disabled="{timer.running == false && timer.elapsed == 0}" { timer.reset }
+            each minutes in="{[5, 10, 15, 25]}" {
+                item "{minutes} Minutes" { timer.start "{minutes}" }
+            }
+        }
+        when "{timer.running == false && timer.elapsed == 0}" {
+            icon "timer" class="menubar-timer-glyph"
+        }
+        else {
+            stack class="menubar-timer-stack {timer.running ? 'running' : ''}" {
+                ring value="{timer.mode == 'stopwatch' ? (timer.elapsed % 60) / 60 : 1 - (timer.elapsed / timer.duration | min 1)}" class="menubar-timer-ring"
+                text "{(timer.remaining ?? timer.elapsed) >= 100 ? (((timer.remaining ?? timer.elapsed) / 60 | ceil) + 'm') : ((timer.remaining ?? timer.elapsed) | ceil)}" class="menubar-timer-text"
+            }
+        }
+    }
+}
+
 define "menubar-weather" {
     param "module"
     button class="menubar-tile menubar-weather" tooltip="{weather.status == 'ready' ? weather.current.description + ' in ' + weather.place.name : 'Weather'}" {
