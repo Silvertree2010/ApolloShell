@@ -157,8 +157,10 @@ struct ElementInteraction: ViewModifier {
                     element.pseudo.subtract([.hover, .active])
                 }
             }
-            .modifier(OptionalHelp(text: tooltip))
-            .modifier(AccessibilityActions(element: element, context: context, label: label, config: config))
+            .gated(element.ir.properties["tooltip"] != nil) { $0.modifier(OptionalHelp(text: tooltip)) }
+            .gated(element.ir.properties["label"] != nil || element.ir.properties["tooltip"] != nil || config.click || !element.ir.accessibilityActions.isEmpty) {
+                $0.modifier(AccessibilityActions(element: element, context: context, label: label, config: config))
+            }
     }
 }
 
