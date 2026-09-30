@@ -194,7 +194,12 @@ struct GraphLine: Shape {
             CGPoint(x: rect.minX + CGFloat(offset + index) * step, y: rect.maxY - CGFloat(points[index]) * rect.height)
         }
         if closed { path.move(to: CGPoint(x: point(0).x, y: rect.maxY)); path.addLine(to: point(0)) } else { path.move(to: point(0)) }
-        for index in points.indices.dropFirst() { path.addLine(to: point(index)) }
+        for index in points.indices.dropFirst() {
+            let previous = point(index - 1)
+            let here = point(index)
+            path.addQuadCurve(to: CGPoint(x: (previous.x + here.x) / 2, y: (previous.y + here.y) / 2), control: previous)
+        }
+        path.addLine(to: point(points.count - 1))
         if closed {
             path.addLine(to: CGPoint(x: point(points.count - 1).x, y: rect.maxY))
             path.closeSubpath()

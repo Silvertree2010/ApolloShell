@@ -1,5 +1,6 @@
 style "widgets.css"
 include "widgets-media.kdl"
+include "widgets-perf.kdl"
 
 var widget-kinds {
     - kind="weather" title="Weather" symbol="cloud.sun.fill" displays="standard minimal" {
@@ -221,8 +222,8 @@ define "widget" {
         case "resources" { use "widget-resources" w="{w}" }
         case "media" { use "widget-media" w="{w}" }
         case "media.player" { use "widget-media-player" w="{w}" }
-        case "performance.cpu" { use "perf-hero-card" title="CPU" subtitle="{perf.chip} · {perf.cores} Cores" value="{perf.live.cpu}" history="{perf.live.cpu-history}" icon="panel-cpu" fallback="cpu" }
-        case "performance.gpu" { use "perf-hero-card" title="GPU" subtitle="{perf.gpu-cores != null ? perf.chip + ' · ' + perf.gpu-cores + ' Cores' : perf.chip}" value="{perf.live.gpu}" history="{perf.live.gpu-history}" icon="square.stack.3d.up" fallback="square.stack.3d.up" }
+        case "performance.cpu" { use "widget-cpu" w="{w}" }
+        case "performance.gpu" { use "widget-gpu" w="{w}" }
         case "performance.storage" { use "perf-storage" }
         case "performance.network" { use "perf-network" }
         case "performance.memory" { use "perf-memory" }

@@ -1,0 +1,31 @@
+.wp-ring { align-items: center; justify-content: center; flex-shrink: 0; }
+.wp-graph { flex-grow: 1; align-self: stretch; }
+.card.wp-compact { padding: 14px; gap: 8px; border-radius: var(--apollo-card-radius, 24px); }
+.wp-compact-head { gap: 10px; align-items: center; align-self: stretch; }
+.wp-compact-titles { gap: 1px; align-items: start; }
+.wp-compact-title { font-size: 15px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.perf-hero-subtitle.small { font-size: 11px; }
+.wp-compact-percent { font-size: 26px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.card.wp-tall { padding: 14px; gap: 12px; border-radius: var(--apollo-card-radius, 24px); }
+.wp-tall-head { gap: 12px; align-items: center; align-self: stretch; }
+.wp-tall-foot { gap: 4px; flex-grow: 1; align-self: stretch; }
+.card.wp-graphcard { padding: 0; overflow: hidden; border-radius: var(--apollo-card-radius, 24px); }
+.wp-graphcard-head { align-items: start; }
+.wp-graphcard-titles { gap: 1px; align-items: start; padding-top: 12.75px; }
+.wp-graphcard-line { gap: 6px; align-items: center; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wp-graphcard-glyph { font-size: 13px; font-weight: 600; width: 15px; height: 15px; }
+.wp-graphcard-title { font-size: 15px; font-weight: 600; }
+.wp-graphcard-percent { font-size: 28px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.card.wp-gaugecard { padding: 14px; gap: 10px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
+.card.wp-gaugecard.wide { padding: 0 18px; gap: 18px; }
+.wp-gauge-label { gap: 1px; align-items: center; }
+.wp-gauge-label.wide { align-items: start; }
+.wp-dial { align-items: center; justify-content: center; flex-shrink: 0; }
+.wp-dial-text { font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.wp-graphcard-percent { flex-shrink: 0; }
+.wp-compact-titles, .wp-graphcard-titles, .wp-tall-head > .perf-hero-titles { flex-shrink: 1; min-width: 0; }
+.wp-tall-head > .perf-badge { flex-shrink: 0; }
+.wp-tall-head > .wp-ring, .wp-compact-head > .wp-ring { flex-shrink: 0; }
+.wp-gauge-label { flex-shrink: 1; min-width: 0; }
+.wp-gauge-label.wide .perf-hero-subtitle { text-align: left; }
+.wp-gauge-label .wp-graphcard-title { flex-shrink: 0; }

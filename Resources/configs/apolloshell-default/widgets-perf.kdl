@@ -1,0 +1,141 @@
+style "widgets-perf.css"
+
+define "wp-ring" {
+    param "value"
+    param "sz"
+    param "icon"
+    param "fallback"
+    stack class="wp-ring" style="width: {sz}px; height: {sz}px" {
+        ring value="{value ?? 0}" class="perf-ring" style="width: {sz}px; height: {sz}px"
+        icon "{icon}" fallback="{fallback}" class="perf-ring-glyph"
+    }
+}
+
+define "wp-percent" {
+    param "value"
+    text "{value != null ? (value * 100 | round) + ' %' : '–'}"
+}
+
+define "wp-graph" {
+    param "history"
+    param "fill"
+    stack class="wp-graph" {
+        stack class="perf-baseline"
+        graph values="{history}" kind="area" min=0 max=1 capacity=30 class="perf-graph" style="-apollo-fill: rgb(from var(--apollo-accent-color, -apple-system-control-accent) r g b / {fill})"
+    }
+}
+
+define "wp-hero" {
+    param "w"
+    param "title"
+    param "subtitle"
+    param "value"
+    param "history"
+    param "icon"
+    param "fallback"
+    switch "{w.display}" {
+        case "graph" {
+            stack class="card wp-graphcard" style="width: {w.width}px; height: {w.height}px" {
+                column class="wp-graphcard-body" style="width: {w.width}px; height: {w.height}px; padding-top: 44px" {
+                    use "wp-graph" history="{history}" fill=0.22
+                }
+                row class="wp-graphcard-head" style="width: {w.width}px; height: {w.height}px; padding: 14px" {
+                    column class="wp-graphcard-titles" {
+                        row class="wp-graphcard-line" {
+                            icon "{icon}" fallback="{fallback}" class="wp-graphcard-glyph"
+                            text "{title}" class="wp-graphcard-title" lines=1
+                        }
+                        text "{subtitle}" class="perf-hero-subtitle small" lines=1
+                    }
+                    spacer
+                    text "{value != null ? (value * 100 | round) + ' %' : '–'}" class="wp-graphcard-percent"
+                }
+            }
+        }
+        case "gauge" {
+            when "{w.width > w.height * 1.4}" {
+                row class="card wp-gaugecard wide" {
+                    column class="wp-gauge-label wide" {
+                        row class="wp-graphcard-line" {
+                            icon "{icon}" fallback="{fallback}" class="wp-graphcard-glyph"
+                            text "{title}" class="wp-graphcard-title"
+                        }
+                        text "{subtitle}" class="perf-hero-subtitle small" lines=2
+                    }
+                    spacer
+                    use "wp-dial" value="{value}" g="{(w.height - 28) | min 220}"
+                }
+            }
+            else {
+                column class="card wp-gaugecard" {
+                    column class="wp-gauge-label" {
+                        row class="wp-graphcard-line" {
+                            icon "{icon}" fallback="{fallback}" class="wp-graphcard-glyph"
+                            text "{title}" class="wp-graphcard-title"
+                        }
+                        text "{subtitle}" class="perf-hero-subtitle small" lines=1
+                    }
+                    use "wp-dial" value="{value}" g="{(w.width - 40) | min (w.height - 84) | min 240}"
+                }
+            }
+        }
+        default {
+            when "{w.height < 150}" {
+                column class="card wp-compact" {
+                    row class="wp-compact-head" {
+                        use "wp-ring" value="{value}" sz=34 icon="{icon}" fallback="{fallback}"
+                        column class="wp-compact-titles" {
+                            text "{title}" class="wp-compact-title"
+                            text "{subtitle}" class="perf-hero-subtitle small" lines=1
+                        }
+                        spacer
+                        text "{value != null ? (value * 100 | round) + ' %' : '–'}" class="wp-compact-percent"
+                    }
+                    use "wp-graph" history="{history}" fill=0.18
+                }
+            }
+            else {
+                when "{w.height > 200}" {
+                    column class="card wp-tall" {
+                        row class="wp-tall-head" {
+                            use "wp-ring" value="{value}" sz=46 icon="{icon}" fallback="{fallback}"
+                            column class="perf-hero-titles" {
+                                text "{title}" class="perf-hero-title"
+                                text "{subtitle}" class="perf-hero-subtitle" lines=1
+                            }
+                            spacer
+                            stack class="perf-badge" style="width: 76px; height: 76px" {
+                                shape "scallop" count="{(value ?? 0) >= 0.8 ? 12 : ((value ?? 0) >= 0.4 ? 8 : 4)}" depth="{(value ?? 0) >= 0.8 ? 0.11 : ((value ?? 0) >= 0.4 ? 0.07 : 0.12)}" class="perf-badge-shape" style="width: 76px; height: 76px"
+                                text "{value != null ? (value * 100 | round) + ' %' : '–'}" class="perf-badge-text" style="font-size: 19.826px"
+                            }
+                        }
+                        column class="wp-tall-foot" {
+                            text "Last 30s" class="perf-history-label"
+                            use "wp-graph" history="{history}" fill=0.18
+                        }
+                    }
+                }
+                else { use "perf-hero-card" title="{title}" subtitle="{subtitle}" value="{value}" history="{history}" icon="{icon}" fallback="{fallback}" }
+            }
+        }
+    }
+}
+
+define "wp-dial" {
+    param "value"
+    param "g"
+    stack class="wp-dial" style="width: {g}px; height: {g}px" {
+        gauge value="{value ?? 0}" class="perf-gauge" style="width: {g}px; height: {g}px"
+        text "{value != null ? (value * 100 | round) + ' %' : '–'}" class="wp-dial-text" style="font-size: {g * 0.24}px"
+    }
+}
+
+define "widget-cpu" {
+    param "w"
+    use "wp-hero" w="{w}" title="CPU" subtitle="{perf.chip} · {perf.cores} Cores" value="{perf.live.cpu}" history="{perf.live.cpu-history}" icon="panel-cpu" fallback="cpu"
+}
+
+define "widget-gpu" {
+    param "w"
+    use "wp-hero" w="{w}" title="GPU" subtitle="{perf.gpu-cores != null ? perf.chip + ' · ' + perf.gpu-cores + ' Cores' : perf.chip}" value="{perf.live.gpu}" history="{perf.live.gpu-history}" icon="square.stack.3d.up" fallback="square.stack.3d.up"
+}
