@@ -4,82 +4,309 @@ var dashboard-cards-bottom "{var.dashboard-caelestia.bottom}" type="list" persis
 var dashboard-cards-side "{var.dashboard-caelestia.side}" type="list" persist=#true
 var dashboard-tab "dashboard"
 var calendar-offset 0
-var dashboard-visible-tabs from="{var.dashboard-tabs | where 'visible' true}"
-var dashboard-active-tab from="{(var.dashboard-visible-tabs | where 'id' var.dashboard-tab | count) > 0 ? var.dashboard-tab : (var.dashboard-visible-tabs | first).id}"
 
-var dashboard-tab-looks {
-    - id="dashboard" title="Dashboard" icon="bar-dashboard" symbol="square.grid.2x2" selected=".fill"
-    - id="media" title="Media" icon="panel-media" symbol="music.note.list" selected=""
-    - id="performance" title="Performance" icon="panel-performance" symbol="gauge.with.dots.needle.67percent" selected=""
-    - id="weather" title="Weather" icon="panel-weather" symbol="cloud.sun" selected=".fill"
+var dashboard-pages "{var.dashboard-default-pages}" type="list" persist=#true
+var dashboard-widgets "{var.dashboard-default-overview | concat var.dashboard-default-performance-plain}" type="list" persist=#true
+var dashboard-seeded #false persist=#true
+var dashboard-scale 1 persist=#true
+var shell-editing #false
+var dashboard-selected #null type="any"
+var dashboard-new-id ""
+var dashboard-backup-pages #null type="any"
+var dashboard-backup-widgets #null type="any"
+var dashboard-backup-scale #null type="any"
+var dashboard-selected-widget from="{var.dashboard-widgets | where 'id' var.dashboard-selected | first}"
+var dashboard-active-page-record from="{var.dashboard-pages | where 'id' var.dashboard-active-page | first}"
+var dashboard-active-page from="{((var.dashboard-pages | where 'id' var.dashboard-tab | first) ?? (var.dashboard-pages | where 'template' var.dashboard-tab | first) ?? (var.dashboard-pages | first)).id}"
+var dashboard-page-widgets from="{var.dashboard-widgets | where 'page' var.dashboard-active-page}"
+var dashboard-frame {
+    - id="dashboard" x=0 y=0 width=871 height=482
 }
 
 include "dashboard-cards.kdl"
+include "dashboard-options.kdl"
 include "media.kdl"
 include "performance.kdl"
 include "weather.kdl"
+include "widgets.kdl"
 
 define "dashboard-overview" {
-    when "{(var.dashboard-cards-top | count) + (var.dashboard-cards-bottom | count) + (var.dashboard-cards-side | count) == 0}" {
-        column class="dashboard-empty" {
-            text "No Cards" class="dashboard-empty-title"
-            button class="dashboard-empty-button" {
-                on-click { set "settings-page" "dashboard"; open "settings"; close "dashboard" }
-                text "Settings"
-            }
-        }
-    }
-    else {
-        row class="dashboard-overview" {
-            column class="dashboard-main" {
-                when "{(var.dashboard-cards-top | count) > 0}" {
-                    row class="dashboard-zone zone-top" {
-                        each card in="{var.dashboard-cards-top}" key="{card.id}" {
-                            use "card-{card.kind}" card="{card}" zone="top"
-                        }
-                    }
-                }
-                when "{(var.dashboard-cards-bottom | count) > 0}" {
-                    row class="dashboard-zone zone-bottom" {
-                        each card in="{var.dashboard-cards-bottom}" key="{card.id}" {
-                            use "card-{card.kind}" card="{card}" zone="bottom"
-                        }
-                    }
+    use "dashboard-canvas" widgets="{var.dashboard-widgets | where 'page' 'dashboard'}"
+}
+
+on "shell.started" when="{!var.dashboard-seeded}" {
+    when "{battery.present == true}" { set "dashboard-widgets" "{var.dashboard-default-widgets}" }
+    set "dashboard-seeded" #true
+}
+
+define "bento-item" {
+    param "w"
+    stack id="bi-{w.id}" class="bento-item{var.shell-editing ? ' editing' : ''}{var.shell-editing && w.id == var.dashboard-selected ? ' selected' : ''}" {
+        use "widget" w="{w}"
+        when "{var.shell-editing}" {
+            stack class="bento-cover" {
+                on-click {
+                    set "dashboard-selected" "{w.id}"
+                    set "dashboard-options" "{w.id}"
+                    set "dashboard-tz-open" #false
+                    set "dashboard-app-open" #false
                 }
             }
-            when "{(var.dashboard-cards-side | count) > 0}" {
-                column class="dashboard-zone zone-side" {
-                    each card in="{var.dashboard-cards-side}" key="{card.id}" {
-                        use "card-{card.kind}" card="{card}" zone="side"
+            icon "arrow.down.right" class="bento-corner"
+            button class="bento-badge" tooltip="Remove" {
+                on-click {
+                    when "{var.dashboard-selected == w.id}" {
+                        set "dashboard-selected" #null
+                        set "dashboard-options" #null
                     }
+                    list.remove "dashboard-widgets" key="{w.id}"
                 }
+                icon "minus" class="bento-badge-glyph"
             }
         }
     }
 }
 
-popup "dashboard" anchor="top" motion="slide" fuse-group="shell" hover-edge=#true overhang=#true area="full" safe-area=#true {
-    on-open { set "calendar-offset" 0 }
-    column class="dashboard" {
-        row class="dashboard-tabs" {
-            each tab in="{var.dashboard-visible-tabs}" key="{tab.id}" {
-                button class="dashboard-tab" checked="{tab.id == var.dashboard-active-tab}" {
-                    on-click { set "dashboard-tab" "{tab.id}" }
-                    column class="dashboard-tab-label" {
-                        icon "{(var.dashboard-tab-looks | where 'id' tab.id | first).icon}" fallback="{(var.dashboard-tab-looks | where 'id' tab.id | first).symbol}{tab.id == var.dashboard-active-tab ? (var.dashboard-tab-looks | where 'id' tab.id | first).selected : ''}" class="dashboard-tab-glyph"
-                        text "{(var.dashboard-tab-looks | where 'id' tab.id | first).title}" class="dashboard-tab-title"
-                    }
-                    when "{tab.id == var.dashboard-active-tab}" { stack class="dashboard-tab-pill" match-id="dashboard-tab" }
+define "dashboard-canvas" {
+    param "widgets"
+    when "{(widgets | count) == 0}" {
+        column class="card dashboard-empty" {
+            on-drop accept="value" {
+                set "dashboard-new-id" "{clock.now | date 'yyyyMMddHHmmssSSS'}"
+                list.insert "dashboard-widgets" { - id="{var.dashboard-new-id}" page="{var.dashboard-active-page}" kind="{event.value}" x="{(var.dashboard-page-widgets | place-frame var.widget-kinds event.value event.x event.y).x}" y="{(var.dashboard-page-widgets | place-frame var.widget-kinds event.value event.x event.y).y}" width="{(var.dashboard-page-widgets | place-frame var.widget-kinds event.value event.x event.y).width}" height="{(var.dashboard-page-widgets | place-frame var.widget-kinds event.value event.x event.y).height}" display="standard" }
+                use "widget-seed" i="{var.dashboard-new-id}" k="{event.value}"
+            }
+            icon "square.grid.2x2" class="dashboard-empty-glyph"
+            text "Empty page" class="dashboard-empty-title"
+            text "Settings › Edit Interface" class="dashboard-empty-detail"
+        }
+    }
+    else {
+        canvas class="dashboard-canvas" in="{widgets}" sizes="{var.widget-kinds}" enabled="{var.shell-editing}" {
+            on-move {
+                when "{event.phase == 'ended' && event.valid}" { list.update "dashboard-widgets" key="{event.key}" { - x="{event.x}" y="{event.y}" } }
+            }
+            on-resize {
+                when "{event.phase == 'ended' && event.valid}" { list.update "dashboard-widgets" key="{event.key}" { - x="{event.x}" y="{event.y}" width="{event.width}" height="{event.height}" } }
+            }
+            on-drop accept="value" {
+                set "dashboard-new-id" "{clock.now | date 'yyyyMMddHHmmssSSS'}"
+                list.insert "dashboard-widgets" { - id="{var.dashboard-new-id}" page="{var.dashboard-active-page}" kind="{event.value}" x="{(var.dashboard-page-widgets | place-frame var.widget-kinds event.value event.x event.y).x}" y="{(var.dashboard-page-widgets | place-frame var.widget-kinds event.value event.x event.y).y}" width="{(var.dashboard-page-widgets | place-frame var.widget-kinds event.value event.x event.y).width}" height="{(var.dashboard-page-widgets | place-frame var.widget-kinds event.value event.x event.y).height}" display="standard" }
+                use "widget-seed" i="{var.dashboard-new-id}" k="{event.value}"
+            }
+            each w in="{widgets}" key="{w.id}" {
+                use "bento-item" w="{w}"
+            }
+        }
+    }
+}
+
+define "dashboard-page-tab" {
+    param "page"
+    param "i"
+    button class="dashboard-tab" checked="{page.id == var.dashboard-active-page}" {
+        on-click { set "dashboard-tab" "{page.id}"; set "dashboard-selected" #null }
+        when "{var.shell-editing}" {
+            menu {
+                item "Duplicate" {
+                    set "dashboard-new-id" "page-{clock.now | date 'yyyyMMddHHmmssSSS'}"
+                    list.insert "dashboard-pages" at="{i + 1}" { - id="{var.dashboard-new-id}" name="{page.name} 2" symbol="{page.symbol}" icon="{page.icon}" template="{page.template}" }
+                    set "dashboard-widgets" "{var.dashboard-widgets | concat (var.dashboard-widgets | where 'page' page.id | with-field 'page' var.dashboard-new-id | prefix-field 'id' (var.dashboard-new-id + '-'))}"
+                    set "dashboard-tab" "{var.dashboard-new-id}"
+                }
+                separator
+                item "Delete" disabled="{(var.dashboard-pages | count) <= 1}" {
+                    set "dashboard-widgets" "{var.dashboard-widgets | where-not 'page' page.id}"
+                    list.remove "dashboard-pages" key="{page.id}"
+                    set "dashboard-selected" #null
                 }
             }
         }
-        stack class="dashboard-divider"
-        column class="dashboard-page" {
-            switch "{var.dashboard-active-tab}" {
-                case "dashboard" { use "dashboard-overview" }
-                case "media" { use "dashboard-media" }
-                case "performance" { use "dashboard-performance" }
-                case "weather" { use "dashboard-weather" }
+        column class="dashboard-tab-label" {
+            icon "{page.icon ?? page.symbol}" fallback="{page.symbol}{page.id == var.dashboard-active-page ? (page.template == 'dashboard' || page.template == 'weather' ? '.fill' : '') : ''}" class="dashboard-tab-glyph"
+            text "{page.name}" class="dashboard-tab-title"
+        }
+        when "{page.id == var.dashboard-active-page}" { stack class="dashboard-tab-pill" match-id="dashboard-tab" }
+    }
+}
+
+popup "dashboard" anchor="top" motion="slide" fuse-group="shell" hover-edge="{!var.shell-editing}" overhang=#true area="full" safe-area=#true close-on="{var.shell-editing ? '' : 'outside-click escape focus-loss'}" scrim="{var.shell-editing ? 0.35 : 0}" style="margin-top: {(var.menubar-active && (var.menubar-screens == 'all' || var.menubar-screens == screen.id || (var.menubar-screens == 'main' && screen.main)) ? (var.menubar-covers ? (var.menubar-extent - (screen.menubar-height ?? 0) | max 0) : var.menubar-extent) : 0)}px" {
+    on-open { set "calendar-offset" 0 }
+    key "escape" {
+        when "{var.shell-editing}" { use "edit-escape" }
+        when "{!var.shell-editing}" { close "dashboard" }
+    }
+    canvas class="dashboard-scaler" scale="{var.dashboard-scale * (((screen.width ?? 1512) / 1512) | clamp 0.85 1.5) | min ((screen.width ?? 100000) / 871) | min (((screen.usable-height ?? 100000) - (var.menubar-active && (var.menubar-screens == 'all' || var.menubar-screens == screen.id || (var.menubar-screens == 'main' && screen.main)) ? (var.menubar-covers ? (var.menubar-extent - (screen.menubar-height ?? 0) | max 0) : var.menubar-extent) : 0)) / 482)}" {
+        each frame in="{var.dashboard-frame}" key="{frame.id}" {
+            column class="dashboard" {
+                row class="dashboard-tabs" {
+                    each page in="{var.dashboard-pages}" key="{page.id}" index="i" {
+                        use "dashboard-page-tab" page="{page}" i="{i}"
+                    }
+                    when "{var.shell-editing}" {
+                        button class="dashboard-tab dashboard-tab-add" tooltip="New Page" {
+                            on-click {
+                                set "dashboard-new-id" "page-{clock.now | date 'yyyyMMddHHmmssSSS'}"
+                                list.insert "dashboard-pages" { - id="{var.dashboard-new-id}" name="Page {(var.dashboard-pages | count) + 1}" symbol="square.grid.2x2" }
+                                set "dashboard-tab" "{var.dashboard-new-id}"
+                                set "dashboard-selected" #null
+                            }
+                            column class="dashboard-tab-label" {
+                                icon "plus" class="dashboard-tab-glyph"
+                                text "" class="dashboard-tab-title"
+                            }
+                        }
+                    }
+                }
+                stack class="dashboard-divider"
+                column class="dashboard-page" {
+                    use "dashboard-canvas" widgets="{var.dashboard-page-widgets}"
+                }
+            }
+        }
+    }
+    use "dashboard-options-flyout"
+}
+
+define "edit-begin" {
+    set "dashboard-backup-pages" "{var.dashboard-pages}"
+    set "dashboard-backup-widgets" "{var.dashboard-widgets}"
+    set "dashboard-backup-scale" "{var.dashboard-scale}"
+    set "dashboard-selected" #null
+    set "dashboard-gallery" #false
+    set "dashboard-options" #null
+    set "dashboard-confirm" #false
+    set "shell-editing" #true
+    open "dashboard"
+    open "dashboard-toolbar"
+}
+
+define "edit-cancel" {
+    when "{var.shell-editing}" {
+        set "dashboard-pages" "{var.dashboard-backup-pages}"
+        set "dashboard-widgets" "{var.dashboard-backup-widgets}"
+        set "dashboard-scale" "{var.dashboard-backup-scale}"
+    }
+    set "shell-editing" #false
+    set "dashboard-selected" #null
+    set "dashboard-gallery" #false
+    set "dashboard-options" #null
+    set "dashboard-confirm" #false
+    close "dashboard"
+    close "dashboard-toolbar"
+}
+
+define "edit-done" {
+    set "shell-editing" #false
+    set "dashboard-selected" #null
+    set "dashboard-gallery" #false
+    set "dashboard-options" #null
+    set "dashboard-confirm" #false
+    close "dashboard"
+    close "dashboard-toolbar"
+}
+
+define "edit-escape" {
+    when "{var.dashboard-selected == null && !var.dashboard-gallery && !var.dashboard-changed}" { use "edit-cancel" }
+    when "{var.dashboard-selected == null && !var.dashboard-gallery && var.dashboard-changed}" { set "dashboard-confirm" "{!var.dashboard-confirm}" }
+    when "{var.dashboard-selected == null && var.dashboard-gallery}" { set "dashboard-gallery" #false }
+    when "{var.dashboard-selected != null}" {
+        set "dashboard-selected" #null
+        set "dashboard-options" #null
+        set "dashboard-tz-open" #false
+        set "dashboard-app-open" #false
+    }
+}
+
+var dashboard-changed from="{var.shell-editing && (var.dashboard-pages != var.dashboard-backup-pages || var.dashboard-widgets != var.dashboard-backup-widgets || var.dashboard-scale != var.dashboard-backup-scale)}"
+
+define "gallery-tile" {
+    param "k"
+    button class="gallery-tile" drag-value="{k.kind}" tooltip="{k.title}" disabled="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind) == null}" {
+        on-click {
+            set "dashboard-new-id" "{clock.now | date 'yyyyMMddHHmmssSSS'}"
+            list.insert "dashboard-widgets" { - id="{var.dashboard-new-id}" page="{var.dashboard-active-page}" kind="{k.kind}" x="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).x}" y="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).y}" width="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).width}" height="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).height}" display="standard" }
+            use "widget-seed" i="{var.dashboard-new-id}" k="{k.kind}"
+        }
+        icon "{k.symbol}" class="gallery-tile-glyph"
+        text "{k.title}" class="gallery-tile-title" lines=1
+    }
+}
+
+var dashboard-gallery #false
+var dashboard-confirm #false
+var dashboard-symbols {
+    - symbol="square.grid.2x2"
+    - symbol="star.fill"
+    - symbol="heart.fill"
+    - symbol="briefcase.fill"
+    - symbol="house.fill"
+    - symbol="bolt.fill"
+    - symbol="gamecontroller.fill"
+    - symbol="music.note"
+}
+
+popup "dashboard-toolbar" anchor="bottom" motion="slide" close-on="" {
+    key "escape" { use "edit-escape" }
+    column class="edit-toolbar" {
+        when "{var.dashboard-gallery}" {
+            scroll axis="horizontal" class="gallery-scroll" {
+                row class="gallery-row" {
+                    each k in="{var.widget-kinds}" key="{k.kind}" {
+                        use "gallery-tile" k="{k}"
+                    }
+                }
+            }
+        }
+        when "{var.dashboard-confirm}" {
+            row class="edit-row edit-confirm" {
+                text "Discard your changes?" class="edit-confirm-text"
+                spacer
+                button class="edit-button edit-text" {
+                    on-click { set "dashboard-confirm" #false }
+                    text "Keep Editing"
+                }
+                button class="edit-button edit-text edit-done" {
+                    on-click { use "edit-cancel" }
+                    text "Discard"
+                }
+            }
+        }
+        row class="edit-row" {
+            button class="edit-button edit-plus" checked="{var.dashboard-gallery}" tooltip="Widgets" {
+                on-click { set "dashboard-gallery" "{!var.dashboard-gallery}" }
+                icon "plus"
+            }
+            input value="{var.dashboard-active-page-record.name}" placeholder="Page Name" class="edit-input" {
+                on-change { list.update "dashboard-pages" key="{var.dashboard-active-page}" { - name="{event.value}" } }
+            }
+            each s in="{var.dashboard-symbols}" key="{s.symbol}" {
+                button class="edit-button edit-symbol" checked="{var.dashboard-active-page-record.symbol == s.symbol}" {
+                    on-click { list.update "dashboard-pages" key="{var.dashboard-active-page}" { - symbol="{s.symbol}" icon=#null } }
+                    icon "{s.symbol}"
+                }
+            }
+            stack class="edit-separator"
+            when "{var.dashboard-selected-widget != null}" {
+                each d in="{(((var.widget-kinds | where 'kind' var.dashboard-selected-widget.kind | first).displays) ?? 'standard') | split ' '}" key="{d}" {
+                    button class="edit-button edit-display" checked="{(var.dashboard-selected-widget.display ?? 'standard') == d}" {
+                        on-click { list.update "dashboard-widgets" key="{var.dashboard-selected}" { - display="{d}" } }
+                        text "{d | capitalize}"
+                    }
+                }
+                stack class="edit-separator"
+            }
+            spacer
+            slider value="{var.dashboard-scale}" min=0.7 max=1.5 step=0.05 class="edit-slider" label="Dashboard Size" {
+                on-change { set "dashboard-scale" "{event.value}" }
+            }
+            button class="edit-button edit-text" {
+                on-click { use "edit-cancel" }
+                text "Cancel"
+            }
+            button class="edit-button edit-text edit-done" {
+                on-click { use "edit-done" }
+                text "Done"
             }
         }
     }

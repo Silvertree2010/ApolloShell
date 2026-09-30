@@ -211,7 +211,7 @@ enum Elements {
             properties: CommonProperties.elementProperties + [
                 PropertySchema(name: "axis", type: .enumeration(["vertical", "horizontal", "grid"]), defaultValue: .null, allowsExpression: false, doc: "Drag direction."),
                 PropertySchema(name: "enabled", type: .bool, defaultValue: .null, doc: "Dragging is only possible when set."),
-                PropertySchema(name: "accept", type: .enumeration(["apps", "files"]), defaultValue: .null, doc: "External objects that may be dragged in."),
+                PropertySchema(name: "accept", type: .enumeration(["apps", "files", "value"]), defaultValue: .null, doc: "External objects that may be dragged in; value takes the drag-value of another element, with event.value and event.index in on-drop."),
             ],
             handlers: CommonProperties.elementHandlers + ["on-reorder", "on-drop", "on-drag-out"],
             childContext: .elementBody,

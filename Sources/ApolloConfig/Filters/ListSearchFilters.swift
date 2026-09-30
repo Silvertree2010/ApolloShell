@@ -20,6 +20,26 @@ enum ListSearchFilters {
             let field = try arguments.string(0)
             return .list(items.map { ValueOrdering.field(field, of: $0) })
         },
+        BuiltinFilter("with-field", arity: FilterArity(2, 2)) { input, arguments, _ in
+            let items = try input.listInput("with-field")
+            let field = try arguments.string(0)
+            let value = arguments.value(1)
+            return .list(items.map { item in
+                guard case .record(var record) = item else { return item }
+                record[field] = value
+                return .record(record)
+            })
+        },
+        BuiltinFilter("prefix-field", arity: FilterArity(2, 2)) { input, arguments, _ in
+            let items = try input.listInput("prefix-field")
+            let field = try arguments.string(0)
+            let prefix = try arguments.string(1)
+            return .list(items.map { item in
+                guard case .record(var record) = item, let old = record[field] else { return item }
+                record[field] = .string(prefix + old.stringified)
+                return .record(record)
+            })
+        },
         BuiltinFilter("contains", arity: FilterArity(1, 1)) { input, arguments, _ in
             switch input {
             case .list(let items):

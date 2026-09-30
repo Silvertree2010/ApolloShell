@@ -76,6 +76,7 @@ enum ProvidersMore {
             S.field("stale", .bool, update: .push, doc: "Whether the data is stale."),
             S.field("attribution", .record, update: .push, doc: "Data source to credit, with text and url."),
             S.field("capabilities", .record, update: .push, doc: "What the provider supplies."),
+            S.field("by-place", .record, update: .push, doc: "Weather of every place in places, by place id: status, current, today, hourly-strip and days as above."),
             S.field("search-results", .list, update: .push, doc: "Places found."),
             S.field("search-status", .string, update: .push, doc: "idle, searching, done or failed."),
         ],
@@ -87,6 +88,7 @@ enum ProvidersMore {
         settings: [
             PropertySchema(name: "source", type: .enumeration(["open-meteo", "met-norway", "wttr"]), defaultValue: .string("open-meteo"), doc: "Weather provider."),
             PropertySchema(name: "place", type: .record, defaultValue: .null, doc: "Record name/latitude/longitude or #null."),
+            PropertySchema(name: "places", type: .list, defaultValue: .list([]), doc: "More places, records id/name/latitude/longitude, fetched alongside and published in by-place.", feature: "weather-places"),
         ],
         doc: "Weather from three providers, place search."
     )

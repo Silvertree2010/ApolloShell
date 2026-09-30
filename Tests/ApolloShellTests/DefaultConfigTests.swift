@@ -34,7 +34,7 @@ struct DefaultConfigTests {
         let ir = try #require(PackageResources.load(Self.defaultFolder, id: "apolloshell-default").ir)
         let kinds = Dictionary(uniqueKeysWithValues: ir.surfaces.map { ($0.id, $0.kind) })
         let expected = [
-            "sidebar": "panel", "desktop-clock": "panel", "dashboard": "popup", "utilities": "popup",
+            "sidebar": "panel", "desktop-clock": "panel", "dashboard": "popup", "dashboard-toolbar": "popup", "utilities": "popup",
             "launcher": "popup", "session": "popup", "volume": "osd", "default": "toast",
             "onboarding": "window", "settings": "window", "settings-confirm": "popup",
             "menubar": "panel", "menubar-status-popout": "popup",
@@ -52,7 +52,7 @@ struct DefaultConfigTests {
             "utilities-toggles", "weather-source", "weather-places", "weather-selected", "file-manager",
             "toast-charging", "toast-battery", "toast-audio-output", "toast-audio-input", "desktop-clock",
             "hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-settings", "hide-apple-dock",
-            "keep-awake-lid", "onboarding-done",
+            "keep-awake-lid", "onboarding-done", "dashboard-pages", "dashboard-widgets", "dashboard-scale", "dashboard-seeded",
             "menubar-enabled", "menubar-screens", "menubar-style", "menubar-distinct", "menubar-thickness",
             "menubar-covers", "menubar-hide-apple", "menubar-status-style", "menubar-start", "menubar-center", "menubar-end",
         ]
@@ -78,7 +78,7 @@ struct DefaultConfigTests {
         Assignment(prefix: "LA", range: 1...25, artifacts: ["surface:launcher", "var:hotkey-launcher", "var:launcher-results"]),
         Assignment(prefix: "LA", range: 26...27, artifacts: ["config:launcher-only"]),
         Assignment(prefix: "MP", range: 1...24, artifacts: ["shell"]),
-        Assignment(prefix: "DB", range: 1...41, artifacts: ["surface:dashboard", "define:dashboard-overview", "define:dashboard-media", "define:dashboard-performance", "define:dashboard-weather", "define:card-weather", "define:card-user", "define:card-clock", "define:card-calendar", "define:card-resources", "define:card-media", "var:dashboard-tabs"]),
+        Assignment(prefix: "DB", range: 1...41, artifacts: ["surface:dashboard", "define:dashboard-overview", "define:dashboard-media", "define:perf-hero-card", "define:weather-hero", "define:dashboard-canvas", "define:widget", "define:card-weather", "define:card-user", "define:card-clock", "define:card-calendar", "define:card-resources", "define:card-media", "var:dashboard-tabs"]),
         Assignment(prefix: "UT", range: 1...34, artifacts: ["surface:utilities", "define:card-keep-awake", "define:card-audio", "define:card-quick-toggles", "var:utilities-cards", "var:utilities-toggles", "define:settings-page-control-centre"]),
         Assignment(prefix: "KA", range: 1...12, artifacts: ["define:card-keep-awake", "var:keep-awake-lid"]),
         Assignment(prefix: "OB", range: 1...9, artifacts: ["surface:onboarding", "var:onboarding-done", "define:settings-page-about"]),

@@ -190,18 +190,9 @@
 .dashboard-tab-title { font-size: 12px; font-weight: 500; }
 .dashboard-divider { height: 1px; align-self: stretch; background: -apple-system-separator; opacity: 0.5; }
 .dashboard-page { width: 871px; height: 424px; padding: 16px; }
-.dashboard-overview { flex-grow: 1; align-self: stretch; gap: 12px; }
-.dashboard-main { flex-grow: 1; gap: 12px; }
-.dashboard-zone { gap: 12px; }
-.dashboard-zone.zone-top { height: 130px; }
-.dashboard-zone.zone-bottom { flex-grow: 1; }
-.dashboard-zone.zone-side { width: 200px; }
-.card-weather.zone-top { width: 275px; }
-.card-user.zone-top { flex-grow: 1; }
-.card-clock.zone-bottom { width: 110px; }
-.card-calendar.zone-bottom { flex-grow: 1; }
-.card-resources.zone-bottom { width: 90px; }
-.zone-side > .card { flex-grow: 1; }
+.dashboard-canvas { width: 839px; height: 392px; }
+.dashboard-empty-glyph { font-size: 30px; font-weight: 300; color: -apple-system-tertiary-label; }
+.dashboard-empty-detail { font-size: 12px; color: -apple-system-secondary-label; }
 .dashboard-empty, .weather-empty, .utilities-empty { padding: 24px; gap: 10px; align-items: center; }
 .card-weather { padding: 0 26px; border-radius: var(--apollo-card-radius, 42px); align-items: center; justify-content: center; }
 .card-weather-body { gap: 16px; align-items: center; }
@@ -332,7 +323,7 @@
 .performance-main { flex-grow: 1; align-self: stretch; gap: 12px; }
 .performance-top { flex-grow: 1; align-self: stretch; gap: 12px; }
 .performance-bottom { height: 189px; align-self: stretch; gap: 12px; }
-.perf-hero { width: 49.1404%; align-self: stretch; padding: 14px; border-radius: var(--apollo-card-radius, 24px); }
+.perf-hero { padding: 14px; border-radius: var(--apollo-card-radius, 24px); }
 .perf-hero-head { gap: 12px; align-items: center; align-self: stretch; justify-content: start; }
 .perf-hero-ring { width: 46px; height: 46px; align-items: center; justify-content: center; }
 .perf-ring { width: 46px; height: 46px; -apollo-stroke-width: 4px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); color: var(--apollo-accent-color, -apple-system-control-accent); transition: value 500ms spatial; }
@@ -349,7 +340,7 @@
 .perf-badge { width: 92px; height: 92px; align-items: center; justify-content: center; }
 .perf-badge-shape { width: 92px; height: 92px; background: var(--apollo-accent-color, -apple-system-control-accent); }
 .perf-badge-text { font-size: 24px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; color: var(--apollo-on-accent-color, white); -apollo-content-transition: numeric; }
-.perf-storage, .perf-memory { width: 24.2837%; align-self: stretch; padding: 0 12px; align-items: center; justify-content: center; }
+.perf-storage, .perf-memory { padding: 0 12px; align-items: center; justify-content: center; }
 .perf-storage { border-radius: var(--apollo-card-radius, 41px); }
 .perf-memory { border-radius: var(--apollo-card-radius, 10px); }
 .perf-gauge-column { gap: 6px; align-items: center; }
@@ -365,7 +356,7 @@
 .perf-memory-head { gap: 6px; align-items: center; }
 .perf-memory-glyph { width: 15px; height: 15px; font-size: 13px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
 .perf-memory-title { font-size: 13px; font-weight: 600; }
-.perf-network { width: 335px; align-self: stretch; padding: 14px; gap: 0; border-radius: var(--apollo-card-radius, 24px); }
+.perf-network { padding: 14px; gap: 0; border-radius: var(--apollo-card-radius, 24px); }
 .perf-network-head { gap: 6px; align-items: center; align-self: stretch; }
 .perf-network-glyph { font-size: 13px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
 .perf-network-title { font-size: 15px; font-weight: 600; }
@@ -811,3 +802,51 @@
 .settings-nav-item .button-content { gap: 8px; }
 .settings-group .button-content { gap: 8px; }
 .settings-row-text { flex-shrink: 1; }
+
+.bento-item { align-self: stretch; }
+.bento-item > * { width: 100%; height: 100%; }
+.bento-item.editing { animation: wiggle 260ms infinite; }
+.bento-item.editing > .card, .bento-item.editing > .weather-hero { border-radius: 24px; }
+.bento-cover { align-self: stretch; background: rgba(0, 0, 0, 0.001); border-radius: 24px; border: 2px solid transparent; }
+.bento-item.selected > .bento-cover { border: 2px solid -apple-system-control-accent; }
+@media (prefers-reduced-motion: reduce) {
+  .bento-cover { border: 1.5px dashed rgb(from -apple-system-label r g b / 0.55); }
+  .bento-item.selected > .bento-cover { border: 2px solid -apple-system-control-accent; }
+}
+.bento-corner { width: 18px; height: 18px; align-self: end; justify-self: end; margin: 0 4px 4px 0; font-size: 13px; font-weight: 700; color: rgb(from -apple-system-label r g b / 0.5); }
+.bento-badge { width: 22px; height: 22px; align-self: start; justify-self: start; margin: -10px 0 0 -10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.16); border: 1px solid rgb(from -apple-system-label r g b / 0.2); align-items: center; justify-content: center; }
+.bento-badge-glyph { font-size: 11px; font-weight: 700; }
+.dashboard-tab-add { flex-grow: 0; width: 60px; }
+.edit-toolbar { padding: 10px 14px; gap: 10px; border-radius: 22px; background: glass(regular); }
+.edit-row { gap: 8px; align-items: center; }
+.edit-button { height: 28px; min-width: 28px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; font-size: 12px; font-weight: 500; }
+.edit-button:checked { background: -apple-system-control-accent; color: white; }
+.edit-symbol { padding: 0; width: 28px; }
+.edit-done { background: -apple-system-control-accent; color: white; }
+.edit-input { width: 140px; height: 28px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); font-size: 12px; }
+.edit-separator { width: 1px; height: 18px; background: -apple-system-separator; }
+.edit-slider { width: 120px; }
+.gallery-scroll { width: 620px; height: 84px; }
+.gallery-row { gap: 8px; align-items: center; }
+.gallery-tile { width: 88px; height: 76px; gap: 6px; border-radius: 14px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; }
+.gallery-tile:disabled { opacity: 0.4; }
+.gallery-tile-glyph { font-size: 20px; }
+.gallery-tile-title { font-size: 11px; font-weight: 500; }
+.opt-panel { width: 280px; padding: 12px; gap: 10px; border-radius: 16px; background: glass(regular); }
+.opt-row { gap: 8px; align-items: center; }
+.opt-group { gap: 6px; }
+.opt-text { gap: 1px; }
+.opt-title { font-size: 12px; font-weight: 500; }
+.opt-detail { font-size: 11px; color: -apple-system-secondary-label; }
+.opt-value { font-size: 12px; min-width: 52px; align-items: center; }
+.opt-seg { gap: 6px; }
+.opt-seg-button { flex-grow: 1; }
+.opt-pick { height: 26px; padding: 0 8px; border-radius: 8px; align-items: center; gap: 6px; }
+.opt-pick:hover { background: rgb(from -apple-system-label r g b / 0.08); }
+.opt-pick-title { font-size: 12px; flex-grow: 1; }
+.opt-input { height: 28px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); font-size: 12px; }
+.opt-scroll { height: 140px; }
+.opt-list { gap: 1px; }
+.edit-confirm { padding: 0 4px; }
+.edit-confirm-text { font-size: 12px; font-weight: 500; }
+.opt-pick-row { gap: 6px; align-items: center; flex-grow: 1; }

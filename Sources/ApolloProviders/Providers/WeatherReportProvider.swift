@@ -21,6 +21,18 @@ public final class WeatherReportProvider: BaseProvider {
     private var searchGeneration = 0
     private var searchResults: [GeocodingPlace] = []
     private var searchStatus = "idle"
+    private var extras: [String: ExtraPlace] = [:]
+    private var extraOrder: [String] = []
+
+    struct ExtraPlace {
+        var place: WeatherPlace
+        var report: WeatherReport?
+        var fetchedAt: Date?
+        var failed = false
+        var failures = 0
+        var fetching = false
+        var generation = 0
+    }
 
     public init(source: any WeatherSource, clock: any RuntimeClock) {
         self.source = source
@@ -29,8 +41,10 @@ public final class WeatherReportProvider: BaseProvider {
 
     override func didStart() {
         if place != nil, WeatherRefresh.needsFetch(fetchedAt: fetchedAt, now: source.now) { fetch() }
+        for id in extraOrder where WeatherRefresh.needsFetch(fetchedAt: extras[id]?.fetchedAt, now: source.now) { fetchExtra(id) }
         timers.set("refresh", every: WeatherRefresh.interval, active: true) { [weak self] in
             self?.fetch()
+            for id in self?.extraOrder ?? [] { self?.fetchExtra(id) }
         }
         timers.set("derived", every: Self.derivedInterval, active: true) { [weak self] in
             self?.publishAll()
@@ -53,7 +67,73 @@ public final class WeatherReportProvider: BaseProvider {
             resetAttempts()
             if isRunning, place != nil { fetch() }
         }
+        configureExtras(settings["places"] ?? .null)
         publishAll()
+    }
+
+    private func configureExtras(_ value: Value) {
+        var wanted: [(String, WeatherPlace)] = []
+        if case .list(let items) = value {
+            for item in items {
+                guard case .record(let record) = item, case .string(let id) = record["id"] ?? .null, !id.isEmpty,
+                      let place = Self.place(item), !wanted.contains(where: { $0.0 == id }) else { continue }
+                wanted.append((id, place))
+            }
+        }
+        var next: [String: ExtraPlace] = [:]
+        for (id, place) in wanted {
+            if let kept = extras[id], kept.place == place {
+                next[id] = kept
+            } else {
+                next[id] = ExtraPlace(place: place, generation: (extras[id]?.generation ?? 0) + 1)
+            }
+        }
+        for id in extraOrder where next[id] == nil { timers.cancel("retry-" + id) }
+        let added = wanted.map(\.0).filter { extras[$0]?.place != next[$0]?.place }
+        extras = next
+        extraOrder = wanted.map(\.0)
+        if isRunning { for id in added { fetchExtra(id) } }
+    }
+
+    private func fetchExtra(_ id: String) {
+        guard var entry = extras[id], !entry.fetching else { return }
+        entry.fetching = true
+        extras[id] = entry
+        let generation = entry.generation
+        let provider = providerID
+        source.fetch(provider, for: entry.place) { [weak self] report in
+            guard let self, var current = self.extras[id], current.generation == generation else { return }
+            current.fetching = false
+            if let report {
+                current.report = report
+                current.fetchedAt = self.source.now
+                current.failed = false
+                current.failures = 0
+            } else {
+                current.failures += 1
+                current.failed = true
+                if self.isRunning {
+                    self.timers.once("retry-" + id, after: WeatherRefresh.retryDelay(afterFailures: current.failures)) { [weak self] in self?.fetchExtra(id) }
+                }
+            }
+            self.extras[id] = current
+            self.publishAll()
+        }
+    }
+
+    private func byPlace(now: Date) -> Value {
+        .record(Record(extraOrder.compactMap { id -> (String, Value)? in
+            guard let entry = extras[id] else { return nil }
+            let status = entry.report != nil ? "ready" : (entry.fetching ? "loading" : (entry.failed ? "failed" : "loading"))
+            let report = entry.report
+            return (id, .record(Record([
+                ("status", .string(status)),
+                ("current", report.map { Self.current($0.current) } ?? .null),
+                ("today", report.flatMap { r in r.today(now: now).map { Self.today($0, report: r) } } ?? .null),
+                ("hourly-strip", .list(report.map { r in r.hourlyStrip(now: now).map { Self.slot($0, report: r) } } ?? [])),
+                ("days", .list(report.map { r in r.upcomingDays(now: now).map { Self.day($0, report: r, now: now) } } ?? [])),
+            ])))
+        }))
     }
 
     override func handle(_ arguments: ActionArguments) async throws -> Value {
@@ -149,6 +229,7 @@ public final class WeatherReportProvider: BaseProvider {
         publish("today", report.flatMap { report in report.today(now: now).map { Self.today($0, report: report) } } ?? .null)
         publish("hourly-strip", .list(report.map { report in report.hourlyStrip(now: now).map { Self.slot($0, report: report) } } ?? []))
         publish("days", .list(report.map { report in report.upcomingDays(now: now).map { Self.day($0, report: report, now: now) } } ?? []))
+        publish("by-place", byPlace(now: now))
         publish("updated", fetchedAt.map(Value.date) ?? .null)
         publish("time-zone", report.map { .string($0.calendar.timeZone.identifier) } ?? .null)
         publish("stale", .bool(WeatherRefresh.showsStand(fetchedAt: fetchedAt, lastAttemptFailed: lastAttemptFailed, now: now)))

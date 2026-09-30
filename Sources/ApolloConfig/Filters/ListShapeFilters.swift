@@ -73,6 +73,10 @@ enum ListShapeFilters {
             var seen = Set<Value>()
             return .list(try input.listInput("unique").filter { seen.insert($0).inserted })
         },
+        BuiltinFilter("concat", arity: FilterArity(1, 1)) { input, arguments, _ in
+            let rest = arguments.value(0)
+            return .list(try input.listInput("concat") + (rest == .null ? [] : try rest.listInput("concat")))
+        },
         BuiltinFilter("join", arity: FilterArity(1, 1)) { input, arguments, _ in
             let items = try input.listInput("join")
             let separator = try arguments.string(0)

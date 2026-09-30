@@ -285,7 +285,7 @@ final class LiveShell: WindowHostLink {
         for (key, screen) in screens {
             store.set(DependencyPath("screen:" + key, []), .record(Record([
                 ("id", .string(key)), ("name", .string(screen.name ?? key)), ("main", .bool(screen.frame.origin == .zero)),
-                ("width", .number(Double(screen.frame.width))), ("height", .number(Double(screen.frame.height))), ("notch", .bool(screen.notch)),
+                ("width", .number(Double(screen.frame.width))), ("height", .number(Double(screen.frame.height))), ("usable-height", .number(Double(screen.visible.height > 0 ? screen.visible.height : screen.frame.height))), ("notch", .bool(screen.notch)),
                 ("menubar-height", .number(Double(max(screen.frame.maxY - screen.visible.maxY, 0)))), ("notch-left", ScreensProvider.area(screen.notchLeft, in: screen.frame)), ("notch-right", ScreensProvider.area(screen.notchRight, in: screen.frame)),
             ])))
         }

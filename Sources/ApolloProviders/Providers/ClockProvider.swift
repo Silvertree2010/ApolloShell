@@ -50,7 +50,18 @@ public final class ClockProvider: BaseProvider {
         publish("year", ProviderValue.number(parts.year))
         publish("weekday", ProviderValue.number(parts.weekday.map { ($0 + 5) % 7 + 1 }))
         publish("time-zone", .string(source.timeZone.identifier))
+        if demand.wants("time-zones") { publish("time-zones", Self.zones(at: now)) }
         scheduleNext(after: now, calendar: calendar)
+    }
+
+    static func zones(at now: Date) -> Value {
+        let entries = TimeZone.knownTimeZoneIdentifiers.compactMap { id -> (String, String, Int)? in
+            guard let zone = TimeZone(identifier: id) else { return nil }
+            let city = id.split(separator: "/").last.map { $0.replacingOccurrences(of: "_", with: " ") } ?? id
+            return (id, city, zone.secondsFromGMT(for: now))
+        }
+        let sorted = entries.sorted { $0.2 != $1.2 ? $0.2 < $1.2 : $0.1 < $1.1 }
+        return .list(sorted.map { .record(Record([("id", .string($0.0)), ("name", .string($0.1)), ("offset", .number(Double($0.2)))])) })
     }
 
     private func scheduleNext(after now: Date, calendar: Calendar) {

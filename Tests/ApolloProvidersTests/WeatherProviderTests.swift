@@ -48,6 +48,25 @@ struct WeatherProviderTests {
         #expect(harness.value("weather", "search-status") == .string("idle"))
     }
 
+    @Test("places: jeder Ort wird geholt und unter seiner id in by-place geliefert, entfernte Orte verschwinden")
+    func byPlace() {
+        let zurich = Value.record(Record([("id", .string("z")), ("name", .string("Zürich")), ("latitude", .number(47.37)), ("longitude", .number(8.54))]))
+        let churID = Value.record(Record([("id", .string("c")), ("name", .string("Chur")), ("latitude", .number(46.85)), ("longitude", .number(9.53))]))
+        let harness = ProviderHarness()
+        let source = FakeWeatherSource(clock: harness.clock)
+        let provider = WeatherReportProvider(source: source, clock: harness.clock)
+        provider.configure(Record([("place", churID), ("places", .list([churID, zurich]))]))
+        harness.register(provider)
+        harness.demand("weather")
+        #expect(source.fetches.map(\.1.name).sorted() == ["Chur", "Chur", "Zürich"])
+        #expect(harness.value("weather", "by-place.z.status") == .string("ready"))
+        #expect(harness.value("weather", "by-place.z.current.temperature") == .number(14))
+        #expect(harness.value("weather", "by-place.c.status") == .string("ready"))
+        provider.configure(Record([("place", churID), ("places", .list([churID]))]))
+        #expect(harness.value("weather", "by-place.z.status") == .null)
+        #expect(harness.conformanceProblems(BuiltinProviderSchemas.schema("weather")).isEmpty)
+    }
+
     static func report(zone: String, locale: String) -> WeatherReport {
         let timeZone = TimeZone(identifier: zone)!
         var calendar = Calendar(identifier: .gregorian)

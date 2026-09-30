@@ -163,32 +163,18 @@ struct DefaultSettingsPagesTests {
         #expect(shell.fixture.warnings.isEmpty, "\(shell.fixture.warnings.map(\.message))")
     }
 
-    @Test("Dashboard: letzter sichtbarer Reiter gesperrt, Galerie legt Karte in die erste Zone mit Platz")
+    @Test("Dashboard: Seiten neu anlegen, letzte Seite nicht löschbar, Standardseiten zurück")
     func dashboardPage() async throws {
         let shell = try await Self.loaded()
         set(shell, "settings-page", .string("dashboard"))
-        for tab in ["Media", "Performance", "Weather"] {
-            await fire(shell, "on-change", try Self.toggle(in: Self.row(shell, tab)), Record([("value", .bool(false))]))
-        }
-        #expect(list(shell, "dashboard-tabs").map { $0["visible"] } == [.bool(true), .bool(false), .bool(false), .bool(false)])
-        #expect(try Self.toggle(in: Self.row(shell, "Dashboard")).property("disabled") == .bool(true))
-
-        #expect(shell.vars.value("weather-places") == .list([]))
-        set(shell, "settings-dashboard-gallery", .bool(true))
-        #expect(shell.vars.value("settings-dashboard-free-top") == .number(627 - 24 - 275 - 230))
-        #expect(shell.vars.value("settings-dashboard-free-side") == .number(0))
-        set(shell, "dashboard-cards-bottom", .list([]))
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-gallery-tile", text: "Clock"))
-        #expect(list(shell, "dashboard-cards-bottom").map { $0["kind"] } == [.string("clock")])
-        set(shell, "settings-dashboard-gallery", .bool(true))
-        #expect(try Self.find(shell, kind: "button", withClass: "settings-gallery-tile", text: "Weather").property("disabled") == .bool(true))
-
-        set(shell, "settings-dashboard-confirm", .string("compact"))
-        shell.runtime.open("settings-confirm", screenKey: nil)
         await shell.settle()
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-default-button", text: "Load"))
-        #expect(shell.vars.value("dashboard-cards-side") == .list([]))
-        #expect(list(shell, "dashboard-cards-top").map { $0["kind"] } == [.string("weather"), .string("media")])
+        #expect(list(shell, "dashboard-pages").count == 4)
+        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-button", text: "New Page"))
+        #expect(list(shell, "dashboard-pages").count == 5)
+        set(shell, "dashboard-pages", .list([.record(list(shell, "dashboard-pages")[0])]))
+        await shell.settle()
+        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-button", text: "Restore Default Pages"))
+        #expect(list(shell, "dashboard-pages").count == 4)
         #expect(shell.fixture.warnings.isEmpty, "\(shell.fixture.warnings.map(\.message))")
     }
 

@@ -13,6 +13,7 @@ enum ProvidersCore {
             S.field("year", .number, update: .tick, doc: "Year, four digits."),
             S.field("weekday", .number, update: .tick, doc: "Day of the week, 1 = Monday."),
             S.field("time-zone", .string, update: .push, doc: "Active time zone."),
+            S.field("time-zones", .list, update: .push, doc: "Known time zones sorted by offset and name, records id (IANA), name (city), offset (seconds from GMT now)."),
         ],
         settings: [
             PropertySchema(name: "first-weekday", type: .enumeration(["monday", "sunday", "system"]), defaultValue: .string("system"), allowsExpression: false, doc: "First day of the week in the calendar grid."),
