@@ -4,6 +4,28 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - Unreleased
+
+### Added
+
+- **The menu bar**, off until you turn it on in Settings > Menu Bar. It lies
+  over Apple's menu bar or sits below it, at the top or the bottom, as a strip
+  or as islands, with four templates. Left, middle and right zones keep the
+  true middle of the screen and stay clear of the notch.
+- **The front app's menus.** The app's name and its menus are mirrored; what
+  does not fit folds into a "..." menu. The Apple menu is there too.
+- **Other apps' status items** are mirrored as pictures. A click presses the
+  original and its menu opens where it always does. Wi-Fi, Bluetooth and
+  battery show as icons or as coloured pills, with their popouts attached
+  below the icon.
+- **Hide Apple's menu bar.** It comes back when the shell quits, and after a
+  crash or `kill -9` the next start restores it first.
+- **Theme tokens** `--apollo-menubar-*` and the bar module colours, listed in
+  [docs/THEMES.md](docs/THEMES.md). The `full` example theme carries them.
+- **Registry:** the `menubar` provider, the `app-menubar` and `status-item`
+  menu sources, the `app-menus` element, the `status-item` surface, zones with
+  `justify-self` and `notch="avoid"` on `row`, and `system.hide-apple-menubar`.
+
 ## [0.2.0] - Unreleased
 
 ApolloShell becomes a framework. The shell is now a config, and the built-in
