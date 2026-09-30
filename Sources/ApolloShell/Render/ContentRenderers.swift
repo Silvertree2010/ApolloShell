@@ -76,6 +76,7 @@ struct TextElement: View {
             .multilineTextAlignment(text.alignment)
             .lineLimit(lines == 0 ? nil : lines)
             .truncationMode(Self.truncation(element.property("truncate").plainText))
+            .minimumScaleFactor(StyleValues.numberValue(element.property("min-scale")).map { min(max($0, 0.01), 1) } ?? 1)
             .modifier(ContentTransition(style["-apollo-content-transition"]))
             .accessibilityLabel(element.property("label").plainText ?? content)
     }
@@ -248,10 +249,10 @@ struct ImageElement: View {
                 switch fit {
                 case "fill":
                     Color.clear
-                        .overlay { base.resizable().scaledToFill() }
-                case "stretch": base.resizable()
+                        .overlay { base.resizable().interpolation(.high).scaledToFill() }
+                case "stretch": base.resizable().interpolation(.high)
                 case "center": base
-                default: base.resizable().scaledToFit()
+                default: base.resizable().interpolation(.high).scaledToFit()
                 }
             }
             .foregroundStyle(TextStyle(style).color)

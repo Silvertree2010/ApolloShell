@@ -230,13 +230,13 @@ struct FixtureFieldCheckTests {
         func variant(_ name: String) throws -> ElementInstance {
             try #require(elements.first { Self.classes($0).contains(name) }, "\(name)")
         }
-        let tall = try variant("card-media-tall")
+        let tall = try variant("wm-dash")
         #expect(Self.texts([tall]) == ["Starboy", "Starboy", "The Weeknd", "Spotify"])
         #expect(Self.all([tall]).contains { $0.kind == "ring" })
-        let strip = try variant("card-media-strip")
+        let strip = try variant("wm-strip")
         #expect(Self.texts([strip]) == ["Starboy", "The Weeknd · Starboy"])
         #expect(Self.all([strip]).contains { $0.kind == "progress" })
-        let compact = try variant("card-media-compact")
+        let compact = try variant("wm-compact")
         #expect(Self.texts([compact]) == ["Starboy", "The Weeknd"])
         #expect(Self.all([compact]).contains { $0.kind == "ring" })
         #expect(session.diagnostics.map(\.message) == [])

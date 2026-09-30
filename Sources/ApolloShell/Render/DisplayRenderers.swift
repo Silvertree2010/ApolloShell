@@ -63,11 +63,13 @@ struct DisplayStyle {
     var stroke: Color
     var track: Color
     var width: CGFloat
+    var dash: [CGFloat] = []
 
     init(_ style: ComputedStyle) {
         if case .color(let color)? = style["color"] { stroke = StyleValues.color(color) } else { stroke = .accentColor }
         if case .color(let color)? = style["-apollo-track-color"] { track = StyleValues.color(color) } else { track = Color.primary.opacity(0.12) }
         width = StyleValues.points(style["-apollo-stroke-width"]) ?? 4
+        if case .lengths(let list)? = style["-apollo-stroke-dash"] { dash = list.map { CGFloat($0.value) } }
     }
 }
 
@@ -194,7 +196,12 @@ struct GraphLine: Shape {
             CGPoint(x: rect.minX + CGFloat(offset + index) * step, y: rect.maxY - CGFloat(points[index]) * rect.height)
         }
         if closed { path.move(to: CGPoint(x: point(0).x, y: rect.maxY)); path.addLine(to: point(0)) } else { path.move(to: point(0)) }
-        for index in points.indices.dropFirst() { path.addLine(to: point(index)) }
+        for index in points.indices.dropFirst() {
+            let previous = point(index - 1)
+            let here = point(index)
+            path.addQuadCurve(to: CGPoint(x: (previous.x + here.x) / 2, y: (previous.y + here.y) / 2), control: previous)
+        }
+        path.addLine(to: point(points.count - 1))
         if closed {
             path.addLine(to: CGPoint(x: point(points.count - 1).x, y: rect.maxY))
             path.closeSubpath()
@@ -239,7 +246,7 @@ struct GraphView: View {
                                  shape: AnyShape(GraphLine(points: points, slots: slots, closed: true)), context: context)
                 GraphLine(points: points, slots: slots, closed: false).stroke(style.stroke, style: StrokeStyle(lineWidth: style.width, lineCap: .round, lineJoin: .round))
             default:
-                GraphLine(points: points, slots: slots, closed: false).stroke(style.stroke, style: StrokeStyle(lineWidth: style.width, lineCap: .round, lineJoin: .round))
+                GraphLine(points: points, slots: slots, closed: false).stroke(style.stroke, style: StrokeStyle(lineWidth: style.width, lineCap: style.dash.isEmpty ? .round : .butt, lineJoin: .round, dash: style.dash))
             }
         }
         .frame(minWidth: 10, minHeight: 10)

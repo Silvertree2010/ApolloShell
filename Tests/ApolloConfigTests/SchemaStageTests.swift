@@ -160,7 +160,7 @@ struct SchemaStageTests {
     func experimentalFilterIsANote() {
         let result = Self.pipeline("""
         panel "sidebar" {
-            text "{clock.now | sun-moon 2 3}"
+            text "{clock.now | first-free-frame 2 3}"
         }
         """)
         #expect(result.diagnostics.count == 1)

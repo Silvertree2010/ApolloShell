@@ -26,6 +26,7 @@ enum CSSColorParser {
         "-apple-system-brown",
         "-apple-system-gray",
         "-apollo-accent-text",
+        "-apollo-contrast-accent",
     ]
 
     private static let systemColorSet = Set(systemColorNames)
@@ -54,6 +55,7 @@ enum CSSColorParser {
             let lower = name.lowercased()
             let words = CSSList.words(arguments)
             if lower == "rgb", words.first?.lowercasedIdent == "from" { return try relative(words) }
+            if lower == "contrast" { return try contrast(arguments) }
             if ["rgb", "rgba", "hsl", "hsla"].contains(lower) {
                 guard words.first?.lowercasedIdent != "from" else {
                     throw CSSValueError("relative colors are only supported as rgb(from <color> r g b / <alpha>)")
@@ -69,6 +71,38 @@ enum CSSColorParser {
 
     static func rgba(_ color: ThemeColor) -> CSSColor {
         .rgba(red: color.red, green: color.green, blue: color.blue, alpha: color.alpha)
+    }
+
+    private static func contrast(_ arguments: [CSSComponent]) throws -> CSSColor {
+        switch try color(arguments) {
+        case let .rgba(red, green, blue, alpha):
+            let top = max(red, green, blue), low = min(red, green, blue), span = top - low
+            guard top > 0, span / top > 0.15 else {
+                let grey = top > 0.5 ? 0.35 : 0.75
+                return .rgba(red: grey, green: grey, blue: grey, alpha: alpha)
+            }
+            var hue: Double
+            if top == red { hue = ((green - blue) / span).truncatingRemainder(dividingBy: 6) }
+            else if top == green { hue = (blue - red) / span + 2 }
+            else { hue = (red - green) / span + 4 }
+            hue = (hue / 6 + 0.5).truncatingRemainder(dividingBy: 1)
+            if hue < 0 { hue += 1 }
+            let value = max(top, 0.85), chroma = value * span / top
+            let sector = hue * 6, x = chroma * (1 - abs(sector.truncatingRemainder(dividingBy: 2) - 1)), m = value - chroma
+            let parts: (Double, Double, Double) = switch Int(sector) {
+            case 0: (chroma, x, 0)
+            case 1: (x, chroma, 0)
+            case 2: (0, chroma, x)
+            case 3: (0, x, chroma)
+            case 4: (x, 0, chroma)
+            default: (chroma, 0, x)
+            }
+            return .rgba(red: parts.0 + m, green: parts.1 + m, blue: parts.2 + m, alpha: alpha)
+        case let .system(name, alpha):
+            return name == "-apple-system-control-accent" ? .system(name: "-apollo-contrast-accent", alpha: alpha) : .system(name: name, alpha: alpha)
+        case .currentColor:
+            throw CSSValueError("contrast(currentcolor) is not supported")
+        }
     }
 
     private static func relative(_ words: [CSSComponent]) throws -> CSSColor {

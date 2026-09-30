@@ -1,0 +1,46 @@
+.wm-gap { flex-shrink: 0; }
+.card.wm-dash { padding: 0; align-items: center; border-radius: var(--apollo-card-radius, 56px); }
+.card.wm-compact { padding: 0 16px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 40px); }
+.card.wm-strip { align-items: center; border-radius: var(--apollo-card-radius, 28px); }
+.card.wm-tab { align-items: center; border-radius: var(--apollo-card-radius, 28px); }
+.wm-arc { align-items: center; justify-content: center; flex-shrink: 0; }
+.wm-picture { background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+.wm-picture-note { font-weight: 300; color: -apple-system-tertiary-label; }
+.wm-texts { align-items: center; }
+.wm-title { font-size: 14px; font-weight: 600; color: -apollo-accent-text; text-align: center; }
+.wm-title.small { font-size: 13px; }
+.wm-title.left { text-align: left; }
+.wm-title.idle { color: -apple-system-label; }
+.wm-sub { font-size: 12px; color: -apple-system-secondary-label; text-align: center; }
+.wm-sub.small { font-size: 11px; }
+.wm-sub.left { text-align: left; }
+.wm-album { font-size: 12px; color: -apple-system-tertiary-label; text-align: center; }
+.wm-strip-text { min-width: 0; flex-grow: 1; gap: 3px; align-items: start; flex-shrink: 1; }
+.wm-bar { align-self: stretch; height: 6px; }
+.wm-bar-fill { align-self: stretch; flex-grow: 1; height: 6px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.12); -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wm-bar-fill.white { -apollo-track-color: rgb(255 255 255 / 0.3); -apollo-fill-color: white; }
+.wm-controls { align-self: stretch; min-width: 0; }
+.wm-button { border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-label; }
+.wm-play { flex-grow: 1; background: rgb(from var(--apollo-accent-color, -apple-system-control-accent) r g b / 0.16); color: -apollo-accent-text; }
+.wm-play.on { background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.wm-glyph { font-weight: 600; }
+.wm-controls.dark .wm-button { background: rgb(255 255 255 / 0.08); color: white; }
+.wm-controls.dark .wm-play { color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wm-controls.dark .wm-play.on { color: var(--apollo-on-accent-color, white); }
+.card.wm-cover { padding: 0; overflow: hidden; border-radius: var(--apollo-card-radius, 28px); background: rgb(from var(--apollo-accent-color, -apple-system-control-accent) r g b / 0.25); }
+.wm-veil { background: linear-gradient(180deg, rgb(0 0 0 / 0) 25%, rgb(0 0 0 / 0.35) 62.5%, rgb(0 0 0 / 0.75) 100%); }
+.wm-cover-text { justify-content: end; align-items: start; color: white; }
+.wm-cover-title { font-weight: 600; color: white; }
+.wm-cover-artist { font-weight: 500; color: rgb(255 255 255 / 0.8); }
+.wm-details { flex-grow: 1; flex-shrink: 1; gap: 4px; align-items: start; }
+.wm-tab-body { flex-grow: 1; align-self: stretch; align-items: center; }
+.wm-shadow { filter: drop-shadow(0 6px 28px rgb(0 0 0 / 0.25)); flex-shrink: 0; }
+.wm-tab-title { font-weight: 600; }
+.wm-tab-artist { font-weight: 500; color: -apple-system-secondary-label; }
+.wm-tab-album { font-weight: 500; color: -apollo-accent-text; }
+.wm-times { align-self: stretch; gap: 10px; align-items: center; }
+.wm-times-bar { flex-grow: 1; }
+.wm-tab-rest { flex-grow: 1; align-self: stretch; align-items: center; justify-content: center; }
+.r14 { border-radius: var(--apollo-card-radius, 14px); }
+.r18 { border-radius: var(--apollo-card-radius, 18px); }
+.r22 { border-radius: var(--apollo-card-radius, 22px); }

@@ -1420,6 +1420,7 @@ Draws text.
 | property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
 | property | `lines` | number | `1` | Lines, 0 = unlimited. |
 | property | `truncate` | "tail"\|"middle"\|"head" | `null` | Where text is truncated. |
+| property | `min-scale` | number | `1` | Smallest factor 0…1 the text shrinks to before it is truncated. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
 
@@ -2669,7 +2670,7 @@ Weeks of a month as a list of lists.
 
 ### `number` (filter)
 
-Parses a string as a number.
+Parses a string as a number, turns a date into seconds since 1970.
 
 ### `pad` (filter)
 
@@ -2802,7 +2803,7 @@ Checks the start of a string.
 
 Converts a value to a string.
 
-### `sun-moon` (filter, *experimental*)
+### `sun-moon` (filter)
 
 Sun and moon on a date: sunrise, sunset, noon, always-up, always-down, moonrise, moonset (null, not computed), moon-phase 0…1, moon-illumination 0…1, moon-symbol, moon-name.
 

@@ -1,0 +1,68 @@
+.wp-ring { align-items: center; justify-content: center; flex-shrink: 0; }
+.wp-graph { flex-grow: 1; align-self: stretch; justify-content: start; }
+.card.wp-compact { padding: 14px; gap: 8px; border-radius: var(--apollo-card-radius, 24px); }
+.wp-compact-head { gap: 10px; align-items: center; align-self: stretch; justify-content: start; }
+.wp-compact-titles { gap: 1px; align-items: start; }
+.wp-compact-title { font-size: 15px; font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.perf-hero-subtitle.small { font-size: 11px; }
+.wp-compact-percent { font-size: 26px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.card.wp-tall { padding: 14px; gap: 12px; border-radius: var(--apollo-card-radius, 24px); }
+.wp-tall-head { gap: 12px; align-items: center; align-self: stretch; justify-content: start; }
+.wp-tall-foot { gap: 4px; flex-grow: 1; align-self: stretch; justify-content: start; }
+.card.wp-graphcard { padding: 0; overflow: hidden; border-radius: var(--apollo-card-radius, 24px); }
+.wp-graphcard-head { align-items: start; }
+.wp-graphcard-titles { gap: 1px; align-items: start; padding-top: 12.75px; }
+.wp-graphcard-line { gap: 6px; align-items: center; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wp-graphcard-glyph { font-size: 13px; font-weight: 600; width: 15px; height: 15px; }
+.wp-graphcard-title { font-size: 15px; font-weight: 600; }
+.wp-graphcard-percent { font-size: 28px; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.card.wp-gaugecard { padding: 14px; gap: 10px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
+.card.wp-gaugecard.wide { padding: 0 18px; gap: 18px; justify-content: start; }
+.wp-gauge-label { gap: 1px; align-items: center; }
+.wp-gauge-label.wide { align-items: start; }
+.wp-dial { align-items: center; justify-content: center; flex-shrink: 0; }
+.wp-dial-text { font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.wp-graphcard-percent { flex-shrink: 0; }
+.wp-compact-titles, .wp-graphcard-titles, .wp-tall-head > .perf-hero-titles { flex-shrink: 1; min-width: 0; }
+.wp-tall-head > .perf-badge { flex-shrink: 0; }
+.wp-tall-head > .wp-ring, .wp-compact-head > .wp-ring { flex-shrink: 0; }
+.wp-gauge-label { flex-shrink: 1; min-width: 0; }
+.wp-gauge-label.wide .perf-hero-subtitle { text-align: left; }
+.wp-gauge-label .wp-graphcard-title { flex-shrink: 0; }
+.wp-utitle { gap: 6px; align-items: center; flex-shrink: 0; }
+.wp-utitle-glyph { color: var(--apollo-accent-color, -apple-system-control-accent); font-size: 13px; font-weight: 600; width: 15px; height: 15px; }
+.wp-utitle-text { font-size: 13px; font-weight: 600; flex-shrink: 0; }
+.wp-arc { align-items: center; justify-content: center; flex-shrink: 0; }
+.wp-arc-text { font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.card.wp-urow { padding: 0 14px; gap: 12px; align-items: center; border-radius: var(--apollo-card-radius, 24px); }
+.wp-urow-text { gap: 4px; align-items: start; flex-shrink: 1; min-width: 0; }
+.wp-udetail { font-size: 12px; color: -apple-system-secondary-label; }
+.wp-udetail.small { font-size: 11px; }
+.card.wp-utall { padding: 0 16px; gap: 8px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 28px); }
+.card.wp-ubarcard { padding: 16px; align-items: start; border-radius: var(--apollo-card-radius, 24px); }
+.wp-ubar-percent { font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.wp-ubar { align-self: stretch; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wp-rate-label { gap: 5px; align-items: center; }
+.wp-rate-label-value { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.wp-rates-compact { gap: 14px; align-self: stretch; justify-content: start; }
+.card.wp-netnum { padding: 16px; gap: 10px; align-items: start; border-radius: var(--apollo-card-radius, 24px); }
+.wp-netnum-head { gap: 6px; align-items: center; align-self: stretch; justify-content: start; }
+.wp-netnum-col { gap: 14px; align-items: start; align-self: stretch; justify-content: start; }
+.wp-netnum-row { gap: 24px; align-items: end; align-self: stretch; justify-content: start; }
+.wp-figure { gap: 2px; align-items: start; flex-shrink: 0; }
+.wp-figure-head { gap: 5px; align-items: center; align-self: stretch; }
+.wp-figure-value { align-self: stretch; text-align: left; font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.wp-netnum-col > .wp-figure { align-self: stretch; }
+.wp-bdial { align-items: center; justify-content: center; flex-shrink: 0; }
+.wp-bring { -apollo-stroke-width: 8px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wp-bdial-label { align-items: center; }
+.wp-bdial-glyph { font-weight: 600; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.wp-bdial-text { font-weight: 600; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.card.wp-bcard { padding: 12px; gap: 10px; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
+.card.wp-bcard.wide { padding: 0 16px; gap: 16px; }
+.wp-bside { gap: 3px; align-items: start; flex-shrink: 1; min-width: 0; }
+.wp-btitle { font-size: 15px; font-weight: 600; }
+.wp-bstatus { font-size: 12px; color: -apple-system-secondary-label; }
+.wp-bstatus.center { text-align: center; }
+.perf-net-up.wp-up { color: var(--apollo-secondary-accent-color, contrast(var(--apollo-accent-color, -apple-system-control-accent))); -apollo-fill: rgb(from var(--apollo-secondary-accent-color, contrast(var(--apollo-accent-color, -apple-system-control-accent))) r g b / 0.15); }
+.perf-rate-glyph.up.wp-up { color: var(--apollo-secondary-accent-color, contrast(var(--apollo-accent-color, -apple-system-control-accent))); }

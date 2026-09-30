@@ -1,0 +1,668 @@
+style "widgets-extra.css"
+
+filter "wx-ago" "{value < 60 ? 'now' : (value < 3600 ? (value / 60 | round) + ((value / 60 | round) == 1 ? ' minute ago' : ' minutes ago') : (value < 86400 ? (value / 3600 | round) + ((value / 3600 | round) == 1 ? ' hour ago' : ' hours ago') : (value / 86400 | round) + ((value / 86400 | round) == 1 ? ' day ago' : ' days ago')))}"
+
+define "wx-ring" {
+    param "s"
+    param "v"
+    stack class="wx-ring" style="width: {s}px; height: {s}px" {
+        ring value="{v}" class="wx-ring-fill" style="width: {s * 1.07}px; height: {s * 1.07}px; -apollo-stroke-width: {s * 0.07}px"
+        stack class="wx-ring-inner" style="width: {s}px; height: {s}px; padding: {s * 0.14}px" { slot }
+    }
+}
+
+define "wx-controls" {
+    param "w"
+    param "idle"
+    param "own"
+    param "mode"
+    param "dur"
+    param "d"
+    row class="wx-controls" {
+        when "{idle && mode == 'standard' && own}" {
+            button class="wx-round" style="width: {d}px; height: {d}px; border-radius: {d / 2}px" {
+                on-click { timer.set-mode "standard" "{(dur / 60 - 1) | max 1}" }
+                icon "minus" class="wx-round-glyph" style="font-size: {d * 0.36}px"
+            }
+            button class="wx-round" style="width: {d}px; height: {d}px; border-radius: {d / 2}px" {
+                on-click { timer.set-mode "standard" "{(dur / 60 + 1) | min 600}" }
+                icon "plus" class="wx-round-glyph" style="font-size: {d * 0.36}px"
+            }
+        }
+        else {
+            button class="wx-round" style="width: {d}px; height: {d}px; border-radius: {d / 2}px" disabled="{idle}" {
+                on-click { timer.reset }
+                icon "arrow.counterclockwise" class="wx-round-glyph" style="font-size: {d * 0.36}px"
+            }
+        }
+        button class="wx-play" style="width: {d * 1.6}px; height: {d}px; border-radius: {d / 2}px" {
+            on-click {
+                when "{idle && own == false}" { timer.set-mode "{w.display}" "{w.minutes ?? 10}" }
+                when "{timer.running}" { timer.pause }
+                else { timer.start }
+            }
+            icon "{timer.running ? 'pause.fill' : 'play.fill'}" class="wx-play-glyph" style="font-size: {d * 0.4}px"
+        }
+    }
+}
+
+define "widget-timer-body" {
+    param "w"
+    param "idle"
+    param "own"
+    param "mode"
+    param "dur"
+    param "text"
+    param "value"
+    param "symbol"
+    param "label"
+    when "{w.height < 150 && w.width < 200}" {
+        button class="card wx-timer" {
+            on-click {
+                when "{idle && own == false}" { timer.set-mode "{w.display}" "{w.minutes ?? 10}" }
+                when "{timer.running}" { timer.pause }
+                else { timer.start }
+            }
+            use "wx-ring" s="{(w.height | min w.width) - 24}" v="{value}" {
+                text "{text}" class="wx-digits" style="font-size: 20px" lines=1 min-scale=0.5
+            }
+        }
+    }
+    else {
+        when "{w.height < 150}" {
+            row class="card wx-timer row" {
+                use "wx-ring" s="{(w.height - 32) | min 84}" v="{value}" {
+                    icon "{symbol}" class="wx-glyph" style="font-size: 20px"
+                }
+                column class="wx-texts" {
+                    text "{label}" class="wx-label" lines=1
+                    text "{text}" class="wx-digits" style="font-size: 30px" lines=1 min-scale=0.6
+                }
+                spacer
+                when "{w.width >= 280}" { use "wx-controls" w="{w}" idle="{idle}" own="{own}" mode="{mode}" dur="{dur}" d=34 }
+            }
+        }
+        else {
+            column class="card wx-timer col" {
+                text "{label}" class="wx-label" lines=1
+                use "wx-ring" s="{(w.width - 48) | min (w.height - 110) | min 220}" v="{value}" {
+                    text "{text}" class="wx-digits" style="font-size: {((w.width - 48) | min (w.height - 110) | min 220) * 0.22}px" lines=1 min-scale=0.5
+                }
+                use "wx-controls" w="{w}" idle="{idle}" own="{own}" mode="{mode}" dur="{dur}" d=40
+            }
+        }
+    }
+}
+
+define "widget-timer-view" {
+    param "w"
+    param "idle"
+    param "own"
+    param "mode"
+    param "phase"
+    param "el"
+    param "dur"
+    param "rem"
+    use "widget-timer-body" w="{w}" idle="{idle}" own="{own}" mode="{mode}" dur="{dur}" text="{rem != null ? (rem | ceil | duration 'clock') : (el | floor | duration 'clock')}" value="{mode == 'stopwatch' ? (el % 60) / 60 : (dur > 0 ? 1 - ((el / dur) | min 1) : 0)}" symbol="{mode == 'standard' ? 'timer' : (mode == 'stopwatch' ? 'stopwatch' : (phase == 'focus' ? 'brain.head.profile' : 'cup.and.saucer.fill'))}" label="{mode == 'standard' ? 'Timer' : (mode == 'stopwatch' ? 'Stopwatch' : (phase == 'focus' ? 'Focus' : (phase == 'short-break' ? 'Short Break' : 'Long Break')))}"
+}
+
+define "widget-timer-length" {
+    param "w"
+    param "idle"
+    param "own"
+    param "mode"
+    param "phase"
+    param "el"
+    param "prev"
+    use "widget-timer-view" w="{w}" idle="{idle}" own="{own}" mode="{mode}" phase="{phase}" el="{el}" dur="{prev ? (mode == 'standard' ? (w.minutes ?? 10) * 60 : (mode == 'pomodoro' ? 1500 : null)) : timer.duration}" rem="{prev ? (mode == 'standard' ? (w.minutes ?? 10) * 60 : (mode == 'pomodoro' ? 1500 : null)) : timer.remaining}"
+}
+
+define "widget-timer" {
+    param "w"
+    use "widget-timer-length" w="{w}" idle="{timer.running == false && timer.elapsed == 0}" own="{timer.mode == w.display}" prev="{timer.running == false && timer.elapsed == 0 && timer.mode != w.display}" mode="{timer.running == false && timer.elapsed == 0 && timer.mode != w.display ? w.display : timer.mode}" phase="{timer.running == false && timer.elapsed == 0 && timer.mode != w.display ? 'focus' : timer.phase}" el="{timer.running == false && timer.elapsed == 0 && timer.mode != w.display ? 0 : timer.elapsed}"
+}
+
+var wx-default-apps {
+    - "com.apple.finder"
+    - "com.apple.Safari"
+    - "com.apple.mail"
+    - "com.apple.Music"
+    - "com.apple.systempreferences"
+}
+
+var wx-index {
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 16
+    - 17
+    - 18
+    - 19
+}
+
+define "wx-apps-grid-rows" {
+    param "ids"
+    param "side"
+    param "cols"
+    param "rows"
+    column class="wx-grid" style="gap: 12px" {
+        each r in="{var.wx-index | take rows}" key="{r}" {
+            row class="wx-grid-row" style="gap: 12px" {
+                each id in="{ids | skip (r * cols) | take cols}" key="{id}" {
+                    button class="wx-app" {
+                        on-click { apps.launch "{id}" }
+                        app-icon "{id}" class="wx-app-icon" style="width: {side}px; height: {side}px"
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "wx-apps-grid" {
+    param "ids"
+    param "w"
+    param "side"
+    use "wx-apps-grid-rows" ids="{ids}" side="{side}" cols="{1 | max (((w.width - 24) / (side + 12)) | floor)}" rows="{(ids | count) / (1 | max (((w.width - 24) / (side + 12)) | floor)) | ceil}"
+}
+
+define "wx-apps-fit" {
+    param "ids"
+    param "w"
+    use "wx-apps-grid" ids="{ids}" w="{w}" side="{((1 | max ((w.width - 24) / 84 | floor)) * (1 | max ((w.height - 24) / 84 | floor)) >= (ids | count)) ? 72 : ((1 | max ((w.width - 24) / 80 | floor)) * (1 | max ((w.height - 24) / 80 | floor)) >= (ids | count)) ? 68 : ((1 | max ((w.width - 24) / 76 | floor)) * (1 | max ((w.height - 24) / 76 | floor)) >= (ids | count)) ? 64 : ((1 | max ((w.width - 24) / 72 | floor)) * (1 | max ((w.height - 24) / 72 | floor)) >= (ids | count)) ? 60 : ((1 | max ((w.width - 24) / 68 | floor)) * (1 | max ((w.height - 24) / 68 | floor)) >= (ids | count)) ? 56 : ((1 | max ((w.width - 24) / 64 | floor)) * (1 | max ((w.height - 24) / 64 | floor)) >= (ids | count)) ? 52 : ((1 | max ((w.width - 24) / 60 | floor)) * (1 | max ((w.height - 24) / 60 | floor)) >= (ids | count)) ? 48 : ((1 | max ((w.width - 24) / 56 | floor)) * (1 | max ((w.height - 24) / 56 | floor)) >= (ids | count)) ? 44 : 40}"
+}
+
+define "widget-apps" {
+    param "w"
+    use "widget-apps-ids" w="{w}" ids="{w.apps ?? var.wx-default-apps}"
+}
+
+define "widget-apps-ids" {
+    param "w"
+    param "ids"
+    column class="card wx-apps" {
+        when "{(ids | count) == 0}" {
+            column class="wx-empty" {
+                icon "square.grid.3x3" class="wx-empty-glyph"
+                text "Add apps in the widget's options" class="wx-empty-text"
+            }
+        }
+        else {
+            switch "{w.display}" {
+                case "list" {
+                    column class="wx-list" {
+                        each id in="{ids | take (1 | max (((w.height - 20) / 34) | floor))}" key="{id}" {
+                            button class="wx-list-button" {
+                                on-click { apps.launch "{id}" }
+                                row class="wx-list-row" {
+                                    app-icon "{id}" class="wx-list-icon"
+                                    text "{(apps.all | where 'bundle-id' id | first).name ?? id}" class="wx-list-name" lines=1
+                                    spacer
+                                }
+                            }
+                        }
+                    }
+                }
+                default { use "wx-apps-fit" ids="{ids}" w="{w}" }
+            }
+        }
+    }
+}
+
+define "wx-photo" {
+    param "w"
+    param "pic"
+    stack class="wx-photo-frame" style="width: {w.width}px; height: {w.height}px" {
+        image "{pic.image}" fit="fill" class="wx-photo-image" style="width: {w.width}px; height: {w.height}px"
+    }
+}
+
+define "widget-photos-pictures" {
+    param "w"
+    param "pics"
+    stack class="card wx-photos" {
+        when "{(pics | count) == 0}" {
+            column class="wx-empty" {
+                icon "photo.on.rectangle" class="wx-empty-glyph"
+                text "No pictures in {((w.folder ?? '~/Pictures') | split '/' | last)}" class="wx-empty-text"
+            }
+        }
+        else {
+            use "wx-photo" w="{w}" pic="{pics | at ((((clock.now | number) / 300) | floor) % (pics | count))}"
+        }
+    }
+}
+
+define "widget-photos" {
+    param "w"
+    use "widget-photos-pictures" w="{w}" pics="{photos.by-folder[w.folder ?? '~/Pictures']}"
+}
+
+define "wx-address" {
+    param "title"
+    param "value"
+    row class="wx-address" {
+        text "{title}" class="wx-address-title" lines=1
+        spacer
+        text "{value ?? '–'}" class="wx-address-value" lines=1
+    }
+}
+
+define "widget-network-info-view" {
+    param "w"
+    param "title"
+    param "symbol"
+    when "{w.display == 'minimal'}" {
+        row class="card wx-net min" {
+            icon "{symbol}" class="wx-net-min-glyph"
+            column class="wx-net-min-texts" {
+                text "{title}" class="wx-net-min-title" lines=1
+                text "{network-info.latency != null ? network-info.latency + ' ms' : '–'}" class="wx-net-min-latency" lines=1
+            }
+            spacer
+        }
+    }
+    else {
+        column class="card wx-net" style="gap: {w.height > 200 ? 12 : 6}px" {
+            row class="wx-net-head" {
+                icon "{symbol}" class="wx-net-glyph"
+                text "{title}" class="wx-net-title" lines=1
+                spacer
+                when "{network-info.latency != null}" {
+                    text "{network-info.latency} ms" class="wx-net-chip" lines=1
+                }
+            }
+            when "{w.height > 200}" { spacer }
+            use "wx-address" title="Local" value="{network-info.local-address}"
+            use "wx-address" title="Public" value="{network-info.public-address}"
+            when "{w.height > 200}" { spacer }
+        }
+    }
+}
+
+define "widget-network-info" {
+    param "w"
+    use "widget-network-info-view" w="{w}" title="{network-info.kind == 'wifi' ? (network-info.name ?? 'Wi-Fi') : (network-info.kind == 'wired' ? 'Ethernet' : 'Offline')}" symbol="{network-info.kind == 'wifi' ? 'wifi' : (network-info.kind == 'wired' ? 'cable.connector' : 'wifi.slash')}"
+}
+
+define "wx-header" {
+    param "symbol"
+    param "title"
+    row class="wx-header" {
+        icon "{symbol}" class="wx-header-glyph"
+        text "{title}" class="wx-header-title" lines=1
+    }
+}
+
+define "wx-files-grid" {
+    param "fl"
+    param "icon"
+    param "cols"
+    param "rows"
+    column class="wx-grid" style="gap: 10px" {
+        each r in="{var.wx-index | take (rows | min (((fl | count) / cols) | ceil))}" key="{r}" {
+            row class="wx-grid-row" style="gap: 10px" {
+                each f in="{fl | skip (r * cols) | take cols}" key="{f.path}" {
+                    button class="wx-file" {
+                        column class="wx-file-cell" {
+                            app-icon "{f.path}" class="wx-file-icon" style="width: {icon}px; height: {icon}px"
+                            text "{f.name}" class="wx-file-name" style="width: {icon + 26}px" lines=1 truncate="middle"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "wx-files-grid-fit" {
+    param "fl"
+    param "w"
+    param "icon"
+    use "wx-files-grid" fl="{fl | take ((1 | max (((w.width - 24) / (icon + 36)) | floor)) * (1 | max (((w.height - 24) / (icon + 34)) | floor)))}" icon="{icon}" cols="{1 | max (((w.width - 24) / (icon + 36)) | floor)}" rows="{1 | max (((w.height - 24) / (icon + 34)) | floor)}"
+}
+
+define "widget-files-recent" {
+    param "w"
+    column class="card wx-files {w.display}" {
+        when "{(files.recent | count) == 0}" {
+            column class="wx-empty" {
+                icon "doc.on.doc" class="wx-empty-glyph"
+                text "Nothing opened this week" class="wx-empty-text"
+            }
+        }
+        else {
+            switch "{w.display}" {
+                case "grid" { use "wx-files-grid-fit" fl="{files.recent}" w="{w}" icon="{w.height < 150 ? 40 : 52}" }
+                default {
+                    column class="wx-files-list" {
+                        use "wx-header" symbol="clock.arrow.circlepath" title="Recent Files"
+                        each f in="{files.recent | take (1 | max (((w.height - 44) / 30) | floor))}" key="{f.path}" {
+                            button class="wx-files-button" {
+                                on-click { open-file "{f.path}" }
+                                row class="wx-files-row" {
+                                    app-icon "{f.path}" class="wx-files-icon"
+                                    text "{f.name}" class="wx-files-name" lines=1 truncate="middle"
+                                    spacer
+                                    text "{((clock.now | number) - (f.date | number)) | wx-ago}" class="wx-files-date" lines=1
+                                }
+                            }
+                        }
+                        spacer
+                    }
+                }
+            }
+        }
+    }
+}
+
+var wx-copied ""
+
+define "widget-clipboard" {
+    param "w"
+    column class="card wx-clip" {
+        row class="wx-clip-head" {
+            use "wx-header" symbol="list.clipboard" title="Clipboard"
+            spacer
+            when "{(clipboard.history | count) > 0}" {
+                button class="wx-clip-clear" {
+                    on-click { clipboard.clear }
+                    text "Clear" class="wx-clip-clear-text"
+                }
+            }
+        }
+        when "{(clipboard.history | count) == 0}" {
+            spacer
+            text "Copied text shows up here. Secrets from password managers never do." class="wx-clip-empty"
+            spacer
+        }
+        else {
+            each h in="{clipboard.history | take (1 | max (((w.height - 44) / 30) | floor))}" key="{h.text}" {
+                button class="wx-clip-button" {
+                    on-click {
+                        clipboard.copy "{h.text}"
+                        set wx-copied "{h.text}"
+                    }
+                    row class="wx-clip-row" {
+                        text "{h.text | replace '\n' ' '}" class="wx-clip-text" lines=1
+                        spacer
+                        icon "{var.wx-copied == h.text ? 'checkmark' : 'doc.on.doc'}" class="wx-clip-glyph {var.wx-copied == h.text ? 'done' : ''}"
+                    }
+                }
+            }
+            spacer
+        }
+    }
+}
+
+var wx-sine {
+    - 0.0
+    - 0.078459
+    - 0.156434
+    - 0.233445
+    - 0.309017
+    - 0.382683
+    - 0.45399
+    - 0.522499
+    - 0.587785
+    - 0.649448
+    - 0.707107
+    - 0.760406
+    - 0.809017
+    - 0.85264
+    - 0.891007
+    - 0.92388
+    - 0.951057
+    - 0.97237
+    - 0.987688
+    - 0.996917
+    - 1.0
+    - 0.996917
+    - 0.987688
+    - 0.97237
+    - 0.951057
+    - 0.92388
+    - 0.891007
+    - 0.85264
+    - 0.809017
+    - 0.760406
+    - 0.707107
+    - 0.649448
+    - 0.587785
+    - 0.522499
+    - 0.45399
+    - 0.382683
+    - 0.309017
+    - 0.233445
+    - 0.156434
+    - 0.078459
+    - 0.0
+}
+
+define "wx-time" {
+    param "sym"
+    param "at"
+    param "none"
+    row class="wx-time" {
+        icon "{sym}" class="wx-time-glyph"
+        text "{at != null ? (at | date 'h:mm\u{202F}a') : none}" class="wx-time-text" lines=1
+    }
+}
+
+define "wx-times" {
+    param "rise"
+    param "set"
+    param "up"
+    param "stacked"
+    when "{stacked}" {
+        column class="wx-times stacked" {
+            use "wx-time" sym="sunrise.fill" at="{rise}" none="{up ? 'Up all day' : 'Down all day'}"
+            use "wx-time" sym="sunset.fill" at="{set}" none=""
+        }
+    }
+    else {
+        row class="wx-times" {
+            use "wx-time" sym="sunrise.fill" at="{rise}" none="{up ? 'Up all day' : 'Down all day'}"
+            use "wx-time" sym="sunset.fill" at="{set}" none=""
+        }
+    }
+}
+
+define "wx-moon" {
+    param "sym"
+    param "mname"
+    param "ill"
+    param "side"
+    param "detailed"
+    row class="wx-moon" {
+        icon "{sym}" class="wx-moon-glyph" style="font-size: {side * 0.8}px"
+        when "{detailed}" {
+            column class="wx-moon-texts" {
+                text "{mname}" class="wx-moon-name" lines=1
+                text "{ill * 100 | round} % lit" class="wx-moon-lit" lines=1
+            }
+        }
+    }
+}
+
+define "wx-arc-dot" {
+    param "p"
+    param "h"
+    param "s"
+    column class="wx-arc-dotcol" style="padding-top: {h - s * (h - 8) - 7}px; height: {h}px" {
+        row class="wx-arc-dotrow" {
+            spacer style="flex-grow: {p * 1000}; flex-basis: 0px"
+            stack class="wx-arc-anchor" {
+                shape "circle" class="wx-arc-dot"
+            }
+            spacer style="flex-grow: {(1 - p) * 1000}; flex-basis: 0px"
+        }
+    }
+}
+
+define "wx-arc-sine" {
+    param "p"
+    param "h"
+    param "i"
+    param "f"
+    use "wx-arc-dot" p="{p}" h="{h}" s="{(var.wx-sine | at i) + (((var.wx-sine | at (i + 1)) - (var.wx-sine | at i)) * f)}"
+}
+
+define "wx-arc" {
+    param "p"
+    param "h"
+    param "moon"
+    stack class="wx-arc" style="height: {h}px" {
+        column class="wx-arc-curve" style="padding-top: 8px" {
+            graph values="{var.wx-sine}" kind="line" min=0 max=1 class="wx-arc-line" style="height: {h - 8}px"
+        }
+        column class="wx-arc-baseline" style="padding-top: {h - 0.5}px" {
+            stack class="wx-arc-base"
+        }
+        use "wx-arc-sine" p="{p}" h="{h}" i="{(p * 40) | min 39 | floor}" f="{(p * 40) - ((p * 40) | min 39 | floor)}"
+        when "{moon != null}" {
+            row class="wx-arc-badge" style="height: {h}px" {
+                spacer
+                icon "{moon}" class="wx-arc-moon"
+            }
+        }
+    }
+}
+
+define "widget-sun-view" {
+    param "w"
+    param "rise"
+    param "set"
+    param "up"
+    param "sym"
+    param "mname"
+    param "ill"
+    param "p"
+    switch "{w.display}" {
+        case "minimal" {
+            when "{w.width < 300}" {
+                column class="card wx-sun min stacked" {
+                    use "wx-times" rise="{rise}" set="{set}" up="{up}" stacked=#true
+                    use "wx-moon" sym="{sym}" mname="{mname}" ill="{ill}" side=44 detailed="{w.height > 200}"
+                }
+            }
+            else {
+                row class="card wx-sun min" {
+                    use "wx-times" rise="{rise}" set="{set}" up="{up}" stacked=#false
+                    spacer
+                    use "wx-moon" sym="{sym}" mname="{mname}" ill="{ill}" side=44 detailed=#false
+                }
+            }
+        }
+        default {
+            when "{w.height <= 200 && w.width < 320}" {
+                column class="card wx-sun narrow" {
+                    use "wx-arc" p="{p}" h=48 moon="{sym}"
+                    use "wx-times" rise="{rise}" set="{set}" up="{up}" stacked=#false
+                }
+            }
+            else {
+                when "{w.height > 200}" {
+                    column class="card wx-sun tall" {
+                        column class="wx-sun-block" {
+                            use "wx-arc" p="{p}" h=90 moon=#null
+                            use "wx-times" rise="{rise}" set="{set}" up="{up}" stacked=#false
+                        }
+                        use "wx-moon" sym="{sym}" mname="{mname}" ill="{ill}" side=56 detailed=#true
+                    }
+                }
+                else {
+                    row class="card wx-sun wide" {
+                        column class="wx-sun-block" {
+                            use "wx-arc" p="{p}" h=56 moon=#null
+                            use "wx-times" rise="{rise}" set="{set}" up="{up}" stacked=#false
+                        }
+                        use "wx-moon" sym="{sym}" mname="{mname}" ill="{ill}" side=44 detailed="{w.width >= 320}"
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "widget-sun-day" {
+    param "w"
+    param "rise"
+    param "set"
+    param "up"
+    param "sym"
+    param "mname"
+    param "ill"
+    use "widget-sun-view" w="{w}" rise="{rise}" set="{set}" up="{up}" sym="{sym}" mname="{mname}" ill="{ill}" p="{rise != null && set != null && (set | number) > (rise | number) ? (0 | max ((((clock.now | number) - (rise | number)) / ((set | number) - (rise | number))) | min 1)) : (up ? 0.5 : 0)}"
+}
+
+define "widget-sun-place" {
+    param "w"
+    param "lat"
+    param "lon"
+    when "{lat == null || lon == null}" {
+        column class="card wx-sun empty" {
+            column class="wx-empty" {
+                icon "location.slash" class="wx-empty-glyph"
+                text "Set a place in the widget's options" class="wx-empty-text"
+            }
+        }
+    }
+    else {
+        use "widget-sun-day" w="{w}" rise="{(clock.now | sun-moon lat lon).sunrise}" set="{(clock.now | sun-moon lat lon).sunset}" up="{(clock.now | sun-moon lat lon).always-up}" sym="{(clock.now | sun-moon lat lon).moon-symbol}" mname="{(clock.now | sun-moon lat lon).moon-name}" ill="{(clock.now | sun-moon lat lon).moon-illumination}"
+    }
+}
+
+define "widget-sun" {
+    param "w"
+    use "widget-sun-place" w="{w}" lat="{w.latitude ?? weather.place.latitude}" lon="{w.longitude ?? weather.place.longitude}"
+}
+
+define "widget-drives" {
+    param "w"
+    column class="card wx-drives" {
+        when "{(drives.list | count) == 0}" {
+            column class="wx-empty" {
+                icon "externaldrive" class="wx-empty-glyph"
+                text "No drives" class="wx-empty-text"
+            }
+        }
+        else {
+            column class="wx-drives-list" {
+                each d in="{drives.list | take (1 | max (((w.height - 28) / 50) | floor))}" key="{d.path}" {
+                    row class="wx-drive" {
+                        on-click { reveal-file "{d.path}" }
+                        icon "{d.icon}" class="wx-drive-glyph"
+                        column class="wx-drive-body" {
+                            row class="wx-drive-head" {
+                                text "{d.name}" class="wx-drive-name" lines=1
+                                spacer
+                                text "{d.free | bytes} free" class="wx-drive-free" lines=1
+                            }
+                            progress value="{d.total > 0 ? d.used / d.total : 0}" class="wx-drive-bar"
+                        }
+                        when "{d.ejectable}" {
+                            button class="wx-drive-eject" tooltip="Eject {d.name}" {
+                                on-click { drives.eject "{d.path}" }
+                                icon "eject.fill" class="wx-drive-eject-glyph"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

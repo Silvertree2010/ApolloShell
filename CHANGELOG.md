@@ -8,6 +8,17 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **Dashboard widgets as config.** Clock, user, weather, calendar, resources,
+  media, the performance widgets (CPU, GPU, storage, memory, network, battery)
+  and the weather pages (overview, hourly, daily) are drawn by the default
+  config in every size and display mode, with the gauge and card sizes growing
+  with the widget. Configs can use the new `contrast()` colour function and
+  the `min-scale` text property.
+- **Dashboard widgets from 0.2:** timer (with stopwatch and pomodoro), apps,
+  photo frame, connection, recent files, clipboard, sun and moon and drives,
+  in every size and display mode, as `widgets-extra.kdl` of the default
+  config. The `number` filter turns a date into seconds since 1970, and
+  `-apollo-stroke-dash` draws graph lines dashed.
 - **The menu bar**, off until you turn it on in Settings > Menu Bar. It lies
   over Apple's menu bar or sits below it, at the top or the bottom, as a strip
   or as islands, with four templates. Left, middle and right zones keep the

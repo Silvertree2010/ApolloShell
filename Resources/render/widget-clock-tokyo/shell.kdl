@@ -1,0 +1,23 @@
+include "builtin:apolloshell-default/dashboard-cards.kdl"
+include "builtin:apolloshell-default/media.kdl"
+include "builtin:apolloshell-default/performance.kdl"
+include "builtin:apolloshell-default/weather.kdl"
+include "builtin:apolloshell-default/widgets.kdl"
+style "builtin:apolloshell-default/style.css"
+var calendar-offset 0
+var dashboard-tab "dashboard"
+var settings-page "general"
+var weather-selected #null type="any"
+var weather-places type="list" { }
+var dashboard-cards-top type="list" { }
+
+var h0 {
+    - id="w0" page="p" kind="clock" x=0 y=0 width=130 height=130 display="standard" style="stacked" show-date=#false time-zone="Asia/Tokyo"
+}
+panel "widget-clock-tokyo" anchor="top-left" {
+    column style="padding: 8px" {
+        canvas style="width: 130px; height: 130px" in="{var.h0}" {
+            each w in="{var.h0}" key="{w.id}" { use "widget" w="{w}" }
+        }
+    }
+}

@@ -74,6 +74,8 @@ enum StringFilters {
             switch input {
             case .number:
                 return input
+            case .date(let date):
+                return .number(date.timeIntervalSince1970)
             case .string(let text):
                 guard let number = Double(text.trimmingCharacters(in: .whitespaces)), number.isFinite else { return .null }
                 return .number(number)

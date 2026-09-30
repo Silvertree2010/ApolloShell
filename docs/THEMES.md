@@ -401,6 +401,7 @@ start with `-apollo-` and are not valid in a theme.
 | `-apollo-thumb-shadow` | shadow, as `box-shadow` | slider knob shadow |
 | `-apollo-fill-mode` | `center` (default), `inside`, `inside-linear` | where the slider knob sits: centred on the end of the fill, inside the fill, or inside a fill that grows linearly from the track's thickness to its length |
 | `-apollo-stroke-width` | length, default `4px` | line width of ring, gauge and graph |
+| `-apollo-stroke-dash` | one to four lengths, default solid | dash and gap lengths of a `graph` line, drawn with flat ends |
 | `-apollo-start-angle` | angle, default `-90deg` | where a ring starts |
 | `-apollo-sweep-angle` | angle, default `360deg` | how far a ring reaches |
 

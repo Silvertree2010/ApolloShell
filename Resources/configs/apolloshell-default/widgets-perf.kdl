@@ -1,0 +1,359 @@
+style "widgets-perf.css"
+
+define "wp-ring" {
+    param "value"
+    param "sz"
+    param "icon"
+    param "fallback"
+    stack class="wp-ring" style="width: {sz}px; height: {sz}px" {
+        ring value="{value ?? 0}" class="perf-ring" style="width: {sz}px; height: {sz}px"
+        icon "{icon}" fallback="{fallback}" class="perf-ring-glyph"
+    }
+}
+
+define "wp-percent" {
+    param "value"
+    text "{value != null ? (value * 100 | round) + ' %' : '–'}"
+}
+
+define "wp-graph" {
+    param "history"
+    param "fill"
+    stack class="wp-graph" {
+        stack class="perf-baseline"
+        graph values="{history}" kind="area" min=0 max=1 capacity=30 class="perf-graph" style="-apollo-fill: rgb(from var(--apollo-accent-color, -apple-system-control-accent) r g b / {fill})"
+    }
+}
+
+define "wp-hero" {
+    param "w"
+    param "title"
+    param "subtitle"
+    param "value"
+    param "history"
+    param "icon"
+    param "fallback"
+    switch "{w.display}" {
+        case "graph" {
+            stack class="card wp-graphcard" style="width: {w.width}px" {
+                column class="wp-graphcard-body" style="width: {w.width}px; height: {w.height}px; padding-top: 44px" {
+                    use "wp-graph" history="{history}" fill=0.22
+                }
+                row class="wp-graphcard-head" style="width: {w.width}px; height: {w.height}px; padding: 14px" {
+                    column class="wp-graphcard-titles" {
+                        row class="wp-graphcard-line" {
+                            icon "{icon}" fallback="{fallback}" class="wp-graphcard-glyph"
+                            text "{title}" class="wp-graphcard-title" lines=1
+                        }
+                        text "{subtitle}" class="perf-hero-subtitle small" lines=1
+                    }
+                    spacer
+                    text "{value != null ? (value * 100 | round) + ' %' : '–'}" class="wp-graphcard-percent"
+                }
+            }
+        }
+        case "gauge" {
+            when "{w.width > w.height * 1.4}" {
+                row class="card wp-gaugecard wide" {
+                    column class="wp-gauge-label wide" style="width: {(w.width - 72 - ((w.height - 28) | min 220)) | max 56}px" {
+                        row class="wp-graphcard-line" {
+                            icon "{icon}" fallback="{fallback}" class="wp-graphcard-glyph"
+                            text "{title}" class="wp-graphcard-title"
+                        }
+                        text "{subtitle}" class="perf-hero-subtitle small" lines=2
+                    }
+                    spacer
+                    use "wp-dial" value="{value}" g="{(w.height - 28) | min 220}"
+                }
+            }
+            else {
+                column class="card wp-gaugecard" {
+                    column class="wp-gauge-label" {
+                        row class="wp-graphcard-line" {
+                            icon "{icon}" fallback="{fallback}" class="wp-graphcard-glyph"
+                            text "{title}" class="wp-graphcard-title"
+                        }
+                        text "{subtitle}" class="perf-hero-subtitle small" lines=1
+                    }
+                    use "wp-dial" value="{value}" g="{(w.width - 40) | min (w.height - 84) | min 240}"
+                }
+            }
+        }
+        default {
+            when "{w.height < 150}" {
+                column class="card wp-compact" {
+                    row class="wp-compact-head" {
+                        use "wp-ring" value="{value}" sz=34 icon="{icon}" fallback="{fallback}"
+                        column class="wp-compact-titles" {
+                            text "{title}" class="wp-compact-title"
+                            text "{subtitle}" class="perf-hero-subtitle small" lines=1
+                        }
+                        spacer
+                        text "{value != null ? (value * 100 | round) + ' %' : '–'}" class="wp-compact-percent"
+                    }
+                    use "wp-graph" history="{history}" fill=0.18
+                }
+            }
+            else {
+                when "{w.height > 200}" {
+                    column class="card wp-tall" {
+                        row class="wp-tall-head" {
+                            use "wp-ring" value="{value}" sz=46 icon="{icon}" fallback="{fallback}"
+                            column class="perf-hero-titles" {
+                                text "{title}" class="perf-hero-title"
+                                text "{subtitle}" class="perf-hero-subtitle" lines=1
+                            }
+                            spacer
+                            stack class="perf-badge" style="width: 76px; height: 76px" {
+                                shape "scallop" count="{(value ?? 0) >= 0.8 ? 12 : ((value ?? 0) >= 0.4 ? 8 : 4)}" depth="{(value ?? 0) >= 0.8 ? 0.11 : ((value ?? 0) >= 0.4 ? 0.07 : 0.12)}" class="perf-badge-shape" style="width: 76px; height: 76px"
+                                text "{value != null ? (value * 100 | round) + ' %' : '–'}" class="perf-badge-text" style="font-size: 19.826px"
+                            }
+                        }
+                        column class="wp-tall-foot" {
+                            text "Last 30s" class="perf-history-label"
+                            use "wp-graph" history="{history}" fill=0.18
+                        }
+                    }
+                }
+                else { use "perf-hero-card" title="{title}" subtitle="{subtitle}" value="{value}" history="{history}" icon="{icon}" fallback="{fallback}" }
+            }
+        }
+    }
+}
+
+define "wp-dial" {
+    param "value"
+    param "g"
+    stack class="wp-dial" style="width: {g}px; height: {g}px" {
+        gauge value="{value ?? 0}" class="perf-gauge" style="width: {g}px; height: {g}px"
+        text "{value != null ? (value * 100 | round) + ' %' : '–'}" class="wp-dial-text" style="font-size: {g * 0.24}px"
+    }
+}
+
+define "widget-cpu" {
+    param "w"
+    use "wp-hero" w="{w}" title="CPU" subtitle="{perf.chip} · {perf.cores} Cores" value="{perf.live.cpu}" history="{perf.live.cpu-history}" icon="panel-cpu" fallback="cpu"
+}
+
+define "widget-gpu" {
+    param "w"
+    use "wp-hero" w="{w}" title="GPU" subtitle="{perf.gpu-cores != null ? perf.chip + ' · ' + perf.gpu-cores + ' Cores' : perf.chip}" value="{perf.live.gpu}" history="{perf.live.gpu-history}" icon="square.stack.3d.up" fallback="square.stack.3d.up"
+}
+
+define "wp-utitle" {
+    param "icon"
+    param "fallback"
+    param "title"
+    row class="wp-utitle" {
+        icon "{icon}" fallback="{fallback}" class="wp-utitle-glyph"
+        text "{title}" class="wp-utitle-text" lines=1
+    }
+}
+
+define "wp-arc" {
+    param "value"
+    param "g"
+    param "fs"
+    param "caption"
+    stack class="wp-arc" style="width: {g}px; height: {g}px" {
+        gauge value="{value ?? 0}" class="perf-gauge" style="width: {g}px; height: {g}px"
+        text "{value != null ? (value * 100 | round) + ' %' : '–'}" class="wp-arc-text" style="font-size: {fs}px"
+        text "{caption}" class="perf-gauge-caption"
+    }
+}
+
+define "wp-usage" {
+    param "w"
+    param "title"
+    param "icon"
+    param "fallback"
+    param "value"
+    param "detail"
+    param "page"
+    param "rw"
+    switch "{w.display}" {
+        case "bar" {
+            column class="card wp-ubarcard" style="gap: {w.height >= 200 ? 12 : 8}px" {
+                use "wp-utitle" icon="{icon}" fallback="{fallback}" title="{title}"
+                spacer
+                text "{value != null ? (value * 100 | round) + ' %' : '–'}" class="wp-ubar-percent" style="font-size: {w.height >= 200 ? 44 : 30}px" lines=1
+                progress value="{value ?? 0}" class="wp-ubar" style="height: {w.height >= 200 ? 12 : 8}px"
+                text "{detail}" class="wp-udetail small" style="font-size: {w.height < 150 ? 8.8 : 11}px; margin-top: {w.height < 150 ? -1 : 0}px" lines=1 min-scale=0.8
+            }
+        }
+        default {
+            when "{w.height < 150}" {
+                row class="card wp-urow" style="width: {w.width < 204 ? rw : w.width}px" {
+                    use "wp-arc" value="{value}" g="{(w.width * 0.4) | min 92}" fs=19 caption=""
+                    column class="wp-urow-text" {
+                        use "wp-utitle" icon="{icon}" fallback="{fallback}" title="{title}"
+                        text "{detail}" class="wp-udetail" lines=2 min-scale=0.8
+                    }
+                    spacer
+                }
+            }
+            else {
+                when "{w.height > 200}" {
+                    column class="card wp-utall" {
+                        use "wp-utitle" icon="{icon}" fallback="{fallback}" title="{title}"
+                        use "wp-arc" value="{value}" g="{(w.width - 40) | min (w.height - 96) | min 220}" fs="{((w.width - 40) | min (w.height - 96) | min 220) * 0.26}" caption="Used"
+                        text "{detail}" class="wp-udetail" lines=1 min-scale=0.8
+                    }
+                }
+                else {
+                    switch "{page}" {
+                        case "storage" { use "perf-storage" }
+                        default { use "perf-memory" }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "widget-storage" {
+    param "w"
+    use "wp-usage" w="{w}" title="Storage" icon="panel-disk" fallback="internaldrive.fill" value="{perf.live.disk}" detail="{perf.live.disk-used | bytes} of {perf.live.disk-total | bytes}" page="storage" rw=203
+}
+
+define "widget-memory" {
+    param "w"
+    use "wp-usage" w="{w}" title="Memory" icon="panel-memory" fallback="memorychip.fill" value="{perf.live.memory}" detail="{perf.live.memory-used | bytes 'binary'} of {perf.live.memory-total | bytes 'binary'}" page="memory" rw=205
+}
+
+define "wp-rate-label" {
+    param "symbol"
+    param "tone"
+    param "value"
+    row class="wp-rate-label" {
+        icon "{symbol}" class="perf-rate-glyph {tone}"
+        text "{value}" class="wp-rate-label-value" lines=1
+    }
+}
+
+define "wp-figure" {
+    param "w"
+    param "symbol"
+    param "tone"
+    param "title"
+    param "value"
+    column class="wp-figure" style="{w.width < 254 ? 'width: ' + ((w.width - 56) / 2) + 'px' : ''}" {
+        row class="wp-figure-head" {
+            icon "{symbol}" class="perf-rate-glyph {tone}"
+            text "{title}" class="perf-rate-title"
+            spacer
+        }
+        text "{value | bytes-per-second}" class="wp-figure-value" style="font-size: {w.height >= 200 ? 34 : 26}px" lines=1 min-scale=0.6
+    }
+}
+
+define "widget-network" {
+    param "w"
+    switch "{w.display}" {
+        case "numbers" {
+            column class="card wp-netnum" style="width: {w.width}px; height: {w.height}px" {
+                row class="wp-netnum-head" {
+                    icon "arrow.up.arrow.down" class="perf-network-glyph"
+                    text "Network" class="perf-network-title"
+                    spacer
+                }
+                spacer
+                when "{w.height >= 200 && w.width < 420}" {
+                    column class="wp-netnum-col" {
+                        use "wp-figure" w="{w}" symbol="arrow.down" tone="down" title="Download" value="{perf.live.net-down}"
+                        use "wp-figure" w="{w}" symbol="arrow.up" tone="up wp-up" title="Upload" value="{perf.live.net-up}"
+                    }
+                }
+                else {
+                    row class="wp-netnum-row" {
+                        use "wp-figure" w="{w}" symbol="arrow.down" tone="down" title="Download" value="{perf.live.net-down}"
+                        use "wp-figure" w="{w}" symbol="arrow.up" tone="up wp-up" title="Upload" value="{perf.live.net-up}"
+                        spacer
+                    }
+                }
+                spacer
+            }
+        }
+        default {
+            column class="card perf-network" {
+                row class="perf-network-head" {
+                    icon "arrow.up.arrow.down" class="perf-network-glyph"
+                    text "Network" class="perf-network-title"
+                    spacer
+                    text "max {((perf.live.net-history | map 'down' | sort | last) ?? 0) | max ((perf.live.net-history | map 'up' | sort | last) ?? 0) | max 10000 | bytes-per-second}" class="perf-network-max"
+                }
+                stack class="perf-network-graph" {
+                    stack class="perf-baseline"
+                    graph values="{perf.live.net-history | map 'up'}" kind="area" min=0 max="{((perf.live.net-history | map 'down' | sort | last) ?? 0) | max ((perf.live.net-history | map 'up' | sort | last) ?? 0) | max 10000}" capacity=30 class="perf-graph perf-net-up wp-up"
+                    graph values="{perf.live.net-history | map 'down'}" kind="area" min=0 max="{((perf.live.net-history | map 'down' | sort | last) ?? 0) | max ((perf.live.net-history | map 'up' | sort | last) ?? 0) | max 10000}" capacity=30 class="perf-graph perf-net-down"
+                }
+                when "{w.height < 150}" {
+                    row class="wp-rates-compact" {
+                        use "wp-rate-label" symbol="arrow.down" tone="down" value="{perf.live.net-down | bytes-per-second}"
+                        use "wp-rate-label" symbol="arrow.up" tone="up wp-up" value="{perf.live.net-up | bytes-per-second}"
+                        spacer
+                    }
+                }
+                else {
+                    column class="perf-rates" {
+                        use "perf-rate-row" symbol="arrow.down" tone="down" title="Download" value="{perf.live.net-down | bytes-per-second}" tooltip=""
+                        use "perf-rate-row" symbol="arrow.up" tone="up wp-up" title="Upload" value="{perf.live.net-up | bytes-per-second}" tooltip=""
+                        use "perf-rate-row" symbol="clock.arrow.circlepath" tone="total" title="Total" value="↓ {perf.live.net-total-down | bytes}   ↑ {perf.live.net-total-up | bytes}" tooltip="Since this tab was first opened"
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "wp-bdial" {
+    param "ring"
+    stack class="wp-bdial" style="width: {ring}px; height: {ring}px" {
+        ring value="{battery.percent ?? 0}" class="wp-bring" style="width: {ring + 8}px; height: {ring + 8}px"
+        column class="wp-bdial-label" {
+            icon "{battery.charging ? 'bolt.fill' : (battery.symbol ?? 'battery.100percent')}" class="wp-bdial-glyph" style="font-size: {ring * 0.12}px"
+            text "{(battery.percent * 100 | round) + ' %'}" class="wp-bdial-text" style="font-size: {ring * 0.22}px"
+        }
+    }
+}
+
+define "widget-battery" {
+    param "w"
+    when "{battery.present}" {
+        switch "{w.display}" {
+            case "ring" {
+                when "{w.width > w.height * 1.3}" {
+                    row class="card wp-bcard wide" style="width: {w.width}px" {
+                        use "wp-bdial" ring="{(w.height - 32) | min 150}"
+                        column class="wp-bside" {
+                            text "Battery" class="wp-btitle"
+                            text "{battery.tank-text}" class="wp-bstatus" lines=2
+                        }
+                        spacer
+                    }
+                }
+                else {
+                    column class="card wp-bcard" style="width: {w.width}px" {
+                        use "wp-bdial" ring="{(w.width - 32) | min (w.height - 70) | min 170}"
+                        text "{battery.tank-text}" class="wp-bstatus center" lines=2
+                    }
+                }
+            }
+            default {
+                stack class="perf-battery" style="width: {w.width}px; height: {w.height}px" {
+                    progress value="{battery.percent}" vertical=#true class="perf-tank"
+                    column class="perf-tank-contents" {
+                        row class="perf-tank-head" {
+                            icon "{battery.symbol ?? 'battery.100percent'}" class="perf-tank-glyph"
+                            text "Battery" class="perf-tank-title"
+                        }
+                        spacer
+                        when "{battery.charging}" { icon "bolt.fill" class="perf-tank-bolt" }
+                        text "{(battery.percent * 100 | round) + ' %'}" class="perf-tank-percent"
+                        text "{battery.tank-text}" class="perf-tank-status"
+                    }
+                }
+            }
+        }
+    }
+}
