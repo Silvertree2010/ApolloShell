@@ -39,7 +39,7 @@ struct SchemaRegistryProvidersTests {
         let registryNames = Set(BuiltinSchemaRegistry.allFilters.map(\.name))
         let tableNames = Set(FilterTable.builtin.names)
         #expect(registryNames == tableNames)
-        #expect(registryNames.count == 61)
+        #expect(registryNames.count == 64)
     }
 
     @Test("Stellenzahl jedes Filters entspricht seiner FilterArity")

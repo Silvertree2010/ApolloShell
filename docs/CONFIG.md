@@ -2355,6 +2355,20 @@ Like ??, fallback for null.
 | --- | --- | --- | --- | --- |
 | argument | `fallback` | any | required | Fallback value for null. |
 
+### `drop-frame` (filter, *experimental*)
+
+Frame for a drop among a list of records with x, y, width, height: centred on the position, snapped to edges and neighbours, or null when it does not fit.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `width` | number | required | Width of the new frame. |
+| argument | `height` | number | required | Height of the new frame. |
+| argument | `x` | number | required | Drop position, centre of the frame. |
+| argument | `y` | number | required | Drop position, centre of the frame. |
+| argument | `page-width` | number |  | Width of the canvas, default 839. |
+| argument | `page-height` | number |  | Height of the canvas, default 392. |
+| argument | `gap` | number |  | Minimum distance to the other frames, default 12. |
+
 ### `duration` (filter)
 
 Seconds, formatted for reading.
@@ -2516,6 +2530,15 @@ Pads on the left.
 | --- | --- | --- | --- | --- |
 | argument | `digits` | number |  | Decimal places, default 0. |
 
+### `prefix-field` (filter)
+
+Puts text in front of a field of every record of a list.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `field` | string | required | Field name. |
+| argument | `prefix` | string | required | Text put in front of the value. |
+
 ### `relative` (filter)
 
 Date relative to now.
@@ -2668,6 +2691,15 @@ Filters records by inequality of a field.
 | --- | --- | --- | --- | --- |
 | argument | `field` | string | required | Field name. |
 | argument | `value` | any | required | Excluded value. |
+
+### `with-field` (filter)
+
+Sets a field on every record of a list.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `field` | string | required | Field name. |
+| argument | `value` | any | required | New value. |
 
 ## Events
 

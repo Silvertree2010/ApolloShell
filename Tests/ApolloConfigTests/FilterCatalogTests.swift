@@ -4,22 +4,22 @@ import Testing
 @Suite("Filterkatalog")
 struct FilterCatalogTests {
     static let specNames: [String] = [
-        "first-free-frame", "sun-moon",
+        "first-free-frame", "drop-frame", "sun-moon",
         "round", "floor", "ceil", "abs", "fixed", "clamp", "min", "max", "scale", "percent", "grouped",
         "bytes", "bytes-per-second", "temperature", "duration", "date", "relative",
         "string", "shell-quote", "upper", "lower", "capitalize", "truncate", "pad", "replace", "split", "starts-with", "ends-with", "json", "number",
         "count", "first", "last", "at", "take", "skip", "slice", "reverse", "sort", "where", "where-not", "map", "join",
-        "contains", "index-of", "unique", "concat", "index-where", "fuzzy",
+        "contains", "index-of", "unique", "concat", "with-field", "prefix-field", "index-where", "fuzzy",
         "app-search", "month-grid", "url", "symbol-exists", "chord", "hotkey-warning",
         "default", "bool", "keys", "values",
     ]
 
-    @Test("FilterTable.builtin enthält genau die 61 Filter aus config-language.md 4.5")
+    @Test("FilterTable.builtin enthält genau die 64 Filter aus config-language.md 4.5")
     func exactlyTheSpecFilters() {
-        #expect(Self.specNames.count == 61)
-        #expect(Set(Self.specNames).count == 61)
+        #expect(Self.specNames.count == 64)
+        #expect(Set(Self.specNames).count == 64)
         #expect(FilterTable.builtin.names == Self.specNames.sorted())
-        #expect(BuiltinFilters.all.count == 61)
+        #expect(BuiltinFilters.all.count == 64)
     }
 
     @Test("jeder eingebaute Filter hat eine Stellenzahl, die zur Spec passt")
