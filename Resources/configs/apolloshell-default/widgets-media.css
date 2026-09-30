@@ -19,7 +19,7 @@
 .wm-bar { align-self: stretch; height: 6px; }
 .wm-bar-fill { align-self: stretch; flex-grow: 1; height: 6px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.12); -apollo-fill-color: var(--apollo-accent-color, -apple-system-control-accent); }
 .wm-bar-fill.white { -apollo-track-color: rgb(255 255 255 / 0.3); -apollo-fill-color: white; }
-.wm-controls { align-self: stretch; }
+.wm-controls { align-self: stretch; min-width: 0; }
 .wm-button { border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-label; }
 .wm-play { flex-grow: 1; background: rgb(from var(--apollo-accent-color, -apple-system-control-accent) r g b / 0.16); color: -apollo-accent-text; }
 .wm-play.on { background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
@@ -34,8 +34,7 @@
 .wm-cover-artist { font-weight: 500; color: rgb(255 255 255 / 0.8); }
 .wm-details { flex-grow: 1; flex-shrink: 1; gap: 4px; align-items: start; }
 .wm-tab-body { flex-grow: 1; align-self: stretch; align-items: center; }
-.wm-tab .wm-picture { box-shadow: 0 6px 28px rgb(0 0 0 / 0.25); overflow: visible; }
-.wm-tab .wm-picture-image { overflow: hidden; }
+.wm-shadow { filter: drop-shadow(0 6px 28px rgb(0 0 0 / 0.25)); flex-shrink: 0; }
 .wm-tab-title { font-weight: 600; }
 .wm-tab-artist { font-weight: 500; color: -apple-system-secondary-label; }
 .wm-tab-album { font-weight: 500; color: -apollo-accent-text; }

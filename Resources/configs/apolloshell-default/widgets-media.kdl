@@ -123,21 +123,22 @@ define "wm-compact" {
             }
             else { use "wm-idle" big=13 }
         }
-        column class="wm-controls-box" style="padding-top: 10px; width: 168px; flex-shrink: 1" { use "wm-controls" h=34 sym=13 gap=4 dark="" }
+        column class="wm-controls-box" style="padding-top: 10px; width: 168px; flex-shrink: 1; min-width: 0" { use "wm-controls" h=34 sym=13 gap=4 dark="" }
     }
 }
 
 define "wm-strip" {
     param "w"
     row class="card wm-strip" style="gap: 16px; padding: 16px" {
-        use "wm-strip-body" w="{w}" cv="{(w.height - 32) | max 40 | min 244}"
+        use "wm-strip-body" w="{w}" cv="{(w.height - 32) | max 40 | min 244}" pw="{media.kind == 'video' ? ((((w.height - 32) | max 40 | min 244) * 16 / 9) | min (w.width * 0.45) | round) : ((w.height - 32) | max 40 | min 244)}"
     }
 }
 
 define "wm-strip-body" {
     param "w"
     param "cv"
-    use "wm-picture" width="{media.kind == 'video' ? ((cv * 16 / 9) | min (w.width * 0.45) | round) : cv}" height="{media.kind == 'video' ? (((cv * 16 / 9) | min (w.width * 0.45)) * 9 / 16 | round) : cv}" radius=18 sym="{cv * 0.32}" note="{media.kind == 'video' ? 'play.rectangle' : 'music.note'}"
+    param "pw"
+    use "wm-picture" width="{pw}" height="{media.kind == 'video' ? (pw * 9 / 16 | round) : cv}" radius=18 sym="{cv * 0.32}" note="{media.kind == 'video' ? 'play.rectangle' : 'music.note'}"
     column class="wm-strip-text" {
         when "{media.title != null}" {
             use "wm-lines" text="{media.title}" cls="wm-title left" sty="" n="{media.kind == 'video' && w.height >= 200 ? 2 : 1}"
@@ -145,7 +146,7 @@ define "wm-strip-body" {
         }
         else { use "wm-idle" big=14 }
         column style="padding-top: 6px; align-self: stretch" { use "wm-bar" tint="" }
-        column style="padding-top: 8px; width: 200px; flex-shrink: 1" { use "wm-controls" h=34 sym=13 gap=4 dark="" }
+        column style="padding-top: 8px; width: {200 | min (w.width - 48 - pw)}px" { use "wm-controls" h=34 sym=13 gap=4 dark="" }
     }
 }
 
@@ -161,7 +162,7 @@ define "wm-cover" {
                 column style="padding-top: {w.height >= 300 && w.width >= 400 ? 12 : 6}px; align-self: stretch" { use "wm-bar" tint="white" }
             }
             else { text "Nothing Playing" class="wm-cover-title" style="font-size: {w.height >= 300 && w.width >= 400 ? 22 : 14}px" lines=1 }
-            column style="padding-top: {w.height >= 300 && w.width >= 400 ? 12 : 6}px; width: {w.height >= 300 && w.width >= 400 ? 260 : 180}px; flex-shrink: 1" {
+            column style="padding-top: {w.height >= 300 && w.width >= 400 ? 12 : 6}px; width: {(w.height >= 300 && w.width >= 400 ? 260 : 180) | min (w.width - (w.height >= 300 && w.width >= 400 ? 48 : 28))}px" {
                 use "wm-controls" h="{w.height >= 300 && w.width >= 400 ? 44 : 30}" sym="{w.height >= 300 && w.width >= 400 ? 17 : 12}" gap=6 dark="dark"
             }
         }
@@ -171,7 +172,7 @@ define "wm-cover" {
 define "wm-tab" {
     param "w"
     row class="card wm-tab" style="gap: 24px; padding: 0 24px" {
-        use "wm-tab-body" w="{w}" cv="{(w.height - 48) | min (w.width * 0.34) | min 244}" pw="{(w.width * 0.45) | min ((w.height - 48) * 16 / 9) | min 400}"
+        use "wm-tab-body" w="{w}" cv="{(w.height - 48) | min (w.width * 0.34) | min 244 | round}" pw="{(w.width * 0.45) | min ((w.height - 48) * 16 / 9) | min 400}"
     }
 }
 
@@ -179,7 +180,9 @@ define "wm-tab-body" {
     param "w"
     param "cv"
     param "pw"
-    use "wm-picture" width="{media.kind == 'video' ? pw : cv}" height="{media.kind == 'video' ? (pw * 9 / 16 | round) : cv}" radius=22 sym="{cv * 0.26}" note="{media.kind == 'video' ? 'play.rectangle' : 'music.note'}"
+    column class="wm-shadow" style="border-radius: 22px" {
+        use "wm-picture" width="{media.kind == 'video' ? pw : cv}" height="{media.kind == 'video' ? (pw * 9 / 16 | round) : cv}" radius=22 sym="{cv * 0.26}" note="{media.kind == 'video' ? 'play.rectangle' : 'music.note'}"
+    }
     column class="wm-tab-rest" {
         when "{media.title != null}" {
             row class="wm-tab-body" style="gap: 24px" {

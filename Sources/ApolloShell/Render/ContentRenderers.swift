@@ -249,10 +249,10 @@ struct ImageElement: View {
                 switch fit {
                 case "fill":
                     Color.clear
-                        .overlay { base.resizable().scaledToFill() }
-                case "stretch": base.resizable()
+                        .overlay { base.resizable().interpolation(.high).scaledToFill() }
+                case "stretch": base.resizable().interpolation(.high)
                 case "center": base
-                default: base.resizable().scaledToFit()
+                default: base.resizable().interpolation(.high).scaledToFit()
                 }
             }
             .foregroundStyle(TextStyle(style).color)
