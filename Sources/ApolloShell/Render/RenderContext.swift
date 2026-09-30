@@ -136,20 +136,19 @@ struct ElementView: View {
         let subject = Self.subject(element, position: position)
         let inline = element.property("style").plainText
         let style = styles.resolve(subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
-        let plan = Self.plan(element, styles: styles, inherited: scope.inherits)
+        let plan = Self.plan(element, styles: styles, inherited: scope.inherits, inline: inline)
         let parts = plan.parts, motion = plan.motion
         let inner = RenderScope(context: scope.context, ancestors: scope.ancestors + [subject], parentStyle: style, parentKind: Self.layoutKind(element), outerKind: scope.parentKind,
                                 inherits: InheritedParts(pointer: parts.pointer, cursor: parts.cursor))
         if element.property("visible") != .bool(false) {
-            let inlineStyle = element.ir.properties["style"] != nil
             let fixed = StyleResolver.staticSubject(for: element)
             let spacer = element.kind == "spacer" && element.property("size") == .null
             let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
             let mouse = MouseConfig(element, reorder: reorderEntry, canvas: canvasEntry)
             let hover = element.kind == "button" || SelfState.uses(element, "hover") || styles.stateStyled(.hover, fixed)
             let press = SelfState.uses(element, "pressed") || styles.stateStyled(.active, fixed)
-            let filters = inlineStyle || styles.declares("filter", fixed)
-            let animated = inlineStyle || styles.declares("animation", fixed)
+            let filters = plan.inline.filter || styles.declares("filter", fixed)
+            let animated = plan.inline.animation || styles.declares("animation", fixed)
             ElementRenderers.view(for: element, style: style, scope: inner)
                 .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: filters,
                                       alignment: element.kind == "text" ? TextStyle(style).frameAlignment : .center, parts: parts))
@@ -163,12 +162,12 @@ struct ElementView: View {
         }
     }
 
-    static func plan(_ element: ElementInstance, styles: StyleResolver, inherited: InheritedParts) -> (parts: BoxParts, motion: Bool) {
-        let inline = element.ir.properties["style"] != nil
-        var parts = inline ? BoxParts.all : styles.parts(StyleResolver.staticSubject(for: element))
+    static func plan(_ element: ElementInstance, styles: StyleResolver, inherited: InheritedParts, inline: String? = nil) -> (parts: BoxParts, motion: Bool, inline: InlineUse) {
+        let use = styles.inlineUse(inline)
+        var parts = styles.parts(StyleResolver.staticSubject(for: element)).merged(use.parts)
         parts.pointer = parts.pointer || inherited.pointer
         parts.cursor = parts.cursor || inherited.cursor
-        return (parts, inline || parts.motion || element.ir.properties["match-id"] != nil)
+        return (parts, parts.motion || element.ir.properties["match-id"] != nil, use)
     }
 
     static func subject(_ element: ElementInstance, position: ChildPosition?) -> StyleSubject {

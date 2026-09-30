@@ -42,11 +42,17 @@ struct BoxPartsTests {
         #expect(ElementView.plan(elements[1], styles: styles, inherited: InheritedParts(pointer: true, cursor: false)).parts.pointer)
     }
 
-    @Test("Inline-Stil schaltet alles ein")
+    @Test("Inline-Stil schaltet nur die Teile ein, die er deklariert")
     func inline() throws {
-        let (session, _) = try RenderProbe.session("panel \"t\" anchor=\"left\" { stack style=\"opacity: 0.5\" }", css: "")
+        let (session, _) = try RenderProbe.session("panel \"t\" anchor=\"left\" { stack style=\"opacity: 0.5; padding-left: 2px; filter: blur(2px)\" }", css: "")
         let element = try #require(session.surfaces.first?.root.first)
-        let plan = ElementView.plan(element, styles: session.context.styles, inherited: InheritedParts(pointer: false, cursor: false))
-        #expect(plan.parts == BoxParts.all && plan.motion)
+        let styles = session.context.styles
+        let plan = ElementView.plan(element, styles: styles, inherited: InheritedParts(pointer: false, cursor: false), inline: "opacity: 0.5; padding-left: 2px; filter: blur(2px)")
+        #expect(plan.parts.opacity && plan.parts.padding && plan.inline.filter)
+        #expect(!plan.parts.margin && !plan.parts.transform && !plan.parts.paint && !plan.parts.pointer && !plan.motion && !plan.inline.animation)
+        let moving = ElementView.plan(element, styles: styles, inherited: InheritedParts(pointer: false, cursor: false), inline: "transition: opacity 1s")
+        #expect(moving.motion && !moving.parts.opacity)
+        let empty = ElementView.plan(element, styles: styles, inherited: InheritedParts(pointer: false, cursor: false), inline: "")
+        #expect(empty.parts == styles.parts(StyleResolver.staticSubject(for: element)).merged(BoxParts(names: [])) && !empty.motion)
     }
 }

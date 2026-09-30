@@ -28,6 +28,49 @@ struct BoxParts: Equatable {
     }
 
     init() {}
+
+    init(names: [String]) {
+        func has(_ keys: String...) -> Bool { names.contains { n in keys.contains { n == $0 || n.hasPrefix($0 + "-") } } }
+        padding = has("padding")
+        margin = has("margin")
+        size = has("width", "height", "min-width", "min-height", "max-width", "max-height")
+        aspect = has("aspect-ratio")
+        paint = has("background")
+        shadow = has("box-shadow")
+        border = has("border")
+        clip = has("overflow")
+        opacity = has("opacity")
+        transform = has("transform")
+        depth = has("z-index")
+        pointer = has("pointer-events")
+        cursor = has("cursor")
+        motion = has("transition", "animation", "-apollo-appear", "-apollo-disappear")
+    }
+
+    func merged(_ o: BoxParts) -> BoxParts {
+        var r = self
+        r.padding = padding || o.padding
+        r.margin = margin || o.margin
+        r.size = size || o.size
+        r.aspect = aspect || o.aspect
+        r.paint = paint || o.paint
+        r.shadow = shadow || o.shadow
+        r.border = border || o.border
+        r.clip = clip || o.clip
+        r.opacity = opacity || o.opacity
+        r.transform = transform || o.transform
+        r.depth = depth || o.depth
+        r.pointer = pointer || o.pointer
+        r.cursor = cursor || o.cursor
+        r.motion = motion || o.motion
+        return r
+    }
+}
+
+struct InlineUse {
+    var parts: BoxParts
+    var filter: Bool
+    var animation: Bool
 }
 
 struct InheritedParts: Equatable {

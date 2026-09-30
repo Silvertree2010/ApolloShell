@@ -97,6 +97,18 @@ final class StyleResolver {
         return made
     }
 
+    private var inlineCache = BoundedCache<String, InlineUse>(limit: 512)
+
+    func inlineUse(_ text: String?) -> InlineUse {
+        guard let text, !text.isEmpty else { return InlineUse(parts: BoxParts(names: []), filter: false, animation: false) }
+        if let known = inlineCache[text] { return known }
+        let names = StyleEngine.parseInline(text, span: .synthetic("style")).0.map { $0.property.lowercased() }
+        let made = InlineUse(parts: BoxParts(names: names), filter: names.contains { $0 == "filter" || $0.hasPrefix("filter-") },
+                             animation: names.contains { $0 == "animation" || $0.hasPrefix("animation-") })
+        inlineCache[text] = made
+        return made
+    }
+
     func stateStyled(_ state: PseudoState, _ subject: StaticSubject) -> Bool {
         guard !selectorPseudo.isDisjoint(with: state) else { return false }
         return slot(SlotKey(probe: ":\(state.rawValue)", subject: subject)) { engine.mayMatch(state, subject) }
