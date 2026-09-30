@@ -13,3 +13,16 @@
 .wx-round-glyph { font-weight: 600; }
 .wx-play { border-radius: 9999px; background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); align-items: center; justify-content: center; }
 .wx-play-glyph { font-weight: 600; }
+.card.wx-apps { padding: 0; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 24px); }
+.wx-grid { align-items: start; }
+.wx-grid-row { align-items: start; }
+.wx-app { flex-shrink: 0; }
+.wx-app-icon { flex-shrink: 0; }
+.wx-list { gap: 2px; padding: 0 14px; align-self: stretch; justify-content: center; }
+.wx-list-button { align-self: stretch; }
+.wx-list-row { gap: 10px; height: 32px; align-items: center; align-self: stretch; }
+.wx-list-icon { width: 26px; height: 26px; flex-shrink: 0; }
+.wx-list-name { font-size: 13px; font-weight: 500; flex-shrink: 1; min-width: 0; }
+.wx-empty { gap: 8px; align-items: center; padding: 14px; }
+.wx-empty-glyph { font-size: 24px; color: -apple-system-tertiary-label; }
+.wx-empty-text { font-size: 12px; color: -apple-system-secondary-label; text-align: center; }

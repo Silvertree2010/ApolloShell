@@ -233,6 +233,7 @@ define "widget" {
         case "weather.hourly" { use "weather-hourly" }
         case "weather.daily" { use "weather-daily" }
         case "timer" { use "widget-timer" w="{w}" }
+        case "apps" { use "widget-apps" w="{w}" }
         default { column class="card widget-unknown" { text "{w.kind}" class="card-hint" } }
     }
 }

@@ -119,3 +119,103 @@ define "widget-timer" {
     param "w"
     use "widget-timer-length" w="{w}" idle="{timer.running == false && timer.elapsed == 0}" own="{timer.mode == w.display}" prev="{timer.running == false && timer.elapsed == 0 && timer.mode != w.display}" mode="{timer.running == false && timer.elapsed == 0 && timer.mode != w.display ? w.display : timer.mode}" phase="{timer.running == false && timer.elapsed == 0 && timer.mode != w.display ? 'focus' : timer.phase}" el="{timer.running == false && timer.elapsed == 0 && timer.mode != w.display ? 0 : timer.elapsed}"
 }
+
+var wx-default-apps {
+    - "com.apple.finder"
+    - "com.apple.Safari"
+    - "com.apple.mail"
+    - "com.apple.Music"
+    - "com.apple.systempreferences"
+}
+
+var wx-index {
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 16
+    - 17
+    - 18
+    - 19
+}
+
+define "wx-apps-grid-rows" {
+    param "ids"
+    param "side"
+    param "cols"
+    param "rows"
+    column class="wx-grid" style="gap: 12px" {
+        each r in="{var.wx-index | take rows}" key="{r}" {
+            row class="wx-grid-row" style="gap: 12px" {
+                each id in="{ids | skip (r * cols) | take cols}" key="{id}" {
+                    button class="wx-app" {
+                        on-click { apps.launch "{id}" }
+                        app-icon "{id}" class="wx-app-icon" style="width: {side}px; height: {side}px"
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "wx-apps-grid" {
+    param "ids"
+    param "w"
+    param "side"
+    use "wx-apps-grid-rows" ids="{ids}" side="{side}" cols="{1 | max (((w.width - 24) / (side + 12)) | floor)}" rows="{(ids | count) / (1 | max (((w.width - 24) / (side + 12)) | floor)) | ceil}"
+}
+
+define "wx-apps-fit" {
+    param "ids"
+    param "w"
+    use "wx-apps-grid" ids="{ids}" w="{w}" side="{((1 | max ((w.width - 24) / 84 | floor)) * (1 | max ((w.height - 24) / 84 | floor)) >= (ids | count)) ? 72 : ((1 | max ((w.width - 24) / 80 | floor)) * (1 | max ((w.height - 24) / 80 | floor)) >= (ids | count)) ? 68 : ((1 | max ((w.width - 24) / 76 | floor)) * (1 | max ((w.height - 24) / 76 | floor)) >= (ids | count)) ? 64 : ((1 | max ((w.width - 24) / 72 | floor)) * (1 | max ((w.height - 24) / 72 | floor)) >= (ids | count)) ? 60 : ((1 | max ((w.width - 24) / 68 | floor)) * (1 | max ((w.height - 24) / 68 | floor)) >= (ids | count)) ? 56 : ((1 | max ((w.width - 24) / 64 | floor)) * (1 | max ((w.height - 24) / 64 | floor)) >= (ids | count)) ? 52 : ((1 | max ((w.width - 24) / 60 | floor)) * (1 | max ((w.height - 24) / 60 | floor)) >= (ids | count)) ? 48 : ((1 | max ((w.width - 24) / 56 | floor)) * (1 | max ((w.height - 24) / 56 | floor)) >= (ids | count)) ? 44 : 40}"
+}
+
+define "widget-apps" {
+    param "w"
+    use "widget-apps-ids" w="{w}" ids="{w.apps ?? var.wx-default-apps}"
+}
+
+define "widget-apps-ids" {
+    param "w"
+    param "ids"
+    column class="card wx-apps" {
+        when "{(ids | count) == 0}" {
+            column class="wx-empty" {
+                icon "square.grid.3x3" class="wx-empty-glyph"
+                text "Add apps in the widget's options" class="wx-empty-text"
+            }
+        }
+        else {
+            switch "{w.display}" {
+                case "list" {
+                    column class="wx-list" {
+                        each id in="{ids | take (1 | max (((w.height - 20) / 34) | floor))}" key="{id}" {
+                            button class="wx-list-button" {
+                                on-click { apps.launch "{id}" }
+                                row class="wx-list-row" {
+                                    app-icon "{id}" class="wx-list-icon"
+                                    text "{(apps.all | where 'bundle-id' id | first).name ?? id}" class="wx-list-name" lines=1
+                                    spacer
+                                }
+                            }
+                        }
+                    }
+                }
+                default { use "wx-apps-fit" ids="{ids}" w="{w}" }
+            }
+        }
+    }
+}
