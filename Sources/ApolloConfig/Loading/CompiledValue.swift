@@ -3,18 +3,24 @@ import Synchronization
 
 public struct CompiledValue: Sendable, Hashable {
     public var template: StringTemplate {
-        didSet { roots = PathRootsCache() }
+        didSet { roots = Self.cache(template) }
     }
     public var dependencies: Set<DependencyPath> {
-        didSet { roots = PathRootsCache() }
+        didSet { roots = Self.cache(template) }
     }
     public var span: SourceSpan
-    private var roots = PathRootsCache()
+    private var roots: PathRootsCache?
+
+    private static func cache(_ template: StringTemplate) -> PathRootsCache? {
+        if case .literal = template { return nil }
+        return PathRootsCache()
+    }
 
     public init(template: StringTemplate, dependencies: Set<DependencyPath>, span: SourceSpan) {
         self.template = template
         self.dependencies = dependencies
         self.span = span
+        roots = Self.cache(template)
     }
 
     public var isConstant: Bool {
@@ -22,11 +28,13 @@ public struct CompiledValue: Sendable, Hashable {
     }
 
     public var pathRoots: Set<String> {
-        roots.value { template.pathRoots }
+        guard let roots else { return [] }
+        return roots.value { template.pathRoots }
     }
 
     public var localRoots: Set<String> {
-        roots.locals {
+        guard let roots else { return [] }
+        return roots.locals {
             let globalRoots = Set(dependencies.map(\.root))
             return pathRoots.subtracting(globalRoots)
         }
