@@ -17,4 +17,13 @@ struct StatusItemSurfaceTests {
         #expect(item.isOpen)
         #expect(item.isVisible)
     }
+
+    @Test("Ein zweites Anwenden desselben Baums legt das status-item nicht neu an")
+    func reapplyKeepsInstance() {
+        let fixture = ShellFixture()
+        let tree = [T.surface("status-item", "shell", children: [T.text("0", IR.string("A"))])]
+        fixture.apply(tree, screens: ["A", "B"])
+        fixture.apply(tree, screens: ["A", "B"])
+        #expect(fixture.host.events.filter { $0.hasPrefix("added:shell") } == ["added:shell@A"])
+    }
 }
