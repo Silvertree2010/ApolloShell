@@ -45,6 +45,14 @@ struct SystemProviders {
             ScriptSourcesProvider(kind: .listen, sources: listens, runner: runner, clock: clock),
             wm,
             MarketplaceProvider(host: marketplace, clock: clock),
+            TimerProvider(clock: clock),
+            ClipboardProvider(source: SystemClipboardSource(), clock: clock),
+            FilesProvider(source: SystemRecentFilesSource(), clock: clock),
+            DrivesProvider(source: SystemDrivesSource(), clock: clock),
+            PhotosProvider(source: SystemPhotosSource(), clock: clock),
+            NetworkInfoProvider(source: SystemNetworkInfoSource(), clock: clock),
+            DisplayProvider(source: SystemDisplaySource(), clock: clock),
+            WallpaperProvider(source: SystemWallpaperSource(), clock: clock),
         ]
     }
 

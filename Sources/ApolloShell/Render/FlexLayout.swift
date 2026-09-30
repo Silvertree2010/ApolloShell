@@ -61,7 +61,7 @@ struct Definite: Equatable {
     }
 }
 
-struct FlexLayout: Layout {
+struct FlexLayout: GuideFreeLayout {
     var horizontal: Bool
     var gap: CGFloat
     var align: String
@@ -165,6 +165,7 @@ struct FlexLayout: Layout {
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        LayoutCounter.measured()
         guard !subviews.isEmpty else { return .zero }
         let sizes = mains(subviews, proposal: proposal)
         let crossAvailable = horizontal ? proposal.height : proposal.width
@@ -183,6 +184,7 @@ struct FlexLayout: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        LayoutCounter.placed()
         guard !subviews.isEmpty else { return }
         let sizes = mains(subviews, proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
         let total = sizes.reduce(0, +) + gap * CGFloat(subviews.count - 1)
@@ -221,10 +223,11 @@ struct FlexLayout: Layout {
     }
 }
 
-struct StackLayout: Layout {
+struct StackLayout: GuideFreeLayout {
     var definite = Definite()
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        LayoutCounter.measured()
         var result = CGSize.zero
         for subview in subviews {
             let metrics = subview[ChildMetricsKey.self]
@@ -246,6 +249,7 @@ struct StackLayout: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        LayoutCounter.placed()
         for subview in subviews {
             let metrics = subview[ChildMetricsKey.self]
             let childProposal = childProposal(metrics, in: ProposedViewSize(bounds.size))
@@ -267,7 +271,7 @@ struct StackLayout: Layout {
     }
 }
 
-struct GridLayout: Layout {
+struct GridLayout: GuideFreeLayout {
     var columns: [CSSLength]
     var columnGap: CGFloat
     var rowGap: CGFloat
@@ -344,6 +348,7 @@ struct GridLayout: Layout {
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        LayoutCounter.measured()
         let widths = widths(proposal.width, subviews: subviews)
         let heights = rows(cells(subviews), widths, subviews)
         let width = widths.reduce(0, +) + columnGap * CGFloat(max(0, widths.count - 1))
@@ -352,6 +357,7 @@ struct GridLayout: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        LayoutCounter.placed()
         let widths = widths(bounds.width, subviews: subviews)
         let cells = cells(subviews)
         let heights = rows(cells, widths, subviews)

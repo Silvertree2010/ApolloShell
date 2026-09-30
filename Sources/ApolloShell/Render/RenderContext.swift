@@ -8,6 +8,7 @@ import ApolloRuntime
 @MainActor
 final class RenderContext {
     let styles: StyleResolver
+    var onFlyoutBulges: @MainActor (String, [FlyoutBulge]) -> Void = { _, _ in }
     let icons: any AppIconSource
     let trigger: @MainActor (String, Identity, Record) -> Void
     var configRoot: URL?

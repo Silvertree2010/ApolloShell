@@ -135,11 +135,21 @@ struct LegacyImportFullTests {
         #expect(side[0]["show-condition"] == .bool(false))
     }
 
+    @Test("0.2-Karten und -Schalter werden übernommen, airDrop heisst air-drop")
+    func utilitiesFrom02() {
+        let json = #"{"utilities":{"layout":{"cards":[{"kind":"timer","enabled":true},{"kind":"audio","enabled":true}],"quickToggles":[{"id":"a","kind":"airDrop"},{"id":"m","kind":"mute"},{"id":"h","kind":"hiddenFiles"}]}}}"#
+        let converted = LegacyImport.convert(settings: json, weather: nil, launcherOnly: false)
+        let cards = LegacyFixtures.list(converted.state["utilities-cards"])
+        #expect(cards.map { $0["kind"] } == ["timer", "audio", "keep-awake", "quick-toggles", "brightness", "now-playing"].map { Value.string($0) })
+        #expect(cards.map { $0["enabled"] } == [true, true, true, true, false, false].map { Value.bool($0) })
+        #expect(LegacyFixtures.list(converted.state["utilities-toggles"]).map { $0["kind"] } == ["air-drop", "mute", "hidden-files"].map { Value.string($0) })
+    }
+
     @Test("utilities.layout.cards → utilities-cards")
     func utilitiesCards() {
         let cards = LegacyFixtures.list(result.state["utilities-cards"])
-        #expect(cards.map { $0["kind"] } == ["quick-toggles", "keep-awake", "audio"].map { Value.string($0) })
-        #expect(cards.map { $0["enabled"] } == [true, false, true].map { Value.bool($0) })
+        #expect(cards.map { $0["kind"] } == ["quick-toggles", "keep-awake", "audio", "brightness", "now-playing", "timer"].map { Value.string($0) })
+        #expect(cards.map { $0["enabled"] } == [true, false, true, false, false, false].map { Value.bool($0) })
     }
 
     @Test("utilities.layout.quickToggles → utilities-toggles mit Optionen, leere Texte = automatisch")
@@ -298,8 +308,8 @@ struct LegacyImportBrokenTests {
     @Test("Kontrollzentrum: unbekannte Karte weg, fehlende angehängt, doppelte Schalter weg")
     func utilities() {
         let cards = LegacyFixtures.list(result.state["utilities-cards"])
-        #expect(cards.map { $0["kind"] } == ["audio", "keep-awake", "quick-toggles"].map { Value.string($0) })
-        #expect(cards.map { $0["enabled"] } == [true, true, true].map { Value.bool($0) })
+        #expect(cards.map { $0["kind"] } == ["audio", "keep-awake", "quick-toggles", "brightness", "now-playing", "timer"].map { Value.string($0) })
+        #expect(cards.map { $0["enabled"] } == [true, true, true, false, false, false].map { Value.bool($0) })
         #expect(LegacyFixtures.ids(result.state["utilities-toggles"]) == ["wifi", "open-app"])
         let app = LegacyFixtures.list(result.state["utilities-toggles"])[1]
         #expect(app["bundle-id"] == .string(""))

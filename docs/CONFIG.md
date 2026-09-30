@@ -746,9 +746,10 @@ Short feedback such as a volume indicator.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `timeout` | duration | `"2s"` | Display duration. |
-| property | `motion` | "slide"\|"grow"\|"fade"\|"none" | `"slide"` | Opening and closing. |
+| property | `motion` | "slide"\|"grow"\|"fade"\|"none"\|"jelly" | `"slide"` | Opening and closing. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
 
@@ -787,7 +788,8 @@ Covers the whole screen, click-through by default.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
 
@@ -826,7 +828,8 @@ Always-visible surface such as bars, docks, desktop widgets.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `reserve` | bool | `false` | Keeps app windows out of the surface's strip, only with left/right/top/bottom. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
@@ -898,8 +901,9 @@ Opens and closes on an action, such as a dashboard or launcher.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
-| property | `motion` | "slide"\|"grow"\|"fade"\|"none" | `null` | Opening and closing. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
+| property | `motion` | "slide"\|"grow"\|"fade"\|"none"\|"jelly" | `null` | Opening and closing. |
 | property | `scrim` | number | `null` | Dims the screen behind it, 0…1. |
 | property | `close-on` | string | `"outside-click escape focus-loss"` | List of what closes the popup. |
 | property | `hover-edge` | bool | `false` | Opens when the pointer touches the anchored edge. |
@@ -1443,7 +1447,8 @@ Defines how a notification from the toast.show action looks.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `max` | number | `4` | Toasts visible at the same time. |
 | property | `duration` | duration | `"5s"` | Display duration. |
 | property | `newest` | "last"\|"first" | `"last"` | Where the newest toast appears. |
@@ -1563,7 +1568,8 @@ A regular macOS window with a title bar.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Merges surfaces into one area, reserved for 0.2.1. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `title` | string | `""` | Window title. |
 | property | `title-visible` | bool | `true` | Whether the title bar shows the title. |
 | property | `resizable` | bool | `true` | Whether the window can be resized. |
@@ -1969,7 +1975,7 @@ Charge, charging state and time left.
 | field | `symbol` | string | | SF Symbol for the level. |
 | field | `tank-text` | string | | Text for the battery tank. |
 
-Actions and events: `battery.charger-connected`, `battery.charger-disconnected`, `battery.warning`
+Actions and events: `battery.set-low-power`, `battery.charger-connected`, `battery.charger-disconnected`, `battery.warning`
 
 ### `bluetooth` (provider)
 
@@ -1984,6 +1990,16 @@ Bluetooth and devices.
 | field | `devices` | list | | Connected devices. |
 
 Actions and events: `bluetooth.open-settings`, `bluetooth.changed`
+
+### `clipboard` (provider)
+
+Clipboard history.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| field | `history` | list | | Copied texts, newest first, at most 20: text, date. Kept in memory only, without what password managers mark as secret. |
+
+Actions and events: `clipboard.remove`, `clipboard.clear`
 
 ### `clock` (provider)
 
@@ -2002,6 +2018,34 @@ Time, date, calendar grid.
 | field | `weekday` | number | | Day of the week, 1 = Monday. |
 | field | `time-zone` | string | | Active time zone. |
 | field | `time-zones` | list | | Known time zones sorted by offset and name, records id (IANA), name (city), offset (seconds from GMT now). |
+
+### `display` (provider)
+
+Display brightness.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| field | `brightness` | number or null | | Brightness of the main display 0…1, #null without a display that supports it. |
+
+Actions and events: `display.set-brightness`
+
+### `drives` (provider)
+
+Mounted drives.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| field | `list` | list | | Mounted volumes: name, path, icon, ejectable, total, free, used. |
+
+Actions and events: `drives.eject`, `drives.changed`
+
+### `files` (provider)
+
+Recently used files from Spotlight.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| field | `recent` | list | | Files and folders used in the last 7 days, newest first: path, name, icon, date. Read when first asked for. |
 
 ### `keyboard` (provider)
 
@@ -2081,6 +2125,19 @@ Wi-Fi, Ethernet.
 
 Actions and events: `network.set-wifi`, `network.toggle-wifi`, `network.open-settings`, `network.wifi-changed`
 
+### `network-info` (provider)
+
+Connection kind, addresses and latency, read when first asked for.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| property | `public-address` | bool | `true` | Asks api.ipify.org for the public address, at most every 10 minutes. |
+| field | `kind` | "wifi"\|"wired"\|"none" | | wifi, wired or none. |
+| field | `name` | string or null | | Wi-Fi name, #null without the location permission. |
+| field | `local-address` | string or null | | Local IPv4 address. |
+| field | `public-address` | string or null | | Public address, #null while public-address=#false. |
+| field | `latency` | number or null | | Milliseconds to open a connection to 1.1.1.1:443. |
+
 ### `perf` (provider)
 
 CPU, GPU, memory, disk, network speed.
@@ -2121,6 +2178,15 @@ Which macOS permissions the shell has.
 | field | `screen-recording` | bool | | Screen recording allowed. |
 
 Actions and events: `permissions.request-accessibility`, `permissions.open`
+
+### `photos` (provider)
+
+Pictures of folders for photo frames.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| property | `folders` | list | `["~/Pictures"]` | Folders whose pictures are read, first level only. |
+| field | `by-folder` | record | | Folder as written in folders= to its pictures: path, name, image. |
 
 ### `power` (provider)
 
@@ -2197,8 +2263,36 @@ Appearance, Night Shift, microphone, user, computer, system actions.
 | field | `kernel-version` | string | | Kernel version. |
 | field | `uptime` | number | | Uptime in s. |
 | field | `apple-dock-hidden` | bool | | Whether Apple's Dock is hidden. |
+| field | `hidden-files` | bool or null | | Whether the Finder shows hidden files, #null while unknown or never set. |
 
-Actions and events: `system.set-dark-mode`, `system.toggle-dark-mode`, `system.set-night-shift`, `system.toggle-night-shift`, `system.set-microphone-muted`, `system.toggle-microphone`, `system.screenshot`, `system.color-picker`, `system.show-desktop`, `system.lock`, `system.display-sleep`, `system.hide-apps`, `system.open-settings`, `system.hide-apple-dock`, `system.appearance-changed`, `system.color-copied`, `shortcuts.failed`
+Actions and events: `system.set-dark-mode`, `system.toggle-dark-mode`, `system.set-night-shift`, `system.toggle-night-shift`, `system.set-microphone-muted`, `system.toggle-microphone`, `system.screenshot`, `system.color-picker`, `system.show-desktop`, `system.lock`, `system.display-sleep`, `system.hide-apps`, `system.open-settings`, `system.hide-apple-dock`, `system.toggle-hidden-files`, `system.empty-trash`, `system.mission-control`, `system.launchpad`, `system.airdrop`, `system.appearance-changed`, `system.color-copied`, `shortcuts.failed`
+
+### `timer` (provider)
+
+One timer for the whole shell: timer, stopwatch, pomodoro.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| field | `mode` | "standard"\|"stopwatch"\|"pomodoro" | | standard, stopwatch or pomodoro. |
+| field | `running` | bool | | Whether the time runs. |
+| field | `remaining` | number or null | | Seconds left, #null for the stopwatch. |
+| field | `elapsed` | number | | Seconds run since the start, pauses left out. |
+| field | `duration` | number or null | | Length of the running phase in s, #null for the stopwatch. |
+| field | `phase` | "focus"\|"short-break"\|"long-break" | | Pomodoro phase: focus, short-break or long-break. |
+| field | `round` | number | | Focus round within four, from 1. |
+
+Actions and events: `timer.start`, `timer.pause`, `timer.resume`, `timer.reset`, `timer.set-mode`, `timer.finished`
+
+### `wallpaper` (provider)
+
+Apple wallpapers and the current one.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| field | `apple` | list | | Apple's wallpapers: name, path (#null while not downloaded), thumbnail. |
+| field | `current` | string or null | | Path of the wallpaper on the main screen. |
+
+Actions and events: `wallpaper.set`, `wallpaper.random`, `wallpaper.failed`
 
 ### `weather` (provider)
 
@@ -2294,6 +2388,10 @@ Like bytes, with /s.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `unit` | "binary"\|"decimal" |  | Unit system, default decimal. |
+
+### `calc` (filter)
+
+Result of a sum such as 2*(3+4) as text, null while the sum is incomplete.
 
 ### `capitalize` (filter)
 
@@ -2760,6 +2858,10 @@ A config loaded without errors.
 | --- | --- | --- | --- | --- |
 | field | `warnings` | number | | Number of warnings. |
 
+### `drives.changed` (event)
+
+A volume was mounted or ejected.
+
 ### `fullscreen.changed` (event)
 
 A full-screen app was entered or left.
@@ -2852,6 +2954,25 @@ The theme changed.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | field | `id` | string | | New theme id. |
+
+### `timer.finished` (event)
+
+The timer or a pomodoro phase reached zero, also with every surface closed.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| field | `mode` | string | | Mode that finished. |
+| field | `phase` | string | | Phase that finished. |
+| field | `duration` | number | | Length of the finished phase in s. |
+
+### `wallpaper.failed` (event)
+
+A wallpaper could not be set.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| field | `path` | string | | Picture that was not set. |
+| field | `name` | string | | Its name without the extension. |
 
 ### `wm.focus-changed` (event)
 

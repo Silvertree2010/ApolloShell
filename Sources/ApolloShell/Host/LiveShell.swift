@@ -967,10 +967,14 @@ final class LiveShell: WindowHostLink {
     static func imageData(_ providers: [any ProviderInstance]) -> @MainActor (ImageRef) -> Data? {
         let media = providers.compactMap { $0 as? MediaProvider }.first
         let system = providers.compactMap { $0 as? SystemProvider }.first
+        let photos = providers.compactMap { $0 as? PhotosProvider }.first
+        let wallpaper = providers.compactMap { $0 as? WallpaperProvider }.first
         return { ref in
             switch ref.source {
             case "media": media?.artworkData(ref.id)
             case "user-image": system?.userImageData(ref.id)
+            case "photos": photos?.thumbnailData(ref.id)
+            case "wallpaper": wallpaper?.thumbnailData(ref.id)
             default: nil
             }
         }
@@ -1136,6 +1140,9 @@ final class LiveShellControl: ShellControl, @unchecked Sendable {
                 ("space-changes", .number(Double(host.spaceChanges))),
                 ("styles-computed", .number(Double(StyleResolver.computedTotal))),
                 ("longest-block-ms", .number(MainBlockObserver.shared.takeLongest())),
+                ("layout-measures", .number(Double(LayoutCounter.measures.load(ordering: .relaxed)))),
+                ("layout-placements", .number(Double(LayoutCounter.placements.load(ordering: .relaxed)))),
+                ("layout-passes", .number(Double(LayoutCounter.passes.load(ordering: .relaxed)))),
             ]))
         }
     }

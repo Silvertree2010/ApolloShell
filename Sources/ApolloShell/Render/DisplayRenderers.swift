@@ -103,13 +103,16 @@ struct RingView: View {
         let spacing = sweep * gap
         let trackStart = gap > 0 ? filled + spacing : start
         let trackEnd = gap > 0 ? start + sweep - (value > 0 && sweep >= 360 ? spacing : 0) : start + sweep
-        ZStack {
-            ArcShape(start: trackStart, end: trackEnd, inset: style.width / 2).stroke(style.track, style: stroke)
-            if value > 0 {
-                ArcShape(start: start, end: filled, inset: style.width / 2).stroke(style.stroke, style: stroke)
+        Color.clear
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                ZStack {
+                    ArcShape(start: trackStart, end: trackEnd, inset: style.width / 2).stroke(style.track, style: stroke)
+                    if value > 0 {
+                        ArcShape(start: start, end: filled, inset: style.width / 2).stroke(style.stroke, style: stroke)
+                    }
+                }
             }
-        }
-        .aspectRatio(1, contentMode: .fit)
         .accessibilityValue(Text("\(Int((value * 100).rounded())) %"))
     }
 }
@@ -124,16 +127,19 @@ struct GaugeView: View {
 
     var body: some View {
         let stroke = StrokeStyle(lineWidth: style.width, lineCap: .round)
-        ZStack {
-            ArcShape(start: Self.start, end: Self.start + Self.sweep, inset: style.width / 2).stroke(style.track, style: stroke)
-            if value > 0 {
-                ArcShape(start: Self.start, end: Self.start + Self.sweep * value, inset: style.width / 2).stroke(style.stroke, style: stroke)
+        Color.clear
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                ZStack {
+                    ArcShape(start: Self.start, end: Self.start + Self.sweep, inset: style.width / 2).stroke(style.track, style: stroke)
+                    if value > 0 {
+                        ArcShape(start: Self.start, end: Self.start + Self.sweep * value, inset: style.width / 2).stroke(style.stroke, style: stroke)
+                    }
+                    if ticks > 1 {
+                        GaugeTicks(count: ticks, inset: style.width * 1.5).stroke(style.track, lineWidth: 1)
+                    }
+                }
             }
-            if ticks > 1 {
-                GaugeTicks(count: ticks, inset: style.width * 1.5).stroke(style.track, lineWidth: 1)
-            }
-        }
-        .aspectRatio(1, contentMode: .fit)
         .accessibilityValue(Text("\(Int((value * 100).rounded())) %"))
     }
 }

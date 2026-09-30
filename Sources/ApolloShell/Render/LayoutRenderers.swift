@@ -142,7 +142,7 @@ extension EnvironmentValues {
     }
 }
 
-struct ScrollFit: Layout {
+struct ScrollFit: GuideFreeLayout {
     let horizontal: Bool
     var fills = false
 

@@ -293,11 +293,11 @@ struct UseStageTests {
     func futureProviderParameterName() {
         let result = Self.run("""
         define "card" {
-            param "wallpaper" default=""
-            text "{wallpaper}"
+            param "reminders" default=""
+            text "{reminders}"
         }
         """)
-        #expect(result.diagnostics.map(\.message) == ["'wallpaper' hides provider 'wallpaper'"])
+        #expect(result.diagnostics.map(\.message) == ["'reminders' hides provider 'reminders'"])
         #expect(result.diagnostics.first?.severity == .note)
     }
 

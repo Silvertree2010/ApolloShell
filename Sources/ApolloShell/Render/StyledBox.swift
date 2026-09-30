@@ -77,7 +77,7 @@ struct AspectRatio: ViewModifier {
     }
 }
 
-struct AspectLayout: Layout {
+struct AspectLayout: GuideFreeLayout {
     let ratio: CGFloat?
 
     func target(_ proposal: ProposedViewSize, _ subview: LayoutSubview) -> ProposedViewSize {
@@ -98,11 +98,13 @@ struct AspectLayout: Layout {
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        LayoutCounter.measured()
         guard let subview = subviews.first else { return .zero }
         return subview.sizeThatFits(target(proposal, subview))
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        LayoutCounter.placed()
         guard let subview = subviews.first else { return }
         subview.place(at: bounds.origin, proposal: target(proposal, subview))
     }

@@ -1,0 +1,75 @@
+fixture {
+    vars {
+        utilities-cards {
+            - kind="keep-awake" enabled=#true
+            - kind="audio" enabled=#true
+            - kind="quick-toggles" enabled=#true
+            - kind="brightness" enabled=#true
+            - kind="now-playing" enabled=#true
+            - kind="timer" enabled=#true
+        }
+        utilities-toggles {
+            - id="wifi" kind="wifi"
+            - id="microphone" kind="microphone"
+            - id="bluetooth" kind="bluetooth"
+            - id="dark-mode" kind="dark-mode"
+            - id="night-shift" kind="night-shift"
+            - id="mute" kind="mute"
+            - id="hidden-files" kind="hidden-files"
+            - id="low-power" kind="low-power"
+            - id="screenshot" kind="screenshot"
+            - id="show-desktop" kind="show-desktop"
+            - id="color-picker" kind="color-picker"
+            - id="lock-screen" kind="lock-screen"
+            - id="display-sleep" kind="display-sleep"
+            - id="hide-apps" kind="hide-apps" keep-frontmost=#false
+            - id="empty-trash" kind="empty-trash"
+            - id="mission-control" kind="mission-control"
+            - id="launchpad" kind="launchpad"
+            - id="air-drop" kind="air-drop"
+            - id="settings" kind="settings"
+        }
+    }
+    timer mode="standard" running=#false remaining=600 elapsed=0 duration=600 phase="focus" round=1
+    display brightness=0.7
+    power keep-awake=#true keep-awake-text="Active since 09:11"
+    clock now="2026-09-24T09:41:00+02:00"
+    battery present=#true percent=0.76 charging=#false on-power=#false low-power-mode=#true
+    network {
+        wifi on=#true connected=#true rssi=-52 bars=3
+    }
+    bluetooth on=#true status="ready" paired=2 connected=1
+    audio volume=0.35 muted=#false symbol="speaker.wave.2.fill" {
+        output id="builtin" name="MacBook Pro Speakers"
+        input id="builtin-mic" name="MacBook Pro Microphone"
+    }
+    system hidden-files=#true user-name="Andrin Example" full-name="Andrin Example" uptime=11520 macos-version="26.6.2" chip="Apple M4 Pro" microphone-muted=#false night-shift=#false dark-mode=#true show-desktop-available=#true
+    perf cpu=0.42 memory=0.61 chip="Apple M4 Pro" cores=14 gpu-cores=20 {
+        live cpu=0.42 memory=0.61 disk=0.5
+    }
+    weather status="ready" {
+        place name="Chur" latitude=46.85 longitude=9.53
+        current temperature=14 symbol="cloud.sun.fill" description="Partly Cloudy" is-day=#true
+    }
+    media available=#true playing=#true title="Starboy" artist="The Weeknd" album="Starboy" kind="music"
+    spaces current=2 count=4 {
+        list {
+            - id=1 index=1 active=#false fullscreen=#false
+            - id=2 index=2 active=#true fullscreen=#false
+            - id=3 index=3 active=#false fullscreen=#false
+            - id=4 index=4 active=#false fullscreen=#false
+        }
+    }
+    apps {
+        dock {
+            - bundle-id="com.apple.finder" name="Finder" running=#true section="file-manager" active=#false hidden=#false launching=#false badge=#null
+            - bundle-id="com.apple.Safari" name="Safari" running=#true active=#true dock-pinned=#true section="pinned" hidden=#false launching=#false badge=#null
+            - bundle-id="com.apple.mail" name="Mail" running=#false dock-pinned=#true section="pinned" badge="3" active=#false hidden=#false launching=#false
+        }
+        all {
+            - bundle-id="com.apple.finder" name="Finder" path="/System/Library/CoreServices/Finder.app" usage=0 favorite-index=#null
+            - bundle-id="com.apple.Safari" name="Safari" path="/Applications/Safari.app" usage=0 favorite-index=0
+            - bundle-id="com.apple.mail" name="Mail" path="/System/Applications/Mail.app" usage=0 favorite-index=1
+        }
+    }
+}

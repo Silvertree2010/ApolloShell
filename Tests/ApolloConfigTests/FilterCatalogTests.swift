@@ -11,15 +11,15 @@ struct FilterCatalogTests {
         "count", "first", "last", "at", "take", "skip", "slice", "reverse", "sort", "where", "where-not", "map", "join",
         "contains", "index-of", "unique", "concat", "index-where", "fuzzy",
         "app-search", "month-grid", "url", "symbol-exists", "chord", "hotkey-warning",
-        "default", "bool", "keys", "values",
+        "default", "bool", "keys", "values", "calc",
     ]
 
-    @Test("FilterTable.builtin enthält genau die 61 Filter aus config-language.md 4.5")
+    @Test("FilterTable.builtin enthält genau die 62 Filter aus config-language.md 4.5")
     func exactlyTheSpecFilters() {
-        #expect(Self.specNames.count == 61)
-        #expect(Set(Self.specNames).count == 61)
+        #expect(Self.specNames.count == 62)
+        #expect(Set(Self.specNames).count == 62)
         #expect(FilterTable.builtin.names == Self.specNames.sorted())
-        #expect(BuiltinFilters.all.count == 61)
+        #expect(BuiltinFilters.all.count == 62)
     }
 
     @Test("jeder eingebaute Filter hat eine Stellenzahl, die zur Spec passt")

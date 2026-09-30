@@ -105,6 +105,9 @@ var utilities-standard {
         - kind="keep-awake" enabled=#true
         - kind="audio" enabled=#true
         - kind="quick-toggles" enabled=#true
+        - kind="brightness" enabled=#false
+        - kind="now-playing" enabled=#false
+        - kind="timer" enabled=#false
     }
     toggles {
         - id="wifi" kind="wifi"
@@ -125,6 +128,9 @@ var utilities-minimal {
         - kind="quick-toggles" enabled=#true
         - kind="keep-awake" enabled=#false
         - kind="audio" enabled=#false
+        - kind="brightness" enabled=#false
+        - kind="now-playing" enabled=#false
+        - kind="timer" enabled=#false
     }
     toggles {
         - id="wifi" kind="wifi"
@@ -140,6 +146,9 @@ var utilities-audio {
         - kind="audio" enabled=#true
         - kind="quick-toggles" enabled=#true
         - kind="keep-awake" enabled=#false
+        - kind="brightness" enabled=#false
+        - kind="now-playing" enabled=#false
+        - kind="timer" enabled=#false
     }
     toggles {
         - id="microphone" kind="microphone"
@@ -155,6 +164,9 @@ var utilities-everything {
         - kind="keep-awake" enabled=#true
         - kind="audio" enabled=#true
         - kind="quick-toggles" enabled=#true
+        - kind="brightness" enabled=#false
+        - kind="now-playing" enabled=#false
+        - kind="timer" enabled=#false
     }
     toggles {
         - id="wifi" kind="wifi"
@@ -162,12 +174,19 @@ var utilities-everything {
         - id="bluetooth" kind="bluetooth"
         - id="dark-mode" kind="dark-mode"
         - id="night-shift" kind="night-shift"
+        - id="mute" kind="mute"
+        - id="hidden-files" kind="hidden-files"
+        - id="low-power" kind="low-power"
         - id="screenshot" kind="screenshot"
         - id="show-desktop" kind="show-desktop"
         - id="color-picker" kind="color-picker"
         - id="lock-screen" kind="lock-screen"
         - id="display-sleep" kind="display-sleep"
         - id="hide-apps" kind="hide-apps" keep-frontmost=#false
+        - id="empty-trash" kind="empty-trash"
+        - id="mission-control" kind="mission-control"
+        - id="launchpad" kind="launchpad"
+        - id="air-drop" kind="air-drop"
         - id="settings" kind="settings"
     }
 }

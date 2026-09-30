@@ -10,11 +10,21 @@ enum Features {
         FeatureSchema(name: "time-zones", since: "0.2.1"),
         FeatureSchema(name: "weather-places", since: "0.2.1"),
         FeatureSchema(name: "sun-moon", since: "0.2.1"),
+        FeatureSchema(name: "fusion", since: "0.2.1"),
+        FeatureSchema(name: "timer", since: "0.2.1"),
+        FeatureSchema(name: "clipboard", since: "0.2.1"),
+        FeatureSchema(name: "recent-files", since: "0.2.1"),
+        FeatureSchema(name: "drives", since: "0.2.1"),
+        FeatureSchema(name: "photos", since: "0.2.1"),
+        FeatureSchema(name: "network-info", since: "0.2.1"),
+        FeatureSchema(name: "display", since: "0.2.1"),
+        FeatureSchema(name: "system-extras", since: "0.2.1"),
+        FeatureSchema(name: "calc", since: "0.2.1"),
+        FeatureSchema(name: "wallpaper", since: "0.2.1"),
     ]
 
     static let reservedProviderNames: Set<String> = [
-        "menubar", "status-items", "fusion", "timer", "clipboard", "files", "drives", "photos",
-        "network-info", "display", "wallpaper", "calendar-events", "reminders", "notifications",
+        "menubar", "status-items", "fusion", "calendar-events", "reminders", "notifications",
         "focus", "location", "lua", "plugins", "windows", "input", "camera", "microphone", "canvas",
     ]
 

@@ -43,7 +43,7 @@ define "dashboard-canvas" {
     }
 }
 
-popup "dashboard" anchor="top" motion="slide" hover-edge=#true overhang=#true area="full" safe-area=#true {
+popup "dashboard" anchor="top" motion="slide" fuse-group="shell" hover-edge=#true overhang=#true area="full" safe-area=#true {
     on-open { set "calendar-offset" 0 }
     canvas class="dashboard-scaler" scale="{var.dashboard-scale * ((screen.width / 1512) | clamp 0.85 1.5) | min (screen.width / 871)}" {
         each frame in="{var.dashboard-frame}" key="{frame.id}" {

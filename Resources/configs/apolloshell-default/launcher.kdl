@@ -1,54 +1,351 @@
 var launcher-query ""
 var launcher-selection 0
+var launcher-armed ""
+var launcher-armed-query ""
+var launcher-armed-id from="{var.launcher-armed-query == var.launcher-query ? var.launcher-armed : ''}"
 var launcher-results from="{apps.all | app-search var.launcher-query}"
 var hotkey-launcher "{shell.fresh-install ? 'alt+space' : 'f20'}" persist=#true
 
-popup "launcher" anchor="bottom" motion="grow" overhang=#true {
-    on-open { apps.refresh; set "launcher-query" ""; set "launcher-selection" 0 }
+var launcher-actions {
+    - id="calculator" title="Calculator" subtitle="Do simple maths, the result is copied" symbol="plus.forwardslash.minus" keyword="calc"
+    - id="theme" title="Theme" subtitle="Change the theme" symbol="paintpalette" keyword="theme"
+    - id="wallpaper" title="Wallpaper" subtitle="Change the wallpaper" symbol="photo" keyword="wallpaper"
+    - id="random-wallpaper" title="Random Wallpaper" subtitle="Switch to a random wallpaper" symbol="dice"
+    - id="light" title="Light" subtitle="Switch to light mode" symbol="sun.max"
+    - id="dark" title="Dark" subtitle="Switch to dark mode" symbol="moon"
+    - id="lock" title="Lock" subtitle="Lock the screen" symbol="lock"
+    - id="sleep" title="Sleep" subtitle="Put the Mac to sleep" symbol="moon.zzz"
+    - id="log-out" title="Log Out" subtitle="Log out of this session" symbol="rectangle.portrait.and.arrow.right" confirm=#true
+    - id="restart" title="Restart" subtitle="Restart the Mac" symbol="arrow.clockwise" confirm=#true
+    - id="shut-down" title="Shut Down" subtitle="Shut down the Mac" symbol="power" confirm=#true
+    - id="settings" title="Settings" subtitle="Open the Nexus panel" symbol="gearshape"
+}
+
+var launcher-action-matches {
+    "c" { - "calculator" }
+    "ca" { - "calculator" }
+    "cal" { - "calculator" }
+    "calc" { - "calculator" }
+    "calcu" { - "calculator" }
+    "calcul" { - "calculator" }
+    "calcula" { - "calculator" }
+    "calculat" { - "calculator" }
+    "calculato" { - "calculator" }
+    "calculator" { - "calculator" }
+    "d" { - "dark"; - "shut-down" }
+    "da" { - "dark" }
+    "dar" { - "dark" }
+    "dark" { - "dark" }
+    "do" { - "shut-down" }
+    "dow" { - "shut-down" }
+    "down" { - "shut-down" }
+    "l" { - "light"; - "lock"; - "log-out" }
+    "li" { - "light" }
+    "lig" { - "light" }
+    "ligh" { - "light" }
+    "light" { - "light" }
+    "lo" { - "lock"; - "log-out" }
+    "loc" { - "lock" }
+    "lock" { - "lock" }
+    "log" { - "log-out" }
+    "log " { - "log-out" }
+    "log o" { - "log-out" }
+    "log ou" { - "log-out" }
+    "log out" { - "log-out" }
+    "logo" { - "log-out" }
+    "logou" { - "log-out" }
+    "logout" { - "log-out" }
+    "o" { - "log-out" }
+    "ou" { - "log-out" }
+    "out" { - "log-out" }
+    "r" { - "random-wallpaper"; - "restart" }
+    "ra" { - "random-wallpaper" }
+    "ran" { - "random-wallpaper" }
+    "rand" { - "random-wallpaper" }
+    "rando" { - "random-wallpaper" }
+    "random" { - "random-wallpaper" }
+    "random " { - "random-wallpaper" }
+    "random w" { - "random-wallpaper" }
+    "random wa" { - "random-wallpaper" }
+    "random wal" { - "random-wallpaper" }
+    "random wall" { - "random-wallpaper" }
+    "random wallp" { - "random-wallpaper" }
+    "random wallpa" { - "random-wallpaper" }
+    "random wallpap" { - "random-wallpaper" }
+    "random wallpape" { - "random-wallpaper" }
+    "random wallpaper" { - "random-wallpaper" }
+    "randomw" { - "random-wallpaper" }
+    "randomwa" { - "random-wallpaper" }
+    "randomwal" { - "random-wallpaper" }
+    "randomwall" { - "random-wallpaper" }
+    "randomwallp" { - "random-wallpaper" }
+    "randomwallpa" { - "random-wallpaper" }
+    "randomwallpap" { - "random-wallpaper" }
+    "randomwallpape" { - "random-wallpaper" }
+    "randomwallpaper" { - "random-wallpaper" }
+    "re" { - "restart" }
+    "res" { - "restart" }
+    "rest" { - "restart" }
+    "resta" { - "restart" }
+    "restar" { - "restart" }
+    "restart" { - "restart" }
+    "s" { - "sleep"; - "shut-down"; - "settings" }
+    "se" { - "settings" }
+    "set" { - "settings" }
+    "sett" { - "settings" }
+    "setti" { - "settings" }
+    "settin" { - "settings" }
+    "setting" { - "settings" }
+    "settings" { - "settings" }
+    "sh" { - "shut-down" }
+    "shu" { - "shut-down" }
+    "shut" { - "shut-down" }
+    "shut " { - "shut-down" }
+    "shut d" { - "shut-down" }
+    "shut do" { - "shut-down" }
+    "shut dow" { - "shut-down" }
+    "shut down" { - "shut-down" }
+    "shutd" { - "shut-down" }
+    "shutdo" { - "shut-down" }
+    "shutdow" { - "shut-down" }
+    "shutdown" { - "shut-down" }
+    "sl" { - "sleep" }
+    "sle" { - "sleep" }
+    "slee" { - "sleep" }
+    "sleep" { - "sleep" }
+    "t" { - "theme" }
+    "th" { - "theme" }
+    "the" { - "theme" }
+    "them" { - "theme" }
+    "theme" { - "theme" }
+    "w" { - "wallpaper"; - "random-wallpaper" }
+    "wa" { - "wallpaper"; - "random-wallpaper" }
+    "wal" { - "wallpaper"; - "random-wallpaper" }
+    "wall" { - "wallpaper"; - "random-wallpaper" }
+    "wallp" { - "wallpaper"; - "random-wallpaper" }
+    "wallpa" { - "wallpaper"; - "random-wallpaper" }
+    "wallpap" { - "wallpaper"; - "random-wallpaper" }
+    "wallpape" { - "wallpaper"; - "random-wallpaper" }
+    "wallpaper" { - "wallpaper"; - "random-wallpaper" }
+}
+
+var launcher-rest from="{(var.launcher-query | starts-with '>') ? (var.launcher-query | slice 1 (var.launcher-query | count)) : null}"
+var launcher-mode from="{var.launcher-rest == null ? 'apps' : ((var.launcher-rest | lower | starts-with 'calc ') ? 'calc' : ((var.launcher-rest | lower | starts-with 'theme ') ? 'theme' : ((var.launcher-rest | lower | starts-with 'wallpaper ') ? 'wallpaper' : 'actions')))}"
+var launcher-argument from="{var.launcher-rest == null ? '' : (var.launcher-mode == 'calc' ? (var.launcher-rest | slice 5 (var.launcher-rest | count)) : (var.launcher-mode == 'theme' ? (var.launcher-rest | slice 6 (var.launcher-rest | count)) : (var.launcher-mode == 'wallpaper' ? (var.launcher-rest | slice 10 (var.launcher-rest | count)) : var.launcher-rest)))}"
+var launcher-action-ids from="{var.launcher-argument == '' ? (var.launcher-actions | map 'id') : (var.launcher-action-matches[var.launcher-argument | lower] ?? [])}"
+var launcher-selected-action from="{var.launcher-actions | where 'id' (var.launcher-action-ids | at var.launcher-selection) | first}"
+var launcher-calc from="{var.launcher-argument | calc}"
+var launcher-no-theme from="{var.launcher-argument == '' || ('no theme' | contains (var.launcher-argument | lower))}"
+var launcher-theme-rows from="{shell.themes | fuzzy var.launcher-argument 'name'}"
+var launcher-wallpaper-rows from="{var.launcher-mode == 'wallpaper' ? (wallpaper.apple | fuzzy var.launcher-argument 'name') : []}"
+var launcher-count from="{var.launcher-mode == 'apps' ? (var.launcher-results | count) : (var.launcher-mode == 'actions' ? (var.launcher-action-ids | count) : (var.launcher-mode == 'calc' ? 1 : (var.launcher-mode == 'theme' ? (var.launcher-theme-rows | count) + (var.launcher-no-theme ? 1 : 0) : (var.launcher-wallpaper-rows | count))))}"
+
+define "launcher-action-row" {
+    param "index"
+    param "symbol"
+    param "title"
+    param "subtitle" default=#null
+    param "trailing" default=#null
+    param "armed" default=#false
+    param "thumbnail" default=#null
+    button class="launcher-row" checked="{index == var.launcher-selection}" {
+        on-click {
+            set "launcher-selection" "{index}"
+            emit "launcher-run"
+        }
+        row class="launcher-row-content" {
+            stack class="launcher-symbol-box" {
+                when "{thumbnail != null}" {
+                    image "{thumbnail}" fit="fill" class="launcher-thumbnail"
+                }
+                else {
+                    icon "{symbol}" class="launcher-symbol"
+                }
+            }
+            column class="launcher-row-text" {
+                text "{title}" class="launcher-name" lines=1
+                when "{subtitle != null}" {
+                    text "{subtitle}" class="launcher-subtitle {armed ? 'armed' : ''}" lines=1
+                }
+            }
+            spacer
+            when "{trailing != null}" {
+                text "{trailing}" class="launcher-trailing"
+            }
+        }
+    }
+}
+
+define "launcher-action-entry" {
+    param "index"
+    param "action"
+    use "launcher-action-row" index="{index}" symbol="{action.symbol}" title="{action.title}" subtitle="{var.launcher-armed-id == action.id ? 'Press Return again to ' + (action.title | lower) : action.subtitle}" trailing="{action.keyword == null ? null : '>' + action.keyword}" armed="{var.launcher-armed-id == action.id}"
+}
+
+popup "launcher" anchor="bottom" motion="grow" fuse-group="shell" overhang=#true {
+    on-open { apps.refresh; set "launcher-query" ""; set "launcher-selection" 0; set "launcher-armed" "" }
     column class="launcher" {
         row class="launcher-search" {
             icon "bar-launcher" fallback="magnifyingglass" class="launcher-search-icon"
             input bind="var.launcher-query" placeholder="Search…" focus="{surface.open}" class="launcher-field" {
                 on-change { set "launcher-selection" 0 }
                 on-submit {
-                    when "{(var.launcher-results | count) > 0}" {
-                        apps.launch "{var.launcher-results | at var.launcher-selection}"
-                        close "launcher"
+                    when "{var.launcher-mode == 'apps'}" {
+                        when "{(var.launcher-results | count) > 0}" {
+                            apps.launch "{var.launcher-results | at var.launcher-selection}"
+                            close "launcher"
+                        }
+                    }
+                    else {
+                        emit "launcher-run"
                     }
                 }
                 key "up" { set "launcher-selection" "{var.launcher-selection - 1 | max 0}" }
-                key "down" { set "launcher-selection" "{var.launcher-selection + 1 | min ((var.launcher-results | count) - 1) | max 0}" }
+                key "down" { set "launcher-selection" "{var.launcher-selection + 1 | min (var.launcher-count - 1) | max 0}" }
             }
         }
         stack class="launcher-separator"
-        when "{(var.launcher-results | count) == 0}" {
-            text "No App Found" class="launcher-empty"
+        when "{var.launcher-count == 0}" {
+            text "{var.launcher-mode == 'apps' ? 'No App Found' : 'No Match'}" class="launcher-empty"
         }
         else {
-            scroll class="launcher-list" lazy=#true reveal="{(var.launcher-results | at var.launcher-selection).bundle-id}" {
-                column class="launcher-rows" {
-                    each app in="{var.launcher-results}" key="{app.bundle-id}" index="i" {
-                        button class="launcher-row" checked="{i == var.launcher-selection}" {
-                            on-click {
-                                set "launcher-selection" "{i}"
-                                apps.launch "{app}"
-                                close "launcher"
-                            }
-                            on-right-click { set "launcher-selection" "{i}" }
-                            menu side="pointer" {
-                                item "Open" { apps.launch "{app}"; close "launcher" }
-                                separator
-                                source "app-dock" app="{app}" fallback="commands"
-                                separator
-                                item "Show in Finder" { close "launcher"; apps.reveal "{app}" in="finder" }
-                            }
-                            row class="launcher-row-content" {
-                                app-icon "{app}" class="launcher-icon"
-                                text "{app.name}" class="launcher-name"
-                                spacer
+            switch "{var.launcher-mode}" {
+                case "apps" {
+                    scroll class="launcher-list" lazy=#true reveal="{(var.launcher-results | at var.launcher-selection).bundle-id}" {
+                        column class="launcher-rows" {
+                            each app in="{var.launcher-results}" key="{app.bundle-id}" index="i" {
+                                button class="launcher-row" checked="{i == var.launcher-selection}" {
+                                    on-click {
+                                        set "launcher-selection" "{i}"
+                                        apps.launch "{app}"
+                                        close "launcher"
+                                    }
+                                    on-right-click { set "launcher-selection" "{i}" }
+                                    menu side="pointer" {
+                                        item "Open" { apps.launch "{app}"; close "launcher" }
+                                        separator
+                                        source "app-dock" app="{app}" fallback="commands"
+                                        separator
+                                        item "Show in Finder" { close "launcher"; apps.reveal "{app}" in="finder" }
+                                    }
+                                    row class="launcher-row-content" {
+                                        app-icon "{app}" class="launcher-icon"
+                                        text "{app.name}" class="launcher-name"
+                                        spacer
+                                    }
+                                }
                             }
                         }
                     }
+                }
+                case "actions" {
+                    scroll class="launcher-list" reveal="{var.launcher-action-ids | at var.launcher-selection}" {
+                        column class="launcher-rows" {
+                            each id in="{var.launcher-action-ids}" key="{id}" index="i" {
+                                use "launcher-action-entry" index="{i}" action="{var.launcher-actions | where 'id' id | first}"
+                            }
+                        }
+                    }
+                }
+                case "calc" {
+                    scroll class="launcher-list" {
+                        column class="launcher-rows" {
+                            when "{(var.launcher-argument | replace ' ' '' | count) == 0}" {
+                                use "launcher-action-row" index=0 symbol="info.circle" title="Type a sum, like 2*(3+4)"
+                            }
+                            else {
+                                when "{var.launcher-calc == null}" {
+                                    use "launcher-action-row" index=0 symbol="info.circle" title="Not a complete sum yet"
+                                }
+                                else {
+                                    use "launcher-action-row" index=0 symbol="equal" title="{var.launcher-calc}" subtitle="Return copies the result"
+                                }
+                            }
+                        }
+                    }
+                }
+                case "theme" {
+                    scroll class="launcher-list" {
+                        column class="launcher-rows" {
+                            when "{var.launcher-no-theme}" {
+                                use "launcher-action-row" index=0 symbol="{theme.id == null ? 'checkmark.circle.fill' : 'paintpalette'}" title="No Theme" trailing="{theme.id == null ? 'Current' : null}"
+                            }
+                            each item in="{var.launcher-theme-rows}" key="{item.id}" index="i" {
+                                use "launcher-action-row" index="{i + (var.launcher-no-theme ? 1 : 0)}" symbol="{theme.id == item.id ? 'checkmark.circle.fill' : 'paintpalette'}" title="{item.name}" trailing="{theme.id == item.id ? 'Current' : null}"
+                            }
+                        }
+                    }
+                }
+                default {
+                    scroll class="launcher-list" lazy=#true reveal="{(var.launcher-wallpaper-rows | at var.launcher-selection).name}" {
+                        column class="launcher-rows" {
+                            each item in="{var.launcher-wallpaper-rows}" key="{item.name}" index="i" {
+                                use "launcher-action-row" index="{i}" symbol="photo" title="{item.name}" subtitle="{item.path == null ? 'Not downloaded – Return opens Wallpaper settings' : null}" thumbnail="{item.thumbnail}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+on "user.launcher-run" {
+    switch "{var.launcher-mode}" {
+        case "actions" {
+            when "{(var.launcher-action-ids | count) > 0}" {
+                when "{var.launcher-selected-action.keyword != null}" {
+                    set "launcher-query" "{'>' + var.launcher-selected-action.keyword + ' '}"
+                    set "launcher-selection" 0
+                }
+                else {
+                    when "{var.launcher-selected-action.confirm == true && var.launcher-armed-id != var.launcher-selected-action.id}" {
+                        set "launcher-armed" "{var.launcher-selected-action.id}"
+                        set "launcher-armed-query" "{var.launcher-query}"
+                    }
+                    else {
+                        switch "{var.launcher-selected-action.id}" {
+                            case "random-wallpaper" { close "launcher"; wallpaper.random }
+                            case "light" { close "launcher"; system.set-dark-mode #false }
+                            case "dark" { close "launcher"; system.set-dark-mode #true }
+                            case "lock" { close "launcher" wait=#true; wait "350ms"; system.lock }
+                            case "sleep" { close "launcher" wait=#true; wait "350ms"; session.sleep }
+                            case "log-out" { close "launcher" wait=#true; wait "350ms"; session.logout }
+                            case "restart" { close "launcher" wait=#true; wait "350ms"; session.restart }
+                            case "shut-down" { close "launcher" wait=#true; wait "350ms"; session.shutdown }
+                            case "settings" { close "launcher"; open "settings" }
+                        }
+                    }
+                }
+            }
+        }
+        case "calc" {
+            when "{var.launcher-calc != null}" {
+                clipboard.copy "{var.launcher-calc}"
+                close "launcher"
+            }
+        }
+        case "theme" {
+            when "{var.launcher-no-theme && var.launcher-selection == 0}" {
+                close "launcher"
+                theme.select #null
+            }
+            else {
+                when "{var.launcher-count > 0}" {
+                    close "launcher"
+                    theme.select "{(var.launcher-theme-rows | at (var.launcher-selection - (var.launcher-no-theme ? 1 : 0))).id}"
+                }
+            }
+        }
+        case "wallpaper" {
+            when "{var.launcher-count > 0}" {
+                when "{(var.launcher-wallpaper-rows | at var.launcher-selection).path == null}" {
+                    close "launcher"
+                    system.open-settings "wallpaper"
+                }
+                else {
+                    close "launcher"
+                    wallpaper.set "{(var.launcher-wallpaper-rows | at var.launcher-selection).path}"
                 }
             }
         }

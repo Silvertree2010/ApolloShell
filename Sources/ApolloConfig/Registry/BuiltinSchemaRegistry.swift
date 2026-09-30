@@ -37,7 +37,7 @@ enum BuiltinSchemaRegistry {
         ProvidersMore.window, ProvidersMore.screens, ProvidersMore.system, ProvidersMore.session,
         ProvidersMore.power, ProvidersMore.permissions, ProvidersMore.shortcuts,
         ProvidersMore.marketplace, ProvidersMore.wm,
-    ]
+    ] + ProvidersExtras.all
 
     static let providersResult = RegistryBuilder.dictionary(allProviders, name: { $0.id })
 
