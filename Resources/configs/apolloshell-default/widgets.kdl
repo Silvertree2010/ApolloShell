@@ -238,6 +238,7 @@ define "widget" {
         case "network.info" { use "widget-network-info" w="{w}" }
         case "files.recent" { use "widget-files-recent" w="{w}" }
         case "clipboard" { use "widget-clipboard" w="{w}" }
+        case "sun" { use "widget-sun" w="{w}" }
         default { column class="card widget-unknown" { text "{w.kind}" class="card-hint" } }
     }
 }

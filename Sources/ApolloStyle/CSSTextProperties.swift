@@ -46,6 +46,11 @@ enum CSSTextProperties {
         CSSPropertyEntry("-apollo-stroke-width") { components, _ in
             .length(try CSSRead.length(CSSRead.single(components), negative: false))
         },
+        CSSPropertyEntry("-apollo-stroke-dash") { components, _ in
+            let words = CSSList.words(components)
+            guard (1...4).contains(words.count) else { throw CSSValueError("-apollo-stroke-dash is one to four lengths: dash and gap") }
+            return .lengths(try words.map { try CSSRead.length($0, negative: false) })
+        },
         CSSPropertyEntry("-apollo-start-angle", initial: .angle(-90)) { components, _ in
             .angle(try CSSRead.angle(CSSRead.single(components)))
         },

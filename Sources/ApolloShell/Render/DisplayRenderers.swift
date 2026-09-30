@@ -63,11 +63,13 @@ struct DisplayStyle {
     var stroke: Color
     var track: Color
     var width: CGFloat
+    var dash: [CGFloat] = []
 
     init(_ style: ComputedStyle) {
         if case .color(let color)? = style["color"] { stroke = StyleValues.color(color) } else { stroke = .accentColor }
         if case .color(let color)? = style["-apollo-track-color"] { track = StyleValues.color(color) } else { track = Color.primary.opacity(0.12) }
         width = StyleValues.points(style["-apollo-stroke-width"]) ?? 4
+        if case .lengths(let list)? = style["-apollo-stroke-dash"] { dash = list.map { CGFloat($0.value) } }
     }
 }
 
@@ -244,7 +246,7 @@ struct GraphView: View {
                                  shape: AnyShape(GraphLine(points: points, slots: slots, closed: true)), context: context)
                 GraphLine(points: points, slots: slots, closed: false).stroke(style.stroke, style: StrokeStyle(lineWidth: style.width, lineCap: .round, lineJoin: .round))
             default:
-                GraphLine(points: points, slots: slots, closed: false).stroke(style.stroke, style: StrokeStyle(lineWidth: style.width, lineCap: .round, lineJoin: .round))
+                GraphLine(points: points, slots: slots, closed: false).stroke(style.stroke, style: StrokeStyle(lineWidth: style.width, lineCap: style.dash.isEmpty ? .round : .butt, lineJoin: .round, dash: style.dash))
             }
         }
         .frame(minWidth: 10, minHeight: 10)

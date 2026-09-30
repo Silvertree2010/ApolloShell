@@ -66,3 +66,32 @@
 .wx-clip-text { font-size: 13px; flex-shrink: 1; min-width: 0; }
 .wx-clip-glyph { font-size: 11px; font-weight: 600; color: -apple-system-secondary-label; flex-shrink: 0; }
 .wx-clip-glyph.done { color: var(--apollo-accent-color, -apple-system-control-accent); }
+.card.wx-sun { padding: 0; align-items: center; justify-content: center; border-radius: var(--apollo-card-radius, 28px); }
+.card.wx-sun.min { padding: 0 20px; gap: 18px; }
+.card.wx-sun.min.stacked { gap: 16px; }
+.card.wx-sun.narrow { padding: 16px; gap: 6px; align-items: start; }
+.card.wx-sun.tall { padding: 16px; gap: 14px; }
+.card.wx-sun.wide { padding: 16px; gap: 16px; }
+.wx-sun-block { gap: 6px; align-items: start; min-width: 0; align-self: stretch; }
+.wide > .wx-sun-block { flex-grow: 1; }
+.wx-times { gap: 16px; flex-shrink: 0; }
+.wx-times.stacked { gap: 8px; align-items: start; }
+.wx-time { gap: 6px; align-items: center; flex-shrink: 0; }
+.wx-time-glyph { font-size: 15px; -apollo-symbol-rendering: multicolor; }
+.wx-time-text { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.wx-moon { gap: 10px; align-items: center; flex-shrink: 0; }
+.wx-moon-glyph { -apollo-symbol-rendering: hierarchical; color: rgb(from -apple-system-label r g b / 0.85); }
+.wx-moon-texts { gap: 1px; align-items: start; }
+.wx-moon-name { font-size: 13px; font-weight: 600; }
+.wx-moon-lit { font-size: 11px; color: -apple-system-secondary-label; }
+.wx-arc { align-self: stretch; min-width: 0; }
+.wx-arc-curve { align-self: stretch; }
+.wx-arc-line { align-self: stretch; -apollo-stroke-width: 1.5px; -apollo-stroke-dash: 3px 4px; color: rgb(from -apple-system-label r g b / 0.25); }
+.wx-arc-baseline { align-self: stretch; }
+.wx-arc-base { align-self: stretch; height: 1px; background: rgb(from -apple-system-label r g b / 0.15); }
+.wx-arc-dotcol { align-self: stretch; }
+.wx-arc-dotrow { align-self: stretch; }
+.wx-arc-anchor { width: 0; height: 14px; align-items: center; justify-content: center; filter: drop-shadow(0 0 6px rgb(255 149 0 / 0.6)); }
+.wx-arc-dot { width: 14px; height: 14px; flex-shrink: 0; background: -apple-system-yellow; }
+.wx-arc-badge { align-self: stretch; align-items: start; }
+.wx-arc-moon { font-size: 16px; -apollo-symbol-rendering: hierarchical; color: rgb(from -apple-system-label r g b / 0.85); }

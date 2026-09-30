@@ -407,3 +407,226 @@ define "widget-clipboard" {
         }
     }
 }
+
+var wx-sine {
+    - 0.0
+    - 0.078459
+    - 0.156434
+    - 0.233445
+    - 0.309017
+    - 0.382683
+    - 0.45399
+    - 0.522499
+    - 0.587785
+    - 0.649448
+    - 0.707107
+    - 0.760406
+    - 0.809017
+    - 0.85264
+    - 0.891007
+    - 0.92388
+    - 0.951057
+    - 0.97237
+    - 0.987688
+    - 0.996917
+    - 1.0
+    - 0.996917
+    - 0.987688
+    - 0.97237
+    - 0.951057
+    - 0.92388
+    - 0.891007
+    - 0.85264
+    - 0.809017
+    - 0.760406
+    - 0.707107
+    - 0.649448
+    - 0.587785
+    - 0.522499
+    - 0.45399
+    - 0.382683
+    - 0.309017
+    - 0.233445
+    - 0.156434
+    - 0.078459
+    - 0.0
+}
+
+define "wx-time" {
+    param "sym"
+    param "at"
+    param "none"
+    row class="wx-time" {
+        icon "{sym}" class="wx-time-glyph"
+        text "{at != null ? (at | date 'h:mm\u{202F}a') : none}" class="wx-time-text" lines=1
+    }
+}
+
+define "wx-times" {
+    param "rise"
+    param "set"
+    param "up"
+    param "stacked"
+    when "{stacked}" {
+        column class="wx-times stacked" {
+            use "wx-time" sym="sunrise.fill" at="{rise}" none="{up ? 'Up all day' : 'Down all day'}"
+            use "wx-time" sym="sunset.fill" at="{set}" none=""
+        }
+    }
+    else {
+        row class="wx-times" {
+            use "wx-time" sym="sunrise.fill" at="{rise}" none="{up ? 'Up all day' : 'Down all day'}"
+            use "wx-time" sym="sunset.fill" at="{set}" none=""
+        }
+    }
+}
+
+define "wx-moon" {
+    param "sym"
+    param "mname"
+    param "ill"
+    param "side"
+    param "detailed"
+    row class="wx-moon" {
+        icon "{sym}" class="wx-moon-glyph" style="font-size: {side * 0.8}px"
+        when "{detailed}" {
+            column class="wx-moon-texts" {
+                text "{mname}" class="wx-moon-name" lines=1
+                text "{ill * 100 | round} % lit" class="wx-moon-lit" lines=1
+            }
+        }
+    }
+}
+
+define "wx-arc-dot" {
+    param "p"
+    param "h"
+    param "s"
+    column class="wx-arc-dotcol" style="padding-top: {h - s * (h - 8) - 7}px; height: {h}px" {
+        row class="wx-arc-dotrow" {
+            spacer style="flex-grow: {p * 1000}; flex-basis: 0px"
+            stack class="wx-arc-anchor" {
+                shape "circle" class="wx-arc-dot"
+            }
+            spacer style="flex-grow: {(1 - p) * 1000}; flex-basis: 0px"
+        }
+    }
+}
+
+define "wx-arc-sine" {
+    param "p"
+    param "h"
+    param "i"
+    param "f"
+    use "wx-arc-dot" p="{p}" h="{h}" s="{(var.wx-sine | at i) + (((var.wx-sine | at (i + 1)) - (var.wx-sine | at i)) * f)}"
+}
+
+define "wx-arc" {
+    param "p"
+    param "h"
+    param "moon"
+    stack class="wx-arc" style="height: {h}px" {
+        column class="wx-arc-curve" style="padding-top: 8px" {
+            graph values="{var.wx-sine}" kind="line" min=0 max=1 class="wx-arc-line" style="height: {h - 8}px"
+        }
+        column class="wx-arc-baseline" style="padding-top: {h - 0.5}px" {
+            stack class="wx-arc-base"
+        }
+        use "wx-arc-sine" p="{p}" h="{h}" i="{(p * 40) | min 39 | floor}" f="{(p * 40) - ((p * 40) | min 39 | floor)}"
+        when "{moon != null}" {
+            row class="wx-arc-badge" style="height: {h}px" {
+                spacer
+                icon "{moon}" class="wx-arc-moon"
+            }
+        }
+    }
+}
+
+define "widget-sun-view" {
+    param "w"
+    param "rise"
+    param "set"
+    param "up"
+    param "sym"
+    param "mname"
+    param "ill"
+    param "p"
+    switch "{w.display}" {
+        case "minimal" {
+            when "{w.width < 300}" {
+                column class="card wx-sun min stacked" {
+                    use "wx-times" rise="{rise}" set="{set}" up="{up}" stacked=#true
+                    use "wx-moon" sym="{sym}" mname="{mname}" ill="{ill}" side=44 detailed="{w.height > 200}"
+                }
+            }
+            else {
+                row class="card wx-sun min" {
+                    use "wx-times" rise="{rise}" set="{set}" up="{up}" stacked=#false
+                    spacer
+                    use "wx-moon" sym="{sym}" mname="{mname}" ill="{ill}" side=44 detailed=#false
+                }
+            }
+        }
+        default {
+            when "{w.height <= 200 && w.width < 320}" {
+                column class="card wx-sun narrow" {
+                    use "wx-arc" p="{p}" h=48 moon="{sym}"
+                    use "wx-times" rise="{rise}" set="{set}" up="{up}" stacked=#false
+                }
+            }
+            else {
+                when "{w.height > 200}" {
+                    column class="card wx-sun tall" {
+                        column class="wx-sun-block" {
+                            use "wx-arc" p="{p}" h=90 moon=#null
+                            use "wx-times" rise="{rise}" set="{set}" up="{up}" stacked=#false
+                        }
+                        use "wx-moon" sym="{sym}" mname="{mname}" ill="{ill}" side=56 detailed=#true
+                    }
+                }
+                else {
+                    row class="card wx-sun wide" {
+                        column class="wx-sun-block" {
+                            use "wx-arc" p="{p}" h=56 moon=#null
+                            use "wx-times" rise="{rise}" set="{set}" up="{up}" stacked=#false
+                        }
+                        use "wx-moon" sym="{sym}" mname="{mname}" ill="{ill}" side=44 detailed="{w.width >= 320}"
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "widget-sun-day" {
+    param "w"
+    param "rise"
+    param "set"
+    param "up"
+    param "sym"
+    param "mname"
+    param "ill"
+    use "widget-sun-view" w="{w}" rise="{rise}" set="{set}" up="{up}" sym="{sym}" mname="{mname}" ill="{ill}" p="{rise != null && set != null && (set | number) > (rise | number) ? (0 | max ((((clock.now | number) - (rise | number)) / ((set | number) - (rise | number))) | min 1)) : (up ? 0.5 : 0)}"
+}
+
+define "widget-sun-place" {
+    param "w"
+    param "lat"
+    param "lon"
+    when "{lat == null || lon == null}" {
+        column class="card wx-sun empty" {
+            column class="wx-empty" {
+                icon "location.slash" class="wx-empty-glyph"
+                text "Set a place in the widget's options" class="wx-empty-text"
+            }
+        }
+    }
+    else {
+        use "widget-sun-day" w="{w}" rise="{(clock.now | sun-moon lat lon).sunrise}" set="{(clock.now | sun-moon lat lon).sunset}" up="{(clock.now | sun-moon lat lon).always-up}" sym="{(clock.now | sun-moon lat lon).moon-symbol}" mname="{(clock.now | sun-moon lat lon).moon-name}" ill="{(clock.now | sun-moon lat lon).moon-illumination}"
+    }
+}
+
+define "widget-sun" {
+    param "w"
+    use "widget-sun-place" w="{w}" lat="{w.latitude ?? weather.place.latitude}" lon="{w.longitude ?? weather.place.longitude}"
+}
