@@ -387,6 +387,10 @@ final class WindowHost: SurfaceHosting {
         }
     }
 
+    static func contentFit(_ fit: CGSize, _ i: EdgeInsets, _ f: EdgeInsets) -> CGSize {
+        visibleSize(fit, i, f)
+    }
+
     static func visibleSize(_ size: CGSize, _ i: EdgeInsets, _ f: EdgeInsets) -> CGSize {
         CGSize(width: max(0, size.width - i.leading - i.trailing - f.leading - f.trailing), height: max(0, size.height - i.top - i.bottom - f.top - f.bottom))
     }
@@ -426,7 +430,7 @@ final class WindowHost: SurfaceHosting {
         controller.window.watchFitting(spec.kind != "window" && (placement.width == nil || placement.height == nil))
         let fit = controller.window.fittingSize, flyout = controller.flyout
         controller.lastFitting = fit
-        let fitting = CGSize(width: max(0, fit.width - flyout.leading - flyout.trailing), height: max(0, fit.height - flyout.top - flyout.bottom))
+        let fitting = Self.contentFit(fit, controller.insets, flyout)
         let layout = SurfaceLayout.compute(placement: placement, spec: spec, radius: StyleValues.radius(style["border-radius"]), screen: screen, fitting: fitting)
         if layout.insets != controller.insets {
             controller.insets = layout.insets

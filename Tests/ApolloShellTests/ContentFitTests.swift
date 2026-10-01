@@ -44,6 +44,24 @@ struct ContentFitTests {
 }
 
 @MainActor
+@Suite("Fenstergrösse ohne Überhang-Rückkopplung")
+struct InsetFeedbackTests {
+    @Test("Die Messung des Hosting-Views enthält die Überhang-Ränder schon und wächst das Fenster nicht erneut")
+    func noGrowth() throws {
+        let fixture = try HostFixture("""
+        popup "u" anchor="bottom-right" overhang=#true style="border-radius: 25px" { text "x" }
+        """)
+        let window = try #require(fixture.window("u"))
+        for _ in 0..<3 {
+            window.fittingSize = CGSize(width: 455, height: 451)
+            window.onFittingChange?()
+            fixture.flush()
+        }
+        #expect(window.frame.size == CGSize(width: 455, height: 451))
+    }
+}
+
+@MainActor
 @Suite("Inhalt an der verankerten Kante")
 struct AnchorAlignmentTests {
     @Test("Eine links verankerte Oberfläche richtet ihren Inhalt links aus, damit er beim Wachsen für ein Flyout nicht springt")
