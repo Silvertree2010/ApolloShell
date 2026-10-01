@@ -320,9 +320,10 @@ define "card-audio" {
 }
 
 define "card-quick-toggles" {
+    param "edit" default=#false
     column class="utilities-card quick-toggles-card" {
         text "Quick Toggles" class="utilities-card-title" lines=1
-        when "{var.shell-editing}" {
+        when "{edit}" {
             reorderable axis="grid" enabled=#true accept="value" class="quick-toggles" {
                 on-reorder { list.move "utilities-toggles" from="{event.from}" to="{event.to}" }
                 on-drop accept="value" { use "edit-add-cc" value="{event.value}" }
@@ -365,7 +366,8 @@ popup "utilities" anchor="bottom-right" fuse-group="shell" hover-edge="{!var.she
                     on-drop accept="value" { use "edit-add-cc" value="{event.value}" }
                     each card in="{var.utilities-cards | where 'enabled' true}" key="{card.kind}" {
                         use "edit-frame" list="utilities-cards" key="{card.kind}" disable=#true {
-                            use "card-{card.kind}"
+                            when "{card.kind == 'quick-toggles'}" { use "card-quick-toggles" edit=#true }
+                            else { use "card-{card.kind}" }
                         }
                     }
                 }
