@@ -1,0 +1,905 @@
+{
+  "apolloMenuBar" : {
+    "center" : [
+
+    ],
+    "coversMenuBar" : true,
+    "distinctGroups" : false,
+    "enabled" : true,
+    "end" : [
+      {
+        "id" : "statusItems",
+        "kind" : "statusItems"
+      },
+      {
+        "id" : "statusIcons",
+        "kind" : "statusIcons",
+        "options" : {
+          "showBattery" : true,
+          "showBluetooth" : true,
+          "showWifi" : true
+        }
+      },
+      {
+        "id" : "clock",
+        "kind" : "clock",
+        "options" : {
+          "showDate" : true,
+          "showIcon" : false
+        }
+      }
+    ],
+    "hideAppleMenuBar" : false,
+    "screens" : {
+      "mode" : "all",
+      "screen" : null
+    },
+    "start" : [
+      {
+        "id" : "appleMenu",
+        "kind" : "appleMenu"
+      },
+      {
+        "id" : "appMenu",
+        "kind" : "appMenu"
+      }
+    ],
+    "statusStyle" : "icons",
+    "style" : "fill",
+    "thickness" : 24
+  },
+  "appleDockHiding" : {
+    "hideWhileRunning" : true
+  },
+  "background" : {
+    "desktopClock" : true
+  },
+  "bar" : {
+    "layout" : [
+      {
+        "id" : "dashboardButton",
+        "kind" : "dashboardButton"
+      },
+      {
+        "id" : "workspaces",
+        "kind" : "workspaces",
+        "options" : {
+          "style" : "dots"
+        }
+      },
+      {
+        "id" : "dock",
+        "kind" : "dock",
+        "options" : {
+          "iconSize" : "medium",
+          "showRunning" : true
+        }
+      },
+      {
+        "id" : "clock",
+        "kind" : "clock",
+        "options" : {
+          "showDate" : false,
+          "showIcon" : true
+        }
+      },
+      {
+        "id" : "utilitiesButton",
+        "kind" : "utilitiesButton"
+      },
+      {
+        "id" : "statusIcons",
+        "kind" : "statusIcons",
+        "options" : {
+          "showBattery" : true,
+          "showBluetooth" : true,
+          "showWifi" : true
+        }
+      },
+      {
+        "id" : "power",
+        "kind" : "power"
+      }
+    ],
+    "screens" : {
+      "mode" : "all",
+      "screen" : null
+    }
+  },
+  "crashReports" : {
+    "mode" : "ask"
+  },
+  "dashboard" : {
+    "cards" : {
+      "bottom" : [
+        {
+          "kind" : "clock",
+          "options" : {
+            "showDate" : false,
+            "style" : "stacked"
+          }
+        },
+        {
+          "kind" : "calendar",
+          "options" : {
+            "firstWeekday" : "monday",
+            "showWeekNumbers" : false
+          }
+        },
+        {
+          "kind" : "resources",
+          "options" : {
+            "showCPU" : true,
+            "showMemory" : true,
+            "showStorage" : true
+          }
+        }
+      ],
+      "side" : [
+        {
+          "kind" : "media",
+          "options" : {
+            "showAlbum" : true,
+            "showSource" : true
+          }
+        }
+      ],
+      "top" : [
+        {
+          "kind" : "weather",
+          "options" : {
+            "showCondition" : true,
+            "showRange" : true
+          }
+        },
+        {
+          "kind" : "user",
+          "options" : {
+            "showSystem" : true,
+            "showUptime" : true
+          }
+        }
+      ]
+    },
+    "tabs" : [
+      {
+        "id" : "dashboard",
+        "visible" : true
+      },
+      {
+        "id" : "media",
+        "visible" : true
+      },
+      {
+        "id" : "performance",
+        "visible" : true
+      },
+      {
+        "id" : "weather",
+        "visible" : true
+      }
+    ]
+  },
+  "dashboardPages" : [
+    {
+      "id" : "EED0A6BE-47D4-48B9-8C5B-5BF2805ACFD1",
+      "name" : "Dashboard",
+      "symbol" : "square.grid.2x2",
+      "template" : "overview",
+      "widgets" : [
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 275,
+            "x" : 0,
+            "y" : 0
+          },
+          "id" : "9CFD684F-2638-43B4-B6E2-0C0DF1AA89E0",
+          "kind" : "weather",
+          "options" : {
+            "places" : {
+              "favorites" : [
+                {
+                  "id" : "14454FBF-A692-4FE5-9238-66D7B07EA735",
+                  "latitude" : 47.3769,
+                  "longitude" : 8.5417,
+                  "name" : "Zurich"
+                }
+              ],
+              "selectedID" : "14454FBF-A692-4FE5-9238-66D7B07EA735"
+            },
+            "weather" : {
+              "showCondition" : true,
+              "showRange" : true
+            }
+          }
+        },
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 340,
+            "x" : 287,
+            "y" : 0
+          },
+          "id" : "CA2424ED-2F64-4B1E-AFBF-23B583BA50DB",
+          "kind" : "user",
+          "options" : {
+            "user" : {
+              "showSystem" : true,
+              "showUptime" : true
+            }
+          }
+        },
+        {
+          "frame" : {
+            "height" : 250,
+            "width" : 110,
+            "x" : 0,
+            "y" : 142
+          },
+          "id" : "66C62C66-6BD9-4DFE-A75F-1DECE2843805",
+          "kind" : "clock",
+          "options" : {
+            "clock" : {
+              "showDate" : false,
+              "style" : "stacked"
+            }
+          }
+        },
+        {
+          "frame" : {
+            "height" : 250,
+            "width" : 403,
+            "x" : 122,
+            "y" : 142
+          },
+          "id" : "75E8B9A4-B753-4D12-928F-30CABD8CFAE7",
+          "kind" : "calendar",
+          "options" : {
+            "calendar" : {
+              "firstWeekday" : "monday",
+              "showWeekNumbers" : false
+            }
+          }
+        },
+        {
+          "frame" : {
+            "height" : 250,
+            "width" : 90,
+            "x" : 537,
+            "y" : 142
+          },
+          "id" : "992F5713-A03B-459B-B0B1-507B1F009E81",
+          "kind" : "resources",
+          "options" : {
+            "resources" : {
+              "showCPU" : true,
+              "showMemory" : true,
+              "showStorage" : true
+            }
+          }
+        },
+        {
+          "frame" : {
+            "height" : 392,
+            "width" : 200,
+            "x" : 639,
+            "y" : 0
+          },
+          "id" : "47ED6AF5-235E-4A09-824C-67FEEE9716E3",
+          "kind" : "media",
+          "options" : {
+            "media" : {
+              "showAlbum" : true,
+              "showSource" : true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id" : "81DFBE2E-F6A0-40A3-B0A5-505397D246F7",
+      "name" : "Media",
+      "symbol" : "music.note.list",
+      "template" : "media",
+      "widgets" : [
+        {
+          "frame" : {
+            "height" : 392,
+            "width" : 839,
+            "x" : 0,
+            "y" : 0
+          },
+          "id" : "102C57A5-614A-48E6-93FB-5D059432E7E8",
+          "kind" : "media.player",
+          "options" : {
+
+          }
+        }
+      ]
+    },
+    {
+      "id" : "6CEB8BCB-1761-4B18-88BB-46C818DFE6C9",
+      "name" : "Performance",
+      "symbol" : "gauge.with.dots.needle.67percent",
+      "template" : "performance",
+      "widgets" : [
+        {
+          "frame" : {
+            "height" : 191,
+            "width" : 343,
+            "x" : 0,
+            "y" : 0
+          },
+          "id" : "AE3EB1F7-D79F-4B8C-BAA2-84170A6E96D5",
+          "kind" : "performance.cpu",
+          "options" : {
+
+          }
+        },
+        {
+          "frame" : {
+            "height" : 191,
+            "width" : 343,
+            "x" : 355,
+            "y" : 0
+          },
+          "id" : "B5E9B013-B476-4C97-AB74-78ABA12D734A",
+          "kind" : "performance.gpu",
+          "options" : {
+
+          }
+        },
+        {
+          "frame" : {
+            "height" : 189,
+            "width" : 169.5,
+            "x" : 0,
+            "y" : 203
+          },
+          "id" : "1F8E9B5B-F4C6-410E-BAE0-68A565455DCB",
+          "kind" : "performance.storage",
+          "options" : {
+
+          }
+        },
+        {
+          "frame" : {
+            "height" : 189,
+            "width" : 335,
+            "x" : 181.5,
+            "y" : 203
+          },
+          "id" : "7DA86AB7-39E1-4C98-8A74-4730E6CAE52C",
+          "kind" : "performance.network",
+          "options" : {
+
+          }
+        },
+        {
+          "frame" : {
+            "height" : 189,
+            "width" : 169.5,
+            "x" : 528.5,
+            "y" : 203
+          },
+          "id" : "2C5755F9-1C66-492B-B44F-8512F7C2200A",
+          "kind" : "performance.memory",
+          "options" : {
+
+          }
+        },
+        {
+          "frame" : {
+            "height" : 392,
+            "width" : 129,
+            "x" : 710,
+            "y" : 0
+          },
+          "id" : "1CF2AFF2-E119-4BB1-829C-0AAA781DCFFB",
+          "kind" : "performance.battery",
+          "options" : {
+
+          }
+        }
+      ]
+    },
+    {
+      "id" : "93487F37-263B-451B-B1EF-EA435AE05060",
+      "name" : "Weather",
+      "symbol" : "cloud.sun",
+      "template" : "weather",
+      "widgets" : [
+        {
+          "frame" : {
+            "height" : 116,
+            "width" : 839,
+            "x" : 0,
+            "y" : 0
+          },
+          "id" : "E0A3AD35-3B0B-4DFC-B6C7-BBDCD5C51D63",
+          "kind" : "weather.hero",
+          "options" : {
+            "places" : {
+              "favorites" : [
+                {
+                  "id" : "14454FBF-A692-4FE5-9238-66D7B07EA735",
+                  "latitude" : 47.3769,
+                  "longitude" : 8.5417,
+                  "name" : "Zurich"
+                }
+              ],
+              "selectedID" : "14454FBF-A692-4FE5-9238-66D7B07EA735"
+            }
+          }
+        },
+        {
+          "frame" : {
+            "height" : 108,
+            "width" : 839,
+            "x" : 0,
+            "y" : 128
+          },
+          "id" : "BE87573A-CAEA-4410-BF2C-8D6052C313FB",
+          "kind" : "weather.hourly",
+          "options" : {
+            "places" : {
+              "favorites" : [
+                {
+                  "id" : "14454FBF-A692-4FE5-9238-66D7B07EA735",
+                  "latitude" : 47.3769,
+                  "longitude" : 8.5417,
+                  "name" : "Zurich"
+                }
+              ],
+              "selectedID" : "14454FBF-A692-4FE5-9238-66D7B07EA735"
+            }
+          }
+        },
+        {
+          "frame" : {
+            "height" : 144,
+            "width" : 839,
+            "x" : 0,
+            "y" : 248
+          },
+          "id" : "473B8068-4FFC-4678-8849-A42BBCC553C9",
+          "kind" : "weather.daily",
+          "options" : {
+            "places" : {
+              "favorites" : [
+                {
+                  "id" : "14454FBF-A692-4FE5-9238-66D7B07EA735",
+                  "latitude" : 47.3769,
+                  "longitude" : 8.5417,
+                  "name" : "Zurich"
+                }
+              ],
+              "selectedID" : "14454FBF-A692-4FE5-9238-66D7B07EA735"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id" : "82F6C7CF-6EBD-42F9-8736-64601E42C1CA",
+      "name" : "Mehr",
+      "symbol" : "square.grid.2x2",
+      "widgets" : [
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 130,
+            "x" : 0,
+            "y" : 0
+          },
+          "id" : "AE0EF4C2-5F38-4FA1-BFEE-3F5A8D090083",
+          "kind" : "timer",
+          "options" : {
+
+          }
+        },
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 200,
+            "x" : 142,
+            "y" : 0
+          },
+          "id" : "4BB68A64-B3CC-46C9-A83D-E3C4DA7ECA12",
+          "kind" : "apps",
+          "options" : {
+            "apps" : [
+              "com.apple.finder",
+              "com.apple.Safari",
+              "com.apple.mail",
+              "com.apple.Music",
+              "com.apple.systempreferences"
+            ]
+          }
+        },
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 130,
+            "x" : 354,
+            "y" : 0
+          },
+          "id" : "BA92FC82-47DE-4292-9A14-B72D86CE64AB",
+          "kind" : "photos",
+          "options" : {
+
+          }
+        },
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 230,
+            "x" : 496,
+            "y" : 0
+          },
+          "id" : "7C863614-50B2-42B1-9CDE-D541FD3F3FEB",
+          "kind" : "network.info",
+          "options" : {
+
+          }
+        },
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 260,
+            "x" : 0,
+            "y" : 142
+          },
+          "id" : "6EEC9D67-8F6B-48F9-82E0-FFBF0353DC35",
+          "kind" : "files.recent",
+          "options" : {
+
+          }
+        },
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 260,
+            "x" : 272,
+            "y" : 142
+          },
+          "id" : "C55ABAC9-4F2F-41E3-82DE-B6C3F58C07FF",
+          "kind" : "clipboard",
+          "options" : {
+
+          }
+        },
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 230,
+            "x" : 544,
+            "y" : 142
+          },
+          "id" : "D439CA48-011C-46B6-AB18-3782F054BCF4",
+          "kind" : "sun",
+          "options" : {
+            "places" : {
+              "favorites" : [
+                {
+                  "id" : "14454FBF-A692-4FE5-9238-66D7B07EA735",
+                  "latitude" : 47.3769,
+                  "longitude" : 8.5417,
+                  "name" : "Zurich"
+                }
+              ],
+              "selectedID" : "14454FBF-A692-4FE5-9238-66D7B07EA735"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id" : "83B28F7A-04DA-4A31-B9CB-85B7C9296CF1",
+      "name" : "Mehr 2",
+      "symbol" : "square.grid.2x2",
+      "widgets" : [
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 200,
+            "x" : 0,
+            "y" : 0
+          },
+          "id" : "9DE99BD9-CD01-4BC3-BDEB-34F7EC339BE4",
+          "kind" : "drives",
+          "options" : {
+
+          }
+        },
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 110,
+            "x" : 212,
+            "y" : 0
+          },
+          "id" : "339E52AE-2755-4E2B-9958-50E7E773BC75",
+          "kind" : "clock",
+          "options" : {
+            "clock" : {
+              "showDate" : false,
+              "style" : "stacked"
+            }
+          }
+        },
+        {
+          "frame" : {
+            "height" : 250,
+            "width" : 300,
+            "x" : 334,
+            "y" : 0
+          },
+          "id" : "7ACB2B54-6E38-486A-8467-F1E7C976180D",
+          "kind" : "calendar",
+          "options" : {
+            "calendar" : {
+              "firstWeekday" : "monday",
+              "showWeekNumbers" : false
+            }
+          }
+        },
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 275,
+            "x" : 0,
+            "y" : 142
+          },
+          "id" : "11739B2F-85E2-4CC6-85B0-4EF629F5A8A0",
+          "kind" : "weather",
+          "options" : {
+            "places" : {
+              "favorites" : [
+                {
+                  "id" : "14454FBF-A692-4FE5-9238-66D7B07EA735",
+                  "latitude" : 47.3769,
+                  "longitude" : 8.5417,
+                  "name" : "Zurich"
+                }
+              ],
+              "selectedID" : "14454FBF-A692-4FE5-9238-66D7B07EA735"
+            },
+            "weather" : {
+              "showCondition" : true,
+              "showRange" : true
+            }
+          }
+        },
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 230,
+            "x" : 287,
+            "y" : 262
+          },
+          "id" : "77402BC5-7051-4975-B8C2-B8DBE418F654",
+          "kind" : "user",
+          "options" : {
+            "user" : {
+              "showSystem" : true,
+              "showUptime" : true
+            }
+          }
+        },
+        {
+          "frame" : {
+            "height" : 250,
+            "width" : 90,
+            "x" : 646,
+            "y" : 0
+          },
+          "id" : "7DFE0BC7-69E7-4346-8690-1FB9E8F30F63",
+          "kind" : "resources",
+          "options" : {
+            "resources" : {
+              "showCPU" : true,
+              "showMemory" : true,
+              "showStorage" : true
+            }
+          }
+        },
+        {
+          "frame" : {
+            "height" : 130,
+            "width" : 300,
+            "x" : 529,
+            "y" : 262
+          },
+          "id" : "14086C83-004B-4391-8C8E-FE8BC39082A5",
+          "kind" : "media",
+          "options" : {
+            "media" : {
+              "showAlbum" : true,
+              "showSource" : true
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "dashboardScale" : 1,
+  "features" : {
+    "dashboard" : true,
+    "launcher" : true,
+    "utilities" : true
+  },
+  "hotKeys" : {
+    "dashboard" : {
+      "keyCode" : 2,
+      "modifiers" : [
+        "control",
+        "option",
+        "shift",
+        "command"
+      ]
+    },
+    "launcher" : {
+      "keyCode" : 90,
+      "modifiers" : [
+
+      ]
+    },
+    "nexus" : {
+      "keyCode" : 43,
+      "modifiers" : [
+        "control",
+        "option",
+        "shift",
+        "command"
+      ]
+    },
+    "utilities" : {
+      "keyCode" : 32,
+      "modifiers" : [
+        "control",
+        "option",
+        "shift",
+        "command"
+      ]
+    }
+  },
+  "keepAwake" : {
+    "lidClosed" : true
+  },
+  "menuBar" : {
+    "shown" : true
+  },
+  "onboarding" : {
+    "completed" : true
+  },
+  "providers" : {
+    "fileManager" : null,
+    "weather" : "openMeteo"
+  },
+  "theme" : {
+    "name" : null
+  },
+  "toasts" : {
+    "audioInputChanged" : true,
+    "audioOutputChanged" : true,
+    "batteryWarnings" : true,
+    "chargingChanged" : true
+  },
+  "updates" : {
+    "checkAutomatically" : true,
+    "installAutomatically" : true
+  },
+  "utilities" : {
+    "layout" : {
+      "cards" : [
+        {
+          "enabled" : true,
+          "kind" : "keepAwake"
+        },
+        {
+          "enabled" : true,
+          "kind" : "audio"
+        },
+        {
+          "enabled" : true,
+          "kind" : "quickToggles"
+        },
+        {
+          "enabled" : false,
+          "kind" : "brightness"
+        },
+        {
+          "enabled" : false,
+          "kind" : "nowPlaying"
+        },
+        {
+          "enabled" : false,
+          "kind" : "timer"
+        }
+      ],
+      "quickToggles" : [
+        {
+          "id" : "wifi",
+          "kind" : "wifi"
+        },
+        {
+          "id" : "microphone",
+          "kind" : "microphone"
+        },
+        {
+          "id" : "bluetooth",
+          "kind" : "bluetooth"
+        },
+        {
+          "id" : "darkMode",
+          "kind" : "darkMode"
+        },
+        {
+          "id" : "nightShift",
+          "kind" : "nightShift"
+        },
+        {
+          "id" : "mute",
+          "kind" : "mute"
+        },
+        {
+          "id" : "hiddenFiles",
+          "kind" : "hiddenFiles"
+        },
+        {
+          "id" : "lowPower",
+          "kind" : "lowPower"
+        },
+        {
+          "id" : "screenshot",
+          "kind" : "screenshot"
+        },
+        {
+          "id" : "showDesktop",
+          "kind" : "showDesktop"
+        },
+        {
+          "id" : "colorPicker",
+          "kind" : "colorPicker"
+        },
+        {
+          "id" : "lockScreen",
+          "kind" : "lockScreen"
+        },
+        {
+          "id" : "displaySleep",
+          "kind" : "displaySleep"
+        },
+        {
+          "id" : "hideApps",
+          "kind" : "hideApps",
+          "options" : {
+            "keepFrontmost" : false
+          }
+        },
+        {
+          "id" : "emptyTrash",
+          "kind" : "emptyTrash"
+        },
+        {
+          "id" : "missionControl",
+          "kind" : "missionControl"
+        },
+        {
+          "id" : "launchpad",
+          "kind" : "launchpad"
+        },
+        {
+          "id" : "airDrop",
+          "kind" : "airDrop"
+        },
+        {
+          "id" : "settings",
+          "kind" : "settings"
+        }
+      ]
+    }
+  }
+}

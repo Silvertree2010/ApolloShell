@@ -400,6 +400,9 @@ extension LegacyImport {
             if let dashboard = section(root, "dashboard") {
                 importDashboard(dashboard, into: &result)
             }
+            if let raw = root["dashboardPages"] {
+                importPages(raw, into: &result)
+            }
             if let utilities = section(root, "utilities"), let layout = section(utilities, "layout") {
                 importUtilities(layout, into: &result)
             }
@@ -683,6 +686,67 @@ extension LegacyImport {
                     })
                 }
             }
+        }
+
+        static let pageTemplates = ["overview": ("dashboard", "bar-dashboard"), "media": ("media", "panel-media"), "performance": ("performance", "panel-performance"), "weather": ("weather", "panel-weather")]
+
+        static func flat(_ value: Any) -> Value? {
+            if Self.isBool(value), let b = Self.bool(value) { return .bool(b) }
+            if let n = Self.number(value) { return .number(n) }
+            if let t = value as? String { return .string(t) }
+            if let l = value as? [Any] { return .list(l.compactMap { ($0 as? String).map(Value.string) }) }
+            return nil
+        }
+
+        mutating func importPages(_ raw: Any, into result: inout LegacyImportResult) {
+            guard let list = raw as? [Any] else {
+                report("'dashboardPages' is not a list, skipped")
+                return
+            }
+            var pages: [Value] = []
+            var widgets: [Value] = []
+            var ids: Set<String> = []
+            for (i, item) in list.enumerated() {
+                guard let o = item as? [String: Any], let old = Self.string(o["id"]), !old.isEmpty else {
+                    report("'dashboardPages[\(i)]' is not a page, skipped")
+                    continue
+                }
+                let t = Self.string(o["template"]).flatMap { Self.pageTemplates[$0] }
+                let id = t?.0 ?? old
+                if ids.contains(id) { continue }
+                ids.insert(id)
+                var page = Record([("id", .string(id)), ("name", .string(Self.string(o["name"]) ?? "Page")), ("symbol", .string(Self.string(o["symbol"]) ?? "square.grid.2x2"))])
+                if let t { page["icon"] = .string(t.1); page["template"] = .string(t.0) }
+                pages.append(.record(page))
+                for (j, wi) in (o["widgets"] as? [Any] ?? []).enumerated() {
+                    guard let w = wi as? [String: Any], let kind = Self.string(w["kind"]), let f = w["frame"] as? [String: Any],
+                          let x = Self.number(f["x"]), let y = Self.number(f["y"]), let width = Self.number(f["width"]), let height = Self.number(f["height"]) else {
+                        report("'dashboardPages[\(i)].widgets[\(j)]' is not a widget, skipped")
+                        continue
+                    }
+                    var r = Record([("id", .string(Self.string(w["id"]) ?? "\(id)-\(j)")), ("page", .string(id)), ("kind", .string(kind)),
+                                    ("x", .number(x)), ("y", .number(y)), ("width", .number(width)), ("height", .number(height)),
+                                    ("display", .string(Self.string(w["display"]) ?? "standard"))])
+                    for (section, body) in (w["options"] as? [String: Any] ?? [:]).sorted(by: { $0.key < $1.key }) {
+                        if let d = body as? [String: Any] {
+                            if section == "places" {
+                                if let sel = Self.string(d["selectedID"]) { r["place-id"] = .string(sel) }
+                                continue
+                            }
+                            for (k, v) in d.sorted(by: { $0.key < $1.key }) {
+                                if let fv = Self.flat(v) { r[LegacyImport.kebab(k)] = fv }
+                            }
+                        } else if let fv = Self.flat(body) {
+                            r[LegacyImport.kebab(section)] = fv
+                        }
+                    }
+                    widgets.append(.record(r))
+                }
+            }
+            guard !pages.isEmpty else { return }
+            result.state["dashboard-pages"] = .list(pages)
+            result.state["dashboard-widgets"] = .list(widgets)
+            result.state["dashboard-seeded"] = .bool(true)
         }
 
         mutating func importUtilities(_ layout: [String: Any], into result: inout LegacyImportResult) {
