@@ -19,6 +19,7 @@ struct MouseConfig: Equatable {
     var reorder: ReorderEntry?
     var canvas: CanvasEntry?
     var dragValue = false
+    var gap = false
 
     init() {}
 
@@ -35,6 +36,9 @@ struct MouseConfig: Equatable {
            let accept = handler.properties["accept"].flatMap(HandlerRules.literal)?.plainText {
             accepts = [accept]
         }
+        if element.kind == "reorderable", element.ir.handlers.contains(where: { $0.name == "on-drop" }), element.property("accept").plainText == "value" {
+            gap = true
+        }
         if element.ir.menu != nil {
             let text = element.property("menu-on").plainText ?? "right-click"
             menuOn = Set(text.split(whereSeparator: \.isWhitespace).map(String.init))
@@ -46,7 +50,7 @@ struct MouseConfig: Equatable {
     }
 
     var isEmpty: Bool {
-        !click && !doubleClick && !longPress && !right && !middle && !scroll && accepts.isEmpty && menuOn.isEmpty && reorder == nil && canvas == nil && !dragValue && !passive
+        !click && !doubleClick && !longPress && !right && !middle && !scroll && accepts.isEmpty && menuOn.isEmpty && reorder == nil && canvas == nil && !dragValue && !gap && !passive
     }
 
     func claims(_ kind: MouseKind) -> Bool {
@@ -57,7 +61,7 @@ struct MouseConfig: Equatable {
         case .right: return right || menuOn.contains("right-click")
         case .middle: return middle
         case .scroll: return scroll
-        case .drag: return !accepts.isEmpty || reorder != nil
+        case .drag: return !accepts.isEmpty || reorder != nil || gap
         }
     }
 
@@ -278,7 +282,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
         didSet {
             guard config != oldValue else { return }
             var types = EventFields.types(config.accepts) + (config.reorder != nil ? [.apolloReorder] : [])
-            if config.reorder?.coordinator?.accept == "value" { types.append(.apolloValue) }
+            if config.reorder?.coordinator?.accept == "value" || config.gap { types.append(.apolloValue) }
             unregisterDraggedTypes()
             if !types.isEmpty { registerForDraggedTypes(types) }
         }
@@ -310,6 +314,13 @@ final class ElementMouseView: NSView, NSDraggingSource {
         let inWindow = convert(local, to: nil)
         let winner = Self.winner(at: inWindow, in: window, kind: kind)
         return winner === self && !config.passive ? self : nil
+    }
+
+    func entries(of c: ReorderCoordinator) -> [(Int, NSRect)] {
+        Self.live.compactMap { w in
+            guard let v = w.view, v.window === window, let r = v.config.reorder, r.coordinator === c else { return nil }
+            return (r.index, v.convert(v.bounds, to: nil))
+        }
     }
 
     static func winner(at point: NSPoint, in window: NSWindow, kind: MouseKind) -> ElementMouseView? {
@@ -525,6 +536,10 @@ final class ElementMouseView: NSView, NSDraggingSource {
         if let reorder = config.reorder, let coordinator = reorder.coordinator {
             return coordinator.foreignDrop(pasteboard, on: reorder)
         }
+        if config.gap {
+            let c = context.coordinator(for: element)
+            return c.gapDrop(pasteboard, at: sender.draggingLocation, in: self)
+        }
         return false
     }
 
@@ -537,6 +552,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
             return .copy
         }
         if let reorder = config.reorder, reorder.coordinator?.acceptsForeign(pasteboard) == true { return .copy }
+        if config.gap, let element, let context = renderContext, context.coordinator(for: element).acceptsForeign(pasteboard) { return .copy }
         return []
     }
 }

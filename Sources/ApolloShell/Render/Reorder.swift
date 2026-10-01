@@ -146,6 +146,26 @@ final class ReorderCoordinator {
     }
 }
 
+extension ReorderCoordinator {
+    static func gapIndex(_ p: NSPoint, _ f: [(Int, NSRect)], axis: String) -> Int {
+        guard let n = f.min(by: { d(p, $0.1) < d(p, $1.1) }) else { return 0 }
+        let after = axis == "horizontal" ? p.x > n.1.midX : axis == "grid" ? (p.y < n.1.minY || (p.y <= n.1.maxY && p.x > n.1.midX)) : p.y < n.1.midY
+        return n.0 + (after ? 1 : 0)
+    }
+
+    private static func d(_ p: NSPoint, _ r: NSRect) -> CGFloat {
+        let x = p.x - r.midX, y = p.y - r.midY
+        return x * x + y * y
+    }
+
+    func gapDrop(_ pasteboard: NSPasteboard, at p: NSPoint, in v: ElementMouseView) -> Bool {
+        guard let accept, let context, var fields = EventFields.drop(pasteboard, accept: accept) else { return false }
+        let i = Self.gapIndex(p, v.entries(of: self), axis: container.property("axis").plainText ?? "vertical")
+        fields["index"] = .number(Double(i))
+        return context.fire("on-drop", container, fields)
+    }
+}
+
 extension RenderContext {
     func coordinator(for container: ElementInstance) -> ReorderCoordinator {
         let key = container.identity.description

@@ -550,4 +550,45 @@ struct DropAcceptTests {
         let r = mounted.catchers.first { $0.element?.property("id").plainText == "r" }
         #expect(r?.config.accepts.isEmpty ?? true)
     }
+
+    @Test("a reorderable with value drops is a gap catcher that loses to its children")
+    func reorderableGap() throws {
+        let mounted = try Mounted.mount("""
+        var last ""
+        panel "t" anchor="left" {
+            reorderable id="r" axis="horizontal" enabled=#true accept="value" {
+                on-drop accept="value" { set "last" "{event.value}" }
+                stack id="a" { text "a" }
+                stack id="b" { text "b" }
+            }
+        }
+        """, css: "#r { width: 300px; height: 40px; gap: 80px; }")
+        mounted.pump()
+        let r = try mounted.catcher("r")
+        #expect(r.config.gap)
+        #expect(r.config.claims(.drag))
+        #expect(r.registeredDraggedTypes.contains(.apolloValue))
+        let c = r.renderContext!.coordinator(for: r.element!)
+        let f = r.entries(of: c)
+        #expect(f.count == 2)
+        let a = try #require(f.first { $0.0 == 0 }).1, b = try #require(f.first { $0.0 == 1 }).1
+        let mid = NSPoint(x: (a.maxX + b.minX) / 2, y: a.midY)
+        #expect(!a.contains(mid) && !b.contains(mid))
+        let w = try #require(r.window)
+        #expect(ElementMouseView.winner(at: mid, in: w, kind: .drag) === r)
+        #expect(ElementMouseView.winner(at: NSPoint(x: a.midX, y: a.midY), in: w, kind: .drag) !== r)
+    }
+
+    @Test("the gap index follows the nearest neighbour and the axis")
+    func gapIndex() {
+        let f = [(0, NSRect(x: 0, y: 0, width: 20, height: 20)), (1, NSRect(x: 60, y: 0, width: 20, height: 20)), (2, NSRect(x: 120, y: 0, width: 20, height: 20))]
+        #expect(ReorderCoordinator.gapIndex(NSPoint(x: 40, y: 10), f, axis: "horizontal") == 1)
+        #expect(ReorderCoordinator.gapIndex(NSPoint(x: 45, y: 10), f, axis: "horizontal") == 1)
+        #expect(ReorderCoordinator.gapIndex(NSPoint(x: 100, y: 10), f, axis: "horizontal") == 2)
+        #expect(ReorderCoordinator.gapIndex(NSPoint(x: 200, y: 10), f, axis: "horizontal") == 3)
+        #expect(ReorderCoordinator.gapIndex(NSPoint(x: 5, y: 10), f, axis: "horizontal") == 0)
+        let v = [(0, NSRect(x: 0, y: 100, width: 20, height: 20)), (1, NSRect(x: 0, y: 50, width: 20, height: 20))]
+        #expect(ReorderCoordinator.gapIndex(NSPoint(x: 10, y: 90), v, axis: "vertical") == 1)
+        #expect(ReorderCoordinator.gapIndex(NSPoint(x: 10, y: 10), v, axis: "vertical") == 2)
+    }
 }
