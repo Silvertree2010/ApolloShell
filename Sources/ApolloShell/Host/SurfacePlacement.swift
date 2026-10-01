@@ -55,9 +55,11 @@ struct SurfacePlacement: Equatable {
 
     struct Attachment: Equatable {
         enum Side: String { case top, bottom, left, right }
+        enum Align: String { case start, center, end }
         var surface: String
         var element: String
         var side: Side
+        var align: Align = .start
     }
 
     static func attachment(_ property: (String) -> Value) -> Attachment? {
@@ -65,17 +67,30 @@ struct SurfacePlacement: Equatable {
         let parts = text.split(separator: "#", maxSplits: 1).map(String.init)
         guard parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty else { return nil }
         let side = property("side").plainText.flatMap(Attachment.Side.init(rawValue:)) ?? .right
-        return Attachment(surface: parts[0], element: parts[1], side: side)
+        let align = property("align").plainText.flatMap(Attachment.Align.init(rawValue:)) ?? .start
+        return Attachment(surface: parts[0], element: parts[1], side: side, align: align)
     }
 
-    static func attached(size: CGSize, to rect: CGRect, side: Attachment.Side, offset: CGPoint, visible: CGRect) -> CGRect {
+    static func attached(size: CGSize, to rect: CGRect, side: Attachment.Side, align: Attachment.Align = .start, offset: CGPoint, visible: CGRect, margin: EdgeInsets = EdgeInsets()) -> CGRect {
         var origin: CGPoint
-        switch side {
-        case .right: origin = CGPoint(x: rect.maxX, y: rect.maxY - size.height)
-        case .left: origin = CGPoint(x: rect.minX - size.width, y: rect.maxY - size.height)
-        case .bottom: origin = CGPoint(x: rect.minX, y: rect.minY - size.height)
-        case .top: origin = CGPoint(x: rect.minX, y: rect.maxY)
+        let x: CGFloat = switch align {
+        case .start: rect.minX
+        case .center: rect.midX - size.width / 2
+        case .end: rect.maxX - size.width
         }
+        let y: CGFloat = switch align {
+        case .start: rect.maxY - size.height
+        case .center: rect.midY - size.height / 2
+        case .end: rect.minY
+        }
+        switch side {
+        case .right: origin = CGPoint(x: rect.maxX, y: y)
+        case .left: origin = CGPoint(x: rect.minX - size.width, y: y)
+        case .bottom: origin = CGPoint(x: x, y: rect.minY - size.height)
+        case .top: origin = CGPoint(x: x, y: rect.maxY)
+        }
+        let visible = CGRect(x: visible.minX + margin.leading, y: visible.minY + margin.bottom,
+                             width: max(0, visible.width - margin.leading - margin.trailing), height: max(0, visible.height - margin.top - margin.bottom))
         origin.x += side == .left ? -offset.x : offset.x
         origin.y += side == .top ? offset.y : -offset.y
         origin.x = min(max(origin.x, visible.minX), max(visible.minX, visible.maxX - size.width))

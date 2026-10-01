@@ -430,7 +430,7 @@ final class WindowHost: SurfaceHosting {
         }
         var frame = layout.frame
         if let attach = SurfacePlacement.attachment(surface.property), let target = attachedRect(attach, screenKey: surface.screenKey) {
-            frame = SurfacePlacement.attached(size: frame.size, to: target, side: attach.side, offset: CGPoint(x: placement.offsetX, y: placement.offsetY), visible: screen.visible)
+            frame = SurfacePlacement.attached(size: frame.size, to: target, side: attach.side, align: attach.align, offset: CGPoint(x: placement.offsetX, y: placement.offsetY), visible: screen.visible, margin: placement.margin)
         }
         if spec.kind == "window" {
             controller.window.setMinSize(CGSize(width: StyleValues.points(style["min-width"]) ?? 0, height: StyleValues.points(style["min-height"]) ?? 0))

@@ -27,6 +27,7 @@ enum Surfaces {
                 PropertySchema(name: "group", type: .string, defaultValue: .null, doc: "Closes other popups of the same group."),
                 PropertySchema(name: "attach", type: .string, defaultValue: .null, doc: "Next to an element of another surface instead of at an edge."),
                 PropertySchema(name: "side", type: .enumeration(["top", "bottom", "left", "right"]), defaultValue: .string("right"), doc: "Side for attach."),
+                PropertySchema(name: "align", type: .enumeration(["start", "center", "end"]), defaultValue: .string("start"), doc: "Alignment along the element for attach; CSS margin keeps the surface off the screen edges."),
             ],
             handlers: CommonProperties.surfaceHandlers,
             childContext: .surfaceBody,

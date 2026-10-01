@@ -1,5 +1,6 @@
 import Testing
 import AppKit
+import SwiftUI
 import ApolloConfig
 @testable import ApolloShell
 
@@ -18,6 +19,29 @@ struct AttachTests {
         #expect(SurfacePlacement.attached(size: size, to: rect, side: .right, offset: CGPoint(x: 10, y: 0), visible: visible).minX == 150)
         #expect(SurfacePlacement.attached(size: size, to: rect, side: .bottom, offset: CGPoint(x: 0, y: 10), visible: visible).minY == 390)
         #expect(SurfacePlacement.attached(size: size, to: rect, side: .left, offset: .zero, visible: visible).minX == 0)
+    }
+
+    @Test("align=center mittig unter dem Element, CSS-margin haelt Abstand zum Bildschirmrand")
+    func alignAndMargin() {
+        let visible = CGRect(x: 0, y: 0, width: 1024, height: 744)
+        let size = CGSize(width: 380, height: 300)
+        let item = CGRect(x: 500, y: 744, width: 24, height: 24)
+        #expect(SurfacePlacement.attached(size: size, to: item, side: .bottom, align: .center, offset: CGPoint(x: 0, y: 6), visible: visible) == CGRect(x: 322, y: 438, width: 380, height: 300))
+        #expect(SurfacePlacement.attached(size: size, to: item, side: .bottom, align: .end, offset: .zero, visible: visible).maxX == 524)
+        let edge = CGRect(x: 980, y: 744, width: 24, height: 24)
+        let margin = SwiftUI.EdgeInsets(top: 6, leading: 6, bottom: 6, trailing: 6)
+        #expect(SurfacePlacement.attached(size: size, to: edge, side: .bottom, align: .center, offset: .zero, visible: visible, margin: margin).maxX == 1018)
+        #expect(SurfacePlacement.attached(size: size, to: edge, side: .bottom, align: .center, offset: .zero, visible: visible).maxX == 1024)
+        #expect(SurfacePlacement.attached(size: CGSize(width: 100, height: 40), to: CGRect(x: 0, y: 300, width: 40, height: 100), side: .right, align: .center, offset: .zero, visible: visible).midY == 350)
+        let attach = SurfacePlacement.attachment { name in
+            switch name {
+            case "attach": .string("item#mark")
+            case "side": .string("bottom")
+            case "align": .string("center")
+            default: .null
+            }
+        }
+        #expect(attach == SurfacePlacement.Attachment(surface: "item", element: "mark", side: .bottom, align: .center))
     }
 
     @Test("Host setzt das Popup an den gemeldeten Element-Rahmen und folgt ihm")

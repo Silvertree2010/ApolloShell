@@ -936,6 +936,7 @@ Opens and closes on an action, such as a dashboard or launcher.
 | property | `group` | string | `null` | Closes other popups of the same group. |
 | property | `attach` | string | `null` | Next to an element of another surface instead of at an edge. |
 | property | `side` | "top"\|"bottom"\|"left"\|"right" | `"right"` | Side for attach. |
+| property | `align` | "start"\|"center"\|"end" | `"start"` | Alignment along the element for attach; CSS margin keeps the surface off the screen edges. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
 
