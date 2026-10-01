@@ -3,6 +3,7 @@ import Foundation
 import ApolloBase
 import ApolloConfig
 import ApolloControl
+import ApolloRuntime
 @testable import ApolloShell
 
 @MainActor
@@ -158,6 +159,23 @@ struct EditModeTests {
         #expect(v(h, "edit-opt-tg-open") == .bool(true))
         try await run(h, "set \"edit-opt\" #null")
         #expect(v(h, "edit-opt-tg-open") == .bool(false))
+    }
+
+    @Test("entering edit mode with the control centre open builds every toggle frame once so the options popover finds its anchor")
+    func toggleFramesOnce() async throws {
+        let h = try await start()
+        defer { h.shell.shutdown() }
+        var dup: [String] = []
+        h.runtime.onWarning = { dup.append($0.message) }
+        try await run(h, "open \"utilities\"")
+        try await run(h, "set \"shell-editing\" #true")
+        await ev(h, "t-cc", [("value", .string("toggle:hide-apps"))])
+        try await run(h, "set \"dashboard-selected\" \"utilities-toggles:hide-apps\"; set \"edit-opt\" \"utilities-toggles:hide-apps\"")
+        func ids(_ n: [ElementInstance]) -> [String] { n.flatMap { [$0.identity.description] + ids($0.children) } }
+        let all = ids(h.runtime.surface("utilities", screenKey: ShellHarness.a.key)?.root ?? [])
+        #expect(all.contains { $0.hasSuffix("#ef-utilities-toggles-hide-apps") })
+        #expect(dup.filter { $0.contains("duplicate id") }.isEmpty, "\(dup)")
+        #expect(v(h, "edit-opt-tg-open") == .bool(true))
     }
 
     @Test("show all in the gallery starts off, toggles and resets on begin")
