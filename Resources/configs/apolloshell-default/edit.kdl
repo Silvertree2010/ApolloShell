@@ -126,23 +126,22 @@ define "edit-frame" {
     param "disable" default=#false
     param "drag" default=#null
     stack id="ef-{list}-{key}" drag-value="{drag}" class="edit-item editing{grow ? ' grow' : ''}{var.dashboard-selected == list + ':' + key ? ' selected' : ''}" {
-        slot
-        stack class="edit-cover" {
-            on-click {
-                set "dashboard-selected" "{list + ':' + key}"
-                set "dashboard-options" #null
-                set "edit-opt" "{list + ':' + key}"
-                when "{list == 'utilities-toggles'}" {
-                    set "settings-toggle-selected" "{key}"
-                    set "settings-toggle-title" "{(var.utilities-toggles | where 'id' key | first).title ?? ''}"
-                    set "settings-toggle-url" "{(var.utilities-toggles | where 'id' key | first).url ?? ''}"
-                    set "settings-toggle-symbol" "{(var.utilities-toggles | where 'id' key | first).symbol ?? ''}"
-                    set "settings-toggle-query" ""
-                    set "settings-toggle-symbols-open" #false
-                }
-                when "{list == 'sidebar-modules'}" { set "settings-sidebar-app-query" "" }
+        on-click {
+            set "dashboard-selected" "{list + ':' + key}"
+            set "dashboard-options" #null
+            set "edit-opt" "{list + ':' + key}"
+            when "{list == 'utilities-toggles'}" {
+                set "settings-toggle-selected" "{key}"
+                set "settings-toggle-title" "{(var.utilities-toggles | where 'id' key | first).title ?? ''}"
+                set "settings-toggle-url" "{(var.utilities-toggles | where 'id' key | first).url ?? ''}"
+                set "settings-toggle-symbol" "{(var.utilities-toggles | where 'id' key | first).symbol ?? ''}"
+                set "settings-toggle-query" ""
+                set "settings-toggle-symbols-open" #false
             }
+            when "{list == 'sidebar-modules'}" { set "settings-sidebar-app-query" "" }
         }
+        slot
+        stack class="edit-cover"
         button class="edit-badge" tooltip="Remove" {
             on-click {
                 when "{var.dashboard-selected == list + ':' + key}" { set "dashboard-selected" #null }

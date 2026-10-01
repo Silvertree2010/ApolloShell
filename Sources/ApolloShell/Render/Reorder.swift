@@ -134,7 +134,8 @@ final class ReorderCoordinator {
     var accept: String? { container.property("accept").plainText }
 
     func acceptsForeign(_ pasteboard: NSPasteboard) -> Bool {
-        guard let accept, pasteboard.string(forType: .apolloReorder) == nil else { return false }
+        guard let accept else { return false }
+        if let token = pasteboard.string(forType: .apolloReorder), token.hasPrefix(prefix) { return false }
         return EventFields.drop(pasteboard, accept: accept) != nil
     }
 

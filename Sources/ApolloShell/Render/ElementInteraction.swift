@@ -398,6 +398,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
         element?.pseudo.remove(.active)
         let item = NSPasteboardItem()
         item.setString(reorder.token, forType: .apolloReorder)
+        if let element, element.property("drag-value") != .null { item.setString(DragValues.store(element.property("drag-value")), forType: .apolloValue) }
         if let app = reorder.app { item.setString(app, forType: .apolloApp) }
         let dragItem = NSDraggingItem(pasteboardWriter: item)
         dragItem.setDraggingFrame(bounds, contents: snapshot())
@@ -507,7 +508,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         guard let element, let context = renderContext else { return false }
         let pasteboard = sender.draggingPasteboard
-        if let token = pasteboard.string(forType: .apolloReorder), let reorder = config.reorder {
+        if let token = pasteboard.string(forType: .apolloReorder), let reorder = config.reorder, reorder.coordinator?.accepts(token: token, on: reorder) == true {
             return reorder.coordinator?.drop(token: token, on: reorder) ?? false
         }
         for accept in config.accepts.sorted() {
@@ -528,8 +529,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
 
     private func operation(for info: NSDraggingInfo) -> NSDragOperation {
         let pasteboard = info.draggingPasteboard
-        if let token = pasteboard.string(forType: .apolloReorder) {
-            guard let reorder = config.reorder, reorder.coordinator?.accepts(token: token, on: reorder) == true else { return [] }
+        if let token = pasteboard.string(forType: .apolloReorder), let reorder = config.reorder, reorder.coordinator?.accepts(token: token, on: reorder) == true {
             return .move
         }
         for accept in config.accepts where EventFields.drop(pasteboard, accept: accept) != nil {
