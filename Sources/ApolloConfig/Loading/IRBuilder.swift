@@ -70,7 +70,8 @@ enum IRBuilder {
         registry: SchemaRegistry,
         fileSystem: any ConfigFileSystem,
         paths: ConfigPaths,
-        templates: TemplateCache? = nil
+        templates: TemplateCache? = nil,
+        keepsAllDefines: Bool = false
     ) -> IRBuildResult {
         StackHeadroom.run {
             let state = IRBuildState(registry: registry, defines: defines, templates: templates)
@@ -119,7 +120,7 @@ enum IRBuilder {
             }
             ir.blocks = buildBlocks(blockNodes, state: state)
             ir.commandCenter = buildCommandCenter(blockNodes, state: state)
-            ir.defines = buildDefines(defines, state: state)
+            ir.defines = buildDefines(defines, reach: keepsAllDefines ? .everything : DefineReach.scan(nodes, defines: defines), state: state)
             return IRBuildResult(ir: ir, diagnostics: state.diagnostics)
         }
     }
@@ -293,7 +294,7 @@ enum IRBuilder {
         )
     }
 
-    private static func buildDefines(_ defines: [DefineDecl], state: IRBuildState) -> [String: DefineIR] {
+    private static func buildDefines(_ defines: [DefineDecl], reach: DefineReach, state: IRBuildState) -> [String: DefineIR] {
         var result: [String: DefineIR] = [:]
         for define in defines {
             let parameters = define.parameters.map { parameter in
@@ -306,6 +307,7 @@ enum IRBuilder {
             if SchemaStage.bodyContext(define.body, registry: state.registry) == .actions { continue }
             state.surfaceID = nil
             let body = buildBody(define.body, handlerNames: [], scope: [], state: state)
+            guard reach.keeps(define.name) else { continue }
             result[define.name] = DefineIR(name: define.name, parameters: parameters, body: body.children, span: define.span)
         }
         return result

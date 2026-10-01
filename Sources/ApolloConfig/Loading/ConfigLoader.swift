@@ -19,6 +19,7 @@ public struct ConfigLoader: Sendable {
     let registry: SchemaRegistry
     let filters: FilterTable
     let shellVersion: String
+    public var keepsAllDefines = false
 
     public init(fileSystem: any ConfigFileSystem, paths: ConfigPaths, registry: SchemaRegistry, filters: FilterTable, shellVersion: String) {
         self.fileSystem = fileSystem
@@ -81,7 +82,8 @@ public struct ConfigLoader: Sendable {
             registry: registry,
             fileSystem: fileSystem,
             paths: paths,
-            templates: templates
+            templates: templates,
+            keepsAllDefines: keepsAllDefines
         )
         collect(built.diagnostics, stage: "ir")
         return finish(built.ir, files: included.files)

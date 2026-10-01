@@ -103,7 +103,7 @@ struct DefaultConfigTests {
 
     @Test("jede Zuordnung zeigt auf etwas, das die Config hat")
     func assignmentsExist() throws {
-        let ir = try #require(PackageResources.load(Self.defaultFolder, id: "apolloshell-default").ir)
+        let ir = try #require(PackageResources.load(Self.defaultFolder, id: "apolloshell-default", allDefines: true).ir)
         let surfaces = Set(ir.surfaces.map(\.id))
         let vars = Set(ir.vars.map(\.name))
         for assignment in Self.assignments {
