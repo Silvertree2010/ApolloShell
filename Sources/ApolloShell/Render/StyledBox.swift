@@ -262,9 +262,9 @@ struct Filters: ViewModifier {
         if enabled {
             content
                 .modifier(FilterSlot(operation: slot(0)))
-                .modifier(FilterSlot(operation: slot(1)))
-                .modifier(FilterSlot(operation: slot(2)))
-                .modifier(FilterSlot(operation: slot(3)))
+                .gated(slot(1) != nil) { $0.modifier(FilterSlot(operation: slot(1))) }
+                .gated(slot(2) != nil) { $0.modifier(FilterSlot(operation: slot(2))) }
+                .gated(slot(3) != nil) { $0.modifier(FilterSlot(operation: slot(3))) }
         } else {
             content
         }
