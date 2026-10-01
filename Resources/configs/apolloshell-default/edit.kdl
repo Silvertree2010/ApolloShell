@@ -245,11 +245,13 @@ define "edit-add-cc" {
 
 define "gallery-tile" {
     param "k"
-    button class="gallery-tile" drag-value="{k.kind}" tooltip="{k.title}" disabled="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind) == null}" {
+    button class="gallery-tile" drag-value="{k.kind}" tooltip="{k.title}" {
         on-click {
-            set "dashboard-new-id" "{clock.now | date 'yyyyMMddHHmmssSSS'}"
-            list.insert "dashboard-widgets" { - id="{var.dashboard-new-id}" page="{var.dashboard-active-page}" kind="{k.kind}" x="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).x}" y="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).y}" width="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).width}" height="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).height}" display="standard" }
-            use "widget-seed" i="{var.dashboard-new-id}" k="{k.kind}"
+            when "{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind) != null}" {
+                set "dashboard-new-id" "{clock.now | date 'yyyyMMddHHmmssSSS'}"
+                list.insert "dashboard-widgets" { - id="{var.dashboard-new-id}" page="{var.dashboard-active-page}" kind="{k.kind}" x="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).x}" y="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).y}" width="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).width}" height="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).height}" display="standard" }
+                use "widget-seed" i="{var.dashboard-new-id}" k="{k.kind}"
+            }
         }
         column class="gallery-tile-content" {
             icon "{k.symbol}" class="gallery-tile-glyph"
