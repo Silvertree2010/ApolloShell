@@ -109,10 +109,11 @@ struct EditEscapeTests {
 
     @Test("Esc closes selection, then gallery, then asks before discarding changes, and only cancels when nothing changed")
     func chain() async throws {
-        let h = try ShellHarness("include \"builtin:apolloshell-default/shell.kdl\"")
+        let h = try ShellHarness("include \"builtin:apolloshell-default/shell.kdl\"\non \"user.t-begin\" { use \"edit-begin\" }")
         try await h.start()
         defer { h.shell.shutdown() }
-        try await run(h, "set \"dashboard-backup-pages\" \"{var.dashboard-pages}\"; set \"dashboard-backup-widgets\" \"{var.dashboard-widgets}\"; set \"dashboard-backup-scale\" \"{var.dashboard-scale}\"; set \"shell-editing\" #true; open \"dashboard\"; open \"dashboard-toolbar\"")
+        for task in h.shell.assembly?.runtime.emit("user.t-begin", Record()) ?? [] { await task.value }
+        h.settle()
         try await run(h, "set \"dashboard-selected\" \"dashboard-weather\"; set \"dashboard-gallery\" #true")
         esc(h)
         #expect(v(h, "dashboard-selected") == .null && v(h, "dashboard-gallery") == .bool(true) && v(h, "shell-editing") == .bool(true))

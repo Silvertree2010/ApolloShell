@@ -864,7 +864,7 @@
 }
 .edit-badge { width: 13px; height: 13px; align-self: start; justify-self: start; margin: -4px 0 0 -4px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.75); align-items: center; justify-content: center; }
 .edit-badge-glyph { font-size: 8px; font-weight: 800; color: -apple-system-window-background; }
-.menubar-edit-list { gap: var(--apollo-menubar-group-spacing, var(--apollo-bar-item-spacing, 8px)); align-items: stretch; }
+.menubar-edit-list { gap: 8px; align-items: stretch; }
 .edit-zone { align-items: stretch; }
 .edit-empty { min-width: 64px; margin: 3px 0; border-radius: 9px; border: 1.5px dashed rgb(from -apple-system-label r g b / 0.55); align-items: center; justify-content: center; }
 .edit-empty-glyph { font-size: 11px; font-weight: 700; color: rgb(from -apple-system-label r g b / 0.55); }
