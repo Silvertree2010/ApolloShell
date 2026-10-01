@@ -286,6 +286,11 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         hosting.rootView = view
+        if !glide {
+            hosting.frame = CGRect(origin: .zero, size: frame.size)
+            hosting.layoutSubtreeIfNeeded()
+            hosting.displayIfNeeded()
+        }
         setFrame(frame, glide: glide)
         hosting.layoutSubtreeIfNeeded()
         CATransaction.commit()
