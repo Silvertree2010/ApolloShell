@@ -18,7 +18,7 @@ define "quick-toggle" {
 
 define "toggle-wifi" {
     param "toggle"
-    use "quick-toggle" icon="{network.wifi.on ? 'wifi' : 'wifi.slash'}" tooltip="Wi-Fi" active="{network.wifi.on}" {
+    use "quick-toggle" icon="{network.wifi.on ? 'wifi' : 'wifi.slash'}" tooltip="Wi-Fi" active="{network.wifi.on}" enabled="{network.wifi.on != null}" {
         on-click { network.toggle-wifi }
     }
 }

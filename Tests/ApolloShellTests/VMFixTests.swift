@@ -158,3 +158,21 @@ struct IntroWindowTests {
         #expect(abs(w.frame.midX - v.midX) < 1)
     }
 }
+
+@MainActor
+@Suite("VM test findings: Wi-Fi switch", .serialized)
+struct WifiSwitchTests {
+    func lum(_ s: Snapshot) -> Double {
+        var t = 0.0
+        let w = Int(s.size.width), h = Int(s.size.height)
+        for y in stride(from: 0, to: h, by: 2) { for x in stride(from: 0, to: w, by: 2) { let p = s.pixel(CGFloat(x), CGFloat(y)); t += Double(p.r) + Double(p.g) + Double(p.b) } }
+        return t
+    }
+
+    @Test("The Wi-Fi quick toggle is dimmed when the Mac has no Wi-Fi interface")
+    func dimmed() throws {
+        let off = try DefaultRenderTests.shot("utilities", state: "utilities-wifi-off")
+        let none = try DefaultRenderTests.shot("utilities", state: "utilities-wifi-none")
+        #expect(lum(none) != lum(off))
+    }
+}
