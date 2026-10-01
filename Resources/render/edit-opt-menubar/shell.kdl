@@ -1,0 +1,2 @@
+include "builtin:apolloshell-default/shell.kdl"
+style "style.css"

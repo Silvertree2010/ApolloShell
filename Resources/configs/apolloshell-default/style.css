@@ -911,3 +911,6 @@
 .gallery-grid { gap: 8px; grid-template-columns: repeat(8, 88px); }
 .edit-scale-glyph { font-size: 12px; color: -apple-system-secondary-label; }
 .edit-scale-text { font-size: 12px; color: -apple-system-secondary-label; min-width: 44px; }
+.pop-opts { gap: 8px; padding: 14px 16px; }
+.pop-opts .settings-options { padding: 0; }
+.pop-title { font-size: 15px; font-weight: 600; }

@@ -85,6 +85,7 @@ define "settings-module-summary" {
 
 define "settings-module-options" {
     param "module"
+    param "list" default="sidebar-modules"
     column class="settings-options" {
         switch "{module.kind}" {
             case "spaces" {
@@ -93,8 +94,8 @@ define "settings-module-options" {
                     spacer
                     button class="settings-popup-button" menu-on="click" {
                         menu side="below" {
-                            item "Dots" checked="{module.style != 'numbers'}" { list.update "sidebar-modules" key="{module.id}" { - style="dots" } }
-                            item "Numbers" checked="{module.style == 'numbers'}" { list.update "sidebar-modules" key="{module.id}" { - style="numbers" } }
+                            item "Dots" checked="{module.style != 'numbers'}" { list.update "{list}" key="{module.id}" { - style="dots" } }
+                            item "Numbers" checked="{module.style == 'numbers'}" { list.update "{list}" key="{module.id}" { - style="numbers" } }
                         }
                         text "{module.style == 'numbers' ? 'Numbers' : 'Dots'}"
                     }
@@ -102,16 +103,16 @@ define "settings-module-options" {
             }
             case "dock" {
                 use "settings-switch" title="Show Running Apps" detail="Also unpinned ones, below a divider" checked="{module.show-running}" {
-                    on-change { list.update "sidebar-modules" key="{module.id}" { - show-running="{event.value}" } }
+                    on-change { list.update "{list}" key="{module.id}" { - show-running="{event.value}" } }
                 }
                 row class="settings-row" {
                     text "Icon Size" class="settings-row-title"
                     spacer
                     button class="settings-popup-button" menu-on="click" {
                         menu side="below" {
-                            item "Small" checked="{module.icon-size == 'small'}" { list.update "sidebar-modules" key="{module.id}" { - icon-size="small" } }
-                            item "Medium" checked="{module.icon-size == 'medium'}" { list.update "sidebar-modules" key="{module.id}" { - icon-size="medium" } }
-                            item "Large" checked="{module.icon-size == 'large'}" { list.update "sidebar-modules" key="{module.id}" { - icon-size="large" } }
+                            item "Small" checked="{module.icon-size == 'small'}" { list.update "{list}" key="{module.id}" { - icon-size="small" } }
+                            item "Medium" checked="{module.icon-size == 'medium'}" { list.update "{list}" key="{module.id}" { - icon-size="medium" } }
+                            item "Large" checked="{module.icon-size == 'large'}" { list.update "{list}" key="{module.id}" { - icon-size="large" } }
                         }
                         text "{module.icon-size == 'small' ? 'Small' : (module.icon-size == 'large' ? 'Large' : 'Medium')}"
                     }
@@ -119,28 +120,28 @@ define "settings-module-options" {
             }
             case "clock" {
                 use "settings-switch" title="Show Icon" detail="Calendar icon above the time" checked="{module.show-icon}" {
-                    on-change { list.update "sidebar-modules" key="{module.id}" { - show-icon="{event.value}" } }
+                    on-change { list.update "{list}" key="{module.id}" { - show-icon="{event.value}" } }
                 }
                 use "settings-switch" title="Show Date" detail="Weekday and day above the time" checked="{module.show-date}" {
-                    on-change { list.update "sidebar-modules" key="{module.id}" { - show-date="{event.value}" } }
+                    on-change { list.update "{list}" key="{module.id}" { - show-date="{event.value}" } }
                 }
             }
             case "status-icons" {
                 use "settings-switch" title="Wi-Fi" checked="{module.wifi}" {
-                    on-change { list.update "sidebar-modules" key="{module.id}" { - wifi="{event.value}" } }
+                    on-change { list.update "{list}" key="{module.id}" { - wifi="{event.value}" } }
                 }
                 use "settings-switch" title="Bluetooth" checked="{module.bluetooth}" {
-                    on-change { list.update "sidebar-modules" key="{module.id}" { - bluetooth="{event.value}" } }
+                    on-change { list.update "{list}" key="{module.id}" { - bluetooth="{event.value}" } }
                 }
                 use "settings-switch" title="Battery" detail="Only on Macs with a battery" checked="{module.battery}" {
-                    on-change { list.update "sidebar-modules" key="{module.id}" { - battery="{event.value}" } }
+                    on-change { list.update "{list}" key="{module.id}" { - battery="{event.value}" } }
                 }
             }
             case "gap" {
                 row class="settings-row" {
                     text "Height" class="settings-row-title"
                     slider value="{module.height ?? 16 | clamp 4 96}" min=4 max=96 step=1 class="settings-slider" {
-                        on-commit { list.update "sidebar-modules" key="{module.id}" { - height="{event.value}" } }
+                        on-commit { list.update "{list}" key="{module.id}" { - height="{event.value}" } }
                     }
                     text "{module.height ?? 16 | clamp 4 96} pt" class="settings-row-value"
                 }
@@ -150,7 +151,7 @@ define "settings-module-options" {
                 when "{var.settings-sidebar-app-query != ''}" {
                     each app in="{apps.all | fuzzy var.settings-sidebar-app-query | take 8}" key="{app.bundle-id}" {
                         button class="settings-row settings-result" checked="{app.bundle-id == module.bundle-id}" {
-                            on-click { list.update "sidebar-modules" key="{module.id}" { - bundle-id="{app.bundle-id}" }; set "settings-sidebar-app-query" "" }
+                            on-click { list.update "{list}" key="{module.id}" { - bundle-id="{app.bundle-id}" }; set "settings-sidebar-app-query" "" }
                             row class="button-content" {
                                 app-icon "{app.bundle-id}" class="settings-app-icon"
                                 text "{app.name}" class="settings-row-title"
@@ -163,7 +164,7 @@ define "settings-module-options" {
             }
             case "battery" {
                 use "settings-switch" title="Show Icon" detail="Battery icon above the percentage" checked="{module.show-icon}" {
-                    on-change { list.update "sidebar-modules" key="{module.id}" { - show-icon="{event.value}" } }
+                    on-change { list.update "{list}" key="{module.id}" { - show-icon="{event.value}" } }
                 }
             }
             case "cpu" {
@@ -172,16 +173,50 @@ define "settings-module-options" {
                     spacer
                     button class="settings-popup-button" menu-on="click" {
                         menu side="below" {
-                            item "Ring" checked="{module.style != 'percent'}" { list.update "sidebar-modules" key="{module.id}" { - style="ring" } }
-                            item "Percent" checked="{module.style == 'percent'}" { list.update "sidebar-modules" key="{module.id}" { - style="percent" } }
+                            item "Ring" checked="{module.style != 'percent'}" { list.update "{list}" key="{module.id}" { - style="ring" } }
+                            item "Percent" checked="{module.style == 'percent'}" { list.update "{list}" key="{module.id}" { - style="percent" } }
                         }
                         text "{module.style == 'percent' ? 'Percent' : 'Ring'}"
                     }
                 }
             }
+            case "now-playing" {
+                use "settings-switch" title="Show Controls" checked="{module.show-controls}" {
+                    on-change { list.update "{list}" key="{module.id}" { - show-controls="{event.value}" } }
+                }
+            }
+            case "window-title" {
+                use "settings-switch" title="Show Icon" checked="{module.show-icon}" {
+                    on-change { list.update "{list}" key="{module.id}" { - show-icon="{event.value}" } }
+                }
+                use "settings-switch" title="Show Window Title" checked="{module.show-title}" {
+                    on-change { list.update "{list}" key="{module.id}" { - show-title="{event.value}" } }
+                }
+            }
+            case "keyboard-layout" {
+                use "settings-switch" title="Show Icon" checked="{module.show-icon}" {
+                    on-change { list.update "{list}" key="{module.id}" { - show-icon="{event.value}" } }
+                }
+            }
+            case "volume" {
+                use "settings-switch" title="Show Percent" checked="{module.show-percent}" {
+                    on-change { list.update "{list}" key="{module.id}" { - show-percent="{event.value}" } }
+                }
+                use "settings-switch" title="Show Output Device" checked="{module.show-device}" {
+                    on-change { list.update "{list}" key="{module.id}" { - show-device="{event.value}" } }
+                }
+            }
+            case "system-stats" {
+                use "settings-switch" title="CPU" checked="{module.show-cpu}" {
+                    on-change { list.update "{list}" key="{module.id}" { - show-cpu="{event.value}" } }
+                }
+                use "settings-switch" title="Memory" checked="{module.show-memory}" {
+                    on-change { list.update "{list}" key="{module.id}" { - show-memory="{event.value}" } }
+                }
+            }
             case "weather" {
                 use "settings-switch" title="Show Temperature" detail="The location is set on the Dashboard page" checked="{module.show-temperature}" {
-                    on-change { list.update "sidebar-modules" key="{module.id}" { - show-temperature="{event.value}" } }
+                    on-change { list.update "{list}" key="{module.id}" { - show-temperature="{event.value}" } }
                 }
             }
         }

@@ -347,6 +347,7 @@ define "card-quick-toggles" {
 }
 
 popup "utilities" anchor="bottom-right" fuse-group="shell" hover-edge="{!var.shell-editing}" hover-gap=12 overhang=#true close-on="{var.shell-editing ? '' : 'outside-click escape focus-loss'}" {
+    use "edit-opt-toggle"
     column class="utilities" {
         when "{(var.utilities-cards | where 'enabled' true | count) == 0}" {
             column class="utilities-empty" {

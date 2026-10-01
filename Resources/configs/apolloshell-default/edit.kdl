@@ -15,6 +15,22 @@ var edit-targets {
 var edit-target-list from="{var.edit-target == 'sidebar' ? 'sidebar-modules' : 'menubar-' + var.edit-target}"
 var edit-target-kinds from="{var.edit-target == 'sidebar' ? var.sidebar-module-kinds : var.menubar-module-kinds}"
 var edit-target-present from="{var.edit-target == 'sidebar' ? var.sidebar-modules : (var.menubar-start | concat var.menubar-center | concat var.menubar-end)}"
+var edit-opt #null type="any"
+var edit-opt-list from="{var.dashboard-selected == null ? '' : (var.dashboard-selected | split ':' | first)}"
+var edit-opt-key from="{var.dashboard-selected == null ? '' : (var.dashboard-selected | split ':' | last)}"
+var edit-opt-open from="{var.shell-editing && var.edit-opt != null && var.edit-opt == var.dashboard-selected}"
+var edit-opt-zone from="{var.edit-opt-list | replace 'menubar-' ''}"
+var edit-opt-zone-list from="{var.edit-opt-list == 'menubar-start' ? var.menubar-start : (var.edit-opt-list == 'menubar-center' ? var.menubar-center : var.menubar-end)}"
+var edit-opt-index from="{var.edit-opt-zone-list | index-where 'id' [var.edit-opt-key]}"
+var edit-opt-sb from="{var.sidebar-modules | where 'id' var.edit-opt-key | first}"
+var edit-opt-mb from="{var.edit-opt-zone-list | where 'id' var.edit-opt-key | first}"
+var edit-opt-tg from="{var.utilities-toggles | where 'id' var.edit-opt-key | first}"
+var edit-opt-sb-look from="{var.sidebar-module-kinds | where 'kind' var.edit-opt-sb.kind | first}"
+var edit-opt-mb-look from="{var.menubar-module-kinds | where 'kind' var.edit-opt-mb.kind | first}"
+var edit-opt-tg-look from="{var.utilities-toggle-kinds | where 'kind' var.edit-opt-tg.kind | first}"
+var edit-opt-sb-open from="{var.edit-opt-open && var.edit-opt-list == 'sidebar-modules' && var.edit-opt-sb != null && var.edit-opt-sb-look.options == true}"
+var edit-opt-mb-open from="{var.edit-opt-open && (var.edit-opt-list | starts-with 'menubar-') && var.edit-opt-mb != null}"
+var edit-opt-tg-open from="{var.edit-opt-open && var.edit-opt-list == 'utilities-toggles' && var.edit-opt-tg != null && (var.edit-opt-tg.kind == 'hide-apps' || var.edit-opt-tg.kind == 'open-app' || var.edit-opt-tg.kind == 'open-link' || var.edit-opt-tg.kind == 'run-shortcut')}"
 var dashboard-gallery #false
 var dashboard-confirm #false
 var dashboard-symbols {
@@ -42,6 +58,7 @@ define "edit-begin" {
         set "edit-backup-cards" "{var.utilities-cards}"
         set "edit-backup-toggles" "{var.utilities-toggles}"
         set "dashboard-selected" #null
+        set "edit-opt" #null
         set "dashboard-gallery" #false
         set "dashboard-options" #null
         set "dashboard-confirm" #false
@@ -57,6 +74,7 @@ define "edit-begin" {
 define "edit-end" {
     set "shell-editing" #false
     set "dashboard-selected" #null
+    set "edit-opt" #null
     set "dashboard-gallery" #false
     set "dashboard-options" #null
     set "dashboard-confirm" #false
@@ -90,6 +108,7 @@ define "edit-escape" {
     when "{var.dashboard-selected == null && var.dashboard-gallery}" { set "dashboard-gallery" #false }
     when "{var.dashboard-selected != null}" {
         set "dashboard-selected" #null
+        set "edit-opt" #null
         set "dashboard-options" #null
         set "dashboard-tz-open" #false
         set "dashboard-app-open" #false
@@ -103,12 +122,22 @@ define "edit-frame" {
     param "key"
     param "grow" default=#false
     param "disable" default=#false
-    stack class="edit-item editing{grow ? ' grow' : ''}{var.dashboard-selected == list + ':' + key ? ' selected' : ''}" {
+    stack id="ef-{list}-{key}" class="edit-item editing{grow ? ' grow' : ''}{var.dashboard-selected == list + ':' + key ? ' selected' : ''}" {
         slot
         stack class="edit-cover" {
             on-click {
                 set "dashboard-selected" "{list + ':' + key}"
                 set "dashboard-options" #null
+                set "edit-opt" "{list + ':' + key}"
+                when "{list == 'utilities-toggles'}" {
+                    set "settings-toggle-selected" "{key}"
+                    set "settings-toggle-title" "{(var.utilities-toggles | where 'id' key | first).title ?? ''}"
+                    set "settings-toggle-url" "{(var.utilities-toggles | where 'id' key | first).url ?? ''}"
+                    set "settings-toggle-symbol" "{(var.utilities-toggles | where 'id' key | first).symbol ?? ''}"
+                    set "settings-toggle-query" ""
+                    set "settings-toggle-symbols-open" #false
+                }
+                when "{list == 'sidebar-modules'}" { set "settings-sidebar-app-query" "" }
             }
         }
         button class="edit-badge" tooltip="Remove" {
@@ -118,6 +147,51 @@ define "edit-frame" {
                 when "{!disable}" { list.remove "{list}" key="{key}" }
             }
             icon "minus" class="edit-badge-glyph"
+        }
+    }
+}
+
+define "edit-opt-panel" {
+    param "title"
+    column class="opt-panel pop-opts" {
+        text "{title}" class="pop-title"
+        slot
+        row class="opt-row" {
+            spacer
+            button class="edit-button edit-text" {
+                on-click {
+                    set "edit-opt" #null
+                    set "dashboard-selected" #null
+                }
+                text "Done"
+            }
+        }
+    }
+}
+
+define "edit-opt-sidebar" {
+    flyout id="edit-opt-sidebar" anchor="ef-sidebar-modules-{var.edit-opt-key}" side="right" open="{var.edit-opt-sb-open}" {
+        use "edit-opt-panel" title="{var.edit-opt-sb-look.title}" {
+            use "settings-module-options" module="{var.edit-opt-sb}"
+        }
+    }
+}
+
+define "edit-opt-menubar" {
+    flyout id="edit-opt-menubar" anchor="ef-{var.edit-opt-list}-{var.edit-opt-key}" side="bottom" open="{var.edit-opt-mb-open}" {
+        use "edit-opt-panel" title="{var.edit-opt-mb-look.title}" {
+            use "settings-switch" title="Join with Previous" checked="{(var.edit-opt-mb.joins ?? false) && var.edit-opt-index > 0}" disabled="{var.edit-opt-index == 0}" {
+                on-change { list.update "{var.edit-opt-list}" key="{var.edit-opt-key}" { - joins="{event.value}" } }
+            }
+            use "settings-module-options" module="{var.edit-opt-mb}" list="{var.edit-opt-list}"
+        }
+    }
+}
+
+define "edit-opt-toggle" {
+    flyout id="edit-opt-toggle" anchor="ef-utilities-toggles-{var.edit-opt-key}" side="left" open="{var.edit-opt-tg-open}" {
+        use "edit-opt-panel" title="{var.edit-opt-tg-look.title}" {
+            use "settings-toggle-options" toggle="{var.edit-opt-tg}" look="{var.edit-opt-tg-look}"
         }
     }
 }

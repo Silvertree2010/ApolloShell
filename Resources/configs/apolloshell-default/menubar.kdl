@@ -608,6 +608,7 @@ panel "menubar" anchor="top" fuse-group="shell" safe-area=#false area="{var.menu
         use "menubar-zone" zone="center" modules="{var.menubar-center}"
         use "menubar-zone" zone="end" modules="{var.menubar-end}"
     }
+    use "edit-opt-menubar"
 }
 
 on "user.menubar-popout" when="{var.menubar-popout == var.menubar-popout-next}" { close "menubar-status-popout" }

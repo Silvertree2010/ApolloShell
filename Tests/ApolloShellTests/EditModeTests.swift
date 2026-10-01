@@ -115,4 +115,24 @@ struct EditModeTests {
         defer { shell.shutdown(); try? FileManager.default.removeItem(at: home.root) }
         #expect(CommandCenterWiringTests.titles(shell.commandCenterEntries()).contains("Edit Layout…"))
     }
+
+    @Test("selecting a block with options opens its popover and done closes it")
+    func optionsPopover() async throws {
+        let h = try await start()
+        defer { h.shell.shutdown() }
+        await ev(h, "t-begin")
+        try await run(h, "set \"dashboard-selected\" \"sidebar-modules:clock\"; set \"edit-opt\" \"sidebar-modules:clock\"")
+        #expect(v(h, "edit-opt-sb-open") == .bool(true))
+        #expect(v(h, "edit-opt-mb-open") == .bool(false))
+        try await run(h, "set \"dashboard-selected\" \"menubar-end:clock\"; set \"edit-opt\" \"menubar-end:clock\"")
+        #expect(v(h, "edit-opt-mb-open") == .bool(true))
+        #expect(v(h, "edit-opt-sb-open") == .bool(false))
+        try await run(h, "set \"dashboard-selected\" \"sidebar-modules:power\"; set \"edit-opt\" \"sidebar-modules:power\"")
+        #expect(v(h, "edit-opt-sb-open") == .bool(false))
+        await ev(h, "t-cc", [("value", .string("toggle:hide-apps"))])
+        try await run(h, "set \"dashboard-selected\" \"utilities-toggles:hide-apps\"; set \"edit-opt\" \"utilities-toggles:hide-apps\"")
+        #expect(v(h, "edit-opt-tg-open") == .bool(true))
+        try await run(h, "set \"edit-opt\" #null")
+        #expect(v(h, "edit-opt-tg-open") == .bool(false))
+    }
 }
