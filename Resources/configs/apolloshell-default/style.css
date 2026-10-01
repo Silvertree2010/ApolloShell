@@ -119,9 +119,9 @@
 .sidebar-status-items { gap: 6px; align-items: center; }
 .sidebar-status-text { font-size: 10px; font-variant-numeric: tabular-nums; }
 .sidebar-timer-glyph { font-size: 16px; font-weight: 600; }
-.sidebar-timer-stack { width: 26px; height: 26px; align-items: center; justify-content: center; }
-.sidebar-timer-ring { width: 26px; height: 26px; -apollo-stroke-width: 2.5px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.15); color: -apple-system-secondary-label; }
-.sidebar-timer-stack.running .sidebar-timer-ring { color: -apple-system-control-accent; }
+.sidebar-timer-stack { width: 28.5px; height: 28.5px; align-items: center; justify-content: center; }
+.sidebar-timer-ring { width: 28.5px; height: 28.5px; -apollo-stroke-width: 2.5px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.15); color: -apple-system-secondary-label; }
+.sidebar-timer-stack.running .sidebar-timer-ring { color: var(--apollo-accent-color, -apple-system-control-accent); }
 .sidebar-timer-text { font-size: 8.5px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
 .sidebar-volume-device { font-size: 9px; color: -apple-system-secondary-label; }
 
