@@ -91,10 +91,19 @@ struct EditModeTests {
         let h = try await start()
         defer { h.shell.shutdown() }
         await ev(h, "t-begin")
-        try await run(h, "list.update \"utilities-cards\" key=\"audio\" { - enabled=#false }")
+        func on(_ k: String) -> Bool? {
+            guard case .list(let l)? = v(h, "utilities-cards") else { return nil }
+            for x in l { if case .record(let r) = x, r["kind"] == .string(k), case .bool(let b)? = r["enabled"] { return b } }
+            return nil
+        }
+        try await run(h, "list.update \"utilities-cards\" at=\"{var.utilities-cards | index-where 'kind' ['brightness']}\" { - enabled=#false }")
+        #expect(on("brightness") == false)
+        await ev(h, "t-cc", [("value", .string("card:brightness"))])
+        #expect(on("brightness") == true)
+        try await run(h, "list.update \"utilities-cards\" at=\"{var.utilities-cards | index-where 'kind' ['audio']}\" { - enabled=#false }")
+        #expect(on("audio") == false)
         await ev(h, "t-cc", [("value", .string("card:audio"))])
-        guard case .list(let l)? = v(h, "utilities-cards"), let r = l.compactMap({ v -> Record? in if case .record(let r) = v, r["kind"] == .string("audio") { return r } else { return nil } }).first else { Issue.record("no audio card"); return }
-        #expect(r["enabled"] == .bool(true))
+        #expect(on("audio") == true)
     }
 
     @Test("a fast user switch cancels the mode and restores the layout")
