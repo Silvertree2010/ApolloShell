@@ -133,5 +133,6 @@ fixture {
             - id="settings" kind="settings"
         }
         dashboard-backup-widgets { }
+        dashboard-confirm #true
     }
 }

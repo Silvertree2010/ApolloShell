@@ -253,7 +253,9 @@ define "gallery-tile" {
         }
         column class="gallery-tile-content" {
             icon "{k.symbol}" class="gallery-tile-glyph"
-            text "{k.title}" class="gallery-tile-title" lines=1
+            text "{k.title}" class="gallery-tile-title" lines=2
+            spacer
+            text "{(k.sizes | count) == 1 ? '1 size' : (k.sizes | count) + ' sizes'}" class="gallery-tile-detail"
         }
     }
 }
@@ -368,46 +370,48 @@ popup "dashboard-toolbar" anchor="bottom" motion="slide" close-on="" {
             }
         }
         when "{var.dashboard-confirm}" {
-            row class="edit-row edit-confirm" {
-                text "Discard your changes?" class="edit-confirm-text"
-                spacer
+            row class="edit-row edit-main edit-confirm" {
+                text "Discard changes?" class="edit-confirm-text"
                 button class="edit-button edit-text" {
                     on-click { set "dashboard-confirm" #false }
                     text "Keep Editing"
                 }
-                button class="edit-button edit-text edit-done" {
+                button class="edit-button edit-text" {
                     on-click { use "edit-cancel" }
                     text "Discard"
                 }
             }
         }
-        row class="edit-row" {
-            button class="edit-button edit-plus" checked="{var.dashboard-gallery}" tooltip="Add" {
-                on-click { set "dashboard-gallery" "{!var.dashboard-gallery}" }
-                icon "plus"
-            }
-            when "{var.dashboard-selected-widget != null}" {
-                stack class="edit-separator"
-                each d in="{(((var.widget-kinds | where 'kind' var.dashboard-selected-widget.kind | first).displays) ?? 'standard') | split ' '}" key="{d}" {
-                    button class="edit-button edit-display" checked="{(var.dashboard-selected-widget.display ?? 'standard') == d}" {
-                        on-click { list.update "dashboard-widgets" key="{var.dashboard-selected}" { - display="{d}" } }
-                        text "{d | capitalize}"
+        when "{!var.dashboard-confirm}" {
+            row class="edit-row edit-main" {
+                button class="edit-button edit-plus" checked="{var.dashboard-gallery}" tooltip="Add" {
+                    on-click { set "dashboard-gallery" "{!var.dashboard-gallery}" }
+                    icon "plus"
+                }
+                when "{var.dashboard-selected-widget != null}" {
+                    stack class="edit-separator"
+                    each d in="{(((var.widget-kinds | where 'kind' var.dashboard-selected-widget.kind | first).displays) ?? 'standard') | split ' '}" key="{d}" {
+                        button class="edit-button edit-display" checked="{(var.dashboard-selected-widget.display ?? 'standard') == d}" {
+                            on-click { list.update "dashboard-widgets" key="{var.dashboard-selected}" { - display="{d}" } }
+                            text "{d | capitalize}"
+                        }
                     }
                 }
-            }
-            spacer
-            icon "arrow.up.left.and.down.right.magnifyingglass" class="edit-scale-glyph"
-            slider value="{var.dashboard-scale}" min=0.7 max=1.5 step=0.05 class="edit-slider" label="Dashboard Size" {
-                on-change { set "dashboard-scale" "{event.value}" }
-            }
-            text "{var.dashboard-scale * 100 | round} %" class="edit-scale-text"
-            button class="edit-button edit-text" {
-                on-click { use "edit-cancel" }
-                text "Cancel"
-            }
-            button class="edit-button edit-text edit-done" {
-                on-click { use "edit-done" }
-                text "Done"
+                row class="edit-scale" {
+                    icon "square.resize" fallback="arrow.up.left.and.down.right.magnifyingglass" class="edit-scale-glyph"
+                    slider value="{var.dashboard-scale}" min=0.7 max=1.5 step=0.05 class="edit-slider" label="Dashboard Size" {
+                        on-change { set "dashboard-scale" "{event.value}" }
+                    }
+                    text "{var.dashboard-scale * 100 | round} %" class="edit-scale-text"
+                }
+                button class="edit-button edit-text" {
+                    on-click { use "edit-cancel" }
+                    text "Cancel"
+                }
+                button class="edit-button edit-text edit-done" {
+                    on-click { use "edit-done" }
+                    text "Done"
+                }
             }
         }
     }
