@@ -45,15 +45,33 @@ define "sidebar-media-button" {
 
 define "sidebar-spaces" {
     param "module"
-    column class="sidebar-spaces style-{module.style}" {
-        each space in="{spaces.list | where 'fullscreen' false}" key="{space.id}" {
-            button class="space" checked="{space.active}" tooltip="Desktop {space.index}" {
-                on-click { spaces.switch "{space.index}" }
-                stack {
-                    when "{space.active}" { stack class="space-pill" match-id="space-pill" }
-                    when "{module.style == 'numbers'}" { text "{space.index}" class="space-number" }
-                    else { stack class="space-dot" }
+    switch "{module.style}" {
+        case "pills" { use "sidebar-spaces-face" module="{module}" }
+        case "bars" { use "sidebar-spaces-face" module="{module}" }
+        default {
+            column class="sidebar-spaces style-{module.style}" {
+                each space in="{spaces.list | where 'fullscreen' false}" key="{space.id}" {
+                    button class="space" checked="{space.active}" tooltip="Desktop {space.index}" {
+                        on-click { spaces.switch "{space.index}" }
+                        stack {
+                            when "{space.active}" { stack class="space-pill" match-id="space-pill" }
+                            when "{module.style == 'numbers'}" { text "{space.index}" class="space-number" }
+                            else { stack class="space-dot" }
+                        }
+                    }
                 }
+            }
+        }
+    }
+}
+
+define "sidebar-spaces-face" {
+    param "module"
+    column class="sidebar-spaces face-{module.style}" {
+        each space in="{spaces.list | where 'fullscreen' false}" key="{space.id}" {
+            button class="space-face" checked="{space.active}" tooltip="To Desktop {space.index}" {
+                on-click { spaces.switch "{space.index}" }
+                stack class="space-mark"
             }
         }
     }

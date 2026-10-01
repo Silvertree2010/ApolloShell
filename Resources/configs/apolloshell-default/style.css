@@ -869,3 +869,13 @@
 .edit-confirm { padding: 0 4px; }
 .edit-confirm-text { font-size: 12px; font-weight: 500; }
 .opt-pick-row { gap: 6px; align-items: center; flex-grow: 1; }
+
+.sidebar-spaces.face-pills, .sidebar-spaces.face-bars { padding: 6px 0; }
+.space-face { width: 26px; height: 13px; align-items: center; justify-content: center; }
+.space-mark { border-radius: 9999px; background: rgb(from var(--apollo-bar-icon-color, -apple-system-label) r g b / 0.45); }
+.face-pills .space-mark { width: 6.5px; height: 6.5px; }
+.face-pills .space-face:checked { height: 23.4px; }
+.face-pills .space-face:checked .space-mark { height: 23.4px; }
+.face-bars .space-mark { width: 10.4px; height: 3px; }
+.face-bars .space-face:checked .space-mark { width: 19.5px; }
+.space-face:checked .space-mark { background: var(--apollo-spaces-active-color, var(--apollo-accent-color, -apple-system-control-accent)); }

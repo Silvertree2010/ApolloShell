@@ -121,3 +121,11 @@
 .menubar-window-title { gap: 7px; padding: 0 6px; align-items: center; }
 .menubar-window-icon { width: 16px; height: 16px; }
 .menubar-window-text { font-size: var(--apollo-menubar-font-size, 13px); font-weight: 600; color: var(--apollo-menubar-text-color, var(--apollo-bar-text-color, -apple-system-label)); }
+.menubar-spaces.face-pills, .menubar-spaces.face-bars { padding: 0 6px; }
+.menubar-space-face { width: calc(var(--menubar-control) - 6px); height: calc(var(--menubar-control) - 6px); align-items: center; justify-content: center; }
+.menubar-space-mark { border-radius: 9999px; background: rgb(from var(--apollo-menubar-icon-color, var(--apollo-bar-icon-color, -apple-system-label)) r g b / 0.45); }
+.face-pills .menubar-space-mark { width: 6.5px; height: 6.5px; }
+.face-pills .menubar-space-face:checked .menubar-space-mark { width: calc((var(--menubar-control) - 6px) * 0.9); }
+.face-bars .menubar-space-mark { width: 3px; height: calc((var(--menubar-control) - 6px) * 0.4); }
+.face-bars .menubar-space-face:checked .menubar-space-mark { height: calc((var(--menubar-control) - 6px) * 0.75); }
+.menubar-space-face:checked .menubar-space-mark { background: var(--apollo-spaces-active-color, var(--apollo-accent-color, -apple-system-control-accent)); }
