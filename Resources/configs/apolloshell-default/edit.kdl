@@ -1,0 +1,312 @@
+var edit-tab "dashboard"
+var edit-target "sidebar"
+var edit-backup-sidebar #null type="any"
+var edit-backup-start #null type="any"
+var edit-backup-center #null type="any"
+var edit-backup-end #null type="any"
+var edit-backup-cards #null type="any"
+var edit-backup-toggles #null type="any"
+var edit-targets {
+    - id="sidebar" title="Sidebar"
+    - id="start" title="Menu Bar Left"
+    - id="center" title="Menu Bar Middle"
+    - id="end" title="Menu Bar Right"
+}
+var edit-target-list from="{var.edit-target == 'sidebar' ? 'sidebar-modules' : 'menubar-' + var.edit-target}"
+var edit-target-kinds from="{var.edit-target == 'sidebar' ? var.sidebar-module-kinds : var.menubar-module-kinds}"
+var edit-target-present from="{var.edit-target == 'sidebar' ? var.sidebar-modules : (var.menubar-start | concat var.menubar-center | concat var.menubar-end)}"
+var dashboard-gallery #false
+var dashboard-confirm #false
+var dashboard-symbols {
+    - symbol="square.grid.2x2"
+    - symbol="star.fill"
+    - symbol="heart.fill"
+    - symbol="briefcase.fill"
+    - symbol="house.fill"
+    - symbol="bolt.fill"
+    - symbol="gamecontroller.fill"
+    - symbol="music.note"
+}
+var edit-cc-cards from="{var.utilities-card-kinds | where-not 'kind' 'quick-toggles'}"
+var dashboard-changed from="{var.shell-editing && (var.dashboard-pages != var.dashboard-backup-pages || var.dashboard-widgets != var.dashboard-backup-widgets || var.dashboard-scale != var.dashboard-backup-scale || var.sidebar-modules != var.edit-backup-sidebar || var.menubar-start != var.edit-backup-start || var.menubar-center != var.edit-backup-center || var.menubar-end != var.edit-backup-end || var.utilities-cards != var.edit-backup-cards || var.utilities-toggles != var.edit-backup-toggles)}"
+
+define "edit-begin" {
+    when "{!var.shell-editing}" {
+        set "dashboard-backup-pages" "{var.dashboard-pages}"
+        set "dashboard-backup-widgets" "{var.dashboard-widgets}"
+        set "dashboard-backup-scale" "{var.dashboard-scale}"
+        set "edit-backup-sidebar" "{var.sidebar-modules}"
+        set "edit-backup-start" "{var.menubar-start}"
+        set "edit-backup-center" "{var.menubar-center}"
+        set "edit-backup-end" "{var.menubar-end}"
+        set "edit-backup-cards" "{var.utilities-cards}"
+        set "edit-backup-toggles" "{var.utilities-toggles}"
+        set "dashboard-selected" #null
+        set "dashboard-gallery" #false
+        set "dashboard-options" #null
+        set "dashboard-confirm" #false
+        set "edit-tab" "dashboard"
+        set "edit-target" "sidebar"
+        set "shell-editing" #true
+        open "dashboard"
+        open "utilities"
+        open "dashboard-toolbar"
+    }
+}
+
+define "edit-end" {
+    set "shell-editing" #false
+    set "dashboard-selected" #null
+    set "dashboard-gallery" #false
+    set "dashboard-options" #null
+    set "dashboard-confirm" #false
+    close "dashboard"
+    close "utilities"
+    close "dashboard-toolbar"
+}
+
+define "edit-cancel" {
+    when "{var.shell-editing}" {
+        set "dashboard-pages" "{var.dashboard-backup-pages}"
+        set "dashboard-widgets" "{var.dashboard-backup-widgets}"
+        set "dashboard-scale" "{var.dashboard-backup-scale}"
+        set "sidebar-modules" "{var.edit-backup-sidebar}"
+        set "menubar-start" "{var.edit-backup-start}"
+        set "menubar-center" "{var.edit-backup-center}"
+        set "menubar-end" "{var.edit-backup-end}"
+        set "utilities-cards" "{var.edit-backup-cards}"
+        set "utilities-toggles" "{var.edit-backup-toggles}"
+    }
+    use "edit-end"
+}
+
+define "edit-done" {
+    use "edit-end"
+}
+
+define "edit-escape" {
+    when "{var.dashboard-selected == null && !var.dashboard-gallery && !var.dashboard-changed}" { use "edit-cancel" }
+    when "{var.dashboard-selected == null && !var.dashboard-gallery && var.dashboard-changed}" { set "dashboard-confirm" "{!var.dashboard-confirm}" }
+    when "{var.dashboard-selected == null && var.dashboard-gallery}" { set "dashboard-gallery" #false }
+    when "{var.dashboard-selected != null}" {
+        set "dashboard-selected" #null
+        set "dashboard-options" #null
+        set "dashboard-tz-open" #false
+        set "dashboard-app-open" #false
+    }
+}
+
+on "system.session-inactive" when="{var.shell-editing}" { use "edit-cancel" }
+
+define "edit-frame" {
+    param "list"
+    param "key"
+    param "grow" default=#false
+    param "disable" default=#false
+    stack class="edit-item editing{grow ? ' grow' : ''}{var.dashboard-selected == list + ':' + key ? ' selected' : ''}" {
+        slot
+        stack class="edit-cover" {
+            on-click {
+                set "dashboard-selected" "{list + ':' + key}"
+                set "dashboard-options" #null
+            }
+        }
+        button class="edit-badge" tooltip="Remove" {
+            on-click {
+                when "{var.dashboard-selected == list + ':' + key}" { set "dashboard-selected" #null }
+                when "{disable}" { list.update "{list}" key="{key}" { - enabled=#false } }
+                when "{!disable}" { list.remove "{list}" key="{key}" }
+            }
+            icon "minus" class="edit-badge-glyph"
+        }
+    }
+}
+
+define "edit-add-bar" {
+    param "list"
+    param "catalog"
+    param "kind"
+    param "present"
+    param "at" default=-1
+    when "{(catalog | where 'kind' kind | count) > 0 && !((catalog | where 'kind' kind | first).unique && (present | where 'kind' kind | count) > 0)}" {
+        list.insert "{list}" at="{at}" id-from="kind" { - "{(catalog | where 'kind' kind | first).module}" }
+    }
+}
+
+define "edit-add-card" {
+    param "kind"
+    when "{(var.utilities-cards | where 'kind' kind | count) > 0}" {
+        list.update "utilities-cards" key="{kind}" { - enabled=#true }
+    }
+    else {
+        list.insert "utilities-cards" { - kind="{kind}" enabled=#true }
+    }
+}
+
+define "edit-add-toggle" {
+    param "kind"
+    when "{(var.utilities-toggle-kinds | where 'kind' kind | count) > 0 && !((var.utilities-toggle-kinds | where 'kind' kind | first).unique && (var.utilities-toggles | where 'kind' kind | count) > 0)}" {
+        list.insert "utilities-toggles" at="{var.utilities-toggles | count}" id-from="kind" { - "{(var.utilities-toggle-kinds | where 'kind' kind | first).toggle}" }
+    }
+}
+
+define "edit-add-cc" {
+    param "value"
+    when "{value | starts-with 'card:'}" { use "edit-add-card" kind="{value | replace 'card:' ''}" }
+    when "{value | starts-with 'toggle:'}" { use "edit-add-toggle" kind="{value | replace 'toggle:' ''}" }
+}
+
+define "gallery-tile" {
+    param "k"
+    button class="gallery-tile" drag-value="{k.kind}" tooltip="{k.title}" disabled="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind) == null}" {
+        on-click {
+            set "dashboard-new-id" "{clock.now | date 'yyyyMMddHHmmssSSS'}"
+            list.insert "dashboard-widgets" { - id="{var.dashboard-new-id}" page="{var.dashboard-active-page}" kind="{k.kind}" x="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).x}" y="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).y}" width="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).width}" height="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).height}" display="standard" }
+            use "widget-seed" i="{var.dashboard-new-id}" k="{k.kind}"
+        }
+        icon "{k.symbol}" class="gallery-tile-glyph"
+        text "{k.title}" class="gallery-tile-title" lines=1
+    }
+}
+
+define "gallery-bar-tile" {
+    param "k"
+    param "off"
+    button class="gallery-tile" drag-value="{k.kind}" tooltip="{k.title}" disabled="{off}" {
+        on-click { use "edit-add-bar" list="{var.edit-target-list}" catalog="{var.edit-target-kinds}" kind="{k.kind}" present="{var.edit-target-present}" }
+        icon "{k.symbol}" class="gallery-tile-glyph"
+        text "{k.title}" class="gallery-tile-title" lines=1
+    }
+}
+
+define "gallery-cc-tile" {
+    param "value"
+    param "title"
+    param "symbol"
+    param "off"
+    button class="gallery-tile" drag-value="{value}" tooltip="{title}" disabled="{off}" {
+        on-click { use "edit-add-cc" value="{value}" }
+        icon "{symbol}" class="gallery-tile-glyph"
+        text "{title}" class="gallery-tile-title" lines=1
+    }
+}
+
+define "gallery-tab" {
+    param "id"
+    param "title"
+    button class="gallery-tab" checked="{var.edit-tab == id}" {
+        on-click { set "edit-tab" "{id}" }
+        text "{title}"
+    }
+}
+
+define "gallery-dashboard" {
+    row class="edit-row" {
+        input value="{var.dashboard-active-page-record.name}" placeholder="Page Name" class="edit-input" {
+            on-change { list.update "dashboard-pages" key="{var.dashboard-active-page}" { - name="{event.value}" } }
+        }
+        each s in="{var.dashboard-symbols}" key="{s.symbol}" {
+            button class="edit-button edit-symbol" checked="{var.dashboard-active-page-record.symbol == s.symbol}" {
+                on-click { list.update "dashboard-pages" key="{var.dashboard-active-page}" { - symbol="{s.symbol}" icon=#null } }
+                icon "{s.symbol}"
+            }
+        }
+    }
+    grid columns=8 class="gallery-grid" {
+        each k in="{var.widget-kinds}" key="{k.kind}" {
+            use "gallery-tile" k="{k}"
+        }
+    }
+}
+
+define "gallery-control-centre" {
+    grid columns=8 class="gallery-grid" {
+        each k in="{var.edit-cc-cards}" key="{k.kind}" {
+            use "gallery-cc-tile" value="card:{k.kind}" title="{k.title}" symbol="{k.symbol}" off="{(var.utilities-cards | where 'kind' k.kind | where 'enabled' true | count) > 0}"
+        }
+        each k in="{var.utilities-toggle-kinds}" key="{k.kind}" {
+            use "gallery-cc-tile" value="toggle:{k.kind}" title="{k.title}" symbol="{k.symbol}" off="{k.unique && (var.utilities-toggles | where 'kind' k.kind | count) > 0}"
+        }
+    }
+}
+
+define "gallery-bar" {
+    row class="edit-row" {
+        each t in="{var.edit-targets}" key="{t.id}" {
+            button class="edit-button edit-text" checked="{var.edit-target == t.id}" {
+                on-click { set "edit-target" "{t.id}" }
+                text "{t.title}"
+            }
+        }
+    }
+    grid columns=8 class="gallery-grid" {
+        each k in="{var.edit-target-kinds}" key="{k.kind}" {
+            use "gallery-bar-tile" k="{k}" off="{k.unique && (var.edit-target-present | where 'kind' k.kind | count) > 0}"
+        }
+    }
+}
+
+popup "dashboard-toolbar" anchor="bottom" motion="slide" close-on="" {
+    key "escape" { use "edit-escape" }
+    column class="edit-toolbar" {
+        when "{var.dashboard-gallery}" {
+            column class="gallery" {
+                row class="gallery-tabs" {
+                    use "gallery-tab" id="dashboard" title="Dashboard"
+                    use "gallery-tab" id="control-centre" title="Control Centre"
+                    use "gallery-tab" id="bar" title="Bar"
+                }
+                scroll axis="vertical" class="gallery-scroll" {
+                    switch "{var.edit-tab}" {
+                        case "dashboard" { use "gallery-dashboard" }
+                        case "control-centre" { use "gallery-control-centre" }
+                        case "bar" { use "gallery-bar" }
+                    }
+                }
+            }
+        }
+        when "{var.dashboard-confirm}" {
+            row class="edit-row edit-confirm" {
+                text "Discard your changes?" class="edit-confirm-text"
+                spacer
+                button class="edit-button edit-text" {
+                    on-click { set "dashboard-confirm" #false }
+                    text "Keep Editing"
+                }
+                button class="edit-button edit-text edit-done" {
+                    on-click { use "edit-cancel" }
+                    text "Discard"
+                }
+            }
+        }
+        row class="edit-row" {
+            button class="edit-button edit-plus" checked="{var.dashboard-gallery}" tooltip="Add" {
+                on-click { set "dashboard-gallery" "{!var.dashboard-gallery}" }
+                icon "plus"
+            }
+            when "{var.dashboard-selected-widget != null}" {
+                stack class="edit-separator"
+                each d in="{(((var.widget-kinds | where 'kind' var.dashboard-selected-widget.kind | first).displays) ?? 'standard') | split ' '}" key="{d}" {
+                    button class="edit-button edit-display" checked="{(var.dashboard-selected-widget.display ?? 'standard') == d}" {
+                        on-click { list.update "dashboard-widgets" key="{var.dashboard-selected}" { - display="{d}" } }
+                        text "{d | capitalize}"
+                    }
+                }
+            }
+            spacer
+            icon "arrow.up.left.and.down.right.magnifyingglass" class="edit-scale-glyph"
+            slider value="{var.dashboard-scale}" min=0.7 max=1.5 step=0.05 class="edit-slider" label="Dashboard Size" {
+                on-change { set "dashboard-scale" "{event.value}" }
+            }
+            text "{var.dashboard-scale * 100 | round} %" class="edit-scale-text"
+            button class="edit-button edit-text" {
+                on-click { use "edit-cancel" }
+                text "Cancel"
+            }
+            button class="edit-button edit-text edit-done" {
+                on-click { use "edit-done" }
+                text "Done"
+            }
+        }
+    }
+}
