@@ -534,4 +534,20 @@ struct DropAcceptTests {
         #expect(p.config.accepts == ["value"])
         #expect(p.registeredDraggedTypes.contains(.apolloValue))
     }
+
+    @Test("a reorderable takes values through its children, not as a drop target of its own")
+    func reorderableNoSelfTarget() throws {
+        let mounted = try Mounted.mount("""
+        var last ""
+        panel "t" anchor="left" {
+            reorderable id="r" axis="vertical" enabled=#true accept="value" {
+                on-drop accept="value" { set "last" "{event.value}" }
+                stack id="a" { text "a" }
+                stack id="b" { text "b" }
+            }
+        }
+        """, css: "")
+        let r = mounted.catchers.first { $0.element?.property("id").plainText == "r" }
+        #expect(r?.config.accepts.isEmpty ?? true)
+    }
 }

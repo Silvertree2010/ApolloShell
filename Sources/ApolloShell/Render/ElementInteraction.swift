@@ -31,7 +31,7 @@ struct MouseConfig: Equatable {
         right = names.contains("on-right-click")
         middle = names.contains("on-middle-click")
         scroll = names.contains("on-scroll")
-        if names.contains("on-drop"), let handler = element.ir.handlers.first(where: { $0.name == "on-drop" }),
+        if element.kind != "reorderable", names.contains("on-drop"), let handler = element.ir.handlers.first(where: { $0.name == "on-drop" }),
            let accept = handler.properties["accept"].flatMap(HandlerRules.literal)?.plainText {
             accepts = [accept]
         }
