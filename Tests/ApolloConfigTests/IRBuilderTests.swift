@@ -12,7 +12,7 @@ enum IRHarness {
     static let root = URL(fileURLWithPath: "/config")
     static let location = ConfigLocation(id: "test", root: root, isBuiltin: false)
 
-    static func build(_ files: [String: String]) -> (ir: ConfigIR, diagnostics: [Diagnostic]) {
+    static func build(_ files: [String: String], allDefines: Bool = false) -> (ir: ConfigIR, diagnostics: [Diagnostic]) {
         let fs = MemoryFileSystem(files)
         let included = IncludeExpander.expand(root: root, origin: .user, fileSystem: fs, paths: UseStageTests.paths)
         let requires = included.nodes.filter { $0.kdl.name == "require" }
@@ -28,7 +28,8 @@ enum IRHarness {
             files: included.files,
             registry: .builtin,
             fileSystem: fs,
-            paths: UseStageTests.paths
+            paths: UseStageTests.paths,
+            keepsAllDefines: allDefines
         )
         let diagnostics = included.diagnostics + featured.diagnostics + used.diagnostics + disabled.diagnostics + checked.diagnostics + built.diagnostics
         return (built.ir, diagnostics)
@@ -206,7 +207,7 @@ struct IRBuilderTests {
     @Test("Laufzeit-use mit Argumenten und Slots, define in der IR")
     func runtimeUse() throws {
         let ir = IRHarness.clean("""
-        define "card" {
+        define "sidebar-card" {
             param "module"
             param "compact" type="bool" default=#false
             column {
@@ -239,7 +240,7 @@ struct IRBuilderTests {
         #expect(IRHarness.render(use.arguments["module"], locals: ["module": module]) == module)
         #expect(Set(use.slots.keys) == ["", "header"])
         #expect(IRHarness.literalText(IRHarness.element(use.slots[""]?.first)?.arguments.first) == "Body")
-        let card = try #require(ir.defines["card"])
+        let card = try #require(ir.defines["sidebar-card"])
         #expect(card.parameters.map(\.name) == ["module", "compact"])
         #expect(card.parameters[1].type == .bool)
         #expect(card.parameters[1].defaultValue != nil)

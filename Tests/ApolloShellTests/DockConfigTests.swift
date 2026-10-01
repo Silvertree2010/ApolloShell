@@ -14,7 +14,7 @@ struct DockConfigTests {
 
     @Test("Render-Config hängt das Dock als scroll.dock → reorderable → each in ein panel")
     func dockPanel() throws {
-        let result = PackageResources.load(PackageResources.dockRender)
+        let result = PackageResources.load(PackageResources.dockRender, allDefines: true)
         let ir = try #require(result.ir)
         let panel = try #require(ir.surfaces.first { $0.id == "dock" })
         #expect(panel.kind == "panel")

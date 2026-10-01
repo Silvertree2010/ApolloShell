@@ -12,7 +12,8 @@ public enum BuiltinSurfaces {
 
     public static func load(paths: ConfigPaths, fileSystem: any ConfigFileSystem, shellVersion: String) -> ConfigLoadResult {
         let root = folder(paths)
-        let loader = ConfigLoader(fileSystem: fileSystem, paths: paths, registry: .builtin, filters: .builtin, shellVersion: shellVersion)
+        var loader = ConfigLoader(fileSystem: fileSystem, paths: paths, registry: .builtin, filters: .builtin, shellVersion: shellVersion)
+        loader.keepsAllDefines = true
         return loader.load(ConfigLocation(id: folderName, root: root, isBuiltin: false))
     }
 

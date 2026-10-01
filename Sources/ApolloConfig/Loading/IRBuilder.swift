@@ -40,6 +40,27 @@ private final class IRBuildState {
     var diagnostics: [Diagnostic] = []
     var argumentCache: [ArgumentKey: StringTemplate] = [:]
     var interned: [StringTemplate: StringTemplate] = [:]
+    var ex: [Expr: Expr] = [:]
+    var ds: [Set<DependencyPath>: Set<DependencyPath>] = [:]
+
+    func ix(_ e: Expr) -> Expr {
+        if let k = ex[e] { return k }
+        ex[e] = e
+        return e
+    }
+
+    func it(_ t: StringTemplate) -> StringTemplate {
+        if let k = interned[t] { return k }
+        interned[t] = t
+        return t
+    }
+
+    func id(_ d: Set<DependencyPath>) -> Set<DependencyPath> {
+        guard !d.isEmpty else { return d }
+        if let k = ds[d] { return k }
+        ds[d] = d
+        return d
+    }
     var ids: [String: SourceSpan] = [:]
     var surfaceID: String?
 
@@ -70,7 +91,8 @@ enum IRBuilder {
         registry: SchemaRegistry,
         fileSystem: any ConfigFileSystem,
         paths: ConfigPaths,
-        templates: TemplateCache? = nil
+        templates: TemplateCache? = nil,
+        keepsAllDefines: Bool = false
     ) -> IRBuildResult {
         StackHeadroom.run {
             let state = IRBuildState(registry: registry, defines: defines, templates: templates)
@@ -119,7 +141,7 @@ enum IRBuilder {
             }
             ir.blocks = buildBlocks(blockNodes, state: state)
             ir.commandCenter = buildCommandCenter(blockNodes, state: state)
-            ir.defines = buildDefines(defines, state: state)
+            ir.defines = buildDefines(defines, reach: keepsAllDefines ? .everything : DefineReach.scan(nodes, defines: defines), state: state)
             return IRBuildResult(ir: ir, diagnostics: state.diagnostics)
         }
     }
@@ -293,7 +315,7 @@ enum IRBuilder {
         )
     }
 
-    private static func buildDefines(_ defines: [DefineDecl], state: IRBuildState) -> [String: DefineIR] {
+    private static func buildDefines(_ defines: [DefineDecl], reach: DefineReach, state: IRBuildState) -> [String: DefineIR] {
         var result: [String: DefineIR] = [:]
         for define in defines {
             let parameters = define.parameters.map { parameter in
@@ -306,6 +328,7 @@ enum IRBuilder {
             if SchemaStage.bodyContext(define.body, registry: state.registry) == .actions { continue }
             state.surfaceID = nil
             let body = buildBody(define.body, handlerNames: [], scope: [], state: state)
+            guard reach.keeps(define.name) else { continue }
             result[define.name] = DefineIR(name: define.name, parameters: parameters, body: body.children, span: define.span)
         }
         return result
@@ -814,19 +837,10 @@ enum IRBuilder {
     private static func finish(_ compiled: CompiledValue, frame: UseFrame?, scope: [LocalBinding], state: IRBuildState) -> CompiledValue {
         switch compiled.template {
         case .literal, .whole(.literal):
-            var result = compiled
-            result.dependencies = []
-            return result
+            return CompiledValue(template: state.it(compiled.template), dependencies: [], span: compiled.span)
         default:
-            let rewritten = rewrite(compiled.template, frame: frame, scope: scope, state: state)
-            let template: StringTemplate
-            if let known = state.interned[rewritten] {
-                template = known
-            } else {
-                state.interned[rewritten] = rewritten
-                template = rewritten
-            }
-            return CompiledValue(template: template, dependencies: template.dependencies(locals: localNames(frame: frame, scope: scope)), span: compiled.span)
+            let template = state.it(rewrite(compiled.template, frame: frame, scope: scope, state: state))
+            return CompiledValue(template: template, dependencies: state.id(template.dependencies(locals: localNames(frame: frame, scope: scope))), span: compiled.span)
         }
     }
 
@@ -880,6 +894,10 @@ enum IRBuilder {
     }
 
     private static func rewrite(_ expr: Expr, frame: UseFrame?, scope: [LocalBinding], state: IRBuildState) -> Expr {
+        state.ix(rw(expr, frame: frame, scope: scope, state: state))
+    }
+
+    private static func rw(_ expr: Expr, frame: UseFrame?, scope: [LocalBinding], state: IRBuildState) -> Expr {
         switch expr {
         case .literal:
             return expr
