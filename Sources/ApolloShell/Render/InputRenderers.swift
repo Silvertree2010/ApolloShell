@@ -183,7 +183,7 @@ struct SliderElement: View {
         let vertical = element.property("vertical").isTruthy
         let thumb = thumbSize
         let tz = StyleValues.numberValue(element.property("track-size")).map { CGFloat($0) }
-        let ticks = element.property("ticks").isTruthy
+        let tk = element.property("ticks").isTruthy && metrics.step > 0 && !vertical
         let keyStep = StyleValues.numberValue(element.property("key-step")) ?? (metrics.step > 0 ? metrics.step : (metrics.max - metrics.min) / 20)
         GeometryReader { proxy in
             let length = vertical ? proxy.size.height : proxy.size.width
@@ -201,14 +201,18 @@ struct SliderElement: View {
                     }
                 }
                 .frame(width: vertical ? tz : nil, height: vertical ? nil : tz)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 BackgroundLayers(style: ComputedStyle(values: ["background": fillLayers]), shape: AnyShape(Capsule()), context: scope.context)
                     .frame(width: vertical ? tz : geometry.fill, height: vertical ? geometry.fill : tz)
+                    .frame(maxWidth: vertical ? .infinity : nil, maxHeight: vertical ? nil : .infinity)
                     .opacity(fillMode == .insideLinear && geometry.fraction <= 0 ? 0 : 1)
-                if ticks, metrics.step > 0, !vertical {
-                    let n = max(1, Int(((metrics.max - metrics.min) / metrics.step).rounded()))
+                if tk {
+                    let n = Swift.max(1, Int(((metrics.max - metrics.min) / metrics.step).rounded()))
                     ForEach(0...n, id: \.self) { i in
-                        Circle().fill(Color.primary.opacity(0.3)).frame(width: 2, height: 2)
-                            .offset(x: extent / 2 + CGFloat(i) * geometry.travel / CGFloat(n) - 1, y: (tz ?? 0) / 2 + 4)
+                        Capsule().fill(Color.primary.opacity(0.4))
+                            .frame(width: 1.5, height: 2)
+                            .offset(x: thumb.width / 2 + CGFloat(i) / CGFloat(n) * geometry.travel - 0.75, y: cross / 2 - 1)
+                            .frame(maxHeight: .infinity)
                     }
                 }
                 if extent > 0 {

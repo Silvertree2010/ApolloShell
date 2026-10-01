@@ -72,7 +72,7 @@
 .nexus-option-detail { font-size: 11px; color: var(--apollo-secondary-text-color, -apple-system-secondary-label); }
 .nexus-option-tick { font-size: 12px; font-weight: 700; color: var(--apollo-accent-color, -apple-system-control-accent); }
 
-.nexus-slider { width: 100%; height: 16px; -apollo-thumb-size: 20px 16px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); -apollo-thumb-shadow: 0 0.5px 3px rgb(0 0 0 / 0.25); }
+.nexus-slider { width: 100%; height: 16px; margin: -0.5px 0 0.5px 0; -apollo-thumb-size: 20px 16px; -apollo-thumb-color: #dbdbdb; -apollo-track-color: rgb(from -apple-system-label r g b / 0.10); -apollo-thumb-shadow: 0 0.5px 3px rgb(0 0 0 / 0.25); }
 
 .nexus-smalls { gap: 6px; align-self: start; justify-content: start; }
 .nexus-small { height: 26px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.10); align-items: center; }
@@ -112,7 +112,6 @@
 .nexus-keys-use { height: 20px; padding: 0 10px; border-radius: 5px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; }
 .nexus-keys-use-title { font-size: 11px; }
 .nexus-card-text > text, .nexus-option-text > text { width: 100%; }
-.nexus-slider { -apollo-thumb-color: #dbdbdb; }
 @media (prefers-color-scheme: light) {
   .nexus-slider { -apollo-thumb-color: white; }
 }
