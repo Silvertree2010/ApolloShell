@@ -35,6 +35,7 @@ struct SurfaceWindowSpec: Equatable {
     var timeout: Double?
     var title: String
     var titleVisible: Bool
+    var titlebar: Bool
     var resizable: Bool
     var closable: Bool
     var miniaturizable: Bool
@@ -96,6 +97,7 @@ struct SurfaceWindowSpec: Equatable {
         timeout = kind == "osd" ? (Self.seconds(property("timeout")) ?? 2) : nil
         title = Self.text(property("title")) ?? ""
         titleVisible = Self.bool(property("title-visible")) ?? true
+        titlebar = Self.bool(property("titlebar")) ?? true
         resizable = Self.bool(property("resizable")) ?? true
         closable = Self.bool(property("closable")) ?? true
         miniaturizable = Self.bool(property("miniaturizable")) ?? false
@@ -110,6 +112,7 @@ struct SurfaceWindowSpec: Equatable {
         if closable { mask.insert(.closable) }
         if resizable { mask.insert(.resizable) }
         if miniaturizable { mask.insert(.miniaturizable) }
+        if !titlebar { mask.insert(.fullSizeContentView) }
         return mask
     }
 

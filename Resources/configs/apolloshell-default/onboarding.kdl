@@ -4,7 +4,7 @@ var onboarding-features {
     - symbol="sidebar.left" tint="blue" title="Bar" text="Spaces, Dock, clock and status on the left edge"
     - symbol="magnifyingglass" tint="purple" title="Launcher" text="Search and open apps – with a keyboard shortcut"
     - symbol="square.grid.2x2.fill" tint="indigo" title="Dashboard" text="Weather, calendar, media and performance"
-    - symbol="slider.horizontal.3" tint="green" title="Quick Actions" text="Keep Awake, sound and quick toggles, bottom right"
+    - symbol="slider.horizontal.3" tint="green" title="Control Centre" text="Keep Awake, sound and quick toggles, bottom right"
 }
 
 on "shell.started" when="{!var.onboarding-done}" { open "onboarding" }
@@ -64,13 +64,13 @@ define "onboarding-access-row" {
     }
 }
 
-window "onboarding" title="Welcome to ApolloShell" resizable=#false {
+window "onboarding" title="Introduction" titlebar=#false resizable=#false {
     on-close { set "onboarding-done" #true }
     column class="onboarding" {
         switch "{var.onboarding-step}" {
             case 0 {
                 column class="onboarding-page" {
-                    use "onboarding-header" symbol="sidebar.left" tint="indigo" title="Welcome to ApolloShell" text="A desktop shell for macOS modelled on Caelestia. It complements the Mac instead of replacing it – everything can be set up in Settings."
+                    use "onboarding-header" symbol="sidebar.left" tint="indigo" title="Welcome to ApolloShell" text="A desktop shell for macOS modelled on Caelestia. It complements the Mac instead of replacing it – everything can be set up from its icon in the menu bar."
                     column class="onboarding-features" {
                         each feature in="{var.onboarding-features}" {
                             row class="onboarding-feature" {

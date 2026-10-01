@@ -81,6 +81,7 @@ enum Surfaces {
             properties: CommonProperties.surfaceProperties + [
                 PropertySchema(name: "title", type: .string, defaultValue: .string(""), doc: "Window title."),
                 PropertySchema(name: "title-visible", type: .bool, defaultValue: .bool(true), doc: "Whether the title bar shows the title."),
+                PropertySchema(name: "titlebar", type: .bool, defaultValue: .bool(true), allowsExpression: false, doc: "Whether the window shows a title bar; without it the content reaches the top edge and the window moves by dragging its background."),
                 PropertySchema(name: "resizable", type: .bool, defaultValue: .bool(true), allowsExpression: false, doc: "Whether the window can be resized."),
                 PropertySchema(name: "closable", type: .bool, defaultValue: .bool(true), allowsExpression: false, doc: "Whether the window can be closed."),
                 PropertySchema(name: "miniaturizable", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Whether the window can be minimized."),

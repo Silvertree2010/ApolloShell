@@ -225,7 +225,9 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         window.acceptsMouseMovedEvents = spec.clickThrough == .auto
         if spec.kind == "window" {
             window.title = spec.title
-            window.titleVisibility = spec.titleVisible ? .visible : .hidden
+            window.titleVisibility = spec.titleVisible && spec.titlebar ? .visible : .hidden
+            window.titlebarAppearsTransparent = !spec.titlebar
+            window.isMovableByWindowBackground = !spec.titlebar
             if window.styleMask != spec.styleMask { window.styleMask = spec.styleMask }
             if let autosave = spec.autosave, window.frameAutosaveName != autosave { window.setFrameAutosaveName(autosave) }
         }

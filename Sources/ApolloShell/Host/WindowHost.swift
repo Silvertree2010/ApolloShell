@@ -436,7 +436,11 @@ final class WindowHost: SurfaceHosting {
             controller.window.setMinSize(CGSize(width: StyleValues.points(style["min-width"]) ?? 0, height: StyleValues.points(style["min-height"]) ?? 0))
             if surface.isVisible && !controller.placed {
                 controller.placed = true
-                if !controller.window.restoreFrame() { controller.window.setFrame(frame) }
+                if !controller.window.restoreFrame() {
+                    var f = frame
+                    f.origin.y = screen.visible.minY + (screen.visible.height - f.height) * 0.75
+                    controller.window.setFrame(f)
+                }
             }
             controller.openFrame = controller.window.frame
             if let pending = controller.pendingContent {

@@ -128,3 +128,33 @@ struct EditEscapeTests {
         #expect(v(h, "shell-editing") == .bool(false))
     }
 }
+
+@MainActor
+@Suite("VM test findings: introduction window")
+struct IntroWindowTests {
+    @Test("titlebar=#false lets the content reach the top edge")
+    func mask() {
+        let s = SurfaceWindowSpec(kind: "window", property: { $0 == "titlebar" ? .bool(false) : .null })
+        #expect(s.styleMask.contains(.fullSizeContentView) && s.styleMask.contains(.titled))
+        #expect(!SurfaceWindowSpec(kind: "window", property: { _ in .null }).styleMask.contains(.fullSizeContentView))
+    }
+
+    @Test("the default config's introduction has no title bar and the 0.2 wording")
+    func onboarding() throws {
+        let t = try String(contentsOf: DefaultConfigTests.defaultFolder.appendingPathComponent("onboarding.kdl"), encoding: .utf8)
+        #expect(t.contains("window \"onboarding\" title=\"Introduction\" titlebar=#false"))
+        #expect(t.contains("everything can be set up from its icon in the menu bar."))
+        #expect(t.contains("title=\"Control Centre\" text=\"Keep Awake"))
+    }
+
+    @Test("a window without a stored frame opens centred horizontally and a quarter from the top like NSWindow.center")
+    func centred() throws {
+        let fx = try HostFixture("window \"w\" { }")
+        fx.assembly.runtime.open("w", screenKey: HostFixture.screen.key)
+        fx.flush()
+        let w = try #require(fx.window("w"))
+        let v = HostFixture.screen.visible
+        #expect(abs(w.frame.minY - (v.minY + (v.height - w.frame.height) * 0.75)) < 1)
+        #expect(abs(w.frame.midX - v.midX) < 1)
+    }
+}

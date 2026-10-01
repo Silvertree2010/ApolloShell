@@ -1622,6 +1622,7 @@ A regular macOS window with a title bar.
 | property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `title` | string | `""` | Window title. |
 | property | `title-visible` | bool | `true` | Whether the title bar shows the title. |
+| property | `titlebar` | bool | `true` | Whether the window shows a title bar; without it the content reaches the top edge and the window moves by dragging its background. |
 | property | `resizable` | bool | `true` | Whether the window can be resized. |
 | property | `closable` | bool | `true` | Whether the window can be closed. |
 | property | `miniaturizable` | bool | `false` | Whether the window can be minimized. |
