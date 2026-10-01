@@ -59,18 +59,29 @@ define "sidebar-spaces" {
     }
 }
 
-define "sidebar-clock" {
+define "sidebar-clock-text" {
     param "module"
-    button class="sidebar-clock" {
-        on-click { toggle "dashboard" }
-        column {
-            when "{module.show-icon}" { icon "bar-clock" fallback="calendar" class="sidebar-clock-icon" }
-            text "{clock.now | date 'HH'}" class="sidebar-clock-hour"
-            text "{clock.now | date 'mm'}" class="sidebar-clock-minute"
-            when "{module.show-date}" {
+    column class="sidebar-clock-column" {
+        when "{module.show-icon}" { icon "bar-clock" fallback="calendar" class="sidebar-clock-icon" }
+        when "{module.show-date}" {
+            column class="sidebar-clock-date-stack" {
+                text "{clock.now | date 'EEE'}" class="sidebar-clock-date"
                 text "{clock.now | date 'd'}" class="sidebar-clock-date"
             }
         }
+        text "{clock.now | date 'HH'}" class="sidebar-clock-hour"
+        text "{clock.now | date 'mm'}" class="sidebar-clock-minute"
+    }
+}
+
+define "sidebar-clock" {
+    param "module"
+    button class="sidebar-clock style-{module.style ?? 'stacked'}" {
+        on-click { toggle "dashboard" }
+        when "{module.style == 'badge'}" {
+            stack class="sidebar-clock-badge" { use "sidebar-clock-text" module="{module}" }
+        }
+        else { use "sidebar-clock-text" module="{module}" }
     }
 }
 
