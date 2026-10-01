@@ -509,15 +509,21 @@ final class ElementMouseView: NSView, NSDraggingSource {
         reorder.coordinator?.end(reorder, droppedOutside: !inside && operation == [])
     }
 
+    private func inner(_ sender: NSDraggingInfo) -> ElementMouseView? {
+        guard let window, let w = Self.winner(at: sender.draggingLocation, in: window, kind: .drag), w !== self else { return nil }
+        return w
+    }
+
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        operation(for: sender)
+        inner(sender)?.operation(for: sender) ?? operation(for: sender)
     }
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        operation(for: sender)
+        inner(sender)?.operation(for: sender) ?? operation(for: sender)
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        if let w = inner(sender) { return w.performDragOperation(sender) }
         guard let element, let context = renderContext else { return false }
         let pasteboard = sender.draggingPasteboard
         if let token = pasteboard.string(forType: .apolloReorder), let reorder = config.reorder, reorder.coordinator?.accepts(token: token, on: reorder) == true {
