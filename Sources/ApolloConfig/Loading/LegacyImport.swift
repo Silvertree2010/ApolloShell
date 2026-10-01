@@ -415,6 +415,14 @@ extension LegacyImport {
                 importBool(toasts, "audioOutputChanged", path: "toasts.audioOutputChanged", as: "toast-audio-output", into: &result)
                 importBool(toasts, "audioInputChanged", path: "toasts.audioInputChanged", as: "toast-audio-input", into: &result)
             }
+            if let features = section(root, "features") {
+                importBool(features, "dashboard", path: "features.dashboard", as: "feature-dashboard", into: &result)
+                importBool(features, "utilities", path: "features.utilities", as: "feature-utilities", into: &result)
+                importBool(features, "launcher", path: "features.launcher", as: "feature-launcher", into: &result)
+            }
+            if let menuBar = section(root, "menuBar") {
+                importBool(menuBar, "shown", path: "menuBar.shown", as: "nexus-shown", into: &result)
+            }
             if let background = section(root, "background") {
                 importBool(background, "desktopClock", path: "background.desktopClock", as: "desktop-clock", into: &result)
             }

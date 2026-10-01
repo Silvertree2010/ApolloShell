@@ -68,4 +68,17 @@ struct LegacyImportMenuBarTests {
         #expect(r.state["menubar-start"] == nil)
         #expect(r.diagnostics.count == 3)
     }
+
+    @Test("features.* und menuBar.shown wandern in die Nexus-Variablen")
+    func nexusFlags() {
+        let r = run(#"{"features": {"dashboard": false, "utilities": true, "launcher": false}, "menuBar": {"shown": false}}"#)
+        #expect(r.state["feature-dashboard"] == .bool(false))
+        #expect(r.state["feature-utilities"] == .bool(true))
+        #expect(r.state["feature-launcher"] == .bool(false))
+        #expect(r.state["nexus-shown"] == .bool(false))
+        #expect(run("{}").state["nexus-shown"] == nil)
+        let bad = run(#"{"features": {"dashboard": 3}}"#)
+        #expect(bad.state["feature-dashboard"] == nil)
+        #expect(!bad.diagnostics.isEmpty)
+    }
 }
