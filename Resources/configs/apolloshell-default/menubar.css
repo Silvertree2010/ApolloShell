@@ -30,6 +30,8 @@
 
 .menubar-status-items { gap: 2px; align-items: center; }
 .menubar-status-item { padding: 0; }
+.menubar-status-item.own { width: 22px; height: 18px; margin: 0 5px; border-radius: 5px; background: rgb(255 255 255); align-items: center; justify-content: center; }
+.menubar-status-item.own .menubar-status-image.template { color: rgb(0 0 0); width: 14px; height: 14px; }
 .menubar-status-symbol { font-size: 14px; font-weight: 500; -apollo-font-scale: none; }
 .menubar-status-symbol.template, .menubar-status-image.template { color: var(--apollo-menubar-icon-color, var(--apollo-bar-icon-color, -apple-system-label)); -apollo-image-rendering: template; }
 .menubar-status-text { font-size: 13px; padding: 0 7px; }

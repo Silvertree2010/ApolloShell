@@ -126,7 +126,7 @@ define "menubar-status-items" {
     param "module"
     row class="menubar-status-items" {
         each item in="{status-items.list}" key="{item.id}" {
-            button class="menubar-title menubar-status-item" tooltip="{item.name == '' ? 'Status Item' : item.name}" menu-on="click" {
+            button class="menubar-title menubar-status-item {item.app == 'to.apollocloud.apolloshell' ? 'own' : ''}" tooltip="{item.name == '' ? 'Status Item' : item.name}" menu-on="click" {
                 menu side="below" offset=3 { source "status-item" item="{item}" }
                 when "{item.image != null}" {
                     image "{item.image}" class="menubar-status-image {item.monochrome ? 'template' : ''}"
