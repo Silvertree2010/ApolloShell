@@ -124,7 +124,8 @@ define "edit-frame" {
     param "key"
     param "grow" default=#false
     param "disable" default=#false
-    stack id="ef-{list}-{key}" class="edit-item editing{grow ? ' grow' : ''}{var.dashboard-selected == list + ':' + key ? ' selected' : ''}" {
+    param "drag" default=#null
+    stack id="ef-{list}-{key}" drag-value="{drag}" class="edit-item editing{grow ? ' grow' : ''}{var.dashboard-selected == list + ':' + key ? ' selected' : ''}" {
         slot
         stack class="edit-cover" {
             on-click {
@@ -195,6 +196,16 @@ define "edit-opt-toggle" {
         use "edit-opt-panel" title="{var.edit-opt-tg-look.title}" {
             use "settings-toggle-options" toggle="{var.edit-opt-tg}" look="{var.edit-opt-tg-look}"
         }
+    }
+}
+
+define "edit-move-bar" {
+    param "value"
+    param "to"
+    param "at" default=#null
+    when "{(value | starts-with 'move:') && (value | split ':' | skip 1 | first) != to}" {
+        list.insert "menubar-{to}" at="{at}" { - "{((value | split ':' | skip 1 | first) == 'start' ? var.menubar-start : ((value | split ':' | skip 1 | first) == 'center' ? var.menubar-center : var.menubar-end)) | where 'id' (value | split ':' | last) | first}" }
+        list.remove "menubar-{value | split ':' | skip 1 | first}" key="{value | split ':' | last}"
     }
 }
 

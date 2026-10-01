@@ -16,6 +16,7 @@ struct EditModeTests {
     on "user.t-cancel" { use "edit-cancel" }
     on "user.t-done" { use "edit-done" }
     on "user.t-bar" { use "edit-add-bar" list="{event.list}" catalog="{event.list == 'sidebar-modules' ? var.sidebar-module-kinds : var.menubar-module-kinds}" kind="{event.kind}" present="{event.list == 'sidebar-modules' ? var.sidebar-modules : var.menubar-start}" at="{event.at}" }
+    on "user.t-move" { use "edit-move-bar" value="{event.value}" to="{event.to}" at="{event.at}" }
     on "user.t-cc" { use "edit-add-cc" value="{event.value}" }
     """
 
@@ -147,5 +148,21 @@ struct EditModeTests {
         await ev(h, "t-cancel")
         await ev(h, "t-begin")
         #expect(v(h, "edit-show-all") == .bool(false))
+    }
+
+    @Test("a menu bar block dropped on another zone moves there and the same zone is left to the reorder")
+    func crossZone() async throws {
+        let h = try await start()
+        defer { h.shell.shutdown() }
+        await ev(h, "t-begin")
+        let a = kinds(h, "menubar-start")
+        let b = kinds(h, "menubar-center")
+        await ev(h, "t-move", [("value", .string("move:start:app-menus")), ("to", .string("center")), ("at", .number(0))])
+        #expect(kinds(h, "menubar-start") == a.filter { $0 != "app-menus" })
+        #expect(kinds(h, "menubar-center") == ["app-menus"] + b)
+        await ev(h, "t-move", [("value", .string("move:center:app-menus")), ("to", .string("center")), ("at", .number(0))])
+        #expect(kinds(h, "menubar-center") == ["app-menus"] + b)
+        await ev(h, "t-cancel")
+        #expect(kinds(h, "menubar-start") == a)
     }
 }
