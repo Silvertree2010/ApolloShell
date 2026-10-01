@@ -217,7 +217,7 @@ var dashboard-default-widgets from="{var.dashboard-default-overview | concat (ba
 define "widget" {
     param "w"
     switch "{w.kind}" {
-        case "weather" { use "widget-weather" w="{w}" }
+        case "weather" { use "widget-weather" w="{w}" wx="{w.place-id != null ? weather.by-place[w.place-id] : null}" }
         case "user" { use "widget-user" w="{w}" }
         case "clock" { use "widget-clock" w="{w}" }
         case "calendar" { use "widget-calendar" w="{w}" }
@@ -230,9 +230,9 @@ define "widget" {
         case "performance.network" { use "widget-network" w="{w}" }
         case "performance.memory" { use "widget-memory" w="{w}" }
         case "performance.battery" { use "widget-battery" w="{w}" }
-        case "weather.hero" { use "widget-weather-hero" w="{w}" }
-        case "weather.hourly" { use "widget-weather-hourly" w="{w}" }
-        case "weather.daily" { use "widget-weather-daily" w="{w}" }
+        case "weather.hero" { use "widget-weather-hero" w="{w}" wx="{w.place-id != null ? weather.by-place[w.place-id] : null}" }
+        case "weather.hourly" { use "widget-weather-hourly" w="{w}" wx="{w.place-id != null ? weather.by-place[w.place-id] : null}" }
+        case "weather.daily" { use "widget-weather-daily" w="{w}" wx="{w.place-id != null ? weather.by-place[w.place-id] : null}" }
         case "timer" { use "widget-timer" w="{w}" }
         case "apps" { use "widget-apps" w="{w}" }
         case "photos" { use "widget-photos" w="{w}" }
@@ -381,28 +381,29 @@ define "widget-user" {
 }
 
 define "widget-weather" {
+    param "wx" default=#null
     param "w"
     switch "{w.display}" {
         case "minimal" {
-            switch "{weather.status}" {
+            switch "{(wx ?? weather).status}" {
                 case "ready" {
                     when "{w.height >= 200 && w.width < 300}" {
                         column class="card wg-weather-min vertical" {
-                            icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph" style="font-size: 56px; -apollo-symbol-rendering: multicolor"
-                            text "{weather.current.temperature | temperature}" class="wg-weather-min-temperature" style="font-size: 64px" lines=1 min-scale=0.6
+                            icon "{(wx ?? weather).current.symbol}" fallback="cloud.sun.fill" class="weather-glyph" style="font-size: 56px; -apollo-symbol-rendering: multicolor"
+                            text "{(wx ?? weather).current.temperature | temperature}" class="wg-weather-min-temperature" style="font-size: 64px" lines=1 min-scale=0.6
                         }
                     }
                     else {
                         row class="card wg-weather-min" {
-                            icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph" style="font-size: 44px; -apollo-symbol-rendering: multicolor"
-                            text "{weather.current.temperature | temperature}" class="wg-weather-min-temperature" style="font-size: 52px" lines=1 min-scale=0.6
+                            icon "{(wx ?? weather).current.symbol}" fallback="cloud.sun.fill" class="weather-glyph" style="font-size: 44px; -apollo-symbol-rendering: multicolor"
+                            text "{(wx ?? weather).current.temperature | temperature}" class="wg-weather-min-temperature" style="font-size: 52px" lines=1 min-scale=0.6
                         }
                     }
                 }
-                default { use "card-weather" card="{w}" zone="top" }
+                default { use "card-weather" wx="{wx}" card="{w}" zone="top" }
             }
         }
-        default { use "card-weather" card="{w}" zone="{w.height >= 200 && w.width < 300 ? 'side' : 'top'}" }
+        default { use "card-weather" wx="{wx}" card="{w}" zone="{w.height >= 200 && w.width < 300 ? 'side' : 'top'}" }
     }
 }
 

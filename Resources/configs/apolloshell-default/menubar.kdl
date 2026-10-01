@@ -471,10 +471,10 @@ define "menubar-window-title" {
     when "{window.app != null}" {
         row class="menubar-window-title" {
             when "{module.show-icon ?? true}" { app-icon "{window.app}" class="menubar-window-icon" }
-            text "{window.app.name}" class="menubar-window-app"
             when "{(module.show-title ?? true) && window.title != null && window.title != ''}" {
                 text "{window.title | truncate (module.max-length ?? 40)}" class="menubar-window-text"
             }
+            else { text "{window.app.name}" class="menubar-window-text" }
         }
     }
 }
@@ -524,9 +524,12 @@ define "menubar-now-playing" {
     param "module"
     when "{media.title != null && media.title != ''}" {
         row class="menubar-now-playing" {
-            button class="menubar-now-playing-title" tooltip="{media.title} · {media.artist}" {
+            button class="menubar-title menubar-now-playing-title" tooltip="{media.title} · {media.artist}" {
                 on-click { set "dashboard-tab" "media"; open "dashboard" }
-                text "{(media.title + (media.artist != null && media.artist != '' ? ' · ' + media.artist : '')) | truncate (module.max-length ?? 28)}" class="menubar-now-playing-text"
+                row class="menubar-now-playing-line" {
+                    image "{media.artwork}" fit="fill" class="menubar-now-playing-art"
+                    text "{(media.title + (media.artist != null && media.artist != '' ? ' · ' + media.artist : '')) | truncate (module.max-length ?? 28)}" class="menubar-now-playing-text"
+                }
             }
             when "{module.show-controls ?? true}" {
                 button class="menubar-now-playing-control" tooltip="Previous" {
@@ -549,9 +552,9 @@ define "menubar-now-playing" {
 define "menubar-dock" {
     param "module"
     row class="menubar-dock" {
-        each app in="{module.show-running ?? true ? apps.dock : (apps.dock | where-not 'section' 'running')}" key="{app.bundle-id}" index="i" {
+        each app in="{(module.show-running ?? true) ? apps.dock : (apps.dock | where 'dock-pinned' true)}" key="{app.bundle-id}" index="i" {
             when "{app.section == 'running' && i == var.dock-first-running && i > 0}" { stack class="menubar-dock-divider" }
-            button class="menubar-dock-item {app.active ? 'front' : ''}" tooltip="{app.name}" menu-on="right-click long-press" {
+            button class="menubar-dock-item size-{module.icon-size ?? 'medium'} {app.active ? 'front' : ''}" tooltip="{app.name}" menu-on="right-click long-press" {
                 on-click { apps.click "{app}" modifiers="{event.modifiers}" }
                 menu side="below" offset=6 { source "app-dock" app="{app}" fallback="full" }
                 stack {

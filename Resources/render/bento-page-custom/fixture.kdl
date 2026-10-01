@@ -1,0 +1,209 @@
+fixture {
+    clock now="2026-09-24T09:41:00+02:00"
+    battery present=#true percent=0.67 charging=#false on-power=#false tank-text="4h 14m Left" symbol="battery.75percent"
+    network {
+        wifi on=#true connected=#true rssi=-52 bars=3
+    }
+    bluetooth on=#true status="ready" paired=2 connected=1
+    audio volume=0.35 muted=#false symbol="speaker.wave.2.fill" {
+        output id="builtin" name="MacBook Pro Speakers"
+    }
+    system user-name="Andrin Example" full-name="Andrin Example" uptime=11520 macos-version="26.6.2" chip="Apple M4 Pro"
+    perf cpu=0.42 memory=0.61 chip="Apple M4 Pro" cores=14 gpu-cores=20 {
+        live cpu=0.1821 gpu=0.4367 memory=0.613 memory-used=15800000000 memory-total=25770000000 disk=0.414 disk-used=412000000000 disk-total=994660000000 net-down=300000 net-up=90000 net-total-down=52000000 net-total-up=9000000 {
+            cpu-history {
+                - 0.48
+                - 0.3389
+                - 0.3913
+                - 0.4315
+                - 0.4549
+                - 0.4592
+                - 0.4437
+                - 0.6102
+                - 0.3623
+                - 0.3054
+                - 0.2457
+                - 0.1898
+                - 0.1438
+                - 0.1128
+                - 0.3002
+                - 0.1074
+                - 0.1336
+                - 0.1759
+                - 0.2297
+                - 0.289
+                - 0.3473
+                - 0.5983
+                - 0.4361
+                - 0.4569
+                - 0.4581
+                - 0.4397
+                - 0.4038
+                - 0.3542
+                - 0.4964
+                - 0.2369
+                - 0.1821
+            }
+            gpu-history {
+                - 0.6
+                - 0.5922
+                - 0.5694
+                - 0.5329
+                - 0.4851
+                - 0.4288
+                - 0.3677
+                - 0.3054
+                - 0.246
+                - 0.193
+                - 0.1497
+                - 0.1189
+                - 0.1025
+                - 0.1015
+                - 0.1159
+                - 0.1449
+                - 0.1866
+                - 0.2385
+                - 0.2973
+                - 0.3594
+                - 0.4209
+                - 0.478
+                - 0.5272
+                - 0.5653
+                - 0.59
+                - 0.5999
+                - 0.5941
+                - 0.5733
+                - 0.5385
+                - 0.492
+                - 0.4367
+            }
+            net-history {
+                - down=180000 up=90000
+                - down=240000 up=120000
+                - down=300000 up=150000
+                - down=360000 up=90000
+                - down=180000 up=120000
+                - down=240000 up=150000
+                - down=300000 up=90000
+                - down=360000 up=120000
+                - down=180000 up=150000
+                - down=240000 up=90000
+                - down=300000 up=120000
+                - down=360000 up=150000
+                - down=180000 up=90000
+                - down=240000 up=120000
+                - down=300000 up=150000
+                - down=360000 up=90000
+                - down=180000 up=120000
+                - down=240000 up=150000
+                - down=300000 up=90000
+                - down=2400000 up=120000
+                - down=2400000 up=150000
+                - down=2400000 up=90000
+                - down=2400000 up=120000
+                - down=2400000 up=150000
+                - down=2400000 up=90000
+                - down=2400000 up=120000
+                - down=300000 up=150000
+                - down=360000 up=90000
+                - down=180000 up=120000
+                - down=240000 up=150000
+                - down=300000 up=90000
+            }
+        }
+    }
+    weather status="ready" stale=#false {
+        place name="Chur" latitude=46.85 longitude=9.53
+        current temperature=14 apparent=13 humidity=0.55 wind=6 code=2 symbol="cloud.sun.fill" description="Partly Cloudy" is-day=#true
+        today max=18 min=10 sunrise=#null sunset=#null sunrise-text=#null sunset-text=#null
+        attribution text="Weather data: Open-Meteo" url="https://open-meteo.com"
+        hourly-strip {
+            - time="2026-09-24T09:41:00+02:00" time-text="Now" now=#true temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T11:41:00+02:00" time-text="11:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T13:41:00+02:00" time-text="13:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T15:41:00+02:00" time-text="15:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T17:41:00+02:00" time-text="17:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T19:41:00+02:00" time-text="19:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T21:41:00+02:00" time-text="21:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-24T23:41:00+02:00" time-text="23:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-25T01:41:00+02:00" time-text="1:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-25T03:41:00+02:00" time-text="3:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-25T05:41:00+02:00" time-text="5:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+            - time="2026-09-25T07:41:00+02:00" time-text="7:00" now=#false temperature=14 symbol="cloud.sun.fill" precipitation=0 precipitation-text=""
+        }
+        days {
+            - date="2026-09-24T09:41:00+02:00" date-text="9/24" name-text="Today" today=#true min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-25T09:41:00+02:00" date-text="9/25" name-text="Fr" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-26T09:41:00+02:00" date-text="9/26" name-text="Sa" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-27T09:41:00+02:00" date-text="9/27" name-text="Su" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-28T09:41:00+02:00" date-text="9/28" name-text="Mo" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-29T09:41:00+02:00" date-text="9/29" name-text="Tu" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+            - date="2026-09-30T09:41:00+02:00" date-text="9/30" name-text="We" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
+        }
+    }
+    media available=#true playing=#true progress=0.391304 duration=230 elapsed=90 app-name="Music" title="Starboy" artist="The Weeknd" album="Starboy" kind="music" artwork="cover.jpg"
+    spaces current=2 count=4 {
+        list {
+            - id=1 index=1 active=#false fullscreen=#false
+            - id=2 index=2 active=#true fullscreen=#false
+            - id=3 index=3 active=#false fullscreen=#false
+            - id=4 index=4 active=#false fullscreen=#false
+        }
+    }
+    apps {
+        dock {
+            - bundle-id="com.apple.finder" name="Finder" running=#true section="file-manager" active=#false hidden=#false launching=#false badge=#null
+            - bundle-id="com.apple.Safari" name="Safari" running=#true active=#true dock-pinned=#true section="pinned" hidden=#false launching=#false badge=#null
+            - bundle-id="com.apple.mail" name="Mail" running=#false dock-pinned=#true section="pinned" badge="3" active=#false hidden=#false launching=#false
+        }
+        all {
+            - bundle-id="com.apple.finder" name="Finder" path="/System/Library/CoreServices/Finder.app" usage=0 favorite-index=#null
+            - bundle-id="com.apple.Safari" name="Safari" path="/Applications/Safari.app" usage=0 favorite-index=0
+            - bundle-id="com.apple.mail" name="Mail" path="/System/Applications/Mail.app" usage=0 favorite-index=1
+        }
+    }
+    clipboard {
+        history {
+            - text="git push --force-with-lease origin release/0.2" date="2026-09-24T09:40:00+02:00"
+            - text="Treffen am Freitag um 14:00?" date="2026-09-24T09:39:00+02:00"
+            - text="https://github.com/silvertree2010/apolloshell" date="2026-09-24T09:38:00+02:00"
+            - text="#3A302A" date="2026-09-24T09:37:00+02:00"
+            - text="Bad Ragaz" date="2026-09-24T09:36:00+02:00"
+        }
+    }
+    timer mode="standard" running=#true remaining=395 elapsed=205 duration=600 phase="focus" round=1
+    vars dashboard-tab="weather" {
+        dashboard-pages {
+            - id="dashboard" name="Dashboard" symbol="square.grid.2x2" icon="bar-dashboard" template="dashboard"
+            - id="media" name="Media" symbol="music.note.list" icon="panel-media" template="media"
+            - id="media-2" name="Media 2" symbol="music.note.list" icon="panel-media" template="media"
+            - id="performance" name="Performance" symbol="gauge.with.dots.needle.67percent" icon="panel-performance" template="performance"
+            - id="weather" name="Weather" symbol="cloud.sun" icon="panel-weather" template="weather"
+            - id="desk" name="Desk" symbol="star.fill"
+            - id="page-6" name="Page 6" symbol="square.grid.2x2"
+        }
+        dashboard-widgets {
+    - id="dashboard-weather" page="dashboard" kind="weather" x=0 y=0 width=275 height=130 display="standard" show-condition=#true show-range=#true
+    - id="dashboard-user" page="dashboard" kind="user" x=287 y=0 width=340 height=130 display="standard" show-system=#true show-uptime=#true
+    - id="dashboard-clock" page="dashboard" kind="clock" x=0 y=142 width=110 height=250 display="standard" style="stacked" show-date=#false
+    - id="dashboard-calendar" page="dashboard" kind="calendar" x=122 y=142 width=403 height=250 display="standard" first-weekday="monday" show-week-numbers=#false
+    - id="dashboard-resources" page="dashboard" kind="resources" x=537 y=142 width=90 height=250 display="standard" show-cpu=#true show-memory=#true show-storage=#true
+    - id="dashboard-media" page="dashboard" kind="media" x=639 y=0 width=200 height=392 display="standard" show-album=#true show-source=#true
+    - id="media-player" page="media" kind="media.player" x=0 y=0 width=839 height=392 display="standard"
+    - id="weather-hero" page="weather" kind="weather.hero" x=0 y=0 width=839 height=116 display="standard"
+    - id="weather-hourly" page="weather" kind="weather.hourly" x=0 y=128 width=839 height=108 display="standard"
+    - id="weather-daily" page="weather" kind="weather.daily" x=0 y=248 width=839 height=144 display="standard"
+    - id="performance-cpu" page="performance" kind="performance.cpu" x=0 y=0 width=343 height=191 display="standard"
+    - id="performance-gpu" page="performance" kind="performance.gpu" x=355 y=0 width=343 height=191 display="standard"
+    - id="performance-storage" page="performance" kind="performance.storage" x=0 y=203 width=169.5 height=189 display="standard"
+    - id="performance-network" page="performance" kind="performance.network" x=181.5 y=203 width=335 height=189 display="standard"
+    - id="performance-memory" page="performance" kind="performance.memory" x=528.5 y=203 width=169.5 height=189 display="standard"
+    - id="performance-battery" page="performance" kind="performance.battery" x=710 y=0 width=129 height=392 display="standard"
+    - id="desk-timer" page="desk" kind="timer" x=0 y=0 width=200.75 height=130 display="standard"
+    - id="desk-clock" page="desk" kind="clock" x=212.75 y=0 width=200.75 height=130 display="standard" style="stacked" show-date=#false time-zone="America/New_York"
+    - id="desk-sun" page="desk" kind="sun" x=425.5 y=0 width=413.5 height=130 display="standard"
+    - id="desk-apps" page="desk" kind="apps" x=0 y=142 width=413.5 height=250 display="standard"
+    - id="desk-clipboard" page="desk" kind="clipboard" x=425.5 y=142 width=413.5 height=250 display="standard"
+        }
+    }
+}

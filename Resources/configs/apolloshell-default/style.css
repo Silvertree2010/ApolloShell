@@ -68,12 +68,15 @@
 .space-number { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(from -apple-system-label r g b / 0.6); }
 .space:checked .space-number { color: var(--apollo-on-accent-color, white); }
 
-.sidebar-clock { width: 32px; color: var(--apollo-bar-text-color, -apple-system-purple); }
-.sidebar-clock > column { align-items: center; gap: 0; }
+.sidebar-clock { width: 32px; color: var(--apollo-clock-color, var(--apollo-bar-text-color, -apple-system-purple)); }
+.sidebar-clock-column { align-items: center; gap: 0; }
 .sidebar-clock-icon { font-size: 14px; font-weight: 600; width: 16px; height: 16px; margin: 0 0 3px 0; -apollo-font-scale: none; }
 .sidebar-clock-hour, .sidebar-clock-minute { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .sidebar-clock-minute { margin: -4px 0 0 0; }
+.sidebar-clock-date-stack { gap: 0; align-items: center; margin: 0 0 4px 0; opacity: 0.8; }
 .sidebar-clock-date { font-size: 11px; font-weight: 600; }
+.sidebar-clock-date.second { margin: -1px 0 0 0; }
+.sidebar-clock-badge { width: 28px; padding: 5px 0; border-radius: 9px; background: var(--apollo-clock-color, -apple-system-purple); color: var(--apollo-bar-text-color, white); align-items: center; justify-content: center; }
 
 .status-capsule {
   gap: 2px;
@@ -105,6 +108,23 @@
 .sidebar-weather .sidebar-tile-value { font-size: 11px; }
 .sidebar-cpu-ring { width: 24px; height: 24px; -apollo-stroke-width: 3px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.15); color: -apple-system-control-accent; }
 .sidebar-cpu-number { font-size: 9px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.sidebar-keyboard-text { font-size: 12px; font-weight: 700; }
+.sidebar-network-lines { gap: 1px; align-items: center; }
+.sidebar-network-line { gap: 1px; align-items: center; }
+.sidebar-network-arrow { font-size: 7px; font-weight: 900; }
+.sidebar-network-arrow.down { color: -apple-system-blue; }
+.sidebar-network-arrow.up { color: -apple-system-orange; }
+.sidebar-network-value { font-size: 9.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sidebar-now-playing { gap: 2px; align-items: center; }
+.sidebar-now-playing-art { width: 22px; height: 22px; border-radius: 4px; }
+.sidebar-status-items { gap: 6px; align-items: center; }
+.sidebar-status-text { font-size: 10px; font-variant-numeric: tabular-nums; }
+.sidebar-timer-glyph { font-size: 16px; font-weight: 600; }
+.sidebar-timer-stack { width: 28.5px; height: 28.5px; align-items: center; justify-content: center; }
+.sidebar-timer-ring { width: 28.5px; height: 28.5px; -apollo-stroke-width: 2.5px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.15); color: -apple-system-secondary-label; }
+.sidebar-timer-stack.running .sidebar-timer-ring { color: var(--apollo-accent-color, -apple-system-control-accent); }
+.sidebar-timer-text { font-size: 8.5px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.sidebar-volume-device { font-size: 9px; color: -apple-system-secondary-label; }
 
 #status-popout { border-radius: 25px; transition: size 500ms spatial; }
 .popout { padding: 16px; gap: 12px; align-items: start; -apollo-appear: fade 350ms effects-slow; }
@@ -175,7 +195,7 @@
 
 .dashboard { width: 871px; }
 .dashboard-tabs { padding: 0 16px; }
-.dashboard-tab { flex-grow: 1; justify-content: end; align-items: center; color: -apple-system-secondary-label; }
+.dashboard-tab { flex-grow: 1; flex-basis: 0px; min-width: 0; justify-content: end; align-items: center; color: -apple-system-secondary-label; }
 .dashboard-tab:checked { color: var(--apollo-accent-color, -apple-system-control-accent); }
 .dashboard-tab-pill {
   width: 44px;
@@ -850,3 +870,17 @@
 .edit-confirm { padding: 0 4px; }
 .edit-confirm-text { font-size: 12px; font-weight: 500; }
 .opt-pick-row { gap: 6px; align-items: center; flex-grow: 1; }
+
+.sidebar-spaces.face-pills, .sidebar-spaces.face-bars { padding: 6px 0; }
+.space-face { width: 26px; height: 13px; align-items: center; justify-content: center; }
+.space-mark { border-radius: 9999px; background: rgb(from var(--apollo-bar-icon-color, -apple-system-label) r g b / 0.45); }
+.face-pills .space-mark { width: 6.5px; height: 6.5px; }
+.face-pills .space-face:checked { height: 23.4px; }
+.face-pills .space-face:checked .space-mark { height: 23.4px; }
+.face-bars .space-mark { width: 10.4px; height: 3px; }
+.face-bars .space-face:checked .space-mark { width: 19.5px; }
+.space-face:checked .space-mark { background: var(--apollo-spaces-active-color, var(--apollo-accent-color, -apple-system-control-accent)); }
+.sidebar-window .sidebar-app-icon { width: 24px; height: 24px; }
+.sidebar-stat { gap: 1px; align-items: center; }
+.sidebar-stat-glyph { font-size: 10px; font-weight: 600; }
+.sidebar-stats .sidebar-tile-stack { gap: 4px; }

@@ -40,7 +40,7 @@ fixture {
         place name="Chur" latitude=46.85 longitude=9.53
         current temperature=14 symbol="cloud.sun.fill" description="Partly Cloudy" is-day=#true
     }
-    media available=#true playing=#true title="Starboy" artist="The Weeknd" album="Starboy" kind="music"
+    media available=#true playing=#true title="Starboy" artist="The Weeknd" album="Starboy" kind="music" artwork="cover.jpg"
     spaces current=2 count=4 {
         list {
             - id=1 index=1 active=#false fullscreen=#false

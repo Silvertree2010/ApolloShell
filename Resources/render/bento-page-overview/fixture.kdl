@@ -9,7 +9,7 @@ fixture {
         output id="builtin" name="MacBook Pro Speakers"
     }
     system user-name="Andrin Example" full-name="Andrin Example" uptime=11520 macos-version="26.6.2" chip="Apple M4 Pro"
-    perf cpu=0.1821 memory=0.613 chip="Apple M4 Pro" cores=14 gpu-cores=20 {
+    perf cpu=0.42 memory=0.61 chip="Apple M4 Pro" cores=14 gpu-cores=20 {
         live cpu=0.1821 gpu=0.4367 memory=0.613 memory-used=15800000000 memory-total=25770000000 disk=0.414 disk-used=412000000000 disk-total=994660000000 net-down=300000 net-up=90000 net-total-down=52000000 net-total-up=9000000 {
             cpu-history {
                 - 0.48
@@ -141,7 +141,7 @@ fixture {
             - date="2026-09-30T09:41:00+02:00" date-text="9/30" name-text="We" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
         }
     }
-    media available=#true playing=#true progress=0.391304 duration=230 elapsed=90 app-name="Music" title="Starboy" artist="The Weeknd" album="Starboy" kind="music"
+    media available=#true playing=#true progress=0.391304 duration=230 elapsed=90 app-name="Music" title="Starboy" artist="The Weeknd" album="Starboy" kind="music" artwork="cover.jpg"
     spaces current=2 count=4 {
         list {
             - id=1 index=1 active=#false fullscreen=#false

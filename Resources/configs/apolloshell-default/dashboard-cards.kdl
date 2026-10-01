@@ -1,27 +1,28 @@
 define "card-weather" {
+    param "wx" default=#null
     param "card"
     param "zone"
     button class="card card-weather zone-{zone}" {
         on-click { set "dashboard-tab" "weather" }
-        switch "{weather.status}" {
+        switch "{(wx ?? weather).status}" {
             case "ready" {
                 when "{zone == 'side'}" {
                     column class="card-weather-body vertical" {
-                        icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph card-weather-glyph"
+                        icon "{(wx ?? weather).current.symbol}" fallback="cloud.sun.fill" class="weather-glyph card-weather-glyph"
                         column class="card-weather-text vertical" {
-                            text "{weather.current.temperature | temperature}" class="card-weather-temperature"
-                            when "{card.show-condition}" { text "{weather.current.description}" class="card-weather-condition" }
-                            when "{card.show-range && weather.today != null}" { text "H:{weather.today.max | temperature} L:{weather.today.min | temperature}" class="card-weather-range" }
+                            text "{(wx ?? weather).current.temperature | temperature}" class="card-weather-temperature"
+                            when "{card.show-condition}" { text "{(wx ?? weather).current.description}" class="card-weather-condition" }
+                            when "{card.show-range && (wx ?? weather).today != null}" { text "H:{(wx ?? weather).today.max | temperature} L:{(wx ?? weather).today.min | temperature}" class="card-weather-range" }
                         }
                     }
                 }
                 else {
                     row class="card-weather-body" {
-                        icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph card-weather-glyph"
+                        icon "{(wx ?? weather).current.symbol}" fallback="cloud.sun.fill" class="weather-glyph card-weather-glyph"
                         column class="card-weather-text" {
-                            text "{weather.current.temperature | temperature}" class="card-weather-temperature"
-                            when "{card.show-condition}" { text "{weather.current.description}" class="card-weather-condition" }
-                            when "{card.show-range && weather.today != null}" { text "H:{weather.today.max | temperature} L:{weather.today.min | temperature}" class="card-weather-range" }
+                            text "{(wx ?? weather).current.temperature | temperature}" class="card-weather-temperature"
+                            when "{card.show-condition}" { text "{(wx ?? weather).current.description}" class="card-weather-condition" }
+                            when "{card.show-range && (wx ?? weather).today != null}" { text "H:{(wx ?? weather).today.max | temperature} L:{(wx ?? weather).today.min | temperature}" class="card-weather-range" }
                         }
                     }
                 }
