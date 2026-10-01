@@ -111,6 +111,7 @@
 .menubar-dock-item.front { background: rgb(from -apple-system-label r g b / 0.10); }
 .menubar-dock-item:hover, .menubar-dock-item:active { background: rgb(from -apple-system-label r g b / 0.14); }
 .menubar-dock-icon { width: var(--menubar-icon); height: var(--menubar-icon); -apollo-badge-color: var(--apollo-danger-color, -apple-system-red); -apollo-badge-offset: 7px -5px; -apollo-badge-appear: fade scale(0.6) 180ms ease-out; }
+.menubar-dock-item.size-small .menubar-dock-icon { width: var(--apollo-dock-icon-size, 22px); height: var(--apollo-dock-icon-size, 22px); }
 .menubar-dock-running-dot { width: 4px; height: 4px; border-radius: 9999px; justify-self: end; background: var(--apollo-dock-indicator-color, rgb(from -apple-system-label r g b / 0.65)); }
 .menubar-status-symbol.fallback { font-size: 13px; margin: 0 7px; }
 #menubar-status-popout { border-radius: 25px; }

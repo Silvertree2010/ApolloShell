@@ -551,7 +551,7 @@ define "menubar-dock" {
     row class="menubar-dock" {
         each app in="{(module.show-running ?? true) ? apps.dock : (apps.dock | where 'dock-pinned' true)}" key="{app.bundle-id}" index="i" {
             when "{app.section == 'running' && i == var.dock-first-running && i > 0}" { stack class="menubar-dock-divider" }
-            button class="menubar-dock-item {app.active ? 'front' : ''}" tooltip="{app.name}" menu-on="right-click long-press" {
+            button class="menubar-dock-item size-{module.icon-size ?? 'medium'} {app.active ? 'front' : ''}" tooltip="{app.name}" menu-on="right-click long-press" {
                 on-click { apps.click "{app}" modifiers="{event.modifiers}" }
                 menu side="below" offset=6 { source "app-dock" app="{app}" fallback="full" }
                 stack {
