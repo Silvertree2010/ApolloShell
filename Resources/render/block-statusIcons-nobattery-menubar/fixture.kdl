@@ -62,6 +62,9 @@ fixture {
             - bundle-id="com.apple.mail" name="Mail" path="/System/Applications/Mail.app" usage=0 favorite-index=1
         }
     }
+    window title="Apple – Start Page" fullscreen=#false {
+        app bundle-id="com.apple.Safari" name="Safari"
+    }
     menubar app-name="Safari" bundle-id="com.apple.Safari" trusted=#true {
         menus {
             - index=0 title="Apple" apple=#true app=#false

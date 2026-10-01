@@ -117,3 +117,6 @@
 #menubar-status-popout.bg-material { background: material(regular); }
 #menubar-status-popout.themed { background: var(--apollo-menubar-fill), glass(regular); }
 #menubar-status-popout .popout-battery .popout-status-text { gap: 2px; }
+.menubar-window-title { gap: 7px; padding: 0 6px; align-items: center; }
+.menubar-window-icon { width: 16px; height: 16px; }
+.menubar-window-text { font-size: var(--apollo-menubar-font-size, 13px); font-weight: 600; color: var(--apollo-menubar-text-color, var(--apollo-bar-text-color, -apple-system-label)); }

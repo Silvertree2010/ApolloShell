@@ -471,10 +471,10 @@ define "menubar-window-title" {
     when "{window.app != null}" {
         row class="menubar-window-title" {
             when "{module.show-icon ?? true}" { app-icon "{window.app}" class="menubar-window-icon" }
-            text "{window.app.name}" class="menubar-window-app"
             when "{(module.show-title ?? true) && window.title != null && window.title != ''}" {
                 text "{window.title | truncate (module.max-length ?? 40)}" class="menubar-window-text"
             }
+            else { text "{window.app.name}" class="menubar-window-text" }
         }
     }
 }

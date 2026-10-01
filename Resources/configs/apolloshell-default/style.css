@@ -105,6 +105,23 @@
 .sidebar-weather .sidebar-tile-value { font-size: 11px; }
 .sidebar-cpu-ring { width: 24px; height: 24px; -apollo-stroke-width: 3px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.15); color: -apple-system-control-accent; }
 .sidebar-cpu-number { font-size: 9px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.sidebar-keyboard-text { font-size: 12px; font-weight: 700; }
+.sidebar-network-lines { gap: 2px; align-items: start; }
+.sidebar-network-line { gap: 1px; align-items: center; }
+.sidebar-network-arrow { font-size: 8px; font-weight: 700; }
+.sidebar-network-arrow.down { color: -apple-system-blue; }
+.sidebar-network-arrow.up { color: -apple-system-orange; }
+.sidebar-network-value { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sidebar-now-playing { gap: 4px; align-items: center; }
+.sidebar-now-playing-art { width: 28px; height: 28px; border-radius: 7px; }
+.sidebar-status-items { gap: 6px; align-items: center; }
+.sidebar-status-text { font-size: 10px; font-variant-numeric: tabular-nums; }
+.sidebar-timer-glyph { font-size: 16px; font-weight: 600; }
+.sidebar-timer-stack { width: 26px; height: 26px; align-items: center; justify-content: center; }
+.sidebar-timer-ring { width: 26px; height: 26px; -apollo-stroke-width: 2.5px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.15); color: -apple-system-secondary-label; }
+.sidebar-timer-stack.running .sidebar-timer-ring { color: -apple-system-control-accent; }
+.sidebar-timer-text { font-size: 8.5px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
+.sidebar-volume-device { font-size: 9px; color: -apple-system-secondary-label; }
 
 #status-popout { border-radius: 25px; transition: size 500ms spatial; }
 .popout { padding: 16px; gap: 12px; align-items: start; -apollo-appear: fade 350ms effects-slow; }
