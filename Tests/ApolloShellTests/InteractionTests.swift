@@ -512,3 +512,26 @@ struct InteractionTests {
         #expect(field()?.stringValue == "")
     }
 }
+
+@MainActor
+@Suite("Drop handler on a plain element")
+struct DropAcceptTests {
+    @Test("a stack with on-drop accept=value and on-click registers the value type")
+    func stackAccepts() throws {
+        let mounted = try Mounted.mount("""
+        var last ""
+        panel "t" anchor="left" {
+            column {
+                stack id="p" {
+                    on-drop accept="value" { set "last" "{event.value}" }
+                    on-click { set "last" "c" }
+                    text "x"
+                }
+            }
+        }
+        """, css: "")
+        let p = try mounted.catcher("p")
+        #expect(p.config.accepts == ["value"])
+        #expect(p.registeredDraggedTypes.contains(.apolloValue))
+    }
+}

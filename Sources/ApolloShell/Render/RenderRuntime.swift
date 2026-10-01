@@ -95,6 +95,7 @@ struct HandlerRules: Equatable {
     static func literal(_ value: CompiledValue?) -> Value? {
         guard let value else { return nil }
         if case .literal(let literal) = value.template { return .string(literal) }
+        if case .whole(.literal(let literal)) = value.template { return literal }
         return nil
     }
 }
