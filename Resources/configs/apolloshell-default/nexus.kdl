@@ -197,7 +197,7 @@ define "nexus-page-menubar" {
     }
     use "nexus-card" symbol="arrow.up.and.down" title="Thickness" foot=#true {
         fill "side" { text "{var.menubar-thickness} pt" class="nexus-value" }
-        slider value="{var.menubar-thickness}" min=24 max=64 step=1 class="nexus-slider" {
+        slider value="{var.menubar-thickness}" min=24 max=64 step=1 track-size=6 ticks=#true class="nexus-slider" {
             on-change { set "menubar-thickness" "{event.value | round}" }
         }
     }

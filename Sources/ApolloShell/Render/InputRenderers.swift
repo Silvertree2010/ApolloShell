@@ -182,6 +182,8 @@ struct SliderElement: View {
         let shown = dragValue ?? bound
         let vertical = element.property("vertical").isTruthy
         let thumb = thumbSize
+        let tz = StyleValues.numberValue(element.property("track-size")).map { CGFloat($0) }
+        let ticks = element.property("ticks").isTruthy
         let keyStep = StyleValues.numberValue(element.property("key-step")) ?? (metrics.step > 0 ? metrics.step : (metrics.max - metrics.min) / 20)
         GeometryReader { proxy in
             let length = vertical ? proxy.size.height : proxy.size.width
@@ -191,14 +193,24 @@ struct SliderElement: View {
                                           fraction: metrics.fraction(shown), mode: fillMode)
             let center = geometry.thumbCenter
             ZStack(alignment: vertical ? .bottom : .leading) {
-                if case .layers(let track)? = style["-apollo-track-color"] {
-                    BackgroundLayers(style: ComputedStyle(values: ["background": .layers(track)]), shape: AnyShape(Capsule()), context: scope.context)
-                } else {
-                    Capsule().fill(trackColor)
+                Group {
+                    if case .layers(let track)? = style["-apollo-track-color"] {
+                        BackgroundLayers(style: ComputedStyle(values: ["background": .layers(track)]), shape: AnyShape(Capsule()), context: scope.context)
+                    } else {
+                        Capsule().fill(trackColor)
+                    }
                 }
+                .frame(width: vertical ? tz : nil, height: vertical ? nil : tz)
                 BackgroundLayers(style: ComputedStyle(values: ["background": fillLayers]), shape: AnyShape(Capsule()), context: scope.context)
-                    .frame(width: vertical ? nil : geometry.fill, height: vertical ? geometry.fill : nil)
+                    .frame(width: vertical ? tz : geometry.fill, height: vertical ? geometry.fill : tz)
                     .opacity(fillMode == .insideLinear && geometry.fraction <= 0 ? 0 : 1)
+                if ticks, metrics.step > 0, !vertical {
+                    let n = max(1, Int(((metrics.max - metrics.min) / metrics.step).rounded()))
+                    ForEach(0...n, id: \.self) { i in
+                        Circle().fill(Color.primary.opacity(0.3)).frame(width: 2, height: 2)
+                            .offset(x: extent / 2 + CGFloat(i) * geometry.travel / CGFloat(n) - 1, y: (tz ?? 0) / 2 + 4)
+                    }
+                }
                 if extent > 0 {
                     thumbView(thumb)
                         .offset(x: vertical ? 0 : center - thumb.width / 2, y: vertical ? -(center - thumb.height / 2) : 0)

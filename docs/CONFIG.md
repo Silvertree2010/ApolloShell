@@ -1224,6 +1224,8 @@ Slider, the named slot fill "thumb" draws content in the thumb.
 | property | `step` | number | `0` | Step size, 0 = continuous. |
 | property | `key-step` | number | `null` | Step for arrow keys and VoiceOver, default step. |
 | property | `vertical` | bool | `false` | Vertical orientation. |
+| property | `track-size` | number | `null` | Thickness of the track in points, default the full cross size of the slider. |
+| property | `ticks` | bool | `false` | Draw a tick mark for every step below the track, needs step greater than 0. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`, `on-change`, `on-commit`
 

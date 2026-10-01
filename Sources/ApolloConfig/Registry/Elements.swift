@@ -120,6 +120,8 @@ enum Elements {
                 PropertySchema(name: "step", type: .number, defaultValue: .number(0), doc: "Step size, 0 = continuous."),
                 PropertySchema(name: "key-step", type: .number, defaultValue: .null, doc: "Step for arrow keys and VoiceOver, default step."),
                 PropertySchema(name: "vertical", type: .bool, defaultValue: .bool(false), allowsExpression: false, doc: "Vertical orientation."),
+                PropertySchema(name: "track-size", type: .number, defaultValue: .null, doc: "Thickness of the track in points, default the full cross size of the slider."),
+                PropertySchema(name: "ticks", type: .bool, defaultValue: .bool(false), doc: "Draw a tick mark for every step below the track, needs step greater than 0."),
             ],
             handlers: CommonProperties.elementHandlers + ["on-change", "on-commit"],
             childContext: .elementBody,

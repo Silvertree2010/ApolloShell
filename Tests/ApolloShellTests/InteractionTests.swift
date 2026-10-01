@@ -281,6 +281,22 @@ struct InteractionTests {
         #expect(shot.pixel(150, 10).near(.blue))
     }
 
+    @Test("slider: track-size macht die Spur dünner als den Griff, ticks zeichnet Striche je Schritt darunter")
+    func sliderTrackAndTicks() throws {
+        let css = """
+        #t { width: 200px; height: 40px; align-items: start; }
+        .s { width: 200px; height: 20px; -apollo-track-color: #0000ff; -apollo-thumb-size: 20px; -apollo-thumb-color: #00ff00; }
+        """
+        let thin = try RenderProbe.render("panel \"t\" anchor=\"left\" { slider class=\"s\" value=1 min=0 max=4 step=1 track-size=6 ticks=#true }", css: css)
+        let plain = try RenderProbe.render("panel \"t\" anchor=\"left\" { slider class=\"s\" value=1 min=0 max=4 step=1 }", css: css)
+        #expect(thin.pixel(150, 10).near(.blue))
+        #expect(thin.pixel(150, 3).near(.blue) == false)
+        #expect(plain.pixel(150, 3).near(.blue))
+        var inked = 0
+        for y in 12..<20 where !thin.pixel(100, CGFloat(y)).near(thin.pixel(130, CGFloat(y)), tolerance: 6) { inked += 1 }
+        #expect(inked > 0)
+    }
+
     @Test("slider: -apollo-track-color nimmt den Verlauf von --apollo-card-fill wie die Karten-Spur in 0.1.4.2")
     func sliderGradientTrack() throws {
         let shot = try RenderProbe.render("panel \"t\" anchor=\"left\" { slider class=\"s\" value=0.25 }", css: """
