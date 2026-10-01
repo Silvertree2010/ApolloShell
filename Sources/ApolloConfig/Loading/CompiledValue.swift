@@ -1,26 +1,14 @@
 import ApolloBase
-import Synchronization
 
 public struct CompiledValue: Sendable, Hashable {
-    public var template: StringTemplate {
-        didSet { roots = Self.cache(template) }
-    }
-    public var dependencies: Set<DependencyPath> {
-        didSet { roots = Self.cache(template) }
-    }
+    public var template: StringTemplate
+    public var dependencies: Set<DependencyPath>
     public var span: SourceSpan
-    private var roots: PathRootsCache?
-
-    private static func cache(_ template: StringTemplate) -> PathRootsCache? {
-        if case .literal = template { return nil }
-        return PathRootsCache()
-    }
 
     public init(template: StringTemplate, dependencies: Set<DependencyPath>, span: SourceSpan) {
         self.template = template
         self.dependencies = dependencies
         self.span = span
-        roots = Self.cache(template)
     }
 
     public var isConstant: Bool {
@@ -28,16 +16,14 @@ public struct CompiledValue: Sendable, Hashable {
     }
 
     public var pathRoots: Set<String> {
-        guard let roots else { return [] }
-        return roots.value { template.pathRoots }
+        if case .literal = template { return [] }
+        return template.pathRoots
     }
 
     public var localRoots: Set<String> {
-        guard let roots else { return [] }
-        return roots.locals {
-            let globalRoots = Set(dependencies.map(\.root))
-            return pathRoots.subtracting(globalRoots)
-        }
+        if case .literal = template { return [] }
+        let globalRoots = Set(dependencies.map(\.root))
+        return pathRoots.subtracting(globalRoots)
     }
 
     public static func == (lhs: CompiledValue, rhs: CompiledValue) -> Bool {
@@ -48,25 +34,6 @@ public struct CompiledValue: Sendable, Hashable {
         hasher.combine(template)
         hasher.combine(dependencies)
         hasher.combine(span)
-    }
-}
-
-private final class PathRootsCache: Sendable {
-    private let stored = Mutex<Set<String>?>(nil)
-    private let storedLocals = Mutex<Set<String>?>(nil)
-
-    func value(_ compute: () -> Set<String>) -> Set<String> {
-        if let cached = stored.withLock({ $0 }) { return cached }
-        let computed = compute()
-        stored.withLock { $0 = computed }
-        return computed
-    }
-
-    func locals(_ compute: () -> Set<String>) -> Set<String> {
-        if let cached = storedLocals.withLock({ $0 }) { return cached }
-        let computed = compute()
-        storedLocals.withLock { $0 = computed }
-        return computed
     }
 }
 
