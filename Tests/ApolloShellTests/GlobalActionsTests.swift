@@ -56,6 +56,7 @@ struct GlobalActionsTests {
         #expect(features.contains(.string("script-sources")))
         #expect(configs.contains { if case .record(let record) = $0 { record["id"] == .string("apolloshell-default") } else { false } })
         #expect(field("install-kind") == .string("dmg"))
+        #expect(field("themes-folder").plainText?.hasSuffix("/themes") == true)
         #expect(field("update", "status") != .null)
     }
 

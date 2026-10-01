@@ -68,6 +68,7 @@ enum ContextRoots {
                 S.field("themes.author", .string, update: .push, doc: "Author of an available theme."),
                 S.field("themes.description", .string, update: .push, doc: "Description of an available theme."),
                 S.field("themes.issues", .list, update: .push, doc: "Notes on an available theme, as a list of texts."),
+                S.field("themes-folder", .string, update: .push, doc: "Folder of the user's themes, ~ for the home folder."),
                 S.field("hotkeys.chord", .string, update: .push, doc: "Key combination."),
                 S.field("hotkeys.ok", .bool, update: .push, doc: "Whether the combination is free of conflicts."),
                 S.field("install-kind", .string, update: .once, doc: "dmg or homebrew."),

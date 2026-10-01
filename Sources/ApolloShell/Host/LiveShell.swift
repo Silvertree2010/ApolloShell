@@ -453,7 +453,7 @@ final class LiveShell: WindowHostLink {
                 ])))
             }
         }
-        return [("configs", .list(configs)), ("themes", .list(themes))]
+        return [("configs", .list(configs)), ("themes", .list(themes)), ("themes-folder", .string((paths.themesDirectory.path as NSString).abbreviatingWithTildeInPath))]
     }
 
     func updateField() -> Value {
