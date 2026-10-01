@@ -11,49 +11,54 @@ define "wh-empty" {
 }
 
 define "wh-summary" {
-    text "{((weather.current.apparent != null ? ' · Feels like ' + (weather.current.apparent | temperature) : '') + (weather.today != null ? ' · H:' + (weather.today.max | temperature) + ' L:' + (weather.today.min | temperature) : '')) | skip 3}" class="wh-summary" lines=1
+    param "wx" default=#null
+    text "{(((wx ?? weather).current.apparent != null ? ' · Feels like ' + ((wx ?? weather).current.apparent | temperature) : '') + ((wx ?? weather).today != null ? ' · H:' + ((wx ?? weather).today.max | temperature) + ' L:' + ((wx ?? weather).today.min | temperature) : '')) | skip 3}" class="wh-summary" lines=1
 }
 
 define "wh-stats" {
+    param "wx" default=#null
     param "gap"
     grid columns=2 class="wh-stats" style="column-gap: {gap}px; row-gap: 12px" {
-        use "weather-detail" title="Humidity" value="{weather.current.humidity != null ? (weather.current.humidity * 100 | round) + ' %' : '–'}" icon="humidity.fill"
-        use "weather-detail" title="Sunrise" value="{weather.today.sunrise-text ?? (weather.today.sunrise | date 'HH:mm') ?? '–'}" icon="sunrise.fill"
-        use "weather-detail" title="Wind" value="{weather.current.wind != null ? (weather.current.wind | round) + ' km/h' : '–'}" icon="wind"
-        use "weather-detail" title="Sunset" value="{weather.today.sunset-text ?? (weather.today.sunset | date 'HH:mm') ?? '–'}" icon="sunset.fill"
+        use "weather-detail" title="Humidity" value="{(wx ?? weather).current.humidity != null ? ((wx ?? weather).current.humidity * 100 | round) + ' %' : '–'}" icon="humidity.fill"
+        use "weather-detail" title="Sunrise" value="{(wx ?? weather).today.sunrise-text ?? ((wx ?? weather).today.sunrise | date 'HH:mm') ?? '–'}" icon="sunrise.fill"
+        use "weather-detail" title="Wind" value="{(wx ?? weather).current.wind != null ? ((wx ?? weather).current.wind | round) + ' km/h' : '–'}" icon="wind"
+        use "weather-detail" title="Sunset" value="{(wx ?? weather).today.sunset-text ?? ((wx ?? weather).today.sunset | date 'HH:mm') ?? '–'}" icon="sunset.fill"
     }
 }
 
 define "wh-attribution" {
+    param "wx" default=#null
     button class="wh-attribution" {
-        on-click { open-url "{weather.attribution.url}" }
-        text "{weather.attribution.text}" class="weather-attribution-text"
+        on-click { open-url "{(wx ?? weather).attribution.url}" }
+        text "{(wx ?? weather).attribution.text}" class="weather-attribution-text"
     }
 }
 
 define "wh-symbol" {
+    param "wx" default=#null
     param "size"
-    icon "{weather.current.symbol}" fallback="cloud.sun.fill" class="weather-glyph" style="font-size: {size}px"
+    icon "{(wx ?? weather).current.symbol}" fallback="cloud.sun.fill" class="weather-glyph" style="font-size: {size}px"
 }
 
 define "widget-weather-hero" {
+    param "wx" default=#null
     param "w"
-    switch "{weather.status}" {
+    switch "{(wx ?? weather).status}" {
         case "ready" {
             switch "{w.display}" {
                 case "minimal" {
                     when "{w.height > 200}" {
                         column class="card wh-min tall" {
-                            use "wh-symbol" size=72
-                            text "{weather.current.temperature | temperature}" class="wh-min-temp" style="font-size: 80px" lines=1
-                            text "{weather.current.description}" class="wh-min-cond" style="font-size: 20px" lines=1
+                            use "wh-symbol" wx="{wx}" size=72
+                            text "{(wx ?? weather).current.temperature | temperature}" class="wh-min-temp" style="font-size: 80px" lines=1
+                            text "{(wx ?? weather).current.description}" class="wh-min-cond" style="font-size: 20px" lines=1
                         }
                     }
                     else {
                         row class="card wh-min" {
-                            use "wh-symbol" size=52
-                            text "{weather.current.temperature | temperature}" class="wh-min-temp" style="font-size: 56px" lines=1
-                            text "{weather.current.description}" class="wh-min-cond" style="font-size: 18px" lines=1
+                            use "wh-symbol" wx="{wx}" size=52
+                            text "{(wx ?? weather).current.temperature | temperature}" class="wh-min-temp" style="font-size: 56px" lines=1
+                            text "{(wx ?? weather).current.description}" class="wh-min-cond" style="font-size: 18px" lines=1
                         }
                     }
                 }
@@ -61,35 +66,35 @@ define "widget-weather-hero" {
                     when "{w.height > 200}" {
                         column class="card wh-tall" style="width: {w.width}px; height: {w.height}px" {
                             row class="wh-tall-top" {
-                                use "wh-symbol" size="{w.height > 300 ? 60 : 44}"
-                                text "{weather.current.temperature | temperature}" class="wh-temp" style="font-size: {w.height > 300 ? 76 : 52}px" lines=1
+                                use "wh-symbol" wx="{wx}" size="{w.height > 300 ? 60 : 44}"
+                                text "{(wx ?? weather).current.temperature | temperature}" class="wh-temp" style="font-size: {w.height > 300 ? 76 : 52}px" lines=1
                                 spacer
                             }
                             column class="wh-tall-text" {
-                                text "{weather.current.description}" class="wh-cond" style="font-size: {w.height > 300 ? 21 : 17}px" lines=1
-                                use "wh-summary"
+                                text "{(wx ?? weather).current.description}" class="wh-cond" style="font-size: {w.height > 300 ? 21 : 17}px" lines=1
+                                use "wh-summary" wx="{wx}"
                             }
                             spacer
-                            use "wh-stats" gap="{w.width > 400 ? 24 : 14}"
-                            when "{w.height > 300}" { use "wh-attribution" }
+                            use "wh-stats" wx="{wx}" gap="{w.width > 400 ? 24 : 14}"
+                            when "{w.height > 300}" { use "wh-attribution" wx="{wx}" }
                         }
                     }
                     else {
                         stack class="card wh-row" style="width: {w.width}px; height: {w.height}px" {
                             row class="wh-row-body" {
-                                stack class="wh-row-glyph" { use "wh-symbol" size=56 }
-                                text "{weather.current.temperature | temperature}" class="wh-temp" style="font-size: 60px" lines=1
+                                stack class="wh-row-glyph" { use "wh-symbol" wx="{wx}" size=56 }
+                                text "{(wx ?? weather).current.temperature | temperature}" class="wh-temp" style="font-size: 60px" lines=1
                                 column class="wh-row-text" {
-                                    text "{weather.current.description}" class="wh-cond" style="font-size: 19px" lines=1
-                                    use "wh-summary"
-                                    when "{weather.stale}" { text "As of {weather.updated | date 'HH:mm'}" class="weather-stale" }
+                                    text "{(wx ?? weather).current.description}" class="wh-cond" style="font-size: 19px" lines=1
+                                    use "wh-summary" wx="{wx}"
+                                    when "{(wx ?? weather).stale}" { text "As of {(wx ?? weather).updated | date 'HH:mm'}" class="weather-stale" }
                                 }
                                 spacer
                                 when "{w.width >= 760}" {
-                                    column class="wh-row-stats" { use "wh-stats" gap=24 }
+                                    column class="wh-row-stats" { use "wh-stats" wx="{wx}" gap=24 }
                                 }
                             }
-                            use "wh-attribution"
+                            use "wh-attribution" wx="{wx}"
                         }
                     }
                 }
@@ -100,16 +105,17 @@ define "widget-weather-hero" {
 }
 
 define "widget-weather-hourly" {
+    param "wx" default=#null
     param "w"
-    switch "{weather.status}" {
+    switch "{(wx ?? weather).status}" {
         case "ready" {
             switch "{w.display}" {
                 case "graph" {
-                    use "wh-hgraph" w="{w}" slots="{weather.hourly-strip | take (((w.width - 20) / 64) | floor | max 3)}"
+                    use "wh-hgraph" w="{w}" slots="{(wx ?? weather).hourly-strip | take (((w.width - 20) / 64) | floor | max 3)}"
                 }
                 default {
                     row class="card wh-hours" style="width: {w.width}px; height: {w.height}px" {
-                        each hour in="{weather.hourly-strip | take (((w.width - 20) / 64) | floor | max 3)}" key="{hour.time}" {
+                        each hour in="{(wx ?? weather).hourly-strip | take (((w.width - 20) / 64) | floor | max 3)}" key="{hour.time}" {
                             column class="wh-hour{hour.now ? ' now' : ''}" style="gap: {w.height > 200 ? 14 : 5}px" {
                                 text "{hour.time-text ?? (hour.now ? 'Now' : (hour.time | date 'H:00'))}" class="wh-hour-time"
                                 stack class="wh-hour-glyph" style="height: {w.height > 200 ? 36 : 26}px" {
@@ -199,20 +205,21 @@ define "wh-drow" {
 }
 
 define "widget-weather-daily" {
+    param "wx" default=#null
     param "w"
-    switch "{weather.status}" {
+    switch "{(wx ?? weather).status}" {
         case "ready" {
             switch "{w.display}" {
                 case "list" {
                     column class="card wh-dlist" style="width: {w.width | max 254}px; height: {w.height}px" {
-                        each day in="{weather.days | take (((w.height - 20) / 30) | floor | max 2 | min 7)}" key="{day.date}" {
-                            use "wh-drow" w="{w}" day="{day}" low="{(weather.days | take (((w.height - 20) / 30) | floor | max 2 | min 7) | map 'min' | sort | first)}" high="{(weather.days | take (((w.height - 20) / 30) | floor | max 2 | min 7) | map 'max' | sort | last)}" last="{day.date == ((weather.days | take (((w.height - 20) / 30) | floor | max 2 | min 7) | last).date)}"
+                        each day in="{(wx ?? weather).days | take (((w.height - 20) / 30) | floor | max 2 | min 7)}" key="{day.date}" {
+                            use "wh-drow" w="{w}" day="{day}" low="{((wx ?? weather).days | take (((w.height - 20) / 30) | floor | max 2 | min 7) | map 'min' | sort | first)}" high="{((wx ?? weather).days | take (((w.height - 20) / 30) | floor | max 2 | min 7) | map 'max' | sort | last)}" last="{day.date == (((wx ?? weather).days | take (((w.height - 20) / 30) | floor | max 2 | min 7) | last).date)}"
                         }
                     }
                 }
                 default {
                     row class="wh-days" style="width: {w.width}px; height: {w.height}px" {
-                        each day in="{weather.days | take ((((w.width + 12) / 102) | floor) | max 2 | min 7)}" key="{day.date}" {
+                        each day in="{(wx ?? weather).days | take ((((w.width + 12) / 102) | floor) | max 2 | min 7)}" key="{day.date}" {
                             use "wh-day" day="{day}"
                         }
                     }
