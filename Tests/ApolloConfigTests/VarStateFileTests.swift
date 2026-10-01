@@ -101,7 +101,7 @@ struct VarStateFileReadTests {
         } else {
             Issue.record("expected a list")
         }
-        #expect(elapsed < 5)
+        #expect(elapsed < 5 * ConfigLoaderTests.machineFactor)
     }
 }
 
@@ -186,6 +186,6 @@ struct VarStateFileWritingTests {
         let updated = try VarStateFile.writing(["big": .list(changed)], into: text, file: "state.kdl")
         let elapsed = Date().timeIntervalSince(start)
         #expect(updated.contains("999"))
-        #expect(elapsed < 5)
+        #expect(elapsed < 5 * ConfigLoaderTests.machineFactor)
     }
 }
