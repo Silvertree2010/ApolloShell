@@ -94,3 +94,37 @@ struct VMFixConfigTests {
         #expect(String(describing: d.properties["area"]).contains("below-menubar"))
     }
 }
+
+@MainActor
+@Suite("VM test findings: edit mode Esc chain", .serialized)
+struct EditEscapeTests {
+    func v(_ h: ShellHarness, _ n: String) -> Value? { h.shell.assembly?.vars.value(n) }
+
+    func run(_ h: ShellHarness, _ a: String) async throws { _ = try await h.shell.runActions(a); h.settle() }
+
+    func esc(_ h: ShellHarness) {
+        _ = h.shell.keyPressed("escape", surfaceID: "dashboard-toolbar", screenKey: ShellHarness.a.key)
+        h.settle()
+    }
+
+    @Test("Esc closes selection, then gallery, then asks before discarding changes, and only cancels when nothing changed")
+    func chain() async throws {
+        let h = try ShellHarness("include \"builtin:apolloshell-default/shell.kdl\"")
+        try await h.start()
+        defer { h.shell.shutdown() }
+        try await run(h, "set \"dashboard-backup-pages\" \"{var.dashboard-pages}\"; set \"dashboard-backup-widgets\" \"{var.dashboard-widgets}\"; set \"dashboard-backup-scale\" \"{var.dashboard-scale}\"; set \"shell-editing\" #true; open \"dashboard\"; open \"dashboard-toolbar\"")
+        try await run(h, "set \"dashboard-selected\" \"dashboard-weather\"; set \"dashboard-gallery\" #true")
+        esc(h)
+        #expect(v(h, "dashboard-selected") == .null && v(h, "dashboard-gallery") == .bool(true) && v(h, "shell-editing") == .bool(true))
+        esc(h)
+        #expect(v(h, "dashboard-gallery") == .bool(false) && v(h, "shell-editing") == .bool(true))
+        try await run(h, "set \"dashboard-widgets\" \"{var.dashboard-widgets | where 'kind' 'none'}\"")
+        esc(h)
+        #expect(v(h, "dashboard-confirm") == .bool(true) && v(h, "shell-editing") == .bool(true))
+        esc(h)
+        #expect(v(h, "dashboard-confirm") == .bool(false) && v(h, "shell-editing") == .bool(true))
+        try await run(h, "set \"dashboard-widgets\" \"{var.dashboard-backup-widgets}\"")
+        esc(h)
+        #expect(v(h, "shell-editing") == .bool(false))
+    }
+}
