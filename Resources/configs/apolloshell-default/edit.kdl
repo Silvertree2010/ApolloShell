@@ -267,7 +267,7 @@ define "gallery-bar-tile" {
         on-click { use "edit-add-bar" list="{var.edit-target-list}" catalog="{var.edit-target-kinds}" kind="{k.kind}" present="{var.edit-target-present}" }
         column class="gallery-tile-content" {
             icon "{k.symbol}" class="gallery-tile-glyph"
-            text "{k.title}" class="gallery-tile-title" lines=1
+            text "{k.title}" class="gallery-tile-title" lines=2
         }
     }
 }
@@ -281,7 +281,7 @@ define "gallery-cc-tile" {
         on-click { use "edit-add-cc" value="{value}" }
         column class="gallery-tile-content" {
             icon "{symbol}" class="gallery-tile-glyph"
-            text "{title}" class="gallery-tile-title" lines=1
+            text "{title}" class="gallery-tile-title" lines=2
         }
     }
 }

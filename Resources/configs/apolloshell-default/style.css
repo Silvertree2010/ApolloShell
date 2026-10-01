@@ -850,10 +850,10 @@
 .gallery-row { gap: 8px; align-items: center; }
 .gallery-tile { width: 82px; height: 99px; gap: 6px; border-radius: 14px; background: rgb(from -apple-system-label r g b / 0.08); align-items: stretch; justify-content: flex-start; }
 .gallery-tile:disabled { opacity: 0.4; }
-.gallery-tile-content { gap: 6px; align-items: center; justify-content: flex-start; padding: 12px 4px 10px; align-self: stretch; flex-grow: 1; }
-.gallery-tile-detail { font-size: 12px; color: -apple-system-secondary-label; }
-.gallery-tile-glyph { font-size: 20px; }
-.gallery-tile-title { font-size: 13px; font-weight: 500; max-width: 74px; text-align: center; flex-shrink: 1; }
+.gallery-tile-content { gap: 6px; align-items: center; justify-content: flex-start; padding: 10px 2px; align-self: stretch; flex-grow: 1; }
+.gallery-tile-detail { font-size: 10px; color: -apple-system-secondary-label; }
+.gallery-tile-glyph { font-size: 20px; font-weight: 500; height: 24px; align-items: center; justify-content: center; }
+.gallery-tile-title { font-size: 11px; font-weight: 500; width: 78px; height: 30px; text-align: center; align-items: flex-start; justify-content: flex-start; flex-shrink: 0; }
 .opt-panel { width: 280px; padding: 12px; gap: 10px; border-radius: 16px; background: glass(regular); }
 .opt-row { gap: 8px; align-items: center; }
 .opt-group { gap: 6px; }
@@ -926,3 +926,5 @@
 .edit-main .edit-plus { width: 34px; height: 34px; min-width: 34px; padding: 0; border-radius: 9999px; }
 .edit-main .edit-text { height: 24px; padding: 0 12.5px; border-radius: 6px; font-size: 13px; font-weight: 400; }
 .edit-item.grow > .dock { width: 100%; height: 100%; }
+.edit-item > * { pointer-events: none; }
+.edit-item > .edit-cover, .edit-item > .edit-badge { pointer-events: auto; }
