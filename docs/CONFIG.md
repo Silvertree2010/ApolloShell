@@ -3043,6 +3043,10 @@ Screens changed.
 | --- | --- | --- | --- | --- |
 | field | `screens` | list | | New screen list. |
 
+### `shell.reopened` (event)
+
+ApolloShell was opened again while running and the command center icon is hidden.
+
 ### `shell.started` (event)
 
 The shell is ready.

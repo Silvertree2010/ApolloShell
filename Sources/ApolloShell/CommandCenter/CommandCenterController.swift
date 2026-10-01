@@ -9,6 +9,7 @@ final class CommandCenterController: NSObject, NSMenuDelegate {
     private var builder: CommandCenterMenu?
     private let entries: @MainActor () -> [MenuEntry]
     private var handoffObserver: NSObjectProtocol?
+    var onHandoff: (@MainActor () -> Void)?
 
     init(entries: @escaping @MainActor () -> [MenuEntry], perform: @escaping @MainActor (MenuCommand) -> Void) {
         self.entries = entries
@@ -21,7 +22,10 @@ final class CommandCenterController: NSObject, NSMenuDelegate {
         handoffObserver = DistributedNotificationCenter.default().addObserver(
             forName: Notification.Name(SingleInstance.showNotification), object: nil, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.popUpUnderPointer() }
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                if let h = self.onHandoff { h() } else { self.popUpUnderPointer() }
+            }
         }
         SystemStatusItemsSource.shared.own = { [weak self] in self?.ownItem() }
     }

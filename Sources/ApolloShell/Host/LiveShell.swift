@@ -606,6 +606,8 @@ final class LiveShell: WindowHostLink {
         commandCenter = CommandCenterController(entries: { [weak self] in self?.commandCenterEntries() ?? [] }, perform: { [weak self] command in
             self?.perform(command)
         })
+        commandCenter?.onHandoff = { [weak self] in self?.handoff() }
+        SystemStatusItemsSource.shared.own = { [weak self] in self?.ownStatusItem() }
         if let lastIR { applyCommandCenterVisibility(lastIR) }
         let control = LiveShellControl(shell: self)
         let server = ControlSocketServer(path: socketPath, service: ControlRouter(shell: control, configs: catalog, themes: ThemeCatalog(paths: paths, settings: settings)))
@@ -765,6 +767,25 @@ final class LiveShell: WindowHostLink {
             }
         }
         return result
+    }
+
+    func ownStatusItem() -> SystemStatusItemsSource.OwnItem? {
+        if let commandCenter, commandCenter.visible { return commandCenter.ownItem() }
+        guard let (id, frame) = host.ownStatusItem(), frame != .zero else { return nil }
+        return SystemStatusItemsSource.OwnItem(frame: frame, image: ApolloMarkGeometry.menuBarImage(side: 18), open: { [weak self] in self?.openOwnStatusItem(id) })
+    }
+
+    func openOwnStatusItem(_ id: String) {
+        guard let popup = host.popups(attachedTo: id).first else { return }
+        assembly?.runtime.toggle(popup)
+    }
+
+    func handoff() {
+        if let commandCenter, commandCenter.visible {
+            commandCenter.popUpUnderPointer()
+        } else {
+            _ = assembly?.runtime.emit("shell.reopened", Record())
+        }
     }
 
     func applyCommandCenterVisibility(_ ir: ConfigIR) {

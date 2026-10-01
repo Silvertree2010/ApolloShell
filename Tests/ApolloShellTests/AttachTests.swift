@@ -62,4 +62,19 @@ struct AttachTests {
         fixture.flush()
         #expect(menu.frame.minX == bar.frame.minX + 300)
     }
+
+    @Test("Eigenes Statussymbol aus einer status-item-Oberflaeche: Rahmen und angehaengtes Popup")
+    func ownStatusItemSurface() throws {
+        let fixture = try HostFixture("""
+        status-item "nexus-item" { button id="mark" { text "A" } }
+        popup "nexus" attach="nexus-item#mark" side="bottom" align="center" { column { text "m" } }
+        popup "other" { column { text "o" } }
+        """)
+        fixture.flush()
+        let own = try #require(fixture.host.ownStatusItem())
+        #expect(own.id == "nexus-item")
+        #expect(own.frame == fixture.window("nexus-item")?.frame)
+        #expect(fixture.host.popups(attachedTo: "nexus-item") == ["nexus"])
+        #expect(fixture.host.popups(attachedTo: "other").isEmpty)
+    }
 }

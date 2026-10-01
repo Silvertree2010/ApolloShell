@@ -53,6 +53,7 @@ enum BuiltinSchemaRegistry {
 
     static let allEvents: [EventSchema] = allProviders.flatMap(\.events) + [
         EventSchema(name: "shell.started", doc: "The shell is ready."),
+        EventSchema(name: "shell.reopened", doc: "ApolloShell was opened again while running and the command center icon is hidden."),
         EventSchema(name: "config.loaded", fields: [ProviderSupport.field("warnings", .number, update: .once, doc: "Number of warnings.")], doc: "A config loaded without errors."),
         EventSchema(name: "config.failed", fields: [ProviderSupport.field("errors", .number, update: .once, doc: "Number of errors.")], doc: "A config failed to load."),
         EventSchema(name: "theme.changed", fields: [ProviderSupport.field("id", .string, update: .once, doc: "New theme id.")], doc: "The theme changed."),

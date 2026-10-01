@@ -490,6 +490,15 @@ final class WindowHost: SurfaceHosting {
         }
     }
 
+    func ownStatusItem() -> (id: String, frame: CGRect)? {
+        guard let c = controllers.keys.sorted().compactMap({ controllers[$0] }).first(where: { $0.spec.kind == "status-item" && $0.shown }) else { return nil }
+        return (c.surface.id, c.window.frame)
+    }
+
+    func popups(attachedTo id: String) -> [String] {
+        controllers.keys.sorted().compactMap { controllers[$0] }.filter { SurfacePlacement.attachment($0.surface.property)?.surface == id }.map(\.surface.id)
+    }
+
     func attachedRect(_ attach: SurfacePlacement.Attachment, screenKey: String) -> CGRect? {
         let same = SurfaceHost.key(attach.surface, screenKey)
         let key = controllers[same] != nil ? same : controllers.keys.sorted().first { controllers[$0]?.surface.id == attach.surface }
