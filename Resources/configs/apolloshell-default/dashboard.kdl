@@ -108,6 +108,12 @@ define "dashboard-page-tab" {
         on-click { set "dashboard-tab" "{page.id}"; set "dashboard-selected" #null }
         when "{var.shell-editing}" {
             menu {
+                item "Rename" { set "dashboard-renaming" "{page.id}" }
+                submenu "Icon" {
+                    each sy in="{var.dashboard-symbols}" key="{sy.symbol}" {
+                        item "{sy.symbol}" { list.update "dashboard-pages" key="{page.id}" { - symbol="{sy.symbol}" icon=#null } }
+                    }
+                }
                 item "Duplicate" {
                     set "dashboard-new-id" "page-{clock.now | date 'yyyyMMddHHmmssSSS'}"
                     list.insert "dashboard-pages" at="{i + 1}" { - id="{var.dashboard-new-id}" name="{page.name} 2" symbol="{page.symbol}" icon="{page.icon}" template="{page.template}" }
@@ -124,7 +130,13 @@ define "dashboard-page-tab" {
         }
         column class="dashboard-tab-label" {
             icon "{page.icon ?? page.symbol}" fallback="{page.symbol}{page.id == var.dashboard-active-page ? (page.template == 'dashboard' || page.template == 'weather' ? '.fill' : '') : ''}" class="dashboard-tab-glyph"
-            text "{page.name}" class="dashboard-tab-title"
+            when "{var.dashboard-renaming != page.id}" { text "{page.name}" class="dashboard-tab-title" }
+            when "{var.dashboard-renaming == page.id}" {
+                input value="{page.name}" placeholder="Name" class="dashboard-tab-rename" focus="{var.dashboard-renaming == page.id}" {
+                    on-change { list.update "dashboard-pages" key="{page.id}" { - name="{event.value}" } }
+                    on-submit { set "dashboard-renaming" #null }
+                }
+            }
         }
         when "{page.id == var.dashboard-active-page}" { stack class="dashboard-tab-pill" match-id="dashboard-tab" }
     }

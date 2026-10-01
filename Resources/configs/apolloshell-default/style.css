@@ -208,6 +208,7 @@
 .dashboard-tab-label { gap: 4px; padding: 12px 0 8px; align-items: center; }
 .dashboard-tab-glyph { width: 18px; height: 18px; font-size: 16px; font-weight: 500; }
 .dashboard-tab-title { font-size: 12px; font-weight: 500; }
+.dashboard-tab-rename { height: 18px; padding: 0 6px; border-radius: 5px; background: rgb(from -apple-system-label r g b / 0.08); font-size: 12px; font-weight: 500; text-align: center; }
 .dashboard-divider { height: 1px; align-self: stretch; background: -apple-system-separator; opacity: 0.5; }
 .dashboard-page { width: 871px; height: 424px; padding: 16px; }
 .dashboard-canvas { width: 839px; height: 392px; }

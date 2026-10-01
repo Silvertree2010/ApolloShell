@@ -34,6 +34,7 @@ var edit-opt-tg-open from="{var.edit-opt-open && var.edit-opt-list == 'utilities
 var edit-show-all #false
 var dashboard-gallery #false
 var dashboard-confirm #false
+var dashboard-renaming #null
 var dashboard-symbols {
     - symbol="square.grid.2x2"
     - symbol="star.fill"
@@ -80,6 +81,7 @@ define "edit-end" {
     set "dashboard-gallery" #false
     set "dashboard-options" #null
     set "dashboard-confirm" #false
+    set "dashboard-renaming" #null
     close "dashboard"
     close "utilities"
     close "dashboard-toolbar"
@@ -297,17 +299,6 @@ define "gallery-tab" {
 }
 
 define "gallery-dashboard" {
-    row class="edit-row" {
-        input value="{var.dashboard-active-page-record.name}" placeholder="Page Name" class="edit-input" {
-            on-change { list.update "dashboard-pages" key="{var.dashboard-active-page}" { - name="{event.value}" } }
-        }
-        each s in="{var.dashboard-symbols}" key="{s.symbol}" {
-            button class="edit-button edit-symbol" checked="{var.dashboard-active-page-record.symbol == s.symbol}" {
-                on-click { list.update "dashboard-pages" key="{var.dashboard-active-page}" { - symbol="{s.symbol}" icon=#null } }
-                icon "{s.symbol}"
-            }
-        }
-    }
     grid columns=8 class="gallery-grid" {
         each k in="{var.widget-kinds}" key="{k.kind}" {
             use "gallery-tile" k="{k}"
