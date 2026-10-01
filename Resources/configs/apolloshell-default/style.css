@@ -879,3 +879,4 @@
 .face-bars .space-mark { width: 10.4px; height: 3px; }
 .face-bars .space-face:checked .space-mark { width: 19.5px; }
 .space-face:checked .space-mark { background: var(--apollo-spaces-active-color, var(--apollo-accent-color, -apple-system-control-accent)); }
+.sidebar-window .sidebar-app-icon { width: 24px; height: 24px; }
