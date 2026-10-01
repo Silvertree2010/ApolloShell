@@ -9,7 +9,8 @@
 .wh-tall-top { gap: 12px; align-items: center; align-self: stretch; justify-content: start; }
 .wh-tall-text { gap: 3px; align-items: start; align-self: stretch; }
 .wh-tall-text .wh-summary { font-size: 12px; }
-.wh-stats { column-gap: 14px; row-gap: 12px; align-self: start; }
+.wh-stats { align-self: start; }
+.wh-stats-column { gap: 12px; align-items: start; }
 .wh-tall-text > text { align-self: stretch; text-align: left; }
 .wh-attribution { align-self: start; }
 .card.wh-row { padding: 0; border-radius: var(--apollo-card-radius, 28px); }

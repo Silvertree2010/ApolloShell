@@ -18,11 +18,15 @@ define "wh-summary" {
 define "wh-stats" {
     param "wx" default=#null
     param "gap"
-    grid columns=2 class="wh-stats" style="column-gap: {gap}px; row-gap: 12px" {
-        use "weather-detail" title="Humidity" value="{(wx ?? weather).current.humidity != null ? ((wx ?? weather).current.humidity * 100 | round) + ' %' : '–'}" icon="humidity.fill"
-        use "weather-detail" title="Sunrise" value="{(wx ?? weather).today.sunrise-text ?? ((wx ?? weather).today.sunrise | date 'HH:mm') ?? '–'}" icon="sunrise.fill"
-        use "weather-detail" title="Wind" value="{(wx ?? weather).current.wind != null ? ((wx ?? weather).current.wind | round) + ' km/h' : '–'}" icon="wind"
-        use "weather-detail" title="Sunset" value="{(wx ?? weather).today.sunset-text ?? ((wx ?? weather).today.sunset | date 'HH:mm') ?? '–'}" icon="sunset.fill"
+    row class="wh-stats" style="gap: {gap}px" {
+        column class="wh-stats-column" {
+            use "weather-detail" title="Humidity" value="{(wx ?? weather).current.humidity != null ? ((wx ?? weather).current.humidity * 100 | round) + ' %' : '–'}" icon="humidity.fill"
+            use "weather-detail" title="Wind" value="{(wx ?? weather).current.wind != null ? ((wx ?? weather).current.wind | round) + ' km/h' : '–'}" icon="wind"
+        }
+        column class="wh-stats-column" {
+            use "weather-detail" title="Sunrise" value="{(wx ?? weather).today.sunrise-text ?? ((wx ?? weather).today.sunrise | date 'HH:mm') ?? '–'}" icon="sunrise.fill"
+            use "weather-detail" title="Sunset" value="{(wx ?? weather).today.sunset-text ?? ((wx ?? weather).today.sunset | date 'HH:mm') ?? '–'}" icon="sunset.fill"
+        }
     }
 }
 
