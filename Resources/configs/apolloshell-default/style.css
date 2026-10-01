@@ -108,12 +108,12 @@
 .sidebar-cpu-ring { width: 24px; height: 24px; -apollo-stroke-width: 3px; -apollo-track-color: rgb(from -apple-system-label r g b / 0.15); color: -apple-system-control-accent; }
 .sidebar-cpu-number { font-size: 9px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; }
 .sidebar-keyboard-text { font-size: 12px; font-weight: 700; }
-.sidebar-network-lines { gap: 2px; align-items: start; }
+.sidebar-network-lines { gap: 1px; align-items: center; }
 .sidebar-network-line { gap: 1px; align-items: center; }
-.sidebar-network-arrow { font-size: 8px; font-weight: 700; }
+.sidebar-network-arrow { font-size: 7px; font-weight: 900; }
 .sidebar-network-arrow.down { color: -apple-system-blue; }
 .sidebar-network-arrow.up { color: -apple-system-orange; }
-.sidebar-network-value { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sidebar-network-value { font-size: 9.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .sidebar-now-playing { gap: 2px; align-items: center; }
 .sidebar-now-playing-art { width: 22px; height: 22px; border-radius: 4px; }
 .sidebar-status-items { gap: 6px; align-items: center; }
@@ -880,3 +880,6 @@
 .face-bars .space-face:checked .space-mark { width: 19.5px; }
 .space-face:checked .space-mark { background: var(--apollo-spaces-active-color, var(--apollo-accent-color, -apple-system-control-accent)); }
 .sidebar-window .sidebar-app-icon { width: 24px; height: 24px; }
+.sidebar-stat { gap: 1px; align-items: center; }
+.sidebar-stat-glyph { font-size: 10px; font-weight: 600; }
+.sidebar-stats .sidebar-tile-stack { gap: 4px; }

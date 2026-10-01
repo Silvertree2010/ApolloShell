@@ -312,12 +312,16 @@ define "sidebar-system-stats" {
         on-click { set "dashboard-tab" "performance"; open "dashboard" }
         column class="sidebar-tile-stack" {
             when "{(module.show-cpu ?? true) || !(module.show-memory ?? true)}" {
-                icon "cpu" class="sidebar-tile-glyph"
-                text "{perf.cpu | percent}" class="sidebar-tile-value"
+                column class="sidebar-stat" {
+                    icon "cpu" class="sidebar-stat-glyph"
+                    text "{perf.cpu | percent}" class="sidebar-tile-value"
+                }
             }
             when "{module.show-memory ?? true}" {
-                icon "memorychip" class="sidebar-tile-glyph"
-                text "{perf.memory | percent}" class="sidebar-tile-value"
+                column class="sidebar-stat" {
+                    icon "memorychip" class="sidebar-stat-glyph"
+                    text "{perf.memory | percent}" class="sidebar-tile-value"
+                }
             }
         }
     }
@@ -356,7 +360,6 @@ define "sidebar-volume" {
         column class="sidebar-tile-stack" {
             icon "{audio.symbol}" class="sidebar-tile-glyph"
             when "{module.show-percent ?? true}" { text "{audio.volume | percent}" class="sidebar-tile-value" }
-            when "{module.show-device}" { text "{audio.output.name}" class="sidebar-volume-device" lines=2 }
         }
     }
 }
