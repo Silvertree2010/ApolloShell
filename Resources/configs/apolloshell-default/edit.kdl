@@ -31,6 +31,7 @@ var edit-opt-tg-look from="{var.utilities-toggle-kinds | where 'kind' var.edit-o
 var edit-opt-sb-open from="{var.edit-opt-open && var.edit-opt-list == 'sidebar-modules' && var.edit-opt-sb != null && var.edit-opt-sb-look.options == true}"
 var edit-opt-mb-open from="{var.edit-opt-open && (var.edit-opt-list | starts-with 'menubar-') && var.edit-opt-mb != null}"
 var edit-opt-tg-open from="{var.edit-opt-open && var.edit-opt-list == 'utilities-toggles' && var.edit-opt-tg != null && (var.edit-opt-tg.kind == 'hide-apps' || var.edit-opt-tg.kind == 'open-app' || var.edit-opt-tg.kind == 'open-link' || var.edit-opt-tg.kind == 'run-shortcut')}"
+var edit-show-all #false
 var dashboard-gallery #false
 var dashboard-confirm #false
 var dashboard-symbols {
@@ -63,6 +64,7 @@ define "edit-begin" {
         set "dashboard-options" #null
         set "dashboard-confirm" #false
         set "edit-tab" "dashboard"
+        set "edit-show-all" #false
         set "edit-target" "sidebar"
         set "shell-editing" #true
         open "dashboard"
@@ -335,6 +337,15 @@ popup "dashboard-toolbar" anchor="bottom" motion="slide" close-on="" {
                     use "gallery-tab" id="dashboard" title="Dashboard"
                     use "gallery-tab" id="control-centre" title="Control Centre"
                     use "gallery-tab" id="bar" title="Bar"
+                }
+                when "{var.edit-tab == 'dashboard'}" {
+                    button class="edit-check" checked="{var.edit-show-all}" {
+                        on-click { set "edit-show-all" "{!var.edit-show-all}" }
+                        row class="edit-check-row" {
+                            stack class="edit-check-box" { icon "checkmark" class="edit-check-tick" visible="{var.edit-show-all}" }
+                            text "Show All (Advanced)" class="edit-check-title"
+                        }
+                    }
                 }
                 scroll axis="vertical" class="gallery-scroll" {
                     switch "{var.edit-tab}" {

@@ -135,4 +135,17 @@ struct EditModeTests {
         try await run(h, "set \"edit-opt\" #null")
         #expect(v(h, "edit-opt-tg-open") == .bool(false))
     }
+
+    @Test("show all in the gallery starts off, toggles and resets on begin")
+    func showAll() async throws {
+        let h = try await start()
+        defer { h.shell.shutdown() }
+        await ev(h, "t-begin")
+        #expect(v(h, "edit-show-all") == .bool(false))
+        try await run(h, "set \"edit-show-all\" #true")
+        #expect(v(h, "edit-show-all") == .bool(true))
+        await ev(h, "t-cancel")
+        await ev(h, "t-begin")
+        #expect(v(h, "edit-show-all") == .bool(false))
+    }
 }
