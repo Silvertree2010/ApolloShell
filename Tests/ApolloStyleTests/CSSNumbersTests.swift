@@ -85,6 +85,32 @@ struct CSSNumbersTests {
         #expect(try CSSRead.length(component("calc(44px - 2px * 2)")) == CSSLength(40, .points))
     }
 
+    @Test("min(), max() und clamp() wählen unter Längen, auch mit calc() darin",
+          arguments: [
+              ("min(26px, 20px)", CSSNumeric(value: 20, dimension: .length)),
+              ("max(10px, 4px, 7px)", CSSNumeric(value: 10, dimension: .length)),
+              ("clamp(10px, 4px, 30px)", CSSNumeric(value: 10, dimension: .length)),
+              ("clamp(10px, 50px, 30px)", CSSNumeric(value: 30, dimension: .length)),
+              ("clamp(10px, 20px, 30px)", CSSNumeric(value: 20, dimension: .length)),
+              ("min(26px, max(28px - 4px, 0px))", CSSNumeric(value: 24, dimension: .length)),
+              ("calc(min(4px, 9px) * 2)", CSSNumeric(value: 8, dimension: .length)),
+              ("max(10%, 20%)", CSSNumeric(value: 20, dimension: .percent)),
+          ])
+    func minMax(text: String, expected: CSSNumeric) throws {
+        #expect(try CSSNumbers.numeric(component(text)) == expected)
+    }
+
+    @Test("min(), max() und clamp() lehnen Unsinn ab",
+          arguments: ["min()", "min(1px,)", "max(1px, 2)", "clamp(1px, 2px)", "clamp(1px, 2px, 3px, 4px)", "min(red, 1px)", "max(1px 2px)"])
+    func minMaxErrors(text: String) {
+        #expect(throws: CSSValueError.self) { try CSSNumbers.numeric(component(text)) }
+    }
+
+    @Test("min() liefert Längen für Längenstellen")
+    func minAsLength() throws {
+        #expect(try CSSRead.length(component("min(26px, 18px)")) == CSSLength(18, .points))
+    }
+
     @Test("Schlüsselwörter mit Aliassen")
     func keywords() throws {
         #expect(try CSSRead.keyword(component("Center"), ["start", "center", "end"]) == "center")

@@ -24,8 +24,8 @@ enum CSSNumbers {
             case let .dimension(value, unit): return dimension(value, unit)
             default: return nil
             }
-        case let .function(name, arguments, _) where name.lowercased() == "calc":
-            return try CSSCalc.evaluate(arguments)
+        case let .function(name, arguments, _) where CSSCalc.names.contains(name.lowercased()):
+            return try CSSCalc.evaluate(arguments, function: name.lowercased())
         default:
             return nil
         }
@@ -45,14 +45,13 @@ enum CSSNumbers {
 
 enum CSSCalc {
     static let maximumNestingDepth = 64
+    static let names: Set<String> = ["calc", "min", "max", "clamp"]
 
-    static func evaluate(_ arguments: [CSSComponent]) throws -> CSSNumeric {
+    static func evaluate(_ arguments: [CSSComponent], function: String = "calc") throws -> CSSNumeric {
         let outcome: Result<CSSNumeric, CSSValueError> = StackHeadroom.run {
-            var parser = Parser(items: CSSList.words(arguments))
             do {
-                let result = try parser.sum(depth: 0)
-                guard parser.isAtEnd else { return .failure(CSSValueError("unexpected '\(parser.currentText)' in calc()")) }
-                guard result.value.isFinite else { return .failure(CSSValueError("calc() does not give a finite number")) }
+                let result = try apply(function, arguments, depth: 0)
+                guard result.value.isFinite else { return .failure(CSSValueError("\(function)() does not give a finite number")) }
                 return .success(result)
             } catch let error as CSSValueError {
                 return .failure(error)
@@ -61,6 +60,39 @@ enum CSSCalc {
             }
         }
         return try outcome.get()
+    }
+
+    static func apply(_ function: String, _ arguments: [CSSComponent], depth: Int) throws -> CSSNumeric {
+        guard depth < maximumNestingDepth else { throw CSSValueError("\(function)() is nested too deeply") }
+        if function == "calc" {
+            var inner = Parser(items: CSSList.words(arguments))
+            let value = try inner.sum(depth: depth)
+            guard inner.isAtEnd else { throw CSSValueError("unexpected '\(inner.currentText)' in calc()") }
+            return value
+        }
+        let parts = try CSSList.commaSeparated(arguments).map { part -> CSSNumeric in
+            guard !part.isEmpty else { throw CSSValueError("\(function)() has an empty argument") }
+            var inner = Parser(items: part)
+            let value = try inner.sum(depth: depth + 1)
+            guard inner.isAtEnd else { throw CSSValueError("unexpected '\(inner.currentText)' in \(function)()") }
+            return value
+        }
+        guard let first = parts.first else { throw CSSValueError("\(function)() needs arguments") }
+        guard parts.allSatisfy({ $0.dimension == first.dimension }) else {
+            throw CSSValueError("\(function)() cannot mix \(Set(parts.map(\.dimension.rawValue)).sorted().joined(separator: " and "))")
+        }
+        let values = parts.map(\.value)
+        let out: Double
+        switch function {
+        case "min":
+            out = values.min() ?? first.value
+        case "max":
+            out = values.max() ?? first.value
+        default:
+            guard values.count == 3 else { throw CSSValueError("clamp() takes a minimum, a value and a maximum") }
+            out = Swift.max(values[0], Swift.min(values[1], values[2]))
+        }
+        return CSSNumeric(value: out, dimension: first.dimension)
     }
 
     private struct Parser {
@@ -117,12 +149,9 @@ enum CSSCalc {
                 guard inner.isAtEnd else { throw CSSValueError("unexpected '\(inner.currentText)' in calc()") }
                 return value
             }
-            if item.functionName == "calc" {
-                guard case let .function(_, arguments, _) = item else { throw CSSValueError("calc() expects numbers and lengths, found '\(item.text)'") }
-                var inner = Parser(items: CSSList.words(arguments))
-                let value = try inner.sum(depth: depth + 1)
-                guard inner.isAtEnd else { throw CSSValueError("unexpected '\(inner.currentText)' in calc()") }
-                guard value.value.isFinite else { throw CSSValueError("calc() does not give a finite number") }
+            if let name = item.functionName, CSSCalc.names.contains(name), case let .function(_, arguments, _) = item {
+                let value = try CSSCalc.apply(name, arguments, depth: depth + 1)
+                guard value.value.isFinite else { throw CSSValueError("\(name)() does not give a finite number") }
                 return value
             }
             guard let value = try CSSNumbers.numeric(item) else {
