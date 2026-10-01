@@ -41,7 +41,7 @@ fixture {
             - date="2026-09-30T09:41:00+02:00" date-text="9/30" name-text="We" today=#false min=10 max=18 symbol="cloud.sun.fill" precipitation-text=""
         }
     }
-    media available=#true playing=#true progress=0.391304 duration=230 elapsed=90 app-name="Music" title="Starboy" artist="The Weeknd" album="Starboy" kind="music"
+    media available=#true playing=#true progress=0.391304 duration=230 elapsed=90 app-name="Music" title="Starboy" artist="The Weeknd" album="Starboy" kind="music" artwork="cover.jpg"
     spaces current=2 count=4 {
         list {
             - id=1 index=1 active=#false fullscreen=#false

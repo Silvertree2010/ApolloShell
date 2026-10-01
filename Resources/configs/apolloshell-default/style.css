@@ -114,8 +114,8 @@
 .sidebar-network-arrow.down { color: -apple-system-blue; }
 .sidebar-network-arrow.up { color: -apple-system-orange; }
 .sidebar-network-value { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.sidebar-now-playing { gap: 4px; align-items: center; }
-.sidebar-now-playing-art { width: 28px; height: 28px; border-radius: 7px; }
+.sidebar-now-playing { gap: 2px; align-items: center; }
+.sidebar-now-playing-art { width: 22px; height: 22px; border-radius: 4px; }
 .sidebar-status-items { gap: 6px; align-items: center; }
 .sidebar-status-text { font-size: 10px; font-variant-numeric: tabular-nums; }
 .sidebar-timer-glyph { font-size: 16px; font-weight: 600; }

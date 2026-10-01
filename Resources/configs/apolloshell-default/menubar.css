@@ -129,3 +129,10 @@
 .face-bars .menubar-space-mark { width: 3px; height: calc((var(--menubar-control) - 6px) * 0.4); }
 .face-bars .menubar-space-face:checked .menubar-space-mark { height: calc((var(--menubar-control) - 6px) * 0.75); }
 .menubar-space-face:checked .menubar-space-mark { background: var(--apollo-spaces-active-color, var(--apollo-accent-color, -apple-system-control-accent)); }
+.menubar-now-playing { gap: 2px; align-items: center; }
+.menubar-now-playing-line { gap: 6px; align-items: center; }
+.menubar-now-playing-art { width: 18px; height: 18px; border-radius: 4px; }
+.menubar-now-playing-text { font-size: 11.5px; font-weight: 600; }
+.menubar-now-playing-control { width: 22px; height: var(--menubar-control); border-radius: 7px; transition: background 120ms ease-out; }
+.menubar-now-playing-control:hover { background: rgb(from -apple-system-label r g b / 0.14); }
+.menubar-now-playing-glyph { font-size: 11px; font-weight: 600; }

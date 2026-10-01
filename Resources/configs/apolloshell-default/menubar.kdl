@@ -524,9 +524,12 @@ define "menubar-now-playing" {
     param "module"
     when "{media.title != null && media.title != ''}" {
         row class="menubar-now-playing" {
-            button class="menubar-now-playing-title" tooltip="{media.title} · {media.artist}" {
+            button class="menubar-title menubar-now-playing-title" tooltip="{media.title} · {media.artist}" {
                 on-click { set "dashboard-tab" "media"; open "dashboard" }
-                text "{(media.title + (media.artist != null && media.artist != '' ? ' · ' + media.artist : '')) | truncate (module.max-length ?? 28)}" class="menubar-now-playing-text"
+                row class="menubar-now-playing-line" {
+                    image "{media.artwork}" fit="fill" class="menubar-now-playing-art"
+                    text "{(media.title + (media.artist != null && media.artist != '' ? ' · ' + media.artist : '')) | truncate (module.max-length ?? 28)}" class="menubar-now-playing-text"
+                }
             }
             when "{module.show-controls ?? true}" {
                 button class="menubar-now-playing-control" tooltip="Previous" {
