@@ -361,7 +361,7 @@ popup "utilities" anchor="bottom-right" fuse-group="shell" hover-edge="{!var.she
         else {
             when "{var.shell-editing}" {
                 reorderable axis="vertical" enabled=#true accept="value" class="utilities-edit-list" {
-                    on-reorder { list.move "utilities-cards" key="{event.from-key}" to="{(var.utilities-cards | index-where 'kind' [event.to-key]) + (event.from < event.to ? 1 : 0)}" }
+                    on-reorder { list.move "utilities-cards" from="{var.utilities-cards | index-where 'kind' [event.from-key]}" to="{(var.utilities-cards | index-where 'kind' [event.to-key]) + (event.from < event.to ? 1 : 0)}" }
                     on-drop accept="value" { use "edit-add-cc" value="{event.value}" }
                     each card in="{var.utilities-cards | where 'enabled' true}" key="{card.kind}" {
                         use "edit-frame" list="utilities-cards" key="{card.kind}" disable=#true {

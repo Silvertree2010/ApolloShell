@@ -591,4 +591,28 @@ struct DropAcceptTests {
         #expect(ReorderCoordinator.gapIndex(NSPoint(x: 10, y: 90), v, axis: "vertical") == 1)
         #expect(ReorderCoordinator.gapIndex(NSPoint(x: 10, y: 10), v, axis: "vertical") == 2)
     }
+
+    @Test("a nested frame wins inside, the outer frame only outside its children")
+    func nestedFrames() throws {
+        let mounted = try Mounted.mount("""
+        panel "t" anchor="left" {
+            stack id="o" class="f" {
+                on-click { }
+                column id="card" class="card" {
+                    stack id="i" class="f" {
+                        on-click { }
+                        text "x"
+                    }
+                }
+                stack class="cover"
+            }
+        }
+        """, css: ".f > * { pointer-events: none; } .f > .card { pointer-events: auto; } #o { width: 200px; height: 200px; } #card { width: 160px; height: 160px; } #i { width: 40px; height: 40px; }")
+        mounted.pump()
+        let o = try mounted.catcher("o"), i = try mounted.catcher("i")
+        let w = try #require(o.window)
+        let inner = i.convert(i.bounds, to: nil), outer = o.convert(o.bounds, to: nil)
+        #expect(ElementMouseView.winner(at: NSPoint(x: inner.midX, y: inner.midY), in: w, kind: .left) === i)
+        #expect(ElementMouseView.winner(at: NSPoint(x: outer.minX + 2, y: outer.minY + 2), in: w, kind: .left) === o)
+    }
 }

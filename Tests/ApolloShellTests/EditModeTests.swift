@@ -106,6 +106,20 @@ struct EditModeTests {
         #expect(on("audio") == true)
     }
 
+    @Test("a card reorder finds its card by kind since card records carry no id")
+    func cardMove() async throws {
+        let h = try await start()
+        defer { h.shell.shutdown() }
+        await ev(h, "t-begin")
+        func order() -> [String] {
+            guard case .list(let l)? = v(h, "utilities-cards") else { return [] }
+            return l.compactMap { if case .record(let r) = $0, case .string(let k)? = r["kind"] { return k }; return nil }
+        }
+        let a = order()
+        try await run(h, "list.move \"utilities-cards\" from=\"{var.utilities-cards | index-where 'kind' ['audio']}\" to=0")
+        #expect(order().first == "audio" && order().count == a.count)
+    }
+
     @Test("a fast user switch cancels the mode and restores the layout")
     func sessionInactive() async throws {
         let h = try await start()
