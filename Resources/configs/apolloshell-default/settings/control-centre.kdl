@@ -151,6 +151,7 @@ var utilities-symbol-choices {
 
 define "settings-toggle-options" {
     param "toggle"
+    param "box" default=#false
     param "look"
     column class="settings-group settings-options" {
         row class="settings-row" {
@@ -164,7 +165,7 @@ define "settings-toggle-options" {
         }
         switch "{toggle.kind}" {
             case "hide-apps" {
-                use "settings-switch" title="Leave Frontmost App" detail="The app you are working in stays visible." checked="{toggle.keep-frontmost ?? false}" {
+                use "settings-switch" box="{box}" title="Leave Frontmost App" detail="The app you are working in stays visible." checked="{toggle.keep-frontmost ?? false}" {
                     on-change { list.update "utilities-toggles" key="{toggle.id}" { - keep-frontmost="{event.value}" } }
                 }
             }

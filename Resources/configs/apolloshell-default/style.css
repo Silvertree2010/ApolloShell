@@ -837,7 +837,7 @@
 .bento-badge { width: 22px; height: 22px; align-self: start; justify-self: start; margin: -10px 0 0 -10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.16); border: 1px solid rgb(from -apple-system-label r g b / 0.2); align-items: center; justify-content: center; }
 .bento-badge-glyph { font-size: 11px; font-weight: 700; }
 .dashboard-tab-add { flex-grow: 0; width: 60px; }
-.edit-toolbar { padding: 10px 14px; gap: 10px; border-radius: 22px; background: glass(regular); }
+.edit-toolbar { padding: 10px 18px; gap: 10px; border-radius: 22px; background: glass(regular); }
 .edit-row { gap: 8px; align-items: center; }
 .edit-button { height: 28px; min-width: 28px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; font-size: 12px; font-weight: 500; }
 .edit-button:checked { background: -apple-system-control-accent; color: white; }
@@ -846,13 +846,14 @@
 .edit-input { width: 140px; height: 28px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); font-size: 12px; }
 .edit-separator { width: 1px; height: 18px; background: -apple-system-separator; }
 .edit-slider { width: 120px; }
-.gallery-scroll { width: 760px; height: 340px; }
+.gallery-scroll { width: 726px; height: 340px; }
 .gallery-row { gap: 8px; align-items: center; }
-.gallery-tile { width: 88px; height: 80px; gap: 6px; border-radius: 14px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; }
+.gallery-tile { width: 82px; height: 99px; gap: 6px; border-radius: 14px; background: rgb(from -apple-system-label r g b / 0.08); align-items: stretch; justify-content: flex-start; }
 .gallery-tile:disabled { opacity: 0.4; }
-.gallery-tile-content { gap: 6px; align-items: center; justify-content: center; }
-.gallery-tile-glyph { font-size: 20px; }
-.gallery-tile-title { font-size: 11px; font-weight: 500; }
+.gallery-tile-content { gap: 6px; align-items: center; justify-content: flex-start; padding: 10px 2px; align-self: stretch; flex-grow: 1; }
+.gallery-tile-detail { font-size: 10px; color: -apple-system-secondary-label; }
+.gallery-tile-glyph { font-size: 20px; font-weight: 500; height: 24px; align-items: center; justify-content: center; }
+.gallery-tile-title { font-size: 11px; font-weight: 500; width: 78px; height: 30px; text-align: center; align-items: flex-start; justify-content: flex-start; flex-shrink: 0; }
 .opt-panel { width: 280px; padding: 12px; gap: 10px; border-radius: 16px; background: glass(regular); }
 .opt-row { gap: 8px; align-items: center; }
 .opt-group { gap: 6px; }
@@ -868,7 +869,7 @@
 .opt-input { height: 28px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); font-size: 12px; }
 .opt-scroll { height: 140px; }
 .opt-list { gap: 1px; }
-.edit-confirm { padding: 0 4px; }
+.edit-confirm { padding: 0; gap: 14px; }
 .edit-confirm-text { font-size: 12px; font-weight: 500; }
 .opt-pick-row { gap: 6px; align-items: center; flex-grow: 1; }
 
@@ -908,6 +909,30 @@
 .gallery-tabs { gap: 4px; padding: 3px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.06); }
 .gallery-tab { flex-grow: 1; height: 28px; border-radius: 9999px; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; }
 .gallery-tab:checked { background: -apple-system-control-accent; color: white; }
-.gallery-grid { gap: 8px; grid-template-columns: repeat(8, 88px); }
+.gallery-grid { gap: 10px; grid-template-columns: repeat(8, 82px); }
 .edit-scale-glyph { font-size: 12px; color: -apple-system-secondary-label; }
 .edit-scale-text { font-size: 12px; color: -apple-system-secondary-label; min-width: 44px; }
+.pop-opts { gap: 8px; padding: 14px 16px; }
+.pop-opts .settings-options { padding: 0; }
+.pop-title { font-size: 15px; font-weight: 600; }
+.edit-check { gap: 8px; align-items: center; align-self: start; padding: 0 2px; }
+.edit-check-box { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgb(from -apple-system-label r g b / 0.4); align-items: center; justify-content: center; }
+.edit-check:checked .edit-check-box { background: -apple-system-control-accent; border-color: -apple-system-control-accent; }
+.edit-check-tick { font-size: 9px; font-weight: 800; color: white; }
+.edit-check-title { font-size: 13px; }
+.edit-check-row { gap: 8px; align-items: center; }
+.edit-main { gap: 14px; }
+.edit-scale { gap: 8px; align-items: center; justify-content: flex-end; flex-grow: 1; }
+.edit-main .edit-plus { width: 34px; height: 34px; min-width: 34px; padding: 0; border-radius: 9999px; }
+.edit-main .edit-text { height: 24px; padding: 0 12.5px; border-radius: 6px; font-size: 13px; font-weight: 400; }
+.edit-item.grow > .dock { width: 100%; height: 100%; }
+.edit-item > * { pointer-events: none; }
+.edit-item > .edit-badge { pointer-events: auto; }
+.edit-check-wrap { width: 100%; align-self: stretch; align-items: flex-start; justify-content: center; height: 24px; }
+.edit-check-wrap.off { opacity: 0.4; }
+.edit-check-wrap .edit-check-row { gap: 8px; align-items: center; }
+.edit-check-wrap .edit-check-box { width: 16px; height: 16px; border-radius: 5px; border: none; background: rgb(from -apple-system-label r g b / 0.12); }
+.edit-check-wrap .edit-check-tick { font-size: 11px; font-weight: 800; color: -apple-system-label; }
+.edit-check-wrap .edit-check-title { font-size: 13px; }
+.edit-check-hit { opacity: 0.01; }
+.edit-check-wrap > * { justify-self: start; align-self: start; }

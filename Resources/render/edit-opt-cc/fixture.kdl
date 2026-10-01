@@ -132,7 +132,7 @@ fixture {
             - id="air-drop" kind="air-drop"
             - id="settings" kind="settings"
         }
-        dashboard-backup-widgets { }
-        dashboard-confirm #true
+        dashboard-selected "utilities-toggles:hide-apps"
+        edit-opt "utilities-toggles:hide-apps"
     }
 }

@@ -51,14 +51,28 @@ define "settings-switch" {
     param "detail" default=""
     param "checked"
     param "disabled" default=#false
-    row class="settings-row" {
-        column class="settings-row-text" {
-            text "{title}" class="settings-row-title"
-            when "{detail != ''}" { text "{detail}" class="settings-row-detail" }
+    param "box" default=#false
+    when "{!box}" {
+        row class="settings-row" {
+            column class="settings-row-text" {
+                text "{title}" class="settings-row-title"
+                when "{detail != ''}" { text "{detail}" class="settings-row-detail" }
+            }
+            spacer
+            toggle checked="{checked}" class="settings-switch" disabled="{disabled}" {
+                slot
+            }
         }
-        spacer
-        toggle checked="{checked}" class="settings-switch" disabled="{disabled}" {
-            slot
+    }
+    when "{box}" {
+        stack class="edit-check-wrap{disabled ? ' off' : ''}" {
+            row class="edit-check-row" {
+                stack class="edit-check-box{checked ? ' on' : ''}" { icon "checkmark" class="edit-check-tick" visible="{checked}" }
+                text "{title}" class="edit-check-title"
+            }
+            toggle checked="{checked}" class="edit-check-hit" disabled="{disabled}" {
+                slot
+            }
         }
     }
 }

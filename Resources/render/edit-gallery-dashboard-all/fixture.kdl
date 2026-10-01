@@ -132,7 +132,8 @@ fixture {
             - id="air-drop" kind="air-drop"
             - id="settings" kind="settings"
         }
-        dashboard-backup-widgets { }
-        dashboard-confirm #true
+        dashboard-gallery #true
+        edit-tab "dashboard"
+        edit-show-all #true
     }
 }

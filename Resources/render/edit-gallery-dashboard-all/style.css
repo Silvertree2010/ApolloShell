@@ -5,5 +5,3 @@
 .edit-cover { border: 1.5px dashed rgb(from -apple-system-label r g b / 0.55); }
 .edit-item.selected > .edit-cover { border: 2px solid -apple-system-control-accent; }
 .edit-item.editing { animation: none; }
-#sidebar.bg-material { height: 686px; }
-.sidebar-modules { height: 686px; }

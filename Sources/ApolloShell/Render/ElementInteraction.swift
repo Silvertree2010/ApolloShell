@@ -31,7 +31,7 @@ struct MouseConfig: Equatable {
         right = names.contains("on-right-click")
         middle = names.contains("on-middle-click")
         scroll = names.contains("on-scroll")
-        if names.contains("on-drop"), let handler = element.ir.handlers.first(where: { $0.name == "on-drop" }),
+        if element.kind != "reorderable", names.contains("on-drop"), let handler = element.ir.handlers.first(where: { $0.name == "on-drop" }),
            let accept = handler.properties["accept"].flatMap(HandlerRules.literal)?.plainText {
             accepts = [accept]
         }
@@ -270,6 +270,7 @@ struct MouseCatcher: NSViewRepresentable {
 final class ElementMouseView: NSView, NSDraggingSource {
     private static var live: [WeakMouseView] = []
     private static let dragThreshold: CGFloat = 4
+    static let sourceMask: NSDragOperation = [.move, .copy]
 
     weak var element: ElementInstance?
     weak var renderContext: RenderContext?
@@ -398,6 +399,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
         element?.pseudo.remove(.active)
         let item = NSPasteboardItem()
         item.setString(reorder.token, forType: .apolloReorder)
+        if let element, element.property("drag-value") != .null { item.setString(DragValues.store(element.property("drag-value")), forType: .apolloValue) }
         if let app = reorder.app { item.setString(app, forType: .apolloApp) }
         let dragItem = NSDraggingItem(pasteboardWriter: item)
         dragItem.setDraggingFrame(bounds, contents: snapshot())
@@ -487,7 +489,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
     }
 
     func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
-        context == .withinApplication ? .move : .move
+        Self.sourceMask
     }
 
     func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
@@ -507,7 +509,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         guard let element, let context = renderContext else { return false }
         let pasteboard = sender.draggingPasteboard
-        if let token = pasteboard.string(forType: .apolloReorder), let reorder = config.reorder {
+        if let token = pasteboard.string(forType: .apolloReorder), let reorder = config.reorder, reorder.coordinator?.accepts(token: token, on: reorder) == true {
             return reorder.coordinator?.drop(token: token, on: reorder) ?? false
         }
         for accept in config.accepts.sorted() {
@@ -528,8 +530,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
 
     private func operation(for info: NSDraggingInfo) -> NSDragOperation {
         let pasteboard = info.draggingPasteboard
-        if let token = pasteboard.string(forType: .apolloReorder) {
-            guard let reorder = config.reorder, reorder.coordinator?.accepts(token: token, on: reorder) == true else { return [] }
+        if let token = pasteboard.string(forType: .apolloReorder), let reorder = config.reorder, reorder.coordinator?.accepts(token: token, on: reorder) == true {
             return .move
         }
         for accept in config.accepts where EventFields.drop(pasteboard, accept: accept) != nil {

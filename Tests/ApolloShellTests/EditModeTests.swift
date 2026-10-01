@@ -16,6 +16,7 @@ struct EditModeTests {
     on "user.t-cancel" { use "edit-cancel" }
     on "user.t-done" { use "edit-done" }
     on "user.t-bar" { use "edit-add-bar" list="{event.list}" catalog="{event.list == 'sidebar-modules' ? var.sidebar-module-kinds : var.menubar-module-kinds}" kind="{event.kind}" present="{event.list == 'sidebar-modules' ? var.sidebar-modules : var.menubar-start}" at="{event.at}" }
+    on "user.t-move" { use "edit-move-bar" value="{event.value}" to="{event.to}" at="{event.at}" }
     on "user.t-cc" { use "edit-add-cc" value="{event.value}" }
     """
 
@@ -114,5 +115,78 @@ struct EditModeTests {
         let (home, shell) = try await CommandCenterWiringTests.started()
         defer { shell.shutdown(); try? FileManager.default.removeItem(at: home.root) }
         #expect(CommandCenterWiringTests.titles(shell.commandCenterEntries()).contains("Edit Layout…"))
+    }
+
+    @Test("selecting a block with options opens its popover and done closes it")
+    func optionsPopover() async throws {
+        let h = try await start()
+        defer { h.shell.shutdown() }
+        await ev(h, "t-begin")
+        try await run(h, "set \"dashboard-selected\" \"sidebar-modules:clock\"; set \"edit-opt\" \"sidebar-modules:clock\"")
+        #expect(v(h, "edit-opt-sb-open") == .bool(true))
+        #expect(v(h, "edit-opt-mb-open") == .bool(false))
+        try await run(h, "set \"dashboard-selected\" \"menubar-end:clock\"; set \"edit-opt\" \"menubar-end:clock\"")
+        #expect(v(h, "edit-opt-mb-open") == .bool(true))
+        #expect(v(h, "edit-opt-sb-open") == .bool(false))
+        try await run(h, "set \"dashboard-selected\" \"sidebar-modules:power\"; set \"edit-opt\" \"sidebar-modules:power\"")
+        #expect(v(h, "edit-opt-sb-open") == .bool(false))
+        await ev(h, "t-cc", [("value", .string("toggle:hide-apps"))])
+        try await run(h, "set \"dashboard-selected\" \"utilities-toggles:hide-apps\"; set \"edit-opt\" \"utilities-toggles:hide-apps\"")
+        #expect(v(h, "edit-opt-tg-open") == .bool(true))
+        try await run(h, "set \"edit-opt\" #null")
+        #expect(v(h, "edit-opt-tg-open") == .bool(false))
+    }
+
+    @Test("show all in the gallery starts off, toggles and resets on begin")
+    func showAll() async throws {
+        let h = try await start()
+        defer { h.shell.shutdown() }
+        await ev(h, "t-begin")
+        #expect(v(h, "edit-show-all") == .bool(false))
+        try await run(h, "set \"edit-show-all\" #true")
+        #expect(v(h, "edit-show-all") == .bool(true))
+        await ev(h, "t-cancel")
+        await ev(h, "t-begin")
+        #expect(v(h, "edit-show-all") == .bool(false))
+    }
+
+    @Test("a menu bar block dropped on another zone moves there and the same zone is left to the reorder")
+    func crossZone() async throws {
+        let h = try await start()
+        defer { h.shell.shutdown() }
+        await ev(h, "t-begin")
+        let a = kinds(h, "menubar-start")
+        let b = kinds(h, "menubar-center")
+        await ev(h, "t-move", [("value", .string("move:start:app-menus")), ("to", .string("center")), ("at", .number(0))])
+        #expect(kinds(h, "menubar-start") == a.filter { $0 != "app-menus" })
+        #expect(kinds(h, "menubar-center") == ["app-menus"] + b)
+        await ev(h, "t-move", [("value", .string("move:center:app-menus")), ("to", .string("center")), ("at", .number(0))])
+        #expect(kinds(h, "menubar-center") == ["app-menus"] + b)
+        await ev(h, "t-cancel")
+        #expect(kinds(h, "menubar-start") == a)
+    }
+}
+
+@MainActor
+@Suite("Drag sources offer every operation a drop target answers with")
+struct DragMaskTests {
+    @Test("a value drop answers with copy, so the source mask must contain it")
+    func mask() {
+        #expect(ElementMouseView.sourceMask.contains(.copy))
+        #expect(ElementMouseView.sourceMask.contains(.move))
+    }
+}
+
+@Suite("Edit mode bars take values dragged in")
+struct EditAcceptTests {
+    @Test("every edit reorderable carries accept=value, because the drop only reaches it through that property")
+    func accept() throws {
+        let dir = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Resources/configs/apolloshell-default")
+        let wanted = [("sidebar.kdl", "sidebar-modules"), ("menubar.kdl", "menubar-edit-list"), ("utilities.kdl", "quick-toggles"), ("utilities.kdl", "utilities-edit-list")]
+        for (file, cls) in wanted {
+            let text = try String(contentsOf: dir.appendingPathComponent(file), encoding: .utf8)
+            let line = try #require(text.split(separator: "\n").first { $0.contains("reorderable") && $0.contains("class=\"\(cls)\"") })
+            #expect(line.contains("accept=\"value\""))
+        }
     }
 }

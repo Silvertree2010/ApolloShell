@@ -323,7 +323,7 @@ define "card-quick-toggles" {
     column class="utilities-card quick-toggles-card" {
         text "Quick Toggles" class="utilities-card-title" lines=1
         when "{var.shell-editing}" {
-            reorderable axis="grid" enabled=#true class="quick-toggles" {
+            reorderable axis="grid" enabled=#true accept="value" class="quick-toggles" {
                 on-reorder { list.move "utilities-toggles" from="{event.from}" to="{event.to}" }
                 on-drop accept="value" { use "edit-add-cc" value="{event.value}" }
                 each toggle in="{var.utilities-toggles}" key="{toggle.id}" {
@@ -347,6 +347,7 @@ define "card-quick-toggles" {
 }
 
 popup "utilities" anchor="bottom-right" fuse-group="shell" hover-edge="{!var.shell-editing}" hover-gap=12 overhang=#true close-on="{var.shell-editing ? '' : 'outside-click escape focus-loss'}" {
+    use "edit-opt-toggle"
     column class="utilities" {
         when "{(var.utilities-cards | where 'enabled' true | count) == 0}" {
             column class="utilities-empty" {
@@ -359,7 +360,7 @@ popup "utilities" anchor="bottom-right" fuse-group="shell" hover-edge="{!var.she
         }
         else {
             when "{var.shell-editing}" {
-                reorderable axis="vertical" enabled=#true class="utilities-edit-list" {
+                reorderable axis="vertical" enabled=#true accept="value" class="utilities-edit-list" {
                     on-reorder { list.move "utilities-cards" key="{event.from-key}" to="{(var.utilities-cards | index-where 'kind' [event.to-key]) + (event.from < event.to ? 1 : 0)}" }
                     on-drop accept="value" { use "edit-add-cc" value="{event.value}" }
                     each card in="{var.utilities-cards | where 'enabled' true}" key="{card.kind}" {

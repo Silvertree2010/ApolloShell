@@ -542,7 +542,7 @@ define "popout-battery" {
 
 panel "sidebar" anchor="left" area="below-menubar" reserve=#true shape="fused" fuse-group="shell" fuse-fill=#true fullscreen="hide" screen="{var.sidebar-screens}" style="{var.menubar-active && (var.menubar-screens == 'all' || var.menubar-screens == screen.id || (var.menubar-screens == 'main' && screen.main)) ? 'margin-top: ' + (var.menubar-covers ? (var.menubar-extent - (screen.menubar-height ?? 0) | max 0) : var.menubar-extent) + 'px' : ''}" class="{theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-' + var.sidebar-background}" {
     when "{var.shell-editing}" {
-        reorderable axis="vertical" enabled=#true class="sidebar-modules" {
+        reorderable axis="vertical" enabled=#true accept="value" class="sidebar-modules" {
             on-reorder { list.move "sidebar-modules" from="{event.from}" to="{event.to}" }
             on-drop accept="value" { use "edit-add-bar" list="sidebar-modules" catalog="{var.sidebar-module-kinds}" kind="{event.value}" present="{var.sidebar-modules}" at="{event.index}" }
             each module in="{var.sidebar-modules}" key="{module.id}" {
@@ -559,6 +559,7 @@ panel "sidebar" anchor="left" area="below-menubar" reserve=#true shape="fused" f
             }
         }
     }
+    use "edit-opt-sidebar"
     flyout id="status-popout" anchor="{'status-' + var.status-popout}" side="right" open="{var.status-popout != ''}" {
         on-close { set "status-popout" "" }
         switch "{var.status-popout}" {
