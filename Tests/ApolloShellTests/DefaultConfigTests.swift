@@ -38,6 +38,7 @@ struct DefaultConfigTests {
             "launcher": "popup", "session": "popup", "volume": "osd", "default": "toast",
             "onboarding": "window", "settings": "window", "settings-confirm": "popup",
             "menubar": "panel", "menubar-status-popout": "popup",
+            "nexus": "popup", "nexus-item": "status-item",
         ]
         #expect(kinds == expected)
     }
@@ -54,6 +55,7 @@ struct DefaultConfigTests {
             "hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-settings", "hide-apple-dock",
             "keep-awake-lid", "onboarding-done", "dashboard-pages", "dashboard-widgets", "dashboard-scale", "dashboard-seeded",
             "menubar-enabled", "menubar-screens", "menubar-style", "menubar-distinct", "menubar-thickness",
+            "nexus-shown", "feature-dashboard", "feature-utilities", "feature-launcher",
             "menubar-covers", "menubar-hide-apple", "menubar-status-style", "menubar-start", "menubar-center", "menubar-end",
         ]
         #expect(persisted == expected)

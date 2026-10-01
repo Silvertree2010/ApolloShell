@@ -33,7 +33,7 @@ struct CommandCenterWiringTests {
             return
         }
         func settingsOpen() -> Bool {
-            shell.host.screens.keys.contains { shell.assembly?.runtime.surface("settings", screenKey: $0)?.isOpen == true }
+            shell.host.screens.keys.contains { shell.assembly?.runtime.surface("nexus", screenKey: $0)?.isOpen == true }
         }
         #expect(!settingsOpen())
         shell.perform(.custom(handler))
