@@ -80,6 +80,9 @@ enum ContextRoots {
                 S.field("update.notes-url", .string, update: .push, doc: "URL of the release notes."),
                 S.field("update.last-check", .value, nullable: true, update: .push, doc: "Time of the last check."),
                 S.field("update.error", .string, nullable: true, update: .push, doc: "Last error message."),
+                S.field("update.auto-check", .bool, update: .push, doc: "Whether updates are checked automatically."),
+                S.field("update.auto-install", .bool, update: .push, doc: "Whether updates are installed automatically."),
+                S.field("crash-reports", .enumeration(["ask", "always", "never"]), update: .push, doc: "What happens with a crash report."),
             ],
             validIn: ["topLevel", "surfaceBody", "elementBody", "actions", "menu", "commandCenterItems", "wmBlock"]
         ),

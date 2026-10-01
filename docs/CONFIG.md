@@ -1896,6 +1896,30 @@ Reloads the config.
 
 Restarts the process.
 
+### `shell.set-auto-check` (action)
+
+Switches the automatic update check.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `value` | bool | required | #true checks for updates once a day. |
+
+### `shell.set-auto-install` (action)
+
+Switches the automatic update installation.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `value` | bool | required | #true installs updates when quitting. |
+
+### `shell.set-crash-reports` (action)
+
+Sets what happens with a crash report.
+
+| | Name | Type | Default | |
+| --- | --- | --- | --- | --- |
+| argument | `mode` | "ask"\|"always"\|"never" | required | ask, always or never. |
+
 ### `shell.set-login-item` (action)
 
 Adds or removes the shell as a login item.

@@ -5,6 +5,7 @@ import ApolloConfig
 import ApolloControl
 import ApolloProviders
 import ApolloRuntime
+import ApolloShellCore
 
 @MainActor
 final class GlobalActionEffects {
@@ -108,6 +109,17 @@ extension LiveShell {
         register("shell.quit") { [weak self] _ in self?.perform(.quit) }
         register("shell.check-updates") { [weak self] _ in self?.perform(.checkForUpdates) }
         register("shell.install-update") { [weak self] _ in self?.perform(.installUpdate) }
+        func flag(_ call: ResolvedActionCall) throws -> Bool {
+            guard case .bool(let on)? = call.arguments.first else { throw ActionFailure("\(call.name) needs #true or #false") }
+            return on
+        }
+        register("shell.set-auto-check") { [weak self] call in self?.perform(.setAutoCheck(try flag(call))) }
+        register("shell.set-auto-install") { [weak self] call in self?.perform(.setAutoInstall(try flag(call))) }
+        register("shell.set-crash-reports") { [weak self] call in
+            let raw = try text(call, 0, "ask, always or never")
+            guard let mode = CrashReportSettings.Mode(rawValue: raw) else { throw ActionFailure("shell.set-crash-reports: \"\(raw)\" is not ask, always or never") }
+            self?.perform(.crashReports(mode))
+        }
         register("theme.import") { [weak self] _ in self?.perform(.addTheme) }
         register("theme.open-folder") { [weak self] _ in self?.perform(.openThemesFolder) }
         register("shell.open-config-folder") { [weak self] _ in

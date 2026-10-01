@@ -59,6 +59,27 @@ struct GlobalActionsTests {
         #expect(field("update", "status") != .null)
     }
 
+    @Test("shell.set-auto-check, set-auto-install und set-crash-reports schreiben settings.kdl und shell.* folgt")
+    func updateSettingsActions() async throws {
+        let (home, shell) = try await CommandCenterWiringTests.started()
+        defer { shell.shutdown(); try? FileManager.default.removeItem(at: home.root) }
+        let store = try #require(shell.assembly?.store)
+        func field(_ path: String...) -> Value { store.value(DependencyPath("shell", path)) }
+        #expect(field("update", "auto-check") == .bool(true))
+        #expect(field("crash-reports") == .string("ask"))
+        _ = try await shell.runActions("shell.set-auto-check #false")
+        _ = try await shell.runActions("shell.set-auto-install #false")
+        _ = try await shell.runActions("shell.set-crash-reports \"never\"")
+        #expect(shell.settings.settings.autoCheckUpdates == false)
+        #expect(shell.settings.settings.autoInstallUpdates == false)
+        #expect(shell.settings.crashReportMode == .never)
+        #expect(field("update", "auto-check") == .bool(false))
+        #expect(field("update", "auto-install") == .bool(false))
+        #expect(field("crash-reports") == .string("never"))
+        let text = try String(contentsOf: shell.settings.file, encoding: .utf8)
+        #expect(text.contains("crash-reports"))
+    }
+
     @Test("clock first-weekday gilt als Vorgabe für month-grid")
     func firstWeekdaySetting() throws {
         let root = URL(fileURLWithPath: "/t")

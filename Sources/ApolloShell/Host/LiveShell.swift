@@ -248,6 +248,7 @@ final class LiveShell: WindowHostLink {
             ("features", .list(SchemaRegistry.builtin.features.keys.sorted().map(Value.string))),
             ("install-kind", .string(InstallKind.detect(resourcesURL: Bundle.main.resourceURL) == .homebrew ? "homebrew" : "dmg")),
             ("update", updateField()),
+            ("crash-reports", .string(settings.crashReportMode.rawValue)),
         ])
         applyFirstWeekday(result.ir)
         guard assembly.runtime.applyLoaded(result, persisted: persisted(for: location, ir: result.ir), screens: Self.screenOrder(host.screens), shell: shell, writer: writer(for: location)) else {
@@ -471,6 +472,7 @@ final class LiveShell: WindowHostLink {
         return .record(Record([
             ("status", .string(name)), ("version", version), ("notes-url", updates?.releaseNotes.map { .string($0.absoluteString) } ?? .null),
             ("last-check", updates?.lastCheck.map(Value.date) ?? .null), ("error", error),
+            ("auto-check", .bool(settings.settings.autoCheckUpdates)), ("auto-install", .bool(settings.settings.autoInstallUpdates)),
         ]))
     }
 
@@ -900,13 +902,16 @@ final class LiveShell: WindowHostLink {
         case .releaseNotes(let url): NSWorkspace.shared.open(url)
         case .setAutoCheck(let on):
             do { try settings.apply(.updates(autoCheck: on, autoInstall: settings.settings.autoInstallUpdates)) } catch { overlay.add(Diagnostic(.warning, "\(error)")) }
+            setShell([("update", updateField())])
         case .setAutoInstall(let on):
             do { try settings.apply(.updates(autoCheck: settings.settings.autoCheckUpdates, autoInstall: on)) } catch { overlay.add(Diagnostic(.warning, "\(error)")) }
+            setShell([("update", updateField())])
         case .copyBrewUpgrade:
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(InstallKind.homebrewUpgradeCommand, forType: .string)
         case .crashReports(let mode):
             do { try settings.apply(.crashReports(mode.rawValue)) } catch { overlay.add(Diagnostic(.warning, "\(error)")) }
+            setShell([("crash-reports", .string(settings.crashReportMode.rawValue))])
         case .setStartAtLogin(let on): setLoginItem(on)
         case .installCommandLineTool: installCommandLineTool()
         case .custom(let name):
