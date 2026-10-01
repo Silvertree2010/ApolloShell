@@ -188,7 +188,10 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         super.init()
         window.contentView = container
         window.delegate = self
-        hosting.onInvalidate = { [weak self] in self?.onFittingChange?() }
+        hosting.onInvalidate = { [weak self] in
+            self?.onFittingChange?()
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.restoreFocus() } }
+        }
         if let panel = window as? HostPanel {
             panel.onEscape = { [weak self] in
                 MainActor.assumeIsolated { self?.escape() ?? false }
@@ -388,6 +391,14 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         scrimWindow?.close()
         window.contentView = nil
         window.close()
+    }
+
+    func restoreFocus() {
+        guard spec.keyboard, spec.kind != "window", stage.isVisible(window) else { return }
+        let r = window.firstResponder
+        let stale = r == nil || r === window || ((r as? NSView).map { $0.window !== window || !$0.isDescendant(of: hosting) } ?? false)
+        if stale, r !== hosting { window.makeFirstResponder(hosting) }
+        if !window.isKeyWindow, NSApp.keyWindow == nil { window.makeKey() }
     }
 
     private func escape() -> Bool {
