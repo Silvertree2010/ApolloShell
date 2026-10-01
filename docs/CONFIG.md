@@ -929,7 +929,7 @@ Opens and closes on an action, such as a dashboard or launcher.
 | property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `motion` | "slide"\|"grow"\|"fade"\|"none"\|"jelly" | `null` | Opening and closing. |
 | property | `scrim` | number | `null` | Dims the screen behind it, 0…1. |
-| property | `close-on` | string | `"outside-click escape focus-loss"` | List of what closes the popup. |
+| property | `close-on` | string | `"outside-click escape focus-loss"` | List of what closes the popup: outside-click, escape, focus-loss, mouse-leave, global-escape (Esc closes it without the popup taking the keyboard). |
 | property | `hover-edge` | bool | `false` | Opens when the pointer touches the anchored edge. |
 | property | `hover-margin` | number | `0` | Edge zone in pt in which the popup stays open on hover. |
 | property | `hover-gap` | number | `0` | Distance from the corner without a trigger, only with corner anchors. |

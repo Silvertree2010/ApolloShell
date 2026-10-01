@@ -248,6 +248,15 @@ struct SurfaceWindowSpecTests {
         SurfaceWindowSpec(kind: kind, property: { values[$0] ?? .null })
     }
 
+    @Test("Nexus-Panel schliesst per globalem Esc und nimmt keine Tastatur")
+    func nexusGlobalEscape() throws {
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Resources/configs/apolloshell-default/nexus.kdl")
+        let text = try String(contentsOf: url, encoding: .utf8)
+        let line = try #require(text.split(separator: "\n").first { $0.hasPrefix("popup \"nexus\"") })
+        #expect(line.contains("close-on=\"outside-click global-escape\""))
+        #expect(line.contains("keyboard=#false"))
+    }
+
     @Test("Vorgaben je Art nach blocks.md 2.8 und 2.9")
     func defaults() {
         #expect(spec("panel").level == .floating)
@@ -274,6 +283,7 @@ struct SurfaceWindowSpecTests {
         #expect(spec("popup", ["scrim": .number(0.3)]).level.rawValue == NSWindow.Level.popUpMenu.rawValue + 1)
         #expect(spec("popup", ["close-on": .string("escape mouse-leave")]).closeOn == [.escape, .mouseLeave])
         #expect(spec("popup", ["close-on": .list([.string("outside-click")])]).closeOn == [.outsideClick])
+        #expect(spec("popup", ["close-on": .string("outside-click global-escape")]).closeOn == [.outsideClick, .globalEscape])
         #expect(spec("toast", ["click-through": .string("auto")]).clickThrough == .auto)
         #expect(spec("panel", ["reserve": .bool(true)]).reserve)
         #expect(!spec("popup", ["reserve": .bool(true)]).reserve)

@@ -156,6 +156,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     private var spec: SurfaceWindowSpec
     private var scrimWindow: ScrimPanel?
     private var outsideMonitor: Any?
+    private var escapeKey: GlobalHotKey?
     private var leaveTimer: Timer?
     private var generation = 0
     private var pinned = false
@@ -422,6 +423,9 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
                 }
             }
         }
+        if spec.closeOn.contains(.globalEscape), case .success(let k) = GlobalHotKey.register(HotKey(keyCode: HotKeyKey.escape), action: { [weak self] in self?.onCloseRequest?() }) {
+            escapeKey = k
+        }
         if spec.closeOn.contains(.mouseLeave) {
             let margin = spec.hoverMargin
             var entered = false
@@ -436,6 +440,8 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     private func disarmCloseTriggers() {
         if let outsideMonitor { NSEvent.removeMonitor(outsideMonitor) }
         outsideMonitor = nil
+        escapeKey?.unregister()
+        escapeKey = nil
         leaveTimer?.invalidate()
         leaveTimer = nil
     }

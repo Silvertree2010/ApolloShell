@@ -20,7 +20,7 @@ enum Surfaces {
             properties: CommonProperties.surfaceProperties + [
                 PropertySchema(name: "motion", type: .enumeration(["slide", "grow", "fade", "none", "jelly"]), defaultValue: .null, doc: "Opening and closing."),
                 PropertySchema(name: "scrim", type: .number, defaultValue: .null, doc: "Dims the screen behind it, 0…1."),
-                PropertySchema(name: "close-on", type: .string, defaultValue: .string("outside-click escape focus-loss"), doc: "List of what closes the popup."),
+                PropertySchema(name: "close-on", type: .string, defaultValue: .string("outside-click escape focus-loss"), doc: "List of what closes the popup: outside-click, escape, focus-loss, mouse-leave, global-escape (Esc closes it without the popup taking the keyboard)."),
                 PropertySchema(name: "hover-edge", type: .bool, defaultValue: .bool(false), doc: "Opens when the pointer touches the anchored edge."),
                 PropertySchema(name: "hover-margin", type: .number, defaultValue: .number(0), allowsExpression: false, doc: "Edge zone in pt in which the popup stays open on hover."),
                 PropertySchema(name: "hover-gap", type: .number, defaultValue: .number(0), allowsExpression: false, doc: "Distance from the corner without a trigger, only with corner anchors."),

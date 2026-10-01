@@ -12,6 +12,7 @@ struct SurfaceWindowSpec: Equatable {
         case escape
         case focusLoss = "focus-loss"
         case mouseLeave = "mouse-leave"
+        case globalEscape = "global-escape"
     }
 
     var kind: String
