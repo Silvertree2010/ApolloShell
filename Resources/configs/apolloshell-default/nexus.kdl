@@ -369,7 +369,7 @@ status-item "nexus-item" visible="{var.nexus-shown}" {
     }
 }
 
-popup "nexus" attach="nexus-item#nexus-mark" side="bottom" align="center" offset-y=6 anchor="top" motion="fade" close-on="outside-click escape focus-loss" class="{theme.set['panel-fill'] ? 'themed' : 'bg-glass'}" {
+popup "nexus" attach="nexus-item#nexus-mark" side="bottom" align="center" anchor="top" offset-y=10 motion="fade" close-on="outside-click" keyboard=#false class="{theme.set['panel-fill'] ? 'themed' : 'bg-glass'}" {
     column class="nexus" {
         column class="nexus-top" {
             row class="nexus-tiles" {
