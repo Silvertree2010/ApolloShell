@@ -387,6 +387,10 @@ final class WindowHost: SurfaceHosting {
         }
     }
 
+    static func visibleSize(_ size: CGSize, _ i: EdgeInsets, _ f: EdgeInsets) -> CGSize {
+        CGSize(width: max(0, size.width - i.leading - i.trailing - f.leading - f.trailing), height: max(0, size.height - i.top - i.bottom - f.top - f.bottom))
+    }
+
     private func userResized(_ key: String) {
         guard let controller = controllers[key], controller.spec.kind == "window", controller.shown else { return }
         let frame = controller.window.frame
@@ -394,7 +398,7 @@ final class WindowHost: SurfaceHosting {
         let resized = frame.size != controller.openFrame.size
         controller.openFrame = frame
         frames.publish(key, frame)
-        if resized { publishSize(controller.surface.id, controller.surface.screenKey, frame.size) }
+        if resized { publishSize(controller.surface.id, controller.surface.screenKey, Self.visibleSize(frame.size, controller.insets, controller.flyout)) }
         if !attachSyncing.contains(key) { syncAttached(to: key) }
     }
 
@@ -477,7 +481,7 @@ final class WindowHost: SurfaceHosting {
         } else if controller.shown && controller.ticker == nil {
             frames.publish(key, controller.openFrame)
         }
-        if controller.shown { publishSize(surface.id, surface.screenKey, controller.openFrame.size) }
+        if controller.shown { publishSize(surface.id, surface.screenKey, Self.visibleSize(controller.openFrame.size, controller.insets, controller.flyout)) }
         updateReserves()
         updateClickThrough()
         if !attachSyncing.contains(key) { syncAttached(to: key) }

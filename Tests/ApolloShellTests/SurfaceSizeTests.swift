@@ -1,5 +1,6 @@
 import Testing
 import AppKit
+import SwiftUI
 import ApolloConfig
 import ApolloRuntime
 @testable import ApolloShell
@@ -26,6 +27,18 @@ struct SurfaceSizeTests {
         harness.runtime.close("utilities")
         harness.settle()
         #expect(toast.property("offset-y") == .number(0))
+    }
+}
+
+@MainActor
+@Suite("Veröffentlichte Grösse ohne Überhang und Flyout")
+struct VisibleSizeTests {
+    @Test("Überhang unten/rechts und Flyout werden abgezogen")
+    func visible() {
+        var i = EdgeInsets(), f = EdgeInsets()
+        i.bottom = 28; i.trailing = 28; f.top = 10
+        #expect(WindowHost.visibleSize(CGSize(width: 458, height: 538), i, f) == CGSize(width: 430, height: 500))
+        #expect(WindowHost.visibleSize(CGSize(width: 100, height: 50), EdgeInsets(), EdgeInsets()) == CGSize(width: 100, height: 50))
     }
 }
 
