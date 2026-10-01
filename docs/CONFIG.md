@@ -1863,6 +1863,10 @@ Sets the value of a var.
 | property | `in` | value | `null` | Acts on an entry of a var list. |
 | property | `field` | string | `null` | Field of this entry. |
 
+### `shell.about` (action)
+
+Shows the About window of ApolloShell.
+
 ### `shell.check-updates` (action)
 
 Checks for updates now.
