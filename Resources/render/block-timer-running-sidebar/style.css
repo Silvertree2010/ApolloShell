@@ -1,0 +1,5 @@
+#sidebar.bg-material, #sidebar.themed { height: 140px; background: rgb(255 255 255); }
+.sidebar-modules { height: 140px; justify-content: center; }
+@media (prefers-color-scheme: dark) {
+  #sidebar.bg-material, #sidebar.themed { background: rgb(0 0 0); }
+}
