@@ -269,6 +269,7 @@ struct MouseCatcher: NSViewRepresentable {
 final class ElementMouseView: NSView, NSDraggingSource {
     private static var live: [WeakMouseView] = []
     private static let dragThreshold: CGFloat = 4
+    static let sourceMask: NSDragOperation = [.move, .copy]
 
     weak var element: ElementInstance?
     weak var renderContext: RenderContext?
@@ -486,7 +487,7 @@ final class ElementMouseView: NSView, NSDraggingSource {
     }
 
     func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
-        context == .withinApplication ? .move : .move
+        Self.sourceMask
     }
 
     func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {

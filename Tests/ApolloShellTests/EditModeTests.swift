@@ -166,3 +166,13 @@ struct EditModeTests {
         #expect(kinds(h, "menubar-start") == a)
     }
 }
+
+@MainActor
+@Suite("Drag sources offer every operation a drop target answers with")
+struct DragMaskTests {
+    @Test("a value drop answers with copy, so the source mask must contain it")
+    func mask() {
+        #expect(ElementMouseView.sourceMask.contains(.copy))
+        #expect(ElementMouseView.sourceMask.contains(.move))
+    }
+}
