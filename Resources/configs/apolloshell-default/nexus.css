@@ -92,14 +92,15 @@
 .nexus-keys { padding: 20px; gap: 10px; align-items: stretch; }
 .nexus-keys-group { padding: 0 10px; border-radius: 10px; background: rgb(from -apple-system-label r g b / 0.04); border: 0.5px solid rgb(from -apple-system-label r g b / 0.06); align-items: stretch; }
 .nexus-keys-separator { height: 0.5px; background: -apple-system-separator; }
-.nexus-keys-row { padding: 10px 0; gap: 6px; align-items: stretch; }
+.nexus-keys-row { padding: 10px 0 10.5px 0; gap: 6px; align-items: stretch; }
 .nexus-keys-line { gap: 10px; align-items: center; }
-.nexus-keys-preset { padding: 10px 0; }
+.nexus-keys-preset { padding: 9.25px 0 11.75px 0; align-items: start; }
+.nexus-keys-preset > .nexus-keys-text { gap: 2.5px; }
 .nexus-keys-text { gap: 1px; align-items: start; flex-shrink: 1; }
 .nexus-keys-title { font-size: 13px; }
 .nexus-keys-detail { font-size: 10px; color: -apple-system-secondary-label; }
 .nexus-keys-spacer { min-width: 12px; }
-.nexus-recorder { width: 124px; }
+.nexus-recorder { width: 124px; margin-right: -5px; height: 24px; border-radius: 6px; background: rgb(from -apple-system-label r g b / 0.05); border: 1px solid rgb(from -apple-system-label r g b / 0.15); }
 .nexus-keys-clear { width: 16px; height: 16px; align-items: center; justify-content: center; }
 .nexus-keys-clear:disabled { opacity: 0.4; }
 .nexus-keys-clear-glyph { font-size: 13px; color: -apple-system-tertiary-label; }
@@ -107,8 +108,8 @@
 .nexus-keys-warning-glyph { font-size: 10px; color: -apple-system-orange; }
 .nexus-keys-warning-text { font-size: 10px; color: -apple-system-orange; }
 .nexus-keys-note { padding: 0 10px; font-size: 11px; color: -apple-system-secondary-label; }
-.nexus-keys-header { padding: 10px 10px 0 10px; font-size: 13px; font-weight: 600; }
-.nexus-keys-use { height: 20px; padding: 0 8px; border-radius: 5px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; }
+.nexus-keys-header { padding: 20px 10px 0 10px; font-size: 13px; font-weight: 600; }
+.nexus-keys-use { height: 20px; padding: 0 10px; border-radius: 5px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; }
 .nexus-keys-use-title { font-size: 11px; }
 .nexus-card-text > text, .nexus-option-text > text { width: 100%; }
 .nexus-slider { -apollo-thumb-color: #dbdbdb; }
