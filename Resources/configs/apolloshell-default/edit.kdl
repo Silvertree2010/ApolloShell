@@ -175,7 +175,7 @@ define "edit-opt-panel" {
 define "edit-opt-sidebar" {
     flyout id="edit-opt-sidebar" anchor="ef-sidebar-modules-{var.edit-opt-key}" side="right" open="{var.edit-opt-sb-open}" {
         use "edit-opt-panel" title="{var.edit-opt-sb-look.title}" {
-            use "settings-module-options" module="{var.edit-opt-sb}"
+            use "settings-module-options" module="{var.edit-opt-sb}" box=#true
         }
     }
 }
@@ -183,10 +183,10 @@ define "edit-opt-sidebar" {
 define "edit-opt-menubar" {
     flyout id="edit-opt-menubar" anchor="ef-{var.edit-opt-list}-{var.edit-opt-key}" side="bottom" open="{var.edit-opt-mb-open}" {
         use "edit-opt-panel" title="{var.edit-opt-mb-look.title}" {
-            use "settings-switch" title="Join with Previous" checked="{(var.edit-opt-mb.joins ?? false) && var.edit-opt-index > 0}" disabled="{var.edit-opt-index == 0}" {
+            use "settings-switch" box=#true title="Join with Previous" checked="{(var.edit-opt-mb.joins ?? false) && var.edit-opt-index > 0}" disabled="{var.edit-opt-index == 0}" {
                 on-change { list.update "{var.edit-opt-list}" key="{var.edit-opt-key}" { - joins="{event.value}" } }
             }
-            use "settings-module-options" module="{var.edit-opt-mb}" list="{var.edit-opt-list}"
+            use "settings-module-options" module="{var.edit-opt-mb}" list="{var.edit-opt-list}" box=#true
         }
     }
 }
@@ -194,7 +194,7 @@ define "edit-opt-menubar" {
 define "edit-opt-toggle" {
     flyout id="edit-opt-toggle" anchor="ef-utilities-toggles-{var.edit-opt-key}" side="left" open="{var.edit-opt-tg-open}" {
         use "edit-opt-panel" title="{var.edit-opt-tg-look.title}" {
-            use "settings-toggle-options" toggle="{var.edit-opt-tg}" look="{var.edit-opt-tg-look}"
+            use "settings-toggle-options" toggle="{var.edit-opt-tg}" look="{var.edit-opt-tg-look}" box=#true
         }
     }
 }

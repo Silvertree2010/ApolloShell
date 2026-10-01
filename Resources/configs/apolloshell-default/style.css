@@ -928,3 +928,11 @@
 .edit-item.grow > .dock { width: 100%; height: 100%; }
 .edit-item > * { pointer-events: none; }
 .edit-item > .edit-cover, .edit-item > .edit-badge { pointer-events: auto; }
+.edit-check-wrap { width: 100%; align-self: stretch; align-items: flex-start; justify-content: center; height: 24px; }
+.edit-check-wrap.off { opacity: 0.4; }
+.edit-check-wrap .edit-check-row { gap: 8px; align-items: center; }
+.edit-check-wrap .edit-check-box { width: 16px; height: 16px; border-radius: 5px; border: none; background: rgb(from -apple-system-label r g b / 0.12); }
+.edit-check-wrap .edit-check-tick { font-size: 11px; font-weight: 800; color: -apple-system-label; }
+.edit-check-wrap .edit-check-title { font-size: 13px; }
+.edit-check-hit { opacity: 0.01; }
+.edit-check-wrap > * { justify-self: start; align-self: start; }

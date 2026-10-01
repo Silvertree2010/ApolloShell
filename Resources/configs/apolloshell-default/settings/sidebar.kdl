@@ -85,6 +85,7 @@ define "settings-module-summary" {
 
 define "settings-module-options" {
     param "module"
+    param "box" default=#false
     param "list" default="sidebar-modules"
     column class="settings-options" {
         switch "{module.kind}" {
@@ -102,7 +103,7 @@ define "settings-module-options" {
                 }
             }
             case "dock" {
-                use "settings-switch" title="Show Running Apps" detail="Also unpinned ones, below a divider" checked="{module.show-running}" {
+                use "settings-switch" box="{box}" title="Show Running Apps" detail="Also unpinned ones, below a divider" checked="{module.show-running}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-running="{event.value}" } }
                 }
                 row class="settings-row" {
@@ -119,21 +120,21 @@ define "settings-module-options" {
                 }
             }
             case "clock" {
-                use "settings-switch" title="Show Icon" detail="Calendar icon above the time" checked="{module.show-icon}" {
+                use "settings-switch" box="{box}" title="Show Icon" detail="Calendar icon above the time" checked="{module.show-icon}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-icon="{event.value}" } }
                 }
-                use "settings-switch" title="Show Date" detail="Weekday and day above the time" checked="{module.show-date}" {
+                use "settings-switch" box="{box}" title="Show Date" detail="Weekday and day above the time" checked="{module.show-date}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-date="{event.value}" } }
                 }
             }
             case "status-icons" {
-                use "settings-switch" title="Wi-Fi" checked="{module.wifi}" {
+                use "settings-switch" box="{box}" title="Wi-Fi" checked="{module.wifi}" {
                     on-change { list.update "{list}" key="{module.id}" { - wifi="{event.value}" } }
                 }
-                use "settings-switch" title="Bluetooth" checked="{module.bluetooth}" {
+                use "settings-switch" box="{box}" title="Bluetooth" checked="{module.bluetooth}" {
                     on-change { list.update "{list}" key="{module.id}" { - bluetooth="{event.value}" } }
                 }
-                use "settings-switch" title="Battery" detail="Only on Macs with a battery" checked="{module.battery}" {
+                use "settings-switch" box="{box}" title="Battery" detail="Only on Macs with a battery" checked="{module.battery}" {
                     on-change { list.update "{list}" key="{module.id}" { - battery="{event.value}" } }
                 }
             }
@@ -163,7 +164,7 @@ define "settings-module-options" {
                 }
             }
             case "battery" {
-                use "settings-switch" title="Show Icon" detail="Battery icon above the percentage" checked="{module.show-icon}" {
+                use "settings-switch" box="{box}" title="Show Icon" detail="Battery icon above the percentage" checked="{module.show-icon}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-icon="{event.value}" } }
                 }
             }
@@ -181,41 +182,41 @@ define "settings-module-options" {
                 }
             }
             case "now-playing" {
-                use "settings-switch" title="Show Controls" checked="{module.show-controls}" {
+                use "settings-switch" box="{box}" title="Show Controls" checked="{module.show-controls}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-controls="{event.value}" } }
                 }
             }
             case "window-title" {
-                use "settings-switch" title="Show Icon" checked="{module.show-icon}" {
+                use "settings-switch" box="{box}" title="Show Icon" checked="{module.show-icon}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-icon="{event.value}" } }
                 }
-                use "settings-switch" title="Show Window Title" checked="{module.show-title}" {
+                use "settings-switch" box="{box}" title="Show Window Title" checked="{module.show-title}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-title="{event.value}" } }
                 }
             }
             case "keyboard-layout" {
-                use "settings-switch" title="Show Icon" checked="{module.show-icon}" {
+                use "settings-switch" box="{box}" title="Show Icon" checked="{module.show-icon}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-icon="{event.value}" } }
                 }
             }
             case "volume" {
-                use "settings-switch" title="Show Percent" checked="{module.show-percent}" {
+                use "settings-switch" box="{box}" title="Show Percent" checked="{module.show-percent}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-percent="{event.value}" } }
                 }
-                use "settings-switch" title="Show Output Device" checked="{module.show-device}" {
+                use "settings-switch" box="{box}" title="Show Output Device" checked="{module.show-device}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-device="{event.value}" } }
                 }
             }
             case "system-stats" {
-                use "settings-switch" title="CPU" checked="{module.show-cpu}" {
+                use "settings-switch" box="{box}" title="CPU" checked="{module.show-cpu}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-cpu="{event.value}" } }
                 }
-                use "settings-switch" title="Memory" checked="{module.show-memory}" {
+                use "settings-switch" box="{box}" title="Memory" checked="{module.show-memory}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-memory="{event.value}" } }
                 }
             }
             case "weather" {
-                use "settings-switch" title="Show Temperature" detail="The location is set on the Dashboard page" checked="{module.show-temperature}" {
+                use "settings-switch" box="{box}" title="Show Temperature" detail="The location is set on the Dashboard page" checked="{module.show-temperature}" {
                     on-change { list.update "{list}" key="{module.id}" { - show-temperature="{event.value}" } }
                 }
             }
