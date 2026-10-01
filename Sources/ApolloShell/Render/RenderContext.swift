@@ -153,8 +153,8 @@ struct ElementView: View {
                 .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: filters,
                                       alignment: element.kind == "text" ? TextStyle(style).frameAlignment : .center, parts: parts))
                 .gated(!mouse.isEmpty || StyleValues.visibleBackground(style)) { $0.modifier(HitRegionMarker(active: true, identity: element.identity)) }
-                .modifier(InteractionIfNeeded(element: element, context: scope.context, config: mouse, hover: hover, press: press,
-                                              needed: Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil || canvasEntry != nil || mouse.dragValue, stateStyled: hover || press)))
+                .interacting(Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil || canvasEntry != nil || mouse.dragValue, stateStyled: hover || press),
+                             element: element, context: scope.context, config: mouse, hover: hover, press: press)
                 .gated(motion) { $0.modifier(Motion(element: element, style: style, context: scope.context, dynamicInline: animated)) }
                 .gated(parts.pointer) { $0.transformEnvironment(\.elementInteractive) { if StyleValues.keyword(style["pointer-events"]) == "none" { $0 = false } } }
                 .gated(RevealID.id(element) != nil || element.ir.properties["id"] != nil) { $0.modifier(RevealID(element: element)) }
@@ -182,20 +182,9 @@ struct ElementView: View {
     }
 }
 
-struct InteractionIfNeeded: ViewModifier {
-    let element: ElementInstance
-    let context: RenderContext
-    let config: MouseConfig
-    let hover: Bool
-    let press: Bool
-    let needed: Bool
-
-    func body(content: Content) -> some View {
-        if needed {
-            content.modifier(ElementInteraction(element: element, context: context, config: config, hoverSensitive: hover, pressSensitive: press))
-        } else {
-            content
-        }
+extension View {
+    func interacting(_ needed: Bool, element: ElementInstance, context: RenderContext, config: MouseConfig, hover: Bool, press: Bool) -> some View {
+        gated(needed) { $0.modifier(ElementInteraction(element: element, context: context, config: config, hoverSensitive: hover, pressSensitive: press)) }
     }
 }
 
