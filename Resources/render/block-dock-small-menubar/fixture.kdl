@@ -96,7 +96,7 @@ fixture {
         menubar-status-style "icons"
         menubar-hide-apple #false
         menubar-start {
-            - id="b" kind="dock"
+            - id="b" kind="dock" icon-size="small"
         }
         menubar-center {
         }

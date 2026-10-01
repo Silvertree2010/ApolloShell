@@ -68,7 +68,7 @@ fixture {
     timer mode="standard" running=#false remaining=600 elapsed=0 duration=600 phase="focus" round=1
     vars {
         sidebar-modules {
-        - id="b" kind="dock"
+        - id="b" kind="dock" icon-size="small"
         }
     }
 }
