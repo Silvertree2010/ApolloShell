@@ -21,7 +21,7 @@ define "toast-card" {
     }
 }
 
-toast "default" anchor="bottom-right" max=4 duration="5s" newest="last" click-through="auto" fullscreen="hide" offset-y="{surfaces.utilities.open ? surfaces.utilities.height + 12 : 0}" {
+toast "default" anchor="bottom-right" max=4 duration="5s" newest="last" click-through="auto" fullscreen="hide" offset-x=-4 offset-y="{surfaces.utilities.open ? surfaces.utilities.height + 8 : -4}" {
     use "toast-card"
 }
 

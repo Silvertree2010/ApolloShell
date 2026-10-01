@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import SwiftUI
 import ApolloBase
 import ApolloConfig
 import ApolloRuntime
@@ -30,6 +31,26 @@ struct DefaultBatteryToastTests {
             return
         }
         #expect(toast["icon"] == .string(symbol))
+        harness.shell.shutdown()
+    }
+}
+
+@MainActor
+@Suite("Toast-Abstand der Default-Config")
+struct DefaultToastInsetTests {
+    @Test("Karte sitzt 12 pt von Rand und Boden wie 0.1.4.2")
+    func inset() async throws {
+        let harness = try ShellHarness(try String(contentsOf: DefaultBatteryToastTests.toasts, encoding: .utf8))
+        try await harness.start()
+        let t = try #require(harness.runtime.surface("default", screenKey: ShellHarness.a.key))
+        guard case .number(let ox)? = Optional(t.property("offset-x")), case .number(let oy)? = Optional(t.property("offset-y")) else {
+            Issue.record("offset fehlt")
+            return
+        }
+        let p = SurfacePlacement(anchor: .bottomRight, area: .full, margin: EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8), offsetX: CGFloat(ox), offsetY: CGFloat(oy))
+        let f = p.frame(screen: CGRect(x: 0, y: 0, width: 1440, height: 900), visible: CGRect(x: 0, y: 0, width: 1440, height: 900), fitting: CGSize(width: 422, height: 72))
+        #expect(1440 - f.maxX + 8 == 12)
+        #expect(f.minY + 8 == 12)
         harness.shell.shutdown()
     }
 }
