@@ -333,7 +333,7 @@ define "gallery-bar" {
     }
 }
 
-popup "dashboard-toolbar" anchor="bottom" offset-y="{surfaces.utilities.open && (surfaces.utilities.width ?? 0) > (screen.width ?? 0) / 2 - 448 ? surfaces.utilities.height + 16 : 0}" layer="overlay" motion="slide" close-on="" {
+popup "dashboard-toolbar" anchor="bottom" offset-y="{(surfaces.utilities.open ?? false) && (surfaces.utilities.width ?? 0) > (screen.width ?? 0) / 2 - 448 ? surfaces.utilities.height + 16 : 0}" layer="overlay" motion="slide" close-on="" {
     key "escape" { use "edit-escape" }
     column class="edit-toolbar" {
         when "{var.dashboard-gallery}" {
