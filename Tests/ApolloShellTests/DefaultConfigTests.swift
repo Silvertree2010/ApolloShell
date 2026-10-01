@@ -184,7 +184,7 @@ struct DefaultConfigTests {
         "--apollo-success-color": [".kind-success"],
         "--apollo-warning-color": [".kind-warning"],
         "--apollo-danger-color": [".kind-error", ".dock-icon"],
-        "--apollo-bar-color": ["#sidebar"],
+        "--apollo-bar-color": ["#sidebar", ".sidebar-clock-badge"],
         "--apollo-bar-gradient": ["#sidebar"],
         "--apollo-bar-opacity": ["#sidebar"],
         "--apollo-bar-text-color": [".sidebar-clock", ".sidebar-clock-badge"],
