@@ -380,7 +380,10 @@ struct InputElement: View {
             if element.property("secure").isTruthy {
                 SecureField(placeholder, text: binding)
             } else {
-                TextField(placeholder, text: binding)
+                TextField("", text: binding)
+                    .overlay(alignment: .leading) {
+                        if text.isEmpty { Text(placeholder).foregroundStyle(.secondary).allowsHitTesting(false) }
+                    }
             }
         }
         .textFieldStyle(.plain)
