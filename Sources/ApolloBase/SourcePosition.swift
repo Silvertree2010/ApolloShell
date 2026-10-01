@@ -1,12 +1,27 @@
 public struct SourcePosition: Sendable, Hashable, Comparable {
-    public var offset: Int
-    public var line: Int
-    public var column: Int
+    private var o: Int32
+    private var l: Int32
+    private var c: Int32
+
+    public var offset: Int {
+        get { Int(o) }
+        set { o = Int32(clamping: newValue) }
+    }
+
+    public var line: Int {
+        get { Int(l) }
+        set { l = Int32(clamping: newValue) }
+    }
+
+    public var column: Int {
+        get { Int(c) }
+        set { c = Int32(clamping: newValue) }
+    }
 
     public init(offset: Int, line: Int, column: Int) {
-        self.offset = offset
-        self.line = line
-        self.column = column
+        o = Int32(clamping: offset)
+        l = Int32(clamping: line)
+        c = Int32(clamping: column)
     }
 
     public static func < (lhs: SourcePosition, rhs: SourcePosition) -> Bool {
