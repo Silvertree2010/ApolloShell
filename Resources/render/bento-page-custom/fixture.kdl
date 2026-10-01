@@ -1,6 +1,6 @@
 fixture {
     clock now="2026-09-24T09:41:00+02:00"
-    battery present=#false
+    battery present=#true percent=0.67 charging=#false on-power=#false tank-text="4h 14m Left" symbol="battery.75percent"
     network {
         wifi on=#true connected=#true rssi=-52 bars=3
     }
@@ -162,5 +162,48 @@ fixture {
             - bundle-id="com.apple.mail" name="Mail" path="/System/Applications/Mail.app" usage=0 favorite-index=1
         }
     }
-    vars dashboard-tab="performance"
+    clipboard {
+        history {
+            - text="git push --force-with-lease origin release/0.2" date="2026-09-24T09:40:00+02:00"
+            - text="Treffen am Freitag um 14:00?" date="2026-09-24T09:39:00+02:00"
+            - text="https://github.com/silvertree2010/apolloshell" date="2026-09-24T09:38:00+02:00"
+            - text="#3A302A" date="2026-09-24T09:37:00+02:00"
+            - text="Bad Ragaz" date="2026-09-24T09:36:00+02:00"
+        }
+    }
+    timer mode="standard" running=#true remaining=395 elapsed=205 duration=600 phase="focus" round=1
+    vars dashboard-tab="weather" {
+        dashboard-pages {
+            - id="dashboard" name="Dashboard" symbol="square.grid.2x2" icon="bar-dashboard" template="dashboard"
+            - id="media" name="Media" symbol="music.note.list" icon="panel-media" template="media"
+            - id="media-2" name="Media 2" symbol="music.note.list" icon="panel-media" template="media"
+            - id="performance" name="Performance" symbol="gauge.with.dots.needle.67percent" icon="panel-performance" template="performance"
+            - id="weather" name="Weather" symbol="cloud.sun" icon="panel-weather" template="weather"
+            - id="desk" name="Desk" symbol="star.fill"
+            - id="page-6" name="Page 6" symbol="square.grid.2x2"
+        }
+        dashboard-widgets {
+    - id="dashboard-weather" page="dashboard" kind="weather" x=0 y=0 width=275 height=130 display="standard" show-condition=#true show-range=#true
+    - id="dashboard-user" page="dashboard" kind="user" x=287 y=0 width=340 height=130 display="standard" show-system=#true show-uptime=#true
+    - id="dashboard-clock" page="dashboard" kind="clock" x=0 y=142 width=110 height=250 display="standard" style="stacked" show-date=#false
+    - id="dashboard-calendar" page="dashboard" kind="calendar" x=122 y=142 width=403 height=250 display="standard" first-weekday="monday" show-week-numbers=#false
+    - id="dashboard-resources" page="dashboard" kind="resources" x=537 y=142 width=90 height=250 display="standard" show-cpu=#true show-memory=#true show-storage=#true
+    - id="dashboard-media" page="dashboard" kind="media" x=639 y=0 width=200 height=392 display="standard" show-album=#true show-source=#true
+    - id="media-player" page="media" kind="media.player" x=0 y=0 width=839 height=392 display="standard"
+    - id="weather-hero" page="weather" kind="weather.hero" x=0 y=0 width=839 height=116 display="standard"
+    - id="weather-hourly" page="weather" kind="weather.hourly" x=0 y=128 width=839 height=108 display="standard"
+    - id="weather-daily" page="weather" kind="weather.daily" x=0 y=248 width=839 height=144 display="standard"
+    - id="performance-cpu" page="performance" kind="performance.cpu" x=0 y=0 width=343 height=191 display="standard"
+    - id="performance-gpu" page="performance" kind="performance.gpu" x=355 y=0 width=343 height=191 display="standard"
+    - id="performance-storage" page="performance" kind="performance.storage" x=0 y=203 width=169.5 height=189 display="standard"
+    - id="performance-network" page="performance" kind="performance.network" x=181.5 y=203 width=335 height=189 display="standard"
+    - id="performance-memory" page="performance" kind="performance.memory" x=528.5 y=203 width=169.5 height=189 display="standard"
+    - id="performance-battery" page="performance" kind="performance.battery" x=710 y=0 width=129 height=392 display="standard"
+    - id="desk-timer" page="desk" kind="timer" x=0 y=0 width=200.75 height=130 display="standard"
+    - id="desk-clock" page="desk" kind="clock" x=212.75 y=0 width=200.75 height=130 display="standard" style="stacked" show-date=#false time-zone="America/New_York"
+    - id="desk-sun" page="desk" kind="sun" x=425.5 y=0 width=413.5 height=130 display="standard"
+    - id="desk-apps" page="desk" kind="apps" x=0 y=142 width=413.5 height=250 display="standard"
+    - id="desk-clipboard" page="desk" kind="clipboard" x=425.5 y=142 width=413.5 height=250 display="standard"
+        }
+    }
 }

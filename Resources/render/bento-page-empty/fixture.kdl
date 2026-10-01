@@ -9,7 +9,7 @@ fixture {
         output id="builtin" name="MacBook Pro Speakers"
     }
     system user-name="Andrin Example" full-name="Andrin Example" uptime=11520 macos-version="26.6.2" chip="Apple M4 Pro"
-    perf cpu=0.1821 memory=0.613 chip="Apple M4 Pro" cores=14 gpu-cores=20 {
+    perf cpu=0.42 memory=0.61 chip="Apple M4 Pro" cores=14 gpu-cores=20 {
         live cpu=0.1821 gpu=0.4367 memory=0.613 memory-used=15800000000 memory-total=25770000000 disk=0.414 disk-used=412000000000 disk-total=994660000000 net-down=300000 net-up=90000 net-total-down=52000000 net-total-up=9000000 {
             cpu-history {
                 - 0.48
@@ -162,12 +162,24 @@ fixture {
             - bundle-id="com.apple.mail" name="Mail" path="/System/Applications/Mail.app" usage=0 favorite-index=1
         }
     }
-    vars dashboard-tab="page-6" {
+    clipboard {
+        history {
+            - text="git push --force-with-lease origin release/0.2" date="2026-09-24T09:40:00+02:00"
+            - text="Treffen am Freitag um 14:00?" date="2026-09-24T09:39:00+02:00"
+            - text="https://github.com/silvertree2010/apolloshell" date="2026-09-24T09:38:00+02:00"
+            - text="#3A302A" date="2026-09-24T09:37:00+02:00"
+            - text="Bad Ragaz" date="2026-09-24T09:36:00+02:00"
+        }
+    }
+    timer mode="standard" running=#true remaining=395 elapsed=205 duration=600 phase="focus" round=1
+    vars dashboard-tab="desk" {
         dashboard-pages {
             - id="dashboard" name="Dashboard" symbol="square.grid.2x2" icon="bar-dashboard" template="dashboard"
             - id="media" name="Media" symbol="music.note.list" icon="panel-media" template="media"
+            - id="media-2" name="Media 2" symbol="music.note.list" icon="panel-media" template="media"
             - id="performance" name="Performance" symbol="gauge.with.dots.needle.67percent" icon="panel-performance" template="performance"
             - id="weather" name="Weather" symbol="cloud.sun" icon="panel-weather" template="weather"
+            - id="desk" name="Desk" symbol="star.fill"
             - id="page-6" name="Page 6" symbol="square.grid.2x2"
         }
         dashboard-widgets {
@@ -187,6 +199,11 @@ fixture {
     - id="performance-network" page="performance" kind="performance.network" x=181.5 y=203 width=335 height=189 display="standard"
     - id="performance-memory" page="performance" kind="performance.memory" x=528.5 y=203 width=169.5 height=189 display="standard"
     - id="performance-battery" page="performance" kind="performance.battery" x=710 y=0 width=129 height=392 display="standard"
+    - id="desk-timer" page="desk" kind="timer" x=0 y=0 width=200.75 height=130 display="standard"
+    - id="desk-clock" page="desk" kind="clock" x=212.75 y=0 width=200.75 height=130 display="standard" style="stacked" show-date=#false time-zone="America/New_York"
+    - id="desk-sun" page="desk" kind="sun" x=425.5 y=0 width=413.5 height=130 display="standard"
+    - id="desk-apps" page="desk" kind="apps" x=0 y=142 width=413.5 height=250 display="standard"
+    - id="desk-clipboard" page="desk" kind="clipboard" x=425.5 y=142 width=413.5 height=250 display="standard"
         }
     }
 }

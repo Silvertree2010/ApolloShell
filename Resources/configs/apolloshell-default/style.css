@@ -192,7 +192,7 @@
 
 .dashboard { width: 871px; }
 .dashboard-tabs { padding: 0 16px; }
-.dashboard-tab { flex-grow: 1; justify-content: end; align-items: center; color: -apple-system-secondary-label; }
+.dashboard-tab { flex-grow: 1; flex-basis: 0px; min-width: 0; justify-content: end; align-items: center; color: -apple-system-secondary-label; }
 .dashboard-tab:checked { color: var(--apollo-accent-color, -apple-system-control-accent); }
 .dashboard-tab-pill {
   width: 44px;
