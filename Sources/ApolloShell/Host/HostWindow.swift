@@ -398,7 +398,6 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         let r = window.firstResponder
         let stale = r == nil || r === window || ((r as? NSView).map { $0.window !== window || !$0.isDescendant(of: hosting) } ?? false)
         if stale, r !== hosting { window.makeFirstResponder(hosting) }
-        if !window.isKeyWindow, NSApp.keyWindow == nil { window.makeKey() }
     }
 
     private func escape() -> Bool {
