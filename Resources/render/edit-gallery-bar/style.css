@@ -5,3 +5,9 @@
 .edit-cover { border: 1.5px dashed rgb(from -apple-system-label r g b / 0.55); }
 .edit-item.selected > .edit-cover { border: 2px solid -apple-system-control-accent; }
 .edit-item.editing { animation: none; }
+.edit-toolbar { background: rgb(255 255 255); }
+@media (prefers-color-scheme: dark) {
+  .edit-toolbar { background: rgb(0 0 0); }
+  #sidebar.bg-material { background: rgb(0 0 0); }
+}
+.edit-done { background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-label; }

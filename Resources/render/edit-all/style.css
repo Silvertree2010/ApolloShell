@@ -7,3 +7,9 @@
 .edit-item.editing { animation: none; }
 #sidebar.bg-material { height: 686px; }
 .sidebar-modules { height: 686px; }
+.edit-toolbar { background: rgb(255 255 255); }
+@media (prefers-color-scheme: dark) {
+  .edit-toolbar { background: rgb(0 0 0); }
+  #sidebar.bg-material { background: rgb(0 0 0); }
+}
+.edit-done { background: rgb(from -apple-system-label r g b / 0.08); color: -apple-system-label; }
