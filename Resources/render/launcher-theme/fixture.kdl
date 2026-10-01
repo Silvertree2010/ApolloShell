@@ -3,7 +3,7 @@ fixture {
     shell {
         themes {
             - id="minimal" name="Minimal" author="Example" description="" issues=#null
-            - id="full" name="Full" author="Example" description="" issues=#null
+            - id="full" name="Everything" author="Example" description="" issues=#null
         }
     }
     clock now="2026-09-24T09:41:00+02:00"
