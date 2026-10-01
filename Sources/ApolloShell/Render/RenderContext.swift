@@ -147,7 +147,7 @@ struct ElementView: View {
             let mouse = MouseConfig(element, reorder: reorderEntry, canvas: canvasEntry)
             let hover = element.kind == "button" || SelfState.uses(element, "hover") || styles.stateStyled(.hover, fixed)
             let press = SelfState.uses(element, "pressed") || styles.stateStyled(.active, fixed)
-            let filters = plan.inline.filter || styles.declares("filter", fixed)
+            let filters = element.ir.properties["style"] != nil || plan.inline.filter || styles.declares("filter", fixed)
             let animated = element.ir.properties["style"] != nil || plan.inline.animation || styles.declares("animation", fixed)
             ElementRenderers.view(for: element, style: style, scope: inner)
                 .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: filters,
