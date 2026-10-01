@@ -39,6 +39,7 @@ private final class IRBuildState {
     let definesByName: [String: DefineDecl]
     var diagnostics: [Diagnostic] = []
     var argumentCache: [ArgumentKey: StringTemplate] = [:]
+    var interned: [StringTemplate: StringTemplate] = [:]
     var ids: [String: SourceSpan] = [:]
     var surfaceID: String?
 
@@ -817,7 +818,14 @@ enum IRBuilder {
             result.dependencies = []
             return result
         default:
-            let template = rewrite(compiled.template, frame: frame, scope: scope, state: state)
+            let rewritten = rewrite(compiled.template, frame: frame, scope: scope, state: state)
+            let template: StringTemplate
+            if let known = state.interned[rewritten] {
+                template = known
+            } else {
+                state.interned[rewritten] = rewritten
+                template = rewritten
+            }
             return CompiledValue(template: template, dependencies: template.dependencies(locals: localNames(frame: frame, scope: scope)), span: compiled.span)
         }
     }
