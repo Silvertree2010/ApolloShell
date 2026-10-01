@@ -148,7 +148,7 @@ struct ElementView: View {
             let hover = element.kind == "button" || SelfState.uses(element, "hover") || styles.stateStyled(.hover, fixed)
             let press = SelfState.uses(element, "pressed") || styles.stateStyled(.active, fixed)
             let filters = plan.inline.filter || styles.declares("filter", fixed)
-            let animated = plan.inline.animation || styles.declares("animation", fixed)
+            let animated = element.ir.properties["style"] != nil || plan.inline.animation || styles.declares("animation", fixed)
             ElementRenderers.view(for: element, style: style, scope: inner)
                 .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: filters,
                                       alignment: element.kind == "text" ? TextStyle(style).frameAlignment : .center, parts: parts))
@@ -167,7 +167,7 @@ struct ElementView: View {
         var parts = styles.parts(StyleResolver.staticSubject(for: element)).merged(use.parts)
         parts.pointer = parts.pointer || inherited.pointer
         parts.cursor = parts.cursor || inherited.cursor
-        return (parts, parts.motion || element.ir.properties["match-id"] != nil, use)
+        return (parts, element.ir.properties["style"] != nil || parts.motion || element.ir.properties["match-id"] != nil, use)
     }
 
     static func subject(_ element: ElementInstance, position: ChildPosition?) -> StyleSubject {

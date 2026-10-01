@@ -49,10 +49,10 @@ struct BoxPartsTests {
         let styles = session.context.styles
         let plan = ElementView.plan(element, styles: styles, inherited: InheritedParts(pointer: false, cursor: false), inline: "opacity: 0.5; padding-left: 2px; filter: blur(2px)")
         #expect(plan.parts.opacity && plan.parts.padding && plan.inline.filter)
-        #expect(!plan.parts.margin && !plan.parts.transform && !plan.parts.paint && !plan.parts.pointer && !plan.motion && !plan.inline.animation)
+        #expect(!plan.parts.margin && !plan.parts.transform && !plan.parts.paint && !plan.parts.pointer && plan.motion && !plan.inline.animation)
         let moving = ElementView.plan(element, styles: styles, inherited: InheritedParts(pointer: false, cursor: false), inline: "transition: opacity 1s")
         #expect(moving.motion && !moving.parts.opacity)
         let empty = ElementView.plan(element, styles: styles, inherited: InheritedParts(pointer: false, cursor: false), inline: "")
-        #expect(empty.parts == styles.parts(StyleResolver.staticSubject(for: element)).merged(BoxParts(names: [])) && !empty.motion)
+        #expect(empty.parts == styles.parts(StyleResolver.staticSubject(for: element)).merged(BoxParts(names: [])) && empty.motion)
     }
 }
