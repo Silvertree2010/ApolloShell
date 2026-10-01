@@ -571,7 +571,7 @@ define "menubar-zone" {
     param "modules"
     when "{var.shell-editing}" {
         row class="menubar-zone zone-{zone} edit-zone {(modules | where 'kind' 'dock' | count) + (modules | where 'kind' 'spacer' | count) + (modules | where 'kind' 'app-menus' | count) > 0 ? 'flexible' : ''}" {
-            reorderable axis="horizontal" enabled=#true class="menubar-edit-list" {
+            reorderable axis="horizontal" enabled=#true accept="value" class="menubar-edit-list" {
                 on-reorder { list.move "menubar-{zone}" from="{event.from}" to="{event.to}" }
                 on-drop accept="value" { use "edit-add-bar" list="menubar-{zone}" catalog="{var.menubar-module-kinds}" kind="{event.value}" present="{var.menubar-start | concat var.menubar-center | concat var.menubar-end}" at="{event.index}"
                     use "edit-move-bar" value="{event.value}" to="{zone}" at="{event.index}"

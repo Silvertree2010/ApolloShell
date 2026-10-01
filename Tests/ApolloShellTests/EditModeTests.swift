@@ -176,3 +176,17 @@ struct DragMaskTests {
         #expect(ElementMouseView.sourceMask.contains(.move))
     }
 }
+
+@Suite("Edit mode bars take values dragged in")
+struct EditAcceptTests {
+    @Test("every edit reorderable carries accept=value, because the drop only reaches it through that property")
+    func accept() throws {
+        let dir = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Resources/configs/apolloshell-default")
+        let wanted = [("sidebar.kdl", "sidebar-modules"), ("menubar.kdl", "menubar-edit-list"), ("utilities.kdl", "quick-toggles"), ("utilities.kdl", "utilities-edit-list")]
+        for (file, cls) in wanted {
+            let text = try String(contentsOf: dir.appendingPathComponent(file), encoding: .utf8)
+            let line = try #require(text.split(separator: "\n").first { $0.contains("reorderable") && $0.contains("class=\"\(cls)\"") })
+            #expect(line.contains("accept=\"value\""))
+        }
+    }
+}
