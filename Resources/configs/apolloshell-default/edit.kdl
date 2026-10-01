@@ -145,7 +145,7 @@ define "edit-frame" {
         button class="edit-badge" tooltip="Remove" {
             on-click {
                 when "{var.dashboard-selected == list + ':' + key}" { set "dashboard-selected" #null }
-                when "{disable}" { list.update "{list}" key="{key}" { - enabled=#false } }
+                when "{disable}" { list.update "{list}" at="{var.utilities-cards | index-where 'kind' [key]}" { - enabled=#false } }
                 when "{!disable}" { list.remove "{list}" key="{key}" }
             }
             icon "minus" class="edit-badge-glyph"
@@ -222,7 +222,7 @@ define "edit-add-bar" {
 define "edit-add-card" {
     param "kind"
     when "{(var.utilities-cards | where 'kind' kind | count) > 0}" {
-        list.update "utilities-cards" key="{kind}" { - enabled=#true }
+        list.update "utilities-cards" at="{var.utilities-cards | index-where 'kind' [kind]}" { - enabled=#true }
     }
     else {
         list.insert "utilities-cards" { - kind="{kind}" enabled=#true }
