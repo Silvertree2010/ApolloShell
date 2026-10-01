@@ -541,9 +541,22 @@ define "popout-battery" {
 }
 
 panel "sidebar" anchor="left" area="below-menubar" reserve=#true shape="fused" fuse-group="shell" fuse-fill=#true fullscreen="hide" screen="{var.sidebar-screens}" style="{var.menubar-active && (var.menubar-screens == 'all' || var.menubar-screens == screen.id || (var.menubar-screens == 'main' && screen.main)) ? 'margin-top: ' + (var.menubar-covers ? (var.menubar-extent - (screen.menubar-height ?? 0) | max 0) : var.menubar-extent) + 'px' : ''}" class="{theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-' + var.sidebar-background}" {
-    column class="sidebar-modules" {
-        each module in="{var.sidebar-modules}" key="{module.id}" {
-            use "sidebar-{module.kind}" module="{module}"
+    when "{var.shell-editing}" {
+        reorderable axis="vertical" enabled=#true class="sidebar-modules" {
+            on-reorder { list.move "sidebar-modules" from="{event.from}" to="{event.to}" }
+            on-drop accept="value" { use "edit-add-bar" list="sidebar-modules" catalog="{var.sidebar-module-kinds}" kind="{event.value}" present="{var.sidebar-modules}" at="{event.index}" }
+            each module in="{var.sidebar-modules}" key="{module.id}" {
+                use "edit-frame" list="sidebar-modules" key="{module.id}" grow="{module.kind == 'dock' || module.kind == 'spacer'}" {
+                    use "sidebar-{module.kind}" module="{module}"
+                }
+            }
+        }
+    }
+    else {
+        column class="sidebar-modules" {
+            each module in="{var.sidebar-modules}" key="{module.id}" {
+                use "sidebar-{module.kind}" module="{module}"
+            }
         }
     }
     flyout id="status-popout" anchor="{'status-' + var.status-popout}" side="right" open="{var.status-popout != ''}" {

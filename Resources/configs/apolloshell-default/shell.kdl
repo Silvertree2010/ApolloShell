@@ -27,6 +27,7 @@ command-center {
         builtin "restart"
         builtin "problems"
         separator
+        item "Edit Layout…" { use "edit-begin" }
         item "Settings…" { open "settings" }
         builtin "configs"
         builtin "themes"
@@ -46,6 +47,7 @@ include "sidebar.kdl"
 include "menubar.kdl"
 include "launcher.kdl"
 include "dashboard.kdl"
+include "edit.kdl"
 include "utilities.kdl"
 include "session.kdl"
 include "osd.kdl"
