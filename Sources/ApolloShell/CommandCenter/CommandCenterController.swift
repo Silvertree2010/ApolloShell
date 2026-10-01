@@ -9,6 +9,7 @@ final class CommandCenterController: NSObject, NSMenuDelegate {
     private var builder: CommandCenterMenu?
     private let entries: @MainActor () -> [MenuEntry]
     private var handoffObserver: NSObjectProtocol?
+    private var tracking = false
 
     init(entries: @escaping @MainActor () -> [MenuEntry], perform: @escaping @MainActor (MenuCommand) -> Void) {
         self.entries = entries
@@ -36,8 +37,16 @@ final class CommandCenterController: NSObject, NSMenuDelegate {
         statusItem.button?.performClick(nil)
     }
 
+    func menuWillOpen(_ menu: NSMenu) {
+        tracking = true
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        tracking = false
+    }
+
     func menuNeedsUpdate(_ menu: NSMenu) {
-        guard let builder else { return }
+        guard let builder, !tracking else { return }
         let fresh = builder.make(entries())
         let items = fresh.items
         fresh.removeAllItems()

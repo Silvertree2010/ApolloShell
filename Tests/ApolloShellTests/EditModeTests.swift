@@ -134,11 +134,38 @@ struct EditModeTests {
         #expect(kinds(h, "sidebar-modules") == side)
     }
 
+    @Test("the edit toolbar stands above the open dashboard and control centre so Done stays clickable")
+    func toolbarLevel() async throws {
+        let h = try await start()
+        defer { h.shell.shutdown() }
+        await ev(h, "t-begin")
+        let all = h.shell.host.controllers.values
+        let bar = try #require(all.first { $0.surface.id == "dashboard-toolbar" })
+        let others = all.filter { $0.surface.id == "dashboard" || $0.surface.id == "utilities" }
+        #expect(others.count >= 2)
+        for o in others { #expect(bar.spec.level.rawValue > o.spec.level.rawValue, "\(o.surface.id)") }
+    }
+
     @Test("the command center offers Edit Layout")
     func entry() async throws {
         let (home, shell) = try await CommandCenterWiringTests.started()
         defer { shell.shutdown(); try? FileManager.default.removeItem(at: home.root) }
         #expect(CommandCenterWiringTests.titles(shell.commandCenterEntries()).contains("Edit Layout…"))
+    }
+
+    @Test("choosing Edit Layout in the real menu item starts edit mode")
+    func menuClick() async throws {
+        let (home, shell) = try await CommandCenterWiringTests.started()
+        defer { shell.shutdown(); try? FileManager.default.removeItem(at: home.root) }
+        let b = CommandCenterMenu { shell.perform($0) }
+        let m = b.make(shell.commandCenterEntries())
+        let i = try #require(m.items.first { $0.title == "Edit Layout…" })
+        _ = i.target?.perform(i.action, with: i)
+        for _ in 0..<50 where shell.assembly?.vars.value("shell-editing") != .bool(true) {
+            await Task.yield()
+            RunLoopPump.run(0.02)
+        }
+        #expect(shell.assembly?.vars.value("shell-editing") == .bool(true))
     }
 
     @Test("selecting a block with options opens its popover and done closes it")
