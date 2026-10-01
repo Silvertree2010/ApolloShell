@@ -70,7 +70,7 @@
 .card.wx-sun.min { padding: 0 20px; gap: 18px; }
 .card.wx-sun.min.stacked { gap: 16px; }
 .card.wx-sun.narrow { padding: 16px; gap: 6px; align-items: start; }
-.card.wx-sun.tall { padding: 16px; gap: 14px; }
+.card.wx-sun.tall { padding: 16px; gap: 14px; min-width: 216px; }
 .card.wx-sun.wide { padding: 16px; gap: 16px; }
 .wx-sun-block { gap: 6px; align-items: start; min-width: 0; align-self: stretch; }
 .wide > .wx-sun-block { flex-grow: 1; }
