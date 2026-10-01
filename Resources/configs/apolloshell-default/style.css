@@ -73,8 +73,9 @@
 .sidebar-clock-icon { font-size: 14px; font-weight: 600; width: 16px; height: 16px; margin: 0 0 3px 0; -apollo-font-scale: none; }
 .sidebar-clock-hour, .sidebar-clock-minute { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .sidebar-clock-minute { margin: -4px 0 0 0; }
-.sidebar-clock-date-stack { gap: -1px; align-items: center; margin: 0 0 4px 0; opacity: 0.8; }
+.sidebar-clock-date-stack { gap: 0; align-items: center; margin: 0 0 4px 0; opacity: 0.8; }
 .sidebar-clock-date { font-size: 11px; font-weight: 600; }
+.sidebar-clock-date.second { margin: -1px 0 0 0; }
 .sidebar-clock-badge { width: 28px; padding: 5px 0; border-radius: 9px; background: var(--apollo-clock-color, -apple-system-purple); color: var(--apollo-bar-text-color, white); align-items: center; justify-content: center; }
 
 .status-capsule {

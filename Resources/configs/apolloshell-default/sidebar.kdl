@@ -84,7 +84,7 @@ define "sidebar-clock-text" {
         when "{module.show-date}" {
             column class="sidebar-clock-date-stack" {
                 text "{clock.now | date 'EEE'}" class="sidebar-clock-date"
-                text "{clock.now | date 'd'}" class="sidebar-clock-date"
+                text "{clock.now | date 'd'}" class="sidebar-clock-date second"
             }
         }
         text "{clock.now | date 'HH'}" class="sidebar-clock-hour"
@@ -96,7 +96,7 @@ define "sidebar-clock" {
     param "module"
     button class="sidebar-clock style-{module.style ?? 'stacked'}" {
         on-click { toggle "dashboard" }
-        when "{module.style == 'badge'}" {
+        when "{(module.style ?? 'stacked') == 'badge'}" {
             stack class="sidebar-clock-badge" { use "sidebar-clock-text" module="{module}" }
         }
         else { use "sidebar-clock-text" module="{module}" }
