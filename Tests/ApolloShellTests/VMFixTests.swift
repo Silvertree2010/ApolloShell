@@ -189,3 +189,14 @@ struct OwnItemTests {
         #expect(mark.width > 4)
     }
 }
+
+@Suite("VM test findings: menu bar popout")
+struct MenuBarPopoutConfigTests {
+    @Test("the menu bar popout does not close on focus loss, so activation by its own click cannot close it")
+    func closeOn() throws {
+        let ir = try #require(PackageResources.load(DefaultConfigTests.defaultFolder, id: "apolloshell-default").ir)
+        let p = try #require(ir.surfaces.first { $0.id == "menubar-status-popout" })
+        let d = String(describing: p.properties["close-on"])
+        #expect(d.contains("outside-click") && d.contains("escape") && !d.contains("focus-loss"))
+    }
+}

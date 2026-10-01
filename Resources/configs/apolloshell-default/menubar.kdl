@@ -588,7 +588,7 @@ panel "menubar" anchor="top" fuse-group="shell" safe-area=#false area="{var.menu
 on "user.menubar-popout" when="{var.menubar-popout == var.menubar-popout-next}" { close "menubar-status-popout" }
 on "user.menubar-popout" when="{var.menubar-popout != var.menubar-popout-next}" { set "menubar-popout" "{var.menubar-popout-next}"; open "menubar-status-popout" }
 
-popup "menubar-status-popout" attach="{'menubar#menubar-status-' + var.menubar-popout}" side="bottom" offset-y=6 motion="fade" class="{theme.set['menubar-color'] || theme.set['menubar-gradient'] || theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-material'}" {
+popup "menubar-status-popout" close-on="outside-click escape" attach="{'menubar#menubar-status-' + var.menubar-popout}" side="bottom" offset-y=6 motion="fade" class="{theme.set['menubar-color'] || theme.set['menubar-gradient'] || theme.set['bar-color'] || theme.set['bar-gradient'] ? 'themed' : 'bg-material'}" {
     on-close { set "menubar-popout" "" }
     switch "{var.menubar-popout}" {
         case "wifi" { use "popout-wifi" }
