@@ -54,7 +54,7 @@ define "wp-hero" {
         }
         case "gauge" {
             when "{w.width > w.height * 1.4}" {
-                row class="card wp-gaugecard wide" {
+                row class="card wp-gaugecard wide" style="width: {w.width | max 225.5}px" {
                     column class="wp-gauge-label wide" style="width: {(w.width - 72 - ((w.height - 28) | min 220)) | max 56}px" {
                         row class="wp-graphcard-line" {
                             icon "{icon}" fallback="{fallback}" class="wp-graphcard-glyph"
