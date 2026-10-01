@@ -76,7 +76,7 @@
 .sidebar-clock-date-stack { gap: 0; align-items: center; margin: 0 0 4px 0; opacity: 0.8; }
 .sidebar-clock-date { font-size: 11px; font-weight: 600; }
 .sidebar-clock-date.second { margin: -1px 0 0 0; }
-.sidebar-clock-badge { width: 28px; padding: 5px 0; border-radius: 9px; background: var(--apollo-clock-color, -apple-system-purple); color: var(--apollo-bar-text-color, white); align-items: center; justify-content: center; }
+.sidebar-clock-badge { width: 28px; padding: 5px 0; border-radius: 9px; background: var(--apollo-clock-color, -apple-system-purple); color: readable(var(--apollo-bar-color, white), var(--apollo-clock-color, -apple-system-purple)); align-items: center; justify-content: center; }
 
 .status-capsule {
   gap: 2px;

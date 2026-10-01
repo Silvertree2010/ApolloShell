@@ -73,7 +73,7 @@
 .menubar-clock-small { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .menubar-clock-tiny { font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .menubar-clock-date-stack { opacity: 0.8; }
-.menubar-clock-badge { padding: 0 8px; height: calc(var(--menubar-control) - 8px); border-radius: 9999px; background: var(--apollo-clock-color, -apple-system-purple); color: var(--apollo-menubar-text-color, var(--apollo-bar-text-color, white)); }
+.menubar-clock-badge { padding: 0 8px; height: calc(var(--menubar-control) - 8px); border-radius: 9999px; background: var(--apollo-clock-color, -apple-system-purple); color: readable(var(--apollo-menubar-color, var(--apollo-bar-color, white)), var(--apollo-clock-color, -apple-system-purple)); }
 
 .menubar-spaces { gap: 3px; padding: 0 3px; height: var(--menubar-control); border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; }
 #menubar.islands .menubar-spaces, #menubar.fill.distinct .menubar-spaces { background: transparent; }
