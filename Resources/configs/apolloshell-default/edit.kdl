@@ -333,7 +333,7 @@ define "gallery-bar" {
     }
 }
 
-popup "dashboard-toolbar" anchor="bottom" motion="slide" close-on="" {
+popup "dashboard-toolbar" anchor="bottom" layer="overlay" motion="slide" close-on="" {
     key "escape" { use "edit-escape" }
     column class="edit-toolbar" {
         when "{var.dashboard-gallery}" {
