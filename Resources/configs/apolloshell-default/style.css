@@ -826,10 +826,11 @@
 .edit-input { width: 140px; height: 28px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); font-size: 12px; }
 .edit-separator { width: 1px; height: 18px; background: -apple-system-separator; }
 .edit-slider { width: 120px; }
-.gallery-scroll { width: 760px; height: 300px; }
+.gallery-scroll { width: 760px; height: 340px; }
 .gallery-row { gap: 8px; align-items: center; }
-.gallery-tile { width: 88px; height: 76px; gap: 6px; border-radius: 14px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; }
+.gallery-tile { width: 88px; height: 80px; gap: 6px; border-radius: 14px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; }
 .gallery-tile:disabled { opacity: 0.4; }
+.gallery-tile-content { gap: 6px; align-items: center; justify-content: center; }
 .gallery-tile-glyph { font-size: 20px; }
 .gallery-tile-title { font-size: 11px; font-weight: 500; }
 .opt-panel { width: 280px; padding: 12px; gap: 10px; border-radius: 16px; background: glass(regular); }

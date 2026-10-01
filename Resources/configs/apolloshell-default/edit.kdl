@@ -127,7 +127,7 @@ define "edit-add-bar" {
     param "catalog"
     param "kind"
     param "present"
-    param "at" default=-1
+    param "at" default=#null
     when "{(catalog | where 'kind' kind | count) > 0 && !((catalog | where 'kind' kind | first).unique && (present | where 'kind' kind | count) > 0)}" {
         list.insert "{list}" at="{at}" id-from="kind" { - "{(catalog | where 'kind' kind | first).module}" }
     }
@@ -164,8 +164,10 @@ define "gallery-tile" {
             list.insert "dashboard-widgets" { - id="{var.dashboard-new-id}" page="{var.dashboard-active-page}" kind="{k.kind}" x="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).x}" y="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).y}" width="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).width}" height="{(var.dashboard-page-widgets | place-frame var.widget-kinds k.kind).height}" display="standard" }
             use "widget-seed" i="{var.dashboard-new-id}" k="{k.kind}"
         }
-        icon "{k.symbol}" class="gallery-tile-glyph"
-        text "{k.title}" class="gallery-tile-title" lines=1
+        column class="gallery-tile-content" {
+            icon "{k.symbol}" class="gallery-tile-glyph"
+            text "{k.title}" class="gallery-tile-title" lines=1
+        }
     }
 }
 
@@ -174,8 +176,10 @@ define "gallery-bar-tile" {
     param "off"
     button class="gallery-tile" drag-value="{k.kind}" tooltip="{k.title}" disabled="{off}" {
         on-click { use "edit-add-bar" list="{var.edit-target-list}" catalog="{var.edit-target-kinds}" kind="{k.kind}" present="{var.edit-target-present}" }
-        icon "{k.symbol}" class="gallery-tile-glyph"
-        text "{k.title}" class="gallery-tile-title" lines=1
+        column class="gallery-tile-content" {
+            icon "{k.symbol}" class="gallery-tile-glyph"
+            text "{k.title}" class="gallery-tile-title" lines=1
+        }
     }
 }
 
@@ -186,8 +190,10 @@ define "gallery-cc-tile" {
     param "off"
     button class="gallery-tile" drag-value="{value}" tooltip="{title}" disabled="{off}" {
         on-click { use "edit-add-cc" value="{value}" }
-        icon "{symbol}" class="gallery-tile-glyph"
-        text "{title}" class="gallery-tile-title" lines=1
+        column class="gallery-tile-content" {
+            icon "{symbol}" class="gallery-tile-glyph"
+            text "{title}" class="gallery-tile-title" lines=1
+        }
     }
 }
 
