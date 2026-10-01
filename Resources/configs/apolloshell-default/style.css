@@ -826,7 +826,7 @@
 .edit-input { width: 140px; height: 28px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.08); font-size: 12px; }
 .edit-separator { width: 1px; height: 18px; background: -apple-system-separator; }
 .edit-slider { width: 120px; }
-.gallery-scroll { width: 620px; height: 84px; }
+.gallery-scroll { width: 760px; height: 300px; }
 .gallery-row { gap: 8px; align-items: center; }
 .gallery-tile { width: 88px; height: 76px; gap: 6px; border-radius: 14px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; justify-content: center; }
 .gallery-tile:disabled { opacity: 0.4; }
@@ -850,3 +850,30 @@
 .edit-confirm { padding: 0 4px; }
 .edit-confirm-text { font-size: 12px; font-weight: 500; }
 .opt-pick-row { gap: 6px; align-items: center; flex-grow: 1; }
+
+.edit-item { align-self: stretch; }
+.edit-item.grow { flex-grow: 1; }
+.edit-item > .edit-cover { width: 100%; height: 100%; }
+.edit-item.editing { animation: wiggle 260ms infinite; }
+.edit-cover { align-self: stretch; background: rgba(0, 0, 0, 0.001); border-radius: 12px; border: 2px solid transparent; }
+.edit-item.selected > .edit-cover { border: 2px solid -apple-system-control-accent; }
+@media (prefers-reduced-motion: reduce) {
+  .edit-cover { border: 1.5px dashed rgb(from -apple-system-label r g b / 0.55); }
+  .edit-item.selected > .edit-cover { border: 2px solid -apple-system-control-accent; }
+}
+.edit-badge { width: 13px; height: 13px; align-self: start; justify-self: start; margin: -4px 0 0 -4px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.75); align-items: center; justify-content: center; }
+.edit-badge-glyph { font-size: 8px; font-weight: 800; color: -apple-system-window-background; }
+.menubar-edit-list { gap: var(--apollo-menubar-group-spacing, var(--apollo-bar-item-spacing, 8px)); align-items: stretch; }
+.edit-zone { align-items: stretch; }
+.edit-empty { min-width: 64px; margin: 3px 0; border-radius: 9px; border: 1.5px dashed rgb(from -apple-system-label r g b / 0.55); align-items: center; justify-content: center; }
+.edit-empty-glyph { font-size: 11px; font-weight: 700; color: rgb(from -apple-system-label r g b / 0.55); }
+.quick-toggles .edit-item > .quick-toggle { width: 100%; }
+.quick-toggles .edit-item { width: 100%; }
+.utilities-edit-list { gap: 12px; }
+.gallery { gap: 10px; }
+.gallery-tabs { gap: 4px; padding: 3px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.06); }
+.gallery-tab { flex-grow: 1; height: 28px; border-radius: 9999px; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; }
+.gallery-tab:checked { background: -apple-system-control-accent; color: white; }
+.gallery-grid { gap: 8px; grid-template-columns: repeat(8, 88px); }
+.edit-scale-glyph { font-size: 12px; color: -apple-system-secondary-label; }
+.edit-scale-text { font-size: 12px; color: -apple-system-secondary-label; min-width: 44px; }

@@ -566,11 +566,33 @@ define "menubar-dock" {
 define "menubar-zone" {
     param "zone"
     param "modules"
-    row class="menubar-zone zone-{zone} {(modules | where 'kind' 'dock' | count) + (modules | where 'kind' 'spacer' | count) + (modules | where 'kind' 'app-menus' | count) > 0 ? 'flexible' : ''}" {
-        each group in="{modules | runs 'joins'}" key="{(group | first).id}" {
-            row class="menubar-group {(group | where 'kind' 'dock' | count) + (group | where 'kind' 'spacer' | count) + (group | where 'kind' 'app-menus' | count) > 0 ? 'flexible' : ''}" {
-                each module in="{group}" key="{module.id}" {
-                    use "menubar-{module.kind}" module="{module}"
+    when "{var.shell-editing}" {
+        row class="menubar-zone zone-{zone} edit-zone {(modules | where 'kind' 'dock' | count) + (modules | where 'kind' 'spacer' | count) + (modules | where 'kind' 'app-menus' | count) > 0 ? 'flexible' : ''}" {
+            reorderable axis="horizontal" enabled=#true class="menubar-edit-list" {
+                on-reorder { list.move "menubar-{zone}" from="{event.from}" to="{event.to}" }
+                on-drop accept="value" { use "edit-add-bar" list="menubar-{zone}" catalog="{var.menubar-module-kinds}" kind="{event.value}" present="{var.menubar-start | concat var.menubar-center | concat var.menubar-end}" at="{event.index}" }
+                each module in="{modules}" key="{module.id}" {
+                    use "edit-frame" list="menubar-{zone}" key="{module.id}" grow="{module.kind == 'dock' || module.kind == 'spacer' || module.kind == 'app-menus'}" {
+                        use "menubar-{module.kind}" module="{module}"
+                    }
+                }
+            }
+            when "{(modules | count) == 0}" {
+                stack class="edit-empty" {
+                    on-drop accept="value" { use "edit-add-bar" list="menubar-{zone}" catalog="{var.menubar-module-kinds}" kind="{event.value}" present="{var.menubar-start | concat var.menubar-center | concat var.menubar-end}" }
+                    on-click { set "edit-target" "{zone}"; set "dashboard-gallery" #true; set "edit-tab" "bar" }
+                    icon "plus" class="edit-empty-glyph"
+                }
+            }
+        }
+    }
+    else {
+        row class="menubar-zone zone-{zone} {(modules | where 'kind' 'dock' | count) + (modules | where 'kind' 'spacer' | count) + (modules | where 'kind' 'app-menus' | count) > 0 ? 'flexible' : ''}" {
+            each group in="{modules | runs 'joins'}" key="{(group | first).id}" {
+                row class="menubar-group {(group | where 'kind' 'dock' | count) + (group | where 'kind' 'spacer' | count) + (group | where 'kind' 'app-menus' | count) > 0 ? 'flexible' : ''}" {
+                    each module in="{group}" key="{module.id}" {
+                        use "menubar-{module.kind}" module="{module}"
+                    }
                 }
             }
         }
