@@ -40,6 +40,27 @@ private final class IRBuildState {
     var diagnostics: [Diagnostic] = []
     var argumentCache: [ArgumentKey: StringTemplate] = [:]
     var interned: [StringTemplate: StringTemplate] = [:]
+    var ex: [Expr: Expr] = [:]
+    var ds: [Set<DependencyPath>: Set<DependencyPath>] = [:]
+
+    func ix(_ e: Expr) -> Expr {
+        if let k = ex[e] { return k }
+        ex[e] = e
+        return e
+    }
+
+    func it(_ t: StringTemplate) -> StringTemplate {
+        if let k = interned[t] { return k }
+        interned[t] = t
+        return t
+    }
+
+    func id(_ d: Set<DependencyPath>) -> Set<DependencyPath> {
+        guard !d.isEmpty else { return d }
+        if let k = ds[d] { return k }
+        ds[d] = d
+        return d
+    }
     var ids: [String: SourceSpan] = [:]
     var surfaceID: String?
 
@@ -816,19 +837,10 @@ enum IRBuilder {
     private static func finish(_ compiled: CompiledValue, frame: UseFrame?, scope: [LocalBinding], state: IRBuildState) -> CompiledValue {
         switch compiled.template {
         case .literal, .whole(.literal):
-            var result = compiled
-            result.dependencies = []
-            return result
+            return CompiledValue(template: state.it(compiled.template), dependencies: [], span: compiled.span)
         default:
-            let rewritten = rewrite(compiled.template, frame: frame, scope: scope, state: state)
-            let template: StringTemplate
-            if let known = state.interned[rewritten] {
-                template = known
-            } else {
-                state.interned[rewritten] = rewritten
-                template = rewritten
-            }
-            return CompiledValue(template: template, dependencies: template.dependencies(locals: localNames(frame: frame, scope: scope)), span: compiled.span)
+            let template = state.it(rewrite(compiled.template, frame: frame, scope: scope, state: state))
+            return CompiledValue(template: template, dependencies: state.id(template.dependencies(locals: localNames(frame: frame, scope: scope))), span: compiled.span)
         }
     }
 
@@ -882,6 +894,10 @@ enum IRBuilder {
     }
 
     private static func rewrite(_ expr: Expr, frame: UseFrame?, scope: [LocalBinding], state: IRBuildState) -> Expr {
+        state.ix(rw(expr, frame: frame, scope: scope, state: state))
+    }
+
+    private static func rw(_ expr: Expr, frame: UseFrame?, scope: [LocalBinding], state: IRBuildState) -> Expr {
         switch expr {
         case .literal:
             return expr
