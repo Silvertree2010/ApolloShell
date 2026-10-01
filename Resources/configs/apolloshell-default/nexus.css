@@ -2,7 +2,7 @@
 .nexus-mark { width: 18px; height: 18px; color: -apple-system-label; }
 
 #nexus {
-  margin: 6px;
+  margin: 0 6px 6px 6px;
   border-radius: var(--apollo-panel-radius, 24px);
   --render-glass: clear;
 }
@@ -41,7 +41,7 @@
 .nexus-tab-glyph { font-size: 15px; font-weight: 500; }
 
 .nexus-scroll { flex-shrink: 1; min-height: 0; }
-.nexus-page { gap: 8px; align-items: stretch; }
+.nexus-page { gap: 8px; align-items: stretch; padding-bottom: 12px; }
 .nexus-page-title { padding: 0 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.8px; color: var(--apollo-secondary-text-color, -apple-system-secondary-label); }
 .nexus-cards { gap: 8px; align-items: stretch; }
 
