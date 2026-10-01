@@ -56,6 +56,7 @@ enum CSSColorParser {
             let words = CSSList.words(arguments)
             if lower == "rgb", words.first?.lowercasedIdent == "from" { return try relative(words) }
             if lower == "contrast" { return try contrast(arguments) }
+            if lower == "readable" { return try readable(arguments) }
             if ["rgb", "rgba", "hsl", "hsla"].contains(lower) {
                 guard words.first?.lowercasedIdent != "from" else {
                     throw CSSValueError("relative colors are only supported as rgb(from <color> r g b / <alpha>)")
@@ -103,6 +104,21 @@ enum CSSColorParser {
         case .currentColor:
             throw CSSValueError("contrast(currentcolor) is not supported")
         }
+    }
+
+    private static func readable(_ arguments: [CSSComponent]) throws -> CSSColor {
+        let parts = CSSList.commaSeparated(arguments)
+        guard parts.count == 2 || parts.count == 3 else {
+            throw CSSValueError("readable() takes a colour, a background and optionally a contrast ratio")
+        }
+        let text = try color(parts[0]), back = try color(parts[1])
+        var ratio = 4.5
+        if parts.count == 3 {
+            ratio = try CSSRead.number(CSSRead.single(parts[2]), minimum: 1, maximum: 21)
+        }
+        guard case let .rgba(tr, tg, tb, ta) = text, case let .rgba(br, bg, bb, ba) = back else { return text }
+        let fixed = ThemeGuards.readable(ThemeColor(red: tr, green: tg, blue: tb, alpha: ta), on: ThemeColor(red: br, green: bg, blue: bb, alpha: ba), minimum: ratio)
+        return .rgba(red: fixed.red, green: fixed.green, blue: fixed.blue, alpha: fixed.alpha)
     }
 
     private static func relative(_ words: [CSSComponent]) throws -> CSSColor {
