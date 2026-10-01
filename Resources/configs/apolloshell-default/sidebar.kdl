@@ -259,7 +259,7 @@ define "popout-wifi" {
             }
         }
         else {
-            use "popout-lead" symbol="{network.wifi.on ? 'wifi' : 'wifi.slash'}" strength=0 active=#false title="{network.wifi.on ? 'Not Connected' : 'Wi-Fi Is Off'}" subtitle="{network.wifi.on ? 'No Network in Range Connected' : ''}"
+            use "popout-lead" symbol="{network.wifi.on ? 'wifi' : 'wifi.slash'}" strength=0 active=#false title="{network.wifi.on == null ? 'No Wi-Fi Interface' : (network.wifi.on ? 'Not Connected' : 'Wi-Fi Is Off')}" subtitle="{network.wifi.on ? 'No Network in Range Connected' : ''}"
         }
         use "popout-link" title="Wi-Fi Settings…" {
             on-click { network.open-settings; set "status-popout" "" }
