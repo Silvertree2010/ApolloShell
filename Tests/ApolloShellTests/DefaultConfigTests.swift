@@ -38,7 +38,7 @@ struct DefaultConfigTests {
             "launcher": "popup", "session": "popup", "volume": "osd", "default": "toast",
             "onboarding": "window", "settings": "window", "settings-confirm": "popup",
             "menubar": "panel", "menubar-status-popout": "popup",
-            "nexus": "popup", "nexus-item": "status-item",
+            "nexus": "popup", "nexus-item": "status-item", "nexus-shortcuts": "window",
         ]
         #expect(kinds == expected)
     }
