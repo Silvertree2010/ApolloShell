@@ -554,7 +554,7 @@ panel "sidebar" anchor="left" area="below-menubar" reserve=#true shape="fused" f
     }
     else {
         column class="sidebar-modules" {
-            each module in="{var.sidebar-modules}" key="{module.id}" {
+            each module in="{var.sidebar-modules | where-not 'kind' var.feature-off-a | where-not 'kind' var.feature-off-b}" key="{module.id}" {
                 use "sidebar-{module.kind}" module="{module}"
             }
         }

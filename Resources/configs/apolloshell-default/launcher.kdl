@@ -5,6 +5,7 @@ var launcher-armed-query ""
 var launcher-armed-id from="{var.launcher-armed-query == var.launcher-query ? var.launcher-armed : ''}"
 var launcher-results from="{apps.all | app-search var.launcher-query}"
 var hotkey-launcher "{shell.fresh-install ? 'alt+space' : 'f20'}" persist=#true
+var feature-launcher #true persist=#true
 
 var launcher-actions {
     - id="calculator" title="Calculator" subtitle="Do simple maths, the result is copied" symbol="plus.forwardslash.minus" keyword="calc"
@@ -313,7 +314,7 @@ on "user.launcher-run" {
                             case "log-out" { close "launcher" wait=#true; wait "350ms"; session.logout }
                             case "restart" { close "launcher" wait=#true; wait "350ms"; session.restart }
                             case "shut-down" { close "launcher" wait=#true; wait "350ms"; session.shutdown }
-                            case "settings" { close "launcher"; open "settings" }
+                            case "settings" { close "launcher"; emit "nexus-open" }
                         }
                     }
                 }
@@ -352,4 +353,4 @@ on "user.launcher-run" {
     }
 }
 
-bind "{var.hotkey-launcher}" { toggle "launcher" }
+bind "{var.hotkey-launcher}" when="{var.feature-launcher}" { toggle "launcher" }

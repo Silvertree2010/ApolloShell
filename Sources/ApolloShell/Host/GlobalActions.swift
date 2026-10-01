@@ -107,6 +107,7 @@ extension LiveShell {
         register("shell.reload-config") { [weak self] _ in self?.reload() }
         register("shell.restart") { [weak self] _ in self?.perform(.restart) }
         register("shell.quit") { [weak self] _ in self?.perform(.quit) }
+        register("shell.about") { [weak self] _ in self?.perform(.about) }
         register("shell.check-updates") { [weak self] _ in self?.perform(.checkForUpdates) }
         register("shell.install-update") { [weak self] _ in self?.perform(.installUpdate) }
         func flag(_ call: ResolvedActionCall) throws -> Bool {

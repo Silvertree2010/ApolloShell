@@ -595,7 +595,7 @@ define "menubar-zone" {
     }
     else {
         row class="menubar-zone zone-{zone} {(modules | where 'kind' 'dock' | count) + (modules | where 'kind' 'spacer' | count) + (modules | where 'kind' 'app-menus' | count) > 0 ? 'flexible' : ''}" {
-            each group in="{modules | runs 'joins'}" key="{(group | first).id}" {
+            each group in="{modules | where-not 'kind' var.feature-off-a | where-not 'kind' var.feature-off-b | runs 'joins'}" key="{(group | first).id}" {
                 row class="menubar-group {(group | where 'kind' 'dock' | count) + (group | where 'kind' 'spacer' | count) + (group | where 'kind' 'app-menus' | count) > 0 ? 'flexible' : ''}" {
                     each module in="{group}" key="{module.id}" {
                         use "menubar-{module.kind}" module="{module}"

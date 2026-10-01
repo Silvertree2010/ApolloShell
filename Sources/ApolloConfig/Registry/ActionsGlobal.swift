@@ -79,6 +79,7 @@ enum ActionsGlobal {
         ActionSchema(name: "shell.set-auto-check", arguments: [S.arg("value", .bool, doc: "#true checks for updates once a day.")], doc: "Switches the automatic update check."),
         ActionSchema(name: "shell.set-auto-install", arguments: [S.arg("value", .bool, doc: "#true installs updates when quitting.")], doc: "Switches the automatic update installation."),
         ActionSchema(name: "shell.set-crash-reports", arguments: [S.arg("mode", .enumeration(["ask", "always", "never"]), doc: "ask, always or never.")], doc: "Sets what happens with a crash report."),
+        ActionSchema(name: "shell.about", doc: "Shows the About window of ApolloShell."),
         ActionSchema(name: "shell.set-login-item", arguments: [S.arg("value", .bool, doc: "#true starts the shell at login.")], doc: "Adds or removes the shell as a login item."),
     ]
 }

@@ -17,18 +17,18 @@ power lid-closed="{var.keep-awake-lid}"
 
 on "shell.started" { system.hide-apple-dock "{var.hide-apple-dock}" }
 
-bind "{var.hotkey-dashboard}" { toggle "dashboard" }
-bind "{var.hotkey-utilities}" { toggle "utilities" }
-bind "{var.hotkey-settings}" { open "settings" }
+bind "{var.hotkey-dashboard}" when="{var.feature-dashboard}" { toggle "dashboard" }
+bind "{var.hotkey-utilities}" when="{var.feature-utilities}" { toggle "utilities" }
+bind "{var.hotkey-settings}" { toggle "nexus" }
 
-command-center {
+command-center visible=#false {
     items {
         builtin "reload-config"
         builtin "restart"
         builtin "problems"
         separator
         item "Edit Layout…" { use "edit-begin" }
-        item "Settings…" { open "settings" }
+        item "Settings…" { open "nexus" }
         builtin "configs"
         builtin "themes"
         builtin "marketplace"
@@ -55,5 +55,6 @@ include "toasts.kdl"
 include "desktop-clock.kdl"
 include "onboarding.kdl"
 include "settings/window.kdl"
+include "nexus.kdl"
 
 style "style.css"

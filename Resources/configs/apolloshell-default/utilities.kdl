@@ -82,7 +82,7 @@ define "toggle-lock-screen" {
 define "toggle-settings" {
     param "toggle"
     use "quick-toggle" icon="gearshape.fill" tooltip="Settings" {
-        on-click { close "utilities" wait=#true; open "settings" }
+        on-click { close "utilities" wait=#true; open "nexus" }
     }
 }
 
@@ -353,7 +353,7 @@ popup "utilities" anchor="bottom-right" fuse-group="shell" hover-edge="{!var.she
             column class="utilities-empty" {
                 text "Nothing Shown" class="utilities-empty-title"
                 button class="utilities-empty-button" {
-                    on-click { set "settings-page" "control-centre"; close "utilities" wait=#true; open "settings" }
+                    on-click { close "utilities" wait=#true; open "nexus" }
                     text "Settings"
                 }
             }

@@ -1,0 +1,113 @@
+.nexus-item { width: 22px; height: 22px; align-items: center; justify-content: center; }
+.nexus-mark { width: 18px; height: 18px; color: -apple-system-label; }
+
+#nexus {
+  margin: 6px;
+  border-radius: var(--apollo-panel-radius, 24px);
+  --render-glass: clear;
+}
+#nexus.bg-glass { background: glass(regular); }
+#nexus.themed { background: var(--apollo-panel-fill), glass(regular); }
+
+.nexus {
+  width: 380px;
+  max-height: 680px;
+  padding: 14px;
+  gap: 12px;
+  align-items: stretch;
+  color: var(--apollo-text-color, -apple-system-label);
+  accent-color: var(--apollo-accent-color, -apple-system-control-accent);
+}
+.nexus-top { gap: 12px; align-items: stretch; }
+
+.nexus-card, .nexus-tile, .nexus-tabs, .nexus-foot {
+  background: var(--apollo-card-fill, rgb(from -apple-system-label r g b / 0.06));
+  border: var(--apollo-border-width, 0px) solid var(--apollo-border-color, -apple-system-separator);
+}
+
+.nexus-tiles { gap: 8px; }
+.nexus-tile { flex-grow: 1; flex-basis: 0px; min-width: 0; padding: 10px 0; border-radius: var(--apollo-card-radius, 14px); color: -apple-system-label; transition: opacity 120ms ease-out; }
+.nexus-tile.feature { color: var(--apollo-secondary-text-color, -apple-system-secondary-label); }
+.nexus-tile.feature:checked { background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.nexus-tile:active { opacity: 0.6; }
+.nexus-tile:disabled { opacity: 0.4; }
+.nexus-tile-body { width: 100%; gap: 5px; align-items: center; }
+.nexus-tile-glyph { height: 20px; font-size: 17px; font-weight: 500; }
+.nexus-tile-title { padding: 0 8px; font-size: 11px; }
+
+.nexus-tabs { gap: 2px; padding: 4px; border-radius: var(--apollo-card-radius, 14px); }
+.nexus-tab { flex-grow: 1; flex-basis: 0px; min-width: 0; min-height: 34px; border-radius: var(--apollo-control-radius, 10px); align-items: center; justify-content: center; color: -apple-system-label; }
+.nexus-tab:checked { background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.nexus-tab-glyph { font-size: 15px; font-weight: 500; }
+
+.nexus-scroll { flex-shrink: 1; min-height: 0; }
+.nexus-page { gap: 8px; align-items: stretch; }
+.nexus-page-title { padding: 0 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.8px; color: var(--apollo-secondary-text-color, -apple-system-secondary-label); }
+.nexus-cards { gap: 8px; align-items: stretch; }
+
+.nexus-card { gap: 10px; padding: 12px; border-radius: var(--apollo-card-radius, 14px); align-items: stretch; }
+.nexus-card-head { gap: 12px; align-items: center; }
+.nexus-card-symbol { width: 24px; font-size: 17px; font-weight: 400; color: var(--apollo-accent-color, -apple-system-control-accent); }
+.nexus-card-text { gap: 2px; padding: 0 20px 0 0; align-items: start; flex-grow: 1; flex-shrink: 1; }
+.nexus-card-title { font-size: 14px; font-weight: 600; }
+.nexus-card-detail { font-size: 12px; color: var(--apollo-secondary-text-color, -apple-system-secondary-label); }
+.nexus-card-foot { padding: 0 0 0 36px; align-items: stretch; }
+.nexus-value { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+.nexus-switch { width: 42px; height: 24px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.18); }
+.nexus-switch:checked { background: var(--apollo-accent-color, -apple-system-control-accent); }
+.nexus-switch:disabled { opacity: 0.45; }
+.nexus-switch-track { width: 100%; height: 100%; padding: 2px; justify-content: start; align-items: center; transition: all 180ms ease-out; }
+.nexus-switch:checked .nexus-switch-track { justify-content: end; }
+.nexus-switch-knob { width: 20px; height: 20px; border-radius: 9999px; background: white; box-shadow: 0 1px 1.5px rgb(0 0 0 / 0.18); }
+
+.nexus-options { gap: 2px; align-items: stretch; }
+.nexus-options-foot { padding: 4px 0 0 0; }
+.nexus-option { padding: 5px 8px; border-radius: var(--apollo-control-radius, 8px); }
+.nexus-option:checked { background: rgb(from var(--apollo-accent-color, -apple-system-control-accent) r g b / 0.14); }
+.nexus-option-row { width: 100%; gap: 8px; align-items: center; }
+.nexus-option-text { gap: 1px; padding: 0 14px 0 0; align-items: start; flex-grow: 1; flex-shrink: 1; }
+.nexus-option-title { font-size: 13px; }
+.nexus-option:checked .nexus-option-title { font-weight: 600; }
+.nexus-option-detail { font-size: 11px; color: var(--apollo-secondary-text-color, -apple-system-secondary-label); }
+.nexus-option-tick { font-size: 12px; font-weight: 700; color: var(--apollo-accent-color, -apple-system-control-accent); }
+
+.nexus-slider { width: 100%; }
+
+.nexus-smalls { gap: 6px; align-self: start; justify-content: start; }
+.nexus-small { height: 26px; padding: 0 10px; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.10); align-items: center; }
+.nexus-small.prominent { background: var(--apollo-accent-color, -apple-system-control-accent); color: var(--apollo-on-accent-color, white); }
+.nexus-small:disabled { opacity: 0.45; }
+.nexus-small-title { font-size: 12px; font-weight: 500; }
+
+.nexus-footer { gap: 8px; }
+.nexus-foot { flex-grow: 1; flex-basis: 0px; min-width: 0; min-height: 34px; border-radius: var(--apollo-card-radius, 12px); align-items: center; justify-content: center; transition: opacity 120ms ease-out; }
+.nexus-foot:active { opacity: 0.6; }
+.nexus-foot-row { gap: 6px; align-items: center; }
+.nexus-foot-glyph { font-size: 13px; font-weight: 500; }
+.nexus-foot-title { font-size: 13px; font-weight: 500; }
+
+#nexus-shortcuts { width: 520px; height: 470px; background: -apple-system-window-background; }
+.nexus-keys-scroll { width: 100%; height: 100%; }
+.nexus-keys { padding: 20px; gap: 10px; align-items: stretch; }
+.nexus-keys-group { padding: 0 10px; border-radius: 10px; background: rgb(from -apple-system-label r g b / 0.04); border: 0.5px solid rgb(from -apple-system-label r g b / 0.06); align-items: stretch; }
+.nexus-keys-separator { height: 0.5px; background: -apple-system-separator; }
+.nexus-keys-row { padding: 10px 0; gap: 6px; align-items: stretch; }
+.nexus-keys-line { gap: 10px; align-items: center; }
+.nexus-keys-preset { padding: 10px 0; }
+.nexus-keys-text { gap: 1px; align-items: start; flex-shrink: 1; }
+.nexus-keys-title { font-size: 13px; }
+.nexus-keys-detail { font-size: 10px; color: -apple-system-secondary-label; }
+.nexus-keys-spacer { min-width: 12px; }
+.nexus-recorder { width: 124px; }
+.nexus-keys-clear { width: 16px; height: 16px; align-items: center; justify-content: center; }
+.nexus-keys-clear:disabled { opacity: 0.4; }
+.nexus-keys-clear-glyph { font-size: 13px; color: -apple-system-tertiary-label; }
+.nexus-keys-warning { gap: 4px; padding: 0 0 0 34px; align-items: start; }
+.nexus-keys-warning-glyph { font-size: 10px; color: -apple-system-orange; }
+.nexus-keys-warning-text { font-size: 10px; color: -apple-system-orange; }
+.nexus-keys-note { padding: 0 10px; font-size: 11px; color: -apple-system-secondary-label; }
+.nexus-keys-header { padding: 10px 10px 0 10px; font-size: 13px; font-weight: 600; }
+.nexus-keys-use { height: 20px; padding: 0 8px; border-radius: 5px; background: rgb(from -apple-system-label r g b / 0.08); align-items: center; }
+.nexus-keys-use-title { font-size: 11px; }
+.nexus-card-text > text, .nexus-option-text > text { width: 100%; }

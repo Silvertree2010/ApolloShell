@@ -1,0 +1,85 @@
+var nexus-hotkeys {
+    - name="hotkey-launcher" title="Launcher" detail="Search and open apps" symbol="magnifyingglass"
+    - name="hotkey-dashboard" title="Dashboard" detail="Weather, calendar, media, performance" symbol="square.grid.2x2.fill"
+    - name="hotkey-utilities" title="Control Centre" detail="Keep Awake, sound and quick toggles" symbol="slider.horizontal.3"
+    - name="hotkey-settings" title="Nexus" detail="The menu with every setting" symbol="gearshape.fill"
+}
+
+define "nexus-hotkey-row" {
+    param "item"
+    param "value"
+    column class="nexus-keys-row" {
+        row class="nexus-keys-line" {
+            stack class="onboarding-key-tile tile-purple nexus-keys-tile" {
+                icon "{item.symbol}" class="onboarding-key-tile-glyph"
+            }
+            column class="nexus-keys-text" {
+                text "{item.title}" class="nexus-keys-title"
+                text "{item.detail}" class="nexus-keys-detail"
+            }
+            spacer class="nexus-keys-spacer"
+            key-recorder value="{value}" class="nexus-recorder" {
+                on-change { set "{item.name}" "{event.chord}" }
+            }
+            button class="nexus-keys-clear" disabled="{value == ''}" label="Remove Shortcut" {
+                on-click { set "{item.name}" "" }
+                icon "xmark.circle.fill" class="nexus-keys-clear-glyph"
+            }
+        }
+        when "{value != '' && (value | hotkey-warning) != null}" {
+            row class="nexus-keys-warning" {
+                icon "exclamationmark.triangle.fill" class="nexus-keys-warning-glyph"
+                text "{value | hotkey-warning}" class="nexus-keys-warning-text" lines=0
+            }
+        }
+    }
+}
+
+define "nexus-preset-row" {
+    param "title"
+    param "detail"
+    param "button"
+    row class="nexus-keys-line nexus-keys-preset" {
+        column class="nexus-keys-text" {
+            text "{title}" class="nexus-keys-title"
+            text "{detail}" class="nexus-keys-detail"
+        }
+        spacer class="nexus-keys-spacer"
+        button class="nexus-keys-use" {
+            slot
+            text "{button}" class="nexus-keys-use-title"
+        }
+    }
+}
+
+window "nexus-shortcuts" title="Shortcuts" autosave="Shortcuts" {
+    scroll class="nexus-keys-scroll" axis="vertical" {
+        column class="nexus-keys" {
+            column class="nexus-keys-group" {
+                use "nexus-hotkey-row" item="{var.nexus-hotkeys | at 0}" value="{var.hotkey-launcher ?? ''}"
+                stack class="nexus-keys-separator"
+                use "nexus-hotkey-row" item="{var.nexus-hotkeys | at 1}" value="{var.hotkey-dashboard ?? ''}"
+                stack class="nexus-keys-separator"
+                use "nexus-hotkey-row" item="{var.nexus-hotkeys | at 2}" value="{var.hotkey-utilities ?? ''}"
+                stack class="nexus-keys-separator"
+                use "nexus-hotkey-row" item="{var.nexus-hotkeys | at 3}" value="{var.hotkey-settings ?? ''}"
+            }
+            text "Apply in any app, immediately. To change, click the field and press the new combination – ⎋ cancels, ⌫ removes the shortcut. Spotlight stays on ⌘Space." class="nexus-keys-note" lines=0
+            text "Presets" class="nexus-keys-header"
+            column class="nexus-keys-group" {
+                use "nexus-preset-row" title="Control and Option" detail="{(var.hotkeys-default.launcher | chord) + ', ' + (var.hotkeys-default.dashboard | chord) + ', ' + (var.hotkeys-default.utilities | chord) + ', ' + (var.hotkeys-default.settings | chord)}" button="Use" {
+                    on-click { set "hotkey-launcher" "{var.hotkeys-default.launcher}"; set "hotkey-dashboard" "{var.hotkeys-default.dashboard}"; set "hotkey-utilities" "{var.hotkeys-default.utilities}"; set "hotkey-settings" "{var.hotkeys-default.settings}" }
+                }
+                stack class="nexus-keys-separator"
+                use "nexus-preset-row" title="Launcher on fn" detail="{(var.hotkeys-hyper.launcher | chord) + ', ' + (var.hotkeys-hyper.dashboard | chord) + ', ' + (var.hotkeys-hyper.utilities | chord) + ', ' + (var.hotkeys-hyper.settings | chord)}" button="Use" {
+                    on-click { set "hotkey-launcher" "{var.hotkeys-hyper.launcher}"; set "hotkey-dashboard" "{var.hotkeys-hyper.dashboard}"; set "hotkey-utilities" "{var.hotkeys-hyper.utilities}"; set "hotkey-settings" "{var.hotkeys-hyper.settings}" }
+                }
+                stack class="nexus-keys-separator"
+                use "nexus-preset-row" title="None" detail="Everything through the menu bar" button="Clear" {
+                    on-click { set "hotkey-launcher" ""; set "hotkey-dashboard" ""; set "hotkey-utilities" ""; set "hotkey-settings" "" }
+                }
+            }
+            text "“Launcher on fn” fits keyboard tools like Karabiner-Elements that turn a tapped fn into F20, or a held key into ⌃⌥⇧⌘." class="nexus-keys-note" lines=0
+        }
+    }
+}

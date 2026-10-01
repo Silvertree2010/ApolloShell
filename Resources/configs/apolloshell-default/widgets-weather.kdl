@@ -4,7 +4,7 @@ define "wh-empty" {
     column class="card weather-empty" {
         text "Set Location in Settings" class="weather-empty-title"
         button class="weather-empty-button" {
-            on-click { set "settings-page" "dashboard"; open "settings"; close "dashboard" }
+            on-click { close "dashboard"; emit "nexus-providers" }
             text "Settings"
         }
     }
