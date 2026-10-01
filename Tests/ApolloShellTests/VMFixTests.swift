@@ -5,6 +5,7 @@ import ApolloBase
 import ApolloConfig
 import ApolloRuntime
 import ApolloShellCore
+import ApolloStyle
 @testable import ApolloShell
 
 @MainActor
@@ -13,7 +14,6 @@ struct VMFixTests {
     @Test("Wi-Fi popout without an interface still draws its header and lead row")
     func wifiNone() throws {
         let s = try DefaultRenderTests.shot("menubar-status-popout", state: "menubar-popout-wifi-none")
-        try s.rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: "/private/tmp/claude-501/-Users-andrin/32fb8d99-3bcf-4dff-9df2-90fc9abad50f/scratchpad/o/wifi-none.png"))
         #expect(s.size.height > 60)
     }
 }
@@ -82,5 +82,15 @@ struct ImportedPagesTests {
             if case .list(let l) = v { return l.compactMap { if case .record(let r) = $0, r["kind"] == .string("apps") { return r } else { return nil } }.first } else { return nil }
         })
         #expect(apps["apps"] == .list([.string("com.apple.finder"), .string("com.apple.Safari"), .string("com.apple.mail"), .string("com.apple.Music"), .string("com.apple.systempreferences")]))
+    }
+}
+
+@Suite("VM test findings: default config structure")
+struct VMFixConfigTests {
+    @Test("the dashboard popup sits below Apple's menu bar so the bar stays reachable")
+    func dashboardArea() throws {
+        let ir = try #require(PackageResources.load(DefaultConfigTests.defaultFolder, id: "apolloshell-default").ir)
+        let d = try #require(ir.surfaces.first { $0.id == "dashboard" })
+        #expect(String(describing: d.properties["area"]).contains("below-menubar"))
     }
 }

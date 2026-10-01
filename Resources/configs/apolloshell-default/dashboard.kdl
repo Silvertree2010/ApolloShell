@@ -130,7 +130,7 @@ define "dashboard-page-tab" {
     }
 }
 
-popup "dashboard" anchor="top" motion="slide" fuse-group="shell" hover-edge="{!var.shell-editing}" overhang=#true area="full" safe-area=#true close-on="{var.shell-editing ? '' : 'outside-click escape focus-loss'}" scrim="{var.shell-editing ? 0.35 : 0}" style="margin-top: {(var.menubar-active && (var.menubar-screens == 'all' || var.menubar-screens == screen.id || (var.menubar-screens == 'main' && screen.main)) ? (var.menubar-covers ? (var.menubar-extent - (screen.menubar-height ?? 0) | max 0) : var.menubar-extent) : 0)}px" {
+popup "dashboard" anchor="top" motion="slide" fuse-group="shell" hover-edge="{!var.shell-editing}" overhang=#true area="below-menubar" close-on="{var.shell-editing ? '' : 'outside-click escape focus-loss'}" scrim="{var.shell-editing ? 0.35 : 0}" style="margin-top: {(var.menubar-active && (var.menubar-screens == 'all' || var.menubar-screens == screen.id || (var.menubar-screens == 'main' && screen.main)) ? (var.menubar-covers ? (var.menubar-extent - (screen.menubar-height ?? 0) | max 0) : var.menubar-extent) : 0)}px" {
     on-open { set "calendar-offset" 0 }
     key "escape" {
         when "{var.shell-editing}" { use "edit-escape" }
