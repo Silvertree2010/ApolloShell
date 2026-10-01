@@ -77,7 +77,7 @@ fixture {
     }
     status-items {
         list {
-            - id="1-0" app="to.apollocloud.apolloshell" name="ApolloShell" title="" image="mark.png" kind="menu" monochrome=#true symbol=#null
+            - id="1-0" app="sample.ApolloShell" name="ApolloShell" title="" image="mark.png" kind="menu" monochrome=#true symbol=#null
             - id="100-0" app=#null name="Docker" title="" image=#null kind="menu" monochrome=#true symbol=#null
             - id="101-0" app=#null name="Dropbox" title="" image=#null kind="menu" monochrome=#false symbol=#null
             - id="102-0" app=#null name="VPN" title="" image=#null kind="menu" monochrome=#true symbol=#null

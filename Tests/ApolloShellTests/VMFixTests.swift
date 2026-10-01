@@ -183,7 +183,7 @@ struct WifiSwitchTests {
 struct OwnItemTests {
     @Test("the ApolloShell status item sits on a light tile with a dark mark")
     func tile() throws {
-        let s = try DefaultRenderTests.shot("menubar", state: "menubar-macOS-fill")
+        let s = try DefaultRenderTests.shot("menubar", state: "menubar-own-tile")
         let t = try #require(s.bounds { $0.r > 250 && $0.g > 250 && $0.b > 250 })
         #expect(t.width >= 20 && t.width <= 24 && t.height >= 16 && t.height <= 20, "\(t)")
         let mark = try #require(s.bounds { $0.r < 60 && $0.g < 60 && $0.b < 60 && $0.a > 200 })

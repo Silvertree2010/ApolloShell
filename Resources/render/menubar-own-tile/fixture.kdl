@@ -77,16 +77,12 @@ fixture {
     }
     status-items {
         list {
-            - id="1-0" app="sample.ApolloShell" name="ApolloShell" title="" image="mark.png" kind="menu" monochrome=#true symbol=#null
+            - id="1-0" app="to.apollocloud.apolloshell" name="ApolloShell" title="" image="mark.png" kind="menu" monochrome=#true symbol=#null
             - id="100-0" app="sample.Docker" name="Docker" title="" image=#null kind="menu" monochrome=#true symbol="shippingbox.fill"
             - id="101-0" app="sample.Dropbox" name="Dropbox" title="" image=#null kind="menu" monochrome=#false symbol="drop.fill"
             - id="102-0" app="sample.VPN" name="VPN" title="" image=#null kind="menu" monochrome=#true symbol="lock.shield.fill"
             - id="103-0" app="sample.Timer" name="Timer" title="12:30" image=#null kind="menu" monochrome=#true symbol=#null
         }
-    }
-    screen id="render" name="Built-in Retina Display" main=#true width=1728 height=1117 notch=#true {
-        notch-left x=0 y=0 width=771 height=32
-        notch-right x=956 y=0 width=772 height=32
     }
     vars {
         menubar-enabled #true
