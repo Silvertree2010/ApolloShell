@@ -146,6 +146,23 @@ struct EditModeTests {
         for o in others { #expect(bar.spec.level.rawValue > o.spec.level.rawValue, "\(o.surface.id)") }
     }
 
+    @Test("the edit toolbar steps above the control centre when both would overlap")
+    func toolbarClearsUtilities() async throws {
+        let h = try await start()
+        defer { h.shell.shutdown() }
+        await ev(h, "t-begin")
+        let k = ShellHarness.a.key
+        let bar = try #require(h.shell.host.model.surfaces[SurfaceHost.key("dashboard-toolbar", k)])
+        let st = try #require(h.shell.assembly?.store)
+        st.set(DependencyPath("surfaces:" + k, ["utilities", "width"]), .number(446))
+        st.set(DependencyPath("surfaces:" + k, ["utilities", "height"]), .number(500))
+        h.settle()
+        #expect(bar.property("offset-y") == .number(516))
+        st.set(DependencyPath("surfaces:" + k, ["utilities", "width"]), .number(100))
+        h.settle()
+        #expect(bar.property("offset-y") == .number(0))
+    }
+
     @Test("the command center offers Edit Layout")
     func entry() async throws {
         let (home, shell) = try await CommandCenterWiringTests.started()
