@@ -136,26 +136,25 @@ struct ElementView: View {
         let subject = Self.subject(element, position: position)
         let inline = element.property("style").plainText
         let style = styles.resolve(subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
-        let plan = Self.plan(element, styles: styles, inherited: scope.inherits)
+        let plan = Self.plan(element, styles: styles, inherited: scope.inherits, inline: inline)
         let parts = plan.parts, motion = plan.motion
         let inner = RenderScope(context: scope.context, ancestors: scope.ancestors + [subject], parentStyle: style, parentKind: Self.layoutKind(element), outerKind: scope.parentKind,
                                 inherits: InheritedParts(pointer: parts.pointer, cursor: parts.cursor))
         if element.property("visible") != .bool(false) {
-            let inlineStyle = element.ir.properties["style"] != nil
             let fixed = StyleResolver.staticSubject(for: element)
             let spacer = element.kind == "spacer" && element.property("size") == .null
             let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
             let mouse = MouseConfig(element, reorder: reorderEntry, canvas: canvasEntry)
             let hover = element.kind == "button" || SelfState.uses(element, "hover") || styles.stateStyled(.hover, fixed)
             let press = SelfState.uses(element, "pressed") || styles.stateStyled(.active, fixed)
-            let filters = inlineStyle || styles.declares("filter", fixed)
-            let animated = inlineStyle || styles.declares("animation", fixed)
+            let filters = element.ir.properties["style"] != nil || plan.inline.filter || styles.declares("filter", fixed)
+            let animated = element.ir.properties["style"] != nil || plan.inline.animation || styles.declares("animation", fixed)
             ElementRenderers.view(for: element, style: style, scope: inner)
                 .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: filters,
                                       alignment: element.kind == "text" ? TextStyle(style).frameAlignment : .center, parts: parts))
-                .modifier(HitRegionMarker(active: !mouse.isEmpty || StyleValues.visibleBackground(style), identity: element.identity))
-                .modifier(InteractionIfNeeded(element: element, context: scope.context, config: mouse, hover: hover, press: press,
-                                              needed: Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil || canvasEntry != nil || mouse.dragValue, stateStyled: hover || press)))
+                .gated(!mouse.isEmpty || StyleValues.visibleBackground(style)) { $0.modifier(HitRegionMarker(active: true, identity: element.identity)) }
+                .interacting(Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil || canvasEntry != nil || mouse.dragValue, stateStyled: hover || press),
+                             element: element, context: scope.context, config: mouse, hover: hover, press: press)
                 .gated(motion) { $0.modifier(Motion(element: element, style: style, context: scope.context, dynamicInline: animated)) }
                 .gated(parts.pointer) { $0.transformEnvironment(\.elementInteractive) { if StyleValues.keyword(style["pointer-events"]) == "none" { $0 = false } } }
                 .gated(RevealID.id(element) != nil || element.ir.properties["id"] != nil) { $0.modifier(RevealID(element: element)) }
@@ -163,12 +162,12 @@ struct ElementView: View {
         }
     }
 
-    static func plan(_ element: ElementInstance, styles: StyleResolver, inherited: InheritedParts) -> (parts: BoxParts, motion: Bool) {
-        let inline = element.ir.properties["style"] != nil
-        var parts = inline ? BoxParts.all : styles.parts(StyleResolver.staticSubject(for: element))
+    static func plan(_ element: ElementInstance, styles: StyleResolver, inherited: InheritedParts, inline: String? = nil) -> (parts: BoxParts, motion: Bool, inline: InlineUse) {
+        let use = styles.inlineUse(inline)
+        var parts = styles.parts(StyleResolver.staticSubject(for: element)).merged(use.parts)
         parts.pointer = parts.pointer || inherited.pointer
         parts.cursor = parts.cursor || inherited.cursor
-        return (parts, inline || parts.motion || element.ir.properties["match-id"] != nil)
+        return (parts, element.ir.properties["style"] != nil || parts.motion || element.ir.properties["match-id"] != nil, use)
     }
 
     static func subject(_ element: ElementInstance, position: ChildPosition?) -> StyleSubject {
@@ -183,20 +182,9 @@ struct ElementView: View {
     }
 }
 
-struct InteractionIfNeeded: ViewModifier {
-    let element: ElementInstance
-    let context: RenderContext
-    let config: MouseConfig
-    let hover: Bool
-    let press: Bool
-    let needed: Bool
-
-    func body(content: Content) -> some View {
-        if needed {
-            content.modifier(ElementInteraction(element: element, context: context, config: config, hoverSensitive: hover, pressSensitive: press))
-        } else {
-            content
-        }
+extension View {
+    func interacting(_ needed: Bool, element: ElementInstance, context: RenderContext, config: MouseConfig, hover: Bool, press: Bool) -> some View {
+        gated(needed) { $0.modifier(ElementInteraction(element: element, context: context, config: config, hoverSensitive: hover, pressSensitive: press)) }
     }
 }
 

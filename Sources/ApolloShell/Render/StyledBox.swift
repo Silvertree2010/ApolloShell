@@ -28,6 +28,49 @@ struct BoxParts: Equatable {
     }
 
     init() {}
+
+    init(names: [String]) {
+        func has(_ keys: String...) -> Bool { names.contains { n in keys.contains { n == $0 || n.hasPrefix($0 + "-") } } }
+        padding = has("padding")
+        margin = has("margin")
+        size = has("width", "height", "min-width", "min-height", "max-width", "max-height")
+        aspect = has("aspect-ratio")
+        paint = has("background")
+        shadow = has("box-shadow")
+        border = has("border")
+        clip = has("overflow")
+        opacity = has("opacity")
+        transform = has("transform")
+        depth = has("z-index")
+        pointer = has("pointer-events")
+        cursor = has("cursor")
+        motion = has("transition", "animation", "-apollo-appear", "-apollo-disappear")
+    }
+
+    func merged(_ o: BoxParts) -> BoxParts {
+        var r = self
+        r.padding = padding || o.padding
+        r.margin = margin || o.margin
+        r.size = size || o.size
+        r.aspect = aspect || o.aspect
+        r.paint = paint || o.paint
+        r.shadow = shadow || o.shadow
+        r.border = border || o.border
+        r.clip = clip || o.clip
+        r.opacity = opacity || o.opacity
+        r.transform = transform || o.transform
+        r.depth = depth || o.depth
+        r.pointer = pointer || o.pointer
+        r.cursor = cursor || o.cursor
+        r.motion = motion || o.motion
+        return r
+    }
+}
+
+struct InlineUse {
+    var parts: BoxParts
+    var filter: Bool
+    var animation: Bool
 }
 
 struct InheritedParts: Equatable {
@@ -57,47 +100,9 @@ struct StyledBox: ViewModifier {
     func body(content: Content) -> some View {
         let shape = form ?? AnyShape(StyleShape(style))
         content
-            .modifier(BoxLayout(style: style, padded: padded, fill: fill, alignment: alignment, parts: parts, shape: shape))
-            .modifier(BoxPaint(style: style, context: context, parts: parts, shape: shape, forced: form != nil))
+            .boxLayout(style: style, padded: padded, fill: fill, alignment: alignment, parts: parts)
+            .boxPaint(style: style, context: context, parts: parts, shape: shape, forced: form != nil)
             .modifier(BoxEffects(style: style, parts: parts, flyouts: flyouts, anchorID: anchorID, dynamicInline: dynamicInline))
-    }
-}
-
-struct BoxLayout: ViewModifier {
-    let style: ComputedStyle
-    let padded: Bool
-    let fill: Definite
-    let alignment: Alignment
-    let parts: BoxParts
-    let shape: AnyShape
-
-    func body(content: Content) -> some View {
-        let width = style["width"], height = style["height"]
-        let fillsWidth = fill.width || StyleValues.percent(width) != nil, fillsHeight = fill.height || StyleValues.percent(height) != nil
-        content
-            .gated(parts.padding && padded) { $0.padding(StyleValues.sides(style["padding"])) }
-            .gated(parts.size || fill.width || fill.height) {
-                $0.frame(width: StyleValues.points(width), height: StyleValues.points(height), alignment: alignment)
-                    .frame(minWidth: StyleValues.points(style["min-width"]), maxWidth: fillsWidth ? .infinity : StyleValues.points(style["max-width"]),
-                           minHeight: StyleValues.points(style["min-height"]), maxHeight: fillsHeight ? .infinity : StyleValues.points(style["max-height"]), alignment: alignment)
-            }
-            .gated(parts.aspect) { $0.modifier(AspectRatio(ratio: StyleValues.number(style["aspect-ratio"]))) }
-    }
-}
-
-struct BoxPaint: ViewModifier {
-    let style: ComputedStyle
-    let context: RenderContext
-    let parts: BoxParts
-    let shape: AnyShape
-    let forced: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .gated(parts.paint || forced) { $0.background { BackgroundLayers(style: style, shape: shape, context: context) } }
-            .gated(parts.border) { $0.overlay { BorderLayer(style: style, shape: shape) } }
-            .gated(parts.clip) { $0.modifier(Clip(active: StyleValues.keyword(style["overflow"]) == "hidden", shape: shape)) }
-            .gated(parts.shadow) { $0.modifier(BoxShadows(style["box-shadow"], shape: shape)) }
     }
 }
 
@@ -109,7 +114,34 @@ struct BoxEffects: ViewModifier {
     let dynamicInline: Bool
 
     func body(content: Content) -> some View {
-        content
+        content.boxEffects(style: style, parts: parts, flyouts: flyouts, anchorID: anchorID, dynamicInline: dynamicInline)
+    }
+}
+
+extension View {
+    func boxLayout(style: ComputedStyle, padded: Bool, fill: Definite, alignment: Alignment, parts: BoxParts) -> some View {
+        let width = style["width"], height = style["height"]
+        let fillsWidth = fill.width || StyleValues.percent(width) != nil, fillsHeight = fill.height || StyleValues.percent(height) != nil
+        return self
+            .gated(parts.padding && padded) { $0.padding(StyleValues.sides(style["padding"])) }
+            .gated(parts.size || fill.width || fill.height) {
+                $0.frame(width: StyleValues.points(width), height: StyleValues.points(height), alignment: alignment)
+                    .frame(minWidth: StyleValues.points(style["min-width"]), maxWidth: fillsWidth ? .infinity : StyleValues.points(style["max-width"]),
+                           minHeight: StyleValues.points(style["min-height"]), maxHeight: fillsHeight ? .infinity : StyleValues.points(style["max-height"]), alignment: alignment)
+            }
+            .gated(parts.aspect) { $0.modifier(AspectRatio(ratio: StyleValues.number(style["aspect-ratio"]))) }
+    }
+
+    func boxPaint(style: ComputedStyle, context: RenderContext, parts: BoxParts, shape: AnyShape, forced: Bool) -> some View {
+        self
+            .gated(parts.paint || forced) { $0.background { BackgroundLayers(style: style, shape: shape, context: context) } }
+            .gated(parts.border) { $0.overlay { BorderLayer(style: style, shape: shape) } }
+            .gated(parts.clip) { $0.modifier(Clip(active: StyleValues.keyword(style["overflow"]) == "hidden", shape: shape)) }
+            .gated(parts.shadow) { $0.modifier(BoxShadows(style["box-shadow"], shape: shape)) }
+    }
+
+    func boxEffects(style: ComputedStyle, parts: BoxParts, flyouts: AnyView?, anchorID: String?, dynamicInline: Bool) -> some View {
+        self
             .gated(flyouts != nil) { $0.modifier(FlyoutOverlay(layer: flyouts)) }
             .gated(dynamicInline) { $0.modifier(Filters(style["filter"], enabled: dynamicInline)) }
             .gated(parts.opacity) { $0.opacity(StyleValues.number(style["opacity"]) ?? 1) }
@@ -230,9 +262,9 @@ struct Filters: ViewModifier {
         if enabled {
             content
                 .modifier(FilterSlot(operation: slot(0)))
-                .modifier(FilterSlot(operation: slot(1)))
-                .modifier(FilterSlot(operation: slot(2)))
-                .modifier(FilterSlot(operation: slot(3)))
+                .gated(slot(1) != nil) { $0.modifier(FilterSlot(operation: slot(1))) }
+                .gated(slot(2) != nil) { $0.modifier(FilterSlot(operation: slot(2))) }
+                .gated(slot(3) != nil) { $0.modifier(FilterSlot(operation: slot(3))) }
         } else {
             content
         }
