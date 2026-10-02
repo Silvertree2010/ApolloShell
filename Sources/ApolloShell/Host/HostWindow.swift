@@ -27,10 +27,12 @@ protocol HostWindow: AnyObject {
     func animate(opening: Bool, focus: Bool, animator: any SurfaceAnimator, geometry: MotionGeometry, scrim: Double?, screen: CGRect, completion: @escaping @MainActor () -> Void)
     func close()
     func watchFitting(_ on: Bool)
+    func setClip(top: CGFloat)
 }
 
 extension HostWindow {
     func watchFitting(_ on: Bool) {}
+    func setClip(top: CGFloat) {}
     func setFrame(_ frame: CGRect) { setFrame(frame, glide: false) }
 }
 
@@ -152,6 +154,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     let window: NSWindow
     private var glideTarget: CGRect?
     let container: NSView
+    private let clipper = NSView()
     let hosting: FirstMouseHosting
     private var spec: SurfaceWindowSpec
     private var scrimWindow: ScrimPanel?
@@ -160,6 +163,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     private var leaveTimer: Timer?
     private var generation = 0
     private var pinned = false
+    private var clipTop: CGFloat = 0
     private var previousApp: NSRunningApplication?
     let stage: any WindowStage
     var onCloseRequest: (@MainActor () -> Void)?
@@ -173,6 +177,9 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         self.stage = stage
         container = NSView()
         container.wantsLayer = true
+        clipper.wantsLayer = true
+        container.autoresizingMask = [.width, .height]
+        clipper.addSubview(container)
         hosting = FirstMouseHosting(rootView: content)
         hosting.sizingOptions = [.intrinsicContentSize]
         hosting.autoresizingMask = [.width, .height]
@@ -187,7 +194,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
             window = HostPanel(level: spec.level, behavior: spec.behavior, takesKeyboard: spec.keyboard, mayLeaveScreen: spec.overhang || spec.animates)
         }
         super.init()
-        window.contentView = container
+        window.contentView = clipper
         window.delegate = self
         hosting.onInvalidate = { [weak self] in
             self?.onFittingChange?()
@@ -260,8 +267,31 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
             glideTarget = nil
             window.setFrame(frame, display: true)
         }
-        container.frame = CGRect(origin: .zero, size: frame.size)
+        clipper.frame = CGRect(origin: .zero, size: frame.size)
+        container.frame = clipper.bounds
         hosting.frame = container.bounds
+        updateClip()
+    }
+
+    func setClip(top: CGFloat) {
+        guard clipTop != top else { return }
+        clipTop = top
+        updateClip()
+    }
+
+    private func updateClip() {
+        guard let layer = clipper.layer else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        if clipTop > 0 {
+            let mask = layer.mask ?? CALayer()
+            mask.backgroundColor = CGColor(gray: 0, alpha: 1)
+            mask.frame = CGRect(x: 0, y: 0, width: clipper.bounds.width, height: max(0, clipper.bounds.height - clipTop))
+            layer.mask = mask
+        } else if layer.mask != nil {
+            layer.mask = nil
+        }
+        CATransaction.commit()
     }
 
     func watchFitting(_ on: Bool) {

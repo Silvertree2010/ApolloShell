@@ -466,6 +466,7 @@ final class WindowHost: SurfaceHosting {
             } else {
                 controller.window.setFrame(Self.expand(frame, by: flyout), glide: glide)
             }
+            controller.window.setClip(top: layout.clipTop > 0 ? layout.clipTop + flyout.top : 0)
         }
         if surface.isVisible { remeasure(key) }
         let opening = surface.isOpen && !controller.wasOpen
@@ -715,23 +716,25 @@ extension WindowHost {
 struct SurfaceLayout: Equatable {
     var frame: CGRect
     var insets: EdgeInsets
+    var clipTop: CGFloat = 0
 
     static func compute(placement: SurfacePlacement, spec: SurfaceWindowSpec, radius: CGFloat, screen: ScreenGeometry, fitting: CGSize) -> SurfaceLayout {
         var frame = placement.frame(screen: screen.frame, visible: screen.visible, fitting: fitting)
         var insets = EdgeInsets()
+        var clipTop: CGFloat = 0
         if spec.overhang, radius > 0 {
             let edges = placement.anchoredEdges
             if edges.contains(.left) { frame.origin.x -= radius; frame.size.width += radius; insets.leading += radius }
             if edges.contains(.right) { frame.size.width += radius; insets.trailing += radius }
             if edges.contains(.bottom) { frame.origin.y -= radius; frame.size.height += radius; insets.bottom += radius }
-            if edges.contains(.top) { frame.size.height += radius; insets.top += radius }
+            if edges.contains(.top) { frame.size.height += radius; insets.top += radius; clipTop = radius }
         }
         if spec.safeArea {
             let menuBottom = screen.visible.maxY < screen.frame.maxY ? screen.visible.maxY : screen.frame.maxY
             let reach = frame.maxY - max(menuBottom, frame.minY)
             if reach > 0, frame.maxY > menuBottom { insets.top = max(insets.top, reach) }
         }
-        return SurfaceLayout(frame: frame, insets: insets)
+        return SurfaceLayout(frame: frame, insets: insets, clipTop: clipTop)
     }
 }
 
