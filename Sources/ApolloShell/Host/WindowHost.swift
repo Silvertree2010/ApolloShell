@@ -732,7 +732,13 @@ struct SurfaceLayout: Equatable {
         if spec.safeArea {
             let menuBottom = screen.visible.maxY < screen.frame.maxY ? screen.visible.maxY : screen.frame.maxY
             let reach = frame.maxY - max(menuBottom, frame.minY)
-            if reach > 0, frame.maxY > menuBottom { insets.top = max(insets.top, reach) }
+            if reach > 0, frame.maxY > menuBottom {
+                let hangs = placement.height == nil && placement.anchoredEdges.contains(.top) && !placement.anchoredEdges.contains(.bottom)
+                let grow = hangs ? max(0, reach - insets.top) : 0
+                insets.top = max(insets.top, reach)
+                frame.origin.y -= grow
+                frame.size.height += grow
+            }
         }
         return SurfaceLayout(frame: frame, insets: insets, clipTop: clipTop)
     }
