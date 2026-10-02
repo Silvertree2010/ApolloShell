@@ -87,11 +87,12 @@ struct ImportedPagesTests {
 
 @Suite("VM test findings: default config structure")
 struct VMFixConfigTests {
-    @Test("the dashboard popup sits below Apple's menu bar so the bar stays reachable")
+    @Test("the dashboard popup hangs from the screen edge over Apple's menu bar")
     func dashboardArea() throws {
         let ir = try #require(PackageResources.load(DefaultConfigTests.defaultFolder, id: "apolloshell-default").ir)
         let d = try #require(ir.surfaces.first { $0.id == "dashboard" })
-        #expect(String(describing: d.properties["area"]).contains("below-menubar"))
+        #expect(String(describing: d.properties["area"]).contains("full"))
+        #expect(d.properties["layer"] == nil)
     }
 }
 
