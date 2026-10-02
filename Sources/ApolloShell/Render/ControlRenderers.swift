@@ -26,7 +26,7 @@ struct ButtonElement: View {
         }
         .contentShape(Rectangle())
         .contentShape(.focusEffect, RoundedRectangle(cornerRadius: rad, style: .continuous))
-        .focusable(can)
+        .focusable(can, interactions: .activate)
         .focused($focused)
         .onKeyPress(keys: [.space, .return]) { _ in
             guard can else { return .ignored }

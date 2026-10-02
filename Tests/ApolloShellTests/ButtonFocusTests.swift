@@ -27,7 +27,7 @@ struct ButtonFocusTests {
                          characters: chars, charactersIgnoringModifiers: chars, isARepeat: false, keyCode: code)!
     }
 
-    @Test("Knopf mit on-click nimmt Fokus, setzt :focus, und Leertaste löst on-click aus")
+    @Test("Knopf mit on-click nimmt Fokus nur über die Tastaturnavigation von macOS, setzt dann :focus, und Leertaste löst on-click aus")
     func focusAndSpace() async throws {
         let (m, win) = try mount("""
         var hits 0
@@ -39,6 +39,10 @@ struct ButtonFocusTests {
         let el = try #require(m.catchers.first?.element)
         win.selectKeyView(following: m.view)
         m.pump(10)
+        guard NSApplication.shared.isFullKeyboardAccessEnabled else {
+            #expect(!el.pseudo.contains(.focus))
+            return
+        }
         #expect(el.pseudo.contains(.focus))
         win.sendEvent(key(49, " ", window: win.windowNumber))
         m.pump(3)
