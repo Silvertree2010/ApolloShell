@@ -126,8 +126,8 @@ extension View {
             .gated(parts.padding && padded) { $0.padding(StyleValues.sides(style["padding"])) }
             .gated(parts.size || fill.width || fill.height) {
                 $0.frame(width: StyleValues.size(width), height: StyleValues.size(height), alignment: alignment)
-                    .frame(minWidth: StyleValues.size(style["min-width"]), maxWidth: fillsWidth ? .infinity : StyleValues.size(style["max-width"]),
-                           minHeight: StyleValues.size(style["min-height"]), maxHeight: fillsHeight ? .infinity : StyleValues.size(style["max-height"]), alignment: alignment)
+                    .frame(minWidth: StyleValues.size(style["min-width"]), maxWidth: fillsWidth ? .infinity : StyleValues.limit(style["max-width"]),
+                           minHeight: StyleValues.size(style["min-height"]), maxHeight: fillsHeight ? .infinity : StyleValues.limit(style["max-height"]), alignment: alignment)
             }
             .gated(parts.aspect) { $0.modifier(AspectRatio(ratio: StyleValues.number(style["aspect-ratio"]))) }
     }
