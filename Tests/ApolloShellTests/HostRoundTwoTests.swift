@@ -252,6 +252,22 @@ struct HostRoundTwoTests {
         #expect(!isOpen())
     }
 
+    @Test("hover-edge aus und wieder an meldet sich, damit die Kantenwache neu startet")
+    func hoverEdgeToggles() throws {
+        let fixture = try HostFixture("var e #true\npopup \"drawer\" anchor=\"top\" hover-edge=\"{var.e}\" { row {} }")
+        var calls = 0
+        fixture.host.onHoverChanged = { calls += 1 }
+        #expect(fixture.host.hoverTargets().count == 1)
+        _ = fixture.assembly.vars.set("e", .bool(false))
+        fixture.flush()
+        #expect(fixture.host.hoverTargets().isEmpty)
+        #expect(calls == 1)
+        _ = fixture.assembly.vars.set("e", .bool(true))
+        fixture.flush()
+        #expect(fixture.host.hoverTargets().count == 1)
+        #expect(calls == 2)
+    }
+
     @Test("hover-gap hält die Ecke frei, center löst nie aus")
     func hoverAreas() {
         let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)

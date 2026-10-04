@@ -92,6 +92,7 @@ final class WindowHost: SurfaceHosting {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
     }
     var onOpenChanged: @MainActor () -> Void = {}
+    var onHoverChanged: @MainActor () -> Void = {}
     var afterLayout: @MainActor (@escaping @MainActor () -> Void) -> Void = { work in
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { MainActor.assumeIsolated { work() } }
     }
@@ -416,7 +417,9 @@ final class WindowHost: SurfaceHosting {
                 build(surface)
                 return
             }
+            let hover = controller.spec.hoverEdge != spec.hoverEdge
             controller.spec = spec
+            if hover { onHoverChanged() }
             controller.window.apply(spec)
         }
         if fusionRegistered { controller.window.setLevel(fusion.level(for: key, base: spec.level)) }
