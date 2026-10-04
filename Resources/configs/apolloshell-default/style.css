@@ -207,7 +207,8 @@
   background: var(--apollo-accent-color, -apple-system-control-accent);
   transition: all 500ms spatial;
 }
-.dashboard-tab-track { width: 100%; height: 3px; padding: 0 16px; justify-content: start; }
+.dashboard-tabs-wrap { width: 100%; }
+.dashboard-tab-track { width: 100%; height: 100%; padding: 0 16px; justify-content: start; align-items: end; }
 .dashboard-tab-label { gap: 4px; padding: 12px 0 8px; align-items: center; }
 .dashboard-tab-glyph { width: 18px; height: 18px; font-size: 16px; font-weight: 500; }
 .dashboard-tab-title { font-size: 12px; font-weight: 500; }
