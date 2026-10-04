@@ -121,7 +121,8 @@ final class HostPanel: ShellPanel {
     }
 
     override func sendEvent(_ event: NSEvent) {
-        if event.type == .keyDown, event.keyCode == 53, event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty, onEscape() { return }
+        if event.type == .keyDown, event.keyCode == 53, event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty,
+           (firstResponder as? NSTextView)?.hasMarkedText() != true, onEscape() { return }
         super.sendEvent(event)
     }
 }
