@@ -17,8 +17,9 @@ struct Motion: ViewModifier {
             .modifier(RunningAnimation(spec: renderMode ? nil : plan.animation, enabled: dynamicInline))
             .modifier(ChangeAnimation(animation: plan.change, style: style))
             .modifier(Matched(id: element.property("match-id").plainText, fallback: element.identity.description,
-                              enabled: element.ir.properties["match-id"] != nil, namespace: namespace))
-            .transition(plan.transition)
+                              enabled: element.ir.properties["match-id"] != nil, namespace: namespace,
+                              animation: reduceMotion || renderMode ? nil : (StyleMotion.transition(style, "match") ?? plan.change)))
+            .transition(element.ir.properties["match-id"] != nil && !reduceMotion ? .identity : plan.transition)
     }
 }
 
@@ -39,10 +40,6 @@ struct MotionPlan {
         }
         if let animation = appear.animation { insertion = insertion.animation(animation) }
         if let animation = disappear.animation { removal = removal.animation(animation) }
-        if let match = StyleMotion.transition(style, "match"), appear.animation == nil {
-            insertion = AnyTransition.opacity.animation(match)
-            removal = AnyTransition.opacity.animation(match)
-        }
         transition = .asymmetric(insertion: insertion, removal: removal)
         animation = AnimationSpec(style, reduceMotion: reduceMotion)
     }
@@ -165,13 +162,46 @@ struct Matched: ViewModifier {
     let fallback: String
     let enabled: Bool
     let namespace: Namespace.ID?
+    var animation: Animation?
 
     func body(content: Content) -> some View {
         if enabled, let namespace {
-            content.matchedGeometryEffect(id: id ?? "unmatched:" + fallback, in: namespace)
+            content.modifier(MatchGlide(key: MatchFrames.Key(space: namespace, id: id ?? "unmatched:" + fallback), animation: animation))
         } else {
             content
         }
+    }
+}
+
+@MainActor
+final class MatchFrames {
+    struct Key: Hashable {
+        var space: Namespace.ID
+        var id: String
+    }
+
+    static let shared = MatchFrames()
+    var last: [Key: CGRect] = [:]
+}
+
+struct MatchGlide: ViewModifier {
+    let key: MatchFrames.Key
+    let animation: Animation?
+    @State private var shift = CGSize.zero
+    @State private var seen = false
+
+    func body(content: Content) -> some View {
+        content
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(key.space)) } action: { now in
+                let frames = MatchFrames.shared
+                defer { frames.last[key] = now; seen = true }
+                guard !seen, let animation, let old = frames.last[key], old != now else { return }
+                var t = Transaction()
+                t.disablesAnimations = true
+                withTransaction(t) { shift = CGSize(width: old.minX - now.minX, height: old.minY - now.minY) }
+                withAnimation(animation) { shift = .zero }
+            }
+            .offset(shift)
     }
 }
 
