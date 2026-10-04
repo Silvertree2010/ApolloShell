@@ -31,6 +31,23 @@ struct AppCatalogTests {
         #expect(names == ["Adobe Illustrator", "Blender", "Zed"])
     }
 
+    @Test("findet versteckt markierte App-Symlinks wie Safari, aber keine Punkt-Dateien")
+    func findsHiddenSymlinkedApps() throws {
+        let root = try tempRoot()
+        let store = try tempRoot()
+        defer {
+            try? FileManager.default.removeItem(at: root)
+            try? FileManager.default.removeItem(at: store)
+        }
+        try makeApp("Safari.app", in: store, bundleID: "com.apple.Safari")
+        try makeApp(".Secret.app", in: root, bundleID: "com.example.secret")
+        let link = root.appendingPathComponent("Safari.app")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: store.appendingPathComponent("Safari.app"))
+        _ = link.withUnsafeFileSystemRepresentation { lchflags($0!, UInt32(UF_HIDDEN)) }
+
+        #expect(AppCatalog(roots: [root]).scan().map(\.name) == ["Safari"])
+    }
+
     @Test("sucht nicht in .app-Bundles hinein")
     func skipsHelpersInsideBundles() throws {
         let root = try tempRoot()

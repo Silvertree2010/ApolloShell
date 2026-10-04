@@ -33,10 +33,10 @@ public struct AppCatalog: Sendable {
         guard let items = try? fm.contentsOfDirectory(
             at: directory,
             includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
+            options: []
         ) else { return }
 
-        for item in items {
+        for item in items where !item.lastPathComponent.hasPrefix(".") {
             if item.pathExtension == "app" {
                 found.append(Self.entry(for: item))
             } else if depth < maxDepth,
