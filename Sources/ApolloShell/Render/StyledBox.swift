@@ -416,6 +416,7 @@ struct BackgroundLayers: View {
                         .frame(width: r.width, height: r.height)
                         .offset(x: r.minX, y: r.minY)
                         .frame(width: rect.width, height: rect.height, alignment: .topLeading)
+                        .transaction { $0.animation = nil }
                         .mask { shape.fill(Color.black) }
                 }
             }
