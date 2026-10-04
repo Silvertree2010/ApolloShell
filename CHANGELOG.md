@@ -70,6 +70,35 @@ All notable changes to this project are documented here. The format follows
   `prefix-field` filters, `clock.time-zones` and `places` with `by-place` on
   the `weather` provider.
 
+### Changed
+
+- **The dashboard hangs from the screen edge over Apple's menu bar again**, as
+  in 0.2. It lies flush under the menu bar, no longer shows through it, and
+  slides out from that edge. Content pushed below the menu bar is no longer cut
+  off at the bottom.
+- **One tab indicator slides to the active dashboard tab**, and the widgets
+  crossfade when you switch pages.
+- **One Spaces pill glides to the active desktop** in the sidebar and the menu
+  bar. Before, each desktop had its own pill, and none of them animated.
+
+### Fixed
+
+- **The dashboard opens on hover right after launch**, and again after edit
+  mode. Hovering the edge used to do nothing until the dashboard had been
+  measured or after you left edit mode. Corner anchors now react at the
+  corner, not at the screen centre.
+- **Safari shows up in the launcher again.** Apps whose entry in
+  /Applications carries the hidden flag, like the Safari link, are listed.
+- **Clicks on parts of a control that overhang its box now work**, such as the
+  remove badge on a dashboard widget. The hit area follows the drawn box, an
+  engine fix that lands in the same release.
+- **The remove badges of sidebar and menu bar blocks stay inside the screen**
+  in edit mode.
+- **Odd values in a theme or config no longer crash, hang or collapse the
+  shell.** Infinite or invalid animation speeds, sizes, offsets, timeouts and
+  slider steps are clamped or ignored, and an infinite max-width or max-height
+  leaves the box unbounded instead of collapsing it to zero.
+
 ## [0.2.0] - Unreleased
 
 ApolloShell becomes a framework. The shell is now a config, and the built-in
