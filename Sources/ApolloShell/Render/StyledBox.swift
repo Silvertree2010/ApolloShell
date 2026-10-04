@@ -409,7 +409,15 @@ struct BackgroundLayers: View {
             if renderMode {
                 shape.fill(Color(nsColor: .windowBackgroundColor))
             } else {
-                shape.fill(StyleValues.material(thickness))
+                GeometryReader { proxy in
+                    let rect = CGRect(origin: .zero, size: proxy.size)
+                    let r = shape.path(in: rect).boundingRect.union(rect)
+                    VisualEffectMaterial(thickness: thickness)
+                        .frame(width: r.width, height: r.height)
+                        .offset(x: r.minX, y: r.minY)
+                        .frame(width: rect.width, height: rect.height, alignment: .topLeading)
+                        .mask { shape.fill(Color.black) }
+                }
             }
         }
     }
@@ -445,5 +453,30 @@ struct ShadowMask: View {
 
     var body: some View {
         Rectangle().padding(-1000).overlay { shape.blendMode(.destinationOut) }.compositingGroup()
+    }
+}
+
+struct VisualEffectMaterial: NSViewRepresentable {
+    let thickness: MaterialThickness
+
+    static func material(_ t: MaterialThickness) -> NSVisualEffectView.Material {
+        switch t {
+        case .ultraThin, .thin: .fullScreenUI
+        case .regular, .bar: .popover
+        case .thick, .ultraThick: .menu
+        }
+    }
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let v = NSVisualEffectView()
+        v.blendingMode = .behindWindow
+        v.state = .active
+        v.material = Self.material(thickness)
+        return v
+    }
+
+    func updateNSView(_ v: NSVisualEffectView, context: Context) {
+        let m = Self.material(thickness)
+        if v.material != m { v.material = m }
     }
 }
