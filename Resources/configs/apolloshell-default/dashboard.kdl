@@ -170,7 +170,7 @@ popup "dashboard" anchor="top" motion="slide" fuse-group="shell" hover-edge="{!v
                     }
                 }
                 row class="dashboard-tab-track" {
-                    stack class="dashboard-tab-pill" style="margin: 0 0 0 {((var.dashboard-pages | map 'id' | index-of var.dashboard-active-page) + 0.5) * (839 - (var.shell-editing ? 60 : 0)) / (var.dashboard-pages | count) - 22}px"
+                    stack class="dashboard-tab-pill" style="margin: 0 0 0 {(((var.dashboard-pages | map 'id' | index-of var.dashboard-active-page) ?? 0) + 0.5) * (839 - (var.shell-editing ? 60 : 0)) / ((var.dashboard-pages | count) | max 1) - 22}px"
                 }
                 stack class="dashboard-divider"
                 column class="dashboard-page" {
