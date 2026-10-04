@@ -19,7 +19,7 @@ struct Motion: ViewModifier {
             .modifier(Matched(id: element.property("match-id").plainText, fallback: element.identity.description,
                               enabled: element.ir.properties["match-id"] != nil, namespace: namespace,
                               animation: reduceMotion || renderMode ? nil : (StyleMotion.transition(style, "match") ?? plan.change)))
-            .transition(element.ir.properties["match-id"] != nil && !reduceMotion ? .identity : plan.transition)
+            .transition(element.ir.properties["match-id"] != nil && !reduceMotion && style["-apollo-appear"] == nil && style["-apollo-disappear"] == nil ? .identity : plan.transition)
     }
 }
 
@@ -194,7 +194,10 @@ struct MatchGlide: ViewModifier {
         content
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { now in
                 let frames = MatchFrames.shared
-                defer { frames.last[key] = now; seen = true }
+                defer {
+                    if frames.last[key] != now { frames.last[key] = now }
+                    seen = true
+                }
                 guard !seen, let animation, let old = frames.last[key], old != now else { return }
                 var t = Transaction()
                 t.disablesAnimations = true
