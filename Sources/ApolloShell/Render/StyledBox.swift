@@ -412,12 +412,25 @@ struct BackgroundLayers: View {
                 GeometryReader { proxy in
                     let rect = CGRect(origin: .zero, size: proxy.size)
                     let r = shape.path(in: rect).boundingRect.union(rect)
-                    VisualEffectMaterial(thickness: thickness)
-                        .frame(width: r.width, height: r.height)
-                        .offset(x: r.minX, y: r.minY)
-                        .frame(width: rect.width, height: rect.height, alignment: .topLeading)
-                        .transaction { $0.animation = nil }
-                        .mask { shape.fill(Color.black) }
+                    ZStack(alignment: .topLeading) {
+                        VisualEffectMaterial(thickness: thickness)
+                            .frame(width: rect.width, height: rect.height)
+                            .mask { shape.fill(Color.black) }
+                        if r != rect {
+                            VisualEffectMaterial(thickness: thickness)
+                                .frame(width: r.width, height: r.height)
+                                .offset(x: r.minX, y: r.minY)
+                                .frame(width: rect.width, height: rect.height, alignment: .topLeading)
+                                .transaction { $0.animation = nil }
+                                .mask {
+                                    Path { p in
+                                        p.addPath(shape.path(in: rect))
+                                        p.addRect(rect)
+                                    }
+                                    .fill(Color.black, style: FillStyle(eoFill: true))
+                                }
+                        }
+                    }
                 }
             }
         }
