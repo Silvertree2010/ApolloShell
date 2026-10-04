@@ -119,6 +119,11 @@ final class HostPanel: ShellPanel {
     override func keyDown(with event: NSEvent) {
         if !onKey(event) { super.keyDown(with: event) }
     }
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown, event.keyCode == 53, event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty, onEscape() { return }
+        super.sendEvent(event)
+    }
 }
 
 final class HostTitledWindow: NSWindow {
