@@ -44,7 +44,7 @@
   border-radius: 9999px;
   background: rgb(from -apple-system-label r g b / 0.08);
 }
-.space-track { width: 100%; height: 100%; justify-content: start; align-items: center; }
+.space-track { width: 100%; height: 100%; justify-self: start; align-self: start; justify-content: start; align-items: center; }
 .space-list { width: 100%; gap: 3px; align-items: center; }
 .space { width: 26px; height: 26px; border-radius: 9999px; }
 .space > stack { width: 100%; height: 100%; }
