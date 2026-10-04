@@ -112,8 +112,11 @@ final class EdgeHoverController {
             strip = CGRect(x: screen.maxX - thickness, y: frame.minY, width: 2 * thickness, height: frame.height)
         case .top, .topLeft, .topRight, .bottom, .bottomLeft, .bottomRight:
             let known = frame.width >= 1
-            var minX = known ? frame.minX : screen.midX - screen.width / 4
-            var maxX = known ? frame.maxX : screen.midX + screen.width / 4
+            let w = screen.width / 2
+            let lead = [.topLeft, .bottomLeft].contains(target.anchor), trail = [.topRight, .bottomRight].contains(target.anchor)
+            let x0 = lead ? screen.minX : trail ? screen.maxX - w : screen.midX - w / 2
+            var minX = known ? frame.minX : x0
+            var maxX = known ? frame.maxX : x0 + w
             if [.topLeft, .bottomLeft].contains(target.anchor) { minX = max(minX, screen.minX + target.gap) }
             if [.topRight, .bottomRight].contains(target.anchor) { maxX = min(maxX, screen.maxX - target.gap) }
             let top = [.top, .topLeft, .topRight].contains(target.anchor)

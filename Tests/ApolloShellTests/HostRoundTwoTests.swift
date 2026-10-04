@@ -284,6 +284,9 @@ struct HostRoundTwoTests {
         unmeasured.frame = CGRect(x: 720, y: 900, width: 0, height: 0)
         #expect(EdgeHoverController.area(unmeasured, open: false).contains(CGPoint(x: 720, y: 900)))
         #expect(EdgeHoverController.area(unmeasured, open: false).width == 720)
+        unmeasured.anchor = .bottomRight
+        #expect(EdgeHoverController.area(unmeasured, open: false).maxX == 1428)
+        #expect(EdgeHoverController.area(unmeasured, open: false).minX == 720)
     }
 
     @Test("reserve: Ränder je Kante für die Fensterwache, Klemmen an allen Kanten")
