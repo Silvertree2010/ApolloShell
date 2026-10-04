@@ -18,6 +18,7 @@ public struct JellySpringParameters: Equatable, Sendable {
 
     public init?(strength: JellyStrength, speed: Double, reduceMotion: Bool = false) {
         guard !reduceMotion, speed > 0 else { return nil }
+        let speed = min(speed, 8)
         switch strength {
         case .off: return nil
         case .subtle: self.init(stiffness: 320 * speed * speed, dampingRatio: 0.8)
@@ -49,7 +50,7 @@ public struct JellyField: Equatable, Sendable {
             target = value
         }
 
-        var isResting: Bool { abs(value - target) < 0.25 && abs(velocity) < 1 }
+        var isResting: Bool { !value.isFinite || !velocity.isFinite || abs(value - target) < 0.25 && abs(velocity) < 1 }
     }
 
     struct Body: Equatable, Sendable {

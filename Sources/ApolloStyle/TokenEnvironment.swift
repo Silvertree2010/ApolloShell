@@ -55,7 +55,7 @@ public struct TokenEnvironment: Sendable, Hashable {
     public var animationSpeed: Double {
         guard let raw = storage["--apollo-animation-speed"],
               let speed = ThemeValueReader.number(raw, unit: .scalar), speed >= 0 else { return 1 }
-        return speed
+        return min(speed, 8)
     }
 
     public var glassEnabled: Bool { flag("--apollo-glass") ?? true }

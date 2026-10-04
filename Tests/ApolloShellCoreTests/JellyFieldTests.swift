@@ -50,6 +50,29 @@ struct JellyFieldTests {
         #expect(rect(field, "popout") == target)
     }
 
+    @Test("A huge theme speed is clamped and still comes to rest")
+    func hugeSpeed() {
+        for speed in [100.0, 1e9, .infinity] {
+            var field = JellyField(parameters: JellySpringParameters(strength: .subtle, speed: speed))
+            let target = CGRect(x: 400, y: 364, width: 200, height: 200)
+            field.set("p", rect: target, radius: 16, grow: .maxY)
+            run(&field, seconds: 3)
+            #expect(field.isResting)
+            #expect(rect(field, "p") == target)
+        }
+    }
+
+    @Test("A spring with a non-finite state counts as resting")
+    func nonFinite() {
+        var s = JellyField.Spring(0)
+        s.target = 10
+        s.value = .nan
+        #expect(s.isResting)
+        s.value = 0
+        s.velocity = .infinity
+        #expect(s.isResting)
+    }
+
     @Test("Strong overshoots visibly, subtle hardly")
     func overshoot() {
         for (strength, low, high) in [(JellyStrength.strong, 0.10, 0.40), (.subtle, 0.0, 0.03)] {
