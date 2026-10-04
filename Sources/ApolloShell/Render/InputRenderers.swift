@@ -119,6 +119,13 @@ struct SliderMetrics: Equatable {
         Swift.min(1, Swift.max(0, (value - min) / (max - min)))
     }
 
+    var ticks: Int? {
+        guard step > 0 else { return nil }
+        let q = ((max - min) / step).rounded()
+        guard q.isFinite, q >= 1, q <= 200 else { return nil }
+        return Int(q)
+    }
+
     func value(fraction: Double) -> Double {
         snap(min + Swift.min(1, Swift.max(0, fraction)) * (max - min))
     }
@@ -183,7 +190,7 @@ struct SliderElement: View {
         let vertical = element.property("vertical").isTruthy
         let thumb = thumbSize
         let tz = StyleValues.numberValue(element.property("track-size")).map { CGFloat($0) }
-        let tk = element.property("ticks").isTruthy && metrics.step > 0 && !vertical
+        let tk = element.property("ticks").isTruthy && metrics.ticks != nil && !vertical
         let keyStep = StyleValues.numberValue(element.property("key-step")) ?? (metrics.step > 0 ? metrics.step : (metrics.max - metrics.min) / 20)
         GeometryReader { proxy in
             let length = vertical ? proxy.size.height : proxy.size.width
@@ -207,7 +214,7 @@ struct SliderElement: View {
                     .frame(maxWidth: vertical ? .infinity : nil, maxHeight: vertical ? nil : .infinity)
                     .opacity(fillMode == .insideLinear && geometry.fraction <= 0 ? 0 : 1)
                 if tk {
-                    let n = Swift.max(1, Int(((metrics.max - metrics.min) / metrics.step).rounded()))
+                    let n = metrics.ticks ?? 1
                     ForEach(0...n, id: \.self) { i in
                         Capsule().fill(Color.primary.opacity(0.4))
                             .frame(width: 1.5, height: 2)

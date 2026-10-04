@@ -146,6 +146,11 @@ struct InteractionTests {
         #expect(metrics.value(fraction: 1.5) == 100)
         #expect(metrics.fraction(25) == 0.25)
         #expect(SliderMetrics(min: 0, max: 1, step: 0).value(fraction: 0.333) == 0.333)
+        #expect(SliderMetrics(min: 0, max: 100, step: 10).ticks == 10)
+        #expect(SliderMetrics(min: 0, max: 1, step: 1e-9).ticks == nil)
+        #expect(SliderMetrics(min: 0, max: 1, step: 1e-300).ticks == nil)
+        #expect(SliderMetrics(min: .infinity, max: .infinity, step: 1).ticks == nil)
+        #expect(SliderMetrics(min: 0, max: 1, step: 0).ticks == nil)
     }
 
     @Test("Tasten in input: Kürzel passt nur mit genau diesen Modifikatoren")
