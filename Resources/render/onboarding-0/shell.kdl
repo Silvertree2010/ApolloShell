@@ -1,2 +1,1 @@
-include "builtin:apolloshell-default/onboarding.kdl"
-style "builtin:apolloshell-default/style.css"
+include "builtin:apolloshell-default/shell.kdl"
