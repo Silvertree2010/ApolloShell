@@ -83,6 +83,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **Themes that style the Spaces blocks:** `.sidebar-spaces` and
+  `.menubar-spaces` are now a stack holding a track with one pill
+  (`.space-track` / `.menubar-space-track`) and the list of desktops
+  (`.space-list` / `.menubar-space-list`). Rules that sized `.space-pill` or
+  `.menubar-space-pill` to 100 % or laid out the old row or column need
+  updating.
 - **Escape closes the session menu again.** A panel without a text field
   never turned the Escape key into a cancel, so the key did nothing there.
   While a text field composes marked text (an input method), Escape still
