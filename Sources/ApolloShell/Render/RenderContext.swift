@@ -151,10 +151,11 @@ struct ElementView: View {
             let animated = element.ir.properties["style"] != nil || plan.inline.animation || styles.declares("animation", fixed)
             ElementRenderers.view(for: element, style: style, scope: inner)
                 .modifier(StyledBox(style: style, context: scope.context, padded: element.kind != "scroll", fill: fill, form: Self.form(element), anchorID: element.property("id").plainText, dynamicInline: filters,
-                                      alignment: element.kind == "text" ? TextStyle(style).frameAlignment : .center, parts: parts))
+                                      alignment: element.kind == "text" ? TextStyle(style).frameAlignment : .center, parts: parts, outer: false))
                 .gated(!mouse.isEmpty || StyleValues.visibleBackground(style)) { $0.modifier(HitRegionMarker(active: true, identity: element.identity)) }
                 .interacting(Self.needsInteraction(element, styles: styles, reorder: reorderEntry != nil || canvasEntry != nil || mouse.dragValue, stateStyled: hover || press),
                              element: element, context: scope.context, config: mouse, hover: hover, press: press)
+                .modifier(BoxOuter(style: style, parts: parts))
                 .gated(motion) { $0.modifier(Motion(element: element, style: style, context: scope.context, dynamicInline: animated)) }
                 .gated(parts.pointer) { $0.transformEnvironment(\.elementInteractive) { if StyleValues.keyword(style["pointer-events"]) == "none" { $0 = false } } }
                 .gated(RevealID.id(element) != nil || element.ir.properties["id"] != nil) { $0.modifier(RevealID(element: element)) }

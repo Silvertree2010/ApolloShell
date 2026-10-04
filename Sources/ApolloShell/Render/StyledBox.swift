@@ -96,13 +96,14 @@ struct StyledBox: ViewModifier {
     var dynamicInline = false
     var alignment: Alignment = .center
     var parts = BoxParts.all
+    var outer = true
 
     func body(content: Content) -> some View {
         let shape = form ?? AnyShape(StyleShape(style))
         content
             .boxLayout(style: style, padded: padded, fill: fill, alignment: alignment, parts: parts)
             .boxPaint(style: style, context: context, parts: parts, shape: shape, forced: form != nil)
-            .modifier(BoxEffects(style: style, parts: parts, flyouts: flyouts, anchorID: anchorID, dynamicInline: dynamicInline))
+            .modifier(BoxEffects(style: style, parts: parts, flyouts: flyouts, anchorID: anchorID, dynamicInline: dynamicInline, outer: outer))
     }
 }
 
@@ -112,9 +113,21 @@ struct BoxEffects: ViewModifier {
     let flyouts: AnyView?
     let anchorID: String?
     let dynamicInline: Bool
+    var outer = true
 
     func body(content: Content) -> some View {
-        content.boxEffects(style: style, parts: parts, flyouts: flyouts, anchorID: anchorID, dynamicInline: dynamicInline)
+        content.boxEffects(style: style, parts: parts, flyouts: flyouts, anchorID: anchorID, dynamicInline: dynamicInline, outer: outer)
+    }
+}
+
+struct BoxOuter: ViewModifier {
+    let style: ComputedStyle
+    let parts: BoxParts
+
+    func body(content: Content) -> some View {
+        content
+            .gated(parts.transform) { $0.modifier(Transform(style["transform"])) }
+            .gated(parts.margin) { $0.padding(StyleValues.sides(style["margin"])) }
     }
 }
 
@@ -140,14 +153,14 @@ extension View {
             .gated(parts.shadow) { $0.modifier(BoxShadows(style["box-shadow"], shape: shape)) }
     }
 
-    func boxEffects(style: ComputedStyle, parts: BoxParts, flyouts: AnyView?, anchorID: String?, dynamicInline: Bool) -> some View {
+    func boxEffects(style: ComputedStyle, parts: BoxParts, flyouts: AnyView?, anchorID: String?, dynamicInline: Bool, outer: Bool = true) -> some View {
         self
             .gated(flyouts != nil) { $0.modifier(FlyoutOverlay(layer: flyouts)) }
             .gated(dynamicInline) { $0.modifier(Filters(style["filter"], enabled: dynamicInline)) }
             .gated(parts.opacity) { $0.opacity(StyleValues.number(style["opacity"]) ?? 1) }
-            .gated(parts.transform) { $0.modifier(Transform(style["transform"])) }
+            .gated(parts.transform && outer) { $0.modifier(Transform(style["transform"])) }
             .gated(anchorID != nil) { $0.modifier(AnchorReport(id: anchorID)) }
-            .gated(parts.margin) { $0.padding(StyleValues.sides(style["margin"])) }
+            .gated(parts.margin && outer) { $0.padding(StyleValues.sides(style["margin"])) }
             .gated(parts.depth) { $0.zIndex(StyleValues.number(style["z-index"]) ?? 0) }
             .gated(parts.pointer) { $0.allowsHitTesting(StyleValues.keyword(style["pointer-events"]) != "none") }
             .gated(parts.cursor) { $0.modifier(Cursor(name: StyleValues.keyword(style["cursor"]))) }
