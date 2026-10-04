@@ -81,4 +81,13 @@ struct SurfacePlacementTests {
         }
         #expect(SurfacePlacement.points(.string("12px")) == 12)
     }
+
+    @Test("Timeouts are finite and clamped")
+    func timeoutSeconds() {
+        #expect(SurfaceWindowSpec.seconds(.string("infs")) == nil)
+        #expect(SurfaceWindowSpec.seconds(.string("1e999s")) == nil)
+        #expect(SurfaceWindowSpec.seconds(.string("99999s")) == 3600)
+        #expect(SurfaceWindowSpec.seconds(.string("-5s")) == 0)
+        #expect(SurfaceWindowSpec.seconds(.string("500ms")) == 0.5)
+    }
 }

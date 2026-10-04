@@ -133,6 +133,11 @@ struct SurfaceWindowSpec: Equatable {
     }
 
     static func seconds(_ value: Value) -> Double? {
+        let v = rawSeconds(value)
+        return v.flatMap { $0.isFinite ? min(max($0, 0), 3600) : nil }
+    }
+
+    private static func rawSeconds(_ value: Value) -> Double? {
         if let number = number(value) { return number }
         guard let text = text(value) else { return nil }
         let units: [(String, Double)] = [("ms", 0.001), ("s", 1), ("m", 60)]
