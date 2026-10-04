@@ -460,13 +460,13 @@ final class WindowHost: SurfaceHosting {
             let glide = controller.shown && controller.offset != nil && controller.offset != offset
             controller.offset = offset
             controller.openFrame = frame
+            controller.window.setClip(top: layout.clipTop > 0 ? layout.clipTop + flyout.top : 0)
             if let pending = controller.pendingContent {
                 controller.pendingContent = nil
                 controller.window.setContent(pending, frame: Self.expand(frame, by: flyout), glide: glide)
             } else {
                 controller.window.setFrame(Self.expand(frame, by: flyout), glide: glide)
             }
-            controller.window.setClip(top: layout.clipTop > 0 ? layout.clipTop + flyout.top : 0)
         }
         if surface.isVisible { remeasure(key) }
         let opening = surface.isOpen && !controller.wasOpen
