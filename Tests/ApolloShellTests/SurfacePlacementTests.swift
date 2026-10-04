@@ -90,4 +90,14 @@ struct SurfacePlacementTests {
         #expect(SurfaceWindowSpec.seconds(.string("-5s")) == 0)
         #expect(SurfaceWindowSpec.seconds(.string("500ms")) == 0.5)
     }
+
+    @Test("Sizes are finite and never negative")
+    func sizes() {
+        let l = { (v: Double) in CSSValue.length(CSSLength(value: v, unit: .points)) }
+        #expect(StyleValues.size(l(-4)) == 0)
+        #expect(StyleValues.size(l(.infinity)) == 0)
+        #expect(StyleValues.size(l(.nan)) == 0)
+        #expect(StyleValues.size(l(30)) == 30)
+        #expect(StyleValues.size(nil) == nil)
+    }
 }

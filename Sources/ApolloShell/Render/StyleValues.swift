@@ -72,6 +72,10 @@ enum StyleValues {
         return CGFloat(length.value)
     }
 
+    static func size(_ value: CSSValue?) -> CGFloat? {
+        points(value).map { $0.isFinite ? max($0, 0) : 0 }
+    }
+
     static func percent(_ value: CSSValue?) -> CGFloat? {
         guard let length = length(value), length.unit == .percent else { return nil }
         return CGFloat(length.value / 100)

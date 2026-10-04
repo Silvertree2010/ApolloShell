@@ -444,7 +444,7 @@ final class WindowHost: SurfaceHosting {
             frame = SurfacePlacement.attached(size: frame.size, to: target, side: attach.side, align: attach.align, offset: CGPoint(x: placement.offsetX, y: placement.offsetY), visible: screen.visible, margin: placement.margin)
         }
         if spec.kind == "window" {
-            controller.window.setMinSize(CGSize(width: StyleValues.points(style["min-width"]) ?? 0, height: StyleValues.points(style["min-height"]) ?? 0))
+            controller.window.setMinSize(CGSize(width: StyleValues.size(style["min-width"]) ?? 0, height: StyleValues.size(style["min-height"]) ?? 0))
             if surface.isVisible && !controller.placed {
                 controller.placed = true
                 if !controller.window.restoreFrame() {
