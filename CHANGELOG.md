@@ -83,6 +83,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **Escape closes the session menu again.** A panel without a text field
+  never turned the Escape key into a cancel, so the key did nothing there.
+  While a text field composes marked text (an input method), Escape still
+  goes to the field.
+- **`match-id` glides.** Elements that share a `match-id` now slide from the
+  old element's place to the new one, as the documentation always said; before
+  they only cross-faded.
 - **The dashboard opens on hover right after launch**, and again after edit
   mode. Hovering the edge used to do nothing until the dashboard had been
   measured or after you left edit mode. Corner anchors now react at the
