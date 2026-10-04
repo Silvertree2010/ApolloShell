@@ -73,4 +73,12 @@ struct SurfacePlacementTests {
         #expect(fixture.fixture?.path == "/tmp/f.kdl")
         #expect(fixture.config?.path == "/tmp/c")
     }
+
+    @Test("Non-finite lengths count as zero")
+    func nonFinitePoints() {
+        for v in [Value.string("nan"), .string("inf"), .string("infpx"), .number(.nan), .number(.infinity)] {
+            #expect(SurfacePlacement.points(v) == 0)
+        }
+        #expect(SurfacePlacement.points(.string("12px")) == 12)
+    }
 }

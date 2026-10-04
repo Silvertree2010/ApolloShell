@@ -100,10 +100,10 @@ struct SurfacePlacement: Equatable {
 
     static func points(_ value: Value) -> CGFloat {
         switch value {
-        case .number(let number): return CGFloat(number)
+        case .number(let number): return number.isFinite ? CGFloat(number) : 0
         case .string(let text):
             let trimmed = text.hasSuffix("px") ? String(text.dropLast(2)) : text
-            return Double(trimmed).map { CGFloat($0) } ?? 0
+            return Double(trimmed).flatMap { $0.isFinite ? CGFloat($0) : nil } ?? 0
         default: return 0
         }
     }
