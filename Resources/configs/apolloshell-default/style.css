@@ -6,7 +6,7 @@
   -apollo-join-radius: 14px;
   --fuse-radius: var(--apollo-bar-radius, var(--apollo-fusion-radius, 14px));
 }
-#sidebar.bg-material { background: material(regular); }
+#sidebar.bg-material { background: var(--apollo-bar-color, -apple-system-window-background); }
 #sidebar.bg-glass { background: glass(regular); }
 #sidebar.bg-tinted-glass { background: glass(regular, rgb(from -apple-system-window-background r g b / 0.7)); }
 #sidebar.bg-fixed-glass { background: glass(clear), -apple-system-window-background; }

@@ -1,6 +1,6 @@
 #menubar { width: 100%; align-items: stretch; color: var(--apollo-menubar-text-color, var(--apollo-bar-text-color, -apple-system-label)); }
 #menubar.fill { border-radius: var(--apollo-menubar-radius, 0px); }
-#menubar.fill.bg-material { background: material(regular); }
+#menubar.fill.bg-material { background: var(--apollo-bar-color, -apple-system-window-background); }
 #menubar.fill.themed { background: var(--apollo-menubar-fill), glass(regular); }
 
 .menubar-zones { align-self: stretch; height: 100%; padding: 0 var(--apollo-bar-padding, 10px); gap: 8px; align-items: stretch; }
@@ -12,7 +12,7 @@
 
 .menubar-group { gap: var(--apollo-menubar-item-spacing, 4px); align-items: center; }
 #menubar.islands .menubar-group { padding: 0 var(--apollo-menubar-padding, 6px); border-radius: var(--apollo-menubar-island-radius, 12px); }
-#menubar.islands.bg-material .menubar-group { background: material(regular); }
+#menubar.islands.bg-material .menubar-group { background: var(--apollo-bar-color, -apple-system-window-background); }
 #menubar.islands.themed .menubar-group { background: var(--apollo-menubar-fill), glass(regular); }
 #menubar.fill.distinct .menubar-group { padding: 0 var(--apollo-menubar-padding, 6px); margin: 3px 0; background: var(--apollo-menubar-group-color, rgb(0 0 0 / 0.08)); border-radius: var(--apollo-menubar-group-radius, 9px); }
 @media (prefers-color-scheme: dark) {
@@ -119,7 +119,7 @@
 .menubar-dock-running-dot { width: 4px; height: 4px; border-radius: 9999px; justify-self: end; background: var(--apollo-dock-indicator-color, rgb(from -apple-system-label r g b / 0.65)); }
 .menubar-status-symbol.fallback { font-size: 13px; margin: 0 7px; }
 #menubar-status-popout { border-radius: 25px; }
-#menubar-status-popout.bg-material { background: material(regular); }
+#menubar-status-popout.bg-material { background: var(--apollo-bar-color, -apple-system-window-background); }
 #menubar-status-popout.themed { background: var(--apollo-menubar-fill), glass(regular); }
 #menubar-status-popout .popout-battery .popout-status-text { gap: 2px; }
 .menubar-window-title { gap: 7px; padding: 0 6px; align-items: center; }
