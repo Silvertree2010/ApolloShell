@@ -49,14 +49,20 @@ define "sidebar-spaces" {
         case "pills" { use "sidebar-spaces-face" module="{module}" }
         case "bars" { use "sidebar-spaces-face" module="{module}" }
         default {
-            column class="sidebar-spaces style-{module.style}" {
-                each space in="{spaces.list | where 'fullscreen' false}" key="{space.id}" {
-                    button class="space" checked="{space.active}" tooltip="Desktop {space.index}" {
-                        on-click { spaces.switch "{space.index}" }
-                        stack {
-                            when "{space.active}" { stack class="space-pill" match-id="space-pill" }
-                            when "{module.style == 'numbers'}" { text "{space.index}" class="space-number" }
-                            else { stack class="space-dot" }
+            stack class="sidebar-spaces style-{module.style}" {
+                column class="space-track" {
+                    when "{(spaces.list | where 'fullscreen' false | map 'active' | index-of true) != null}" {
+                        stack class="space-pill" style="margin: {(spaces.list | where 'fullscreen' false | map 'active' | index-of true) * 29}px 0 0 0"
+                    }
+                }
+                column class="space-list" {
+                    each space in="{spaces.list | where 'fullscreen' false}" key="{space.id}" {
+                        button class="space" checked="{space.active}" tooltip="Desktop {space.index}" {
+                            on-click { spaces.switch "{space.index}" }
+                            stack {
+                                when "{module.style == 'numbers'}" { text "{space.index}" class="space-number" }
+                                else { stack class="space-dot" }
+                            }
                         }
                     }
                 }

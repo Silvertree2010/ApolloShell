@@ -79,7 +79,9 @@
 #menubar.islands .menubar-spaces, #menubar.fill.distinct .menubar-spaces { background: transparent; }
 .menubar-space { width: calc(var(--menubar-control) - 6px); height: calc(var(--menubar-control) - 6px); border-radius: 9999px; }
 .menubar-space > stack { width: 100%; height: 100%; }
-.menubar-space-pill { width: 100%; height: 100%; border-radius: 9999px; background: var(--apollo-spaces-active-color, var(--apollo-accent-color, -apple-system-control-accent)); transition: all 500ms spatial; }
+.menubar-space-track { width: 100%; height: 100%; justify-content: start; align-items: center; }
+.menubar-space-list { height: 100%; gap: 3px; align-items: center; }
+.menubar-space-pill { width: calc(var(--menubar-control) - 6px); height: calc(var(--menubar-control) - 6px); border-radius: 9999px; background: var(--apollo-spaces-active-color, var(--apollo-accent-color, -apple-system-control-accent)); transition: all 500ms spatial; }
 .menubar-space-dot { width: 25%; height: 25%; aspect-ratio: 1; border-radius: 9999px; background: rgb(from -apple-system-label r g b / 0.4); transition: all 500ms spatial; }
 .menubar-space:checked .menubar-space-dot { width: 66.67%; height: 66.67%; border-radius: 30%; background: var(--apollo-on-accent-color, white); }
 .menubar-space-number { font-size: 12px; font-weight: 700; font-family: ui-rounded; font-variant-numeric: tabular-nums; color: rgb(from -apple-system-label r g b / 0.6); }
