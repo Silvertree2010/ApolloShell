@@ -242,7 +242,6 @@ struct SurfaceBox: ViewModifier {
         let overlay = AnyView(FlyoutLayer(surface: surface, flyouts: flyouts, fused: fused, bulges: bulges, context: context))
         content
             .environment(\.matchNamespace, matches)
-            .coordinateSpace(.named(matches))
             .modifier(StyledBox(style: style, context: context, form: form, flyouts: overlay,
                                 dynamicInline: context.styles.declares("filter", StyleResolver.staticSubject(for: surface))))
             .animation(Self.motion(bulges, context: context), value: bulges)

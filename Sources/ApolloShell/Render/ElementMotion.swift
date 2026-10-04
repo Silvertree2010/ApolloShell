@@ -192,7 +192,7 @@ struct MatchGlide: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(key.space)) } action: { now in
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { now in
                 let frames = MatchFrames.shared
                 defer { frames.last[key] = now; seen = true }
                 guard !seen, let animation, let old = frames.last[key], old != now else { return }
