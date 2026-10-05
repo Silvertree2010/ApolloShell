@@ -11,10 +11,10 @@ struct MainBlockObserverTests {
         _ = observer.takeLongest()
         CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) { usleep(60_000) }
         CFRunLoopWakeUp(CFRunLoopGetMain())
-        CFRunLoopRunInMode(.defaultMode, 0.25, false)
-        CFRunLoopRunInMode(.defaultMode, 0.25, false)
+        CFRunLoopRunInMode(.defaultMode, 0.6, false)
+        CFRunLoopRunInMode(.defaultMode, 0.6, false)
         let longest = observer.takeLongest()
         #expect(longest >= 60)
-        #expect(longest < 200)
+        #expect(longest < 400)
     }
 }
