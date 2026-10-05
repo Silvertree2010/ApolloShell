@@ -29,7 +29,7 @@ enum CPUTime {
     #endif
 
     #if arch(x86_64)
-    static let machineFactor = 3.5
+    static let machineFactor = 6.0
     #else
     static let machineFactor = 1.0
     #endif
