@@ -372,6 +372,57 @@ struct WindowHostTests {
         #expect(fixture.host.stats.windowsCreated == 5)
     }
 
+    @Test("Geschlossene Oberfläche gibt ihren Inhalt nach der Wartezeit frei und baut ihn beim Öffnen neu")
+    func sleepAndWake() throws {
+        let fixture = try HostFixture(Self.shell, css: Self.css)
+        var timers: [DispatchWorkItem] = []
+        fixture.host.scheduleTimer = { _, work in timers.append(work) }
+        let menu = try #require(fixture.window("menu"))
+        let controller = try #require(fixture.host.controllers[SurfaceHost.key("menu", HostFixture.screen.key)])
+        fixture.assembly.runtime.open("menu", screenKey: nil)
+        fixture.flush()
+        menu.finishAnimations()
+        fixture.assembly.runtime.close("menu")
+        fixture.flush()
+        menu.finishAnimations()
+        #expect(!controller.asleep)
+        timers.filter { !$0.isCancelled }.forEach { $0.perform() }
+        #expect(controller.asleep)
+        #expect(fixture.host.stats.sleeps == 1)
+        let sets = menu.contentSets
+        fixture.host.restyle(fixture.context(fixture.ir))
+        fixture.flush()
+        #expect(menu.contentSets == sets)
+        #expect(controller.asleep)
+        fixture.assembly.runtime.open("menu", screenKey: nil)
+        fixture.flush()
+        #expect(!controller.asleep)
+        #expect(menu.isShown)
+        #expect(menu.contentSets > sets)
+        #expect(fixture.host.stats.wakes == 1)
+        #expect(fixture.host.stats.windowsCreated == 5)
+    }
+
+    @Test("Wiederöffnen vor Ablauf der Wartezeit lässt den Inhalt stehen")
+    func reopenBeforeSleep() throws {
+        let fixture = try HostFixture(Self.shell, css: Self.css)
+        var timers: [DispatchWorkItem] = []
+        fixture.host.scheduleTimer = { _, work in timers.append(work) }
+        let menu = try #require(fixture.window("menu"))
+        let controller = try #require(fixture.host.controllers[SurfaceHost.key("menu", HostFixture.screen.key)])
+        fixture.assembly.runtime.open("menu", screenKey: nil)
+        fixture.flush()
+        menu.finishAnimations()
+        fixture.assembly.runtime.close("menu")
+        fixture.flush()
+        menu.finishAnimations()
+        fixture.assembly.runtime.open("menu", screenKey: nil)
+        fixture.flush()
+        timers.filter { !$0.isCancelled }.forEach { $0.perform() }
+        #expect(!controller.asleep)
+        #expect(fixture.host.stats.sleeps == 0)
+    }
+
     @Test("surface.opening gilt bis zum Ende der Öffnungsbewegung")
     func openingFlag() throws {
         let fixture = try HostFixture(Self.shell, css: Self.css)

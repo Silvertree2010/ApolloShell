@@ -19,6 +19,8 @@ struct WindowHostStats: Equatable {
     var windowsClosed = 0
     var spaceChanges = 0
     var restyles = 0
+    var sleeps = 0
+    var wakes = 0
 }
 
 @MainActor
@@ -42,6 +44,8 @@ final class SurfaceWindowController {
     var flyout = EdgeInsets()
     var pendingContent: AnyView?
     var flyoutShrink: DispatchWorkItem?
+    var asleep = false
+    var sleepWork: DispatchWorkItem?
 
     init(surface: SurfaceInstance, window: any HostWindow, spec: SurfaceWindowSpec) {
         self.surface = surface
@@ -101,6 +105,7 @@ final class WindowHost: SurfaceHosting {
     }
     static let hoverPoll: TimeInterval = 0.25
     static let flyoutShrinkDelay: TimeInterval = 0.5
+    var sleepDelay: TimeInterval = 30
     var watchPointer: @MainActor (@escaping @MainActor () -> Void) -> (@MainActor () -> Void) = PointerWatch.live
     private var stopPointer: (@MainActor () -> Void)?
     private var attachSyncing: Set<String> = []
@@ -143,7 +148,7 @@ final class WindowHost: SurfaceHosting {
             auxiliary.unregister(fusion.ownerID, screens: geometries)
         }
         for (key, controller) in controllers {
-            controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
+            if !controller.asleep { controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout)) }
             sync(key)
         }
     }
@@ -228,7 +233,7 @@ final class WindowHost: SurfaceHosting {
         stats.restyles += 1
         let wasOn = fusionRegistered
         for (key, controller) in controllers {
-            controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
+            if !controller.asleep { controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout)) }
             sync(key)
         }
         if wasOn, fusionRegistered { auxiliary.sync(screens.values.sorted { $0.key < $1.key }) }
@@ -289,6 +294,7 @@ final class WindowHost: SurfaceHosting {
     private func applyFlyout(_ key: String, _ extent: EdgeInsets) {
         guard let controller = controllers[key], controller.flyout != extent else { return }
         controller.flyout = extent
+        guard !controller.asleep else { return }
         controller.pendingContent = content(controller.surface, insets: controller.insets, flyout: extent)
         sync(key)
         if let pending = controller.pendingContent {
@@ -326,6 +332,7 @@ final class WindowHost: SurfaceHosting {
         guard let controller = controllers.removeValue(forKey: key) else { return }
         controller.timeout?.cancel()
         controller.flyoutShrink?.cancel()
+        controller.sleepWork?.cancel()
         controller.ticker?.stop()
         controller.ticker = nil
         controller.window.close()
@@ -361,6 +368,7 @@ final class WindowHost: SurfaceHosting {
     private func occlusionChanged(_ key: String, visible: Bool) {
         guard let controller = controllers[key], let context else { return }
         if visible { context.occluded.remove(key) } else { context.occluded.insert(key) }
+        guard !controller.asleep else { return }
         controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
     }
 
@@ -426,6 +434,17 @@ final class WindowHost: SurfaceHosting {
         guard let screen = screens[surface.screenKey] else {
             log("surface \(surface.id): no screen \(surface.screenKey)")
             return
+        }
+        if controller.asleep {
+            guard surface.isVisible else {
+                let opening = surface.isOpen && !controller.wasOpen
+                let closing = !surface.isOpen && controller.wasOpen
+                controller.wasOpen = surface.isOpen
+                if opening || closing { onOpenChanged() }
+                if opening { finishOpening(controller) } else if closing { finishClosing(controller, key: key) }
+                return
+            }
+            wake(controller)
         }
         observeProperties(controller, key: key)
         let style = context.styles.resolve(surface: surface)
@@ -570,6 +589,8 @@ final class WindowHost: SurfaceHosting {
     }
 
     private func present(_ controller: SurfaceWindowController, key: String, placement: SurfacePlacement, screen: ScreenGeometry, focus: Bool) {
+        controller.sleepWork?.cancel()
+        controller.sleepWork = nil
         let spec = controller.spec
         guard let motion = motion(spec) else {
             controller.window.show(focus: focus)
@@ -593,6 +614,7 @@ final class WindowHost: SurfaceHosting {
     private func dismiss(_ controller: SurfaceWindowController, key: String, placement: SurfacePlacement, screen: ScreenGeometry, closing: Bool) {
         controller.timeout?.cancel()
         let spec = controller.spec
+        scheduleSleep(controller, key: key)
         guard let motion = motion(spec), closing else {
             stopTicker(controller)
             controller.window.hide()
@@ -609,6 +631,33 @@ final class WindowHost: SurfaceHosting {
             self.frames.publish(key, nil)
             self.finishClosing(controller, key: key)
         }
+    }
+
+    private func scheduleSleep(_ controller: SurfaceWindowController, key: String) {
+        controller.sleepWork?.cancel()
+        controller.sleepWork = nil
+        guard sleepDelay > 0, !controller.asleep else { return }
+        let work = DispatchWorkItem { [weak self, weak controller] in
+            MainActor.assumeIsolated {
+                guard let self, let controller, self.controllers[key] === controller else { return }
+                controller.sleepWork = nil
+                guard !controller.shown, controller.ticker == nil else { return }
+                controller.asleep = true
+                controller.pendingContent = nil
+                controller.window.setContent(AnyView(EmptyView()))
+                self.context?.hits.remove(key)
+                self.context?.elementFrames.remove(key)
+                self.stats.sleeps += 1
+            }
+        }
+        controller.sleepWork = work
+        scheduleTimer(sleepDelay, work)
+    }
+
+    private func wake(_ controller: SurfaceWindowController) {
+        controller.asleep = false
+        controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
+        stats.wakes += 1
     }
 
     private func finishOpening(_ controller: SurfaceWindowController) {
