@@ -477,12 +477,10 @@ popup "dash" anchor="top" area="full" safe-area=#false overhang=#true shape="fus
                 use "tab" id="wx" t="Weather" i="cloud.sun"
             }
             stack class="sep"
-            switch "{var.dt}" {
-                case "dash" { use "pane-dash" }
-                case "media" { use "pane-media" }
-                case "perf" { use "pane-perf" }
-                case "wx" { use "pane-wx" }
-            }
+            column class="pv" visible="{var.dt == 'dash'}" { use "pane-dash" }
+            column class="pv" visible="{var.dt == 'media'}" { use "pane-media" }
+            column class="pv" visible="{var.dt == 'perf'}" { use "pane-perf" }
+            column class="pv" visible="{var.dt == 'wx'}" { use "pane-wx" }
         }
     }
 }

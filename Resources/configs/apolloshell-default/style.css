@@ -122,7 +122,7 @@
 .tabind { width: 32px; height: 3px; margin-top: 4px; border-radius: 2px; background: var(--ac); transition: match 0.5s var(--sp); }
 .tabind0 { width: 32px; height: 3px; margin-top: 4px; }
 .sep { height: 1px; width: 100%; background: var(--sep); margin: -10px 0 0; }
-.pane { gap: 12px; -apollo-appear: fade 0.3s var(--fx), slide(top 12px) 0.5s var(--sp); -apollo-disappear: fade 0.12s var(--fx); }
+.pane { gap: 12px; -apollo-appear: fade 0.38s cubic-bezier(0.6, 0, 0.9, 0.55); -apollo-disappear: fade 0.08s linear; }
 
 .card { border-radius: var(--rl); background: var(--f1); }
 .h4 { font-size: 13px; font-weight: 600; }
@@ -423,8 +423,8 @@
 .abmk { width: 72px; height: 72px; }
 
 #ob { border-radius: 30px; background: var(--gl); }
-.obw { width: 520px; padding: 28px 28px 22px; gap: 22px; }
-.obp { gap: 10px; align-items: center; min-height: 340px; -apollo-appear: fade 0.3s var(--fx), slide(trailing 30px) 0.5s var(--sp); -apollo-disappear: fade 0.15s var(--fx); }
+.obw { width: 520px; height: 480px; padding: 28px 28px 22px; gap: 22px; }
+.obp { gap: 10px; align-items: center; flex-grow: 1; -apollo-appear: fade 0.3s var(--fx), slide(trailing 30px) 0.5s var(--sp); -apollo-disappear: fade 0.15s var(--fx); }
 .obhero { width: 92px; height: 92px; margin-bottom: 6px; }
 .obmk { width: 92px; height: 92px; }
 .obic { width: 72px; height: 72px; margin-bottom: 8px; border-radius: 22px; background: var(--ac); color: var(--on); align-items: center; justify-content: center; }
@@ -445,7 +445,23 @@
 .actc { gap: 5px; align-items: center; }
 .optr { gap: 10px; width: 100%; align-items: center; }
 .pmain { justify-content: start; }
-.gate { opacity: 0; transition: opacity 0.2s var(--fx); }
+.gate { opacity: 0.01; transition: opacity 0.2s var(--fx); }
 .gate:checked { opacity: 1; }
 .gdash { gap: 10px; }
 .glch { gap: 8px; }
+.bme { gap: 4px; align-items: center; padding: 4px 0; border-radius: 14px; background: var(--f1); animation: wiggle 0.36s infinite; }
+.bme:checked { opacity: 0.45; }
+.bme .bm:checked { opacity: 1; }
+.bmx { width: 18px; height: 18px; border-radius: 9px; background: var(--red); color: white; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; }
+.bmx:checked { background: var(--red); }
+.bme:checked .bmx { background: var(--grn); }
+.bar:checked .bsp { min-height: 28px; }
+.pperf .dr { width: 832px; }
+.pnet { flex-grow: 1; }
+.pgc { align-items: stretch; }
+.pgt { text-align: start; }
+.sec { width: 514px; }
+.secb { width: 514px; }
+.sect { text-align: start; }
+.pgab .pgt { text-align: center; }
+.pgab .sub { text-align: center; }

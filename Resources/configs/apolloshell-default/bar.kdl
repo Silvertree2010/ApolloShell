@@ -119,7 +119,7 @@ define "bmod" {
 }
 
 panel "bar" anchor="left" area="below-menubar" shape="fused" reserve=#true {
-    column class="bar" {
+    column class="bar" checked="{var.edit}" {
         menu {
             item "Edit Bar" icon="slider.horizontal.3" { set "edit" #true }
             item "Settings…" icon="gearshape" { emit "prefs" }
@@ -130,8 +130,14 @@ panel "bar" anchor="left" area="below-menubar" shape="fused" reserve=#true {
         when "{var.edit}" {
             reorderable class="bmods" axis="vertical" enabled=#true {
                 on-reorder { list.move "bm" from="{event.from}" to="{event.to}" }
-                each m in="{var.bm}" key="{m.id}" {
-                    use "bmod" m="{m}"
+                each m in="{var.bm}" key="{m.id}" index="mi" {
+                    column class="bme" checked="{!m.on}" {
+                        use "bmod" m="{m}"
+                        button class="bmx" checked="{m.on}" label="{m.on ? 'Hide' : 'Show'}" {
+                            on-click { set "bm" "{!m.on}" in="{mi}" field="on" }
+                            icon "{m.on ? 'minus' : 'plus'}"
+                        }
+                    }
                 }
             }
         }
