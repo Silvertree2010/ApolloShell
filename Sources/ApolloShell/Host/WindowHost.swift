@@ -42,6 +42,8 @@ final class SurfaceWindowController {
     var remeasurePending = false
     var lastFitting: CGSize?
     var flyout = EdgeInsets()
+    var bleed = EdgeInsets()
+    var pad: EdgeInsets { SurfaceBleed.union(flyout, bleed) }
     var pendingContent: AnyView?
     var flyoutShrink: DispatchWorkItem?
     var asleep = false
@@ -148,7 +150,7 @@ final class WindowHost: SurfaceHosting {
             auxiliary.unregister(fusion.ownerID, screens: geometries)
         }
         for (key, controller) in controllers {
-            if !controller.asleep { controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout)) }
+            if !controller.asleep { controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.pad)) }
             sync(key)
         }
     }
@@ -233,7 +235,7 @@ final class WindowHost: SurfaceHosting {
         stats.restyles += 1
         let wasOn = fusionRegistered
         for (key, controller) in controllers {
-            if !controller.asleep { controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout)) }
+            if !controller.asleep { controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.pad)) }
             sync(key)
         }
         if wasOn, fusionRegistered { auxiliary.sync(screens.values.sorted { $0.key < $1.key }) }
@@ -295,7 +297,7 @@ final class WindowHost: SurfaceHosting {
         guard let controller = controllers[key], controller.flyout != extent else { return }
         controller.flyout = extent
         guard !controller.asleep else { return }
-        controller.pendingContent = content(controller.surface, insets: controller.insets, flyout: extent)
+        controller.pendingContent = content(controller.surface, insets: controller.insets, flyout: controller.pad)
         sync(key)
         if let pending = controller.pendingContent {
             controller.pendingContent = nil
@@ -360,7 +362,7 @@ final class WindowHost: SurfaceHosting {
         let point = pointer()
         for (key, controller) in controllers where controller.spec.clickThrough == .auto && controller.shown {
             let frame = controller.window.frame
-            let local = CGPoint(x: point.x - frame.minX - controller.flyout.leading, y: frame.maxY - point.y - controller.flyout.top)
+            let local = CGPoint(x: point.x - frame.minX - controller.pad.leading, y: frame.maxY - point.y - controller.pad.top)
             controller.window.setIgnoresMouse(!(frame.contains(point) && hits.contains(local, surfaceKey: key)))
         }
     }
@@ -369,7 +371,7 @@ final class WindowHost: SurfaceHosting {
         guard let controller = controllers[key], let context else { return }
         if visible { context.occluded.remove(key) } else { context.occluded.insert(key) }
         guard !controller.asleep else { return }
-        controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
+        controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.pad))
     }
 
     private func remeasure(_ key: String) {
@@ -450,7 +452,7 @@ final class WindowHost: SurfaceHosting {
         let style = context.styles.resolve(surface: surface)
         let placement = SurfacePlacement(kind: surface.ir.kind, property: surface.property, style: style)
         controller.window.watchFitting(spec.kind != "window" && (placement.width == nil || placement.height == nil))
-        let fit = controller.window.fittingSize, flyout = controller.flyout
+        let fit = controller.window.fittingSize, flyout = controller.pad
         controller.lastFitting = fit
         let fitting = Self.contentFit(fit, controller.insets, flyout)
         let layout = SurfaceLayout.compute(placement: placement, spec: spec, radius: StyleValues.radius(style["border-radius"]), screen: screen, fitting: fitting)
@@ -478,6 +480,15 @@ final class WindowHost: SurfaceHosting {
                 controller.window.setContent(pending)
             }
         } else {
+            let bleed = SurfaceBleed.clamp(SurfaceBleed.insets(style), frame: frame, screen: screen.frame)
+            if bleed != controller.bleed {
+                controller.bleed = bleed
+                controller.pendingContent = content(surface, insets: controller.insets, flyout: controller.pad)
+            }
+            let flyout = controller.pad
+            let fly = controller.flyout
+            controller.window.setBleed(EdgeInsets(top: fly.top > 0 ? 0 : bleed.top, leading: fly.leading > 0 ? 0 : bleed.leading,
+                                                  bottom: fly.bottom > 0 ? 0 : bleed.bottom, trailing: fly.trailing > 0 ? 0 : bleed.trailing))
             let offset = CGPoint(x: placement.offsetX, y: placement.offsetY)
             let glide = controller.shown && controller.offset != nil && controller.offset != offset
             controller.offset = offset
@@ -535,7 +546,7 @@ final class WindowHost: SurfaceHosting {
         let key = controllers[same] != nil ? same : controllers.keys.sorted().first { controllers[$0]?.surface.id == attach.surface }
         guard let key, let controller = controllers[key], controller.shown,
               let rect = context?.elementFrames.frame(attach.element, surfaceKey: key) else { return nil }
-        let outer = controller.window.frame, flyout = controller.flyout
+        let outer = controller.window.frame, flyout = controller.pad
         return CGRect(x: outer.minX + flyout.leading + rect.minX, y: outer.maxY - flyout.top - rect.maxY, width: rect.width, height: rect.height)
     }
 
@@ -656,7 +667,7 @@ final class WindowHost: SurfaceHosting {
 
     private func wake(_ controller: SurfaceWindowController) {
         controller.asleep = false
-        controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.flyout))
+        controller.window.setContent(content(controller.surface, insets: controller.insets, flyout: controller.pad))
         stats.wakes += 1
     }
 

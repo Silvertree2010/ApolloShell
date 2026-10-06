@@ -100,8 +100,9 @@ final class RenderSession {
 
     func root(_ surface: SurfaceInstance, reserve: EdgeInsets) -> AnyView {
         let appearance: ColorScheme = dark ? .dark : .light
+        let bleed = SurfaceBleed.insets(context.styles.resolve(surface: surface), glass: false)
         return AnyView(SurfaceView(surface: surface, context: context)
-            .padding(reserve)
+            .padding(SurfaceBleed.union(reserve, bleed))
             .environment(\.colorScheme, appearance)
             .environment(\._accessibilityReduceTransparency, true)
             .environment(\.renderMode, true)
