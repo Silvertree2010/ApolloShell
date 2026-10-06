@@ -572,6 +572,24 @@ struct DropAcceptTests {
         #expect(r?.config.accepts.isEmpty ?? true)
     }
 
+    @Test("Hover geht durch: Mausbewegung beansprucht kein Fänger, ein abgeschaltetes reorderable fängt gar nichts")
+    func hoverPassesCatchers() throws {
+        let mounted = try Mounted.mount("""
+        panel "t" anchor="left" {
+            reorderable id="off" enabled=#false { stack id="a" { text "a" } }
+            reorderable id="on" { stack id="b" { text "b" } }
+        }
+        """, css: "")
+        mounted.pump()
+        let a = try mounted.catcher("a"), b = try mounted.catcher("b")
+        #expect(!a.config.claims(.left) && !a.config.claims(.drag))
+        #expect(b.config.claims(.left) && b.config.claims(.drag))
+        #expect(!b.config.claims(.hover))
+        let moved = NSEvent.mouseEvent(with: .mouseMoved, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: 0, context: nil, eventNumber: 0, clickCount: 0, pressure: 0)
+        #expect(MouseKind.current(moved) == .hover)
+        #expect(MouseKind.current(nil) == .drag)
+    }
+
     @Test("a reorderable with value drops is a gap catcher that loses to its children")
     func reorderableGap() throws {
         let mounted = try Mounted.mount("""

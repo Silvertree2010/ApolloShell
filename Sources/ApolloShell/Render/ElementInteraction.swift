@@ -57,11 +57,12 @@ struct MouseConfig: Equatable {
         if inert { return false }
         if passive { return kind != .scroll }
         switch kind {
-        case .left: return click || doubleClick || longPress || right || !menuOn.isEmpty || reorder != nil || canvas != nil || dragValue
+        case .left: return click || doubleClick || longPress || right || !menuOn.isEmpty || reorder?.enabled == true || canvas != nil || dragValue
         case .right: return right || menuOn.contains("right-click")
         case .middle: return middle
         case .scroll: return scroll
-        case .drag: return !accepts.isEmpty || reorder != nil || gap
+        case .drag: return !accepts.isEmpty || reorder?.enabled == true || gap
+        case .hover: return false
         }
     }
 
@@ -69,7 +70,7 @@ struct MouseConfig: Equatable {
 }
 
 enum MouseKind {
-    case left, right, middle, scroll, drag
+    case left, right, middle, scroll, drag, hover
 
     static func current(_ event: NSEvent?) -> MouseKind {
         switch event?.type {
@@ -77,6 +78,7 @@ enum MouseKind {
         case .otherMouseDown?, .otherMouseUp?, .otherMouseDragged?: .middle
         case .scrollWheel?: .scroll
         case .leftMouseDown?, .leftMouseUp?, .leftMouseDragged?: .left
+        case .mouseMoved?, .mouseEntered?, .mouseExited?, .cursorUpdate?: NSEvent.pressedMouseButtons == 0 ? .hover : .drag
         default: .drag
         }
     }
