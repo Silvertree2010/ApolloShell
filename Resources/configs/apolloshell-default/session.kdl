@@ -1,0 +1,47 @@
+define "sb" {
+    param "id"
+    param "i"
+    param "t"
+    button class="sb {id == 'shutdown' ? 'sbx' : ''}" checked="{var.ssel == id}" label="{t}" tooltip="{t}" {
+        on-hover { set "ssel" "{id}" }
+        on-click { set "ssel" "{id}"; emit "srun" }
+        icon "{i}" class="sbi"
+    }
+}
+
+var ssel "lock"
+var srdy #false
+
+popup "sess" anchor="right" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-x=-1 close-on="escape" group="edge" click-through="auto" keyboard=#true {
+    on-open { set "ssel" "lock"; set "srdy" #false; wait "80ms"; set "sop" #true; wait "520ms"; set "srdy" #true }
+    key "escape" { emit "sx" }
+    key "down" { set "ssel" "{var.ssel == 'lock' ? 'logout' : (var.ssel == 'logout' ? 'sleep' : (var.ssel == 'sleep' ? 'restart' : (var.ssel == 'restart' ? 'shutdown' : 'lock')))}" }
+    key "up" { set "ssel" "{var.ssel == 'shutdown' ? 'restart' : (var.ssel == 'restart' ? 'sleep' : (var.ssel == 'sleep' ? 'logout' : (var.ssel == 'logout' ? 'lock' : 'shutdown')))}" }
+    key "return" { emit "srun" }
+    column id="sA" class="vstrip"
+    flyout anchor="sA" open=#true side="left" join=#false class="ghost" { stack class="ghs" }
+    flyout anchor="sA" open="{var.sop}" side="left" class="drw sdrw" {
+        on-close { emit "sxo" }
+        column class="scol" {
+            use "sb" id="lock" i="lock.fill" t="Lock"
+            use "sb" id="logout" i="session-logout" t="Log Out"
+            stack class="sem" {
+                stack class="ava sava" {
+                    when "{system.user-image != null}" { image "{system.user-image}" class="avi savi" fit="fill" }
+                    else { text "{(system.full-name ?? system.user-name) | first | upper}" class="avt" }
+                }
+            }
+            use "sb" id="sleep" i="session-sleep" t="Sleep"
+            use "sb" id="restart" i="session-restart" t="Restart"
+            use "sb" id="shutdown" i="session-shutdown" t="Shut Down"
+        }
+    }
+}
+
+on "user.sess" { emit "{var.sop ? 'sx' : 'sopen'}" }
+on "user.sopen" { open "sess" }
+on "user.sx" { set "sop" #false; wait "380ms"; close "sess" }
+on "user.sxo" when="{var.srdy}" { emit "sx" }
+on "user.srun" { emit "sx"; wait "250ms"; emit "act-{var.ssel}" }
+
+bind "{var.hk-s}" { emit "sess" }

@@ -1,0 +1,116 @@
+var crdy #false
+
+define "tile" {
+    param "on"
+    param "i"
+    param "t"
+    param "s"
+    button class="tile" checked="{on}" label="{t}" {
+        slot
+        row class="tlr" {
+            stack class="tlc" { icon "{i}" class="tli" }
+            column class="tlt" {
+                text "{t}" class="tln"
+                text "{s}" class="tls" truncate="tail"
+            }
+            spacer
+        }
+    }
+}
+
+define "cslider" {
+    param "i"
+    param "t"
+    column class="ccs" {
+        text "{t}" class="ccst"
+        row class="ccsr" {
+            icon "{i}" class="ccsi"
+            slot
+        }
+    }
+}
+
+popup "cc" anchor="bottom-right" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-y=-1 close-on="escape" group="edge" click-through="auto" {
+    on-open { set "crdy" #false; wait "80ms"; set "cop" #true; wait "520ms"; set "crdy" #true }
+    key "escape" { emit "cx" }
+    row id="cA" class="strip cstrip"
+    flyout anchor="cA" open=#true side="top" join=#false class="ghost" { stack class="ghc" }
+    flyout anchor="cA" open="{var.cop}" side="top" class="drw ccd" {
+        on-close { emit "cxo" }
+        column class="ccw" {
+            row class="cchd" {
+                stack class="ava ava-s" {
+                    when "{system.user-image != null}" { image "{system.user-image}" class="avi avi-s" fit="fill" }
+                    else { text "{(system.full-name ?? system.user-name) | first | upper}" class="avt avt-s" }
+                }
+                column class="pht" {
+                    text "{system.full-name ?? system.user-name}" class="h4" truncate="tail"
+                    text "{system.host-name}" class="sub" truncate="tail"
+                }
+                button class="ccbtn" label="Settings" tooltip="Settings" {
+                    on-click { emit "cx"; emit "prefs" }
+                    icon "gearshape.fill"
+                }
+                button class="ccbtn" label="Lock" tooltip="Lock" {
+                    on-click { emit "cx"; session.lock }
+                    icon "lock.fill"
+                }
+                button class="ccbtn ccpw" label="Session" tooltip="Session" {
+                    on-click { emit "cx"; wait "200ms"; emit "sess" }
+                    icon "power"
+                }
+            }
+            grid columns=2 class="tiles" {
+                use "tile" on="{network.wifi.on ?? false}" i="{network.wifi.on == false ? 'wifi.slash' : 'wifi'}" t="Wi-Fi" s="{network.wifi.connected ? (network-info.name ?? 'Connected') : (network.wifi.on == false ? 'Off' : 'Not connected')}" {
+                    on-click { network.toggle-wifi }
+                    on-right-click { network.open-settings }
+                }
+                use "tile" on="{bluetooth.on ?? false}" i="dot.radiowaves.left.and.right" t="Bluetooth" s="{bluetooth.on == false ? 'Off' : (bluetooth.connected > 0 ? bluetooth.connected + ' connected' : 'On')}" {
+                    on-click { bluetooth.open-settings; emit "cx" }
+                }
+                use "tile" on="{system.dark-mode}" i="circle.lefthalf.filled" t="Appearance" s="{system.dark-mode ? 'Dark' : 'Light'}" {
+                    on-click { system.toggle-dark-mode }
+                }
+                use "tile" on="{power.keep-awake}" i="cup.and.saucer.fill" t="Keep Awake" s="{power.keep-awake ? 'On' : 'Off'}" {
+                    on-click { power.toggle-keep-awake }
+                }
+            }
+            when "{display.brightness != null}" {
+                use "cslider" i="sun.max.fill" t="Display" {
+                    slider value="{display.brightness}" class="sld ccsl" track-size=6 {
+                        on-change { display.set-brightness "{event.value}" }
+                    }
+                }
+            }
+            use "cslider" i="{audio.muted ? 'speaker.slash.fill' : 'speaker.wave.2.fill'}" t="Sound · {audio.output.name ?? ''}" {
+                slider value="{audio.muted ? 0 : audio.volume}" class="sld ccsl" track-size=6 {
+                    on-change { audio.set-volume "{event.value}" }
+                }
+            }
+            when "{media.title != null}" {
+                row class="card ccm" {
+                    use "art" c="art artm"
+                    column class="ccmt" {
+                        text "{media.title}" class="h4" truncate="tail"
+                        text "{media.artist ?? ''}" class="sub" truncate="tail"
+                    }
+                    use "mctl" c="mc mcs"
+                }
+            }
+            row class="ccq" {
+                use "qt" on="{system.night-shift ?? false}" i="sun.max" t="Night Shift" { on-click { system.toggle-night-shift } }
+                use "qt" on="{system.microphone-muted ?? false}" i="mic.slash.fill" t="Mic Off" { on-click { system.toggle-microphone } }
+                use "qt" on="{battery.low-power-mode}" i="leaf.fill" t="Low Power" { on-click { battery.set-low-power "{!battery.low-power-mode}" } }
+                use "qt" on="{system.hidden-files ?? false}" i="eye" t="Hidden Files" { on-click { system.toggle-hidden-files } }
+                use "qt" on="{false}" i="camera.viewfinder" t="Screenshot" { on-click { emit "cx"; wait "450ms"; system.screenshot } }
+            }
+        }
+    }
+}
+
+on "user.cc" { emit "{var.cop ? 'cx' : 'copen'}" }
+on "user.copen" { open "cc" }
+on "user.cx" { set "cop" #false; wait "380ms"; close "cc" }
+on "user.cxo" when="{var.crdy}" { emit "cx" }
+
+bind "{var.hk-c}" { emit "cc" }

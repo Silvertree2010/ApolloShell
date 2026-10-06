@@ -1,0 +1,32 @@
+toast "default" anchor="top-right" area="full" max=4 duration="5s" newest="first" {
+    row class="nt" checked="{toast.kind == 'error'}" {
+        stack class="nti {toast.kind ?? 'info'}" {
+            icon "{toast.icon ?? (toast.kind == 'success' ? 'toast-success' : (toast.kind == 'warning' ? 'toast-warning' : (toast.kind == 'error' ? 'toast-error' : 'toast-info')))}" class="ntic"
+        }
+        column class="ntx" {
+            text "{toast.title ?? ''}" class="ntt" truncate="tail"
+            when "{(toast.body ?? '') != ''}" { text "{toast.body}" class="ntb" lines=3 }
+        }
+        spacer
+        button class="ntx-x" label="Dismiss" {
+            on-click { toast.dismiss }
+            icon "xmark"
+        }
+    }
+}
+
+toast "pill" anchor="top" area="full" max=1 duration="1600ms" {
+    row class="tp" {
+        icon "{toast.icon ?? 'info.circle'}" class="tpi"
+        text "{toast.title ?? ''}" class="tpt"
+    }
+}
+
+on "battery.warning" { toast.show title="{event.title}" body="{event.body}" icon="{event.critical ? 'battery.0percent' : 'battery.25percent'}" kind="{event.critical ? 'error' : 'warning'}" duration="10s" }
+on "battery.charger-connected" { toast.show title="Charging · {battery.percent | percent}" icon="bolt.fill" style="pill" }
+on "timer.finished" { sound "Glass"; toast.show title="{event.mode == 'pomodoro' ? (event.phase == 'focus' ? 'Focus round done' : 'Break is over') : 'Timer done'}" body="{(event.duration | duration 'short')} passed" icon="timer" kind="success" duration="10s" }
+on "power.keep-awake-stopped" { toast.show title="Keep Awake ended" body="{event.reason}" icon="cup.and.saucer" }
+on "wallpaper.failed" { toast.show title="Wallpaper not set" body="{event.name} could not be used." kind="warning" }
+on "shortcuts.failed" { toast.show title="Shortcut failed" body="{event.name} did not run." kind="error" }
+on "config.failed" { toast.show title="Config has {event.errors} errors" body="The last working version stays active." kind="error" duration="8s" }
+on "drives.changed" { toast.show title="Drives changed" icon="externaldrive" style="pill" }

@@ -1,0 +1,24 @@
+var ok "vol"
+
+osd "osd" anchor="right" area="full" safe-area=#false overhang=#true motion="slide" timeout="1600ms" click-through=#false {
+    row class="osd" {
+        column class="osc" checked="{var.ok == 'vol'}" {
+            slider value="{audio.muted ? 0 : audio.volume}" vertical=#true class="osl" {
+                on-change { audio.set-volume "{event.value}" }
+                on-hover { osd.show "osd" }
+            }
+            icon "{audio.muted ? 'speaker.slash.fill' : (audio.volume < 0.34 ? 'speaker.wave.1.fill' : (audio.volume < 0.67 ? 'speaker.wave.2.fill' : 'speaker.wave.3.fill'))}" class="osi"
+        }
+        when "{display.brightness != null}" {
+            column class="osc" checked="{var.ok == 'bri'}" {
+                slider value="{display.brightness}" vertical=#true class="osl" {
+                    on-change { display.set-brightness "{event.value}" }
+                }
+                icon "sun.max.fill" class="osi"
+            }
+        }
+    }
+}
+
+on "audio.volume-changed" { set "ok" "vol"; osd.show "osd" }
+on "keyboard.source-changed" { toast.show title="{keyboard.source.name ?? 'Input Source'}" icon="keyboard" style="pill" duration="1400ms" }

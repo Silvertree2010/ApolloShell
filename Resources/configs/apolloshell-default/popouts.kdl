@@ -1,0 +1,212 @@
+define "ph" {
+    param "t"
+    param "s" default=""
+    row class="ph" {
+        column class="pht" {
+            text "{t}" class="h3"
+            when "{s != ''}" { text "{s}" class="sub" truncate="tail" }
+        }
+        spacer
+        slot
+    }
+}
+
+define "plink" {
+    param "t"
+    param "i" default="arrow.up.right"
+    button class="plink" {
+        slot
+        row class="plr" {
+            text "{t}"
+            spacer
+            icon "{i}" class="plinki"
+        }
+    }
+}
+
+define "p-net" {
+    column class="pc" {
+        use "ph" t="Wi-Fi" s="{network.wifi.connected ? (network-info.name ?? 'Connected') : (network.wifi.on == false ? 'Off' : 'Not connected')}" {
+            toggle checked="{network.wifi.on ?? false}" {
+                on-change { network.set-wifi "{event.value}" }
+            }
+        }
+        when "{network.wifi.connected}" {
+            column class="grp" {
+                row class="kv" {
+                    icon "{network.wifi.symbol}" class="kvi" variable="{network.wifi.bars / 3}"
+                    text "Signal" class="kvk"
+                    spacer
+                    text "{network.wifi.quality}" class="kvv"
+                }
+                row class="kv" {
+                    icon "antenna.radiowaves.left.and.right" class="kvi"
+                    text "Band" class="kvk"
+                    spacer
+                    text "{network.wifi.band ?? '–'} · {network.wifi.standard ?? ''}" class="kvv"
+                }
+                row class="kv" {
+                    icon "network" class="kvi"
+                    text "Address" class="kvk"
+                    spacer
+                    text "{network-info.local-address ?? '–'}" class="kvv mono"
+                }
+                row class="kv" {
+                    icon "timer" class="kvi"
+                    text "Latency" class="kvk"
+                    spacer
+                    text "{network-info.latency == null ? '–' : ((network-info.latency | round) + ' ms')}" class="kvv mono"
+                }
+            }
+        }
+        use "plink" t="Network Settings…" {
+            on-click { network.open-settings; set "po" #false }
+        }
+    }
+}
+
+define "p-bt" {
+    column class="pc" {
+        use "ph" t="Bluetooth" s="{bluetooth.on == false ? 'Off' : (bluetooth.connected + ' connected · ' + bluetooth.paired + ' paired')}"
+        when "{(bluetooth.devices | count) > 0}" {
+            column class="grp" {
+                each d in="{bluetooth.devices}" key="{d.name}" {
+                    row class="dev" {
+                        stack class="devi" {
+                            icon "{d.kind == 'headphones' ? 'headphones' : (d.kind == 'keyboard' ? 'keyboard' : (d.kind == 'mouse' ? 'computermouse' : 'dot.radiowaves.left.and.right'))}"
+                        }
+                        text "{d.name}" class="devn" truncate="tail"
+                        spacer
+                        when "{d.battery.main != null}" {
+                            text "{d.battery.main | percent}" class="kvv"
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            text "No devices connected" class="empty"
+        }
+        use "plink" t="Bluetooth Settings…" {
+            on-click { bluetooth.open-settings; set "po" #false }
+        }
+    }
+}
+
+define "p-bat" {
+    column class="pc" {
+        use "ph" t="Battery" s="{battery.state-text}" {
+            text "{battery.percent | percent}" class="big"
+        }
+        progress value="{battery.percent}" class="batbar" checked="{battery.percent < 0.2 && !battery.charging}"
+        when "{battery.time-text != ''}" { text "{battery.time-text}" class="sub" }
+        column class="grp" {
+            row class="kv" {
+                icon "leaf" class="kvi"
+                text "Low Power Mode" class="kvk"
+                spacer
+                toggle checked="{battery.low-power-mode}" {
+                    on-change { battery.set-low-power "{event.value}" }
+                }
+            }
+            row class="kv" {
+                icon "cup.and.saucer" class="kvi"
+                text "Keep Awake" class="kvk"
+                spacer
+                toggle checked="{power.keep-awake}" {
+                    on-change { power.set-keep-awake "{event.value}" }
+                }
+            }
+            when "{battery.health != null}" {
+                row class="kv" {
+                    icon "heart" class="kvi"
+                    text "Health" class="kvk"
+                    spacer
+                    text "{battery.health | percent} · {battery.cycles ?? 0} cycles" class="kvv"
+                }
+            }
+        }
+        use "plink" t="Battery Settings…" {
+            on-click { system.open-settings "battery"; set "po" #false }
+        }
+    }
+}
+
+define "p-vol" {
+    column class="pc" {
+        use "ph" t="Sound" s="{audio.output.name ?? 'Output'}" {
+            text "{audio.muted ? 'Muted' : (audio.volume | percent)}" class="big"
+        }
+        row class="sl" {
+            button class="slb" {
+                on-click { audio.toggle-mute }
+                icon "{audio.muted ? 'speaker.slash.fill' : 'speaker.fill'}"
+            }
+            slider value="{audio.volume}" class="sld" track-size=6 {
+                on-change { audio.set-volume "{event.value}" }
+            }
+        }
+        column class="grp" {
+            each o in="{audio.outputs}" key="{o.id}" {
+                button class="opt" checked="{o.active}" {
+                    on-click { audio.select-output "{o.id}" }
+                    row class="optr" {
+                        icon "{o.active ? 'checkmark.circle.fill' : 'circle'}" class="opti"
+                        text "{o.name}" truncate="tail"
+                        spacer
+                    }
+                }
+            }
+        }
+        use "plink" t="Sound Settings…" {
+            on-click { system.open-settings "sound"; set "po" #false }
+        }
+    }
+}
+
+define "p-win" {
+    column class="pc pwin" {
+        when "{apps.frontmost != null}" {
+            row class="wh" {
+                app-icon "{apps.frontmost}" class="whi"
+                column class="pht" {
+                    text "{apps.frontmost.name}" class="h3"
+                    text "{window.title ?? 'No window'}" class="sub" truncate="tail"
+                }
+            }
+            row class="acts" {
+                button class="act" {
+                    on-click { apps.show-all-windows "{apps.frontmost}"; set "po" #false }
+                    column class="actc" {
+                        icon "macwindow.on.rectangle"
+                        text "Windows"
+                    }
+                }
+                button class="act" {
+                    on-click { apps.new-window "{apps.frontmost}"; set "po" #false }
+                    column class="actc" {
+                        icon "plus.rectangle.on.rectangle"
+                        text "New"
+                    }
+                }
+                button class="act" {
+                    on-click { apps.hide "{apps.frontmost}"; set "po" #false }
+                    column class="actc" {
+                        icon "eye.slash"
+                        text "Hide"
+                    }
+                }
+                button class="act dng" {
+                    on-click { apps.quit "{apps.frontmost}"; set "po" #false }
+                    column class="actc" {
+                        icon "xmark"
+                        text "Quit"
+                    }
+                }
+            }
+        }
+        else {
+            text "No app in front" class="empty"
+        }
+    }
+}

@@ -1,0 +1,55 @@
+require "0.2.0"
+
+var po #false
+var pv "net"
+var pa "i-st"
+var hb #false
+var hf #false
+
+var dt "dash" persist=#true
+var dop #false
+var drdy #false
+var cop #false
+var sop #false
+var lop #false
+
+var q ""
+var sel 0
+
+var edit #false
+var ob #false persist=#true
+var dc #true persist=#true
+var dock #false persist=#true
+var dk #false persist=#true
+var ws "dots" persist=#true
+var secs #false persist=#true
+var h24 #true persist=#true
+var wp #null type="record" persist=#true
+var wq ""
+var unit "c" persist=#true
+var tmin 25 persist=#true
+var pg "look"
+var cal 0
+var bm persist=#true {
+    - id="logo" on=#true
+    - id="ws" on=#true
+    - id="sp1" on=#true
+    - id="win" on=#true
+    - id="sp2" on=#true
+    - id="tray" on=#true
+    - id="clk" on=#true
+    - id="st" on=#true
+    - id="pw" on=#true
+}
+
+var hk-l "alt+space" persist=#true
+var hk-d "alt+d" persist=#true
+var hk-c "alt+c" persist=#true
+var hk-s "ctrl+alt+delete" persist=#true
+
+filter "pct" "{(value * 100) | round}"
+filter "hhmm" "{value | date (var.h24 ? 'HH:mm' : 'h:mm')}"
+filter "deg" "{value == null ? '–' : ((value | round) + '°')}"
+
+clock first-weekday="system"
+weather place="{var.wp}"

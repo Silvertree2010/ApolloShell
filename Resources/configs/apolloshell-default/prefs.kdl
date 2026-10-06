@@ -1,0 +1,263 @@
+define "nav" {
+    param "id"
+    param "t"
+    param "i"
+    param "c"
+    button class="nav" checked="{var.pg == id}" {
+        on-click { set "pg" "{id}" }
+        row class="navr" {
+            stack class="navi {c}" { icon "{i}" class="navic" }
+            text "{t}" class="navt"
+            spacer
+        }
+    }
+}
+
+define "sec" {
+    param "t" default=""
+    column class="sec" {
+        when "{t != ''}" { text "{t}" class="sect" }
+        column class="secb" { slot }
+    }
+}
+
+define "srow" {
+    param "t"
+    param "s" default=""
+    row class="srow" {
+        column class="srt" {
+            text "{t}"
+            when "{s != ''}" { text "{s}" class="sub" lines=2 }
+        }
+        spacer
+        slot
+    }
+}
+
+define "hk" {
+    param "t"
+    param "v"
+    param "k"
+    use "srow" t="{t}" s="{(v | hotkey-warning) ?? ''}" {
+        key-recorder value="{v}" placeholder="Record" class="krec" {
+            on-change { set "{k}" "{event.value}" }
+        }
+    }
+}
+
+define "pg-look" {
+    column class="pgc" {
+        text "Appearance" class="pgt"
+        use "sec" {
+            use "srow" t="Dark Mode" s="Follows the system setting." {
+                toggle checked="{system.dark-mode}" { on-change { system.set-dark-mode "{event.value}" } }
+            }
+            use "srow" t="Reduce Motion" s="Set in System Settings > Accessibility; the shell follows it." {
+                text "{system.reduce-motion ? 'On' : 'Off'}" class="sub"
+            }
+        }
+        use "sec" t="Theme" {
+            button class="opt" checked="{theme.id == null || theme.id == ''}" {
+                on-click { theme.select #null }
+                row class="optr" {
+                    icon "{theme.id == null || theme.id == '' ? 'checkmark.circle.fill' : 'circle'}" class="opti"
+                    text "Liquid Glass (built in)"
+                    spacer
+                }
+            }
+            each t in="{shell.themes}" key="{t.id}" {
+                button class="opt" checked="{theme.id == t.id}" {
+                    on-click { theme.select "{t.id}" }
+                    row class="optr" {
+                        icon "{theme.id == t.id ? 'checkmark.circle.fill' : 'circle'}" class="opti"
+                        column class="pht" {
+                            text "{t.name}"
+                            when "{(t.author ?? '') != ''}" { text "by {t.author}" class="sub" }
+                        }
+                        spacer
+                    }
+                }
+            }
+            row class="srow" {
+                button class="pill pill2" { on-click { marketplace.open }; text "Browse Marketplace…" }
+                button class="pill pill2" { on-click { theme.open-folder }; text "Open Themes Folder" }
+                spacer
+            }
+        }
+    }
+}
+
+define "pg-bar" {
+    column class="pgc" {
+        text "Bar" class="pgt"
+        use "sec" t="Modules" {
+            text "Drag to reorder. Switch off what you do not need." class="sub sp6"
+            reorderable axis="vertical" class="mlist" {
+                on-reorder { list.move "bm" from="{event.from}" to="{event.to}" }
+                each m in="{var.bm}" key="{m.id}" index="mi" {
+                    row class="mrow" {
+                        icon "line.3.horizontal" class="mgrip"
+                        icon "{m.id == 'logo' ? 'apple.logo' : (m.id == 'ws' ? 'square.split.2x1' : (m.id == 'win' ? 'macwindow' : (m.id == 'tray' ? 'menubar.rectangle' : (m.id == 'clk' ? 'clock' : (m.id == 'st' ? 'wifi' : (m.id == 'pw' ? 'power' : 'arrow.up.and.down'))))))}" class="mico"
+                        text "{m.id == 'logo' ? 'Launcher Button' : (m.id == 'ws' ? 'Desktops' : (m.id == 'win' ? 'Active Window' : (m.id == 'tray' ? 'Menu Bar Items' : (m.id == 'clk' ? 'Clock' : (m.id == 'st' ? 'Status Icons' : (m.id == 'pw' ? 'Power' : 'Flexible Space'))))))}"
+                        spacer
+                        toggle checked="{m.on}" { on-change { set "bm" "{event.value}" in="{mi}" field="on" } }
+                    }
+                }
+            }
+            row class="srow" {
+                button class="pill pill2" { on-click { set "edit" #true }; text "Edit on the Bar" }
+                button class="pill pill2" { on-click { reset "bm" }; text "Restore Defaults" }
+                spacer
+            }
+        }
+        use "sec" t="Details" {
+            use "srow" t="Desktops" s="How the desktops show in the bar." {
+                row class="seg segw" {
+                    button class="sgb" checked="{var.ws == 'dots'}" { on-click { set "ws" "dots" }; text "Dots" }
+                    button class="sgb" checked="{var.ws == 'num'}" { on-click { set "ws" "num" }; text "Numbers" }
+                }
+            }
+            use "srow" t="24-Hour Time" {
+                toggle checked="{var.h24}" { on-change { set "h24" "{event.value}" } }
+            }
+        }
+    }
+}
+
+define "pg-wx" {
+    column class="pgc" {
+        text "Weather" class="pgt"
+        use "sec" t="Place" {
+            use "srow" t="{var.wp == null ? 'No place chosen' : var.wp.name}" s="{weather.status == 'ready' ? (weather.current.description ?? '') : ''}" {
+                when "{var.wp != null}" {
+                    button class="pill pill2" { on-click { set "wp" #null }; text "Remove" }
+                }
+            }
+            row class="srch" {
+                icon "magnifyingglass" class="lsi"
+                input bind="var.wq" placeholder="Search a city" class="lin" {
+                    on-submit { weather.search "{var.wq}" }
+                    on-change { weather.search "{var.wq}" }
+                }
+            }
+            when "{weather.search-status == 'searching'}" { progress class="spin" }
+            each r in="{weather.search-results | take 6}" key="{r.name + r.latitude}" {
+                button class="opt" {
+                    on-click { set "wp" "{r}"; set "wq" ""; weather.clear-search }
+                    row class="optr" {
+                        icon "mappin.circle" class="opti"
+                        column class="pht" {
+                            text "{r.name}"
+                            text "{(r.region ?? '') + (r.country == null ? '' : ((r.region == null ? '' : ', ') + r.country))}" class="sub"
+                        }
+                        spacer
+                    }
+                }
+            }
+        }
+        when "{weather.attribution != null}" {
+            text "Data: {weather.attribution.text}" class="sub"
+        }
+    }
+}
+
+define "pg-keys" {
+    column class="pgc" {
+        text "Shortcuts" class="pgt"
+        use "sec" {
+            use "hk" t="Launcher" v="{var.hk-l}" k="hk-l"
+            use "hk" t="Dashboard" v="{var.hk-d}" k="hk-d"
+            use "hk" t="Control Center" v="{var.hk-c}" k="hk-c"
+            use "hk" t="Session" v="{var.hk-s}" k="hk-s"
+        }
+        use "sec" t="Fixed" {
+            use "srow" t="Edit Bar" { text "{'alt+e' | chord}" class="sub" }
+            use "srow" t="Settings" { text "{'cmd+alt+,' | chord}" class="sub" }
+            use "srow" t="Switch dashboard tabs" { text "Tab" class="sub" }
+        }
+    }
+}
+
+define "pg-desk" {
+    column class="pgc" {
+        text "Desktop" class="pgt"
+        use "sec" {
+            use "srow" t="Desktop Clock" s="A large clock on the wallpaper." {
+                toggle checked="{var.dc}" { on-change { set "dc" "{event.value}" } }
+            }
+            use "srow" t="Hide Apple's Dock" s="The bar shows the front app and desktops instead." {
+                toggle checked="{system.apple-dock-hidden}" { on-change { system.hide-apple-dock "{event.value}" } }
+            }
+            use "srow" t="Open at Login" s="{shell.login-item-note ?? ''}" {
+                toggle checked="{shell.login-item}" disabled="{!shell.login-item-available}" { on-change { shell.set-login-item "{event.value}" } }
+            }
+        }
+        use "sec" t="Permissions" {
+            use "srow" t="Accessibility" s="Needed for window actions and menus." {
+                when "{permissions.accessibility}" { icon "checkmark.circle.fill" class="okc" }
+                else { button class="pill pill2" { on-click { permissions.request-accessibility }; text "Allow…" } }
+            }
+            use "srow" t="Screen Recording" s="Shows other apps' menu bar items in the bar." {
+                when "{permissions.screen-recording}" { icon "checkmark.circle.fill" class="okc" }
+                else { button class="pill pill2" { on-click { permissions.open "screen-recording" }; text "Open Settings…" } }
+            }
+        }
+    }
+}
+
+define "pg-about" {
+    column class="pgc pgab" {
+        app-icon "io.github.silvertree2010.apolloshell" class="abm"
+        text "ApolloShell" class="pgt"
+        text "Version {shell.version}" class="sub"
+        use "sec" {
+            use "srow" t="Check Automatically" {
+                toggle checked="{shell.update.auto-check}" { on-change { shell.set-auto-check "{event.value}" } }
+            }
+            use "srow" t="Install Automatically" {
+                toggle checked="{shell.update.auto-install}" { on-change { shell.set-auto-install "{event.value}" } }
+            }
+            use "srow" t="Software Update" s="{shell.update.status == 'available' ? ('Version ' + shell.update.version + ' is available') : (shell.update.status == 'checking' ? 'Checking…' : 'Up to date')}" {
+                button class="pill pill2" { on-click { shell.check-updates }; text "Check Now" }
+            }
+            use "srow" t="Crash Reports" {
+                row class="seg segw" {
+                    button class="sgb" checked="{shell.crash-reports == 'ask'}" { on-click { shell.set-crash-reports "ask" }; text "Ask" }
+                    button class="sgb" checked="{shell.crash-reports == 'always'}" { on-click { shell.set-crash-reports "always" }; text "Send" }
+                    button class="sgb" checked="{shell.crash-reports == 'never'}" { on-click { shell.set-crash-reports "never" }; text "Never" }
+                }
+            }
+        }
+        row class="srow" {
+            button class="pill pill2" { on-click { shell.open-config-folder }; text "Open Config Folder" }
+            button class="pill pill2" { on-click { set "ob" #false; emit "obo" }; text "Show Welcome" }
+            spacer
+        }
+    }
+}
+
+window "prefs" title="Settings" title-visible=#false resizable=#true miniaturizable=#true autosave="prefs" {
+    row class="pw" {
+        column class="side" {
+            use "nav" id="look" t="Appearance" i="paintpalette.fill" c="nb1"
+            use "nav" id="bar" t="Bar" i="sidebar.left" c="nb2"
+            use "nav" id="wx" t="Weather" i="cloud.sun.fill" c="nb3"
+            use "nav" id="keys" t="Shortcuts" i="command" c="nb4"
+            use "nav" id="desk" t="Desktop" i="menubar.dock.rectangle" c="nb5"
+            use "nav" id="about" t="About" i="info" c="nb6"
+            spacer
+        }
+        scroll class="pmain" {
+            switch "{var.pg}" {
+                case "bar" { use "pg-bar" }
+                case "wx" { use "pg-wx" }
+                case "keys" { use "pg-keys" }
+                case "desk" { use "pg-desk" }
+                case "about" { use "pg-about" }
+                default { use "pg-look" }
+            }
+        }
+    }
+}
+
+on "user.prefs" { open "prefs" }

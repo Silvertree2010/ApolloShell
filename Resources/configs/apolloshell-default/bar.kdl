@@ -1,0 +1,161 @@
+define "hov" {
+    param "v"
+    param "a"
+    set "hb" #true
+    set "pv" "{v}"
+    set "pa" "{a}"
+    set "po" #true
+}
+
+define "m-logo" {
+    button id="i-logo" class="bi logo" tooltip="Launcher" {
+        on-click { emit "lnch" }
+        on-hover { set "hb" #true; set "po" #false }
+        icon "apple.logo" class="bg"
+    }
+}
+
+define "m-ws" {
+    column id="i-ws" class="ws" {
+        on-scroll { emit "ws{event.delta-y > 0 ? 'p' : 'n'}" }
+        each s in="{spaces.list}" key="{s.id}" {
+            button class="wsb" checked="{s.active}" tooltip="Desktop {s.index}" {
+                on-click { spaces.switch "{s.index}" }
+                switch "{var.ws}" {
+                    case "num" { text "{s.index}" class="wsn" }
+                    default { shape "capsule" class="wsd" }
+                }
+            }
+        }
+    }
+}
+
+define "m-sp" {
+    spacer class="bsp"
+}
+
+define "m-win" {
+    button id="i-win" class="win" {
+        on-hover { use "hov" v="win" a="i-win" }
+        on-click { emit "dash" }
+        column class="wcol" {
+            when "{apps.frontmost != null}" {
+                app-icon "{apps.frontmost}" class="wico"
+            }
+            stack class="wrot" {
+                text "{window.title ?? apps.frontmost.name ?? 'Desktop'}" class="wtxt" truncate="tail"
+            }
+        }
+    }
+}
+
+define "m-tray" {
+    when "{(status-items.list | count) > 0}" {
+        column id="i-tray" class="tray" {
+            each t in="{status-items.list | take 6}" key="{t.id}" {
+                button class="ti" tooltip="{t.name}" {
+                    on-click { status-items.click "{t.id}" }
+                    image "{t.image}" class="timg" fit="fit"
+                }
+            }
+        }
+    }
+}
+
+define "m-clk" {
+    button id="i-clk" class="clk" tooltip="{clock.now | date 'EEEE, d MMMM'}" {
+        on-click { emit "dash" }
+        on-hover { set "hb" #true; set "po" #false }
+        column class="ccol" {
+            icon "calendar" class="cico"
+            text "{clock.now | date (var.h24 ? 'HH' : 'h')}" class="cnum"
+            text "{clock.now | date 'mm'}" class="cnum"
+        }
+    }
+}
+
+define "m-st" {
+    column id="i-st" class="st" {
+        button id="i-vol" class="si" {
+            on-hover { use "hov" v="vol" a="i-vol" }
+            on-click { audio.toggle-mute }
+            on-scroll { audio.change-volume "{event.delta-y > 0 ? 0.05 : -0.05}" }
+            icon "{audio.muted ? 'status-volume-muted' : 'status-volume'}" fallback="{audio.muted ? 'speaker.slash.fill' : 'speaker.wave.2.fill'}" class="sic"
+        }
+        button id="i-net" class="si" {
+            on-hover { use "hov" v="net" a="i-net" }
+            on-click { emit "cc" }
+            icon "{network.wifi.on == false ? 'status-wifi-off' : 'status-wifi'}" fallback="{network.wifi.on == false ? 'wifi.slash' : 'wifi'}" class="sic" variable="{(network.wifi.bars ?? 3) / 3}"
+        }
+        when "{bluetooth.status != 'unavailable'}" {
+            button id="i-bt" class="si" {
+                on-hover { use "hov" v="bt" a="i-bt" }
+                on-click { emit "cc" }
+                icon "{bluetooth.on == false ? 'status-bluetooth-off' : 'status-bluetooth'}" fallback="builtin:bluetooth-rune" class="sic" disabled="{bluetooth.on == false}"
+            }
+        }
+        when "{battery.present}" {
+            button id="i-bat" class="si" {
+                on-hover { use "hov" v="bat" a="i-bat" }
+                icon "{battery.charging ? 'status-battery-charging' : 'status-battery'}" fallback="{battery.charging ? 'battery.100percent.bolt' : 'battery.100percent'}" class="sic bat" checked="{battery.percent < 0.2 && !battery.charging}"
+            }
+        }
+    }
+}
+
+define "m-pw" {
+    button id="i-pw" class="bi pw" tooltip="Session" {
+        on-hover { set "hb" #true; set "po" #false }
+        on-click { emit "sess" }
+        icon "bar-power" fallback="power" class="pwi"
+    }
+}
+
+define "bmod" {
+    param "m"
+    column class="bm {(m.id | starts-with 'sp') ? 'bmsp' : ''}" checked="{!m.on}" {
+        use "m-{m.id == 'sp1' || m.id == 'sp2' ? 'sp' : m.id}"
+    }
+}
+
+panel "bar" anchor="left" area="below-menubar" shape="fused" reserve=#true {
+    column class="bar" {
+        menu {
+            item "Edit Bar" icon="slider.horizontal.3" { set "edit" #true }
+            item "Settings…" icon="gearshape" { emit "prefs" }
+            separator
+            item "Reload Config" icon="arrow.clockwise" { shell.reload-config }
+        }
+        on-hover-end { set "hb" #false; wait "180ms"; emit "pchk" }
+        reorderable class="bmods" axis="vertical" enabled="{var.edit}" {
+            on-reorder { list.move "bm" from="{event.from}" to="{event.to}" }
+            each m in="{var.bm}" key="{m.id}" {
+                when "{m.on || var.edit}" {
+                    use "bmod" m="{m}"
+                }
+            }
+        }
+        when "{var.edit}" {
+            button class="bdone" {
+                on-click { set "edit" #false }
+                icon "checkmark"
+            }
+        }
+    }
+    flyout anchor="{var.pa}" open="{var.po && !var.edit}" side="right" class="pop" {
+        on-hover { set "hf" #true }
+        on-hover-end { set "hf" #false; wait "180ms"; emit "pchk" }
+        on-close { set "po" #false }
+        switch "{var.pv}" {
+            case "net" { use "p-net" }
+            case "bt" { use "p-bt" }
+            case "bat" { use "p-bat" }
+            case "vol" { use "p-vol" }
+            case "win" { use "p-win" }
+        }
+    }
+}
+
+on "user.pchk" when="{!var.hb && !var.hf}" { set "po" #false }
+on "user.wsp" { spaces.previous }
+on "user.wsn" { spaces.next }

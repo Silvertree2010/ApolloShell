@@ -1,0 +1,486 @@
+define "tab" {
+    param "id"
+    param "t"
+    param "i"
+    button class="tab" checked="{var.dt == id}" label="{t}" {
+        on-click { set "dt" "{id}" }
+        column class="tabc" {
+            icon "{i}" class="tabi"
+            text "{t}" class="tabt"
+            when "{var.dt == id}" { stack class="tabind" match-id="tabind" }
+            else { stack class="tabind0" }
+        }
+    }
+}
+
+define "w-wx" {
+    column class="card cwx" {
+        when "{weather.status == 'ready' && weather.current != null}" {
+            row class="wxr" {
+                icon "{weather.current.symbol}" class="wxi"
+                column class="wxc" {
+                    text "{weather.current.temperature | deg}" class="wxt"
+                    text "{weather.current.description}" class="sub" truncate="tail"
+                }
+            }
+        }
+        else {
+            button class="wxset" {
+                on-click { set "pg" "wx"; emit "prefs" }
+                row class="wxr" {
+                    icon "location.circle" class="wxi0"
+                    column class="wxc" {
+                        text "{weather.status == 'loading' ? 'Loading…' : 'Weather'}" class="h4"
+                        text "{weather.status == 'loading' ? (weather.place.name ?? '') : 'Choose a place'}" class="sub"
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "w-user" {
+    row class="card cusr" {
+        stack class="ava" {
+            when "{system.user-image != null}" {
+                image "{system.user-image}" class="avi" fit="fill"
+            }
+            else {
+                text "{(system.full-name ?? system.user-name) | first | upper}" class="avt"
+            }
+        }
+        column class="ul" {
+            row class="uli" {
+                icon "apple.logo" class="ulic"
+                text "macOS {system.macos-version}" truncate="tail"
+            }
+            row class="uli" {
+                icon "cpu" class="ulic"
+                text "{system.chip}" truncate="tail"
+            }
+            row class="uli" {
+                icon "clock.arrow.circlepath" class="ulic"
+                text "up {system.uptime | duration 'short'}" truncate="tail"
+            }
+        }
+        spacer
+    }
+}
+
+define "w-dt" {
+    column class="card cdt" {
+        text "{clock.now | date (var.h24 ? 'HH' : 'hh')}" class="dth"
+        row class="dtd" {
+            shape "circle" class="dtdot"
+            shape "circle" class="dtdot"
+            shape "circle" class="dtdot"
+        }
+        text "{clock.now | date 'mm'}" class="dth"
+        text "{clock.now | date 'EEE, d'}" class="dts"
+    }
+}
+
+define "w-cal" {
+    column class="card ccal" {
+        row class="calh" {
+            button class="calt" {
+                on-click { set "cal" 0 }
+                text "{((clock.now | month-grid var.cal) | at 1 | first).date | date 'MMMM yyyy'}" class="h4"
+            }
+            spacer
+            button class="calb" label="Previous month" {
+                on-click { set "cal" "{var.cal - 1}" }
+                icon "chevron.left"
+            }
+            button class="calb" label="Next month" {
+                on-click { set "cal" "{var.cal + 1}" }
+                icon "chevron.right"
+            }
+        }
+        grid columns=7 class="calg" {
+            each d in="{(clock.now | month-grid var.cal) | first}" key="{d.weekday}" {
+                text "{d.date | date 'EEEEE'}" class="calw"
+            }
+        }
+        column class="calgs" {
+            each w in="{clock.now | month-grid var.cal}" key="{(w | first).week}" {
+                row class="calwk" {
+                    each d in="{w}" key="{d.weekday}" {
+                        stack class="cald" checked="{d.today}" disabled="{!d.in-month}" {
+                            text "{d.day}" class="caln"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "w-res" {
+    row class="card cres" {
+        column class="resc" {
+            progress value="{perf.cpu}" vertical=#true class="resb"
+            icon "cpu" class="resi"
+        }
+        column class="resc" {
+            progress value="{perf.memory}" vertical=#true class="resb"
+            icon "memorychip" class="resi"
+        }
+        column class="resc" {
+            progress value="{perf.live.disk}" vertical=#true class="resb"
+            icon "internaldrive" class="resi"
+        }
+    }
+}
+
+define "art" {
+    param "c" default="art"
+    stack class="{c}" {
+        when "{media.artwork != null}" {
+            image "{media.artwork}" class="arti" fit="fill"
+        }
+        else {
+            stack class="art0" { icon "music.note" class="art0i" }
+        }
+    }
+}
+
+define "mctl" {
+    param "c" default="mc"
+    row class="{c}" {
+        button class="mcb" label="Previous" {
+            on-click { media.previous }
+            icon "backward.fill"
+        }
+        button class="mcb mcp" label="Play or pause" {
+            on-click { media.play-pause }
+            icon "{media.playing ? 'pause.fill' : 'play.fill'}" class="mcpi"
+        }
+        button class="mcb" label="Next" {
+            on-click { media.next }
+            icon "forward.fill"
+        }
+    }
+}
+
+define "w-media" {
+    column class="card cmed" {
+        stack class="mring" {
+            ring value="{media.progress ?? 0}" class="mrg"
+            use "art" c="art artc"
+        }
+        column class="mtx" {
+            text "{media.title ?? 'Nothing playing'}" class="mt" truncate="tail"
+            text "{media.album ?? ''}" class="ma" truncate="tail"
+            text "{media.artist ?? (media.app-name ?? '')}" class="sub" truncate="tail"
+        }
+        use "mctl"
+    }
+}
+
+define "w-timer" {
+    row class="card ctm" {
+        stack class="tmr" {
+            ring value="{timer.duration == null ? 0 : ((timer.remaining ?? 0) / timer.duration)}" class="tmring"
+            column class="tmc" {
+                text "{timer.mode == 'stopwatch' ? (timer.elapsed | duration) : ((timer.remaining ?? (var.tmin * 60)) | duration)}" class="tmt"
+                text "{timer.mode == 'pomodoro' ? (timer.phase == 'focus' ? 'Focus ' + timer.round + '/4' : 'Break') : (timer.mode == 'stopwatch' ? 'Stopwatch' : 'Timer')}" class="tms"
+            }
+        }
+        column class="tmk" {
+            row class="seg" {
+                button class="sgb" checked="{timer.mode == 'standard'}" { on-click { timer.set-mode "standard" "{var.tmin}" }; text "Timer" }
+                button class="sgb" checked="{timer.mode == 'pomodoro'}" { on-click { timer.set-mode "pomodoro" }; text "Focus" }
+                button class="sgb" checked="{timer.mode == 'stopwatch'}" { on-click { timer.set-mode "stopwatch" }; text "Watch" }
+            }
+            row class="tmb" {
+                when "{timer.mode == 'standard' && !timer.running}" {
+                    button class="tmx" label="Shorter" { on-click { set "tmin" "{(var.tmin - 5) | clamp 5 600}" }; icon "minus" }
+                    button class="tmx" label="Longer" { on-click { set "tmin" "{(var.tmin + 5) | clamp 5 600}" }; icon "plus" }
+                }
+                spacer
+                button class="tmx" label="Reset" { on-click { timer.reset }; icon "arrow.counterclockwise" }
+                button class="tmx tmgo" label="Start or pause" {
+                    on-click { emit "{timer.running ? 'tpause' : (timer.elapsed > 0 ? 'tres' : 'tgo')}" }
+                    icon "{timer.running ? 'pause.fill' : 'play.fill'}"
+                }
+            }
+        }
+    }
+}
+
+define "qt" {
+    param "on"
+    param "i"
+    param "t"
+    column class="qtw" {
+        button class="qt" checked="{on}" label="{t}" {
+            slot
+            icon "{i}" class="qti"
+        }
+        text "{t}" class="qtl" truncate="tail"
+    }
+}
+
+define "w-toggles" {
+    row class="card ctg" {
+        use "qt" on="{network.wifi.on ?? false}" i="wifi" t="Wi-Fi" { on-click { network.toggle-wifi } }
+        use "qt" on="{system.dark-mode}" i="circle.lefthalf.filled" t="Dark" { on-click { system.toggle-dark-mode } }
+        use "qt" on="{system.night-shift ?? false}" i="sun.max" t="Night Shift" { on-click { system.toggle-night-shift } }
+        use "qt" on="{power.keep-awake}" i="cup.and.saucer.fill" t="Awake" { on-click { power.toggle-keep-awake } }
+        use "qt" on="{system.microphone-muted ?? false}" i="mic.slash.fill" t="Mic Off" { on-click { system.toggle-microphone } }
+    }
+}
+
+define "pane-dash" {
+    row class="pane pdash" {
+        column class="dl" {
+            row class="dr" {
+                use "w-wx"
+                use "w-user"
+            }
+            row class="dr" {
+                use "w-dt"
+                use "w-cal"
+                use "w-res"
+            }
+            row class="dr" {
+                use "w-timer"
+                use "w-toggles"
+            }
+        }
+        use "w-media"
+    }
+}
+
+define "pane-media" {
+    row class="pane pmed" {
+        use "art" c="art artb"
+        column class="mdet" {
+            column class="mtx mtxb" {
+                text "{media.title ?? 'Nothing playing'}" class="mtb" truncate="tail"
+                text "{media.artist ?? ''}" class="mab" truncate="tail"
+                text "{media.album ?? ''}" class="sub" truncate="tail"
+            }
+            column class="mseek" {
+                slider value="{media.elapsed ?? 0}" max="{media.duration ?? 1}" class="sld seek" track-size=4 disabled="{media.duration == null}" {
+                    on-commit { media.seek "{event.value}" }
+                }
+                row class="mtime" {
+                    text "{(media.elapsed ?? 0) | duration}" class="mono sub"
+                    spacer
+                    text "-{((media.duration ?? 0) - (media.elapsed ?? 0)) | duration}" class="mono sub"
+                }
+            }
+            use "mctl" c="mc mcl"
+            when "{media.app-name != null}" {
+                button class="msrc" {
+                    on-click { media.open-app }
+                    row class="msr" {
+                        icon "{media.kind == 'video' ? 'play.rectangle' : 'music.note'}" class="msi"
+                        text "Playing in {media.app-name}" class="sub"
+                    }
+                }
+            }
+        }
+        column class="card mout" {
+            text "Output" class="h4"
+            row class="sl" {
+                icon "speaker.fill" class="kvi"
+                slider value="{audio.volume}" class="sld" track-size=6 {
+                    on-change { audio.set-volume "{event.value}" }
+                }
+            }
+            scroll class="mol" {
+                column class="grp0" {
+                    each o in="{audio.outputs}" key="{o.id}" {
+                        button class="opt" checked="{o.active}" {
+                            on-click { audio.select-output "{o.id}" }
+                            row class="optr" {
+                                icon "{o.active ? 'checkmark.circle.fill' : 'circle'}" class="opti"
+                                text "{o.name}" truncate="tail"
+                                spacer
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+define "pcard" {
+    param "t"
+    param "s" default=""
+    param "i"
+    param "c" default=""
+    column class="card pcd {c}" {
+        row class="pch" {
+            icon "{i}" class="pchi"
+            text "{t}" class="h4"
+            spacer
+            text "{s}" class="sub" truncate="tail"
+        }
+        slot
+    }
+}
+
+define "pane-perf" {
+    column class="pane pperf" {
+        row class="dr" {
+            use "pcard" t="Processor" s="{perf.chip} · {perf.cores} cores" i="cpu" c="phero" {
+                row class="phr" {
+                    stack class="pg" {
+                        gauge value="{perf.live.cpu}" class="pgg"
+                        column class="pgc" {
+                            text "{perf.live.cpu | percent}" class="pgv"
+                            text "Load" class="sub"
+                        }
+                    }
+                    graph values="{perf.live.cpu-history}" min=0 max=1 kind="area" capacity=30 class="pgr"
+                }
+            }
+            use "pcard" t="Graphics" s="{perf.gpu-cores == null ? '' : perf.gpu-cores + ' cores'}" i="cube.transparent" c="phero" {
+                row class="phr" {
+                    stack class="pg" {
+                        gauge value="{perf.live.gpu ?? 0}" class="pgg pgg2"
+                        column class="pgc" {
+                            text "{perf.live.gpu == null ? '–' : (perf.live.gpu | percent)}" class="pgv"
+                            text "Load" class="sub"
+                        }
+                    }
+                    graph values="{perf.live.gpu-history}" min=0 max=1 kind="area" capacity=30 class="pgr pgr2"
+                }
+            }
+        }
+        row class="dr" {
+            use "pcard" t="Memory" i="memorychip" c="psm" {
+                stack class="prw" {
+                    ring value="{perf.live.memory}" class="prg"
+                    text "{perf.live.memory | percent}" class="prv"
+                }
+                text "{perf.live.memory-used | bytes 'binary'} of {perf.live.memory-total | bytes 'binary'}" class="sub ctr"
+            }
+            use "pcard" t="Storage" i="internaldrive" c="psm" {
+                stack class="prw" {
+                    ring value="{perf.live.disk}" class="prg prg2"
+                    text "{perf.live.disk | percent}" class="prv"
+                }
+                text "{perf.live.disk-used | bytes} of {perf.live.disk-total | bytes}" class="sub ctr"
+            }
+            use "pcard" t="Network" i="arrow.up.arrow.down" c="pnet" {
+                graph values="{perf.live.net-history | map 'down'}" min=0 kind="area" capacity=30 class="png"
+                row class="pnr" {
+                    row class="pnv" {
+                        icon "arrow.down" class="pnd"
+                        text "{perf.live.net-down | bytes-per-second}" class="mono"
+                    }
+                    spacer
+                    row class="pnv" {
+                        icon "arrow.up" class="pnu"
+                        text "{perf.live.net-up | bytes-per-second}" class="mono"
+                    }
+                }
+            }
+            when "{battery.present}" {
+                use "pcard" t="Battery" i="{battery.symbol}" c="psm" {
+                    stack class="prw" {
+                        ring value="{battery.percent}" class="prg prg3"
+                        text "{battery.percent | percent}" class="prv"
+                    }
+                    text "{battery.state-text}" class="sub ctr" truncate="tail"
+                }
+            }
+        }
+    }
+}
+
+define "pane-wx" {
+    when "{weather.status == 'ready' && weather.current != null}" {
+        column class="pane pwx" {
+            row class="dr" {
+                row class="card wxh" {
+                    icon "{weather.current.symbol}" class="wxhi"
+                    column class="wxhc" {
+                        text "{weather.current.temperature | deg}" class="wxht"
+                        text "{weather.current.description}" class="h4"
+                        text "{weather.place.name ?? ''} · H {weather.today.max | deg}  L {weather.today.min | deg}" class="sub"
+                    }
+                }
+                grid columns=2 class="wxd" {
+                    use "wxk" i="thermometer.medium" k="Feels like" v="{weather.current.apparent | deg}"
+                    use "wxk" i="humidity" k="Humidity" v="{weather.current.humidity | percent}"
+                    use "wxk" i="wind" k="Wind" v="{(weather.current.wind ?? 0) | round} km/h"
+                    use "wxk" i="sunrise" k="Sun" v="{weather.today.sunrise-text ?? '–'} – {weather.today.sunset-text ?? '–'}"
+                }
+            }
+            row class="card wxhs" {
+                each h in="{weather.hourly-strip | take 10}" key="{h.time-text}" {
+                    column class="wxhr" checked="{h.now}" {
+                        text "{h.now ? 'Now' : h.time-text}" class="wxhl"
+                        icon "{h.symbol}" class="wxhs-i"
+                        text "{h.temperature | deg}" class="wxhv"
+                    }
+                }
+            }
+            row class="wxdays" {
+                each d in="{weather.days | take 7}" key="{d.date-text}" {
+                    column class="card wxday" checked="{d.today}" {
+                        text "{d.today ? 'Today' : d.name-text}" class="wxdl"
+                        icon "{d.symbol}" class="wxdi"
+                        text "{d.max | deg}" class="wxdv"
+                        text "{d.min | deg}" class="sub"
+                    }
+                }
+            }
+        }
+    }
+    else {
+        column class="pane pwx0" {
+            icon "cloud.sun" class="wx0i"
+            text "{weather.status == 'loading' ? 'Loading weather…' : (weather.status == 'failed' ? 'Weather is unavailable' : 'No place chosen')}" class="h3"
+            text "Pick a place in Settings to see the forecast." class="sub"
+            button class="pill" {
+                on-click { set "pg" "wx"; emit "prefs" }
+                text "Choose Place…"
+            }
+        }
+    }
+}
+
+define "wxk" {
+    param "i"
+    param "k"
+    param "v"
+    row class="card wxkv" {
+        icon "{i}" class="wxki"
+        column class="wxkc" {
+            text "{k}" class="sub"
+            text "{v}" class="h4"
+        }
+    }
+}
+
+popup "dash" anchor="top" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-y=-1 close-on="escape" group="edge" click-through="auto" {
+    on-open { set "drdy" #false; wait "80ms"; set "dop" #true; wait "520ms"; set "drdy" #true }
+    key "escape" { emit "dx" }
+    key "tab" { set "dt" "{var.dt == 'dash' ? 'media' : (var.dt == 'media' ? 'perf' : (var.dt == 'perf' ? 'wx' : 'dash'))}" }
+    row id="dA" class="strip"
+    flyout anchor="dA" open=#true side="bottom" join=#false class="ghost" { stack class="ghd" }
+    flyout anchor="dA" open="{var.dop}" side="bottom" class="drw dash" {
+        on-close { emit "dxo" }
+        row class="tabs" {
+            use "tab" id="dash" t="Dashboard" i="square.grid.2x2"
+            use "tab" id="media" t="Media" i="music.note.list"
+            use "tab" id="perf" t="Performance" i="gauge.with.dots.needle.67percent"
+            use "tab" id="wx" t="Weather" i="cloud.sun"
+        }
+        stack class="sep"
+        switch "{var.dt}" {
+            case "dash" { use "pane-dash" }
+            case "media" { use "pane-media" }
+            case "perf" { use "pane-perf" }
+            case "wx" { use "pane-wx" }
+        }
+    }
+}

@@ -1,0 +1,10 @@
+on "user.dash" { emit "{var.dop ? 'dx' : 'dopen'}" }
+on "user.dopen" { open "dash" }
+on "user.dx" { set "dop" #false; wait "380ms"; close "dash" }
+on "user.cc" { }
+on "user.prefs" { }
+bind "{var.hk-d}" { emit "dash" }
+on "user.dxo" when="{var.drdy}" { emit "dx" }
+on "user.tpause" { timer.pause }
+on "user.tres" { timer.resume }
+on "user.tgo" { timer.start "{timer.mode == 'standard' ? var.tmin : null}" }

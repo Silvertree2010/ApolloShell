@@ -1,0 +1,152 @@
+var lrdy #false
+var arm ""
+var acts {
+    - id="prefs" n="Settings" d="Open ApolloShell settings" i="gearshape"
+    - id="dash" n="Dashboard" d="Show the dashboard" i="square.grid.2x2"
+    - id="cc" n="Control Center" d="Quick toggles, sound and display" i="switch.2"
+    - id="dark" n="Toggle Dark Mode" d="Switch between light and dark" i="circle.lefthalf.filled"
+    - id="night" n="Toggle Night Shift" d="Warmer colours on the display" i="sun.max"
+    - id="awake" n="Keep Awake" d="Stop the Mac from sleeping" i="cup.and.saucer"
+    - id="wall" n="Random Wallpaper" d="Pick one of Apple's wallpapers" i="photo.on.rectangle"
+    - id="shot" n="Screenshot" d="Capture the screen" i="camera.viewfinder"
+    - id="color" n="Color Picker" d="Copy a colour from the screen" i="eyedropper"
+    - id="desk" n="Show Desktop" d="Move windows aside" i="menubar.dock.rectangle"
+    - id="mc" n="Mission Control" d="See all windows" i="rectangle.3.group"
+    - id="hidden" n="Toggle Hidden Files" d="Show or hide hidden files in Finder" i="eye"
+    - id="trash" n="Empty Trash" d="Delete the files in the Trash" i="trash" x=#true
+    - id="edit" n="Edit Bar" d="Reorder and hide bar modules" i="slider.horizontal.3"
+    - id="reload" n="Reload Config" d="Read the config again" i="arrow.clockwise"
+    - id="lock" n="Lock Screen" d="Lock the Mac" i="lock"
+    - id="sleep" n="Sleep" d="Put the Mac to sleep" i="moon"
+    - id="logout" n="Log Out" d="End the session" i="rectangle.portrait.and.arrow.right" x=#true
+    - id="restart" n="Restart" d="Restart the Mac" i="arrow.clockwise.circle" x=#true
+    - id="shutdown" n="Shut Down" d="Turn the Mac off" i="power" x=#true
+}
+
+var lmode from="{(var.q | starts-with '>') ? 'act' : 'app'}"
+var lcalc from="{(var.q | starts-with '=') ? ((var.q | slice 1 200) | calc) : null}"
+var lres type="list" from="{var.lmode == 'act' ? ((var.acts | fuzzy ((var.q | slice 1 200) ?? '') 'n') | take 7) : ((apps.all | app-search var.q) | take 7)}"
+var lcount from="{var.lcalc != null ? 1 : (var.lres | count)}"
+
+define "lrow" {
+    param "it"
+    param "ix"
+    param "act" default=#false
+    button class="lr" checked="{var.sel == ix}" {
+        on-hover { set "sel" "{ix}" }
+        on-click { set "sel" "{ix}"; emit "lgo" }
+        stack class="lrw" {
+            when "{var.sel == ix}" { stack class="lhl" match-id="lhl" }
+            row class="lrc" {
+                when "{act}" {
+                    stack class="lai" checked="{it.x ?? false}" { icon "{it.i}" class="laic" }
+                }
+                else {
+                    app-icon "{it}" class="lico"
+                }
+                column class="ltx" {
+                    text "{act ? it.n : it.name}" class="ln" truncate="tail"
+                    text "{act ? (var.arm == it.id ? 'Press Return again to confirm' : it.d) : (it.path ?? '')}" class="ld" truncate="middle" checked="{act && var.arm == it.id}"
+                }
+                spacer
+                when "{var.sel == ix}" {
+                    icon "return" class="lret"
+                }
+            }
+        }
+    }
+}
+
+popup "lnch" anchor="bottom" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-y=-1 close-on="escape" group="edge" click-through="auto" keyboard=#true {
+    on-open { set "q" ""; set "sel" 0; set "arm" ""; set "lrdy" #false; wait "80ms"; set "lop" #true; wait "520ms"; set "lrdy" #true }
+    key "escape" { emit "lx" }
+    key "down" { set "sel" "{(var.sel + 1) % (var.lcount | max 1)}" }
+    key "up" { set "sel" "{(var.sel - 1 + (var.lcount | max 1)) % (var.lcount | max 1)}" }
+    key "tab" { set "sel" "{(var.sel + 1) % (var.lcount | max 1)}" }
+    row id="lA" class="strip lstrip"
+    flyout anchor="lA" open=#true side="top" join=#false class="ghost" { stack class="ghl" }
+    flyout anchor="lA" open="{var.lop}" side="top" class="drw lch" {
+        on-close { emit "lxo" }
+        column class="lbody" {
+            when "{var.lcalc != null}" {
+                button class="lr" checked=#true {
+                    on-click { emit "lgo" }
+                    stack class="lrw" {
+                        stack class="lhl" match-id="lhl"
+                        row class="lrc" {
+                            stack class="lai" { icon "equal" class="laic" }
+                            column class="ltx" {
+                                text "{var.lcalc}" class="ln lcalc"
+                                text "Press Return to copy" class="ld"
+                            }
+                            spacer
+                            icon "return" class="lret"
+                        }
+                    }
+                }
+            }
+            else {
+                when "{var.lcount == 0}" {
+                    column class="lempty" {
+                        icon "{var.lmode == 'act' ? 'command' : 'magnifyingglass'}" class="lei"
+                        text "{var.lmode == 'act' ? 'No matching action' : 'No apps found'}" class="sub"
+                    }
+                }
+                each it in="{var.lres}" key="{var.lmode == 'act' ? it.id : it.bundle-id}" index="ix" {
+                    use "lrow" it="{it}" ix="{ix}" act="{var.lmode == 'act'}"
+                }
+            }
+        }
+        row class="lsearch" {
+            icon "{var.lmode == 'act' ? 'chevron.right' : 'magnifyingglass'}" class="lsi"
+            input bind="var.q" placeholder="Search apps, type > for actions or = to calculate" focus="{var.lop}" class="lin" {
+                on-change { set "sel" 0; set "arm" "" }
+                on-submit { emit "lgo" }
+            }
+            when "{var.q != ''}" {
+                button class="lclr" label="Clear" {
+                    on-click { set "q" "" }
+                    icon "xmark.circle.fill"
+                }
+            }
+        }
+    }
+}
+
+on "user.lnch" { emit "{var.lop ? 'lx' : 'lopen'}" }
+on "user.lopen" { open "lnch" }
+on "user.lx" { set "lop" #false; wait "380ms"; close "lnch" }
+on "user.lxo" when="{var.lrdy}" { emit "lx" }
+
+on "user.lgo" when="{var.lcalc != null}" { clipboard.copy "{var.lcalc}"; toast.show title="Copied {var.lcalc}" icon="doc.on.clipboard" kind="success"; emit "lx" }
+on "user.lgo" when="{var.lcalc == null && var.lmode == 'app' && var.lcount > 0}" { apps.launch "{var.lres | at var.sel}"; emit "lx" }
+on "user.lgo" when="{var.lcalc == null && var.lmode == 'act' && var.lcount > 0}" { emit "lact" event="{var.lres | at var.sel}" }
+
+on "user.lact" { emit "{(event.x ?? false) && var.arm != event.id ? 'larm' : 'lrun'}" event="{event}" }
+on "user.larm" { set "arm" "{event.id}" }
+on "user.lrun" { set "arm" ""; emit "lx"; wait "200ms"; emit "act-{event.id}" }
+
+on "user.act-dark" { system.toggle-dark-mode }
+on "user.act-night" { system.toggle-night-shift }
+on "user.act-awake" { power.toggle-keep-awake }
+on "user.act-wall" { wallpaper.random }
+on "user.act-shot" { wait "300ms"; system.screenshot }
+on "user.act-color" { system.color-picker }
+on "user.act-desk" { system.show-desktop }
+on "user.act-mc" { system.mission-control }
+on "user.act-hidden" { system.toggle-hidden-files }
+on "user.act-trash" { system.empty-trash }
+on "user.act-reload" { shell.reload-config }
+on "user.act-lock" { session.lock }
+on "user.act-sleep" { session.sleep }
+on "user.act-logout" { session.logout }
+on "user.act-restart" { session.restart }
+on "user.act-shutdown" { session.shutdown }
+on "user.act-dash" { emit "dash" }
+on "user.act-cc" { emit "cc" }
+on "user.act-prefs" { emit "prefs" }
+on "user.act-edit" { set "edit" #true }
+
+on "system.color-copied" { toast.show title="Copied {event.hex}" icon="eyedropper" kind="success" }
+
+bind "{var.hk-l}" { emit "lnch" }

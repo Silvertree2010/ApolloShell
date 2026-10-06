@@ -1,0 +1,100 @@
+var obs 0
+
+define "obdot" {
+    param "n"
+    shape "capsule" class="obd" checked="{var.obs == n}"
+}
+
+popup "ob" anchor="center" motion="grow" scrim=0.18 close-on="" keyboard=#true {
+    key "return" { emit "{var.obs >= 3 ? 'obdone' : 'obnext'}" }
+    column class="obw" {
+        switch "{var.obs}" {
+            case 0 {
+                column class="obp" {
+                    app-icon "io.github.silvertree2010.apolloshell" class="obhero"
+                    text "Welcome to ApolloShell" class="obt"
+                    text "A bar on the left, drawers that grow out of the screen edges, and everything one shortcut away." class="obs" lines=0
+                    column class="obl" {
+                        row class="obli" { icon "sidebar.left" class="oblic"; text "Hover the icons in the bar for details." }
+                        row class="obli" { icon "square.grid.2x2" class="oblic"; text "Click the clock for the dashboard." }
+                        row class="obli" { icon "magnifyingglass" class="oblic"; text "Press {var.hk-l | chord} to search apps and actions." }
+                        row class="obli" { icon "power" class="oblic"; text "The power button opens the session menu." }
+                    }
+                }
+            }
+            case 1 {
+                column class="obp" {
+                    stack class="obic" { icon "hand.raised.fill" class="obicn" }
+                    text "Permissions" class="obt"
+                    text "Two permissions make the shell complete. You can change them later in Settings." class="obs" lines=0
+                    column class="sec obsec" {
+                        column class="secb" {
+                            use "srow" t="Accessibility" s="Window actions and app menus." {
+                                when "{permissions.accessibility}" { icon "checkmark.circle.fill" class="okc" }
+                                else { button class="pill pill2" { on-click { permissions.request-accessibility }; text "Allow…" } }
+                            }
+                            use "srow" t="Screen Recording" s="Other apps' items in the bar." {
+                                when "{permissions.screen-recording}" { icon "checkmark.circle.fill" class="okc" }
+                                else { button class="pill pill2" { on-click { permissions.open "screen-recording" }; text "Open…" } }
+                            }
+                        }
+                    }
+                }
+            }
+            case 2 {
+                column class="obp" {
+                    stack class="obic" { icon "cloud.sun.fill" class="obicn obwx" }
+                    text "Weather" class="obt"
+                    text "Choose a place for the dashboard forecast." class="obs" lines=0
+                    column class="sec obsec" {
+                        column class="secb" {
+                            when "{var.wp != null}" {
+                                use "srow" t="{var.wp.name}" { icon "checkmark.circle.fill" class="okc" }
+                            }
+                            row class="srch" {
+                                icon "magnifyingglass" class="lsi"
+                                input bind="var.wq" placeholder="Search a city" class="lin" focus="{var.obs == 2}" {
+                                    on-change { weather.search "{var.wq}" }
+                                }
+                            }
+                            each r in="{weather.search-results | take 4}" key="{r.name + r.latitude}" {
+                                button class="opt" {
+                                    on-click { set "wp" "{r}"; set "wq" ""; weather.clear-search }
+                                    row class="optr" {
+                                        icon "mappin.circle" class="opti"
+                                        text "{r.name}{r.country == null ? '' : ', ' + r.country}"
+                                        spacer
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            default {
+                column class="obp" {
+                    stack class="obic" { icon "checkmark" class="obicn" }
+                    text "You're all set" class="obt"
+                    text "Right-click the bar to edit it. Everything else lives in Settings." class="obs" lines=0
+                }
+            }
+        }
+        row class="obf" {
+            row class="obds" {
+                use "obdot" n=0
+                use "obdot" n=1
+                use "obdot" n=2
+                use "obdot" n=3
+            }
+            spacer
+            when "{var.obs > 0}" {
+                button class="pill pill2" { on-click { set "obs" "{var.obs - 1}" }; text "Back" }
+            }
+            button class="pill" { on-click { emit "{var.obs >= 3 ? 'obdone' : 'obnext'}" }; text "{var.obs >= 3 ? 'Done' : 'Continue'}" }
+        }
+    }
+}
+
+on "user.obo" { set "obs" 0; open "ob" }
+on "user.obnext" { set "obs" "{var.obs + 1}" }
+on "user.obdone" { set "ob" #true; close "ob" }
