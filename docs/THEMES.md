@@ -324,7 +324,11 @@ Nightfall/
 ```
 
 What is not in there stays the built-in SF Symbol, so a theme can replace one
-icon or all of them. By default an image is shown exactly as it was drawn,
+icon or all of them. SF Symbols has no Bluetooth glyph, so `status-bluetooth`
+falls back to `builtin:bluetooth-rune`, a drawn rune that takes the text colour
+and size like a symbol. The built-in drawn icons are `builtin:bluetooth-rune`,
+`builtin:apollo-mark` and `builtin:file-manager-folder`; any `icon` can name
+them directly or as `fallback=`. By default an image is shown exactly as it was drawn,
 colours and all. Set `--apollo-icon-style: monochrome` and the images are
 tinted like the symbols they replace instead, which is what a single-colour
 set usually wants; `auto` and `colorful` leave them alone. File names are matched case-insensitively, a name this
@@ -341,8 +345,8 @@ within the size limit.
 | `bar-launcher` | `magnifyingglass` | Opens the launcher |
 | `status-wifi` | `wifi` | Wi-Fi, when it is connected |
 | `status-wifi-off` | `wifi.slash` | Wi-Fi, when it is off |
-| `status-bluetooth` | `bluetooth` | Bluetooth, when it is on |
-| `status-bluetooth-off` | `bluetooth.slash` | Bluetooth, when it is off |
+| `status-bluetooth` | `builtin:bluetooth-rune` | Bluetooth, when it is on |
+| `status-bluetooth-off` | `antenna.radiowaves.left.and.right.slash` | Bluetooth, when it is off |
 | `status-battery` | `battery.100percent` | Battery |
 | `status-battery-charging` | `battery.100percent.bolt` | Battery while charging |
 | `status-volume` | `speaker.wave.2.fill` | Volume |

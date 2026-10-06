@@ -18,6 +18,13 @@ struct SchemaDocsTests {
         #expect(file == (try Self.markdown()) + "\n", "run: apollo schema --markdown > docs/CONFIG.md")
     }
 
+    @Test("schema/<aktuelle Version>.json entspricht apollo schema --json")
+    func currentSchemaMatches() throws {
+        let file = try String(contentsOf: Self.root.appendingPathComponent("schema/\(ShellVersion.current).json"), encoding: .utf8)
+        let json = try #require(SchemaText.render(.builtin, name: nil, format: .json)?.first)
+        #expect(file == json + "\n", "run: apollo schema --json > schema/\(ShellVersion.current).json")
+    }
+
     @Test("Markdown: Abschnitte je Art, Tabellenzellen ohne rohes |, Stufe und Vorgaben sichtbar")
     func markdownShape() throws {
         let text = try Self.markdown()

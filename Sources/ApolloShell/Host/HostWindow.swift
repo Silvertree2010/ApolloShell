@@ -28,10 +28,12 @@ protocol HostWindow: AnyObject {
     func close()
     func watchFitting(_ on: Bool)
     func setClip(top: CGFloat)
+    func setBleed(_ b: EdgeInsets)
 }
 
 extension HostWindow {
     func watchFitting(_ on: Bool) {}
+    func setBleed(_ b: EdgeInsets) {}
     func setClip(top: CGFloat) {}
     func setFrame(_ frame: CGRect) { setFrame(frame, glide: false) }
 }
@@ -170,6 +172,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
     private var generation = 0
     private var pinned = false
     private var clipTop: CGFloat = 0
+    private var bleed = EdgeInsets()
     private var previousApp: NSRunningApplication?
     let stage: any WindowStage
     var onCloseRequest: (@MainActor () -> Void)?
@@ -197,7 +200,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
             titled.collectionBehavior = spec.behavior
             window = titled
         } else {
-            window = HostPanel(level: spec.level, behavior: spec.behavior, takesKeyboard: spec.keyboard, mayLeaveScreen: spec.overhang || spec.animates)
+            window = HostPanel(level: spec.level, behavior: spec.behavior, takesKeyboard: spec.keyboard, mayLeaveScreen: spec.overhang || spec.animates || spec.full)
         }
         super.init()
         window.contentView = clipper
@@ -234,7 +237,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         self.spec = spec
         if let panel = window as? ShellPanel {
             panel.takesKeyboard = spec.keyboard
-            panel.mayLeaveScreen = spec.overhang || spec.animates
+            panel.mayLeaveScreen = leaves
         }
         if window.level != spec.level { window.level = spec.level }
         if window.collectionBehavior != spec.behavior { window.collectionBehavior = spec.behavior }
@@ -298,6 +301,19 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
             layer.mask = nil
         }
         CATransaction.commit()
+    }
+
+    private var leaves: Bool { spec.overhang || spec.animates || spec.full || bleed != EdgeInsets() }
+
+    func setBleed(_ b: EdgeInsets) {
+        bleed = b
+        (window as? ShellPanel)?.mayLeaveScreen = leaves
+    }
+
+    private var solid: CGRect {
+        let f = window.frame
+        return CGRect(x: f.minX + bleed.leading, y: f.minY + bleed.bottom,
+                      width: max(0, f.width - bleed.leading - bleed.trailing), height: max(0, f.height - bleed.top - bleed.bottom))
     }
 
     func watchFitting(_ on: Bool) {
@@ -459,7 +475,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         if spec.closeOn.contains(.outsideClick) {
             outsideMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
                 MainActor.assumeIsolated {
-                    guard let self, !self.window.frame.contains(NSEvent.mouseLocation) else { return }
+                    guard let self, !self.solid.contains(NSEvent.mouseLocation) else { return }
                     self.onCloseRequest?()
                 }
             }
@@ -472,7 +488,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
             var entered = false
             leaveTimer = ShellTimer.repeating(0.1) { [weak self] in
                 guard let self else { return }
-                let inside = self.window.frame.insetBy(dx: -margin, dy: -margin).contains(NSEvent.mouseLocation)
+                let inside = self.solid.insetBy(dx: -margin, dy: -margin).contains(NSEvent.mouseLocation)
                 if inside { entered = true } else if entered { self.onCloseRequest?() }
             }
         }

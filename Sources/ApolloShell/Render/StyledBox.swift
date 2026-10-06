@@ -362,8 +362,6 @@ struct BackgroundLayers: View {
     @Environment(\.renderMode) private var renderMode
     @Environment(\.colorScheme) private var colorScheme
 
-    static let glassStandInLight = Color(white: 0.95)
-    static let glassStandInDark = Color(white: 0.17)
 
     var glassClear: Bool {
         style.customProperties["--render-glass"]?.trimmingCharacters(in: .whitespaces).lowercased() == "clear"
@@ -400,7 +398,7 @@ struct BackgroundLayers: View {
                 if glassClear {
                     Color.clear
                 } else {
-                    shape.fill(colorScheme == .dark ? Self.glassStandInDark : Self.glassStandInLight)
+                    GlassStandIn(shape: shape, variant: variant, tint: tint, dark: colorScheme == .dark)
                 }
             } else {
                 Color.clear.glassEffect(StyleValues.glass(variant, tint: tint), in: shape)
@@ -437,9 +435,36 @@ struct BackgroundLayers: View {
     }
 }
 
+struct GlassStandIn: View {
+    let shape: AnyShape
+    let variant: GlassVariant
+    let tint: CSSColor?
+    let dark: Bool
+
+    var body: some View {
+        let thin = variant == .clear
+        ZStack {
+            shape.fill(Color(white: dark ? 0.16 : 1).opacity(thin ? 0.22 : 0.62))
+            if let tint {
+                shape.fill(StyleValues.color(tint).opacity(min(1, Self.alpha(tint)) > 0.7 ? 0.7 / Self.alpha(tint) : 1))
+            }
+            shape.stroke(Color.white.opacity(dark ? 0.22 : 0.6), lineWidth: 2).clipShape(shape)
+        }
+    }
+
+    static func alpha(_ c: CSSColor) -> Double {
+        switch c {
+        case let .rgba(_, _, _, a): a
+        case let .system(_, a): a
+        case .currentColor: 1
+        }
+    }
+}
+
 struct BoxShadows: ViewModifier {
     let shadows: [Shadow]
     let shape: AnyShape
+    @Environment(\.renderMode) private var renderMode
 
     init(_ value: CSSValue?, shape: AnyShape) {
         if case .shadows(let list)? = value { shadows = list } else { shadows = [] }
@@ -448,6 +473,15 @@ struct BoxShadows: ViewModifier {
 
     func body(content: Content) -> some View {
         content.background {
+            if renderMode {
+                ShadowCanvas(shadows: shadows, shape: shape)
+            } else {
+                live
+            }
+        }
+    }
+
+    var live: some View {
             ZStack {
                 ForEach(Array(shadows.enumerated()), id: \.offset) { _, shadow in
                     shape
@@ -458,7 +492,30 @@ struct BoxShadows: ViewModifier {
                         .mask { ShadowMask(shape: shape) }
                 }
             }
+    }
+}
+
+struct ShadowCanvas: View {
+    let shadows: [Shadow]
+    let shape: AnyShape
+
+    var body: some View {
+        let e = shadows.map { CGFloat($0.blur + max(0, $0.spread) + max(abs($0.x), abs($0.y))) }.max() ?? 0
+        Canvas { ctx, size in
+            let r = CGRect(x: e, y: e, width: max(0, size.width - 2 * e), height: max(0, size.height - 2 * e))
+            var out = Path(CGRect(origin: .zero, size: size))
+            out.addPath(shape.path(in: r))
+            ctx.clip(to: out, style: FillStyle(eoFill: true))
+            for s in shadows {
+                ctx.drawLayer { l in
+                    if s.blur > 0 { l.addFilter(.blur(radius: CGFloat(s.blur) / 2)) }
+                    let grown = r.insetBy(dx: -CGFloat(s.spread), dy: -CGFloat(s.spread)).offsetBy(dx: CGFloat(s.x), dy: CGFloat(s.y))
+                    l.fill(shape.path(in: grown), with: .color(StyleValues.color(s.color)))
+                }
+            }
         }
+        .padding(-e)
+        .allowsHitTesting(false)
     }
 }
 

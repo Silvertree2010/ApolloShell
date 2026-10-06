@@ -160,15 +160,20 @@ struct StyleRenderTests {
         #expect(shot.pixel(10, 10).near(.green, tolerance: 30))
     }
 
-    @Test("Glas im Render-Modus: Stand-in wie SidebarRoot 0.1.4.2 (weiss 0,95 hell, 0,17 dunkel), per --render-glass: clear leer")
+    @Test("Glas im Render-Modus: durchscheinend, mit Tönung, per --render-glass: clear leer")
     func glassStandIn() throws {
-        let kdl = "panel \"t\" anchor=\"left\" { stack class=\"g\" }"
-        let css = "#t { width: 40px; height: 40px; } .g { width: 40px; height: 40px; background: glass(regular); }"
-        let light = try RenderProbe.render(kdl, css: css)
-        let dark = try RenderProbe.render(kdl, css: css, dark: true)
-        #expect(light.pixel(20, 20).near(RGBA(r: 242, g: 242, b: 242, a: 255), tolerance: 1), "\(light.pixel(20, 20))")
-        #expect(dark.pixel(20, 20).near(RGBA(r: 43, g: 43, b: 43, a: 255), tolerance: 1), "\(dark.pixel(20, 20))")
-        let clear = try RenderProbe.render(kdl, css: css + " .g { --render-glass: clear; }")
-        #expect(clear.pixel(20, 20) == .white, "\(clear.pixel(20, 20))")
+        let kdl = "panel \"t\" anchor=\"left\" { stack class=\"b\" { stack class=\"g\" } }"
+        let base = "#t { width: 40px; height: 40px; } .b { width: 40px; height: 40px; background: #000000; } .g { width: 40px; height: 40px; "
+        let light = try RenderProbe.render(kdl, css: base + "background: glass(regular); }")
+        let mid = light.pixel(20, 20)
+        #expect(mid.r > 60 && mid.r < 230 && abs(mid.r - mid.b) <= 2, "\(mid)")
+        let dark = try RenderProbe.render(kdl, css: base + "background: glass(regular); }", dark: true)
+        #expect(dark.pixel(20, 20).r < mid.r, "\(dark.pixel(20, 20))")
+        let thin = try RenderProbe.render(kdl, css: base + "background: glass(clear); }")
+        #expect(thin.pixel(20, 20).r < mid.r, "\(thin.pixel(20, 20))")
+        let red = try RenderProbe.render(kdl, css: base + "background: glass(regular, #ff0000); }").pixel(20, 20)
+        #expect(red.r > red.g + 60 && red.r > red.b + 60, "\(red)")
+        let clear = try RenderProbe.render(kdl, css: base + "background: glass(regular); --render-glass: clear; }")
+        #expect(clear.pixel(20, 20) == RGBA(r: 0, g: 0, b: 0, a: 255), "\(clear.pixel(20, 20))")
     }
 }

@@ -3,6 +3,7 @@ import ApolloBase
 import ApolloConfig
 import ApolloControl
 import ApolloProviders
+import ApolloRuntime
 
 let environment = ProcessInfo.processInfo.environment
 let socketPath = ControlSocketPath.resolve(environment: environment, home: FileManager.default.homeDirectoryForCurrentUser)
@@ -21,7 +22,8 @@ let cli = ApolloCLI(
                     let fixture = ProviderFixture.load(url)
                     return fixture.diagnostics + FixtureFieldCheck.run(ir, fixture: fixture)
                 }
-            }
+            },
+            styleCheck: StyleCheck.run
         )
     }
 )

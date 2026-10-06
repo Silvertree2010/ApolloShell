@@ -54,6 +54,10 @@ struct Definite: Equatable {
         height = StyleValues.points(style["height"]) != nil || StyleValues.percent(style["height"]) != nil
     }
 
+    func union(_ o: Definite) -> Definite {
+        Definite(width: width || o.width, height: height || o.height)
+    }
+
     func apply(_ size: CGSize, _ proposal: ProposedViewSize) -> CGSize {
         var result = size
         if width, let proposed = proposal.width, proposed.isFinite { result.width = proposed }

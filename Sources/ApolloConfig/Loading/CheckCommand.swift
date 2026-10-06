@@ -15,7 +15,8 @@ public enum CheckCommand {
         environment: [String: String],
         fileSystem: any ConfigFileSystem,
         executableURL: URL,
-        fixtureCheck: ((ConfigIR, URL) -> [Diagnostic])? = nil
+        fixtureCheck: ((ConfigIR, URL) -> [Diagnostic])? = nil,
+        styleCheck: ((ConfigIR) -> [Diagnostic])? = nil
     ) -> (output: String, exitCode: Int32) {
         if arguments.contains(where: { $0 == "--help" || $0 == "-h" }) {
             return (usage, Exit.ok)
@@ -65,6 +66,7 @@ public enum CheckCommand {
         let loader = ConfigLoader(fileSystem: fileSystem, paths: paths, registry: .builtin, filters: .builtin, shellVersion: ShellVersion.current)
         let result = loader.load(location)
         diagnostics += result.diagnostics
+        if let ir = result.ir, let styleCheck { diagnostics += styleCheck(ir) }
         if let fixture, let ir = result.ir, let fixtureCheck {
             guard fileSystem.exists(fixture) else {
                 return render(diagnostics + [Diagnostic(.error, "fixture '\(fixture.path)' does not exist", code: .checkFixture)], fileSystem: fileSystem, home: home)

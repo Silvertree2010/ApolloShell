@@ -48,8 +48,8 @@ public struct ThemeIconCatalog: Sendable {
 
         .init(id: "status-wifi", fallback: "wifi", summary: "Wi-Fi, when it is connected"),
         .init(id: "status-wifi-off", fallback: "wifi.slash", summary: "Wi-Fi, when it is off"),
-        .init(id: "status-bluetooth", fallback: "bluetooth", summary: "Bluetooth, when it is on"),
-        .init(id: "status-bluetooth-off", fallback: "bluetooth.slash", summary: "Bluetooth, when it is off"),
+        .init(id: "status-bluetooth", fallback: "builtin:bluetooth-rune", summary: "Bluetooth, when it is on"),
+        .init(id: "status-bluetooth-off", fallback: "antenna.radiowaves.left.and.right.slash", summary: "Bluetooth, when it is off"),
         .init(id: "status-battery", fallback: "battery.100percent", summary: "Battery"),
         .init(id: "status-battery-charging", fallback: "battery.100percent.bolt", summary: "Battery while charging"),
         .init(id: "status-volume", fallback: "speaker.wave.2.fill", summary: "Volume"),

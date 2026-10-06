@@ -14,13 +14,13 @@ enum ContentRenderers {
     static func icon(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
         let name = element.arguments.first?.value.stringified ?? ""
         let variable = StyleValues.numberValue(element.property("variable"))
-        return AnyView(IconElement(name: name, fallback: element.property("fallback").plainText, variable: variable,
+        return AnyView(IconElement(name: name, fallback: IconElement.fallback(name, element.property("fallback").plainText), variable: variable,
                                    style: style, context: scope.context))
     }
 
     static func image(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
         let source = element.arguments.first?.value ?? .null
-        let image = scope.context.image(for: source)
+        let image = scope.context.image(for: source, from: element.ir.span.file)
         let fit = element.property("fit").plainText ?? "fit"
         let placeholder = element.property("placeholder").plainText
         return AnyView(ImageElement(image: image, fit: fit, placeholder: placeholder, style: style, context: scope.context))
@@ -156,6 +156,12 @@ struct IconElement: View {
         default:
             Image(systemName: Self.symbol("", fallback: fallback)).font(TextStyle(style).font)
         }
+    }
+
+    static func fallback(_ name: String, _ own: String?) -> String? {
+        if let own { return own }
+        guard let d = ThemeIconCatalog.standard.descriptor(for: name), !d.fallback.isEmpty else { return nil }
+        return d.fallback
     }
 
     static func builtinTarget(_ name: String, fallback: String?) -> String? {

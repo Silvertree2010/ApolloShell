@@ -50,14 +50,17 @@ final class RenderContext {
         return built
     }
 
-    func image(for source: Value) -> NSImage? {
+    func image(for source: Value, from file: String? = nil) -> NSImage? {
         switch source {
         case .image(let ref):
             return ref.source == "app-icon" ? icons.icon(for: source) : imageValue(ref)
         case .string(let path) where !path.isEmpty:
-            if let cached = images[path] { return cached }
-            guard let root = configRoot, let image = SafeImageFile.image(path, root: root) else { return nil }
-            images[path] = image
+            let dir = file.flatMap { $0.hasPrefix("/") ? URL(fileURLWithPath: $0).deletingLastPathComponent() : nil }
+            let key = (dir?.path ?? "") + "\u{0}" + path
+            if let cached = images[key] { return cached }
+            let roots = [dir, configRoot].compactMap { $0 }
+            guard let image = roots.lazy.compactMap({ SafeImageFile.image(path, root: $0) }).first else { return nil }
+            images[key] = image
             return image
         default:
             return nil
@@ -79,6 +82,7 @@ struct RenderScope {
     let parentKind: String
     var outerKind = ""
     var inherits = InheritedParts()
+    var fill = Definite()
 }
 
 @MainActor
@@ -138,12 +142,12 @@ struct ElementView: View {
         let style = styles.resolve(subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
         let plan = Self.plan(element, styles: styles, inherited: scope.inherits, inline: inline)
         let parts = plan.parts, motion = plan.motion
+        let spacer = element.kind == "spacer" && element.property("size") == .null
+        let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
         let inner = RenderScope(context: scope.context, ancestors: scope.ancestors + [subject], parentStyle: style, parentKind: Self.layoutKind(element), outerKind: scope.parentKind,
-                                inherits: InheritedParts(pointer: parts.pointer, cursor: parts.cursor))
+                                inherits: InheritedParts(pointer: parts.pointer, cursor: parts.cursor), fill: fill)
         if element.property("visible") != .bool(false) {
             let fixed = StyleResolver.staticSubject(for: element)
-            let spacer = element.kind == "spacer" && element.property("size") == .null
-            let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
             let mouse = MouseConfig(element, reorder: reorderEntry, canvas: canvasEntry)
             let hover = element.kind == "button" || SelfState.uses(element, "hover") || styles.stateStyled(.hover, fixed)
             let press = SelfState.uses(element, "pressed") || styles.stateStyled(.active, fixed)

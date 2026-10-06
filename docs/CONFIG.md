@@ -516,7 +516,7 @@ Draws a symbol.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
-| property | `fallback` | string | `null` | SF Symbol if the name is not found. |
+| property | `fallback` | string | `null` | SF Symbol or built-in icon (builtin:bluetooth-rune, builtin:apollo-mark, builtin:file-manager-folder) if the name is not found; without it a theme icon name uses its standard fallback. |
 | property | `variable` | number | `null` | Value 0…1 for SF Symbols with levels. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
@@ -531,7 +531,7 @@ Draws an image.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `source` | path | required | Path or image value of a provider. |
+| argument | `source` | path | required | Path, relative to the file the node is written in, else to the config folder; or image value of a provider. |
 | property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
 | property | `class` | string | `null` | CSS classes, separated by spaces. |
 | property | `style` | string | `null` | CSS declarations for this node only. |
@@ -763,8 +763,8 @@ Short feedback such as a volume indicator.
 | property | `layer` | string | `null` | Window level, default per surface kind. |
 | property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
 | property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
-| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
-| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position, away from the anchored edge; for anchors without a left or right edge (top, bottom, center) it counts from the horizontal middle, positive to the right. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
@@ -805,8 +805,8 @@ Covers the whole screen, click-through by default.
 | property | `layer` | string | `null` | Window level, default per surface kind. |
 | property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
 | property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
-| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
-| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position, away from the anchored edge; for anchors without a left or right edge (top, bottom, center) it counts from the horizontal middle, positive to the right. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
@@ -845,8 +845,8 @@ Always-visible surface such as bars, docks, desktop widgets.
 | property | `layer` | string | `null` | Window level, default per surface kind. |
 | property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
 | property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
-| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
-| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position, away from the anchored edge; for anchors without a left or right edge (top, bottom, center) it counts from the horizontal middle, positive to the right. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
@@ -918,8 +918,8 @@ Opens and closes on an action, such as a dashboard or launcher.
 | property | `layer` | string | `null` | Window level, default per surface kind. |
 | property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
 | property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
-| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
-| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position, away from the anchored edge; for anchors without a left or right edge (top, bottom, center) it counts from the horizontal middle, positive to the right. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
@@ -1493,8 +1493,8 @@ Defines how a notification from the toast.show action looks.
 | property | `layer` | string | `null` | Window level, default per surface kind. |
 | property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
 | property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
-| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
-| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position, away from the anchored edge; for anchors without a left or right edge (top, bottom, center) it counts from the horizontal middle, positive to the right. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
@@ -1614,8 +1614,8 @@ A regular macOS window with a title bar.
 | property | `layer` | string | `null` | Window level, default per surface kind. |
 | property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
 | property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
-| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
-| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position, away from the anchored edge; for anchors without a left or right edge (top, bottom, center) it counts from the horizontal middle, positive to the right. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
@@ -1715,6 +1715,7 @@ Inserts an entry into a var list.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `variable` | identifier | required | Name of the var list. |
+| property | `value` | value | `null` | Entry to insert; instead of children. |
 | property | `at` | number | `null` | Insert position, default at the end. |
 | property | `id-from` | string | `null` | Field holding a unique id. |
 | property | `in` | value | `null` | Acts on a list in a field of an entry. |

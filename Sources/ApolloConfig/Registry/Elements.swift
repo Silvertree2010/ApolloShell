@@ -19,7 +19,7 @@ enum Elements {
             category: .element,
             arguments: [ArgumentSchema(name: "name", type: .string, doc: "Name from the theme or SF Symbol.")],
             properties: CommonProperties.elementProperties + [
-                PropertySchema(name: "fallback", type: .string, defaultValue: .null, doc: "SF Symbol if the name is not found."),
+                PropertySchema(name: "fallback", type: .string, defaultValue: .null, doc: "SF Symbol or built-in icon (builtin:bluetooth-rune, builtin:apollo-mark, builtin:file-manager-folder) if the name is not found; without it a theme icon name uses its standard fallback."),
                 PropertySchema(name: "variable", type: .number, defaultValue: .null, doc: "Value 0…1 for SF Symbols with levels."),
             ],
             handlers: CommonProperties.elementHandlers,
@@ -30,7 +30,7 @@ enum Elements {
         NodeSchema(
             name: "image",
             category: .element,
-            arguments: [ArgumentSchema(name: "source", type: .path, doc: "Path or image value of a provider.")],
+            arguments: [ArgumentSchema(name: "source", type: .path, doc: "Path, relative to the file the node is written in, else to the config folder; or image value of a provider.")],
             properties: CommonProperties.elementProperties + [
                 PropertySchema(name: "fit", type: .enumeration(["fill", "fit", "stretch", "center"]), defaultValue: .null, allowsExpression: false, doc: "How the image fits its frame."),
                 PropertySchema(name: "placeholder", type: .string, defaultValue: .null, doc: "Icon name while nothing is loaded."),

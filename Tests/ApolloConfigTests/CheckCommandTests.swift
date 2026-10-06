@@ -212,3 +212,20 @@ struct CheckCommandTests {
         #expect(result.output.contains("error[A201]: unknown node 'buton'"), "\(result.output)")
     }
 }
+
+@Suite("apollo check reicht CSS-Diagnosen durch")
+struct CheckCommandStyleTests {
+    @Test("styleCheck läuft auf der geladenen Config, eine CSS-Warnung erscheint in der Ausgabe")
+    func styleWarnings() {
+        let files = ["/Users/tester/cfg/shell.kdl": "style \"style.css\"\npanel \"p\" { }", "/Users/tester/cfg/style.css": "#p { }"]
+        var seen: [URL] = []
+        let r = CheckCommand.run(arguments: ["/Users/tester/cfg"], environment: CheckHarness.environment, fileSystem: MemoryFileSystem(files),
+                                 executableURL: CheckHarness.executable, styleCheck: { ir in
+                                     seen = ir.styleSheets.map(\.url)
+                                     return [Diagnostic(.warning, "bad css value", code: .fileUnreadable)]
+                                 })
+        #expect(seen.map(\.lastPathComponent) == ["style.css"])
+        #expect(r.output.contains("bad css value"))
+        #expect(r.exitCode == CheckCommand.Exit.ok)
+    }
+}
