@@ -15,6 +15,12 @@ final class ToastClock {
         center.schedule = { [unowned self] delay, work in self.pending.append((delay, work)) }
     }
 
+    func drain() {
+        let due = pending
+        pending.removeAll()
+        for (_, work) in due where !work.isCancelled { work.perform() }
+    }
+
     func advance(to seconds: TimeInterval) {
         time = Date(timeIntervalSinceReferenceDate: seconds)
         let due = pending
@@ -62,6 +68,9 @@ struct ToastStackTests {
             _ = try await harness.shell.runActions("toast.show title=\"\(title)\" kind=\"success\"")
         }
         harness.settle()
+        #expect(titles(harness).isEmpty)
+        clock.drain()
+        harness.settle()
         #expect(harness.runtime.surface("default", screenKey: ShellHarness.a.key)?.isOpen == true)
         #expect(titles(harness) == ["A", "B"])
         #expect(rows(harness).first.flatMap { field($0, "kind") } == .string("success"))
@@ -101,6 +110,7 @@ struct ToastStackTests {
         try await harness.start()
         _ = try await harness.shell.runActions("toast.show title=\"A\" duration=\"10s\"")
         _ = try await harness.shell.runActions("toast.show title=\"B\"")
+        clock.drain()
         harness.settle()
         #expect(titles(harness) == ["B", "A"])
         clock.advance(to: 2)
@@ -125,6 +135,7 @@ struct ToastStackTests {
         try await harness.start()
         _ = try await harness.shell.runActions("toast.show title=\"A\"")
         _ = try await harness.shell.runActions("toast.show title=\"B\"")
+        clock.drain()
         harness.settle()
         #expect(titles(harness) == ["A", "B"])
         harness.shell.shutdown()

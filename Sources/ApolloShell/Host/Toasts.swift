@@ -21,12 +21,14 @@ final class ToastCenter {
         var entries: [Entry] = []
         var tick: DispatchWorkItem?
         var closing: DispatchWorkItem?
+        var entering: DispatchWorkItem?
     }
 
     static let defaultDuration: TimeInterval = 5
     static let defaultMax = 4
     static let closeDelay: TimeInterval = 0.5
     static let tickInterval: TimeInterval = 1
+    static let enterDelay: TimeInterval = 0.05
 
     weak var runtime: ShellRuntime?
     var targetScreen: @MainActor () -> String? = { nil }
@@ -65,6 +67,7 @@ final class ToastCenter {
         for stack in stacks.values {
             stack.tick?.cancel()
             stack.closing?.cancel()
+            stack.entering?.cancel()
         }
         stacks.removeAll()
     }
@@ -82,7 +85,14 @@ final class ToastCenter {
         }
         let visible = Array(stack.entries.prefix(Self.limit(surface)))
         let ordered = surface.property("newest") == .string("first") ? visible.reversed() : visible
-        runtime.setToasts(stack.surfaceID, screenKey: stack.screenKey, ordered.map { Self.record($0, now: current) })
+        if !surface.isOpen, !stack.entries.isEmpty, stack.entering == nil {
+            let work = DispatchWorkItem { [weak self] in
+                MainActor.assumeIsolated { self?.entered(key) }
+            }
+            stack.entering = work
+            schedule(Self.enterDelay, work)
+        }
+        runtime.setToasts(stack.surfaceID, screenKey: stack.screenKey, stack.entering == nil ? ordered.map { Self.record($0, now: current) } : [])
         if stack.entries.isEmpty {
             if stack.closing == nil, surface.isOpen {
                 let work = DispatchWorkItem { [weak self] in
@@ -103,6 +113,13 @@ final class ToastCenter {
             schedule(max(0, min(soonest, Self.tickInterval)), work)
         }
         stacks[key] = stack
+    }
+
+    private func entered(_ key: String) {
+        guard var stack = stacks[key] else { return }
+        stack.entering = nil
+        stacks[key] = stack
+        refresh(key)
     }
 
     private func finishClosing(_ key: String) {
