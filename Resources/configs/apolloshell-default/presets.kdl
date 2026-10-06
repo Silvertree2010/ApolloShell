@@ -40,6 +40,17 @@ var bm persist=#true {
     - id="pw" on=#true
 }
 
+var bmk {
+    - id="logo"
+    - id="ws"
+    - id="dock"
+    - id="win"
+    - id="tray"
+    - id="clk"
+    - id="st"
+    - id="pw"
+}
+
 var hotkey-launcher "alt+space" persist=#true
 var hotkey-dashboard "ctrl+alt+d" persist=#true
 var hotkey-utilities "ctrl+alt+u" persist=#true

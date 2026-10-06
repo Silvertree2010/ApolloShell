@@ -34,7 +34,8 @@ define "m-ws" {
 
 define "m-dock" {
     param "e" default=#false
-    column id="i-dock{e ? '-e' : ''}" class="dock" {
+    scroll id="i-dock{e ? '-e' : ''}" class="docks" {
+        column class="dock" {
         each a in="{apps.dock}" key="{a.bundle-id}" {
             button class="dock-item {a.active ? 'front' : ''}" tooltip="{a.name}" checked="{a.active}" {
                 on-click { apps.click "{a}" }
@@ -44,6 +45,7 @@ define "m-dock" {
                     when "{a.running}" { shape "circle" class="dock-running-dot" }
                 }
             }
+        }
         }
     }
 }

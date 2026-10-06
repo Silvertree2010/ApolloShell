@@ -104,6 +104,16 @@ define "pg-bar" {
                     }
                 }
             }
+            each k in="{var.bmk}" key="{k.id}" {
+                when "{!((var.bm | map 'id') | contains k.id)}" {
+                    row class="mrow" {
+                        icon "plus.circle" class="mgrip"
+                        text "{k.id == 'dock' ? 'Dock' : k.id}"
+                        spacer
+                        button class="pill pill2" { on-click { list.insert "bm" { - id="{k.id}" on=#true } }; text "Add" }
+                    }
+                }
+            }
             row class="srow" {
                 button class="pill pill2" { on-click { set "edit" #true }; text "Edit on the Bar" }
                 button class="pill pill2" { on-click { reset "bm" }; text "Restore Defaults" }

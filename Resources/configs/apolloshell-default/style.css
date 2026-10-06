@@ -142,7 +142,7 @@
 
 .cwx { width: 240px; height: 96px; padding: 0 20px; justify-content: center; }
 .wxr { gap: 14px; align-items: center; }
-.wxi { font-size: 38px; -apollo-symbol-rendering: hierarchical; }
+.wxi { font-size: 38px; color: var(--ac); -apollo-symbol-rendering: hierarchical; }
 .wxi0 { font-size: 30px; color: var(--ac); }
 .wxc { gap: 1px; }
 .wxt { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -269,7 +269,7 @@
 
 .pwx { gap: 12px; }
 .wxh { width: 400px; padding: 18px 22px; gap: 20px; align-items: center; }
-.wxhi { font-size: 64px; -apollo-symbol-rendering: hierarchical; }
+.wxhi { font-size: 64px; color: var(--ac); -apollo-symbol-rendering: hierarchical; }
 .wxhc { gap: 2px; }
 .wxht { font-size: 44px; font-weight: 300; font-variant-numeric: tabular-nums; }
 .wxd { width: 420px; gap: 12px; }
@@ -280,13 +280,13 @@
 .wxhr { width: 72px; gap: 8px; padding: 6px 0; border-radius: 14px; align-items: center; }
 .wxhr:checked { background: var(--f2); }
 .wxhl { font-size: 11px; color: var(--tx2); }
-.wxhs-i { font-size: 20px; -apollo-symbol-rendering: hierarchical; height: 24px; }
+.wxhs-i { font-size: 20px; color: var(--tx2); -apollo-symbol-rendering: hierarchical; height: 24px; }
 .wxhv { font-size: 13px; font-weight: 600; }
 .wxdays { gap: 12px; }
 .wxday { flex-grow: 1; flex-basis: 0; padding: 10px 0; gap: 6px; align-items: center; }
 .wxday:checked { background: rgb(from -apple-system-control-accent r g b / 0.14); }
 .wxdl { font-size: 12px; font-weight: 600; }
-.wxdi { font-size: 22px; -apollo-symbol-rendering: hierarchical; height: 26px; }
+.wxdi { font-size: 22px; color: var(--tx2); -apollo-symbol-rendering: hierarchical; height: 26px; }
 .wxdv { font-size: 14px; font-weight: 600; }
 .pwx0 { width: 520px; height: 260px; gap: 8px; align-items: center; justify-content: center; }
 .wx0i { font-size: 48px; color: var(--tx3); -apollo-symbol-rendering: hierarchical; }
@@ -491,3 +491,4 @@
 .dkw { width: 36px; height: 36px; align-items: center; justify-content: center; }
 .dki { width: 28px; height: 28px; -apollo-badge-color: var(--red); -apollo-badge-offset: 3px -3px; -apollo-badge-appear: scale(0.4) 0.4s var(--sp), fade 0.2s var(--fx); }
 .dock-running-dot { width: 4px; height: 4px; background: var(--tx2); align-self: start; margin-left: -1px; }
+.docks { width: 40px; max-height: 320px; border-radius: 20px; -apollo-fade-edges: 14px; }
