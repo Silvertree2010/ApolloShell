@@ -362,8 +362,6 @@ struct BackgroundLayers: View {
     @Environment(\.renderMode) private var renderMode
     @Environment(\.colorScheme) private var colorScheme
 
-    static let glassStandInLight = Color(white: 0.95)
-    static let glassStandInDark = Color(white: 0.17)
 
     var glassClear: Bool {
         style.customProperties["--render-glass"]?.trimmingCharacters(in: .whitespaces).lowercased() == "clear"
@@ -400,7 +398,7 @@ struct BackgroundLayers: View {
                 if glassClear {
                     Color.clear
                 } else {
-                    shape.fill(colorScheme == .dark ? Self.glassStandInDark : Self.glassStandInLight)
+                    GlassStandIn(shape: shape, variant: variant, tint: tint, dark: colorScheme == .dark)
                 }
             } else {
                 Color.clear.glassEffect(StyleValues.glass(variant, tint: tint), in: shape)
@@ -433,6 +431,32 @@ struct BackgroundLayers: View {
                     }
                 }
             }
+        }
+    }
+}
+
+struct GlassStandIn: View {
+    let shape: AnyShape
+    let variant: GlassVariant
+    let tint: CSSColor?
+    let dark: Bool
+
+    var body: some View {
+        let thin = variant == .clear
+        ZStack {
+            shape.fill(Color(white: dark ? 0.16 : 1).opacity(thin ? 0.22 : 0.62))
+            if let tint {
+                shape.fill(StyleValues.color(tint).opacity(min(1, Self.alpha(tint)) > 0.7 ? 0.7 / Self.alpha(tint) : 1))
+            }
+            shape.stroke(Color.white.opacity(dark ? 0.22 : 0.6), lineWidth: 2).clipShape(shape)
+        }
+    }
+
+    static func alpha(_ c: CSSColor) -> Double {
+        switch c {
+        case let .rgba(_, _, _, a): a
+        case let .system(_, a): a
+        case .currentColor: 1
         }
     }
 }
