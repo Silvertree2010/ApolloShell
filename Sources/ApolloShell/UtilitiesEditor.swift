@@ -204,9 +204,9 @@ enum UtilitiesEditorPreviewModel {
         keepAwakeSince: nil, wifiOn: true, micMuted: false, bluetoothOn: true, darkMode: true, nightShift: false,
         volume: 0.6,
         audioDevices: [
-            UtilitiesAudioDevice(id: 1, name: "Lautsprecher", outputStreams: 1, inputStreams: 0,
+            UtilitiesAudioDevice(id: 1, name: "Speakers", outputStreams: 1, inputStreams: 0,
                                  canBeDefaultOutput: true, canBeDefaultInput: false, hidden: false),
-            UtilitiesAudioDevice(id: 2, name: "Mikrofon", outputStreams: 0, inputStreams: 1,
+            UtilitiesAudioDevice(id: 2, name: "Microphone", outputStreams: 0, inputStreams: 1,
                                  canBeDefaultOutput: false, canBeDefaultInput: true, hidden: false),
         ],
         defaultOutput: 1, defaultInput: 2

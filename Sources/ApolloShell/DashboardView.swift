@@ -50,6 +50,7 @@ struct DashboardView: View {
             .padding(Self.padding)
         }
         .fixedSize()
+        .temperatureUnit(from: settings)
     }
 
     private func tabBar(tabs: [DashboardTab], selected: DashboardTab) -> some View {

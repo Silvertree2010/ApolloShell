@@ -18,6 +18,7 @@ import SwiftUI
 /// gleichnamige Typen im Modul sind ein Fehler, auch wenn einer privat ist.
 struct SmallWeatherCard: View {
     let model: WeatherModel
+    @Environment(\.temperatureUnit) private var unit
     /// Nexus > Dashboard; die Vorgabe zeigt alles wie Caelestia.
     var options = DashboardWeatherOptions()
     var vertical = false
@@ -59,7 +60,7 @@ struct SmallWeatherCard: View {
             let current = report.current
             WeatherSymbol(name: WeatherCondition.symbol(code: current.code, isDay: current.isDay), size: 46)
             VStack(alignment: alignment, spacing: 1) {
-                Text(WeatherText.temperature(current.temperature, unit: model.unit))
+                Text(WeatherText.temperature(current.temperature, unit: unit))
                     .font(.system(size: 34, weight: .semibold, design: .rounded))
                 if options.showCondition {
                     Text(WeatherCondition.description(code: current.code))
@@ -67,7 +68,7 @@ struct SmallWeatherCard: View {
                         .lineLimit(2)
                 }
                 if options.showRange, let today = report.today(now: now) {
-                    Text(WeatherText.range(max: today.maxTemperature, min: today.minTemperature, unit: model.unit))
+                    Text(WeatherText.range(max: today.maxTemperature, min: today.minTemperature, unit: unit))
                         .font(style.font(size: 11))
                         .foregroundStyle(.secondary)
                 }
@@ -116,9 +117,9 @@ struct WeatherTab: View {
                     WeatherHero(report: report, model: model, now: now,
                              stand: model.standText(now: now))
                         .frame(height: Self.heroHeight)
-                    WeatherHourly(slots: report.hourlyStrip(now: now), calendar: report.calendar, unit: model.unit)
+                    WeatherHourly(slots: report.hourlyStrip(now: now), calendar: report.calendar)
                         .frame(height: Self.hourlyHeight)
-                    WeatherDaily(days: report.upcomingDays(now: now), now: now, calendar: report.calendar, unit: model.unit)
+                    WeatherDaily(days: report.upcomingDays(now: now), now: now, calendar: report.calendar)
                 }
             } else if model.location == nil {
                 VStack(spacing: 10) {
@@ -234,6 +235,7 @@ private struct WeatherHero: View {
     let model: WeatherModel
     let now: Date
     let stand: String?
+    @Environment(\.temperatureUnit) private var unit
     @Environment(\.shellStyle) private var style
 
     var body: some View {
@@ -243,7 +245,7 @@ private struct WeatherHero: View {
             HStack(spacing: 18) {
                 WeatherSymbol(name: WeatherCondition.symbol(code: current.code, isDay: current.isDay), size: 56)
                     .frame(width: 72)
-                Text(WeatherText.temperature(current.temperature, unit: model.unit))
+                Text(WeatherText.temperature(current.temperature, unit: unit))
                     .font(.system(size: 60, weight: .medium, design: .rounded))
                     .fixedSize()
                 VStack(alignment: .leading, spacing: 3) {
@@ -294,9 +296,9 @@ private struct WeatherHero: View {
     private func summary(current: CurrentWeather, today: DayForecast?) -> String {
         var parts: [String] = []
         if let feels = current.apparentTemperature {
-            parts.append(String(localized: "Feels like \(WeatherText.temperature(feels, unit: model.unit))"))
+            parts.append(String(localized: "Feels like \(WeatherText.temperature(feels, unit: unit))"))
         }
-        if let today { parts.append(WeatherText.range(max: today.maxTemperature, min: today.minTemperature, unit: model.unit)) }
+        if let today { parts.append(WeatherText.range(max: today.maxTemperature, min: today.minTemperature, unit: unit)) }
         return parts.joined(separator: " · ")
     }
 }
@@ -350,7 +352,7 @@ private struct WeatherStat: View {
 private struct WeatherHourly: View {
     let slots: [HourSlot]
     let calendar: Calendar
-    let unit: TemperatureUnit
+    @Environment(\.temperatureUnit) private var unit
     @Environment(\.shellStyle) private var style
 
     var body: some View {
@@ -383,7 +385,7 @@ private struct WeatherDaily: View {
     let days: [DayForecast]
     let now: Date
     let calendar: Calendar
-    let unit: TemperatureUnit
+    @Environment(\.temperatureUnit) private var unit
     @Environment(\.shellStyle) private var style
 
     var body: some View {

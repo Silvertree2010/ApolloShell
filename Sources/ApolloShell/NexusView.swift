@@ -186,6 +186,7 @@ struct NexusView: View {
         // Mit Theme faerbt `--apollo-surface-color` auch das Fenster. Ohne
         // Theme bleibt es beim Fenster von macOS, samt Glas der Seitenleiste.
         .themedWindowBackground(style)
+        .temperatureUnit(from: settings)
     }
 }
 

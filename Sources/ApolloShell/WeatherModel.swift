@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import ApolloShellCore
 import Observation
 import os
@@ -98,10 +99,6 @@ final class WeatherModel {
         model.fetchedAt = fetchedAt
         model.lastAttemptFailed = lastAttemptFailed
         return model
-    }
-
-    var unit: TemperatureUnit {
-        settings?.settings.weather.unit ?? .celsius
     }
 
     /// "Wetterdaten: Open-Meteo" samt Link - fuer die angezeigten Daten.
@@ -273,5 +270,30 @@ final class WeatherModel {
 
     private struct HTTPStatus: Error {
         let code: Int
+    }
+}
+
+private struct TemperatureUnitKey: EnvironmentKey {
+    static let defaultValue = TemperatureUnit.celsius
+}
+
+extension EnvironmentValues {
+    var temperatureUnit: TemperatureUnit {
+        get { self[TemperatureUnitKey.self] }
+        set { self[TemperatureUnitKey.self] = newValue }
+    }
+}
+
+struct TemperatureUnitScope: ViewModifier {
+    let settings: ShellSettingsStore
+
+    func body(content: Content) -> some View {
+        content.environment(\.temperatureUnit, settings.settings.weather.unit)
+    }
+}
+
+extension View {
+    func temperatureUnit(from settings: ShellSettingsStore) -> some View {
+        modifier(TemperatureUnitScope(settings: settings))
     }
 }

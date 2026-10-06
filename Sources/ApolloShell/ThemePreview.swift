@@ -11,6 +11,7 @@ import SwiftUI
 struct ThemePreview: View {
     let theme: Theme
     let dark: Bool
+    @Environment(\.temperatureUnit) private var unit
 
     var body: some View {
         let style = ShellStyle(theme: theme, dark: dark)
@@ -103,7 +104,7 @@ struct ThemePreview: View {
             // Card
             VStack(alignment: .leading, spacing: 3) {
                 Text("Weather").font(style.font(size: 6)).foregroundStyle(style.secondaryText)
-                Text("18°").font(style.font(size: 14, weight: .semibold)).foregroundStyle(style.text)
+                Text(WeatherText.temperature(18, unit: unit)).font(style.font(size: 14, weight: .semibold)).foregroundStyle(style.text)
                 Capsule().fill(style.accent).frame(width: 60, height: 3)
             }
             .padding(8)
